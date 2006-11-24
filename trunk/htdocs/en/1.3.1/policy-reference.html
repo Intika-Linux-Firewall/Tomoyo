@@ -1,0 +1,897 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>Policy Specifications of TOMOYO Linux</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<hr>
+<h1 style="text-align:center;">Policy Specifications of TOMOYO Linux</h1>
+<p style="text-align:right;">Last modified: $Date: 2006-11-21 21:53:39 +0900 (Tue, 21 Nov 2006) $ UT</p>
+<h1><a name="index">Index</a></h1>
+<h2><a href="#Introduction">1. Introduction</a></h2>
+<p><a href="#word_definition">1.1 Word definition</a></p>
+<p><a href="#domain_and_transition">1.2 Domain definitions and Domain transitions rule</a></p>
+<h2><a href="#policy_files_and_syntaxes">2. Types and syntaxes of policy files</a></h2>
+<p><a href="#manager.txt">2.1 Policy Manager Definition (manager.txt)</a></p>
+<p><a href="#status.txt">2.2 Profile Definition (status.txt)</a></p>
+<p><a href="#system_policy.txt">2.3 System policy (system_policy.txt)</a></p>
+<p><a href="#domain_policy.txt">2.4 Domain policy (domain_policy.txt)</a></p>
+<p><a href="#exception_policy.txt">2.5 Exception policy (exception_policy.txt)</a></p>
+<p><a href="#mapping.txt">2.6 Mapping Definition (mapping.txt)</a></p>
+<h2><a href="#/proc/ccs/">3. /proc/ccs/ interface</a></h2>
+<p><a href="#status">3.1 status</a></p>
+<p><a href="#policy/system_policy">3.2 policy/system_policy</a></p>
+<p><a href="#policy/domain_policy">3.3 policy/domain_policy</a></p>
+<p><a href="#policy/exception_policy">3.4 policy/exception_policy</a></p>
+<p><a href="#policy/query">3.5 policy/query</a></p>
+<p><a href="#policy/manager">3.6 policy/manager</a></p>
+<p><a href="#policy/.domain_status">3.7 policy/.domain_status</a></p>
+<p><a href="#info/meminfo">3.8 info/meminfo</a></p>
+<p><a href="#info/grant_log">3.9 info/grant_log</a></p>
+<p><a href="#info/reject_log">3.10 info/reject_log</a></p>
+<p><a href="#info/self_domain">3.11 info/self_domain</a></p>
+<p><a href="#info/mapping">3.12 info/mapping</a></p>
+<p><a href="#info/.process_status">3.13 info/.process_status</a></p>
+<p><a href="#info/.updates_counter">3.14 info/.updates_counter</a></p>
+<hr>
+<h1><a name="Introduction">1. Introduction</a></h1>
+<h2><a name="word_definition">1.1 Word definition</a></h2>
+<table border="1">
+<tr>
+<td>Canonicalized Pathname</td>
+<td>A pathname that begins with "/" and contain neither symbolic links, "/./", "//" nor "/../" . (There is one exception. Process information directory for current process that is accessible via "/proc/self/" directory is represented as is.)<br>
+Even if a process is running under chroot'ed environment, Canonicalized Pathname is calculated from outside the chroot'ed environment.<br>
+Canonicalized Pathname contains only ASCII printable range (from 0x21 to 0x7E) characters. Thus, "\" character (0x5C) itself is represented as "\\", and all other non-printable characters (from 0x01 to 0x20, from 0x7F to 0xFF) are represented using octal expressions("\ooo") (for example, the space character (0x20) is represented as "\040").</td>
+</tr>
+<tr>
+<td>Canonicalized Directory</td>
+<td>A Canonicalized Pathname that ends with "/".</td>
+</tr>
+<tr>
+<td>Canonicalized File</td>
+<td>A Canonicalized Pathname that doesn't end with "/".<br>
+Canonicalized File includes all file types other than directory (i.e. regular file, character device, block device, FIFO, symbolic link, socket).</td>
+</tr>
+<tr>
+<td>PROGRAM</td>
+<td>A Canonicalized File that is executable.</td>
+</tr>
+<tr>
+<td>Domain</td>
+<td>An attribute that is used for MAC (Mandatory Access Control).</td>
+</tr>
+<tr>
+<td>Destination Domain</td>
+<td>A domain that the process will belong to if the process successfully executes a PROGRAM.</</tr>
+<tr>
+<td>Target Domain</td>
+<td>A domain that the target process belongs to.</td>
+</tr>
+</table>
+<h2><a name="domain_and_transition">1.2 Domain definitions and Domain transitions rule</a></h2>
+<p>In TOMOYO Linux, every process belongs to a single domain, and all PROGRAM belong to different domain.<br>
+Even the two processes are executing the same PROGRAM, if their previous domains differ, they belong to different domain.</p>
+<p>All domains are defined originating from "&lt;kernel&gt;" domain, which the kernel process belongs to.<br>
+Since /sbin/init is invoked by the "&lt;kernel&gt;" domain, the domain for /sbin/init is defined as "&lt;kernel&gt; /sbin/init".<br>
+Since /etc/rc.d/rc is invoked by /sbin/init invoked by the kernel, the domain for /etc/rc.d/rc is defined as "&lt;kernel&gt; /sbin/init /etc/rc.d/rc".</p>
+<p>There are some PROGRAMs that behave differently depending on the invocation name.<br>
+For example, /sbin/pidof is a symbolic link to /sbin/killall5 .<br>
+Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed.</p>
+<p>When a process tries to execute a PROGRAM, the following steps are performed.</p>
+
+<table border="1">
+<tr><td>Step</td><td>Procedure</td></tr>
+<tr><td>Getting program's name</td><td>
+<p>Get the name of PROGRAM that the process is going to execute and keep it as "Candidate 1". This procedure dereferences if the program is a symbolic link.</p>
+<p>Get the name of PROGRAM that the process is going to execute and keep it as "Candidate 2". This procedure does NOT dereference if the program is a symbolic link.</p>
+</td></tr>
+<tr><td>Handling symbolic links</td><td>
+<p>If "Candidate 1" and "Candidate 2" differ, check whether the pair of "Candidate 1" and "Candidate 2" is declared with "alias" directives in exception policy. If declared, replace "Candidate 1" with "Candidate 2".</p>
+</td></tr>
+<tr><td>Aggregating similar programs</td><td>
+<p>Check whether the "Candidate 1" matches to the pathname patterns declared with "aggregator" directives in exception policy. If they match, replace "Candidate 1" with the pathname declared with "aggregator" directives.</p>
+</td></tr>
+<tr><td>Checking argv[0]</td><td>
+<p>Check whether the combination of "Candidate 2" and argv[0] is allowed by "allow_argv0" directive if the basename of "Candidate 2" and the basename of argv[0] differ.</p>
+</td></tr>
+<tr><td>Checking permission</td><td>
+<p>Check whether Source domain is allowed to execute "Candidate 1".</p>
+</td></tr>
+<tr><td>Deciding Destination domain</td><td>
+<p>Check whether "Candidate 1" matches to the pathnames declared with "initializer" directives in exception policy.
+If they match, concatenate the name of the domain that the kernel belongs to (i.e. &lt;kernel&gt;) and "Candidate 1" and keep the result as Destination domain, and check whether the Destination domain is defined.</p>
+<p>If they don't match, check whether the name of the domain the current process belongs to is registered with "keep_domain" directives in exception policy. If so, keep the name of the domain the current process belongs to as Destination domain.</p>
+<p>If not, concatenate the name of the domain the current process belongs to and "Candidate 1" and keep the result as Destination domain, and check whether the Destination domain is defined.</p>
+</td></tr>
+<tr><td>Domain transition</td><td>
+<p>Regular steps for executing PROGRAM are performed.</p>
+<p>If the regular steps for executing PROGRAM successfully completed, the process transits to Destination domain</p>
+</td></tr>
+</table>
+
+<hr>
+<h1><a name="policy_files_and_syntaxes">2. Types and syntaxes of policy files</a></h1>
+<p>All policy files are kept in /etc/ccs/ directory. Files in this directory are loaded just before starting /sbin/init by /.init .</p>
+<h2><a name="manager.txt">2.1 Policy Manager Definitions (manager.txt)</a></h2>
+<p>Since it is not secure that all processes can modify policies, this file defines PROGRAM that can do write access to /proc/ccs/ interface.</p>
+<p>PROGRAM that are not declared in this file cannot do write access to /proc/ccs/ interface. If you don't allow policy updates at production state, delete this file.</p>
+<p>(Example)<br>
+/root/ccstools/loadpolicy<br>
+/root/ccstools/editpolicy<br>
+/root/ccstools/setlevel<br>
+/root/ccstools/setprofile<br>
+/root/ccstools/ld-watch<br>
+/root/ccstools/ccs-queryd</p>
+<h2><a name="status.txt">2.2 Profile Definition (status.txt)</a></h2>
+<p>TOMOYO Linux can perform several MACs besides MAC for files, but to reduce the load of policy managements, you can disable MACs you think unnecessary.</p>
+<table border="1">
+<tr>
+<td>Variable</td>
+<td>Meaning</td>
+<td>Accept mode support</td>
+</tr>
+<tr>
+<td>MAC_FOR_FILE</td>
+<td>Enable Mandatory Access Control(MAC) for files.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_ARGV0</td>
+<td>Enable MAC for argv[0] checks.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_CAPABILITY::***</td>
+<td>Enable MAC for capabilities.<br>
+The *** matches to values that can be given using allow_capability directive described in <a href="#domain_policy.txt">Domain policy</a>.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_NETWORK</td>
+<td>Enable MAC for network addresses and ports.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_BINDPORT</td>
+<td>Enable MAC for local ports. This is a subset of MAC_FOR_NETWORK.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_CONNECTPORT</td>
+<td>Enable MAC for remote ports. This is a subset of MAC_FOR_NETWORK.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_SIGNAL</td>
+<td>Enable MAC for signal.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>DENY_CONCEAL_MOUNT</td>
+<td>Forbid mount requests that hides an existing mount.</td>
+<td>No</td>
+</tr>
+<tr>
+<td>RESTRICT_CHROOT</td>
+<td>Enable restrictions for chroot directories.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>RESTRICT_MOUNT</td>
+<td>Enable restrictions for mount parameters.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>RESTRICT_UNMOUNT</td>
+<td>Forbid unmount requests for specified directories.</td>
+<td>No</td>
+</tr>
+<tr>
+<td>DENY_PIVOT_ROOT</td>
+<td>Forbid pivot_root requests.</td>
+<td>No</td>
+</tr>
+<tr>
+<td>RESTRICT_AUTOBIND</td>
+<td>Forbid selecting specific local port number when automatic local port binding happens.</td>
+<td>No</td>
+</tr>
+<tr>
+<td>TRACE_READONLY</td>
+<td>Dump Canonicalized Pathname that write requests failed due to read only filesystem.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>MAX_ACCEPT_FILES</td>
+<td>Limits the max number of file ACL entries that are automatically appended during accept mode.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>MAX_GRANT_LOG</td>
+<td>Limits the max number of grant logs that the kernel can hold.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>MAX_REJECT_LOG</td>
+<td>Limits the max number of reject logs that the kernel can hold.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>TOMOYO_VERBOSE</td>
+<td>Dump domain policy violation messages to syslog.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ALLOW_ENFORCE_GRACE</td>
+<td>Allow administrator judge access requests that violates policy in enforce mode interactively.</td>
+<td>-</td>
+</tr>
+</table>
+<p>You can give the following values for TRACE_READONLY and RESTRICT_AUTOBIND</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Off. Works as if regular kernel.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>On.</td>
+</tr>
+</table>
+<p>You can give the following values for MAX_ACCEPT_FILES</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>any integer</td>
+<td>The max number of file ACL entries that are automatically appended during accept mode.<br>
+The default is given at the kernel compilation time.</td>
+</tr>
+</table>
+<p>You can give the following values for MAX_GRANT_LOG and MAX_REJECT_LOG</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>any integer</td>
+<td>The max number of logs that the kernel can hold.<br>
+The default is given at the kernel compilation time.</td>
+</tr>
+</table>
+<p>You can give the following values for TOMOYO_VERBOSE</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Don't dump domain policy violation messages.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Dump domain policy violation messages.</td>
+</tr>
+</table>
+<p>You can give the following values for ALLOW_ENFORCE_GRACE</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Reject immediately if the access requests that violated policy in enforce mode.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Allow administrator judge the access requests that violated policy in enforce mode interactively.</td>
+</tr>
+</table>
+<p>You can give the following values for all but listed above.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Disabled. Works as if regular kernel.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Accept mode. Not rejected if the request violates policy. Automatically appended to policy.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Permissive mode. Not rejected if the request violates policy. Not appended to policy automatically.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Enforce mode. Rejected if the request violates policy.</td>
+</tr>
+</table>
+
+<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To switch profiles currently assigned to domains, use "setprofile" command. The currently assigned profile number are kept in the <a href="#domain_policy.txt">Domain policy (domain_policy.txt)</a> using "use_profile" directive.</p>
+
+<h2><a name="system_policy.txt">2.3 System policy (system_policy.txt)</a></h2>
+<p>This file contains permissions that apply to the entire system. The following 4 types of permissions are declared.</p>
+<ul>
+<li>Mount permission</li>
+<li>Directories that don't allow to be unmounted</li>
+<li>Directories that are allowed to chroot to</li>
+<li>Local ports that don't allow to be bound automatically</li>
+</ul>
+<h3>Mount permission</h3>
+<p>To grant mount permission, use allow_mount directive followed by "$devicefile $mountpoint $filesystem $options".<br>
+The $devicefile need to be a Canonicalized File if the $filesystem requires device file.<br>
+The $mountpoint must be a Canonicalized Directory.<br>
+The $options are the choice of dev,nodev,exec,noexec,suid,nosuid,rw,ro,atime,noatime,diratime,nodiratime,recurse,norecurse. The $options overrides the user's requests. For example, if rw is given for $options, the kernel will mount for read-write even if the user requested to mount for read-only. The $options can be omitted.</p>
+
+<p>To grant "mount -o remount $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --remount $options".</p>
+
+<p>To grant "mount --bind $source_dir $dest_dir" and "mount --move $source_dir $dest_dir" permission, use allow_mount directive followed by "$source_dir $dest_dir --bind" and "$source_dir $dest_dir --move" respectively. The $source_dir and $dest_dir must be Canonicalized Directory.</p>
+
+<p>Kernel 2.6.15 and later supports "Shared Subtree" functionality.<br>
+To grant "mount --make-unbindable $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-unbindable $options".<br>
+To grant "mount --make-private $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-private $options".<br>
+To grant "mount --make-slave $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-slave $options".<br>
+To grant "mount --make-shared $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-shared $options".<br>
+The $options are either recurse or norecurse. The $options overrides the user's requests. For example, if recurse is given for $options, the kernel will mount for recurse even if the user requested to mount for norecurse. The $options can be omitted.</p>
+<h3>Directories that don't allow to be unmounted</h3>
+<p>To reject unmount request, use deny_unmount directive followed by a Canonicalized Directory.</p>
+<p>Usually, specify /dev/ directory (that contains /dev/tty? used by /sbin/mingetty) and /dev/pts/ directory (that are used to create pty device files for remote login).</p>
+<p>If /dev/ becomes read-only or /dev/pts/ is unmounted, you can't login to the system.<br>
+Therefore /dev/ and /dev/pts/ must not be unmounted for systems where / is read-only.</p>
+<h3>Directories that are allowed to chroot to</h3>
+<p>To grant chroot permission, use allow_chroot directive followed by a Canonicalized Directory.</p>
+<p>Usually, grant /var/empty/sshd/ that sshd uses.<br>
+In addition, if you have applications that runs in the chroot'ed environment or applications that uses chroot (for example, /usr/share/empty/ is used by vsftpd), grant such directories too.</p>
+<h3>Local ports that don't allow to be bound automatically</h3>
+<p>To prevent specific local port from being selected automatically, use deny_autobind directive followed by local port number.</p>
+<p>This directive is intended to prevent specific local port from being bound for temporary use.<br>
+For example, some proxy server uses local port 8080, so port 8080 should not be bound by other PROGRAMs for temporary use.</p>
+<h3>(Example)</h3>
+<table border="0">
+<tr>
+<td>allow_mount</td>
+<td>none</td>
+<td>/dev/pts/</td>
+<td>devpts</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>/proc</td>
+<td>/proc/</td>
+<td>proc</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>usbdevfs</td>
+<td>/proc/bus/usb/</td>
+<td>usbdevfs</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>none</td>
+<td>/data/</td>
+<td>tmpfs nosuid,nodev,noexec</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>none</td>
+<td>/dev/shm/</td>
+<td>tmpfs nosuid,nodev,noexec</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>/dev/hdc</td>
+<td>/var/www/</td>
+<td>ext2 ro,nosuid,nodev,noexec</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>any</td>
+<td>/</td>
+<td>--remount</td>
+</tr>
+<tr>
+<td>deny_unmount</td>
+<td>/dev/</td>
+</tr>
+<tr>
+<td>deny_unmount</td>
+<td>/dev/pts/</td>
+</tr>
+<tr>
+<td>deny_unmount</td>
+<td>/proc/</td>
+</tr>
+<tr>
+<td>allow_chroot</td>
+<td>/var/empty/sshd/</td>
+</tr>
+<tr>
+<td>allow_chroot</td>
+<td>/usr/share/empty/</td>
+</tr>
+<tr>
+<td>allow_chroot</td>
+<td>/var/www/html/</td>
+</tr>
+<tr>
+<td>allow_chroot</td>
+<td>/</td>
+</tr>
+<tr>
+<td>deny_autobind</td>
+<td>1-1023</td>
+</tr>
+<tr>
+<td>deny_autobind</td>
+<td>8080</td>
+</tr>
+</table>
+<h2><a name="domain_policy.txt">2.4 Domain policy (domain_policy.txt)</a></h2>
+<p>This file contains permissions that apply to domain. The following 7 types of permissions are declared.</p>
+<ul>
+<li>MAC for files</li>
+<li>MAC for argv[0]</li>
+<li>MAC for capabilities</li>
+<li>MAC for network addresses and ports</li>
+<li>MAC for local ports</li>
+<li>MAC for remote ports</li>
+<li>MAC for signals</li>
+</ul>
+
+<p>You may specify additional condition for each permissions as needed. The syntax for additional condition is described later.</p>
+
+<p>This file contains all domain definitions. Lines from the next line to a domain definition to the previous line to the next domain definitions are interpreted as access permissions for that domain.</p>
+<h3>MAC for files</h3>
+
+<P>To grant file permission, use the following directives.</P>
+<table border="1">
+<tr><td>Directive</td><td>Granted Operation</td><td>Example</td></tr>
+<tr><td>1</td><td>Execute</td><td>1 /bin/ls</td></tr>
+<tr><td>2</td><td>Write</td><td>2 /dev/null</td></tr>
+<tr><td>3</td><td>Write and Execute</td><td>&nbsp;</td></tr>
+<tr><td>4</td><td>Read</td><td>4 /proc/meminfo</td></tr>
+<tr><td>5</td><td>Read and Execute</td><td>&nbsp;</td></tr>
+<tr><td>6</td><td>Read and Write</td><td>6 /dev/null</td></tr>
+<tr><td>7</td><td>Read and Write and Execute</td><td>&nbsp;</td></tr>
+<tr><td>allow_create</td><td>Create regular file</td><td>allow_create /var/lock/subsys/crond</td></tr>
+<tr><td>allow_unlink</td><td>Delete non-directory</td><td>allow_unlink /var/lock/subsys/crond</td></tr>
+<tr><td>allow_mkdir</td><td>Create directory</td><td>allow_mkdir /tmp/logwatch.\*/</td></tr>
+<tr><td>allow_rmdir</td><td>Remove directory</td><td>allow_rmdir /tmp/logwatch.\*/</td></tr>
+<tr><td>allow_mkfifo</td><td>Create FIFO</td><td>allow_mkfifo /dev/initctl</td></tr>
+<tr><td>allow_mksock</td><td>Create UNIX domain socket</td><td>allow_mksock /dev/log</td></tr>
+<tr><td>allow_mkblock</td><td>Create block device file</td><td>allow_mkblock /dev/\*</td></tr>
+<tr><td>allow_mkchar</td><td>Create character device file</td><td>allow_mkchar /dev/\*</td></tr>
+<tr><td>allow_truncate</td><td>Truncate or expand</td><td>allow_truncate /etc/mtab</td></tr>
+<tr><td>allow_symlink</td><td>Create symbolic link</td><td>allow_symlink /dev/cdrom</td></tr>
+<tr><td>allow_link</td><td>Create hard link</td><td>allow_link /etc/mtab~\$ /etc/mtab~</td></tr>
+<tr><td>allow_rename</td><td>Rename</td><td>allow_rename /etc/mtab.tmp /etc/mtab</td></tr>
+<tr><td>allow_rewrite</td><td>Overwrite</td><td>allow_rewrite /var/log/messages</td></tr>
+</table>
+
+<p>You may use wildcards for directives other than 1 3 5 and 7. You should avoid using directives 3 5 and 7 as hard as possible.</p>
+
+<p>You may use one of directives 2 3 6 or 7 in place with directives that starts with "allow_" via <a href="#mapping.txt">Mapping Definition</a>.</p>
+
+<h3>MAC for argv[0]</h3>
+
+<p>To restrict the contents of argv[0], use allow_argv0 directive followed by "the pathname of program without dereferencing symbolic links" and "the basename part of argv[0]".</p>
+
+<p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[], sometimes, there are programs that behave differently depending on the basename of argv[0]. The busybox is an example. The domain transition of TOMOYO Linux is done based on the contents of filename. In most cases, the basename of filename and the basename of argv[0] are identical and are no problem, but there are programs such as binary wrapper that intentionally pass different filename and argv[0]. For example, passing /bin/ls which is a symbolic link to /sbin/busybox as the filename parameter and passing /bin/cat which is a symbolic link to /sbin/busybox as the argv[0] parameter will cause TOMOYO Linux behave as /bin/cat in the domain of /bin/ls, which is a incongruous situation. This means that if an attacker succeeds passing different filename and argv[0] intentionally, this will become a security hole. The purpose of this directive is to restrict the combinations of filename and argv[0] so that such incongruous situation won't occur.</p>
+
+<h3>MAC for capabilities</h3>
+<p>To grant capability permission, use allow_capability directive followed by a capability.<br>
+The following capabilities are applicable.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>inet_tcp_create</td>
+<td>Grant socket(PF_INET or PF_INET6, SOCK_STREAM, *)</td>
+</tr>
+<tr>
+<td>inet_tcp_listen</td>
+<td>Grant listen() for PF_INET or PF_INET6, SOCK_STREAM</td>
+</tr>
+<tr>
+<td>inet_tcp_connect</td>
+<td>Grant connect() for PF_INET or PF_INET6, SOCK_STREAM</td>
+</tr>
+<tr>
+<td>use_inet_udp</td>
+<td>Grant socket(PF_INET, SOCK_DGRAM, *)</td>
+</tr>
+<tr>
+<td>use_inet_ip</td>
+<td>Grant socket(PF_INET, SOCK_RAW, *)</td>
+</tr>
+<tr>
+<td>use_route</td>
+<td>Grant socket(PF_ROUTE, *, *)</td>
+</tr>
+<tr>
+<td>use_packet</td>
+<td>Grant socket(PF_PACKET, *, *)</td>
+</tr>
+<tr>
+<td>use_kernel_module</td>
+<td>Grant create_module(2) init_module(2) delete_module(2)</td>
+</tr>
+<tr>
+<td>create_fifo</td>
+<td>Grant mknod(2) for FIFO.</td>
+</tr>
+<tr>
+<td>create_block_dev</td>
+<td>Grant mknod(2) for block device.</td>
+</tr>
+<tr>
+<td>create_char_dev</td>
+<td>Grant mknod(2) for character device.</td>
+</tr>
+<tr>
+<td>create_unix_socket</td>
+<td>Grant mknod(2) for unix domain sockets.</td>
+</tr>
+<tr>
+<td>SYS_MOUNT</td>
+<td>Grant mount(2)</td>
+</tr>
+<tr>
+<td>SYS_UMOUNT</td>
+<td>Grant umount(2)</td>
+</tr>
+<tr>
+<td>SYS_REBOOT</td>
+<td>Grant reboot(2)</td>
+</tr>
+<tr>
+<td>SYS_CHROOT</td>
+<td>Grant chroot(2)<br></td>
+</tr>
+<tr>
+<td>SYS_KILL</td>
+<td>Grant kill(2) tkill(2) tgkill(2) with non-0 signal.</td>
+</tr>
+<tr>
+<td>SYS_VHANGUP</td>
+<td>Grant vhangup(2)</td>
+</tr>
+<tr>
+<td>SYS_TIME</td>
+<td>Grant stime(2) settimeofday(2) adjtimex(2)</td>
+</tr>
+<tr>
+<td>SYS_NICE</td>
+<td>Grant nice(2) setpriority(2)</td>
+</tr>
+<tr>
+<td>SYS_SETHOSTNAME</td>
+<td>Grant sethostname(2) setdomainname(2)</td>
+</tr>
+<tr>
+<td>SYS_LINK</td>
+<td>Grant link(2)</td>
+</tr>
+<tr>
+<td>SYS_SYMLINK</td>
+<td>Grant symlink(2)</td>
+</tr>
+<tr>
+<td>SYS_RENAME</td>
+<td>Grant rename(2)</td>
+</tr>
+<tr>
+<td>SYS_UNLINK</td>
+<td>Grant unlink(2)</td>
+</tr>
+<tr>
+<td>SYS_CHMOD</td>
+<td>Grant chmod(2) fchmod(2)</td>
+</tr>
+<tr>
+<td>SYS_CHOWN</td>
+<td>Grant chown(2) fchown(2) lchown(2)</td>
+</tr>
+<tr>
+<td>SYS_IOCTL</td>
+<td>Grant ioctl(2) compat_sys_ioctl(2)</td>
+</tr>
+<tr>
+<td>SYS_KEXEC_LOAD</td>
+<td>Grant kexec_load(2)</td>
+</tr>
+</table>
+<p>The purpose of allow_capability directive is to restrict system calls that a PROGRAM can call.<br>
+You can restrict more strictly with other directives and policy files for some system calls.</p>
+<ul>
+<li>You can restrict creation of block device files with allow_mkblock directive.
+<li>You can restrict creation of character device files with allow_mkchar directive.
+<li>You can restrict creation of FIFOs with allow_mkfifo directive.
+<li>You can restrict creation of UNIX domain sockets with allow_mksock directive.
+<li>You can restrict creation of symbolic links with allow_symlink directive.
+<li>You can restrict deletion of non-directories with allow_unlink directive.
+<li>You can restrict combination of pathnames that can be hard linked with allow_link directive.
+<li>You can restrict combination of pathnames that can be renamed with allow_rename directive.
+<li>You can restrict IP addresses and ports with allow_network directive.
+<li>You can restrict local TCP or UDP ports with allow_bind directive.
+<li>You can restrict remote TCP or UDP ports with allow_connect directive.
+<li>You can restrict signal numbers and Target domain with allow_signal directive.
+<li>You can restrict devices and directories with allow_mount directive.
+<li>You can restrict directories that you don't allow unmount with deny_unmount directive.
+<li>You can restrict directories that can chroot to with allow_chroot directive.
+</ul>
+<h3>MAC for networking addresses and ports</h3>
+<p>To grant permission for ports, use allow_network directive followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>
+<table border="1">
+<tr><td>Directive</td><td>Granted Operation</td><td>Example</td></tr>
+<tr><td>allow_network TCP bind</td><td>Bind to local TCP address/port.</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
+<tr><td>allow_network TCP listen</td><td>Listen to local TCP address/port.</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
+<tr><td>allow_network TCP accept</td><td>Accept from and communicate with remote TCP address/port.</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
+<tr><td>allow_network TCP connect</td><td>Connect to and communicate with remote TCP address/port.</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
+<tr><td>allow_network UDP bind</td><td>Bind to local UDP address/port.</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
+<tr><td>allow_network UDP connect</td><td>Communicate with remote UDP address/port.</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
+<tr><td>allow_network RAW bind</td><td>Bind to local IP address/protocol.</td><td>allow_network RAW bind 127.0.0.1 255</td></tr>
+<tr><td>allow_network RAW connect</td><td>Communicate with remote IP address/protocol.</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
+</table>
+<p>Use of "::" for IPv6 address representation is not supported. You need to use "0:0:0:0:0:0:0:1" for "::1".</p>
+<h3>MAC for local ports</h3>
+<p>To grant permission for local ports, use allow_bind directive followed by protocol(TCP or UDP) and port number. This permission is applicable to IPv4 and IPv6.</p>
+<p>To grant automatic local port selection (i.e. calling bind() with port number = 0), use allow_bind TCP/0 or allow_bind UDP/0 . But this permission is not checked if the process calls connect() without calling bind().</p>
+<p>To grant all local ports (1-65535), use allow_bind TCP/1-65535 (for TCP sockets) or allow_bind UDP/1-65535 (for UDP sockets).</p>
+<h3>MAC for remote ports</h3>
+<p>To grant permission for remote ports, use allow_connect directive followed by protocol(TCP or UDP) and port number. This permission is applicable to IPv4 and IPv6.</p>
+<p>To grant all remote ports (1-65535), use allow_connect TCP/1-65535 (for TCP sockets) or allow_connect UDP/1-65535 (for UDP sockets).</p>
+<h3>MAC for signals</h3>
+<p>To grant permissions for signals, use allow_signal directive followed by signal number and Target domain.</p>
+<p>There are two exceptions. If signal number is 0, it is always granted. If the Target domain and the Source domain are the same, it is always granted.</p>
+<p>In other cases, signals are granted only when the signal number matches and the Target domain starts with the Target domain declared with this directive.</p>
+<p>If only &lt;kernel&gt; is declared as a Target domain, the Source domain can send signals to any domain with that signal number.</p>
+
+<h3><a name="conditional_acl">Conditional permission</a></h3>
+
+<p>TOMOYO Linux 1.2 supports conditional permission. The condition clause are appended to the tail of each permission using "if" directive.</p>
+
+<table border="1">
+<tr><td>Example</td><td>Meaning</td></tr>
+<tr><td>4 /etc/passwd</td><td>Allow reading /etc/passwd .</td></tr>
+<tr><td>4 /etc/passwd if task.uid=0</td><td>Allow reading /etc/passwd if the process's UID is 0.</td></tr>
+<tr><td>4 /etc/passwd if task.uid!=0</td><td>Allow reading /etc/passwd if the process's UID is not 0.</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1</td><td>Connect to 10.0.0.1 using TCP.</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 if task.uid=100</td><td>Connect to 10.0.0.1 using TCP if the process's UID is 100.</td></tr>
+<tr><td>allow_capability SYS_KILL</td><td>Allow calling kill(2).</td></tr>
+<tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>Allow calling kill(2) if the process is the child of /sbin/init and the process's UID is 0 and the process's EUID is 0.</td></tr>
+</table>
+
+<p>The following variables are available.</p>
+
+<table border="1">
+<tr><td>Variable</td><td>Meaning</td></tr>
+<tr><td>task.uid</td><td>UID of current process</td></tr>
+<tr><td>task.euid</td><td>EUID of current process</td></tr>
+<tr><td>task.suid</td><td>SUID of current process</td></tr>
+<tr><td>task.fsuid</td><td>FSUID of current process</td></tr>
+<tr><td>task.gid</td><td>GID of current process</td></tr>
+<tr><td>task.egid</td><td>EGID of current process</td></tr>
+<tr><td>task.sgid</td><td>SGID of current process</td></tr>
+<tr><td>task.fsgid</td><td>FSGID of current process</td></tr>
+<tr><td>task.pid</td><td>PID of current process</td></tr>
+<tr><td>task.ppid</td><td>PID of parent process</td></tr>
+<tr><td>path1.uid</td><td>UID of object.</td></tr>
+<tr><td>path1.gid</td><td>GID of object.</td></tr>
+<tr><td>path1.ino</td><td>i-node number of object.</td></tr>
+<tr><td>path1.parent.uid</td><td>UID of object's parent directory.</td></tr>
+<tr><td>path1.parent.gid</td><td>GID of object's parent directory.</td></tr>
+<tr><td>path1.parent.ino</td><td>i-node number of object's parent directory.</td></tr>
+<tr><td>path2.parent.uid</td><td>UID of object's parent directory.</td></tr>
+<tr><td>path2.parent.gid</td><td>GID of object's parent directory.</td></tr>
+<tr><td>path2.parent.ino</td><td>i-node number of object's parent directory.</td></tr>
+</table>
+
+<p>"path1" corresponds to the first pathname of operations that requires pathnames, and "path2" corresponds to the second pathname of operations that requires pathnames. For example, the case of "allow_rename file1 file2", path1 corresponds to file1 and path2 corresponds to file2.</p>
+
+<p>"path1.uid" and "path1.gid" are not available for pathnames that don't exist. Thus, you can't use when creating pathnames (such as allow_create directive).</p>
+
+<p>"path1.parent.uid" and "path1.parent.gid" are always available.</p>
+
+<p>"path2.parent.uid" and "path2.parent.gid" are available only for operations that require 2 pathnames (in other words, allow_link and allow_rename directives).</p>
+
+<p>"path2.uid" and "path2.gid" are not supported. ( If "path2" already exist for "rename" operation, "unlink" or "rmdir" operation is performed implicitly.)</p>
+
+<p>Neither "path1" nor "path2" are supported when accessing via "sysctl" ( i.e. accessing files under /proc/sys/ directories using "sysctl" instead for "open")</p>
+
+<h2><a name="exception_policy.txt">2.5 Exception policy (exception_policy.txt)</a></h2>
+<p>This file contains exceptions for domain access controls. The following 7 types of permissions are declared.</p>
+<ul>
+<li>Pathname pattern</li>
+<li>Unconditionally readable files</li>
+<li>Files that aren't rewritable by default</li>
+<li>Domain transition initializers</li>
+<li>Programs invocable via symbolic links</li>
+<li>Program aggregations</li>
+<li>Domain keepers</li>
+</ul>
+<h3>Pathname pattern</h3>
+<p>To declare pathname pattern, use file_pattern directive followed by pathname pattern. The pathname pattern must be a Canonicalized Pathname. This directive is not applicable to neither granting execute permissions nor domain definitions.</p>
+<p>For example, Canonicalized Pathname that contains a process ID (i.e. /proc/PID/ files) needs to be grouped in order to make access control work well.</p>
+<p>The following wildcards are available.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>\\</td>
+<td>\ itself.</td>
+</tr>
+<tr>
+<td>\*</td>
+<td>More than or equals to 0 character other than '/'.</td>
+</tr>
+<tr>
+<td>\@</td>
+<td>More than or equals to 0 character other than '/' or '.'.</td>
+</tr>
+<tr>
+<td>\?</td>
+<td>1 byte character other than '/'.</td>
+</tr>
+<tr>
+<td>\$</td>
+<td>More than or equals to 1 decimal digit.</td>
+</tr>
+<tr>
+<td>\+</td>
+<td>1 decimal digit.</td>
+</tr>
+<tr>
+<td>\X</td>
+<td>More than or equals to 1 hexadecimal digit.</td>
+</tr>
+<tr>
+<td>\x</td>
+<td>1 hexadecimal digit.</td>
+</tr>
+<tr>
+<td>\A</td>
+<td>More than or equals to 1 alphabet character.</td>
+</tr>
+<tr>
+<td>\a</td>
+<td>1 alphabet character.</td>
+</tr>
+</table>
+<h3>Unconditionally readable files</h3>
+<p>To grant unconditionally readable permissions, use allow_read directive followed by Canonicalized File. This directive is intended to reduce size of <a href="#domain_policy.txt">Domain policy</a> by granting read access to library files such as GLIBC and locale files. You should not grant password files such as /etc/passwd, for all process can read if DAC is granted.</p><h3>Files that aren't rewritable by default</h3>
+<p>To deny overwriting already written contents of file (such as log files) by default, use deny_rewrite directive followed by pathname pattern. Files whose pathname match to the patterns are not permitted to open for writing without append mode or truncate unless the pathnames are explicitly granted using allow_rewrite directive in domain policy.</p>
+<h3>Domain transition initializers</h3>
+<p>To declare domain transition initializers, use initializer directive followed by PROGRAM. This directive is intended to aggregate domain transitions for daemon PROGRAM and PROGRAM that are invoked by the kernel on demand, by transiting to different domain.</p>
+<p>When a process tries to execute a PROGRAM declared with this directive, the following steps are performed. Step 3 differs from regular rules.</p>
+<h3>Programs invocable via symbolic links</h3>
+<p>To allow executing programs using the name of symbolic links, use alias directive followed by dereferenced pathname and reference pathname. This directive is intended to allow programs that behave differently depending on the name of invocation and that referenced using symbolic links instead of hard links transit domain using the symbolic link's name.</p>
+<p>For example, /sbin/pidof is a symbolic link to /sbin/killall5 . In normal case, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed. By specifying "alias /sbin/killall5 /sbin/pidof", you can run /sbin/pidof in the domain for /sbin/pidof .</p>
+<h3>Program aggregations</h3>
+<p>To deal multiple programs as a single program, use aggregator directive followed by name of original program and aggregated program. This directive is intended to aggregate similar programs.</p>
+<p>For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
+<p>For example, /usr/sbin/logrotate for Fedora Core 3 generates programs like /tmp/logrotate.\?\?\?\?\?\? and run them, but TOMOYO Linux doesn't allow using patterns for granting execute permission and defining domains. By specifying "aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp", you can run /tmp/logrotate.\?\?\?\?\?\? as if /tmp/logrotate.tmp is running.</p>
+<h3>Domain keepers</h3>
+<p>To declare domain keepers, use keep_domain directive followed by domain definition. This directive is intended to reduce total number of domains and memory usage by suppressing unneeded domain transitions.</p>
+<p>Any process that belongs to any domain declared with this directive, the process stays at the same domain unless any program registered with initializer directive is executed.</p>
+
+<h2><a name="mapping.txt">2.6 Mapping Definition (mapping.txt)</a></h2>
+<p>This file defines mappings of write access permission checks for files and directories.
+This file allows you switching the granularity of write access permission checks based on how fine-grained do you want to control write access permissions for files and directories.</p>
+
+<p>The format of this file is a list of "item=method". An example is shown below.</p>
+
+<table border="1">
+<tr><td>
+create=generic-write<br>
+unlink=generic-write<br>
+mkdir=mkdir<br>
+rmdir=rmdir<br>
+mkfifo=mkfifo<br>
+mksock=mksock<br>
+mkblock=mkblock<br>
+mkchar=mkchar<br>
+truncate=generic-write<br>
+symlink=symlink<br>
+link=link<br>
+rename=rename<br>
+rewrite=rewrite
+</td></tr>
+</table>
+
+<p>If "generic-write" is specified as the method, the item is checked using permissions for directive 2 3 6 or 7.
+If "no-check" is specified as the method, the item is not checked.
+If a method same as the item's name, the item is checked using permissions for directive of the item.</p>
+
+<p>This file is read only once at boot. You can't switch after boot.</p>
+<hr>
+<h1><a name="/proc/ccs/">3. /proc/ccs/ interface</a></h1>
+<p>This is the interface to read/append/delete policies after boot. Only PROGRAMs that are declared in <a href="#manager.txt">Policy Manager Definition</a> can append/delete policies.</p>
+<h2><a name="status">3.1 status</a></h2>
+<p>This file is to get or set the value of current control status.</p>
+<p>(Example)<br>
+cat /proc/ccs/status<br>
+echo 'MAC_FOR_FILE=1' &gt; /proc/ccs/status</p>
+<h2><a name="policy/system_policy">3.2 policy/system_policy</a></h2>
+<p>This file is to read, append or delete current <a href="#system_policy.txt">System policy</a>.</p>
+<p>(Example)<br>
+echo 'allow_mount /proc /proc/ proc' &gt; /proc/ccs/policy/system_policy<br>
+echo 'delete allow_mount /proc /proc/ proc' &gt; /proc/ccs/policy/system_policy<br>
+cat /proc/ccs/policy/system_policy</p>
+<h2><a name="policy/domain_policy">3.3 policy/domain_policy</a></h2>
+<p>This file is to read, append or delete current <a href="#domain_policy.txt">Domain policy</a>.</p>
+<p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
+printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/policy/domain_policy</p>
+<p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
+printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/policy/domain_policy</p>
+<p>(Example) Selecting specific domain and removing ACLs.<br>
+printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /proc/ccs/policy/domain_policy</p>
+<p>(Example) Deleting specific domain.<br>
+printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/ccs/policy/domain_policy</p>
+<p>(Example) Reading current domain policy.<br>
+cat /proc/ccs/policy/domain_policy</p>
+<h2><a name="policy/exception_policy">3.4 policy/exception_policy</a></h2>
+<p>This file is to read, append or delete current <a href="#exception_policy.txt">Exception policy</a>.</p>
+<p>(Example)<br>
+echo 'file_pattern /proc/\$/status' &gt; /proc/ccs/policy/exception_policy<br>
+echo 'delete file_pattern /proc/\$/status' &gt; /proc/ccs/policy/exception_policy<br>
+cat /proc/ccs/policy/exception_policy</p>
+<h2><a name="policy/query">3.5 policy/query</a></h2>
+<p>This file is used to manually grant or reject individual access requests when the policy violation occurs in enforce mode. If a policy violation occur
+in a process whose domain is assigned a profile for enforce mode and "ALLOW_ENFORCE_GRACE=1", the administrator can judge interactively using "ccs-queryd" command.</p>
+
+<h2><a name="policy/manager">3.6 policy/manager</a></h2>
+<p>This file is used to read or append the list of PROGRAMS that can write to /proc/ccs/ interface.</p>
+
+<h2><a name="policy/.domain_status">3.7 policy/.domain_status</a></h2>
+<p>This is a view (of a DBMS) that contains only profile number and domainnames of policy/domain so that "setprofile" command can do line-oriented processing easily.</p>
+<h2><a name="info/meminfo">3.8 info/meminfo</a></h2>
+<p>This file is to show the total RAM used to keep policy in the kernel by TOMOYO Linux.</p>
+<p>(Example)<br>
+cat /proc/ccs/info/meminfo</p>
+<h2><a name="info/grant_log">3.9 info/grant_log</a></h2>
+<p>This file holds the granted log. The reader process returns immediately if no granted logs exists. To wait until a granted log is generated, use select(2) for readability. The max number of logs that the kernel can hold is limited to MAX_GRANT_LOG, so read out timely.</p>
+<p>(Example)<br>
+cat /proc/ccs/info/grant_log</p>
+<h2><a name="info/reject_log">3.10 info/reject_log</a></h2>
+<p>This file holds the rejected log. The reader process returns immediately if no violation logs exists. To wait until a violation log is generated, use select(2) for readability. The max number of logs that the kernel can hold is limited to MAX_REJECT_LOG, so read out timely.</p>
+<p>(Example)<br>
+cat /proc/ccs/info/reject_log</p>
+<h2><a name="info/self_domain">3.11 info/self_domain</a></h2>
+<p>This file is to show the name of domain the caller process belongs to.</p>
+<p>(Example)<br>
+cat /proc/ccs/info/self_domain</p>
+<h2><a name="info/mapping">3.12 info/mapping</a></h2>
+<p>This file is to show the mapping of write access permission checks.</p>
+<p>(Example)<br>
+cat /proc/ccs/info/mapping</p>
+<h2><a name="info/.process_status">3.13 info/.process_status</a></h2>
+<p>This file is used by "ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by PROGRAMS that aren't registered as policy manager.</p>
+<h2><a name="info/.updates_counter">3.14 info/.updates_counter</a></h2>
+<p>This file is a counter used by policy update monitor programs so that they can easily find that the policies may have changed since last check. The counter values are reset to 0 whenever it is referred.</p>
+<hr>
+<p><a href="index.html#manual">Return to index</a></p>
+<hr>
+</body>
+</html>

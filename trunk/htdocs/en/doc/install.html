@@ -1,0 +1,1123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<h1>TOMOYO Linux Install manual</h1>
+<p style="text-align:right;">Last modified: $Date: 2006-11-21 21:53:39 +0900 (Tue, 21 Nov 2006) $ UT</p>
+
+<h1>Index</h1>
+
+<ul>
+<li><a href="#preparation">Preparation</a>
+<li>&nbsp;&nbsp;<a href="#install-kernel">Install Kernel</a>
+<li>&nbsp;&nbsp;<a href="#install-tool">Install Tool</a>
+<li>&nbsp;&nbsp;<a href="#boot-test">Boot Test</a>
+<li>&nbsp;&nbsp;<a href="#decide-control-range">Defining Range for Protection</a>
+<li>&nbsp;&nbsp;<a href="#design-login-operation">Designing Login Operation</a>
+<li>&nbsp;&nbsp;<a href="#protect-device">Protecting Device Files (Optional)</a>
+<li><a href="#policy-preparation">Preparing Policy</a>
+<li>&nbsp;&nbsp;<a href="#example_policy">About Default Policy</a>
+<li>&nbsp;&nbsp;<a href="#manager-programs">Defining Policy Managers</a>
+<li>&nbsp;&nbsp;<a href="#patch-shutdown">Modifying Shutdown Procedure</a>
+<li>&nbsp;&nbsp;<a href="#audit-logs">Changes for Audit Logs</a>
+<li>&nbsp;&nbsp;<a href="#create-profiles">Creating Profiles</a>
+<li>&nbsp;&nbsp;<a href="#create-exceptions">Creating Exception Policy</a>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#exception-logrotate">Changes for logrotate</a>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#exception-prelink">Changes for prelink</a>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#exception-anacron">Changes for anacron</a>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#exception-cron">Changes for cron</a>
+<li>&nbsp;&nbsp;<a href="#exception-targeted-policy">Changes for Targeted Policy</a>
+<li><a href="#generate-policy">Creating Policy</a>
+<li>&nbsp;&nbsp;<a href="#accept-mode-1">Accept Mode</a>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#accept-logrotate">Operations for logrotate</a>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#accept-anacron">Operations for anacron</a>
+<li>&nbsp;&nbsp;<a href="#update-exception">Updating Exception Policy</a>
+<li>&nbsp;&nbsp;<a href="#accept-mode-2">Accept Mode</a>
+<li><a href="#tune-policy">Tuning Policy</a>
+<li>&nbsp;&nbsp;<a href="#add-from-audit-logs">Adding from Audit Logs</a>
+<li>&nbsp;&nbsp;<a href="#make-pathname-patterns">Patterning File Access Permissions</a>
+<li>&nbsp;&nbsp;<a href="#make-network-patterns">Patterning Network Access Permissions</a>
+<li>&nbsp;&nbsp;<a href="#add-conditional-policy">Add conditions to ACLs</a>
+<li>&nbsp;&nbsp;<a href="#permissive-mode">Permissive Mode</a>
+<li><a href="#production-state">Production State</a>
+<li>&nbsp;&nbsp;<a href="#enforce-mode">Enforce mode</a>
+</ul>
+<hr>
+
+<h1><a name="preparation">Preparation</a></h1>
+
+<p>There are no limitations for distributions. But since it is impossible to cover all distributions, this manual covers "RedHat Linux 9", "Fedora Core 3" and "Debian Sarge".</p>
+
+<p>The size of policy files gets smaller by uninstalling unnecessary applications. You should know what application you want to run on the system.</p>
+
+<h2><a name="install-kernel">Install Kernel</a></h2>
+
+<p>TOMOYO Linux provides some binary kernel packages. If you want to use binary kernel packages, download and install.</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.4.20-46.9.legacy_tomoyo_1.2.i386.rpm
+</td></tr><tr><td>
+Fedora Core 3 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.2.i586.rpm
+</td></tr><tr><td>
+Fedora Core 4 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.17-1.2142_FC4_tomoyo_1.2.i586.rpm
+</td></tr><tr><td>
+Fedora Core 5 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.18-1.2200_FC5_tomoyo_1.2.i586.rpm
+</td></tr><tr><td>
+Fedora Core 6 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.18-1.2798_tomoyo_1.2.i586.rpm
+</td></tr><tr><td>
+CentOS 4.4 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.9-42.0.3.EL_tomoyo_1.2.i586.rpm
+</td></tr><tr><td>
+Debian Sarge (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-image-2.4.27-10sarge4-ccs_1.2_i586.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-image-2.6.8-16sarge5-ccs_1.2_i586.deb
+</td></tr><tr><td>
+OpenSUSE 10.1 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-default-2.6.16.21-0.25_tomoyo_1.2.i586.rpm
+</td></tr>
+</table>
+
+<p>If the CPU architecture differs or you want to customize kernel configuration, you need to compile kernel. To compile kernel, see <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
+
+<h2><a name="install-tool">Install Tool</a></h2>
+
+<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract under /root/ directory.</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-RHL9.tar.gz
+</td></tr><tr><td>
+Fedora Core 3 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-FC3.tar.gz
+</td></tr><tr><td>
+Fedora Core 4 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-FC4.tar.gz
+</td></tr><tr><td>
+Fedora Core 5 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-FC5.tar.gz
+</td></tr><tr><td>
+Fedora Core 6 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-FC6.tar.gz
+</td></tr><tr><td>
+CentOS 4.4 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-CentOS4.4.tar.gz
+</td></tr><tr><td>
+Debian Sarge (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-Sarge.tar.gz
+</td></tr><tr><td>
+OpenSUSE 10.1 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-SUSE10.1.tar.gz
+</td></tr>
+</table>
+
+<p>If the CPU architecture differs, you need to compile tools. To compile tools, run the following commands.</p>
+
+<table border="1">
+<tr><td>
+# Download source of tools for TOMOYO Linux.<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/21579/ccs-tools-1.2-20060903.tar.gz<br>
+# Extract.<br>
+tar -zxf ccs-tools-1.2-20060903.tar.gz<br>
+# Compile.<br>
+make -sC ccstools/
+</td></tr>
+</table>
+
+<h2><a name="boot-test">Boot Test</a></h2>
+
+<p>Boot with TOMOYO Linux kernel, and check the system works properly.</p>
+
+<p>After you confirmed the system works properly, save the content of /proc/ccs/status as /root/security/status.txt . This file contains the topics controllable for this kernel. This file is used as a hint when creating profiles (described later).</p>
+
+<table border="1">
+<tr><td>
+mkdir -p /root/security<br>
+cat /proc/ccs/status &gt; /root/security/status.txt
+</td></tr>
+</table>
+
+<h2><a name="decide-control-range">Defining Range for Protection</a></h2>
+
+<p>You can apply "TOMOYO (Domain-Based Mandatory Access Control) support" to all programs that are executed between the invocation of /sbin/init and the power failure. But you can also apply to only specific programs such as http server and ssh server if you wish.</p>
+<p>Hereafter, this manual refers "Strict Policy" as a policy that covers all programs and "Targeted Policy" as a policy that covers only specific programs.</p>
+
+<p>Covering all programs is more secure, but covering only specific programs is more easier. At this step, decide the range covered by MAC.</p>
+
+<p>Note that "SAKURA (Domain-Free Mandatory Access Control) support" and "SYAORAN (Tamper-Proof Device Filesystem) support" are applied to all programs.</p>
+
+<h2><a name="design-login-operation">Designing Login Operation</a></h2>
+
+<p>You want to login to servers using ssh for maintenance or some other purposes. At this step, design what operations you want to allow for login operation.</p>
+
+<table border="1">
+<tr><td>
+<h3>Reinforce the Login Authentication (Optional)</h3>
+
+<p>The purpose of this step is to improve security for remote login using ssh. This step is optional, but performing this step is recommended, for it's very easy.</p>
+
+<p>TOMOYO Linux can't protect sshd from exploit codes like SELinux. (SELinux modifies sshd to protect from exploit codes.)
+Therefore, TOMOYO Linux allows crackers ssh login easier than SELinux if sshd or PAM has vulnerability.
+But, the threat is not only buffer overflows.
+There is a threat that a cracker logs in using proper username and passwords.
+Many users use password authentication or public-key authentication for ssh login.
+But, in fact, the passwords are cracked by brute force attacks, the system gets configured as a platform for phishing.
+Therefore, it is important that you prepare additional authentication mechanism on the basis that the sshd authentication are run through.
+Read the paper <a href="http://sourceforge.jp/projects/tomoyo/document/winf2005-en.pdf">"Chained Enforceable Re-authentication Barrier Ensures Really Unbreakable Security"</a> for details.</p>
+
+<p>You can make programs for additional authentication mechanism as you like.
+Create the programs at this step, and confirm that the program works as you intended.</p>
+
+<p>By allowing login authentications for multiple times, the system can provide access restrictions based on the protection levels assigned to resources.
+In normal cases, users who have passed login authentication can access to both resources that needn't to be kept under strict control and resources that have to be kept under strict control.</p>
+
+<img src="Normal-Auth.png" width="611" height="456" alt="Normal Authentication">
+
+<p>But by introducing authentication programs named /opt/bin/auth1 and /opt/bin/auth2 like the figure show below, you can grant access to resources that needn't to be kept under strict control for users who have passed only login authentication, and grant access to resources that have to be kept under strict control for users who have passed all authentication.</p>
+
+<img src="Chained-Auth.png" width="611" height="456" alt="Chained Authentication">
+
+</td></tr><tr><td>
+
+<h3>Delegating a part of the administrator's task (Optional)</h3>
+
+<p>You can delegate a part of administration tasks. For example, you can delegate updating WWW contents for HTTP service and restarting httpd process to other administrators.</p>
+
+<p>Everybody logs in as root, and run the programs described in "Reinforce the Login Authentication" for each delegated person, and only the delegated person can perform only the delegated tasks.
+Determine whom to delegate and what task to delegate at this step, design how to divide domains, create the programs that splits the domains.
+It is possible to use shells (such as /bin/bash and /bin/tcsh) as the programs that splits the domains, but everybody can enter into every domain, so it's not desirable.
+Therefore, create the programs with authentication mechanism and confirm that the program works as you intended.</p>
+
+<p>For example, users named "SAKURA" "TOMOYO" "SYAORAN" "CERBERUS" "YUE" are registered on the system and each user logs in using ssh. By dividing domains like the figure shown below, you can grant per-user access permissions.</p>
+
+<img src="Embed-User.png" width="611" height="456" alt="Embedding User">
+
+<p>In the same manner, for example, roles named "manager" "webmaster" "auditor" "user" "anonymous" are needed and each role logs in using ssh. By dividing domains like the figure shown below, you can grant per-role access permissions.</p>
+
+<img src="Embed-Role.png" width="611" height="456" alt="Embedding Role">
+
+</td></tr>
+</table>
+
+<h2><a name="protect-device">Protecting Device Files (Optional)</a></h2>
+
+<p>If you want to use "SYAORAN (Tamper-Proof Device Filesystem) support", configure at this step.</p>
+
+<p>Do the following operation to create /.syaoran .</p>
+
+<table border="1">
+<tr><td>
+echo '#! /bin/sh' &gt; /.syaoran<br>
+echo 'mount -n -t syaoran -o accept=/root/security/syaoran.conf none /dev' &gt;&gt; /.syaoran<br>
+echo 'exec /sbin/init "$@"' &gt;&gt; /.syaoran<br>
+chmod 700 /.syaoran
+</td></tr>
+</table>
+
+<p>To mount this filesystem automatically before /sbin/init starts, add "init=/.syaoran" to the TOMOYO Linux's kernel command line. I recommend you to add "init=/.syaoran" to the boot loader's configuration file because it is a bother specifying every time.
+</p>
+
+<p>Do the following operation to create initial /root/security/syaoran.conf that contains all entries.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/makesyaoranconf &gt; /root/security/syaoran.conf<br>
+</td></tr>
+</table>
+
+<p>If you are using udev, do the following operation too.</p>
+
+<table border="1">
+<tr><td>
+echo DENY_CONCEAL_MOUNT=3 &gt; /root/security/profile0.txt
+</td></tr>
+</table>
+
+<p>Reboot with TOMOYO Linux kernel and run the system. Only device files that are actually opened are recorded. 
+The result of file access tracing is readable via the file .syaoran which exists just under the mount point.</p>
+
+<p>You need to be careful with the following two things.</p>
+
+<p>You need to somehow explicitly open device files for swap partitions, for device files for swap partitions aren't opened when mounted. This means that device files for swap partitions will be excluded from .syaoran and you will be unable to mount swap partition.
+Run the following command to open device files for swap partitions explicitly.  (The following assumes that swap partition is /dev/sda3 . Change the filename according to swap partition on your system.)</p>
+
+<table border="1">
+<tr><td>
+touch /dev/sda3
+</td></tr>
+</table>
+
+<p>If you want to allow using pty for ssh logins, you need to login via ssh once. If you forget to login via ssh, the file /dev/ptmx won't be opened, and /dev/ptmx will be excluded from .syaoran . The absence of /dev/ptmx causes absence of pty for ssh logins.</p>
+
+<table border="1">
+<tr><td>
+ssh localhost
+</td></tr>
+</table>
+
+<p>Run the following command to update /root/security/syaoran.conf . Only necessary entries (i.e. actually opened files) will be included.</p>
+
+<table border="1">
+<tr><td>
+cat /dev/.syaoran &gt; /root/security/syaoran.conf
+</td></tr>
+</table>
+
+<p>Reboot with TOMOYO Linux and make sure all necessary entries are included in /root/security/syaoran.conf .
+If the system doesn't work properly, possibly necessary entries were excluded, so retry from creating initial /root/security/syaoran.conf that contains all entries.</p>
+
+<p>You can delete dead links and unused directories in /root/security/syaoran.conf . But please be careful not to delete mount points (usually "shm" and "pts").</p>
+
+<h1><a name="policy-preparation">Preparing Policy</a></h1>
+
+<p>Please use normal kernel for operations in this chapter.<br>
+If you use TOMOYO Linux's kernel, /root/ccstools/savepolicy will be executed on shutdown and modifications you made on /root/security/exception_policy.txt will be lost.</p>
+
+<h2><a name="example_policy">About Default Policy</a></h2>
+
+<p>TOMOYO Linux doesn't have default policy files distributed with softwares. Administrators need to create policy files using "accept mode".<br>
+The <a href="http://tomoyo.sourceforge.jp/example_policy/">example policies</a> are available to help your understanding. You may use these examples as a guide, but you MUST NOT use these examples as default policies.</p>
+
+<h2><a name="manager-programs">Defining Policy Managers</a></h2>
+
+<p>Create /root/security/manager.txt and list up programs that are allowed to update policies via /proc/ccs/ interface.<br>
+Specifically, "loadpolicy" that reloads policy, "editpolicy" that edits policy, "setlevel" that changes control level, "ld-watch" that updates globally readable files, "ccs-queryd" that grants access requests interactively.</p>
+<table border="1">
+<tr><td>
+cat &gt; /root/security/manager.txt &lt;&lt; EOF<br>
+/root/ccstools/loadpolicy<br>
+/root/ccstools/editpolicy<br>
+/root/ccstools/setlevel<br>
+/root/ccstools/ld-watch<br>
+/root/ccstools/ccs-queryd<br>
+EOF<br></td>
+</tr>
+</table>
+
+<h2><a name="patch-shutdown">Modifying Shutdown Procedure</a></h2>
+
+<p>To save on-memory policies onto disk just before power off, modify the shutdown script to run /root/ccstools/savepolicy . Actual locations to modify depends on distributions.
+In many cases, since the final program invoked in the shutdown script under /etc/init.d/ directory is the program to power off, save on-memory policies just before the invocation of the program.</p>
+
+<p>If you are using RedHat Linux 9 or Fedora Core 3, modify as follows.</p>
+
+<table border="1">
+<tr><td colspan="2">/etc/rc.d/init.d/halt</td></tr>
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+<br>
+exec $command $HALTARGS
+</td><td>
+/root/ccstools/savepolicy<br>
+exec $command $HALTARGS
+</td></tr>
+</table>
+
+<p>If you are using Debian Sarge, modify as follows. To create and include domains for executing halt/reboot among the domain policy, run halt/reboot once before invoking savepolicy.</p>
+
+<table border="1">
+<tr><td colspan="2">/etc/init.d/halt</td><td colspan="2">/etc/init.d/reboot</td></tr>
+<tr><td>Before</td><td>After</td><td>Before</td><td>After</td></tr>
+<tr><td>
+<br>
+<br>
+halt -d -f -i $poweroff $hddown
+</td><td>
+halt --help 2&gt; /dev/null<br>
+/root/ccstools/savepolicy<br>
+halt -d -f -i $poweroff $hddown
+</td><td>
+<br>
+<br>
+reboot -d -f -i
+</td><td>
+reboot --help 2&gt; /dev/null<br>
+/root/ccstools/savepolicy<br>
+reboot -d -f -i
+</td></tr>
+</table>
+
+<h2><a name="audit-logs">Changes for Audit Logs</a></h2>
+
+<p>TOMOYO Linux can record "access granted logs" and "access rejected logs" for "TOMOYO (Domain-Based Mandatory Access Control) support".
+The logs are in the form of domain policy so that the logs can be directly appended to domain policy.
+Add the "access rejected logs" to domain policy if you consider you should allow the access.</p>
+
+<p>You can use a daemon program that reads from /proc/ccs/info/grant_log and /proc/ccs/info/reject_log and writes to files. Run in the following way from (for example) /etc/rc.local .</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ccs-auditd $location_to_store_access_granted_logs $location_to_store_access_rejected_logs
+</td></tr>
+</table>
+
+<p>You may give /dev/null for $location_to_store_access_granted_logs if you don't want "access granted logs". But since ccs-auditd doesn't have filtering functions, be careful with the disk's free space if you want to save "access granted logs".</p>
+
+<p>You may give /dev/null for $location_to_store_access_rejected_logs if you don't want "access rejected logs".</p>
+
+<p>If you don't want neither "access granted logs" nor "access rejected logs", you needn't to run ccs-auditd , though I recommend you to save "access rejected logs".
+This manual assumes that "access rejected logs" is saved in /var/log/tomoyo/reject_log.txt .</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+</td></tr>
+</table>
+
+<p>Create directories manually for storing access logs.</p>
+
+<table border="1">
+<tr><td>
+mkdir -p /var/log/tomoyo
+</td></tr>
+</table>
+
+<p>If you want to rotate using "logrotate", create /etc/logrotate.d/tomoyo with the following content.</p>
+
+<table border="1">
+<tr><td>
+/var/log/tomoyo/reject_log.txt {<br>
+&nbsp;&nbsp;weekly<br>
+&nbsp;&nbsp;rotate 9<br>
+&nbsp;&nbsp;missingok<br>
+&nbsp;&nbsp;notifempty<br>
+&nbsp;&nbsp;nocreate<br>
+}
+</td></tr>
+</table>
+
+<h2><a name="create-profiles">Creating Profiles</a></h2>
+
+<p>TOMOYO Linux can perform several MACs besides MAC for files, but to reduce the load of policy managements, you can disable MACs you think unnecessary.</p>
+
+<p>You can switch the MACs and their initial control status by creating several profiles and specifying the profile index number at kernel command line.
+Specifically, the parameter CCS=$INDEX (where $INDEX is an integer) given in the kernel command line corresponds to the profile /root/security/profile$INDEX.txt to use.</p>
+
+<p>Refer the descriptions below and create profiles for "accept mode", "permissive mode", "enforce mode". Only topics included in /root/security/status.txt are configurable. The topics included in /root/security/status.txt vary depending on the kernel configuration.</p>
+
+<table border="1">
+<tr><td>Name</td><td>Control</td><td>Accept mode supported</td></tr>
+<tr><td>MAC_FOR_FILE</td><td>File Access</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::inet_tcp_create</td><td>Use of TCP socket</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::inet_tcp_listen</td><td>Listening TCP socket</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::inet_tcp_connect</td><td>Connecting TCP socket</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_inet_udp</td><td>Use of UDP socket</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_inet_ip</td><td>Use of RAW socket</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_route</td><td>Use of ROUTE socket</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_packet</td><td>Use of PACKET socket</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_kernel_module</td><td>Use of kernel modules</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::create_fifo</td><td>Creating FIFO</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::create_block_dev</td><td>Creating block device file</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::create_char_dev</td><td>Creating character device file</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::create_unix_socket</td><td>Creating UNIX domain socket</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_MOUNT</td><td>Mounting filesystem</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_UMOUNT</td><td>Unmounting filesystem</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_REBOOT</td><td>Rebooting the system</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_CHROOT</td><td>Changing the "/" directory</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_KILL</td><td>Sending signals</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_VHANGUP</td><td>Use of vhangup</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_TIME</td><td>Setting system's clock</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_NICE</td><td>Setting process priority</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_SETHOSTNAME</td><td>Setting hostname or domainname</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_LINK</td><td>Creating hard link</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_SYMLINK</td><td>Creating symbolic link</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_RENAME</td><td>Renaming file</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_UNLINK</td><td>Deleting file</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_CHMOD</td><td>Changing file's permissions</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_CHOWN</td><td>Changing file's owner or group</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_IOCTL</td><td>Use of ioctl</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD</td><td>Loading new kernel</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_NETWORK</td><td>IP addresses and port numbers</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_BINDPORT</td><td>Local port numbers</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_CONNECTPORT</td><td>Remote port numbers</td><td>Yes</td></tr>
+<tr><td>MAC_FOR_SIGNAL</td><td>Combination of signal numbers and destination domains</td><td>Yes</td></tr>
+<tr><td>DENY_CONCEAL_MOUNT</td><td>Forbid mount requests that hides an existing mount</td><td>No</td></tr>
+<tr><td>RESTRICT_CHROOT</td><td>Enable restrictions for chroot directories</td><td>Yes</td></tr>
+<tr><td>RESTRICT_MOUNT</td><td>Enable restrictions for mount parameters</td><td>Yes</td></tr>
+<tr><td>RESTRICT_UNMOUNT</td><td>Forbid unmount requests for specified directories</td><td>No</td></tr>
+<tr><td>DENY_PIVOT_ROOT</td><td>Forbid pivot_root requests</td><td>No</td></tr>
+<tr><td>RESTRICT_AUTOBIND</td><td>Forbid assigning specific local port numbers for automatic local port assignment function</td><td>No</td></tr>
+<tr><td>TRACE_READONLY</td><td>Dump Canonicalized Pathname that write requests failed due to read only filesystem</td><td>-</td></tr>
+<tr><td>MAX_ACCEPT_FILES</td><td>Limits the max number of file ACL entries that are automatically appended during accept mode</td><td>-</td></tr>
+<tr><td>MAX_GRANT_LOG</td><td>Limits the max number of grant logs that the kernel can hold</td><td>-</td></tr>
+<tr><td>MAX_REJECT_LOG</td><td>Limits the max number of reject logs that the kernel can hold</td><td>-</td></tr>
+<tr><td>TOMOYO_VERBOSE</td><td>Dump domain policy violation messages to syslog</td><td>-</td></tr>
+<tr><td>MAX_ENFORCE_GRACE</td><td>Wait before rejecting access request when the request violates policy in enforce mode</td><td>-</td></tr>
+</table>
+
+<p>You can give the following values for TRACE_READONLY and RESTRICT_AUTOBIND</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>0</td><td>Off. Works as if regular kernel.</td></tr>
+<tr><td>1</td><td>On.</td></tr>
+</table>
+
+<p>You can give the following values for MAX_ACCEPT_FILES</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>any integer</td><td>The max number of file ACL entries that are automatically appended during accept mode.
+The default is given at the kernel compilation time.</td></tr>
+</table>
+
+<p>You can give the following values for MAX_GRANT_LOG and MAX_REJECT_LOG</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>any integer</td><td>The max number of logs that the kernel can hold. The default is given at the kernel compilation time. You may give 0 if you don't need logs.
+</td></tr>
+</table>
+
+<p>You can give the following values for TOMOYO_VERBOSE</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>0</td><td>Don't dump domain policy violation messages.</td></tr>
+<tr><td>1</td><td>Dump domain policy violation messages.</td></tr>
+</table>
+
+<p>You can give the following values for MAX_ENFORCE_GRACE</p>
+
+<table border="1"><tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>any integer</td><td>The max grace time in seconds. If the administrator tells the kernel not to reject the request that violated policy in enforce mode, the request will be granted.</td></tr>
+</table>
+
+<p>You can give the following values for all but listed above.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>0</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>1</td><td>Accept mode. Not rejected if the request violates policy. Automatically appended to policy.</td></tr>
+<tr><td>2</td><td>Permissive mode. Not rejected if the request violates policy. Not appended to policy automatically.</td></tr>
+<tr><td>3</td><td>Enforce mode. Rejected if the request violates policy.</td></tr>
+</table>
+
+<h2><a name="create-exceptions">Creating Exception Policy</a></h2>
+
+<p>Register pathnames with patterns that likely exists on all Linux systems.<br>
+Register pathnames with patterns using the "file_pattern" directive in /root/security/exception_policy.txt .<br>
+When a file operation are performed and the requested pathname matches to a patterned pathname registered with "file_pattern" directive, policy is generated using patterned pathnames.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Files under /proc/PID/ directory.
+<li>Files under /sys/ directory. (Applicable to 2.6 kernels only)
+<li>Some files under /dev/ directory.
+<li>Policy files under /root/security/ directory.
+<li>Manual pages.
+<li>Spool directories.
+<li>Temporary files used for sending and receiving mails.
+<li>Temporary files used by man command.
+<li>Temporary files used by mount command.
+</ul>
+
+<p>TOMOYO Linux needs more patterned pathnames depending on the applications installed and their configurations. You can add missing patterned pathnames after running the system.</p>
+
+<p>Register files that are allowed to be read by all programs.<br>
+Register pathnames using the "allow_read" directive in /root/security/exception_policy.txt . No patterns allowed.<br>
+When a read access is requested and the requested pathname matches to a pathname registered with "allow_read" directive, the read access is granted without checking domain policy.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Dynamically-linked library files that are registered with ldconfig.
+<li>Some files under /proc/ directory.
+<li>Some locale data under /usr/share/locale/ directory.
+</ul>
+
+<p>Register programs that initializes the domain transition history.<br>
+Register programs using the "initializer" directive in /root/security/exception_policy.txt . No patterns allowed.<br>
+When a program that is registered with "initializer" directive is executed, the program runs just under the  &lt;kernel&gt; domain.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Scripts that start or terminate daemon programs located under /etc/init.d/ directory.
+<li>Daemon programs that you want to make domain names shorter (for example, httpd and sshd).
+</ul>
+
+<p>Since it is impossible to append to policy automatically for programs that triggers power failure, specify domains that are used by such programs as trusted.<br>
+Actual program that involves power failure depends on distributions. In many cases, the final command invoked by shutdown scripts located under /etc/init.d/ directory is the program to trigger power failure.</p>
+
+<p>A shell script is included that performs the operations described above.
+Create /root/security/exception_policy.txt based on the candidates shown by executing /root/ccstools/make_exception.sh .
+You have to review the content of the file because automatically generated file may contain redundant or dangerous entries.
+</p>
+
+<h3><a name="exception-logrotate">Changes for logrotate</a></h3>
+
+<P>Register domain for /usr/sbin/logrotate as "initializer" in the exception policy because you run logrotate from the command line (not from cron) to learn necessary permissions.</P>
+
+<table border="1">
+<tr><td>
+initializer /usr/sbin/logrotate
+</td></tr>
+</table>
+
+<h3><a name="exception-prelink">Changes for prelink</a></h3>
+
+<p>Jobs that read/write so many programs could be removed from cron jobs.</p>
+
+<p>For example, /etc/cron.daily/prelink for Fedora Core 3 and later reads/writes many programs, and this makes policy files larger. Moreover, it is not desirable to allow read/write permissions to executable files.</p>
+
+<p>I think that it is enough executing /usr/sbin/prelink once after updating packages from the trusted domain, without executing /usr/sbin/prelink everyday from cron. Therefore, you can remove from cron jobs as follows.</p>
+
+<table border="1">
+<tr><td>
+mv /etc/cron.daily/prelink /usr/sbin/prelink.cron
+</td></tr>
+</table>
+
+<h3><a name="exception-anacron">Changes for anacron</a></h3>
+
+<P>Register domain for /usr/sbin/anacron as "initializer" in the exception policy because you run anacron from the command line to learn necessary permissions.</P>
+
+<table border="1">
+<tr><td>
+initializer /usr/sbin/anacron
+</td></tr>
+</table>
+
+<p>Register domain for /usr/bin/run-parts as "initializer" in the exception policy because anacron runs /usr/bin/run-parts .</p>
+
+<table border="1">
+<tr><td>
+initializer /usr/bin/run-parts
+</td></tr>
+</table>
+
+<h3><a name="exception-cron">Changes for cron</a></h3>
+
+<p>Register domain for /usr/bin/run-parts as "initializer" in the exception policy because cron runs /usr/bin/run-parts .</p>
+
+<table border="1">
+<tr><td>
+initializer /usr/bin/run-parts
+</td></tr>
+</table>
+
+<p>Open /etc/crontab and modify to run cron jobs for 5 minutes interval.
+1 minute interval is too short to finish previous cron job, therefore you need to make appropriate interval.</p>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+SHELL=/bin/bash<br>
+PATH=/sbin:/bin:/usr/sbin:/usr/bin<br>
+MAILTO=root<br>
+HOME=/<br>
+<br>
+# run-parts<br>
+01 * * * * root run-parts /etc/cron.hourly<br>
+02 4 * * * root run-parts /etc/cron.daily<br>
+22 4 * * 0 root run-parts /etc/cron.weekly<br>
+42 4 1 * * root run-parts /etc/cron.monthly
+</td><td>
+SHELL=/bin/bash<br>
+PATH=/sbin:/bin:/usr/sbin:/usr/bin<br>
+MAILTO=root<br>
+HOME=/<br>
+<br>
+# run-parts<br>
+*/5 * * * * root run-parts /etc/cron.hourly<br>
+*/5 * * * * root run-parts /etc/cron.daily<br>
+*/5 * * * * root run-parts /etc/cron.weekly<br>
+*/5 * * * * root run-parts /etc/cron.monthly
+</td></tr>
+</table>
+
+<p>Be sure to undo /etc/crontab after you have finished generating policies.</p>
+
+<h2><a name="exception-targeted-policy">Changes for Targeted Policy</a></h2>
+
+<p>The /root/security/exception_policy.txt generated by the procedure above is for "Strict Policy". If you want to use TOMOYO Linux for "Targeted Policy", modify /root/security/exception_policy.txt in the following way.</p>
+
+<p>Add the following 3 lines. If /sbin/modprobe and/or /sbin/hotplug are symbolic links, give the dereferenced pathnames.</p>
+
+<table border="1">
+<tr><td>
+trust_domain &lt;kernel&gt; /sbin/init<br>
+trust_domain &lt;kernel&gt; /sbin/modprobe<br>
+trust_domain &lt;kernel&gt; /sbin/hotplug
+</td></tr>
+</table>
+
+<p>Exclude lines that begins with "initializer" directive and that you want to disable Mandatory Access Controls on the program specified with "initializer" directive. For example, if you want to enable Mandatory Access Controls on /usr/sbin/httpd and programs invoked by /usr/sbin/httpd , remove all lines that starts with "initializer" directive but the following 3 lines.</p>
+
+<table border="1">
+<tr><td>
+initializer /usr/sbin/httpd<br>
+initializer /sbin/modprobe<br>
+initializer /sbin/hotplug
+</td></tr>
+</table>
+
+<p>By these steps, /usr/sbin/httpd and programs invoked by /usr/sbin/httpd run in the "&lt;kernel&gt; /usr/sbin/httpd" domain and its child domains and are protected by Mandatory Access Controls. Other programs run in one of the "&lt;kernel&gt; /sbin/init" "&lt;kernel&gt; /sbin/modprobe" "&lt;kernel&gt; /sbin/hotplug" domain and are not protected by Mandatory Access Controls.</p>
+
+<h1><a name="generate-policy">Creating Policy</a></h1>
+
+<h2><a name="accept-mode-1">Accept Mode</a></h2>
+
+<p>Boot with TOMOYO Linux kernel with the profile number for accept mode to CCS= parameter.
+Give the parameter "TOMOYO_NOLOAD" to the kernel command line for the first time to skip reading domain policy.
+If the parameter "TOMOYO_NOLOAD" is given, the domain policy file (domain_policy.txt) won't get loaded.
+(Therefore, choose TOMOYO Linux kernel with TOMOYO_NOLOAD parameter and the profile number for accept mode to CCS= parameter.)</p>
+
+<p>Do a series of operations you want to allow.</p>
+
+<p>Repeat several times, for all access patterns may not be recorded by single operations.<br>
+Also, there are operations that are done only startup and shutdown, repeat reboot for several times.</p>
+
+<p>When you are running with accept mode, you may find messages in the following format.</p>
+
+<table border="1">
+<tr><td>
+TOMOYO-WARNING: Domain '&lt;kernel&gt; ...' has so many ACLs to hold. Stopped auto-append mode.
+</td></tr>
+</table>
+
+<p>This message tells you that the safeguard for this program is activated to prevent memory consumption and dull response since this program accessed so many files. When the safeguard is activated, file ACLs for that domain are no longer appended automatically.</p>
+
+<p>To deal with this message, you need to edit ACLs manually.<br>
+For example, if the following message appeared, you need to reduce the number of file ACLs for &lt;kernel&gt; /usr/sbin/hald using appropriate pathname patterns.</p>
+
+<table border="1">
+<tr><td>
+TOMOYO-WARNING: Domain '&lt;kernel&gt; /usr/sbin/hald' has so many ACLs to hold. Stopped auto-append mode.
+</td></tr>
+</table>
+
+<p>You can edit policies using /root/ccstools/editpolicy .</p>
+
+<h3><a name="accept-logrotate">Operations for logrotate</a></h3>
+
+<P>Run logrotate from the command line to learn necessary permissions.
+To run logrotate jobs regardless of the system clock, use -f option.</P>
+
+<table border="1">
+<tr><td>
+/usr/sbin/logrotate -f /etc/logrotate.conf
+</td></tr>
+</table>
+
+<P>Repeat several times, for all access patterns may not be recorded by single operations.</P>
+
+<h3><a name="accept-anacron">Operations for anacron</a></h3>
+
+<P>Run anacron from the command line to learn necessary permissions.
+To run anacron jobs regardless of the system clock, use  -d -f -n options.</P>
+
+<table border="1">
+<tr><td>
+anacron -dfn
+</td></tr>
+</table>
+
+<P>Repeat several times, for all access patterns may not be recorded by single operations.</P>
+
+<h2><a name="update-exception">Updating Exception Policy</a></h2>
+
+<p>Reboot with normal kernel.</p>
+
+<p>Run the following command to find pathnames that are likely temporary, and make appropriate patterns and register in /root/security/exception_policy.txt using "file_pattern" directive.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/findtemp &lt; /root/security/domain_policy.txt | sort | uniq
+</td></tr>
+</table>
+
+<p>Guidelines for temporary pathnames are "Multiple pathnames that differs only last 6 letters", "Multiple pathnames that differs only numerical part" and so on.<br>
+An example of patterned pathnames is shown below. These patterned pathnames may not exist or exist in other location depending on the applications installed and their configurations.</p>
+
+<ul>
+<li>file_pattern /etc/.fstab.hal.\?</li>
+<li>file_pattern /etc/blkid.tab-\?\?\?\?\?\?</li>
+<li>file_pattern /etc/mrtg/mrtg.cfg_l_\$</li>
+<li>file_pattern /root/.emacs.d/auto-save-list/.saves-\$-\*</li>
+<li>file_pattern /root/Mail/inbox/\$</li>
+<li>file_pattern /tmp/auto\?\?\?\?\?\?/</li>
+<li>file_pattern /tmp/autofs.\?\?\?\?\?\?</li>
+<li>file_pattern /tmp/logrotate.\?\?\?\?\?\?</li>
+<li>file_pattern /tmp/logwatch.\*/</li>
+<li>file_pattern /tmp/logwatch.\*/\*</li>
+<li>file_pattern /tmp/makewhatis\?\?\?\?\?\?/</li>
+<li>file_pattern /tmp/makewhatis\?\?\?\?\?\?/w</li>
+<li>file_pattern /tmp/sh-thd-\$</li>
+<li>file_pattern /tmp/spamassassin-\$/</li>
+<li>file_pattern /tmp/spamassassin-\$/.spamassassin/</li>
+<li>file_pattern /tmp/spamassassin-\$/.spamassassin/auto-whitelist\*</li>
+<li>file_pattern /tmp/whatis.\?\?\?\?\?\?</li>
+<li>file_pattern /var/lib/dhcp/dhcpd.leases.\$</li>
+<li>file_pattern /var/lock/autofs.\$</li>
+<li>file_pattern /var/lock/mrtg/mrtg_l_\$</li>
+<li>file_pattern /var/log/ksymoops/\*</li>
+<li>file_pattern /var/log/sa/sa\*</li>
+<li>file_pattern /var/mailman/locks/gate_news.lock.\*</li>
+<li>file_pattern /var/run/gpm\?\?\?\?\?\?</li>
+</ul>
+
+<p>Add "initializer" and "allow_read" if you want to add.</p>
+
+<p>Add "trust_domain" if you want some domains for (for example) maintenances.</p>
+
+<h2><a name="accept-mode-2">Accept Mode</a></h2>
+
+<p>If you are sure you found all patterns, recreate the domain policy from the beginning.
+Give the parameter "TOMOYO_NOLOAD" to the kernel command line for the first time to skip reading domain policy.</p>
+
+<h1><a name="tune-policy">Tuning Policy</a></h1>
+
+<p>Reboot with normal Linux kernel.</p>
+
+<h2><a name="add-from-audit-logs">Adding from Audit Logs</a></h2>
+
+<p>The file /var/log/tomoyo/reject_log.txt contains the access rejected logs in time-series order.
+Pick up appropriate range from the file and pass to the filter by running the following command. This filter program sorts access rejected logs by domainname and erases duplicated logs. (In other words, this filter program do sort and uniq for each domain.)</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/sortpolicy &lt; /var/log/tomoyo/reject_log.txt
+</td></tr>
+</table>
+
+<p>Decide to add the result or not to add. If you decided to add, add it to /root/security/domain_policy.txt .</p>
+
+<h2><a name="make-pathname-patterns">Patterning File Access Permissions</a></h2>
+
+<p>Append access permissions for files that are not necessarily accessed in the accept mode such as WWW contents for WWW service to /root/security/domain_policy.txt .<br>
+The following example allows /usr/sbin/httpd to read files in the /var/www/html/ directory.</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+4 /var/www/html/\*<br>
+4 /var/www/html/\*/\*<br>
+4 /var/www/html/\*/\*/\*<br>
+4 /var/www/html/\*/\*/\*/\*<br>
+4 /var/www/html/\*/\*/\*/\*/\*<br></td>
+</tr>
+</table>
+
+<p>In the same way, modify access permissions for files using patterns that should be grouped.
+The following example shows /usr/sbin/smbd should handle all log files equally.</p>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+2 /var/log/samba/host1.log<br>
+2 /var/log/samba/host2.log<br>
+2 /var/log/samba/host3.log<br>
+2 /var/log/samba/host4.log<br>
+2 /var/log/samba/host5.log
+</td><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+2 /var/log/samba/\*.log
+</td></tr>
+</table>
+
+<h2><a name="make-network-patterns">Patterning Network Access Permissions</a></h2>
+
+<p>There are programs (for example, portmap) that requests privileged ports (local port numbers less that 1024) at random. It is impossible to know all local ports that might be used by such applications using accept mode.
+Repeat running such programs for several times using accept mode, guess the range of local ports such program would request, and grant network access permissions using range.<br>
+An example is shown below. Don't copy the following permissions because the range may vary depending on distributions and configurations.</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /sbin/portmap<br>
+allow_bind TCP/0<br>
+allow_bind TCP/111<br>
+allow_bind TCP/600-1023<br>
+allow_bind UDP/0<br>
+allow_bind UDP/111<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/32768-65535<br>
+allow_connect UDP/600-1023<br>
+<br>
+&lt;kernel&gt; /sbin/rpc.statd<br>
+allow_bind TCP/0<br>
+allow_bind TCP/600-1023<br>
+allow_bind UDP/0<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111<br>
+<br>
+&lt;kernel&gt; /usr/sbin/rpc.mountd<br>
+allow_bind TCP/0<br>
+allow_bind TCP/600-1023<br>
+allow_bind UDP/0<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111<br>
+<br>
+&lt;kernel&gt; /usr/sbin/rpc.nfsd<br>
+allow_capability inet_tcp_create<br>
+allow_capability use_inet_udp<br>
+allow_connect UDP/111<br>
+allow_connect UDP/32768-65535<br>
+<br>
+&lt;kernel&gt; /usr/sbin/rpc.rquotad<br>
+allow_bind TCP/600-1023<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111<br>
+<br>
+&lt;kernel&gt; /usr/sbin/rpcinfo<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111<br>
+allow_connect UDP/2049<br>
+<br>
+&lt;kernel&gt; /usr/sbin/xinetd<br>
+allow_bind TCP/0<br>
+allow_bind UDP/69<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111
+</td></tr>
+</table>
+
+<p>If you don't need services like NFS or NIS that needs RPC, you should disable such services.</p>
+
+
+<p>Similarly, make patterns for "allow_network" directives. Don't copy the following permissions.</a>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 43768<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1 35086<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 47590<br>
+allow_network TCP accept 10.0.0.10 56709<br>
+allow_network TCP accept 10.0.0.200 16384
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 1024-65535<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff 1024-65535<br>
+allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
+</td></tr>
+</table>
+
+<h2><a name="add-conditional-policy">Add conditions to ACLs</a></h2>
+
+<p>TOMOYO Linux 1.2 supports conditional ACLs. By using this feature, you can control system's user ID based access control.</p>
+
+<p>If you want to protect non-anonymous FTP service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "ftp") directory rather than exposing whole of home directories.
+If you use vsftpd, you can give like the following way.</p>
+
+<table border="1">
+<tr><td>Before</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+<br>
+6 /home/\*/ftp/\*<br>
+6 /home/\*/ftp/\*/\*<br>
+6 /home/\*/ftp/\*/\*/\*<br>
+6 /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_mkdir /home/\*/ftp/\*/<br>
+allow_mkdir /home/\*/ftp/\*/\*/<br>
+allow_mkdir /home/\*/ftp/\*/\*/\*/<br>
+<br>
+allow_rmdir /home/\*/ftp/\*/<br>
+allow_rmdir /home/\*/ftp/\*/\*/<br>
+allow_rmdir /home/\*/ftp/\*/\*/\*/<br>
+<br>
+allow_create /home/\*/ftp/\*<br>
+allow_create /home/\*/ftp/\*/\*<br>
+allow_create /home/\*/ftp/\*/\*/\*<br>
+allow_create /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_truncate /home/\*/ftp/\*<br>
+allow_truncate /home/\*/ftp/\*/\*<br>
+allow_truncate /home/\*/ftp/\*/\*/\*<br>
+allow_truncate /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_unlink /home/\*/ftp/\*<br>
+allow_unlink /home/\*/ftp/\*/\*<br>
+allow_unlink /home/\*/ftp/\*/\*/\*<br>
+allow_unlink /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_rename /home/\*/ftp/\* /home/\*/ftp/\*<br>
+allow_rename /home/\*/ftp/\*/\* /home/\*/ftp/\*/\*<br>
+allow_rename /home/\*/ftp/\*/\*/\* /home/\*/ftp/\*/\*/\*<br>
+allow_rename /home/\*/ftp/\*/\*/\*/\* /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_rename /home/\*/ftp/\*/ /home/\*/ftp/\*/<br>
+allow_rename /home/\*/ftp/\*/\*/ /home/\*/ftp/\*/\*/<br>
+allow_rename /home/\*/ftp/\*/\*/\*/ /home/\*/ftp/\*/\*/\*/<br>
+</td></tr>
+</table>
+
+
+<table border="1">
+<tr><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+<br>
+6 /home/\*/ftp/\* if task.uid=path1.uid<br>
+6 /home/\*/ftp/\*/\* if task.uid=path1.uid<br>
+6 /home/\*/ftp/\*/\*/\* if task.uid=path1.uid<br>
+6 /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.uid<br>
+<br>
+allow_mkdir /home/\*/ftp/\*/ if task.uid=path1.parent.uid<br>
+allow_mkdir /home/\*/ftp/\*/\*/ if task.uid=path1.parent.uid<br>
+allow_mkdir /home/\*/ftp/\*/\*/\*/ if task.uid=path1.parent.uid<br>
+<br>
+allow_rmdir /home/\*/ftp/\*/ if task.uid=path1.uid<br>
+allow_rmdir /home/\*/ftp/\*/\*/ if task.uid=path1.uid<br>
+allow_rmdir /home/\*/ftp/\*/\*/\*/ if task.uid=path1.uid<br>
+<br>
+allow_create /home/\*/ftp/\* if task.uid=path1.parent.uid<br>
+allow_create /home/\*/ftp/\*/\* if task.uid=path1.parent.uid<br>
+allow_create /home/\*/ftp/\*/\*/\* if task.uid=path1.parent.uid<br>
+allow_create /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.parent.uid<br>
+<br>
+allow_truncate /home/\*/ftp/\* if task.uid=path1.uid<br>
+allow_truncate /home/\*/ftp/\*/\* if task.uid=path1.uid<br>
+allow_truncate /home/\*/ftp/\*/\*/\* if task.uid=path1.uid<br>
+allow_truncate /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.uid<br>
+<br>
+allow_unlink /home/\*/ftp/\* if task.uid=path1.uid<br>
+allow_unlink /home/\*/ftp/\*/\* if task.uid=path1.uid<br>
+allow_unlink /home/\*/ftp/\*/\*/\* if task.uid=path1.uid<br>
+allow_unlink /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.uid<br>
+<br>
+allow_rename /home/\*/ftp/\* /home/\*/ftp/\* if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\* /home/\*/ftp/\*/\* if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\*/\* /home/\*/ftp/\*/\*/\* if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\*/\*/\* /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+<br>
+allow_rename /home/\*/ftp/\*/ /home/\*/ftp/\*/ if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\*/ /home/\*/ftp/\*/\*/ if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\*/\*/ /home/\*/ftp/\*/\*/\*/ if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+</td></tr>
+</table>
+
+<p>If you want to protect Samba service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "samba") directory rather than exposing whole of home directories.</p>
+
+<table border="1">
+<tr><td>Before</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+<br>
+6 /home/\*/samba/\*<br>
+6 /home/\*/samba/\*/\*<br>
+6 /home/\*/samba/\*/\*/\*<br>
+6 /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_mkdir /home/\*/samba/\*/<br>
+allow_mkdir /home/\*/samba/\*/\*/<br>
+allow_mkdir /home/\*/samba/\*/\*/\*/<br>
+<br>
+allow_rmdir /home/\*/samba/\*/<br>
+allow_rmdir /home/\*/samba/\*/\*/<br>
+allow_rmdir /home/\*/samba/\*/\*/\*/<br>
+<br>
+allow_create /home/\*/samba/\*<br>
+allow_create /home/\*/samba/\*/\*<br>
+allow_create /home/\*/samba/\*/\*/\*<br>
+allow_create /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_truncate /home/\*/samba/\*<br>
+allow_truncate /home/\*/samba/\*/\*<br>
+allow_truncate /home/\*/samba/\*/\*/\*<br>
+allow_truncate /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_unlink /home/\*/samba/\*<br>
+allow_unlink /home/\*/samba/\*/\*<br>
+allow_unlink /home/\*/samba/\*/\*/\*<br>
+allow_unlink /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_rename /home/\*/samba/\* /home/\*/samba/\*<br>
+allow_rename /home/\*/samba/\*/\* /home/\*/samba/\*/\*<br>
+allow_rename /home/\*/samba/\*/\*/\* /home/\*/samba/\*/\*/\*<br>
+allow_rename /home/\*/samba/\*/\*/\*/\* /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_rename /home/\*/samba/\*/ /home/\*/samba/\*/<br>
+allow_rename /home/\*/samba/\*/\*/ /home/\*/samba/\*/\*/<br>
+allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/
+</td></tr>
+</table>
+
+<table border="1">
+<tr><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+<br>
+6 /home/\*/samba/\* if task.euid=path1.uid<br>
+6 /home/\*/samba/\*/\* if task.euid=path1.uid<br>
+6 /home/\*/samba/\*/\*/\* if task.euid=path1.uid<br>
+6 /home/\*/samba/\*/\*/\*/\* if task.euid=path1.uid<br>
+<br>
+allow_mkdir /home/\*/samba/\*/ if task.euid=path1.parent.uid<br>
+allow_mkdir /home/\*/samba/\*/\*/ if task.euid=path1.parent.uid<br>
+allow_mkdir /home/\*/samba/\*/\*/\*/ if task.euid=path1.parent.uid<br>
+<br>
+allow_rmdir /home/\*/samba/\*/ if task.euid=path1.uid<br>
+allow_rmdir /home/\*/samba/\*/\*/ if task.euid=path1.uid<br>
+allow_rmdir /home/\*/samba/\*/\*/\*/ if task.euid=path1.uid<br>
+<br>
+allow_create /home/\*/samba/\* if task.euid=path1.parent.uid<br>
+allow_create /home/\*/samba/\*/\* if task.euid=path1.parent.uid<br>
+allow_create /home/\*/samba/\*/\*/\* if task.euid=path1.parent.uid<br>
+allow_create /home/\*/samba/\*/\*/\*/\* if task.euid=path1.parent.uid<br>
+<br>
+allow_truncate /home/\*/samba/\* if task.euid=path1.uid<br>
+allow_truncate /home/\*/samba/\*/\* if task.euid=path1.uid<br>
+allow_truncate /home/\*/samba/\*/\*/\* if task.euid=path1.uid<br>
+allow_truncate /home/\*/samba/\*/\*/\*/\* if task.euid=path1.uid<br>
+<br>
+allow_unlink /home/\*/samba/\* if task.euid=path1.uid<br>
+allow_unlink /home/\*/samba/\*/\* if task.euid=path1.uid<br>
+allow_unlink /home/\*/samba/\*/\*/\* if task.euid=path1.uid<br>
+allow_unlink /home/\*/samba/\*/\*/\*/\* if task.euid=path1.uid<br>
+<br>
+allow_rename /home/\*/samba/\* /home/\*/samba/\* if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\* /home/\*/samba/\*/\* if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\*/\* /home/\*/samba/\*/\*/\* if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\*/\*/\* /home/\*/samba/\*/\*/\*/\* if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+<br>
+allow_rename /home/\*/samba/\*/ /home/\*/samba/\*/ if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\*/ /home/\*/samba/\*/\*/ if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/ if task.euid=path1.parent.uid task.euid=path2.parent.uid
+</td></tr>
+</table>
+
+<p>If you want to protect SSH service, by adding conditions in the following manner, you can forbid login as user "root".</p>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+<br>
+1 /bin/bash
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+<br>
+1 /bin/bash if task.uid!=0 task.euid!=0
+</td></tr>
+</table>
+
+<p>See <a href="policy-reference.html#conditional_acl">Conditional permission</a> for available conditions.</p>
+
+<h2><a name="permissive-mode">Permissive Mode</a></h2>
+
+<p>Boot with TOMOYO Linux kernel with the profile number for permissive mode to CCS= parameter.</p>
+<p>Check that error messages don't appear when you operate you want to allow.</p>
+<p>If the system works properly, the installation of TOMOYO Linux is done.</p>
+
+<h1><a name="production-state">Production State</a></h1>
+
+<h2><a name="enforce-mode">Enforce mode</a></h2>
+
+<p>Boot with TOMOYO Linux kernel with the profile number for enforce mode to CCS= parameter.</p>
+</body>
+</html>

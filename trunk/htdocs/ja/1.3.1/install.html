@@ -1,0 +1,1636 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<h1>TOMOYO Linux 導入手順書</h1>
+<p style="text-align:right;">Last modified: $Date: 2006-11-21 21:53:39 +0900 (Tue, 21 Nov 2006) $ UT</p>
+
+<h1>インストール</h1>
+
+<h2>TOMOYO Linux カーネルのインストール</h2>
+
+<p>TOMOYO Linux では、いくつかのコンパイル済みのカーネルをパッケージにして提供しています。コンパイル済みのカーネルを利用する場合は、以下のファイルをダウンロードしてインストールしてください。</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-2.4.20-46.9.legacy_tomoyo_1.3.1.i386.rpm
+</td></tr><tr><td>
+Fedora Core 3 （80586以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.3.1.i586.rpm
+</td></tr><tr><td>
+Fedora Core 4 （80586以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-2.6.17-1.2142_FC4_tomoyo_1.3.1.i586.rpm
+</td></tr><tr><td>
+Fedora Core 5 （80586以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-2.6.18-1.2239.fc5_tomoyo_1.3.1.i586.rpm
+</td></tr><tr><td>
+Fedora Core 6 （80586以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-2.6.18-1.2849.fc6_tomoyo_1.3.1.i586.rpm
+</td></tr><tr><td>
+CentOS 4.4 （80586以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-2.6.9-42.0.3.EL_tomoyo_1.3.1.i586.rpm
+</td></tr><tr><td>
+Debian Sarge （80586以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-image-2.4.27-10sarge4-ccs_1.3.1_i586.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-image-2.6.8-16sarge5-ccs_1.3.1_i586.deb
+</td></tr><tr><td>
+Debian Etch （80586以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/linux-image-2.6.17-9-ccs_1.3.1_i586.deb
+</td></tr><tr><td>
+OpenSUSE 10.1 （80586以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-default-2.6.16.21-0.25_tomoyo_1.3.1.i586.rpm
+</td></tr>
+</table>
+
+<p>アーキテクチャが異なる場合やカスタマイズしたい場合には、カーネルをコンパイルする必要があります。カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
+
+<p> rpm の場合、インストールに成功すると /boot/grub/grub.conf に以下のような記述が追加されているはずです。</p>
+
+<table border="1">
+<tr><td>
+title CentOS (2.6.9-42.0.3.EL_tomoyo_1.3.1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-42.0.3.EL_tomoyo_1.3.1 ro root=/dev/VolGroup00/LogVol00<br>
+&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-42.0.3.EL_tomoyo_1.3.1.img
+</td></tr>
+</table>
+
+<p>ここで、 kernel の行の末尾に init=/.init を追加します。</p>
+
+<table border="1">
+<tr><td>
+title CentOS (2.6.9-42.0.3.EL_tomoyo_1.3.1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-42.0.3.EL_tomoyo_1.3.1 ro root=/dev/VolGroup00/LogVol00 init=/.init<br>
+&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-42.0.3.EL_tomoyo_1.3.1.img
+</td></tr>
+</table>
+
+<p> deb の場合、インストールに成功すると /boot/grub/menu.lst に以下のような記述が追加されているはずです。</p>
+
+<table border="1">
+<tr><td>
+title Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs<br>
+root (hd0,0)<br>
+kernel /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro<br>
+initrd /boot/initrd.img-2.6.8-16sarge5-ccs<br>
+savedefault<br>
+boot
+</td></tr>
+</table>
+
+<p>ここで、 kernel の行の末尾に init=/.init を追加します。</p>
+
+<table border="1">
+<tr><td>
+title Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs<br>
+root (hd0,0)<br>
+kernel /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro init=/.init<br>
+initrd /boot/initrd.img-2.6.8-16sarge5-ccs<br>
+savedefault<br>
+boot
+</td></tr>
+</table>
+
+<p>/.init は TOMOYO Linux のポリシーをカーネルに読み込むためのスクリプトで、 /sbin/init の開始前に実行されます。<br>
+/.init は次の手順でインストールするツールの中に含まれています。</p>
+
+<h2>TOMOYO Linux ツールのインストール</h2>
+
+<p>TOMOYO Linux では、いくつかのコンパイル済みのツールを提供しています。コンパイル済みのツールを利用する場合は、以下のファイルをダウンロードして /root/ ディレクトリの下に展開してください。</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-RHL9.tar.gz
+</td></tr><tr><td>
+Fedora Core 3 （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-FC3.tar.gz
+</td></tr><tr><td>
+Fedora Core 4 （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-FC4.tar.gz
+</td></tr><tr><td>
+Fedora Core 5 （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-FC5.tar.gz
+</td></tr><tr><td>
+Fedora Core 6 （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-FC6.tar.gz
+</td></tr><tr><td>
+CentOS 4.4 （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-CentOS4.4.tar.gz
+</td></tr><tr><td>
+Debian Sarge （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-Sarge.tar.gz
+</td></tr><tr><td>
+Debian Etch （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-Etch.tar.gz
+</td></tr><tr><td>
+OpenSUSE 10.1 （80386以降用）</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-SUSE10.1.tar.gz
+</td></tr>
+</table>
+
+<p>展開された .init （ポリシーローダー）を / へ移動してください。</p>
+
+<table border="1">
+<tr><td>
+mv ccstools/.init /
+</td></tr>
+</table>
+
+<p>アーキテクチャが異なる場合には、ツールをコンパイルする必要があります。ツールをコンパイルするには、以下のコマンドを実行してください。</p>
+
+<table border="1">
+<tr><td>
+cd /root/<br>
+# TOMOYO Linux ツールのソースをダウンロードする。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/22798/ccs-tools-1.3.1-20061208.tar.gz<br>
+# 展開する。<br>
+tar -zxf ccs-tools-1.3.1-20061208.tar.gz<br>
+# コンパイルする。<br>
+make -sC ccstools/<br>
+# ポリシーローダーを / へ移動する。<br>
+mv ccstools/.init /
+</td></tr>
+</table>
+
+<h2>TOMOYO Linux ツール検索パスの設定</h2>
+
+<p>TOMOYO Linux ツールを保存してある場所を環境変数 PATH に追加しておきます。</p>
+<p>bash を使っている場合は ~/.bashrc に以下の行を追加します。</p>
+
+<table border="1">
+<tr><td>
+export PATH=$PATH:/root/ccstools
+</td></tr>
+</table>
+
+<p>tcsh を使っている場合は ~/.tcshrc に以下の行を追加します。</p>
+
+<table border="1">
+<tr><td>
+setenv PATH "$PATH:/root/ccstools"
+</td></tr>
+</table>
+
+<h2>起動テスト</h2>
+
+<p>TOMOYO カーネルで起動できるかどうかのテストを行います。</p>
+
+<p>TOMOYO Linux はポリシーファイルを /etc/ccs/ ディレクトリに保存しますので、最初にディレクトリを作成します。<br>
+root 以外のユーザがアクセスできる必要は無いので、所有者とグループを root 、パーミッションを 700 にしておきます。</p>
+
+<table border="1">
+<tr><td>
+mkdir -m 700 /etc/ccs
+</td></tr>
+</table>
+
+<p>ポリシーの変更を許可するプログラムを /etc/ccs/manager.txt に指定します。<br>
+具体的には、ポリシーを再読み込みする loadpolicy 、ポリシーを編集する editpolicy 、制御レベルを変更する setlevel 、ドメインのプロファイルを変更する setprofile 、無条件読み込み許可を更新する ld-watch 、対話的にアクセス要求を許可する ccs-queryd の６つを指定してください。</p>
+
+<table border="1">
+<tr><td>
+cat &gt; /etc/ccs/manager.txt &lt;&lt; EOF<br>
+/root/ccstools/loadpolicy<br>
+/root/ccstools/editpolicy<br>
+/root/ccstools/setlevel<br>
+/root/ccstools/setprofile<br>
+/root/ccstools/ld-watch<br>
+/root/ccstools/ccs-queryd<br>
+EOF<br></td>
+</tr>
+</table>
+
+<p>TOMOYO カーネルで再起動します。</p>
+
+<table border="1">
+<tr><td>
+reboot
+</td></tr>
+</table>
+
+<p>/.init の実行に成功すると、以下のようなメッセージが表示されます。</p>
+
+<table border="1">
+<tr><td>
+Press 'Enter' or wait for 10 seconds to use default status.<br>
+You may input 'disabled' and press 'Enter' to disable MAC in case of emergency.<br>
+&gt;
+</td></tr>
+</table>
+
+<p>まだプロファイルを作成していないので、ここでは boottest と入力してから Enter を押してください。</p>
+
+<table border="1">
+<tr><td>
+boottest
+</td></tr>
+</table>
+
+<p>プロファイルの読み込みが成功すると、 /sbin/init が開始されてシステムが起動します。<br>
+失敗した場合は、以下のようにメッセージが表示されて停止します。</p>
+
+<table border="1">
+<tr><td>
+No profiles loaded. Run policy loader using 'init=' option.
+</td></tr>
+</table>
+
+<p>失敗した場合は以下の点を確認してください。</p>
+
+<ul>
+<li> /boot/grub/grub.conf （または /boot/grub/menu.lst ）の TOMOYO カーネルに init=/.init が指定されているか？
+<li> /.init に実行許可が与えられているか？
+</ul>
+
+<p>起動したら、 root でログインします。<br>
+以下のコマンドを実行して、プロファイルを保存します。</p>
+
+<table border="1">
+<tr><td>
+cat /proc/ccs/status &gt; /etc/ccs/status.txt
+</td></tr>
+</table>
+
+<h1>準備</h1>
+
+<h2>ドメインについて</h2>
+
+<p>TOMOYO Linux におけるアクセス制御はドメインという単位で指定します。全てのプロセスは何れか１個のドメインに属しており、原則としてプログラムを実行する度に異なるドメインへ遷移します。 TOMOYO Linux におけるドメインは、&lt;kernel&gt; を基点としたプロセスの起動履歴を文字列として結合したものになります。例えば、カーネルプロセスのドメインが &lt;kernel&gt; 、カーネルプロセスから起動される /sbin/init のドメインは &lt;kernel&gt; /sbin/init 、 /sbin/init から起動された /etc/rc.d/rc のドメインは &lt;kernel&gt; /sbin/init /etc/rc.d/rc のようになります。例外については後述します。</p>
+
+<h2>プロファイルについて</h2>
+
+<p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシー管理の負担を減らすために、必要の無い機能を無効化できるようになっています。制御可能な項目はカーネルのコンパイル時に決定されます。 /proc/ccs/status に含まれている項目が制御可能です。</p>
+
+<table border="1">
+<tr>
+<td>項目</td>
+<td>内容</td>
+<td>デフォルト値</td>
+<td>自動学習対応</td>
+</tr>
+<tr>
+<td>COMMENT</td>
+<td>プロファイルの内容を説明するための１行コメント。</td>
+<td></td>
+<td>－</td>
+</tr>
+<tr>
+<td>MAC_FOR_FILE</td>
+<td>ファイルに対する強制アクセス制御を有効にする。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_ARGV0</td>
+<td>プログラム実行時の argv[0] のチェックを有効にする。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_CAPABILITY::</td>
+<td>ケイパビリティに対する強制アクセス制御を有効にする。２９種類ある機能別に有効・無効を指定できる。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_NETWORK</td>
+<td>ネットワークに対する強制アクセス制御を有効にする。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_BINDPORT</td>
+<td>ローカルのポート番号に対する強制アクセス制御を有効にする。これは MAC_FOR_NETWORK の機能限定版である。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_CONNECTPORT</td>
+<td>リモートのポート番号に対する強制アクセス制御を有効にする。これは MAC_FOR_NETWORK の機能限定版である。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_SIGNAL</td>
+<td>シグナルの送信に対する強制アクセス制御を有効にする。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>DENY_CONCEAL_MOUNT</td>
+<td>既存のマウントを隠蔽するようなマウントを禁止する。</td>
+<td>0</td>
+<td>×</td>
+</tr>
+<tr>
+<td>RESTRICT_CHROOT</td>
+<td>chroot で移動可能なディレクトリの制限を有効にする。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>RESTRICT_MOUNT</td>
+<td>mount で指定可能なパラメータの制限を有効にする。</td>
+<td>0</td>
+<td>○</td>
+</tr>
+<tr>
+<td>RESTRICT_UNMOUNT</td>
+<td>指定されたディレクトリのアンマウントを禁止する。</td>
+<td>0</td>
+<td>×</td>
+</tr>
+<tr>
+<td>DENY_PIVOT_ROOT</td>
+<td>pivot_root の呼び出しを禁止する。</td>
+<td>0</td>
+<td>×</td>
+</tr>
+<tr>
+<td>RESTRICT_AUTOBIND</td>
+<td>ローカルのポート番号を自動選択させる際に、特定のポート番号を選択させないようにする。</td>
+<td>0</td>
+<td>×</td>
+</tr>
+<tr>
+<td>TRACE_READONLY</td>
+<td>ファイルシステムが読み込み専用であることで失敗したファイル名を表示する。</td>
+<td>0</td>
+<td>－</td>
+</tr>
+<tr>
+<td>MAX_ACCEPT_FILES</td>
+<td>学習モードで自動的に追加される「ファイルの読み書き実行に関するアクセス許可」の上限を指定する。</td>
+<td>2048</td>
+<td>－</td>
+</tr>
+<tr>
+<td>MAX_GRANT_LOG</td>
+<td>「ポリシーに違反しなかったアクセス要求のログ」の上限を指定する。</td>
+<td>1024</td>
+<td>－</td>
+</tr>
+<tr>
+<td>MAX_REJECT_LOG</td>
+<td>「ポリシーに違反したアクセス要求のログ」の上限を指定する。</td>
+<td>1024</td>
+<td>－</td>
+</tr>
+<tr>
+<td>TOMOYO_VERBOSE</td>
+<td>ドメイン別ポリシーに対する違反を syslog に表示する。</td>
+<td>1</td>
+<td>－</td>
+</tr>
+<tr>
+<td>ALLOW_ENFORCE_GRACE</td>
+<td>ポリシーに違反するアクセス要求を対話的に許可することを可能にする。</td>
+<td>0</td>
+<td>－</td>
+</tr>
+</table>
+<p>TRACE_READONLY および RESTRICT_AUTOBIND については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>0</td>
+<td>無効。通常のカーネルと同様に動作する。</td>
+</tr>
+<tr>
+<td>1</td>
+<td>有効。</td>
+</tr>
+</table>
+<p>MAX_ACCEPT_FILES および MAX_GRANT_LOG および MAX_REJECT_LOG については 0 以上の任意の整数を指定できます。</p>
+<p>TOMOYO_VERBOSE については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>0</td>
+<td>ドメイン別ポリシーに対する違反を表示しない。</td>
+</tr>
+<tr>
+<td>1</td>
+<td>ドメイン別ポリシーに対する違反を表示する。</td>
+</tr>
+</table>
+<p>ALLOW_ENFORCE_GRACE については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>0</td>
+<td>強制モードでポリシーに違反したら直ちに拒否する。</td>
+</tr>
+<tr>
+<td>1</td>
+<td>強制モードでポリシーに違反しても、対話的な操作により許可することを可能にする。</td>
+</tr>
+</table>
+<p>上記以外については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>0</td>
+<td>無効。通常のカーネルと同様に動作する。</td>
+</tr>
+<tr>
+<td>1</td>
+<td>学習モード。ポリシーに違反しても警告をエラーにせず、ポリシーへの自動追加を行う。</td>
+</tr>
+<tr>
+<td>2</td>
+<td>許容モード。ポリシーに違反してもエラーにせず、ポリシーへの自動追加も行わない。</td>
+</tr>
+<tr>
+<td>3</td>
+<td>強制モード。ポリシーに違反したらエラーとする。</td>
+</tr>
+</table>
+
+<h2>プロファイルの作成</h2>
+
+<p> /etc/ccs/status.txt の中に無効・学習・確認・強制用のプロファイルを全て定義してください。例えばファイルとネットワークのみアクセス制御したい場合は以下のような内容になります。行頭の数字は、ドメインにプロファイルを割り当てるときに使用するプロファイル番号です。プロファイル番号は 0 から 255 まで使用できます。</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=----- All Disabled -----<br>
+1-COMMENT=----- FILE and NETWORK with Accept Mode -----<br>
+1-MAC_FOR_FILE=1<br>
+1-MAC_FOR_NETWORK=1<br>
+2-COMMENT=----- FILE and NETWORK with Permissive Mode -----<br>
+2-MAC_FOR_FILE=2<br>
+2-MAC_FOR_NETWORK=2<br>
+3-COMMENT=----- FILE and NETWORK with Enforce Mode -----<br>
+3-MAC_FOR_FILE=3<br>
+3-MAC_FOR_NETWORK=3<br>
+3-MAX_GRANT_LOG=0<br>
+3-ALLOW_ENFORCE_GRACE=0<br>
+4-COMMENT=----- FILE and NETWORK with Delayed Enforce Mode -----<br>
+4-MAC_FOR_FILE=3<br>
+4-MAC_FOR_NETWORK=3<br>
+4-MAX_GRANT_LOG=0<br>
+4-MAX_REJECT_LOG=0<br>
+4-ALLOW_ENFORCE_GRACE=1
+</td></tr>
+</table>
+
+<p>この手順書では、<br>
+プロファイル番号 0 をアクセス制御を行わないプロファイル、<br>
+プロファイル番号 1 を学習モードで動作させるためのプロファイル、<br>
+プロファイル番号 2 を確認モードで動作させるためのプロファイル、<br>
+プロファイル番号 3 を強制モードで動作させるためのプロファイル、<br>
+プロファイル番号 4 をポリシー違反を対話的に許容できる強制モードで動作させるためのプロファイル<br>
+として使用します。</p>
+
+<p>TOMOYO Linux ではプロファイル番号を切り替えることでドメインを単位としてアクセス制御の方法を指定できるので、一度プロファイルを作成したら、プロファイルを編集する必要はありません。もし、プロファイルを追加したい等の理由で /etc/ccs/status.txt を編集した場合は以下のように setlevel コマンドを実行してください。</p>
+
+<table border="1">
+<tr><td>
+xargs -0 setlevel &lt; /etc/ccs/status.txt
+</td></tr>
+</table>
+
+<p>現在のプロファイルを確認するには以下のコマンドを実行してください。</p>
+
+<table border="1">
+<tr><td>
+cat /proc/ccs/status
+</td></tr>
+</table>
+
+<h2>プロファイルの割り当て方</h2>
+
+<p>ドメインにプロファイルを割り当てるには setprofile というコマンドを使用します。例えば</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 0 '&lt;kernel&gt;'
+</td></tr>
+</table>
+
+<p>のように指定した場合、全てのドメインのプロファイルが 0 に変更されます。また、</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 1 '&lt;kernel&gt; /sbin/init'
+</td></tr>
+</table>
+
+<p>のように指定した場合、 &lt;kernel&gt; /sbin/init 以下の全てのドメインのプロファイルが 1 に変更されます。また、</p>
+
+<table border="1">
+<tr><td>
+setprofile 2 '&lt;kernel&gt; /sbin/init'
+</td></tr>
+</table>
+
+<p>のように指定した場合、 &lt;kernel&gt; /sbin/init ドメインのプロファイルだけが 2 に変更されます。</p>
+
+<p>ドメインに割り当てられているプロファイルを確認するには以下のコマンドを実行してください。プロファイル番号とドメイン名がセットになった一覧が表示されます。</p>
+<table border="1">
+<tr><td>
+cat /proc/ccs/policy/.domain_status
+</td></tr>
+</table>
+
+<p>ドメイン単位でプロファイルを割り当てることでアクセス制御モードを変更できるので、起動時にアクセス制御モードを一斉に切り替えする必要は基本的にありません。もし、不適切なプロファイルを割り当ててしまった等の理由によりシステムが起動できなくなってしまった場合には、 /.init のプロンプトで disabled と入力してから Enter を押すことで、アクセス制御を無効にした状態で起動することができます。</p>
+
+<p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを確認するには ccstree というコマンドを使用します。</p>
+
+<table border="1">
+<tr><td>
+ccstree
+</td></tr>
+</table>
+
+<p>ccstree コマンドを実行すると以下のようにプロファイル番号、プロセス名、プロセスＩＤ、ドメイン名の順番で pstree のように出力されます。</p>
+
+<table border="1">
+<tr><td>
+&nbsp;&nbsp;0&nbsp;init&nbsp;(1)&nbsp;&lt;kernel&gt;&nbsp;/sbin/init<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(743)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(744)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(745)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(746)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(747)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rc&nbsp;(748)&nbsp;&lt;kernel&gt;&nbsp;/sbin/init&nbsp;/etc/rc.d/rc<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;S91smb&nbsp;(3468)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/smb<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;initlog&nbsp;(3475)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/smb&nbsp;/sbin/initlog<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;nmbd&nbsp;(3476)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/smb&nbsp;/sbin/initlog&nbsp;/usr/sbin/nmbd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;syslogd&nbsp;(3158)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/syslog&nbsp;/sbin/initlog&nbsp;/sbin/syslogd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;klogd&nbsp;(3162)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/syslog&nbsp;/sbin/initlog&nbsp;/sbin/klogd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;portmap&nbsp;(3172)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/portmap&nbsp;/sbin/initlog&nbsp;/sbin/portmap<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.statd&nbsp;(3191)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfslock&nbsp;/sbin/initlog&nbsp;/sbin/rpc.statd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;cardmgr&nbsp;(3245)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/pcmcia&nbsp;/sbin/cardmgr<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;apmd&nbsp;(3270)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/apmd&nbsp;/sbin/initlog&nbsp;/usr/sbin/apmd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3307)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3393)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;tcsh&nbsp;(3434)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/root/ccstools/ccstree<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;xinetd&nbsp;(3321)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/xinetd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.rquotad&nbsp;(3342)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.rquotad<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.mountd&nbsp;(3361)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.mountd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;vsftpd&nbsp;(3371)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/vsftpd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sendmail&nbsp;(3395)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/sendmail&nbsp;/sbin/initlog&nbsp;/usr/sbin/sendmail.sendmail<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sendmail&nbsp;(3404)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/sendmail&nbsp;/sbin/initlog&nbsp;/usr/sbin/sendmail.sendmail<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;spamd&nbsp;(3414)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/spamassassin&nbsp;/sbin/initlog&nbsp;/usr/bin/spamd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;gpm&nbsp;(3423)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/gpm&nbsp;/sbin/initlog&nbsp;/usr/sbin/gpm<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;httpd&nbsp;(3455)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/httpd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;crond&nbsp;(3464)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/crond<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;smbd&nbsp;(3473)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/smbd
+</td></tr>
+</table>
+
+<p>ccstree に -a オプションを指定すると TOMOYO のアクセス制御の対象外であるカーネルプロセスの情報も表示されます。</p>
+
+<h2>アクセスログ取得の準備</h2>
+
+<p>ドメイン単位のアクセス制御機能に関して、「ポリシーに違反しなかったアクセス要求のログ」（アクセス許可ログ）と「ポリシーに違反したアクセス要求のログ」（アクセス拒否ログ）を取得することができます。</p>
+
+<p>アクセス許可ログとアクセス拒否ログをカーネルから読み出してファイルに保存する為に、 ccs-auditd というデーモンプログラムを利用できます。以下のコマンドを /etc/rc.local 等から実行するようにしてください。</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ccs-auditd アクセス許可ログの保存場所 アクセス拒否ログの保存場所
+</td></tr>
+</table>
+
+<p>アクセス許可ログを保存する必要が無い場合は、プロファイルで MAX_GRANT_LOG=0 という指定をして、アクセス許可ログの保存場所として /dev/null を指定することができます。 ccs-auditd にはフィルタリング機能がありませんので、アクセス許可ログを保存する場合はディスク容量に注意してください。</p>
+
+<p>アクセス拒否ログを保存する必要が無い場合は、プロファイルで MAX_REJECT_LOG=0 という指定をして、アクセス拒否ログの保存場所として /dev/null を指定することができます。アクセス拒否ログは保存しておくことを推奨します。この手順書では、アクセス拒否ログを /var/log/tomoyo/reject_log.txt に保存するものとします。</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+</td></tr>
+</table>
+
+<p>アクセスログを保存するディレクトリは予め作成しておいてください。</p>
+
+<table border="1">
+<tr><td>
+mkdir -p /var/log/tomoyo
+</td></tr>
+</table>
+
+<p>logrotate によるローテーションを行わせたい場合は、以下のような内容のファイルを /etc/logrotate.d/tomoyo に作成してください。なお、 nocreate オプションを必ず指定してください。 nocreate オプションを忘れると、最初のローテーションが実行されて以降のログが保存されなくなってしまいます。</p>
+
+<table border="1">
+<tr><td>
+/var/log/tomoyo/reject_log.txt {<br>
+&nbsp;&nbsp;weekly<br>
+&nbsp;&nbsp;rotate 9<br>
+&nbsp;&nbsp;missingok<br>
+&nbsp;&nbsp;notifempty<br>
+&nbsp;&nbsp;nocreate<br>
+}
+</td></tr>
+</table>
+
+<p>アクセス許可ログ・アクセス拒否ログのどちらも保存しない場合には ccs-auditd を実行する必要はありません。また、プロファイルで MAX_GRANT_LOG=0 および MAX_REJECT_LOG=0 を指定しておくことで、消費メモリの節約と応答速度の向上が期待できます。</p>
+
+<h2>例外ポリシーの作成</h2>
+
+<p> /etc/ccs/exception_policy.txt を作成します。このファイルには以下の７種類の例外を指定します。</p>
+
+<ol>
+<li>パス名のパターン
+<li>無条件に読み込みを許可するファイル
+<li>書き換えを禁止するファイル
+<li>ドメイン遷移を初期化するプログラム
+<li>シンボリックリンクの名前で実行するプログラム
+<li>プログラム名の集約
+<li>ドメイン遷移を行わないドメイン
+</ol>
+
+<p>これらの例外を自動生成するための make_exception.sh と make_alias.sh というスクリプトが用意されています。以下のコマンドを実行してください。 make_alias.sh の実行には長い時間（環境によっては１０分以上）を必要とします。</p>
+
+<table border="1">
+<tr><td>
+make_exception.sh | sort | uniq &gt; /etc/ccs/exception_policy.txt<br>
+make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt
+</td></tr>
+</table>
+
+<p>なお、自動生成された結果には不要なエントリや危険なエントリが含まれる場合があるので、必ず内容を吟味してください。</p>
+
+<h3>(1) パス名のパターン</h3>
+
+<p> file_pattern というキーワードを使用して、パス名のパターンを登録します。アクセス許可を学習する際に、要求されたパス名が file_pattern というキーワードを使用して登録されたパス名のパターンと一致した場合、パターン化されたパス名でアクセス許可が学習されます。<br>
+目安としては以下のものが挙げられます。</p>
+
+<ul>
+<li> /proc/PID/ ディレクトリ以下に存在するファイルのパス名
+<li> /sys/ ディレクトリ以下に存在するファイルのパス名（カーネル 2.6 系の場合のみ）
+<li> /dev/ ディレクトリ以下の一部のパス名
+<li>ポリシーファイルのパス名
+<li>マニュアルページのパス名
+<li>スプールディレクトリのパス名
+<li>メールの送受信時に作成されるテンポラリファイルのパス名
+<li> man コマンドが作成するテンポラリファイルのパス名
+<li> mount コマンドが作成するテンポラリファイルのパス名
+</ul>
+
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にもパターン化されたパス名が必要になります。不足しているパターンは、実際にどのようなアクセスが行われるかを観察してから、適切にパターン化して追加します。</p>
+
+<h3>(2) 無条件に読み込みを許可するファイル</h3>
+
+<p> allow_read というキーワードを使用して、全てのプログラムへの読み込みアクセスを許可するファイルのパス名を登録します。パターンは使用できません。読み込みモードで要求されたパス名が allow_read というキーワードを使用して登録されたパス名と一致した場合、その場で読み込みアクセスが許可されます。<br>
+目安としては以下のものが挙げられます。</p>
+
+<ul>
+<li> ldconfig に登録されている共有ライブラリ
+<li> /proc/ ディレクトリ以下に存在するファイルの一部
+<li> /usr/share/locale/ ディレクトリ以下に存在するロケールデータの一部
+</ul>
+
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にも常に読み込みアクセスを許可したいファイルがあるかもしれません。不足しているファイルは、実際にどのようなファイルを読み込むかを観察してから、必要に応じてその都度追加していきます。</p>
+
+<h3>(3) 書き換えを禁止するファイル</h3>
+
+<p> deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、後述するドメインポリシーの中で明示的に allow_rewrite というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。<br>
+目安としては以下のものが挙げられます。</p>
+
+<ul>
+<li> /var/log/ ディレクトリ以下のファイル
+</ul>
+
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にも書き換えを禁止したいファイルがあるかもしれません。不足しているファイルは、実際にどのようなファイルが追記専用で使われているかを観察してから、必要に応じてその都度追加していきます。</p>
+
+<h3>(4) ドメイン遷移を初期化するプログラム</h3>
+
+<p> initializer というキーワードを使用して、ドメイン遷移履歴をリセットするプログラムのパス名を登録します。パターンは使用できません。 initializer というキーワードを使用して登録されたパス名のプログラムが実行された場合、そのプログラムは &lt;kernel&gt; 直下のドメインで動作します。<br>
+目安としては以下のものが挙げられます。</p>
+
+<ul>
+<li> /etc/init.d/ ディレクトリ以下にあるデーモンプログラム等を起動・終了させるためのスクリプト
+<li> 上記スクリプトから起動されるデーモンプログラムの内、ドメイン名を短くしたいもの（httpd や sshd など） 
+</ul>
+
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にもドメイン遷移履歴をリセットさせたいプログラムがあるかもしれません。最初にドメイン遷移履歴を作成して、実際にどのようなプログラムを指定したらよいかを考慮しながら、必要に応じてその都度追加していきます。その際、他のドメインへの影響に注意してください。例えば、ドメインポリシーとして</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; ・・・ /bin/bash<br>
+use_profile 3<br>
+1 /bin/tcsh<br>
+<br>
+&lt;kernel&gt; ・・・ /bin/bash /bin/tcsh<br>
+use_profile 3<br>
+1 /bin/cat<br>
+<br>
+&lt;kernel&gt; ・・・ /bin/bash /bin/tcsh /bin/cat<br>
+use_profile 3<br>
+4 /etc/fstab
+
+</td></tr>
+</table>
+
+<p>というポリシーが既に存在している状態で /bin/tcsh を initializer として追加した場合、
+/bin/tcsh は &lt;kernel&gt; /bin/tcsh というドメインへ遷移することになるため、
+&lt;kernel&gt; ・・・ /bin/bash /bin/tcsh というドメインへは遷移できなくなってしまいます。
+そのような場合は、</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; ・・・ /bin/bash<br>
+use_profile 3<br>
+1 /bin/tcsh<br>
+<br>
+&lt;kernel&gt; /bin/tcsh<br>
+use_profile 3<br>
+1 /bin/cat<br>
+<br>
+&lt;kernel&gt; /bin/tcsh /bin/cat<br>
+use_profile 3<br>
+4 /etc/fstab
+</td></tr>
+</table>
+
+<p>のように、 &lt;kernel&gt; ・・・ /bin/bash /bin/tcsh で始まる部分を &lt;kernel&gt; /bin/tcsh で始まるようにドメインポリシーを変更してやる必要があります。</p>
+
+<h3>(5) シンボリックリンクの名前で実行するプログラム</h3>
+
+<p>TOMOYO Linux は、原則としてシンボリックリンクを解決したパス名で実行許可のチェックを行いますが、実行時の名前によって異なる振る舞いをするプログラムがシンボリックリンク経由で実行される場合に対処するために、シンボリックリンクの名前でドメインを遷移できるようにすることができます。<br>
+シンボリックリンクの名前でドメインを遷移できるようにするには、 alias というキーワードを使用してシンボリックリンクを解決したパス名とシンボリックリンクを解決する前のパス名を指定します。パターンは使用できません。<br>
+例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクであるため、通常は /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。しかし、 alias /sbin/killall5 /sbin/pidof という指定をすることで、 /sbin/pidof を実行すると /sbin/pidof が実行されたものとしてドメインが定義されるようにできます。</p>
+
+<h3>(6) プログラム名の集約</h3>
+
+<p>複数のプログラムを単一のプログラム名で扱うには、 aggregator というキーワードに続けて集約前のプログラム名と集約後のプログラム名を指定します。集約前のプログラム名にはパターンを使用できます。<br>
+例えば、 /usr/bin/tac と /bin/cat は似ているので、 aggregator /usr/bin/tac /bin/cat という指定をすることで /usr/bin/tac を /bin/cat のドメインで実行することができるようになります。</p>
+
+<h3>(7) ドメイン遷移を行わないドメイン</h3>
+
+<p>ドメイン遷移を行わないドメインを指定するには、 keep_domain というキーワードに続けて、ドメイン名を指定します。<br>
+例えば、 keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh という行が含まれている場合、 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh というドメインに属しているプロセスは、 initializer というキーワードで指定されたプログラムが実行されない限り、そのドメインに留まります。</p>
+
+<h1>ドメインポリシーの作成</h1>
+
+<h2>基本的なポリシーの作成方法</h2>
+
+<p>ポリシーを作成する基本的な手順は以下のようになります。</p>
+
+<ol>
+<li>ドメインの作成
+<li>アクセス許可の学習
+<li>アクセス許可の確認
+<li>アクセス制御の実施
+</ol>
+
+<p>一度に全てのアプリケーション用のポリシーを作成する必要はありません。</p>
+
+<h3>(1) ドメインの作成</h3>
+
+<p>アクセス制御を行わないプロファイル（この手順書では 0 ）を割り当ててアプリケーションを起動します。
+この手順の目的は、アプリケーションのためのドメインを作成することです。</p>
+
+<p>例えば、 /usr/sbin/httpd を保護したい場合、まずは /usr/sbin/httpd が動作するためのドメインを作成します。
+/usr/sbin/httpd が initializer に指定されていれば、  /usr/sbin/httpd を起動することにより &lt;kernel&gt; /usr/sbin/httpd というドメインが作成されます。指定されていなければ、起動元のドメインの子ドメイン（例えば &lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash から起動された場合は &lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd）というドメイン）が作成されます。この手順書では initializer に指定されている場合で説明します。</p>
+
+<p>現在のプロセス（通常はシェル）が属しているドメインに、以下のように setprofile コマンドを使ってアクセス制御を行わないプロファイル（この手順書では 0 ）を割り当てます。</p>
+
+<table border="1">
+<tr><td>
+xargs -0 setprofile 0 &lt; /proc/ccs/info/self_domain
+</td></tr>
+</table>
+
+<p>これは、現在のプロセスが属しているドメインに強制モードで動作するプロファイルが割り当てられていると、新しく作成されるドメインにも強制モードで動作するプロファイルが割り当てられてしまうからです。</p>
+
+<p>この状態で、 /usr/sbin/httpd を動作させます。</p>
+
+<table border="1">
+<tr><td>
+service httpd start
+</td></tr>
+</table>
+
+<p>ドメインが作成されたかどうかは以下のようにすることで確認できます。保護したいアプリケーション用のドメインが作成されたことを確認してください。</p>
+
+<table border="1">
+<tr><td>
+less /proc/ccs/policy/.domain_status
+</td></tr>
+</table>
+
+<p>ドメインが作成されたことを確認したら、次のステップへ進みます。</p>
+
+<h3>(2) アクセス許可の学習</h3>
+
+<p>ドメインが作成されたことを確認したら、以下のように setprofile コマンドを使って学習モードで動作するプロファイル（この手順書では 1 ）を割り当てます。</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>この状態で /usr/sbin/httpd を動作させ、必要なアクセス許可を学習させていきます。</p>
+
+<table border="1">
+<tr><td>
+service httpd restart
+</td></tr>
+</table>
+
+<p>プロファイルで 1-TOMOYO-VERBOSE=1 （デフォルト）に設定されていると、ポリシーに違反したことを示す TOMOYO-WARNING: というメッセージがコンソールに表示されます。学習モードの場合は TOMOYO-WARNING: メッセージが表示された後に、必要なアクセス許可が自動的にポリシーに追加されるので、同じ操作をしても TOMOYO-WARNING: メッセージは１回しか表示されません。</p>
+
+<p>許可したい操作を行っても TOMOYO-WARNING: というメッセージが表示されないようであれば、次のステップへ進みます。</p>
+
+<h3>(3) アクセス許可の確認</h3>
+
+<p>必要なアクセス許可が学習されたと判断したら、以下のように setprofile コマンドを使って確認モードで動作するプロファイル（この手順書では 2 ）を割り当てます。</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>この状態で /usr/sbin/httpd を動作させ、必要なアクセス許可が学習されているかどうかを確認します。</p>
+
+<p>プロファイルで 2-TOMOYO-VERBOSE=1 （デフォルト）に設定されていると、ポリシーに違反したことを示す TOMOYO-WARNING: というメッセージがコンソールに表示されます。確認モードの場合は TOMOYO-WARNING: メッセージが表示されても、必要なアクセス許可が自動的にポリシーに追加されることはないので、同じ操作をすると TOMOYO-WARNING: メッセージは再度表示されます。</p>
+
+<p>許可したい操作を行っても TOMOYO-WARNING: というメッセージが表示されないようであれば、次のステップへ進みます。</p>
+
+<h3>(4) アクセス制御の実施</h3>
+
+<p>必要なアクセス許可が与えられていると判断したら、以下のように setprofile コマンドを使って強制モードで動作するプロファイル（この手順書では 3 ）を割り当てます。</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>以上で、 /usr/sbin/httpd に対して強制アクセス制御が適用された状態になります。</p>
+
+<p>プロファイルで 3-TOMOYO-VERBOSE=1 （デフォルト）に設定されていると、ポリシーに違反した場合に TOMOYO-ERROR: というメッセージがコンソールに表示されてアクセスが拒否されます。ポリシー違反の内容は、 /proc/ccs/info/reject_log にも蓄えられます。</p>
+
+<h2>確認モードを利用して一括してポリシーを生成する方法</h2>
+
+<p>TOMOYO Linux では、アクセスログ拒否ログからドメインポリシーを生成することができます。以下のように setprofile コマンドを使ってポリシー違反を確認モードで動作するプロファイル（この手順書では 2 ）を割り当てます。</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>ccs-auditd によって作成された /var/log/tomoyo/reject_log.txt にはアクセスが拒否されたログが時系列で記録されています。
+その中から、適当な範囲を切り抜き、以下のようにフィルタに通してください。このフィルタは、ドメイン単位にログを並べ替え、重複しているログを消します。（ドメイン単位でログの sort と uniq を行います。）</p>
+
+<table border="1">
+<tr><td>
+sortpolicy &lt; /var/log/tomoyo/reject_log.txt
+</td></tr>
+</table>
+
+<p>この結果から、追加すべきか否かを判断し、追加すべきであると判断した場合は /etc/ccs/domain_policy.txt に追加します。追加したら loadpolicy でドメインポリシーを再読み込みします。</p>
+
+<table border="1">
+<tr><td>
+loadpolicy d
+</td></tr>
+</table>
+
+<p>loadpolicy df のように f オプションも指定すると、カーネル内部に保持されているドメインポリシーを消去して読み込みます。</p>
+
+<h3>操作例</h3>
+
+<p>現在のアクセス拒否ログの名前を変更します。 ccs-auditd は現在のアクセス拒否ログを保存していたファイルが消滅したことを検知して新しいファイルを作成します。</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# mv /var/log/tomoyo/reject_log.txt /var/log/tomoyo/reject_log.tmp<br>
+</td></tr>
+</table>
+<p>内容を確認します。必要に応じて、抽出したい範囲だけをテキストエディタを用いて切り出します。</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# cat /var/log/tomoyo/reject_log.tmp<br>
+#2006-11-10 10:17:29# pid=4498 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
+4 /etc/inittab<br>
+<br>
+#2006-11-10 10:17:41# pid=4501 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
+4 /etc/resolv.conf<br>
+<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
+1 /usr/bin/whoami<br>
+<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
+4 /etc/nsswitch.conf<br>
+<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
+4 /etc/passwd<br>
+<br>
+</td></tr>
+</table>
+<p>内容をドメイン単位で並び替えます。</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# sortpolicy &lt; /var/log/tomoyo/reject_log.tmp<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
+<br>
+1 /usr/bin/whoami<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
+<br>
+4 /etc/inittab<br>
+4 /etc/resolv.conf<br>
+#2006-11-10 10:17:41# pid=4501 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
+<br>
+4 /etc/nsswitch.conf<br>
+4 /etc/passwd<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+<br>
+</td></tr>
+</table>
+<p>タイムスタンプが邪魔なので  # で始まる行を除外してから、内容をドメイン単位で並び替えます。</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# grep -v '^#' /var/log/tomoyo/reject_log.tmp | sortpolicy &gt; /var/log/tomoyo/diff.tmp<br>
+</td></tr>
+</table>
+<p>内容を確認します。これはドメインポリシーとしてそのまま追加可能な形式になっています。</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# cat /var/log/tomoyo/diff.tmp<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
+<br>
+1 /usr/bin/whoami<br>
+<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
+<br>
+4 /etc/inittab<br>
+4 /etc/resolv.conf<br>
+<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
+<br>
+4 /etc/nsswitch.conf<br>
+4 /etc/passwd<br>
+<br>
+</td></tr>
+</table>
+
+<h2>強制モードを利用して対話的にポリシーを生成する方法</h2>
+
+<p>TOMOYO Linux では、強制モードのままポリシーの修正を行うことができます。以下のように setprofile コマンドを使ってポリシー違反を対話的に許容できる強制モードで動作するプロファイル（この手順書では 4 ）を割り当てます。</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 4 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>次に、 ccs-queryd を起動します。 ccs-queryd は、ポリシー違反の発生を検知して、アクセス要求の内容を表示します。管理者は、そのアクセス要求の妥当性を判断して、アクセスを許可するか否か、ドメインポリシーに追加するか否かを指定することができます。</p>
+
+<table border="1">
+<tr><td>
+ccs-queryd
+</td></tr>
+</table>
+
+<p>「プロファイルで ALLOW_ENFORCE_GRACE=1 が設定されている」かつ「 ccs-queryd が動作している」場合、ポリシー違反が発生しても管理者が応答するまでそのアクセス要求は保留状態となります。それ以外の場合は、ポリシー違反が発生するとそのアクセス要求は直ちに拒否されます。</p>
+
+<p>保留状態のまま永遠に停止してしまうことを避けるために、「プロファイルで ALLOW_ENFORCE_GRACE=1 が設定されている」かつ「 ccs-queryd が動作している」状態のままログアウト（例えば screen(1) プログラムの中で ccs-queryd を動作させたままデタッチ）しないでください。</p>
+
+<p>ccs-queryd を終了させるには  Ctrl-C を押してください。 ccs-queryd を終了させてから、以下のように setprofile コマンドを使って強制モードで動作するプロファイル（この手順書では 3 ）に戻してください。</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<h2>ポリシーの保存方法</h2>
+
+<p>カーネル内部に保持されているポリシーをディスクに保存するには、以下のように savepolicy コマンドを使います。<p>
+
+<table border="1">
+<tr><td>
+savepolicy
+</td></tr>
+</table>
+
+<p>savepolicy を実行することで、 /etc/ccs/ ディレクトリに system_policy.txt exception_policy.txt domain_policy.txt の３つのファイルが作成されます。実際にはこれらのファイルは、ファイルの作成日時をファイル名に含んだテキストファイルへのシンボリックリンクになっています。</p>
+
+<h2>ポリシーの読み込み方法</h2>
+
+<p>/etc/ccs/ ディレクトリに保存されているポリシーをカーネル内部に読み込むには、以下のように loadpolicy コマンドを使います。<p>
+
+<table border="1">
+<tr><td>
+loadpolicy af
+</td></tr>
+</table>
+
+<p>a オプションは system_polixy.txt exception_policy.txt domain_policy.txt の３種類を読み込むことを意味します。また、 f オプションはカーネル内部に保持されているポリシーを消去して読み込みます。 f オプションが指定されなかった場合は、カーネル内部に保持されているポリシーに追加される形になります。</p>
+
+<h2>ポリシーの編集方法</h2>
+
+<p>カーネル内部に保持されているポリシーを編集するには、以下のように editpolicy コマンドを使います。ポリシーエディタの使い方については、<a href="tool-editpolicy.html">ポリシーエディタの使い方</a>を参照してください。</p>
+
+<table border="1">
+<tr><td>
+editpolicy
+</td></tr>
+</table>
+
+<p>ディスク上に保存されているポリシーファイルを編集するには、以下のように editpolicy_offline コマンドを使います。 editpolicy_offline コマンドは通常のカーネルで動作している場合でも利用できます。</p>
+
+<table border="1">
+<tr><td>
+editpolicy_offline
+</td></tr>
+</table>
+
+<h1>ポリシーのチューニング</h1>
+
+<h2>ファイルのアクセス許可のパターン化</h2>
+
+<p>WWW サーバがアクセスするコンテンツのように、自動学習では必ずしもアクセスされないファイルに対するアクセス許可を /etc/ccs/domain_policy.txt に追加します。<br>
+以下の例では、 /usr/sbin/httpd に対して /var/www/html/ 以下の読み込みを許可しています。</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+use_profile 3<br>
+4 /var/www/html/\*<br>
+4 /var/www/html/\*/\*<br>
+4 /var/www/html/\*/\*/\*<br>
+4 /var/www/html/\*/\*/\*/\*<br>
+4 /var/www/html/\*/\*/\*/\*/\*<br></td>
+</tr>
+</table>
+
+<p>同様に、パターンを使用して手作業でのグループ化を行います。<br>
+以下の例では、 /usr/sbin/smbd に対して全てのログファイルを同様に扱うように指示しています。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+2 /var/log/samba/host1.log<br>
+2 /var/log/samba/host2.log<br>
+2 /var/log/samba/host3.log<br>
+2 /var/log/samba/host4.log<br>
+2 /var/log/samba/host5.log
+</td><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+2 /var/log/samba/\*.log
+</td></tr>
+</table>
+
+<p>与えられたパターンと一致するディスク上のパス名を一覧表示する pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# pathmatch '/var/log/samba/\*.log'<br>
+/var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
+</td></tr>
+</table>
+
+<h3>操作例</h3>
+
+<p>カーネルに存在するドメインポリシーをディスクに保存します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# savepolicy d<br>
+</td></tr>
+</table>
+<p>テンポラリファイルの可能性があるパス名を抽出します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.txt<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+<p>テンポラリファイルにアクセスしているドメインを探します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# domainmatch /etc/mtab~2302<br>
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
+allow_create /etc/mtab~2302<br>
+2 /etc/mtab~2302<br>
+allow_link /etc/mtab~2302 /etc/mtab~<br>
+allow_unlink /etc/mtab~2302<br>
+[root@sakura ~]# domainmatch /tmp/sh-thd-1163113704<br>
+&lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
+allow_create /tmp/sh-thd-1163113704<br>
+6 /tmp/sh-thd-1163113704<br>
+allow_unlink /tmp/sh-thd-1163113704<br>
+</td></tr>
+</table>
+<p>カーネルに存在する例外ポリシーをディスクに保存します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# savepolicy e<br>
+</td></tr>
+</table>
+<p>必要に応じてディスク上の例外ポリシーにパターンを追加します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.txt<br>
+[root@sakura ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.txt<br>
+</td></tr>
+</table>
+<p>ディスク上の例外ポリシーをカーネルに読み込みます。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# loadpolicy ef<br>
+</td></tr>
+</table>
+<p>/etc/mtab~\$ および /tmp/sh-thd-\$ に一致するパス名のパターン化を行います。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.txt &gt; /etc/ccs/domain_policy.tmp<br>
+</td></tr>
+</table>
+<p>パターン化されたことを確認します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.tmp<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+<p>パターン化前後の差分を表示して、パターン化が適切に行われているかどうかを確認します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# diff /etc/ccs/domain_policy.txt /etc/ccs/domain_policy.tmp<br>
+2326,2331c2326,2331<br>
+&lt; 6 /tmp/sh-thd-1163110572<br>
+&lt; 6 /tmp/sh-thd-1163113704<br>
+&lt; allow_create /tmp/sh-thd-1163110572<br>
+&lt; allow_create /tmp/sh-thd-1163113704<br>
+&lt; allow_unlink /tmp/sh-thd-1163110572<br>
+&lt; allow_unlink /tmp/sh-thd-1163113704<br>
+---<br>
+&gt; 6 /tmp/sh-thd-\$<br>
+&gt; 6 /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_unlink /tmp/sh-thd-\$<br>
+&gt; allow_unlink /tmp/sh-thd-\$<br>
+3331,3336c3331,3336<br>
+&lt; 2 /etc/mtab~2328<br>
+&lt; 2 /etc/mtab~2329<br>
+&lt; 2 /etc/mtab~2330<br>
+&lt; 2 /etc/mtab~2331<br>
+&lt; 2 /etc/mtab~2332<br>
+&lt; 2 /etc/mtab~2383<br>
+---<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+3338,3349c3338,3349<br>
+&lt; allow_create /etc/mtab~2328<br>
+&lt; allow_create /etc/mtab~2329<br>
+&lt; allow_create /etc/mtab~2330<br>
+&lt; allow_create /etc/mtab~2331<br>
+&lt; allow_create /etc/mtab~2332<br>
+&lt; allow_create /etc/mtab~2383<br>
+&lt; allow_link /etc/mtab~2328 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2329 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2330 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2331 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2332 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2383 /etc/mtab~<br>
+---<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+3351,3356c3351,3356<br>
+&lt; allow_unlink /etc/mtab~2328<br>
+&lt; allow_unlink /etc/mtab~2329<br>
+&lt; allow_unlink /etc/mtab~2330<br>
+&lt; allow_unlink /etc/mtab~2331<br>
+&lt; allow_unlink /etc/mtab~2332<br>
+&lt; allow_unlink /etc/mtab~2383<br>
+---<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+3439,3440c3439,3440<br>
+&lt; 2 /etc/mtab~2302<br>
+&lt; 2 /etc/mtab~2339<br>
+---<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+3443,3446c3443,3446<br>
+&lt; allow_create /etc/mtab~2302<br>
+&lt; allow_create /etc/mtab~2339<br>
+&lt; allow_link /etc/mtab~2302 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2339 /etc/mtab~<br>
+---<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+3449,3450c3449,3450<br>
+&lt; allow_unlink /etc/mtab~2302<br>
+&lt; allow_unlink /etc/mtab~2339<br>
+---<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+</td></tr>
+</table>
+<p>ディスク上のドメインポリシーを更新します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.txt<br>
+</td></tr>
+</table>
+<p>ディスク上のドメインポリシーをカーネルに読み込みます。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# loadpolicy df<br>
+</td></tr>
+</table>
+<p>カーネルに読み込まれているドメインポリシーが更新されていることを確認します。</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# findtemp &lt; /proc/ccs/policy/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<h2>ネットワークのアクセス許可のパターン化</h2>
+
+<p>portmap のように特権ポート（1024未満の番号を持つポート）をランダムに使用するアプリケーションが存在します。ランダムにネットワークポート番号を選択するアプリケーションに対しては、必要なポート番号を学習モードで学習させることはできません。何度か学習モードで実行することで１個ずつ学習させた後、学習結果からどのような範囲のポート番号を使用しているかを推測し、範囲を指定してポート番号の使用を許可してやる必要があります。<br>
+例えば、以下のような範囲が考えられます。実際に許可する必要のある範囲はディストリビューションや設定により異なる可能性がありますので、以下の設定をそのままコピーしないようにしてください。</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /sbin/portmap<br>
+use_profile 7<br>
+allow_bind TCP/0<br>
+allow_bind TCP/111<br>
+allow_bind TCP/600-1023<br>
+allow_bind UDP/0<br>
+allow_bind UDP/111<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/32768-65535<br>
+allow_connect UDP/600-1023<br>
+<br>
+&lt;kernel&gt; /sbin/rpc.statd<br>
+use_profile 7<br>
+allow_bind TCP/0<br>
+allow_bind TCP/600-1023<br>
+allow_bind UDP/0<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111<br>
+<br>
+&lt;kernel&gt; /usr/sbin/rpc.mountd<br>
+use_profile 7<br>
+allow_bind TCP/0<br>
+allow_bind TCP/600-1023<br>
+allow_bind UDP/0<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111<br>
+<br>
+&lt;kernel&gt; /usr/sbin/rpc.nfsd<br>
+use_profile 7<br>
+allow_capability inet_tcp_create<br>
+allow_capability use_inet_udp<br>
+allow_connect UDP/111<br>
+allow_connect UDP/32768-65535<br>
+<br>
+&lt;kernel&gt; /usr/sbin/rpc.rquotad<br>
+use_profile 7<br>
+allow_bind TCP/600-1023<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111<br>
+<br>
+&lt;kernel&gt; /usr/sbin/rpcinfo<br>
+use_profile 7<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111<br>
+allow_connect UDP/2049<br>
+<br>
+&lt;kernel&gt; /usr/sbin/xinetd<br>
+use_profile 7<br>
+allow_bind TCP/0<br>
+allow_bind UDP/69<br>
+allow_bind UDP/600-1023<br>
+allow_connect UDP/111
+</td></tr>
+</table>
+
+<p>なお、 NFS や NIS のように RPC を必要とするサービスを動作させないのであれば、無効にしておくことを推奨します。</p>
+
+<p>同様に、 allow_network も適切にパターン化します。以下の設定をそのままコピーしないようにしてください。</a>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 43768<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1 35086<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 47590<br>
+allow_network TCP accept 10.0.0.10 56709<br>
+allow_network TCP accept 10.0.0.200 16384
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 1024-65535<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff 1024-65535<br>
+allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
+</td></tr>
+</table>
+
+<h2>アクセス許可条件の付与</h2>
+
+<p>個々のアクセス許可に対して必要に応じて条件を付けることができます。これにより、システムアカウントのユーザＩＤに基づくアクセス制御が可能です。</p>
+
+<p>匿名ではない FTP サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を FTP でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある ftp ディレクトリ以下だけのアクセスを認めます。 vsftpd を用いる場合、例えば以下のように許可を与えます。</p>
+
+<table border="1">
+<tr><td>修正前</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+use_profile 3<br>
+<br>
+6 /home/\*/ftp/\*<br>
+6 /home/\*/ftp/\*/\*<br>
+6 /home/\*/ftp/\*/\*/\*<br>
+6 /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_mkdir /home/\*/ftp/\*/<br>
+allow_mkdir /home/\*/ftp/\*/\*/<br>
+allow_mkdir /home/\*/ftp/\*/\*/\*/<br>
+<br>
+allow_rmdir /home/\*/ftp/\*/<br>
+allow_rmdir /home/\*/ftp/\*/\*/<br>
+allow_rmdir /home/\*/ftp/\*/\*/\*/<br>
+<br>
+allow_create /home/\*/ftp/\*<br>
+allow_create /home/\*/ftp/\*/\*<br>
+allow_create /home/\*/ftp/\*/\*/\*<br>
+allow_create /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_truncate /home/\*/ftp/\*<br>
+allow_truncate /home/\*/ftp/\*/\*<br>
+allow_truncate /home/\*/ftp/\*/\*/\*<br>
+allow_truncate /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_unlink /home/\*/ftp/\*<br>
+allow_unlink /home/\*/ftp/\*/\*<br>
+allow_unlink /home/\*/ftp/\*/\*/\*<br>
+allow_unlink /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_rename /home/\*/ftp/\* /home/\*/ftp/\*<br>
+allow_rename /home/\*/ftp/\*/\* /home/\*/ftp/\*/\*<br>
+allow_rename /home/\*/ftp/\*/\*/\* /home/\*/ftp/\*/\*/\*<br>
+allow_rename /home/\*/ftp/\*/\*/\*/\* /home/\*/ftp/\*/\*/\*/\*<br>
+<br>
+allow_rename /home/\*/ftp/\*/ /home/\*/ftp/\*/<br>
+allow_rename /home/\*/ftp/\*/\*/ /home/\*/ftp/\*/\*/<br>
+allow_rename /home/\*/ftp/\*/\*/\*/ /home/\*/ftp/\*/\*/\*/<br>
+</td></tr>
+</table>
+
+
+<table border="1">
+<tr><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+use_profile 3<br>
+<br>
+6 /home/\*/ftp/\* if task.uid=path1.uid<br>
+6 /home/\*/ftp/\*/\* if task.uid=path1.uid<br>
+6 /home/\*/ftp/\*/\*/\* if task.uid=path1.uid<br>
+6 /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.uid<br>
+<br>
+allow_mkdir /home/\*/ftp/\*/ if task.uid=path1.parent.uid<br>
+allow_mkdir /home/\*/ftp/\*/\*/ if task.uid=path1.parent.uid<br>
+allow_mkdir /home/\*/ftp/\*/\*/\*/ if task.uid=path1.parent.uid<br>
+<br>
+allow_rmdir /home/\*/ftp/\*/ if task.uid=path1.uid<br>
+allow_rmdir /home/\*/ftp/\*/\*/ if task.uid=path1.uid<br>
+allow_rmdir /home/\*/ftp/\*/\*/\*/ if task.uid=path1.uid<br>
+<br>
+allow_create /home/\*/ftp/\* if task.uid=path1.parent.uid<br>
+allow_create /home/\*/ftp/\*/\* if task.uid=path1.parent.uid<br>
+allow_create /home/\*/ftp/\*/\*/\* if task.uid=path1.parent.uid<br>
+allow_create /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.parent.uid<br>
+<br>
+allow_truncate /home/\*/ftp/\* if task.uid=path1.uid<br>
+allow_truncate /home/\*/ftp/\*/\* if task.uid=path1.uid<br>
+allow_truncate /home/\*/ftp/\*/\*/\* if task.uid=path1.uid<br>
+allow_truncate /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.uid<br>
+<br>
+allow_unlink /home/\*/ftp/\* if task.uid=path1.uid<br>
+allow_unlink /home/\*/ftp/\*/\* if task.uid=path1.uid<br>
+allow_unlink /home/\*/ftp/\*/\*/\* if task.uid=path1.uid<br>
+allow_unlink /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.uid<br>
+<br>
+allow_rename /home/\*/ftp/\* /home/\*/ftp/\* if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\* /home/\*/ftp/\*/\* if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\*/\* /home/\*/ftp/\*/\*/\* if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\*/\*/\* /home/\*/ftp/\*/\*/\*/\* if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+<br>
+allow_rename /home/\*/ftp/\*/ /home/\*/ftp/\*/ if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\*/ /home/\*/ftp/\*/\*/ if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename /home/\*/ftp/\*/\*/\*/ /home/\*/ftp/\*/\*/\*/ if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+</td></tr>
+</table>
+
+<p>Samba サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を Samba でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある samba ディレクトリ以下だけのアクセスを認めます。</p>
+
+<table border="1">
+<tr><td>修正前</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+<br>
+6 /home/\*/samba/\*<br>
+6 /home/\*/samba/\*/\*<br>
+6 /home/\*/samba/\*/\*/\*<br>
+6 /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_mkdir /home/\*/samba/\*/<br>
+allow_mkdir /home/\*/samba/\*/\*/<br>
+allow_mkdir /home/\*/samba/\*/\*/\*/<br>
+<br>
+allow_rmdir /home/\*/samba/\*/<br>
+allow_rmdir /home/\*/samba/\*/\*/<br>
+allow_rmdir /home/\*/samba/\*/\*/\*/<br>
+<br>
+allow_create /home/\*/samba/\*<br>
+allow_create /home/\*/samba/\*/\*<br>
+allow_create /home/\*/samba/\*/\*/\*<br>
+allow_create /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_truncate /home/\*/samba/\*<br>
+allow_truncate /home/\*/samba/\*/\*<br>
+allow_truncate /home/\*/samba/\*/\*/\*<br>
+allow_truncate /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_unlink /home/\*/samba/\*<br>
+allow_unlink /home/\*/samba/\*/\*<br>
+allow_unlink /home/\*/samba/\*/\*/\*<br>
+allow_unlink /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_rename /home/\*/samba/\* /home/\*/samba/\*<br>
+allow_rename /home/\*/samba/\*/\* /home/\*/samba/\*/\*<br>
+allow_rename /home/\*/samba/\*/\*/\* /home/\*/samba/\*/\*/\*<br>
+allow_rename /home/\*/samba/\*/\*/\*/\* /home/\*/samba/\*/\*/\*/\*<br>
+<br>
+allow_rename /home/\*/samba/\*/ /home/\*/samba/\*/<br>
+allow_rename /home/\*/samba/\*/\*/ /home/\*/samba/\*/\*/<br>
+allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/
+</td></tr>
+</table>
+
+<table border="1">
+<tr><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+<br>
+6 /home/\*/samba/\* if task.euid=path1.uid<br>
+6 /home/\*/samba/\*/\* if task.euid=path1.uid<br>
+6 /home/\*/samba/\*/\*/\* if task.euid=path1.uid<br>
+6 /home/\*/samba/\*/\*/\*/\* if task.euid=path1.uid<br>
+<br>
+allow_mkdir /home/\*/samba/\*/ if task.euid=path1.parent.uid<br>
+allow_mkdir /home/\*/samba/\*/\*/ if task.euid=path1.parent.uid<br>
+allow_mkdir /home/\*/samba/\*/\*/\*/ if task.euid=path1.parent.uid<br>
+<br>
+allow_rmdir /home/\*/samba/\*/ if task.euid=path1.uid<br>
+allow_rmdir /home/\*/samba/\*/\*/ if task.euid=path1.uid<br>
+allow_rmdir /home/\*/samba/\*/\*/\*/ if task.euid=path1.uid<br>
+<br>
+allow_create /home/\*/samba/\* if task.euid=path1.parent.uid<br>
+allow_create /home/\*/samba/\*/\* if task.euid=path1.parent.uid<br>
+allow_create /home/\*/samba/\*/\*/\* if task.euid=path1.parent.uid<br>
+allow_create /home/\*/samba/\*/\*/\*/\* if task.euid=path1.parent.uid<br>
+<br>
+allow_truncate /home/\*/samba/\* if task.euid=path1.uid<br>
+allow_truncate /home/\*/samba/\*/\* if task.euid=path1.uid<br>
+allow_truncate /home/\*/samba/\*/\*/\* if task.euid=path1.uid<br>
+allow_truncate /home/\*/samba/\*/\*/\*/\* if task.euid=path1.uid<br>
+<br>
+allow_unlink /home/\*/samba/\* if task.euid=path1.uid<br>
+allow_unlink /home/\*/samba/\*/\* if task.euid=path1.uid<br>
+allow_unlink /home/\*/samba/\*/\*/\* if task.euid=path1.uid<br>
+allow_unlink /home/\*/samba/\*/\*/\*/\* if task.euid=path1.uid<br>
+<br>
+allow_rename /home/\*/samba/\* /home/\*/samba/\* if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\* /home/\*/samba/\*/\* if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\*/\* /home/\*/samba/\*/\*/\* if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\*/\*/\* /home/\*/samba/\*/\*/\*/\* if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+<br>
+allow_rename /home/\*/samba/\*/ /home/\*/samba/\*/ if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\*/ /home/\*/samba/\*/\*/ if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/ if task.euid=path1.parent.uid task.euid=path2.parent.uid
+</td></tr>
+</table>
+
+<p>SSH サーバを保護する場合、以下のように条件を付けることで、 root ユーザとしてログインすることを禁止できます。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 3<br>
+<br>
+1 /bin/bash
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 3<br>
+<br>
+1 /bin/bash if task.uid!=0 task.euid!=0
+</td></tr>
+</table>
+
+<h2>ソフトウェアのアップデート</h2>
+
+<p>ソフトウェアのアップデートや設定の変更によりポリシーを調整する必要が発生する場合があります。ポリシーを調整する方法については、<a href="update.html">TOMOYO Linuxメンテナンス手順</a>を参照してください。</p>
+
+</body>
+</html>
