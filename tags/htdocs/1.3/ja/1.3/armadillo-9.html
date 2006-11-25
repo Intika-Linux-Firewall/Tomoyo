@@ -1,0 +1,366 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux on Armadillo-9 導入手順書</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<h1>TOMOYO Linux on Armadillo-9 導入手順書</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<p>TOMOYO Linux とは、 Linux に強制アクセス制御機能を追加することでセキュリティを向上させるための実装です。
+強制アクセス制御機能を提供する実装としては SELinux や LIDS 等がありますが、
+TOMOYO Linux は SELinux ほど多機能すぎず、 LIDS のようにハードリンクの問題を受けないため、
+組み込み用途でも簡単に利用できます。</p>
+
+<h1>１：カーネルのコンパイル</h1>
+
+<p>コンパイル済みカーネルを以下のアドレスからダウンロードできます。コンパイル済みカーネルを使う場合は「２：Debian の Armadillo-9 へのインストール」まで飛んでください。</p>
+
+<ul>
+<li>http://osdn.dl.sourceforge.jp/tomoyo/22560/kernel-2.4.31-a9-3-tomoyo_1.3.tar.gz
+<li>http://osdn.dl.sourceforge.jp/tomoyo/22560/kernel-2.6.12.3-a9-8-tomoyo_1.3.tar.gz
+</ul>
+
+<p>コンパイル済みカーネルを使わずに、カスタマイズしたい場合は以下の手順を実行してください。</p>
+
+<h2>VMware Player 用クロスコンパイル環境のインストール</h2>
+
+<p>http://armadillo.atmark-techno.com/20061028-1 から VMware Player 用のクロスコンパイル環境をダウンロードします。
+この手順書では http://download.atmark-techno.com/atde/atde-20061028.zip を使用します。</p>
+
+<h2>カーネルのコンパイル</h2>
+
+<p>クロスコンパイル環境にユーザ atmark 、パスワード atmark としてログインします。</p>
+
+<p>http://download.atmark-techno.com/armadillo-9/source/ からカーネルのソースをダウンロードします。
+この手順書では linux-2.4.31-a9-3.tar.gz または linux-2.6.12.3-a9-8.tar.gz を使用します。</p>
+
+<table border="1"><tr><td>
+<pre>
+cd
+wget http://download.atmark-techno.com/armadillo-9/source/linux-2.4.31-a9-3.tar.gz
+tar -zxf linux-2.4.31-a9-3.tar.gz
+cd linux-2.4.31-a9-3
+</pre>
+</td></tr></table>
+
+<p>または、</p>
+
+<table border="1"><tr><td>
+<pre>
+cd
+wget http://download.atmark-techno.com/armadillo-9/source/linux-2.6.12.3-a9-8.tar.gz
+tar -zxf linux-2.6.12.3-a9-8.tar.gz
+cd linux-2.6.12.3-a9-8
+</pre>
+</td></tr></table>
+
+<p>http://sourceforge.jp/projects/tomoyo/ から TOMOYO Linux 用カーネルパッチをダウンロードします。
+この手順書では http://osdn.dl.sourceforge.jp/tomoyo/22558/ccs-patch-1.3-20061111.tar.gz を使用します。</p>
+
+<table border="1"><tr><td>
+<pre>
+wget http://osdn.dl.sourceforge.jp/tomoyo/22558/ccs-patch-1.3-20061111.tar.gz
+tar -zxf ccs-patch-1.3-20061111.tar.gz
+</pre>
+</td></tr></table>
+
+<p>linux-2.4.31-a9-3.tar.gz を使う場合は、カーネル 2.4.31-a9-3 用のパッチをダウンロードして適用します。</p>
+
+<table border="1"><tr><td>
+<pre>
+wget -O ccs-patch-2.4.31-a9-3.txt http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1636&amp;aid=9450
+patch -p1 &lt; ccs-patch-2.4.31-a9-3.txt
+</pre>
+</td></tr></table>
+
+<p>linux-2.6.12.3-a9-8.tar.gz を使う場合は、カーネル 2.6.12.3-a9-8 用のパッチをダウンロードして適用します。</p>
+
+<table border="1"><tr><td>
+<pre>
+wget -O ccs-patch-2.6.12.3-a9-8.txt http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1637&amp;aid=9450
+patch -p1 &lt; ccs-patch-2.6.12.3-a9-8.txt
+</pre>
+</td></tr></table>
+
+<p>http://download.atmark-techno.com/armadillo-9/dist/ から atmark-dist をダウンロードします。
+この手順書では atmark-dist-20061020.tar.gz を使用します。</p>
+
+<table border="1"><tr><td>
+<pre>
+cd
+wget http://download.atmark-techno.com/armadillo-9/dist/atmark-dist-20061020.tar.gz
+tar -zxf atmark-dist-20061020.tar.gz
+cd atmark-dist-20061020
+</pre>
+</td></tr></table>
+
+<p>linux-2.4.31-a9-3.tar.gz を使う場合は、以下のようにシンボリックリンクを張ります。</p>
+
+<table border="1"><tr><td>
+<pre>
+ln -s ../linux-2.4.31-a9-3 linux-2.4.x
+</pre>
+</td></tr></table>
+
+<p>linux-2.6.12.3-a9-8.tar.gz を使う場合は、以下のようにシンボリックリンクを張ります。</p>
+
+<table border="1"><tr><td>
+<pre>
+ln -s ../linux-2.6.12.3-a9-8 linux-2.6.x
+</pre>
+</td></tr></table>
+
+<p>あとは atmark-dist Developers Guide で述べられている手順どおりです。
+コンパイルが完了すると images ディレクトリに linux.bin.gz というファイルと romfs ディレクトリに lib/modules/ というディレクトリが作成されます。これらを後ほどコンパクトフラッシュ内にコピーするので、カーネルコンフィグと共にまとめておきます。</p>
+
+<p>linux-2.4.31-a9-3.tar.gz を使う場合は、以下のように実行します。</p>
+
+<table border="1"><tr><td>
+<pre>
+mkdir romfs/boot
+cp -p images/linux.bin.gz romfs/boot/Image.gz
+cp -p linux-2.4.x/.config romfs/boot/config-2.4.31-a9-3-ccs
+cd romfs
+su -c 'chown -R root.root boot/ lib/; chmod -R g-s boot/ lib/'
+tar -zcf ~/kernel-2.4.31-a9-3-tomoyo_1.3.tar.gz boot/ lib/modules/
+</pre>
+</td></tr></table>
+
+<p>linux-2.6.12.3-a9-8.tar.gz を使う場合は、以下のように実行します。</p>
+
+<p></p>
+<table border="1"><tr><td>
+<pre>
+mkdir romfs/boot
+cp -p images/linux.bin.gz romfs/boot/Image.gz
+cp -p linux-2.6.x/.config romfs/boot/config-2.6.12.3-a9-8-ccs
+cd romfs
+su -c 'chown -R root.root boot/ lib/; chmod -R g-s boot/ lib/'
+tar -zcf ~/kernel-2.6.12.3-a9-8-tomoyo_1.3.tar.gz boot/ lib/modules/
+</pre>
+</td></tr></table>
+
+<h1>２：Debian の Armadillo-9 へのインストール</h1>
+
+<p>この手順書では容量５１２ＭＢのコンパクトフラッシュ（CF）を使用します。</p>
+
+<p>基本的に Software Manual で述べられている手順どおりです。</p>
+
+<p>Hermitコマンドプロンプトを起動するために、 JP2 をショート状態にします。 CF を抜いてあることを確認してから、 Armadillo-9 の電源を入れます。</p>
+
+<p>hermit&gt; というプロンプトが表示されるので、以下のコマンドを実行します。</p>
+
+<table border="1"><tr><td>
+<pre>
+hermit&gt; clearenv
+</pre>
+</td></tr></table>
+
+<p>Armadillo-9 の電源を切ります。</p>
+
+<p>オンボードFlashメモリ内のLinuxカーネルで起動させるために、 JP2 をオープン状態にします。 CF を挿してあることを確認してから、 Armadillo-9 の電源を入れます。</p>
+
+<p>ユーザ名 root 、パスワード root でログインします。</p>
+
+<p>[root@armadillo9 (ttyAM0) /]# というプロンプトが表示されるので、システム時刻を修正します。 MMDDhhmmCCYY の部分は現在時刻を指定してください。</p>
+
+<table border="1"><tr><td>
+<pre>
+date MMDDhhmmCCYY
+hwclock -w
+</pre>
+</td></tr></table>
+
+<p>CF のパーティション分割を行います。この手順書では CF が /dev/hdc として認識される場合で説明します。</p>
+
+<table border="1"><tr><td>
+<pre>
+fdisk /dev/hdc
+</pre>
+</td></tr></table>
+
+<p>パーティションをフォーマットします。この手順書では /dev/hdc1 のみを使用する場合で説明します。</p>
+
+<table border="1"><tr><td>
+<pre>
+mke2fs -O none /dev/hdc1
+</pre>
+</td></tr></table>
+
+<p>パーティションをマウントします。</p>
+
+<table border="1"><tr><td>
+<pre>
+mount /dev/hdc1 /mnt/
+cd /mnt/
+</pre>
+</td></tr></table>
+
+<p>http://download.atmark-techno.com/armadillo-9/debian/ から CF にインストールする環境をダウンロードします。
+この手順書では arm-sarge-20050310-1.tgz ～ arm-sarge-20050310-5.tgz を使用するものとします。</p>
+
+<p>[root@armadillo9 (ttyAM0) /mnt]# というプロンプトが表示されるので以下のコマンドを実行してください。</p>
+
+<table border="1"><tr><td>
+<pre>
+wget http://download.atmark-techno.com/armadillo-9/debian/arm-sarge-20050310-1.tgz
+wget http://download.atmark-techno.com/armadillo-9/debian/arm-sarge-20050310-2.tgz
+wget http://download.atmark-techno.com/armadillo-9/debian/arm-sarge-20050310-3.tgz
+wget http://download.atmark-techno.com/armadillo-9/debian/arm-sarge-20050310-4.tgz
+wget http://download.atmark-techno.com/armadillo-9/debian/arm-sarge-20050310-5.tgz
+tar -zxf arm-sarge-20050310-1.tgz
+rm -f arm-sarge-20050310-1.tgz
+tar -zxf arm-sarge-20050310-2.tgz
+rm -f arm-sarge-20050310-2.tgz
+tar -zxf arm-sarge-20050310-3.tgz
+rm -f arm-sarge-20050310-3.tgz
+tar -zxf arm-sarge-20050310-4.tgz
+rm -f arm-sarge-20050310-4.tgz
+tar -zxf arm-sarge-20050310-5.tgz
+rm -f arm-sarge-20050310-5.tgz
+</pre>
+</td></tr></table>
+
+<p>パーティションをアンマウントします。</p>
+
+<table border="1"><tr><td>
+<pre>
+cd /
+umount /mnt/
+</pre>
+</td></tr></table>
+
+<p>ログアウトします。</p>
+
+<h1>３：TOMOYO Linux の初期設定</h1>
+
+<p>ユーザ名 root 、パスワード root でログインします。</p>
+
+<p>[root@armadillo9 (ttyAM0) /]# というプロンプトが表示されるので、パーティションをマウントします。この手順書では /dev/hdc1 が / としてマウントされる場合で説明します。</p>
+
+<table border="1"><tr><td>
+<pre>
+mount /dev/hdc1 /mnt/
+</pre>
+</td></tr></table>
+
+<p>CF にインストールされた環境をカスタマイズするために /mnt/ へ chroot して bash を起動します。</p>
+
+<table border="1"><tr><td>
+<pre>
+chroot /mnt/ bash
+</pre>
+</td></tr></table>
+
+<p>proc ファイルシステムをマウントします。</p>
+
+<table border="1"><tr><td>
+<pre>
+mount -t proc none /proc
+</pre>
+</td></tr></table>
+
+<p>/etc/network/interfaces や /etc/resolv.conf 等を設定します。</p>
+
+<p>ソフトウェアを最新版にアップデートします。</p>
+
+<table border="1"><tr><td>
+<pre>
+apt-get update
+apt-get -y upgrade
+</pre>
+</td></tr></table>
+
+<p>ダウンロードまたは作成した kernel-2.4.31-a9-3-tomoyo_1.3.tar.gz または kernel-2.6.12.3-a9-8-tomoyo_1.3.tar.gz を / 以下に展開します。</p>
+
+<table border="1"><tr><td>
+<pre>
+cd /
+wget http://osdn.dl.sourceforge.jp/tomoyo/22560/kernel-2.4.31-a9-3-tomoyo_1.3.tar.gz
+tar -zxf kernel-2.4.31-a9-3-tomoyo_1.3.tar.gz
+</pre>
+</td></tr></table>
+
+<p>または</p>
+
+<table border="1"><tr><td>
+<pre>
+cd /
+wget http://osdn.dl.sourceforge.jp/tomoyo/22560/kernel-2.6.12.3-a9-8-tomoyo_1.3.tar.gz
+tar -zxf kernel-2.6.12.3-a9-8-tomoyo_1.3.tar.gz
+</pre>
+</td></tr></table>
+
+<p>ポリシーを保存するディレクトリを作成します。</p>
+
+<table border="1"><tr><td>
+<pre>
+mkdir -m 700 /etc/ccs
+</pre>
+</td></tr></table>
+
+<p>コンパイル済み TOMOYO Linux 用ツールをダウンロードします。また、ポリシーの初期設定を行います。</p>
+
+<table border="1"><tr><td>
+<pre>
+cd
+wget http://osdn.dl.sourceforge.jp/tomoyo/22560/ccs-tools-1.3-arm-Sarge.tar.gz
+tar -zxf ccs-tools-1.3-arm-Sarge.tar.gz
+unlink ccs-tools-1.3-arm-Sarge.tar.gz
+cd ccstools/
+mv .init /
+./make_exception.sh &gt; /etc/ccs/exception_policy.txt
+./make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt
+echo MAC_FOR_FILE=1 &gt; /etc/ccs/status.txt
+cat &gt; /etc/ccs/manager.txt &lt;&lt; EOF
+/root/ccstools/loadpolicy
+/root/ccstools/editpolicy
+/root/ccstools/setlevel
+/root/ccstools/setprofile
+/root/ccstools/ld-watch
+/root/ccstools/ccs-queryd
+EOF
+</pre>
+</td></tr></table>
+
+<p>chroot 環境を終了し、 /dev/hdc1 をアンマウントしてから Armadillo-9 の電源を切ります。</p>
+
+<table border="1"><tr><td>
+<pre>
+exit
+umount /mnt/proc/
+umount /mnt/
+</pre>
+</td></tr></table>
+
+<p>Hermitコマンドプロンプトを起動するために、 JP2 をショート状態にします。 CF を抜いてあることを確認してから、 Armadillo-9 の電源を入れます。</p>
+
+<p>hermit&gt; というプロンプトが表示されるので、以下のコマンドを実行します。</p>
+
+<table border="1"><tr><td>
+<pre>
+hermit&gt; setenv console=ttyAM0,115200 root=/dev/hdc1 noinitrd init=/.init
+</pre>
+</td></tr></table>
+
+<p>Armadillo-9 の電源を切ります。</p>
+
+<p>CF を挿してあることを確認してから、 Armadillo-9 の電源を入れます。</p>
+
+<p> /.init の起動に成功すると、以下のようなメッセージが表示されますので、 Enter を押してください。</p>
+
+<table border="1"><tr><td>
+<pre>
+Press 'Enter' or wait for 10 seconds to use default status.
+You may input 'disabled' and press 'Enter' to disable MAC in case of emergency.
+&gt;
+</pre>
+</td></tr></table>
+
+<p>これでインストールは完了です。ここから先は http://tomoyo.sourceforge.jp/ja/1.3/install.html を参照してください。</p>
+</body>
+</html>

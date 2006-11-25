@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Maintenance manual</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<h1>TOMOYO Linux Maintenance manual</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>Notes for updating packages</h1>
+
+<p>Since the behavior of the system is restricted by policy, you may need to update policy when you update packages.</p>
+
+<p>You need to update policy in the following cases.</p>
+
+<ul>
+<li>The pathname of files has changed.
+<li>The dependency of files has changed.
+<li>The access permissions required has increased.
+</ul>
+
+<p>The ideal way to update policy is to rebuild from the scratch using accept mode. But it is not desirable to change from enforce mode to other mode if the system has once entered in production state. Suppose MAC could support per-application enforce mode, the MAC becomes useless if an application that is not running in enforce mode was cracked.
+For example, the whole system becomes vulnerable if only HTTP server application is running in accept mode to rebuild policy for the application. So, in TOMOYO Linux, updating policy is done while the system is running in enforce mode.</p>
+
+<p>TOMOYO Linux includes tools that helps administrators update policy while the system is running in enforce mode.
+By using these tools, you can continue running the system without rebuilding from the scratch using accept mode if the modification is trivial. But note that these tools can not always support every cases and the result of updated policy is not always the optimized.
+</p>
+
+<h1>Preparation</h1>
+
+<p>Make sure the following lines are included in /root/security/manager.txt . If not, add the following lines and reboot.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ld-watch<br>
+/root/ccstools/ccs-queryd
+</td></tr>
+</table>
+
+
+<h1>Procedure</h1>
+
+<p>Open three windows and enter into the trusted domains. Hereafter, this manual refers these windows as "Window-1", "Window-2" and "Window-3".</p>
+
+<p>First, switch to Window-1. And switch the system state from "reject immediately if the policy violation occurs" to "don't reject immediately if the policy violation occurs but wait for administrator's decision". The example below sets 60 seconds.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/setlevel MAX_ENFORCE_GRACE=60
+</td></tr>
+</table>
+
+<p>Start the following command.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ccs-queryd
+</td></tr>
+</table>
+
+<p>The ccs-queryd detects policy violation and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.</p>
+
+<p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
+
+<p>If you didn't give the judge within MAX_ENFORCE_GRACE seconds from the time of access violation, the access request is rejected. So, you should give large enough value for MAX_ENFORCE_GRACE. You should be careful the location of windows so that you don't miss the messages has appeared, for you need to give the judge within MAX_ENFORCE_GRACE seconds from the time of access violation.</p>
+
+<p>Next, start the following command at Window-2.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ld-watch
+</td></tr>
+</table>
+
+<p>The ld-watch automatically appends shared libraries to exception policy using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed. By using ld-watch, you can avoid errors "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.</p>
+
+<p>Next, switch to Window-3, and run the commands for updating packages.</p>
+
+<p>If you use "yum", run "you update". If you use "apt", run "apt-get update" and "apt-get upgrade".</p>
+
+<p>Policy violation while occur while updating packages due to unusual behavior such as restarting daemons. So, don't forget to monitor Window-1.</p>
+
+<p>After you finished updating packages, wait for 10 seconds, then, terminate ld-watch with Ctrl-C that is running in Window-2.</p>
+
+<p>Next, save current policy manually.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/savepolicy a
+</td></tr>
+</table>
+
+
+<p>Run the following command to get the list of nonexistent pathnames.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/findtemp --all &lt; /root/security/exception_policy.txt
+</td></tr>
+</table>
+
+<p>Open /root/security/exception_policy.txt using text editor and remove "allow_read" lines for nonexistent shared libraries. Then, reload the exception policy using the following command.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/loadpolicy ef
+</td></tr>
+</table>
+
+<p>Run the following command to get the list of nonexistent pathnames.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/findtemp --all &lt; /root/security/domain_policy.txt
+</td></tr>
+</table>
+
+<p>You need to be careful if a lot of pathnames appeared. The directory part of pathnames may have changed by updating packages.</p>
+
+<p>For example, logwatch included in Fedora Core 4 changes the pathnames by updating.
+The logwatch included in Fedora Core 4's installation CD holds configuration files in /etc/log.d/ directory. But by updating, the location changes to /etc/logwatch/ directory and /etc/log.d/ directory is removed.</p>
+
+<p>If the patterns of changes are obvious, you can edit /root/security/domain_policy.txt using text editor. Then, reload the domain policy using the following command.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/loadpolicy df
+</td></tr>
+</table>
+
+<p>Do a series of operations to confirm that programs that are protected by MAC can run properly. If some access permissions are missing, the messages will be printed to Window-1, so don't forget to monitor Window-1.</p>
+
+<p>Save policy again after you finished operation check.</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/savepolicy a
+</td></tr>
+</table>
+
+<p>Switch the system state back to "reject immediately if the policy violation occurs". </p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/setlevel MAX_ENFORCE_GRACE=0
+</td></tr>
+</table>
+
+<p>Finally, terminate ccs-queryd with Ctrl-C that is running in Window-1.</p>
+
+<p>You have finished updating policies. Close all windows.</p>
+
+</body>
+</html>
