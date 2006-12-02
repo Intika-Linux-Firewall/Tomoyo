@@ -1,0 +1,273 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>読み込み専用ルートファイルシステムイメージの構築マニュアル</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<h1 style="text-align:center;">読み込み専用ルートファイルシステムイメージの構築マニュアル</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+<hr>
+
+<p>TOMOYO Linux には、読み込み専用マウントされていることが原因でエラーとなったアクセスを表示する機能があります。この機能を利用して、 VMware 上で読み込み専用マウントが可能なルートファイルシステムを作成する手順について紹介します。</p>
+
+<h1><a name="assumption">１．前提</a></h1>
+
+<h2><a name="required_resources">1.1 用意するもの</a></h2>
+
+<p>通常の TOMOYO Linux の手順で必要とするファイルの他に、以下のものが必要です。 VMware では ISO イメージファイルを CD の代わりに指定できるので、 CD に焼き付ける必要はありません。</p>
+
+<ul>
+<li>VMware Player （http://www.vmware.com/products/player/）
+<li>KNOPPIX の ISO イメージファイル （http://unit.aist.go.jp/itri/knoppix/）
+<li>VM環境用に割り当てるIPアドレスとホスト名
+</ul>
+
+<h2><a name="partition_setting">1.2 パーティション構成</a></h2>
+
+<p>運用環境では / は読み込み専用になるため、 /var や /tmp への書き込みが必要なアプリケーションのために書き込み可能なパーティションとして /data を割り当てます。ここでは、以下のパーティション構成で構築するものとします。</p>
+
+<table border="1">
+<tr>
+<td>VM環境名</td>
+<td>ホスト名</td>
+<td>パーティション構成</td>
+</tr>
+<tr>
+<td>コンパイル環境</td>
+<td>compile</td>
+<td>/dev/sda1 ext3 /</td>
+</tr>
+<tr>
+<td>イメージ構築環境</td>
+<td>build</td>
+<td>/dev/sda1 ext3 /data<br>
+/dev/sda2 ext3 /</td>
+</tr>
+</table>
+<p>「イメージ構築環境」の /data パーティションは / パーティションの２倍以上の大きさを割り当てておきます。</p>
+<p>ホストOS側に、VM環境からホスト側OSへファイル転送を行う方法（scp や ftp 等）を用意しておきます。</p>
+
+<h1><a name="preperation">２．準備</a></h1>
+
+<p><a href="minimum-install.html">TOMOYO Linux導入手順（簡易版）</a>の<a href="minimum-install.html#policy-preparation">「ポリシーの作成準備」</a>の直前までの操作を行います。<br>
+ただし、カーネルコンフィグにおいて、以下の項目をビルトインとして指定してください。 initrd-loop.img には insmod が含まれていないため、モジュールではなくビルトインにする必要があります。</p>
+
+<table border="1">
+<tr><td>
+カーネル 2.4 系の場合
+<ul>
+<li>Block devices ---&gt; &lt;*&gt; Loopback device support</li>
+<li>Block devices ---&gt; &lt;*&gt; RAM disk support</li>
+<li>Block devices ---&gt; [*] Initial RAM disk (initrd) support</li>
+<li>File systems ---&gt; &lt;*&gt; Ext3 journalling file system support</li>
+<li>File systems ---&gt; &lt;*&gt; ISO 9660 CDROM file system support</li>
+<li>File systems ---&gt; [*] SAKURA (Domain-Free Mandatory Access Control) support</li>
+<li>File systems ---&gt; [*] &nbsp;&nbsp;Read-only filesystem error tracing support</li>
+<li>File systems ---&gt; &lt;*&gt; SYAORAN (Tamper-Proof Device Filesystem) support</li>
+<li>SCSI support ---&gt; &lt;*&gt; SCSI support</li>
+<li>SCSI support ---&gt; &lt;*&gt; SCSI disk support</li>
+<li>SCSI support ---&gt; &lt;*&gt; SCSI CD-ROM support</li>
+<li>SCSI support ---&gt; &lt;*&gt; SCSI generic support</li>
+<li>SCSI support ---&gt; SCSI low-level drivers ---&gt; &lt;*&gt; BusLogic SCSI support</li>
+<li>Fusion MPT device support ---&gt; &lt;*&gt; Fusion MPT (base + ScsiHost) drivers</li>
+<li>ATA/IDE/MFM/RLL support ---&gt; &lt;*&gt; ATA/IDE/MFM/RLL support</li>
+<li>ATA/IDE/MFM/RLL support ---&gt; IDE, ATA and ATAPI Block devices ---&gt; &lt;*&gt; Enhanced IDE/MFM/RLL disk/cdrom/tape/floppy support</li>
+<li>ATA/IDE/MFM/RLL support ---&gt; IDE, ATA and ATAPI Block devices ---&gt; &lt;*&gt; Include IDE/ATAPI CDROM support</li>
+<li>ATA/IDE/MFM/RLL support ---&gt; IDE, ATA and ATAPI Block devices ---&gt; &lt;*&gt; SCSI emulation support</li>
+<li>Network device support ---&gt; [*] Network device support</li>
+<li>Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; [*] Ethernet (10 or 100Mbit)</li>
+<li>Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; [*] EISA, VLB, PCI and on board controllers</li>
+<li>Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; &lt;*&gt; AMD PCnet32 PCI support</li>
+</ul>
+</td></tr>
+<tr><td>
+カーネル 2.6 系の場合
+<ul>
+<li>Device Drivers ---&gt; Block devices ---&gt; &lt;*&gt; Loopback device support</li>
+<li>Device Drivers ---&gt; Block devices ---&gt; &lt;*&gt; RAM disk support</li>
+<li>Device Drivers ---&gt; Block devices ---&gt; [*] Initial RAM disk (initrd) support</li>
+<li>File systems ---&gt; &lt;*&gt; Ext3 journalling file system support</li>
+<li>File systems ---&gt; CD-ROM/DVD Filesystems ---&gt; &lt;*&gt; ISO 9660 CDROM file system support</li>
+<li>File systems ---&gt; [*] SAKURA (Domain-Free Mandatory Access Control) support</li>
+<li>File systems ---&gt; [*] &nbsp;&nbsp;Read-only filesystem error tracing support</li>
+<li>File systems ---&gt; &lt;*&gt; SYAORAN (Tamper-Proof Device Filesystem) support</li>
+<li>Device Drivers ---&gt; SCSI device support ---&gt; &lt;*&gt; SCSI disk support</li>
+<li>Device Drivers ---&gt; SCSI device support ---&gt; &lt;*&gt; SCSI CDROM support</li>
+<li>Device Drivers ---&gt; SCSI device support ---&gt; &lt;*&gt; SCSI generic support</li>
+<li>Device Drivers ---&gt; SCSI device support ---&gt; SCSI low-level drivers ---&gt; &lt;*&gt; BusLogic SCSI support</li>
+<li>(2.6.12 以前) Device Drivers ---&gt; Fusion MPT device support ---&gt; &lt;*&gt; Fusion MPT (base + ScsiHost) drivers</li>
+<li>(2.6.13 以降) Device Drivers ---&gt; Fusion MPT device support ---&gt; &lt;*&gt; Fusion MPT ScsiHost drivers for SPI</li>
+<li>Device Drivers ---&gt; ATA/ATAPI/MFM/RLL support ---&gt; &lt;*&gt; ATA/ATAPI/MFM/RLL support</li>
+<li>Device Drivers ---&gt; ATA/ATAPI/MFM/RLL support ---&gt; &lt;*&gt; Enhanced IDE/MFM/RLL disk/cdrom/tape/floppy support</li>
+<li>Device Drivers ---&gt; ATA/ATAPI/MFM/RLL support ---&gt; &lt;*&gt; Include IDE/ATAPI CDROM support</li>
+<li>Device Drivers ---&gt; ATA/ATAPI/MFM/RLL support ---&gt; &lt;*&gt; SCSI emulation support</li>
+<li>Device Drivers ---&gt; Network device support ---&gt; [*] Network device support</li>
+<li>Device Drivers ---&gt; Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; [*] Ethernet (10 or 100Mbit)</li>
+<li>Device Drivers ---&gt; Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; [*] EISA, VLB, PCI and on board controllers</li>
+<li>Device Drivers ---&gt; Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; &lt;*&gt; AMD PCnet32 PCI support</li>
+</ul>
+</td></tr>
+</table>
+
+<h1><a name="protect_device_files">３．デバイスファイルの保護</a></h1>
+
+<p>/dev ディレクトリが読み込み専用だとシステムが正しく動作できないので、 SYAORAN ファイルシステムをマウントします。 devfs や udev でも構いませんが、その場合はデバイスファイルの改ざんを防止できなくなります。</p>
+
+<p>以下の操作を行い、/.syaoranというスクリプトを作成します。</p>
+
+<table border="1">
+<tr><td>
+echo '#! /bin/sh' &gt; /.syaoran<br>
+echo 'mount -n -t syaoran -o accept=/root/security/syaoran.conf none /dev' &gt;&gt; /.syaoran<br>
+echo 'exec /sbin/init "$@"' &gt;&gt; /.syaoran<br>
+chmod 700 /.syaoran
+</td></tr>
+</table>
+
+<p>/sbin/init を起動する直前にマウントされるようにするために、 TOMOYO Linux カーネルの起動時に init=/.syaoran というパラメータを追加してください。毎回指定するのは面倒なので、ブートローダの設定ファイルで指定しておくことを推奨します。</p>
+
+<p>以下の操作を行い、全てのエントリを含んだ初期状態の /root/security/syaoran.conf を作成します。</p>
+
+<table border="1">
+<tr><td>
+mkdir -p /root/security<br>
+/root/ccstools/makesyaoranconf &gt; /root/security/syaoran.conf<br>
+</td></tr>
+</table>
+
+<p>なお、 /dataパーティション以外へのアクセスを禁止するために、 /root/security/syaoran.conf から /dev/sda1 以外の /dev/sda* を除外しておいてください。</p>
+
+<p>とりあえずこれだけでも動作します。 /root/security/syaoran.conf に含まれる不要なエントリを削除したい場合は、「<a href="install.html#protect-device">デバイスファイルの保護（任意）</a>」を参照してください。</p>
+
+<h1><a name="relocate_files">４．読み込み専用化のための修正</a></h1>
+
+<p>/etc/mtab は読み込み専用になるので、 /proc/mounts を参照するように変更します。</p>
+<table border="1">
+<tr><td>
+ln -sf /proc/mounts /etc/mtab
+</td></tr>
+</table>
+
+<p>/etc/adjtime も読み込み専用になるので、 /dev/null を参照するように変更します。</p>
+<table border="1">
+<tr><td>
+ln -sf /dev/null /etc/adjtime
+</td></tr>
+</table>
+
+<p>起動時に自動実行されるスクリプトで / を読み書きモードで再マウントされないようにします。</p>
+<p>以下は RedHat Linux 9 および Fedora Core 3 における例です。</p>
+<table border="1">
+<tr><td>
+sed -i 's:mount -n -o remount,rw /:/root/ccstools/remount_rootfs:' /etc/rc.d/rc.sysinit
+</td></tr>
+</table>
+<p>以下は Debian Sarge における例です。</p>
+<table border="1">
+<tr><td>
+sed -i 's:#.*Remount.*:&amp;\ngrep -q readonly /proc/cmdline \&amp;\&amp; rootmode=ro' /etc/init.d/checkroot.sh
+</td></tr>
+</table>
+
+<p>起動時に自動実行されるスクリプトで / の fsck が実行されないようにします。</p>
+<p>以下は RedHat Linux 9 における例です。</p>
+<table border="1">
+<tr>
+<td>sed -i 's:initlog -c "fsck -T -a $fsckoptions /":echo "Skipped":' /etc/rc.d/rc.sysinit<br></td>
+</tr>
+</table>
+<p>以下は Fedora Core 3 における例です。</p>
+<table border="1">
+<tr>
+<td>sed -i 's:fsck -T -a $rootdev $fsckoptions:echo Skipped:' /etc/rc.d/rc.sysinit<br></td>
+</tr>
+</table>
+<p>Debian Sarge の場合は /etc/fstab で &lt;mount point&gt; が / となっている行の &lt;pass&gt; を 0 にします。</p>
+
+<p>カーネルを起動するときに readonly というオプションを指定した場合、 remount_rootfs は / を読み書きモードで再マウントしないようになります。これにより、 / が読み込み専用マウントされた状態で起動します。ただし、何の準備もせずに / を読み込み専用で起動しようとすると、途中でハングアップしてしまう場合があります。そのため、書き込みが発生するファイルを見つけ出して、書き込み可能なパーティションへ移動させるという手順が必要になります。</p>
+
+<p>書き込みが発生するファイルやディレクトリを知るために、 /root/security/profile0.txt に TRACE_READONLY=1 という行を追加することができます。この行を追加して TOMOYO Linux カーネルで再起動すると、読み込み専用ファイルシステムであることが原因でエラーになった書き込みアクセスが行われたファイルやディレクトリ名が syslog に送られます。 /var/log/messages の ReadOnly: を含む行を抽出し、どのファイルやディレクトリを移動させる必要があるかを判断してください。移動先は /data パーティションとし、シンボリックリンクで参照させます。なお、読み込み専用ファイルシステムが原因のエラーを全て検知できるわけではないので注意してください。</p>
+
+<p>以下は書き込み可能なパーティションへ移動させるべきファイルやディレクトリの例です。ディストリビューションやインストールされているアプリケーションによって異なります。</p>
+
+<ul>
+<li>/tmp/</li>
+<li>/var/run/</li>
+<li>/var/lock/</li>
+<li>/var/log/</li>
+<li>/var/tmp/</li>
+<li>/var/spool/mail/</li>
+<li>/var/lib/random-seed</li>
+</ul>
+
+<p>この時点で、必要な操作がエラー無く行えることを確認してください。</p>
+
+<h1><a name="bootloader_configuration">５．ブートローダの設定</a></h1>
+
+<p>「コンパイル環境」で使用中のディストリビューションに ISO イメージ用のブートローダである stage2_eltorito が含まれていない場合は grub のパッケージから抽出してください。以下は FedoraCore 3 用の grub パッケージから抽出する例です。ディストリビューションに付属している場合はそれを「コンパイル環境」の /boot/grub/ にコピーしてください。</p>
+<table border="1">
+<tr><td>
+cd /tmp<br>
+wget ftp://rpmfind.net/linux/fedora/core/3/i386/os/Fedora/RPMS/grub-0.95-3.i386.rpm<br>
+rpm2cpio &lt; grub-0.95-3.i386.rpm | cpio -idm '*/stage2_eltorito'<br>
+mv usr/share/grub/i386-redhat/stage2_eltorito /boot/grub/
+</td></tr>
+</table>
+
+<p>KNOPPIX の ISO イメージファイルを「イメージ構築環境」のＣＤイメージとして指定し、「イメージ構築環境」を起動します。</p>
+<p>「コンパイル環境」から ISO イメージ用のブートローダである stage2_eltorito を /mnt/sda1/IMAGE/boot/grub/ にコピーします。また、カーネルと initrd-loop.img もコピーしてください。なお、 vmlinuz-2.4.32-ccs の部分は使用しているカーネルのバージョンに合わせて読み替えてください。</p>
+<table border="1">
+<tr><td>
+mount /dev/sda1 /mnt/sda1<br>
+mkdir -p /mnt/sda1/IMAGE/boot/grub<br>
+scp -p compile:/boot/grub/stage2_eltorito /mnt/sda1/IMAGE/boot/grub/<br>
+scp -p compile:/boot/grub/splash.xpm.gz /mnt/sda1/IMAGE/boot/grub/<br>
+scp -p compile:/boot/vmlinuz-2.4.32-ccs /mnt/sda1/IMAGE/vmlinuz<br>
+scp -p compile:/root/ccstools/initrd-loop.img /mnt/sda1/IMAGE/<br>
+cat &gt; /mnt/sda1/IMAGE/boot/grub/grub.conf &lt;&lt; EOF<br>
+default=0<br>
+timeout=10<br>
+splashimage=/boot/grub/splash.xpm.gz<br>
+title SAKURA Linux<br>
+kernel /vmlinuz fastboot init=/.syaoran root=/dev/scd0 hdc=ide-scsi<br>
+initrd /initrd-loop.img<br>
+EOF<br>
+ln -s grub.conf /mnt/sda1/IMAGE/boot/grub/menu.lst
+</td></tr>
+</table>
+
+<h1><a name="create_iso_image">６．イメージの作成</a></h1>
+
+<p>KNOPPIX の ISO イメージファイルを「イメージ構築環境」のＣＤイメージとして指定し、「イメージ構築環境」を起動します。</p>
+<p>ループバックマウントイメージファイルを作成して / パーティションの内容をコピーします。イメージファイルの大きさは df /dev/sda2 の情報を参考にして決めます。以下の例では６４０ＭＢのイメージを作成します。</p>
+
+<table border="1">
+<tr><td>
+mount /dev/sda1 /mnt/sda1<br>
+mount -o ro /dev/sda2 /mnt/sda2<br>
+touch /mnt/sda1/IMAGE/rootimg<br>
+mke2fs -j -F -m 0 -b 1024 /mnt/sda1/IMAGE/rootimg 655360<br>
+mount -o loop /mnt/sda1/IMAGE/rootimg /mnt/sda1/<br>
+cp -a /mnt/sda2/* /mnt/sda1/<br>
+sync<br>
+umount -d /mnt/sda1/<br>
+e2fsck -f /mnt/sda1/IMAGE/rootimg
+</td></tr>
+</table>
+
+<p>正常にコピーできたら ISOイメージファイルに変換します。</p>
+<table border="1">
+<tr><td>
+cd /mnt/sda1/IMAGE/<br>
+mkisofs -R -o /mnt/sda1/image.iso -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table .
+</td></tr>
+</table>
+
+<p>/mnt/sda1/image.iso をホストOS側に転送します。転送後は /data パーティションから削除するのを忘れないように注意してください。</p>
+<hr>
+<p><a href="index.html#manual">目次へ戻る</a></p>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>Policy Editor</title>
+<link rel=stylesheet href="tomoyo.css" media=all>
+</head>
+<body>
+<h1>Policy Editor</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+<p>TOMOYO Linux includes a CUI based Policy Editor. It is possible to use arbitrary editors such as vi and emacs, for TOMOYO Linux's policy is text files. But using the Policy Editor is recommended, for when editors attempt to write to /proc/ccs interfaces, they produce a lot of noisy error messages such as "Can't create backup file".</p>
+
+<p>You can start this editor by typing editpolicy at the prompt.</p>
+
+<p><img src="editpolicy-1.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+
+<ul>
+<li>Log in as root.</li>
+<li>Run id command.</li>
+<li>Show the top 3 lines of /etc/passwd .</li>
+<li>Run /bin/sh .</li>
+<li>Run date command.</li>
+<li>Show the bottom 3 lines of /etc/passwd .</li>
+<li>Exit from  /bin/sh and run the policy editor.</li>
+</ul>
+
+<p>The screenshot below is the policy after booting CentOS 4.4 with "accept mode" and doing the operations listed above.<br>
+This screen shows the list of domains and domain transitions. You can analyze how Linux operates on bootup.</p>
+
+<p>&lt;Screen for editing domain policy (1)&gt;</p>
+<p><img src="editpolicy-2.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+
+<p>Let's browse the policy recorded by the kernel for startup script of anacron.<br>
+The policy editor has two modes. One is to show domains and domain transitions, the other is to edit ACLs within the selected domain. The former mode is default.<br>
+You can switch to the mode to edit ACLs within the selected domain after choosing the domain you want to know the ACLs.<br>
+You can use arrow keys to move cursor. Select the line for anacron and press Enter, and the screenshot below (ACLs for executing startup script for anacron) will appear.</p>
+
+<p>&lt;Screen for editing domain policy (2)&gt;</p>
+<p><img src="editpolicy-3.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+
+<p>The integer next to the line number is an octal representation of Linux's permission(rwx). For example, 4 is r--(read), 6 is rw-(read/write), 1 is --x(execute).<br>
+You will see the ACLs needed for executing the startup script for anacron are automatically recorded by the kernel.</p>
+<p>The bottom line "use_profile" is the profile number assigned to this domain. You can change using setprofile command. Also, you can change by pressing "a" key and enter "use_profile" followed by profile number and Enter.</p>
+<p>Next, press Enter to go back to the screen to show domains and domain transitions, and search the domain for /sbin/mingetty.</p>
+<p>You will find that /bin/bash is invoked by /bin/login and /bin/login is invoked by mingetty by logging into the system,<br>
+and /bin/sh which is a symbolic link to /bin/bash is treated as /bin/sh because "alias /bin/bash /bin/sh" is declared in the exception policy (shown later).<br>
+Also, you will find that commands you have invoked before invoking this policy editor such as head and date are recorded.<br>
+Now move the cursor to the domain for head and press Enter.</p>
+
+<p><img src="editpolicy-4.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+
+<p><img src="editpolicy-5.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+
+<p>The /usr/bin/head invoked by /bin/bash invoked by /bin/login invoked by /sbin/mingetty is granted to read /etc/passwd .<br>
+You will find that "domains are distinguished and ACLs are granted independently for the same program if the process's invocation histories differ" and "ACLs are granted with fine-grained objects".<br>
+Moreover, since these distinctions are made automatically by the kernel, it is possible for all administrators who have standard skill of administrating Linux to master TOMOYO Linux.</p>
+
+<p>You can switch to the screen for editing system policy and exception policy by pressing Tab key.</p>
+
+<p>&lt;Screen for editing system policy&gt;</p>
+<p><img src="editpolicy-6.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+
+<p>&lt;Screen for editing exception policy&gt;</p>
+<p><img src="editpolicy-7.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-8.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-9.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+
+<p>The editpolicy is for editing policy in the kernel directly when the system is running with the TOMOYO Linux's kernel. To edit policy stored in the /etc/ccs/ directory, use editpolicy_offline .</p>
+</body>
+</html>
