@@ -329,6 +329,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.4.27-10sarge4">Kernel 2.4.27-10sarge4 for Debian Sarge</a>
 <li><a href="#2.6.8-16sarge5">Kernel 2.6.8-16sarge5 for Debian Sarge</a>
 <li><a href="#2.6.16.21-0.25">Kernel 2.6.16.21-0.25 for OpenSUSE 10.1</a>
+<li><a href="#2.6.18.2-34">Kernel 2.6.18.2-34 for OpenSUSE 10.2</a>
 <li><a href="#2.6.17-9">Kernel 2.6.17-9 for Debian Etch</a>
 <li><a href="#2.6-vanilla">Vanilla 2.6 kernels</a>
 <li><a href="#2.4-vanilla">Vanilla 2.4 kernels</a>
@@ -539,7 +540,7 @@ mkinitrd -o /boot/initrd.img-2.6.8-16sarge5-ccs 2.6.8-16sarge5-ccs
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-curl -o kernel-source-2.6.16.21-0.25.i586.rpm http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.21-0.25.i586.rpm<br>
+wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.21-0.25.i586.rpm<br>
 rpm -ivh kernel-source-2.6.16.21-0.25.i586.rpm<br>
 # Move to the source directory.<br>
 cd /usr/src/linux-2.6.16.21-0.25/<br>
@@ -557,24 +558,22 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-1.2708.fc6">Kernel 2.6.18-1.2708.fc6 for Fedora Core 6</a></h2>
+<h2><a name="2.6.18.2-34">Kernel 2.6.18.2-34 for OpenSUSE 10.2</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://redhat.download.fedoraproject.org/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.18-1.2708.fc6.src.rpm<br>
-rpm -ivh kernel-2.6.18-1.2708.fc6.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i586/ /usr/src/linux-2.6.18-1.2708.fc6<br>
+wget http://mirrors.kernel.org/opensuse/distribution/10.2/repo/oss/suse/i586/kernel-source-2.6.18.2-34.i586.rpm<br>
+rpm -ivh kernel-source-2.6.18.2-34.i586.rpm<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.18-1.2708.fc6/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2708.fc6/' Makefile<br>
+cd /usr/src/linux-2.6.18.2-34/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
 tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.18-1.2708.fc6.txt<br>
+curl -o ccs-patch-2.6.18.2-34_SUSE.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1659&amp;aid=9550'<br>
+patch -sp1 &lt; ccs-patch-2.6.18.2-34_SUSE.txt<br>
+# Move to the output directory.<br>
+cd /usr/src/linux-2.6.18.2-34-obj/i386/default/<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
