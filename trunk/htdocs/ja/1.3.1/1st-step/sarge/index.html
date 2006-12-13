@@ -38,7 +38,7 @@
 
     <h2><a name="l0">概要</a></h2>
 
-    <p>以下では、Debian GNU/Linux 3.1 (sarge)にTOMOYO Linux 1.3を導入する手順を解説します。この手順書に従って操作すれば、
+    <p>以下では、Debian GNU/Linux 3.1 (sarge)にTOMOYO Linux 1.3.1を導入する手順を解説します。この手順書に従って操作すれば、
       TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
     <p>導入の流れは以下の通りです。</p>
     <ol>
@@ -56,25 +56,25 @@
       提供されているので、今回はそれを利用します。</p>
     <p>まずはパッケージをダウンロードします。</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/22560/kernel-image-2.6.8-16sarge5-ccs_1.3_i586.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-image-2.6.8-16sarge6-ccs_1.3.1_i586.deb</span>
 </pre>
     <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 <pre>
-# <span class="user">dpkg --install kernel-image-2.6.8-16sarge5-ccs_1.3_i586.deb</span>
+# <span class="user">dpkg --install kernel-image-2.6.8-16sarge6-ccs_1.3.1_i586.deb</span>
 </pre>
     <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs
+title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro
-initrd          /boot/initrd.img-2.6.8-16sarge5-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro
+initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
 savedefault
 boot
 
-title           Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs (recovery mode)
+title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs (recovery mode)
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro single
-initrd          /boot/initrd.img-2.6.8-16sarge5-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro single
+initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
 boot
 </pre>
     <p>今後カーネルの選択を行いやすくするために、
@@ -92,8 +92,8 @@ boot
       ツールは/root/ccstoolsディレクトリに置くことにします。</p>
 <pre>
 # <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/22560/ccs-tools-1.3-i386-Sarge.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.3-i386-Sarge.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-Sarge.tar.gz</span>
+# <span class="user">tar zxf ccs-tools-1.3.1-i386-Sarge.tar.gz</span>
 </pre>
     <p>ツールを置いたディレクトリにパスを通しておきます。bashを使っている場合には以下のようにします。</p>
 <pre>
@@ -105,19 +105,19 @@ boot
 # <span class="user">mv /root/ccstools/.init /</span>
 </pre>
     <p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
-      /boot/grub/grub.confのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
+      /boot/grub/menu.lstのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs
+title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge5-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro <span class="user">init=/.init</span>
+initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
 savedefault
 boot
 
-title           Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs (recovery mode)
+title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs (recovery mode)
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge5-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
+initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
 savedefault
 boot
 </pre>
