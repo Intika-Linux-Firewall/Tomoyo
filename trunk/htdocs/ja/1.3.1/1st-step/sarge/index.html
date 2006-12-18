@@ -168,7 +168,7 @@ boot
       という設定が行えます。</p>
     <p>設定項目TOMOYO_VERBOSEは「アクセス拒否の情報をコンソールに出力するかどうか」を表しており、
       制御モードが0なら出力なし、1なら出力ありになります。</p>
-    <p>上記設定では、プロファイル番号が0～4の4つのプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
+    <p>上記設定では、プロファイル番号が0～3の4つのプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
 
     <table>
       <tr><th>プロファイル0</th><td>ファイルに対するアクセス制御を無効にする、コンソールにアクセス拒否を出力しない</td></tr>
@@ -223,10 +223,10 @@ boot
 <pre>
 # <span class="user">update-rc.d ccs-auditd start 99 2 3 4 5 .</span>
  Adding system startup for /etc/init.d/ccs-auditd ...
-   /etc/rc2.d/S99ccs-auditd -> ../init.d/ccs-auditd
-   /etc/rc3.d/S99ccs-auditd -> ../init.d/ccs-auditd
-   /etc/rc4.d/S99ccs-auditd -> ../init.d/ccs-auditd
-   /etc/rc5.d/S99ccs-auditd -> ../init.d/ccs-auditd
+   /etc/rc2.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc3.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc4.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc5.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
 </pre>
     <p>この設定では、/var/log/tomoyo/reject_log.txtにアクセス拒否ログが保存されます。
       ログを保存するディレクトリをあらかじめ作っておきます。</p>
@@ -240,7 +240,7 @@ boot
       <li>/proc/PID のように同様のパス名をパターン化する際のパターン名</li>
       <li>すべてのプログラムに対して参照することを許可するパス名</li>
       <li>デーモンとして動作させるプログラムのパス名</li>
-      <li>強制アクセス制御が適用されない信頼済みドメイン</li>
+      <li>ドメイン遷移を行わないドメイン</li>
       <li>追記を許可して書き換えを禁止するファイルのパス名</li>
       <li>1つに集約して扱うプログラムのパス名</li>
       <li>シンボリックリンクの名前で実行するプログラムのパス名</li>
