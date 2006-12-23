@@ -346,6 +346,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.16.21-0.25">OpenSUSE 10.1 用のカーネル 2.6.16.21-0.25</a>
 <li><a href="#2.6.18.2-34">OpenSUSE 10.2 用のカーネル 2.6.18.2-34</a>
 <li><a href="#2.6.17-9">Debian Etch 用のカーネル 2.6.17-9</a>
+<li><a href="#2.6.9-34.28AX">Asianux 2.0 用のカーネル 2.6.9-34.28AX</a>
 <li><a href="#2.6-vanilla">バニラ 2.6 カーネル</a>
 <li><a href="#2.4-vanilla">バニラ 2.4 カーネル</a>
 </ul>
@@ -621,6 +622,33 @@ make -s<br>
 make -s install modules modules_install<br>
 # initrd を作成する。<br>
 mkinitrd -o /boot/initrd.img-2.6.17-ccs 2.6.17-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.9-34.28AX">Asianux 2.0 用のカーネル 2.6.9-34.28AX</a></h2>
+
+<table border="1">
+<tr><td>
+# カーネルのソースをダウンロードしてインストールする。<br>
+wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-34.28AX.src.rpm<br>
+rpm -ivh kernel-2.6.9-34.28AX.src.rpm<br>
+# コンパイルの準備をする。<br>
+rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-34.28AX<br>
+# ソースのディレクトリへ移動する。<br>
+cd /usr/src/linux-2.6.9-34.28AX/<br>
+# バージョン番号を修正する。<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -34.28AX/' Makefile<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
+tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
+curl -o ccs-patch-2.6.9-34.28AX.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1669&amp;aid=9550'<br>
+patch -sp1 &lt; ccs-patch-2.6.9-34.28AX.txt<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s modules modules_install install
 </td></tr>
 </table>
 

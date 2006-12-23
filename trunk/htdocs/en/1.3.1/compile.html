@@ -331,6 +331,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.16.21-0.25">Kernel 2.6.16.21-0.25 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.2-34">Kernel 2.6.18.2-34 for OpenSUSE 10.2</a>
 <li><a href="#2.6.17-9">Kernel 2.6.17-9 for Debian Etch</a>
+<li><a href="#2.6.9-34.28AX">Kernel 2.6.9-34.28AX for Asianux 2.0</a>
 <li><a href="#2.6-vanilla">Vanilla 2.6 kernels</a>
 <li><a href="#2.4-vanilla">Vanilla 2.4 kernels</a>
 </ul>
@@ -606,6 +607,33 @@ make -s<br>
 make -s install modules modules_install<br>
 # Create initrd.<br>
 mkinitrd -o /boot/initrd.img-2.6.17-ccs 2.6.17-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.9-34.28AX">Kernel 2.6.9-34.28AX for Asianux 2.0</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-34.28AX.src.rpm<br>
+rpm -ivh kernel-2.6.9-34.28AX.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-34.28AX<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.9-34.28AX/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -34.28AX/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
+tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
+curl -o ccs-patch-2.6.9-34.28AX.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1669&amp;aid=9550'<br>
+patch -sp1 &lt; ccs-patch-2.6.9-34.28AX.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
 </td></tr>
 </table>
 
