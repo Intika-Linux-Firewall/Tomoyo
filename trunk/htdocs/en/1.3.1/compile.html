@@ -430,7 +430,7 @@ sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2257.fc5/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
 tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
-curl -o ccs-patch-2.6.18-1.2257.fc5.tx 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1667&amp;aid=9550'<br>
+curl -o ccs-patch-2.6.18-1.2257.fc5.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1667&amp;aid=9550'<br>
 patch -sp1 &lt; ccs-patch-2.6.18-1.2257.fc5.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
@@ -457,7 +457,7 @@ sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2868.fc6/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
 tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
-curl -o ccs-patch-2.6.18-1.2868.fc6.tx 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1668&amp;aid=9550'<br>
+curl -o ccs-patch-2.6.18-1.2868.fc6.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1668&amp;aid=9550'<br>
 patch -sp1 &lt; ccs-patch-2.6.18-1.2868.fc6.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
@@ -671,28 +671,29 @@ make -s install modules modules_install
 
 <h2><a name="2.4-vanilla">Vanilla 2.4 kernels</a></h2>
 
-<p>2.4.30 and later are supported. The following is the case of version 2.4.33 .</p>
+<p>2.4.30 and later are supported. The following is the case of version 2.4.34 .</p>
 
 <table border="1">
 <tr><td>
 # Create a directory where the kernel modules are installed.<br>
-mkdir -p /lib/modules/2.4.33-ccs<br>
+mkdir -p /lib/modules/2.4.34-ccs<br>
 # Move to the source directory.<br>
 cd /usr/src/<br>
 # Download kernel source.<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.33.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.34.tar.bz2<br>
 # Extract.<br>
-tar -jxf linux-2.4.33.tar.bz2<br>
+tar -jxf linux-2.4.34.tar.bz2<br>
 # Move to the extracted directory.<br>
-cd linux-2.4.33<br>
+cd linux-2.4.34<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
 # Extract.<br>
 tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
+curl -o ccs-patch-2.4.34.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1671&amp;aid=9550'<br>
 # Apply the kernel patch.<br>
-patch -sp1 &lt; ccs-patch-2.4.33.txt<br>
+patch -sp1 &lt; ccs-patch-2.4.34.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>

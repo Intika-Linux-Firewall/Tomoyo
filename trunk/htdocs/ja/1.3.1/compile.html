@@ -445,7 +445,7 @@ sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2257.fc5/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
 tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
-curl -o ccs-patch-2.6.18-1.2257.fc5.tx 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1667&amp;aid=9550'<br>
+curl -o ccs-patch-2.6.18-1.2257.fc5.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1667&amp;aid=9550'<br>
 patch -sp1 &lt; ccs-patch-2.6.18-1.2257.fc5.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -472,7 +472,7 @@ sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2868.fc6/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
 tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
-curl -o ccs-patch-2.6.18-1.2868.fc6.tx 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1668&amp;aid=9550'<br>
+curl -o ccs-patch-2.6.18-1.2868.fc6.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1668&amp;aid=9550'<br>
 patch -sp1 &lt; ccs-patch-2.6.18-1.2868.fc6.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -686,28 +686,29 @@ make -s install modules modules_install
 
 <h2><a name="2.4-vanilla">バニラ 2.4 カーネル</a></h2>
 
-<p>2.4.30 以降に対応しています。以下の手順では 2.4.33 を使用するものとします。</p>
+<p>2.4.30 以降に対応しています。以下の手順では 2.4.34 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # カーネルモジュールをインストールするディレクトリを作成する。<br>
-mkdir -p /lib/modules/2.4.33-ccs<br>
+mkdir -p /lib/modules/2.4.34-ccs<br>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.33.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.34.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.4.33.tar.bz2<br>
+tar -jxf linux-2.4.34.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.4.33<br>
+cd linux-2.4.34<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
 # 展開する。<br>
 tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
+curl -o ccs-patch-2.4.34.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1671&amp;aid=9550'<br>
 # カーネルパッチを適用する。<br>
-patch -sp1 &lt; ccs-patch-2.4.33.txt<br>
+patch -sp1 &lt; ccs-patch-2.4.34.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
