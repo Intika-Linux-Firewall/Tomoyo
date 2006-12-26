@@ -328,7 +328,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.9-42.0.3.EL">Kernel 2.6.9-42.0.3.EL for CentOS 4.4</a>
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
 <li><a href="#2.6.8-16sarge6">Kernel 2.6.8-16sarge6 for Debian Sarge</a>
-<li><a href="#2.6.16.21-0.25">Kernel 2.6.16.21-0.25 for OpenSUSE 10.1</a>
+<li><a href="#2.6.16.27-0.6">Kernel 2.6.16.27-0.6 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.2-34">Kernel 2.6.18.2-34 for OpenSUSE 10.2</a>
 <li><a href="#2.6.17-9">Kernel 2.6.17-9 for Debian Etch</a>
 <li><a href="#2.6.9-34.28AX">Kernel 2.6.9-34.28AX for Asianux 2.0</a>
@@ -540,21 +540,22 @@ mkinitrd -o /boot/initrd.img-2.6.8-16sarge6-ccs 2.6.8-16sarge6-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.16.21-0.25">Kernel 2.6.16.21-0.25 for OpenSUSE 10.1</a></h2>
+<h2><a name="2.6.16.27-0.6">Kernel 2.6.16.27-0.6 for OpenSUSE 10.1</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.21-0.25.i586.rpm<br>
-rpm -ivh kernel-source-2.6.16.21-0.25.i586.rpm<br>
+wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.27-0.6.i586.rpm<br>
+rpm -ivh kernel-source-2.6.16.27-0.6.i586.rpm<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.16.21-0.25/<br>
+cd /usr/src/linux-2.6.16.27-0.6/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/22797/ccs-patch-1.3.1-20061208.tar.gz<br>
 tar -zxf ccs-patch-1.3.1-20061208.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.16.21-0.25_SUSE.txt<br>
+curl -o ccs-patch-2.6.16.27-0.6_SUSE.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1674&amp;aid=9550'<br>
+patch -sp1 &lt; ccs-patch-2.6.16.27-0.6_SUSE.txt<br>
 # Move to the output directory.<br>
-cd /usr/src/linux-2.6.16.21-0.25-obj/i386/default/<br>
+cd /usr/src/linux-2.6.16.27-0.6-obj/i386/default/<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
