@@ -15,9 +15,8 @@
     <li><a href="#l0">概要</a></li>
     <li><a href="#l1">インストール</a>
     <ul>
-      <li><a href="#l2">SELinuxを一時的に無効にする</a></li>
+      <li><a href="#l2">SELinuxを無効にする</a></li>
       <li><a href="#l3">TOMOYO Linuxのカーネルのインストール</a></li>
-      <li><a href="#l4">SELinuxを再度有効にする</a></li>
       <li><a href="#l5">TOMOYO Linuxのツールのインストール</a></li>
     </ul></li>
     <li><a href="#l6">設定</a>
@@ -51,29 +50,17 @@
 
     <h2><a name="l1">インストール</a></h2>
 
-    <h3><a name="l2">SELinuxを一時的に無効にする</a></h3>
+    <h3><a name="l2">SELinuxを無効にする</a></h3>
     <p>Fedora Coreは、インストール時のデフォルトでSELinuxが有効になっています。
-      TOMOYO Linuxの導入の際には、カーネルのインストールのため、一時的にSELinuxを無効にする必要があります。</p>
-    <p>現在SELinuxが有効になっているかどうかは、getenforceコマンドで確認できます。</p>
-
+      本来TOMOYO LinuxとSELinuxは共存が可能ですが、混乱を避けるためにSELinuxを無効にしておくことを推奨します。</p>
+    <p>SELinuxを無効にするには、/etc/selinux/configファイルのSELINUX=の行を以下のように変更します。</p>
+	<pre>
+SELINUX=<span class="user">disabled</span>
+</pre>
+    <p>変更が終わったらLinuxを再起動して、getenforceコマンドでSELinuxが無効になっているかを確かめてください。</p>
 <pre>
 # <span class="user">getenforce</span>
-Enforcing
-</pre>
-    <p>上記のように、"Enforcing"が表示されればSELinuxは有効になっています。</p>
-
-    <p>
-      SELinuxによるアクセス制御を一時的に無効にするには、setenforceコマンドを使います。
-    </p>
-<pre>
-# <span class="user">setenforce Permissive</span>
-</pre>
-
-    <p>再度getenforceコマンドを実行し、"Permissive"が表示されることを確かめてください。</p>
-
-<pre>
-# <span class="user">getenforce</span>
-Permissive
+Disabled
 </pre>
     <h3><a name="l3">TOMOYO Linuxのカーネルのインストール</a></h3>
     <p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、
@@ -106,15 +93,6 @@ title Fedora Core (2.6.18-1.2868.fc6_tomoyo_1.3.1)
 <span class="user">#</span>hiddenmenu
 </pre>
 
-    <h3><a name="l4">SELinuxを再度有効にする</a></h3>
-    <p>
-      前の手順でSELinuxを無効にした場合は、再度setenforceコマンドを実行して
-      SELinuxを有効にします。
-    </p>
-<pre>
-# <span class="user">setenforce Enforcing</span>
-</pre>
-
     <h3><a name="l5">TOMOYO Linuxのツールのインストール</a></h3>
     <p>カーネルの次は、TOMOYO Linuxのツールをインストールします。
       ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
@@ -138,10 +116,10 @@ title Fedora Core (2.6.18-1.2868.fc6_tomoyo_1.3.1)
     <p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
       /boot/grub/grub.confのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
 <pre>
-title CentOS (2.6.9-42.0.3.EL_tomoyo_1.3.1)
+title Fedora Core (2.6.18-1.2868.fc6_tomoyo_1.3.1)
         root (hd0,0)
-        kernel /vmlinuz-2.6.9-42.0.3.EL_tomoyo_1.3.1 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
-        initrd /initrd-2.6.9-42.0.3.EL_tomoyo_1.3.1.img
+        kernel /vmlinuz-2.6.18-1.2868.fc6_tomoyo_1.3.1 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
+        initrd /initrd-2.6.18-1.2868.fc6_tomoyo_1.3.1.img
 </pre>
 
     <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>

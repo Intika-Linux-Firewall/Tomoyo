@@ -57,6 +57,19 @@ http://osdn.dl.sourceforge.jp/tomoyo/22799/kernel-2.6.9-34.28AX_tomoyo_1.3.1.i68
 
 <p>If the CPU architecture differs or you want to customize kernel configuration, you need to compile kernel. To compile kernel, see <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
 
+<p>If you are using distributions that support SELinux, you might encounter errors while installing packages if SELinux is not disabled. If you see error messages shown below while installing packages, retry after you disable SELinux. You can disable SELinux by either "changing SELINUX=disabled in /etc/selinux/config and reboot" or "adding selinux=0 to the kernel's boot paramaters".</p>
+
+<table border="1">
+<tr><td>
+[root@localhost ~]# rpm -ihv kernel-2.6.9-42.0.3.EL_tomoyo_1.3.1.i586.rpm<br>
+Preparing...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;########################################### [100%]<br>
+Error: %pre(kernel-2.6.9-42.0.3.EL_tomoyo_1.3.1.i586) scriptlet failed, exit status 255<br>
+Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.9-42.0.3.EL_tomoyo_1.3.1
+</td></tr>
+</table>
+
+<p>TOMOYO Linux itself can coexist with SELinux. You may continue with SELinux enabled if you want.</p>
+
 <p>If you install rpm package, the following entry is added to /boot/grub/grub.conf upon successful installation.</p>
 
 <table border="1">
