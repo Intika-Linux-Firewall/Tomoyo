@@ -3,13 +3,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
     <meta http-equiv="Content-Style-Type" content="text/css">
-    <title>TOMOYO Linux 導入手順書 （Debian sarge版）</title>
+    <title>TOMOYO Linux 導入手順書 （Ubuntu 6.10版）</title>
     <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
     <link rev="made" href="mailto:k.takeda26@gmail.com"> 
   </head>
 
   <body>
-    <h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （Debian sarge版）</h1>
+    <h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （Ubuntu 6.10版）</h1>
     
     <ul>
     <li><a href="#l0">概要</a></li>
@@ -38,7 +38,7 @@
 
     <h2><a name="l0">概要</a></h2>
 
-    <p>以下では、Debian GNU/Linux 3.1 (sarge)にTOMOYO Linux 1.3を導入する手順を解説します。この手順書に従って操作すれば、
+    <p>以下では、Ubuntu 6.10にTOMOYO Linux 1.3.1を導入する手順を解説します。この手順書に従って操作すれば、
       TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
     <p>導入の流れは以下の通りです。</p>
     <ol>
@@ -52,36 +52,37 @@
     <h3><a name="l3">TOMOYO Linuxのカーネルのインストール</a></h3>
     <p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、
       本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
-      しかしsargeの場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが
+      しかしUbuntu 6.10の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが
       提供されているので、今回はそれを利用します。</p>
     <p>まずはパッケージをダウンロードします。</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/22560/kernel-image-2.6.8-16sarge5-ccs_1.3_i586.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/22799/linux-image-2.6.17.14-ubuntu1-ccs_1.3.1_i586.deb</span>
 </pre>
     <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 <pre>
-# <span class="user">dpkg --install kernel-image-2.6.8-16sarge5-ccs_1.3_i586.deb</span>
+# <span class="user">dpkg --install linux-image-2.6.17.14-ubuntu1-ccs_1.3.1_i586.deb</span>
 </pre>
     <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs
+title           Ubuntu, kernel 2.6.17.14-ubuntu1-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro
-initrd          /boot/initrd.img-2.6.8-16sarge5-ccs
+kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-ccs root=/dev/sda1 ro quiet splash locale=ja_JP
+initrd          /boot/initrd.img-2.6.17.14-ubuntu1-ccs
+quiet
 savedefault
 boot
 
-title           Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs (recovery mode)
+title           Ubuntu, kernel 2.6.17.14-ubuntu1-ccs (recovery mode)
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro single
-initrd          /boot/initrd.img-2.6.8-16sarge5-ccs
+kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-ccs root=/dev/sda1 ro single
+initrd          /boot/initrd.img-2.6.17.14-ubuntu1-ccs
 boot
 </pre>
     <p>今後カーネルの選択を行いやすくするために、
-      /boot/grub/menu.lstの"timeout="の行を
+      /boot/grub/menu.lstの"timeout"の行を
       コメントアウトしておきます。</p>
 <pre>
-<span class="user">#</span>timeout=5
+<span class="user">#</span>timeout 3
 </pre>
 
     <h3><a name="l5">TOMOYO Linuxのツールのインストール</a></h3>
@@ -92,33 +93,32 @@ boot
       ツールは/root/ccstoolsディレクトリに置くことにします。</p>
 <pre>
 # <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/22560/ccs-tools-1.3-i386-Sarge.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.3-i386-Sarge.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/22799/ccs-tools-1.3.1-i386-Ubuntu6.10.tar.gz</span>
+# <span class="user">tar zxf ccs-tools-1.3.1-i386-Ubuntu6.10.tar.gz</span>
 </pre>
-    <p>ツールを置いたディレクトリにパスを通しておきます。bashを使っている場合には以下のようにします。</p>
-<pre>
-# <span class="user">echo 'export PATH=$PATH:/root/ccstools' &gt;&gt; ~/.bashrc</span>
-# <span class="user">source ~/.bashrc</span>
-</pre>
+
     <p>ツールのうち、ポリシーを読み込むスクリプトである.initは、ルートディレクトリに移動しておきます。</p>
 <pre>
 # <span class="user">mv /root/ccstools/.init /</span>
 </pre>
     <p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
       /boot/grub/menu.lstのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
+
+<p>重要： /.init のプロンプトやコンソールログイン画面を表示できるようにするために、 splash オプションは削除してください。</p>
+
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs
+title           Ubuntu, kernel 2.6.17.14-ubuntu1-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge5-ccs
+kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-ccs root=/dev/sda1 ro quiet locale=ja_JP <span class="user">init=/.init</span>
+initrd          /boot/initrd.img-2.6.17.14-ubuntu1-ccs
+quiet
 savedefault
 boot
 
-title           Debian GNU/Linux, kernel 2.6.8-16sarge5-ccs (recovery mode)
+title           Ubuntu, kernel 2.6.17.14-ubuntu1-ccs (recovery mode)
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge5-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge5-ccs
-savedefault
+kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
+initrd          /boot/initrd.img-2.6.17.14-ubuntu1-ccs
 boot
 </pre>
 
@@ -240,7 +240,7 @@ boot
       <li>/proc/PID のように同様のパス名をパターン化する際のパターン名</li>
       <li>すべてのプログラムに対して参照することを許可するパス名</li>
       <li>デーモンとして動作させるプログラムのパス名</li>
-      <li>強制アクセス制御が適用されない信頼済みドメイン</li>
+      <li>ドメイン遷移を行わないドメイン</li>
       <li>追記を許可して書き換えを禁止するファイルのパス名</li>
       <li>1つに集約して扱うプログラムのパス名</li>
       <li>シンボリックリンクの名前で実行するプログラムのパス名</li>
@@ -250,8 +250,8 @@ boot
       ccs-toolsに用意されています。</p>
     <p>これらを使って例外ポリシーを生成して保存するには以下のようにします。</p>
 <pre>
-# <span class="user">make_exception.sh &gt; /etc/ccs/exception_policy.txt</span>
-# <span class="user">make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt</span>
+# <span class="user">/root/ccstools/make_exception.sh &gt; /etc/ccs/exception_policy.txt</span>
+# <span class="user">/root/ccstools/make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt</span>
 </pre>
     <p>make_alias.shは10分以上時間を要する場合がありますので気長にお待ちください。</p>
     <p>以上でTOMOYO Linuxを使うための基本的な設定は終わりです。</p>
@@ -267,27 +267,30 @@ boot
     <p>カーネルの選択画面でTOMOYO Linuxのカーネルを選択してEnterを押します。</p>
     <p><img alt="TOMOYO Linuxのカーネルを選択" title="TOMOYO Linuxのカーネルを選択" width="720" height="400" src="grub.png"></p>
     <p>起動途中で以下の画面が表示されます。</p>
-    <p><img alt="ポリシーの読み込み" title="ポリシーの読み込み" width="640" height="480" src="init.png"></p>
+    <p><img alt="ポリシーの読み込み" title="ポリシーの読み込み" width="720" height="400" src="init.png"></p>
     <p>この状態でEnterキーを押すか10秒間待つと、先ほど作成した例外ポリシーが読み込まれ、
       Linuxが起動します。
       起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
-    <p><img alt="rootでログイン" title="rootでログイン" width="640" height="480" src="login.png"></p>
+
+    <p>グラフィカル画面からコンソール画面へ切り替えるには、 Ctrl-Alt-F1 を押してください。 VMware の場合は Alt-F1-CtrlまたはCtrl-F1-Altの順に押してください。</p>
+
+    <p><img alt="rootでログイン" title="rootでログイン" width="720" height="400" src="login.png"></p>
 
     <h3><a name="l15">ログイン後の操作の学習</a></h3>
     <p>今回は、以下の操作をTOMOYO Linuxに学習させ、強制モードでは学習させた操作以外が拒否されることを確かめます。</p>
     <ol>
       <li>dateコマンドを実行する</li>
       <li>headコマンドで/etc/passwdの先頭3行を表示する</li>
-      <li>tcshを起動する</li>
+      <li>shを起動する</li>
       <li>tailコマンドで/etc/passwdの末尾3行を表示する</li>
-      <li>tcshを終了する</li>
+      <li>shを終了する</li>
     </ol>
     <p>まずは学習モードの設定を行います。</p>
     <p><a href="#l8">プロファイルの作成</a>時に作成したとおり、プロファイル1が学習モードです。
       このプロファイルを以下のコマンドで/sbin/gettyから起動されるプログラムに割り当てます。
     </p>
 <pre>
-# <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">/root/ccstools/setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
     <p>このコマンドは、</p>
     <blockquote><p>/sbin/gettyから起動されるプログラムすべてにプロファイル1を割り当てる</p></blockquote>
@@ -297,27 +300,27 @@ boot
     <p>&lt;kernel&gt; /sbin/gettyを引用符で囲まないと、シェルのリダイレクト機能が働いて
       /sbin/gettyの内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
     <p>それでは、前述の4つの操作を学習させましょう。学習は通常のLinuxのように操作することで行えます。</p>
-    <p><img alt="操作の学習" title="操作の学習" width="640" height="480" src="ope_accept.png"></p>
+    <p><img alt="操作の学習" title="操作の学習" width="720" height="400" src="ope_accept.png"></p>
     <p>一見普通のLinuxと変わりなく操作できますが、
       裏ではTOMOYO Linuxがアクセス許可を監視し、
       操作ごとにポリシーとしてメモリ上に記憶しています。</p>
     <h3><a name="l16">ポリシーの参照</a></h3>
     <p>生成されたポリシーの参照・編集には、ccs-toolsのeditpolicyを用います。</p>
 <pre>
-# <span class="user">editpolicy</span>
+# <span class="user">/root/ccstools/editpolicy</span>
 </pre>
     <p>editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
       この「プロセスの呼び出し」を、TOMOYO Linuxでは「ドメイン遷移」とよびます。</p>
 
-    <p><img alt="ドメイン遷移" title="ドメイン遷移" width="640" height="480" src="editpolicy1.png"></p>
+    <p><img alt="ドメイン遷移" title="ドメイン遷移" width="720" height="400" src="editpolicy1.png"></p>
     <p>ドメイン遷移の中から、gettyを探してみてください。ドメイン遷移からgettyを検索するには、
       '@'キーを押して、下に出たプロンプトで"getty"と入力してEnterキーを押します。
       </p>
-    <p><img alt="getty以下のドメイン" title="getty以下のドメイン" width="640" height="480" src="editpolicy2.png"></p>
+    <p><img alt="getty以下のドメイン" title="getty以下のドメイン" width="720" height="400" src="editpolicy2.png"></p>
     <p>/sbin/getty下の/bin/login以下では、ログインしてからのプロセス実行履歴が分かります。
       その中からさらに、/usr/bin/headコマンドを探してみてください。
       headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
-    <p><img alt="headのポリシー" title="headのポリシー" width="640" height="480" src="editpolicy3.png"></p>
+    <p><img alt="headのポリシー" title="headのポリシー" width="720" height="400" src="editpolicy3.png"></p>
     <p>これは先ほどの操作で学習したポリシーで、</p>
     <blockquote>
       <p>&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
@@ -350,14 +353,14 @@ boot
       保存するには以下のようにします。</p>
 
 <pre>
-# <span class="user">savepolicy</span>
+# <span class="user">/root/ccstools/savepolicy</span>
 </pre>
     
     <h3><a name="l17">強制アクセス制御</a></h3>
     <p>それでは、先ほど自動学習したポリシーを使って、強制アクセス制御を体験してみましょう。</p>
     <p>'q'キーでeditpolicyを終了してから、以下のコマンドを実行します。</p>
 <pre>
-# <span class="user">setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">/root/ccstools/setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
     <p>この操作により、/sbin/getty以下のドメインに強制アクセス制御が適用されるようになります。</p>
     <p>この状態で以下の操作を行ってみます。</p>
@@ -367,28 +370,28 @@ boot
 
       <li>tailコマンドで/etc/passwdの末尾3行を表示（エラー）</li>
       <li>headコマンドで/etc/shadowの先頭3行を表示（エラー）</li>
-      <li>tcshを起動</li>
+      <li>shを起動</li>
       <li>dateコマンドを実行（エラー）</li>
     </ol>
-    <p><img alt="強制アクセス制御の様子" title="強制アクセス制御の様子" width="640" height="480" src="ope_enforce.png"></p>
+    <p><img alt="強制アクセス制御の様子" title="強制アクセス制御の様子" width="720" height="400" src="ope_enforce.png"></p>
     <p>図中の赤下線のコマンドは先ほど学習モードで行った操作ですので、問題なく実行できます。
       逆に青下線のコマンドはエラーになります。</p>
     <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 <pre>
-#2006-11-29 17:03:05# pid=1878 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-01-29 10:35:50# pid=4447 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 1 /usr/bin/tail
 
-#2006-11-29 17:03:05# pid=1878 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-01-29 10:35:50# pid=4447 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 4 /usr/bin/tail
 
-#2006-11-29 17:03:10# pid=1879 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-01-29 10:36:01# pid=4448 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
 4 /etc/shadow
 
-#2006-11-29 17:03:15# pid=1881 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/tcsh
+#2007-01-29 10:36:17# pid=4450 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/sh
 1 /bin/date
 </pre>
     <p>このようにTOMOYO Linuxのファイルに対するアクセス制御を用いれば、</p>

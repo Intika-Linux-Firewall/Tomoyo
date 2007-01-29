@@ -213,7 +213,7 @@ boot
       アクセス拒否ログのみを保存する設定でccs-auditdをLinuxの起動時に実行するには、
       まず、以下のコマンドで/etc/init.dにシェルスクリプトを作成し、実行権限を与えます。</p>
 <pre>
-# <span class="user">cat > /etc/init.d/ccs-auditd << EOF</span>
+# <span class="user">cat &gt; /etc/init.d/ccs-auditd &lt;&lt; EOF</span>
 <span class="user">#!/bin/sh</span>
 <span class="user">/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt</span>
 <span class="user">EOF</span>
