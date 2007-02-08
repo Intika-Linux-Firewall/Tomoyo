@@ -15,10 +15,9 @@
 <h3><a name="editpolicy">&lt;Policy Editor "editpolicy"&gt;</a></h3>
 <p>Edits the current policy in /proc/ccs/policy/ directory.</p>
 <p>You may give one of "s" "e" "d" to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
-<p>Keys applicable to all screens</p>
+
+<p>&lt;Scroll&gt;</p>
 <table border="1">
-<tr><td>q/Q</td><td>Quit</td></tr>
-<tr><td>r/R</td><td>Refresh</td></tr>
 <tr><td>Up-arrow</td><td>Scroll 1 line up.</td></tr>
 <tr><td>Down-arrow</td><td>Scroll 1 line down.</td></tr>
 <tr><td>PageUp</td><td>Scroll 1 page up.</td></tr>
@@ -26,43 +25,33 @@
 <tr><td>Right-arrow</td><td>Scroll 1 column right.</td></tr>
 <tr><td>Left-arrow</td><td>Scroll 1 column left.</td></tr>
 <tr><td>Home</td><td>Move to the top of line.</td></tr>
+<tr><td>End</td><td>Move to the bottom of line.</td></tr>
 </table>
 
-<p>Keys applicable to screen for system policy</p>
+<p>&lt;Search&gt;</p>
+<table border="1">
+<tr><td>f/F</td><td>Find First</td></tr>
+<tr><td>n/N</td><td>Find Next</td></tr>
+<tr><td>p/P</td><td>Find Previous</td></tr>
+</table>
+
+<p>&lt;Edit&gt;</p>
 <table border="1">
 <tr><td>a/A</td><td>Add an entry.</td></tr>
-<tr><td>d/D</td><td>Delete the selected entry.</td></tr>
-<tr><td>Tab</td><td>Switch to screen for exception policy.</td></tr>
+<tr><td>Enter</td><td>Edit ACLs of a domain at the cursor position. (Valid only for screen for domain listing.)</td></tr>
+<tr><td>Space</td><td>Invert selection state of an entry at the cursor position.</td></tr>
+<tr><td>c/C</td><td>Copy selection state of an entry at the cursor position to all entries below the cursor position.</td></tr>
+<tr><td>d/D</td><td>Delete selected entries.</td></tr>
+<tr><td>s/S</td><td>Set profile number of selected entries. (Valid only for screen for domain listing.)</td></tr>
 </table>
 
-<p>Keys applicable to screen for exception policy.</p>
+<p>&lt;Misc&gt;</p>
 <table border="1">
-<tr><td>a/A</td><td>Add an entry.</td></tr>
-<tr><td>d/D</td><td>Delete the selected entry.</td></tr>
-<tr><td>Tab</td><td>Switch to screen for domain listing.</td></tr>
+<tr><td>q/Q</td><td>Quit</td></tr>
+<tr><td>r/R</td><td>Refresh</td></tr>
+<tr><td>Tab</td><td>Switch to next screen.</td></tr>
 </table>
 
-<p>Keys applicable to screen for domain listing.</p>
-<table border="1">
-<tr><td>a/A</td><td>Create a domain.</td></tr>
-<tr><td>d/D</td><td>Delete the selected domain and its descendants.</td></tr>
-<tr><td>Tab</td><td>Switch to screen for system policy.</td></tr>
-<tr><td>Enter</td><td>Switch to screen for editing ACLs for the selected domain.</td></tr>
-<tr><td>@</td><td>New search</td></tr>
-<tr><td>&lt;</td><td>Search previous</td></tr>
-<tr><td>&gt;</td><td>Search next</td></tr>
-</table>
-
-<p>Keys applicable to screen for editing ACLs for the selected domain</p>
-<table border="1">
-<tr><td>Enter</td><td>Return to screen for domain listing.</td></tr>
-<tr><td>a/A</td><td>Add an access permission.</td></tr>
-<tr><td>d/D</td><td>Delete existing permission.</td></tr>
-</table>
-
-<p>This program keeps pathnames on dynamically allocated memory on the first appearance of the pathname and never frees that memory until termination. This is to reduce memory usage for keeping filenames.</p>
-<p>The same mechanism is used by the TOMOYO Linux kernel. The memory allocated by the kernel for keeping pathnames and access permissions is never freed. Therefore, you can't run in "accept mode" forever, otherwise the system falls into out of memory. But actual amount of extra memory consumed by TOMOYO Linux kernel, though it depends on the number of domains and number of access permissions for domains, is less than 1 MB in most systems.</p>
-<p>The memory for keeping access logs is allocated dynamically, and is freed as soon as the userland program reads the log. Also, there is a limitation for the maximum number of logs that the kernel can keep, therefore the system won't become out of memory even if the userland program doesn't read the logs.</p>
 <h3><a name="editpolicy_offline">&lt;Off-line Policy Editor "editpolicy_offline"&gt;</a></h3>
 <p>Edits the policy in /etc/ccs/ directory.</p>
 <p>The usage is the same as "editpolicy".</p>

@@ -298,9 +298,12 @@ title CentOS (2.6.9-42.0.8.EL_tomoyo_1.3.2)
 
     <p><img alt="ドメイン遷移" title="ドメイン遷移" width="720" height="400" src="editpolicy1.png"></p>
     <p>ドメイン遷移の中から、mingettyを探してみてください。ドメイン遷移からmingettyを検索するには、
-      '@'キーを押して、下に出たプロンプトで"mingetty"と入力してEnterキーを押します。
+      'f'キーを押して、下に出たプロンプトで"mingetty"と入力してEnterキーを押します。
       </p>
     <p><img alt="mingetty以下のドメイン" title="mingetty以下のドメイン" width="720" height="400" src="editpolicy2.png"></p>
+    <p>
+      行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/mingetty 以下のドメインが 1 になっているのは、先ほど setprofile コマンドを用いて 1 を割り当てたためです。
+    </p>
     <p>/sbin/mingetty下の/bin/login以下では、ログインしてからのプロセス実行履歴が分かります。
       その中からさらに、/usr/bin/headコマンドを探してみてください。
       headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
@@ -310,7 +313,6 @@ title CentOS (2.6.9-42.0.8.EL_tomoyo_1.3.2)
       <p>&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
       <ul>
         <li>/etc/passwdへの読み込みアクセスを許可する（青下線）</li>
-        <li>プロファイル1を用いる（黄下線）</li>
       </ul>
     </blockquote>
 
@@ -326,10 +328,6 @@ title CentOS (2.6.9-42.0.8.EL_tomoyo_1.3.2)
       通常のLinuxにおけるファイルに対するパーミッションと
       同様の3種類（読み込み・書き込み・実行）の他にも、
       ファイルの新規作成・削除・名前変更なども設定できます。
-    </p>
-    <p>
-      また、すべてのドメインにuse_profileというポリシーが存在しており、
-      この値がドメインが使用するプロファイル番号を表しています。
     </p>
 
     <p>ポリシーはメモリ上に置かれており、このままLinuxをシャットダウンしてしまうと、
@@ -362,19 +360,19 @@ title CentOS (2.6.9-42.0.8.EL_tomoyo_1.3.2)
       逆に青下線のコマンドはエラーになります。</p>
     <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 <pre>
-#2006-11-27 21:36:09# pid=3698 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
 1 /usr/bin/tail
 
-#2006-11-27 21:36:09# pid=3698 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
 4 /usr/bin/tail
 
-#2006-11-27 21:36:11# pid=3699 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-08 16:12:45# pid=3524 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head
 4 /etc/shadow
 
-#2006-11-27 21:36:13# pid=3716 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-08 16:12:48# pid=3550 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh
 1 /bin/date
 </pre>
