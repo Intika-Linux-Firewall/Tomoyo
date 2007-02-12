@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="ja">
+<html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>TOMOYO Linux Kickstarting Manual for CentOS 4.4</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
@@ -75,9 +75,9 @@ Disabled
 <p>The following entries are appended to /boot/grub/grub.conf if installation finishes successfully.</p>
 <pre>
 title CentOS (2.6.9-42.0.8.EL_tomoyo_1.3.2)
-        root (hd0,0)
-        kernel /vmlinuz-2.6.9-42.0.8.EL_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00
-        initrd /initrd-2.6.9-42.0.8.EL_tomoyo_1.3.2.img
+    root (hd0,0)
+    kernel /vmlinuz-2.6.9-42.0.8.EL_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.9-42.0.8.EL_tomoyo_1.3.2.img
 </pre>
 <p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
 <pre>
@@ -108,9 +108,9 @@ title CentOS (2.6.9-42.0.8.EL_tomoyo_1.3.2)
 <p>To load TOMOYO Linux's policy automatically upon startup, you need to update the kernel command line. Append "init=/.init" at the "kernel" lines of TOMOYO Linux's kernels in /boot/grub/grub.conf .</p>
 <pre>
 title CentOS (2.6.9-42.0.8.EL_tomoyo_1.3.2)
-        root (hd0,0)
-        kernel /vmlinuz-2.6.9-42.0.8.EL_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
-        initrd /initrd-2.6.9-42.0.8.EL_tomoyo_1.3.2.img
+    root (hd0,0)
+    kernel /vmlinuz-2.6.9-42.0.8.EL_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
+    initrd /initrd-2.6.9-42.0.8.EL_tomoyo_1.3.2.img
 </pre>
 <p>You have installed TOMOYO Linux. Now proceed to configuration.</p>
 

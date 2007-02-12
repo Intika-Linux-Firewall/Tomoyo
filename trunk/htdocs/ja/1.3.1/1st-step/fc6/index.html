@@ -213,7 +213,7 @@ title Fedora Core (2.6.19-1.2895.fc6_tomoyo_1.3.1)
       アクセス拒否ログのみを保存する設定でccs-auditdをLinuxの起動時に実行するには、
       以下のコマンドで/etc/rc.d/rc.localの末尾にccs-auditdの起動コマンドを追加します。</p>
 <pre>
-# <span class="user">echo "/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" >> /etc/rc.d/rc.local</span>
+# <span class="user">echo "/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
 </pre>
     <p>この設定では、/var/log/tomoyo/reject_log.txtにアクセス拒否ログが保存されます。
       ログを保存するディレクトリをあらかじめ作っておきます。</p>
