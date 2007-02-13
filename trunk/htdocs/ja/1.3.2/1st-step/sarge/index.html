@@ -267,11 +267,11 @@ ccs-toolsに用意されています。</p>
 <p>カーネルの選択画面でTOMOYO Linuxのカーネルを選択してEnterを押します。</p>
 <p><img alt="TOMOYO Linuxのカーネルを選択" title="TOMOYO Linuxのカーネルを選択" width="720" height="400" src="grub.png"></p>
 <p>起動途中で以下の画面が表示されます。</p>
-<p><img alt="ポリシーの読み込み" title="ポリシーの読み込み" width="640" height="480" src="init.png"></p>
+<p><img alt="ポリシーの読み込み" title="ポリシーの読み込み" width="720" height="400" src="init.png"></p>
 <p>この状態でEnterキーを押すか10秒間待つと、先ほど作成した例外ポリシーが読み込まれ、
 Linuxが起動します。
 起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
-<p><img alt="rootでログイン" title="rootでログイン" width="640" height="480" src="login.png"></p>
+<p><img alt="rootでログイン" title="rootでログイン" width="720" height="400" src="login.png"></p>
 
 <h3><a name="l15">ログイン後の操作の学習</a></h3>
 <p>今回は、以下の操作をTOMOYO Linuxに学習させ、強制モードでは学習させた操作以外が拒否されることを確かめます。</p>
@@ -297,7 +297,7 @@ Linuxが起動します。
 <p>&lt;kernel&gt; /sbin/gettyを引用符で囲まないと、シェルのリダイレクト機能が働いて
 /sbin/gettyの内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
 <p>それでは、前述の4つの操作を学習させましょう。学習は通常のLinuxのように操作することで行えます。</p>
-<p><img alt="操作の学習" title="操作の学習" width="640" height="480" src="ope_accept.png"></p>
+<p><img alt="操作の学習" title="操作の学習" width="720" height="400" src="ope_accept.png"></p>
 <p>一見普通のLinuxと変わりなく操作できますが、
 裏ではTOMOYO Linuxがアクセス許可を監視し、
 操作ごとにポリシーとしてメモリ上に記憶しています。</p>
@@ -309,18 +309,18 @@ Linuxが起動します。
 <p>editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
 この「プロセスの呼び出し」を、TOMOYO Linuxでは「ドメイン遷移」とよびます。</p>
 
-<p><img alt="ドメイン遷移" title="ドメイン遷移" width="640" height="480" src="editpolicy1.png"></p>
+<p><img alt="ドメイン遷移" title="ドメイン遷移" width="720" height="400" src="editpolicy1.png"></p>
 <p>ドメイン遷移の中から、gettyを探してみてください。ドメイン遷移からgettyを検索するには、
 'f'キーを押して、下に出たプロンプトで"getty"と入力してEnterキーを押します。
 </p>
-<p><img alt="getty以下のドメイン" title="getty以下のドメイン" width="640" height="480" src="editpolicy2.png"></p>
+<p><img alt="getty以下のドメイン" title="getty以下のドメイン" width="720" height="400" src="editpolicy2.png"></p>
 <p>
 行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/getty 以下のドメインが 1 になっているのは、先ほど setprofile コマンドを用いて 1 を割り当てたためです。
 </p>
 <p>/sbin/getty下の/bin/login以下では、ログインしてからのプロセス実行履歴が分かります。
 その中からさらに、/usr/bin/headコマンドを探してみてください。
 headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
-<p><img alt="headのポリシー" title="headのポリシー" width="640" height="480" src="editpolicy3.png"></p>
+<p><img alt="headのポリシー" title="headのポリシー" width="720" height="400" src="editpolicy3.png"></p>
 <p>これは先ほどの操作で学習したポリシーで、</p>
 <blockquote>
 <p>&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
@@ -368,24 +368,24 @@ TOMOYO Linuxでは、
 <li>tcshを起動</li>
 <li>dateコマンドを実行（エラー）</li>
 </ol>
-<p><img alt="強制アクセス制御の様子" title="強制アクセス制御の様子" width="640" height="480" src="ope_enforce.png"></p>
+<p><img alt="強制アクセス制御の様子" title="強制アクセス制御の様子" width="720" height="400" src="ope_enforce.png"></p>
 <p>図中の赤下線のコマンドは先ほど学習モードで行った操作ですので、問題なく実行できます。
 逆に青下線のコマンドはエラーになります。</p>
 <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 <pre>
-#2006-11-29 17:03:05# pid=1878 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-13 18:44:36# pid=1545 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 1 /usr/bin/tail
 
-#2006-11-29 17:03:05# pid=1878 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-13 18:44:36# pid=1545 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 4 /usr/bin/tail
 
-#2006-11-29 17:03:10# pid=1879 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-13 18:44:42# pid=1546 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
 4 /etc/shadow
 
-#2006-11-29 17:03:15# pid=1881 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-13 18:44:46# pid=1548 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/tcsh
 1 /bin/date
 </pre>

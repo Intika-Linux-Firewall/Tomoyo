@@ -227,7 +227,7 @@ $profile_number-$topic_name=$control_mode
 # <span class="user">reboot</span>
 </pre>
 <p>Select the TOMOYO Linux kernel and press 'Enter' key.</p>
-<p><img alt="Booting with TOMOYO Linux kernel" title="Booting with TOMOYO Linux kernel" width="720" height="400" src="grub.png"></p>
+<p><img alt="Booting with TOMOYO Linux kernel" title="Booting with TOMOYO Linux kernel" width="640" height="480" src="grub.png"></p>
 <p>The following prompt will appear.</p>
 <p><img alt="Loading policy" title="Loading policy" width="720" height="400" src="init.png"></p>
 <p>Wait 10 seconds or press 'Enter' key to continue. The exception policy will be loaded and the system starts. After the login prompt appear, log in as root.</p>
@@ -305,19 +305,19 @@ Press 'Enter' at the line of head command, and you will see the following window
 <p>Operations with red colored underline in the picture are performed normally because they are operations performed in the accept mode. Operations with blue colored underline are denied.</p>
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 <pre>
-#2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-13 18:26:24# pid=2284 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
 1 /usr/bin/tail
 
-#2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-13 18:26:24# pid=2284 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
 4 /usr/bin/tail
 
-#2007-02-08 16:12:45# pid=3524 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-13 18:26:27# pid=2285 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head
 4 /etc/shadow
 
-#2007-02-08 16:12:48# pid=3550 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-02-13 18:26:32# pid=2307 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh
 1 /bin/date
 </pre>
