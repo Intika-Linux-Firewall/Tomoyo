@@ -1,0 +1,255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>SAKURA memo for VMware</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<h1 style="text-align:center;">Manual for creating readonly-mountable root fs</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+<hr>
+<p>TOMOYO Linux can report file accesses that were failed due to readonly filesystem.
+This manual describes how to create a readonly-mountable root fs on VMware using this functionality.</p>
+
+<h1><a name="assumption">1. Assumption</a></h1>
+
+<h2><a name="required_resources">1.1 Required resources</a></h2>
+<p>You need the following softwares and resources in addition to regular procedure of TOMOYO Linux. You don't need to burn ISO image to CD, for VMware can use ISO image instead of CD.</p>
+<ul>
+<li>VMware Player ( http://www.vmware.com/products/player/ )</li>
+<li>ISO image file of KNOPPIX ( http://www.knopper.net/knoppix/index-en.html )</li>
+<li>IP addresses and hostnames for VM environment</li>
+</ul>
+
+<h2><a name="partition_setting">1.2 Partition layouts</a></h2>
+<p>In the production environment, root fs is mounted as read-only. For applications that need to write in the /tmp and a part of /var directories, I allocate /data partition for writable partition. The /tmp and a part of /var directories will be located on /data partition. This memo suppose the following partition layout.</p>
+<table border="1">
+<tr>
+<td>VM environment name</td>
+<td>hostname</td>
+<td>partition layout</td>
+</tr>
+<tr>
+<td>Compiler Environment</td>
+<td>compile</td>
+<td>/dev/sda1 ext3 /</td>
+</tr>
+<tr>
+<td>Builder Environment</td>
+<td>build</td>
+<td>/dev/sda1 ext3 /data<br>
+/dev/sda2 ext3 /</td>
+</tr>
+</table>
+<p>You need to allocate /data partition for Build Environment more than twice larger than the size of / partition.</p>
+<p>You need to prepare file transfer method (like scp, ftp) to transfer ISO image from VM environment to host environment.</p>
+
+<h1><a name="preparation">2. Preparation</a></h1>
+
+<p>Do operations until just before <a href="minimum-install.html#policy-preparation">Preparing Policy</a>
+described in <a href="minimum-install.html">TOMOYO Linux Install manual (Simplified version)</a>.<br>
+But you need to compile kernel with the following options enabled. Since initrd-loop.img doesn't include insmod, compile them as built-in, not as modules.</p>
+
+<table border="1">
+<tr><td>
+If you want to use 2.4 series, choose the following options.
+<ul>
+<li>Block devices ---&gt; &lt;*&gt; Loopback device support</li>
+<li>Block devices ---&gt; &lt;*&gt; RAM disk support</li>
+<li>Block devices ---&gt; [*] Initial RAM disk (initrd) support</li>
+<li>File systems ---&gt; &lt;*&gt; Ext3 journalling file system support</li>
+<li>File systems ---&gt; &lt;*&gt; ISO 9660 CDROM file system support</li>
+<li>File systems ---&gt; [*] SAKURA (Domain-Free Mandatory Access Control) support</li>
+<li>File systems ---&gt; [*] &nbsp;&nbsp;Read-only filesystem error tracing support</li>
+<li>File systems ---&gt; &lt;*&gt; SYAORAN (Tamper-Proof Device Filesystem) support</li>
+<li>SCSI support ---&gt; &lt;*&gt; SCSI support</li>
+<li>SCSI support ---&gt; &lt;*&gt; SCSI disk support</li>
+<li>SCSI support ---&gt; &lt;*&gt; SCSI CD-ROM support</li>
+<li>SCSI support ---&gt; &lt;*&gt; SCSI generic support</li>
+<li>SCSI support ---&gt; SCSI low-level drivers ---&gt; &lt;*&gt; BusLogic SCSI support</li>
+<li>Fusion MPT device support ---&gt; &lt;*&gt; Fusion MPT (base + ScsiHost) drivers</li>
+<li>ATA/IDE/MFM/RLL support ---&gt; &lt;*&gt; ATA/IDE/MFM/RLL support</li>
+<li>ATA/IDE/MFM/RLL support ---&gt; IDE, ATA and ATAPI Block devices ---&gt; &lt;*&gt; Enhanced IDE/MFM/RLL disk/cdrom/tape/floppy support</li>
+<li>ATA/IDE/MFM/RLL support ---&gt; IDE, ATA and ATAPI Block devices ---&gt; &lt;*&gt; Include IDE/ATAPI CDROM support</li>
+<li>ATA/IDE/MFM/RLL support ---&gt; IDE, ATA and ATAPI Block devices ---&gt; &lt;*&gt; SCSI emulation support</li>
+<li>Network device support ---&gt; [*] Network device support</li>
+<li>Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; [*] Ethernet (10 or 100Mbit)</li>
+<li>Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; [*] EISA, VLB, PCI and on board controllers</li>
+<li>Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; &lt;*&gt; AMD PCnet32 PCI support</li>
+</ul>
+</td></tr>
+<tr><td>
+If you want to use 2.6 series, choose the following options.
+<ul>
+<li>Device Drivers ---&gt; Block devices ---&gt; &lt;*&gt; Loopback device support</li>
+<li>Device Drivers ---&gt; Block devices ---&gt; &lt;*&gt; RAM disk support</li>
+<li>Device Drivers ---&gt; Block devices ---&gt; [*] Initial RAM disk (initrd) support</li>
+<li>File systems ---&gt; &lt;*&gt; Ext3 journalling file system support</li>
+<li>File systems ---&gt; CD-ROM/DVD Filesystems ---&gt; &lt;*&gt; ISO 9660 CDROM file system support</li>
+<li>File systems ---&gt; [*] SAKURA (Domain-Free Mandatory Access Control) support</li>
+<li>File systems ---&gt; [*] &nbsp;&nbsp;Read-only filesystem error tracing support</li>
+<li>File systems ---&gt; &lt;*&gt; SYAORAN (Tamper-Proof Device Filesystem) support</li>
+<li>Device Drivers ---&gt; SCSI device support ---&gt; &lt;*&gt; SCSI disk support</li>
+<li>Device Drivers ---&gt; SCSI device support ---&gt; &lt;*&gt; SCSI CDROM support</li>
+<li>Device Drivers ---&gt; SCSI device support ---&gt; &lt;*&gt; SCSI generic support</li>
+<li>Device Drivers ---&gt; SCSI device support ---&gt; SCSI low-level drivers ---&gt; &lt;*&gt; BusLogic SCSI support</li>
+<li>(2.6.12 and before) Device Drivers ---&gt; Fusion MPT device support ---&gt; &lt;*&gt; Fusion MPT (base + ScsiHost) drivers</li>
+<li>(2.6.13 and after) Device Drivers ---&gt; Fusion MPT device support ---&gt; &lt;*&gt; Fusion MPT ScsiHost drivers for SPI</li>
+<li>Device Drivers ---&gt; ATA/ATAPI/MFM/RLL support ---&gt; &lt;*&gt; ATA/ATAPI/MFM/RLL support</li>
+<li>Device Drivers ---&gt; ATA/ATAPI/MFM/RLL support ---&gt; &lt;*&gt; Enhanced IDE/MFM/RLL disk/cdrom/tape/floppy support</li>
+<li>Device Drivers ---&gt; ATA/ATAPI/MFM/RLL support ---&gt; &lt;*&gt; Include IDE/ATAPI CDROM support</li>
+<li>Device Drivers ---&gt; ATA/ATAPI/MFM/RLL support ---&gt; &lt;*&gt; SCSI emulation support</li>
+<li>Device Drivers ---&gt; Network device support ---&gt; [*] Network device support</li>
+<li>Device Drivers ---&gt; Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; [*] Ethernet (10 or 100Mbit)</li>
+<li>Device Drivers ---&gt; Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; [*] EISA, VLB, PCI and on board controllers</li>
+<li>Device Drivers ---&gt; Network device support ---&gt; Ethernet (10 or 100Mbit) ---&gt; &lt;*&gt; AMD PCnet32 PCI support</li>
+</ul>
+</td></tr>
+</table>
+
+<h1><a name="protect_device_files">3. Protecting device files</a></h1>
+<p>The system can't work if /dev directory is read-only, so you can use SYAORAN filesystem for /dev . You can use devfs or udev, but they can't prevent tampering with device files.</p>
+
+<p>Do the following operation to create /.syaoran .</p>
+
+<table border="1">
+<tr><td>
+echo '#! /bin/sh' &gt; /.syaoran<br>
+echo 'mount -n -t syaoran -o accept=/root/security/syaoran.conf none /dev' &gt;&gt; /.syaoran<br>
+echo 'exec /sbin/init "$@"' &gt;&gt; /.syaoran<br>
+chmod 700 /.syaoran
+</td></tr>
+</table>
+
+<p>To mount this filesystem automatically before /sbin/init starts, add "init=/.syaoran" to the TOMOYO Linux's kernel command line. I recommend you to add "init=/.syaoran" to the boot loader's configuration file because it is a bother specifying every time.</p>
+
+<p>Do the following operation to create initial /root/security/syaoran.conf that contains all entries.</p>
+
+<table border="1">
+<tr><td>
+mkdir -p /root/security<br>
+/root/ccstools/makesyaoranconf &gt; /root/security/syaoran.conf<br>
+</td></tr>
+</table>
+
+<p>To forbid access other than /data partition, remove all /dev/sda* entries other than /dev/sda1 from /root/security/syaoran.conf .</p>
+
+<p>This will work. But if you want to remove unnecessary entries in /root/security/syaoran.conf , see <a href="install.html#protect-device">Protecting Device Files (Optional)</a>.</p>
+
+<h1><a name="relocate_files">4. Relocating files to make root fs read-only</a></h1>
+<p>Since /etc/mtab becomes read-only, replace the file with a symbolic link to /proc/mounts .</p>
+<table border="1">
+<tr>
+<td>ln -sf /proc/mounts /etc/mtab<br></td>
+</tr>
+</table>
+<p>Since /etc/adjtime becomes read-only, replace the file with a symbolic link to /dev/null .</p>
+<table border="1">
+<tr>
+<td>ln -sf /dev/null /etc/adjtime<br></td>
+</tr>
+</table>
+<p>Modify the startup script not to remount / as read-write.</p>
+<p>The following is for RedHat Linux 9 and Fedora Core 3.</p>
+<table border="1">
+<tr>
+<td>sed -i 's:mount -n -o remount,rw /:/root/ccstools/remount_rootfs:' /etc/rc.d/rc.sysinit<br></td>
+</tr>
+</table>
+<p>The following is for Debian Sarge.</p>
+<table border="1">
+<tr>
+<td>sed -i 's:#.*Remount.*:&amp;\ngrep -q readonly /proc/cmdline \&amp;\&amp; rootmode=ro' /etc/init.d/checkroot.sh<br></td>
+</tr>
+</table>
+<p>Modify the startup script not to run fsck on /.</p>
+<p>The following is for RedHat Linux 9.</p>
+<table border="1">
+<tr>
+<td>sed -i 's:initlog -c "fsck -T -a $fsckoptions /":echo "Skipped":' /etc/rc.d/rc.sysinit<br></td>
+</tr>
+</table>
+<p>The following is for Fedora Core 3.</p>
+<table border="1">
+<tr>
+<td>sed -i 's:fsck -T -a $rootdev $fsckoptions:echo Skipped:' /etc/rc.d/rc.sysinit<br></td>
+</tr>
+</table>
+<p>For Debian Sarge, update the &lt;pass&gt; field to 0 where &lt;mount point&gt; is / in /etc/fstab .</p>
+<p>If the option "readonly" is given in the kernel commandline, remount_rootfs won't remount the root fs as read-write. And the system tries to boot with root fs mounted as read-only. But probably the system can't boot properly without any file relocation. Therefore, you will need to relocate files and directories that needs to be writable to writable partitions.</p>
+<p>To know files and directories that needs to be writable, you can give a line "TRACE_READONLY=1" in /root/security/profile0.txt . With this line, the TOMOYO Linux kernel dumps pathnames of files and directories that write attempt failed due to readonly filesystem to syslog. Pick up lines that contains ReadOnly: in /var/log/messages , and decide which files and directories to relocate. The destination is /data partition, and refer from / partition using symbolic links. Note that not all errors caused by readonly filesystem are reported.</p>
+<p>The following is an example that need to be relocated. This depends on distributions and applications installed in the Builder Environment.</p>
+<ul>
+<li>/tmp/</li>
+<li>/var/run/</li>
+<li>/var/lock/</li>
+<li>/var/log/</li>
+<li>/var/tmp/</li>
+<li>/var/spool/mail/</li>
+<li>/var/lib/random-seed</li>
+</ul>
+
+<p>At this point, make sure that you can do all operation you want to do on readonly mounted root fs without errors.</p>
+<h1><a name="bootloader_configuration">5. Boot loader Configuration</a></h1>
+<p>Extract stage2_eltorito, the bootloader for ISO image, from the grub package if the Compiler Environment doesn't have it. The following is a step to extract from grub package for Fedora Core 3. If the Compiler Environment has stage2_eltorito, copy it to /boot/grub/ .</p>
+<table border="1">
+<tr>
+<td>cd /tmp<br>
+wget ftp://rpmfind.net/linux/fedora/core/3/i386/os/Fedora/RPMS/grub-0.95-3.i386.rpm<br>
+rpm2cpio &lt; grub-0.95-3.i386.rpm | cpio -idm '*/stage2_eltorito'<br>
+mv usr/share/grub/i386-redhat/stage2_eltorito /boot/grub/<br></td>
+</tr>
+</table>
+<p>Boot the Builder Environment using KNOPPIX's ISO image.</p>
+<p>Copy the stage2_eltorito from the Compiler Environment to /mnt/sda1/IMAGE/boot/grub/ in the Building Environment. Copy the kernel and initrd-loop.img , too. Replace the part vmlinuz-2.4.32-ccs with the version you are using.</p>
+<table border="1">
+<tr>
+<td>mount /dev/sda1 /mnt/sda1<br>
+mkdir -p /mnt/sda1/IMAGE/boot/grub<br>
+scp -p compile:/boot/grub/stage2_eltorito /mnt/sda1/IMAGE/boot/grub/<br>
+scp -p compile:/boot/grub/splash.xpm.gz /mnt/sda1/IMAGE/boot/grub/<br>
+scp -p compile:/boot/vmlinuz-2.4.32-ccs /mnt/sda1/IMAGE/vmlinuz<br>
+scp -p compile:/root/ccstools/initrd-loop.img /mnt/sda1/IMAGE/<br>
+cat &gt; /mnt/sda1/IMAGE/boot/grub/grub.conf &lt;&lt; EOF<br>
+default=0<br>
+timeout=10<br>
+splashimage=/boot/grub/splash.xpm.gz<br>
+title SAKURA Linux<br>
+kernel /vmlinuz fastboot init=/.syaoran root=/dev/scd0 hdc=ide-scsi<br>
+initrd /initrd-loop.img<br>
+EOF<br>
+ln -s grub.conf /mnt/sda1/IMAGE/boot/grub/menu.lst<br></td>
+</tr>
+</table>
+
+<h1><a name="create_iso_image">6. Creating ISO image</a></h1>
+
+<p>Boot the Builder Environment with KNOPPIX's ISO image.</p>
+<p>Create a loopback mount image file and copy the content of / partition. Determine the size of the loopback image using the output of "df /dev/sda2" command. The following example creates the loopback image of 640 MB.</p>
+<table border="1">
+<tr>
+<td>mount /dev/sda1 /mnt/sda1<br>
+mount -o ro /dev/sda2 /mnt/sda2<br>
+touch /mnt/sda1/IMAGE/rootimg<br>
+mke2fs -j -F -m 0 -b 1024 /mnt/sda1/IMAGE/rootimg 655360<br>
+mount -o loop /mnt/sda1/IMAGE/rootimg /mnt/sda1/<br>
+cp -a /mnt/sda2/* /mnt/sda1/<br>
+sync<br>
+umount -d /mnt/sda1/<br>
+e2fsck -f /mnt/sda1/IMAGE/rootimg<br></td>
+</tr>
+</table>
+<p>If copy finished successfully, convert into ISO image file.</p>
+<table border="1">
+<tr>
+<td>cd /mnt/sda1/IMAGE/<br>
+mkisofs -R -o /mnt/sda1/image.iso -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table .<br></td>
+</tr>
+</table>
+<p>Transmit /mnt/sda1/image.iso to host environment. Don't forget to remove from /data partition after transmission.</p>
+<hr>
+<p><a href="index.html#manual">Return to index</a></p>
+</body>
+</html>
