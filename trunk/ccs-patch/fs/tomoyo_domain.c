@@ -16,6 +16,9 @@
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
 #include <linux/realpath.h>
+#include <linux/highmem.h>
+#include <linux/binfmts.h>
+
 #ifndef for_each_process
 #define for_each_process for_each_task
 #endif
@@ -610,11 +613,46 @@ static int Escape(char *dest, const char *src, int dest_len)
 	return -ENOMEM;
 }
 
-int FindNextDomain(const char *original_name, struct file *filp, struct domain_info **next_domain, char __user * __user *argv)
+static char *get_argv0(struct linux_binprm *bprm)
+{
+	if (bprm->argc > 0) {
+		char *arg_ptr = ccs_alloc(PAGE_SIZE);
+		int arg_len = 0;
+		const unsigned long pos = bprm->p;
+		int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+		if (!arg_ptr) goto out;
+		while (1) {
+			struct page *page = bprm->page[i];
+			const char *kaddr = kmap(page);
+			if (!kaddr) goto out;
+			memmove(arg_ptr + arg_len, kaddr + offset, PAGE_SIZE - offset);
+			kunmap(page);
+			arg_len += PAGE_SIZE - offset;
+			if (memchr(arg_ptr, '\0', arg_len)) break;
+			{
+				char *tmp_arg_ptr = ccs_alloc(arg_len + PAGE_SIZE);
+				if (!tmp_arg_ptr) goto out;
+				memmove(tmp_arg_ptr, arg_ptr, arg_len);
+				ccs_free(arg_ptr);
+				arg_ptr = tmp_arg_ptr;
+			}
+			i++;
+			offset = 0;
+		}
+		return arg_ptr;
+	out:
+		ccs_free(arg_ptr);
+	}
+	return NULL;
+}
+
+static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain)
 {
 	/* This function assumes that the size of buffer returned by realpath() = CCS_MAX_PATHNAME_LEN. */
 	struct domain_info *old_domain = current->domain_info, *domain = NULL;
 	const char *old_domain_name = old_domain->domainname->name;
+	const char *original_name = bprm->filename;
+	struct file *filp = bprm->file;
 	char *new_domain_name = NULL;
 	char *real_program_name = NULL, *symlink_program_name = NULL;
 	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
@@ -674,23 +712,18 @@ int FindNextDomain(const char *original_name, struct file *filp, struct domain_i
 	}
 
 	/* Compare basename of symlink_program_name and argv[0] */
-	if (argv && CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
-		char __user *p;
-		retval = 0;
-		if (get_user(p, argv) == 0 && p) {
-			const int len = strlen_user(p);
-			char *org_argv0 = ccs_alloc(len + 1), *printable_argv0 = NULL;
-			if (!org_argv0) {
-				retval = -ENOMEM;
-			} else if (copy_from_user(org_argv0, p, len)) {
-				retval = -EFAULT;
-			} else if ((printable_argv0 = ccs_alloc(len * 4 + 8)) == NULL || Escape(printable_argv0, org_argv0, len * 4 + 8)) {
-				retval = -ENOMEM;
-			} else {
+	if (bprm->argc > 0 && CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
+		char *org_argv0 = get_argv0(bprm);
+		retval = -ENOMEM;
+		if (org_argv0) {
+			const int len = strlen(org_argv0);
+			char *printable_argv0 = ccs_alloc(len * 4 + 8);
+			if (printable_argv0 && Escape(printable_argv0, org_argv0, len * 4 + 8) == 0) {
 				const char *base_argv0, *base_filename;
 				if ((base_argv0 = strrchr(printable_argv0, '/')) == NULL) base_argv0 = printable_argv0; else base_argv0++;
 				if ((base_filename = strrchr(symlink_program_name, '/')) == NULL) base_filename = symlink_program_name; else base_filename++;
 				if (strcmp(base_argv0, base_filename)) retval = CheckArgv0Perm(&s, base_argv0);
+				else retval = 0;
 			}
 			ccs_free(printable_argv0);
 			ccs_free(org_argv0);
@@ -744,5 +777,28 @@ int FindNextDomain(const char *original_name, struct file *filp, struct domain_i
 }
 
 #endif
+
+int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
+{
+	struct domain_info *next_domain = NULL, *prev_domain = current->domain_info;
+ 	int retval;
+#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
+	extern void CCS_LoadPolicy(const char *filename);
+	CCS_LoadPolicy(bprm->filename);
+#endif
+#if defined(CONFIG_TOMOYO)
+	retval = FindNextDomain(bprm, &next_domain);
+#else
+	retval = 0; next_domain = prev_domain;
+#endif
+	if (retval == 0) {
+		current->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+		current->domain_info = next_domain;
+		retval = search_binary_handler(bprm, regs);
+		if (retval < 0) current->domain_info = prev_domain;
+		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+	}
+	return retval;
+}
 
 /***** TOMOYO Linux end. *****/

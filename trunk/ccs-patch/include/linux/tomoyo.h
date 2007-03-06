@@ -34,11 +34,6 @@
 
 /***** TOMOYO Linux start. *****/
 
-#ifdef CONFIG_TOMOYO
-/* Find the next domain to transit to. */
-int FindNextDomain(const char *original_name, struct file *filp, struct domain_info **next_domain, char __user * __user *argv);
-#endif
-
 struct path_info;
 
 #ifdef CONFIG_TOMOYO_MAC_FOR_FILE
@@ -65,15 +60,6 @@ static inline int CheckReWritePermission(struct file *filp) { return 0; }
 int CheckArgv0Perm(const struct path_info *filename, const char *argv0);
 #else
 static inline int CheckArgv0Perm(const struct path_info *filename, const char *argv0) { return 0; }
-#endif
-
-/* Check whether the given port number is allowed to bind or connect. */
-#ifdef CONFIG_TOMOYO_MAC_FOR_NETWORKPORT
-int CheckBindEntry(const int is_stream, const u16 port);
-int CheckConnectEntry(const int is_stream, const u16 port);
-#else
-static inline int CheckBindEntry(const int is_stream, const u16 port) { return 0; }
-static inline int CheckConnectEntry(const int is_stream, const u16 port) { return 0; }
 #endif
 
 /* Check whether the given IP address and port number are allowed to use. */
@@ -135,10 +121,7 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
 #define TYPE_ARGV0_ACL        101
 #define TYPE_CAPABILITY_ACL   102
 #define TYPE_IP_NETWORK_ACL   103
-//#define TYPE_IPv6_NETWORK_ACL 104
-#define TYPE_SIGNAL_ACL       105
-#define TYPE_CONNECT_ACL      106
-#define TYPE_BIND_ACL         107
+#define TYPE_SIGNAL_ACL       104
 
 /*************************  Index numbers for Capability Controls.  *************************/
 
@@ -183,6 +166,12 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
 #define NETWORK_ACL_TCP_ACCEPT  5
 #define NETWORK_ACL_RAW_BIND    6
 #define NETWORK_ACL_RAW_CONNECT 7
+
+struct linux_binprm;
+struct pt_regs;
+int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs);
+
+#define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
 
 /***** TOMOYO Linux end. *****/
 #endif

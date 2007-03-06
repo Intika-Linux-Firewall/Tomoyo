@@ -838,3 +838,19 @@ Fix 2007/02/20
         address_group localnet 192.168.0.0-192.168.255.255
 
       in the exception policy.
+
+Fix 2007/03/03
+
+    @ Remove obsolete functions.
+
+    @ Add some hooks.
+
+      Read permission check is done if open_exec()
+      is called from search_binary_handler().
+      Read permission check is not done if open_exec()
+      is called from do_execve(), instead,
+      execute permission check is done at
+      search_binary_handler_with_transition().
+
+      I moved the location of calling CheckCapabilityACL()
+      and CheckMountPermission() from sys_mount() to do_mount().
