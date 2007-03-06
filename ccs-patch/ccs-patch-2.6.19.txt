@@ -1,6 +1,6 @@
 diff -ubBpEr linux-2.6.19/Makefile linux-2.6.19-ccs/Makefile
---- linux-2.6.19/Makefile	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/Makefile	2006-11-30 11:30:34.000000000 +0900
+--- linux-2.6.19/Makefile	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/Makefile	2007-03-03 10:55:25.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
@@ -11,8 +11,8 @@ diff -ubBpEr linux-2.6.19/Makefile linux-2.6.19-ccs/Makefile
  
  # *DOCUMENTATION*
 diff -ubBpEr linux-2.6.19/fs/Kconfig linux-2.6.19-ccs/fs/Kconfig
---- linux-2.6.19/fs/Kconfig	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/Kconfig	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/Kconfig	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/fs/Kconfig	2007-03-03 10:55:25.000000000 +0900
 @@ -2098,5 +2098,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -22,8 +22,8 @@ diff -ubBpEr linux-2.6.19/fs/Kconfig linux-2.6.19-ccs/fs/Kconfig
  endmenu
  
 diff -ubBpEr linux-2.6.19/fs/Makefile linux-2.6.19-ccs/fs/Makefile
---- linux-2.6.19/fs/Makefile	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/Makefile	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/Makefile	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/fs/Makefile	2007-03-03 10:55:25.000000000 +0900
 @@ -114,3 +114,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
@@ -31,8 +31,8 @@ diff -ubBpEr linux-2.6.19/fs/Makefile linux-2.6.19-ccs/fs/Makefile
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
 diff -ubBpEr linux-2.6.19/fs/attr.c linux-2.6.19-ccs/fs/attr.c
---- linux-2.6.19/fs/attr.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/attr.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/attr.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/fs/attr.c	2007-03-03 11:38:54.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -65,8 +65,8 @@ diff -ubBpEr linux-2.6.19/fs/attr.c linux-2.6.19-ccs/fs/attr.c
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 diff -ubBpEr linux-2.6.19/fs/compat.c linux-2.6.19-ccs/fs/compat.c
---- linux-2.6.19/fs/compat.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/compat.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/compat.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/fs/compat.c	2007-03-03 11:38:54.000000000 +0900
 @@ -53,6 +53,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -87,16 +87,22 @@ diff -ubBpEr linux-2.6.19/fs/compat.c linux-2.6.19-ccs/fs/compat.c
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
+@@ -1547,7 +1553,7 @@ int compat_do_execve(char * filename,
+ 	if (retval < 0)
+ 		goto out;
+ 
+-	retval = search_binary_handler(bprm, regs);
++	retval = search_binary_handler_with_transition(bprm, regs);
+ 	if (retval >= 0) {
+ 		free_arg_pages(bprm);
+ 
 diff -ubBpEr linux-2.6.19/fs/exec.c linux-2.6.19-ccs/fs/exec.c
---- linux-2.6.19/fs/exec.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/exec.c	2006-11-30 11:30:18.000000000 +0900
-@@ -57,6 +57,13 @@
+--- linux-2.6.19/fs/exec.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/fs/exec.c	2007-03-06 10:04:16.000000000 +0900
+@@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
  
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
@@ -104,7 +110,7 @@ diff -ubBpEr linux-2.6.19/fs/exec.c linux-2.6.19-ccs/fs/exec.c
  int core_uses_pid;
  char core_pattern[128] = "core";
  int suid_dumpable = 0;
-@@ -139,6 +146,11 @@ asmlinkage long sys_uselib(const char __
+@@ -139,6 +143,11 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
@@ -116,71 +122,29 @@ diff -ubBpEr linux-2.6.19/fs/exec.c linux-2.6.19-ccs/fs/exec.c
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -1128,6 +1140,25 @@ int do_execve(char * filename,
- 	struct file *file;
- 	int retval;
- 	int i;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef CONFIG_TOMOYO
-+	struct domain_info *next_domain = NULL;
-+#endif
-+	/***** TOMOYO Linux end. *****/
-+
-+	/***** CCS Start. *****/
-+#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	extern void CCS_LoadPolicy(const char *filename);
-+	CCS_LoadPolicy(filename);
-+#endif
-+	/***** CCS end. *****/
-+
-+	/***** SAKURA Linux start. *****/
-+#ifdef CONFIG_SAKURA_DROP_CAPABILITY_API
-+	if (strcmp(filename, "\\\\disable") == 0) return DropTaskCapability(argv);
-+	if (CheckTaskCapability(SAKURA_DISABLE_EXECVE) < 0) return -EPERM;
-+#endif
-+ 	/***** SAKURA Linux end. *****/
- 
- 	retval = -ENOMEM;
- 	bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);
-@@ -1139,6 +1170,15 @@ int do_execve(char * filename,
- 	if (IS_ERR(file))
- 		goto out_kfree;
- 
-+ 	/***** TOMOYO Linux start. *****/
-+#ifdef CONFIG_TOMOYO
-+	retval = FindNextDomain(filename, file, &next_domain, argv);
-+	if (retval < 0) {
-+		allow_write_access(file); fput(file); goto out_kfree;
-+	}
-+#endif
-+ 	/***** TOMOYO Linux end. *****/
-+	
- 	sched_exec();
- 
- 	bprm->p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
-@@ -1185,6 +1225,19 @@ int do_execve(char * filename,
+@@ -486,6 +495,9 @@ struct file *open_exec(const char *name)
+ 		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
+ 		    S_ISREG(inode->i_mode)) {
+ 			int err = vfs_permission(&nd, MAY_EXEC);
++			/***** TOMOYO Linux start. *****/
++			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++			/***** TOMOYO Linux end. *****/
+ 			file = ERR_PTR(err);
+ 			if (!err) {
+ 				file = nameidata_to_filp(&nd, O_RDONLY);
+@@ -1184,7 +1196,8 @@ int do_execve(char * filename,
+ 	if (retval < 0)
  		goto out;
  
- 	retval = search_binary_handler(bprm,regs);
-+
-+	/***** TOMOYO Linux start. *****/
-+#ifdef CONFIG_TOMOYO
-+	if (retval >= 0) current->domain_info = next_domain;
-+#endif
-+	/***** TOMOYO Linux end. *****/
-+
-+	/***** SAKURA Linux start. *****/
-+#ifdef CONFIG_SAKURA_DROP_CAPABILITY_API
-+	if (retval >= 0) RestoreTaskCapability();
-+#endif
-+	/***** SAKURA Linux end. *****/
+-	retval = search_binary_handler(bprm,regs);
++	retval = search_binary_handler_with_transition(bprm,regs);
 +
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
 diff -ubBpEr linux-2.6.19/fs/fcntl.c linux-2.6.19-ccs/fs/fcntl.c
---- linux-2.6.19/fs/fcntl.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/fcntl.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/fcntl.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/fs/fcntl.c	2007-03-03 11:38:54.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -203,8 +167,8 @@ diff -ubBpEr linux-2.6.19/fs/fcntl.c linux-2.6.19-ccs/fs/fcntl.c
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
 diff -ubBpEr linux-2.6.19/fs/ioctl.c linux-2.6.19-ccs/fs/ioctl.c
---- linux-2.6.19/fs/ioctl.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/ioctl.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/ioctl.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/fs/ioctl.c	2007-03-03 11:38:54.000000000 +0900
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -226,15 +190,12 @@ diff -ubBpEr linux-2.6.19/fs/ioctl.c linux-2.6.19-ccs/fs/ioctl.c
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
 diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
---- linux-2.6.19/fs/namei.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/namei.c	2006-11-30 11:30:18.000000000 +0900
-@@ -37,6 +37,13 @@
+--- linux-2.6.19/fs/namei.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/fs/namei.c	2007-03-03 11:41:23.000000000 +0900
+@@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
@@ -242,21 +203,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -817,6 +824,13 @@ static fastcall int __link_path_walk(con
- 	int err;
- 	unsigned int lookup_flags = nd->flags;
- 	
-+	/***** SAKURA Linux start. *****/
-+	if (CheckEUID() < 0) {
-+		path_release(nd);
-+		return -EPERM;
-+	}
-+	/***** SAKURA Linux end. *****/
-+
- 	while (*name=='/')
- 		name++;
- 	if (!*name)
-@@ -1509,6 +1523,9 @@ int vfs_create(struct inode *dir, struct
+@@ -1509,6 +1513,9 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -266,16 +213,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1548,7 +1565,7 @@ int may_open(struct nameidata *nd, int a
- 
- 		flag &= ~O_TRUNC;
- 	} else if (IS_RDONLY(inode) && (flag & FMODE_WRITE))
--		return -EROFS;
-+		{ ROFS_Log_from_dentry(nd->dentry, nd->mnt, "may_open"); return -EROFS; } /***** ReadOnly Tracer *****/
- 	/*
- 	 * An append-only file must be opened in append mode for writing.
- 	 */
-@@ -1564,6 +1581,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1564,6 +1571,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -287,7 +225,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1613,6 +1635,9 @@ static int open_namei_create(struct name
+@@ -1613,6 +1625,9 @@ static int open_namei_create(struct name
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -297,15 +235,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  /*
   *	open_namei()
   *
-@@ -1735,6 +1760,7 @@ ok:
- exit_dput:
- 	dput_path(&path, nd);
- exit:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd->dentry, nd->mnt, "open_namei"); /***** ReadOnly Tracer *****/
- 	if (!IS_ERR(nd->intent.open.file))
- 		release_open_intent(nd);
- 	path_release(nd);
-@@ -1873,6 +1899,12 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1873,6 +1888,12 @@ asmlinkage long sys_mknodat(int dfd, con
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -318,7 +248,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1891,10 +1923,16 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1891,10 +1912,16 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -335,15 +265,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1903,6 +1941,7 @@ asmlinkage long sys_mknodat(int dfd, con
- 		default:
- 			error = -EINVAL;
- 		}
-+		if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_mknod"); /***** ReadOnly Tracer *****/
- 		dput(dentry);
- 	}
- 	mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -1962,7 +2001,11 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1962,6 +1989,9 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
@@ -351,11 +273,9 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
 +	if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
-+	if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_mkdir"); /***** ReadOnly Tracer *****/
  	dput(dentry);
  out_unlock:
- 	mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -2070,7 +2113,11 @@ static long do_rmdir(int dfd, const char
+@@ -2070,6 +2100,9 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
@@ -363,11 +283,9 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
 +	if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_rmdir(nd.dentry->d_inode, dentry);
-+	if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_rmdir"); /***** ReadOnly Tracer *****/
  	dput(dentry);
  exit2:
- 	mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -2129,6 +2176,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2129,6 +2162,9 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -377,7 +295,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -2150,7 +2200,11 @@ static long do_unlinkat(int dfd, const c
+@@ -2150,6 +2186,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -385,11 +303,9 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
 + 		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
 + 		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
-+		if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_unlink"); /***** ReadOnly Tracer *****/
  	exit2:
  		dput(dentry);
- 	}
-@@ -2214,6 +2268,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2214,6 +2253,9 @@ asmlinkage long sys_symlinkat(const char
  	char * to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -399,7 +315,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -2231,7 +2288,11 @@ asmlinkage long sys_symlinkat(const char
+@@ -2231,6 +2273,9 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
@@ -407,11 +323,9 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
 +	if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
-+	if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "vfs_symlink"); /***** ReadOnly Tracer *****/
  	dput(dentry);
  out_unlock:
- 	mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -2303,6 +2364,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2303,6 +2348,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -421,7 +335,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
-@@ -2326,7 +2390,11 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2326,6 +2374,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
@@ -429,11 +343,9 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
 +	if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = CheckDoubleWritePermission(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
-+	if (error == -EROFS) ROFS_Log_from_dentry(new_dentry, nd.mnt, "vfs_link"); /***** ReadOnly Tracer *****/
  	dput(new_dentry);
  out_unlock:
- 	mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -2551,6 +2619,12 @@ static int do_rename(int olddfd, const c
+@@ -2551,6 +2602,12 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -446,15 +358,7 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
-@@ -2565,6 +2639,7 @@ exit2:
- exit1:
- 	path_release(&oldnd);
- exit:
-+	if (error == -EROFS) ROFS_Log(oldname, "do_rename"); /***** ReadOnly Tracer *****/
- 	return error;
- }
- 
-@@ -2574,6 +2649,9 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2574,6 +2631,9 @@ asmlinkage long sys_renameat(int olddfd,
  	int error;
  	char * from;
  	char * to;
@@ -465,8 +369,8 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  	from = getname(oldname);
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.6.19/fs/namespace.c linux-2.6.19-ccs/fs/namespace.c
---- linux-2.6.19/fs/namespace.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/namespace.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/namespace.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/fs/namespace.c	2007-03-06 10:02:06.000000000 +0900
 @@ -28,6 +28,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -507,7 +411,7 @@ diff -ubBpEr linux-2.6.19/fs/namespace.c linux-2.6.19-ccs/fs/namespace.c
  		goto out;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto out;
++	if (SAKURA_MayMount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  
  	err = -ENOMEM;
@@ -519,7 +423,7 @@ diff -ubBpEr linux-2.6.19/fs/namespace.c linux-2.6.19-ccs/fs/namespace.c
 -
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto out;
++	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
@@ -530,51 +434,39 @@ diff -ubBpEr linux-2.6.19/fs/namespace.c linux-2.6.19-ccs/fs/namespace.c
  		goto unlock;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto unlock;
++	if (SAKURA_MayMount(nd) < 0) goto unlock;
 +	/***** SAKURA Linux end. *****/
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1547,6 +1571,9 @@ asmlinkage long sys_mount(char __user * 
- 	unsigned long type_page;
- 	unsigned long dev_page;
- 	char *dir_page;
+@@ -1394,6 +1418,13 @@ long do_mount(char *dev_name, char *dir_
+ 	if (data_page)
+ 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+ 
 +	/***** TOMOYO Linux start. *****/
 +	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
- 
- 	retval = copy_mount_options(type, &type_page);
- 	if (retval < 0)
-@@ -1565,6 +1592,15 @@ asmlinkage long sys_mount(char __user * 
- 	if (retval < 0)
- 		goto out3;
- 
 +	/***** SAKURA Linux start. *****/
-+	retval = -EPERM;
-+	if (CheckMountPermission((char *) dev_page, dir_page, (char *) type_page, &flags) < 0 ||
-+ 		CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) {
-+		free_page(data_page);
-+		goto out3;
-+	}
++	if (CheckMountPermission(dev_name, dir_name, type_page, &flags)) return -EPERM;
 +	/***** SAKURA Linux end. *****/
 +
- 	lock_kernel();
- 	retval = do_mount((char *)dev_page, dir_page, (char *)type_page,
- 			  flags, (void *)data_page);
-@@ -1684,6 +1720,10 @@ asmlinkage long sys_pivot_root(const cha
+ 	/* Separate the per-mountpoint flags */
+ 	if (flags & MS_NOSUID)
+ 		mnt_flags |= MNT_NOSUID;
+@@ -1684,6 +1715,10 @@ asmlinkage long sys_pivot_root(const cha
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
  
 +	/***** SAKURA Linux start. *****/
-+	if (CheckPivotRootPermission() < 0 || CheckTaskCapability(SAKURA_DISABLE_PIVOTROOT) < 0) return -EPERM;
++	if (CheckPivotRootPermission() < 0) return -EPERM;
 +	/***** SAKURA Linux end. *****/
 +
  	lock_kernel();
  
  	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
 diff -ubBpEr linux-2.6.19/fs/open.c linux-2.6.19-ccs/fs/open.c
---- linux-2.6.19/fs/open.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/open.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/open.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/fs/open.c	2007-03-05 13:50:53.000000000 +0900
 @@ -27,6 +27,12 @@
  #include <linux/syscalls.h>
  #include <linux/rcupdate.h>
@@ -598,15 +490,7 @@ diff -ubBpEr linux-2.6.19/fs/open.c linux-2.6.19-ccs/fs/open.c
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -272,6 +281,7 @@ static long do_sys_truncate(const char _
- 	put_write_access(inode);
- 
- dput_and_out:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "do_sys_truncate"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -317,10 +327,14 @@ static long do_sys_ftruncate(unsigned in
+@@ -317,6 +326,9 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -616,22 +500,7 @@ diff -ubBpEr linux-2.6.19/fs/open.c linux-2.6.19-ccs/fs/open.c
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
- out_putf:
-+	if (error == -EROFS) ROFS_Log_from_dentry(file->f_dentry, file->f_vfsmnt, "do_sys_ftruncate"); /***** ReadOnly Tracer *****/
- 	fput(file);
- out:
- 	return error;
-@@ -399,6 +413,9 @@ asmlinkage long sys_faccessat(int dfd, c
- 		res = -EROFS;
- 
- out_path_release:
-+#if 0
-+	if (res == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_access"); /***** ReadOnly Tracer *****/
-+#endif
- 	path_release(&nd);
- out:
- 	current->fsuid = old_fsuid;
-@@ -469,6 +486,9 @@ asmlinkage long sys_chroot(const char __
+@@ -469,6 +481,9 @@ asmlinkage long sys_chroot(const char __
  {
  	struct nameidata nd;
  	int error;
@@ -641,7 +510,7 @@ diff -ubBpEr linux-2.6.19/fs/open.c linux-2.6.19-ccs/fs/open.c
  
  	error = __user_walk(filename, LOOKUP_FOLLOW | LOOKUP_DIRECTORY | LOOKUP_NOALT, &nd);
  	if (error)
-@@ -482,6 +502,19 @@ asmlinkage long sys_chroot(const char __
+@@ -482,6 +497,19 @@ asmlinkage long sys_chroot(const char __
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
  
@@ -649,7 +518,7 @@ diff -ubBpEr linux-2.6.19/fs/open.c linux-2.6.19-ccs/fs/open.c
 +    {
 +        char *name = getname(filename);
 +        if (!IS_ERR(name)) {
-+            error = CheckChRootPermission(name) | CheckTaskCapability(SAKURA_DISABLE_CHROOT);
++            error = CheckChRootPermission(name);
 +            putname(name);
 +        } else {
 +            error = PTR_ERR(name);
@@ -661,55 +530,7 @@ diff -ubBpEr linux-2.6.19/fs/open.c linux-2.6.19-ccs/fs/open.c
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
  	error = 0;
-@@ -523,6 +556,7 @@ asmlinkage long sys_fchmod(unsigned int 
- 	mutex_unlock(&inode->i_mutex);
- 
- out_putf:
-+	if (err == -EROFS) ROFS_Log_from_dentry(file->f_dentry, file->f_vfsmnt, "sys_fchmod"); /***** ReadOnly Tracer *****/
- 	fput(file);
- out:
- 	return err;
-@@ -558,6 +592,7 @@ asmlinkage long sys_fchmodat(int dfd, co
- 	mutex_unlock(&inode->i_mutex);
- 
- dput_and_out:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_chmod"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -612,6 +647,7 @@ asmlinkage long sys_chown(const char __u
- 	if (error)
- 		goto out;
- 	error = chown_common(nd.dentry, user, group);
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_chown"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -632,6 +668,7 @@ asmlinkage long sys_fchownat(int dfd, co
- 	if (error)
- 		goto out;
- 	error = chown_common(nd.dentry, user, group);
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_fchownat"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -646,6 +683,7 @@ asmlinkage long sys_lchown(const char __
- 	if (error)
- 		goto out;
- 	error = chown_common(nd.dentry, user, group);
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_lchown"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -665,6 +703,7 @@ asmlinkage long sys_fchown(unsigned int 
- 	dentry = file->f_dentry;
- 	audit_inode(NULL, dentry->d_inode);
- 	error = chown_common(dentry, user, group);
-+	if (error == -EROFS) ROFS_Log_from_dentry(dentry, file->f_vfsmnt, "sys_fchown"); /***** ReadOnly Tracer *****/
- 	fput(file);
- out:
- 	return error;
-@@ -1086,6 +1125,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1086,6 +1114,9 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -720,8 +541,8 @@ diff -ubBpEr linux-2.6.19/fs/open.c linux-2.6.19-ccs/fs/open.c
  		tty_vhangup(current->signal->tty);
  		return 0;
 diff -ubBpEr linux-2.6.19/fs/proc/Makefile linux-2.6.19-ccs/fs/proc/Makefile
---- linux-2.6.19/fs/proc/Makefile	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/proc/Makefile	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/fs/proc/Makefile	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/fs/proc/Makefile	2007-03-03 10:55:25.000000000 +0900
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -730,8 +551,8 @@ diff -ubBpEr linux-2.6.19/fs/proc/Makefile linux-2.6.19-ccs/fs/proc/Makefile
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.19/fs/proc/proc_misc.c linux-2.6.19-ccs/fs/proc/proc_misc.c
---- linux-2.6.19/fs/proc/proc_misc.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/proc/proc_misc.c	2006-11-30 11:31:06.000000000 +0900
+--- linux-2.6.19/fs/proc/proc_misc.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/fs/proc/proc_misc.c	2007-03-06 10:06:52.000000000 +0900
 @@ -742,4 +742,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -741,59 +562,28 @@ diff -ubBpEr linux-2.6.19/fs/proc/proc_misc.c linux-2.6.19-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.19 2006/11/30\n");
++		printk("Hook version: 2.6.19 2007/03/06\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
-diff -ubBpEr linux-2.6.19/fs/utimes.c linux-2.6.19-ccs/fs/utimes.c
---- linux-2.6.19/fs/utimes.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/utimes.c	2006-11-30 11:30:18.000000000 +0900
-@@ -5,6 +5,9 @@
- #include <linux/utime.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
- 
- #ifdef __ARCH_WANT_SYS_UTIME
- 
-@@ -64,6 +67,7 @@ asmlinkage long sys_utime(char __user * 
- 	error = notify_change(nd.dentry, &newattrs);
- 	mutex_unlock(&inode->i_mutex);
- dput_and_out:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_utime"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -117,6 +121,7 @@ long do_utimes(int dfd, char __user *fil
- 	error = notify_change(nd.dentry, &newattrs);
- 	mutex_unlock(&inode->i_mutex);
- dput_and_out:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_utimes"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
 diff -ubBpEr linux-2.6.19/include/linux/init_task.h linux-2.6.19-ccs/include/linux/init_task.h
---- linux-2.6.19/include/linux/init_task.h	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/include/linux/init_task.h	2006-11-30 11:30:18.000000000 +0900
-@@ -140,6 +140,12 @@ extern struct group_info init_groups;
+--- linux-2.6.19/include/linux/init_task.h	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/include/linux/init_task.h	2007-03-03 11:13:19.000000000 +0900
+@@ -140,6 +140,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
 +	/***** TOMOYO Linux start. *****/        \
 +	.domain_info = &KERNEL_DOMAIN,           \
++	.tomoyo_flags = 0,                       \
 +	/***** TOMOYO Linux end. *****/          \
-+	/***** SAKURA Linux start. *****/        \
-+	.dropped_capability = 0,                 \
-+	/***** SAKURA Linux end. *****/          \
  }
  
  
 diff -ubBpEr linux-2.6.19/include/linux/sched.h linux-2.6.19-ccs/include/linux/sched.h
---- linux-2.6.19/include/linux/sched.h	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/include/linux/sched.h	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/include/linux/sched.h	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/include/linux/sched.h	2007-03-03 11:08:55.000000000 +0900
 @@ -27,6 +27,11 @@
  #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
@@ -806,22 +596,20 @@ diff -ubBpEr linux-2.6.19/include/linux/sched.h linux-2.6.19-ccs/include/linux/s
  /*
   * Scheduling policies
   */
-@@ -1023,6 +1028,12 @@ struct task_struct {
+@@ -1023,6 +1028,10 @@ struct task_struct {
  #ifdef	CONFIG_TASK_DELAY_ACCT
  	struct task_delay_info *delays;
  #endif
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
++	unsigned int tomoyo_flags;
 +	/***** TOMOYO Linux end. *****/
-+	/***** SAKURA Linux start. *****/
-+	unsigned int dropped_capability;
-+	/***** SAKURA Linux end. *****/
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.19/kernel/kexec.c linux-2.6.19-ccs/kernel/kexec.c
---- linux-2.6.19/kernel/kexec.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/kexec.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/kernel/kexec.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/kexec.c	2007-03-03 10:55:25.000000000 +0900
 @@ -26,6 +26,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -843,25 +631,23 @@ diff -ubBpEr linux-2.6.19/kernel/kexec.c linux-2.6.19-ccs/kernel/kexec.c
  	/*
  	 * Verify we have a legal set of flags
 diff -ubBpEr linux-2.6.19/kernel/kmod.c linux-2.6.19-ccs/kernel/kmod.c
---- linux-2.6.19/kernel/kmod.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/kmod.c	2006-11-30 11:30:18.000000000 +0900
-@@ -165,6 +165,13 @@ static int ____call_usermodehelper(void 
+--- linux-2.6.19/kernel/kmod.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/kmod.c	2007-03-03 11:16:25.000000000 +0900
+@@ -165,6 +165,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
  
 +	/***** TOMOYO Linux start. *****/
 +	current->domain_info = &KERNEL_DOMAIN;
++	current->tomoyo_flags = 0;
 +	/***** TOMOYO Linux start. *****/
-+	/***** SAKURA Linux start. *****/
-+	current->dropped_capability = 0;
-+	/***** SAKURA Linux end. *****/
 +
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
 diff -ubBpEr linux-2.6.19/kernel/module.c linux-2.6.19-ccs/kernel/module.c
---- linux-2.6.19/kernel/module.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/module.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/kernel/module.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/module.c	2007-03-03 10:55:25.000000000 +0900
 @@ -44,6 +44,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -895,8 +681,8 @@ diff -ubBpEr linux-2.6.19/kernel/module.c linux-2.6.19-ccs/kernel/module.c
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
 diff -ubBpEr linux-2.6.19/kernel/sched.c linux-2.6.19-ccs/kernel/sched.c
---- linux-2.6.19/kernel/sched.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/sched.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/kernel/sched.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/sched.c	2007-03-03 10:55:25.000000000 +0900
 @@ -55,6 +55,9 @@
  #include <asm/tlb.h>
  
@@ -918,8 +704,8 @@ diff -ubBpEr linux-2.6.19/kernel/sched.c linux-2.6.19-ccs/kernel/sched.c
  	/*
  	 * Setpriority might change our priority at the same moment.
 diff -ubBpEr linux-2.6.19/kernel/signal.c linux-2.6.19-ccs/kernel/signal.c
---- linux-2.6.19/kernel/signal.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/signal.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/kernel/signal.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/signal.c	2007-03-03 10:55:25.000000000 +0900
 @@ -28,6 +28,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -964,8 +750,8 @@ diff -ubBpEr linux-2.6.19/kernel/signal.c linux-2.6.19-ccs/kernel/signal.c
  	return do_tkill(0, pid, sig);
  }
 diff -ubBpEr linux-2.6.19/kernel/sys.c linux-2.6.19-ccs/kernel/sys.c
---- linux-2.6.19/kernel/sys.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/sys.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/kernel/sys.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/sys.c	2007-03-03 10:55:25.000000000 +0900
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1017,8 +803,8 @@ diff -ubBpEr linux-2.6.19/kernel/sys.c linux-2.6.19-ccs/kernel/sys.c
  	down_write(&uts_sem);
  	errno = -EFAULT;
 diff -ubBpEr linux-2.6.19/kernel/sysctl.c linux-2.6.19-ccs/kernel/sysctl.c
---- linux-2.6.19/kernel/sysctl.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/sysctl.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/kernel/sysctl.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/sysctl.c	2007-03-03 10:55:25.000000000 +0900
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -1142,8 +928,8 @@ diff -ubBpEr linux-2.6.19/kernel/sysctl.c linux-2.6.19-ccs/kernel/sysctl.c
  						table, name, nlen,
  						oldval, oldlenp,
 diff -ubBpEr linux-2.6.19/kernel/time/ntp.c linux-2.6.19-ccs/kernel/time/ntp.c
---- linux-2.6.19/kernel/time/ntp.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/time/ntp.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/kernel/time/ntp.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/time/ntp.c	2007-03-03 10:55:25.000000000 +0900
 @@ -14,6 +14,9 @@
  
  #include <asm/div64.h>
@@ -1165,8 +951,8 @@ diff -ubBpEr linux-2.6.19/kernel/time/ntp.c linux-2.6.19-ccs/kernel/time/ntp.c
  	/* Now we validate the data before disabling interrupts */
  
 diff -ubBpEr linux-2.6.19/kernel/time.c linux-2.6.19-ccs/kernel/time.c
---- linux-2.6.19/kernel/time.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/kernel/time.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/kernel/time.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/kernel/time.c	2007-03-03 10:55:25.000000000 +0900
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -1198,8 +984,8 @@ diff -ubBpEr linux-2.6.19/kernel/time.c linux-2.6.19-ccs/kernel/time.c
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
 diff -ubBpEr linux-2.6.19/net/ipv4/inet_connection_sock.c linux-2.6.19-ccs/net/ipv4/inet_connection_sock.c
---- linux-2.6.19/net/ipv4/inet_connection_sock.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/net/ipv4/inet_connection_sock.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/net/ipv4/inet_connection_sock.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/net/ipv4/inet_connection_sock.c	2007-03-03 10:55:25.000000000 +0900
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1221,8 +1007,8 @@ diff -ubBpEr linux-2.6.19/net/ipv4/inet_connection_sock.c linux-2.6.19-ccs/net/i
  				if (tb->port == rover)
  					goto next;
 diff -ubBpEr linux-2.6.19/net/ipv4/inet_hashtables.c linux-2.6.19-ccs/net/ipv4/inet_hashtables.c
---- linux-2.6.19/net/ipv4/inet_hashtables.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/net/ipv4/inet_hashtables.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/net/ipv4/inet_hashtables.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/net/ipv4/inet_hashtables.c	2007-03-03 10:55:25.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1244,8 +1030,8 @@ diff -ubBpEr linux-2.6.19/net/ipv4/inet_hashtables.c linux-2.6.19-ccs/net/ipv4/i
   			spin_lock(&head->lock);
  
 diff -ubBpEr linux-2.6.19/net/ipv4/udp.c linux-2.6.19-ccs/net/ipv4/udp.c
---- linux-2.6.19/net/ipv4/udp.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/net/ipv4/udp.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/net/ipv4/udp.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/net/ipv4/udp.c	2007-03-03 10:55:25.000000000 +0900
 @@ -108,6 +108,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1277,8 +1063,8 @@ diff -ubBpEr linux-2.6.19/net/ipv4/udp.c linux-2.6.19-ccs/net/ipv4/udp.c
  				break;
  		}
 diff -ubBpEr linux-2.6.19/net/ipv6/inet6_hashtables.c linux-2.6.19-ccs/net/ipv6/inet6_hashtables.c
---- linux-2.6.19/net/ipv6/inet6_hashtables.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/net/ipv6/inet6_hashtables.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/net/ipv6/inet6_hashtables.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/net/ipv6/inet6_hashtables.c	2007-03-03 10:55:25.000000000 +0900
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1300,8 +1086,8 @@ diff -ubBpEr linux-2.6.19/net/ipv6/inet6_hashtables.c linux-2.6.19-ccs/net/ipv6/
   			spin_lock(&head->lock);
  
 diff -ubBpEr linux-2.6.19/net/socket.c linux-2.6.19-ccs/net/socket.c
---- linux-2.6.19/net/socket.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/net/socket.c	2006-11-30 11:30:18.000000000 +0900
+--- linux-2.6.19/net/socket.c	2007-03-03 10:49:57.000000000 +0900
++++ linux-2.6.19-ccs/net/socket.c	2007-03-03 10:55:25.000000000 +0900
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1393,22 +1179,19 @@ diff -ubBpEr linux-2.6.19/net/socket.c linux-2.6.19-ccs/net/socket.c
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
 diff -ubBpEr linux-2.6.19/net/unix/af_unix.c linux-2.6.19-ccs/net/unix/af_unix.c
---- linux-2.6.19/net/unix/af_unix.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/net/unix/af_unix.c	2006-11-30 11:30:18.000000000 +0900
-@@ -116,6 +116,12 @@
+--- linux-2.6.19/net/unix/af_unix.c	2007-03-03 11:38:54.000000000 +0900
++++ linux-2.6.19-ccs/net/unix/af_unix.c	2007-03-05 13:21:45.000000000 +0900
+@@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
  #include <linux/security.h>
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  int sysctl_unix_max_dgram_qlen __read_mostly = 10;
  
-@@ -764,6 +770,10 @@ static int unix_bind(struct socket *sock
+@@ -764,6 +767,10 @@ static int unix_bind(struct socket *sock
  		err = unix_autobind(sock);
  		goto out;
  	}
@@ -1419,7 +1202,7 @@ diff -ubBpEr linux-2.6.19/net/unix/af_unix.c linux-2.6.19-ccs/net/unix/af_unix.c
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -807,7 +817,11 @@ static int unix_bind(struct socket *sock
+@@ -807,6 +814,9 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
@@ -1427,7 +1210,5 @@ diff -ubBpEr linux-2.6.19/net/unix/af_unix.c linux-2.6.19-ccs/net/unix/af_unix.c
 +		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = CheckSingleWritePermission(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
-+		if (err == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "unix_bind"); /***** ReadOnly Tracer *****/
  		if (err)
  			goto out_mknod_dput;
- 		mutex_unlock(&nd.dentry->d_inode->i_mutex);

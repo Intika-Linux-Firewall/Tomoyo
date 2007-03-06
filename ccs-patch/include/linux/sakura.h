@@ -21,8 +21,6 @@
  *  that improves the system security with less effort.
  *
  *  SAKURA can restrict operations that affect systemwide.
- *
- *  SAKURA can drop unnecessary capabilities to reduce the risk of exploitations.
  */
 
 #ifndef _LINUX_SAKURA_H
@@ -75,42 +73,6 @@ int SAKURA_MayAutobind(const u16 port);
 #else
 static inline int SAKURA_MayAutobind(const u16 port) { return 0; }
 #endif
-
-#ifdef CONFIG_SAKURA_DROP_CAPABILITY_API
-/* Interface to drop unnecessary capabilities. */
-int DropTaskCapability(char __user * __user * args);
-/* Reset current process's capabilities that is dropped only for the current program only. */
-void RestoreTaskCapability(void);
-/* Check whether the current process is allowed to use the given capability. */
-int CheckTaskCapability(const unsigned int operation);
-/* Check whether the current process has become euid = 0 when the process is not allowed to become euid = 0. */
-int CheckEUID(void);
-#else
-static inline int CheckTaskCapability(const unsigned int operation) { return 0; }
-static inline int CheckEUID(void) { return 0; }
-#endif
-
-#ifdef CONFIG_SAKURA_TRACE_READONLY
-/* Show the given dentry which the operation is denied due to -EROFS. */
-void ROFS_Log_from_dentry(struct dentry *dentry, struct vfsmount *mnt, const char *how);
-/* Show the given filename which the operation is denied due to -EROFS. */
-void ROFS_Log(const char *filename, const char *how);
-#else
-static inline void ROFS_Log_from_dentry(struct dentry *dentry, struct vfsmount *mnt, const char *how) {};
-static inline void ROFS_Log(const char *filename, const char *how) {};
-#endif
-
-/* The following constants are used for dropping capabilities. */
-
-#define SAKURA_DISABLE_EXECVE                  0  /* Forbid calling execve()                            */
-#define SAKURA_DISABLE_CHROOT                  1  /* Forbid calling chroot()                            */
-#define SAKURA_DISABLE_PIVOTROOT               2  /* Forbid calling pivot_root()                        */
-#define SAKURA_DISABLE_MOUNT                   3  /* Forbid calling mount()                             */
-#define SAKURA_DISABLE_EUID0_PENDING           4  /* Forbid becoming euid = 0 after becoming euid != 0. */
-#define SAKURA_DISABLE_EUID0_DISABLED          5  /* Forbid becoming euid = 0 from now on.              */
-
-/* Apply this restriction to not only current program but also all programs that use this task_struct. */
-#define SAKURA_INHERIT_OFFSET                 16  /* Assume sizeof(current->dropped_capability) >= 4    */
 
 /***** SAKURA Linux end. *****/
 #endif

@@ -32,7 +32,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/Makefile linux-2.6.17-1.2142_FC4-ccs/fs/
 +include $(srctree)/fs/Makefile-2.6.ccs
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/attr.c linux-2.6.17-1.2142_FC4-ccs/fs/attr.c
 --- linux-2.6.17-1.2142_FC4/fs/attr.c	2006-06-18 10:49:35.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/attr.c	2006-08-08 12:40:05.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/fs/attr.c	2007-03-05 17:40:30.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -66,7 +66,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/attr.c linux-2.6.17-1.2142_FC4-ccs/fs/at
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/compat.c linux-2.6.17-1.2142_FC4-ccs/fs/compat.c
 --- linux-2.6.17-1.2142_FC4/fs/compat.c	2006-06-18 10:49:35.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/compat.c	2006-08-08 12:40:05.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/fs/compat.c	2007-03-05 17:40:31.000000000 +0900
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -87,16 +87,22 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/compat.c linux-2.6.17-1.2142_FC4-ccs/fs/
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
+@@ -1553,7 +1559,7 @@ int compat_do_execve(char * filename,
+ 	if (retval < 0)
+ 		goto out;
+ 
+-	retval = search_binary_handler(bprm, regs);
++	retval = search_binary_handler_with_transition(bprm, regs);
+ 	if (retval >= 0) {
+ 		free_arg_pages(bprm);
+ 
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/exec.c linux-2.6.17-1.2142_FC4-ccs/fs/exec.c
 --- linux-2.6.17-1.2142_FC4/fs/exec.c	2006-07-21 15:28:37.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/exec.c	2006-10-06 16:30:09.000000000 +0900
-@@ -57,6 +57,13 @@
++++ linux-2.6.17-1.2142_FC4-ccs/fs/exec.c	2007-03-06 12:30:33.000000000 +0900
+@@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
  
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
@@ -104,7 +110,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/exec.c linux-2.6.17-1.2142_FC4-ccs/fs/ex
  int core_uses_pid;
  char core_pattern[65] = "core";
  int suid_dumpable = 0;
-@@ -139,6 +146,11 @@ asmlinkage long sys_uselib(const char __
+@@ -139,6 +143,11 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
@@ -116,71 +122,29 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/exec.c linux-2.6.17-1.2142_FC4-ccs/fs/ex
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -1147,6 +1159,25 @@ int do_execve(char * filename,
- 	struct file *file;
- 	int retval;
- 	int i;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef CONFIG_TOMOYO
-+	struct domain_info *next_domain = NULL;
-+#endif
-+	/***** TOMOYO Linux end. *****/
-+
-+	/***** CCS Start. *****/
-+#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	extern void CCS_LoadPolicy(const char *filename);
-+	CCS_LoadPolicy(filename);
-+#endif
-+	/***** CCS end. *****/
-+
-+	/***** SAKURA Linux start. *****/
-+#ifdef CONFIG_SAKURA_DROP_CAPABILITY_API
-+	if (strcmp(filename, "\\\\disable") == 0) return DropTaskCapability(argv);
-+	if (CheckTaskCapability(SAKURA_DISABLE_EXECVE) < 0) return -EPERM;
-+#endif
-+ 	/***** SAKURA Linux end. *****/
- 
- 	retval = -ENOMEM;
- 	bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);
-@@ -1158,6 +1189,15 @@ int do_execve(char * filename,
- 	if (IS_ERR(file))
- 		goto out_kfree;
- 
-+ 	/***** TOMOYO Linux start. *****/
-+#ifdef CONFIG_TOMOYO
-+	retval = FindNextDomain(filename, file, &next_domain, argv);
-+	if (retval < 0) {
-+		allow_write_access(file); fput(file); goto out_kfree;
-+	}
-+#endif
-+ 	/***** TOMOYO Linux end. *****/
-+	
- 	sched_exec();
- 
- 	bprm->p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
-@@ -1204,6 +1244,19 @@ int do_execve(char * filename,
+@@ -491,6 +500,9 @@ struct file *open_exec(const char *name)
+ 			file = ERR_PTR(err);
+ 			if (!err) {
+ 				file = nameidata_to_filp(&nd, O_RDONLY);
++				/***** TOMOYO Linux start. *****/
++				if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++				/***** TOMOYO Linux end. *****/
+ 				if (!IS_ERR(file)) {
+ 					err = deny_write_access(file);
+ 					if (err) {
+@@ -1203,7 +1215,8 @@ int do_execve(char * filename,
+ 	if (retval < 0)
  		goto out;
  
- 	retval = search_binary_handler(bprm,regs);
-+
-+	/***** TOMOYO Linux start. *****/
-+#ifdef CONFIG_TOMOYO
-+	if (retval >= 0) current->domain_info = next_domain;
-+#endif
-+	/***** TOMOYO Linux end. *****/
-+
-+	/***** SAKURA Linux start. *****/
-+#ifdef CONFIG_SAKURA_DROP_CAPABILITY_API
-+	if (retval >= 0) RestoreTaskCapability();
-+#endif
-+	/***** SAKURA Linux end. *****/
+-	retval = search_binary_handler(bprm,regs);
++	retval = search_binary_handler_with_transition(bprm,regs);
 +
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/fcntl.c linux-2.6.17-1.2142_FC4-ccs/fs/fcntl.c
 --- linux-2.6.17-1.2142_FC4/fs/fcntl.c	2006-07-21 15:28:37.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/fcntl.c	2006-10-06 16:29:55.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/fs/fcntl.c	2007-03-05 17:40:31.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -204,7 +168,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/fcntl.c linux-2.6.17-1.2142_FC4-ccs/fs/f
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/ioctl.c linux-2.6.17-1.2142_FC4-ccs/fs/ioctl.c
 --- linux-2.6.17-1.2142_FC4/fs/ioctl.c	2006-06-18 10:49:35.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/ioctl.c	2006-08-08 12:40:05.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/fs/ioctl.c	2007-03-05 17:40:31.000000000 +0900
 @@ -16,6 +16,9 @@
  
  #include <asm/uaccess.h>
@@ -227,14 +191,11 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/ioctl.c linux-2.6.17-1.2142_FC4-ccs/fs/i
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/namei.c
 --- linux-2.6.17-1.2142_FC4/fs/namei.c	2006-07-21 15:28:37.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/namei.c	2006-10-06 16:30:20.000000000 +0900
-@@ -37,6 +37,13 @@
++++ linux-2.6.17-1.2142_FC4-ccs/fs/namei.c	2007-03-05 17:40:31.000000000 +0900
+@@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
@@ -242,21 +203,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -790,6 +797,13 @@ static fastcall int __link_path_walk(con
- 	int err, atomic;
- 	unsigned int lookup_flags = nd->flags;
- 
-+	/***** SAKURA Linux start. *****/
-+	if (CheckEUID() < 0) {
-+		path_release(nd);
-+		return -EPERM;
-+	}
-+	/***** SAKURA Linux end. *****/
-+
- 	atomic = (lookup_flags & LOOKUP_ATOMIC);
- 
- 	while (*name=='/')
-@@ -1482,6 +1496,9 @@ int vfs_create(struct inode *dir, struct
+@@ -1482,6 +1486,9 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -266,16 +213,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1521,7 +1538,7 @@ int may_open(struct nameidata *nd, int a
- 
- 		flag &= ~O_TRUNC;
- 	} else if (IS_RDONLY(inode) && (flag & FMODE_WRITE))
--		return -EROFS;
-+		{ ROFS_Log_from_dentry(nd->dentry, nd->mnt, "may_open"); return -EROFS; } /***** ReadOnly Tracer *****/
- 	/*
- 	 * An append-only file must be opened in append mode for writing.
- 	 */
-@@ -1537,6 +1554,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1537,6 +1544,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -287,7 +225,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1568,6 +1590,9 @@ int may_open(struct nameidata *nd, int a
+@@ -1568,6 +1580,9 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -297,15 +235,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  /*
   *	open_namei()
   *
-@@ -1696,6 +1721,7 @@ ok:
- exit_dput:
- 	dput_path(&path, nd);
- exit:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd->dentry, nd->mnt, "open_namei"); /***** ReadOnly Tracer *****/
- 	if (!IS_ERR(nd->intent.open.file))
- 		release_open_intent(nd);
- 	path_release(nd);
-@@ -1826,6 +1852,12 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1826,6 +1841,12 @@ asmlinkage long sys_mknodat(int dfd, con
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -318,7 +248,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1844,10 +1876,16 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1844,10 +1865,16 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -335,15 +265,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1856,6 +1894,7 @@ asmlinkage long sys_mknodat(int dfd, con
- 		default:
- 			error = -EINVAL;
- 		}
-+		if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_mknod"); /***** ReadOnly Tracer *****/
- 		dput(dentry);
- 	}
- 	mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -1912,7 +1951,11 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1912,6 +1939,9 @@ asmlinkage long sys_mkdirat(int dfd, con
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -351,11 +273,9 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
 + 			if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
 + 			/***** TOMOYO Linux end. *****/
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
-+			if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_mkdir"); /***** ReadOnly Tracer *****/
  			dput(dentry);
  		}
- 		mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -2020,7 +2063,11 @@ static long do_rmdir(int dfd, const char
+@@ -2020,6 +2050,9 @@ static long do_rmdir(int dfd, const char
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -363,11 +283,9 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
 +		if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
-+		if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_rmdir"); /***** ReadOnly Tracer *****/
  		dput(dentry);
  	}
- 	mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -2079,6 +2126,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2079,6 +2112,9 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -377,7 +295,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -2100,7 +2150,11 @@ static long do_unlinkat(int dfd, const c
+@@ -2100,6 +2136,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -385,11 +303,9 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
 + 		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
 + 		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
-+		if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_unlink"); /***** ReadOnly Tracer *****/
  	exit2:
  		dput(dentry);
- 	}
-@@ -2162,6 +2216,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2162,6 +2201,9 @@ asmlinkage long sys_symlinkat(const char
  	int error = 0;
  	char * from;
  	char * to;
@@ -399,7 +315,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -2178,7 +2235,11 @@ asmlinkage long sys_symlinkat(const char
+@@ -2178,6 +2220,9 @@ asmlinkage long sys_symlinkat(const char
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -407,11 +323,9 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
 + 			if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
 + 			/***** TOMOYO Linux end. *****/
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
-+			if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "vfs_symlink"); /***** ReadOnly Tracer *****/
  			dput(dentry);
  		}
- 		mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -2250,6 +2311,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2250,6 +2295,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -421,7 +335,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  
  	if (flags != 0)
  		return -EINVAL;
-@@ -2270,7 +2334,11 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2270,6 +2318,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -429,11 +343,9 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
 +		if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = CheckDoubleWritePermission(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
-+		if (error == -EROFS) ROFS_Log_from_dentry(new_dentry, nd.mnt, "vfs_link"); /***** ReadOnly Tracer *****/
  		dput(new_dentry);
  	}
- 	mutex_unlock(&nd.dentry->d_inode->i_mutex);
-@@ -2496,6 +2564,13 @@ static int do_rename(int olddfd, const c
+@@ -2496,6 +2547,13 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -447,15 +359,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2509,6 +2584,7 @@ exit2:
- exit1:
- 	path_release(&oldnd);
- exit:
-+	if (error == -EROFS) ROFS_Log(oldname, "do_rename"); /***** ReadOnly Tracer *****/
- 	return error;
- }
- 
-@@ -2518,6 +2594,9 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2518,6 +2576,9 @@ asmlinkage long sys_renameat(int olddfd,
  	int error;
  	char * from;
  	char * to;
@@ -467,7 +371,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namei.c linux-2.6.17-1.2142_FC4-ccs/fs/n
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namespace.c linux-2.6.17-1.2142_FC4-ccs/fs/namespace.c
 --- linux-2.6.17-1.2142_FC4/fs/namespace.c	2006-07-21 15:28:37.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/namespace.c	2006-08-08 12:40:05.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/fs/namespace.c	2007-03-05 17:40:31.000000000 +0900
 @@ -26,6 +26,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -508,7 +412,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namespace.c linux-2.6.17-1.2142_FC4-ccs/
  		goto out;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto out;
++	if (SAKURA_MayMount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  
  	err = -ENOMEM;
@@ -520,7 +424,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namespace.c linux-2.6.17-1.2142_FC4-ccs/
 -
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto out;
++	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
@@ -531,43 +435,31 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namespace.c linux-2.6.17-1.2142_FC4-ccs/
  		goto unlock;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto unlock;
++	if (SAKURA_MayMount(nd) < 0) goto unlock;
 +	/***** SAKURA Linux end. *****/
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1475,6 +1499,9 @@ asmlinkage long sys_mount(char __user * 
- 	unsigned long type_page;
- 	unsigned long dev_page;
- 	char *dir_page;
+@@ -1322,6 +1346,13 @@ long do_mount(char *dev_name, char *dir_
+ 	if (data_page)
+ 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+ 
 +	/***** TOMOYO Linux start. *****/
 +	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
- 
- 	retval = copy_mount_options(type, &type_page);
- 	if (retval < 0)
-@@ -1493,6 +1520,15 @@ asmlinkage long sys_mount(char __user * 
- 	if (retval < 0)
- 		goto out3;
- 
 +	/***** SAKURA Linux start. *****/
-+	retval = -EPERM;
-+	if (CheckMountPermission((char *) dev_page, dir_page, (char *) type_page, &flags) < 0 ||
-+ 		CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) {
-+		free_page(data_page);
-+		goto out3;
-+	}
++	if (CheckMountPermission(dev_name, dir_name, type_page, &flags)) return -EPERM;
 +	/***** SAKURA Linux end. *****/
 +
- 	lock_kernel();
- 	retval = do_mount((char *)dev_page, dir_page, (char *)type_page,
- 			  flags, (void *)data_page);
-@@ -1614,6 +1650,10 @@ asmlinkage long sys_pivot_root(const cha
+ 	/* Separate the per-mountpoint flags */
+ 	if (flags & MS_NOSUID)
+ 		mnt_flags |= MNT_NOSUID;
+@@ -1614,6 +1645,10 @@ asmlinkage long sys_pivot_root(const cha
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
  
 +	/***** SAKURA Linux start. *****/
-+	if (CheckPivotRootPermission() < 0 || CheckTaskCapability(SAKURA_DISABLE_PIVOTROOT) < 0) return -EPERM;
++	if (CheckPivotRootPermission() < 0) return -EPERM;
 +	/***** SAKURA Linux end. *****/
 +
  	lock_kernel();
@@ -575,7 +467,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/namespace.c linux-2.6.17-1.2142_FC4-ccs/
  	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/open.c linux-2.6.17-1.2142_FC4-ccs/fs/open.c
 --- linux-2.6.17-1.2142_FC4/fs/open.c	2006-07-21 15:28:37.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/open.c	2006-08-08 12:40:05.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/fs/open.c	2007-03-05 17:40:31.000000000 +0900
 @@ -31,6 +31,13 @@
  
  #include <asm/unistd.h>
@@ -600,15 +492,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/open.c linux-2.6.17-1.2142_FC4-ccs/fs/op
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -275,6 +285,7 @@ static long do_sys_truncate(const char _
- 	put_write_access(inode);
- 
- dput_and_out:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "do_sys_truncate"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -319,11 +330,14 @@ static long do_sys_ftruncate(unsigned in
+@@ -319,7 +329,9 @@ static long do_sys_ftruncate(unsigned in
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
@@ -619,38 +503,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/open.c linux-2.6.17-1.2142_FC4-ccs/fs/op
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, 0, file);
- out_putf:
-+	if (error == -EROFS) ROFS_Log_from_dentry(file->f_dentry, file->f_vfsmnt, "do_sys_ftruncate"); /***** ReadOnly Tracer *****/
- 	fput(file);
- out:
- 	return error;
-@@ -411,6 +425,7 @@ asmlinkage long sys_utime(char __user * 
- 	error = notify_change(nd.dentry, &newattrs);
- 	mutex_unlock(&inode->i_mutex);
- dput_and_out:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_utime"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -464,6 +479,7 @@ long do_utimes(int dfd, char __user *fil
- 	error = notify_change(nd.dentry, &newattrs);
- 	mutex_unlock(&inode->i_mutex);
- dput_and_out:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_utimes"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -526,6 +542,9 @@ asmlinkage long sys_faccessat(int dfd, c
- 		if(!res && (mode & S_IWOTH) && IS_RDONLY(nd.dentry->d_inode)
- 		   && !special_file(nd.dentry->d_inode->i_mode))
- 			res = -EROFS;
-+#if 0
-+		if (res == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_access"); /***** ReadOnly Tracer *****/
-+#endif
- 		path_release(&nd);
- 	}
- 
-@@ -598,6 +617,9 @@ asmlinkage long sys_chroot(const char __
+@@ -598,6 +610,9 @@ asmlinkage long sys_chroot(const char __
  {
  	struct nameidata nd;
  	int error;
@@ -660,7 +513,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/open.c linux-2.6.17-1.2142_FC4-ccs/fs/op
  
  	error = __user_walk(filename, LOOKUP_FOLLOW | LOOKUP_DIRECTORY | LOOKUP_NOALT, &nd);
  	if (error)
-@@ -611,6 +633,19 @@ asmlinkage long sys_chroot(const char __
+@@ -611,6 +626,19 @@ asmlinkage long sys_chroot(const char __
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
  
@@ -668,7 +521,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/open.c linux-2.6.17-1.2142_FC4-ccs/fs/op
 +    {
 +        char *name = getname(filename);
 +        if (!IS_ERR(name)) {
-+            error = CheckChRootPermission(name) | CheckTaskCapability(SAKURA_DISABLE_CHROOT);
++            error = CheckChRootPermission(name);
 +            putname(name);
 +        } else {
 +            error = PTR_ERR(name);
@@ -680,55 +533,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/open.c linux-2.6.17-1.2142_FC4-ccs/fs/op
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
  	error = 0;
-@@ -654,6 +689,7 @@ asmlinkage long sys_fchmod(unsigned int 
- 	mutex_unlock(&inode->i_mutex);
- 
- out_putf:
-+	if (err == -EROFS) ROFS_Log_from_dentry(file->f_dentry, file->f_vfsmnt, "sys_fchmod"); /***** ReadOnly Tracer *****/
- 	fput(file);
- out:
- 	return err;
-@@ -689,6 +725,7 @@ asmlinkage long sys_fchmodat(int dfd, co
- 	mutex_unlock(&inode->i_mutex);
- 
- dput_and_out:
-+	if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_chmod"); /***** ReadOnly Tracer *****/
- 	path_release(&nd);
- out:
- 	return error;
-@@ -742,6 +779,7 @@ asmlinkage long sys_chown(const char __u
- 	error = user_path_walk(filename, &nd);
- 	if (!error) {
- 		error = chown_common(nd.dentry, user, group);
-+		if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_chown"); /***** ReadOnly Tracer *****/
- 		path_release(&nd);
- 	}
- 	return error;
-@@ -761,6 +799,7 @@ asmlinkage long sys_fchownat(int dfd, co
- 	error = __user_walk_fd(dfd, filename, follow, &nd);
- 	if (!error) {
- 		error = chown_common(nd.dentry, user, group);
-+		if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_fchownat"); /***** ReadOnly Tracer *****/
- 		path_release(&nd);
- 	}
- out:
-@@ -775,6 +814,7 @@ asmlinkage long sys_lchown(const char __
- 	error = user_path_walk_link(filename, &nd);
- 	if (!error) {
- 		error = chown_common(nd.dentry, user, group);
-+		if (error == -EROFS) ROFS_Log_from_dentry(nd.dentry, nd.mnt, "sys_lchown"); /***** ReadOnly Tracer *****/
- 		path_release(&nd);
- 	}
- 	return error;
-@@ -792,6 +832,7 @@ asmlinkage long sys_fchown(unsigned int 
- 		dentry = file->f_dentry;
- 		audit_inode(NULL, dentry->d_inode, 0);
- 		error = chown_common(dentry, user, group);
-+ 		if (error == -EROFS) ROFS_Log_from_dentry(dentry, file->f_vfsmnt, "sys_fchown"); /***** ReadOnly Tracer *****/
- 		fput(file);
- 	}
- 	return error;
-@@ -1202,6 +1243,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1202,6 +1230,9 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -750,7 +555,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/proc/Makefile linux-2.6.17-1.2142_FC4-cc
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/proc/proc_misc.c linux-2.6.17-1.2142_FC4-ccs/fs/proc/proc_misc.c
 --- linux-2.6.17-1.2142_FC4/fs/proc/proc_misc.c	2006-06-18 10:49:35.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/proc/proc_misc.c	2006-10-06 16:30:29.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/fs/proc/proc_misc.c	2007-03-06 12:30:43.000000000 +0900
 @@ -719,4 +719,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -760,30 +565,28 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/proc/proc_misc.c linux-2.6.17-1.2142_FC4
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.17-1.2142_FC4 2006/10/19\n");
++		printk("Hook version: 2.6.17-1.2142_FC4 2007/03/06\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.6.17-1.2142_FC4/include/linux/init_task.h linux-2.6.17-1.2142_FC4-ccs/include/linux/init_task.h
 --- linux-2.6.17-1.2142_FC4/include/linux/init_task.h	2006-06-18 10:49:35.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/include/linux/init_task.h	2006-08-08 12:40:05.000000000 +0900
-@@ -123,6 +123,12 @@ extern struct group_info init_groups;
++++ linux-2.6.17-1.2142_FC4-ccs/include/linux/init_task.h	2007-03-05 17:36:07.000000000 +0900
+@@ -123,6 +123,10 @@ extern struct group_info init_groups;
  	.journal_info	= NULL,						\
  	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
  	.fs_excl	= ATOMIC_INIT(0),				\
 +	/***** TOMOYO Linux start. *****/        \
 +	.domain_info = &KERNEL_DOMAIN,           \
++	.tomoyo_flags = 0,                  \
 +	/***** TOMOYO Linux end. *****/          \
-+	/***** SAKURA Linux start. *****/        \
-+	.dropped_capability = 0,                 \
-+	/***** SAKURA Linux end. *****/          \
  }
  
  
 diff -ubBpEr linux-2.6.17-1.2142_FC4/include/linux/sched.h linux-2.6.17-1.2142_FC4-ccs/include/linux/sched.h
 --- linux-2.6.17-1.2142_FC4/include/linux/sched.h	2006-07-21 15:28:37.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/include/linux/sched.h	2006-08-08 12:40:05.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/include/linux/sched.h	2007-03-05 17:35:39.000000000 +0900
 @@ -43,6 +43,11 @@ struct exec_domain;
  extern int exec_shield;
  extern int print_fatal_signals;
@@ -796,16 +599,14 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/include/linux/sched.h linux-2.6.17-1.2142_F
  /*
   * cloning flags:
   */
-@@ -902,6 +907,12 @@ struct task_struct {
+@@ -902,6 +907,10 @@ struct task_struct {
  	 * cache last used pipe for splice
  	 */
  	struct pipe_inode_info *splice_pipe;
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
++	unsigned int tomoyo_flags;
 +	/***** TOMOYO Linux end. *****/
-+	/***** SAKURA Linux start. *****/
-+	unsigned int dropped_capability;
-+	/***** SAKURA Linux end. *****/
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
@@ -834,17 +635,15 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/kernel/kexec.c linux-2.6.17-1.2142_FC4-ccs/
  	 * Verify we have a legal set of flags
 diff -ubBpEr linux-2.6.17-1.2142_FC4/kernel/kmod.c linux-2.6.17-1.2142_FC4-ccs/kernel/kmod.c
 --- linux-2.6.17-1.2142_FC4/kernel/kmod.c	2006-07-21 15:28:37.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/kernel/kmod.c	2006-08-08 12:40:05.000000000 +0900
-@@ -146,6 +146,13 @@ __exec_usermodehelper(char *path, char *
++++ linux-2.6.17-1.2142_FC4-ccs/kernel/kmod.c	2007-03-05 17:36:21.000000000 +0900
+@@ -146,6 +146,11 @@ __exec_usermodehelper(char *path, char *
  
  	key_put(old_session);
  
 +	/***** TOMOYO Linux start. *****/
 +	current->domain_info = &KERNEL_DOMAIN;
++	current->tomoyo_flags = 0;
 +	/***** TOMOYO Linux start. *****/
-+	/***** SAKURA Linux start. *****/
-+	current->dropped_capability = 0;
-+	/***** SAKURA Linux end. *****/
 +
  	retval = -EPERM;
  	if (current->fs->root)
@@ -1403,21 +1202,18 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/net/socket.c linux-2.6.17-1.2142_FC4-ccs/ne
  out_put:
 diff -ubBpEr linux-2.6.17-1.2142_FC4/net/unix/af_unix.c linux-2.6.17-1.2142_FC4-ccs/net/unix/af_unix.c
 --- linux-2.6.17-1.2142_FC4/net/unix/af_unix.c	2006-06-18 10:49:35.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/net/unix/af_unix.c	2006-08-08 12:40:05.000000000 +0900
-@@ -117,6 +117,12 @@
++++ linux-2.6.17-1.2142_FC4-ccs/net/unix/af_unix.c	2007-03-05 17:40:54.000000000 +0900
+@@ -117,6 +117,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
  #include <linux/security.h>
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  int sysctl_unix_max_dgram_qlen = 10;
  
-@@ -738,6 +744,10 @@ static int unix_bind(struct socket *sock
+@@ -738,6 +741,10 @@ static int unix_bind(struct socket *sock
  		err = unix_autobind(sock);
  		goto out;
  	}
@@ -1428,7 +1224,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/net/unix/af_unix.c linux-2.6.17-1.2142_FC4-
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -781,7 +791,11 @@ static int unix_bind(struct socket *sock
+@@ -781,6 +788,9 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
@@ -1436,7 +1232,5 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/net/unix/af_unix.c linux-2.6.17-1.2142_FC4-
 +		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = CheckSingleWritePermission(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
-+		if (err == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "unix_bind"); /***** ReadOnly Tracer *****/
  		if (err)
  			goto out_mknod_dput;
- 		mutex_unlock(&nd.dentry->d_inode->i_mutex);

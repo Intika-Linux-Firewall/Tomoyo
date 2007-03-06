@@ -269,22 +269,19 @@ typedef struct {
 #define CCS_TOMOYO_MAC_FOR_FILE                  1  /* domain_policy.txt      */
 #define CCS_TOMOYO_MAC_FOR_ARGV0                 2  /* domain_policy.txt      */
 #define CCS_TOMOYO_MAC_FOR_NETWORK               3  /* domain_policy.txt      */
-#define CCS_TOMOYO_MAC_FOR_BINDPORT              4  /* domain_policy.txt      */
-#define CCS_TOMOYO_MAC_FOR_CONNECTPORT           5  /* domain_policy.txt      */
-#define CCS_TOMOYO_MAC_FOR_SIGNAL                6  /* domain_policy.txt      */
-#define CCS_SAKURA_DENY_CONCEAL_MOUNT            7
-#define CCS_SAKURA_RESTRICT_CHROOT               8  /* system_policy.txt      */
-#define CCS_SAKURA_RESTRICT_MOUNT                9  /* system_policy.txt      */
-#define CCS_SAKURA_RESTRICT_UNMOUNT             10  /* system_policy.txt      */
-#define CCS_SAKURA_DENY_PIVOT_ROOT              11
-#define CCS_SAKURA_TRACE_READONLY               12
-#define CCS_SAKURA_RESTRICT_AUTOBIND            13  /* system_policy.txt      */
-#define CCS_TOMOYO_MAX_ACCEPT_FILES             14
-#define CCS_TOMOYO_MAX_GRANT_LOG                15
-#define CCS_TOMOYO_MAX_REJECT_LOG               16
-#define CCS_TOMOYO_VERBOSE                      17
-#define CCS_ALLOW_ENFORCE_GRACE                 18
-#define CCS_MAX_CONTROL_INDEX                   19
+#define CCS_TOMOYO_MAC_FOR_SIGNAL                4  /* domain_policy.txt      */
+#define CCS_SAKURA_DENY_CONCEAL_MOUNT            5
+#define CCS_SAKURA_RESTRICT_CHROOT               6  /* system_policy.txt      */
+#define CCS_SAKURA_RESTRICT_MOUNT                7  /* system_policy.txt      */
+#define CCS_SAKURA_RESTRICT_UNMOUNT              8  /* system_policy.txt      */
+#define CCS_SAKURA_DENY_PIVOT_ROOT               9
+#define CCS_SAKURA_RESTRICT_AUTOBIND            10  /* system_policy.txt      */
+#define CCS_TOMOYO_MAX_ACCEPT_FILES             11
+#define CCS_TOMOYO_MAX_GRANT_LOG                12
+#define CCS_TOMOYO_MAX_REJECT_LOG               13
+#define CCS_TOMOYO_VERBOSE                      14
+#define CCS_ALLOW_ENFORCE_GRACE                 15
+#define CCS_MAX_CONTROL_INDEX                   16
 
 /*************************  Index numbers for updates counter.  *************************/
 
@@ -349,7 +346,6 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete
 int AddNoRewritePolicy(char *pattern, const int is_delete);
 int AddNoUmountPolicy(char *data, const int is_delete);
 int AddPatternPolicy(char *data, const int is_delete);
-int AddPortPolicy(char *data, struct domain_info *domain, const int is_delete);
 int AddReservedPortPolicy(char *data, const int is_delete);
 int AddSignalPolicy(char *data, struct domain_info *domain, const int is_delete);
 int CCS_CloseControl(struct file *file);

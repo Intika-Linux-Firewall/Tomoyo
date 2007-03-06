@@ -90,8 +90,7 @@ static int CheckSocketConnectPermission(struct socket *sock, struct sockaddr *ad
 		case AF_INET6:
 			if (addr_len >= SIN6_LEN_RFC2133) {
 				if (type != SOCK_RAW) {
-					error = CheckConnectEntry(type == SOCK_STREAM, ntohs(((struct sockaddr_in6 *) addr)->sin6_port));
-					if (!error) error = CheckNetworkConnectACL(1, type, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, ((struct sockaddr_in6 *) addr)->sin6_port);
+					error = CheckNetworkConnectACL(1, type, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, ((struct sockaddr_in6 *) addr)->sin6_port);
 				} else {
 					error = CheckNetworkConnectACL(1, SOCK_RAW, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, htons(sock->sk->sk_protocol));
 				}
@@ -100,8 +99,7 @@ static int CheckSocketConnectPermission(struct socket *sock, struct sockaddr *ad
 		case AF_INET:
 			if (addr_len >= sizeof(struct sockaddr_in)) {
 				if (type != SOCK_RAW) {
-					error = CheckConnectEntry(type == SOCK_STREAM, ntohs(((struct sockaddr_in *) addr)->sin_port));
-					if (!error) error = CheckNetworkConnectACL(0, type, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, ((struct sockaddr_in *) addr)->sin_port);
+					error = CheckNetworkConnectACL(0, type, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, ((struct sockaddr_in *) addr)->sin_port);
 				} else {
 					error = CheckNetworkConnectACL(0, SOCK_RAW, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, htons(sock->sk->sk_protocol));
 				}
@@ -129,8 +127,7 @@ static int CheckSocketBindPermission(struct socket *sock, struct sockaddr *addr,
 		case AF_INET6:
 			if (addr_len >= SIN6_LEN_RFC2133) {
 				if (type != SOCK_RAW) {
-					error = CheckBindEntry(type == SOCK_STREAM, ntohs(((struct sockaddr_in6 *) addr)->sin6_port));
-					if (!error) error = CheckNetworkBindACL(1, type, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, ((struct sockaddr_in6 *) addr)->sin6_port);
+					error = CheckNetworkBindACL(1, type, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, ((struct sockaddr_in6 *) addr)->sin6_port);
 				} else {
 					error = CheckNetworkBindACL(1, SOCK_RAW, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, htons(sock->sk->sk_protocol));
 				}
@@ -139,8 +136,7 @@ static int CheckSocketBindPermission(struct socket *sock, struct sockaddr *addr,
 		case AF_INET:
 			if (addr_len >= sizeof(struct sockaddr_in)) {
 				if (type != SOCK_RAW) {
-					error = CheckBindEntry(type == SOCK_STREAM, ntohs(((struct sockaddr_in *) addr)->sin_port));
-					if (!error) error = CheckNetworkBindACL(0, type, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, ((struct sockaddr_in *) addr)->sin_port);
+					error = CheckNetworkBindACL(0, type, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, ((struct sockaddr_in *) addr)->sin_port);
 				} else {
 					error = CheckNetworkBindACL(0, SOCK_RAW, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, htons(sock->sk->sk_protocol));
 				}
@@ -182,14 +178,12 @@ static int CheckSocketSendMsgPermission(struct socket *sock, struct sockaddr *ad
 		switch (addr->sa_family) {
 		case AF_INET6:
 			if (addr_len >= SIN6_LEN_RFC2133) {
-				if (type == SOCK_DGRAM) error = CheckConnectEntry(0, ntohs(((struct sockaddr_in6 *) addr)->sin6_port));
-				if (!error) error = CheckNetworkSendMsgACL(1, type, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, type == SOCK_DGRAM ? ((struct sockaddr_in6 *) addr)->sin6_port : htons(sock->sk->sk_protocol));
+				error = CheckNetworkSendMsgACL(1, type, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, type == SOCK_DGRAM ? ((struct sockaddr_in6 *) addr)->sin6_port : htons(sock->sk->sk_protocol));
 			}
 			break;
 		case AF_INET:
 			if (addr_len >= sizeof(struct sockaddr_in)) {
-				if (type == SOCK_DGRAM) error = CheckConnectEntry(0, ntohs(((struct sockaddr_in *) addr)->sin_port));
-				if (!error) error = CheckNetworkSendMsgACL(0, type, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, type == SOCK_DGRAM ? ((struct sockaddr_in *) addr)->sin_port : htons(sock->sk->sk_protocol));
+				error = CheckNetworkSendMsgACL(0, type, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, type == SOCK_DGRAM ? ((struct sockaddr_in *) addr)->sin_port : htons(sock->sk->sk_protocol));
 			}
 			break;
 		}

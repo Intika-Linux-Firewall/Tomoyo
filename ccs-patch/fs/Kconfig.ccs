@@ -61,23 +61,6 @@ config SAKURA_RESTRICT_UNMOUNT
 	  You can prevent the attacker from unmounting
 	  /proc with this option.
 
-config SAKURA_TRACE_READONLY
-	bool "  Read-only filesystem error tracing support"
-	default y
-	depends on SAKURA
-	help
-	  This option allows you to dump pathnames
-	  which a write operation has failed due to read-only filesystem.
-	  (Currently, not all operations are supported.)
-
-	  Some programs abort silently if a write operation
-	  failed unexpectedly.
-
-	  This option is useful when you are trying to make
-	  root fs read only, for you can find files and directories
-	  that have to be writable
-	  by mounting root fs read-only and running the system.
-
 config SAKURA_DENY_CONCEAL_MOUNT
 	bool "  Conceal mount disabler support"
 	default y
@@ -119,30 +102,6 @@ config SAKURA_RESTRICT_AUTOBIND
 	  for automatic port assignment function
 	  via /proc/sys/net/ipv4/ip_local_port_range .
 	  This option allows you to divide the single range into multiple.
-
-config SAKURA_DROP_CAPABILITY_API
-	bool "  Dropping capabilities interface support (EXPERIMENTAL)"
-	default n
-	depends on SAKURA
-	help
-	  This option allows userland application developers to drop
-	  unnecessary capabilities to reduce the risk of exploitations.
-
-	  The capabilities in SAKURA are not the Linux (POSIX) capabilities.
-	  The capabilities in SAKURA are the boolean flags of system calls
-	  that a process can call.
-
-	  The way of regular access control is
-	  "Grant necessary capabilities by the administrator",
-	  but the way of this access control is
-	  "Drop unnecessary capabilities by the application developers".
-	  The userland program developers know what capabilities
-	  their program need, but the userland program users don't know.
-	  So, dropping unnecessary capabilities from existing capabilities
-	  is handier than granting necessary capabilities from zero.
-
-	  Since patching to userland programs (i.e. adding a few lines
-	  and recompile) are required, this option is disabled by default.
 
 config TOMOYO
 	bool "TOMOYO (Domain-Based Mandatory Access Control) support"
@@ -214,22 +173,6 @@ config TOMOYO_MAC_FOR_ARGV0
 	  unexpected behavior.
 	  This option allows you to prevent unexpected argv[0].
 
-config TOMOYO_MAC_FOR_NETWORKPORT
-	bool "  Network Port Control support"
-	default y
-	depends on TOMOYO
-	help
-	  Say Y here to support the MAC for network port assignment.
-
-	  This option allows you to restrict local port numbers
-	  that a domain can bind.
-	  For example, you can use this option to allow HTTP server
-	  to bind to only TCP/80 and TCP/443.
-	  This option allows you to restrict remote port numbers
-	  that a domain can connect or send data.
-	  For example, you can use this option to allow FTP client
-	  to connect to only TCP/20 and TCP/21.
-
 config TOMOYO_MAC_FOR_NETWORK
 	bool "  Network Address Port Control support"
 	default y
@@ -251,11 +194,6 @@ config TOMOYO_MAC_FOR_NETWORK
 	  allow_listen TCP 10.0.0.1 22
 	  allow_accept TCP 10.0.0.3-10.0.0.254 1024-65535
 	  allow_connect UDP 10.0.0.2 53
-
-	  This option includes all functionalities provided by
-	  "Network Port Control support" option.
-	  Thus if you use this option, you don't need to use
-	  "Network Port Control support" option.
 
 config TOMOYO_MAC_FOR_SIGNAL
 	bool "  Signal Control support"

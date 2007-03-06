@@ -66,15 +66,12 @@ static struct {
 	[CCS_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
 	[CCS_TOMOYO_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
 	[CCS_TOMOYO_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
-	[CCS_TOMOYO_MAC_FOR_BINDPORT]    = { "MAC_FOR_BINDPORT",    0, 3 },
-	[CCS_TOMOYO_MAC_FOR_CONNECTPORT] = { "MAC_FOR_CONNECTPORT", 0, 3 },
 	[CCS_TOMOYO_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
 	[CCS_SAKURA_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
 	[CCS_SAKURA_RESTRICT_CHROOT]     = { "RESTRICT_CHROOT",     0, 3 },
 	[CCS_SAKURA_RESTRICT_MOUNT]      = { "RESTRICT_MOUNT",      0, 3 },
 	[CCS_SAKURA_RESTRICT_UNMOUNT]    = { "RESTRICT_UNMOUNT",    0, 3 },
 	[CCS_SAKURA_DENY_PIVOT_ROOT]     = { "DENY_PIVOT_ROOT",     0, 3 },
-	[CCS_SAKURA_TRACE_READONLY]      = { "TRACE_READONLY",      0, 1 },
 	[CCS_SAKURA_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 	[CCS_TOMOYO_MAX_ACCEPT_FILES]    = { "MAX_ACCEPT_FILES",    MAX_ACCEPT_FILES, INT_MAX },
 	[CCS_TOMOYO_MAX_GRANT_LOG]       = { "MAX_GRANT_LOG",       MAX_GRANT_LOG, INT_MAX },
@@ -556,10 +553,6 @@ static int ReadStatus(IO_BUFFER *head)
 #ifndef CONFIG_TOMOYO_MAC_FOR_ARGV0
 				case CCS_TOMOYO_MAC_FOR_ARGV0:
 #endif
-#ifndef CONFIG_TOMOYO_MAC_FOR_NETWORKPORT
-				case CCS_TOMOYO_MAC_FOR_BINDPORT:
-				case CCS_TOMOYO_MAC_FOR_CONNECTPORT:
-#endif
 #ifndef CONFIG_TOMOYO_MAC_FOR_NETWORK
 				case CCS_TOMOYO_MAC_FOR_NETWORK:
 #endif
@@ -580,9 +573,6 @@ static int ReadStatus(IO_BUFFER *head)
 #endif
 #ifndef CONFIG_SAKURA_DENY_PIVOT_ROOT
 				case CCS_SAKURA_DENY_PIVOT_ROOT:
-#endif
-#ifndef CONFIG_SAKURA_TRACE_READONLY
-				case CCS_SAKURA_TRACE_READONLY:
 #endif
 #ifndef CONFIG_SAKURA_RESTRICT_AUTOBIND
 				case CCS_SAKURA_RESTRICT_AUTOBIND:
@@ -767,11 +757,6 @@ static int AddDomainPolicy(IO_BUFFER *head)
 	} else if (strncmp(data, KEYWORD_ALLOW_CAPABILITY, KEYWORD_ALLOW_CAPABILITY_LEN) == 0) {
 		return AddCapabilityPolicy(data + KEYWORD_ALLOW_CAPABILITY_LEN, domain, is_delete);
 #endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_NETWORKPORT
-	} else if (strncmp(data, KEYWORD_ALLOW_BIND, KEYWORD_ALLOW_BIND_LEN) == 0 ||
-			   strncmp(data, KEYWORD_ALLOW_CONNECT, KEYWORD_ALLOW_CONNECT_LEN) == 0) {
-		return AddPortPolicy(data, domain, is_delete);
-#endif
 #ifdef CONFIG_TOMOYO_MAC_FOR_NETWORK
 	} else if (strncmp(data, KEYWORD_ALLOW_NETWORK, KEYWORD_ALLOW_NETWORK_LEN) == 0) {
 		return AddNetworkPolicy(data + KEYWORD_ALLOW_NETWORK_LEN, domain, is_delete);
@@ -839,22 +824,6 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 					if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(ptr->u.w)) ||
 						DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
-					}
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_NETWORKPORT
-				} else if (acl_type == TYPE_BIND_ACL || acl_type == TYPE_CONNECT_ACL) {
-					const int is_stream = ptr->u.w;
-					const u16 min_port = ((PORT_ACL_RECORD *) ptr)->min_port, max_port = ((PORT_ACL_RECORD *) ptr)->max_port;
-					if (min_port != max_port) {
-						if (io_printf(head, "%s%s/%u-%u", acl_type == TYPE_CONNECT_ACL ? KEYWORD_ALLOW_CONNECT : KEYWORD_ALLOW_BIND, is_stream ? "TCP" : "UDP", min_port, max_port) ||
-							DumpCondition(head, ptr->cond)) {
-							head->read_avail = pos; break;
-						}
-					} else {
-						if (io_printf(head, "%s%s/%u", acl_type == TYPE_CONNECT_ACL ? KEYWORD_ALLOW_CONNECT : KEYWORD_ALLOW_BIND, is_stream ? "TCP" : "UDP", min_port) ||
-							DumpCondition(head, ptr->cond)) {
-							head->read_avail = pos; break;
-						}
 					}
 #endif
 #ifdef CONFIG_TOMOYO_MAC_FOR_NETWORK
@@ -1205,10 +1174,10 @@ void CCS_LoadPolicy(const char *filename)
 	}
 	
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.3.3-pre1   2007/02/28\n");
+	printk("SAKURA: 1.3.3-pre2   2007/03/03\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.3.3-pre1   2007/02/28\n");
+	printk("TOMOYO: 1.3.3-pre2   2007/03/03\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
