@@ -69,19 +69,19 @@ Disabled
 提供されているので、今回はそれを利用します。</p>
 <p>まずはパッケージをダウンロードします。</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/23851/kernel-2.6.19-1.2911.fc6_tomoyo_1.3.2.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/23851/kernel-2.6.19-1.2911.6.4.fc6_tomoyo_1.3.2.i586.rpm</span>
 </pre>
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 <pre>
-# <span class="user">rpm --install kernel-2.6.19-1.2911.fc6_tomoyo_1.3.2.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.19-1.2911.6.4.fc6_tomoyo_1.3.2.i586.rpm</span>
 </pre>
 <p>この際特にメッセージは表示されませんが、
 インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 <pre>
-title Fedora Core (2.6.19-1.2911.fc6_tomoyo_1.3.2)
+title Fedora Core (2.6.19-1.2911.6.4.fc6_tomoyo_1.3.2)
     root (hd0,0)
-    kernel /vmlinuz-2.6.19-1.2911.fc6_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.19-1.2911.fc6_tomoyo_1.3.2.img
+    kernel /vmlinuz-2.6.19-1.2911.6.4.fc6_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.19-1.2911.6.4.fc6_tomoyo_1.3.2.img
 </pre>
 <p>今後カーネルの選択を行いやすくするために、
 /boot/grub/grub.confの"timeout="と"hiddenmenu"の行を
@@ -116,10 +116,10 @@ title Fedora Core (2.6.19-1.2911.fc6_tomoyo_1.3.2)
 <p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
 /boot/grub/grub.confのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
 <pre>
-title Fedora Core (2.6.19-1.2911.fc6_tomoyo_1.3.2)
+title Fedora Core (2.6.19-1.2911.6.4.fc6_tomoyo_1.3.2)
     root (hd0,0)
-    kernel /vmlinuz-2.6.19-1.2911.fc6_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
-    initrd /initrd-2.6.19-1.2911.fc6_tomoyo_1.3.2.img
+    kernel /vmlinuz-2.6.19-1.2911.6.4.fc6_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
+    initrd /initrd-2.6.19-1.2911.6.4.fc6_tomoyo_1.3.2.img
 </pre>
 
 <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
