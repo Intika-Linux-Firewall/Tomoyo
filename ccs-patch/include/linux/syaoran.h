@@ -285,7 +285,7 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 	char *args[MAX_ARG];
 	int i;
 	int error = -EINVAL;
-	mode_t perm; uid_t uid; gid_t gid; unsigned int major = 0, minor = 0; unsigned int flags;
+	unsigned int perm, uid, gid, flags, major = 0, minor = 0;
 	struct syaoran_sb_info *info = (struct syaoran_sb_info *) sb->s_fs_info;
 	struct dev_entry *entry;
 	memset(args, 0, sizeof(args));
@@ -297,7 +297,7 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 	}
 	/* printk("<%s> <%s> <%s> <%s> <%s> <%s> <%s> <%s>\n", args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]); */
 	if (!args[ARG_FILENAME] || !args[ARG_PERMISSION] || !args[ARG_UID] || !args[ARG_GID] || !args[ARG_DEV_TYPE] || !args[ARG_FLAGS]) goto out;
-	if (sscanf(args[ARG_PERMISSION], "%ho", &perm) != 1 || !(perm <= 0777) || sscanf(args[ARG_UID], "%u", &uid) != 1
+	if (sscanf(args[ARG_PERMISSION], "%o", &perm) != 1 || !(perm <= 0777) || sscanf(args[ARG_UID], "%u", &uid) != 1
 		|| sscanf(args[ARG_GID], "%u", &gid) != 1 || sscanf(args[ARG_FLAGS], "%u", &flags) != 1 || *(args[ARG_DEV_TYPE] + 1)) goto out;
 	switch (*args[ARG_DEV_TYPE]) {
 	case 'c':
@@ -501,7 +501,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static int first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.3.2   2007/02/14\n");
+		printk("SYAORAN: 1.3.3-pre3   2007/03/07\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
