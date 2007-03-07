@@ -854,3 +854,12 @@ Fix 2007/03/03
 
       I moved the location of calling CheckCapabilityACL()
       and CheckMountPermission() from sys_mount() to do_mount().
+
+Fix 2007/03/07
+
+    @ Use 'unsigned int' for sscanf().
+
+      I compiled SYAORAN fs on x86_64 environment and found
+      the compiler showing warning messages about size of data types.
+      Since size of data types may mismatch for sscanf(),
+      I replaced some types with 'unsigned int'.
