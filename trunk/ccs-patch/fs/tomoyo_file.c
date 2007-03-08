@@ -99,16 +99,6 @@ static int strendswith(const char *name, const char *tail)
 	return len >= 0 && strcmp(name + len, tail) == 0;
 }
 
-static int TooMany(struct domain_info * const domain, const unsigned int count) {
-	/* If there are so many entries, don't append if accept mode. */
-	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_FILES)) return 0;
-	if (!domain->quota_warned) {
-		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped auto-append mode.\n", domain->domainname->name);
-		domain->quota_warned = 1;
-	}
-	return 1;
-}
-
 static struct path_info *GetPath(struct dentry *dentry, struct vfsmount *mnt)
 {
 	struct path_info_with_data { /* sizeof(struct path_info_with_data) <= PAGE_SIZE */
@@ -132,8 +122,8 @@ static struct path_info *GetPath(struct dentry *dentry, struct vfsmount *mnt)
 
 /*************************  PROTOTYPES  *************************/
 
-static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const int is_add, const struct condition_list *condition);
-static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const int is_add, const struct condition_list *condition);
+static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition);
+static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition);
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
@@ -524,7 +514,7 @@ int ReadNoRewritePolicy(IO_BUFFER *head)
 
 /*************************  FILE ACL HANDLER  *************************/
 
-static int AddFileACL(const char *filename, u8 perm, struct domain_info * const domain, const int is_add, const struct condition_list *condition)
+static int AddFileACL(const char *filename, u8 perm, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition)
 {
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
@@ -552,16 +542,15 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 	}
 	down(&domain_acl_lock);
 	if (is_add) {
-		unsigned int count = 0;
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			FILE_ACL_RECORD *new_ptr;
-			if (ptr->type <= TYPE_FILE_ACL) count++;
 			if (ptr->type == TYPE_FILE_ACL && ptr->cond == condition) {
 				if (((FILE_ACL_RECORD *) ptr)->u.filename == saved_filename) {
 					if (ptr->is_deleted) {
-						ptr->is_deleted = 0;
 						ptr->u.b[0] = 0;
+						mb();
+						ptr->is_deleted = 0;
 					}
 					/* Found. Just 'OR' the permission bits. */
 					ptr->u.b[0] |= perm;
@@ -575,7 +564,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 				continue;
 			}
 	first_entry: ;
-			if (is_add == 1 && TooMany(domain, count)) break;
+			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = (FILE_ACL_RECORD *) alloc_element(sizeof(FILE_ACL_RECORD))) == NULL) break;
 			new_ptr->head.type = TYPE_FILE_ACL;
@@ -627,13 +616,15 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
 		const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-		/* Don't use patterns if execution bit is on. */
-		const struct path_info *patterned_file = ((perm & 1) == 0) ? GetPattern(filename) : filename;
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Access %d(%s) to %s denied for %s\n", GetMSG(is_enforce), perm, operation, filename->name, GetLastName(domain));
 		}
-		if (is_enforce) error = CheckSupervisor("%s\n%d %s\n", domain->domainname->name, perm, patterned_file->name);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddFileACL(patterned_file->name, perm, domain, 1, NULL);
+		if (is_enforce) error = CheckSupervisor("%s\n%d %s\n", domain->domainname->name, perm, filename->name);
+		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) {
+			/* Don't use patterns if execution bit is on. */
+			const struct path_info *patterned_file = ((perm & 1) == 0) ? GetPattern(filename) : filename;
+			AddFileACL(patterned_file->name, perm, domain, 1, NULL);
+		}
 		if (!is_enforce) error = 0;
 	}
 	return error;
@@ -675,7 +666,7 @@ int AddFilePolicy(char *data, struct domain_info *domain, const int is_delete)
 	return -EINVAL;
 }
 
-static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const int is_add, const struct condition_list *condition)
+static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition)
 {
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
@@ -692,11 +683,9 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	}
 	down(&domain_acl_lock);
 	if (is_add) {
-		unsigned int count = 0;
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			SINGLE_ACL_RECORD *new_ptr;
-			if (ptr->type <= TYPE_FILE_ACL) count++;
 			if (ptr->type == type && ptr->cond == condition) {
 				if (((SINGLE_ACL_RECORD *) ptr)->u.filename == saved_filename) {
 					ptr->is_deleted = 0;
@@ -710,7 +699,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooMany(domain, count)) break;
+			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = (SINGLE_ACL_RECORD *) alloc_element(sizeof(SINGLE_ACL_RECORD))) == NULL) break;
 			new_ptr->head.type = type;
@@ -733,7 +722,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	return error;
 }
 
-static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const int is_add, const struct condition_list *condition)
+static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition)
 {
 	const struct path_info *saved_filename1, *saved_filename2;
 	struct acl_info *ptr;
@@ -757,11 +746,9 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	}
 	down(&domain_acl_lock);
 	if (is_add) {
-		unsigned int count = 0;
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			DOUBLE_ACL_RECORD *new_ptr;
-			if (ptr->type <= TYPE_FILE_ACL) count++;
 			if (ptr->type == type && ptr->cond == condition) {
 				if (((DOUBLE_ACL_RECORD *) ptr)->u1.filename1 == saved_filename1 && ((DOUBLE_ACL_RECORD *) ptr)->u2.filename2 == saved_filename2) {
 					ptr->is_deleted = 0;
@@ -775,7 +762,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooMany(domain, count)) break;
+			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = (DOUBLE_ACL_RECORD *) alloc_element(sizeof(DOUBLE_ACL_RECORD))) == NULL) break;
 			new_ptr->head.type = type;
@@ -854,7 +841,7 @@ static int CheckSingleWritePermission2(const unsigned int operation, const struc
 			if (TomoyoVerboseMode()) {
 				printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), filename->name, GetLastName(domain));
 			}
-			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, acltype2keyword(operation), GetPattern(filename)->name);
+			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, acltype2keyword(operation), filename->name);
 			else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, 1, NULL);
 			if (!is_enforce) error = 0;
 		}
@@ -1004,7 +991,7 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 				if (TomoyoVerboseMode()) {
 					printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
 				}
-				if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, acltype2keyword(operation), GetPattern(buf1)->name, GetPattern(buf2)->name);
+				if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, acltype2keyword(operation), buf1->name, buf2->name);
 				else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, 1, NULL);
 			}
 		} else {

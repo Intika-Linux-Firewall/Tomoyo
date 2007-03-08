@@ -157,14 +157,14 @@ static inline void AuditCapabilityLog(const unsigned int capability, const int i
 
 /*************************  CAPABILITY ACL HANDLER  *************************/
 
-static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const int is_delete, const struct condition_list *condition)
+static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const u8 is_add, const struct condition_list *condition)
 {
 	struct acl_info *ptr;
 	int error = -ENOMEM;
 	const u16 hash = capability;
 	if (!domain) return -EINVAL;
 	down(&domain_acl_lock);
-	if (!is_delete) {
+	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			CAPABILITY_ACL_RECORD *new_ptr;
@@ -179,6 +179,7 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 				continue;
 			}
 		first_entry: ;
+			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = (CAPABILITY_ACL_RECORD *) alloc_element(sizeof(CAPABILITY_ACL_RECORD))) == NULL) break;
 			new_ptr->head.type = TYPE_CAPABILITY_ACL;
@@ -216,7 +217,7 @@ int CheckCapabilityACL(const unsigned int capability)
 	}
 	AuditCapabilityLog(capability, 0);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, capability2keyword(capability));
-	if (CheckCapabilityAccept(capability)) AddCapabilityACL(capability, domain, 0, NULL);
+	if (CheckCapabilityAccept(capability)) AddCapabilityACL(capability, domain, 1, NULL);
 	return 0;
 }
 
@@ -228,7 +229,7 @@ int AddCapabilityPolicy(char *data, struct domain_info *domain, const int is_del
 	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {
 		if (strcmp(data, capability_control_array[capability].keyword) == 0) {
-			return AddCapabilityACL(capability, domain, is_delete, condition);
+			return AddCapabilityACL(capability, domain, is_delete ? 0 : -1, condition);
 		}
 	}
 	return -EINVAL;

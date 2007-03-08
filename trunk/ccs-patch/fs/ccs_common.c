@@ -34,10 +34,10 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/ccs_proc.h>
 #include <linux/tomoyo.h>
 
-#ifdef CONFIG_TOMOYO_MAX_ACCEPT_FILES
-#define MAX_ACCEPT_FILES (CONFIG_TOMOYO_MAX_ACCEPT_FILES)
+#ifdef CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
+#define MAX_ACCEPT_ENTRY (CONFIG_TOMOYO_MAX_ACCEPT_ENTRY)
 #else
-#define MAX_ACCEPT_FILES 2048
+#define MAX_ACCEPT_ENTRY 2048
 #endif
 #ifdef CONFIG_TOMOYO_MAX_GRANT_LOG
 #define MAX_GRANT_LOG (CONFIG_TOMOYO_MAX_GRANT_LOG)
@@ -73,7 +73,7 @@ static struct {
 	[CCS_SAKURA_RESTRICT_UNMOUNT]    = { "RESTRICT_UNMOUNT",    0, 3 },
 	[CCS_SAKURA_DENY_PIVOT_ROOT]     = { "DENY_PIVOT_ROOT",     0, 3 },
 	[CCS_SAKURA_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
-	[CCS_TOMOYO_MAX_ACCEPT_FILES]    = { "MAX_ACCEPT_FILES",    MAX_ACCEPT_FILES, INT_MAX },
+	[CCS_TOMOYO_MAX_ACCEPT_ENTRY]    = { "MAX_ACCEPT_ENTRY",    MAX_ACCEPT_ENTRY, INT_MAX },
 	[CCS_TOMOYO_MAX_GRANT_LOG]       = { "MAX_GRANT_LOG",       MAX_GRANT_LOG, INT_MAX },
 	[CCS_TOMOYO_MAX_REJECT_LOG]      = { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
 	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
@@ -548,7 +548,6 @@ static int ReadStatus(IO_BUFFER *head)
 				case -1: // Dummy
 #ifndef CONFIG_TOMOYO_MAC_FOR_FILE
 				case CCS_TOMOYO_MAC_FOR_FILE:
-				case CCS_TOMOYO_MAX_ACCEPT_FILES:
 #endif
 #ifndef CONFIG_TOMOYO_MAC_FOR_ARGV0
 				case CCS_TOMOYO_MAC_FOR_ARGV0:
@@ -578,6 +577,7 @@ static int ReadStatus(IO_BUFFER *head)
 				case CCS_SAKURA_RESTRICT_AUTOBIND:
 #endif
 #ifndef CONFIG_TOMOYO
+				case CCS_TOMOYO_MAX_ACCEPT_ENTRY:
 				case CCS_TOMOYO_MAX_GRANT_LOG:
 				case CCS_TOMOYO_MAX_REJECT_LOG:
 				case CCS_TOMOYO_VERBOSE:
@@ -1174,10 +1174,10 @@ void CCS_LoadPolicy(const char *filename)
 	}
 	
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.3.3-pre2   2007/03/03\n");
+	printk("SAKURA: 1.3.3-pre4   2007/03/08\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.3.3-pre2   2007/03/03\n");
+	printk("TOMOYO: 1.3.3-pre4   2007/03/08\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

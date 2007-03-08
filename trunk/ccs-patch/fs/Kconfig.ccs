@@ -13,9 +13,6 @@ config SAKURA
 
 	  SAKURA can restrict operations that affect systemwide.
 
-	  SAKURA can drop unnecessary capabilities
-	  to reduce the risk of exploitations.
-
 config SAKURA_RESTRICT_MOUNT
 	bool "  mount() restriction support"
 	default y
@@ -135,6 +132,19 @@ config TOMOYO
 	  You can make custom root fs with minimum files
 	  to run minimum applications with TOMOYO.
 
+config TOMOYO_MAX_ACCEPT_ENTRY
+	int "  Default maximal count for accept mode"
+	default 2048
+	range 0 2147483647
+	depends on TOMOYO
+	help
+	  This is the default value for maximal ACL entries
+	  that are automatically appended into policy at "accept mode".
+	  Some programs access thousands of objects, so running
+	  such programs in "accept mode" dulls the system response
+	  and consumes much memory.
+	  This is the safeguard for such programs.
+
 config TOMOYO_MAC_FOR_FILE
 	bool "  File Access Control support"
 	default y
@@ -145,19 +155,6 @@ config TOMOYO_MAC_FOR_FILE
 	  This is the main feature of TOMOYO.
 	  If you don't say Y to this option,
 	  you can't improve the system security.
-
-config TOMOYO_MAX_ACCEPT_FILES
-	int "  Default maximal count for accept mode"
-	default 2048
-	range 0 2147483647
-	depends on TOMOYO_MAC_FOR_FILE
-	help
-	  This is the default value for maximal entries for file access
-	  that are automatically appended into policy at "accept mode".
-	  Some programs access thousands of files, so running
-	  such programs in "accept mode" dulls the system response
-	  and consumes much memory.
-	  This is the safeguard for such programs.
 
 config TOMOYO_MAC_FOR_ARGV0
 	bool "  argv[0] checker support"

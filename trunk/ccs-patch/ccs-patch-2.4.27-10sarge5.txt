@@ -1,6 +1,6 @@
 diff -ubBpEr kernel-source-2.4.27-10sarge5/Documentation/Configure.help kernel-source-2.4.27-10sarge5-ccs/Documentation/Configure.help
 --- kernel-source-2.4.27-10sarge5/Documentation/Configure.help	2006-12-18 09:22:15.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/Documentation/Configure.help	2007-03-02 10:11:21.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/Documentation/Configure.help	2007-03-08 16:43:35.884510856 +0900
 @@ -29070,6 +29070,222 @@ CONFIG_SOUND_WM97XX
    
    If unsure, say N.
@@ -109,20 +109,20 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/Documentation/Configure.help kernel-s
 +  You can make custom root fs with minimum files
 +  to run minimum applications with TOMOYO.
 +
++CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
++  This is the default value for maximal ACL entries
++  that are automatically appended into policy at "accept mode".
++  Some programs access thousands of objects, so running
++  such programs in "accept mode" dulls the system response
++  and consumes much memory.
++  This is the safeguard for such programs.
++
 +CONFIG_TOMOYO_MAC_FOR_FILE
 +  Say Y here to support the MAC for file access.
 +
 +  This is the main feature of TOMOYO.
 +  If you don't say Y to this option,
 +  you can't improve the system security.
-+
-+CONFIG_TOMOYO_MAX_ACCEPT_FILES
-+  This is the default value for maximal entries for file access
-+  that are automatically appended into policy at "accept mode".
-+  Some programs access thousands of files, so running
-+  such programs in "accept mode" dulls the system response
-+  and consumes much memory.
-+  This is the safeguard for such programs.
 +
 +CONFIG_TOMOYO_MAC_FOR_ARGV0
 +  Say Y here to support the MAC for argv0.

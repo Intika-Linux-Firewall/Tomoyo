@@ -1,7 +1,7 @@
 diff -ubBpEr linux-2.4.31/Documentation/Configure.help linux-2.4.31-ccs/Documentation/Configure.help
 --- linux-2.4.31/Documentation/Configure.help	2007-03-03 10:49:53.000000000 +0900
-+++ linux-2.4.31-ccs/Documentation/Configure.help	2007-03-03 11:05:33.000000000 +0900
-@@ -29056,6 +29056,225 @@ CONFIG_SOUND_WM97XX
++++ linux-2.4.31-ccs/Documentation/Configure.help	2007-03-08 16:35:09.000000000 +0900
+@@ -29056,6 +29056,222 @@ CONFIG_SOUND_WM97XX
    
    If unsure, say N.
  
@@ -16,9 +16,6 @@ diff -ubBpEr linux-2.4.31/Documentation/Configure.help linux-2.4.31-ccs/Document
 +  that improves the system security with less effort.
 +
 +  SAKURA can restrict operations that affect systemwide.
-+
-+  SAKURA can drop unnecessary capabilities
-+  to reduce the risk of exploitations.
 +
 +CONFIG_SAKURA_RESTRICT_MOUNT
 +  This option allows you to restrict combinations of
@@ -112,20 +109,20 @@ diff -ubBpEr linux-2.4.31/Documentation/Configure.help linux-2.4.31-ccs/Document
 +  You can make custom root fs with minimum files
 +  to run minimum applications with TOMOYO.
 +
++CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
++  This is the default value for maximal ACL entries
++  that are automatically appended into policy at "accept mode".
++  Some programs access thousands of objects, so running
++  such programs in "accept mode" dulls the system response
++  and consumes much memory.
++  This is the safeguard for such programs.
++
 +CONFIG_TOMOYO_MAC_FOR_FILE
 +  Say Y here to support the MAC for file access.
 +
 +  This is the main feature of TOMOYO.
 +  If you don't say Y to this option,
 +  you can't improve the system security.
-+
-+CONFIG_TOMOYO_MAX_ACCEPT_FILES
-+  This is the default value for maximal entries for file access
-+  that are automatically appended into policy at "accept mode".
-+  Some programs access thousands of files, so running
-+  such programs in "accept mode" dulls the system response
-+  and consumes much memory.
-+  This is the safeguard for such programs.
 +
 +CONFIG_TOMOYO_MAC_FOR_ARGV0
 +  Say Y here to support the MAC for argv0.
