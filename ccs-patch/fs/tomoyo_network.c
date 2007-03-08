@@ -256,7 +256,7 @@ const char *network2keyword(const unsigned int operation)
 	return keyword;
 }
 
-static int AddNetworkEntry(const u8 operation, const u8 record_type, const struct address_group_entry *group, const u32 *min_address, const u32 *max_address, const u16 min_port, const u16 max_port, struct domain_info *domain, const u8 is_delete, const struct condition_list *condition)
+static int AddNetworkEntry(const u8 operation, const u8 record_type, const struct address_group_entry *group, const u32 *min_address, const u32 *max_address, const u16 min_port, const u16 max_port, struct domain_info *domain, const u8 is_add, const struct condition_list *condition)
 {
 	struct acl_info *ptr;
 	int error = -ENOMEM;
@@ -265,7 +265,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	const u32 min_ip = ntohl(*min_address), max_ip = ntohl(*max_address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!domain) return -EINVAL;
 	down(&domain_acl_lock);
-	if (!is_delete) {
+	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			IP_NETWORK_ACL_RECORD *new_ptr;
@@ -298,6 +298,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 				continue;
 			}
 		first_entry: ;
+			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = (IP_NETWORK_ACL_RECORD *) alloc_element(sizeof(IP_NETWORK_ACL_RECORD))) == NULL) break;
 			new_ptr->head.type = type;
@@ -379,7 +380,7 @@ static int CheckNetworkEntry(const int is_ipv6, const int operation, const u32 *
 		}
 		return CheckSupervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s %u.%u.%u.%u %u\n", domain->domainname->name, keyword, HIPQUAD(ip), port);
 	}
-	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6: IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, 0, NULL);
+	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6: IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, 1, NULL);
 	return 0;
 }
 
@@ -441,7 +442,7 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete
 	if (strchr(cp1, ' ')) goto out;
 	if ((count = sscanf(cp1, "%hu-%hu", &min_port, &max_port)) == 1 || count == 2) {
 		if (count == 1) max_port = min_port;
-		return AddNetworkEntry(operation, record_type, group, (u32 *) min_address, (u32 *) max_address, min_port, max_port, domain, is_delete, condition);
+		return AddNetworkEntry(operation, record_type, group, (u32 *) min_address, (u32 *) max_address, min_port, max_port, domain, is_delete ? 0 : -1, condition);
 	}
  out: ;
 	return -EINVAL;

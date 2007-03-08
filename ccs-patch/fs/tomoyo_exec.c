@@ -41,7 +41,7 @@ static inline void AuditArgv0Log(const struct path_info *filename, const char *a
 
 /*************************  ARGV0 MISMATCH HANDLER  *************************/
 
-static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_info *domain, const int is_delete, const struct condition_list *condition)
+static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_info *domain, const u8 is_add, const struct condition_list *condition)
 {
 	struct acl_info *ptr;
 	const struct path_info *saved_filename, *saved_argv0;
@@ -49,7 +49,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 	if (!IsCorrectPath(filename, 1, 0, -1, __FUNCTION__) || !IsCorrectPath(argv0, -1, 0, -1, __FUNCTION__) || strchr(argv0, '/')) return -EINVAL;
 	if ((saved_filename = SaveName(filename)) == NULL || (saved_argv0 = SaveName(argv0)) == NULL) return -ENOMEM;
 	down(&domain_acl_lock);
-	if (!is_delete) {
+	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			ARGV0_ACL_RECORD *new_ptr;
@@ -66,6 +66,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 				continue;
 			}
 		first_entry: ;
+			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = (ARGV0_ACL_RECORD *) alloc_element(sizeof(ARGV0_ACL_RECORD))) == NULL) break;
 			new_ptr->head.type = TYPE_ARGV0_ACL;
@@ -122,7 +123,7 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 			printk("TOMOYO-%s: Run %s as %s denied for %s\n", GetMSG(is_enforce), filename->name, argv0, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\n" KEYWORD_ALLOW_ARGV0 "%s %s\n", domain->domainname->name, filename->name, argv0);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_ARGV0)) AddArgv0Entry(filename->name, argv0, domain, 0, NULL);
+		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_ARGV0)) AddArgv0Entry(filename->name, argv0, domain, 1, NULL);
 		if (!is_enforce) error = 0;
 	}
 	return error;
@@ -137,7 +138,7 @@ int AddArgv0Policy(char *data, struct domain_info *domain, const int is_delete)
 	*argv0++ = '\0';
 	cp = FindConditionPart(argv0);
 	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
-	return AddArgv0Entry(data, argv0, domain, is_delete, condition);
+	return AddArgv0Entry(data, argv0, domain, is_delete ? 0 : -1, condition);
 }
 
 EXPORT_SYMBOL(CheckArgv0Perm);

@@ -173,5 +173,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 
 #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
 
+int TooManyDomainACL(struct domain_info * const domain);
+
 /***** TOMOYO Linux end. *****/
 #endif

@@ -33,7 +33,7 @@ static inline struct proc_dir_entry *PDE(const struct inode *inode)
 
 static int ccs_open(struct inode *inode, struct file *file)
 {
-	return CCS_OpenControl((const int) (PDE(inode)->data), file);
+	return CCS_OpenControl(((u8 *) PDE(inode)->data) - ((u8 *) NULL), file);
 }
 
 static int ccs_release(struct inode *inode, struct file *file)
@@ -69,7 +69,7 @@ static __init void CreateEntry(const char *name, const mode_t mode, struct proc_
 	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
 	if (entry) {
 		entry->proc_fops = &ccs_operations;
-		entry->data = (void *) key;
+		entry->data = ((u8 *) NULL) + key;
 	}
 }
 

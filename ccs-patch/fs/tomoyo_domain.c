@@ -124,6 +124,22 @@ int DelDomainACL(struct acl_info *ptr)
 	return 0;
 }
 
+int TooManyDomainACL(struct domain_info * const domain) {
+	unsigned int count = 0;
+	struct acl_info *ptr;
+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+		if (!ptr->is_deleted) count++;
+	}
+	/* If there are so many entries, don't append if accept mode. */
+	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 0;
+	if (!domain->quota_warned) {
+		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped auto-append mode.\n", domain->domainname->name);
+		domain->quota_warned = 1;
+	}
+	return 1;
+}
+
+
 /*************************  DOMAIN INITIALIZER HANDLER  *************************/
 
 static DOMAIN_INITIALIZER_ENTRY *domain_initializer_list = NULL;

@@ -276,7 +276,7 @@ typedef struct {
 #define CCS_SAKURA_RESTRICT_UNMOUNT              8  /* system_policy.txt      */
 #define CCS_SAKURA_DENY_PIVOT_ROOT               9
 #define CCS_SAKURA_RESTRICT_AUTOBIND            10  /* system_policy.txt      */
-#define CCS_TOMOYO_MAX_ACCEPT_FILES             11
+#define CCS_TOMOYO_MAX_ACCEPT_ENTRY             11
 #define CCS_TOMOYO_MAX_GRANT_LOG                12
 #define CCS_TOMOYO_MAX_REJECT_LOG               13
 #define CCS_TOMOYO_VERBOSE                      14

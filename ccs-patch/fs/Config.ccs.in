@@ -31,16 +31,12 @@ bool 'TOMOYO (Domain-Based Mandatory Access Control) support' CONFIG_TOMOYO
 
 if [ "$CONFIG_TOMOYO" = "y" ]; then
 
+  [ -z "$CONFIG_TOMOYO_MAX_ACCEPT_ENTRY" ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_ENTRY 2048
+  [ $CONFIG_TOMOYO_MAX_ACCEPT_ENTRY -lt 0 ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_ENTRY 0
+  int  '  Default maximal count for accept mode' CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
+
   [ -z "$CONFIG_TOMOYO_MAC_FOR_FILE" ] && define_bool CONFIG_TOMOYO_MAC_FOR_FILE y
   bool '  File Access Control support' CONFIG_TOMOYO_MAC_FOR_FILE
-
-  if [ "$CONFIG_TOMOYO_MAC_FOR_FILE" = "y" ]; then
-
-    [ -z "$CONFIG_TOMOYO_MAX_ACCEPT_FILES" ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_FILES 2048
-    [ $CONFIG_TOMOYO_MAX_ACCEPT_FILES -lt 0 ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_FILES 0
-    int  '  Default maximal count for accept mode' CONFIG_TOMOYO_MAX_ACCEPT_FILES
-
-  fi
 
   [ -z "$CONFIG_TOMOYO_MAC_FOR_ARGV0" ] && define_bool CONFIG_TOMOYO_MAC_FOR_ARGV0 y
   bool '  argv[0] checker support' CONFIG_TOMOYO_MAC_FOR_ARGV0
