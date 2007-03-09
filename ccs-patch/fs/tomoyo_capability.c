@@ -80,7 +80,11 @@ static const char *capability2name(const unsigned int capability)
 static unsigned int CheckCapabilityFlags(const unsigned int index)
 {
 	const u8 profile = current->domain_info->profile;
-	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX && profile < MAX_PROFILES && profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
+	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
+#if MAX_PROFILES != 256
+		&& profile < MAX_PROFILES
+#endif
+		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
 }
 
 /* Check whether the given capability control is enforce mode. */

@@ -456,7 +456,11 @@ const char *GetMSG(const int is_enforce)
 unsigned int CheckCCSFlags(const unsigned int index)
 {
 	const u8 profile = current->domain_info->profile;
-	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX && profile < MAX_PROFILES && profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
+	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
+#if MAX_PROFILES != 256
+		&& profile < MAX_PROFILES
+#endif
+		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
 }
 
 unsigned int TomoyoVerboseMode(void)
@@ -795,7 +799,7 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 			head->read_var1 = domain;
 			head->read_var2 = NULL; head->read_step = 1;
 		step1:
-			if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n\n", domain->domainname->name, domain->profile)) break;
+			if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "")) break;
 			head->read_var2 = (void *) domain->first_acl_ptr; head->read_step = 2;
 		step2:
 			for (ptr = (struct acl_info *) head->read_var2; ptr; ptr = ptr->next) {
@@ -1174,10 +1178,10 @@ void CCS_LoadPolicy(const char *filename)
 	}
 	
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.3.3-pre4   2007/03/08\n");
+	printk("SAKURA: 1.3.3-pre5   2007/03/09\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.3.3-pre4   2007/03/08\n");
+	printk("TOMOYO: 1.3.3-pre5   2007/03/09\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
