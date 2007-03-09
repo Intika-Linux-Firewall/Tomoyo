@@ -14,7 +14,7 @@ config SAKURA
 	  SAKURA can restrict operations that affect systemwide.
 
 config SAKURA_RESTRICT_MOUNT
-	bool "  mount() restriction support"
+	bool "mount() restriction support"
 	default y
 	depends on SAKURA
 	help
@@ -28,7 +28,7 @@ config SAKURA_RESTRICT_MOUNT
 	  with this option.
 
 config SAKURA_RESTRICT_CHROOT
-	bool "  chroot() restriction support"
+	bool "chroot() restriction support"
 	default y
 	depends on SAKURA
 	help
@@ -45,7 +45,7 @@ config SAKURA_RESTRICT_CHROOT
 	  or mandatory file access controls are enforced.
 
 config SAKURA_RESTRICT_UNMOUNT
-	bool "  umount() restriction support"
+	bool "umount() restriction support"
 	default y
 	depends on SAKURA
 	help
@@ -59,7 +59,7 @@ config SAKURA_RESTRICT_UNMOUNT
 	  /proc with this option.
 
 config SAKURA_DENY_CONCEAL_MOUNT
-	bool "  Conceal mount disabler support"
+	bool "Conceal mount disabler support"
 	default y
 	depends on SAKURA
 	help
@@ -72,7 +72,7 @@ config SAKURA_DENY_CONCEAL_MOUNT
 	  You can prevent such cases with this option.
 
 config SAKURA_DENY_PIVOT_ROOT
-	bool "  pivot_root() disabler support"
+	bool "pivot_root() disabler support"
 	default y
 	depends on SAKURA
 	help
@@ -83,7 +83,7 @@ config SAKURA_DENY_PIVOT_ROOT
 	  after /sbin/init starts.
 
 config SAKURA_RESTRICT_AUTOBIND
-	bool "  Autobind restriction support"
+	bool "Autobind restriction support"
 	default y
 	depends on SAKURA
 	help
@@ -133,7 +133,7 @@ config TOMOYO
 	  to run minimum applications with TOMOYO.
 
 config TOMOYO_MAX_ACCEPT_ENTRY
-	int "  Default maximal count for accept mode"
+	int "Default maximal count for accept mode"
 	default 2048
 	range 0 2147483647
 	depends on TOMOYO
@@ -146,7 +146,7 @@ config TOMOYO_MAX_ACCEPT_ENTRY
 	  This is the safeguard for such programs.
 
 config TOMOYO_MAC_FOR_FILE
-	bool "  File Access Control support"
+	bool "File Access Control support"
 	default y
 	depends on TOMOYO
 	help
@@ -157,7 +157,7 @@ config TOMOYO_MAC_FOR_FILE
 	  you can't improve the system security.
 
 config TOMOYO_MAC_FOR_ARGV0
-	bool "  argv[0] checker support"
+	bool "argv[0] checker support"
 	default y
 	depends on TOMOYO
 	help
@@ -171,7 +171,7 @@ config TOMOYO_MAC_FOR_ARGV0
 	  This option allows you to prevent unexpected argv[0].
 
 config TOMOYO_MAC_FOR_NETWORK
-	bool "  Network Address Port Control support"
+	bool "Network Address Port Control support"
 	default y
 	depends on TOMOYO
 	help
@@ -193,7 +193,7 @@ config TOMOYO_MAC_FOR_NETWORK
 	  allow_connect UDP 10.0.0.2 53
 
 config TOMOYO_MAC_FOR_SIGNAL
-	bool "  Signal Control support"
+	bool "Signal Control support"
 	default y
 	depends on TOMOYO
 	help
@@ -207,7 +207,7 @@ config TOMOYO_MAC_FOR_SIGNAL
 	  can kill arbitrary processes.
 
 config TOMOYO_MAC_FOR_CAPABILITY
-	bool "  Capability Control support"
+	bool "Capability Control support"
 	default y
 	depends on TOMOYO
 	help
@@ -224,7 +224,7 @@ config TOMOYO_MAC_FOR_CAPABILITY
 	  that a domain can create using mknod.
 
 config TOMOYO_AUDIT
-	bool "  Auditing support"
+	bool "Auditing support"
 	default y
 	depends on TOMOYO
 	help
@@ -236,7 +236,7 @@ config TOMOYO_AUDIT
 	  If you don't need these logs you can disable this option.
 
 config TOMOYO_MAX_GRANT_LOG
-	int "  Default maximal count for grant log"
+	int "Default maximal count for grant log"
 	default 1024
 	range 0 2147483647
 	depends on TOMOYO_AUDIT
@@ -248,7 +248,7 @@ config TOMOYO_MAX_GRANT_LOG
 	  you may set this value to 0.
 
 config TOMOYO_MAX_REJECT_LOG
-	int "  Default maximal count for reject log"
+	int "Default maximal count for reject log"
 	default 1024
 	range 0 2147483647
 	depends on TOMOYO_AUDIT
