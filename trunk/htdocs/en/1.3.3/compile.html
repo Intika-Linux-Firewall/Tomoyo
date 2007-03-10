@@ -1,0 +1,709 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux kernel compilation</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<h1>TOMOYO Linux kernel compilation</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<p>TOMOYO Linux provides some binary kernel packages, but if the CPU architecture differs or you want to customize the kernel configuration, you need to compile kernel. To compile kernel, the following packages are needed.</p>
+
+<ul>
+<li>gcc</li>
+<li>make</li>
+<li>ncureses</li>
+</ul>
+
+<p>TOMOYO Linux can enable functions selectively. Choose "File systems" at menuconfig and scroll to the bottom, and you will see the following options.</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support
+<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
+<li>&lt;m&gt; SYAORAN (Tamper-Proof Device Filesystem) support
+</ul>
+
+<p>Refer the descriptions below and choose options you want to support.</p>
+
+<table border="1">
+<tr><td>
+<h3>Controlling read/write/execute for files.</h3>
+
+<p>This function restricts files and directories accessible for programs.</p>
+
+<p>The granularity is defined as the following.</p>
+
+<table border="1">
+<tr><td>Permission</td><td>Access granted by the permission</td></tr>
+<tr><td>1</td><td>Execute the program.</td></tr>
+<tr><td>2</td><td>Open the file for writing.</td></tr>
+<tr><td>3</td><td>Open the file for writing./Execute the program.</td></tr>
+<tr><td>4</td><td>Open the file for reading.</td></tr>
+<tr><td>5</td><td>Open the file for reading./Execute the program.</td></tr>
+<tr><td>6</td><td>Open the file for reading and writing.</td></tr>
+<tr><td>7</td><td>Open the file for reading and writing./Execute the program.</td></tr>
+<tr><td>allow_create</td><td>Create the file.</td></tr>
+<tr><td>allow_unlink</td><td>Delete the file.</td></tr>
+<tr><td>allow_mkdir</td><td>Create the directory.</td></tr>
+<tr><td>allow_rmdir</td><td>Remove the directory.</td></tr>
+<tr><td>allow_mkfifo</td><td>Create the FIFO.</td></tr>
+<tr><td>allow_mksock</td><td>Create the UNIX domain socket.</td></tr>
+<tr><td>allow_mkblock</td><td>Create the block device file.</td></tr>
+<tr><td>allow_mkchar</td><td>Create the character device file.</td></tr>
+<tr><td>allow_truncate</td><td>Truncate or expand the file.</td></tr>
+<tr><td>allow_symlink</td><td>Create the symbolic link.</td></tr>
+<tr><td>allow_link</td><td>Create the hard link.</td></tr>
+<tr><td>allow_rename</td><td>Rename the file.</td></tr>
+<tr><td>allow_rewrite</td><td>Overwrite already written part.</td></tr>
+</table>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;File Access Control support
+</ul>
+
+<p>This function is essential for restricting domain transitions of TOMOYO Linux. If you don't enable this function, "TOMOYO (Domain-Based Mandatory Access Control) support" can't work properly because it is impossible to restrict domain transitions.</p>
+
+</td></tr><tr><td>
+
+<h3>Controlling use of capabilities.</h3>
+
+<p>This function restricts capabilities allowed for programs.</p>
+
+<p>The capability used by standard Linux is called "POSIX capability". Since the maximal kind of capability is limited to 32, some specific capability (especially CAP_SYS_ADMIN capability) tends to used by many purposes, making impossible to perform fine-grained capability checking. Therefore, TOMOYO Linux doesn't control POSIX capability. The capability used by TOMOYO Linux is defined based on original standards.</p>
+
+<p>The granularity is defined as the following.</p>
+
+<table border="1">
+<tr><td>Capability</td><td>Operations granted by the capability</td></tr>
+<tr><td>inet_tcp_create</td><td>Use of TCP socket.</td></tr>
+<tr><td>inet_tcp_listen</td><td>Listening TCP socket.</td></tr>
+<tr><td>inet_tcp_connect</td><td>Connecting TCP socket.</td></tr>
+<tr><td>use_inet_udp</td><td>Use of UDP socket.</td></tr>
+<tr><td>use_inet_ip</td><td>Use of RAW socket.</td></tr>
+<tr><td>use_route</td><td>Use of ROUTE socket.</td></tr>
+<tr><td>use_packet</td><td>Use of PACKET socket.</td></tr>
+<tr><td>use_kernel_module</td><td>Use of kernel modules.</td></tr>
+<tr><td>create_fifo</td><td>Creating FIFO.</td></tr>
+<tr><td>create_block_dev</td><td>Creating block device file.</td></tr>
+<tr><td>create_char_dev</td><td>Creating character device file.</td></tr>
+<tr><td>create_unix_socket</td><td>Creating UNIX domain socket.</td></tr>
+<tr><td>SYS_MOUNT</td><td>Mounting filesystem.</td></tr>
+<tr><td>SYS_UMOUNT</td><td>Unmounting filesystem.</td></tr>
+<tr><td>SYS_REBOOT</td><td>Rebooting the system.</td></tr>
+<tr><td>SYS_CHROOT</td><td>Changing the "/" directory.</td></tr>
+<tr><td>SYS_KILL</td><td>Sending signals.</td></tr>
+<tr><td>SYS_VHANGUP</td><td>Use of vhangup.</td></tr>
+<tr><td>SYS_TIME</td><td>Setting system's clock.</td></tr>
+<tr><td>SYS_NICE</td><td>Setting process priority.</td></tr>
+<tr><td>SYS_SETHOSTNAME</td><td>Setting hostname or domainname.</td></tr>
+<tr><td>SYS_LINK</td><td>Creating hard link.</td></tr>
+<tr><td>SYS_SYMLINK</td><td>Creating symbolic link.</td></tr>
+<tr><td>SYS_RENAME</td><td>Renaming file.</td></tr>
+<tr><td>SYS_UNLINK</td><td>Deleting file.</td></tr>
+<tr><td>SYS_CHMOD</td><td>Changing file's permissions.</td></tr>
+<tr><td>SYS_CHOWN</td><td>Changing file's owner or group.</td></tr>
+<tr><td>SYS_IOCTL</td><td>Use of ioctl.</td></tr>
+<tr><td>SYS_KEXEC_LOAD</td><td>Loading new kernel.</td></tr>
+</table>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;Capability Control support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Controlling use of TCP/IP networking</h3>
+
+<p>This function restricts IP addresses and port numbers programs can use.</p>
+
+<p>You can use this function to allow, for example, allowing UDP communication with DNS server's IP address and port 53 and/or restricting the range of acceptable IP addresses for SSH server.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;Network Address Port Control support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Controlling use of signal numbers and destination domains</h3>
+
+<p>This function restricts the combination of signal numbers and destination domains programs can use.</p>
+
+<p>You can use this function to prevent crackers from sending arbitrary signals to arbitrary processes to terminate arbitrary services.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;Signal Control support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Limit passing different names on program execution</h3>
+
+<p>This function limits passing different names on program execution.</p>
+
+<p>When a program is executed, the name of program and parameters for the program are passed in the form of array of string called argv[]. The first element (argv[0]) contains the name of program.<br>
+Some programs behave differently depending on the content of argv[0]. For such programs, the actual behavior is determined based on the content of argv[0], while the actual domain transition is determined based on the pathname of the program.<br>
+This mismatch allows crackers passing different values for the pathname of the program and argv[0] intently to cause unexpected behavior. You can use this function to limit the acceptable combination of the pathname of the program and argv[0] when the pathname of the program and argv[0] differ.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;argv[0] checker support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Controlling "the combination of device files and mount points and filesystems" and applying "specific mount options" forcefully</h3>
+
+<p>In Linux, arbitrary filesystems can be mounted on arbitrary directories if the process has the administrator's privileges. This means that if a process with the administrator's privileges has been hijacked, tmpfs may be mounted on /bin/ directory to replace normal programs with malicious programs, tmpfs may be mounted on /var/www/ directory to shadow WWW contents.</p>
+
+<p>If you enable TOMOYO Linux's capability control, you can restrict domains that can do mount operation. But such domains can do arbitrary mount operation if the capability is given, and it's not desirable.</p>
+
+<p>You can use this function to restrict the combination of device files and mount points and filesystems.</p>
+
+<p>This function also includes functions to forcefully apply specific mount options.
+For example, if you command enforcing nodev option for /tmp/ partition to avoid accessing device files, the kernel will mount with nodev option applied even if the user requested to mount with dev option.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;mount() restriction support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Forbidding unmounting specific directories.</h3>
+
+<p>In Linux, arbitrary mount points can be unmounted if the process has the administrator's privileges. This means that if a process with the administrator's privileges has been hijacked, proc filesystem mounted on /proc/ directory may be unmounted to cause application malfunction.</p>
+
+<p>If you enable TOMOYO Linux's capability control, you can restrict domains that can do unmount operation. But such domains can do arbitrary unmount operation if the capability is given, and it's not desirable.</p>
+
+<p>You can use this function to prevent specific mount points from unmounting.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;umount() restriction support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Rejecting mount requests that will shadow existent mount points</h3>
+
+<p>In Linux, it is possible to mount on a mount point that is already mounted on if the process has the administrator's privileges. This means that if a process with the administrator's privileges has been hijacked, tmpfs can be mounted on /var/ partition that is already mounted to cause application malfunction.</p>
+
+<p>If you enable TOMOYO Linux's capability control, you can restrict domains that can do mount operation. But such domains can do arbitrary mount operation if the capability is given, and it's not desirable.</p>
+
+<p>You can use this function to reject mount request that will shadow existent mount points.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;Conceal mount disabler support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Restricting directories that are allowed to chroot to</h3>
+
+<p>In Linux, it is possible to chroot to arbitrary directories if the process has the administrator's privileges. This means that if a process with the administrator's privileges has been hijacked, the cracker can chroot to inappropriate directory to cause application malfunction.</p>
+
+<p>If you enable TOMOYO Linux's capability control, you can restrict domains that can do chroot operation. But such domains can do arbitrary chroot operation if the capability is given, and it's not desirable.</p>
+
+<p>You can use this function to restrict directories that are allowed to chroot to.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;chroot() restriction support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Forbidding use of pivot_root</h3>
+
+<p>While chroot moves "/" directory, pivot_root exchanges "/" directory. In many cases, pivot_root is used only once on boot, and is seldom used after boot.</p>
+
+<p>You can use this function to disable pivot_root after boot.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;pivot_root() disabler support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Restricting local port ranges for automatically assignment for TCP/IP networking</h3>
+
+<p>In Linux, an unused local port number within the range defined in /sys/net/ipv4/ip_local_port_range is assigned when a process called bind() with port number 0 or called connect() without bind(). But only the minimal and maximal values can be controlled by /sys/net/ipv4/ip_local_port_range and there is no functions to exclude specific values.</p>
+
+<p>For example, even if you want to reserve local port 8080 for proxy server program, if /sys/net/ipv4/ip_local_port_range has the values 1024 65535, the port 8080 can be assigned to other programs by automatic local port number assignment. You won't be able to start proxy server since the port 8080 is already in use. Also, some clients that want to connect to proxy server program will connect to the port 8080, but the clients will be connected to programs other than proxy server program.</p>
+
+<p>You can use this function to exclude specific local port numbers for automatic local port number assignment (which is equivalent to allow defining multiple ranges in /proc/sys/net/ipv4/ip_local_port_range).</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;Autobind restriction support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>Device filesystem that can ensure device's attributes</h3>
+
+<p>There are many device files in the /dev directory. It is mandatory for system security that the device files are always associated with correct devices. For example, if /dev/null exists with major-8-0 (/dev/sda) attributes instead of char-1-3, the contents of the SCSI HDD will be destroyed at a blow. Also, if /dev/null exists as a regular file, this may cause leak of information.</p>
+
+<p>Therefore, by mounting SYAORAN filesystem that can enforce the combinations of filenames and attributes on /dev/ directory, you can ensure, for example, /dev/null always exists with char-1-3 attributes.</p>
+
+<p>To enable this function, choose the following options.</p>
+
+<ul>
+<li>&lt;m&gt; SYAORAN (Tamper-Proof Device Filesystem) support
+</ul>
+
+<p>If you are using udev, udev will automatically mounts tmpfs on /dev/ directory and SYAORAN filesystem previously mounted gets shadowed. To prevent such mounts, choose the following options too if you are using  udev.</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;Conceal mount disabler support
+</ul>
+
+</td></tr>
+</table>
+
+<p>The 2.6 kernels has a compilation option named CONFIG_DEBUG_INFO. If this option is enabled, the compiled code's size becomes about 10 times larger. Enabling this option consumes about 1 GB of extra disk space for /usr/src/ directory and about 300 MB of extra disk space for /lib/modules/ directory.<br>
+To save disk space, disable the following option.</p>
+
+<table border="1">
+<tr><td>
+Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
+</td></tr>
+</table>
+
+<p>Choose the version you want to use from the following list.</p>
+
+<ul>
+<li><a href="#2.4.20-46.9.legacy">Kernel 2.4.20-46.9.legacy for RedHat Linux 9</a>
+<li><a href="#2.6.12-2.3.legacy_FC3">Kernel 2.6.12-2.3.legacy_FC3 for Fedora Core 3</a>
+<li><a href="#2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a>
+<li><a href="#2.6.19-1.2288.2.1.fc5">Kernel 2.6.19-1.2288.2.1.fc5 for Fedora Core 5</a>
+<li><a href="#2.6.19-1.2911.6.4.fc6">Kernel 2.6.19-1.2911.6.4.fc6 for Fedora Core 6</a>
+<li><a href="#2.6.9-42.0.10.EL">Kernel 2.6.9-42.0.10.EL for CentOS 4.4</a>
+<li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
+<li><a href="#2.6.8-16sarge6">Kernel 2.6.8-16sarge6 for Debian Sarge</a>
+<li><a href="#2.6.16.27-0.9">Kernel 2.6.16.27-0.9 for OpenSUSE 10.1</a>
+<li><a href="#2.6.18.2-34">Kernel 2.6.18.2-34 for OpenSUSE 10.2</a>
+<li><a href="#2.6.18-11">Kernel 2.6.18-11 for Debian Etch</a>
+<li><a href="#2.6.9-42.8AX">Kernel 2.6.9-42.8AX for Asianux 2.0</a>
+<li><a href="#2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a>
+<li><a href="#2.6-vanilla">Vanilla 2.6 kernels</a>
+<li><a href="#2.4-vanilla">Vanilla 2.4 kernels</a>
+</ul>
+
+<hr>
+
+<h2><a name="2.4.20-46.9.legacy">Kernel 2.4.20-46.9.legacy for RedHat Linux 9</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://download.fedoralegacy.org/redhat/9/updates/i386/kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
+rpm -ivh kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.4.20-46.9.legacy/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.4.20-46.9.legacy.txt<br>
+# Remove all temporary files but configuration file.<br>
+mv .config config<br>
+make -s distclean<br>
+mv config .config<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s dep modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.12-2.3.legacy_FC3">Kernel 2.6.12-2.3.legacy_FC3 for Fedora Core 3</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://download.fedoralegacy.org/fedora/3/updates/SRPMS/kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
+rpm -ivh kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.12/linux-2.6.12/ /usr/src/linux-2.6.12-2.3.legacy_FC3<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.12-2.3.legacy_FC3/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -2.3.legacy_FC3/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.12-2.3.legacy_FC3.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/4/SRPMS/kernel-2.6.17-1.2142_FC4.src.rpm<br>
+rpm -ivh kernel-2.6.17-1.2142_FC4.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.17/linux-2.6.17/ /usr/src/linux-2.6.17-1.2142_FC4<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.17-1.2142_FC4/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2142_FC4/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.17-1.2142_FC4.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.19-1.2288.2.1.fc5">Kernel 2.6.19-1.2288.2.1.fc5 for Fedora Core 5</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/5/SRPMS/kernel-2.6.19-1.2288.2.1.fc5.src.rpm<br>
+rpm -ivh kernel-2.6.19-1.2288.2.1.fc5.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.19/linux-2.6.19.i586/ /usr/src/linux-2.6.19-1.2288.2.1.fc5<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.19-1.2288.2.1.fc5/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2288.2.1.fc5/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.19-1.2288.2.1.fc5.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.19-1.2911.6.4.fc6">Kernel 2.6.19-1.2911.6.4.fc6 for Fedora Core 6</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/6/source/SRPMS/kernel-2.6.19-1.2911.6.4.fc6.src.rpm<br>
+rpm -ivh kernel-2.6.19-1.2911.6.4.fc6.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.19/linux-2.6.19.i586/ /usr/src/linux-2.6.19-1.2911.6.4.fc6<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.19-1.2911.6.4.fc6/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2911.6.4.fc6/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.19-1.2911.6.4.fc6.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.9-42.0.10.EL">Kernel 2.6.9-42.0.10.EL for CentOS 4.4</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://mirrors.kernel.org/centos/4.4/updates/SRPMS/kernel-2.6.9-42.0.10.EL.src.rpm<br>
+rpm -ivh kernel-2.6.9-42.0.10.EL.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.0.10.EL<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.9-42.0.10.EL/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.0.10.EL/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.9-42.0.10.EL.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+apt-get install kernel-source-2.4.27<br>
+tar -jxf /usr/src/kernel-source-2.4.27.tar.bz2<br>
+# Move to the source directory.<br>
+cd kernel-source-2.4.27/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.4.27-10sarge5.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s dep install modules modules_install<br>
+# Create initrd.<br>
+mkinitrd -o /boot/initrd.img-2.4.27-10sarge5-ccs 2.4.27-10sarge5-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.8-16sarge6">Kernel 2.6.8-16sarge6 for Debian Sarge</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+apt-get install kernel-source-2.6.8<br>
+tar -jxf /usr/src/kernel-source-2.6.8.tar.bz2<br>
+# Move to the source directory.<br>
+cd kernel-source-2.6.8/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.8-16sarge6.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s install modules modules_install<br>
+# Create initrd.<br>
+mkinitrd -o /boot/initrd.img-2.6.8-16sarge6-ccs 2.6.8-16sarge6-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.16.27-0.9">Kernel 2.6.16.27-0.9 for OpenSUSE 10.1</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.27-0.9.i586.rpm<br>
+rpm -ivh kernel-source-2.6.16.27-0.9.i586.rpm<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.16.27-0.9/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.16.27-0.9_SUSE.txt<br>
+# Move to the output directory.<br>
+cd /usr/src/linux-2.6.16.27-0.9-obj/i386/default/<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.18.2-34">Kernel 2.6.18.2-34 for OpenSUSE 10.2</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://mirrors.kernel.org/opensuse/distribution/10.2/repo/oss/suse/i586/kernel-source-2.6.18.2-34.i586.rpm<br>
+rpm -ivh kernel-source-2.6.18.2-34.i586.rpm<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.18.2-34/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.18.2-34_SUSE.txt<br>
+# Move to the output directory.<br>
+cd /usr/src/linux-2.6.18.2-34-obj/i386/default/<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.18-11">Kernel 2.6.18-11 for Debian Etch</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+apt-get install linux-source-2.6.18<br>
+tar -jxf /usr/src/linux-source-2.6.18.tar.bz2<br>
+# Move to the source directory.<br>
+cd linux-source-2.6.18/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.18-11etch.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s install modules modules_install<br>
+# Create initrd.<br>
+mkinitrd -o /boot/initrd.img-2.6.18-ccs 2.6.18-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.9-42.8AX">Kernel 2.6.9-42.8AX for Asianux 2.0</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.8AX.src.rpm<br>
+rpm -ivh kernel-2.6.9-42.8AX.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.8AX<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.9-42.8AX/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.8AX/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.9-42.8AX.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+apt-get install linux-source-2.6.17<br>
+tar -jxf /usr/src/linux-source-2.6.17.tar.bz2<br>
+# Move to the source directory.<br>
+cd linux-source-2.6.17/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.17.14-ubuntu1.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s install modules modules_install<br>
+# Create initramfs.<br>
+mkinitramfs -o /boot/initrd.img-2.6.17.14-ubuntu1-ccs 2.6.17.14-ubuntu1-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6-vanilla">Vanilla 2.6 kernels</a></h2>
+
+<p>2.6.11 and later are supported. The following is the case of version 2.6.20 .</p>
+
+<table border="1">
+<tr><td>
+# Create a directory where the kernel modules are installed.<br>
+mkdir -p /lib/modules/2.6.20-ccs<br>
+# Move to the source directory.<br>
+cd /usr/src/<br>
+# Download kernel source.<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.20.tar.bz2<br>
+# Extract.<br>
+tar -jxf linux-2.6.20.tar.bz2<br>
+# Move to the extracted directory.<br>
+cd linux-2.6.20<br>
+# Remove world writable permissions from the source code.<br>
+find -print0 | xargs -0 chmod go-w --<br>
+# Download TOMOYO Linux's kernel patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+# Extract.<br>
+tar -zxf ccs-patch.tar.gz<br>
+# Apply the kernel patch.<br>
+patch -sp1 &lt; ccs-patch-2.6.20.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s install modules modules_install
+</td></tr>
+</table>
+
+<h2><a name="2.4-vanilla">Vanilla 2.4 kernels</a></h2>
+
+<p>2.4.30 and later are supported. The following is the case of version 2.4.34 .</p>
+
+<table border="1">
+<tr><td>
+# Create a directory where the kernel modules are installed.<br>
+mkdir -p /lib/modules/2.4.34-ccs<br>
+# Move to the source directory.<br>
+cd /usr/src/<br>
+# Download kernel source.<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.34.tar.bz2<br>
+# Extract.<br>
+tar -jxf linux-2.4.34.tar.bz2<br>
+# Move to the extracted directory.<br>
+cd linux-2.4.34<br>
+# Remove world writable permissions from the source code.<br>
+find -print0 | xargs -0 chmod go-w --<br>
+# Download TOMOYO Linux's kernel patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+# Extract.<br>
+tar -zxf ccs-patch.tar.gz<br>
+# Apply the kernel patch.<br>
+patch -sp1 &lt; ccs-patch-2.4.34.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s dep<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+</body>
+</html>
