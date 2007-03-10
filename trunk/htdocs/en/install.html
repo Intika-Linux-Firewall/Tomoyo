@@ -1408,6 +1408,28 @@ allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
 </td></tr>
 </table>
 
+<p>By defining a address group</p>
+
+<table border="1">
+<tr><td>
+address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
+address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
+address_group SSH-CLIENT-ADDRESS 10.0.0.1-10.0.0.255 1024-65535
+</td></tr>
+</table>
+
+<p>in the exception policy, you can simplify</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept @SSH-CLIENT-ADDRESS 1024-65535
+</td></tr>
+</table>
+
+<p>in the domain policy.</p>
+
 <h2>Add conditions to ACLs</h2>
 
 <p>You can add conditions to individual ACLs if necessary. By using this feature, you can control system's user ID based access control.</p>
