@@ -765,6 +765,7 @@
 <ul>
 <li>パス名のパターン</li>
 <li>パス名のグループ</li>
+<li>アドレスのグループ</li>
 <li>無条件に読み込みを許可するファイル</li>
 <li>書き換えを禁止するファイル</li>
 <li>シンボリックリンクの名前で実行するプログラム</li>
@@ -816,6 +817,29 @@ path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
 <table border="1">
 <tr><td>
 4 @HOME-DIR-FILE
+</td></tr>
+</table>
+
+<p>のように指定できる。</p>
+
+<h3>アドレスのグループ</h3>
+
+<p>アドレスのグループを定義するには、 address_group というディレクティブに続けて、グループ名とIPアドレスのパターンを指定する。<br>
+　例えば、ローカルアドレスをまとめたい場合、</p>
+
+<table border="1">
+<tr><td>
+address_group local-address 10.0.0.0-10.255.255.255<br>
+address_group local-address 172.16.0.0-172.31.255.255<br>
+address_group local-address 192.168.0.0-192.168.255.255
+</td></tr>
+</table>
+
+<p>のように定義しておくことで、ドメイン別ポリシーのネットワークに対するアクセス許可を指定する際に</p>
+
+<table border="1">
+<tr><td>
+allow_network TCP accept @local-address 1024-65535
 </td></tr>
 </table>
 

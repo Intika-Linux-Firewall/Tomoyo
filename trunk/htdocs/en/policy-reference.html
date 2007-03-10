@@ -776,6 +776,7 @@ You can restrict more strictly with other directives and policy files for some s
 <ul>
 <li>Pathname pattern</li>
 <li>Pathname group</li>
+<li>Address group</li>
 <li>Unconditionally readable files</li>
 <li>Files that aren't rewritable by default</li>
 <li>Programs invocable via symbolic links</li>
@@ -829,6 +830,28 @@ path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
 </table>
 
 <p>to grant file access permission.</p>
+
+<h3>Address group</h3>
+
+<p>To declare address group, use address_group directive followed by name of the group and IP address pattern. For example, if you want to group all local addresses, you can define</p>
+
+<table border="1">
+<tr><td>
+address_group local-address 10.0.0.0-10.255.255.255<br>
+address_group local-address 172.16.0.0-172.31.255.255<br>
+address_group local-address 192.168.0.0-192.168.255.255
+</td></tr>
+</table>
+
+<p>in the exception policy and use like</p>
+
+<table border="1">
+<tr><td>
+allow_network TCP accept @local-address 1024-65535
+</td></tr>
+</table>
+
+<p>to grant network access permission.</p>
 
 <h3>Unconditionally readable files</h3>
 
