@@ -553,7 +553,7 @@ diff -ubBpEr linux-source-2.6.18-11/fs/proc/Makefile linux-source-2.6.18-11-ccs/
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-source-2.6.18-11/fs/proc/proc_misc.c linux-source-2.6.18-11-ccs/fs/proc/proc_misc.c
 --- linux-source-2.6.18-11/fs/proc/proc_misc.c	2007-03-02 11:02:16.000000000 +0900
-+++ linux-source-2.6.18-11-ccs/fs/proc/proc_misc.c	2007-03-06 11:19:40.000000000 +0900
++++ linux-source-2.6.18-11-ccs/fs/proc/proc_misc.c	2007-03-12 13:14:49.000000000 +0900
 @@ -723,4 +723,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -563,7 +563,7 @@ diff -ubBpEr linux-source-2.6.18-11/fs/proc/proc_misc.c linux-source-2.6.18-11-c
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.18-11 2007/03/06\n");
++		printk("Hook version: 2.6.18-11 2007/03/12\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1051,7 +1051,7 @@ diff -ubBpEr linux-source-2.6.18-11/net/ipv4/udp.c linux-source-2.6.18-11-ccs/ne
  		}
 diff -ubBpEr linux-source-2.6.18-11/net/ipv6/inet6_hashtables.c linux-source-2.6.18-11-ccs/net/ipv6/inet6_hashtables.c
 --- linux-source-2.6.18-11/net/ipv6/inet6_hashtables.c	2007-03-02 11:02:16.000000000 +0900
-+++ linux-source-2.6.18-11-ccs/net/ipv6/inet6_hashtables.c	2007-03-02 12:50:30.000000000 +0900
++++ linux-source-2.6.18-11-ccs/net/ipv6/inet6_hashtables.c	2007-03-12 13:13:29.000000000 +0900
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1062,6 +1062,15 @@ diff -ubBpEr linux-source-2.6.18-11/net/ipv6/inet6_hashtables.c linux-source-2.6
  
  void __inet6_hash(struct inet_hashinfo *hashinfo,
  				struct sock *sk)
+@@ -172,7 +175,7 @@ static int __inet6_check_established(str
+ 	const struct in6_addr *saddr = &np->daddr;
+ 	const int dif = sk->sk_bound_dev_if;
+ 	const u32 ports = INET_COMBINED_PORTS(inet->dport, lport);
+-	const unsigned int hash = inet6_ehashfn(daddr, inet->num, saddr,
++	const unsigned int hash = inet6_ehashfn(daddr, lport, saddr,
+ 						inet->dport);
+ 	struct inet_ehash_bucket *head = inet_ehash_bucket(hinfo, hash);
+ 	struct sock *sk2;
 @@ -266,6 +269,9 @@ int inet6_hash_connect(struct inet_timew
   		local_bh_disable();
  		for (i = 1; i <= range; i++) {
