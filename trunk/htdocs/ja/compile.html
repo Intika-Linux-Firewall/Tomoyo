@@ -326,6 +326,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.20-1.2300.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2300.fc5</a>
 <li><a href="#2.6.20-1.2925.fc6">Fedora Core 6 用のカーネル 2.6.20-1.2925.fc6</a>
 <li><a href="#2.6.9-42.0.10.EL">CentOS 4.4 用のカーネル 2.6.9-42.0.10.EL</a>
+<li><a href="#2.6.18-1.2747.el5">CentOS 5 用のカーネル 2.6.18-1.2747.el5</a>
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
 <li><a href="#2.6.8-16sarge6">Debian Sarge 用のカーネル 2.6.8-16sarge6</a>
 <li><a href="#2.6.16.27-0.9">OpenSUSE 10.1 用のカーネル 2.6.16.27-0.9</a>
@@ -484,6 +485,32 @@ sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.0.10.EL/' Makefile<br>
 wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
 patch -sp1 &lt; ccs-patch-2.6.9-42.0.10.EL.txt<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.18-1.2747.el5">CentOS 5 用のカーネル 2.6.18-1.2747.el5</a></h2>
+
+<table border="1">
+<tr><td>
+# カーネルのソースをダウンロードしてインストールする。<br>
+wget http://beta.centos.org/centos/5/os/SRPMS/kernel-2.6.18-1.2747.el5.src.rpm<br>
+rpm -ivh kernel-2.6.18-1.2747.el5.src.rpm<br>
+# コンパイルの準備をする。<br>
+rpmbuild -bp --target i686 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i686/ /usr/src/linux-2.6.18-1.2747.el5<br>
+# ソースのディレクトリへ移動する。<br>
+cd /usr/src/2.6.18-1.2747.el5/<br>
+# バージョン番号を修正する。<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2747.el5/' Makefile<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
+patch -sp1 &lt; ccs-patch-2.6.18-1.2747.el5.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
