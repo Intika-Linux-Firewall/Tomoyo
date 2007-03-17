@@ -311,6 +311,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.20-1.2300.fc5">Kernel 2.6.20-1.2300.fc5 for Fedora Core 5</a>
 <li><a href="#2.6.20-1.2925.fc6">Kernel 2.6.20-1.2925.fc6 for Fedora Core 6</a>
 <li><a href="#2.6.9-42.0.10.EL">Kernel 2.6.9-42.0.10.EL for CentOS 4.4</a>
+<li><a href="#2.6.18-1.2747.el5">Kernel 2.6.18-1.2747.el5 for CentOS 5</a>
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
 <li><a href="#2.6.8-16sarge6">Kernel 2.6.8-16sarge6 for Debian Sarge</a>
 <li><a href="#2.6.16.27-0.9">Kernel 2.6.16.27-0.9 for OpenSUSE 10.1</a>
@@ -469,6 +470,32 @@ sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.0.10.EL/' Makefile<br>
 wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
 patch -sp1 &lt; ccs-patch-2.6.9-42.0.10.EL.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.18-1.2747.el5">Kernel 2.6.18-1.2747.el5 for CentOS 5</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://beta.centos.org/centos/5/os/SRPMS/kernel-2.6.18-1.2747.el5.src.rpm<br>
+rpm -ivh kernel-2.6.18-1.2747.el5.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i686 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i686/ /usr/src/linux-2.6.18-1.2747.el5<br>
+# Move to the source directory.<br>
+cd /usr/src/2.6.18-1.2747.el5/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2747.el5/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
+patch -sp1 &lt; ccs-patch-2.6.18-1.2747.el5.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
