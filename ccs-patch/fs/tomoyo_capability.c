@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.3.2   2007/02/14
+ * Version: 1.3.3   2007/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -56,6 +56,7 @@ static struct {
 	[TOMOYO_SYS_CHOWN]                  = { "SYS_CHOWN", 0,           "sys_chown()" },
 	[TOMOYO_SYS_IOCTL]                  = { "SYS_IOCTL", 0,           "sys_ioctl()" },
 	[TOMOYO_SYS_KEXEC_LOAD]             = { "SYS_KEXEC_LOAD", 0,      "sys_kexec_load()" },
+	[TOMOYO_SYS_PIVOT_ROOT]             = { "SYS_PIVOT_ROOT", 0,      "sys_pivot_root()" },
 };
 
 typedef struct {

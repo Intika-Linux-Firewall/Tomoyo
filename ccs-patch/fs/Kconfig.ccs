@@ -71,13 +71,13 @@ config SAKURA_DENY_CONCEAL_MOUNT
 	  will be hidden.
 	  You can prevent such cases with this option.
 
-config SAKURA_DENY_PIVOT_ROOT
-	bool "pivot_root() disabler support"
+config SAKURA_RESTRICT_PIVOT_ROOT
+	bool "pivot_root() restriction support"
 	default y
 	depends on SAKURA
 	help
-	  This option allows you to disable pivot_root
-	  after /sbin/init starts.
+	  This option allows you to restrict root directories
+	  that the system can exchange.
 
 	  In most systems, pivot_root is not used
 	  after /sbin/init starts.

@@ -1,6 +1,6 @@
 diff -ubBpEr linux-2.4.33/Documentation/Configure.help linux-2.4.33-ccs/Documentation/Configure.help
 --- linux-2.4.33/Documentation/Configure.help	2007-03-03 10:49:54.000000000 +0900
-+++ linux-2.4.33-ccs/Documentation/Configure.help	2007-03-08 16:33:43.000000000 +0900
++++ linux-2.4.33-ccs/Documentation/Configure.help	2007-03-19 09:45:53.000000000 +0900
 @@ -29075,6 +29075,222 @@ CONFIG_SOUND_WM97XX
    
    If unsure, say N.
@@ -59,9 +59,9 @@ diff -ubBpEr linux-2.4.33/Documentation/Configure.help linux-2.4.33-ccs/Document
 +  will be hidden.
 +  You can prevent such cases with this option.
 +
-+CONFIG_SAKURA_DENY_PIVOT_ROOT
-+  This option allows you to disable pivot_root
-+  after /sbin/init starts.
++CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
++  This option allows you to restrict root directories
++  that the system can exchange.
 +
 +  In most systems, pivot_root is not used
 +  after /sbin/init starts.
@@ -560,7 +560,7 @@ diff -ubBpEr linux-2.4.33/fs/namei.c linux-2.4.33-ccs/fs/namei.c
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.4.33/fs/namespace.c linux-2.4.33-ccs/fs/namespace.c
 --- linux-2.4.33/fs/namespace.c	2007-03-03 11:38:51.000000000 +0900
-+++ linux-2.4.33-ccs/fs/namespace.c	2007-03-06 10:03:07.000000000 +0900
++++ linux-2.4.33-ccs/fs/namespace.c	2007-03-19 09:31:59.000000000 +0900
 @@ -21,6 +21,13 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
@@ -655,20 +655,33 @@ diff -ubBpEr linux-2.4.33/fs/namespace.c linux-2.4.33-ccs/fs/namespace.c
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -912,6 +948,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -911,6 +947,9 @@ asmlinkage long sys_pivot_root(const cha
+ 
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
  
-+	/***** SAKURA Linux start. *****/
-+	if (CheckPivotRootPermission() < 0) return -EPERM;
-+	/***** SAKURA Linux end. *****/
-+
  	lock_kernel();
  
- 	error = __user_walk(new_root, LOOKUP_POSITIVE|LOOKUP_FOLLOW|LOOKUP_DIRECTORY, &new_nd);
+@@ -925,6 +964,13 @@ asmlinkage long sys_pivot_root(const cha
+ 	if (error)
+ 		goto out1;
+ 
++	/***** SAKURA Linux start. *****/
++	error = CheckPivotRootPermission(&old_nd, &new_nd);
++	if (error) {
++		path_release(&old_nd);
++		goto out1;
++	}
++	/***** SAKURA Linux end. *****/
+ 	read_lock(&current->fs->lock);
+ 	user_nd.mnt = mntget(current->fs->rootmnt);
+ 	user_nd.dentry = dget(current->fs->root);
 diff -ubBpEr linux-2.4.33/fs/open.c linux-2.4.33-ccs/fs/open.c
 --- linux-2.4.33/fs/open.c	2007-03-03 11:38:51.000000000 +0900
-+++ linux-2.4.33-ccs/fs/open.c	2007-03-05 13:51:44.000000000 +0900
++++ linux-2.4.33-ccs/fs/open.c	2007-03-19 14:19:45.000000000 +0900
 @@ -20,6 +20,13 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
@@ -704,37 +717,20 @@ diff -ubBpEr linux-2.4.33/fs/open.c linux-2.4.33-ccs/fs/open.c
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -451,6 +465,9 @@ asmlinkage long sys_chroot(const char * 
- {
- 	int error;
- 	struct nameidata nd;
-+	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = __user_walk(filename, LOOKUP_POSITIVE | LOOKUP_FOLLOW |
- 		      LOOKUP_DIRECTORY | LOOKUP_NOALT, &nd);
-@@ -465,6 +482,19 @@ asmlinkage long sys_chroot(const char * 
+@@ -464,6 +478,12 @@ asmlinkage long sys_chroot(const char * 
+ 	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
- 
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	{
-+		char *name = getname(filename);
-+		if (!IS_ERR(name)) {
-+			error = CheckChRootPermission(name);
-+			putname(name);
-+		} else {
-+			error = PTR_ERR(name);
-+		}
-+		if (error < 0) goto dput_and_out;
-+	}
++	if (CheckChRootPermission(&nd)) goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
-+
+ 
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
- 	error = 0;
-@@ -895,6 +925,9 @@ out_unlock:
+@@ -895,6 +915,9 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -758,7 +754,7 @@ diff -ubBpEr linux-2.4.33/fs/proc/Makefile linux-2.4.33-ccs/fs/proc/Makefile
  include $(TOPDIR)/Rules.make
 diff -ubBpEr linux-2.4.33/fs/proc/proc_misc.c linux-2.4.33-ccs/fs/proc/proc_misc.c
 --- linux-2.4.33/fs/proc/proc_misc.c	2007-03-03 10:49:54.000000000 +0900
-+++ linux-2.4.33-ccs/fs/proc/proc_misc.c	2007-03-06 10:07:40.000000000 +0900
++++ linux-2.4.33-ccs/fs/proc/proc_misc.c	2007-03-19 09:34:15.000000000 +0900
 @@ -670,4 +670,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -768,14 +764,14 @@ diff -ubBpEr linux-2.4.33/fs/proc/proc_misc.c linux-2.4.33-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.33 2007/03/06\n");
++		printk("Hook version: 2.4.33 2007/03/19\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.4.33/include/linux/sched.h linux-2.4.33-ccs/include/linux/sched.h
 --- linux-2.4.33/include/linux/sched.h	2007-03-03 10:49:54.000000000 +0900
-+++ linux-2.4.33-ccs/include/linux/sched.h	2007-03-03 11:57:17.000000000 +0900
++++ linux-2.4.33-ccs/include/linux/sched.h	2007-03-19 13:14:04.000000000 +0900
 @@ -29,6 +29,11 @@ extern unsigned long event;
  
  struct exec_domain;
@@ -794,7 +790,7 @@ diff -ubBpEr linux-2.4.33/include/linux/sched.h linux-2.4.33-ccs/include/linux/s
  	void *journal_info;
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
-+	unsigned int tomoyo_flags;
++	u32 tomoyo_flags;
 +	/***** TOMOYO Linux end. *****/
  };
  

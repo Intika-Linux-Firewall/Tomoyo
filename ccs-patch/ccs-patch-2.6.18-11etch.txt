@@ -371,7 +371,7 @@ diff -ubBpEr linux-source-2.6.18-11/fs/namei.c linux-source-2.6.18-11-ccs/fs/nam
  	if(IS_ERR(from))
 diff -ubBpEr linux-source-2.6.18-11/fs/namespace.c linux-source-2.6.18-11-ccs/fs/namespace.c
 --- linux-source-2.6.18-11/fs/namespace.c	2007-03-02 11:02:16.000000000 +0900
-+++ linux-source-2.6.18-11-ccs/fs/namespace.c	2007-03-06 11:19:12.000000000 +0900
++++ linux-source-2.6.18-11-ccs/fs/namespace.c	2007-03-19 11:17:45.000000000 +0900
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -454,20 +454,29 @@ diff -ubBpEr linux-source-2.6.18-11/fs/namespace.c linux-source-2.6.18-11-ccs/fs
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1692,6 +1723,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1691,6 +1722,9 @@ asmlinkage long sys_pivot_root(const cha
+ 
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
  
-+	/***** SAKURA Linux start. *****/
-+	if (CheckPivotRootPermission() < 0) return -EPERM;
-+	/***** SAKURA Linux end. *****/
-+
  	lock_kernel();
  
- 	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
+@@ -1707,6 +1741,9 @@ asmlinkage long sys_pivot_root(const cha
+ 		goto out1;
+ 
+ 	error = security_sb_pivotroot(&old_nd, &new_nd);
++	/***** SAKURA Linux start. *****/
++	if (!error) error = CheckPivotRootPermission(&old_nd, &new_nd);
++	/***** SAKURA Linux end. *****/
+ 	if (error) {
+ 		path_release(&old_nd);
+ 		goto out1;
 diff -ubBpEr linux-source-2.6.18-11/fs/open.c linux-source-2.6.18-11-ccs/fs/open.c
 --- linux-source-2.6.18-11/fs/open.c	2007-03-02 11:02:16.000000000 +0900
-+++ linux-source-2.6.18-11-ccs/fs/open.c	2007-03-02 13:10:39.000000000 +0900
++++ linux-source-2.6.18-11-ccs/fs/open.c	2007-03-19 14:10:55.000000000 +0900
 @@ -30,6 +30,12 @@
  #include <linux/audit.h>
  
@@ -501,37 +510,20 @@ diff -ubBpEr linux-source-2.6.18-11/fs/open.c linux-source-2.6.18-11-ccs/fs/open
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -596,6 +608,9 @@ asmlinkage long sys_chroot(const char __
- {
- 	struct nameidata nd;
- 	int error;
-+	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = __user_walk(filename, LOOKUP_FOLLOW | LOOKUP_DIRECTORY | LOOKUP_NOALT, &nd);
- 	if (error)
-@@ -609,6 +624,19 @@ asmlinkage long sys_chroot(const char __
+@@ -608,6 +620,12 @@ asmlinkage long sys_chroot(const char __
+ 	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
- 
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+    {
-+        char *name = getname(filename);
-+        if (!IS_ERR(name)) {
-+            error = CheckChRootPermission(name);
-+            putname(name);
-+        } else {
-+            error = PTR_ERR(name);
-+        }
-+        if (error < 0) goto dput_and_out;
-+    }
++	if (CheckChRootPermission(&nd)) goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
-+
+ 
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
- 	error = 0;
-@@ -1199,6 +1227,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1199,6 +1217,9 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -553,7 +545,7 @@ diff -ubBpEr linux-source-2.6.18-11/fs/proc/Makefile linux-source-2.6.18-11-ccs/
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-source-2.6.18-11/fs/proc/proc_misc.c linux-source-2.6.18-11-ccs/fs/proc/proc_misc.c
 --- linux-source-2.6.18-11/fs/proc/proc_misc.c	2007-03-02 11:02:16.000000000 +0900
-+++ linux-source-2.6.18-11-ccs/fs/proc/proc_misc.c	2007-03-12 13:14:49.000000000 +0900
++++ linux-source-2.6.18-11-ccs/fs/proc/proc_misc.c	2007-03-19 11:17:56.000000000 +0900
 @@ -723,4 +723,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -563,7 +555,7 @@ diff -ubBpEr linux-source-2.6.18-11/fs/proc/proc_misc.c linux-source-2.6.18-11-c
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.18-11 2007/03/12\n");
++		printk("Hook version: 2.6.18-11 2007/03/19\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -584,7 +576,7 @@ diff -ubBpEr linux-source-2.6.18-11/include/linux/init_task.h linux-source-2.6.1
  
 diff -ubBpEr linux-source-2.6.18-11/include/linux/sched.h linux-source-2.6.18-11-ccs/include/linux/sched.h
 --- linux-source-2.6.18-11/include/linux/sched.h	2007-03-02 11:02:16.000000000 +0900
-+++ linux-source-2.6.18-11-ccs/include/linux/sched.h	2007-03-02 12:51:48.000000000 +0900
++++ linux-source-2.6.18-11-ccs/include/linux/sched.h	2007-03-19 12:36:07.000000000 +0900
 @@ -25,6 +25,11 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -603,7 +595,7 @@ diff -ubBpEr linux-source-2.6.18-11/include/linux/sched.h linux-source-2.6.18-11
  #endif
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
-+	unsigned int tomoyo_flags;
++	u32 tomoyo_flags;
 +	/***** TOMOYO Linux end. *****/
  };
  

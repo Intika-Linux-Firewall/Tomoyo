@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.3.2   2007/02/14
+ * Version: 1.3.3   2007/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -71,7 +71,7 @@ static struct {
 	[CCS_SAKURA_RESTRICT_CHROOT]     = { "RESTRICT_CHROOT",     0, 3 },
 	[CCS_SAKURA_RESTRICT_MOUNT]      = { "RESTRICT_MOUNT",      0, 3 },
 	[CCS_SAKURA_RESTRICT_UNMOUNT]    = { "RESTRICT_UNMOUNT",    0, 3 },
-	[CCS_SAKURA_DENY_PIVOT_ROOT]     = { "DENY_PIVOT_ROOT",     0, 3 },
+	[CCS_SAKURA_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
 	[CCS_SAKURA_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 	[CCS_TOMOYO_MAX_ACCEPT_ENTRY]    = { "MAX_ACCEPT_ENTRY",    MAX_ACCEPT_ENTRY, INT_MAX },
 	[CCS_TOMOYO_MAX_GRANT_LOG]       = { "MAX_GRANT_LOG",       MAX_GRANT_LOG, INT_MAX },
@@ -574,8 +574,8 @@ static int ReadStatus(IO_BUFFER *head)
 #ifndef CONFIG_SAKURA_RESTRICT_UNMOUNT
 				case CCS_SAKURA_RESTRICT_UNMOUNT:
 #endif
-#ifndef CONFIG_SAKURA_DENY_PIVOT_ROOT
-				case CCS_SAKURA_DENY_PIVOT_ROOT:
+#ifndef CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
+				case CCS_SAKURA_RESTRICT_PIVOT_ROOT:
 #endif
 #ifndef CONFIG_SAKURA_RESTRICT_AUTOBIND
 				case CCS_SAKURA_RESTRICT_AUTOBIND:
@@ -1095,6 +1095,10 @@ static int AddSystemPolicy(IO_BUFFER *head)
 	if (strncmp(data, KEYWORD_ALLOW_CHROOT, KEYWORD_ALLOW_CHROOT_LEN) == 0)
 		return AddChrootPolicy(data + KEYWORD_ALLOW_CHROOT_LEN, is_delete);
 #endif
+#ifdef CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
+	if (strncmp(data, KEYWORD_ALLOW_PIVOT_ROOT, KEYWORD_ALLOW_PIVOT_ROOT_LEN) == 0)
+		return AddPivotRootPolicy(data + KEYWORD_ALLOW_PIVOT_ROOT_LEN, is_delete);
+#endif
 #ifdef CONFIG_SAKURA_RESTRICT_AUTOBIND
 	if (strncmp(data, KEYWORD_DENY_AUTOBIND, KEYWORD_DENY_AUTOBIND_LEN) == 0)
 		return AddReservedPortPolicy(data + KEYWORD_DENY_AUTOBIND_LEN, is_delete);
@@ -1125,6 +1129,11 @@ static int ReadSystemPolicy(IO_BUFFER *head)
 #endif
 			head->read_var2 = NULL; head->read_step = 4;
 		case 4:
+#ifdef CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
+			if (ReadPivotRootPolicy(head)) break;
+#endif
+			head->read_var2 = NULL; head->read_step = 5;
+		case 5:
 #ifdef CONFIG_SAKURA_RESTRICT_AUTOBIND
 			if (ReadReservedPortPolicy(head)) break;
 #endif
@@ -1176,12 +1185,12 @@ void CCS_LoadPolicy(const char *filename)
 		}
 		path_release(&nd);
 	}
-	
+
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.3.3-pre5   2007/03/09\n");
+	printk("SAKURA: 1.3.3-pre6   2007/03/19\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.3.3-pre5   2007/03/09\n");
+	printk("TOMOYO: 1.3.3-pre6   2007/03/19\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

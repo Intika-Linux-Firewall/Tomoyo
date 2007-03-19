@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.3.2   2007/02/14
+ * Version: 1.3.3   2007/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -167,9 +167,9 @@ static int AddressMatchesToGroup(const u8 is_ipv6, const u32 *address, const ADD
 	for (member = group->first_member; member; member = member->next) {
 		if (member->is_deleted) continue;
 		if (member->is_ipv6) {
-			if (memcmp(member->min.ipv6, address, 16) <= 0 && memcmp(address, member->max.ipv6, 16) <= 0) return 1;
+			if (is_ipv6 && memcmp(member->min.ipv6, address, 16) <= 0 && memcmp(address, member->max.ipv6, 16) <= 0) return 1;
 		} else {
-			if (member->min.ipv4 <= ip && ip <= member->max.ipv4) return 1;
+			if (!is_ipv6 && member->min.ipv4 <= ip && ip <= member->max.ipv4) return 1;
 		}
 	}
 	return 0;

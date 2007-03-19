@@ -1,6 +1,6 @@
 diff -ubBpEr linux-2.6.18-1.2747.el5/Makefile linux-2.6.18-1.2747.el5-ccs/Makefile
---- linux-2.6.18-1.2747.el5/Makefile	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/Makefile	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/Makefile	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/Makefile	2007-03-19 11:06:27.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
@@ -11,8 +11,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/Makefile linux-2.6.18-1.2747.el5-ccs/Makefi
  
  # *DOCUMENTATION*
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/Kconfig linux-2.6.18-1.2747.el5-ccs/fs/Kconfig
---- linux-2.6.18-1.2747.el5/fs/Kconfig	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/Kconfig	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/Kconfig	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/Kconfig	2007-03-19 11:06:27.000000000 +0900
 @@ -2048,5 +2048,7 @@ endmenu
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -22,8 +22,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/Kconfig linux-2.6.18-1.2747.el5-ccs/fs/K
  endmenu
  
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/Makefile linux-2.6.18-1.2747.el5-ccs/fs/Makefile
---- linux-2.6.18-1.2747.el5/fs/Makefile	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/Makefile	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/Makefile	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/Makefile	2007-03-19 11:06:27.000000000 +0900
 @@ -107,3 +107,5 @@ obj-$(CONFIG_CACHEFILES)	+= cachefiles/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
@@ -31,8 +31,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/Makefile linux-2.6.18-1.2747.el5-ccs/fs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/attr.c linux-2.6.18-1.2747.el5-ccs/fs/attr.c
---- linux-2.6.18-1.2747.el5/fs/attr.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/attr.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/attr.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/attr.c	2007-03-19 11:06:27.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -65,8 +65,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/attr.c linux-2.6.18-1.2747.el5-ccs/fs/at
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/compat.c linux-2.6.18-1.2747.el5-ccs/fs/compat.c
---- linux-2.6.18-1.2747.el5/fs/compat.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/compat.c	2007-03-16 17:38:22.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/compat.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/compat.c	2007-03-19 11:06:27.000000000 +0900
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -97,8 +97,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/compat.c linux-2.6.18-1.2747.el5-ccs/fs/
  		free_arg_pages(bprm);
  
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/exec.c linux-2.6.18-1.2747.el5-ccs/fs/exec.c
---- linux-2.6.18-1.2747.el5/fs/exec.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/exec.c	2007-03-16 17:39:38.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/exec.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/exec.c	2007-03-19 11:06:27.000000000 +0900
 @@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
@@ -143,8 +143,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/exec.c linux-2.6.18-1.2747.el5-ccs/fs/ex
  		free_arg_pages(bprm);
  
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/fcntl.c linux-2.6.18-1.2747.el5-ccs/fs/fcntl.c
---- linux-2.6.18-1.2747.el5/fs/fcntl.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/fcntl.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/fcntl.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/fcntl.c	2007-03-19 11:06:27.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -167,8 +167,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/fcntl.c linux-2.6.18-1.2747.el5-ccs/fs/f
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/ioctl.c linux-2.6.18-1.2747.el5-ccs/fs/ioctl.c
---- linux-2.6.18-1.2747.el5/fs/ioctl.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/ioctl.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/ioctl.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/ioctl.c	2007-03-19 11:06:27.000000000 +0900
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -190,8 +190,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/ioctl.c linux-2.6.18-1.2747.el5-ccs/fs/i
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/namei.c linux-2.6.18-1.2747.el5-ccs/fs/namei.c
---- linux-2.6.18-1.2747.el5/fs/namei.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/namei.c	2007-03-16 17:41:20.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/namei.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/namei.c	2007-03-19 11:06:27.000000000 +0900
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -370,8 +370,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/namei.c linux-2.6.18-1.2747.el5-ccs/fs/n
  	from = getname(oldname);
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/namespace.c linux-2.6.18-1.2747.el5-ccs/fs/namespace.c
---- linux-2.6.18-1.2747.el5/fs/namespace.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/namespace.c	2007-03-16 17:37:31.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/namespace.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/namespace.c	2007-03-19 11:07:06.000000000 +0900
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -454,20 +454,29 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/namespace.c linux-2.6.18-1.2747.el5-ccs/
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1694,6 +1725,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1693,6 +1724,9 @@ asmlinkage long sys_pivot_root(const cha
+ 
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
  
-+	/***** SAKURA Linux start. *****/
-+	if (CheckPivotRootPermission() < 0) return -EPERM;
-+	/***** SAKURA Linux end. *****/
-+
  	lock_kernel();
  
- 	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
+@@ -1709,6 +1743,9 @@ asmlinkage long sys_pivot_root(const cha
+ 		goto out1;
+ 
+ 	error = security_sb_pivotroot(&old_nd, &new_nd);
++	/***** SAKURA Linux start. *****/
++	if (!error) error = CheckPivotRootPermission(&old_nd, &new_nd);
++	/***** SAKURA Linux end. *****/
+ 	if (error) {
+ 		path_release(&old_nd);
+ 		goto out1;
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/open.c linux-2.6.18-1.2747.el5-ccs/fs/open.c
---- linux-2.6.18-1.2747.el5/fs/open.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/open.c	2007-03-16 17:42:57.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/open.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/open.c	2007-03-19 14:15:27.000000000 +0900
 @@ -30,6 +30,12 @@
  #include <linux/audit.h>
  
@@ -501,37 +510,20 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/open.c linux-2.6.18-1.2747.el5-ccs/fs/op
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -598,6 +610,9 @@ asmlinkage long sys_chroot(const char __
- {
- 	struct nameidata nd;
- 	int error;
-+	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = __user_walk(filename, LOOKUP_FOLLOW | LOOKUP_DIRECTORY | LOOKUP_NOALT, &nd);
- 	if (error)
-@@ -611,6 +626,19 @@ asmlinkage long sys_chroot(const char __
+@@ -610,6 +622,12 @@ asmlinkage long sys_chroot(const char __
+ 	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
- 
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+    {
-+        char *name = getname(filename);
-+        if (!IS_ERR(name)) {
-+            error = CheckChRootPermission(name);
-+            putname(name);
-+        } else {
-+            error = PTR_ERR(name);
-+        }
-+        if (error < 0) goto dput_and_out;
-+    }
++	if (CheckChRootPermission(&nd)) goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
-+
+ 
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
- 	error = 0;
-@@ -1202,6 +1230,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1202,6 +1220,9 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -542,8 +534,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/open.c linux-2.6.18-1.2747.el5-ccs/fs/op
  		tty_vhangup(current->signal->tty);
  		return 0;
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/proc/Makefile linux-2.6.18-1.2747.el5-ccs/fs/proc/Makefile
---- linux-2.6.18-1.2747.el5/fs/proc/Makefile	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/proc/Makefile	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/proc/Makefile	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/proc/Makefile	2007-03-19 11:06:27.000000000 +0900
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -552,8 +544,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/proc/Makefile linux-2.6.18-1.2747.el5-cc
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/proc/proc_misc.c linux-2.6.18-1.2747.el5-ccs/fs/proc/proc_misc.c
---- linux-2.6.18-1.2747.el5/fs/proc/proc_misc.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/proc/proc_misc.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/proc/proc_misc.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/proc/proc_misc.c	2007-03-19 11:07:19.000000000 +0900
 @@ -723,4 +723,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -563,14 +555,14 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/proc/proc_misc.c linux-2.6.18-1.2747.el5
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.18-1.2747.el5 2007/03/16\n");
++		printk("Hook version: 2.6.18-1.2747.el5 2007/03/19\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.6.18-1.2747.el5/fs/syaoran_2.6.c linux-2.6.18-1.2747.el5-ccs/fs/syaoran_2.6.c
---- linux-2.6.18-1.2747.el5/fs/syaoran_2.6.c	2007-03-08 16:51:17.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/fs/syaoran_2.6.c	2007-03-16 17:55:28.000000000 +0900
+--- linux-2.6.18-1.2747.el5/fs/syaoran_2.6.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/fs/syaoran_2.6.c	2007-03-19 11:06:27.000000000 +0900
 @@ -79,7 +79,7 @@ struct inode *syaoran_get_inode(struct s
  		inode->i_mode = mode;
  		inode->i_uid = current->fsuid;
@@ -581,8 +573,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/fs/syaoran_2.6.c linux-2.6.18-1.2747.el5-cc
  #endif
  		inode->i_blocks = 0;
 diff -ubBpEr linux-2.6.18-1.2747.el5/include/linux/init_task.h linux-2.6.18-1.2747.el5-ccs/include/linux/init_task.h
---- linux-2.6.18-1.2747.el5/include/linux/init_task.h	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/include/linux/init_task.h	2007-03-16 17:34:39.000000000 +0900
+--- linux-2.6.18-1.2747.el5/include/linux/init_task.h	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/include/linux/init_task.h	2007-03-19 11:06:27.000000000 +0900
 @@ -125,6 +125,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -595,8 +587,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/include/linux/init_task.h linux-2.6.18-1.27
  
  
 diff -ubBpEr linux-2.6.18-1.2747.el5/include/linux/sched.h linux-2.6.18-1.2747.el5-ccs/include/linux/sched.h
---- linux-2.6.18-1.2747.el5/include/linux/sched.h	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/include/linux/sched.h	2007-03-16 17:34:04.000000000 +0900
+--- linux-2.6.18-1.2747.el5/include/linux/sched.h	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/include/linux/sched.h	2007-03-19 12:37:35.000000000 +0900
 @@ -25,6 +25,11 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -615,14 +607,14 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/include/linux/sched.h linux-2.6.18-1.2747.e
  #endif
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
-+	unsigned int tomoyo_flags;
++	u32 tomoyo_flags;
 +	/***** TOMOYO Linux end. *****/
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.18-1.2747.el5/include/linux/syaoran.h linux-2.6.18-1.2747.el5-ccs/include/linux/syaoran.h
---- linux-2.6.18-1.2747.el5/include/linux/syaoran.h	2007-03-11 13:36:23.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/include/linux/syaoran.h	2007-03-16 17:55:14.000000000 +0900
+--- linux-2.6.18-1.2747.el5/include/linux/syaoran.h	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/include/linux/syaoran.h	2007-03-19 11:06:27.000000000 +0900
 @@ -831,7 +831,7 @@ static int syaoran_create_tracelog(struc
  			inode->i_mode = S_IFREG | 0400;
  			inode->i_uid = 0;
@@ -633,8 +625,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/include/linux/syaoran.h linux-2.6.18-1.2747
  #endif
  			inode->i_blocks = 0;
 diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/kexec.c linux-2.6.18-1.2747.el5-ccs/kernel/kexec.c
---- linux-2.6.18-1.2747.el5/kernel/kexec.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/kernel/kexec.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/kernel/kexec.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/kernel/kexec.c	2007-03-19 11:06:27.000000000 +0900
 @@ -26,6 +26,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -656,8 +648,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/kexec.c linux-2.6.18-1.2747.el5-ccs/
  	/*
  	 * Verify we have a legal set of flags
 diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/kmod.c linux-2.6.18-1.2747.el5-ccs/kernel/kmod.c
---- linux-2.6.18-1.2747.el5/kernel/kmod.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/kernel/kmod.c	2007-03-16 17:35:08.000000000 +0900
+--- linux-2.6.18-1.2747.el5/kernel/kmod.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/kernel/kmod.c	2007-03-19 11:06:27.000000000 +0900
 @@ -145,6 +145,11 @@ __exec_usermodehelper(char *path, char *
  
  	key_put(old_session);
@@ -671,8 +663,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/kmod.c linux-2.6.18-1.2747.el5-ccs/k
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
 diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/module.c linux-2.6.18-1.2747.el5-ccs/kernel/module.c
---- linux-2.6.18-1.2747.el5/kernel/module.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/kernel/module.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/kernel/module.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/kernel/module.c	2007-03-19 11:06:27.000000000 +0900
 @@ -45,6 +45,9 @@
  #include <asm/cacheflush.h>
  #include <linux/license.h>
@@ -706,8 +698,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/module.c linux-2.6.18-1.2747.el5-ccs
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
 diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/sched.c linux-2.6.18-1.2747.el5-ccs/kernel/sched.c
---- linux-2.6.18-1.2747.el5/kernel/sched.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/kernel/sched.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/kernel/sched.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/kernel/sched.c	2007-03-19 11:06:27.000000000 +0900
 @@ -55,6 +55,9 @@
  #include <asm/tlb.h>
  
@@ -729,8 +721,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/sched.c linux-2.6.18-1.2747.el5-ccs/
  	/*
  	 * Setpriority might change our priority at the same moment.
 diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/signal.c linux-2.6.18-1.2747.el5-ccs/kernel/signal.c
---- linux-2.6.18-1.2747.el5/kernel/signal.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/kernel/signal.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/kernel/signal.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/kernel/signal.c	2007-03-19 11:06:27.000000000 +0900
 @@ -28,6 +28,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -775,8 +767,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/signal.c linux-2.6.18-1.2747.el5-ccs
  	return do_tkill(0, pid, sig);
  }
 diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/sys.c linux-2.6.18-1.2747.el5-ccs/kernel/sys.c
---- linux-2.6.18-1.2747.el5/kernel/sys.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/kernel/sys.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/kernel/sys.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/kernel/sys.c	2007-03-19 11:06:27.000000000 +0900
 @@ -36,6 +36,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -828,8 +820,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/sys.c linux-2.6.18-1.2747.el5-ccs/ke
  	down_write(&uts_sem);
  	errno = -EFAULT;
 diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/sysctl.c linux-2.6.18-1.2747.el5-ccs/kernel/sysctl.c
---- linux-2.6.18-1.2747.el5/kernel/sysctl.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/kernel/sysctl.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/kernel/sysctl.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/kernel/sysctl.c	2007-03-19 11:06:27.000000000 +0900
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -952,8 +944,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/sysctl.c linux-2.6.18-1.2747.el5-ccs
  						table, name, nlen,
  						oldval, oldlenp,
 diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/time.c linux-2.6.18-1.2747.el5-ccs/kernel/time.c
---- linux-2.6.18-1.2747.el5/kernel/time.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/kernel/time.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/kernel/time.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/kernel/time.c	2007-03-19 11:06:27.000000000 +0900
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -995,8 +987,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/kernel/time.c linux-2.6.18-1.2747.el5-ccs/k
  	/* Now we validate the data before disabling interrupts */
  
 diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv4/inet_connection_sock.c linux-2.6.18-1.2747.el5-ccs/net/ipv4/inet_connection_sock.c
---- linux-2.6.18-1.2747.el5/net/ipv4/inet_connection_sock.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/net/ipv4/inet_connection_sock.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/net/ipv4/inet_connection_sock.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/net/ipv4/inet_connection_sock.c	2007-03-19 11:06:27.000000000 +0900
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1018,8 +1010,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv4/inet_connection_sock.c linux-2.6.1
  				if (tb->port == rover)
  					goto next;
 diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv4/inet_hashtables.c linux-2.6.18-1.2747.el5-ccs/net/ipv4/inet_hashtables.c
---- linux-2.6.18-1.2747.el5/net/ipv4/inet_hashtables.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/net/ipv4/inet_hashtables.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/net/ipv4/inet_hashtables.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/net/ipv4/inet_hashtables.c	2007-03-19 11:06:27.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1041,8 +1033,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv4/inet_hashtables.c linux-2.6.18-1.2
   			spin_lock(&head->lock);
  
 diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv4/udp.c linux-2.6.18-1.2747.el5-ccs/net/ipv4/udp.c
---- linux-2.6.18-1.2747.el5/net/ipv4/udp.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/net/ipv4/udp.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/net/ipv4/udp.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/net/ipv4/udp.c	2007-03-19 11:06:27.000000000 +0900
 @@ -108,6 +108,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1074,8 +1066,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv4/udp.c linux-2.6.18-1.2747.el5-ccs/
  				break;
  		}
 diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv6/inet6_hashtables.c linux-2.6.18-1.2747.el5-ccs/net/ipv6/inet6_hashtables.c
---- linux-2.6.18-1.2747.el5/net/ipv6/inet6_hashtables.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/net/ipv6/inet6_hashtables.c	2007-03-16 17:51:10.000000000 +0900
+--- linux-2.6.18-1.2747.el5/net/ipv6/inet6_hashtables.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/net/ipv6/inet6_hashtables.c	2007-03-19 11:06:27.000000000 +0900
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1106,8 +1098,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv6/inet6_hashtables.c linux-2.6.18-1.
   			spin_lock(&head->lock);
  
 diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv6/udp.c linux-2.6.18-1.2747.el5-ccs/net/ipv6/udp.c
---- linux-2.6.18-1.2747.el5/net/ipv6/udp.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/net/ipv6/udp.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/net/ipv6/udp.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/net/ipv6/udp.c	2007-03-19 11:06:27.000000000 +0900
 @@ -58,6 +58,9 @@
  
  #include <linux/proc_fs.h>
@@ -1139,8 +1131,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/net/ipv6/udp.c linux-2.6.18-1.2747.el5-ccs/
  				break;
  		}
 diff -ubBpEr linux-2.6.18-1.2747.el5/net/socket.c linux-2.6.18-1.2747.el5-ccs/net/socket.c
---- linux-2.6.18-1.2747.el5/net/socket.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/net/socket.c	2007-03-16 17:32:40.000000000 +0900
+--- linux-2.6.18-1.2747.el5/net/socket.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/net/socket.c	2007-03-19 11:06:27.000000000 +0900
 @@ -95,6 +95,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1232,8 +1224,8 @@ diff -ubBpEr linux-2.6.18-1.2747.el5/net/socket.c linux-2.6.18-1.2747.el5-ccs/ne
  				 sock->file->f_flags);
  out_put:
 diff -ubBpEr linux-2.6.18-1.2747.el5/net/unix/af_unix.c linux-2.6.18-1.2747.el5-ccs/net/unix/af_unix.c
---- linux-2.6.18-1.2747.el5/net/unix/af_unix.c	2007-03-16 16:10:31.000000000 +0900
-+++ linux-2.6.18-1.2747.el5-ccs/net/unix/af_unix.c	2007-03-16 17:33:37.000000000 +0900
+--- linux-2.6.18-1.2747.el5/net/unix/af_unix.c	2007-03-19 11:06:17.000000000 +0900
++++ linux-2.6.18-1.2747.el5-ccs/net/unix/af_unix.c	2007-03-19 11:06:27.000000000 +0900
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>

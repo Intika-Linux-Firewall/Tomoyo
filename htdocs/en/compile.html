@@ -110,6 +110,7 @@
 <tr><td>SYS_CHOWN</td><td>Changing file's owner or group.</td></tr>
 <tr><td>SYS_IOCTL</td><td>Use of ioctl.</td></tr>
 <tr><td>SYS_KEXEC_LOAD</td><td>Loading new kernel.</td></tr>
+<tr><td>SYS_PIVOT_ROOT</td><td>Exchanging the "/" directory.</td></tr>
 </table>
 
 <p>To enable this function, choose the following options.</p>
@@ -239,17 +240,17 @@ For example, if you command enforcing nodev option for /tmp/ partition to avoid 
 
 </td></tr><tr><td>
 
-<h3>Forbidding use of pivot_root</h3>
+<h3>Restricting directories that are allowed to pivot_root</h3>
 
 <p>While chroot moves "/" directory, pivot_root exchanges "/" directory. In many cases, pivot_root is used only once on boot, and is seldom used after boot.</p>
 
-<p>You can use this function to disable pivot_root after boot.</p>
+<p>You can use this function to restrict directories that are allowed to exchange.</p>
 
 <p>To enable this function, choose the following options.</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
-<li>[*] &nbsp;&nbsp;pivot_root() disabler support
+<li>[*] &nbsp;&nbsp;pivot_root() restriction support
 </ul>
 
 </td></tr><tr><td>

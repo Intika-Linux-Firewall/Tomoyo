@@ -371,7 +371,7 @@ diff -ubBpEr linux-2.6.16/fs/namei.c linux-2.6.16-ccs/fs/namei.c
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.6.16/fs/namespace.c linux-2.6.16-ccs/fs/namespace.c
 --- linux-2.6.16/fs/namespace.c	2007-03-03 11:38:53.000000000 +0900
-+++ linux-2.6.16-ccs/fs/namespace.c	2007-03-06 10:02:25.000000000 +0900
++++ linux-2.6.16-ccs/fs/namespace.c	2007-03-19 09:27:39.000000000 +0900
 @@ -26,6 +26,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -454,20 +454,29 @@ diff -ubBpEr linux-2.6.16/fs/namespace.c linux-2.6.16-ccs/fs/namespace.c
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1574,6 +1605,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1573,6 +1604,9 @@ asmlinkage long sys_pivot_root(const cha
+ 
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
  
-+	/***** SAKURA Linux start. *****/
-+	if (CheckPivotRootPermission() < 0) return -EPERM;
-+	/***** SAKURA Linux end. *****/
-+
  	lock_kernel();
  
- 	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
+@@ -1589,6 +1623,9 @@ asmlinkage long sys_pivot_root(const cha
+ 		goto out1;
+ 
+ 	error = security_sb_pivotroot(&old_nd, &new_nd);
++	/***** SAKURA Linux start. *****/
++	if (!error) error = CheckPivotRootPermission(&old_nd, &new_nd);
++	/***** SAKURA Linux end. *****/
+ 	if (error) {
+ 		path_release(&old_nd);
+ 		goto out1;
 diff -ubBpEr linux-2.6.16/fs/open.c linux-2.6.16-ccs/fs/open.c
 --- linux-2.6.16/fs/open.c	2007-03-03 11:38:53.000000000 +0900
-+++ linux-2.6.16-ccs/fs/open.c	2007-03-05 13:51:10.000000000 +0900
++++ linux-2.6.16-ccs/fs/open.c	2007-03-19 14:16:39.000000000 +0900
 @@ -30,6 +30,13 @@
  
  #include <asm/unistd.h>
@@ -503,37 +512,20 @@ diff -ubBpEr linux-2.6.16/fs/open.c linux-2.6.16-ccs/fs/open.c
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, 0, file);
-@@ -589,6 +601,9 @@ asmlinkage long sys_chroot(const char __
- {
- 	struct nameidata nd;
- 	int error;
-+	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = __user_walk(filename, LOOKUP_FOLLOW | LOOKUP_DIRECTORY | LOOKUP_NOALT, &nd);
- 	if (error)
-@@ -602,6 +617,19 @@ asmlinkage long sys_chroot(const char __
+@@ -601,6 +613,12 @@ asmlinkage long sys_chroot(const char __
+ 	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
- 
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+    {
-+        char *name = getname(filename);
-+        if (!IS_ERR(name)) {
-+            error = CheckChRootPermission(name);
-+            putname(name);
-+        } else {
-+            error = PTR_ERR(name);
-+        }
-+        if (error < 0) goto dput_and_out;
-+    }
++	if (CheckChRootPermission(&nd)) goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
-+
+ 
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
- 	error = 0;
-@@ -1174,6 +1202,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1174,6 +1192,9 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -555,7 +547,7 @@ diff -ubBpEr linux-2.6.16/fs/proc/Makefile linux-2.6.16-ccs/fs/proc/Makefile
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.16/fs/proc/proc_misc.c linux-2.6.16-ccs/fs/proc/proc_misc.c
 --- linux-2.6.16/fs/proc/proc_misc.c	2007-03-03 10:49:56.000000000 +0900
-+++ linux-2.6.16-ccs/fs/proc/proc_misc.c	2007-03-06 10:07:07.000000000 +0900
++++ linux-2.6.16-ccs/fs/proc/proc_misc.c	2007-03-19 09:33:31.000000000 +0900
 @@ -773,4 +773,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -565,7 +557,7 @@ diff -ubBpEr linux-2.6.16/fs/proc/proc_misc.c linux-2.6.16-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.16 2007/03/06\n");
++		printk("Hook version: 2.6.16 2007/03/19\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -586,7 +578,7 @@ diff -ubBpEr linux-2.6.16/include/linux/init_task.h linux-2.6.16-ccs/include/lin
  
 diff -ubBpEr linux-2.6.16/include/linux/sched.h linux-2.6.16-ccs/include/linux/sched.h
 --- linux-2.6.16/include/linux/sched.h	2007-03-03 10:49:56.000000000 +0900
-+++ linux-2.6.16-ccs/include/linux/sched.h	2007-03-03 11:09:12.000000000 +0900
++++ linux-2.6.16-ccs/include/linux/sched.h	2007-03-19 12:38:01.000000000 +0900
 @@ -40,6 +40,11 @@
  
  struct exec_domain;
@@ -605,7 +597,7 @@ diff -ubBpEr linux-2.6.16/include/linux/sched.h linux-2.6.16-ccs/include/linux/s
  	struct rcu_head rcu;
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
-+	unsigned int tomoyo_flags;
++	u32 tomoyo_flags;
 +	/***** TOMOYO Linux end. *****/
  };
  
@@ -1053,7 +1045,7 @@ diff -ubBpEr linux-2.6.16/net/ipv4/udp.c linux-2.6.16-ccs/net/ipv4/udp.c
  		}
 diff -ubBpEr linux-2.6.16/net/ipv6/inet6_hashtables.c linux-2.6.16-ccs/net/ipv6/inet6_hashtables.c
 --- linux-2.6.16/net/ipv6/inet6_hashtables.c	2007-03-03 10:49:56.000000000 +0900
-+++ linux-2.6.16-ccs/net/ipv6/inet6_hashtables.c	2007-03-03 10:55:25.000000000 +0900
++++ linux-2.6.16-ccs/net/ipv6/inet6_hashtables.c	2007-03-11 13:11:29.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1064,6 +1056,15 @@ diff -ubBpEr linux-2.6.16/net/ipv6/inet6_hashtables.c linux-2.6.16-ccs/net/ipv6/
  
  struct sock *inet6_lookup_listener(struct inet_hashinfo *hashinfo,
  				   const struct in6_addr *daddr,
+@@ -93,7 +96,7 @@ static int __inet6_check_established(str
+ 	const struct in6_addr *saddr = &np->daddr;
+ 	const int dif = sk->sk_bound_dev_if;
+ 	const u32 ports = INET_COMBINED_PORTS(inet->dport, lport);
+-	const unsigned int hash = inet6_ehashfn(daddr, inet->num, saddr,
++	const unsigned int hash = inet6_ehashfn(daddr, lport, saddr,
+ 						inet->dport);
+ 	struct inet_ehash_bucket *head = inet_ehash_bucket(hinfo, hash);
+ 	struct sock *sk2;
 @@ -187,6 +190,9 @@ int inet6_hash_connect(struct inet_timew
   		local_bh_disable();
  		for (i = 1; i <= range; i++) {

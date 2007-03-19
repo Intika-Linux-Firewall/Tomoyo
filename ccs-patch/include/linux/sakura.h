@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.3.2   2007/02/14
+ * Version: 1.3.3   2007/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -34,9 +34,9 @@
 
 /* Check whether the given pathname is allowed to chroot to. */
 #ifdef CONFIG_SAKURA_RESTRICT_CHROOT
-int CheckChRootPermission(const char *pathname);
+int CheckChRootPermission(struct nameidata *nd);
 #else
-static inline int CheckChRootPermission(const char *pathname) { return 0; }
+static inline int CheckChRootPermission(struct nameidata *nd) { return 0; }
 #endif
 
 /* Check whether the mount operation with the given parameters is allowed. */
@@ -47,10 +47,10 @@ static inline int CheckMountPermission(char *dev_name, char *dir_name, char *typ
 #endif
 
 /* Check whether the current process is allowed to pivot_root. */
-#ifdef CONFIG_SAKURA_DENY_PIVOT_ROOT
-int CheckPivotRootPermission(void);
+#ifdef CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
+int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd);
 #else
-static inline int CheckPivotRootPermission(void) { return 0; }
+static inline int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd) { return 0; }
 #endif
 
 /* Check whether the given mount operation hides an mounted partition. */
