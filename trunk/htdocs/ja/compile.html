@@ -110,6 +110,7 @@
 <tr><td>SYS_CHOWN</td><td>ファイルの所有者・グループの変更</td></tr>
 <tr><td>SYS_IOCTL</td><td>ioctl の使用</td></tr>
 <tr><td>SYS_KEXEC_LOAD</td><td>新しいカーネルのロード</td></tr>
+<tr><td>SYS_PIVOT_ROOT</td><td>ルートディレクトリの交換</td></tr>
 </table>
 
 <p>この機能を利用するには、以下の項目を選択してください。</p>
@@ -254,17 +255,17 @@
 
 </td></tr><tr><td>
 
-<h3>pivot_root の利用を禁止する機能</h3>
+<h3>pivot_root で交換可能なディレクトリを制限する機能</h3>
 
 <p>chroot は / ディレクトリを移動するのに対し、 pivot_root は / ディレクトリを交換します。システムの起動時に１度だけ使われる場合が多いですが、システムの起動後は通常は使われない機能です。</p>
 
-<p>この機能を利用すると、システムの起動後に pivot_root を使用することを禁止することができます。</p>
+<p>この機能を利用すると、 pivot_root で交換することを許可するディレクトリを制限することができます。</p>
 
 <p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
-<li>[*] &nbsp;&nbsp;pivot_root() disabler support
+<li>[*] &nbsp;&nbsp;pivot_root() restriction support
 </ul>
 
 </td></tr><tr><td>

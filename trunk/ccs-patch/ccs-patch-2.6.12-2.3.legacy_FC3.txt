@@ -371,7 +371,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/namei.c linux-2.6.12-2.3.legacy_FC3-
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/namespace.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/namespace.c
 --- linux-2.6.12-2.3.legacy_FC3/fs/namespace.c	2007-03-03 18:17:50.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/namespace.c	2007-03-05 13:02:06.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/namespace.c	2007-03-19 12:20:37.000000000 +0900
 @@ -24,6 +24,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -465,20 +465,29 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/namespace.c linux-2.6.12-2.3.legacy_
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1287,6 +1320,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1286,6 +1319,9 @@ asmlinkage long sys_pivot_root(const cha
+ 
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
  
-+	/***** SAKURA Linux start. *****/
-+	if (CheckPivotRootPermission() < 0) return -EPERM;
-+	/***** SAKURA Linux end. *****/
-+
  	lock_kernel();
  
- 	error = __user_walk(new_root, LOOKUP_FOLLOW|LOOKUP_DIRECTORY, &new_nd);
+@@ -1301,6 +1337,9 @@ asmlinkage long sys_pivot_root(const cha
+ 		goto out1;
+ 
+ 	error = security_sb_pivotroot(&old_nd, &new_nd);
++	/***** SAKURA Linux start. *****/
++	if (!error) error = CheckPivotRootPermission(&old_nd, &new_nd);
++	/***** SAKURA Linux end. *****/
+ 	if (error) {
+ 		path_release(&old_nd);
+ 		goto out1;
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/open.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/open.c
 --- linux-2.6.12-2.3.legacy_FC3/fs/open.c	2007-03-03 18:17:50.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/open.c	2007-03-05 13:01:57.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/open.c	2007-03-19 14:18:59.000000000 +0900
 @@ -26,6 +26,13 @@
  
  #include <asm/unistd.h>
@@ -513,37 +522,20 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/open.c linux-2.6.12-2.3.legacy_FC3-c
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -572,6 +585,9 @@ asmlinkage long sys_chroot(const char __
- {
- 	struct nameidata nd;
- 	int error;
-+	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = __user_walk(filename, LOOKUP_FOLLOW | LOOKUP_DIRECTORY | LOOKUP_NOALT, &nd);
- 	if (error)
-@@ -585,6 +601,19 @@ asmlinkage long sys_chroot(const char __
+@@ -584,6 +597,12 @@ asmlinkage long sys_chroot(const char __
+ 	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
- 
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+    {
-+        char *name = getname(filename);
-+        if (!IS_ERR(name)) {
-+            error = CheckChRootPermission(name);
-+            putname(name);
-+        } else {
-+            error = PTR_ERR(name);
-+        }
-+        if (error < 0) goto dput_and_out;
-+    }
++	if (CheckChRootPermission(&nd)) goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
-+
+ 
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
- 	error = 0;
-@@ -1044,6 +1073,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1044,6 +1063,9 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -565,7 +557,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/proc/Makefile linux-2.6.12-2.3.legac
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/proc/proc_misc.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/proc_misc.c
 --- linux-2.6.12-2.3.legacy_FC3/fs/proc/proc_misc.c	2007-03-03 18:17:50.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/proc_misc.c	2007-03-06 09:11:50.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/proc_misc.c	2007-03-19 12:20:51.000000000 +0900
 @@ -617,4 +617,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -575,7 +567,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/proc/proc_misc.c linux-2.6.12-2.3.le
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.12-2.3.legacy_FC3 2007/03/06\n");
++		printk("Hook version: 2.6.12-2.3.legacy_FC3 2007/03/19\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -596,7 +588,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/include/linux/init_task.h linux-2.6.12-
  
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/include/linux/sched.h linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/sched.h
 --- linux-2.6.12-2.3.legacy_FC3/include/linux/sched.h	2007-03-03 18:17:50.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/sched.h	2007-03-03 18:18:13.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/sched.h	2007-03-19 12:39:46.000000000 +0900
 @@ -39,6 +39,11 @@ struct exec_domain;
  extern int exec_shield;
  extern int print_fatal_signals;
@@ -615,7 +607,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/include/linux/sched.h linux-2.6.12-2.3.
  #endif
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
-+	unsigned int tomoyo_flags;
++	u32 tomoyo_flags;
 +	/***** TOMOYO Linux end. *****/
  };
  

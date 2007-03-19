@@ -259,8 +259,8 @@ The *** matches to values that can be given using allow_capability directive des
 <td>No</td>
 </tr>
 <tr>
-<td>DENY_PIVOT_ROOT</td>
-<td>Forbid pivot_root requests.</td>
+<td>RESTRICT_PIVOT_ROOT</td>
+<td>Enable restrictions for pivot_root directories.</td>
 <td>No</td>
 </tr>
 <tr>
@@ -395,6 +395,7 @@ The default is given at the kernel compilation time.</td>
 <li>Mount permission</li>
 <li>Directories that don't allow to be unmounted</li>
 <li>Directories that are allowed to chroot to</li>
+<li>Directories that are allowed to exchange</li>
 <li>Local ports that don't allow to be bound automatically</li>
 </ul>
 <h3>Mount permission</h3>
@@ -422,6 +423,9 @@ Therefore /dev/ and /dev/pts/ must not be unmounted for systems where / is read-
 <p>To grant chroot permission, use allow_chroot directive followed by a Canonicalized Directory.</p>
 <p>Usually, grant /var/empty/sshd/ that sshd uses.<br>
 In addition, if you have applications that runs in the chroot'ed environment or applications that uses chroot (for example, /usr/share/empty/ is used by vsftpd), grant such directories too.</p>
+<h3>Directories that are allowed to exchange</h3>
+<p>To grant pivot_root permission, use allow_pivot_root directive followed by the new root's Canonicalized Directory and the previous root's Canonicalized Directory.</p>
+<p>Usually, you don't need this directive.</p>
 <h3>Local ports that don't allow to be bound automatically</h3>
 <p>To prevent specific local port from being selected automatically, use deny_autobind directive followed by local port number.</p>
 <p>This directive is intended to prevent specific local port from being bound for temporary use.<br>
@@ -681,6 +685,10 @@ The following capabilities are applicable.</p>
 <td>SYS_KEXEC_LOAD</td>
 <td>Grant kexec_load(2)</td>
 </tr>
+<tr>
+<td>SYS_PIVOT_ROOT</td>
+<td>Grant pivot_root(2)<br></td>
+</tr>
 </table>
 <p>The purpose of allow_capability directive is to restrict system calls that a PROGRAM can call.<br>
 You can restrict more strictly with other directives and policy files for some system calls.</p>
@@ -698,6 +706,7 @@ You can restrict more strictly with other directives and policy files for some s
 <li>You can restrict devices and directories with allow_mount directive.
 <li>You can restrict directories that you don't allow unmount with deny_unmount directive.
 <li>You can restrict directories that can chroot to with allow_chroot directive.
+<li>You can restrict directories that can exchange with allow_pivot_root directive.
 </ul>
 <h3>MAC for networking addresses and ports</h3>
 <p>To grant permission for ports, use allow_network directive followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.3.2   2007/02/14
+ * Version: 1.3.3   2007/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -154,7 +154,8 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
 #define TOMOYO_SYS_CHOWN                        26  /* sys_chown(), sys_fchown(), sys_lchown()                     */
 #define TOMOYO_SYS_IOCTL                        27  /* sys_ioctl(), compat_sys_ioctl()                             */
 #define TOMOYO_SYS_KEXEC_LOAD                   28  /* sys_kexec_load()                                            */
-#define TOMOYO_MAX_CAPABILITY_INDEX             29
+#define TOMOYO_SYS_PIVOT_ROOT                   29  /* sys_pivot_root()                                            */
+#define TOMOYO_MAX_CAPABILITY_INDEX             30
 
 /*************************  Index numbers for Network Controls.  *************************/
 

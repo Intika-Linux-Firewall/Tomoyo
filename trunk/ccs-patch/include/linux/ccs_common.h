@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.3.2   2007/02/14
+ * Version: 1.3.3   2007/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -222,6 +222,8 @@ typedef struct {
 #define KEYWORD_ALLOW_MOUNT_LEN          (sizeof(KEYWORD_ALLOW_MOUNT) - 1)
 #define KEYWORD_ALLOW_NETWORK            "allow_network "
 #define KEYWORD_ALLOW_NETWORK_LEN        (sizeof(KEYWORD_ALLOW_NETWORK) - 1)
+#define KEYWORD_ALLOW_PIVOT_ROOT         "allow_pivot_root "
+#define KEYWORD_ALLOW_PIVOT_ROOT_LEN     (sizeof(KEYWORD_ALLOW_PIVOT_ROOT) - 1)
 #define KEYWORD_ALLOW_READ               "allow_read "
 #define KEYWORD_ALLOW_READ_LEN           (sizeof(KEYWORD_ALLOW_READ) - 1)
 #define KEYWORD_ALLOW_SIGNAL             "allow_signal "
@@ -274,7 +276,7 @@ typedef struct {
 #define CCS_SAKURA_RESTRICT_CHROOT               6  /* system_policy.txt      */
 #define CCS_SAKURA_RESTRICT_MOUNT                7  /* system_policy.txt      */
 #define CCS_SAKURA_RESTRICT_UNMOUNT              8  /* system_policy.txt      */
-#define CCS_SAKURA_DENY_PIVOT_ROOT               9
+#define CCS_SAKURA_RESTRICT_PIVOT_ROOT           9  /* system_policy.txt      */
 #define CCS_SAKURA_RESTRICT_AUTOBIND            10  /* system_policy.txt      */
 #define CCS_TOMOYO_MAX_ACCEPT_ENTRY             11
 #define CCS_TOMOYO_MAX_GRANT_LOG                12
@@ -346,6 +348,7 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete
 int AddNoRewritePolicy(char *pattern, const int is_delete);
 int AddNoUmountPolicy(char *data, const int is_delete);
 int AddPatternPolicy(char *data, const int is_delete);
+int AddPivotRootPolicy(char *data, const int is_delete);
 int AddReservedPortPolicy(char *data, const int is_delete);
 int AddSignalPolicy(char *data, struct domain_info *domain, const int is_delete);
 int CCS_CloseControl(struct file *file);
@@ -379,6 +382,7 @@ int ReadMountPolicy(IO_BUFFER *head);
 int ReadNoRewritePolicy(IO_BUFFER *head);
 int ReadNoUmountPolicy(IO_BUFFER *head);
 int ReadPatternPolicy(IO_BUFFER *head);
+int ReadPivotRootPolicy(IO_BUFFER *head);
 int ReadPermissionMapping(IO_BUFFER *head);
 int ReadRejectLog(IO_BUFFER *head);
 int ReadReservedPortPolicy(IO_BUFFER *head);

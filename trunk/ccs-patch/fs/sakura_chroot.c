@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.3.2   2007/02/14
+ * Version: 1.3.3   2007/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -16,6 +16,11 @@
 #include <linux/ccs_common.h>
 #include <linux/sakura.h>
 #include <linux/realpath.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#include <linux/namei.h>
+#else
+#include <linux/fs.h>
+#endif
 
 extern const char *ccs_log_level;
 
@@ -41,7 +46,7 @@ static int AddChrootACL(const char *dir, const int is_delete)
 	if ((saved_dir = SaveName(dir)) == NULL) return -ENOMEM;
 	down(&lock);
 	for (ptr = chroot_list; ptr; ptr = ptr->next) {
-		if (ptr->dir == saved_dir){
+		if (ptr->dir == saved_dir) {
 			ptr->is_deleted = is_delete;
 			error = 0;
 			goto out;
@@ -66,43 +71,41 @@ static int AddChrootACL(const char *dir, const int is_delete)
 	return error;
 }
 
-int CheckChRootPermission(const char *pathname)
+int CheckChRootPermission(struct nameidata *nd)
 {
-	int error_flag = 1;
-	char *name;
+	int error = -EPERM;
+	char *root_name;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_CHROOT)) return 0;
-	name = realpath(pathname);
-	if (name) {
+	root_name = realpath_from_dentry(nd->dentry, nd->mnt);
+	if (root_name) {
 		struct path_info dir;
-		dir.name = name;
+		dir.name = root_name;
 		fill_path_info(&dir);
 		if (dir.is_dir) {
 			CHROOT_ENTRY *ptr;
 			for (ptr = chroot_list; ptr; ptr = ptr->next) {
 				if (ptr->is_deleted) continue;
 				if (PathMatchesToPattern(&dir, ptr->dir)) {
-					error_flag = 0;
+					error = 0;
 					break;
 				}
 			}
 		}
-		ccs_free(name);
 	}
-	if (error_flag) {
-		int error = -EPERM;
+	if (error) {
 		const int is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_CHROOT);
-		const char *realname = realpath(pathname), *exename = GetEXE();
-		printk("SAKURA-%s: chroot %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), realname ? realname : pathname, current->pid, exename);
-		if (is_enforce && CheckSupervisor("# %s is requesting\nchroot %s\n", exename, realname ? realname : pathname) == 0) error = 0;
+		const char *exename = GetEXE();
+		printk("SAKURA-%s: chroot %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), root_name, current->pid, exename);
+		if (is_enforce && CheckSupervisor("# %s is requesting\nchroot %s\n", exename, root_name) == 0) error = 0;
 		if (exename) ccs_free(exename);
-		if (!is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_CHROOT) && realname) {
-			AddChrootACL(realname, 0);
+		if (!is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_CHROOT) && root_name) {
+			AddChrootACL(root_name, 0);
 			UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 		}
-		if (realname) ccs_free(realname);
-		if (is_enforce) return error;
+		if (!is_enforce) error = 0;
 	}
-	return 0;
+	ccs_free(root_name);
+	return error;
 }
 
 int AddChrootPolicy(char *data, const int is_delete)
