@@ -1187,10 +1187,10 @@ void CCS_LoadPolicy(const char *filename)
 	}
 
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.3.3-pre6   2007/03/19\n");
+	printk("SAKURA: 1.3.3-pre7   2007/03/20\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.3.3-pre6   2007/03/19\n");
+	printk("TOMOYO: 1.3.3-pre7   2007/03/20\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

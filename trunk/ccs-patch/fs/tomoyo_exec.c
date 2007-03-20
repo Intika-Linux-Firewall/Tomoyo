@@ -113,7 +113,7 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 {
 	int error = 0;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) return 0;
-	if (!filename || !argv0) return 0;
+	if (!filename || !argv0 || !*argv0) return 0;
 	error = CheckArgv0ACL(filename, argv0);
 	AuditArgv0Log(filename, argv0, !error);
 	if (error) {
