@@ -32,7 +32,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2747 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}_tomoyo_1.3.3
+%define release %(R="$Revision: 1.2747 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}_tomoyo_1.4
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -185,7 +185,6 @@ Summary: The Linux kernel (the core of the Linux operating system)
 
 # TOMOYO Linux
 %define signmodules 0
-%define buildsmp 0
 
 #
 # Three sets of minimum package version requirements in the form of Conflicts:
@@ -300,7 +299,7 @@ Source80: config-rhel-generic
 Source81: config-rhel-x86-generic
 Source82: config-rhel-ppc64-generic
 Source83: config-olpc-generic
-Source15000: ccs-patch-1.3.3-20070401.tar.gz
+Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades

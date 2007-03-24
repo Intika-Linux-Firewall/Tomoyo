@@ -26,7 +26,7 @@ summary: the linux kernel (the core of the linux operating system)
 # that the kernel isn't the stock distribution kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 42.0.10.EL_tomoyo_1.3.3
+%define release 42.0.10.EL_tomoyo_1.4
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -126,7 +126,6 @@ summary: the linux kernel (the core of the linux operating system)
 
 # TOMOYO Linux
 %define signmodules 0
-%define buildsmp 0
 
 #
 # Three sets of minimum package version requirements in the form of Conflicts:
@@ -227,7 +226,7 @@ Source32: kernel-%{kversion}-ppc.config
 Source33: kernel-%{kversion}-ia64.config
 Source34: kernel-%{kversion}-ia64-largesmp.config
 Source35: kernel-%{kversion}-ppc64-largesmp.config
-Source15000: ccs-patch-1.3.3-20070401.tar.gz
+Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades

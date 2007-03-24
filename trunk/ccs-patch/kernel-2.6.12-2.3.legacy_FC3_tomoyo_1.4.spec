@@ -21,7 +21,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define rpmversion 2.6.%{sublevel}
 #define rhbsys  %([ -r /etc/beehive-root -o -n "%{?__beehive_build}" ] && echo || echo .`whoami`)
 #define release %(R="$Revision: 1.1381 $"; RR="${R##: }"; echo ${RR%%?})_FC3%{rhbsys}
-%define release 2.3.legacy_FC3_tomoyo_1.3.3
+%define release 2.3.legacy_FC3_tomoyo_1.4
 %define signmodules 0
 %define make_target bzImage
 
@@ -105,7 +105,6 @@ Summary: The Linux kernel (the core of the Linux operating system)
 
 # TOMOYO Linux
 %define signmodules 0
-%define buildsmp 0
 
 #
 # Three sets of minimum package version requirements in the form of Conflicts:
@@ -187,7 +186,7 @@ Source29: kernel-%{kversion}-s390x.config
 Source33: kernel-%{kversion}-ppc.config
 Source34: kernel-%{kversion}-ppc-smp.config
 Source35: kernel-%{kversion}-ia64.config
-Source15000: ccs-patch-1.3.3-20070401.tar.gz
+Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
