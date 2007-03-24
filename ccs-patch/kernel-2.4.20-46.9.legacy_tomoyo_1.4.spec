@@ -21,7 +21,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # that the kernel isn't the stock RHL kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 46.9.legacy_tomoyo_1.3.3
+%define release 46.9.legacy_tomoyo_1.4
 %define sublevel 20
 %define kversion 2.4.%{sublevel}
 # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
@@ -183,7 +183,7 @@ Source48: kernel-%{kversion}-x86_64.config
 Source49: kernel-%{kversion}-x86_64-smp.config
 Source50: installkernel.iSeries
 Source51: installcmdline.iSeries
-Source15000: ccs-patch-1.3.3-20070401.tar.gz
+Source15000: ccs-patch-1.4-20070401.tar.gz
 
 # the following is for embedded systems where the %{targetboard} variable
 # is set

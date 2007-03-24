@@ -18,7 +18,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 17
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.3.3
+%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.4
 %define signmodules 0
 %define make_target bzImage
 %define kernel_image x86
@@ -201,7 +201,7 @@ Source34: kernel-%{kversion}-ia64.config
 #Source66: kernel-%{kversion}-sparc.config
 #Source67: kernel-%{kversion}-sparc64.config
 #Source68: kernel-%{kversion}-sparc64-smp.config
-Source15000: ccs-patch-1.3.3-20070401.tar.gz
+Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
