@@ -39,7 +39,7 @@
 
 <h2><a name="l0">概要</a></h2>
 
-<p>以下では、CentOS 4.4にTOMOYO Linux 1.3.2を導入する手順を解説します。この手順書に従って操作すれば、
+<p>以下では、CentOS 4.4にTOMOYO Linux 1.4を導入する手順を解説します。この手順書に従って操作すれば、
 TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 <p>導入の流れは以下の通りです。</p>
 <ol>
@@ -69,19 +69,19 @@ Disabled
 提供されているので、今回はそれを利用します。</p>
 <p>まずはパッケージをダウンロードします。</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/23851/kernel-2.6.9-42.0.10.EL_tomoyo_1.3.2.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.9-42.0.10.EL_tomoyo_1.4.i586.rpm</span>
 </pre>
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 <pre>
-# <span class="user">rpm --install kernel-2.6.9-42.0.10.EL_tomoyo_1.3.2.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.9-42.0.10.EL_tomoyo_1.4.i586.rpm</span>
 </pre>
 <p>この際特にメッセージは表示されませんが、
 インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 <pre>
-title CentOS (2.6.9-42.0.10.EL_tomoyo_1.3.2)
+title CentOS (2.6.9-42.0.10.EL_tomoyo_1.4)
     root (hd0,0)
-    kernel /vmlinuz-2.6.9-42.0.10.EL_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.9-42.0.10.EL_tomoyo_1.3.2.img
+    kernel /vmlinuz-2.6.9-42.0.10.EL_tomoyo_1.4 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.9-42.0.10.EL_tomoyo_1.4.img
 </pre>
 <p>今後カーネルの選択を行いやすくするために、
 /boot/grub/grub.confの"timeout="と"hiddenmenu"の行を
@@ -101,8 +101,8 @@ title CentOS (2.6.9-42.0.10.EL_tomoyo_1.3.2)
 ツールは/root/ccstoolsディレクトリに置くことにします。</p>
 <pre>
 # <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/23851/ccs-tools-1.3.2-i386-CentOS4.4.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.3.2-i386-CentOS4.4.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-CentOS4.4.tar.gz</span>
+# <span class="user">tar zxf ccs-tools-1.4-i386-CentOS4.4.tar.gz</span>
 </pre>
 <p>ツールを置いたディレクトリにパスを通しておきます。bashを使っている場合には以下のようにします。</p>
 <pre>
@@ -116,10 +116,10 @@ title CentOS (2.6.9-42.0.10.EL_tomoyo_1.3.2)
 <p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
 /boot/grub/grub.confのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
 <pre>
-title CentOS (2.6.9-42.0.10.EL_tomoyo_1.3.2)
+title CentOS (2.6.9-42.0.10.EL_tomoyo_1.4)
     root (hd0,0)
-    kernel /vmlinuz-2.6.9-42.0.10.EL_tomoyo_1.3.2 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
-    initrd /initrd-2.6.9-42.0.10.EL_tomoyo_1.3.2.img
+    kernel /vmlinuz-2.6.9-42.0.10.EL_tomoyo_1.4 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
+    initrd /initrd-2.6.9-42.0.10.EL_tomoyo_1.4.img
 </pre>
 
 <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>

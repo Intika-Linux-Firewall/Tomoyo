@@ -38,7 +38,7 @@
 
 <h2><a name="l0">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.3.2 on Ubuntu 6.10 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.4 on Ubuntu 6.10 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 <ol>
 <li>Install TOMOYO Linux kernel and utilities</li>
@@ -53,11 +53,11 @@
 <p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile. But as with Ubuntu 6.10, binary kernel packages are provided and this page uses them.</p>
 <p>First, download the binary kernel package.</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/23851/linux-image-2.6.17.14-ubuntu1-ccs-i586_1.3.2_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/24616/linux-image-2.6.17.14-ubuntu1-ccs-i586_1.4_i386.deb</span>
 </pre>
 <p>Next, install the downloaded package.</p>
 <pre>
-# <span class="user">dpkg --install linux-image-2.6.17.14-ubuntu1-ccs-i586_1.3.2_i386.deb</span>
+# <span class="user">dpkg --install linux-image-2.6.17.14-ubuntu1-ccs-i586_1.4_i386.deb</span>
 </pre>
 <p>The following entries are appended to /boot/grub/menu.lst if installation finishes successfully.</p>
 <pre>
@@ -86,8 +86,8 @@ boot
 <p>As with Ubuntu 6.10, a binary tools tar ball is provided and this page uses it. We use /root/ccstools/ directory as the location of TOMOYO Linux tools.</p>
 <pre>
 # <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/23851/ccs-tools-1.3.2-i386-Ubuntu6.10.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.3.2-i386-Ubuntu6.10.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-Ubuntu6.10.tar.gz</span>
+# <span class="user">tar zxf ccs-tools-1.4-i386-Ubuntu6.10.tar.gz</span>
 </pre>
 
 <p>Move the policy loader script (.init) to / directory.</p>
