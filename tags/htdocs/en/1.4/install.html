@@ -1,0 +1,1549 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<h1>TOMOYO Linux Install manual</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>Installation</h1>
+
+<h2>Install TOMOYO Linux kernel</h2>
+
+<p>TOMOYO Linux provides some binary kernel packages. If you want to use binary kernel packages, download and install.</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.4.20-46.9.legacy_tomoyo_1.4.i386.rpm
+</td></tr><tr><td>
+Fedora Core 3 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.4.i586.rpm
+</td></tr><tr><td>
+Fedora Core 4 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.17-1.2142_FC4_tomoyo_1.4.i586.rpm
+</td></tr><tr><td>
+Fedora Core 5 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.20-1.2307.fc5_tomoyo_1.4.i586.rpm
+</td></tr><tr><td>
+Fedora Core 6 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.20-1.2933.fc6_tomoyo_1.4.i586.rpm
+</td></tr><tr><td>
+CentOS 4.4 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.9-42.0.10.EL_tomoyo_1.4.i586.rpm
+</td></tr><tr><td>
+CentOS 5 (80686 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.18-1.2747.el5_tomoyo_1.4.i686.rpm
+</td></tr><tr><td>
+Debian Sarge (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-image-2.4.27-10sarge5-ccs-i586_1.4_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-image-2.6.8-16sarge6-ccs-i586_1.4_i386.deb
+</td></tr><tr><td>
+Debian Etch (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/linux-image-2.6.18-11-ccs-i586_1.4_i386.deb
+</td></tr><tr><td>
+OpenSUSE 10.1 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-default-2.6.16.27-0.9_tomoyo_1.4.i586.rpm
+</td></tr><tr><td>
+OpenSUSE 10.2 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-default-2.6.18.8-0.1_tomoyo_1.4.i586.rpm
+</td></tr><tr><td>
+Asianux 2.0 (80686 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.9-42.10AX_tomoyo_1.4.i686.rpm
+</td></tr><tr><td>
+Ubuntu 6.10 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/linux-image-2.6.17.14-ubuntu1-ccs-i586_1.4_i386.deb
+</td></tr>
+</table>
+
+<p>If the CPU architecture differs or you want to customize kernel configuration, you need to compile kernel. To compile kernel, see <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
+
+<p>If you are using distributions that support SELinux, you might encounter errors while installing packages if SELinux is not disabled. If you see error messages shown below while installing packages, retry after you disable SELinux. You can disable SELinux by either "changing SELINUX=disabled in /etc/selinux/config and reboot" or "adding selinux=0 to the kernel's boot paramaters".</p>
+
+<table border="1">
+<tr><td>
+[root@localhost ~]# rpm -ihv kernel-2.6.9-42.0.10.EL_tomoyo_1.4.i586.rpm<br>
+Preparing...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;########################################### [100%]<br>
+Error: %pre(kernel-2.6.9-42.0.10.EL_tomoyo_1.4.i586) scriptlet failed, exit status 255<br>
+Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.9-42.0.10.EL_tomoyo_1.4
+</td></tr>
+</table>
+
+<p>TOMOYO Linux itself can coexist with SELinux. You may continue with SELinux enabled if you want.</p>
+
+<p>If you install rpm package, the following entry is added to /boot/grub/grub.conf upon successful installation.</p>
+
+<table border="1">
+<tr><td>
+title CentOS (2.6.9-42.0.10.EL_tomoyo_1.4)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-42.0.10.EL_tomoyo_1.4 ro root=/dev/VolGroup00/LogVol00<br>
+&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-42.0.10.EL_tomoyo_1.4.img
+</td></tr>
+</table>
+
+<p>Append "init=/.init" to the line of "kernel".</p>
+
+<table border="1">
+<tr><td>
+title CentOS (2.6.9-42.0.10.EL_tomoyo_1.4)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-42.0.10.EL_tomoyo_1.4 ro root=/dev/VolGroup00/LogVol00 init=/.init<br>
+&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-42.0.10.EL_tomoyo_1.4.img
+</td></tr>
+</table>
+
+<p>If you install deb package, the following entry is added to /boot/grub/menu.lst upon successful installation.</p>
+
+<table border="1">
+<tr><td>
+title Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs<br>
+root (hd0,0)<br>
+kernel /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro<br>
+initrd /boot/initrd.img-2.6.8-16sarge6-ccs<br>
+savedefault<br>
+boot
+</td></tr>
+</table>
+
+<p>Append "init=/.init" to the line of "kernel".</p>
+
+<table border="1">
+<tr><td>
+title Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs<br>
+root (hd0,0)<br>
+kernel /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro init=/.init<br>
+initrd /boot/initrd.img-2.6.8-16sarge6-ccs<br>
+savedefault<br>
+boot
+</td></tr>
+</table>
+
+<p>The "/.init" is a script to load TOMOYO Linux's policy files and is executed before starting /sbin/init .<br>
+The "/.init" is included in the TOMOYO Linux tools package.</p>
+
+<h2>Install TOMOYO Linux tools</h2>
+
+<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract under /root/ directory.</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-RHL9.tar.gz
+</td></tr><tr><td>
+Fedora Core 3 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-FC3.tar.gz
+</td></tr><tr><td>
+Fedora Core 4 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-FC4.tar.gz
+</td></tr><tr><td>
+Fedora Core 5 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-FC5.tar.gz
+</td></tr><tr><td>
+Fedora Core 6 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-FC6.tar.gz
+</td></tr><tr><td>
+CentOS 4.4 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-CentOS4.4.tar.gz
+</td></tr><tr><td>
+CentOS 5 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-CentOS5.tar.gz
+</td></tr><tr><td>
+Debian Sarge (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-Sarge.tar.gz
+</td></tr><tr><td>
+Debian Etch (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-Etch.tar.gz
+</td></tr><tr><td>
+OpenSUSE 10.1 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-SUSE10.1.tar.gz
+</td></tr><tr><td>
+OpenSUSE 10.2 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-SUSE10.2.tar.gz
+</td></tr><tr><td>
+Asianux 2.0 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-AX2.tar.gz
+</td></tr><tr><td>
+Ubuntu 6.10 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-i386-Ubuntu6.10.tar.gz
+</td></tr>
+</table>
+
+<p>Move extracted ".init" (policy loader) to / .</p>
+
+<table border="1">
+<tr><td>
+mv ccstools/.init /
+</td></tr>
+</table>
+
+<p>If the CPU architecture differs, you need to compile tools. To compile tools, run the following commands.</p>
+
+<table border="1">
+<tr><td>
+cd /root/<br>
+# Download source of tools for TOMOYO Linux.<br>
+wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
+# Extract.<br>
+tar -zxf ccs-tools.tar.gz<br>
+# Compile.<br>
+make -sC ccstools/<br>
+# Move policy loader to / .<br>
+mv ccstools/.init /
+</td></tr>
+</table>
+
+<h2>Setting command search path</h2>
+
+<p>Add the location of TOMOYO Linux tools to environment variable PATH.</p>
+<p>Add the following line to ~/.bashrc if you are using bash.</p>
+
+<table border="1">
+<tr><td>
+export PATH=$PATH:/root/ccstools
+</td></tr>
+</table>
+
+<p>Add the following line to ~/.tcshrc if you are using tcsh.</p>
+
+<table border="1">
+<tr><td>
+setenv PATH "$PATH:/root/ccstools"
+</td></tr>
+</table>
+
+<h2>Boot Test</h2>
+
+<p>Check whether your box can boot with TOMOYO Linux kernel.</p>
+
+<p>Create /etc/ccs/ directory in which TOMOYO Linux stores policy files.<br>
+Set owner and group to root and permission 700 since only root need to access the directory.</p>
+
+<table border="1">
+<tr><td>
+mkdir -m 700 /etc/ccs
+</td></tr>
+</table>
+
+<p>Create /etc/ccs/manager.txt and list up programs that are allowed to update policies via /proc/ccs/ interface.<br>
+Specifically, "loadpolicy" that reloads policy, "editpolicy" that edits policy, "setlevel" that changes control level, "setprofile" that changes profile number of domains, "ld-watch" that updates globally readable files, "ccs-queryd" that grants access requests interactively.</p>
+
+<table border="1">
+<tr><td>
+cat &gt; /etc/ccs/manager.txt &lt;&lt; EOF<br>
+/root/ccstools/loadpolicy<br>
+/root/ccstools/editpolicy<br>
+/root/ccstools/setlevel<br>
+/root/ccstools/setprofile<br>
+/root/ccstools/ld-watch<br>
+/root/ccstools/ccs-queryd<br>
+EOF<br></td>
+</tr>
+</table>
+
+<p>Reboot with TOMOYO Linux kernel.</p>
+
+<table border="1">
+<tr><td>
+reboot
+</td></tr>
+</table>
+
+<p>The following messages will appear upon successful execution of "/.init".</p>
+
+<table border="1">
+<tr><td>
+Press 'Enter' or wait for 10 seconds to use default status.<br>
+You may input 'disabled' and press 'Enter' to disable MAC in case of emergency.<br>
+&gt;
+</td></tr>
+</table>
+
+<p>Enter "boottest" and press Enter here, for currently no profiles are created.</p>
+
+<table border="1">
+<tr><td>
+boottest
+</td></tr>
+</table>
+
+<p>/sbin/init will start and the system will boot if profiles are loaded successfully.<br>
+On failure, the following messages will appear and the system halts.</p>
+
+<table border="1">
+<tr><td>
+No profiles loaded. Run policy loader using 'init=' option.
+</td></tr>
+</table>
+
+<p>If failed, check the following points.</p>
+
+<ul>
+<li>The "kernel" line of the entry of TOMOYO Linux kernel in /boot/grub/grub.conf ( or /boot/grub/menu.lst ) has "init=/.init" option.
+<li> /.init has execute permission.
+</ul>
+
+<p>After the system boots, login as root.<br>
+Save the profile by executing the following command.</p>
+
+<table border="1">
+<tr><td>
+cat /proc/ccs/status &gt; /etc/ccs/status.txt
+</td></tr>
+</table>
+
+<h1>Preparation</h1>
+
+<h2>About domains</h2>
+
+<p>The MAC in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and basically the process will transit to different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history. For example, the name of domain which the kernel belongs to is "&lt;kernel&gt;", the name of domain which /sbin/init invoked by the kernel belongs to is "&lt;kernel&gt; /sbin/init", the name of domain which /etc/rc.d/rc invoked by the /sbin/init belongs to is "&lt;kernel&gt; /sbin/init /etc/rc.d/rc". The exceptions of this transition rule are described later.</p>
+
+<h2>About profiles</h2>
+
+<p>TOMOYO Linux can perform several MACs besides MAC for files, but to reduce the load of policy managements, you can disable MACs you think unnecessary. The configurable parameters are determined in the kernel compilation time. Only topics included in /proc/ccs/status are configurable.</p>
+
+<table border="1">
+<tr><td>Name</td><td>Control</td><td>Default value</td><td>Accept mode supported</td></tr>
+<tr>
+<td>COMMENT</td>
+<td>A line of text that describes the content of the profile.</td>
+<td></td>
+<td>-</td>
+</tr>
+<tr>
+<td>MAC_FOR_FILE</td>
+<td>Enable Mandatory Access Control(MAC) for files.</td>
+<td>0</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_ARGV0</td>
+<td>Enable MAC for argv[0] checks.</td>
+<td>0</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_CAPABILITY::</td>
+<td>Enable MAC for capabilities. There are 29 types of capabilities and you can enable/disable selectively.</td>
+<td>0</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_NETWORK</td>
+<td>Enable MAC for network addresses and ports.</td>
+<td>0</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_SIGNAL</td>
+<td>Enable MAC for signal.</td>
+<td>0</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>DENY_CONCEAL_MOUNT</td>
+<td>Forbid mount requests that hides an existing mount.</td>
+<td>0</td>
+<td>No</td>
+</tr>
+<tr>
+<td>RESTRICT_CHROOT</td>
+<td>Enable restrictions for chroot directories.</td>
+<td>0</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>RESTRICT_MOUNT</td>
+<td>Enable restrictions for mount parameters.</td>
+<td>0</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>RESTRICT_UNMOUNT</td>
+<td>Forbid unmount requests for specified directories.</td>
+<td>0</td>
+<td>No</td>
+</tr>
+<tr>
+<td>DENY_PIVOT_ROOT</td>
+<td>Forbid pivot_root requests.</td>
+<td>0</td>
+<td>No</td>
+</tr>
+<tr>
+<td>RESTRICT_AUTOBIND</td>
+<td>Forbid selecting specific local port number when automatic local port binding happens.</td>
+<td>0</td>
+<td>No</td>
+</tr>
+<tr>
+<td>MAX_ACCEPT_ENTRY</td>
+<td>Limits the max number of ACL entries that are automatically appended during accept mode.</td>
+<td>2048</td>
+<td>-</td>
+</tr>
+<tr>
+<td>MAX_GRANT_LOG</td>
+<td>Limits the max number of access requests that didn't violate policies.</td>
+<td>1024</td>
+<td>-</td>
+</tr>
+<tr>
+<td>MAX_REJECT_LOG</td>
+<td>Limits the max number of access requests that violated policies.</td>
+<td>1024</td>
+<td>-</td>
+</tr>
+<tr>
+<td>TOMOYO_VERBOSE</td>
+<td>Dump domain policy violation messages to syslog.</td>
+<td>1</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ALLOW_ENFORCE_GRACE</td>
+<td>Allow interactively permitting access requests that violated policy according to the administrator's decision.</td>
+<td>0</td>
+<td>-</td>
+</tr>
+</table>
+<p>You can give the following values for RESTRICT_AUTOBIND</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Off. Works as if regular kernel.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>On</td>
+</tr>
+</table>
+<p>You can give any integer greater or equals to 0 for MAX_ACCEPT_ENTRY, MAX_GRANT_LOG and MAX_REJECT_LOG</p>
+<p>You can give the following values for TOMOYO_VERBOSE</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Don't dump domain policy violation messages.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Dump domain policy violation messages.</td>
+</tr>
+</table>
+<p>You can give the following values for ALLOW_ENFORCE_GRACE</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Reject immediately if policy violation occurs in enforcing mode.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Allow interactively permitting access requests that violated policy in enforcing mode.</td>
+</tr>
+</table>
+<p>You can give the following values for all but listed above.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Disabled. Works as if regular kernel.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Accept mode. Not rejected if the request violates policy. Automatically appended to policy.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Permissive mode. Not rejected if the request violates policy. Not appended to policy automatically.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Enforce mode. Rejected if the request violates policy.</td>
+</tr>
+</table>
+
+<h2>Creating profiles</h2>
+
+<p>Write profiles for "disabled", "accept mode", "permissive mode" and "enforce mode" in /etc/ccs/status.txt . The following example is profiles for applying MAC for files and networks. The heading number is profile number that is used for assigning profiles to domains. The valid profile number range is between 0 and 255.</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=----- All Disabled -----<br>
+1-COMMENT=----- FILE and NETWORK with Accept Mode -----<br>
+1-MAC_FOR_FILE=1<br>
+1-MAC_FOR_NETWORK=1<br>
+2-COMMENT=----- FILE and NETWORK with Permissive Mode -----<br>
+2-MAC_FOR_FILE=2<br>
+2-MAC_FOR_NETWORK=2<br>
+3-COMMENT=----- FILE and NETWORK with Enforce Mode -----<br>
+3-MAC_FOR_FILE=3<br>
+3-MAC_FOR_NETWORK=3<br>
+3-MAX_GRANT_LOG=0<br>
+3-ALLOW_ENFORCE_GRACE=0<br>
+4-COMMENT=----- FILE and NETWORK with Delayed Enforce Mode -----<br>
+4-MAC_FOR_FILE=3<br>
+4-MAC_FOR_NETWORK=3<br>
+4-MAX_GRANT_LOG=0<br>
+4-MAX_REJECT_LOG=0<br>
+4-ALLOW_ENFORCE_GRACE=1
+</td></tr>
+</table>
+
+<p>In this manual, we assume that<br>
+profile number 0 is for "disabled",<br>
+profile number 1 is for "accept mode",<br>
+profile number 2 is for "permissive mode",<br>
+profile number 3 is for "enforce mode",<br>
+profile number 4 is for "delayed accept mode" (same as "enforce mode" except that it allows administrators handle access requests that violated policy manually).</p>
+
+<p>You won't need to edit profiles after you once create them because you can control how to apply MAC on per-a-domain basis by changing profile numbers of domains. But if you edited /etc/ccs/status.txt by some reason (for example, you want to add profiles), run the following command.</p>
+
+<table border="1">
+<tr><td>
+xargs -0 setlevel &lt; /etc/ccs/status.txt
+</td></tr>
+</table>
+
+<p>To see the profiles currently configured, run the following command.</p>
+
+<table border="1">
+<tr><td>
+cat /proc/ccs/status
+</td></tr>
+</table>
+
+<h2>Assigning profiles to domains</h2>
+
+<p>To assign profiles to domains, use "setprofile" command. For example,</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 0 '&lt;kernel&gt;'
+</td></tr>
+</table>
+
+<p>will assign profile number 0 to all domains. Also,</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 1 '&lt;kernel&gt; /sbin/init'
+</td></tr>
+</table>
+
+<p>will assign profile number 1 to all domains whose domainname starts with "&lt;kernel&gt; /sbin/init". Also,</p>
+
+<table border="1">
+<tr><td>
+setprofile 2 '&lt;kernel&gt; /sbin/init'
+</td></tr>
+</table>
+
+<p>will assign profile number 2 to only domain whose domainname is "&lt;kernel&gt; /sbin/init".</p>
+
+<p>To see the profiles currently assigned to domains, run the following command. A list with profile numbers and domainnames are shown.</p>
+<table border="1">
+<tr><td>
+cat /proc/ccs/policy/.domain_status
+</td></tr>
+</table>
+
+<p>Basically, you don't need to switch profiles of all domains at boot because you can assign profiles by per-a-domain basis and the profile number last assigned remains in the domain policy file (/etc/ccs/domain_policy.txt) using "use_profile" directive.
+But if you can't boot by some reason (for example, you assigned profiles for "enforce mode" before giving enough permissions to domains), you can enter "disabled" and press "Enter" at the prompt of /.init to boot the system with MAC disabled.</p>
+
+<p>To see the profiles of currently running processes and their domainnames, use ccstree command.</p>
+
+<table border="1">
+<tr><td>
+ccstree
+</td></tr>
+</table>
+
+<p>The ccstree command will show a list of profile number, name of process, PID and name of domain the process belongs to like pstree command, as shown below.</p>
+
+<table border="1">
+<tr><td>
+&nbsp;&nbsp;0&nbsp;init&nbsp;(1)&nbsp;&lt;kernel&gt;&nbsp;/sbin/init<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(743)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(744)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(745)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(746)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;mingetty&nbsp;(747)&nbsp;&lt;kernel&gt;&nbsp;/sbin/mingetty<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rc&nbsp;(748)&nbsp;&lt;kernel&gt;&nbsp;/sbin/init&nbsp;/etc/rc.d/rc<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;S91smb&nbsp;(3468)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/smb<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;initlog&nbsp;(3475)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/smb&nbsp;/sbin/initlog<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;nmbd&nbsp;(3476)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/smb&nbsp;/sbin/initlog&nbsp;/usr/sbin/nmbd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;syslogd&nbsp;(3158)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/syslog&nbsp;/sbin/initlog&nbsp;/sbin/syslogd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;klogd&nbsp;(3162)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/syslog&nbsp;/sbin/initlog&nbsp;/sbin/klogd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;portmap&nbsp;(3172)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/portmap&nbsp;/sbin/initlog&nbsp;/sbin/portmap<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.statd&nbsp;(3191)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfslock&nbsp;/sbin/initlog&nbsp;/sbin/rpc.statd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;cardmgr&nbsp;(3245)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/pcmcia&nbsp;/sbin/cardmgr<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;apmd&nbsp;(3270)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/apmd&nbsp;/sbin/initlog&nbsp;/usr/sbin/apmd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3307)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3393)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;tcsh&nbsp;(3434)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/root/ccstools/ccstree<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;xinetd&nbsp;(3321)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/xinetd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.rquotad&nbsp;(3342)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.rquotad<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.mountd&nbsp;(3361)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.mountd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;vsftpd&nbsp;(3371)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/vsftpd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sendmail&nbsp;(3395)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/sendmail&nbsp;/sbin/initlog&nbsp;/usr/sbin/sendmail.sendmail<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sendmail&nbsp;(3404)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/sendmail&nbsp;/sbin/initlog&nbsp;/usr/sbin/sendmail.sendmail<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;spamd&nbsp;(3414)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/spamassassin&nbsp;/sbin/initlog&nbsp;/usr/bin/spamd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;gpm&nbsp;(3423)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/gpm&nbsp;/sbin/initlog&nbsp;/usr/sbin/gpm<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;httpd&nbsp;(3455)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/httpd<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;crond&nbsp;(3464)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/crond<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;smbd&nbsp;(3473)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/smbd
+</td></tr>
+</table>
+
+<p>If you give -a option to ccstree, you can also see kernel processes that are out of TOMOYO Linux's MAC scope.</p>
+
+<h2>Changes for Audit Logs</h2>
+
+<p>TOMOYO Linux can record "access granted logs" (access requests that didn't violate domain policy) and "access rejected logs" (access requests that violated domain policy).</p>
+The logs are in the form of domain policy so that the logs can be directly appended to domain policy. Add the "access rejected logs" to domain policy if you consider you should allow the access.
+
+<p>You can use a daemon program that reads from /proc/ccs/info/grant_log and /proc/ccs/info/reject_log and writes to files. Run in the following way from (for example) /etc/rc.local .</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ccs-auditd $location_to_store_access_granted_logs $location_to_store_access_rejected_logs
+</td></tr>
+</table>
+
+<p>You may give MAX_GRANT_LOG=0 for profiles and give /dev/null for $location_to_store_access_granted_logs if you don't want "access granted logs". Since "ccs-auditd" doesn't have filtering functions, be careful with the disk's free space if you want to save "access granted logs".</p>
+
+<p>You may give MAX_REJECT_LOG=0 for profiles and give /dev/null for $location_to_store_access_rejected_logs if you don't want "access rejected logs". But I recommend you to save "access rejected logs". This manual assumes that "access rejected logs" is saved in /var/log/tomoyo/reject_log.txt .</p>
+
+<table border="1">
+<tr><td>
+/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+</td></tr>
+</table>
+
+<p>Create directories manually for storing access logs.</p>
+
+<table border="1">
+<tr><td>
+mkdir -p /var/log/tomoyo
+</td></tr>
+</table>
+
+<p>If you want to rotate using "logrotate", create /etc/logrotate.d/tomoyo with the following content. Be sure to give "nocreate" option, or logs after the first rotation will not be saved.</p>
+
+<table border="1">
+<tr><td>
+/var/log/tomoyo/reject_log.txt {<br>
+&nbsp;&nbsp;weekly<br>
+&nbsp;&nbsp;rotate 9<br>
+&nbsp;&nbsp;missingok<br>
+&nbsp;&nbsp;notifempty<br>
+&nbsp;&nbsp;nocreate<br>
+}
+</td></tr>
+</table>
+
+<p>If you don't want neither "access granted logs" nor "access rejected logs", you needn't to run "ccs-auditd" and you can give MAX_GRANT_LOG=0 and MAX_REJECT_LOG=0 for profiles to save memory and improve performance.</p>
+
+<h2>Creating exception policy</h2>
+
+<p>Create /etc/ccs/exception_policy.txt and define the following types of exceptions.</p>
+
+<ol>
+<li>Pathname pattern
+<li>Pathname group
+<li>Unconditionally readable files
+<li>Non-rewritable files
+<li>Programs invocable via symbolic links
+<li>Program aggregations
+<li>Programs that cause domain transition initialization
+<li>Programs that prevent domain transition initialization
+<li>Domains that prevent domain transition
+<li>Domains that cause domain transition
+</ol>
+
+<p>TOMOYO Linux tools package contains two scripts, make_exception.sh and make_alias.sh, that automatically generate these exceptions. Run the following commands. The execution of make_alias.sh will take long time (may be longer than 10 minutes in some environment).</p>
+
+<table border="1">
+<tr><td>
+make_exception.sh | sort | uniq &gt; /etc/ccs/exception_policy.txt<br>
+make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt
+</td></tr>
+</table>
+
+<p>Be sure to review the content of automatically generated exceptions because there would be redundant or dangerous entries.
+
+</p>
+
+<h3>(1) Pathname pattern</h3>
+
+<p>Register pathnames with patterns using the "file_pattern" directive. When a file operation is performed and the requested pathname matches to a patterned pathname registered with "file_pattern" directive, policy is generated using patterned pathnames.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Files under /proc/PID/ directory.
+<li>Files under /sys/ directory. (Applicable to 2.6 kernels only)
+<li>Some files under /dev/ directory.
+<li>Policy files under /root/security/ directory.
+<li>Manual pages.
+<li>Spool directories.
+<li>Temporary files used for sending and receiving mails.
+<li>Temporary files used by man command.
+<li>Temporary files used by mount command.
+</ul>
+
+<p>TOMOYO Linux needs more patterned pathnames depending on the applications installed and their configurations. You can add missing patterned pathnames after running the system.</p>
+
+<h3>(2) Pathname group</h3>
+
+<p>Register pathname groups using the "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names. An example usage is shown later.<br>
+
+<h3>(3) Unconditionally readable files</h3>
+
+<p>Register files that are allowed to be read by all programs using the "allow_read" directive. No patterns allowed. When a read access is requested and the requested pathname matches to a pathname registered with "allow_read" directive, the read access is granted without checking domain policy.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Dynamically-linked library files that are registered with ldconfig.
+<li>Some files under /proc/ directory.
+<li>Some locale data under /usr/share/locale/ directory.
+</ul>
+
+<p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for read access.</p>
+
+<h3>(4) Non-rewritable files</h3>
+
+<p>Register files that you don't want to allow overwriting existing contents (like log files) using "deny_rewrite" directive. Patterns are allowed. Files registered with "deny_rewrite" directive are (as long as it is not explicitly given by "allow_rewrite" directive in domain policy) forbidden to "open for writing but not append mode" and "truncate".<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Files under /var/log/ directory.
+</ul>
+
+<p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for append-only access.</p>
+
+<h3>(5) Programs invocable via symbolic links</h3>
+
+<p>Basically, TOMOYO Linux checks execute permissions using the dereferenced pathname if the requested program is a symbolic link. But to handle programs that behave differently depending on the name of invocation, you may define domains using the name of symbolic links.<br>
+To allow executing programs using the name of symbolic links, use alias directive followed by dereferenced pathname and reference pathname. No patterns are allowed.<br>
+For example, /sbin/pidof is a symbolic link to /sbin/killall5 . In normal case, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed. By specifying "alias /sbin/killall5 /sbin/pidof", you can run /sbin/pidof in the domain for /sbin/pidof .</p>
+
+<h3>(6) Program aggregations</h3>
+
+<p>To deal multiple programs as a single program, use aggregator directive followed by name of original program and aggregated program. Patterns are allowed for name of original program.<br>
+For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
+
+<h3>(7) Programs that cause domain transition initialization</h3>
+
+<p>Register programs that initializes the domain transition history using the "initialize_domain" directive. No patterns allowed. When a program that is registered with "initialize_domain" directive is executed, the program runs just under the  &lt;kernel&gt; domain.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Scripts that start or terminate daemon programs located under /etc/init.d/ directory.
+<li>Daemon programs that you want to make domain names shorter (for example, httpd and sshd).
+</ul>
+
+
+<p>You may find more programs depending on applications in your system or configurations. Add missing programs after observing which programs should be initialize their domain transition history. But be careful with the side effect of other domains. For example, when the domain policy already includes</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; ... /bin/bash<br>
+use_profile 3<br>
+1 /bin/tcsh<br>
+<br>
+&lt;kernel&gt; ... /bin/bash /bin/tcsh<br>
+use_profile 3<br>
+1 /bin/cat<br>
+<br>
+&lt;kernel&gt; ... /bin/bash /bin/tcsh /bin/cat<br>
+use_profile 3<br>
+4 /etc/fstab
+
+</td></tr>
+</table>
+
+<p>and you add /bin/tcsh as initialize_domain, "&lt;kernel&gt; ... /bin/bash /bin/tcsh" will become  unreachable domain because /bin/tcsh runs in "&lt;kernel&gt; /bin/tcsh" domain. In that case, you will need to replace "&lt;kernel&gt; ... /bin/bash /bin/tcsh" with "&lt;kernel&gt; /bin/tcsh" as shown below.</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; ... /bin/bash<br>
+use_profile 3<br>
+1 /bin/tcsh<br>
+<br>
+&lt;kernel&gt; /bin/tcsh<br>
+use_profile 3<br>
+1 /bin/cat<br>
+<br>
+&lt;kernel&gt; /bin/tcsh /bin/cat<br>
+use_profile 3<br>
+4 /etc/fstab
+</td></tr>
+</table>
+
+<h3>(8) Programs that prevent domain transition initialization</h3>
+
+<p>To deny the effect of "initialize_domain" directive under specific conditions, use "no_initialize_domain" directive.</p>
+
+<h3>(9) Domains that prevent domain transition</h3>
+
+<p>To declare domain keepers, use "keep_domain" directive followed by domain definition.<br>
+For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless any program registered with "initialize_domain" directive is executed.</p>
+
+<h3>(10) Domains that cause domain transition</h3>
+
+<p>To deny the effect of "keep_domain" directive under specific conditions, use "no_keep_domain" directive.</p>
+
+<h1>Creating Domain Policy</h1>
+
+<h2>Basic Procedure</h2>
+
+<p>The following is the basic procedure for creating domain policy.</p>
+
+<ol>
+<li>Create domains
+<li>Append ACLs to domains
+<li>Confirm ACLs for domains
+<li>Enforce using ACLs
+</ol>
+
+<p>You don't need to create the whole policy for all allications at one time.</p>
+
+<h3>(1) Create domains</h3>
+
+<p>Assign a profile that doesn't perform MAC (in this manual, profile 0) and invoke applications. The purpose of this procedure is to create domains for applications.</p>
+
+<p>For example, if you want to protect /usr/sbin/httpd , firstly create domains for /usr/sbin/httpd .
+If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain".</p>
+
+<p>Assign a profile that doesn't perform MAC (in this manual, profile 0) to the domain current process (normally a shell) belongs to using "setprofile" command.</p>
+
+<table border="1">
+<tr><td>
+xargs -0 setprofile 0 &lt; /proc/ccs/info/self_domain
+</td></tr>
+</table>
+
+<p>This is needed to avoid assigning a profile that performs MAC in "enforce mode" to the newly created domain, for newly created domain inherits the creator's profile.</p>
+
+<p>Start /usr/sbin/httpd .</p>
+
+<table border="1">
+<tr><td>
+service httpd start
+</td></tr>
+</table>
+
+<p>You can use the following command to confirm that the domain is created. Make sure the domain for application you want to protect is created.</p>
+
+<table border="1">
+<tr><td>
+less /proc/ccs/policy/.domain_status
+</td></tr>
+</table>
+
+<p>After you confirmed that the domain is created, proceed to the next step.</p>
+
+<h3>(2) Append ACLs to domains</h3>
+
+<p>After you confirmed that the domain is created, assign a profile that perform MAC in "accept mode" (in this manual, profile 1) to the domain using "setprofile" command.</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>Start /usr/sbin/httpd and let the system append ACLs needed for /usr/sbin/httpd .</p>
+
+<table border="1">
+<tr><td>
+service httpd restart
+</td></tr>
+</table>
+
+<p>If the profile is configured as "1-TOMOYO-VERBOSE=1" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
+But as with "accept mode", the "TOMOYO-WARNING:" messages are printed only once because necessary ACLs are automatically appended when you do the same operation again.</p>
+
+<p>If the "TOMOYO-WARNING:" messages are no longer printed when you do the operation you want to allow, proceed to the next step.</p>
+
+<h3>(3) Confirm ACLs for domains</h3>
+
+<p>After you judged that necessary ACLs are appended, assign a profile that perform MAC in "permissive mode" (in this manual, profile 2) to the domain using "setprofile" command.</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>Start /usr/sbin/httpd and confirm that all necessary ACLs are appended.</p>
+
+<p>If the profile is configured as "2-TOMOYO-VERBOSE=1" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
+As with "permissive mode", the "TOMOYO-WARNING:" messages are printed again because necessary ACLs are not automatically appended when you do the same operation again.</p>
+
+<p>If the "TOMOYO-WARNING:" messages are no longer printed when you do the operation you want to allow, proceed to the next step.</p>
+
+<h3>(4) Enforce using ACLs</h3>
+
+<p>After you judged that necessary ACLs are given, assign a profile that perform MAC in "enforce mode" (in this manual, profile 3) to the domain using "setprofile" command.</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>And now, /usr/sbin/httpd is protected by MAC.</p>
+
+<p>If the profile is configured with "3-TOMOYO-VERBOSE=1" (this is default), the "TOMOYO-ERROR:" messages will be printed to the console and the requests are rejected when policy violation occurs. Also, the history of policy violation is accumulated to /proc/ccs/info/reject_log .</p>
+
+<h2>Creating policy all at once using "permissive mode"</h2>
+
+<p>TOMOYO Linux allows administrators generate domain policy from policy violation logs. If you want to do so, assign a profile that perform MAC in "permissive mode" (in this manual, profile 2) to the domain.</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>The log file /var/log/tomoyo/reject_log.txt created by "ccs-auditd" contains list of ACLs that violated domain policy in time series.
+Select appropriate range and pass to the filter as show below. This filter program sorts by domains and removes duplicated entries. (In other words, "sort" by domains and "uniq".)</p>
+
+<table border="1">
+<tr><td>
+sortpolicy &lt; /var/log/tomoyo/reject_log.txt
+</td></tr>
+</table>
+
+<p>Check the output and judge whether these ACLs should be added or not. And if you judged to add, add to /etc/ccs/domain_policy.txt and run "loadpolicy" to reload domain policy.</p>
+
+<table border="1">
+<tr><td>
+loadpolicy d
+</td></tr>
+</table>
+
+<p>If you run "loadpolicy" with "f" option (that is "loadpolicy df"), the domain policy currently in the kernel are erased before the domain policy currently on the disk is loaded.</p>
+
+<h3>Operation Example</h3>
+
+<p>Rename the current reject log file. "ccs-auditd" will detect the  disappearance of the current reject log file and recreates it.</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# mv /var/log/tomoyo/reject_log.txt /var/log/tomoyo/reject_log.tmp<br>
+</td></tr>
+</table>
+<p>Check the logs. Select ranges you want to use using some text editor if necessary.</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# cat /var/log/tomoyo/reject_log.tmp<br>
+#2006-11-10 10:17:29# pid=4498 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
+4 /etc/inittab<br>
+<br>
+#2006-11-10 10:17:41# pid=4501 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
+4 /etc/resolv.conf<br>
+<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
+1 /usr/bin/whoami<br>
+<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
+4 /etc/nsswitch.conf<br>
+<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
+4 /etc/passwd<br>
+<br>
+</td></tr>
+</table>
+<p>Sort the log by domains.</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# sortpolicy &lt; /var/log/tomoyo/reject_log.tmp<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
+<br>
+1 /usr/bin/whoami<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
+<br>
+4 /etc/inittab<br>
+4 /etc/resolv.conf<br>
+#2006-11-10 10:17:41# pid=4501 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
+<br>
+4 /etc/nsswitch.conf<br>
+4 /etc/passwd<br>
+#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
+<br>
+</td></tr>
+</table>
+<p>Since the line of timestamp is disturbing, remove lines starting with # before sorting.</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# grep -v '^#' /var/log/tomoyo/reject_log.tmp | sortpolicy &gt; /var/log/tomoyo/diff.tmp<br>
+</td></tr>
+</table>
+<p>Check the output. This is in the form of domain policy.</p>
+<table border="1">
+<tr><td>
+[root@sakura tomoyo]# cat /var/log/tomoyo/diff.tmp<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
+<br>
+1 /usr/bin/whoami<br>
+<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
+<br>
+4 /etc/inittab<br>
+4 /etc/resolv.conf<br>
+<br>
+&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
+<br>
+4 /etc/nsswitch.conf<br>
+4 /etc/passwd<br>
+<br>
+</td></tr>
+</table>
+
+<h2>Creating policy interactively using "enforce mode"</h2>
+
+<p>TOMOYO Linux allows administrators modify policies when the system is running in "enforce mode". If you want to do so, assign a profile that perform MAC in "delayed enforce mode" (in this manual, profile 4) to the domain.</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 4 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<p>Next, start "ccs-queryd" command. The "ccs-queryd" command detects the policy violations and shows ACLs needed for allowing the requests. You can judge and append these ACLs to domain policy manually.</p>
+
+<table border="1">
+<tr><td>
+ccs-queryd
+</td></tr>
+</table>
+
+<p>If the profile is configured with "ALLOW_ENFORCE_GRACE=1" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Otherwise, the access requests that violated policy are rejected immediately.</p>
+
+<p>To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) if the profile is configured with "ALLOW_ENFORCE_GRACE=1" and "ccs-queryd" is running.</p>
+
+<p>To terminate "ccs-queryd", use Ctrl-C. After you terminate "ccs-queryd", assign a profile that performs MAC in "enforce mode" (in this manual, profile 3) using "setprofile" command.</p>
+
+<table border="1">
+<tr><td>
+setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+</td></tr>
+</table>
+
+<h2>Saving Policy</h2>
+
+<p>To save the policy currently in the kernel onto the disk, use "savepolicy" command.<p>
+
+<table border="1">
+<tr><td>
+savepolicy
+</td></tr>
+</table>
+
+<p>By executing "savepolicy", three files ("system_policy.txt", "exception_policy.txt", "domain_policy.txt") are created in the /etc/ccs/ directory. To be accurate, they are symbolic links to text files whose filenames contain the creation time.</p>
+
+<h2>Loading Policy</h2>
+
+<p>To load the policy currently on the disk into the kernel, use "loadpolicy" command.<p>
+
+<table border="1">
+<tr><td>
+loadpolicy af
+</td></tr>
+</table>
+
+<p>The "a" option means load three files ("system_policy.txt", "exception_policy.txt", "domain_policy.txt"). The "f" option means erase the policy currently in the kernel before loading the policy currently on the disk. If "f" is not given, the policy currently on the disk will be added to the policy currently in the kernel.</p>
+
+<h2>Editing Policy</h2>
+
+<p>To edit the policy currently in the kernel, use "editpolicy" command. See <a href="tool-editpolicy.html">Using Policy Editor</a> for usage.</p>
+
+<table border="1">
+<tr><td>
+editpolicy
+</td></tr>
+</table>
+
+<p>To edit the policy currently on the disk, use "editpolicy_offline" command. You can use "editpolicy_offline" when you are not running the system with TOMOYO Linux kernel.</p>
+
+<table border="1">
+<tr><td>
+editpolicy_offline
+</td></tr>
+</table>
+
+<h1>Tuning Policy</h1>
+
+<h2>Patterning File Access Permissions</h2>
+
+<p>Append access permissions for files that are not necessarily accessed in the accept mode such as WWW contents for WWW service to /etc/ccs/domain_policy.txt .<br>
+The following example allows /usr/sbin/httpd to read files in the /var/www/html/ directory.</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+use_profile 3<br>
+4 /var/www/html/\*<br>
+4 /var/www/html/\*/\*<br>
+4 /var/www/html/\*/\*/\*<br>
+4 /var/www/html/\*/\*/\*/\*<br>
+4 /var/www/html/\*/\*/\*/\*/\*
+</td></tr>
+</table>
+
+<p>TOMOYO Linux 1.3.2 supports pathname grouping. By defining a pathname group</p>
+
+<table border="1">
+<tr><td>
+path_group WEB-CONTENTS /var/www/html/\*<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*/\*<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*/\*
+</td></tr>
+</table>
+
+<p>in the exception policy, you can simplify<p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+use_profile 3<br>
+4 @WEB-CONTENTS
+</td></tr>
+</table>
+
+<p>in the domain policy.</p>
+
+<p>In the same way, modify access permissions for files using patterns that should be grouped.<br>
+The following example shows /usr/sbin/smbd should handle all log files equally.</p>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+2 /var/log/samba/host1.log<br>
+2 /var/log/samba/host2.log<br>
+2 /var/log/samba/host3.log<br>
+2 /var/log/samba/host4.log<br>
+2 /var/log/samba/host5.log
+</td><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+2 /var/log/samba/\*.log
+</td></tr>
+</table>
+
+<p>You can confirm the range of accessible files by using pathmatch command that lists pathnames matching to the given pathname patterns.
+</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# pathmatch '/var/log/samba/\*.log'<br>
+/var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
+</td></tr>
+</table>
+
+<h3>Operation example</h3>
+
+<p>Save the domain policy currently in the kernel onto the disk.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# savepolicy d<br>
+</td></tr>
+</table>
+<p>List up pathnames that can be temporary files.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.txt<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+<p>Find domains that access these files.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# domainmatch /etc/mtab~2302<br>
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
+allow_create /etc/mtab~2302<br>
+2 /etc/mtab~2302<br>
+allow_link /etc/mtab~2302 /etc/mtab~<br>
+allow_unlink /etc/mtab~2302<br>
+[root@sakura ~]# domainmatch /tmp/sh-thd-1163113704<br>
+&lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
+allow_create /tmp/sh-thd-1163113704<br>
+6 /tmp/sh-thd-1163113704<br>
+allow_unlink /tmp/sh-thd-1163113704<br>
+</td></tr>
+</table>
+<p>Save the exception policy currently in the kernel onto the disk.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# savepolicy e<br>
+</td></tr>
+</table>
+<p>Append patterns to the exception policy on the disk if needed.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.txt<br>
+[root@sakura ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.txt<br>
+</td></tr>
+</table>
+<p>Load the exception policy on the disk to the kernel.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# loadpolicy ef<br>
+</td></tr>
+</table>
+<p>Patternize pathnames that match to '/etc/mtab~\$' and '/tmp/sh-thd-\$'.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.txt &gt; /etc/ccs/domain_policy.tmp<br>
+</td></tr>
+</table>
+<p>Confirm that these files are patternized.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.tmp<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+<p>Verify that the patterning are done as you have intended by diff'ing the domain policy before patternize and the one after the patternize.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# diff /etc/ccs/domain_policy.txt /etc/ccs/domain_policy.tmp<br>
+2326,2331c2326,2331<br>
+&lt; 6 /tmp/sh-thd-1163110572<br>
+&lt; 6 /tmp/sh-thd-1163113704<br>
+&lt; allow_create /tmp/sh-thd-1163110572<br>
+&lt; allow_create /tmp/sh-thd-1163113704<br>
+&lt; allow_unlink /tmp/sh-thd-1163110572<br>
+&lt; allow_unlink /tmp/sh-thd-1163113704<br>
+---<br>
+&gt; 6 /tmp/sh-thd-\$<br>
+&gt; 6 /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_unlink /tmp/sh-thd-\$<br>
+&gt; allow_unlink /tmp/sh-thd-\$<br>
+3331,3336c3331,3336<br>
+&lt; 2 /etc/mtab~2328<br>
+&lt; 2 /etc/mtab~2329<br>
+&lt; 2 /etc/mtab~2330<br>
+&lt; 2 /etc/mtab~2331<br>
+&lt; 2 /etc/mtab~2332<br>
+&lt; 2 /etc/mtab~2383<br>
+---<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+3338,3349c3338,3349<br>
+&lt; allow_create /etc/mtab~2328<br>
+&lt; allow_create /etc/mtab~2329<br>
+&lt; allow_create /etc/mtab~2330<br>
+&lt; allow_create /etc/mtab~2331<br>
+&lt; allow_create /etc/mtab~2332<br>
+&lt; allow_create /etc/mtab~2383<br>
+&lt; allow_link /etc/mtab~2328 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2329 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2330 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2331 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2332 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2383 /etc/mtab~<br>
+---<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+3351,3356c3351,3356<br>
+&lt; allow_unlink /etc/mtab~2328<br>
+&lt; allow_unlink /etc/mtab~2329<br>
+&lt; allow_unlink /etc/mtab~2330<br>
+&lt; allow_unlink /etc/mtab~2331<br>
+&lt; allow_unlink /etc/mtab~2332<br>
+&lt; allow_unlink /etc/mtab~2383<br>
+---<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+3439,3440c3439,3440<br>
+&lt; 2 /etc/mtab~2302<br>
+&lt; 2 /etc/mtab~2339<br>
+---<br>
+&gt; 2 /etc/mtab~\$<br>
+&gt; 2 /etc/mtab~\$<br>
+3443,3446c3443,3446<br>
+&lt; allow_create /etc/mtab~2302<br>
+&lt; allow_create /etc/mtab~2339<br>
+&lt; allow_link /etc/mtab~2302 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2339 /etc/mtab~<br>
+---<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+3449,3450c3449,3450<br>
+&lt; allow_unlink /etc/mtab~2302<br>
+&lt; allow_unlink /etc/mtab~2339<br>
+---<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+</td></tr>
+</table>
+<p>Update the domain policy on the disk.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.txt<br>
+</td></tr>
+</table>
+<p>Load the domain policy on the disk to the kernel.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# loadpolicy df<br>
+</td></tr>
+</table>
+<p>Confirm that the domain policy currently in the kernel is updated.</p>
+<table border="1">
+<tr><td>
+[root@sakura ~]# findtemp &lt; /proc/ccs/policy/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<h2>Patterning Network Access Permissions</h2>
+
+<p>Similarly, make patterns for "allow_network" directives. Don't copy the following permissions.</a>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 43768<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1 35086<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 47590<br>
+allow_network TCP accept 10.0.0.10 56709<br>
+allow_network TCP accept 10.0.0.200 16384
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 1024-65535<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff 1024-65535<br>
+allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
+</td></tr>
+</table>
+
+<p>By defining a address group</p>
+
+<table border="1">
+<tr><td>
+address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
+address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
+address_group SSH-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
+</td></tr>
+</table>
+
+<p>in the exception policy, you can simplify</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept @SSH-CLIENT-ADDRESS 1024-65535
+</td></tr>
+</table>
+
+<p>in the domain policy.</p>
+
+<h2>Add conditions to ACLs</h2>
+
+<p>You can add conditions to individual ACLs if necessary. By using this feature, you can control system's user ID based access control.</p>
+
+<p>You can define the following path_group in the exception policy.</p>
+
+<table border="1">
+<tr><td>
+path_group HOME-FTP-FILE /home/\*/ftp/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*/\*/\*<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/\*/<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/\*/\*/<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*/\*/\*<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
+</td></tr>
+</table>
+
+<p>If you want to protect non-anonymous FTP service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "ftp") directory rather than exposing whole of home directories. If you use vsftpd, you can give like the following way.</p>
+
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+use_profile 3<br>
+<br>
+6 @HOME-FTP-FILE<br>
+allow_mkdir @HOME-FTP-DIR<br>
+allow_rmdir @HOME-FTP-DIR<br>
+allow_create @HOME-FTP-FILE<br>
+allow_truncate @HOME-FTP-FILE<br>
+allow_unlink @HOME-FTP-FILE<br>
+allow_rename @HOME-FTP-FILE @HOME-FTP-FILE<br>
+allow_rename @HOME-FTP-DIR @HOME-FTP-DIR
+</td><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+use_profile 3<br>
+<br>
+6 @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_mkdir @HOME-FTP-DIR if task.uid=path1.parent.uid<br>
+allow_rmdir @HOME-FTP-DIR if task.uid=path1.uid<br>
+allow_create @HOME-FTP-FILE if task.uid=path1.parent.uid<br>
+allow_truncate @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_unlink @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_rename @HOME-FTP-FILE @HOME-FTP-FILE if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=path2.parent.uid
+</td></tr>
+</table>
+
+<p>If you want to protect Samba service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "samba") directory rather than exposing whole of home directories.</p>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+<br>
+6 @HOME-SMB-FILE<br>
+allow_mkdir @HOME-SMB-DIR<br>
+allow_rmdir @HOME-SMB-DIR<br>
+allow_create @HOME-SMB-FILE<br>
+allow_truncate @HOME-SMB-FILE<br>
+allow_unlink @HOME-SMB-FILE<br>
+allow_rename @HOME-SMB-FILE @HOME-SMB-FILE<br>
+allow_rename @HOME-SMB-DIR @HOME-SMB-DIR
+</td><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+<br>
+6 @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_mkdir @HOME-SMB-DIR if task.euid=path1.parent.uid<br>
+allow_rmdir @HOME-SMB-DIR if task.euid=path1.uid<br>
+allow_create @HOME-SMB-FILE if task.euid=path1.parent.uid<br>
+allow_truncate @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_unlink @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_rename @HOME-SMB-FILE @HOME-SMB-FILE if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+</td></tr>
+</table>
+
+<p>If you want to protect SSH service, by adding conditions in the following manner, you can forbid login as user "root".</p>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 3<br>
+<br>
+1 /bin/bash
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 3<br>
+<br>
+1 /bin/bash if task.uid!=0 task.euid!=0
+</td></tr>
+</table>
+
+<h2>Updating softwares</h2>
+
+<p>You may need to adjust policies due to software updates and configuration changes. To adjust policy, see <a href="update.html">TOMOYO Linux Maintenance manual</a>.</p>
+
+</body>
+</html>
