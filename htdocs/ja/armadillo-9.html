@@ -20,8 +20,8 @@ TOMOYO Linux は SELinux ほど多機能すぎず、 LIDS のようにハードリンクの問題を受け
 <p>コンパイル済みカーネルを以下のアドレスからダウンロードできます。コンパイル済みカーネルを使う場合は「２：Debian の Armadillo-9 へのインストール」まで飛んでください。</p>
 
 <ul>
-<li>http://osdn.dl.sourceforge.jp/tomoyo/23851/kernel-2.4.31-a9-3-tomoyo_1.3.2.tar.gz
-<li>http://osdn.dl.sourceforge.jp/tomoyo/23851/kernel-2.6.12.3-a9-8-tomoyo_1.3.2.tar.gz
+<li>http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.4.31-a9-3-tomoyo_1.4.tar.gz
+<li>http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.12.3-a9-8-tomoyo_1.4.tar.gz
 </ul>
 
 <p>コンパイル済みカーネルを使わずに、カスタマイズしたい場合は以下の手順を実行してください。</p>
@@ -124,7 +124,7 @@ cp -p images/linux.bin.gz romfs/boot/Image.gz
 cp -p linux-2.4.x/.config romfs/boot/config-2.4.31-a9-3-ccs
 cd romfs
 su -c 'chown -R root.root boot/ lib/; chmod -R g-s boot/ lib/'
-tar -zcf ~/kernel-2.4.31-a9-3-tomoyo_1.3.2.tar.gz boot/ lib/modules/
+tar -zcf ~/kernel-2.4.31-a9-3-tomoyo_1.4.tar.gz boot/ lib/modules/
 </pre>
 </td></tr></table>
 
@@ -138,7 +138,7 @@ cp -p images/linux.bin.gz romfs/boot/Image.gz
 cp -p linux-2.6.x/.config romfs/boot/config-2.6.12.3-a9-8-ccs
 cd romfs
 su -c 'chown -R root.root boot/ lib/; chmod -R g-s boot/ lib/'
-tar -zcf ~/kernel-2.6.12.3-a9-8-tomoyo_1.3.2.tar.gz boot/ lib/modules/
+tar -zcf ~/kernel-2.6.12.3-a9-8-tomoyo_1.4.tar.gz boot/ lib/modules/
 </pre>
 </td></tr></table>
 
@@ -273,13 +273,13 @@ apt-get -y upgrade
 </pre>
 </td></tr></table>
 
-<p>ダウンロードまたは作成した kernel-2.4.31-a9-3-tomoyo_1.3.2.tar.gz または kernel-2.6.12.3-a9-8-tomoyo_1.3.2.tar.gz を / 以下に展開します。</p>
+<p>ダウンロードまたは作成した kernel-2.4.31-a9-3-tomoyo_1.4.tar.gz または kernel-2.6.12.3-a9-8-tomoyo_1.4.tar.gz を / 以下に展開します。</p>
 
 <table border="1"><tr><td>
 <pre>
 cd /
-wget http://osdn.dl.sourceforge.jp/tomoyo/23851/kernel-2.4.31-a9-3-tomoyo_1.3.2.tar.gz
-tar -zxf kernel-2.4.31-a9-3-tomoyo_1.3.2.tar.gz
+wget http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.4.31-a9-3-tomoyo_1.4.tar.gz
+tar -zxf kernel-2.4.31-a9-3-tomoyo_1.4.tar.gz
 </pre>
 </td></tr></table>
 
@@ -288,8 +288,8 @@ tar -zxf kernel-2.4.31-a9-3-tomoyo_1.3.2.tar.gz
 <table border="1"><tr><td>
 <pre>
 cd /
-wget http://osdn.dl.sourceforge.jp/tomoyo/23851/kernel-2.6.12.3-a9-8-tomoyo_1.3.2.tar.gz
-tar -zxf kernel-2.6.12.3-a9-8-tomoyo_1.3.2.tar.gz
+wget http://osdn.dl.sourceforge.jp/tomoyo/24616/kernel-2.6.12.3-a9-8-tomoyo_1.4.tar.gz
+tar -zxf kernel-2.6.12.3-a9-8-tomoyo_1.4.tar.gz
 </pre>
 </td></tr></table>
 
@@ -306,9 +306,9 @@ mkdir -m 700 /etc/ccs
 <table border="1"><tr><td>
 <pre>
 cd
-wget http://osdn.dl.sourceforge.jp/tomoyo/23851/ccs-tools-1.3.2-arm-Sarge.tar.gz
-tar -zxf ccs-tools-1.3.2-arm-Sarge.tar.gz
-unlink ccs-tools-1.3.2-arm-Sarge.tar.gz
+wget http://osdn.dl.sourceforge.jp/tomoyo/24616/ccs-tools-1.4-arm-Sarge.tar.gz
+tar -zxf ccs-tools-1.4-arm-Sarge.tar.gz
+unlink ccs-tools-1.4-arm-Sarge.tar.gz
 cd ccstools/
 mv .init /
 ./make_exception.sh &gt; /etc/ccs/exception_policy.txt
@@ -359,7 +359,7 @@ You may input 'disabled' and press 'Enter' to disable MAC in case of emergency.
 </pre>
 </td></tr></table>
 
-<p>これでインストールは完了です。ここから先は <a href="http://tomoyo.sourceforge.jp/ja/1.3.2/install.html">http://tomoyo.sourceforge.jp/ja/1.3.2/install.html</a> を参照してください。</p>
+<p>これでインストールは完了です。ここから先は <a href="http://tomoyo.sourceforge.jp/ja/1.4/install.html">http://tomoyo.sourceforge.jp/ja/1.4/install.html</a> を参照してください。</p>
    <hr>
     <address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
     <a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
