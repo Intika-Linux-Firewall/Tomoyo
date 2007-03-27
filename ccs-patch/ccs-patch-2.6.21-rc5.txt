@@ -1,18 +1,18 @@
-diff -ubBpEr linux-2.6.21-rc4/Makefile linux-2.6.21-rc4-ccs/Makefile
---- linux-2.6.21-rc4/Makefile	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/Makefile	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/Makefile linux-2.6.21-rc5-ccs/Makefile
+--- linux-2.6.21-rc5/Makefile	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/Makefile	2007-03-26 16:39:34.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 21
--EXTRAVERSION = -rc4
-+EXTRAVERSION = -rc4-ccs
+-EXTRAVERSION = -rc5
++EXTRAVERSION = -rc5-ccs
  NAME = Nocturnal Monster Puppy
  
  # *DOCUMENTATION*
-diff -ubBpEr linux-2.6.21-rc4/fs/Kconfig linux-2.6.21-rc4-ccs/fs/Kconfig
---- linux-2.6.21-rc4/fs/Kconfig	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/Kconfig	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/Kconfig linux-2.6.21-rc5-ccs/fs/Kconfig
+--- linux-2.6.21-rc5/fs/Kconfig	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/Kconfig	2007-03-26 16:38:52.000000000 +0900
 @@ -2055,5 +2055,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -21,18 +21,18 @@ diff -ubBpEr linux-2.6.21-rc4/fs/Kconfig linux-2.6.21-rc4-ccs/fs/Kconfig
 +
  endmenu
  
-diff -ubBpEr linux-2.6.21-rc4/fs/Makefile linux-2.6.21-rc4-ccs/fs/Makefile
---- linux-2.6.21-rc4/fs/Makefile	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/Makefile	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/Makefile linux-2.6.21-rc5-ccs/fs/Makefile
+--- linux-2.6.21-rc5/fs/Makefile	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/Makefile	2007-03-26 16:38:52.000000000 +0900
 @@ -114,3 +114,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
-diff -ubBpEr linux-2.6.21-rc4/fs/attr.c linux-2.6.21-rc4-ccs/fs/attr.c
---- linux-2.6.21-rc4/fs/attr.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/attr.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/attr.c linux-2.6.21-rc5-ccs/fs/attr.c
+--- linux-2.6.21-rc5/fs/attr.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/attr.c	2007-03-26 16:38:52.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -64,9 +64,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/attr.c linux-2.6.21-rc4-ccs/fs/attr.c
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
-diff -ubBpEr linux-2.6.21-rc4/fs/compat.c linux-2.6.21-rc4-ccs/fs/compat.c
---- linux-2.6.21-rc4/fs/compat.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/compat.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/compat.c linux-2.6.21-rc5-ccs/fs/compat.c
+--- linux-2.6.21-rc5/fs/compat.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/compat.c	2007-03-26 16:38:52.000000000 +0900
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -96,9 +96,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/compat.c linux-2.6.21-rc4-ccs/fs/compat.c
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
-diff -ubBpEr linux-2.6.21-rc4/fs/exec.c linux-2.6.21-rc4-ccs/fs/exec.c
---- linux-2.6.21-rc4/fs/exec.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/exec.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/exec.c linux-2.6.21-rc5-ccs/fs/exec.c
+--- linux-2.6.21-rc5/fs/exec.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/exec.c	2007-03-26 16:38:52.000000000 +0900
 @@ -58,6 +58,10 @@
  #include <linux/kmod.h>
  #endif
@@ -141,9 +141,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/exec.c linux-2.6.21-rc4-ccs/fs/exec.c
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
-diff -ubBpEr linux-2.6.21-rc4/fs/fcntl.c linux-2.6.21-rc4-ccs/fs/fcntl.c
---- linux-2.6.21-rc4/fs/fcntl.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/fcntl.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/fcntl.c linux-2.6.21-rc5-ccs/fs/fcntl.c
+--- linux-2.6.21-rc5/fs/fcntl.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/fcntl.c	2007-03-26 16:38:52.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -165,9 +165,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/fcntl.c linux-2.6.21-rc4-ccs/fs/fcntl.c
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
-diff -ubBpEr linux-2.6.21-rc4/fs/ioctl.c linux-2.6.21-rc4-ccs/fs/ioctl.c
---- linux-2.6.21-rc4/fs/ioctl.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/ioctl.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/ioctl.c linux-2.6.21-rc5-ccs/fs/ioctl.c
+--- linux-2.6.21-rc5/fs/ioctl.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/ioctl.c	2007-03-26 16:38:52.000000000 +0900
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -188,9 +188,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/ioctl.c linux-2.6.21-rc4-ccs/fs/ioctl.c
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-diff -ubBpEr linux-2.6.21-rc4/fs/namei.c linux-2.6.21-rc4-ccs/fs/namei.c
---- linux-2.6.21-rc4/fs/namei.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/namei.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/namei.c linux-2.6.21-rc5-ccs/fs/namei.c
+--- linux-2.6.21-rc5/fs/namei.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/namei.c	2007-03-26 16:38:52.000000000 +0900
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -367,9 +367,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/namei.c linux-2.6.21-rc4-ccs/fs/namei.c
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-diff -ubBpEr linux-2.6.21-rc4/fs/namespace.c linux-2.6.21-rc4-ccs/fs/namespace.c
---- linux-2.6.21-rc4/fs/namespace.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/namespace.c	2007-03-19 09:19:23.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/namespace.c linux-2.6.21-rc5-ccs/fs/namespace.c
+--- linux-2.6.21-rc5/fs/namespace.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/namespace.c	2007-03-26 16:38:52.000000000 +0900
 @@ -28,6 +28,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -471,9 +471,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/namespace.c linux-2.6.21-rc4-ccs/fs/namespace.c
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
-diff -ubBpEr linux-2.6.21-rc4/fs/open.c linux-2.6.21-rc4-ccs/fs/open.c
---- linux-2.6.21-rc4/fs/open.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/open.c	2007-03-19 14:12:48.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/open.c linux-2.6.21-rc5-ccs/fs/open.c
+--- linux-2.6.21-rc5/fs/open.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/open.c	2007-03-26 16:38:52.000000000 +0900
 @@ -27,6 +27,12 @@
  #include <linux/syscalls.h>
  #include <linux/rcupdate.h>
@@ -530,9 +530,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/open.c linux-2.6.21-rc4-ccs/fs/open.c
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
-diff -ubBpEr linux-2.6.21-rc4/fs/proc/Makefile linux-2.6.21-rc4-ccs/fs/proc/Makefile
---- linux-2.6.21-rc4/fs/proc/Makefile	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/proc/Makefile	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/proc/Makefile linux-2.6.21-rc5-ccs/fs/proc/Makefile
+--- linux-2.6.21-rc5/fs/proc/Makefile	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/proc/Makefile	2007-03-26 16:38:52.000000000 +0900
 @@ -14,3 +14,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -540,9 +540,9 @@ diff -ubBpEr linux-2.6.21-rc4/fs/proc/Makefile linux-2.6.21-rc4-ccs/fs/proc/Make
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
-diff -ubBpEr linux-2.6.21-rc4/fs/proc/proc_misc.c linux-2.6.21-rc4-ccs/fs/proc/proc_misc.c
---- linux-2.6.21-rc4/fs/proc/proc_misc.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/fs/proc/proc_misc.c	2007-03-19 09:19:38.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/fs/proc/proc_misc.c linux-2.6.21-rc5-ccs/fs/proc/proc_misc.c
+--- linux-2.6.21-rc5/fs/proc/proc_misc.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/fs/proc/proc_misc.c	2007-03-26 16:39:55.000000000 +0900
 @@ -747,4 +747,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
@@ -552,14 +552,14 @@ diff -ubBpEr linux-2.6.21-rc4/fs/proc/proc_misc.c linux-2.6.21-rc4-ccs/fs/proc/p
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.21-rc4 2007/03/19\n");
++		printk("Hook version: 2.6.21-rc5 2007/03/26\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
-diff -ubBpEr linux-2.6.21-rc4/include/linux/init_task.h linux-2.6.21-rc4-ccs/include/linux/init_task.h
---- linux-2.6.21-rc4/include/linux/init_task.h	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/include/linux/init_task.h	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/include/linux/init_task.h linux-2.6.21-rc5-ccs/include/linux/init_task.h
+--- linux-2.6.21-rc5/include/linux/init_task.h	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/include/linux/init_task.h	2007-03-26 16:38:52.000000000 +0900
 @@ -141,6 +141,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -571,9 +571,9 @@ diff -ubBpEr linux-2.6.21-rc4/include/linux/init_task.h linux-2.6.21-rc4-ccs/inc
  }
  
  
-diff -ubBpEr linux-2.6.21-rc4/include/linux/sched.h linux-2.6.21-rc4-ccs/include/linux/sched.h
---- linux-2.6.21-rc4/include/linux/sched.h	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/include/linux/sched.h	2007-03-19 12:36:46.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/include/linux/sched.h linux-2.6.21-rc5-ccs/include/linux/sched.h
+--- linux-2.6.21-rc5/include/linux/sched.h	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/include/linux/sched.h	2007-03-26 16:38:52.000000000 +0900
 @@ -27,6 +27,11 @@
  #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
@@ -597,9 +597,9 @@ diff -ubBpEr linux-2.6.21-rc4/include/linux/sched.h linux-2.6.21-rc4-ccs/include
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
-diff -ubBpEr linux-2.6.21-rc4/kernel/kexec.c linux-2.6.21-rc4-ccs/kernel/kexec.c
---- linux-2.6.21-rc4/kernel/kexec.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/kexec.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/kexec.c linux-2.6.21-rc5-ccs/kernel/kexec.c
+--- linux-2.6.21-rc5/kernel/kexec.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/kexec.c	2007-03-26 16:38:52.000000000 +0900
 @@ -28,6 +28,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -620,9 +620,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/kexec.c linux-2.6.21-rc4-ccs/kernel/kexec.c
  
  	/*
  	 * Verify we have a legal set of flags
-diff -ubBpEr linux-2.6.21-rc4/kernel/kmod.c linux-2.6.21-rc4-ccs/kernel/kmod.c
---- linux-2.6.21-rc4/kernel/kmod.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/kmod.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/kmod.c linux-2.6.21-rc5-ccs/kernel/kmod.c
+--- linux-2.6.21-rc5/kernel/kmod.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/kmod.c	2007-03-26 16:38:52.000000000 +0900
 @@ -166,6 +166,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -635,9 +635,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/kmod.c linux-2.6.21-rc4-ccs/kernel/kmod.c
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
-diff -ubBpEr linux-2.6.21-rc4/kernel/module.c linux-2.6.21-rc4-ccs/kernel/module.c
---- linux-2.6.21-rc4/kernel/module.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/module.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/module.c linux-2.6.21-rc5-ccs/kernel/module.c
+--- linux-2.6.21-rc5/kernel/module.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/module.c	2007-03-26 16:38:52.000000000 +0900
 @@ -44,6 +44,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -668,9 +668,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/module.c linux-2.6.21-rc4-ccs/kernel/module
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
-diff -ubBpEr linux-2.6.21-rc4/kernel/sched.c linux-2.6.21-rc4-ccs/kernel/sched.c
---- linux-2.6.21-rc4/kernel/sched.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/sched.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/sched.c linux-2.6.21-rc5-ccs/kernel/sched.c
+--- linux-2.6.21-rc5/kernel/sched.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/sched.c	2007-03-26 16:38:52.000000000 +0900
 @@ -55,6 +55,9 @@
  #include <asm/tlb.h>
  
@@ -691,9 +691,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/sched.c linux-2.6.21-rc4-ccs/kernel/sched.c
  
  	/*
  	 * Setpriority might change our priority at the same moment.
-diff -ubBpEr linux-2.6.21-rc4/kernel/signal.c linux-2.6.21-rc4-ccs/kernel/signal.c
---- linux-2.6.21-rc4/kernel/signal.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/signal.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/signal.c linux-2.6.21-rc5-ccs/kernel/signal.c
+--- linux-2.6.21-rc5/kernel/signal.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/signal.c	2007-03-26 16:38:52.000000000 +0900
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -737,9 +737,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/signal.c linux-2.6.21-rc4-ccs/kernel/signal
  
  	return do_tkill(0, pid, sig);
  }
-diff -ubBpEr linux-2.6.21-rc4/kernel/sys.c linux-2.6.21-rc4-ccs/kernel/sys.c
---- linux-2.6.21-rc4/kernel/sys.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/sys.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/sys.c linux-2.6.21-rc5-ccs/kernel/sys.c
+--- linux-2.6.21-rc5/kernel/sys.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/sys.c	2007-03-26 16:38:52.000000000 +0900
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -790,9 +790,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/sys.c linux-2.6.21-rc4-ccs/kernel/sys.c
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
-diff -ubBpEr linux-2.6.21-rc4/kernel/sysctl.c linux-2.6.21-rc4-ccs/kernel/sysctl.c
---- linux-2.6.21-rc4/kernel/sysctl.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/sysctl.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/sysctl.c linux-2.6.21-rc5-ccs/kernel/sysctl.c
+--- linux-2.6.21-rc5/kernel/sysctl.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/sysctl.c	2007-03-26 16:38:52.000000000 +0900
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -895,9 +895,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/sysctl.c linux-2.6.21-rc4-ccs/kernel/sysctl
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
-diff -ubBpEr linux-2.6.21-rc4/kernel/time/ntp.c linux-2.6.21-rc4-ccs/kernel/time/ntp.c
---- linux-2.6.21-rc4/kernel/time/ntp.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/time/ntp.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/time/ntp.c linux-2.6.21-rc5-ccs/kernel/time/ntp.c
+--- linux-2.6.21-rc5/kernel/time/ntp.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/time/ntp.c	2007-03-26 16:38:52.000000000 +0900
 @@ -14,6 +14,9 @@
  
  #include <asm/div64.h>
@@ -918,9 +918,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/time/ntp.c linux-2.6.21-rc4-ccs/kernel/time
  
  	/* Now we validate the data before disabling interrupts */
  
-diff -ubBpEr linux-2.6.21-rc4/kernel/time.c linux-2.6.21-rc4-ccs/kernel/time.c
---- linux-2.6.21-rc4/kernel/time.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/kernel/time.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/kernel/time.c linux-2.6.21-rc5-ccs/kernel/time.c
+--- linux-2.6.21-rc5/kernel/time.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/kernel/time.c	2007-03-26 16:38:52.000000000 +0900
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -951,9 +951,9 @@ diff -ubBpEr linux-2.6.21-rc4/kernel/time.c linux-2.6.21-rc4-ccs/kernel/time.c
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
-diff -ubBpEr linux-2.6.21-rc4/net/ipv4/inet_connection_sock.c linux-2.6.21-rc4-ccs/net/ipv4/inet_connection_sock.c
---- linux-2.6.21-rc4/net/ipv4/inet_connection_sock.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/net/ipv4/inet_connection_sock.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/net/ipv4/inet_connection_sock.c linux-2.6.21-rc5-ccs/net/ipv4/inet_connection_sock.c
+--- linux-2.6.21-rc5/net/ipv4/inet_connection_sock.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/net/ipv4/inet_connection_sock.c	2007-03-26 16:38:52.000000000 +0900
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -974,9 +974,9 @@ diff -ubBpEr linux-2.6.21-rc4/net/ipv4/inet_connection_sock.c linux-2.6.21-rc4-c
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
-diff -ubBpEr linux-2.6.21-rc4/net/ipv4/inet_hashtables.c linux-2.6.21-rc4-ccs/net/ipv4/inet_hashtables.c
---- linux-2.6.21-rc4/net/ipv4/inet_hashtables.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/net/ipv4/inet_hashtables.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/net/ipv4/inet_hashtables.c linux-2.6.21-rc5-ccs/net/ipv4/inet_hashtables.c
+--- linux-2.6.21-rc5/net/ipv4/inet_hashtables.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/net/ipv4/inet_hashtables.c	2007-03-26 16:38:52.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -997,9 +997,9 @@ diff -ubBpEr linux-2.6.21-rc4/net/ipv4/inet_hashtables.c linux-2.6.21-rc4-ccs/ne
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
-diff -ubBpEr linux-2.6.21-rc4/net/ipv4/udp.c linux-2.6.21-rc4-ccs/net/ipv4/udp.c
---- linux-2.6.21-rc4/net/ipv4/udp.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/net/ipv4/udp.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/net/ipv4/udp.c linux-2.6.21-rc5-ccs/net/ipv4/udp.c
+--- linux-2.6.21-rc5/net/ipv4/udp.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/net/ipv4/udp.c	2007-03-26 16:38:52.000000000 +0900
 @@ -102,6 +102,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1030,9 +1030,9 @@ diff -ubBpEr linux-2.6.21-rc4/net/ipv4/udp.c linux-2.6.21-rc4-ccs/net/ipv4/udp.c
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
-diff -ubBpEr linux-2.6.21-rc4/net/ipv6/inet6_hashtables.c linux-2.6.21-rc4-ccs/net/ipv6/inet6_hashtables.c
---- linux-2.6.21-rc4/net/ipv6/inet6_hashtables.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/net/ipv6/inet6_hashtables.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/net/ipv6/inet6_hashtables.c linux-2.6.21-rc5-ccs/net/ipv6/inet6_hashtables.c
+--- linux-2.6.21-rc5/net/ipv6/inet6_hashtables.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/net/ipv6/inet6_hashtables.c	2007-03-26 16:38:52.000000000 +0900
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1053,9 +1053,9 @@ diff -ubBpEr linux-2.6.21-rc4/net/ipv6/inet6_hashtables.c linux-2.6.21-rc4-ccs/n
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
-diff -ubBpEr linux-2.6.21-rc4/net/socket.c linux-2.6.21-rc4-ccs/net/socket.c
---- linux-2.6.21-rc4/net/socket.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/net/socket.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/net/socket.c linux-2.6.21-rc5-ccs/net/socket.c
+--- linux-2.6.21-rc5/net/socket.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/net/socket.c	2007-03-26 16:38:52.000000000 +0900
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1145,9 +1145,9 @@ diff -ubBpEr linux-2.6.21-rc4/net/socket.c linux-2.6.21-rc4-ccs/net/socket.c
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
-diff -ubBpEr linux-2.6.21-rc4/net/unix/af_unix.c linux-2.6.21-rc4-ccs/net/unix/af_unix.c
---- linux-2.6.21-rc4/net/unix/af_unix.c	2007-03-19 09:17:23.000000000 +0900
-+++ linux-2.6.21-rc4-ccs/net/unix/af_unix.c	2007-03-19 09:17:32.000000000 +0900
+diff -ubBpEr linux-2.6.21-rc5/net/unix/af_unix.c linux-2.6.21-rc5-ccs/net/unix/af_unix.c
+--- linux-2.6.21-rc5/net/unix/af_unix.c	2007-03-26 16:38:15.000000000 +0900
++++ linux-2.6.21-rc5-ccs/net/unix/af_unix.c	2007-03-26 16:38:52.000000000 +0900
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
