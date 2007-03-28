@@ -154,12 +154,6 @@ typedef struct {
 } SIGNAL_ACL_RECORD;
 
 typedef struct {
-	struct acl_info head;   /* type = TYPE_CONNECT_ACL or TYPE_BIND_ACL, w = is_tcp */
-	u16 min_port;           /* Start of port number range.                          */
-	u16 max_port;           /* End of port number range.                            */
-} PORT_ACL_RECORD;
-
-typedef struct {
 	struct acl_info head;                 /* type = TYPE_*, w = u_is_group */
 	union {
 		const struct path_info *filename; /* Pointer to single pathname. */

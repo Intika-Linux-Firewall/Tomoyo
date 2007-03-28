@@ -260,8 +260,6 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 {
 	struct acl_info *ptr;
 	int error = -ENOMEM;
-	const u8 type = TYPE_IP_NETWORK_ACL;
-	const u8 hash = operation;
 	const u32 min_ip = ntohl(*min_address), max_ip = ntohl(*max_address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!domain) return -EINVAL;
 	down(&domain_acl_lock);
@@ -269,7 +267,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			IP_NETWORK_ACL_RECORD *new_ptr;
-			if (ptr->type == type && ptr->u.b[0] == hash && ptr->cond == condition && ((IP_NETWORK_ACL_RECORD *) ptr)->min_port == min_port && max_port == ((IP_NETWORK_ACL_RECORD *) ptr)->max_port) {
+			if (ptr->type == TYPE_IP_NETWORK_ACL && ptr->u.b[0] == operation && ptr->u.b[1] == record_type && ptr->cond == condition && ((IP_NETWORK_ACL_RECORD *) ptr)->min_port == min_port && max_port == ((IP_NETWORK_ACL_RECORD *) ptr)->max_port) {
 				if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 					if (((IP_NETWORK_ACL_RECORD *) ptr)->u.group == group) {
 						ptr->is_deleted = 0;
@@ -301,8 +299,8 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = (IP_NETWORK_ACL_RECORD *) alloc_element(sizeof(IP_NETWORK_ACL_RECORD))) == NULL) break;
-			new_ptr->head.type = type;
-			new_ptr->head.u.b[0] = hash;
+			new_ptr->head.type = TYPE_IP_NETWORK_ACL;
+			new_ptr->head.u.b[0] = operation;
 			new_ptr->head.u.b[1] = record_type;
 			new_ptr->head.cond = condition;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
@@ -310,7 +308,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			} else if (record_type == IP_RECORD_TYPE_IPv4) {
 				new_ptr->u.ipv4.min = min_ip;
 				new_ptr->u.ipv4.max = max_ip;
-			} else if (record_type == IP_RECORD_TYPE_IPv6) {
+			} else {
 				memmove(new_ptr->u.ipv6.min, min_address, 16);
 				memmove(new_ptr->u.ipv6.max, max_address, 16);
 			}
@@ -322,7 +320,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	} else {
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-			if (ptr->type != type || ptr->is_deleted || ptr->u.b[0] != hash || ptr->u.b[1] != record_type || ptr->cond != condition || ((IP_NETWORK_ACL_RECORD *) ptr)->min_port != min_port || ((IP_NETWORK_ACL_RECORD *) ptr)->max_port != max_port) continue;
+			if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || ptr->u.b[0] != operation || ptr->u.b[1] != record_type || ptr->cond != condition || ((IP_NETWORK_ACL_RECORD *) ptr)->min_port != min_port || ((IP_NETWORK_ACL_RECORD *) ptr)->max_port != max_port) continue;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 				if (((IP_NETWORK_ACL_RECORD *) ptr)->u.group != group) continue;
 			} else if (record_type == IP_RECORD_TYPE_IPv4) {
@@ -343,13 +341,11 @@ static int CheckNetworkEntry(const int is_ipv6, const int operation, const u32 *
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
 	const char *keyword = network2keyword(operation);
-	const u8 type = TYPE_IP_NETWORK_ACL;
-	const u8 hash = operation;
 	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_NETWORK);
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		if (ptr->type != type || ptr->is_deleted || ptr->u.b[0] != hash || port < ((IP_NETWORK_ACL_RECORD *) ptr)->min_port || ((IP_NETWORK_ACL_RECORD *) ptr)->max_port < port || CheckCondition(ptr->cond, NULL)) continue;
+		if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || ptr->u.b[0] != operation || port < ((IP_NETWORK_ACL_RECORD *) ptr)->min_port || ((IP_NETWORK_ACL_RECORD *) ptr)->max_port < port || CheckCondition(ptr->cond, NULL)) continue;
 		if (ptr->u.b[1] == IP_RECORD_TYPE_ADDRESS_GROUP) {
 			if (AddressMatchesToGroup(is_ipv6, address, ((IP_NETWORK_ACL_RECORD *) ptr)->u.group)) break;
 		} else if (ptr->u.b[1] == IP_RECORD_TYPE_IPv4) {
