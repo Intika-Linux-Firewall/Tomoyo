@@ -335,6 +335,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.18-12">Debian Etch 用のカーネル 2.6.18-12</a>
 <li><a href="#2.6.9-42.10AX">Asianux 2.0 用のカーネル 2.6.9-42.10AX</a>
 <li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
+<li><a href="#2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a>
 <li><a href="#2.6-vanilla">バニラ 2.6 カーネル</a>
 <li><a href="#2.4-vanilla">バニラ 2.4 カーネル</a>
 </ul>
@@ -680,6 +681,29 @@ make -s<br>
 make -s install modules modules_install<br>
 # initramfs を作成する。<br>
 mkinitramfs -o /boot/initrd.img-2.6.17.14-ubuntu1-ccs 2.6.17.14-ubuntu1-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a></h2>
+
+<table border="1">
+<tr><td>
+# カーネルのソースをダウンロードしてインストールする。<br>
+apt-get install linux-source-2.6.20<br>
+tar -jxf /usr/src/linux-source-2.6.20.tar.bz2<br>
+# ソースのディレクトリへ移動する。<br>
+cd linux-source-2.6.20/<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
+wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
+patch -sp1 &lt; ccs-patch-2.6.20.3-ubuntu1.txt<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s install modules modules_install<br>
+# initramfs を作成する。<br>
+mkinitramfs -o /boot/initrd.img-2.6.20.3-ubuntu1-ccs 2.6.20.3-ubuntu1-ccs
 </td></tr>
 </table>
 
