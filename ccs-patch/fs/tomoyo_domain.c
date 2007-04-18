@@ -714,6 +714,26 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 		}
 	}
 	
+	/* Compare basename of real_program_name and argv[0] */
+	if (bprm->argc > 0 && CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
+		char *org_argv0 = get_argv0(bprm);
+		retval = -ENOMEM;
+		if (org_argv0) {
+			const int len = strlen(org_argv0);
+			char *printable_argv0 = ccs_alloc(len * 4 + 8);
+			if (printable_argv0 && Escape(printable_argv0, org_argv0, len * 4 + 8) == 0) {
+				const char *base_argv0, *base_filename;
+				if ((base_argv0 = strrchr(printable_argv0, '/')) == NULL) base_argv0 = printable_argv0; else base_argv0++;
+				if ((base_filename = strrchr(real_program_name, '/')) == NULL) base_filename = real_program_name; else base_filename++;
+				if (strcmp(base_argv0, base_filename)) retval = CheckArgv0Perm(&r, base_argv0);
+				else retval = 0;
+			}
+			ccs_free(printable_argv0);
+			ccs_free(org_argv0);
+		}
+		if (retval) goto out;
+	}
+	
 	/* Check 'aggregator' directive. */
 	{
 		AGGREGATOR_ENTRY *ptr;
@@ -727,26 +747,6 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 		}
 	}
 
-	/* Compare basename of symlink_program_name and argv[0] */
-	if (bprm->argc > 0 && CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
-		char *org_argv0 = get_argv0(bprm);
-		retval = -ENOMEM;
-		if (org_argv0) {
-			const int len = strlen(org_argv0);
-			char *printable_argv0 = ccs_alloc(len * 4 + 8);
-			if (printable_argv0 && Escape(printable_argv0, org_argv0, len * 4 + 8) == 0) {
-				const char *base_argv0, *base_filename;
-				if ((base_argv0 = strrchr(printable_argv0, '/')) == NULL) base_argv0 = printable_argv0; else base_argv0++;
-				if ((base_filename = strrchr(symlink_program_name, '/')) == NULL) base_filename = symlink_program_name; else base_filename++;
-				if (strcmp(base_argv0, base_filename)) retval = CheckArgv0Perm(&s, base_argv0);
-				else retval = 0;
-			}
-			ccs_free(printable_argv0);
-			ccs_free(org_argv0);
-		}
-		if (retval) goto out;
-	}
-	
 	/* Check execute permission. */
 	if ((retval = CheckExecPerm(&r, filp)) < 0) goto out;
 

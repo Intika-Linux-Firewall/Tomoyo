@@ -865,3 +865,28 @@ Fix 2007/03/07
       I replaced some types with 'unsigned int'.
 
 Version 1.4   2007/04/01   x86_64 support release.
+
+Fix 2007/04/18
+
+    @ Change argv[0] checking rule.
+
+      I was comparing the basename of symbolic link's pathname and argv[0].
+      Since execute permission check and domain transition are done
+      based on realpath while argv[0] check is done based on the symlink's
+      pathname and argv[0], this specification will allow attackers behave
+      as /bin/cat in the domain of /bin/ls if "/bin/ls and /bin/cat are
+      links to /sbin/busybox" and "the attacker is permitted to create 
+      a symlink named ~/cat that points to /bin/ls" and "the attacker is
+      permitted to run /bin/ls".
+      So, I changed to compare the basename of realpath and argv[0].
+      Also, I moved the location to compare before processing
+      "aggregator" directive so that
+      "aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp"
+      won't cause the mismatch of the basename of realpath and argv[0].
+
+      If /bin/ls is a symlink to /sbin/busybox, then
+      creating a symlink named ~/cat that points to /bin/ls and
+      executing ~/cat won't work as expected because permission check and
+      domain transition are done using /sbin/busybox (realpath of /bin/ls)
+      and will be rejected since the administrator won't grant
+      "1 /sbin/busybox".
