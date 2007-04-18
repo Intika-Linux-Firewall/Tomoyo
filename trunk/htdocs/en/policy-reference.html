@@ -97,6 +97,15 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 
 <p>and if found one, replace "Candidate 1" with "Candidate 2".</p>
 </td></tr>
+<tr><td>Checking argv[0]</td><td>
+<p>If the basename of "Candidate 1" and the basename of argv[0] differ, search domain policy for</p>
+
+<ul>
+<li>allow_argv0 "Candidate 1" "the basename of argv[0]"
+</ul>
+
+<p>and deny if not found one.</p>
+</td></tr>
 <tr><td>Aggregating similar programs</td><td>
 <p>Search exception policy for</p>
 
@@ -105,15 +114,6 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 </ul>
 
 <p>and if found one, replace "Candidate 1" with "aggregated name".</p>
-</td></tr>
-<tr><td>Checking argv[0]</td><td>
-<p>If the basename of "Candidate 2" and the basename of argv[0] differ, search domain policy for</p>
-
-<ul>
-<li>allow_argv0 "Candidate 2" "the basename of argv[0]"
-</ul>
-
-<p>and deny if not found one.</p>
 </td></tr>
 <tr><td>Checking permission</td><td>
 <p>Search domain policy for</p>
