@@ -2,39 +2,66 @@ Summary: The Linux kernel (the core of the Linux operating system)
 
 # What parts do we want to build?  We must build at least one kernel.
 # These are the kernels that are built IF the architecture allows it.
+# All should default to 1 (enabled) and be flipped to 0 (disabled)
+# by later arch-specific checks
 
-%define buildup 1
-# Only used on archs without run-time support (ie ppc, sparc64)
-%define buildsmp 0
-%define buildpae 0
-# Whether to apply the Xen patches, leave this enabled.
+# The following build options are enabled by default.
+# Use either --without <opt> in your rpmbuild command or force values
+# to 0 in here to disable them
+#
+# standard kernel
+%define with_up      %{?_without_up:      0} %{?!_without_up:      1}
+# kernel-smp (only valid for ppc 32-bit, sparc64)
+%define with_smp     %{?_without_smp:     0} %{?!_without_smp:     1}
+# kernel-PAE (only valid for i686)
+%define with_pae     %{?_without_pae:     0} %{?!_without_pae:     1}
+# kernel-xen
+%define with_xen     %{?_without_xen:     0} %{?!_without_xen:     1}
+# kernel-kdump
+%define with_kdump   %{?_without_kdump:   0} %{?!_without_kdump:   1}
+# kernel-debug
+%define with_debug   %{?_without_debug:   0} %{!?_without_debug:   1}
+# kernel-doc
+%define with_doc     %{?_without_doc:     0} %{?!_without_doc:     1}
+# kernel-headers
+%define with_headers %{?_without_headers: 0} %{?!_without_headers: 1}
+
+# Additional options for user-friendly one-off kernel building:
+#
+# Only build the base kernel (--with baseonly):
+%define with_baseonly %{?_with_baseonly: 1} %{?!_with_baseonly: 0}
+# Only build the smp kernel (--with smponly):
+%define with_smponly  %{?_with_smponly:  1} %{?!_with_smponly:  0}
+
+# Whether to apply the Xen patches -- leave this enabled.
 %define includexen 1
-# Whether to build the Xen kernels, disable if you want.
-%define buildxen 1
-%define builddoc 0
-%define buildkdump 1
-%define buildheaders 1
+
+# Set debugbuildsenabled to 1 for production (build separate debug kernels)
+#  and 0 for rawhide (all kernels are debug kernels).
+# See also 'make debug' and 'make release'.
+%define debugbuildsenabled 1
 
 # Versions of various parts
 
 # After branching, please hardcode these values as the
 # %dist and %rhel tags are not reliable yet
 # For example dist -> .el5 and rhel -> 5
-%define dist .el5
-%define rhel 5
+#% define dist .XX
+#% define rhel Y
 
-#
 # Polite request for people who spin their own kernel rpms:
-# please modify the "release" field in a way that identifies
-# that the kernel isn't the stock distribution kernel, for example by
-# adding some text to the end of the version number.
+# please modify the "buildid" define in a way that identifies
+# that the kernel isn't the stock distribution kernel, for example,
+# by setting the define to ".local" or ".bz123456"
 #
-%define sublevel 18
+#% define buildid .local
+#
+%define sublevel 20
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2747 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}_tomoyo_1.4
+%define release %(R="$Revision: 1.2944 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}.fc6_tomoyo_1.4
 %define signmodules 0
-%define xen_hv_cset 11772
+%define xen_hv_cset 11774
 %define make_target bzImage
 %define kernel_image x86
 %define xen_flags verbose=y crash_debug=y
@@ -44,47 +71,90 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define KVERREL %{PACKAGE_VERSION}-%{PACKAGE_RELEASE}
 %define hdrarch %_target_cpu
 
-# groups of related archs
-#OLPC stuff
+# if requested, only build base kernel
+%if %{with_baseonly}
+%define with_smp 0
+%define with_pae 0
+%define with_xen 0
+%define with_kdump 0
+%define with_debug 0
+%endif
+
+# if requested, only build smp kernel
+%if %{with_smponly}
+%define with_up 0
+%define with_pae 0
+%define with_xen 0
+%define with_kdump 0
+%define with_debug 0
+%endif
+
+# don't build xen or kdump kernels for OLPC
 %if 0%{?olpc}
-%define buildxen 0
-%define buildkdump 0
+%define with_xen 0
+%define with_kdump 0
 %endif
-# Don't build 586 kernels for RHEL builds.
+
+# if building for RHEL
 %if 0%{?rhel}
+# don't build i586 RHEL kernels
 %define all_x86 i386 i686
-# we differ here b/c of the reloc patches
-%ifarch i686 x86_64
-%define buildkdump 0
+# RHEL has a relocatable kernel for i686, x86_64 and ia64,
+# so no need for a separate kdump kernel
+%ifarch i686 x86_64 ia64
+%define with_kdump 0
 %endif
+# if building for Fedora
 %else
 %define all_x86 i386 i586 i686
 %endif
 
-# Override generic defaults with per-arch defaults
+# Overrides for generic default options
 
+# Only ppc and sparc64 need separate smp kernels
+%ifnarch ppc sparc64
+%define with_smp 0
+%endif
+
+# pae is only valid on i686
+%ifnarch i686
+%define with_pae 0
+%endif
+
+# xen only builds on i686, x86_64 and ia64
+%ifnarch i686 x86_64 ia64
+%define with_xen 0
+%endif
+
+# only build kernel-kdump on i686, x86_64 and ppc64
+%ifnarch i686 x86_64 ppc64 ppc64iseries
+%define with_kdump 0
+%endif
+
+# only package docs noarch
+%ifnarch noarch
+%define with_doc 0
+%endif
+
+# no need to build headers again for these arches,
+# they can just use i386 and ppc64 headers
+%ifarch i586 i686 ppc64iseries
+%define with_headers 0
+%endif
+
+# don't do debug builds on anything but i686 and x86_64
+%ifnarch i686 x86_64
+%define with_debug 0
+%endif
+
+# don't build noarch kernels or headers (duh)
 %ifarch noarch
-%define builddoc 1
-%define buildup 0
-%define buildheaders 0
+%define with_up 0
+%define with_headers 0
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-*.config
 %endif
 
-# kdump only builds on i686, x86_64, ppc64 ...
-%ifnarch i686 x86_64 ppc64 ppc64iseries
-%define buildkdump 0
-%endif
-
-# Xen only builds on i686, x86_64 and ia64 ...
-%ifnarch i686 x86_64 ia64
-%define buildxen 0
-%endif
-
-# Second, per-architecture exclusions (ifarch)
-
-%ifarch ppc64iseries i686 i586
-%define buildheaders 0
-%endif
+# Per-arch tweaks
 
 %ifarch %{all_x86}
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-i?86*.config
@@ -94,8 +164,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %endif
 
 %ifarch i686
-%define buildpae 1
-# we build always xen HV with pae
+# we build always xen i686 HV with pae
 %define xen_flags verbose=y crash_debug=y pae=y
 %endif
 
@@ -137,7 +206,6 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %endif
 
 %ifarch sparc64
-%define buildsmp 1
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-sparc64*.config
 %define make_target image
 %define kernel_image image
@@ -149,7 +217,6 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define make_target vmlinux
 %define kernel_image vmlinux
 %define kernel_image_elf 1
-%define buildsmp 1
 %define hdrarch powerpc
 %endif
 
@@ -159,7 +226,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define signmodules 1
 %define make_target compressed
 %define kernel_image vmlinux.gz
-# ia64 xen HV doesn't building with debug=y at the moment
+# ia64 xen HV doesn't build with debug=y at the moment
 %define xen_flags verbose=y crash_debug=y
 %define xen_target compressed
 %define xen_image vmlinux.gz
@@ -171,20 +238,22 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # us use the previous build of that package -- it'll just be completely AWOL.
 # Which is a BadThing(tm).
 
-# We don't build a kernel on i386 or s390x or ppc -- we only do kernel-headers there.
-%define nobuildarches i386 s390 ppc
+# We don't build a kernel on i386 or s390x -- we only do kernel-headers there.
+# We also don't support s390, iseries and ia64 on Fedora.
+%define nobuildarches i386 s390 s390x ppc64iseries ia64
 
 %ifarch %nobuildarches
-%define buildup 0
-%define buildsmp 0
-%define buildpae 0
-%define buildxen 0
-%define buildkdump 0
+%define with_up 0
+%define with_smp 0
+%define with_pae 0
+%define with_xen 0
+%define with_kdump 0
 %define _enable_debug_packages 0
 %endif
 
 # TOMOYO Linux
 %define signmodules 0
+%define _enable_debug_packages 0
 
 #
 # Three sets of minimum package version requirements in the form of Conflicts:
@@ -214,7 +283,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # Packages that need to be installed before the kernel is, because the %post
 # scripts use them.
 #
-%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 4.2.21-1
+%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 5.1.19.0.2-1
 
 Name: kernel
 Group: System Environment/Kernel
@@ -229,7 +298,6 @@ ExclusiveArch: i386 i586
 ExclusiveArch: noarch %{all_x86} x86_64 ppc ppc64 ppc64iseries ia64 sparc sparc64 s390 s390x
 %endif
 ExclusiveOS: Linux
-Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
 Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}
 Prereq: %{kernel_prereq}
@@ -251,14 +319,14 @@ BuildPreReq: bzip2, findutils, gzip, m4, perl, make >= 3.78, diffutils
 BuildPreReq: gnupg
 %endif
 BuildRequires: gcc >= 3.4.2, binutils >= 2.12, redhat-rpm-config
-%if %{buildheaders}
+%if %{with_headers}
 BuildRequires: unifdef
 %endif
 BuildConflicts: rhbuildsys(DiskFree) < 500Mb
 
 
 Source0: ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-%{kversion}.tar.bz2
-Source1: xen-%{xen_hv_cset}.tar.bz2
+Source1: xen-3.0.3-%{xen_hv_cset}.tar.bz2
 Source2: Config.mk
 
 Source10: COPYING.modules
@@ -269,27 +337,30 @@ Source15: merge.pl
 
 Source20: kernel-%{kversion}-i586.config
 Source21: kernel-%{kversion}-i686.config
-Source22: kernel-%{kversion}-i686-PAE.config
+Source22: kernel-%{kversion}-i686-debug.config
+Source23: kernel-%{kversion}-i686-kdump.config
+Source24: kernel-%{kversion}-i686-PAE.config
+Source25: kernel-%{kversion}-i686-PAE-debug.config
 
-Source23: kernel-%{kversion}-x86_64.config
-Source24: kernel-%{kversion}-x86_64-kdump.config
+Source26: kernel-%{kversion}-x86_64.config
+Source27: kernel-%{kversion}-x86_64-debug.config
+Source28: kernel-%{kversion}-x86_64-kdump.config
 
-Source25: kernel-%{kversion}-ppc.config
-Source26: kernel-%{kversion}-ppc-smp.config
-Source27: kernel-%{kversion}-ppc64.config
-Source28: kernel-%{kversion}-ppc64-kdump.config
-Source29: kernel-%{kversion}-ppc64iseries.config
+Source29: kernel-%{kversion}-ppc.config
+Source30: kernel-%{kversion}-ppc-smp.config
+Source31: kernel-%{kversion}-ppc64.config
+Source32: kernel-%{kversion}-ppc64-kdump.config
+Source33: kernel-%{kversion}-ppc64iseries.config
+Source34: kernel-%{kversion}-ppc64iseries-kdump.config
 
-Source30: kernel-%{kversion}-s390.config
-Source31: kernel-%{kversion}-s390x.config
+Source35: kernel-%{kversion}-s390.config
+Source36: kernel-%{kversion}-s390x.config
 
-Source32: kernel-%{kversion}-ia64.config
+Source37: kernel-%{kversion}-ia64.config
 
-Source33: kernel-%{kversion}-i686-xen.config
-Source34: kernel-%{kversion}-x86_64-xen.config
-Source35: kernel-%{kversion}-i686-kdump.config
-Source36: kernel-%{kversion}-ia64-xen.config
-Source37: kernel-%{kversion}-ppc64iseries-kdump.config
+Source38: kernel-%{kversion}-i686-xen.config
+Source39: kernel-%{kversion}-x86_64-xen.config
+Source40: kernel-%{kversion}-ia64-xen.config
 
 #Source66: kernel-%{kversion}-sparc.config
 #Source67: kernel-%{kversion}-sparc64.config
@@ -297,27 +368,28 @@ Source37: kernel-%{kversion}-ppc64iseries-kdump.config
 
 Source80: config-rhel-generic
 Source81: config-rhel-x86-generic
-Source82: config-rhel-ppc64-generic
-Source83: config-olpc-generic
-Source15000: ccs-patch-1.4-20070401.tar.gz
+Source82: config-olpc-generic
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
 #
-Patch1: patch-2.6.18.1.bz2
-#Patch2: patch-2.6.18-rc7-git4.bz2
-Patch3: git-geode.patch
-Patch4: git-agpgart.patch
-
-# this is for patches we backported the whole fix for later in spec file
-Patch9: stable-patch-reverts.patch
+Patch1: patch-2.6.20.1.bz2
+Patch2: patch-2.6.20.1-2.bz2
+Patch3: patch-2.6.20.2-3.bz2
+Patch4: patch-2.6.20.3-4.bz2
+Patch5: patch-2.6.20.4-5.bz2
+Patch6: patch-2.6.20.5-6.bz2
+Patch7: linux-2.6.20.5-rc1-ata_scsi_preserve_lba_bit.patch
 
 # Patches 10 through 99 are for things that are going upstream really soon.
-Patch10: linux-2.6-utrace.patch
+# needed to get utrace patch to apply cleanly
+Patch10: linux-2.6-s390_ptrace_sparse_fixes.patch
+Patch11: linux-2.6-x86_64_ptrace_ck_retval.patch
+# utrace
+Patch15: linux-2.6-utrace.patch
 
 # enable sysrq-c on all kernels, not only kexec
 Patch20: linux-2.6-sysrq-c.patch
-Patch21: linux-2.6-sysrq-w.patch
 
 # Patches 100 through 500 are meant for architecture patches
 
@@ -327,41 +399,21 @@ Patch200: linux-2.6-x86-tune-generic.patch
 Patch201: linux-2.6-x86-vga-vidfail.patch
 Patch202: linux-2.6-x86-64-edac-support.patch
 Patch203: linux-2.6-x86_64-silence-up-apic-errors.patch
-Patch207: linux-2.6-x86_64-tif-restore-sigmask.patch
-Patch208: linux-2.6-x86_64-add-ppoll-pselect.patch
-Patch209: linux-2.6-x86_64-opterons-synchronize-p-state-using-TSC.patch
-Patch210: linux-2.6-x86_64-memory-hotplug.patch
-Patch211: linux-2.6-x86-relocatable.patch
-Patch212: linux-2.6-x86-support-rdtscp-for-gtod.patch
-Patch213: linux-2.6-x86-unwinder-fixes.patch
-#temp patch for now
-Patch214: linux-2.6-x86-disable-mmconfig.patch
-Patch215: linux-2.6-x86_64-page-align-e820-area.patch
-Patch216: linux-2.6-x86_64-dirty-page-tracking.patch
+Patch204: linux-2.6-x86-apic-auto.patch
+Patch205: linux-2.6-x86_64_edac_update.patch
+Patch206: linux-2.6-20_x86_64_xapic_8_bit_dest.patch
 
 # 300 - 399   ppc(64)
-Patch300: linux-2.6-ppc-dac960-ipr-clash.patch
 Patch301: linux-2.6-cell-mambo-drivers.patch
 Patch302: linux-2.6-hvc-console.patch
 Patch303: linux-2.6-ppc-rtas-check.patch
-Patch304: linux-2.6-ppc64-export-copypage.patch
-Patch306: linux-2.6-powerpc-audit.patch
-Patch307: linux-2.6-powerpc-seccomp.patch
-Patch308: linux-2.6-powerpc-power6-disable-ci_large_page.patch
+Patch310: linux-2.6-g5-therm-shutdown.patch
+Patch311: linux-2.6-power6-no-ci-large-page.patch
+Patch312: linux-2.6-mac-raid-autorun.patch
 
 # 400 - 499   ia64
-Patch400: linux-2.6-ia64-futex.patch
-Patch401: linux-2.6-ia64-robust-list.patch
-Patch402: linux-2.6-ia64-kexec-kdump.patch
-Patch404: linux-2.6-ia64-exports-for-xpmem-driver.patch
-Patch405: linux-2.6-ia64-kprobes-fixes.patch
 
 # 500 - 599   s390(x)
-Patch500: linux-2.6-s390-kprobes.patch
-Patch501: linux-2.6-s390-add-uevent-to-ccw.patch
-Patch502: linux-2.6-s390-kprobes-fixes.patch
-Patch503: linux-2.6-s390-net-ctcmpc-driver.patch
-Patch504: linux-2.6-s390-information-leak.patch
 
 # 600 - 699   sparc(64)
 
@@ -370,20 +422,19 @@ Patch504: linux-2.6-s390-information-leak.patch
 # and patches related to how RPMs are build
 #
 Patch800: linux-2.6-build-nonintconfig.patch
-Patch801: linux-2.6-build-userspace-headers-warning.patch
-Patch802: linux-2.6-build-deprecate-configh-include.patch
 
 # Exec-shield.
 Patch810: linux-2.6-execshield.patch
 Patch811: linux-2.6-warn-c-p-a.patch
 
 # Module signing infrastructure.
-Patch900: linux-2.6-modsign-core.patch
+Patch900: linux-2.6-modsign-mpilib.patch
 Patch901: linux-2.6-modsign-crypto.patch
-Patch902: linux-2.6-modsign-ksign.patch
-Patch903: linux-2.6-modsign-mpilib.patch
-Patch904: linux-2.6-modsign-script.patch
-Patch905: linux-2.6-modsign-include.patch
+Patch902: linux-2.6-modsign-include.patch
+Patch903: linux-2.6-modsign-verify.patch
+Patch904: linux-2.6-modsign-ksign.patch
+Patch905: linux-2.6-modsign-core.patch
+Patch906: linux-2.6-modsign-script.patch
 
 # Tux http accelerator.
 Patch910: linux-2.6-tux.patch
@@ -392,16 +443,9 @@ Patch910: linux-2.6-tux.patch
 Patch950: linux-2.6-xen.patch
 Patch951: linux-2.6-xen-utrace.patch
 Patch952: linux-2.6-xen-x86_64-silence-up-apic-errors.patch
-Patch953: linux-2.6-xen-x86_64-add-ppoll-pselect.patch
 Patch954: linux-2.6-xen-execshield.patch
 Patch955: linux-2.6-xen-tux.patch
-Patch957: linux-2.6-xen-x86-relocatable.patch
-Patch958: linux-2.6-ia64-kexec-kdump-xen-conflict.patch
-Patch959: linux-2.6-xen-x86-unwinder.patch
-Patch960: linux-2.6-xen-blktap-fixes.patch
 Patch961: linux-2.6-xen-pae-handle-64bit-addresses-correctly.patch
-Patch962: linux-2.6-xen-remove-bug-from-evtchn-during-retrigger.patch
-Patch990: linux-2.6-xen-pvfb.patch
 
 #
 # Patches 1000 to 5000 are reserved for bugfixes to drivers and filesystems
@@ -409,12 +453,9 @@ Patch990: linux-2.6-xen-pvfb.patch
 
 Patch1010: linux-2.6-debug-sizeof-structs.patch
 Patch1011: linux-2.6-debug-slab-backtrace.patch
-Patch1012: linux-2.6-debug-list_head.patch
 Patch1013: linux-2.6-debug-taint-vm.patch
-Patch1014: linux-2.6-debug-singlebiterror.patch
 Patch1015: linux-2.6-debug-spinlock-taint.patch
 Patch1016: linux-2.6-debug-Wundef.patch
-Patch1017: linux-2.6-debug-disable-builtins.patch
 Patch1018: linux-2.6-debug-sleep-in-irq-warning.patch
 Patch1019: linux-2.6-debug-must_check.patch
 Patch1020: linux-2.6-debug-no-quiet.patch
@@ -433,183 +474,85 @@ Patch1061: linux-2.6-crash-driver-xen.patch
 Patch1070: linux-2.6-sleepon.patch
 
 # SCSI bits.
-Patch1102: linux-2.6-scsi-advansys-pcitable.patch
-Patch1103: linux-2.6-iscsi-add-qla4xxx2.patch
-Patch1104: linux-2.6-iscsi-update-to-2-6-19-rc1.upstream.patch
-Patch1105: linux-2.6-aic9400-adp94xx-updates.patch
-Patch1106: linux-2.6-scsi-ipr-supports-sas-attached-sata.patch
-Patch1107: linux-2.6-scsi-dont-add-devices-for-pq1-pdt01f.patch
-Patch1108: linux-2.6-scsi-remove-userspace-hooks-from-qla4xxx.patch
-Patch1109: linux-2.6-scsi-allow-cat-proc-scsi-to-work.patch
-Patch1110: linux-2.6-scsi-add-qla3xxx.patch
-Patch1111: linux-2.6-scsi-update-blacklist.patch
-Patch1112: linux-2.6-iscsi-remove-old-code.patch
-Patch1113: linux-2.6-scsi-fix-shared-tag-maps.patch
-Patch1114: linux-2.6-scsi-add-promise-stex-driver.patch
-Patch1115: linux-2.6-scsi-sg-allow-large-page-sizes.patch
-Patch1116: linux-2.6-scsi-qla4xxx-ioctl-hooks.patch
-Patch1117: linux-2.6-scsi-update-transport-fc.patch
-Patch1118: linux-2.6-scsi-update-emulex-lpfc.patch
-Patch1119: linux-2.6-scsi-emulex-ioctl-hooks.patch
-Patch1120: linux-2.6-scsi-update-lsi-megaraid.patch
-Patch1121: linux-2.6-scsi-ibmvscsi-migration-fix.patch
+Patch1106: linux-2.6-scsi-cpqarray-set-master.patch
 
 # NFS bits.
-Patch1200: linux-2.6-NFSD-ctlbits.patch
 Patch1201: linux-2.6-NFSD-badness.patch
 
 # core networking changes.
-Patch1300: linux-2.6-net-ipsec-labelling.patch
-Patch1301: linux-2.6-net-netlabel-cipso.patch
-Patch1302: linux-2.6-net-netlabel-labeled-network-support.patch
-Patch1303: linux-2.6-net-netlabel-audit-config-changes.patch
-Patch1304: linux-2.6-net-netlabel-oops-in-cache.patch
-Patch1305: linux-2.6-net-netlabel-label-empty-packets-unlabeled.patch
-Patch1306: linux-2.6-net-netlabel-fix-ipsec-leak.patch
 
-# Network driver updates
-Patch1350: linux-2.6-bcm43xx-periodic-work.patch
-Patch1351: linux-2.6-net-e1000-updates.patch
+# NIC driver fixes
 
 # Filesystem stuff.
 # Squashfs
 Patch1400: linux-2.6-squashfs.patch
-Patch1401: linux-2.6-squashfs-s390-dirty-memory-fix.patch
+
 # GFS/DLM
-Patch1410: linux-2.6-gfs2-dlm.patch
+Patch1410: linux-2.6-gfs2-update.patch
 Patch1411: linux-2.6-gfs2-tux.patch
 Patch1412: linux-2.6-gfs2-locking-exports.patch
-Patch1413: linux-2.6-gfs2-move-fs-flags-to-fs_h.patch
-Patch1414: linux-2.6-gfs2-dlm-fix-mount-issues.patch
-Patch1415: linux-2.6-gfs2-dlm-clear-sbflags-lock-master.patch
-Patch1416: linux-2.6-gfs2-dlm-add-tcp-communications.patch
-Patch1417: linux-2.6-gfs2-dlm-reset-recover_locks-when-aborted.patch
-Patch1418: linux-2.6-gfs2-dlm-fix-incorrect-fs-sync-behaviour.patch
-Patch1419: linux-2.6-gfs2-dlm-fix-kref_put-oops.patch
+Patch1413: linux-2.6-gfs2-update2.patch
+Patch1414: linux-2.6-gfs2-update3.patch
 
-Patch1420: linux-2.6-inode_diet-replace-inodeugeneric_ip-with-inodei_private.patch
-Patch1421: linux-2.6-inode-diet-move-i_pipe-into-a-union.patch
-Patch1422: linux-2.6-inode-diet-move-i_bdev-into-a-union.patch
-Patch1423: linux-2.6-inode-diet-move-i_cdev-into-a-union.patch
-Patch1424: linux-2.6-inode-diet-eliminate-i_blksize-and-use-a-per-superblock-default.patch
-Patch1425: linux-2.6-inode-diet-squashfs.patch
-
-# NFS superblock sharing
-Patch1430: linux-2.6-nfs-unified-sb-os-support.patch
-Patch1431: linux-2.6-nfs-unified-sb.patch
-# CacheFiles support
-Patch1432: linux-2.6-cachefiles-os-support.patch
-Patch1433: linux-2.6-cachefiles.patch
-# FS-Cache support
-Patch1434: linux-2.6-fscache-os-support.patch
-Patch1435: linux-2.6-fscache.patch
-Patch1436: linux-2.6-fscache-nfs.patch
-Patch1437: linux-2.6-fscache-afs.patch
+# NFS superblock sharing / CacheFS
+Patch1431: linux-2.6-cachefiles.patch
 
 # Various NFS changes.
-# double d_drop
-Patch1440: linux-2.6-nfs-client-double_d-drop.patch
-# NFS uses 64-bit inodes
-Patch1441: linux-2.6-nfs-64-bit-inode-support.patch
-# Fix NFS/Selinux oops.
-Patch1442: linux-2.6-nfs-selinux-oops.patch
-Patch1443: linux-2.6-nfs-client-dentry-oops.patch
-Patch1444: linux-2.6-nfs-acl-cache-to-nfs-client.patch
-Patch1445: linux-2.6-nfs-release-page-fix.patch
-Patch1446: linux-2.6-nfs-v4-server-use-after-free.patch
-Patch1447: linux-2.6-nfs-handle-rpc-error-properly.patch
-Patch1448: linux-2.6-nfs-oops-in-nfs_cancel_commit_list.patch
-Patch1449: linux-2.6-nfs-fs-locations-support.patch
-Patch1450: linux-2.6-nfs-disassociate-the-fsc-cookie-from-fh.patch
-
-# EXT3 fixes
-Patch1460: linux-2.6-ext3-16tb-overflow-fixes.patch
-Patch1461: linux-2.6-ext3-check-for-unmapped-buffer.patch
-Patch1462: linux-2.6-ext3-handle-directory-corruption-better.patch
-
-# CIFS fixes
-Patch1465: linux-2.6-cifs-invalid-readdirs.patch
-
-# VFS fixes
-Patch1470: linux-2.6-vfs-dentries-destroy.patch
-
-# AFS fixes
-Patch1475: linux-2.6-afs-dentries-refs.patch
-
-# IPV6 routing
-Patch1480: linux-2.6-ipv6-multiple-routing-tables-policy.patch
-Patch1481: linux-2.6-ipv6-routing-rules-fixes.patch
-Patch1482: linux-2.6-ipv6-prohibit-and-blackhole-fixes.patch
-Patch1483: linux-2.6-ipv6-init-tb6_lock-through-rwlock_init.patch
-
-# AUTOFS fixes
-Patch1490: linux-2.6-autofs4-fixes.patch
-Patch1491: linux-2.6-autofs4-cannot-shutdown-when-timeout-zero.patch
 
 # Device mapper / MD layer
-Patch1500: linux-2.6-dm-mirroring.patch
-Patch1501: linux-2.6-dm-multipath-ioctl-support.patch
-Patch1502: linux-2.6-dm-alloc_dev-error-path-fix.patch
-Patch1503: linux-2.6-dm-snapshot-invalid-enomem-fix.patch
-Patch1504: linux-2.6-dm-snapshot-remove-chunk_size-param.patch
-Patch1505: linux-2.6-dm-snapshot-metadata-error-handling.patch
-Patch1506: linux-2.6-dm-snapshot-metadata-suspend-fix.patch
-Patch1507: linux-2.6-dm-snapshot-removal-seg-fault.patch
-Patch1508: linux-2.6-dm-mirror-trailing-space.patch
-Patch1509: linux-2.6-dm-add-uevent-change-on-resume.patch
-Patch1510: linux-2.6-dm-crypt-clear-key-when-suspend.patch
-Patch1511: linux-2.6-dm-use-biosets-to-avoid-deadlock.patch
-Patch1512: linux-2.6-dm-add-feature-flags-to-structs.patch
-Patch1513: linux-2.6-dm-mpath-fix-io-errors-on-new-path.patch
 
 # Misc bits.
 Patch1600: linux-2.6-module_version.patch
-Patch1610: linux-2.6-input-kill-stupid-messages.patch
-Patch1620: linux-2.6-serial-tickle-nmi.patch
-Patch1630: linux-2.6-mm-suspend-improvements.patch
-Patch1640: linux-2.6-autofs-revalidate-lookup.patch
+Patch1601: linux-2.6-sha_alignment.patch
 Patch1650: linux-2.6-serial-460800.patch
-Patch1660: linux-2.6-drm-i965.patch
-Patch1670: linux-2.6-softcursor-persistent-alloc.patch
-Patch1680: linux-2.6-reiserfs-dentry-ref.patch
-Patch1700: linux-2.6-ide-jmicron-fixup.patch
-Patch1710: linux-2.6-sched-up-migration-cost.patch
+Patch1681: linux-2.6-xfs-umount-fix.patch
+Patch1682: linux-2.6-xfs_attr2.patch
+Patch1690: linux-2.6-PT_LOAD-align.patch
 Patch1720: linux-2.6-proc-self-maps-fix.patch
-Patch1730: linux-2.6-cpufreq-drop-sticky.patch
 Patch1740: linux-2.6-softlockup-disable.patch
-Patch1741: linux-2.6-optimise-spinlock-debug.patch
-Patch1742: linux-2.6-ehea-ethernet-driver.patch
-Patch1743: linux-2.6-drivers-add-qlogic-firmware.patch
-Patch1744: linux-2.6-libertas.diff
-Patch1745: linux-2.6-olpc-touchpad.diff
-Patch1746: linux-2.6-asix-usbnet-update.patch
-Patch1747: linux-2.6-bnep-compat.patch
-Patch1748: linux-2.6-hidp-compat.patch
-Patch1749: linux-2.6-cmtp-compat.patch
-Patch1751: linux-2.6-module-unaligned-access-fix.patch
-Patch1753: linux-2.6-poll-einval-conforms-to-posix.patch
-Patch1754: linux-2.6-allow-booting-from-raid-partition.patch
-Patch1755: linux-2.6-snd-update-sigmatel-codecs.patch
-Patch1756: linux-2.6-net-e100-error-recovery-fix.patch
-Patch1758: linux-2.6-block-detect-cpqarray.patch
-Patch1760: linux-2.6-net-veth-proc-entry-fix.patch
-Patch1761: linux-2.6-tty-locking-cleanup.patch
-Patch1762: linux-2.6-net-ibmveth-kdump-panic.patch
-Patch1763: linux-2.6-mm-dio-prevent-populating-page-cache.patch
-Patch1764: linux-2.6-pci-hotplug-p2p-bridge-ioapic-fixes.patch
-Patch1765: linux-2.6-fs-bd_mount_mutex-to-sem.patch
-Patch1766: linux-2.6-net-sctp-linearize-skb.patch
-Patch1767: linux-2.6-net-ehea-support-64k-pages.patch
-Patch1768: linux-2.6-cpu-hotplug-fails-trying-to-bsp-offline.patch
-Patch1769: linux-2.6-pci-sort-devices-in-breadth-first-order.patch
-Patch1770: linux-2.6-drivers-export-bus-add-remove.patch
+Patch1750: linux-2.6-usb-storage-reboot.patch
+Patch1770: linux-2.6-optimise-spinlock-debug.patch
+Patch1771: linux-2.6-silence-noise.patch
+Patch1780: linux-2.6-drivers-add-qlogic-firmware.patch
+Patch1781: linux-2.6-raid-autorun.patch
+
+# 2.6.20 fixes for testing [TODO: move these to the right places]
+Patch1790: linux-2.6-jfs_fix_deadlock.patch
+
+# hold on to these
+#Patch: linux-2.6-simplify_assign_irq_vector.patch
+#Patch: linux-2.6-no_handler_for_vector_fix.patch
+
+# post 2.6.20.6 fixes
+Patch1800: linux-2.6-20.5t-cx88-dvb-autoload.patch
+Patch1801: linux-2.6-20.5t-net_xfrm_audit_add_space.patch
+Patch1802: linux-2.6-20.5t-sky2_latest_tx_timout.patch
+Patch1803: linux-2.6-20.5y-dm_crypt_disable_barriers.patch
+Patch1804: linux-2.6-20.5y_msix_flush_writes.patch
+Patch1805: linux-2.6-jmicron_debug.patch
+Patch1806: linux-2.6-20.5t-dvb-bt8xx-autoload.patch
+Patch1807: linux-2.6-20.5z-ide_use_proper_error_recovery.patch
+Patch1808: linux-2.6-20.5z-mmap_dont_spam_logs.patch
+Patch1809: linux-2.6-20.5z-nfs_allow_64bit_cookies.patch
+Patch1810: linux-2.6-20.5z-softmac_check_if_running.patch
+Patch1811: linux-2.6-20_bluetooth_broadcom_quirk.patch
+Patch1812: linux-2.6-mm-udf-fixes.patch
+Patch1813: linux-2.6-proposed-i82875p-edac-fix.patch
+
+# more post 2.6.20.6
+Patch1820: linux-2.6-20.7a-ahci_ATI_SB600_workaround.patch
+Patch1821: linux-2.6-20.7a-fib_rules_fix_return_value.patch
+Patch1822: linux-2.6-20.7a-libata-lba48.patch
+Patch1823: linux-2.6-20.7b-libata_blacklist.patch
+Patch1824: linux-2.6-20.7b-libata_clear_tf_before_sense.patch
+Patch1825: linux-2.6-20.7b-scsi_eh_scatterlist.patch
+Patch1826: linux-2.6-21-rc6-readahead.patch
+Patch1827: linux-2.6-21-rc6-sched_align_runqueue.patch
+Patch1828: linux-2.6-i386_pci-add_debugging.patch
+
 
 # SELinux/audit patches.
-Patch1801: linux-2.6-selinux-mprotect-checks.patch
-Patch1802: linux-2.6-selinux-support-range-transitions.patch
-Patch1803: linux-2.6-audit-code-walking-out-of-bounds.patch
-Patch1804: linux-2.6-audit-allow-filtering-by-ppid.patch
-Patch1805: linux-2.6-audit-disallow-meaningless-arch-filters.patch
+Patch1850: linux-2.6-selinux-mprotect-checks.patch
 
 # Warn about usage of various obsolete functionality that may go away.
 Patch1900: linux-2.6-obsolete-oss-warning.patch
@@ -619,42 +562,31 @@ Patch1910: linux-2.6-unexport-symbols.patch
 
 # VM bits.
 Patch2001: linux-2.6-vm-silence-atomic-alloc-failures.patch
-Patch2002: linux-2.6-mm-tracking-dirty-pages.patch
-Patch2004: linux-2.6-mm-prevent-oom-fixes.patch
-Patch2005: linux-2.6-mm-release-page-with-non-zero-gfp-mask.patch
 
 # Tweak some defaults.
 Patch2100: linux-2.6-defaults-fat-utf8.patch
 Patch2101: linux-2.6-defaults-firmware-loader-timeout.patch
 Patch2102: linux-2.6-defaults-phys-start.patch
 Patch2103: linux-2.6-defaults-unicode-vt.patch
-Patch2104: linux-2.6-defaults-disable-split-ptlock.patch
-Patch2105: linux-2.6-panic-on-oops.patch
+Patch2105: linux-2.6-defaults-nonmi.patch
+Patch2106: linux-2.6-fedora_firmware_timout_limit.patch
+Patch2107: linux-2.6-drivers_pci_no_msi_mmconf.patch
 
 # SATA Bits
 Patch2200: linux-2.6-sata-promise-pata-ports.patch
-Patch2201: linux-2.6-sata-ahci-suspend.patch
-Patch2202: linux-2.6-sata-sas-adapters-support.patch
 
 # ACPI bits
 
-# Lockdep fixes.
-Patch2400: linux-2.6-lockdep-fixes.patch
-
-# Infiniband driver
-Patch2600: linux-2.6-openib-sdp.patch
-Patch2601: linux-2.6-openib-ehca.patch
-Patch2602: linux-2.6-openib-ofed-1_1-update.patch
-
-# kprobes changes.
-Patch2700: linux-2.6-kprobes-portable.patch
-Patch2701: linux-2.6-kprobes-documentation.patch
-Patch2702: linux-2.6-kprobes-add-regs_return_value-helper.patch
-Patch2703: linux-2.6-kprobes-deadlock-fixes.patch
-Patch2704: linux-2.6-kprobes-opcode-16-byte-alignment.patch
-
-# Wireless driver
-Patch2801: linux-2.6-wireless-ipw2200-1_2_0-update.patch
+# OLPC drivers
+Patch5000: linux-2.6-mtd-update.patch
+Patch5001: linux-2.6-cafe-nand.patch
+Patch5010: linux-2.6-marvell-88alp01.patch
+Patch5011: linux-2.6-marvell-update.patch
+Patch5020: linux-2.6-olpc-dcon.patch
+Patch5030: linux-2.6-libertas.diff
+Patch5040: linux-2.6-olpc-touchpad.diff
+Patch5050: linux-2.6-sysprof-1.0.3.patch
+Patch5060: linux-2.6-olpc-battery.patch
 
 #
 # 10000 to 20000 is for stuff that has to come last due to the
@@ -667,12 +599,48 @@ Patch10000: linux-2.6-compile-fixes.patch
 # Xen hypervisor patches (20000+)
 Patch20000: xen-printf-rate-limit.patch
 Patch20001: xen-version-strings.patch
-Patch20002: xen-grant-table-operations-security.patch
+Patch20002: xen-grant-security.patch
 Patch20003: xen-amd-v-menu-timer-issue.patch
 Patch20004: xen-pae-handle-64bit-addresses-correctly.patch
+Patch20005: xen-fix-vcpu-hotplug-statistics.patch
+Patch20007: xen-amd-v-hvm-fix-for-windows-hibernate.patch
+Patch20008: xen-make-windows-vista-work.patch
+Patch20011: xen-fix-swiotlb-for-b44-module-xen-patch.patch
+Patch20012: xen-fix-for-smp-xen-guest-slow-boot-issue-on-amd-systems.patch
+Patch20013: xen-hvm-crashes-on-ia32e-smp.patch
+Patch20014: xen-make-ballooning-work-right.patch
+Patch20015: xen-oprofile-on-intel-core.patch
+Patch20016: xen-emulation-accesses-faulting-on-page-boundary.patch
+Patch20018: xen-race-condition-concerning-vlapic-interrupts.patch
+Patch20019: xen-emulate-pit-channels-for-vbios-support.patch
+Patch20020: xen-greater-than-4g-guest-fix.patch
+Patch20021: xen-make-hvm-hypercall-table-nr_hypercalls-entries-big.patch
+Patch20022: xen-replace-inappropriate-domain_crash_synchronous-use.patch
+Patch20023: xen-register-pit-handlers-to-the-correct-domain.patch
+Patch20024: xen-quick-fix-for-cannot-allocate-memory.patch
+Patch20025: xen-fix-tlb-flushing-in-shadow-pagetable-mode.patch
+Patch20026: xen-enable-xen-booting-on-machines-with-64g.patch
 
-# empty final patch file to facilitate testing of kernel patches
-Patch99999: linux-kernel-test.patch
+Patch21008: linux-2.6-xen-fix-spinlock-when-removing-xennet-device.patch
+Patch21011: linux-2.6-xen-privcmd-range-check-hypercall-index.patch
+Patch21024: linux-2.6-xen-netback-reenable-tx-queueing.patch
+Patch21027: linux-2.6-xen-avoid-touching-watchdog-when-gone-too-long.patch
+Patch21036: linux-2.6-xen-iscsi-oops-on-x86_64-xen-domu.patch
+Patch21038: linux-2.6-xen-make-netfront-device-permanent.patch
+Patch21048: linux-2.6-xen-blkback-fix-first_sect-check.patch
+Patch21056: linux-2.6-xen-fix-2tb-overflow-in-virtual-disk-driver.patch
+Patch21059: linux-2.6-xen-netback-fix-transmit-credit-scheduler-wrap.patch
+Patch21069: linux-2.6-xen-blkback-copy-shared-data-before-verification.patch
+Patch21070: linux-2.6-xen-blkback-fix-potential-grant-entry-leaks-on-error.patch
+Patch21081: linux-2.6-xen-properly-close-blkfront-on-non-existant-file.patch
+Patch21087: linux-2.6-xen-copy-shared-data-before-verification.patch
+Patch21104: linux-2.6-xen-fix-swiotlb-for-b44-module-kernel-patch.patch
+Patch21112: linux-2.6-xen-make-ballooning-work-right.patch
+Patch21147: linux-2.6-xen-fix-agp-on-x86_64-under-xen.patch
+Patch21162: linux-2.6-xen-blktap-fix-potential-grant-entry-leaks-on-error.patch
+Patch21165: linux-2.6-xen-use-swiotlb-mask-for-coherent-mappings-too.patch
+Patch21188: linux-2.6-xen-fix-nosegneg-detection.patch
+Patch21208: linux-2.6-xen-add-packet_auxdata-cmsg.patch
 
 # END OF PATCH DEFINITIONS
 
@@ -694,82 +662,41 @@ Linux operating system.  The kernel handles the basic functions
 of the operating system:  memory allocation, process allocation, device
 input and output, etc.
 
+%if 0%{?olpc}
+Provides: kmod-sysprof = 1.0.3
+%endif
+
+%package debuginfo
+Summary: Debug information for package %{name}
+Group: Development/Debug
+Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+Provides: %{name}-debuginfo-%{_target_cpu} = %{KVERREL}
+%description debuginfo
+This package provides debug information for package %{name}
+This is required to use SystemTap with %{name}-%{KVERREL}.
+
+%package debuginfo-common
+Summary: Kernel source files used by %{name}-debuginfo packages
+Group: Development/Debug
+Provides: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+%description debuginfo-common
+This package is required by %{name}-debuginfo subpackages.
+It provides the kernel source files common to all builds.
+
 %package devel
 Summary: Development package for building kernel modules to match the kernel.
 Group: System Environment/Kernel
 AutoReqProv: no
 Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}
+Provides: kernel-devel = %{rpmversion}-%{release}
 Prereq: /usr/bin/find
-
 %description devel
 This package provides kernel headers and makefiles sufficient to build modules
 against the kernel package.
 
 
-%package doc
-Summary: Various documentation bits found in the kernel source.
-Group: Documentation
-
-%description doc
-This package contains documentation files from the kernel
-source. Various bits of information about the Linux kernel and the
-device drivers shipped with it are documented in these files.
-
-You'll want to install this package if you need a reference to the
-options that can be passed to Linux kernel modules at load time.
-
-%package headers
-Summary: Header files for the Linux kernel for use by glibc
-Group: Development/System
-Obsoletes: glibc-kernheaders
-Provides: glibc-kernheaders = 3.0-46
-
-%description headers
-Kernel-headers includes the C header files that specify the interface
-between the Linux kernel and userspace libraries and programs.  The
-header files define structures and constants that are needed for
-building most standard programs and are also needed for rebuilding the
-glibc package.
-
-%package PAE
-Summary: The Linux kernel compiled for PAE capable machines.
-
-Group: System Environment/Kernel
-Provides: kernel = %{version}
-Provides: kernel-drm = 4.3.0
-Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}PAE
-Prereq: %{kernel_prereq}
-Conflicts: %{kernel_dot_org_conflicts}
-Conflicts: %{package_conflicts}
-Obsoletes: kernel-smp < 2.6.17
-# We can't let RPM do the dependencies automatic because it'll then pick up
-# a correct but undesirable perl dependency from the module headers which
-# isn't required for the kernel proper to function
-AutoReq: no
-AutoProv: yes
-
-%description PAE
-This package includes a version of the Linux kernel with support for up to
-64GB of high memory. It requires a CPU with Physical Address Extensions (PAE).
-The non-PAE kernel can only address up to 4GB of memory.
-Install the kernel-PAE package if your machine has more than 4GB of memory.
-
-%package PAE-devel
-Summary: Development package for building kernel modules to match the PAE kernel.
-Group: System Environment/Kernel
-Provides: kernel-PAE-devel-%{_target_cpu} = %{rpmversion}-%{release}
-Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}PAE
-Provides: kernel-devel = %{rpmversion}-%{release}PAE
-AutoReqProv: no
-Prereq: /usr/bin/find
-
-%description PAE-devel
-This package provides kernel headers and makefiles sufficient to build modules
-against the PAE kernel package.
-
 %package smp
 Summary: The Linux kernel compiled for SMP machines.
-
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
@@ -785,13 +712,21 @@ Obsoletes: kernel-enterprise < 2.4.10
 # isn't required for the kernel proper to function
 AutoReq: no
 AutoProv: yes
-
 %description smp
 This package includes a SMP version of the Linux kernel. It is
 required only on machines with two or more CPUs as well as machines with
 hyperthreading technology.
 
 Install the kernel-smp package if your machine uses two or more CPUs.
+
+%package smp-debuginfo
+Summary: Debug information for package %{name}-smp
+Group: Development/Debug
+Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+Provides: %{name}-%smp-debuginfo-%{_target_cpu} = %{KVERREL}
+%description smp-debuginfo
+This package provides debug information for package %{name}-smp
+This is required to use SystemTap with %{name}-smp-%{KVERREL}.
 
 %package smp-devel
 Summary: Development package for building kernel modules to match the SMP kernel.
@@ -801,14 +736,167 @@ Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}smp
 Provides: kernel-devel = %{rpmversion}-%{release}smp
 AutoReqProv: no
 Prereq: /usr/bin/find
-
 %description smp-devel
 This package provides kernel headers and makefiles sufficient to build modules
 against the SMP kernel package.
 
+
+%package PAE
+Summary: The Linux kernel compiled for PAE capable machines.
+Group: System Environment/Kernel
+Provides: kernel = %{version}
+Provides: kernel-drm = 4.3.0
+Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}PAE
+Prereq: %{kernel_prereq}
+Conflicts: %{kernel_dot_org_conflicts}
+Conflicts: %{package_conflicts}
+Obsoletes: kernel-smp < 2.6.17
+# We can't let RPM do the dependencies automatic because it'll then pick up
+# a correct but undesirable perl dependency from the module headers which
+# isn't required for the kernel proper to function
+AutoReq: no
+AutoProv: yes
+%description PAE
+This package includes a version of the Linux kernel with support for up to
+64GB of high memory. It requires a CPU with Physical Address Extensions (PAE).
+The non-PAE kernel can only address up to 4GB of memory.
+Install the kernel-PAE package if your machine has more than 4GB of memory.
+
+%package PAE-debuginfo
+Summary: Debug information for package %{name}-PAE
+Group: Development/Debug
+Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+Provides: %{name}-%PAE-debuginfo-%{_target_cpu} = %{KVERREL}
+%description PAE-debuginfo
+This package provides debug information for package %{name}-PAE
+This is required to use SystemTap with %{name}-PAE-%{KVERREL}.
+
+%package PAE-devel
+Summary: Development package for building kernel modules to match the PAE kernel.
+Group: System Environment/Kernel
+Provides: kernel-PAE-devel-%{_target_cpu} = %{rpmversion}-%{release}
+Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}PAE
+Provides: kernel-devel = %{rpmversion}-%{release}PAE
+AutoReqProv: no
+Prereq: /usr/bin/find
+%description PAE-devel
+This package provides kernel headers and makefiles sufficient to build modules
+against the PAE kernel package.
+
+
+%if %{debugbuildsenabled}
+%package PAE-debug
+Summary: The Linux kernel compiled with extra debugging enabled for PAE capable machines.
+Group: System Environment/Kernel
+Provides: kernel = %{version}
+Provides: kernel-drm = 4.3.0
+Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}-PAE-debug
+Prereq: %{kernel_prereq}
+Conflicts: %{kernel_dot_org_conflicts}
+Conflicts: %{package_conflicts}
+AutoReq: no
+AutoProv: yes
+%description PAE-debug
+This package includes a version of the Linux kernel with support for up to
+64GB of high memory. It requires a CPU with Physical Address Extensions (PAE).
+The non-PAE kernel can only address up to 4GB of memory.
+Install the kernel-PAE package if your machine has more than 4GB of memory.
+
+This variant of the kernel has numerous debugging options enabled.
+It should only be installed when trying to gather additional information
+on kernel bugs, as some of these options impact performance noticably.
+
+%package PAE-debug-debuginfo
+Summary: Debug information for package %{name}-PAE-debug
+Group: Development/Debug
+Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+Provides: %{name}-debug-debuginfo-%{_target_cpu} = %{KVERREL}
+%description PAE-debug-debuginfo
+This package provides debug information for package %{name}-PAE-debug
+
+%package PAE-debug-devel
+Summary: Development package for building kernel modules to match the kernel.
+Group: System Environment/Kernel
+Provides: kernel-PAE-debug-devel-%{_target_cpu} = %{rpmversion}-%{release}
+Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}PAE-debug
+Provides: kernel-devel = %{rpmversion}-%{release}PAE-debug
+AutoReqProv: no
+Prereq: /usr/bin/find
+%description PAE-debug-devel
+This package provides kernel headers and makefiles sufficient to build modules
+against the kernel package.
+%endif
+
+
+%package doc
+Summary: Various documentation bits found in the kernel source.
+Group: Documentation
+%description doc
+This package contains documentation files from the kernel
+source. Various bits of information about the Linux kernel and the
+device drivers shipped with it are documented in these files.
+
+You'll want to install this package if you need a reference to the
+options that can be passed to Linux kernel modules at load time.
+
+%package headers
+Summary: Header files for the Linux kernel for use by glibc
+Group: Development/System
+Obsoletes: glibc-kernheaders
+Provides: glibc-kernheaders = 3.0-46
+%description headers
+Kernel-headers includes the C header files that specify the interface
+between the Linux kernel and userspace libraries and programs.  The
+header files define structures and constants that are needed for
+building most standard programs and are also needed for rebuilding the
+glibc package.
+
+%if %{?debugbuildsenabled}
+%package debug
+Summary: The Linux kernel compiled with extra debugging enabled.
+Group: System Environment/Kernel
+Provides: kernel = %{version}
+Provides: kernel-drm = 4.3.0
+Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}-debug
+Prereq: %{kernel_prereq}
+Conflicts: %{kernel_dot_org_conflicts}
+Conflicts: %{package_conflicts}
+AutoReq: no
+AutoProv: yes
+%description debug
+The kernel package contains the Linux kernel (vmlinuz), the core of any
+Linux operating system.  The kernel handles the basic functions
+of the operating system:  memory allocation, process allocation, device
+input and output, etc.
+
+This variant of the kernel has numerous debugging options enabled.
+It should only be installed when trying to gather additional information
+on kernel bugs, as some of these options impact performance noticably.
+
+%package debug-debuginfo
+Summary: Debug information for package %{name}-debug
+Group: Development/Debug
+Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+Provides: %{name}-debug-debuginfo-%{_target_cpu} = %{KVERREL}
+%description debug-debuginfo
+This package provides debug information for package %{name}-debug
+
+%package debug-devel
+Summary: Development package for building kernel modules to match the kernel.
+Group: System Environment/Kernel
+Provides: kernel-debug-devel-%{_target_cpu} = %{rpmversion}-%{release}
+Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}debug
+Provides: kernel-devel = %{rpmversion}-%{release}debug
+AutoReqProv: no
+Prereq: /usr/bin/find
+%description debug-devel
+This package provides kernel headers and makefiles sufficient to build modules
+against the kernel package.
+%endif
+
+
 %package xen
 Summary: The Linux kernel compiled for Xen VM operations
-
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}xen
@@ -821,10 +909,18 @@ Conflicts: %{xen_conflicts}
 # isn't required for the kernel proper to function
 AutoReq: no
 AutoProv: yes
-
 %description xen
 This package includes a version of the Linux kernel which
 runs in Xen VM. It works for both priviledged and unpriviledged guests.
+
+%package xen-debuginfo
+Summary: Debug information for package %{name}-xen
+Group: Development/Debug
+Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+Provides: %{name}-xen-debuginfo-%{_target_cpu} = %{KVERREL}
+%description xen-debuginfo
+This package provides debug information for package %{name}-xen
+This is required to use SystemTap with %{name}-xen-%{KVERREL}.
 
 %package xen-devel
 Summary: Development package for building kernel modules to match the kernel.
@@ -834,14 +930,13 @@ Provides: kernel-xen-devel-%{_target_cpu} = %{rpmversion}-%{release}
 Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}xen
 Provides: kernel-devel = %{rpmversion}-%{release}xen
 Prereq: /usr/bin/find
-
 %description xen-devel
 This package provides kernel headers and makefiles sufficient to build modules
 against the kernel package.
 
+
 %package kdump
 Summary: A minimal Linux kernel compiled for kernel crash dumps.
-
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
@@ -854,11 +949,19 @@ Conflicts: %{package_conflicts}
 # isn't required for the kernel proper to function
 AutoReq: no
 AutoProv: yes
-
 %description kdump
 This package includes a kdump version of the Linux kernel. It is
 required only on machines which will use the kexec-based kernel crash dump
 mechanism.
+
+%package kdump-debuginfo
+Summary: Debug information for package %{name}-kdump
+Group: Development/Debug
+Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+Provides: %{name}-kdump-debuginfo-%{_target_cpu} = %{KVERREL}
+%description kdump-debuginfo
+This package provides debug information for package %{name}-kdump
+This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 
 %package kdump-devel
 Summary: Development package for building kernel modules to match the kdump kernel.
@@ -868,7 +971,6 @@ Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}kdump
 Provides: kernel-devel = %{rpmversion}-%{release}kdump
 AutoReqProv: no
 Prereq: /usr/bin/find
-
 %description kdump-devel
 This package provides kernel headers and makefiles sufficient to build modules
 against the kdump kernel package.
@@ -888,13 +990,6 @@ against the kdump kernel package.
     echo i is this file  $i
     mv $i $i.tmp
     $RPM_SOURCE_DIR/merge.pl $RPM_SOURCE_DIR/config-rhel-x86-generic $i.tmp > $i
-    rm $i.tmp
-  done
-  for i in $RPM_SOURCE_DIR/kernel-%{kversion}-{ppc64,ppc64iseries}.config
-  do
-    echo i is this file  $i
-    mv $i $i.tmp
-    $RPM_SOURCE_DIR/merge.pl $RPM_SOURCE_DIR/config-rhel-ppc64-generic $i.tmp > $i
     rm $i.tmp
   done
 %endif
@@ -933,21 +1028,24 @@ cd linux-%{kversion}.%{_target_cpu}
 
 # Update to latest upstream.
 %patch1 -p1
-#%patch2 -p1
+%patch2 -p1
 %patch3 -p1
 %patch4 -p1
-
-# we really want the backported patch and not the stable one
-%patch9 -p1 -R
+%patch5 -p1
+%patch6 -p1
+%patch7 -p1
 
 # Patches 10 through 100 are meant for core subsystem upgrades
 
 # Rolands utrace ptrace replacement.
+# needed to get upstream utrace to apply
 %patch10 -p1
+%patch11 -p1
+# utrace
+%patch15 -p1
 
 # sysrq works always
 %patch20 -p1
-%patch21 -p1
 
 # Architecture patches
 
@@ -966,57 +1064,28 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch202 -p1
 # Suppress APIC errors on UP x86-64.
 %patch203 -p1
-# Support TIF_RESTORE_SIGMASK on x86_64
-%patch207 -p1
-# Add ppoll and pselect syscalls
-%patch208 -p1
-# fix opteron timer scaling
-%patch209 -p1
-# add support for x86_64 memory hotplug
-%patch210 -p1
-# add support for rdtscp in gtod
-%patch212 -p1
-# unwinder fixes
-%patch213 -p1
-# temp patch for now
-%patch214 -p1
-%patch215 -p1
-%patch216 -p1
+# Use heuristics to determine whether to enable lapic on i386.
+#%patch204 -p1
+# K8 EDAC update for DDR2 memory and new CPU models
+%patch205 -p1
+# 8-bit dest field for xAPIC
+%patch206 -p1
 
 #
 # PowerPC
 #
-# IPR uses same ID as DAC960
-%patch300 -p1
 # Support the IBM Mambo simulator; core as well as disk and network drivers.
-%patch301 -p1
+#%patch301 -p1
 # Make HVC console generic; support simulator console device using it.
 #%patch302 -p1
 # Check properly for successful RTAS instantiation
 %patch303 -p1
-# Export copy_4K_page for ppc64
-%patch304 -p1
-# Fix checking for syscall success/failure
-%patch306 -p1
-# Fix SECCOMP for ppc32
-%patch307 -p1
-%patch308 -p1
-
-# ia64 futex and [gs]et_robust_list
-%patch400 -p1
-%patch401 -p1
-# ia64 kexec/kdump
-%patch402 -p1
-%patch404 -p1
-%patch405 -p1
+# Alleviate G5 thermal shutdown problems
+%patch310 -p1
+# Disable cache-inhibited 64KiB pages on POWER6
+#%patch311 -p1
 
 # S390
-# Kprobes.
-%patch500 -p1
-%patch501 -p1
-%patch502 -p1
-%patch503 -p1
-%patch504 -p1
 
 #
 # Patches 800 through 899 are reserved for bugfixes to the core system
@@ -1028,10 +1097,6 @@ cd linux-%{kversion}.%{_target_cpu}
 # also gives a list of missing options at the end. Useful for automated
 # builds (as used in the buildsystem).
 %patch800 -p1
-# Warn if someone tries to build userspace using kernel headers
-%patch801 -p1
-# Warn if someone #include's <linux/config.h>
-%patch802 -p1
 
 # Exec shield
 %patch810 -p1
@@ -1046,9 +1111,10 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch903 -p1
 %patch904 -p1
 %patch905 -p1
+%patch906 -p1
 
 # Tux
-%patch910 -p1
+#%patch910 -p1
 
 #
 # Xen
@@ -1069,29 +1135,13 @@ done
 # Delete the rest of the backup files, they just confuse the build later
 find -name "*.p.xen" | xargs rm -f
 
-# utrace
+# Xen utrace
 %patch951 -p1
 %patch952 -p1
-%patch953 -p1
 # Xen exec-shield bits
 %patch954 -p1
 %patch955 -p1
-# ia64 xen cleanups for kexec/kdump
-%patch958 -p1
-# xen x86 unwinder fixes
-%patch959 -p1
-
-# xen blktap fixes
-%patch960 -p1
-# The blktap patch needs to rename a file.  For now, that is far more easily
-# done in the spec file than in the patch itself.
-mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
-
 %patch961 -p1
-%patch962 -p1
-# xen framebuffer patches
-%patch990 -p1
-
 %endif
 
 #
@@ -1102,16 +1152,13 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 # Various low-impact patches to aid debugging.
 %patch1010 -p1
 %patch1011 -p1
-%patch1012 -p1
 %patch1013 -p1
-%patch1014 -p1
 %patch1015 -p1
 %patch1016 -p1
-%patch1017 -p1
 %patch1018 -p1
 %patch1019 -p1
 # Disable the 'quiet' boot switch for better bug reports.
-%patch1020 -p1
+#%patch1020 -p1
 %patch1021 -p1
 %patch1022 -p1
 %if %{includexen}
@@ -1142,227 +1189,117 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 #
 # SCSI Bits.
 #
-# Add a pci table to advansys driver.
-%patch1102 -p1
-# add support for qla4xxx
-%patch1103 -p1
-# iscsi update for 2.6.19-rc1
-%patch1104 -p1
-# aic9400/adp94xx updates
-%patch1105 -p1
-# support for ipr to use sas attached sata
+# fix cpqarray pci enable
 %patch1106 -p1
-# don't add scsi devices for special targets
-%patch1107 -p1
-%patch1108 -p1
-%patch1109 -p1
-# qla3xxx driver
-%patch1110 -p1
-# scsi blacklist
-%patch1111 -p1
-%patch1112 -p1
-%patch1113 -p1
-%patch1114 -p1
-%patch1115 -p1
-%patch1116 -p1
-%patch1117 -p1
-%patch1118 -p1
-%patch1119 -p1
-%patch1120 -p1
-%patch1121 -p1
 
 #
 # Various NFS/NFSD fixes.
 #
-# kNFSD: fixed '-p port' arg to rpc.nfsd and enables the defining proto versions and transports
-%patch1200 -p1
 # Fix badness.
 %patch1201 -p1
 
 # core networking changes.
-%patch1300 -p1
-%patch1301 -p1
-%patch1302 -p1
-%patch1303 -p1
-# netlabel fixes
-%patch1304 -p1
-%patch1305 -p1
-%patch1306 -p1
 
 # NIC driver fixes
-%patch1350 -p1
-%patch1351 -p1
 
 # Filesystem patches.
 # Squashfs
 %patch1400 -p1
-%patch1401 -p1
+
 # GFS2/DLM
+# update gfs2 - patch from s whitehouse
 %patch1410 -p1
-%patch1411 -p1
+#%patch1411 -p1
 %patch1412 -p1
+# additional gfs2 updates
 %patch1413 -p1
 %patch1414 -p1
-%patch1415 -p1
-%patch1416 -p1
-%patch1417 -p1
-%patch1418 -p1
-%patch1419 -p1
-# Ted's inode diet work.
-%patch1420 -p1
-%patch1421 -p1
-%patch1422 -p1
-%patch1423 -p1
-%patch1424 -p1
-%patch1425 -p1
 
-#nfs sharing
-%patch1430 -p1
+#nfs sharing / cachefs
 %patch1431 -p1
-# CacheFiles
-%patch1432 -p1
-%patch1433 -p1
-# FS-Cache
-%patch1434 -p1
-%patch1435 -p1
-%patch1436 -p1
-%patch1437 -p1
 
 # NFS
-# double d_drop
-%patch1440 -p1
-# NFS supports 64-bit inodes
-%patch1441 -p1
-# Fix NFS/Selinux oops. (#204848)
-%patch1442 -p1
-# Fix nfs client dentry oops
-%patch1443 -p1
-# add ACL cache to NFS client
-%patch1444 -p1
-%patch1445 -p1
-%patch1446 -p1
-%patch1447 -p1
-%patch1448 -p1
-%patch1449 -p1
-%patch1450 -p1
-
-# EXT3
-# overflows at 16tb fix
-%patch1460 -p1
-%patch1461 -p1
-%patch1462 -p1
-
-# CIFS fixes
-%patch1465 -p1
-
-# VFS fixes
-# destroy the dentries via umounts
-%patch1470 -p1
-
-# AFS fixes
-# ensure dentries refs when killed
-%patch1475 -p1
-
-# IPV6 routing policy
-%patch1480 -p1
-%patch1481 -p1
-%patch1482 -p1
-%patch1483 -p1
-
-# AUTOFS fixes
-%patch1490 -p1
-%patch1491 -p1
 
 # Device mapper / MD layer
-# dm mirroring
-%patch1500 -p1
-%patch1501 -p1
-%patch1502 -p1
-%patch1503 -p1
-%patch1504 -p1
-%patch1505 -p1
-%patch1506 -p1
-%patch1507 -p1
-%patch1508 -p1
-%patch1509 -p1
-%patch1510 -p1
-%patch1511 -p1
-%patch1512 -p1
-%patch1513 -p1
 
 # Misc fixes
 # Add missing MODULE_VERSION tags to some modules.
 %patch1600 -p1
-# The input layer spews crap no-one cares about.
-%patch1610 -p1
-# Tickle the NMI whilst doing serial writes.
-%patch1620 -p1
-# Numerous patches to improve software suspend.
-%patch1630 -p1
-# Enable autofs4 to return fail for revalidate during lookup
-%patch1640 -p1
+# Fix SHA1 alignment problem on ia64
+%patch1601 -p1
 # Allow to use 480600 baud on 16C950 UARTs
 %patch1650 -p1
-# Intel i965 DRM support.
-%patch1660 -p1
-# Use persistent allocation in softcursor
-%patch1670 -p1
-# reiserfs-make-sure-all-dentries-refs-are-released-before-calling-kill_block_super-try-2.patch
-%patch1680 -p1
-# Only print migration info on SMP
-%patch1710 -p1
+# Fix XFS umount bug.
+%patch1681 -p1
+# Fix attr2 corruption with btree data extents
+%patch1682 -p1
+# Align kernel data segment to page boundary.
+%patch1690 -p1
 # setuid /proc/self/maps fix.
 %patch1720 -p1
-# Drop the STICKY tag from acpi-cpufreq, it breaks suspend/resume.
-%patch1730 -p1
 # Add a safety net to softlockup so that it doesn't prevent installs.
 %patch1740 -p1
+# USB storage not seen upon reboot
+%patch1750 -p1
 # Speed up spinlock debug.
-%patch1741 -p1
-# support EHEA ethernet driver
-%patch1742 -p1
-# qlogic firmware
-%patch1743 -p1
-
-# OLPC specific patches
-%if 0%{?olpc}
-# Marvell Libertas wireless driver
-%patch1744 -p1
-# OLPC touchpad
-%patch1745 -p1
-%endif
-# Fixes for DUB-E100 vB1 usb ethernet
-%patch1746 -p1
-# Fix various Bluetooth compat ioctls
-%patch1747 -p1
-%patch1748 -p1
-%patch1749 -p1
-# fix unaligned access on module loading for ia64
-%patch1751 -p1
-%patch1753 -p1
-%patch1754 -p1
-%patch1755 -p1
-%patch1756 -p1
-%patch1758 -p1
-%patch1760 -p1
-%patch1761 -p1
-%patch1762 -p1
-%patch1763 -p1
-%patch1764 -p1
-%patch1765 -p1
-%patch1766 -p1
-%patch1767 -p1
-%patch1768 -p1
-%patch1769 -p1
 %patch1770 -p1
+# Silence some useless messages that still get printed with 'quiet'
+%patch1771 -p1
+# qlogic firmware
+%patch1780 -p1
+# restore START_ARRAY ioctl
+%patch1781 -p1
+
+# 2.6.20 fixes
+# jfs
+%patch1790 -p1
+
+#%patch1795 -p1
+#%patch1796 -p1
+
+# post 2.6.20.6 fixes
+# dvb cx88 autoload (fedora)
+%patch1800 -p1
+# audit xfrm add space
+%patch1801 -p1
+# sky2 timeout
+%patch1802 -p1
+# dm crypt disable barriers (send)
+%patch1803 -p1
+# msix flush writes
+%patch1804 -p1
+# jmicron debugging (fedora)
+%patch1805 -p1
+# bt8xx autoload (fedora)
+%patch1806 -p1
+# ide error recovery (send)
+%patch1807 -p1
+# mmap dont spam logs (send?)
+%patch1808 -p1
+# nfs allow 64bit cookies (send?)
+%patch1809 -p1
+# softmac check if running (send)
+%patch1810 -p1
+# bluetooth quirk (sent to maintainer, ignored)
+%patch1811 -p1
+# UDF fixes from -mm
+%patch1812 -p1
+# i82875 edac unhide pci device
+%patch1813 -p1
+
+# more post 2.6.20.6 fixes
+%patch1820 -p1
+%patch1821 -p1
+%patch1822 -p1
+%patch1823 -p1
+%patch1824 -p1
+%patch1825 -p1
+%patch1826 -p1
+%patch1827 -p1
+%patch1828 -p1
 
 # Fix the SELinux mprotect checks on executable mappings
-%patch1801 -p1
-# Add support for SELinux range transitions
-%patch1802 -p1
-%patch1803 -p1
-%patch1804 -p1
-%patch1805 -p1
+%patch1850 -p1
 
 # Warn about obsolete functionality usage.
 %patch1900 -p1
@@ -1374,11 +1311,6 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 #
 # Silence GFP_ATOMIC failures.
 %patch2001 -p1
-# track dirty pages
-%patch2002 -p1
-# prevent oom kills
-%patch2004 -p1
-%patch2005 -p1
 
 # Changes to upstream defaults.
 # Use UTF-8 by default on VFAT.
@@ -1386,50 +1318,52 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 # Increase timeout on firmware loader.
 %patch2101 -p1
 # Change PHYSICAL_START
-%if 0%{?rhel}
-#%patch2102 -p1
-%else
 %patch2102 -p1
-%endif
 
 # Use unicode VT's by default.
 %patch2103 -p1
-# Disable split page table lock
-%patch2104 -p1
-# panic on oops
+# Disable NMI watchdog by default.
 %patch2105 -p1
+# dont allow firmware timeout < 60 seconds
+%patch2106 -p1
+# disable PCI MMCONFIG and MSI by default
+%patch2107 -p1
 
-# Enable PATA ports on Promise SATA.
-%patch2200 -p1
-# Fix AHCI Suspend.
-%patch2201 -p1
-# add the sas parts
-%patch2202 -p1
 
 # ACPI patches
 
-# Lockdep fixes
-%patch2400 -p1
-
-# Infiniband driver
-%patch2600 -p1
-%patch2601 -p1
-%patch2602 -p1
-
-# kprobe changes
-%patch2700 -p1
-%patch2701 -p1
-%patch2702 -p1
-#%patch2703 -p1
-%patch2704 -p1
-
-# wireless driver
-%patch2801 -p1
+# SATA
+# PATA ports on Promise.
+%patch2200 -p1
 
 #
 # Patches 5000 to 6000 are reserved for new drivers that are about to
-# be merged upstream
+# be merged upstream, which includes OLPC work
 #
+
+# OLPC specific patches
+%if 0%{?olpc}
+# MTD NAND driver core updates...
+# git://git.infradead.org/~dwmw2/cafe-2.6.18.git
+%patch5000 -p1
+# ... needed for OLPC CAFÉ NAND driver
+%patch5001 -p1
+
+# Marvell 88ALP01 camera
+%patch5010 -p1
+%patch5011 -p1
+# OLPC DCON fb driver
+%patch5020 -p1
+# Marvell Libertas wireless driver
+%patch5030 -p1
+# OLPC touchpad
+%patch5040 -p1
+# sysprof
+%patch5050 -p1
+# battery
+# git://git.infradead.org/battery-2.6.git
+%patch5060 -p1
+%endif
 
 #
 # final stuff
@@ -1440,26 +1374,31 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 #
 %patch10000 -p1
 
-%if 0%{?rhel}
-#add in support for x86 and x86_64 relocatable kernels
-%patch211 -p1
-#xen fix for x86 relocatable support
-%patch957 -p1
-%endif
-
-# correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
-perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
-perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
-
-# conditionally applied test patch for debugging convenience
-%if %([ -s %{PATCH99999} ] && echo 1 || echo 0)
-%patch99999 -p1
-%endif
+%patch21008 -p1
+%patch21011 -p1
+%patch21024 -p1
+%patch21027 -p1
+%patch21036 -p1
+%patch21038 -p1
+%patch21048 -p1
+%patch21056 -p1
+%patch21059 -p1
+%patch21069 -p1
+%patch21070 -p1
+%patch21081 -p1
+%patch21087 -p1
+%patch21104 -p1
+%patch21112 -p1
+%patch21147 -p1
+%patch21162 -p1
+%patch21165 -p1
+%patch21188 -p1
+%patch21208 -p1
 
 # TOMOYO Linux
-tar -zxf %{SOURCE15000}
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2747.el5/" -- Makefile
-patch -sp1 < ccs-patch-2.6.18-1.2747.el5.txt
+tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4-20070401.tar.gz
+sed -i -e "s/^EXTRAVERSION =.*/EXTRAVERSION = -1.2944.fc6/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.20-1.2944.fc6.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -1469,11 +1408,6 @@ mkdir configs
 
 cp -f %{all_arch_configs} .
 
-
-%if 0%{?rhel}
-# don't need these for relocatable kernels
-rm -f kernel-%{kversion}-{i686,x86_64}-kdump.config
-%endif
 
 %if 0%{?olpc}
 # don't need these for OLPC
@@ -1495,17 +1429,23 @@ do
   cat .config >> configs/$i
 done
 
+# make sure the kernel has the sublevel we know it has. This looks weird
+# but for -pre and -rc versions we need it since we only want to use
+# the higher version when the final kernel is released.
+perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
+perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
+
 # If we don't have many patches to apply, sometimes the deleteme
 # trick still hasn't completed, and things go bang at this point
 # when find traverses into directories that get deleted.
 # So we serialise until the dir has gone away.
+cd ..
 while [ -d deleteme ];
 do
 	sleep 1
 done
 
 # get rid of unwanted files resulting from patch fuzz
-cd ..
 find . \( -name "*.orig" -o -name "*~" \) -exec rm -f {} \; >/dev/null
 
 
@@ -1523,6 +1463,24 @@ cd xen
 %patch20002 -p1
 %patch20003 -p1
 %patch20004 -p1
+%patch20005 -p1
+%patch20007 -p1
+%patch20008 -p1
+%patch20011 -p1
+%patch20012 -p1
+%patch20013 -p1
+%patch20014 -p1
+%patch20015 -p1
+%patch20016 -p1
+%patch20018 -p1
+%patch20019 -p1
+%patch20020 -p1
+%patch20021 -p1
+%patch20022 -p1
+%patch20023 -p1
+%patch20024 -p1
+%patch20025 -p1
+%patch20026 -p1
 
 # Update the Makefile version strings
 sed -i -e 's/\(^export XEN_BUILDER.*$\)/\1'%{?dist}'/' Makefile
@@ -1540,7 +1498,7 @@ sed -i -e 's/\(^export XEN_BUILDVERSION.*$\)/\1'-%{PACKAGE_RELEASE}'/' Makefile
 
 %if %{signmodules}
 gpg --homedir . --batch --gen-key %{SOURCE11}
-gpg --homedir . --export --keyring ./kernel.pub CentOS > extract.pub
+gpg --homedir . --export --keyring ./kernel.pub Red > extract.pub
 make linux-%{kversion}.%{_target_cpu}/scripts/bin2c
 linux-%{kversion}.%{_target_cpu}/scripts/bin2c ksign_def_public_key __initdata < extract.pub > linux-%{kversion}.%{_target_cpu}/crypto/signature/key.h
 %endif
@@ -1700,12 +1658,11 @@ BuildKernel() {
 
     for i in `cat modnames`
     do
-      sh ./scripts/modsign/modsign.sh $i CentOS
+      sh ./scripts/modsign/modsign.sh $i Red
       mv -f $i.signed $i
     done
     unset KEYFLAGS
 %endif
-
     # mark modules executable so that strip-to-file can strip them
     cat modnames | xargs chmod u+x
 
@@ -1731,13 +1688,6 @@ BuildKernel() {
     mv $RPM_BUILD_ROOT/lib/modules/$KernelVer/build $RPM_BUILD_ROOT/$DevelDir
     ln -sf ../../..$DevelDir $RPM_BUILD_ROOT/lib/modules/$KernelVer/build
     [ -z "$DevelLink" ] || ln -sf `basename $DevelDir` $RPM_BUILD_ROOT/$DevelLink
-
-	# Temporary fix for upstream "make prepare" bug.
-#	pushd $RPM_BUILD_ROOT/$DevelDir > /dev/null
-#	if [ -f Makefile ]; then
-#		make prepare
-#	fi
-#	popd > /dev/null
 }
 
 ###
@@ -1749,45 +1699,46 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/boot
 
 %if %{includexen}
-%if %{buildxen}
+%if %{with_xen}
   cd xen
   mkdir -p $RPM_BUILD_ROOT/%{image_install_path} $RPM_BUILD_ROOT/boot
   make %{?_smp_mflags} %{xen_flags}
   install -m 644 xen.gz $RPM_BUILD_ROOT/%{image_install_path}/xen.gz-%{KVERREL}
   install -m 755 xen-syms $RPM_BUILD_ROOT/boot/xen-syms-%{KVERREL}
   cd ..
-  # need to let BuildKernel() create directory first.  The problem here is BuildKernel
-  # doesn't mkdir a new directory, but instead 'mv /lib/modules/<kern>/build to <new dir>
-  # if the <new dir> were to exist already, then the contents of 'build' are placed in a sub-dir
-  # named 'build' under <new dir>.  ugh.  So save xen directory temporarily instead
-  mkdir -p $RPM_BUILD_ROOT/usr/src/kernels
-  mv xen $RPM_BUILD_ROOT/usr/src/kernels/%{KVERREL}-xen-%{_target_cpu}-HV-temp
 %endif
 %endif
 
 cd linux-%{kversion}.%{_target_cpu}
 
-%if %{buildup}
-BuildKernel %make_target %kernel_image
+%if %{debugbuildsenabled}
+%if %{with_debug}
+BuildKernel %make_target %kernel_image debug
+%endif
+%if %{with_pae}
+BuildKernel %make_target %kernel_image PAE-debug
+%endif
 %endif
 
-%if %{buildpae}
+%if %{with_pae}
 BuildKernel %make_target %kernel_image PAE
 %endif
 
-%if %{buildsmp}
+%if %{with_up}
+BuildKernel %make_target %kernel_image
+%endif
+
+%if %{with_smp}
 BuildKernel %make_target %kernel_image smp
 %endif
 
 %if %{includexen}
-%if %{buildxen}
+%if %{with_xen}
 BuildKernel %xen_target %xen_image xen
-# Now the directory is properly created, copy xen over
-mv $RPM_BUILD_ROOT/usr/src/kernels/%{KVERREL}-xen-%{_target_cpu}-HV-temp $RPM_BUILD_ROOT/usr/src/kernels/%{KVERREL}-xen-%{_target_cpu}/xen
 %endif
 %endif
 
-%if %{buildkdump}
+%if %{with_kdump}
 BuildKernel %make_target %kernel_image kdump
 %endif
 
@@ -1801,18 +1752,14 @@ BuildKernel %make_target %kernel_image kdump
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
 %global __debug_package 1
-%package debuginfo-common
-Summary: Kernel source files used by %{name}-debuginfo packages
-Group: Development/Debug
-Provides: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
-
-%description debuginfo-common
-This package is required by %{name}-debuginfo subpackages.
-It provides the kernel source files common to all builds.
-
 %files debuginfo-common
 %defattr(-,root,root)
 /usr/src/debug/%{name}-%{version}/linux-%{kversion}.%{_target_cpu}
+%if %{includexen}
+%if %{with_xen}
+/usr/src/debug/%{name}-%{version}/xen
+%endif
+%endif
 %dir /usr/src/debug
 %dir /usr/lib/debug
 %dir /usr/lib/debug/%{image_install_path}
@@ -1831,7 +1778,7 @@ It provides the kernel source files common to all builds.
 cd linux-%{kversion}.%{_target_cpu}
 
 %if %{includexen}
-%if %{buildxen}
+%if %{with_xen}
 mkdir -p $RPM_BUILD_ROOT/etc/ld.so.conf.d
 rm -f $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
 cat > $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf <<\EOF
@@ -1846,7 +1793,7 @@ chmod 444 $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
 %endif
 %endif
 
-%if %{builddoc}
+%if %{with_doc}
 mkdir -p $RPM_BUILD_ROOT/usr/share/doc/kernel-doc-%{kversion}/Documentation
 
 # sometimes non-world-readable files sneak into the kernel source tree
@@ -1855,7 +1802,7 @@ chmod -R a+r *
 tar cf - Documentation | tar xf - -C $RPM_BUILD_ROOT/usr/share/doc/kernel-doc-%{kversion}
 %endif
 
-%if %{buildheaders}
+%if %{with_headers}
 # Install kernel headers
 make ARCH=%{hdrarch} INSTALL_HDR_PATH=$RPM_BUILD_ROOT/usr headers_install
 
@@ -1863,8 +1810,8 @@ make ARCH=%{hdrarch} INSTALL_HDR_PATH=$RPM_BUILD_ROOT/usr headers_install
 # don't die if it fails
 chmod +x scripts/hdrcheck.sh
 echo -e '*****\n*****\nHEADER EXPORT WARNINGS:\n*****' > hdrwarnings.txt
-for FILE in `find $RPM_BUILD_ROOT/usr/include` ; do 
-    scripts/hdrcheck.sh $RPM_BUILD_ROOT/usr/include $FILE >> hdrwarnings.txt || :
+for FILE in `find $RPM_BUILD_ROOT/usr/include` ; do
+    scripts/hdrcheck.sh $RPM_BUILD_ROOT/usr/include $FILE /dev/null >> hdrwarnings.txt || :
 done
 echo -e '*****\n*****' >> hdrwarnings.txt
 if grep -q exist hdrwarnings.txt; then
@@ -1872,7 +1819,7 @@ if grep -q exist hdrwarnings.txt; then
    # Temporarily cause a build failure if header inconsistencies.
    # exit 1
 fi
-   
+
 # glibc provides scsi headers for itself, for now
 rm -rf $RPM_BUILD_ROOT/usr/include/scsi
 rm -f $RPM_BUILD_ROOT/usr/include/asm*/atomic.h
@@ -1952,6 +1899,47 @@ if [ "$HARDLINK" != "no" -a -x /usr/sbin/hardlink ] ; then
   popd > /dev/null
 fi
 
+%if %{debugbuildsenabled}
+%post debug
+/sbin/new-kernel-pkg --package kernel-debug --mkinitrd --depmod --install %{KVERREL}debug || exit $?
+if [ -x /sbin/weak-modules ]
+then
+    /sbin/weak-modules --add-kernel %{KVERREL}debug || exit $?
+fi
+
+%post debug-devel
+if [ -f /etc/sysconfig/kernel ]
+then
+    . /etc/sysconfig/kernel || exit $?
+fi
+if [ "$HARDLINK" != "no" -a -x /usr/sbin/hardlink ] ; then
+  pushd /usr/src/kernels/%{KVERREL}-debug-%{_target_cpu} > /dev/null
+  /usr/bin/find . -type f | while read f; do hardlink -c /usr/src/kernels/*FC*/$f $f ; done
+  popd > /dev/null
+fi
+
+%post PAE-debug
+if [ -f /etc/sysconfig/kernel ]; then
+  /bin/sed -i -e 's/^DEFAULTKERNEL=kernel-smp$/DEFAULTKERNEL=kernel-PAE/' /etc/sysconfig/kernel
+fi
+/sbin/new-kernel-pkg --package kernel-PAE --mkinitrd --depmod --install %{KVERREL}PAE-debug || exit $?
+if [ -x /sbin/weak-modules ]
+then
+    /sbin/weak-modules --add-kernel %{KVERREL}PAE-debug || exit $?
+fi
+
+%post PAE-debug-devel
+if [ -f /etc/sysconfig/kernel ]
+then
+    . /etc/sysconfig/kernel || exit $?
+fi
+if [ "$HARDLINK" != "no" -a -x /usr/sbin/hardlink ] ; then
+  pushd /usr/src/kernels/%{KVERREL}-PAE-debug-%{_target_cpu} > /dev/null
+  /usr/bin/find . -type f | while read f; do hardlink -c /usr/src/kernels/*FC*/$f $f ; done
+  popd > /dev/null
+fi
+%endif
+
 %post xen
 if [ `uname -i` == "x86_64" -o `uname -i` == "i386" ]; then
   if [ -f /etc/sysconfig/kernel ]; then
@@ -2001,6 +1989,8 @@ if [ "$HARDLINK" != "no" -a -x /usr/sbin/hardlink ] ; then
   popd > /dev/null
 fi
 
+
+
 %preun
 /sbin/new-kernel-pkg --rminitrd --rmmoddep --remove %{KVERREL} || exit $?
 if [ -x /sbin/weak-modules ]
@@ -2029,6 +2019,23 @@ then
     /sbin/weak-modules --remove-kernel %{KVERREL}kdump || exit $?
 fi
 
+%if %{debugbuildsenabled}
+%preun debug
+/sbin/new-kernel-pkg --rminitrd --rmmoddep --remove %{KVERREL}debug || exit $?
+if [ -x /sbin/weak-modules ]
+then
+    /sbin/weak-modules --remove-kernel %{KVERREL}debug || exit $?
+fi
+
+%preun PAE-debug
+/sbin/new-kernel-pkg --rminitrd --rmmoddep --remove %{KVERREL}PAE-debug || exit $?
+if [ -x /sbin/weak-modules ]
+then
+    /sbin/weak-modules --remove-kernel %{KVERREL}PAE || exit $?
+fi
+%endif
+
+
 %preun xen
 /sbin/new-kernel-pkg --rminitrd --rmmoddep --remove %{KVERREL}xen || exit $?
 if [ -x /sbin/weak-modules ]
@@ -2044,17 +2051,9 @@ fi
 # or empty otherwise.
 %define elf_image_install_path %{?kernel_image_elf:%{image_install_path}}
 
-%if %{buildup}
+%if %{with_up}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
-%package debuginfo
-Summary: Debug information for package %{name}
-Group: Development/Debug
-Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
-Provides: %{name}-debuginfo-%{_target_cpu} = %{KVERREL}
-%description debuginfo
-This package provides debug information for package %{name}
-This is required to use SystemTap with %{name}-%{KVERREL}.
 %files debuginfo
 %defattr(-,root,root)
 %if "%{elf_image_install_path}" != ""
@@ -2085,23 +2084,55 @@ This is required to use SystemTap with %{name}-%{KVERREL}.
 %verify(not mtime) /usr/src/kernels/%{KVERREL}-%{_target_cpu}
 %endif
 
-%if %{buildheaders}
+
+%if %{with_headers}
 %files headers
 %defattr(-,root,root)
 /usr/include/*
 %endif
 
-%if %{buildpae}
+
+%if %{debugbuildsenabled}
+%if %{with_debug}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
-%package PAE-debuginfo
-Summary: Debug information for package %{name}-PAE
-Group: Development/Debug
-Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
-Provides: %{name}-%PAE-debuginfo-%{_target_cpu} = %{KVERREL}
-%description PAE-debuginfo
-This package provides debug information for package %{name}-PAE
-This is required to use SystemTap with %{name}-PAE-%{KVERREL}.
+%files debug-debuginfo
+%defattr(-,root,root)
+%if "%{elf_image_install_path}" != ""
+/usr/lib/debug/%{elf_image_install_path}/*-%{KVERREL}debug.debug
+%endif
+/usr/lib/debug/lib/modules/%{KVERREL}debug
+/usr/lib/debug/usr/src/kernels/%{KVERREL}-debug-%{_target_cpu}
+%endif
+%endif
+
+%files debug
+%defattr(-,root,root)
+/%{image_install_path}/vmlinuz-%{KVERREL}debug
+/boot/System.map-%{KVERREL}debug
+/boot/symvers-%{KVERREL}debug.gz
+/boot/config-%{KVERREL}debug
+%dir /lib/modules/%{KVERREL}debug
+/lib/modules/%{KVERREL}debug/kernel
+/lib/modules/%{KVERREL}debug/build
+/lib/modules/%{KVERREL}debug/source
+/lib/modules/%{KVERREL}debug/extra
+/lib/modules/%{KVERREL}debug/updates
+/lib/modules/%{KVERREL}debug/weak-updates
+%ghost /boot/initrd-%{KVERREL}debug.img
+
+%files debug-devel
+%defattr(-,root,root)
+%verify(not mtime) /usr/src/kernels/%{KVERREL}-debug-%{_target_cpu}
+/usr/src/kernels/%{KVERREL}debug-%{_target_cpu}
+%endif
+%endif
+
+
+
+%if %{with_pae}
+%if "%{_enable_debug_packages}" == "1"
+%ifnarch noarch
 %files PAE-debuginfo
 %defattr(-,root,root)
 %if "%{elf_image_install_path}" != ""
@@ -2131,19 +2162,49 @@ This is required to use SystemTap with %{name}-PAE-%{KVERREL}.
 %defattr(-,root,root)
 %verify(not mtime) /usr/src/kernels/%{KVERREL}-PAE-%{_target_cpu}
 /usr/src/kernels/%{KVERREL}PAE-%{_target_cpu}
-%endif
 
-%if %{buildsmp}
+%if %{debugbuildsenabled}
+%if %{with_debug}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
-%package smp-debuginfo
-Summary: Debug information for package %{name}-smp
-Group: Development/Debug
-Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
-Provides: %{name}-%smp-debuginfo-%{_target_cpu} = %{KVERREL}
-%description smp-debuginfo
-This package provides debug information for package %{name}-smp
-This is required to use SystemTap with %{name}-smp-%{KVERREL}.
+%files PAE-debug-debuginfo
+%defattr(-,root,root)
+%if "%{elf_image_install_path}" != ""
+/usr/lib/debug/%{elf_image_install_path}/*-%{KVERREL}PAE-debug.debug
+%endif
+/usr/lib/debug/lib/modules/%{KVERREL}PAE-debug
+/usr/lib/debug/usr/src/kernels/%{KVERREL}-PAE-debug-%{_target_cpu}
+%endif
+%endif
+
+%files PAE-debug
+%defattr(-,root,root)
+/%{image_install_path}/vmlinuz-%{KVERREL}PAE-debug
+/boot/System.map-%{KVERREL}PAE-debug
+/boot/symvers-%{KVERREL}PAE-debug.gz
+/boot/config-%{KVERREL}PAE-debug
+%dir /lib/modules/%{KVERREL}PAE-debug
+/lib/modules/%{KVERREL}PAE-debug/kernel
+/lib/modules/%{KVERREL}PAE-debug/build
+/lib/modules/%{KVERREL}PAE-debug/source
+/lib/modules/%{KVERREL}PAE-debug/extra
+/lib/modules/%{KVERREL}PAE-debug/updates
+/lib/modules/%{KVERREL}PAE-debug/weak-updates
+%ghost /boot/initrd-%{KVERREL}PAE-debug.img
+
+%files PAE-debug-devel
+%defattr(-,root,root)
+%verify(not mtime) /usr/src/kernels/%{KVERREL}-PAE-debug-%{_target_cpu}
+/usr/src/kernels/%{KVERREL}PAE-debug-%{_target_cpu}
+%endif
+%endif
+# PAE
+%endif
+
+
+%if %{with_smp}
+%if "%{_enable_debug_packages}" == "1"
+%ifnarch noarch
 %files smp-debuginfo
 %defattr(-,root,root)
 %if "%{elf_image_install_path}" != ""
@@ -2175,18 +2236,11 @@ This is required to use SystemTap with %{name}-smp-%{KVERREL}.
 /usr/src/kernels/%{KVERREL}smp-%{_target_cpu}
 %endif
 
+
 %if %{includexen}
-%if %{buildxen}
+%if %{with_xen}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
-%package xen-debuginfo
-Summary: Debug information for package %{name}-xen
-Group: Development/Debug
-Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
-Provides: %{name}-xen-debuginfo-%{_target_cpu} = %{KVERREL}
-%description xen-debuginfo
-This package provides debug information for package %{name}-xen
-This is required to use SystemTap with %{name}-xen-%{KVERREL}.
 %files xen-debuginfo
 %defattr(-,root,root)
 %if "%{elf_image_install_path}" != ""
@@ -2221,20 +2275,11 @@ This is required to use SystemTap with %{name}-xen-%{KVERREL}.
 %verify(not mtime) /usr/src/kernels/%{KVERREL}-xen-%{_target_cpu}
 /usr/src/kernels/%{KVERREL}xen-%{_target_cpu}
 %endif
-
 %endif
 
-%if %{buildkdump}
+%if %{with_kdump}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
-%package kdump-debuginfo
-Summary: Debug information for package %{name}-kdump
-Group: Development/Debug
-Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
-Provides: %{name}-kdump-debuginfo-%{_target_cpu} = %{KVERREL}
-%description kdump-debuginfo
-This package provides debug information for package %{name}-kdump
-This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %files kdump-debuginfo
 %defattr(-,root,root)
 %if "%{image_install_path}" != ""
@@ -2268,17 +2313,20 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 
 # only some architecture builds need kernel-doc
 
-%if %{builddoc}
+%if %{with_doc}
 %files doc
 %defattr(-,root,root)
 %{_datadir}/doc/kernel-doc-%{kversion}/Documentation/*
 %dir %{_datadir}/doc/kernel-doc-%{kversion}/Documentation
 %dir %{_datadir}/doc/kernel-doc-%{kversion}
 %endif
- 
+
 %changelog
-* Sun Dec 10 2006 Karanbir Singh <kbsingh@centos.org> [2.6.18-1.2747.el5]
-- Change gpg signing key to CentOS
+* Tue Apr 10 2007 Chuck Ebbert <cebbert@redhat.com>		1.2944
+- 2.6.20.5
+- 2.6.20.6
+- GFS2 update (1414)
+- additional bugfixes (1820-1828)
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
