@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 20
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2307 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}.fc5_tomoyo_1.4
+%define release %(R="$Revision: 1.2312 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}.fc5_tomoyo_1.4
 %define signmodules 0
 %define xen_hv_cset 11774
 %define make_target bzImage
@@ -315,6 +315,10 @@ Source43: kernel-%{kversion}-x86_64-xen.config
 Patch1: patch-2.6.20.1.bz2
 Patch2: patch-2.6.20.1-2.bz2
 Patch3: patch-2.6.20.2-3.bz2
+Patch4: patch-2.6.20.3-4.bz2
+Patch5: patch-2.6.20.4-5.bz2
+Patch6: patch-2.6.20.5-6.bz2
+Patch7: linux-2.6.20.5-rc1-ata_scsi_preserve_lba_bit.patch
 
 # Patches 10 through 99 are for things that are going upstream really soon.
 
@@ -374,6 +378,7 @@ Patch950: linux-2.6-xen.patch
 Patch952: linux-2.6-xen-x86_64-silence-up-apic-errors.patch
 Patch954: linux-2.6-xen-execshield.patch
 Patch955: linux-2.6-xen-tux.patch
+Patch961: linux-2.6-xen-pae-handle-64bit-addresses-correctly.patch
 
 #
 # Patches 1000 to 5000 are reserved for bugfixes to drivers and filesystems
@@ -419,6 +424,8 @@ Patch1400: linux-2.6-squashfs.patch
 Patch1410: linux-2.6-gfs2-update.patch
 Patch1411: linux-2.6-gfs2-tux.patch
 Patch1412: linux-2.6-gfs2-locking-exports.patch
+Patch1413: linux-2.6-gfs2-update2.patch
+Patch1414: linux-2.6-gfs2-update3.patch
 
 # NFS superblock sharing / CacheFS
 Patch1431: linux-2.6-cachefiles.patch
@@ -441,49 +448,30 @@ Patch1770: linux-2.6-optimise-spinlock-debug.patch
 Patch1771: linux-2.6-silence-noise.patch
 Patch1780: linux-2.6-drivers-add-qlogic-firmware.patch
 Patch1781: linux-2.6-raid-autorun.patch
-
-# 2.6.20 fixes for testing [in the wrong place]
-Patch1790: linux-2.6-jfs_fix_deadlock.patch
-# test this; it may fix a BZ
-# sent for 20.4; not in yet
-Patch1791: linux-2.6-git-serio-1e4865f8d469b1.patch
-Patch1792: linux-2.6-20_git-serio-keyboard.patch
+Patch1782: linux-2.6-drivers_pci_no_msi_mmconf.patch
 
 # hold on to these
 #Patch: linux-2.6-simplify_assign_irq_vector.patch
 #Patch: linux-2.6-no_handler_for_vector_fix.patch
 
-# 2.6.20.4
-Patch1800: linux-2.6-20.4-fix-another-null-pointer-deref-in-ipv6_sockglue.c.patch
-Patch1801: linux-2.6-20.4-fix-rtm_to_ifaddr-error-return.patch
-Patch1802: linux-2.6-20.4-fix-user-copy-length-in-ipv6_sockglue.c.patch
-Patch1803: linux-2.6-20.4-SCSI-gdth-fix-oops-in-gdth_copy_cmd.patch
-Patch1804: linux-2.6-20.4-netlabel-cipso_std_bug.patch
-Patch1805: linux-2.6-20.4-netfilter-nfnetlink_log-fix-reference-counting.patch
-Patch1806: linux-2.6-20.4-ia64-fix-null-pointer-in-ia64-irq_chip-mask-unmask-function.patch
-Patch1807: linux-2.6-20.4-adjust-legacy-ide-resource-setting.patch
-Patch1808: linux-2.6-20.4-mm-fix-madvise-infinine-loop.patch
-Patch1809: linux-2.6-20.4-ehci-add-delay-to-bus_resume-before-accessing-ports.patch
-Patch1810: linux-2.6-20.4-initialise-pi_lock-if-config_rt_mutexes-n.patch
-Patch1811: linux-2.6-20.4-futex-pi-state-locking-fix.patch
-Patch1812: linux-2.6-20.4-nfs-nfs_getattr-can-t-call-nfs_sync_mapping_range-for-non-regular-files.patch
-Patch1813: linux-2.6-20.4-hrtimer-prevent-overrun-dos-in-hrtimer_forward.patch
-Patch1814: linux-2.6-20.4-fix-mtime_sec_max-on-32-bit.patch
-Patch1815: linux-2.6-20.4-fix-read-past-end-of-array-in-md-linear.c.patch
-Patch1816: linux-2.6-20.4-r8169-fix-a-race-between-pci-probe-and-dev_open.patch
-Patch1817: linux-2.6-20.4-fix-extraneous-ipsec-larval-sa-creation.patch
-Patch1818: linux-2.6-20.4-fix-gfp_kernel-with-preemption-disabled-in-fib_trie.patch
-Patch1819: linux-2.6-20.4-fix-ipv6-flow-label-inheritance.patch
-Patch1820: linux-2.6-20.4-copy-over-mac_len-when-cloning-an-skb.patch
-Patch1821: linux-2.6-20.4-fix-sparc64-hugepage-bugs.patch
-Patch1822: linux-2.6-20.4-fix-page-allocation-debugging-on-sparc64.patch
-Patch1823: linux-2.6-20.4-irda-irttp_dup-spin_lock-initialisation.patch
+# 2.6.20 fixes for testing
+Patch1790: linux-2.6-jfs_fix_deadlock.patch
 
-# submitted for 2.6.20.4: not in
-Patch1830: linux-2.6-20.4x_DIO_invalidate_pages.patch
-Patch1831: linux-2.6-20.4x_OOM_dont_kill_processes_with_unkillable_children.patch
-Patch1832: linux-2.6-20.4x_serio_really_suppress_ack_nak.patch
-Patch1833: linux-2.6-20.4x_snd_hda_codec_max_codecs_fix.patch
+# post 2.6.20.5
+Patch1800: linux-2.6-20.5y-dm_crypt_disable_barriers.patch
+Patch1801: linux-2.6-20.5z-ide_use_proper_error_recovery.patch
+Patch1802: linux-2.6-20.5z-mmap_dont_spam_logs.patch
+Patch1803: linux-2.6-20.5z-nfs_allow_64bit_cookies.patch
+Patch1804: linux-2.6-20.5z-softmac_check_if_running.patch
+Patch1805: linux-2.6-proposed-i82875p-edac-fix.patch
+Patch1806: linux-2.6-20.7a-ahci_ATI_SB600_workaround.patch
+Patch1807: linux-2.6-20.7a-fib_rules_fix_return_value.patch
+Patch1808: linux-2.6-20.7a-libata-lba48.patch
+Patch1809: linux-2.6-21-rc6-readahead.patch
+Patch1810: linux-2.6-i386_pci-add_debugging.patch
+Patch1811: linux-2.6-20.7b-libata_blacklist.patch
+Patch1812: linux-2.6-20.7b-libata_clear_tf_before_sense.patch
+Patch1813: linux-2.6-20.7b-scsi_eh_scatterlist.patch
 
 # SELinux/audit patches.
 Patch1850: linux-2.6-selinux-mprotect-checks.patch
@@ -521,6 +509,47 @@ Patch10000: linux-2.6-compile-fixes.patch
 Patch20000: xen-printf-rate-limit.patch
 Patch20001: xen-version-strings.patch
 Patch20002: xen-grant-security.patch
+Patch20003: xen-amd-v-menu-timer-issue.patch
+Patch20004: xen-pae-handle-64bit-addresses-correctly.patch
+Patch20005: xen-fix-vcpu-hotplug-statistics.patch
+Patch20007: xen-amd-v-hvm-fix-for-windows-hibernate.patch
+Patch20008: xen-make-windows-vista-work.patch
+Patch20011: xen-fix-swiotlb-for-b44-module-xen-patch.patch
+Patch20012: xen-fix-for-smp-xen-guest-slow-boot-issue-on-amd-systems.patch
+Patch20013: xen-hvm-crashes-on-ia32e-smp.patch
+Patch20014: xen-make-ballooning-work-right.patch
+Patch20015: xen-oprofile-on-intel-core.patch
+Patch20016: xen-emulation-accesses-faulting-on-page-boundary.patch
+Patch20018: xen-race-condition-concerning-vlapic-interrupts.patch
+Patch20019: xen-emulate-pit-channels-for-vbios-support.patch
+Patch20020: xen-greater-than-4g-guest-fix.patch
+Patch20021: xen-make-hvm-hypercall-table-nr_hypercalls-entries-big.patch
+Patch20022: xen-replace-inappropriate-domain_crash_synchronous-use.patch
+Patch20023: xen-register-pit-handlers-to-the-correct-domain.patch
+Patch20024: xen-quick-fix-for-cannot-allocate-memory.patch
+Patch20025: xen-fix-tlb-flushing-in-shadow-pagetable-mode.patch
+Patch20026: xen-enable-xen-booting-on-machines-with-64g.patch
+
+Patch21008: linux-2.6-xen-fix-spinlock-when-removing-xennet-device.patch
+Patch21011: linux-2.6-xen-privcmd-range-check-hypercall-index.patch
+Patch21024: linux-2.6-xen-netback-reenable-tx-queueing.patch
+Patch21027: linux-2.6-xen-avoid-touching-watchdog-when-gone-too-long.patch
+Patch21036: linux-2.6-xen-iscsi-oops-on-x86_64-xen-domu.patch
+Patch21038: linux-2.6-xen-make-netfront-device-permanent.patch
+Patch21048: linux-2.6-xen-blkback-fix-first_sect-check.patch
+Patch21056: linux-2.6-xen-fix-2tb-overflow-in-virtual-disk-driver.patch
+Patch21059: linux-2.6-xen-netback-fix-transmit-credit-scheduler-wrap.patch
+Patch21069: linux-2.6-xen-blkback-copy-shared-data-before-verification.patch
+Patch21070: linux-2.6-xen-blkback-fix-potential-grant-entry-leaks-on-error.patch
+Patch21081: linux-2.6-xen-properly-close-blkfront-on-non-existant-file.patch
+Patch21087: linux-2.6-xen-copy-shared-data-before-verification.patch
+Patch21104: linux-2.6-xen-fix-swiotlb-for-b44-module-kernel-patch.patch
+Patch21112: linux-2.6-xen-make-ballooning-work-right.patch
+Patch21147: linux-2.6-xen-fix-agp-on-x86_64-under-xen.patch
+Patch21162: linux-2.6-xen-blktap-fix-potential-grant-entry-leaks-on-error.patch
+Patch21165: linux-2.6-xen-use-swiotlb-mask-for-coherent-mappings-too.patch
+Patch21188: linux-2.6-xen-fix-nosegneg-detection.patch
+Patch21208: linux-2.6-xen-add-packet_auxdata-cmsg.patch
 
 # END OF PATCH DEFINITIONS
 
@@ -855,6 +884,10 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
+%patch4 -p1
+%patch5 -p1
+%patch6 -p1
+%patch7 -p1
 
 # Patches 10 through 100 are meant for core subsystem upgrades
 
@@ -953,6 +986,7 @@ find -name "*.p.xen" | xargs rm -f
 # Xen exec-shield bits
 %patch954 -p1
 %patch955 -p1
+%patch961 -p1
 %endif
 
 #
@@ -1023,6 +1057,9 @@ find -name "*.p.xen" | xargs rm -f
 #%patch1411 -p1
 # GFS2/DLM locking exports
 %patch1412 -p1
+# additional gfs2 updates
+%patch1413 -p1
+%patch1414 -p1
 
 #nfs sharing / cachefs
 %patch1431 -p1
@@ -1058,13 +1095,13 @@ find -name "*.p.xen" | xargs rm -f
 %patch1780 -p1
 # restore START_ARRAY ioctl
 %patch1781 -p1
+# disable PCI MSI and MMCONFIG by default
+%patch1782 -p1
 
 # 2.6.20 test fixes
 %patch1790 -p1
-%patch1791 -p1
-%patch1792 -p1
 
-# 2.6.20.4 queue
+# post 2.6.20.6
 %patch1800 -p1
 %patch1801 -p1
 %patch1802 -p1
@@ -1079,22 +1116,6 @@ find -name "*.p.xen" | xargs rm -f
 %patch1811 -p1
 %patch1812 -p1
 %patch1813 -p1
-%patch1814 -p1
-%patch1815 -p1
-%patch1816 -p1
-%patch1817 -p1
-%patch1818 -p1
-%patch1819 -p1
-%patch1820 -p1
-%patch1821 -p1
-%patch1822 -p1
-%patch1823 -p1
-
-# submitted for 2.6.20.4: not in yet
-%patch1830 -p1
-%patch1831 -p1
-%patch1832 -p1
-%patch1833 -p1
 
 # Fix the SELinux mprotect checks on executable mappings
 %patch1850 -p1
@@ -1134,7 +1155,6 @@ find -name "*.p.xen" | xargs rm -f
 # be merged upstream
 #
 
-
 #
 # final stuff
 #
@@ -1144,10 +1164,31 @@ find -name "*.p.xen" | xargs rm -f
 #
 %patch10000 -p1
 
+%patch21008 -p1
+%patch21011 -p1
+%patch21024 -p1
+%patch21027 -p1
+%patch21036 -p1
+%patch21038 -p1
+%patch21048 -p1
+%patch21056 -p1
+%patch21059 -p1
+%patch21069 -p1
+%patch21070 -p1
+%patch21081 -p1
+%patch21087 -p1
+%patch21104 -p1
+%patch21112 -p1
+%patch21147 -p1
+%patch21162 -p1
+%patch21165 -p1
+%patch21188 -p1
+%patch21208 -p1
+
 # TOMOYO Linux
 tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4-20070401.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2307.fc5/" -- Makefile
-patch -sp1 < ccs-patch-2.6.20-1.2307.fc5.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2312.fc5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.20-1.2312.fc5.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -1210,6 +1251,26 @@ cd xen
 %patch20000 -p1
 %patch20001 -p1
 %patch20002 -p1
+%patch20003 -p1
+%patch20004 -p1
+%patch20005 -p1
+%patch20007 -p1
+%patch20008 -p1
+%patch20011 -p1
+%patch20012 -p1
+%patch20013 -p1
+%patch20014 -p1
+%patch20015 -p1
+%patch20016 -p1
+%patch20018 -p1
+%patch20019 -p1
+%patch20020 -p1
+%patch20021 -p1
+%patch20022 -p1
+%patch20023 -p1
+%patch20024 -p1
+%patch20025 -p1
+%patch20026 -p1
 
 # Update the Makefile version strings
 sed -i -e 's/\(^export XEN_BUILDER.*$\)/\1'%{?dist}'/' Makefile
@@ -1853,14 +1914,11 @@ fi
 %endif
 
 %changelog
-* Sun Mar 18 2007 Chuck Ebbert <cebbert@redhat.com>
-- fixed typo in Xen patch
-- 2.6.20.4 queue (24 patches)
-- removed (now in 20.4 queue):
-	1806: linux-2.6-20_hrtimer_prevent_dos.patch
-	1807: linux-2.6-20_nfs_getattr_check_isreg.patch
-	1808: linux-2.6-20_pi_futex_state_locking.patch
-	1794: linux-2.6-20_ia64_chip_mask.patch (Prarit)
+* Tue Apr 10 2007 Chuck Ebbert <cebbert@redhat.com>		1.2312
+- 2.6.20.5
+- 2.6.20.6
+- GFS2 update (1414)
+- additional bugfixes (1806-1813)
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
