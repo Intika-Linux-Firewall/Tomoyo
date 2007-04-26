@@ -698,28 +698,29 @@ mkinitramfs -o /boot/initrd.img-2.6.20-15.27-ccs 2.6.20-15.27-ccs
 
 <h2><a name="2.6-vanilla">Vanilla 2.6 kernels</a></h2>
 
-<p>2.6.11 and later are supported. The following is the case of version 2.6.20 .</p>
+<p>2.6.11 and later are supported. The following is the case of version 2.6.21 .</p>
 
 <table border="1">
 <tr><td>
 # Create a directory where the kernel modules are installed.<br>
-mkdir -p /lib/modules/2.6.20-ccs<br>
+mkdir -p /lib/modules/2.6.21-ccs<br>
 # Move to the source directory.<br>
 cd /usr/src/<br>
 # Download kernel source.<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.20.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.21.tar.bz2<br>
 # Extract.<br>
-tar -jxf linux-2.6.20.tar.bz2<br>
+tar -jxf linux-2.6.21.tar.bz2<br>
 # Move to the extracted directory.<br>
-cd linux-2.6.20<br>
+cd linux-2.6.21<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/24614/ccs-patch-1.4-20070401.tar.gz<br>
+wget -O ccs-patch-2.6.21.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1840&amp;aid=10246'<br>
 # Extract.<br>
 tar -zxf ccs-patch-1.4-20070401.tar.gz<br>
 # Apply the kernel patch.<br>
-patch -sp1 &lt; ccs-patch-2.6.20.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.21.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
