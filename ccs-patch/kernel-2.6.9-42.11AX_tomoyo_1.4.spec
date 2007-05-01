@@ -29,7 +29,7 @@ summary: the linux kernel (the core of the linux operating system)
 # adding some text to the end of the version number.
 #
 %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
-%define release 42.10AX%{axbsys}_tomoyo_1.4
+%define release 42.11AX%{axbsys}_tomoyo_1.4
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -1399,6 +1399,7 @@ Patch100732: linux-2.6.9-suppress-might_sleep-if-oopsing-fix.patch
 Patch100733: linux-2.6.9-deadlock-uidhash_lock-and-tasklist_lock.patch
 Patch100742: linux-2.6.9-selinux-dynamic-context-transition.patch
 Patch100774: linux-2.6.9-sis-ide.patch
+Patch100775: linux-2.6.9-ipv6-anycast-refcnt-fix.patch
 # block device IO performance improvement
 Patch100794: linux-2.6.9-blk-misc.patch
 # misc sysrq fix
@@ -1417,6 +1418,7 @@ Patch100900: linux-2.6.9-sysfs_hash_and_remove_file-fix.patch
 Patch100901: linux-2.6.9-sysfs-fix-sysfs_add_link-leak.patch
 Patch100902: linux-2.6.9-sysfs-get_patch-fix.patch
 Patch100903: linux-2.6.9-sysfs_remove_dir-invalidate.patch
+Patch100904: linux-2.6.20-sysfs_readdir-fix-null-dereference.patch
 #
 # Patches 101000 to 104999 are reserved for bugfixes to drivers and filesystems
 #
@@ -1431,6 +1433,8 @@ Patch101388: linux-2.6.9-e1000-7.2.9-ERT-fix.patch
 Patch101389: linux-2.6.9-e1000-7.2.9-enable-1000.patch
 Patch101390: linux-2.6.9-e1000-7.2.9-add-SIOCSMIIREG.patch
 Patch101391: linux-2.6.9-e1000-7.2.9-update_stats-fix.patch
+Patch101392: linux-2.6.9-e1000-7.2.9-phy-reg-race-fix.patch
+Patch101393: linux-2.6.9-e1000-7.2.9-SIOCSMIIREG-fix.patch
 #
 # Diskdump goodies for Asianux.
 #
@@ -1511,6 +1515,9 @@ Patch102540: linux-2.6.9-aacraid-1.1.5-2420.patch
 Patch102541: linux-2.6.9-aacraid-1.1.5-2431.patch
 # megaraid_sas
 Patch102550: linux-2.6.9-megaraid_sas-zcr.patch
+Patch102551: linux-2.6.9-megaraid_sas-03.05-update.patch
+Patch102552: linux-2.6.9-megaraid_sas-03.05-sync_cache-fix.patch
+Patch102553: linux-2.6.9-megaraid_sas-03.05-diskdump-fix.patch
 # qla2xxx failover 8.01.06
 Patch102560: linux-2.6.9-qlogic-8.01.06-failover.patch
 Patch102561: linux-2.6.9-qlogic-8.01.06-failover-fix.patch
@@ -1518,6 +1525,7 @@ Patch102561: linux-2.6.9-qlogic-8.01.06-failover-fix.patch
 # libata
 #
 Patch102580: linux-2.6.20-ata_task_ioctl-smart-fix.patch
+Patch102581: linux-2.6.9-ata_task_ioctl-smart-fix2.patch
 #
 # md fixes
 #
@@ -3653,6 +3661,7 @@ cd linux-%{kversion}
 
 # SIS 964/965/966 IDE Controller support
 %patch100774 -p1
+%patch100775 -p1
 
 # block device IO performance improvement
 %patch100794 -p1
@@ -3678,6 +3687,7 @@ cd linux-%{kversion}
 %patch100901 -p1
 %patch100902 -p1
 %patch100903 -p1
+%patch100904 -p1
 #
 # Patches 101000 to 105000 are reserved for bugfixes to drivers and filesystems
 #
@@ -3697,6 +3707,8 @@ cd linux-%{kversion}
 %patch101390 -p1
 # fix tick interrupt when system has high stress
 %patch101391 -p1
+%patch101392 -p1
+%patch101393 -p1
 
 #
 # Various crash dumping patches for Asianux
@@ -3787,11 +3799,15 @@ cd linux-%{kversion}
 %patch102541 -p1
 # megaraid_sas new pci id
 %patch102550 -p1
+%patch102551 -p1
+%patch102552 -p1
+%patch102553 -p1
 # qla2xxx failover 8.01.06
 %patch102560 -p1
 %patch102561 -p1
 # libata
 %patch102580 -p1
+%patch102581 -p1
 
 # md fixes
 %patch102604 -p1
@@ -3913,8 +3929,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 tar -zxf %{SOURCE15000}
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.10AX/" -- Makefile
-patch -sp1 < ccs-patch-2.6.9-42.10AX.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.11AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-42.11AX.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -4342,11 +4358,23 @@ fi
 %endif
 
 %changelog
-* Wed Mar 07 2007 Takeshi Shoji <tshoji@miraclelinux.com> [2.6.9-42.10AX]
-- improve JumboFrame performance (Patch101388)
-- add SIOCSMIIREG handling and 0x1000 DeviceID (Patch101389, Patch101390)
-- fix tick interrupt when system has high stress (Patch101391)
-- fix kernel panic when XFS uses over 4KB stack (Patch130030, Patch130031)
+* Wed Apr 25 2007 Hidehiko Matsumoto <hmatsumoto@miraclelinux.com> [2.6.9-42.11AX]
+- fix (addional) low response with warning message when I/O
+  has high stress (e1000 network driver) (Patch101392,
+  bug#2200)
+- fix (addional) ioctl issue (e1000 network driver)
+  (Patch101393, bug#2202)
+- fix megaraid_sas behavior (reset) when megaraid_sas has
+  high stress (Patch102551, Patch102552, Patch102553)
+- fix that libata applied to the wrong sectors on the drive
+  (Patch102581)
+- fix sysfs_readdir oops (was Re: sysfs reclaim crash)
+  (Patch100904)
+- fix IPv6 anycast refcnt (Patch100775)
 
+* Fri Feb 20 2004 Arjan van de Ven <arjanv@redhat.com>
+- re-add and enable the Auditing patch
+- switch several cpufreq modules to built in since detecting in userspace
+  which to use is unpleasant
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start 
