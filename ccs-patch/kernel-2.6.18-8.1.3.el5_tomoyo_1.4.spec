@@ -32,7 +32,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.1.1%{?dist}_tomoyo_1.4
+%define release 8.1.3%{?dist}_tomoyo_1.4
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -918,7 +918,12 @@ Patch21225: linux-2.6-x86-proc-mtrr-interface-mtrr-bug-fix.patch
 Patch21226: linux-2.6-fs-core-dump-of-read-only-binarys.patch
 Patch21227: linux-2.6-security-fix-key-serial-number-collision-problem.patch
 Patch21228: linux-2.6-cpufreq-remove-__initdata-from-tscsync.patch
-Patch21229: linux-2.6-misc-omnikey-cardman-buffer-overflow.patch
+Patch21229: linux-2.6-pcmcia-buffer-overflow-in-omnikey-cardman-driver.patch
+Patch21230: linux-2.6-utrace-exploit-and-unkillable-cpu-fixes.patch
+Patch21231: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-1.patch
+Patch21232: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-2.patch
+Patch21233: linux-2.6-audit-gfp_kernel-allocation-non-blocking-context.patch
+Patch21234: linux-2.6-s390-page_mkclean-causes-data-corruption.patch
 # empty final patch file to facilitate testing of kernel patches
 Patch99999: linux-kernel-test.patch
 
@@ -1904,6 +1909,11 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21227 -p1
 %patch21228 -p1
 %patch21229 -p1
+%patch21230 -p1
+%patch21231 -p1
+%patch21232 -p1
+%patch21233 -p1
+%patch21234 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
 perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
@@ -1915,8 +1925,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 tar -zxf %{SOURCE15000}
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.1.el5/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.18-8.1.1.el5.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.3.el5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-8.1.3.el5.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2757,8 +2767,8 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
  
 %changelog
-* Mon Apr  9 2007 Karanbir Singh <kbsingh@centos.org> [2.6.18-8.1.1.el5.centos]
-- change gpg key to CentOS
+* Mon Apr 30 2007 Karanbir Singh <kbsingh@centos.org>
+- Roll in CentOS Changes
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
