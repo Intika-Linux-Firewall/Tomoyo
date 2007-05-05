@@ -332,7 +332,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.8-16sarge6">Debian Sarge 用のカーネル 2.6.8-16sarge6</a>
 <li><a href="#2.6.18-12etch1">Debian Etch 用のカーネル 2.6.18-12etch1</a>
 <li><a href="#2.6.16.27-0.9">OpenSUSE 10.1 用のカーネル 2.6.16.27-0.9</a>
-<li><a href="#2.6.18.8-0.1">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.1</a>
+<li><a href="#2.6.18.8-0.3">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.3</a>
 <li><a href="#2.6.9-42.11AX">Asianux 2.0 用のカーネル 2.6.9-42.11AX</a>
 <li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
 <li><a href="#2.6.20-15.27">Ubuntu 7.04 用のカーネル 2.6.20-15.27</a>
@@ -616,21 +616,22 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18.8-0.1">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.1</a></h2>
+<h2><a name="2.6.18.8-0.3">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.3</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.1.i586.rpm<br>
-rpm -ivh kernel-source-2.6.18.8-0.1.i586.rpm<br>
+wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.3.i586.rpm<br>
+rpm -ivh kernel-source-2.6.18.8-0.3.i586.rpm<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.18.8-0.1/<br>
+cd /usr/src/linux-2.6.18.8-0.3/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/24614/ccs-patch-1.4-20070401.tar.gz<br>
+wget -O ccs-patch-2.6.18.8-0.3_SUSE.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1857&amp;aid=10246'<br>
 tar -zxf ccs-patch-1.4-20070401.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.18.8-0.1_SUSE.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.18.8-0.3_SUSE.txt<br>
 # 出力先のディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.18.8-0.1-obj/i386/default/<br>
+cd /usr/src/linux-2.6.18.8-0.3-obj/i386/default/<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>

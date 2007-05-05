@@ -317,7 +317,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.8-16sarge6">Kernel 2.6.8-16sarge6 for Debian Sarge</a>
 <li><a href="#2.6.18-12etch1">Kernel 2.6.18-12etch1 for Debian Etch</a>
 <li><a href="#2.6.16.27-0.9">Kernel 2.6.16.27-0.9 for OpenSUSE 10.1</a>
-<li><a href="#2.6.18.8-0.1">Kernel 2.6.18.8-0.1 for OpenSUSE 10.2</a>
+<li><a href="#2.6.18.8-0.3">Kernel 2.6.18.8-0.3 for OpenSUSE 10.2</a>
 <li><a href="#2.6.9-42.11AX">Kernel 2.6.9-42.11AX for Asianux 2.0</a>
 <li><a href="#2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a>
 <li><a href="#2.6.20-15.27">Kernel 2.6.20-15.27 for Ubuntu 7.04</a>
@@ -601,21 +601,22 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18.8-0.1">Kernel 2.6.18.8-0.1 for OpenSUSE 10.2</a></h2>
+<h2><a name="2.6.18.8-0.3">Kernel 2.6.18.8-0.3 for OpenSUSE 10.2</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.1.i586.rpm<br>
-rpm -ivh kernel-source-2.6.18.8-0.1.i586.rpm<br>
+wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.3.i586.rpm<br>
+rpm -ivh kernel-source-2.6.18.8-0.3.i586.rpm<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.18.8-0.1/<br>
+cd /usr/src/linux-2.6.18.8-0.3/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/24614/ccs-patch-1.4-20070401.tar.gz<br>
+wget -O ccs-patch-2.6.18.8-0.3_SUSE.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1857&amp;aid=10246'<br>
 tar -zxf ccs-patch-1.4-20070401.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.18.8-0.1_SUSE.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.18.8-0.3_SUSE.txt<br>
 # Move to the output directory.<br>
-cd /usr/src/linux-2.6.18.8-0.1-obj/i386/default/<br>
+cd /usr/src/linux-2.6.18.8-0.3-obj/i386/default/<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
