@@ -28,7 +28,7 @@ URL:            http://www.kernel.org/
 BuildRequires:  python
 %endif
 Version:        2.6.18.8
-Release: 0.1_tomoyo_1.4
+Release: 0.3_tomoyo_1.4
 Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
 License:        GNU General Public License (GPL)
 Group:          System/Kernel
@@ -114,7 +114,7 @@ Source109:      patches.kernel.org.tar.bz2
 Source120:      kabi.tar.bz2
 PreReq:         mkinitrd >= 1.2
 PreReq:         coreutils
-PreReq:         perl-Bootloader >= 0.4.1
+PreReq:         perl-Bootloader >= 0.4.14
 PreReq:         rpm
 PreReq:         /sbin/update-bootloader
 #!BuildIgnore: irqbalance xen
@@ -150,7 +150,7 @@ The standard kernel for both uniprocessor and multiprocessor systems.
 
 
 
-Source Timestamp: 2007/03/02 13:51:59 UTC
+Source Timestamp: 2007/04/17 08:42:35 UTC
 CVS Branch: SL102_BRANCH
 
 %prep
@@ -239,7 +239,7 @@ source .rpm-defs
 cd linux-2.6.18
 # TOMOYO Linux
 tar -zxf  %_sourcedir/ccs-patch-1.4-20070401.tar.gz
-patch -sp1 < ccs-patch-2.6.18.8-0.1_SUSE.txt
+patch -sp1 < /usr/src/ccs-patch-2.6.18.8-0.3_SUSE.txt
 cat config.ccs >> .config
 cp .config .config.orig
 %if %{tolerate_unknown_new_config_options}
@@ -501,8 +501,8 @@ install -m 644 %_sourcedir/module-renames %buildroot/etc/modprobe.d/
 %files -f kernel.files
 
 %changelog
-* Fri Mar 02 2007 - lmb@suse.de
-- patches.suse/revert-netfilter-source-routing: Revert parts of
-  the netfilter patch from 2.6.18.5 due to kABI changes.
+* Tue Apr 17 2007 - teheo@suse.de
+- patches.drivers/libata-ahci-ignore-interr-on-SB600: ahci.c:
+  walkaround for SB600 SATA internal error issue (#264792).
 * Thu May 08 2003 - kraxel@suse.de
 - initial release
