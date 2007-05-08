@@ -890,3 +890,26 @@ Fix 2007/04/18
       domain transition are done using /sbin/busybox (realpath of /bin/ls)
       and will be rejected since the administrator won't grant
       "1 /sbin/busybox".
+
+Fix 2007/05/07
+
+    @ Support pathname subtraction.
+
+      There was no way to exclude specific pathnames when granting
+      permissions using wildcards.
+      There would be a need to exclude specific files and directories.
+      I introduced "\-" as subtraction operator.
+
+        "A\-B" means "A" other than "B".
+        "A\-B\-C" means "A" other than "B" and "C".
+        "A\-B\-C\-D" means "A" other than "B" and "C" and "D".
+
+      "A", "B", "C", "D" may contain wildcards.
+
+      An example usage is "/home/\*/\*\-.ssh/\*", which means
+      "/home/\*/\*/\*" other than "/home/\*/.ssh/\*".
+
+      "A" should contain wildcards because subtraction from constants
+      (e.g. "/usr\-usr/" or "/usr\-home/") is meaningless.
+
+      Don't try "A\-B\+C" because "\+" is not addition operator.
