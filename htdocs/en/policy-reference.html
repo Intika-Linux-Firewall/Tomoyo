@@ -557,9 +557,14 @@ For example, some proxy server uses local port 8080, so port 8080 should not be 
 
 <h3>MAC for argv[0]</h3>
 
-<p>To restrict the contents of argv[0], use allow_argv0 directive followed by "the pathname of program without dereferencing symbolic links" and "the basename part of argv[0]".</p>
+<p>To restrict the contents of argv[0], use allow_argv0 directive followed by "the pathname of PROGRAM" and "the basename part of argv[0]".</p>
 
-<p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[], sometimes, there are programs that behave differently depending on the basename of argv[0]. The busybox is an example. The domain transition of TOMOYO Linux is done based on the contents of filename. In most cases, the basename of filename and the basename of argv[0] are identical and are no problem, but there are programs such as binary wrapper that intentionally pass different filename and argv[0]. For example, passing /bin/ls which is a symbolic link to /sbin/busybox as the filename parameter and passing /bin/cat which is a symbolic link to /sbin/busybox as the argv[0] parameter will cause TOMOYO Linux behave as /bin/cat in the domain of /bin/ls, which is a incongruous situation. This means that if an attacker succeeds passing different filename and argv[0] intentionally, this will become a security hole. The purpose of this directive is to restrict the combinations of filename and argv[0] so that such incongruous situation won't occur.</p>
+<p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[]. Some programs (e.g. busybox) behave differently depending on the basename of argv[0].
+
+When invoking a program via a symbolic link, the domain transition of TOMOYO Linux is done based on the Canonicalized Pathname of filename while the behavior of the program is determined based on argv[0] (usually same as filename).
+For example, in a system that provides /bin/ls and /bin/cat as hard links of busybox, it becomes a loophole that allows
+programs to behave as cat in the domain of /bin/ls by creating a symbolic link named /tmp/cat that points to /bin/ls and executing /tmp/cat .</p>
+<p>The purpose of this directive is to restrict the combinations of filename and argv[0] so that such loopholes won't occur.</p>
 
 <h3>MAC for capabilities</h3>
 <p>To grant capability permission, use allow_capability directive followed by a capability.<br>
@@ -813,6 +818,16 @@ You can restrict more strictly with other directives and policy files for some s
 <tr><td>\x</td><td>1 hexadecimal digit.</td></tr>
 <tr><td>\A</td><td>More than or equals to 1 alphabet character.</td></tr>
 <tr><td>\a</td><td>1 alphabet character.</td></tr>
+<tr><td>\-</td><td>Pathname subtraction operator.</td></tr>
+</table>
+
+<p>The usage of "\-" is shown below.</p>
+
+<table border="1">
+<tr><td>Expression</td><td>Meaning</td></tr>
+<tr><td>/etc/\*</td><td>All files in /etc/ directory.</td></tr>
+<tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\* other than /etc/\*shadow\*</td></tr>
+<tr><td>/\*\-proc\-sys/</td><td>/\*/ other than /proc/ /sys/</td></tr>
 </table>
 
 <h3>Pathname group</h3>
