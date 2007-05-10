@@ -60,11 +60,11 @@ static unsigned int GetMaxRejectLog(void)
  */
 int WriteAuditLog(char *buf, const int is_granted)
 {
-	/***** CRITICAL SECTION START *****/
 	LOG_ENTRY *new_entry = (LOG_ENTRY *) ccs_alloc(sizeof(LOG_ENTRY));
 	if (!new_entry) goto out;
 	INIT_LIST_HEAD(&new_entry->list);
 	new_entry->log = buf;
+	/***** CRITICAL SECTION START *****/
 	spin_lock(&audit_log_lock);
 	if (is_granted) {
 		if (grant_log_count < GetMaxGrantLog()) {
