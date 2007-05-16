@@ -330,8 +330,8 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 		goto out;
 	}
 	error = -ENOMEM;
-	if ((entry = kmalloc(sizeof(struct dev_entry), GFP_KERNEL)) == NULL) goto out;
-	memset(entry, 0, sizeof(struct dev_entry));
+	if ((entry = kmalloc(sizeof(*entry), GFP_KERNEL)) == NULL) goto out;
+	memset(entry, 0, sizeof(*entry));
 	if (!info->first_entry) {
 		info->first_entry = entry;
 	} else {
@@ -501,7 +501,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static int first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.4   2007/04/01\n");
+		printk("SYAORAN: 1.4+   2007/05/16\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
@@ -543,8 +543,8 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 		if (!IS_ERR(f)) {
 			struct syaoran_sb_info *p;
 			if (!S_ISREG(f->f_dentry->d_inode->i_mode)) goto out;
-			if ((p = sb->s_fs_info = kmalloc(sizeof(struct syaoran_sb_info), GFP_KERNEL)) == NULL) goto out;
-			memset(p, 0, sizeof(struct syaoran_sb_info));
+			if ((p = sb->s_fs_info = kmalloc(sizeof(*p), GFP_KERNEL)) == NULL) goto out;
+			memset(p, 0, sizeof(*p));
 			p->is_permissive_mode = is_permissive_mode;
 			printk("SYAORAN: Reading '%s'\n", filename);
 			error = ReadConfigFile(f, sb);
@@ -773,8 +773,8 @@ static void ReadTable(struct syaoran_read_struct *head, char *buf, int count)
 static int syaoran_trace_open(struct inode *inode, struct file *file)
 {
 	struct syaoran_read_struct *head;
-	if ((head = (struct syaoran_read_struct *) kmalloc(sizeof(struct syaoran_read_struct), GFP_KERNEL)) == NULL) return -ENOMEM;
-	memset(head, 0, sizeof(struct syaoran_read_struct));
+	if ((head = kmalloc(sizeof(*head), GFP_KERNEL)) == NULL) return -ENOMEM;
+	memset(head, 0, sizeof(*head));
 	head->sb = inode->i_sb;
 	head->read_all = (strcmp(file->f_dentry->d_name.name, ".syaoran_all") == 0);
 	head->entry = ((struct syaoran_sb_info *) head->sb->s_fs_info)->first_entry;

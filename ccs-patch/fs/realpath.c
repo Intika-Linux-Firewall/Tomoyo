@@ -237,7 +237,7 @@ unsigned int GetMemoryUsedForElements(void)
 }
 
 /* Allocate memory for structures. The RAM is chunked, so NEVER try to kfree() the returned pointer. */
-char *alloc_element(const unsigned int size)
+void *alloc_element(const unsigned int size)
 {
 	static DECLARE_MUTEX(lock);
 	static char *buf = NULL;
@@ -283,26 +283,26 @@ unsigned int GetMemoryUsedForSaveName(void)
 
 #define MAX_HASH 256
 
-typedef struct name_entry {
+struct name_entry {
 	struct name_entry *next; /* Pointer to next record. NULL if none.             */
 	struct path_info entry;
-} NAME_ENTRY;
+};
 
-typedef struct free_memory_block_list {
+struct free_memory_block_list {
 	struct free_memory_block_list *next; /* Pointer to next record. NULL if none. */
 	char *ptr;                           /* Pointer to a free area.               */
 	int len;                             /* Length of the area.                   */
-} FREE_MEMORY_BLOCK_LIST;
+};
 
 /* Keep the given name on the RAM. The RAM is shared, so NEVER try to modify or kfree() the returned name. */
 const struct path_info *SaveName(const char *name)
 {
-	static FREE_MEMORY_BLOCK_LIST fmb_list = { NULL, NULL, 0 };
-	static NAME_ENTRY name_list[MAX_HASH]; /* The list of names. */
+	static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
+	static struct name_entry name_list[MAX_HASH]; /* The list of names. */
 	static DECLARE_MUTEX(lock);
-	NAME_ENTRY *ptr, *prev = NULL;
+	struct name_entry *ptr, *prev = NULL;
 	unsigned int hash;
-	FREE_MEMORY_BLOCK_LIST *fmb = &fmb_list;
+	struct free_memory_block_list *fmb = &fmb_list;
 	int len;
 	static int first_call = 1;
 	if (!name) return NULL;
@@ -333,7 +333,7 @@ const struct path_info *SaveName(const char *name)
 			fmb = fmb->next;
 		} else {
 			char *cp;
-			if ((cp = kmalloc(PAGE_SIZE, GFP_KERNEL)) == NULL || (fmb->next = (FREE_MEMORY_BLOCK_LIST *) alloc_element(sizeof(FREE_MEMORY_BLOCK_LIST))) == NULL) {
+			if ((cp = kmalloc(PAGE_SIZE, GFP_KERNEL)) == NULL || (fmb->next = alloc_element(sizeof(*fmb))) == NULL) {
 				kfree(cp);
 				printk("ERROR: Out of memory for SaveName().\n");
 				if (!sbin_init_started) panic("MAC Initialization failed.\n");
@@ -346,7 +346,7 @@ const struct path_info *SaveName(const char *name)
 			fmb->len = PAGE_SIZE;
 		}
 	}
-	if ((ptr = (NAME_ENTRY *) alloc_element(sizeof(NAME_ENTRY))) == NULL) goto out;
+	if ((ptr = alloc_element(sizeof(*ptr))) == NULL) goto out;
 	ptr->entry.name = fmb->ptr;
 	memmove(fmb->ptr, name, len);
 	fill_path_info(&ptr->entry);
@@ -354,7 +354,7 @@ const struct path_info *SaveName(const char *name)
 	fmb->len -= len;
 	prev->next = ptr; /* prev != NULL because name_list is not empty. */
 	if (fmb->len == 0) {
-		FREE_MEMORY_BLOCK_LIST *ptr = &fmb_list;
+		struct free_memory_block_list *ptr = &fmb_list;
 		while (ptr->next != fmb) ptr = ptr->next; ptr->next = fmb->next;
 	}
  out:
@@ -364,11 +364,11 @@ const struct path_info *SaveName(const char *name)
 
 /***** Dynamic memory allocator. *****/
 
-typedef struct cache_entry {
+struct cache_entry {
 	struct list_head list;
 	void *ptr;
 	int size;
-} CACHE_ENTRY;
+};
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
 static struct kmem_cache *ccs_cachep = NULL;
@@ -378,7 +378,7 @@ static kmem_cache_t *ccs_cachep = NULL;
 
 void __init realpath_Init(void)
 {
-	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(CACHE_ENTRY), 0, 0, NULL, NULL);
+	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL, NULL);
 	if (!ccs_cachep) panic("Can't create cache.\n");
 }
 
@@ -391,11 +391,11 @@ unsigned int GetMemoryUsedForDynamic(void)
 	return dynamic_memory_size;
 }
 
-char *ccs_alloc(const size_t size)
+void *ccs_alloc(const size_t size)
 {
 	void *ret = kmalloc(size, GFP_KERNEL);
 	if (ret) {
-		CACHE_ENTRY *new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
+		struct cache_entry *new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
 		if (!new_entry) {
 			kfree(ret); ret = NULL;
 		} else {
@@ -409,17 +409,17 @@ char *ccs_alloc(const size_t size)
 			memset(ret, 0, size);
 		}
 	}
-	return (char *) ret;
+	return ret;
 }
 
 void ccs_free(const void *p)
 {
 	struct list_head *v;
-	CACHE_ENTRY *entry = NULL;
+	struct cache_entry *entry = NULL;
 	if (!p) return;
 	spin_lock(&cache_list_lock);
 	list_for_each(v, &cache_list) {
-		entry = list_entry(v, CACHE_ENTRY, list);
+		entry = list_entry(v, struct cache_entry, list);
 		if (entry->ptr != p) {
 			entry = NULL; continue;
 		}

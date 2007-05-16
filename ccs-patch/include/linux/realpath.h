@@ -27,7 +27,7 @@ char *realpath_nofollow(const char *pathname);
 char *realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
 
 /* Allocate memory for structures. The RAM is chunked, so NEVER try to kfree() the returned pointer. */
-char *alloc_element(const unsigned int size);
+void *alloc_element(const unsigned int size);
 
 /* Get used RAM size for alloc_elements(). */
 unsigned int GetMemoryUsedForElements(void);

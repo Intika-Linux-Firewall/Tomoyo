@@ -26,19 +26,19 @@ extern const char *ccs_log_level;
 
 /***** The structure for chroot restrictions. *****/
 
-typedef struct chroot_entry {
+struct chroot_entry {
 	struct chroot_entry *next;
 	const struct path_info *dir;
 	int is_deleted;
-} CHROOT_ENTRY;
+};
 
 /*************************  CHROOT RESTRICTION HANDLER  *************************/
 
-static CHROOT_ENTRY *chroot_list = NULL;
+static struct chroot_entry *chroot_list = NULL;
 
 static int AddChrootACL(const char *dir, const int is_delete)
 {
-	CHROOT_ENTRY *new_entry, *ptr;
+	struct chroot_entry *new_entry, *ptr;
 	const struct path_info *saved_dir;
 	static DECLARE_MUTEX(lock);
 	int error = -ENOMEM;
@@ -56,7 +56,7 @@ static int AddChrootACL(const char *dir, const int is_delete)
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (CHROOT_ENTRY *) alloc_element(sizeof(CHROOT_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->dir = saved_dir;
 	mb(); /* Instead of using spinlock. */
 	if ((ptr = chroot_list) != NULL) {
@@ -82,7 +82,7 @@ int CheckChRootPermission(struct nameidata *nd)
 		dir.name = root_name;
 		fill_path_info(&dir);
 		if (dir.is_dir) {
-			CHROOT_ENTRY *ptr;
+			struct chroot_entry *ptr;
 			for (ptr = chroot_list; ptr; ptr = ptr->next) {
 				if (ptr->is_deleted) continue;
 				if (PathMatchesToPattern(&dir, ptr->dir)) {
@@ -113,12 +113,12 @@ int AddChrootPolicy(char *data, const int is_delete)
 	return AddChrootACL(data, is_delete);
 }
 
-int ReadChrootPolicy(IO_BUFFER *head)
+int ReadChrootPolicy(struct io_buffer *head)
 {
-	CHROOT_ENTRY *ptr = (CHROOT_ENTRY *) head->read_var2;
+	struct chroot_entry *ptr = head->read_var2;
 	if (!ptr) ptr = chroot_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (ptr->is_deleted == 0 && io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n", ptr->dir->name)) break;
 		ptr = ptr->next;
 	}

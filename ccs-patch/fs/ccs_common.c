@@ -80,12 +80,12 @@ static struct {
 	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
 };
 
-typedef struct {
+struct profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct path_info *comment;
-} PROFILE;
+};
 
-static PROFILE *profile_ptr[MAX_PROFILES];
+static struct profile *profile_ptr[MAX_PROFILES];
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
@@ -429,11 +429,11 @@ int PathMatchesToPattern(const struct path_info *pathname0, const struct path_in
 }
 
 /*
- *  Transactional printf() to IO_BUFFER structure.
+ *  Transactional printf() to struct io_buffer structure.
  *  snprintf() will truncate, but io_printf() won't.
  *  Returns zero on success, nonzero otherwise.
  */
-int io_printf(IO_BUFFER *head, const char *fmt, ...)
+int io_printf(struct io_buffer *head, const char *fmt, ...)
 {
 	va_list args;
 	int len, pos = head->read_avail, size = head->readbuf_size - pos;
@@ -499,13 +499,13 @@ unsigned int CheckCCSAccept(const unsigned int index)
 	return CheckCCSFlags(index) == 1;
 }
 
-static PROFILE *FindOrAssignNewProfile(const unsigned int profile)
+static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 {
 	static DECLARE_MUTEX(profile_lock);
-	PROFILE *ptr = NULL;
+	struct profile *ptr = NULL;
 	down(&profile_lock);
 	if (profile < MAX_PROFILES && (ptr = profile_ptr[profile]) == NULL) {
-		if ((ptr = (PROFILE *) alloc_element(sizeof(PROFILE))) != NULL) {
+		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) ptr->value[i] = ccs_control_array[i].current_value;
 			mb(); /* Instead of using spinlock. */
@@ -518,12 +518,12 @@ static PROFILE *FindOrAssignNewProfile(const unsigned int profile)
 
 static int profile_loaded = 0;
 
-static int SetStatus(IO_BUFFER *head)
+static int SetStatus(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	unsigned int i, value;
 	char *cp;
-	PROFILE *profile;
+	struct profile *profile;
 	if (!isRoot()) return -EPERM;
 	i = simple_strtoul(data, &cp, 10);
 	if (data != cp) {
@@ -556,7 +556,7 @@ static int SetStatus(IO_BUFFER *head)
 	return -EINVAL;
 }
 
-static int ReadStatus(IO_BUFFER *head)
+static int ReadStatus(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		if (!isRoot()) return -EPERM;
@@ -564,7 +564,7 @@ static int ReadStatus(IO_BUFFER *head)
 			int step;
 			for (step = head->read_step; step < MAX_PROFILES * CCS_MAX_CONTROL_INDEX; step++) {
 				const int i = step / CCS_MAX_CONTROL_INDEX, j = step % CCS_MAX_CONTROL_INDEX;
-				const PROFILE *profile = profile_ptr[i];
+				const struct profile *profile = profile_ptr[i];
 				head->read_step = step;
 				if (!profile) continue;
 				switch (j) {
@@ -614,7 +614,7 @@ static int ReadStatus(IO_BUFFER *head)
 				}
 			}
 			if (step == MAX_PROFILES * CCS_MAX_CONTROL_INDEX) {
-				head->read_var2 = (void *) "";
+				head->read_var2 = "";
 				head->read_step = 0;
 			}
 		}
@@ -631,18 +631,18 @@ static int ReadStatus(IO_BUFFER *head)
 
 /*************************  POLICY MANAGER HANDLER  *************************/
 
-typedef struct policy_manager_entry {
+struct policy_manager_entry {
 	struct policy_manager_entry *next;
 	const struct path_info *manager;
 	u8 is_domain;
 	u8 is_deleted;
-} POLICY_MANAGER_ENTRY;
+};
 
-static POLICY_MANAGER_ENTRY *policy_manager_list = NULL;
+static struct policy_manager_entry *policy_manager_list = NULL;
 
 static int AddManagerEntry(const char *manager, u8 is_delete)
 {
-	POLICY_MANAGER_ENTRY *new_entry, *ptr;
+	struct policy_manager_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_manager;
 	int error = -ENOMEM;
@@ -667,7 +667,7 @@ static int AddManagerEntry(const char *manager, u8 is_delete)
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (POLICY_MANAGER_ENTRY *) alloc_element(sizeof(POLICY_MANAGER_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->manager = saved_manager;
 	new_entry->is_domain = is_domain;
 	mb(); /* Instead of using spinlock. */
@@ -683,7 +683,7 @@ static int AddManagerEntry(const char *manager, u8 is_delete)
 	return error;
 }
 
-static int AddManagerPolicy(IO_BUFFER *head)
+static int AddManagerPolicy(struct io_buffer *head)
 {
 	const char *data = head->write_buf;
 	int is_delete = 0;
@@ -695,14 +695,14 @@ static int AddManagerPolicy(IO_BUFFER *head)
 	return AddManagerEntry(data, is_delete);
 }
 
-static int ReadManagerPolicy(IO_BUFFER *head)
+static int ReadManagerPolicy(struct io_buffer *head)
 {
 	if (!head->read_eof) {
-		POLICY_MANAGER_ENTRY *ptr = (POLICY_MANAGER_ENTRY *) head->read_var2;
+		struct policy_manager_entry *ptr = head->read_var2;
 		if (!isRoot()) return -EPERM;
 		if (!ptr) ptr = policy_manager_list;
 		while (ptr) {
-			head->read_var2 = (void *) ptr;
+			head->read_var2 = ptr;
 			if (!ptr->is_deleted && io_printf(head, "%s\n", ptr->manager->name)) break;
 			ptr = ptr->next;
 		}
@@ -714,7 +714,7 @@ static int ReadManagerPolicy(IO_BUFFER *head)
 /* Check whether the current process is a policy manager. */
 static int IsPolicyManager(void)
 {
-	POLICY_MANAGER_ENTRY *ptr;
+	struct policy_manager_entry *ptr;
 	const char *exe;
 	const struct path_info *domainname = current->domain_info->domainname;
 	if (!sbin_init_started) return 1;
@@ -741,7 +741,7 @@ static int IsPolicyManager(void)
 
 /*************************  DOMAIN POLICY HANDLER  *************************/
 
-static int AddDomainPolicy(IO_BUFFER *head)
+static int AddDomainPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct domain_info *domain = head->write_var1;
@@ -800,7 +800,7 @@ static int AddDomainPolicy(IO_BUFFER *head)
 	return -EINVAL;
 }
 
-static int ReadDomainPolicy(IO_BUFFER *head)
+static int ReadDomainPolicy(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		struct domain_info *domain = head->read_var1;
@@ -819,25 +819,25 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 			head->read_var2 = NULL; head->read_step = 1;
 		step1:
 			if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "")) break;
-			head->read_var2 = (void *) domain->first_acl_ptr; head->read_step = 2;
+			head->read_var2 = domain->first_acl_ptr; head->read_step = 2;
 		step2:
-			for (ptr = (struct acl_info *) head->read_var2; ptr; ptr = ptr->next) {
+			for (ptr = head->read_var2; ptr; ptr = ptr->next) {
 				const u8 acl_type = ptr->type;
 				const int pos = head->read_avail;
-				head->read_var2 = (void *) ptr;
+				head->read_var2 = ptr;
 				if (ptr->is_deleted) continue;
 				if (0) {
 #ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 				} else if (acl_type == TYPE_FILE_ACL) {
 					const unsigned char b = ptr->u.b[1];
-					if (io_printf(head, "%d %s%s", ptr->u.b[0], b ? "@" : "", b ? ((FILE_ACL_RECORD *) ptr)->u.group->group_name->name : ((FILE_ACL_RECORD *) ptr)->u.filename->name)
+					if (io_printf(head, "%d %s%s", ptr->u.b[0], b ? "@" : "", b ? ((struct file_acl_record *) ptr)->u.group->group_name->name : ((struct file_acl_record *) ptr)->u.filename->name)
 						|| DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
 #endif
 #ifdef CONFIG_TOMOYO_MAC_FOR_ARGV0
 				} else if (acl_type == TYPE_ARGV0_ACL) {
-					if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s", ((ARGV0_ACL_RECORD *) ptr)->filename->name, ((ARGV0_ACL_RECORD *) ptr)->argv0->name) ||
+					if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s", ((struct argv0_acl_record *) ptr)->filename->name, ((struct argv0_acl_record *) ptr)->argv0->name) ||
 						DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
@@ -854,11 +854,11 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 					if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr->u.b[0]))) break;
 					switch (ptr->u.b[1]) {
 					case IP_RECORD_TYPE_ADDRESS_GROUP:
-						if (io_printf(head, "@%s", ((IP_NETWORK_ACL_RECORD *) ptr)->u.group->group_name->name)) goto print_ip_record_out;
+						if (io_printf(head, "@%s", ((struct ip_network_acl_record *) ptr)->u.group->group_name->name)) goto print_ip_record_out;
 						break;
 					case IP_RECORD_TYPE_IPv4:
 						{
-							const u32 min_address = ((IP_NETWORK_ACL_RECORD *) ptr)->u.ipv4.min, max_address = ((IP_NETWORK_ACL_RECORD *) ptr)->u.ipv4.max;
+							const u32 min_address = ((struct ip_network_acl_record *) ptr)->u.ipv4.min, max_address = ((struct ip_network_acl_record *) ptr)->u.ipv4.max;
 							if (io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address))) goto print_ip_record_out;
 							if (min_address != max_address && io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address))) goto print_ip_record_out;
 						}
@@ -866,7 +866,7 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 					case IP_RECORD_TYPE_IPv6:
 						{
 							char buf[64];
-							const u16 *min_address = ((IP_NETWORK_ACL_RECORD *) ptr)->u.ipv6.min, *max_address = ((IP_NETWORK_ACL_RECORD *) ptr)->u.ipv6.max;
+							const u16 *min_address = ((struct ip_network_acl_record *) ptr)->u.ipv6.min, *max_address = ((struct ip_network_acl_record *) ptr)->u.ipv6.max;
 							print_ipv6(buf, sizeof(buf), min_address);
 							if (io_printf(head, "%s", buf)) goto print_ip_record_out;
 							if (memcmp(min_address, max_address, 16)) {
@@ -877,7 +877,7 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 						break;
 					}
 					{
-						const u16 min_port = ((IP_NETWORK_ACL_RECORD *) ptr)->min_port, max_port = ((IP_NETWORK_ACL_RECORD *) ptr)->max_port;
+						const u16 min_port = ((struct ip_network_acl_record *) ptr)->min_port, max_port = ((struct ip_network_acl_record *) ptr)->max_port;
 						if (io_printf(head, " %u", min_port)) goto print_ip_record_out;
 						if (min_port != max_port && io_printf(head, "-%u", max_port)) goto print_ip_record_out;
 					}
@@ -888,7 +888,7 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 #endif
 #ifdef CONFIG_TOMOYO_MAC_FOR_SIGNAL
 				} else if (acl_type == TYPE_SIGNAL_ACL) {
-					if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr->u.w, ((SIGNAL_ACL_RECORD *) ptr)->domainname->name) ||
+					if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr->u.w, ((struct signal_acl_record *) ptr)->domainname->name) ||
 						DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
@@ -899,13 +899,13 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 					if (keyword) {
 						if (acltype2paths(acl_type) == 2) {
 							const u8 b0 = ptr->u.b[0], b1 = ptr->u.b[1];
-							if (io_printf(head, "allow_%s %s%s %s%s", keyword, b0 ? "@" : "", b0 ? ((DOUBLE_ACL_RECORD *) ptr)->u1.group1->group_name->name : ((DOUBLE_ACL_RECORD *) ptr)->u1.filename1->name, b1 ? "@" : "", b1 ? ((DOUBLE_ACL_RECORD *) ptr)->u2.group2->group_name->name : ((DOUBLE_ACL_RECORD *) ptr)->u2.filename2->name)
+							if (io_printf(head, "allow_%s %s%s %s%s", keyword, b0 ? "@" : "", b0 ? ((struct double_acl_record *) ptr)->u1.group1->group_name->name : ((struct double_acl_record *) ptr)->u1.filename1->name, b1 ? "@" : "", b1 ? ((struct double_acl_record *) ptr)->u2.group2->group_name->name : ((struct double_acl_record *) ptr)->u2.filename2->name)
 								|| DumpCondition(head, ptr->cond)) {
 								head->read_avail = pos; break;
 							}
 						} else {
 							const u8 b = ptr->u.b[0];
-							if (io_printf(head, "allow_%s %s%s", keyword, b ? "@" : "", b ? ((SINGLE_ACL_RECORD *) ptr)->u.group->group_name->name : ((SINGLE_ACL_RECORD *) ptr)->u.filename->name)
+							if (io_printf(head, "allow_%s %s%s", keyword, b ? "@" : "", b ? ((struct single_acl_record *) ptr)->u.group->group_name->name : ((struct single_acl_record *) ptr)->u.filename->name)
 								|| DumpCondition(head, ptr->cond)) {
 								head->read_avail = pos; break;
 							}
@@ -924,7 +924,7 @@ static int ReadDomainPolicy(IO_BUFFER *head)
 	return 0;
 }
 
-static int ReadDomainProfile(IO_BUFFER *head)
+static int ReadDomainProfile(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		struct domain_info *domain;
@@ -943,14 +943,14 @@ static int ReadDomainProfile(IO_BUFFER *head)
 	return 0;
 }
 
-static int WritePID(IO_BUFFER *head)
+static int WritePID(struct io_buffer *head)
 {
 	head->read_step = (int) simple_strtoul(head->write_buf, NULL, 10);
 	head->read_eof = 0;
 	return 0;
 }
 
-static int ReadPID(IO_BUFFER *head)
+static int ReadPID(struct io_buffer *head)
 {
 	if (head->read_avail == 0 && !head->read_eof) {
 		const int pid = head->read_step;
@@ -968,7 +968,7 @@ static int ReadPID(IO_BUFFER *head)
 	return 0;
 }
 
-static int UpdateDomainProfile(IO_BUFFER *head)
+static int UpdateDomainProfile(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	char *cp = strchr(data, ' ');
@@ -990,7 +990,7 @@ static int UpdateDomainProfile(IO_BUFFER *head)
 
 #ifdef CONFIG_TOMOYO
 
-static int AddExceptionPolicy(IO_BUFFER *head)
+static int AddExceptionPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	int is_delete = 0;
@@ -1034,7 +1034,7 @@ static int AddExceptionPolicy(IO_BUFFER *head)
 	return -EINVAL;
 }
 
-static int ReadExceptionPolicy(IO_BUFFER *head)
+static int ReadExceptionPolicy(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		switch (head->read_step) {
@@ -1092,7 +1092,7 @@ static int ReadExceptionPolicy(IO_BUFFER *head)
 
 #ifdef CONFIG_SAKURA
 
-static int AddSystemPolicy(IO_BUFFER *head)
+static int AddSystemPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	int is_delete = 0;
@@ -1125,7 +1125,7 @@ static int AddSystemPolicy(IO_BUFFER *head)
 	return -EINVAL;
 }
 
-static int ReadSystemPolicy(IO_BUFFER *head)
+static int ReadSystemPolicy(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		switch (head->read_step) {
@@ -1206,10 +1206,10 @@ void CCS_LoadPolicy(const char *filename)
 	}
 
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.4+   2007/05/07\n");
+	printk("SAKURA: 1.4+   2007/05/16\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.4+   2007/05/07\n");
+	printk("TOMOYO: 1.4+   2007/05/16\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
@@ -1231,14 +1231,14 @@ static DECLARE_WAIT_QUEUE_HEAD(query_wait);
 
 static spinlock_t query_lock = SPIN_LOCK_UNLOCKED;
 
-typedef struct query_entry {
+struct query_entry {
 	struct list_head list;
 	char *query;
 	int query_len;
 	unsigned int serial;
 	int timer;
 	int answer;
-} QUERY_ENTRY;
+};
 
 static LIST_HEAD(query_list);
 static atomic_t queryd_watcher = ATOMIC_INIT(0);
@@ -1249,13 +1249,13 @@ int CheckSupervisor(const char *fmt, ...)
 	int error = -EPERM;
 	int pos, len;
 	static unsigned int serial = 0;
-	QUERY_ENTRY *query_entry;
+	struct query_entry *query_entry;
 	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE)) return -EPERM;
 	if (!atomic_read(&queryd_watcher)) return -EPERM;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);
-	if ((query_entry = (QUERY_ENTRY *) ccs_alloc(sizeof(QUERY_ENTRY))) == NULL ||
+	if ((query_entry = ccs_alloc(sizeof(*query_entry))) == NULL ||
 		(query_entry->query = ccs_alloc(len)) == NULL) goto out;
 	INIT_LIST_HEAD(&query_entry->list);
 	/***** CRITICAL SECTION START *****/
@@ -1324,7 +1324,7 @@ static int PollQuery(struct file *file, poll_table *wait)
 	return 0;
 }
 
-static int ReadQuery(IO_BUFFER *head)
+static int ReadQuery(struct io_buffer *head)
 {
 	struct list_head *tmp;
 	int pos = 0, len = 0;
@@ -1337,7 +1337,7 @@ static int ReadQuery(IO_BUFFER *head)
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&query_lock);
 	list_for_each(tmp, &query_list) {
-		QUERY_ENTRY *ptr = list_entry(tmp, QUERY_ENTRY, list);
+		struct query_entry *ptr = list_entry(tmp, struct query_entry, list);
 		if (pos++ == head->read_step) {
 			len = ptr->query_len;
 			break;
@@ -1349,12 +1349,12 @@ static int ReadQuery(IO_BUFFER *head)
 		head->read_step = 0;
 		return 0;
 	}
-	if ((buf = (char *) ccs_alloc(len)) != NULL) {
+	if ((buf = ccs_alloc(len)) != NULL) {
 		pos = 0;
 		/***** CRITICAL SECTION START *****/
 		spin_lock(&query_lock);
 		list_for_each(tmp, &query_list) {
-			QUERY_ENTRY *ptr = list_entry(tmp, QUERY_ENTRY, list);
+			struct query_entry *ptr = list_entry(tmp, struct query_entry, list);
 			if (pos++ == head->read_step) {
 				/* Some query can be skiipped since query_list can change, but I don't care. */
 				if (len == ptr->query_len) memmove(buf, ptr->query, len);
@@ -1374,7 +1374,7 @@ static int ReadQuery(IO_BUFFER *head)
 	return 0;
 }
 
-static int WriteAnswer(IO_BUFFER *head)
+static int WriteAnswer(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct list_head *tmp;
@@ -1382,7 +1382,7 @@ static int WriteAnswer(IO_BUFFER *head)
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&query_lock);
 	list_for_each(tmp, &query_list) {
-		QUERY_ENTRY *ptr = list_entry(tmp, QUERY_ENTRY, list);
+		struct query_entry *ptr = list_entry(tmp, struct query_entry, list);
 		ptr->timer = 0;
 	}
 	spin_unlock(&query_lock);
@@ -1391,7 +1391,7 @@ static int WriteAnswer(IO_BUFFER *head)
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&query_lock);
 	list_for_each(tmp, &query_list) {
-		QUERY_ENTRY *ptr = list_entry(tmp, QUERY_ENTRY, list);
+		struct query_entry *ptr = list_entry(tmp, struct query_entry, list);
 		if (ptr->serial != serial) continue;
 		if (!ptr->answer) ptr->answer = answer;
 		break;
@@ -1416,7 +1416,7 @@ void UpdateCounter(const unsigned char index)
 	/***** CRITICAL SECTION END *****/
 }
 
-static int ReadUpdatesCounter(IO_BUFFER *head)
+static int ReadUpdatesCounter(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		unsigned int counter[MAX_CCS_UPDATES_COUNTER];
@@ -1448,7 +1448,7 @@ static int ReadUpdatesCounter(IO_BUFFER *head)
 	return 0;
 }
 
-static int ReadMemoryCounter(IO_BUFFER *head)
+static int ReadMemoryCounter(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		const int shared = GetMemoryUsedForSaveName(), private = GetMemoryUsedForElements(), dynamic = GetMemoryUsedForDynamic();
@@ -1459,7 +1459,7 @@ static int ReadMemoryCounter(IO_BUFFER *head)
 
 int CCS_OpenControl(const int type, struct file *file)
 {
-	IO_BUFFER *head = (IO_BUFFER *) ccs_alloc(sizeof(IO_BUFFER));
+	struct io_buffer *head = ccs_alloc(sizeof(*head));
 	if (!head) return -ENOMEM;
 	init_MUTEX(&head->read_sem);
 	init_MUTEX(&head->write_sem);
@@ -1549,7 +1549,7 @@ int CCS_OpenControl(const int type, struct file *file)
 	return 0;
 }
 
-static int CopyToUser(IO_BUFFER *head, char __user * buffer, int buffer_len)
+static int CopyToUser(struct io_buffer *head, char __user * buffer, int buffer_len)
 {
 	int len = head->read_avail;
 	char *cp = head->read_buf;
@@ -1564,7 +1564,7 @@ static int CopyToUser(IO_BUFFER *head, char __user * buffer, int buffer_len)
 
 int CCS_PollControl(struct file *file, poll_table *wait)
 {
-	IO_BUFFER *head = (IO_BUFFER *) file->private_data;
+	struct io_buffer *head = file->private_data;
 	if (!head->poll) return -ENOSYS;
 	return head->poll(file, wait);
 }
@@ -1572,7 +1572,7 @@ int CCS_PollControl(struct file *file, poll_table *wait)
 int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len)
 {
 	int len = 0;
-	IO_BUFFER *head = (IO_BUFFER *) file->private_data;
+	struct io_buffer *head = file->private_data;
 	if (!head->read) return -ENOSYS;
 	if (!access_ok(VERIFY_WRITE, buffer, buffer_len)) return -EFAULT;
 	if (down_interruptible(&head->read_sem)) return -EINTR;
@@ -1584,7 +1584,7 @@ int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len
 
 int CCS_WriteControl(struct file *file, const char __user *buffer, const int buffer_len)
 {
-	IO_BUFFER *head = (IO_BUFFER *) file->private_data;
+	struct io_buffer *head = file->private_data;
 	int error = buffer_len;
 	int avail_len = buffer_len;
 	char *cp0 = head->write_buf;
@@ -1619,7 +1619,7 @@ int CCS_WriteControl(struct file *file, const char __user *buffer, const int buf
 
 int CCS_CloseControl(struct file *file)
 {
-	IO_BUFFER *head = file->private_data;
+	struct io_buffer *head = file->private_data;
 	if (head->write == WriteAnswer) atomic_dec(&queryd_watcher);
 	ccs_free(head->read_buf); head->read_buf = NULL;
 	ccs_free(head->write_buf); head->write_buf = NULL;

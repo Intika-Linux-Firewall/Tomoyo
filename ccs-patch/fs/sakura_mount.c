@@ -50,7 +50,7 @@ extern const char *ccs_log_level;
 
 /***** The structure for mount restrictions. *****/
 
-typedef struct mount_entry {
+struct mount_entry {
 	struct mount_entry *next;
 	const struct path_info *dev_name;
 	const struct path_info *dir_name;
@@ -58,7 +58,7 @@ typedef struct mount_entry {
 	unsigned int disabled_options; /* Options to forcefully disable.        */
 	unsigned int enabled_options;  /* Options to forcefully enable.         */
 	int is_deleted;
-} MOUNTS_ENTRY;
+};
 
 /*************************  MOUNT RESTRICTION HANDLER  *************************/
 
@@ -108,11 +108,11 @@ static void put_filesystem(struct file_system_type *fs)
 	module_put(fs->owner);
 }
 
-static MOUNTS_ENTRY *mount_list = NULL;
+static struct mount_entry *mount_list = NULL;
 
 static int AddMountACL(const char *dev_name, const char *dir_name, const char *fs_type, const unsigned int enable, const unsigned int disable, const int is_delete)
 {
-	MOUNTS_ENTRY *new_entry, *ptr;
+	struct mount_entry *new_entry, *ptr;
 	const struct path_info *fs, *dev, *dir;
 	static DECLARE_MUTEX(lock);
 	int error = -ENOMEM;
@@ -157,7 +157,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (MOUNTS_ENTRY *) alloc_element(sizeof(MOUNTS_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->dev_name = dev;
 	new_entry->dir_name = dir;
 	new_entry->fs_type = fs;
@@ -269,7 +269,7 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 	}
  normal_mount: ;
 	{
-		MOUNTS_ENTRY *ptr;
+		struct mount_entry *ptr;
 		struct file_system_type *fstype = NULL;
 		const char *requested_dir_name = NULL;
 		const char *requested_dev_name = NULL;
@@ -390,13 +390,13 @@ int AddMountPolicy(char *data, const int is_delete)
 	return AddMountACL(dev, dir, fs, enable, disable, is_delete);
 }
 
-int ReadMountPolicy(IO_BUFFER *head)
+int ReadMountPolicy(struct io_buffer *head)
 {
-	MOUNTS_ENTRY *ptr = (MOUNTS_ENTRY *) head->read_var2;
+	struct mount_entry *ptr = head->read_var2;
 	if (!ptr) ptr = mount_list;
 	while (ptr) {
 		char options[64];
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		MakeMountOptions(options, sizeof(options), ptr->enabled_options, ptr->disabled_options);
 		if (ptr->is_deleted == 0 && io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s %s\n", ptr->dev_name->name, ptr->dir_name->name, ptr->fs_type->name, options)) break;
 		ptr = ptr->next;
