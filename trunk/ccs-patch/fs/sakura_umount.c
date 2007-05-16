@@ -26,19 +26,19 @@ extern const char *ccs_log_level;
 
 /***** The structure for unmount restrictions. *****/
 
-typedef struct no_umount_entry {
+struct no_umount_entry {
 	struct no_umount_entry *next;
 	const struct path_info *dir;
 	int is_deleted;
-} NO_UMOUNT_ENTRY;
+};
 
 /*************************  UMOUNT RESTRICTION HANDLER  *************************/
 
-static NO_UMOUNT_ENTRY *no_umount_list = NULL;
+static struct no_umount_entry *no_umount_list = NULL;
 
 static int AddNoUmountACL(const char *dir, const int is_delete)
 {
-	NO_UMOUNT_ENTRY *new_entry, *ptr;
+	struct no_umount_entry *new_entry, *ptr;
 	const struct path_info *saved_dir;
 	static DECLARE_MUTEX(lock);
 	int error = -ENOMEM;
@@ -56,7 +56,7 @@ static int AddNoUmountACL(const char *dir, const int is_delete)
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (NO_UMOUNT_ENTRY *) alloc_element(sizeof(NO_UMOUNT_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->dir = saved_dir;
 	mb(); /* Instead of using spinlock. */
 	if ((ptr = no_umount_list) != NULL) {
@@ -79,7 +79,7 @@ int SAKURA_MayUmount(struct vfsmount *mnt)
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_UNMOUNT)) return 0;
 	dir0 = realpath_from_dentry(mnt->mnt_root, mnt);
 	if (dir0) {
-		NO_UMOUNT_ENTRY *ptr;
+		struct no_umount_entry *ptr;
 		struct path_info dir;
 		dir.name = dir0;
 		fill_path_info(&dir);
@@ -106,12 +106,12 @@ int AddNoUmountPolicy(char *data, const int is_delete)
 	return AddNoUmountACL(data, is_delete);
 }
 
-int ReadNoUmountPolicy(IO_BUFFER *head)
+int ReadNoUmountPolicy(struct io_buffer *head)
 {
-	NO_UMOUNT_ENTRY *ptr = (NO_UMOUNT_ENTRY *) head->read_var2;
+	struct no_umount_entry *ptr = head->read_var2;
 	if (!ptr) ptr = no_umount_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (ptr->is_deleted == 0 && io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n", ptr->dir->name)) break;
 		ptr = ptr->next;
 	}

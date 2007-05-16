@@ -59,11 +59,11 @@ static struct {
 	[TOMOYO_SYS_PIVOT_ROOT]             = { "SYS_PIVOT_ROOT", 0,      "sys_pivot_root()" },
 };
 
-typedef struct {
+struct profile {
 	unsigned char value[TOMOYO_MAX_CAPABILITY_INDEX];
-} PROFILE;
+};
 
-static PROFILE *profile_ptr[MAX_PROFILES];
+static struct profile *profile_ptr[MAX_PROFILES];
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
@@ -100,13 +100,13 @@ static unsigned int CheckCapabilityAccept(const unsigned int index)
 	return CheckCapabilityFlags(index) == 1;
 }
 
-static PROFILE *FindOrAssignNewProfile(const unsigned int profile)
+static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 {
 	static DECLARE_MUTEX(profile_lock);
-	PROFILE *ptr = NULL;
+	struct profile *ptr = NULL;
 	down(&profile_lock);
 	if (profile < MAX_PROFILES && (ptr = profile_ptr[profile]) == NULL) {
-		if ((ptr = (PROFILE *) alloc_element(sizeof(PROFILE))) != NULL) {
+		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) ptr->value[i] = capability_control_array[i].current_value;
 			mb(); /* Instead of using spinlock. */
@@ -120,7 +120,7 @@ static PROFILE *FindOrAssignNewProfile(const unsigned int profile)
 int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile)
 {
 	int i;
-	PROFILE *ptr = FindOrAssignNewProfile(profile);
+	struct profile *ptr = FindOrAssignNewProfile(profile);
 	if (!ptr) return -EINVAL;
 	for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) {
 		if (strcmp(data, capability_control_array[i].keyword)) continue;
@@ -131,12 +131,12 @@ int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int
 	return -EINVAL;
 }
 
-int ReadCapabilityStatus(IO_BUFFER *head)
+int ReadCapabilityStatus(struct io_buffer *head)
 {
 	int step;
 	for (step = head->read_step; step < MAX_PROFILES * TOMOYO_MAX_CAPABILITY_INDEX; step++) {
 		const int i = step / TOMOYO_MAX_CAPABILITY_INDEX, j = step % TOMOYO_MAX_CAPABILITY_INDEX;
-		const PROFILE *profile = profile_ptr[i];
+		const struct profile *profile = profile_ptr[i];
 		head->read_step = step;
 		if (!profile) continue;
 		if (io_printf(head, "%u-" KEYWORD_MAC_FOR_CAPABILITY "%s=%u\n", i, capability_control_array[j].keyword, profile->value[j])) break;
@@ -172,7 +172,7 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			CAPABILITY_ACL_RECORD *new_ptr;
+			struct capability_acl_record *new_ptr;
 			if (ptr->type == TYPE_CAPABILITY_ACL && ptr->u.w == hash && ptr->cond == condition) {
 				ptr->is_deleted = 0;
 				/* Found. Nothing to do. */
@@ -186,7 +186,7 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 		first_entry: ;
 			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
-			if ((new_ptr = (CAPABILITY_ACL_RECORD *) alloc_element(sizeof(CAPABILITY_ACL_RECORD))) == NULL) break;
+			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_CAPABILITY_ACL;
 			new_ptr->head.u.w = hash;
 			new_ptr->head.cond = condition;

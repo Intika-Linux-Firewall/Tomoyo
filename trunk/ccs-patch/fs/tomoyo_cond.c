@@ -161,11 +161,11 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 			}
 		}
 	}
-	size = sizeof(struct condition_list) + counter * sizeof(unsigned long);
-	new_ptr = (struct condition_list *) ccs_alloc(size);
+	size = sizeof(*new_ptr) + counter * sizeof(unsigned long);
+	new_ptr = ccs_alloc(size);
 	if (!new_ptr) return NULL;
 	new_ptr->length = counter;
-	ptr2 = (unsigned long *) (((u8 *) new_ptr) + sizeof(struct condition_list));
+	ptr2 = (unsigned long *) (((u8 *) new_ptr) + sizeof(*new_ptr));
 	condition = start;
 	while (*condition) {
 		unsigned int match = 0;
@@ -222,15 +222,17 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		struct condition_list *prev = NULL;
 		down(&lock);
 		for (ptr = &head; ptr; prev = ptr, ptr = ptr->next) {
+			/* Don't compare if size differs. */
 			if (ptr->length != new_ptr->length) continue;
-			if (memcmp(((u8 *) ptr) + sizeof(struct condition_list *), ((u8 *) new_ptr) + sizeof(struct condition_list *), size - sizeof(struct condition_list *))) continue;
+			/* Compare ptr and new_ptr except ptr->next and new_ptr->next . */
+			if (memcmp(((u8 *) ptr) + sizeof(ptr->next), ((u8 *) new_ptr) + sizeof(new_ptr->next), size - sizeof(ptr->next))) continue;
 			/* Same entry found. Share this entry. */
 			ccs_free(new_ptr);
 			new_ptr = ptr;
 			goto ok;
 		}
 		/* Same entry not found. Save this entry. */
-		ptr = (struct condition_list *) alloc_element(size);
+		ptr = alloc_element(size);
 		if (ptr) memmove(ptr, new_ptr, size);
 		ccs_free(new_ptr);
 		new_ptr = ptr;
@@ -360,7 +362,7 @@ int CheckCondition(const struct condition_list *ptr, struct obj_info *obj)
 	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
 	const unsigned long *ptr2;
 	if (!ptr) return 0;
-	ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(struct condition_list));
+	ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(*ptr));
 	for (i = 0; i < ptr->length; i++) {
 		const u8 match = ((*ptr2) >> 16) & 1, left = (*ptr2) >> 8, right = *ptr2;
 		ptr2++;
@@ -464,11 +466,11 @@ int CheckCondition(const struct condition_list *ptr, struct obj_info *obj)
 	return 0;
 }
 
-int DumpCondition(IO_BUFFER *head, const struct condition_list *ptr)
+int DumpCondition(struct io_buffer *head, const struct condition_list *ptr)
 {
 	if (ptr) {
 		int i;
-		const unsigned long *ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(struct condition_list));
+		const unsigned long *ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(*ptr));
 		char buffer[32];
 		memset(buffer, 0, sizeof(buffer));
 		for (i = 0; i < ptr->length; i++) {

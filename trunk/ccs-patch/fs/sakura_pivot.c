@@ -26,20 +26,20 @@ extern const char *ccs_log_level;
 
 /***** The structure for pivot_root restrictions. *****/
 
-typedef struct pivot_root_entry {
+struct pivot_root_entry {
 	struct pivot_root_entry *next;
 	const struct path_info *old_root;
 	const struct path_info *new_root;
 	int is_deleted;
-} PIVOT_ROOT_ENTRY;
+};
 
 /*************************  PIVOT_ROOT RESTRICTION HANDLER  *************************/
 
-static PIVOT_ROOT_ENTRY *pivot_root_list = NULL;
+static struct pivot_root_entry *pivot_root_list = NULL;
 
 static int AddPivotRootACL(const char *old_root, const char *new_root, const int is_delete)
 {
-	PIVOT_ROOT_ENTRY *new_entry, *ptr;
+	struct pivot_root_entry *new_entry, *ptr;
 	const struct path_info *saved_old_root, *saved_new_root;
 	static DECLARE_MUTEX(lock);
 	int error = -ENOMEM;
@@ -57,7 +57,7 @@ static int AddPivotRootACL(const char *old_root, const char *new_root, const int
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (PIVOT_ROOT_ENTRY *) alloc_element(sizeof(PIVOT_ROOT_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->old_root = saved_old_root;
 	new_entry->new_root = saved_new_root;
 	mb(); /* Instead of using spinlock. */
@@ -87,7 +87,7 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 		new_root_dir.name = new_root;
 		fill_path_info(&new_root_dir);
 		if (old_root_dir.is_dir && new_root_dir.is_dir) {
-			PIVOT_ROOT_ENTRY *ptr;
+			struct pivot_root_entry *ptr;
 			for (ptr = pivot_root_list; ptr; ptr = ptr->next) {
 				if (ptr->is_deleted) continue;
 				if (PathMatchesToPattern(&old_root_dir, ptr->old_root) && PathMatchesToPattern(&new_root_dir, ptr->new_root)) {
@@ -122,12 +122,12 @@ int AddPivotRootPolicy(char *data, const int is_delete)
 	return AddPivotRootACL(cp, data, is_delete);
 }
 
-int ReadPivotRootPolicy(IO_BUFFER *head)
+int ReadPivotRootPolicy(struct io_buffer *head)
 {
-	PIVOT_ROOT_ENTRY *ptr = (PIVOT_ROOT_ENTRY *) head->read_var2;
+	struct pivot_root_entry *ptr = head->read_var2;
 	if (!ptr) ptr = pivot_root_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (ptr->is_deleted == 0 && io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n", ptr->new_root->name, ptr->old_root->name)) break;
 		ptr = ptr->next;
 	}

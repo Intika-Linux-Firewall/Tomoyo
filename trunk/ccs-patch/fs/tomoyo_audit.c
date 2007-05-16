@@ -22,10 +22,10 @@ static DECLARE_WAIT_QUEUE_HEAD(reject_log_wait);
 
 static spinlock_t audit_log_lock = SPIN_LOCK_UNLOCKED;
 
-typedef struct log_entry {
+struct log_entry {
 	struct list_head list;
 	char *log;
-} LOG_ENTRY;
+};
 
 static LIST_HEAD(grant_log);
 static LIST_HEAD(reject_log);
@@ -60,7 +60,7 @@ static unsigned int GetMaxRejectLog(void)
  */
 int WriteAuditLog(char *buf, const int is_granted)
 {
-	LOG_ENTRY *new_entry = (LOG_ENTRY *) ccs_alloc(sizeof(LOG_ENTRY));
+	struct log_entry *new_entry = ccs_alloc(sizeof(*new_entry));
 	if (!new_entry) goto out;
 	INIT_LIST_HEAD(&new_entry->list);
 	new_entry->log = buf;
@@ -102,9 +102,9 @@ int CanSaveAuditLog(const int is_granted)
 	return -ENOMEM;
 }
 
-int ReadGrantLog(IO_BUFFER *head)
+int ReadGrantLog(struct io_buffer *head)
 {
-	LOG_ENTRY *ptr = NULL;
+	struct log_entry *ptr = NULL;
 	if (head->read_avail) return 0;
 	if (head->read_buf) {
 		ccs_free(head->read_buf); head->read_buf = NULL;
@@ -113,7 +113,7 @@ int ReadGrantLog(IO_BUFFER *head)
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&audit_log_lock);
 	if (!list_empty(&grant_log)) {
-		ptr = list_entry(grant_log.next, LOG_ENTRY, list);
+		ptr = list_entry(grant_log.next, struct log_entry, list);
 		list_del(&ptr->list);
 		grant_log_count--;
 	}
@@ -135,9 +135,9 @@ int PollGrantLog(struct file *file, poll_table *wait)
 	return 0;
 }
 
-int ReadRejectLog(IO_BUFFER *head)
+int ReadRejectLog(struct io_buffer *head)
 {
-	LOG_ENTRY *ptr = NULL;
+	struct log_entry *ptr = NULL;
 	if (head->read_avail) return 0;
 	if (head->read_buf) {
 		ccs_free(head->read_buf); head->read_buf = NULL;
@@ -146,7 +146,7 @@ int ReadRejectLog(IO_BUFFER *head)
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&audit_log_lock);
 	if (!list_empty(&reject_log)) {
-		ptr = list_entry(reject_log.next, LOG_ENTRY, list);
+		ptr = list_entry(reject_log.next, struct log_entry, list);
 		list_del(&ptr->list);
 		reject_log_count--;
 	}

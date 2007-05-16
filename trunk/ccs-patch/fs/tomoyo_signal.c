@@ -56,9 +56,9 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			SIGNAL_ACL_RECORD *new_ptr;
+			struct signal_acl_record *new_ptr;
 			if (ptr->type == TYPE_SIGNAL_ACL && ptr->u.w == hash && ptr->cond == condition) {
-				if (!pathcmp(((SIGNAL_ACL_RECORD *) ptr)->domainname, saved_dest_pattern)) {
+				if (!pathcmp(((struct signal_acl_record *) ptr)->domainname, saved_dest_pattern)) {
 					ptr->is_deleted = 0;
 					/* Found. Nothing to do. */
 					error = 0;
@@ -72,7 +72,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 		first_entry: ;
 			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
-			if ((new_ptr = (SIGNAL_ACL_RECORD *) alloc_element(sizeof(SIGNAL_ACL_RECORD))) == NULL) break;
+			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_SIGNAL_ACL;
 			new_ptr->head.u.w = hash;
 			new_ptr->head.cond = condition;
@@ -84,7 +84,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 			if (ptr->type != TYPE_SIGNAL_ACL || ptr->is_deleted || ptr->u.w != hash || ptr->cond != condition) continue;
-			if (pathcmp(((SIGNAL_ACL_RECORD *) ptr)->domainname, saved_dest_pattern)) continue;
+			if (pathcmp(((struct signal_acl_record *) ptr)->domainname, saved_dest_pattern)) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -125,8 +125,8 @@ int CheckSignalACL(const int sig, const int pid)
 	dest_pattern = dest->domainname->name;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 		if (ptr->type == TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && ptr->u.w == hash && CheckCondition(ptr->cond, NULL) == 0) {
-			const int len = ((SIGNAL_ACL_RECORD *) ptr)->domainname->total_len;
-			if (strncmp(((SIGNAL_ACL_RECORD *) ptr)->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) break;
+			const int len = ((struct signal_acl_record *) ptr)->domainname->total_len;
+			if (strncmp(((struct signal_acl_record *) ptr)->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) break;
 		}
 	}
 	if (ptr) {

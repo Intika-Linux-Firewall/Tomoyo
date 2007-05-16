@@ -70,19 +70,19 @@ struct path_info {
 
 #define CCS_MAX_PATHNAME_LEN 4000
 
-typedef struct group_member {
+struct group_member {
 	struct group_member *next;
 	const struct path_info *member_name;
 	int is_deleted;
-} GROUP_MEMBER;
+};
 
-typedef struct group_entry {
+struct group_entry {
 	struct group_entry *next;
 	const struct path_info *group_name;
-	GROUP_MEMBER *first_member;
-} GROUP_ENTRY;
+	struct group_member *first_member;
+};
 
-typedef struct address_group_member {
+struct address_group_member {
 	struct address_group_member *next;
 	union {
 		u32 ipv4;    /* Host byte order    */
@@ -90,13 +90,13 @@ typedef struct address_group_member {
 	} min, max;
 	u8 is_deleted;
 	u8 is_ipv6;
-} ADDRESS_GROUP_MEMBER;
+};
 
-typedef struct address_group_entry {
+struct address_group_entry {
 	struct address_group_entry *next;
 	const struct path_info *group_name;
-	ADDRESS_GROUP_MEMBER *first_member;
-} ADDRESS_GROUP_ENTRY;
+	struct address_group_member *first_member;
+};
 
 /*
  *  TOMOYO uses the following structures.
@@ -130,38 +130,38 @@ struct domain_info {
 
 #define MAX_PROFILES 256
 
-typedef struct {
+struct file_acl_record {
 	struct acl_info head;                   /* type = TYPE_FILE_ACL, b[0] = perm, b[1] = u_is_group */
 	union {
 		const struct path_info *filename;   /* Pointer to single pathname. */
 		const struct group_entry *group;    /* Pointer to pathname group.  */
 	} u;
-} FILE_ACL_RECORD;
+};
 
-typedef struct {
+struct argv0_acl_record {
 	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
 	const struct path_info *filename; /* Pointer to single pathname. */
 	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
-} ARGV0_ACL_RECORD;
+};
 
-typedef struct {
+struct capability_acl_record {
 	struct acl_info head;   /* type = TYPE_CAPABILITY_ACL, w = capability index. */
-} CAPABILITY_ACL_RECORD;
+};
 
-typedef struct {
+struct signal_acl_record {
 	struct acl_info head;               /* type = TYPE_SIGNAL_ACL, w = signal_number. */
 	const struct path_info *domainname; /* Pointer to destination pattern.            */
-} SIGNAL_ACL_RECORD;
+};
 
-typedef struct {
+struct single_acl_record {
 	struct acl_info head;                 /* type = TYPE_*, w = u_is_group */
 	union {
 		const struct path_info *filename; /* Pointer to single pathname. */
 		const struct group_entry *group;  /* Pointer to pathname group.  */
 	} u;
-} SINGLE_ACL_RECORD;
+};
 
-typedef struct {
+struct double_acl_record {
 	struct acl_info head;                   /* type = TYPE_RENAME_ACL or TYPE_LINK_ACL, b[0] = u1_is_group, b[1] = u2_is_group */
 	union {
 		const struct path_info *filename1;  /* Pointer to single pathname. */
@@ -171,13 +171,13 @@ typedef struct {
 		const struct path_info *filename2;  /* Pointer to single pathname. */
 		const struct group_entry *group2;   /* Pointer to pathname group.  */
 	} u2;
-} DOUBLE_ACL_RECORD;
+};
 
 #define IP_RECORD_TYPE_ADDRESS_GROUP 0
 #define IP_RECORD_TYPE_IPv4          1
 #define IP_RECORD_TYPE_IPv6          2
 
-typedef struct {
+struct ip_network_acl_record {
 	struct acl_info head;   /* type = TYPE_IP_NETWORK_ACL, b[0] = socket_type, b[1] = IP_RECORD_TYPE_* */
 	union {
 		struct {
@@ -192,7 +192,7 @@ typedef struct {
 	} u;
 	u16 min_port;           /* Start of port number range.                   */
 	u16 max_port;           /* End of port number range.                     */
-} IP_NETWORK_ACL_RECORD;
+};
 
 /*************************  Keywords for ACLs.  *************************/
 
@@ -293,13 +293,13 @@ typedef struct {
 
 /*************************  The structure for /proc interfaces.  *************************/
 
-typedef struct io_buffer {
+struct io_buffer {
 	int (*read) (struct io_buffer *);
 	struct semaphore read_sem;
 	int (*write) (struct io_buffer *);
 	struct semaphore write_sem;
 	int (*poll) (struct file *file, poll_table *wait);
-	struct domain_info *read_var1;    /* The position currently reading from. */
+	void *read_var1;                  /* The position currently reading from. */
 	void *read_var2;                  /* Extra variables for reading.         */
 	struct domain_info *write_var1;   /* The position currently writing to.   */
 	int read_step;                    /* The step for reading.                */
@@ -310,13 +310,13 @@ typedef struct io_buffer {
 	char *write_buf;                  /* Buffer for writing.                  */
 	int write_avail;                  /* Bytes available for writing.         */
 	int writebuf_size;                /* Size of write buffer.                */
-} IO_BUFFER;
+};
 
 /*************************  PROTOTYPES  *************************/
 
 char *FindConditionPart(char *data);
 char *InitAuditLog(int *len);
-char *ccs_alloc(const size_t size);
+void *ccs_alloc(const size_t size);
 char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
 const char *GetEXE(void);
 const char *GetLastName(const struct domain_info *domain);
@@ -355,37 +355,37 @@ int CheckCondition(const struct condition_list *condition, struct obj_info *obj_
 int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
 int DelDomainACL(struct acl_info *ptr);
 int DeleteDomain(char *data);
-int DumpCondition(IO_BUFFER *head, const struct condition_list *ptr);
+int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
 int IsCorrectDomain(const unsigned char *domainname, const char *function);
 int IsCorrectPath(const char *filename, const int start_type, const int pattern_type, const int end_type, const char *function);
 int IsDomainDef(const unsigned char *buffer);
 int PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0);
 int PollGrantLog(struct file *file, poll_table *wait);
 int PollRejectLog(struct file *file, poll_table *wait);
-int ReadAddressGroupPolicy(IO_BUFFER *head);
-int ReadAggregatorPolicy(IO_BUFFER *head);
-int ReadAliasPolicy(IO_BUFFER *head);
-int ReadCapabilityStatus(IO_BUFFER *head);
-int ReadChrootPolicy(IO_BUFFER *head);
-int ReadDomainInitializerPolicy(IO_BUFFER *head);
-int ReadDomainKeeperPolicy(IO_BUFFER *head);
-int ReadGloballyReadablePolicy(IO_BUFFER *head);
-int ReadGrantLog(IO_BUFFER *head);
-int ReadGroupPolicy(IO_BUFFER *head);
-int ReadMountPolicy(IO_BUFFER *head);
-int ReadNoRewritePolicy(IO_BUFFER *head);
-int ReadNoUmountPolicy(IO_BUFFER *head);
-int ReadPatternPolicy(IO_BUFFER *head);
-int ReadPivotRootPolicy(IO_BUFFER *head);
-int ReadPermissionMapping(IO_BUFFER *head);
-int ReadRejectLog(IO_BUFFER *head);
-int ReadReservedPortPolicy(IO_BUFFER *head);
-int ReadSelfDomain(IO_BUFFER *head);
+int ReadAddressGroupPolicy(struct io_buffer *head);
+int ReadAggregatorPolicy(struct io_buffer *head);
+int ReadAliasPolicy(struct io_buffer *head);
+int ReadCapabilityStatus(struct io_buffer *head);
+int ReadChrootPolicy(struct io_buffer *head);
+int ReadDomainInitializerPolicy(struct io_buffer *head);
+int ReadDomainKeeperPolicy(struct io_buffer *head);
+int ReadGloballyReadablePolicy(struct io_buffer *head);
+int ReadGrantLog(struct io_buffer *head);
+int ReadGroupPolicy(struct io_buffer *head);
+int ReadMountPolicy(struct io_buffer *head);
+int ReadNoRewritePolicy(struct io_buffer *head);
+int ReadNoUmountPolicy(struct io_buffer *head);
+int ReadPatternPolicy(struct io_buffer *head);
+int ReadPivotRootPolicy(struct io_buffer *head);
+int ReadPermissionMapping(struct io_buffer *head);
+int ReadRejectLog(struct io_buffer *head);
+int ReadReservedPortPolicy(struct io_buffer *head);
+int ReadSelfDomain(struct io_buffer *head);
 int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile);
-int SetPermissionMapping(IO_BUFFER *head);
+int SetPermissionMapping(struct io_buffer *head);
 int WriteAuditLog(char *log, const int is_granted);
 int acltype2paths(const unsigned int acl_type);
-int io_printf(IO_BUFFER *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
+int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 struct domain_info *FindDomain(const char *domainname);
 struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile);
 struct domain_info *UndeleteDomain(const char *domainname0);

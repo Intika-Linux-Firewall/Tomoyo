@@ -40,7 +40,7 @@ DECLARE_MUTEX(domain_acl_lock);
 
 /***** The structure for program files to force domain reconstruction. *****/
 
-typedef struct domain_initializer_entry {
+struct domain_initializer_entry {
 	struct domain_initializer_entry *next;
 	const struct path_info *domainname;    /* This may be NULL */
 	const struct path_info *program;
@@ -48,36 +48,36 @@ typedef struct domain_initializer_entry {
 	u8 is_not;
 	u8 is_last_name;
 	u8 is_oldstyle;
-} DOMAIN_INITIALIZER_ENTRY;
+};
 
 /***** The structure for domains to not to transit domains. *****/
 
-typedef struct domain_keeper_entry {
+struct domain_keeper_entry {
 	struct domain_keeper_entry *next;
 	const struct path_info *domainname;
 	const struct path_info *program;       /* This may be NULL */
 	u8 is_deleted;
 	u8 is_not;
 	u8 is_last_name;
-} DOMAIN_KEEPER_ENTRY;
+};
 
 /***** The structure for program files that should be aggregated. *****/
 
-typedef struct aggregator_entry {
+struct aggregator_entry {
 	struct aggregator_entry *next;
 	const struct path_info *original_name;
 	const struct path_info *aggregated_name;
 	int is_deleted;
-} AGGREGATOR_ENTRY;
+};
 
 /***** The structure for program files that should be aliased. *****/
 
-typedef struct alias_entry {
+struct alias_entry {
 	struct alias_entry *next;
 	const struct path_info *original_name;
 	const struct path_info *aliased_name;
 	int is_deleted;
-} ALIAS_ENTRY;
+};
 
 /*************************  VARIABLES  *************************/
 
@@ -99,7 +99,7 @@ const char *GetLastName(const struct domain_info *domain)
 	return cp0;
 }
 
-int ReadSelfDomain(IO_BUFFER *head)
+int ReadSelfDomain(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		io_printf(head, "%s", current->domain_info->domainname->name);
@@ -142,11 +142,11 @@ int TooManyDomainACL(struct domain_info * const domain) {
 
 /*************************  DOMAIN INITIALIZER HANDLER  *************************/
 
-static DOMAIN_INITIALIZER_ENTRY *domain_initializer_list = NULL;
+static struct domain_initializer_entry *domain_initializer_list = NULL;
 
 static int AddDomainInitializerEntry(const char *domainname, const char *program, const int is_not, const int is_delete, const int is_oldstyle)
 {
-	DOMAIN_INITIALIZER_ENTRY *new_entry, *ptr;
+	struct domain_initializer_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_program, *saved_domainname = NULL;
 	int error = -ENOMEM;
@@ -173,7 +173,7 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (DOMAIN_INITIALIZER_ENTRY *) alloc_element(sizeof(DOMAIN_INITIALIZER_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->domainname = saved_domainname;
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
@@ -191,12 +191,12 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	return error;
 }
 
-int ReadDomainInitializerPolicy(IO_BUFFER *head)
+int ReadDomainInitializerPolicy(struct io_buffer *head)
 {
-	DOMAIN_INITIALIZER_ENTRY *ptr = (DOMAIN_INITIALIZER_ENTRY *) head->read_var2;
+	struct domain_initializer_entry *ptr = head->read_var2;
 	if (!ptr) ptr = domain_initializer_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (!ptr->is_deleted) {
 			if (ptr->domainname) {
 				if (io_printf(head, "%s%s%s from %s\n", ptr->is_not ? "no_" : "", ptr->is_oldstyle ? KEYWORD_INITIALIZER : KEYWORD_INITIALIZE_DOMAIN, ptr->program->name, ptr->domainname->name)) break;
@@ -222,7 +222,7 @@ int AddDomainInitializerPolicy(char *data, const int is_not, const int is_delete
 
 static int IsDomainInitializer(const struct path_info *domainname, const struct path_info *program, const struct path_info *last_name)
 {
-	DOMAIN_INITIALIZER_ENTRY *ptr;
+	struct domain_initializer_entry *ptr;
 	int flag = 0;
 	for (ptr = domain_initializer_list; ptr; ptr = ptr->next) {
 		if (ptr->is_deleted ) continue;
@@ -242,11 +242,11 @@ static int IsDomainInitializer(const struct path_info *domainname, const struct 
 
 /*************************  DOMAIN KEEPER HANDLER  *************************/
 
-static DOMAIN_KEEPER_ENTRY *domain_keeper_list = NULL;
+static struct domain_keeper_entry *domain_keeper_list = NULL;
 
 static int AddDomainKeeperEntry(const char *domainname, const char *program, const int is_not, const int is_delete)
 {
-	DOMAIN_KEEPER_ENTRY *new_entry, *ptr;
+	struct domain_keeper_entry *new_entry, *ptr;
 	const struct path_info *saved_domainname, *saved_program = NULL;
 	static DECLARE_MUTEX(lock);
 	int error = -ENOMEM;
@@ -273,7 +273,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (DOMAIN_KEEPER_ENTRY *) alloc_element(sizeof(DOMAIN_KEEPER_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->domainname = saved_domainname;
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
@@ -301,12 +301,12 @@ int AddDomainKeeperPolicy(char *data, const int is_not, const int is_delete)
 	}
 }
 
-int ReadDomainKeeperPolicy(IO_BUFFER *head)
+int ReadDomainKeeperPolicy(struct io_buffer *head)
 {
-	DOMAIN_KEEPER_ENTRY *ptr = (DOMAIN_KEEPER_ENTRY *) head->read_var2;
+	struct domain_keeper_entry *ptr = head->read_var2;
 	if (!ptr) ptr = domain_keeper_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (!ptr->is_deleted) {
 			if (ptr->program) {
 				if (io_printf(head, "%s" KEYWORD_KEEP_DOMAIN "%s from %s\n", ptr->is_not ? "no_" : "", ptr->program->name, ptr->domainname->name)) break;
@@ -321,7 +321,7 @@ int ReadDomainKeeperPolicy(IO_BUFFER *head)
 
 static int IsDomainKeeper(const struct path_info *domainname, const struct path_info *program, const struct path_info *last_name)
 {
-	DOMAIN_KEEPER_ENTRY *ptr;
+	struct domain_keeper_entry *ptr;
 	int flag = 0;
 	for (ptr = domain_keeper_list; ptr; ptr = ptr->next) {
 		if (ptr->is_deleted) continue;
@@ -339,11 +339,11 @@ static int IsDomainKeeper(const struct path_info *domainname, const struct path_
 
 /*************************  SYMBOLIC LINKED PROGRAM HANDLER  *************************/
 
-static ALIAS_ENTRY *alias_list = NULL;
+static struct alias_entry *alias_list = NULL;
 
 static int AddAliasEntry(const char *original_name, const char *aliased_name, const int is_delete)
 {
-	ALIAS_ENTRY *new_entry, *ptr;
+	struct alias_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_original_name, *saved_aliased_name;
 	int error = -ENOMEM;
@@ -361,7 +361,7 @@ static int AddAliasEntry(const char *original_name, const char *aliased_name, co
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (ALIAS_ENTRY *) alloc_element(sizeof(ALIAS_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aliased_name = saved_aliased_name;
 	mb(); /* Instead of using spinlock. */
@@ -376,12 +376,12 @@ static int AddAliasEntry(const char *original_name, const char *aliased_name, co
 	return error;
 }
 
-int ReadAliasPolicy(IO_BUFFER *head)
+int ReadAliasPolicy(struct io_buffer *head)
 {
-	ALIAS_ENTRY *ptr = (ALIAS_ENTRY *) head->read_var2;
+	struct alias_entry *ptr = head->read_var2;
 	if (!ptr) ptr = alias_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (!ptr->is_deleted && io_printf(head, KEYWORD_ALIAS "%s %s\n", ptr->original_name->name, ptr->aliased_name->name)) break;
 		ptr = ptr->next;
 	}
@@ -398,11 +398,11 @@ int AddAliasPolicy(char *data, const int is_delete)
 
 /*************************  DOMAIN AGGREGATOR HANDLER  *************************/
 
-static AGGREGATOR_ENTRY *aggregator_list = NULL;
+static struct aggregator_entry *aggregator_list = NULL;
 
 static int AddAggregatorEntry(const char *original_name, const char *aggregated_name, const int is_delete)
 {
-	AGGREGATOR_ENTRY *new_entry, *ptr;
+	struct aggregator_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_original_name, *saved_aggregated_name;
 	int error = -ENOMEM;
@@ -420,7 +420,7 @@ static int AddAggregatorEntry(const char *original_name, const char *aggregated_
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (AGGREGATOR_ENTRY *) alloc_element(sizeof(AGGREGATOR_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aggregated_name = saved_aggregated_name;
 	mb(); /* Instead of using spinlock. */
@@ -435,12 +435,12 @@ static int AddAggregatorEntry(const char *original_name, const char *aggregated_
 	return error;
 }
 
-int ReadAggregatorPolicy(IO_BUFFER *head)
+int ReadAggregatorPolicy(struct io_buffer *head)
 {
-	AGGREGATOR_ENTRY *ptr = (AGGREGATOR_ENTRY *) head->read_var2;
+	struct aggregator_entry *ptr = head->read_var2;
 	if (!ptr) ptr = aggregator_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (!ptr->is_deleted && io_printf(head, KEYWORD_AGGREGATOR "%s %s\n", ptr->original_name->name, ptr->aggregated_name->name)) break;
 		ptr = ptr->next;
 	}
@@ -588,7 +588,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		goto out;
 	}
 	/* No memory reusable. Create using new memory. */
-	if ((domain = (struct domain_info *) alloc_element(sizeof(struct domain_info))) != NULL) {
+	if ((domain = alloc_element(sizeof(*domain))) != NULL) {
 		struct domain_info *ptr = &KERNEL_DOMAIN;
 		domain->domainname = saved_domainname;
 		domain->profile = profile;
@@ -703,7 +703,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 
 	/* Check 'alias' directive. */
 	if (pathcmp(&r, &s)) {
-		ALIAS_ENTRY *ptr;
+		struct alias_entry *ptr;
 		/* Is this program allowed to be called via symbolic links? */
 		for (ptr = alias_list; ptr; ptr = ptr->next) {
 			if (ptr->is_deleted || pathcmp(&r, ptr->original_name) || pathcmp(&s, ptr->aliased_name)) continue;
@@ -736,7 +736,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	
 	/* Check 'aggregator' directive. */
 	{
-		AGGREGATOR_ENTRY *ptr;
+		struct aggregator_entry *ptr;
 		/* Is this program allowed to be aggregated? */
 		for (ptr = aggregator_list; ptr; ptr = ptr->next) {
 			if (ptr->is_deleted || !PathMatchesToPattern(&r, ptr->original_name)) continue;

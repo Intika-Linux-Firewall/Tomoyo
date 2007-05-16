@@ -24,27 +24,27 @@ extern struct semaphore domain_acl_lock;
 
 /***** The structure for globally readable files. *****/
 
-typedef struct globally_readable_file_entry {
+struct globally_readable_file_entry {
 	struct globally_readable_file_entry *next;
 	const struct path_info *filename;
 	int is_deleted;
-} GLOBALLY_READABLE_FILE_ENTRY;
+};
 
 /***** The structure for filename patterns. *****/
 
-typedef struct pattern_entry {
+struct pattern_entry {
 	struct pattern_entry *next;
 	const struct path_info *pattern;
 	int is_deleted;
-} PATTERN_ENTRY;
+};
 
 /***** The structure for non-rewritable-by-default file patterns. *****/
 
-typedef struct no_rewrite_entry {
+struct no_rewrite_entry {
 	struct no_rewrite_entry *next;
 	const struct path_info *pattern;
 	int is_deleted;
-} NO_REWRITE_ENTRY;
+};
 
 /***** The structure for detailed write operations. *****/
 
@@ -101,12 +101,12 @@ static int strendswith(const char *name, const char *tail)
 
 static struct path_info *GetPath(struct dentry *dentry, struct vfsmount *mnt)
 {
-	struct path_info_with_data { /* sizeof(struct path_info_with_data) <= PAGE_SIZE */
+	struct path_info_with_data { /* Keep sizeof(struct path_info_with_data) <= PAGE_SIZE for speed. */
 		struct path_info head; /* Keep this first, for this pointer is passed to ccs_free(). */
 		char bariier1[16];
 		char body[CCS_MAX_PATHNAME_LEN];
 		char barrier2[16];
-	} *buf = (struct path_info_with_data *) ccs_alloc(sizeof(struct path_info_with_data));
+	} *buf = ccs_alloc(sizeof(*buf));
 	if (buf) {
 		int error;
 		if ((error = realpath_from_dentry2(dentry, mnt, buf->body, sizeof(buf->body) - 1)) == 0) {
@@ -156,7 +156,7 @@ static inline void AuditWriteLog(const char *operation, const struct path_info *
 
 /*************************  PERMISSION MAP HANDLER  *************************/
 
-int SetPermissionMapping(IO_BUFFER *head)
+int SetPermissionMapping(struct io_buffer *head)
 {
 	int i;
 	char *data = head->write_buf;
@@ -183,7 +183,7 @@ int SetPermissionMapping(IO_BUFFER *head)
 	return -EINVAL;
 }
 
-int ReadPermissionMapping(IO_BUFFER *head)
+int ReadPermissionMapping(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		int i;
@@ -197,11 +197,11 @@ int ReadPermissionMapping(IO_BUFFER *head)
 
 /*************************  GLOBALLY READABLE FILE HANDLER  *************************/
 
-static GLOBALLY_READABLE_FILE_ENTRY *globally_readable_list = NULL;
+static struct globally_readable_file_entry *globally_readable_list = NULL;
 
 static int AddGloballyReadableEntry(const char *filename, const int is_delete)
 {
-	GLOBALLY_READABLE_FILE_ENTRY *new_entry, *ptr;
+	struct globally_readable_file_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_filename;
 	int error = -ENOMEM;
@@ -218,7 +218,7 @@ static int AddGloballyReadableEntry(const char *filename, const int is_delete)
 	if (is_delete) {
 		error = -ENOENT; goto out;
 	}
-	if ((new_entry = (GLOBALLY_READABLE_FILE_ENTRY *) alloc_element(sizeof(GLOBALLY_READABLE_FILE_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->filename = saved_filename;
 	mb(); /* Instead of using spinlock. */
 	if ((ptr = globally_readable_list) != NULL) {
@@ -234,7 +234,7 @@ static int AddGloballyReadableEntry(const char *filename, const int is_delete)
 
 static int IsGloballyReadableFile(const struct path_info *filename)
 {
-	GLOBALLY_READABLE_FILE_ENTRY *ptr;
+	struct globally_readable_file_entry *ptr;
 	for (ptr = globally_readable_list; ptr; ptr = ptr->next) {
 		if (!ptr->is_deleted && !pathcmp(filename, ptr->filename)) return 1;
 	}
@@ -246,12 +246,12 @@ int AddGloballyReadablePolicy(char *filename, const int is_delete)
 	return AddGloballyReadableEntry(filename, is_delete);
 }
 
-int ReadGloballyReadablePolicy(IO_BUFFER *head)
+int ReadGloballyReadablePolicy(struct io_buffer *head)
 {
-	GLOBALLY_READABLE_FILE_ENTRY *ptr = (GLOBALLY_READABLE_FILE_ENTRY *) head->read_var2;
+	struct globally_readable_file_entry *ptr = head->read_var2;
 	if (!ptr) ptr = globally_readable_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (!ptr->is_deleted && io_printf(head, KEYWORD_ALLOW_READ "%s\n", ptr->filename->name)) break;
 		ptr = ptr->next;
 	}
@@ -260,13 +260,13 @@ int ReadGloballyReadablePolicy(IO_BUFFER *head)
 
 /*************************  FILE GROUP HANDLER  *************************/
 
-static GROUP_ENTRY *group_list = NULL;
+static struct group_entry *group_list = NULL;
 
 static int AddGroupEntry(const char *group_name, const char *member_name, const int is_delete)
 {
 	static DECLARE_MUTEX(lock);
-	GROUP_ENTRY *new_group, *group;
-	GROUP_MEMBER *new_member, *member;
+	struct group_entry *new_group, *group;
+	struct group_member *new_member, *member;
 	const struct path_info *saved_group_name, *saved_member_name;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(group_name, 0, 0, 0, __FUNCTION__) || !group_name[0] ||
@@ -290,7 +290,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 		goto out;
 	}
 	if (!group) {
-		if ((new_group = (GROUP_ENTRY *) alloc_element(sizeof(GROUP_ENTRY))) == NULL) goto out;
+		if ((new_group = alloc_element(sizeof(*new_group))) == NULL) goto out;
 		new_group->group_name = saved_group_name;
 		mb(); /* Instead of using spinlock. */
 		if ((group = group_list) != NULL) {
@@ -300,7 +300,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 		}
 		group = new_group;
 	}
-	if ((new_member = (GROUP_MEMBER *) alloc_element(sizeof(GROUP_MEMBER))) == NULL) goto out;
+	if ((new_member = alloc_element(sizeof(*new_member))) == NULL) goto out;
 	new_member->member_name = saved_member_name;
 	mb(); /* Instead of using spinlock. */
 	if ((member = group->first_member) != NULL) {
@@ -322,10 +322,10 @@ int AddGroupPolicy(char *data, const int is_delete)
 	return AddGroupEntry(data, cp, is_delete);
 }
 
-static GROUP_ENTRY *FindOrAssignNewGroup(const char *group_name)
+static struct group_entry *FindOrAssignNewGroup(const char *group_name)
 {
 	int i;
-	GROUP_ENTRY *group;
+	struct group_entry *group;
 	for (i = 0; i <= 1; i++) {
 		for (group = group_list; group; group = group->next) {
 			if (strcmp(group_name, group->group_name->name) == 0) return group;
@@ -338,9 +338,9 @@ static GROUP_ENTRY *FindOrAssignNewGroup(const char *group_name)
 	return NULL;
 }
 
-static int PathMatchesToGroup(const struct path_info *pathname, const GROUP_ENTRY *group, const int may_use_pattern)
+static int PathMatchesToGroup(const struct path_info *pathname, const struct group_entry *group, const int may_use_pattern)
 {
-	GROUP_MEMBER *member;
+	struct group_member *member;
 	for (member = group->first_member; member; member = member->next) {
 		if (member->is_deleted) continue;
 		if (!member->member_name->is_patterned) {
@@ -352,16 +352,16 @@ static int PathMatchesToGroup(const struct path_info *pathname, const GROUP_ENTR
 	return 0;
 }
 
-int ReadGroupPolicy(IO_BUFFER *head)
+int ReadGroupPolicy(struct io_buffer *head)
 {
-	GROUP_ENTRY *group = (GROUP_ENTRY *) head->read_var1;
-	GROUP_MEMBER *member = (GROUP_MEMBER *) head->read_var2;
+	struct group_entry *group = head->read_var1;
+	struct group_member *member = head->read_var2;
 	if (!group) group = group_list;
 	while (group) {
-		head->read_var1 = (struct domain_info *) group;
+		head->read_var1 = group;
 		if (!member) member = group->first_member;
 		while (member) {
-			head->read_var2 = (void *) member;
+			head->read_var2 = member;
 			if (!member->is_deleted && io_printf(head, KEYWORD_PATH_GROUP "%s %s\n", group->group_name->name, member->member_name->name)) break;
 			member = member->next;
 		}
@@ -374,11 +374,11 @@ int ReadGroupPolicy(IO_BUFFER *head)
 
 /*************************  FILE PATTERN HANDLER  *************************/
 
-static PATTERN_ENTRY *pattern_list = NULL;
+static struct pattern_entry *pattern_list = NULL;
 
 static int AddPatternEntry(const char *pattern, const int is_delete)
 {
-	PATTERN_ENTRY *new_entry, *ptr;
+	struct pattern_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_pattern;
 	int error = -ENOMEM;
@@ -396,7 +396,7 @@ static int AddPatternEntry(const char *pattern, const int is_delete)
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (PATTERN_ENTRY *) alloc_element(sizeof(PATTERN_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->pattern = saved_pattern;
 	mb(); /* Instead of using spinlock. */
 	if ((ptr = pattern_list) != NULL) {
@@ -412,7 +412,7 @@ static int AddPatternEntry(const char *pattern, const int is_delete)
 
 static const struct path_info *GetPattern(const struct path_info *filename)
 {
-	PATTERN_ENTRY *ptr;
+	struct pattern_entry *ptr;
 	const struct path_info *pattern = NULL;
 	for (ptr = pattern_list; ptr; ptr = ptr->next) {
 		if (ptr->is_deleted) continue;
@@ -434,12 +434,12 @@ int AddPatternPolicy(char *pattern, const int is_delete)
 	return AddPatternEntry(pattern, is_delete);
 }
 
-int ReadPatternPolicy(IO_BUFFER *head)
+int ReadPatternPolicy(struct io_buffer *head)
 {
-	PATTERN_ENTRY *ptr = (PATTERN_ENTRY *) head->read_var2;
+	struct pattern_entry *ptr = head->read_var2;
 	if (!ptr) ptr = pattern_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (!ptr->is_deleted && io_printf(head, KEYWORD_FILE_PATTERN "%s\n", ptr->pattern->name)) break;
 		ptr = ptr->next;
 	}
@@ -448,11 +448,11 @@ int ReadPatternPolicy(IO_BUFFER *head)
 
 /*************************  NON REWRITABLE FILE HANDLER  *************************/
 
-static NO_REWRITE_ENTRY *no_rewrite_list = NULL;
+static struct no_rewrite_entry *no_rewrite_list = NULL;
 
 static int AddNoRewriteEntry(const char *pattern, const int is_delete)
 {
-	NO_REWRITE_ENTRY *new_entry, *ptr;
+	struct no_rewrite_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_pattern;
 	int error = -ENOMEM;
@@ -470,7 +470,7 @@ static int AddNoRewriteEntry(const char *pattern, const int is_delete)
 		error = -ENOENT;
 		goto out;
 	}
-	if ((new_entry = (NO_REWRITE_ENTRY *) alloc_element(sizeof(NO_REWRITE_ENTRY))) == NULL) goto out;
+	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->pattern = saved_pattern;
 	mb(); /* Instead of using spinlock. */
 	if ((ptr = no_rewrite_list) != NULL) {
@@ -486,7 +486,7 @@ static int AddNoRewriteEntry(const char *pattern, const int is_delete)
 
 static int IsNoRewriteFile(const struct path_info *filename)
 {
-	NO_REWRITE_ENTRY *ptr;
+	struct no_rewrite_entry *ptr;
 	for (ptr = no_rewrite_list; ptr; ptr = ptr->next) {
 		if (ptr->is_deleted) continue;
 		if (!PathMatchesToPattern(filename, ptr->pattern)) continue;
@@ -500,12 +500,12 @@ int AddNoRewritePolicy(char *pattern, const int is_delete)
 	return AddNoRewriteEntry(pattern, is_delete);
 }
 
-int ReadNoRewritePolicy(IO_BUFFER *head)
+int ReadNoRewritePolicy(struct io_buffer *head)
 {
-	NO_REWRITE_ENTRY *ptr = (NO_REWRITE_ENTRY *) head->read_var2;
+	struct no_rewrite_entry *ptr = head->read_var2;
 	if (!ptr) ptr = no_rewrite_list;
 	while (ptr) {
-		head->read_var2 = (void *) ptr;
+		head->read_var2 = ptr;
 		if (!ptr->is_deleted && io_printf(head, KEYWORD_DENY_REWRITE "%s\n", ptr->pattern->name)) break;
 		ptr = ptr->next;
 	}
@@ -544,9 +544,9 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			FILE_ACL_RECORD *new_ptr;
+			struct file_acl_record *new_ptr;
 			if (ptr->type == TYPE_FILE_ACL && ptr->cond == condition) {
-				if (((FILE_ACL_RECORD *) ptr)->u.filename == saved_filename) {
+				if (((struct file_acl_record *) ptr)->u.filename == saved_filename) {
 					if (ptr->is_deleted) {
 						ptr->u.b[0] = 0;
 						mb();
@@ -566,7 +566,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 	first_entry: ;
 			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
-			if ((new_ptr = (FILE_ACL_RECORD *) alloc_element(sizeof(FILE_ACL_RECORD))) == NULL) break;
+			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_FILE_ACL;
 			new_ptr->head.u.b[0] = perm;
 			new_ptr->head.u.b[1] = is_group;
@@ -578,7 +578,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 	} else {
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 			if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || ptr->cond != condition || ptr->u.b[0] != perm) continue;
-			if (((FILE_ACL_RECORD *) ptr)->u.filename != saved_filename) continue;
+			if (((struct file_acl_record *) ptr)->u.filename != saved_filename) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -599,9 +599,9 @@ static int CheckFileACL(const struct path_info *filename, const u8 perm, struct 
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 		if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || (ptr->u.b[0] & perm) != perm || CheckCondition(ptr->cond, obj)) continue;
 		if (ptr->u.b[1]) {
-			if (PathMatchesToGroup(filename, ((FILE_ACL_RECORD *) ptr)->u.group, may_use_pattern)) return 0;
-		} else if (may_use_pattern || !((FILE_ACL_RECORD *) ptr)->u.filename->is_patterned) {
-			if (PathMatchesToPattern(filename, ((FILE_ACL_RECORD *) ptr)->u.filename)) return 0;
+			if (PathMatchesToGroup(filename, ((struct file_acl_record *) ptr)->u.group, may_use_pattern)) return 0;
+		} else if (may_use_pattern || !((struct file_acl_record *) ptr)->u.filename->is_patterned) {
+			if (PathMatchesToPattern(filename, ((struct file_acl_record *) ptr)->u.filename)) return 0;
 		}
 	}
 	return -EPERM;
@@ -685,9 +685,9 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			SINGLE_ACL_RECORD *new_ptr;
+			struct single_acl_record *new_ptr;
 			if (ptr->type == type && ptr->cond == condition) {
-				if (((SINGLE_ACL_RECORD *) ptr)->u.filename == saved_filename) {
+				if (((struct single_acl_record *) ptr)->u.filename == saved_filename) {
 					ptr->is_deleted = 0;
 					/* Found. Nothing to do. */
 					error = 0;
@@ -701,7 +701,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 		first_entry: ;
 			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
-			if ((new_ptr = (SINGLE_ACL_RECORD *) alloc_element(sizeof(SINGLE_ACL_RECORD))) == NULL) break;
+			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = type;
 			new_ptr->head.cond = condition;
 			new_ptr->head.u.w = is_group;
@@ -713,7 +713,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
-			if (((SINGLE_ACL_RECORD *) ptr)->u.filename != saved_filename) continue;
+			if (((struct single_acl_record *) ptr)->u.filename != saved_filename) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -748,9 +748,9 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			DOUBLE_ACL_RECORD *new_ptr;
+			struct double_acl_record *new_ptr;
 			if (ptr->type == type && ptr->cond == condition) {
-				if (((DOUBLE_ACL_RECORD *) ptr)->u1.filename1 == saved_filename1 && ((DOUBLE_ACL_RECORD *) ptr)->u2.filename2 == saved_filename2) {
+				if (((struct double_acl_record *) ptr)->u1.filename1 == saved_filename1 && ((struct double_acl_record *) ptr)->u2.filename2 == saved_filename2) {
 					ptr->is_deleted = 0;
 					/* Found. Nothing to do. */
 					error = 0;
@@ -764,7 +764,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 		first_entry: ;
 			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
-			if ((new_ptr = (DOUBLE_ACL_RECORD *) alloc_element(sizeof(DOUBLE_ACL_RECORD))) == NULL) break;
+			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = type;
 			new_ptr->head.cond = condition;
 			new_ptr->head.u.b[0] = is_group1;
@@ -778,8 +778,8 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
-			if (((DOUBLE_ACL_RECORD *) ptr)->u1.filename1 != saved_filename1 ||
-				((DOUBLE_ACL_RECORD *) ptr)->u2.filename2 != saved_filename2) continue;
+			if (((struct double_acl_record *) ptr)->u1.filename1 != saved_filename1 ||
+				((struct double_acl_record *) ptr)->u2.filename2 != saved_filename2) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -796,9 +796,9 @@ static int CheckSingleWriteACL(const u8 type, const struct path_info *filename, 
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
 		if (ptr->u.w) {
-			if (!PathMatchesToGroup(filename, ((SINGLE_ACL_RECORD *) ptr)->u.group, 1)) continue;
+			if (!PathMatchesToGroup(filename, ((struct single_acl_record *) ptr)->u.group, 1)) continue;
 		} else {
-			if (!PathMatchesToPattern(filename, ((SINGLE_ACL_RECORD *) ptr)->u.filename)) continue;
+			if (!PathMatchesToPattern(filename, ((struct single_acl_record *) ptr)->u.filename)) continue;
 		}
 		return 0;
 	}
@@ -813,14 +813,14 @@ static int CheckDoubleWriteACL(const u8 type, const struct path_info *filename1,
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
 		if (ptr->u.b[0]) {
-			if (!PathMatchesToGroup(filename1, ((DOUBLE_ACL_RECORD *) ptr)->u1.group1, 1)) continue;
+			if (!PathMatchesToGroup(filename1, ((struct double_acl_record *) ptr)->u1.group1, 1)) continue;
 		} else {
-			if (!PathMatchesToPattern(filename1, ((DOUBLE_ACL_RECORD *) ptr)->u1.filename1)) continue;
+			if (!PathMatchesToPattern(filename1, ((struct double_acl_record *) ptr)->u1.filename1)) continue;
 		}
 		if (ptr->u.b[1]) {
-			if (!PathMatchesToGroup(filename2, ((DOUBLE_ACL_RECORD *) ptr)->u2.group2, 1)) continue;
+			if (!PathMatchesToGroup(filename2, ((struct double_acl_record *) ptr)->u2.group2, 1)) continue;
 		} else {
-			if (!PathMatchesToPattern(filename2, ((DOUBLE_ACL_RECORD *) ptr)->u2.filename2)) continue;
+			if (!PathMatchesToPattern(filename2, ((struct double_acl_record *) ptr)->u2.filename2)) continue;
 		}
 		return 0;
 	}
