@@ -320,7 +320,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.18.8-0.3">Kernel 2.6.18.8-0.3 for OpenSUSE 10.2</a>
 <li><a href="#2.6.9-42.11AX">Kernel 2.6.9-42.11AX for Asianux 2.0</a>
 <li><a href="#2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a>
-<li><a href="#2.6.20-15.27">Kernel 2.6.20-15.27 for Ubuntu 7.04</a>
+<li><a href="#2.6.20.3-ubuntu1">Kernel 2.6.20.3-ubuntu1 for Ubuntu 7.04</a>
 <li><a href="#2.6.16-0vl73">Kernel 2.6.16-0vl73 for VineLinux 4.1</a>
 <li><a href="#2.6-vanilla">Vanilla 2.6 kernels</a>
 <li><a href="#2.4-vanilla">Vanilla 2.4 kernels</a>
@@ -670,7 +670,7 @@ mkinitramfs -o /boot/initrd.img-2.6.17.14-ubuntu1-ccs 2.6.17.14-ubuntu1-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.20-15.27">Kernel 2.6.20-15.27 for Ubuntu 7.04</a></h2>
+<h2><a name="2.6.20.3-ubuntu1">Kernel 2.6.20.3-ubuntu1 for Ubuntu 7.04</a></h2>
 
 <table border="1">
 <tr><td>
@@ -682,14 +682,14 @@ cd linux-source-2.6.20/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
-patch -sp1 &lt; ccs-patch-2.6.20-15.27.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.20.3-ubuntu1.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
 make -s<br>
 make -s install modules modules_install<br>
 # Create initramfs.<br>
-mkinitramfs -o /boot/initrd.img-2.6.20-15.27-ccs 2.6.20-15.27-ccs
+mkinitramfs -o /boot/initrd.img-2.6.20.3-ubuntu1-ccs 2.6.20.3-ubuntu1-ccs
 </td></tr>
 </table>
 
