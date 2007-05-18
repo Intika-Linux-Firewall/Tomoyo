@@ -183,7 +183,6 @@ Source48: kernel-%{kversion}-x86_64.config
 Source49: kernel-%{kversion}-x86_64-smp.config
 Source50: installkernel.iSeries
 Source51: installcmdline.iSeries
-Source15000: ccs-patch-1.4-20070401.tar.gz
 
 # the following is for embedded systems where the %{targetboard} variable
 # is set
@@ -1418,7 +1417,7 @@ cd linux-%{version}
 %patch11050 -p2
 
 # TOMOYO Linux
-tar -zxf %{SOURCE15000}
+tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
 sed -i -e "s/^SUBLEVEL.*/SUBLEVEL = 20/" -e "s/^EXTRAVERSION.*/EXTRAVERSION = -46.9.legacycustom/" -- Makefile
 patch -sp1 < ccs-patch-2.4.20-46.9.legacy.txt
 

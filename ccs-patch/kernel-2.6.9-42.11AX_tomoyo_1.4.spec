@@ -224,7 +224,6 @@ Source32: kernel-%{kversion}-ppc.config
 Source33: kernel-%{kversion}-ia64.config
 Source34: kernel-%{kversion}-ia64-largesmp.config
 Source35: kernel-%{kversion}-ppc64-largesmp.config
-Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
@@ -3928,9 +3927,9 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %endif
 
 # TOMOYO Linux
-tar -zxf %{SOURCE15000}
+tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.11AX/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.9-42.11AX.txt
+patch -sp1 < ccs-patch-2.6.9-42.11AX.txt
 
 # END OF PATCH APPLICATIONS
 
