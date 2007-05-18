@@ -201,7 +201,6 @@ Source34: kernel-%{kversion}-ia64.config
 #Source66: kernel-%{kversion}-sparc.config
 #Source67: kernel-%{kversion}-sparc64.config
 #Source68: kernel-%{kversion}-sparc64-smp.config
-Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
@@ -732,7 +731,7 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch10001 -p1
 
 # TOMOYO Linux
-tar -zxf %{SOURCE15000}
+tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2142_FC4/" -- Makefile
 patch -sp1 < ccs-patch-2.6.17-1.2142_FC4.txt
 

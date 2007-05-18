@@ -1379,9 +1379,9 @@ find -name "*.p.xen" | xargs rm -f
 %patch21208 -p1
 
 # TOMOYO Linux
-tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4-20070401.tar.gz
+tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4-20070518.tar.gz
 sed -i -e "s/^EXTRAVERSION =.*/EXTRAVERSION = -1.2948.fc6/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.20-1.2948.fc6.txt
+patch -sp1 < ccs-patch-2.6.20-1.2948.fc6.txt
 
 # END OF PATCH APPLICATIONS
 

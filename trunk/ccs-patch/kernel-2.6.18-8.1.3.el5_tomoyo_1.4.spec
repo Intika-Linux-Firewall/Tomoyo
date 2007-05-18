@@ -312,7 +312,6 @@ Source106: kabi_whitelist_ppc64kdump
 Source109: kabi_whitelist_s390x
 Source110: kabi_whitelist_x86_64
 Source111: kabi_whitelist_x86_64xen
-Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
@@ -1924,9 +1923,9 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %endif
 
 # TOMOYO Linux
-tar -zxf %{SOURCE15000}
+tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.3.el5/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.18-8.1.3.el5.txt
+patch -sp1 < ccs-patch-2.6.18-8.1.3.el5.txt
 
 # END OF PATCH APPLICATIONS
 

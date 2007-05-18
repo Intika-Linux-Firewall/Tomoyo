@@ -186,7 +186,6 @@ Source29: kernel-%{kversion}-s390x.config
 Source33: kernel-%{kversion}-ppc.config
 Source34: kernel-%{kversion}-ppc-smp.config
 Source35: kernel-%{kversion}-ia64.config
-Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
@@ -780,7 +779,7 @@ cd linux-%{kversion}
 %patch10001 -p1
 
 # TOMOYO Linux
-tar -zxf %{SOURCE15000}
+tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -2.3.legacy_FC3/" -- Makefile
 patch -sp1 < ccs-patch-2.6.12-2.3.legacy_FC3.txt
 

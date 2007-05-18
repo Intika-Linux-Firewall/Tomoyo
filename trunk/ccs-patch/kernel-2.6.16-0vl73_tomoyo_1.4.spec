@@ -184,7 +184,6 @@ Source100: logo_vine_clut224.ppm
 # software suspend 2.2.5
 %define swsusp2_version 2.2.5-for-2.6.16.9
 Source200: suspend2-%{swsusp2_version}.tar.bz2
-Source15000: ccs-patch-1.4-20070401.tar.gz
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
@@ -874,9 +873,9 @@ cd linux-%{kversion}
 sh ../suspend2-%{swsusp2_version}/apply
 
 # TOMOYO Linux
-tar -zxf %{SOURCE15000}
+tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl73custom/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.16-0vl73.txt
+patch -sp1 < ccs-patch-2.6.16-0vl73.txt
 
 # END OF PATCH APPLICATIONS
 
