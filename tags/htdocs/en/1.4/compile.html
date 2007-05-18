@@ -367,7 +367,7 @@ cd /usr/src/linux-2.6.12-2.3.legacy_FC3/<br>
 # Modify version number.<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -2.3.legacy_FC3/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
-http://osdn.dl.sourceforge.jp/tomoyo/24614/ccs-patch-1.4-20070518.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/24614/ccs-patch-1.4-20070518.tar.gz<br>
 tar -zxf ccs-patch-1.4-20070518.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.12-2.3.legacy_FC3.txt<br>
 # Enable options for TOMOYO Linux.<br>
