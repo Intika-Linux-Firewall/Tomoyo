@@ -113,6 +113,7 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 	ccs_free(new_root);
 	return error;
 }
+EXPORT_SYMBOL(CheckPivotRootPermission);
 
 int AddPivotRootPolicy(char *data, const int is_delete)
 {
@@ -133,7 +134,5 @@ int ReadPivotRootPolicy(struct io_buffer *head)
 	}
 	return ptr ? -ENOMEM : 0;
 }
-
-EXPORT_SYMBOL(CheckPivotRootPermission);
 
 /***** SAKURA Linux end. *****/

@@ -128,6 +128,7 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 	}
 	return error;
 }
+EXPORT_SYMBOL(CheckArgv0Perm);
 
 int AddArgv0Policy(char *data, struct domain_info *domain, const int is_delete)
 {
@@ -140,7 +141,5 @@ int AddArgv0Policy(char *data, struct domain_info *domain, const int is_delete)
 	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	return AddArgv0Entry(data, argv0, domain, is_delete ? 0 : -1, condition);
 }
-
-EXPORT_SYMBOL(CheckArgv0Perm);
 
 /***** TOMOYO Linux end. *****/

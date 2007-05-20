@@ -448,37 +448,36 @@ int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_LISTEN, (const u32 *) address, ntohs(port));
 }
+EXPORT_SYMBOL(CheckNetworkListenACL);
 
 int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT), (const u32 *) address, ntohs(port));
 }
+EXPORT_SYMBOL(CheckNetworkConnectACL);
 
 int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_BIND : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_BIND : NETWORK_ACL_RAW_BIND), (const u32 *) address, ntohs(port));
 }
+EXPORT_SYMBOL(CheckNetworkBindACL);
 
 int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
 }
+EXPORT_SYMBOL(CheckNetworkAcceptACL);
 
 int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
+EXPORT_SYMBOL(CheckNetworkSendMsgACL);
 
 int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
-
-EXPORT_SYMBOL(CheckNetworkListenACL);
-EXPORT_SYMBOL(CheckNetworkConnectACL);
-EXPORT_SYMBOL(CheckNetworkBindACL);
-EXPORT_SYMBOL(CheckNetworkAcceptACL);
-EXPORT_SYMBOL(CheckNetworkSendMsgACL);
 EXPORT_SYMBOL(CheckNetworkRecvMsgACL);
 
 /***** TOMOYO Linux end. *****/

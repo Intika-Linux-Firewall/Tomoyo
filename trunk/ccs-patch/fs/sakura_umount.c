@@ -100,6 +100,7 @@ int SAKURA_MayUmount(struct vfsmount *mnt)
 	if (!is_enforce) error = 0;
 	return error;
 }
+EXPORT_SYMBOL(SAKURA_MayUmount);
 
 int AddNoUmountPolicy(char *data, const int is_delete)
 {
@@ -117,7 +118,5 @@ int ReadNoUmountPolicy(struct io_buffer *head)
 	}
 	return ptr ? -ENOMEM : 0;
 }
-
-EXPORT_SYMBOL(SAKURA_MayUmount);
 
 /***** SAKURA Linux end. *****/

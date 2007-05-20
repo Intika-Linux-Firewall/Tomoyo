@@ -225,6 +225,7 @@ int CheckCapabilityACL(const unsigned int capability)
 	if (CheckCapabilityAccept(capability)) AddCapabilityACL(capability, domain, 1, NULL);
 	return 0;
 }
+EXPORT_SYMBOL(CheckCapabilityACL);
 
 int AddCapabilityPolicy(char *data, struct domain_info *domain, const int is_delete)
 {
@@ -239,7 +240,5 @@ int AddCapabilityPolicy(char *data, struct domain_info *domain, const int is_del
 	}
 	return -EINVAL;
 }
-
-EXPORT_SYMBOL(CheckCapabilityACL);
 
 /***** TOMOYO Linux end. *****/
