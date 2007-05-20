@@ -141,7 +141,7 @@ int CheckSignalACL(const int sig, const int pid)
 	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_SIGNAL)) AddSignalEntry(sig, dest_pattern, domain, 1, NULL);
 	return 0;
 }
-
+EXPORT_SYMBOL(CheckSignalACL);
 
 int AddSignalPolicy(char *data, struct domain_info *domain, const int is_delete)
 {
@@ -155,7 +155,5 @@ int AddSignalPolicy(char *data, struct domain_info *domain, const int is_delete)
 	}
 	return -EINVAL;
 }
-
-EXPORT_SYMBOL(CheckSignalACL);
 
 /***** TOMOYO Linux end. *****/

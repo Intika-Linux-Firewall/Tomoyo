@@ -70,6 +70,7 @@ int SAKURA_MayAutobind(const u16 port)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(SAKURA_MayAutobind);
 
 int AddReservedPortPolicy(char *data, const int is_delete)
 {
@@ -102,7 +103,5 @@ int ReadReservedPortPolicy(struct io_buffer *head)
 	}
 	return ptr ? -ENOMEM : 0;
 }
-
-EXPORT_SYMBOL(SAKURA_MayAutobind);
 
 /***** SAKURA Linux end. *****/

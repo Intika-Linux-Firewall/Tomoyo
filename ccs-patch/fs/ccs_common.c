@@ -481,6 +481,7 @@ unsigned int CheckCCSFlags(const unsigned int index)
 #endif
 		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
 }
+EXPORT_SYMBOL(CheckCCSFlags);
 
 unsigned int TomoyoVerboseMode(void)
 {
@@ -492,12 +493,14 @@ unsigned int CheckCCSEnforce(const unsigned int index)
 {
 	return CheckCCSFlags(index) == 3;
 }
+EXPORT_SYMBOL(CheckCCSEnforce);
 
 /* Check whether the given access control is accept mode. */
 unsigned int CheckCCSAccept(const unsigned int index)
 {
 	return CheckCCSFlags(index) == 1;
 }
+EXPORT_SYMBOL(CheckCCSAccept);
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 {
@@ -1627,7 +1630,3 @@ int CCS_CloseControl(struct file *file)
 	file->private_data = NULL;
 	return 0;
 }
-
-EXPORT_SYMBOL(CheckCCSFlags);
-EXPORT_SYMBOL(CheckCCSEnforce);
-EXPORT_SYMBOL(CheckCCSAccept);

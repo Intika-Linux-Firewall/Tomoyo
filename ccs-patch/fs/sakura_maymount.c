@@ -90,7 +90,6 @@ int SAKURA_MayMount(struct nameidata *nd)
 	}
 	return 0;
 }
-
 EXPORT_SYMBOL(SAKURA_MayMount);
 
 /***** SAKURA Linux end. *****/

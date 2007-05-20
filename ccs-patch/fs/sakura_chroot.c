@@ -107,6 +107,7 @@ int CheckChRootPermission(struct nameidata *nd)
 	ccs_free(root_name);
 	return error;
 }
+EXPORT_SYMBOL(CheckChRootPermission);
 
 int AddChrootPolicy(char *data, const int is_delete)
 {
@@ -124,7 +125,5 @@ int ReadChrootPolicy(struct io_buffer *head)
 	}
 	return ptr ? -ENOMEM : 0;
 }
-
-EXPORT_SYMBOL(CheckChRootPermission);
 
 /***** SAKURA Linux end. *****/

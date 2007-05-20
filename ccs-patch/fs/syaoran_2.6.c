@@ -307,6 +307,7 @@ int syaoran_get_sb(struct file_system_type *fs_type,
 	return get_sb_nodev(fs_type, flags, data, syaoran_fill_super, mnt);
 }
 #endif
+EXPORT_SYMBOL(syaoran_get_sb);
 
 static struct file_system_type syaoran_fs_type = {
 	.owner      = THIS_MODULE,
@@ -329,5 +330,3 @@ module_init(init_syaoran_fs)
 module_exit(exit_syaoran_fs)
 
 MODULE_LICENSE("GPL");
-
-EXPORT_SYMBOL(syaoran_get_sb);

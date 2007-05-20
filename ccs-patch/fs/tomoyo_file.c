@@ -862,6 +862,7 @@ int CheckFilePerm(const char *filename0, const u8 perm, const char *operation)
 	fill_path_info(&filename);
 	return CheckFilePerm2(&filename, perm, operation, NULL);
 }
+EXPORT_SYMBOL(CheckFilePerm);
 
 int CheckExecPerm(const struct path_info *filename, struct file *filp)
 {
@@ -872,6 +873,7 @@ int CheckExecPerm(const struct path_info *filename, struct file *filp)
 	obj.path1_vfsmnt = filp->f_vfsmnt;
 	return CheckFilePerm2(filename, 1, "do_execve", &obj);
 }
+EXPORT_SYMBOL(CheckExecPerm);
 
 int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag)
 {
@@ -906,6 +908,7 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 	if (!is_enforce) error = 0;
 	return error;
 }
+EXPORT_SYMBOL(CheckOpenPermission);
 
 int CheckSingleWritePermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt)
 {
@@ -933,6 +936,7 @@ int CheckSingleWritePermission(const unsigned int operation, struct dentry *dent
 	if (!is_enforce) error = 0;
 	return error;
 }
+EXPORT_SYMBOL(CheckSingleWritePermission);
 
 int CheckReWritePermission(struct file *filp)
 {
@@ -954,6 +958,7 @@ int CheckReWritePermission(struct file *filp)
 	if (!is_enforce) error = 0;
 	return error;
 }
+EXPORT_SYMBOL(CheckReWritePermission);
 
 int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2)
 {
@@ -1004,12 +1009,6 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 	if (!is_enforce) error = 0;
 	return error;
 }
-
-EXPORT_SYMBOL(CheckFilePerm);
-EXPORT_SYMBOL(CheckExecPerm);
-EXPORT_SYMBOL(CheckOpenPermission);
-EXPORT_SYMBOL(CheckReWritePermission);
-EXPORT_SYMBOL(CheckSingleWritePermission);
 EXPORT_SYMBOL(CheckDoubleWritePermission);
 
 /***** TOMOYO Linux end. *****/

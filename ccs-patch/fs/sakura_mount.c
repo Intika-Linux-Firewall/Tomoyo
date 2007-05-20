@@ -373,6 +373,7 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 	}
 	return 0;
 }
+EXPORT_SYMBOL(CheckMountPermission);
 
 int AddMountPolicy(char *data, const int is_delete)
 {
@@ -403,7 +404,5 @@ int ReadMountPolicy(struct io_buffer *head)
 	}
 	return ptr ? -ENOMEM : 0;
 }
-
-EXPORT_SYMBOL(CheckMountPermission);
 
 /***** SAKURA Linux end. *****/
