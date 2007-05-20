@@ -1,19 +1,19 @@
-diff -ubBpEr linux-2.6.9-42.0.10.EL/Makefile linux-2.6.9-42.0.10.EL-ccs/Makefile
---- linux-2.6.9-42.0.10.EL/Makefile	2007-03-01 14:40:15.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/Makefile	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/Makefile linux-2.6.9-55.EL-ccs/Makefile
+--- linux-2.6.9-55.EL/Makefile	2007-05-20 12:21:50.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/Makefile	2007-05-20 12:21:52.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 9
--EXTRAVERSION = -42.0.10.EL
-+EXTRAVERSION = -42.0.10.EL-ccs
+-EXTRAVERSION = -55.EL
++EXTRAVERSION = -55.EL-ccs
+ RHEL_VERSION = 4
+ RHEL_UPDATE = 5
  NAME=AC 1
- 
- # *DOCUMENTATION*
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/Kconfig linux-2.6.9-42.0.10.EL-ccs/fs/Kconfig
---- linux-2.6.9-42.0.10.EL/fs/Kconfig	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/Kconfig	2007-03-01 14:41:43.000000000 +0900
-@@ -1856,5 +1856,7 @@ endmenu
+diff -ubBpEr linux-2.6.9-55.EL/fs/Kconfig linux-2.6.9-55.EL-ccs/fs/Kconfig
+--- linux-2.6.9-55.EL/fs/Kconfig	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/Kconfig	2007-05-20 12:21:24.000000000 +0900
+@@ -1857,5 +1857,7 @@ endmenu
  
  source "fs/nls/Kconfig"
  
@@ -21,17 +21,17 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/Kconfig linux-2.6.9-42.0.10.EL-ccs/fs/Kco
 +
  endmenu
  
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/Makefile linux-2.6.9-42.0.10.EL-ccs/fs/Makefile
---- linux-2.6.9-42.0.10.EL/fs/Makefile	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/Makefile	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/Makefile linux-2.6.9-55.EL-ccs/fs/Makefile
+--- linux-2.6.9-55.EL/fs/Makefile	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/Makefile	2007-05-20 12:21:24.000000000 +0900
 @@ -96,3 +96,4 @@ obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_RELAYFS_FS)	+= relayfs/
  
 +include $(srctree)/fs/Makefile-2.6.ccs
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/attr.c linux-2.6.9-42.0.10.EL-ccs/fs/attr.c
---- linux-2.6.9-42.0.10.EL/fs/attr.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/attr.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/attr.c linux-2.6.9-55.EL-ccs/fs/attr.c
+--- linux-2.6.9-55.EL/fs/attr.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/attr.c	2007-05-20 12:21:24.000000000 +0900
 @@ -16,6 +16,9 @@
  #include <linux/security.h>
  #include <linux/time.h>
@@ -42,7 +42,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/attr.c linux-2.6.9-42.0.10.EL-ccs/fs/attr
  
  /* Taken over from the old code... */
  
-@@ -180,12 +183,20 @@ int notify_change(struct dentry * dentry
+@@ -176,12 +179,20 @@ int notify_change(struct dentry * dentry
  	if (inode->i_op && inode->i_op->setattr) {
  		audit_notify_watch(inode, MAY_WRITE);
  		error = security_inode_setattr(dentry, attr);
@@ -63,9 +63,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/attr.c linux-2.6.9-42.0.10.EL-ccs/fs/attr
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/compat.c linux-2.6.9-42.0.10.EL-ccs/fs/compat.c
---- linux-2.6.9-42.0.10.EL/fs/compat.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/compat.c	2007-03-06 13:29:38.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/compat.c linux-2.6.9-55.EL-ccs/fs/compat.c
+--- linux-2.6.9-55.EL/fs/compat.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/compat.c	2007-05-20 12:21:24.000000000 +0900
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -108,9 +108,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/compat.c linux-2.6.9-42.0.10.EL-ccs/fs/co
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/exec.c linux-2.6.9-42.0.10.EL-ccs/fs/exec.c
---- linux-2.6.9-42.0.10.EL/fs/exec.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/exec.c	2007-03-06 09:55:22.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/exec.c linux-2.6.9-55.EL-ccs/fs/exec.c
+--- linux-2.6.9-55.EL/fs/exec.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/exec.c	2007-05-20 12:23:24.000000000 +0900
 @@ -56,6 +56,10 @@
  #include <linux/kmod.h>
  #endif
@@ -134,17 +134,17 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/exec.c linux-2.6.9-42.0.10.EL-ccs/fs/exec
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -501,6 +510,9 @@ struct file *open_exec(const char *name)
+@@ -499,6 +508,9 @@ struct file *open_exec(const char *name)
+ 		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
+ 		    S_ISREG(inode->i_mode)) {
  			int err = permission(inode, MAY_EXEC, &nd);
- 			if (!err && !(inode->i_mode & 0111))
- 				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
 +			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1174,8 +1186,11 @@ int do_execve(char * filename,
+@@ -1166,8 +1178,11 @@ int do_execve(char * filename,
  
  	retval = -ENOMEM;
  	bprm = kmalloc(sizeof(*bprm), GFP_KERNEL);
@@ -157,7 +157,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/exec.c linux-2.6.9-42.0.10.EL-ccs/fs/exec
  	memset(bprm, 0, sizeof(*bprm));
  
  	bprm->p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
-@@ -1220,7 +1235,8 @@ int do_execve(char * filename,
+@@ -1212,7 +1227,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -167,9 +167,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/exec.c linux-2.6.9-42.0.10.EL-ccs/fs/exec
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/fcntl.c linux-2.6.9-42.0.10.EL-ccs/fs/fcntl.c
---- linux-2.6.9-42.0.10.EL/fs/fcntl.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/fcntl.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/fcntl.c linux-2.6.9-55.EL-ccs/fs/fcntl.c
+--- linux-2.6.9-55.EL/fs/fcntl.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/fcntl.c	2007-05-20 12:21:24.000000000 +0900
 @@ -18,6 +18,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -191,9 +191,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/fcntl.c linux-2.6.9-42.0.10.EL-ccs/fs/fcn
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/ioctl.c linux-2.6.9-42.0.10.EL-ccs/fs/ioctl.c
---- linux-2.6.9-42.0.10.EL/fs/ioctl.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/ioctl.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/ioctl.c linux-2.6.9-55.EL-ccs/fs/ioctl.c
+--- linux-2.6.9-55.EL/fs/ioctl.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/ioctl.c	2007-05-20 12:21:24.000000000 +0900
 @@ -14,6 +14,9 @@
  
  #include <asm/uaccess.h>
@@ -214,9 +214,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/ioctl.c linux-2.6.9-42.0.10.EL-ccs/fs/ioc
  
  	error = security_file_ioctl(filp, cmd, arg);
  	if (error) {
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/namei.c
---- linux-2.6.9-42.0.10.EL/fs/namei.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/namei.c	2007-03-02 10:33:14.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/namei.c linux-2.6.9-55.EL-ccs/fs/namei.c
+--- linux-2.6.9-55.EL/fs/namei.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/namei.c	2007-05-20 12:21:24.000000000 +0900
 @@ -32,6 +32,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -228,7 +228,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1269,6 +1273,9 @@ int vfs_create(struct inode *dir, struct
+@@ -1307,6 +1311,9 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -238,7 +238,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error) {
-@@ -1327,6 +1334,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1365,6 +1372,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -250,7 +250,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1358,6 +1370,9 @@ int may_open(struct nameidata *nd, int a
+@@ -1396,6 +1408,9 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -260,7 +260,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  /*
   *	open_namei()
   *
-@@ -1603,6 +1618,12 @@ asmlinkage long sys_mknod(const char __u
+@@ -1641,6 +1656,12 @@ asmlinkage long sys_mknod(const char __u
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -273,7 +273,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1621,10 +1642,16 @@ asmlinkage long sys_mknod(const char __u
+@@ -1659,10 +1680,16 @@ asmlinkage long sys_mknod(const char __u
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -290,7 +290,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1687,6 +1714,9 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1725,6 +1752,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -300,7 +300,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1795,6 +1825,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1833,6 +1863,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -310,7 +310,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1849,6 +1882,9 @@ asmlinkage long sys_unlink(const char __
+@@ -1887,6 +1920,9 @@ asmlinkage long sys_unlink(const char __
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -320,7 +320,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -1870,6 +1906,9 @@ asmlinkage long sys_unlink(const char __
+@@ -1908,6 +1944,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -330,7 +330,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1918,6 +1957,9 @@ asmlinkage long sys_symlink(const char _
+@@ -1956,6 +1995,9 @@ asmlinkage long sys_symlink(const char _
  	int error = 0;
  	char * from;
  	char * to;
@@ -340,7 +340,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -1934,6 +1976,9 @@ asmlinkage long sys_symlink(const char _
+@@ -1972,6 +2014,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -350,7 +350,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2002,6 +2047,9 @@ asmlinkage long sys_link(const char __us
+@@ -2040,6 +2085,9 @@ asmlinkage long sys_link(const char __us
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -360,7 +360,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  
  	to = getname(newname);
  	if (IS_ERR(to))
-@@ -2019,6 +2067,9 @@ asmlinkage long sys_link(const char __us
+@@ -2057,6 +2105,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -370,7 +370,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2243,6 +2294,13 @@ static inline int do_rename(const char *
+@@ -2281,6 +2332,13 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -384,7 +384,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2264,6 +2322,9 @@ asmlinkage long sys_rename(const char __
+@@ -2302,6 +2360,9 @@ asmlinkage long sys_rename(const char __
  	int error;
  	char * from;
  	char * to;
@@ -394,9 +394,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namei.c linux-2.6.9-42.0.10.EL-ccs/fs/nam
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs/namespace.c
---- linux-2.6.9-42.0.10.EL/fs/namespace.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/namespace.c	2007-03-19 09:58:48.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/namespace.c linux-2.6.9-55.EL-ccs/fs/namespace.c
+--- linux-2.6.9-55.EL/fs/namespace.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/namespace.c	2007-05-20 12:21:24.000000000 +0900
 @@ -23,6 +23,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -410,7 +410,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  
  extern int __init init_rootfs(void);
  
-@@ -374,6 +380,10 @@ static int do_umount(struct vfsmount *mn
+@@ -412,6 +418,10 @@ static int do_umount(struct vfsmount *mn
  	if (retval)
  		return retval;
  
@@ -421,7 +421,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -469,6 +479,9 @@ asmlinkage long sys_umount(char __user *
+@@ -507,6 +517,9 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -431,7 +431,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -634,6 +647,10 @@ static int do_loopback(struct nameidata 
+@@ -672,6 +685,10 @@ static int do_loopback(struct nameidata 
  	down_write(&current->namespace->sem);
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
@@ -442,7 +442,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -656,6 +673,9 @@ static int do_loopback(struct nameidata 
+@@ -694,6 +711,9 @@ static int do_loopback(struct nameidata 
  			mntput(mnt);
  	}
  
@@ -452,7 +452,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -711,7 +731,10 @@ static int do_move_mount(struct nameidat
+@@ -749,7 +769,10 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -464,7 +464,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -805,6 +828,10 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -843,6 +866,10 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -475,7 +475,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1026,6 +1053,13 @@ long do_mount(char * dev_name, char * di
+@@ -1064,6 +1091,13 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -489,7 +489,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1276,6 +1310,9 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1314,6 +1348,9 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -499,7 +499,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  
  	lock_kernel();
  
-@@ -1291,6 +1328,9 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1329,6 +1366,9 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -509,9 +509,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/namespace.c linux-2.6.9-42.0.10.EL-ccs/fs
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/open.c linux-2.6.9-42.0.10.EL-ccs/fs/open.c
---- linux-2.6.9-42.0.10.EL/fs/open.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/open.c	2007-03-19 14:12:03.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/open.c linux-2.6.9-55.EL-ccs/fs/open.c
+--- linux-2.6.9-55.EL/fs/open.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/open.c	2007-05-20 12:21:24.000000000 +0900
 @@ -26,6 +26,13 @@
  
  #include <asm/unistd.h>
@@ -526,7 +526,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/open.c linux-2.6.9-42.0.10.EL-ccs/fs/open
  int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
  {
  	int retval = -ENODEV;
-@@ -258,6 +265,9 @@ static inline long do_sys_truncate(const
+@@ -256,6 +263,9 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -536,7 +536,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/open.c linux-2.6.9-42.0.10.EL-ccs/fs/open
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -311,6 +321,9 @@ static inline long do_sys_ftruncate(unsi
+@@ -309,6 +319,9 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -545,8 +545,8 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/open.c linux-2.6.9-42.0.10.EL-ccs/fs/open
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
- 		error = do_truncate(dentry, length);
-@@ -585,6 +598,12 @@ asmlinkage long sys_chroot(const char __
+ 		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME);
+@@ -583,6 +596,12 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -559,7 +559,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/open.c linux-2.6.9-42.0.10.EL-ccs/fs/open
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1072,6 +1091,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1080,6 +1099,9 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -569,9 +569,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/open.c linux-2.6.9-42.0.10.EL-ccs/fs/open
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/proc/Makefile linux-2.6.9-42.0.10.EL-ccs/fs/proc/Makefile
---- linux-2.6.9-42.0.10.EL/fs/proc/Makefile	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/proc/Makefile	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/proc/Makefile linux-2.6.9-55.EL-ccs/fs/proc/Makefile
+--- linux-2.6.9-55.EL/fs/proc/Makefile	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/proc/Makefile	2007-05-20 12:21:24.000000000 +0900
 @@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
  
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
@@ -579,9 +579,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/proc/Makefile linux-2.6.9-42.0.10.EL-ccs/
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
-diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/proc/proc_misc.c linux-2.6.9-42.0.10.EL-ccs/fs/proc/proc_misc.c
---- linux-2.6.9-42.0.10.EL/fs/proc/proc_misc.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/fs/proc/proc_misc.c	2007-03-19 09:59:02.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/fs/proc/proc_misc.c linux-2.6.9-55.EL-ccs/fs/proc/proc_misc.c
+--- linux-2.6.9-55.EL/fs/proc/proc_misc.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/fs/proc/proc_misc.c	2007-05-20 12:31:57.000000000 +0900
 @@ -704,4 +704,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -591,14 +591,14 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/fs/proc/proc_misc.c linux-2.6.9-42.0.10.EL-c
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.9-42.0.10.EL 2007/03/19\n");
++		printk("Hook version: 2.6.9-55.EL 2007/05/20\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
-diff -ubBpEr linux-2.6.9-42.0.10.EL/include/linux/init_task.h linux-2.6.9-42.0.10.EL-ccs/include/linux/init_task.h
---- linux-2.6.9-42.0.10.EL/include/linux/init_task.h	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/include/linux/init_task.h	2007-03-02 09:09:03.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/include/linux/init_task.h linux-2.6.9-55.EL-ccs/include/linux/init_task.h
+--- linux-2.6.9-55.EL/include/linux/init_task.h	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/include/linux/init_task.h	2007-05-20 12:21:24.000000000 +0900
 @@ -112,6 +112,10 @@ extern struct group_info init_groups;
  	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
@@ -610,9 +610,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/include/linux/init_task.h linux-2.6.9-42.0.1
  }
  
  
-diff -ubBpEr linux-2.6.9-42.0.10.EL/include/linux/sched.h linux-2.6.9-42.0.10.EL-ccs/include/linux/sched.h
---- linux-2.6.9-42.0.10.EL/include/linux/sched.h	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/include/linux/sched.h	2007-03-19 12:44:06.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/include/linux/sched.h linux-2.6.9-55.EL-ccs/include/linux/sched.h
+--- linux-2.6.9-55.EL/include/linux/sched.h	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/include/linux/sched.h	2007-05-20 12:21:24.000000000 +0900
 @@ -35,6 +35,11 @@ extern int exec_shield;
  extern int exec_shield_randomize;
  extern int print_fatal_signals;
@@ -625,7 +625,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/include/linux/sched.h linux-2.6.9-42.0.10.EL
  /*
   * cloning flags:
   */
-@@ -634,6 +639,10 @@ struct task_struct {
+@@ -635,6 +640,10 @@ struct task_struct {
    	struct mempolicy *mempolicy;
    	short il_next;		/* could be shared with used_math */
  #endif
@@ -636,9 +636,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/include/linux/sched.h linux-2.6.9-42.0.10.EL
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
-diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/kmod.c linux-2.6.9-42.0.10.EL-ccs/kernel/kmod.c
---- linux-2.6.9-42.0.10.EL/kernel/kmod.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/kernel/kmod.c	2007-03-02 09:08:39.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/kernel/kmod.c linux-2.6.9-55.EL-ccs/kernel/kmod.c
+--- linux-2.6.9-55.EL/kernel/kmod.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/kernel/kmod.c	2007-05-20 12:21:24.000000000 +0900
 @@ -169,6 +169,11 @@ static int ____exec_usermodehelper(char 
  
  	key_put(old_session);
@@ -651,9 +651,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/kmod.c linux-2.6.9-42.0.10.EL-ccs/ker
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
-diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/module.c linux-2.6.9-42.0.10.EL-ccs/kernel/module.c
---- linux-2.6.9-42.0.10.EL/kernel/module.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/kernel/module.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/kernel/module.c linux-2.6.9-55.EL-ccs/kernel/module.c
+--- linux-2.6.9-55.EL/kernel/module.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/kernel/module.c	2007-05-20 12:21:24.000000000 +0900
 @@ -38,6 +38,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -675,7 +675,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/module.c linux-2.6.9-42.0.10.EL-ccs/k
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
  	name[MODULE_NAME_LEN-1] = '\0';
-@@ -1855,7 +1860,9 @@ sys_init_module(void __user *umod,
+@@ -1874,7 +1879,9 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -686,9 +686,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/module.c linux-2.6.9-42.0.10.EL-ccs/k
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
-diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sched.c linux-2.6.9-42.0.10.EL-ccs/kernel/sched.c
---- linux-2.6.9-42.0.10.EL/kernel/sched.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/kernel/sched.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/kernel/sched.c linux-2.6.9-55.EL-ccs/kernel/sched.c
+--- linux-2.6.9-55.EL/kernel/sched.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/kernel/sched.c	2007-05-20 12:21:24.000000000 +0900
 @@ -48,6 +48,9 @@
  #include <asm/tlb.h>
  
@@ -699,7 +699,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sched.c linux-2.6.9-42.0.10.EL-ccs/ke
  
  #ifdef CONFIG_NUMA
  #define cpu_to_node_mask(cpu) node_to_cpumask(cpu_to_node(cpu))
-@@ -3199,6 +3202,9 @@ asmlinkage long sys_nice(int increment)
+@@ -3220,6 +3223,9 @@ asmlinkage long sys_nice(int increment)
  {
  	int retval;
  	long nice;
@@ -709,9 +709,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sched.c linux-2.6.9-42.0.10.EL-ccs/ke
  
  	/*
  	 * Setpriority might change our priority at the same moment.
-diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/signal.c linux-2.6.9-42.0.10.EL-ccs/kernel/signal.c
---- linux-2.6.9-42.0.10.EL/kernel/signal.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/kernel/signal.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/kernel/signal.c linux-2.6.9-55.EL-ccs/kernel/signal.c
+--- linux-2.6.9-55.EL/kernel/signal.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/kernel/signal.c	2007-05-20 12:21:24.000000000 +0900
 @@ -26,6 +26,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -756,9 +756,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/signal.c linux-2.6.9-42.0.10.EL-ccs/k
  	info.si_signo = sig;
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
-diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sys.c linux-2.6.9-42.0.10.EL-ccs/kernel/sys.c
---- linux-2.6.9-42.0.10.EL/kernel/sys.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/kernel/sys.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/kernel/sys.c linux-2.6.9-55.EL-ccs/kernel/sys.c
+--- linux-2.6.9-55.EL/kernel/sys.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/kernel/sys.c	2007-05-20 12:21:24.000000000 +0900
 @@ -29,6 +29,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -769,7 +769,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sys.c linux-2.6.9-42.0.10.EL-ccs/kern
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -322,6 +325,9 @@ asmlinkage long sys_setpriority(int whic
+@@ -328,6 +331,9 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > 2 || which < 0)
  		goto out;
@@ -779,7 +779,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sys.c linux-2.6.9-42.0.10.EL-ccs/kern
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -453,6 +459,9 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -459,6 +465,9 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -789,7 +789,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sys.c linux-2.6.9-42.0.10.EL-ccs/kern
  
  	lock_kernel();
  	switch (cmd) {
-@@ -1454,6 +1463,9 @@ asmlinkage long sys_sethostname(char __u
+@@ -1460,6 +1469,9 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -799,7 +799,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sys.c linux-2.6.9-42.0.10.EL-ccs/kern
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1499,6 +1511,9 @@ asmlinkage long sys_setdomainname(char _
+@@ -1505,6 +1517,9 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -809,9 +809,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sys.c linux-2.6.9-42.0.10.EL-ccs/kern
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
-diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sysctl.c linux-2.6.9-42.0.10.EL-ccs/kernel/sysctl.c
---- linux-2.6.9-42.0.10.EL/kernel/sysctl.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/kernel/sysctl.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/kernel/sysctl.c linux-2.6.9-55.EL-ccs/kernel/sysctl.c
+--- linux-2.6.9-55.EL/kernel/sysctl.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/kernel/sysctl.c	2007-05-20 12:21:24.000000000 +0900
 @@ -43,6 +43,9 @@
  
  #include <asm/uaccess.h>
@@ -822,7 +822,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sysctl.c linux-2.6.9-42.0.10.EL-ccs/k
  
  #ifdef CONFIG_ROOT_NFS
  #include <linux/nfs_fs.h>
-@@ -1101,6 +1104,87 @@ void __init sysctl_init(void)
+@@ -1115,6 +1118,87 @@ void __init sysctl_init(void)
  #endif
  }
  
@@ -910,7 +910,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sysctl.c linux-2.6.9-42.0.10.EL-ccs/k
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1126,6 +1210,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1140,6 +1224,9 @@ int do_sysctl(int __user *name, int nlen
  
  		spin_unlock(&sysctl_lock);
  
@@ -920,7 +920,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sysctl.c linux-2.6.9-42.0.10.EL-ccs/k
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table,
  					&context);
-@@ -1199,6 +1286,12 @@ repeat:
+@@ -1213,6 +1300,12 @@ repeat:
  				if (ctl_perm(table, 001))
  					return -EPERM;
  				if (table->strategy) {
@@ -933,7 +933,7 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sysctl.c linux-2.6.9-42.0.10.EL-ccs/k
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
-@@ -2226,7 +2319,7 @@ int sysctl_string(ctl_table *table, int 
+@@ -2240,7 +2333,7 @@ int sysctl_string(ctl_table *table, int 
  			len--;
  		((char *) table->data)[len] = 0;
  	}
@@ -942,9 +942,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/sysctl.c linux-2.6.9-42.0.10.EL-ccs/k
  }
  
  /*
-diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/time.c linux-2.6.9-42.0.10.EL-ccs/kernel/time.c
---- linux-2.6.9-42.0.10.EL/kernel/time.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/kernel/time.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/kernel/time.c linux-2.6.9-55.EL-ccs/kernel/time.c
+--- linux-2.6.9-55.EL/kernel/time.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/kernel/time.c	2007-05-20 12:21:24.000000000 +0900
 @@ -34,6 +34,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -985,9 +985,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/kernel/time.c linux-2.6.9-42.0.10.EL-ccs/ker
  		
  	/* Now we validate the data before disabling interrupts */
  
-diff -ubBpEr linux-2.6.9-42.0.10.EL/net/ipv4/tcp_ipv4.c linux-2.6.9-42.0.10.EL-ccs/net/ipv4/tcp_ipv4.c
---- linux-2.6.9-42.0.10.EL/net/ipv4/tcp_ipv4.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/net/ipv4/tcp_ipv4.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/net/ipv4/tcp_ipv4.c linux-2.6.9-55.EL-ccs/net/ipv4/tcp_ipv4.c
+--- linux-2.6.9-55.EL/net/ipv4/tcp_ipv4.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/net/ipv4/tcp_ipv4.c	2007-05-20 12:21:24.000000000 +0900
 @@ -74,6 +74,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -1018,9 +1018,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/net/ipv4/tcp_ipv4.c linux-2.6.9-42.0.10.EL-c
  
   			/* Does not bother with rcv_saddr checks,
   			 * because the established check is already
-diff -ubBpEr linux-2.6.9-42.0.10.EL/net/ipv4/udp.c linux-2.6.9-42.0.10.EL-ccs/net/ipv4/udp.c
---- linux-2.6.9-42.0.10.EL/net/ipv4/udp.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/net/ipv4/udp.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/net/ipv4/udp.c linux-2.6.9-55.EL-ccs/net/ipv4/udp.c
+--- linux-2.6.9-55.EL/net/ipv4/udp.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/net/ipv4/udp.c	2007-05-20 12:21:24.000000000 +0900
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1051,9 +1051,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/net/ipv4/udp.c linux-2.6.9-42.0.10.EL-ccs/ne
  			if (!udp_lport_inuse(result))
  				break;
  		}
-diff -ubBpEr linux-2.6.9-42.0.10.EL/net/ipv6/tcp_ipv6.c linux-2.6.9-42.0.10.EL-ccs/net/ipv6/tcp_ipv6.c
---- linux-2.6.9-42.0.10.EL/net/ipv6/tcp_ipv6.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/net/ipv6/tcp_ipv6.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/net/ipv6/tcp_ipv6.c linux-2.6.9-55.EL-ccs/net/ipv6/tcp_ipv6.c
+--- linux-2.6.9-55.EL/net/ipv6/tcp_ipv6.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/net/ipv6/tcp_ipv6.c	2007-05-20 12:21:24.000000000 +0900
 @@ -63,6 +63,9 @@
  
  #include <linux/proc_fs.h>
@@ -1074,9 +1074,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/net/ipv6/tcp_ipv6.c linux-2.6.9-42.0.10.EL-c
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
-diff -ubBpEr linux-2.6.9-42.0.10.EL/net/ipv6/udp.c linux-2.6.9-42.0.10.EL-ccs/net/ipv6/udp.c
---- linux-2.6.9-42.0.10.EL/net/ipv6/udp.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/net/ipv6/udp.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/net/ipv6/udp.c linux-2.6.9-55.EL-ccs/net/ipv6/udp.c
+--- linux-2.6.9-55.EL/net/ipv6/udp.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/net/ipv6/udp.c	2007-05-20 12:21:24.000000000 +0900
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1107,9 +1107,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/net/ipv6/udp.c linux-2.6.9-42.0.10.EL-ccs/ne
  			if (!udp_lport_inuse(result))
  				break;
  		}
-diff -ubBpEr linux-2.6.9-42.0.10.EL/net/socket.c linux-2.6.9-42.0.10.EL-ccs/net/socket.c
---- linux-2.6.9-42.0.10.EL/net/socket.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/net/socket.c	2007-03-01 14:41:43.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/net/socket.c linux-2.6.9-55.EL-ccs/net/socket.c
+--- linux-2.6.9-55.EL/net/socket.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/net/socket.c	2007-05-20 12:21:24.000000000 +0900
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1201,9 +1201,9 @@ diff -ubBpEr linux-2.6.9-42.0.10.EL/net/socket.c linux-2.6.9-42.0.10.EL-ccs/net/
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
-diff -ubBpEr linux-2.6.9-42.0.10.EL/net/unix/af_unix.c linux-2.6.9-42.0.10.EL-ccs/net/unix/af_unix.c
---- linux-2.6.9-42.0.10.EL/net/unix/af_unix.c	2007-03-01 14:39:44.000000000 +0900
-+++ linux-2.6.9-42.0.10.EL-ccs/net/unix/af_unix.c	2007-03-05 13:17:19.000000000 +0900
+diff -ubBpEr linux-2.6.9-55.EL/net/unix/af_unix.c linux-2.6.9-55.EL-ccs/net/unix/af_unix.c
+--- linux-2.6.9-55.EL/net/unix/af_unix.c	2007-05-20 12:20:38.000000000 +0900
++++ linux-2.6.9-55.EL-ccs/net/unix/af_unix.c	2007-05-20 12:21:24.000000000 +0900
 @@ -118,6 +118,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
