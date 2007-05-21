@@ -32,7 +32,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.1.3%{?dist}_tomoyo_1.4
+%define release 8.1.4%{?dist}_tomoyo_1.4
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -923,6 +923,17 @@ Patch21231: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-1.patch
 Patch21232: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-2.patch
 Patch21233: linux-2.6-audit-gfp_kernel-allocation-non-blocking-context.patch
 Patch21234: linux-2.6-s390-page_mkclean-causes-data-corruption.patch
+Patch21235: linux-2.6-ipv6-fix-routing-regression.patch
+Patch21236: linux-2.6-mm-gdb-does-not-accurately-output-the-backtrace.patch
+Patch21237: linux-2.6-nmi-change-watchdog-timeout-to-30-seconds.patch
+Patch21238: linux-2.6-dlm-fix-mode-munging.patch
+Patch21239: linux-2.6-net-kernel-headers-missing-include-of-types-h.patch
+Patch21240: linux-2.6-net-fib_semantics-c-out-of-bounds-check.patch
+Patch21241: linux-2.6-net-disallow-rho-by-default.patch
+Patch21242: linux-2.6-net-fix-user-oops-able-bug-in-fib-netlink.patch
+Patch21243: linux-2.6-net-ipv6-fragments-bypass-nf_conntrack-netfilter.patch
+Patch21244: linux-2.6-net-ipv6_fl_socklist-is-inadvertently-shared.patch
+Patch21245: linux-2.6-net-null-pointer-dereferences-in-netfilter-code.patch
 # empty final patch file to facilitate testing of kernel patches
 Patch99999: linux-kernel-test.patch
 
@@ -1913,6 +1924,17 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21232 -p1
 %patch21233 -p1
 %patch21234 -p1
+%patch21235 -p1
+%patch21236 -p1
+%patch21237 -p1
+%patch21238 -p1
+%patch21239 -p1
+%patch21240 -p1
+%patch21241 -p1
+%patch21242 -p1
+%patch21243 -p1
+%patch21244 -p1
+%patch21245 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
 perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
@@ -1924,8 +1946,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.3.el5/" -- Makefile
-patch -sp1 < ccs-patch-2.6.18-8.1.3.el5.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.4.el5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-8.1.4.el5.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2766,8 +2788,8 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
  
 %changelog
-* Mon Apr 30 2007 Karanbir Singh <kbsingh@centos.org>
-- Roll in CentOS Changes
+* Thu May 17 2007 Karanbir Singh <kbsingh@centos.org> [2.6.18.8.1.4.el5.centos]
+- Change gpg key to CentOS
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
