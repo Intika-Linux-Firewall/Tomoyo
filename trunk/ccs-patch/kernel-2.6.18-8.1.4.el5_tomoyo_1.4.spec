@@ -1947,7 +1947,7 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.4.el5/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.18-8.1.4.el5.txt
+patch -sp1 < ccs-patch-2.6.18-8.1.4.el5.txt
 
 # END OF PATCH APPLICATIONS
 
