@@ -1,6 +1,6 @@
-diff -ubBpEr linux-source-2.6.20/Makefile linux-source-2.6.20-ccs/Makefile
---- linux-source-2.6.20/Makefile	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/Makefile	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/Makefile linux-source-2.6.20.3-ubuntu1-ccs/Makefile
+--- linux-source-2.6.20.3-ubuntu1/Makefile	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/Makefile	2007-05-23 15:16:03.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
@@ -10,9 +10,9 @@ diff -ubBpEr linux-source-2.6.20/Makefile linux-source-2.6.20-ccs/Makefile
  NAME = Homicidal Dwarf Hamster
  
  ifdef UBUNTUBUILD
-diff -ubBpEr linux-source-2.6.20/fs/Kconfig linux-source-2.6.20-ccs/fs/Kconfig
---- linux-source-2.6.20/fs/Kconfig	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/Kconfig	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/Kconfig linux-source-2.6.20.3-ubuntu1-ccs/fs/Kconfig
+--- linux-source-2.6.20.3-ubuntu1/fs/Kconfig	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/Kconfig	2007-05-23 15:16:04.000000000 +0900
 @@ -2095,5 +2095,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -21,18 +21,18 @@ diff -ubBpEr linux-source-2.6.20/fs/Kconfig linux-source-2.6.20-ccs/fs/Kconfig
 +
  endmenu
  
-diff -ubBpEr linux-source-2.6.20/fs/Makefile linux-source-2.6.20-ccs/fs/Makefile
---- linux-source-2.6.20/fs/Makefile	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/Makefile	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/Makefile linux-source-2.6.20.3-ubuntu1-ccs/fs/Makefile
+--- linux-source-2.6.20.3-ubuntu1/fs/Makefile	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/Makefile	2007-05-23 15:16:04.000000000 +0900
 @@ -115,3 +115,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
-diff -ubBpEr linux-source-2.6.20/fs/attr.c linux-source-2.6.20-ccs/fs/attr.c
---- linux-source-2.6.20/fs/attr.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/attr.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/attr.c linux-source-2.6.20.3-ubuntu1-ccs/fs/attr.c
+--- linux-source-2.6.20.3-ubuntu1/fs/attr.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/attr.c	2007-05-23 15:16:04.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -64,9 +64,9 @@ diff -ubBpEr linux-source-2.6.20/fs/attr.c linux-source-2.6.20-ccs/fs/attr.c
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
-diff -ubBpEr linux-source-2.6.20/fs/compat.c linux-source-2.6.20-ccs/fs/compat.c
---- linux-source-2.6.20/fs/compat.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/compat.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/compat.c linux-source-2.6.20.3-ubuntu1-ccs/fs/compat.c
+--- linux-source-2.6.20.3-ubuntu1/fs/compat.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/compat.c	2007-05-23 15:16:04.000000000 +0900
 @@ -55,6 +55,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -96,9 +96,9 @@ diff -ubBpEr linux-source-2.6.20/fs/compat.c linux-source-2.6.20-ccs/fs/compat.c
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
-diff -ubBpEr linux-source-2.6.20/fs/exec.c linux-source-2.6.20-ccs/fs/exec.c
---- linux-source-2.6.20/fs/exec.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/exec.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/exec.c linux-source-2.6.20.3-ubuntu1-ccs/fs/exec.c
+--- linux-source-2.6.20.3-ubuntu1/fs/exec.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/exec.c	2007-05-23 15:16:04.000000000 +0900
 @@ -58,6 +58,10 @@
  #include <linux/kmod.h>
  #endif
@@ -142,9 +142,9 @@ diff -ubBpEr linux-source-2.6.20/fs/exec.c linux-source-2.6.20-ccs/fs/exec.c
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
-diff -ubBpEr linux-source-2.6.20/fs/fcntl.c linux-source-2.6.20-ccs/fs/fcntl.c
---- linux-source-2.6.20/fs/fcntl.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/fcntl.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/fcntl.c linux-source-2.6.20.3-ubuntu1-ccs/fs/fcntl.c
+--- linux-source-2.6.20.3-ubuntu1/fs/fcntl.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/fcntl.c	2007-05-23 15:16:04.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -166,9 +166,9 @@ diff -ubBpEr linux-source-2.6.20/fs/fcntl.c linux-source-2.6.20-ccs/fs/fcntl.c
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
-diff -ubBpEr linux-source-2.6.20/fs/ioctl.c linux-source-2.6.20-ccs/fs/ioctl.c
---- linux-source-2.6.20/fs/ioctl.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/ioctl.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/ioctl.c linux-source-2.6.20.3-ubuntu1-ccs/fs/ioctl.c
+--- linux-source-2.6.20.3-ubuntu1/fs/ioctl.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/ioctl.c	2007-05-23 15:16:04.000000000 +0900
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -189,9 +189,9 @@ diff -ubBpEr linux-source-2.6.20/fs/ioctl.c linux-source-2.6.20-ccs/fs/ioctl.c
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-diff -ubBpEr linux-source-2.6.20/fs/namei.c linux-source-2.6.20-ccs/fs/namei.c
---- linux-source-2.6.20/fs/namei.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/namei.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/namei.c linux-source-2.6.20.3-ubuntu1-ccs/fs/namei.c
+--- linux-source-2.6.20.3-ubuntu1/fs/namei.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/namei.c	2007-05-23 15:16:04.000000000 +0900
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -368,9 +368,9 @@ diff -ubBpEr linux-source-2.6.20/fs/namei.c linux-source-2.6.20-ccs/fs/namei.c
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-diff -ubBpEr linux-source-2.6.20/fs/namespace.c linux-source-2.6.20-ccs/fs/namespace.c
---- linux-source-2.6.20/fs/namespace.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/namespace.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/namespace.c linux-source-2.6.20.3-ubuntu1-ccs/fs/namespace.c
+--- linux-source-2.6.20.3-ubuntu1/fs/namespace.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/namespace.c	2007-05-23 15:16:04.000000000 +0900
 @@ -28,6 +28,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -473,9 +473,9 @@ diff -ubBpEr linux-source-2.6.20/fs/namespace.c linux-source-2.6.20-ccs/fs/names
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
-diff -ubBpEr linux-source-2.6.20/fs/open.c linux-source-2.6.20-ccs/fs/open.c
---- linux-source-2.6.20/fs/open.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/open.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/open.c linux-source-2.6.20.3-ubuntu1-ccs/fs/open.c
+--- linux-source-2.6.20.3-ubuntu1/fs/open.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/open.c	2007-05-23 15:16:04.000000000 +0900
 @@ -27,6 +27,12 @@
  #include <linux/syscalls.h>
  #include <linux/rcupdate.h>
@@ -532,9 +532,9 @@ diff -ubBpEr linux-source-2.6.20/fs/open.c linux-source-2.6.20-ccs/fs/open.c
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
-diff -ubBpEr linux-source-2.6.20/fs/proc/Makefile linux-source-2.6.20-ccs/fs/proc/Makefile
---- linux-source-2.6.20/fs/proc/Makefile	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/proc/Makefile	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/proc/Makefile linux-source-2.6.20.3-ubuntu1-ccs/fs/proc/Makefile
+--- linux-source-2.6.20.3-ubuntu1/fs/proc/Makefile	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/proc/Makefile	2007-05-23 15:16:04.000000000 +0900
 @@ -14,3 +14,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -542,9 +542,9 @@ diff -ubBpEr linux-source-2.6.20/fs/proc/Makefile linux-source-2.6.20-ccs/fs/pro
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
-diff -ubBpEr linux-source-2.6.20/fs/proc/proc_misc.c linux-source-2.6.20-ccs/fs/proc/proc_misc.c
---- linux-source-2.6.20/fs/proc/proc_misc.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/fs/proc/proc_misc.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/proc/proc_misc.c linux-source-2.6.20.3-ubuntu1-ccs/fs/proc/proc_misc.c
+--- linux-source-2.6.20.3-ubuntu1/fs/proc/proc_misc.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/fs/proc/proc_misc.c	2007-05-23 15:16:46.000000000 +0900
 @@ -763,4 +763,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -554,14 +554,14 @@ diff -ubBpEr linux-source-2.6.20/fs/proc/proc_misc.c linux-source-2.6.20-ccs/fs/
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.20.3-ubuntu1 2007/05/17\n");
++		printk("Hook version: 2.6.20.3-ubuntu1 2007/05/23\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
-diff -ubBpEr linux-source-2.6.20/include/linux/init_task.h linux-source-2.6.20-ccs/include/linux/init_task.h
---- linux-source-2.6.20/include/linux/init_task.h	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/include/linux/init_task.h	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/include/linux/init_task.h linux-source-2.6.20.3-ubuntu1-ccs/include/linux/init_task.h
+--- linux-source-2.6.20.3-ubuntu1/include/linux/init_task.h	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/include/linux/init_task.h	2007-05-23 15:16:04.000000000 +0900
 @@ -141,6 +141,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -573,9 +573,9 @@ diff -ubBpEr linux-source-2.6.20/include/linux/init_task.h linux-source-2.6.20-c
  }
  
  
-diff -ubBpEr linux-source-2.6.20/include/linux/sched.h linux-source-2.6.20-ccs/include/linux/sched.h
---- linux-source-2.6.20/include/linux/sched.h	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/include/linux/sched.h	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/include/linux/sched.h linux-source-2.6.20.3-ubuntu1-ccs/include/linux/sched.h
+--- linux-source-2.6.20.3-ubuntu1/include/linux/sched.h	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/include/linux/sched.h	2007-05-23 15:16:04.000000000 +0900
 @@ -27,6 +27,11 @@
  #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
@@ -599,9 +599,9 @@ diff -ubBpEr linux-source-2.6.20/include/linux/sched.h linux-source-2.6.20-ccs/i
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
-diff -ubBpEr linux-source-2.6.20/kernel/kexec.c linux-source-2.6.20-ccs/kernel/kexec.c
---- linux-source-2.6.20/kernel/kexec.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/kexec.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/kexec.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/kexec.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/kexec.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/kexec.c	2007-05-23 15:16:04.000000000 +0900
 @@ -28,6 +28,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -622,9 +622,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/kexec.c linux-source-2.6.20-ccs/kernel/k
  
  	/*
  	 * Verify we have a legal set of flags
-diff -ubBpEr linux-source-2.6.20/kernel/kmod.c linux-source-2.6.20-ccs/kernel/kmod.c
---- linux-source-2.6.20/kernel/kmod.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/kmod.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/kmod.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/kmod.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/kmod.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/kmod.c	2007-05-23 15:16:04.000000000 +0900
 @@ -166,6 +166,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -637,9 +637,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/kmod.c linux-source-2.6.20-ccs/kernel/km
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
-diff -ubBpEr linux-source-2.6.20/kernel/module.c linux-source-2.6.20-ccs/kernel/module.c
---- linux-source-2.6.20/kernel/module.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/module.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/module.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/module.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/module.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/module.c	2007-05-23 15:16:04.000000000 +0900
 @@ -44,6 +44,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -672,9 +672,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/module.c linux-source-2.6.20-ccs/kernel/
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
-diff -ubBpEr linux-source-2.6.20/kernel/sched.c linux-source-2.6.20-ccs/kernel/sched.c
---- linux-source-2.6.20/kernel/sched.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/sched.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/sched.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/sched.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/sched.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/sched.c	2007-05-23 15:16:04.000000000 +0900
 @@ -55,6 +55,9 @@
  #include <asm/tlb.h>
  
@@ -695,9 +695,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/sched.c linux-source-2.6.20-ccs/kernel/s
  
  	/*
  	 * Setpriority might change our priority at the same moment.
-diff -ubBpEr linux-source-2.6.20/kernel/signal.c linux-source-2.6.20-ccs/kernel/signal.c
---- linux-source-2.6.20/kernel/signal.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/signal.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/signal.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/signal.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/signal.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/signal.c	2007-05-23 15:16:04.000000000 +0900
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -741,9 +741,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/signal.c linux-source-2.6.20-ccs/kernel/
  
  	return do_tkill(0, pid, sig);
  }
-diff -ubBpEr linux-source-2.6.20/kernel/sys.c linux-source-2.6.20-ccs/kernel/sys.c
---- linux-source-2.6.20/kernel/sys.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/sys.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/sys.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/sys.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/sys.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/sys.c	2007-05-23 15:16:04.000000000 +0900
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -794,9 +794,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/sys.c linux-source-2.6.20-ccs/kernel/sys
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
-diff -ubBpEr linux-source-2.6.20/kernel/sysctl.c linux-source-2.6.20-ccs/kernel/sysctl.c
---- linux-source-2.6.20/kernel/sysctl.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/sysctl.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/sysctl.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/sysctl.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/sysctl.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/sysctl.c	2007-05-23 15:16:04.000000000 +0900
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -919,9 +919,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/sysctl.c linux-source-2.6.20-ccs/kernel/
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
-diff -ubBpEr linux-source-2.6.20/kernel/time/ntp.c linux-source-2.6.20-ccs/kernel/time/ntp.c
---- linux-source-2.6.20/kernel/time/ntp.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/time/ntp.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/time/ntp.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/time/ntp.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/time/ntp.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/time/ntp.c	2007-05-23 15:16:04.000000000 +0900
 @@ -14,6 +14,9 @@
  
  #include <asm/div64.h>
@@ -942,9 +942,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/time/ntp.c linux-source-2.6.20-ccs/kerne
  
  	/* Now we validate the data before disabling interrupts */
  
-diff -ubBpEr linux-source-2.6.20/kernel/time.c linux-source-2.6.20-ccs/kernel/time.c
---- linux-source-2.6.20/kernel/time.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/kernel/time.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/time.c linux-source-2.6.20.3-ubuntu1-ccs/kernel/time.c
+--- linux-source-2.6.20.3-ubuntu1/kernel/time.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/kernel/time.c	2007-05-23 15:16:04.000000000 +0900
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -975,9 +975,9 @@ diff -ubBpEr linux-source-2.6.20/kernel/time.c linux-source-2.6.20-ccs/kernel/ti
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
-diff -ubBpEr linux-source-2.6.20/net/ipv4/inet_connection_sock.c linux-source-2.6.20-ccs/net/ipv4/inet_connection_sock.c
---- linux-source-2.6.20/net/ipv4/inet_connection_sock.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/net/ipv4/inet_connection_sock.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/ipv4/inet_connection_sock.c linux-source-2.6.20.3-ubuntu1-ccs/net/ipv4/inet_connection_sock.c
+--- linux-source-2.6.20.3-ubuntu1/net/ipv4/inet_connection_sock.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/net/ipv4/inet_connection_sock.c	2007-05-23 15:16:04.000000000 +0900
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -998,9 +998,9 @@ diff -ubBpEr linux-source-2.6.20/net/ipv4/inet_connection_sock.c linux-source-2.
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
-diff -ubBpEr linux-source-2.6.20/net/ipv4/inet_hashtables.c linux-source-2.6.20-ccs/net/ipv4/inet_hashtables.c
---- linux-source-2.6.20/net/ipv4/inet_hashtables.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/net/ipv4/inet_hashtables.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/ipv4/inet_hashtables.c linux-source-2.6.20.3-ubuntu1-ccs/net/ipv4/inet_hashtables.c
+--- linux-source-2.6.20.3-ubuntu1/net/ipv4/inet_hashtables.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/net/ipv4/inet_hashtables.c	2007-05-23 15:16:04.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1021,9 +1021,9 @@ diff -ubBpEr linux-source-2.6.20/net/ipv4/inet_hashtables.c linux-source-2.6.20-
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
-diff -ubBpEr linux-source-2.6.20/net/ipv4/udp.c linux-source-2.6.20-ccs/net/ipv4/udp.c
---- linux-source-2.6.20/net/ipv4/udp.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/net/ipv4/udp.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/ipv4/udp.c linux-source-2.6.20.3-ubuntu1-ccs/net/ipv4/udp.c
+--- linux-source-2.6.20.3-ubuntu1/net/ipv4/udp.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/net/ipv4/udp.c	2007-05-23 15:16:27.000000000 +0900
 @@ -102,6 +102,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1034,16 +1034,16 @@ diff -ubBpEr linux-source-2.6.20/net/ipv4/udp.c linux-source-2.6.20-ccs/net/ipv4
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -155,6 +158,9 @@ int __udp_lib_get_port(struct sock *sk, 
- 		best = result = *port_rover;
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			int size;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			head = &udptable[result & (UDP_HTABLE_SIZE - 1)];
- 			if (hlist_empty(head)) {
+@@ -162,6 +165,9 @@ int __udp_lib_get_port(struct sock *sk, 
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -180,6 +186,9 @@ int __udp_lib_get_port(struct sock *sk, 
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
@@ -1054,9 +1054,9 @@ diff -ubBpEr linux-source-2.6.20/net/ipv4/udp.c linux-source-2.6.20-ccs/net/ipv4
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
-diff -ubBpEr linux-source-2.6.20/net/ipv6/inet6_hashtables.c linux-source-2.6.20-ccs/net/ipv6/inet6_hashtables.c
---- linux-source-2.6.20/net/ipv6/inet6_hashtables.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/net/ipv6/inet6_hashtables.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/ipv6/inet6_hashtables.c linux-source-2.6.20.3-ubuntu1-ccs/net/ipv6/inet6_hashtables.c
+--- linux-source-2.6.20.3-ubuntu1/net/ipv6/inet6_hashtables.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/net/ipv6/inet6_hashtables.c	2007-05-23 15:16:04.000000000 +0900
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1077,9 +1077,9 @@ diff -ubBpEr linux-source-2.6.20/net/ipv6/inet6_hashtables.c linux-source-2.6.20
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
-diff -ubBpEr linux-source-2.6.20/net/socket.c linux-source-2.6.20-ccs/net/socket.c
---- linux-source-2.6.20/net/socket.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/net/socket.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/socket.c linux-source-2.6.20.3-ubuntu1-ccs/net/socket.c
+--- linux-source-2.6.20.3-ubuntu1/net/socket.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/net/socket.c	2007-05-23 15:16:04.000000000 +0900
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1170,9 +1170,9 @@ diff -ubBpEr linux-source-2.6.20/net/socket.c linux-source-2.6.20-ccs/net/socket
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
-diff -ubBpEr linux-source-2.6.20/net/unix/af_unix.c linux-source-2.6.20-ccs/net/unix/af_unix.c
---- linux-source-2.6.20/net/unix/af_unix.c	2007-05-17 16:05:35.000000000 +0900
-+++ linux-source-2.6.20-ccs/net/unix/af_unix.c	2007-05-17 16:05:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/unix/af_unix.c linux-source-2.6.20.3-ubuntu1-ccs/net/unix/af_unix.c
+--- linux-source-2.6.20.3-ubuntu1/net/unix/af_unix.c	2007-05-23 15:15:45.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/net/unix/af_unix.c	2007-05-23 15:16:04.000000000 +0900
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>

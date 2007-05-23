@@ -583,7 +583,7 @@ diff -ubBpEr linux-2.6.9-42.11AX/fs/proc/Makefile linux-2.6.9-42.11AX-ccs/fs/pro
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.9-42.11AX/fs/proc/proc_misc.c linux-2.6.9-42.11AX-ccs/fs/proc/proc_misc.c
 --- linux-2.6.9-42.11AX/fs/proc/proc_misc.c	2007-05-01 21:19:17.000000000 +0900
-+++ linux-2.6.9-42.11AX-ccs/fs/proc/proc_misc.c	2007-05-01 21:19:42.000000000 +0900
++++ linux-2.6.9-42.11AX-ccs/fs/proc/proc_misc.c	2007-05-23 16:11:28.000000000 +0900
 @@ -794,4 +794,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -593,7 +593,7 @@ diff -ubBpEr linux-2.6.9-42.11AX/fs/proc/proc_misc.c linux-2.6.9-42.11AX-ccs/fs/
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.9-42.11AX 2007/05/01\n");
++		printk("Hook version: 2.6.9-42.11AX 2007/05/23\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -640,7 +640,7 @@ diff -ubBpEr linux-2.6.9-42.11AX/include/linux/sched.h linux-2.6.9-42.11AX-ccs/i
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.9-42.11AX/kernel/kmod.c linux-2.6.9-42.11AX-ccs/kernel/kmod.c
 --- linux-2.6.9-42.11AX/kernel/kmod.c	2007-05-01 21:19:17.000000000 +0900
-+++ linux-2.6.9-42.11AX-ccs/kernel/kmod.c	2007-05-01 21:19:21.000000000 +0900
++++ linux-2.6.9-42.11AX-ccs/kernel/kmod.c	2007-05-23 16:10:39.000000000 +0900
 @@ -169,6 +169,11 @@ static int ____exec_usermodehelper(char 
  
  	key_put(old_session);
@@ -1023,7 +1023,7 @@ diff -ubBpEr linux-2.6.9-42.11AX/net/ipv4/tcp_ipv4.c linux-2.6.9-42.11AX-ccs/net
   			 * because the established check is already
 diff -ubBpEr linux-2.6.9-42.11AX/net/ipv4/udp.c linux-2.6.9-42.11AX-ccs/net/ipv4/udp.c
 --- linux-2.6.9-42.11AX/net/ipv4/udp.c	2007-05-01 21:19:17.000000000 +0900
-+++ linux-2.6.9-42.11AX-ccs/net/ipv4/udp.c	2007-05-01 21:19:21.000000000 +0900
++++ linux-2.6.9-42.11AX-ccs/net/ipv4/udp.c	2007-05-23 16:11:16.000000000 +0900
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1034,16 +1034,16 @@ diff -ubBpEr linux-2.6.9-42.11AX/net/ipv4/udp.c linux-2.6.9-42.11AX-ccs/net/ipv4
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -138,6 +141,9 @@ static int udp_v4_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			struct hlist_head *list;
- 			int size;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			list = &udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (hlist_empty(list)) {
+@@ -145,6 +148,9 @@ static int udp_v4_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -161,6 +167,9 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &

@@ -1,6 +1,6 @@
 diff -ubBpEr linux-2.4.20-46.9.legacy/Documentation/Configure.help linux-2.4.20-46.9.legacy-ccs/Documentation/Configure.help
---- linux-2.4.20-46.9.legacy/Documentation/Configure.help	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/Documentation/Configure.help	2007-03-19 09:50:53.000000000 +0900
+--- linux-2.4.20-46.9.legacy/Documentation/Configure.help	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/Documentation/Configure.help	2007-05-25 02:22:47.000000000 +0900
 @@ -26506,6 +26506,222 @@ IPMI Watchdog Timer
  CONFIG_IPMI_WATCHDOG
    This enables the IPMI watchdog timer.
@@ -225,8 +225,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/Documentation/Configure.help linux-2.4.20-
  # A couple of things I keep forgetting:
  #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
 diff -ubBpEr linux-2.4.20-46.9.legacy/Makefile linux-2.4.20-46.9.legacy-ccs/Makefile
---- linux-2.4.20-46.9.legacy/Makefile	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/Makefile	2007-03-03 16:03:26.000000000 +0900
+--- linux-2.4.20-46.9.legacy/Makefile	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/Makefile	2007-05-25 02:22:47.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 4
@@ -237,8 +237,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/Makefile linux-2.4.20-46.9.legacy-ccs/Make
  KERNELRELEASE=$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
  
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/Config.in linux-2.4.20-46.9.legacy-ccs/fs/Config.in
---- linux-2.4.20-46.9.legacy/fs/Config.in	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/Config.in	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/Config.in	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/Config.in	2007-05-25 02:22:47.000000000 +0900
 @@ -169,4 +169,7 @@ comment 'Partition Types'
  source fs/partitions/Config.in
  endmenu
@@ -248,8 +248,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/Config.in linux-2.4.20-46.9.legacy-ccs/
 +
  endmenu
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/Makefile linux-2.4.20-46.9.legacy-ccs/fs/Makefile
---- linux-2.4.20-46.9.legacy/fs/Makefile	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/Makefile	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/Makefile	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/Makefile	2007-05-25 02:22:47.000000000 +0900
 @@ -85,5 +85,5 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
@@ -258,8 +258,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/Makefile linux-2.4.20-46.9.legacy-ccs/f
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/attr.c linux-2.4.20-46.9.legacy-ccs/fs/attr.c
---- linux-2.4.20-46.9.legacy/fs/attr.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/attr.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/attr.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/attr.c	2007-05-25 02:22:47.000000000 +0900
 @@ -12,6 +12,9 @@
  #include <linux/dnotify.h>
  #include <linux/fcntl.h>
@@ -282,8 +282,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/attr.c linux-2.4.20-46.9.legacy-ccs/fs/
  	lock_kernel();
  	if (inode->i_op && inode->i_op->setattr) 
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/exec.c linux-2.4.20-46.9.legacy-ccs/fs/exec.c
---- linux-2.4.20-46.9.legacy/fs/exec.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/exec.c	2007-03-06 11:11:17.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/exec.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/exec.c	2007-05-25 02:22:47.000000000 +0900
 @@ -51,6 +51,10 @@
  #include <linux/kmod.h>
  #endif
@@ -328,8 +328,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/exec.c linux-2.4.20-46.9.legacy-ccs/fs/
  		/* execve success */
  		return retval;
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/fcntl.c linux-2.4.20-46.9.legacy-ccs/fs/fcntl.c
---- linux-2.4.20-46.9.legacy/fs/fcntl.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/fcntl.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/fcntl.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/fcntl.c	2007-05-25 02:22:47.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -352,8 +352,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/fcntl.c linux-2.4.20-46.9.legacy-ccs/fs
  	if ((arg ^ filp->f_flags) & FASYNC) {
  		if (filp->f_op && filp->f_op->fasync) {
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/ioctl.c linux-2.4.20-46.9.legacy-ccs/fs/ioctl.c
---- linux-2.4.20-46.9.legacy/fs/ioctl.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/ioctl.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/ioctl.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/ioctl.c	2007-05-25 02:22:47.000000000 +0900
 @@ -10,6 +10,9 @@
  
  #include <asm/uaccess.h>
@@ -375,8 +375,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/ioctl.c linux-2.4.20-46.9.legacy-ccs/fs
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namei.c linux-2.4.20-46.9.legacy-ccs/fs/namei.c
---- linux-2.4.20-46.9.legacy/fs/namei.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/namei.c	2007-03-03 16:21:33.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/namei.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/namei.c	2007-05-25 02:22:47.000000000 +0900
 @@ -28,6 +28,11 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -559,8 +559,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namei.c linux-2.4.20-46.9.legacy-ccs/fs
  	from = getname(oldname);
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namespace.c linux-2.4.20-46.9.legacy-ccs/fs/namespace.c
---- linux-2.4.20-46.9.legacy/fs/namespace.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/namespace.c	2007-03-19 09:50:16.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/namespace.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/namespace.c	2007-05-25 02:22:47.000000000 +0900
 @@ -21,6 +21,13 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
@@ -680,8 +680,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namespace.c linux-2.4.20-46.9.legacy-cc
  	user_nd.mnt = mntget(current->fs->rootmnt);
  	user_nd.dentry = dget(current->fs->root);
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/open.c linux-2.4.20-46.9.legacy-ccs/fs/open.c
---- linux-2.4.20-46.9.legacy/fs/open.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/open.c	2007-03-19 14:21:13.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/open.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/open.c	2007-05-25 02:22:47.000000000 +0900
 @@ -20,6 +20,13 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
@@ -742,8 +742,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/open.c linux-2.4.20-46.9.legacy-ccs/fs/
  		tty_vhangup(current->tty);
  		return 0;
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/proc/Makefile linux-2.4.20-46.9.legacy-ccs/fs/proc/Makefile
---- linux-2.4.20-46.9.legacy/fs/proc/Makefile	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/proc/Makefile	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/proc/Makefile	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/proc/Makefile	2007-05-25 02:22:47.000000000 +0900
 @@ -18,4 +18,8 @@ ifeq ($(CONFIG_PROC_DEVICETREE),y)
  obj-y += proc_devtree.o
  endif
@@ -754,8 +754,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/proc/Makefile linux-2.4.20-46.9.legacy-
 +
  include $(TOPDIR)/Rules.make
 diff -ubBpEr linux-2.4.20-46.9.legacy/fs/proc/proc_misc.c linux-2.4.20-46.9.legacy-ccs/fs/proc/proc_misc.c
---- linux-2.4.20-46.9.legacy/fs/proc/proc_misc.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/proc/proc_misc.c	2007-03-19 09:49:19.000000000 +0900
+--- linux-2.4.20-46.9.legacy/fs/proc/proc_misc.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/fs/proc/proc_misc.c	2007-05-25 02:23:23.000000000 +0900
 @@ -630,4 +630,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -765,14 +765,14 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/proc/proc_misc.c linux-2.4.20-46.9.lega
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.20-46.9.legacy 2007/03/19\n");
++		printk("Hook version: 2.4.20-46.9.legacy 2007/05/23\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.4.20-46.9.legacy/include/linux/sched.h linux-2.4.20-46.9.legacy-ccs/include/linux/sched.h
---- linux-2.4.20-46.9.legacy/include/linux/sched.h	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/include/linux/sched.h	2007-03-19 12:40:57.000000000 +0900
+--- linux-2.4.20-46.9.legacy/include/linux/sched.h	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/include/linux/sched.h	2007-05-25 02:22:47.000000000 +0900
 @@ -33,6 +33,11 @@ extern unsigned long event;
  struct exec_domain;
  extern int panic_timeout;
@@ -808,8 +808,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/include/linux/sched.h linux-2.4.20-46.9.le
  
  
 diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/kmod.c linux-2.4.20-46.9.legacy-ccs/kernel/kmod.c
---- linux-2.4.20-46.9.legacy/kernel/kmod.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/kmod.c	2007-03-03 16:17:44.000000000 +0900
+--- linux-2.4.20-46.9.legacy/kernel/kmod.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/kernel/kmod.c	2007-05-25 02:22:47.000000000 +0900
 @@ -135,6 +135,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
@@ -823,8 +823,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/kmod.c linux-2.4.20-46.9.legacy-ccs
  	if (execve(program_path, argv, envp) < 0)
  		return -errno;
 diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/module.c linux-2.4.20-46.9.legacy-ccs/kernel/module.c
---- linux-2.4.20-46.9.legacy/kernel/module.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/module.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/kernel/module.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/kernel/module.c	2007-05-25 02:22:47.000000000 +0900
 @@ -10,6 +10,9 @@
  #include <linux/slab.h>
  #include <linux/kmod.h>
@@ -866,8 +866,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/module.c linux-2.4.20-46.9.legacy-c
  	lock_kernel();
  	if (name_user) {
 diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sched.c linux-2.4.20-46.9.legacy-ccs/kernel/sched.c
---- linux-2.4.20-46.9.legacy/kernel/sched.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/sched.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/kernel/sched.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/kernel/sched.c	2007-05-25 02:22:47.000000000 +0900
 @@ -30,6 +30,9 @@
  #include <linux/blkdev.h>
  #include <linux/delay.h>
@@ -889,8 +889,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sched.c linux-2.4.20-46.9.legacy-cc
  	/*
  	 *	Setpriority might change our priority at the same moment.
 diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/signal.c linux-2.4.20-46.9.legacy-ccs/kernel/signal.c
---- linux-2.4.20-46.9.legacy/kernel/signal.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/signal.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/kernel/signal.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/kernel/signal.c	2007-05-25 02:22:47.000000000 +0900
 @@ -21,6 +21,9 @@
  #include <asm/param.h>
  #include <asm/uaccess.h>
@@ -924,8 +924,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/signal.c linux-2.4.20-46.9.legacy-c
  	info.si_signo = sig;
  	info.si_errno = 0;
 diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sys.c linux-2.4.20-46.9.legacy-ccs/kernel/sys.c
---- linux-2.4.20-46.9.legacy/kernel/sys.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/sys.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/kernel/sys.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/kernel/sys.c	2007-05-25 02:22:47.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -987,8 +987,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sys.c linux-2.4.20-46.9.legacy-ccs/
  	down_write(&uts_sem);
  	errno = -EFAULT;
 diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sysctl.c linux-2.4.20-46.9.legacy-ccs/kernel/sysctl.c
---- linux-2.4.20-46.9.legacy/kernel/sysctl.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/sysctl.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/kernel/sysctl.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/kernel/sysctl.c	2007-05-25 02:22:47.000000000 +0900
 @@ -32,6 +32,9 @@
  #include <linux/highuid.h>
  
@@ -1120,8 +1120,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sysctl.c linux-2.4.20-46.9.legacy-c
  
  /*
 diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/time.c linux-2.4.20-46.9.legacy-ccs/kernel/time.c
---- linux-2.4.20-46.9.legacy/kernel/time.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/time.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/kernel/time.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/kernel/time.c	2007-05-25 02:22:47.000000000 +0900
 @@ -29,6 +29,9 @@
  #include <linux/smp_lock.h>
  
@@ -1163,8 +1163,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/time.c linux-2.4.20-46.9.legacy-ccs
  	/* Now we validate the data before disabling interrupts */
  
 diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/tcp_ipv4.c linux-2.4.20-46.9.legacy-ccs/net/ipv4/tcp_ipv4.c
---- linux-2.4.20-46.9.legacy/net/ipv4/tcp_ipv4.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/ipv4/tcp_ipv4.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/net/ipv4/tcp_ipv4.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/net/ipv4/tcp_ipv4.c	2007-05-25 02:22:47.000000000 +0900
 @@ -67,6 +67,9 @@
  #include <linux/inet.h>
  #include <linux/stddef.h>
@@ -1196,8 +1196,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/tcp_ipv4.c linux-2.4.20-46.9.lega
  			/* Does not bother with rcv_saddr checks,
  			 * because the established check is already
 diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/udp.c linux-2.4.20-46.9.legacy-ccs/net/ipv4/udp.c
---- linux-2.4.20-46.9.legacy/net/ipv4/udp.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/ipv4/udp.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/net/ipv4/udp.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/net/ipv4/udp.c	2007-05-25 02:23:08.000000000 +0900
 @@ -97,6 +97,9 @@
  #include <net/route.h>
  #include <net/inet_common.h>
@@ -1208,16 +1208,16 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/udp.c linux-2.4.20-46.9.legacy-cc
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -124,6 +127,9 @@ static int udp_v4_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			struct sock *sk;
- 			int size;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			sk = udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (!sk) {
+@@ -131,6 +134,9 @@ static int udp_v4_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -148,6 +154,9 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
@@ -1229,8 +1229,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/udp.c linux-2.4.20-46.9.legacy-cc
  				break;
  		}
 diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv6/tcp_ipv6.c linux-2.4.20-46.9.legacy-ccs/net/ipv6/tcp_ipv6.c
---- linux-2.4.20-46.9.legacy/net/ipv6/tcp_ipv6.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/ipv6/tcp_ipv6.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/net/ipv6/tcp_ipv6.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/net/ipv6/tcp_ipv6.c	2007-05-25 02:22:47.000000000 +0900
 @@ -52,6 +52,9 @@
  #include <net/inet_ecn.h>
  
@@ -1252,8 +1252,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv6/tcp_ipv6.c linux-2.4.20-46.9.lega
  				if (tb->port == rover)
  					goto next;
 diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv6/udp.c linux-2.4.20-46.9.legacy-ccs/net/ipv6/udp.c
---- linux-2.4.20-46.9.legacy/net/ipv6/udp.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/ipv6/udp.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/net/ipv6/udp.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/net/ipv6/udp.c	2007-05-25 02:22:47.000000000 +0900
 @@ -50,6 +50,9 @@
  #include <net/inet_common.h>
  
@@ -1285,8 +1285,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv6/udp.c linux-2.4.20-46.9.legacy-cc
  				break;
  		}
 diff -ubBpEr linux-2.4.20-46.9.legacy/net/socket.c linux-2.4.20-46.9.legacy-ccs/net/socket.c
---- linux-2.4.20-46.9.legacy/net/socket.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/socket.c	2007-03-03 16:03:22.000000000 +0900
+--- linux-2.4.20-46.9.legacy/net/socket.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/net/socket.c	2007-05-25 02:22:47.000000000 +0900
 @@ -85,6 +85,10 @@
  #include <net/scm.h>
  #include <net/tux.h>
@@ -1376,8 +1376,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/socket.c linux-2.4.20-46.9.legacy-ccs/
  				 sock->file->f_flags);
  out_put:
 diff -ubBpEr linux-2.4.20-46.9.legacy/net/unix/af_unix.c linux-2.4.20-46.9.legacy-ccs/net/unix/af_unix.c
---- linux-2.4.20-46.9.legacy/net/unix/af_unix.c	2007-03-03 16:01:44.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/unix/af_unix.c	2007-03-03 16:23:13.000000000 +0900
+--- linux-2.4.20-46.9.legacy/net/unix/af_unix.c	2007-05-25 02:22:40.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/net/unix/af_unix.c	2007-05-25 02:22:47.000000000 +0900
 @@ -111,6 +111,9 @@
  #include <linux/rtnetlink.h>
  

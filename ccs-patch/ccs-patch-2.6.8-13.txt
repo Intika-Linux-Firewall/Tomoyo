@@ -1,6 +1,6 @@
 diff -ubBpEr linux-2.6.8-13/fs/Kconfig linux-2.6.8-13-ccs/fs/Kconfig
---- linux-2.6.8-13/fs/Kconfig	2007-05-01 17:14:56.378413528 +0900
-+++ linux-2.6.8-13-ccs/fs/Kconfig	2007-05-01 17:15:52.637860792 +0900
+--- linux-2.6.8-13/fs/Kconfig	2007-05-23 15:38:13.965626160 +0900
++++ linux-2.6.8-13-ccs/fs/Kconfig	2007-05-23 15:38:21.474484640 +0900
 @@ -1817,5 +1817,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -10,8 +10,8 @@ diff -ubBpEr linux-2.6.8-13/fs/Kconfig linux-2.6.8-13-ccs/fs/Kconfig
  endmenu
  
 diff -ubBpEr linux-2.6.8-13/fs/Makefile linux-2.6.8-13-ccs/fs/Makefile
---- linux-2.6.8-13/fs/Makefile	2007-05-01 17:14:56.378413528 +0900
-+++ linux-2.6.8-13-ccs/fs/Makefile	2007-05-01 17:15:52.639860488 +0900
+--- linux-2.6.8-13/fs/Makefile	2007-05-23 15:38:13.965626160 +0900
++++ linux-2.6.8-13-ccs/fs/Makefile	2007-05-23 15:38:21.474484640 +0900
 @@ -96,3 +96,5 @@ obj-$(CONFIG_GFS_FS)		+= gfs/
  obj-$(CONFIG_SUPERMOUNT)	+= supermount/
  obj-$(CONFIG_HOSTFS)		+= hostfs/
@@ -19,8 +19,8 @@ diff -ubBpEr linux-2.6.8-13/fs/Makefile linux-2.6.8-13-ccs/fs/Makefile
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
 diff -ubBpEr linux-2.6.8-13/fs/attr.c linux-2.6.8-13-ccs/fs/attr.c
---- linux-2.6.8-13/fs/attr.c	2007-05-01 17:14:56.379413376 +0900
-+++ linux-2.6.8-13-ccs/fs/attr.c	2007-05-01 17:15:52.640860336 +0900
+--- linux-2.6.8-13/fs/attr.c	2007-05-23 15:38:13.965626160 +0900
++++ linux-2.6.8-13-ccs/fs/attr.c	2007-05-23 15:38:21.475484488 +0900
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -53,8 +53,8 @@ diff -ubBpEr linux-2.6.8-13/fs/attr.c linux-2.6.8-13-ccs/fs/attr.c
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 diff -ubBpEr linux-2.6.8-13/fs/compat.c linux-2.6.8-13-ccs/fs/compat.c
---- linux-2.6.8-13/fs/compat.c	2007-05-01 17:14:56.379413376 +0900
-+++ linux-2.6.8-13-ccs/fs/compat.c	2007-05-01 17:15:52.642860032 +0900
+--- linux-2.6.8-13/fs/compat.c	2007-05-23 15:38:13.966626008 +0900
++++ linux-2.6.8-13-ccs/fs/compat.c	2007-05-23 15:38:21.477484184 +0900
 @@ -46,6 +46,9 @@
  
  #include <asm/uaccess.h>
@@ -85,8 +85,8 @@ diff -ubBpEr linux-2.6.8-13/fs/compat.c linux-2.6.8-13-ccs/fs/compat.c
  		free_arg_pages(&bprm);
  
 diff -ubBpEr linux-2.6.8-13/fs/exec.c linux-2.6.8-13-ccs/fs/exec.c
---- linux-2.6.8-13/fs/exec.c	2007-05-01 17:14:56.379413376 +0900
-+++ linux-2.6.8-13-ccs/fs/exec.c	2007-05-01 17:15:52.644859728 +0900
+--- linux-2.6.8-13/fs/exec.c	2007-05-23 15:38:13.966626008 +0900
++++ linux-2.6.8-13-ccs/fs/exec.c	2007-05-23 15:38:21.480483728 +0900
 @@ -54,6 +54,10 @@
  #include <linux/kmod.h>
  #endif
@@ -130,8 +130,8 @@ diff -ubBpEr linux-2.6.8-13/fs/exec.c linux-2.6.8-13-ccs/fs/exec.c
  		free_arg_pages(&bprm);
  
 diff -ubBpEr linux-2.6.8-13/fs/fcntl.c linux-2.6.8-13-ccs/fs/fcntl.c
---- linux-2.6.8-13/fs/fcntl.c	2007-05-01 17:14:56.380413224 +0900
-+++ linux-2.6.8-13-ccs/fs/fcntl.c	2007-05-01 17:15:52.647859272 +0900
+--- linux-2.6.8-13/fs/fcntl.c	2007-05-23 15:38:13.967625856 +0900
++++ linux-2.6.8-13-ccs/fs/fcntl.c	2007-05-23 15:38:21.482483424 +0900
 @@ -18,6 +18,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -154,8 +154,8 @@ diff -ubBpEr linux-2.6.8-13/fs/fcntl.c linux-2.6.8-13-ccs/fs/fcntl.c
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
 diff -ubBpEr linux-2.6.8-13/fs/ioctl.c linux-2.6.8-13-ccs/fs/ioctl.c
---- linux-2.6.8-13/fs/ioctl.c	2007-05-01 17:14:56.380413224 +0900
-+++ linux-2.6.8-13-ccs/fs/ioctl.c	2007-05-01 17:15:52.649858968 +0900
+--- linux-2.6.8-13/fs/ioctl.c	2007-05-23 15:38:13.967625856 +0900
++++ linux-2.6.8-13-ccs/fs/ioctl.c	2007-05-23 15:38:21.483483272 +0900
 @@ -14,6 +14,9 @@
  
  #include <asm/uaccess.h>
@@ -177,8 +177,8 @@ diff -ubBpEr linux-2.6.8-13/fs/ioctl.c linux-2.6.8-13-ccs/fs/ioctl.c
  	error = security_file_ioctl(filp, cmd, arg);
  	if (error) {
 diff -ubBpEr linux-2.6.8-13/fs/namei.c linux-2.6.8-13-ccs/fs/namei.c
---- linux-2.6.8-13/fs/namei.c	2007-05-01 17:14:56.380413224 +0900
-+++ linux-2.6.8-13-ccs/fs/namei.c	2007-05-01 17:15:52.654858208 +0900
+--- linux-2.6.8-13/fs/namei.c	2007-05-23 15:38:13.967625856 +0900
++++ linux-2.6.8-13-ccs/fs/namei.c	2007-05-23 15:38:21.488482512 +0900
 @@ -32,6 +32,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -357,8 +357,8 @@ diff -ubBpEr linux-2.6.8-13/fs/namei.c linux-2.6.8-13-ccs/fs/namei.c
  	from = getname(oldname);
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.6.8-13/fs/namespace.c linux-2.6.8-13-ccs/fs/namespace.c
---- linux-2.6.8-13/fs/namespace.c	2007-05-01 17:14:56.381413072 +0900
-+++ linux-2.6.8-13-ccs/fs/namespace.c	2007-05-01 17:15:52.658857600 +0900
+--- linux-2.6.8-13/fs/namespace.c	2007-05-23 15:38:13.968625704 +0900
++++ linux-2.6.8-13-ccs/fs/namespace.c	2007-05-23 15:38:21.492481904 +0900
 @@ -23,6 +23,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -473,8 +473,8 @@ diff -ubBpEr linux-2.6.8-13/fs/namespace.c linux-2.6.8-13-ccs/fs/namespace.c
  		path_release(&old_nd);
  		goto out1;
 diff -ubBpEr linux-2.6.8-13/fs/open.c linux-2.6.8-13-ccs/fs/open.c
---- linux-2.6.8-13/fs/open.c	2007-05-01 17:14:56.381413072 +0900
-+++ linux-2.6.8-13-ccs/fs/open.c	2007-05-01 17:15:52.660857296 +0900
+--- linux-2.6.8-13/fs/open.c	2007-05-23 15:38:13.968625704 +0900
++++ linux-2.6.8-13-ccs/fs/open.c	2007-05-23 15:38:21.492481904 +0900
 @@ -25,6 +25,13 @@
  
  #include <asm/unistd.h>
@@ -533,8 +533,8 @@ diff -ubBpEr linux-2.6.8-13/fs/open.c linux-2.6.8-13-ccs/fs/open.c
  		tty_vhangup(current->signal->tty);
  		return 0;
 diff -ubBpEr linux-2.6.8-13/fs/proc/Makefile linux-2.6.8-13-ccs/fs/proc/Makefile
---- linux-2.6.8-13/fs/proc/Makefile	2007-05-01 17:14:56.381413072 +0900
-+++ linux-2.6.8-13-ccs/fs/proc/Makefile	2007-05-01 17:15:52.662856992 +0900
+--- linux-2.6.8-13/fs/proc/Makefile	2007-05-23 15:38:13.968625704 +0900
++++ linux-2.6.8-13-ccs/fs/proc/Makefile	2007-05-23 15:38:21.493481752 +0900
 @@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
  
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
@@ -543,8 +543,8 @@ diff -ubBpEr linux-2.6.8-13/fs/proc/Makefile linux-2.6.8-13-ccs/fs/proc/Makefile
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.8-13/fs/proc/proc_misc.c linux-2.6.8-13-ccs/fs/proc/proc_misc.c
---- linux-2.6.8-13/fs/proc/proc_misc.c	2007-05-01 17:14:56.381413072 +0900
-+++ linux-2.6.8-13-ccs/fs/proc/proc_misc.c	2007-05-01 17:16:28.441417824 +0900
+--- linux-2.6.8-13/fs/proc/proc_misc.c	2007-05-23 15:38:13.969625552 +0900
++++ linux-2.6.8-13-ccs/fs/proc/proc_misc.c	2007-05-23 15:39:06.202684920 +0900
 @@ -641,4 +641,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -554,14 +554,14 @@ diff -ubBpEr linux-2.6.8-13/fs/proc/proc_misc.c linux-2.6.8-13-ccs/fs/proc/proc_
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.8-13 2007/05/01\n");
++		printk("Hook version: 2.6.8-13 2007/05/23\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.6.8-13/include/linux/init_task.h linux-2.6.8-13-ccs/include/linux/init_task.h
---- linux-2.6.8-13/include/linux/init_task.h	2007-05-01 17:14:56.382412920 +0900
-+++ linux-2.6.8-13-ccs/include/linux/init_task.h	2007-05-01 17:15:52.666856384 +0900
+--- linux-2.6.8-13/include/linux/init_task.h	2007-05-23 15:38:13.969625552 +0900
++++ linux-2.6.8-13-ccs/include/linux/init_task.h	2007-05-23 15:38:21.496481296 +0900
 @@ -112,6 +112,10 @@ extern struct group_info init_groups;
  	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
@@ -574,8 +574,8 @@ diff -ubBpEr linux-2.6.8-13/include/linux/init_task.h linux-2.6.8-13-ccs/include
  
  
 diff -ubBpEr linux-2.6.8-13/include/linux/sched.h linux-2.6.8-13-ccs/include/linux/sched.h
---- linux-2.6.8-13/include/linux/sched.h	2007-05-01 17:14:56.382412920 +0900
-+++ linux-2.6.8-13-ccs/include/linux/sched.h	2007-05-01 17:15:52.670855776 +0900
+--- linux-2.6.8-13/include/linux/sched.h	2007-05-23 15:38:13.969625552 +0900
++++ linux-2.6.8-13-ccs/include/linux/sched.h	2007-05-23 15:38:21.498480992 +0900
 @@ -32,6 +32,11 @@
  
  struct exec_domain;
@@ -600,8 +600,8 @@ diff -ubBpEr linux-2.6.8-13/include/linux/sched.h linux-2.6.8-13-ccs/include/lin
  
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.8-13/kernel/kmod.c linux-2.6.8-13-ccs/kernel/kmod.c
---- linux-2.6.8-13/kernel/kmod.c	2007-05-01 17:14:56.382412920 +0900
-+++ linux-2.6.8-13-ccs/kernel/kmod.c	2007-05-01 17:15:52.672855472 +0900
+--- linux-2.6.8-13/kernel/kmod.c	2007-05-23 15:38:13.969625552 +0900
++++ linux-2.6.8-13-ccs/kernel/kmod.c	2007-05-23 15:41:19.747383040 +0900
 @@ -166,6 +166,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -615,8 +615,8 @@ diff -ubBpEr linux-2.6.8-13/kernel/kmod.c linux-2.6.8-13-ccs/kernel/kmod.c
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
 diff -ubBpEr linux-2.6.8-13/kernel/module.c linux-2.6.8-13-ccs/kernel/module.c
---- linux-2.6.8-13/kernel/module.c	2007-05-01 17:14:56.383412768 +0900
-+++ linux-2.6.8-13-ccs/kernel/module.c	2007-05-01 17:15:52.677854712 +0900
+--- linux-2.6.8-13/kernel/module.c	2007-05-23 15:38:13.970625400 +0900
++++ linux-2.6.8-13-ccs/kernel/module.c	2007-05-23 15:38:21.501480536 +0900
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/semaphore.h>
@@ -650,8 +650,8 @@ diff -ubBpEr linux-2.6.8-13/kernel/module.c linux-2.6.8-13-ccs/kernel/module.c
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
 diff -ubBpEr linux-2.6.8-13/kernel/sched.c linux-2.6.8-13-ccs/kernel/sched.c
---- linux-2.6.8-13/kernel/sched.c	2007-05-01 17:14:56.384412616 +0900
-+++ linux-2.6.8-13-ccs/kernel/sched.c	2007-05-01 17:15:52.682853952 +0900
+--- linux-2.6.8-13/kernel/sched.c	2007-05-23 15:38:13.972625096 +0900
++++ linux-2.6.8-13-ccs/kernel/sched.c	2007-05-23 15:38:21.504480080 +0900
 @@ -46,6 +46,9 @@
  #include <asm/tlb.h>
  
@@ -673,8 +673,8 @@ diff -ubBpEr linux-2.6.8-13/kernel/sched.c linux-2.6.8-13-ccs/kernel/sched.c
  	/*
  	 * Setpriority might change our priority at the same moment.
 diff -ubBpEr linux-2.6.8-13/kernel/signal.c linux-2.6.8-13-ccs/kernel/signal.c
---- linux-2.6.8-13/kernel/signal.c	2007-05-01 17:14:56.385412464 +0900
-+++ linux-2.6.8-13-ccs/kernel/signal.c	2007-05-01 17:15:52.688853040 +0900
+--- linux-2.6.8-13/kernel/signal.c	2007-05-23 15:38:13.973624944 +0900
++++ linux-2.6.8-13-ccs/kernel/signal.c	2007-05-23 15:38:21.504480080 +0900
 @@ -25,6 +25,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -720,8 +720,8 @@ diff -ubBpEr linux-2.6.8-13/kernel/signal.c linux-2.6.8-13-ccs/kernel/signal.c
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
 diff -ubBpEr linux-2.6.8-13/kernel/sys.c linux-2.6.8-13-ccs/kernel/sys.c
---- linux-2.6.8-13/kernel/sys.c	2007-05-01 17:14:56.385412464 +0900
-+++ linux-2.6.8-13-ccs/kernel/sys.c	2007-05-01 17:15:52.692852432 +0900
+--- linux-2.6.8-13/kernel/sys.c	2007-05-23 15:38:13.974624792 +0900
++++ linux-2.6.8-13-ccs/kernel/sys.c	2007-05-23 15:38:21.504480080 +0900
 @@ -28,6 +28,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -773,8 +773,8 @@ diff -ubBpEr linux-2.6.8-13/kernel/sys.c linux-2.6.8-13-ccs/kernel/sys.c
  	down_write(&uts_sem);
  	errno = -EFAULT;
 diff -ubBpEr linux-2.6.8-13/kernel/sysctl.c linux-2.6.8-13-ccs/kernel/sysctl.c
---- linux-2.6.8-13/kernel/sysctl.c	2007-05-01 17:14:56.386412312 +0900
-+++ linux-2.6.8-13-ccs/kernel/sysctl.c	2007-05-01 17:15:52.694852128 +0900
+--- linux-2.6.8-13/kernel/sysctl.c	2007-05-23 15:38:13.975624640 +0900
++++ linux-2.6.8-13-ccs/kernel/sysctl.c	2007-05-23 15:38:21.504480080 +0900
 @@ -43,6 +43,9 @@
  
  #include <asm/uaccess.h>
@@ -906,8 +906,8 @@ diff -ubBpEr linux-2.6.8-13/kernel/sysctl.c linux-2.6.8-13-ccs/kernel/sysctl.c
  
  /*
 diff -ubBpEr linux-2.6.8-13/kernel/time.c linux-2.6.8-13-ccs/kernel/time.c
---- linux-2.6.8-13/kernel/time.c	2007-05-01 17:14:56.386412312 +0900
-+++ linux-2.6.8-13-ccs/kernel/time.c	2007-05-01 17:15:52.696851824 +0900
+--- linux-2.6.8-13/kernel/time.c	2007-05-23 15:38:13.975624640 +0900
++++ linux-2.6.8-13-ccs/kernel/time.c	2007-05-23 15:38:21.504480080 +0900
 @@ -33,6 +33,9 @@
  #include <linux/smp_lock.h>
  #include <asm/uaccess.h>
@@ -949,8 +949,8 @@ diff -ubBpEr linux-2.6.8-13/kernel/time.c linux-2.6.8-13-ccs/kernel/time.c
  	/* Now we validate the data before disabling interrupts */
  
 diff -ubBpEr linux-2.6.8-13/net/ipv4/tcp_ipv4.c linux-2.6.8-13-ccs/net/ipv4/tcp_ipv4.c
---- linux-2.6.8-13/net/ipv4/tcp_ipv4.c	2007-05-01 17:14:56.387412160 +0900
-+++ linux-2.6.8-13-ccs/net/ipv4/tcp_ipv4.c	2007-05-01 17:15:52.700851216 +0900
+--- linux-2.6.8-13/net/ipv4/tcp_ipv4.c	2007-05-23 15:38:13.976624488 +0900
++++ linux-2.6.8-13-ccs/net/ipv4/tcp_ipv4.c	2007-05-23 15:38:21.504480080 +0900
 @@ -74,6 +74,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -982,8 +982,8 @@ diff -ubBpEr linux-2.6.8-13/net/ipv4/tcp_ipv4.c linux-2.6.8-13-ccs/net/ipv4/tcp_
   			/* Does not bother with rcv_saddr checks,
   			 * because the established check is already
 diff -ubBpEr linux-2.6.8-13/net/ipv4/udp.c linux-2.6.8-13-ccs/net/ipv4/udp.c
---- linux-2.6.8-13/net/ipv4/udp.c	2007-05-01 17:14:56.387412160 +0900
-+++ linux-2.6.8-13-ccs/net/ipv4/udp.c	2007-05-01 17:15:52.703850760 +0900
+--- linux-2.6.8-13/net/ipv4/udp.c	2007-05-23 15:38:13.977624336 +0900
++++ linux-2.6.8-13-ccs/net/ipv4/udp.c	2007-05-23 15:38:48.527371976 +0900
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -994,16 +994,16 @@ diff -ubBpEr linux-2.6.8-13/net/ipv4/udp.c linux-2.6.8-13-ccs/net/ipv4/udp.c
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -138,6 +141,9 @@ static int udp_v4_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			struct hlist_head *list;
- 			int size;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			list = &udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (hlist_empty(list)) {
+@@ -145,6 +148,9 @@ static int udp_v4_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -161,6 +167,9 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
@@ -1015,8 +1015,8 @@ diff -ubBpEr linux-2.6.8-13/net/ipv4/udp.c linux-2.6.8-13-ccs/net/ipv4/udp.c
  				break;
  		}
 diff -ubBpEr linux-2.6.8-13/net/ipv6/tcp_ipv6.c linux-2.6.8-13-ccs/net/ipv6/tcp_ipv6.c
---- linux-2.6.8-13/net/ipv6/tcp_ipv6.c	2007-05-01 17:14:56.388412008 +0900
-+++ linux-2.6.8-13-ccs/net/ipv6/tcp_ipv6.c	2007-05-01 17:15:52.708850000 +0900
+--- linux-2.6.8-13/net/ipv6/tcp_ipv6.c	2007-05-23 15:38:13.978624184 +0900
++++ linux-2.6.8-13-ccs/net/ipv6/tcp_ipv6.c	2007-05-23 15:38:21.505479928 +0900
 @@ -62,6 +62,9 @@
  
  #include <linux/proc_fs.h>
@@ -1038,8 +1038,8 @@ diff -ubBpEr linux-2.6.8-13/net/ipv6/tcp_ipv6.c linux-2.6.8-13-ccs/net/ipv6/tcp_
  				if (tb->port == rover)
  					goto next;
 diff -ubBpEr linux-2.6.8-13/net/ipv6/udp.c linux-2.6.8-13-ccs/net/ipv6/udp.c
---- linux-2.6.8-13/net/ipv6/udp.c	2007-05-01 17:14:56.388412008 +0900
-+++ linux-2.6.8-13-ccs/net/ipv6/udp.c	2007-05-01 17:15:52.710849696 +0900
+--- linux-2.6.8-13/net/ipv6/udp.c	2007-05-23 15:38:13.978624184 +0900
++++ linux-2.6.8-13-ccs/net/ipv6/udp.c	2007-05-23 15:38:21.508479472 +0900
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1071,8 +1071,8 @@ diff -ubBpEr linux-2.6.8-13/net/ipv6/udp.c linux-2.6.8-13-ccs/net/ipv6/udp.c
  				break;
  		}
 diff -ubBpEr linux-2.6.8-13/net/socket.c linux-2.6.8-13-ccs/net/socket.c
---- linux-2.6.8-13/net/socket.c	2007-05-01 17:14:56.390411704 +0900
-+++ linux-2.6.8-13-ccs/net/socket.c	2007-05-01 17:15:52.714849088 +0900
+--- linux-2.6.8-13/net/socket.c	2007-05-23 15:38:13.979624032 +0900
++++ linux-2.6.8-13-ccs/net/socket.c	2007-05-23 15:38:21.508479472 +0900
 @@ -95,6 +95,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1165,8 +1165,8 @@ diff -ubBpEr linux-2.6.8-13/net/socket.c linux-2.6.8-13-ccs/net/socket.c
  				 sock->file->f_flags);
  out_put:
 diff -ubBpEr linux-2.6.8-13/net/unix/af_unix.c linux-2.6.8-13-ccs/net/unix/af_unix.c
---- linux-2.6.8-13/net/unix/af_unix.c	2007-05-01 17:14:56.391411552 +0900
-+++ linux-2.6.8-13-ccs/net/unix/af_unix.c	2007-05-01 17:15:52.717848632 +0900
+--- linux-2.6.8-13/net/unix/af_unix.c	2007-05-23 15:38:13.981623728 +0900
++++ linux-2.6.8-13-ccs/net/unix/af_unix.c	2007-05-23 15:38:21.508479472 +0900
 @@ -118,6 +118,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
