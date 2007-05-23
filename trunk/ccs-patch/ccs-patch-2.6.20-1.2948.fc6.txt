@@ -544,7 +544,7 @@ diff -ubBpEr linux-2.6.20-1.2948.fc6/fs/proc/Makefile linux-2.6.20-1.2948.fc6-cc
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.20-1.2948.fc6/fs/proc/proc_misc.c linux-2.6.20-1.2948.fc6-ccs/fs/proc/proc_misc.c
 --- linux-2.6.20-1.2948.fc6/fs/proc/proc_misc.c	2007-05-02 09:27:08.000000000 +0900
-+++ linux-2.6.20-1.2948.fc6-ccs/fs/proc/proc_misc.c	2007-05-02 09:28:02.000000000 +0900
++++ linux-2.6.20-1.2948.fc6-ccs/fs/proc/proc_misc.c	2007-05-23 17:41:10.000000000 +0900
 @@ -747,4 +747,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -554,7 +554,7 @@ diff -ubBpEr linux-2.6.20-1.2948.fc6/fs/proc/proc_misc.c linux-2.6.20-1.2948.fc6
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.20-1.2948.fc6 2007/05/02\n");
++		printk("Hook version: 2.6.20-1.2948.fc6 2007/05/23\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -624,7 +624,7 @@ diff -ubBpEr linux-2.6.20-1.2948.fc6/kernel/kexec.c linux-2.6.20-1.2948.fc6-ccs/
  	 * Verify we have a legal set of flags
 diff -ubBpEr linux-2.6.20-1.2948.fc6/kernel/kmod.c linux-2.6.20-1.2948.fc6-ccs/kernel/kmod.c
 --- linux-2.6.20-1.2948.fc6/kernel/kmod.c	2007-05-02 09:27:08.000000000 +0900
-+++ linux-2.6.20-1.2948.fc6-ccs/kernel/kmod.c	2007-05-02 09:27:37.000000000 +0900
++++ linux-2.6.20-1.2948.fc6-ccs/kernel/kmod.c	2007-05-23 17:40:12.000000000 +0900
 @@ -166,6 +166,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -1023,7 +1023,7 @@ diff -ubBpEr linux-2.6.20-1.2948.fc6/net/ipv4/inet_hashtables.c linux-2.6.20-1.2
  
 diff -ubBpEr linux-2.6.20-1.2948.fc6/net/ipv4/udp.c linux-2.6.20-1.2948.fc6-ccs/net/ipv4/udp.c
 --- linux-2.6.20-1.2948.fc6/net/ipv4/udp.c	2007-05-02 09:27:08.000000000 +0900
-+++ linux-2.6.20-1.2948.fc6-ccs/net/ipv4/udp.c	2007-05-02 09:27:37.000000000 +0900
++++ linux-2.6.20-1.2948.fc6-ccs/net/ipv4/udp.c	2007-05-23 17:40:56.000000000 +0900
 @@ -102,6 +102,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1034,16 +1034,16 @@ diff -ubBpEr linux-2.6.20-1.2948.fc6/net/ipv4/udp.c linux-2.6.20-1.2948.fc6-ccs/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -155,6 +158,9 @@ int __udp_lib_get_port(struct sock *sk, 
- 		best = result = *port_rover;
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			int size;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			head = &udptable[result & (UDP_HTABLE_SIZE - 1)];
- 			if (hlist_empty(head)) {
+@@ -162,6 +165,9 @@ int __udp_lib_get_port(struct sock *sk, 
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -180,6 +186,9 @@ int __udp_lib_get_port(struct sock *sk, 
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &

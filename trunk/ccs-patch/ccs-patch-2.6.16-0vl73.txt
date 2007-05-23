@@ -547,7 +547,7 @@ diff -ubBpEr linux-2.6.16-0vl73/fs/proc/Makefile linux-2.6.16-0vl73-ccs/fs/proc/
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.16-0vl73/fs/proc/proc_misc.c linux-2.6.16-0vl73-ccs/fs/proc/proc_misc.c
 --- linux-2.6.16-0vl73/fs/proc/proc_misc.c	2007-04-09 12:25:29.000000000 +0900
-+++ linux-2.6.16-0vl73-ccs/fs/proc/proc_misc.c	2007-04-09 12:27:52.000000000 +0900
++++ linux-2.6.16-0vl73-ccs/fs/proc/proc_misc.c	2007-05-23 15:09:23.000000000 +0900
 @@ -682,4 +682,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -557,7 +557,7 @@ diff -ubBpEr linux-2.6.16-0vl73/fs/proc/proc_misc.c linux-2.6.16-0vl73-ccs/fs/pr
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.16-0v173 2007/04/09\n");
++		printk("Hook version: 2.6.16-0v173 2007/05/23\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -627,7 +627,7 @@ diff -ubBpEr linux-2.6.16-0vl73/kernel/kexec.c linux-2.6.16-0vl73-ccs/kernel/kex
  	 * Verify we have a legal set of flags
 diff -ubBpEr linux-2.6.16-0vl73/kernel/kmod.c linux-2.6.16-0vl73-ccs/kernel/kmod.c
 --- linux-2.6.16-0vl73/kernel/kmod.c	2007-04-09 12:25:29.000000000 +0900
-+++ linux-2.6.16-0vl73-ccs/kernel/kmod.c	2007-04-09 12:25:35.000000000 +0900
++++ linux-2.6.16-0vl73-ccs/kernel/kmod.c	2007-05-23 15:08:17.000000000 +0900
 @@ -150,6 +150,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -1012,7 +1012,7 @@ diff -ubBpEr linux-2.6.16-0vl73/net/ipv4/inet_hashtables.c linux-2.6.16-0vl73-cc
  
 diff -ubBpEr linux-2.6.16-0vl73/net/ipv4/udp.c linux-2.6.16-0vl73-ccs/net/ipv4/udp.c
 --- linux-2.6.16-0vl73/net/ipv4/udp.c	2007-04-09 12:25:29.000000000 +0900
-+++ linux-2.6.16-0vl73-ccs/net/ipv4/udp.c	2007-04-09 12:25:35.000000000 +0900
++++ linux-2.6.16-0vl73-ccs/net/ipv4/udp.c	2007-05-23 15:08:59.000000000 +0900
 @@ -109,6 +109,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1023,16 +1023,16 @@ diff -ubBpEr linux-2.6.16-0vl73/net/ipv4/udp.c linux-2.6.16-0vl73-ccs/net/ipv4/u
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -140,6 +143,9 @@ static int udp_v4_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			struct hlist_head *list;
- 			int size;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			list = &udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (hlist_empty(list)) {
+@@ -147,6 +150,9 @@ static int udp_v4_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -163,6 +169,9 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
