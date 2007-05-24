@@ -753,7 +753,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/proc/Makefile kernel-source-2.4.27
  include $(TOPDIR)/Rules.make
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/proc/proc_misc.c kernel-source-2.4.27-10sarge5-ccs/fs/proc/proc_misc.c
 --- kernel-source-2.4.27-10sarge5/fs/proc/proc_misc.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/fs/proc/proc_misc.c	2007-05-23 15:02:23.124844504 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/fs/proc/proc_misc.c	2007-05-23 15:02:23.000000000 +0900
 @@ -670,4 +670,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -763,7 +763,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/proc/proc_misc.c kernel-source-2.4
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.27-10sarge5 2007/05/23\n");
++		printk("Hook version: 2.4.27-10sarge5 2007/05/24\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -807,7 +807,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/include/linux/sched.h kernel-source-2
  
 diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/kmod.c kernel-source-2.4.27-10sarge5-ccs/kernel/kmod.c
 --- kernel-source-2.4.27-10sarge5/kernel/kmod.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/kernel/kmod.c	2007-05-23 15:01:05.102705672 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/kernel/kmod.c	2007-05-23 15:01:05.000000000 +0900
 @@ -132,6 +132,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
@@ -1185,7 +1185,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c kernel-source-2.4
  			 * because the established check is already
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/udp.c kernel-source-2.4.27-10sarge5-ccs/net/ipv4/udp.c
 --- kernel-source-2.4.27-10sarge5/net/ipv4/udp.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/ipv4/udp.c	2007-05-23 15:01:49.335981192 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/ipv4/udp.c	2007-05-23 15:01:49.000000000 +0900
 @@ -103,6 +103,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1241,7 +1241,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c kernel-source-2.4
  					goto next;
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/udp.c kernel-source-2.4.27-10sarge5-ccs/net/ipv6/udp.c
 --- kernel-source-2.4.27-10sarge5/net/ipv6/udp.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/ipv6/udp.c	2007-03-24 21:08:09.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/ipv6/udp.c	2007-05-24 17:42:03.592277464 +0900
 @@ -52,6 +52,9 @@
  
  #include <net/checksum.h>
@@ -1252,16 +1252,16 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/udp.c kernel-source-2.4.27-1
  
  struct udp_mib udp_stats_in6[NR_CPUS*2];
  
-@@ -72,6 +75,9 @@ static int udp_v6_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			struct sock *sk;
- 			int size;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			sk = udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (!sk) {
+@@ -79,6 +82,9 @@ static int udp_v6_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -96,6 +102,9 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &

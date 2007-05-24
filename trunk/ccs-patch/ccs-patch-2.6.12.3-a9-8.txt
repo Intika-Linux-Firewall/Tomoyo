@@ -557,7 +557,7 @@ diff -ubBpEr linux-2.6.12.3-a9-8/fs/proc/Makefile linux-2.6.12.3-a9-8-ccs/fs/pro
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.12.3-a9-8/fs/proc/proc_misc.c linux-2.6.12.3-a9-8-ccs/fs/proc/proc_misc.c
 --- linux-2.6.12.3-a9-8/fs/proc/proc_misc.c	2005-07-16 06:18:57.000000000 +0900
-+++ linux-2.6.12.3-a9-8-ccs/fs/proc/proc_misc.c	2007-05-23 17:23:07.619197856 +0900
++++ linux-2.6.12.3-a9-8-ccs/fs/proc/proc_misc.c	2007-05-23 17:23:07.000000000 +0900
 @@ -617,4 +617,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -567,7 +567,7 @@ diff -ubBpEr linux-2.6.12.3-a9-8/fs/proc/proc_misc.c linux-2.6.12.3-a9-8-ccs/fs/
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.12.3-a9-8 2007/05/23\n");
++		printk("Hook version: 2.6.12.3-a9-8 2007/05/24\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -614,7 +614,7 @@ diff -ubBpEr linux-2.6.12.3-a9-8/include/linux/sched.h linux-2.6.12.3-a9-8-ccs/i
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.12.3-a9-8/kernel/kmod.c linux-2.6.12.3-a9-8-ccs/kernel/kmod.c
 --- linux-2.6.12.3-a9-8/kernel/kmod.c	2005-07-16 06:18:57.000000000 +0900
-+++ linux-2.6.12.3-a9-8-ccs/kernel/kmod.c	2007-05-23 17:22:15.730086200 +0900
++++ linux-2.6.12.3-a9-8-ccs/kernel/kmod.c	2007-05-23 17:22:15.000000000 +0900
 @@ -143,6 +143,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -999,7 +999,7 @@ diff -ubBpEr linux-2.6.12.3-a9-8/net/ipv4/tcp_ipv4.c linux-2.6.12.3-a9-8-ccs/net
  
 diff -ubBpEr linux-2.6.12.3-a9-8/net/ipv4/udp.c linux-2.6.12.3-a9-8-ccs/net/ipv4/udp.c
 --- linux-2.6.12.3-a9-8/net/ipv4/udp.c	2005-07-16 06:18:57.000000000 +0900
-+++ linux-2.6.12.3-a9-8-ccs/net/ipv4/udp.c	2007-05-23 17:22:56.316916064 +0900
++++ linux-2.6.12.3-a9-8-ccs/net/ipv4/udp.c	2007-05-23 17:22:56.000000000 +0900
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1065,7 +1065,7 @@ diff -ubBpEr linux-2.6.12.3-a9-8/net/ipv6/tcp_ipv6.c linux-2.6.12.3-a9-8-ccs/net
  
 diff -ubBpEr linux-2.6.12.3-a9-8/net/ipv6/udp.c linux-2.6.12.3-a9-8-ccs/net/ipv6/udp.c
 --- linux-2.6.12.3-a9-8/net/ipv6/udp.c	2005-12-14 14:54:14.000000000 +0900
-+++ linux-2.6.12.3-a9-8-ccs/net/ipv6/udp.c	2007-03-26 10:20:33.000000000 +0900
++++ linux-2.6.12.3-a9-8-ccs/net/ipv6/udp.c	2007-05-24 18:01:30.397417592 +0900
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1076,16 +1076,16 @@ diff -ubBpEr linux-2.6.12.3-a9-8/net/ipv6/udp.c linux-2.6.12.3-a9-8-ccs/net/ipv6
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
  
-@@ -80,6 +83,9 @@ static int udp_v6_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			int size;
- 			struct hlist_head *list;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			list = &udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (hlist_empty(list)) {
+@@ -87,6 +90,9 @@ static int udp_v6_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -103,6 +109,9 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
