@@ -544,7 +544,7 @@ diff -ubBpEr linux-2.6.19/fs/proc/Makefile linux-2.6.19-ccs/fs/proc/Makefile
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.19/fs/proc/proc_misc.c linux-2.6.19-ccs/fs/proc/proc_misc.c
 --- linux-2.6.19/fs/proc/proc_misc.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/fs/proc/proc_misc.c	2007-05-23 14:55:47.954919464 +0900
++++ linux-2.6.19-ccs/fs/proc/proc_misc.c	2007-05-23 14:55:47.000000000 +0900
 @@ -742,4 +742,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -554,7 +554,7 @@ diff -ubBpEr linux-2.6.19/fs/proc/proc_misc.c linux-2.6.19-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.19 2007/05/23\n");
++		printk("Hook version: 2.6.19 2007/05/24\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1023,7 +1023,7 @@ diff -ubBpEr linux-2.6.19/net/ipv4/inet_hashtables.c linux-2.6.19-ccs/net/ipv4/i
  
 diff -ubBpEr linux-2.6.19/net/ipv4/udp.c linux-2.6.19-ccs/net/ipv4/udp.c
 --- linux-2.6.19/net/ipv4/udp.c	2006-11-30 11:30:07.000000000 +0900
-+++ linux-2.6.19-ccs/net/ipv4/udp.c	2007-05-23 14:51:33.125659400 +0900
++++ linux-2.6.19-ccs/net/ipv4/udp.c	2007-05-23 14:51:33.000000000 +0900
 @@ -108,6 +108,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>

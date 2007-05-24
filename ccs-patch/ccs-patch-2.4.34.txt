@@ -754,7 +754,7 @@ diff -ubBpEr linux-2.4.34/fs/proc/Makefile linux-2.4.34-ccs/fs/proc/Makefile
  include $(TOPDIR)/Rules.make
 diff -ubBpEr linux-2.4.34/fs/proc/proc_misc.c linux-2.4.34-ccs/fs/proc/proc_misc.c
 --- linux-2.4.34/fs/proc/proc_misc.c	2006-12-25 10:28:48.000000000 +0900
-+++ linux-2.4.34-ccs/fs/proc/proc_misc.c	2007-05-23 14:56:45.924106808 +0900
++++ linux-2.4.34-ccs/fs/proc/proc_misc.c	2007-05-23 14:56:45.000000000 +0900
 @@ -670,4 +670,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -764,7 +764,7 @@ diff -ubBpEr linux-2.4.34/fs/proc/proc_misc.c linux-2.4.34-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.34 2007/05/23\n");
++		printk("Hook version: 2.4.34 2007/05/24\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1186,7 +1186,7 @@ diff -ubBpEr linux-2.4.34/net/ipv4/tcp_ipv4.c linux-2.4.34-ccs/net/ipv4/tcp_ipv4
  			 * because the established check is already
 diff -ubBpEr linux-2.4.34/net/ipv4/udp.c linux-2.4.34-ccs/net/ipv4/udp.c
 --- linux-2.4.34/net/ipv4/udp.c	2006-12-25 10:28:48.000000000 +0900
-+++ linux-2.4.34-ccs/net/ipv4/udp.c	2007-05-23 14:54:08.014112776 +0900
++++ linux-2.4.34-ccs/net/ipv4/udp.c	2007-05-23 14:54:08.000000000 +0900
 @@ -97,6 +97,9 @@
  #include <net/route.h>
  #include <net/inet_common.h>
@@ -1242,7 +1242,7 @@ diff -ubBpEr linux-2.4.34/net/ipv6/tcp_ipv6.c linux-2.4.34-ccs/net/ipv6/tcp_ipv6
  					goto next;
 diff -ubBpEr linux-2.4.34/net/ipv6/udp.c linux-2.4.34-ccs/net/ipv6/udp.c
 --- linux-2.4.34/net/ipv6/udp.c	2006-12-25 10:28:48.000000000 +0900
-+++ linux-2.4.34-ccs/net/ipv6/udp.c	2007-03-26 16:38:52.000000000 +0900
++++ linux-2.4.34-ccs/net/ipv6/udp.c	2007-05-24 17:28:19.000000000 +0900
 @@ -50,6 +50,9 @@
  #include <net/inet_common.h>
  
@@ -1253,16 +1253,16 @@ diff -ubBpEr linux-2.4.34/net/ipv6/udp.c linux-2.4.34-ccs/net/ipv6/udp.c
  
  struct udp_mib udp_stats_in6[NR_CPUS*2];
  
-@@ -70,6 +73,9 @@ static int udp_v6_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			struct sock *sk;
- 			int size;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			sk = udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (!sk) {
+@@ -77,6 +80,9 @@ static int udp_v6_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -94,6 +100,9 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &

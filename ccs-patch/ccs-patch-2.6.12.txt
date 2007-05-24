@@ -557,7 +557,7 @@ diff -ubBpEr linux-2.6.12/fs/proc/Makefile linux-2.6.12-ccs/fs/proc/Makefile
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.12/fs/proc/proc_misc.c linux-2.6.12-ccs/fs/proc/proc_misc.c
 --- linux-2.6.12/fs/proc/proc_misc.c	2006-10-19 16:15:40.000000000 +0900
-+++ linux-2.6.12-ccs/fs/proc/proc_misc.c	2007-05-23 14:56:34.352865904 +0900
++++ linux-2.6.12-ccs/fs/proc/proc_misc.c	2007-05-23 14:56:34.000000000 +0900
 @@ -617,4 +617,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -567,7 +567,7 @@ diff -ubBpEr linux-2.6.12/fs/proc/proc_misc.c linux-2.6.12-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.12 2007/05/23\n");
++		printk("Hook version: 2.6.12 2007/05/24\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -999,7 +999,7 @@ diff -ubBpEr linux-2.6.12/net/ipv4/tcp_ipv4.c linux-2.6.12-ccs/net/ipv4/tcp_ipv4
  
 diff -ubBpEr linux-2.6.12/net/ipv4/udp.c linux-2.6.12-ccs/net/ipv4/udp.c
 --- linux-2.6.12/net/ipv4/udp.c	2005-06-18 04:48:29.000000000 +0900
-+++ linux-2.6.12-ccs/net/ipv4/udp.c	2007-05-23 14:53:03.746882880 +0900
++++ linux-2.6.12-ccs/net/ipv4/udp.c	2007-05-23 14:53:03.000000000 +0900
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1032,7 +1032,7 @@ diff -ubBpEr linux-2.6.12/net/ipv4/udp.c linux-2.6.12-ccs/net/ipv4/udp.c
  		}
 diff -ubBpEr linux-2.6.12/net/ipv6/tcp_ipv6.c linux-2.6.12-ccs/net/ipv6/tcp_ipv6.c
 --- linux-2.6.12/net/ipv6/tcp_ipv6.c	2005-06-18 04:48:29.000000000 +0900
-+++ linux-2.6.12-ccs/net/ipv6/tcp_ipv6.c	2007-03-27 10:01:14.000000000 +0900
++++ linux-2.6.12-ccs/net/ipv6/tcp_ipv6.c	2007-05-24 09:14:31.000000000 +0900
 @@ -63,6 +63,9 @@
  
  #include <linux/proc_fs.h>
@@ -1065,7 +1065,7 @@ diff -ubBpEr linux-2.6.12/net/ipv6/tcp_ipv6.c linux-2.6.12-ccs/net/ipv6/tcp_ipv6
  
 diff -ubBpEr linux-2.6.12/net/ipv6/udp.c linux-2.6.12-ccs/net/ipv6/udp.c
 --- linux-2.6.12/net/ipv6/udp.c	2005-06-18 04:48:29.000000000 +0900
-+++ linux-2.6.12-ccs/net/ipv6/udp.c	2007-03-26 16:38:52.000000000 +0900
++++ linux-2.6.12-ccs/net/ipv6/udp.c	2007-05-24 17:27:51.000000000 +0900
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1076,16 +1076,16 @@ diff -ubBpEr linux-2.6.12/net/ipv6/udp.c linux-2.6.12-ccs/net/ipv6/udp.c
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
  
-@@ -80,6 +83,9 @@ static int udp_v6_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			int size;
- 			struct hlist_head *list;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			list = &udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (hlist_empty(list)) {
+@@ -87,6 +90,9 @@ static int udp_v6_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -98,14 +104,19 @@ static int udp_v6_get_port(struct sock *
  		next:;
  		}

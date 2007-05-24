@@ -555,7 +555,7 @@ diff -ubBpEr linux-2.6.18.8-0.3/fs/proc/proc_misc.c linux-2.6.18.8-0.3-ccs/fs/pr
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.18.8-0.3_SUSE 2007/05/23\n");
++		printk("Hook version: 2.6.18.8-0.3_SUSE 2007/05/24\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1075,7 +1075,7 @@ diff -ubBpEr linux-2.6.18.8-0.3/net/ipv6/inet6_hashtables.c linux-2.6.18.8-0.3-c
  
 diff -ubBpEr linux-2.6.18.8-0.3/net/ipv6/udp.c linux-2.6.18.8-0.3-ccs/net/ipv6/udp.c
 --- linux-2.6.18.8-0.3/net/ipv6/udp.c	2007-05-23 15:57:41.000000000 +0900
-+++ linux-2.6.18.8-0.3-ccs/net/ipv6/udp.c	2007-05-23 15:57:47.000000000 +0900
++++ linux-2.6.18.8-0.3-ccs/net/ipv6/udp.c	2007-05-23 13:24:44.000000000 +0900
 @@ -58,6 +58,9 @@
  
  #include <linux/proc_fs.h>
@@ -1086,16 +1086,16 @@ diff -ubBpEr linux-2.6.18.8-0.3/net/ipv6/udp.c linux-2.6.18.8-0.3-ccs/net/ipv6/u
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
  
-@@ -81,6 +84,9 @@ static int udp_v6_get_port(struct sock *
- 		for (i = 0; i < UDP_HTABLE_SIZE; i++, result++) {
- 			int size;
- 			struct hlist_head *list;
-+			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
-+			/***** SAKURA Linux end. *****/
- 
- 			list = &udp_hash[result & (UDP_HTABLE_SIZE - 1)];
- 			if (hlist_empty(list)) {
+@@ -88,6 +91,9 @@ static int udp_v6_get_port(struct sock *
+ 					result = sysctl_local_port_range[0] +
+ 						((result - sysctl_local_port_range[0]) &
+ 						 (UDP_HTABLE_SIZE - 1));
++				/***** SAKURA Linux start. *****/
++				if (SAKURA_MayAutobind(result) < 0) continue;
++				/***** SAKURA Linux end. *****/
+ 				goto gotit;
+ 			}
+ 			size = 0;
 @@ -104,6 +110,9 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
