@@ -5,7 +5,7 @@
  *
  * Portions Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.1-rc1   2007/05/20
+ * Version: 1.4.1-rc2   2007/05/25
  *
  * This file is applicable to 2.4.30 and later.
  * See README.ccs for ChangeLog.

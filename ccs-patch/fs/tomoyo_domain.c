@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.1-rc1   2007/05/20
+ * Version: 1.4.1-rc2   2007/05/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -457,7 +457,7 @@ int AddAggregatorPolicy(char *data, const int is_delete)
 
 /*************************  DOMAIN DELETION HANDLER  *************************/
 
-// #define DEBUG_DOMAIN_UNDELETE
+/* #define DEBUG_DOMAIN_UNDELETE */
 
 int DeleteDomain(char *domainname0)
 {

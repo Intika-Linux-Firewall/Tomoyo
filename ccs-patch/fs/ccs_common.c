@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.1-rc1   2007/05/20
+ * Version: 1.4.1-rc2   2007/05/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -409,7 +409,7 @@ static int FileMatchesToPattern(const char *filename, const char *filename_end, 
 
 int PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0)
 {
-	//if (!pathname || !pattern) return 0;
+	/* if (!pathname || !pattern) return 0; */
 	const char *pathname = pathname0->name, *pattern = pattern0->name;
 	const int len = pattern0->const_len;
 	if (!pattern0->is_patterned) return !pathcmp(pathname0, pattern0);
@@ -571,7 +571,7 @@ static int ReadStatus(struct io_buffer *head)
 				head->read_step = step;
 				if (!profile) continue;
 				switch (j) {
-				case -1: // Dummy
+				case -1: /* Dummy */
 #ifndef CONFIG_TOMOYO_MAC_FOR_FILE
 				case CCS_TOMOYO_MAC_FOR_FILE:
 #endif
@@ -1209,10 +1209,10 @@ void CCS_LoadPolicy(const char *filename)
 	}
 
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.4.1-rc1   2007/05/20\n");
+	printk("SAKURA: 1.4.1-rc2   2007/05/25\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.4.1-rc1   2007/05/20\n");
+	printk("TOMOYO: 1.4.1-rc2   2007/05/25\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

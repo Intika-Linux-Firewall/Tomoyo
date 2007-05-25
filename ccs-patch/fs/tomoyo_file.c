@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.1-rc1   2007/05/20
+ * Version: 1.4.1-rc2   2007/05/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -53,19 +53,19 @@ static struct {
 	const int paths;
 	int check_type;
 } acl_type_array[] = { /* mapping.txt */
-	{ "create",   1, 1 }, // TYPE_CREATE_ACL
-	{ "unlink",   1, 1 }, // TYPE_UNLINK_ACL
-	{ "mkdir",    1, 1 }, // TYPE_MKDIR_ACL
-	{ "rmdir",    1, 1 }, // TYPE_RMDIR_ACL
-	{ "mkfifo",   1, 1 }, // TYPE_MKFIFO_ACL
-	{ "mksock",   1, 1 }, // TYPE_MKSOCK_ACL
-	{ "mkblock",  1, 1 }, // TYPE_MKBLOCK_ACL
-	{ "mkchar",   1, 1 }, // TYPE_MKCHAR_ACL
-	{ "truncate", 1, 1 }, // TYPE_TRUNCATE_ACL
-	{ "symlink",  1, 1 }, // TYPE_SYMLINK_ACL
-	{ "link",     2, 1 }, // TYPE_LINK_ACL
-	{ "rename",   2, 1 }, // TYPE_RENAME_ACL
-	{ "rewrite",  1, 1 }, // TYPE_REWRITE_ACL
+	{ "create",   1, 1 }, /* TYPE_CREATE_ACL   */
+	{ "unlink",   1, 1 }, /* TYPE_UNLINK_ACL   */
+	{ "mkdir",    1, 1 }, /* TYPE_MKDIR_ACL    */
+	{ "rmdir",    1, 1 }, /* TYPE_RMDIR_ACL    */
+	{ "mkfifo",   1, 1 }, /* TYPE_MKFIFO_ACL   */
+	{ "mksock",   1, 1 }, /* TYPE_MKSOCK_ACL   */
+	{ "mkblock",  1, 1 }, /* TYPE_MKBLOCK_ACL  */
+	{ "mkchar",   1, 1 }, /* TYPE_MKCHAR_ACL   */
+	{ "truncate", 1, 1 }, /* TYPE_TRUNCATE_ACL */
+	{ "symlink",  1, 1 }, /* TYPE_SYMLINK_ACL  */
+	{ "link",     2, 1 }, /* TYPE_LINK_ACL     */
+	{ "rename",   2, 1 }, /* TYPE_RENAME_ACL   */
+	{ "rewrite",  1, 1 }, /* TYPE_REWRITE_ACL  */
 	{ NULL, 0, 0 }
 };
 

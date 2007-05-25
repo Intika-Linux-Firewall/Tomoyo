@@ -61,7 +61,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 21
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.3167 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}_tomoyo_1.4
+%define release %(R="$Revision: 1.3167 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}_tomoyo_1.4.1
 
 %define make_target bzImage
 %define kernel_image x86
@@ -1416,7 +1416,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch10003 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4-20070518.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.4.1-20070525.tar.gz
 sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = -1.3167.fc7:' -- Makefile
 patch -sp1 < ccs-patch-2.6.21-1.3167.fc7.txt
 
