@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.1-rc1   2007/05/20
+ * Version: 1.4.1-rc2   2007/05/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -134,17 +134,17 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		}
 		if (left == MAX_KEYWORD) {
 			if (!parse_ulong(&left_min, &condition)) goto out;
-			counter++; // body
+			counter++; /* body */
 			if (*condition == '-') {
 				condition++;
 				if (!parse_ulong(&left_max, &condition) || left_min > left_max) goto out;
-				counter++; // body
+				counter++; /* body */
 			}
 		}
 		if (strncmp(condition, "!=", 2) == 0) condition += 2;
 		else if (*condition == '=') condition++;
 		else goto out;
-		counter++; // header
+		counter++; /* header */
 		for (right = 0; right < MAX_KEYWORD; right++) {
 			if (strncmp(condition, condition_control_keyword[right].keyword, condition_control_keyword[right].keyword_len) == 0) {
 				condition += condition_control_keyword[right].keyword_len;
@@ -153,11 +153,11 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		}
 		if (right == MAX_KEYWORD) {
 			if (!parse_ulong(&right_min, &condition)) goto out;
-			counter++; // body
+			counter++; /* body */
 			if (*condition == '-') {
 				condition++;
 				if (!parse_ulong(&right_max, &condition) || right_min > right_max) goto out;
-				counter++; // body
+				counter++; /* body */
 			}
 		}
 	}
@@ -178,11 +178,11 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		}
 		if (left == MAX_KEYWORD) {
 			match |= parse_ulong(&left_min, &condition) << 2;
-			counter--; // body
+			counter--; /* body */
 			if (*condition == '-') {
 				condition++;
 				match |= parse_ulong(&left_max, &condition) << 4;
-				counter--; // body
+				counter--; /* body */
 				left++;
 			}
 		}
@@ -193,7 +193,7 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		} else {
 			goto out2;
 		}
-		counter--; // header
+		counter--; /* header */
 		for (right = 0; right < MAX_KEYWORD; right++) {
 			if (strncmp(condition, condition_control_keyword[right].keyword, condition_control_keyword[right].keyword_len) == 0) {
 				condition += condition_control_keyword[right].keyword_len;
@@ -202,11 +202,11 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		}
 		if (right == MAX_KEYWORD) {
 			match |= parse_ulong(&right_min, &condition) << 6;
-			counter--; // body
+			counter--; /* body */
 			if (*condition == '-') {
 				condition++;
 				match |= parse_ulong(&right_max, &condition) << 8;
-				counter--; // body
+				counter--; /* body */
 				right++;
 			}
 		}
@@ -257,7 +257,7 @@ static void GetAttributes(struct obj_info *obj)
 	dentry = obj->path1_dentry;
 	if ((inode = dentry->d_inode) != NULL) {
 		if (inode->i_op && inode->i_op->revalidate && inode->i_op->revalidate(dentry)) {
-			// Nothing to do.
+			/* Nothing to do. */
 		} else {
 			obj->path1_stat.uid = inode->i_uid;
 			obj->path1_stat.gid = inode->i_gid;
@@ -272,7 +272,7 @@ static void GetAttributes(struct obj_info *obj)
 	inode = dentry->d_inode;
 	if (inode) {
 		if (inode->i_op && inode->i_op->revalidate && inode->i_op->revalidate(dentry)) {
-			// Nothing to do.
+			/* Nothing to do. */
 		} else {
 			obj->path1_parent_stat.uid = inode->i_uid;
 			obj->path1_parent_stat.gid = inode->i_gid;
@@ -289,7 +289,7 @@ static void GetAttributes(struct obj_info *obj)
 		inode = dentry->d_inode;
 		if (inode) {
 			if (inode->i_op && inode->i_op->revalidate && inode->i_op->revalidate(dentry)) {
-				// Nothing to do.
+				/* Nothing to do. */
 			} else {
 				obj->path2_parent_stat.uid = inode->i_uid;
 				obj->path2_parent_stat.gid = inode->i_gid;
@@ -313,7 +313,7 @@ static void GetAttributes(struct obj_info *obj)
 	inode = dentry->d_inode;
 	if (inode) {
 		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
-			// Nothing to do.
+			/* Nothing to do. */
 		} else {
 			obj->path1_stat.uid = stat.uid;
 			obj->path1_stat.gid = stat.gid;
@@ -326,7 +326,7 @@ static void GetAttributes(struct obj_info *obj)
 	inode = dentry->d_inode;
 	if (inode) {
 		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
-			// Nothing to do.
+			/* Nothing to do. */
 		} else {
 			obj->path1_parent_stat.uid = stat.uid;
 			obj->path1_parent_stat.gid = stat.gid;
@@ -341,7 +341,7 @@ static void GetAttributes(struct obj_info *obj)
 		inode = dentry->d_inode;
 		if (inode) {
 			if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
-				// Nothing to do.
+				/* Nothing to do. */
 			} else {
 				obj->path2_parent_stat.uid = stat.uid;
 				obj->path2_parent_stat.gid = stat.gid;
