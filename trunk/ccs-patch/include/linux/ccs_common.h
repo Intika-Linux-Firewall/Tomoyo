@@ -383,6 +383,7 @@ int ReadReservedPortPolicy(struct io_buffer *head);
 int ReadSelfDomain(struct io_buffer *head);
 int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile);
 int SetPermissionMapping(struct io_buffer *head);
+int TooManyDomainACL(struct domain_info * const domain);
 int WriteAuditLog(char *log, const int is_granted);
 int acltype2paths(const unsigned int acl_type);
 int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
