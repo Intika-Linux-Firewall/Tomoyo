@@ -29,7 +29,7 @@ summary: the linux kernel (the core of the linux operating system)
 # adding some text to the end of the version number.
 #
 %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
-%define release 42.11AX%{axbsys}_tomoyo_1.4.1
+%define release 42.13AX%{axbsys}_tomoyo_1.4.1
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -708,6 +708,9 @@ Patch1332: linux-2.6.9-bonding.patch
 Patch1333: linux-2.6.9-net-sctp-shutdown.patch
 Patch1334: linux-2.6.9-net-sctp-receive-buffer.patch
 Patch1335: linux-2.6.9-net-sctp.patch
+Patch1336: linux-2.6.9-sctp-sysctl-64bit-fix.patch
+Patch1337: linux-2.6.9-sctp-msecs-jiffies-conv.patch
+Patch1338: linux-2.6.9-sctp-use-linearize.patch
 
 # NIC driver updates
 Patch1350: linux-2.6.9-net-b44-4g4g.patch
@@ -1399,6 +1402,7 @@ Patch100733: linux-2.6.9-deadlock-uidhash_lock-and-tasklist_lock.patch
 Patch100742: linux-2.6.9-selinux-dynamic-context-transition.patch
 Patch100774: linux-2.6.9-sis-ide.patch
 Patch100775: linux-2.6.9-ipv6-anycast-refcnt-fix.patch
+Patch100776: linux-2.6.9-openipmi-compat.patch
 # block device IO performance improvement
 Patch100794: linux-2.6.9-blk-misc.patch
 # misc sysrq fix
@@ -2681,6 +2685,9 @@ cd linux-%{kversion}
 %patch1334 -p1
 # various sctp fixes
 %patch1335 -p1
+%patch1336 -p1
+%patch1337 -p1
+%patch1338 -p1
 
 # NIC driver fixes.
 # Fix problems with b44 & 4g/4g
@@ -3662,6 +3669,9 @@ cd linux-%{kversion}
 %patch100774 -p1
 %patch100775 -p1
 
+# add register_ioctl32_conversion() for some IPMI ioctls
+%patch100776 -p1
+
 # block device IO performance improvement
 %patch100794 -p1
 
@@ -3928,8 +3938,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.1-20070525.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.11AX/" -- Makefile
-patch -sp1 < ccs-patch-2.6.9-42.11AX.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.13AX/" -- Makefile
+patch -sp1 < ccs-patch-2.6.9-42.13AX.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -4357,19 +4367,9 @@ fi
 %endif
 
 %changelog
-* Wed Apr 25 2007 Hidehiko Matsumoto <hmatsumoto@miraclelinux.com> [2.6.9-42.11AX]
-- fix (addional) low response with warning message when I/O
-  has high stress (e1000 network driver) (Patch101392,
-  bug#2200)
-- fix (addional) ioctl issue (e1000 network driver)
-  (Patch101393, bug#2202)
-- fix megaraid_sas behavior (reset) when megaraid_sas has
-  high stress (Patch102551, Patch102552, Patch102553)
-- fix that libata applied to the wrong sectors on the drive
-  (Patch102581)
-- fix sysfs_readdir oops (was Re: sysfs reclaim crash)
-  (Patch100904)
-- fix IPv6 anycast refcnt (Patch100775)
+* Thu May 24 2007 Robert Lin <robert@miraclelinux.com> [2.6.9-42.13AX]
+- fix bad sysctl formatting of SCTP values. (Patch1336,1337, bug#2708). 
+- fix fragmented SCTP packet wasn't handle on input.(Patch1338, bug#2711).
 
 * Fri Feb 20 2004 Arjan van de Ven <arjanv@redhat.com>
 - re-add and enable the Auditing patch
