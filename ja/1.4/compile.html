@@ -462,6 +462,7 @@ sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2952.fc6/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/24614/ccs-patch-1.4-20070518.tar.gz<br>
 tar -zxf ccs-patch-1.4-20070518.tar.gz<br>
+wget -O ccs-patch-2.6.20-1.2952.fc6.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1910&amp;aid=10415'<br>
 patch -sp1 &lt; ccs-patch-2.6.20-1.2952.fc6.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
