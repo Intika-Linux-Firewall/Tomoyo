@@ -59,7 +59,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 20
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2948 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}.fc6_tomoyo_1.4.1
+%define release %(R="$Revision: 1.2952 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}.fc6_tomoyo_1.4.1
 %define signmodules 0
 %define xen_hv_cset 11774
 %define make_target bzImage
@@ -382,7 +382,8 @@ Patch6: patch-2.6.20.5-6.bz2
 Patch7: patch-2.6.20.6-7.bz2
 Patch8: patch-2.6.20.7-8.bz2
 Patch9: patch-2.6.20.8-9.bz2
-Patch10: linux-2.6.20.10-unoffical.patch
+Patch10: patch-2.6.20.9-10.bz2
+Patch11: patch-2.6.20.10-11.bz2
 
 # Patches 10 through 99 are for things that are going upstream really soon.
 # needed to get utrace patch to apply cleanly
@@ -449,6 +450,8 @@ Patch952: linux-2.6-xen-x86_64-silence-up-apic-errors.patch
 Patch954: linux-2.6-xen-execshield.patch
 Patch955: linux-2.6-xen-tux.patch
 Patch961: linux-2.6-xen-pae-handle-64bit-addresses-correctly.patch
+Patch962: linux-2.6-xen-fixup-table-fix.patch
+Patch963: linux-2.6-xen-pda-initialization.patch
 
 #
 # Patches 1000 to 5000 are reserved for bugfixes to drivers and filesystems
@@ -496,6 +499,7 @@ Patch1411: linux-2.6-gfs2-tux.patch
 Patch1412: linux-2.6-gfs2-locking-exports.patch
 Patch1413: linux-2.6-gfs2-update2.patch
 Patch1414: linux-2.6-gfs2-update3.patch
+Patch1415: linux-2.6-gfs2-update4.patch
 
 # NFS superblock sharing / CacheFS
 Patch1431: linux-2.6-cachefiles.patch
@@ -544,8 +548,27 @@ Patch1826: linux-2.6-21-rc6-readahead.patch
 Patch1827: linux-2.6-21-rc6-sched_align_runqueue.patch
 Patch1828: linux-2.6-i386_pci-add_debugging.patch
 
+# post 2.6.20.11
+Patch1830: linux-2.6-20.8b-x86_perfctr_fix_bitmap_sizing.patch
+Patch1831: linux-2.6-20.8e-isdn-capi-disable-debug-messages.patch
+Patch1832: linux-2.6-20.8f-oom_kill_all_threads_that_share_mm.patch
+Patch1833: linux-2.6-20.8f-x86_64_always_flush_all_pages.patch
+Patch1834: linux-2.6-20.8n-ipsec_fix_oops_with_large_context.patch
+Patch1835: linux-2.6-20.8n-net_vlan_allow_with_bridge.patch
+Patch1836: linux-2.6-20.8n-ppp_fix_skb_under_panic.patch
+Patch1837: linux-2.6-page_is_ram.patch
+
+# more post .11
+Patch1840: linux-2.6-20.12a-v4l-dvb-fix_tuning_for_tdm_1316.patch
+Patch1841: linux-2.6-20.12b-input_i8042_fix_aux_port_detection_with_some_chips.patch
+Patch1842: linux-2.6-20.12c-fix-blk-bounce-map-kern.patch
+Patch1843: linux-2.6-20.12c-snd-fix-widget-list-copy.patch
+Patch1844: linux-2.6-20.12c-snd-resume-stac-fix.patch
+Patch1845: linux-2.6-20.12c-usb_audio_fix_quickcam_audio.patch
+Patch1846: linux-2.6-20.12c-x86_64-off-by-two.patch
+
 # SELinux/audit patches.
-Patch1850: linux-2.6-selinux-mprotect-checks.patch
+Patch1890: linux-2.6-selinux-mprotect-checks.patch
 
 # Warn about usage of various obsolete functionality that may go away.
 Patch1900: linux-2.6-obsolete-oss-warning.patch
@@ -783,7 +806,7 @@ Summary: The Linux kernel compiled with extra debugging enabled for PAE capable 
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
-Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}-PAE-debug
+Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}PAEdebug
 Prereq: %{kernel_prereq}
 Conflicts: %{kernel_dot_org_conflicts}
 Conflicts: %{package_conflicts}
@@ -811,8 +834,8 @@ This package provides debug information for package %{name}-PAE-debug
 Summary: Development package for building kernel modules to match the kernel.
 Group: System Environment/Kernel
 Provides: kernel-PAE-debug-devel-%{_target_cpu} = %{rpmversion}-%{release}
-Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}PAE-debug
-Provides: kernel-devel = %{rpmversion}-%{release}PAE-debug
+Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}PAEdebug
+Provides: kernel-devel = %{rpmversion}-%{release}PAEdebug
 AutoReqProv: no
 Prereq: /usr/bin/find
 %description PAE-debug-devel
@@ -850,7 +873,7 @@ Summary: The Linux kernel compiled with extra debugging enabled.
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
-Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}-debug
+Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}debug
 Prereq: %{kernel_prereq}
 Conflicts: %{kernel_dot_org_conflicts}
 Conflicts: %{package_conflicts}
@@ -1030,6 +1053,7 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch8 -p1
 %patch9 -p1
 %patch10 -p1
+%patch11 -p1
 
 # Patches 10 through 100 are meant for core subsystem upgrades
 
@@ -1138,6 +1162,8 @@ find -name "*.p.xen" | xargs rm -f
 %patch954 -p1
 %patch955 -p1
 %patch961 -p1
+%patch962 -p1
+%patch963 -p1
 %endif
 
 #
@@ -1210,6 +1236,7 @@ find -name "*.p.xen" | xargs rm -f
 # additional gfs2 updates
 %patch1413 -p1
 %patch1414 -p1
+%patch1415 -p1
 
 #nfs sharing / cachefs
 %patch1431 -p1
@@ -1281,8 +1308,26 @@ find -name "*.p.xen" | xargs rm -f
 %patch1827 -p1
 %patch1828 -p1
 
+# post 2.6.20.11
+%patch1830 -p1
+%patch1831 -p1
+%patch1832 -p1
+%patch1833 -p1
+%patch1834 -p1
+%patch1835 -p1
+%patch1836 -p1
+%patch1837 -p1
+
+%patch1840 -p1
+%patch1841 -p1
+%patch1842 -p1
+%patch1843 -p1
+%patch1844 -p1
+%patch1845 -p1
+%patch1846 -p1
+
 # Fix the SELinux mprotect checks on executable mappings
-%patch1850 -p1
+%patch1890 -p1
 
 # Warn about obsolete functionality usage.
 %patch1900 -p1
@@ -1379,9 +1424,9 @@ find -name "*.p.xen" | xargs rm -f
 %patch21208 -p1
 
 # TOMOYO Linux
-tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4.1-20070525.tar.gz
-sed -i -e "s/^EXTRAVERSION =.*/EXTRAVERSION = -1.2948.fc6/" -- Makefile
-patch -sp1 < ccs-patch-2.6.20-1.2948.fc6.txt
+tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4.1-20070605.tar.gz
+sed -i -e "s/^EXTRAVERSION =.*/EXTRAVERSION = -1.2952.fc6/" -- Makefile
+patch -sp1 < ccs-patch-2.6.20-1.2952.fc6.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2305,8 +2350,16 @@ fi
 %endif
 
 %changelog
-* Fri Apr 27 2007 Chuck Ebbert <cebbert@redhat.com>		1.2948
-- 2.6.20.10 (from mailing list)
+* Wed May 16 2007 Chuck Ebbert <cebbert@redhat.com>		1.2952
+- GFS2 update
+- additional patches
+  v4l tuner patch (bz 234509)
+  ps/2 mouse detection (bz 223606)
+  block bounce fix for some legacy drivers
+  quickcam audio was broken
+  x86_64 GART aperture range checking
+  hda audio STAC codec resume fix
+  hda audio init fix
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel

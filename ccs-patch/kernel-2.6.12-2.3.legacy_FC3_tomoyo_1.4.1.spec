@@ -779,7 +779,7 @@ cd linux-%{kversion}
 %patch10001 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.1-20070525.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -2.3.legacy_FC3/" -- Makefile
 patch -sp1 < ccs-patch-2.6.12-2.3.legacy_FC3.txt
 
@@ -824,10 +824,10 @@ find . -name "*~" -exec rm -fv {} \;
 # Create gpg keys for signing the modules
 #
 
-#gpg --homedir . --batch --gen-key %{SOURCE11}  
-#gpg --homedir . --export --keyring ./kernel.pub Red > extract.pub 
-#make linux-%{kversion}/scripts/bin2c
-#linux-%{kversion}/scripts/bin2c ksign_def_public_key __initdata < extract.pub > linux-%{kversion}/crypto/signature/key.h
+gpg --homedir . --batch --gen-key %{SOURCE11}  
+gpg --homedir . --export --keyring ./kernel.pub Red > extract.pub 
+make linux-%{kversion}/scripts/bin2c
+linux-%{kversion}/scripts/bin2c ksign_def_public_key __initdata < extract.pub > linux-%{kversion}/crypto/signature/key.h
 
 cd linux-%{kversion}
 

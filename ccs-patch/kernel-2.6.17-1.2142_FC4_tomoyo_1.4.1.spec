@@ -731,7 +731,7 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch10001 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.1-20070525.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2142_FC4/" -- Makefile
 patch -sp1 < ccs-patch-2.6.17-1.2142_FC4.txt
 
@@ -776,10 +776,10 @@ find . \( -name "*.orig" -o -name "*~" \) -exec rm -f {} \; >/dev/null
 # Create gpg keys for signing the modules
 #
 
-#gpg --homedir . --batch --gen-key %{SOURCE11}
-#gpg --homedir . --export --keyring ./kernel.pub Red > extract.pub
-#make linux-%{kversion}.%{_target_cpu}/scripts/bin2c
-#linux-%{kversion}.%{_target_cpu}/scripts/bin2c ksign_def_public_key __initdata < extract.pub > linux-%{kversion}.%{_target_cpu}/crypto/signature/key.h
+gpg --homedir . --batch --gen-key %{SOURCE11}
+gpg --homedir . --export --keyring ./kernel.pub Red > extract.pub
+make linux-%{kversion}.%{_target_cpu}/scripts/bin2c
+linux-%{kversion}.%{_target_cpu}/scripts/bin2c ksign_def_public_key __initdata < extract.pub > linux-%{kversion}.%{_target_cpu}/crypto/signature/key.h
 
 BuildKernel() {
     MakeTarget=$1
