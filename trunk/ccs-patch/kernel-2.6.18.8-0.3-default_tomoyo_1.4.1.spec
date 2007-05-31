@@ -238,7 +238,7 @@ EOF
 source .rpm-defs
 cd linux-2.6.18
 # TOMOYO Linux
-tar -zxf  %_sourcedir/ccs-patch-1.4.1-20070525.tar.gz
+tar -zxf  %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
 patch -sp1 < ccs-patch-2.6.18.8-0.3_SUSE.txt
 cat config.ccs >> .config
 cp .config .config.orig

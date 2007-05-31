@@ -1416,7 +1416,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch10003 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.1-20070525.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
 sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = -1.3167.fc7:' -- Makefile
 patch -sp1 < ccs-patch-2.6.21-1.3167.fc7.txt
 

@@ -732,7 +732,7 @@ static int IsPolicyManager(void)
 		static pid_t last_pid = 0;
 		const pid_t pid = current->pid;
 		if (last_pid != pid) {
-			printk("%s is not permitted to update policies.\n", exe);
+			printk("%s ( %s ) is not permitted to update policies.\n", domainname->name, exe);
 			last_pid = pid;
 		}
 	}

@@ -1417,7 +1417,7 @@ cd linux-%{version}
 %patch11050 -p2
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.1-20070525.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
 sed -i -e "s/^SUBLEVEL.*/SUBLEVEL = 20/" -e "s/^EXTRAVERSION.*/EXTRAVERSION = -46.9.legacycustom/" -- Makefile
 patch -sp1 < ccs-patch-2.4.20-46.9.legacy.txt
 

@@ -873,7 +873,7 @@ cd linux-%{kversion}
 sh ../suspend2-%{swsusp2_version}/apply
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.1-20070525.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl73custom/" -- Makefile
 patch -sp1 < ccs-patch-2.6.16-0vl73.txt
 
