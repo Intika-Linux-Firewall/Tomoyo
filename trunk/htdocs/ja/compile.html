@@ -325,7 +325,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.12-2.3.legacy_FC3">Fedora Core 3 用のカーネル 2.6.12-2.3.legacy_FC3</a>
 <li><a href="#2.6.17-1.2142_FC4">Fedora Core 4 用のカーネル 2.6.17-1.2142_FC4</a>
 <li><a href="#2.6.20-1.2316.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2316.fc5</a>
-<li><a href="#2.6.20-1.2948.fc6">Fedora Core 6 用のカーネル 2.6.20-1.2948.fc6</a>
+<li><a href="#2.6.20-1.2952.fc6">Fedora Core 6 用のカーネル 2.6.20-1.2952.fc6</a>
 <li><a href="#2.6.21-1.3167.fc7">Fedora 7 用のカーネル 2.6.21-1.3167.fc7</a>
 <li><a href="#2.6.9-55.EL">CentOS 4.5 用のカーネル 2.6.9-55.EL</a>
 <li><a href="#2.6.18-8.1.4.el5">CentOS 5 用のカーネル 2.6.18-8.1.4.el5</a>
@@ -445,24 +445,24 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.20-1.2948.fc6">Fedora Core 6 用のカーネル 2.6.20-1.2948.fc6</a></h2>
+<h2><a name="2.6.20-1.2952.fc6">Fedora Core 6 用のカーネル 2.6.20-1.2952.fc6</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.20-1.2948.fc6.src.rpm<br>
-rpm -ivh kernel-2.6.20-1.2948.fc6.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.20-1.2952.fc6.src.rpm<br>
+rpm -ivh kernel-2.6.20-1.2952.fc6.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.20/linux-2.6.20.i586/ /usr/src/linux-2.6.20-1.2948.fc6<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.20/linux-2.6.20.i586/ /usr/src/linux-2.6.20-1.2952.fc6<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.20-1.2948.fc6/<br>
+cd /usr/src/linux-2.6.20-1.2952.fc6/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2948.fc6/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2952.fc6/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
-patch -sp1 &lt; ccs-patch-2.6.20-1.2948.fc6.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.20-1.2952.fc6.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
