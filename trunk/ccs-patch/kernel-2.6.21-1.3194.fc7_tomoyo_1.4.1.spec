@@ -33,12 +33,14 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define with_baseonly %{?_with_baseonly: 1} %{?!_with_baseonly: 0}
 # Only build the smp kernel (--with smponly):
 %define with_smponly  %{?_with_smponly:  1} %{?!_with_smponly:  0}
+# Only build the xen kernel (--with xenonly):
+%define with_xenonly  %{?_with_xenonly:  1} %{?!_with_xenonly:  0}
 
 # Whether or not to gpg sign modules
 %define with_modsign 1
 
 # Whether or not to do C=1 builds with sparse
-%define usesparse 1
+%define usesparse 0
 
 # Whether or not to apply the Xen patches -- leave this enabled
 %define includexen 0
@@ -61,7 +63,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 21
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.3167 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}_tomoyo_1.4.1
+%define release %(R="$Revision: 1.3194 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}_tomoyo_1.4.1
 
 %define make_target bzImage
 %define kernel_image x86
@@ -88,6 +90,15 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define with_up 0
 %define with_pae 0
 %define with_xen 0
+%define with_kdump 0
+%define with_debug 0
+%endif
+
+# if requested, only build xen kernel
+%if %{with_xenonly}
+%define with_up 0
+%define with_smp 0
+%define with_pae 0
 %define with_kdump 0
 %define with_debug 0
 %endif
@@ -385,8 +396,7 @@ Source82: config-olpc-generic
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
 #
-Patch1: patch-2.6.21.1.bz2
-Patch2: git-cpufreq.patch
+Patch1: patch-2.6.21.2.bz2
 
 # Patches 10 through 99 are for things that are going upstream really soon.
 Patch10: linux-2.6-utrace.patch
@@ -415,6 +425,7 @@ Patch203: linux-2.6-x86_64-silence-up-apic-errors.patch
 Patch204: linux-2.6-x86-dont-delete-cpu_devs-data.patch
 Patch205: linux-2.6-x86-fix-oprofile.patch
 Patch206: linux-2.6-x86-fsc-interrupt-controller-quirk.patch
+Patch207: linux-2.6-x86-dell-hpet.patch
 
 # 300 - 399   ppc(64)
 Patch300: linux-2.6-g5-therm-shutdown.patch
@@ -536,12 +547,16 @@ Patch1061: linux-2.6-crash-driver-xen.patch
 Patch1070: linux-2.6-sleepon.patch
 
 # SCSI bits.
-Patch1106: linux-2.6-scsi-cpqarray-set-master.patch
+Patch1100: linux-2.6-scsi-bounce-isa.patch
+Patch1101: linux-2.6-scsi-cpqarray-set-master.patch
 
 # NFS bits.
 Patch1201: linux-2.6-NFSD-badness.patch
 
 # NIC driver fixes
+Patch1300: linux-2.6-net-e1000-no-msi-warning.patch
+Patch1301: linux-2.6-net-e1000-debug-shirq.patch
+Patch1302: linux-2.6-net-e1000-no-polling-in-open.patch
 
 # Filesystem stuff.
 # Squashfs
@@ -561,16 +576,19 @@ Patch1630: linux-2.6-kvm-19.patch
 Patch1640: linux-2.6-module-override-modparam-cmdline.patch
 Patch1650: linux-2.6-serial-460800.patch
 Patch1660: linux-2.6-mm-udf-fixes.patch
-Patch1670: linux-2.6-net-sis900-oops.patch
+Patch1670: linux-2.6-sysfs-inode-allocator-oops.patch
 Patch1681: linux-2.6-xfs-umount-fix.patch
 Patch1690: linux-2.6-PT_LOAD-align.patch
 Patch1700: linux-2.6-dvb-spinlock.patch
 Patch1710: linux-2.6-nfs-noreaddirplus.patch
+Patch1711: linux-2.6-nfs-missing-braces.patch
 Patch1720: linux-2.6-proc-self-maps-fix.patch
 Patch1730: linux-2.6-suspend-ordering.patch
 Patch1740: linux-2.6-softlockup-disable.patch
+Patch1750: linux-2.6-singlethread-freezable-workqueues.patch
 Patch1770: linux-2.6-optimise-spinlock-debug.patch
 Patch1771: linux-2.6-silence-noise.patch
+Patch1780: linux-2.6-prevent-idle-softirq.patch
 Patch1791: linux-2.6-libertas.diff
 Patch1792: linux-2.6-olpc-touchpad.diff
 Patch1793: linux-2.6-raid-autorun.patch
@@ -587,6 +605,7 @@ Patch1900: linux-2.6-obsolete-oss-warning.patch
 Patch1910: linux-2.6-unexport-symbols.patch
 
 # VM bits.
+Patch2000: linux-2.6-vm-invalidate_mapping_pages-cond-resched.patch
 Patch2001: linux-2.6-vm-silence-atomic-alloc-failures.patch
 
 # Tweak some defaults.
@@ -595,30 +614,31 @@ Patch2103: linux-2.6-defaults-unicode-vt.patch
 Patch2105: linux-2.6-defaults-nonmi.patch
 Patch2106: linux-2.6-defaults-pci_no_msi_mmconf.patch
 
-# SATA Bits
+# ATA Bits
 Patch2200: linux-2.6-sata-promise-pata-ports.patch
 Patch2201: linux-2.6-libata-hpa.patch
 Patch2202: linux-2.6-libata-sata_nv-adma.patch
 Patch2203: linux-2.6-libata-ali-atapi-dma.patch
 Patch2204: linux-2.6-ata-quirk.patch
-Patch2205: linux-2.6-libata-sff-pci_iomap-bug.patch
 Patch2206: linux-2.6-libata-sata_nv-wildcard-removal.patch
+Patch2207: linux-2.6-libata-pata-pcmcia-new-ident.patch
+Patch2208: linux-2.6-libata-atiixp-ids.patch
+Patch2209: linux-2.6-libata-pata-hpt3x2n-correct-revision-boundary.patch
+Patch2210: linux-2.6-libata-pata-sis-fix-timing.patch
 
 # Wireless bits
 Patch2300: linux-2.6-wireless.patch
 Patch2301: git-wireless-dev.patch
 Patch2302: git-iwlwifi.patch
 Patch2303: linux-2.6-bcm43xx-pci-neuter.patch
-Patch2304: linux-2.6-iwlwifi-preferred_rate_control.patch
+Patch2304: linux-2.6-mac80211-fixes.patch
+Patch2305: linux-2.6-bcm43xx-mac80211-fixes.patch
 
 # Assorted dyntick/clock/timer fixes.
-Patch2400: linux-2.6-highres-dyntick-avoid-xtime-lock-contention.patch
-Patch2401: linux-2.6-clocksource-fix-resume-logic.patch
 Patch2402: linux-2.6-acpi-keep-tsc-stable-when-lapic-timer-c2-ok-is-set.patch
 Patch2403: linux-2.6-clockevents-fix-resume-logic.patch
 
 # ACPI bits
-Patch2500: linux-2.6-acpi-clear-fadt_cstate-control.patch
 Patch2501: linux-2.6-acpi-dock-oops.patch
 
 # Excessive wakeups.
@@ -627,6 +647,7 @@ Patch2600: linux-2.6-wakeups-hdaps.patch
 # Add the new firewire stack. Diff between the v2.6.20 tag and commit
 # a0ab4547b23c09541bc47a294a1397b3b0415bfe in the linux1394 git tree.
 Patch5000: linux-2.6-firewire.patch
+Patch5001: linux-2.6-firewire-be32-fix.patch
 
 #
 # 10000 to 20000 is for stuff that has to come last due to the
@@ -1030,7 +1051,6 @@ cd linux-%{kversion}.%{_target_cpu}
 
 # Update to latest upstream.
 %patch1 -p1
-%patch2 -p1
 
 # Patches 10 through 100 are meant for core subsystem upgrades
 
@@ -1073,6 +1093,8 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch205 -p1
 # quirk for Siemens Nixdorf AG FSC Multiprocessor Interrupt Controller
 %patch206 -p1
+# Blacklist Dell Optiplex 320 from using the HPET
+%patch207 -p1
 
 #
 # PowerPC
@@ -1254,8 +1276,10 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 #
 # SCSI Bits.
 #
+# Fix old SCSI adapter crashes with CD-ROM
+%patch1100 -p1
 # fix cpqarray pci enable
-%patch1106 -p1
+%patch1101 -p1
 
 #
 # Various NFS/NFSD fixes.
@@ -1264,6 +1288,11 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch1201 -p1
 
 # NIC driver fixes
+# Don't print warnings about MSI failures on e1000
+%patch1300 -p1
+# Fix up e1000 oops (#240339)
+%patch1301 -p1
+%patch1302 -p1
 
 # Filesystem patches.
 # Squashfs
@@ -1292,7 +1321,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch1650 -p1
 # Allow large files on UDF
 %patch1660 -p1
-# Fix oops in sis900
+# fix oops in sysfs_readdir
 %patch1670 -p1
 # Fix XFS umount bug.
 %patch1681 -p1
@@ -1302,16 +1331,22 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch1700 -p1
 # NFS: Added support to turn off the NFSv3 READDIRPLUS RPC.
 %patch1710 -p1
+# Missing braces
+%patch1711 -p1
 # setuid /proc/self/maps fix.
 %patch1720 -p1
 # Fix ACPI suspend / device suspend ordering problem
 %patch1730 -p1
 # Add a safety net to softlockup so that it doesn't prevent installs.
 %patch1740 -p1
+# Make freezable workqueues single threaded.
+%patch1750 -p1
 # Speed up spinlock debug.
 %patch1770 -p1
 # Silence some useless messages that still get printed with 'quiet'
 %patch1771 -p1
+# Prevent going idle with softirq pending
+%patch1780 -p1
 
 # OLPC specific patches
 %if 0%{?olpc}
@@ -1339,6 +1374,8 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 #
 # VM related fixes.
 #
+# Re-add cond_resched to invalidate_mapping_pages()
+%patch2000 -p1
 # Silence GFP_ATOMIC failures.
 %patch2001 -p1
 
@@ -1363,10 +1400,16 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 # libata: don't initialize sg in ata_exec_internal() if DMA_NONE
 # ia64 ata quirk
 %patch2204 -p1
-# libata-sff: Undo bug introduced with pci_iomap changes
-%patch2205 -p1
 # remove the wildcard from sata_nv driver
 %patch2206 -p1
+# pata_pcmcia.c: add card ident for jvc cdrom
+%patch2207 -p1
+# Add libata ID's for ATI SB700
+%patch2208 -p1
+# hpt3x2n: Correct revision boundary
+%patch2209 -p1
+# pata_sis: Fix and clean up some timing setups
+%patch2210 -p1
 
 # Add critical wireless updates from 2.6.22
 %patch2300 -p1
@@ -1374,20 +1417,18 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch2301 -p1
 # ...and the iwlwifi driver from Intel
 %patch2302 -p1
-# ...and avoid bcm43xx vs bcm43xx-mac80211 PCI ID conflicts
+# avoid bcm43xx vs bcm43xx-mac80211 PCI ID conflicts
 %patch2303 -p1
-# ...and let iwl3945 specify its preferred rate control algorithm
+# some mac80211 bug fixes (defrag mem leak, reassoc failure handling)
 %patch2304 -p1
+# bcm43xx-mac80211: important phy and ssb bus fixes
+%patch2305 -p1
 
 # Assorted dyntick/clock/timer fixes.
-%patch2400 -p1
-%patch2401 -p1
 %patch2402 -p1
 %patch2403 -p1
 
 # ACPI patches
-# ACPI: Fix 2.6.21 boot regression on P4/HT
-%patch2500 -p1
 # Fix ACPI dock oops (#238054)
 %patch2501 -p1
 
@@ -1402,6 +1443,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 
 # Pull in the new firewire stack
 %patch5000 -p1
+%patch5001 -p1
 
 #
 # final stuff
@@ -1417,8 +1459,8 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = -1.3167.fc7:' -- Makefile
-patch -sp1 < ccs-patch-2.6.21-1.3167.fc7.txt
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = -1.3194.fc7:' -- Makefile
+patch -sp1 < ccs-patch-2.6.21-1.3194.fc7.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2374,8 +2416,8 @@ fi
 %endif
 
 %changelog
-* Thu May 17 2007 Dave Jones <davej@redhat.com>
-- More GFS2 updates.
+* Wed May 23 2007 Dave Jones <davej@redhat.com>
+- Disable more debug options in the non-debug builds.
 
 * Fri Oct 13 2006 Dave Jones <davej@redhat.com>
 - 2.6.19rc2
