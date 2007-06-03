@@ -97,7 +97,7 @@ static void MakeMountOptions(char *buffer, const int buffer_len, const unsigned 
 				 enabled & MS_NOSUID     ? "nosuid " :     (disabled & MS_NOSUID     ? "suid "      : ""),
 				 enabled & MS_NODEV      ? "nodev "  :     (disabled & MS_NODEV      ? "dev "       : ""),
 				 enabled & MS_NOEXEC     ? "noexec " :     (disabled & MS_NOEXEC     ? "exec "      : ""),
-				 enabled & MS_NOATIME    ? "noatime" :     (disabled & MS_NOATIME    ? "atime"      : ""),
+				 enabled & MS_NOATIME    ? "noatime " :    (disabled & MS_NOATIME    ? "atime "     : ""),
 				 enabled & MS_NODIRATIME ? "nodiratime " : (disabled & MS_NODIRATIME ? "diratime "  : ""),
 				 enabled & MS_REC        ? "recurse " :    (disabled & MS_REC        ? "norecurse " : ""));
 	}
