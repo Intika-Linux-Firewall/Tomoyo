@@ -331,7 +331,7 @@ cat /proc/ccs/status &gt; /etc/ccs/status.txt
 <p>TOMOYO Linux can perform several MACs besides MAC for files, but to reduce the load of policy managements, you can disable MACs you think unnecessary. The configurable parameters are determined in the kernel compilation time. Only topics included in /proc/ccs/status are configurable.</p>
 
 <table border="1">
-<tr><td>Name</td><td>Control</td><td>Default value</td><td>Accept mode supported</td></tr>
+<tr><td>Name</td><td>Control</td><td>Default value</td><td>Accumulating mode supported</td></tr>
 <tr>
 <td>COMMENT</td>
 <td>A line of text that describes the content of the profile.</td>
@@ -406,7 +406,7 @@ cat /proc/ccs/status &gt; /etc/ccs/status.txt
 </tr>
 <tr>
 <td>MAX_ACCEPT_ENTRY</td>
-<td>Limits the max number of ACL entries that are automatically appended during accept mode.</td>
+<td>Limits the max number of ACL entries that are automatically appended during accumulating mode.</td>
 <td>2048</td>
 <td>-</td>
 </tr>
@@ -493,7 +493,7 @@ cat /proc/ccs/status &gt; /etc/ccs/status.txt
 </tr>
 <tr>
 <td>1</td>
-<td>Accept mode. Not rejected if the request violates policy. Automatically appended to policy.</td>
+<td>Accumulating mode. Not rejected if the request violates policy. Automatically appended to policy.</td>
 </tr>
 <tr>
 <td>2</td>
@@ -507,12 +507,12 @@ cat /proc/ccs/status &gt; /etc/ccs/status.txt
 
 <h2>Creating profiles</h2>
 
-<p>Write profiles for "disabled", "accept mode", "permissive mode" and "enforce mode" in /etc/ccs/status.txt . The following example is profiles for applying MAC for files and networks. The heading number is profile number that is used for assigning profiles to domains. The valid profile number range is between 0 and 255.</p>
+<p>Write profiles for "disabled", "accumulating mode", "permissive mode" and "enforce mode" in /etc/ccs/status.txt . The following example is profiles for applying MAC for files and networks. The heading number is profile number that is used for assigning profiles to domains. The valid profile number range is between 0 and 255.</p>
 
 <table border="1">
 <tr><td>
 0-COMMENT=----- All Disabled -----<br>
-1-COMMENT=----- FILE and NETWORK with Accept Mode -----<br>
+1-COMMENT=----- FILE and NETWORK with Accumulating Mode -----<br>
 1-MAC_FOR_FILE=1<br>
 1-MAC_FOR_NETWORK=1<br>
 2-COMMENT=----- FILE and NETWORK with Permissive Mode -----<br>
@@ -534,7 +534,7 @@ cat /proc/ccs/status &gt; /etc/ccs/status.txt
 
 <p>In this manual, we assume that<br>
 profile number 0 is for "disabled",<br>
-profile number 1 is for "accept mode",<br>
+profile number 1 is for "accumulating mode",<br>
 profile number 2 is for "permissive mode",<br>
 profile number 3 is for "enforce mode",<br>
 profile number 4 is for "delayed enforce mode" (same as "enforce mode" except that it allows administrators handle access requests that violated policy manually).</p>
@@ -889,7 +889,7 @@ less /proc/ccs/policy/.domain_status
 
 <h3>(2) Append ACLs to domains</h3>
 
-<p>After you confirmed that the domain is created, assign a profile that perform MAC in "accept mode" (in this manual, profile 1) to the domain using "setprofile" command.</p>
+<p>After you confirmed that the domain is created, assign a profile that perform MAC in "accumulating mode" (in this manual, profile 1) to the domain using "setprofile" command.</p>
 
 <table border="1">
 <tr><td>
@@ -906,7 +906,7 @@ service httpd restart
 </table>
 
 <p>If the profile is configured as "1-TOMOYO-VERBOSE=1" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
-But regarding "accept mode", the "TOMOYO-WARNING:" messages are printed only once because necessary ACLs are automatically appended when you do the same operation again.</p>
+But regarding "accumulating mode", the "TOMOYO-WARNING:" messages are printed only once because necessary ACLs are automatically appended when you do the same operation again.</p>
 
 <p>If the "TOMOYO-WARNING:" messages are no longer printed when you do the operation you want to allow, proceed to the next step.</p>
 
@@ -1131,7 +1131,7 @@ editpolicy_offline
 
 <h2>Patterning File Access Permissions</h2>
 
-<p>Append access permissions for files that are not necessarily accessed in the accept mode such as WWW contents for WWW service to /etc/ccs/domain_policy.txt .<br>
+<p>Append access permissions for files that are not necessarily accessed in the accumulating mode such as WWW contents for WWW service to /etc/ccs/domain_policy.txt .<br>
 The following example allows /usr/sbin/httpd to read files in the /var/www/html/ directory.</p>
 
 <table border="1">

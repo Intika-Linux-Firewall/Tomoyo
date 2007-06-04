@@ -22,9 +22,9 @@
 <li>The access permissions required has increased.
 </ul>
 
-<p>The ideal way to update policy is to rebuild from the scratch using accept mode. But it is not desirable to change from enforce mode to other mode if the system has once entered in production state. Suppose MAC could support per-application enforce mode, the MAC becomes useless if an application that is not running in enforce mode was cracked. For example, the whole system becomes vulnerable if only HTTP server application is running in accept mode to rebuild policy for the application. So, in TOMOYO Linux, updating policy is done while the system is running in enforce mode.</p>
+<p>The ideal way to update policy is to rebuild from the scratch using accumulating mode. But it is not desirable to change from enforce mode to other mode if the system has once entered in production state. Suppose MAC could support per-application enforce mode, the MAC becomes useless if an application that is not running in enforce mode was cracked. For example, the whole system becomes vulnerable if only HTTP server application is running in accumulating mode to rebuild policy for the application. So, in TOMOYO Linux, updating policy is done while the system is running in enforce mode.</p>
 
-<p>TOMOYO Linux includes tools that helps administrators update policy while the system is running in enforce mode. By using these tools, you can continue running the system without rebuilding from the scratch using accept mode if the modification is trivial. But note that these tools cannot always support every cases and the result of updated policy is not always the optimized.</p>
+<p>TOMOYO Linux includes tools that helps administrators update policy while the system is running in enforce mode. By using these tools, you can continue running the system without rebuilding from the scratch using accumulating mode if the modification is trivial. But note that these tools cannot always support every cases and the result of updated policy is not always the optimized.</p>
 
 <h1>Procedure</h1>
 
