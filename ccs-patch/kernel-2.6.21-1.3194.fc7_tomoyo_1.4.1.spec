@@ -275,7 +275,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %endif
 
 # TOMOYO Linux
-%define signmodules 0
+%define with_modsign 0
 %define _enable_debug_packages 0
 
 #
