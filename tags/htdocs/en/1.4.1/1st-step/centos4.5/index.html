@@ -132,7 +132,7 @@ title CentOS (2.6.9-55.EL_tomoyo_1.4.1.1)
 <span class="user">0-COMMENT=-----DISABLED_MODE-----</span>
 <span class="user">0-MAC_FOR_FILE=0</span>
 <span class="user">0-TOMOYO_VERBOSE=0</span>
-<span class="user">1-COMMENT=-----ACCUMULATING_MODE-----</span>
+<span class="user">1-COMMENT=-----LEARNING_MODE-----</span>
 <span class="user">1-MAC_FOR_FILE=1</span>
 <span class="user">1-TOMOYO_VERBOSE=0</span>
 <span class="user">2-COMMENT=-----PERMISSIVE_MODE-----</span>
@@ -149,20 +149,20 @@ $profile_number-$topic_name=$control_mode
 </pre>
 <p>The leading integer ($profile_number) is the number of profile, the followed word before = ($topic_name) is the name of functionalities and the trailing integer after = ($control_mode) is the control mode.</p>
 <p>The $topic_name = COMMENT is just for administrators.</p>
-<p>The $topic_name = MAC_FOR_FILE means "MAC for file accesses", and the $control_mode = 0 means disabled, 1 means accumulating mode, 2 means permissive mode, 3 means enforcing mode.</p>
+<p>The $topic_name = MAC_FOR_FILE means "MAC for file accesses", and the $control_mode = 0 means disabled, 1 means learning mode, 2 means permissive mode, 3 means enforcing mode.</p>
 <p>The $topic_name = TOMOYO_VERBOSE means whether policy violation messages are printed to console or not, and prints if $control_mode = 1 and doesn't print if $control_mode = 0.</p>
 <p>The above example has 4 profiles (from 0 to 3), and the purpose of them are shown below.</p>
 <table>
 <tr><th>profile 0</th><td>Don't apply MAC for file accesses. Don't print policy violation messages on console.</td></tr>
-<tr><th>profile 1</th><td>Apply MAC for file accesses using accumulating mode. Don't print policy violation messages on console.</td></tr>
+<tr><th>profile 1</th><td>Apply MAC for file accesses using learning mode. Don't print policy violation messages on console.</td></tr>
 <tr><th>profile 2</th><td>Apply MAC for file accesses using permissive mode. Print policy violation messages on console.</td></tr>
 <tr><th>profile 3</th><td>Apply MAC for file accesses using enforcing mode. Print policy violation messages on console.</td></tr>
 </table>
-<p>The basic procedure is, generate policy using accumulating mode (which is defined in profile 1), confirm policy using permissive mode (which is defined in profile 2), and enforce policy using enforcing mode (which is defined in profile 3).</p>
+<p>The basic procedure is, generate policy using learning mode (which is defined in profile 1), confirm policy using permissive mode (which is defined in profile 2), and enforce policy using enforcing mode (which is defined in profile 3).</p>
 
 <h3><a name="l9">Preparation for policy generation</a></h3>
 
-<p>Although TOMOYO Linux can generate policy using profile 1 (accumulating mode), you need some preparations before using profile 1. The preparations are listed below.</p>
+<p>Although TOMOYO Linux can generate policy using profile 1 (learning mode), you need some preparations before using profile 1. The preparations are listed below.</p>
 <ol>
 <li>Listing up programs that are allowed to update policies</li>
 <li>Preparing for Audit Logs</li>
@@ -235,7 +235,7 @@ $profile_number-$topic_name=$control_mode
 
 <h3><a name="l15">Generating policies for login operations</a></h3>
 
-<p>Let the TOMOYO Linux's kernel remember the following operations, and let's see any operations that weren't done in the accumulating mode are denied in the enforcing mode.</p>
+<p>Let the TOMOYO Linux's kernel remember the following operations, and let's see any operations that weren't done in the learning mode are denied in the enforcing mode.</p>
 <ol>
 <li>Running "date" command</li>
 <li>Printing the heading 3 lines of /etc/passwd using "head" command</li>
@@ -243,17 +243,17 @@ $profile_number-$topic_name=$control_mode
 <li>Printing the tailing 3 lines of /etc/passwd using "tail" command</li>
 <li>Exit from "tcsh"</li>
 </ol>
-<p>Now, change this session to accumulating mode.</p>
-<p>According to <a href="#l8">Creating profiles</a>, the profile 1 is defined for accumulating mode. So, assign this profile to /sbin/mingetty and programs invoked by /sbin/mingetty .</p>
+<p>Now, change this session to learning mode.</p>
+<p>According to <a href="#l8">Creating profiles</a>, the profile 1 is defined for learning mode. So, assign this profile to /sbin/mingetty and programs invoked by /sbin/mingetty .</p>
 <pre>
 # <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/mingetty'</span>
 </pre>
 <p>This command means</p>
 <blockquote><p>Assign profile 1 to /sbin/mingetty and all programs invoked by /sbin/mingetty .</p></blockquote>
-<p>The /sbin/mingetty is a program that invokes login shell. Thus, by assigning profiles 1 to /sbin/mingetty and programs invoked by /sbin/mingetty, you can let the TOMOYO Linux kernel remember operations after login. Changing profiles takes effect immediately. Now, this session is already in the accumulating mode.</p>
+<p>The /sbin/mingetty is a program that invokes login shell. Thus, by assigning profiles 1 to /sbin/mingetty and programs invoked by /sbin/mingetty, you can let the TOMOYO Linux kernel remember operations after login. Changing profiles takes effect immediately. Now, this session is already in the learning mode.</p>
 <p>You have to quote "&lt;kernel&gt; /sbin/mingetty" appropriately, or you may lose the contents of /sbin/mingetty because "&lt;" and "&gt;" are interpreted as redirection command.</p>
 <p>Let the kernel remember the 4 operations listed above. All you need to do is do these operations as usual.</p>
-<p><img alt="Using accumulating mode" title="Using accumulating mode" width="720" height="400" src="ope_accept.png"></p>
+<p><img alt="Using learning mode" title="Using learning mode" width="720" height="400" src="ope_accept.png"></p>
 <p>You can operate as if the usual Linux, but the TOMOYO Linux kernel is monitoring accesses and generating policies and storing on the memory in the background.</p>
 
 <h3><a name="l16">Editing generated policies</a></h3>
@@ -302,7 +302,7 @@ Press 'Enter' at the line of head command, and you will see the following window
 <li>Running "date" command (denied)</li>
 </ol>
 <p><img alt="Enforcing MAC" title="Enforcing MAC" width="720" height="400" src="ope_enforce.png"></p>
-<p>Operations with red colored underline in the picture are performed normally because they are operations performed in the accumulating mode. Operations with blue colored underline are denied.</p>
+<p>Operations with red colored underline in the picture are performed normally because they are operations performed in the learning mode. Operations with blue colored underline are denied.</p>
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 <pre>
 #2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
