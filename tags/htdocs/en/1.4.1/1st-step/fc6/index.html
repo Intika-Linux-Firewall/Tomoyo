@@ -66,18 +66,18 @@ Disabled
 <p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile. But regarding Fedora Core 6, binary kernel packages are provided and this page uses them.</p>
 <p>First, download the binary kernel package.</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.20-1.2952.fc6_tomoyo_1.4.1.1.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.20-1.2952.fc6_tomoyo_1.4.1.i586.rpm</span>
 </pre>
 <p>Next, install the downloaded package.</p>
 <pre>
-# <span class="user">rpm --install kernel-2.6.20-1.2952.fc6_tomoyo_1.4.1.1.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.20-1.2952.fc6_tomoyo_1.4.1.i586.rpm</span>
 </pre>
 <p>The following entries are appended to /boot/grub/grub.conf if installation finishes successfully.</p>
 <pre>
-title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1.1)
+title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1)
     root (hd0,0)
-    kernel /vmlinuz-2.6.20-1.2952.fc6_tomoyo_1.4.1.1 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.20-1.2952.fc6_tomoyo_1.4.1.1.img
+    kernel /vmlinuz-2.6.20-1.2952.fc6_tomoyo_1.4.1 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.20-1.2952.fc6_tomoyo_1.4.1.img
 </pre>
 <p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
 <pre>
@@ -93,8 +93,8 @@ title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1.1)
 <p>Regarding Fedora Core 6, a binary tools tar ball is provided and this page uses it. We use /root/ccstools/ directory as the location of TOMOYO Linux tools.</p>
 <pre>
 # <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.1.1-i386-FC6.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.4.1.1-i386-FC6.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.1-i386-FC6.tar.gz</span>
+# <span class="user">tar zxf ccs-tools-1.4.1-i386-FC6.tar.gz</span>
 </pre>
 <p>Add the location of TOMOYO Linux tools to the environment variable PATH. If you are using bash, run the following commands.</p>
 <pre>
@@ -107,10 +107,10 @@ title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1.1)
 </pre>
 <p>To load TOMOYO Linux's policy automatically upon startup, you need to update the kernel command line. Append "init=/.init" at the "kernel" lines of TOMOYO Linux's kernels in /boot/grub/grub.conf .</p>
 <pre>
-title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1.1)
+title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1)
     root (hd0,0)
-    kernel /vmlinuz-2.6.20-1.2952.fc6_tomoyo_1.4.1.1 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
-    initrd /initrd-2.6.20-1.2952.fc6_tomoyo_1.4.1.1.img
+    kernel /vmlinuz-2.6.20-1.2952.fc6_tomoyo_1.4.1 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
+    initrd /initrd-2.6.20-1.2952.fc6_tomoyo_1.4.1.img
 </pre>
 <p>You have installed TOMOYO Linux. Now proceed to configuration.</p>
 

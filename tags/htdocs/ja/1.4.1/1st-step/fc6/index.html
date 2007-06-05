@@ -69,19 +69,19 @@ Disabled
 提供されているので、今回はそれを利用します。</p>
 <p>まずはパッケージをダウンロードします。</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.20-1.2952.fc6_tomoyo_1.4.1.1.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.20-1.2952.fc6_tomoyo_1.4.1.i586.rpm</span>
 </pre>
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 <pre>
-# <span class="user">rpm --install kernel-2.6.20-1.2952.fc6_tomoyo_1.4.1.1.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.20-1.2952.fc6_tomoyo_1.4.1.i586.rpm</span>
 </pre>
 <p>この際特にメッセージは表示されませんが、
 インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 <pre>
-title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1.1)
+title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1)
     root (hd0,0)
-    kernel /vmlinuz-2.6.20-1.2952.fc6_tomoyo_1.4.1.1 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.20-1.2952.fc6_tomoyo_1.4.1.1.img
+    kernel /vmlinuz-2.6.20-1.2952.fc6_tomoyo_1.4.1 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.20-1.2952.fc6_tomoyo_1.4.1.img
 </pre>
 <p>今後カーネルの選択を行いやすくするために、
 /boot/grub/grub.confの"timeout="と"hiddenmenu"の行を
@@ -101,8 +101,8 @@ title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1.1)
 ツールは/root/ccstoolsディレクトリに置くことにします。</p>
 <pre>
 # <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.1.1-i386-FC6.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.4.1.1-i386-FC6.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.1-i386-FC6.tar.gz</span>
+# <span class="user">tar zxf ccs-tools-1.4.1-i386-FC6.tar.gz</span>
 </pre>
 <p>ツールを置いたディレクトリにパスを通しておきます。bashを使っている場合には以下のようにします。</p>
 <pre>
@@ -116,10 +116,10 @@ title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1.1)
 <p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
 /boot/grub/grub.confのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
 <pre>
-title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1.1)
+title Fedora Core (2.6.20-1.2952.fc6_tomoyo_1.4.1)
     root (hd0,0)
-    kernel /vmlinuz-2.6.20-1.2952.fc6_tomoyo_1.4.1.1 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
-    initrd /initrd-2.6.20-1.2952.fc6_tomoyo_1.4.1.1.img
+    kernel /vmlinuz-2.6.20-1.2952.fc6_tomoyo_1.4.1 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
+    initrd /initrd-2.6.20-1.2952.fc6_tomoyo_1.4.1.img
 </pre>
 
 <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
