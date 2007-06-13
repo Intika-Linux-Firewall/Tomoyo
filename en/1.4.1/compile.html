@@ -309,7 +309,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.4.20-46.9.legacy">Kernel 2.4.20-46.9.legacy for RedHat Linux 9</a>
 <li><a href="#2.6.12-2.3.legacy_FC3">Kernel 2.6.12-2.3.legacy_FC3 for Fedora Core 3</a>
 <li><a href="#2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a>
-<li><a href="#2.6.20-1.2316.fc5">Kernel 2.6.20-1.2316.fc5 for Fedora Core 5</a>
+<li><a href="#2.6.20-1.2319.fc5">Kernel 2.6.20-1.2319.fc5 for Fedora Core 5</a>
 <li><a href="#2.6.20-1.2952.fc6">Kernel 2.6.20-1.2952.fc6 for Fedora Core 6</a>
 <li><a href="#2.6.21-1.3194.fc7">Kernel 2.6.21-1.3194.fc7 for Fedora 7</a>
 <li><a href="#2.6.9-55.EL">Kernel 2.6.9-55.EL for CentOS 4.5</a>
@@ -319,7 +319,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.18-12etch2">Kernel 2.6.18-12etch2 for Debian Etch</a>
 <li><a href="#2.6.16.27-0.9">Kernel 2.6.16.27-0.9 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.8-0.3">Kernel 2.6.18.8-0.3 for OpenSUSE 10.2</a>
-<li><a href="#2.6.9-42.13AX">Kernel 2.6.9-42.13AX for Asianux 2.0</a>
+<li><a href="#2.6.9-42.14AX">Kernel 2.6.9-42.14AX for Asianux 2.0</a>
 <li><a href="#2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a>
 <li><a href="#2.6.20.3-ubuntu1">Kernel 2.6.20.3-ubuntu1 for Ubuntu 7.04</a>
 <li><a href="#2.6.16-0vl73">Kernel 2.6.16-0vl73 for VineLinux 4.1</a>
@@ -404,24 +404,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.20-1.2316.fc5">Kernel 2.6.20-1.2316.fc5 for Fedora Core 5</a></h2>
+<h2><a name="2.6.20-1.2319.fc5">Kernel 2.6.20-1.2319.fc5 for Fedora Core 5</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/5/SRPMS/kernel-2.6.20-1.2316.fc5.src.rpm<br>
-rpm -ivh kernel-2.6.20-1.2316.fc5.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/5/SRPMS/kernel-2.6.20-1.2319.fc5.src.rpm<br>
+rpm -ivh kernel-2.6.20-1.2319.fc5.src.rpm<br>
 # Prepare for compilation.<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.20/linux-2.6.20.i586/ /usr/src/linux-2.6.20-1.2316.fc5<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.20/linux-2.6.20.i586/ /usr/src/linux-2.6.20-1.2319.fc5<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.20-1.2316.fc5/<br>
+cd /usr/src/linux-2.6.20-1.2319.fc5/<br>
 # Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2316.fc5/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2319.fc5/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.1-20070605.tar.gz<br>
 tar -zxf ccs-patch-1.4.1-20070605.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.20-1.2316.fc5.txt<br>
+wget -O ccs-patch-2.6.20-1.2319.fc5.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1949&amp;aid=10549'<br>
+patch -sp1 &lt; ccs-patch-2.6.20-1.2319.fc5.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
@@ -648,24 +649,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-42.13AX">Kernel 2.6.9-42.13AX for Asianux 2.0</a></h2>
+<h2><a name="2.6.9-42.14AX">Kernel 2.6.9-42.14AX for Asianux 2.0</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.13AX.src.rpm<br>
-rpm -ivh kernel-2.6.9-42.13AX.src.rpm<br>
+wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.14AX.src.rpm<br>
+rpm -ivh kernel-2.6.9-42.14AX.src.rpm<br>
 # Prepare for compilation.<br>
 rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
-mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.13AX<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.14AX<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.9-42.13AX/<br>
+cd /usr/src/linux-2.6.9-42.14AX/<br>
 # Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.13AX/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.14AX/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.1-20070605.tar.gz<br>
 tar -zxf ccs-patch-1.4.1-20070605.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.9-42.13AX.txt<br>
+wget -O ccs-patch-2.6.9-42.14AX.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1951&amp;aid=10549'<br>
+patch -sp1 &lt; ccs-patch-2.6.9-42.14AX.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
