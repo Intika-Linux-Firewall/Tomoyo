@@ -29,7 +29,7 @@ summary: the linux kernel (the core of the linux operating system)
 # adding some text to the end of the version number.
 #
 %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
-%define release 42.13AX%{axbsys}_tomoyo_1.4.1
+%define release 42.14AX%{axbsys}_tomoyo_1.4.1
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -1367,6 +1367,10 @@ Patch100260: linux-2.6-ignore-64bit-bars-on-32bit.patch
 Patch100261: linux-2.6-pci-64bit-bar-on-32bit-arch.patch
 Patch100262: linux-2.6.9-x86_64-mmconfig-fix.patch
 Patch100263: linux-2.6.15-x86-convert-bigsmp-to-use-flat-physical-mode.patch
+Patch100264: linux-2.6.9-ia32e-stack-vm_account-fix.patch
+Patch100265: linux-2.6.9-x86_64-dma-usage-fix1.patch
+Patch100266: linux-2.6.9-x86_64-dma-usage-fix2.patch
+
 #
 # 100300 - 100399   ppc(64)
 #
@@ -3623,6 +3627,11 @@ cd linux-%{kversion}
 %patch100262 -p1
 # use physflat mode on i386-bigsmp
 %patch100263 -p1
+#stack virtual memory account
+%patch100264 -p1
+#dma usage fix
+%patch100265 -p1
+%patch100266 -p1
 
 #
 # Patches 100500 through 101000 are reserved for bugfixes to the core system
@@ -3938,8 +3947,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.13AX/" -- Makefile
-patch -sp1 < ccs-patch-2.6.9-42.13AX.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.14AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-42.14AX.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -4367,9 +4376,12 @@ fi
 %endif
 
 %changelog
-* Thu May 24 2007 Robert Lin <robert@miraclelinux.com> [2.6.9-42.13AX]
-- fix bad sysctl formatting of SCTP values. (Patch1336,1337, bug#2708). 
-- fix fragmented SCTP packet wasn't handle on input.(Patch1338, bug#2711).
+* Wed Jun 06 2007 Robert Lin <robert@miraclelinux.com> [2.6.9-42.14AX]
+- fix the value of Committed_AS increasing abnormally on x86_64
+  while runing 32bit application. (Patch100264 ,bug#2857)
+- fix OOM-Killer started automatically during heavy I/O load in the 
+  system with over 4Gbytes memory and disk controller does not support 
+  64-bit DMA addresing mode. (Patch100265,100266, bug#2858) 
 
 * Fri Feb 20 2004 Arjan van de Ven <arjanv@redhat.com>
 - re-add and enable the Auditing patch
