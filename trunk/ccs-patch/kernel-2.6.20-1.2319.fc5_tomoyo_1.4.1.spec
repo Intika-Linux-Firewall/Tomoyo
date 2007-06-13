@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 20
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2316 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}.fc5_tomoyo_1.4.1
+%define release %(R="$Revision: 1.2319 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}.fc5_tomoyo_1.4.1
 %define signmodules 0
 %define xen_hv_cset 11774
 %define make_target bzImage
@@ -321,7 +321,8 @@ Patch6: patch-2.6.20.5-6.bz2
 Patch7: patch-2.6.20.6-7.bz2
 Patch8: patch-2.6.20.7-8.bz2
 Patch9: patch-2.6.20.8-9.bz2
-Patch10: linux-2.6.20.10-unoffical.patch
+Patch10: patch-2.6.20.9-10.bz2
+Patch11: patch-2.6.20.10-11.bz2
 
 # Patches 10 through 99 are for things that are going upstream really soon.
 
@@ -382,6 +383,9 @@ Patch952: linux-2.6-xen-x86_64-silence-up-apic-errors.patch
 Patch954: linux-2.6-xen-execshield.patch
 Patch955: linux-2.6-xen-tux.patch
 Patch961: linux-2.6-xen-pae-handle-64bit-addresses-correctly.patch
+patch962: linux-2.6-xen-fixup-table-fix.patch
+Patch963: linux-2.6-xen-pda-initialization.patch
+
 
 #
 # Patches 1000 to 5000 are reserved for bugfixes to drivers and filesystems
@@ -468,8 +472,20 @@ Patch1807: linux-2.6-20.7a-fib_rules_fix_return_value.patch
 Patch1809: linux-2.6-21-rc6-readahead.patch
 Patch1810: linux-2.6-i386_pci-add_debugging.patch
 
+# post 2.6.20.11
+Patch1830: linux-2.6-20.8b-x86_perfctr_fix_bitmap_sizing.patch
+Patch1831: linux-2.6-20.8e-isdn-capi-disable-debug-messages.patch
+Patch1832: linux-2.6-20.8f-oom_kill_all_threads_that_share_mm.patch
+Patch1833: linux-2.6-20.8f-x86_64_always_flush_all_pages.patch
+Patch1834: linux-2.6-20.8n-ipsec_fix_oops_with_large_context.patch
+Patch1835: linux-2.6-20.8n-net_vlan_allow_with_bridge.patch
+Patch1836: linux-2.6-20.8n-ppp_fix_skb_under_panic.patch
+Patch1837: linux-2.6-page_is_ram.patch
+
+Patch1841: linux-2.6-20.12b-input_i8042_fix_aux_port_detection_with_some_chips.patch
+
 # SELinux/audit patches.
-Patch1850: linux-2.6-selinux-mprotect-checks.patch
+Patch1890: linux-2.6-selinux-mprotect-checks.patch
 
 # Warn about usage of various obsolete functionality that may go away.
 Patch1900: linux-2.6-obsolete-oss-warning.patch
@@ -886,6 +902,7 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch8 -p1
 %patch9 -p1
 %patch10 -p1
+%patch11 -p1
 
 # Patches 10 through 100 are meant for core subsystem upgrades
 
@@ -985,6 +1002,8 @@ find -name "*.p.xen" | xargs rm -f
 %patch954 -p1
 %patch955 -p1
 %patch961 -p1
+%patch962 -p1
+%patch963 -p1
 %endif
 
 #
@@ -1107,8 +1126,20 @@ find -name "*.p.xen" | xargs rm -f
 %patch1809 -p1
 %patch1810 -p1
 
+# post 2.6.20.11
+%patch1830 -p1
+%patch1831 -p1
+%patch1832 -p1
+%patch1833 -p1
+%patch1834 -p1
+%patch1835 -p1
+%patch1836 -p1
+%patch1837 -p1
+
+%patch1841 -p1
+
 # Fix the SELinux mprotect checks on executable mappings
-%patch1850 -p1
+%patch1890 -p1
 
 # Warn about obsolete functionality usage.
 %patch1900 -p1
@@ -1177,8 +1208,8 @@ find -name "*.p.xen" | xargs rm -f
 
 # TOMOYO Linux
 tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4.1-20070605.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2316.fc5/" -- Makefile
-patch -sp1 < ccs-patch-2.6.20-1.2316.fc5.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2319.fc5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.20-1.2319.fc5.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -1904,8 +1935,8 @@ fi
 %endif
 
 %changelog
-* Fri Apr 27 2007 Chuck Ebbert <cebbert@redhat.com>		1.2316
-- 2.6.20.10 (from mailing list)
+* Mon May 21 2007 Chuck Ebbert <cebbert@redhat.com>		1.2319
+- Fix i8042 mouse port detection for some chipsets
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
