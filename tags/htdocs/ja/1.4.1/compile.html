@@ -328,7 +328,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.20-1.2952.fc6">Fedora Core 6 用のカーネル 2.6.20-1.2952.fc6</a>
 <li><a href="#2.6.21-1.3228.fc7">Fedora 7 用のカーネル 2.6.21-1.3228.fc7</a>
 <li><a href="#2.6.9-55.EL">CentOS 4.5 用のカーネル 2.6.9-55.EL</a>
-<li><a href="#2.6.18-8.1.4.el5">CentOS 5 用のカーネル 2.6.18-8.1.4.el5</a>
+<li><a href="#2.6.18-8.1.6.el5">CentOS 5 用のカーネル 2.6.18-8.1.6.el5</a>
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
 <li><a href="#2.6.8-16sarge6">Debian Sarge 用のカーネル 2.6.8-16sarge6</a>
 <li><a href="#2.6.18-12etch2">Debian Etch 用のカーネル 2.6.18-12etch2</a>
@@ -525,24 +525,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-8.1.4.el5">CentOS 5 用のカーネル 2.6.18-8.1.4.el5</a></h2>
+<h2><a name="2.6.18-8.1.6.el5">CentOS 5 用のカーネル 2.6.18-8.1.6.el5</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://mirrors.kernel.org/centos/5.0/updates/SRPMS/kernel-2.6.18-8.1.4.el5.src.rpm<br>
-rpm -ivh kernel-2.6.18-8.1.4.el5.src.rpm<br>
+wget http://mirrors.kernel.org/centos/5.0/updates/SRPMS/kernel-2.6.18-8.1.6.el5.src.rpm<br>
+rpm -ivh kernel-2.6.18-8.1.6.el5.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i686/ /usr/src/linux-2.6.18-8.1.4.el5<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i686/ /usr/src/linux-2.6.18-8.1.6.el5<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/2.6.18-8.1.4.el5/<br>
+cd /usr/src/2.6.18-8.1.6.el5/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.1.4.el5/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.1.6.el5/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.1-20070605.tar.gz<br>
 tar -zxf ccs-patch-1.4.1-20070605.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.18-8.1.4.el5.txt<br>
+wget -O ccs-patch-2.6.18-8.1.6.el5.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1958&amp;aid=10549'<br>
+patch -sp1 &lt; ccs-patch-2.6.18-8.1.6.el5.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
