@@ -315,7 +315,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.9-55.EL">Kernel 2.6.9-55.EL for CentOS 4.5</a>
 <li><a href="#2.6.18-8.1.6.el5">Kernel 2.6.18-8.1.6.el5 for CentOS 5</a>
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
-<li><a href="#2.6.8-16sarge6">Kernel 2.6.8-16sarge6 for Debian Sarge</a>
+<li><a href="#2.6.8-16sarge7">Kernel 2.6.8-16sarge7 for Debian Sarge</a>
 <li><a href="#2.6.18-12etch2">Kernel 2.6.18-12etch2 for Debian Etch</a>
 <li><a href="#2.6.16.27-0.9">Kernel 2.6.16.27-0.9 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.8-0.3">Kernel 2.6.18.8-0.3 for OpenSUSE 10.2</a>
@@ -556,7 +556,7 @@ mkinitrd -o /boot/initrd.img-2.4.27-10sarge5-ccs 2.4.27-10sarge5-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.8-16sarge6">Kernel 2.6.8-16sarge6 for Debian Sarge</a></h2>
+<h2><a name="2.6.8-16sarge7">Kernel 2.6.8-16sarge7 for Debian Sarge</a></h2>
 
 <table border="1">
 <tr><td>
@@ -568,14 +568,14 @@ cd kernel-source-2.6.8/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
-patch -sp1 &lt; ccs-patch-2.6.8-16sarge6.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.8-16sarge7.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
 make -s<br>
 make -s install modules modules_install<br>
 # Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.8-16sarge6-ccs 2.6.8-16sarge6-ccs
+mkinitrd -o /boot/initrd.img-2.6.8-16sarge7-ccs 2.6.8-16sarge7-ccs
 </td></tr>
 </table>
 
