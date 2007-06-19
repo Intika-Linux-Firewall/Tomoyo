@@ -56,25 +56,25 @@ TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 提供されているので、今回はそれを利用します。</p>
 <p>まずはパッケージをダウンロードします。</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-image-2.6.8-16sarge6-ccs-i586_1.4.1_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-image-2.6.8-16sarge7-ccs-i586_1.4.1_i386.deb</span>
 </pre>
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 <pre>
-# <span class="user">dpkg --install kernel-image-2.6.8-16sarge6-ccs-i586_1.4.1_i386.deb</span>
+# <span class="user">dpkg --install kernel-image-2.6.8-16sarge7-ccs-i586_1.4.1_i386.deb</span>
 </pre>
 <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs
+title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro
-initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro
+initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
 savedefault
 boot
 
-title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs (recovery mode)
+title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs (recovery mode)
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro single
-initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro single
+initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
 boot
 </pre>
 <p>今後カーネルの選択を行いやすくするために、
@@ -107,17 +107,17 @@ boot
 <p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
 /boot/grub/menu.lstのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs
+title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro <span class="user">init=/.init</span>
+initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
 savedefault
 boot
 
-title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs (recovery mode)
+title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs (recovery mode)
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
+initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
 savedefault
 boot
 </pre>
