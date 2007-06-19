@@ -53,25 +53,25 @@
 <p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile. But regarding Debian Sarge, binary kernel packages are provided and this page uses them.</p>
 <p>First, download the binary kernel package.</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-image-2.6.8-16sarge6-ccs-i586_1.4.1_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-image-2.6.8-16sarge7-ccs-i586_1.4.1_i386.deb</span>
 </pre>
 <p>Next, install the downloaded package.</p>
 <pre>
-# <span class="user">dpkg --install kernel-image-2.6.8-16sarge6-ccs-i586_1.4.1_i386.deb</span>
+# <span class="user">dpkg --install kernel-image-2.6.8-16sarge7-ccs-i586_1.4.1_i386.deb</span>
 </pre>
 <p>The following entries are appended to /boot/grub/menu.lst if installation finishes successfully.</p>
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs
+title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro
-initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro
+initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
 savedefault
 boot
 
-title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs (recovery mode)
+title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs (recovery mode)
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro single
-initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro single
+initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
 boot
 </pre>
 <p>Comment out the "timeout=" line of /boot/grub/menu.lst so that you will not fail to select TOMOYO Linux's kernel.</p>
@@ -99,17 +99,17 @@ boot
 </pre>
 <p>To load TOMOYO Linux's policy automatically upon startup, you need to update the kernel command line. Append "init=/.init" at the "kernel" lines of TOMOYO Linux's kernels in /boot/grub/menu.lst .</p>
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs
+title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro <span class="user">init=/.init</span>
+initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
 savedefault
 boot
 
-title           Debian GNU/Linux, kernel 2.6.8-16sarge6-ccs (recovery mode)
+title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs (recovery mode)
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge6-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge6-ccs
+kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
+initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
 savedefault
 boot
 </pre>

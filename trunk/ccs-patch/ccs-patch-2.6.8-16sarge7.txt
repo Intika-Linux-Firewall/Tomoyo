@@ -1,18 +1,18 @@
-diff -ubBpEr kernel-source-2.6.8-16sarge6/Makefile kernel-source-2.6.8-16sarge6-ccs/Makefile
---- kernel-source-2.6.8-16sarge6/Makefile	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/Makefile	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/Makefile kernel-source-2.6.8-16sarge7-ccs/Makefile
+--- kernel-source-2.6.8-16sarge7/Makefile	2007-06-18 21:06:55.769726200 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/Makefile	2007-06-18 21:07:12.371202392 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 8
 -EXTRAVERSION =
-+EXTRAVERSION = -16sarge6-ccs
++EXTRAVERSION = -16sarge7-ccs
  NAME=Zonked Quokka
  
  # *DOCUMENTATION*
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/Kconfig kernel-source-2.6.8-16sarge6-ccs/fs/Kconfig
---- kernel-source-2.6.8-16sarge6/fs/Kconfig	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/Kconfig	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/Kconfig kernel-source-2.6.8-16sarge7-ccs/fs/Kconfig
+--- kernel-source-2.6.8-16sarge7/fs/Kconfig	2007-06-18 21:06:55.772725744 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/Kconfig	2007-06-18 21:06:59.770118048 +0900
 @@ -1789,5 +1789,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -21,18 +21,18 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/Kconfig kernel-source-2.6.8-16sarge
 +
  endmenu
  
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/Makefile kernel-source-2.6.8-16sarge6-ccs/fs/Makefile
---- kernel-source-2.6.8-16sarge6/fs/Makefile	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/Makefile	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/Makefile kernel-source-2.6.8-16sarge7-ccs/fs/Makefile
+--- kernel-source-2.6.8-16sarge7/fs/Makefile	2007-06-18 21:06:55.772725744 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/Makefile	2007-06-18 21:06:59.772117744 +0900
 @@ -92,3 +92,5 @@ obj-$(CONFIG_JFS_FS)		+= jfs/
  obj-$(CONFIG_XFS_FS)		+= xfs/
  obj-$(CONFIG_AFS_FS)		+= afs/
  obj-$(CONFIG_BEFS_FS)		+= befs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/attr.c kernel-source-2.6.8-16sarge6-ccs/fs/attr.c
---- kernel-source-2.6.8-16sarge6/fs/attr.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/attr.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/attr.c kernel-source-2.6.8-16sarge7-ccs/fs/attr.c
+--- kernel-source-2.6.8-16sarge7/fs/attr.c	2007-06-18 21:06:55.773725592 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/attr.c	2007-06-18 21:06:59.773117592 +0900
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -64,9 +64,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/attr.c kernel-source-2.6.8-16sarge6
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/compat.c kernel-source-2.6.8-16sarge6-ccs/fs/compat.c
---- kernel-source-2.6.8-16sarge6/fs/compat.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/compat.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/compat.c kernel-source-2.6.8-16sarge7-ccs/fs/compat.c
+--- kernel-source-2.6.8-16sarge7/fs/compat.c	2007-06-18 21:06:55.773725592 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/compat.c	2007-06-18 21:06:59.775117288 +0900
 @@ -46,6 +46,9 @@
  
  #include <asm/uaccess.h>
@@ -96,9 +96,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/compat.c kernel-source-2.6.8-16sarg
  	if (retval >= 0) {
  		free_arg_pages(&bprm);
  
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/exec.c kernel-source-2.6.8-16sarge6-ccs/fs/exec.c
---- kernel-source-2.6.8-16sarge6/fs/exec.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/exec.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/exec.c kernel-source-2.6.8-16sarge7-ccs/fs/exec.c
+--- kernel-source-2.6.8-16sarge7/fs/exec.c	2007-06-18 21:06:55.774725440 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/exec.c	2007-06-18 21:06:59.777116984 +0900
 @@ -54,6 +54,10 @@
  #include <linux/kmod.h>
  #endif
@@ -142,9 +142,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/exec.c kernel-source-2.6.8-16sarge6
  	if (retval >= 0) {
  		free_arg_pages(&bprm);
  
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/fcntl.c kernel-source-2.6.8-16sarge6-ccs/fs/fcntl.c
---- kernel-source-2.6.8-16sarge6/fs/fcntl.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/fcntl.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/fcntl.c kernel-source-2.6.8-16sarge7-ccs/fs/fcntl.c
+--- kernel-source-2.6.8-16sarge7/fs/fcntl.c	2007-06-18 21:06:55.776725136 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/fcntl.c	2007-06-18 21:06:59.779116680 +0900
 @@ -18,6 +18,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -166,9 +166,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/fcntl.c kernel-source-2.6.8-16sarge
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/ioctl.c kernel-source-2.6.8-16sarge6-ccs/fs/ioctl.c
---- kernel-source-2.6.8-16sarge6/fs/ioctl.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/ioctl.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/ioctl.c kernel-source-2.6.8-16sarge7-ccs/fs/ioctl.c
+--- kernel-source-2.6.8-16sarge7/fs/ioctl.c	2007-06-18 21:06:55.776725136 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/ioctl.c	2007-06-18 21:06:59.780116528 +0900
 @@ -14,6 +14,9 @@
  
  #include <asm/uaccess.h>
@@ -189,9 +189,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/ioctl.c kernel-source-2.6.8-16sarge
  
  	error = security_file_ioctl(filp, cmd, arg);
  	if (error) {
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/namei.c kernel-source-2.6.8-16sarge6-ccs/fs/namei.c
---- kernel-source-2.6.8-16sarge6/fs/namei.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/namei.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/namei.c kernel-source-2.6.8-16sarge7-ccs/fs/namei.c
+--- kernel-source-2.6.8-16sarge7/fs/namei.c	2007-06-18 21:06:55.776725136 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/namei.c	2007-06-18 21:06:59.783116072 +0900
 @@ -32,6 +32,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -369,9 +369,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/namei.c kernel-source-2.6.8-16sarge
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/namespace.c kernel-source-2.6.8-16sarge6-ccs/fs/namespace.c
---- kernel-source-2.6.8-16sarge6/fs/namespace.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/namespace.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/namespace.c kernel-source-2.6.8-16sarge7-ccs/fs/namespace.c
+--- kernel-source-2.6.8-16sarge7/fs/namespace.c	2007-06-18 21:06:55.777724984 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/namespace.c	2007-06-18 21:06:59.785115768 +0900
 @@ -23,6 +23,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -485,9 +485,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/namespace.c kernel-source-2.6.8-16s
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/open.c kernel-source-2.6.8-16sarge6-ccs/fs/open.c
---- kernel-source-2.6.8-16sarge6/fs/open.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/open.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/open.c kernel-source-2.6.8-16sarge7-ccs/fs/open.c
+--- kernel-source-2.6.8-16sarge7/fs/open.c	2007-06-18 21:06:55.777724984 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/open.c	2007-06-18 21:06:59.786115616 +0900
 @@ -25,6 +25,13 @@
  
  #include <asm/unistd.h>
@@ -545,9 +545,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/open.c kernel-source-2.6.8-16sarge6
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/proc/Makefile kernel-source-2.6.8-16sarge6-ccs/fs/proc/Makefile
---- kernel-source-2.6.8-16sarge6/fs/proc/Makefile	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/proc/Makefile	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/proc/Makefile kernel-source-2.6.8-16sarge7-ccs/fs/proc/Makefile
+--- kernel-source-2.6.8-16sarge7/fs/proc/Makefile	2007-06-18 21:06:55.777724984 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/proc/Makefile	2007-06-18 21:06:59.788115312 +0900
 @@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
  
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
@@ -555,9 +555,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/proc/Makefile kernel-source-2.6.8-1
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
-diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/proc/proc_misc.c kernel-source-2.6.8-16sarge6-ccs/fs/proc/proc_misc.c
---- kernel-source-2.6.8-16sarge6/fs/proc/proc_misc.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/fs/proc/proc_misc.c	2007-05-23 15:00:36.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/proc/proc_misc.c kernel-source-2.6.8-16sarge7-ccs/fs/proc/proc_misc.c
+--- kernel-source-2.6.8-16sarge7/fs/proc/proc_misc.c	2007-06-18 21:06:55.778724832 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/fs/proc/proc_misc.c	2007-06-18 21:07:23.620492240 +0900
 @@ -709,4 +709,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -567,14 +567,14 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/fs/proc/proc_misc.c kernel-source-2.6.
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.8-16sarge6 2007/05/24\n");
++		printk("Hook version: 2.6.8-16sarge7 2007/06/19\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
-diff -ubBpEr kernel-source-2.6.8-16sarge6/include/linux/init_task.h kernel-source-2.6.8-16sarge6-ccs/include/linux/init_task.h
---- kernel-source-2.6.8-16sarge6/include/linux/init_task.h	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/include/linux/init_task.h	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/include/linux/init_task.h kernel-source-2.6.8-16sarge7-ccs/include/linux/init_task.h
+--- kernel-source-2.6.8-16sarge7/include/linux/init_task.h	2007-06-18 21:06:55.778724832 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/include/linux/init_task.h	2007-06-18 21:06:59.791114856 +0900
 @@ -112,6 +112,10 @@ extern struct group_info init_groups;
  	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
@@ -586,9 +586,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/include/linux/init_task.h kernel-sourc
  }
  
  
-diff -ubBpEr kernel-source-2.6.8-16sarge6/include/linux/sched.h kernel-source-2.6.8-16sarge6-ccs/include/linux/sched.h
---- kernel-source-2.6.8-16sarge6/include/linux/sched.h	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/include/linux/sched.h	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/include/linux/sched.h kernel-source-2.6.8-16sarge7-ccs/include/linux/sched.h
+--- kernel-source-2.6.8-16sarge7/include/linux/sched.h	2007-06-18 21:06:55.778724832 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/include/linux/sched.h	2007-06-18 21:06:59.799113640 +0900
 @@ -32,6 +32,11 @@
  
  struct exec_domain;
@@ -612,9 +612,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/include/linux/sched.h kernel-source-2.
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
-diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/kmod.c kernel-source-2.6.8-16sarge6-ccs/kernel/kmod.c
---- kernel-source-2.6.8-16sarge6/kernel/kmod.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/kernel/kmod.c	2007-05-23 14:59:55.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/kernel/kmod.c kernel-source-2.6.8-16sarge7-ccs/kernel/kmod.c
+--- kernel-source-2.6.8-16sarge7/kernel/kmod.c	2007-06-18 21:06:55.778724832 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/kernel/kmod.c	2007-06-18 21:06:59.802113184 +0900
 @@ -166,6 +166,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -627,9 +627,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/kmod.c kernel-source-2.6.8-16sa
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
-diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/module.c kernel-source-2.6.8-16sarge6-ccs/kernel/module.c
---- kernel-source-2.6.8-16sarge6/kernel/module.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/kernel/module.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/kernel/module.c kernel-source-2.6.8-16sarge7-ccs/kernel/module.c
+--- kernel-source-2.6.8-16sarge7/kernel/module.c	2007-06-18 21:06:55.780724528 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/kernel/module.c	2007-06-18 21:06:59.804112880 +0900
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/semaphore.h>
@@ -662,9 +662,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/module.c kernel-source-2.6.8-16
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
-diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/sched.c kernel-source-2.6.8-16sarge6-ccs/kernel/sched.c
---- kernel-source-2.6.8-16sarge6/kernel/sched.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/kernel/sched.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/kernel/sched.c kernel-source-2.6.8-16sarge7-ccs/kernel/sched.c
+--- kernel-source-2.6.8-16sarge7/kernel/sched.c	2007-06-18 21:06:55.781724376 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/kernel/sched.c	2007-06-18 21:06:59.808112272 +0900
 @@ -43,6 +43,9 @@
  #include <asm/tlb.h>
  
@@ -685,9 +685,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/sched.c kernel-source-2.6.8-16s
  
  	/*
  	 * Setpriority might change our priority at the same moment.
-diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/signal.c kernel-source-2.6.8-16sarge6-ccs/kernel/signal.c
---- kernel-source-2.6.8-16sarge6/kernel/signal.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/kernel/signal.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/kernel/signal.c kernel-source-2.6.8-16sarge7-ccs/kernel/signal.c
+--- kernel-source-2.6.8-16sarge7/kernel/signal.c	2007-06-18 21:06:55.782724224 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/kernel/signal.c	2007-06-18 21:06:59.811111816 +0900
 @@ -25,6 +25,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -732,9 +732,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/signal.c kernel-source-2.6.8-16
  	info.si_signo = sig;
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
-diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/sys.c kernel-source-2.6.8-16sarge6-ccs/kernel/sys.c
---- kernel-source-2.6.8-16sarge6/kernel/sys.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/kernel/sys.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/kernel/sys.c kernel-source-2.6.8-16sarge7-ccs/kernel/sys.c
+--- kernel-source-2.6.8-16sarge7/kernel/sys.c	2007-06-18 21:06:55.784723920 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/kernel/sys.c	2007-06-18 21:06:59.814111360 +0900
 @@ -28,6 +28,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -785,9 +785,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/sys.c kernel-source-2.6.8-16sar
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
-diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/sysctl.c kernel-source-2.6.8-16sarge6-ccs/kernel/sysctl.c
---- kernel-source-2.6.8-16sarge6/kernel/sysctl.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/kernel/sysctl.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/kernel/sysctl.c kernel-source-2.6.8-16sarge7-ccs/kernel/sysctl.c
+--- kernel-source-2.6.8-16sarge7/kernel/sysctl.c	2007-06-18 21:06:55.784723920 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/kernel/sysctl.c	2007-06-18 21:06:59.817110904 +0900
 @@ -42,6 +42,9 @@
  #include <linux/dcache.h>
  
@@ -918,9 +918,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/sysctl.c kernel-source-2.6.8-16
  }
  
  /*
-diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/time.c kernel-source-2.6.8-16sarge6-ccs/kernel/time.c
---- kernel-source-2.6.8-16sarge6/kernel/time.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/kernel/time.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/kernel/time.c kernel-source-2.6.8-16sarge7-ccs/kernel/time.c
+--- kernel-source-2.6.8-16sarge7/kernel/time.c	2007-06-18 21:06:55.785723768 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/kernel/time.c	2007-06-18 21:06:59.819110600 +0900
 @@ -30,6 +30,9 @@
  #include <linux/smp_lock.h>
  #include <asm/uaccess.h>
@@ -961,9 +961,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/kernel/time.c kernel-source-2.6.8-16sa
  		
  	/* Now we validate the data before disabling interrupts */
  
-diff -ubBpEr kernel-source-2.6.8-16sarge6/net/ipv4/tcp_ipv4.c kernel-source-2.6.8-16sarge6-ccs/net/ipv4/tcp_ipv4.c
---- kernel-source-2.6.8-16sarge6/net/ipv4/tcp_ipv4.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/net/ipv4/tcp_ipv4.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/net/ipv4/tcp_ipv4.c kernel-source-2.6.8-16sarge7-ccs/net/ipv4/tcp_ipv4.c
+--- kernel-source-2.6.8-16sarge7/net/ipv4/tcp_ipv4.c	2007-06-18 21:06:55.785723768 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/net/ipv4/tcp_ipv4.c	2007-06-18 21:06:59.822110144 +0900
 @@ -74,6 +74,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -994,9 +994,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/net/ipv4/tcp_ipv4.c kernel-source-2.6.
  
   			/* Does not bother with rcv_saddr checks,
   			 * because the established check is already
-diff -ubBpEr kernel-source-2.6.8-16sarge6/net/ipv4/udp.c kernel-source-2.6.8-16sarge6-ccs/net/ipv4/udp.c
---- kernel-source-2.6.8-16sarge6/net/ipv4/udp.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/net/ipv4/udp.c	2007-05-23 15:00:21.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/net/ipv4/udp.c kernel-source-2.6.8-16sarge7-ccs/net/ipv4/udp.c
+--- kernel-source-2.6.8-16sarge7/net/ipv4/udp.c	2007-06-18 21:06:55.785723768 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/net/ipv4/udp.c	2007-06-18 21:06:59.824109840 +0900
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1027,9 +1027,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/net/ipv4/udp.c kernel-source-2.6.8-16s
  			if (!udp_lport_inuse(result))
  				break;
  		}
-diff -ubBpEr kernel-source-2.6.8-16sarge6/net/ipv6/tcp_ipv6.c kernel-source-2.6.8-16sarge6-ccs/net/ipv6/tcp_ipv6.c
---- kernel-source-2.6.8-16sarge6/net/ipv6/tcp_ipv6.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/net/ipv6/tcp_ipv6.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/net/ipv6/tcp_ipv6.c kernel-source-2.6.8-16sarge7-ccs/net/ipv6/tcp_ipv6.c
+--- kernel-source-2.6.8-16sarge7/net/ipv6/tcp_ipv6.c	2007-06-18 21:06:55.786723616 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/net/ipv6/tcp_ipv6.c	2007-06-18 21:06:59.826109536 +0900
 @@ -62,6 +62,9 @@
  
  #include <linux/proc_fs.h>
@@ -1050,9 +1050,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/net/ipv6/tcp_ipv6.c kernel-source-2.6.
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
-diff -ubBpEr kernel-source-2.6.8-16sarge6/net/ipv6/udp.c kernel-source-2.6.8-16sarge6-ccs/net/ipv6/udp.c
---- kernel-source-2.6.8-16sarge6/net/ipv6/udp.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/net/ipv6/udp.c	2007-05-24 17:41:40.141842472 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/net/ipv6/udp.c kernel-source-2.6.8-16sarge7-ccs/net/ipv6/udp.c
+--- kernel-source-2.6.8-16sarge7/net/ipv6/udp.c	2007-06-18 21:06:55.787723464 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/net/ipv6/udp.c	2007-06-18 21:06:59.828109232 +0900
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1083,9 +1083,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/net/ipv6/udp.c kernel-source-2.6.8-16s
  			if (!udp_lport_inuse(result))
  				break;
  		}
-diff -ubBpEr kernel-source-2.6.8-16sarge6/net/socket.c kernel-source-2.6.8-16sarge6-ccs/net/socket.c
---- kernel-source-2.6.8-16sarge6/net/socket.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/net/socket.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/net/socket.c kernel-source-2.6.8-16sarge7-ccs/net/socket.c
+--- kernel-source-2.6.8-16sarge7/net/socket.c	2007-06-18 21:06:55.787723464 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/net/socket.c	2007-06-18 21:06:59.830108928 +0900
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1177,9 +1177,9 @@ diff -ubBpEr kernel-source-2.6.8-16sarge6/net/socket.c kernel-source-2.6.8-16sar
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
-diff -ubBpEr kernel-source-2.6.8-16sarge6/net/unix/af_unix.c kernel-source-2.6.8-16sarge6-ccs/net/unix/af_unix.c
---- kernel-source-2.6.8-16sarge6/net/unix/af_unix.c	2007-03-24 11:45:58.000000000 +0900
-+++ kernel-source-2.6.8-16sarge6-ccs/net/unix/af_unix.c	2007-03-24 11:46:05.000000000 +0900
+diff -ubBpEr kernel-source-2.6.8-16sarge7/net/unix/af_unix.c kernel-source-2.6.8-16sarge7-ccs/net/unix/af_unix.c
+--- kernel-source-2.6.8-16sarge7/net/unix/af_unix.c	2007-06-18 21:06:55.788723312 +0900
++++ kernel-source-2.6.8-16sarge7-ccs/net/unix/af_unix.c	2007-06-18 21:06:59.832108624 +0900
 @@ -118,6 +118,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
