@@ -324,7 +324,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.4.20-46.9.legacy">RedHat Linux 9 用のカーネル 2.4.20-46.9.legacy</a>
 <li><a href="#2.6.12-2.3.legacy_FC3">Fedora Core 3 用のカーネル 2.6.12-2.3.legacy_FC3</a>
 <li><a href="#2.6.17-1.2142_FC4">Fedora Core 4 用のカーネル 2.6.17-1.2142_FC4</a>
-<li><a href="#2.6.20-1.2319.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2319.fc5</a>
+<li><a href="#2.6.20-1.2320.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2320.fc5</a>
 <li><a href="#2.6.20-1.2952.fc6">Fedora Core 6 用のカーネル 2.6.20-1.2952.fc6</a>
 <li><a href="#2.6.21-1.3228.fc7">Fedora 7 用のカーネル 2.6.21-1.3228.fc7</a>
 <li><a href="#2.6.9-55.EL">CentOS 4.5 用のカーネル 2.6.9-55.EL</a>
@@ -419,25 +419,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.20-1.2319.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2319.fc5</a></h2>
+<h2><a name="2.6.20-1.2320.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2320.fc5</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/5/SRPMS/kernel-2.6.20-1.2319.fc5.src.rpm<br>
-rpm -ivh kernel-2.6.20-1.2319.fc5.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/5/SRPMS/kernel-2.6.20-1.2320.fc5.src.rpm<br>
+rpm -ivh kernel-2.6.20-1.2320.fc5.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.20/linux-2.6.20.i586/ /usr/src/linux-2.6.20-1.2319.fc5<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.20/linux-2.6.20.i586/ /usr/src/linux-2.6.20-1.2320.fc5<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.20-1.2319.fc5/<br>
+cd /usr/src/linux-2.6.20-1.2320.fc5/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2319.fc5/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2320.fc5/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.1-20070605.tar.gz<br>
 tar -zxf ccs-patch-1.4.1-20070605.tar.gz<br>
-wget -O ccs-patch-2.6.20-1.2319.fc5.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1949&amp;aid=10549'<br>
-patch -sp1 &lt; ccs-patch-2.6.20-1.2319.fc5.txt<br>
+wget -O ccs-patch-2.6.20-1.2320.fc5.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1962&amp;aid=10549'<br>
+patch -sp1 &lt; ccs-patch-2.6.20-1.2320.fc5.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
