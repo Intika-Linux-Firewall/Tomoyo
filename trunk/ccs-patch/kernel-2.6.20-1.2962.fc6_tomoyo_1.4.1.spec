@@ -32,6 +32,8 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define with_baseonly %{?_with_baseonly: 1} %{?!_with_baseonly: 0}
 # Only build the smp kernel (--with smponly):
 %define with_smponly  %{?_with_smponly:  1} %{?!_with_smponly:  0}
+# Only build the xen kernel (--with xenonly):
+%define with_xenonly  %{?_with_xenonly:  1} %{?!_with_xenonly:  0}
 
 # Whether to apply the Xen patches -- leave this enabled.
 %define includexen 1
@@ -59,7 +61,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 20
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2952 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}.fc6_tomoyo_1.4.1
+%define release %(R="$Revision: 1.2962 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}%{?buildid}.fc6_tomoyo_1.4.1
 %define signmodules 0
 %define xen_hv_cset 11774
 %define make_target bzImage
@@ -85,6 +87,15 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define with_up 0
 %define with_pae 0
 %define with_xen 0
+%define with_kdump 0
+%define with_debug 0
+%endif
+
+# if requested, only build xen kernel
+%if %{with_xenonly}
+%define with_up 0
+%define with_pae 0
+%define with_smp 0
 %define with_kdump 0
 %define with_debug 0
 %endif
@@ -384,13 +395,21 @@ Patch8: patch-2.6.20.7-8.bz2
 Patch9: patch-2.6.20.8-9.bz2
 Patch10: patch-2.6.20.9-10.bz2
 Patch11: patch-2.6.20.10-11.bz2
+Patch12: patch-2.6.20.11-12.bz2
+Patch13: patch-2.6.20.12-13.bz2
+Patch14: patch-2.6.20.13-14.bz2
 
 # Patches 10 through 99 are for things that are going upstream really soon.
-# needed to get utrace patch to apply cleanly
-Patch50: linux-2.6-s390_ptrace_sparse_fixes.patch
-Patch51: linux-2.6-x86_64_ptrace_ck_retval.patch
-# utrace
-Patch55: linux-2.6-utrace.patch
+Patch55: linux-2.6-utrace-sig_kernel-macros.patch
+Patch56: linux-2.6-utrace-recalc_sigpending_and_wake.patch
+Patch57: linux-2.6-utrace-tracehook.patch
+Patch58: linux-2.6-utrace-tracehook-sparc64.patch
+Patch59: linux-2.6-utrace-tracehook-um.patch
+Patch60: linux-2.6-utrace-regset.patch
+Patch61: linux-2.6-utrace-regset-sparc64.patch
+Patch62: linux-2.6-utrace-core.patch
+Patch63: linux-2.6-utrace-ptrace-compat.patch
+Patch64: linux-2.6-utrace-ptrace-compat-sparc64.patch
 
 # enable sysrq-c on all kernels, not only kexec
 Patch70: linux-2.6-sysrq-c.patch
@@ -500,6 +519,7 @@ Patch1412: linux-2.6-gfs2-locking-exports.patch
 Patch1413: linux-2.6-gfs2-update2.patch
 Patch1414: linux-2.6-gfs2-update3.patch
 Patch1415: linux-2.6-gfs2-update4.patch
+Patch1416: linux-2.6-gfs2-update5.patch
 
 # NFS superblock sharing / CacheFS
 Patch1431: linux-2.6-cachefiles.patch
@@ -508,11 +528,26 @@ Patch1431: linux-2.6-cachefiles.patch
 
 # Device mapper / MD layer
 
+# UDF from 2.6.22
+Patch1550: linux-2.6-mm-udf-fixes.patch
+Patch1551: linux-2.6-udf-2.6.22-rc2-1-udf_data_corruption.patch
+Patch1552: linux-2.6-udf-2.6.22-rc4-1-udf_block_leak.patch
+
 # Misc bits.
 Patch1600: linux-2.6-module_version.patch
 Patch1601: linux-2.6-sha_alignment.patch
 Patch1650: linux-2.6-serial-460800.patch
 Patch1681: linux-2.6-xfs-umount-fix.patch
+# checksum fixes (bug #223258)
+Patch1660: linux-2.6-forwarding_of_ip_summed.patch
+Patch1661: linux-2.6-use_csum_start_offset_instead.patch
+Patch1662: linux-2.6-treat_partial_as_unnecessary.patch
+Patch1663: linux-2.6-kill_skbuff_hack.patch
+Patch1664: linux-2.6-csum-missing-line.patch
+Patch1665: linux-2.6-disable-netback-checksum.patch
+# Bug #235542 (upstream commit 2446a79f4f0a5e88e5d8316dac407d66ac10f70d)
+Patch1666: linux-2.6-sbp2-dma-directions.patch
+
 Patch1682: linux-2.6-xfs_attr2.patch
 Patch1690: linux-2.6-PT_LOAD-align.patch
 Patch1720: linux-2.6-proc-self-maps-fix.patch
@@ -539,8 +574,11 @@ Patch1805: linux-2.6-jmicron_debug.patch
 Patch1806: linux-2.6-20.5t-dvb-bt8xx-autoload.patch
 Patch1808: linux-2.6-20.5z-mmap_dont_spam_logs.patch
 Patch1811: linux-2.6-20_bluetooth_broadcom_quirk.patch
-Patch1812: linux-2.6-mm-udf-fixes.patch
 Patch1813: linux-2.6-proposed-i82875p-edac-fix.patch
+# more dm_crypt fixes (BZ #243809)
+Patch1814: linux-2.6-dm_crypt_fix_call_to_clone_init.patch
+Patch1815: linux-2.6-dm_crypt_fix_avoid_cloned_bio_ref_after_free.patch
+Patch1816: linux-2.6-dm_crypt_fix_remove_first_clone.patch
 
 # more post 2.6.20.6
 Patch1821: linux-2.6-20.7a-fib_rules_fix_return_value.patch
@@ -551,21 +589,19 @@ Patch1828: linux-2.6-i386_pci-add_debugging.patch
 # post 2.6.20.11
 Patch1830: linux-2.6-20.8b-x86_perfctr_fix_bitmap_sizing.patch
 Patch1831: linux-2.6-20.8e-isdn-capi-disable-debug-messages.patch
-Patch1832: linux-2.6-20.8f-oom_kill_all_threads_that_share_mm.patch
-Patch1833: linux-2.6-20.8f-x86_64_always_flush_all_pages.patch
 Patch1834: linux-2.6-20.8n-ipsec_fix_oops_with_large_context.patch
 Patch1835: linux-2.6-20.8n-net_vlan_allow_with_bridge.patch
 Patch1836: linux-2.6-20.8n-ppp_fix_skb_under_panic.patch
 Patch1837: linux-2.6-page_is_ram.patch
 
 # more post .11
-Patch1840: linux-2.6-20.12a-v4l-dvb-fix_tuning_for_tdm_1316.patch
-Patch1841: linux-2.6-20.12b-input_i8042_fix_aux_port_detection_with_some_chips.patch
 Patch1842: linux-2.6-20.12c-fix-blk-bounce-map-kern.patch
 Patch1843: linux-2.6-20.12c-snd-fix-widget-list-copy.patch
 Patch1844: linux-2.6-20.12c-snd-resume-stac-fix.patch
-Patch1845: linux-2.6-20.12c-usb_audio_fix_quickcam_audio.patch
 Patch1846: linux-2.6-20.12c-x86_64-off-by-two.patch
+
+# trivial sysfs fix from 2.6.22
+Patch1847: linux-2.6-sysfs_fix_condition_in_drop_dentry.patch
 
 # SELinux/audit patches.
 Patch1890: linux-2.6-selinux-mprotect-checks.patch
@@ -1054,15 +1090,23 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch9 -p1
 %patch10 -p1
 %patch11 -p1
+%patch12 -p1
+%patch13 -p1
+%patch14 -p1
 
 # Patches 10 through 100 are meant for core subsystem upgrades
 
 # Rolands utrace ptrace replacement.
-# needed to get upstream utrace to apply
-%patch50 -p1
-%patch51 -p1
-# utrace
 %patch55 -p1
+%patch56 -p1
+%patch57 -p1
+%patch58 -p1
+%patch59 -p1
+%patch60 -p1
+%patch61 -p1
+%patch62 -p1
+%patch63 -p1
+%patch64 -p1
 
 # sysrq works always
 %patch70 -p1
@@ -1237,6 +1281,7 @@ find -name "*.p.xen" | xargs rm -f
 %patch1413 -p1
 %patch1414 -p1
 %patch1415 -p1
+%patch1416 -p1
 
 #nfs sharing / cachefs
 %patch1431 -p1
@@ -1244,6 +1289,11 @@ find -name "*.p.xen" | xargs rm -f
 # NFS
 
 # Device mapper / MD layer
+
+# UDF from 2.6.22
+%patch1550 -p1
+%patch1551 -p1
+%patch1552 -p1
 
 # Misc fixes
 # Add missing MODULE_VERSION tags to some modules.
@@ -1254,6 +1304,18 @@ find -name "*.p.xen" | xargs rm -f
 %patch1650 -p1
 # Fix XFS umount bug.
 %patch1681 -p1
+
+# checksum fixes (bug #223258)
+%patch1660 -p1
+%patch1661 -p1
+%patch1662 -p1
+%patch1663 -p1
+%patch1664 -p1
+%patch1665 -p1
+
+# bug #235542
+%patch1666 -p1
+
 # Fix attr2 corruption with btree data extents
 %patch1682 -p1
 # Align kernel data segment to page boundary.
@@ -1297,10 +1359,12 @@ find -name "*.p.xen" | xargs rm -f
 %patch1808 -p1
 # bluetooth quirk (sent to maintainer, ignored)
 %patch1811 -p1
-# UDF fixes from -mm
-%patch1812 -p1
 # i82875 edac unhide pci device
 %patch1813 -p1
+# more dm_crypt
+%patch1814 -p1
+%patch1815 -p1
+%patch1816 -p1
 
 # more post 2.6.20.6 fixes
 %patch1821 -p1
@@ -1311,20 +1375,17 @@ find -name "*.p.xen" | xargs rm -f
 # post 2.6.20.11
 %patch1830 -p1
 %patch1831 -p1
-%patch1832 -p1
-%patch1833 -p1
 %patch1834 -p1
 %patch1835 -p1
 %patch1836 -p1
 %patch1837 -p1
 
-%patch1840 -p1
-%patch1841 -p1
 %patch1842 -p1
 %patch1843 -p1
 %patch1844 -p1
-%patch1845 -p1
 %patch1846 -p1
+
+%patch1847 -p1
 
 # Fix the SELinux mprotect checks on executable mappings
 %patch1890 -p1
@@ -1425,8 +1486,8 @@ find -name "*.p.xen" | xargs rm -f
 
 # TOMOYO Linux
 tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4.1-20070605.tar.gz
-sed -i -e "s/^EXTRAVERSION =.*/EXTRAVERSION = -1.2952.fc6/" -- Makefile
-patch -sp1 < ccs-patch-2.6.20-1.2952.fc6.txt
+sed -i -e "s/^EXTRAVERSION =.*/EXTRAVERSION = -1.2962.fc6/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.20-1.2962.fc6.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2350,16 +2411,8 @@ fi
 %endif
 
 %changelog
-* Wed May 16 2007 Chuck Ebbert <cebbert@redhat.com>		1.2952
-- GFS2 update
-- additional patches
-  v4l tuner patch (bz 234509)
-  ps/2 mouse detection (bz 223606)
-  block bounce fix for some legacy drivers
-  quickcam audio was broken
-  x86_64 GART aperture range checking
-  hda audio STAC codec resume fix
-  hda audio init fix
+* Mon Jun 19 2007 Chuck Ebbert <cebbert@redhat.com>		1.2962
+- utrace update
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
