@@ -12,12 +12,12 @@ summary: the linux kernel (the core of the linux operating system)
 %define buildxen 1
 %define kabi 1
 
+%define FC2 0
+%define FC3 0
+
 #added to allow build with unpackaged or missing docs (CentOS-4)
 %define _unpackaged_files_terminate_build 0
 %define _missing_doc_files_terminate_build 0
-
-%define FC2 0
-%define FC3 0
 
 %define rh_release_version 4
 %define rh_release_update 5
@@ -30,7 +30,7 @@ summary: the linux kernel (the core of the linux operating system)
 # that the kernel isn't the stock distribution kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 55.EL_tomoyo_1.4.1
+%define release 55.0.2.EL_tomoyo_1.4.1
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -49,8 +49,6 @@ summary: the linux kernel (the core of the linux operating system)
 %define KVERREL %{PACKAGE_VERSION}-%{PACKAGE_RELEASE}
 
 # groups of related archs
-# Added i586 kernel support (CentOS-4)
-#%define all_x86 i686
 %define all_x86 i586 i686
 
 # Override generic defaults with per-arch defaults 
@@ -803,6 +801,7 @@ Patch1390: linux-2.6.9-amd8111e.patch
 Patch1391: linux-2.6.9-r8169-update.patch
 Patch1392: linux-2.6.19-tg3-update.patch
 Patch1393: linux-2.6.9-qla3xxx.patch
+Patch1394: linux-2.6.9-pppoe.patch
 
 # ACPI Horrors.
 Patch1400: linux-2.6.9-acpi-breakpoint-nop.patch
@@ -1148,6 +1147,7 @@ Patch2575: linux-2.6.9-fs-wide-inumbers.patch
 Patch2576: linux-2.6.9-fs-read-write-barrier.patch
 Patch2577: linux-2.6.9-fs-prevent-inode-overflow.patch
 Patch2578: linux-2.6.9-fs-lustre-support.patch
+Patch2579: linux-2.6.9-fs-inode-accounting.patch
 
 # Device Mapper patches
 Patch2600: linux-2.6.13-dm-swap-error.patch
@@ -1301,6 +1301,9 @@ Patch4076: linux-2.6.9-module.patch
 Patch4077: linux-2.6.9-pcmcia.patch
 Patch4078: linux-2.6.9-video.patch
 Patch4079: linux-2.6.9-version_h.patch
+Patch4080: linux-2.6.9-core-dump.patch
+Patch4081: linux-2.6.9-compat.patch
+Patch4082: linux-2.6.9-bluetooth.patch
 
 # ALSA fixes.
 Patch4100: linux-2.6.9-alsa-vx222-newid.patch
@@ -2658,6 +2661,8 @@ cd linux-%{kversion}
 %patch1392 -p1
 # add qla3xxx driver
 %patch1393 -p1
+# PPPOE fixes
+%patch1394 -p1
 
 # ACPI bits
 # Eliminate spurious ACPI breakpoint msgs
@@ -3188,6 +3193,9 @@ cd linux-%{kversion}
 %patch2577 -p1
 # lustre support
 %patch2578 -p1
+# fix inode nr_unused accounting
+%patch2579 -p1
+
 
 # Device Mapper fixes
 %patch2600 -p1
@@ -3423,6 +3431,12 @@ cd linux-%{kversion}
 %patch4078 -p1
 # Provide RH version/release info for compile time conditionals
 %patch4079 -p1
+# core dump fixes
+%patch4080 -p1
+# compat layer fixes
+%patch4081 -p1
+# bluetooth fixes
+%patch4082 -p1
 
 # ALSA fixes
 # New ID for vx222 driver.
@@ -3562,8 +3576,8 @@ perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -55.EL/" -- Makefile
-patch -sp1 < ccs-patch-2.6.9-55.EL.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -55.0.2.EL/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-55.0.2.EL.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -4062,9 +4076,9 @@ fi
 %endif
 
 %changelog
-* Wed May  2 2007 Johnny Hughes <johnny@centos.org> [2.6.9-55]
-- added i586 support for CentOS
-- changed the key to CentOS and not redhat
+* Tue Jun 26 2007 Johnny Hughes <johnny@centos.org> [2.6.9-55.0.2]
+- rolled in standard centos changes (build for i586, change genkey to
+  genkey.centos, do not terminate build on extra files).
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start 
