@@ -204,14 +204,10 @@ struct ip_network_acl_record {
 #define KEYWORD_ALIAS_LEN                (sizeof(KEYWORD_ALIAS) - 1)
 #define KEYWORD_ALLOW_ARGV0              "allow_argv0 "
 #define KEYWORD_ALLOW_ARGV0_LEN          (sizeof(KEYWORD_ALLOW_ARGV0) - 1)
-#define KEYWORD_ALLOW_BIND               "allow_bind "
-#define KEYWORD_ALLOW_BIND_LEN           (sizeof(KEYWORD_ALLOW_BIND) - 1)
 #define KEYWORD_ALLOW_CAPABILITY         "allow_capability "
 #define KEYWORD_ALLOW_CAPABILITY_LEN     (sizeof(KEYWORD_ALLOW_CAPABILITY) - 1)
 #define KEYWORD_ALLOW_CHROOT             "allow_chroot "
 #define KEYWORD_ALLOW_CHROOT_LEN         (sizeof(KEYWORD_ALLOW_CHROOT) - 1)
-#define KEYWORD_ALLOW_CONNECT            "allow_connect "
-#define KEYWORD_ALLOW_CONNECT_LEN        (sizeof(KEYWORD_ALLOW_CONNECT) - 1)
 #define KEYWORD_ALLOW_MOUNT              "allow_mount "
 #define KEYWORD_ALLOW_MOUNT_LEN          (sizeof(KEYWORD_ALLOW_MOUNT) - 1)
 #define KEYWORD_ALLOW_NETWORK            "allow_network "
