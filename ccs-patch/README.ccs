@@ -928,3 +928,10 @@ Fix 2007/06/03
       I forgot to add a space after "atime" and "noatime".
 
 Version 1.4.1 2007/06/05   Minor update release.
+
+Fix 2007/07/04
+
+    @ Fix ReadAddressGroupPolicy() bug.
+
+      ReadAddressGroupPolicy() fails if both "path_group" and "address_group" are used
+      because I forgot to set "head->read_var1 = NULL".
