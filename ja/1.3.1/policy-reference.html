@@ -643,6 +643,7 @@
 <tr><td>allow_network RAW connect</td><td>リモートの IP アドレス／プロトコルとの通信</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
 </table>
 <p>IPv6 で使われる "::" という表記はサポートされていない。 "::1" ではなく "0:0:0:0:0:0:0:1" のように表記する必要がある。</p>
+<p>msg_name == NULL での recvmsg() および read() の場合はパーミッションのチェックは行われない。</p>
 <h3>使用可能なローカルポート番号</h3>
 <p>ローカルポート番号のアクセス許可を指定するには、 allow_bind というディレクティブに続けて、プロトコル（TCP または UDP）とポート番号を指定する。 IPv4 プロトコルおよび IPv6 プロトコルで使用するローカルポート番号が対象である。<br>
 ポートの自動選択を指定するには、 allow_bind TCP/0 または allow_bind UDP/0 と指定する。ただし、bind() をせずに connect() 等を行った場合はこの制限を受けない。<br>

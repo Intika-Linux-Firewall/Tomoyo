@@ -654,6 +654,7 @@ You can restrict more strictly with other directives and policy files for some s
 <tr><td>allow_network RAW connect</td><td>Communicate with remote IP address/protocol.</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
 </table>
 <p>Use of "::" for IPv6 address representation is not supported. You need to use "0:0:0:0:0:0:0:1" for "::1".</p>
+<p>Permission check is not applied for recvmsg() with msg_name == NULL or read().</p>
 <h3>MAC for local ports</h3>
 <p>To grant permission for local ports, use allow_bind directive followed by protocol(TCP or UDP) and port number. This permission is applicable to IPv4 and IPv6.</p>
 <p>To grant automatic local port selection (i.e. calling bind() with port number = 0), use allow_bind TCP/0 or allow_bind UDP/0 . But this permission is not checked if the process calls connect() without calling bind().</p>

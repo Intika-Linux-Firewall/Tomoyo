@@ -727,6 +727,7 @@ You can restrict more strictly with other directives and policy files for some s
 <tr><td>allow_network RAW connect</td><td>Communicate with remote IP address/protocol.</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
 </table>
 <p>Use of "::" for IPv6 address representation is not supported. You need to use "0:0:0:0:0:0:0:1" for "::1".</p>
+<p>Permission check is not applied for recvmsg() with msg_name == NULL or read().</p>
 <h3>MAC for signals</h3>
 <p>To grant permissions for signals, use allow_signal directive followed by signal number and Target domain.</p>
 <p>There are two exceptions. If signal number is 0, it is always granted. If the Target domain and the Source domain are the same, it is always granted.</p>
