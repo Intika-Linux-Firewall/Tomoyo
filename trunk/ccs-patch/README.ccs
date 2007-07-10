@@ -935,3 +935,12 @@ Fix 2007/07/04
 
       ReadAddressGroupPolicy() fails if both "path_group" and "address_group" are used
       because I forgot to set "head->read_var1 = NULL".
+
+Fix 2007/07/10
+
+    @ Add compat_sys_stime() hook.
+
+      Some of 64bit kernels support compat_sys_stime()
+      but permission check was missing.
+
+Version 1.4.2 2007/07/13   Bug fix release.

@@ -545,7 +545,7 @@ diff -ubBpEr linux-2.6.18-8.1.6.el5/fs/proc/Makefile linux-2.6.18-8.1.6.el5-ccs/
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.18-8.1.6.el5/fs/proc/proc_misc.c linux-2.6.18-8.1.6.el5-ccs/fs/proc/proc_misc.c
 --- linux-2.6.18-8.1.6.el5/fs/proc/proc_misc.c	2007-06-17 20:58:16.000000000 +0900
-+++ linux-2.6.18-8.1.6.el5-ccs/fs/proc/proc_misc.c	2007-06-17 20:59:20.000000000 +0900
++++ linux-2.6.18-8.1.6.el5-ccs/fs/proc/proc_misc.c	2007-07-10 12:12:15.000000000 +0900
 @@ -723,4 +723,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -555,14 +555,14 @@ diff -ubBpEr linux-2.6.18-8.1.6.el5/fs/proc/proc_misc.c linux-2.6.18-8.1.6.el5-c
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.18-8.1.6.el5 2007/06/18\n");
++		printk("Hook version: 2.6.18-8.1.6.el5 2007/07/10\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.6.18-8.1.6.el5/fs/syaoran_2.6.c linux-2.6.18-8.1.6.el5-ccs/fs/syaoran_2.6.c
---- linux-2.6.18-8.1.6.el5/fs/syaoran_2.6.c	2007-06-17 20:58:16.000000000 +0900
-+++ linux-2.6.18-8.1.6.el5-ccs/fs/syaoran_2.6.c	2007-06-17 20:58:21.000000000 +0900
+--- linux-2.6.18-8.1.6.el5/fs/syaoran_2.6.c	2007-07-05 12:00:00.000000000 +0900
++++ linux-2.6.18-8.1.6.el5-ccs/fs/syaoran_2.6.c	2007-07-10 12:11:20.000000000 +0900
 @@ -79,7 +79,7 @@ struct inode *syaoran_get_inode(struct s
  		inode->i_mode = mode;
  		inode->i_uid = current->fsuid;
@@ -613,8 +613,8 @@ diff -ubBpEr linux-2.6.18-8.1.6.el5/include/linux/sched.h linux-2.6.18-8.1.6.el5
  
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.18-8.1.6.el5/include/linux/syaoran.h linux-2.6.18-8.1.6.el5-ccs/include/linux/syaoran.h
---- linux-2.6.18-8.1.6.el5/include/linux/syaoran.h	2007-06-17 20:58:16.000000000 +0900
-+++ linux-2.6.18-8.1.6.el5-ccs/include/linux/syaoran.h	2007-06-17 20:58:21.000000000 +0900
+--- linux-2.6.18-8.1.6.el5/include/linux/syaoran.h	2007-07-05 12:00:00.000000000 +0900
++++ linux-2.6.18-8.1.6.el5-ccs/include/linux/syaoran.h	2007-07-10 12:11:20.000000000 +0900
 @@ -831,7 +831,7 @@ static int syaoran_create_tracelog(struc
  			inode->i_mode = S_IFREG | 0400;
  			inode->i_uid = 0;
@@ -624,6 +624,29 @@ diff -ubBpEr linux-2.6.18-8.1.6.el5/include/linux/syaoran.h linux-2.6.18-8.1.6.e
  			inode->i_blksize = PAGE_CACHE_SIZE;
  #endif
  			inode->i_blocks = 0;
+diff -ubBpEr linux-2.6.18-8.1.6.el5/kernel/compat.c linux-2.6.18-8.1.6.el5-ccs/kernel/compat.c
+--- linux-2.6.18-8.1.6.el5/kernel/compat.c	2006-09-20 12:42:06.000000000 +0900
++++ linux-2.6.18-8.1.6.el5-ccs/kernel/compat.c	2007-07-10 12:12:01.000000000 +0900
+@@ -24,6 +24,9 @@
+ #include <linux/migrate.h>
+ 
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
+ {
+@@ -836,6 +839,9 @@ asmlinkage long compat_sys_stime(compat_
+ 	err = security_settime(&tv, NULL);
+ 	if (err)
+ 		return err;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	do_settimeofday(&tv);
+ 	return 0;
 diff -ubBpEr linux-2.6.18-8.1.6.el5/kernel/kexec.c linux-2.6.18-8.1.6.el5-ccs/kernel/kexec.c
 --- linux-2.6.18-8.1.6.el5/kernel/kexec.c	2007-06-17 20:58:16.000000000 +0900
 +++ linux-2.6.18-8.1.6.el5-ccs/kernel/kexec.c	2007-06-17 20:58:21.000000000 +0900

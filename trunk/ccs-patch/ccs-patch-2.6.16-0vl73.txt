@@ -547,7 +547,7 @@ diff -ubBpEr linux-2.6.16-0vl73/fs/proc/Makefile linux-2.6.16-0vl73-ccs/fs/proc/
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.16-0vl73/fs/proc/proc_misc.c linux-2.6.16-0vl73-ccs/fs/proc/proc_misc.c
 --- linux-2.6.16-0vl73/fs/proc/proc_misc.c	2007-04-09 12:25:29.000000000 +0900
-+++ linux-2.6.16-0vl73-ccs/fs/proc/proc_misc.c	2007-05-23 15:09:23.000000000 +0900
++++ linux-2.6.16-0vl73-ccs/fs/proc/proc_misc.c	2007-07-10 11:18:44.000000000 +0900
 @@ -682,4 +682,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -557,7 +557,7 @@ diff -ubBpEr linux-2.6.16-0vl73/fs/proc/proc_misc.c linux-2.6.16-0vl73-ccs/fs/pr
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.16-0v173 2007/05/24\n");
++		printk("Hook version: 2.6.16-0v173 2007/07/10\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -602,6 +602,29 @@ diff -ubBpEr linux-2.6.16-0vl73/include/linux/sched.h linux-2.6.16-0vl73-ccs/inc
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
+diff -ubBpEr linux-2.6.16-0vl73/kernel/compat.c linux-2.6.16-0vl73-ccs/kernel/compat.c
+--- linux-2.6.16-0vl73/kernel/compat.c	2006-03-20 14:53:29.000000000 +0900
++++ linux-2.6.16-0vl73-ccs/kernel/compat.c	2007-07-10 11:18:25.000000000 +0900
+@@ -23,6 +23,9 @@
+ #include <linux/security.h>
+ 
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
+ {
+@@ -864,6 +867,9 @@ asmlinkage long compat_sys_stime(compat_
+ 	err = security_settime(&tv, NULL);
+ 	if (err)
+ 		return err;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	do_settimeofday(&tv);
+ 	return 0;
 diff -ubBpEr linux-2.6.16-0vl73/kernel/kexec.c linux-2.6.16-0vl73-ccs/kernel/kexec.c
 --- linux-2.6.16-0vl73/kernel/kexec.c	2007-04-09 12:25:29.000000000 +0900
 +++ linux-2.6.16-0vl73-ccs/kernel/kexec.c	2007-04-09 12:25:35.000000000 +0900
