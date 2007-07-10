@@ -546,7 +546,7 @@ diff -ubBpEr linux-source-2.6.17.14-ubuntu1/fs/proc/Makefile linux-source-2.6.17
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-source-2.6.17.14-ubuntu1/fs/proc/proc_misc.c linux-source-2.6.17.14-ubuntu1-ccs/fs/proc/proc_misc.c
 --- linux-source-2.6.17.14-ubuntu1/fs/proc/proc_misc.c	2007-05-25 10:42:32.000000000 +0900
-+++ linux-source-2.6.17.14-ubuntu1-ccs/fs/proc/proc_misc.c	2007-05-25 10:43:07.000000000 +0900
++++ linux-source-2.6.17.14-ubuntu1-ccs/fs/proc/proc_misc.c	2007-07-10 10:57:25.000000000 +0900
 @@ -735,4 +735,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -556,7 +556,7 @@ diff -ubBpEr linux-source-2.6.17.14-ubuntu1/fs/proc/proc_misc.c linux-source-2.6
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.17.14-ubuntu1 2007/05/25\n");
++		printk("Hook version: 2.6.17.14-ubuntu1 2007/07/10\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -601,6 +601,29 @@ diff -ubBpEr linux-source-2.6.17.14-ubuntu1/include/linux/sched.h linux-source-2
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
+diff -ubBpEr linux-source-2.6.17.14-ubuntu1/kernel/compat.c linux-source-2.6.17.14-ubuntu1-ccs/kernel/compat.c
+--- linux-source-2.6.17.14-ubuntu1/kernel/compat.c	2006-10-02 01:43:03.000000000 +0900
++++ linux-source-2.6.17.14-ubuntu1-ccs/kernel/compat.c	2007-07-10 10:57:06.000000000 +0900
+@@ -23,6 +23,9 @@
+ #include <linux/timex.h>
+ 
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
+ {
+@@ -842,6 +845,9 @@ asmlinkage long compat_sys_stime(compat_
+ 	err = security_settime(&tv, NULL);
+ 	if (err)
+ 		return err;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	do_settimeofday(&tv);
+ 	return 0;
 diff -ubBpEr linux-source-2.6.17.14-ubuntu1/kernel/kexec.c linux-source-2.6.17.14-ubuntu1-ccs/kernel/kexec.c
 --- linux-source-2.6.17.14-ubuntu1/kernel/kexec.c	2007-05-25 10:42:32.000000000 +0900
 +++ linux-source-2.6.17.14-ubuntu1-ccs/kernel/kexec.c	2007-05-25 10:42:53.000000000 +0900

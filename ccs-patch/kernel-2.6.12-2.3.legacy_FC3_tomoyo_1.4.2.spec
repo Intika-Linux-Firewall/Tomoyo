@@ -21,7 +21,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define rpmversion 2.6.%{sublevel}
 #define rhbsys  %([ -r /etc/beehive-root -o -n "%{?__beehive_build}" ] && echo || echo .`whoami`)
 #define release %(R="$Revision: 1.1381 $"; RR="${R##: }"; echo ${RR%%?})_FC3%{rhbsys}
-%define release 2.3.legacy_FC3_tomoyo_1.4.1
+%define release 2.3.legacy_FC3_tomoyo_1.4.2
 %define signmodules 0
 %define make_target bzImage
 
@@ -779,7 +779,7 @@ cd linux-%{kversion}
 %patch10001 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -2.3.legacy_FC3/" -- Makefile
 patch -sp1 < ccs-patch-2.6.12-2.3.legacy_FC3.txt
 

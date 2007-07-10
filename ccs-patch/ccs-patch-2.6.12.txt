@@ -557,7 +557,7 @@ diff -ubBpEr linux-2.6.12/fs/proc/Makefile linux-2.6.12-ccs/fs/proc/Makefile
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.12/fs/proc/proc_misc.c linux-2.6.12-ccs/fs/proc/proc_misc.c
 --- linux-2.6.12/fs/proc/proc_misc.c	2006-10-19 16:15:40.000000000 +0900
-+++ linux-2.6.12-ccs/fs/proc/proc_misc.c	2007-05-23 14:56:34.000000000 +0900
++++ linux-2.6.12-ccs/fs/proc/proc_misc.c	2007-07-10 09:05:06.417572176 +0900
 @@ -617,4 +617,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -567,7 +567,7 @@ diff -ubBpEr linux-2.6.12/fs/proc/proc_misc.c linux-2.6.12-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.12 2007/05/24\n");
++		printk("Hook version: 2.6.12 2007/07/10\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -612,6 +612,29 @@ diff -ubBpEr linux-2.6.12/include/linux/sched.h linux-2.6.12-ccs/include/linux/s
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
+diff -ubBpEr linux-2.6.12/kernel/compat.c linux-2.6.12-ccs/kernel/compat.c
+--- linux-2.6.12/kernel/compat.c	2005-06-18 04:48:29.000000000 +0900
++++ linux-2.6.12-ccs/kernel/compat.c	2007-07-10 09:03:07.713617920 +0900
+@@ -24,6 +24,9 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/bug.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
+ {
+@@ -852,6 +855,9 @@ asmlinkage long compat_sys_stime(compat_
+ 	err = security_settime(&tv, NULL);
+ 	if (err)
+ 		return err;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	do_settimeofday(&tv);
+ 	return 0;
 diff -ubBpEr linux-2.6.12/kernel/kmod.c linux-2.6.12-ccs/kernel/kmod.c
 --- linux-2.6.12/kernel/kmod.c	2005-06-18 04:48:29.000000000 +0900
 +++ linux-2.6.12-ccs/kernel/kmod.c	2007-05-16 14:30:54.000000000 +0900

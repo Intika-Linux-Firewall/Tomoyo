@@ -581,7 +581,7 @@ diff -ubBpEr linux-2.6.9-55.0.2.EL/fs/proc/Makefile linux-2.6.9-55.0.2.EL-ccs/fs
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.9-55.0.2.EL/fs/proc/proc_misc.c linux-2.6.9-55.0.2.EL-ccs/fs/proc/proc_misc.c
 --- linux-2.6.9-55.0.2.EL/fs/proc/proc_misc.c	2007-07-01 00:34:44.000000000 +0900
-+++ linux-2.6.9-55.0.2.EL-ccs/fs/proc/proc_misc.c	2007-07-01 00:35:26.000000000 +0900
++++ linux-2.6.9-55.0.2.EL-ccs/fs/proc/proc_misc.c	2007-07-10 12:14:50.000000000 +0900
 @@ -704,4 +704,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -591,7 +591,7 @@ diff -ubBpEr linux-2.6.9-55.0.2.EL/fs/proc/proc_misc.c linux-2.6.9-55.0.2.EL-ccs
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.9-55.0.2.EL 2007/07/01\n");
++		printk("Hook version: 2.6.9-55.0.2.EL 2007/07/10\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -636,6 +636,29 @@ diff -ubBpEr linux-2.6.9-55.0.2.EL/include/linux/sched.h linux-2.6.9-55.0.2.EL-c
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
+diff -ubBpEr linux-2.6.9-55.0.2.EL/kernel/compat.c linux-2.6.9-55.0.2.EL-ccs/kernel/compat.c
+--- linux-2.6.9-55.0.2.EL/kernel/compat.c	2007-07-01 00:28:57.000000000 +0900
++++ linux-2.6.9-55.0.2.EL-ccs/kernel/compat.c	2007-07-10 12:14:23.000000000 +0900
+@@ -23,6 +23,9 @@
+ #include <linux/security.h>
+ 
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
+ {
+@@ -788,6 +791,9 @@ asmlinkage long compat_sys_stime(compat_
+ 		return -EPERM;
+ 	if (get_user(tv.tv_sec, tptr))
+ 		return -EFAULT;
++	/***** TOMOYO Linux start. *****/
++	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	tv.tv_nsec = 0;
+ 
 diff -ubBpEr linux-2.6.9-55.0.2.EL/kernel/kmod.c linux-2.6.9-55.0.2.EL-ccs/kernel/kmod.c
 --- linux-2.6.9-55.0.2.EL/kernel/kmod.c	2007-07-01 00:34:44.000000000 +0900
 +++ linux-2.6.9-55.0.2.EL-ccs/kernel/kmod.c	2007-07-01 00:34:56.000000000 +0900

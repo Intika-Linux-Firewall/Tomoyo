@@ -30,7 +30,7 @@ summary: the linux kernel (the core of the linux operating system)
 # that the kernel isn't the stock distribution kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 55.0.2.EL_tomoyo_1.4.1
+%define release 55.0.2.EL_tomoyo_1.4.2
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -3575,9 +3575,9 @@ perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
 %endif
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.1-20070605.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -55.0.2.EL/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.9-55.0.2.EL.txt
+patch -sp1 < ccs-patch-2.6.9-55.0.2.EL.txt
 
 # END OF PATCH APPLICATIONS
 
