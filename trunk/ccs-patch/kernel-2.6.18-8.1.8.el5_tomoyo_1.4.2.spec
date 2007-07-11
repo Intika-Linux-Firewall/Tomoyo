@@ -32,7 +32,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.1.6%{?dist}_tomoyo_1.4.2
+%define release 8.1.8%{?dist}_tomoyo_1.4.2
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -940,6 +940,8 @@ Patch21248: linux-2.6-ext3-return-enoent-from-ext3_link-race-with-unlink.patch
 Patch21249: linux-2.6-bluetooth-setsockopt-information-leaks.patch
 Patch21250: linux-2.6-net-pppoe-memory-leak.patch
 Patch21251: linux-2.6-random-entropy-fixes.patch
+Patch21252: linux-2.6-ide-serverworks-data-corruptor.patch
+Patch21253: linux-2.6-ppc64-restore-sigcontext.patch
 # empty final patch file to facilitate testing of kernel patches
 Patch99999: linux-kernel-test.patch
 
@@ -1947,6 +1949,8 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21249 -p1
 %patch21250 -p1
 %patch21251 -p1
+%patch21252 -p1
+%patch21253 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
 perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
@@ -1958,8 +1962,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.6.el5/" -- Makefile
-patch -sp1 < ccs-patch-2.6.18-8.1.6.el5.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.8.el5/" -- Makefile
+patch -sp1 < ccs-patch-2.6.18-8.1.8.el5.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2223,7 +2227,7 @@ BuildKernel() {
 
     for i in `cat modnames`
     do
-      sh ./scripts/modsign/modsign.sh $i CentOS
+      sh ./scripts/modsign/modsign.sh $i CentOS 
       mv -f $i.signed $i
     done
     unset KEYFLAGS
@@ -2800,7 +2804,7 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
  
 %changelog
-* Thu Jun 14 2007 Karanbir Singh <kbsingh@centos.org> [2.6.18.8-1.6.el5]
+* Tue Jul 10 2007 Karanbir Singh <kbsingh@centos.org> [2.6.18.8-1.8.el5]
 - Change gpg key to CentOS
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
