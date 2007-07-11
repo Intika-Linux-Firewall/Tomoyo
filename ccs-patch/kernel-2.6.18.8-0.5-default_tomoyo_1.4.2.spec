@@ -28,7 +28,7 @@ URL:            http://www.kernel.org/
 BuildRequires:  python
 %endif
 Version:        2.6.18.8
-Release: 0.3_tomoyo_1.4.2
+Release: 0.5_tomoyo_1.4.2
 Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
 License:        GNU General Public License (GPL)
 Group:          System/Kernel
@@ -150,7 +150,7 @@ The standard kernel for both uniprocessor and multiprocessor systems.
 
 
 
-Source Timestamp: 2007/04/17 08:42:35 UTC
+Source Timestamp: 2007/06/22 12:17:53 UTC
 CVS Branch: SL102_BRANCH
 
 %prep
@@ -239,7 +239,7 @@ source .rpm-defs
 cd linux-2.6.18
 # TOMOYO Linux
 tar -zxf  %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
-patch -sp1 < ccs-patch-2.6.18.8-0.3_SUSE.txt
+patch -sp1 < ccs-patch-2.6.18.8-0.5_SUSE.txt
 cat config.ccs >> .config
 cp .config .config.orig
 %if %{tolerate_unknown_new_config_options}
@@ -501,8 +501,8 @@ install -m 644 %_sourcedir/module-renames %buildroot/etc/modprobe.d/
 %files -f kernel.files
 
 %changelog
-* Tue Apr 17 2007 - teheo@suse.de
-- patches.drivers/libata-ahci-ignore-interr-on-SB600: ahci.c:
-  walkaround for SB600 SATA internal error issue (#264792).
+* Fri Jun 22 2007 - lmb@suse.de
+- patches.fixes/ipv6-disallow-rh0-by-default.patch: Disabled for now as
+  it modifies the kABI (270814).
 * Thu May 08 2003 - kraxel@suse.de
 - initial release
