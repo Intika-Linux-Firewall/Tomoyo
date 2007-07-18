@@ -29,7 +29,7 @@ summary: the linux kernel (the core of the linux operating system)
 # adding some text to the end of the version number.
 #
 %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
-%define release 42.14AX%{axbsys}_tomoyo_1.4.2
+%define release 42.15AX%{axbsys}_tomoyo_1.4.2
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -752,6 +752,7 @@ Patch1386: linux-2.6.9-net-bnx2-driver.patch
 Patch1387: linux-2.6.9-net-mii-update.patch
 Patch1388: linux-2.6.9-net-sky2.patch
 patch1389: linux-2.6.9-net-add-skge.patch
+Patch1394: linux-2.6.9-pppoe.patch
 
 # ACPI Horrors.
 Patch1400: linux-2.6.9-acpi-breakpoint-nop.patch
@@ -1230,6 +1231,9 @@ Patch4051: linux-2.6.9-i2c.patch
 Patch4052: linux-2.6.9-audit-execve.patch
 Patch4053: linux-2.6.9-rsa-driver-fixes.patch
 Patch4054: linux-2.6.9-boot-cpu-id.patch
+Patch4080: linux-2.6.9-core-dump.patch
+Patch4081: linux-2.6.9-compat.patch
+Patch4082: linux-2.6.9-bluetooth.patch
 
 # ALSA fixes.
 Patch4100: linux-2.6.9-alsa-vx222-newid.patch
@@ -1348,6 +1352,12 @@ Patch97001: linux-2.6.9-x8664-core-fix.patch
 Patch97002: linux-2.6.12-addrconf-fix.patch
 Patch97003: linux-2.6.9-quirks-from-rhel5.patch
 Patch97004: linux-2.6.9-x86_64-nmi-switch-from-rhel.patch
+# 2.6.9-55.0.2.EL CVE fixes
+Patch98000: linux-2.6.9-CVE-2006-5158-nfs-lockd.patch
+Patch98001: linux-2.6.9-CVE-2007-0773-fput-ioctl.patch
+Patch98002: linux-2.6.9-CVE-2007-2172-fib_semantics-bound.patch
+Patch98003: linux-2.6.9-CVE-2007-2876-ip_conntrack_sctp.patch
+
 #
 # Asianux:
 #
@@ -2772,6 +2782,8 @@ cd linux-%{kversion}
 %patch1388 -p1
 # add skge net driver
 %patch1389 -p1
+# PPPOE fixes
+%patch1394 -p1
 
 # ACPI bits
 # Eliminate spurious ACPI breakpoint msgs
@@ -3469,6 +3481,12 @@ cd linux-%{kversion}
 %patch4053 -p1
 # recognize boot cpu apic id properly
 %patch4054 -p1
+# core dump fixes
+%patch4080 -p1
+# compat layer fixes
+%patch4081 -p1
+# bluetooth fixes
+%patch4082 -p1
 
 # ALSA fixes
 # New ID for vx222 driver.
@@ -3595,6 +3613,11 @@ cd linux-%{kversion}
 %patch97002 -p1
 %patch97003 -p1
 %patch97004 -p1
+# 2.6.9-55.0.2.EL CVE fixes
+%patch98000 -p1
+%patch98001 -p1
+%patch98002 -p1
+%patch98003 -p1
 
 # Asianux:
 # Patches 100100 through 100500 are meant for architecture patches
@@ -3947,8 +3970,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.14AX/" -- Makefile
-patch -sp1 < ccs-patch-2.6.9-42.14AX.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.15AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-42.15AX.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -4376,12 +4399,15 @@ fi
 %endif
 
 %changelog
-* Wed Jun 06 2007 Robert Lin <robert@miraclelinux.com> [2.6.9-42.14AX]
-- fix the value of Committed_AS increasing abnormally on x86_64
-  while runing 32bit application. (Patch100264 ,bug#2857)
-- fix OOM-Killer started automatically during heavy I/O load in the 
-  system with over 4Gbytes memory and disk controller does not support 
-  64-bit DMA addresing mode. (Patch100265,100266, bug#2858) 
+* Thu Jun 28 2007 YongWoo Nam <ywnam@haansoft.com> [2.6.9-42.15AX]
+- CVE-2007-0958 : fix core-dumping unreadable binaries via PT_INTERP (Patch4080)
+- CVE-2006-7203 : prevent oops in compat_sys_mount with NULL data pointer (Patch4081)
+- CVE-2007-1353 : fix bluetooth setsockopt() information leaks (Patch4082)
+- CVE-2007-2525 : fix DoS in PPPOE (Patch1394)
+- CVE-2007-2172 : fix out of bounds fib_probs access vulnerability (Patch98002)
+- CVE-2007-2876 : ip_conntrack_sctp: fix remotely triggerable NULL ptr dereference (Patch98003)
+- CVE-2007-0773 : add missing fput() in a 32-bit ioctl on 64-bit x86 systems (Patch98001)
+- CVE-2006-5158 : nlm: when reclaiming locks, skip non-posix locks (Patch98000)
 
 * Fri Feb 20 2004 Arjan van de Ven <arjanv@redhat.com>
 - re-add and enable the Auditing patch
