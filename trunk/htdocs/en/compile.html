@@ -319,7 +319,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.18-12etch2">Kernel 2.6.18-12etch2 for Debian Etch</a>
 <li><a href="#2.6.16.27-0.9">Kernel 2.6.16.27-0.9 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.8-0.5">Kernel 2.6.18.8-0.5 for OpenSUSE 10.2</a>
-<li><a href="#2.6.9-42.14AX">Kernel 2.6.9-42.14AX for Asianux 2.0</a>
+<li><a href="#2.6.9-42.15AX">Kernel 2.6.9-42.15AX for Asianux 2.0</a>
 <li><a href="#2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a>
 <li><a href="#2.6.20.3-ubuntu1">Kernel 2.6.20.3-ubuntu1 for Ubuntu 7.04</a>
 <li><a href="#2.6.16-0vl73">Kernel 2.6.16-0vl73 for VineLinux 4.1</a>
@@ -648,24 +648,24 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-42.14AX">Kernel 2.6.9-42.14AX for Asianux 2.0</a></h2>
+<h2><a name="2.6.9-42.15AX">Kernel 2.6.9-42.15AX for Asianux 2.0</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.14AX.src.rpm<br>
-rpm -ivh kernel-2.6.9-42.14AX.src.rpm<br>
+wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.15AX.src.rpm<br>
+rpm -ivh kernel-2.6.9-42.15AX.src.rpm<br>
 # Prepare for compilation.<br>
 rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
-mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.14AX<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.15AX<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.9-42.14AX/<br>
+cd /usr/src/linux-2.6.9-42.15AX/<br>
 # Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.14AX/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.15AX/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
-patch -sp1 &lt; ccs-patch-2.6.9-42.14AX.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.9-42.15AX.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>

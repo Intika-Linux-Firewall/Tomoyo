@@ -1,0 +1,18 @@
+export-objs += sakura_mount.o sakura_maymount.o sakura_chroot.o sakura_pivot.o sakura_umount.o sakura_bind.o tomoyo_file.o tomoyo_exec.o tomoyo_capability.o tomoyo_network.o tomoyo_signal.o ccs_common.o realpath.o namei.o
+
+obj-y += tomoyo_domain.o
+obj-$(CONFIG_SAKURA) += ccs_common.o realpath.o
+obj-$(CONFIG_SAKURA_RESTRICT_MOUNT) += sakura_mount.o
+obj-$(CONFIG_SAKURA_RESTRICT_CHROOT) += sakura_chroot.o
+obj-$(CONFIG_SAKURA_RESTRICT_UNMOUNT) += sakura_umount.o
+obj-$(CONFIG_SAKURA_DENY_CONCEAL_MOUNT) += sakura_maymount.o
+obj-$(CONFIG_SAKURA_RESTRICT_PIVOT_ROOT) += sakura_pivot.o
+obj-$(CONFIG_SAKURA_RESTRICT_AUTOBIND) += sakura_bind.o
+obj-$(CONFIG_TOMOYO) += ccs_common.o realpath.o tomoyo_cond.o
+obj-$(CONFIG_TOMOYO_MAC_FOR_FILE) += tomoyo_file.o
+obj-$(CONFIG_TOMOYO_MAC_FOR_ARGV0) += tomoyo_exec.o
+obj-$(CONFIG_TOMOYO_MAC_FOR_NETWORK) += tomoyo_network.o
+obj-$(CONFIG_TOMOYO_MAC_FOR_SIGNAL) += tomoyo_signal.o
+obj-$(CONFIG_TOMOYO_MAC_FOR_CAPABILITY) += tomoyo_capability.o
+obj-$(CONFIG_TOMOYO_AUDIT) += tomoyo_audit.o
+obj-$(CONFIG_SYAORAN) += syaoran.o
