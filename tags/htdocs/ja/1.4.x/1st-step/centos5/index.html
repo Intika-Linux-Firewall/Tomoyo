@@ -307,15 +307,22 @@ Linuxが起動します。
 <pre>
 # <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/mingetty'</span>
 </pre>
+
 <p>このコマンドは、</p>
+
 <blockquote><p>/sbin/mingettyから起動されるプログラムすべてにプロファイル1を割り当てる</p></blockquote>
+
 <p>という意味です。/sbin/mingettyはログインシェルを起動するプログラムで、
 /sbin/mingetty以下にプロファイル1を割り当てることで、ログイン後の操作を学習する設定になります。
 設定は即時に有効になるので、上記setprofileコマンドを実行したあとは既に学習モードになっています。</p>
+
 <p>&lt;kernel&gt; /sbin/mingettyを引用符で囲まないと、シェルのリダイレクト機能が働いて
 /sbin/mingettyの内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
+
 <p>それでは、前述の4つの操作を学習させましょう。学習は通常のLinuxのように操作することで行えます。</p>
+
 <p><img alt="操作の学習" title="操作の学習" width="720" height="400" src="ope_learning.png"></p>
+
 <p>一見普通のLinuxと変わりなく操作できますが、
 裏ではTOMOYO Linuxがアクセス許可を監視し、
 操作ごとにポリシーとしてメモリ上に記憶しています。</p>
