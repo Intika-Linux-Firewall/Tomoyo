@@ -3,13 +3,13 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux 導入手順書 （CentOS 4.5版）</title>
+<title>TOMOYO Linux 導入手順書 （CentOS 5版）</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 
 <body>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （CentOS 4.5版）</h1>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （CentOS 5版）</h1>
 
 <ul>
 <li><a href="#l0">概要</a></li>
@@ -39,7 +39,7 @@
 
 <h2><a name="l0">概要</a></h2>
 
-<p>以下では、CentOS 4.5にTOMOYO Linux 1.4.2を導入する手順を解説します。この手順書に従って操作すれば、
+<p>以下では、CentOS 5にTOMOYO Linux 1.4.2を導入する手順を解説します。この手順書に従って操作すれば、
 TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 <p>導入の流れは以下の通りです。</p>
 <ol>
@@ -65,23 +65,23 @@ Disabled
 <h3><a name="l3">TOMOYO Linuxのカーネルのインストール</a></h3>
 <p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、
 本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
-しかしCentOS 4.5の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが
+しかしCentOS 5の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが
 提供されているので、今回はそれを利用します。</p>
 <p>まずはパッケージをダウンロードします。</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.9-55.0.2.EL_tomoyo_1.4.2.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.18-8.1.8.el5_tomoyo_1.4.2.i586.rpm</span>
 </pre>
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 <pre>
-# <span class="user">rpm --install kernel-2.6.9-55.0.2.EL_tomoyo_1.4.2.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.18-8.1.8.el5_tomoyo_1.4.2.i586.rpm</span>
 </pre>
 <p>この際特にメッセージは表示されませんが、
 インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 <pre>
-title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)
+title CentOS (2.6.18-8.1.8.el5_tomoyo_1.4.2)
     root (hd0,0)
-    kernel /vmlinuz-2.6.9-55.0.2.EL_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.9-55.0.2.EL_tomoyo_1.4.2.img
+    kernel /vmlinuz-2.6.18-8.1.8.el5_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.18-8.1.8.el5_tomoyo_1.4.2.img
 </pre>
 <p>今後カーネルの選択を行いやすくするために、
 /boot/grub/grub.confの"timeout="と"hiddenmenu"の行を
@@ -96,13 +96,13 @@ title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)
 <h3><a name="l5">TOMOYO Linuxのツールのインストール</a></h3>
 <p>カーネルの次は、TOMOYO Linuxのツールをインストールします。
 ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
-<p>カーネルと同様、CentOS 4.5にはコンパイル済みのtarballが用意されていますので、
+<p>カーネルと同様、CentOS 5にはコンパイル済みのtarballが用意されていますので、
 それをダウンロードして解凍します。
 ツールは/root/ccstoolsディレクトリに置くことにします。</p>
 <pre>
 # <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-CentOS4.5.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.4.2-i386-CentOS4.5.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-CentOS5.tar.gz</span>
+# <span class="user">tar zxf ccs-tools-1.4.2-i386-CentOS5.tar.gz</span>
 </pre>
 <p>ツールを置いたディレクトリにパスを通しておきます。bashを使っている場合には以下のようにします。</p>
 <pre>
@@ -116,10 +116,10 @@ title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)
 <p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
 /boot/grub/grub.confのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
 <pre>
-title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)
+title CentOS (2.6.18-8.1.8.el5_tomoyo_1.4.2)
     root (hd0,0)
-    kernel /vmlinuz-2.6.9-55.0.2.EL_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
-    initrd /initrd-2.6.9-55.0.2.EL_tomoyo_1.4.2.img
+    kernel /vmlinuz-2.6.18-8.1.8.el5_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00 <span class="user">init=/.init</span>
+    initrd /initrd-2.6.18-8.1.8.el5_tomoyo_1.4.2.img
 </pre>
 
 <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
