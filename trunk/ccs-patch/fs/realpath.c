@@ -378,7 +378,11 @@ static kmem_cache_t *ccs_cachep = NULL;
 
 void __init realpath_Init(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23)
+	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL);
+#else
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL, NULL);
+#endif
 	if (!ccs_cachep) panic("Can't create cache.\n");
 }
 

@@ -631,34 +631,48 @@ static int Escape(char *dest, const char *src, int dest_len)
 
 static char *get_argv0(struct linux_binprm *bprm)
 {
-	if (bprm->argc > 0) {
-		char *arg_ptr = ccs_alloc(PAGE_SIZE);
-		int arg_len = 0;
-		const unsigned long pos = bprm->p;
-		int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
-		if (!arg_ptr) goto out;
-		while (1) {
-			struct page *page = bprm->page[i];
+	char *arg_ptr = ccs_alloc(PAGE_SIZE); /* Initial buffer. */
+	int arg_len = 0;
+	unsigned long pos = bprm->p;
+	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+	if (!bprm->argc || !arg_ptr) goto out;
+	while (1) {
+		struct page *page;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
+#else
+		page = bprm->page[i];
+#endif
+		{ /* Map and copy to kernel buffer and unmap. */
 			const char *kaddr = kmap(page);
-			if (!kaddr) goto out;
+			if (!kaddr) { /* Mapping failed. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+				put_page(page);
+#endif
+				goto out;
+			}
 			memmove(arg_ptr + arg_len, kaddr + offset, PAGE_SIZE - offset);
 			kunmap(page);
-			arg_len += PAGE_SIZE - offset;
-			if (memchr(arg_ptr, '\0', arg_len)) break;
-			{
-				char *tmp_arg_ptr = ccs_alloc(arg_len + PAGE_SIZE);
-				if (!tmp_arg_ptr) goto out;
-				memmove(tmp_arg_ptr, arg_ptr, arg_len);
-				ccs_free(arg_ptr);
-				arg_ptr = tmp_arg_ptr;
-			}
-			i++;
-			offset = 0;
 		}
-		return arg_ptr;
-	out:
-		ccs_free(arg_ptr);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+		put_page(page);
+		pos += PAGE_SIZE - offset;
+#endif
+		arg_len += PAGE_SIZE - offset;
+		if (memchr(arg_ptr, '\0', arg_len)) break;
+		{ /* Initial buffer was too small for argv[0]. Retry after expanding buffer. */
+			char *tmp_arg_ptr = ccs_alloc(arg_len + PAGE_SIZE);
+			if (!tmp_arg_ptr) goto out;
+			memmove(tmp_arg_ptr, arg_ptr, arg_len);
+			ccs_free(arg_ptr);
+			arg_ptr = tmp_arg_ptr;
+		}
+		i++;
+		offset = 0;
 	}
+	return arg_ptr;
+ out: /* Release initial buffer. */
+	ccs_free(arg_ptr);
 	return NULL;
 }
 

@@ -228,7 +228,11 @@ static struct file_operations syaoran_file_operations = {
 #endif
 	.mmap       = generic_file_mmap,
 	.fsync      = simple_sync_file,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,23)
 	.sendfile   = generic_file_sendfile,
+#else
+	.splice_read    = generic_file_splice_read,
+#endif
 	.llseek     = generic_file_llseek,
 };
 

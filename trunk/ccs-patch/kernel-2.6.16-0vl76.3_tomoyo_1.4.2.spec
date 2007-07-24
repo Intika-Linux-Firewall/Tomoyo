@@ -23,7 +23,7 @@ Summary(ja): Linux カーネル (Linux オペレーティングシステムの心臓部分)
 %define sublevel 16
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 0vl73_tomoyo_1.4.2
+%define release 0vl76.3_tomoyo_1.4.2
 
 %define make_target bzImage
 
@@ -255,8 +255,10 @@ Patch1350: linux-2.6-skge-1.5.patch
 Patch1360: linux-2.6.16.28-e1000-7.2.7.patch
 Patch1361: linux-2.6.16-net-e1000-suspend.patch
 Patch1370: linux-2.6.16-r8169-update.patch
-Patch1371: linux-2.6.16-r1000-1.0.4.patch
+Patch1371: linux-2.6.16_Corega_LAPCIGT.patch
+Patch1375: linux-2.6.16-r1000-1.0.4.patch
 Patch1390: linux-2.6.16-tg3-3.66d.patch
+Patch1391: linux-2.6.16-forcedeth-0.60.patch
 
 Patch1400: linux-2.6-pcmcia-disable-warning.patch
 
@@ -307,6 +309,9 @@ Patch2130: linux-2.6.16.29-libata-acpi.patch
 # IDE
 Patch2200: linux-2.6.16-ide-driver-jmicron.patch
 Patch2210: linux-2.6.16-ide-generic-marvell-pata.patch
+
+# SCSI
+Patch2300: linux-2.6.16_3w-9xxx_2.26.06.002.patch
 
 # alsa-driver 1.0.12
 # Patch3000: linux-2.6.16.34-alsa-1.0.12.patch
@@ -382,6 +387,19 @@ Patch20160: linux-2.6.16_CVE-2007-0772.patch
 Patch20170: linux-2.6.16_CVE-2007-0005.patch
 Patch20180: linux-2.6.16_CVE-2007-1000.patch
 Patch20190: linux-2.6.16_CVE-2007-0958.patch
+Patch20200: linux-2.6.16_CVE-2007-1217.patch
+Patch20210: linux-2.6.16_CVE-2007-1388.patch
+Patch20220: linux-2.6.16_CVE-2007-1496.patch
+Patch20225: linux-2.6.16_CVE-2007-1497.patch
+Patch20230: linux-2.6.16_CVE-2007-1592.patch
+Patch20240: linux-2.6.16_CVE-2007-1357.patch
+Patch20250: linux-2.6.16_CVE-2007-1861.patch
+Patch20260: linux-2.6.16_CVE-2007-2172.patch
+Patch20270: linux-2.6.16_CVE-2007-2525.patch
+Patch20280: linux-2.6.16_CVE-2007-2453.patch
+Patch20290: linux-2.6.16_CVE-2007-2875.patch
+Patch20300: linux-2.6.16_CVE-2007-2876.patch
+Patch20310: linux-2.6.16_CVE-2006-7203.patch
 
 # mol-0.9.71_pre8 for ppc
 %define molver 0.9.71
@@ -697,10 +715,13 @@ cd linux-%{kversion}
 %patch1361 -p1
 # r8169 update
 %patch1370 -p1
-# r1000 driver
 %patch1371 -p1
+# r1000 driver
+%patch1375 -p1
 # tg3 update (3.66d)
 %patch1390 -p1
+# forcedeth update (0.60)
+%patch1391 -p1
 
 # disable pcmcia warnings
 %patch1400 -p1
@@ -788,6 +809,9 @@ cd linux-%{kversion}
 # support Marvell PATA controller by generic ide driver.
 %patch2210 -p1
 
+# 3w-9xxx update (2.26.02.008)
+%patch2300 -p1 -b .3w_update
+
 # Alsa update
 %patch3000 -p1
 
@@ -860,8 +884,25 @@ cd linux-%{kversion}
 %patch20150 -p1 -b .CVE-2007-0006
 %patch20160 -p1 -b .CVE-2007-0772
 %patch20170 -p1 -b .CVE-2007-0005
-%patch20180 -p1 -b .CVE-2007-1000
 %patch20190 -p1 -b .CVE-2007-0958
+
+%patch20210 -p1 -b .CVE-2007-1388
+%patch20180 -p1 -b .CVE-2007-1000
+
+%patch20200 -p1 -b .CVE-2007-1217
+%patch20220 -p1 -b .CVE-2007-1496
+%patch20225 -p1 -b .CVE-2007-1497
+%patch20230 -p1 -b .CVE-2007-1592
+%patch20240 -p1 -b .CVE-2007-1357
+
+%patch20250 -p1 -b .CVE-2007-1861
+%patch20260 -p1 -b .CVE-2007-2172
+%patch20270 -p1 -b .CVE-2007-2525
+
+%patch20280 -p1 -b .CVE-2007-2453
+%patch20290 -p1 -b .CVE-2007-2875
+%patch20300 -p1 -b .CVE-2007-2876
+%patch20310 -p1 -b .CVE-2006-7203
 
 #
 # misc small stuff to make things compile or otherwise improve performance
@@ -874,8 +915,8 @@ sh ../suspend2-%{swsusp2_version}/apply
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl73custom/" -- Makefile
-patch -sp1 < ccs-patch-2.6.16-0vl73.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.3custom/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.16-0vl76.3.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -1321,8 +1362,8 @@ fi
 
 
 %changelog
-* Wed Mar 14 2007 Satoshi IWAMOTO <satoshi.iwamoto@nifty.ne.jp> 2.6.16-0vl73
-- add patch20190 for fix CVE-2007-0958 (PT_INTERP)
+* Sun Jun 17 2007 Satoshi IWAMOTO <satoshi.iwamoto@nifty.ne.jp> 2.6.16-0vl76.3
+- add patch20310 for fox CVE-2006-7203(compat_sys_mount())
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start
