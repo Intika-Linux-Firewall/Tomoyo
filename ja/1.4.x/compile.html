@@ -326,7 +326,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.17-1.2142_FC4">Fedora Core 4 用のカーネル 2.6.17-1.2142_FC4</a>
 <li><a href="#2.6.20-1.2320.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2320.fc5</a>
 <li><a href="#2.6.20-1.2962.fc6">Fedora Core 6 用のカーネル 2.6.20-1.2962.fc6</a>
-<li><a href="#2.6.21-1.3228.fc7">Fedora 7 用のカーネル 2.6.21-1.3228.fc7</a>
+<li><a href="#2.6.22.1-27.fc7">Fedora 7 用のカーネル 2.6.22.1-27.fc7</a>
 <li><a href="#2.6.9-55.0.2.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.2.EL</a>
 <li><a href="#2.6.18-8.1.8.el5">CentOS 5 用のカーネル 2.6.18-8.1.8.el5</a>
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
@@ -337,7 +337,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.9-42.14AX">Asianux 2.0 用のカーネル 2.6.9-42.14AX</a>
 <li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
 <li><a href="#2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a>
-<li><a href="#2.6.16-0vl73">VineLinux 4.1 用のカーネル 2.6.16-0vl73</a>
+<li><a href="#2.6.16-0vl76.3">VineLinux 4.1 用のカーネル 2.6.16-0vl76.3</a>
 <li><a href="#2.6-vanilla">バニラ 2.6 カーネル</a>
 <li><a href="#2.4-vanilla">バニラ 2.4 カーネル</a>
 </ul>
@@ -471,24 +471,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.21-1.3228.fc7">Fedora 7 用のカーネル 2.6.21-1.3228.fc7</a></h2>
+<h2><a name="2.6.22.1-27.fc7">Fedora 7 用のカーネル 2.6.22.1-27.fc7</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.21-1.3228.fc7.src.rpm<br>
-rpm -ivh kernel-2.6.21-1.3228.fc7.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.22.1-27.fc7.src.rpm<br>
+rpm -ivh kernel-2.6.22.1-27.fc7.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.21/linux-2.6.21.i586/ /usr/src/linux-2.6.21-1.3228.fc7<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.1-27.fc7<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.21-1.3228.fc7/<br>
+cd /usr/src/linux-2.6.22.1-27.fc7/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.3228.fc7/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-27.fc7/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
 tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.21-1.3228.fc7.txt<br>
+wget -O ccs-patch-2.6.9-42.15AX.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1979&amp;aid=10726'<br>
+patch -sp1 &lt; ccs-patch-2.6.22.1-27.fc7.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -736,7 +737,7 @@ mkinitramfs -o /boot/initrd.img-2.6.20.3-ubuntu1-ccs 2.6.20.3-ubuntu1-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.16-0vl73">VineLinux 4.1 用のカーネル 2.6.16-0vl73</a></h2>
+<h2><a name="2.6.16-0vl76.3">VineLinux 4.1 用のカーネル 2.6.16-0vl76.3</a></h2>
 
 <table border="1">
 <tr><td>
@@ -749,18 +750,19 @@ cd /usr/src/linux-2.6.16/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
 tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.16-0vl73.txt<br>
+wget -O ccs-patch-2.6.16-0vl76.3.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1981&amp;aid=10726'<br>
+patch -sp1 &lt; ccs-patch-2.6.16-0vl76.3.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install<br>
 # initrd を作成する。<br>
-mkinitrd /boot/initrd.img-2.6.16-0vl73-ccs 2.6.16-0vl73-ccs<br>
+mkinitrd /boot/initrd.img-2.6.16-0vl76.3-ccs 2.6.16-0vl76.3-ccs<br>
 # シンボリックリンクを更新する。<br>
-ln -sf /boot/vmlinuz-2.6.16-0vl73-ccs /boot/vmlinuz<br>
-ln -sf /boot/initrd.img-2.6.16-0vl73-ccs /boot/initrd.img<br>
-ln -sf /boot/System.map-2.6.16-0vl73-ccs /boot/System.map
+ln -sf /boot/vmlinuz-2.6.16-0vl76.3-ccs /boot/vmlinuz<br>
+ln -sf /boot/initrd.img-2.6.16-0vl76.3-ccs /boot/initrd.img<br>
+ln -sf /boot/System.map-2.6.16-0vl76.3-ccs /boot/System.map
 </td></tr>
 </table>
 
