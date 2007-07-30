@@ -20,7 +20,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # kernel spec when the kernel is rebased, so fedora_build automatically
 # works out to the offset from the rebase, so it doesn't get too ginormous.
 %define fedora_cvs_origin 3260
-%define fedora_build %(R="$Revision: 1.3287 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.3293 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -511,7 +511,23 @@ Patch00: patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 
 %if !%{nopatches}
 
-Patch10: linux-2.6-utrace.patch
+Patch10: linux-2.6-utrace-tracehook.patch
+Patch11: linux-2.6-utrace-tracehook-ia64.patch
+Patch12: linux-2.6-utrace-tracehook-sparc64.patch
+Patch13: linux-2.6-utrace-tracehook-s390.patch
+Patch14: linux-2.6-utrace-tracehook-um.patch
+Patch15: linux-2.6-utrace-tracehook-avr32.patch
+Patch16: linux-2.6-utrace-regset.patch
+Patch17: linux-2.6-utrace-regset-ia64.patch
+Patch18: linux-2.6-utrace-regset-sparc64.patch
+Patch19: linux-2.6-utrace-regset-s390.patch
+Patch20: linux-2.6-utrace-regset-avr32.patch
+Patch21: linux-2.6-utrace-core.patch
+Patch22: linux-2.6-utrace-ptrace-compat.patch
+Patch23: linux-2.6-utrace-ptrace-compat-ia64.patch
+Patch24: linux-2.6-utrace-ptrace-compat-sparc64.patch
+Patch25: linux-2.6-utrace-ptrace-compat-s390.patch
+Patch26: linux-2.6-utrace-ptrace-compat-avr32.patch
 #Patch20: nouveau-drm.patch
 Patch30: linux-2.6-sysrq-c.patch
 Patch40: linux-2.6-x86-tune-generic.patch
@@ -590,6 +606,8 @@ Patch710: linux-2.6-bcm43xx-pci-neuter.patch
 Patch711: linux-2.6-sky2-restore-workarounds.patch
 Patch740: linux-2.6-sdhci-ene-controller-quirk.patch
 Patch741: linux-2.6-sdhci-fix-interrupt-mask.patch
+Patch742: linux-2.6-sdhci-clear-error-interrupt.patch
+Patch760: linux-2.6-usb-ftdi_sio-fix-oops.patch
 #Patch780: linux-2.6-clockevents-fix-resume-logic.patch
 Patch790: linux-2.6-acpi-dock-oops.patch
 Patch791: linux-2.6-cpufreq-acpi-fix-msr-write.patch
@@ -1066,7 +1084,24 @@ ApplyPatch linux-2.6-build-nonintconfig.patch
 ApplyPatch linux-2.6-sched-cfs.patch
 
 # Roland's utrace ptrace replacement.
-ApplyPatch linux-2.6-utrace.patch -F2
+ApplyPatch linux-2.6-utrace-tracehook.patch -F2
+ApplyPatch linux-2.6-utrace-tracehook-ia64.patch
+ApplyPatch linux-2.6-utrace-tracehook-sparc64.patch
+ApplyPatch linux-2.6-utrace-tracehook-s390.patch
+ApplyPatch linux-2.6-utrace-tracehook-um.patch
+ApplyPatch linux-2.6-utrace-tracehook-avr32.patch
+ApplyPatch linux-2.6-utrace-regset.patch
+ApplyPatch linux-2.6-utrace-regset-ia64.patch
+ApplyPatch linux-2.6-utrace-regset-sparc64.patch
+ApplyPatch linux-2.6-utrace-regset-s390.patch
+ApplyPatch linux-2.6-utrace-regset-avr32.patch
+ApplyPatch linux-2.6-utrace-core.patch
+ApplyPatch linux-2.6-utrace-ptrace-compat.patch
+ApplyPatch linux-2.6-utrace-ptrace-compat-ia64.patch
+ApplyPatch linux-2.6-utrace-ptrace-compat-sparc64.patch
+ApplyPatch linux-2.6-utrace-ptrace-compat-s390.patch
+ApplyPatch linux-2.6-utrace-ptrace-compat-avr32.patch
+
 # setuid /proc/self/maps fix. (dependent on utrace)
 ApplyPatch linux-2.6-proc-self-maps-fix.patch
 
@@ -1273,6 +1308,12 @@ ApplyPatch linux-2.6-sky2-restore-workarounds.patch
 ApplyPatch linux-2.6-sdhci-ene-controller-quirk.patch
 # fix interrupt masking
 ApplyPatch linux-2.6-sdhci-fix-interrupt-mask.patch
+# fix the interrupt mask fix
+ApplyPatch linux-2.6-sdhci-clear-error-interrupt.patch
+
+# USB
+#
+ApplyPatch linux-2.6-usb-ftdi_sio-fix-oops.patch
 
 # ACPI patches
 # Fix ACPI dock oops (#238054)
@@ -1314,8 +1355,8 @@ ApplyPatch linux-2.6-ipc-shm-fix-user-leakage.patch
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .1-27.fc7:' -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.22.1-27.fc7.txt
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .1-33.fc7:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.22.1-33.fc7.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2241,8 +2282,8 @@ fi
 %endif
 
 %changelog
-* Tue Jul 17 2007 John W. Linville <linville@redhat.com>
-- update wireless bits
+* Mon Jul 23 2007 Chuck Ebbert <cebbert@redhat.com>
+- set CONFIG_DEBUG_SHIRQ only in -debug kernels
 
 * Tue Jul 10 2007 Dave Jones <davej@redhat.com>
 - Rebase to 2.6.22
