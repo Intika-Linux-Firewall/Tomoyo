@@ -311,7 +311,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a>
 <li><a href="#2.6.20-1.2320.fc5">Kernel 2.6.20-1.2320.fc5 for Fedora Core 5</a>
 <li><a href="#2.6.20-1.2962.fc6">Kernel 2.6.20-1.2962.fc6 for Fedora Core 6</a>
-<li><a href="#2.6.22.1-27.fc7">Kernel 2.6.22.1-27.fc7 for Fedora 7</a>
+<li><a href="#2.6.22.1-33.fc7">Kernel 2.6.22.1-33.fc7 for Fedora 7</a>
 <li><a href="#2.6.9-55.0.2.EL">Kernel 2.6.9-55.0.2.EL for CentOS 4.5</a>
 <li><a href="#2.6.18-8.1.8.el5">Kernel 2.6.18-8.1.8.el5 for CentOS 5</a>
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
@@ -456,25 +456,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.1-27.fc7">Kernel 2.6.22.1-27.fc7 for Fedora 7</a></h2>
+<h2><a name="2.6.22.1-33.fc7">Kernel 2.6.22.1-33.fc7 for Fedora 7</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.22.1-27.fc7.src.rpm<br>
-rpm -ivh kernel-2.6.22.1-27.fc7.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.22.1-33.fc7.src.rpm<br>
+rpm -ivh kernel-2.6.22.1-33.fc7.src.rpm<br>
 # Prepare for compilation.<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.1-27.fc7<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.1-33.fc7<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.22.1-27.fc7/<br>
+cd /usr/src/linux-2.6.22.1-33.fc7/<br>
 # Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-27.fc7/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-33.fc7/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
 tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-wget -O ccs-patch-2.6.9-42.15AX.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1979&amp;aid=10726'<br>
-patch -sp1 &lt; ccs-patch-2.6.22.1-27.fc7.txt<br>
+wget -O ccs-patch-2.6.22.1-33.fc7.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1989&amp;aid=10726'<br>
+patch -sp1 &lt; ccs-patch-2.6.22.1-33.fc7.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
@@ -785,20 +785,20 @@ make -s install modules modules_install
 
 <h2><a name="2.4-vanilla">Vanilla 2.4 kernels</a></h2>
 
-<p>2.4.30 and later are supported. The following is the case of version 2.4.34 .</p>
+<p>2.4.30 and later are supported. The following is the case of version 2.4.35 .</p>
 
 <table border="1">
 <tr><td>
 # Create a directory where the kernel modules are installed.<br>
-mkdir -p /lib/modules/2.4.34-ccs<br>
+mkdir -p /lib/modules/2.4.35-ccs<br>
 # Move to the source directory.<br>
 cd /usr/src/<br>
 # Download kernel source.<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.34.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.35.tar.bz2<br>
 # Extract.<br>
-tar -jxf linux-2.4.34.tar.bz2<br>
+tar -jxf linux-2.4.35.tar.bz2<br>
 # Move to the extracted directory.<br>
-cd linux-2.4.34<br>
+cd linux-2.4.35<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
@@ -806,7 +806,7 @@ wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<
 # Extract.<br>
 tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
 # Apply the kernel patch.<br>
-patch -sp1 &lt; ccs-patch-2.4.34.txt<br>
+patch -sp1 &lt; ccs-patch-2.4.35.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
