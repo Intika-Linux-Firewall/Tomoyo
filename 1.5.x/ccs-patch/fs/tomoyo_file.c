@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.2   2007/07/13
+ * Version: 1.5.0-pre   2007/08/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -51,22 +51,21 @@ struct no_rewrite_entry {
 static struct {
 	const char *keyword;
 	const int paths;
-	int check_type;
 } acl_type_array[] = { /* mapping.txt */
-	{ "create",   1, 1 }, /* TYPE_CREATE_ACL   */
-	{ "unlink",   1, 1 }, /* TYPE_UNLINK_ACL   */
-	{ "mkdir",    1, 1 }, /* TYPE_MKDIR_ACL    */
-	{ "rmdir",    1, 1 }, /* TYPE_RMDIR_ACL    */
-	{ "mkfifo",   1, 1 }, /* TYPE_MKFIFO_ACL   */
-	{ "mksock",   1, 1 }, /* TYPE_MKSOCK_ACL   */
-	{ "mkblock",  1, 1 }, /* TYPE_MKBLOCK_ACL  */
-	{ "mkchar",   1, 1 }, /* TYPE_MKCHAR_ACL   */
-	{ "truncate", 1, 1 }, /* TYPE_TRUNCATE_ACL */
-	{ "symlink",  1, 1 }, /* TYPE_SYMLINK_ACL  */
-	{ "link",     2, 1 }, /* TYPE_LINK_ACL     */
-	{ "rename",   2, 1 }, /* TYPE_RENAME_ACL   */
-	{ "rewrite",  1, 1 }, /* TYPE_REWRITE_ACL  */
-	{ NULL, 0, 0 }
+	{ "create",   1 }, /* TYPE_CREATE_ACL   */
+	{ "unlink",   1 }, /* TYPE_UNLINK_ACL   */
+	{ "mkdir",    1 }, /* TYPE_MKDIR_ACL    */
+	{ "rmdir",    1 }, /* TYPE_RMDIR_ACL    */
+	{ "mkfifo",   1 }, /* TYPE_MKFIFO_ACL   */
+	{ "mksock",   1 }, /* TYPE_MKSOCK_ACL   */
+	{ "mkblock",  1 }, /* TYPE_MKBLOCK_ACL  */
+	{ "mkchar",   1 }, /* TYPE_MKCHAR_ACL   */
+	{ "truncate", 1 }, /* TYPE_TRUNCATE_ACL */
+	{ "symlink",  1 }, /* TYPE_SYMLINK_ACL  */
+	{ "link",     2 }, /* TYPE_LINK_ACL     */
+	{ "rename",   2 }, /* TYPE_RENAME_ACL   */
+	{ "rewrite",  1 }, /* TYPE_REWRITE_ACL  */
+	{ NULL, 0 }
 };
 
 /*************************  UTILITY FUNCTIONS  *************************/
@@ -81,14 +80,6 @@ int acltype2paths(const unsigned int acl_type)
 {
 	return (acl_type < sizeof(acl_type_array) / sizeof(acl_type_array[0]))
 		? acl_type_array[acl_type].paths : 0;
-}
-
-static unsigned int CheckACLFlags(const unsigned int index)
-{
-	if (index < (sizeof(acl_type_array) / sizeof(acl_type_array[0])) - 1)
-		return acl_type_array[index].check_type;
-	printk("%s: Index %u is out of range. Fix the kernel source.\n", __FUNCTION__, index);
-	return 0;
 }
 
 static int strendswith(const char *name, const char *tail)
@@ -153,47 +144,6 @@ static int AuditWriteLog(const char *operation, const struct path_info *filename
 static inline void AuditFileLog(const struct path_info *filename, const u8 perm, const int is_granted) {}
 static inline void AuditWriteLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const int is_granted) {}
 #endif
-
-/*************************  PERMISSION MAP HANDLER  *************************/
-
-int SetPermissionMapping(struct io_buffer *head)
-{
-	int i;
-	char *data = head->write_buf;
-	char *cp = NULL;
-	if ((cp = strchr(data, '=')) == NULL) {
-	out: ;
-		printk("ERROR: Invalid line '%s=%s'\n", data, cp);
-		printk("This line must be one of the following. The first is the default.\n");
-		printk("%s=%s if you want to check this permission using this permission.\n", data, data);
-		printk("%s=generic-write if you want to check this permission using generic-write permission.\n", data);
-		printk("%s=no-check if you don't want to check this permission.\n", data);
-		return -EINVAL;
-	}
-	*cp++ = '\0';
-	for (i = 0; acl_type_array[i].keyword; i++) {
-		if (strcmp(acl_type_array[i].keyword, data)) continue;
-		if (strcmp(cp, acl_type_array[i].keyword) == 0) acl_type_array[i].check_type = 1;
-		else if (strcmp(cp, "generic-write") == 0) acl_type_array[i].check_type = 0;
-		else if (strcmp(cp, "no-check") == 0) acl_type_array[i].check_type = -1;
-		else goto out;
-		return 0;
-	}
-	printk("WARNING: Unprocessed line '%s=%s'\n", data, cp);
-	return -EINVAL;
-}
-
-int ReadPermissionMapping(struct io_buffer *head)
-{
-	if (!head->read_eof) {
-		int i;
-		for (i = 0; acl_type_array[i].keyword; i++) {
-			io_printf(head, "%s=%s\n", acl_type_array[i].keyword, acl_type_array[i].check_type > 0 ? acl_type_array[i].keyword : acl_type_array[i].check_type == 0 ? "generic-write" : "no-check");
-		}
-		head->read_eof = 1;
-	}
-	return 0;
-}
 
 /*************************  GLOBALLY READABLE FILE HANDLER  *************************/
 
@@ -833,20 +783,15 @@ static int CheckSingleWritePermission2(const unsigned int operation, const struc
 	struct domain_info * const domain = current->domain_info;
 	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
-	if (CheckACLFlags(operation) < 0) return 0;
-	if (CheckACLFlags(operation) > 0) {
-		error = CheckSingleWriteACL(operation, filename, obj);
-		AuditWriteLog(acltype2keyword(operation), filename, NULL, !error);
-		if (error) {
-			if (TomoyoVerboseMode()) {
-				printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), filename->name, GetLastName(domain));
-			}
-			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, acltype2keyword(operation), filename->name);
-			else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, 1, NULL);
-			if (!is_enforce) error = 0;
+	error = CheckSingleWriteACL(operation, filename, obj);
+	AuditWriteLog(acltype2keyword(operation), filename, NULL, !error);
+	if (error) {
+		if (TomoyoVerboseMode()) {
+			printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), filename->name, GetLastName(domain));
 		}
-	} else {
-		error = CheckFilePerm2(filename, 2, acltype2keyword(operation), obj);
+		if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, acltype2keyword(operation), filename->name);
+		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, 1, NULL);
+		if (!is_enforce) error = 0;
 	}
 	if (!error && operation == TYPE_TRUNCATE_ACL && IsNoRewriteFile(filename)) {
 		error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, filename, obj);
@@ -967,7 +912,6 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 	struct domain_info * const domain = current->domain_info;
 	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
-	if (CheckACLFlags(operation) < 0) return 0;		
 	buf1 = GetPath(dentry1, mnt1);
 	buf2 = GetPath(dentry2, mnt2);
 	if (buf1 && buf2) {
@@ -989,19 +933,14 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 		obj.path1_vfsmnt = mnt1;
 		obj.path2_dentry = dentry2;
 		obj.path2_vfsmnt = mnt2;
-		if (CheckACLFlags(operation) > 0) {
-			error = CheckDoubleWriteACL(operation, buf1, buf2, &obj);
-			AuditWriteLog(acltype2keyword(operation), buf1, buf2, !error);
-			if (error) {
-				if (TomoyoVerboseMode()) {
-					printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
-				}
-				if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, acltype2keyword(operation), buf1->name, buf2->name);
-				else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, 1, NULL);
+		error = CheckDoubleWriteACL(operation, buf1, buf2, &obj);
+		AuditWriteLog(acltype2keyword(operation), buf1, buf2, !error);
+		if (error) {
+			if (TomoyoVerboseMode()) {
+				printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
 			}
-		} else {
-			error = CheckFilePerm2(buf1, 2, acltype2keyword(operation), &obj);
-			if (!error) error = CheckFilePerm2(buf2, 2, acltype2keyword(operation), &obj);
+			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, acltype2keyword(operation), buf1->name, buf2->name);
+			else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, 1, NULL);
 		}
 	}
 	ccs_free(buf1);

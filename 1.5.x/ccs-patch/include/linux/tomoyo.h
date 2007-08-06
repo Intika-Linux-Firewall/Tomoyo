@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.2   2007/07/13
+ * Version: 1.5.0-pre   2007/08/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -35,6 +35,9 @@
 /***** TOMOYO Linux start. *****/
 
 struct path_info;
+struct dentry;
+struct vfsmount;
+struct inode;
 
 #ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 /* Check whether the given filename is allowed to read/write/execute. */
@@ -93,7 +96,6 @@ int CheckCapabilityACL(const unsigned int capability);
 static inline int CheckCapabilityACL(const unsigned int capability) { return 0; }
 #endif
 
-struct inode;
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry);

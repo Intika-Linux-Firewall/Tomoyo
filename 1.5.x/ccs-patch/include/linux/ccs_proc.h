@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.2   2007/07/13
+ * Version: 1.5.0-pre   2007/08/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -30,10 +30,9 @@
 #define CCS_INFO_GRANTLOG                6
 #define CCS_INFO_REJECTLOG               7
 #define CCS_INFO_SELFDOMAIN              8
-#define CCS_INFO_MAPPING                 9
-#define CCS_STATUS                      10
-#define CCS_POLICY_QUERY                11
-#define CCS_POLICY_MANAGER              12
-#define CCS_INFO_UPDATESCOUNTER         13
+#define CCS_STATUS                       9
+#define CCS_POLICY_QUERY                10
+#define CCS_POLICY_MANAGER              11
+#define CCS_INFO_UPDATESCOUNTER         12
 
 #endif

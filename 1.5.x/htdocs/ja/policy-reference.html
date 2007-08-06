@@ -20,7 +20,6 @@
 <p><a href="#system_policy.txt">2.3 システムポリシー（system_policy.txt）</a></p>
 <p><a href="#domain_policy.txt">2.4 ドメイン別ポリシー（domain_policy.txt）</a></p>
 <p><a href="#exception_policy.txt">2.5 例外ポリシー（exception_policy.txt）</a></p>
-<p><a href="#mapping.txt">2.6 マッピング定義（mapping.txt）</a></p>
 <h2><a href="#/proc/ccs/">3. /proc/ccs/ インタフェース</a></h2>
 <p><a href="#status">3.1 status</a></p>
 <p><a href="#policy/system_policy">3.2 policy/system_policy</a></p>
@@ -33,9 +32,8 @@
 <p><a href="#info/grant_log">3.9 info/grant_log</a></p>
 <p><a href="#info/reject_log">3.10 info/reject_log</a></p>
 <p><a href="#info/self_domain">3.11 info/self_domain</a></p>
-<p><a href="#info/mapping">3.12 info/mapping</a></p>
-<p><a href="#info/.process_status">3.13 info/.process_status</a></p>
-<p><a href="#info/.updates_counter">3.14 info/.updates_counter</a></p>
+<p><a href="#info/.process_status">3.12 info/.process_status</a></p>
+<p><a href="#info/.updates_counter">3.13 info/.updates_counter</a></p>
 <hr>
 <h1><a name="Introduction">1. はじめに</a></h1>
 <h2><a name="word_definition">1.1 用語の定義</a></h2>
@@ -187,7 +185,7 @@
 
 <hr>
 <h1><a name="policy_files_and_syntaxes">2. ポリシーファイルの分類と構文</a></h1>
-<p>ポリシーファイルは全て /etc/ccs/ ディレクトリに作成しておく。このディレクトリに存在するファイルが /sbin/init の開始時に /.init によって読み込まれるようになっている。</p>
+<p>ポリシーファイルは全て /etc/ccs/ ディレクトリに作成しておく。このディレクトリに存在するファイルが /sbin/init の開始時に /sbin/ccs-init によって読み込まれるようになっている。</p>
 <h2><a name="manager.txt">2.1 ポリシーマネージャ定義（manager.txt）</a></h2>
 <p>全てのプログラムがポリシーの変更を行えるのは危険であるため、このファイルには /proc/ccs/ インタフェースへの書き込みアクセスを許可するプログラムまたはドメインを定義しておく。</p>
 <p>このファイルに定義されていないプログラムやドメインからは /proc/ccs/ インタフェースへの書き込みアクセスができない。システム運用時にポリシーの変更を許可しない場合はこのファイルを削除しておく。</p>
@@ -393,20 +391,20 @@
 <li>ローカルポート番号の自動選択時に選択させないポート</li>
 </ul>
 <h3>マウントを許可するデバイスおよびマウントポイント</h3>
-<p>マウント許可を指定するには、 allow_mount というディレクティブに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定する。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけない。マウントポイントは正規化されたディレクトリ名でなければいけない。オプションは dev,nodev,exec,noexec,suid,nosuid,rw,ro,atime,noatime,diratime,nodiratime,recurse,norecurse の組み合わせである。指定されたオプションはマウント時の指定に優先する。 例えば、 rw が指定されていた場合、ユーザが ro を指定したとしても、カーネルは rw が指定されたものとしてマウントする。オプションは省略可能である。</p>
+<p>マウント許可を指定するには、 allow_mount というディレクティブに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定する。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけない。マウントポイントは正規化されたディレクトリ名でなければいけない。オプションは数値で指定する。</p>
 
 <p>「any マウントポイント --remount オプション」と指定すると、「mount -o remount マウントポイント」が許可される。</p>
 
-<p>「複製元 複製先 --bind」と指定すると、「mount --bind 複製元 複製先」が許可される。<br>
-「移動元 移動先 --move」と指定すると、「mount --move 移動元 移動先」が許可される。<br>
+<p>「複製元 複製先 --bind オプション」と指定すると、「mount --bind 複製元 複製先」が許可される。<br>
+「移動元 移動先 --move オプション」と指定すると、「mount --move 移動元 移動先」が許可される。<br>
 複製元／複製先／移動元／移動先は正規化されたディレクトリ名でなければならない。</p>
 
 <p>カーネル 2.6.15 以降では、 Shared Subtree という機能が利用できる。<br>
 「any マウントポイント --make-unbindable オプション」と指定すると、「mount --make-unbindable マウントポイント」が許可される。<br>
 「any マウントポイント --make-private オプション」と指定すると、「mount --make-private マウントポイント」が許可される。<br>
 「any マウントポイント --make-slave オプション」と指定すると、「mount --make-slave マウントポイント」が許可される。<br>
-「any マウントポイント --make-shared オプション」と指定すると、「mount --make-shared マウントポイント」が許可される。<br>
-オプションは recurse または norecurse のどちらかである。指定されたオプションはマウント時の指定に優先する。 例えば、 recurse が指定されていた場合、ユーザが norecurse を指定したとしても、カーネルは recurse が指定されたものとしてマウントする。オプションは省略可能である。</p>
+「any マウントポイント --make-shared オプション」と指定すると、「mount --make-shared マウントポイント」が許可される。
+</p>
 
 <h3>アンマウントを許可しないマウントポイント</h3>
 <p>アンマウント禁止を指定するには、 deny_unmount というディレクティブに続けて、アンマウントを許可しない正規化されたディレクトリ名を指定する。<br>
@@ -541,8 +539,6 @@
 </table>
 
 <p>1 3 5 7 以外のディレクティブではワイルドカードを使用できる。なお、ディレクティブ 3 5 7 の指定は極力避けるべきである。</p>
-
-<p>なお、<a href="#mapping.txt">マッピング定義</a>を使って、 allow_ で始まるディレクティブを 2 3 6 7 のいずれかに対するアクセス許可で代用することも可能である。</p>
 
 <h3>指定可能な argv[0] の組み合わせ</h3>
 
@@ -945,35 +941,6 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>このディレクティブはドメイン遷移を行わせたい場合に使用する。</p>
 
-<h2><a name="mapping.txt">2.6 マッピング定義（mapping.txt）</a></h2>
-<p>このファイルでは、ファイルに対する書き込みアクセス許可のチェック方法を定義する。
-どれくらい厳密にファイルに対する書き込みアクセス許可を制御したいかに応じて、書き込みアクセス許可の粒度をこのファイルを使用して切り替えられるようになっている。</p>
-
-<p>このファイルの書式は、「チェック項目=チェック方法」を列挙した形式である。以下に例を示す。</p>
-
-<table border="1">
-<tr><td>
-create=generic-write<br>
-unlink=generic-write<br>
-mkdir=mkdir<br>
-rmdir=rmdir<br>
-mkfifo=mkfifo<br>
-mksock=mksock<br>
-mkblock=mkblock<br>
-mkchar=mkchar<br>
-truncate=generic-write<br>
-symlink=symlink<br>
-link=link<br>
-rename=rename<br>
-rewrite=rewrite
-</td></tr>
-</table>
-
-<p>チェック方法として generic-write を指定した場合、そのチェック項目は、ディレクティブ 2 3 6 7 で与えられているアクセス許可でチェックされる。
-チェック方法として no-check を指定した場合、そのチェック項目はチェックされなくなる。
-チェック方法としてチェック項目と同じ値を指定した場合、そのチェック項目はそのディレクティブで与えられているアクセス許可でチェックされる。</p>
-
-<p>このファイルは起動時に１度だけ読み込まれ、起動後に変更することはできない。</p>
 <hr>
 <h1><a name="/proc/ccs/">3. /proc/ccs/ インタフェース</a></h1>
 <p>これは、起動後にポリシーを読み出し／追加／削除を行うためのインタフェースである。<a href="#manager.txt">ポリシーマネージャ定義</a>で定義されたプログラムのみがポリシーの追加と削除を行える。</p>
@@ -1028,13 +995,9 @@ cat /proc/ccs/info/reject_log</p>
 <p>呼び出し元プロセスが属しているドメインの名前を取得する。</p>
 <p>（例）<br>
 cat /proc/ccs/info/self_domain</p>
-<h2><a name="info/mapping">3.12 info/mapping</a></h2>
-<p>MAC_FOR_FILE における書き込みアクセス許可のチェック方法を取得する。</p>
-<p>（例）<br>
-cat /proc/ccs/info/mapping</p>
-<h2><a name="info/.process_status">3.13 info/.process_status</a></h2>
+<h2><a name="info/.process_status">3.12 info/.process_status</a></h2>
 <p>ccstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシーマネージャとして登録されていないプログラムでも書き込みを行える。</p>
-<h2><a name="info/.updates_counter">3.14 info/.updates_counter</a></h2>
+<h2><a name="info/.updates_counter">3.13 info/.updates_counter</a></h2>
 <p>ポリシーの変更を検出するためのカウンタ。参照されるたびに 0 にリセットされる。ポリシーの更新を監視するプログラムのためのインタフェース。</p>
 <hr>
 <p><a href="index.html#manual">目次へ戻る</a></p>

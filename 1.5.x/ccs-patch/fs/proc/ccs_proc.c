@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.2   2007/07/13
+ * Version: 1.5.0-pre   2007/08/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -94,9 +94,6 @@ void __init CCSProc_Init(void)
 	CreateEntry("reject_log",       0400, info_dir, CCS_INFO_REJECTLOG);
 #endif
 	CreateEntry("self_domain",      0400, info_dir, CCS_INFO_SELFDOMAIN);
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
-	CreateEntry("mapping",          0400, info_dir, CCS_INFO_MAPPING);
-#endif
 #endif
 	CreateEntry("meminfo",          0400, info_dir, CCS_INFO_MEMINFO);
 	CreateEntry("status",           0600, ccs_dir, CCS_STATUS);
