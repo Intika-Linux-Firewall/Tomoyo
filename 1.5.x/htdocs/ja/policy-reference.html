@@ -1,0 +1,1043 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux ポリシー解説書</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<hr>
+<h1 style="text-align:center;">TOMOYO Linux ポリシー解説書</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1><a name="index">目次</a></h1>
+<h2><a href="#Introduction">1. はじめに</a></h2>
+<p><a href="#word_definition">1.1 用語の定義</a></p>
+<p><a href="#domain_and_transition">1.2 ドメインの定義およびドメインの遷移</a></p>
+<h2><a href="#policy_files_and_syntaxes">2. ポリシーファイルの分類と構文</a></h2>
+<p><a href="#manager.txt">2.1 ポリシーマネージャ定義（manager.txt）</a></p>
+<p><a href="#status.txt">2.2 プロファイル定義（status.txt）</a></p>
+<p><a href="#system_policy.txt">2.3 システムポリシー（system_policy.txt）</a></p>
+<p><a href="#domain_policy.txt">2.4 ドメイン別ポリシー（domain_policy.txt）</a></p>
+<p><a href="#exception_policy.txt">2.5 例外ポリシー（exception_policy.txt）</a></p>
+<p><a href="#mapping.txt">2.6 マッピング定義（mapping.txt）</a></p>
+<h2><a href="#/proc/ccs/">3. /proc/ccs/ インタフェース</a></h2>
+<p><a href="#status">3.1 status</a></p>
+<p><a href="#policy/system_policy">3.2 policy/system_policy</a></p>
+<p><a href="#policy/domain_policy">3.3 policy/domain_policy</a></p>
+<p><a href="#policy/exception_policy">3.4 policy/exception_policy</a></p>
+<p><a href="#policy/query">3.5 policy/query</a></p>
+<p><a href="#policy/manager">3.6 policy/manager</a></p>
+<p><a href="#policy/.domain_status">3.7 policy/.domain_status</a></p>
+<p><a href="#info/meminfo">3.8 info/meminfo</a></p>
+<p><a href="#info/grant_log">3.9 info/grant_log</a></p>
+<p><a href="#info/reject_log">3.10 info/reject_log</a></p>
+<p><a href="#info/self_domain">3.11 info/self_domain</a></p>
+<p><a href="#info/mapping">3.12 info/mapping</a></p>
+<p><a href="#info/.process_status">3.13 info/.process_status</a></p>
+<p><a href="#info/.updates_counter">3.14 info/.updates_counter</a></p>
+<hr>
+<h1><a name="Introduction">1. はじめに</a></h1>
+<h2><a name="word_definition">1.1 用語の定義</a></h2>
+<table border="1">
+<tr>
+<td>正規化されたパス名</td>
+<td>"/" で始まり、シンボリックリンクや "/./" や "//" や "/../" を含まないパス名。（ただし、現在のプロセスに関する情報にアクセスするための "/proc/self/" ディレクトリに関してはそのまま "/proc/self/" とする。）<br>
+プロセスが chroot された環境下で動作する場合であっても、 chroot する前のパス名で指定される。<br>
+正規化されたパス名は、全てアスキーコードの表示可能な範囲（0x21～0x7E）で構成されている。 従って、\ 文字（0x5C）は \\ 、その他の表示不可能な文字（0x01～0x20、0x7F～0xFF）は \ooo 形式の8進数で表記する。 （例えば、空白文字（0x20）は \040 と表記する。）</td>
+</tr>
+<tr>
+<td>正規化されたディレクトリ名</td>
+<td>正規化されたパス名の内、"/"で終わるもの。</td>
+</tr>
+<tr>
+<td>正規化されたファイル名</td>
+<td>正規化されたパス名の内、"/"で終わらないもの。<br>
+正規化されたファイル名は、ディレクトリ以外の全てのファイルタイプ（通常ファイル、キャラクタ型デバイスファイル、ブロック型デバイスファイル、ＦＩＦＯ、シンボリックリンク、ソケット）を含む。</td>
+</tr>
+<tr>
+<td>プログラム</td>
+<td>正規化されたファイル名の内、実行可能なもの。</td>
+</tr>
+<tr>
+<td>ドメイン</td>
+<td>ＭＡＣ（強制アクセス制御）を行うための属性</td>
+</tr>
+<tr>
+<td>遷移先ドメイン</td>
+<td>プログラムが正常に開始された場合にプロセスが遷移するドメイン</td>
+</tr>
+<tr>
+<td>操作対象ドメイン</td>
+<td>操作対象となるプロセスの属しているドメイン</td>
+</tr>
+</table>
+<h2><a name="domain_and_transition">1.2 ドメインの定義およびドメインの遷移</a></h2>
+<p>TOMOYO Linux においては、全てのプロセスがそれぞれ1つのドメインに属し、全てのプログラムがそれぞれ異なるドメインに属する。現在実行されている2つのプロセスが同一のプログラムであっても、それぞれのプロセスの直前のドメインが異なっていれば異なるドメインに属する。</p>
+<p>全てのドメインはカーネルが属するドメイン「&lt;kernel&gt;」を基点として定義される。 /sbin/init はカーネルの属するドメインから起動されるので、 /sbin/init のドメインは「&lt;kernel&gt; /sbin/init」と定義される。 /etc/rc.d/rc はカーネルから起動された /sbin/init の属するドメインから起動されるので、 /etc/rc.d/rc のドメインは「&lt;kernel&gt; /sbin/init /etc/rc.d/rc」と定義される。</p>
+<p>実行時のプログラムの名前により異なる動作をするプログラムが存在する。例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクである。 TOMOYO Linux は正規化したパス名を使用するので、 /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義される。</p>
+<p>プロセスがプログラムを実行しようとすると、以下の処理が行われる。</p>
+
+<table border="1">
+<tr><td>Step</td><td>内容</td></tr>
+<tr><td>プログラム名の取得</td><td>
+<p>実行しようとするプログラムの「正規化されたファイル名」を取得して「パス名候補１」とする。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決したパス名を取得する。</p>
+<p>実行しようとするプログラムの「正規化されたファイル名」を取得して「パス名候補２」とする。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決する前のパス名を取得する。</p>
+</td></tr>
+<tr><td>シンボリックリンクの識別</td><td>
+<p>「パス名候補１」と「パス名候補２」が一致しない場合、例外ポリシーから</p>
+
+<ul>
+<li>alias 「パス名候補１」 「パス名候補２」
+</ul>
+
+<p>というエントリを探す。見つかった場合は「パス名候補２」を「パス名候補１」とする。</p>
+</td></tr>
+<tr><td>argv[0] のチェック</td><td>
+<p>「パス名候補１」の最後の / 以降の部分と argv[0] の最後の / 以降の部分が異なっている場合、ドメイン別ポリシーから</p>
+
+<ul>
+<li>allow_argv0 「パス名候補１」 「argv[0]の最後の / 以降の部分」
+</ul>
+
+<p>というエントリを探す。見つからなければ拒否する。</p>
+</td></tr>
+<tr><td>類似するプログラムの集約</td><td>
+<p>例外ポリシーから</p>
+
+<ul>
+<li>aggregator 「パス名候補１」 「集約されたパス名」
+</ul>
+
+<p>というエントリを探す。見つかった場合は、「集約されたパス名」を「パス名候補１」とする。</p>
+</td></tr>
+<tr><td>権限のチェック</td><td>
+<p>ドメイン別ポリシーから</p>
+
+<ul>
+<li>1 「パス名候補１」
+<li>3 「パス名候補１」
+<li>5 「パス名候補１」
+<li>7 「パス名候補１」
+<li>1 @「パス名候補１」を含むグループ名
+<li>3 @「パス名候補１」を含むグループ名
+<li>5 @「パス名候補１」を含むグループ名
+<li>7 @「パス名候補１」を含むグループ名
+</ul>
+
+<p>というエントリを探す。見つからなければ拒否する。</p>
+</td></tr>
+<tr><td>遷移先の決定</td><td>
+
+<p>(1) 例外ポリシーから</p>
+
+<ul>
+<li>no_initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_initialize_domain 「パス名候補１」
+<li>no_initializer 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_initializer 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_initializer 「パス名候補１」
+</ul>
+
+<p>というエントリを探す。見つかった場合は (3) へ進む。</p>
+
+<p>(2) 例外ポリシーから</p>
+
+<ul>
+<li>initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>initialize_domain 「パス名候補１」
+<li>initializer 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>initializer 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>initializer 「パス名候補１」
+</ul>
+
+<p>というエントリを探す。見つかった場合は「カーネルが属しているドメインのドメイン名（&lt;kernel&gt;）」と「パス名候補１」とを連結して「遷移先ドメイン」として (6) へ進む。</p>
+
+<p>(3) 例外ポリシーから</p>
+
+<ul>
+<li>no_keep_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+</ul>
+
+<p>というエントリを探す。見つかった場合は (5) へ進む。</p>
+
+<p>(4) 例外ポリシーから</p>
+
+<ul>
+<li>keep_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+</ul>
+
+<p>というエントリを探す。見つかった場合は「現在のプロセスが属しているドメインのドメイン名」を「遷移先ドメイン」とし、 (7) へ進む。</p>
+
+<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補１」とを連結して「遷移先ドメイン」とし、(6)へ進む。</p>
+
+<p>(6) ドメイン別ポリシーから「遷移先ドメイン」を探す。見つからなければ拒否する。</p>
+
+<p>(7)通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移する。</p>
+</td></tr>
+</table>
+
+<hr>
+<h1><a name="policy_files_and_syntaxes">2. ポリシーファイルの分類と構文</a></h1>
+<p>ポリシーファイルは全て /etc/ccs/ ディレクトリに作成しておく。このディレクトリに存在するファイルが /sbin/init の開始時に /.init によって読み込まれるようになっている。</p>
+<h2><a name="manager.txt">2.1 ポリシーマネージャ定義（manager.txt）</a></h2>
+<p>全てのプログラムがポリシーの変更を行えるのは危険であるため、このファイルには /proc/ccs/ インタフェースへの書き込みアクセスを許可するプログラムまたはドメインを定義しておく。</p>
+<p>このファイルに定義されていないプログラムやドメインからは /proc/ccs/ インタフェースへの書き込みアクセスができない。システム運用時にポリシーの変更を許可しない場合はこのファイルを削除しておく。</p>
+<p>（例）<br>
+/root/ccstools/loadpolicy<br>
+/root/ccstools/editpolicy<br>
+/root/ccstools/setlevel<br>
+/root/ccstools/setprofile<br>
+/root/ccstools/ld-watch<br>
+/root/ccstools/ccs-queryd<br>
+&lt;kernel&gt; /sbin/mingetty /root/bin/bash
+</p>
+<h2><a name="status.txt">2.2 プロファイル定義（status.txt）</a></h2>
+<p>TOMOYO Linuxでは、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができるが、ポリシー管理の負担を減らすために、必要の無い機能を無効化できるようになっている。</p>
+<table border="1">
+<tr>
+<td>項目</td>
+<td>内容</td>
+<td>自動学習対応</td>
+</tr>
+<tr>
+<td>MAC_FOR_FILE</td>
+<td>ファイルに対する強制アクセス制御を有効にする。</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_ARGV0</td>
+<td>プログラム実行時の argv[0] のチェックを有効にする。</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_CAPABILITY::***</td>
+<td>ケイパビリティに対する強制アクセス制御を有効にする。<br>
+*** の部分には<a href="#domain_policy.txt">ドメイン別ポリシー</a>の allow_capability キーワードで指定可能な値が入る。<br></td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_NETWORK</td>
+<td>ネットワークに対する強制アクセス制御を有効にする。</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_SIGNAL</td>
+<td>シグナルの送信に対する強制アクセス制御を有効にする。</td>
+<td>○</td>
+</tr>
+<tr>
+<td>DENY_CONCEAL_MOUNT</td>
+<td>既存のマウントを隠蔽するようなマウントを禁止する。</td>
+<td>×</td>
+</tr>
+<tr>
+<td>RESTRICT_CHROOT</td>
+<td>chroot で移動可能なディレクトリの制限を有効にする。</td>
+<td>○</td>
+</tr>
+<tr>
+<td>RESTRICT_MOUNT</td>
+<td>mount で指定可能なパラメータの制限を有効にする。</td>
+<td>○</td>
+</tr>
+<tr>
+<td>RESTRICT_UNMOUNT</td>
+<td>指定されたディレクトリのアンマウントを禁止する。</td>
+<td>×</td>
+</tr>
+<tr>
+<td>RESTRICT_PIVOT_ROOT</td>
+<td>pivot_root で交換可能なディレクトリの制限を有効にする。</td>
+<td>○</td>
+</tr>
+<tr>
+<td>RESTRICT_AUTOBIND</td>
+<td>ローカルのポート番号を自動選択させる際に、特定のポート番号を選択させないようにする。</td>
+<td>×</td>
+</tr>
+<tr>
+<td>MAX_ACCEPT_ENTRY</td>
+<td>学習モードで自動的に追加されるアクセス許可の上限を指定する。</td>
+<td>－</td>
+</tr>
+<tr>
+<td>MAX_GRANT_LOG</td>
+<td>アクセスが許可されたログの上限を指定する。</td>
+<td>－</td>
+</tr>
+<tr>
+<td>MAX_REJECT_LOG</td>
+<td>アクセスが拒否されたログの上限を指定する。</td>
+<td>－</td>
+</tr>
+<tr>
+<td>TOMOYO_VERBOSE</td>
+<td>ドメイン別ポリシーに対する違反を syslog に表示する。</td>
+<td>－</td>
+</tr>
+<tr>
+<td>ALLOW_ENFORCE_GRACE</td>
+<td>ポリシーに違反するアクセス要求を対話的に許可する。</td>
+<td>－</td>
+</tr>
+</table>
+<p>RESTRICT_AUTOBIND については以下の値を指定できる。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>0</td>
+<td>無効。通常のカーネルと同様に動作する。</td>
+</tr>
+<tr>
+<td>1</td>
+<td>有効。</td>
+</tr>
+</table>
+<p>MAX_ACCEPT_ENTRY については以下の値を指定できる。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>任意の整数</td>
+<td>学習モードで自動的に追加されるアクセス許可の上限。デフォルトはデフォルトはカーネルのコンパイル時に指定。</td>
+</tr>
+</table>
+<p>MAX_GRANT_LOG および MAX_REJECT_LOG については以下の値を指定できる。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>任意の整数</td>
+<td>カーネル内に保持するアクセスログの上限。デフォルトはカーネルのコンパイル時に指定。</td>
+</tr>
+</table>
+<p>TOMOYO_VERBOSE については以下の値を指定できる。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>0</td>
+<td>ドメイン別ポリシーに対する違反を表示しない。</td>
+</tr>
+<tr>
+<td>1</td>
+<td>ドメイン別ポリシーに対する違反を表示する。</td>
+</tr>
+</table>
+<p>ALLOW_ENFORCE_GRACE については以下の値を指定できる。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>0</td>
+<td>強制モードでポリシーに違反したら直ちに拒否する。</td>
+</tr>
+<tr>
+<td>1</td>
+<td>強制モードでポリシーに違反しても、対話的な操作により許可することを可能にする。</td>
+</tr>
+</table>
+<p>上記以外については以下の値を指定できる。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>0</td>
+<td>無効。通常のカーネルと同様に動作する。</td>
+</tr>
+<tr>
+<td>1</td>
+<td>学習モード。ポリシーに違反しても警告をエラーにせず、ポリシーへの自動追加を行う。</td>
+</tr>
+<tr>
+<td>2</td>
+<td>許容モード。ポリシーに違反してもエラーにせず、ポリシーへの自動追加も行わない。</td>
+</tr>
+<tr>
+<td>3</td>
+<td>強制モード。ポリシーに違反したらエラーとする。</td>
+</tr>
+</table>
+<p>有効にしたい機能とそのモードを「プロファイル番号-項目=値」という形式で定義する。
+プロファイル番号は 0 ～ 255 が指定可能である。プロファイルを切り替えるには setprofile コマンドを使用する。また、現在割り当てられているプロファイル番号は <a href="#domain_policy.txt">ドメイン別ポリシー（domain_policy.txt）</a> の中に use_profile というキーワードで保持される。</p>
+
+<h2><a name="system_policy.txt">2.3 システムポリシー（system_policy.txt）</a></h2>
+<p>このファイルでは、システム全体に対して適用されるアクセス許可を定義する。以下の 4 種類のアクセス許可を指定できる。</p>
+<ul>
+<li>マウントを許可するデバイスおよびマウントポイント</li>
+<li>アンマウントを許可しないマウントポイント</li>
+<li>chroot で移動できるディレクトリ</li>
+<li>pivot_root で交換できるディレクトリ</li>
+<li>ローカルポート番号の自動選択時に選択させないポート</li>
+</ul>
+<h3>マウントを許可するデバイスおよびマウントポイント</h3>
+<p>マウント許可を指定するには、 allow_mount というディレクティブに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定する。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけない。マウントポイントは正規化されたディレクトリ名でなければいけない。オプションは dev,nodev,exec,noexec,suid,nosuid,rw,ro,atime,noatime,diratime,nodiratime,recurse,norecurse の組み合わせである。指定されたオプションはマウント時の指定に優先する。 例えば、 rw が指定されていた場合、ユーザが ro を指定したとしても、カーネルは rw が指定されたものとしてマウントする。オプションは省略可能である。</p>
+
+<p>「any マウントポイント --remount オプション」と指定すると、「mount -o remount マウントポイント」が許可される。</p>
+
+<p>「複製元 複製先 --bind」と指定すると、「mount --bind 複製元 複製先」が許可される。<br>
+「移動元 移動先 --move」と指定すると、「mount --move 移動元 移動先」が許可される。<br>
+複製元／複製先／移動元／移動先は正規化されたディレクトリ名でなければならない。</p>
+
+<p>カーネル 2.6.15 以降では、 Shared Subtree という機能が利用できる。<br>
+「any マウントポイント --make-unbindable オプション」と指定すると、「mount --make-unbindable マウントポイント」が許可される。<br>
+「any マウントポイント --make-private オプション」と指定すると、「mount --make-private マウントポイント」が許可される。<br>
+「any マウントポイント --make-slave オプション」と指定すると、「mount --make-slave マウントポイント」が許可される。<br>
+「any マウントポイント --make-shared オプション」と指定すると、「mount --make-shared マウントポイント」が許可される。<br>
+オプションは recurse または norecurse のどちらかである。指定されたオプションはマウント時の指定に優先する。 例えば、 recurse が指定されていた場合、ユーザが norecurse を指定したとしても、カーネルは recurse が指定されたものとしてマウントする。オプションは省略可能である。</p>
+
+<h3>アンマウントを許可しないマウントポイント</h3>
+<p>アンマウント禁止を指定するには、 deny_unmount というディレクティブに続けて、アンマウントを許可しない正規化されたディレクトリ名を指定する。<br>
+通常、 /sbin/mingetty が使用する /dev/tty? を含む /dev/ ディレクトリと、リモートログインする場合に pty デバイスファイルが作成される /dev/pts/ ディレクトリを指定する。</p>
+<p>/dev が読み込み専用になってしまったり、 /dev/pts がアンマウントされてしまうと、ログインができなくなる。そのため、 / が読み込み専用のシステムでは、 /dev/ や /dev/pts/ がアンマウントされないようにしなければならない。</p>
+<h3>chroot で移動できるディレクトリ</h3>
+<p>chroot 許可を指定するには、 allow_chroot というディレクティブに続けて、 chroot で移動することを許可したい正規化されたディレクトリ名を指定する。<br>
+通常、 sshd が使用する /var/empty/sshd/ を指定する。 その他に chroot 環境で動かしたいアプリケーションや、 chroot を行うアプリケーション（ vsftpd の場合 /usr/share/empty/ ）が存在する場合は、それらも指定する。</p>
+<h3>pivot_root で交換できるディレクトリ</h3>
+<p>pivot_root 許可を指定するには、 allow_pivot_root というディレクティブに続けて、新しいルートとなる正規化されたディレクトリ名と古いルートディレクトリとなる正規化されたディレクトリ名を指定する。<br>
+通常、このディレクティブを使う必要は無い。</p>
+<h3>ローカルポート番号の自動選択時に選択させないポート</h3>
+<p>ローカルポートの自動選択で特定のポート番号が選択させるのを禁止するには、 deny_autobind というディレクティブに続けて、ローカルポート番号を指定する。 このディレクティブは、特定のポート番号が一時的な用途で割り当てられるのを防ぐのが狙いである。 例えば、一部のプロキシサーバはポート8080を使用するので、ポート8080が一時的な用途のために割り当てられるべきではない。</p>
+<h3>ポリシー例</h3>
+<table border="0">
+<tr>
+<td>allow_mount</td>
+<td>none</td>
+<td>/dev/pts/</td>
+<td>devpts</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>/proc</td>
+<td>/proc/</td>
+<td>proc</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>usbdevfs</td>
+<td>/proc/bus/usb/</td>
+<td>usbdevfs</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>none</td>
+<td>/data/</td>
+<td>tmpfs nosuid,nodev,noexec</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>none</td>
+<td>/dev/shm/</td>
+<td>tmpfs nosuid,nodev,noexec</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>/dev/hdc</td>
+<td>/var/www/</td>
+<td>ext2 ro,nosuid,nodev,noexec</td>
+</tr>
+<tr>
+<td>allow_mount</td>
+<td>any</td>
+<td>/</td>
+<td>--remount</td>
+</tr>
+<tr>
+<td>deny_unmount</td>
+<td>/dev/</td>
+</tr>
+<tr>
+<td>deny_unmount</td>
+<td>/dev/pts/</td>
+</tr>
+<tr>
+<td>deny_unmount</td>
+<td>/proc/</td>
+</tr>
+<tr>
+<td>allow_chroot</td>
+<td>/var/empty/sshd/</td>
+</tr>
+<tr>
+<td>allow_chroot</td>
+<td>/usr/share/empty/</td>
+</tr>
+<tr>
+<td>allow_chroot</td>
+<td>/var/www/html/</td>
+</tr>
+<tr>
+<td>allow_chroot</td>
+<td>/</td>
+</tr>
+<tr>
+<td>deny_autobind</td>
+<td>1-1023</td>
+</tr>
+<tr>
+<td>deny_autobind</td>
+<td>8080</td>
+</tr>
+</table>
+<h2><a name="domain_policy.txt">2.4 ドメイン別ポリシー（domain_policy.txt）</a></h2>
+<p>このファイルでは、全てのドメインを定義し、各ドメインに対して与えるアクセス許可を定義する。 以下の 5 種類のアクセス許可を指定できる。</p>
+<ul>
+<li>ファイルに対するアクセス許可</li>
+<li>指定可能な argv[0] の組み合わせ</li>
+<li>使用可能なケイパビリティ</li>
+<li>使用可能なネットワークアドレスとポート</li>
+<li>使用可能なシグナル</li>
+</ul>
+
+<p>それぞれのアクセス許可について、必要に応じて追加の条件を指定することができる。そのための構文は後述する。</p>
+
+<p>ドメインを定義している行（&lt;kernel&gt;で始まる行）の次行から次のドメインを定義している行の前行までが、そのドメインに対するアクセス許可である。</p>
+<h3>ファイルに対するアクセス許可</h3>
+<P>ファイルに対するアクセス許可としては、以下のディレクティブが存在する。</P>
+<table border="1">
+<tr><td>ディレクティブ</td><td>許可されるアクセス</td><td>指定例</td></tr>
+<tr><td>1</td><td>プログラムの実行</td><td>1 /bin/ls</td></tr>
+<tr><td>2</td><td>ファイルの書き込み</td><td>2 /dev/null</td></tr>
+<tr><td>3</td><td>ファイルの書き込みと実行</td><td>&nbsp;</td></tr>
+<tr><td>4</td><td>ファイルの読み込み</td><td>4 /proc/meminfo</td></tr>
+<tr><td>5</td><td>ファイルの読み込みと実行</td><td>&nbsp;</td></tr>
+<tr><td>6</td><td>ファイルの読み書き</td><td>6 /dev/null</td></tr>
+<tr><td>7</td><td>ファイルの読み書きと実行</td><td>&nbsp;</td></tr>
+<tr><td>allow_create</td><td>ファイルの新規作成</td><td>allow_create /var/lock/subsys/crond</td></tr>
+<tr><td>allow_unlink</td><td>ファイルの削除</td><td>allow_unlink /var/lock/subsys/crond</td></tr>
+<tr><td>allow_mkdir</td><td>ディレクトリの作成</td><td>allow_mkdir /tmp/logwatch.\*/</td></tr>
+<tr><td>allow_rmdir</td><td>ディレクトリの削除</td><td>allow_rmdir /tmp/logwatch.\*/</td></tr>
+<tr><td>allow_mkfifo</td><td>FIFO の作成</td><td>allow_mkfifo /dev/initctl</td></tr>
+<tr><td>allow_mksock</td><td>UNIX ドメインソケットの作成</td><td>allow_mksock /dev/log</td></tr>
+<tr><td>allow_mkblock</td><td>ブロック型デバイスファイルの作成</td><td>allow_mkblock /dev/\*</td></tr>
+<tr><td>allow_mkchar</td><td>キャラクタ型デバイスファイルの作成</td><td>allow_mkchar /dev/\*</td></tr>
+<tr><td>allow_truncate</td><td>ファイルの切り詰めと伸長</td><td>allow_truncate /etc/mtab</td></tr>
+<tr><td>allow_symlink</td><td>シンボリックリンクの作成</td><td>allow_symlink /dev/cdrom</td></tr>
+<tr><td>allow_link</td><td>ハードリンクの作成</td><td>allow_link /etc/mtab~\$ /etc/mtab~</td></tr>
+<tr><td>allow_rename</td><td>ファイル名の変更</td><td>allow_rename /etc/mtab.tmp /etc/mtab</td></tr>
+<tr><td>allow_rewrite</td><td>ファイル内容の上書き</td><td>allow_rewrite /var/log/messages</td></tr>
+</table>
+
+<p>1 3 5 7 以外のディレクティブではワイルドカードを使用できる。なお、ディレクティブ 3 5 7 の指定は極力避けるべきである。</p>
+
+<p>なお、<a href="#mapping.txt">マッピング定義</a>を使って、 allow_ で始まるディレクティブを 2 3 6 7 のいずれかに対するアクセス許可で代用することも可能である。</p>
+
+<h3>指定可能な argv[0] の組み合わせ</h3>
+
+<p>argv[0] の組み合わせを制限するには、 allow_argv0 というディレクティブに続けて、「正規化されたファイル名」と「argv[0] の最後の / より後ろの部分」を指定する。</p>
+
+<p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができる。いくつかのプログラム（例えば busybox ）は argv[0] の内容によって振る舞いを変化させる。
+プログラムへのシンボリックリンクを経由してプログラムを実行する場合、 TOMOYO Linux のドメイン遷移は filename が指すパス名を正規化した内容に基づいて行われるのに対し、振る舞いは argv[0] （通常は filename が指すパス名と同じ内容）に基づいて行われてしまう。例えば、 /bin/ls と /bin/cat が busybox へのハードリンクとして提供されている環境において、 /tmp/cat という /bin/ls へのシンボリックリンクを作成して /tmp/cat を実行することにより、 /bin/ls のためのドメインで cat として振舞うことができてしまうという抜け穴になる。</p>
+<p>このディレクティブの目的は、 filename と argv[0] の内容の組み合わせを制限することでそのような抜け穴を塞ぐことである。</p>
+
+<h3>使用可能なケイパビリティ</h3>
+<p>ケイパビリティのアクセス許可を指定するには、 allow_capability というディレクティブに続けて、ケイパビリティを指定する。以下のケイパビリティが指定できる。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>inet_tcp_create</td>
+<td>TCP ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>inet_tcp_listen</td>
+<td>TCP ソケットの listen を許可</td>
+</tr>
+<tr>
+<td>inet_tcp_connect</td>
+<td>TCP ソケットの connect を許可</td>
+</tr>
+<tr>
+<td>use_inet_udp</td>
+<td>UDP ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>use_inet_ip</td>
+<td>RAW ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>use_route</td>
+<td>ROUTE ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>use_packet</td>
+<td>PACKET ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>use_kernel_module</td>
+<td>create_module(2) init_module(2) delete_module(2) の使用を許可</td>
+</tr>
+<tr>
+<td>create_fifo</td>
+<td>mknod(2) で FIFO の作成を許可</td>
+</tr>
+<tr>
+<td>create_block_dev</td>
+<td>mknod(2) でブロック型デバイスの作成を許可</td>
+</tr>
+<tr>
+<td>create_char_dev</td>
+<td>mknod(2) でキャラクタ型デバイスの作成を許可</td>
+</tr>
+<tr>
+<td>create_unix_socket</td>
+<td>mknod(2) で UNIX ドメインソケットの作成を許可</td>
+</tr>
+<tr>
+<td>SYS_MOUNT</td>
+<td>mount(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_UMOUNT</td>
+<td>umount(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_REBOOT</td>
+<td>reboot(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_CHROOT</td>
+<td>chroot(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_KILL</td>
+<td>0 以外のシグナルで kill(2) tkill(2) tgkill(2)の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_VHANGUP</td>
+<td>vhangup(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_TIME</td>
+<td>stime(2) settimeofday(2) adjtimex(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_NICE</td>
+<td>nice(2) setpriority(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_SETHOSTNAME</td>
+<td>sethostname(2) setdomainname(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_LINK</td>
+<td>link(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_SYMLINK</td>
+<td>symlink(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_RENAME</td>
+<td>rename(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_UNLINK</td>
+<td>unlink(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_CHMOD</td>
+<td>chmod(2) fchmod(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_CHOWN</td>
+<td>chown(2) fchown(2) lchown(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_IOCTL</td>
+<td>ioctl(2) compat_sys_ioctl(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_KEXEC_LOAD</td>
+<td>kexec_load(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_PIVOT_ROOT</td>
+<td>pivot_root(2) の使用を許可</td>
+</tr>
+</table>
+<p>allow_capability ディレクティブの目的は、プログラムが呼び出すことができるシステムコールを制限することである。幾つかのシステムコールに対しては他のディレクティブやポリシーファイルを使用してより詳細な制限が可能になっている。</p>
+<ul>
+<li>作成を許可するキャラクタ型デバイスファイルのパス名を allow_mkblock ディレクティブを使用して制限することができる。
+<li>作成を許可するブロック型デバイスファイルのパス名を allow_mkchar ディレクティブを使用して制限することができる。
+<li>作成を許可する FIFO のパス名を allow_mkfifo ディレクティブを使用して制限することができる。
+<li>作成を許可する UNIX ドメインソケットのパス名を allow_mksock ディレクティブを使用して制限することができる。
+<li>作成を許可するシンボリックリンクのパス名を allow_symlink ディレクティブを使用して制限することができる。
+<li>削除を許可するパス名を allow_unlink ディレクティブを使用して制限することができる。
+<li>ハードリンクを許可する組み合わせを allow_link ディレクティブを使用して制限することができる。
+<li>パス名の変更を許可する組み合わせを allow_rename ディレクティブを使用して制限することができる。
+<li>使用を許可する IP アドレスの範囲ととポート番号の範囲を allow_network ディレクティブを使用して制限することができる。
+<li>送信可能なシグナルの番号と送信先のドメインを allow_signal ディレクティブを使用して制限することができる。
+<li>マウントを許可するデバイスおよびマウントポイントを allow_mount ディレクティブを使用して制限することができる。
+<li>アンマウントを許可しないマウントポイントを deny_unmount ディレクティブを使用して指定することができる。
+<li>chroot で移動できるディレクトリを allow_chroot ディレクティブを使用して制限することができる。
+<li>pivot_root で交換できるディレクトリを allow_pivot_root ディレクティブを使用して制限することができる。
+</ul>
+<h3>使用可能なネットワークアドレスとポート</h3>
+<p>ネットワークのアクセス許可を指定するには、 allow_network というディレクティブに続けて、プロトコル（TCP UDP RAW の何れか）、 IP アドレス、ポート番号（TCP UDP の場合）またはプロトコル番号（RAW の場合）を指定する。 IPv4 プロトコルおよび IPv6 プロトコルで使用するローカルポート番号が対象である。</p>
+<table border="1">
+<tr><td>ディレクティブ</td><td>許可されるアクセス</td><td>指定例</td></tr>
+<tr><td>allow_network TCP bind</td><td>ローカルの TCP アドレス／ポートの割り当て</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
+<tr><td>allow_network TCP listen</td><td>ローカルの TCP アドレス／ポートでの待機</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
+<tr><td>allow_network TCP accept</td><td>リモートの TCP アドレス／ポートからの接続受付および通信</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
+<tr><td>allow_network TCP connect</td><td>リモートの TCP アドレス／ポートへの接続および通信</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
+<tr><td>allow_network UDP bind</td><td>ローカルの UDP アドレス／ポートの割り当て</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
+
+<tr><td>allow_network UDP connect</td><td>リモートの UDP アドレス／ポートとの通信</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
+<tr><td>allow_network RAW bind</td><td>ローカルの IP アドレス／プロトコルの割り当て</td><td>allow_network RAW bind 127.0.0.1 255</td></tr>
+<tr><td>allow_network RAW connect</td><td>リモートの IP アドレス／プロトコルとの通信</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
+</table>
+<p>IPv6 で使われる "::" という表記はサポートされていない。 "::1" ではなく "0:0:0:0:0:0:0:1" のように表記する必要がある。</p>
+<p>msg_name == NULL での recvmsg() および read() の場合はパーミッションのチェックは行われない。</p>
+<h3>使用可能なシグナル</h3>
+<p>シグナルのアクセス許可を指定するには、 allow_signal というディレクティブに続けて、シグナルの番号および操作対象ドメインを指定する。<br>
+　例外が2つ存在する。シグナル番号が0の場合は常に許可される。また、自分の属するドメインへのシグナルの場合には常に許可される。<br>
+　その他の場合、このファイルに指定されたシグナル番号とドメイン名で始まる場合のみそのシグナルを送信できる。<br>
+　操作対象ドメインとして &lt;kernel&gt; を指定すると、全てのドメインに指定された番号のシグナルを送信できる。</p>
+
+<h3><a name="conditional_acl">条件付きアクセス許可の指定方法</a></h3>
+
+<p>アクセス許可にユーザＩＤ等に基づいた条件を付加することができる。条件は個々のアクセス許可の末尾に if というディレクティブを用いて指定する。</p>
+
+<table border="1">
+<tr><td>指定例</td><td>意味</td></tr>
+<tr><td>4 /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
+<tr><td>4 /etc/passwd if task.uid=0</td><td>プロセスのユーザIDが0の場合に限り、/etc/passwd の参照を許可</td></tr>
+<tr><td>4 /etc/passwd if task.uid!=0</td><td>プロセスのユーザIDが0ではない場合に限り、/etc/passwd の参照を許可</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1</td><td>TCP プロトコルで 10.0.0.1 への接続を許可</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 if task.uid=100</td><td>プロセスのユーザIDが100の場合に限り、TCP プロトコルで 10.0.0.1 への接続を許可</td></tr>
+<tr><td>allow_capability SYS_KILL</td><td>kill(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>プロセスが /sbin/init の子であり、かつ、プロセスのユーザIDと実効ユーザIDが0の場合に限り、kill(2) の使用を許可</td></tr>
+</table>
+
+<p>以下の変数を指定できる。</p>
+
+<table border="1">
+<tr><td>変数</td><td>意味</td></tr>
+<tr><td>task.uid</td><td>呼び出したプロセスのユーザＩＤ</td></tr>
+<tr><td>task.euid</td><td>呼び出したプロセスの実効ユーザＩＤ</td></tr>
+<tr><td>task.suid</td><td>呼び出したプロセスの保存ユーザＩＤ</td></tr>
+<tr><td>task.fsuid</td><td>呼び出したプロセスのファイルシステムユーザＩＤ</td></tr>
+<tr><td>task.gid</td><td>呼び出したプロセスのグループＩＤ</td></tr>
+<tr><td>task.egid</td><td>呼び出したプロセスの実効グループＩＤ</td></tr>
+<tr><td>task.sgid</td><td>呼び出したプロセスの保存グループＩＤ</td></tr>
+<tr><td>task.fsgid</td><td>呼び出したプロセスのファイルシステムグループＩＤ</td></tr>
+<tr><td>task.pid</td><td>呼び出したプロセスのプロセスＩＤ</td></tr>
+<tr><td>task.ppid</td><td>呼び出したプロセスの親プロセスのプロセスＩＤ</td></tr>
+<tr><td>path1.uid</td><td>許可されるパス名の所有者ＩＤ</td></tr>
+<tr><td>path1.gid</td><td>許可されるパス名のグループＩＤ</td></tr>
+<tr><td>path1.ino</td><td>許可されるパス名のｉノード番号</td></tr>
+<tr><td>path1.parent.uid</td><td>許可されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
+<tr><td>path1.parent.gid</td><td>許可されるパス名の親ディレクトリのグループＩＤ</td></tr>
+<tr><td>path1.parent.ino</td><td>許可されるパス名の親ディレクトリのｉノード番号</td></tr>
+<tr><td>path2.parent.uid</td><td>作成されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
+<tr><td>path2.parent.gid</td><td>作成されるパス名の親ディレクトリのグループＩＤ</td></tr>
+<tr><td>path2.parent.ino</td><td>作成されるパス名の親ディレクトリのｉノード番号</td></tr>
+</table>
+
+<p>path1 はパス名を必要とする操作の１個目のパス名に対応し、 path2 はパス名を必要とする操作の２個目のパス名に対応する。
+例えば、「allow_rename ファイル１ ファイル２」というアクセス許可の場合、 path1 がファイル１に、 path2 がファイル２に対応する。</p>
+
+<p>path1.uid および path1.gid は存在しないパス名に対しては指定できない。つまり、ファイル等の作成時（allow_create 等）には使用できない。</p>
+
+<p>path1.parent.uid および path1.parent.gid は常に指定可能である。</p>
+
+<p>path2.parent.uid および path2.parent.gid はパス名を２つ必要とする操作（つまり allow_link および allow_rename ）に限り指定できる。</p>
+
+<p>path2.uid および path2.gid はサポートしていない。（ rename 操作に於いて、 path2 が存在する場合には暗黙のうちに unlink または rmdir が実行される。）</p>
+
+<p>sysctl による読み書き（ /proc/sys/ ディレクトリ以下のファイルを open ではなく sysctl を用いてアクセス）を行う場合については、 path1 path2 ともにサポートしていない。</p>
+
+<h2><a name="exception_policy.txt">2.5 例外ポリシー（exception_policy.txt）</a></h2>
+<p>このファイルでは、ドメイン単位でのアクセス制御の例外を定義する。以下の 10 種類のアクセス例外を指定できる。</p>
+<ul>
+<li>パス名のパターン</li>
+<li>パス名のグループ</li>
+<li>アドレスのグループ</li>
+<li>無条件に読み込みを許可するファイル</li>
+<li>書き換えを禁止するファイル</li>
+<li>シンボリックリンクの名前で実行するプログラム</li>
+<li>集約するプログラム</li>
+<li>ドメイン遷移を初期化するプログラム</li>
+<li>ドメイン遷移を初期化させないプログラム</li>
+<li>ドメイン遷移を行わないドメイン</li>
+<li>ドメイン遷移を行わせるドメイン</li>
+</ul>
+
+<h3>パス名のパターン</h3>
+
+<p>パス名のパターン化を指示するには、 file_pattern というディレクティブに続けて、パス名のパターンを指定する。パス名は正規化されたパス名でなければならない。このディレクティブは実行許可を与える場合とドメイン定義には適用されない。<br>
+　例えば、プロセスＩＤを含む正規化されたパス名（/proc/PID/）は、アクセス制御が正しく行われるようにグループ化されなければならない。<br>
+　以下のワイルドカードが指定可能である。</p>
+
+<table border="1">
+<tr><td>値</td><td>意味</td></tr>
+<tr><td>\\</td><td>\ 自身</td></tr>
+<tr><td>\*</td><td>/ 以外の0文字以上</td></tr>
+<tr><td>\@</td><td>/ と . 以外の0文字以上</td></tr>
+<tr><td>\?</td><td>/ 以外の1文字</td></tr>
+<tr><td>\$</td><td>1桁以上の10進数</td></tr>
+<tr><td>\+</td><td>10進数1桁</td></tr>
+<tr><td>\X</td><td>1桁以上の16進数</td></tr>
+<tr><td>\x</td><td>16進数1桁</td></tr>
+<tr><td>\A</td><td>1文字以上のアルファベット</td></tr>
+<tr><td>\a</td><td>アルファベット1文字</td></tr>
+<tr><td>\-</td><td>パス名を除外する演算子</td></tr>
+</table>
+
+<p>\- は以下のように使用する。</p>
+
+<table border="1">
+<tr><td>指定</td><td>意味</td></tr>
+<tr><td>/etc/\*</td><td>/etc/ 直下の全ファイル</td></tr>
+<tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\*shadow\* 以外の /etc/\*</td></tr>
+<tr><td>/\*\-proc\-sys/</td><td>/proc/ と /sys/ 以外の /\*/</td></tr>
+</table>
+
+<h3>パス名のグループ</h3>
+
+<p>パス名のグループを定義するには、 path_group というディレクティブに続けて、グループ名とパス名のパターンを指定する。<br>
+　例えば、ホームディレクトリ以下の全ファイルをまとめたい場合、</p>
+
+<table border="1">
+<tr><td>
+path_group HOME-DIR-FILE /home/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
+</td></tr>
+</table>
+
+<p>のように定義しておくことで、ドメイン別ポリシーのファイルに対するアクセス許可を指定する際に</p>
+
+<table border="1">
+<tr><td>
+4 @HOME-DIR-FILE
+</td></tr>
+</table>
+
+<p>のように指定できる。</p>
+
+<h3>アドレスのグループ</h3>
+
+<p>アドレスのグループを定義するには、 address_group というディレクティブに続けて、グループ名とIPアドレスのパターンを指定する。<br>
+　例えば、ローカルアドレスをまとめたい場合、</p>
+
+<table border="1">
+<tr><td>
+address_group local-address 10.0.0.0-10.255.255.255<br>
+address_group local-address 172.16.0.0-172.31.255.255<br>
+address_group local-address 192.168.0.0-192.168.255.255
+</td></tr>
+</table>
+
+<p>のように定義しておくことで、ドメイン別ポリシーのネットワークに対するアクセス許可を指定する際に</p>
+
+<table border="1">
+<tr><td>
+allow_network TCP accept @local-address 1024-65535
+</td></tr>
+</table>
+
+<p>のように指定できる。</p>
+
+<h3>無条件に読み込みを許可するファイル</h3>
+
+<p>無条件に読み込みを許可するファイルを指定するには、 allow_read というディレクティブに続けて、正規化されたファイル名を指定する。このディレクティブの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルを指定することで、<a href="#domain_policy.txt">ドメイン別ポリシー</a>の記述量を減らすことである。ＤＡＣで許可されれば全てのプロセスが読み込めるので、くれぐれも /etc/passwd のようなファイルを指定しないこと。</p>
+
+<h3>書き換えを禁止するファイル</h3>
+
+<p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録する。パターンが使用できる。 deny_rewrite というキーワードを使用して登録されたファイルは、ドメイン用ポリシーの中で明示的に allow_rewrite というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止される。</p>
+
+<h3>シンボリックリンクの名前で実行するプログラム</h3>
+
+<p>シンボリックリンクを解決した名前ではなくシンボリックリンクの名前のまま実行させるプログラムを指定するには、 alias というディレクティブに続けてシンボリックリンクを解決したパス名とシンボリックリンクを解決する前のパス名を指定する。このディレクティブの目的は、実行時の名前によって異なる振る舞いをするプログラムが、ハードリンクではなくシンボリックリンクで参照される場合に、シンボリックリンクの名前でドメインを遷移できるようにすることである。</p>
+<p>例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクであるため、通常は /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義される。しかし、 alias /sbin/killall5 /sbin/pidof という指定をすることで、 /sbin/pidof を実行すると /sbin/pidof が実行されたものとしてドメインが定義されるようにできる。</p>
+
+<h3>集約するプログラム</h3>
+
+<p>複数のプログラムを単一のプログラム名で扱うには、 aggregator というディレクティブに続けて集約前のプログラム名と集約後のプログラム名を指定する。このディレクティブの目的は、同様のプログラムを集約することである。</p>
+<p>例えば、 /usr/bin/tac と /bin/cat は似ているので、 aggregator /usr/bin/tac /bin/cat という指定をすることで /usr/bin/tac を /bin/cat のドメインで実行することができるようになる。</p>
+<p>例えば、Fedora Core 3 の /usr/sbin/logrotate は /tmp/logrotate.\?\?\?\?\?\? というパターンのプログラムを作成して実行するが、 TOMOYO Linux では安全上の理由からプログラムの実行許可を与える場合とドメインを定義する場合にパターンを使用することを認めていない。しかし、 aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp という指定をすることで /tmp/logrotate.\?\?\?\?\?\? を /tmp/logrotate.tmp のドメインで実行することができるようになる。</p>
+
+<h3>ドメイン遷移を初期化するプログラム</h3>
+
+<p>特定のプログラムが実行された場合にドメイン遷移を初期化させるには、 initialize_domain というディレクティブを使用する。</p>
+
+<ul>
+<li>initialize_domain プログラム名 from ドメイン名
+<li>initialize_domain プログラム名 from ドメイン名の最後のプログラム名
+<li>initialize_domain プログラム名
+<li>initializer プログラム名 from ドメイン名
+<li>initializer プログラム名 from ドメイン名の最後のプログラム名
+<li>initializer プログラム名
+</ul>
+
+<p> from 以降が指定されていない場合は任意のドメインから実行された場合に適用される。ドメイン名が &lt;kernel&gt; で始まらない場合は、ドメイン名の最後のプログラム名が一致する全てのドメインに適用される。</p>
+
+<p>このディレクティブの目的は、常駐型プログラムや必要に応じてカーネルから起動されるプログラムを、通常とは異なるドメインに遷移させることで、ドメイン遷移を集約することである。バージョン 1.3.1 までは initializer というディレクティブであったが、 1.3.2 では initialize_domain というディレクティブに変更された。</p>
+
+<h3>ドメイン遷移を初期化させないプログラム</h3>
+
+<p>initialize_domain または initializer の効力を打ち消すには、 no_initialize_domain というディレクティブを指定する。</p>
+<ul>
+<li>no_initialize_domain プログラム名 from ドメイン名
+<li>no_initialize_domain プログラム名 from ドメイン名の最後のプログラム名
+<li>no_initialize_domain プログラム名
+<li>no_initializer プログラム名 from ドメイン名
+<li>no_initializer プログラム名 from ドメイン名の最後のプログラム名
+<li>no_initializer プログラム名
+</ul>
+
+<p>このディレクティブはドメイン遷移を初期化させたくない場合に使用する。</p>
+
+<h3>ドメイン遷移を行わないドメイン</h3>
+
+<p>特定のドメインからプログラムが実行されてもドメイン遷移を行わないようにするには、 keep_domain というディレクティブを使用する。</p>
+
+<ul>
+<li>keep_domain プログラム名 from ドメイン名
+<li>keep_domain プログラム名 from ドメイン名の最後のプログラム名
+<li>keep_domain ドメイン名
+<li>keep_domain ドメイン名の最後のプログラム名
+</ul>
+
+<p> from 以前が指定されていない場合は任意のプログラムが実行された場合に適用される。ドメイン名が &lt;kernel&gt; で始まらない場合は、ドメイン名の最後のプログラム名が一致する全てのドメインに適用される。</p>
+
+<p>このディレクティブの目的は、不要なドメイン遷移の発生を抑制することでドメイン数とメモリ消費を抑えることである。</p>
+
+<h3>ドメイン遷移を行わせるドメイン</h3>
+
+<p>keep_domain の効力を打ち消すには、 no_keep_domain というディレクティブを指定する。</p>
+
+<ul>
+<li>no_keep_domain プログラム名 from ドメイン名
+<li>no_keep_domain プログラム名 from ドメイン名の最後のプログラム名
+<li>no_keep_domain ドメイン名
+<li>no_keep_domain ドメイン名の最後のプログラム名
+</ul>
+
+<p>このディレクティブはドメイン遷移を行わせたい場合に使用する。</p>
+
+<h2><a name="mapping.txt">2.6 マッピング定義（mapping.txt）</a></h2>
+<p>このファイルでは、ファイルに対する書き込みアクセス許可のチェック方法を定義する。
+どれくらい厳密にファイルに対する書き込みアクセス許可を制御したいかに応じて、書き込みアクセス許可の粒度をこのファイルを使用して切り替えられるようになっている。</p>
+
+<p>このファイルの書式は、「チェック項目=チェック方法」を列挙した形式である。以下に例を示す。</p>
+
+<table border="1">
+<tr><td>
+create=generic-write<br>
+unlink=generic-write<br>
+mkdir=mkdir<br>
+rmdir=rmdir<br>
+mkfifo=mkfifo<br>
+mksock=mksock<br>
+mkblock=mkblock<br>
+mkchar=mkchar<br>
+truncate=generic-write<br>
+symlink=symlink<br>
+link=link<br>
+rename=rename<br>
+rewrite=rewrite
+</td></tr>
+</table>
+
+<p>チェック方法として generic-write を指定した場合、そのチェック項目は、ディレクティブ 2 3 6 7 で与えられているアクセス許可でチェックされる。
+チェック方法として no-check を指定した場合、そのチェック項目はチェックされなくなる。
+チェック方法としてチェック項目と同じ値を指定した場合、そのチェック項目はそのディレクティブで与えられているアクセス許可でチェックされる。</p>
+
+<p>このファイルは起動時に１度だけ読み込まれ、起動後に変更することはできない。</p>
+<hr>
+<h1><a name="/proc/ccs/">3. /proc/ccs/ インタフェース</a></h1>
+<p>これは、起動後にポリシーを読み出し／追加／削除を行うためのインタフェースである。<a href="#manager.txt">ポリシーマネージャ定義</a>で定義されたプログラムのみがポリシーの追加と削除を行える。</p>
+<h2><a name="status">3.1 status</a></h2>
+<p>現在の制御レベルを取得または変更する。</p>
+<p>（例）<br>
+cat /proc/ccs/status<br>
+echo 'MAC_FOR_FILE=1' &gt; /proc/ccs/status</p>
+<h2><a name="policy/system_policy">3.2 policy/system_policy</a></h2>
+<p>現在の<a href="#system_policy.txt">システムポリシー</a>を読み出しまたは追加または削除する。</p>
+<p>（例）<br>
+echo 'allow_mount /proc /proc/ proc' &gt; /proc/ccs/policy/system_policy<br>
+echo 'delete allow_mount /proc /proc/ proc' &gt; /proc/ccs/policy/system_policy<br>
+cat /proc/ccs/policy/system_policy</p>
+<h2><a name="policy/domain_policy">3.3 policy/domain_policy</a></h2>
+<p>現在の<a href="#domain_policy.txt">ドメイン別ポリシー</a>を読み出しまたは追加または削除する。</p>
+<p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成される）<br>
+printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/policy/domain_policy</p>
+<p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されない）<br>
+printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/policy/domain_policy</p>
+<p>（例）ドメインを選択してアクセス許可を削除<br>
+printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /proc/ccs/policy/domain_policy</p>
+<p>（例）特定のドメインを削除<br>
+printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/ccs/policy/domain_policy</p>
+<p>（例）ドメイン別ポリシーの読み出し<br>
+cat /proc/ccs/policy/domain_policy</p>
+<h2><a name="policy/exception_policy">3.4 policy/exception_policy</a></h2>
+<p>現在の<a href="#exception_policy.txt">例外ポリシー</a>を読み出しまたは追加または削除する。</p>
+<p>（例）<br>
+echo 'file_pattern /proc/\$/status' &gt; /proc/ccs/policy/exception_policy<br>
+echo 'delete file_pattern /proc/\$/status' &gt; /proc/ccs/policy/exception_policy<br>
+cat /proc/ccs/policy/exception_policy</p>
+<h2><a name="policy/query">3.5 policy/query</a></h2>
+<p>強制モードで動作中にポリシー違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用する。 ALLOW_ENFORCE_GRACE=1 に設定されているプロファイルが割り当てられているドメインに対して強制モードでポリシー違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できる。</p>
+<h2><a name="policy/manager">3.6 policy/manager</a></h2>
+<p>ポリシーの読み書きを行えるプログラムまたはドメインの一覧を取得または追加する。</p>
+<h2><a name="policy/.domain_status">3.7 policy/.domain_status</a></h2>
+<p>setprofile コマンドが行単位での処理を行いやすくするために policy/domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供する。</p>
+<h2><a name="info/meminfo">3.8 info/meminfo</a></h2>
+<p>TOMOYO Linuxがポリシーを保持するために使用しているカーネルのメモリ情報を取得する。</p>
+<p>（例）<br>
+cat /proc/ccs/info/meminfo<br></p>
+<h2><a name="info/grant_log">3.9 info/grant_log</a></h2>
+<p>ドメイン別ポリシーに対するアクセス許可ログを取得する。 取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使うこと。 記憶できる件数はMAX_GRANT_LOG件までである。 それ以上は記録されないので、随時読み出すようにする必要がある。</p>
+<p>（例）<br>
+cat /proc/ccs/info/grant_log</p>
+<h2><a name="info/reject_log">3.10 info/reject_log</a></h2>
+<p>ドメイン別ポリシーに対するアクセス拒否ログを取得する。 取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使うこと。 記憶できる件数はMAX_REJECT_LOG件までである。 それ以上は記録されないので、随時読み出すようにする必要がある。</p>
+<p>（例）<br>
+cat /proc/ccs/info/reject_log</p>
+<h2><a name="info/self_domain">3.11 info/self_domain</a></h2>
+<p>呼び出し元プロセスが属しているドメインの名前を取得する。</p>
+<p>（例）<br>
+cat /proc/ccs/info/self_domain</p>
+<h2><a name="info/mapping">3.12 info/mapping</a></h2>
+<p>MAC_FOR_FILE における書き込みアクセス許可のチェック方法を取得する。</p>
+<p>（例）<br>
+cat /proc/ccs/info/mapping</p>
+<h2><a name="info/.process_status">3.13 info/.process_status</a></h2>
+<p>ccstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシーマネージャとして登録されていないプログラムでも書き込みを行える。</p>
+<h2><a name="info/.updates_counter">3.14 info/.updates_counter</a></h2>
+<p>ポリシーの変更を検出するためのカウンタ。参照されるたびに 0 にリセットされる。ポリシーの更新を監視するプログラムのためのインタフェース。</p>
+<hr>
+<p><a href="index.html#manual">目次へ戻る</a></p>
+<hr>
+</body>
+</html>
