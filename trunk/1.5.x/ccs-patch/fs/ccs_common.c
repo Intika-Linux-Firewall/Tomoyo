@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.2   2007/07/13
+ * Version: 1.5.0-pre   2007/08/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -519,8 +519,6 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 	return ptr;
 }
 
-static int profile_loaded = 0;
-
 static int SetStatus(struct io_buffer *head)
 {
 	char *data = head->write_buf;
@@ -538,7 +536,6 @@ static int SetStatus(struct io_buffer *head)
 	cp = strchr(data, '=');
 	if (!cp) return -EINVAL;
 	*cp = '\0';
-	profile_loaded = 1;
 	UpdateCounter(CCS_UPDATES_COUNTER_STATUS);
 	if (strcmp(data, ccs_control_array[CCS_PROFILE_COMMENT].keyword) == 0) {
 		profile->comment = SaveName(cp + 1);
@@ -1172,6 +1169,8 @@ static int ReadSystemPolicy(struct io_buffer *head)
 
 /*************************  POLICY LOADER  *************************/
 
+static int profile_loaded = 0;
+
 static const char *ccs_loader = NULL;
 
 static int __init CCS_loader_Setup(char *str)
@@ -1200,21 +1199,38 @@ void CCS_LoadPolicy(const char *filename)
 	 */
 	{
 		struct nameidata nd;
-		if (!ccs_loader) ccs_loader = "/.init";
+		if (!ccs_loader) ccs_loader = "/sbin/ccs-init";
 		if (path_lookup(ccs_loader, lookup_flags, &nd)) {
 			printk("Not activating Mandatory Access Control now since %s doesn't exist.\n", ccs_loader);
 			return;
 		}
 		path_release(&nd);
 	}
-
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.4.2   2007/07/13\n");
+	printk("SAKURA: 1.5.0-pre   2007/08/06\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.4.2   2007/07/13\n");
+	printk("TOMOYO: 1.5.0-pre   2007/08/06\n");
 #endif
-	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
+	if (!profile_loaded) {
+		char *argv[2], *envp[3];
+		printk("Calling %s to load policy. Please wait.\n", ccs_loader);
+		argv[0] = (char *) ccs_loader;
+		argv[1] = NULL;
+		envp[0] = "HOME=/";
+		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
+		envp[2] = NULL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+		call_usermodehelper(argv[0], argv, envp, 1);
+#else
+		call_usermodehelper(argv[0], argv, envp);
+#endif
+		while (!profile_loaded) {
+			set_current_state(TASK_INTERRUPTIBLE);
+			schedule_timeout(HZ / 10);
+		}
+	}
+	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;
 	ccs_log_level = KERN_WARNING;
@@ -1497,12 +1513,6 @@ int CCS_OpenControl(const int type, struct file *file)
 	case CCS_INFO_SELFDOMAIN:
 		head->read = ReadSelfDomain;
 		break;
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
-	case CCS_INFO_MAPPING:
-		if (!sbin_init_started) head->write = SetPermissionMapping;
-		head->read = ReadPermissionMapping;
-		break;
-#endif
 #endif
 #ifdef CONFIG_SAKURA
 	case CCS_POLICY_SYSTEMPOLICY:
@@ -1624,6 +1634,7 @@ int CCS_CloseControl(struct file *file)
 {
 	struct io_buffer *head = file->private_data;
 	if (head->write == WriteAnswer) atomic_dec(&queryd_watcher);
+	else if (head->read == ReadMemoryCounter) profile_loaded = 1;
 	ccs_free(head->read_buf); head->read_buf = NULL;
 	ccs_free(head->write_buf); head->write_buf = NULL;
 	ccs_free(head); head = NULL;

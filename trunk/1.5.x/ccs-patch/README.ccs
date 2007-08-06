@@ -944,3 +944,30 @@ Fix 2007/07/10
       but permission check was missing.
 
 Version 1.4.2 2007/07/13   Bug fix release.
+
+Fix 2007/08/06
+
+    @ Remove mount-flags manipulation.
+
+      Until now, administrator is permitted to turn on/off specific mount options
+      regardless of mount options passed to kernel.
+      I removed this feature because "exact option matching" sounds better than
+      "automatic option enabler/disabler".
+
+    @ Remove /proc/ccs/info/mapping .
+
+      I removed /proc/ccs/info/mapping because nobody seems to use this feature.
+
+    @ Call external policy loader automatically.
+
+      Until now, users had to add init=/.init parameter to load policy
+      before /sbin/init starts.
+      I inserted call_usermodehelper() to call external policy loader when 
+      execve("/sbin/init") is requested and external policy loader exists.
+
+      This change will remove init=/.init parameter from most environment,
+      although call_usermodehelper() can't handle interactive operations.
+
+    @ Move external policy loader from /.init to /sbin/ccs-init .
+
+      Installing programs in / directory is not good for packaging.

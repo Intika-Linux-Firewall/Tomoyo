@@ -20,7 +20,6 @@
 <p><a href="#system_policy.txt">2.3 System policy (system_policy.txt)</a></p>
 <p><a href="#domain_policy.txt">2.4 Domain policy (domain_policy.txt)</a></p>
 <p><a href="#exception_policy.txt">2.5 Exception policy (exception_policy.txt)</a></p>
-<p><a href="#mapping.txt">2.6 Mapping Definition (mapping.txt)</a></p>
 <h2><a href="#/proc/ccs/">3. /proc/ccs/ interface</a></h2>
 <p><a href="#status">3.1 status</a></p>
 <p><a href="#policy/system_policy">3.2 policy/system_policy</a></p>
@@ -33,9 +32,8 @@
 <p><a href="#info/grant_log">3.9 info/grant_log</a></p>
 <p><a href="#info/reject_log">3.10 info/reject_log</a></p>
 <p><a href="#info/self_domain">3.11 info/self_domain</a></p>
-<p><a href="#info/mapping">3.12 info/mapping</a></p>
-<p><a href="#info/.process_status">3.13 info/.process_status</a></p>
-<p><a href="#info/.updates_counter">3.14 info/.updates_counter</a></p>
+<p><a href="#info/.process_status">3.12 info/.process_status</a></p>
+<p><a href="#info/.updates_counter">3.13 info/.updates_counter</a></p>
 <hr>
 <h1><a name="Introduction">1. Introduction</a></h1>
 <h2><a name="word_definition">1.1 Word definition</a></h2>
@@ -191,7 +189,7 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 
 <hr>
 <h1><a name="policy_files_and_syntaxes">2. Types and syntaxes of policy files</a></h1>
-<p>All policy files are kept in /etc/ccs/ directory. Files in this directory are loaded just before starting /sbin/init by /.init .</p>
+<p>All policy files are kept in /etc/ccs/ directory. Files in this directory are loaded just before starting /sbin/init by /sbin/ccs-init .</p>
 <h2><a name="manager.txt">2.1 Policy Manager Definitions (manager.txt)</a></h2>
 <p>Since it is not secure that all processes can modify policies, this file defines PROGRAM or DOMAIN that can do write access to /proc/ccs/ interface.</p>
 <p>PROGRAM or DOMAIN that are not declared in this file cannot do write access to /proc/ccs/ interface. If you don't allow policy updates at production state, delete this file.</p>
@@ -402,18 +400,18 @@ The default is given at the kernel compilation time.</td>
 <p>To grant mount permission, use allow_mount directive followed by "$devicefile $mountpoint $filesystem $options".<br>
 The $devicefile need to be a Canonicalized File if the $filesystem requires device file.<br>
 The $mountpoint must be a Canonicalized Directory.<br>
-The $options are the choice of dev,nodev,exec,noexec,suid,nosuid,rw,ro,atime,noatime,diratime,nodiratime,recurse,norecurse. The $options overrides the user's requests. For example, if rw is given for $options, the kernel will mount for read-write even if the user requested to mount for read-only. The $options can be omitted.</p>
+The $options is an integer expression.</p>
 
 <p>To grant "mount -o remount $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --remount $options".</p>
 
-<p>To grant "mount --bind $source_dir $dest_dir" and "mount --move $source_dir $dest_dir" permission, use allow_mount directive followed by "$source_dir $dest_dir --bind" and "$source_dir $dest_dir --move" respectively. The $source_dir and $dest_dir must be Canonicalized Directory.</p>
+<p>To grant "mount --bind $source_dir $dest_dir" and "mount --move $source_dir $dest_dir" permission, use allow_mount directive followed by "$source_dir $dest_dir --bind $options" and "$source_dir $dest_dir --move $options" respectively. The $source_dir and $dest_dir must be Canonicalized Directory.</p>
 
 <p>Kernel 2.6.15 and later supports "Shared Subtree" functionality.<br>
 To grant "mount --make-unbindable $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-unbindable $options".<br>
 To grant "mount --make-private $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-private $options".<br>
 To grant "mount --make-slave $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-slave $options".<br>
-To grant "mount --make-shared $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-shared $options".<br>
-The $options are either recurse or norecurse. The $options overrides the user's requests. For example, if recurse is given for $options, the kernel will mount for recurse even if the user requested to mount for norecurse. The $options can be omitted.</p>
+To grant "mount --make-shared $mountpoint" permission, use allow_mount directive followed by "any $mountpoint --make-shared $options".
+</p>
 <h3>Directories that don't allow to be unmounted</h3>
 <p>To reject unmount request, use deny_unmount directive followed by a Canonicalized Directory.</p>
 <p>Usually, specify /dev/ directory (that contains /dev/tty? used by /sbin/mingetty) and /dev/pts/ directory (that are used to create pty device files for remote login).</p>
@@ -552,8 +550,6 @@ For example, some proxy server uses local port 8080, so port 8080 should not be 
 </table>
 
 <p>You may use wildcards for directives other than 1 3 5 and 7. You should avoid using directives 3 5 and 7 as hard as possible.</p>
-
-<p>You may use one of directives 2 3 6 or 7 in place with directives that starts with "allow_" via <a href="#mapping.txt">Mapping Definition</a>.</p>
 
 <h3>MAC for argv[0]</h3>
 
@@ -960,35 +956,6 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>Use this directive when you want to escape from a DOMAIN that is kept by "keep_domain" directive.</p>
 
-<h2><a name="mapping.txt">2.6 Mapping Definition (mapping.txt)</a></h2>
-<p>This file defines mappings of write access permission checks for files and directories.
-This file allows you switching the granularity of write access permission checks based on how fine-grained do you want to control write access permissions for files and directories.</p>
-
-<p>The format of this file is a list of "item=method". An example is shown below.</p>
-
-<table border="1">
-<tr><td>
-create=generic-write<br>
-unlink=generic-write<br>
-mkdir=mkdir<br>
-rmdir=rmdir<br>
-mkfifo=mkfifo<br>
-mksock=mksock<br>
-mkblock=mkblock<br>
-mkchar=mkchar<br>
-truncate=generic-write<br>
-symlink=symlink<br>
-link=link<br>
-rename=rename<br>
-rewrite=rewrite
-</td></tr>
-</table>
-
-<p>If "generic-write" is specified as the method, the item is checked using permissions for directive 2 3 6 or 7.
-If "no-check" is specified as the method, the item is not checked.
-If a method same as the item's name, the item is checked using permissions for directive of the item.</p>
-
-<p>This file is read only once at boot. You can't switch after boot.</p>
 <hr>
 <h1><a name="/proc/ccs/">3. /proc/ccs/ interface</a></h1>
 <p>This is the interface to read/append/delete policies after boot. Only PROGRAMs that are declared in <a href="#manager.txt">Policy Manager Definition</a> can append/delete policies.</p>
@@ -1046,13 +1013,9 @@ cat /proc/ccs/info/reject_log</p>
 <p>This file is to show the name of domain the caller process belongs to.</p>
 <p>(Example)<br>
 cat /proc/ccs/info/self_domain</p>
-<h2><a name="info/mapping">3.12 info/mapping</a></h2>
-<p>This file is to show the mapping of write access permission checks.</p>
-<p>(Example)<br>
-cat /proc/ccs/info/mapping</p>
-<h2><a name="info/.process_status">3.13 info/.process_status</a></h2>
+<h2><a name="info/.process_status">3.12 info/.process_status</a></h2>
 <p>This file is used by "ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by PROGRAMS that aren't registered as policy manager.</p>
-<h2><a name="info/.updates_counter">3.14 info/.updates_counter</a></h2>
+<h2><a name="info/.updates_counter">3.13 info/.updates_counter</a></h2>
 <p>This file is a counter used by policy update monitor programs so that they can easily find that the policies may have changed since last check. The counter values are reset to 0 whenever it is referred.</p>
 <hr>
 <p><a href="index.html#manual">Return to index</a></p>
