@@ -20,7 +20,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # kernel spec when the kernel is rebased, so fedora_build automatically
 # works out to the offset from the rebase, so it doesn't get too ginormous.
 %define fedora_cvs_origin 3260
-%define fedora_build %(R="$Revision: 1.3293 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.3301 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -381,7 +381,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # problems with the newer kernel or lack certain things that make
 # integration in the distro harder than needed.
 #
-%define package_conflicts initscripts < 7.23, udev < 063-6, iptables < 1.3.2-1, ipw2200-firmware < 2.4, selinux-policy-targeted < 1.25.3-14
+%define package_conflicts initscripts < 7.23, udev < 063-6, iptables < 1.3.2-1, ipw2200-firmware < 2.4, selinux-policy-targeted < 1.25.3-14, cpuspeed < 1.2.1-2
 
 #
 # The ld.so.conf.d file we install uses syntax older ldconfig's don't grok.
@@ -530,6 +530,7 @@ Patch25: linux-2.6-utrace-ptrace-compat-s390.patch
 Patch26: linux-2.6-utrace-ptrace-compat-avr32.patch
 #Patch20: nouveau-drm.patch
 Patch30: linux-2.6-sysrq-c.patch
+Patch35: linux-2.6-irq-dont-mask-interrupts-_reversed_.patch
 Patch40: linux-2.6-x86-tune-generic.patch
 Patch41: linux-2.6-x86-vga-vidfail.patch
 Patch42: linux-2.6-i386-hpet-check-if-the-counter-works.patch
@@ -541,6 +542,11 @@ Patch93: linux-2.6-kvm-reinit-real-mode-tss.patch
 Patch100: linux-2.6-g5-therm-shutdown.patch
 Patch120: linux-2.6-ppc32-ucmpdi2.patch
 Patch130: linux-2.6-ibmvscsi-schizo.patch
+Patch131: linux-2.6-powerpc-generic-suspend-1-remove-dead-code.patch
+Patch132: linux-2.6-powerpc-generic-suspend-2-remove-adb-sleep-notifier.patch
+Patch133: linux-2.6-powerpc-generic-suspend-3-remove-dmasound.patch
+Patch134: linux-2.6-powerpc-generic-suspend-4-kill-pmu-sleep-notifier.patch
+Patch135: linux-2.6-powerpc-generic-suspend-5-pmu-pm_ops.patch
 Patch140: linux-2.6-pmac-zilog.patch
 Patch150: linux-2.6-build-nonintconfig.patch
 Patch160: linux-2.6-execshield.patch
@@ -597,13 +603,17 @@ Patch665: linux-2.6-libata-unbreak-smart.patch
 Patch666: linux-2.6-libata-unbreak-smart-2.patch
 Patch667: linux-2.6-libata-ata_piix_fix_pio-mwdma-programming.patch
 Patch668: linux-2.6-libata_pata_atiixp_add_ati_sb700.patch
-Patch680: git-wireless-dev.patch
-Patch681: git-iwlwifi.patch
-Patch682: linux-2.6-rtl8187.patch
-Patch683: linux-2.6-wireless.patch
-Patch690: linux-2.6-e1000-ich9.patch
-Patch710: linux-2.6-bcm43xx-pci-neuter.patch
-Patch711: linux-2.6-sky2-restore-workarounds.patch
+Patch670: linux-2.6-libata-pata_hpt37x-fix-2.6.22-clock-pll.patch
+Patch671: linux-2.6-libata-pata_ali-fix-hp-detect.patch
+Patch680: linux-2.6-rtl8187.patch
+Patch681: linux-2.6-wireless.patch
+Patch682: linux-2.6-bcm43xx-pci-neuter.patch
+Patch690: git-wireless-dev.patch
+Patch700: linux-2.6-iwlwifi-fw-name-compat.patch
+Patch710: linux-2.6-e1000-ich9.patch
+Patch712: linux-2.6-sky2-restore-workarounds.patch
+Patch713: linux-2.6-net-atl1-fix-typo-in-dma-setup.patch
+Patch714: linux-2.6-net-atl1-fix-typo-in-dma_req_block.patch
 Patch740: linux-2.6-sdhci-ene-controller-quirk.patch
 Patch741: linux-2.6-sdhci-fix-interrupt-mask.patch
 Patch742: linux-2.6-sdhci-clear-error-interrupt.patch
@@ -618,19 +628,22 @@ Patch1000: linux-2.6-dmi-based-module-autoloading.patch
 Patch1010: linux-2.6-ondemand-timer.patch
 Patch1020: linux-2.6-usb-autosuspend-default-disable.patch
 Patch1030: linux-2.6-nfs-nosharecache.patch
-Patch1351: linux-2.6-ps3-smp-boot.patch
-Patch1352: linux-2.6-ps3-system-bus-rework.patch
-Patch1353: linux-2.6-ps3-kexec.patch
-Patch1354: linux-2.6-ps3-gelic.patch
-Patch1355: linux-2.6-ps3-gelic-wireless.patch
-Patch1356: linux-2.6-ps3-ehci-iso.patch
-Patch1357: linux-2.6-ps3-clear-spu-irq.patch
-Patch1358: linux-2.6-ps3-wrap-spu-runctl.patch
-# Ignore the SPE logo bits. Cute, but not exactly necessary
-Patch1359: linux-2.6-ps3-storage.patch
-Patch1360: linux-2.6-ps3-sound.patch
-Patch1361: linux-2.6-ps3-device-init.patch
-Patch1362: linux-2.6-ps3-system-bus-rework-2.patch
+# PS3 updates from 2.6.23
+Patch1200: linux-2.6-ps3-merge-1.patch
+Patch1210: linux-2.6-ps3-gelic-net.patch
+Patch1220: linux-2.6-ps3-usb-system-bus.patch
+Patch1230: linux-2.6-ps3-alsa.patch
+Patch1240: linux-2.6-ps3-merge-2.patch
+Patch1250: linux-2.6-ps3-gelic-net-updates-1.patch
+Patch1260: linux-2.6-ps3-gelic-net-updates-2.patch
+
+# PS3 Wireless support hasn't yet been merged
+Patch1300: linux-2.6-ps3-gelic-wireless.patch
+# Handle booting from the 2.6.16 kboot
+Patch1310: linux-2.6-ps3-legacy-bootloader-hack.patch
+# Give the initrd a fighting chance of handling the change to 'ps3disk'
+Patch1320: linux-2.6-ps3-storage-alias.patch
+
 Patch1400: linux-2.6-pcspkr-use-the-global-pit-lock.patch
 Patch1420: linux-2.6-seq_operations-leak.patch
 Patch1421: linux-2.6-ipc-shm-fix-user-leakage.patch
@@ -1116,6 +1129,9 @@ ApplyPatch linux-2.6-usb-autosuspend-default-disable.patch
 # enable sysrq-c on all kernels, not only kexec
 ApplyPatch linux-2.6-sysrq-c.patch
 
+# revert "genirq: do not mask interrupts by default"
+ApplyPatch linux-2.6-irq-dont-mask-interrupts-_reversed_.patch -R
+
 # Architecture patches
 # x86(-64)
 # Compile 686 kernels tuned for Pentium4.
@@ -1148,6 +1164,13 @@ ApplyPatch linux-2.6-ppc32-ucmpdi2.patch
 ApplyPatch linux-2.6-ibmvscsi-schizo.patch
 # Move pmac_zilog to its newly-registered device number
 ApplyPatch linux-2.6-pmac-zilog.patch
+# Sleep through /sys/power/state
+# Patches from http://johannes.sipsolutions.net/patches/kernel/all/2007-07-25-09:02/
+ApplyPatch linux-2.6-powerpc-generic-suspend-1-remove-dead-code.patch
+ApplyPatch linux-2.6-powerpc-generic-suspend-2-remove-adb-sleep-notifier.patch
+ApplyPatch linux-2.6-powerpc-generic-suspend-3-remove-dmasound.patch
+ApplyPatch linux-2.6-powerpc-generic-suspend-4-kill-pmu-sleep-notifier.patch
+ApplyPatch linux-2.6-powerpc-generic-suspend-5-pmu-pm_ops.patch
 
 # Exec shield
 ApplyPatch linux-2.6-execshield.patch
@@ -1285,6 +1308,10 @@ ApplyPatch linux-2.6-libata-unbreak-smart-2.patch
 ApplyPatch linux-2.6-libata-ata_piix_fix_pio-mwdma-programming.patch
 # add ID for sb700 to the pata driver
 ApplyPatch linux-2.6-libata_pata_atiixp_add_ati_sb700.patch
+# fix hpt37x PLL regression
+ApplyPatch linux-2.6-libata-pata_hpt37x-fix-2.6.22-clock-pll.patch
+# fix wrong DMI detect logic for HP notebook
+ApplyPatch linux-2.6-libata-pata_ali-fix-hp-detect.patch
 
 # Add the rtl8187 driver from upstream
 ApplyPatch linux-2.6-rtl8187.patch
@@ -1292,15 +1319,19 @@ ApplyPatch linux-2.6-rtl8187.patch
 ApplyPatch linux-2.6-wireless.patch
 # Add the new wireless stack and drivers from wireless-dev
 ApplyPatch git-wireless-dev.patch
-# Add iwlwifi from intellinuxwireless.org
-ApplyPatch git-iwlwifi.patch
-# add patch from markmc so that e1000 supports ICH9
-ApplyPatch linux-2.6-e1000-ich9.patch
+# temp compat patch for iwlwifi firmware filenames
+ApplyPatch linux-2.6-iwlwifi-fw-name-compat.patch
 # avoid bcm3xx vs bcm43xx-mac80211 PCI ID conflicts
 ApplyPatch linux-2.6-bcm43xx-pci-neuter.patch
+
+# add patch from markmc so that e1000 supports ICH9
+ApplyPatch linux-2.6-e1000-ich9.patch
 # sky2: restore lost interrupt workarounds
 #       maintainer wanted this in 2.6.22
 ApplyPatch linux-2.6-sky2-restore-workarounds.patch
+# atl1 DMA bugs
+ApplyPatch linux-2.6-net-atl1-fix-typo-in-dma-setup.patch
+ApplyPatch linux-2.6-net-atl1-fix-typo-in-dma_req_block.patch
 
 # sdhci
 #
@@ -1332,19 +1363,20 @@ ApplyPatch linux-2.6-dmi-based-module-autoloading.patch
 # NFS: Add the mount option "nosharecache"
 ApplyPatch linux-2.6-nfs-nosharecache.patch
 
-# PS3 patches.
-ApplyPatch linux-2.6-ps3-smp-boot.patch
-ApplyPatch linux-2.6-ps3-system-bus-rework.patch
-ApplyPatch linux-2.6-ps3-kexec.patch
-ApplyPatch linux-2.6-ps3-gelic.patch
+# PS3 patches from 2.6.23
+ApplyPatch linux-2.6-ps3-merge-1.patch
+ApplyPatch linux-2.6-ps3-gelic-net.patch
+ApplyPatch linux-2.6-ps3-usb-system-bus.patch
+ApplyPatch linux-2.6-ps3-alsa.patch
+ApplyPatch linux-2.6-ps3-merge-2.patch
+ApplyPatch linux-2.6-ps3-gelic-net-updates-1.patch
+ApplyPatch linux-2.6-ps3-gelic-net-updates-2.patch
+
+# Pending PS3 patches
 ApplyPatch linux-2.6-ps3-gelic-wireless.patch
-ApplyPatch linux-2.6-ps3-ehci-iso.patch
-ApplyPatch linux-2.6-ps3-clear-spu-irq.patch
-ApplyPatch linux-2.6-ps3-wrap-spu-runctl.patch
-ApplyPatch linux-2.6-ps3-storage.patch
-ApplyPatch linux-2.6-ps3-sound.patch
-ApplyPatch linux-2.6-ps3-device-init.patch
-ApplyPatch linux-2.6-ps3-system-bus-rework-2.patch
+# Temporary hacks
+ApplyPatch linux-2.6-ps3-legacy-bootloader-hack.patch
+ApplyPatch linux-2.6-ps3-storage-alias.patch
 
 ApplyPatch linux-2.6-pcspkr-use-the-global-pit-lock.patch
 
@@ -1355,8 +1387,8 @@ ApplyPatch linux-2.6-ipc-shm-fix-user-leakage.patch
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .1-33.fc7:' -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.22.1-33.fc7.txt
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .1-41.fc7:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.22.1-41.fc7.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2282,8 +2314,9 @@ fi
 %endif
 
 %changelog
-* Mon Jul 23 2007 Chuck Ebbert <cebbert@redhat.com>
-- set CONFIG_DEBUG_SHIRQ only in -debug kernels
+* Fri Jul 27 2007 John W. Linville <linville@redhat.com>
+- Update git-wireless-dev.patch (iwlwifi & bcm43xx updates)
+- Remove hunk of linux-2.6-wireless that was reverted upstream
 
 * Tue Jul 10 2007 Dave Jones <davej@redhat.com>
 - Rebase to 2.6.22
