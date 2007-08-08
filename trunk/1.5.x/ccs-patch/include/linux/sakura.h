@@ -33,46 +33,22 @@
 /***** SAKURA Linux start. *****/
 
 /* Check whether the given pathname is allowed to chroot to. */
-#ifdef CONFIG_SAKURA_RESTRICT_CHROOT
 int CheckChRootPermission(struct nameidata *nd);
-#else
-static inline int CheckChRootPermission(struct nameidata *nd) { return 0; }
-#endif
 
 /* Check whether the mount operation with the given parameters is allowed. */
-#ifdef CONFIG_SAKURA_RESTRICT_MOUNT
 int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned long *flags);
-#else
-static inline int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned long *flags) { return 0; }
-#endif
 
 /* Check whether the current process is allowed to pivot_root. */
-#ifdef CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
 int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd);
-#else
-static inline int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd) { return 0; }
-#endif
 
 /* Check whether the given mount operation hides an mounted partition. */
-#ifdef CONFIG_SAKURA_DENY_CONCEAL_MOUNT
 int SAKURA_MayMount(struct nameidata *nd);
-#else
-static inline int SAKURA_MayMount(struct nameidata *nd) { return 0; }
-#endif
 
 /* Check whether the given mountpoint is allowed to umount. */
-#ifdef CONFIG_SAKURA_RESTRICT_UNMOUNT
 int SAKURA_MayUmount(struct vfsmount *mnt);
-#else
-static inline int SAKURA_MayUmount(struct vfsmount *mnt) { return 0; }
-#endif
 
 /* Check whether the given port is allowed to autobind. */
-#ifdef CONFIG_SAKURA_RESTRICT_AUTOBIND
 int SAKURA_MayAutobind(const u16 port);
-#else
-static inline int SAKURA_MayAutobind(const u16 port) { return 0; }
-#endif
 
 /***** SAKURA Linux end. *****/
 #endif

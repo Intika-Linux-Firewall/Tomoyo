@@ -24,7 +24,6 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-#ifdef CONFIG_TOMOYO_AUDIT
 static int AuditNetworkLog(const int is_ipv6, const char *operation, const u32 *address, const u16 port, const int is_granted)
 {
 	char *buf;
@@ -41,9 +40,6 @@ static int AuditNetworkLog(const int is_ipv6, const char *operation, const u32 *
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u\n", port);
 	return WriteAuditLog(buf, is_granted);
 }
-#else
-static inline void AuditNetworkLog(const int is_ipv6, const char *operation, const u32 *address, const u16 port, const int is_granted) {}
-#endif
 
 /*************************  ADDRESS GROUP HANDLER  *************************/
 
