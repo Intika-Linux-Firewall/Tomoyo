@@ -172,8 +172,8 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			struct capability_acl_record *new_ptr;
-			if (ptr->type == TYPE_CAPABILITY_ACL && ptr->u.w == hash && ptr->cond == condition) {
+			struct capability_acl_record *new_ptr = (struct capability_acl_record *) ptr;
+			if (ptr->type == TYPE_CAPABILITY_ACL && new_ptr->capability == hash && ptr->cond == condition) {
 				ptr->is_deleted = 0;
 				/* Found. Nothing to do. */
 				error = 0;
@@ -188,7 +188,7 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_CAPABILITY_ACL;
-			new_ptr->head.u.w = hash;
+			new_ptr->capability = hash;
 			new_ptr->head.cond = condition;
 			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
 			break;
@@ -196,7 +196,8 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	} else {
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || ptr->u.w != hash || ptr->cond != condition) continue;
+			struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
+			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || ptr2->capability != hash || ptr->cond != condition) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -213,7 +214,8 @@ int CheckCapabilityACL(const unsigned int capability)
 	const u16 hash = capability;
 	if (!CheckCapabilityFlags(capability)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || ptr->u.w != hash || CheckCondition(ptr->cond, NULL)) continue;
+		struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
+		if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || ptr2->capability != hash || CheckCondition(ptr->cond, NULL)) continue;
 		AuditCapabilityLog(capability, 1);
 		return 0;
 	}

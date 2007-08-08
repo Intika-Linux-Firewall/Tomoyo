@@ -829,36 +829,43 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				if (0) {
 #ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 				} else if (acl_type == TYPE_FILE_ACL) {
-					const unsigned char b = ptr->u.b[1];
-					if (io_printf(head, "%d %s%s", ptr->u.b[0], b ? "@" : "", b ? ((struct file_acl_record *) ptr)->u.group->group_name->name : ((struct file_acl_record *) ptr)->u.filename->name)
-						|| DumpCondition(head, ptr->cond)) {
+					struct file_acl_record *ptr2 = (struct file_acl_record *) ptr;
+					const unsigned char b = ptr2->u_is_group;
+					if (io_printf(head, "%d %s%s", ptr2->perm,
+						      b ? "@" : "",
+						      b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)
+					    || DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
 #endif
 #ifdef CONFIG_TOMOYO_MAC_FOR_ARGV0
 				} else if (acl_type == TYPE_ARGV0_ACL) {
-					if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s", ((struct argv0_acl_record *) ptr)->filename->name, ((struct argv0_acl_record *) ptr)->argv0->name) ||
-						DumpCondition(head, ptr->cond)) {
+					struct argv0_acl_record *ptr2 = (struct argv0_acl_record *) ptr;
+					if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
+						      ptr2->filename->name, ptr2->argv0->name) ||
+					    DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
 #endif
 #ifdef CONFIG_TOMOYO_MAC_FOR_CAPABILITY
 				} else if (acl_type == TYPE_CAPABILITY_ACL) {
-					if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(ptr->u.w)) ||
-						DumpCondition(head, ptr->cond)) {
+					struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
+					if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(ptr2->capability)) ||
+					    DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
 #endif
 #ifdef CONFIG_TOMOYO_MAC_FOR_NETWORK
 				} else if (acl_type == TYPE_IP_NETWORK_ACL) {
-					if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr->u.b[0]))) break;
-					switch (ptr->u.b[1]) {
+					struct ip_network_acl_record *ptr2 = (struct ip_network_acl_record *) ptr;
+					if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr2->operation_type))) break;
+					switch (ptr2->record_type) {
 					case IP_RECORD_TYPE_ADDRESS_GROUP:
-						if (io_printf(head, "@%s", ((struct ip_network_acl_record *) ptr)->u.group->group_name->name)) goto print_ip_record_out;
+						if (io_printf(head, "@%s", ptr2->u.group->group_name->name)) goto print_ip_record_out;
 						break;
 					case IP_RECORD_TYPE_IPv4:
 						{
-							const u32 min_address = ((struct ip_network_acl_record *) ptr)->u.ipv4.min, max_address = ((struct ip_network_acl_record *) ptr)->u.ipv4.max;
+							const u32 min_address = ptr2->u.ipv4.min, max_address = ptr2->u.ipv4.max;
 							if (io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address))) goto print_ip_record_out;
 							if (min_address != max_address && io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address))) goto print_ip_record_out;
 						}
@@ -866,7 +873,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 					case IP_RECORD_TYPE_IPv6:
 						{
 							char buf[64];
-							const u16 *min_address = ((struct ip_network_acl_record *) ptr)->u.ipv6.min, *max_address = ((struct ip_network_acl_record *) ptr)->u.ipv6.max;
+							const u16 *min_address = ptr2->u.ipv6.min, *max_address = ptr2->u.ipv6.max;
 							print_ipv6(buf, sizeof(buf), min_address);
 							if (io_printf(head, "%s", buf)) goto print_ip_record_out;
 							if (memcmp(min_address, max_address, 16)) {
@@ -877,7 +884,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 						break;
 					}
 					{
-						const u16 min_port = ((struct ip_network_acl_record *) ptr)->min_port, max_port = ((struct ip_network_acl_record *) ptr)->max_port;
+						const u16 min_port = ptr2->min_port, max_port = ptr2->max_port;
 						if (io_printf(head, " %u", min_port)) goto print_ip_record_out;
 						if (min_port != max_port && io_printf(head, "-%u", max_port)) goto print_ip_record_out;
 					}
@@ -888,8 +895,9 @@ static int ReadDomainPolicy(struct io_buffer *head)
 #endif
 #ifdef CONFIG_TOMOYO_MAC_FOR_SIGNAL
 				} else if (acl_type == TYPE_SIGNAL_ACL) {
-					if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr->u.w, ((struct signal_acl_record *) ptr)->domainname->name) ||
-						DumpCondition(head, ptr->cond)) {
+					struct signal_acl_record *ptr2 = (struct signal_acl_record *) ptr;
+					if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr2->sig, ptr2->domainname->name) ||
+					    DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
 #endif
@@ -898,15 +906,20 @@ static int ReadDomainPolicy(struct io_buffer *head)
 					const char *keyword = acltype2keyword(acl_type);
 					if (keyword) {
 						if (acltype2paths(acl_type) == 2) {
-							const u8 b0 = ptr->u.b[0], b1 = ptr->u.b[1];
-							if (io_printf(head, "allow_%s %s%s %s%s", keyword, b0 ? "@" : "", b0 ? ((struct double_acl_record *) ptr)->u1.group1->group_name->name : ((struct double_acl_record *) ptr)->u1.filename1->name, b1 ? "@" : "", b1 ? ((struct double_acl_record *) ptr)->u2.group2->group_name->name : ((struct double_acl_record *) ptr)->u2.filename2->name)
-								|| DumpCondition(head, ptr->cond)) {
+							struct double_acl_record *ptr2 = (struct double_acl_record *) ptr;
+							const u8 b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
+							if (io_printf(head, "allow_%s %s%s %s%s", keyword, 
+								      b0 ? "@" : "", b0 ? ptr2->u1.group1->group_name->name : ptr2->u1.filename1->name,
+								      b1 ? "@" : "", b1 ? ptr2->u2.group2->group_name->name : ptr2->u2.filename2->name)
+							    || DumpCondition(head, ptr->cond)) {
 								head->read_avail = pos; break;
 							}
 						} else {
-							const u8 b = ptr->u.b[0];
-							if (io_printf(head, "allow_%s %s%s", keyword, b ? "@" : "", b ? ((struct single_acl_record *) ptr)->u.group->group_name->name : ((struct single_acl_record *) ptr)->u.filename->name)
-								|| DumpCondition(head, ptr->cond)) {
+							struct single_acl_record *ptr2 = (struct single_acl_record *) ptr;
+							const u8 b = ptr2->u_is_group;
+							if (io_printf(head, "allow_%s %s%s", keyword,
+								      b ? "@" : "", b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)
+							    || DumpCondition(head, ptr->cond)) {
 								head->read_avail = pos; break;
 							}
 						}
@@ -1207,10 +1220,10 @@ void CCS_LoadPolicy(const char *filename)
 		path_release(&nd);
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.0-pre   2007/08/06\n");
+	printk("SAKURA: 1.5.0-pre   2007/08/08\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.0-pre   2007/08/06\n");
+	printk("TOMOYO: 1.5.0-pre   2007/08/08\n");
 #endif
 	if (!profile_loaded) {
 		char *argv[2], *envp[3];

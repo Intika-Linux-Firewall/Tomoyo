@@ -56,9 +56,9 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			struct signal_acl_record *new_ptr;
-			if (ptr->type == TYPE_SIGNAL_ACL && ptr->u.w == hash && ptr->cond == condition) {
-				if (!pathcmp(((struct signal_acl_record *) ptr)->domainname, saved_dest_pattern)) {
+			struct signal_acl_record *new_ptr = (struct signal_acl_record *) ptr;
+			if (ptr->type == TYPE_SIGNAL_ACL && new_ptr->sig == hash && ptr->cond == condition) {
+				if (!pathcmp(new_ptr->domainname, saved_dest_pattern)) {
 					ptr->is_deleted = 0;
 					/* Found. Nothing to do. */
 					error = 0;
@@ -74,7 +74,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_SIGNAL_ACL;
-			new_ptr->head.u.w = hash;
+			new_ptr->sig = hash;
 			new_ptr->head.cond = condition;
 			new_ptr->domainname = saved_dest_pattern;
 			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
@@ -83,8 +83,9 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	} else {
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-			if (ptr->type != TYPE_SIGNAL_ACL || ptr->is_deleted || ptr->u.w != hash || ptr->cond != condition) continue;
-			if (pathcmp(((struct signal_acl_record *) ptr)->domainname, saved_dest_pattern)) continue;
+			struct signal_acl_record *ptr2 = (struct signal_acl_record *) ptr;
+			if (ptr->type != TYPE_SIGNAL_ACL || ptr->is_deleted || ptr2->sig != hash || ptr->cond != condition) continue;
+			if (pathcmp(ptr2->domainname, saved_dest_pattern)) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -124,9 +125,10 @@ int CheckSignalACL(const int sig, const int pid)
 	}
 	dest_pattern = dest->domainname->name;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		if (ptr->type == TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && ptr->u.w == hash && CheckCondition(ptr->cond, NULL) == 0) {
-			const int len = ((struct signal_acl_record *) ptr)->domainname->total_len;
-			if (strncmp(((struct signal_acl_record *) ptr)->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) break;
+		struct signal_acl_record *ptr2 = (struct signal_acl_record *) ptr;
+		if (ptr->type == TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && ptr2->sig == hash && CheckCondition(ptr->cond, NULL) == 0) {
+			const int len = ptr2->domainname->total_len;
+			if (strncmp(ptr2->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) break;
 		}
 	}
 	if (ptr) {
