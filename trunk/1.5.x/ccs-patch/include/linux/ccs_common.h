@@ -113,11 +113,7 @@ struct acl_info {
 	const struct condition_list *cond;
 	u8 type;
 	u8 is_deleted;
-	union {
-		u16 w;
-		u8 b[2];
-	} u;
-};
+} __attribute__((__packed__));
 
 struct domain_info {
 	struct domain_info *next;           /* Pointer to next record. NULL if none. */
@@ -131,7 +127,9 @@ struct domain_info {
 #define MAX_PROFILES 256
 
 struct file_acl_record {
-	struct acl_info head;                   /* type = TYPE_FILE_ACL, b[0] = perm, b[1] = u_is_group */
+	struct acl_info head;                       /* type = TYPE_FILE_ACL        */
+	u8 perm;
+	u8 u_is_group;
 	union {
 		const struct path_info *filename;   /* Pointer to single pathname. */
 		const struct group_entry *group;    /* Pointer to pathname group.  */
@@ -145,16 +143,19 @@ struct argv0_acl_record {
 };
 
 struct capability_acl_record {
-	struct acl_info head;   /* type = TYPE_CAPABILITY_ACL, w = capability index. */
+	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
+	u16 capability;
 };
 
 struct signal_acl_record {
-	struct acl_info head;               /* type = TYPE_SIGNAL_ACL, w = signal_number. */
-	const struct path_info *domainname; /* Pointer to destination pattern.            */
+	struct acl_info head;               /* type = TYPE_SIGNAL_ACL          */
+	u16 sig;
+	const struct path_info *domainname; /* Pointer to destination pattern. */
 };
 
 struct single_acl_record {
-	struct acl_info head;                 /* type = TYPE_*, w = u_is_group */
+	struct acl_info head;                     /* type = TYPE_*               */
+	u8 u_is_group;
 	union {
 		const struct path_info *filename; /* Pointer to single pathname. */
 		const struct group_entry *group;  /* Pointer to pathname group.  */
@@ -162,7 +163,9 @@ struct single_acl_record {
 };
 
 struct double_acl_record {
-	struct acl_info head;                   /* type = TYPE_RENAME_ACL or TYPE_LINK_ACL, b[0] = u1_is_group, b[1] = u2_is_group */
+	struct acl_info head;           /* type = TYPE_RENAME_ACL or TYPE_LINK_ACL */
+	u8 u1_is_group;
+	u8 u2_is_group;
 	union {
 		const struct path_info *filename1;  /* Pointer to single pathname. */
 		const struct group_entry *group1;   /* Pointer to pathname group.  */
@@ -178,7 +181,9 @@ struct double_acl_record {
 #define IP_RECORD_TYPE_IPv6          2
 
 struct ip_network_acl_record {
-	struct acl_info head;   /* type = TYPE_IP_NETWORK_ACL, b[0] = socket_type, b[1] = IP_RECORD_TYPE_* */
+	struct acl_info head;   /* type = TYPE_IP_NETWORK_ACL */
+	u8 operation_type;
+	u8 record_type;         /* IP_RECORD_TYPE_*           */
 	union {
 		struct {
 			u32 min; /* Start of IPv4 address range. Host endian. */

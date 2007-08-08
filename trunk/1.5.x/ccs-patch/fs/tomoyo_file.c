@@ -494,16 +494,16 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			struct file_acl_record *new_ptr;
+			struct file_acl_record *new_ptr = (struct file_acl_record *) ptr;
 			if (ptr->type == TYPE_FILE_ACL && ptr->cond == condition) {
-				if (((struct file_acl_record *) ptr)->u.filename == saved_filename) {
+				if (new_ptr->u.filename == saved_filename) {
 					if (ptr->is_deleted) {
-						ptr->u.b[0] = 0;
+						new_ptr->perm = 0;
 						mb();
 						ptr->is_deleted = 0;
 					}
 					/* Found. Just 'OR' the permission bits. */
-					ptr->u.b[0] |= perm;
+					new_ptr->perm |= perm;
 					error = 0;
 					UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 					break;
@@ -518,8 +518,8 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_FILE_ACL;
-			new_ptr->head.u.b[0] = perm;
-			new_ptr->head.u.b[1] = is_group;
+			new_ptr->perm = perm;
+			new_ptr->u_is_group = is_group;
 			new_ptr->head.cond = condition;
 			new_ptr->u.filename = saved_filename;
 			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
@@ -527,8 +527,9 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 		}
 	} else {
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-			if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || ptr->cond != condition || ptr->u.b[0] != perm) continue;
-			if (((struct file_acl_record *) ptr)->u.filename != saved_filename) continue;
+			struct file_acl_record *ptr2 = (struct file_acl_record *) ptr;
+			if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || ptr->cond != condition || ptr2->perm != perm) continue;
+			if (ptr2->u.filename != saved_filename) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -547,11 +548,12 @@ static int CheckFileACL(const struct path_info *filename, const u8 perm, struct 
 		if (perm == 4 && IsGloballyReadableFile(filename)) return 0;
 	}
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || (ptr->u.b[0] & perm) != perm || CheckCondition(ptr->cond, obj)) continue;
-		if (ptr->u.b[1]) {
-			if (PathMatchesToGroup(filename, ((struct file_acl_record *) ptr)->u.group, may_use_pattern)) return 0;
-		} else if (may_use_pattern || !((struct file_acl_record *) ptr)->u.filename->is_patterned) {
-			if (PathMatchesToPattern(filename, ((struct file_acl_record *) ptr)->u.filename)) return 0;
+		struct file_acl_record *ptr2 = (struct file_acl_record *) ptr;
+		if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || (ptr2->perm & perm) != perm || CheckCondition(ptr->cond, obj)) continue;
+		if (ptr2->u_is_group) {
+			if (PathMatchesToGroup(filename, ptr2->u.group, may_use_pattern)) return 0;
+		} else if (may_use_pattern || !ptr2->u.filename->is_patterned) {
+			if (PathMatchesToPattern(filename, ptr2->u.filename)) return 0;
 		}
 	}
 	return -EPERM;
@@ -635,9 +637,9 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			struct single_acl_record *new_ptr;
+			struct single_acl_record *new_ptr = (struct single_acl_record *) ptr;
 			if (ptr->type == type && ptr->cond == condition) {
-				if (((struct single_acl_record *) ptr)->u.filename == saved_filename) {
+				if (new_ptr->u.filename == saved_filename) {
 					ptr->is_deleted = 0;
 					/* Found. Nothing to do. */
 					error = 0;
@@ -654,7 +656,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = type;
 			new_ptr->head.cond = condition;
-			new_ptr->head.u.w = is_group;
+			new_ptr->u_is_group = is_group;
 			new_ptr->u.filename = saved_filename;
 			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
 			break;
@@ -662,8 +664,9 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	} else {
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+			struct single_acl_record *ptr2 = (struct single_acl_record *) ptr;
 			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
-			if (((struct single_acl_record *) ptr)->u.filename != saved_filename) continue;
+			if (ptr2->u.filename != saved_filename) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -698,9 +701,9 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			struct double_acl_record *new_ptr;
+			struct double_acl_record *new_ptr = (struct double_acl_record *) ptr;
 			if (ptr->type == type && ptr->cond == condition) {
-				if (((struct double_acl_record *) ptr)->u1.filename1 == saved_filename1 && ((struct double_acl_record *) ptr)->u2.filename2 == saved_filename2) {
+				if (new_ptr->u1.filename1 == saved_filename1 && new_ptr->u2.filename2 == saved_filename2) {
 					ptr->is_deleted = 0;
 					/* Found. Nothing to do. */
 					error = 0;
@@ -717,8 +720,8 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = type;
 			new_ptr->head.cond = condition;
-			new_ptr->head.u.b[0] = is_group1;
-			new_ptr->head.u.b[1] = is_group2;
+			new_ptr->u1_is_group = is_group1;
+			new_ptr->u2_is_group = is_group2;
 			new_ptr->u1.filename1 = saved_filename1;
 			new_ptr->u2.filename2 = saved_filename2;
 			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
@@ -727,9 +730,9 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	} else {
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+			struct double_acl_record *ptr2 = (struct double_acl_record *) ptr;
 			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
-			if (((struct double_acl_record *) ptr)->u1.filename1 != saved_filename1 ||
-				((struct double_acl_record *) ptr)->u2.filename2 != saved_filename2) continue;
+			if (ptr2->u1.filename1 != saved_filename1 || ptr2->u2.filename2 != saved_filename2) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -744,11 +747,12 @@ static int CheckSingleWriteACL(const u8 type, const struct path_info *filename, 
 	struct acl_info *ptr;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+		struct single_acl_record *ptr2 = (struct single_acl_record *) ptr; 
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
-		if (ptr->u.w) {
-			if (!PathMatchesToGroup(filename, ((struct single_acl_record *) ptr)->u.group, 1)) continue;
+		if (ptr2->u_is_group) {
+			if (!PathMatchesToGroup(filename, ptr2->u.group, 1)) continue;
 		} else {
-			if (!PathMatchesToPattern(filename, ((struct single_acl_record *) ptr)->u.filename)) continue;
+			if (!PathMatchesToPattern(filename, ptr2->u.filename)) continue;
 		}
 		return 0;
 	}
@@ -761,16 +765,17 @@ static int CheckDoubleWriteACL(const u8 type, const struct path_info *filename1,
 	struct acl_info *ptr;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+		struct double_acl_record *ptr2 = (struct double_acl_record *) ptr;
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
-		if (ptr->u.b[0]) {
-			if (!PathMatchesToGroup(filename1, ((struct double_acl_record *) ptr)->u1.group1, 1)) continue;
+		if (ptr2->u1_is_group) {
+			if (!PathMatchesToGroup(filename1, ptr2->u1.group1, 1)) continue;
 		} else {
-			if (!PathMatchesToPattern(filename1, ((struct double_acl_record *) ptr)->u1.filename1)) continue;
+			if (!PathMatchesToPattern(filename1, ptr2->u1.filename1)) continue;
 		}
-		if (ptr->u.b[1]) {
-			if (!PathMatchesToGroup(filename2, ((struct double_acl_record *) ptr)->u2.group2, 1)) continue;
+		if (ptr2->u2_is_group) {
+			if (!PathMatchesToGroup(filename2, ptr2->u2.group2, 1)) continue;
 		} else {
-			if (!PathMatchesToPattern(filename2, ((struct double_acl_record *) ptr)->u2.filename2)) continue;
+			if (!PathMatchesToPattern(filename2, ptr2->u2.filename2)) continue;
 		}
 		return 0;
 	}

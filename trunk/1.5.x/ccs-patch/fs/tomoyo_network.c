@@ -266,24 +266,24 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	if (is_add) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
-			struct ip_network_acl_record *new_ptr;
-			if (ptr->type == TYPE_IP_NETWORK_ACL && ptr->u.b[0] == operation && ptr->u.b[1] == record_type && ptr->cond == condition && ((struct ip_network_acl_record *) ptr)->min_port == min_port && max_port == ((struct ip_network_acl_record *) ptr)->max_port) {
+			struct ip_network_acl_record *new_ptr = (struct ip_network_acl_record *) ptr;
+			if (ptr->type == TYPE_IP_NETWORK_ACL && new_ptr->operation_type == operation && new_ptr->record_type == record_type && ptr->cond == condition && new_ptr->min_port == min_port && max_port == new_ptr->max_port) {
 				if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-					if (((struct ip_network_acl_record *) ptr)->u.group == group) {
+					if (new_ptr->u.group == group) {
 						ptr->is_deleted = 0;
 						/* Found. Nothing to do. */
 						error = 0;
 						break;
 					}
 				} else if (record_type == IP_RECORD_TYPE_IPv4) {
-					if (((struct ip_network_acl_record *) ptr)->u.ipv4.min == min_ip && max_ip == ((struct ip_network_acl_record *) ptr)->u.ipv4.max) {
+					if (new_ptr->u.ipv4.min == min_ip && max_ip == new_ptr->u.ipv4.max) {
 						ptr->is_deleted = 0;
 						/* Found. Nothing to do. */
 						error = 0;
 						break;
 					}
 				} else if (record_type == IP_RECORD_TYPE_IPv6) {
-					if (memcmp(((struct ip_network_acl_record *) ptr)->u.ipv6.min, min_address, 16) == 0 && memcmp(max_address, ((struct ip_network_acl_record *) ptr)->u.ipv6.max, 16) == 0) {
+					if (memcmp(new_ptr->u.ipv6.min, min_address, 16) == 0 && memcmp(max_address, new_ptr->u.ipv6.max, 16) == 0) {
 						ptr->is_deleted = 0;
 						/* Found. Nothing to do. */
 						error = 0;
@@ -300,8 +300,8 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_IP_NETWORK_ACL;
-			new_ptr->head.u.b[0] = operation;
-			new_ptr->head.u.b[1] = record_type;
+			new_ptr->operation_type = operation;
+			new_ptr->record_type = record_type;
 			new_ptr->head.cond = condition;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 				new_ptr->u.group = group;
@@ -320,13 +320,14 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	} else {
 		error = -ENOENT;
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-			if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || ptr->u.b[0] != operation || ptr->u.b[1] != record_type || ptr->cond != condition || ((struct ip_network_acl_record *) ptr)->min_port != min_port || ((struct ip_network_acl_record *) ptr)->max_port != max_port) continue;
+			struct ip_network_acl_record *ptr2 = (struct ip_network_acl_record *) ptr;
+			if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || ptr2->operation_type != operation || ptr2->record_type != record_type || ptr->cond != condition || ptr2->min_port != min_port || ptr2->max_port != max_port) continue;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-				if (((struct ip_network_acl_record *) ptr)->u.group != group) continue;
+				if (ptr2->u.group != group) continue;
 			} else if (record_type == IP_RECORD_TYPE_IPv4) {
-				if (((struct ip_network_acl_record *) ptr)->u.ipv4.min != min_ip || max_ip != ((struct ip_network_acl_record *) ptr)->u.ipv4.max) continue;
+				if (ptr2->u.ipv4.min != min_ip || max_ip != ptr2->u.ipv4.max) continue;
 			} else if (record_type == IP_RECORD_TYPE_IPv6) {
-				if (memcmp(((struct ip_network_acl_record *) ptr)->u.ipv6.min, min_address, 16) || memcmp(max_address, ((struct ip_network_acl_record *) ptr)->u.ipv6.max, 16)) continue;
+				if (memcmp(ptr2->u.ipv6.min, min_address, 16) || memcmp(max_address, ptr2->u.ipv6.max, 16)) continue;
 			}
 			error = DelDomainACL(ptr);
 			break;
@@ -345,13 +346,14 @@ static int CheckNetworkEntry(const int is_ipv6, const int operation, const u32 *
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || ptr->u.b[0] != operation || port < ((struct ip_network_acl_record *) ptr)->min_port || ((struct ip_network_acl_record *) ptr)->max_port < port || CheckCondition(ptr->cond, NULL)) continue;
-		if (ptr->u.b[1] == IP_RECORD_TYPE_ADDRESS_GROUP) {
-			if (AddressMatchesToGroup(is_ipv6, address, ((struct ip_network_acl_record *) ptr)->u.group)) break;
-		} else if (ptr->u.b[1] == IP_RECORD_TYPE_IPv4) {
-			if (!is_ipv6 && ((struct ip_network_acl_record *) ptr)->u.ipv4.min <= ip && ip <= ((struct ip_network_acl_record *) ptr)->u.ipv4.max) break;
+		struct ip_network_acl_record *ptr2 = (struct ip_network_acl_record *) ptr;
+		if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || ptr2->operation_type != operation || port < ptr2->min_port || ptr2->max_port < port || CheckCondition(ptr->cond, NULL)) continue;
+		if (ptr2->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
+			if (AddressMatchesToGroup(is_ipv6, address, ptr2->u.group)) break;
+		} else if (ptr2->record_type == IP_RECORD_TYPE_IPv4) {
+			if (!is_ipv6 && ptr2->u.ipv4.min <= ip && ip <= ptr2->u.ipv4.max) break;
 		} else {
-			if (is_ipv6 && memcmp(((struct ip_network_acl_record *) ptr)->u.ipv6.min, address, 16) <= 0 && memcmp(address, ((struct ip_network_acl_record *) ptr)->u.ipv6.max, 16) <= 0) break;
+			if (is_ipv6 && memcmp(ptr2->u.ipv6.min, address, 16) <= 0 && memcmp(address, ptr2->u.ipv6.max, 16) <= 0) break;
 		}
 	}
 	if (ptr) {
