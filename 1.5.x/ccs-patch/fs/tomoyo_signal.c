@@ -26,7 +26,6 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-#ifdef CONFIG_TOMOYO_AUDIT
 static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const int is_granted)
 {
 	char *buf;
@@ -37,9 +36,6 @@ static int AuditSignalLog(const int signal, const struct path_info *dest_domain,
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_SIGNAL "%d %s\n", signal, dest_domain->name);
 	return WriteAuditLog(buf, is_granted);
 }
-#else
-static inline void AuditSignalLog(const int signal, const struct path_info *dest_domain, const int is_granted) {}
-#endif
 
 /*************************  SIGNAL ACL HANDLER  *************************/
 

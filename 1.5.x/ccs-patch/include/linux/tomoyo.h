@@ -39,7 +39,6 @@ struct dentry;
 struct vfsmount;
 struct inode;
 
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 /* Check whether the given filename is allowed to read/write/execute. */
 int CheckFilePerm(const char *filename, const u8 perm, const char *operation);
 int CheckExecPerm(const struct path_info *filename, struct file *filp);
@@ -49,52 +48,23 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 int CheckSingleWritePermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt);
 int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2);
 int CheckReWritePermission(struct file *filp);
-#else
-static inline int CheckFilePerm(const char *filename, const u8 perm, const char *operation) { return 0; }
-static inline int CheckExecPerm(const struct path_info *filename, struct file *filp) { return 0; }
-static inline int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag) { return 0; }
-static inline int CheckSingleWritePermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt) { return 0; }
-static inline int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2) { return 0; }
-static inline int CheckReWritePermission(struct file *filp) { return 0; }
-#endif
 
-#ifdef CONFIG_TOMOYO_MAC_FOR_ARGV0
 /* Check whether the basename of program and argv0 is allowed to differ. */
 int CheckArgv0Perm(const struct path_info *filename, const char *argv0);
-#else
-static inline int CheckArgv0Perm(const struct path_info *filename, const char *argv0) { return 0; }
-#endif
 
 /* Check whether the given IP address and port number are allowed to use. */
-#ifdef CONFIG_TOMOYO_MAC_FOR_NETWORK
 int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port);
 int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port);
 int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port);
 int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port);
 int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port);
 int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port);
-#else
-static inline int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-#endif
 
 /* Check whether the given signal is allowed to use. */
-#ifdef CONFIG_TOMOYO_MAC_FOR_SIGNAL
 int CheckSignalACL(const int sig, const int pid);
-#else
-static inline int CheckSignalACL(const int sig, const int pid) { return 0; }
-#endif
 
 /* Check whether the given capability is allowed to use. */
-#ifdef CONFIG_TOMOYO_MAC_FOR_CAPABILITY
 int CheckCapabilityACL(const unsigned int capability);
-#else
-static inline int CheckCapabilityACL(const unsigned int capability) { return 0; }
-#endif
 
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)

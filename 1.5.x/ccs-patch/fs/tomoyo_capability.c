@@ -146,7 +146,6 @@ int ReadCapabilityStatus(struct io_buffer *head)
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-#ifdef CONFIG_TOMOYO_AUDIT
 static int AuditCapabilityLog(const unsigned int capability, const int is_granted)
 {
 	char *buf;
@@ -156,9 +155,6 @@ static int AuditCapabilityLog(const unsigned int capability, const int is_grante
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_CAPABILITY "%s\n", capability2keyword(capability));
 	return WriteAuditLog(buf, is_granted);
 }
-#else
-static inline void AuditCapabilityLog(const unsigned int capability, const int is_granted) {}
-#endif
 
 /*************************  CAPABILITY ACL HANDLER  *************************/
 

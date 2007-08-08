@@ -89,16 +89,21 @@ void __init CCSProc_Init(void)
 	CreateEntry("exception_policy", 0600, policy_dir, CCS_POLICY_EXCEPTIONPOLICY);
 	CreateEntry(".domain_status",   0600, policy_dir, CCS_POLICY_DOMAIN_STATUS);
 	CreateEntry(".process_status",  0400, info_dir, CCS_INFO_PROCESS_STATUS);
-#ifdef CONFIG_TOMOYO_AUDIT
 	CreateEntry("grant_log",        0400, info_dir, CCS_INFO_GRANTLOG);
 	CreateEntry("reject_log",       0400, info_dir, CCS_INFO_REJECTLOG);
-#endif
 	CreateEntry("self_domain",      0400, info_dir, CCS_INFO_SELFDOMAIN);
 #endif
 	CreateEntry("meminfo",          0400, info_dir, CCS_INFO_MEMINFO);
 	CreateEntry("status",           0600, ccs_dir, CCS_STATUS);
 	CreateEntry("manager",          0600, policy_dir, CCS_POLICY_MANAGER);
 	CreateEntry(".updates_counter", 0400, info_dir, CCS_INFO_UPDATESCOUNTER);
+#if defined(CONFIG_SAKURA) && defined(CONFIG_TOMOYO)
+	proc_symlink("policyversion", info_dir, "1-ccs");
+#elif defined(CONFIG_SAKURA)
+	proc_symlink("policyversion", info_dir, "1-sakura");
+#elif defined(CONFIG_TOMOYO)
+	proc_symlink("policyversion", info_dir, "1-tomoyo");
+#endif
 }
 
 #else

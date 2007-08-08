@@ -118,7 +118,6 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-#ifdef CONFIG_TOMOYO_AUDIT
 static int AuditFileLog(const struct path_info *filename, const u8 perm, const int is_granted)
 {
 	char *buf;
@@ -140,10 +139,6 @@ static int AuditWriteLog(const char *operation, const struct path_info *filename
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, "allow_%s %s %s\n", operation, filename1->name, filename2 ? filename2->name : "");
 	return WriteAuditLog(buf, is_granted);
 }
-#else
-static inline void AuditFileLog(const struct path_info *filename, const u8 perm, const int is_granted) {}
-static inline void AuditWriteLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const int is_granted) {}
-#endif
 
 /*************************  GLOBALLY READABLE FILE HANDLER  *************************/
 

@@ -130,10 +130,10 @@ int TooManyDomainACL(struct domain_info * const domain) {
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 		if (!ptr->is_deleted) count++;
 	}
-	/* If there are so many entries, don't append if accept mode. */
+	/* If there are so many entries, don't append if learning mode. */
 	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 0;
 	if (!domain->quota_warned) {
-		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped auto-append mode.\n", domain->domainname->name);
+		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped learning mode.\n", domain->domainname->name);
 		domain->quota_warned = 1;
 	}
 	return 1;

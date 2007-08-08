@@ -542,11 +542,9 @@ static int SetStatus(struct io_buffer *head)
 		return 0;
 	}
 	if (sscanf(cp + 1, "%u", &value) != 1) return -EINVAL;
-#ifdef CONFIG_TOMOYO_MAC_FOR_CAPABILITY
 	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
 		return SetCapabilityStatus(data + KEYWORD_MAC_FOR_CAPABILITY_LEN, value, i);
 	}
-#endif
 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
 		if (strcmp(data, ccs_control_array[i].keyword)) continue;
 		if (value > ccs_control_array[i].max_value) value = ccs_control_array[i].max_value;
@@ -569,36 +567,6 @@ static int ReadStatus(struct io_buffer *head)
 				if (!profile) continue;
 				switch (j) {
 				case -1: /* Dummy */
-#ifndef CONFIG_TOMOYO_MAC_FOR_FILE
-				case CCS_TOMOYO_MAC_FOR_FILE:
-#endif
-#ifndef CONFIG_TOMOYO_MAC_FOR_ARGV0
-				case CCS_TOMOYO_MAC_FOR_ARGV0:
-#endif
-#ifndef CONFIG_TOMOYO_MAC_FOR_NETWORK
-				case CCS_TOMOYO_MAC_FOR_NETWORK:
-#endif
-#ifndef CONFIG_TOMOYO_MAC_FOR_SIGNAL
-				case CCS_TOMOYO_MAC_FOR_SIGNAL:
-#endif
-#ifndef CONFIG_SAKURA_DENY_CONCEAL_MOUNT
-				case CCS_SAKURA_DENY_CONCEAL_MOUNT:
-#endif
-#ifndef CONFIG_SAKURA_RESTRICT_CHROOT
-				case CCS_SAKURA_RESTRICT_CHROOT:
-#endif
-#ifndef CONFIG_SAKURA_RESTRICT_MOUNT
-				case CCS_SAKURA_RESTRICT_MOUNT:
-#endif
-#ifndef CONFIG_SAKURA_RESTRICT_UNMOUNT
-				case CCS_SAKURA_RESTRICT_UNMOUNT:
-#endif
-#ifndef CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
-				case CCS_SAKURA_RESTRICT_PIVOT_ROOT:
-#endif
-#ifndef CONFIG_SAKURA_RESTRICT_AUTOBIND
-				case CCS_SAKURA_RESTRICT_AUTOBIND:
-#endif
 #ifndef CONFIG_TOMOYO
 				case CCS_TOMOYO_MAX_ACCEPT_ENTRY:
 				case CCS_TOMOYO_MAX_GRANT_LOG:
@@ -619,11 +587,7 @@ static int ReadStatus(struct io_buffer *head)
 			}
 		}
 		if (head->read_var2) {
-#ifdef CONFIG_TOMOYO_MAC_FOR_CAPABILITY
 			if (ReadCapabilityStatus(head) == 0) head->read_eof = 1;
-#else
-			head->read_eof = 1;
-#endif
 		}
 	}
 	return 0;
@@ -776,26 +740,16 @@ static int AddDomainPolicy(struct io_buffer *head)
 	if (!domain) return -EINVAL;
 	if (sscanf(data, KEYWORD_USE_PROFILE "%u", &profile) == 1 && profile < MAX_PROFILES) {
 		if (profile_ptr[profile] || !sbin_init_started) domain->profile = (u8) profile;
-#ifdef CONFIG_TOMOYO_MAC_FOR_CAPABILITY
 	} else if (strncmp(data, KEYWORD_ALLOW_CAPABILITY, KEYWORD_ALLOW_CAPABILITY_LEN) == 0) {
 		return AddCapabilityPolicy(data + KEYWORD_ALLOW_CAPABILITY_LEN, domain, is_delete);
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_NETWORK
 	} else if (strncmp(data, KEYWORD_ALLOW_NETWORK, KEYWORD_ALLOW_NETWORK_LEN) == 0) {
 		return AddNetworkPolicy(data + KEYWORD_ALLOW_NETWORK_LEN, domain, is_delete);
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_SIGNAL
 	} else if (strncmp(data, KEYWORD_ALLOW_SIGNAL, KEYWORD_ALLOW_SIGNAL_LEN) == 0) {
 		return AddSignalPolicy(data + KEYWORD_ALLOW_SIGNAL_LEN, domain, is_delete);
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_ARGV0
 	} else if (strncmp(data, KEYWORD_ALLOW_ARGV0, KEYWORD_ALLOW_ARGV0_LEN) == 0) {
 		return AddArgv0Policy(data + KEYWORD_ALLOW_ARGV0_LEN, domain, is_delete);
-#endif
 	} else {
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 		return AddFilePolicy(data, domain, is_delete);
-#endif
 	}
 	return -EINVAL;
 }
@@ -826,9 +780,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				const int pos = head->read_avail;
 				head->read_var2 = ptr;
 				if (ptr->is_deleted) continue;
-				if (0) {
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
-				} else if (acl_type == TYPE_FILE_ACL) {
+				if (acl_type == TYPE_FILE_ACL) {
 					struct file_acl_record *ptr2 = (struct file_acl_record *) ptr;
 					const unsigned char b = ptr2->u_is_group;
 					if (io_printf(head, "%d %s%s", ptr2->perm,
@@ -837,8 +789,6 @@ static int ReadDomainPolicy(struct io_buffer *head)
 					    || DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_ARGV0
 				} else if (acl_type == TYPE_ARGV0_ACL) {
 					struct argv0_acl_record *ptr2 = (struct argv0_acl_record *) ptr;
 					if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
@@ -846,16 +796,12 @@ static int ReadDomainPolicy(struct io_buffer *head)
 					    DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_CAPABILITY
 				} else if (acl_type == TYPE_CAPABILITY_ACL) {
 					struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
 					if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(ptr2->capability)) ||
 					    DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_NETWORK
 				} else if (acl_type == TYPE_IP_NETWORK_ACL) {
 					struct ip_network_acl_record *ptr2 = (struct ip_network_acl_record *) ptr;
 					if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr2->operation_type))) break;
@@ -892,16 +838,12 @@ static int ReadDomainPolicy(struct io_buffer *head)
 					print_ip_record_out: ;
 					head->read_avail = pos; break;
 					}
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_SIGNAL
 				} else if (acl_type == TYPE_SIGNAL_ACL) {
 					struct signal_acl_record *ptr2 = (struct signal_acl_record *) ptr;
 					if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr2->sig, ptr2->domainname->name) ||
 					    DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 				} else {
 					const char *keyword = acltype2keyword(acl_type);
 					if (keyword) {
@@ -924,7 +866,6 @@ static int ReadDomainPolicy(struct io_buffer *head)
 							}
 						}
 					}
-#endif
 				}
 			}
 			if (ptr) break;
@@ -1029,7 +970,6 @@ static int AddExceptionPolicy(struct io_buffer *head)
 		return AddAliasPolicy(data + KEYWORD_ALIAS_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_AGGREGATOR, KEYWORD_AGGREGATOR_LEN) == 0) {
 		return AddAggregatorPolicy(data + KEYWORD_AGGREGATOR_LEN, is_delete);
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 	} else if (strncmp(data, KEYWORD_ALLOW_READ, KEYWORD_ALLOW_READ_LEN) == 0) {
 		return AddGloballyReadablePolicy(data + KEYWORD_ALLOW_READ_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_FILE_PATTERN, KEYWORD_FILE_PATTERN_LEN) == 0) {
@@ -1038,11 +978,8 @@ static int AddExceptionPolicy(struct io_buffer *head)
 		return AddGroupPolicy(data + KEYWORD_PATH_GROUP_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_DENY_REWRITE, KEYWORD_DENY_REWRITE_LEN) == 0) {
 		return AddNoRewritePolicy(data + KEYWORD_DENY_REWRITE_LEN, is_delete);
-#endif
-#ifdef CONFIG_TOMOYO_MAC_FOR_NETWORK
 	} else if (strncmp(data, KEYWORD_ADDRESS_GROUP, KEYWORD_ADDRESS_GROUP_LEN) == 0) {
 		return AddAddressGroupPolicy(data + KEYWORD_ADDRESS_GROUP_LEN, is_delete);
-#endif
 	}
 	return -EINVAL;
 }
@@ -1058,9 +995,7 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 			if (ReadDomainKeeperPolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 2;
 		case 2:
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 			if (ReadGloballyReadablePolicy(head)) break;
-#endif
 			head->read_var2 = NULL; head->read_step = 3;
 		case 3:
 			if (ReadDomainInitializerPolicy(head)) break;
@@ -1072,24 +1007,16 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 			if (ReadAggregatorPolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 6;
 		case 6:
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 			if (ReadPatternPolicy(head)) break;
-#endif
 			head->read_var2 = NULL; head->read_step = 7;
 		case 7:
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 			if (ReadNoRewritePolicy(head)) break;
-#endif
 			head->read_var2 = NULL; head->read_step = 8;
 		case 8:
-#ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 			if (ReadGroupPolicy(head)) break;
-#endif
 			head->read_var1 = head->read_var2 = NULL; head->read_step = 9;
 		case 9:
-#ifdef CONFIG_TOMOYO_MAC_FOR_NETWORK
 			if (ReadAddressGroupPolicy(head)) break;
-#endif
 			head->read_eof = 1;
 			break;
 		default:
@@ -1115,26 +1042,16 @@ static int AddSystemPolicy(struct io_buffer *head)
 		data += KEYWORD_DELETE_LEN;
 		is_delete = 1;
 	}
-#ifdef CONFIG_SAKURA_RESTRICT_MOUNT
 	if (strncmp(data, KEYWORD_ALLOW_MOUNT, KEYWORD_ALLOW_MOUNT_LEN) == 0)
 		return AddMountPolicy(data + KEYWORD_ALLOW_MOUNT_LEN, is_delete);
-#endif
-#ifdef CONFIG_SAKURA_RESTRICT_UNMOUNT
 	if (strncmp(data, KEYWORD_DENY_UNMOUNT, KEYWORD_DENY_UNMOUNT_LEN) == 0)
 		return AddNoUmountPolicy(data + KEYWORD_DENY_UNMOUNT_LEN, is_delete);
-#endif
-#ifdef CONFIG_SAKURA_RESTRICT_CHROOT
 	if (strncmp(data, KEYWORD_ALLOW_CHROOT, KEYWORD_ALLOW_CHROOT_LEN) == 0)
 		return AddChrootPolicy(data + KEYWORD_ALLOW_CHROOT_LEN, is_delete);
-#endif
-#ifdef CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
 	if (strncmp(data, KEYWORD_ALLOW_PIVOT_ROOT, KEYWORD_ALLOW_PIVOT_ROOT_LEN) == 0)
 		return AddPivotRootPolicy(data + KEYWORD_ALLOW_PIVOT_ROOT_LEN, is_delete);
-#endif
-#ifdef CONFIG_SAKURA_RESTRICT_AUTOBIND
 	if (strncmp(data, KEYWORD_DENY_AUTOBIND, KEYWORD_DENY_AUTOBIND_LEN) == 0)
 		return AddReservedPortPolicy(data + KEYWORD_DENY_AUTOBIND_LEN, is_delete);
-#endif
 	return -EINVAL;
 }
 
@@ -1146,29 +1063,19 @@ static int ReadSystemPolicy(struct io_buffer *head)
 			if (!isRoot()) return -EPERM;
 			head->read_var2 = NULL; head->read_step = 1;
 		case 1:
-#ifdef CONFIG_SAKURA_RESTRICT_MOUNT
 			if (ReadMountPolicy(head)) break;
-#endif
 			head->read_var2 = NULL; head->read_step = 2;
 		case 2:
-#ifdef CONFIG_SAKURA_RESTRICT_UNMOUNT
 			if (ReadNoUmountPolicy(head)) break;
-#endif
 			head->read_var2 = NULL; head->read_step = 3;
 		case 3:
-#ifdef CONFIG_SAKURA_RESTRICT_CHROOT
 			if (ReadChrootPolicy(head)) break;
-#endif
 			head->read_var2 = NULL; head->read_step = 4;
 		case 4:
-#ifdef CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
 			if (ReadPivotRootPolicy(head)) break;
-#endif
 			head->read_var2 = NULL; head->read_step = 5;
 		case 5:
-#ifdef CONFIG_SAKURA_RESTRICT_AUTOBIND
 			if (ReadReservedPortPolicy(head)) break;
-#endif
 			head->read_eof = 1;
 			break;
 		default:
@@ -1513,7 +1420,6 @@ int CCS_OpenControl(const int type, struct file *file)
 		head->write = WritePID;
 		head->read = ReadPID;
 		break;
-#ifdef CONFIG_TOMOYO_AUDIT
 	case CCS_INFO_GRANTLOG:
 		head->poll = PollGrantLog;
 		head->read = ReadGrantLog;
@@ -1522,7 +1428,6 @@ int CCS_OpenControl(const int type, struct file *file)
 		head->poll = PollRejectLog;
 		head->read = ReadRejectLog;
 		break;
-#endif
 	case CCS_INFO_SELFDOMAIN:
 		head->read = ReadSelfDomain;
 		break;

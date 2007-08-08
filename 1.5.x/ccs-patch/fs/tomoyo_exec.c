@@ -23,7 +23,6 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-#ifdef CONFIG_TOMOYO_AUDIT
 static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const int is_granted)
 {
 	char *buf;
@@ -34,10 +33,6 @@ static int AuditArgv0Log(const struct path_info *filename, const char *argv0, co
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_ARGV0 "%s %s\n", filename->name, argv0);
 	return WriteAuditLog(buf, is_granted);
 }
-
-#else
-static inline void AuditArgv0Log(const struct path_info *filename, const char *argv0, const int is_granted) {}
-#endif
 
 /*************************  ARGV0 MISMATCH HANDLER  *************************/
 
