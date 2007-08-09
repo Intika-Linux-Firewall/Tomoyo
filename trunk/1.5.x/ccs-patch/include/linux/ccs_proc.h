@@ -30,9 +30,10 @@
 #define CCS_INFO_GRANTLOG                6
 #define CCS_INFO_REJECTLOG               7
 #define CCS_INFO_SELFDOMAIN              8
-#define CCS_STATUS                       9
-#define CCS_POLICY_QUERY                10
-#define CCS_POLICY_MANAGER              11
-#define CCS_INFO_UPDATESCOUNTER         12
+#define CCS_VERSION                      9
+#define CCS_STATUS                      10
+#define CCS_POLICY_QUERY                11
+#define CCS_POLICY_MANAGER              12
+#define CCS_INFO_UPDATESCOUNTER         13
 
 #endif
