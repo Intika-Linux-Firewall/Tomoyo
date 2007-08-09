@@ -1,0 +1,1383 @@
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+
+---
+ security/tomoyo/file.c | 1371 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1371 insertions(+)
+
+Index: src/security/tomoyo/file.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ src/security/tomoyo/file.c	2007-08-07 17:32:13.000000000 +0900
+@@ -0,0 +1,1371 @@
++/*
++ * security/tomoyo/file.c
++ *
++ * File access control functions for TOMOYO Linux.
++ */
++
++#include "tomoyo.h"
++#include "realpath.h"
++#define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
++
++/*************************  VARIABLES  *************************/
++
++/***** The structure for globally readable files. *****/
++
++struct globally_readable_file_entry {
++	struct globally_readable_file_entry *next;
++	const struct path_info *filename;
++	int is_deleted;
++};
++
++/***** The structure for filename patterns. *****/
++
++struct pattern_entry {
++	struct pattern_entry *next;
++	const struct path_info *pattern;
++	int is_deleted;
++};
++
++/***** The structure for non-rewritable-by-default file patterns. *****/
++
++struct no_rewrite_entry {
++	struct no_rewrite_entry *next;
++	const struct path_info *pattern;
++	int is_deleted;
++};
++
++/***** The structure for detailed write operations. *****/
++
++static struct {
++	const char *keyword;
++	const int paths;
++} acl_type_array[] = {
++	{ "create",   1 }, /* TMY_TYPE_CREATE_ACL */
++	{ "unlink",   1 }, /* TMY_TYPE_UNLINK_ACL */
++	{ "mkdir",    1 }, /* TMY_TYPE_MKDIR_ACL */
++	{ "rmdir",    1 }, /* TMY_TYPE_RMDIR_ACL */
++	{ "mkfifo",   1 }, /* TMY_TYPE_MKFIFO_ACL */
++	{ "mksock",   1 }, /* TMY_TYPE_MKSOCK_ACL */
++	{ "mkblock",  1 }, /* TMY_TYPE_MKBLOCK_ACL */
++	{ "mkchar",   1 }, /* TMY_TYPE_MKCHAR_ACL */
++	{ "truncate", 1 }, /* TMY_TYPE_TRUNCATE_ACL */
++	{ "symlink",  1 }, /* TMY_TYPE_SYMLINK_ACL */
++	{ "link",     2 }, /* TMY_TYPE_LINK_ACL */
++	{ "rename",   2 }, /* TMY_TYPE_RENAME_ACL */
++	{ "rewrite",  1 }, /* TMY_TYPE_REWRITE_ACL */
++	{ NULL, 0 }
++};
++
++/*************************  UTILITY FUNCTIONS  *************************/
++
++const char *tmy_acltype2keyword(const unsigned int acl_type)
++{
++	return (acl_type < ARRAY_SIZE(acl_type_array))
++		? acl_type_array[acl_type].keyword : NULL;
++}
++
++int tmy_acltype2paths(const unsigned int acl_type)
++{
++	return (acl_type < ARRAY_SIZE(acl_type_array))
++		? acl_type_array[acl_type].paths : 0;
++}
++
++static int tmy_strendswith(const char *name, const char *tail)
++{
++	int len;
++
++	if (!name || !tail)
++		return 0;
++
++	len = strlen(name) - strlen(tail);
++	return len >= 0 && strcmp(name + len, tail) == 0;
++}
++
++static struct path_info *tmy_get_path(struct dentry *dentry,
++				      struct vfsmount *mnt)
++{
++	/* sizeof(struct path_info_with_data) <= PAGE_SIZE */
++	struct path_info_with_data {
++		/* Keep this first, this pointer is passed to tmy_free(). */
++		struct path_info head;
++		char bariier1[16];
++		char body[TMY_MAX_PATHNAME_LEN];
++		char barrier2[16];
++	} *buf = tmy_alloc(sizeof(*buf));
++
++	if (buf) {
++		int error = tmy_realpath_dentry2(dentry,
++						 mnt,
++						 buf->body,
++						 sizeof(buf->body) - 1);
++
++		if (error == 0) {
++			buf->head.name = buf->body;
++			tmy_fill_path_info(&buf->head);
++			return &buf->head;
++		}
++
++		tmy_free(buf);
++		buf = NULL;
++		printk(KERN_INFO "tmy_realpath_dentry = %d\n", error);
++	}
++
++	return NULL;
++}
++
++/*************************  PROTOTYPES  *************************/
++
++static int tmy_add_double_write_acl(const u8 type,
++				    const char *filename1,
++				    const char *filename2,
++				    struct domain_info * const domain,
++				    const u8 is_add);
++static int tmy_add_single_write_acl(const u8 type,
++				    const char *filename,
++				    struct domain_info * const domain,
++				    const u8 is_add);
++
++/*************************  AUDIT FUNCTIONS  *************************/
++
++static int tmy_audit_file_log(const struct path_info *filename,
++			      const u8 perm,
++			      const int is_granted,
++			      const int is_enforce)
++{
++	char *buf;
++	int len;
++
++	if (is_granted) {
++		if (!tmy_audit_grant())
++			return 0;
++	} else {
++		if (!tmy_audit_reject())
++			return 0;
++	}
++
++	len = filename->total_len + 8;
++	buf = tmy_init_audit_log(&len);
++
++	if (!buf)
++		return -ENOMEM;
++
++	snprintf(buf + strlen(buf),
++		 len - strlen(buf) - 1,
++		 "access=\"%d %s\"",
++		 perm,
++		 filename->name);
++
++	return tmy_write_audit_log(buf, is_granted, is_enforce);
++}
++
++static int tmy_audit_write_log(const char *operation,
++			       const struct path_info *filename1,
++			       const struct path_info *filename2,
++			       const int is_granted,
++			       const int is_enforce)
++{
++	char *buf;
++	int len;
++
++	if (is_granted) {
++		if (!tmy_audit_grant())
++			return 0;
++	} else {
++		if (!tmy_audit_reject())
++			return 0;
++	}
++
++	len = strlen(operation) +
++		filename1->total_len +
++		(filename2 ? filename2->total_len : 0)
++		+ 16;
++
++	buf = tmy_init_audit_log(&len);
++	if (!buf)
++		return -ENOMEM;
++
++	snprintf(buf + strlen(buf), len - strlen(buf) - 1,
++		 "access=\"allow_%s %s %s\"",
++		 operation, filename1->name, filename2 ? filename2->name : "");
++
++	return tmy_write_audit_log(buf, is_granted, is_enforce);
++}
++
++/**********************  GLOBALLY READABLE FILE HANDLER  **********************/
++
++static struct globally_readable_file_entry *globally_readable_list;
++
++static int tmy_add_globally_readable_entry(const char *filename,
++					   const int is_delete)
++{
++	struct globally_readable_file_entry *new_entry;
++	struct globally_readable_file_entry *ptr;
++	static DECLARE_MUTEX(lock);
++	const struct path_info *saved;
++	int error = -ENOMEM;
++
++	if (!tmy_correct_path(filename, 1, -1, -1, __FUNCTION__))
++		return -EINVAL; /* No patterns allowed. */
++	saved = tmy_save_name(filename);
++	if (!saved)
++		return -ENOMEM;
++
++	down(&lock);
++
++	for (ptr = globally_readable_list; ptr; ptr = ptr->next) {
++		if (ptr->filename == saved) {
++			ptr->is_deleted = is_delete;
++			error = 0;
++			goto out;
++		}
++	}
++	if (is_delete) {
++		error = -ENOENT;
++		goto out;
++	}
++
++	new_entry = tmy_alloc_element(sizeof(*new_entry));
++	if (!new_entry)
++		goto out;
++
++	new_entry->filename = saved;
++	mb(); /* Instead of using spinlock. */
++	ptr = globally_readable_list;
++	if (ptr) {
++		while (ptr->next)
++			ptr = ptr->next;
++		ptr->next = new_entry;
++	} else
++		globally_readable_list = new_entry;
++
++	error = 0;
++
++out:
++	up(&lock);
++
++	return error;
++}
++
++static int tmy_globally_readable(const struct path_info *filename)
++{
++	struct globally_readable_file_entry *ptr;
++
++	for (ptr = globally_readable_list; ptr; ptr = ptr->next) {
++		if (!ptr->is_deleted &&
++		    !tmy_pathcmp(filename, ptr->filename))
++			return 1;
++	}
++
++	return 0;
++}
++
++int tmy_add_globally_readable_policy(char *filename, const int is_delete)
++{
++	return tmy_add_globally_readable_entry(filename, is_delete);
++}
++
++int tmy_read_globally_readable_policy(struct io_buffer *head)
++{
++	struct globally_readable_file_entry *ptr = head->read_var2;
++
++	if (!ptr)
++		ptr = globally_readable_list;
++
++	while (ptr) {
++		head->read_var2 = ptr;
++		if (!ptr->is_deleted &&
++		    tmy_io_printf(head, TMY_ALLOW_READ "%s\n",
++				  ptr->filename->name))
++			break;
++		ptr = ptr->next;
++	}
++
++	return ptr ? -ENOMEM : 0;
++}
++
++/*************************  FILE GROUP HANDLER  *************************/
++
++static struct group_entry *group_list;
++
++static int tmy_add_group_entry(const char *group_name,
++			       const char *member_name,
++			       const int is_delete)
++{
++	static DECLARE_MUTEX(lock);
++	struct group_entry *new_group;
++	struct group_entry *group;
++	struct group_member *new_member;
++	struct group_member *member;
++	const struct path_info *saved_group;
++	const struct path_info *saved_member;
++	int error = -ENOMEM;
++
++	if (!tmy_correct_path(group_name, 0, 0, 0, __FUNCTION__) ||
++	    !group_name[0] ||
++	    !tmy_correct_path(member_name, 0, 0, 0, __FUNCTION__) ||
++	    !member_name[0])
++		return -EINVAL;
++
++	saved_group = tmy_save_name(group_name);
++	saved_member = tmy_save_name(member_name);
++
++	if (!saved_group || !saved_member)
++		return -ENOMEM;
++
++	down(&lock);
++	for (group = group_list; group; group = group->next) {
++		if (saved_group != group->group_name)
++			continue;
++
++		for (member = group->first_member;
++		     member;
++		     member = member->next) {
++			if (member->member_name == saved_member) {
++				member->is_deleted = is_delete;
++				error = 0;
++				goto out;
++			}
++		}
++		break;
++	}
++
++	if (is_delete) {
++		error = -ENOENT;
++		goto out;
++	}
++
++	if (!group) {
++		new_group = tmy_alloc_element(sizeof(*new_group));
++		if (!new_group)
++			goto out;
++		new_group->group_name = saved_group;
++		mb(); /* Instead of using spinlock. */
++		group = group_list;
++
++		if (group) {
++			while (group->next)
++				group = group->next;
++			group->next = new_group;
++		} else
++			group_list = new_group;
++
++		group = new_group;
++	}
++
++	new_member = tmy_alloc_element(sizeof(*new_member));
++	if (!new_member)
++		goto out;
++
++	new_member->member_name = saved_member;
++	mb(); /* Instead of using spinlock. */
++	member = group->first_member;
++
++	if (member) {
++		while (member->next)
++			member = member->next;
++		member->next = new_member;
++	} else
++		group->first_member = new_member;
++
++	error = 0;
++out:
++	up(&lock);
++
++	return error;
++}
++
++int tmy_add_group_policy(char *data, const int is_delete)
++{
++	char *cp = strchr(data, ' ');
++
++	if (!cp)
++		return -EINVAL;
++	*cp++ = '\0';
++	return tmy_add_group_entry(data, cp, is_delete);
++}
++
++static struct group_entry *tmy_new_path_group(const char *group_name)
++{
++	int i;
++	struct group_entry *group;
++
++	for (i = 0; i <= 1; i++) {
++		for (group = group_list; group; group = group->next) {
++			if (strcmp(group_name, group->group_name->name) == 0)
++				return group;
++		}
++
++		if (i == 0) {
++			tmy_add_group_entry(group_name, "/", 0);
++			tmy_add_group_entry(group_name, "/", 1);
++		}
++	}
++
++	return NULL;
++}
++
++static int tmy_path_match_group(const struct path_info *pathname,
++				const struct group_entry *group,
++				const int may_use_pattern)
++{
++	struct group_member *member;
++
++	for (member = group->first_member; member; member = member->next) {
++		if (member->is_deleted)
++			continue;
++
++		if (!member->member_name->is_patterned) {
++			if (!tmy_pathcmp(pathname, member->member_name))
++				return 1;
++		} else if (may_use_pattern) {
++			if (tmy_path_match(pathname, member->member_name))
++				return 1;
++		}
++	}
++
++	return 0;
++}
++
++int tmy_read_group_policy(struct io_buffer *head)
++{
++	struct group_entry *group = head->read_var1;
++	struct group_member *member = head->read_var2;
++
++	if (!group)
++		group = group_list;
++
++	while (group) {
++		head->read_var1 = group;
++		if (!member)
++			member = group->first_member;
++		while (member) {
++			head->read_var2 = member;
++			if (!member->is_deleted &&
++			    tmy_io_printf(head,
++					  TMY_PATH_GROUP "%s %s\n",
++					  group->group_name->name,
++					  member->member_name->name))
++				break;
++			member = member->next;
++		}
++
++		if (member)
++			break;
++
++		head->read_var2 = NULL;
++		group = group->next;
++	}
++
++	return group ? -ENOMEM : 0;
++}
++
++/*************************  FILE PATTERN HANDLER  *************************/
++
++static struct pattern_entry *pattern_list;
++
++static int tmy_add_pattern_entry(const char *pattern, const int is_delete)
++{
++	struct pattern_entry *new_entry, *ptr;
++	static DECLARE_MUTEX(lock);
++	const struct path_info *saved;
++	int error = -ENOMEM;
++
++	if (!tmy_correct_path(pattern, 0, 1, 0, __FUNCTION__))
++		return -EINVAL;
++
++	saved = tmy_save_name(pattern);
++	if (!saved)
++		return -ENOMEM;
++
++	down(&lock);
++
++	for (ptr = pattern_list; ptr; ptr = ptr->next) {
++		if (saved == ptr->pattern) {
++			ptr->is_deleted = is_delete;
++			error = 0;
++			goto out;
++		}
++	}
++
++	if (is_delete) {
++		error = -ENOENT;
++		goto out;
++	}
++
++	new_entry = tmy_alloc_element(sizeof(*new_entry));
++
++	if (!new_entry)
++		goto out;
++	new_entry->pattern = saved;
++	mb(); /* Instead of using spinlock. */
++
++	ptr = pattern_list;
++	if (ptr) {
++		while (ptr->next)
++			ptr = ptr->next;
++		ptr->next = new_entry;
++	} else
++		pattern_list = new_entry;
++
++	error = 0;
++out:
++	up(&lock);
++	return error;
++}
++
++static const struct path_info *tmy_get_pattern(const struct path_info *filename)
++{
++	struct pattern_entry *ptr;
++	const struct path_info *pattern = NULL;
++
++	for (ptr = pattern_list; ptr; ptr = ptr->next) {
++		if (ptr->is_deleted)
++			continue;
++		if (!tmy_path_match(filename, ptr->pattern))
++			continue;
++
++		pattern = ptr->pattern;
++		if (!tmy_strendswith(pattern->name, "/\\*"))
++			break;
++	}
++
++	if (pattern)
++		filename = pattern;
++
++	return filename;
++}
++
++int tmy_add_pattern_policy(char *pattern, const int is_delete)
++{
++	return tmy_add_pattern_entry(pattern, is_delete);
++}
++
++int tmy_read_pattern_policy(struct io_buffer *head)
++{
++	struct pattern_entry *ptr = head->read_var2;
++
++	if (!ptr)
++		ptr = pattern_list;
++
++	while (ptr) {
++		head->read_var2 = ptr;
++		if (!ptr->is_deleted &&
++		    tmy_io_printf(head, TMY_FILE_PATTERN "%s\n",
++				  ptr->pattern->name))
++			break;
++		ptr = ptr->next;
++	}
++
++	return ptr ? -ENOMEM : 0;
++}
++
++/***********************  NON REWRITABLE FILE HANDLER  ***********************/
++
++static struct no_rewrite_entry *no_rewrite_list;
++
++static int tmy_add_no_rewrite_entry(const char *pattern, const int is_delete)
++{
++	struct no_rewrite_entry *new_entry;
++	struct no_rewrite_entry *ptr;
++	static DECLARE_MUTEX(lock);
++	const struct path_info *saved;
++	int error = -ENOMEM;
++
++	if (!tmy_correct_path(pattern, 0, 0, 0, __FUNCTION__))
++		return -EINVAL;
++	saved = tmy_save_name(pattern);
++	if (!saved)
++		return -ENOMEM;
++
++	down(&lock);
++	for (ptr = no_rewrite_list; ptr; ptr = ptr->next) {
++		if (ptr->pattern == saved) {
++			ptr->is_deleted = is_delete;
++			error = 0;
++			goto out;
++		}
++	}
++
++	if (is_delete) {
++		error = -ENOENT;
++		goto out;
++	}
++
++	new_entry = tmy_alloc_element(sizeof(*new_entry));
++	if (!new_entry)
++		goto out;
++
++	new_entry->pattern = saved;
++	mb(); /* Instead of using spinlock. */
++
++	ptr = no_rewrite_list;
++	if (ptr) {
++		while (ptr->next)
++			ptr = ptr->next;
++		ptr->next = new_entry;
++	} else
++		no_rewrite_list = new_entry;
++
++	error = 0;
++out:
++	up(&lock);
++
++	return error;
++}
++
++static int tmy_is_no_rewrite_file(const struct path_info *filename)
++{
++	struct no_rewrite_entry *ptr;
++
++	for (ptr = no_rewrite_list; ptr; ptr = ptr->next) {
++		if (ptr->is_deleted)
++			continue;
++		if (!tmy_path_match(filename, ptr->pattern))
++			continue;
++		return 1;
++	}
++
++	return 0;
++}
++
++int tmy_add_no_rewrite_policy(char *pattern, const int is_delete)
++{
++	return tmy_add_no_rewrite_entry(pattern, is_delete);
++}
++
++int tmy_read_no_rewrite_policy(struct io_buffer *head)
++{
++	struct no_rewrite_entry *ptr = head->read_var2;
++
++	if (!ptr)
++		ptr = no_rewrite_list;
++
++	while (ptr) {
++		head->read_var2 = ptr;
++		if (!ptr->is_deleted &&
++		    tmy_io_printf(head, TMY_DENY_REWRITE "%s\n",
++				  ptr->pattern->name))
++			break;
++		ptr = ptr->next;
++	}
++
++	return ptr ? -ENOMEM : 0;
++}
++
++/*************************  FILE ACL HANDLER  *************************/
++
++static int tmy_add_file_acl(const char *filename,
++			    u8 perm,
++			    struct domain_info * const domain,
++			    const u8 is_add)
++{
++	const struct path_info *saved;
++	struct acl_info *ptr;
++	int error = -ENOMEM;
++	u8 is_group = 0;
++
++	if (!domain)
++		return -EINVAL;
++	if (perm > 7 || !perm) {
++		printk(KERN_DEBUG "%s: Invalid permission '%d %s'\n",
++		       __FUNCTION__, perm, filename);
++		return -EINVAL;
++	}
++	if (!tmy_correct_path(filename, 0, 0, 0, __FUNCTION__))
++		return -EINVAL;
++
++	if (filename[0] == '@') {
++		/* This cast is OK because I don't dereference. */
++		saved = (struct path_info *) tmy_new_path_group(filename + 1);
++		if (!saved)
++			return -ENOMEM;
++		is_group = 1;
++	} else {
++
++		saved = tmy_save_name(filename);
++		if (!saved)
++			return -ENOMEM;
++
++		if (!saved->is_dir) {
++			if (perm == 4 &&
++			    tmy_globally_readable(saved) &&
++			    is_add)
++				return 0;
++		} else if ((perm & 2) == 0)
++			/* Don't add if the directory doesn't have */
++			/* write permission.                       */
++			return 0;
++
++	}
++
++	down(&domain_acl_lock);
++
++	if (is_add) {
++
++		ptr = domain->first_acl_ptr;
++		if (!ptr)
++			goto first_entry;
++
++		while (1) {
++			struct file_acl *new_ptr;
++			struct file_acl *acl = (struct file_acl *) ptr;
++
++			if ((ptr->type == TMY_TYPE_FILE_ACL) &&
++			    (acl->u.filename == saved)) {
++				if (ptr->is_deleted) {
++					ptr->u.b[0] = 0;
++					mb(); /* Instead of using spinlock. */
++					ptr->is_deleted = 0;
++				}
++				/* Found. Just 'OR' the permission bits. */
++				ptr->u.b[0] |= perm;
++				error = 0;
++				tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
++				break;
++			}
++
++			if (ptr->next) {
++				ptr = ptr->next;
++				continue;
++			}
++
++first_entry:
++			if (is_add == 1 && tmy_too_many_acl(domain))
++				break;
++
++			/* Not found. Append it to the tail. */
++			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
++			if (!new_ptr)
++				break;
++
++			new_ptr->head.type = TMY_TYPE_FILE_ACL;
++			new_ptr->head.u.b[0] = perm;
++			new_ptr->head.u.b[1] = is_group;
++			new_ptr->u.filename = saved;
++			error = tmy_add_acl(ptr, domain,
++					    (struct acl_info *) new_ptr);
++			break;
++		}
++
++	} else {
++		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++			struct file_acl *acl = (struct file_acl *) ptr;
++
++			if (ptr->type != TMY_TYPE_FILE_ACL ||
++			    ptr->is_deleted ||
++			    ptr->u.b[0] != perm)
++				continue;
++			if (acl->u.filename != saved)
++				continue;
++
++			error = tmy_del_acl(ptr);
++			break;
++		}
++	}
++
++	up(&domain_acl_lock);
++	return error;
++}
++
++static int tmy_file_acl(const struct path_info *filename, const u8 perm)
++{
++	const struct domain_info *domain = TMY_SECURITY->domain;
++	struct acl_info *ptr;
++	const int may_use_pat = ((perm & 1) == 0);
++
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++	if (!filename->is_dir) {
++		if (perm == 4 && tmy_globally_readable(filename))
++			return 0;
++	}
++
++	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++		struct file_acl *acl = (struct file_acl *) ptr;
++
++		if (ptr->type != TMY_TYPE_FILE_ACL ||
++		    ptr->is_deleted ||
++		    (ptr->u.b[0] & perm) != perm)
++			continue;
++
++		if ((ptr->u.b[1]) &&
++		    (tmy_path_match_group(filename,
++					  acl->u.group,
++					  may_use_pat)))
++			return 0;
++		else if (!ptr->u.b[1] &&
++			 (may_use_pat || !acl->u.filename->is_patterned) &&
++			 (tmy_path_match(filename, acl->u.filename)))
++			return 0;
++	}
++
++	return -EPERM;
++}
++
++static int tmy_file_perm2(const struct path_info *filename,
++			  const u8 perm,
++			  const char *operation)
++{
++	int error = 0;
++	struct domain_info * const domain = TMY_SECURITY->domain;
++	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++
++	if (!filename)
++		return 0;
++
++	error = tmy_file_acl(filename, perm);
++
++	tmy_audit_file_log(filename, perm, !error, is_enforce);
++
++	if (!error)
++		return error;
++
++	if (is_enforce)
++		error =	tmy_supervisor("%s\n%d %s\n",
++				       domain->domainname->name,
++				       perm, filename->name);
++
++	else if (tmy_accept(TMY_MAC_FOR_FILE)) {
++		/* Don't use patterns if execution bit is on. */
++		const struct path_info *patterned =
++			((perm & 1) == 0) ?
++			tmy_get_pattern(filename) : filename;
++		tmy_add_file_acl(patterned->name, perm, domain, 1);
++	}
++
++	if (!is_enforce)
++		error = 0;
++
++	return error;
++}
++
++int tmy_file_perm(const char *filename0, const u8 perm, const char *operation)
++{
++	struct path_info filename;
++
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++
++	filename.name = filename0;
++	tmy_fill_path_info(&filename);
++
++	return tmy_file_perm2(&filename, perm, operation);
++}
++
++int tmy_add_file_policy(char *data,
++			struct domain_info *domain,
++			const int is_delete)
++{
++	char *filename = strchr(data, ' ');
++	unsigned int perm;
++	u8 type;
++
++	if (!filename)
++		return -EINVAL;
++	*filename++ = '\0';
++
++	if (sscanf(data, "%u", &perm) == 1)
++		return tmy_add_file_acl(filename, (u8) perm,
++					domain,
++					is_delete ? 0 : -1);
++
++	if (strncmp(data, "allow_", 6))
++		goto out;
++
++	data += 6;
++
++	for (type = 0; acl_type_array[type].keyword; type++) {
++		if (strcmp(data, acl_type_array[type].keyword))
++			continue;
++
++		if (acl_type_array[type].paths == 2) {
++			char *filename2 = strchr(filename, ' ');
++
++			if (!filename2)
++				break;
++			*filename2++ = '\0';
++			return tmy_add_double_write_acl(type,
++							filename,
++							filename2,
++							domain,
++							is_delete ? 0 : -1);
++		} else
++			return tmy_add_single_write_acl(type,
++							filename,
++							domain,
++							is_delete ? 0 : -1);
++
++		break;
++	}
++out:
++	return -EINVAL;
++}
++
++static int tmy_add_single_write_acl(const u8 type,
++				    const char *filename,
++				    struct domain_info * const domain,
++				    const u8 is_add)
++{
++	const struct path_info *saved;
++	struct acl_info *ptr;
++	int error = -ENOMEM;
++	u8 is_group = 0;
++
++	if (!domain)
++		return -EINVAL;
++	if (!tmy_correct_path(filename, 0, 0, 0, __FUNCTION__))
++		return -EINVAL;
++
++	if (filename[0] == '@') {
++		/* This cast is OK because I don't dereference. */
++		saved = (struct path_info *) tmy_new_path_group(filename + 1);
++		if (!saved)
++			return -ENOMEM;
++		is_group = 1;
++	} else {
++		saved = tmy_save_name(filename);
++		if (!saved)
++			return -ENOMEM;
++	}
++
++	down(&domain_acl_lock);
++	if (is_add) {
++		ptr = domain->first_acl_ptr;
++		if (!ptr)
++			goto first_entry;
++		while (1) {
++			struct single_acl *new_ptr;
++			struct single_acl *acl = (struct single_acl *) ptr;
++
++			if (ptr->type == type) {
++				if (acl->u.filename == saved) {
++					ptr->is_deleted = 0;
++					/* Found. Nothing to do. */
++					error = 0;
++					break;
++				}
++			}
++			if (ptr->next) {
++				ptr = ptr->next;
++				continue;
++			}
++
++first_entry:
++			if (is_add == 1 && tmy_too_many_acl(domain))
++				break;
++
++			/* Not found. Append it to the tail. */
++			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
++			if (!new_ptr)
++				break;
++
++			new_ptr->head.type = type;
++			new_ptr->head.u.w = is_group;
++			new_ptr->u.filename = saved;
++			error = tmy_add_acl(ptr, domain,
++					    (struct acl_info *) new_ptr);
++			break;
++		}
++	} else {
++		error = -ENOENT;
++		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++			struct single_acl *acl = (struct single_acl *) ptr;
++
++			if (ptr->type != type || ptr->is_deleted)
++				continue;
++			if (acl->u.filename != saved)
++				continue;
++
++			error = tmy_del_acl(ptr);
++
++			break;
++		}
++	}
++	up(&domain_acl_lock);
++
++	return error;
++}
++
++static int tmy_add_double_write_acl(const u8 type,
++				    const char *filename1,
++				    const char *filename2,
++				    struct domain_info * const domain,
++				    const u8 is_add)
++{
++	const struct path_info *saved1;
++	const struct path_info *saved2;
++	struct acl_info *ptr;
++	int error = -ENOMEM;
++	u8 is_group1 = 0;
++	u8 is_group2 = 0;
++
++	if (!domain)
++		return -EINVAL;
++	if (!tmy_correct_path(filename1, 0, 0, 0, __FUNCTION__) ||
++	    !tmy_correct_path(filename2, 0, 0, 0, __FUNCTION__))
++		return -EINVAL;
++
++	if (filename1[0] == '@') {
++		/* This cast is OK because I don't dereference. */
++		saved1 = (struct path_info *) tmy_new_path_group(filename1 + 1);
++		if (!saved1)
++			return -ENOMEM;
++		is_group1 = 1;
++	} else {
++		saved1 = tmy_save_name(filename1);
++		if (!saved1)
++			return -ENOMEM;
++	}
++
++	if (filename2[0] == '@') {
++		/* This cast is OK because I don't dereference. */
++		saved2 = (struct path_info *) tmy_new_path_group(filename2 + 1);
++		if (!saved2)
++			return -ENOMEM;
++		is_group2 = 1;
++	} else {
++		saved2 = tmy_save_name(filename2);
++		if (!saved2)
++			return -ENOMEM;
++	}
++
++	down(&domain_acl_lock);
++
++	if (is_add) {
++		ptr = domain->first_acl_ptr;
++		if (!ptr)
++			goto first_entry;
++		while (1) {
++			struct double_acl *new_ptr;
++			struct double_acl *acl = (struct double_acl *) ptr;
++
++			if (ptr->type == type) {
++				if (acl->u1.filename1 == saved1 &&
++				    acl->u2.filename2 == saved2) {
++					ptr->is_deleted = 0;
++					/* Found. Nothing to do. */
++					error = 0;
++					break;
++				}
++			}
++
++			if (ptr->next) {
++				ptr = ptr->next;
++				continue;
++			}
++
++first_entry:
++			if (is_add == 1 && tmy_too_many_acl(domain))
++				break;
++			/* Not found. Append it to the tail. */
++			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
++			if (!new_ptr)
++				break;
++
++			new_ptr->head.type = type;
++			new_ptr->head.u.b[0] = is_group1;
++			new_ptr->head.u.b[1] = is_group2;
++			new_ptr->u1.filename1 = saved1;
++			new_ptr->u2.filename2 = saved2;
++			error = tmy_add_acl(ptr, domain,
++					    (struct acl_info *) new_ptr);
++
++			break;
++		}
++	} else {
++		error = -ENOENT;
++		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++			struct double_acl *acl = (struct double_acl *) ptr;
++
++			if (ptr->type != type || ptr->is_deleted)
++				continue;
++
++			if (acl->u1.filename1 != saved1 ||
++			    acl->u2.filename2 != saved2)
++				continue;
++
++			error = tmy_del_acl(ptr);
++			break;
++		}
++	}
++
++	up(&domain_acl_lock);
++	return error;
++}
++
++static int tmy_single_write_acl(const u8 type,
++				const struct path_info *filename)
++{
++	const struct domain_info *domain = TMY_SECURITY->domain;
++	struct acl_info *ptr;
++
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++
++	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++		struct single_acl *acl = (struct single_acl *) ptr;
++
++		if (ptr->type != type || ptr->is_deleted)
++			continue;
++
++		if (ptr->u.w) {
++			if (!tmy_path_match_group(filename, acl->u.group, 1))
++				continue;
++		} else {
++			if (!tmy_path_match(filename, acl->u.filename))
++				continue;
++		}
++		return 0;
++	}
++
++	return -EPERM;
++}
++
++static int tmy_double_write_acl(const u8 type,
++				const struct path_info *filename1,
++				const struct path_info *filename2)
++{
++	const struct domain_info *domain = TMY_SECURITY->domain;
++	struct acl_info *ptr;
++
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++
++	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++		struct double_acl *acl = (struct double_acl *) ptr;
++
++		if (ptr->type != type || ptr->is_deleted)
++			continue;
++
++		if (ptr->u.b[0]) {
++			if (!tmy_path_match_group(filename1,
++						  acl->u1.group1, 1))
++				continue;
++		} else {
++			if (!tmy_path_match(filename1, acl->u1.filename1))
++				continue;
++		}
++
++		if (ptr->u.b[1]) {
++			if (!tmy_path_match_group(filename2,
++						  acl->u2.group2, 1))
++				continue;
++		} else {
++			if (!tmy_path_match(filename2, acl->u2.filename2))
++				continue;
++		}
++
++		return 0;
++	}
++
++	return -EPERM;
++}
++
++static int tmy_single_write_perm2(const unsigned int operation,
++				  const struct path_info *filename)
++{
++	int error;
++	struct domain_info * const domain = TMY_SECURITY->domain;
++	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++
++	error = tmy_single_write_acl(operation, filename);
++
++	tmy_audit_write_log(tmy_acltype2keyword(operation),
++			    filename, NULL, !error, is_enforce);
++
++	if (!error)
++		goto ok;
++
++	if (is_enforce)
++		error = tmy_supervisor("%s\nallow_%s %s\n",
++				       domain->domainname->name,
++				       tmy_acltype2keyword(operation),
++				       filename->name);
++
++	else if (tmy_accept(TMY_MAC_FOR_FILE))
++		tmy_add_single_write_acl(operation,
++					 tmy_get_pattern(filename)->name,
++					 domain, 1);
++
++	if (!is_enforce)
++		error = 0;
++
++ok:
++	if (!error && operation == TMY_TYPE_TRUNCATE_ACL &&
++	    tmy_is_no_rewrite_file(filename))
++		error = tmy_single_write_perm2(TMY_TYPE_REWRITE_ACL,
++					       filename);
++
++	return error;
++}
++
++int tmy_exec_perm(const struct path_info *filename, struct file *filp)
++{
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++	return tmy_file_perm2(filename, 1, "do_execve");
++}
++
++int tmy_open_perm(struct dentry *dentry,
++		  struct vfsmount *mnt,
++		  const int flag)
++{
++	const int acc_mode = ACC_MODE(flag);
++	int error = -ENOMEM;
++	struct path_info *buf;
++	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++	if (acc_mode == 0)
++		return 0;
++	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
++		/* I don't check directories here             */
++		/* because mkdir() and rmdir() don't call me. */
++		return 0;
++
++	buf = tmy_get_path(dentry, mnt);
++
++	if (!buf)
++		goto out;
++
++	error = 0;
++	if ((acc_mode & MAY_WRITE) &&
++	    ((flag & O_TRUNC) || !(flag & O_APPEND)) &&
++	    tmy_is_no_rewrite_file(buf))
++		error = tmy_single_write_perm2(TMY_TYPE_REWRITE_ACL,
++					       buf);
++
++	if (error == 0)
++		error = tmy_file_perm2(buf, acc_mode, "open");
++
++	if (error == 0 && (flag & O_TRUNC))
++		error = tmy_single_write_perm2(TMY_TYPE_TRUNCATE_ACL,
++					       buf);
++
++	tmy_free(buf);
++
++out:
++	if (!is_enforce)
++		error = 0;
++	return error;
++}
++
++int tmy_single_write_perm(const unsigned int operation,
++			  struct dentry *dentry,
++			  struct vfsmount *mnt)
++{
++	int error = -ENOMEM;
++	struct path_info *buf;
++	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++
++	buf = tmy_get_path(dentry, mnt);
++
++	if (!buf)
++		goto out;
++
++	switch (operation) {
++	case TMY_TYPE_MKDIR_ACL:
++	case TMY_TYPE_RMDIR_ACL:
++		if (!buf->is_dir) {
++			strcat((char *) buf->name, "/");
++			tmy_fill_path_info(buf);
++		}
++	}
++	error = tmy_single_write_perm2(operation, buf);
++	tmy_free(buf);
++
++out:
++	if (!is_enforce)
++		error = 0;
++
++	return error;
++}
++
++int tmy_rewrite_perm(struct file *filp)
++{
++	int error = -ENOMEM;
++	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	struct path_info *buf = tmy_get_path(filp->f_dentry, filp->f_vfsmnt);
++
++	if (!buf)
++		goto out;
++
++	if (tmy_is_no_rewrite_file(buf))
++		error = tmy_single_write_perm2(TMY_TYPE_REWRITE_ACL, buf);
++	else
++		error = 0;
++
++	tmy_free(buf);
++
++out:
++	if (!is_enforce)
++		error = 0;
++	return error;
++}
++
++int tmy_double_write_perm(const unsigned int operation,
++			  struct dentry *dentry1,
++			  struct vfsmount *mnt1,
++			  struct dentry *dentry2,
++			  struct vfsmount *mnt2)
++{
++	int error = -ENOMEM;
++	struct path_info *buf1;
++	struct path_info *buf2;
++	struct domain_info * const domain = TMY_SECURITY->domain;
++	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++
++	if (!tmy_flags(TMY_MAC_FOR_FILE))
++		return 0;
++	buf1 = tmy_get_path(dentry1, mnt1);
++	buf2 = tmy_get_path(dentry2, mnt2);
++
++	if (!buf1 || !buf2)
++		goto out;
++
++	if (operation == TMY_TYPE_RENAME_ACL) {
++		/* TMY_TYPE_LINK_ACL can't reach here for directory. */
++		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
++			if (!buf1->is_dir) {
++				strcat((char *) buf1->name, "/");
++				tmy_fill_path_info(buf1);
++			}
++			if (!buf2->is_dir) {
++				strcat((char *) buf2->name, "/");
++				tmy_fill_path_info(buf2);
++			}
++		}
++	}
++	error = tmy_double_write_acl(operation, buf1, buf2);
++
++	tmy_audit_write_log(tmy_acltype2keyword(operation),
++			    buf1, buf2, !error, is_enforce);
++
++	if (!error)
++		goto out;
++
++	if (is_enforce)
++		error = tmy_supervisor("%s\nallow_%s %s %s\n",
++				       domain->domainname->name,
++				       tmy_acltype2keyword(operation),
++				       buf1->name, buf2->name);
++	else if (tmy_accept(TMY_MAC_FOR_FILE))
++		tmy_add_double_write_acl(operation,
++					 tmy_get_pattern(buf1)->name,
++					 tmy_get_pattern(buf2)->name,
++					 domain, 1);
++
++out:
++	tmy_free(buf1);
++	tmy_free(buf2);
++	if (!is_enforce)
++		error = 0;
++	return error;
++}
