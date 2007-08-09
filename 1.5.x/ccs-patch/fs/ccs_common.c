@@ -1127,10 +1127,10 @@ void CCS_LoadPolicy(const char *filename)
 		path_release(&nd);
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.0-pre   2007/08/08\n");
+	printk("SAKURA: 1.5.0-pre   2007/08/09\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.0-pre   2007/08/08\n");
+	printk("TOMOYO: 1.5.0-pre   2007/08/09\n");
 #endif
 	if (!profile_loaded) {
 		char *argv[2], *envp[3];
@@ -1387,6 +1387,14 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 	return 0;
 }
 
+static int ReadVersion(struct io_buffer *head)
+{
+	if (!head->read_eof) {
+		if (io_printf(head, "1\n") == 0) head->read_eof = 1;
+	}
+	return 0;
+}
+
 static int ReadMemoryCounter(struct io_buffer *head)
 {
 	if (!head->read_eof) {
@@ -1438,6 +1446,10 @@ int CCS_OpenControl(const int type, struct file *file)
 		head->read = ReadSystemPolicy;
 		break;
 #endif
+	case CCS_VERSION:
+		head->read = ReadVersion;
+		head->readbuf_size = 128;
+		break;
 	case CCS_INFO_MEMINFO:
 		head->read = ReadMemoryCounter;
 		head->readbuf_size = 128;

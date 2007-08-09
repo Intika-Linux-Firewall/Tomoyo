@@ -97,13 +97,7 @@ void __init CCSProc_Init(void)
 	CreateEntry("status",           0600, ccs_dir, CCS_STATUS);
 	CreateEntry("manager",          0600, policy_dir, CCS_POLICY_MANAGER);
 	CreateEntry(".updates_counter", 0400, info_dir, CCS_INFO_UPDATESCOUNTER);
-#if defined(CONFIG_SAKURA) && defined(CONFIG_TOMOYO)
-	proc_symlink("policyversion", info_dir, "1-ccs");
-#elif defined(CONFIG_SAKURA)
-	proc_symlink("policyversion", info_dir, "1-sakura");
-#elif defined(CONFIG_TOMOYO)
-	proc_symlink("policyversion", info_dir, "1-tomoyo");
-#endif
+	CreateEntry("version",          0400, ccs_dir, CCS_VERSION);
 }
 
 #else
