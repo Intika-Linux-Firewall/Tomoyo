@@ -1,0 +1,561 @@
+Index: linux-2.6/security/tomoyo/common.c
+===================================================================
+--- linux-2.6.orig/security/tomoyo/common.c	2007-08-09 20:22:29.000000000 +0900
++++ linux-2.6/security/tomoyo/common.c	2007-08-09 20:49:36.000000000 +0900
+@@ -961,31 +961,34 @@
+ 			if (ptr->is_deleted)
+ 				continue;
+ 			if (acl_type == TMY_TYPE_FILE_ACL) {
+-				const unsigned char b = ptr->u.b[1];
++				struct file_acl *ptr2 = (struct file_acl *) ptr;
++				const unsigned char b = ptr2->u_is_group;
+ 				if (tmy_io_printf(head,
+ 						  "%d %s%s\n",
+-						  ptr->u.b[0],
++						  ptr2->perm,
+ 						  b ? "@" : "",
+-						  b ? ((struct file_acl *) ptr)->u.group->group_name->name :
+-						  ((struct file_acl *) ptr)->u.filename->name)) {
++						  b ? ptr2->u.group->group_name->name :
++						  ptr2->u.filename->name)) {
+ 					head->read_avail = pos;
+ 					break;
+ 				}
+ 			} else if (acl_type == TMY_TYPE_ARGV0_ACL) {
+-				if (tmy_io_printf(head, TMY_ALLOW_ARGV0 "%s %s\n", ((struct argv0_acl *) ptr)->filename->name, ((struct argv0_acl *) ptr)->argv0->name)) {
++				struct argv0_acl *ptr2 = (struct argv0_acl *) ptr;
++				if (tmy_io_printf(head, TMY_ALLOW_ARGV0 "%s %s\n", ptr2->filename->name, ptr2->argv0->name)) {
+ 					head->read_avail = pos; break;
+ 				}
+ 			} else if (acl_type == TMY_TYPE_IP_NETWORK_ACL) {
+-				if (tmy_io_printf(head, TMY_ALLOW_NETWORK "%s ", tmy_network2keyword(ptr->u.b[0])))
++				struct net_acl *ptr2 = (struct net_acl *) ptr;
++				if (tmy_io_printf(head, TMY_ALLOW_NETWORK "%s ", tmy_network2keyword(ptr2->operation_type)))
+ 					break;
+-				switch (ptr->u.b[1]) {
++				switch (ptr2->record_type) {
+ 				case TMY_TYPE_ADDRESS_GROUP:
+-					if (tmy_io_printf(head, "@%s", ((struct net_acl *) ptr)->u.group->group_name->name))
++					if (tmy_io_printf(head, "@%s", ptr2->u.group->group_name->name))
+ 						goto print_ip_record_out;
+ 					break;
+ 				case TMY_TYPE_IPv4:
+ 					{
+-						const u32 min_address = ((struct net_acl *) ptr)->u.ipv4.min, max_address = ((struct net_acl *) ptr)->u.ipv4.max;
++						const u32 min_address = ptr2->u.ipv4.min, max_address = ptr2->u.ipv4.max;
+ 						if (tmy_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
+ 							goto print_ip_record_out;
+ 						if (min_address != max_address && tmy_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
+@@ -995,7 +998,7 @@
+ 				case TMY_TYPE_IPv6:
+ 					{
+ 						char buf[64];
+-						const u16 *min_address = ((struct net_acl *) ptr)->u.ipv6.min, *max_address = ((struct net_acl *) ptr)->u.ipv6.max;
++						const u16 *min_address = ptr2->u.ipv6.min, *max_address = ptr2->u.ipv6.max;
+ 						tmy_print_ipv6(buf, sizeof(buf), min_address);
+ 						if (tmy_io_printf(head, "%s", buf))
+ 							goto print_ip_record_out;
+@@ -1008,7 +1011,7 @@
+ 					break;
+ 				}
+ 				{
+-					const u16 min_port = ((struct net_acl *) ptr)->min_port, max_port = ((struct net_acl *) ptr)->max_port;
++					const u16 min_port = ptr2->min_port, max_port = ptr2->max_port;
+ 					if (tmy_io_printf(head, " %u", min_port))
+ 						goto print_ip_record_out;
+ 					if (min_port != max_port && tmy_io_printf(head, "-%u", max_port))
+@@ -1020,34 +1023,37 @@
+ 					break;
+ 				}
+ 			} else if (acl_type == TMY_TYPE_SIGNAL_ACL) {
+-				if (tmy_io_printf(head, TMY_ALLOW_SIGNAL "%u %s\n", ptr->u.w, ((struct signal_acl *) ptr)->domainname->name)) {
++				struct signal_acl *ptr2 = (struct signal_acl *) ptr;
++				if (tmy_io_printf(head, TMY_ALLOW_SIGNAL "%u %s\n", ptr2->sig, ptr2->domainname->name)) {
+ 					head->read_avail = pos; break;
+ 				}
+ 			} else {
+ 				const char *keyword = tmy_acltype2keyword(acl_type);
+ 				if (keyword) {
+ 					if (tmy_acltype2paths(acl_type) == 2) {
+-						const u8 b0 = ptr->u.b[0], b1 = ptr->u.b[1];
++						struct double_acl *ptr2 = (struct double_acl *) ptr2;
++						const u8 b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
+ 						if (tmy_io_printf(head,
+ 								  "allow_%s %s%s %s%s\n",
+ 								  keyword,
+ 								  b0 ? "@" : "",
+-								  b0 ? ((struct double_acl *) ptr)->u1.group1->group_name->name :
+-								  ((struct double_acl *) ptr)->u1.filename1->name,
++								  b0 ? ptr2->u1.group1->group_name->name :
++								  ptr2->u1.filename1->name,
+ 								  b1 ? "@" : "",
+-								  b1 ? ((struct double_acl *) ptr)->u2.group2->group_name->name :
+-								  ((struct double_acl *) ptr)->u2.filename2->name)) {
++								  b1 ? ptr2->u2.group2->group_name->name :
++								  ptr2->u2.filename2->name)) {
+ 							head->read_avail = pos;
+ 							break;
+ 						}
+ 					} else {
+-						const u8 b = ptr->u.b[0];
++						struct single_acl *ptr2 = (struct single_acl *) ptr;
++						const u8 b = ptr2->u_is_group;
+ 						if (tmy_io_printf(head,
+ 								  "allow_%s %s%s\n",
+ 								  keyword,
+ 								  b ? "@" : "",
+-								  b ? ((struct single_acl *) ptr)->u.group->group_name->name :
+-								  ((struct single_acl *) ptr)->u.filename->name)) {
++								  b ? ptr2->u.group->group_name->name :
++								  ptr2->u.filename->name)) {
+ 							head->read_avail = pos;
+ 							break;
+ 						}
+Index: linux-2.6/security/tomoyo/file.c
+===================================================================
+--- linux-2.6.orig/security/tomoyo/file.c	2007-08-09 20:22:28.000000000 +0900
++++ linux-2.6/security/tomoyo/file.c	2007-08-09 21:01:41.000000000 +0900
+@@ -707,18 +707,17 @@
+ 			goto first_entry;
+ 
+ 		while (1) {
+-			struct file_acl *new_ptr;
+ 			struct file_acl *acl = (struct file_acl *) ptr;
+ 
+ 			if ((ptr->type == TMY_TYPE_FILE_ACL) &&
+ 			    (acl->u.filename == saved)) {
+ 				if (ptr->is_deleted) {
+-					ptr->u.b[0] = 0;
++					acl->perm = 0;
+ 					mb(); /* Instead of using spinlock. */
+ 					ptr->is_deleted = 0;
+ 				}
+ 				/* Found. Just 'OR' the permission bits. */
+-				ptr->u.b[0] |= perm;
++				acl->perm |= perm;
+ 				error = 0;
+ 				tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
+ 				break;
+@@ -734,16 +733,16 @@
+ 				break;
+ 
+ 			/* Not found. Append it to the tail. */
+-			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
+-			if (!new_ptr)
++			acl = tmy_alloc_element(sizeof(*acl));
++			if (!acl)
+ 				break;
+ 
+-			new_ptr->head.type = TMY_TYPE_FILE_ACL;
+-			new_ptr->head.u.b[0] = perm;
+-			new_ptr->head.u.b[1] = is_group;
+-			new_ptr->u.filename = saved;
++			acl->head.type = TMY_TYPE_FILE_ACL;
++			acl->perm = perm;
++			acl->u_is_group = is_group;
++			acl->u.filename = saved;
+ 			error = tmy_add_acl(ptr, domain,
+-					    (struct acl_info *) new_ptr);
++					    (struct acl_info *) acl);
+ 			break;
+ 		}
+ 
+@@ -753,7 +752,7 @@
+ 
+ 			if (ptr->type != TMY_TYPE_FILE_ACL ||
+ 			    ptr->is_deleted ||
+-			    ptr->u.b[0] != perm)
++			    acl->perm != perm)
+ 				continue;
+ 			if (acl->u.filename != saved)
+ 				continue;
+@@ -785,18 +784,19 @@
+ 
+ 		if (ptr->type != TMY_TYPE_FILE_ACL ||
+ 		    ptr->is_deleted ||
+-		    (ptr->u.b[0] & perm) != perm)
++		    (acl->perm & perm) != perm)
+ 			continue;
+ 
+-		if ((ptr->u.b[1]) &&
+-		    (tmy_path_match_group(filename,
+-					  acl->u.group,
+-					  may_use_pat)))
+-			return 0;
+-		else if (!ptr->u.b[1] &&
+-			 (may_use_pat || !acl->u.filename->is_patterned) &&
+-			 (tmy_path_match(filename, acl->u.filename)))
+-			return 0;
++		if (acl->u_is_group) {
++			if (tmy_path_match_group(filename,
++						 acl->u.group,
++						 may_use_pat))
++				return 0;
++		} else {
++			if ((may_use_pat || !acl->u.filename->is_patterned) &&
++			    tmy_path_match(filename, acl->u.filename))
++				return 0;
++		}
+ 	}
+ 
+ 	return -EPERM;
+@@ -934,7 +934,6 @@
+ 		if (!ptr)
+ 			goto first_entry;
+ 		while (1) {
+-			struct single_acl *new_ptr;
+ 			struct single_acl *acl = (struct single_acl *) ptr;
+ 
+ 			if (ptr->type == type) {
+@@ -955,15 +954,15 @@
+ 				break;
+ 
+ 			/* Not found. Append it to the tail. */
+-			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
+-			if (!new_ptr)
++			acl = tmy_alloc_element(sizeof(*acl));
++			if (!acl)
+ 				break;
+ 
+-			new_ptr->head.type = type;
+-			new_ptr->head.u.w = is_group;
+-			new_ptr->u.filename = saved;
++			acl->head.type = type;
++			acl->u_is_group = is_group;
++			acl->u.filename = saved;
+ 			error = tmy_add_acl(ptr, domain,
+-					    (struct acl_info *) new_ptr);
++					    (struct acl_info *) acl);
+ 			break;
+ 		}
+ 	} else {
+@@ -1036,7 +1035,6 @@
+ 		if (!ptr)
+ 			goto first_entry;
+ 		while (1) {
+-			struct double_acl *new_ptr;
+ 			struct double_acl *acl = (struct double_acl *) ptr;
+ 
+ 			if (ptr->type == type) {
+@@ -1058,17 +1056,17 @@
+ 			if (is_add == 1 && tmy_too_many_acl(domain))
+ 				break;
+ 			/* Not found. Append it to the tail. */
+-			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
+-			if (!new_ptr)
++			acl = tmy_alloc_element(sizeof(*acl));
++			if (!acl)
+ 				break;
+ 
+-			new_ptr->head.type = type;
+-			new_ptr->head.u.b[0] = is_group1;
+-			new_ptr->head.u.b[1] = is_group2;
+-			new_ptr->u1.filename1 = saved1;
+-			new_ptr->u2.filename2 = saved2;
++			acl->head.type = type;
++			acl->u1_is_group = is_group1;
++			acl->u2_is_group = is_group2;
++			acl->u1.filename1 = saved1;
++			acl->u2.filename2 = saved2;
+ 			error = tmy_add_acl(ptr, domain,
+-					    (struct acl_info *) new_ptr);
++					    (struct acl_info *) acl);
+ 
+ 			break;
+ 		}
+@@ -1108,7 +1106,7 @@
+ 		if (ptr->type != type || ptr->is_deleted)
+ 			continue;
+ 
+-		if (ptr->u.w) {
++		if (acl->u_is_group) {
+ 			if (!tmy_path_match_group(filename, acl->u.group, 1))
+ 				continue;
+ 		} else {
+@@ -1137,7 +1135,7 @@
+ 		if (ptr->type != type || ptr->is_deleted)
+ 			continue;
+ 
+-		if (ptr->u.b[0]) {
++		if (acl->u1_is_group) {
+ 			if (!tmy_path_match_group(filename1,
+ 						  acl->u1.group1, 1))
+ 				continue;
+@@ -1146,7 +1144,7 @@
+ 				continue;
+ 		}
+ 
+-		if (ptr->u.b[1]) {
++		if (acl->u2_is_group) {
+ 			if (!tmy_path_match_group(filename2,
+ 						  acl->u2.group2, 1))
+ 				continue;
+Index: linux-2.6/security/tomoyo/include/tomoyo.h
+===================================================================
+--- linux-2.6.orig/security/tomoyo/include/tomoyo.h	2007-08-09 20:22:29.000000000 +0900
++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-08-09 20:50:51.000000000 +0900
+@@ -71,11 +71,7 @@
+ 	struct acl_info *next;
+ 	u8 type;
+ 	u8 is_deleted;
+-	union {
+-		u16 w;
+-		u8 b[2];
+-	} u;
+-};
++} __attribute__((__packed__));
+ 
+ struct domain_info {
+ 	struct domain_info *next;           /* NULL if none. */
+@@ -89,8 +85,10 @@
+ #define TMY_MAX_PROFILES 256
+ 
+ struct file_acl {
+-	/* type = TMY_TYPE_FILE_ACL, b[0] = perm, b[1] = u_is_group */
++	/* type = TMY_TYPE_FILE_ACL */
+ 	struct acl_info head;
++	u8 perm;
++	u8 u_is_group;
+ 	union {
+ 		const struct path_info *filename;
+ 		const struct group_entry *group;
+@@ -98,15 +96,16 @@
+ };
+ 
+ struct argv0_acl {
+-	/* type = TMY_TYPE_ARGV0_ACL   */
++	/* type = TMY_TYPE_ARGV0_ACL */
+ 	struct acl_info head;
+ 	const struct path_info *filename; /* Pointer to single pathname. */
+ 	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
+ };
+ 
+ struct single_acl {
+-	/* type = TMY_TYPE_*, w = u_is_group */
++	/* type = TMY_TYPE_* */
+ 	struct acl_info head;
++	u8 u_is_group;
+ 	union {
+ 		const struct path_info *filename;
+ 		const struct group_entry *group;
+@@ -115,8 +114,9 @@
+ 
+ struct double_acl {
+ 	/* type = TMY_TYPE_RENAME_ACL or TMY_TYPE_LINK_ACL, */
+-	/* b[0] = u1_is_group, b[1] = u2_is_group */
+ 	struct acl_info head;
++	u8 u1_is_group;
++	u8 u2_is_group;
+ 	union {
+ 		const struct path_info *filename1;
+ 		const struct group_entry *group1;
+@@ -128,8 +128,9 @@
+ };
+ 
+ struct signal_acl {
+-	/* type = TYPE_SIGNAL_ACL, w = signal_number. */
++	/* type = TYPE_SIGNAL_ACL */
+ 	struct acl_info head;
++	u16 sig;
+ 	/* Pointer to destination pattern.            */
+ 	const struct path_info *domainname;
+ };
+@@ -156,8 +157,9 @@
+ 
+ struct net_acl {
+ 	/* type = TYPE_IP_NETWORK_ACL, */
+-	/* b[0] = socket_type, b[1] = IP_RECORD_TYPE_* */
+ 	struct acl_info head;
++	u8 operation_type;
++	u8 record_type;
+ 	union {
+ 		struct {
+ 			u32 min;
+Index: linux-2.6/security/tomoyo/net.c
+===================================================================
+--- linux-2.6.orig/security/tomoyo/net.c	2007-08-09 20:22:29.000000000 +0900
++++ linux-2.6/security/tomoyo/net.c	2007-08-09 20:55:03.000000000 +0900
+@@ -467,8 +467,8 @@
+ 
+ 		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
+ 		    ptr->is_deleted ||
+-		    ptr->u.b[0] != operation ||
+-		    ptr->u.b[1] != record_type ||
++		    acl->operation_type != operation ||
++		    acl->record_type != record_type ||
+ 		    acl->min_port != min_port ||
+ 		    acl->max_port != max_port)
+ 			continue;
+@@ -515,11 +515,10 @@
+ 
+ 	while (1) {
+ 		struct net_acl *acl = (struct net_acl *) ptr;
+-		struct net_acl *new_ptr;
+ 
+ 		if (ptr->type == TMY_TYPE_IP_NETWORK_ACL &&
+-		    ptr->u.b[0] == operation &&
+-		    ptr->u.b[1] == record_type &&
++		    acl->operation_type == operation &&
++		    acl->record_type == record_type &&
+ 		    acl->min_port == min_port &&
+ 		    max_port == acl->max_port) {
+ 
+@@ -543,28 +542,28 @@
+ 			break;
+ 
+ 		/* Not found. Append it to the tail. */
+-		new_ptr = tmy_alloc_element(sizeof(*new_ptr));
+-		if (!new_ptr)
++		acl = tmy_alloc_element(sizeof(*acl));
++		if (!acl)
+ 			break;
+ 
+-		new_ptr->head.type = TMY_TYPE_IP_NETWORK_ACL;
+-		new_ptr->head.u.b[0] = operation;
+-		new_ptr->head.u.b[1] = record_type;
++		acl->head.type = TMY_TYPE_IP_NETWORK_ACL;
++		acl->operation_type = operation;
++		acl->record_type = record_type;
+ 
+ 		if (record_type == TMY_TYPE_ADDRESS_GROUP)
+-			new_ptr->u.group = group;
++			acl->u.group = group;
+ 		else if (record_type == TMY_TYPE_IPv4) {
+-			new_ptr->u.ipv4.min = min_ip;
+-			new_ptr->u.ipv4.max = max_ip;
++			acl->u.ipv4.min = min_ip;
++			acl->u.ipv4.max = max_ip;
+ 		} else {
+-			memmove(new_ptr->u.ipv6.min, min_address, 16);
+-			memmove(new_ptr->u.ipv6.max, max_address, 16);
++			memmove(acl->u.ipv6.min, min_address, 16);
++			memmove(acl->u.ipv6.max, max_address, 16);
+ 		}
+ 
+-		new_ptr->min_port = min_port;
+-		new_ptr->max_port = max_port;
++		acl->min_port = min_port;
++		acl->max_port = max_port;
+ 		error = tmy_add_acl(ptr, domain,
+-				    (struct acl_info *) new_ptr);
++				    (struct acl_info *) acl);
+ 		break;
+ 	}
+ 
+@@ -593,20 +592,20 @@
+ 
+ 		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
+ 		    ptr->is_deleted ||
+-		    ptr->u.b[0] != operation ||
++		    acl->operation_type != operation ||
+ 		    port < acl->min_port ||
+ 		    acl->max_port < port)
+ 			continue;
+ 
+-		if (ptr->u.b[1] == TMY_TYPE_ADDRESS_GROUP &&
++		if (acl->record_type == TMY_TYPE_ADDRESS_GROUP &&
+ 		    tmy_address_match_group(is_ipv6, address, acl->u.group))
+ 			break;
+ 
+-		else if (ptr->u.b[1] == TMY_TYPE_IPv4 && !is_ipv6 &&
++		else if (acl->record_type == TMY_TYPE_IPv4 && !is_ipv6 &&
+ 			 (acl->u.ipv4.min <= ip && ip <= acl->u.ipv4.max))
+ 			break;
+ 
+-		else if (ptr->u.b[1] == TMY_TYPE_IPv6 && is_ipv6 &&
++		else if (acl->record_type == TMY_TYPE_IPv6 && is_ipv6 &&
+ 			 memcmp(acl->u.ipv6.min, address, 16) <= 0 &&
+ 			 memcmp(address, acl->u.ipv6.max, 16) <= 0)
+ 			break;
+Index: linux-2.6/security/tomoyo/signal.c
+===================================================================
+--- linux-2.6.orig/security/tomoyo/signal.c	2007-08-09 20:22:29.000000000 +0900
++++ linux-2.6/security/tomoyo/signal.c	2007-08-09 20:55:17.000000000 +0900
+@@ -54,9 +54,9 @@
+ 	if (is_add) {
+ 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
+ 		while (1) {
+-			struct signal_acl *new_ptr;
+-			if (ptr->type == TMY_TYPE_SIGNAL_ACL && ptr->u.w == hash) {
+-				if (!tmy_pathcmp(((struct signal_acl *) ptr)->domainname, saved_dest_pattern)) {
++			struct signal_acl *acl = (struct signal_acl *) ptr;
++			if (ptr->type == TMY_TYPE_SIGNAL_ACL && acl->sig == hash) {
++				if (!tmy_pathcmp(acl->domainname, saved_dest_pattern)) {
+ 					ptr->is_deleted = 0;
+ 					/* Found. Nothing to do. */
+ 					error = 0;
+@@ -70,18 +70,19 @@
+ 		first_entry: ;
+ 			if (is_add == 1 && tmy_too_many_acl(domain)) break;
+ 			/* Not found. Append it to the tail. */
+-			if ((new_ptr = tmy_alloc_element(sizeof(*new_ptr))) == NULL) break;
+-			new_ptr->head.type = TMY_TYPE_SIGNAL_ACL;
+-			new_ptr->head.u.w = hash;
+-			new_ptr->domainname = saved_dest_pattern;
+-			error = tmy_add_acl(ptr, domain, (struct acl_info *) new_ptr);
++			if ((acl = tmy_alloc_element(sizeof(*acl))) == NULL) break;
++			acl->head.type = TMY_TYPE_SIGNAL_ACL;
++			acl->sig = hash;
++			acl->domainname = saved_dest_pattern;
++			error = tmy_add_acl(ptr, domain, (struct acl_info *) acl);
+ 			break;
+ 		}
+ 	} else {
+ 		error = -ENOENT;
+ 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+-			if (ptr->type != TMY_TYPE_SIGNAL_ACL || ptr->is_deleted || ptr->u.w != hash) continue;
+-			if (tmy_pathcmp(((struct signal_acl *) ptr)->domainname, saved_dest_pattern)) continue;
++			struct signal_acl *acl = (struct signal_acl *) ptr;
++			if (ptr->type != TMY_TYPE_SIGNAL_ACL || ptr->is_deleted || acl->sig != hash) continue;
++			if (tmy_pathcmp(acl->domainname, saved_dest_pattern)) continue;
+ 			error = tmy_del_acl(ptr);
+ 			break;
+ 		}
+@@ -121,9 +122,10 @@
+ 	}
+ 	dest_pattern = dest->domainname->name;
+ 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+-		if (ptr->type == TMY_TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && ptr->u.w == hash) {
+-			const int len = ((struct signal_acl *) ptr)->domainname->total_len;
+-			if (strncmp(((struct signal_acl *) ptr)->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) break;
++		struct signal_acl *acl = (struct signal_acl *) ptr;
++		if (ptr->type == TMY_TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && acl->sig == hash) {
++			const int len = acl->domainname->total_len;
++			if (strncmp(acl->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) break;
+ 		}
+ 	}
+ 	if (ptr) {
+Index: linux-2.6/security/tomoyo/exec.c
+===================================================================
+--- linux-2.6.orig/security/tomoyo/exec.c	2007-08-09 20:22:28.000000000 +0900
++++ linux-2.6/security/tomoyo/exec.c	2007-08-09 20:55:30.000000000 +0900
+@@ -111,7 +111,6 @@
+ 	if (!ptr)
+ 		goto first_entry;
+ 	while (1) {
+-		struct argv0_acl *new_ptr;
+ 		struct argv0_acl *acl = (struct argv0_acl *) ptr;
+ 
+ 		if (ptr->type == TMY_TYPE_ARGV0_ACL) {
+@@ -136,15 +135,15 @@
+ 			break;
+ 
+ 		/* Not found. Append it to the tail. */
+-		new_ptr = tmy_alloc_element(sizeof(*new_ptr));
+-		if (!new_ptr)
++		acl = tmy_alloc_element(sizeof(*acl));
++		if (!acl)
+ 			break;
+ 
+-		new_ptr->head.type = TMY_TYPE_ARGV0_ACL;
+-		new_ptr->filename = saved_filename;
+-		new_ptr->argv0 = saved_argv0;
++		acl->head.type = TMY_TYPE_ARGV0_ACL;
++		acl->filename = saved_filename;
++		acl->argv0 = saved_argv0;
+ 		error = tmy_add_acl(ptr, domain,
+-				    (struct acl_info *) new_ptr);
++				    (struct acl_info *) acl);
+ 
+ 		break;
+ 	}
