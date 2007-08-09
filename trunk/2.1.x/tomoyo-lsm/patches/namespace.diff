@@ -1,0 +1,34 @@
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+
+---
+ fs/namespace.c                |    2 +-
+ include/linux/mnt_namespace.h |    2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+Index: src/fs/namespace.c
+===================================================================
+--- src.orig/fs/namespace.c	2007-08-07 17:31:32.000000000 +0900
++++ src/fs/namespace.c	2007-08-07 17:32:12.000000000 +0900
+@@ -38,7 +38,7 @@
+ static struct list_head *mount_hashtable __read_mostly;
+ static int hash_mask __read_mostly, hash_bits __read_mostly;
+ static struct kmem_cache *mnt_cache __read_mostly;
+-static struct rw_semaphore namespace_sem;
++struct rw_semaphore namespace_sem;
+ 
+ /* /sys/fs */
+ decl_subsys(fs, NULL, NULL);
+Index: src/include/linux/mnt_namespace.h
+===================================================================
+--- src.orig/include/linux/mnt_namespace.h	2007-08-07 17:31:37.000000000 +0900
++++ src/include/linux/mnt_namespace.h	2007-08-07 17:32:12.000000000 +0900
+@@ -6,6 +6,8 @@
+ #include <linux/sched.h>
+ #include <linux/nsproxy.h>
+ 
++extern struct rw_semaphore namespace_sem;
++
+ struct mnt_namespace {
+ 	atomic_t		count;
+ 	struct vfsmount *	root;
