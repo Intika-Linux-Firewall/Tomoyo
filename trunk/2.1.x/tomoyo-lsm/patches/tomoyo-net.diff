@@ -5,11 +5,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/net.c |  899 ++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 899 insertions(+)
 
-Index: src/security/tomoyo/net.c
+Index: linux-2.6/security/tomoyo/net.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/net.c	2007-08-10 18:28:09.000000000 +0900
-@@ -0,0 +1,899 @@
++++ linux-2.6/security/tomoyo/net.c	2007-08-10 23:20:17.000000000 +0900
+@@ -0,0 +1,905 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -900,12 +900,18 @@ Index: src/security/tomoyo/net.c
 +				 (const u32 *) address, ntohs(port));
 +}
 +
-+int tmy_network_accept_acl(const int is_ipv6, const u8 *address, const u16 port)
++int tmy_network_accept_acl(const int is_ipv6, const u8 *address,
++			   const u16 port)
 +{
-+	return tmy_network_entry(is_ipv6, TMY_NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
++	return tmy_network_entry(is_ipv6, TMY_NETWORK_ACL_TCP_ACCEPT,
++				 (const u32 *) address, ntohs(port));
 +}
 +
-+int tmy_network_recvmsg_acl(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
++int tmy_network_recvmsg_acl(const int is_ipv6, const int sock_type,
++			    const u8 *address, const u16 port)
 +{
-+	return tmy_network_entry(is_ipv6, sock_type == SOCK_DGRAM ? TMY_NETWORK_ACL_UDP_CONNECT : TMY_NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
++	return tmy_network_entry(is_ipv6, sock_type == SOCK_DGRAM ?
++				 TMY_NETWORK_ACL_UDP_CONNECT :
++				 TMY_NETWORK_ACL_RAW_CONNECT,
++				 (const u32 *) address, ntohs(port));
 +}

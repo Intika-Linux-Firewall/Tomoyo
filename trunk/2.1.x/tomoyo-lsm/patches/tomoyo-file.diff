@@ -5,10 +5,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/file.c | 1369 +++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 1369 insertions(+)
 
-Index: src/security/tomoyo/file.c
+Index: linux-2.6/security/tomoyo/file.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/file.c	2007-08-10 18:26:32.000000000 +0900
++++ linux-2.6/security/tomoyo/file.c	2007-08-10 22:18:39.000000000 +0900
 @@ -0,0 +1,1369 @@
 +/*
 + * security/tomoyo/file.c
@@ -712,68 +712,67 @@ Index: src/security/tomoyo/file.c
 +
 +	down(&domain_acl_lock);
 +
-+	if (is_add) {
++	if (!is_add)
++		goto remove;
 +
-+		ptr = domain->first_acl_ptr;
-+		if (!ptr)
-+			goto first_entry;
++	ptr = domain->first_acl_ptr;
++	if (!ptr)
++		goto first_entry;
 +
-+		while (1) {
-+			struct file_acl *acl = (struct file_acl *) ptr;
++	while (1) {
++		struct file_acl *acl = (struct file_acl *) ptr;
 +
-+			if ((ptr->type == TMY_TYPE_FILE_ACL) &&
-+			    (acl->u.filename == saved)) {
-+				if (ptr->is_deleted) {
-+					acl->perm = 0;
-+					mb(); /* Instead of using spinlock. */
-+					ptr->is_deleted = 0;
-+				}
-+				/* Found. Just 'OR' the permission bits. */
-+				acl->perm |= perm;
-+				error = 0;
-+				tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
-+				break;
++		if ((ptr->type == TMY_TYPE_FILE_ACL) &&
++		    (acl->u.filename == saved)) {
++			if (ptr->is_deleted) {
++				acl->perm = 0;
++				mb(); /* Instead of using spinlock. */
++				ptr->is_deleted = 0;
 +			}
++			/* Found. Just 'OR' the permission bits. */
++			acl->perm |= perm;
++			error = 0;
++			tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
++			break;
++		}
 +
-+			if (ptr->next) {
-+				ptr = ptr->next;
-+				continue;
-+			}
++		if (ptr->next) {
++			ptr = ptr->next;
++			continue;
++		}
 +
 +first_entry:
-+			if (is_add == 1 && tmy_too_many_acl(domain))
-+				break;
-+
-+			/* Not found. Append it to the tail. */
-+			acl = tmy_alloc_element(sizeof(*acl));
-+			if (!acl)
-+				break;
-+
-+			acl->head.type = TMY_TYPE_FILE_ACL;
-+			acl->perm = perm;
-+			acl->u_is_group = is_group;
-+			acl->u.filename = saved;
-+			error = tmy_add_acl(ptr, domain,
-+					    (struct acl_info *) acl);
++		if (is_add == 1 && tmy_too_many_acl(domain))
 +			break;
-+		}
 +
-+	} else {
-+		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+			struct file_acl *acl = (struct file_acl *) ptr;
-+
-+			if (ptr->type != TMY_TYPE_FILE_ACL ||
-+			    ptr->is_deleted ||
-+			    acl->perm != perm)
-+				continue;
-+			if (acl->u.filename != saved)
-+				continue;
-+
-+			error = tmy_del_acl(ptr);
++		/* Not found. Append it to the tail. */
++		acl = tmy_alloc_element(sizeof(*acl));
++		if (!acl)
 +			break;
-+		}
++
++		acl->head.type = TMY_TYPE_FILE_ACL;
++		acl->perm = perm;
++		acl->u_is_group = is_group;
++		acl->u.filename = saved;
++		error = tmy_add_acl(ptr, domain,
++				    (struct acl_info *) acl);
++		break;
 +	}
++	goto ok;
++remove:
++	error = -ENOENT;
++	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++		struct file_acl *acl = (struct file_acl *) ptr;
 +
++		if (ptr->type != TMY_TYPE_FILE_ACL ||
++		    ptr->is_deleted ||
++		    acl->perm != perm ||
++		    acl->u.filename != saved)
++			continue;
++		error = tmy_del_acl(ptr);
++		break;
++	}
++ok:
 +	up(&domain_acl_lock);
 +	return error;
 +}
@@ -941,57 +940,59 @@ Index: src/security/tomoyo/file.c
 +	}
 +
 +	down(&domain_acl_lock);
-+	if (is_add) {
-+		ptr = domain->first_acl_ptr;
-+		if (!ptr)
-+			goto first_entry;
-+		while (1) {
-+			struct single_acl *acl = (struct single_acl *) ptr;
++	if (!is_add)
++		goto remove;
 +
-+			if (ptr->type == type) {
-+				if (acl->u.filename == saved) {
-+					ptr->is_deleted = 0;
-+					/* Found. Nothing to do. */
-+					error = 0;
-+					break;
-+				}
++	ptr = domain->first_acl_ptr;
++	if (!ptr)
++		goto first_entry;
++	while (1) {
++		struct single_acl *acl = (struct single_acl *) ptr;
++
++		if (ptr->type == type) {
++			if (acl->u.filename == saved) {
++				ptr->is_deleted = 0;
++				/* Found. Nothing to do. */
++				error = 0;
++				break;
 +			}
-+			if (ptr->next) {
-+				ptr = ptr->next;
-+				continue;
-+			}
++		}
++		if (ptr->next) {
++			ptr = ptr->next;
++			continue;
++		}
 +
 +first_entry:
-+			if (is_add == 1 && tmy_too_many_acl(domain))
-+				break;
-+
-+			/* Not found. Append it to the tail. */
-+			acl = tmy_alloc_element(sizeof(*acl));
-+			if (!acl)
-+				break;
-+
-+			acl->head.type = type;
-+			acl->u_is_group = is_group;
-+			acl->u.filename = saved;
-+			error = tmy_add_acl(ptr, domain,
-+					    (struct acl_info *) acl);
++		if (is_add == 1 && tmy_too_many_acl(domain))
 +			break;
-+		}
-+	} else {
-+		error = -ENOENT;
-+		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+			struct single_acl *acl = (struct single_acl *) ptr;
 +
-+			if (ptr->type != type || ptr->is_deleted)
-+				continue;
-+			if (acl->u.filename != saved)
-+				continue;
-+
-+			error = tmy_del_acl(ptr);
-+
++		/* Not found. Append it to the tail. */
++		acl = tmy_alloc_element(sizeof(*acl));
++		if (!acl)
 +			break;
-+		}
++
++		acl->head.type = type;
++		acl->u_is_group = is_group;
++		acl->u.filename = saved;
++		error = tmy_add_acl(ptr, domain,
++				    (struct acl_info *) acl);
++		break;
 +	}
++	goto ok;
++remove:
++	error = -ENOENT;
++	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++		struct single_acl *acl = (struct single_acl *) ptr;
++
++		if (ptr->type != type || ptr->is_deleted ||
++		    acl->u.filename != saved)
++			continue;
++
++		error = tmy_del_acl(ptr);
++
++		break;
++	}
++ok:
 +	up(&domain_acl_lock);
 +
 +	return error;
@@ -1042,63 +1043,62 @@ Index: src/security/tomoyo/file.c
 +
 +	down(&domain_acl_lock);
 +
-+	if (is_add) {
-+		ptr = domain->first_acl_ptr;
-+		if (!ptr)
-+			goto first_entry;
-+		while (1) {
-+			struct double_acl *acl = (struct double_acl *) ptr;
++	if (!is_add)
++		goto remove;
 +
-+			if (ptr->type == type) {
-+				if (acl->u1.filename1 == saved1 &&
-+				    acl->u2.filename2 == saved2) {
-+					ptr->is_deleted = 0;
-+					/* Found. Nothing to do. */
-+					error = 0;
-+					break;
-+				}
-+			}
++	ptr = domain->first_acl_ptr;
++	if (!ptr)
++		goto first_entry;
++	while (1) {
++		struct double_acl *acl = (struct double_acl *) ptr;
 +
-+			if (ptr->next) {
-+				ptr = ptr->next;
-+				continue;
++		if (ptr->type == type) {
++			if (acl->u1.filename1 == saved1 &&
++			    acl->u2.filename2 == saved2) {
++				ptr->is_deleted = 0;
++				/* Found. Nothing to do. */
++				error = 0;
++				break;
 +			}
++		}
++
++		if (ptr->next) {
++			ptr = ptr->next;
++			continue;
++		}
 +
 +first_entry:
-+			if (is_add == 1 && tmy_too_many_acl(domain))
-+				break;
-+			/* Not found. Append it to the tail. */
-+			acl = tmy_alloc_element(sizeof(*acl));
-+			if (!acl)
-+				break;
-+
-+			acl->head.type = type;
-+			acl->u1_is_group = is_group1;
-+			acl->u2_is_group = is_group2;
-+			acl->u1.filename1 = saved1;
-+			acl->u2.filename2 = saved2;
-+			error = tmy_add_acl(ptr, domain,
-+					    (struct acl_info *) acl);
-+
++		if (is_add == 1 && tmy_too_many_acl(domain))
 +			break;
-+		}
-+	} else {
-+		error = -ENOENT;
-+		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+			struct double_acl *acl = (struct double_acl *) ptr;
-+
-+			if (ptr->type != type || ptr->is_deleted)
-+				continue;
-+
-+			if (acl->u1.filename1 != saved1 ||
-+			    acl->u2.filename2 != saved2)
-+				continue;
-+
-+			error = tmy_del_acl(ptr);
++		/* Not found. Append it to the tail. */
++		acl = tmy_alloc_element(sizeof(*acl));
++		if (!acl)
 +			break;
-+		}
++
++		acl->head.type = type;
++		acl->u1_is_group = is_group1;
++		acl->u2_is_group = is_group2;
++		acl->u1.filename1 = saved1;
++		acl->u2.filename2 = saved2;
++		error = tmy_add_acl(ptr, domain,
++				    (struct acl_info *) acl);
++		break;
 +	}
++	goto ok;
++remove:
++	error = -ENOENT;
++	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++		struct double_acl *acl = (struct double_acl *) ptr;
 +
++		if (ptr->type != type || ptr->is_deleted ||
++		    acl->u1.filename1 != saved1 ||
++		    acl->u2.filename2 != saved2)
++			continue;
++
++		error = tmy_del_acl(ptr);
++		break;
++	}
++ok:
 +	up(&domain_acl_lock);
 +	return error;
 +}
