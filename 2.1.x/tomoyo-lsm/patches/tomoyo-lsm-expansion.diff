@@ -8,10 +8,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/dummy.c         |   31 +++++++++++++++--
  4 files changed, 156 insertions(+), 16 deletions(-)
 
-Index: src/include/linux/security.h
+Index: linux-2.6/include/linux/security.h
 ===================================================================
---- src.orig/include/linux/security.h	2007-08-10 18:03:12.000000000 +0900
-+++ src/include/linux/security.h	2007-08-10 18:09:51.000000000 +0900
+--- linux-2.6.orig/include/linux/security.h	2007-08-10 21:46:13.000000000 +0900
++++ linux-2.6/include/linux/security.h	2007-08-10 21:48:22.000000000 +0900
 @@ -628,6 +628,12 @@
   *	@sig contains the signal value.
   *	@secid contains the sid of the process where the signal originated
@@ -180,10 +180,10 @@ Index: src/include/linux/security.h
  static inline int security_socket_getsockname(struct socket * sock)
  {
  	return 0;
-Index: src/kernel/signal.c
+Index: linux-2.6/kernel/signal.c
 ===================================================================
---- src.orig/kernel/signal.c	2007-08-10 18:03:13.000000000 +0900
-+++ src/kernel/signal.c	2007-08-10 18:08:03.000000000 +0900
+--- linux-2.6.orig/kernel/signal.c	2007-08-05 21:41:54.000000000 +0900
++++ linux-2.6/kernel/signal.c	2007-08-10 21:48:22.000000000 +0900
 @@ -2199,6 +2199,11 @@
  sys_kill(int pid, int sig)
  {
@@ -230,10 +230,10 @@ Index: src/kernel/signal.c
  	return do_tkill(0, pid, sig);
  }
  
-Index: src/net/socket.c
+Index: linux-2.6/net/socket.c
 ===================================================================
---- src.orig/net/socket.c	2007-08-10 18:03:13.000000000 +0900
-+++ src/net/socket.c	2007-08-10 18:06:34.000000000 +0900
+--- linux-2.6.orig/net/socket.c	2007-08-10 21:46:13.000000000 +0900
++++ linux-2.6/net/socket.c	2007-08-10 21:48:22.000000000 +0900
 @@ -635,7 +635,17 @@
  	if (err)
  		return err;
@@ -320,10 +320,10 @@ Index: src/net/socket.c
  	cmsg_ptr = (unsigned long)msg_sys.msg_control;
  	msg_sys.msg_flags = flags & (MSG_CMSG_CLOEXEC|MSG_CMSG_COMPAT);
  
-Index: src/security/dummy.c
+Index: linux-2.6/security/dummy.c
 ===================================================================
---- src.orig/security/dummy.c	2007-08-10 18:03:13.000000000 +0900
-+++ src/security/dummy.c	2007-08-10 18:08:03.000000000 +0900
+--- linux-2.6.orig/security/dummy.c	2007-08-10 21:46:13.000000000 +0900
++++ linux-2.6/security/dummy.c	2007-08-10 21:48:22.000000000 +0900
 @@ -564,6 +564,21 @@
  	return 0;
  }
