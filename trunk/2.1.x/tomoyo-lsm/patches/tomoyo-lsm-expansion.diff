@@ -1,0 +1,393 @@
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+
+---
+ include/linux/security.h |   83 +++++++++++++++++++++++++++++++++++++++++++----
+ kernel/signal.c          |   17 +++++++++
+ net/socket.c             |   41 +++++++++++++++++++----
+ security/dummy.c         |   31 +++++++++++++++--
+ 4 files changed, 156 insertions(+), 16 deletions(-)
+
+Index: src/include/linux/security.h
+===================================================================
+--- src.orig/include/linux/security.h	2007-08-10 18:03:12.000000000 +0900
++++ src/include/linux/security.h	2007-08-10 18:09:51.000000000 +0900
+@@ -628,6 +628,12 @@
+  *	@sig contains the signal value.
+  *	@secid contains the sid of the process where the signal originated
+  *	Return 0 if permission is granted.
++ * @task_kill_unlocked:
++ *
++ * @task_tkill_unlocked:
++ *
++ * @task_tgkill_unlocked:
++ *
+  * @task_wait:
+  *	Check permission before allowing a process to reap a child process @p
+  *	and collect its status information.
+@@ -749,8 +755,12 @@
+  * @socket_post_accept:
+  *	This hook allows a security module to copy security
+  *	information into the newly created socket's inode.
++ *	This hook also allows a security module to filter connections
++ *	from unwanted peers.
++ *	The connection will be aborted if this hook returns nonzero.
+  *	@sock contains the listening socket structure.
+  *	@newsock contains the newly created server socket for connection.
++ *	Return 0 if permission is granted.
+  * @socket_sendmsg:
+  *	Check permission before transmitting a message to another socket.
+  *	@sock contains the socket structure.
+@@ -764,6 +774,14 @@
+  *	@size contains the size of message structure.
+  *	@flags contains the operational flags.
+  *	Return 0 if permission is granted.  
++ * @socket_post_recvmsg:
++ *	Check peer's address after receiving a message from a socket.
++ *	This hook is intended for filtering messages from unwanted peers.
++ *	@sock contains the socket structure.
++ *	@msg contains the message structure.
++ *	@size contains the size of message structure.
++ *	@flags contains the operational flags.
++ *	Return 0 if permission is granted.
+  * @socket_getsockname:
+  *	Check permission before the local address (name) of the socket object
+  *	@sock is retrieved.
+@@ -1278,6 +1296,9 @@
+ 	int (*task_movememory) (struct task_struct * p);
+ 	int (*task_kill) (struct task_struct * p,
+ 			  struct siginfo * info, int sig, u32 secid);
++	int (*task_kill_unlocked) (int pid, int sig);
++	int (*task_tkill_unlocked) (int pid, int sig);
++	int (*task_tgkill_unlocked) (int tgid, int pid, int sig);
+ 	int (*task_wait) (struct task_struct * p);
+ 	int (*task_prctl) (int option, unsigned long arg2,
+ 			   unsigned long arg3, unsigned long arg4,
+@@ -1345,12 +1366,15 @@
+ 			       struct sockaddr * address, int addrlen);
+ 	int (*socket_listen) (struct socket * sock, int backlog);
+ 	int (*socket_accept) (struct socket * sock, struct socket * newsock);
+-	void (*socket_post_accept) (struct socket * sock,
+-				    struct socket * newsock);
++#define TMY_LSM_EXPANSION
++	int (*socket_post_accept) (struct socket *sock,
++				   struct socket *newsock);
+ 	int (*socket_sendmsg) (struct socket * sock,
+ 			       struct msghdr * msg, int size);
+ 	int (*socket_recvmsg) (struct socket * sock,
+ 			       struct msghdr * msg, int size, int flags);
++	int (*socket_post_recvmsg) (struct socket *sock, struct msghdr *msg,
++				    int size, int flags);
+ 	int (*socket_getsockname) (struct socket * sock);
+ 	int (*socket_getpeername) (struct socket * sock);
+ 	int (*socket_getsockopt) (struct socket * sock, int level, int optname);
+@@ -1962,6 +1986,21 @@
+ 	return security_ops->task_kill (p, info, sig, secid);
+ }
+ 
++static inline int security_task_kill_unlocked(int pid, int sig)
++{
++	return security_ops->task_kill_unlocked(pid, sig);
++}
++
++static inline int security_task_tkill_unlocked(int pid, int sig)
++{
++	return security_ops->task_tkill_unlocked(pid, sig);
++}
++
++static inline int security_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return security_ops->task_tgkill_unlocked(tgid, pid, sig);
++}
++
+ static inline int security_task_wait (struct task_struct *p)
+ {
+ 	return security_ops->task_wait (p);
+@@ -2635,6 +2674,21 @@
+ 	return 0;
+ }
+ 
++static inline int security_task_kill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static inline int security_task_tkill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static inline int security_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return 0;
++}
++
+ static inline int security_task_wait (struct task_struct *p)
+ {
+ 	return 0;
+@@ -2860,10 +2914,10 @@
+ 	return security_ops->socket_accept(sock, newsock);
+ }
+ 
+-static inline void security_socket_post_accept(struct socket * sock, 
+-					       struct socket * newsock)
++static inline int security_socket_post_accept(struct socket *sock,
++					      struct socket *newsock)
+ {
+-	security_ops->socket_post_accept(sock, newsock);
++	return security_ops->socket_post_accept(sock, newsock);
+ }
+ 
+ static inline int security_socket_sendmsg(struct socket * sock, 
+@@ -2879,6 +2933,13 @@
+ 	return security_ops->socket_recvmsg(sock, msg, size, flags);
+ }
+ 
++static inline int security_socket_post_recvmsg(struct socket *sock,
++					       struct msghdr *msg,
++					       int size, int flags)
++{
++	return security_ops->socket_post_recvmsg(sock, msg, size, flags);
++}
++
+ static inline int security_socket_getsockname(struct socket * sock)
+ {
+ 	return security_ops->socket_getsockname(sock);
+@@ -3023,9 +3084,10 @@
+ 	return 0;
+ }
+ 
+-static inline void security_socket_post_accept(struct socket * sock, 
+-					       struct socket * newsock)
++static inline int security_socket_post_accept(struct socket *sock,
++					      struct socket *newsock)
+ {
++	return 0;
+ }
+ 
+ static inline int security_socket_sendmsg(struct socket * sock, 
+@@ -3041,6 +3103,13 @@
+ 	return 0;
+ }
+ 
++static inline int security_socket_post_recvmsg(struct socket *sock,
++					       struct msghdr *msg,
++					       int size, int flags)
++{
++	return 0;
++}
++
+ static inline int security_socket_getsockname(struct socket * sock)
+ {
+ 	return 0;
+Index: src/kernel/signal.c
+===================================================================
+--- src.orig/kernel/signal.c	2007-08-10 18:03:13.000000000 +0900
++++ src/kernel/signal.c	2007-08-10 18:08:03.000000000 +0900
+@@ -2199,6 +2199,11 @@
+ sys_kill(int pid, int sig)
+ {
+ 	struct siginfo info;
++	int ret;
++
++	ret = security_task_kill_unlocked(pid, sig);
++	if (ret)
++		return ret;
+ 
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+@@ -2254,10 +2259,16 @@
+  */
+ asmlinkage long sys_tgkill(int tgid, int pid, int sig)
+ {
++	int ret;
++
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0 || tgid <= 0)
+ 		return -EINVAL;
+ 
++	ret = security_task_tgkill_unlocked(tgid, pid, sig);
++	if (ret)
++		return ret;
++
+ 	return do_tkill(tgid, pid, sig);
+ }
+ 
+@@ -2267,10 +2278,16 @@
+ asmlinkage long
+ sys_tkill(int pid, int sig)
+ {
++	int ret;
++
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0)
+ 		return -EINVAL;
+ 
++	ret = security_task_tkill_unlocked(pid, sig);
++	if (ret)
++		return ret;
++
+ 	return do_tkill(0, pid, sig);
+ }
+ 
+Index: src/net/socket.c
+===================================================================
+--- src.orig/net/socket.c	2007-08-10 18:03:13.000000000 +0900
++++ src/net/socket.c	2007-08-10 18:06:34.000000000 +0900
+@@ -635,7 +635,17 @@
+ 	if (err)
+ 		return err;
+ 
+-	return sock->ops->recvmsg(iocb, sock, msg, size, flags);
++	err = sock->ops->recvmsg(iocb, sock, msg, size, flags);
++
++	if (err >= 0) {
++		int ret;
++
++		ret = security_socket_post_recvmsg(sock, msg, size, flags);
++		if (ret)
++			err = ret;
++	}
++
++	return err;
+ }
+ 
+ int sock_recvmsg(struct socket *sock, struct msghdr *msg,
+@@ -648,8 +658,18 @@
+ 	init_sync_kiocb(&iocb, NULL);
+ 	iocb.private = &siocb;
+ 	ret = __sock_recvmsg(&iocb, sock, msg, size, flags);
+-	if (-EIOCBQUEUED == ret)
++	if (-EIOCBQUEUED == ret) {
+ 		ret = wait_on_sync_kiocb(&iocb);
++
++		if (ret >= 0) {
++			int err;
++
++			err = security_socket_post_recvmsg(sock, msg, size, flags);
++			if (err)
++				ret = err;
++		}
++	}
++
+ 	return ret;
+ }
+ 
+@@ -712,12 +732,14 @@
+ 	struct socket *sock = file->private_data;
+ 	size_t size = 0;
+ 	int i;
++	/* only for security_socket_post_recvmsg() */
++	char address[MAX_SOCK_ADDR];
+ 
+ 	for (i = 0; i < nr_segs; i++)
+ 		size += iov[i].iov_len;
+ 
+-	msg->msg_name = NULL;
+-	msg->msg_namelen = 0;
++	msg->msg_name = address;
++	msg->msg_namelen = sizeof(address);
+ 	msg->msg_control = NULL;
+ 	msg->msg_controllen = 0;
+ 	msg->msg_iov = (struct iovec *)iov;
+@@ -1437,13 +1459,16 @@
+ 			goto out_fd;
+ 	}
+ 
++	/* Filter connections from unwanted peers like TCP Wrapper. */
++	err = security_socket_post_accept(sock, newsock);
++	if (err)
++		goto out_fd;
++
+ 	/* File flags are not inherited via accept() unlike another OSes. */
+ 
+ 	fd_install(newfd, newfile);
+ 	err = newfd;
+ 
+-	security_socket_post_accept(sock, newsock);
+-
+ out_put:
+ 	fput_light(sock->file, fput_needed);
+ out:
+@@ -1937,6 +1962,10 @@
+ 		goto out_freeiov;
+ 	total_len = err;
+ 
++	/* only for security_socket_post_recvmsg() */
++	msg_sys.msg_name = addr;
++	msg_sys.msg_namelen = sizeof(addr);
++
+ 	cmsg_ptr = (unsigned long)msg_sys.msg_control;
+ 	msg_sys.msg_flags = flags & (MSG_CMSG_CLOEXEC|MSG_CMSG_COMPAT);
+ 
+Index: src/security/dummy.c
+===================================================================
+--- src.orig/security/dummy.c	2007-08-10 18:03:13.000000000 +0900
++++ src/security/dummy.c	2007-08-10 18:08:03.000000000 +0900
+@@ -564,6 +564,21 @@
+ 	return 0;
+ }
+ 
++static int dummy_task_kill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static int dummy_task_tkill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static int dummy_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return 0;
++}
++
+ static int dummy_task_prctl (int option, unsigned long arg2, unsigned long arg3,
+ 			     unsigned long arg4, unsigned long arg5)
+ {
+@@ -741,10 +756,10 @@
+ 	return 0;
+ }
+ 
+-static void dummy_socket_post_accept (struct socket *sock, 
+-				      struct socket *newsock)
++static int dummy_socket_post_accept(struct socket *sock,
++				    struct socket *newsock)
+ {
+-	return;
++	return 0;
+ }
+ 
+ static int dummy_socket_sendmsg (struct socket *sock, struct msghdr *msg,
+@@ -759,6 +774,12 @@
+ 	return 0;
+ }
+ 
++static int dummy_socket_post_recvmsg(struct socket *sock, struct msghdr *msg,
++				     int size, int flags)
++{
++	return 0;
++}
++
+ static int dummy_socket_getsockname (struct socket *sock)
+ {
+ 	return 0;
+@@ -1053,6 +1074,9 @@
+ 	set_to_dummy_if_null(ops, task_movememory);
+ 	set_to_dummy_if_null(ops, task_wait);
+ 	set_to_dummy_if_null(ops, task_kill);
++	set_to_dummy_if_null(ops, task_kill_unlocked);
++	set_to_dummy_if_null(ops, task_tkill_unlocked);
++	set_to_dummy_if_null(ops, task_tgkill_unlocked);
+ 	set_to_dummy_if_null(ops, task_prctl);
+ 	set_to_dummy_if_null(ops, task_reparent_to_init);
+  	set_to_dummy_if_null(ops, task_to_inode);
+@@ -1096,6 +1120,7 @@
+ 	set_to_dummy_if_null(ops, socket_post_accept);
+ 	set_to_dummy_if_null(ops, socket_sendmsg);
+ 	set_to_dummy_if_null(ops, socket_recvmsg);
++	set_to_dummy_if_null(ops, socket_post_recvmsg);
+ 	set_to_dummy_if_null(ops, socket_getsockname);
+ 	set_to_dummy_if_null(ops, socket_getpeername);
+ 	set_to_dummy_if_null(ops, socket_setsockopt);

@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/common.c | 1886 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1886 insertions(+)
+ security/tomoyo/common.c | 1881 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1881 insertions(+)
 
 Index: src/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/common.c	2007-08-09 18:11:39.000000000 +0900
-@@ -0,0 +1,1886 @@
++++ src/security/tomoyo/common.c	2007-08-10 17:42:56.000000000 +0900
+@@ -0,0 +1,1881 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -31,7 +31,7 @@ Index: src/security/tomoyo/common.c
 +#include "tomoyo.h"
 +
 +#ifdef CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
-+#define MAX_ACCEPT_ENTRY (CONFIG_TOMOYO_MAX_ACCEPT_ENTRY)
++#define MAX_ACCEPT_ENTRY CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
 +#else
 +#define MAX_ACCEPT_ENTRY 2048
 +#endif
@@ -54,6 +54,7 @@ Index: src/security/tomoyo/common.c
 +	[TMY_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
 +	[TMY_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
 +	[TMY_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
++	[TMY_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
 +	[TMY_RESTRICT_MOUNT]      = { "RESTRICT_MOUNT",      0, 3 },
 +	[TMY_RESTRICT_UMOUNT]     = { "RESTRICT_UNMOUNT",    0, 3 },
 +	[TMY_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
@@ -561,16 +562,13 @@ Index: src/security/tomoyo/common.c
 + */
 +const char *tmy_get_exe(void)
 +{
-+	struct vm_area_struct *vma = current->mm->mmap;
++	struct vm_area_struct *vma;
 +	if (!current->mm)
 +		return NULL;
-+	while (vma) {
-+		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
++	for (vma = current->mm->mmap; vma; vma = vma->vm_next)
++		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file)
 +			return tmy_realpath_dentry(vma->vm_file->f_dentry,
 +						   vma->vm_file->f_vfsmnt);
-+		}
-+		vma = vma->vm_next;
-+	}
 +	return NULL;
 +}
 +
@@ -922,6 +920,12 @@ Index: src/security/tomoyo/common.c
 +		return tmy_add_argv0_policy(data +
 +					    TMY_ALLOW_ARGV0_LEN,
 +					    domain, is_delete);
++	} else if (strncmp(data,
++			   TMY_ALLOW_SIGNAL,
++			   TMY_ALLOW_SIGNAL_LEN) == 0) {
++		return AddSignalPolicy(data +
++				       TMY_ALLOW_SIGNAL_LEN,
++				       domain, is_delete);
 +	} else {
 +		return tmy_add_file_policy(data, domain, is_delete);
 +	}
@@ -966,31 +970,34 @@ Index: src/security/tomoyo/common.c
 +			if (ptr->is_deleted)
 +				continue;
 +			if (acl_type == TMY_TYPE_FILE_ACL) {
-+				const unsigned char b = ptr->u.b[1];
++				struct file_acl *ptr2 = (struct file_acl *) ptr;
++				const unsigned char b = ptr2->u_is_group;
 +				if (tmy_io_printf(head,
 +						  "%d %s%s\n",
-+						  ptr->u.b[0],
++						  ptr2->perm,
 +						  b ? "@" : "",
-+						  b ? ((struct file_acl *) ptr)->u.group->group_name->name :
-+						  ((struct file_acl *) ptr)->u.filename->name)) {
++						  b ? ptr2->u.group->group_name->name :
++						  ptr2->u.filename->name)) {
 +					head->read_avail = pos;
 +					break;
 +				}
 +			} else if (acl_type == TMY_TYPE_ARGV0_ACL) {
-+				if (tmy_io_printf(head, TMY_ALLOW_ARGV0 "%s %s\n", ((struct argv0_acl *) ptr)->filename->name, ((struct argv0_acl *) ptr)->argv0->name)) {
++				struct argv0_acl *ptr2 = (struct argv0_acl *) ptr;
++				if (tmy_io_printf(head, TMY_ALLOW_ARGV0 "%s %s\n", ptr2->filename->name, ptr2->argv0->name)) {
 +					head->read_avail = pos; break;
 +				}
 +			} else if (acl_type == TMY_TYPE_IP_NETWORK_ACL) {
-+				if (tmy_io_printf(head, TMY_ALLOW_NETWORK "%s ", tmy_network2keyword(ptr->u.b[0])))
++				struct net_acl *ptr2 = (struct net_acl *) ptr;
++				if (tmy_io_printf(head, TMY_ALLOW_NETWORK "%s ", tmy_network2keyword(ptr2->operation_type)))
 +					break;
-+				switch (ptr->u.b[1]) {
++				switch (ptr2->record_type) {
 +				case TMY_TYPE_ADDRESS_GROUP:
-+					if (tmy_io_printf(head, "@%s", ((struct net_acl *) ptr)->u.group->group_name->name))
++					if (tmy_io_printf(head, "@%s", ptr2->u.group->group_name->name))
 +						goto print_ip_record_out;
 +					break;
 +				case TMY_TYPE_IPv4:
 +					{
-+						const u32 min_address = ((struct net_acl *) ptr)->u.ipv4.min, max_address = ((struct net_acl *) ptr)->u.ipv4.max;
++						const u32 min_address = ptr2->u.ipv4.min, max_address = ptr2->u.ipv4.max;
 +						if (tmy_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
 +							goto print_ip_record_out;
 +						if (min_address != max_address && tmy_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
@@ -1000,7 +1007,7 @@ Index: src/security/tomoyo/common.c
 +				case TMY_TYPE_IPv6:
 +					{
 +						char buf[64];
-+						const u16 *min_address = ((struct net_acl *) ptr)->u.ipv6.min, *max_address = ((struct net_acl *) ptr)->u.ipv6.max;
++						const u16 *min_address = ptr2->u.ipv6.min, *max_address = ptr2->u.ipv6.max;
 +						tmy_print_ipv6(buf, sizeof(buf), min_address);
 +						if (tmy_io_printf(head, "%s", buf))
 +							goto print_ip_record_out;
@@ -1013,7 +1020,7 @@ Index: src/security/tomoyo/common.c
 +					break;
 +				}
 +				{
-+					const u16 min_port = ((struct net_acl *) ptr)->min_port, max_port = ((struct net_acl *) ptr)->max_port;
++					const u16 min_port = ptr2->min_port, max_port = ptr2->max_port;
 +					if (tmy_io_printf(head, " %u", min_port))
 +						goto print_ip_record_out;
 +					if (min_port != max_port && tmy_io_printf(head, "-%u", max_port))
@@ -1024,31 +1031,38 @@ Index: src/security/tomoyo/common.c
 +					head->read_avail = pos;
 +					break;
 +				}
++ 			} else if (acl_type == TMY_TYPE_SIGNAL_ACL) {
++ 				struct signal_acl *ptr2 = (struct signal_acl *) ptr;
++ 				if (tmy_io_printf(head, TMY_ALLOW_SIGNAL "%u %s\n", ptr2->sig, ptr2->domainname->name)) {
++ 					head->read_avail = pos; break;
++ 				}
 +			} else {
 +				const char *keyword = tmy_acltype2keyword(acl_type);
 +				if (keyword) {
 +					if (tmy_acltype2paths(acl_type) == 2) {
-+						const u8 b0 = ptr->u.b[0], b1 = ptr->u.b[1];
++						struct double_acl *ptr2 = (struct double_acl *) ptr;
++						const u8 b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
 +						if (tmy_io_printf(head,
 +								  "allow_%s %s%s %s%s\n",
 +								  keyword,
 +								  b0 ? "@" : "",
-+								  b0 ? ((struct double_acl *) ptr)->u1.group1->group_name->name :
-+								  ((struct double_acl *) ptr)->u1.filename1->name,
++								  b0 ? ptr2->u1.group1->group_name->name :
++								  ptr2->u1.filename1->name,
 +								  b1 ? "@" : "",
-+								  b1 ? ((struct double_acl *) ptr)->u2.group2->group_name->name :
-+								  ((struct double_acl *) ptr)->u2.filename2->name)) {
++								  b1 ? ptr2->u2.group2->group_name->name :
++								  ptr2->u2.filename2->name)) {
 +							head->read_avail = pos;
 +							break;
 +						}
 +					} else {
-+						const u8 b = ptr->u.b[0];
++						struct single_acl *ptr2 = (struct single_acl *) ptr;
++						const u8 b = ptr2->u_is_group;
 +						if (tmy_io_printf(head,
 +								  "allow_%s %s%s\n",
 +								  keyword,
 +								  b ? "@" : "",
-+								  b ? ((struct single_acl *) ptr)->u.group->group_name->name :
-+								  ((struct single_acl *) ptr)->u.filename->name)) {
++								  b ? ptr2->u.group->group_name->name :
++								  ptr2->u.filename->name)) {
 +							head->read_avail = pos;
 +							break;
 +						}
@@ -1168,50 +1182,34 @@ Index: src/security/tomoyo/common.c
 +		return AddMountPolicy(data + TMY_ALLOW_MOUNT_LEN, is_delete);
 +	if (strncmp(data, TMY_DENY_UNMOUNT, TMY_DENY_UNMOUNT_LEN) == 0)
 +		return AddNoUmountPolicy(data + TMY_DENY_UNMOUNT_LEN, is_delete);
-+	/* #ifdef CONFIG_SAKURA_RESTRICT_CHROOT */
-+	/* 	if (strncmp(data, KEYWORD_ALLOW_CHROOT, KEYWORD_ALLOW_CHROOT_LEN) == 0) */
-+	/* 		return AddChrootPolicy(data + KEYWORD_ALLOW_CHROOT_LEN, is_delete); */
-+	/* #endif */
 +	if (strncmp(data, TMY_ALLOW_PIVOT_ROOT, TMY_ALLOW_PIVOT_ROOT_LEN) == 0)
 +		return AddPivotRootPolicy(data + TMY_ALLOW_PIVOT_ROOT_LEN, is_delete);
-+	/* #ifdef CONFIG_SAKURA_RESTRICT_AUTOBIND */
-+	/* 	if (strncmp(data, KEYWORD_DENY_AUTOBIND, KEYWORD_DENY_AUTOBIND_LEN) == 0) */
-+	/* 		return AddReservedPortPolicy(data + KEYWORD_DENY_AUTOBIND_LEN, is_delete); */
-+	/* #endif */
 +	return -EINVAL;
 +}
 +
 +static int ReadSystemPolicy(struct io_buffer *head)
 +{
-+	if (!head->read_eof) {
-+		switch (head->read_step) {
-+		case 0:
-+			if (!tmy_is_root()) return -EPERM;
-+			head->read_var2 = NULL; head->read_step = 1;
-+		case 1:
-+			if (ReadMountPolicy(head)) break;
-+			head->read_var2 = NULL; head->read_step = 2;
-+		case 2:
-+			if (ReadNoUmountPolicy(head)) break;
-+			head->read_var2 = NULL; head->read_step = 3;
-+		case 3:
-+			/* #ifdef CONFIG_SAKURA_RESTRICT_CHROOT */
-+			/* 			if (ReadChrootPolicy(head)) break; */
-+			/* #endif */
-+			head->read_var2 = NULL; head->read_step = 4;
-+		case 4:
-+			if (ReadPivotRootPolicy(head)) break;
-+			head->read_var2 = NULL; head->read_step = 5;
-+		case 5:
-+			/* #ifdef CONFIG_SAKURA_RESTRICT_AUTOBIND */
-+			/* 			if (ReadReservedPortPolicy(head)) break; */
-+			/* #endif */
-+			head->read_eof = 1;
-+			break;
-+		default:
-+			return -EINVAL;
-+		}
++	if (!head->read_eof)
++		return 0;
++
++	switch (head->read_step) {
++	case 0:
++		if (!tmy_is_root()) return -EPERM;
++		head->read_var2 = NULL; head->read_step = 1;
++	case 1:
++		if (ReadMountPolicy(head)) break;
++		head->read_var2 = NULL; head->read_step = 2;
++	case 2:
++		if (ReadNoUmountPolicy(head)) break;
++		head->read_var2 = NULL; head->read_step = 3;
++	case 3:
++		if (ReadPivotRootPolicy(head)) break;
++		head->read_eof = 1;
++		break;
++	default:
++		return -EINVAL;
 +	}
++
 +	return 0;
 +}
 +
@@ -1612,12 +1610,12 @@ Index: src/security/tomoyo/common.c
 +		spin_unlock(&updates_counter_lock);
 +		/***** CRITICAL SECTION END *****/
 +		tmy_io_printf(head,
-+			      "/proc/ccs/policy/domain_policy:    %10u\n"
-+			      "/proc/ccs/policy/system_policy:     %10u\n"
-+			      "/proc/ccs/policy/domain_policy:    %10u\n"
-+			      "/proc/ccs/status:                  %10u\n"
-+			      "/proc/ccs/policy/query:            %10u\n"
-+			      "/proc/ccs/policy/manager:          %10u\n",
++			      "/proc/tomoyo/domain_policy:    %10u\n"
++			      "/proc/tomoyo/system_policy:    %10u\n"
++			      "/proc/tomoyo/exception_policy: %10u\n"
++			      "/proc/tomoyo/status:           %10u\n"
++			      "/proc/tomoyo/query:            %10u\n"
++			      "/proc/tomoyo/manager:          %10u\n",
 +			      counter[TMY_UPDATE_DOMAINPOLICY],
 +			      counter[TMY_UPDATE_SYSTEMPOLICY],
 +			      counter[TMY_UPDATE_EXCEPTIONPOLICY],
@@ -1850,7 +1848,7 @@ Index: src/security/tomoyo/common.c
 +	return tmy_write_control(file, buf, count);
 +}
 +
-+static struct file_operations ccs_operations = {
++static struct file_operations tmy_operations = {
 +	.open 	 = tmy_open,
 +	.release = tmy_release,
 +	.poll 	 = tmy_poll,
@@ -1865,7 +1863,7 @@ Index: src/security/tomoyo/common.c
 +{
 +	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
 +	if (entry) {
-+		entry->proc_fops = &ccs_operations;
++		entry->proc_fops = &tmy_operations;
 +		entry->data = ((u8 *) NULL) + key;
 +	}
 +}
@@ -1873,26 +1871,23 @@ Index: src/security/tomoyo/common.c
 +void tmy_proc_init(void)
 +{
 +	static int initialized;
-+	struct proc_dir_entry *ccs_dir;
-+	struct proc_dir_entry *policy_dir, *info_dir;
++	struct proc_dir_entry *tmy_dir;
 +	extern void tmy_realpath_init(void);
 +	if (initialized)
 +		return;
 +	initialized = 1;
-+	ccs_dir = proc_mkdir("ccs", NULL);
-+	policy_dir = proc_mkdir("policy", ccs_dir);
-+	info_dir = proc_mkdir("info", ccs_dir);
++	tmy_dir = proc_mkdir("tomoyo", NULL);
 +	tmy_realpath_init();
 +	tmy_find_domain(""); /* Set domainname of KERNEL domain. */
-+	tmy_create_entry("query",            0600, policy_dir, TMY_POLICY_QUERY);
-+	tmy_create_entry("domain_policy",    0600, policy_dir, TMY_POLICY_DOMAINPOLICY);
-+	tmy_create_entry("system_policy",    0600, policy_dir, TMY_POLICY_SYSTEMPOLICY);
-+	tmy_create_entry("exception_policy", 0600, policy_dir, TMY_POLICY_EXCEPTIONPOLICY);
-+	tmy_create_entry(".domain_status",   0600, policy_dir, TMY_POLICY_DOMAIN_STATUS);
-+	tmy_create_entry(".process_status",  0400, info_dir, TMY_INFO_PROCESS_STATUS);
-+	tmy_create_entry("self_domain",      0400, info_dir, TMY_INFO_SELFDOMAIN);
-+	tmy_create_entry("meminfo",          0400, info_dir, TMY_INFO_MEMINFO);
-+	tmy_create_entry("status",           0600, ccs_dir, TMY_STATUS);
-+	tmy_create_entry("manager",          0600, policy_dir, TMY_POLICY_MANAGER);
-+	tmy_create_entry(".updates_counter", 0400, info_dir, TMY_INFO_UPDATESCOUNTER);
++	tmy_create_entry("query",            0600, tmy_dir, TMY_POLICY_QUERY);
++	tmy_create_entry("domain_policy",    0600, tmy_dir, TMY_POLICY_DOMAINPOLICY);
++	tmy_create_entry("system_policy",    0600, tmy_dir, TMY_POLICY_SYSTEMPOLICY);
++	tmy_create_entry("exception_policy", 0600, tmy_dir, TMY_POLICY_EXCEPTIONPOLICY);
++	tmy_create_entry(".domain_status",   0600, tmy_dir, TMY_POLICY_DOMAIN_STATUS);
++	tmy_create_entry(".process_status",  0400, tmy_dir, TMY_INFO_PROCESS_STATUS);
++	tmy_create_entry("self_domain",      0400, tmy_dir, TMY_INFO_SELFDOMAIN);
++	tmy_create_entry("meminfo",          0400, tmy_dir, TMY_INFO_MEMINFO);
++	tmy_create_entry("status",           0600, tmy_dir, TMY_STATUS);
++	tmy_create_entry("manager",          0600, tmy_dir, TMY_POLICY_MANAGER);
++	tmy_create_entry(".updates_counter", 0400, tmy_dir, TMY_INFO_UPDATESCOUNTER);
 +}

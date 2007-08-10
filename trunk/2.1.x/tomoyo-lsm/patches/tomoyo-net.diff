@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/net.c |  890 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 890 insertions(+)
+ security/tomoyo/net.c |  899 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 899 insertions(+)
 
 Index: src/security/tomoyo/net.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/net.c	2007-08-09 18:11:45.000000000 +0900
-@@ -0,0 +1,890 @@
++++ src/security/tomoyo/net.c	2007-08-10 18:28:09.000000000 +0900
+@@ -0,0 +1,899 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -45,7 +45,7 @@ Index: src/security/tomoyo/net.c
 +		return -ENOMEM;
 +
 +	snprintf(buf + strlen(buf), len - strlen(buf) - 1,
-+		 "access=\"" TMY_ALLOW_NETWORK "%s ", operation);
++		 TMY_ALLOW_NETWORK "%s ", operation);
 +
 +	if (is_ipv6)
 +		tmy_print_ipv6(buf + strlen(buf), len - strlen(buf),
@@ -56,7 +56,7 @@ Index: src/security/tomoyo/net.c
 +			 "%u.%u.%u.%u", NIPQUAD(ip));
 +	}
 +
-+	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u\"", port);
++	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u", port);
 +
 +	return tmy_write_audit_log(buf, is_granted, is_enforce);
 +}
@@ -479,8 +479,8 @@ Index: src/security/tomoyo/net.c
 +
 +		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
 +		    ptr->is_deleted ||
-+		    ptr->u.b[0] != operation ||
-+		    ptr->u.b[1] != record_type ||
++		    acl->operation_type != operation ||
++		    acl->record_type != record_type ||
 +		    acl->min_port != min_port ||
 +		    acl->max_port != max_port)
 +			continue;
@@ -527,11 +527,10 @@ Index: src/security/tomoyo/net.c
 +
 +	while (1) {
 +		struct net_acl *acl = (struct net_acl *) ptr;
-+		struct net_acl *new_ptr;
 +
 +		if (ptr->type == TMY_TYPE_IP_NETWORK_ACL &&
-+		    ptr->u.b[0] == operation &&
-+		    ptr->u.b[1] == record_type &&
++		    acl->operation_type == operation &&
++		    acl->record_type == record_type &&
 +		    acl->min_port == min_port &&
 +		    max_port == acl->max_port) {
 +
@@ -555,28 +554,28 @@ Index: src/security/tomoyo/net.c
 +			break;
 +
 +		/* Not found. Append it to the tail. */
-+		new_ptr = tmy_alloc_element(sizeof(*new_ptr));
-+		if (!new_ptr)
++		acl = tmy_alloc_element(sizeof(*acl));
++		if (!acl)
 +			break;
 +
-+		new_ptr->head.type = TMY_TYPE_IP_NETWORK_ACL;
-+		new_ptr->head.u.b[0] = operation;
-+		new_ptr->head.u.b[1] = record_type;
++		acl->head.type = TMY_TYPE_IP_NETWORK_ACL;
++		acl->operation_type = operation;
++		acl->record_type = record_type;
 +
 +		if (record_type == TMY_TYPE_ADDRESS_GROUP)
-+			new_ptr->u.group = group;
++			acl->u.group = group;
 +		else if (record_type == TMY_TYPE_IPv4) {
-+			new_ptr->u.ipv4.min = min_ip;
-+			new_ptr->u.ipv4.max = max_ip;
++			acl->u.ipv4.min = min_ip;
++			acl->u.ipv4.max = max_ip;
 +		} else {
-+			memmove(new_ptr->u.ipv6.min, min_address, 16);
-+			memmove(new_ptr->u.ipv6.max, max_address, 16);
++			memmove(acl->u.ipv6.min, min_address, 16);
++			memmove(acl->u.ipv6.max, max_address, 16);
 +		}
 +
-+		new_ptr->min_port = min_port;
-+		new_ptr->max_port = max_port;
++		acl->min_port = min_port;
++		acl->max_port = max_port;
 +		error = tmy_add_acl(ptr, domain,
-+				    (struct acl_info *) new_ptr);
++				    (struct acl_info *) acl);
 +		break;
 +	}
 +
@@ -605,20 +604,20 @@ Index: src/security/tomoyo/net.c
 +
 +		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
 +		    ptr->is_deleted ||
-+		    ptr->u.b[0] != operation ||
++		    acl->operation_type != operation ||
 +		    port < acl->min_port ||
 +		    acl->max_port < port)
 +			continue;
 +
-+		if (ptr->u.b[1] == TMY_TYPE_ADDRESS_GROUP &&
++		if (acl->record_type == TMY_TYPE_ADDRESS_GROUP &&
 +		    tmy_address_match_group(is_ipv6, address, acl->u.group))
 +			break;
 +
-+		else if (ptr->u.b[1] == TMY_TYPE_IPv4 && !is_ipv6 &&
++		else if (acl->record_type == TMY_TYPE_IPv4 && !is_ipv6 &&
 +			 (acl->u.ipv4.min <= ip && ip <= acl->u.ipv4.max))
 +			break;
 +
-+		else if (ptr->u.b[1] == TMY_TYPE_IPv6 && is_ipv6 &&
++		else if (acl->record_type == TMY_TYPE_IPv6 && is_ipv6 &&
 +			 memcmp(acl->u.ipv6.min, address, 16) <= 0 &&
 +			 memcmp(address, acl->u.ipv6.max, 16) <= 0)
 +			break;
@@ -899,4 +898,14 @@ Index: src/security/tomoyo/net.c
 +
 +	return tmy_network_entry(is_ipv6, type,
 +				 (const u32 *) address, ntohs(port));
++}
++
++int tmy_network_accept_acl(const int is_ipv6, const u8 *address, const u16 port)
++{
++	return tmy_network_entry(is_ipv6, TMY_NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
++}
++
++int tmy_network_recvmsg_acl(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
++{
++	return tmy_network_entry(is_ipv6, sock_type == SOCK_DGRAM ? TMY_NETWORK_ACL_UDP_CONNECT : TMY_NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 +}

@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/file.c | 1371 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1371 insertions(+)
+ security/tomoyo/file.c | 1369 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1369 insertions(+)
 
 Index: src/security/tomoyo/file.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/file.c	2007-08-07 17:32:13.000000000 +0900
-@@ -0,0 +1,1371 @@
++++ src/security/tomoyo/file.c	2007-08-10 18:26:32.000000000 +0900
+@@ -0,0 +1,1369 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -163,7 +163,7 @@ Index: src/security/tomoyo/file.c
 +
 +	snprintf(buf + strlen(buf),
 +		 len - strlen(buf) - 1,
-+		 "access=\"%d %s\"",
++		 "%d %s",
 +		 perm,
 +		 filename->name);
 +
@@ -197,7 +197,7 @@ Index: src/security/tomoyo/file.c
 +		return -ENOMEM;
 +
 +	snprintf(buf + strlen(buf), len - strlen(buf) - 1,
-+		 "access=\"allow_%s %s %s\"",
++		 "allow_%s %s %s",
 +		 operation, filename1->name, filename2 ? filename2->name : "");
 +
 +	return tmy_write_audit_log(buf, is_granted, is_enforce);
@@ -719,18 +719,17 @@ Index: src/security/tomoyo/file.c
 +			goto first_entry;
 +
 +		while (1) {
-+			struct file_acl *new_ptr;
 +			struct file_acl *acl = (struct file_acl *) ptr;
 +
 +			if ((ptr->type == TMY_TYPE_FILE_ACL) &&
 +			    (acl->u.filename == saved)) {
 +				if (ptr->is_deleted) {
-+					ptr->u.b[0] = 0;
++					acl->perm = 0;
 +					mb(); /* Instead of using spinlock. */
 +					ptr->is_deleted = 0;
 +				}
 +				/* Found. Just 'OR' the permission bits. */
-+				ptr->u.b[0] |= perm;
++				acl->perm |= perm;
 +				error = 0;
 +				tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
 +				break;
@@ -746,16 +745,16 @@ Index: src/security/tomoyo/file.c
 +				break;
 +
 +			/* Not found. Append it to the tail. */
-+			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
-+			if (!new_ptr)
++			acl = tmy_alloc_element(sizeof(*acl));
++			if (!acl)
 +				break;
 +
-+			new_ptr->head.type = TMY_TYPE_FILE_ACL;
-+			new_ptr->head.u.b[0] = perm;
-+			new_ptr->head.u.b[1] = is_group;
-+			new_ptr->u.filename = saved;
++			acl->head.type = TMY_TYPE_FILE_ACL;
++			acl->perm = perm;
++			acl->u_is_group = is_group;
++			acl->u.filename = saved;
 +			error = tmy_add_acl(ptr, domain,
-+					    (struct acl_info *) new_ptr);
++					    (struct acl_info *) acl);
 +			break;
 +		}
 +
@@ -765,7 +764,7 @@ Index: src/security/tomoyo/file.c
 +
 +			if (ptr->type != TMY_TYPE_FILE_ACL ||
 +			    ptr->is_deleted ||
-+			    ptr->u.b[0] != perm)
++			    acl->perm != perm)
 +				continue;
 +			if (acl->u.filename != saved)
 +				continue;
@@ -797,18 +796,19 @@ Index: src/security/tomoyo/file.c
 +
 +		if (ptr->type != TMY_TYPE_FILE_ACL ||
 +		    ptr->is_deleted ||
-+		    (ptr->u.b[0] & perm) != perm)
++		    (acl->perm & perm) != perm)
 +			continue;
 +
-+		if ((ptr->u.b[1]) &&
-+		    (tmy_path_match_group(filename,
-+					  acl->u.group,
-+					  may_use_pat)))
-+			return 0;
-+		else if (!ptr->u.b[1] &&
-+			 (may_use_pat || !acl->u.filename->is_patterned) &&
-+			 (tmy_path_match(filename, acl->u.filename)))
-+			return 0;
++		if (acl->u_is_group) {
++			if (tmy_path_match_group(filename,
++						 acl->u.group,
++						 may_use_pat))
++				return 0;
++		} else {
++			if ((may_use_pat || !acl->u.filename->is_patterned) &&
++			    tmy_path_match(filename, acl->u.filename))
++				return 0;
++		}
 +	}
 +
 +	return -EPERM;
@@ -946,7 +946,6 @@ Index: src/security/tomoyo/file.c
 +		if (!ptr)
 +			goto first_entry;
 +		while (1) {
-+			struct single_acl *new_ptr;
 +			struct single_acl *acl = (struct single_acl *) ptr;
 +
 +			if (ptr->type == type) {
@@ -967,15 +966,15 @@ Index: src/security/tomoyo/file.c
 +				break;
 +
 +			/* Not found. Append it to the tail. */
-+			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
-+			if (!new_ptr)
++			acl = tmy_alloc_element(sizeof(*acl));
++			if (!acl)
 +				break;
 +
-+			new_ptr->head.type = type;
-+			new_ptr->head.u.w = is_group;
-+			new_ptr->u.filename = saved;
++			acl->head.type = type;
++			acl->u_is_group = is_group;
++			acl->u.filename = saved;
 +			error = tmy_add_acl(ptr, domain,
-+					    (struct acl_info *) new_ptr);
++					    (struct acl_info *) acl);
 +			break;
 +		}
 +	} else {
@@ -1048,7 +1047,6 @@ Index: src/security/tomoyo/file.c
 +		if (!ptr)
 +			goto first_entry;
 +		while (1) {
-+			struct double_acl *new_ptr;
 +			struct double_acl *acl = (struct double_acl *) ptr;
 +
 +			if (ptr->type == type) {
@@ -1070,17 +1068,17 @@ Index: src/security/tomoyo/file.c
 +			if (is_add == 1 && tmy_too_many_acl(domain))
 +				break;
 +			/* Not found. Append it to the tail. */
-+			new_ptr = tmy_alloc_element(sizeof(*new_ptr));
-+			if (!new_ptr)
++			acl = tmy_alloc_element(sizeof(*acl));
++			if (!acl)
 +				break;
 +
-+			new_ptr->head.type = type;
-+			new_ptr->head.u.b[0] = is_group1;
-+			new_ptr->head.u.b[1] = is_group2;
-+			new_ptr->u1.filename1 = saved1;
-+			new_ptr->u2.filename2 = saved2;
++			acl->head.type = type;
++			acl->u1_is_group = is_group1;
++			acl->u2_is_group = is_group2;
++			acl->u1.filename1 = saved1;
++			acl->u2.filename2 = saved2;
 +			error = tmy_add_acl(ptr, domain,
-+					    (struct acl_info *) new_ptr);
++					    (struct acl_info *) acl);
 +
 +			break;
 +		}
@@ -1120,7 +1118,7 @@ Index: src/security/tomoyo/file.c
 +		if (ptr->type != type || ptr->is_deleted)
 +			continue;
 +
-+		if (ptr->u.w) {
++		if (acl->u_is_group) {
 +			if (!tmy_path_match_group(filename, acl->u.group, 1))
 +				continue;
 +		} else {
@@ -1149,7 +1147,7 @@ Index: src/security/tomoyo/file.c
 +		if (ptr->type != type || ptr->is_deleted)
 +			continue;
 +
-+		if (ptr->u.b[0]) {
++		if (acl->u1_is_group) {
 +			if (!tmy_path_match_group(filename1,
 +						  acl->u1.group1, 1))
 +				continue;
@@ -1158,7 +1156,7 @@ Index: src/security/tomoyo/file.c
 +				continue;
 +		}
 +
-+		if (ptr->u.b[1]) {
++		if (acl->u2_is_group) {
 +			if (!tmy_path_match_group(filename2,
 +						  acl->u2.group2, 1))
 +				continue;
