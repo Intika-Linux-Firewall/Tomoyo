@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/exec.c |  232 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 232 insertions(+)
+ security/tomoyo/exec.c |  231 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 231 insertions(+)
 
 Index: src/security/tomoyo/exec.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/exec.c	2007-08-07 17:32:13.000000000 +0900
-@@ -0,0 +1,232 @@
++++ src/security/tomoyo/exec.c	2007-08-10 18:26:50.000000000 +0900
+@@ -0,0 +1,231 @@
 +/*
 + * security/tomoyo/exec.c
 + *
@@ -45,7 +45,7 @@ Index: src/security/tomoyo/exec.c
 +
 +	snprintf(buf + strlen(buf),
 +		 len - strlen(buf) - 1,
-+		 TMY_ALLOW_ARGV0 "access=\"%s %s\"",
++		 TMY_ALLOW_ARGV0 "%s %s",
 +		 filename->name,
 +		 argv0);
 +
@@ -123,7 +123,6 @@ Index: src/security/tomoyo/exec.c
 +	if (!ptr)
 +		goto first_entry;
 +	while (1) {
-+		struct argv0_acl *new_ptr;
 +		struct argv0_acl *acl = (struct argv0_acl *) ptr;
 +
 +		if (ptr->type == TMY_TYPE_ARGV0_ACL) {
@@ -148,15 +147,15 @@ Index: src/security/tomoyo/exec.c
 +			break;
 +
 +		/* Not found. Append it to the tail. */
-+		new_ptr = tmy_alloc_element(sizeof(*new_ptr));
-+		if (!new_ptr)
++		acl = tmy_alloc_element(sizeof(*acl));
++		if (!acl)
 +			break;
 +
-+		new_ptr->head.type = TMY_TYPE_ARGV0_ACL;
-+		new_ptr->filename = saved_filename;
-+		new_ptr->argv0 = saved_argv0;
++		acl->head.type = TMY_TYPE_ARGV0_ACL;
++		acl->filename = saved_filename;
++		acl->argv0 = saved_argv0;
 +		error = tmy_add_acl(ptr, domain,
-+				    (struct acl_info *) new_ptr);
++				    (struct acl_info *) acl);
 +
 +		break;
 +	}

@@ -2,14 +2,15 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/audit.c |   54 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 54 insertions(+)
+ include/linux/audit.h   |    3 ++
+ security/tomoyo/audit.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 53 insertions(+)
 
 Index: src/security/tomoyo/audit.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/audit.c	2007-08-07 17:32:13.000000000 +0900
-@@ -0,0 +1,54 @@
++++ src/security/tomoyo/audit.c	2007-08-10 18:25:52.000000000 +0900
+@@ -0,0 +1,50 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -18,10 +19,6 @@ Index: src/security/tomoyo/audit.c
 +
 +#include "tomoyo.h"
 +#include <linux/audit.h>
-+
-+/* move to include/linux/audit.h */
-+#define AUDIT_TMY_GRANTED 2001
-+#define AUDIT_TMY_REJECTED 2002
 +
 +char *tmy_init_audit_log(int *len)
 +{
@@ -36,7 +33,7 @@ Index: src/security/tomoyo/audit.c
 +		snprintf(buf,
 +			 (*len) - 1,
 +			 "pid=%d uid=%d gid=%d euid=%d egid=%d "
-+			 "suid=%d sgid=%d fsuid=%d fsgid=%d domain=\"%s\" ",
++			 "suid=%d sgid=%d fsuid=%d fsgid=%d : %s : ",
 +			 task->pid, task->uid,
 +			 task->gid, task->euid, task->egid,
 +			 task->suid, task->sgid, task->fsuid,
@@ -64,3 +61,17 @@ Index: src/security/tomoyo/audit.c
 +	tmy_free(buf);
 +	return ab ? 0 : -ENOMEM;
 +}
+Index: src/include/linux/audit.h
+===================================================================
+--- src.orig/include/linux/audit.h	2007-08-10 17:18:14.000000000 +0900
++++ src/include/linux/audit.h	2007-08-10 17:23:24.000000000 +0900
+@@ -120,6 +120,9 @@
+ 
+ #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */
+ 
++#define AUDIT_TMY_GRANTED  2001 /* TOMOYO Linux audit granted */
++#define AUDIT_TMY_REJECTED 2002 /* TOMOYO Linux audit rejected */
++
+ /* Rule flags */
+ #define AUDIT_FILTER_USER	0x00	/* Apply rule to user-generated messages */
+ #define AUDIT_FILTER_TASK	0x01	/* Apply rule at task creation (not syscall) */
