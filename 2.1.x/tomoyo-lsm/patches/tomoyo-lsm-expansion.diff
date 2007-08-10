@@ -233,7 +233,7 @@ Index: linux-2.6/kernel/signal.c
 Index: linux-2.6/net/socket.c
 ===================================================================
 --- linux-2.6.orig/net/socket.c	2007-08-10 21:46:13.000000000 +0900
-+++ linux-2.6/net/socket.c	2007-08-10 21:48:22.000000000 +0900
++++ linux-2.6/net/socket.c	2007-08-10 23:19:11.000000000 +0900
 @@ -635,7 +635,17 @@
  	if (err)
  		return err;
@@ -253,7 +253,7 @@ Index: linux-2.6/net/socket.c
  }
  
  int sock_recvmsg(struct socket *sock, struct msghdr *msg,
-@@ -648,8 +658,18 @@
+@@ -648,8 +658,19 @@
  	init_sync_kiocb(&iocb, NULL);
  	iocb.private = &siocb;
  	ret = __sock_recvmsg(&iocb, sock, msg, size, flags);
@@ -264,7 +264,8 @@ Index: linux-2.6/net/socket.c
 +		if (ret >= 0) {
 +			int err;
 +
-+			err = security_socket_post_recvmsg(sock, msg, size, flags);
++			err = security_socket_post_recvmsg(sock, msg,
++							   size, flags);
 +			if (err)
 +				ret = err;
 +		}
@@ -273,7 +274,7 @@ Index: linux-2.6/net/socket.c
  	return ret;
  }
  
-@@ -712,12 +732,14 @@
+@@ -712,12 +733,14 @@
  	struct socket *sock = file->private_data;
  	size_t size = 0;
  	int i;
@@ -290,7 +291,7 @@ Index: linux-2.6/net/socket.c
  	msg->msg_control = NULL;
  	msg->msg_controllen = 0;
  	msg->msg_iov = (struct iovec *)iov;
-@@ -1437,13 +1459,16 @@
+@@ -1437,13 +1460,16 @@
  			goto out_fd;
  	}
  
@@ -309,7 +310,7 @@ Index: linux-2.6/net/socket.c
  out_put:
  	fput_light(sock->file, fput_needed);
  out:
-@@ -1937,6 +1962,10 @@
+@@ -1937,6 +1963,10 @@
  		goto out_freeiov;
  	total_len = err;
  

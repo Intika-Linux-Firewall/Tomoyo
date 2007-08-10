@@ -5,11 +5,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.c | 1881 +++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 1881 insertions(+)
 
-Index: src/security/tomoyo/common.c
+Index: linux-2.6/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/common.c	2007-08-10 17:42:56.000000000 +0900
-@@ -0,0 +1,1881 @@
++++ linux-2.6/security/tomoyo/common.c	2007-08-10 23:17:00.000000000 +0900
+@@ -0,0 +1,1987 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -43,7 +43,7 @@ Index: src/security/tomoyo/common.c
 +/*************************  VARIABLES  *************************/
 +
 +/* /sbin/init started? */
-+int sbin_init_started = 0;
++int sbin_init_started;
 +
 +static struct {
 +	const char *keyword;
@@ -88,15 +88,19 @@ Index: src/security/tomoyo/common.c
 + */
 +static void tmy_normalize_line(unsigned char *buffer)
 +{
-+	unsigned char *sp = buffer, *dp = buffer;
++	unsigned char *sp = buffer;
++	unsigned char *dp = buffer;
 +	int first = 1;
-+	while (*sp && (*sp <= ' ' || *sp >= 127)) sp++;
++	while (*sp && (*sp <= ' ' || *sp >= 127))
++		sp++;
 +	while (*sp) {
 +		if (!first)
 +			*dp++ = ' ';
 +		first = 0;
-+		while (*sp > ' ' && *sp < 127) *dp++ = *sp++;
-+		while (*sp && (*sp <= ' ' || *sp >= 127)) sp++;
++		while (*sp > ' ' && *sp < 127)
++			*dp++ = *sp++;
++		while (*sp && (*sp <= ' ' || *sp >= 127))
++			sp++;
 +	}
 +	*dp = '\0';
 +}
@@ -120,7 +124,9 @@ Index: src/security/tomoyo/common.c
 +		     const char *function)
 +{
 +	int contains_pattern = 0;
-+	char c, d, e;
++	char c;
++	char d;
++	char e;
 +	const char *original_filename = filename;
 +	if (!filename)
 +		goto out;
@@ -178,9 +184,8 @@ Index: src/security/tomoyo/common.c
 +				}
 +			}
 +			goto out;
-+		} else if (c <= ' ' || c >= 127) {
++		} else if (c <= ' ' || c >= 127)
 +			goto out;
-+		}
 +	}
 +	if (pattern_type == 1) { /* Must contain pattern */
 +		if (!contains_pattern)
@@ -200,7 +205,9 @@ Index: src/security/tomoyo/common.c
 +int tmy_is_correct_domain(const unsigned char *domainname,
 +			  const char *function)
 +{
-+	unsigned char c, d, e;
++	unsigned char c;
++	unsigned char d;
++	unsigned char e;
 +	const char *org_domainname = domainname;
 +	if (!domainname ||
 +	    strncmp(domainname, TMY_ROOT_NAME, TMY_ROOT_NAME_LEN))
@@ -236,9 +243,8 @@ Index: src/security/tomoyo/common.c
 +					}
 +				}
 +				goto out;
-+			} else if (c < ' ' || c >= 127) {
++			} else if (c < ' ' || c >= 127)
 +				goto out;
-+			}
 +		}
 +	} while (*domainname);
 +	return 1;
@@ -268,7 +274,8 @@ Index: src/security/tomoyo/common.c
 +{
 +	int len = 0;
 +	if (filename) {
-+		char c, d;
++		char c;
++		char d;
 +		while ((c = *filename++) != '\0') {
 +			if (c != '\\') {
 +				len++;
@@ -317,7 +324,8 @@ Index: src/security/tomoyo/common.c
 +{
 +	while (filename < filename_end && pattern < pattern_end) {
 +		char c;
-+		int i, j;
++		int i;
++		int j;
 +		if (*pattern != '\\') {
 +			if (*filename++ != *pattern++)
 +				return 0;
@@ -327,26 +335,25 @@ Index: src/security/tomoyo/common.c
 +		pattern++;
 +		switch (*pattern) {
 +		case '?':
-+			if (c == '/') {
++			if (c == '/')
 +				return 0;
-+			} else if (c == '\\') {
++			if (c == '\\') {
 +				char c2 = filename[2];
 +				char c3 = filename[3];
 +				c = filename[1];
-+				if (c == '\\') {
++				if (c == '\\')
 +					/* safe because filename is \\ */
 +					filename++;
-+				} else if (c >= '0' &&
++				else if (c >= '0' &&
 +					   c <= '3' &&
 +					   c2 >= '0' &&
 +					   c <= '7' &&
-+					   c3 >= '0' &&
-+					   c <= '7') {
++					 c3 >= '0' &&
++					 c <= '7')
 +					/* safe because filename is \ooo */
 +					filename += 3;
-+				} else {
++				else
 +					return 0;
-+				}
 +			}
 +			break;
 +		case '\\':
@@ -401,43 +408,41 @@ Index: src/security/tomoyo/common.c
 +					break;
 +				if (c == '\\') {
 +					c = filename[i + 1];
-+					if (c == '\\') {
++					if (c == '\\')
 +						i++;
-+					} else if (c >= '0' &&
-+						   c <= '3' &&
-+						   (c = filename[i + 2]) >= '0' &&
-+						   c <= '7' &&
-+						   (c = filename[i + 3]) >= '0' &&
-+						   c <= '7') {
++					else if (c >= '0' &&
++						 c <= '3' &&
++						 (c = filename[i + 2]) >= '0' &&
++						 c <= '7' &&
++						 (c = filename[i + 3]) >= '0' &&
++						 c <= '7')
 +						i += 3;
-+					} else {
++					else
 +						break; /* Bad pattern. */
-+					}
 +				}
 +			}
 +			return 0; /* Not matched. */
 +		default:
 +			j = 0;
 +			c = *pattern;
-+			if (c == '$') {
-+				while ((c = filename[j]) >= '0' && c <= '9') j++;
-+			} else if (c == 'X') {
-+				while (((c = filename[j]) >= '0' && c <= '9') ||
-+				       (c >= 'A' && c <= 'F') ||
-+				       (c >= 'a' && c <= 'f'))
++			if (c == '$')
++				while ((c = filename[j]) >= '0' && c <= '9')
 +					j++;
-+			} else if (c == 'A') {
-+				while (((c = filename[j]) >= 'A' && c <= 'Z') ||
-+				       (c >= 'a' && c <= 'z'))
++			else if (c == 'X')
++				while (((c = filename[j]) >= '0' && c <= '9')
++				       || (c >= 'A' && c <= 'F')
++				       || (c >= 'a' && c <= 'f'))
 +					j++;
-+			}
-+			for (i = 1; i <= j; i++) {
++			else if (c == 'A')
++				while (((c = filename[j]) >= 'A' && c <= 'Z')
++				       || (c >= 'a' && c <= 'z'))
++					j++;
++			for (i = 1; i <= j; i++)
 +				if (tmy_file_match2(filename + i,
 +						    filename_end,
 +						    pattern + 1,
 +						    pattern_end))
 +					return 1;
-+			}
 +			return 0; /* Not matched or bad pattern. */
 +		}
 +		filename++; /* safe because *filename != '\0' */
@@ -543,7 +548,9 @@ Index: src/security/tomoyo/common.c
 +int tmy_io_printf(struct io_buffer *head, const char *fmt, ...)
 +{
 +	va_list args;
-+	int len, pos = head->read_avail, size = head->readbuf_size - pos;
++	int len;
++	int pos = head->read_avail;
++	int size = head->readbuf_size - pos;
 +	if (size <= 0)
 +		return -ENOMEM;
 +	va_start(args, fmt);
@@ -644,7 +651,8 @@ Index: src/security/tomoyo/common.c
 +static int tmy_set_status(struct io_buffer *head)
 +{
 +	char *data = head->write_buf;
-+	unsigned int i, value;
++	unsigned int i;
++	unsigned int value;
 +	char *cp;
 +	struct profile *profile;
 +	if (!tmy_is_root())
@@ -683,48 +691,37 @@ Index: src/security/tomoyo/common.c
 +
 +static int tmy_read_status(struct io_buffer *head)
 +{
++	int step;
 +	if (head->read_eof)
 +		return 0;
 +	if (!tmy_is_root())
 +		return -EPERM;
-+	if (!head->read_var2) {
-+		int step;
-+		for (step = head->read_step;
-+		     step < TMY_MAX_PROFILES *
-+			     TMY_MAX_CONTROL_INDEX;
-+		     step++) {
-+			const int i = step / TMY_MAX_CONTROL_INDEX;
-+			const int j = step % TMY_MAX_CONTROL_INDEX;
-+			const struct profile *profile = profile_ptr[i];
-+			head->read_step = step;
-+			if (!profile)
-+				continue;
-+			if (j == TMY_COMMENT) {
-+				if (tmy_io_printf(head,
-+						  "%u-%s=%s\n",
-+						  i,
-+						  tmy_control[TMY_COMMENT].keyword,
-+						  profile->comment ?
-+						  profile->comment->name :
-+						  ""))
-+					break;
-+			} else {
-+				if (tmy_io_printf(head,
-+						  "%u-%s=%u\n",
-+						  i,
-+						  tmy_control[j].keyword,
-+						  profile->value[j]))
-+					break;
-+			}
-+		}
-+		if (step == TMY_MAX_PROFILES * TMY_MAX_CONTROL_INDEX) {
-+			head->read_var2 = "";
-+			head->read_step = 0;
-+		}
++	for (step = head->read_step;
++	     step < TMY_MAX_PROFILES * TMY_MAX_CONTROL_INDEX;
++	     step++) {
++		const int i = step / TMY_MAX_CONTROL_INDEX;
++		const int j = step % TMY_MAX_CONTROL_INDEX;
++		const struct profile *profile = profile_ptr[i];
++		head->read_step = step;
++		if (!profile)
++			continue;
++		if (j != TMY_COMMENT)
++			goto non_comment;
++		if (tmy_io_printf(head, "%u-%s=%s\n",
++				  i, tmy_control[TMY_COMMENT].keyword,
++				  profile->comment ?
++				  profile->comment->name : ""))
++			break;
++		goto comment_ok;
++non_comment:
++		if (tmy_io_printf(head, "%u-%s=%u\n",
++				  i, tmy_control[j].keyword,
++				  profile->value[j]))
++			break;
++comment_ok: ;
 +	}
-+	if (head->read_var2) {
++	if (step == TMY_MAX_PROFILES * TMY_MAX_CONTROL_INDEX)
 +		head->read_eof = 1;
-+	}
 +	return 0;
 +}
 +
@@ -782,9 +779,8 @@ Index: src/security/tomoyo/common.c
 +		while (ptr->next)
 +			ptr = ptr->next;
 +		ptr->next = new_entry;
-+	} else {
++	} else
 +		policy_manager_list = new_entry;
-+	}
 +	error = 0;
 +out:
 +	up(&lock);
@@ -873,7 +869,9 @@ Index: src/security/tomoyo/common.c
 +{
 +	char *data = head->write_buf;
 +	struct domain_info *domain = head->write_var1;
-+	int is_delete = 0, is_select = 0, is_undelete = 0;
++	int is_delete = 0;
++	int is_select = 0;
++	int is_undelete = 0;
 +	unsigned int profile;
 +	if (!tmy_is_root())
 +		return -EPERM;
@@ -892,13 +890,12 @@ Index: src/security/tomoyo/common.c
 +		if (is_delete) {
 +			tmy_delete_domain(data);
 +			domain = NULL;
-+		} else if (is_select) {
++		} else if (is_select)
 +			domain = tmy_find_domain(data);
-+		} else if (is_undelete) {
++		else if (is_undelete)
 +			domain = tmy_undelete_domain(data);
-+		} else {
++		else
 +			domain = tmy_new_domain(data, 0);
-+		}
 +		head->write_var1 = domain;
 +		return 0;
 +	}
@@ -910,27 +907,168 @@ Index: src/security/tomoyo/common.c
 +			domain->profile = (u8) profile;
 +	} else if (strncmp(data,
 +			   TMY_ALLOW_NETWORK,
-+			   TMY_ALLOW_NETWORK_LEN) == 0) {
++			   TMY_ALLOW_NETWORK_LEN) == 0)
 +		return tmy_add_network_policy(data +
 +					      TMY_ALLOW_NETWORK_LEN,
 +					      domain, is_delete);
-+	} else if (strncmp(data,
-+			   TMY_ALLOW_ARGV0,
-+			   TMY_ALLOW_ARGV0_LEN) == 0) {
++	else if (strncmp(data,
++			 TMY_ALLOW_ARGV0,
++			 TMY_ALLOW_ARGV0_LEN) == 0)
 +		return tmy_add_argv0_policy(data +
 +					    TMY_ALLOW_ARGV0_LEN,
 +					    domain, is_delete);
-+	} else if (strncmp(data,
-+			   TMY_ALLOW_SIGNAL,
-+			   TMY_ALLOW_SIGNAL_LEN) == 0) {
++	else if (strncmp(data,
++			 TMY_ALLOW_SIGNAL,
++			 TMY_ALLOW_SIGNAL_LEN) == 0)
 +		return AddSignalPolicy(data +
 +				       TMY_ALLOW_SIGNAL_LEN,
 +				       domain, is_delete);
-+	} else {
++	else
 +		return tmy_add_file_policy(data, domain, is_delete);
-+	}
 +	return -EINVAL;
 +}
++
++static inline int print_file_rwx_acl(struct io_buffer *head, int pos,
++				     struct acl_info *ptr)
++{
++	struct file_acl *ptr2 = (struct file_acl *) ptr;
++	const unsigned char b = ptr2->u_is_group;
++	if (tmy_io_printf(head, "%d %s%s\n",
++			  ptr2->perm, b ? "@" : "",
++			  b ? ptr2->u.group->group_name->name :
++			  ptr2->u.filename->name)) {
++		head->read_avail = pos;
++		return -ENOMEM;
++	}
++	return 0;
++}
++
++static inline int print_argv0_acl(struct io_buffer *head, int pos,
++				  struct acl_info *ptr)
++{
++	struct argv0_acl *ptr2 = (struct argv0_acl *) ptr;
++	if (tmy_io_printf(head, TMY_ALLOW_ARGV0 "%s %s\n",
++			  ptr2->filename->name, ptr2->argv0->name)) {
++		head->read_avail = pos;
++		return -ENOMEM;
++	}
++	return 0;
++}
++
++static inline int print_network_acl(struct io_buffer *head, int pos,
++				    struct acl_info *ptr)
++{
++	struct net_acl *ptr2 = (struct net_acl *) ptr;
++	u8 record_type = ptr2->record_type;
++	u32 min_address;
++	u32 max_address;
++	char buf[64];
++	const u16 *min_address_ptr;
++	const u16 *max_address_ptr;
++	u16 min_port;
++	u16 max_port;
++
++	if (tmy_io_printf(head, TMY_ALLOW_NETWORK "%s ",
++			  tmy_network2keyword(ptr2->operation_type)))
++		goto out;
++	if (record_type != TMY_TYPE_ADDRESS_GROUP)
++		goto non_address_group;
++
++	if (tmy_io_printf(head, "@%s", ptr2->u.group->group_name->name))
++		goto out;
++	goto print_port;
++
++non_address_group:
++	if (record_type != TMY_TYPE_IPv4)
++		goto ipv6_address;
++
++	min_address = ptr2->u.ipv4.min;
++	max_address = ptr2->u.ipv4.max;
++	if (tmy_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
++		goto out;
++	if (min_address != max_address &&
++	    tmy_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
++		goto out;
++	goto print_port;
++
++ipv6_address:
++	min_address_ptr = ptr2->u.ipv6.min;
++	max_address_ptr = ptr2->u.ipv6.max;
++	tmy_print_ipv6(buf, sizeof(buf), min_address_ptr);
++	if (tmy_io_printf(head, "%s", buf))
++		goto out;
++	if (memcmp(min_address_ptr, max_address_ptr, 16)) {
++		tmy_print_ipv6(buf, sizeof(buf), max_address_ptr);
++		if (tmy_io_printf(head, "-%s", buf))
++			goto out;
++	}
++
++print_port:
++	min_port = ptr2->min_port;
++	max_port = ptr2->max_port;
++	if (tmy_io_printf(head, " %u", min_port))
++		goto out;
++	if (min_port != max_port && tmy_io_printf(head, "-%u", max_port))
++		goto out;
++	if (tmy_io_printf(head, "\n")) {
++out:
++		head->read_avail = pos;
++		return -ENOMEM;
++	}
++	return 0;
++}
++
++static inline int print_signal_acl(struct io_buffer *head, int pos,
++				   struct acl_info *ptr)
++{
++	struct signal_acl *ptr2 = (struct signal_acl *) ptr;
++	if (tmy_io_printf(head, TMY_ALLOW_SIGNAL "%u %s\n",
++			  ptr2->sig, ptr2->domainname->name)) {
++		head->read_avail = pos;
++		return -ENOMEM;
++	}
++	return 0;
++}
++
++static inline int print_file_other_acl(struct io_buffer *head, int pos,
++				       struct acl_info *ptr)
++{
++	const u8 acl_type = ptr->type;
++	const char *keyword = tmy_acltype2keyword(acl_type);
++	if (!keyword)
++		return 0; /* This must not happen. */
++	if (tmy_acltype2paths(acl_type) == 2) {
++		struct double_acl *ptr2 = (struct double_acl *) ptr;
++		const u8 b1 = ptr2->u1_is_group;
++		const u8 b2 = ptr2->u2_is_group;
++		if (tmy_io_printf(head,
++				  "allow_%s %s%s %s%s\n",
++				  keyword,
++				  b1 ? "@" : "",
++				  b1 ? ptr2->u1.group1->group_name->name :
++				  ptr2->u1.filename1->name,
++				  b2 ? "@" : "",
++				  b2 ? ptr2->u2.group2->group_name->name :
++				  ptr2->u2.filename2->name)) {
++			head->read_avail = pos;
++			return -ENOMEM;
++		}
++	} else {
++		struct single_acl *ptr2 = (struct single_acl *) ptr;
++		const u8 b = ptr2->u_is_group;
++		if (tmy_io_printf(head,
++				  "allow_%s %s%s\n",
++				  keyword,
++				  b ? "@" : "",
++				  b ? ptr2->u.group->group_name->name :
++				  ptr2->u.filename->name)) {
++			head->read_avail = pos;
++			return -ENOMEM;
++		}
++	}
++	return 0;
++}
++
 +
 +static int tmy_read_domain_policy(struct io_buffer *head)
 +{
@@ -958,7 +1096,8 @@ Index: src/security/tomoyo/common.c
 +				  "%s\n" TMY_USE_PROFILE "%u\n%s\n",
 +				  domain->domainname->name,
 +				  domain->profile,
-+				  domain->quota_warned ? "quota_exceeded\n" : ""))
++				  domain->quota_warned ?
++				  "quota_exceeded\n" : ""))
 +			break;
 +		head->read_var2 = domain->first_acl_ptr;
 +		head->read_step = 2;
@@ -970,105 +1109,20 @@ Index: src/security/tomoyo/common.c
 +			if (ptr->is_deleted)
 +				continue;
 +			if (acl_type == TMY_TYPE_FILE_ACL) {
-+				struct file_acl *ptr2 = (struct file_acl *) ptr;
-+				const unsigned char b = ptr2->u_is_group;
-+				if (tmy_io_printf(head,
-+						  "%d %s%s\n",
-+						  ptr2->perm,
-+						  b ? "@" : "",
-+						  b ? ptr2->u.group->group_name->name :
-+						  ptr2->u.filename->name)) {
-+					head->read_avail = pos;
++				if (print_file_rwx_acl(head, pos, ptr))
 +					break;
-+				}
 +			} else if (acl_type == TMY_TYPE_ARGV0_ACL) {
-+				struct argv0_acl *ptr2 = (struct argv0_acl *) ptr;
-+				if (tmy_io_printf(head, TMY_ALLOW_ARGV0 "%s %s\n", ptr2->filename->name, ptr2->argv0->name)) {
-+					head->read_avail = pos; break;
-+				}
++				if (print_argv0_acl(head, pos, ptr))
++					break;
 +			} else if (acl_type == TMY_TYPE_IP_NETWORK_ACL) {
-+				struct net_acl *ptr2 = (struct net_acl *) ptr;
-+				if (tmy_io_printf(head, TMY_ALLOW_NETWORK "%s ", tmy_network2keyword(ptr2->operation_type)))
++				if (print_network_acl(head, pos, ptr))
 +					break;
-+				switch (ptr2->record_type) {
-+				case TMY_TYPE_ADDRESS_GROUP:
-+					if (tmy_io_printf(head, "@%s", ptr2->u.group->group_name->name))
-+						goto print_ip_record_out;
++			} else if (acl_type == TMY_TYPE_SIGNAL_ACL) {
++				if (print_signal_acl(head, pos, ptr))
 +					break;
-+				case TMY_TYPE_IPv4:
-+					{
-+						const u32 min_address = ptr2->u.ipv4.min, max_address = ptr2->u.ipv4.max;
-+						if (tmy_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
-+							goto print_ip_record_out;
-+						if (min_address != max_address && tmy_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
-+							goto print_ip_record_out;
-+					}
++			} else
++				if (print_file_other_acl(head, pos, ptr))
 +					break;
-+				case TMY_TYPE_IPv6:
-+					{
-+						char buf[64];
-+						const u16 *min_address = ptr2->u.ipv6.min, *max_address = ptr2->u.ipv6.max;
-+						tmy_print_ipv6(buf, sizeof(buf), min_address);
-+						if (tmy_io_printf(head, "%s", buf))
-+							goto print_ip_record_out;
-+						if (memcmp(min_address, max_address, 16)) {
-+							tmy_print_ipv6(buf, sizeof(buf), max_address);
-+							if (tmy_io_printf(head, "-%s", buf))
-+								goto print_ip_record_out;
-+						}
-+					}
-+					break;
-+				}
-+				{
-+					const u16 min_port = ptr2->min_port, max_port = ptr2->max_port;
-+					if (tmy_io_printf(head, " %u", min_port))
-+						goto print_ip_record_out;
-+					if (min_port != max_port && tmy_io_printf(head, "-%u", max_port))
-+						goto print_ip_record_out;
-+				}
-+				if (tmy_io_printf(head, "\n")) {
-+				print_ip_record_out:
-+					head->read_avail = pos;
-+					break;
-+				}
-+ 			} else if (acl_type == TMY_TYPE_SIGNAL_ACL) {
-+ 				struct signal_acl *ptr2 = (struct signal_acl *) ptr;
-+ 				if (tmy_io_printf(head, TMY_ALLOW_SIGNAL "%u %s\n", ptr2->sig, ptr2->domainname->name)) {
-+ 					head->read_avail = pos; break;
-+ 				}
-+			} else {
-+				const char *keyword = tmy_acltype2keyword(acl_type);
-+				if (keyword) {
-+					if (tmy_acltype2paths(acl_type) == 2) {
-+						struct double_acl *ptr2 = (struct double_acl *) ptr;
-+						const u8 b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
-+						if (tmy_io_printf(head,
-+								  "allow_%s %s%s %s%s\n",
-+								  keyword,
-+								  b0 ? "@" : "",
-+								  b0 ? ptr2->u1.group1->group_name->name :
-+								  ptr2->u1.filename1->name,
-+								  b1 ? "@" : "",
-+								  b1 ? ptr2->u2.group2->group_name->name :
-+								  ptr2->u2.filename2->name)) {
-+							head->read_avail = pos;
-+							break;
-+						}
-+					} else {
-+						struct single_acl *ptr2 = (struct single_acl *) ptr;
-+						const u8 b = ptr2->u_is_group;
-+						if (tmy_io_printf(head,
-+								  "allow_%s %s%s\n",
-+								  keyword,
-+								  b ? "@" : "",
-+								  b ? ptr2->u.group->group_name->name :
-+								  ptr2->u.filename->name)) {
-+							head->read_avail = pos;
-+							break;
-+						}
-+					}
-+				}
-+			}
 +		}
 +		if (ptr)
 +			break;
@@ -1160,7 +1214,8 @@ Index: src/security/tomoyo/common.c
 +	*cp = '\0';
 +	domain = tmy_find_domain(cp + 1);
 +	profile = simple_strtoul(data, NULL, 10);
-+	if (domain && profile < TMY_MAX_PROFILES && (profile_ptr[profile] || !sbin_init_started))
++	if (domain && profile < TMY_MAX_PROFILES &&
++	    (profile_ptr[profile] || !sbin_init_started))
 +		domain->profile = (u8) profile;
 +	tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
 +	return 0;
@@ -1170,7 +1225,7 @@ Index: src/security/tomoyo/common.c
 +
 +static int AddSystemPolicy(struct io_buffer *head)
 +{
-+        char *data = head->write_buf;
++	char *data = head->write_buf;
 +	int is_delete = 0;
 +	if (!tmy_is_root()) return -EPERM;
 +	tmy_update_counter(TMY_UPDATE_SYSTEMPOLICY);
@@ -1181,9 +1236,11 @@ Index: src/security/tomoyo/common.c
 +	if (strncmp(data, TMY_ALLOW_MOUNT, TMY_ALLOW_MOUNT_LEN) == 0)
 +		return AddMountPolicy(data + TMY_ALLOW_MOUNT_LEN, is_delete);
 +	if (strncmp(data, TMY_DENY_UNMOUNT, TMY_DENY_UNMOUNT_LEN) == 0)
-+		return AddNoUmountPolicy(data + TMY_DENY_UNMOUNT_LEN, is_delete);
++		return AddNoUmountPolicy(data + TMY_DENY_UNMOUNT_LEN,
++					 is_delete);
 +	if (strncmp(data, TMY_ALLOW_PIVOT_ROOT, TMY_ALLOW_PIVOT_ROOT_LEN) == 0)
-+		return AddPivotRootPolicy(data + TMY_ALLOW_PIVOT_ROOT_LEN, is_delete);
++		return AddPivotRootPolicy(data + TMY_ALLOW_PIVOT_ROOT_LEN,
++					  is_delete);
 +	return -EINVAL;
 +}
 +
@@ -1215,6 +1272,18 @@ Index: src/security/tomoyo/common.c
 +
 +/*************************  EXCEPTION POLICY HANDLER  *************************/
 +
++static inline int strstr2(char **src, const char *find)
++{
++	const int len = strlen(find);
++	char *tmp = *src;
++	if (strncmp(tmp, find, len) == 0) {
++		tmp += len;
++		*src = tmp;
++		return 1;
++	}
++	return 0;
++}
++
 +static int tmy_add_exception_policy(struct io_buffer *head)
 +{
 +	char *data = head->write_buf;
@@ -1222,98 +1291,100 @@ Index: src/security/tomoyo/common.c
 +	if (!tmy_is_root())
 +		return -EPERM;
 +	tmy_update_counter(TMY_UPDATE_EXCEPTIONPOLICY);
-+	if (strncmp(data, TMY_DELETE, TMY_DELETE_LEN) == 0) {
-+		data += TMY_DELETE_LEN;
++	if (strstr2(&data, TMY_DELETE))
 +		is_delete = 1;
-+	}
-+	if (strncmp(data, TMY_KEEP_DOMAIN, TMY_KEEP_DOMAIN_LEN) == 0) {
-+		return tmy_add_domain_keeper_policy(data + TMY_KEEP_DOMAIN_LEN, 0, is_delete);
-+	} else if (strncmp(data, TMY_NO_KEEP_DOMAIN, TMY_NO_KEEP_DOMAIN_LEN) == 0) {
-+		return tmy_add_domain_keeper_policy(data + TMY_NO_KEEP_DOMAIN_LEN, 1, is_delete);
-+	} else if (strncmp(data, TMY_INITIALIZE_DOMAIN, TMY_INITIALIZE_DOMAIN_LEN) == 0) {
-+		return tmy_add_domain_initializer_policy(data + TMY_INITIALIZE_DOMAIN_LEN, 0, is_delete, 0);
-+	} else if (strncmp(data, TMY_NO_INITIALIZE_DOMAIN, TMY_NO_INITIALIZE_DOMAIN_LEN) == 0) {
-+		return tmy_add_domain_initializer_policy(data + TMY_NO_INITIALIZE_DOMAIN_LEN, 1, is_delete, 0);
-+	} else if (strncmp(data, TMY_INITIALIZER, TMY_INITIALIZER_LEN) == 0) {
-+		return tmy_add_domain_initializer_policy(data + TMY_INITIALIZER_LEN, 0, is_delete, 1);
-+	} else if (strncmp(data, TMY_NO_INITIALIZER, TMY_NO_INITIALIZER_LEN) == 0) {
-+		return tmy_add_domain_initializer_policy(data + TMY_NO_INITIALIZER_LEN, 1, is_delete, 1);
-+	} else if (strncmp(data, TMY_ALIAS, TMY_ALIAS_LEN) == 0) {
-+		return tmy_add_alias_policy(data + TMY_ALIAS_LEN, is_delete);
-+	} else if (strncmp(data, TMY_AGGREGATOR, TMY_AGGREGATOR_LEN) == 0) {
-+		return tmy_add_aggregator_policy(data + TMY_AGGREGATOR_LEN, is_delete);
-+	} else if (strncmp(data, TMY_ALLOW_READ, TMY_ALLOW_READ_LEN) == 0) {
-+		return tmy_add_globally_readable_policy(data + TMY_ALLOW_READ_LEN, is_delete);
-+	} else if (strncmp(data, TMY_FILE_PATTERN, TMY_FILE_PATTERN_LEN) == 0) {
-+		return tmy_add_pattern_policy(data + TMY_FILE_PATTERN_LEN, is_delete);
-+	} else if (strncmp(data, TMY_PATH_GROUP, TMY_PATH_GROUP_LEN) == 0) {
-+		return tmy_add_group_policy(data + TMY_PATH_GROUP_LEN, is_delete);
-+	} else if (strncmp(data, TMY_DENY_REWRITE, TMY_DENY_REWRITE_LEN) == 0) {
-+		return tmy_add_no_rewrite_policy(data + TMY_DENY_REWRITE_LEN, is_delete);
-+	} else if (strncmp(data, TMY_ADDRESS_GROUP, TMY_ADDRESS_GROUP_LEN) == 0) {
-+		return tmy_add_addr_group_policy(data + TMY_ADDRESS_GROUP_LEN, is_delete);
-+	}
++	if (strstr2(&data, TMY_KEEP_DOMAIN))
++		return tmy_add_domain_keeper_policy(data, 0, is_delete);
++	if (strstr2(&data, TMY_NO_KEEP_DOMAIN))
++		return tmy_add_domain_keeper_policy(data, 1, is_delete);
++	if (strstr2(&data, TMY_INITIALIZE_DOMAIN))
++		return tmy_add_domain_initializer_policy(data, 0,
++							 is_delete, 0);
++	if (strstr2(&data, TMY_NO_INITIALIZE_DOMAIN))
++		return tmy_add_domain_initializer_policy(data, 1,
++							 is_delete, 0);
++	if (strstr2(&data, TMY_INITIALIZER))
++		return tmy_add_domain_initializer_policy(data, 0,
++							 is_delete, 1);
++	if (strstr2(&data, TMY_NO_INITIALIZER))
++		return tmy_add_domain_initializer_policy(data, 1,
++							 is_delete, 1);
++	if (strstr2(&data, TMY_ALIAS))
++		return tmy_add_alias_policy(data, is_delete);
++	if (strstr2(&data, TMY_AGGREGATOR))
++		return tmy_add_aggregator_policy(data, is_delete);
++	if (strstr2(&data, TMY_ALLOW_READ))
++		return tmy_add_globally_readable_policy(data, is_delete);
++	if (strstr2(&data, TMY_FILE_PATTERN))
++		return tmy_add_pattern_policy(data, is_delete);
++	if (strstr2(&data, TMY_PATH_GROUP))
++		return tmy_add_group_policy(data, is_delete);
++	if (strstr2(&data, TMY_DENY_REWRITE))
++		return tmy_add_no_rewrite_policy(data, is_delete);
++	if (strstr2(&data, TMY_ADDRESS_GROUP))
++		return tmy_add_addr_group_policy(data, is_delete);
 +	return -EINVAL;
 +}
 +
 +static int tmy_read_exception_policy(struct io_buffer *head)
 +{
-+	if (!head->read_eof) {
-+		switch (head->read_step) {
-+		case 0:
-+			if (!tmy_is_root())
-+				return -EPERM;
-+			head->read_var2 = NULL;
-+			head->read_step = 1;
-+		case 1:
-+			if (tmy_read_domain_keeper_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 2;
-+		case 2:
-+			if (tmy_read_globally_readable_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 3;
-+		case 3:
-+			if (tmy_read_domain_initializer_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 4;
-+		case 4:
-+			if (tmy_read_alias_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 5;
-+		case 5:
-+			if (tmy_read_aggregator_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 6;
-+		case 6:
-+			if (tmy_read_pattern_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 7;
-+		case 7:
-+			if (tmy_read_no_rewrite_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 8;
-+		case 8:
-+			if (tmy_read_group_policy(head))
-+				break;
-+			head->read_var1 = NULL;
-+			head->read_var2 = NULL;
-+			head->read_step = 9;
-+		case 9:
-+			if (tmy_read_addr_group_policy(head))
-+				break;
-+			head->read_eof = 1;
++	if (head->read_eof)
++		return 0;
++
++	switch (head->read_step) {
++	case 0:
++		if (!tmy_is_root())
++			return -EPERM;
++		head->read_var2 = NULL;
++		head->read_step = 1;
++	case 1:
++		if (tmy_read_domain_keeper_policy(head))
 +			break;
-+		default:
-+			return -EINVAL;
-+		}
++		head->read_var2 = NULL;
++		head->read_step = 2;
++	case 2:
++		if (tmy_read_globally_readable_policy(head))
++			break;
++		head->read_var2 = NULL;
++		head->read_step = 3;
++	case 3:
++		if (tmy_read_domain_initializer_policy(head))
++			break;
++		head->read_var2 = NULL;
++		head->read_step = 4;
++	case 4:
++		if (tmy_read_alias_policy(head))
++			break;
++		head->read_var2 = NULL;
++		head->read_step = 5;
++	case 5:
++		if (tmy_read_aggregator_policy(head))
++			break;
++		head->read_var2 = NULL;
++		head->read_step = 6;
++	case 6:
++		if (tmy_read_pattern_policy(head))
++			break;
++		head->read_var2 = NULL;
++		head->read_step = 7;
++	case 7:
++		if (tmy_read_no_rewrite_policy(head))
++			break;
++		head->read_var2 = NULL;
++		head->read_step = 8;
++	case 8:
++		if (tmy_read_group_policy(head))
++			break;
++		head->read_var1 = NULL;
++		head->read_var2 = NULL;
++		head->read_step = 9;
++	case 9:
++		if (tmy_read_addr_group_policy(head))
++			break;
++		head->read_eof = 1;
++		break;
++	default:
++		return -EINVAL;
 +	}
 +	return 0;
 +}
@@ -1336,16 +1407,21 @@ Index: src/security/tomoyo/common.c
 +		return;
 +	/*
 +	 * Check filename is /sbin/init or /sbin/tomoyo-start .
-+	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init can't be passed.
-+	 * You can create /sbin/tomoyo-start by "ln -s /bin/true /sbin/tomoyo-start", for
++	 * /sbin/tomoyo-start is a dummy filename in case
++	 * where /sbin/init can't be passed.
++	 * You can create /sbin/tomoyo-start
++	 * by "ln -s /bin/true /sbin/tomoyo-start", for
 +	 * only the pathname is needed to activate Mandatory Access Control.
 +	 */
-+	if (strcmp(filename, "/sbin/init") != 0 && strcmp(filename, "/sbin/tomoyo-start") != 0)
++	if (strcmp(filename, "/sbin/init") != 0
++	    && strcmp(filename, "/sbin/tomoyo-start") != 0)
 +		return;
 +	/*
-+	 * Don't activate MAC if the path given by 'TOMOYO_loader=' option doesn't exist.
-+	 * If initrd.img includes /sbin/init but real-root-dev has not mounted on / yet,
-+	 * activating MAC will block the system since policies are not loaded yet.
++	 * Don't activate MAC if the path given by 'TOMOYO_loader=' option
++	 * doesn't exist.
++	 * If initrd.img includes /sbin/init but real-root-dev has not
++	 * mounted on / yet, activating MAC will block the system
++	 * since policies are not loaded yet.
 +	 * So let do_execve() call this function everytime.
 +	 */
 +	if (!profile_loaded) {
@@ -1369,17 +1445,18 @@ Index: src/security/tomoyo/common.c
 +
 +	printk(KERN_INFO "TOMOYO: 2.1rc1   2007/08/07\n");
 +	if (!profile_loaded)
-+		panic("No profiles loaded. Run policy loader using 'init=' option.\n");
++		panic("No profiles loaded. "
++		      "Run policy loader using 'init=' option.\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = 1;
 +	{ /* Check all profiles currently assigned to domains are defined. */
 +		struct domain_info *domain;
 +		for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
 +			const u8 profile = domain->profile;
-+			if (!profile_ptr[profile])
-+				panic("Profile %u (used by '%s') not defined.\n",
-+				      profile,
-+				      domain->domainname->name);
++			if (profile_ptr[profile]) continue;
++			panic("Profile %u (used by '%s') not defined.\n",
++			      profile,
++			      domain->domainname->name);
 +		}
 +	}
 +}
@@ -1407,7 +1484,8 @@ Index: src/security/tomoyo/common.c
 +{
 +	va_list args;
 +	int error = -EPERM;
-+	int pos, len;
++	int pos;
++	int len;
 +	static unsigned int serial;
 +	struct query_entry *query_entry;
 +	if (!tmy_flags(TMY_ALLOW_ENFORCE_GRACE))
@@ -1429,7 +1507,8 @@ Index: src/security/tomoyo/common.c
 +	query_entry->serial = serial++;
 +	spin_unlock(&query_lock);
 +	/***** CRITICAL SECTION END *****/
-+	pos = snprintf(query_entry->query, len - 1, "Q%u\n", query_entry->serial);
++	pos = snprintf(query_entry->query, len - 1,
++		       "Q%u\n", query_entry->serial);
 +	va_start(args, fmt);
 +	vsnprintf(query_entry->query + pos, len - 1 - pos, fmt, args);
 +	query_entry->query_len = strlen(query_entry->query) + 1;
@@ -1466,7 +1545,7 @@ Index: src/security/tomoyo/common.c
 +	case 0:
 +		/* Timed out. */
 +		break;
-+default:
++	default:
 +		/* Rejected by administrator. */
 +		break;
 +	}
@@ -1501,7 +1580,8 @@ Index: src/security/tomoyo/common.c
 +static int tmy_read_query(struct io_buffer *head)
 +{
 +	struct list_head *tmp;
-+	int pos = 0, len = 0;
++	int pos = 0;
++	int len = 0;
 +	char *buf;
 +	if (head->read_avail)
 +		return 0;
@@ -1513,7 +1593,8 @@ Index: src/security/tomoyo/common.c
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&query_lock);
 +	list_for_each(tmp, &query_list) {
-+		struct query_entry *ptr = list_entry(tmp, struct query_entry, list);
++		struct query_entry *ptr
++			= list_entry(tmp, struct query_entry, list);
 +		if (pos++ == head->read_step) {
 +			len = ptr->query_len;
 +			break;
@@ -1531,10 +1612,12 @@ Index: src/security/tomoyo/common.c
 +		/***** CRITICAL SECTION START *****/
 +		spin_lock(&query_lock);
 +		list_for_each(tmp, &query_list) {
-+			struct query_entry *ptr = list_entry(tmp, struct query_entry, list);
++			struct query_entry *ptr
++				= list_entry(tmp, struct query_entry, list);
 +			if (pos++ == head->read_step) {
-+				/* Some query can be skiipped since query_list can change, */
-+				/* but I don't care. */
++				/* Some query can be skiipped because
++				 * query_list can change, but I don't care.
++				 */
 +				if (len == ptr->query_len)
 +					memmove(buf, ptr->query, len);
 +				break;
@@ -1543,12 +1626,12 @@ Index: src/security/tomoyo/common.c
 +		spin_unlock(&query_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (buf[0]) {
-+			head->readbuf_size = head->read_avail = len;
++			head->readbuf_size = len;
++			head->read_avail = len;
 +			head->read_buf = buf;
 +			head->read_step++;
-+		} else {
++		} else
 +			tmy_free(buf);
-+		}
 +	}
 +	return 0;
 +}
@@ -1557,11 +1640,13 @@ Index: src/security/tomoyo/common.c
 +{
 +	char *data = head->write_buf;
 +	struct list_head *tmp;
-+	unsigned int serial, answer;
++	unsigned int serial;
++	unsigned int answer;
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&query_lock);
 +	list_for_each(tmp, &query_list) {
-+		struct query_entry *ptr = list_entry(tmp, struct query_entry, list);
++		struct query_entry *ptr
++			= list_entry(tmp, struct query_entry, list);
 +		ptr->timer = 0;
 +	}
 +	spin_unlock(&query_lock);
@@ -1571,7 +1656,8 @@ Index: src/security/tomoyo/common.c
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&query_lock);
 +	list_for_each(tmp, &query_list) {
-+		struct query_entry *ptr = list_entry(tmp, struct query_entry, list);
++		struct query_entry *ptr
++			= list_entry(tmp, struct query_entry, list);
 +		if (ptr->serial != serial)
 +			continue;
 +		if (!ptr->answer)
@@ -1601,49 +1687,52 @@ Index: src/security/tomoyo/common.c
 +
 +static int tmy_read_updates_counter(struct io_buffer *head)
 +{
-+	if (!head->read_eof) {
-+		unsigned int counter[TMY_MAX_UPDATES_COUNTER];
-+		/***** CRITICAL SECTION START *****/
-+		spin_lock(&updates_counter_lock);
-+		memmove(counter, updates_counter, sizeof(updates_counter));
-+		memset(updates_counter, 0, sizeof(updates_counter));
-+		spin_unlock(&updates_counter_lock);
-+		/***** CRITICAL SECTION END *****/
-+		tmy_io_printf(head,
-+			      "/proc/tomoyo/domain_policy:    %10u\n"
-+			      "/proc/tomoyo/system_policy:    %10u\n"
-+			      "/proc/tomoyo/exception_policy: %10u\n"
-+			      "/proc/tomoyo/status:           %10u\n"
-+			      "/proc/tomoyo/query:            %10u\n"
-+			      "/proc/tomoyo/manager:          %10u\n",
-+			      counter[TMY_UPDATE_DOMAINPOLICY],
-+			      counter[TMY_UPDATE_SYSTEMPOLICY],
-+			      counter[TMY_UPDATE_EXCEPTIONPOLICY],
-+			      counter[TMY_UPDATE_STATUS],
-+			      counter[TMY_UPDATE_QUERY],
-+			      counter[TMY_UPDATE_MANAGER]);
-+		head->read_eof = 1;
-+	}
++	unsigned int counter[TMY_MAX_UPDATES_COUNTER];
++	if (head->read_eof)
++		return 0;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&updates_counter_lock);
++	memmove(counter, updates_counter, sizeof(updates_counter));
++	memset(updates_counter, 0, sizeof(updates_counter));
++	spin_unlock(&updates_counter_lock);
++	/***** CRITICAL SECTION END *****/
++	tmy_io_printf(head,
++		      "/proc/tomoyo/domain_policy:    %10u\n"
++		      "/proc/tomoyo/system_policy:    %10u\n"
++		      "/proc/tomoyo/exception_policy: %10u\n"
++		      "/proc/tomoyo/status:           %10u\n"
++		      "/proc/tomoyo/query:            %10u\n"
++		      "/proc/tomoyo/manager:          %10u\n",
++		      counter[TMY_UPDATE_DOMAINPOLICY],
++		      counter[TMY_UPDATE_SYSTEMPOLICY],
++		      counter[TMY_UPDATE_EXCEPTIONPOLICY],
++		      counter[TMY_UPDATE_STATUS],
++		      counter[TMY_UPDATE_QUERY],
++		      counter[TMY_UPDATE_MANAGER]);
++	head->read_eof = 1;
 +	return 0;
 +}
 +
 +static int tmy_read_memory_counter(struct io_buffer *head)
 +{
-+	if (!head->read_eof) {
-+		const int shared = tmy_get_memory_used_for_save_name();
-+		const int private = tmy_get_memory_used_for_elements();
-+		const int dynamic = tmy_get_memory_used_for_dynamic();
-+		if (tmy_io_printf(head,
-+				  "Shared:  %10u\n"
-+				  "Private: %10u\n"
-+				  "Dynamic: %10u\n"
-+				  "Total:   %10u\n",
-+				  shared,
-+				  private,
-+				  dynamic,
-+				  shared + private + dynamic) == 0)
-+			head->read_eof = 1;
-+	}
++	int shared;
++	int private;
++	int dynamic;
++	if (head->read_eof)
++		return 0;
++	shared = tmy_get_memory_used_for_save_name();
++	private = tmy_get_memory_used_for_elements();
++	dynamic = tmy_get_memory_used_for_dynamic();
++	if (tmy_io_printf(head,
++			  "Shared:  %10u\n"
++			  "Private: %10u\n"
++			  "Dynamic: %10u\n"
++			  "Total:   %10u\n",
++			  shared,
++			  private,
++			  dynamic,
++			  shared + private + dynamic) == 0)
++		head->read_eof = 1;
 +	return 0;
 +}
 +
@@ -1725,7 +1814,8 @@ Index: src/security/tomoyo/common.c
 +	return 0;
 +}
 +
-+static int tmy_copy_to_user(struct io_buffer *head, char __user *buffer, int buffer_len)
++static int tmy_copy_to_user(struct io_buffer *head, char __user *buffer,
++			    int buffer_len)
 +{
 +	int len = head->read_avail;
 +	char *cp = head->read_buf;
@@ -1748,7 +1838,8 @@ Index: src/security/tomoyo/common.c
 +	return head->poll(file, wait);
 +}
 +
-+static int tmy_read_control(struct file *file, char __user *buffer, const int buffer_len)
++static int tmy_read_control(struct file *file, char __user *buffer,
++			    const int buffer_len)
 +{
 +	int len = 0;
 +	struct io_buffer *head = (struct io_buffer *) file->private_data;
@@ -1765,7 +1856,8 @@ Index: src/security/tomoyo/common.c
 +	return len;
 +}
 +
-+static int tmy_write_control(struct file *file, const char __user *buffer, const int buffer_len)
++static int tmy_write_control(struct file *file, const char __user *buffer,
++			     const int buffer_len)
 +{
 +	struct io_buffer *head = (struct io_buffer *) file->private_data;
 +	int error = buffer_len;
@@ -1777,9 +1869,10 @@ Index: src/security/tomoyo/common.c
 +		return -EFAULT;
 +	if (!tmy_is_root())
 +		return -EPERM;
-+	if (head->write != tmy_write_pid && !tmy_is_policy_manager()) {
-+		return -EPERM; /* Forbid updating policies for non manager programs. */
-+	}
++	if (head->write != tmy_write_pid && !tmy_is_policy_manager())
++		/* Forbid updating policies for non manager programs. */
++		return -EPERM;
++
 +	if (down_interruptible(&head->write_sem))
 +		return -EINTR;
 +	while (avail_len > 0) {
@@ -1825,7 +1918,8 @@ Index: src/security/tomoyo/common.c
 +
 +static int tmy_open(struct inode *inode, struct file *file)
 +{
-+	return tmy_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL), file);
++	return tmy_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
++				file);
 +}
 +
 +static int tmy_release(struct inode *inode, struct file *file)
@@ -1838,12 +1932,14 @@ Index: src/security/tomoyo/common.c
 +	return tmy_poll_control(file, wait);
 +}
 +
-+static ssize_t tmy_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
++static ssize_t tmy_read(struct file *file, char __user *buf,
++			size_t count, loff_t *ppos)
 +{
 +	return tmy_read_control(file, buf, count);
 +}
 +
-+static ssize_t tmy_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
++static ssize_t tmy_write(struct file *file, const char __user *buf,
++			 size_t count, loff_t *ppos)
 +{
 +	return tmy_write_control(file, buf, count);
 +}
@@ -1872,22 +1968,32 @@ Index: src/security/tomoyo/common.c
 +{
 +	static int initialized;
 +	struct proc_dir_entry *tmy_dir;
-+	extern void tmy_realpath_init(void);
 +	if (initialized)
 +		return;
 +	initialized = 1;
 +	tmy_dir = proc_mkdir("tomoyo", NULL);
 +	tmy_realpath_init();
 +	tmy_find_domain(""); /* Set domainname of KERNEL domain. */
-+	tmy_create_entry("query",            0600, tmy_dir, TMY_POLICY_QUERY);
-+	tmy_create_entry("domain_policy",    0600, tmy_dir, TMY_POLICY_DOMAINPOLICY);
-+	tmy_create_entry("system_policy",    0600, tmy_dir, TMY_POLICY_SYSTEMPOLICY);
-+	tmy_create_entry("exception_policy", 0600, tmy_dir, TMY_POLICY_EXCEPTIONPOLICY);
-+	tmy_create_entry(".domain_status",   0600, tmy_dir, TMY_POLICY_DOMAIN_STATUS);
-+	tmy_create_entry(".process_status",  0400, tmy_dir, TMY_INFO_PROCESS_STATUS);
-+	tmy_create_entry("self_domain",      0400, tmy_dir, TMY_INFO_SELFDOMAIN);
-+	tmy_create_entry("meminfo",          0400, tmy_dir, TMY_INFO_MEMINFO);
-+	tmy_create_entry("status",           0600, tmy_dir, TMY_STATUS);
-+	tmy_create_entry("manager",          0600, tmy_dir, TMY_POLICY_MANAGER);
-+	tmy_create_entry(".updates_counter", 0400, tmy_dir, TMY_INFO_UPDATESCOUNTER);
++	tmy_create_entry("query",            0600, tmy_dir,
++			 TMY_POLICY_QUERY);
++	tmy_create_entry("domain_policy",    0600, tmy_dir,
++			 TMY_POLICY_DOMAINPOLICY);
++	tmy_create_entry("system_policy",    0600, tmy_dir,
++			 TMY_POLICY_SYSTEMPOLICY);
++	tmy_create_entry("exception_policy", 0600, tmy_dir,
++			 TMY_POLICY_EXCEPTIONPOLICY);
++	tmy_create_entry(".domain_status",   0600, tmy_dir,
++			 TMY_POLICY_DOMAIN_STATUS);
++	tmy_create_entry(".process_status",  0400, tmy_dir,
++			 TMY_INFO_PROCESS_STATUS);
++	tmy_create_entry("self_domain",      0400, tmy_dir,
++			 TMY_INFO_SELFDOMAIN);
++	tmy_create_entry("meminfo",          0400, tmy_dir,
++			 TMY_INFO_MEMINFO);
++	tmy_create_entry("status",           0600, tmy_dir,
++			 TMY_STATUS);
++	tmy_create_entry("manager",          0600, tmy_dir,
++			 TMY_POLICY_MANAGER);
++	tmy_create_entry(".updates_counter", 0400, tmy_dir,
++			 TMY_INFO_UPDATESCOUNTER);
 +}

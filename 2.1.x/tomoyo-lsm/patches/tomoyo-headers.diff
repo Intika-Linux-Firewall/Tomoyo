@@ -6,11 +6,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/include/tomoyo.h   |  481 +++++++++++++++++++++++++++++++++++++
  2 files changed, 523 insertions(+)
 
-Index: src/security/tomoyo/include/realpath.h
+Index: linux-2.6/security/tomoyo/include/realpath.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/include/realpath.h	2007-08-10 17:23:24.000000000 +0900
-@@ -0,0 +1,42 @@
++++ linux-2.6/security/tomoyo/include/realpath.h	2007-08-10 23:14:39.000000000 +0900
+@@ -0,0 +1,43 @@
 +/*
 + * security/tomoyo/include/realpath.h
 + *
@@ -51,12 +51,13 @@ Index: src/security/tomoyo/include/realpath.h
 +
 +unsigned int tmy_get_memory_used_for_dynamic(void);
 +char *sysctlpath_from_table(struct ctl_table *table);
++extern void tmy_realpath_init(void);
 +
 +#endif
-Index: src/security/tomoyo/include/tomoyo.h
+Index: linux-2.6/security/tomoyo/include/tomoyo.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/include/tomoyo.h	2007-08-10 17:39:47.000000000 +0900
++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-08-10 21:48:19.000000000 +0900
 @@ -0,0 +1,481 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
