@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/12
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1127,10 +1127,10 @@ void CCS_LoadPolicy(const char *filename)
 		path_release(&nd);
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.0-pre   2007/08/09\n");
+	printk("SAKURA: 1.5.0-pre   2007/08/12\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.0-pre   2007/08/09\n");
+	printk("TOMOYO: 1.5.0-pre   2007/08/12\n");
 #endif
 	if (!profile_loaded) {
 		char *argv[2], *envp[3];
@@ -1366,14 +1366,14 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 		spin_unlock(&updates_counter_lock);
 		/***** CRITICAL SECTION END *****/
 		io_printf(head,
-				  "/proc/ccs/policy/system_policy:    %10u\n"
-				  "/proc/ccs/policy/domain_policy:    %10u\n"
-				  "/proc/ccs/policy/exception_policy: %10u\n"
-				  "/proc/ccs/status:                  %10u\n"
-				  "/proc/ccs/policy/query:            %10u\n"
-				  "/proc/ccs/policy/manager:          %10u\n"
-				  "/proc/ccs/info/grant_log:          %10u\n"
-				  "/proc/ccs/info/reject_log:         %10u\n",
+				  "/proc/ccs/system_policy:    %10u\n"
+				  "/proc/ccs/domain_policy:    %10u\n"
+				  "/proc/ccs/exception_policy: %10u\n"
+				  "/proc/ccs/status:           %10u\n"
+				  "/proc/ccs/query:            %10u\n"
+				  "/proc/ccs/manager:          %10u\n"
+				  "/proc/ccs/grant_log:        %10u\n"
+				  "/proc/ccs/reject_log:       %10u\n",
 				  counter[CCS_UPDATES_COUNTER_SYSTEM_POLICY],
 				  counter[CCS_UPDATES_COUNTER_DOMAIN_POLICY],
 				  counter[CCS_UPDATES_COUNTER_EXCEPTION_POLICY],

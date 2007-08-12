@@ -22,18 +22,18 @@
 <p><a href="#exception_policy.txt">2.5 例外ポリシー（exception_policy.txt）</a></p>
 <h2><a href="#/proc/ccs/">3. /proc/ccs/ インタフェース</a></h2>
 <p><a href="#status">3.1 status</a></p>
-<p><a href="#policy/system_policy">3.2 policy/system_policy</a></p>
-<p><a href="#policy/domain_policy">3.3 policy/domain_policy</a></p>
-<p><a href="#policy/exception_policy">3.4 policy/exception_policy</a></p>
-<p><a href="#policy/query">3.5 policy/query</a></p>
-<p><a href="#policy/manager">3.6 policy/manager</a></p>
-<p><a href="#policy/.domain_status">3.7 policy/.domain_status</a></p>
-<p><a href="#info/meminfo">3.8 info/meminfo</a></p>
-<p><a href="#info/grant_log">3.9 info/grant_log</a></p>
-<p><a href="#info/reject_log">3.10 info/reject_log</a></p>
-<p><a href="#info/self_domain">3.11 info/self_domain</a></p>
-<p><a href="#info/.process_status">3.12 info/.process_status</a></p>
-<p><a href="#info/.updates_counter">3.13 info/.updates_counter</a></p>
+<p><a href="#system_policy">3.2 system_policy</a></p>
+<p><a href="#domain_policy">3.3 domain_policy</a></p>
+<p><a href="#exception_policy">3.4 exception_policy</a></p>
+<p><a href="#query">3.5 query</a></p>
+<p><a href="#manager">3.6 manager</a></p>
+<p><a href="#.domain_status">3.7 .domain_status</a></p>
+<p><a href="#meminfo">3.8 meminfo</a></p>
+<p><a href="#grant_log">3.9 grant_log</a></p>
+<p><a href="#reject_log">3.10 reject_log</a></p>
+<p><a href="#self_domain">3.11 self_domain</a></p>
+<p><a href="#.process_status">3.12 .process_status</a></p>
+<p><a href="#.updates_counter">3.13 .updates_counter</a></p>
 <hr>
 <h1><a name="Introduction">1. はじめに</a></h1>
 <h2><a name="word_definition">1.1 用語の定義</a></h2>
@@ -956,55 +956,55 @@ allow_network TCP accept @local-address 1024-65535
 <p>（例）<br>
 cat /proc/ccs/status<br>
 echo 'MAC_FOR_FILE=1' &gt; /proc/ccs/status</p>
-<h2><a name="policy/system_policy">3.2 policy/system_policy</a></h2>
+<h2><a name="system_policy">3.2 system_policy</a></h2>
 <p>現在の<a href="#system_policy.txt">システムポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）<br>
-echo 'allow_mount /proc /proc/ proc' &gt; /proc/ccs/policy/system_policy<br>
-echo 'delete allow_mount /proc /proc/ proc' &gt; /proc/ccs/policy/system_policy<br>
-cat /proc/ccs/policy/system_policy</p>
-<h2><a name="policy/domain_policy">3.3 policy/domain_policy</a></h2>
+echo 'allow_mount /proc /proc/ proc' &gt; /proc/ccs/system_policy<br>
+echo 'delete allow_mount /proc /proc/ proc' &gt; /proc/ccs/system_policy<br>
+cat /proc/ccs/system_policy</p>
+<h2><a name="domain_policy">3.3 domain_policy</a></h2>
 <p>現在の<a href="#domain_policy.txt">ドメイン別ポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成される）<br>
-printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/policy/domain_policy</p>
+printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されない）<br>
-printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/policy/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）ドメインを選択してアクセス許可を削除<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /proc/ccs/policy/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）特定のドメインを削除<br>
-printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/ccs/policy/domain_policy</p>
+printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）ドメイン別ポリシーの読み出し<br>
-cat /proc/ccs/policy/domain_policy</p>
-<h2><a name="policy/exception_policy">3.4 policy/exception_policy</a></h2>
+cat /proc/ccs/domain_policy</p>
+<h2><a name="exception_policy">3.4 exception_policy</a></h2>
 <p>現在の<a href="#exception_policy.txt">例外ポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）<br>
-echo 'file_pattern /proc/\$/status' &gt; /proc/ccs/policy/exception_policy<br>
-echo 'delete file_pattern /proc/\$/status' &gt; /proc/ccs/policy/exception_policy<br>
-cat /proc/ccs/policy/exception_policy</p>
-<h2><a name="policy/query">3.5 policy/query</a></h2>
+echo 'file_pattern /proc/\$/status' &gt; /proc/ccs/exception_policy<br>
+echo 'delete file_pattern /proc/\$/status' &gt; /proc/ccs/exception_policy<br>
+cat /proc/ccs/exception_policy</p>
+<h2><a name="query">3.5 query</a></h2>
 <p>強制モードで動作中にポリシー違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用する。 ALLOW_ENFORCE_GRACE=1 に設定されているプロファイルが割り当てられているドメインに対して強制モードでポリシー違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できる。</p>
-<h2><a name="policy/manager">3.6 policy/manager</a></h2>
+<h2><a name="manager">3.6 manager</a></h2>
 <p>ポリシーの読み書きを行えるプログラムまたはドメインの一覧を取得または追加する。</p>
-<h2><a name="policy/.domain_status">3.7 policy/.domain_status</a></h2>
-<p>setprofile コマンドが行単位での処理を行いやすくするために policy/domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供する。</p>
-<h2><a name="info/meminfo">3.8 info/meminfo</a></h2>
+<h2><a name=".domain_status">3.7 .domain_status</a></h2>
+<p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供する。</p>
+<h2><a name="meminfo">3.8 meminfo</a></h2>
 <p>TOMOYO Linuxがポリシーを保持するために使用しているカーネルのメモリ情報を取得する。</p>
 <p>（例）<br>
-cat /proc/ccs/info/meminfo<br></p>
-<h2><a name="info/grant_log">3.9 info/grant_log</a></h2>
+cat /proc/ccs/meminfo<br></p>
+<h2><a name="grant_log">3.9 grant_log</a></h2>
 <p>ドメイン別ポリシーに対するアクセス許可ログを取得する。 取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使うこと。 記憶できる件数はMAX_GRANT_LOG件までである。 それ以上は記録されないので、随時読み出すようにする必要がある。</p>
 <p>（例）<br>
-cat /proc/ccs/info/grant_log</p>
-<h2><a name="info/reject_log">3.10 info/reject_log</a></h2>
+cat /proc/ccs/grant_log</p>
+<h2><a name="reject_log">3.10 reject_log</a></h2>
 <p>ドメイン別ポリシーに対するアクセス拒否ログを取得する。 取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使うこと。 記憶できる件数はMAX_REJECT_LOG件までである。 それ以上は記録されないので、随時読み出すようにする必要がある。</p>
 <p>（例）<br>
-cat /proc/ccs/info/reject_log</p>
-<h2><a name="info/self_domain">3.11 info/self_domain</a></h2>
+cat /proc/ccs/reject_log</p>
+<h2><a name="self_domain">3.11 self_domain</a></h2>
 <p>呼び出し元プロセスが属しているドメインの名前を取得する。</p>
 <p>（例）<br>
-cat /proc/ccs/info/self_domain</p>
-<h2><a name="info/.process_status">3.12 info/.process_status</a></h2>
+cat /proc/ccs/self_domain</p>
+<h2><a name=".process_status">3.12 .process_status</a></h2>
 <p>ccstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシーマネージャとして登録されていないプログラムでも書き込みを行える。</p>
-<h2><a name="info/.updates_counter">3.13 info/.updates_counter</a></h2>
+<h2><a name=".updates_counter">3.13 .updates_counter</a></h2>
 <p>ポリシーの変更を検出するためのカウンタ。参照されるたびに 0 にリセットされる。ポリシーの更新を監視するプログラムのためのインタフェース。</p>
 <hr>
 <p><a href="index.html#manual">目次へ戻る</a></p>

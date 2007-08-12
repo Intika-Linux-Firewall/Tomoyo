@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/12
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -75,28 +75,26 @@ static __init void CreateEntry(const char *name, const mode_t mode, struct proc_
 void __init CCSProc_Init(void)
 {
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
-	struct proc_dir_entry *policy_dir = proc_mkdir("policy", ccs_dir),
-		*info_dir = proc_mkdir("info", ccs_dir);
 	extern void __init realpath_Init(void);
 	realpath_Init();
 	FindDomain(""); /* Set domainname of KERNEL domain. */
-	CreateEntry("query",            0600, policy_dir, CCS_POLICY_QUERY);
+	CreateEntry("query",            0600, ccs_dir, CCS_POLICY_QUERY);
 #ifdef CONFIG_SAKURA
-	CreateEntry("system_policy",    0600, policy_dir, CCS_POLICY_SYSTEMPOLICY);
+	CreateEntry("system_policy",    0600, ccs_dir, CCS_POLICY_SYSTEMPOLICY);
 #endif
 #ifdef CONFIG_TOMOYO
-	CreateEntry("domain_policy",    0600, policy_dir, CCS_POLICY_DOMAINPOLICY);
-	CreateEntry("exception_policy", 0600, policy_dir, CCS_POLICY_EXCEPTIONPOLICY);
-	CreateEntry(".domain_status",   0600, policy_dir, CCS_POLICY_DOMAIN_STATUS);
-	CreateEntry(".process_status",  0400, info_dir, CCS_INFO_PROCESS_STATUS);
-	CreateEntry("grant_log",        0400, info_dir, CCS_INFO_GRANTLOG);
-	CreateEntry("reject_log",       0400, info_dir, CCS_INFO_REJECTLOG);
-	CreateEntry("self_domain",      0400, info_dir, CCS_INFO_SELFDOMAIN);
+	CreateEntry("domain_policy",    0600, ccs_dir, CCS_POLICY_DOMAINPOLICY);
+	CreateEntry("exception_policy", 0600, ccs_dir, CCS_POLICY_EXCEPTIONPOLICY);
+	CreateEntry(".domain_status",   0600, ccs_dir, CCS_POLICY_DOMAIN_STATUS);
+	CreateEntry(".process_status",  0400, ccs_dir, CCS_INFO_PROCESS_STATUS);
+	CreateEntry("grant_log",        0400, ccs_dir, CCS_INFO_GRANTLOG);
+	CreateEntry("reject_log",       0400, ccs_dir, CCS_INFO_REJECTLOG);
+	CreateEntry("self_domain",      0400, ccs_dir, CCS_INFO_SELFDOMAIN);
 #endif
-	CreateEntry("meminfo",          0400, info_dir, CCS_INFO_MEMINFO);
+	CreateEntry("meminfo",          0400, ccs_dir, CCS_INFO_MEMINFO);
 	CreateEntry("status",           0600, ccs_dir, CCS_STATUS);
-	CreateEntry("manager",          0600, policy_dir, CCS_POLICY_MANAGER);
-	CreateEntry(".updates_counter", 0400, info_dir, CCS_INFO_UPDATESCOUNTER);
+	CreateEntry("manager",          0600, ccs_dir, CCS_POLICY_MANAGER);
+	CreateEntry(".updates_counter", 0400, ccs_dir, CCS_INFO_UPDATESCOUNTER);
 	CreateEntry("version",          0400, ccs_dir, CCS_VERSION);
 }
 
