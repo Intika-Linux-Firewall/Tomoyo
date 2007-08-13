@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/common.c | 1881 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1881 insertions(+)
+ security/tomoyo/common.c | 1953 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1953 insertions(+)
 
-Index: linux-2.6/security/tomoyo/common.c
+Index: src/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-08-11 12:19:38.000000000 +0900
-@@ -0,0 +1,1966 @@
++++ src/security/tomoyo/common.c	2007-08-13 18:28:52.000000000 +0900
+@@ -0,0 +1,1953 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -192,7 +192,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +			goto out;
 +	}
 +	return 1;
-+out:
++out: ;
 +	printk(KERN_DEBUG "%s: Invalid pathname '%s'\n",
 +	       function, original_filename);
 +	return 0;
@@ -248,7 +248,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +		}
 +	} while (*domainname);
 +	return 1;
-+out:
++out: ;
 +	printk(KERN_DEBUG "%s: Invalid domainname '%s'\n",
 +	       function, org_domainname);
 +	return 0;
@@ -345,9 +345,9 @@ Index: linux-2.6/security/tomoyo/common.c
 +					/* safe because filename is \\ */
 +					filename++;
 +				else if (c >= '0' &&
-+					   c <= '3' &&
-+					   c2 >= '0' &&
-+					   c <= '7' &&
++					 c <= '3' &&
++					 c2 >= '0' &&
++					 c <= '7' &&
 +					 c3 >= '0' &&
 +					 c <= '7')
 +					/* safe because filename is \ooo */
@@ -504,7 +504,8 @@ Index: linux-2.6/security/tomoyo/common.c
 +int tmy_path_match(const struct path_info *pathname0,
 +		   const struct path_info *pattern0)
 +{
-+	const char *pathname = pathname0->name, *pattern = pattern0->name;
++	const char *pathname = pathname0->name;
++	const char *pattern = pattern0->name;
 +	const int len = pattern0->const_len;
 +	if (!pattern0->is_patterned)
 +		return !tmy_pathcmp(pathname0, pattern0);
@@ -725,7 +726,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +				  profile->comment->name : ""))
 +			break;
 +		goto comment_ok;
-+non_comment:
++non_comment: ;
 +		if (tmy_io_printf(head, "%u-%s=%u\n",
 +				  i, tmy_control[j].keyword,
 +				  profile->value[j]))
@@ -750,7 +751,8 @@ Index: linux-2.6/security/tomoyo/common.c
 +
 +static int tmy_add_manager_entry(const char *manager, u8 is_delete)
 +{
-+	struct policy_manager_entry *new_entry, *ptr;
++	struct policy_manager_entry *new_entry;
++	struct policy_manager_entry *ptr;
 +	static DECLARE_MUTEX(lock);
 +	const struct path_info *saved_manager;
 +	int error = -ENOMEM;
@@ -794,7 +796,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +	} else
 +		policy_manager_list = new_entry;
 +	error = 0;
-+out:
++out: ;
 +	up(&lock);
 +	if (!error)
 +		tmy_update_counter(TMY_UPDATE_MANAGER);
@@ -916,7 +918,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +	else if (strstr2(&data, TMY_ALLOW_ARGV0))
 +		return tmy_add_argv0_policy(data, domain, is_delete);
 +	else if (strstr2(&data, TMY_ALLOW_SIGNAL))
-+		return AddSignalPolicy(data, domain, is_delete);
++		return tmy_add_signal_policy(data, domain, is_delete);
 +	else
 +		return tmy_add_file_policy(data, domain, is_delete);
 +	return -EINVAL;
@@ -972,7 +974,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +		goto out;
 +	goto print_port;
 +
-+non_address_group:
++non_address_group: ;
 +	if (record_type != TMY_TYPE_IPv4)
 +		goto ipv6_address;
 +
@@ -985,7 +987,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +		goto out;
 +	goto print_port;
 +
-+ipv6_address:
++ipv6_address: ;
 +	min_address_ptr = ptr2->u.ipv6.min;
 +	max_address_ptr = ptr2->u.ipv6.max;
 +	tmy_print_ipv6(buf, sizeof(buf), min_address_ptr);
@@ -997,7 +999,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +			goto out;
 +	}
 +
-+print_port:
++print_port: ;
 +	min_port = ptr2->min_port;
 +	max_port = ptr2->max_port;
 +	if (tmy_io_printf(head, " %u", min_port))
@@ -1005,7 +1007,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +	if (min_port != max_port && tmy_io_printf(head, "-%u", max_port))
 +		goto out;
 +	if (tmy_io_printf(head, "\n")) {
-+out:
++out: ;
 +		head->read_avail = pos;
 +		return -ENOMEM;
 +	}
@@ -1085,7 +1087,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +		head->read_var1 = domain;
 +		head->read_var2 = NULL;
 +		head->read_step = 1;
-+step1:
++step1: ;
 +		if (tmy_io_printf(head,
 +				  "%s\n" TMY_USE_PROFILE "%u\n%s\n",
 +				  domain->domainname->name,
@@ -1095,7 +1097,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +			break;
 +		head->read_var2 = domain->first_acl_ptr;
 +		head->read_step = 2;
-+step2:
++step2: ;
 +		for (ptr = head->read_var2; ptr; ptr = ptr->next) {
 +			const u8 acl_type = ptr->type;
 +			const int pos = head->read_avail;
@@ -1122,7 +1124,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +			break;
 +		head->read_var2 = NULL;
 +		head->read_step = 3;
-+step3:
++step3: ;
 +		if (tmy_io_printf(head, "\n"))
 +			break;
 +	}
@@ -1227,11 +1229,11 @@ Index: linux-2.6/security/tomoyo/common.c
 +	if (strstr2(&data, TMY_DELETE))
 +		is_delete = 1;
 +	if (strstr2(&data, TMY_ALLOW_MOUNT))
-+		return AddMountPolicy(data, is_delete);
++		return tmy_add_mount_policy(data, is_delete);
 +	if (strstr2(&data, TMY_DENY_UNMOUNT))
-+		return AddNoUmountPolicy(data, is_delete);
++		return tmy_add_no_umount_policy(data, is_delete);
 +	if (strstr2(&data, TMY_ALLOW_PIVOT_ROOT))
-+		return AddPivotRootPolicy(data, is_delete);
++		return tmy_add_pivot_root_policy(data, is_delete);
 +	return -EINVAL;
 +}
 +
@@ -1242,16 +1244,20 @@ Index: linux-2.6/security/tomoyo/common.c
 +
 +	switch (head->read_step) {
 +	case 0:
-+		if (!tmy_is_root()) return -EPERM;
++		if (!tmy_is_root())
++			return -EPERM;
 +		head->read_var2 = NULL; head->read_step = 1;
 +	case 1:
-+		if (ReadMountPolicy(head)) break;
++		if (tmy_read_mount_policy(head))
++			break;
 +		head->read_var2 = NULL; head->read_step = 2;
 +	case 2:
-+		if (ReadNoUmountPolicy(head)) break;
++		if (tmy_read_no_umount_policy(head))
++			break;
 +		head->read_var2 = NULL; head->read_step = 3;
 +	case 3:
-+		if (ReadPivotRootPolicy(head)) break;
++		if (tmy_read_pivot_root_policy(head))
++			break;
 +		head->read_eof = 1;
 +		break;
 +	default:
@@ -1370,44 +1376,24 @@ Index: linux-2.6/security/tomoyo/common.c
 +
 +/*************************  POLICY LOADER  *************************/
 +
-+static const char *tmy_loader;
-+
-+static int tmy_loader_setup(char *str)
-+{
-+	tmy_loader = str;
-+	return 0;
-+}
-+
-+__setup("TOMOYO_loader=", tmy_loader_setup);
-+
 +void tmy_load_policy(const char *filename)
 +{
 +	if (sbin_init_started)
 +		return;
-+	/*
-+	 * Check filename is /sbin/init or /sbin/tomoyo-start .
-+	 * /sbin/tomoyo-start is a dummy filename in case
-+	 * where /sbin/init can't be passed.
-+	 * You can create /sbin/tomoyo-start
-+	 * by "ln -s /bin/true /sbin/tomoyo-start", for
-+	 * only the pathname is needed to activate Mandatory Access Control.
-+	 */
-+	if (strcmp(filename, "/sbin/init") != 0
-+	    && strcmp(filename, "/sbin/tomoyo-start") != 0)
++	if (strcmp(filename, "/sbin/init") != 0)
 +		return;
 +	/*
-+	 * Don't activate MAC if the path given by 'TOMOYO_loader=' option
-+	 * doesn't exist.
++	 * Don't activate MAC if the path '/sbin/tomoyo-init' doesn't exist.
 +	 * If initrd.img includes /sbin/init but real-root-dev has not
 +	 * mounted on / yet, activating MAC will block the system
 +	 * since policies are not loaded yet.
 +	 * So let do_execve() call this function everytime.
 +	 */
 +	if (!profile_loaded) {
++		const char *tmy_loader = "/sbin/tomoyo-init";
 +		struct nameidata nd;
-+		char *argv[2], *envp[3];
-+		if (!tmy_loader)
-+			tmy_loader = "/sbin/tomoyo-init";
++		char *argv[2];
++		char *envp[3];
 +		if (path_lookup(tmy_loader, LOOKUP_FOLLOW, &nd)) {
 +			printk("Not activating Mandatory Access Control "
 +			       "now since %s doesn't exist.\n", tmy_loader);
@@ -1432,7 +1418,8 @@ Index: linux-2.6/security/tomoyo/common.c
 +		struct domain_info *domain;
 +		for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
 +			const u8 profile = domain->profile;
-+			if (profile_ptr[profile]) continue;
++			if (profile_ptr[profile])
++				continue;
 +			panic("Profile %u (used by '%s') not defined.\n",
 +			      profile,
 +			      domain->domainname->name);
@@ -1528,7 +1515,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +		/* Rejected by administrator. */
 +		break;
 +	}
-+out:
++out: ;
 +	if (query_entry)
 +		tmy_free(query_entry->query);
 +	tmy_free(query_entry);
