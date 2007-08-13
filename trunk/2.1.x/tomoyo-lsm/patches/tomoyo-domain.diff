@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/domain.c | 1137 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1137 insertions(+)
+ security/tomoyo/domain.c | 1143 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1143 insertions(+)
 
-Index: linux-2.6/security/tomoyo/domain.c
+Index: src/security/tomoyo/domain.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/domain.c	2007-08-10 21:48:20.000000000 +0900
-@@ -0,0 +1,1137 @@
++++ src/security/tomoyo/domain.c	2007-08-13 15:18:33.000000000 +0900
+@@ -0,0 +1,1143 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -86,7 +86,8 @@ Index: linux-2.6/security/tomoyo/domain.c
 +
 +const char *tmy_get_last_name(const struct domain_info *domain)
 +{
-+	const char *cp0 = domain->domainname->name, *cp1;
++	const char *cp0 = domain->domainname->name;
++	const char *cp1;
 +
 +	cp1 = strrchr(cp0, ' ');
 +	if (cp1)
@@ -230,7 +231,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		domain_initializer_list = new_entry;
 +
 +	error = 0;
-+out:
++out: ;
 +
 +	up(&lock);
 +	return error;
@@ -326,8 +327,10 @@ Index: linux-2.6/security/tomoyo/domain.c
 +				       const int is_not,
 +				       const int is_delete)
 +{
-+	struct domain_keeper_entry *new_entry, *ptr;
-+	const struct path_info *saved_domainname, *saved_program = NULL;
++	struct domain_keeper_entry *new_entry;
++	struct domain_keeper_entry *ptr;
++	const struct path_info *saved_domainname;
++	const struct path_info *saved_program = NULL;
 +	static DECLARE_MUTEX(lock);
 +	int error = -ENOMEM;
 +	int is_last_name = 0;
@@ -388,7 +391,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		domain_keeper_list = new_entry;
 +	error = 0;
 +
-+out:
++out: ;
 +
 +	up(&lock);
 +	return error;
@@ -530,7 +533,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		alias_list = new_entry;
 +
 +	error = 0;
-+out:
++out: ;
 +
 +	up(&lock);
 +
@@ -625,7 +628,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		aggregator_list = new_entry;
 +
 +	error = 0;
-+out:
++out: ;
 +
 +	up(&lock);
 +
@@ -706,7 +709,8 @@ Index: linux-2.6/security/tomoyo/domain.c
 +
 +struct domain_info *tmy_undelete_domain(const char *domainname0)
 +{
-+	struct domain_info *domain, *candidate_domain = NULL;
++	struct domain_info *domain;
++	struct domain_info *candidate_domain = NULL;
 +	struct path_info domainname;
 +
 +	domainname.name = domainname0;
@@ -829,7 +833,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +			ptr = ptr->next;
 +		ptr->next = domain;
 +	}
-+out:
++out: ;
 +	up(&new_domain_assign_lock);
 +
 +	return domain;
@@ -867,7 +871,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	*dest = '\0';
 +
 +	return 0;
-+out:
++out: ;
 +	return -ENOMEM;
 +}
 +
@@ -931,7 +935,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		offset = 0;
 +	}
 +	return arg_ptr;
-+out:
++out: ;
 +	tmy_free(arg_ptr);
 +
 +	return NULL;
@@ -948,7 +952,8 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	const char *original_name = bprm->filename;
 +	struct file *filp = bprm->file;
 +	char *new_domain_name = NULL;
-+	char *real_program_name = NULL, *symlink_program_name = NULL;
++	char *real_program_name = NULL;
++	char *symlink_program_name = NULL;
 +	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +	int retval;
 +	struct path_info r;
@@ -1031,7 +1036,8 @@ Index: linux-2.6/security/tomoyo/domain.c
 +			if (printable_argv0 &&
 +			    !tmy_escape(printable_argv0, org_argv0,
 +					len * 4 + 8)) {
-+				const char *base_argv0, *base_filename;
++				const char *base_argv0;
++				const char *base_filename;
 +
 +				base_argv0 = strrchr(printable_argv0, '/');
 +				if (!base_argv0)
@@ -1129,7 +1135,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		domain = tmy_new_domain(new_domain_name, profile);
 +	}
 +
-+ok:
++ok: ;
 +
 +	if (!domain) {
 +		printk(KERN_INFO "TOMOYO-ERROR: Domain '%s' not defined.\n",
@@ -1138,7 +1144,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +			retval = -EPERM;
 +	} else
 +		retval = 0;
-+out:
++out: ;
 +
 +	tmy_free(new_domain_name);
 +	tmy_free(real_program_name);

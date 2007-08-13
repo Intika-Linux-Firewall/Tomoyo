@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/include/realpath.h |   42 +++
- security/tomoyo/include/tomoyo.h   |  481 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 523 insertions(+)
+ security/tomoyo/include/realpath.h |   43 +++
+ security/tomoyo/include/tomoyo.h   |  482 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 525 insertions(+)
 
-Index: linux-2.6/security/tomoyo/include/realpath.h
+Index: src/security/tomoyo/include/realpath.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/realpath.h	2007-08-10 23:14:39.000000000 +0900
++++ src/security/tomoyo/include/realpath.h	2007-08-13 15:18:33.000000000 +0900
 @@ -0,0 +1,43 @@
 +/*
 + * security/tomoyo/include/realpath.h
@@ -54,11 +54,11 @@ Index: linux-2.6/security/tomoyo/include/realpath.h
 +extern void tmy_realpath_init(void);
 +
 +#endif
-Index: linux-2.6/security/tomoyo/include/tomoyo.h
+Index: src/security/tomoyo/include/tomoyo.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-08-10 21:48:19.000000000 +0900
-@@ -0,0 +1,481 @@
++++ src/security/tomoyo/include/tomoyo.h	2007-08-13 15:18:33.000000000 +0900
+@@ -0,0 +1,482 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -367,20 +367,20 @@ Index: linux-2.6/security/tomoyo/include/tomoyo.h
 +const char *tmy_get_msg(const int is_enforce);
 +const char *tmy_acltype2keyword(const unsigned int acl_type);
 +
-+int CheckMountPermission(char *dev_name,
-+			 char *dir_name,
-+			 char *type,
-+			 unsigned long *flags);
-+int SAKURA_MayMount(struct nameidata *nd);
-+int SAKURA_MayUmount(struct vfsmount *mnt);
-+int AddMountPolicy(char *data, const int is_delete);
-+int ReadMountPolicy(struct io_buffer *head);
-+int AddNoUmountPolicy(char *data, const int is_delete);
-+int ReadNoUmountPolicy(struct io_buffer *head);
-+int CheckPivotRootPermission(struct nameidata *old_nd,
-+			     struct nameidata *new_nd);
-+int AddPivotRootPolicy(char *data, const int is_delete);
-+int ReadPivotRootPolicy(struct io_buffer *head);
++int tmy_mount_perm(char *dev_name,
++		   char *dir_name,
++		   char *type,
++		   unsigned long *flags);
++int tmy_conceal_mount(struct nameidata *nd);
++int tmy_umount_perm(struct vfsmount *mnt);
++int tmy_add_mount_policy(char *data, const int is_delete);
++int tmy_read_mount_policy(struct io_buffer *head);
++int tmy_add_no_umount_policy(char *data, const int is_delete);
++int tmy_read_no_umount_policy(struct io_buffer *head);
++int tmy_pivot_root_perm(struct nameidata *old_nd,
++			struct nameidata *new_nd);
++int tmy_add_pivot_root_policy(char *data, const int is_delete);
++int tmy_read_pivot_root_policy(struct io_buffer *head);
 +
 +int tmy_add_aggregator_policy(char *data, const int is_delete);
 +int tmy_add_addr_group_policy(char *data, const int is_delete);
@@ -411,6 +411,7 @@ Index: linux-2.6/security/tomoyo/include/tomoyo.h
 +int tmy_add_pattern_policy(char *data, const int is_delete);
 +int tmy_supervisor(const char *fmt, ...)
 +	__attribute__((format(printf, 1, 2)));
++
 +int tmy_del_acl(struct acl_info *ptr);
 +int tmy_delete_domain(char *data);
 +int tmy_is_correct_domain(const unsigned char *domainname,
@@ -457,10 +458,10 @@ Index: linux-2.6/security/tomoyo/include/tomoyo.h
 +			    const u8 *address,
 +			    const u16 port);
 +
-+int CheckSignalACL(int sig, int pid);
-+int AddSignalPolicy(char *data,
-+		    struct domain_info *domain,
-+		    const int is_delete);
++int tmy_signal_acl(int sig, int pid);
++int tmy_add_signal_policy(char *data,
++			  struct domain_info *domain,
++			  const int is_delete);
 +
 +char *tmy_init_audit_log(int *len);
 +int tmy_write_audit_log(char *log, const int is_granted, const int is_enforce);

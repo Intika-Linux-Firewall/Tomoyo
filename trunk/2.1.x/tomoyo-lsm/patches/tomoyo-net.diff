@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/net.c |  899 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 899 insertions(+)
+ security/tomoyo/net.c |  907 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 907 insertions(+)
 
-Index: linux-2.6/security/tomoyo/net.c
+Index: src/security/tomoyo/net.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/net.c	2007-08-10 23:20:17.000000000 +0900
-@@ -0,0 +1,905 @@
++++ src/security/tomoyo/net.c	2007-08-13 15:18:33.000000000 +0900
+@@ -0,0 +1,907 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -72,8 +72,10 @@ Index: linux-2.6/security/tomoyo/net.c
 +				    const int is_delete)
 +{
 +	static DECLARE_MUTEX(lock);
-+	struct addr_group_entry *new_group, *group;
-+	struct addr_group_member *new_member, *member;
++	struct addr_group_entry *new_group;
++	struct addr_group_entry *group;
++	struct addr_group_member *new_member;
++	struct addr_group_member *member;
 +	const struct path_info *saved_group_name;
 +	int error = -ENOMEM;
 +
@@ -162,7 +164,7 @@ Index: linux-2.6/security/tomoyo/net.c
 +		group->first_member = new_member;
 +
 +	error = 0;
-+out:
++out: ;
 +	up(&lock);
 +
 +	return error;
@@ -238,7 +240,7 @@ Index: linux-2.6/security/tomoyo/net.c
 +
 +	return -EINVAL;
 +
-+ok:
++ok: ;
 +	return tmy_add_addr_group_entry(data, is_ipv6, min_address, max_address,
 +					is_delete);
 +}
@@ -549,7 +551,7 @@ Index: linux-2.6/security/tomoyo/net.c
 +			ptr = ptr->next;
 +			continue;
 +		}
-+first_entry:
++first_entry: ;
 +		if (!force && tmy_too_many_acl(domain))
 +			break;
 +
@@ -802,7 +804,7 @@ Index: linux-2.6/security/tomoyo/net.c
 +
 +	goto out;
 +
-+ok:
++ok: ;
 +	if (strchr(cp1, ' '))
 +		goto out;
 +
@@ -824,7 +826,7 @@ Index: linux-2.6/security/tomoyo/net.c
 +					     (u32 *) max_address,
 +					     min_port, max_port, domain, 1);
 +
-+out:
++out: ;
 +	return -EINVAL;
 +}
 +
