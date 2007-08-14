@@ -1,7 +1,7 @@
 diff -ubBpEr linux-2.4.35/Documentation/Configure.help linux-2.4.35-ccs/Documentation/Configure.help
---- linux-2.4.35/Documentation/Configure.help	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/Documentation/Configure.help	2007-07-30 09:21:18.997780632 +0900
-@@ -29113,6 +29113,222 @@ CONFIG_SOUND_WM97XX
+--- linux-2.4.35/Documentation/Configure.help	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/Documentation/Configure.help	2007-08-14 12:46:39.713201680 +0900
+@@ -29113,6 +29113,95 @@ CONFIG_SOUND_WM97XX
    
    If unsure, say N.
  
@@ -16,69 +16,6 @@ diff -ubBpEr linux-2.4.35/Documentation/Configure.help linux-2.4.35-ccs/Document
 +  that improves the system security with less effort.
 +
 +  SAKURA can restrict operations that affect systemwide.
-+
-+CONFIG_SAKURA_RESTRICT_MOUNT
-+  This option allows you to restrict combinations of
-+  (type, device, dir) that the system can mount.
-+
-+  For example, the WWW contents are stored at /var/www directory
-+  in a HDD, if tmpfs is mounted on /var/www by an attacker,
-+  the WWW contents will be hidden.
-+  You can prevent the attacker from mounting tmpfs on /var/www
-+  with this option.
-+
-+CONFIG_SAKURA_RESTRICT_CHROOT
-+  This option allows you to restrict directories
-+  that the system can chroot to.
-+
-+  If an attacker can chroot to arbitrary directories,
-+  the attacker can create a directory tree with malicious programs
-+  under a writable directory
-+  and execute them after chroot to that directory.
-+  You can prevent the attacker with this option.
-+
-+  This option becomes more powerful if either root fs is read-only
-+  or mandatory file access controls are enforced.
-+
-+CONFIG_SAKURA_RESTRICT_UNMOUNT
-+  This option allows you to reject unmount requests
-+  for specific directories.
-+
-+  For example, many programs refer /proc,
-+  so if /proc is unmounted by an attacker,
-+  the system will go wrong.
-+  You can prevent the attacker from unmounting
-+  /proc with this option.
-+
-+CONFIG_SAKURA_DENY_CONCEAL_MOUNT
-+  This option allows you to prevent mount requests
-+  that conceals existing mounts.
-+
-+  For example, if tmpfs is mounted on /dev or /dev/shm
-+  when /dev/shm is already mounted, the files in /dev/shm
-+  will be hidden.
-+  You can prevent such cases with this option.
-+
-+CONFIG_SAKURA_RESTRICT_PIVOT_ROOT
-+  This option allows you to restrict root directories
-+  that the system can exchange.
-+
-+  In most systems, pivot_root is not used
-+  after /sbin/init starts.
-+
-+CONFIG_SAKURA_RESTRICT_AUTOBIND
-+  This option allows you to prevent specific local ports
-+  from being assigned by automatic port assignment function
-+  (which is called by "bind() with port = 0" or
-+  "connect() without bind()").
-+
-+  For example, some proxy server uses port 8080, so this port
-+  should not be assigned by automatic port assignment function.
-+
-+  You can create a single local ports range
-+  for automatic port assignment function
-+  via /proc/sys/net/ipv4/ip_local_port_range .
-+  This option allows you to divide the single range into multiple.
 +
 +CONFIG_TOMOYO
 +  Say Y here to support the Domain-Based Mandatory Access Control.
@@ -96,8 +33,8 @@ diff -ubBpEr linux-2.4.35/Documentation/Configure.help linux-2.4.35-ccs/Document
 +  Policy is defined as "Which domain can access to which resource.".
 +  There is no concept of "user id" nor "role" like RBAC.
 +
-+  The biggest feature of TOMOYO is that TOMOYO has "accept mode".
-+  The accept mode can automatically generate policy definition,
++  The biggest feature of TOMOYO is that TOMOYO has "learning mode".
++  The learning mode can automatically generate policy definition,
 +  and dramatically reduces the policy definition labors.
 +
 +  TOMOYO is much simpler and easier than SELinux.
@@ -111,87 +48,23 @@ diff -ubBpEr linux-2.4.35/Documentation/Configure.help linux-2.4.35-ccs/Document
 +
 +CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
 +  This is the default value for maximal ACL entries
-+  that are automatically appended into policy at "accept mode".
++  that are automatically appended into policy at "learning mode".
 +  Some programs access thousands of objects, so running
-+  such programs in "accept mode" dulls the system response
++  such programs in "learning mode" dulls the system response
 +  and consumes much memory.
 +  This is the safeguard for such programs.
-+
-+CONFIG_TOMOYO_MAC_FOR_FILE
-+  Say Y here to support the MAC for file access.
-+
-+  This is the main feature of TOMOYO.
-+  If you don't say Y to this option,
-+  you can't improve the system security.
-+
-+CONFIG_TOMOYO_MAC_FOR_ARGV0
-+  Say Y here to support the MAC for argv0.
-+
-+  The domain transition is done based on filename passed to do_execve(),
-+  while the behavior is defined based on argv[0].
-+  There is no problem if the filename is argv[0]-unaware application.
-+  But if argv[0]-aware, passing malicious argv[0] may cause
-+  unexpected behavior.
-+  This option allows you to prevent unexpected argv[0].
-+
-+CONFIG_TOMOYO_MAC_FOR_NETWORK
-+  Say Y here to support the MAC for network address and port usage.
-+
-+  This option allows you to restrict IP address and port numbers
-+  that a domain can use.
-+  For example, you can use this option to allow SSH server to
-+  "bind to TCP port 22 on address 10.0.0.1"
-+  "listen to TCP port 22 on address 10.0.0.1"
-+  "accept from TCP port between 1024 and 65535 on address
-+   between 10.0.0.3 and 10.0.0.254"
-+  "communicate with UDP port 53 of address 10.0.0.2"
-+  using the following policy.
-+
-+  allow_bind TCP 10.0.0.1 22
-+  allow_listen TCP 10.0.0.1 22
-+  allow_accept TCP 10.0.0.3-10.0.0.254 1024-65535
-+  allow_connect UDP 10.0.0.2 53
-+
-+CONFIG_TOMOYO_MAC_FOR_SIGNAL
-+  Say Y here to support the MAC for signal delivery.
-+
-+  This option allows you to restrict
-+  the combination of (signal number, destination domain)
-+  that a domain can deliver.
-+
-+  Without this option, any process that are running as root
-+  can kill arbitrary processes.
-+
-+CONFIG_TOMOYO_MAC_FOR_CAPABILITY
-+  Say Y here to support the MAC for capabilities.
-+
-+  The capabilities in TOMOYO are not the Linux (POSIX) capabilities.
-+  The capabilities in TOMOYO are the boolean flags of system calls
-+  that a domain can call.
-+
-+  You should say Y to this option, for the policy syntax can't
-+  distinguish regular files, FIFOs, unix domain sockets,
-+  symbolic links and device files.
-+  This option allows you to restrict type of files
-+  that a domain can create using mknod.
-+
-+CONFIG_TOMOYO_AUDIT
-+  If you enable this option, you can read
-+  access grant logs and access reject logs via
-+  /proc/ccs/info/grant_log and /proc/ccs/info/reject_log .
-+  If you don't need these logs you can disable this option.
 +
 +CONFIG_TOMOYO_MAX_GRANT_LOG
 +  This is the default value for maximal entries for
 +  access grant logs that the kernel can hold on memory.
-+  You can read the log via /proc/ccs/info/grant_log.
++  You can read the log via /proc/ccs/grant_log.
 +  If you don't need access grant logs,
 +  you may set this value to 0.
 +
 +CONFIG_TOMOYO_MAX_REJECT_LOG
 +  This is the default value for maximal entries for
 +  access reject logs that the kernel can hold on memory.
-+  You can read the log via /proc/ccs/info/reject_log.
++  You can read the log via /proc/ccs/reject_log.
 +  If you don't need access reject logs,
 +  you may set this value to 0.
 +
@@ -225,8 +98,8 @@ diff -ubBpEr linux-2.4.35/Documentation/Configure.help linux-2.4.35-ccs/Document
  # A couple of things I keep forgetting:
  #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
 diff -ubBpEr linux-2.4.35/Makefile linux-2.4.35-ccs/Makefile
---- linux-2.4.35/Makefile	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/Makefile	2007-07-30 09:21:27.297518880 +0900
+--- linux-2.4.35/Makefile	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/Makefile	2007-07-30 09:21:27.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 4
@@ -237,8 +110,8 @@ diff -ubBpEr linux-2.4.35/Makefile linux-2.4.35-ccs/Makefile
  KERNELRELEASE=$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
  
 diff -ubBpEr linux-2.4.35/fs/Config.in linux-2.4.35-ccs/fs/Config.in
---- linux-2.4.35/fs/Config.in	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/fs/Config.in	2007-07-30 09:21:19.000780176 +0900
+--- linux-2.4.35/fs/Config.in	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/Config.in	2007-07-30 09:21:19.000000000 +0900
 @@ -176,4 +176,7 @@ comment 'Partition Types'
  source fs/partitions/Config.in
  endmenu
@@ -248,8 +121,8 @@ diff -ubBpEr linux-2.4.35/fs/Config.in linux-2.4.35-ccs/fs/Config.in
 +
  endmenu
 diff -ubBpEr linux-2.4.35/fs/Makefile linux-2.4.35-ccs/fs/Makefile
---- linux-2.4.35/fs/Makefile	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/fs/Makefile	2007-07-30 09:21:19.001780024 +0900
+--- linux-2.4.35/fs/Makefile	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/Makefile	2007-07-30 09:21:19.000000000 +0900
 @@ -80,5 +80,5 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
@@ -258,8 +131,8 @@ diff -ubBpEr linux-2.4.35/fs/Makefile linux-2.4.35-ccs/fs/Makefile
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
 diff -ubBpEr linux-2.4.35/fs/attr.c linux-2.4.35-ccs/fs/attr.c
---- linux-2.4.35/fs/attr.c	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/fs/attr.c	2007-07-30 09:21:19.001780024 +0900
+--- linux-2.4.35/fs/attr.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/attr.c	2007-07-30 09:21:19.000000000 +0900
 @@ -12,6 +12,9 @@
  #include <linux/dnotify.h>
  #include <linux/fcntl.h>
@@ -282,8 +155,8 @@ diff -ubBpEr linux-2.4.35/fs/attr.c linux-2.4.35-ccs/fs/attr.c
  	lock_kernel();
  	if (inode->i_op && inode->i_op->setattr) 
 diff -ubBpEr linux-2.4.35/fs/exec.c linux-2.4.35-ccs/fs/exec.c
---- linux-2.4.35/fs/exec.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/exec.c	2007-07-30 09:21:19.002779872 +0900
+--- linux-2.4.35/fs/exec.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/exec.c	2007-07-30 09:21:19.000000000 +0900
 @@ -48,6 +48,10 @@
  #include <linux/kmod.h>
  #endif
@@ -328,8 +201,8 @@ diff -ubBpEr linux-2.4.35/fs/exec.c linux-2.4.35-ccs/fs/exec.c
  		/* execve success */
  		return retval;
 diff -ubBpEr linux-2.4.35/fs/fcntl.c linux-2.4.35-ccs/fs/fcntl.c
---- linux-2.4.35/fs/fcntl.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/fcntl.c	2007-07-30 09:21:19.002779872 +0900
+--- linux-2.4.35/fs/fcntl.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/fcntl.c	2007-07-30 09:21:19.000000000 +0900
 @@ -16,6 +16,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -352,8 +225,8 @@ diff -ubBpEr linux-2.4.35/fs/fcntl.c linux-2.4.35-ccs/fs/fcntl.c
  	if ((arg ^ filp->f_flags) & FASYNC) {
  		if (filp->f_op && filp->f_op->fasync) {
 diff -ubBpEr linux-2.4.35/fs/ioctl.c linux-2.4.35-ccs/fs/ioctl.c
---- linux-2.4.35/fs/ioctl.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/ioctl.c	2007-07-30 09:21:19.003779720 +0900
+--- linux-2.4.35/fs/ioctl.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/ioctl.c	2007-07-30 09:21:19.000000000 +0900
 @@ -10,6 +10,9 @@
  
  #include <asm/uaccess.h>
@@ -375,8 +248,8 @@ diff -ubBpEr linux-2.4.35/fs/ioctl.c linux-2.4.35-ccs/fs/ioctl.c
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
 diff -ubBpEr linux-2.4.35/fs/namei.c linux-2.4.35-ccs/fs/namei.c
---- linux-2.4.35/fs/namei.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/namei.c	2007-07-30 09:21:19.004779568 +0900
+--- linux-2.4.35/fs/namei.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/namei.c	2007-07-30 09:21:19.000000000 +0900
 @@ -28,6 +28,11 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -559,8 +432,8 @@ diff -ubBpEr linux-2.4.35/fs/namei.c linux-2.4.35-ccs/fs/namei.c
  	from = getname(oldname);
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.4.35/fs/namespace.c linux-2.4.35-ccs/fs/namespace.c
---- linux-2.4.35/fs/namespace.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/namespace.c	2007-07-30 09:21:19.005779416 +0900
+--- linux-2.4.35/fs/namespace.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/namespace.c	2007-07-30 09:21:19.000000000 +0900
 @@ -21,6 +21,13 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
@@ -680,8 +553,8 @@ diff -ubBpEr linux-2.4.35/fs/namespace.c linux-2.4.35-ccs/fs/namespace.c
  	user_nd.mnt = mntget(current->fs->rootmnt);
  	user_nd.dentry = dget(current->fs->root);
 diff -ubBpEr linux-2.4.35/fs/open.c linux-2.4.35-ccs/fs/open.c
---- linux-2.4.35/fs/open.c	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/fs/open.c	2007-07-30 09:21:19.006779264 +0900
+--- linux-2.4.35/fs/open.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/open.c	2007-07-30 09:21:19.000000000 +0900
 @@ -20,6 +20,13 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
@@ -741,8 +614,8 @@ diff -ubBpEr linux-2.4.35/fs/open.c linux-2.4.35-ccs/fs/open.c
  		tty_vhangup(current->tty);
  		return 0;
 diff -ubBpEr linux-2.4.35/fs/proc/Makefile linux-2.4.35-ccs/fs/proc/Makefile
---- linux-2.4.35/fs/proc/Makefile	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/fs/proc/Makefile	2007-07-30 09:21:19.006779264 +0900
+--- linux-2.4.35/fs/proc/Makefile	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/proc/Makefile	2007-07-30 09:21:19.000000000 +0900
 @@ -18,4 +18,8 @@ ifeq ($(CONFIG_PROC_DEVICETREE),y)
  obj-y += proc_devtree.o
  endif
@@ -753,8 +626,8 @@ diff -ubBpEr linux-2.4.35/fs/proc/Makefile linux-2.4.35-ccs/fs/proc/Makefile
 +
  include $(TOPDIR)/Rules.make
 diff -ubBpEr linux-2.4.35/fs/proc/proc_misc.c linux-2.4.35-ccs/fs/proc/proc_misc.c
---- linux-2.4.35/fs/proc/proc_misc.c	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/fs/proc/proc_misc.c	2007-07-30 09:21:43.868999632 +0900
+--- linux-2.4.35/fs/proc/proc_misc.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/proc/proc_misc.c	2007-07-30 09:21:43.000000000 +0900
 @@ -670,4 +670,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -764,14 +637,14 @@ diff -ubBpEr linux-2.4.35/fs/proc/proc_misc.c linux-2.4.35-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.35 2007/07/30\n");
++		printk("Hook version: 2.4.35 2007/08/14\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.4.35/include/linux/sched.h linux-2.4.35-ccs/include/linux/sched.h
---- linux-2.4.35/include/linux/sched.h	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/include/linux/sched.h	2007-07-30 09:21:19.008778960 +0900
+--- linux-2.4.35/include/linux/sched.h	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/include/linux/sched.h	2007-08-08 17:34:48.000000000 +0900
 @@ -29,6 +29,11 @@ extern unsigned long event;
  
  struct exec_domain;
@@ -807,8 +680,8 @@ diff -ubBpEr linux-2.4.35/include/linux/sched.h linux-2.4.35-ccs/include/linux/s
  
  
 diff -ubBpEr linux-2.4.35/kernel/kmod.c linux-2.4.35-ccs/kernel/kmod.c
---- linux-2.4.35/kernel/kmod.c	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/kernel/kmod.c	2007-07-30 09:21:19.008778960 +0900
+--- linux-2.4.35/kernel/kmod.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/kmod.c	2007-08-02 17:14:21.000000000 +0900
 @@ -134,6 +134,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
@@ -822,8 +695,8 @@ diff -ubBpEr linux-2.4.35/kernel/kmod.c linux-2.4.35-ccs/kernel/kmod.c
  	if (execve(program_path, argv, envp) < 0)
  		return -errno;
 diff -ubBpEr linux-2.4.35/kernel/module.c linux-2.4.35-ccs/kernel/module.c
---- linux-2.4.35/kernel/module.c	2007-07-30 09:21:10.845020040 +0900
-+++ linux-2.4.35-ccs/kernel/module.c	2007-07-30 09:21:19.009778808 +0900
+--- linux-2.4.35/kernel/module.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/module.c	2007-07-30 09:21:19.000000000 +0900
 @@ -10,6 +10,9 @@
  #include <linux/slab.h>
  #include <linux/kmod.h>
@@ -865,8 +738,8 @@ diff -ubBpEr linux-2.4.35/kernel/module.c linux-2.4.35-ccs/kernel/module.c
  	lock_kernel();
  	if (name_user) {
 diff -ubBpEr linux-2.4.35/kernel/sched.c linux-2.4.35-ccs/kernel/sched.c
---- linux-2.4.35/kernel/sched.c	2007-07-30 09:21:10.845020040 +0900
-+++ linux-2.4.35-ccs/kernel/sched.c	2007-07-30 09:21:19.010778656 +0900
+--- linux-2.4.35/kernel/sched.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/sched.c	2007-07-30 09:21:19.000000000 +0900
 @@ -32,6 +32,9 @@
  
  #include <asm/uaccess.h>
@@ -888,8 +761,8 @@ diff -ubBpEr linux-2.4.35/kernel/sched.c linux-2.4.35-ccs/kernel/sched.c
  	/*
  	 *	Setpriority might change our priority at the same moment.
 diff -ubBpEr linux-2.4.35/kernel/signal.c linux-2.4.35-ccs/kernel/signal.c
---- linux-2.4.35/kernel/signal.c	2007-07-30 09:21:10.845020040 +0900
-+++ linux-2.4.35-ccs/kernel/signal.c	2007-07-30 09:21:19.011778504 +0900
+--- linux-2.4.35/kernel/signal.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/signal.c	2007-07-30 09:21:19.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/sched.h>
  
@@ -923,8 +796,8 @@ diff -ubBpEr linux-2.4.35/kernel/signal.c linux-2.4.35-ccs/kernel/signal.c
         info.si_errno = 0;
         info.si_code = SI_TKILL;
 diff -ubBpEr linux-2.4.35/kernel/sys.c linux-2.4.35-ccs/kernel/sys.c
---- linux-2.4.35/kernel/sys.c	2007-07-30 09:21:10.846019888 +0900
-+++ linux-2.4.35-ccs/kernel/sys.c	2007-07-30 09:21:19.011778504 +0900
+--- linux-2.4.35/kernel/sys.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/sys.c	2007-07-30 09:21:19.000000000 +0900
 @@ -17,6 +17,9 @@
  
  #include <asm/uaccess.h>
@@ -976,8 +849,8 @@ diff -ubBpEr linux-2.4.35/kernel/sys.c linux-2.4.35-ccs/kernel/sys.c
  	down_write(&uts_sem);
  	errno = -EFAULT;
 diff -ubBpEr linux-2.4.35/kernel/sysctl.c linux-2.4.35-ccs/kernel/sysctl.c
---- linux-2.4.35/kernel/sysctl.c	2007-07-30 09:21:10.846019888 +0900
-+++ linux-2.4.35-ccs/kernel/sysctl.c	2007-07-30 09:21:19.012778352 +0900
+--- linux-2.4.35/kernel/sysctl.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/sysctl.c	2007-07-30 09:21:19.000000000 +0900
 @@ -33,6 +33,9 @@
  #include <linux/swap.h>
  
@@ -1109,8 +982,8 @@ diff -ubBpEr linux-2.4.35/kernel/sysctl.c linux-2.4.35-ccs/kernel/sysctl.c
  
  /*
 diff -ubBpEr linux-2.4.35/kernel/time.c linux-2.4.35-ccs/kernel/time.c
---- linux-2.4.35/kernel/time.c	2007-07-30 09:21:10.846019888 +0900
-+++ linux-2.4.35-ccs/kernel/time.c	2007-07-30 09:21:19.013778200 +0900
+--- linux-2.4.35/kernel/time.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/time.c	2007-07-30 09:21:19.000000000 +0900
 @@ -29,6 +29,9 @@
  #include <linux/smp_lock.h>
  
@@ -1151,9 +1024,50 @@ diff -ubBpEr linux-2.4.35/kernel/time.c linux-2.4.35-ccs/kernel/time.c
  		
  	/* Now we validate the data before disabling interrupts */
  
+diff -ubBpEr linux-2.4.35/net/core/datagram.c linux-2.4.35-ccs/net/core/datagram.c
+--- linux-2.4.35/net/core/datagram.c	2007-07-27 05:53:41.000000000 +0900
++++ linux-2.4.35-ccs/net/core/datagram.c	2007-08-14 11:04:49.000000000 +0900
+@@ -43,6 +43,10 @@
+ #include <net/sock.h>
+ #include <net/checksum.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  *	Is a socket 'connection oriented' ?
+@@ -164,6 +168,26 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->receive_queue);
+ 
++                /***** TOMOYO Linux start. *****/
++                error = CheckSocketRecvDatagramPermission(sk, skb);
++                if (error) {
++                        /* Clear queue. */
++                        if (flags & MSG_PEEK) {
++                                int clear = 0;
++                                spin_lock_irq(&sk->receive_queue.lock);
++                                if (skb == skb_peek(&sk->receive_queue)) {
++                                        __skb_unlink(skb, &sk->receive_queue);
++                                        clear = 1;
++                                }
++                                spin_unlock_irq(&sk->receive_queue.lock);
++                                if (clear)
++                                        kfree_skb(skb);
++                        }
++                        skb_free_datagram(sk, skb);
++                        goto no_packet;
++                }
++                /***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
 diff -ubBpEr linux-2.4.35/net/ipv4/tcp_ipv4.c linux-2.4.35-ccs/net/ipv4/tcp_ipv4.c
---- linux-2.4.35/net/ipv4/tcp_ipv4.c	2007-07-30 09:21:10.846019888 +0900
-+++ linux-2.4.35-ccs/net/ipv4/tcp_ipv4.c	2007-07-30 09:21:19.014778048 +0900
+--- linux-2.4.35/net/ipv4/tcp_ipv4.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/net/ipv4/tcp_ipv4.c	2007-07-30 09:21:19.000000000 +0900
 @@ -67,6 +67,9 @@
  #include <linux/inet.h>
  #include <linux/stddef.h>
@@ -1185,8 +1099,8 @@ diff -ubBpEr linux-2.4.35/net/ipv4/tcp_ipv4.c linux-2.4.35-ccs/net/ipv4/tcp_ipv4
  			/* Does not bother with rcv_saddr checks,
  			 * because the established check is already
 diff -ubBpEr linux-2.4.35/net/ipv4/udp.c linux-2.4.35-ccs/net/ipv4/udp.c
---- linux-2.4.35/net/ipv4/udp.c	2007-07-30 09:21:10.847019736 +0900
-+++ linux-2.4.35-ccs/net/ipv4/udp.c	2007-07-30 09:21:19.015777896 +0900
+--- linux-2.4.35/net/ipv4/udp.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/net/ipv4/udp.c	2007-07-30 09:21:19.000000000 +0900
 @@ -97,6 +97,9 @@
  #include <net/route.h>
  #include <net/inet_common.h>
@@ -1218,8 +1132,8 @@ diff -ubBpEr linux-2.4.35/net/ipv4/udp.c linux-2.4.35-ccs/net/ipv4/udp.c
  				break;
  		}
 diff -ubBpEr linux-2.4.35/net/ipv6/tcp_ipv6.c linux-2.4.35-ccs/net/ipv6/tcp_ipv6.c
---- linux-2.4.35/net/ipv6/tcp_ipv6.c	2007-07-30 09:21:10.847019736 +0900
-+++ linux-2.4.35-ccs/net/ipv6/tcp_ipv6.c	2007-07-30 09:21:19.016777744 +0900
+--- linux-2.4.35/net/ipv6/tcp_ipv6.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/net/ipv6/tcp_ipv6.c	2007-07-30 09:21:19.000000000 +0900
 @@ -52,6 +52,9 @@
  #include <net/inet_ecn.h>
  
@@ -1241,8 +1155,8 @@ diff -ubBpEr linux-2.4.35/net/ipv6/tcp_ipv6.c linux-2.4.35-ccs/net/ipv6/tcp_ipv6
  				if (tb->port == rover)
  					goto next;
 diff -ubBpEr linux-2.4.35/net/ipv6/udp.c linux-2.4.35-ccs/net/ipv6/udp.c
---- linux-2.4.35/net/ipv6/udp.c	2007-07-30 09:21:10.848019584 +0900
-+++ linux-2.4.35-ccs/net/ipv6/udp.c	2007-07-30 09:21:19.017777592 +0900
+--- linux-2.4.35/net/ipv6/udp.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/net/ipv6/udp.c	2007-07-30 09:21:19.000000000 +0900
 @@ -50,6 +50,9 @@
  #include <net/inet_common.h>
  
@@ -1274,8 +1188,8 @@ diff -ubBpEr linux-2.4.35/net/ipv6/udp.c linux-2.4.35-ccs/net/ipv6/udp.c
  				break;
  		}
 diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
---- linux-2.4.35/net/socket.c	2007-07-30 09:21:10.848019584 +0900
-+++ linux-2.4.35-ccs/net/socket.c	2007-07-30 09:21:19.018777440 +0900
+--- linux-2.4.35/net/socket.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/net/socket.c	2007-08-14 10:48:33.000000000 +0900
 @@ -84,6 +84,10 @@
  #include <net/sock.h>
  #include <net/scm.h>
@@ -1298,19 +1212,7 @@ diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
-@@ -519,6 +525,11 @@ int sock_recvmsg(struct socket *sock, st
- 	size = sock->ops->recvmsg(sock, msg, size, flags, &scm);
- 	if (size >= 0)
- 		scm_recv(sock, msg, &scm, flags);
-+	/***** TOMOYO Linux start. *****/
-+	if (size >= 0 && CheckSocketRecvMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) {
-+		size = -EAGAIN; /* Hope less harmful than -EPERM. */
-+	}
-+	/***** TOMOYO Linux end. *****/
- 
- 	return size;
- }
-@@ -847,7 +858,9 @@ int sock_create(int family, int type, in
+@@ -847,7 +853,9 @@ int sock_create(int family, int type, in
  		}
  		family = PF_PACKET;
  	}
@@ -1321,7 +1223,7 @@ diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
  #if defined(CONFIG_KMOD) && defined(CONFIG_NET)
  	/* Attempt to load a protocol module if the find failed. 
  	 * 
-@@ -1003,6 +1016,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1003,6 +1011,9 @@ asmlinkage long sys_bind(int fd, struct 
  	if((sock = sockfd_lookup(fd,&err))!=NULL)
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0)
@@ -1331,7 +1233,7 @@ diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		sockfd_put(sock);
  	}			
-@@ -1026,6 +1042,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1026,6 +1037,9 @@ asmlinkage long sys_listen(int fd, int b
  	if ((sock = sockfd_lookup(fd, &err)) != NULL) {
  		if ((unsigned) backlog > sysctl_somaxconn)
  			backlog = sysctl_somaxconn;
@@ -1341,7 +1243,7 @@ diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1066,6 +1085,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1066,6 +1080,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1354,7 +1256,7 @@ diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1116,6 +1141,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1116,6 +1136,9 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, address);
  	if (err < 0)
  		goto out_put;
@@ -1365,8 +1267,8 @@ diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
  				 sock->file->f_flags);
  out_put:
 diff -ubBpEr linux-2.4.35/net/unix/af_unix.c linux-2.4.35-ccs/net/unix/af_unix.c
---- linux-2.4.35/net/unix/af_unix.c	2007-07-30 09:21:10.849019432 +0900
-+++ linux-2.4.35-ccs/net/unix/af_unix.c	2007-07-30 09:21:19.019777288 +0900
+--- linux-2.4.35/net/unix/af_unix.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/net/unix/af_unix.c	2007-07-30 09:21:19.000000000 +0900
 @@ -111,6 +111,9 @@
  #include <linux/rtnetlink.h>
  

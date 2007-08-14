@@ -1,6 +1,6 @@
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/Makefile linux-2.6.12-2.3.legacy_FC3-ccs/Makefile
---- linux-2.6.12-2.3.legacy_FC3/Makefile	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/Makefile	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/Makefile	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/Makefile	2007-08-14 13:50:54.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
@@ -11,8 +11,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/Makefile linux-2.6.12-2.3.legacy_FC3-cc
  
  # *DOCUMENTATION*
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/Kconfig linux-2.6.12-2.3.legacy_FC3-ccs/fs/Kconfig
---- linux-2.6.12-2.3.legacy_FC3/fs/Kconfig	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/Kconfig	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/Kconfig	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/Kconfig	2007-08-14 13:50:54.000000000 +0900
 @@ -1725,5 +1725,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -22,8 +22,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/Kconfig linux-2.6.12-2.3.legacy_FC3-
  endmenu
  
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/Makefile linux-2.6.12-2.3.legacy_FC3-ccs/fs/Makefile
---- linux-2.6.12-2.3.legacy_FC3/fs/Makefile	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/Makefile	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/Makefile	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/Makefile	2007-08-14 13:50:54.000000000 +0900
 @@ -95,3 +95,5 @@ obj-$(CONFIG_BEFS_FS)		+= befs/
  obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
@@ -31,8 +31,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/Makefile linux-2.6.12-2.3.legacy_FC3
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/attr.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/attr.c
---- linux-2.6.12-2.3.legacy_FC3/fs/attr.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/attr.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/attr.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/attr.c	2007-08-14 13:50:54.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/quotaops.h>
  #include <linux/security.h>
@@ -65,8 +65,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/attr.c linux-2.6.12-2.3.legacy_FC3-c
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/compat.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/compat.c
---- linux-2.6.12-2.3.legacy_FC3/fs/compat.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/compat.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/compat.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/compat.c	2007-08-14 13:50:54.000000000 +0900
 @@ -50,6 +50,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -97,8 +97,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/compat.c linux-2.6.12-2.3.legacy_FC3
  		free_arg_pages(bprm);
  
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/exec.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/exec.c
---- linux-2.6.12-2.3.legacy_FC3/fs/exec.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/exec.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/exec.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/exec.c	2007-08-14 13:50:54.000000000 +0900
 @@ -56,6 +56,10 @@
  #include <linux/kmod.h>
  #endif
@@ -143,8 +143,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/exec.c linux-2.6.12-2.3.legacy_FC3-c
  		free_arg_pages(bprm);
  
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/fcntl.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/fcntl.c
---- linux-2.6.12-2.3.legacy_FC3/fs/fcntl.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/fcntl.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/fcntl.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/fcntl.c	2007-08-14 13:50:54.000000000 +0900
 @@ -20,6 +20,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -167,8 +167,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/fcntl.c linux-2.6.12-2.3.legacy_FC3-
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/ioctl.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/ioctl.c
---- linux-2.6.12-2.3.legacy_FC3/fs/ioctl.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/ioctl.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/ioctl.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/ioctl.c	2007-08-14 13:50:54.000000000 +0900
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -190,8 +190,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/ioctl.c linux-2.6.12-2.3.legacy_FC3-
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/namei.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/namei.c
---- linux-2.6.12-2.3.legacy_FC3/fs/namei.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/namei.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/namei.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/namei.c	2007-08-14 13:50:54.000000000 +0900
 @@ -33,6 +33,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -370,8 +370,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/namei.c linux-2.6.12-2.3.legacy_FC3-
  	from = getname(oldname);
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/namespace.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/namespace.c
---- linux-2.6.12-2.3.legacy_FC3/fs/namespace.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/namespace.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/namespace.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/namespace.c	2007-08-14 13:50:54.000000000 +0900
 @@ -24,6 +24,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -486,8 +486,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/namespace.c linux-2.6.12-2.3.legacy_
  		path_release(&old_nd);
  		goto out1;
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/open.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/open.c
---- linux-2.6.12-2.3.legacy_FC3/fs/open.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/open.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/open.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/open.c	2007-08-14 13:50:54.000000000 +0900
 @@ -26,6 +26,13 @@
  
  #include <asm/unistd.h>
@@ -546,8 +546,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/open.c linux-2.6.12-2.3.legacy_FC3-c
  		tty_vhangup(current->signal->tty);
  		return 0;
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/proc/Makefile linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/Makefile
---- linux-2.6.12-2.3.legacy_FC3/fs/proc/Makefile	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/Makefile	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/proc/Makefile	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/Makefile	2007-08-14 13:50:54.000000000 +0900
 @@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
  
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
@@ -556,8 +556,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/proc/Makefile linux-2.6.12-2.3.legac
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/proc/proc_misc.c linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/proc_misc.c
---- linux-2.6.12-2.3.legacy_FC3/fs/proc/proc_misc.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/proc_misc.c	2007-07-10 14:38:59.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/fs/proc/proc_misc.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/fs/proc/proc_misc.c	2007-08-14 13:50:54.000000000 +0900
 @@ -617,4 +617,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -567,14 +567,14 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/fs/proc/proc_misc.c linux-2.6.12-2.3.le
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.12-2.3.legacy_FC3 2007/07/10\n");
++		printk("Hook version: 2.6.12-2.3.legacy_FC3 2007/08/14\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/include/linux/init_task.h linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/init_task.h
---- linux-2.6.12-2.3.legacy_FC3/include/linux/init_task.h	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/init_task.h	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/include/linux/init_task.h	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/init_task.h	2007-08-14 13:50:54.000000000 +0900
 @@ -111,6 +111,10 @@ extern struct group_info init_groups;
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
  	.journal_info	= NULL,						\
@@ -587,8 +587,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/include/linux/init_task.h linux-2.6.12-
  
  
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/include/linux/sched.h linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/sched.h
---- linux-2.6.12-2.3.legacy_FC3/include/linux/sched.h	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/sched.h	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/include/linux/sched.h	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/include/linux/sched.h	2007-08-14 13:50:54.000000000 +0900
 @@ -39,6 +39,11 @@ struct exec_domain;
  extern int exec_shield;
  extern int print_fatal_signals;
@@ -613,8 +613,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/include/linux/sched.h linux-2.6.12-2.3.
  
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/compat.c linux-2.6.12-2.3.legacy_FC3-ccs/kernel/compat.c
---- linux-2.6.12-2.3.legacy_FC3/kernel/compat.c	2005-06-18 04:48:29.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/compat.c	2007-07-10 14:37:57.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/kernel/compat.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/compat.c	2007-08-14 13:50:54.000000000 +0900
 @@ -24,6 +24,9 @@
  
  #include <asm/uaccess.h>
@@ -636,8 +636,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/compat.c linux-2.6.12-2.3.legacy
  	do_settimeofday(&tv);
  	return 0;
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/kmod.c linux-2.6.12-2.3.legacy_FC3-ccs/kernel/kmod.c
---- linux-2.6.12-2.3.legacy_FC3/kernel/kmod.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/kmod.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/kernel/kmod.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/kmod.c	2007-08-14 13:50:54.000000000 +0900
 @@ -139,6 +139,11 @@ int __exec_usermodehelper(char *path, ch
  	recalc_sigpending();
  	spin_unlock_irq(&current->sighand->siglock);
@@ -651,8 +651,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/kmod.c linux-2.6.12-2.3.legacy_F
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/module.c linux-2.6.12-2.3.legacy_FC3-ccs/kernel/module.c
---- linux-2.6.12-2.3.legacy_FC3/kernel/module.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/module.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/kernel/module.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/module.c	2007-08-14 13:50:54.000000000 +0900
 @@ -39,6 +39,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -686,8 +686,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/module.c linux-2.6.12-2.3.legacy
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/sched.c linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sched.c
---- linux-2.6.12-2.3.legacy_FC3/kernel/sched.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sched.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/kernel/sched.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sched.c	2007-08-14 13:50:54.000000000 +0900
 @@ -50,6 +50,9 @@
  #include <asm/tlb.h>
  
@@ -709,8 +709,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/sched.c linux-2.6.12-2.3.legacy_
  	/*
  	 * Setpriority might change our priority at the same moment.
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/signal.c linux-2.6.12-2.3.legacy_FC3-ccs/kernel/signal.c
---- linux-2.6.12-2.3.legacy_FC3/kernel/signal.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/signal.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/kernel/signal.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/signal.c	2007-08-14 13:50:54.000000000 +0900
 @@ -29,6 +29,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -756,8 +756,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/signal.c linux-2.6.12-2.3.legacy
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/sys.c linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sys.c
---- linux-2.6.12-2.3.legacy_FC3/kernel/sys.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sys.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/kernel/sys.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sys.c	2007-08-14 13:50:54.000000000 +0900
 @@ -33,6 +33,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -809,8 +809,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/sys.c linux-2.6.12-2.3.legacy_FC
  	down_write(&uts_sem);
  	errno = -EFAULT;
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/sysctl.c linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sysctl.c
---- linux-2.6.12-2.3.legacy_FC3/kernel/sysctl.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sysctl.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/kernel/sysctl.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/sysctl.c	2007-08-14 13:50:54.000000000 +0900
 @@ -44,6 +44,9 @@
  
  #include <asm/uaccess.h>
@@ -942,8 +942,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/sysctl.c linux-2.6.12-2.3.legacy
  
  /*
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/time.c linux-2.6.12-2.3.legacy_FC3-ccs/kernel/time.c
---- linux-2.6.12-2.3.legacy_FC3/kernel/time.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/time.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/kernel/time.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/kernel/time.c	2007-08-14 13:50:54.000000000 +0900
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -984,9 +984,50 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/kernel/time.c linux-2.6.12-2.3.legacy_F
  		
  	/* Now we validate the data before disabling interrupts */
  
+diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/core/datagram.c linux-2.6.12-2.3.legacy_FC3-ccs/net/core/datagram.c
+--- linux-2.6.12-2.3.legacy_FC3/net/core/datagram.c	2005-06-18 04:48:29.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/net/core/datagram.c	2007-08-14 13:53:20.000000000 +0900
+@@ -54,6 +54,10 @@
+ #include <net/sock.h>
+ #include <net/checksum.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  *	Is a socket 'connection oriented' ?
+@@ -177,6 +181,26 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->sk_receive_queue);
+ 
++		/***** TOMOYO Linux start. *****/
++		error = CheckSocketRecvDatagramPermission(sk, skb);
++		if (error) {
++			/* Clear queue. */
++			if (flags&MSG_PEEK) {
++				int clear = 0;
++				spin_lock_bh(&sk->sk_receive_queue.lock);
++				if (skb == skb_peek(&sk->sk_receive_queue)) {
++					__skb_unlink(skb, &sk->sk_receive_queue);
++					clear = 1;
++				}
++				spin_unlock_bh(&sk->sk_receive_queue.lock);
++				if (clear)
++					kfree_skb(skb);
++			}
++			skb_free_datagram(sk, skb);
++			goto no_packet;
++		}
++		/***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/ipv4/tcp_ipv4.c linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv4/tcp_ipv4.c
---- linux-2.6.12-2.3.legacy_FC3/net/ipv4/tcp_ipv4.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv4/tcp_ipv4.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/net/ipv4/tcp_ipv4.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv4/tcp_ipv4.c	2007-08-14 13:50:54.000000000 +0900
 @@ -74,6 +74,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -1018,8 +1059,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/ipv4/tcp_ipv4.c linux-2.6.12-2.3.le
   			spin_lock(&head->lock);
  
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/ipv4/udp.c linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv4/udp.c
---- linux-2.6.12-2.3.legacy_FC3/net/ipv4/udp.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv4/udp.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/net/ipv4/udp.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv4/udp.c	2007-08-14 13:50:54.000000000 +0900
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1051,8 +1092,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/ipv4/udp.c linux-2.6.12-2.3.legacy_
  				break;
  		}
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/ipv6/tcp_ipv6.c linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv6/tcp_ipv6.c
---- linux-2.6.12-2.3.legacy_FC3/net/ipv6/tcp_ipv6.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv6/tcp_ipv6.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/net/ipv6/tcp_ipv6.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv6/tcp_ipv6.c	2007-08-14 13:50:54.000000000 +0900
 @@ -63,6 +63,9 @@
  
  #include <linux/proc_fs.h>
@@ -1084,8 +1125,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/ipv6/tcp_ipv6.c linux-2.6.12-2.3.le
   			spin_lock(&head->lock);
  
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/ipv6/udp.c linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv6/udp.c
---- linux-2.6.12-2.3.legacy_FC3/net/ipv6/udp.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv6/udp.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/net/ipv6/udp.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/net/ipv6/udp.c	2007-08-14 13:50:54.000000000 +0900
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1117,8 +1158,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/ipv6/udp.c linux-2.6.12-2.3.legacy_
  				break;
  		}
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/socket.c linux-2.6.12-2.3.legacy_FC3-ccs/net/socket.c
---- linux-2.6.12-2.3.legacy_FC3/net/socket.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/net/socket.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/net/socket.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/net/socket.c	2007-08-14 13:51:18.000000000 +0900
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1142,19 +1183,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/socket.c linux-2.6.12-2.3.legacy_FC
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -622,6 +629,11 @@ int sock_recvmsg(struct socket *sock, st
- 	ret = __sock_recvmsg(&iocb, sock, msg, size, flags);
- 	if (-EIOCBQUEUED == ret)
- 		ret = wait_on_sync_kiocb(&iocb);
-+	/***** TOMOYO Linux start. *****/
-+	if (ret >= 0 && CheckSocketRecvMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) {
-+		ret = -EAGAIN; /* Hope less harmful than -EPERM. */
-+	}
-+	/***** TOMOYO Linux end. *****/
- 	return ret;
- }
- 
-@@ -1110,6 +1122,10 @@ static int __sock_create(int family, int
+@@ -1110,6 +1117,10 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1165,7 +1194,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/socket.c linux-2.6.12-2.3.legacy_FC
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1304,6 +1320,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1304,6 +1315,9 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
@@ -1175,7 +1204,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/socket.c linux-2.6.12-2.3.legacy_FC
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1334,7 +1353,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1334,7 +1348,9 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
@@ -1186,7 +1215,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/socket.c linux-2.6.12-2.3.legacy_FC
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1385,6 +1406,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1385,6 +1401,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1199,7 +1228,7 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/socket.c linux-2.6.12-2.3.legacy_FC
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1440,7 +1467,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1440,7 +1462,9 @@ asmlinkage long sys_connect(int fd, stru
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;
@@ -1211,8 +1240,8 @@ diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/socket.c linux-2.6.12-2.3.legacy_FC
  				 sock->file->f_flags);
  out_put:
 diff -ubBpEr linux-2.6.12-2.3.legacy_FC3/net/unix/af_unix.c linux-2.6.12-2.3.legacy_FC3-ccs/net/unix/af_unix.c
---- linux-2.6.12-2.3.legacy_FC3/net/unix/af_unix.c	2007-07-10 14:37:25.000000000 +0900
-+++ linux-2.6.12-2.3.legacy_FC3-ccs/net/unix/af_unix.c	2007-07-10 14:37:31.000000000 +0900
+--- linux-2.6.12-2.3.legacy_FC3/net/unix/af_unix.c	2007-08-14 13:50:48.000000000 +0900
++++ linux-2.6.12-2.3.legacy_FC3-ccs/net/unix/af_unix.c	2007-08-14 13:50:54.000000000 +0900
 @@ -117,6 +117,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>

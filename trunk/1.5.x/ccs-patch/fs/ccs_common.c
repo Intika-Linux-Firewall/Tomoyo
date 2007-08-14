@@ -1130,7 +1130,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.5.0-pre   2007/08/12\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.0-pre   2007/08/12\n");
+	printk("TOMOYO: 1.5.0-pre   2007/08/14\n");
 #endif
 	if (!profile_loaded) {
 		char *argv[2], *envp[3];
