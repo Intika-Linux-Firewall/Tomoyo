@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -19,16 +19,18 @@
 
 #include <net/ip.h>
 #include <net/ipv6.h>
+#include <net/udp.h>
 
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 #define sk_family family
 #define sk_protocol protocol
+#define sk_type type
 #endif
 
 #define MAX_SOCK_ADDR 128 /* net/socket.c */
 
-static int CheckSocketCreatePermission(int family, int type, int protocol)
+static inline int CheckSocketCreatePermission(int family, int type, int protocol)
 {
 	int error = 0;
 	if (family == PF_INET || family == PF_INET6) {
@@ -51,7 +53,7 @@ static int CheckSocketCreatePermission(int family, int type, int protocol)
 	return error;
 }
 
-static int CheckSocketListenPermission(struct socket *sock)
+static inline int CheckSocketListenPermission(struct socket *sock)
 {
 	int error = 0;
 	if (sock->type == SOCK_STREAM) {
@@ -81,7 +83,7 @@ static int CheckSocketListenPermission(struct socket *sock)
 	return error;
 }
 
-static int CheckSocketConnectPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
+static inline int CheckSocketConnectPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
 {
 	int error = 0;
 	const unsigned int type = sock->type;
@@ -118,7 +120,7 @@ static int CheckSocketConnectPermission(struct socket *sock, struct sockaddr *ad
 	return error;
 }
 
-static int CheckSocketBindPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
+static inline int CheckSocketBindPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
 {
 	int error = 0;
 	const unsigned int type = sock->type;
@@ -147,7 +149,7 @@ static int CheckSocketBindPermission(struct socket *sock, struct sockaddr *addr,
 	return error;
 }
 
-static int CheckSocketAcceptPermission(struct socket *sock, struct sockaddr *addr)
+static inline int CheckSocketAcceptPermission(struct socket *sock, struct sockaddr *addr)
 {
 	int error = 0;
 	int addr_len;
@@ -170,7 +172,7 @@ static int CheckSocketAcceptPermission(struct socket *sock, struct sockaddr *add
 	return error;
 }
 
-static int CheckSocketSendMsgPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
+static inline int CheckSocketSendMsgPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
 {
 	int error = 0;
 	const int type = sock->type;
@@ -191,19 +193,67 @@ static int CheckSocketSendMsgPermission(struct socket *sock, struct sockaddr *ad
 	return error;
 }
 
-static int CheckSocketRecvMsgPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,22)
+
+static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
+{
+	return skb->nh.iph;
+}
+
+static inline struct udphdr *udp_hdr(const struct sk_buff *skb)
+{
+	return skb->h.uh;
+}
+
+static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
+{
+	return skb->nh.ipv6h;
+}
+
+#endif
+
+static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_buff *skb)
 {
 	int error = 0;
-	const unsigned int type = sock->type;
-	if (addr && (type == SOCK_DGRAM || type == SOCK_RAW)) {
-		switch (addr->sa_family) {
-		case AF_INET6:
-			if (addr_len >= SIN6_LEN_RFC2133) error = CheckNetworkRecvMsgACL(1, type, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, type == SOCK_DGRAM ? ((struct sockaddr_in6 *) addr)->sin6_port : htons(sock->sk->sk_protocol));
-			break;
-		case AF_INET:
-			if (addr_len >= sizeof(struct sockaddr_in)) error = CheckNetworkRecvMsgACL(0, type, (u8 *) &((struct sockaddr_in *) addr)->sin_addr, type == SOCK_DGRAM ? ((struct sockaddr_in *) addr)->sin_port : htons(sock->sk->sk_protocol));
-			break;
+	const unsigned int type = sk->sk_type;
+	struct in6_addr sin6;
+	struct in_addr sin;
+	u16 port;
+	
+	if (!skb)
+		return 0;
+	
+	if (type != SOCK_DGRAM && type != SOCK_RAW)
+		return 0;
+	
+	switch (sk->sk_family) {
+	case PF_INET6:
+		if (type == SOCK_DGRAM) { /* UDP IPv6 */
+			if (skb->protocol == htons(ETH_P_IP)) {
+				ipv6_addr_set(&sin6, 0, 0, htonl(0xffff), ip_hdr(skb)->saddr);
+			} else {
+				ipv6_addr_copy(&sin6, &ipv6_hdr(skb)->saddr);
+			}
+			port = udp_hdr(skb)->source;
+		} else { /* RAW IPv6 */
+			ipv6_addr_copy(&sin6, &ipv6_hdr(skb)->saddr);
+			port = htons(sk->sk_protocol);
 		}
+		error = CheckNetworkRecvMsgACL(1, type, (u8 *) &sin6, port);
+		break;
+	case PF_INET:
+		if (type == SOCK_DGRAM) { /* UDP IPv4 */
+			sin.s_addr = ip_hdr(skb)->saddr;
+			port = udp_hdr(skb)->source;
+		} else { /* RAW IPv4 */
+			sin.s_addr = ip_hdr(skb)->saddr;
+			port = htons(sk->sk_protocol);
+		}
+		error = CheckNetworkRecvMsgACL(0, type, (u8 *) &sin, port);
+		break;
+	}
+	if (error) {
+		error = -EAGAIN; /* Hope less harmful than -EPERM. */
 	}
 	return error;
 }

@@ -557,7 +557,7 @@ diff -ubBpEr linux-2.6.11/fs/proc/Makefile linux-2.6.11-ccs/fs/proc/Makefile
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.11/fs/proc/proc_misc.c linux-2.6.11-ccs/fs/proc/proc_misc.c
 --- linux-2.6.11/fs/proc/proc_misc.c	2006-10-19 16:15:40.000000000 +0900
-+++ linux-2.6.11-ccs/fs/proc/proc_misc.c	2007-07-10 09:05:12.888588432 +0900
++++ linux-2.6.11-ccs/fs/proc/proc_misc.c	2007-07-10 09:05:12.000000000 +0900
 @@ -612,4 +612,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -567,7 +567,7 @@ diff -ubBpEr linux-2.6.11/fs/proc/proc_misc.c linux-2.6.11-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.11 2007/07/10\n");
++		printk("Hook version: 2.6.11 2007/08/14\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -614,7 +614,7 @@ diff -ubBpEr linux-2.6.11/include/linux/sched.h linux-2.6.11-ccs/include/linux/s
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.11/kernel/compat.c linux-2.6.11-ccs/kernel/compat.c
 --- linux-2.6.11/kernel/compat.c	2005-03-02 16:38:09.000000000 +0900
-+++ linux-2.6.11-ccs/kernel/compat.c	2007-07-10 09:03:12.441899112 +0900
++++ linux-2.6.11-ccs/kernel/compat.c	2007-07-10 09:03:12.000000000 +0900
 @@ -23,6 +23,9 @@
  #include <linux/security.h>
  
@@ -987,6 +987,47 @@ diff -ubBpEr linux-2.6.11/kernel/time.c linux-2.6.11-ccs/kernel/time.c
  		
  	/* Now we validate the data before disabling interrupts */
  
+diff -ubBpEr linux-2.6.11/net/core/datagram.c linux-2.6.11-ccs/net/core/datagram.c
+--- linux-2.6.11/net/core/datagram.c	2005-03-02 16:38:12.000000000 +0900
++++ linux-2.6.11-ccs/net/core/datagram.c	2007-08-14 11:23:46.000000000 +0900
+@@ -54,6 +54,10 @@
+ #include <net/sock.h>
+ #include <net/checksum.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  *	Is a socket 'connection oriented' ?
+@@ -177,6 +181,26 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->sk_receive_queue);
+ 
++                /***** TOMOYO Linux start. *****/
++                error = CheckSocketRecvDatagramPermission(sk, skb);
++                if (error) {
++                        /* Clear queue. */
++                        if (flags & MSG_PEEK) {
++                                int clear = 0;
++                                spin_lock_irq(&sk->sk_receive_queue.lock);
++                                if (skb == skb_peek(&sk->sk_receive_queue)) {
++                                        __skb_unlink(skb, &sk->sk_receive_queue);
++                                        clear = 1;
++                                }
++                                spin_unlock_irq(&sk->sk_receive_queue.lock);
++                                if (clear)
++                                        kfree_skb(skb);
++                        }
++                        skb_free_datagram(sk, skb);
++                        goto no_packet;
++                }
++                /***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
 diff -ubBpEr linux-2.6.11/net/ipv4/tcp_ipv4.c linux-2.6.11-ccs/net/ipv4/tcp_ipv4.c
 --- linux-2.6.11/net/ipv4/tcp_ipv4.c	2005-03-02 16:37:54.000000000 +0900
 +++ linux-2.6.11-ccs/net/ipv4/tcp_ipv4.c	2007-03-26 16:38:52.000000000 +0900
@@ -1122,7 +1163,7 @@ diff -ubBpEr linux-2.6.11/net/ipv6/udp.c linux-2.6.11-ccs/net/ipv6/udp.c
  	} else {
 diff -ubBpEr linux-2.6.11/net/socket.c linux-2.6.11-ccs/net/socket.c
 --- linux-2.6.11/net/socket.c	2005-03-02 16:37:58.000000000 +0900
-+++ linux-2.6.11-ccs/net/socket.c	2007-03-26 16:38:52.000000000 +0900
++++ linux-2.6.11-ccs/net/socket.c	2007-08-14 10:48:14.000000000 +0900
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1146,19 +1187,7 @@ diff -ubBpEr linux-2.6.11/net/socket.c linux-2.6.11-ccs/net/socket.c
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -608,6 +615,11 @@ int sock_recvmsg(struct socket *sock, st
- 	ret = __sock_recvmsg(&iocb, sock, msg, size, flags);
- 	if (-EIOCBQUEUED == ret)
- 		ret = wait_on_sync_kiocb(&iocb);
-+	/***** TOMOYO Linux start. *****/
-+	if (ret >= 0 && CheckSocketRecvMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) {
-+		ret = -EAGAIN; /* Hope less harmful than -EPERM. */
-+	}
-+	/***** TOMOYO Linux end. *****/
- 	return ret;
- }
- 
-@@ -1095,6 +1107,10 @@ static int __sock_create(int family, int
+@@ -1095,6 +1102,10 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1169,7 +1198,7 @@ diff -ubBpEr linux-2.6.11/net/socket.c linux-2.6.11-ccs/net/socket.c
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1289,6 +1305,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1289,6 +1300,9 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
@@ -1179,7 +1208,7 @@ diff -ubBpEr linux-2.6.11/net/socket.c linux-2.6.11-ccs/net/socket.c
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1319,7 +1338,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1319,7 +1333,9 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
@@ -1190,7 +1219,7 @@ diff -ubBpEr linux-2.6.11/net/socket.c linux-2.6.11-ccs/net/socket.c
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1370,6 +1391,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1370,6 +1386,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1203,7 +1232,7 @@ diff -ubBpEr linux-2.6.11/net/socket.c linux-2.6.11-ccs/net/socket.c
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1425,7 +1452,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1425,7 +1447,9 @@ asmlinkage long sys_connect(int fd, stru
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;

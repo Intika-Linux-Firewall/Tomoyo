@@ -554,7 +554,7 @@ diff -ubBpEr linux-source-2.6.20.3-ubuntu1/fs/proc/proc_misc.c linux-source-2.6.
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.20.3-ubuntu1 2007/07/10\n");
++		printk("Hook version: 2.6.20.3-ubuntu1 2007/08/14\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -998,6 +998,36 @@ diff -ubBpEr linux-source-2.6.20.3-ubuntu1/kernel/time.c linux-source-2.6.20.3-u
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
+diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/core/datagram.c linux-source-2.6.20.3-ubuntu1-ccs/net/core/datagram.c
+--- linux-source-2.6.20.3-ubuntu1/net/core/datagram.c	2007-04-13 02:16:23.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/net/core/datagram.c	2007-08-14 13:35:06.000000000 +0900
+@@ -56,6 +56,11 @@
+ #include <net/sock.h>
+ #include <net/tcp_states.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
++
+ /*
+  *	Is a socket 'connection oriented' ?
+  */
+@@ -178,6 +183,14 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->sk_receive_queue);
+ 
++		/***** TOMOYO Linux start. *****/
++		error = CheckSocketRecvDatagramPermission(sk, skb);
++		if (error) {
++			skb_kill_datagram(sk, skb, flags);
++			goto no_packet;
++		}
++		/***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
 diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/ipv4/inet_connection_sock.c linux-source-2.6.20.3-ubuntu1-ccs/net/ipv4/inet_connection_sock.c
 --- linux-source-2.6.20.3-ubuntu1/net/ipv4/inet_connection_sock.c	2007-04-13 02:16:23.000000000 +0900
 +++ linux-source-2.6.20.3-ubuntu1-ccs/net/ipv4/inet_connection_sock.c	2007-06-14 04:29:16.000000000 +0900
@@ -1102,7 +1132,7 @@ diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/ipv6/inet6_hashtables.c linux-sou
  
 diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/socket.c linux-source-2.6.20.3-ubuntu1-ccs/net/socket.c
 --- linux-source-2.6.20.3-ubuntu1/net/socket.c	2007-04-13 02:16:24.000000000 +0900
-+++ linux-source-2.6.20.3-ubuntu1-ccs/net/socket.c	2007-06-14 04:29:16.000000000 +0900
++++ linux-source-2.6.20.3-ubuntu1-ccs/net/socket.c	2007-08-14 13:33:35.000000000 +0900
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1126,19 +1156,7 @@ diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/socket.c linux-source-2.6.20.3-ub
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -629,6 +636,11 @@ int sock_recvmsg(struct socket *sock, st
- 	ret = __sock_recvmsg(&iocb, sock, msg, size, flags);
- 	if (-EIOCBQUEUED == ret)
- 		ret = wait_on_sync_kiocb(&iocb);
-+	/***** TOMOYO Linux start. *****/
-+	if (ret >= 0 && CheckSocketRecvMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) {
-+		ret = -EAGAIN; /* Hope less harmful than -EPERM. */
-+	}
-+	/***** TOMOYO Linux end. *****/
- 	return ret;
- }
- 
-@@ -1083,6 +1095,10 @@ static int __sock_create(int family, int
+@@ -1083,6 +1090,10 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1149,7 +1167,7 @@ diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/socket.c linux-source-2.6.20.3-ub
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1285,6 +1301,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1285,6 +1296,9 @@ asmlinkage long sys_bind(int fd, struct 
  			err = security_socket_bind(sock,
  						   (struct sockaddr *)address,
  						   addrlen);
@@ -1159,7 +1177,7 @@ diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/socket.c linux-source-2.6.20.3-ub
  			if (!err)
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
-@@ -1314,6 +1333,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1314,6 +1328,9 @@ asmlinkage long sys_listen(int fd, int b
  			backlog = sysctl_somaxconn;
  
  		err = security_socket_listen(sock, backlog);
@@ -1169,7 +1187,7 @@ diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/socket.c linux-source-2.6.20.3-ub
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1378,6 +1400,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1378,6 +1395,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1182,7 +1200,7 @@ diff -ubBpEr linux-source-2.6.20.3-ubuntu1/net/socket.c linux-source-2.6.20.3-ub
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1437,6 +1465,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1437,6 +1460,10 @@ asmlinkage long sys_connect(int fd, stru
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;

@@ -544,7 +544,7 @@ diff -ubBpEr linux-2.6.8-13/fs/proc/Makefile linux-2.6.8-13-ccs/fs/proc/Makefile
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.8-13/fs/proc/proc_misc.c linux-2.6.8-13-ccs/fs/proc/proc_misc.c
 --- linux-2.6.8-13/fs/proc/proc_misc.c	2007-05-23 15:38:13.000000000 +0900
-+++ linux-2.6.8-13-ccs/fs/proc/proc_misc.c	2007-05-23 15:39:06.000000000 +0900
++++ linux-2.6.8-13-ccs/fs/proc/proc_misc.c	2007-08-14 13:48:41.175395104 +0900
 @@ -641,4 +641,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -554,7 +554,7 @@ diff -ubBpEr linux-2.6.8-13/fs/proc/proc_misc.c linux-2.6.8-13-ccs/fs/proc/proc_
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.8-13 2007/05/24\n");
++		printk("Hook version: 2.6.8-13 2007/08/14\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -948,6 +948,47 @@ diff -ubBpEr linux-2.6.8-13/kernel/time.c linux-2.6.8-13-ccs/kernel/time.c
  		
  	/* Now we validate the data before disabling interrupts */
  
+diff -ubBpEr linux-2.6.8-13/net/core/datagram.c linux-2.6.8-13-ccs/net/core/datagram.c
+--- linux-2.6.8-13/net/core/datagram.c	2004-08-14 14:37:15.000000000 +0900
++++ linux-2.6.8-13-ccs/net/core/datagram.c	2007-08-14 13:47:24.942984192 +0900
+@@ -54,6 +54,10 @@
+ #include <net/sock.h>
+ #include <net/checksum.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux start. *****/
+ 
+ /*
+  *	Is a socket 'connection oriented' ?
+@@ -177,6 +181,26 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->sk_receive_queue);
+ 
++		/***** TOMOYO Linux start. *****/
++		error = CheckSocketRecvDatagramPermission(sk, skb);
++		if (error) {
++			/* Clear queue. */
++			if (flags & MSG_PEEK) {
++				int clear = 0;
++				spin_lock_irq(&sk->sk_receive_queue.lock);
++				if (skb == skb_peek(&sk->sk_receive_queue)) {
++					__skb_unlink(skb, &sk->sk_receive_queue);
++					clear = 1;
++				}
++				spin_unlock_irq(&sk->sk_receive_queue.lock);
++				if (clear)
++					kfree_skb(skb);
++			}
++			skb_free_datagram(sk, skb);
++			goto no_packet;
++		}
++		/***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
 diff -ubBpEr linux-2.6.8-13/net/ipv4/tcp_ipv4.c linux-2.6.8-13-ccs/net/ipv4/tcp_ipv4.c
 --- linux-2.6.8-13/net/ipv4/tcp_ipv4.c	2007-05-23 15:38:13.000000000 +0900
 +++ linux-2.6.8-13-ccs/net/ipv4/tcp_ipv4.c	2007-05-23 15:38:21.000000000 +0900
@@ -1039,7 +1080,7 @@ diff -ubBpEr linux-2.6.8-13/net/ipv6/tcp_ipv6.c linux-2.6.8-13-ccs/net/ipv6/tcp_
  					goto next;
 diff -ubBpEr linux-2.6.8-13/net/ipv6/udp.c linux-2.6.8-13-ccs/net/ipv6/udp.c
 --- linux-2.6.8-13/net/ipv6/udp.c	2007-05-23 15:38:13.000000000 +0900
-+++ linux-2.6.8-13-ccs/net/ipv6/udp.c	2007-05-24 17:53:27.925823800 +0900
++++ linux-2.6.8-13-ccs/net/ipv6/udp.c	2007-05-24 17:53:27.000000000 +0900
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1072,7 +1113,7 @@ diff -ubBpEr linux-2.6.8-13/net/ipv6/udp.c linux-2.6.8-13-ccs/net/ipv6/udp.c
  		}
 diff -ubBpEr linux-2.6.8-13/net/socket.c linux-2.6.8-13-ccs/net/socket.c
 --- linux-2.6.8-13/net/socket.c	2007-05-23 15:38:13.000000000 +0900
-+++ linux-2.6.8-13-ccs/net/socket.c	2007-05-23 15:38:21.000000000 +0900
++++ linux-2.6.8-13-ccs/net/socket.c	2007-08-14 13:44:49.379633416 +0900
 @@ -95,6 +95,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1096,19 +1137,7 @@ diff -ubBpEr linux-2.6.8-13/net/socket.c linux-2.6.8-13-ccs/net/socket.c
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -620,6 +627,11 @@ int sock_recvmsg(struct socket *sock, st
- 	ret = __sock_recvmsg(&iocb, sock, msg, size, flags);
- 	if (-EIOCBQUEUED == ret)
- 		ret = wait_on_sync_kiocb(&iocb);
-+	/***** TOMOYO Linux start. *****/
-+	if (ret >= 0 && CheckSocketRecvMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) {
-+		ret = -EAGAIN; /* Hope less harmful than -EPERM. */
-+	}
-+	/***** TOMOYO Linux end. *****/
- 	return ret;
- }
- 
-@@ -1113,6 +1125,10 @@ static int __sock_create(int family, int
+@@ -1113,6 +1120,10 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1119,7 +1148,7 @@ diff -ubBpEr linux-2.6.8-13/net/socket.c linux-2.6.8-13-ccs/net/socket.c
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1308,6 +1324,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1308,6 +1319,9 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
@@ -1129,7 +1158,7 @@ diff -ubBpEr linux-2.6.8-13/net/socket.c linux-2.6.8-13-ccs/net/socket.c
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1338,7 +1357,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1338,7 +1352,9 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
@@ -1140,7 +1169,7 @@ diff -ubBpEr linux-2.6.8-13/net/socket.c linux-2.6.8-13-ccs/net/socket.c
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1389,6 +1410,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1389,6 +1405,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1153,7 +1182,7 @@ diff -ubBpEr linux-2.6.8-13/net/socket.c linux-2.6.8-13-ccs/net/socket.c
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1444,7 +1471,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1444,7 +1466,9 @@ asmlinkage long sys_connect(int fd, stru
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;
