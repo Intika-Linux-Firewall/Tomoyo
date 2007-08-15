@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/14
+ * Version: 1.5.0-pre   2007/08/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -20,6 +20,7 @@
 #include <net/ip.h>
 #include <net/ipv6.h>
 #include <net/udp.h>
+#include <asm/uaccess.h>
 
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
@@ -33,6 +34,7 @@
 static inline int CheckSocketCreatePermission(int family, int type, int protocol)
 {
 	int error = 0;
+	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
 	if (family == PF_INET || family == PF_INET6) {
 		switch (type) {
 		case SOCK_STREAM:
@@ -56,6 +58,7 @@ static inline int CheckSocketCreatePermission(int family, int type, int protocol
 static inline int CheckSocketListenPermission(struct socket *sock)
 {
 	int error = 0;
+	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
 	if (sock->type == SOCK_STREAM) {
 		switch (sock->sk->sk_family) {
 		case PF_INET:
@@ -87,6 +90,7 @@ static inline int CheckSocketConnectPermission(struct socket *sock, struct socka
 {
 	int error = 0;
 	const unsigned int type = sock->type;
+	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
 	if (type == SOCK_STREAM || type == SOCK_DGRAM || type == SOCK_RAW) {
 		switch (addr->sa_family) {
 		case AF_INET6:
@@ -124,6 +128,7 @@ static inline int CheckSocketBindPermission(struct socket *sock, struct sockaddr
 {
 	int error = 0;
 	const unsigned int type = sock->type;
+	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
 	if (type == SOCK_STREAM || type == SOCK_DGRAM || type == SOCK_RAW) {
 		switch (addr->sa_family) {
 		case AF_INET6:
@@ -153,6 +158,7 @@ static inline int CheckSocketAcceptPermission(struct socket *sock, struct sockad
 {
 	int error = 0;
 	int addr_len;
+	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
 	switch (sock->sk->sk_family) {
 	case PF_INET:
 	case PF_INET6:
@@ -176,6 +182,7 @@ static inline int CheckSocketSendMsgPermission(struct socket *sock, struct socka
 {
 	int error = 0;
 	const int type = sock->type;
+	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
 	if (addr && (type == SOCK_DGRAM || type == SOCK_RAW)) {
 		switch (addr->sa_family) {
 		case AF_INET6:
@@ -220,11 +227,13 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 	struct in_addr sin;
 	u16 port;
 	
-	if (!skb)
-		return 0;
+	if (!skb) return 0;
+
+	if (in_interrupt()) return 0;
 	
-	if (type != SOCK_DGRAM && type != SOCK_RAW)
-		return 0;
+	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
+	
+	if (type != SOCK_DGRAM && type != SOCK_RAW) return 0;
 	
 	switch (sk->sk_family) {
 	case PF_INET6:
