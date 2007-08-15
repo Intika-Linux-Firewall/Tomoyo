@@ -546,7 +546,7 @@ diff -ubBpEr linux-source-2.6.17.14-ubuntu1/fs/proc/Makefile linux-source-2.6.17
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-source-2.6.17.14-ubuntu1/fs/proc/proc_misc.c linux-source-2.6.17.14-ubuntu1-ccs/fs/proc/proc_misc.c
 --- linux-source-2.6.17.14-ubuntu1/fs/proc/proc_misc.c	2007-07-19 10:15:09.000000000 +0900
-+++ linux-source-2.6.17.14-ubuntu1-ccs/fs/proc/proc_misc.c	2007-07-19 10:15:17.000000000 +0900
++++ linux-source-2.6.17.14-ubuntu1-ccs/fs/proc/proc_misc.c	2007-08-15 08:55:38.000000000 +0900
 @@ -735,4 +735,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -556,7 +556,7 @@ diff -ubBpEr linux-source-2.6.17.14-ubuntu1/fs/proc/proc_misc.c linux-source-2.6
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.17.14-ubuntu1 2007/08/14\n");
++		printk("Hook version: 2.6.17.14-ubuntu1 2007/08/15\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -988,7 +988,7 @@ diff -ubBpEr linux-source-2.6.17.14-ubuntu1/kernel/time.c linux-source-2.6.17.14
  
 diff -ubBpEr linux-source-2.6.17.14-ubuntu1/net/core/datagram.c linux-source-2.6.17.14-ubuntu1-ccs/net/core/datagram.c
 --- linux-source-2.6.17.14-ubuntu1/net/core/datagram.c	2006-10-02 01:43:03.000000000 +0900
-+++ linux-source-2.6.17.14-ubuntu1-ccs/net/core/datagram.c	2007-08-14 13:40:21.000000000 +0900
++++ linux-source-2.6.17.14-ubuntu1-ccs/net/core/datagram.c	2007-08-15 08:55:25.000000000 +0900
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1008,7 +1008,7 @@ diff -ubBpEr linux-source-2.6.17.14-ubuntu1/net/core/datagram.c linux-source-2.6
 +		/***** TOMOYO Linux start. *****/
 +		error = CheckSocketRecvDatagramPermission(sk, skb);
 +		if (error) {
-+			skb_kill_datagram(sk, skb, flags);
++			skb_free_datagram(sk, skb);
 +			goto no_packet;
 +		}
 +		/***** TOMOYO Linux end. *****/

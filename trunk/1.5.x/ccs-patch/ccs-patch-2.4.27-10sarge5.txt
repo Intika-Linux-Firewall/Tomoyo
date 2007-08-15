@@ -1,6 +1,6 @@
 diff -ubBpEr kernel-source-2.4.27-10sarge5/Documentation/Configure.help kernel-source-2.4.27-10sarge5-ccs/Documentation/Configure.help
---- kernel-source-2.4.27-10sarge5/Documentation/Configure.help	2007-08-14 12:41:48.201518192 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/Documentation/Configure.help	2007-08-14 12:44:02.615084224 +0900
+--- kernel-source-2.4.27-10sarge5/Documentation/Configure.help	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/Documentation/Configure.help	2007-08-14 12:44:02.000000000 +0900
 @@ -29070,6 +29070,95 @@ CONFIG_SOUND_WM97XX
    
    If unsure, say N.
@@ -98,7 +98,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/Documentation/Configure.help kernel-s
  # A couple of things I keep forgetting:
  #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
 diff -ubBpEr kernel-source-2.4.27-10sarge5/Makefile kernel-source-2.4.27-10sarge5-ccs/Makefile
---- kernel-source-2.4.27-10sarge5/Makefile	2007-08-14 12:41:48.202518040 +0900
+--- kernel-source-2.4.27-10sarge5/Makefile	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/Makefile	2007-05-25 16:29:53.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
@@ -110,7 +110,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/Makefile kernel-source-2.4.27-10sarge
  KERNELRELEASE=$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
  
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/Config.in kernel-source-2.4.27-10sarge5-ccs/fs/Config.in
---- kernel-source-2.4.27-10sarge5/fs/Config.in	2007-08-14 12:41:48.202518040 +0900
+--- kernel-source-2.4.27-10sarge5/fs/Config.in	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/Config.in	2007-05-25 16:29:53.000000000 +0900
 @@ -208,4 +208,7 @@ comment 'Partition Types'
  source fs/partitions/Config.in
@@ -121,7 +121,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/Config.in kernel-source-2.4.27-10s
 +
  endmenu
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/Makefile kernel-source-2.4.27-10sarge5-ccs/fs/Makefile
---- kernel-source-2.4.27-10sarge5/fs/Makefile	2007-08-14 12:41:48.202518040 +0900
+--- kernel-source-2.4.27-10sarge5/fs/Makefile	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/Makefile	2007-05-25 16:29:53.000000000 +0900
 @@ -84,5 +84,5 @@ obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.
  # persistent filesystems
@@ -131,7 +131,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/Makefile kernel-source-2.4.27-10sa
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/attr.c kernel-source-2.4.27-10sarge5-ccs/fs/attr.c
---- kernel-source-2.4.27-10sarge5/fs/attr.c	2007-08-14 12:41:48.202518040 +0900
+--- kernel-source-2.4.27-10sarge5/fs/attr.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/attr.c	2007-05-25 16:29:53.000000000 +0900
 @@ -12,6 +12,9 @@
  #include <linux/dnotify.h>
@@ -155,7 +155,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/attr.c kernel-source-2.4.27-10sarg
  	lock_kernel();
  	if (inode->i_op && inode->i_op->setattr) 
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/exec.c kernel-source-2.4.27-10sarge5-ccs/fs/exec.c
---- kernel-source-2.4.27-10sarge5/fs/exec.c	2007-08-14 12:41:48.203517888 +0900
+--- kernel-source-2.4.27-10sarge5/fs/exec.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/exec.c	2007-05-25 16:29:53.000000000 +0900
 @@ -48,6 +48,10 @@
  #include <linux/kmod.h>
@@ -201,7 +201,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/exec.c kernel-source-2.4.27-10sarg
  		/* execve success */
  		return retval;
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/fcntl.c kernel-source-2.4.27-10sarge5-ccs/fs/fcntl.c
---- kernel-source-2.4.27-10sarge5/fs/fcntl.c	2007-08-14 12:41:48.203517888 +0900
+--- kernel-source-2.4.27-10sarge5/fs/fcntl.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/fcntl.c	2007-05-25 16:29:53.000000000 +0900
 @@ -16,6 +16,9 @@
  #include <asm/poll.h>
@@ -225,7 +225,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/fcntl.c kernel-source-2.4.27-10sar
  	if ((arg ^ filp->f_flags) & FASYNC) {
  		if (filp->f_op && filp->f_op->fasync) {
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/ioctl.c kernel-source-2.4.27-10sarge5-ccs/fs/ioctl.c
---- kernel-source-2.4.27-10sarge5/fs/ioctl.c	2007-08-14 12:41:48.203517888 +0900
+--- kernel-source-2.4.27-10sarge5/fs/ioctl.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/ioctl.c	2007-05-25 16:29:53.000000000 +0900
 @@ -10,6 +10,9 @@
  
@@ -248,7 +248,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/ioctl.c kernel-source-2.4.27-10sar
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/namei.c kernel-source-2.4.27-10sarge5-ccs/fs/namei.c
---- kernel-source-2.4.27-10sarge5/fs/namei.c	2007-08-14 12:41:48.203517888 +0900
+--- kernel-source-2.4.27-10sarge5/fs/namei.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/namei.c	2007-05-25 16:29:53.000000000 +0900
 @@ -28,6 +28,11 @@
  
@@ -432,7 +432,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/namei.c kernel-source-2.4.27-10sar
  	from = getname(oldname);
  	if(IS_ERR(from))
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/namespace.c kernel-source-2.4.27-10sarge5-ccs/fs/namespace.c
---- kernel-source-2.4.27-10sarge5/fs/namespace.c	2007-08-14 12:41:48.204517736 +0900
+--- kernel-source-2.4.27-10sarge5/fs/namespace.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/namespace.c	2007-05-25 16:29:53.000000000 +0900
 @@ -21,6 +21,13 @@
  #include <linux/seq_file.h>
@@ -553,7 +553,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/namespace.c kernel-source-2.4.27-1
  	user_nd.mnt = mntget(current->fs->rootmnt);
  	user_nd.dentry = dget(current->fs->root);
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/open.c kernel-source-2.4.27-10sarge5-ccs/fs/open.c
---- kernel-source-2.4.27-10sarge5/fs/open.c	2007-08-14 12:41:48.204517736 +0900
+--- kernel-source-2.4.27-10sarge5/fs/open.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/open.c	2007-05-25 16:29:53.000000000 +0900
 @@ -20,6 +20,13 @@
  
@@ -613,7 +613,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/open.c kernel-source-2.4.27-10sarg
  		tty_vhangup(current->tty);
  		return 0;
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/proc/Makefile kernel-source-2.4.27-10sarge5-ccs/fs/proc/Makefile
---- kernel-source-2.4.27-10sarge5/fs/proc/Makefile	2007-08-14 12:41:48.204517736 +0900
+--- kernel-source-2.4.27-10sarge5/fs/proc/Makefile	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/fs/proc/Makefile	2007-05-25 16:29:53.000000000 +0900
 @@ -18,4 +18,8 @@ ifeq ($(CONFIG_PROC_DEVICETREE),y)
  obj-y += proc_devtree.o
@@ -625,8 +625,8 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/proc/Makefile kernel-source-2.4.27
 +
  include $(TOPDIR)/Rules.make
 diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/proc/proc_misc.c kernel-source-2.4.27-10sarge5-ccs/fs/proc/proc_misc.c
---- kernel-source-2.4.27-10sarge5/fs/proc/proc_misc.c	2007-08-14 12:41:48.204517736 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/fs/proc/proc_misc.c	2007-05-25 16:29:53.000000000 +0900
+--- kernel-source-2.4.27-10sarge5/fs/proc/proc_misc.c	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/fs/proc/proc_misc.c	2007-08-15 08:48:21.884120712 +0900
 @@ -670,4 +670,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -636,13 +636,13 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/proc/proc_misc.c kernel-source-2.4
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.27-10sarge5 2007/08/14\n");
++		printk("Hook version: 2.4.27-10sarge5 2007/08/15\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr kernel-source-2.4.27-10sarge5/include/linux/sched.h kernel-source-2.4.27-10sarge5-ccs/include/linux/sched.h
---- kernel-source-2.4.27-10sarge5/include/linux/sched.h	2007-08-14 12:41:48.205517584 +0900
+--- kernel-source-2.4.27-10sarge5/include/linux/sched.h	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/include/linux/sched.h	2007-05-25 16:59:39.000000000 +0900
 @@ -29,6 +29,11 @@ extern unsigned long event;
  
@@ -679,7 +679,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/include/linux/sched.h kernel-source-2
  
  
 diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/kmod.c kernel-source-2.4.27-10sarge5-ccs/kernel/kmod.c
---- kernel-source-2.4.27-10sarge5/kernel/kmod.c	2007-08-14 12:41:48.205517584 +0900
+--- kernel-source-2.4.27-10sarge5/kernel/kmod.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/kernel/kmod.c	2007-05-25 16:29:53.000000000 +0900
 @@ -132,6 +132,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
@@ -694,7 +694,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/kmod.c kernel-source-2.4.27-10
  	if (execve(program_path, argv, envp) < 0)
  		return -errno;
 diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/module.c kernel-source-2.4.27-10sarge5-ccs/kernel/module.c
---- kernel-source-2.4.27-10sarge5/kernel/module.c	2007-08-14 12:41:48.206517432 +0900
+--- kernel-source-2.4.27-10sarge5/kernel/module.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/kernel/module.c	2007-05-25 16:29:53.000000000 +0900
 @@ -10,6 +10,9 @@
  #include <linux/slab.h>
@@ -737,7 +737,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/module.c kernel-source-2.4.27-
  	lock_kernel();
  	if (name_user) {
 diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/sched.c kernel-source-2.4.27-10sarge5-ccs/kernel/sched.c
---- kernel-source-2.4.27-10sarge5/kernel/sched.c	2007-08-14 12:41:48.206517432 +0900
+--- kernel-source-2.4.27-10sarge5/kernel/sched.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/kernel/sched.c	2007-05-25 16:29:53.000000000 +0900
 @@ -32,6 +32,9 @@
  
@@ -760,7 +760,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/sched.c kernel-source-2.4.27-1
  	/*
  	 *	Setpriority might change our priority at the same moment.
 diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/signal.c kernel-source-2.4.27-10sarge5-ccs/kernel/signal.c
---- kernel-source-2.4.27-10sarge5/kernel/signal.c	2007-08-14 12:41:48.207517280 +0900
+--- kernel-source-2.4.27-10sarge5/kernel/signal.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/kernel/signal.c	2007-05-25 16:29:53.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/sched.h>
@@ -795,7 +795,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/signal.c kernel-source-2.4.27-
         info.si_errno = 0;
         info.si_code = SI_TKILL;
 diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/sys.c kernel-source-2.4.27-10sarge5-ccs/kernel/sys.c
---- kernel-source-2.4.27-10sarge5/kernel/sys.c	2007-08-14 12:41:48.208517128 +0900
+--- kernel-source-2.4.27-10sarge5/kernel/sys.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/kernel/sys.c	2007-05-25 16:29:53.000000000 +0900
 @@ -17,6 +17,9 @@
  
@@ -848,7 +848,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/sys.c kernel-source-2.4.27-10s
  	down_write(&uts_sem);
  	errno = -EFAULT;
 diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/sysctl.c kernel-source-2.4.27-10sarge5-ccs/kernel/sysctl.c
---- kernel-source-2.4.27-10sarge5/kernel/sysctl.c	2007-08-14 12:41:48.209516976 +0900
+--- kernel-source-2.4.27-10sarge5/kernel/sysctl.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/kernel/sysctl.c	2007-05-25 16:29:53.000000000 +0900
 @@ -33,6 +33,9 @@
  #include <linux/swap.h>
@@ -981,7 +981,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/sysctl.c kernel-source-2.4.27-
  
  /*
 diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/time.c kernel-source-2.4.27-10sarge5-ccs/kernel/time.c
---- kernel-source-2.4.27-10sarge5/kernel/time.c	2007-08-14 12:41:48.209516976 +0900
+--- kernel-source-2.4.27-10sarge5/kernel/time.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/kernel/time.c	2007-05-25 16:29:53.000000000 +0900
 @@ -29,6 +29,9 @@
  #include <linux/smp_lock.h>
@@ -1025,7 +1025,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/time.c kernel-source-2.4.27-10
  
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/core/datagram.c kernel-source-2.4.27-10sarge5-ccs/net/core/datagram.c
 --- kernel-source-2.4.27-10sarge5/net/core/datagram.c	2001-12-22 02:42:05.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/core/datagram.c	2007-08-14 12:45:56.004846360 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/core/datagram.c	2007-08-15 08:49:26.118355624 +0900
 @@ -43,6 +43,10 @@
  #include <net/sock.h>
  #include <net/checksum.h>
@@ -1037,25 +1037,13 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/core/datagram.c kernel-source-2.4
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -164,6 +168,26 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -164,6 +168,14 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
 +		error = CheckSocketRecvDatagramPermission(sk, skb);
 +		if (error) {
-+			/* Clear queue. */
-+			if (flags & MSG_PEEK) {
-+				int clear = 0;
-+				spin_lock_irq(&sk->receive_queue.lock);
-+				if (skb == skb_peek(&sk->receive_queue)) {
-+					__skb_unlink(skb, &sk->receive_queue);
-+					clear = 1;
-+				}
-+				spin_unlock_irq(&sk->receive_queue.lock);
-+				if (clear)
-+					kfree_skb(skb);
-+				}
 +			skb_free_datagram(sk, skb);
 +			goto no_packet;
 +		}
@@ -1065,7 +1053,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/core/datagram.c kernel-source-2.4
  			return skb;
  
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c kernel-source-2.4.27-10sarge5-ccs/net/ipv4/tcp_ipv4.c
---- kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c	2007-08-14 12:41:48.210516824 +0900
+--- kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/net/ipv4/tcp_ipv4.c	2007-05-25 16:29:53.000000000 +0900
 @@ -67,6 +67,9 @@
  
@@ -1098,7 +1086,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c kernel-source-2.4
  			/* Does not bother with rcv_saddr checks,
  			 * because the established check is already
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/udp.c kernel-source-2.4.27-10sarge5-ccs/net/ipv4/udp.c
---- kernel-source-2.4.27-10sarge5/net/ipv4/udp.c	2007-08-14 12:41:48.211516672 +0900
+--- kernel-source-2.4.27-10sarge5/net/ipv4/udp.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/net/ipv4/udp.c	2007-05-25 16:29:53.000000000 +0900
 @@ -103,6 +103,9 @@
  #include <net/inet_common.h>
@@ -1131,7 +1119,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/udp.c kernel-source-2.4.27-1
  				break;
  		}
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c kernel-source-2.4.27-10sarge5-ccs/net/ipv6/tcp_ipv6.c
---- kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c	2007-08-14 12:41:48.211516672 +0900
+--- kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/net/ipv6/tcp_ipv6.c	2007-05-25 16:29:53.000000000 +0900
 @@ -53,6 +53,9 @@
  #include <net/inet_ecn.h>
@@ -1154,7 +1142,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c kernel-source-2.4
  				if (tb->port == rover)
  					goto next;
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/udp.c kernel-source-2.4.27-10sarge5-ccs/net/ipv6/udp.c
---- kernel-source-2.4.27-10sarge5/net/ipv6/udp.c	2007-08-14 12:41:48.212516520 +0900
+--- kernel-source-2.4.27-10sarge5/net/ipv6/udp.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/net/ipv6/udp.c	2007-05-25 16:29:53.000000000 +0900
 @@ -52,6 +52,9 @@
  
@@ -1187,8 +1175,8 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/udp.c kernel-source-2.4.27-1
  				break;
  		}
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10sarge5-ccs/net/socket.c
---- kernel-source-2.4.27-10sarge5/net/socket.c	2007-08-14 12:41:48.213516368 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/socket.c	2007-08-14 12:44:44.169766952 +0900
+--- kernel-source-2.4.27-10sarge5/net/socket.c	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/socket.c	2007-08-14 12:56:14.000000000 +0900
 @@ -84,6 +84,10 @@
  #include <net/sock.h>
  #include <net/scm.h>
@@ -1266,7 +1254,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  				 sock->file->f_flags);
  out_put:
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/unix/af_unix.c kernel-source-2.4.27-10sarge5-ccs/net/unix/af_unix.c
---- kernel-source-2.4.27-10sarge5/net/unix/af_unix.c	2007-08-14 12:41:48.214516216 +0900
+--- kernel-source-2.4.27-10sarge5/net/unix/af_unix.c	2007-08-14 12:41:48.000000000 +0900
 +++ kernel-source-2.4.27-10sarge5-ccs/net/unix/af_unix.c	2007-05-25 16:29:53.000000000 +0900
 @@ -111,6 +111,9 @@
  #include <linux/rtnetlink.h>
