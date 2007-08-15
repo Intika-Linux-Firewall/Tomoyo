@@ -555,7 +555,7 @@ diff -ubBpEr linux-2.6.23-rc2/fs/proc/Makefile linux-2.6.23-rc2-ccs/fs/proc/Make
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.23-rc2/fs/proc/proc_misc.c linux-2.6.23-rc2-ccs/fs/proc/proc_misc.c
 --- linux-2.6.23-rc2/fs/proc/proc_misc.c	2007-08-06 10:22:33.000000000 +0900
-+++ linux-2.6.23-rc2-ccs/fs/proc/proc_misc.c	2007-08-06 10:23:42.000000000 +0900
++++ linux-2.6.23-rc2-ccs/fs/proc/proc_misc.c	2007-08-15 08:47:17.948840352 +0900
 @@ -748,4 +748,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
@@ -565,7 +565,7 @@ diff -ubBpEr linux-2.6.23-rc2/fs/proc/proc_misc.c linux-2.6.23-rc2-ccs/fs/proc/p
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.23-rc2 2007/08/14\n");
++		printk("Hook version: 2.6.23-rc2 2007/08/15\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -989,7 +989,7 @@ diff -ubBpEr linux-2.6.23-rc2/kernel/time.c linux-2.6.23-rc2-ccs/kernel/time.c
  		/* SMP safe, global irq locking makes it work. */
 diff -ubBpEr linux-2.6.23-rc2/net/core/datagram.c linux-2.6.23-rc2-ccs/net/core/datagram.c
 --- linux-2.6.23-rc2/net/core/datagram.c	2007-07-09 08:32:17.000000000 +0900
-+++ linux-2.6.23-rc2-ccs/net/core/datagram.c	2007-08-14 10:54:50.000000000 +0900
++++ linux-2.6.23-rc2-ccs/net/core/datagram.c	2007-08-15 08:45:13.049827888 +0900
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1009,7 +1009,7 @@ diff -ubBpEr linux-2.6.23-rc2/net/core/datagram.c linux-2.6.23-rc2-ccs/net/core/
 +                /***** TOMOYO Linux start. *****/
 +                error = CheckSocketRecvDatagramPermission(sk, skb);
 +                if (error) {
-+                        skb_kill_datagram(sk, skb, flags);
++                        skb_free_datagram(sk, skb);
 +                        goto no_packet;
 +                }
 +                /***** TOMOYO Linux end. *****/

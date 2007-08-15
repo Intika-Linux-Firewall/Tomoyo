@@ -547,7 +547,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/proc/Makefile linux-2.6.17-1.2142_FC4-cc
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/proc/proc_misc.c linux-2.6.17-1.2142_FC4-ccs/fs/proc/proc_misc.c
 --- linux-2.6.17-1.2142_FC4/fs/proc/proc_misc.c	2007-08-14 15:39:39.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/fs/proc/proc_misc.c	2007-08-14 15:40:03.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/fs/proc/proc_misc.c	2007-08-15 09:25:30.000000000 +0900
 @@ -719,4 +719,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -557,7 +557,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/fs/proc/proc_misc.c linux-2.6.17-1.2142_FC4
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.17-1.2142_FC4 2007/08/14\n");
++		printk("Hook version: 2.6.17-1.2142_FC4 2007/08/15\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -989,7 +989,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/kernel/time.c linux-2.6.17-1.2142_FC4-ccs/k
  
 diff -ubBpEr linux-2.6.17-1.2142_FC4/net/core/datagram.c linux-2.6.17-1.2142_FC4-ccs/net/core/datagram.c
 --- linux-2.6.17-1.2142_FC4/net/core/datagram.c	2007-08-14 15:39:55.000000000 +0900
-+++ linux-2.6.17-1.2142_FC4-ccs/net/core/datagram.c	2007-08-14 15:41:13.000000000 +0900
++++ linux-2.6.17-1.2142_FC4-ccs/net/core/datagram.c	2007-08-15 09:25:19.000000000 +0900
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1009,7 +1009,7 @@ diff -ubBpEr linux-2.6.17-1.2142_FC4/net/core/datagram.c linux-2.6.17-1.2142_FC4
 +		/***** TOMOYO Linux start. *****/
 +		error = CheckSocketRecvDatagramPermission(sk, skb);
 +		if (error) {
-+			skb_kill_datagram(sk, skb, flags);
++			skb_free_datagram(sk, skb);
 +			goto no_packet;
 +		}
 +		/***** TOMOYO Linux end. *****/
