@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/signal.c |  181 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 181 insertions(+)
+ security/tomoyo/signal.c |  208 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 208 insertions(+)
 
 Index: src/security/tomoyo/signal.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/signal.c	2007-08-13 18:29:07.000000000 +0900
-@@ -0,0 +1,181 @@
++++ src/security/tomoyo/signal.c	2007-08-15 10:10:33.000000000 +0900
+@@ -0,0 +1,208 @@
 +/*
 + * security/tomoyo/signal.c
 + *
@@ -59,22 +59,29 @@ Index: src/security/tomoyo/signal.c
 +	struct acl_info *ptr;
 +	const struct path_info *saved_dest_pattern;
 +	int error = -ENOMEM;
++
 +	if (!domain)
 +		return -EINVAL;
 +	if (!dest_pattern ||
 +	    !tmy_is_correct_domain(dest_pattern, __FUNCTION__))
 +		return -EINVAL;
++
 +	saved_dest_pattern = tmy_save_name(dest_pattern);
 +	if (!saved_dest_pattern)
 +		return -ENOMEM;
++
 +	down(&domain_acl_lock);
++
 +	if (!is_add)
 +		goto remove;
++
 +	ptr = domain->first_acl_ptr;
 +	if (!ptr)
 +		goto first_entry;
++
 +	while (1) {
 +		struct signal_acl *acl = (struct signal_acl *) ptr;
++
 +		if (ptr->type == TMY_TYPE_SIGNAL_ACL && acl->sig == sig
 +		    && !tmy_pathcmp(acl->domainname, saved_dest_pattern)) {
 +			ptr->is_deleted = 0;
@@ -82,10 +89,12 @@ Index: src/security/tomoyo/signal.c
 +			error = 0;
 +			break;
 +		}
++
 +		if (ptr->next) {
 +			ptr = ptr->next;
 +			continue;
 +		}
++
 +first_entry: ;
 +		if (is_add == 1 && tmy_too_many_acl(domain))
 +			break;
@@ -93,13 +102,16 @@ Index: src/security/tomoyo/signal.c
 +		acl = tmy_alloc_element(sizeof(*acl));
 +		if (!acl)
 +			break;
++
 +		acl->head.type = TMY_TYPE_SIGNAL_ACL;
 +		acl->sig = sig;
 +		acl->domainname = saved_dest_pattern;
 +		error = tmy_add_acl(ptr, domain, (struct acl_info *) acl);
 +		break;
 +	}
++
 +	goto ok;
++
 +remove: ;
 +	error = -ENOENT;
 +	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -111,8 +123,10 @@ Index: src/security/tomoyo/signal.c
 +		error = tmy_del_acl(ptr);
 +		break;
 +	}
++
 +ok: ;
 +	up(&domain_acl_lock);
++
 +	return error;
 +}
 +
@@ -124,6 +138,7 @@ Index: src/security/tomoyo/signal.c
 +	struct acl_info *ptr;
 +	const u16 hash = sig;
 +	const int is_enforce = tmy_enforce(TMY_MAC_FOR_SIGNAL);
++
 +	if (!tmy_flags(TMY_MAC_FOR_SIGNAL))
 +		return 0;
 +	if (!sig)
@@ -132,6 +147,7 @@ Index: src/security/tomoyo/signal.c
 +		tmy_audit_signal_log(sig, domain->domainname, 1, is_enforce);
 +		return 0; /* No check for self. */
 +	}
++
 +	{ /* Simplified checking. */
 +		struct task_struct *p = NULL;
 +		read_lock(&tasklist_lock);
@@ -149,26 +165,34 @@ Index: src/security/tomoyo/signal.c
 +		if (!dest)
 +			return 0; /* I can't find destinatioin. */
 +	}
++
 +	if (domain == dest) {
 +		tmy_audit_signal_log(sig, dest->domainname, 1, is_enforce);
 +		return 0;
 +	}
++
 +	dest_pattern = dest->domainname->name;
 +	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 +		struct signal_acl *acl = (struct signal_acl *) ptr;
++
 +		if (ptr->type == TMY_TYPE_SIGNAL_ACL && ptr->is_deleted == 0
 +		    && acl->sig == hash) {
 +			const int len = acl->domainname->total_len;
++
 +			if (strncmp(acl->domainname->name,
 +				    dest_pattern, len) == 0
 +			    && (dest_pattern[len] == ' ' ||
-+				dest_pattern[len] == '\0')) break;
++				dest_pattern[len] == '\0'))
++				break;
++
 +		}
 +	}
++
 +	if (ptr) {
 +		tmy_audit_signal_log(sig, dest->domainname, 1, is_enforce);
 +		return 0;
 +	}
++
 +	tmy_audit_signal_log(sig, dest->domainname, 0, is_enforce);
 +	if (is_enforce)
 +		return tmy_supervisor("%s\n" TMY_ALLOW_SIGNAL "%d %s\n",
@@ -176,6 +200,7 @@ Index: src/security/tomoyo/signal.c
 +				      sig, dest_pattern);
 +	if (tmy_accept(TMY_MAC_FOR_SIGNAL))
 +		tmy_add_signal_entry(sig, dest_pattern, domain, 1);
++
 +	return 0;
 +}
 +
@@ -185,9 +210,11 @@ Index: src/security/tomoyo/signal.c
 +{
 +	int sig;
 +	char *domainname = strchr(data, ' ');
++
 +	if (sscanf(data, "%d", &sig) == 1 && domainname &&
 +	    tmy_is_domain_def(domainname + 1))
 +		return tmy_add_signal_entry(sig, domainname + 1, domain,
 +					    is_delete ? 0 : -1);
++
 +	return -EINVAL;
 +}

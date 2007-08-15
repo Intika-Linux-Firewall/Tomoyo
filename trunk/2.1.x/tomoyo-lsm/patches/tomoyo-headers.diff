@@ -2,19 +2,20 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/include/realpath.h |   43 +++
- security/tomoyo/include/tomoyo.h   |  482 +++++++++++++++++++++++++++++++++++++
+ security/tomoyo/include/realpath.h |   44 +++
+ security/tomoyo/include/tomoyo.h   |  481 +++++++++++++++++++++++++++++++++++++
  2 files changed, 525 insertions(+)
 
 Index: src/security/tomoyo/include/realpath.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/include/realpath.h	2007-08-13 15:18:33.000000000 +0900
-@@ -0,0 +1,43 @@
++++ src/security/tomoyo/include/realpath.h	2007-08-15 10:49:00.000000000 +0900
+@@ -0,0 +1,44 @@
 +/*
 + * security/tomoyo/include/realpath.h
 + *
-+ * Get the canonicalized absolute pathnames. The basis for TOMOYO.
++ * Get the canonicalized absolute pathnames.
++ * The basis for TOMOYO.
 + */
 +
 +#ifndef _TMY_REALPATH_H
@@ -57,8 +58,8 @@ Index: src/security/tomoyo/include/realpath.h
 Index: src/security/tomoyo/include/tomoyo.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/include/tomoyo.h	2007-08-13 15:18:33.000000000 +0900
-@@ -0,0 +1,482 @@
++++ src/security/tomoyo/include/tomoyo.h	2007-08-15 10:34:01.000000000 +0900
+@@ -0,0 +1,481 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -364,7 +365,6 @@ Index: src/security/tomoyo/include/tomoyo.h
 +
 +const char *tmy_get_exe(void);
 +const char *tmy_get_last_name(const struct domain_info *domain);
-+const char *tmy_get_msg(const int is_enforce);
 +const char *tmy_acltype2keyword(const unsigned int acl_type);
 +
 +int tmy_mount_perm(char *dev_name,
