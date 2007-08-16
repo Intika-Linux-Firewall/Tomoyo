@@ -991,3 +991,12 @@ Fix 2007/08/14
       read() or recvmsg() with NULL address because address buffer is NULL.
       I moved hooks from sock_recvmsg() to skb_recv_datagram() so that
       network access control for incoming UDP and RAW packets always work.
+
+Fix 2007/03/07
+
+    @ Return appropriate error code for CheckMountPermission().
+
+      I was returning -EPERM if something is wrong with CheckMountPermission().
+      But SELinux determines whether selinuxfs is supported by kernel
+      based on whether error code is -ENODEV or not.
+      So I stopped returning -EPERM unconditionally.
