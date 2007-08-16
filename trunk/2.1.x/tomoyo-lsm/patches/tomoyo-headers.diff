@@ -3,8 +3,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
  security/tomoyo/include/realpath.h |   44 +++
- security/tomoyo/include/tomoyo.h   |  481 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 525 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  479 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 523 insertions(+)
 
 Index: src/security/tomoyo/include/realpath.h
 ===================================================================
@@ -58,8 +58,8 @@ Index: src/security/tomoyo/include/realpath.h
 Index: src/security/tomoyo/include/tomoyo.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/include/tomoyo.h	2007-08-15 10:34:01.000000000 +0900
-@@ -0,0 +1,481 @@
++++ src/security/tomoyo/include/tomoyo.h	2007-08-16 18:52:40.000000000 +0900
+@@ -0,0 +1,479 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -68,6 +68,8 @@ Index: src/security/tomoyo/include/tomoyo.h
 +
 +#ifndef _TOMOYO_H
 +#define _TOMOYO_H
++
++#define TOMOYO_VERSION_CODE "2.1.0-rc3"
 +
 +#include <linux/string.h>
 +#include <linux/mm.h>
@@ -248,14 +250,10 @@ Index: src/security/tomoyo/include/tomoyo.h
 +#define TMY_DENY_REWRITE_LEN         	(sizeof(TMY_DENY_REWRITE) - 1)
 +#define TMY_FILE_PATTERN             	"file_pattern "
 +#define TMY_FILE_PATTERN_LEN         	(sizeof(TMY_FILE_PATTERN) - 1)
-+#define TMY_INITIALIZER              	"initializer "
-+#define TMY_INITIALIZER_LEN          	(sizeof(TMY_INITIALIZER) - 1)
 +#define TMY_INITIALIZE_DOMAIN        	"initialize_domain "
 +#define TMY_INITIALIZE_DOMAIN_LEN    	(sizeof(TMY_INITIALIZE_DOMAIN) - 1)
 +#define TMY_KEEP_DOMAIN              	"keep_domain "
 +#define TMY_KEEP_DOMAIN_LEN          	(sizeof(TMY_KEEP_DOMAIN) - 1)
-+#define TMY_NO_INITIALIZER           	"no_initializer "
-+#define TMY_NO_INITIALIZER_LEN       	(sizeof(TMY_NO_INITIALIZER) - 1)
 +#define TMY_NO_INITIALIZE_DOMAIN     	"no_initialize_domain "
 +#define TMY_NO_INITIALIZE_DOMAIN_LEN 	(sizeof(TMY_NO_INITIALIZE_DOMAIN) - 1)
 +#define TMY_NO_KEEP_DOMAIN           	"no_keep_domain "
@@ -339,6 +337,7 @@ Index: src/security/tomoyo/include/tomoyo.h
 +#define TMY_POLICY_QUERY            8
 +#define TMY_POLICY_MANAGER          9
 +#define TMY_INFO_UPDATESCOUNTER    10
++#define TMY_VERSION                11
 +
 +/********************  The structure for /proc interfaces.  *******************/
 +
@@ -370,7 +369,7 @@ Index: src/security/tomoyo/include/tomoyo.h
 +int tmy_mount_perm(char *dev_name,
 +		   char *dir_name,
 +		   char *type,
-+		   unsigned long *flags);
++		   unsigned long flags);
 +int tmy_conceal_mount(struct nameidata *nd);
 +int tmy_umount_perm(struct vfsmount *mnt);
 +int tmy_add_mount_policy(char *data, const int is_delete);
@@ -393,8 +392,7 @@ Index: src/security/tomoyo/include/tomoyo.h
 +		struct acl_info *new_ptr);
 +int tmy_add_domain_initializer_policy(char *data,
 +				      const int is_not,
-+				      const int is_delete,
-+				      const int is_oldstyle);
++				      const int is_delete);
 +int tmy_add_domain_keeper_policy(char *data,
 +				 const int is_not,
 +				 const int is_delete);

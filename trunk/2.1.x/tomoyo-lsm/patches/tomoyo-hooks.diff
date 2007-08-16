@@ -8,7 +8,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: src/security/tomoyo/tomoyo.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/tomoyo.c	2007-08-15 15:23:07.000000000 +0900
++++ src/security/tomoyo/tomoyo.c	2007-08-16 18:53:15.000000000 +0900
 @@ -0,0 +1,736 @@
 +/*
 + * security/tomoyo/tomoyo.c
@@ -641,7 +641,7 @@ Index: src/security/tomoyo/tomoyo.c
 +	if (IS_ERR(dir_name))
 +		error = PTR_ERR(dir_name);
 +	else
-+		error = tmy_mount_perm(dev_name, dir_name, type, &flags);
++		error = tmy_mount_perm(dev_name, dir_name, type, flags);
 +
 +	if (!error && (flags & MS_REMOUNT) == 0)
 +		error = tmy_conceal_mount(nd);
