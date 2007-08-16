@@ -1127,7 +1127,7 @@ void CCS_LoadPolicy(const char *filename)
 		path_release(&nd);
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.0-pre   2007/08/12\n");
+	printk("SAKURA: 1.5.0-pre   2007/08/16\n");
 #endif
 #ifdef CONFIG_TOMOYO
 	printk("TOMOYO: 1.5.0-pre   2007/08/15\n");
