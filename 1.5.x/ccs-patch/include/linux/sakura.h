@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -36,7 +36,7 @@
 int CheckChRootPermission(struct nameidata *nd);
 
 /* Check whether the mount operation with the given parameters is allowed. */
-int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned long *flags);
+int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned long flags);
 
 /* Check whether the current process is allowed to pivot_root. */
 int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd);

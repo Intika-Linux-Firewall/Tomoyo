@@ -485,7 +485,7 @@ diff -ubBpEr linux-2.6.9-42.15AX/fs/namespace.c linux-2.6.9-42.15AX-ccs/fs/names
 +	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if (CheckMountPermission(dev_name, dir_name, type_page, &flags)) return -EPERM;
++	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, flags)) < 0) return retval;
 +	/***** SAKURA Linux end. *****/
 +
  	/* Separate the per-mountpoint flags */
