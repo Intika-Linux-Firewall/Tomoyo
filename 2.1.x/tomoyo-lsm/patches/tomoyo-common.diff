@@ -2,14 +2,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/common.c | 2116 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2116 insertions(+)
+ security/tomoyo/common.c | 2124 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2124 insertions(+)
 
 Index: src/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/common.c	2007-08-15 10:47:12.000000000 +0900
-@@ -0,0 +1,2116 @@
++++ src/security/tomoyo/common.c	2007-08-16 18:39:41.000000000 +0900
+@@ -0,0 +1,2124 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1394,16 +1394,10 @@ Index: src/security/tomoyo/common.c
 +		return tmy_add_domain_keeper_policy(data, 1, is_delete);
 +	if (strstr2(&data, TMY_INITIALIZE_DOMAIN))
 +		return tmy_add_domain_initializer_policy(data, 0,
-+							 is_delete, 0);
++							 is_delete);
 +	if (strstr2(&data, TMY_NO_INITIALIZE_DOMAIN))
 +		return tmy_add_domain_initializer_policy(data, 1,
-+							 is_delete, 0);
-+	if (strstr2(&data, TMY_INITIALIZER))
-+		return tmy_add_domain_initializer_policy(data, 0,
-+							 is_delete, 1);
-+	if (strstr2(&data, TMY_NO_INITIALIZER))
-+		return tmy_add_domain_initializer_policy(data, 1,
-+							 is_delete, 1);
++							 is_delete);
 +	if (strstr2(&data, TMY_ALIAS))
 +		return tmy_add_alias_policy(data, is_delete);
 +	if (strstr2(&data, TMY_AGGREGATOR))
@@ -1522,7 +1516,7 @@ Index: src/security/tomoyo/common.c
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
 +
-+	printk(KERN_INFO "TOMOYO: 2.1rc2   2007/08/15\n");
++	printk(KERN_INFO "TOMOYO: %s   2007/08/16\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
 +		panic("No profiles loaded. "
@@ -1850,6 +1844,15 @@ Index: src/security/tomoyo/common.c
 +	return 0;
 +}
 +
++static int tmy_read_version(struct io_buffer *head)
++{
++	if (!head->read_eof) {
++		tmy_io_printf(head, TOMOYO_VERSION_CODE "\n");
++		head->read_eof = 1;
++	}
++	return 0;
++}
++
 +static int tmy_open_control(const int type, struct file *file)
 +{
 +	struct io_buffer *head = tmy_alloc(sizeof(*head));
@@ -1902,6 +1905,9 @@ Index: src/security/tomoyo/common.c
 +		break;
 +	case TMY_INFO_UPDATESCOUNTER:
 +		head->read = tmy_read_updates_counter;
++		break;
++	case TMY_VERSION:
++		head->read = tmy_read_version;
 +		break;
 +	}
 +
@@ -2125,4 +2131,6 @@ Index: src/security/tomoyo/common.c
 +			 TMY_POLICY_MANAGER);
 +	tmy_create_entry(".updates_counter", 0400, tmy_dir,
 +			 TMY_INFO_UPDATESCOUNTER);
++	tmy_create_entry("version",          0400, tmy_dir,
++			 TMY_VERSION);
 +}

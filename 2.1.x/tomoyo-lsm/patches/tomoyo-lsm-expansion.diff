@@ -2,31 +2,41 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- include/linux/security.h |   78 ++++++++++++++++++++++++++++++++++++++++++-----
- kernel/signal.c          |   17 ++++++++++
- net/core/datagram.c      |    7 ++++
- net/socket.c             |    7 +++-
- security/dummy.c         |   32 +++++++++++++++++--
- 5 files changed, 129 insertions(+), 12 deletions(-)
+ include/linux/security.h |   91 +++++++++++++++++++++++++++++++++++++++++++----
+ kernel/signal.c          |   17 ++++++++
+ net/core/datagram.c      |    7 +++
+ net/socket.c             |    7 ++-
+ security/dummy.c         |   32 ++++++++++++++--
+ 5 files changed, 142 insertions(+), 12 deletions(-)
 
 Index: src/include/linux/security.h
 ===================================================================
 --- src.orig/include/linux/security.h	2007-08-14 21:34:04.000000000 +0900
-+++ src/include/linux/security.h	2007-08-15 09:50:01.000000000 +0900
-@@ -628,6 +628,12 @@
++++ src/include/linux/security.h	2007-08-16 16:25:47.000000000 +0900
+@@ -628,6 +628,22 @@
   *	@sig contains the signal value.
   *	@secid contains the sid of the process where the signal originated
   *	Return 0 if permission is granted.
 + * @task_kill_unlocked:
-+ *
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_kill.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
 + * @task_tkill_unlocked:
-+ *
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_tkill.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
 + * @task_tgkill_unlocked:
-+ *
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_tgkill.
++ *	@tgid contains the thread group id.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
   * @task_wait:
   *	Check permission before allowing a process to reap a child process @p
   *	and collect its status information.
-@@ -749,8 +755,12 @@
+@@ -749,8 +765,12 @@
   * @socket_post_accept:
   *	This hook allows a security module to copy security
   *	information into the newly created socket's inode.
@@ -39,16 +49,19 @@ Index: src/include/linux/security.h
   * @socket_sendmsg:
   *	Check permission before transmitting a message to another socket.
   *	@sock contains the socket structure.
-@@ -764,6 +774,8 @@
+@@ -764,6 +784,11 @@
   *	@size contains the size of message structure.
   *	@flags contains the operational flags.
   *	Return 0 if permission is granted.  
 + * @post_recv_datagram:
-+ *
++ *	Check permission after receiving a datagram.
++ *	@sk contains the socket.
++ *	@skb contains the socket buffer (may be NULL).
++ *	@flags contains the operational flags.
   * @socket_getsockname:
   *	Check permission before the local address (name) of the socket object
   *	@sock is retrieved.
-@@ -1278,6 +1290,9 @@
+@@ -1278,6 +1303,9 @@
  	int (*task_movememory) (struct task_struct * p);
  	int (*task_kill) (struct task_struct * p,
  			  struct siginfo * info, int sig, u32 secid);
@@ -58,7 +71,7 @@ Index: src/include/linux/security.h
  	int (*task_wait) (struct task_struct * p);
  	int (*task_prctl) (int option, unsigned long arg2,
  			   unsigned long arg3, unsigned long arg4,
-@@ -1345,12 +1360,16 @@
+@@ -1345,12 +1373,16 @@
  			       struct sockaddr * address, int addrlen);
  	int (*socket_listen) (struct socket * sock, int backlog);
  	int (*socket_accept) (struct socket * sock, struct socket * newsock);
@@ -77,7 +90,7 @@ Index: src/include/linux/security.h
  	int (*socket_getsockname) (struct socket * sock);
  	int (*socket_getpeername) (struct socket * sock);
  	int (*socket_getsockopt) (struct socket * sock, int level, int optname);
-@@ -1962,6 +1981,21 @@
+@@ -1962,6 +1994,21 @@
  	return security_ops->task_kill (p, info, sig, secid);
  }
  
@@ -99,7 +112,7 @@ Index: src/include/linux/security.h
  static inline int security_task_wait (struct task_struct *p)
  {
  	return security_ops->task_wait (p);
-@@ -2635,6 +2669,21 @@
+@@ -2635,6 +2682,21 @@
  	return 0;
  }
  
@@ -121,7 +134,7 @@ Index: src/include/linux/security.h
  static inline int security_task_wait (struct task_struct *p)
  {
  	return 0;
-@@ -2860,10 +2909,10 @@
+@@ -2860,10 +2922,10 @@
  	return security_ops->socket_accept(sock, newsock);
  }
  
@@ -135,7 +148,7 @@ Index: src/include/linux/security.h
  }
  
  static inline int security_socket_sendmsg(struct socket * sock, 
-@@ -2879,6 +2928,13 @@
+@@ -2879,6 +2941,13 @@
  	return security_ops->socket_recvmsg(sock, msg, size, flags);
  }
  
@@ -149,7 +162,7 @@ Index: src/include/linux/security.h
  static inline int security_socket_getsockname(struct socket * sock)
  {
  	return security_ops->socket_getsockname(sock);
-@@ -3023,9 +3079,10 @@
+@@ -3023,9 +3092,10 @@
  	return 0;
  }
  
@@ -162,7 +175,7 @@ Index: src/include/linux/security.h
  }
  
  static inline int security_socket_sendmsg(struct socket * sock, 
-@@ -3041,6 +3098,13 @@
+@@ -3041,6 +3111,13 @@
  	return 0;
  }
  
