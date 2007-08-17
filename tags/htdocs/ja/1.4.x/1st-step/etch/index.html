@@ -50,28 +50,28 @@
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/linux-image-2.6.18-12etch2-ccs-i586_1.4.2_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/linux-image-2.6.18-13etch1-ccs-i586_1.4.2_i386.deb</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">dpkg --install linux-image-2.6.18-12etch2-ccs-i586_1.4.2_i386.deb</span>
+# <span class="user">dpkg --install linux-image-2.6.18-13etch1-ccs-i586_1.4.2_i386.deb</span>
 </pre>
 
 <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 
 <pre>
-title       Debian GNU/Linux, kernel 2.6.18-12etch2-ccs
+title       Debian GNU/Linux, kernel 2.6.18-13etch1-ccs
 root        (hd0,0)
-kernel      /boot/vmlinuz-2.6.18-12etch2-ccs root=/dev/sda1 ro noapic nolapic
-initrd      /boot/initrd.img-2.6.18-12etch2-ccs
+kernel      /boot/vmlinuz-2.6.18-13etch1-ccs root=/dev/sda1 ro noapic nolapic
+initrd      /boot/initrd.img-2.6.18-13etch1-ccs
 savedefault
 
-title       Debian GNU/Linux, kernel 2.6.18-12etch2-ccs (recovery mode)
+title       Debian GNU/Linux, kernel 2.6.18-13etch1-ccs (recovery mode)
 root        (hd0,0)
-kernel      /boot/vmlinuz-2.6.18-12etch2-ccs root=/dev/sda1 ro noapic nolapic single
-initrd      /boot/initrd.img-2.6.18-12etch2-ccs
+kernel      /boot/vmlinuz-2.6.18-13etch1-ccs root=/dev/sda1 ro noapic nolapic single
+initrd      /boot/initrd.img-2.6.18-13etch1-ccs
 savedefault
 </pre>
 
@@ -117,16 +117,16 @@ bashを使っている場合には以下のようにします。</p>
 /boot/grub/menu.lstのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
 
 <pre>
-title       Debian GNU/Linux, kernel 2.6.18-12etch2-ccs
+title       Debian GNU/Linux, kernel 2.6.18-13etch1-ccs
 root        (hd0,0)
-kernel      /boot/vmlinuz-2.6.18-12etch2-ccs root=/dev/sda1 ro noapic nolapic <span class="user">init=/.init</span>
-initrd      /boot/initrd.img-2.6.18-12etch2-ccs
+kernel      /boot/vmlinuz-2.6.18-13etch1-ccs root=/dev/sda1 ro noapic nolapic <span class="user">init=/.init</span>
+initrd      /boot/initrd.img-2.6.18-13etch1-ccs
 savedefault
 
-title       Debian GNU/Linux, kernel 2.6.18-12etch2-ccs (recovery mode)
+title       Debian GNU/Linux, kernel 2.6.18-13etch1-ccs (recovery mode)
 root        (hd0,0)
-kernel      /boot/vmlinuz-2.6.18-12etch2-ccs root=/dev/sda1 ro noapic nolapic single <span class="user">init=/.init</span>
-initrd      /boot/initrd.img-2.6.18-12etch2-ccs
+kernel      /boot/vmlinuz-2.6.18-13etch1-ccs root=/dev/sda1 ro noapic nolapic single <span class="user">init=/.init</span>
+initrd      /boot/initrd.img-2.6.18-13etch1-ccs
 savedefault
 </pre>
 
