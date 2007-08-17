@@ -6,15 +6,11 @@ of TOMOYO Linux.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
----
- security/tomoyo/common.c | 2124 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2124 insertions(+)
-
-Index: src/security/tomoyo/common.c
+Index: linux-2.6.23-rc3-tomoyo-2.1/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/common.c	2007-08-17 16:16:47.000000000 +0900
-@@ -0,0 +1,2124 @@
++++ linux-2.6.23-rc3-tomoyo-2.1/security/tomoyo/common.c	2007-08-17 17:33:26.843517224 +0900
+@@ -0,0 +1,2203 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -86,10 +82,18 @@ Index: src/security/tomoyo/common.c
 +	return !current->uid && !current->euid;
 +}
 +
-+/*
-+ * Format string.
-+ * Leading and trailing whitespaces are removed.
-+ * Multiple whitespaces are packed into single space.
++/**
++ * tmy_normalize_line - make a line tidy
++ * @buffer:        the line to make tidy.
++ *
++ * All tokens (such as pathnames) used in TOMOYO Linux contains
++ * only ASCII printable (i.e. 0x21-0x7E) range characters.
++ * This allows policy files and auditing logs split monotonically
++ * using space (i.e. ' ') and new line (i.e. '\n') characters.
++ *
++ * Purge non ASCII printable chracters,
++ * remove leading and trailing whitespaces and
++ * pack multiple whitespaces into single space.
 + */
 +static void tmy_normalize_line(unsigned char *buffer)
 +{
@@ -121,9 +125,24 @@ Index: src/security/tomoyo/common.c
 +		(((unsigned char) (e - '0')));
 +}
 +
-+/*
-+ *  Check whether the given filename follows the naming rules.
-+ *  Returns nonzero if follows, zero otherwise.
++/**
++ * tmy_correct_path - validate a pathname
++ * @filename:        the pathname to check
++ * @start_type:      1 if the pathname must start with '/'
++ *                   -1 if the pathname must not start with '/'
++ *                   0 if it does not matter
++ * @pattern_type     1 if the pathname must contain patterns
++ *                   -1 if the pathname must not contain patte
++ *                   0 if it does not matter
++ * @end_type         1 if the pathname must end with '/'
++ *                   -1 if the pathname must not end with '/'
++ *                   0 if it does not matter
++ * @function         string to display if the pathname is invalid
++ *
++ * Returns nonzero if the pathname is valid.
++ * Returns zero otherwise.
++ *
++ * Check whether the given pathname follows the naming rules.
 + */
 +int tmy_correct_path(const char *filename,
 +		     const int start_type,
@@ -213,9 +232,15 @@ Index: src/security/tomoyo/common.c
 +	return 0;
 +}
 +
-+/*
-+ *  Check whether the given domainname follows the naming rules.
-+ *  Returns nonzero if follows, zero otherwise.
++/**
++ * tmy_is_correct_domain - validate a domainname
++ * @domainname:      the domainname to check
++ * @function         string to display if the domainname is invalid
++ *
++ * Returns nonzero if the domainname is valid.
++ * Returns zero otherwise.
++ *
++ * Check whether the given pathname follows the naming rules.
 + */
 +int tmy_is_correct_domain(const unsigned char *domainname,
 +			  const char *function)
@@ -331,6 +356,13 @@ Index: src/security/tomoyo/common.c
 +	return len;
 +}
 +
++/**
++ * tmy_fill_path_info - fill "struct path_info" entry.
++ * @ptr:        pointer to "struct path_info"
++ *
++ * Caller stores a token in "struct path_info"->name .
++ * This function will fill rest of "struct path_info" menbers.
++ */
 +void tmy_fill_path_info(struct path_info *ptr)
 +{
 +	const char *name = ptr->name;
@@ -343,6 +375,21 @@ Index: src/security/tomoyo/common.c
 +	ptr->depth = tmy_path_depth(name);
 +}
 +
++/**
++ * tmy_file_match2 - internal function for tmy_path_match
++ * @filename:        start address of the token
++ * @filename_end:    end address of the token
++ * @pattern:         start address of the pattern
++ * @pattern_end:     end address of the pattern
++ *
++ * Handle all patterns other than '\-' pattern.
++ * Returns nonzero if matches.
++ * Returns zero otherwise.
++ *
++ * @filename and @pattern do not contain '/'.
++ * @filename and @pattern are not '\0'-terminated.
++ * @pattern does not contain '\-'.
++ */
 +static int tmy_file_match2(const char *filename,
 +			   const char *filename_end,
 +			   const char *pattern,
@@ -486,6 +533,20 @@ Index: src/security/tomoyo/common.c
 +	return (filename == filename_end && pattern == pattern_end);
 +}
 +
++/**
++ * tmy_file_match - internal function for tmy_path_match
++ * @filename:        start address of the token
++ * @filename_end:    end address of the token
++ * @pattern:         start address of the pattern
++ * @pattern_end:     end address of the pattern
++ *
++ * Handle patterns containing '\-' pattern.
++ * Returns nonzero if matches.
++ * Returns zero otherwise.
++ *
++ * @filename and @pattern do not contain '/'.
++ * @filename and @pattern are not '\0'-terminated.
++ */
 +static int tmy_file_match(const char *filename,
 +			  const char *filename_end,
 +			  const char *pattern,
@@ -516,9 +577,16 @@ Index: src/security/tomoyo/common.c
 +	return first ? result : !result;
 +}
 +
-+/*
++/**
++ * tmy_path_match - do a pattern matching
++ * @pathname0:        a token to compare
++ * @pattern0:         a pattern to compare 
++ *
++ * Returns nonzero if @pathname0 matches to @pattern0
++ * Returns zero otherwise.
++ *
++ *
 + *  Check whether the given pathname matches to the given pattern.
-+ *  Returns nonzero if matches, zero otherwise.
 + *
 + *  The following patterns are available.
 + *    \\     \ itself.
@@ -534,7 +602,6 @@ Index: src/security/tomoyo/common.c
 + *    \a     1 alphabet character.
 + *    \-     Subtraction operator.
 + */
-+
 +int tmy_path_match(const struct path_info *pathname0,
 +		   const struct path_info *pattern0)
 +{
@@ -582,10 +649,18 @@ Index: src/security/tomoyo/common.c
 +	return (!*pathname && !*pattern);
 +}
 +
-+/*
-+ *  Transactional printf() to struct io_buffer structure.
-+ *  snprintf() will truncate, but tmy_io_printf() won't.
-+ *  Returns zero on success, nonzero otherwise.
++/**
++ * tmy_io_printf - transactional printf() for "struct io_buffer"
++ * @head:        pointer to "struct io_buffer"
++ * @fmt:         format strings for printf()
++ *
++ * Returns zero on success.
++ * Returns nonzero otherwise. 
++ *
++ * Transactional printf() to struct io_buffer structure.
++ * snprintf() will truncate, but tmy_io_printf() won't.
++ * This is needed because dumping partially truncated tokens
++ * is not acceptable for TOMOYO Linux.
 + */
 +int tmy_io_printf(struct io_buffer *head, const char *fmt, ...)
 +{
