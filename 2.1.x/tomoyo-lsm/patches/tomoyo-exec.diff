@@ -12,10 +12,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/exec.c |  231 +++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 231 insertions(+)
 
-Index: src/security/tomoyo/exec.c
+Index: linux-2.6/security/tomoyo/exec.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/exec.c	2007-08-17 17:37:30.000000000 +0900
++++ linux-2.6/security/tomoyo/exec.c	2007-08-10 21:48:21.000000000 +0900
 @@ -0,0 +1,231 @@
 +/*
 + * security/tomoyo/exec.c
@@ -149,7 +149,7 @@ Index: src/security/tomoyo/exec.c
 +			continue;
 +		}
 +
-+first_entry: ;
++first_entry:
 +		if (!force && tmy_too_many_acl(domain))
 +			break;
 +

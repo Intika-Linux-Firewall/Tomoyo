@@ -9,11 +9,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/realpath.c |  605 +++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 605 insertions(+)
 
-Index: src/security/tomoyo/realpath.c
+Index: linux-2.6/security/tomoyo/realpath.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/realpath.c	2007-08-17 19:20:53.000000000 +0900
-@@ -0,0 +1,605 @@
++++ linux-2.6/security/tomoyo/realpath.c	2007-08-17 23:39:07.000000000 +0900
+@@ -0,0 +1,690 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -36,6 +36,8 @@ Index: src/security/tomoyo/realpath.c
 +#include <linux/sysctl.h>
 +#include "realpath.h"
 +#include "tomoyo.h"
++
++/***** realpath handler *****/
 +
 +static int tmy_print_ascii(const char *sp, const char *cp,
 +			   int *buflen0, char **end0)
@@ -73,22 +75,26 @@ Index: src/security/tomoyo/realpath.c
 +	*end0 = end;
 +
 +	return 0;
-+out: ;
++out:
 +	return -ENOMEM;
 +}
 +
-+/***** realpath handler *****/
-+
-+/*
++/**
 + * tmy_get_absolute_path -
-+ *    return the path of a dentry but ignores chroot'ed root.
++ *    return the realpath of a dentry.
 + * @dentry: dentry to report
-+ * @vfsmnt: vfsmnt to which the dentry belongs
++ * @vfsmnt: vfsmount to which the dentry belongs
 + * @buffer: buffer to return value in
 + * @buflen: buffer length
 + *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ *
 + * Caller holds the dcache_lock.
 + * Based on __d_path() in fs/dcache.c
++ *
++ * Unlike d_path(), this function traverses upto the root directory of
++ * process's namespace.
 + *
 + * If dentry is a directory, trailing '/' is appended.
 + * Characters other than ' ' < c < 127 are converted to \ooo style octal string.
@@ -111,7 +117,7 @@ Index: src/security/tomoyo/realpath.c
 +	*--end = '\0';
 +	buflen--;
 +
-+	while (1) {
++	for (; ; ) {
 +		struct dentry *parent;
 +
 +		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
@@ -151,10 +157,6 @@ Index: src/security/tomoyo/realpath.c
 +				cp = sp + 3;
 +			}
 +
-+			if (!*ep && pid == current->pid) {
-+				sp = "self";
-+				cp = sp + 3;
-+			}
 +		}
 +
 +		if (tmy_print_ascii(sp, cp, &buflen, &end))
@@ -180,19 +182,20 @@ Index: src/security/tomoyo/realpath.c
 +	/* Move the pathname to the top of the buffer. */
 +	memmove(start, end, strlen(end) + 1);
 +	return 0;
-+out: ;
++out:
 +	return -ENOMEM;
 +}
 +
-+/*
-+ * tmy_realpath_dentry2 - Returns realpath(3) of the given dentry.
-+ * @dentry: dentry of target file
-+ * @mnt: vfsmount of target file
-+ * @newname: buffer to return value in
-+ * @newname_len: newname length
++/**
++ * tmy_realpath_dentry2 -
++ *    return the realpath of a dentry.
++ * @dentry:      "struct dentry" to report
++ * @mnt:         "struct vfsmount" to which the @dentry belongs
++ * @newname:     buffer to store the result
++ * @newname_len: size of @newname
 + *
-+ * This function returns realpath(3) of the given dentry
-+ * but ignores chroot'ed root.
++ * Returns zero on success.
++ * Returns nonzero on failure.
 + */
 +int tmy_realpath_dentry2(struct dentry *dentry,
 +			 struct vfsmount *mnt,
@@ -205,11 +208,6 @@ Index: src/security/tomoyo/realpath.c
 +
 +	if (!dentry || !mnt || !newname || newname_len <= 0)
 +		return -EINVAL;
-+	if (!current->fs) {
-+		printk(KERN_INFO "%s: current->fs == NULL for pid=%d\n",
-+		       __FUNCTION__, current->pid);
-+		return -ENOENT;
-+	}
 +
 +	d_dentry = dget(dentry);
 +	d_mnt = mntget(mnt);
@@ -225,9 +223,17 @@ Index: src/security/tomoyo/realpath.c
 +	return error;
 +}
 +
-+/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
-+/* These functions use tmy_alloc(), so caller must tmy_free() */
-+/* if these functions didn't return NULL. */
++/**
++ * tmy_realpath_dentry - return the realpath of a dentry.
++ * @dentry:      "struct dentry" to report
++ * @mnt:         "struct vfsmount" to which the @dentry belongs
++ *
++ * Returns realpath(3) of the @dentry on success.
++ * Returns NULL on failure.
++ *
++ * This function uses tmy_alloc(), so caller must call tmy_free()
++ * if this function didn't return NULL.
++ */
 +char *tmy_realpath_dentry(struct dentry *dentry, struct vfsmount *mnt)
 +{
 +	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
@@ -241,6 +247,16 @@ Index: src/security/tomoyo/realpath.c
 +	return NULL;
 +}
 +
++/**
++ * tmy_realpath - return the realpath of a pathname.
++ * @pathname:      pathname to report
++ *
++ * Returns realpath(3) of the @pathname on success.
++ * Returns NULL on failure.
++ *
++ * This function uses tmy_alloc(), so caller must call tmy_free()
++ * if this function didn't return NULL.
++ */
 +char *tmy_realpath(const char *pathname)
 +{
 +	struct nameidata nd;
@@ -255,6 +271,19 @@ Index: src/security/tomoyo/realpath.c
 +	return NULL;
 +}
 +
++/**
++ * tmy_realpath_nofollow - return the realpath of a pathname.
++ * @pathname:      pathname to report
++ *
++ * Returns realpath(3) of the @pathname on success.
++ * Returns NULL on failure.
++ *
++ * Unlike tmy_realpath(), this function doesn't follow if @pathname is
++ * a symbolic link.
++ *
++ * This function uses tmy_alloc(), so caller must call tmy_free()
++ * if this function didn't return NULL.
++ */
 +char *tmy_realpath_nofollow(const char *pathname)
 +{
 +	struct nameidata nd;
@@ -266,6 +295,69 @@ Index: src/security/tomoyo/realpath.c
 +		return buf;
 +	}
 +
++	return NULL;
++}
++
++static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
++{
++	char *end = buffer + buflen;
++
++	if (buflen < 256)
++		goto out;
++
++	*--end = '\0';
++	buflen--;
++
++	buflen -= 9; /* for "/proc/sys" prefix */
++
++	while (table) {
++		char buf[32];
++		const char *sp = table->procname;
++		const char *cp;
++
++		if (!sp) {
++			memset(buf, 0, sizeof(buf));
++			snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
++			sp = buf;
++		}
++		cp = strchr(sp, '\0') - 1;
++
++		if (tmy_print_ascii(sp, cp, &buflen, &end))
++			goto out;
++
++		if (--buflen < 0)
++			goto out;
++
++		*--end = '/';
++		table = table->parent;
++	}
++
++	/* Move the pathname to the top of the buffer. */
++	memmove(buffer, "/proc/sys", 9);
++	memmove(buffer + 9, end, strlen(end) + 1);
++	return 0;
++out:
++	return -ENOMEM;
++}
++
++/**
++ * sysctlpath_from_table - return the realpath of a ctl_table.
++ * @table:      "struct ctl_table" to report
++ *
++ * Returns realpath(3) of the @table on success.
++ * Returns NULL on failure.
++ *
++ * This function uses tmy_alloc(), so caller must call tmy_free()
++ * if this function didn't return NULL.
++ */
++char *sysctlpath_from_table(struct ctl_table *table)
++{
++	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
++
++	if (buf && tmy_sysctl_path(table, buf, TMY_MAX_PATHNAME_LEN - 1) == 0)
++		return buf;
++
++	tmy_free(buf);
 +	return NULL;
 +}
 +
@@ -287,13 +379,26 @@ Index: src/security/tomoyo/realpath.c
 +
 +static unsigned int allocated_memory_for_elements;
 +
++/**
++ * tmy_get_memory_used_for_elements - get memory usage for private data
++ *
++ * Returns size of memory allocated for keeping individual ACL elements.
++ */
 +unsigned int tmy_get_memory_used_for_elements(void)
 +{
 +	return allocated_memory_for_elements;
 +}
 +
-+/* Allocate memory for structures. */
-+/* The RAM is chunked, so NEVER try to kfree() the returned pointer. */
++/**
++ * tmy_alloc_element - allocate memory for structures
++ * @size:    Requested size in bytes.
++ *
++ * Returns zero-initialized memory region on success.
++ * Returns NULL on failure.
++ *
++ * This function allocates memory for keeping ACL entries.
++ * The RAM is chunked, so NEVER try to kfree() the returned pointer.
++ */
 +void *tmy_alloc_element(const unsigned int size)
 +{
 +	static DECLARE_MUTEX(lock);
@@ -324,7 +429,7 @@ Index: src/security/tomoyo/realpath.c
 +		}
 +
 +	} else if (word_aligned_size) {
-+		unsigned int i;
++		int i;
 +
 +		ptr = buf + buf_used_len;
 +		buf_used_len += word_aligned_size;
@@ -348,6 +453,11 @@ Index: src/security/tomoyo/realpath.c
 +
 +static unsigned int allocated_memory_for_savename;
 +
++/**
++ * tmy_get_memory_used_for_save_name - get memory usage for shared data
++ *
++ * Returns size of memory allocated for keeping string tokens.
++ */
 +unsigned int tmy_get_memory_used_for_save_name(void)
 +{
 +	return allocated_memory_for_savename;
@@ -367,15 +477,22 @@ Index: src/security/tomoyo/realpath.c
 +	int len;   /* Length of the area.     */
 +};
 +
-+/* Keep the given name on the RAM. */
-+/* The RAM is shared, so NEVER try to modify or kfree() the returned name. */
++/**
++ * tmy_save_name - keep the given token on the RAM
++ * @name:    the string token to remember
++ *
++ * Returns pointer to memory region on success.
++ * Returns NULL on failure.
++ *
++ * This function allocates memory for keeping any string data.
++ * The RAM is shared, so NEVER try to modify or kfree() the returned name.
++ */
 +const struct path_info *tmy_save_name(const char *name)
 +{
 +	static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
 +	static struct name_entry name_list[MAX_HASH]; /* The list of names. */
 +	static DECLARE_MUTEX(lock);
-+	struct name_entry *ptr;
-+	struct name_entry *prev = NULL;
++	struct name_entry *ptr, *prev = NULL;
 +	unsigned int hash;
 +	struct free_memory_block_list *fmb = &fmb_list;
 +	int len;
@@ -433,7 +550,7 @@ Index: src/security/tomoyo/realpath.c
 +		fmb->next = tmy_alloc_element(sizeof(*fmb));
 +		if (!fmb->next) {
 +			kfree(cp);
-+out2: ;
++out2:
 +			printk(KERN_INFO
 +			       "ERROR: Out of memory for tmy_save_name().\n");
 +			if (!sbin_init_started)
@@ -466,7 +583,7 @@ Index: src/security/tomoyo/realpath.c
 +			ptr = ptr->next;
 +		ptr->next = fmb->next;
 +	}
-+out: ;
++out:
 +
 +	up(&lock);
 +
@@ -483,40 +600,52 @@ Index: src/security/tomoyo/realpath.c
 +
 +static struct kmem_cache *tmy_cachep;
 +
++/**
++ * tmy_realpath_init - initialize memory allocator.
++ */
 +void tmy_realpath_init(void)
 +{
 +	tmy_cachep = kmem_cache_create("tomoyo_cache",
 +				       sizeof(struct cache_entry),
-+				       0, 0, NULL);
-+	if (!tmy_cachep)
-+		panic("Can't create cache.\n");
++				       0, SLAB_PANIC, NULL);
 +}
 +
 +static LIST_HEAD(cache_list);
 +static spinlock_t cache_list_lock = SPIN_LOCK_UNLOCKED;
 +static unsigned int dynamic_memory_size;
 +
++/**
++ * tmy_get_memory_used_for_dynamic - get memory usage for temporary purpose
++ *
++ * Returns size of memory allocated for keeping temporary purpose.
++ */
 +unsigned int tmy_get_memory_used_for_dynamic(void)
 +{
 +	return dynamic_memory_size;
 +}
 +
++/**
++ * tmy_alloc - allocate memory for temporary purpose
++ * @size:    Requested size in bytes.
++ *
++ * Returns zero-initialized memory region on success.
++ * Returns NULL on failure.
++ *
++ * This function allocates memory for keeping ACL entries.
++ * The caller has to call tmy_free() the returned pointer
++ * when memory is no longer needed.
++ */
 +void *tmy_alloc(const size_t size)
 +{
 +	void *ret = kmalloc(size, GFP_KERNEL);
 +	struct cache_entry *new_entry;
 +
-+	if (!ret) {
-+		printk(KERN_INFO "ERROR: "
-+		       "kmalloc(): Out of memory for tmy_alloc().\n");
++	if (!ret)
 +		return ret;
-+	}
 +
 +	new_entry = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
 +
 +	if (!new_entry) {
-+		printk(KERN_INFO "ERROR: "
-+		       "kmem_cache_alloc(): Out of memory for tmy_alloc().\n");
 +		kfree(ret);
 +		ret = NULL;
 +	} else {
@@ -537,6 +666,15 @@ Index: src/security/tomoyo/realpath.c
 +	return ret;
 +}
 +
++/**
++ * tmy_free - free memory allocated by tmy_alloc
++ * @p:    Pointer returned by tmy_alloc.
++ *
++ * If caller calls this function for multiple times (i.e. double-free() bug) or
++ * calls this function with invalid pointer, warning message will appear.
++ * If caller forgets to call this function,
++ * tmy_get_memory_used_for_dynamic() will report memory leaks.
++ */
 +void tmy_free(const void *p)
 +{
 +	struct list_head *v;
@@ -546,7 +684,7 @@ Index: src/security/tomoyo/realpath.c
 +
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&cache_list_lock);
-+	list_for_each_prev(v, &cache_list) {
++	list_for_each(v, &cache_list) {
 +		entry = list_entry(v, struct cache_entry, list);
 +		if (entry->ptr != p) {
 +			entry = NULL;
@@ -565,57 +703,4 @@ Index: src/security/tomoyo/realpath.c
 +	} else
 +		printk(KERN_INFO "BUG: tmy_free() with invalid pointer.\n");
 +
-+}
-+
-+static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
-+{
-+	char *end = buffer + buflen;
-+
-+	if (buflen < 256)
-+		goto out;
-+
-+	*--end = '\0';
-+	buflen--;
-+
-+	buflen -= 9; /* for "/proc/sys" prefix */
-+
-+	while (table) {
-+		char buf[32];
-+		const char *sp = table->procname;
-+		const char *cp;
-+
-+		if (!sp) {
-+			memset(buf, 0, sizeof(buf));
-+			snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
-+			sp = buf;
-+		}
-+		cp = strchr(sp, '\0') - 1;
-+
-+		if (tmy_print_ascii(sp, cp, &buflen, &end))
-+			goto out;
-+
-+		if (--buflen < 0)
-+			goto out;
-+
-+		*--end = '/';
-+		table = table->parent;
-+	}
-+
-+	/* Move the pathname to the top of the buffer. */
-+	memmove(buffer, "/proc/sys", 9);
-+	memmove(buffer + 9, end, strlen(end) + 1);
-+	return 0;
-+out: ;
-+	return -ENOMEM;
-+}
-+
-+char *sysctlpath_from_table(struct ctl_table *table)
-+{
-+	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
-+
-+	if (buf && tmy_sysctl_path(table, buf, TMY_MAX_PATHNAME_LEN - 1) == 0)
-+		return buf;
-+
-+	tmy_free(buf);
-+	return NULL;
 +}

@@ -17,11 +17,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/net.c |  900 ++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 900 insertions(+)
 
-Index: src/security/tomoyo/net.c
+Index: linux-2.6/security/tomoyo/net.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/net.c	2007-08-17 17:37:30.000000000 +0900
-@@ -0,0 +1,900 @@
++++ linux-2.6/security/tomoyo/net.c	2007-08-10 23:20:17.000000000 +0900
+@@ -0,0 +1,905 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -65,7 +65,7 @@ Index: src/security/tomoyo/net.c
 +	else {
 +		u32 ip = *address;
 +		snprintf(buf + strlen(buf), len - strlen(buf) - 1,
-+			 NIPQUAD_FMT, NIPQUAD(ip));
++			 "%u.%u.%u.%u", NIPQUAD(ip));
 +	}
 +
 +	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u", port);
@@ -84,10 +84,8 @@ Index: src/security/tomoyo/net.c
 +				    const int is_delete)
 +{
 +	static DECLARE_MUTEX(lock);
-+	struct addr_group_entry *new_group;
-+	struct addr_group_entry *group;
-+	struct addr_group_member *new_member;
-+	struct addr_group_member *member;
++	struct addr_group_entry *new_group, *group;
++	struct addr_group_member *new_member, *member;
 +	const struct path_info *saved_group_name;
 +	int error = -ENOMEM;
 +
@@ -176,7 +174,7 @@ Index: src/security/tomoyo/net.c
 +		group->first_member = new_member;
 +
 +	error = 0;
-+out: ;
++out:
 +	up(&lock);
 +
 +	return error;
@@ -188,8 +186,6 @@ Index: src/security/tomoyo/net.c
 +	int is_ipv6;
 +	u16 min_address[8];
 +	u16 max_address[8];
-+	unsigned int min[8];
-+	unsigned int max[8];
 +	char *cp = strchr(data, ' ');
 +
 +	if (!cp)
@@ -197,19 +193,24 @@ Index: src/security/tomoyo/net.c
 +
 +	*cp++ = '\0';
 +	count = sscanf(cp,
-+		       NIP6_FMT "-" NIP6_FMT,
-+		       &min[0], &min[1], &min[2], &min[3],
-+		       &min[4], &min[5], &min[6], &min[7],
-+		       &max[0], &max[1], &max[2], &max[3],
-+		       &max[4], &max[5], &max[6], &max[7]);
++		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
++		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
++		       &min_address[0], &min_address[1],
++		       &min_address[2], &min_address[3],
++		       &min_address[4], &min_address[5],
++		       &min_address[6], &min_address[7],
++		       &max_address[0], &max_address[1],
++		       &max_address[2], &max_address[3],
++		       &max_address[4], &max_address[5],
++		       &max_address[6], &max_address[7]);
 +
 +	if (count == 8 || count == 16) {
 +
 +		int i;
 +
 +		for (i = 0; i < 8; i++) {
-+			min_address[i] = htons((u16) min[i]);
-+			max_address[i] = htons((u16) max[i]);
++			min_address[i] = htons(min_address[i]);
++			max_address[i] = htons(max_address[i]);
 +		}
 +		if (count == 8)
 +			memmove(max_address, min_address, sizeof(min_address));
@@ -220,25 +221,25 @@ Index: src/security/tomoyo/net.c
 +	}
 +
 +	count = sscanf(cp,
-+		       NIPQUAD_FMT "-" NIPQUAD_FMT,
-+		       &min[0], &min[1],
-+		       &min[2], &min[3],
-+		       &max[0], &max[1],
-+		       &max[2], &max[3]);
++		       "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
++		       &min_address[0], &min_address[1],
++		       &min_address[2], &min_address[3],
++		       &max_address[0], &max_address[1],
++		       &max_address[2], &max_address[3]);
 +
 +	if (count == 4 || count == 8) {
-+		u32 ip = ((((u8) min[0]) << 24) +
-+			  (((u8) min[1]) << 16) +
-+			  (((u8) min[2]) << 8) +
-+			  (u8) min[3]);
++		u32 ip = ((((u8) min_address[0]) << 24) +
++			  (((u8) min_address[1]) << 16) +
++			  (((u8) min_address[2]) << 8) +
++			  (u8) min_address[3]);
 +
 +		* (u32 *) min_address = ip;
 +
 +		if (count == 8)
-+			ip = ((((u8) max[0]) << 24) +
-+			      (((u8) max[1]) << 16) +
-+			      (((u8) max[2]) << 8) +
-+			      (u8) max[3]);
++			ip = ((((u8) max_address[0]) << 24) +
++			      (((u8) max_address[1]) << 16) +
++			      (((u8) max_address[2]) << 8) +
++			      (u8) max_address[3]);
 +
 +		* (u32 *) max_address = ip;
 +		is_ipv6 = 0;
@@ -249,7 +250,7 @@ Index: src/security/tomoyo/net.c
 +
 +	return -EINVAL;
 +
-+ok: ;
++ok:
 +	return tmy_add_addr_group_entry(data, is_ipv6, min_address, max_address,
 +					is_delete);
 +}
@@ -339,13 +340,13 @@ Index: src/security/tomoyo/net.c
 +
 +		memset(buf, 0, sizeof(buf));
 +		snprintf(buf, sizeof(buf) - 1,
-+			 NIPQUAD_FMT, HIPQUAD(min_addr));
++			 "%u.%u.%u.%u", HIPQUAD(min_addr));
 +
 +		if (min_addr != max_addr) {
 +			const int len = strlen(buf);
 +
 +			snprintf(buf + len, sizeof(buf) - 1 - len,
-+				 "-" NIPQUAD_FMT, HIPQUAD(max_addr));
++				 "-%u.%u.%u.%u", HIPQUAD(max_addr));
 +		}
 +
 +	}
@@ -392,7 +393,7 @@ Index: src/security/tomoyo/net.c
 +char *tmy_print_ipv6(char *buffer, const int buffer_len, const u16 *ip)
 +{
 +	memset(buffer, 0, buffer_len);
-+	snprintf(buffer, buffer_len - 1, NIP6_FMT,
++	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x",
 +		 ntohs(ip[0]), ntohs(ip[1]), ntohs(ip[2]), ntohs(ip[3]),
 +		 ntohs(ip[4]), ntohs(ip[5]), ntohs(ip[6]), ntohs(ip[7]));
 +	return buffer;
@@ -560,7 +561,7 @@ Index: src/security/tomoyo/net.c
 +			ptr = ptr->next;
 +			continue;
 +		}
-+first_entry: ;
++first_entry:
 +		if (!force && tmy_too_many_acl(domain))
 +			break;
 +
@@ -656,7 +657,7 @@ Index: src/security/tomoyo/net.c
 +		}
 +
 +		return tmy_supervisor("%s\n" TMY_ALLOW_NETWORK
-+				      "%s " NIPQUAD_FMT " %u\n",
++				      "%s %u.%u.%u.%u %u\n",
 +				      domain->domainname->name, keyword,
 +				      HIPQUAD(ip), port);
 +
@@ -680,8 +681,6 @@ Index: src/security/tomoyo/net.c
 +	u8 record_type;
 +	u16 min_address[8];
 +	u16 max_address[8];
-+	unsigned int min[8];
-+	unsigned int max[8];
 +	struct addr_group_entry *group = NULL;
 +	u16 min_port;
 +	u16 max_port;
@@ -749,19 +748,24 @@ Index: src/security/tomoyo/net.c
 +	*cp1++ = '\0';
 +
 +	count = sscanf(cp2,
-+		       NIP6_FMT "-" NIP6_FMT,
-+		       &min[0], &min[1], &min[2], &min[3],
-+		       &min[4], &min[5], &min[6], &min[7],
-+		       &max[0], &max[1], &max[2], &max[3],
-+		       &max[4], &max[5], &max[6], &max[7]);
++		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
++		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
++		       &min_address[0], &min_address[1],
++		       &min_address[2], &min_address[3],
++		       &min_address[4], &min_address[5],
++		       &min_address[6], &min_address[7],
++		       &max_address[0], &max_address[1],
++		       &max_address[2], &max_address[3],
++		       &max_address[4], &max_address[5],
++		       &max_address[6], &max_address[7]);
 +
 +	if (count == 8 || count == 16) {
 +
 +		int i;
 +
 +		for (i = 0; i < 8; i++) {
-+			min_address[i] = htons((u16) min[i]);
-+			max_address[i] = htons((u16) max[i]);
++			min_address[i] = htons(min_address[i]);
++			max_address[i] = htons(max_address[i]);
 +		}
 +
 +		if (count == 8)
@@ -772,24 +776,25 @@ Index: src/security/tomoyo/net.c
 +
 +	}
 +
-+	count = sscanf(cp2,
-+		       NIPQUAD_FMT "-" NIPQUAD_FMT,
-+		       &min[0], &min[1], &min[2], &min[3],
-+		       &max[0], &max[1], &max[2], &max[3]);
++	count = sscanf(cp2, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
++		       &min_address[0], &min_address[1],
++		       &min_address[2], &min_address[3],
++		       &max_address[0], &max_address[1],
++		       &max_address[2], &max_address[3]);
 +
 +	if (count == 4 || count == 8) {
 +
-+		u32 ip = htonl((((u8) min[0]) << 24) +
-+			       (((u8) min[1]) << 16) +
-+			       (((u8) min[2]) << 8) +
-+			       (u8) min[3]);
++		u32 ip = htonl((((u8) min_address[0]) << 24) +
++			       (((u8) min_address[1]) << 16) +
++			       (((u8) min_address[2]) << 8) +
++			       (u8) min_address[3]);
 +		* (u32 *) min_address = ip;
 +
 +		if (count == 8)
-+			ip = htonl((((u8) max[0]) << 24) +
-+				   (((u8) max[1]) << 16) +
-+				   (((u8) max[2]) << 8) +
-+				   (u8) max[3]);
++			ip = htonl((((u8) max_address[0]) << 24) +
++				   (((u8) max_address[1]) << 16) +
++				   (((u8) max_address[2]) << 8) +
++				   (u8) max_address[3]);
 +		* (u32 *) max_address = ip;
 +		record_type = TMY_TYPE_IPv4;
 +
@@ -809,7 +814,7 @@ Index: src/security/tomoyo/net.c
 +
 +	goto out;
 +
-+ok: ;
++ok:
 +	if (strchr(cp1, ' '))
 +		goto out;
 +
@@ -831,7 +836,7 @@ Index: src/security/tomoyo/net.c
 +					     (u32 *) max_address,
 +					     min_port, max_port, domain, 1);
 +
-+out: ;
++out:
 +	return -EINVAL;
 +}
 +
