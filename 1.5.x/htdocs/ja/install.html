@@ -90,57 +90,6 @@ Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.
 
 <p>なお、 TOMOYO Linux 自身は SELinux と同時に使用することができます。以下の操作では SELinux を有効にした状態でも構いません。</p>
 
-<p> rpm の場合、インストールに成功すると /boot/grub/grub.conf に以下のような記述が追加されているはずです。</p>
-
-<table border="1">
-<tr><td>
-title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-55.0.2.EL_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00<br>
-&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-55.0.2.EL_tomoyo_1.4.2.img
-</td></tr>
-</table>
-
-<p>ここで、 kernel の行の末尾に init=/.init を追加します。</p>
-
-<table border="1">
-<tr><td>
-title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-55.0.2.EL_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00 init=/.init<br>
-&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-55.0.2.EL_tomoyo_1.4.2.img
-</td></tr>
-</table>
-
-<p> deb の場合、インストールに成功すると /boot/grub/menu.lst に以下のような記述が追加されているはずです。</p>
-
-<table border="1">
-<tr><td>
-title Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs<br>
-root (hd0,0)<br>
-kernel /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro<br>
-initrd /boot/initrd.img-2.6.8-16sarge7-ccs<br>
-savedefault<br>
-boot
-</td></tr>
-</table>
-
-<p>ここで、 kernel の行の末尾に init=/.init を追加します。</p>
-
-<table border="1">
-<tr><td>
-title Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs<br>
-root (hd0,0)<br>
-kernel /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro init=/.init<br>
-initrd /boot/initrd.img-2.6.8-16sarge7-ccs<br>
-savedefault<br>
-boot
-</td></tr>
-</table>
-
-<p>/.init は TOMOYO Linux のポリシーをカーネルに読み込むためのスクリプトで、 /sbin/init の開始前に実行されます。<br>
-/.init は次の手順でインストールするツールの中に含まれています。</p>
-
 <h2>TOMOYO Linux ツールのインストール</h2>
 
 <p>TOMOYO Linux では、いくつかのコンパイル済みのツールを提供しています。コンパイル済みのツールを利用する場合は、以下のファイルをダウンロードして /root/ ディレクトリの下に展開してください。</p>
@@ -200,11 +149,11 @@ http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools_1.4.2-nlug1_i386.deb
 </td></tr>
 </table>
 
-<p>展開された .init （ポリシーローダー）を / へ移動してください。</p>
+<p>展開された .init （ポリシーローダー）を /sbin/ccs-init へ移動してください。</p>
 
 <table border="1">
 <tr><td>
-mv ccstools/.init /
+mv ccstools/.init /sbin/ccs-init
 </td></tr>
 </table>
 
@@ -219,8 +168,8 @@ wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.
 tar -zxf ccs-tools.tar.gz<br>
 # コンパイルする。<br>
 make -sC ccstools/<br>
-# ポリシーローダーを / へ移動する。<br>
-mv ccstools/.init /
+# ポリシーローダーを /sbin/ccs-init へ移動する。<br>
+mv ccstools/.init /sbin/ccs-init
 </td></tr>
 </table>
 
@@ -256,12 +205,12 @@ mkdir -m 700 /etc/ccs
 </td></tr>
 </table>
 
-<p>ポリシーの変更を許可するプログラムを /etc/ccs/manager.txt に指定します。<br>
+<p>ポリシーの変更を許可するプログラムを /etc/ccs/manager.conf に指定します。<br>
 具体的には、ポリシーを再読み込みする loadpolicy 、ポリシーを編集する editpolicy 、制御レベルを変更する setlevel 、ドメインのプロファイルを変更する setprofile 、無条件読み込み許可を更新する ld-watch 、対話的にアクセス要求を許可する ccs-queryd の６つを指定してください。</p>
 
 <table border="1">
 <tr><td>
-cat &gt; /etc/ccs/manager.txt &lt;&lt; EOF<br>
+cat &gt; /etc/ccs/manager.conf &lt;&lt; EOF<br>
 /root/ccstools/loadpolicy<br>
 /root/ccstools/editpolicy<br>
 /root/ccstools/setlevel<br>
@@ -280,11 +229,11 @@ reboot
 </td></tr>
 </table>
 
-<p>/.init の実行に成功すると、以下のようなメッセージが表示されます。</p>
+<p>/sbin/init の開始直前に、以下のようなメッセージが表示されます。</p>
 
 <table border="1">
 <tr><td>
-TOMOYO Linux: Enter 'disabled' within 10 seconds to disable TOMOYO Linux.<br>
+TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.<br>
 TOMOYO Linux&gt;
 </td></tr>
 </table>
@@ -297,28 +246,14 @@ boottest
 </td></tr>
 </table>
 
-<p>プロファイルの読み込みが成功すると、 /sbin/init が開始されてシステムが起動します。<br>
-失敗した場合は、以下のようにメッセージが表示されて停止します。</p>
-
-<table border="1">
-<tr><td>
-No profiles loaded. Run policy loader using 'init=' option.
-</td></tr>
-</table>
-
-<p>失敗した場合は以下の点を確認してください。</p>
-
-<ul>
-<li> /boot/grub/grub.conf （または /boot/grub/menu.lst ）の TOMOYO カーネルに init=/.init が指定されているか？
-<li> /.init に実行許可が与えられているか？
-</ul>
+<p>プロファイルの読み込みが成功すると、 /sbin/init が開始されてシステムが起動します。</p>
 
 <p>起動したら、 root でログインします。<br>
 以下のコマンドを実行して、プロファイルを保存します。</p>
 
 <table border="1">
 <tr><td>
-cat /proc/ccs/status &gt; /etc/ccs/status.txt
+cat /proc/ccs/status &gt; /etc/ccs/profile.conf
 </td></tr>
 </table>
 
@@ -514,7 +449,7 @@ cat /proc/ccs/status &gt; /etc/ccs/status.txt
 
 <h2>プロファイルの作成</h2>
 
-<p> /etc/ccs/status.txt の中に無効・学習・確認・強制用のプロファイルを全て定義してください。例えばファイルとネットワークのみアクセス制御したい場合は以下のような内容になります。行頭の数字は、ドメインにプロファイルを割り当てるときに使用するプロファイル番号です。プロファイル番号は 0 から 255 まで使用できます。</p>
+<p> /etc/ccs/profile.conf の中に無効・学習・確認・強制用のプロファイルを全て定義してください。例えばファイルとネットワークのみアクセス制御したい場合は以下のような内容になります。行頭の数字は、ドメインにプロファイルを割り当てるときに使用するプロファイル番号です。プロファイル番号は 0 から 255 まで使用できます。</p>
 
 <table border="1">
 <tr><td>
@@ -547,11 +482,11 @@ cat /proc/ccs/status &gt; /etc/ccs/status.txt
 プロファイル番号 4 をポリシー違反を対話的に許容できる強制モードで動作させるためのプロファイル<br>
 として使用します。</p>
 
-<p>TOMOYO Linux ではプロファイル番号を切り替えることでドメインを単位としてアクセス制御の方法を指定できるので、一度プロファイルを作成したら、プロファイルを編集する必要はありません。もし、プロファイルを追加したい等の理由で /etc/ccs/status.txt を編集した場合は以下のように setlevel コマンドを実行してください。</p>
+<p>TOMOYO Linux ではプロファイル番号を切り替えることでドメインを単位としてアクセス制御の方法を指定できるので、一度プロファイルを作成したら、プロファイルを編集する必要はありません。もし、プロファイルを追加したい等の理由で /etc/ccs/profile.conf を編集した場合は以下のように setlevel コマンドを実行してください。</p>
 
 <table border="1">
 <tr><td>
-xargs -0 setlevel &lt; /etc/ccs/status.txt
+xargs -0 setlevel &lt; /etc/ccs/profile.conf
 </td></tr>
 </table>
 
@@ -598,7 +533,7 @@ cat /proc/ccs/policy/.domain_status
 </td></tr>
 </table>
 
-<p>ドメイン単位でプロファイルを割り当てることでアクセス制御モードを変更できるので、起動時にアクセス制御モードを一斉に切り替えする必要は基本的にありません。もし、不適切なプロファイルを割り当ててしまった等の理由によりシステムが起動できなくなってしまった場合には、 /.init のプロンプトで disabled と入力してから Enter を押すことで、アクセス制御を無効にした状態で起動することができます。</p>
+<p>ドメイン単位でプロファイルを割り当てることでアクセス制御モードを変更できるので、起動時にアクセス制御モードを一斉に切り替えする必要は基本的にありません。もし、不適切なプロファイルを割り当ててしまった等の理由によりシステムが起動できなくなってしまった場合には、 /sbin/init のプロンプトで disable と入力してから Enter を押すことで、アクセス制御を無効にした状態で起動することができます。</p>
 
 <p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを確認するには ccstree というコマンドを使用します。</p>
 
@@ -662,11 +597,11 @@ ccstree
 
 <p>アクセス許可ログを保存する必要が無い場合は、プロファイルで MAX_GRANT_LOG=0 という指定をして、アクセス許可ログの保存場所として /dev/null を指定することができます。 ccs-auditd にはフィルタリング機能がありませんので、アクセス許可ログを保存する場合はディスク容量に注意してください。</p>
 
-<p>アクセス拒否ログを保存する必要が無い場合は、プロファイルで MAX_REJECT_LOG=0 という指定をして、アクセス拒否ログの保存場所として /dev/null を指定することができます。アクセス拒否ログは保存しておくことを推奨します。この手順書では、アクセス拒否ログを /var/log/tomoyo/reject_log.txt に保存するものとします。</p>
+<p>アクセス拒否ログを保存する必要が無い場合は、プロファイルで MAX_REJECT_LOG=0 という指定をして、アクセス拒否ログの保存場所として /dev/null を指定することができます。アクセス拒否ログは保存しておくことを推奨します。この手順書では、アクセス拒否ログを /var/log/tomoyo/reject_log.conf に保存するものとします。</p>
 
 <table border="1">
 <tr><td>
-/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
@@ -682,7 +617,7 @@ mkdir -p /var/log/tomoyo
 
 <table border="1">
 <tr><td>
-/var/log/tomoyo/reject_log.txt {<br>
+/var/log/tomoyo/reject_log.conf {<br>
 &nbsp;&nbsp;weekly<br>
 &nbsp;&nbsp;rotate 9<br>
 &nbsp;&nbsp;missingok<br>
@@ -696,7 +631,7 @@ mkdir -p /var/log/tomoyo
 
 <h2>例外ポリシーの作成</h2>
 
-<p> /etc/ccs/exception_policy.txt を作成します。このファイルには以下の１０種類の例外を指定します。</p>
+<p> /etc/ccs/exception_policy.conf を作成します。このファイルには以下の１０種類の例外を指定します。</p>
 
 <ol>
 <li>パス名のパターン
@@ -715,8 +650,8 @@ mkdir -p /var/log/tomoyo
 
 <table border="1">
 <tr><td>
-make_exception.sh | sort | uniq &gt; /etc/ccs/exception_policy.txt<br>
-make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt
+make_exception.sh | sort | uniq &gt; /etc/ccs/exception_policy.conf<br>
+make_alias.sh &gt;&gt; /etc/ccs/exception_policy.conf
 </td></tr>
 </table>
 
@@ -958,16 +893,16 @@ setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
-<p>ccs-auditd によって作成された /var/log/tomoyo/reject_log.txt にはアクセスが拒否されたログが時系列で記録されています。
+<p>ccs-auditd によって作成された /var/log/tomoyo/reject_log.conf にはアクセスが拒否されたログが時系列で記録されています。
 その中から、適当な範囲を切り抜き、以下のようにフィルタに通してください。このフィルタは、ドメイン単位にログを並べ替え、重複しているログを消します。（ドメイン単位でログの sort と uniq を行います。）</p>
 
 <table border="1">
 <tr><td>
-sortpolicy &lt; /var/log/tomoyo/reject_log.txt
+sortpolicy &lt; /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
-<p>この結果から、追加すべきか否かを判断し、追加すべきであると判断した場合は /etc/ccs/domain_policy.txt に追加します。追加したら loadpolicy でドメインポリシーを再読み込みします。</p>
+<p>この結果から、追加すべきか否かを判断し、追加すべきであると判断した場合は /etc/ccs/domain_policy.conf に追加します。追加したら loadpolicy でドメインポリシーを再読み込みします。</p>
 
 <table border="1">
 <tr><td>
@@ -982,7 +917,7 @@ loadpolicy d
 <p>現在のアクセス拒否ログの名前を変更します。 ccs-auditd は現在のアクセス拒否ログを保存していたファイルが消滅したことを検知して新しいファイルを作成します。</p>
 <table border="1">
 <tr><td>
-[root@sakura tomoyo]# mv /var/log/tomoyo/reject_log.txt /var/log/tomoyo/reject_log.tmp<br>
+[root@sakura tomoyo]# mv /var/log/tomoyo/reject_log.conf /var/log/tomoyo/reject_log.tmp<br>
 </td></tr>
 </table>
 <p>内容を確認します。必要に応じて、抽出したい範囲だけをテキストエディタを用いて切り出します。</p>
@@ -1102,7 +1037,7 @@ savepolicy
 </td></tr>
 </table>
 
-<p>savepolicy を実行することで、 /etc/ccs/ ディレクトリに system_policy.txt exception_policy.txt domain_policy.txt の３つのファイルが作成されます。実際にはこれらのファイルは、ファイルの作成日時をファイル名に含んだテキストファイルへのシンボリックリンクになっています。</p>
+<p>savepolicy を実行することで、 /etc/ccs/ ディレクトリに system_policy.conf exception_policy.conf domain_policy.conf の３つのファイルが作成されます。実際にはこれらのファイルは、ファイルの作成日時をファイル名に含んだテキストファイルへのシンボリックリンクになっています。</p>
 
 <h2>ポリシーの読み込み方法</h2>
 
@@ -1114,7 +1049,7 @@ loadpolicy af
 </td></tr>
 </table>
 
-<p>a オプションは system_polixy.txt exception_policy.txt domain_policy.txt の３種類を読み込むことを意味します。また、 f オプションはカーネル内部に保持されているポリシーを消去して読み込みます。 f オプションが指定されなかった場合は、カーネル内部に保持されているポリシーに追加される形になります。</p>
+<p>a オプションは system_polixy.conf exception_policy.conf domain_policy.conf の３種類を読み込むことを意味します。また、 f オプションはカーネル内部に保持されているポリシーを消去して読み込みます。 f オプションが指定されなかった場合は、カーネル内部に保持されているポリシーに追加される形になります。</p>
 
 <h2>ポリシーの編集方法</h2>
 
@@ -1138,7 +1073,7 @@ editpolicy_offline
 
 <h2>ファイルのアクセス許可のパターン化</h2>
 
-<p>WWW サーバがアクセスするコンテンツのように、自動学習では必ずしもアクセスされないファイルに対するアクセス許可を /etc/ccs/domain_policy.txt に追加します。<br>
+<p>WWW サーバがアクセスするコンテンツのように、自動学習では必ずしもアクセスされないファイルに対するアクセス許可を /etc/ccs/domain_policy.conf に追加します。<br>
 以下の例では、 /usr/sbin/httpd に対して /var/www/html/ 以下の読み込みを許可しています。</p>
 
 <table border="1">
@@ -1216,7 +1151,7 @@ use_profile 3<br>
 <p>テンポラリファイルの可能性があるパス名を抽出します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.txt<br>
+[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.conf<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /etc/mtab~2302<br>
@@ -1264,8 +1199,8 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>必要に応じてディスク上の例外ポリシーにパターンを追加します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.txt<br>
-[root@sakura ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.txt<br>
+[root@sakura ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
+[root@sakura ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
 </td></tr>
 </table>
 <p>ディスク上の例外ポリシーをカーネルに読み込みます。</p>
@@ -1277,7 +1212,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>/etc/mtab~\$ および /tmp/sh-thd-\$ に一致するパス名のパターン化を行います。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.txt &gt; /etc/ccs/domain_policy.tmp<br>
+[root@sakura ~]# patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
 </td></tr>
 </table>
 <p>パターン化されたことを確認します。</p>
@@ -1299,7 +1234,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>パターン化前後の差分を表示して、パターン化が適切に行われているかどうかを確認します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# diff /etc/ccs/domain_policy.txt /etc/ccs/domain_policy.tmp<br>
+[root@sakura ~]# diff /etc/ccs/domain_policy.conf /etc/ccs/domain_policy.tmp<br>
 2326,2331c2326,2331<br>
 &lt; 6 /tmp/sh-thd-1163110572<br>
 &lt; 6 /tmp/sh-thd-1163113704<br>
@@ -1395,7 +1330,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>ディスク上のドメインポリシーを更新します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.txt<br>
+[root@sakura ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.conf<br>
 </td></tr>
 </table>
 <p>ディスク上のドメインポリシーをカーネルに読み込みます。</p>

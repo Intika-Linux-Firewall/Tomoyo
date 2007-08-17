@@ -15,13 +15,13 @@
 <p><a href="#word_definition">1.1 Word definition</a></p>
 <p><a href="#domain_and_transition">1.2 Domain definitions and Domain transitions rule</a></p>
 <h2><a href="#policy_files_and_syntaxes">2. Types and syntaxes of policy files</a></h2>
-<p><a href="#manager.txt">2.1 Policy Manager Definition (manager.txt)</a></p>
-<p><a href="#status.txt">2.2 Profile Definition (status.txt)</a></p>
-<p><a href="#system_policy.txt">2.3 System policy (system_policy.txt)</a></p>
-<p><a href="#domain_policy.txt">2.4 Domain policy (domain_policy.txt)</a></p>
-<p><a href="#exception_policy.txt">2.5 Exception policy (exception_policy.txt)</a></p>
+<p><a href="#manager.conf">2.1 Policy Manager Definition (manager.conf)</a></p>
+<p><a href="#profile.conf">2.2 Profile Definition (profile.conf)</a></p>
+<p><a href="#system_policy.conf">2.3 System policy (system_policy.conf)</a></p>
+<p><a href="#domain_policy.conf">2.4 Domain policy (domain_policy.conf)</a></p>
+<p><a href="#exception_policy.conf">2.5 Exception policy (exception_policy.conf)</a></p>
 <h2><a href="#/proc/ccs/">3. /proc/ccs/ interface</a></h2>
-<p><a href="#status">3.1 status</a></p>
+<p><a href="#profile">3.1 profile</a></p>
 <p><a href="#system_policy">3.2 system_policy</a></p>
 <p><a href="#domain_policy">3.3 domain_policy</a></p>
 <p><a href="#exception_policy">3.4 exception_policy</a></p>
@@ -137,9 +137,6 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <li>no_initialize_domain "Candidate 1" from "the name of the domain the current process belongs to"
 <li>no_initialize_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
 <li>no_initialize_domain "Candidate 1"
-<li>no_initializer "Candidate 1" from  "the name of the domain the current process belongs to"
-<li>no_initializer "Candidate 1" from "the last part of the name of the domain the current process belongs to"
-<li>no_initializer "Candidate 1"
 </ul>
 
 <p>and if found one, jump to (3).</p>
@@ -150,9 +147,6 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <li>initialize_domain "Candidate 1" from "the name of the domain the current process belongs to"
 <li>initialize_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
 <li>initialize_domain "Candidate 1"
-<li>initializer "Candidate 1" from  "the name of the domain the current process belongs to"
-<li>initializer "Candidate 1" from  "the last part of the name of the domain the current process belongs to"
-<li>initializer "Candidate 1"
 </ul>
 
 <p>and if found one, concatenate "the name of the domain that the kernel belongs to (i.e. &lt;kernel&gt;)" and "Candidate 1" and keep the result as Destination domain, then jump to (6).</p>
@@ -190,7 +184,7 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <hr>
 <h1><a name="policy_files_and_syntaxes">2. Types and syntaxes of policy files</a></h1>
 <p>All policy files are kept in /etc/ccs/ directory. Files in this directory are loaded just before starting /sbin/init by /sbin/ccs-init .</p>
-<h2><a name="manager.txt">2.1 Policy Manager Definitions (manager.txt)</a></h2>
+<h2><a name="manager.conf">2.1 Policy Manager Definitions (manager.conf)</a></h2>
 <p>Since it is not secure that all processes can modify policies, this file defines PROGRAM or DOMAIN that can do write access to /proc/ccs/ interface.</p>
 <p>PROGRAM or DOMAIN that are not declared in this file cannot do write access to /proc/ccs/ interface. If you don't allow policy updates at production state, delete this file.</p>
 <p>(Example)<br>
@@ -202,7 +196,7 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 /root/ccstools/ccs-queryd<br>
 &lt;kernel&gt; /sbin/mingetty /root/bin/bash
 </p>
-<h2><a name="status.txt">2.2 Profile Definition (status.txt)</a></h2>
+<h2><a name="profile.conf">2.2 Profile Definition (profile.conf)</a></h2>
 <p>TOMOYO Linux can perform several MACs besides MAC for files, but to reduce the load of policy managements, you can disable MACs you think unnecessary.</p>
 <table border="1">
 <tr>
@@ -223,7 +217,7 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <tr>
 <td>MAC_FOR_CAPABILITY::***</td>
 <td>Enable MAC for capabilities.<br>
-The *** matches to values that can be given using allow_capability directive described in <a href="#domain_policy.txt">Domain policy</a>.</td>
+The *** matches to values that can be given using allow_capability directive described in <a href="#domain_policy.conf">Domain policy</a>.</td>
 <td>Yes</td>
 </tr>
 <tr>
@@ -385,9 +379,9 @@ The default is given at the kernel compilation time.</td>
 </tr>
 </table>
 
-<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To switch profiles currently assigned to domains, use "setprofile" command. The currently assigned profile number are kept in the <a href="#domain_policy.txt">Domain policy (domain_policy.txt)</a> using "use_profile" directive.</p>
+<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To switch profiles currently assigned to domains, use "setprofile" command. The currently assigned profile number are kept in the <a href="#domain_policy.conf">Domain policy (domain_policy.conf)</a> using "use_profile" directive.</p>
 
-<h2><a name="system_policy.txt">2.3 System policy (system_policy.txt)</a></h2>
+<h2><a name="system_policy.conf">2.3 System policy (system_policy.conf)</a></h2>
 <p>This file contains permissions that apply to the entire system. The following 4 types of permissions are declared.</p>
 <ul>
 <li>Mount permission</li>
@@ -516,7 +510,7 @@ For example, some proxy server uses local port 8080, so port 8080 should not be 
 <td>8080</td>
 </tr>
 </table>
-<h2><a name="domain_policy.txt">2.4 Domain policy (domain_policy.txt)</a></h2>
+<h2><a name="domain_policy.conf">2.4 Domain policy (domain_policy.conf)</a></h2>
 <p>This file contains permissions that apply to domain. The following 5 types of permissions are declared.</p>
 <ul>
 <li>MAC for files</li>
@@ -789,7 +783,7 @@ You can restrict more strictly with other directives and policy files for some s
 
 <p>Neither "path1" nor "path2" are supported when accessing via "sysctl" ( i.e. accessing files under /proc/sys/ directories using "sysctl" instead for "open")</p>
 
-<h2><a name="exception_policy.txt">2.5 Exception policy (exception_policy.txt)</a></h2>
+<h2><a name="exception_policy.conf">2.5 Exception policy (exception_policy.conf)</a></h2>
 <p>This file contains exceptions for domain access controls. The following 10 types of permissions are declared.</p>
 <ul>
 <li>Pathname pattern</li>
@@ -883,7 +877,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <h3>Unconditionally readable files</h3>
 
-<p>To grant unconditionally readable permissions, use allow_read directive followed by Canonicalized File. This directive is intended to reduce size of <a href="#domain_policy.txt">Domain policy</a> by granting read access to library files such as GLIBC and locale files. You should not grant password files such as /etc/passwd, for all process can read if DAC is granted.</p>
+<p>To grant unconditionally readable permissions, use allow_read directive followed by Canonicalized File. This directive is intended to reduce size of <a href="#domain_policy.conf">Domain policy</a> by granting read access to library files such as GLIBC and locale files. You should not grant password files such as /etc/passwd, for all process can read if DAC is granted.</p>
 
 <h3>Files that aren't rewritable by default</h3>
 
@@ -908,26 +902,20 @@ allow_network TCP accept @local-address 1024-65535
 <li>initialize_domain "PROGRAM" from "DOMAIN"
 <li>initialize_domain "PROGRAM" from "the last PROGRAM part of DOMAIN"
 <li>initialize_domain "PROGRAM"
-<li>initializer "PROGRAM" from "DOMAIN"
-<li>initializer "PROGRAM" from "the last PROGRAM part of DOMAIN"
-<li>initializer "PROGRAM"
 </ul>
 
 <p>If the part "from" and after is not given, the entry is applied to all DOMAIN. If the "DOMAIN" doesn't start with "&lt;kernel&gt;", the entry is applied to all DOMAIN whose domainname ends with "the last PROGRAM part of DOMAIN".</p>
 
-<p>This directive is intended to aggregate domain transitions for daemon PROGRAM and PROGRAM that are invoked by the kernel on demand, by transiting to different domain. The directive name until version 1.3.1 was "initializer", and version 1.3.2 renamed to "initialize_domain".</p>
+<p>This directive is intended to aggregate domain transitions for daemon PROGRAM and PROGRAM that are invoked by the kernel on demand, by transiting to different domain.</p>
 
 <h3>Programs that prevent domain transition initialization</h3>
 
-<p>To deny the effect of "initialize_domain" or "initializer" directive, use "no_initialize_domain" directive.</p>
+<p>To deny the effect of "initialize_domain" directive, use "no_initialize_domain" directive.</p>
 
 <ul>
 <li>no_initialize_domain "PROGRAM" from "DOMAIN"
 <li>no_initialize_domain "PROGRAM" from "the last PROGRAM part of DOMAIN"
 <li>no_initialize_domain "PROGRAM"
-<li>no_initializer "PROGRAM" from "DOMAIN"
-<li>no_initializer "PROGRAM" from "the last PROGRAM part of DOMAIN"
-<li>no_initializer "PROGRAM"
 </ul>
 
 <p>Use this directive when you don't want to initialize domain transition.</p>
@@ -948,7 +936,7 @@ allow_network TCP accept @local-address 1024-65535
 <p>This directive is intended to reduce total number of domains and memory usage by suppressing unneeded domain transitions.</p>
 
 <p>To declare domain keepers, use keep_domain directive followed by domain definition. </p>
-<p>Any process that belongs to any domain declared with this directive, the process stays at the same domain unless any program registered with initializer directive is executed.</p>
+<p>Any process that belongs to any domain declared with this directive, the process stays at the same domain unless any program registered with initialize_domain directive is executed.</p>
 
 <h3>Domains that cause domain transition</h3>
 
@@ -965,20 +953,20 @@ allow_network TCP accept @local-address 1024-65535
 
 <hr>
 <h1><a name="/proc/ccs/">3. /proc/ccs/ interface</a></h1>
-<p>This is the interface to read/append/delete policies after boot. Only PROGRAMs that are declared in <a href="#manager.txt">Policy Manager Definition</a> can append/delete policies.</p>
-<h2><a name="status">3.1 status</a></h2>
+<p>This is the interface to read/append/delete policies after boot. Only PROGRAMs that are declared in <a href="#manager.conf">Policy Manager Definition</a> can append/delete policies.</p>
+<h2><a name="profile">3.1 profile</a></h2>
 <p>This file is to get or set the value of current control status.</p>
 <p>(Example)<br>
-cat /proc/ccs/status<br>
-echo 'MAC_FOR_FILE=1' &gt; /proc/ccs/status</p>
+cat /proc/ccs/profile<br>
+echo 'MAC_FOR_FILE=1' &gt; /proc/ccs/profile</p>
 <h2><a name="system_policy">3.2 system_policy</a></h2>
-<p>This file is to read, append or delete current <a href="#system_policy.txt">System policy</a>.</p>
+<p>This file is to read, append or delete current <a href="#system_policy.conf">System policy</a>.</p>
 <p>(Example)<br>
 echo 'allow_mount /proc /proc/ proc' &gt; /proc/ccs/system_policy<br>
 echo 'delete allow_mount /proc /proc/ proc' &gt; /proc/ccs/system_policy<br>
 cat /proc/ccs/system_policy</p>
 <h2><a name="domain_policy">3.3 domain_policy</a></h2>
-<p>This file is to read, append or delete current <a href="#domain_policy.txt">Domain policy</a>.</p>
+<p>This file is to read, append or delete current <a href="#domain_policy.conf">Domain policy</a>.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
 printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
@@ -990,7 +978,7 @@ printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/ccs/domain_policy</p>
 <p>(Example) Reading current domain policy.<br>
 cat /proc/ccs/domain_policy</p>
 <h2><a name="exception_policy">3.4 exception_policy</a></h2>
-<p>This file is to read, append or delete current <a href="#exception_policy.txt">Exception policy</a>.</p>
+<p>This file is to read, append or delete current <a href="#exception_policy.conf">Exception policy</a>.</p>
 <p>(Example)<br>
 echo 'file_pattern /proc/\$/status' &gt; /proc/ccs/exception_policy<br>
 echo 'delete file_pattern /proc/\$/status' &gt; /proc/ccs/exception_policy<br>

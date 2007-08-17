@@ -104,46 +104,6 @@ title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)<br>
 </td></tr>
 </table>
 
-<p>Append "init=/.init" to the line of "kernel".</p>
-
-<table border="1">
-<tr><td>
-title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-55.0.2.EL_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00 init=/.init<br>
-&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-55.0.2.EL_tomoyo_1.4.2.img
-</td></tr>
-</table>
-
-<p>If you install deb package, the following entry is added to /boot/grub/menu.lst upon successful installation.</p>
-
-<table border="1">
-<tr><td>
-title Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs<br>
-root (hd0,0)<br>
-kernel /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro<br>
-initrd /boot/initrd.img-2.6.8-16sarge7-ccs<br>
-savedefault<br>
-boot
-</td></tr>
-</table>
-
-<p>Append "init=/.init" to the line of "kernel".</p>
-
-<table border="1">
-<tr><td>
-title Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs<br>
-root (hd0,0)<br>
-kernel /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro init=/.init<br>
-initrd /boot/initrd.img-2.6.8-16sarge7-ccs<br>
-savedefault<br>
-boot
-</td></tr>
-</table>
-
-<p>The "/.init" is a script to load TOMOYO Linux's policy files and is executed before starting "/sbin/init" .<br>
-The "/.init" is included in the TOMOYO Linux tools package.</p>
-
 <h2>Install TOMOYO Linux tools</h2>
 
 <p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract under /root/ directory.</p>
@@ -203,11 +163,11 @@ ftp://www.n-linux.org/packages/tmp/ccs-tools_1.4.2-nlug2_i386.deb
 </td></tr>
 </table>
 
-<p>Move extracted ".init" (policy loader) to / .</p>
+<p>Move extracted ".init" (policy loader) to /sbin/ccs-init .</p>
 
 <table border="1">
 <tr><td>
-mv ccstools/.init /
+mv ccstools/.init /sbin/ccs-init
 </td></tr>
 </table>
 
@@ -222,14 +182,14 @@ wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.
 tar -zxf ccs-tools.tar.gz<br>
 # Compile.<br>
 make -sC ccstools/<br>
-# Move policy loader to / .<br>
-mv ccstools/.init /
+# Move policy loader to /sbin/ccs-init .<br>
+mv ccstools/.init /sbin/ccs-init
 </td></tr>
 </table>
 
 <h2>Create Policy</h2>
 
-<p>Create /etc/ccs/manager.txt with the following contents.</p>
+<p>Create /etc/ccs/manager.conf with the following contents.</p>
 
 <table border="1">
 <tr><td>
@@ -237,7 +197,7 @@ mv ccstools/.init /
 </td></tr>
 </table>
 
-<p>Create /etc/ccs/status.txt with the following contents.</p>
+<p>Create /etc/ccs/profile.conf with the following contents.</p>
 
 <table border="1">
 <tr><td>
@@ -249,7 +209,7 @@ TOMOYO_VERBOSE=0<BR>
 </td></tr>
 </table>
 
-<p>Save the output of the following commands as /etc/ccs/exception_policy.txt .</p>
+<p>Save the output of the following commands as /etc/ccs/exception_policy.conf .</p>
 
 <table border="1">
 <tr><td>
@@ -261,36 +221,22 @@ TOMOYO_VERBOSE=0<BR>
 
 <p>Reboot with TOMOYO Linux kernel.</p>
 
-<p>The following messages will appear upon successful execution of "/.init", so press "Enter".</p>
+<p>The following messages will appear when /sbin/init is about to start , so press "Enter".</p>
 
 <table border="1">
 <tr><td>
-TOMOYO Linux: Enter 'disabled' within 10 seconds to disable TOMOYO Linux.<br>
+TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.<br>
 TOMOYO Linux&gt;
 </td></tr>
 </table>
 
-<p>/sbin/init will start and the system will boot if profiles are loaded successfully.<br>
-On failure, the following messages will appear and the system halts.</p>
-
-<table border="1">
-<tr><td>
-No profiles loaded. Run policy loader using 'init=' option.
-</td></tr>
-</table>
-
-<p>If failed, check the following points.</p>
-
-<ul>
-<li>The "kernel" line of the entry of TOMOYO Linux kernel in /boot/grub/grub.conf ( or /boot/grub/menu.lst ) has "init=/.init" option.
-<li> /.init has execute permission.
-</ul>
+<p>/sbin/init will start and the system will boot if profiles are loaded successfully.</p>
 
 <p>Run applications you want to analyze.</p>
 
 <p>You can see the list of programs executed until now by executing /root/ccstools/editpolicy . Choose a program and press "Enter" to see the list of files accessed by the program.</p>
 
-<p>You can save the list of all accessed files until now as /etc/ccs/domain_policy.txt by executing /root/ccstools/savepolicy .</p>
+<p>You can save the list of all accessed files until now as /etc/ccs/domain_policy.conf by executing /root/ccstools/savepolicy .</p>
 
 </body>
 </html>

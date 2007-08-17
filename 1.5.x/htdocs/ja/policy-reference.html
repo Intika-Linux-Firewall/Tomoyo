@@ -15,13 +15,13 @@
 <p><a href="#word_definition">1.1 用語の定義</a></p>
 <p><a href="#domain_and_transition">1.2 ドメインの定義およびドメインの遷移</a></p>
 <h2><a href="#policy_files_and_syntaxes">2. ポリシーファイルの分類と構文</a></h2>
-<p><a href="#manager.txt">2.1 ポリシーマネージャ定義（manager.txt）</a></p>
-<p><a href="#status.txt">2.2 プロファイル定義（status.txt）</a></p>
-<p><a href="#system_policy.txt">2.3 システムポリシー（system_policy.txt）</a></p>
-<p><a href="#domain_policy.txt">2.4 ドメイン別ポリシー（domain_policy.txt）</a></p>
-<p><a href="#exception_policy.txt">2.5 例外ポリシー（exception_policy.txt）</a></p>
+<p><a href="#manager.conf">2.1 ポリシーマネージャ定義（manager.conf）</a></p>
+<p><a href="#profile.conf">2.2 プロファイル定義（profile.conf）</a></p>
+<p><a href="#system_policy.conf">2.3 システムポリシー（system_policy.conf）</a></p>
+<p><a href="#domain_policy.conf">2.4 ドメイン別ポリシー（domain_policy.conf）</a></p>
+<p><a href="#exception_policy.conf">2.5 例外ポリシー（exception_policy.conf）</a></p>
 <h2><a href="#/proc/ccs/">3. /proc/ccs/ インタフェース</a></h2>
-<p><a href="#status">3.1 status</a></p>
+<p><a href="#profile">3.1 profile</a></p>
 <p><a href="#system_policy">3.2 system_policy</a></p>
 <p><a href="#domain_policy">3.3 domain_policy</a></p>
 <p><a href="#exception_policy">3.4 exception_policy</a></p>
@@ -133,9 +133,6 @@
 <li>no_initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
 <li>no_initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
 <li>no_initialize_domain 「パス名候補１」
-<li>no_initializer 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_initializer 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>no_initializer 「パス名候補１」
 </ul>
 
 <p>というエントリを探す。見つかった場合は (3) へ進む。</p>
@@ -146,9 +143,6 @@
 <li>initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
 <li>initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
 <li>initialize_domain 「パス名候補１」
-<li>initializer 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>initializer 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>initializer 「パス名候補１」
 </ul>
 
 <p>というエントリを探す。見つかった場合は「カーネルが属しているドメインのドメイン名（&lt;kernel&gt;）」と「パス名候補１」とを連結して「遷移先ドメイン」として (6) へ進む。</p>
@@ -186,7 +180,7 @@
 <hr>
 <h1><a name="policy_files_and_syntaxes">2. ポリシーファイルの分類と構文</a></h1>
 <p>ポリシーファイルは全て /etc/ccs/ ディレクトリに作成しておく。このディレクトリに存在するファイルが /sbin/init の開始時に /sbin/ccs-init によって読み込まれるようになっている。</p>
-<h2><a name="manager.txt">2.1 ポリシーマネージャ定義（manager.txt）</a></h2>
+<h2><a name="manager.conf">2.1 ポリシーマネージャ定義（manager.conf）</a></h2>
 <p>全てのプログラムがポリシーの変更を行えるのは危険であるため、このファイルには /proc/ccs/ インタフェースへの書き込みアクセスを許可するプログラムまたはドメインを定義しておく。</p>
 <p>このファイルに定義されていないプログラムやドメインからは /proc/ccs/ インタフェースへの書き込みアクセスができない。システム運用時にポリシーの変更を許可しない場合はこのファイルを削除しておく。</p>
 <p>（例）<br>
@@ -198,7 +192,7 @@
 /root/ccstools/ccs-queryd<br>
 &lt;kernel&gt; /sbin/mingetty /root/bin/bash
 </p>
-<h2><a name="status.txt">2.2 プロファイル定義（status.txt）</a></h2>
+<h2><a name="profile.conf">2.2 プロファイル定義（profile.conf）</a></h2>
 <p>TOMOYO Linuxでは、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができるが、ポリシー管理の負担を減らすために、必要の無い機能を無効化できるようになっている。</p>
 <table border="1">
 <tr>
@@ -219,7 +213,7 @@
 <tr>
 <td>MAC_FOR_CAPABILITY::***</td>
 <td>ケイパビリティに対する強制アクセス制御を有効にする。<br>
-*** の部分には<a href="#domain_policy.txt">ドメイン別ポリシー</a>の allow_capability キーワードで指定可能な値が入る。<br></td>
+*** の部分には<a href="#domain_policy.conf">ドメイン別ポリシー</a>の allow_capability キーワードで指定可能な値が入る。<br></td>
 <td>○</td>
 </tr>
 <tr>
@@ -379,9 +373,9 @@
 </tr>
 </table>
 <p>有効にしたい機能とそのモードを「プロファイル番号-項目=値」という形式で定義する。
-プロファイル番号は 0 ～ 255 が指定可能である。プロファイルを切り替えるには setprofile コマンドを使用する。また、現在割り当てられているプロファイル番号は <a href="#domain_policy.txt">ドメイン別ポリシー（domain_policy.txt）</a> の中に use_profile というキーワードで保持される。</p>
+プロファイル番号は 0 ～ 255 が指定可能である。プロファイルを切り替えるには setprofile コマンドを使用する。また、現在割り当てられているプロファイル番号は <a href="#domain_policy.conf">ドメイン別ポリシー（domain_policy.conf）</a> の中に use_profile というキーワードで保持される。</p>
 
-<h2><a name="system_policy.txt">2.3 システムポリシー（system_policy.txt）</a></h2>
+<h2><a name="system_policy.conf">2.3 システムポリシー（system_policy.conf）</a></h2>
 <p>このファイルでは、システム全体に対して適用されるアクセス許可を定義する。以下の 4 種類のアクセス許可を指定できる。</p>
 <ul>
 <li>マウントを許可するデバイスおよびマウントポイント</li>
@@ -506,7 +500,7 @@
 <td>8080</td>
 </tr>
 </table>
-<h2><a name="domain_policy.txt">2.4 ドメイン別ポリシー（domain_policy.txt）</a></h2>
+<h2><a name="domain_policy.conf">2.4 ドメイン別ポリシー（domain_policy.conf）</a></h2>
 <p>このファイルでは、全てのドメインを定義し、各ドメインに対して与えるアクセス許可を定義する。 以下の 5 種類のアクセス許可を指定できる。</p>
 <ul>
 <li>ファイルに対するアクセス許可</li>
@@ -775,7 +769,7 @@
 
 <p>sysctl による読み書き（ /proc/sys/ ディレクトリ以下のファイルを open ではなく sysctl を用いてアクセス）を行う場合については、 path1 path2 ともにサポートしていない。</p>
 
-<h2><a name="exception_policy.txt">2.5 例外ポリシー（exception_policy.txt）</a></h2>
+<h2><a name="exception_policy.conf">2.5 例外ポリシー（exception_policy.conf）</a></h2>
 <p>このファイルでは、ドメイン単位でのアクセス制御の例外を定義する。以下の 10 種類のアクセス例外を指定できる。</p>
 <ul>
 <li>パス名のパターン</li>
@@ -872,7 +866,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <h3>無条件に読み込みを許可するファイル</h3>
 
-<p>無条件に読み込みを許可するファイルを指定するには、 allow_read というディレクティブに続けて、正規化されたファイル名を指定する。このディレクティブの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルを指定することで、<a href="#domain_policy.txt">ドメイン別ポリシー</a>の記述量を減らすことである。ＤＡＣで許可されれば全てのプロセスが読み込めるので、くれぐれも /etc/passwd のようなファイルを指定しないこと。</p>
+<p>無条件に読み込みを許可するファイルを指定するには、 allow_read というディレクティブに続けて、正規化されたファイル名を指定する。このディレクティブの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルを指定することで、<a href="#domain_policy.conf">ドメイン別ポリシー</a>の記述量を減らすことである。ＤＡＣで許可されれば全てのプロセスが読み込めるので、くれぐれも /etc/passwd のようなファイルを指定しないこと。</p>
 
 <h3>書き換えを禁止するファイル</h3>
 
@@ -897,25 +891,19 @@ allow_network TCP accept @local-address 1024-65535
 <li>initialize_domain プログラム名 from ドメイン名
 <li>initialize_domain プログラム名 from ドメイン名の最後のプログラム名
 <li>initialize_domain プログラム名
-<li>initializer プログラム名 from ドメイン名
-<li>initializer プログラム名 from ドメイン名の最後のプログラム名
-<li>initializer プログラム名
 </ul>
 
 <p> from 以降が指定されていない場合は任意のドメインから実行された場合に適用される。ドメイン名が &lt;kernel&gt; で始まらない場合は、ドメイン名の最後のプログラム名が一致する全てのドメインに適用される。</p>
 
-<p>このディレクティブの目的は、常駐型プログラムや必要に応じてカーネルから起動されるプログラムを、通常とは異なるドメインに遷移させることで、ドメイン遷移を集約することである。バージョン 1.3.1 までは initializer というディレクティブであったが、 1.3.2 では initialize_domain というディレクティブに変更された。</p>
+<p>このディレクティブの目的は、常駐型プログラムや必要に応じてカーネルから起動されるプログラムを、通常とは異なるドメインに遷移させることで、ドメイン遷移を集約することである。</p>
 
 <h3>ドメイン遷移を初期化させないプログラム</h3>
 
-<p>initialize_domain または initializer の効力を打ち消すには、 no_initialize_domain というディレクティブを指定する。</p>
+<p>initialize_domain の効力を打ち消すには、 no_initialize_domain というディレクティブを指定する。</p>
 <ul>
 <li>no_initialize_domain プログラム名 from ドメイン名
 <li>no_initialize_domain プログラム名 from ドメイン名の最後のプログラム名
 <li>no_initialize_domain プログラム名
-<li>no_initializer プログラム名 from ドメイン名
-<li>no_initializer プログラム名 from ドメイン名の最後のプログラム名
-<li>no_initializer プログラム名
 </ul>
 
 <p>このディレクティブはドメイン遷移を初期化させたくない場合に使用する。</p>
@@ -950,20 +938,20 @@ allow_network TCP accept @local-address 1024-65535
 
 <hr>
 <h1><a name="/proc/ccs/">3. /proc/ccs/ インタフェース</a></h1>
-<p>これは、起動後にポリシーを読み出し／追加／削除を行うためのインタフェースである。<a href="#manager.txt">ポリシーマネージャ定義</a>で定義されたプログラムのみがポリシーの追加と削除を行える。</p>
-<h2><a name="status">3.1 status</a></h2>
+<p>これは、起動後にポリシーを読み出し／追加／削除を行うためのインタフェースである。<a href="#manager.conf">ポリシーマネージャ定義</a>で定義されたプログラムのみがポリシーの追加と削除を行える。</p>
+<h2><a name="profile">3.1 profile</a></h2>
 <p>現在の制御レベルを取得または変更する。</p>
 <p>（例）<br>
-cat /proc/ccs/status<br>
-echo 'MAC_FOR_FILE=1' &gt; /proc/ccs/status</p>
+cat /proc/ccs/profile<br>
+echo 'MAC_FOR_FILE=1' &gt; /proc/ccs/profile</p>
 <h2><a name="system_policy">3.2 system_policy</a></h2>
-<p>現在の<a href="#system_policy.txt">システムポリシー</a>を読み出しまたは追加または削除する。</p>
+<p>現在の<a href="#system_policy.conf">システムポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）<br>
 echo 'allow_mount /proc /proc/ proc' &gt; /proc/ccs/system_policy<br>
 echo 'delete allow_mount /proc /proc/ proc' &gt; /proc/ccs/system_policy<br>
 cat /proc/ccs/system_policy</p>
 <h2><a name="domain_policy">3.3 domain_policy</a></h2>
-<p>現在の<a href="#domain_policy.txt">ドメイン別ポリシー</a>を読み出しまたは追加または削除する。</p>
+<p>現在の<a href="#domain_policy.conf">ドメイン別ポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成される）<br>
 printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されない）<br>
@@ -975,7 +963,7 @@ printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）ドメイン別ポリシーの読み出し<br>
 cat /proc/ccs/domain_policy</p>
 <h2><a name="exception_policy">3.4 exception_policy</a></h2>
-<p>現在の<a href="#exception_policy.txt">例外ポリシー</a>を読み出しまたは追加または削除する。</p>
+<p>現在の<a href="#exception_policy.conf">例外ポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）<br>
 echo 'file_pattern /proc/\$/status' &gt; /proc/ccs/exception_policy<br>
 echo 'delete file_pattern /proc/\$/status' &gt; /proc/ccs/exception_policy<br>

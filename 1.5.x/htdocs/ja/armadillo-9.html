@@ -72,7 +72,7 @@ tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -
 
 <table border="1"><tr><td>
 <pre>
-patch -p1 &lt; ccs-patch-2.4.31-a9-3.txt
+patch -p1 &lt; ccs-patch-2.4.31-a9-3.conf
 </pre>
 </td></tr></table>
 
@@ -80,7 +80,7 @@ patch -p1 &lt; ccs-patch-2.4.31-a9-3.txt
 
 <table border="1"><tr><td>
 <pre>
-patch -p1 &lt; ccs-patch-2.6.12.3-a9-9.txt
+patch -p1 &lt; ccs-patch-2.6.12.3-a9-9.conf
 </pre>
 </td></tr></table>
 
@@ -311,10 +311,10 @@ tar -zxf ccs-tools-1.4.2-arm-Sarge.tar.gz
 unlink ccs-tools-1.4.2-arm-Sarge.tar.gz
 cd ccstools/
 mv .init /
-./make_exception.sh &gt; /etc/ccs/exception_policy.txt
-./make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt
-echo MAC_FOR_FILE=1 &gt; /etc/ccs/status.txt
-cat &gt; /etc/ccs/manager.txt &lt;&lt; EOF
+./make_exception.sh &gt; /etc/ccs/exception_policy.conf
+./make_alias.sh &gt;&gt; /etc/ccs/exception_policy.conf
+echo MAC_FOR_FILE=1 &gt; /etc/ccs/profile.conf
+cat &gt; /etc/ccs/manager.conf &lt;&lt; EOF
 /root/ccstools/loadpolicy
 /root/ccstools/editpolicy
 /root/ccstools/setlevel
