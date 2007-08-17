@@ -13,11 +13,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/audit.c |   61 ++++++++++++++++++++++++++++++++++++++++++++++++
  2 files changed, 64 insertions(+)
 
-Index: src/security/tomoyo/audit.c
+Index: linux-2.6/security/tomoyo/audit.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/audit.c	2007-08-17 18:13:28.000000000 +0900
-@@ -0,0 +1,61 @@
++++ linux-2.6/security/tomoyo/audit.c	2007-08-10 23:18:30.000000000 +0900
+@@ -0,0 +1,51 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -27,10 +27,6 @@ Index: src/security/tomoyo/audit.c
 +#include "tomoyo.h"
 +#include <linux/audit.h>
 +
-+/**
-+ * tmy_init_audit_log - alloc and initialize audit buffer
-+ * @len: length of returned buffer
-+ */
 +char *tmy_init_audit_log(int *len)
 +{
 +	char *buf;
@@ -53,12 +49,7 @@ Index: src/security/tomoyo/audit.c
 +	return buf;
 +}
 +
-+/**
-+ * tmy_write_audit_log - write audit log
-+ * @buf: access log contents
-+ * @is_granted: is access granted?
-+ * @is_enforce: is it enforcing mode?
-+ *
++/*
 + * Write audit log.
 + * Caller must allocate buf with tmy_init_audit_log().
 + */
@@ -70,19 +61,18 @@ Index: src/security/tomoyo/audit.c
 +	ab = audit_log_start(current->audit_context, GFP_KERNEL, type);
 +	if (ab) {
 +		const char *msg
-+			= is_granted ? "granted" : is_enforce ?
-+			"error" : "warning";
-+		audit_log_format(ab, "TOMOYO %s: %s", msg, buf);
++			= is_granted ? "GRANTED" : tmy_get_msg(is_enforce);
++		audit_log_format(ab, "TOMOYO-%s: %s", msg, buf);
 +		audit_log_end(ab);
 +	}
 +
 +	tmy_free(buf);
 +	return ab ? 0 : -ENOMEM;
 +}
-Index: src/include/linux/audit.h
+Index: linux-2.6/include/linux/audit.h
 ===================================================================
---- src.orig/include/linux/audit.h	2007-08-17 17:37:15.000000000 +0900
-+++ src/include/linux/audit.h	2007-08-17 17:37:26.000000000 +0900
+--- linux-2.6.orig/include/linux/audit.h	2007-08-05 21:41:51.000000000 +0900
++++ linux-2.6/include/linux/audit.h	2007-08-17 23:05:44.000000000 +0900
 @@ -120,6 +120,9 @@
  
  #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */

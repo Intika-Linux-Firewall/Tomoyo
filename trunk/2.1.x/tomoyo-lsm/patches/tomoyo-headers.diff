@@ -8,16 +8,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/include/tomoyo.h   |  477 +++++++++++++++++++++++++++++++++++++
  2 files changed, 521 insertions(+)
 
-Index: src/security/tomoyo/include/realpath.h
+Index: linux-2.6/security/tomoyo/include/realpath.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/include/realpath.h	2007-08-17 10:51:55.000000000 +0900
-@@ -0,0 +1,44 @@
++++ linux-2.6/security/tomoyo/include/realpath.h	2007-08-10 23:14:39.000000000 +0900
+@@ -0,0 +1,43 @@
 +/*
 + * security/tomoyo/include/realpath.h
 + *
-+ * Get the canonicalized absolute pathnames.
-+ * The basis for TOMOYO.
++ * Get the canonicalized absolute pathnames. The basis for TOMOYO.
 + */
 +
 +#ifndef _TMY_REALPATH_H
@@ -57,11 +56,11 @@ Index: src/security/tomoyo/include/realpath.h
 +extern void tmy_realpath_init(void);
 +
 +#endif
-Index: src/security/tomoyo/include/tomoyo.h
+Index: linux-2.6/security/tomoyo/include/tomoyo.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/include/tomoyo.h	2007-08-17 18:23:34.000000000 +0900
-@@ -0,0 +1,477 @@
++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-08-10 21:48:19.000000000 +0900
+@@ -0,0 +1,481 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -70,8 +69,6 @@ Index: src/security/tomoyo/include/tomoyo.h
 +
 +#ifndef _TOMOYO_H
 +#define _TOMOYO_H
-+
-+#define TOMOYO_VERSION_CODE "2.1.0-rc3"
 +
 +#include <linux/string.h>
 +#include <linux/mm.h>
@@ -252,10 +249,14 @@ Index: src/security/tomoyo/include/tomoyo.h
 +#define TMY_DENY_REWRITE_LEN         	(sizeof(TMY_DENY_REWRITE) - 1)
 +#define TMY_FILE_PATTERN             	"file_pattern "
 +#define TMY_FILE_PATTERN_LEN         	(sizeof(TMY_FILE_PATTERN) - 1)
++#define TMY_INITIALIZER              	"initializer "
++#define TMY_INITIALIZER_LEN          	(sizeof(TMY_INITIALIZER) - 1)
 +#define TMY_INITIALIZE_DOMAIN        	"initialize_domain "
 +#define TMY_INITIALIZE_DOMAIN_LEN    	(sizeof(TMY_INITIALIZE_DOMAIN) - 1)
 +#define TMY_KEEP_DOMAIN              	"keep_domain "
 +#define TMY_KEEP_DOMAIN_LEN          	(sizeof(TMY_KEEP_DOMAIN) - 1)
++#define TMY_NO_INITIALIZER           	"no_initializer "
++#define TMY_NO_INITIALIZER_LEN       	(sizeof(TMY_NO_INITIALIZER) - 1)
 +#define TMY_NO_INITIALIZE_DOMAIN     	"no_initialize_domain "
 +#define TMY_NO_INITIALIZE_DOMAIN_LEN 	(sizeof(TMY_NO_INITIALIZE_DOMAIN) - 1)
 +#define TMY_NO_KEEP_DOMAIN           	"no_keep_domain "
@@ -339,7 +340,6 @@ Index: src/security/tomoyo/include/tomoyo.h
 +#define TMY_POLICY_QUERY            8
 +#define TMY_POLICY_MANAGER          9
 +#define TMY_INFO_UPDATESCOUNTER    10
-+#define TMY_VERSION                11
 +
 +/********************  The structure for /proc interfaces.  *******************/
 +
@@ -365,22 +365,24 @@ Index: src/security/tomoyo/include/tomoyo.h
 +/*************************  PROTOTYPES  *************************/
 +
 +const char *tmy_get_exe(void);
++const char *tmy_get_last_name(const struct domain_info *domain);
++const char *tmy_get_msg(const int is_enforce);
 +const char *tmy_acltype2keyword(const unsigned int acl_type);
 +
-+int tmy_mount_perm(char *dev_name,
-+		   char *dir_name,
-+		   char *type,
-+		   unsigned long flags);
-+int tmy_conceal_mount(struct nameidata *nd);
-+int tmy_umount_perm(struct vfsmount *mnt);
-+int tmy_add_mount_policy(char *data, const int is_delete);
-+int tmy_read_mount_policy(struct io_buffer *head);
-+int tmy_add_no_umount_policy(char *data, const int is_delete);
-+int tmy_read_no_umount_policy(struct io_buffer *head);
-+int tmy_pivot_root_perm(struct nameidata *old_nd,
-+			struct nameidata *new_nd);
-+int tmy_add_pivot_root_policy(char *data, const int is_delete);
-+int tmy_read_pivot_root_policy(struct io_buffer *head);
++int CheckMountPermission(char *dev_name,
++			 char *dir_name,
++			 char *type,
++			 unsigned long *flags);
++int SAKURA_MayMount(struct nameidata *nd);
++int SAKURA_MayUmount(struct vfsmount *mnt);
++int AddMountPolicy(char *data, const int is_delete);
++int ReadMountPolicy(struct io_buffer *head);
++int AddNoUmountPolicy(char *data, const int is_delete);
++int ReadNoUmountPolicy(struct io_buffer *head);
++int CheckPivotRootPermission(struct nameidata *old_nd,
++			     struct nameidata *new_nd);
++int AddPivotRootPolicy(char *data, const int is_delete);
++int ReadPivotRootPolicy(struct io_buffer *head);
 +
 +int tmy_add_aggregator_policy(char *data, const int is_delete);
 +int tmy_add_addr_group_policy(char *data, const int is_delete);
@@ -393,7 +395,8 @@ Index: src/security/tomoyo/include/tomoyo.h
 +		struct acl_info *new_ptr);
 +int tmy_add_domain_initializer_policy(char *data,
 +				      const int is_not,
-+				      const int is_delete);
++				      const int is_delete,
++				      const int is_oldstyle);
 +int tmy_add_domain_keeper_policy(char *data,
 +				 const int is_not,
 +				 const int is_delete);
@@ -410,7 +413,6 @@ Index: src/security/tomoyo/include/tomoyo.h
 +int tmy_add_pattern_policy(char *data, const int is_delete);
 +int tmy_supervisor(const char *fmt, ...)
 +	__attribute__((format(printf, 1, 2)));
-+
 +int tmy_del_acl(struct acl_info *ptr);
 +int tmy_delete_domain(char *data);
 +int tmy_is_correct_domain(const unsigned char *domainname,
@@ -431,6 +433,7 @@ Index: src/security/tomoyo/include/tomoyo.h
 +int tmy_read_group_policy(struct io_buffer *head);
 +int tmy_read_no_rewrite_policy(struct io_buffer *head);
 +int tmy_read_pattern_policy(struct io_buffer *head);
++int tmy_read_self_domain(struct io_buffer *head);
 +int tmy_read_addr_group_policy(struct io_buffer *head);
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0);
 +int tmy_network_listen_acl(const int is_ipv6,
@@ -456,10 +459,10 @@ Index: src/security/tomoyo/include/tomoyo.h
 +			    const u8 *address,
 +			    const u16 port);
 +
-+int tmy_signal_acl(int sig, int pid);
-+int tmy_add_signal_policy(char *data,
-+			  struct domain_info *domain,
-+			  const int is_delete);
++int CheckSignalACL(int sig, int pid);
++int AddSignalPolicy(char *data,
++		    struct domain_info *domain,
++		    const int is_delete);
 +
 +char *tmy_init_audit_log(int *len);
 +int tmy_write_audit_log(char *log, const int is_granted, const int is_enforce);

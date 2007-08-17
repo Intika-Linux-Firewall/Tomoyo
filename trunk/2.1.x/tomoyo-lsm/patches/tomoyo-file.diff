@@ -13,11 +13,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/file.c | 1370 +++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 1370 insertions(+)
 
-Index: src/security/tomoyo/file.c
+Index: linux-2.6/security/tomoyo/file.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/file.c	2007-08-17 17:37:30.000000000 +0900
-@@ -0,0 +1,1370 @@
++++ linux-2.6/security/tomoyo/file.c	2007-08-10 22:18:39.000000000 +0900
+@@ -0,0 +1,1369 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -260,7 +260,7 @@ Index: src/security/tomoyo/file.c
 +
 +	error = 0;
 +
-+out: ;
++out:
 +	up(&lock);
 +
 +	return error;
@@ -388,7 +388,7 @@ Index: src/security/tomoyo/file.c
 +		group->first_member = new_member;
 +
 +	error = 0;
-+out: ;
++out:
 +	up(&lock);
 +
 +	return error;
@@ -485,8 +485,7 @@ Index: src/security/tomoyo/file.c
 +
 +static int tmy_add_pattern_entry(const char *pattern, const int is_delete)
 +{
-+	struct pattern_entry *new_entry;
-+	struct pattern_entry *ptr;
++	struct pattern_entry *new_entry, *ptr;
 +	static DECLARE_MUTEX(lock);
 +	const struct path_info *saved;
 +	int error = -ENOMEM;
@@ -529,7 +528,7 @@ Index: src/security/tomoyo/file.c
 +		pattern_list = new_entry;
 +
 +	error = 0;
-+out: ;
++out:
 +	up(&lock);
 +	return error;
 +}
@@ -628,7 +627,7 @@ Index: src/security/tomoyo/file.c
 +		no_rewrite_list = new_entry;
 +
 +	error = 0;
-+out: ;
++out:
 +	up(&lock);
 +
 +	return error;
@@ -750,7 +749,7 @@ Index: src/security/tomoyo/file.c
 +			continue;
 +		}
 +
-+first_entry: ;
++first_entry:
 +		if (is_add == 1 && tmy_too_many_acl(domain))
 +			break;
 +
@@ -768,7 +767,7 @@ Index: src/security/tomoyo/file.c
 +		break;
 +	}
 +	goto ok;
-+remove: ;
++remove:
 +	error = -ENOENT;
 +	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 +		struct file_acl *acl = (struct file_acl *) ptr;
@@ -781,7 +780,7 @@ Index: src/security/tomoyo/file.c
 +		error = tmy_del_acl(ptr);
 +		break;
 +	}
-+ok: ;
++ok:
 +	up(&domain_acl_lock);
 +	return error;
 +}
@@ -917,7 +916,7 @@ Index: src/security/tomoyo/file.c
 +
 +		break;
 +	}
-+out: ;
++out:
 +	return -EINVAL;
 +}
 +
@@ -971,7 +970,7 @@ Index: src/security/tomoyo/file.c
 +			continue;
 +		}
 +
-+first_entry: ;
++first_entry:
 +		if (is_add == 1 && tmy_too_many_acl(domain))
 +			break;
 +
@@ -988,7 +987,7 @@ Index: src/security/tomoyo/file.c
 +		break;
 +	}
 +	goto ok;
-+remove: ;
++remove:
 +	error = -ENOENT;
 +	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 +		struct single_acl *acl = (struct single_acl *) ptr;
@@ -1001,7 +1000,7 @@ Index: src/security/tomoyo/file.c
 +
 +		break;
 +	}
-+ok: ;
++ok:
 +	up(&domain_acl_lock);
 +
 +	return error;
@@ -1076,7 +1075,7 @@ Index: src/security/tomoyo/file.c
 +			continue;
 +		}
 +
-+first_entry: ;
++first_entry:
 +		if (is_add == 1 && tmy_too_many_acl(domain))
 +			break;
 +		/* Not found. Append it to the tail. */
@@ -1094,7 +1093,7 @@ Index: src/security/tomoyo/file.c
 +		break;
 +	}
 +	goto ok;
-+remove: ;
++remove:
 +	error = -ENOENT;
 +	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
 +		struct double_acl *acl = (struct double_acl *) ptr;
@@ -1107,7 +1106,7 @@ Index: src/security/tomoyo/file.c
 +		error = tmy_del_acl(ptr);
 +		break;
 +	}
-+ok: ;
++ok:
 +	up(&domain_acl_lock);
 +	return error;
 +}
@@ -1212,7 +1211,7 @@ Index: src/security/tomoyo/file.c
 +	if (!is_enforce)
 +		error = 0;
 +
-+ok: ;
++ok:
 +	if (!error && operation == TMY_TYPE_TRUNCATE_ACL &&
 +	    tmy_is_no_rewrite_file(filename))
 +		error = tmy_single_write_perm2(TMY_TYPE_REWRITE_ACL,
@@ -1267,7 +1266,7 @@ Index: src/security/tomoyo/file.c
 +
 +	tmy_free(buf);
 +
-+out: ;
++out:
 +	if (!is_enforce)
 +		error = 0;
 +	return error;
@@ -1300,7 +1299,7 @@ Index: src/security/tomoyo/file.c
 +	error = tmy_single_write_perm2(operation, buf);
 +	tmy_free(buf);
 +
-+out: ;
++out:
 +	if (!is_enforce)
 +		error = 0;
 +
@@ -1323,7 +1322,7 @@ Index: src/security/tomoyo/file.c
 +
 +	tmy_free(buf);
 +
-+out: ;
++out:
 +	if (!is_enforce)
 +		error = 0;
 +	return error;
@@ -1381,7 +1380,7 @@ Index: src/security/tomoyo/file.c
 +					 tmy_get_pattern(buf2)->name,
 +					 domain, 1);
 +
-+out: ;
++out:
 +	tmy_free(buf1);
 +	tmy_free(buf2);
 +	if (!is_enforce)
