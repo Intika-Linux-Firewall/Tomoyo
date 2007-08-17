@@ -84,11 +84,11 @@ savepolicy
 
 <table border="1">
 <tr><td>
-findtemp &lt; /etc/ccs/exception_policy.txt
+findtemp &lt; /etc/ccs/exception_policy.conf
 </td></tr>
 </table>
 
-<p>テキストエディタで /etc/ccs/exception_policy.txt を開き、存在しない共有ライブラリファイルに対する allow_read 等の無意味なアクセス許可を削除してください。そして、以下のコマンドを実行して例外ポリシーを再読み込みしてください。</p>
+<p>テキストエディタで /etc/ccs/exception_policy.conf を開き、存在しない共有ライブラリファイルに対する allow_read 等の無意味なアクセス許可を削除してください。そして、以下のコマンドを実行して例外ポリシーを再読み込みしてください。</p>
 
 <table border="1">
 <tr><td>
@@ -100,7 +100,7 @@ loadpolicy ef
 
 <table border="1">
 <tr><td>
-findtemp &lt; /etc/ccs/domain_policy.txt
+findtemp &lt; /etc/ccs/domain_policy.conf
 </td></tr>
 </table>
 
@@ -109,7 +109,7 @@ findtemp &lt; /etc/ccs/domain_policy.txt
 <p>例えば、 Fedora Core 4 に付属の logwatch は、アップデートによりパス名が変化します。
 Fedora Core 4 をインストールした直後の logwatch は /etc/log.d/ ディレクトリに設定ファイルなどを保持しています。しかし、アップデートにより /etc/logwatch/ ディレクトリに設定ファイルなどを保持するようになり、 /etc/log.d/ ディレクトリは削除されてしまいます。</p>
 
-<p>規則性が明確な場合は、テキストエディタで /etc/ccs/domain_policy.txt を編集してください。そして、以下のコマンドを実行してドメイン用ポリシーを再読み込みしてください。</p>
+<p>規則性が明確な場合は、テキストエディタで /etc/ccs/domain_policy.conf を編集してください。そして、以下のコマンドを実行してドメイン用ポリシーを再読み込みしてください。</p>
 
 <table border="1">
 <tr><td>

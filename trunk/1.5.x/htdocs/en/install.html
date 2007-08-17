@@ -90,57 +90,6 @@ Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.
 
 <p>TOMOYO Linux itself can coexist with SELinux. You may continue with SELinux enabled if you want.</p>
 
-<p>If you install rpm package, the following entry is added to /boot/grub/grub.conf upon successful installation.</p>
-
-<table border="1">
-<tr><td>
-title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-55.0.2.EL_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00<br>
-&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-55.0.2.EL_tomoyo_1.4.2.img
-</td></tr>
-</table>
-
-<p>Append "init=/.init" to the line of "kernel".</p>
-
-<table border="1">
-<tr><td>
-title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;root (hd0,0)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;kernel /vmlinuz-2.6.9-55.0.2.EL_tomoyo_1.4.2 ro root=/dev/VolGroup00/LogVol00 init=/.init<br>
-&nbsp;&nbsp;&nbsp;&nbsp;initrd /initrd-2.6.9-55.0.2.EL_tomoyo_1.4.2.img
-</td></tr>
-</table>
-
-<p>If you install deb package, the following entry is added to /boot/grub/menu.lst upon successful installation.</p>
-
-<table border="1">
-<tr><td>
-title Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs<br>
-root (hd0,0)<br>
-kernel /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro<br>
-initrd /boot/initrd.img-2.6.8-16sarge7-ccs<br>
-savedefault<br>
-boot
-</td></tr>
-</table>
-
-<p>Append "init=/.init" to the line of "kernel".</p>
-
-<table border="1">
-<tr><td>
-title Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs<br>
-root (hd0,0)<br>
-kernel /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro init=/.init<br>
-initrd /boot/initrd.img-2.6.8-16sarge7-ccs<br>
-savedefault<br>
-boot
-</td></tr>
-</table>
-
-<p>The "/.init" is a script to load TOMOYO Linux's policy files and is executed before starting /sbin/init .<br>
-The "/.init" is included in the TOMOYO Linux tools package.</p>
-
 <h2>Install TOMOYO Linux tools</h2>
 
 <p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract under /root/ directory.</p>
@@ -200,11 +149,11 @@ http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools_1.4.2-nlug1_i386.deb
 </td></tr>
 </table>
 
-<p>Move extracted ".init" (policy loader) to / .</p>
+<p>Move extracted ".init" (policy loader) to /sbin/ccs-init .</p>
 
 <table border="1">
 <tr><td>
-mv ccstools/.init /
+mv ccstools/.init /ccs-init
 </td></tr>
 </table>
 
@@ -219,8 +168,8 @@ wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.
 tar -zxf ccs-tools.tar.gz<br>
 # Compile.<br>
 make -sC ccstools/<br>
-# Move policy loader to / .<br>
-mv ccstools/.init /
+# Move policy loader to /sbin/ccs-init .<br>
+mv ccstools/.init /sbin/ccs-init
 </td></tr>
 </table>
 
@@ -256,12 +205,12 @@ mkdir -m 700 /etc/ccs
 </td></tr>
 </table>
 
-<p>Create /etc/ccs/manager.txt and list up programs that are allowed to update policies via /proc/ccs/ interface.<br>
+<p>Create /etc/ccs/manager.conf and list up programs that are allowed to update policies via /proc/ccs/ interface.<br>
 Specifically, "loadpolicy" that reloads policy, "editpolicy" that edits policy, "setlevel" that changes control level, "setprofile" that changes profile number of domains, "ld-watch" that updates globally readable files, "ccs-queryd" that grants access requests interactively.</p>
 
 <table border="1">
 <tr><td>
-cat &gt; /etc/ccs/manager.txt &lt;&lt; EOF<br>
+cat &gt; /etc/ccs/manager.conf &lt;&lt; EOF<br>
 /root/ccstools/loadpolicy<br>
 /root/ccstools/editpolicy<br>
 /root/ccstools/setlevel<br>
@@ -280,11 +229,11 @@ reboot
 </td></tr>
 </table>
 
-<p>The following messages will appear upon successful execution of "/.init".</p>
+<p>The following messages will appear when /sbin/init is about to start.</p>
 
 <table border="1">
 <tr><td>
-TOMOYO Linux: Enter 'disabled' within 10 seconds to disable TOMOYO Linux.<br>
+TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.<br>
 TOMOYO Linux&gt;
 </td></tr>
 </table>
@@ -297,28 +246,14 @@ boottest
 </td></tr>
 </table>
 
-<p>/sbin/init will start and the system will boot if profiles are loaded successfully.<br>
-On failure, the following messages will appear and the system halts.</p>
-
-<table border="1">
-<tr><td>
-No profiles loaded. Run policy loader using 'init=' option.
-</td></tr>
-</table>
-
-<p>If failed, check the following points.</p>
-
-<ul>
-<li>The "kernel" line of the entry of TOMOYO Linux kernel in /boot/grub/grub.conf ( or /boot/grub/menu.lst ) has "init=/.init" option.
-<li> /.init has execute permission.
-</ul>
+<p>/sbin/init will start and the system will boot if profiles are loaded successfully.</p>
 
 <p>After the system boots, login as root.<br>
 Save the profile by executing the following command.</p>
 
 <table border="1">
 <tr><td>
-cat /proc/ccs/status &gt; /etc/ccs/status.txt
+cat /proc/ccs/status &gt; /etc/ccs/profile.conf
 </td></tr>
 </table>
 
@@ -509,7 +444,7 @@ cat /proc/ccs/status &gt; /etc/ccs/status.txt
 
 <h2>Creating profiles</h2>
 
-<p>Write profiles for "disabled", "learning mode", "permissive mode" and "enforce mode" in /etc/ccs/status.txt . The following example is profiles for applying MAC for files and networks. The heading number is profile number that is used for assigning profiles to domains. The valid profile number range is between 0 and 255.</p>
+<p>Write profiles for "disabled", "learning mode", "permissive mode" and "enforce mode" in /etc/ccs/profile.conf . The following example is profiles for applying MAC for files and networks. The heading number is profile number that is used for assigning profiles to domains. The valid profile number range is between 0 and 255.</p>
 
 <table border="1">
 <tr><td>
@@ -541,11 +476,11 @@ profile number 2 is for "permissive mode",<br>
 profile number 3 is for "enforce mode",<br>
 profile number 4 is for "delayed enforce mode" (same as "enforce mode" except that it allows administrators handle access requests that violated policy manually).</p>
 
-<p>You won't need to edit profiles after you once create them because you can control how to apply MAC on per-a-domain basis by changing profile numbers of domains. But if you edited /etc/ccs/status.txt by some reason (for example, you want to add profiles), run the following command.</p>
+<p>You won't need to edit profiles after you once create them because you can control how to apply MAC on per-a-domain basis by changing profile numbers of domains. But if you edited /etc/ccs/profile.conf by some reason (for example, you want to add profiles), run the following command.</p>
 
 <table border="1">
 <tr><td>
-xargs -0 setlevel &lt; /etc/ccs/status.txt
+xargs -0 setlevel &lt; /etc/ccs/profile.conf
 </td></tr>
 </table>
 
@@ -592,8 +527,8 @@ cat /proc/ccs/policy/.domain_status
 </td></tr>
 </table>
 
-<p>Basically, you don't need to switch profiles of all domains at boot because you can assign profiles by per-a-domain basis and the profile number last assigned remains in the domain policy file (/etc/ccs/domain_policy.txt) using "use_profile" directive.
-But if you can't boot by some reason (for example, you assigned profiles for "enforce mode" before giving enough permissions to domains), you can enter "disabled" and press "Enter" at the prompt of /.init to boot the system with MAC disabled.</p>
+<p>Basically, you don't need to switch profiles of all domains at boot because you can assign profiles by per-a-domain basis and the profile number last assigned remains in the domain policy file (/etc/ccs/domain_policy.conf) using "use_profile" directive.
+But if you can't boot by some reason (for example, you assigned profiles for "enforce mode" before giving enough permissions to domains), you can enter "disable" and press "Enter" at the prompt of /sbin/ccs-init to boot the system with MAC disabled.</p>
 
 <p>To see the profiles of currently running processes and their domainnames, use ccstree command.</p>
 
@@ -658,11 +593,11 @@ The logs are in the form of domain policy so that the logs can be directly appen
 
 <p>You may give MAX_GRANT_LOG=0 for profiles and give /dev/null for $location_to_store_access_granted_logs if you don't want "access granted logs". Since "ccs-auditd" doesn't have filtering functions, be careful with the disk's free space if you want to save "access granted logs".</p>
 
-<p>You may give MAX_REJECT_LOG=0 for profiles and give /dev/null for $location_to_store_access_rejected_logs if you don't want "access rejected logs". But I recommend you to save "access rejected logs". This manual assumes that "access rejected logs" is saved in /var/log/tomoyo/reject_log.txt .</p>
+<p>You may give MAX_REJECT_LOG=0 for profiles and give /dev/null for $location_to_store_access_rejected_logs if you don't want "access rejected logs". But I recommend you to save "access rejected logs". This manual assumes that "access rejected logs" is saved in /var/log/tomoyo/reject_log.conf .</p>
 
 <table border="1">
 <tr><td>
-/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
@@ -678,7 +613,7 @@ mkdir -p /var/log/tomoyo
 
 <table border="1">
 <tr><td>
-/var/log/tomoyo/reject_log.txt {<br>
+/var/log/tomoyo/reject_log.conf {<br>
 &nbsp;&nbsp;weekly<br>
 &nbsp;&nbsp;rotate 9<br>
 &nbsp;&nbsp;missingok<br>
@@ -692,7 +627,7 @@ mkdir -p /var/log/tomoyo
 
 <h2>Creating exception policy</h2>
 
-<p>Create /etc/ccs/exception_policy.txt and define the following types of exceptions.</p>
+<p>Create /etc/ccs/exception_policy.conf and define the following types of exceptions.</p>
 
 <ol>
 <li>Pathname pattern
@@ -711,8 +646,8 @@ mkdir -p /var/log/tomoyo
 
 <table border="1">
 <tr><td>
-make_exception.sh | sort | uniq &gt; /etc/ccs/exception_policy.txt<br>
-make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt
+make_exception.sh | sort | uniq &gt; /etc/ccs/exception_policy.conf<br>
+make_alias.sh &gt;&gt; /etc/ccs/exception_policy.conf
 </td></tr>
 </table>
 
@@ -953,16 +888,16 @@ setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
-<p>The log file /var/log/tomoyo/reject_log.txt created by "ccs-auditd" contains list of ACLs that violated domain policy in time series.
+<p>The log file /var/log/tomoyo/reject_log.conf created by "ccs-auditd" contains list of ACLs that violated domain policy in time series.
 Select appropriate range and pass to the filter as show below. This filter program sorts by domains and removes duplicated entries. (In other words, "sort" by domains and "uniq".)</p>
 
 <table border="1">
 <tr><td>
-sortpolicy &lt; /var/log/tomoyo/reject_log.txt
+sortpolicy &lt; /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
-<p>Check the output and judge whether these ACLs should be added or not. And if you judged to add, add to /etc/ccs/domain_policy.txt and run "loadpolicy" to reload domain policy.</p>
+<p>Check the output and judge whether these ACLs should be added or not. And if you judged to add, add to /etc/ccs/domain_policy.conf and run "loadpolicy" to reload domain policy.</p>
 
 <table border="1">
 <tr><td>
@@ -977,7 +912,7 @@ loadpolicy d
 <p>Rename the current reject log file. "ccs-auditd" will detect the  disappearance of the current reject log file and recreates it.</p>
 <table border="1">
 <tr><td>
-[root@sakura tomoyo]# mv /var/log/tomoyo/reject_log.txt /var/log/tomoyo/reject_log.tmp<br>
+[root@sakura tomoyo]# mv /var/log/tomoyo/reject_log.conf /var/log/tomoyo/reject_log.tmp<br>
 </td></tr>
 </table>
 <p>Check the logs. Select ranges you want to use using some text editor if necessary.</p>
@@ -1097,7 +1032,7 @@ savepolicy
 </td></tr>
 </table>
 
-<p>By executing "savepolicy", three files ("system_policy.txt", "exception_policy.txt", "domain_policy.txt") are created in the /etc/ccs/ directory. To be accurate, they are symbolic links to text files whose filenames contain the creation time.</p>
+<p>By executing "savepolicy", three files ("system_policy.conf", "exception_policy.conf", "domain_policy.conf") are created in the /etc/ccs/ directory. To be accurate, they are symbolic links to text files whose filenames contain the creation time.</p>
 
 <h2>Loading Policy</h2>
 
@@ -1109,7 +1044,7 @@ loadpolicy af
 </td></tr>
 </table>
 
-<p>The "a" option means load three files ("system_policy.txt", "exception_policy.txt", "domain_policy.txt"). The "f" option means erase the policy currently in the kernel before loading the policy currently on the disk. If "f" is not given, the policy currently on the disk will be added to the policy currently in the kernel.</p>
+<p>The "a" option means load three files ("system_policy.conf", "exception_policy.conf", "domain_policy.conf"). The "f" option means erase the policy currently in the kernel before loading the policy currently on the disk. If "f" is not given, the policy currently on the disk will be added to the policy currently in the kernel.</p>
 
 <h2>Editing Policy</h2>
 
@@ -1133,7 +1068,7 @@ editpolicy_offline
 
 <h2>Patterning File Access Permissions</h2>
 
-<p>Append access permissions for files that are not necessarily accessed in the learning mode such as WWW contents for WWW service to /etc/ccs/domain_policy.txt .<br>
+<p>Append access permissions for files that are not necessarily accessed in the learning mode such as WWW contents for WWW service to /etc/ccs/domain_policy.conf .<br>
 The following example allows /usr/sbin/httpd to read files in the /var/www/html/ directory.</p>
 
 <table border="1">
@@ -1212,7 +1147,7 @@ use_profile 3<br>
 <p>List up pathnames that can be temporary files.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.txt<br>
+[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.conf<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /etc/mtab~2302<br>
@@ -1260,8 +1195,8 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Append patterns to the exception policy on the disk if needed.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.txt<br>
-[root@sakura ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.txt<br>
+[root@sakura ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
+[root@sakura ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
 </td></tr>
 </table>
 <p>Load the exception policy on the disk to the kernel.</p>
@@ -1273,7 +1208,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Patternize pathnames that match to '/etc/mtab~\$' and '/tmp/sh-thd-\$'.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.txt &gt; /etc/ccs/domain_policy.tmp<br>
+[root@sakura ~]# patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
 </td></tr>
 </table>
 <p>Confirm that these files are patternized.</p>
@@ -1295,7 +1230,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Verify that the patterning are done as you have intended by diff'ing the domain policy before patternize and the one after the patternize.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# diff /etc/ccs/domain_policy.txt /etc/ccs/domain_policy.tmp<br>
+[root@sakura ~]# diff /etc/ccs/domain_policy.conf /etc/ccs/domain_policy.tmp<br>
 2326,2331c2326,2331<br>
 &lt; 6 /tmp/sh-thd-1163110572<br>
 &lt; 6 /tmp/sh-thd-1163113704<br>
@@ -1391,7 +1326,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Update the domain policy on the disk.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.txt<br>
+[root@sakura ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.conf<br>
 </td></tr>
 </table>
 <p>Load the domain policy on the disk to the kernel.</p>
