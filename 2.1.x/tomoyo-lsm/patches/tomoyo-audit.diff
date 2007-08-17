@@ -10,14 +10,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
  include/linux/audit.h   |    3 ++
- security/tomoyo/audit.c |   52 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 55 insertions(+)
+ security/tomoyo/audit.c |   61 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 64 insertions(+)
 
 Index: src/security/tomoyo/audit.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/audit.c	2007-08-17 10:51:55.000000000 +0900
-@@ -0,0 +1,52 @@
++++ src/security/tomoyo/audit.c	2007-08-17 18:13:28.000000000 +0900
+@@ -0,0 +1,61 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -27,6 +27,10 @@ Index: src/security/tomoyo/audit.c
 +#include "tomoyo.h"
 +#include <linux/audit.h>
 +
++/**
++ * tmy_init_audit_log - alloc and initialize audit buffer
++ * @len: length of returned buffer
++ */
 +char *tmy_init_audit_log(int *len)
 +{
 +	char *buf;
@@ -49,7 +53,12 @@ Index: src/security/tomoyo/audit.c
 +	return buf;
 +}
 +
-+/*
++/**
++ * tmy_write_audit_log - write audit log
++ * @buf: access log contents
++ * @is_granted: is access granted?
++ * @is_enforce: is it enforcing mode?
++ *
 + * Write audit log.
 + * Caller must allocate buf with tmy_init_audit_log().
 + */
@@ -72,8 +81,8 @@ Index: src/security/tomoyo/audit.c
 +}
 Index: src/include/linux/audit.h
 ===================================================================
---- src.orig/include/linux/audit.h	2007-08-17 10:38:04.000000000 +0900
-+++ src/include/linux/audit.h	2007-08-17 10:51:55.000000000 +0900
+--- src.orig/include/linux/audit.h	2007-08-17 17:37:15.000000000 +0900
++++ src/include/linux/audit.h	2007-08-17 17:37:26.000000000 +0900
 @@ -120,6 +120,9 @@
  
  #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */

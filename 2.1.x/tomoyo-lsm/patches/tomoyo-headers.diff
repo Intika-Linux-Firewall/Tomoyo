@@ -5,8 +5,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
  security/tomoyo/include/realpath.h |   44 +++
- security/tomoyo/include/tomoyo.h   |  478 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 522 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  477 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 521 insertions(+)
 
 Index: src/security/tomoyo/include/realpath.h
 ===================================================================
@@ -60,8 +60,8 @@ Index: src/security/tomoyo/include/realpath.h
 Index: src/security/tomoyo/include/tomoyo.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/include/tomoyo.h	2007-08-17 13:29:49.000000000 +0900
-@@ -0,0 +1,478 @@
++++ src/security/tomoyo/include/tomoyo.h	2007-08-17 18:23:34.000000000 +0900
+@@ -0,0 +1,477 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -431,7 +431,6 @@ Index: src/security/tomoyo/include/tomoyo.h
 +int tmy_read_group_policy(struct io_buffer *head);
 +int tmy_read_no_rewrite_policy(struct io_buffer *head);
 +int tmy_read_pattern_policy(struct io_buffer *head);
-+int tmy_read_self_domain(struct io_buffer *head);
 +int tmy_read_addr_group_policy(struct io_buffer *head);
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0);
 +int tmy_network_listen_acl(const int is_ipv6,
