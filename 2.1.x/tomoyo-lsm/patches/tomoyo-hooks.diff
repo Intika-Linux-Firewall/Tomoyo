@@ -9,14 +9,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/tomoyo.c |  736 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 736 insertions(+)
+ security/tomoyo/tomoyo.c |  738 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 738 insertions(+)
 
 Index: src/security/tomoyo/tomoyo.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/tomoyo.c	2007-08-17 13:30:53.000000000 +0900
-@@ -0,0 +1,736 @@
++++ src/security/tomoyo/tomoyo.c	2007-08-17 15:50:54.000000000 +0900
+@@ -0,0 +1,738 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -351,8 +351,9 @@ Index: src/security/tomoyo/tomoyo.c
 +
 +static int tmy_socket_connect(struct socket *sock,
 +			      struct sockaddr *addr,
-+			      int addr_len)
++			      int addr_len0)
 +{
++	unsigned int addr_len = (unsigned int) addr_len0;
 +	int error = 0;
 +	const unsigned int type = sock->type;
 +
@@ -408,8 +409,9 @@ Index: src/security/tomoyo/tomoyo.c
 +
 +static int tmy_socket_bind(struct socket *sock,
 +			   struct sockaddr *addr,
-+			   int addr_len)
++			   int addr_len0)
 +{
++	unsigned int addr_len = (unsigned int) addr_len0;
 +	int error = 0;
 +	const unsigned int type = sock->type;
 +
@@ -468,7 +470,7 @@ Index: src/security/tomoyo/tomoyo.c
 +	int error = 0;
 +	const int type = sock->type;
 +	struct sockaddr *addr = (struct sockaddr *) msg->msg_name;
-+	const int addr_len = msg->msg_namelen;
++	const unsigned int addr_len = msg->msg_namelen;
 +
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;

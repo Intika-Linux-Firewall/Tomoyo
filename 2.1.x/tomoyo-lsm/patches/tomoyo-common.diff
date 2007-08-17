@@ -13,7 +13,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: src/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/common.c	2007-08-17 10:51:55.000000000 +0900
++++ src/security/tomoyo/common.c	2007-08-17 16:16:47.000000000 +0900
 @@ -0,0 +1,2124 @@
 +/*
 + * security/tomoyo/common.c
@@ -1066,10 +1066,10 @@ Index: src/security/tomoyo/common.c
 +
 +	min_address = ptr2->u.ipv4.min;
 +	max_address = ptr2->u.ipv4.max;
-+	if (tmy_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
++	if (tmy_io_printf(head, NIPQUAD_FMT, HIPQUAD(min_address)))
 +		goto out;
 +	if (min_address != max_address &&
-+	    tmy_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
++	    tmy_io_printf(head, "-" NIPQUAD_FMT, HIPQUAD(max_address)))
 +		goto out;
 +	goto print_port;
 +

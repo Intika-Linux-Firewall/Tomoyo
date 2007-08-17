@@ -13,7 +13,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: src/security/tomoyo/mount.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/mount.c	2007-08-17 10:51:56.000000000 +0900
++++ src/security/tomoyo/mount.c	2007-08-17 15:24:07.000000000 +0900
 @@ -0,0 +1,933 @@
 +/*
 + * security/tomoyo/mount.c
@@ -66,7 +66,7 @@ Index: src/security/tomoyo/mount.c
 +{
 +	char *buf1;
 +	char *buf2;
-+	int len;
++	unsigned int len;
 +	va_list args;
 +
 +	if (is_granted) {
