@@ -3,6 +3,9 @@ TOMOYO Linux checks permission according to
 device name, mount point, filesystem type and optional flags.
 TOMOYO Linux also checks permission in umount and pivot_root.
 
+Each permission can be automatically accumulated into
+the policy using 'learning mode'.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
@@ -13,7 +16,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: src/security/tomoyo/mount.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/mount.c	2007-08-17 15:24:07.000000000 +0900
++++ src/security/tomoyo/mount.c	2007-08-17 17:37:30.000000000 +0900
 @@ -0,0 +1,933 @@
 +/*
 + * security/tomoyo/mount.c

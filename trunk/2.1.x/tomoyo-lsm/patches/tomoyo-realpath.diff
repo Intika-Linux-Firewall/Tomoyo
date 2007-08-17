@@ -6,14 +6,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/realpath.c |  600 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 600 insertions(+)
+ security/tomoyo/realpath.c |  605 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 605 insertions(+)
 
 Index: src/security/tomoyo/realpath.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/realpath.c	2007-08-17 15:21:59.000000000 +0900
-@@ -0,0 +1,600 @@
++++ src/security/tomoyo/realpath.c	2007-08-17 19:20:53.000000000 +0900
+@@ -0,0 +1,605 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -506,12 +506,17 @@ Index: src/security/tomoyo/realpath.c
 +	void *ret = kmalloc(size, GFP_KERNEL);
 +	struct cache_entry *new_entry;
 +
-+	if (!ret)
++	if (!ret) {
++		printk(KERN_INFO "ERROR: "
++		       "kmalloc(): Out of memory for tmy_alloc().\n");
 +		return ret;
++	}
 +
 +	new_entry = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
 +
 +	if (!new_entry) {
++		printk(KERN_INFO "ERROR: "
++		       "kmem_cache_alloc(): Out of memory for tmy_alloc().\n");
 +		kfree(ret);
 +		ret = NULL;
 +	} else {
@@ -541,7 +546,7 @@ Index: src/security/tomoyo/realpath.c
 +
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&cache_list_lock);
-+	list_for_each(v, &cache_list) {
++	list_for_each_prev(v, &cache_list) {
 +		entry = list_entry(v, struct cache_entry, list);
 +		if (entry->ptr != p) {
 +			entry = NULL;

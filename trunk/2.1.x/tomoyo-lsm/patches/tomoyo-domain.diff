@@ -9,14 +9,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/domain.c | 1125 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1125 insertions(+)
+ security/tomoyo/domain.c | 1148 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1148 insertions(+)
 
 Index: src/security/tomoyo/domain.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/domain.c	2007-08-17 13:31:35.000000000 +0900
-@@ -0,0 +1,1125 @@
++++ src/security/tomoyo/domain.c	2007-08-17 18:57:56.000000000 +0900
+@@ -0,0 +1,1148 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -84,24 +84,27 @@ Index: src/security/tomoyo/domain.c
 +
 +/*************************  UTILITY FUNCTIONS  *************************/
 +
++/**
++ * tmy_is_domain_def - validate a domain name
++ * @buffer: the domain name to check
++ *
++ * Returns nonzero if @buffer is domain definition.
++ * Returns zero otherwise.
++ */
 +int tmy_is_domain_def(const unsigned char *buffer)
 +{
 +	/* while (*buffer && (*buffer <= ' ' || *buffer >= 127)) buffer++; */
 +	return strncmp(buffer, TMY_ROOT_NAME, TMY_ROOT_NAME_LEN) == 0;
 +}
 +
-+int tmy_read_self_domain(struct io_buffer *head)
-+{
-+	if (!head->read_eof) {
-+		tmy_io_printf(head,
-+			      "%s",
-+			      TMY_SECURITY->domain->domainname->name);
-+		head->read_eof = 1;
-+	}
-+
-+	return 0;
-+}
-+
++/**
++ * tmy_add_acl - add an entry to a domain
++ * @ptr: pointer to the last entry of the domain (May be NULL)
++ * @domain: pointer to the domain
++ * @new_ptr: pointer to new entry to add
++ *
++ * Returns zero.
++ */
 +int tmy_add_acl(struct acl_info *ptr,
 +		struct domain_info *domain,
 +		struct acl_info *new_ptr)
@@ -117,6 +120,12 @@ Index: src/security/tomoyo/domain.c
 +	return 0;
 +}
 +
++/**
++ * tmy_del_acl - remove an entry from a domain
++ * @ptr: pointer to the entry to remove
++ *
++ * Returns zero.
++ */
 +int tmy_del_acl(struct acl_info *ptr)
 +{
 +	ptr->is_deleted = 1;
@@ -124,6 +133,13 @@ Index: src/security/tomoyo/domain.c
 +	return 0;
 +}
 +
++/**
++ * tmy_too_many_acl - check quota for a domain
++ * @domain: the domain to examine
++ *
++ * Returns nonzero if quota exceeded
++ * Returns zero otherwise.
++ */
 +int tmy_too_many_acl(struct domain_info * const domain)
 +{
 +	unsigned int count = 0;
@@ -228,6 +244,13 @@ Index: src/security/tomoyo/domain.c
 +	return error;
 +}
 +
++/**
++ * tmy_read_domain_initializer_policy - read initializer policy
++ * @head: pointer to io_buffer to return value
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_domain_initializer_policy(struct io_buffer *head)
 +{
 +	struct domain_initializer_entry *ptr = head->read_var2;
