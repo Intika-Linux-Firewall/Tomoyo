@@ -1,3 +1,6 @@
+TOMOYO Linux uses pathnames for auditing and controlling file access.
+Therefore, namespace_sem is needed.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
@@ -8,9 +11,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 Index: src/fs/namespace.c
 ===================================================================
---- src.orig/fs/namespace.c	2007-08-13 20:07:24.000000000 +0900
-+++ src/fs/namespace.c	2007-08-16 15:06:56.000000000 +0900
-@@ -38,7 +38,7 @@
+--- src.orig/fs/namespace.c	2007-08-17 10:38:06.000000000 +0900
++++ src/fs/namespace.c	2007-08-17 10:51:55.000000000 +0900
+@@ -38,7 +38,7 @@ static int event;
  static struct list_head *mount_hashtable __read_mostly;
  static int hash_mask __read_mostly, hash_bits __read_mostly;
  static struct kmem_cache *mnt_cache __read_mostly;
@@ -21,8 +24,8 @@ Index: src/fs/namespace.c
  decl_subsys(fs, NULL, NULL);
 Index: src/include/linux/mnt_namespace.h
 ===================================================================
---- src.orig/include/linux/mnt_namespace.h	2007-08-13 20:07:27.000000000 +0900
-+++ src/include/linux/mnt_namespace.h	2007-08-13 20:08:14.000000000 +0900
+--- src.orig/include/linux/mnt_namespace.h	2007-08-17 10:38:06.000000000 +0900
++++ src/include/linux/mnt_namespace.h	2007-08-17 10:51:55.000000000 +0900
 @@ -6,6 +6,8 @@
  #include <linux/sched.h>
  #include <linux/nsproxy.h>

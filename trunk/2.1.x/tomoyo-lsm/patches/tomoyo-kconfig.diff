@@ -1,3 +1,8 @@
+Kconfig and Makefile for TOMOYO Linux.
+TOMOYO Linux depends on 'CONFIG_SECURITY' and select
+'CONFIG_SECURITY_NETWORK'.
+TOMOYO Linux is placed in security/tomoyo .
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
@@ -10,9 +15,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 Index: src/security/Kconfig
 ===================================================================
---- src.orig/security/Kconfig	2007-08-13 20:03:11.000000000 +0900
-+++ src/security/Kconfig	2007-08-13 20:08:14.000000000 +0900
-@@ -94,6 +94,7 @@
+--- src.orig/security/Kconfig	2007-08-17 10:38:05.000000000 +0900
++++ src/security/Kconfig	2007-08-17 10:51:55.000000000 +0900
+@@ -94,6 +94,7 @@ config SECURITY_ROOTPLUG
  	  If you are unsure how to answer this question, answer N.
  
  source security/selinux/Kconfig
@@ -22,9 +27,9 @@ Index: src/security/Kconfig
  
 Index: src/security/Makefile
 ===================================================================
---- src.orig/security/Makefile	2007-08-13 20:03:11.000000000 +0900
-+++ src/security/Makefile	2007-08-13 20:08:14.000000000 +0900
-@@ -16,3 +16,4 @@
+--- src.orig/security/Makefile	2007-08-17 10:38:05.000000000 +0900
++++ src/security/Makefile	2007-08-17 10:51:55.000000000 +0900
+@@ -16,3 +16,4 @@ obj-$(CONFIG_SECURITY)			+= security.o d
  obj-$(CONFIG_SECURITY_SELINUX)		+= selinux/built-in.o
  obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
@@ -33,7 +38,7 @@ Index: src/security/Makefile
 Index: src/security/tomoyo/Kconfig
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/Kconfig	2007-08-13 20:08:14.000000000 +0900
++++ src/security/tomoyo/Kconfig	2007-08-17 10:51:55.000000000 +0900
 @@ -0,0 +1,24 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux support"
@@ -62,7 +67,7 @@ Index: src/security/tomoyo/Kconfig
 Index: src/security/tomoyo/Makefile
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/Makefile	2007-08-13 20:08:14.000000000 +0900
++++ src/security/tomoyo/Makefile	2007-08-17 10:51:55.000000000 +0900
 @@ -0,0 +1,3 @@
 +obj-$(CONFIG_SECURITY_TOMOYO) += tomoyo.o tomoyo_func.o
 +tomoyo_func-objs := domain.o common.o realpath.o audit.o file.o exec.o net.o mount.o signal.o

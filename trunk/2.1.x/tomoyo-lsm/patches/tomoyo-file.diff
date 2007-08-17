@@ -1,3 +1,9 @@
+File access control functions for TOMOYO Linux.
+TOMOYO Linux checks permission in
+open/creat/unlink/truncate/ftruncate/mknod/mkdir/
+rmdir/symlink/link/rename/uselib/sysctl .
+Each permission can be automatically learned in 'learning mode'.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
@@ -8,7 +14,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: src/security/tomoyo/file.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/file.c	2007-08-14 21:36:03.000000000 +0900
++++ src/security/tomoyo/file.c	2007-08-17 10:51:55.000000000 +0900
 @@ -0,0 +1,1370 @@
 +/*
 + * security/tomoyo/file.c

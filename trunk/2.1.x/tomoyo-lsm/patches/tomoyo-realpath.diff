@@ -1,15 +1,19 @@
+Basic functions to get canonicalized absolute pathnames
+for TOMOYO Linux. Even the requested pathname is symlink()ed
+or chroot()ed, TOMOYO Linux uses the original pathname.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/realpath.c |  591 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 591 insertions(+)
+ security/tomoyo/realpath.c |  600 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 600 insertions(+)
 
 Index: src/security/tomoyo/realpath.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/realpath.c	2007-08-14 21:36:29.000000000 +0900
-@@ -0,0 +1,591 @@
++++ src/security/tomoyo/realpath.c	2007-08-17 14:39:08.000000000 +0900
+@@ -0,0 +1,600 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -107,7 +111,7 @@ Index: src/security/tomoyo/realpath.c
 +	*--end = '\0';
 +	buflen--;
 +
-+	for (; ; ) {
++	while (1) {
 +		struct dentry *parent;
 +
 +		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
@@ -180,7 +184,16 @@ Index: src/security/tomoyo/realpath.c
 +	return -ENOMEM;
 +}
 +
-+/* Returns realpath(3) of the given dentry but ignores chroot'ed root. */
++/*
++ * tmy_realpath_dentry2 - Returns realpath(3) of the given dentry.
++ * @dentry: dentry of target file
++ * @mnt: vfsmount of target file
++ * @newname: buffer to return value in
++ * @newname_len: newname length
++ *
++ * This function returns realpath(3) of the given dentry
++ * but ignores chroot'ed root.
++ */
 +int tmy_realpath_dentry2(struct dentry *dentry,
 +			 struct vfsmount *mnt,
 +			 char *newname,
@@ -215,7 +228,7 @@ Index: src/security/tomoyo/realpath.c
 +/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
 +/* These functions use tmy_alloc(), so caller must tmy_free() */
 +/* if these functions didn't return NULL. */
-+char *tmy_realpath_dentry(struct dentry *dentry, struct vfsmount *mnt)
++fchar *tmy_realpath_dentry(struct dentry *dentry, struct vfsmount *mnt)
 +{
 +	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
 +
