@@ -11,8 +11,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 Index: src/security/tomoyo/realpath.c
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/realpath.c	2007-08-17 14:39:08.000000000 +0900
+--- /dev/null   1970-01-01 00:00:00.000000000 +0000
++++ src/security/tomoyo/realpath.c      2007-08-17 15:10:48.000000000 +0900
 @@ -0,0 +1,600 @@
 +/*
 + * security/tomoyo/realpath.c
@@ -38,43 +38,43 @@ Index: src/security/tomoyo/realpath.c
 +#include "tomoyo.h"
 +
 +static int tmy_print_ascii(const char *sp, const char *cp,
-+			   int *buflen0, char **end0)
++                          int *buflen0, char **end0)
 +{
-+	int buflen = *buflen0;
-+	char *end = *end0;
++       int buflen = *buflen0;
++       char *end = *end0;
 +
-+	while (sp <= cp) {
-+		unsigned char c;
++       while (sp <= cp) {
++               unsigned char c;
 +
-+		c = * (unsigned char *) cp;
-+		if (c == '\\') {
-+			buflen -= 2;
-+			if (buflen < 0)
-+				goto out;
-+			*--end = '\\';
-+			*--end = '\\';
-+		} else if (c > ' ' && c < 127) {
-+			if (--buflen < 0)
-+				goto out;
-+			*--end = (char) c;
-+		} else {
-+			buflen -= 4;
-+			if (buflen < 0)
-+				goto out;
-+			*--end = (c & 7) + '0';
-+			*--end = ((c >> 3) & 7) + '0';
-+			*--end = (c >> 6) + '0';
-+			*--end = '\\';
-+		}
-+		cp--;
-+	}
++               c = * (unsigned char *) cp;
++               if (c == '\\') {
++                       buflen -= 2;
++                       if (buflen < 0)
++                               goto out;
++                       *--end = '\\';
++                       *--end = '\\';
++               } else if (c > ' ' && c < 127) {
++                       if (--buflen < 0)
++                               goto out;
++                       *--end = (char) c;
++               } else {
++                       buflen -= 4;
++                       if (buflen < 0)
++                               goto out;
++                       *--end = (c & 7) + '0';
++                       *--end = ((c >> 3) & 7) + '0';
++                       *--end = (c >> 6) + '0';
++                       *--end = '\\';
++               }
++               cp--;
++       }
 +
-+	*buflen0 = buflen;
-+	*end0 = end;
++       *buflen0 = buflen;
++       *end0 = end;
 +
-+	return 0;
++       return 0;
 +out: ;
-+	return -ENOMEM;
++       return -ENOMEM;
 +}
 +
 +/***** realpath handler *****/
@@ -95,93 +95,93 @@ Index: src/security/tomoyo/realpath.c
 + * Character \ is converted to \\ string.
 + */
 +static int tmy_get_absolute_path(struct dentry *dentry,
-+				 struct vfsmount *vfsmnt,
-+				 char *buffer,
-+				 int buflen)
++                                struct vfsmount *vfsmnt,
++                                char *buffer,
++                                int buflen)
 +{
-+	char *start = buffer;
-+	char *end = buffer + buflen;
-+	int is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
-+	const char *sp;
-+	const char *cp;
++       char *start = buffer;
++       char *end = buffer + buflen;
++       int is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
++       const char *sp;
++       const char *cp;
 +
-+	if (buflen < 256)
-+		goto out;
++       if (buflen < 256)
++               goto out;
 +
-+	*--end = '\0';
-+	buflen--;
++       *--end = '\0';
++       buflen--;
 +
-+	while (1) {
-+		struct dentry *parent;
++       while (1) {
++               struct dentry *parent;
 +
-+		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
-+			/* Global root? */
-+			spin_lock(&vfsmount_lock);
-+			if (vfsmnt->mnt_parent == vfsmnt) {
-+				spin_unlock(&vfsmount_lock);
-+				break;
-+			}
-+			dentry = vfsmnt->mnt_mountpoint;
-+			vfsmnt = vfsmnt->mnt_parent;
-+			spin_unlock(&vfsmount_lock);
-+			continue;
-+		}
++               if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
++                       /* Global root? */
++                       spin_lock(&vfsmount_lock);
++                       if (vfsmnt->mnt_parent == vfsmnt) {
++                               spin_unlock(&vfsmount_lock);
++                               break;
++                       }
++                       dentry = vfsmnt->mnt_mountpoint;
++                       vfsmnt = vfsmnt->mnt_parent;
++                       spin_unlock(&vfsmount_lock);
++                       continue;
++               }
 +
-+		if (is_dir) {
-+			is_dir = 0;
-+			*--end = '/';
-+			buflen--;
-+		}
++               if (is_dir) {
++                       is_dir = 0;
++                       *--end = '/';
++                       buflen--;
++               }
 +
-+		parent = dentry->d_parent;
-+		sp = dentry->d_name.name;
-+		cp = sp + dentry->d_name.len - 1;
++               parent = dentry->d_parent;
++               sp = dentry->d_name.name;
++               cp = sp + dentry->d_name.len - 1;
 +
-+		/* Exception: Use /proc/self/ rather than */
-+		/* /proc/\$/ for current process. */
-+		if (IS_ROOT(parent) &&
-+		    *sp > '0' && *sp <= '9' && parent->d_sb &&
-+		    parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
++               /* Exception: Use /proc/self/ rather than */
++               /* /proc/\$/ for current process. */
++               if (IS_ROOT(parent) &&
++                   *sp > '0' && *sp <= '9' && parent->d_sb &&
++                   parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
 +
-+			char *ep;
-+			const pid_t pid = (pid_t) simple_strtoul(sp, &ep, 10);
++                       char *ep;
++                       const pid_t pid = (pid_t) simple_strtoul(sp, &ep, 10);
 +
-+			if (!*ep && pid == current->tgid) {
-+				sp = "self";
-+				cp = sp + 3;
-+			}
++                       if (!*ep && pid == current->tgid) {
++                               sp = "self";
++                               cp = sp + 3;
++                       }
 +
-+			if (!*ep && pid == current->pid) {
-+				sp = "self";
-+				cp = sp + 3;
-+			}
-+		}
++                       if (!*ep && pid == current->pid) {
++                               sp = "self";
++                               cp = sp + 3;
++                       }
++               }
 +
-+		if (tmy_print_ascii(sp, cp, &buflen, &end))
-+			goto out;
++               if (tmy_print_ascii(sp, cp, &buflen, &end))
++                       goto out;
 +
-+		if (--buflen < 0)
-+			goto out;
-+		*--end = '/';
++               if (--buflen < 0)
++                       goto out;
++               *--end = '/';
 +
-+		dentry = parent;
-+	}
-+	if (*end == '/') {
-+		buflen++;
-+		end++;
-+	}
++               dentry = parent;
++       }
++       if (*end == '/') {
++               buflen++;
++               end++;
++       }
 +
-+	sp = dentry->d_name.name;
-+	cp = sp + dentry->d_name.len - 1;
++       sp = dentry->d_name.name;
++       cp = sp + dentry->d_name.len - 1;
 +
-+	if (tmy_print_ascii(sp, cp, &buflen, &end))
-+		goto out;
++       if (tmy_print_ascii(sp, cp, &buflen, &end))
++               goto out;
 +
-+	/* Move the pathname to the top of the buffer. */
-+	memmove(start, end, strlen(end) + 1);
-+	return 0;
++       /* Move the pathname to the top of the buffer. */
++       memmove(start, end, strlen(end) + 1);
++       return 0;
 +out: ;
-+	return -ENOMEM;
++       return -ENOMEM;
 +}
 +
 +/*
@@ -195,78 +195,78 @@ Index: src/security/tomoyo/realpath.c
 + * but ignores chroot'ed root.
 + */
 +int tmy_realpath_dentry2(struct dentry *dentry,
-+			 struct vfsmount *mnt,
-+			 char *newname,
-+			 int newname_len)
++                        struct vfsmount *mnt,
++                        char *newname,
++                        int newname_len)
 +{
-+	int error;
-+	struct dentry *d_dentry;
-+	struct vfsmount *d_mnt;
++       int error;
++       struct dentry *d_dentry;
++       struct vfsmount *d_mnt;
 +
-+	if (!dentry || !mnt || !newname || newname_len <= 0)
-+		return -EINVAL;
-+	if (!current->fs) {
-+		printk(KERN_INFO "%s: current->fs == NULL for pid=%d\n",
-+		       __FUNCTION__, current->pid);
-+		return -ENOENT;
-+	}
++       if (!dentry || !mnt || !newname || newname_len <= 0)
++               return -EINVAL;
++       if (!current->fs) {
++               printk(KERN_INFO "%s: current->fs == NULL for pid=%d\n",
++                      __FUNCTION__, current->pid);
++               return -ENOENT;
++       }
 +
-+	d_dentry = dget(dentry);
-+	d_mnt = mntget(mnt);
++       d_dentry = dget(dentry);
++       d_mnt = mntget(mnt);
 +
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&dcache_lock);
-+	error = tmy_get_absolute_path(d_dentry, d_mnt, newname, newname_len);
-+	spin_unlock(&dcache_lock);
-+	/***** CRITICAL SECTION END *****/
++       /***** CRITICAL SECTION START *****/
++       spin_lock(&dcache_lock);
++       error = tmy_get_absolute_path(d_dentry, d_mnt, newname, newname_len);
++       spin_unlock(&dcache_lock);
++       /***** CRITICAL SECTION END *****/
 +
-+	dput(d_dentry);
-+	mntput(d_mnt);
-+	return error;
++       dput(d_dentry);
++       mntput(d_mnt);
++       return error;
 +}
 +
 +/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
 +/* These functions use tmy_alloc(), so caller must tmy_free() */
 +/* if these functions didn't return NULL. */
-+fchar *tmy_realpath_dentry(struct dentry *dentry, struct vfsmount *mnt)
++char *tmy_realpath_dentry(struct dentry *dentry, struct vfsmount *mnt)
 +{
-+	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
++       char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
 +
-+	if (buf &&
-+	    tmy_realpath_dentry2(dentry, mnt, buf,
-+				 TMY_MAX_PATHNAME_LEN - 1) == 0)
-+		return buf;
++       if (buf &&
++           tmy_realpath_dentry2(dentry, mnt, buf,
++                                TMY_MAX_PATHNAME_LEN - 1) == 0)
++               return buf;
 +
-+	tmy_free(buf);
-+	return NULL;
++       tmy_free(buf);
++       return NULL;
 +}
 +
 +char *tmy_realpath(const char *pathname)
 +{
-+	struct nameidata nd;
++       struct nameidata nd;
 +
-+	if (pathname && path_lookup(pathname, LOOKUP_FOLLOW, &nd) == 0) {
-+		char *buf = tmy_realpath_dentry(nd.dentry, nd.mnt);
++       if (pathname && path_lookup(pathname, LOOKUP_FOLLOW, &nd) == 0) {
++               char *buf = tmy_realpath_dentry(nd.dentry, nd.mnt);
 +
-+		path_release(&nd);
-+		return buf;
-+	}
++               path_release(&nd);
++               return buf;
++       }
 +
-+	return NULL;
++       return NULL;
 +}
 +
 +char *tmy_realpath_nofollow(const char *pathname)
 +{
-+	struct nameidata nd;
++       struct nameidata nd;
 +
-+	if (pathname && path_lookup(pathname, 0, &nd) == 0) {
-+		char *buf = tmy_realpath_dentry(nd.dentry, nd.mnt);
++       if (pathname && path_lookup(pathname, 0, &nd) == 0) {
++               char *buf = tmy_realpath_dentry(nd.dentry, nd.mnt);
 +
-+		path_release(&nd);
-+		return buf;
-+	}
++               path_release(&nd);
++               return buf;
++       }
 +
-+	return NULL;
++       return NULL;
 +}
 +
 +/***** Private memory allocator. *****/
@@ -278,70 +278,70 @@ Index: src/security/tomoyo/realpath.c
 + */
 +static inline unsigned int tmy_roundup(const unsigned int size)
 +{
-+	if (sizeof(void *) >= sizeof(long))
-+		return ((size + sizeof(void *) - 1) / sizeof(void *))
-+			* sizeof(void *);
++       if (sizeof(void *) >= sizeof(long))
++               return ((size + sizeof(void *) - 1) / sizeof(void *))
++                       * sizeof(void *);
 +
-+	return ((size + sizeof(long) - 1) / sizeof(long)) * sizeof(long);
++       return ((size + sizeof(long) - 1) / sizeof(long)) * sizeof(long);
 +}
 +
 +static unsigned int allocated_memory_for_elements;
 +
 +unsigned int tmy_get_memory_used_for_elements(void)
 +{
-+	return allocated_memory_for_elements;
++       return allocated_memory_for_elements;
 +}
 +
 +/* Allocate memory for structures. */
 +/* The RAM is chunked, so NEVER try to kfree() the returned pointer. */
 +void *tmy_alloc_element(const unsigned int size)
 +{
-+	static DECLARE_MUTEX(lock);
-+	static char *buf;
-+	static unsigned int buf_used_len = PAGE_SIZE;
-+	char *ptr = NULL;
-+	const unsigned int word_aligned_size = tmy_roundup(size);
++       static DECLARE_MUTEX(lock);
++       static char *buf;
++       static unsigned int buf_used_len = PAGE_SIZE;
++       char *ptr = NULL;
++       const unsigned int word_aligned_size = tmy_roundup(size);
 +
-+	if (word_aligned_size > PAGE_SIZE)
-+		return NULL;
++       if (word_aligned_size > PAGE_SIZE)
++               return NULL;
 +
-+	down(&lock);
++       down(&lock);
 +
-+	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
-+		ptr = kmalloc(PAGE_SIZE, GFP_KERNEL);
++       if (buf_used_len + word_aligned_size > PAGE_SIZE) {
++               ptr = kmalloc(PAGE_SIZE, GFP_KERNEL);
 +
-+		if (!ptr) {
-+			printk(KERN_INFO "ERROR: "
-+			       "Out of memory for tmy_alloc_element().\n");
-+			if (!sbin_init_started)
-+				panic("MAC Initialization failed.\n");
-+		} else {
-+			memset(ptr, 0, PAGE_SIZE);
-+			buf = ptr;
-+			allocated_memory_for_elements += PAGE_SIZE;
-+			buf_used_len = word_aligned_size;
-+			ptr = buf;
-+		}
++               if (!ptr) {
++                       printk(KERN_INFO "ERROR: "
++                              "Out of memory for tmy_alloc_element().\n");
++                       if (!sbin_init_started)
++                               panic("MAC Initialization failed.\n");
++               } else {
++                       memset(ptr, 0, PAGE_SIZE);
++                       buf = ptr;
++                       allocated_memory_for_elements += PAGE_SIZE;
++                       buf_used_len = word_aligned_size;
++                       ptr = buf;
++               }
 +
-+	} else if (word_aligned_size) {
-+		int i;
++       } else if (word_aligned_size) {
++               int i;
 +
-+		ptr = buf + buf_used_len;
-+		buf_used_len += word_aligned_size;
++               ptr = buf + buf_used_len;
++               buf_used_len += word_aligned_size;
 +
-+		for (i = 0; i < word_aligned_size; i++) {
-+			if (ptr[i]) {
-+				printk(KERN_ERR
-+				       "WARNING: Reserved memory was tainted! "
-+				       "The system might go wrong.\n");
-+				ptr[i] = '\0';
-+			}
-+		}
++               for (i = 0; i < word_aligned_size; i++) {
++                       if (ptr[i]) {
++                               printk(KERN_ERR
++                                      "WARNING: Reserved memory was tainted! "
++                                      "The system might go wrong.\n");
++                               ptr[i] = '\0';
++                       }
++               }
 +
-+	}
++       }
 +
-+	up(&lock);
-+	return ptr;
++       up(&lock);
++       return ptr;
 +}
 +
 +/***** Shared memory allocator. *****/
@@ -350,146 +350,146 @@ Index: src/security/tomoyo/realpath.c
 +
 +unsigned int tmy_get_memory_used_for_save_name(void)
 +{
-+	return allocated_memory_for_savename;
++       return allocated_memory_for_savename;
 +}
 +
 +#define MAX_HASH 256
 +
 +struct name_entry {
-+	struct name_entry *next; /* Pointer to next record. NULL if none.     */
-+	struct path_info entry;
++       struct name_entry *next; /* Pointer to next record. NULL if none.     */
++       struct path_info entry;
 +};
 +
 +struct free_memory_block_list {
-+	/* Pointer to next record. NULL if none. */
-+	struct free_memory_block_list *next;
-+	char *ptr; /* Pointer to a free area. */
-+	int len;   /* Length of the area.     */
++       /* Pointer to next record. NULL if none. */
++       struct free_memory_block_list *next;
++       char *ptr; /* Pointer to a free area. */
++       int len;   /* Length of the area.     */
 +};
 +
 +/* Keep the given name on the RAM. */
 +/* The RAM is shared, so NEVER try to modify or kfree() the returned name. */
 +const struct path_info *tmy_save_name(const char *name)
 +{
-+	static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
-+	static struct name_entry name_list[MAX_HASH]; /* The list of names. */
-+	static DECLARE_MUTEX(lock);
-+	struct name_entry *ptr;
-+	struct name_entry *prev = NULL;
-+	unsigned int hash;
-+	struct free_memory_block_list *fmb = &fmb_list;
-+	int len;
-+	static int first_call = 1;
++       static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
++       static struct name_entry name_list[MAX_HASH]; /* The list of names. */
++       static DECLARE_MUTEX(lock);
++       struct name_entry *ptr;
++       struct name_entry *prev = NULL;
++       unsigned int hash;
++       struct free_memory_block_list *fmb = &fmb_list;
++       int len;
++       static int first_call = 1;
 +
-+	if (!name)
-+		return NULL;
++       if (!name)
++               return NULL;
 +
-+	len = strlen(name) + 1;
-+	if (len > TMY_MAX_PATHNAME_LEN) {
-+		printk(KERN_INFO "ERROR: Name too long for tmy_save_name().\n");
-+		return NULL;
-+	}
++       len = strlen(name) + 1;
++       if (len > TMY_MAX_PATHNAME_LEN) {
++               printk(KERN_INFO "ERROR: Name too long for tmy_save_name().\n");
++               return NULL;
++       }
 +
-+	hash = full_name_hash((const unsigned char *) name, len - 1);
++       hash = full_name_hash((const unsigned char *) name, len - 1);
 +
-+	down(&lock);
++       down(&lock);
 +
-+	if (first_call) {
-+		int i;
++       if (first_call) {
++               int i;
 +
-+		first_call = 0;
-+		memset(&name_list, 0, sizeof(name_list));
++               first_call = 0;
++               memset(&name_list, 0, sizeof(name_list));
 +
-+		for (i = 0; i < MAX_HASH; i++) {
-+			name_list[i].entry.name = "/";
-+			tmy_fill_path_info(&name_list[i].entry);
-+		}
++               for (i = 0; i < MAX_HASH; i++) {
++                       name_list[i].entry.name = "/";
++                       tmy_fill_path_info(&name_list[i].entry);
++               }
 +
-+		if (TMY_MAX_PATHNAME_LEN > PAGE_SIZE)
-+			panic("Bad size.");
-+	}
++               if (TMY_MAX_PATHNAME_LEN > PAGE_SIZE)
++                       panic("Bad size.");
++       }
 +
-+	ptr = &name_list[hash % MAX_HASH];
-+	while (ptr) {
-+		if (hash == ptr->entry.hash &&
-+		    strcmp(name, ptr->entry.name) == 0)
-+			goto out;
-+		prev = ptr;
-+		ptr = ptr->next;
-+	}
++       ptr = &name_list[hash % MAX_HASH];
++       while (ptr) {
++               if (hash == ptr->entry.hash &&
++                   strcmp(name, ptr->entry.name) == 0)
++                       goto out;
++               prev = ptr;
++               ptr = ptr->next;
++       }
 +
-+	while (len > fmb->len) {
-+		char *cp;
++       while (len > fmb->len) {
++               char *cp;
 +
-+		if (fmb->next) {
-+			fmb = fmb->next;
-+			continue;
-+		}
++               if (fmb->next) {
++                       fmb = fmb->next;
++                       continue;
++               }
 +
-+		cp = kmalloc(PAGE_SIZE, GFP_KERNEL);
-+		if (!cp)
-+			goto out2;
++               cp = kmalloc(PAGE_SIZE, GFP_KERNEL);
++               if (!cp)
++                       goto out2;
 +
-+		fmb->next = tmy_alloc_element(sizeof(*fmb));
-+		if (!fmb->next) {
-+			kfree(cp);
++               fmb->next = tmy_alloc_element(sizeof(*fmb));
++               if (!fmb->next) {
++                       kfree(cp);
 +out2: ;
-+			printk(KERN_INFO
-+			       "ERROR: Out of memory for tmy_save_name().\n");
-+			if (!sbin_init_started)
-+				panic("MAC Initialization failed.\n");
-+			goto out; /* ptr == NULL */
-+		}
++                       printk(KERN_INFO
++                              "ERROR: Out of memory for tmy_save_name().\n");
++                       if (!sbin_init_started)
++                               panic("MAC Initialization failed.\n");
++                       goto out; /* ptr == NULL */
++               }
 +
-+		memset(cp, 0, PAGE_SIZE);
-+		allocated_memory_for_savename += PAGE_SIZE;
-+		fmb = fmb->next;
-+		fmb->ptr = cp;
-+		fmb->len = PAGE_SIZE;
++               memset(cp, 0, PAGE_SIZE);
++               allocated_memory_for_savename += PAGE_SIZE;
++               fmb = fmb->next;
++               fmb->ptr = cp;
++               fmb->len = PAGE_SIZE;
 +
-+	}
++       }
 +
-+	ptr = tmy_alloc_element(sizeof(*ptr));
-+	if (!ptr)
-+		goto out;
++       ptr = tmy_alloc_element(sizeof(*ptr));
++       if (!ptr)
++               goto out;
 +
-+	ptr->entry.name = fmb->ptr;
-+	memmove(fmb->ptr, name, len);
-+	tmy_fill_path_info(&ptr->entry);
-+	fmb->ptr += len;
-+	fmb->len -= len;
++       ptr->entry.name = fmb->ptr;
++       memmove(fmb->ptr, name, len);
++       tmy_fill_path_info(&ptr->entry);
++       fmb->ptr += len;
++       fmb->len -= len;
 +
-+	prev->next = ptr; /* prev != NULL because name_list is not empty. */
-+	if (fmb->len == 0) {
-+		struct free_memory_block_list *ptr = &fmb_list;
-+		while (ptr->next != fmb)
-+			ptr = ptr->next;
-+		ptr->next = fmb->next;
-+	}
++       prev->next = ptr; /* prev != NULL because name_list is not empty. */
++       if (fmb->len == 0) {
++               struct free_memory_block_list *ptr = &fmb_list;
++               while (ptr->next != fmb)
++                       ptr = ptr->next;
++               ptr->next = fmb->next;
++       }
 +out: ;
 +
-+	up(&lock);
++       up(&lock);
 +
-+	return ptr ? &ptr->entry : NULL;
++       return ptr ? &ptr->entry : NULL;
 +}
 +
 +/***** Dynamic memory allocator. *****/
 +
 +struct cache_entry {
-+	struct list_head list;
-+	void *ptr;
-+	int size;
++       struct list_head list;
++       void *ptr;
++       int size;
 +};
 +
 +static struct kmem_cache *tmy_cachep;
 +
 +void tmy_realpath_init(void)
 +{
-+	tmy_cachep = kmem_cache_create("tomoyo_cache",
-+				       sizeof(struct cache_entry),
-+				       0, 0, NULL);
-+	if (!tmy_cachep)
-+		panic("Can't create cache.\n");
++       tmy_cachep = kmem_cache_create("tomoyo_cache",
++                                      sizeof(struct cache_entry),
++                                      0, 0, NULL);
++       if (!tmy_cachep)
++               panic("Can't create cache.\n");
 +}
 +
 +static LIST_HEAD(cache_list);
@@ -498,119 +498,119 @@ Index: src/security/tomoyo/realpath.c
 +
 +unsigned int tmy_get_memory_used_for_dynamic(void)
 +{
-+	return dynamic_memory_size;
++       return dynamic_memory_size;
 +}
 +
 +void *tmy_alloc(const size_t size)
 +{
-+	void *ret = kmalloc(size, GFP_KERNEL);
-+	struct cache_entry *new_entry;
++       void *ret = kmalloc(size, GFP_KERNEL);
++       struct cache_entry *new_entry;
 +
-+	if (!ret)
-+		return ret;
++       if (!ret)
++               return ret;
 +
-+	new_entry = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
++       new_entry = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
 +
-+	if (!new_entry) {
-+		kfree(ret);
-+		ret = NULL;
-+	} else {
-+		INIT_LIST_HEAD(&new_entry->list);
-+		new_entry->ptr = ret;
-+		new_entry->size = size;
++       if (!new_entry) {
++               kfree(ret);
++               ret = NULL;
++       } else {
++               INIT_LIST_HEAD(&new_entry->list);
++               new_entry->ptr = ret;
++               new_entry->size = size;
 +
-+		/***** CRITICAL SECTION START *****/
-+		spin_lock(&cache_list_lock);
-+		list_add_tail(&new_entry->list, &cache_list);
-+		dynamic_memory_size += size;
-+		spin_unlock(&cache_list_lock);
-+		/***** CRITICAL SECTION END *****/
++               /***** CRITICAL SECTION START *****/
++               spin_lock(&cache_list_lock);
++               list_add_tail(&new_entry->list, &cache_list);
++               dynamic_memory_size += size;
++               spin_unlock(&cache_list_lock);
++               /***** CRITICAL SECTION END *****/
 +
-+		memset(ret, 0, size);
-+	}
++               memset(ret, 0, size);
++       }
 +
-+	return ret;
++       return ret;
 +}
 +
 +void tmy_free(const void *p)
 +{
-+	struct list_head *v;
-+	struct cache_entry *entry = NULL;
-+	if (!p)
-+		return;
++       struct list_head *v;
++       struct cache_entry *entry = NULL;
++       if (!p)
++               return;
 +
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&cache_list_lock);
-+	list_for_each(v, &cache_list) {
-+		entry = list_entry(v, struct cache_entry, list);
-+		if (entry->ptr != p) {
-+			entry = NULL;
-+			continue;
-+		}
-+		list_del(&entry->list);
-+		dynamic_memory_size -= entry->size;
-+		break;
-+	}
-+	spin_unlock(&cache_list_lock);
-+	/***** CRITICAL SECTION END *****/
++       /***** CRITICAL SECTION START *****/
++       spin_lock(&cache_list_lock);
++       list_for_each(v, &cache_list) {
++               entry = list_entry(v, struct cache_entry, list);
++               if (entry->ptr != p) {
++                       entry = NULL;
++                       continue;
++               }
++               list_del(&entry->list);
++               dynamic_memory_size -= entry->size;
++               break;
++       }
++       spin_unlock(&cache_list_lock);
++       /***** CRITICAL SECTION END *****/
 +
-+	if (entry) {
-+		kfree(p);
-+		kmem_cache_free(tmy_cachep, entry);
-+	} else
-+		printk(KERN_INFO "BUG: tmy_free() with invalid pointer.\n");
++       if (entry) {
++               kfree(p);
++               kmem_cache_free(tmy_cachep, entry);
++       } else
++               printk(KERN_INFO "BUG: tmy_free() with invalid pointer.\n");
 +
 +}
 +
 +static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
 +{
-+	char *end = buffer + buflen;
++       char *end = buffer + buflen;
 +
-+	if (buflen < 256)
-+		goto out;
++       if (buflen < 256)
++               goto out;
 +
-+	*--end = '\0';
-+	buflen--;
++       *--end = '\0';
++       buflen--;
 +
-+	buflen -= 9; /* for "/proc/sys" prefix */
++       buflen -= 9; /* for "/proc/sys" prefix */
 +
-+	while (table) {
-+		char buf[32];
-+		const char *sp = table->procname;
-+		const char *cp;
++       while (table) {
++               char buf[32];
++               const char *sp = table->procname;
++               const char *cp;
 +
-+		if (!sp) {
-+			memset(buf, 0, sizeof(buf));
-+			snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
-+			sp = buf;
-+		}
-+		cp = strchr(sp, '\0') - 1;
++               if (!sp) {
++                       memset(buf, 0, sizeof(buf));
++                       snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
++                       sp = buf;
++               }
++               cp = strchr(sp, '\0') - 1;
 +
-+		if (tmy_print_ascii(sp, cp, &buflen, &end))
-+			goto out;
++               if (tmy_print_ascii(sp, cp, &buflen, &end))
++                       goto out;
 +
-+		if (--buflen < 0)
-+			goto out;
++               if (--buflen < 0)
++                       goto out;
 +
-+		*--end = '/';
-+		table = table->parent;
-+	}
++               *--end = '/';
++               table = table->parent;
++       }
 +
-+	/* Move the pathname to the top of the buffer. */
-+	memmove(buffer, "/proc/sys", 9);
-+	memmove(buffer + 9, end, strlen(end) + 1);
-+	return 0;
++       /* Move the pathname to the top of the buffer. */
++       memmove(buffer, "/proc/sys", 9);
++       memmove(buffer + 9, end, strlen(end) + 1);
++       return 0;
 +out: ;
-+	return -ENOMEM;
++       return -ENOMEM;
 +}
 +
 +char *sysctlpath_from_table(struct ctl_table *table)
 +{
-+	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
++       char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
 +
-+	if (buf && tmy_sysctl_path(table, buf, TMY_MAX_PATHNAME_LEN - 1) == 0)
-+		return buf;
++       if (buf && tmy_sysctl_path(table, buf, TMY_MAX_PATHNAME_LEN - 1) == 0)
++               return buf;
 +
-+	tmy_free(buf);
-+	return NULL;
++       tmy_free(buf);
++       return NULL;
 +}
