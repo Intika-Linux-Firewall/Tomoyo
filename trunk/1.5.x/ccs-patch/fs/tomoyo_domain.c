@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -47,7 +47,6 @@ struct domain_initializer_entry {
 	u8 is_deleted;
 	u8 is_not;
 	u8 is_last_name;
-	u8 is_oldstyle;
 };
 
 /***** The structure for domains to not to transit domains. *****/
@@ -144,7 +143,7 @@ int TooManyDomainACL(struct domain_info * const domain) {
 
 static struct domain_initializer_entry *domain_initializer_list = NULL;
 
-static int AddDomainInitializerEntry(const char *domainname, const char *program, const int is_not, const int is_delete, const int is_oldstyle)
+static int AddDomainInitializerEntry(const char *domainname, const char *program, const int is_not, const int is_delete)
 {
 	struct domain_initializer_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -163,7 +162,7 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	if ((saved_program = SaveName(program)) == NULL) return -ENOMEM;
 	down(&lock);
 	for (ptr = domain_initializer_list; ptr; ptr = ptr->next) {
-		if (ptr->is_not == is_not && ptr->is_oldstyle == is_oldstyle && ptr->domainname == saved_domainname && ptr->program == saved_program) {
+		if (ptr->is_not == is_not && ptr->domainname == saved_domainname && ptr->program == saved_program) {
 			ptr->is_deleted = is_delete;
 			error = 0;
 			goto out;
@@ -178,7 +177,6 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
-	new_entry->is_oldstyle = is_oldstyle;
 	mb(); /* Instead of using spinlock. */
 	if ((ptr = domain_initializer_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
@@ -199,9 +197,9 @@ int ReadDomainInitializerPolicy(struct io_buffer *head)
 		head->read_var2 = ptr;
 		if (!ptr->is_deleted) {
 			if (ptr->domainname) {
-				if (io_printf(head, "%s%s%s from %s\n", ptr->is_not ? "no_" : "", ptr->is_oldstyle ? KEYWORD_INITIALIZER : KEYWORD_INITIALIZE_DOMAIN, ptr->program->name, ptr->domainname->name)) break;
+				if (io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN "%s from %s\n", ptr->is_not ? "no_" : "", ptr->program->name, ptr->domainname->name)) break;
 			} else {
-				if (io_printf(head, "%s%s%s\n", ptr->is_not ? "no_" : "", ptr->is_oldstyle ? KEYWORD_INITIALIZER : KEYWORD_INITIALIZE_DOMAIN, ptr->program->name)) break;
+				if (io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN "%s\n", ptr->is_not ? "no_" : "", ptr->program->name)) break;
 			}
 		}
 		ptr = ptr->next;
@@ -209,14 +207,14 @@ int ReadDomainInitializerPolicy(struct io_buffer *head)
 	return ptr ? -ENOMEM : 0;
 }
 
-int AddDomainInitializerPolicy(char *data, const int is_not, const int is_delete, const int is_oldstyle)
+int AddDomainInitializerPolicy(char *data, const int is_not, const int is_delete)
 {
 	char *cp = strstr(data, " from ");
 	if (cp) {
 		*cp = '\0';
-		return AddDomainInitializerEntry(cp + 6, data, is_not, is_delete, is_oldstyle);
+		return AddDomainInitializerEntry(cp + 6, data, is_not, is_delete);
 	} else {
-		return AddDomainInitializerEntry(NULL, data, is_not, is_delete, is_oldstyle);
+		return AddDomainInitializerEntry(NULL, data, is_not, is_delete);
 	}
 }
 
@@ -695,8 +693,8 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 		 */
 		static int first = 1;
 		if (first) {
-			AddDomainInitializerEntry(NULL, "/sbin/hotplug", 0, 0, 0);
-			AddDomainInitializerEntry(NULL, "/sbin/modprobe", 0, 0, 0);
+			AddDomainInitializerEntry(NULL, "/sbin/hotplug", 0, 0);
+			AddDomainInitializerEntry(NULL, "/sbin/modprobe", 0, 0);
 			first = 0;
 		}
 	}

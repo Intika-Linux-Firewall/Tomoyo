@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/12
+ * Version: 1.5.0-pre   2007/08/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -959,13 +959,9 @@ static int AddExceptionPolicy(struct io_buffer *head)
 	} else if (strncmp(data, KEYWORD_NO_KEEP_DOMAIN, KEYWORD_NO_KEEP_DOMAIN_LEN) == 0) {
 		return AddDomainKeeperPolicy(data + KEYWORD_NO_KEEP_DOMAIN_LEN, 1, is_delete);
 	} else if (strncmp(data, KEYWORD_INITIALIZE_DOMAIN, KEYWORD_INITIALIZE_DOMAIN_LEN) == 0) {
-		return AddDomainInitializerPolicy(data + KEYWORD_INITIALIZE_DOMAIN_LEN, 0, is_delete, 0);
+		return AddDomainInitializerPolicy(data + KEYWORD_INITIALIZE_DOMAIN_LEN, 0, is_delete);
 	} else if (strncmp(data, KEYWORD_NO_INITIALIZE_DOMAIN, KEYWORD_NO_INITIALIZE_DOMAIN_LEN) == 0) {
-		return AddDomainInitializerPolicy(data + KEYWORD_NO_INITIALIZE_DOMAIN_LEN, 1, is_delete, 0);
-	} else if (strncmp(data, KEYWORD_INITIALIZER, KEYWORD_INITIALIZER_LEN) == 0) {
-		return AddDomainInitializerPolicy(data + KEYWORD_INITIALIZER_LEN, 0, is_delete, 1);
-	} else if (strncmp(data, KEYWORD_NO_INITIALIZER, KEYWORD_NO_INITIALIZER_LEN) == 0) {
-		return AddDomainInitializerPolicy(data + KEYWORD_NO_INITIALIZER_LEN, 1, is_delete, 1);
+		return AddDomainInitializerPolicy(data + KEYWORD_NO_INITIALIZE_DOMAIN_LEN, 1, is_delete);
 	} else if (strncmp(data, KEYWORD_ALIAS, KEYWORD_ALIAS_LEN) == 0) {
 		return AddAliasPolicy(data + KEYWORD_ALIAS_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_AGGREGATOR, KEYWORD_AGGREGATOR_LEN) == 0) {
@@ -1130,7 +1126,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.5.0-pre   2007/08/16\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.0-pre   2007/08/15\n");
+	printk("TOMOYO: 1.5.0-pre   2007/08/17\n");
 #endif
 	if (!profile_loaded) {
 		char *argv[2], *envp[3];
@@ -1390,7 +1386,7 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 static int ReadVersion(struct io_buffer *head)
 {
 	if (!head->read_eof) {
-		if (io_printf(head, "1\n") == 0) head->read_eof = 1;
+		if (io_printf(head, "1.5.0-pre") == 0) head->read_eof = 1;
 	}
 	return 0;
 }

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -233,14 +233,10 @@ struct ip_network_acl_record {
 #define KEYWORD_DENY_UNMOUNT_LEN         (sizeof(KEYWORD_DENY_UNMOUNT) - 1)
 #define KEYWORD_FILE_PATTERN             "file_pattern "
 #define KEYWORD_FILE_PATTERN_LEN         (sizeof(KEYWORD_FILE_PATTERN) - 1)
-#define KEYWORD_INITIALIZER              "initializer "
-#define KEYWORD_INITIALIZER_LEN          (sizeof(KEYWORD_INITIALIZER) - 1)
 #define KEYWORD_INITIALIZE_DOMAIN        "initialize_domain "
 #define KEYWORD_INITIALIZE_DOMAIN_LEN    (sizeof(KEYWORD_INITIALIZE_DOMAIN) - 1)
 #define KEYWORD_KEEP_DOMAIN              "keep_domain "
 #define KEYWORD_KEEP_DOMAIN_LEN          (sizeof(KEYWORD_KEEP_DOMAIN) - 1)
-#define KEYWORD_NO_INITIALIZER           "no_initializer "
-#define KEYWORD_NO_INITIALIZER_LEN       (sizeof(KEYWORD_NO_INITIALIZER) - 1)
 #define KEYWORD_NO_INITIALIZE_DOMAIN     "no_initialize_domain "
 #define KEYWORD_NO_INITIALIZE_DOMAIN_LEN (sizeof(KEYWORD_NO_INITIALIZE_DOMAIN) - 1)
 #define KEYWORD_NO_KEEP_DOMAIN           "no_keep_domain "
@@ -333,7 +329,7 @@ int AddArgv0Policy(char *data, struct domain_info *domain, const int is_delete);
 int AddCapabilityPolicy(char *data, struct domain_info *domain, const int is_delete);
 int AddChrootPolicy(char *data, const int is_delete);
 int AddDomainACL(struct acl_info *ptr, struct domain_info *domain, struct acl_info *new_ptr);
-int AddDomainInitializerPolicy(char *data, const int is_not, const int is_delete, const int is_oldstyle);
+int AddDomainInitializerPolicy(char *data, const int is_not, const int is_delete);
 int AddDomainKeeperPolicy(char *data, const int is_not, const int is_delete);
 int AddFilePolicy(char *data, struct domain_info *domain, const int is_delete);
 int AddGloballyReadablePolicy(char *data, const int is_delete);
