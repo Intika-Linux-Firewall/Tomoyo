@@ -1,15 +1,22 @@
+Domain transition functions for TOMOYO Linux.
+Every process belongs to a domain in TOMOYO Linux.
+Domain transition occurs when execve(2) is called
+and the domain is expressed as 'process invocation history',
+such as '<kernel> /sbin/init /etc/init.d/rc'.
+Domain information is stored in task_struct->security.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/domain.c | 1137 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1137 insertions(+)
+ security/tomoyo/domain.c | 1125 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1125 insertions(+)
 
 Index: src/security/tomoyo/domain.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/domain.c	2007-08-16 16:37:15.000000000 +0900
-@@ -0,0 +1,1137 @@
++++ src/security/tomoyo/domain.c	2007-08-17 13:31:35.000000000 +0900
+@@ -0,0 +1,1125 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -81,18 +88,6 @@ Index: src/security/tomoyo/domain.c
 +{
 +	/* while (*buffer && (*buffer <= ' ' || *buffer >= 127)) buffer++; */
 +	return strncmp(buffer, TMY_ROOT_NAME, TMY_ROOT_NAME_LEN) == 0;
-+}
-+
-+const char *tmy_get_last_name(const struct domain_info *domain)
-+{
-+	const char *cp0 = domain->domainname->name;
-+	const char *cp1;
-+
-+	cp1 = strrchr(cp0, ' ');
-+	if (cp1)
-+		return cp1 + 1;
-+
-+	return cp0;
 +}
 +
 +int tmy_read_self_domain(struct io_buffer *head)

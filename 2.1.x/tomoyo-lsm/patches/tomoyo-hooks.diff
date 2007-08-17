@@ -1,3 +1,10 @@
+This file contains wrapper functions for TOMOYO Linux access control functions.
+
+If bind mounts are used, TOMOYO requires all permissions for
+all possible pathnames (whereas AppArmor requires one of possible pathnames).
+If "struct vfsmount" is passed to LSM hooks as AppArmor proposes,
+this file will become more simpler and "namespace_sem" can remain "static".
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
@@ -8,7 +15,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: src/security/tomoyo/tomoyo.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ src/security/tomoyo/tomoyo.c	2007-08-16 18:53:15.000000000 +0900
++++ src/security/tomoyo/tomoyo.c	2007-08-17 13:30:53.000000000 +0900
 @@ -0,0 +1,736 @@
 +/*
 + * security/tomoyo/tomoyo.c
@@ -675,7 +682,7 @@ Index: src/security/tomoyo/tomoyo.c
 +	return tmy_signal_acl(sig, pid);
 +}
 +
-+struct security_operations tomoyo_security_ops = {
++static struct security_operations tomoyo_security_ops = {
 +	.task_alloc_security   = tmy_task_alloc_security,
 +	.task_free_security    = tmy_task_free_security,
 +	.bprm_alloc_security   = tmy_bprm_alloc_security,
