@@ -12,8 +12,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: linux-2.6/security/tomoyo/realpath.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/realpath.c	2007-08-17 23:39:07.000000000 +0900
-@@ -0,0 +1,690 @@
++++ linux-2.6/security/tomoyo/realpath.c	2007-08-19 02:00:47.000000000 +0900
+@@ -0,0 +1,695 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -36,8 +36,6 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +#include <linux/sysctl.h>
 +#include "realpath.h"
 +#include "tomoyo.h"
-+
-+/***** realpath handler *****/
 +
 +static int tmy_print_ascii(const char *sp, const char *cp,
 +			   int *buflen0, char **end0)
@@ -75,9 +73,11 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +	*end0 = end;
 +
 +	return 0;
-+out:
++out: ;
 +	return -ENOMEM;
 +}
++
++/***** realpath handler *****/
 +
 +/**
 + * tmy_get_absolute_path -
@@ -117,7 +117,7 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +	*--end = '\0';
 +	buflen--;
 +
-+	for (; ; ) {
++	while (1) {
 +		struct dentry *parent;
 +
 +		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
@@ -182,16 +182,15 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +	/* Move the pathname to the top of the buffer. */
 +	memmove(start, end, strlen(end) + 1);
 +	return 0;
-+out:
++out: ;
 +	return -ENOMEM;
 +}
 +
 +/**
-+ * tmy_realpath_dentry2 -
-+ *    return the realpath of a dentry.
-+ * @dentry:      "struct dentry" to report
-+ * @mnt:         "struct vfsmount" to which the @dentry belongs
-+ * @newname:     buffer to store the result
++ * tmy_realpath_dentry2 - return the realpath of a dentry.
++ * @dentry: "struct dentry" to report
++ * @mnt: "struct vfsmount" to which the @dentry belongs
++ * @newname: buffer to store the result
 + * @newname_len: size of @newname
 + *
 + * Returns zero on success.
@@ -336,7 +335,7 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +	memmove(buffer, "/proc/sys", 9);
 +	memmove(buffer + 9, end, strlen(end) + 1);
 +	return 0;
-+out:
++out: ;
 +	return -ENOMEM;
 +}
 +
@@ -429,7 +428,7 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +		}
 +
 +	} else if (word_aligned_size) {
-+		int i;
++		unsigned int i;
 +
 +		ptr = buf + buf_used_len;
 +		buf_used_len += word_aligned_size;
@@ -492,7 +491,8 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +	static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
 +	static struct name_entry name_list[MAX_HASH]; /* The list of names. */
 +	static DECLARE_MUTEX(lock);
-+	struct name_entry *ptr, *prev = NULL;
++	struct name_entry *ptr;
++	struct name_entry *prev = NULL;
 +	unsigned int hash;
 +	struct free_memory_block_list *fmb = &fmb_list;
 +	int len;
@@ -550,7 +550,7 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +		fmb->next = tmy_alloc_element(sizeof(*fmb));
 +		if (!fmb->next) {
 +			kfree(cp);
-+out2:
++out2: ;
 +			printk(KERN_INFO
 +			       "ERROR: Out of memory for tmy_save_name().\n");
 +			if (!sbin_init_started)
@@ -583,7 +583,7 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +			ptr = ptr->next;
 +		ptr->next = fmb->next;
 +	}
-+out:
++out: ;
 +
 +	up(&lock);
 +
@@ -640,12 +640,17 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +	void *ret = kmalloc(size, GFP_KERNEL);
 +	struct cache_entry *new_entry;
 +
-+	if (!ret)
++	if (!ret) {
++		printk(KERN_INFO "ERROR: "
++		       "kmalloc(): Out of memory for tmy_alloc().\n");
 +		return ret;
++	}
 +
 +	new_entry = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
 +
 +	if (!new_entry) {
++		printk(KERN_INFO "ERROR: "
++		       "kmem_cache_alloc(): Out of memory for tmy_alloc().\n");
 +		kfree(ret);
 +		ret = NULL;
 +	} else {
@@ -684,7 +689,7 @@ Index: linux-2.6/security/tomoyo/realpath.c
 +
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&cache_list_lock);
-+	list_for_each(v, &cache_list) {
++	list_for_each_prev(v, &cache_list) {
 +		entry = list_entry(v, struct cache_entry, list);
 +		if (entry->ptr != p) {
 +			entry = NULL;

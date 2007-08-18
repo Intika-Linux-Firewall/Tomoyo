@@ -15,8 +15,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: linux-2.6/security/tomoyo/domain.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/domain.c	2007-08-10 21:48:20.000000000 +0900
-@@ -0,0 +1,1137 @@
++++ linux-2.6/security/tomoyo/domain.c	2007-08-19 01:48:06.000000000 +0900
+@@ -0,0 +1,1148 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -46,7 +46,6 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	u8 is_deleted;
 +	u8 is_not;
 +	u8 is_last_name;
-+	u8 is_oldstyle;
 +};
 +
 +/***** The structure for domains to not to transit domains. *****/
@@ -85,35 +84,27 @@ Index: linux-2.6/security/tomoyo/domain.c
 +
 +/*************************  UTILITY FUNCTIONS  *************************/
 +
++/**
++ * tmy_is_domain_def - validate a domain name
++ * @buffer: the domain name to check
++ *
++ * Returns nonzero if @buffer is domain definition.
++ * Returns zero otherwise.
++ */
 +int tmy_is_domain_def(const unsigned char *buffer)
 +{
 +	/* while (*buffer && (*buffer <= ' ' || *buffer >= 127)) buffer++; */
 +	return strncmp(buffer, TMY_ROOT_NAME, TMY_ROOT_NAME_LEN) == 0;
 +}
 +
-+const char *tmy_get_last_name(const struct domain_info *domain)
-+{
-+	const char *cp0 = domain->domainname->name, *cp1;
-+
-+	cp1 = strrchr(cp0, ' ');
-+	if (cp1)
-+		return cp1 + 1;
-+
-+	return cp0;
-+}
-+
-+int tmy_read_self_domain(struct io_buffer *head)
-+{
-+	if (!head->read_eof) {
-+		tmy_io_printf(head,
-+			      "%s",
-+			      TMY_SECURITY->domain->domainname->name);
-+		head->read_eof = 1;
-+	}
-+
-+	return 0;
-+}
-+
++/**
++ * tmy_add_acl - add an entry to a domain
++ * @ptr: pointer to the last entry of the domain (May be NULL)
++ * @domain: pointer to the domain
++ * @new_ptr: pointer to new entry to add
++ *
++ * Returns zero.
++ */
 +int tmy_add_acl(struct acl_info *ptr,
 +		struct domain_info *domain,
 +		struct acl_info *new_ptr)
@@ -129,6 +120,12 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return 0;
 +}
 +
++/**
++ * tmy_del_acl - remove an entry from a domain
++ * @ptr: pointer to the entry to remove
++ *
++ * Returns zero.
++ */
 +int tmy_del_acl(struct acl_info *ptr)
 +{
 +	ptr->is_deleted = 1;
@@ -136,6 +133,13 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return 0;
 +}
 +
++/**
++ * tmy_too_many_acl - check quota for a domain
++ * @domain: the domain to examine
++ *
++ * Returns nonzero if quota exceeded
++ * Returns zero otherwise.
++ */
 +int tmy_too_many_acl(struct domain_info * const domain)
 +{
 +	unsigned int count = 0;
@@ -168,8 +172,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +static int tmy_add_domain_initializer_entry(const char *domainname,
 +					    const char *program,
 +					    const int is_not,
-+					    const int is_delete,
-+					    const int is_oldstyle)
++					    const int is_delete)
 +{
 +	struct domain_initializer_entry *new_entry;
 +	struct domain_initializer_entry *ptr;
@@ -203,7 +206,6 @@ Index: linux-2.6/security/tomoyo/domain.c
 +
 +	for (ptr = domain_initializer_list; ptr; ptr = ptr->next) {
 +		if (ptr->is_not == is_not &&
-+		    ptr->is_oldstyle == is_oldstyle &&
 +		    ptr->domainname == saved_domainname &&
 +		    ptr->program == saved_program) {
 +			ptr->is_deleted = is_delete;
@@ -225,7 +227,6 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	new_entry->program = saved_program;
 +	new_entry->is_not = is_not;
 +	new_entry->is_last_name = is_last_name;
-+	new_entry->is_oldstyle = is_oldstyle;
 +
 +	mb(); /* Instead of using spinlock. */
 +	ptr = domain_initializer_list;
@@ -237,12 +238,19 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		domain_initializer_list = new_entry;
 +
 +	error = 0;
-+out:
++out: ;
 +
 +	up(&lock);
 +	return error;
 +}
 +
++/**
++ * tmy_read_domain_initializer_policy - read initializer policy
++ * @head: pointer to io_buffer to return value
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_domain_initializer_policy(struct io_buffer *head)
 +{
 +	struct domain_initializer_entry *ptr = head->read_var2;
@@ -254,8 +262,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		head->read_var2 = ptr;
 +		if (!ptr->is_deleted) {
 +			const char *s1 = ptr->is_not ? "no_" : "";
-+			const char *s2 = ptr->is_oldstyle ?
-+				TMY_INITIALIZER : TMY_INITIALIZE_DOMAIN;
++			const char *s2 = TMY_INITIALIZE_DOMAIN;
 +			const char *s3 = ptr->program->name;
 +
 +			if (ptr->domainname) {
@@ -277,19 +284,18 @@ Index: linux-2.6/security/tomoyo/domain.c
 +
 +int tmy_add_domain_initializer_policy(char *data,
 +				      const int is_not,
-+				      const int is_delete,
-+				      const int is_oldstyle)
++				      const int is_delete)
 +{
 +	char *cp = strstr(data, " from ");
 +
 +	if (cp) {
 +		*cp = '\0';
 +		return tmy_add_domain_initializer_entry(cp + 6,	data, is_not,
-+							is_delete, is_oldstyle);
++							is_delete);
 +	}
 +
 +	return tmy_add_domain_initializer_entry(NULL, data, is_not,
-+						is_delete, is_oldstyle);
++						is_delete);
 +}
 +
 +static int tmy_is_domain_initializer(const struct path_info *domainname,
@@ -333,8 +339,10 @@ Index: linux-2.6/security/tomoyo/domain.c
 +				       const int is_not,
 +				       const int is_delete)
 +{
-+	struct domain_keeper_entry *new_entry, *ptr;
-+	const struct path_info *saved_domainname, *saved_program = NULL;
++	struct domain_keeper_entry *new_entry;
++	struct domain_keeper_entry *ptr;
++	const struct path_info *saved_domainname;
++	const struct path_info *saved_program = NULL;
 +	static DECLARE_MUTEX(lock);
 +	int error = -ENOMEM;
 +	int is_last_name = 0;
@@ -395,7 +403,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		domain_keeper_list = new_entry;
 +	error = 0;
 +
-+out:
++out: ;
 +
 +	up(&lock);
 +	return error;
@@ -537,7 +545,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		alias_list = new_entry;
 +
 +	error = 0;
-+out:
++out: ;
 +
 +	up(&lock);
 +
@@ -632,7 +640,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		aggregator_list = new_entry;
 +
 +	error = 0;
-+out:
++out: ;
 +
 +	up(&lock);
 +
@@ -713,7 +721,8 @@ Index: linux-2.6/security/tomoyo/domain.c
 +
 +struct domain_info *tmy_undelete_domain(const char *domainname0)
 +{
-+	struct domain_info *domain, *candidate_domain = NULL;
++	struct domain_info *domain;
++	struct domain_info *candidate_domain = NULL;
 +	struct path_info domainname;
 +
 +	domainname.name = domainname0;
@@ -836,7 +845,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +			ptr = ptr->next;
 +		ptr->next = domain;
 +	}
-+out:
++out: ;
 +	up(&new_domain_assign_lock);
 +
 +	return domain;
@@ -874,7 +883,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	*dest = '\0';
 +
 +	return 0;
-+out:
++out: ;
 +	return -ENOMEM;
 +}
 +
@@ -938,7 +947,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		offset = 0;
 +	}
 +	return arg_ptr;
-+out:
++out: ;
 +	tmy_free(arg_ptr);
 +
 +	return NULL;
@@ -955,7 +964,8 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	const char *original_name = bprm->filename;
 +	struct file *filp = bprm->file;
 +	char *new_domain_name = NULL;
-+	char *real_program_name = NULL, *symlink_program_name = NULL;
++	char *real_program_name = NULL;
++	char *symlink_program_name = NULL;
 +	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +	int retval;
 +	struct path_info r;
@@ -971,11 +981,11 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		static int first = 1;
 +		if (first) {
 +			tmy_add_domain_initializer_entry(NULL, "/sbin/hotplug",
-+							 0, 0, 0);
++							 0, 0);
 +			tmy_add_domain_initializer_entry(NULL, "/sbin/modprobe",
-+							 0, 0, 0);
++							 0, 0);
 +			tmy_add_domain_initializer_entry(NULL, "/sbin/udevd",
-+							 0, 0, 0);
++							 0, 0);
 +			first = 0;
 +		}
 +	}
@@ -1038,7 +1048,8 @@ Index: linux-2.6/security/tomoyo/domain.c
 +			if (printable_argv0 &&
 +			    !tmy_escape(printable_argv0, org_argv0,
 +					len * 4 + 8)) {
-+				const char *base_argv0, *base_filename;
++				const char *base_argv0;
++				const char *base_filename;
 +
 +				base_argv0 = strrchr(printable_argv0, '/');
 +				if (!base_argv0)
@@ -1136,7 +1147,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +		domain = tmy_new_domain(new_domain_name, profile);
 +	}
 +
-+ok:
++ok: ;
 +
 +	if (!domain) {
 +		printk(KERN_INFO "TOMOYO-ERROR: Domain '%s' not defined.\n",
@@ -1145,7 +1156,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +			retval = -EPERM;
 +	} else
 +		retval = 0;
-+out:
++out: ;
 +
 +	tmy_free(new_domain_name);
 +	tmy_free(real_program_name);
