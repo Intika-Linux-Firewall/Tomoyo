@@ -30,8 +30,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: linux-2.6/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-08-19 01:48:06.000000000 +0900
-@@ -0,0 +1,2215 @@
++++ linux-2.6/security/tomoyo/common.c	2007-08-19 03:02:21.000000000 +0900
+@@ -0,0 +1,2280 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -382,7 +382,7 @@ Index: linux-2.6/security/tomoyo/common.c
 + * @ptr:        pointer to "struct path_info"
 + *
 + * Caller stores a token in "struct path_info"->name .
-+ * This function will fill rest of "struct path_info" menbers.
++ * This function will fill rest of "struct path_info" members.
 + */
 +void tmy_fill_path_info(struct path_info *ptr)
 +{
@@ -630,16 +630,20 @@ Index: linux-2.6/security/tomoyo/common.c
 +	const char *pattern = pattern0->name;
 +	const int len = pattern0->const_len;
 +
++	/* If it doesn't contains patterns, I can use tmy_pathcmp() */
 +	if (!pattern0->is_patterned)
 +		return !tmy_pathcmp(pathname0, pattern0);
++	/* Check the depth of directory. */
 +	if (pathname0->depth != pattern0->depth)
 +		return 0;
++	/* Use strncmp() for constant part. */
 +	if (strncmp(pathname, pattern, len))
 +		return 0;
 +
 +	pathname += len;
 +	pattern += len;
 +
++	/* Split by '/' character, and compare. */
 +	while (*pathname && *pattern) {
 +		const char *pathname_delimiter = strchr(pathname, '/');
 +		const char *pattern_delimiter = strchr(pattern, '/');
@@ -662,11 +666,13 @@ Index: linux-2.6/security/tomoyo/common.c
 +			pattern_delimiter;
 +	}
 +
++	/* Skip trailing "\*" and "@" patterns. */
 +	while (*pattern == '\\' &&
 +	       (*(pattern + 1) == '*' ||
 +		*(pattern + 1) == '@'))
 +		pattern += 2;
 +
++	/* If both are at '\0' position, they are equals. */
 +	return (!*pathname && !*pattern);
 +}
 +
@@ -678,7 +684,7 @@ Index: linux-2.6/security/tomoyo/common.c
 + * Returns zero on success.
 + * Returns nonzero otherwise.
 + *
-+ * Transactional printf() to struct io_buffer structure.
++ * Transactional printf() to "struct io_buffer" structure.
 + * snprintf() will truncate, but tmy_io_printf() won't.
 + * This is needed because dumping partially truncated tokens
 + * is not acceptable for TOMOYO Linux.
@@ -705,8 +711,12 @@ Index: linux-2.6/security/tomoyo/common.c
 +	return 0;
 +}
 +
-+/*
-+ * Get tmy_realpath() of current process.
++/**
++ * tmy_get_exe - get tmy_realpath() of current process.
++ *
++ * Returns realpath(3) of current process on success.
++ * Returns NULL on failure.
++ *
 + * This function uses tmy_alloc(), so caller must tmy_free()
 + * if this function didn't return NULL.
 + */
@@ -740,40 +750,60 @@ Index: linux-2.6/security/tomoyo/common.c
 +
 +/*************************  DOMAIN POLICY HANDLER  *************************/
 +
-+/* Check whether the given access control is enabled. */
++/**
++ * tmy_flags - get flags of given access control.
++ * @index:  index to retrieve flags.
++ *
++ * Returns current value of given access control.
++ */
 +unsigned int tmy_flags(const unsigned int index)
 +{
 +	const u8 profile =
 +		TMY_SECURITY->domain->profile;
 +
-+	might_sleep();
++	might_sleep(); /* All operations might sleep. */
 +
 +	return sbin_init_started && index < TMY_MAX_CONTROL_INDEX
-+#if TMY_MAX_PROFILES != 256
-+		&& profile < TMY_MAX_PROFILES
-+#endif
 +		&& profile_ptr[profile] ?
 +		profile_ptr[profile]->value[index] :
 +		0;
 +}
 +
++/**
++ * tmy_audit_grant - get flags of auditing grant logs
++ */
 +unsigned int tmy_audit_grant(void)
 +{
 +	return tmy_flags(TMY_AUDIT_GRANT);
 +}
 +
++/**
++ * tmy_audit_reject - get flags of auditing reject logs
++ */
 +unsigned int tmy_audit_reject(void)
 +{
 +	return tmy_flags(TMY_AUDIT_REJECT);
 +}
 +
-+/* Check whether the given access control is enforce mode. */
++/**
++ * tmy_enforce - check whether the given access control is enforce mode.
++ * @index:  index to check.
++ *
++ * Returns nonzero if given access control is enforce mode.
++ * Returns zero otherwise.
++ */
 +unsigned int tmy_enforce(const unsigned int index)
 +{
 +	return tmy_flags(index) == 3;
 +}
 +
-+/* Check whether the given access control is accept mode. */
++/**
++ * tmy_enforce - check whether the given access control is learning mode.
++ * @index:  index to check.
++ *
++ * Returns nonzero if given access control is learning mode.
++ * Returns zero otherwise.
++ */
 +unsigned int tmy_accept(const unsigned int index)
 +{
 +	return tmy_flags(index) == 1;
@@ -803,6 +833,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +	return ptr;
 +}
 +
++/* Loading policy done? */
 +static int profile_loaded;
 +
 +static int tmy_set_status(struct io_buffer *head)
@@ -981,29 +1012,32 @@ Index: linux-2.6/security/tomoyo/common.c
 +
 +static int tmy_read_manager_policy(struct io_buffer *head)
 +{
-+	if (!head->read_eof) {
-+		struct policy_manager_entry *ptr = head->read_var2;
-+
-+		if (!tmy_is_root())
-+			return -EPERM;
-+		if (!ptr)
-+			ptr = policy_manager_list;
-+		while (ptr) {
-+			head->read_var2 = ptr;
-+			if (!ptr->is_deleted &&
-+			    tmy_io_printf(head,
-+					  "%s\n",
-+					  ptr->manager->name))
-+				break;
-+			ptr = ptr->next;
-+		}
-+		if (!ptr)
-+			head->read_eof = 1;
++	struct policy_manager_entry *ptr = head->read_var2;
++	if (head->read_eof)
++		return 0;
++	if (!tmy_is_root())
++		return -EPERM;
++	if (!ptr)
++		ptr = policy_manager_list;
++	while (ptr) {
++		head->read_var2 = ptr;
++		if (!ptr->is_deleted &&
++		    tmy_io_printf(head, "%s\n", ptr->manager->name))
++			break;
++		ptr = ptr->next;
 +	}
++	if (!ptr)
++		head->read_eof = 1;
 +	return 0;
 +}
 +
-+/* Check whether the current process is a policy manager. */
++/**
++ * tmy_is_policy_manager - check whether modifing policy is permitted
++ *
++ * Only programs or domains registers as manager are permitted to modify
++ * policy via /proc/tomoyo interface.
++ * Check whether the current process is a policy manager.
++ */
 +static int tmy_is_policy_manager(void)
 +{
 +	struct policy_manager_entry *ptr;
@@ -1476,7 +1510,6 @@ Index: linux-2.6/security/tomoyo/common.c
 +}
 +
 +/*************************  EXCEPTION POLICY HANDLER  *************************/
-+
 +static int tmy_add_exception_policy(struct io_buffer *head)
 +{
 +	char *data = head->write_buf;
@@ -1494,11 +1527,9 @@ Index: linux-2.6/security/tomoyo/common.c
 +	if (strstr2(&data, TMY_NO_KEEP_DOMAIN))
 +		return tmy_add_domain_keeper_policy(data, 1, is_delete);
 +	if (strstr2(&data, TMY_INITIALIZE_DOMAIN))
-+		return tmy_add_domain_initializer_policy(data, 0,
-+							 is_delete);
++		return tmy_add_domain_initializer_policy(data, 0, is_delete);
 +	if (strstr2(&data, TMY_NO_INITIALIZE_DOMAIN))
-+		return tmy_add_domain_initializer_policy(data, 1,
-+							 is_delete);
++		return tmy_add_domain_initializer_policy(data, 1, is_delete);
 +	if (strstr2(&data, TMY_ALIAS))
 +		return tmy_add_alias_policy(data, is_delete);
 +	if (strstr2(&data, TMY_AGGREGATOR))
@@ -1583,6 +1614,14 @@ Index: linux-2.6/security/tomoyo/common.c
 +
 +/*************************  POLICY LOADER  *************************/
 +
++/**
++ * tmy_load_policy - load policy and activate access control
++ * @filename: program to be executed.
++ *
++ * This function calls /sbin/tomoyo-init using call_usermodehelper()
++ * when execution of /sbin/init is requested and /sbin/tomoyo-init exists
++ * to load policy.
++ */
 +void tmy_load_policy(const char *filename)
 +{
 +	if (sbin_init_started)
@@ -1658,6 +1697,22 @@ Index: linux-2.6/security/tomoyo/common.c
 +static LIST_HEAD(query_list);
 +static atomic_t queryd_watcher = ATOMIC_INIT(0);
 +
++/**
++ * tmy_supervisor - ask for supervisors decision
++ * @fmt:         format strings for printf()
++ *
++ * Returns zero if administrator allowed.
++ * Returns nonzero otherwise.
++ *
++ * This is one of TOMOYO Linux's feature.
++ * Normally, access requests that violates policy is rejected immediately.
++ * But this behavior is inconvenient when developing policy.
++ * TOMOYO Linux allows administrators handle access requests that violated
++ * policy in enforce mode to adjust policy.
++ *
++ * This function blocks a process who is requesting access that violated policy
++ * and tell it via /proc/tomoyo/query and wait for supervisor's decision.
++ */
 +int tmy_supervisor(const char *fmt, ...)
 +{
 +	va_list args;
@@ -1880,6 +1935,12 @@ Index: linux-2.6/security/tomoyo/common.c
 +static unsigned int updates_counter[TMY_MAX_UPDATES_COUNTER];
 +static spinlock_t updates_counter_lock = SPIN_LOCK_UNLOCKED;
 +
++/**
++ * tmy_update_counter - notify userland that policy is changed
++ * @index:  index to update counter.
++ *
++ * This is for userland process who is monitoring policy changes.
++ */
 +void tmy_update_counter(const unsigned char index)
 +{
 +	/***** CRITICAL SECTION START *****/
@@ -1966,6 +2027,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +	return 0;
 +}
 +
++/* This is /proc/tomoyo/ interface. */
 +static int tmy_open_control(const int type, struct file *file)
 +{
 +	struct io_buffer *head = tmy_alloc(sizeof(*head));
@@ -2211,6 +2273,9 @@ Index: linux-2.6/security/tomoyo/common.c
 +	}
 +}
 +
++/**
++ * tmy_proc_init - initialize /proc/tomoyo/ interface.
++ */
 +void tmy_proc_init(void)
 +{
 +	static int initialized;
