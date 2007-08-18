@@ -14,8 +14,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: linux-2.6/security/tomoyo/tomoyo.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/tomoyo.c	2007-08-19 02:16:06.000000000 +0900
-@@ -0,0 +1,724 @@
++++ linux-2.6/security/tomoyo/tomoyo.c	2007-08-19 02:32:29.000000000 +0900
+@@ -0,0 +1,745 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -74,6 +74,11 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +
 +	tmy_load_policy(bprm->filename);
 +
++	/*
++	 * TMY_CHECK_READ_FOR_OPEN_EXEC bit indicates whether this function is
++	 * called by do_execve() or not.
++	 * If called by do_execve(), I do domain transition.
++	 */
 +	if (!(TMY_SECURITY->flags
 +	      & TMY_CHECK_READ_FOR_OPEN_EXEC)) {
 +		retval = tmy_find_next_domain(bprm, &next_domain);
@@ -126,6 +131,14 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +		return 0;
 +	if (!nd || !nd->dentry || !nd->mnt)
 +		return 0;
++	/*
++	 * If called by other than do_execve(), I check for read permission of
++	 * interpreter.
++	 * Unlike DAC, I don't check for read permission of pathname passed to
++	 * do_execve().
++	 * TOMOYO Linux checks for program's execute permission and
++	 * interpreter's read permission.
++	 */
 +	if ((mask == MAY_EXEC) &&
 +	    (TMY_SECURITY->flags & TMY_CHECK_READ_FOR_OPEN_EXEC))
 +		mask = MAY_READ;
@@ -316,6 +329,7 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +	int addr_len;
 +	int error = 0;
 +
++	/* I don't check if called by kernel process. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +
@@ -354,6 +368,7 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +	int error = 0;
 +	const unsigned int type = sock->type;
 +
++	/* I don't check if called by kernel process. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +
@@ -412,6 +427,7 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +	int error = 0;
 +	const unsigned int type = sock->type;
 +
++	/* I don't check if called by kernel process. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +
@@ -469,6 +485,7 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +	struct sockaddr *addr = (struct sockaddr *) msg->msg_name;
 +	const unsigned int addr_len = msg->msg_namelen;
 +
++	/* I don't check if called by kernel process. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +
@@ -513,6 +530,7 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +	char addr[MAX_SOCK_ADDR];
 +	struct sockaddr *sockaddr = (struct sockaddr *) addr;
 +
++	/* I don't check if called by kernel process. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +
@@ -553,11 +571,14 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +	int error = 0;
 +	const unsigned int type = sk->sk_type;
 +
++	/* skb_recv_datagram() didn't dequeue. */
 +	if (!skb)
 +		return 0;
 +
++	/* skb_recv_datagram() can be called from interrupt context. */
 +	if (in_interrupt())
 +		return 0;
++	/* I don't check if called by kernel process. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +
