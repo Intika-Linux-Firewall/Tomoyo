@@ -14,8 +14,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: linux-2.6/security/tomoyo/tomoyo.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/tomoyo.c	2007-08-19 01:48:08.000000000 +0900
-@@ -0,0 +1,738 @@
++++ linux-2.6/security/tomoyo/tomoyo.c	2007-08-19 02:16:06.000000000 +0900
+@@ -0,0 +1,724 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -39,8 +39,6 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +#include "tomoyo.h"
 +#include "realpath.h"
 +#define MAX_SOCK_ADDR 128 /* net/socket.c */
-+
-+static int secondary;
 +
 +/* The initial domain. */
 +struct domain_info KERNEL_DOMAIN = { NULL, NULL, NULL, 0, 0, 0 };
@@ -722,20 +720,8 @@ Index: linux-2.6/security/tomoyo/tomoyo.c
 +{
 +
 +	/* register ourselves with the security framework */
-+	if (register_security(&tomoyo_security_ops)) {
-+		printk(KERN_INFO
-+		       "Failure registering TOMOYO Linux "
-+		       "as a primaly security module\n");
-+
-+		if (mod_reg_security("TOMOYO", &tomoyo_security_ops)) {
-+			printk(KERN_INFO
-+			       "Failure registering TOMOYO Linux "
-+			       "as a secondary security module.\n");
-+			return -EINVAL;
-+		}
-+
-+		secondary = 1;
-+	}
++	if (register_security(&tomoyo_security_ops))
++		panic("Failure registering TOMOYO Linux");
 +
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
 +
