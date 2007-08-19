@@ -106,7 +106,7 @@ title CentOS (2.6.9-55.0.2.EL_tomoyo_1.4.2)<br>
 
 <h2>Install TOMOYO Linux tools</h2>
 
-<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract under /root/ directory.</p>
+<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract under /usr/lib/ directory.</p>
 
 <table border="1">
 <tr><td>
@@ -175,7 +175,7 @@ mv ccstools/ccs-init /sbin/ccs-init
 
 <table border="1">
 <tr><td>
-cd /root/<br>
+cd /usr/lib/<br>
 # Download source of tools for TOMOYO Linux.<br>
 wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
 # Extract.<br>
@@ -193,7 +193,7 @@ mv ccstools/ccs-init /sbin/ccs-init
 
 <table border="1">
 <tr><td>
-/root/ccstools/editpolicy
+/usr/lib/ccs/editpolicy
 </td></tr>
 </table>
 
@@ -213,7 +213,7 @@ TOMOYO_VERBOSE=0<BR>
 
 <table border="1">
 <tr><td>
-/root/ccstools/make_exception.sh | grep ^file_pattern | sort | uniq
+/usr/lib/ccs/make_exception.sh | grep ^file_pattern | sort | uniq
 </td></tr>
 </table>
 
@@ -234,9 +234,9 @@ TOMOYO Linux&gt;
 
 <p>Run applications you want to analyze.</p>
 
-<p>You can see the list of programs executed until now by executing /root/ccstools/editpolicy . Choose a program and press "Enter" to see the list of files accessed by the program.</p>
+<p>You can see the list of programs executed until now by executing /usr/lib/ccs/editpolicy . Choose a program and press "Enter" to see the list of files accessed by the program.</p>
 
-<p>You can save the list of all accessed files until now as /etc/ccs/domain_policy.conf by executing /root/ccstools/savepolicy .</p>
+<p>You can save the list of all accessed files until now as /etc/ccs/domain_policy.conf by executing /usr/lib/ccs/savepolicy .</p>
 
 </body>
 </html>

@@ -92,7 +92,7 @@ Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.
 
 <h2>Install TOMOYO Linux tools</h2>
 
-<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract under /root/ directory.</p>
+<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract under /usr/lib/ directory.</p>
 
 <table border="1">
 <tr><td>
@@ -161,7 +161,7 @@ mv ccstools/ccs-init /ccs-init
 
 <table border="1">
 <tr><td>
-cd /root/<br>
+cd /usr/lib/<br>
 # Download source of tools for TOMOYO Linux.<br>
 wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
 # Extract.<br>
@@ -180,7 +180,7 @@ mv ccstools/ccs-init /sbin/ccs-init
 
 <table border="1">
 <tr><td>
-export PATH=$PATH:/root/ccstools
+export PATH=$PATH:/usr/lib/ccs
 </td></tr>
 </table>
 
@@ -188,7 +188,7 @@ export PATH=$PATH:/root/ccstools
 
 <table border="1">
 <tr><td>
-setenv PATH "$PATH:/root/ccstools"
+setenv PATH "$PATH:/usr/lib/ccs"
 </td></tr>
 </table>
 
@@ -211,12 +211,12 @@ Specifically, "loadpolicy" that reloads policy, "editpolicy" that edits policy, 
 <table border="1">
 <tr><td>
 cat &gt; /etc/ccs/manager.conf &lt;&lt; EOF<br>
-/root/ccstools/loadpolicy<br>
-/root/ccstools/editpolicy<br>
-/root/ccstools/setlevel<br>
-/root/ccstools/setprofile<br>
-/root/ccstools/ld-watch<br>
-/root/ccstools/ccs-queryd<br>
+/usr/lib/ccs/loadpolicy<br>
+/usr/lib/ccs/editpolicy<br>
+/usr/lib/ccs/setlevel<br>
+/usr/lib/ccs/setprofile<br>
+/usr/lib/ccs/ld-watch<br>
+/usr/lib/ccs/ccs-queryd<br>
 EOF<br></td>
 </tr>
 </table>
@@ -561,7 +561,7 @@ ccstree
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3307)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3393)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;tcsh&nbsp;(3434)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh<br>
-&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/root/ccstools/ccstree<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/usr/lib/ccs/ccstree<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;xinetd&nbsp;(3321)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/xinetd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.rquotad&nbsp;(3342)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.rquotad<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.mountd&nbsp;(3361)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.mountd<br>
@@ -587,7 +587,7 @@ The logs are in the form of domain policy so that the logs can be directly appen
 
 <table border="1">
 <tr><td>
-/root/ccstools/ccs-auditd $location_to_store_access_granted_logs $location_to_store_access_rejected_logs
+/usr/lib/ccs/ccs-auditd $location_to_store_access_granted_logs $location_to_store_access_rejected_logs
 </td></tr>
 </table>
 
@@ -597,7 +597,7 @@ The logs are in the form of domain policy so that the logs can be directly appen
 
 <table border="1">
 <tr><td>
-/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
+/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
@@ -664,7 +664,7 @@ The following is the guideline.</p>
 <li>Files under /proc/PID/ directory.
 <li>Files under /sys/ directory. (Applicable to 2.6 kernels only)
 <li>Some files under /dev/ directory.
-<li>Policy files under /root/security/ directory.
+<li>Policy files under /usr/lib/security/ directory.
 <li>Manual pages.
 <li>Spool directories.
 <li>Temporary files used for sending and receiving mails.

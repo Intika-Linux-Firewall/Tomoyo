@@ -184,13 +184,13 @@
 <p>全てのプログラムがポリシーの変更を行えるのは危険であるため、このファイルには /proc/ccs/ インタフェースへの書き込みアクセスを許可するプログラムまたはドメインを定義しておく。</p>
 <p>このファイルに定義されていないプログラムやドメインからは /proc/ccs/ インタフェースへの書き込みアクセスができない。システム運用時にポリシーの変更を許可しない場合はこのファイルを削除しておく。</p>
 <p>（例）<br>
-/root/ccstools/loadpolicy<br>
-/root/ccstools/editpolicy<br>
-/root/ccstools/setlevel<br>
-/root/ccstools/setprofile<br>
-/root/ccstools/ld-watch<br>
-/root/ccstools/ccs-queryd<br>
-&lt;kernel&gt; /sbin/mingetty /root/bin/bash
+/usr/lib/ccs/loadpolicy<br>
+/usr/lib/ccs/editpolicy<br>
+/usr/lib/ccs/setlevel<br>
+/usr/lib/ccs/setprofile<br>
+/usr/lib/ccs/ld-watch<br>
+/usr/lib/ccs/ccs-queryd<br>
+&lt;kernel&gt; /sbin/mingetty /usr/lib/bin/bash
 </p>
 <h2><a name="profile.conf">2.2 プロファイル定義（profile.conf）</a></h2>
 <p>TOMOYO Linuxでは、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができるが、ポリシー管理の負担を減らすために、必要の無い機能を無効化できるようになっている。</p>
@@ -709,7 +709,6 @@
 <tr><td>allow_network RAW connect</td><td>リモートの IP アドレス／プロトコルとの通信</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
 </table>
 <p>IPv6 で使われる "::" という表記はサポートされていない。 "::1" ではなく "0:0:0:0:0:0:0:1" のように表記する必要がある。</p>
-<p>msg_name == NULL での recvmsg() および read() の場合はパーミッションのチェックは行われない。</p>
 <h3>使用可能なシグナル</h3>
 <p>シグナルのアクセス許可を指定するには、 allow_signal というディレクティブに続けて、シグナルの番号および操作対象ドメインを指定する。<br>
 　例外が2つ存在する。シグナル番号が0の場合は常に許可される。また、自分の属するドメインへのシグナルの場合には常に許可される。<br>

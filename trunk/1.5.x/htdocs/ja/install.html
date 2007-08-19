@@ -92,7 +92,7 @@ Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.
 
 <h2>TOMOYO Linux ツールのインストール</h2>
 
-<p>TOMOYO Linux では、いくつかのコンパイル済みのツールを提供しています。コンパイル済みのツールを利用する場合は、以下のファイルをダウンロードして /root/ ディレクトリの下に展開してください。</p>
+<p>TOMOYO Linux では、いくつかのコンパイル済みのツールを提供しています。コンパイル済みのツールを利用する場合は、以下のファイルをダウンロードして /usr/lib/ ディレクトリの下に展開してください。</p>
 
 <table border="1">
 <tr><td>
@@ -161,7 +161,7 @@ mv ccstools/ccs-init /sbin/ccs-init
 
 <table border="1">
 <tr><td>
-cd /root/<br>
+cd /usr/lib/<br>
 # TOMOYO Linux ツールのソースをダウンロードする。<br>
 wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
 # 展開する。<br>
@@ -180,7 +180,7 @@ mv ccstools/ccs-init /sbin/ccs-init
 
 <table border="1">
 <tr><td>
-export PATH=$PATH:/root/ccstools
+export PATH=$PATH:/usr/lib/ccs
 </td></tr>
 </table>
 
@@ -188,7 +188,7 @@ export PATH=$PATH:/root/ccstools
 
 <table border="1">
 <tr><td>
-setenv PATH "$PATH:/root/ccstools"
+setenv PATH "$PATH:/usr/lib/ccs"
 </td></tr>
 </table>
 
@@ -211,12 +211,12 @@ mkdir -m 700 /etc/ccs
 <table border="1">
 <tr><td>
 cat &gt; /etc/ccs/manager.conf &lt;&lt; EOF<br>
-/root/ccstools/loadpolicy<br>
-/root/ccstools/editpolicy<br>
-/root/ccstools/setlevel<br>
-/root/ccstools/setprofile<br>
-/root/ccstools/ld-watch<br>
-/root/ccstools/ccs-queryd<br>
+/usr/lib/ccs/loadpolicy<br>
+/usr/lib/ccs/editpolicy<br>
+/usr/lib/ccs/setlevel<br>
+/usr/lib/ccs/setprofile<br>
+/usr/lib/ccs/ld-watch<br>
+/usr/lib/ccs/ccs-queryd<br>
 EOF<br></td>
 </tr>
 </table>
@@ -566,7 +566,7 @@ ccstree
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3307)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3393)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;tcsh&nbsp;(3434)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh<br>
-&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/root/ccstools/ccstree<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/usr/lib/ccs/ccstree<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;xinetd&nbsp;(3321)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/xinetd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.rquotad&nbsp;(3342)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.rquotad<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.mountd&nbsp;(3361)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.mountd<br>
@@ -591,7 +591,7 @@ ccstree
 
 <table border="1">
 <tr><td>
-/root/ccstools/ccs-auditd アクセス許可ログの保存場所 アクセス拒否ログの保存場所
+/usr/lib/ccs/ccs-auditd アクセス許可ログの保存場所 アクセス拒否ログの保存場所
 </td></tr>
 </table>
 
@@ -601,7 +601,7 @@ ccstree
 
 <table border="1">
 <tr><td>
-/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
+/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
