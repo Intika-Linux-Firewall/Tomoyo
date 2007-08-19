@@ -30,8 +30,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: linux-2.6/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-08-19 14:03:43.000000000 +0900
-@@ -0,0 +1,2382 @@
++++ linux-2.6/security/tomoyo/common.c	2007-08-19 17:34:55.000000000 +0900
+@@ -0,0 +1,2380 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1496,10 +1496,8 @@ Index: linux-2.6/security/tomoyo/common.c
 +	read_lock(&tasklist_lock);
 +	p = find_task_by_pid(pid);
 +	if (p) {
-+		struct tmy_security *tmp =
-+			(struct tmy_security *) p->security;
-+		if (tmp)
-+			domain = tmp->domain;
++		/* "struct task_struct"->security is not NULL. */
++		domain = ((struct tmy_security *) p->security)->domain;
 +	}
 +	read_unlock(&tasklist_lock);
 +	/***** CRITICAL SECTION END *****/
