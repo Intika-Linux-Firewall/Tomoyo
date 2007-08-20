@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -167,10 +167,6 @@ int realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt, char *new
 	struct dentry *d_dentry;
 	struct vfsmount *d_mnt;
 	if (!dentry || !mnt || !newname || newname_len <= 0) return -EINVAL;
-	if (!current->fs) {
-		printk("%s: current->fs == NULL for pid=%d\n", __FUNCTION__, current->pid);
-		return -ENOENT;
-	}
 	d_dentry = dget(dentry);
 	d_mnt = mntget(mnt);
 	/***** CRITICAL SECTION START *****/
