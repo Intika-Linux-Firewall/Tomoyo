@@ -9,14 +9,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/domain.c | 1216 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1216 insertions(+)
+ security/tomoyo/domain.c | 1291 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1291 insertions(+)
 
-Index: linux-2.6/security/tomoyo/domain.c
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/domain.c	2007-08-20 09:17:52.000000000 +0900
-@@ -0,0 +1,1216 @@
++++ linux-2.6/security/tomoyo/domain.c	2007-08-20 04:39:54.000000000 +0900
+@@ -0,0 +1,1291 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -32,6 +30,9 @@ Index: linux-2.6/security/tomoyo/domain.c
 +
 +/* Lock for appending domain's ACL. */
 +DECLARE_MUTEX(domain_acl_lock);
++
++/* Domain creation lock. */
++static DECLARE_MUTEX(new_domain_assign_lock);
 +
 +/***** The structure for program files to force domain reconstruction. *****/
 +
@@ -73,11 +74,6 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	int is_deleted;
 +};
 +
-+/*************************  VARIABLES  *************************/
-+
-+/* Domain creation lock. */
-+static DECLARE_MUTEX(new_domain_assign_lock);
-+
 +/*************************  UTILITY FUNCTIONS  *************************/
 +
 +/**
@@ -91,7 +87,6 @@ Index: linux-2.6/security/tomoyo/domain.c
 + */
 +int tmy_is_domain_def(const unsigned char *buffer)
 +{
-+	/* while (*buffer && (*buffer <= ' ' || *buffer >= 127)) buffer++; */
 +	return strncmp(buffer, TMY_ROOT_NAME, TMY_ROOT_NAME_LEN) == 0;
 +}
 +
@@ -255,8 +250,8 @@ Index: linux-2.6/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_read_domain_initializer_policy - read initializer policy
-+ * @head: pointer to io_buffer to return value
++ * tmy_read_domain_initializer_policy - read domain initializer policy
++ * @head: pointer to "struct io_buffer"
 + *
 + * Returns nonzero if reading incomplete.
 + * Returns zero otherwise.
@@ -292,6 +287,17 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return ptr ? -ENOMEM : 0;
 +}
 +
++/**
++ * tmy_add_domain_initializer_policy - add domain initializer policy
++ * @data:      a line to parse
++ * @is_not:    is this overriding?
++ * @is_delete: is this remove request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ *
++ * This function adds or removes a domain initializer entry.
++ */
 +int tmy_add_domain_initializer_policy(char *data,
 +				      const int is_not,
 +				      const int is_delete)
@@ -304,10 +310,10 @@ Index: linux-2.6/security/tomoyo/domain.c
 +							is_delete);
 +	}
 +
-+	return tmy_add_domain_initializer_entry(NULL, data, is_not,
-+						is_delete);
++	return tmy_add_domain_initializer_entry(NULL, data, is_not, is_delete);
 +}
 +
++/* Should I transit to a domain under "<kernel>" domain? */
 +static int tmy_is_domain_initializer(const struct path_info *domainname,
 +				     const struct path_info *program,
 +				     const struct path_info *last_name)
@@ -420,6 +426,18 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return error;
 +}
 +
++/**
++ * tmy_add_domain_keeper_policy - add domain keeper policy
++ * @data:      a line to parse
++ * @is_not:    is this overriding?
++ * @is_delete: is this remove request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ *
++ * This function adds or removes a domain keeper entry.
++ *
++ */
 +int tmy_add_domain_keeper_policy(char *data,
 +				 const int is_not,
 +				 const int is_delete)
@@ -435,6 +453,13 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return tmy_add_domain_keeper_entry(data, NULL, is_not, is_delete);
 +}
 +
++/**
++ * tmy_read_domain_keeper_policy - read domain keeper policy
++ * @head: pointer to "struct io_buffer"
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_domain_keeper_policy(struct io_buffer *head)
 +{
 +	struct domain_keeper_entry *ptr = head->read_var2;
@@ -470,6 +495,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return ptr ? -ENOMEM : 0;
 +}
 +
++/* Should I remain in current domain? */
 +static int tmy_is_domain_keeper(const struct path_info *domainname,
 +				const struct path_info *program,
 +				const struct path_info *last_name)
@@ -564,6 +590,13 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return error;
 +}
 +
++/**
++ * tmy_read_alias_policy - read alias policy
++ * @head: pointer to "struct io_buffer"
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_alias_policy(struct io_buffer *head)
 +{
 +	struct alias_entry *ptr = head->read_var2;
@@ -584,6 +617,16 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return ptr ? -ENOMEM : 0;
 +}
 +
++/**
++ * tmy_add_alias_policy - add alias policy
++ * @data:      a line to parse
++ * @is_delete: is this remove request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ *
++ * This function adds or removes an alias entry.
++ */
 +int tmy_add_alias_policy(char *data, const int is_delete)
 +{
 +	char *cp = strchr(data, ' ');
@@ -660,6 +703,13 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return error;
 +}
 +
++/**
++ * tmy_read_aggregator_policy - read aggregator policy
++ * @head: pointer to "struct io_buffer"
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_aggregator_policy(struct io_buffer *head)
 +{
 +	struct aggregator_entry *ptr = head->read_var2;
@@ -680,6 +730,16 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return ptr ? -ENOMEM : 0;
 +}
 +
++/**
++ * tmy_add_aggregator_policy - add aggregator policy
++ * @data:      a line to parse
++ * @is_delete: is this remove request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ *
++ * This function adds or removes an aggregator entry.
++ */
 +int tmy_add_aggregator_policy(char *data, const int is_delete)
 +{
 +	char *cp = strchr(data, ' ');
@@ -753,7 +813,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 + * tmy_undelete_domain - undelete a domain.
 + * @domainname0:   domainname to undelete.
 + *
-+ * Returns pointer to undeleted domain on success.
++ * Returns pointer to undeleted "struct domain_info" on success.
 + * Returns NULL on failure.
 + *
 + * This function undeletes domains.
@@ -802,8 +862,11 @@ Index: linux-2.6/security/tomoyo/domain.c
 + * tmy_find_domain - find a domain with given domainname.
 + * @domainname0: the domainname to find.
 + *
-+ * Returns pointer to domain on success.
++ * Returns pointer to "struct domain_info" on success.
 + * Returns NULL on failure.
++ *
++ * This function does not create a new domain
++ * if a domain named @domainname0 does not exist.
 + */
 +struct domain_info *tmy_find_domain(const char *domainname0)
 +{
@@ -832,7 +895,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 + * tmy_new_domain - find or assign a domain with given domainname.
 + * @domainname0: the domainname to find.
 + *
-+ * Returns pointer to domain on success.
++ * Returns pointer to "struct domain_info" on success.
 + * Returns NULL on failure.
 + *
 + * This function creates a new domain if a domain named @domainname0
@@ -919,6 +982,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return domain;
 +}
 +
++/* Convert non ASCII printable characters to ASCII printable characters. */
 +static int tmy_escape(char *dest, const char *src, int dest_len)
 +{
 +	while (*src) {
@@ -955,6 +1019,7 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return -ENOMEM;
 +}
 +
++/* Get argv[0] of "struct linux_binprm". */
 +static char *tmy_get_argv0(struct linux_binprm *bprm)
 +{
 +	char *arg_ptr;
@@ -1021,6 +1086,19 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	return NULL;
 +}
 +
++/**
++ * tmy_find_next_domain - find a domain to transit to if do_execve() succeeds
++ * @bprm:        pointer to "struct linux_binprm"
++ * @next_domain: pointer to pointer to "struct domain_info"
++ *
++ * Returns zero if success. @next_domain receives new domain to transit to.
++ * Returns nonzero on failure.
++ *
++ * This function handles TOMOYO Linux's domain transition.
++ * New domains are automatically created unless the domain the caller process
++ * belongs to is assigned a profile for enforcing mode.
++ *
++ */
 +int tmy_find_next_domain(struct linux_binprm *bprm,
 +			 struct domain_info **next_domain)
 +{
@@ -1040,22 +1118,17 @@ Index: linux-2.6/security/tomoyo/domain.c
 +	struct path_info s;
 +	struct path_info l;
 +
-+	{
-+		/*
-+		 * Built-in initializers.
-+		 * This is needed because policies are not loaded
-+		 * until starting /sbin/init .
-+		 */
-+		static int first = 1;
-+		if (first) {
-+			tmy_add_domain_initializer_entry(NULL, "/sbin/hotplug",
-+							 0, 0);
-+			tmy_add_domain_initializer_entry(NULL, "/sbin/modprobe",
-+							 0, 0);
-+			tmy_add_domain_initializer_entry(NULL, "/sbin/udevd",
-+							 0, 0);
-+			first = 0;
-+		}
++	/*
++	 * Built-in initializers.
++	 * This is needed because policies are not loaded
++	 * until starting /sbin/init .
++	 */
++	static int first = 1;
++	if (first) {
++		tmy_add_domain_initializer_entry(NULL, "/sbin/hotplug", 0, 0);
++		tmy_add_domain_initializer_entry(NULL, "/sbin/modprobe", 0, 0);
++		tmy_add_domain_initializer_entry(NULL, "/sbin/udevd", 0, 0);
++		first = 0;
 +	}
 +
 +	/* Get realpath of program. */
