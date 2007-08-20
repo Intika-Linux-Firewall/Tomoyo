@@ -11,7 +11,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Index: linux-2.6/security/tomoyo/include/realpath.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/realpath.h	2007-08-19 01:48:05.000000000 +0900
++++ linux-2.6/security/tomoyo/include/realpath.h	2007-08-20 09:17:51.000000000 +0900
 @@ -0,0 +1,44 @@
 +/*
 + * security/tomoyo/include/realpath.h
@@ -60,7 +60,7 @@ Index: linux-2.6/security/tomoyo/include/realpath.h
 Index: linux-2.6/security/tomoyo/include/tomoyo.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-08-19 01:48:05.000000000 +0900
++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-08-20 09:46:02.000000000 +0900
 @@ -0,0 +1,477 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
@@ -321,7 +321,7 @@ Index: linux-2.6/security/tomoyo/include/tomoyo.h
 +#define TMY_UPDATE_DOMAINPOLICY    0
 +#define TMY_UPDATE_SYSTEMPOLICY    1
 +#define TMY_UPDATE_EXCEPTIONPOLICY 2
-+#define TMY_UPDATE_STATUS          3
++#define TMY_UPDATE_PROFILE         3
 +#define TMY_UPDATE_QUERY           4
 +#define TMY_UPDATE_MANAGER         5
 +#define TMY_MAX_UPDATES_COUNTER    6
@@ -335,7 +335,7 @@ Index: linux-2.6/security/tomoyo/include/tomoyo.h
 +#define TMY_INFO_PROCESS_STATUS     4
 +#define TMY_INFO_MEMINFO            5
 +#define TMY_INFO_SELFDOMAIN         6
-+#define TMY_STATUS                  7
++#define TMY_PROFILE                 7
 +#define TMY_POLICY_QUERY            8
 +#define TMY_POLICY_MANAGER          9
 +#define TMY_INFO_UPDATESCOUNTER    10
