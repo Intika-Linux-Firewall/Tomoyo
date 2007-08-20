@@ -310,7 +310,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.12-2.3.legacy_FC3">Kernel 2.6.12-2.3.legacy_FC3 for Fedora Core 3</a>
 <li><a href="#2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a>
 <li><a href="#2.6.20-1.2320.fc5">Kernel 2.6.20-1.2320.fc5 for Fedora Core 5</a>
-<li><a href="#2.6.22.1-32.fc6">Kernel 2.6.22.1-32.fc6 for Fedora Core 6</a>
+<li><a href="#2.6.22.2-42.fc6">Kernel 2.6.22.2-42.fc6 for Fedora Core 6</a>
 <li><a href="#2.6.22.1-41.fc7">Kernel 2.6.22.1-41.fc7 for Fedora 7</a>
 <li><a href="#2.6.9-55.0.2.EL">Kernel 2.6.9-55.0.2.EL for CentOS 4.5</a>
 <li><a href="#2.6.18-8.1.8.el5">Kernel 2.6.18-8.1.8.el5 for CentOS 5</a>
@@ -430,24 +430,24 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.1-32.fc6">Kernel 2.6.22.1-32.fc6 for Fedora Core 6</a></h2>
+<h2><a name="2.6.22.2-42.fc6">Kernel 2.6.22.2-42.fc6 for Fedora Core 6</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.22.1-32.fc6.src.rpm<br>
-rpm -ivh kernel-2.6.22.1-32.fc6.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.22.2-42.fc6.src.rpm<br>
+rpm -ivh kernel-2.6.22.2-42.fc6.src.rpm<br>
 # Prepare for compilation.<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.1-32.fc6<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.2-42.fc6<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.22.1-32.fc6/<br>
+cd /usr/src/linux-2.6.22.2-42.fc6/<br>
 # Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-32.fc6/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .2-42.fc6/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget -O ccs-patch.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.4.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-patch.tar.gz; tar -cf - -C ccs-patch/ . | tar -xf -<br>
-patch -sp1 &lt; ccs-patch-2.6.22.1-32.fc6.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.22.2-42.fc6.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
