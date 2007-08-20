@@ -13,7 +13,7 @@
 <h2><a name="administration_tool">＜＜システム管理者用ツール＞＞</a></h2>
 
 <h3><a name="editpolicy">＜ポリシーエディタ　editpolicy＞</a></h3>
-<p>現在のポリシーを /proc/ccs/policy/ ディレクトリから読み込み、編集を行う。</p>
+<p>現在のポリシーを /proc/ccs/ ディレクトリから読み込み、編集を行う。</p>
 <p>コマンドラインパラメータとして s e d のいずれかの文字を指定することで最初に表示される画面を指定できる。省略すると最初にドメイン一覧表示画面が表示される。</p>
 <p>以下のキーを使用して操作する。</p>
 
@@ -97,9 +97,9 @@
 <p>syaoran.conf に記録されていないファイルは作成できないので、動的にデバイスファイルが作成される環境の場合はこのプログラムを実行する前に全てのデバイスを接続し、必要なデバイスファイルが全て syaoran.conf に記録されるように注意する。</p>
 
 <h3><a name="ccs-auditd">＜アクセスログ保存デーモン　ccs-auditd＞</a></h3>
-<p>/proc/ccs/info/grant_log および /proc/ccs/info/reject_log の内容をコマンドラインで指定された場所に保存する。</p>
+<p>/proc/ccs/grant_log および /proc/ccs/reject_log の内容をコマンドラインで指定された場所に保存する。</p>
 <p>コマンドラインの最初のパラメータがアクセス許可ログを保存するファイル名、２番目のパラメータがアクセス拒否ログを保存するファイル名である。ファイル名として /dev/null を指定しても良い。アクセスログをファイルに保存する必要が無い場合は実行する必要はない。</p>
-<p>デーモンとして動作するので、 RedHat Linux の場合、 /etc/rc.d/rc.local で起動すればよい。 /proc/ccs/info/grant_log および /proc/ccs/info/reject_log に保持できる件数は、プロファイルの「MAX_GRANT_LOG=数値」および「MAX_REJECT_LOG=数値」という行で指定できる。</p>
+<p>デーモンとして動作するので、 RedHat Linux の場合、 /etc/rc.d/rc.local で起動すればよい。 /proc/ccs/grant_log および /proc/ccs/reject_log に保持できる件数は、プロファイルの「MAX_GRANT_LOG=数値」および「MAX_REJECT_LOG=数値」という行で指定できる。</p>
 
 <h3><a name="sortpolicy">＜ポリシー圧縮プログラム　sortpolicy＞</a></h3>
 <p>ccs-auditd により保存されたログから重複を除去する。</p>
@@ -107,8 +107,8 @@
 
 <h3><a name="findtemp">＜テンポラリパス検出プログラム　findtemp＞</a></h3>
 <p>標準入力からパス名の一覧を受け取り、全ての存在しないパス名を表示する。</p>
-<p>存在しなかったパス名はテンポラリなパス名として使用されている可能性が高いので、同様のパス名から規則性を判断して /etc/ccs/exception_policy.conf および /proc/ccs/policy/exception_policy にパターン化したパス名を追加していく。</p>
-<p>/etc/ccs/domain_policy.conf または /proc/ccs/policy/domain_policy の内容をリダイレクトまたはパイプを使用して標準入力へ渡せばよい。</p>
+<p>存在しなかったパス名はテンポラリなパス名として使用されている可能性が高いので、同様のパス名から規則性を判断して /etc/ccs/exception_policy.conf および /proc/ccs/exception_policy にパターン化したパス名を追加していく。</p>
+<p>/etc/ccs/domain_policy.conf または /proc/ccs/domain_policy の内容をリダイレクトまたはパイプを使用して標準入力へ渡せばよい。</p>
 
 <h3><a name="ld-watch">＜ライブラリファイルのパス名更新プログラム　ld-watch＞</a></h3>
 <p>/etc/ld.so.cache に登録されている共有ライブラリファイルのパス名の変化を検出し、自動的に allow_read キーワードを使って例外ポリシーに登録する。</p>
@@ -129,7 +129,7 @@
 <p>/sbin/ccs-init に置くことで、 initrd から /sbin/init の実行が要求されたときに自動的に呼び出される。</p>
 
 <h3><a name="domainmatch">＜アクセス許可検索ツール　domainmatch＞</a></h3>
-<p> /proc/ccs/policy/domain_policy からドメイン単位で fgrep を行う。</p>
+<p> /proc/ccs/domain_policy からドメイン単位で fgrep を行う。</p>
 
 <h3><a name="patternize">＜パス名パターン化ツール　patternize＞</a></h3>
 <p>ドメイン用ポリシーを標準入力から受け取り、コマンドラインに与えられたパス名のパターンと一致した場合はパターン化してから標準出力へ送る。実行許可を含むファイルへのアクセス許可とドメイン名はパターン化されない。</p>

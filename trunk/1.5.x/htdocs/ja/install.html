@@ -149,11 +149,11 @@ http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools_1.4.2-nlug1_i386.deb
 </td></tr>
 </table>
 
-<p>展開された ccs-init （ポリシーローダー）を /sbin/ccs-init へ移動してください。</p>
+<p>展開された ccs-init （ポリシーローダー）を /sbin/ へ移動してください。</p>
 
 <table border="1">
 <tr><td>
-mv ccstools/ccs-init /sbin/ccs-init
+mv ccs/ccs-init /sbin/
 </td></tr>
 </table>
 
@@ -163,13 +163,13 @@ mv ccstools/ccs-init /sbin/ccs-init
 <tr><td>
 cd /usr/lib/<br>
 # TOMOYO Linux ツールのソースをダウンロードする。<br>
-wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
+wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccs.tar.gz?root=tomoyo&amp;view=tar'<br>
 # 展開する。<br>
 tar -zxf ccs-tools.tar.gz<br>
 # コンパイルする。<br>
-make -sC ccstools/<br>
-# ポリシーローダーを /sbin/ccs-init へ移動する。<br>
-mv ccstools/ccs-init /sbin/ccs-init
+make -sC ccs/<br>
+# ポリシーローダーを /sbin/ へ移動する。<br>
+mv ccs/ccs-init /sbin/
 </td></tr>
 </table>
 
@@ -529,7 +529,7 @@ setprofile 2 '&lt;kernel&gt; /sbin/init'
 <p>ドメインに割り当てられているプロファイルを確認するには以下のコマンドを実行してください。プロファイル番号とドメイン名がセットになった一覧が表示されます。</p>
 <table border="1">
 <tr><td>
-cat /proc/ccs/policy/.domain_status
+cat /proc/ccs/.domain_status
 </td></tr>
 </table>
 
@@ -807,7 +807,7 @@ use_profile 3<br>
 
 <table border="1">
 <tr><td>
-xargs -0 setprofile 0 &lt; /proc/ccs/info/self_domain
+xargs -0 setprofile 0 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
@@ -825,7 +825,7 @@ service httpd start
 
 <table border="1">
 <tr><td>
-less /proc/ccs/policy/.domain_status
+less /proc/ccs/.domain_status
 </td></tr>
 </table>
 
@@ -881,7 +881,7 @@ setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
 
 <p>以上で、 /usr/sbin/httpd に対して強制アクセス制御が適用された状態になります。</p>
 
-<p>プロファイルで 3-TOMOYO-VERBOSE=1 （デフォルト）に設定されていると、ポリシーに違反した場合に TOMOYO-ERROR: というメッセージがコンソールに表示されてアクセスが拒否されます。ポリシー違反の内容は、 /proc/ccs/info/reject_log にも蓄えられます。</p>
+<p>プロファイルで 3-TOMOYO-VERBOSE=1 （デフォルト）に設定されていると、ポリシーに違反した場合に TOMOYO-ERROR: というメッセージがコンソールに表示されてアクセスが拒否されます。ポリシー違反の内容は、 /proc/ccs/reject_log にも蓄えられます。</p>
 
 <h2>確認モードを利用して一括してポリシーを生成する方法</h2>
 
@@ -1342,7 +1342,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>カーネルに読み込まれているドメインポリシーが更新されていることを確認します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# findtemp &lt; /proc/ccs/policy/domain_policy<br>
+[root@sakura ~]# findtemp &lt; /proc/ccs/domain_policy<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /halt<br>
