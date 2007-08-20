@@ -11,9 +11,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 Index: linux-2.6/fs/namespace.c
 ===================================================================
---- linux-2.6.orig/fs/namespace.c	2007-08-19 01:47:31.000000000 +0900
-+++ linux-2.6/fs/namespace.c	2007-08-19 01:48:05.000000000 +0900
-@@ -38,7 +38,7 @@
+--- linux-2.6.orig/fs/namespace.c	2007-08-20 09:17:29.000000000 +0900
++++ linux-2.6/fs/namespace.c	2007-08-20 09:17:50.000000000 +0900
+@@ -38,7 +38,7 @@ static int event;
  static struct list_head *mount_hashtable __read_mostly;
  static int hash_mask __read_mostly, hash_bits __read_mostly;
  static struct kmem_cache *mnt_cache __read_mostly;
@@ -24,8 +24,8 @@ Index: linux-2.6/fs/namespace.c
  decl_subsys(fs, NULL, NULL);
 Index: linux-2.6/include/linux/mnt_namespace.h
 ===================================================================
---- linux-2.6.orig/include/linux/mnt_namespace.h	2007-08-19 01:47:31.000000000 +0900
-+++ linux-2.6/include/linux/mnt_namespace.h	2007-08-19 01:48:05.000000000 +0900
+--- linux-2.6.orig/include/linux/mnt_namespace.h	2007-08-20 09:17:29.000000000 +0900
++++ linux-2.6/include/linux/mnt_namespace.h	2007-08-20 09:17:50.000000000 +0900
 @@ -6,6 +6,8 @@
  #include <linux/sched.h>
  #include <linux/nsproxy.h>

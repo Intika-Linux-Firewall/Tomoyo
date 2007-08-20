@@ -24,13 +24,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 <<<<<<< .mine
 <<<<<<< .mine
 ---
- security/tomoyo/common.c | 2215 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2215 insertions(+)
+ security/tomoyo/common.c | 2380 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2380 insertions(+)
 
 Index: linux-2.6/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-08-19 17:34:55.000000000 +0900
++++ linux-2.6/security/tomoyo/common.c	2007-08-20 09:46:32.000000000 +0900
 @@ -0,0 +1,2380 @@
 +/*
 + * security/tomoyo/common.c
@@ -83,8 +83,8 @@ Index: linux-2.6/security/tomoyo/common.c
 +	[TMY_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
 +	[TMY_MAX_ACCEPT_ENTRY]    =
 +	{ "MAX_ACCEPT_ENTRY", MAX_ACCEPT_ENTRY, INT_MAX },
-+	[TMY_AUDIT_GRANT]         = { "TOMOYO_AUDIT_GRANT",  0, 1 },
-+	[TMY_AUDIT_REJECT]        = { "TOMOYO_AUDIT_REJECT", 1, 1 },
++	[TMY_AUDIT_GRANT]         = { "AUDIT_GRANT",         0, 1 },
++	[TMY_AUDIT_REJECT]        = { "AUDIT_REJECT",        1, 1 },
 +	[TMY_ALLOW_ENFORCE_GRACE] = { "ALLOW_ENFORCE_GRACE", 0, 1 },
 +};
 +
@@ -898,7 +898,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +static int profile_loaded;
 +
 +/* Update profile values. */
-+static int tmy_set_status(struct io_buffer *head)
++static int tmy_set_profile(struct io_buffer *head)
 +{
 +	char *data = head->write_buf;
 +	unsigned int i;
@@ -926,7 +926,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +
 +	*cp = '\0';
 +	profile_loaded = 1;
-+	tmy_update_counter(TMY_UPDATE_STATUS);
++	tmy_update_counter(TMY_UPDATE_PROFILE);
 +	if (strcmp(data, tmy_control[TMY_COMMENT].keyword) == 0) {
 +		profile->comment = tmy_save_name(cp + 1);
 +		return 0;
@@ -948,7 +948,7 @@ Index: linux-2.6/security/tomoyo/common.c
 +}
 +
 +/* Read profile values. */
-+static int tmy_read_status(struct io_buffer *head)
++static int tmy_read_profile(struct io_buffer *head)
 +{
 +	int step;
 +
@@ -2055,13 +2055,13 @@ Index: linux-2.6/security/tomoyo/common.c
 +		      "/proc/tomoyo/domain_policy:    %10u\n"
 +		      "/proc/tomoyo/system_policy:    %10u\n"
 +		      "/proc/tomoyo/exception_policy: %10u\n"
-+		      "/proc/tomoyo/status:           %10u\n"
++		      "/proc/tomoyo/profile:          %10u\n"
 +		      "/proc/tomoyo/query:            %10u\n"
 +		      "/proc/tomoyo/manager:          %10u\n",
 +		      counter[TMY_UPDATE_DOMAINPOLICY],
 +		      counter[TMY_UPDATE_SYSTEMPOLICY],
 +		      counter[TMY_UPDATE_EXCEPTIONPOLICY],
-+		      counter[TMY_UPDATE_STATUS],
++		      counter[TMY_UPDATE_PROFILE],
 +		      counter[TMY_UPDATE_QUERY],
 +		      counter[TMY_UPDATE_MANAGER]);
 +	head->read_eof = 1;
@@ -2155,9 +2155,9 @@ Index: linux-2.6/security/tomoyo/common.c
 +		head->read = tmy_read_memory_counter;
 +		head->readbuf_size = 128;
 +		break;
-+	case TMY_STATUS:
-+		head->write = tmy_set_status;
-+		head->read = tmy_read_status;
++	case TMY_PROFILE:
++		head->write = tmy_set_profile;
++		head->read = tmy_read_profile;
 +		break;
 +	case TMY_POLICY_QUERY:
 +		head->poll = tmy_poll_query;
@@ -2403,8 +2403,8 @@ Index: linux-2.6/security/tomoyo/common.c
 +			 TMY_INFO_SELFDOMAIN);
 +	tmy_create_entry("meminfo",          0400, tmy_dir,
 +			 TMY_INFO_MEMINFO);
-+	tmy_create_entry("status",           0600, tmy_dir,
-+			 TMY_STATUS);
++	tmy_create_entry("profile",          0600, tmy_dir,
++			 TMY_PROFILE);
 +	tmy_create_entry("manager",          0600, tmy_dir,
 +			 TMY_POLICY_MANAGER);
 +	tmy_create_entry(".updates_counter", 0400, tmy_dir,
