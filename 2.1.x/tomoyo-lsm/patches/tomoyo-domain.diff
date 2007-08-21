@@ -8,14 +8,14 @@ Domain information is stored in task_struct->security.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
- security/tomoyo/domain.c | 1290 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 1290 insertions(+)
+ security/tomoyo/domain.c | 1291 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 1291 insertions(+)
 
 Index: linux/security/tomoyo/domain.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/domain.c	2007-08-21 16:24:14.183326120 +0900
-@@ -0,0 +1,1290 @@
++++ linux/security/tomoyo/domain.c	2007-08-21 18:01:09.921580192 +0900
+@@ -0,0 +1,1291 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -894,7 +894,8 @@ Index: linux/security/tomoyo/domain.c
 +
 +/**
 + * tmy_new_domain - find or assign a domain with given domainname.
-+ * @domainname0: the domainname to find.
++ * @domainname: the domainname to find.
++ * @profile:    profile number to assign if newly created.
 + *
 + * Returns pointer to "struct domain_info" on success.
 + * Returns NULL on failure.
