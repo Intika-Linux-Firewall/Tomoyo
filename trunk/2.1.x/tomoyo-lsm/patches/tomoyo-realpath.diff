@@ -5,12 +5,13 @@ or chroot()ed, TOMOYO Linux uses the original pathname.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
----
  security/tomoyo/realpath.c |  695 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 695 insertions(+)
+ 1 files changed, 695 insertions(+)
 
+Index: linux/security/tomoyo/realpath.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/realpath.c	2007-08-20 09:17:51.000000000 +0900
++++ linux/security/tomoyo/realpath.c	2007-08-21 09:18:14.000000000 +0900
 @@ -0,0 +1,695 @@
 +/*
 + * security/tomoyo/realpath.c
