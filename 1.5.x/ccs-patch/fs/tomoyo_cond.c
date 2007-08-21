@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,7 +21,7 @@ char *FindConditionPart(char *data)
 {
 	char *cp = strstr(data, " if "), *cp2;
 	if (cp) {
-		while ((cp2 = strstr(cp + 4, " if ")) != NULL) cp = cp2;
+		while ((cp2 = strstr(cp + 3, " if ")) != NULL) cp = cp2;
 		*cp++ = '\0';
 	}
 	return cp;
