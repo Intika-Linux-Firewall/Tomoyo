@@ -20,14 +20,14 @@ control level of TOMOYO Linux. A profile is assigned to a domain.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
- security/tomoyo/common.c | 2380 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 2380 insertions(+)
+ security/tomoyo/common.c | 2384 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 2384 insertions(+)
 
 Index: linux/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/common.c	2007-08-21 11:28:34.000000000 +0900
-@@ -0,0 +1,2380 @@
++++ linux/security/tomoyo/common.c	2007-08-21 16:51:59.021232288 +0900
+@@ -0,0 +1,2384 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -96,8 +96,8 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_normalize_line - make a line tidy
-+ * @buffer:        the line to make tidy.
++ * tmy_normalize_line - make a line tidy.
++ * @buffer: the line to make tidy.
 + *
 + * All tokens (such as pathnames) used in TOMOYO Linux contains
 + * only ASCII printable (i.e. 0x21-0x7E) range characters.
@@ -186,18 +186,18 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_correct_path - validate a pathname
-+ * @filename:        the pathname to check
-+ * @start_type:      1 if the pathname must start with '/'
-+ *                   -1 if the pathname must not start with '/'
-+ *                   0 if it does not matter
-+ * @pattern_type     1 if the pathname must contain patterns
-+ *                   -1 if the pathname must not contain patterns
-+ *                   0 if it does not matter
-+ * @end_type         1 if the pathname must end with '/'
-+ *                   -1 if the pathname must not end with '/'
-+ *                   0 if it does not matter
-+ * @function         string to display if the @filename is invalid
++ * tmy_correct_path - validate a pathname.
++ * @filename:     the pathname to check
++ * @start_type:   1 if the pathname must start with '/'
++ *                -1 if the pathname must not start with '/'
++ *                0 if it does not matter
++ * @pattern_type: 1 if the pathname must contain patterns
++ *                -1 if the pathname must not contain patterns
++ *                0 if it does not matter
++ * @end_type:     1 if the pathname must end with '/'
++ *                -1 if the pathname must not end with '/'
++ *                0 if it does not matter
++ * @function:     string to display if the @filename is invalid
 + *
 + * Returns nonzero if the pathname is valid.
 + * Returns zero otherwise.
@@ -292,9 +292,9 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_is_correct_domain - validate a domainname
-+ * @domainname:      the domainname to check
-+ * @function         string to display if the @domainname is invalid
++ * tmy_is_correct_domain - validate a domainname.
++ * @domainname: the domainname to check.
++ * @function:   string to display if the @domainname is invalid.
 + *
 + * Returns nonzero if the domainname is valid.
 + * Returns zero otherwise.
@@ -360,7 +360,7 @@ Index: linux/security/tomoyo/common.c
 +
 +/**
 + * tmy_path_depth - evaluate the number of '/' characters in a token.
-+ * @pathname:        the token to evaluate
++ * @pathname: the token to evaluate.
 + *
 + * Each '/' character but the trailing '/' scores 2.
 + * The trailing '/' scores 1.
@@ -389,7 +389,7 @@ Index: linux/security/tomoyo/common.c
 +
 +/**
 + * tmy_const_part_length - calculate the constant part in a token.
-+ * @filename:        the token to calculate
++ * @filename: the token to calculate.
 + *
 + * Returns leading length of @filename that can be compared using strncmp().
 + */
@@ -429,7 +429,7 @@ Index: linux/security/tomoyo/common.c
 +
 +/**
 + * tmy_fill_path_info - fill "struct path_info" entry.
-+ * @ptr:        pointer to "struct path_info"
++ * @ptr: pointer to "struct path_info".
 + *
 + * Caller stores a token in "struct path_info"->name .
 + * This function will fill rest of "struct path_info" members.
@@ -447,11 +447,11 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_file_match2 - internal function for tmy_path_match
-+ * @filename:        start address of the token
-+ * @filename_end:    end address of the token
-+ * @pattern:         start address of the pattern
-+ * @pattern_end:     end address of the pattern
++ * tmy_file_match2 - internal function for tmy_path_match().
++ * @filename:     start address of the token.
++ * @filename_end: end address of the token.
++ * @pattern:      start address of the pattern.
++ * @pattern_end:  end address of the pattern.
 + *
 + * Handle all patterns other than '\-' pattern.
 + * Returns nonzero if matches.
@@ -620,11 +620,11 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_file_match - internal function for tmy_path_match
-+ * @filename:        start address of the token
-+ * @filename_end:    end address of the token
-+ * @pattern:         start address of the pattern
-+ * @pattern_end:     end address of the pattern
++ * tmy_file_match - internal function for tmy_path_match().
++ * @filename:     start address of the token.
++ * @filename_end: end address of the token.
++ * @pattern:      start address of the pattern.
++ * @pattern_end:  end address of the pattern.
 + *
 + * Handle patterns containing '\-' pattern.
 + * Returns nonzero if matches.
@@ -670,11 +670,11 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_path_match - do a pattern matching
-+ * @pathname0:        a token to compare
-+ * @pattern0:         a pattern to compare
++ * tmy_path_match - do a pattern matching.
++ * @pathname0: pointer to a token to compare.
++ * @pattern0:  pointer to a pattern to compare.
 + *
-+ * Returns nonzero if @pathname0 matches to @pattern0
++ * Returns nonzero if @pathname0 matches to @pattern0 .
 + * Returns zero otherwise.
 + *
 + *
@@ -748,9 +748,9 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_io_printf - transactional printf() for "struct io_buffer"
-+ * @head:        pointer to "struct io_buffer"
-+ * @fmt:         format strings for printf()
++ * tmy_io_printf - transactional printf() for "struct io_buffer".
++ * @head: pointer to "struct io_buffer".
++ * @fmt:  format strings for printf().
 + *
 + * Returns zero on success.
 + * Returns nonzero otherwise.
@@ -809,7 +809,7 @@ Index: linux/security/tomoyo/common.c
 +
 +/**
 + * tmy_flags - get flags of given access control.
-+ * @index:  index to retrieve flags.
++ * @index: index to retrieve flags.
 + *
 + * Returns current value of given access control.
 + */
@@ -828,7 +828,9 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_audit_grant - get flags of auditing grant logs
++ * tmy_audit_grant - get flags of auditing grant logs.
++ *
++ * Returns current value of auditing grant log flags.
 + */
 +unsigned int tmy_audit_grant(void)
 +{
@@ -836,7 +838,9 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_audit_reject - get flags of auditing reject logs
++ * tmy_audit_reject - get flags of auditing reject logs.
++ *
++ * Returns current value of auditing reject log flags.
 + */
 +unsigned int tmy_audit_reject(void)
 +{
@@ -845,7 +849,7 @@ Index: linux/security/tomoyo/common.c
 +
 +/**
 + * tmy_enforce - check whether the given access control is enforce mode.
-+ * @index:  index to check.
++ * @index: index to check.
 + *
 + * Returns nonzero if given access control is enforce mode.
 + * Returns zero otherwise.
@@ -857,7 +861,7 @@ Index: linux/security/tomoyo/common.c
 +
 +/**
 + * tmy_accept - check whether the given access control is learning mode.
-+ * @index:  index to check.
++ * @index: index to check.
 + *
 + * Returns nonzero if given access control is learning mode.
 + * Returns zero otherwise.
@@ -1097,7 +1101,7 @@ Index: linux/security/tomoyo/common.c
 +}
 +
 +/**
-+ * tmy_is_policy_manager - check whether modifying policy is permitted
++ * tmy_is_policy_manager - check whether modifying policy is permitted.
 + *
 + * Returns nonzero if modifying policy is permitted.
 + * Returns zero otherwise.
@@ -1694,12 +1698,12 @@ Index: linux/security/tomoyo/common.c
 +/*************************  POLICY LOADER  *************************/
 +
 +/**
-+ * tmy_load_policy - load policy and activate access control
++ * tmy_load_policy - load policy and activate access control.
 + * @filename: program to be executed.
 + *
 + * This function calls /sbin/tomoyo-init using call_usermodehelper()
-+ * when execution of /sbin/init is requested and /sbin/tomoyo-init exists
-+ * to load policy.
++ * to load policy
++ * if "execution of /sbin/init is requested" and "/sbin/tomoyo-init exists".
 + */
 +void tmy_load_policy(const char *filename)
 +{
@@ -1735,7 +1739,7 @@ Index: linux/security/tomoyo/common.c
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
 +
-+	printk(KERN_INFO "TOMOYO: %s   2007/08/16\n", TOMOYO_VERSION_CODE);
++	printk(KERN_INFO "TOMOYO: %s   2007/08/21\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
 +		panic("No profiles loaded. "
@@ -1777,8 +1781,8 @@ Index: linux/security/tomoyo/common.c
 +static atomic_t queryd_watcher = ATOMIC_INIT(0);
 +
 +/**
-+ * tmy_supervisor - ask for supervisors decision
-+ * @fmt:         format strings for printf()
++ * tmy_supervisor - ask for supervisors decision.
++ * @fmt: format strings for printf().
 + *
 + * Returns zero if administrator allowed.
 + * Returns nonzero otherwise.
@@ -2018,8 +2022,8 @@ Index: linux/security/tomoyo/common.c
 +static spinlock_t updates_counter_lock = SPIN_LOCK_UNLOCKED;
 +
 +/**
-+ * tmy_update_counter - notify userland that policy is changed
-+ * @index:  index to update counter.
++ * tmy_update_counter - notify userland that policy is changed.
++ * @index: index to update counter.
 + *
 + * This is for userland process who is monitoring policy changes.
 + */

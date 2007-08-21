@@ -8,14 +8,14 @@ Domain information is stored in task_struct->security.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
- security/tomoyo/domain.c | 1291 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 1291 insertions(+)
+ security/tomoyo/domain.c | 1290 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 1290 insertions(+)
 
 Index: linux/security/tomoyo/domain.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/domain.c	2007-08-21 09:18:14.000000000 +0900
-@@ -0,0 +1,1291 @@
++++ linux/security/tomoyo/domain.c	2007-08-21 16:24:14.183326120 +0900
+@@ -0,0 +1,1290 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -78,8 +78,8 @@ Index: linux/security/tomoyo/domain.c
 +/*************************  UTILITY FUNCTIONS  *************************/
 +
 +/**
-+ * tmy_is_domain_def - check if the line is likely a domain definition
-+ * @buffer: the line to check
++ * tmy_is_domain_def - check if the line is likely a domain definition.
++ * @buffer: the line to check.
 + *
 + * Returns nonzero if @buffer is likely a domain definition.
 + * Returns zero otherwise.
@@ -92,10 +92,10 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_add_acl - add an entry to a domain
-+ * @ptr: pointer to the last entry of the domain (May be NULL)
-+ * @domain: pointer to the domain
-+ * @new_ptr: pointer to new entry to add
++ * tmy_add_acl - add an entry to a domain.
++ * @ptr: pointer to the last "struct acl_info" of @domain. May be NULL.
++ * @domain: pointer to "struct domain_info".
++ * @new_ptr: pointer to "struct acl_info" to add.
 + *
 + * Returns zero.
 + *
@@ -119,7 +119,7 @@ Index: linux/security/tomoyo/domain.c
 +
 +/**
 + * tmy_del_acl - remove an entry from a domain
-+ * @ptr: pointer to the entry to remove
++ * @ptr: pointer to "struct acl_info" to remove.
 + *
 + * Returns zero.
 + *
@@ -136,10 +136,10 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_too_many_acl - check quota for a domain
-+ * @domain: the domain to examine
++ * tmy_too_many_acl - check quota for a domain.
++ * @domain: pointer to "struct domain_info" to examine.
 + *
-+ * Returns nonzero if quota exceeded
++ * Returns nonzero if quota exceeded.
 + * Returns zero otherwise.
 + *
 + * This is a safeguard for "learning mode", for appending entries
@@ -251,8 +251,8 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_read_domain_initializer_policy - read domain initializer policy
-+ * @head: pointer to "struct io_buffer"
++ * tmy_read_domain_initializer_policy - read domain initializer policy.
++ * @head: pointer to "struct io_buffer".
 + *
 + * Returns nonzero if reading incomplete.
 + * Returns zero otherwise.
@@ -290,7 +290,7 @@ Index: linux/security/tomoyo/domain.c
 +
 +/**
 + * tmy_add_domain_initializer_policy - add domain initializer policy
-+ * @data:      a line to parse
++ * @data:      a line to parse.
 + * @is_not:    is this overriding?
 + * @is_delete: is this remove request?
 + *
@@ -428,8 +428,8 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_add_domain_keeper_policy - add domain keeper policy
-+ * @data:      a line to parse
++ * tmy_add_domain_keeper_policy - add domain keeper policy.
++ * @data:      a line to parse.
 + * @is_not:    is this overriding?
 + * @is_delete: is this remove request?
 + *
@@ -455,8 +455,8 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_read_domain_keeper_policy - read domain keeper policy
-+ * @head: pointer to "struct io_buffer"
++ * tmy_read_domain_keeper_policy - read domain keeper policy.
++ * @head: pointer to "struct io_buffer".
 + *
 + * Returns nonzero if reading incomplete.
 + * Returns zero otherwise.
@@ -592,8 +592,8 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_read_alias_policy - read alias policy
-+ * @head: pointer to "struct io_buffer"
++ * tmy_read_alias_policy - read alias policy.
++ * @head: pointer to "struct io_buffer".
 + *
 + * Returns nonzero if reading incomplete.
 + * Returns zero otherwise.
@@ -619,8 +619,8 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_add_alias_policy - add alias policy
-+ * @data:      a line to parse
++ * tmy_add_alias_policy - add alias policy.
++ * @data:      a line to parse.
 + * @is_delete: is this remove request?
 + *
 + * Returns zero on success.
@@ -705,8 +705,8 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_read_aggregator_policy - read aggregator policy
-+ * @head: pointer to "struct io_buffer"
++ * tmy_read_aggregator_policy - read aggregator policy.
++ * @head: pointer to "struct io_buffer".
 + *
 + * Returns nonzero if reading incomplete.
 + * Returns zero otherwise.
@@ -732,8 +732,8 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_add_aggregator_policy - add aggregator policy
-+ * @data:      a line to parse
++ * tmy_add_aggregator_policy - add aggregator policy.
++ * @data:      a line to parse.
 + * @is_delete: is this remove request?
 + *
 + * Returns zero on success.
@@ -756,7 +756,7 @@ Index: linux/security/tomoyo/domain.c
 +
 +/**
 + * tmy_delete_domain - delete a domain.
-+ * @domainname0:   domainname to delete.
++ * @domainname0: domainname to delete.
 + *
 + * Returns zero.
 + *
@@ -812,7 +812,7 @@ Index: linux/security/tomoyo/domain.c
 +
 +/**
 + * tmy_undelete_domain - undelete a domain.
-+ * @domainname0:   domainname to undelete.
++ * @domainname0: domainname to undelete.
 + *
 + * Returns pointer to undeleted "struct domain_info" on success.
 + * Returns NULL on failure.
@@ -1088,9 +1088,9 @@ Index: linux/security/tomoyo/domain.c
 +}
 +
 +/**
-+ * tmy_find_next_domain - find a domain to transit to if do_execve() succeeds
-+ * @bprm:        pointer to "struct linux_binprm"
-+ * @next_domain: pointer to pointer to "struct domain_info"
++ * tmy_find_next_domain - find a domain to transit to if do_execve() succeeds.
++ * @bprm:        pointer to "struct linux_binprm".
++ * @next_domain: pointer to pointer to "struct domain_info".
 + *
 + * Returns zero if success. @next_domain receives new domain to transit to.
 + * Returns nonzero on failure.
@@ -1098,7 +1098,6 @@ Index: linux/security/tomoyo/domain.c
 + * This function handles TOMOYO Linux's domain transition.
 + * New domains are automatically created unless the domain the caller process
 + * belongs to is assigned a profile for enforcing mode.
-+ *
 + */
 +int tmy_find_next_domain(struct linux_binprm *bprm,
 +			 struct domain_info **next_domain)

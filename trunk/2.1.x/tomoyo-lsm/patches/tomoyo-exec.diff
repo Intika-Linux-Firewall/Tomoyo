@@ -8,14 +8,14 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
- security/tomoyo/exec.c |  212 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 212 insertions(+)
+ security/tomoyo/exec.c |  230 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 230 insertions(+)
 
 Index: linux/security/tomoyo/exec.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/exec.c	2007-08-21 12:39:37.000000000 +0900
-@@ -0,0 +1,212 @@
++++ linux/security/tomoyo/exec.c	2007-08-21 15:39:45.069093160 +0900
+@@ -0,0 +1,230 @@
 +/*
 + * security/tomoyo/exec.c
 + *
@@ -180,6 +180,14 @@ Index: linux/security/tomoyo/exec.c
 +	return error;
 +}
 +
++/**
++ * tmy_argv0_perm - check for argv[0] permission.
++ * @filename: pointer to filename.
++ * @argv0:    pointer to basename of argv[0].
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0)
 +{
 +	int error = 0;
@@ -213,6 +221,16 @@ Index: linux/security/tomoyo/exec.c
 +	return error;
 +}
 +
++/**
++ * tmy_add_argv0_policy - add or delete argv[0] policy.
++ * @data:      a line to parse.
++ * @domain:    pointer to "struct domain_info".
++ * @cond:      pointer to "struct condition_list". May be NULL.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_argv0_policy(char *data,
 +			 struct domain_info *domain,
 +			 const struct condition_list *cond,

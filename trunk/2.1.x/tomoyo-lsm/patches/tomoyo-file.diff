@@ -9,14 +9,14 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
- security/tomoyo/file.c | 1426 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 1426 insertions(+)
+ security/tomoyo/file.c | 1565 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 1565 insertions(+)
 
 Index: linux/security/tomoyo/file.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/file.c	2007-08-21 12:47:06.000000000 +0900
-@@ -0,0 +1,1426 @@
++++ linux/security/tomoyo/file.c	2007-08-21 16:37:19.756900784 +0900
+@@ -0,0 +1,1565 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -77,12 +77,24 @@ Index: linux/security/tomoyo/file.c
 +
 +/*************************  UTILITY FUNCTIONS  *************************/
 +
++/**
++ * tmy_acltype2keyword - get keyword from access control index.
++ * @acl_type: index number.
++ *
++ * Returns keyword that corresponds with @acl_type .
++ */
 +const char *tmy_acltype2keyword(const unsigned int acl_type)
 +{
 +	return (acl_type < ARRAY_SIZE(acl_type_array))
 +		? acl_type_array[acl_type].keyword : NULL;
 +}
 +
++/**
++ * tmy_acltype2paths - get number of arguments from access control index.
++ * @acl_type: index number.
++ *
++ * Returns number of arguments that corresponds with @acl_type .
++ */
 +int tmy_acltype2paths(const unsigned int acl_type)
 +{
 +	return (acl_type < ARRAY_SIZE(acl_type_array))
@@ -280,11 +292,26 @@ Index: linux/security/tomoyo/file.c
 +	return 0;
 +}
 +
++/**
++ * tmy_add_globally_readable_policy - add or delete globally readable policy.
++ * @filename:  pointer to filename to add ore remove.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_globally_readable_policy(char *filename, const int is_delete)
 +{
 +	return tmy_add_globally_readable_entry(filename, is_delete);
 +}
 +
++/**
++ * tmy_read_globally_readable_policy - read globally readable policy.
++ * @head: pointer to "struct io_buffer".
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_globally_readable_policy(struct io_buffer *head)
 +{
 +	struct globally_readable_file_entry *ptr = head->read_var2;
@@ -395,6 +422,14 @@ Index: linux/security/tomoyo/file.c
 +	return error;
 +}
 +
++/**
++ * tmy_add_group_policy - add or delete path group policy.
++ * @data:      a line to parse.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_group_policy(char *data, const int is_delete)
 +{
 +	char *cp = strchr(data, ' ');
@@ -417,6 +452,10 @@ Index: linux/security/tomoyo/file.c
 +		}
 +
 +		if (i == 0) {
++			/*
++			 * Add a dummy entry to create new path group
++			 * and delete that entry.
++			 */
 +			tmy_add_group_entry(group_name, "/", 0);
 +			tmy_add_group_entry(group_name, "/", 1);
 +		}
@@ -447,6 +486,13 @@ Index: linux/security/tomoyo/file.c
 +	return 0;
 +}
 +
++/**
++ * tmy_read_group_policy - read path group policy.
++ * @head: pointer to "struct io_buffer".
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_group_policy(struct io_buffer *head)
 +{
 +	struct group_entry *group = head->read_var1;
@@ -557,11 +603,26 @@ Index: linux/security/tomoyo/file.c
 +	return filename;
 +}
 +
++/**
++ * tmy_add_pattern_policy - add or delete file pattern policy.
++ * @pattern:   pointer to file pattern entry.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_pattern_policy(char *pattern, const int is_delete)
 +{
 +	return tmy_add_pattern_entry(pattern, is_delete);
 +}
 +
++/**
++ * tmy_read_pattern_policy - read file pattern policy.
++ * @head: pointer to "struct io_buffer".
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_pattern_policy(struct io_buffer *head)
 +{
 +	struct pattern_entry *ptr = head->read_var2;
@@ -650,11 +711,26 @@ Index: linux/security/tomoyo/file.c
 +	return 0;
 +}
 +
++/**
++ * tmy_add_no_rewrite_policy - add or delete no-rewrite policy.
++ * @pattern:   pointer to no-rewrite entry.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_no_rewrite_policy(char *pattern, const int is_delete)
 +{
 +	return tmy_add_no_rewrite_entry(pattern, is_delete);
 +}
 +
++/**
++ * tmy_read_no_rewrite_policy - read no-rewrite policy.
++ * @head: pointer to "struct io_buffer".
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_no_rewrite_policy(struct io_buffer *head)
 +{
 +	struct no_rewrite_entry *ptr = head->read_var2;
@@ -872,6 +948,15 @@ Index: linux/security/tomoyo/file.c
 +	return error;
 +}
 +
++/**
++ * tmy_file_perm - check permission for sysctl(2) operation.
++ * @filename0: pointer to filename returned by sysctlpath_from_table().
++ * @perm:      mode (read = 4, write = 2, read-write = 6).
++ * @operation: pointer to error message.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_file_perm(const char *filename0, const u8 perm, const char *operation)
 +{
 +	struct path_info filename;
@@ -885,6 +970,16 @@ Index: linux/security/tomoyo/file.c
 +	return tmy_file_perm2(&filename, perm, NULL, operation);
 +}
 +
++/**
++ * tmy_add_file_policy - add or delete file policy.
++ * @data:      a line to parse.
++ * @domain:    pointer to "struct domain_info".
++ * @cond:      pointer to "struct condition_list". May be NULL.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_file_policy(char *data,
 +			struct domain_info *domain,
 +			const struct condition_list *cond,
@@ -1251,6 +1346,14 @@ Index: linux/security/tomoyo/file.c
 +	return error;
 +}
 +
++/**
++ * tmy_exec_perm - check permission for execve(2) operation.
++ * @filename: pointer to filename to execute.
++ * @filp:     pointer to "struct file".
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_exec_perm(const struct path_info *filename, struct file *filp)
 +{
 +	struct obj_info obj;
@@ -1262,6 +1365,15 @@ Index: linux/security/tomoyo/file.c
 +	return tmy_file_perm2(filename, 1, &obj, "do_execve");
 +}
 +
++/**
++ * tmy_open_perm - check permission for open(2) operation.
++ * @dentry: pointer to "struct dentry".
++ * @mnt:    pointer to "struct vfsmount".
++ * @flag:   open flags.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_open_perm(struct dentry *dentry,
 +		  struct vfsmount *mnt,
 +		  const int flag)
@@ -1312,6 +1424,15 @@ Index: linux/security/tomoyo/file.c
 +	return error;
 +}
 +
++/**
++ * tmy_single_write_perm - check permission for create(2) etc. operation.
++ * @operation: operation index number.
++ * @dentry:    pointer to "struct dentry".
++ * @mnt:       pointer to "struct vfsmount".
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_single_write_perm(const unsigned int operation,
 +			  struct dentry *dentry,
 +			  struct vfsmount *mnt)
@@ -1351,6 +1472,13 @@ Index: linux/security/tomoyo/file.c
 +	return error;
 +}
 +
++/**
++ * tmy_rewrite_perm - check permission for truncate/overwrite operation.
++ * @filp: pointer to "struct file".
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_rewrite_perm(struct file *filp)
 +{
 +	int error = -ENOMEM;
@@ -1378,6 +1506,17 @@ Index: linux/security/tomoyo/file.c
 +	return error;
 +}
 +
++/**
++ * tmy_double_write_perm - check permission for link(2)/rename(2) operation.
++ * @operation: operation index number.
++ * @dentry1:   pointer to "struct dentry".
++ * @mnt1:      pointer to "struct vfsmount".
++ * @dentry2:   pointer to "struct dentry".
++ * @mnt2:      pointer to "struct vfsmount".
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_double_write_perm(const unsigned int operation,
 +			  struct dentry *dentry1,
 +			  struct vfsmount *mnt1,
