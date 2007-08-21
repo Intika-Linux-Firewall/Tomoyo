@@ -9,14 +9,14 @@ the policy using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
- security/tomoyo/mount.c |  933 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 933 insertions(+)
+ security/tomoyo/mount.c | 1019 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 1019 insertions(+)
 
 Index: linux/security/tomoyo/mount.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/mount.c	2007-08-21 09:18:14.000000000 +0900
-@@ -0,0 +1,933 @@
++++ linux/security/tomoyo/mount.c	2007-08-21 16:30:52.904711256 +0900
+@@ -0,0 +1,1019 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -41,16 +41,16 @@ Index: linux/security/tomoyo/mount.c
 +/***** The structure for mount restrictions. *****/
 +
 +struct mount_entry {
-+	struct mount_entry *next;
++	struct mount_entry *next; /* NULL if none. */
 +	const struct path_info *dev_name;
 +	const struct path_info *dir_name;
 +	const struct path_info *fs_type;
-+	unsigned int flags;
++	unsigned int flags; /* Mount flags. */
 +	int is_deleted;
 +};
 +
 +struct no_umount_entry {
-+	struct no_umount_entry *next;
++	struct no_umount_entry *next; /* NULL if none. */
 +	const struct path_info *dir;
 +	int is_deleted;
 +};
@@ -118,6 +118,7 @@ Index: linux/security/tomoyo/mount.c
 +
 +static struct mount_entry *mount_list;
 +
++/* Add or remove a mount entry. */
 +static int tmy_add_mount_acl(const char *dev_name,
 +			     const char *dir_name,
 +			     const char *fs_type,
@@ -220,6 +221,7 @@ Index: linux/security/tomoyo/mount.c
 +	return error;
 +}
 +
++/* Print error message for mount request. */
 +static inline int tmy_mount_perm_error(char *dev_name,
 +				       char *dir_name,
 +				       char *type,
@@ -292,6 +294,16 @@ Index: linux/security/tomoyo/mount.c
 +	return error;
 +}
 +
++/**
++ * tmy_mount_perm - check for mount permission.
++ * @dev_name: pointer to device name. May be NULL.
++ * @dir_name: pointer to mount point.
++ * @type:     pointer to filesystem. May be NULL.
++ * @flags:    mount flags.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_mount_perm(char *dev_name,
 +		   char *dir_name,
 +		   char *type,
@@ -500,6 +512,14 @@ Index: linux/security/tomoyo/mount.c
 +
 +}
 +
++/**
++ * tmy_add_mount_policy - add or delete mount policy.
++ * @data:      a line to parse.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_mount_policy(char *data, const int is_delete)
 +{
 +	char *cp;
@@ -534,6 +554,13 @@ Index: linux/security/tomoyo/mount.c
 +	return tmy_add_mount_acl(dev, dir, fs, flags, is_delete);
 +}
 +
++/**
++ * tmy_read_mount_policy - read mount policy.
++ * @head: pointer to "struct io_buffer".
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_mount_policy(struct io_buffer *head)
 +{
 +	struct mount_entry *ptr = head->read_var2;
@@ -592,6 +619,18 @@ Index: linux/security/tomoyo/mount.c
 +	return flag;
 +}
 +
++/**
++ * tmy_conceal_mount - check for conceal mount permission.
++ * @nd: pointer to "struct nameidata".
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ *
++ * People seldom mount on directries that have submounts.
++ * For example, you don't mount on /usr/ directory if /usr/local/ directory
++ * is already mounted, do you?
++ * This function forbids such mount requests.
++ */
 +int tmy_conceal_mount(struct nameidata *nd)
 +{
 +	int flag = 0;
@@ -654,6 +693,7 @@ Index: linux/security/tomoyo/mount.c
 +
 +static struct no_umount_entry *no_umount_list;
 +
++/* Add or remove a no-unmount entry. */
 +static int tmy_add_no_umount_acl(const char *dir, const int is_delete)
 +{
 +	struct no_umount_entry *new_entry;
@@ -706,6 +746,13 @@ Index: linux/security/tomoyo/mount.c
 +	return error;
 +}
 +
++/**
++ * tmy_umount_perm - check for no-unmount permission.
++ * @mnt: pointer to "struct vfsmount".
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_umount_perm(struct vfsmount *mnt)
 +{
 +	int error = -EPERM;
@@ -754,11 +801,26 @@ Index: linux/security/tomoyo/mount.c
 +	return error;
 +}
 +
++/**
++ * tmy_add_no_umount_policy - add or delete no-unmount policy.
++ * @data:      a line to parse.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_no_umount_policy(char *data, const int is_delete)
 +{
 +	return tmy_add_no_umount_acl(data, is_delete);
 +}
 +
++/**
++ * tmy_read_no_umount_policy - read no-unmount policy.
++ * @head: pointer to "struct io_buffer".
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_no_umount_policy(struct io_buffer *head)
 +{
 +	struct no_umount_entry *ptr = head->read_var2;
@@ -791,6 +853,7 @@ Index: linux/security/tomoyo/mount.c
 +
 +static struct pivot_root_entry *pivot_root_list;
 +
++/* Add or remove a pivot_root entry. */
 +static int tmy_add_pivot_root_acl(const char *old_root,
 +				  const char *new_root,
 +				  const int is_delete)
@@ -853,6 +916,14 @@ Index: linux/security/tomoyo/mount.c
 +	return error;
 +}
 +
++/**
++ * tmy_pivot_root_perm - check for pivot_root permission.
++ * @old_nd:  pointer to "struct nameidata".
++ * @new_nd:  pointer to "struct nameidata".
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_pivot_root_perm(struct nameidata *old_nd, struct nameidata *new_nd)
 +{
 +	int error = -EPERM;
@@ -922,6 +993,14 @@ Index: linux/security/tomoyo/mount.c
 +	return error;
 +}
 +
++/**
++ * tmy_add_pivot_root_policy - add or delete pivot_root policy.
++ * @data:      a line to parse.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_pivot_root_policy(char *data, const int is_delete)
 +{
 +	char *cp = strchr(data, ' ');
@@ -933,6 +1012,13 @@ Index: linux/security/tomoyo/mount.c
 +	return tmy_add_pivot_root_acl(cp, data, is_delete);
 +}
 +
++/**
++ * tmy_read_pivot_root_policy - read pivot_root policy.
++ * @head: pointer to "struct io_buffer".
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
 +int tmy_read_pivot_root_policy(struct io_buffer *head)
 +{
 +	struct pivot_root_entry *ptr = head->read_var2;

@@ -9,14 +9,14 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
- security/tomoyo/signal.c |  219 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 219 insertions(+)
+ security/tomoyo/signal.c |  238 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 238 insertions(+)
 
 Index: linux/security/tomoyo/signal.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/signal.c	2007-08-21 12:23:18.000000000 +0900
-@@ -0,0 +1,219 @@
++++ linux/security/tomoyo/signal.c	2007-08-21 16:09:31.881456392 +0900
+@@ -0,0 +1,238 @@
 +/*
 + * security/tomoyo/signal.c
 + *
@@ -146,6 +146,14 @@ Index: linux/security/tomoyo/signal.c
 +	return error;
 +}
 +
++/**
++ * tmy_signal_acl - check permission for kill(2)/tkill(2)/tgkill(2).
++ * @sig:  signal number.
++ * @pid:  pid of destination process.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
 +int tmy_signal_acl(const int sig, const int pid)
 +{
 +	struct domain_info *domain = TMY_SECURITY->domain;
@@ -176,6 +184,7 @@ Index: linux/security/tomoyo/signal.c
 +		else
 +			p = find_task_by_pid((pid_t) -pid);
 +		if (p)
++			/* "struct task_struct"->security is not NULL. */
 +			dest = ((struct tmy_security *) p->security)->domain;
 +		read_unlock(&tasklist_lock);
 +		if (!dest)
@@ -221,6 +230,16 @@ Index: linux/security/tomoyo/signal.c
 +	return 0;
 +}
 +
++/**
++ * tmy_add_signal_policy - add or delete signal policy.
++ * @data:      a line to parse.
++ * @domain:    pointer to "struct domain_info".
++ * @cond:      pointer to "struct condition_list". May be NULL.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
 +int tmy_add_signal_policy(char *data,
 +			  struct domain_info *domain,
 +			  const struct condition_list *cond,

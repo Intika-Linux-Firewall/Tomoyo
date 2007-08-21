@@ -5,14 +5,14 @@ or chroot()ed, TOMOYO Linux uses the original pathname.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
- security/tomoyo/realpath.c |  695 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 695 insertions(+)
+ security/tomoyo/realpath.c |  697 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 697 insertions(+)
 
 Index: linux/security/tomoyo/realpath.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/realpath.c	2007-08-21 09:18:14.000000000 +0900
-@@ -0,0 +1,695 @@
++++ linux/security/tomoyo/realpath.c	2007-08-21 16:17:29.155899648 +0900
+@@ -0,0 +1,697 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -35,6 +35,8 @@ Index: linux/security/tomoyo/realpath.c
 +#include <linux/sysctl.h>
 +#include "realpath.h"
 +#include "tomoyo.h"
++
++/***** realpath handler *****/
 +
 +static int tmy_print_ascii(const char *sp, const char *cp,
 +			   int *buflen0, char **end0)
@@ -76,15 +78,12 @@ Index: linux/security/tomoyo/realpath.c
 +	return -ENOMEM;
 +}
 +
-+/***** realpath handler *****/
-+
 +/**
-+ * tmy_get_absolute_path -
-+ *    return the realpath of a dentry.
-+ * @dentry: "struct dentry" to report
-+ * @vfsmnt: "struct vfsmount" to which the @dentry belongs
-+ * @buffer: buffer to store the result
-+ * @buflen: size of @buffer
++ * tmy_get_absolute_path - return the realpath of a dentry.
++ * @dentry: pointer to "struct dentry".
++ * @vfsmnt: pointer to "struct vfsmount" to which the @dentry belongs.
++ * @buffer: size of buffer to save the result.
++ * @buflen: size of @buffer .
 + *
 + * Returns zero on success.
 + * Returns nonzero on failure.
@@ -187,10 +186,10 @@ Index: linux/security/tomoyo/realpath.c
 +
 +/**
 + * tmy_realpath_dentry2 - return the realpath of a dentry.
-+ * @dentry: "struct dentry" to report
-+ * @mnt: "struct vfsmount" to which the @dentry belongs
-+ * @newname: buffer to store the result
-+ * @newname_len: size of @newname
++ * @dentry:      pointer to "struct dentry".
++ * @mnt:         pointer to "struct vfsmount" to which the @dentry belongs.
++ * @newname:     buffer to save the result.
++ * @newname_len: size of @newname .
 + *
 + * Returns zero on success.
 + * Returns nonzero on failure.
@@ -223,8 +222,8 @@ Index: linux/security/tomoyo/realpath.c
 +
 +/**
 + * tmy_realpath_dentry - return the realpath of a dentry.
-+ * @dentry:      "struct dentry" to report
-+ * @mnt:         "struct vfsmount" to which the @dentry belongs
++ * @dentry: pointer to "struct dentry".
++ * @mnt:    pointer to "struct vfsmount" to which the @dentry belongs.
 + *
 + * Returns realpath(3) of the @dentry on success.
 + * Returns NULL on failure.
@@ -247,7 +246,7 @@ Index: linux/security/tomoyo/realpath.c
 +
 +/**
 + * tmy_realpath - return the realpath of a pathname.
-+ * @pathname:      pathname to report
++ * @pathname: pathname to report.
 + *
 + * Returns realpath(3) of the @pathname on success.
 + * Returns NULL on failure.
@@ -271,7 +270,7 @@ Index: linux/security/tomoyo/realpath.c
 +
 +/**
 + * tmy_realpath_nofollow - return the realpath of a pathname.
-+ * @pathname:      pathname to report
++ * @pathname: pathname to report.
 + *
 + * Returns realpath(3) of the @pathname on success.
 + * Returns NULL on failure.
@@ -296,6 +295,7 @@ Index: linux/security/tomoyo/realpath.c
 +	return NULL;
 +}
 +
++/* tmy_get_absolute_path() for "struct ctl_table". */
 +static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
 +{
 +	char *end = buffer + buflen;
@@ -340,7 +340,7 @@ Index: linux/security/tomoyo/realpath.c
 +
 +/**
 + * sysctlpath_from_table - return the realpath of a ctl_table.
-+ * @table:      "struct ctl_table" to report
++ * @table: pointer to "struct ctl_table".
 + *
 + * Returns realpath(3) of the @table on success.
 + * Returns NULL on failure.
@@ -378,7 +378,7 @@ Index: linux/security/tomoyo/realpath.c
 +static unsigned int allocated_memory_for_elements;
 +
 +/**
-+ * tmy_get_memory_used_for_elements - get memory usage for private data
++ * tmy_get_memory_used_for_elements - get memory usage for private data.
 + *
 + * Returns size of memory allocated for keeping individual ACL elements.
 + */
@@ -388,8 +388,8 @@ Index: linux/security/tomoyo/realpath.c
 +}
 +
 +/**
-+ * tmy_alloc_element - allocate memory for structures
-+ * @size:    Requested size in bytes.
++ * tmy_alloc_element - allocate memory for structures.
++ * @size: requested size in bytes.
 + *
 + * Returns '\0'-initialized memory region on success.
 + * Returns NULL on failure.
@@ -433,7 +433,7 @@ Index: linux/security/tomoyo/realpath.c
 +		buf_used_len += word_aligned_size;
 +
 +		for (i = 0; i < word_aligned_size; i++) {
-+			if (ptr[i]) {
++			if (ptr[i]) { /* This must not happen! */
 +				printk(KERN_ERR
 +				       "WARNING: Reserved memory was tainted! "
 +				       "The system might go wrong.\n");
@@ -452,7 +452,7 @@ Index: linux/security/tomoyo/realpath.c
 +static unsigned int allocated_memory_for_savename;
 +
 +/**
-+ * tmy_get_memory_used_for_save_name - get memory usage for shared data
++ * tmy_get_memory_used_for_save_name - get memory usage for shared data.
 + *
 + * Returns size of memory allocated for keeping string tokens.
 + */
@@ -463,21 +463,22 @@ Index: linux/security/tomoyo/realpath.c
 +
 +#define MAX_HASH 256
 +
++/* List of tokens. */
 +struct name_entry {
-+	struct name_entry *next; /* Pointer to next record. NULL if none. */
++	struct name_entry *next; /* NULL if none. */
 +	struct path_info entry;
 +};
 +
++/* List of free memory. */
 +struct free_memory_block_list {
-+	/* Pointer to next record. NULL if none. */
-+	struct free_memory_block_list *next;
++	struct free_memory_block_list *next; /* NULL if none. */
 +	char *ptr; /* Pointer to a free area. */
 +	int len;   /* Length of the area.     */
 +};
 +
 +/**
-+ * tmy_save_name - keep the given token on the RAM
-+ * @name:    the string token to remember
++ * tmy_save_name - keep the given token on the RAM.
++ * @name: the string token to remember.
 + *
 + * Returns pointer to memory region on success.
 + * Returns NULL on failure.
@@ -591,6 +592,7 @@ Index: linux/security/tomoyo/realpath.c
 +
 +/***** Dynamic memory allocator. *****/
 +
++/* List of temporary memory blocks. */
 +struct cache_entry {
 +	struct list_head list;
 +	void *ptr;
@@ -614,7 +616,7 @@ Index: linux/security/tomoyo/realpath.c
 +static unsigned int dynamic_memory_size;
 +
 +/**
-+ * tmy_get_memory_used_for_dynamic - get memory usage for temporary purpose
++ * tmy_get_memory_used_for_dynamic - get memory usage for temporary purpose.
 + *
 + * Returns size of memory allocated for keeping temporary purpose.
 + */
@@ -624,8 +626,8 @@ Index: linux/security/tomoyo/realpath.c
 +}
 +
 +/**
-+ * tmy_alloc - allocate memory for temporary purpose
-+ * @size:    Requested size in bytes.
++ * tmy_alloc - allocate memory for temporary purpose.
++ * @size: requested size in bytes.
 + *
 + * Returns '\0'-initialized memory region on success.
 + * Returns NULL on failure.
@@ -671,13 +673,13 @@ Index: linux/security/tomoyo/realpath.c
 +}
 +
 +/**
-+ * tmy_free - free memory allocated by tmy_alloc
-+ * @p:    Pointer returned by tmy_alloc.
++ * tmy_free - free memory allocated by tmy_alloc().
++ * @p: pointer to memory block allocated by tmy_alloc().
 + *
 + * If caller calls this function for multiple times (i.e. double-free() bug) or
 + * calls this function with invalid pointer, warning message will appear.
 + * If caller forgets to call this function,
-+ * tmy_get_memory_used_for_dynamic() will report memory leaks.
++ * tmy_get_memory_used_for_dynamic() will indicate memory leaks.
 + */
 +void tmy_free(const void *p)
 +{
