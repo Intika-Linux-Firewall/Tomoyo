@@ -7,15 +7,13 @@ are not granted in the TOMOYO Linux policy.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-
+---
  include/linux/audit.h   |    3 ++
  security/tomoyo/audit.c |   68 ++++++++++++++++++++++++++++++++++++++++++++++++
  2 files changed, 71 insertions(+)
 
-Index: linux/security/tomoyo/audit.c
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/security/tomoyo/audit.c	2007-08-21 16:52:57.915279032 +0900
++++ linux-2.6/security/tomoyo/audit.c	2007-08-22 10:06:03.000000000 +0900
 @@ -0,0 +1,68 @@
 +/*
 + * security/tomoyo/audit.c
@@ -85,10 +83,8 @@ Index: linux/security/tomoyo/audit.c
 +	tmy_free(buf);
 +	return ab ? 0 : -ENOMEM;
 +}
-Index: linux/include/linux/audit.h
-===================================================================
---- linux.orig/include/linux/audit.h	2007-08-21 09:17:30.000000000 +0900
-+++ linux/include/linux/audit.h	2007-08-21 09:18:14.000000000 +0900
+--- linux-2.6.orig/include/linux/audit.h	2007-08-22 10:05:58.000000000 +0900
++++ linux-2.6/include/linux/audit.h	2007-08-22 10:06:03.000000000 +0900
 @@ -120,6 +120,9 @@
  
  #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */

@@ -3,15 +3,13 @@ Therefore, namespace_sem is needed.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-
+---
  fs/namespace.c                |    2 +-
  include/linux/mnt_namespace.h |    2 ++
  2 files changed, 3 insertions(+), 1 deletion(-)
 
-Index: linux/fs/namespace.c
-===================================================================
---- linux.orig/fs/namespace.c	2007-08-21 09:17:33.000000000 +0900
-+++ linux/fs/namespace.c	2007-08-21 09:18:14.000000000 +0900
+--- linux-2.6.orig/fs/namespace.c	2007-08-22 10:05:59.000000000 +0900
++++ linux-2.6/fs/namespace.c	2007-08-22 10:06:03.000000000 +0900
 @@ -38,7 +38,7 @@ static int event;
  static struct list_head *mount_hashtable __read_mostly;
  static int hash_mask __read_mostly, hash_bits __read_mostly;
@@ -21,10 +19,8 @@ Index: linux/fs/namespace.c
  
  /* /sys/fs */
  decl_subsys(fs, NULL, NULL);
-Index: linux/include/linux/mnt_namespace.h
-===================================================================
---- linux.orig/include/linux/mnt_namespace.h	2007-08-21 09:17:33.000000000 +0900
-+++ linux/include/linux/mnt_namespace.h	2007-08-21 09:18:14.000000000 +0900
+--- linux-2.6.orig/include/linux/mnt_namespace.h	2007-08-22 10:06:00.000000000 +0900
++++ linux-2.6/include/linux/mnt_namespace.h	2007-08-22 10:06:03.000000000 +0900
 @@ -6,6 +6,8 @@
  #include <linux/sched.h>
  #include <linux/nsproxy.h>
