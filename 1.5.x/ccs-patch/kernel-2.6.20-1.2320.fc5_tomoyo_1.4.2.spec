@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 20
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2320 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}.fc5_tomoyo_1.4.2
+%define release %(R="$Revision: 1.2320 $"; RR="${R##: }"; echo ${RR%%?})%{?dist}.fc5_tomoyo_1.5.0-pre
 %define signmodules 0
 %define xen_hv_cset 11774
 %define make_target bzImage
@@ -223,7 +223,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 #
 %define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 4.2.21-1
 
-Name: kernel
+Name: ccs-kernel
 Group: System Environment/Kernel
 License: GPLv2
 Version: %{rpmversion}
@@ -1209,7 +1209,8 @@ find -name "*.p.xen" | xargs rm -f
 %patch21208 -p1
 
 # TOMOYO Linux
-tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.4.2-20070713.tar.gz
+#tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.5.0-pre.tar.gz
+ln -s . ccs-patch && wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - && rm -f ccs-patch
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2320.fc5/" -- Makefile
 patch -sp1 < ccs-patch-2.6.20-1.2320.fc5.txt
 

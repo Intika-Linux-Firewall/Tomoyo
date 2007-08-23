@@ -18,7 +18,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 17
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.4.2
+%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.5.0-pre
 %define signmodules 0
 %define make_target bzImage
 %define kernel_image x86
@@ -148,7 +148,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 #
 %define kernel_prereq  fileutils, module-init-tools, initscripts >= 5.83, mkinitrd >= 4.2.15-1
 
-Name: kernel
+Name: ccs-kernel
 Group: System Environment/Kernel
 License: GPLv2
 Version: %{rpmversion}
@@ -731,7 +731,8 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch10001 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
+#tar -zxf %_sourcedir/ccs-patch-1.5.0-pre.tar.gz
+ln -s . ccs-patch && wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - && rm -f ccs-patch
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2142_FC4/" -- Makefile
 patch -sp1 < ccs-patch-2.6.17-1.2142_FC4.txt
 
