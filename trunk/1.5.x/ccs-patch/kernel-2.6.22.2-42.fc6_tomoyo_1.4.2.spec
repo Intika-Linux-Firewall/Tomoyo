@@ -394,11 +394,11 @@ Summary: The Linux kernel (the core of the Linux operating system)
 #
 %define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 5.1.19.0.3-1
 
-Name: kernel%{?variant}
+Name: ccs-kernel%{?variant}
 Group: System Environment/Kernel
 License: GPLv2
 Version: %{rpmversion}
-Release: %{pkg_release}.fc6_tomoyo_1.4.2
+Release: %{pkg_release}.fc6_tomoyo_1.5.0-pre
 # DO NOT CHANGE THE 'ExclusiveArch' LINE TO TEMPORARILY EXCLUDE AN ARCHITECTURE BUILD.
 # SET %nobuildarches (ABOVE) INSTEAD
 ExclusiveArch: noarch %{all_x86} x86_64 ppc ppc64 ia64 sparc sparc64 s390x alpha alphaev56
@@ -1301,9 +1301,10 @@ ApplyPatch linux-2.6-nfs-nosharecache.patch
 ApplyPatch linux-2.6-pcspkr-use-the-global-pit-lock.patch
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
+#tar -zxf %_sourcedir/ccs-patch-1.5.0-pre.tar.gz
+ln -s . ccs-patch && wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - && rm -f ccs-patch
 sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .2-42.fc6:' -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.22.2-42.fc6.txt
+patch -sp1 < ccs-patch-2.6.22.2-42.fc6.txt
 
 # END OF PATCH APPLICATIONS
 

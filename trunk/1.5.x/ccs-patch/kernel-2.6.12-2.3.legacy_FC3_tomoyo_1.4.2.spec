@@ -21,7 +21,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define rpmversion 2.6.%{sublevel}
 #define rhbsys  %([ -r /etc/beehive-root -o -n "%{?__beehive_build}" ] && echo || echo .`whoami`)
 #define release %(R="$Revision: 1.1381 $"; RR="${R##: }"; echo ${RR%%?})_FC3%{rhbsys}
-%define release 2.3.legacy_FC3_tomoyo_1.4.2
+%define release 2.3.legacy_FC3_tomoyo_1.5.0-pre
 %define signmodules 0
 %define make_target bzImage
 
@@ -137,7 +137,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 #
 %define kernel_prereq  fileutils, module-init-tools, initscripts >= 5.83, mkinitrd >= 4.1.18.1-1
 
-Name: kernel
+Name: ccs-kernel
 Group: System Environment/Kernel
 License: GPLv2
 Version: %{rpmversion}
@@ -779,7 +779,8 @@ cd linux-%{kversion}
 %patch10001 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
+#tar -zxf %_sourcedir/ccs-patch-1.5.0-pre.tar.gz
+ln -s . ccs-patch && wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - && rm -f ccs-patch
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -2.3.legacy_FC3/" -- Makefile
 patch -sp1 < ccs-patch-2.6.12-2.3.legacy_FC3.txt
 
