@@ -20,12 +20,12 @@ control level of TOMOYO Linux. A profile is assigned to a domain.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c | 2384 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2384 insertions(+)
+ security/tomoyo/common.c | 2385 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 2385 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-08-22 10:06:03.000000000 +0900
-@@ -0,0 +1,2384 @@
++++ linux-2.6/security/tomoyo/common.c	2007-08-24 15:51:35.000000000 +0900
+@@ -0,0 +1,2385 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -67,9 +67,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TMY_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
 +	[TMY_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
 +	[TMY_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
++	[TMY_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
 +	[TMY_RESTRICT_MOUNT]      = { "RESTRICT_MOUNT",      0, 3 },
 +	[TMY_RESTRICT_UMOUNT]     = { "RESTRICT_UNMOUNT",    0, 3 },
-+	[TMY_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
 +	[TMY_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
 +	[TMY_MAX_ACCEPT_ENTRY]    =
 +	{ "MAX_ACCEPT_ENTRY", MAX_ACCEPT_ENTRY, INT_MAX },
@@ -1724,8 +1724,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		char *envp[3];
 +
 +		if (path_lookup(tmy_loader, LOOKUP_FOLLOW, &nd)) {
-+			printk("Not activating Mandatory Access Control "
-+			       "now since %s doesn't exist.\n", tmy_loader);
++			printk("TOMOYO: Not activating Mandatory Access Control"
++			       " now since %s doesn't exist.\n", tmy_loader);
 +			return;
 +		}
 +		path_release(&nd);
@@ -1740,10 +1740,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	printk(KERN_INFO "TOMOYO: %s   2007/08/21\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
-+		panic("No profiles loaded. "
++		panic("TOMOYO: No profiles loaded. "
 +		      "Run policy loader using 'init=' option.\n");
 +
-+	printk(KERN_INFO "Mandatory Access Control activated.\n");
++	printk(KERN_INFO "TOMOYO: Mandatory Access Control activated.\n");
 +	sbin_init_started = 1;
 +
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -1752,7 +1752,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			const u8 profile = domain->profile;
 +			if (profile_ptr[profile])
 +				continue;
-+			panic("Profile %u (used by '%s') not defined.\n",
++			panic("TOMOYO: Profile %u (used by '%s') "
++			      "not defined.\n",
 +			      profile,
 +			      domain->domainname->name);
 +		}
