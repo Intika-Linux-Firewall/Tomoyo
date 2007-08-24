@@ -69,7 +69,7 @@
 </ul>
 
 <h3><a name="setlevel">&lt;Control Level Changer "setlevel"&gt;</a></h3>
-<p>Changes the current control level (i.e. writing to /proc/ccs/status ) and displays the new control level.</p>
+<p>Changes the current control level (i.e. writing to /proc/ccs/profile ) and displays the new control level.</p>
 <p>You can give the new control level from commandline parameter.</p>
 
 <h3><a name="setprofile">&lt;Profile Selector "setprofile"&gt;</a></h3>
@@ -117,7 +117,7 @@
 <p>Detects policy violation and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.</p>
 <p>By running this program while updating packages, you can avoid errors due to insufficient permissions.</p>
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
-<p>To enable "delayed enforcing mode", you need to either set "ALLOW_ENFORCE_GRACE=1" in /proc/ccs/status using "setlevel" command or assign a profile whose ALLOW_ENFORCE_GRACE is set to 1 to domains using "setprofile" command.</p>
+<p>To enable "delayed enforcing mode", you need to either set "ALLOW_ENFORCE_GRACE=1" in /proc/ccs/profile using "setlevel" command or assign a profile whose ALLOW_ENFORCE_GRACE is set to 1 to domains using "setprofile" command.</p>
 
 <h3><a name="checkpolicy">&lt;Policy Syntax Checker "checkpolicy"&gt;</a></h3>
 <p>Reads policy files from standard input and checks syntaxes.</p>
