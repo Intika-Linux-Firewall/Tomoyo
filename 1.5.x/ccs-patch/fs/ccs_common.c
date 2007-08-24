@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/17
+ * Version: 1.5.0-pre   2007/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -519,7 +519,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 	return ptr;
 }
 
-static int SetStatus(struct io_buffer *head)
+static int SetProfile(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	unsigned int i, value;
@@ -536,7 +536,7 @@ static int SetStatus(struct io_buffer *head)
 	cp = strchr(data, '=');
 	if (!cp) return -EINVAL;
 	*cp = '\0';
-	UpdateCounter(CCS_UPDATES_COUNTER_STATUS);
+	UpdateCounter(CCS_UPDATES_COUNTER_PROFILE);
 	if (strcmp(data, ccs_control_array[CCS_PROFILE_COMMENT].keyword) == 0) {
 		profile->comment = SaveName(cp + 1);
 		return 0;
@@ -554,7 +554,7 @@ static int SetStatus(struct io_buffer *head)
 	return -EINVAL;
 }
 
-static int ReadStatus(struct io_buffer *head)
+static int ReadProfile(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		if (!isRoot()) return -EPERM;
@@ -1123,10 +1123,10 @@ void CCS_LoadPolicy(const char *filename)
 		path_release(&nd);
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.0-pre   2007/08/16\n");
+	printk("SAKURA: 1.5.0-pre   2007/08/24\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.0-pre   2007/08/21\n");
+	printk("TOMOYO: 1.5.0-pre   2007/08/24\n");
 #endif
 	if (!profile_loaded) {
 		char *argv[2], *envp[3];
@@ -1365,7 +1365,7 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 				  "/proc/ccs/system_policy:    %10u\n"
 				  "/proc/ccs/domain_policy:    %10u\n"
 				  "/proc/ccs/exception_policy: %10u\n"
-				  "/proc/ccs/status:           %10u\n"
+				  "/proc/ccs/profile:          %10u\n"
 				  "/proc/ccs/query:            %10u\n"
 				  "/proc/ccs/manager:          %10u\n"
 				  "/proc/ccs/grant_log:        %10u\n"
@@ -1373,7 +1373,7 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 				  counter[CCS_UPDATES_COUNTER_SYSTEM_POLICY],
 				  counter[CCS_UPDATES_COUNTER_DOMAIN_POLICY],
 				  counter[CCS_UPDATES_COUNTER_EXCEPTION_POLICY],
-				  counter[CCS_UPDATES_COUNTER_STATUS],
+				  counter[CCS_UPDATES_COUNTER_PROFILE],
 				  counter[CCS_UPDATES_COUNTER_QUERY],
 				  counter[CCS_UPDATES_COUNTER_MANAGER],
 				  counter[CCS_UPDATES_COUNTER_GRANT_LOG],
@@ -1408,36 +1408,36 @@ int CCS_OpenControl(const int type, struct file *file)
 	init_MUTEX(&head->write_sem);
 	switch (type) {
 #ifdef CONFIG_TOMOYO
-	case CCS_POLICY_DOMAINPOLICY:
+	case CCS_DOMAINPOLICY:
 		head->write = AddDomainPolicy;
 		head->read = ReadDomainPolicy;
 		break;
-	case CCS_POLICY_EXCEPTIONPOLICY:
+	case CCS_EXCEPTIONPOLICY:
 		head->write = AddExceptionPolicy;
 		head->read = ReadExceptionPolicy;
 		break;
-	case CCS_POLICY_DOMAIN_STATUS:
+	case CCS_DOMAIN_STATUS:
 		head->write = UpdateDomainProfile;
 		head->read = ReadDomainProfile;
 		break;
-	case CCS_INFO_PROCESS_STATUS:
+	case CCS_PROCESS_STATUS:
 		head->write = WritePID;
 		head->read = ReadPID;
 		break;
-	case CCS_INFO_GRANTLOG:
+	case CCS_GRANTLOG:
 		head->poll = PollGrantLog;
 		head->read = ReadGrantLog;
 		break;
-	case CCS_INFO_REJECTLOG:
+	case CCS_REJECTLOG:
 		head->poll = PollRejectLog;
 		head->read = ReadRejectLog;
 		break;
-	case CCS_INFO_SELFDOMAIN:
+	case CCS_SELFDOMAIN:
 		head->read = ReadSelfDomain;
 		break;
 #endif
 #ifdef CONFIG_SAKURA
-	case CCS_POLICY_SYSTEMPOLICY:
+	case CCS_SYSTEMPOLICY:
 		head->write = AddSystemPolicy;
 		head->read = ReadSystemPolicy;
 		break;
@@ -1446,28 +1446,28 @@ int CCS_OpenControl(const int type, struct file *file)
 		head->read = ReadVersion;
 		head->readbuf_size = 128;
 		break;
-	case CCS_INFO_MEMINFO:
+	case CCS_MEMINFO:
 		head->read = ReadMemoryCounter;
 		head->readbuf_size = 128;
 		break;
-	case CCS_STATUS:
-		head->write = SetStatus;
-		head->read = ReadStatus;
+	case CCS_PROFILE:
+		head->write = SetProfile;
+		head->read = ReadProfile;
 		break;
-	case CCS_POLICY_QUERY:
+	case CCS_QUERY:
 		head->poll = PollQuery;
 		head->write = WriteAnswer;
 		head->read = ReadQuery;
 		break;
-	case CCS_POLICY_MANAGER:
+	case CCS_MANAGER:
 		head->write = AddManagerPolicy;
 		head->read = ReadManagerPolicy;
 		break;
-	case CCS_INFO_UPDATESCOUNTER:
+	case CCS_UPDATESCOUNTER:
 		head->read = ReadUpdatesCounter;
 		break;
 	}
-	if (type != CCS_INFO_GRANTLOG && type != CCS_INFO_REJECTLOG && type != CCS_POLICY_QUERY) {
+	if (type != CCS_GRANTLOG && type != CCS_REJECTLOG && type != CCS_QUERY) {
 		if (!head->readbuf_size) head->readbuf_size = PAGE_SIZE * 2;
 		if ((head->read_buf = ccs_alloc(head->readbuf_size)) == NULL) {
 			ccs_free(head);
@@ -1483,7 +1483,7 @@ int CCS_OpenControl(const int type, struct file *file)
 		}
 	}
 	file->private_data = head;
-	if (type == CCS_INFO_SELFDOMAIN) CCS_ReadControl(file, NULL, 0);
+	if (type == CCS_SELFDOMAIN) CCS_ReadControl(file, NULL, 0);
 	else if (head->write == WriteAnswer) atomic_inc(&queryd_watcher);
 	return 0;
 }

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/17
+ * Version: 1.5.0-pre   2007/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -258,17 +258,17 @@ struct ip_network_acl_record {
 
 /*************************  Index numbers for Access Controls.  *************************/
 
-#define CCS_PROFILE_COMMENT                      0  /* status.txt             */
-#define CCS_TOMOYO_MAC_FOR_FILE                  1  /* domain_policy.txt      */
-#define CCS_TOMOYO_MAC_FOR_ARGV0                 2  /* domain_policy.txt      */
-#define CCS_TOMOYO_MAC_FOR_NETWORK               3  /* domain_policy.txt      */
-#define CCS_TOMOYO_MAC_FOR_SIGNAL                4  /* domain_policy.txt      */
+#define CCS_PROFILE_COMMENT                      0  /* profile.conf            */
+#define CCS_TOMOYO_MAC_FOR_FILE                  1  /* domain_policy.conf      */
+#define CCS_TOMOYO_MAC_FOR_ARGV0                 2  /* domain_policy.conf      */
+#define CCS_TOMOYO_MAC_FOR_NETWORK               3  /* domain_policy.conf      */
+#define CCS_TOMOYO_MAC_FOR_SIGNAL                4  /* domain_policy.conf      */
 #define CCS_SAKURA_DENY_CONCEAL_MOUNT            5
-#define CCS_SAKURA_RESTRICT_CHROOT               6  /* system_policy.txt      */
-#define CCS_SAKURA_RESTRICT_MOUNT                7  /* system_policy.txt      */
-#define CCS_SAKURA_RESTRICT_UNMOUNT              8  /* system_policy.txt      */
-#define CCS_SAKURA_RESTRICT_PIVOT_ROOT           9  /* system_policy.txt      */
-#define CCS_SAKURA_RESTRICT_AUTOBIND            10  /* system_policy.txt      */
+#define CCS_SAKURA_RESTRICT_CHROOT               6  /* system_policy.conf      */
+#define CCS_SAKURA_RESTRICT_MOUNT                7  /* system_policy.conf      */
+#define CCS_SAKURA_RESTRICT_UNMOUNT              8  /* system_policy.conf      */
+#define CCS_SAKURA_RESTRICT_PIVOT_ROOT           9  /* system_policy.conf      */
+#define CCS_SAKURA_RESTRICT_AUTOBIND            10  /* system_policy.conf      */
 #define CCS_TOMOYO_MAX_ACCEPT_ENTRY             11
 #define CCS_TOMOYO_MAX_GRANT_LOG                12
 #define CCS_TOMOYO_MAX_REJECT_LOG               13
@@ -281,7 +281,7 @@ struct ip_network_acl_record {
 #define CCS_UPDATES_COUNTER_SYSTEM_POLICY    0
 #define CCS_UPDATES_COUNTER_DOMAIN_POLICY    1
 #define CCS_UPDATES_COUNTER_EXCEPTION_POLICY 2
-#define CCS_UPDATES_COUNTER_STATUS           3
+#define CCS_UPDATES_COUNTER_PROFILE          3
 #define CCS_UPDATES_COUNTER_QUERY            4
 #define CCS_UPDATES_COUNTER_MANAGER          5
 #define CCS_UPDATES_COUNTER_GRANT_LOG        6

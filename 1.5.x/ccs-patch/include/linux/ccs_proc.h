@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,19 +21,19 @@
 
 /*************************  Indexes for /proc interfaces.  *************************/
 
-#define CCS_POLICY_DOMAINPOLICY          0
-#define CCS_POLICY_EXCEPTIONPOLICY       1
-#define CCS_POLICY_SYSTEMPOLICY          2
-#define CCS_POLICY_DOMAIN_STATUS         3
-#define CCS_INFO_PROCESS_STATUS          4
-#define CCS_INFO_MEMINFO                 5
-#define CCS_INFO_GRANTLOG                6
-#define CCS_INFO_REJECTLOG               7
-#define CCS_INFO_SELFDOMAIN              8
-#define CCS_VERSION                      9
-#define CCS_STATUS                      10
-#define CCS_POLICY_QUERY                11
-#define CCS_POLICY_MANAGER              12
-#define CCS_INFO_UPDATESCOUNTER         13
+#define CCS_DOMAINPOLICY          0
+#define CCS_EXCEPTIONPOLICY       1
+#define CCS_SYSTEMPOLICY          2
+#define CCS_DOMAIN_STATUS         3
+#define CCS_PROCESS_STATUS        4
+#define CCS_MEMINFO               5
+#define CCS_GRANTLOG              6
+#define CCS_REJECTLOG             7
+#define CCS_SELFDOMAIN            8
+#define CCS_VERSION               9
+#define CCS_PROFILE              10
+#define CCS_QUERY                11
+#define CCS_MANAGER              12
+#define CCS_UPDATESCOUNTER       13
 
 #endif
