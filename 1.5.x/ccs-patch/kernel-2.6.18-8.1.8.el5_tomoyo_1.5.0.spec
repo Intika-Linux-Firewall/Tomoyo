@@ -32,7 +32,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.1.8%{?dist}_tomoyo_1.5.0-pre
+%define release 8.1.8%{?dist}_tomoyo_1.5.0
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -1962,7 +1962,7 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 #tar -zxf %_sourcedir/ccs-patch-1.5.0-pre.tar.gz
-ln -s . ccs-patch && wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - && rm -f ccs-patch
+wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.8.el5/" -- Makefile
 patch -sp1 < ccs-patch-2.6.18-8.1.8.el5.txt
 
