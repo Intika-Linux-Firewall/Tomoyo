@@ -8,6 +8,10 @@ LSM hooks for network accept and recv:
    * socket_post_accept is modified to return int.
    * post_recv_datagram is added in skb_recv_datagram.
 
+You can try TOMOYO Linux without this patch, but in that case, you
+can't use access control functionality for restricting signal
+transmission and incoming network data.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
