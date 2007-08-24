@@ -1,0 +1,256 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 2.1 の使い方</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+
+<h1>TOMOYO Linux 2.1 導入手順</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<p>この文書は、2007年8月にLKMLに投稿されたTOMOYO Linux 2.1の導入手順と簡単な動作の体験までを解説します。</p>
+
+<h2>TOMOYO Linux カーネルの作成</h2>
+
+<p>TOMOYO Linux 2.1 は、 http://www.kernel.org/ からダウンロードできる最新のバニラカーネル（ 2.6.23-rc3 以降）に対応しています。カーネルソースをダウンロードして展開してください。</p>
+
+<p>以下の手順は subversion や quilt 等をインストールしていない場合の手順です。 subversion や quilt 等を使用されている方はこの手順どおりに実行する必要はありません。</p>
+
+<pre>
+$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.23-rc3.tar.bz2
+$ tar -jxf linux-2.6.23-rc3.tar.bz2
+$ cd linux-2.6.23-rc3
+</pre>
+
+<p>最新版のパッチは http://svn.sourceforge.jp/svnroot/tomoyo/trunk/2.1.x/tomoyo-lsm/patches/ からダウンロードできます。パッチをダウンロードして、カーネルソースディレクトリに展開してから適用します。</p>
+
+<pre>
+$ wget -O tomoyo-2.1.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/2.1.x/tomoyo-lsm/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/2.1.x/tomoyo-lsm/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
+$ tar -zxvf tomoyo-2.1.tar.gz
+$ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
+</pre>
+
+<p>必要であれば Makefile の EXTRAVERSION= を編集してください。</p>
+
+<p>次に、 TOMOYO Linux を有効にしたカーネルコンフィグを作成します。</p>
+
+<pre>
+$ make -s menuconfig
+</pre>
+
+<p>
+Security options の画面に移動して、以下のように "Default Linux Capabilities", "Root Plug Support", "NSA SELinux Support" の選択を解除し、 "TOMOYO Linux support" を選択してください。
+</p>
+
+<pre>
+[*] Enable different security models
+&lt; &gt;   Default Linux Capabilities
+&lt; &gt;   Root Plug Support
+[ ] NSA SELinux Support
+[*] TOMOYO Linux support
+</pre>
+
+<p>カーネルコンフィグの作成が終わったら、カーネルをコンパイルしてください。</p>
+
+<pre>
+$ make -s
+# make -s modules_install install
+</pre>
+
+<p>必要であれば initrd を作成してください。さらに、必要であれば /boot/grub/grub.conf または /boot/grub/menu.lst を編集してください。<p>
+
+<p>TOMOYO Linux 2.0 では、カーネルのコマンドラインオプションに init=/.init を追加するために/boot/grub/grub.conf または /boot/grub/menu.lst を編集する必要がありました。しかし、 TOMOYO Linux 2.1 では /sbin/init の実行開始前に自動的に /sbin/tomoyo-init を実行するようになっているため init=/sbin/tomoyo-init を追加するために /boot/grub/grub.conf または /boot/grub/menu.lst を編集する必要はありません。</p>
+
+<h2>TOMOYO Linux ツールの作成</h2>
+
+<p>TOMOYO Linux 2.1 で使用するツールは http://svn.sourceforge.jp/svnroot/tomoyo/trunk/1.5.x/ccs-tools/ccs/ からダウンロードできます。以下のようにダウンロードして展開後、コンパイルしてください。</p>
+
+<pre>
+$ wget -O tomoyo-tools.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccs.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccs.tar.gz?root=tomoyo&amp;view=tar</a>'
+$ tar -zxf tomoyo-tools.tar.gz
+$ cd ccs
+$ make
+# make install
+</pre>
+
+<h2>基本設定</h2>
+
+<p>基本設定を自動でおこなうスクリプト tomoyo_init_policy.sh がツール群には含まれていますので、これを実行します。</p>
+
+<pre>
+# /usr/lib/ccs/tomoyo_init_policy.sh
+</pre>
+
+<p>
+これで、 /etc/tomoyo/ ディレクトリに基本的な設定が生成されます。
+</p>
+
+<h1>チュートリアル</h1>
+
+<p>以上の設定でTOMOYO Linuxを使用できる状態になっていますが、このチュートリアルではさらに、システム全体の挙動を学習させる設定を行っておきます。</p>
+
+<pre>
+# echo '&lt;kernel&gt;' &gt; /etc/tomoyo/domain_policy.conf
+# echo 'use_profile 1' &gt;&gt; /etc/tomoyo/domain_policy.conf
+</pre>
+
+<p>以上の設定を行って TOMOYO Linux カーネルで起動すると、 /sbin/init の開始直前に以下のメッセージが表示されます。</p>
+
+<pre>
+TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
+TOMOYO Linux&gt;
+</pre>
+
+<p>ここでEnterキーを押すか10秒間待つことでTOMOYO Linuxが有効になり、ポリシーが読み込まれます。TOMOYO Linuxの設定を誤りログインできないなどの問題が生じた場合は、このプロンプトでdisableと入力することでTOMOYO Linuxを無効にして起動できます。</p>
+
+<p>ログインプロンプトが表示されたらログインしてrootユーザになり、TOMOYO Linuxツール群に同梱されているeditpolicyコマンドを実行してみてください。</p>
+
+<pre>
+# /usr/lib/ccs/editpolicy
+</pre>
+
+<p><img src="howtouse/editpolicy1.png" alt="Initial screen of editpolicy" title="Inital screen of editpolicy" width="720" height="400"></p>
+
+<p>editpolicyコマンドはTOMOYO Linuxのポリシーを閲覧、編集するためのCUIのツールです。起動した直後は現在までに生成されたドメインが表示されています。&lt;kernel&gt;を基点として、execveによるプロセスの起動のたびに新たなドメインが生成されています。</p>
+
+<p>ドメインの左側、行番号の右側には、今すべて1という数字が表示されています。この数字は「プロファイル番号」と呼ばれる値で、ドメインが使用するプロファイルをあらわしています。プロファイルはTOMOYO Linuxのアクセス制御レベルを組にしたモノで、/etc/tomoyo/profile.confで指定した内容がLinuxの起動時に/proc/tomoyo/profileに読み込まれています。</p>
+
+<p>tomoyo_init_policy.shによって、以下の4つのプロファイルが自動的に生成されています。プロファイルはドメインに割り当てて使用します。</p>
+
+<ul>
+<li>プロファイル0 (disabled): 通常のLinuxと同じように動作する</li>
+<li>プロファイル1 (learning): アクセスを監視し、ポリシーを自動学習する</li>
+<li>プロファイル2 (permissive): アクセスを監視し、ポリシー違反はログを出力する</li>
+<li>プロファイル3 (enforcing): アクセスを監視し、ポリシー違反は拒否する</li>
+</ul>
+
+<p>適当なドメインにカーソルを移動させ、Enterキーを押すことで学習されたアクセス許可を閲覧できます。</p>
+
+<p><img src="howtouse/editpolicy_init.png" alt="ACL of /sbin/init" title="ACL of /sbin/init" width="720" height="400"></p>
+
+<p>システム起動時から学習されたポリシーを、editpolicyで適当にブラウズしてみてください。どのプログラムがどのファイルにアクセスしたかがひと目で見て取ることができます。</p>
+
+<p>editpolicyの基本的な使い方はこのチュートリアルで紹介しますが、詳しい使い方は <a href="tool-editpolicy.html">ポリシーエディタの使い方</a> をご覧ください。</p>
+
+<p>editpolicyを終了するには[Q]を押します。</p>
+
+<h2>ステップ1: コマンドの学習と強制</h2>
+
+<p>この状態ですでに、ログインシェルの動作は学習されるようになっています。ためしに以下のコマンドを入力してみてください。</p>
+
+<pre>
+# head /etc/passwd
+# bash
+# tail /etc/mtab
+# exit
+</pre>
+
+<p>通常のLinuxとまったく同様に動作しますが、カーネルレベルではTOMOYO Linuxがアクセスを監視してポリシーを学習しています。</p>
+
+<p>ここで再度editpolicyを起動して、ログインシェル以下のドメインを強制モードにしましょう。強制モードはプロファイル番号3です。まずは以下の操作で、ログインシェル以下のドメインをマークします。</p>
+
+<ul>
+<li>ログインシェルのドメインにカーソルを合わせて、[Space]で1つのドメインを選択し、'&amp;'マークを表示させます。</li>
+<li>[C]でマーク状態をカーソル以降のドメインにコピーします。</li>
+<li>ログインシェル以下のドメインの次のドメインにカーソルを移動します。</li>
+<li>[Space]でマークを消します</li>
+<li>[C]でマーク状態をカーソル以降のドメインにコピーします。</li>
+</ul>
+
+<p><img src="howtouse/editpolicy2.png" width="720" height="400" alt="Mark bash and its children's domains" title="Mark bash and its children's domains"></p>
+
+<p>マークが終わったら、[S] [3] [Enter]でマークしたドメインにプロファイル番号3を割り当てます。ログインシェル以降のドメインの左側の数字が3に変わったのを確認したら、[Q]でeditpolicyを終了してください。</p>
+
+<p><img src="howtouse/editpolicy3.png" width="720" height="400" alt="Profiles of bash and its children's domains became 3" title="Profiles of bash and its children's domains became 3"></p>
+
+<p>この状態ではすでに、先ほど学習させた操作以外は拒否されるようになっています。[Q]で editpolicy を終了し、ためしにいくつかコマンドをたたいてみてください。</p>
+
+<pre>
+# head /etc/passwd                 # OK
+# head /etc/shadow                 # NG
+# rm -fr /                         # NG
+# tail /etc/mtab                   # NG
+# bash                             # OK
+# tail /etc/mtab                   # OK
+# head /etc/passwd                 # NG
+</pre>
+
+<p>先ほど学習させた操作以外は拒否されることが分かります。また、tail /etc/mtabは先ほど学習させた操作には含まれていますが、1段目のシェルでは実行できず、2段目のシェルで許可されます。これは、2つのシェルはプロセスの実行履歴、すなわちドメインが異なり、学習されたアクセス許可も異なるためです。</p>
+
+<p>一通りの操作を試し終えたら、editpolicyでログインシェルのプロファイルを1に戻して次のチュートリアルに進んでください。</p>
+
+<h2>サーバの動作の学習と強制</h2>
+
+<p>次に、Apacheの動作を学習してポリシーを編集してみます。Apacheがインストールされていない場合はインストールしてください。</p>
+
+<p>Apacheであっても基本的な流れは先ほどのログイン後のコマンドと同じです。まず、editpolicyを起動してApacheのドメインを探し、プロファイル番号1を割り当てます。</p>
+
+<p>editpolicyを[Q]で終了し、Apacheを再起動して再度editpolicyを起動し、Apacheドメインで[Enter]キーを押してください。Apacheの起動に必要なアクセスが学習されているはずです。</p>
+
+<pre>
+4 /etc/httpd/conf/httpd.conf
+allow_create /var/run/httpd.pid
+allow_unlink /var/run/httpd.pid
+allow_network TCP bind 192.168.1.135 80
+allow_network TCP listen 192.168.1.135 80
+</pre>
+
+<p>学習された内容には、設定ファイルやモジュールの読み込みの他にも、自身のIPアドレスの80番ポートをbind, listenするネットワークアクセスも含まれているはずです。学習モードにした状態でさらに、WebブラウザでこのApacheへWebコンテンツを要求してみてください。</p>
+
+<p>再度editpolicyでポリシーを読み込むと、Webコンテンツの読み込みの他に、クライアントからのネットワーク接続要求のacceptが学習されています。</p>
+
+<pre>
+4 /var/www/html/index.html
+allow_network TCP accept 192.168.1.1 2389
+</pre>
+
+<p>Webコンテンツは全てのファイルを書き出すよりも、パターンを使ったほうが簡単にポリシーを記述できます（使用できるパターンの詳細は <a href="policy-reference.html#exception_policy.conf">TOMOYO Linux ポリシー解説書</a> をご覧ください）。また、接続要求はいつも同じIPアドレス、同じポート番号とは限らないため、ある程度の幅を指定する必要があります。</p>
+
+<p>このような柔軟なポリシーは、以下のように記述できます。</p>
+
+<pre>
+4 /var/www/\*
+4 /var/www/\*/\*
+4 /var/www/\*/\*/\*
+4 /var/www/\*/\*/\*/\*
+4 /var/www/\*/\*/\*/\*/\*
+allow_network TCP accept 192.168.0.0-192.168.255.255 1024-65535
+</pre>
+
+<p>\*は、「/を含まない全ての文字列」をあらわします。editpolicyでエントリを追加するには、[A]を押して出る1行入力にアクセス許可の内容を入力して[Enter]キーを押します。</p>
+
+<p>上記のパターンや範囲指定をそのままドメインごとのアクセス許可に書くこともできますし、それをまとめたグループを定義してさらに簡潔に記述することもできます。</p>
+
+<p>editpolicyで[Tab]を2回押して、"Exception Policy Editor"を表示させてください。アクセス許可の追加と同様に、[A]を押して以下のエントリを追加してください。</p>
+
+<pre>
+path_group WEB_CONTENTS /var/www/\*
+path_group WEB_CONTENTS /var/www/\*/\*
+path_group WEB_CONTENTS /var/www/\*/\*/\*
+path_group WEB_CONTENTS /var/www/\*/\*/\*/\*
+path_group WEB_CONTENTS /var/www/\*/\*/\*/\*/\*
+address_group PRIVATE_IP 192.168.0.0-192.168.255.255
+</pre>
+
+<p>追加が終わったら[Tab]を1回押して"Domain Transition Editor"に戻り、Apacheのドメインの内容を再度表示させて、以下のエントリを追加してください。</p>
+
+<pre>
+4 @WEB_CONTENTS
+allow_network TCP accept @PRIVATE_IP 1024-65535
+</pre>
+
+<p>このように、path_groupとaddress_groupを用いることで、先ほどと同じ内容をより簡潔に記述できます。</p>
+
+<h2>その他のドキュメント</h2>
+
+<ul>
+<li><a href="policy-reference.html">TOMOYO Linux ポリシー解説書</a>: ポリシーの詳細について解説しています。</li>
+<li><a href="tools-doc.html">各種ツールのドキュメント</a>: ツールの使用方法について解説しています。</li>
+<li><a href="tool-editpolicy.html">ポリシーエディタの使い方</a>: ツールの中でも特に機能が豊富なeditpolicyの使い方について解説しています。</li>
+</ul>
+
+</body>
+</html>
