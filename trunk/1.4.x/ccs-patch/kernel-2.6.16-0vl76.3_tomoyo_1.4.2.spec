@@ -23,7 +23,7 @@ Summary(ja): Linux カーネル (Linux オペレーティングシステムの心臓部分)
 %define sublevel 16
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 0vl76.3_tomoyo_1.4.2
+%define release 0vl76.3_tomoyo_1.4.3
 
 %define make_target bzImage
 
@@ -129,7 +129,7 @@ Summary(ja): Linux カーネル (Linux オペレーティングシステムの心臓部分)
 #
 %define kernel_prereq  fileutils, modutils >= 3.2.2 , initscripts >= 5.83, mkinitrd >= 3.5.23
 
-Name: kernel
+Name: ccs-kernel
 Group: System Environment/Kernel
 License: GPLv2
 Version: %{rpmversion}
@@ -914,7 +914,8 @@ cd linux-%{kversion}
 sh ../suspend2-%{swsusp2_version}/apply
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
+#tar -zxf %_sourcedir/ccs-patch-1.4.3-pre.tar.gz
+wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.4.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.3custom/" -- Makefile
 patch -sp1 < /usr/src/ccs-patch-2.6.16-0vl76.3.txt
 

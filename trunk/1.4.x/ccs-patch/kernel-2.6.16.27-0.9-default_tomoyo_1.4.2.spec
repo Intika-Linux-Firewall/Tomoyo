@@ -10,7 +10,7 @@
 
 # norootforbuild
 
-Name:           kernel-default
+Name:           ccs-kernel-default
 URL:            http://www.kernel.org/
 %define build_kdump %([ default != kdump ] ; echo $?)
 %define build_xen %(case default in (xen*) echo 1;; (*) echo 0;; esac)
@@ -20,7 +20,7 @@ URL:            http://www.kernel.org/
 BuildRequires:  python
 %endif
 Version:        2.6.16.27
-Release: 0.9_tomoyo_1.4.2
+Release: 0.9_tomoyo_1.4.3
 Summary:        The Standard Kernel
 License:        GNU General Public License (GPL)
 Group:          System/Kernel
@@ -217,7 +217,8 @@ EOF
 source .rpm-defs
 cd linux-2.6.16
 # TOMOYO Linux
-tar -zxf  %_sourcedir/ccs-patch-1.4.2-20070713.tar.gz
+#tar -zxf %_sourcedir/ccs-patch-1.4.3-pre.tar.gz
+wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.4.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 patch -sp1 < ccs-patch-2.6.16.27-0.9_SUSE.txt
 cat config.ccs >> .config
 cp .config .config.orig
