@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.2   2007/07/13
+ * Version: 1.4.3-pre   2007/08/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -35,6 +35,7 @@
 /***** TOMOYO Linux start. *****/
 
 struct path_info;
+struct vfsmount;
 
 #ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 /* Check whether the given filename is allowed to read/write/execute. */

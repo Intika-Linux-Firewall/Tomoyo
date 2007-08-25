@@ -944,3 +944,17 @@ Fix 2007/07/10
       but permission check was missing.
 
 Version 1.4.2 2007/07/13   Bug fix release.
+
+Fix 2007/08/25
+
+    @ Return appropriate error code for CheckMountPermission().
+
+      I was returning -EPERM if something is wrong with CheckMountPermission().
+      But SELinux determines whether selinuxfs is supported by kernel
+      based on whether error code is -ENODEV or not.
+      So I stopped returning -EPERM unconditionally.
+
+    @ Fix "allow_argv0 ... if if ..." bug.
+
+      It was impossible to use a word "if" to the second argument of
+      allow_argv0 if condition part is used.
