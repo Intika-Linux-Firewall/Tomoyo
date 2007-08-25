@@ -1409,3 +1409,32 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/unix/af_unix.c linux-2.4.20-46.9.legac
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+diff -ubBpEr linux-2.4.20-46.9.legacy/net/core/datagram.c linux-2.4.20-46.9.legacy-ccs/net/core/datagram.c
+--- linux-2.4.20-46.9.legacy/net/core/datagram.c	2001-12-22 02:42:05.000000000 +0900
++++ linux-2.4.20-46.9.legacy-ccs/net/core/datagram.c	2007-08-15 08:57:15.000000000 +0900
+@@ -43,6 +43,10 @@
+ #include <net/sock.h>
+ #include <net/checksum.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux start. *****/
+ 
+ /*
+  *	Is a socket 'connection oriented' ?
+@@ -164,6 +168,14 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->receive_queue);
+ 
++		/***** TOMOYO Linux start. *****/
++		error = CheckSocketRecvDatagramPermission(sk, skb);
++		if (error) {
++			skb_free_datagram(sk, skb);
++			goto no_packet;
++		}
++		/***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 

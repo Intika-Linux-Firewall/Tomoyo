@@ -958,3 +958,12 @@ Fix 2007/08/25
 
       It was impossible to use a word "if" to the second argument of
       allow_argv0 if condition part is used.
+
+    @ Update recvmsg() hooks.
+
+      Until now, it was impossible to apply network access control for
+      incoming UDP and RAW packets if they are brought to userland using
+      read() or recvmsg() with NULL address because address buffer is NULL.
+      I moved hooks from sock_recvmsg() to skb_recv_datagram() so that
+      network access control for incoming UDP and RAW packets always work.
+

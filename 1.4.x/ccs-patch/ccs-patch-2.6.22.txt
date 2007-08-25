@@ -1215,3 +1215,33 @@ diff -ubBpEr linux-2.6.22/net/unix/af_unix.c linux-2.6.22-ccs/net/unix/af_unix.c
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+diff -ubBpEr linux-2.6.22/net/core/datagram.c linux-2.6.22-ccs/net/core/datagram.c
+--- linux-2.6.22/net/core/datagram.c	2007-07-09 08:32:17.000000000 +0900
++++ linux-2.6.22-ccs/net/core/datagram.c	2007-08-15 08:45:18.479002528 +0900
+@@ -56,6 +56,11 @@
+ #include <net/sock.h>
+ #include <net/tcp_states.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
++
+ /*
+  *	Is a socket 'connection oriented' ?
+  */
+@@ -178,6 +183,14 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->sk_receive_queue);
+ 
++                /***** TOMOYO Linux start. *****/
++                error = CheckSocketRecvDatagramPermission(sk, skb);
++                if (error) {
++                        skb_free_datagram(sk, skb);
++                        goto no_packet;
++                }
++                /***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
