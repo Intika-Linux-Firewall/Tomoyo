@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.2   2007/07/13
+ * Version: 1.4.3-pre   2007/08/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -200,7 +200,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned long *flags)
 {
 	const int is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_MOUNT);
-	int error_flag = 1;
+	int error = -EPERM;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_MOUNT)) return 0;
 	if (!type) type = "<NULL>";
 	if ((*flags & MS_MGC_MSK) == MS_MGC_VAL) *flags &= ~MS_MGC_MSK;
@@ -212,9 +212,9 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 		break;
 	default:
 		printk("SAKURA-ERROR: %s%s%sare given for single mount operation.\n",
-			   *flags & MS_REMOUNT ? "'remount' " : "",
-			   *flags & MS_MOVE    ? "'move' " : "",
-			   *flags & MS_BIND    ? "'bind' " : "");
+		       *flags & MS_REMOUNT ? "'remount' " : "",
+		       *flags & MS_MOVE    ? "'move' " : "",
+		       *flags & MS_BIND    ? "'bind' " : "");
 		return -EINVAL;
 	}
 	switch (*flags & (MS_UNBINDABLE | MS_PRIVATE | MS_SLAVE | MS_SHARED)) {
@@ -226,49 +226,41 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 		break;
 	default:
 		printk("SAKURA-ERROR: %s%s%s%sare given for single mount operation.\n",
-			   *flags & MS_UNBINDABLE ? "'unbindable' " : "",
-			   *flags & MS_PRIVATE    ? "'private' " : "",
-			   *flags & MS_SLAVE      ? "'slave' " : "",
-			   *flags & MS_SHARED     ? "'shared' " : "");
+		       *flags & MS_UNBINDABLE ? "'unbindable' " : "",
+		       *flags & MS_PRIVATE    ? "'private' " : "",
+		       *flags & MS_SLAVE      ? "'slave' " : "",
+		       *flags & MS_SHARED     ? "'shared' " : "");
 		return -EINVAL;
 	}
 	if (*flags & MS_REMOUNT) {
 		*flags &= ~MS_REMOUNT;
-		error_flag = CheckMountPermission(dev_name, dir_name, MOUNT_REMOUNT_KEYWORD, flags);
+		error = CheckMountPermission(dev_name, dir_name, MOUNT_REMOUNT_KEYWORD, flags);
 		*flags |= MS_REMOUNT;
 	} else if (*flags & MS_MOVE) {
 		*flags &= ~MS_MOVE;
-		error_flag = CheckMountPermission(dev_name, dir_name, MOUNT_MOVE_KEYWORD, flags);
+		error = CheckMountPermission(dev_name, dir_name, MOUNT_MOVE_KEYWORD, flags);
 		*flags |= MS_MOVE;
 	} else if (*flags & MS_BIND) {
 		*flags &= ~MS_BIND;
-		error_flag = CheckMountPermission(dev_name, dir_name, MOUNT_BIND_KEYWORD, flags);
+		error = CheckMountPermission(dev_name, dir_name, MOUNT_BIND_KEYWORD, flags);
 		*flags |= MS_BIND;
 	} else if (*flags & MS_UNBINDABLE) {
 		*flags &= ~MS_UNBINDABLE;
-		error_flag = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_UNBINDABLE_KEYWORD, flags);
+		error = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_UNBINDABLE_KEYWORD, flags);
 		*flags |= MS_UNBINDABLE;
 	} else if (*flags & MS_PRIVATE) {
 		*flags &= ~MS_PRIVATE;
-		error_flag = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_PRIVATE_KEYWORD, flags);
+		error = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_PRIVATE_KEYWORD, flags);
 		*flags |= MS_PRIVATE;
 	} else if (*flags & MS_SLAVE) {
 		*flags &= ~MS_SLAVE;
-		error_flag = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_SLAVE_KEYWORD, flags);
+		error = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_SLAVE_KEYWORD, flags);
 		*flags |= MS_SLAVE;
 	} else if (*flags & MS_SHARED) {
 		*flags &= ~MS_SHARED;
-		error_flag = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_SHARED_KEYWORD, flags);
+		error = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_SHARED_KEYWORD, flags);
 		*flags |= MS_SHARED;
 	} else {
-		goto normal_mount;
-	}
-	if (error_flag) {
-		if (is_enforce) return -EPERM;
-		return 0;
-	}
- normal_mount: ;
-	{
 		struct mount_entry *ptr;
 		struct file_system_type *fstype = NULL;
 		const char *requested_dir_name = NULL;
@@ -276,31 +268,41 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 		struct path_info rdev, rdir;
 		int need_dev = 0;
 		
-		if ((requested_dir_name = realpath(dir_name)) == NULL) goto cleanup;
+		if ((requested_dir_name = realpath(dir_name)) == NULL) {
+			error = -ENOENT;
+			goto cleanup;
+		}
 		rdir.name = requested_dir_name;
 		fill_path_info(&rdir);
-
+		
 		/* Compare fs name. */
 		if (strcmp(type, MOUNT_REMOUNT_KEYWORD) == 0) {
 			/* Needn't to resolve dev_name */
 		} else if (strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) == 0 ||
-				   strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
-				   strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
-				   strcmp(type, MOUNT_MAKE_SHARED_KEYWORD) == 0) {
+			   strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
+			   strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
+			   strcmp(type, MOUNT_MAKE_SHARED_KEYWORD) == 0) {
 			/* Needn't to resolve dev_name */
 		} else if (strcmp(type, MOUNT_BIND_KEYWORD) == 0 || strcmp(type, MOUNT_MOVE_KEYWORD) == 0) {
-			if ((requested_dev_name = realpath(dev_name)) == NULL) goto cleanup;
+			if ((requested_dev_name = realpath(dev_name)) == NULL) {
+				error = -ENOENT;
+				goto cleanup;
+			}
 			rdev.name = requested_dev_name;
 			fill_path_info(&rdev);
-			need_dev = -1;
+			need_dev = -1; /* dev_name is a directory */
 		} else if ((fstype = get_fs_type(type)) != NULL) {
 			if (fstype->fs_flags & FS_REQUIRES_DEV) {
-				if ((requested_dev_name = realpath(dev_name)) == NULL) goto cleanup;
+				if ((requested_dev_name = realpath(dev_name)) == NULL) {
+					error = -ENOENT;
+					goto cleanup;
+				}
 				rdev.name = requested_dev_name;
 				fill_path_info(&rdev);
-				need_dev = 1;
+				need_dev = 1; /* dev_name is a block device file */
 			}
 		} else {
+			error = -ENODEV;
 			goto cleanup;
 		}
 		for (ptr = mount_list; ptr; ptr = ptr->next) {
@@ -316,7 +318,7 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 			if (requested_dev_name && PathMatchesToPattern(&rdev, ptr->dev_name) == 0) continue;
 			
 			/* OK. */
-			error_flag = 0;
+			error = 0;
 			*flags &= ~ptr->disabled_options;
 			*flags |= ptr->enabled_options;
 			
@@ -327,51 +329,48 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 			} else if (strcmp(type, MOUNT_REMOUNT_KEYWORD) == 0) {
 				printk(KERN_DEBUG "SAKURA-NOTICE: 'mount -o remount %s' accepted.\n", requested_dir_name);
 			} else if (strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) == 0 ||
-					   strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
-					   strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
-					   strcmp(type, MOUNT_MAKE_SHARED_KEYWORD) == 0) {
+				   strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
+				   strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
+				   strcmp(type, MOUNT_MAKE_SHARED_KEYWORD) == 0) {
 				printk(KERN_DEBUG "SAKURA-NOTICE: 'mount %s %s' accepted.\n", type, requested_dir_name);
 			} else {
 				printk(KERN_DEBUG "SAKURA-NOTICE: 'mount %s on %s' accepted.\n", type, requested_dir_name);
 			}
 			break;
 		}
-		if (error_flag && !is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_MOUNT)) {
+		if (error) {
+			const char *realname1 = realpath(dev_name), *realname2 = realpath(dir_name), *exename = GetEXE();
+			if (strcmp(type, MOUNT_REMOUNT_KEYWORD) == 0) {
+				printk("SAKURA-%s: mount -o remount %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), realname2 ? realname2 : dir_name, current->pid, exename);
+				if (is_enforce && CheckSupervisor("# %s is requesting\nmount -o remount %s\n", exename, realname2 ? realname2 : dir_name) == 0) error = 0;
+			} else if (strcmp(type, MOUNT_BIND_KEYWORD) == 0 || strcmp(type, MOUNT_MOVE_KEYWORD) == 0) {
+				printk("SAKURA-%s: mount %s %s %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), type, realname1 ? realname1 : dev_name, realname2 ? realname2 : dir_name, current->pid, exename);
+				if (is_enforce && CheckSupervisor("# %s is requesting\nmount %s %s %s\n", exename, type, realname1 ? realname1 : dev_name, realname2 ? realname2 : dir_name) == 0) error = 0;
+			} else if (strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) == 0 ||
+				   strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
+				   strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
+				   strcmp(type, MOUNT_MAKE_SHARED_KEYWORD) == 0) {
+				printk("SAKURA-%s: mount %s %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), type, realname2 ? realname2 : dir_name, current->pid, exename);
+				if (is_enforce && CheckSupervisor("# %s is requesting\nmount %s %s", exename, type, realname2 ? realname2 : dir_name) == 0) error = 0;
+			} else {
+				printk("SAKURA-%s: mount -t %s %s %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), type, realname1 ? realname1 : dev_name, realname2 ? realname2 : dir_name, current->pid, exename);
+				if (is_enforce && CheckSupervisor("# %s is requesting\nmount -t %s %s %s\n", exename, type, realname1 ? realname1 : dev_name, realname2 ? realname2 : dir_name) == 0) error = 0;
+			}
+			ccs_free(exename);
+			ccs_free(realname2);
+			ccs_free(realname1);
+		}
+		if (error && !is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_MOUNT)) {
 			AddMountACL(need_dev ? requested_dev_name : dev_name, requested_dir_name, type, 0, 0, 0);
 			UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 		}
 	cleanup:
-		if (requested_dev_name) ccs_free(requested_dev_name);
-		if (requested_dir_name) ccs_free(requested_dir_name);
+		ccs_free(requested_dev_name);
+		ccs_free(requested_dir_name);
 		if (fstype) put_filesystem(fstype);
 	}
-
-	if (error_flag) {
-		int error = -EPERM;
-		const int is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_MOUNT);
-		const char *realname1 = realpath(dev_name), *realname2 = realpath(dir_name), *exename = GetEXE();
-		if (strcmp(type, MOUNT_REMOUNT_KEYWORD) == 0) {
-			printk("SAKURA-%s: mount -o remount %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), realname2 ? realname2 : dir_name, current->pid, exename);
-			if (is_enforce && CheckSupervisor("# %s is requesting\nmount -o remount %s\n", exename, realname2 ? realname2 : dir_name) == 0) error = 0;
-		} else if (strcmp(type, MOUNT_BIND_KEYWORD) == 0 || strcmp(type, MOUNT_MOVE_KEYWORD) == 0) {
-			printk("SAKURA-%s: mount %s %s %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), type, realname1 ? realname1 : dev_name, realname2 ? realname2 : dir_name, current->pid, exename);
-			if (is_enforce && CheckSupervisor("# %s is requesting\nmount %s %s %s\n", exename, type, realname1 ? realname1 : dev_name, realname2 ? realname2 : dir_name) == 0) error = 0;
-		} else if (strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) == 0 ||
-				   strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
-				   strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
-				   strcmp(type, MOUNT_MAKE_SHARED_KEYWORD) == 0) {
-			printk("SAKURA-%s: mount %s %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), type, realname2 ? realname2 : dir_name, current->pid, exename);
-			if (is_enforce && CheckSupervisor("# %s is requesting\nmount %s %s", exename, type, realname2 ? realname2 : dir_name) == 0) error = 0;
-		} else {
-			printk("SAKURA-%s: mount -t %s %s %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), type, realname1 ? realname1 : dev_name, realname2 ? realname2 : dir_name, current->pid, exename);
-			if (is_enforce && CheckSupervisor("# %s is requesting\nmount -t %s %s %s\n", exename, type, realname1 ? realname1 : dev_name, realname2 ? realname2 : dir_name) == 0) error = 0;
-		}
-		if (exename) ccs_free(exename);
-		if (realname2) ccs_free(realname2);
-		if (realname1) ccs_free(realname1);
-		if (is_enforce) return error;
-	}
-	return 0;
+	if (!is_enforce) error = 0;
+	return error;
 }
 EXPORT_SYMBOL(CheckMountPermission);
 

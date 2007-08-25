@@ -458,7 +458,7 @@ diff -ubBpEr linux-2.6.22.2-42.fc6/fs/namespace.c linux-2.6.22.2-42.fc6-ccs/fs/n
 +	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if (CheckMountPermission(dev_name, dir_name, type_page, &flags)) return -EPERM;
++	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
 +	/***** SAKURA Linux end. *****/
 +
  	/* Separate the per-mountpoint flags */
@@ -565,7 +565,7 @@ diff -ubBpEr linux-2.6.22.2-42.fc6/fs/proc/proc_misc.c linux-2.6.22.2-42.fc6-ccs
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.22.2-42.fc6 2007/08/20\n");
++		printk("Hook version: 2.6.22.2-42.fc6 2007/08/25\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
