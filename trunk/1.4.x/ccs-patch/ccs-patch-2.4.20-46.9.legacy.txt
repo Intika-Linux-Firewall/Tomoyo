@@ -1172,7 +1172,7 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/core/datagram.c linux-2.4.20-46.9.lega
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux start. *****/
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Is a socket 'connection oriented' ?
@@ -1334,7 +1334,7 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/socket.c linux-2.4.20-46.9.legacy-ccs/
 -
 +	/***** TOMOYO Linux start. *****/
 +	if ((err = CheckSocketSendMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) == 0)
-+	/***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux end. *****/
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);

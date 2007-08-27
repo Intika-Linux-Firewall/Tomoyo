@@ -1139,7 +1139,7 @@ diff -ubBpEr linux-2.6.22.4-65.fc7/net/socket.c linux-2.6.22.4-65.fc7-ccs/net/so
  		return err;
 +	/***** TOMOYO Linux start. *****/
 +	if (CheckSocketSendMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) return -EPERM;
-+	/***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux end. *****/
  
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
