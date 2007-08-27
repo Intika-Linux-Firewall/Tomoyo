@@ -997,7 +997,7 @@ diff -ubBpEr linux-2.6.12.3-a9-9/net/core/datagram.c linux-2.6.12.3-a9-9-ccs/net
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux start. *****/
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Is a socket 'connection oriented' ?
@@ -1170,7 +1170,7 @@ diff -ubBpEr linux-2.6.12.3-a9-9/net/socket.c linux-2.6.12.3-a9-9-ccs/net/socket
 -
 +	/***** TOMOYO Linux start. *****/
 +	if (CheckSocketSendMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) return -EPERM;
-+	/***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux end. *****/
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  

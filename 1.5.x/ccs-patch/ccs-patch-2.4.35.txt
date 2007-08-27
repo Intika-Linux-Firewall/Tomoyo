@@ -1196,7 +1196,7 @@ diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
 -
 +	/***** TOMOYO Linux start. *****/
 +	if ((err = CheckSocketSendMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) == 0)
-+	/***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux end. *****/
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
