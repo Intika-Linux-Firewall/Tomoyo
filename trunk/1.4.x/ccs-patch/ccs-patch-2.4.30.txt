@@ -765,7 +765,7 @@ diff -ubBpEr linux-2.4.30/fs/proc/proc_misc.c linux-2.4.30-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.30 2007/08/25\n");
++		printk("Hook version: 2.4.30 2007/08/27\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1155,6 +1155,35 @@ diff -ubBpEr linux-2.4.30/kernel/time.c linux-2.4.30-ccs/kernel/time.c
  		
  	/* Now we validate the data before disabling interrupts */
  
+diff -ubBpEr linux-2.4.30/net/core/datagram.c linux-2.4.30-ccs/net/core/datagram.c
+--- linux-2.4.30/net/core/datagram.c	2001-12-22 02:42:05.000000000 +0900
++++ linux-2.4.30-ccs/net/core/datagram.c	2007-08-15 08:44:49.555399584 +0900
+@@ -43,6 +43,10 @@
+ #include <net/sock.h>
+ #include <net/checksum.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux start. *****/
+ 
+ /*
+  *	Is a socket 'connection oriented' ?
+@@ -164,6 +168,14 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->receive_queue);
+ 
++		/***** TOMOYO Linux start. *****/
++		error = CheckSocketRecvDatagramPermission(sk, skb);
++		if (error) {
++			skb_free_datagram(sk, skb);
++			goto no_packet;
++		}
++		/***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
 diff -ubBpEr linux-2.4.30/net/ipv4/tcp_ipv4.c linux-2.4.30-ccs/net/ipv4/tcp_ipv4.c
 --- linux-2.4.30/net/ipv4/tcp_ipv4.c	2004-11-17 20:54:22.000000000 +0900
 +++ linux-2.4.30-ccs/net/ipv4/tcp_ipv4.c	2007-03-26 16:38:51.000000000 +0900
@@ -1190,7 +1219,7 @@ diff -ubBpEr linux-2.4.30/net/ipv4/tcp_ipv4.c linux-2.4.30-ccs/net/ipv4/tcp_ipv4
  			 * because the established check is already
 diff -ubBpEr linux-2.4.30/net/ipv4/udp.c linux-2.4.30-ccs/net/ipv4/udp.c
 --- linux-2.4.30/net/ipv4/udp.c	2005-01-19 23:10:14.000000000 +0900
-+++ linux-2.4.30-ccs/net/ipv4/udp.c	2007-05-23 14:55:04.000000000 +0900
++++ linux-2.4.30-ccs/net/ipv4/udp.c	2007-08-14 09:27:12.000000000 +0900
 @@ -97,6 +97,9 @@
  #include <net/route.h>
  #include <net/inet_common.h>
@@ -1246,7 +1275,7 @@ diff -ubBpEr linux-2.4.30/net/ipv6/tcp_ipv6.c linux-2.4.30-ccs/net/ipv6/tcp_ipv6
  					goto next;
 diff -ubBpEr linux-2.4.30/net/ipv6/udp.c linux-2.4.30-ccs/net/ipv6/udp.c
 --- linux-2.4.30/net/ipv6/udp.c	2004-11-17 20:54:22.000000000 +0900
-+++ linux-2.4.30-ccs/net/ipv6/udp.c	2007-05-24 17:29:05.000000000 +0900
++++ linux-2.4.30-ccs/net/ipv6/udp.c	2007-08-14 09:27:31.000000000 +0900
 @@ -50,6 +50,9 @@
  #include <net/inet_common.h>
  
@@ -1290,7 +1319,7 @@ diff -ubBpEr linux-2.4.30/net/ipv6/udp.c linux-2.4.30-ccs/net/ipv6/udp.c
  	} else {
 diff -ubBpEr linux-2.4.30/net/socket.c linux-2.4.30-ccs/net/socket.c
 --- linux-2.4.30/net/socket.c	2005-01-19 23:10:14.000000000 +0900
-+++ linux-2.4.30-ccs/net/socket.c	2007-03-26 16:38:51.000000000 +0900
++++ linux-2.4.30-ccs/net/socket.c	2007-08-14 09:01:34.000000000 +0900
 @@ -84,6 +84,10 @@
  #include <net/sock.h>
  #include <net/scm.h>
@@ -1313,19 +1342,7 @@ diff -ubBpEr linux-2.4.30/net/socket.c linux-2.4.30-ccs/net/socket.c
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
-@@ -519,6 +525,11 @@ int sock_recvmsg(struct socket *sock, st
- 	size = sock->ops->recvmsg(sock, msg, size, flags, &scm);
- 	if (size >= 0)
- 		scm_recv(sock, msg, &scm, flags);
-+	/***** TOMOYO Linux start. *****/
-+	if (size >= 0 && CheckSocketRecvMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) {
-+		size = -EAGAIN; /* Hope less harmful than -EPERM. */
-+	}
-+	/***** TOMOYO Linux end. *****/
- 
- 	return size;
- }
-@@ -847,7 +858,9 @@ int sock_create(int family, int type, in
+@@ -847,7 +853,9 @@ int sock_create(int family, int type, in
  		}
  		family = PF_PACKET;
  	}
@@ -1336,7 +1353,7 @@ diff -ubBpEr linux-2.4.30/net/socket.c linux-2.4.30-ccs/net/socket.c
  #if defined(CONFIG_KMOD) && defined(CONFIG_NET)
  	/* Attempt to load a protocol module if the find failed. 
  	 * 
-@@ -1003,6 +1016,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1003,6 +1011,9 @@ asmlinkage long sys_bind(int fd, struct 
  	if((sock = sockfd_lookup(fd,&err))!=NULL)
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0)
@@ -1346,7 +1363,7 @@ diff -ubBpEr linux-2.4.30/net/socket.c linux-2.4.30-ccs/net/socket.c
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		sockfd_put(sock);
  	}			
-@@ -1026,6 +1042,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1026,6 +1037,9 @@ asmlinkage long sys_listen(int fd, int b
  	if ((sock = sockfd_lookup(fd, &err)) != NULL) {
  		if ((unsigned) backlog > sysctl_somaxconn)
  			backlog = sysctl_somaxconn;
@@ -1356,7 +1373,7 @@ diff -ubBpEr linux-2.4.30/net/socket.c linux-2.4.30-ccs/net/socket.c
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1066,6 +1085,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1066,6 +1080,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1369,7 +1386,7 @@ diff -ubBpEr linux-2.4.30/net/socket.c linux-2.4.30-ccs/net/socket.c
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1116,6 +1141,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1116,6 +1136,9 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, address);
  	if (err < 0)
  		goto out_put;
@@ -1413,32 +1430,3 @@ diff -ubBpEr linux-2.4.30/net/unix/af_unix.c linux-2.4.30-ccs/net/unix/af_unix.c
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-diff -ubBpEr linux-2.4.30/net/core/datagram.c linux-2.4.30-ccs/net/core/datagram.c
---- linux-2.4.30/net/core/datagram.c	2001-12-22 02:42:05.000000000 +0900
-+++ linux-2.4.30-ccs/net/core/datagram.c	2007-08-15 08:44:49.555399584 +0900
-@@ -43,6 +43,10 @@
- #include <net/sock.h>
- #include <net/checksum.h>
- 
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux start. *****/
- 
- /*
-  *	Is a socket 'connection oriented' ?
-@@ -164,6 +168,14 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->receive_queue);
- 
-+		/***** TOMOYO Linux start. *****/
-+		error = CheckSocketRecvDatagramPermission(sk, skb);
-+		if (error) {
-+			skb_free_datagram(sk, skb);
-+			goto no_packet;
-+		}
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 

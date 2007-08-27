@@ -763,7 +763,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/proc/proc_misc.c kernel-source-2.4
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.27-10sarge5 2007/08/25\n");
++		printk("Hook version: 2.4.27-10sarge5 2007/08/27\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1150,9 +1150,38 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/time.c kernel-source-2.4.27-10
  		
  	/* Now we validate the data before disabling interrupts */
  
+diff -ubBpEr kernel-source-2.4.27-10sarge5/net/core/datagram.c kernel-source-2.4.27-10sarge5-ccs/net/core/datagram.c
+--- kernel-source-2.4.27-10sarge5/net/core/datagram.c	2001-12-22 02:42:05.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/core/datagram.c	2007-08-15 08:49:26.118355624 +0900
+@@ -43,6 +43,10 @@
+ #include <net/sock.h>
+ #include <net/checksum.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux start. *****/
+ 
+ /*
+  *	Is a socket 'connection oriented' ?
+@@ -164,6 +168,14 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->receive_queue);
+ 
++		/***** TOMOYO Linux start. *****/
++		error = CheckSocketRecvDatagramPermission(sk, skb);
++		if (error) {
++			skb_free_datagram(sk, skb);
++			goto no_packet;
++		}
++		/***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c kernel-source-2.4.27-10sarge5-ccs/net/ipv4/tcp_ipv4.c
---- kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/ipv4/tcp_ipv4.c	2007-03-24 21:08:09.000000000 +0900
+--- kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/ipv4/tcp_ipv4.c	2007-05-25 16:29:53.000000000 +0900
 @@ -67,6 +67,9 @@
  
  #include <linux/inet.h>
@@ -1184,8 +1213,8 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/tcp_ipv4.c kernel-source-2.4
  			/* Does not bother with rcv_saddr checks,
  			 * because the established check is already
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/udp.c kernel-source-2.4.27-10sarge5-ccs/net/ipv4/udp.c
---- kernel-source-2.4.27-10sarge5/net/ipv4/udp.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/ipv4/udp.c	2007-05-23 15:01:49.000000000 +0900
+--- kernel-source-2.4.27-10sarge5/net/ipv4/udp.c	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/ipv4/udp.c	2007-05-25 16:29:53.000000000 +0900
 @@ -103,6 +103,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1217,8 +1246,8 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv4/udp.c kernel-source-2.4.27-1
  				break;
  		}
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c kernel-source-2.4.27-10sarge5-ccs/net/ipv6/tcp_ipv6.c
---- kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/ipv6/tcp_ipv6.c	2007-03-24 21:08:09.000000000 +0900
+--- kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/ipv6/tcp_ipv6.c	2007-05-25 16:29:53.000000000 +0900
 @@ -53,6 +53,9 @@
  #include <net/inet_ecn.h>
  
@@ -1240,8 +1269,8 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/tcp_ipv6.c kernel-source-2.4
  				if (tb->port == rover)
  					goto next;
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/udp.c kernel-source-2.4.27-10sarge5-ccs/net/ipv6/udp.c
---- kernel-source-2.4.27-10sarge5/net/ipv6/udp.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/ipv6/udp.c	2007-05-24 17:42:03.592277464 +0900
+--- kernel-source-2.4.27-10sarge5/net/ipv6/udp.c	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/ipv6/udp.c	2007-05-25 16:29:53.000000000 +0900
 @@ -52,6 +52,9 @@
  
  #include <net/checksum.h>
@@ -1273,8 +1302,8 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/ipv6/udp.c kernel-source-2.4.27-1
  				break;
  		}
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10sarge5-ccs/net/socket.c
---- kernel-source-2.4.27-10sarge5/net/socket.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/socket.c	2007-03-24 21:08:09.000000000 +0900
+--- kernel-source-2.4.27-10sarge5/net/socket.c	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/socket.c	2007-08-14 12:56:14.000000000 +0900
 @@ -84,6 +84,10 @@
  #include <net/sock.h>
  #include <net/scm.h>
@@ -1297,19 +1326,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
-@@ -519,6 +525,11 @@ int sock_recvmsg(struct socket *sock, st
- 	size = sock->ops->recvmsg(sock, msg, size, flags, &scm);
- 	if (size >= 0)
- 		scm_recv(sock, msg, &scm, flags);
-+	/***** TOMOYO Linux start. *****/
-+	if (size >= 0 && CheckSocketRecvMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) {
-+		size = -EAGAIN; /* Hope less harmful than -EPERM. */
-+	}
-+	/***** TOMOYO Linux end. *****/
- 
- 	return size;
- }
-@@ -847,7 +858,9 @@ int sock_create(int family, int type, in
+@@ -847,7 +853,9 @@ int sock_create(int family, int type, in
  		}
  		family = PF_PACKET;
  	}
@@ -1320,7 +1337,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  #if defined(CONFIG_KMOD) && defined(CONFIG_NET)
  	/* Attempt to load a protocol module if the find failed. 
  	 * 
-@@ -1003,6 +1016,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1003,6 +1011,9 @@ asmlinkage long sys_bind(int fd, struct 
  	if((sock = sockfd_lookup(fd,&err))!=NULL)
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0)
@@ -1330,7 +1347,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		sockfd_put(sock);
  	}			
-@@ -1026,6 +1042,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1026,6 +1037,9 @@ asmlinkage long sys_listen(int fd, int b
  	if ((sock = sockfd_lookup(fd, &err)) != NULL) {
  		if ((unsigned) backlog > sysctl_somaxconn)
  			backlog = sysctl_somaxconn;
@@ -1340,7 +1357,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1066,6 +1085,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1066,6 +1080,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1353,7 +1370,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1116,6 +1141,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1116,6 +1136,9 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, address);
  	if (err < 0)
  		goto out_put;
@@ -1364,8 +1381,8 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  				 sock->file->f_flags);
  out_put:
 diff -ubBpEr kernel-source-2.4.27-10sarge5/net/unix/af_unix.c kernel-source-2.4.27-10sarge5-ccs/net/unix/af_unix.c
---- kernel-source-2.4.27-10sarge5/net/unix/af_unix.c	2007-03-24 11:43:44.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/unix/af_unix.c	2007-03-24 21:08:09.000000000 +0900
+--- kernel-source-2.4.27-10sarge5/net/unix/af_unix.c	2007-08-14 12:41:48.000000000 +0900
++++ kernel-source-2.4.27-10sarge5-ccs/net/unix/af_unix.c	2007-05-25 16:29:53.000000000 +0900
 @@ -111,6 +111,9 @@
  #include <linux/rtnetlink.h>
  
@@ -1397,32 +1414,3 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/unix/af_unix.c kernel-source-2.4.
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-diff -ubBpEr kernel-source-2.4.27-10sarge5/net/core/datagram.c kernel-source-2.4.27-10sarge5-ccs/net/core/datagram.c
---- kernel-source-2.4.27-10sarge5/net/core/datagram.c	2001-12-22 02:42:05.000000000 +0900
-+++ kernel-source-2.4.27-10sarge5-ccs/net/core/datagram.c	2007-08-15 08:49:26.118355624 +0900
-@@ -43,6 +43,10 @@
- #include <net/sock.h>
- #include <net/checksum.h>
- 
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux start. *****/
- 
- /*
-  *	Is a socket 'connection oriented' ?
-@@ -164,6 +168,14 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->receive_queue);
- 
-+		/***** TOMOYO Linux start. *****/
-+		error = CheckSocketRecvDatagramPermission(sk, skb);
-+		if (error) {
-+			skb_free_datagram(sk, skb);
-+			goto no_packet;
-+		}
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 

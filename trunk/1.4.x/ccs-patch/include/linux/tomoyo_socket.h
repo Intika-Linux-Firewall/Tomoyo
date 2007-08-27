@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-pre   2007/08/25
+ * Version: 1.4.3-pre   2007/08/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -265,10 +265,6 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 		error = -EAGAIN; /* Hope less harmful than -EPERM. */
 	}
 	return error;
-}
-
-static inline int CheckSocketRecvMsgPermission(struct socket *sock, struct sockaddr *addr, int addr_len) {
-	return 0;
 }
 
 /***** TOMOYO Linux end. *****/
