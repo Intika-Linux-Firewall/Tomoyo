@@ -1,18 +1,18 @@
-diff -ubBpEr linux-2.6.23-rc3/Makefile linux-2.6.23-rc3-ccs/Makefile
---- linux-2.6.23-rc3/Makefile	2007-08-24 16:51:34.857761288 +0900
-+++ linux-2.6.23-rc3-ccs/Makefile	2007-08-24 16:51:58.627147792 +0900
+diff -ubBpEr linux-2.6.23-rc4/Makefile linux-2.6.23-rc4-ccs/Makefile
+--- linux-2.6.23-rc4/Makefile	2007-08-28 13:28:40.102316792 +0900
++++ linux-2.6.23-rc4-ccs/Makefile	2007-08-28 13:28:51.381602080 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 23
--EXTRAVERSION =-rc3
-+EXTRAVERSION =-rc3-ccs
- NAME = Holy Dancing Manatees, Batman!
+-EXTRAVERSION =-rc4
++EXTRAVERSION =-rc4-ccs
+ NAME = Pink Farting Weasel
  
  # *DOCUMENTATION*
-diff -ubBpEr linux-2.6.23-rc3/fs/Kconfig linux-2.6.23-rc3-ccs/fs/Kconfig
---- linux-2.6.23-rc3/fs/Kconfig	2007-08-24 16:51:34.864760224 +0900
-+++ linux-2.6.23-rc3-ccs/fs/Kconfig	2007-08-24 16:51:42.140654120 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/Kconfig linux-2.6.23-rc4-ccs/fs/Kconfig
+--- linux-2.6.23-rc4/fs/Kconfig	2007-08-28 13:28:40.103316640 +0900
++++ linux-2.6.23-rc4-ccs/fs/Kconfig	2007-08-28 13:28:45.123553448 +0900
 @@ -2071,5 +2071,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -21,18 +21,18 @@ diff -ubBpEr linux-2.6.23-rc3/fs/Kconfig linux-2.6.23-rc3-ccs/fs/Kconfig
 +
  endmenu
  
-diff -ubBpEr linux-2.6.23-rc3/fs/Makefile linux-2.6.23-rc3-ccs/fs/Makefile
---- linux-2.6.23-rc3/fs/Makefile	2007-08-24 16:51:34.864760224 +0900
-+++ linux-2.6.23-rc3-ccs/fs/Makefile	2007-08-24 16:51:42.141653968 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/Makefile linux-2.6.23-rc4-ccs/fs/Makefile
+--- linux-2.6.23-rc4/fs/Makefile	2007-08-28 13:28:40.103316640 +0900
++++ linux-2.6.23-rc4-ccs/fs/Makefile	2007-08-28 13:28:45.124553296 +0900
 @@ -118,3 +118,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
-diff -ubBpEr linux-2.6.23-rc3/fs/attr.c linux-2.6.23-rc3-ccs/fs/attr.c
---- linux-2.6.23-rc3/fs/attr.c	2007-08-24 16:51:34.864760224 +0900
-+++ linux-2.6.23-rc3-ccs/fs/attr.c	2007-08-24 16:51:42.152652296 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/attr.c linux-2.6.23-rc4-ccs/fs/attr.c
+--- linux-2.6.23-rc4/fs/attr.c	2007-08-28 13:28:40.103316640 +0900
++++ linux-2.6.23-rc4-ccs/fs/attr.c	2007-08-28 13:28:45.125553144 +0900
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -64,9 +64,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/attr.c linux-2.6.23-rc3-ccs/fs/attr.c
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
-diff -ubBpEr linux-2.6.23-rc3/fs/compat.c linux-2.6.23-rc3-ccs/fs/compat.c
---- linux-2.6.23-rc3/fs/compat.c	2007-08-24 16:51:34.865760072 +0900
-+++ linux-2.6.23-rc3-ccs/fs/compat.c	2007-08-24 16:51:42.164650472 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/compat.c linux-2.6.23-rc4-ccs/fs/compat.c
+--- linux-2.6.23-rc4/fs/compat.c	2007-08-28 13:28:40.104316488 +0900
++++ linux-2.6.23-rc4-ccs/fs/compat.c	2007-08-28 13:28:45.128552688 +0900
 @@ -55,6 +55,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -86,9 +86,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/compat.c linux-2.6.23-rc3-ccs/fs/compat.c
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
-diff -ubBpEr linux-2.6.23-rc3/fs/compat_ioctl.c linux-2.6.23-rc3-ccs/fs/compat_ioctl.c
---- linux-2.6.23-rc3/fs/compat_ioctl.c	2007-08-24 16:51:34.877758248 +0900
-+++ linux-2.6.23-rc3-ccs/fs/compat_ioctl.c	2007-08-24 16:51:42.173649104 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/compat_ioctl.c linux-2.6.23-rc4-ccs/fs/compat_ioctl.c
+--- linux-2.6.23-rc4/fs/compat_ioctl.c	2007-08-28 13:28:40.105316336 +0900
++++ linux-2.6.23-rc4-ccs/fs/compat_ioctl.c	2007-08-28 13:28:45.132552080 +0900
 @@ -114,6 +114,9 @@
  #include <linux/dvb/frontend.h>
  #include <linux/dvb/video.h>
@@ -109,9 +109,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/compat_ioctl.c linux-2.6.23-rc3-ccs/fs/compat_i
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
-diff -ubBpEr linux-2.6.23-rc3/fs/exec.c linux-2.6.23-rc3-ccs/fs/exec.c
---- linux-2.6.23-rc3/fs/exec.c	2007-08-24 16:51:34.878758096 +0900
-+++ linux-2.6.23-rc3-ccs/fs/exec.c	2007-08-24 16:51:42.177648496 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/exec.c linux-2.6.23-rc4-ccs/fs/exec.c
+--- linux-2.6.23-rc4/fs/exec.c	2007-08-28 13:28:40.106316184 +0900
++++ linux-2.6.23-rc4-ccs/fs/exec.c	2007-08-28 13:28:45.133551928 +0900
 @@ -60,6 +60,10 @@
  #include <linux/kmod.h>
  #endif
@@ -145,7 +145,7 @@ diff -ubBpEr linux-2.6.23-rc3/fs/exec.c linux-2.6.23-rc3-ccs/fs/exec.c
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1401,7 +1413,7 @@ int do_execve(char * filename,
+@@ -1398,7 +1410,7 @@ int do_execve(char * filename,
  		goto out;
  	bprm->argv_len = env_p - bprm->p;
  
@@ -154,9 +154,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/exec.c linux-2.6.23-rc3-ccs/fs/exec.c
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
-diff -ubBpEr linux-2.6.23-rc3/fs/fcntl.c linux-2.6.23-rc3-ccs/fs/fcntl.c
---- linux-2.6.23-rc3/fs/fcntl.c	2007-08-24 16:51:34.880757792 +0900
-+++ linux-2.6.23-rc3-ccs/fs/fcntl.c	2007-08-24 16:51:42.178648344 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/fcntl.c linux-2.6.23-rc4-ccs/fs/fcntl.c
+--- linux-2.6.23-rc4/fs/fcntl.c	2007-08-28 13:28:40.106316184 +0900
++++ linux-2.6.23-rc4-ccs/fs/fcntl.c	2007-08-28 13:28:45.134551776 +0900
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -178,9 +178,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/fcntl.c linux-2.6.23-rc3-ccs/fs/fcntl.c
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
-diff -ubBpEr linux-2.6.23-rc3/fs/ioctl.c linux-2.6.23-rc3-ccs/fs/ioctl.c
---- linux-2.6.23-rc3/fs/ioctl.c	2007-08-24 16:51:34.882757488 +0900
-+++ linux-2.6.23-rc3-ccs/fs/ioctl.c	2007-08-24 16:51:42.179648192 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/ioctl.c linux-2.6.23-rc4-ccs/fs/ioctl.c
+--- linux-2.6.23-rc4/fs/ioctl.c	2007-08-28 13:28:40.106316184 +0900
++++ linux-2.6.23-rc4-ccs/fs/ioctl.c	2007-08-28 13:28:45.135551624 +0900
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -201,9 +201,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/ioctl.c linux-2.6.23-rc3-ccs/fs/ioctl.c
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-diff -ubBpEr linux-2.6.23-rc3/fs/namei.c linux-2.6.23-rc3-ccs/fs/namei.c
---- linux-2.6.23-rc3/fs/namei.c	2007-08-24 16:51:34.887756728 +0900
-+++ linux-2.6.23-rc3-ccs/fs/namei.c	2007-08-24 16:51:42.182647736 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/namei.c linux-2.6.23-rc4-ccs/fs/namei.c
+--- linux-2.6.23-rc4/fs/namei.c	2007-08-28 13:28:40.107316032 +0900
++++ linux-2.6.23-rc4-ccs/fs/namei.c	2007-08-28 13:28:45.137551320 +0900
 @@ -36,6 +36,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -380,9 +380,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/namei.c linux-2.6.23-rc3-ccs/fs/namei.c
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-diff -ubBpEr linux-2.6.23-rc3/fs/namespace.c linux-2.6.23-rc3-ccs/fs/namespace.c
---- linux-2.6.23-rc3/fs/namespace.c	2007-08-24 16:51:34.890756272 +0900
-+++ linux-2.6.23-rc3-ccs/fs/namespace.c	2007-08-24 16:51:42.187646976 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/namespace.c linux-2.6.23-rc4-ccs/fs/namespace.c
+--- linux-2.6.23-rc4/fs/namespace.c	2007-08-28 13:28:40.107316032 +0900
++++ linux-2.6.23-rc4-ccs/fs/namespace.c	2007-08-28 13:28:45.139551016 +0900
 @@ -29,6 +29,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -484,9 +484,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/namespace.c linux-2.6.23-rc3-ccs/fs/namespace.c
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
-diff -ubBpEr linux-2.6.23-rc3/fs/open.c linux-2.6.23-rc3-ccs/fs/open.c
---- linux-2.6.23-rc3/fs/open.c	2007-08-24 16:51:34.891756120 +0900
-+++ linux-2.6.23-rc3-ccs/fs/open.c	2007-08-24 16:51:42.189646672 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/open.c linux-2.6.23-rc4-ccs/fs/open.c
+--- linux-2.6.23-rc4/fs/open.c	2007-08-28 13:28:40.108315880 +0900
++++ linux-2.6.23-rc4-ccs/fs/open.c	2007-08-28 13:28:45.139551016 +0900
 @@ -27,6 +27,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -543,9 +543,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/open.c linux-2.6.23-rc3-ccs/fs/open.c
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
-diff -ubBpEr linux-2.6.23-rc3/fs/proc/Makefile linux-2.6.23-rc3-ccs/fs/proc/Makefile
---- linux-2.6.23-rc3/fs/proc/Makefile	2007-08-24 16:51:34.891756120 +0900
-+++ linux-2.6.23-rc3-ccs/fs/proc/Makefile	2007-08-24 16:51:42.190646520 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/proc/Makefile linux-2.6.23-rc4-ccs/fs/proc/Makefile
+--- linux-2.6.23-rc4/fs/proc/Makefile	2007-08-28 13:28:40.108315880 +0900
++++ linux-2.6.23-rc4-ccs/fs/proc/Makefile	2007-08-28 13:28:45.140550864 +0900
 @@ -15,3 +15,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -553,9 +553,9 @@ diff -ubBpEr linux-2.6.23-rc3/fs/proc/Makefile linux-2.6.23-rc3-ccs/fs/proc/Make
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
-diff -ubBpEr linux-2.6.23-rc3/fs/proc/proc_misc.c linux-2.6.23-rc3-ccs/fs/proc/proc_misc.c
---- linux-2.6.23-rc3/fs/proc/proc_misc.c	2007-08-24 16:51:34.892755968 +0900
-+++ linux-2.6.23-rc3-ccs/fs/proc/proc_misc.c	2007-08-24 16:52:10.927277888 +0900
+diff -ubBpEr linux-2.6.23-rc4/fs/proc/proc_misc.c linux-2.6.23-rc4-ccs/fs/proc/proc_misc.c
+--- linux-2.6.23-rc4/fs/proc/proc_misc.c	2007-08-28 13:28:40.108315880 +0900
++++ linux-2.6.23-rc4-ccs/fs/proc/proc_misc.c	2007-08-28 13:29:08.086062616 +0900
 @@ -748,4 +748,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
@@ -565,14 +565,14 @@ diff -ubBpEr linux-2.6.23-rc3/fs/proc/proc_misc.c linux-2.6.23-rc3-ccs/fs/proc/p
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.23-rc3 2007/08/24\n");
++		printk("Hook version: 2.6.23-rc4 2007/08/28\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
-diff -ubBpEr linux-2.6.23-rc3/include/linux/init_task.h linux-2.6.23-rc3-ccs/include/linux/init_task.h
---- linux-2.6.23-rc3/include/linux/init_task.h	2007-08-24 16:51:34.894755664 +0900
-+++ linux-2.6.23-rc3-ccs/include/linux/init_task.h	2007-08-24 16:51:42.194645912 +0900
+diff -ubBpEr linux-2.6.23-rc4/include/linux/init_task.h linux-2.6.23-rc4-ccs/include/linux/init_task.h
+--- linux-2.6.23-rc4/include/linux/init_task.h	2007-08-28 13:28:40.108315880 +0900
++++ linux-2.6.23-rc4-ccs/include/linux/init_task.h	2007-08-28 13:28:45.142550560 +0900
 @@ -171,6 +171,10 @@ extern struct group_info init_groups;
  	},								\
  	INIT_TRACE_IRQFLAGS						\
@@ -584,9 +584,9 @@ diff -ubBpEr linux-2.6.23-rc3/include/linux/init_task.h linux-2.6.23-rc3-ccs/inc
  }
  
  
-diff -ubBpEr linux-2.6.23-rc3/include/linux/sched.h linux-2.6.23-rc3-ccs/include/linux/sched.h
---- linux-2.6.23-rc3/include/linux/sched.h	2007-08-24 16:51:34.896755360 +0900
-+++ linux-2.6.23-rc3-ccs/include/linux/sched.h	2007-08-24 16:51:42.197645456 +0900
+diff -ubBpEr linux-2.6.23-rc4/include/linux/sched.h linux-2.6.23-rc4-ccs/include/linux/sched.h
+--- linux-2.6.23-rc4/include/linux/sched.h	2007-08-28 13:28:40.109315728 +0900
++++ linux-2.6.23-rc4-ccs/include/linux/sched.h	2007-08-28 13:28:45.144550256 +0900
 @@ -28,6 +28,11 @@
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
  #define CLONE_NEWUSER		0x10000000	/* New user namespace */
@@ -610,9 +610,9 @@ diff -ubBpEr linux-2.6.23-rc3/include/linux/sched.h linux-2.6.23-rc3-ccs/include
  };
  
  /*
-diff -ubBpEr linux-2.6.23-rc3/kernel/compat.c linux-2.6.23-rc3-ccs/kernel/compat.c
---- linux-2.6.23-rc3/kernel/compat.c	2007-08-24 16:51:34.897755208 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/compat.c	2007-08-24 16:51:42.199645152 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/compat.c linux-2.6.23-rc4-ccs/kernel/compat.c
+--- linux-2.6.23-rc4/kernel/compat.c	2007-08-28 13:28:40.110315576 +0900
++++ linux-2.6.23-rc4-ccs/kernel/compat.c	2007-08-28 13:28:45.145550104 +0900
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -633,9 +633,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/compat.c linux-2.6.23-rc3-ccs/kernel/compat
  
  	do_settimeofday(&tv);
  	return 0;
-diff -ubBpEr linux-2.6.23-rc3/kernel/kexec.c linux-2.6.23-rc3-ccs/kernel/kexec.c
---- linux-2.6.23-rc3/kernel/kexec.c	2007-08-24 16:51:34.897755208 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/kexec.c	2007-08-24 16:51:42.200645000 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/kexec.c linux-2.6.23-rc4-ccs/kernel/kexec.c
+--- linux-2.6.23-rc4/kernel/kexec.c	2007-08-28 13:28:40.110315576 +0900
++++ linux-2.6.23-rc4-ccs/kernel/kexec.c	2007-08-28 13:28:45.147549800 +0900
 @@ -28,6 +28,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -656,9 +656,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/kexec.c linux-2.6.23-rc3-ccs/kernel/kexec.c
  
  	/*
  	 * Verify we have a legal set of flags
-diff -ubBpEr linux-2.6.23-rc3/kernel/kmod.c linux-2.6.23-rc3-ccs/kernel/kmod.c
---- linux-2.6.23-rc3/kernel/kmod.c	2007-08-24 16:51:34.897755208 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/kmod.c	2007-08-24 16:51:42.201644848 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/kmod.c linux-2.6.23-rc4-ccs/kernel/kmod.c
+--- linux-2.6.23-rc4/kernel/kmod.c	2007-08-28 13:28:40.111315424 +0900
++++ linux-2.6.23-rc4-ccs/kernel/kmod.c	2007-08-28 13:28:45.148549648 +0900
 @@ -173,6 +173,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -671,9 +671,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/kmod.c linux-2.6.23-rc3-ccs/kernel/kmod.c
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
-diff -ubBpEr linux-2.6.23-rc3/kernel/module.c linux-2.6.23-rc3-ccs/kernel/module.c
---- linux-2.6.23-rc3/kernel/module.c	2007-08-24 16:51:34.899754904 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/module.c	2007-08-24 16:51:42.202644696 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/module.c linux-2.6.23-rc4-ccs/kernel/module.c
+--- linux-2.6.23-rc4/kernel/module.c	2007-08-28 13:28:40.112315272 +0900
++++ linux-2.6.23-rc4-ccs/kernel/module.c	2007-08-28 13:28:45.150549344 +0900
 @@ -45,6 +45,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -694,7 +694,7 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/module.c linux-2.6.23-rc3-ccs/kernel/module
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -1982,6 +1988,9 @@ sys_init_module(void __user *umod,
+@@ -1981,6 +1987,9 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -704,9 +704,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/module.c linux-2.6.23-rc3-ccs/kernel/module
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
-diff -ubBpEr linux-2.6.23-rc3/kernel/sched.c linux-2.6.23-rc3-ccs/kernel/sched.c
---- linux-2.6.23-rc3/kernel/sched.c	2007-08-24 16:51:34.908753536 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/sched.c	2007-08-24 16:51:42.206644088 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/sched.c linux-2.6.23-rc4-ccs/kernel/sched.c
+--- linux-2.6.23-rc4/kernel/sched.c	2007-08-28 13:28:40.114314968 +0900
++++ linux-2.6.23-rc4-ccs/kernel/sched.c	2007-08-28 13:28:45.156548432 +0900
 @@ -63,6 +63,9 @@
  #include <linux/unistd.h>
  
@@ -717,7 +717,7 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/sched.c linux-2.6.23-rc3-ccs/kernel/sched.c
  
  /*
   * Scheduler clock - returns current time in nanosec units.
-@@ -4032,6 +4035,9 @@ int can_nice(const struct task_struct *p
+@@ -4059,6 +4062,9 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -727,9 +727,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/sched.c linux-2.6.23-rc3-ccs/kernel/sched.c
  
  	/*
  	 * Setpriority might change our priority at the same moment.
-diff -ubBpEr linux-2.6.23-rc3/kernel/signal.c linux-2.6.23-rc3-ccs/kernel/signal.c
---- linux-2.6.23-rc3/kernel/signal.c	2007-08-24 16:51:34.909753384 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/signal.c	2007-08-24 16:51:42.207643936 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/signal.c linux-2.6.23-rc4-ccs/kernel/signal.c
+--- linux-2.6.23-rc4/kernel/signal.c	2007-08-28 13:28:40.115314816 +0900
++++ linux-2.6.23-rc4-ccs/kernel/signal.c	2007-08-28 13:28:45.158548128 +0900
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -773,9 +773,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/signal.c linux-2.6.23-rc3-ccs/kernel/signal
  
  	return do_tkill(0, pid, sig);
  }
-diff -ubBpEr linux-2.6.23-rc3/kernel/sys.c linux-2.6.23-rc3-ccs/kernel/sys.c
---- linux-2.6.23-rc3/kernel/sys.c	2007-08-24 16:51:34.913752776 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/sys.c	2007-08-24 16:51:42.209643632 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/sys.c linux-2.6.23-rc4-ccs/kernel/sys.c
+--- linux-2.6.23-rc4/kernel/sys.c	2007-08-28 13:28:40.116314664 +0900
++++ linux-2.6.23-rc4-ccs/kernel/sys.c	2007-08-28 13:28:45.161547672 +0900
 @@ -41,6 +41,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -826,10 +826,10 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/sys.c linux-2.6.23-rc3-ccs/kernel/sys.c
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
-diff -ubBpEr linux-2.6.23-rc3/kernel/sysctl.c linux-2.6.23-rc3-ccs/kernel/sysctl.c
---- linux-2.6.23-rc3/kernel/sysctl.c	2007-08-24 16:51:34.921751560 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/sysctl.c	2007-08-24 16:51:42.210643480 +0900
-@@ -50,6 +50,9 @@
+diff -ubBpEr linux-2.6.23-rc4/kernel/sysctl.c linux-2.6.23-rc4-ccs/kernel/sysctl.c
+--- linux-2.6.23-rc4/kernel/sysctl.c	2007-08-28 13:28:40.117314512 +0900
++++ linux-2.6.23-rc4-ccs/kernel/sysctl.c	2007-08-28 13:28:45.164547216 +0900
+@@ -49,6 +49,9 @@
  
  #include <asm/uaccess.h>
  #include <asm/processor.h>
@@ -839,7 +839,7 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/sysctl.c linux-2.6.23-rc3-ccs/kernel/sysctl
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1298,6 +1301,81 @@ struct ctl_table_header *sysctl_head_nex
+@@ -1308,6 +1311,81 @@ struct ctl_table_header *sysctl_head_nex
  }
  
  #ifdef CONFIG_SYSCTL_SYSCALL
@@ -921,7 +921,7 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/sysctl.c linux-2.6.23-rc3-ccs/kernel/sysctl
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1314,6 +1392,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1324,6 +1402,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -931,9 +931,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/sysctl.c linux-2.6.23-rc3-ccs/kernel/sysctl
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
-diff -ubBpEr linux-2.6.23-rc3/kernel/time/ntp.c linux-2.6.23-rc3-ccs/kernel/time/ntp.c
---- linux-2.6.23-rc3/kernel/time/ntp.c	2007-08-24 16:51:34.923751256 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/time/ntp.c	2007-08-24 16:51:42.211643328 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/time/ntp.c linux-2.6.23-rc4-ccs/kernel/time/ntp.c
+--- linux-2.6.23-rc4/kernel/time/ntp.c	2007-08-28 13:28:40.118314360 +0900
++++ linux-2.6.23-rc4-ccs/kernel/time/ntp.c	2007-08-28 13:28:45.166546912 +0900
 @@ -17,6 +17,9 @@
  #include <linux/capability.h>
  #include <asm/div64.h>
@@ -954,9 +954,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/time/ntp.c linux-2.6.23-rc3-ccs/kernel/time
  
  	/* Now we validate the data before disabling interrupts */
  
-diff -ubBpEr linux-2.6.23-rc3/kernel/time.c linux-2.6.23-rc3-ccs/kernel/time.c
---- linux-2.6.23-rc3/kernel/time.c	2007-08-24 16:51:34.923751256 +0900
-+++ linux-2.6.23-rc3-ccs/kernel/time.c	2007-08-24 16:51:42.212643176 +0900
+diff -ubBpEr linux-2.6.23-rc4/kernel/time.c linux-2.6.23-rc4-ccs/kernel/time.c
+--- linux-2.6.23-rc4/kernel/time.c	2007-08-28 13:28:40.118314360 +0900
++++ linux-2.6.23-rc4-ccs/kernel/time.c	2007-08-28 13:28:45.167546760 +0900
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -987,9 +987,9 @@ diff -ubBpEr linux-2.6.23-rc3/kernel/time.c linux-2.6.23-rc3-ccs/kernel/time.c
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
-diff -ubBpEr linux-2.6.23-rc3/net/core/datagram.c linux-2.6.23-rc3-ccs/net/core/datagram.c
---- linux-2.6.23-rc3/net/core/datagram.c	2007-08-24 16:51:34.923751256 +0900
-+++ linux-2.6.23-rc3-ccs/net/core/datagram.c	2007-08-24 16:51:42.212643176 +0900
+diff -ubBpEr linux-2.6.23-rc4/net/core/datagram.c linux-2.6.23-rc4-ccs/net/core/datagram.c
+--- linux-2.6.23-rc4/net/core/datagram.c	2007-08-28 13:28:40.118314360 +0900
++++ linux-2.6.23-rc4-ccs/net/core/datagram.c	2007-08-28 13:28:45.169546456 +0900
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1017,9 +1017,9 @@ diff -ubBpEr linux-2.6.23-rc3/net/core/datagram.c linux-2.6.23-rc3-ccs/net/core/
  		if (skb)
  			return skb;
  
-diff -ubBpEr linux-2.6.23-rc3/net/ipv4/inet_connection_sock.c linux-2.6.23-rc3-ccs/net/ipv4/inet_connection_sock.c
---- linux-2.6.23-rc3/net/ipv4/inet_connection_sock.c	2007-08-24 16:51:34.926750800 +0900
-+++ linux-2.6.23-rc3-ccs/net/ipv4/inet_connection_sock.c	2007-08-24 16:51:42.213643024 +0900
+diff -ubBpEr linux-2.6.23-rc4/net/ipv4/inet_connection_sock.c linux-2.6.23-rc4-ccs/net/ipv4/inet_connection_sock.c
+--- linux-2.6.23-rc4/net/ipv4/inet_connection_sock.c	2007-08-28 13:28:40.119314208 +0900
++++ linux-2.6.23-rc4-ccs/net/ipv4/inet_connection_sock.c	2007-08-28 13:28:45.170546304 +0900
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1040,9 +1040,9 @@ diff -ubBpEr linux-2.6.23-rc3/net/ipv4/inet_connection_sock.c linux-2.6.23-rc3-c
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
-diff -ubBpEr linux-2.6.23-rc3/net/ipv4/inet_hashtables.c linux-2.6.23-rc3-ccs/net/ipv4/inet_hashtables.c
---- linux-2.6.23-rc3/net/ipv4/inet_hashtables.c	2007-08-24 16:51:34.928750496 +0900
-+++ linux-2.6.23-rc3-ccs/net/ipv4/inet_hashtables.c	2007-08-24 16:51:42.214642872 +0900
+diff -ubBpEr linux-2.6.23-rc4/net/ipv4/inet_hashtables.c linux-2.6.23-rc4-ccs/net/ipv4/inet_hashtables.c
+--- linux-2.6.23-rc4/net/ipv4/inet_hashtables.c	2007-08-28 13:28:40.119314208 +0900
++++ linux-2.6.23-rc4-ccs/net/ipv4/inet_hashtables.c	2007-08-28 13:28:45.171546152 +0900
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1063,9 +1063,9 @@ diff -ubBpEr linux-2.6.23-rc3/net/ipv4/inet_hashtables.c linux-2.6.23-rc3-ccs/ne
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
-diff -ubBpEr linux-2.6.23-rc3/net/ipv4/udp.c linux-2.6.23-rc3-ccs/net/ipv4/udp.c
---- linux-2.6.23-rc3/net/ipv4/udp.c	2007-08-24 16:51:34.932749888 +0900
-+++ linux-2.6.23-rc3-ccs/net/ipv4/udp.c	2007-08-24 16:51:42.215642720 +0900
+diff -ubBpEr linux-2.6.23-rc4/net/ipv4/udp.c linux-2.6.23-rc4-ccs/net/ipv4/udp.c
+--- linux-2.6.23-rc4/net/ipv4/udp.c	2007-08-28 13:28:40.119314208 +0900
++++ linux-2.6.23-rc4-ccs/net/ipv4/udp.c	2007-08-28 13:28:45.172546000 +0900
 @@ -103,6 +103,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1096,9 +1096,9 @@ diff -ubBpEr linux-2.6.23-rc3/net/ipv4/udp.c linux-2.6.23-rc3-ccs/net/ipv4/udp.c
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
-diff -ubBpEr linux-2.6.23-rc3/net/ipv6/inet6_hashtables.c linux-2.6.23-rc3-ccs/net/ipv6/inet6_hashtables.c
---- linux-2.6.23-rc3/net/ipv6/inet6_hashtables.c	2007-08-24 16:51:34.932749888 +0900
-+++ linux-2.6.23-rc3-ccs/net/ipv6/inet6_hashtables.c	2007-08-24 16:51:42.215642720 +0900
+diff -ubBpEr linux-2.6.23-rc4/net/ipv6/inet6_hashtables.c linux-2.6.23-rc4-ccs/net/ipv6/inet6_hashtables.c
+--- linux-2.6.23-rc4/net/ipv6/inet6_hashtables.c	2007-08-28 13:28:40.120314056 +0900
++++ linux-2.6.23-rc4-ccs/net/ipv6/inet6_hashtables.c	2007-08-28 13:28:45.173545848 +0900
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1119,9 +1119,9 @@ diff -ubBpEr linux-2.6.23-rc3/net/ipv6/inet6_hashtables.c linux-2.6.23-rc3-ccs/n
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
-diff -ubBpEr linux-2.6.23-rc3/net/socket.c linux-2.6.23-rc3-ccs/net/socket.c
---- linux-2.6.23-rc3/net/socket.c	2007-08-24 16:51:34.936749280 +0900
-+++ linux-2.6.23-rc3-ccs/net/socket.c	2007-08-24 16:51:42.217642416 +0900
+diff -ubBpEr linux-2.6.23-rc4/net/socket.c linux-2.6.23-rc4-ccs/net/socket.c
+--- linux-2.6.23-rc4/net/socket.c	2007-08-28 13:28:40.121313904 +0900
++++ linux-2.6.23-rc4-ccs/net/socket.c	2007-08-28 13:28:45.176545392 +0900
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1199,9 +1199,9 @@ diff -ubBpEr linux-2.6.23-rc3/net/socket.c linux-2.6.23-rc3-ccs/net/socket.c
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
-diff -ubBpEr linux-2.6.23-rc3/net/unix/af_unix.c linux-2.6.23-rc3-ccs/net/unix/af_unix.c
---- linux-2.6.23-rc3/net/unix/af_unix.c	2007-08-24 16:51:34.938748976 +0900
-+++ linux-2.6.23-rc3-ccs/net/unix/af_unix.c	2007-08-24 16:51:42.218642264 +0900
+diff -ubBpEr linux-2.6.23-rc4/net/unix/af_unix.c linux-2.6.23-rc4-ccs/net/unix/af_unix.c
+--- linux-2.6.23-rc4/net/unix/af_unix.c	2007-08-28 13:28:40.121313904 +0900
++++ linux-2.6.23-rc4-ccs/net/unix/af_unix.c	2007-08-28 13:28:45.177545240 +0900
 @@ -115,6 +115,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
