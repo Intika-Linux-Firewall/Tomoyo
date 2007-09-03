@@ -20,12 +20,12 @@ control level of TOMOYO Linux. A profile is assigned to a domain.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c | 2385 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2385 insertions(+)
+ security/tomoyo/common.c | 2384 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2384 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-09-03 13:18:02.000000000 +0900
-@@ -0,0 +1,2385 @@
++++ linux-2.6/security/tomoyo/common.c	2007-09-03 13:58:13.000000000 +0900
+@@ -0,0 +1,2384 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1740,8 +1740,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	printk(KERN_INFO "TOMOYO: %s   2007/08/21\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
-+		panic("TOMOYO: No profiles loaded. "
-+		      "Run policy loader using 'init=' option.\n");
++		panic("TOMOYO: No profiles loaded.\n");
 +
 +	printk(KERN_INFO "TOMOYO: Mandatory Access Control activated.\n");
 +	sbin_init_started = 1;
