@@ -50,6 +50,7 @@
 
 #include <linux/namei.h>
 #include <linux/version.h>
+#include <linux/sched.h>
 
 static struct super_operations syaoran_ops;
 static struct address_space_operations syaoran_aops;
