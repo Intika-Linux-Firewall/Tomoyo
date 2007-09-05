@@ -1019,3 +1019,11 @@ Fix 2007/08/24
     @ Move /proc/ccs/\*/\* to /proc/ccs/\* .
 
       Some pathnames for /proc/ccs/ interface were changed.
+
+Fix 2007/09/05
+
+    @ Drop MSG_PEEK'ed message before skb_free_datagram().
+
+      I need to remove head message from unwanted source
+      from socket's receive queue so that the caller can pick up
+      next message from wanted source with MSG_PEEK flags.

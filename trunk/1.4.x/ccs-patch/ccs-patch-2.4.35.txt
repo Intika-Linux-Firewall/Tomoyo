@@ -225,8 +225,8 @@ diff -ubBpEr linux-2.4.35/Documentation/Configure.help linux-2.4.35-ccs/Document
  # A couple of things I keep forgetting:
  #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
 diff -ubBpEr linux-2.4.35/Makefile linux-2.4.35-ccs/Makefile
---- linux-2.4.35/Makefile	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/Makefile	2007-07-30 09:21:27.297518880 +0900
+--- linux-2.4.35/Makefile	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/Makefile	2007-07-30 09:21:27.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 4
@@ -237,8 +237,8 @@ diff -ubBpEr linux-2.4.35/Makefile linux-2.4.35-ccs/Makefile
  KERNELRELEASE=$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
  
 diff -ubBpEr linux-2.4.35/fs/Config.in linux-2.4.35-ccs/fs/Config.in
---- linux-2.4.35/fs/Config.in	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/fs/Config.in	2007-07-30 09:21:19.000780176 +0900
+--- linux-2.4.35/fs/Config.in	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/Config.in	2007-07-30 09:21:19.000000000 +0900
 @@ -176,4 +176,7 @@ comment 'Partition Types'
  source fs/partitions/Config.in
  endmenu
@@ -248,8 +248,8 @@ diff -ubBpEr linux-2.4.35/fs/Config.in linux-2.4.35-ccs/fs/Config.in
 +
  endmenu
 diff -ubBpEr linux-2.4.35/fs/Makefile linux-2.4.35-ccs/fs/Makefile
---- linux-2.4.35/fs/Makefile	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/fs/Makefile	2007-07-30 09:21:19.001780024 +0900
+--- linux-2.4.35/fs/Makefile	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/Makefile	2007-07-30 09:21:19.000000000 +0900
 @@ -80,5 +80,5 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
@@ -258,8 +258,8 @@ diff -ubBpEr linux-2.4.35/fs/Makefile linux-2.4.35-ccs/fs/Makefile
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
 diff -ubBpEr linux-2.4.35/fs/attr.c linux-2.4.35-ccs/fs/attr.c
---- linux-2.4.35/fs/attr.c	2007-07-30 09:21:10.842020496 +0900
-+++ linux-2.4.35-ccs/fs/attr.c	2007-07-30 09:21:19.001780024 +0900
+--- linux-2.4.35/fs/attr.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/attr.c	2007-07-30 09:21:19.000000000 +0900
 @@ -12,6 +12,9 @@
  #include <linux/dnotify.h>
  #include <linux/fcntl.h>
@@ -282,8 +282,8 @@ diff -ubBpEr linux-2.4.35/fs/attr.c linux-2.4.35-ccs/fs/attr.c
  	lock_kernel();
  	if (inode->i_op && inode->i_op->setattr) 
 diff -ubBpEr linux-2.4.35/fs/exec.c linux-2.4.35-ccs/fs/exec.c
---- linux-2.4.35/fs/exec.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/exec.c	2007-07-30 09:21:19.002779872 +0900
+--- linux-2.4.35/fs/exec.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/exec.c	2007-07-30 09:21:19.000000000 +0900
 @@ -48,6 +48,10 @@
  #include <linux/kmod.h>
  #endif
@@ -328,8 +328,8 @@ diff -ubBpEr linux-2.4.35/fs/exec.c linux-2.4.35-ccs/fs/exec.c
  		/* execve success */
  		return retval;
 diff -ubBpEr linux-2.4.35/fs/fcntl.c linux-2.4.35-ccs/fs/fcntl.c
---- linux-2.4.35/fs/fcntl.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/fcntl.c	2007-07-30 09:21:19.002779872 +0900
+--- linux-2.4.35/fs/fcntl.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/fcntl.c	2007-07-30 09:21:19.000000000 +0900
 @@ -16,6 +16,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -352,8 +352,8 @@ diff -ubBpEr linux-2.4.35/fs/fcntl.c linux-2.4.35-ccs/fs/fcntl.c
  	if ((arg ^ filp->f_flags) & FASYNC) {
  		if (filp->f_op && filp->f_op->fasync) {
 diff -ubBpEr linux-2.4.35/fs/ioctl.c linux-2.4.35-ccs/fs/ioctl.c
---- linux-2.4.35/fs/ioctl.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/ioctl.c	2007-07-30 09:21:19.003779720 +0900
+--- linux-2.4.35/fs/ioctl.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/ioctl.c	2007-07-30 09:21:19.000000000 +0900
 @@ -10,6 +10,9 @@
  
  #include <asm/uaccess.h>
@@ -375,8 +375,8 @@ diff -ubBpEr linux-2.4.35/fs/ioctl.c linux-2.4.35-ccs/fs/ioctl.c
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
 diff -ubBpEr linux-2.4.35/fs/namei.c linux-2.4.35-ccs/fs/namei.c
---- linux-2.4.35/fs/namei.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/namei.c	2007-07-30 09:21:19.004779568 +0900
+--- linux-2.4.35/fs/namei.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/namei.c	2007-07-30 09:21:19.000000000 +0900
 @@ -28,6 +28,11 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -559,8 +559,8 @@ diff -ubBpEr linux-2.4.35/fs/namei.c linux-2.4.35-ccs/fs/namei.c
  	from = getname(oldname);
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.4.35/fs/namespace.c linux-2.4.35-ccs/fs/namespace.c
---- linux-2.4.35/fs/namespace.c	2007-07-30 09:21:10.843020344 +0900
-+++ linux-2.4.35-ccs/fs/namespace.c	2007-07-30 09:21:19.005779416 +0900
+--- linux-2.4.35/fs/namespace.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/namespace.c	2007-09-05 14:53:13.732349384 +0900
 @@ -21,6 +21,13 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
@@ -680,8 +680,8 @@ diff -ubBpEr linux-2.4.35/fs/namespace.c linux-2.4.35-ccs/fs/namespace.c
  	user_nd.mnt = mntget(current->fs->rootmnt);
  	user_nd.dentry = dget(current->fs->root);
 diff -ubBpEr linux-2.4.35/fs/open.c linux-2.4.35-ccs/fs/open.c
---- linux-2.4.35/fs/open.c	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/fs/open.c	2007-07-30 09:21:19.006779264 +0900
+--- linux-2.4.35/fs/open.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/open.c	2007-07-30 09:21:19.000000000 +0900
 @@ -20,6 +20,13 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
@@ -741,8 +741,8 @@ diff -ubBpEr linux-2.4.35/fs/open.c linux-2.4.35-ccs/fs/open.c
  		tty_vhangup(current->tty);
  		return 0;
 diff -ubBpEr linux-2.4.35/fs/proc/Makefile linux-2.4.35-ccs/fs/proc/Makefile
---- linux-2.4.35/fs/proc/Makefile	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/fs/proc/Makefile	2007-07-30 09:21:19.006779264 +0900
+--- linux-2.4.35/fs/proc/Makefile	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/proc/Makefile	2007-07-30 09:21:19.000000000 +0900
 @@ -18,4 +18,8 @@ ifeq ($(CONFIG_PROC_DEVICETREE),y)
  obj-y += proc_devtree.o
  endif
@@ -753,8 +753,8 @@ diff -ubBpEr linux-2.4.35/fs/proc/Makefile linux-2.4.35-ccs/fs/proc/Makefile
 +
  include $(TOPDIR)/Rules.make
 diff -ubBpEr linux-2.4.35/fs/proc/proc_misc.c linux-2.4.35-ccs/fs/proc/proc_misc.c
---- linux-2.4.35/fs/proc/proc_misc.c	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/fs/proc/proc_misc.c	2007-07-30 09:21:43.868999632 +0900
+--- linux-2.4.35/fs/proc/proc_misc.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/fs/proc/proc_misc.c	2007-09-05 14:50:54.529511432 +0900
 @@ -670,4 +670,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -764,14 +764,14 @@ diff -ubBpEr linux-2.4.35/fs/proc/proc_misc.c linux-2.4.35-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.35 2007/08/27\n");
++		printk("Hook version: 2.4.35 2007/09/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
 diff -ubBpEr linux-2.4.35/include/linux/sched.h linux-2.4.35-ccs/include/linux/sched.h
---- linux-2.4.35/include/linux/sched.h	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/include/linux/sched.h	2007-07-30 09:21:19.008778960 +0900
+--- linux-2.4.35/include/linux/sched.h	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/include/linux/sched.h	2007-08-08 17:34:48.000000000 +0900
 @@ -29,6 +29,11 @@ extern unsigned long event;
  
  struct exec_domain;
@@ -807,8 +807,8 @@ diff -ubBpEr linux-2.4.35/include/linux/sched.h linux-2.4.35-ccs/include/linux/s
  
  
 diff -ubBpEr linux-2.4.35/kernel/kmod.c linux-2.4.35-ccs/kernel/kmod.c
---- linux-2.4.35/kernel/kmod.c	2007-07-30 09:21:10.844020192 +0900
-+++ linux-2.4.35-ccs/kernel/kmod.c	2007-07-30 09:21:19.008778960 +0900
+--- linux-2.4.35/kernel/kmod.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/kmod.c	2007-08-02 17:14:21.000000000 +0900
 @@ -134,6 +134,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
@@ -822,8 +822,8 @@ diff -ubBpEr linux-2.4.35/kernel/kmod.c linux-2.4.35-ccs/kernel/kmod.c
  	if (execve(program_path, argv, envp) < 0)
  		return -errno;
 diff -ubBpEr linux-2.4.35/kernel/module.c linux-2.4.35-ccs/kernel/module.c
---- linux-2.4.35/kernel/module.c	2007-07-30 09:21:10.845020040 +0900
-+++ linux-2.4.35-ccs/kernel/module.c	2007-07-30 09:21:19.009778808 +0900
+--- linux-2.4.35/kernel/module.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/module.c	2007-07-30 09:21:19.000000000 +0900
 @@ -10,6 +10,9 @@
  #include <linux/slab.h>
  #include <linux/kmod.h>
@@ -865,8 +865,8 @@ diff -ubBpEr linux-2.4.35/kernel/module.c linux-2.4.35-ccs/kernel/module.c
  	lock_kernel();
  	if (name_user) {
 diff -ubBpEr linux-2.4.35/kernel/sched.c linux-2.4.35-ccs/kernel/sched.c
---- linux-2.4.35/kernel/sched.c	2007-07-30 09:21:10.845020040 +0900
-+++ linux-2.4.35-ccs/kernel/sched.c	2007-07-30 09:21:19.010778656 +0900
+--- linux-2.4.35/kernel/sched.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/sched.c	2007-07-30 09:21:19.000000000 +0900
 @@ -32,6 +32,9 @@
  
  #include <asm/uaccess.h>
@@ -888,8 +888,8 @@ diff -ubBpEr linux-2.4.35/kernel/sched.c linux-2.4.35-ccs/kernel/sched.c
  	/*
  	 *	Setpriority might change our priority at the same moment.
 diff -ubBpEr linux-2.4.35/kernel/signal.c linux-2.4.35-ccs/kernel/signal.c
---- linux-2.4.35/kernel/signal.c	2007-07-30 09:21:10.845020040 +0900
-+++ linux-2.4.35-ccs/kernel/signal.c	2007-07-30 09:21:19.011778504 +0900
+--- linux-2.4.35/kernel/signal.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/signal.c	2007-07-30 09:21:19.000000000 +0900
 @@ -15,6 +15,9 @@
  #include <linux/sched.h>
  
@@ -923,8 +923,8 @@ diff -ubBpEr linux-2.4.35/kernel/signal.c linux-2.4.35-ccs/kernel/signal.c
         info.si_errno = 0;
         info.si_code = SI_TKILL;
 diff -ubBpEr linux-2.4.35/kernel/sys.c linux-2.4.35-ccs/kernel/sys.c
---- linux-2.4.35/kernel/sys.c	2007-07-30 09:21:10.846019888 +0900
-+++ linux-2.4.35-ccs/kernel/sys.c	2007-07-30 09:21:19.011778504 +0900
+--- linux-2.4.35/kernel/sys.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/sys.c	2007-07-30 09:21:19.000000000 +0900
 @@ -17,6 +17,9 @@
  
  #include <asm/uaccess.h>
@@ -976,8 +976,8 @@ diff -ubBpEr linux-2.4.35/kernel/sys.c linux-2.4.35-ccs/kernel/sys.c
  	down_write(&uts_sem);
  	errno = -EFAULT;
 diff -ubBpEr linux-2.4.35/kernel/sysctl.c linux-2.4.35-ccs/kernel/sysctl.c
---- linux-2.4.35/kernel/sysctl.c	2007-07-30 09:21:10.846019888 +0900
-+++ linux-2.4.35-ccs/kernel/sysctl.c	2007-07-30 09:21:19.012778352 +0900
+--- linux-2.4.35/kernel/sysctl.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/sysctl.c	2007-07-30 09:21:19.000000000 +0900
 @@ -33,6 +33,9 @@
  #include <linux/swap.h>
  
@@ -1109,8 +1109,8 @@ diff -ubBpEr linux-2.4.35/kernel/sysctl.c linux-2.4.35-ccs/kernel/sysctl.c
  
  /*
 diff -ubBpEr linux-2.4.35/kernel/time.c linux-2.4.35-ccs/kernel/time.c
---- linux-2.4.35/kernel/time.c	2007-07-30 09:21:10.846019888 +0900
-+++ linux-2.4.35-ccs/kernel/time.c	2007-07-30 09:21:19.013778200 +0900
+--- linux-2.4.35/kernel/time.c	2007-07-30 09:21:10.000000000 +0900
++++ linux-2.4.35-ccs/kernel/time.c	2007-07-30 09:21:19.000000000 +0900
 @@ -29,6 +29,9 @@
  #include <linux/smp_lock.h>
  
@@ -1153,7 +1153,7 @@ diff -ubBpEr linux-2.4.35/kernel/time.c linux-2.4.35-ccs/kernel/time.c
  
 diff -ubBpEr linux-2.4.35/net/core/datagram.c linux-2.4.35-ccs/net/core/datagram.c
 --- linux-2.4.35/net/core/datagram.c	2007-07-27 05:53:41.000000000 +0900
-+++ linux-2.4.35-ccs/net/core/datagram.c	2007-08-15 08:44:14.945661064 +0900
++++ linux-2.4.35-ccs/net/core/datagram.c	2007-09-05 14:47:47.983870680 +0900
 @@ -43,6 +43,10 @@
  #include <net/sock.h>
  #include <net/checksum.h>
@@ -1165,16 +1165,12 @@ diff -ubBpEr linux-2.4.35/net/core/datagram.c linux-2.4.35-ccs/net/core/datagram
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -164,6 +168,14 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -164,6 +168,10 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->receive_queue);
  
 +                /***** TOMOYO Linux start. *****/
-+                error = CheckSocketRecvDatagramPermission(sk, skb);
-+                if (error) {
-+                        skb_free_datagram(sk, skb);
-+                        goto no_packet;
-+                }
++                if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
 +                /***** TOMOYO Linux end. *****/
 +
  		if (skb)
@@ -1215,7 +1211,7 @@ diff -ubBpEr linux-2.4.35/net/ipv4/tcp_ipv4.c linux-2.4.35-ccs/net/ipv4/tcp_ipv4
  			 * because the established check is already
 diff -ubBpEr linux-2.4.35/net/ipv4/udp.c linux-2.4.35-ccs/net/ipv4/udp.c
 --- linux-2.4.35/net/ipv4/udp.c	2007-07-30 09:21:10.000000000 +0900
-+++ linux-2.4.35-ccs/net/ipv4/udp.c	2007-07-30 09:21:19.000000000 +0900
++++ linux-2.4.35-ccs/net/ipv4/udp.c	2007-08-15 16:16:34.000000000 +0900
 @@ -97,6 +97,9 @@
  #include <net/route.h>
  #include <net/inet_common.h>
@@ -1271,7 +1267,7 @@ diff -ubBpEr linux-2.4.35/net/ipv6/tcp_ipv6.c linux-2.4.35-ccs/net/ipv6/tcp_ipv6
  					goto next;
 diff -ubBpEr linux-2.4.35/net/ipv6/udp.c linux-2.4.35-ccs/net/ipv6/udp.c
 --- linux-2.4.35/net/ipv6/udp.c	2007-07-30 09:21:10.000000000 +0900
-+++ linux-2.4.35-ccs/net/ipv6/udp.c	2007-07-30 09:21:19.000000000 +0900
++++ linux-2.4.35-ccs/net/ipv6/udp.c	2007-08-15 16:29:35.000000000 +0900
 @@ -50,6 +50,9 @@
  #include <net/inet_common.h>
  
@@ -1304,7 +1300,7 @@ diff -ubBpEr linux-2.4.35/net/ipv6/udp.c linux-2.4.35-ccs/net/ipv6/udp.c
  		}
 diff -ubBpEr linux-2.4.35/net/socket.c linux-2.4.35-ccs/net/socket.c
 --- linux-2.4.35/net/socket.c	2007-07-30 09:21:10.000000000 +0900
-+++ linux-2.4.35-ccs/net/socket.c	2007-08-14 10:48:33.000000000 +0900
++++ linux-2.4.35-ccs/net/socket.c	2007-08-27 16:06:58.000000000 +0900
 @@ -84,6 +84,10 @@
  #include <net/sock.h>
  #include <net/scm.h>

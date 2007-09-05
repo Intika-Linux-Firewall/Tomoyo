@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/16
+ * Version: 1.5.0-pre   2007/09/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -139,7 +139,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 	return error;
 }
 
-int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned long flags)
+static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, unsigned long flags)
 {
 	const int is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_MOUNT);
 	int error = -EPERM;
@@ -175,19 +175,19 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 		return -EINVAL;
 	}
 	if (flags & MS_REMOUNT) {
-		error = CheckMountPermission(dev_name, dir_name, MOUNT_REMOUNT_KEYWORD, flags & ~MS_REMOUNT);
+		error = CheckMountPermission2(dev_name, dir_name, MOUNT_REMOUNT_KEYWORD, flags & ~MS_REMOUNT);
 	} else if (flags & MS_MOVE) {
-		error = CheckMountPermission(dev_name, dir_name, MOUNT_MOVE_KEYWORD, flags & ~MS_MOVE);
+		error = CheckMountPermission2(dev_name, dir_name, MOUNT_MOVE_KEYWORD, flags & ~MS_MOVE);
 	} else if (flags & MS_BIND) {
-		error = CheckMountPermission(dev_name, dir_name, MOUNT_BIND_KEYWORD, flags & ~MS_BIND);
+		error = CheckMountPermission2(dev_name, dir_name, MOUNT_BIND_KEYWORD, flags & ~MS_BIND);
 	} else if (flags & MS_UNBINDABLE) {
-		error = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_UNBINDABLE_KEYWORD, flags & ~MS_UNBINDABLE);
+		error = CheckMountPermission2(dev_name, dir_name, MOUNT_MAKE_UNBINDABLE_KEYWORD, flags & ~MS_UNBINDABLE);
 	} else if (flags & MS_PRIVATE) {
-		error = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_PRIVATE_KEYWORD, flags & ~MS_PRIVATE);
+		error = CheckMountPermission2(dev_name, dir_name, MOUNT_MAKE_PRIVATE_KEYWORD, flags & ~MS_PRIVATE);
 	} else if (flags & MS_SLAVE) {
-		error = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_SLAVE_KEYWORD, flags & ~MS_SLAVE);
+		error = CheckMountPermission2(dev_name, dir_name, MOUNT_MAKE_SLAVE_KEYWORD, flags & ~MS_SLAVE);
 	} else if (flags & MS_SHARED) {
-		error = CheckMountPermission(dev_name, dir_name, MOUNT_MAKE_SHARED_KEYWORD, flags & ~MS_SHARED);
+		error = CheckMountPermission2(dev_name, dir_name, MOUNT_MAKE_SHARED_KEYWORD, flags & ~MS_SHARED);
 	} else {
 		struct mount_entry *ptr;
 		struct file_system_type *fstype = NULL;
@@ -300,6 +300,12 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 	}
 	if (!is_enforce) error = 0;
 	return error;
+}
+
+/* This is a wrapper to allow use of 1.4.x patch for 1.5.x . */
+int CheckMountPermission(char *dev_name, char *dir_name, char *type, const unsigned long *flags)
+{
+	return CheckMountPermission2(dev_name, dir_name, type, *flags);
 }
 EXPORT_SYMBOL(CheckMountPermission);
 
