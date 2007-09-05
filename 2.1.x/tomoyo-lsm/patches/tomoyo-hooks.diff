@@ -7,12 +7,12 @@ this file will become more simpler and "namespace_sem" can remain "static".
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/tomoyo.c |  745 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 745 insertions(+)
+ security/tomoyo/tomoyo.c |  749 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 749 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/tomoyo.c	2007-09-03 13:18:02.000000000 +0900
-@@ -0,0 +1,745 @@
++++ linux-2.6/security/tomoyo/tomoyo.c	2007-09-05 12:53:20.000000000 +0900
+@@ -0,0 +1,749 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -520,6 +520,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
++#ifdef TMY_LSM_EXPANSION
 +static int tmy_socket_post_accept(struct socket *sock, struct socket *newsock)
 +{
 +	int error = 0;
@@ -646,6 +647,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = -EAGAIN;
 +	return error;
 +}
++#endif
 +
 +static int tmy_sb_mount(char *dev_name,
 +			struct nameidata *nd,
@@ -684,6 +686,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return tmy_pivot_root_perm(old_nd, new_nd);
 +}
 +
++#ifdef TMY_LSM_EXPANSION
 +static int tmy_task_kill_unlocked(int pid, int sig)
 +{
 +	return tmy_signal_acl(sig, pid);
@@ -698,6 +701,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	return tmy_signal_acl(sig, pid);
 +}
++#endif
 +
 +static struct security_operations tomoyo_security_ops = {
 +	.task_alloc_security   = tmy_task_alloc_security,
