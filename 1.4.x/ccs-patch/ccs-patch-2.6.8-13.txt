@@ -544,7 +544,7 @@ diff -ubBpEr linux-2.6.8-13/fs/proc/Makefile linux-2.6.8-13-ccs/fs/proc/Makefile
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.8-13/fs/proc/proc_misc.c linux-2.6.8-13-ccs/fs/proc/proc_misc.c
 --- linux-2.6.8-13/fs/proc/proc_misc.c	2007-05-23 15:38:13.000000000 +0900
-+++ linux-2.6.8-13-ccs/fs/proc/proc_misc.c	2007-05-23 15:39:06.000000000 +0900
++++ linux-2.6.8-13-ccs/fs/proc/proc_misc.c	2007-08-15 09:21:18.702066624 +0900
 @@ -641,4 +641,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -554,7 +554,7 @@ diff -ubBpEr linux-2.6.8-13/fs/proc/proc_misc.c linux-2.6.8-13-ccs/fs/proc/proc_
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.8-13 2007/08/27\n");
++		printk("Hook version: 2.6.8-13 2007/09/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -962,16 +962,12 @@ diff -ubBpEr linux-2.6.8-13/net/core/datagram.c linux-2.6.8-13-ccs/net/core/data
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -177,6 +181,14 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -177,6 +181,10 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
-+		error = CheckSocketRecvDatagramPermission(sk, skb);
-+		if (error) {
-+			skb_free_datagram(sk, skb);
-+			goto no_packet;
-+		}
++		if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
 +		/***** TOMOYO Linux end. *****/
 +
  		if (skb)

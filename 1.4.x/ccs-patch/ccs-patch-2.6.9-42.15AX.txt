@@ -1,4 +1,4 @@
-diff -ubBpEr linux-2.6.9-42.15AX/Makefile linux-2.6.9-42.15AX-ccs/Makefile
+]diff -ubBpEr linux-2.6.9-42.15AX/Makefile linux-2.6.9-42.15AX-ccs/Makefile
 --- linux-2.6.9-42.15AX/Makefile	2007-07-18 13:51:46.000000000 +0900
 +++ linux-2.6.9-42.15AX-ccs/Makefile	2007-07-18 13:52:14.000000000 +0900
 @@ -1,7 +1,7 @@
@@ -583,7 +583,7 @@ diff -ubBpEr linux-2.6.9-42.15AX/fs/proc/Makefile linux-2.6.9-42.15AX-ccs/fs/pro
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.9-42.15AX/fs/proc/proc_misc.c linux-2.6.9-42.15AX-ccs/fs/proc/proc_misc.c
 --- linux-2.6.9-42.15AX/fs/proc/proc_misc.c	2007-07-18 13:51:46.000000000 +0900
-+++ linux-2.6.9-42.15AX-ccs/fs/proc/proc_misc.c	2007-07-18 13:52:49.000000000 +0900
++++ linux-2.6.9-42.15AX-ccs/fs/proc/proc_misc.c	2007-08-15 09:18:24.000000000 +0900
 @@ -794,4 +794,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -593,7 +593,7 @@ diff -ubBpEr linux-2.6.9-42.15AX/fs/proc/proc_misc.c linux-2.6.9-42.15AX-ccs/fs/
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.9-42.15AX 2007/08/27\n");
++		printk("Hook version: 2.6.9-42.15AX 2007/09/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1002,16 +1002,12 @@ diff -ubBpEr linux-2.6.9-42.15AX/net/core/datagram.c linux-2.6.9-42.15AX-ccs/net
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -177,6 +181,14 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -177,6 +181,10 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
-+                error = CheckSocketRecvDatagramPermission(sk, skb);
-+                if (error) {
-+			skb_free_datagram(sk, skb);
-+			goto no_packet;
-+                }
++               if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
 +		/***** TOMOYO Linux end. *****/
 +
  		if (skb)

@@ -459,7 +459,7 @@ diff -ubBpEr linux-2.6.12.3-a9-9/fs/namespace.c linux-2.6.12.3-a9-9-ccs/fs/names
 +	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, flags)) < 0) return retval;
++	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
 +	/***** SAKURA Linux end. *****/
 +
  	/* Separate the per-mountpoint flags */
@@ -567,7 +567,7 @@ diff -ubBpEr linux-2.6.12.3-a9-9/fs/proc/proc_misc.c linux-2.6.12.3-a9-9-ccs/fs/
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.12.3-a9-9 2007/08/15\n");
++		printk("Hook version: 2.6.12.3-a9-9 2007/09/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1001,16 +1001,12 @@ diff -ubBpEr linux-2.6.12.3-a9-9/net/core/datagram.c linux-2.6.12.3-a9-9-ccs/net
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -177,6 +181,14 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -177,6 +181,10 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
-+                error = CheckSocketRecvDatagramPermission(sk, skb);
-+                if (error) {
-+			skb_free_datagram(sk, skb);
-+                        goto no_packet;
-+                }
++               if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
 +		/***** TOMOYO Linux end. *****/
 +
  		if (skb)

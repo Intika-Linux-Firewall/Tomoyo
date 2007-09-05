@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/15
+ * Version: 1.5.0-pre   2007/09/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -27,6 +27,7 @@
 #define sk_family family
 #define sk_protocol protocol
 #define sk_type type
+#define sk_receive_queue receive_queue
 #endif
 
 #define MAX_SOCK_ADDR 128 /* net/socket.c */
@@ -219,14 +220,14 @@ static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
 
 #endif
 
-static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_buff *skb)
+static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_buff *skb, const unsigned int flags)
 {
 	int error = 0;
 	const unsigned int type = sk->sk_type;
 	struct in6_addr sin6;
 	struct in_addr sin;
 	u16 port;
-	
+		
 	if (!skb) return 0;
 
 	if (in_interrupt()) return 0;
@@ -262,7 +263,25 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 		break;
 	}
 	if (error) {
-		error = -EAGAIN; /* Hope less harmful than -EPERM. */
+		/*
+		 * Remove from queue if MSG_PEEK is used so that
+		 * the head message from unwanted source in receive queue will not
+		 * prevent the caller from picking up next message from wanted source
+		 * when the caller is using MSG_PEEK flag for picking up.
+		 */
+		if (flags & MSG_PEEK) {
+			unsigned long cpu_flags;
+			spin_lock_irqsave(&sk->sk_receive_queue.lock, cpu_flags);
+			if (skb == skb_peek(&sk->sk_receive_queue)) {
+				__skb_unlink(skb, &sk->sk_receive_queue);
+				atomic_dec(&skb->users);
+			}
+			spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
+		}
+		/* Drop reference count. */
+		skb_free_datagram(sk, skb);
+		/* Hope less harmful than -EPERM. */
+		error = -EAGAIN;
 	}
 	return error;
 }

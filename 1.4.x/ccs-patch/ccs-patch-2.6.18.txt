@@ -371,7 +371,7 @@ diff -ubBpEr linux-2.6.18/fs/namei.c linux-2.6.18-ccs/fs/namei.c
  	if(IS_ERR(from))
 diff -ubBpEr linux-2.6.18/fs/namespace.c linux-2.6.18-ccs/fs/namespace.c
 --- linux-2.6.18/fs/namespace.c	2006-09-20 12:42:06.000000000 +0900
-+++ linux-2.6.18-ccs/fs/namespace.c	2007-03-26 16:38:52.000000000 +0900
++++ linux-2.6.18-ccs/fs/namespace.c	2007-09-05 14:52:29.017147128 +0900
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -545,7 +545,7 @@ diff -ubBpEr linux-2.6.18/fs/proc/Makefile linux-2.6.18-ccs/fs/proc/Makefile
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 diff -ubBpEr linux-2.6.18/fs/proc/proc_misc.c linux-2.6.18-ccs/fs/proc/proc_misc.c
 --- linux-2.6.18/fs/proc/proc_misc.c	2006-10-19 16:15:41.000000000 +0900
-+++ linux-2.6.18-ccs/fs/proc/proc_misc.c	2007-07-10 09:04:15.102373272 +0900
++++ linux-2.6.18-ccs/fs/proc/proc_misc.c	2007-09-05 14:50:01.314601328 +0900
 @@ -723,4 +723,13 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -555,7 +555,7 @@ diff -ubBpEr linux-2.6.18/fs/proc/proc_misc.c linux-2.6.18-ccs/fs/proc/proc_misc
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.18 2007/08/27\n");
++		printk("Hook version: 2.6.18 2007/09/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -602,7 +602,7 @@ diff -ubBpEr linux-2.6.18/include/linux/sched.h linux-2.6.18-ccs/include/linux/s
  static inline pid_t process_group(struct task_struct *tsk)
 diff -ubBpEr linux-2.6.18/kernel/compat.c linux-2.6.18-ccs/kernel/compat.c
 --- linux-2.6.18/kernel/compat.c	2006-09-20 12:42:06.000000000 +0900
-+++ linux-2.6.18-ccs/kernel/compat.c	2007-07-10 09:02:37.346234464 +0900
++++ linux-2.6.18-ccs/kernel/compat.c	2007-07-10 09:02:37.000000000 +0900
 @@ -24,6 +24,9 @@
  #include <linux/migrate.h>
  
@@ -987,7 +987,7 @@ diff -ubBpEr linux-2.6.18/kernel/time.c linux-2.6.18-ccs/kernel/time.c
  
 diff -ubBpEr linux-2.6.18/net/core/datagram.c linux-2.6.18-ccs/net/core/datagram.c
 --- linux-2.6.18/net/core/datagram.c	2006-09-20 12:42:06.000000000 +0900
-+++ linux-2.6.18-ccs/net/core/datagram.c	2007-08-15 08:45:39.865751248 +0900
++++ linux-2.6.18-ccs/net/core/datagram.c	2007-09-05 14:46:55.815801432 +0900
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1000,16 +1000,12 @@ diff -ubBpEr linux-2.6.18/net/core/datagram.c linux-2.6.18-ccs/net/core/datagram
  /*
   *	Is a socket 'connection oriented' ?
   */
-@@ -178,6 +183,14 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -178,6 +183,10 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
 +                /***** TOMOYO Linux start. *****/
-+                error = CheckSocketRecvDatagramPermission(sk, skb);
-+                if (error) {
-+                        skb_free_datagram(sk, skb);
-+                        goto no_packet;
-+                }
++                if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
 +                /***** TOMOYO Linux end. *****/
 +
  		if (skb)
@@ -1063,7 +1059,7 @@ diff -ubBpEr linux-2.6.18/net/ipv4/inet_hashtables.c linux-2.6.18-ccs/net/ipv4/i
  
 diff -ubBpEr linux-2.6.18/net/ipv4/udp.c linux-2.6.18-ccs/net/ipv4/udp.c
 --- linux-2.6.18/net/ipv4/udp.c	2006-09-20 12:42:06.000000000 +0900
-+++ linux-2.6.18-ccs/net/ipv4/udp.c	2007-05-23 14:51:56.000000000 +0900
++++ linux-2.6.18-ccs/net/ipv4/udp.c	2007-08-15 16:15:32.000000000 +0900
 @@ -108,6 +108,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1128,7 +1124,7 @@ diff -ubBpEr linux-2.6.18/net/ipv6/inet6_hashtables.c linux-2.6.18-ccs/net/ipv6/
  
 diff -ubBpEr linux-2.6.18/net/ipv6/udp.c linux-2.6.18-ccs/net/ipv6/udp.c
 --- linux-2.6.18/net/ipv6/udp.c	2006-09-20 12:42:06.000000000 +0900
-+++ linux-2.6.18-ccs/net/ipv6/udp.c	2007-05-24 17:25:53.000000000 +0900
++++ linux-2.6.18-ccs/net/ipv6/udp.c	2007-08-15 16:30:01.000000000 +0900
 @@ -58,6 +58,9 @@
  
  #include <linux/proc_fs.h>
@@ -1161,7 +1157,7 @@ diff -ubBpEr linux-2.6.18/net/ipv6/udp.c linux-2.6.18-ccs/net/ipv6/udp.c
  		}
 diff -ubBpEr linux-2.6.18/net/socket.c linux-2.6.18-ccs/net/socket.c
 --- linux-2.6.18/net/socket.c	2006-09-20 12:42:06.000000000 +0900
-+++ linux-2.6.18-ccs/net/socket.c	2007-08-14 10:47:02.000000000 +0900
++++ linux-2.6.18-ccs/net/socket.c	2007-08-27 16:06:23.000000000 +0900
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>

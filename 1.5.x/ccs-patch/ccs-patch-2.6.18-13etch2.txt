@@ -448,7 +448,7 @@ diff -ubBpEr linux-source-2.6.18-13/fs/namespace.c linux-source-2.6.18-13-ccs/fs
 +	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, flags)) < 0) return retval;
++	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
 +	/***** SAKURA Linux end. *****/
 +
  	/* Separate the per-mountpoint flags */
@@ -1000,16 +1000,12 @@ diff -ubBpEr linux-source-2.6.18-13/net/core/datagram.c linux-source-2.6.18-13-c
  /*
   *	Is a socket 'connection oriented' ?
   */
-@@ -178,6 +183,14 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -178,6 +183,10 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
-+		error = CheckSocketRecvDatagramPermission(sk, skb);
-+		if (error) {
-+			skb_free_datagram(sk, skb);
-+			goto no_packet;
-+		}
++		if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
 +		/***** TOMOYO Linux end. *****/
 +
  		if (skb)

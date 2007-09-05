@@ -967,3 +967,10 @@ Fix 2007/08/25
       I moved hooks from sock_recvmsg() to skb_recv_datagram() so that
       network access control for incoming UDP and RAW packets always work.
 
+Fix 2007/09/05
+
+    @ Drop MSG_PEEK'ed message before skb_free_datagram().
+
+      I need to remove head message from unwanted source
+      from socket's receive queue so that the caller can pick up
+      next message from wanted source with MSG_PEEK flags.
