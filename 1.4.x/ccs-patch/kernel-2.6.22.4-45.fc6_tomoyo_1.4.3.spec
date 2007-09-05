@@ -20,7 +20,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # kernel spec when the kernel is rebased, so fedora_build automatically
 # works out to the offset from the rebase, so it doesn't get too ginormous.
 %define fedora_cvs_origin 2968
-%define fedora_build %(R="$Revision: 1.3010 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.3013 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -30,7 +30,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
 # Do we have a 2.6.21.y update to apply?
-%define stable_update 2
+%define stable_update 4
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -398,7 +398,7 @@ Name: ccs-kernel%{?variant}
 Group: System Environment/Kernel
 License: GPLv2
 Version: %{rpmversion}
-Release: %{pkg_release}.fc6_tomoyo_1.5.0
+Release: %{pkg_release}.fc6_tomoyo_1.4.3
 # DO NOT CHANGE THE 'ExclusiveArch' LINE TO TEMPORARILY EXCLUDE AN ARCHITECTURE BUILD.
 # SET %nobuildarches (ABOVE) INSTEAD
 ExclusiveArch: noarch %{all_x86} x86_64 ppc ppc64 ia64 sparc sparc64 s390x alpha alphaev56
@@ -501,6 +501,8 @@ Patch00: patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 
 %endif
 
+Patch08: patch-2.6.22.5-rc1.bz2
+
 %if !%{nopatches}
 
 Patch10: linux-2.6-utrace-tracehook.patch
@@ -527,7 +529,6 @@ Patch40: linux-2.6-x86-tune-generic.patch
 Patch50: linux-2.6-x86-vga-vidfail.patch
 Patch52: linux-2.6-amd-fix-broken-lapic-timer-detect.patch
 Patch90: linux-2.6-kvm-suspend.patch
-Patch91: linux-2.6-serial-revert-platform-conversion.patch
 
 Patch100: linux-2.6-g5-therm-shutdown.patch
 Patch120: linux-2.6-ppc32-ucmpdi2.patch
@@ -561,6 +562,7 @@ Patch400: linux-2.6-scsi-cpqarray-set-master.patch
 Patch401: linux-2.6-aacraid-ioctl-security.patch
 Patch420: linux-2.6-squashfs.patch
 Patch422: linux-2.6-gfs2-update.patch
+Patch423: linux-2.6-gfs-locking-exports.patch
 Patch430: linux-2.6-net-silence-noisy-printks.patch
 Patch434: linux-2.6-add_xt_statistic.h_to_hdrs.patch
 Patch440: linux-2.6-sha_alignment.patch
@@ -576,6 +578,7 @@ Patch590: linux-2.6-unexport-symbols.patch
 
 Patch600: linux-2.6-vm-silence-atomic-alloc-failures.patch
 Patch601: linux-2.6-input-ff-create-limit-memory.patch
+Patch602: linux-2.6-x86_64-e820_hole_size.patch
 
 Patch610: linux-2.6-defaults-fat-utf8.patch
 Patch620: linux-2.6-defaults-unicode-vt.patch
@@ -589,7 +592,6 @@ Patch660: linux-2.6-libata-ali-atapi-dma.patch
 Patch662: linux-2.6-ata-update-noncq.patch
 Patch663: linux-2.6-ata-quirk.patch
 Patch667: linux-2.6-libata-ata_piix_fix_pio-mwdma-programming.patch
-Patch668: linux-2.6-libata_pata_atiixp_add_ati_sb700.patch
 Patch669: linux-2.6-libata-restore-combined-mode.patch
 Patch670: linux-2.6-libata-pata_hpt37x-fix-2.6.22-clock-pll.patch
 Patch671: linux-2.6-libata-pata_ali-fix-hp-detect.patch
@@ -597,7 +599,7 @@ Patch671: linux-2.6-libata-pata_ali-fix-hp-detect.patch
 Patch680: git-wireless-dev.patch
 Patch690: linux-2.6-e1000-ich9.patch
 Patch710: linux-2.6-bcm43xx-pci-neuter.patch
-Patch712: linux-2.6-sky2-restore-workarounds.patch
+Patch712: linux-2.6-net-sky2-dont-clear-phy-power-bits.patch
 Patch713: linux-2.6-net-atl1-fix-typo-in-dma-setup.patch
 Patch714: linux-2.6-net-atl1-fix-typo-in-dma_req_block.patch
 
@@ -609,7 +611,6 @@ Patch800: linux-2.6-wakeups-hdaps.patch
 Patch801: linux-2.6-wakeups.patch
 Patch900: linux-2.6-sched-cfs.patch
 Patch1000: linux-2.6-dmi-based-module-autoloading.patch
-Patch1010: linux-2.6-ondemand-timer.patch
 Patch1030: linux-2.6-nfs-nosharecache.patch
 Patch1400: linux-2.6-pcspkr-use-the-global-pit-lock.patch
 
@@ -1051,6 +1052,8 @@ ApplyPatch patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 # builds (as used in the buildsystem).
 ApplyPatch linux-2.6-build-nonintconfig.patch
 
+ApplyPatch patch-2.6.22.5-rc1.bz2
+
 %if !%{nopatches}
 
 # Ingo's new scheduler.
@@ -1078,9 +1081,6 @@ ApplyPatch linux-2.6-utrace-ptrace-compat-avr32.patch
 # setuid /proc/self/maps fix. (dependent on utrace)
 ApplyPatch linux-2.6-proc-self-maps-fix.patch
 
-ApplyPatch linux-2.6-ondemand-timer.patch
-
-
 # enable sysrq-c on all kernels, not only kexec
 ApplyPatch linux-2.6-sysrq-c.patch
 
@@ -1102,8 +1102,6 @@ ApplyPatch linux-2.6-amd-fix-broken-lapic-timer-detect.patch
 
 # patch to fix suspend with kvm loaded and guests running
 ApplyPatch linux-2.6-kvm-suspend.patch
-# revert to old legacy serial port detection
-ApplyPatch linux-2.6-serial-revert-platform-conversion.patch
 
 #
 # PowerPC
@@ -1189,6 +1187,8 @@ ApplyPatch linux-2.6-aacraid-ioctl-security.patch
 ApplyPatch linux-2.6-squashfs.patch
 # gfs2 update to latest
 ApplyPatch linux-2.6-gfs2-update.patch
+# export symbols for gfs2 locking modules
+ApplyPatch linux-2.6-gfs-locking-exports.patch
 
 # Networking
 # Disable easy to trigger printk's.
@@ -1223,6 +1223,8 @@ ApplyPatch linux-2.6-unexport-symbols.patch
 ApplyPatch linux-2.6-vm-silence-atomic-alloc-failures.patch
 # don't let input FF drivers allocate too much memory
 ApplyPatch linux-2.6-input-ff-create-limit-memory.patch
+# fix sizing of memory holes on x86_64
+ApplyPatch linux-2.6-x86_64-e820_hole_size.patch
 
 # Changes to upstream defaults.
 # Use UTF-8 by default on VFAT.
@@ -1249,8 +1251,6 @@ ApplyPatch linux-2.6-ata-update-noncq.patch
 ApplyPatch linux-2.6-ata-quirk.patch
 # NSIA
 ApplyPatch linux-2.6-libata-ata_piix_fix_pio-mwdma-programming.patch
-# add ID for sb700 to the pata driver
-ApplyPatch linux-2.6-libata_pata_atiixp_add_ati_sb700.patch
 # restore the ugly libata COMBINED_MODE hacks
 ApplyPatch linux-2.6-libata-restore-combined-mode.patch
 # fix hpt37x PLL regression
@@ -1264,9 +1264,8 @@ ApplyPatch git-wireless-dev.patch
 ApplyPatch linux-2.6-e1000-ich9.patch
 # avoid bcm3xx vs bcm43xx-mac80211 PCI ID conflicts
 ApplyPatch linux-2.6-bcm43xx-pci-neuter.patch
-# sky2: restore lost interrupt workarounds
-#       maintainer wanted this in 2.6.22
-ApplyPatch linux-2.6-sky2-restore-workarounds.patch
+# sky2: don't clear PHY power bits
+ApplyPatch linux-2.6-net-sky2-dont-clear-phy-power-bits.patch
 # atl1 DMA bugs
 ApplyPatch linux-2.6-net-atl1-fix-typo-in-dma-setup.patch
 ApplyPatch linux-2.6-net-atl1-fix-typo-in-dma_req_block.patch
@@ -1301,10 +1300,10 @@ ApplyPatch linux-2.6-nfs-nosharecache.patch
 ApplyPatch linux-2.6-pcspkr-use-the-global-pit-lock.patch
 
 # TOMOYO Linux
-#tar -zxf %_sourcedir/ccs-patch-1.5.0-pre.tar.gz
-wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .2-42.fc6:' -- Makefile
-patch -sp1 < ccs-patch-2.6.22.2-42.fc6.txt
+#tar -zxf %_sourcedir/ccs-patch-1.4.3-pre.tar.gz
+wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.4.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .4-45.fc6:' -- Makefile
+patch -sp1 < ccs-patch-2.6.22.4-45.fc6.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2230,8 +2229,11 @@ fi
 %endif
 
 %changelog
-* Wed Aug 15 2007 John W. Linville <linville@redhat.com>
-- Remove b44 bits from git-wireless-dev.patch (broken and unnecessary)
+* Tue Aug 21 2007 Chuck Ebbert <cebbert@redhat.com>
+- 2.6.22.5-rc1
+- fix e820 memory hole sizing on x86_64
+- export GFS2 symbols for lock modules
+- sky2: don't clear PHY power bits
 
 * Mon Jul 09 2007 Dave Jones <davej@redhat.com>
 - Rebase to 2.6.22
