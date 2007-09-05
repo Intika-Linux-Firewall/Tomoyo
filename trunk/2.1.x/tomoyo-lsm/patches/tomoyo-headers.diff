@@ -140,6 +140,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +};
 +struct condition_list;
 +
++struct linux_binprm;
++struct pt_regs;
++
 +/*
 + *  TOMOYO uses the following structures.
 + *  Memory allocated for these structures are never kfree()ed.
@@ -559,9 +562,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TMY_TYPE_ARGV0_ACL      101
 +#define TMY_TYPE_IP_NETWORK_ACL 103
 +#define TMY_TYPE_SIGNAL_ACL     104
-+
-+struct linux_binprm;
-+struct pt_regs;
 +
 +#define TMY_CHECK_READ_FOR_OPEN_EXEC 1
 +
