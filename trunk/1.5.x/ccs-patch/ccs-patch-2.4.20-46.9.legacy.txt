@@ -510,7 +510,7 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namespace.c linux-2.4.20-46.9.legacy-cc
 +	err = -EPERM;
 +	if (SAKURA_MayMount(nd) < 0) goto unlock;
 +	/***** SAKURA Linux end. *****/
-+	
++
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
@@ -673,10 +673,10 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/include/linux/sched.h linux-2.4.20-46.9.le
      alloc_lock:		SPIN_LOCK_UNLOCKED,				\
      switch_lock:        SPIN_LOCK_UNLOCKED,                             \
      journal_info:	NULL,						\
-+    /***** TOMOYO Linux start. *****/ \
-+    domain_info: &KERNEL_DOMAIN,      \
-+    tomoyo_flags: 0,                  \
-+    /***** TOMOYO Linux end. *****/   \
++	/***** TOMOYO Linux start. *****/ \
++	domain_info: &KERNEL_DOMAIN,      \
++	tomoyo_flags: 0,                  \
++	/***** TOMOYO Linux end. *****/   \
  }
  
  
@@ -1233,7 +1233,7 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/socket.c linux-2.4.20-46.9.legacy-ccs/
  		if ((unsigned) backlog > SOMAXCONN)
  			backlog = SOMAXCONN;
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = CheckSocketListenPermission(sock)) == 0) 
++		if ((err = CheckSocketListenPermission(sock)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
@@ -1256,7 +1256,7 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/socket.c linux-2.4.20-46.9.legacy-ccs/
  	if (err < 0)
  		goto out_put;
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen)) == 0) 
++	if ((err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);

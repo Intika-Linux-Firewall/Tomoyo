@@ -114,10 +114,10 @@ diff -ubBpEr linux-2.6.19/fs/exec.c linux-2.6.19-ccs/fs/exec.c
  	if (error)
  		goto exit;
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
-+    if (error) goto exit;
-+    /***** TOMOYO Linux end. *****/
++	if (error) goto exit;
++	/***** TOMOYO Linux end. *****/
 +
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
@@ -217,10 +217,10 @@ diff -ubBpEr linux-2.6.19/fs/namei.c linux-2.6.19-ccs/fs/namei.c
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
-+    if (error) return error;
-+    /***** TOMOYO Linux end. *****/
++	if (error) return error;
++	/***** TOMOYO Linux end. *****/
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
@@ -1017,9 +1017,9 @@ diff -ubBpEr linux-2.6.19/net/core/datagram.c linux-2.6.19-ccs/net/core/datagram
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
-+                /***** TOMOYO Linux start. *****/
-+                if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
-+                /***** TOMOYO Linux end. *****/
++		/***** TOMOYO Linux start. *****/
++		if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
++		/***** TOMOYO Linux end. *****/
 +
  		if (skb)
  			return skb;

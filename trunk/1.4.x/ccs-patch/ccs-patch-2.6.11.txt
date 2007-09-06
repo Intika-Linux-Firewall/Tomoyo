@@ -114,10 +114,10 @@ diff -ubBpEr linux-2.6.11/fs/exec.c linux-2.6.11-ccs/fs/exec.c
  	if (error)
  		goto exit;
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
-+    if (error) goto exit;
-+    /***** TOMOYO Linux end. *****/
++	if (error) goto exit;
++	/***** TOMOYO Linux end. *****/
 +
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
@@ -138,7 +138,7 @@ diff -ubBpEr linux-2.6.11/fs/exec.c linux-2.6.11-ccs/fs/exec.c
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = search_binary_handler_with_transition(bprm,regs);
-+ 
++
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
@@ -217,10 +217,10 @@ diff -ubBpEr linux-2.6.11/fs/namei.c linux-2.6.11-ccs/fs/namei.c
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
-+    if (error) return error;
-+    /***** TOMOYO Linux end. *****/
++	if (error) return error;
++	/***** TOMOYO Linux end. *****/
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
@@ -355,7 +355,7 @@ diff -ubBpEr linux-2.6.11/fs/namei.c linux-2.6.11-ccs/fs/namei.c
 + 		goto exit5;
 + 	}
 + 	/***** TOMOYO Linux end. *****/
-+ 
++
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
@@ -740,7 +740,7 @@ diff -ubBpEr linux-2.6.11/kernel/signal.c linux-2.6.11-ccs/kernel/signal.c
 +	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
 +	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
-+	
++
  	info.si_signo = sig;
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
@@ -1005,9 +1005,9 @@ diff -ubBpEr linux-2.6.11/net/core/datagram.c linux-2.6.11-ccs/net/core/datagram
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
-+                /***** TOMOYO Linux start. *****/
-+                if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
-+                /***** TOMOYO Linux end. *****/
++		/***** TOMOYO Linux start. *****/
++		if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
++		/***** TOMOYO Linux end. *****/
 +
  		if (skb)
  			return skb;

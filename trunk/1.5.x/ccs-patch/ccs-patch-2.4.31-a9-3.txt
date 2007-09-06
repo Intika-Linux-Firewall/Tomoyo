@@ -286,10 +286,10 @@ diff -ubBpEr linux-2.4.31-a9-3/fs/namei.c linux-2.4.31-a9-3-ccs/fs/namei.c
  			goto exit;
  	}
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
-+    if (error) goto exit;
-+    /***** TOMOYO Linux end. *****/
++	if (error) goto exit;
++	/***** TOMOYO Linux end. *****/
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
@@ -510,7 +510,7 @@ diff -ubBpEr linux-2.4.31-a9-3/fs/namespace.c linux-2.4.31-a9-3-ccs/fs/namespace
 +	err = -EPERM;
 +	if (SAKURA_MayMount(nd) < 0) goto unlock;
 +	/***** SAKURA Linux end. *****/
-+	
++
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
@@ -672,10 +672,10 @@ diff -ubBpEr linux-2.4.31-a9-3/include/linux/sched.h linux-2.4.31-a9-3-ccs/inclu
      alloc_lock:		SPIN_LOCK_UNLOCKED,				\
      journal_info:	NULL,						\
      CURR_SYSCALL							\
-+    /***** TOMOYO Linux start. *****/ \
-+    domain_info: &KERNEL_DOMAIN,      \
-+    tomoyo_flags: 0,                  \
-+    /***** TOMOYO Linux end. *****/   \
++	/***** TOMOYO Linux start. *****/ \
++	domain_info: &KERNEL_DOMAIN,      \
++	tomoyo_flags: 0,                  \
++	/***** TOMOYO Linux end. *****/   \
  }
  
  
@@ -788,10 +788,10 @@ diff -ubBpEr linux-2.4.31-a9-3/kernel/signal.c linux-2.4.31-a9-3-ccs/kernel/sign
         if (pid <= 0)
             return -EINVAL;
  
-+       /***** TOMOYO Linux start. *****/
-+       if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+       if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
-+       /***** TOMOYO Linux end. *****/
++	/***** TOMOYO Linux start. *****/
++	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
++	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	/***** TOMOYO Linux end. *****/
         info.si_signo = sig;
         info.si_errno = 0;
         info.si_code = SI_TKILL;
@@ -1236,7 +1236,7 @@ diff -ubBpEr linux-2.4.31-a9-3/net/socket.c linux-2.4.31-a9-3-ccs/net/socket.c
  		if ((unsigned) backlog > sysctl_somaxconn)
  			backlog = sysctl_somaxconn;
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = CheckSocketListenPermission(sock)) == 0) 
++		if ((err = CheckSocketListenPermission(sock)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
@@ -1259,7 +1259,7 @@ diff -ubBpEr linux-2.4.31-a9-3/net/socket.c linux-2.4.31-a9-3-ccs/net/socket.c
  	if (err < 0)
  		goto out_put;
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen)) == 0) 
++	if ((err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
