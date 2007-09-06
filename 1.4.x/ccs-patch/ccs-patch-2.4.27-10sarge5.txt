@@ -312,8 +312,8 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/exec.c kernel-source-2.4.27-10sarg
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+            if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
-+            /***** TOMOYO Linux end. *****/
++			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
@@ -637,7 +637,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/fs/namespace.c kernel-source-2.4.27-1
 +	err = -EPERM;
 +	if (SAKURA_MayMount(nd) < 0) goto unlock;
 +	/***** SAKURA Linux end. *****/
-+	
++
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
@@ -798,10 +798,10 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/include/linux/sched.h kernel-source-2
      blocked:		{{0}},						\
      alloc_lock:		SPIN_LOCK_UNLOCKED,				\
      journal_info:	NULL,						\
-+    /***** TOMOYO Linux start. *****/ \
-+    domain_info: &KERNEL_DOMAIN,      \
-+    tomoyo_flags: 0                   \
-+    /***** TOMOYO Linux end. *****/   \
++	/***** TOMOYO Linux start. *****/ \
++	domain_info: &KERNEL_DOMAIN,      \
++	tomoyo_flags: 0                   \
++	/***** TOMOYO Linux end. *****/   \
  }
  
  
@@ -914,10 +914,10 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/kernel/signal.c kernel-source-2.4.27-
         if (pid <= 0)
             return -EINVAL;
  
-+       /***** TOMOYO Linux start. *****/
-+       if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+       if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
-+       /***** TOMOYO Linux end. *****/
++	/***** TOMOYO Linux start. *****/
++	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
++	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	/***** TOMOYO Linux end. *****/
         info.si_signo = sig;
         info.si_errno = 0;
         info.si_code = SI_TKILL;
@@ -1348,7 +1348,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  		if ((unsigned) backlog > sysctl_somaxconn)
  			backlog = sysctl_somaxconn;
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = CheckSocketListenPermission(sock)) == 0) 
++		if ((err = CheckSocketListenPermission(sock)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
@@ -1371,7 +1371,7 @@ diff -ubBpEr kernel-source-2.4.27-10sarge5/net/socket.c kernel-source-2.4.27-10s
  	if (err < 0)
  		goto out_put;
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen)) == 0) 
++	if ((err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);

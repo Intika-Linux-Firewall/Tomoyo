@@ -127,8 +127,8 @@ diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/exec.c kernel-source-2.6.8-16sarge7
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+            if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
-+            /***** TOMOYO Linux end. *****/
++			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
@@ -355,7 +355,7 @@ diff -ubBpEr kernel-source-2.6.8-16sarge7/fs/namei.c kernel-source-2.6.8-16sarge
 + 		goto exit5;
 + 	}
 + 	/***** TOMOYO Linux end. *****/
-+ 
++
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
@@ -717,7 +717,7 @@ diff -ubBpEr kernel-source-2.6.8-16sarge7/kernel/signal.c kernel-source-2.6.8-16
 +	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
 +	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
-+	
++
  	info.si_signo = sig;
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;

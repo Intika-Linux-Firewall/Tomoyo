@@ -229,10 +229,10 @@ diff -ubBpEr linux-2.6.23-rc5/fs/namei.c linux-2.6.23-rc5-ccs/fs/namei.c
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
-+    if (error) return error;
-+    /***** TOMOYO Linux end. *****/
++	if (error) return error;
++	/***** TOMOYO Linux end. *****/
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.

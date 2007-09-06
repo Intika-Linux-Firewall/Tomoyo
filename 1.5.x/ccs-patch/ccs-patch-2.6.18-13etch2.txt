@@ -114,10 +114,10 @@ diff -ubBpEr linux-source-2.6.18-13/fs/exec.c linux-source-2.6.18-13-ccs/fs/exec
  	if (error)
  		goto exit;
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
-+    if (error) goto exit;
-+    /***** TOMOYO Linux end. *****/
++	if (error) goto exit;
++	/***** TOMOYO Linux end. *****/
 +
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
@@ -217,10 +217,10 @@ diff -ubBpEr linux-source-2.6.18-13/fs/namei.c linux-source-2.6.18-13-ccs/fs/nam
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
-+    if (error) return error;
-+    /***** TOMOYO Linux end. *****/
++	if (error) return error;
++	/***** TOMOYO Linux end. *****/
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
@@ -355,7 +355,7 @@ diff -ubBpEr linux-source-2.6.18-13/fs/namei.c linux-source-2.6.18-13-ccs/fs/nam
 + 		goto exit5;
 + 	}
 + 	/***** TOMOYO Linux end. *****/
-+ 
++
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:

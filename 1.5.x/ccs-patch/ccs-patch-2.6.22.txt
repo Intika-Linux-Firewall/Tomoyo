@@ -229,10 +229,10 @@ diff -ubBpEr linux-2.6.22/fs/namei.c linux-2.6.22-ccs/fs/namei.c
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
-+    /***** TOMOYO Linux start. *****/
++	/***** TOMOYO Linux start. *****/
 +	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
-+    if (error) return error;
-+    /***** TOMOYO Linux end. *****/
++	if (error) return error;
++	/***** TOMOYO Linux end. *****/
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
@@ -1006,9 +1006,9 @@ diff -ubBpEr linux-2.6.22/net/core/datagram.c linux-2.6.22-ccs/net/core/datagram
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
-+                /***** TOMOYO Linux start. *****/
-+                if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
-+                /***** TOMOYO Linux end. *****/
++		/***** TOMOYO Linux start. *****/
++		if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
++		/***** TOMOYO Linux end. *****/
 +
  		if (skb)
  			return skb;
