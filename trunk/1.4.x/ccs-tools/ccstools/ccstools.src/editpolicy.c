@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.1   2007/06/05
+ * Version: 1.4.3-rc   2007/09/09
  *
  */
 #include "ccstools.h"
@@ -900,7 +900,7 @@ static void ReadDomainAndExceptionPolicy(void) {
 	ClearDomainPolicy();
 	domain_keeper_list_len = 0;
 	domain_initializer_list_len = 0;
-	group_list_len = 0;
+	while (group_list_len) free(group_list[--group_list_len].member_name);
 	FindOrAssignNewDomain(ROOT_NAME, 0, 0);
 
 	// Load domain_initializer list, domain_keeper list.
