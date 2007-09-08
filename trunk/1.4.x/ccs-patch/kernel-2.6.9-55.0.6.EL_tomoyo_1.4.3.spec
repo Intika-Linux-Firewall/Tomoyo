@@ -30,7 +30,7 @@ summary: the linux kernel (the core of the linux operating system)
 # that the kernel isn't the stock distribution kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 55.0.2.EL_tomoyo_1.4.3
+%define release 55.0.6.EL_tomoyo_1.4.3
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -979,6 +979,7 @@ Patch2033: linux-2.6.9-bootmem.patch
 Patch2034: linux-2.6.9-busy-inodes.patch
 Patch2035: linux-2.6.9-vm-deadlock.patch
 Patch2036: linux-2.6.9-vm-swap-io-error.patch
+Patch2037: linux-2.6.9-vm-balance.patch
 
 # IDE bits.
 Patch2100: linux-2.6.9-ide-csb6-raid.patch
@@ -2937,6 +2938,8 @@ cd linux-%{kversion}
 %patch2035 -p1
 # make sure swap reads and writes deal with i/o errors properly
 %patch2036 -p1
+# vm balance
+%patch2037 -p1
 
 # IDE bits.
 # Make CSB6 driver support configurations.
@@ -3577,8 +3580,8 @@ perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
 # TOMOYO Linux
 #tar -zxf %_sourcedir/ccs-patch-1.4.3-pre.tar.gz
 wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.4.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -55.0.2.EL/" -- Makefile
-patch -sp1 < ccs-patch-2.6.9-55.0.2.EL.txt
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -55.0.6.EL/" -- Makefile
+patch -sp1 < ccs-patch-2.6.9-55.0.6.EL.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -4077,7 +4080,7 @@ fi
 %endif
 
 %changelog
-* Tue Jun 26 2007 Johnny Hughes <johnny@centos.org> [2.6.9-55.0.2]
+* Tue Sep  4 2007 Johnny Hughes <johnny@centos.org> [2.6.9-55.0.6]
 - rolled in standard centos changes (build for i586, change genkey to
   genkey.centos, do not terminate build on extra files).
 
