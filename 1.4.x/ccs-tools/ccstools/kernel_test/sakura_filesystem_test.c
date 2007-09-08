@@ -3,9 +3,9 @@
  *
  * Testing program for fs/sakura_mount.c fs/sakura_umount.c fs/sakura_maymount.c fs/sakura_chroot.c fs/sakura_pivot.c
  *
- * Copyright (C) 2005-2006  NTT DATA CORPORATION
+ * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4   2007/04/01
+ * Version: 1.4.3-rc   2007/09/09
  *
  */
 #include "include.h"

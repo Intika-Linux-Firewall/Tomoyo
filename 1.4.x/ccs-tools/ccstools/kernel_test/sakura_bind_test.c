@@ -3,9 +3,9 @@
  *
  * Testing program for fs/sakura_bind.c
  *
- * Copyright (C) 2005-2006  NTT DATA CORPORATION
+ * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.1   2007/06/05
+ * Version: 1.4.3-rc   2007/09/09
  *
  */
 #include "include.h"
