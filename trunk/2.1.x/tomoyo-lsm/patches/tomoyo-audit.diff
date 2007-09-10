@@ -13,7 +13,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  2 files changed, 71 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/audit.c	2007-09-03 13:18:02.000000000 +0900
++++ linux-2.6/security/tomoyo/audit.c	2007-09-10 18:34:54.000000000 +0900
 @@ -0,0 +1,68 @@
 +/*
 + * security/tomoyo/audit.c
@@ -83,8 +83,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tmy_free(buf);
 +	return ab ? 0 : -ENOMEM;
 +}
---- linux-2.6.orig/include/linux/audit.h	2007-09-03 13:17:57.000000000 +0900
-+++ linux-2.6/include/linux/audit.h	2007-09-03 13:18:02.000000000 +0900
+--- linux-2.6.orig/include/linux/audit.h	2007-09-10 18:34:38.000000000 +0900
++++ linux-2.6/include/linux/audit.h	2007-09-10 18:34:54.000000000 +0900
 @@ -120,6 +120,9 @@
  
  #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */

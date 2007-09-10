@@ -4,12 +4,11 @@ Therefore, namespace_sem is needed.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- fs/namespace.c                |    2 +-
- include/linux/mnt_namespace.h |    2 ++
- 2 files changed, 3 insertions(+), 1 deletion(-)
+ fs/namespace.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
---- linux-2.6.orig/fs/namespace.c	2007-09-03 13:17:59.000000000 +0900
-+++ linux-2.6/fs/namespace.c	2007-09-03 13:18:01.000000000 +0900
+--- linux-2.6.orig/fs/namespace.c	2007-09-10 18:34:39.000000000 +0900
++++ linux-2.6/fs/namespace.c	2007-09-10 18:34:53.000000000 +0900
 @@ -38,7 +38,7 @@ static int event;
  static struct list_head *mount_hashtable __read_mostly;
  static int hash_mask __read_mostly, hash_bits __read_mostly;
@@ -19,14 +18,3 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /* /sys/fs */
  decl_subsys(fs, NULL, NULL);
---- linux-2.6.orig/include/linux/mnt_namespace.h	2007-09-03 13:17:59.000000000 +0900
-+++ linux-2.6/include/linux/mnt_namespace.h	2007-09-03 13:18:01.000000000 +0900
-@@ -6,6 +6,8 @@
- #include <linux/sched.h>
- #include <linux/nsproxy.h>
- 
-+extern struct rw_semaphore namespace_sem;
-+
- struct mnt_namespace {
- 	atomic_t		count;
- 	struct vfsmount *	root;
