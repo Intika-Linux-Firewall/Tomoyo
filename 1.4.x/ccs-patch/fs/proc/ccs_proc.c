@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -87,17 +87,17 @@ void __init CCSProc_Init(void)
 #ifdef CONFIG_TOMOYO
 	CreateEntry("domain_policy",    0600, policy_dir, CCS_POLICY_DOMAINPOLICY);
 	CreateEntry("exception_policy", 0600, policy_dir, CCS_POLICY_EXCEPTIONPOLICY);
-	CreateEntry(".domain_status",   0600, policy_dir, CCS_POLICY_DOMAIN_STATUS);
-	CreateEntry(".process_status",  0400, info_dir, CCS_INFO_PROCESS_STATUS);
 #ifdef CONFIG_TOMOYO_AUDIT
 	CreateEntry("grant_log",        0400, info_dir, CCS_INFO_GRANTLOG);
 	CreateEntry("reject_log",       0400, info_dir, CCS_INFO_REJECTLOG);
 #endif
-	CreateEntry("self_domain",      0400, info_dir, CCS_INFO_SELFDOMAIN);
 #ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 	CreateEntry("mapping",          0400, info_dir, CCS_INFO_MAPPING);
 #endif
 #endif
+	CreateEntry(".domain_status",   0600, policy_dir, CCS_POLICY_DOMAIN_STATUS);
+	CreateEntry(".process_status",  0400, info_dir, CCS_INFO_PROCESS_STATUS);
+	CreateEntry("self_domain",      0400, info_dir, CCS_INFO_SELFDOMAIN);
 	CreateEntry("meminfo",          0400, info_dir, CCS_INFO_MEMINFO);
 	CreateEntry("status",           0600, ccs_dir, CCS_STATUS);
 	CreateEntry("manager",          0600, policy_dir, CCS_POLICY_MANAGER);

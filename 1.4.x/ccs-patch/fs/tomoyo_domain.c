@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -86,26 +86,11 @@ static DECLARE_MUTEX(new_domain_assign_lock);
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
-int IsDomainDef(const unsigned char *buffer)
-{
-	/* while (*buffer && (*buffer <= ' ' || *buffer >= 127)) buffer++; */
-	return strncmp(buffer, ROOT_NAME, ROOT_NAME_LEN) == 0;
-}
-
 const char *GetLastName(const struct domain_info *domain)
 {
 	const char *cp0 = domain->domainname->name, *cp1;
 	if ((cp1 = strrchr(cp0, ' ')) != NULL) return cp1 + 1;
 	return cp0;
-}
-
-int ReadSelfDomain(struct io_buffer *head)
-{
-	if (!head->read_eof) {
-		io_printf(head, "%s", current->domain_info->domainname->name);
-		head->read_eof = 1;
-	}
-	return 0;
 }
 
 int AddDomainACL(struct acl_info *ptr, struct domain_info *domain, struct acl_info *new_ptr)
@@ -536,23 +521,6 @@ struct domain_info *UndeleteDomain(const char *domainname0)
 }
 
 /*************************  DOMAIN TRANSITION HANDLER  *************************/
-
-struct domain_info *FindDomain(const char *domainname0)
-{
-	struct domain_info *domain;
-	static int first = 1;
-	struct path_info domainname;
-	domainname.name = domainname0;
-	fill_path_info(&domainname);
-	if (first) {
-		KERNEL_DOMAIN.domainname = SaveName(ROOT_NAME);
-		first = 0;
-	}
-	for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
-		if (!domain->is_deleted && !pathcmp(&domainname, domain->domainname)) return domain;
-	}
-	return NULL;
-}
 
 struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile)
 {

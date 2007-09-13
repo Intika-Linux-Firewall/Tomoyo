@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -376,7 +376,6 @@ int ReadPivotRootPolicy(struct io_buffer *head);
 int ReadPermissionMapping(struct io_buffer *head);
 int ReadRejectLog(struct io_buffer *head);
 int ReadReservedPortPolicy(struct io_buffer *head);
-int ReadSelfDomain(struct io_buffer *head);
 int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile);
 int SetPermissionMapping(struct io_buffer *head);
 int TooManyDomainACL(struct domain_info * const domain);

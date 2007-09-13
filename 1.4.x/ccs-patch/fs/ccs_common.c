@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -232,6 +232,29 @@ int IsCorrectDomain(const unsigned char *domainname, const char *function)
  out:
 	printk(KERN_DEBUG "%s: Invalid domainname '%s'\n", function, org_domainname);
 	return 0;
+}
+
+int IsDomainDef(const unsigned char *buffer)
+{
+	/* while (*buffer && (*buffer <= ' ' || *buffer >= 127)) buffer++; */
+	return strncmp(buffer, ROOT_NAME, ROOT_NAME_LEN) == 0;
+}
+
+struct domain_info *FindDomain(const char *domainname0)
+{
+	struct domain_info *domain;
+	static int first = 1;
+	struct path_info domainname;
+	domainname.name = domainname0;
+	fill_path_info(&domainname);
+	if (first) {
+		KERNEL_DOMAIN.domainname = SaveName(ROOT_NAME);
+		first = 0;
+	}
+	for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
+		if (!domain->is_deleted && !pathcmp(&domainname, domain->domainname)) return domain;
+	}
+	return NULL;
 }
 
 static int PathDepth(const char *pathname)
@@ -927,6 +950,24 @@ static int ReadDomainPolicy(struct io_buffer *head)
 	return 0;
 }
 
+#endif
+
+static int UpdateDomainProfile(struct io_buffer *head)
+{
+	char *data = head->write_buf;
+	char *cp = strchr(data, ' ');
+	struct domain_info *domain;
+	unsigned int profile;
+	if (!isRoot()) return -EPERM;
+	if (!cp) return -EINVAL;
+	*cp = '\0';
+	domain = FindDomain(cp + 1);
+	profile = simple_strtoul(data, NULL, 10);
+	if (domain && profile < MAX_PROFILES && (profile_ptr[profile] || !sbin_init_started)) domain->profile = (u8) profile;
+	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
+	return 0;
+}
+
 static int ReadDomainProfile(struct io_buffer *head)
 {
 	if (!head->read_eof) {
@@ -970,24 +1011,6 @@ static int ReadPID(struct io_buffer *head)
 	}
 	return 0;
 }
-
-static int UpdateDomainProfile(struct io_buffer *head)
-{
-	char *data = head->write_buf;
-	char *cp = strchr(data, ' ');
-	struct domain_info *domain;
-	unsigned int profile;
-	if (!isRoot()) return -EPERM;
-	if (!cp) return -EINVAL;
-	*cp = '\0';
-	domain = FindDomain(cp + 1);
-	profile = simple_strtoul(data, NULL, 10);
-	if (domain && profile < MAX_PROFILES && (profile_ptr[profile] || !sbin_init_started)) domain->profile = (u8) profile;
-	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-	return 0;
-}
-
-#endif
 
 /*************************  EXCEPTION POLICY HANDLER  *************************/
 
@@ -1209,10 +1232,10 @@ void CCS_LoadPolicy(const char *filename)
 	}
 
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.4.3-rc   2007/09/09\n");
+	printk("SAKURA: 1.4.3-rc   2007/09/13\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.4.3-rc   2007/09/09\n");
+	printk("TOMOYO: 1.4.3-rc   2007/09/13\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
@@ -1460,6 +1483,15 @@ static int ReadMemoryCounter(struct io_buffer *head)
 	return 0;
 }
 
+static int ReadSelfDomain(struct io_buffer *head)
+{
+	if (!head->read_eof) {
+		io_printf(head, "%s", current->domain_info->domainname->name);
+		head->read_eof = 1;
+	}
+	return 0;
+}
+
 int CCS_OpenControl(const int type, struct file *file)
 {
 	struct io_buffer *head = ccs_alloc(sizeof(*head));
@@ -1467,6 +1499,12 @@ int CCS_OpenControl(const int type, struct file *file)
 	init_MUTEX(&head->read_sem);
 	init_MUTEX(&head->write_sem);
 	switch (type) {
+#ifdef CONFIG_SAKURA
+	case CCS_POLICY_SYSTEMPOLICY:
+		head->write = AddSystemPolicy;
+		head->read = ReadSystemPolicy;
+		break;
+#endif
 #ifdef CONFIG_TOMOYO
 	case CCS_POLICY_DOMAINPOLICY:
 		head->write = AddDomainPolicy;
@@ -1475,14 +1513,6 @@ int CCS_OpenControl(const int type, struct file *file)
 	case CCS_POLICY_EXCEPTIONPOLICY:
 		head->write = AddExceptionPolicy;
 		head->read = ReadExceptionPolicy;
-		break;
-	case CCS_POLICY_DOMAIN_STATUS:
-		head->write = UpdateDomainProfile;
-		head->read = ReadDomainProfile;
-		break;
-	case CCS_INFO_PROCESS_STATUS:
-		head->write = WritePID;
-		head->read = ReadPID;
 		break;
 #ifdef CONFIG_TOMOYO_AUDIT
 	case CCS_INFO_GRANTLOG:
@@ -1494,9 +1524,6 @@ int CCS_OpenControl(const int type, struct file *file)
 		head->read = ReadRejectLog;
 		break;
 #endif
-	case CCS_INFO_SELFDOMAIN:
-		head->read = ReadSelfDomain;
-		break;
 #ifdef CONFIG_TOMOYO_MAC_FOR_FILE
 	case CCS_INFO_MAPPING:
 		if (!sbin_init_started) head->write = SetPermissionMapping;
@@ -1504,12 +1531,17 @@ int CCS_OpenControl(const int type, struct file *file)
 		break;
 #endif
 #endif
-#ifdef CONFIG_SAKURA
-	case CCS_POLICY_SYSTEMPOLICY:
-		head->write = AddSystemPolicy;
-		head->read = ReadSystemPolicy;
+	case CCS_POLICY_DOMAIN_STATUS:
+		head->write = UpdateDomainProfile;
+		head->read = ReadDomainProfile;
 		break;
-#endif
+	case CCS_INFO_PROCESS_STATUS:
+		head->write = WritePID;
+		head->read = ReadPID;
+		break;
+	case CCS_INFO_SELFDOMAIN:
+		head->read = ReadSelfDomain;
+		break;
 	case CCS_INFO_MEMINFO:
 		head->read = ReadMemoryCounter;
 		head->readbuf_size = 128;
