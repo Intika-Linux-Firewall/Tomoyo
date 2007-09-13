@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -94,7 +94,7 @@ static unsigned int CheckCapabilityEnforce(const unsigned int index)
 	return CheckCapabilityFlags(index) == 3;
 }
 
-/* Check whether the given capability control is accept mode. */
+/* Check whether the given capability control is learning mode. */
 static unsigned int CheckCapabilityAccept(const unsigned int index)
 {
 	return CheckCapabilityFlags(index) == 1;

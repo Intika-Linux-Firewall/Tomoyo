@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/09/05
+ * Version: 1.5.0-pre   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -16,6 +16,8 @@
 #define _LINUX_TOMOYO_SOCKET_H
 
 /***** TOMOYO Linux start. *****/
+
+#if defined(CONFIG_TOMOYO)
 
 #include <net/ip.h>
 #include <net/ipv6.h>
@@ -285,6 +287,18 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 	}
 	return error;
 }
+
+#else
+
+static inline int CheckSocketCreatePermission(int family, int type, int protocol) { return 0; }
+static inline int CheckSocketListenPermission(struct socket *sock) { return 0; }
+static inline int CheckSocketConnectPermission(struct socket *sock, struct sockaddr *addr, int addr_len) { return 0; }
+static inline int CheckSocketBindPermission(struct socket *sock, struct sockaddr *addr, int addr_len) { return 0; }
+static inline int CheckSocketAcceptPermission(struct socket *sock, struct sockaddr *addr) { return 0; }
+static inline int CheckSocketSendMsgPermission(struct socket *sock, struct sockaddr *addr, int addr_len) { return 0; }
+static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_buff *skb, const unsigned int flags) { return 0; }
+
+#endif
 
 /***** TOMOYO Linux end. *****/
 #endif

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/24
+ * Version: 1.5.0-pre   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -85,12 +85,12 @@ void __init CCSProc_Init(void)
 #ifdef CONFIG_TOMOYO
 	CreateEntry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
 	CreateEntry("exception_policy", 0600, ccs_dir, CCS_EXCEPTIONPOLICY);
-	CreateEntry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
-	CreateEntry(".process_status",  0400, ccs_dir, CCS_PROCESS_STATUS);
 	CreateEntry("grant_log",        0400, ccs_dir, CCS_GRANTLOG);
 	CreateEntry("reject_log",       0400, ccs_dir, CCS_REJECTLOG);
-	CreateEntry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
 #endif
+	CreateEntry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
+	CreateEntry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
+	CreateEntry(".process_status",  0400, ccs_dir, CCS_PROCESS_STATUS);
 	CreateEntry("meminfo",          0400, ccs_dir, CCS_MEMINFO);
 	CreateEntry("profile",          0600, ccs_dir, CCS_PROFILE);
 	CreateEntry("manager",          0600, ccs_dir, CCS_MANAGER);

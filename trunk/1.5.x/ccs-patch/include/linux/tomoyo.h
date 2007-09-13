@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/08/06
+ * Version: 1.5.0-pre   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -17,8 +17,8 @@
  *  TOMOYO stands for "Task Oriented Management Obviates Your Onus".
  *  TOMOYO is intended to provide the Domain-Based MAC utilizing task_struct.
  *
- *  The biggest feature of TOMOYO is that TOMOYO has "accept mode".
- *  The accept mode can automatically generate policy definition,
+ *  The biggest feature of TOMOYO is that TOMOYO has "learning mode".
+ *  The learning mode can automatically generate policy definition,
  *  and dramatically reduces the policy definition labors.
  *
  *  TOMOYO is applicable to figuring out the system's behavior, for
@@ -38,6 +38,10 @@ struct path_info;
 struct dentry;
 struct vfsmount;
 struct inode;
+struct linux_binprm;
+struct pt_regs;
+
+#if defined(CONFIG_TOMOYO)
 
 /* Check whether the given filename is allowed to read/write/execute. */
 int CheckFilePerm(const char *filename, const u8 perm, const char *operation);
@@ -66,12 +70,35 @@ int CheckSignalACL(const int sig, const int pid);
 /* Check whether the given capability is allowed to use. */
 int CheckCapabilityACL(const unsigned int capability);
 
+#else
+
+static inline int CheckFilePerm(const char *filename, const u8 perm, const char *operation) { return 0; }
+static inline int CheckExecPerm(const struct path_info *filename, struct file *filp)  { return 0; }
+static inline int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag) { return 0; }
+static inline int CheckSingleWritePermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt) { return 0; }
+static inline int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2) { return 0; }
+static inline int CheckReWritePermission(struct file *filp) { return 0; }
+static inline int CheckArgv0Perm(const struct path_info *filename, const char *argv0) { return 0; }
+static inline int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckSignalACL(const int sig, const int pid) { return 0; }
+static inline int CheckCapabilityACL(const unsigned int capability) { return 0; }
+
+#endif
+
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
 #else
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
 #endif
+
+int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs);
+#define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
 
 /*************************  Index numbers for Access Controls.  *************************/
 
@@ -139,12 +166,6 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
 #define NETWORK_ACL_TCP_ACCEPT  5
 #define NETWORK_ACL_RAW_BIND    6
 #define NETWORK_ACL_RAW_CONNECT 7
-
-struct linux_binprm;
-struct pt_regs;
-int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs);
-
-#define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
 
 /***** TOMOYO Linux end. *****/
 #endif

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/09/05
+ * Version: 1.5.0-pre   2007/09/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -32,6 +32,8 @@
 
 /***** SAKURA Linux start. *****/
 
+#if defined(CONFIG_SAKURA)
+
 /* Check whether the given pathname is allowed to chroot to. */
 int CheckChRootPermission(struct nameidata *nd);
 
@@ -49,6 +51,17 @@ int SAKURA_MayUmount(struct vfsmount *mnt);
 
 /* Check whether the given port is allowed to autobind. */
 int SAKURA_MayAutobind(const u16 port);
+
+#else
+
+static inline int CheckChRootPermission(struct nameidata *nd) { return 0; }
+static inline int CheckMountPermission(char *dev_name, char *dir_name, char *type, const unsigned long *flags) { return 0; }
+static inline int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd) { return 0; }
+static inline int SAKURA_MayMount(struct nameidata *nd) { return 0; }
+static inline int SAKURA_MayUmount(struct vfsmount *mnt) { return 0; }
+static inline int SAKURA_MayAutobind(const u16 port) { return 0; }
+
+#endif
 
 /***** SAKURA Linux end. *****/
 #endif
