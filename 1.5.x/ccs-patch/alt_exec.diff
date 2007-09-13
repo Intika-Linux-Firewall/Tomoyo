@@ -1,6 +1,6 @@
 Index: fs/tomoyo_domain.c
 ===================================================================
---- fs/tomoyo_domain.c	(revision 455)
+--- fs/tomoyo_domain.c	(revision 460)
 +++ fs/tomoyo_domain.c	(working copy)
 @@ -674,7 +674,7 @@
  	return NULL;
@@ -28,7 +28,7 @@ Index: fs/tomoyo_domain.c
  	/* Allocate memory for calcurating domain name. */
  	retval = -ENOMEM;
  	if ((new_domain_name = ccs_alloc(CCS_MAX_PATHNAME_LEN + 16)) == NULL) goto out;
-@@ -804,18 +807,89 @@
+@@ -804,18 +807,93 @@
  	return retval;
  }
  
@@ -114,12 +114,16 @@ Index: fs/tomoyo_domain.c
  #endif
  #if defined(CONFIG_TOMOYO)
 -	retval = FindNextDomain(bprm, &next_domain);
-+	retval = FindNextDomain(bprm, &next_domain, 1);
-+	if (retval == -EPERM && try_alt_exec(bprm, &alt_exec) >= 0) retval = FindNextDomain(bprm, &next_domain, 0);
++        retval = FindNextDomain(bprm, &next_domain, 1);
++	if (retval == -EPERM && try_alt_exec(bprm, &alt_exec) >= 0) {
++		current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
++		retval = FindNextDomain(bprm, &next_domain, 0);
++		current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
++	}
  #else
  	retval = 0; next_domain = prev_domain;
  #endif
-@@ -826,6 +900,7 @@
+@@ -826,6 +904,7 @@
  		if (retval < 0) current->domain_info = prev_domain;
  		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
  	}
@@ -129,12 +133,13 @@ Index: fs/tomoyo_domain.c
  
 Index: fs/ccs_common.c
 ===================================================================
---- fs/ccs_common.c	(revision 455)
+--- fs/ccs_common.c	(revision 460)
 +++ fs/ccs_common.c	(working copy)
-@@ -78,11 +78,13 @@
+@@ -78,11 +78,14 @@
  	[CCS_TOMOYO_MAX_REJECT_LOG]      = { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
  	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
  	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
++	[CCS_SLEEP_PERIOD]               = { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
 +	[CCS_TOMOYO_ALT_EXEC]            = { "ALT_EXEC",            0, 0 }, /* Reserved for string. */
  };
  
@@ -145,7 +150,7 @@ Index: fs/ccs_common.c
  };
  
  static struct profile *profile_ptr[MAX_PROFILES];
-@@ -469,6 +471,13 @@
+@@ -469,6 +472,13 @@
  	if (is_enforce) return "ERROR"; else return "WARNING";
  }
  
@@ -159,7 +164,7 @@ Index: fs/ccs_common.c
  /*************************  DOMAIN POLICY HANDLER  *************************/
  
  /* Check whether the given access control is enabled. */
-@@ -541,6 +550,10 @@
+@@ -541,6 +551,10 @@
  		profile->comment = SaveName(cp + 1);
  		return 0;
  	}
@@ -170,7 +175,7 @@ Index: fs/ccs_common.c
  	if (sscanf(cp + 1, "%u", &value) != 1) return -EINVAL;
  	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
  		return SetCapabilityStatus(data + KEYWORD_MAC_FOR_CAPABILITY_LEN, value, i);
-@@ -572,11 +585,15 @@
+@@ -572,11 +586,15 @@
  				case CCS_TOMOYO_MAX_GRANT_LOG:
  				case CCS_TOMOYO_MAX_REJECT_LOG:
  				case CCS_TOMOYO_VERBOSE:
@@ -186,21 +191,41 @@ Index: fs/ccs_common.c
  				} else {
  					if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, profile->value[j])) break;
  				}
+@@ -1185,8 +1203,16 @@
+ 	int pos, len;
+ 	static unsigned int serial = 0;
+ 	struct query_entry *query_entry;
+-	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE)) return -EPERM;
+-	if (!atomic_read(&queryd_watcher)) return -EPERM;
++	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE) || !atomic_read(&queryd_watcher)) {
++		if ((current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR) == 0) {
++			int i;
++			for (i = 0; i < CheckCCSFlags(CCS_SLEEP_PERIOD); i++) {
++				set_current_state(TASK_INTERRUPTIBLE);
++				schedule_timeout(HZ / 10);
++			}
++		}
++		return -EPERM;
++	}
+ 	va_start(args, fmt);
+ 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
+ 	va_end(args);
 Index: include/linux/ccs_common.h
 ===================================================================
---- include/linux/ccs_common.h	(revision 455)
+--- include/linux/ccs_common.h	(revision 460)
 +++ include/linux/ccs_common.h	(working copy)
-@@ -274,7 +274,8 @@
+@@ -274,7 +274,9 @@
  #define CCS_TOMOYO_MAX_REJECT_LOG               13
  #define CCS_TOMOYO_VERBOSE                      14
  #define CCS_ALLOW_ENFORCE_GRACE                 15
 -#define CCS_MAX_CONTROL_INDEX                   16
-+#define CCS_TOMOYO_ALT_EXEC                     16
-+#define CCS_MAX_CONTROL_INDEX                   17
++#define CCS_SLEEP_PERIOD                        16
++#define CCS_TOMOYO_ALT_EXEC                     17
++#define CCS_MAX_CONTROL_INDEX                   18
  
  /*************************  Index numbers for updates counter.  *************************/
  
-@@ -315,6 +316,7 @@
+@@ -315,6 +317,7 @@
  char *InitAuditLog(int *len);
  void *ccs_alloc(const size_t size);
  char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
@@ -208,3 +233,17 @@ Index: include/linux/ccs_common.h
  const char *GetEXE(void);
  const char *GetLastName(const struct domain_info *domain);
  const char *GetMSG(const int is_enforce);
+Index: include/linux/tomoyo.h
+===================================================================
+--- include/linux/tomoyo.h	(revision 460)
++++ include/linux/tomoyo.h	(working copy)
+@@ -144,7 +144,9 @@
+ struct pt_regs;
+ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs);
+ 
++/* flags for task_struct->tomoyo_flags */
+ #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
++#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
+ 
+ /***** TOMOYO Linux end. *****/
+ #endif
