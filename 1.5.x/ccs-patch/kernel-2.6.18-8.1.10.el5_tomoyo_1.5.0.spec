@@ -32,7 +32,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.1.8%{?dist}_tomoyo_1.4.3
+%define release 8.1.10%{?dist}_tomoyo_1.5.0
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -942,6 +942,15 @@ Patch21250: linux-2.6-net-pppoe-memory-leak.patch
 Patch21251: linux-2.6-random-entropy-fixes.patch
 Patch21252: linux-2.6-ide-serverworks-data-corruptor.patch
 Patch21253: linux-2.6-ppc64-restore-sigcontext.patch
+Patch21254: linux-2.6-misc-cpuset-information-leak.patch
+Patch21255: linux-2.6-net-ip_conntrack_sctp-remote-triggerable-panic.patch
+Patch21256: linux-2.6-misc-overflow-in-capi-subsystem.patch
+Patch21257: linux-2.6-cifs-fix-signing-sec-mount-options.patch
+Patch21258: linux-2.6-cifs-respect-umask-when-unix-extensions-enabled.patch
+Patch21259: linux-2.6-misc-i915_dma-fix-batch-buffer-security-bit.patch
+Patch21260: linux-2.6-fs-move-msdos-compat-ioctl-to-msdos-dir.patch
+Patch21261: linux-2.6-fs-fix-vfat-compat-ioctls-on-64-bit-systems.patch
+Patch21262: linux-2.6-mm-prevent-the-stack-growth-into-hugetlb-regions.patch
 # empty final patch file to facilitate testing of kernel patches
 Patch99999: linux-kernel-test.patch
 
@@ -1951,6 +1960,15 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21251 -p1
 %patch21252 -p1
 %patch21253 -p1
+%patch21254 -p1
+%patch21255 -p1
+%patch21256 -p1
+%patch21257 -p1
+%patch21258 -p1
+%patch21259 -p1
+%patch21260 -p1
+%patch21261 -p1
+%patch21262 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
 perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
@@ -1961,10 +1979,10 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %endif
 
 # TOMOYO Linux
-#tar -zxf %_sourcedir/ccs-patch-1.4.3-pre.tar.gz
-wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.4.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.8.el5/" -- Makefile
-patch -sp1 < ccs-patch-2.6.18-8.1.8.el5.txt
+#tar -zxf %_sourcedir/ccs-patch-1.5.0-pre.tar.gz
+wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.10.el5/" -- Makefile
+patch -sp1 < ccs-patch-2.6.18-8.1.10.el5.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2228,7 +2246,7 @@ BuildKernel() {
 
     for i in `cat modnames`
     do
-      sh ./scripts/modsign/modsign.sh $i CentOS 
+      sh ./scripts/modsign/modsign.sh $i CentOS
       mv -f $i.signed $i
     done
     unset KEYFLAGS
@@ -2805,7 +2823,7 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
  
 %changelog
-* Tue Jul 10 2007 Karanbir Singh <kbsingh@centos.org> [2.6.18.8-1.8.el5]
+* Thu Sep 13 2007 Karanbir Singh <kbsingh@centos.org> [2.6.18-8.1.10.el5.centos]
 - Change gpg key to CentOS
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
