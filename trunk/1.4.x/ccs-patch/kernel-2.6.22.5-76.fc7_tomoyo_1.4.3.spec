@@ -20,7 +20,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # kernel spec when the kernel is rebased, so fedora_build automatically
 # works out to the offset from the rebase, so it doesn't get too ginormous.
 %define fedora_cvs_origin 3260
-%define fedora_build %(R="$Revision: 1.3325 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.3336 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -29,8 +29,8 @@ Summary: The Linux kernel (the core of the Linux operating system)
 
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
-# Do we have a 2.6.21.y update to apply?
-%define stable_update 4
+# Do we have a 2.6.x.y update to apply?
+%define stable_update 5
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -503,6 +503,8 @@ Patch00: patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 
 %if !%{nopatches}
 
+Patch02: patch-2.6.22.6-rc1.patch
+
 # Revert -stable pieces we get from elsewhere
 Patch05: linux-2.6-softmac-fix-essid-problem_R.patch
 
@@ -525,12 +527,11 @@ Patch25: linux-2.6-utrace-ptrace-compat-s390.patch
 Patch26: linux-2.6-utrace-ptrace-compat-avr32.patch
 #Patch20: nouveau-drm.patch
 Patch30: linux-2.6-sysrq-c.patch
-Patch35: linux-2.6-irq-dont-mask-interrupts-_reversed_.patch
+Patch35: linux-2.6-genirq-fixes.patch
 Patch40: linux-2.6-x86-tune-generic.patch
 Patch50: linux-2.6-x86-vga-vidfail.patch
 Patch52: linux-2.6-amd-fix-broken-lapic-timer-detect.patch
 Patch90: linux-2.6-kvm-suspend.patch
-Patch91: linux-2.6-serial-revert-platform-conversion.patch
 Patch93: linux-2.6-kvm-reinit-real-mode-tss.patch
 
 Patch100: linux-2.6-g5-therm-shutdown.patch
@@ -542,6 +543,8 @@ Patch133: linux-2.6-powerpc-generic-suspend-3-remove-dmasound.patch
 Patch134: linux-2.6-powerpc-generic-suspend-4-kill-pmu-sleep-notifier.patch
 Patch135: linux-2.6-powerpc-generic-suspend-5-pmu-pm_ops.patch
 Patch140: linux-2.6-pmac-zilog.patch
+Patch141: linux-2.6-ppc-pegasos-keyboard-8042-check.patch
+
 Patch150: linux-2.6-build-nonintconfig.patch
 Patch160: linux-2.6-execshield.patch
 Patch170: linux-2.6-modsign-mpilib.patch
@@ -569,11 +572,11 @@ Patch390: linux-2.6-dev-get-driver-properly.patch
 Patch400: linux-2.6-scsi-cpqarray-set-master.patch
 Patch401: linux-2.6-aacraid-ioctl-security.patch
 Patch402: linux-2.6-scsi-async-scanning.patch
+Patch403: linux-2.6-scsi-3w_9xxx-fix-dma-mask.patch
 Patch420: linux-2.6-squashfs.patch
 Patch422: linux-2.6-gfs2-update.patch
 Patch423: linux-2.6-gfs-locking-exports.patch
 Patch430: linux-2.6-net-silence-noisy-printks.patch
-Patch434: linux-2.6-add_xt_statistic.h_to_hdrs.patch
 Patch440: linux-2.6-sha_alignment.patch
 Patch450: linux-2.6-input-kill-stupid-messages.patch
 Patch460: linux-2.6-serial-460800.patch
@@ -585,47 +588,43 @@ Patch590: linux-2.6-unexport-symbols.patch
 Patch600: linux-2.6-vm-silence-atomic-alloc-failures.patch
 Patch601: linux-2.6-input-ff-create-limit-memory.patch
 Patch602: linux-2.6-x86_64-e820_hole_size.patch
-Patch603: linux-2.6-hibernation-do-not-try-to-mark-invalid-pfns-as-nosave.patch
 Patch610: linux-2.6-defaults-fat-utf8.patch
 Patch620: linux-2.6-defaults-unicode-vt.patch
 Patch630: linux-2.6-defaults-nonmi.patch
 Patch660: linux-2.6-libata-ali-atapi-dma.patch
 Patch662: linux-2.6-ata-update-noncq.patch
 Patch663: linux-2.6-ata-quirk.patch
-Patch664: linux-2.6-libata-sb700-sata-ids.patch
 Patch667: linux-2.6-libata-ata_piix_fix_pio-mwdma-programming.patch
 Patch670: linux-2.6-libata-pata_hpt37x-fix-2.6.22-clock-pll.patch
 Patch671: linux-2.6-libata-pata_ali-fix-hp-detect.patch
+Patch673: linux-2.6-libata-simplify-init.patch
+Patch674: linux-2.6-ppc-pegasos-via-ata-legacy-irq.patch
 Patch680: linux-2.6-rtl8187.patch
 Patch681: linux-2.6-wireless.patch
 Patch682: linux-2.6-wireless-pending.patch
 Patch683: linux-2.6-bcm43xx-pci-neuter.patch
 Patch690: git-wireless-dev.patch
 Patch691: linux-2.6-mac80211-local-mcast-filter.patch
-Patch692: linux-2.6-mac80211-probe-hidden-essid.patch
 Patch700: linux-2.6-iwlwifi-fw-name-compat.patch
-Patch701: linux-2.6-rt2x00-usb-1_1-timeout.patch
-Patch702: linux-2.6-b43-module-alias.patch
+Patch701: linux-2.6-b43-module-alias.patch
+Patch702: linux-2.6-b43-use-old-fw.patch
 Patch710: linux-2.6-e1000-ich9.patch
 Patch711: linux-2.6-netdev-forcedeth-realtek-oui.patch
-Patch712: linux-2.6-net-r8169-fix-polling.patch
 Patch713: linux-2.6-net-atl1-fix-typo-in-dma-setup.patch
 Patch714: linux-2.6-net-atl1-fix-typo-in-dma_req_block.patch
-Patch717: linux-2.6-sky2-1-restore-workarounds.patch
-Patch718: linux-2.6-sky2-2-carrier-management.patch
-Patch719: linux-2.6-sky2-3-check-for-more-work.patch
-Patch720: linux-2.6-sky2-4-drop-truncated-packets.patch
-Patch721: linux-2.6-net-sky2-dont-clear-phy-power-bits.patch
+Patch715: linux-2.6-netdev-atl1-disable-broken-64-bit-dma.patch
+Patch730: linux-2.6-snd-ad1988-fix-spdif-output.patch
+Patch731: linux-2.6-snd-hda-stac92xx-fixes.patch
 Patch740: linux-2.6-sdhci-ene-controller-quirk.patch
 Patch741: linux-2.6-sdhci-fix-interrupt-mask.patch
 Patch742: linux-2.6-sdhci-clear-error-interrupt.patch
-Patch750: linux-2.6-lm_sensors-fix-values.patch
-Patch770: linux-2.6-acpi-fix-gpe-list-corruption.patch
-Patch771: linux-2.6-acpi-fix-older-fadts.patch
+Patch760: linux-2.6-v4l-dvb-fix-airstar-hd5000-tuner.patch
+Patch770: linux-2.6-irda-smc-remove-quirk.patch
 #Patch780: linux-2.6-clockevents-fix-resume-logic.patch
 Patch800: linux-2.6-wakeups-hdaps.patch
 Patch801: linux-2.6-wakeups.patch
-Patch900: linux-2.6-sched-cfs.patch
+Patch900: linux-2.6-sched-cfs-v2.6.22.5-v20.5.patch
+Patch901: linux-2.6-timekeeping-fixes.patch
 Patch1000: linux-2.6-dmi-based-module-autoloading.patch
 Patch1020: linux-2.6-usb-autosuspend-default-disable.patch
 Patch1030: linux-2.6-nfs-nosharecache.patch
@@ -646,6 +645,7 @@ Patch1310: linux-2.6-ps3-legacy-bootloader-hack.patch
 Patch1320: linux-2.6-ps3-storage-alias.patch
 
 Patch1400: linux-2.6-pcspkr-use-the-global-pit-lock.patch
+Patch1500: linux-2.6-pmtrace-time-fix.patch
 
 %endif
 
@@ -1084,13 +1084,18 @@ ApplyPatch patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 # builds (as used in the buildsystem).
 ApplyPatch linux-2.6-build-nonintconfig.patch
 
+# stable RC patch
+ApplyPatch patch-2.6.22.6-rc1.patch
+
 %if !%{nopatches}
 
 # Revert -stable pieces we get from elsewhere
 ApplyPatch linux-2.6-softmac-fix-essid-problem_R.patch -R
 
 # Ingo's new scheduler.
-ApplyPatch linux-2.6-sched-cfs.patch
+ApplyPatch linux-2.6-sched-cfs-v2.6.22.5-v20.5.patch
+# apply timekeeping updates that were in the Fedora CFS patch
+ApplyPatch linux-2.6-timekeeping-fixes.patch
 
 # Roland's utrace ptrace replacement.
 ApplyPatch linux-2.6-utrace-tracehook.patch -F2
@@ -1123,8 +1128,8 @@ ApplyPatch linux-2.6-usb-autosuspend-default-disable.patch
 # enable sysrq-c on all kernels, not only kexec
 ApplyPatch linux-2.6-sysrq-c.patch
 
-# revert "genirq: do not mask interrupts by default"
-ApplyPatch linux-2.6-irq-dont-mask-interrupts-_reversed_.patch -R
+# new genirq fixes from upstrea
+ApplyPatch linux-2.6-genirq-fixes.patch
 
 # Architecture patches
 # x86(-64)
@@ -1141,8 +1146,6 @@ ApplyPatch linux-2.6-amd-fix-broken-lapic-timer-detect.patch
 
 # patch to fix suspend with kvm loaded and guests running
 ApplyPatch linux-2.6-kvm-suspend.patch
-# revert to old legacy serial port detection
-ApplyPatch linux-2.6-serial-revert-platform-conversion.patch
 # reinit real mode tss or oops occurs on shutdown
 ApplyPatch linux-2.6-kvm-reinit-real-mode-tss.patch
 
@@ -1157,6 +1160,8 @@ ApplyPatch linux-2.6-ppc32-ucmpdi2.patch
 ApplyPatch linux-2.6-ibmvscsi-schizo.patch
 # Move pmac_zilog to its newly-registered device number
 ApplyPatch linux-2.6-pmac-zilog.patch
+# fix detection of i8042 on ppc pegasos platform
+ApplyPatch linux-2.6-ppc-pegasos-keyboard-8042-check.patch
 # Sleep through /sys/power/state
 # Patches from http://johannes.sipsolutions.net/patches/kernel/all/2007-07-25-09:02/
 ApplyPatch linux-2.6-powerpc-generic-suspend-1-remove-dead-code.patch
@@ -1233,6 +1238,8 @@ ApplyPatch linux-2.6-scsi-cpqarray-set-master.patch
 ApplyPatch linux-2.6-aacraid-ioctl-security.patch
 # fix locking problems w/ async scsi scan
 ApplyPatch linux-2.6-scsi-async-scanning.patch
+# fix 3ware 9000 DMA fallback
+ApplyPatch linux-2.6-scsi-3w_9xxx-fix-dma-mask.patch
 
 # Filesystem patches.
 # Squashfs
@@ -1245,8 +1252,6 @@ ApplyPatch linux-2.6-gfs-locking-exports.patch
 # Networking
 # Disable easy to trigger printk's.
 ApplyPatch linux-2.6-net-silence-noisy-printks.patch
-# add header needed to build new iptables
-ApplyPatch linux-2.6-add_xt_statistic.h_to_hdrs.patch
 
 # Misc fixes
 # Fix SHA1 alignment problem on ia64
@@ -1275,8 +1280,6 @@ ApplyPatch linux-2.6-vm-silence-atomic-alloc-failures.patch
 ApplyPatch linux-2.6-input-ff-create-limit-memory.patch
 # fix sizing of memory holes on x86_64
 ApplyPatch linux-2.6-x86_64-e820_hole_size.patch
-# fix marking of pages as nosave during boot
-ApplyPatch linux-2.6-hibernation-do-not-try-to-mark-invalid-pfns-as-nosave.patch
 
 # Changes to upstream defaults.
 # Use UTF-8 by default on VFAT.
@@ -1293,14 +1296,15 @@ ApplyPatch linux-2.6-libata-ali-atapi-dma.patch
 ApplyPatch linux-2.6-ata-update-noncq.patch
 # ia64 ata quirk
 ApplyPatch linux-2.6-ata-quirk.patch
-# add more ati sb700 ids to the ahci driver
-ApplyPatch linux-2.6-libata-sb700-sata-ids.patch
 # NSIA
 ApplyPatch linux-2.6-libata-ata_piix_fix_pio-mwdma-programming.patch
 # fix hpt37x PLL regression
 ApplyPatch linux-2.6-libata-pata_hpt37x-fix-2.6.22-clock-pll.patch
 # fix wrong DMI detect logic for HP notebook
 ApplyPatch linux-2.6-libata-pata_ali-fix-hp-detect.patch
+# fix Pegasos libata glitches
+ApplyPatch linux-2.6-libata-simplify-init.patch
+ApplyPatch linux-2.6-ppc-pegasos-via-ata-legacy-irq.patch
 
 # Add the rtl8187 driver from upstream
 ApplyPatch linux-2.6-rtl8187.patch
@@ -1313,34 +1317,32 @@ ApplyPatch linux-2.6-wireless-pending.patch
 ApplyPatch git-wireless-dev.patch
 # mac80211: Filter locally-originated multicast frames echoed by AP
 ApplyPatch linux-2.6-mac80211-local-mcast-filter.patch
-# mac80211: probe for hidden SSIDs when SSID not found
-ApplyPatch linux-2.6-mac80211-probe-hidden-essid.patch
 # temp compat patch for iwlwifi firmware filenames
 ApplyPatch linux-2.6-iwlwifi-fw-name-compat.patch
-# temp make rt2x00 play nice w/ USB 1.1
-ApplyPatch linux-2.6-rt2x00-usb-1_1-timeout.patch
 # avoid bcm3xx vs bcm43xx-mac80211 PCI ID conflicts
 ApplyPatch linux-2.6-bcm43xx-pci-neuter.patch
 # add module alias for "bcm43xx-mac80211"
 ApplyPatch linux-2.6-b43-module-alias.patch
+# use old-style firmware for b43
+ApplyPatch linux-2.6-b43-use-old-fw.patch
 
 # add patch from markmc so that e1000 supports ICH9
 ApplyPatch linux-2.6-e1000-ich9.patch
 # fix wrong oui in forcedeth
 ApplyPatch linux-2.6-netdev-forcedeth-realtek-oui.patch
-# fix polling in r8169
-ApplyPatch linux-2.6-net-r8169-fix-polling.patch
-# sky2: 4 patches from maintainer
-ApplyPatch linux-2.6-sky2-1-restore-workarounds.patch
-ApplyPatch linux-2.6-sky2-2-carrier-management.patch
-ApplyPatch linux-2.6-sky2-3-check-for-more-work.patch
-ApplyPatch linux-2.6-sky2-4-drop-truncated-packets.patch
-# sky2: 1 more
-ApplyPatch linux-2.6-net-sky2-dont-clear-phy-power-bits.patch
 
 # atl1 DMA bugs
 ApplyPatch linux-2.6-net-atl1-fix-typo-in-dma-setup.patch
 ApplyPatch linux-2.6-net-atl1-fix-typo-in-dma_req_block.patch
+ApplyPatch linux-2.6-netdev-atl1-disable-broken-64-bit-dma.patch
+
+# ALSA
+#
+# fix spdif output on ad1988
+ApplyPatch linux-2.6-snd-ad1988-fix-spdif-output.patch
+# multiple stac92xx codec fixes
+ApplyPatch linux-2.6-snd-hda-stac92xx-fixes.patch
+
 
 # misc
 #
@@ -1350,16 +1352,15 @@ ApplyPatch linux-2.6-sdhci-ene-controller-quirk.patch
 ApplyPatch linux-2.6-sdhci-fix-interrupt-mask.patch
 # fix the interrupt mask fix
 ApplyPatch linux-2.6-sdhci-clear-error-interrupt.patch
-
-# fix wrong reported values with some sensors
-ApplyPatch linux-2.6-lm_sensors-fix-values.patch
+# v4l/dvb: fix airstar hd5000 tuner
+ApplyPatch linux-2.6-v4l-dvb-fix-airstar-hd5000-tuner.patch
+# irda: remove smc quirk that breaks hp 6000 notebooks
+ApplyPatch linux-2.6-irda-smc-remove-quirk.patch
 
 # USB
 #
 
 # ACPI patches
-ApplyPatch linux-2.6-acpi-fix-gpe-list-corruption.patch
-ApplyPatch linux-2.6-acpi-fix-older-fadts.patch
 
 # Fix excessive wakeups
 # Make hdaps timer only tick when in use.
@@ -1389,11 +1390,14 @@ ApplyPatch linux-2.6-ps3-storage-alias.patch
 
 ApplyPatch linux-2.6-pcspkr-use-the-global-pit-lock.patch
 
+# Fix time distortion in pm_trace (bz 250238)
+ApplyPatch linux-2.6-pmtrace-time-fix.patch
+
 # TOMOYO Linux
 #tar -zxf %_sourcedir/ccs-patch-1.4.3-pre.tar.gz
 wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.4.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .4-65.fc7:' -- Makefile
-patch -sp1 < ccs-patch-2.6.22.4-65.fc7.txt
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .5-76.fc7:' -- Makefile
+patch -sp1 < ccs-patch-2.6.22.5-76.fc7.txt
 
 # END OF PATCH APPLICATIONS
 
@@ -2319,8 +2323,8 @@ fi
 %endif
 
 %changelog
-* Tue Aug 21 2007 Chuck Ebbert <cebbert@redhat.com>
-- sky2: don't clear PHY power bits
+* Thu Aug 30 2007 Chuck Ebbert <cebbert@redhat.com>
+- Linux 2.6.22.6-rc1
 
 * Tue Jul 10 2007 Dave Jones <davej@redhat.com>
 - Rebase to 2.6.22
