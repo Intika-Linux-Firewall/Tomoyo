@@ -28,7 +28,6 @@ static const int lookup_flags = LOOKUP_FOLLOW;
 #else
 static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
-#include <linux/version.h>
 #include <linux/realpath.h>
 #include <linux/ccs_common.h>
 #include <linux/ccs_proc.h>
