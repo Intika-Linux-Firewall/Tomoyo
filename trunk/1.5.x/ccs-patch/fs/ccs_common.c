@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0-pre   2007/09/13
+ * Version: 1.5.0-rc   2007/09/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1161,12 +1161,6 @@ void CCS_LoadPolicy(const char *filename)
 		}
 		path_release(&nd);
 	}
-#ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.0-pre   2007/09/13\n");
-#endif
-#ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.0-pre   2007/09/13\n");
-#endif
 	if (!profile_loaded) {
 		char *argv[2], *envp[3];
 		printk("Calling %s to load policy. Please wait.\n", ccs_loader);
@@ -1185,6 +1179,12 @@ void CCS_LoadPolicy(const char *filename)
 			schedule_timeout(HZ / 10);
 		}
 	}
+#ifdef CONFIG_SAKURA
+	printk("SAKURA: 1.5.0-rc   2007/09/20\n");
+#endif
+#ifdef CONFIG_TOMOYO
+	printk("TOMOYO: 1.5.0-rc   2007/09/20\n");
+#endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;
@@ -1425,7 +1425,7 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 static int ReadVersion(struct io_buffer *head)
 {
 	if (!head->read_eof) {
-		if (io_printf(head, "1.5.0-pre") == 0) head->read_eof = 1;
+		if (io_printf(head, "1.5.0-rc") == 0) head->read_eof = 1;
 	}
 	return 0;
 }

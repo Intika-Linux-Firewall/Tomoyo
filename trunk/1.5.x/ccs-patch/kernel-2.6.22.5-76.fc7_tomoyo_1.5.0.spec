@@ -1394,8 +1394,8 @@ ApplyPatch linux-2.6-pcspkr-use-the-global-pit-lock.patch
 ApplyPatch linux-2.6-pmtrace-time-fix.patch
 
 # TOMOYO Linux
-#tar -zxf %_sourcedir/ccs-patch-1.5.0-pre.tar.gz
-wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
+# wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .5-76.fc7:' -- Makefile
 patch -sp1 < ccs-patch-2.6.22.5-76.fc7.txt
 
