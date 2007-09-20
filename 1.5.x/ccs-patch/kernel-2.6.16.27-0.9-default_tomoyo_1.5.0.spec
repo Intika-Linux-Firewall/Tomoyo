@@ -217,8 +217,8 @@ EOF
 source .rpm-defs
 cd linux-2.6.16
 # TOMOYO Linux
-#tar -zxf %_sourcedir/ccs-patch-1.5.0-pre.tar.gz
-wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
+# wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 patch -sp1 < ccs-patch-2.6.16.27-0.9_SUSE.txt
 cat config.ccs >> .config
 cp .config .config.orig
