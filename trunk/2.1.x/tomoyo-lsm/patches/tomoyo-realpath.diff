@@ -6,10 +6,10 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/realpath.c |  697 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 697 insertions(+)
+ 1 files changed, 697 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/realpath.c	2007-09-10 18:34:53.000000000 +0900
++++ linux-2.6/security/tomoyo/realpath.c	2007-09-21 14:21:50.000000000 +0900
 @@ -0,0 +1,697 @@
 +/*
 + * security/tomoyo/realpath.c
@@ -45,7 +45,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	while (sp <= cp) {
 +		unsigned char c;
 +
-+		c = * (unsigned char *) cp;
++		c = *(unsigned char *) cp;
 +		if (c == '\\') {
 +			buflen -= 2;
 +			if (buflen < 0)
@@ -610,7 +610,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +static LIST_HEAD(cache_list);
-+static spinlock_t cache_list_lock = SPIN_LOCK_UNLOCKED;
++static DEFINE_SPINLOCK(cache_list_lock);
 +static unsigned int dynamic_memory_size;
 +
 +/**

@@ -7,12 +7,12 @@ this file will become more simpler and "namespace_sem" can remain "static".
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/tomoyo.c |  749 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 749 insertions(+)
+ security/tomoyo/tomoyo.c |  748 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 748 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/tomoyo.c	2007-09-10 18:34:54.000000000 +0900
-@@ -0,0 +1,749 @@
++++ linux-2.6/security/tomoyo/tomoyo.c	2007-09-21 14:21:51.000000000 +0900
+@@ -0,0 +1,748 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -27,7 +27,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include <linux/namei.h>
 +#include <linux/mnt_namespace.h>
 +#include <linux/sysctl.h>
-+#include <linux/proc_fs.h>
 +#include <linux/sched.h>
 +#include <linux/uaccess.h>
 +#include <net/ip.h>
@@ -747,7 +746,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
 +
-+	tmy_proc_init();
++	/*tmy_proc_init();*/
 +
 +	tmy_cachep = kmem_cache_create("tomoyo_security",
 +				       sizeof(struct tmy_security),
