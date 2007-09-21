@@ -20,9 +20,9 @@
 <p>以下の手順は subversion や quilt 等をインストールしていない場合の手順です。 subversion や quilt 等を使用されている方はこの手順どおりに実行する必要はありません。</p>
 
 <pre>
-$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.23-rc6.tar.bz2
-$ tar -jxf linux-2.6.23-rc6.tar.bz2
-$ cd linux-2.6.23-rc6
+$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.23-rc7.tar.bz2
+$ tar -jxf linux-2.6.23-rc7.tar.bz2
+$ cd linux-2.6.23-rc7
 </pre>
 
 <p>最新版のパッチは http://svn.sourceforge.jp/svnroot/tomoyo/trunk/2.1.x/tomoyo-lsm/patches/ からダウンロードできます。パッチをダウンロードして、カーネルソースディレクトリに展開してから適用します。</p>
@@ -66,12 +66,12 @@ $ make -s
 
 <h2>TOMOYO Linux ツールの作成</h2>
 
-<p>TOMOYO Linux 2.1 で使用するツールは http://svn.sourceforge.jp/svnroot/tomoyo/trunk/1.5.x/ccs-tools/ccs/ からダウンロードできます。以下のようにダウンロードして展開後、コンパイルしてください。ツールは/usr/lib/ccsにインストールされます。</p>
+<p>TOMOYO Linux 2.1 で使用するツールは http://svn.sourceforge.jp/svnroot/tomoyo/trunk/1.5.x/ccs-tools/ccstools/ からダウンロードできます。以下のようにダウンロードして展開後、コンパイルしてください。ツールは/usr/lib/ccsにインストールされます。</p>
 
 <pre>
-$ wget -O tomoyo-tools.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccs.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccs.tar.gz?root=tomoyo&amp;view=tar</a>'
+$ wget -O tomoyo-tools.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar</a>'
 $ tar -zxf tomoyo-tools.tar.gz
-$ cd ccs
+$ cd ccstools
 $ make
 # make install
 </pre>
