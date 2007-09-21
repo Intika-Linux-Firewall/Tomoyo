@@ -21,10 +21,10 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c | 2384 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2384 insertions(+)
+ 1 files changed, 2384 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-09-10 18:34:53.000000000 +0900
++++ linux-2.6/security/tomoyo/common.c	2007-09-21 14:21:50.000000000 +0900
 @@ -0,0 +1,2384 @@
 +/*
 + * security/tomoyo/common.c
@@ -42,7 +42,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include <stdarg.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
-+#include <linux/proc_fs.h>
++#include <linux/security.h>
 +#include "realpath.h"
 +#include "tomoyo.h"
 +
@@ -227,7 +227,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	if (c)
-+		c = * (strchr(filename, '\0') - 1);
++		c = *(strchr(filename, '\0') - 1);
 +	if (end_type == 1) { /* Must end with '/' */
 +		if (c != '/')
 +			goto out;
@@ -1105,7 +1105,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero otherwise.
 + *
 + * Only programs or domains registers as manager are permitted to modify
-+ * policy via /proc/tomoyo/ interface.
++ * policy via /sys/kernel/security/tomoyo/ interface.
 + * This function checks whether the current process is a policy manager.
 + * But policy manager is not the only processes that can modify policy;
 + * other process are permitted to add policy
@@ -1764,7 +1764,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static DECLARE_WAIT_QUEUE_HEAD(query_wait);
 +
-+static spinlock_t query_lock = SPIN_LOCK_UNLOCKED;
++static DEFINE_SPINLOCK(query_lock);
 +
 +struct query_entry {
 +	struct list_head list;
@@ -1792,7 +1792,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * policy in enforce mode to adjust policy.
 + *
 + * This function blocks a process who is requesting access that violated policy
-+ * and tell it via /proc/tomoyo/query and wait for supervisor's decision.
++ * and tell it via /sys/kernel/security/tomoyo/query and wait for supervisor's
++ * decision.
 + */
 +int tmy_supervisor(const char *fmt, ...)
 +{
@@ -2013,11 +2014,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
-+/*************************  /proc INTERFACE HANDLER  *************************/
++/******************  /sys/kernel/security INTERFACE HANDLER  ******************/
 +
 +/* Policy updates counter. */
 +static unsigned int updates_counter[TMY_MAX_UPDATES_COUNTER];
-+static spinlock_t updates_counter_lock = SPIN_LOCK_UNLOCKED;
++static DEFINE_SPINLOCK(updates_counter_lock);
 +
 +/**
 + * tmy_update_counter - notify userland that policy is changed.
@@ -2050,12 +2051,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/***** CRITICAL SECTION END *****/
 +
 +	tmy_io_printf(head,
-+		      "/proc/tomoyo/domain_policy:    %10u\n"
-+		      "/proc/tomoyo/system_policy:    %10u\n"
-+		      "/proc/tomoyo/exception_policy: %10u\n"
-+		      "/proc/tomoyo/profile:          %10u\n"
-+		      "/proc/tomoyo/query:            %10u\n"
-+		      "/proc/tomoyo/manager:          %10u\n",
++		      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
++		      "/sys/kernel/security/tomoyo/system_policy:    %10u\n"
++		      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
++		      "/sys/kernel/security/tomoyo/profile:          %10u\n"
++		      "/sys/kernel/security/tomoyo/query:            %10u\n"
++		      "/sys/kernel/security/tomoyo/manager:          %10u\n",
 +		      counter[TMY_UPDATE_DOMAINPOLICY],
 +		      counter[TMY_UPDATE_SYSTEMPOLICY],
 +		      counter[TMY_UPDATE_EXCEPTIONPOLICY],
@@ -2115,7 +2116,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
-+/* This is /proc/tomoyo/ interface. */
++/* This is /sys/kernel/security/tomoyo/ interface. */
 +static int tmy_open_control(const int type, struct file *file)
 +{
 +	struct io_buffer *head = tmy_alloc(sizeof(*head));
@@ -2298,7 +2299,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/* Close /proc/tomoyo/ interface. */
++/* Close /sys/kernel/security/tomoyo/ interface. */
 +static int tmy_close_control(struct file *file)
 +{
 +	struct io_buffer *head = file->private_data;
@@ -2316,33 +2317,33 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
-+/* open() operation for /proc/tomoyo/ interface. */
++/* open() operation for /sys/kernel/security/tomoyo/ interface. */
 +static int tmy_open(struct inode *inode, struct file *file)
 +{
-+	return tmy_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
-+				file);
++	return tmy_open_control(((u8 *) file->f_dentry->d_inode->i_private)
++				- ((u8 *) NULL), file);
 +}
 +
-+/* close() operation for /proc/tomoyo/ interface. */
++/* close() operation for /sys/kernel/security/tomoyo/ interface. */
 +static int tmy_release(struct inode *inode, struct file *file)
 +{
 +	return tmy_close_control(file);
 +}
 +
-+/* poll() operation for /proc/tomoyo/ interface. */
++/* poll() operation for /sys/kernel/security/tomoyo/ interface. */
 +static unsigned int tmy_poll(struct file *file, poll_table *wait)
 +{
 +	return tmy_poll_control(file, wait);
 +}
 +
-+/* read() operation for /proc/tomoyo/ interface. */
++/* read() operation for /sys/kernel/security/tomoyo/ interface. */
 +static ssize_t tmy_read(struct file *file, char __user *buf,
 +			size_t count, loff_t *ppos)
 +{
 +	return tmy_read_control(file, buf, count);
 +}
 +
-+/* write() operation for /proc/tomoyo/ interface. */
++/* write() operation for /sys/kernel/security/tomoyo/ interface. */
 +static ssize_t tmy_write(struct file *file, const char __user *buf,
 +			 size_t count, loff_t *ppos)
 +{
@@ -2357,32 +2358,28 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.write 	 = tmy_write
 +};
 +
-+/* Associate /proc/tomoyo/ interface with key. */
-+static void tmy_create_entry(const char *name,
++/* Associate /sys/kernel/security/tomoyo/ interface with key. */
++static void __init tmy_create_entry(const char *name,
 +			     const mode_t mode,
-+			     struct proc_dir_entry *parent,
++			     struct dentry *parent,
 +			     const int key)
 +{
-+	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
-+
-+	if (entry) {
-+		entry->proc_fops = &tmy_operations;
-+		entry->data = ((u8 *) NULL) + key;
-+	}
++	securityfs_create_file(name, mode, parent, ((u8 *) NULL) + key,
++			       &tmy_operations);
 +}
 +
 +/**
-+ * tmy_proc_init - initialize /proc/tomoyo/ interface.
++ * tmy_proc_init - initialize /sys/kernel/security/tomoyo/ interface.
 + */
-+void tmy_proc_init(void)
++static int __init tmy_proc_init(void)
 +{
-+	static int initialized;
-+	struct proc_dir_entry *tmy_dir;
++	/*static int initialized;*/
++	struct dentry *tmy_dir;
 +
-+	if (initialized)
++	/*if (initialized)
 +		return;
-+	initialized = 1;
-+	tmy_dir = proc_mkdir("tomoyo", NULL);
++	initialized = 1;*/
++	tmy_dir = securityfs_create_dir("tomoyo", NULL);
 +	tmy_realpath_init();
 +	tmy_find_domain(""); /* Set domainname of KERNEL domain. */
 +	tmy_create_entry("query",            0600, tmy_dir,
@@ -2409,4 +2406,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			 TMY_INFO_UPDATESCOUNTER);
 +	tmy_create_entry("version",          0400, tmy_dir,
 +			 TMY_VERSION);
++	return 0;
 +}
++
++postcore_initcall(tmy_proc_init);
