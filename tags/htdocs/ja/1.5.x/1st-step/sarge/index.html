@@ -38,7 +38,7 @@
 
 <h2><a name="l0">概要</a></h2>
 
-<p>以下では、Debian GNU/Linux 3.1 (sarge)にTOMOYO Linux 1.4.2を導入する手順を解説します。この手順書に従って操作すれば、
+<p>以下では、Debian GNU/Linux 3.1 (sarge)にTOMOYO Linux 1.5.0を導入する手順を解説します。この手順書に従って操作すれば、
 TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 <p>導入の流れは以下の通りです。</p>
 <ol>
@@ -56,11 +56,11 @@ TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 提供されているので、今回はそれを利用します。</p>
 <p>まずはパッケージをダウンロードします。</p>
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-image-2.6.8-16sarge7-ccs-i586_1.4.2_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/kernel-image-2.6.8-16sarge7-ccs-i586_1.5.0_i386.deb</span>
 </pre>
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 <pre>
-# <span class="user">dpkg --install kernel-image-2.6.8-16sarge7-ccs-i586_1.4.2_i386.deb</span>
+# <span class="user">dpkg --install kernel-image-2.6.8-16sarge7-ccs-i586_1.5.0_i386.deb</span>
 </pre>
 <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 <pre>
@@ -88,38 +88,16 @@ boot
 <p>カーネルの次は、TOMOYO Linuxのツールをインストールします。
 ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
 <p>カーネルと同様、sargeにはコンパイル済みのtarballが用意されていますので、
-それをダウンロードして解凍します。
-ツールは/root/ccstoolsディレクトリに置くことにします。</p>
+それをダウンロードして解凍します。</p>
 <pre>
-# <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-Sarge.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.4.2-i386-Sarge.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/ccs-tools-1.5.0-i386-Sarge.tar.gz</span>
+# <span class="user">tar zxf ccs-tools-1.5.0-i386-Sarge.tar.gz</span>
+# <span class="user">make -sC ccstools/ install</span>
 </pre>
-<p>ツールを置いたディレクトリにパスを通しておきます。bashを使っている場合には以下のようにします。</p>
+<p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。bashを使っている場合には以下のようにします。</p>
 <pre>
-# <span class="user">echo 'export PATH=$PATH:/root/ccstools' &gt;&gt; ~/.bashrc</span>
+# <span class="user">echo 'export PATH=$PATH:/usr/lib/ccs' &gt;&gt; ~/.bashrc</span>
 # <span class="user">source ~/.bashrc</span>
-</pre>
-<p>ツールのうち、ポリシーを読み込むスクリプトである.initは、ルートディレクトリに移動しておきます。</p>
-<pre>
-# <span class="user">mv /root/ccstools/.init /</span>
-</pre>
-<p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
-/boot/grub/menu.lstのTOMOYOカーネルのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
-<pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs
-root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
-savedefault
-boot
-
-title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs (recovery mode)
-root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro single <span class="user">init=/.init</span>
-initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
-savedefault
-boot
 </pre>
 
 <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
@@ -135,12 +113,12 @@ boot
 <h3><a name="l8">プロファイルの作成</a></h3>
 <p>TOMOYO Linuxには多くの機能があり、どの機能をON/OFFにするのかの設定をプロファイルとよびます。
 プロファイルは複数作成して切り替えて使うことができます。
-すべてのプロファイルは/etc/ccs/status.txtという単一のファイルに保存します。</p>
+すべてのプロファイルは/etc/ccs/profile.confという単一のファイルに保存します。</p>
 <p>今回はファイルに対するアクセス制御の機能のみを利用するため、
-以下のようにして/etc/ccs/status.txtを作成します。</p>
+以下のようにして/etc/ccs/profile.confを作成します。</p>
 
 <pre>
-# <span class="user">cat &gt; /etc/ccs/status.txt &lt;&lt; EOF</span>
+# <span class="user">cat &gt; /etc/ccs/profile.conf &lt;&lt; EOF</span>
 <span class="user">0-COMMENT=-----DISABLED_MODE-----</span>
 <span class="user">0-MAC_FOR_FILE=0</span>
 <span class="user">0-TOMOYO_VERBOSE=0</span>
@@ -156,7 +134,7 @@ boot
 <span class="user">EOF</span>
 </pre>
 
-<p>status.txtの1行は以下のような構文になっています。</p>
+<p>profile.confの1行は以下のような構文になっています。</p>
 <pre>
 （プロファイル番号）-（設定項目）=（制御モード）
 </pre>
@@ -193,16 +171,16 @@ boot
 </ol>
 
 <h4><a name="l10">ポリシーの変更を許可するプログラムの設定</a></h4>
-<p>ポリシーを変更することができるプログラムを、/etc/ccs/manager.txtというファイルで指定します。
+<p>ポリシーを変更することができるプログラムを、/etc/ccs/manager.confというファイルで指定します。
 ccs-toolsの中の6つのプログラムを以下のように指定してください。</p>
 <pre>
-# <span class="user">cat &gt; /etc/ccs/manager.txt &lt;&lt; EOF</span>
-<span class="user">/root/ccstools/loadpolicy</span>
-<span class="user">/root/ccstools/editpolicy</span>
-<span class="user">/root/ccstools/setlevel</span>
-<span class="user">/root/ccstools/setprofile</span>
-<span class="user">/root/ccstools/ld-watch</span>
-<span class="user">/root/ccstools/ccs-queryd</span>
+# <span class="user">cat &gt; /etc/ccs/manager.conf &lt;&lt; EOF</span>
+<span class="user">/usr/lib/ccs/loadpolicy</span>
+<span class="user">/usr/lib/ccs/editpolicy</span>
+<span class="user">/usr/lib/ccs/setlevel</span>
+<span class="user">/usr/lib/ccs/setprofile</span>
+<span class="user">/usr/lib/ccs/ld-watch</span>
+<span class="user">/usr/lib/ccs/ccs-queryd</span>
 <span class="user">EOF</span>
 </pre>
 
@@ -215,7 +193,7 @@ ccs-toolsの中の6つのプログラムを以下のように指定してください。</p>
 <pre>
 # <span class="user">cat &gt; /etc/init.d/ccs-auditd &lt;&lt; EOF</span>
 <span class="user">#!/bin/sh</span>
-<span class="user">/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt</span>
+<span class="user">/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt</span>
 <span class="user">EOF</span>
 # <span class="user">chmod +x /etc/init.d/ccs-auditd</span>
 </pre>
@@ -250,8 +228,8 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 ccs-toolsに用意されています。</p>
 <p>これらを使って例外ポリシーを生成して保存するには以下のようにします。</p>
 <pre>
-# <span class="user">make_exception.sh &gt; /etc/ccs/exception_policy.txt</span>
-# <span class="user">make_alias.sh &gt;&gt; /etc/ccs/exception_policy.txt</span>
+# <span class="user">make_exception.sh &gt; /etc/ccs/exception_policy.conf</span>
+# <span class="user">make_alias.sh &gt;&gt; /etc/ccs/exception_policy.conf</span>
 </pre>
 <p>make_alias.shは10分以上時間を要する場合がありますので気長にお待ちください。</p>
 <p>以上でTOMOYO Linuxを使うための基本的な設定は終わりです。</p>
@@ -267,7 +245,7 @@ ccs-toolsに用意されています。</p>
 <p>カーネルの選択画面でTOMOYO Linuxのカーネルを選択してEnterを押します。</p>
 <p><img alt="TOMOYO Linuxのカーネルを選択" title="TOMOYO Linuxのカーネルを選択" width="720" height="400" src="grub.png"></p>
 <p>起動途中で以下のメッセージが表示されます。</p>
-<pre>TOMOYO Linux: Enter 'disabled' within 10 seconds to disable TOMOYO Linux.
+<pre>TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
 TOMOYO Linux&gt;
 </pre>
 <p>この状態でEnterキーを押すか10秒間待つと、先ほど作成した例外ポリシーが読み込まれ、
