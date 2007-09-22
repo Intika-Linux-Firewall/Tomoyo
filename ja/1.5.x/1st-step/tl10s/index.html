@@ -27,8 +27,8 @@
 
 <h2><a name="l1">概要</a></h2>
 
-<p>以下では、TurboLinux 10 Server（カーネルバージョン 2.6.8-13 以降）で
-TOMOYO Linux 1.3.2を利用する手順を解説します。この手順書に従って操作すれば、
+<p>以下では、TurboLinux 10 Server（カーネルバージョン 2.6.8-?? 以降）で
+TOMOYO Linux 1.5.0を利用する手順を解説します。この手順書に従って操作すれば、
 TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -43,37 +43,19 @@ TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>TOMOYO Linuxのツールをインストールします。ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
 
-<p>TurboLinux 10 Serverにはコンパイル済みのtarballが用意されていますので、それをダウンロードして解凍します。
-ツールは/root/ccstoolsディレクトリに置くことにします。</p>
+<p>TurboLinux 10 Serverにはバイナリパッケージが提供されていますので、それを利用します。</p>
 
 <pre>
-# <span class="user">cd /root</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-TL10S.tar.gz</span>
-# <span class="user">tar zxf ccs-tools-1.4.2-i386-TL10S.tar.gz</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/ccs-tools-1.5.0-1.TL10S.i386.rpm</span>
+# <span class="user">rpm -ivh ccs-tools-1.5.0-1.TL10S.i386.rpm</span>
 </pre>
 
-<p>ツールを置いたディレクトリにパスを通しておきます。
+<p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
 bashを使っている場合には以下のようにします。</p>
 
 <pre>
-# <span class="user">echo 'export PATH=$PATH:/root/ccstools' &gt;&gt; ~/.bashrc</span>
+# <span class="user">echo 'export PATH=$PATH:/usr/lib/ccs' &gt;&gt; ~/.bashrc</span>
 # <span class="user">source ~/.bashrc</span>
-</pre>
-
-<p>ツールのうち、ポリシーを読み込むスクリプトである.initは、ルートディレクトリに移動しておきます。</p>
-
-<pre>
-# <span class="user">mv /root/ccstools/.init /</span>
-</pre>
-
-<p>カーネルの起動時にポリシーを読み込むため、/.initをカーネルのコマンドラインに追加します。
-/boot/grub/grub.confのエントリのkernel行に以下のようにinit=/.initを追加してください。</p>
-
-<pre>
-title TurboLinux
-    root (hd0,0)
-    kernel /vmlinuz root=802 <span class="user">init=/.init</span>
-    initrd /initrd
 </pre>
 
 <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
@@ -96,10 +78,10 @@ title TurboLinux
 
 <p>TOMOYO Linuxには多くの機能があり、どの機能をON/OFFにするのかの設定をプロファイルとよびます。
 プロファイルは複数作成して切り替えて使うことができます。
-すべてのプロファイルは/etc/ccs/status.txtという単一のファイルに保存します。</p>
+すべてのプロファイルは/etc/ccs/profile.confという単一のファイルに保存します。</p>
 
 <p>今回はファイルに対するアクセス制御の機能のみを利用するため、
-/etc/ccs/status.txtの内容は以下のようなっているはずです。</p>
+/etc/ccs/profile.confの内容は以下のようなっているはずです。</p>
 
 <pre>
 0-COMMENT=-----DISABLED_MODE-----
@@ -116,7 +98,7 @@ title TurboLinux
 3-TOMOYO_VERBOSE=1
 </pre>
 
-<p>status.txtの1行は以下のような構文になっています。</p>
+<p>profile.confの1行は以下のような構文になっています。</p>
 
 <pre>
 （プロファイル番号）-（設定項目）=（制御モード）
@@ -149,21 +131,21 @@ title TurboLinux
 
 <h3>ポリシーの変更を許可するプログラムについて</h3>
 
-<p>ポリシーを変更することができるプログラムは、/etc/ccs/manager.txtというファイルで指定します。
+<p>ポリシーを変更することができるプログラムは、/etc/ccs/manager.confというファイルで指定します。
 以下のプログラムが指定されているはずです。</p>
 
 <pre>
-/root/ccstools/loadpolicy
-/root/ccstools/editpolicy
-/root/ccstools/setlevel
-/root/ccstools/setprofile
-/root/ccstools/ld-watch
-/root/ccstools/ccs-queryd
+/usr/lib/ccs/loadpolicy
+/usr/lib/ccs/editpolicy
+/usr/lib/ccs/setlevel
+/usr/lib/ccs/setprofile
+/usr/lib/ccs/ld-watch
+/usr/lib/ccs/ccs-queryd
 </pre>
 
 <h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.txt には以下の7種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf には以下の7種類の例外が指定されています。</p>
 
 <ol>
 <li>/proc/PID のように同様のパス名をパターン化する際のパターン名</li>
@@ -185,7 +167,7 @@ title TurboLinux
 以下のコマンドで/etc/rc.d/rc.localの末尾にccs-auditdの起動コマンドを追加します。</p>
 
 <pre>
-# <span class="user">echo "/root/ccstools/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
+# <span class="user">echo "/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
 </pre>
 
 <p>この設定では、/var/log/tomoyo/reject_log.txtにアクセス拒否ログが保存されます。
@@ -201,16 +183,16 @@ title TurboLinux
 
 <h3><a name="l6">システムの再起動</a></h3>
 
-<p>/.init を実行してください。</p>
+<p>/sbin/ccs-init を実行してください。</p>
 
 <pre>
-# <span class="user">/.init</span>
+# <span class="user">/sbin/ccs-init</span>
 </pre>
 
-<p>/.init により、以下のプロンプトが表示されます。</p>
+<p>/sbin/ccs-init により、以下のプロンプトが表示されます。</p>
 
 <pre>
-TOMOYO Linux: Enter 'disabled' within 10 seconds to disable TOMOYO Linux.
+TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
 TOMOYO Linux&gt;
 </pre>
 
@@ -222,10 +204,10 @@ TOMOYO Linux&gt;
 # <span class="user">reboot</span>
 </pre>
 
-<p>起動時に /.init が実行されることで、以下のプロンプトが表示されます。</p>
+<p>起動時に /sbin/ccs-init が実行されることで、以下のプロンプトが表示されます。</p>
 
 <pre>
-TOMOYO Linux: Enter 'disabled' within 10 seconds to disable TOMOYO Linux.
+TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
 TOMOYO Linux&gt;
 </pre>
 
