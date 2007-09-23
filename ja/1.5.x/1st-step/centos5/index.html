@@ -29,8 +29,7 @@
 <h2><a name="l1">概要</a></h2>
 
 <p>以下では、CentOS 5にTOMOYO Linux 1.5.0を導入する手順を解説します。
-この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、
-簡単な設定と運用が行えるようになります。</p>
+この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
 
@@ -43,8 +42,7 @@
 <h2><a name="l2">カーネルのインストール</a></h2>
 
 <p>CentOSは、インストール時のデフォルトでSELinuxが有効になっています。
-本来TOMOYO LinuxとSELinuxは共存が可能ですが、
-混乱を避けるためにSELinuxを無効にしておくことを推奨します。</p>
+本来TOMOYO LinuxとSELinuxは共存が可能ですが、混乱を避けるためにSELinuxを無効にしておくことを推奨します。</p>
 
 <p>SELinuxを無効にするには、/etc/selinux/configファイルのSELINUX=の行を以下のように変更します。</p>
 
@@ -52,18 +50,15 @@
 SELINUX=<span class="user">disabled</span>
 </pre>
 
-<p>変更が終わったらLinuxを再起動して、
-getenforceコマンドでSELinuxが無効になっているかを確かめてください。</p>
+<p>変更が終わったらLinuxを再起動して、getenforceコマンドでSELinuxが無効になっているかを確かめてください。</p>
 
 <pre>
 # <span class="user">getenforce</span>
 Disabled
 </pre>
 
-<p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、
-本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
-しかしCentOS 5の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが
-提供されているので、今回はそれを利用します。</p>
+<p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
+しかしCentOS 5の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
 
 <p>まずはパッケージをダウンロードします。</p>
 
@@ -77,8 +72,7 @@ Disabled
 # <span class="user">rpm --install kernel-2.6.18-8.1.10.el5_tomoyo_1.5.0.i686.rpm</span>
 </pre>
 
-<p>この際特にメッセージは表示されませんが、
-インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
+<p>この際特にメッセージは表示されませんが、インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
 title CentOS (2.6.18-8.1.10.el5_tomoyo_1.5.0)
@@ -87,9 +81,7 @@ title CentOS (2.6.18-8.1.10.el5_tomoyo_1.5.0)
     initrd /initrd-2.6.18-8.1.10.el5_tomoyo_1.5.0.img
 </pre>
 
-<p>今後カーネルの選択を行いやすくするために、
-/boot/grub/grub.confの"timeout="と"hiddenmenu"の行を
-コメントアウトしておきます。</p>
+<p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
 
 <pre>
 <span class="user">#</span>timeout=5
@@ -104,7 +96,7 @@ title CentOS (2.6.18-8.1.10.el5_tomoyo_1.5.0)
 <p>カーネルの次は、TOMOYO Linuxのツールをインストールします。
 ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
 
-<p>カーネルと同様、CentOS 5にはバイナリパッケージが用意されていますので、それを利用します。</p>
+<p>バイナリパッケージが用意されていますので、それを利用します。</p>
 
 <pre>
 # <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/ccs-tools-1.5.0-1.CentOS5.rpm</span>
