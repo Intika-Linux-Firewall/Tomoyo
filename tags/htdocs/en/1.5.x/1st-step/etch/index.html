@@ -3,13 +3,13 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux Kickstarting Manual for CentOS 4.5</title>
+<title>TOMOYO Linux Kickstarting Manual for Debian Etch</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
 
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> Kickstarting Manual for CentOS 4.5</h1>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> Kickstarting Manual for Debian Etch</h1>
 
 <ul>
 <li><a href="#l1">About this page</a></li>
@@ -28,7 +28,7 @@
 
 <h2><a name="l1">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.5.0 on CentOS 4.5 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.5.0 on Debian Etch systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 
 <ol>
@@ -39,54 +39,36 @@
 
 <h2><a name="l2">Installing TOMOYO Linux kernel</a></h2>
 
-<p>Regarding CentOS, SELinux is enabled by default.
-TOMOYO Linux itself can coexist with SELinux. But to make troubleshooting easy, we recommend you to disable SELinux.</p>
-
-<p>To disable SELinux, change "SELINUX=" of /etc/selinux/config as follows.</p>
-
-<pre>
-SELINUX=<span class="user">disabled</span>
-</pre>
-
-<p>Reboot the system and run "getenforce" command to make sure SELinux is desabled.</p>
-
-<pre>
-# <span class="user">getenforce</span>
-Disabled
-</pre>
-
 <p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile.
-But regarding CentOS 4.5, a binary kernel package is and this page uses it.</p>
+But regarding Debian Etch, a binary kernel package is and this page uses it.</p>
 
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/kernel-2.6.9-55.0.6.EL_tomoyo_1.5.0.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/linux-image-2.6.18-13etch2-ccs-i586_1.5.0_i386.deb</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.9-55.0.6.EL_tomoyo_1.5.0.i586.rpm</span>
+# <span class="user">dpkg -i linux-image-2.6.18-13etch2-ccs-i586_1.5.0_i386.deb</span>
 </pre>
 
-<p>The following entry is appended to /boot/grub/grub.conf if installation finishes successfully.</p>
+<p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
 
 <pre>
-title CentOS (2.6.9-55.0.6.EL_tomoyo_1.5.0)
-    root (hd0,0)
-    kernel /vmlinuz-2.6.9-55.0.6.EL_tomoyo_1.5.0 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.9-55.0.6.EL_tomoyo_1.5.0.img
+title           Debian GNU/Linux, kernel 2.6.18-13etch2-ccs
+root            (hd0,0)
+kernel          /boot/vmlinuz-2.6.18-13etch2-ccs root=/dev/sda1 ro
+initrd          /boot/initrd.img-2.6.18-13etch2-ccs
+savedefault
+boot
 </pre>
 
-<p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
+<p>Comment out the "timeout=" line of /boot/grub/menu.lst so that you will not fail to select TOMOYO Linux's kernel.</p>
 
 <pre>
 <span class="user">#</span>timeout=5
-</pre>
-
-<pre>
-<span class="user">#</span>hiddenmenu
 </pre>
 
 <h2><a name="l3">Installing TOMOYO Linux tools</a></h2>
@@ -97,8 +79,8 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 <p>A binary tools package is provided and this page uses it.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/ccs-tools-1.5.0-1.CentOS4.5.i386.rpm</span>
-# <span class="user">rpm -ivh ccs-tools-1.5.0-1.CentOS4.5.i386.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/ccs-tools-1.5.0-1_Etch_i386.deb</span>
+# <span class="user">dpkg -i ccs-tools-1.5.0-1_Etch_i386.deb</span>
 </pre>
 
 <p>Add /usr/lib/ccs (the location of TOMOYO Linux tools) to the environment variable PATH.
@@ -206,10 +188,26 @@ The following programs are listed.</p>
 This page configures to save only "access rejected logs".</p>
 
 <p>To save logs, you can use "ccs-auditd" daemon program included in ccs-tools package.
-To start ccs-auditd on bootup to save only "access rejected logs", add the following line to /etc/rc.d/rc.local .</p>
+To start "ccs-auditd" on bootup to save only "access rejected logs",
+create the following script in the /etc/init.d/ directory and give execute permission to the script.</p>
 
 <pre>
-# <span class="user">echo "/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
+# <span class="user">cat &gt; /etc/init.d/ccs-auditd &lt;&lt; EOF</span>
+<span class="user">#!/bin/sh</span>
+<span class="user">/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt</span>
+<span class="user">EOF</span>
+# <span class="user">chmod +x /etc/init.d/ccs-auditd</span>
+</pre>
+
+<p>And create symbolic links to the script.</p>
+
+<pre>
+# <span class="user">update-rc.d ccs-auditd start 99 2 3 4 5 .</span>
+Adding system startup for /etc/init.d/ccs-auditd ...
+/etc/rc2.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+/etc/rc3.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+/etc/rc4.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+/etc/rc5.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
 </pre>
 
 <p>This script will save "access rejected logs" as /var/log/tomoyo/reject_log.txt .
@@ -235,7 +233,7 @@ You need to create the directory to save before you run this script.</p>
 
 <p>Select the TOMOYO Linux kernel and press 'Enter' key.</p>
 
-<p><img alt="Booting with TOMOYO Linux kernel" title="Booting with TOMOYO Linux kernel" width="640" height="480" src="grub.png"></p>
+<p><img alt="Booting with TOMOYO Linux kernel" title="Booting with TOMOYO Linux kernel" width="720" height="400" src="grub.png"></p>
 
 <p>The following prompt will appear.</p>
 
@@ -264,19 +262,19 @@ After the login prompt appear, log in as root.</p>
 <p>Now, change this session to learning mode.</p>
 
 <p>The profile 1 is defined for learning mode.
-So, assign this profile to /sbin/mingetty and programs invoked by /sbin/mingetty .</p>
+So, assign this profile to /sbin/getty and programs invoked by /sbin/getty .</p>
 
 <pre>
-# <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/mingetty'</span>
+# <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>This command means</p>
 
-<blockquote><p>Assign profile 1 to /sbin/mingetty and all programs invoked by /sbin/mingetty .</p></blockquote>
+<blockquote><p>Assign profile 1 to /sbin/getty and all programs invoked by /sbin/getty .</p></blockquote>
 
-<p>The /sbin/mingetty is a program that invokes login shell. Thus, by assigning profiles 1 to /sbin/mingetty and programs invoked by /sbin/mingetty, you can let the TOMOYO Linux kernel remember operations after login. Changing profiles takes effect immediately. Now, this session is already in the learning mode.</p>
+<p>The /sbin/getty is a program that invokes login shell. Thus, by assigning profiles 1 to /sbin/getty and programs invoked by /sbin/getty, you can let the TOMOYO Linux kernel remember operations after login. Changing profiles takes effect immediately. Now, this session is already in the learning mode.</p>
 
-<p>You have to quote "&lt;kernel&gt; /sbin/mingetty" appropriately, or you may lose the contents of /sbin/mingetty because "&lt;" and "&gt;" are interpreted as redirection command.</p>
+<p>You have to quote "&lt;kernel&gt; /sbin/getty" appropriately, or you may lose the contents of /sbin/getty because "&lt;" and "&gt;" are interpreted as redirection command.</p>
 
 <p>Let the kernel remember the 4 operations listed above. All you need to do is do these operations as usual.</p>
 
@@ -297,13 +295,13 @@ TOMOYO Linux calls this invocation chains as "DOMAIN transition tree".</p>
 
 <p><img alt="Domain Transition" title="Domain Transition" width="720" height="400" src="editpolicy1.png"></p>
 
-<p>Search for mingetty from this tree. Press 'f' key and enter "mingetty" and press 'Enter' key.</p>
+<p>Search for getty from this tree. Press 'f' key and enter "getty" and press 'Enter' key.</p>
 
-<p><img alt="Domains under mingetty" title="Domains under mingetty" width="720" height="400" src="editpolicy2.png"></p>
+<p><img alt="Domains under getty" title="Domains under getty" width="720" height="400" src="editpolicy2.png"></p>
 
-<p>The integer that is on the right side of line number shows profile number currently assigned to the domain. The profile number for /sbin/mingetty and its descendant domains is 1 because you ran earlier "setprofile -r 1 '&lt;kernel&gt; /bin/mingetty'".</p>
+<p>The integer that is on the right side of line number shows profile number currently assigned to the domain. The profile number for /sbin/getty and its descendant domains is 1 because you ran earlier "setprofile -r 1 '&lt;kernel&gt; /bin/getty'".</p>
 
-<p>You can find the tree for login operation at /bin/login under /sbin/mingetty .
+<p>You can find the tree for login operation at /bin/login under /sbin/getty .
 Search for /usr/bin/head in that tree.
 Press 'Enter' at the line of head command, and you will see the following window.</p>
 
@@ -312,7 +310,7 @@ Press 'Enter' at the line of head command, and you will see the following window
 <p>This is the policy generated by the previous operations and it says that</p>
 
 <blockquote>
-<p>The domain "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head" (red colored underline)</p>
+<p>The domain "&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head" (red colored underline)</p>
 <ul>
 <li>can read access of /etc/passwd (blue colored underline)</li>
 </ul>
@@ -336,10 +334,10 @@ Each process belongs to single domain, and access permissions are granted to dom
 <p>Quit the "editpolicy" with 'q' key and run the following command.</p>
 
 <pre>
-# <span class="user">setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty'</span>
+# <span class="user">setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
-<p>From now on, the domains under /sbin/mingetty are protected by MAC.</p>
+<p>From now on, the domains under /sbin/getty are protected by MAC.</p>
 
 <p>Now, let's do the following operations.</p>
 
@@ -360,20 +358,20 @@ Operations with blue colored underline are denied.</p>
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 
 <pre>
-#2007-09-23 20:24:39# pid=2199 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
+#2007-09-23 14:59:03# pid=1576 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 1 /usr/bin/tail
 
-#2007-09-23 20:24:39# pid=2199 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
+#2007-09-23 14:59:03# pid=1576 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 4 /usr/bin/tail
 
-#2007-09-23 20:24:42# pid=2200 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head
+#2007-09-23 14:59:10# pid=1577 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
 4 /etc/shadow
 
-#2007-09-23 20:24:45# pid=2222 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh
+#2007-09-23 14:59:13# pid=1579 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh
 1 /bin/date
 </pre>
 
