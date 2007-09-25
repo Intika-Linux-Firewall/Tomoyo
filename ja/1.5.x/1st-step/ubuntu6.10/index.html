@@ -47,30 +47,24 @@
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/linux-image-2.6.17.14-ubuntu1-tomoyo1.5.0-i586_2.6.17.1-12.40_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/linux-image-2.6.17.14-ubuntu1-tomoyo1.5.0-i586_2.6.17.1-12.41_i386.deb</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">rpm --install linux-image-2.6.17.14-ubuntu1-tomoyo1.5.0-i586_2.6.17.1-12.40_i386.deb</span>
+# <span class="user">rpm --install linux-image-2.6.17.14-ubuntu1-tomoyo1.5.0-i586_2.6.17.1-12.41_i386.deb</span>
 </pre>
 
 <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 
 <pre>
-title           Ubuntu, kernel 2.6.17.14-ubuntu1-ccs
+title           Ubuntu, kernel 2.6.17.14-ubuntu1-tomoyo1.5.0
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-ccs root=/dev/sda1 ro quiet splash locale=ja_JP
-initrd          /boot/initrd.img-2.6.17.14-ubuntu1-ccs
+kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-tomoyo1.5.0 root=/dev/sda1 ro quiet splash locale=ja_JP
+initrd          /boot/initrd.img-2.6.17.14-ubuntu1-tomoyo1.5.0
 quiet
 savedefault
-boot
-
-title           Ubuntu, kernel 2.6.17.14-ubuntu1-ccs (recovery mode)
-root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-ccs root=/dev/sda1 ro single
-initrd          /boot/initrd.img-2.6.17.14-ubuntu1-ccs
 boot
 </pre>
 
@@ -79,6 +73,8 @@ boot
 <pre>
 <span class="user">#</span>timeout=5
 </pre>
+
+<p>/sbin/ccs-init のプロンプトやコンソールログイン画面を表示できるようにするために、カーネルのコマンドラインから splash オプションを削除してください。</p>
 
 <h2><a name="l3">ツールのインストール</a></h2>
 
@@ -93,8 +89,6 @@ boot
 </pre>
 
 <p>ツールは /usr/lib/ccs ディレクトリにされます。</p>
-
-<p>/sbin/ccs-init のプロンプトやコンソールログイン画面を表示できるようにするために、カーネルのコマンドラインから splash オプションを削除してください。</p>
 
 <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
 
@@ -269,7 +263,7 @@ Linuxが起動します。
 <li>headコマンドで/etc/passwdの先頭3行を表示する</li>
 <li>shを起動する</li>
 <li>tailコマンドで/etc/passwdの末尾3行を表示する</li>
-<li>tcshを終了する</li>
+<li>shを終了する</li>
 </ol>
 
 <p>まずは学習モードの設定を行います。</p>
@@ -387,19 +381,19 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
 <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 
 <pre>
-#2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-09-25 14:16:14# pid=3443 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 1 /usr/bin/tail
 
-#2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-09-25 14:16:14# pid=3443 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 4 /usr/bin/tail
 
-#2007-02-08 16:12:45# pid=3524 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-09-25 14:16:22# pid=3444 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
 4 /etc/shadow
 
-#2007-02-08 16:12:48# pid=3550 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-09-25 14:16:28# pid=3446 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/sh
 1 /bin/date
 </pre>
