@@ -1,122 +1,111 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="ja">
+<html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux 導入手順書 （Ubuntu 6.10版）</title>
+<title>TOMOYO Linux Kickstarting Manual for Ubuntu 6.10</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
 
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （Ubuntu 6.10版）</h1>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> Kickstarting Manual for Ubuntu 6.10</h1>
 
 <ul>
-<li><a href="#l1">概要</a></li>
-<li><a href="#l2">カーネルのインストール</a></li>
-<li><a href="#l3">ツールのインストール</a></li>
-<li><a href="#l4">自動設定スクリプトの実行</a>
-<li><a href="#l5">監査ログの取得準備</a></li>
-<li><a href="#l6">運用</a>
+<li><a href="#l1">About this page</a></li>
+<li><a href="#l2">Installing TOMOYO Linux kernel</a></li>
+<li><a href="#l3">Installing TOMOYO Linux tools</a></li>
+<li><a href="#l4">Executing automatic configuration script</a>
+<li><a href="#l5">Preparation for audit logs</a></li>
+<li><a href="#l6">Operation</a>
 <ul>
-<li><a href="#l7">システムの起動</a></li>
-<li><a href="#l8">ログイン後の操作の学習</a></li>
-<li><a href="#l9">ポリシーの参照</a></li>
-<li><a href="#l10">強制アクセス制御</a></li>
+<li><a href="#l7">Booting with TOMOYO Linux kernel</a></li>
+<li><a href="#l8">Generating policies for login operations</a></li>
+<li><a href="#l9">Editing generated policies</a></li>
+<li><a href="#l10">Enforcing MAC</a></li>
 </ul></li>
 </ul>
 
-<h2><a name="l1">概要</a></h2>
+<h2><a name="l1">About this page</a></h2>
 
-<p>以下では、Ubuntu 6.10にTOMOYO Linux 1.5.0を導入する手順を解説します。
-この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
-
-<p>導入の流れは以下の通りです。</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.5.0 on Ubuntu 6.10 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>The following is the flow of introduction.</p>
 
 <ol>
-<li>カーネルとツールのインストール</li>
-<li>基本的な設定</li>
-<li>ポリシーの自動学習と試験運用</li>
+<li>Install TOMOYO Linux kernel and utilities</li>
+<li>Configure fundamental policy</li>
+<li>Policy generation and operation</li>
 </ol>
 
-<h2><a name="l2">カーネルのインストール</a></h2>
+<h2><a name="l2">Installing TOMOYO Linux kernel</a></h2>
 
-<p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
-しかしUbuntu 6.10の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
+<p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile.
+But regarding Ubuntu 6.10, a binary kernel package is and this page uses it.</p>
 
-<p>まずはパッケージをダウンロードします。</p>
+<p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/linux-image-2.6.17.14-ubuntu1-tomoyo1.5.0-i586_2.6.17.1-12.40_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/linux-image-2.6.17.14-ubuntu1-tomoyo1.5.0-i586_2.6.17.1-12.41_i386.deb</span>
 </pre>
 
-<p>次に、ダウンロードしてきたパッケージをインストールします。</p>
+<p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">rpm --install linux-image-2.6.17.14-ubuntu1-tomoyo1.5.0-i586_2.6.17.1-12.40_i386.deb</span>
+# <span class="user">dpkg -i linux-image-2.6.17.14-ubuntu1-tomoyo1.5.0-i586_2.6.17.1-12.41_i386.deb</span>
 </pre>
 
-<p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
+<p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
 
 <pre>
-title           Ubuntu, kernel 2.6.17.14-ubuntu1-ccs
+title           Ubuntu, kernel 2.6.17.14-ubuntu1-tomoyo1.5.0
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-ccs root=/dev/sda1 ro quiet splash locale=ja_JP
-initrd          /boot/initrd.img-2.6.17.14-ubuntu1-ccs
+kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-tomoyo1.5.0 root=/dev/sda1 ro quiet splash locale=ja_JP
+initrd          /boot/initrd.img-2.6.17.14-ubuntu1-tomoyo1.5.0
 quiet
 savedefault
 boot
-
-title           Ubuntu, kernel 2.6.17.14-ubuntu1-ccs (recovery mode)
-root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.17.14-ubuntu1-ccs root=/dev/sda1 ro single
-initrd          /boot/initrd.img-2.6.17.14-ubuntu1-ccs
-boot
 </pre>
 
-<p>今後カーネルの選択を行いやすくするために、 /boot/grub/menu.lstの"timeout="の行をコメントアウトしておきます。</p>
-
+<p>Comment out the "timeout=" line of /boot/grub/menu.lst so that you will not fail to select TOMOYO Linux's kernel.</p>
+<p>To make prompt shown by /sbin/ccs-init and login programs visible, remove "splash" option from the "kernel" line.</p>
 <pre>
 <span class="user">#</span>timeout=5
 </pre>
 
-<h2><a name="l3">ツールのインストール</a></h2>
+<h2><a name="l3">Installing TOMOYO Linux tools</a></h2>
 
-<p>カーネルの次は、TOMOYO Linuxのツールをインストールします。
-ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
+<p>Next, you need to install TOMOYO Linux tools.
+The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 
-<p>バイナリパッケージが用意されていますので、それを利用します。</p>
+<p>A binary tools package is provided and this page uses it.</p>
 
 <pre>
 # <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27221/ccs-tools-1.5.0-1_Ubuntu6.10_i386.deb</span>
 # <span class="user">dpkg -i ccs-tools-1.5.0-1_Ubuntu6.10_i386.deb</span>
 </pre>
 
-<p>ツールは /usr/lib/ccs ディレクトリにされます。</p>
+<p>Tools are installed in /usr/lib/ccs directory.</p>
 
-<p>/sbin/ccs-init のプロンプトやコンソールログイン画面を表示できるようにするために、カーネルのコマンドラインから splash オプションを削除してください。</p>
+<p>You have installed TOMOYO Linux. Now proceed to configuration.</p>
 
-<p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
+<h2><a name="l4">Executing automatic configuration script</a></h2>
 
-<h2><a name="l4">自動設定スクリプトの実行</a></h2>
-
-<p>この節の操作を自動で行うスクリプトが付属しているのでそれを実行します。</p>
+<p>A script is included in the tools package that performs configurations in this chapter. Run the script as follows.</p>
 
 <pre># <span class="user">init_policy.sh --file-only-profile</span></pre>
 
-<p>init_policy.shは10分以上時間を要する場合がありますので気長にお待ちください。</p>
+<p>The execution of init_policy.sh may take long time (more than 10 minutes in some environment).</p>
 
-<h3>設定の保存ディレクトリについて</h3>
+<h3>About configuration directory</h3>
 
-<p>TOMOYO Linuxの設定を保存するディレクトリは/etc/ccsです。</p>
+<p>The default directory for storing TOMOYO Linux's configuration is /etc/ccs/ .</p>
 
-<h3>プロファイルについて</h3>
+<h3>About profiles</h3>
 
-<p>TOMOYO Linuxには多くの機能があり、どの機能をON/OFFにするのかの設定をプロファイルとよびます。
-プロファイルは複数作成して切り替えて使うことができます。
-すべてのプロファイルは/etc/ccs/profile.confという単一のファイルに保存します。</p>
-<p>今回はファイルに対するアクセス制御の機能のみを利用するため、
-/etc/ccs/profile.confの内容は以下のようなっているはずです。</p>
+<p>Since TOMOYO Linux has much functionality, you can selectively enable/disable them using "profiles".
+All profiles are stored in a single file /etc/ccs/profile.conf and you can switch profiles assigned to domains.</p>
+
+<p>Since this page explains only MAC for files, the contents of /etc/ccs/profile.conf will contain the following entries.</p>
 
 <pre>
 0-COMMENT=-----DISABLED_MODE-----
@@ -133,41 +122,37 @@ boot
 3-TOMOYO_VERBOSE=1
 </pre>
 
-<p>profile.confの1行は以下のような構文になっています。</p>
+<p>The syntax of an entry of /etc/ccs/profile.conf is shown below.</p>
 
 <pre>
-（プロファイル番号）-（設定項目）=（制御モード）
+$profile_number-$topic_name=$control_mode
 </pre>
 
-<p>すなわち、行頭の番号がプロファイルを切り替えるためのプロファイル番号で、
-'=' の左が設定項目、'=' の右が制御モードです。</p>
+<p>The leading integer ($profile_number) is the number of profile, the followed word before = ($topic_name) is the name of functionalities and the trailing integer after = ($control_mode) is the control mode.</p>
 
-<p>設定項目COMMENTは、プロファイルを区別しやすくするためのコメントで、TOMOYO Linuxの機能には影響を与えません。</p>
+<p>The $topic_name = COMMENT is just for administrators.</p>
 
-<p>設定項目MAC_FOR_FILEは「ファイルに対するアクセス制御」を表しており、
-制御モードが0なら無効、1なら学習、2なら確認（アクセス拒否ログを出力するが実際には拒否しない）、3なら強制、という設定が行えます。</p>
+<p>The $topic_name = MAC_FOR_FILE means "MAC for file accesses", and the $control_mode = 0 means disabled, 1 means learning mode, 2 means permissive mode, 3 means enforcing mode.</p>
 
-<p>設定項目TOMOYO_VERBOSEは「アクセス拒否の情報をコンソールに出力するかどうか」を表しており、
-制御モードが0なら出力なし、1なら出力ありになります。</p>
+<p>The $topic_name = TOMOYO_VERBOSE means whether policy violation messages are printed to console or not, and prints if $control_mode = 1 and doesn't print if $control_mode = 0.</p>
 
-<p>上記設定では、プロファイル番号が0～3の4つのプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
+<p>The above example has 4 profiles (from 0 to 3), and the purpose of them are shown below.</p>
 
 <table><tbody>
-<tr><th>プロファイル0</th><td>ファイルに対するアクセス制御を無効にする、コンソールにアクセス拒否を出力しない</td></tr>
-<tr><th>プロファイル1</th><td>ファイルに対するアクセス制御を学習モードにする、コンソールにアクセス拒否を出力しない</td></tr>
-<tr><th>プロファイル2</th><td>ファイルに対するアクセス制御を確認モードにする、コンソールにアクセス拒否を出力する</td></tr>
-<tr><th>プロファイル3</th><td>ファイルに対するアクセス制御を強制モードにする、コンソールにアクセス拒否を出力する</td></tr>
+<tr><th>profile 0</th><td>Don't apply MAC for file accesses. Don't print policy violation messages on console.</td></tr>
+<tr><th>profile 1</th><td>Apply MAC for file accesses using learning mode. Don't print policy violation messages on console.</td></tr>
+<tr><th>profile 2</th><td>Apply MAC for file accesses using permissive mode. Print policy violation messages on console.</td></tr>
+<tr><th>profile 3</th><td>Apply MAC for file accesses using enforcing mode. Print policy violation messages on console.</td></tr>
 </tbody></table>
 
-<p>プロファイル1の学習モードで行ったアクセスを元にポリシーを作成し、
-プロファイル2の確認モードで仮運用して必要なポリシーが作成できているかを確かめ、
-プロファイル3の強制モードで本運用としてアクセス制御を行う、
-というのが基本的な運用の流れです。</p>
+<p>The basic procedure is, generate policy using learning mode (which is defined in profile 1),
+confirm policy using permissive mode (which is defined in profile 2),
+and enforce policy using enforcing mode (which is defined in profile 3).</p>
 
-<h3>ポリシーの変更を許可するプログラムについて</h3>
+<h3>About programs that can update policies</h3>
 
-<p>ポリシーを変更することができるプログラムは、/etc/ccs/manager.confというファイルで指定します。
-以下のプログラムが指定されているはずです。</p>
+<p>Programs that can update policies are listed in /etc/ccs/manager.conf .
+The following programs are listed.</p>
 
 <pre>
 /usr/lib/ccs/loadpolicy
@@ -178,28 +163,28 @@ boot
 /usr/lib/ccs/ccs-queryd
 </pre>
 
-<h3>例外ポリシーについて</h3>
+<h3>About exception policy</h3>
 
-<p>/etc/ccs/exception_policy.conf には以下の7種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf contains the following 7 types of exceptions.</p>
 
 <ol>
-<li>/proc/PID のように同様のパス名をパターン化する際のパターン名</li>
-<li>すべてのプログラムに対して参照することを許可するパス名</li>
-<li>デーモンとして動作させるプログラムのパス名</li>
-<li>ドメイン遷移を行わないドメイン</li>
-<li>追記を許可して書き換えを禁止するファイルのパス名</li>
-<li>1つに集約して扱うプログラムのパス名</li>
-<li>シンボリックリンクの名前で実行するプログラムのパス名</li>
+<li>Pathname patterns like /proc/PID/ to make group</li>
+<li>Unconditionally readable files</li>
+<li>Domain transition initializers</li>
+<li>Domain keepers</li>
+<li>Non-rewritable files</li>
+<li>Program aggregations</li>
+<li>Programs invocable via symbolic links</li>
 </ol>
 
-<h2><a name="l5">監査ログの取得準備</a></h2>
+<h2><a name="l5">Preparation for audit logs</a></h2>
 
-<p>TOMOYO Linuxのログは、アクセスが許可された要求のログと、アクセスが拒否された要求のログの2種類に分けることができます。
-今回は、アクセス拒否ログのみを保存する設定を行います。</p>
+<p>TOMOYO Linux has two types of logs, "access granted logs" (access requests that didn't violate domain policy) and "access rejected logs" (access requests that violated domain policy).
+This page configures to save only "access rejected logs".</p>
 
-<p>ログを保存するには、ccs-toolsのccs-auditdというデーモンプログラムを使用します。
-アクセス拒否ログのみを保存する設定でccs-auditdをLinuxの起動時に実行するには、
-まず、以下のコマンドで/etc/init.dにシェルスクリプトを作成し、実行権限を与えます。</p>
+<p>To save logs, you can use "ccs-auditd" daemon program included in ccs-tools package.
+To start "ccs-auditd" on bootup to save only "access rejected logs",
+create the following script in the /etc/init.d/ directory and give execute permission to the script.</p>
 
 <pre>
 # <span class="user">cat &gt; /etc/init.d/ccs-auditd &lt;&lt; EOF</span>
@@ -209,7 +194,7 @@ boot
 # <span class="user">chmod +x /etc/init.d/ccs-auditd</span>
 </pre>
 
-<p>そして、以下のコマンドでLinuxの起動時に呼び出すシンボリックリンクを作成します。</p>
+<p>And create symbolic links to the script.</p>
 
 <pre>
 # <span class="user">update-rc.d ccs-auditd start 99 2 3 4 5 .</span>
@@ -220,200 +205,183 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 /etc/rc5.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
 </pre>
 
-<p>この設定では、/var/log/tomoyo/reject_log.txtにアクセス拒否ログが保存されます。
-ログを保存するディレクトリをあらかじめ作っておきます。</p>
+<p>This script will save "access rejected logs" as /var/log/tomoyo/reject_log.txt .
+You need to create the directory to save before you run this script.</p>
 
 <pre>
 # <span class="user">mkdir -p /var/log/tomoyo</span>
 </pre>
 
-<p>以上でTOMOYO Linuxを使うための基本的な設定は終わりです。</p>
+<p>You have finished all preparations.</p>
 
-<h2><a name="l6">運用</a></h2>
+<h2><a name="l6">Operation</a></h2>
 
-<p>それでは、いよいよTOMOYO Linuxカーネルで起動してみましょう。</p>
+<p>Now, boot with TOMOYO Linux kernel.</p>
 
-<h3><a name="l7">システムの起動</a></h3>
+<h3><a name="l7">Booting with TOMOYO Linux kernel</a></h3>
 
-<p>まずはLinuxを再起動します。</p>
+<p>First, reboot the system.</p>
 
 <pre>
 # <span class="user">reboot</span>
 </pre>
 
-<p>カーネルの選択画面でTOMOYO Linuxのカーネルを選択してEnterを押します。</p>
+<p>Select the TOMOYO Linux kernel and press 'Enter' key.</p>
 
-<p><img alt="TOMOYO Linuxのカーネルを選択" title="TOMOYO Linuxのカーネルを選択" width="720" height="400" src="grub.png"></p>
+<p><img alt="Booting with TOMOYO Linux kernel" title="Booting with TOMOYO Linux kernel" width="720" height="400" src="grub.png"></p>
 
-<p>起動途中で以下のメッセージが表示されます。</p>
+<p>The following prompt will appear.</p>
 
 <pre>
 TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
 TOMOYO Linux&gt;
 </pre>
 
-<p>この状態でEnterキーを押すか10秒間待つと、先ほど作成した例外ポリシーが読み込まれ、
-Linuxが起動します。
-起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
+<p>Wait 10 seconds or press 'Enter' key to continue. The exception policy will be loaded and the system starts.
+After the login prompt appear, log in as root.</p>
 
-<p>グラフィカル画面からコンソール画面へ切り替えるには、 Ctrl-Alt-F1 を押してください。 VMware の場合は Alt-F1-CtrlまたはCtrl-F1-Altの順に押してください。</p>
+<p>To switch from graphical login to text login, press "Ctrl"-"Alt"-"F1" keys. If you are running from VMware, press keys in "Alt"-"F1"-"Ctrl" or "Ctrl"-"F1"-"Alt" order.</p>
 
-<p><img alt="rootでログイン" title="rootでログイン" width="720" height="400" src="login.png"></p>
+<p><img alt="Log in as root" title="Log in as root" width="720" height="400" src="login.png"></p>
 
-<h3><a name="l8">ログイン後の操作の学習</a></h3>
+<h3><a name="l8">Generating policies for login operations</a></h3>
 
-<p>今回は、以下の操作をTOMOYO Linuxに学習させ、強制モードでは学習させた操作以外が拒否されることを確かめます。</p>
+<p>Let the TOMOYO Linux's kernel remember the following operations, and let's see any operations that weren't done in the learning mode are denied in the enforcing mode.</p>
 
 <ol>
-<li>dateコマンドを実行する</li>
-<li>headコマンドで/etc/passwdの先頭3行を表示する</li>
-<li>shを起動する</li>
-<li>tailコマンドで/etc/passwdの末尾3行を表示する</li>
-<li>tcshを終了する</li>
+<li>Running "date" command</li>
+<li>Printing the heading 3 lines of /etc/passwd using "head" command</li>
+<li>Invoking "sh"</li>
+<li>Printing the tailing 3 lines of /etc/passwd using "tail" command</li>
+<li>Exit from "sh"</li>
 </ol>
 
-<p>まずは学習モードの設定を行います。</p>
+<p>Now, change this session to learning mode.</p>
 
-<p>プロファイル1が学習モードです。
-このプロファイルを以下のコマンドで/sbin/gettyから起動されるプログラムに割り当てます。
-</p>
+<p>The profile 1 is defined for learning mode.
+So, assign this profile to /sbin/getty and programs invoked by /sbin/getty .</p>
 
 <pre>
 # <span class="user">/usr/lib/ccs/setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
-<p>このコマンドは、</p>
+<p>This command means</p>
 
-<blockquote><p>/sbin/gettyから起動されるプログラムすべてにプロファイル1を割り当てる</p></blockquote>
+<blockquote><p>Assign profile 1 to /sbin/getty and all programs invoked by /sbin/getty .</p></blockquote>
 
-<p>という意味です。/sbin/gettyはログインシェルを起動するプログラムで、
-/sbin/getty以下にプロファイル1を割り当てることで、ログイン後の操作を学習する設定になります。
-設定は即時に有効になるので、上記setprofileコマンドを実行したあとは既に学習モードになっています。</p>
+<p>The /sbin/getty is a program that invokes login shell. Thus, by assigning profiles 1 to /sbin/getty and programs invoked by /sbin/getty, you can let the TOMOYO Linux kernel remember operations after login. Changing profiles takes effect immediately. Now, this session is already in the learning mode.</p>
 
-<p>&lt;kernel&gt; /sbin/gettyを引用符で囲まないと、シェルのリダイレクト機能が働いて
-/sbin/gettyの内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
+<p>You have to quote "&lt;kernel&gt; /sbin/getty" appropriately, or you may lose the contents of /sbin/getty because "&lt;" and "&gt;" are interpreted as redirection command.</p>
 
-<p>それでは、前述の4つの操作を学習させましょう。学習は通常のLinuxのように操作することで行えます。</p>
+<p>Let the kernel remember the 4 operations listed above. All you need to do is do these operations as usual.</p>
 
-<p><img alt="操作の学習" title="操作の学習" width="720" height="400" src="ope_learning.png"></p>
+<p><img alt="Using learning mode" title="Using learning mode" width="720" height="400" src="ope_learning.png"></p>
 
-<p>一見普通のLinuxと変わりなく操作できますが、
-裏ではTOMOYO Linuxがアクセス許可を監視し、
-操作ごとにポリシーとしてメモリ上に記憶しています。</p>
+<p>You can operate as if the usual Linux, but the TOMOYO Linux kernel is monitoring accesses and generating policies and storing on the memory in the background.</p>
 
-<h3><a name="l9">ポリシーの参照</a></h3>
+<h3><a name="l9">Editing generated policies</a></h3>
 
-<p>生成されたポリシーの参照・編集には、ccs-toolsのeditpolicyを用います。</p>
+<p>To refer and/or edit generated policy, you can use "editpolicy" in the TOMOYO Linux tools package.</p>
 
 <pre>
 # <span class="user">/usr/lib/ccs/editpolicy</span>
 </pre>
 
-<p>editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
-この「プロセスの呼び出し」を、TOMOYO Linuxでは「ドメイン遷移」とよびます。</p>
+<p>When you run "editpolicy", the list of process invocation history since the bootup is shown, explaining how programs are invoked until now.
+TOMOYO Linux calls this invocation chains as "DOMAIN transition tree".</p>
 
-<p><img alt="ドメイン遷移" title="ドメイン遷移" width="720" height="400" src="editpolicy1.png"></p>
+<p><img alt="Domain Transition" title="Domain Transition" width="720" height="400" src="editpolicy1.png"></p>
 
-<p>ドメイン遷移の中から、gettyを探してみてください。ドメイン遷移からgettyを検索するには、
-'f'キーを押して、下に出たプロンプトで"getty"と入力してEnterキーを押します。</p>
+<p>Search for getty from this tree. Press 'f' key and enter "getty" and press 'Enter' key.</p>
 
-<p><img alt="getty以下のドメイン" title="getty以下のドメイン" width="720" height="400" src="editpolicy2.png"></p>
+<p><img alt="Domains under getty" title="Domains under getty" width="720" height="400" src="editpolicy2.png"></p>
 
-<p>行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/getty 以下のドメインが 1 になっているのは、先ほど setprofile コマンドを用いて 1 を割り当てたためです。</p>
+<p>The integer that is on the right side of line number shows profile number currently assigned to the domain. The profile number for /sbin/getty and its descendant domains is 1 because you ran earlier "setprofile -r 1 '&lt;kernel&gt; /bin/getty'".</p>
 
-<p>/sbin/getty下の/bin/login以下では、ログインしてからのプロセス実行履歴が分かります。
-その中からさらに、/usr/bin/headコマンドを探してみてください。
-headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
+<p>You can find the tree for login operation at /bin/login under /sbin/getty .
+Search for /usr/bin/head in that tree.
+Press 'Enter' at the line of head command, and you will see the following window.</p>
 
-<p><img alt="headのポリシー" title="headのポリシー" width="720" height="400" src="editpolicy3.png"></p>
+<p><img alt="Policy for head command" title="Policy for head command" width="720" height="400" src="editpolicy3.png"></p>
 
-<p>これは先ほどの操作で学習したポリシーで、</p>
+<p>This is the policy generated by the previous operations and it says that</p>
 
 <blockquote>
-<p>&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
+<p>The domain "&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head" (red colored underline)</p>
 <ul>
-<li>/etc/passwdへの読み込みアクセスを許可する（青下線）</li>
+<li>can read access of /etc/passwd (blue colored underline)</li>
 </ul>
 </blockquote>
 
-<p>ということを意味しています。</p>
+<p>In TOMOYO Linux, the domain is defined as the history of process invocation represented using absolute pathnames of programs.
+Each process belongs to single domain, and access permissions are granted to domains.</p>
 
-<p>TOMOYO Linuxでは、
-「プログラムの絶対パスで表現したプロセスの実行履歴」をドメインとよびます。
-すべてのプロセスはいずれか1つのドメインに所属しており、
-アクセス制御はドメインごとにポリシーとして設定します。</p>
+<p>The granularity of permissions is standard read/write/execute plus detailed write permission such as create, unlink, rename.</p>
 
-<p>ドメインにおけるファイルに対するアクセス許可は、
-通常のLinuxにおけるファイルに対するパーミッションと
-同様の3種類（読み込み・書き込み・実行）の他にも、
-ファイルの新規作成・削除・名前変更なども設定できます。</p>
-
-<p>ポリシーはメモリ上に置かれており、このままLinuxをシャットダウンしてしまうと、
-学習したポリシーも失われてしまいます。ポリシーをハードディスクの/etc/ccs以下に
-保存するには以下のようにします。</p>
+<p>Policies are kept on the memory and if they will be lost if you shutdown the system. To save policies currently on the memory onto disk, run the following command.</p>
 
 <pre>
 # <span class="user">/usr/lib/ccs/savepolicy</span>
 </pre>
 
-<h3><a name="l10">強制アクセス制御</a></h3>
+<h3><a name="l10">Enforcing MAC</a></h3>
 
-<p>それでは、先ほど自動学習したポリシーを使って、強制アクセス制御を体験してみましょう。</p>
+<p>Now, let's experience MAC using previously generated policy.</p>
 
-<p>'q'キーでeditpolicyを終了してから、以下のコマンドを実行します。</p>
+<p>Quit the "editpolicy" with 'q' key and run the following command.</p>
 
 <pre>
 # <span class="user">/usr/lib/ccs/setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
-<p>この操作により、/sbin/getty以下のドメインに強制アクセス制御が適用されるようになります。</p>
+<p>From now on, the domains under /sbin/getty are protected by MAC.</p>
 
-<p>この状態で以下の操作を行ってみます。</p>
+<p>Now, let's do the following operations.</p>
 
 <ol>
-<li>dateコマンドを実行</li>
-<li>headコマンドで/etc/passwdの先頭3行を表示</li>
-<li>tailコマンドで/etc/passwdの末尾3行を表示（エラー）</li>
-<li>headコマンドで/etc/shadowの先頭3行を表示（エラー）</li>
-<li>shを起動</li>
-<li>dateコマンドを実行（エラー）</li>
+<li>Running "date" command</li>
+<li>Printing the heading 3 lines of /etc/passwd using "head" command</li>
+<li>Printing the tailing 3 lines of /etc/passwd using "tail" command (denied)</li>
+<li>Printing the heading 3 lines of /etc/shadow using "head" command (denied)</li>
+<li>Invoking "sh"</li>
+<li>Running "date" command (denied)</li>
 </ol>
 
-<p><img alt="強制アクセス制御の様子" title="強制アクセス制御の様子" width="720" height="400" src="ope_enforcing.png"></p>
+<p><img alt="Enforcing MAC" title="Enforcing MAC" width="720" height="400" src="ope_enforcing.png"></p>
 
-<p>図中の赤下線のコマンドは先ほど学習モードで行った操作ですので、問題なく実行できます。
-逆に青下線のコマンドはエラーになります。</p>
+<p>Operations with red colored underline in the picture are performed normally because they are operations performed in the learning mode.
+Operations with blue colored underline are denied.</p>
 
-<p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
+<p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 
 <pre>
-#2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-09-25 14:16:14# pid=3443 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 1 /usr/bin/tail
 
-#2007-02-08 16:12:38# pid=3523 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-09-25 14:16:14# pid=3443 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
 4 /usr/bin/tail
 
-#2007-02-08 16:12:45# pid=3524 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-09-25 14:16:22# pid=3444 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
 4 /etc/shadow
 
-#2007-02-08 16:12:48# pid=3550 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+#2007-09-25 14:16:28# pid=3446 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/sh
 1 /bin/date
 </pre>
 
-<p>このようにTOMOYO Linuxのファイルに対するアクセス制御を用いれば、</p>
+<p>As you have seen above, by using TOMOYO Linux's MAC for file accesses functionality, you can monitor</p>
 
 <ul>
-<li>どのような実行履歴を持つプロセスが</li>
-<li>いつ</li>
-<li>どんなファイルに</li>
-<li>どんなアクセスを</li>
+<li>Which process with what invocation history is</li>
+<li>When</li>
+<li>Which files and directories</li>
+<li>How it accessed</li>
 </ul>
 
-<p>行ったかを監視することもできます。</p>
+<p>in detail.</p>
 
 <hr>
 <address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
