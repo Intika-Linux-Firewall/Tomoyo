@@ -77,7 +77,7 @@ int SAKURA_MayMount(struct nameidata *nd)
 	}
 	if (flag) {
 		int error = -EPERM;
-		const int is_enforce = CheckCCSEnforce(CCS_SAKURA_DENY_CONCEAL_MOUNT);
+		const u8 is_enforce = CheckCCSEnforce(CCS_SAKURA_DENY_CONCEAL_MOUNT);
 		const char *dir = realpath_from_dentry(nd->dentry, nd->mnt);
 		if (dir) {
 			const char *exename = GetEXE();

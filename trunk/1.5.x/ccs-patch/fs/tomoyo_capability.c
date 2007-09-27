@@ -89,15 +89,16 @@ static unsigned int CheckCapabilityFlags(const unsigned int index)
 }
 
 /* Check whether the given capability control is enforce mode. */
-static unsigned int CheckCapabilityEnforce(const unsigned int index)
+static u8 CheckCapabilityEnforce(const unsigned int index)
 {
 	return CheckCapabilityFlags(index) == 3;
 }
 
 /* Check whether the given capability control is learning mode. */
-static unsigned int CheckCapabilityAccept(const unsigned int index)
+static u8 CheckCapabilityAccept(const unsigned int index, struct domain_info * const domain)
 {
-	return CheckCapabilityFlags(index) == 1;
+	if (CheckCapabilityFlags(index) != 1) return 0;
+	return CheckDomainQuota(domain);
 }
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
@@ -146,7 +147,7 @@ int ReadCapabilityStatus(struct io_buffer *head)
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditCapabilityLog(const unsigned int capability, const int is_granted)
+static int AuditCapabilityLog(const unsigned int capability, const u8 is_granted)
 {
 	char *buf;
 	int len = 64;
@@ -180,7 +181,6 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_CAPABILITY_ACL;
@@ -206,7 +206,7 @@ int CheckCapabilityACL(const unsigned int capability)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
-	const int is_enforce = CheckCapabilityEnforce(capability);
+	const u8 is_enforce = CheckCapabilityEnforce(capability);
 	const u16 hash = capability;
 	if (!CheckCapabilityFlags(capability)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -220,12 +220,12 @@ int CheckCapabilityACL(const unsigned int capability)
 	}
 	AuditCapabilityLog(capability, 0);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, capability2keyword(capability));
-	if (CheckCapabilityAccept(capability)) AddCapabilityACL(capability, domain, 1, NULL);
+	if (CheckCapabilityAccept(capability, domain)) AddCapabilityACL(capability, domain, 1, NULL);
 	return 0;
 }
 EXPORT_SYMBOL(CheckCapabilityACL);
 
-int AddCapabilityPolicy(char *data, struct domain_info *domain, const int is_delete)
+int AddCapabilityPolicy(char *data, struct domain_info *domain, const u8 is_delete)
 {
 	unsigned int capability;
 	const struct condition_list *condition = NULL;

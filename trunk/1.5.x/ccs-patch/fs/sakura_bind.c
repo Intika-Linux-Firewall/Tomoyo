@@ -21,7 +21,7 @@
 
 struct reserved_entry {
 	struct reserved_entry *next; /* Pointer to next record. NULL if none. */
-	int is_deleted;              /* Delete flag.                          */
+	u8 is_deleted;              /* Delete flag.                          */
 	u16 min_port;                /* Start of port number range.           */
 	u16 max_port;                /* End of port number range.             */
 };
@@ -30,7 +30,7 @@ struct reserved_entry {
 
 static struct reserved_entry *reservedport_list = NULL;
 
-static int AddReservedEntry(const u16 min_port, const u16 max_port, const int is_delete)
+static int AddReservedEntry(const u16 min_port, const u16 max_port, const u8 is_delete)
 {
 	struct reserved_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -72,7 +72,7 @@ int SAKURA_MayAutobind(const u16 port)
 }
 EXPORT_SYMBOL(SAKURA_MayAutobind);
 
-int AddReservedPortPolicy(char *data, const int is_delete)
+int AddReservedPortPolicy(char *data, const u8 is_delete)
 {
 	unsigned int from, to;
 	if (strchr(data, ' ')) goto out;

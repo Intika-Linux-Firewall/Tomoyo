@@ -486,7 +486,7 @@ const char *GetEXE(void)
 	return NULL;
 }
 
-const char *GetMSG(const int is_enforce)
+const char *GetMSG(const u8 is_enforce)
 {
 	if (is_enforce) return "ERROR"; else return "WARNING";
 }
@@ -511,16 +511,33 @@ unsigned int TomoyoVerboseMode(void)
 }
 
 /* Check whether the given access control is enforce mode. */
-unsigned int CheckCCSEnforce(const unsigned int index)
+u8 CheckCCSEnforce(const unsigned int index)
 {
 	return CheckCCSFlags(index) == 3;
 }
 EXPORT_SYMBOL(CheckCCSEnforce);
 
-/* Check whether the given access control is learning mode. */
-unsigned int CheckCCSAccept(const unsigned int index)
+unsigned int CheckDomainQuota(struct domain_info * const domain)
 {
-	return CheckCCSFlags(index) == 1;
+	unsigned int count = 0;
+	struct acl_info *ptr;
+	if (!domain) return 1;
+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+		if (!ptr->is_deleted) count++;
+	}
+	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 1;
+	if (!domain->quota_warned) {
+		domain->quota_warned = 1;
+		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped learning mode.\n", domain->domainname->name);
+	}
+	return 0;
+}
+
+/* Check whether the given access control is learning mode. */
+u8 CheckCCSAccept(const unsigned int index, struct domain_info * const domain)
+{
+	if (CheckCCSFlags(index) != 1) return 0;
+	return CheckDomainQuota(domain);
 }
 EXPORT_SYMBOL(CheckCCSAccept);
 
@@ -643,7 +660,7 @@ struct policy_manager_entry {
 
 static struct policy_manager_entry *policy_manager_list = NULL;
 
-static int AddManagerEntry(const char *manager, u8 is_delete)
+static int AddManagerEntry(const char *manager, const u8 is_delete)
 {
 	struct policy_manager_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -689,7 +706,7 @@ static int AddManagerEntry(const char *manager, u8 is_delete)
 static int AddManagerPolicy(struct io_buffer *head)
 {
 	const char *data = head->write_buf;
-	int is_delete = 0;
+	u8 is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
@@ -748,7 +765,7 @@ static int AddDomainPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct domain_info *domain = head->write_var1;
-	int is_delete = 0, is_select = 0, is_undelete = 0;
+	u8 is_delete = 0, is_select = 0, is_undelete = 0;
 	unsigned int profile;
 	if (!isRoot()) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
@@ -986,7 +1003,7 @@ static int ReadPID(struct io_buffer *head)
 static int AddExceptionPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
-	int is_delete = 0;
+	u8 is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	UpdateCounter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
@@ -1070,7 +1087,7 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 static int AddSystemPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
-	int is_delete = 0;
+	u8 is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
@@ -1180,10 +1197,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.0   2007/09/20\n");
+	printk("SAKURA: 1.5.1-pre   2007/09/27\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.0   2007/09/20\n");
+	printk("TOMOYO: 1.5.1-pre   2007/09/27\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

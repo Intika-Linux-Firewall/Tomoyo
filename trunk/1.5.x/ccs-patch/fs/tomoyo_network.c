@@ -24,7 +24,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditNetworkLog(const int is_ipv6, const char *operation, const u32 *address, const u16 port, const int is_granted)
+static int AuditNetworkLog(const u8 is_ipv6, const char *operation, const u32 *address, const u16 port, const u8 is_granted)
 {
 	char *buf;
 	int len = 256;
@@ -45,7 +45,7 @@ static int AuditNetworkLog(const int is_ipv6, const char *operation, const u32 *
 
 static struct address_group_entry *group_list = NULL;
 
-static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const u16 *min_address, const u16 *max_address, const int is_delete)
+static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const u16 *min_address, const u16 *max_address, const u8 is_delete)
 {
 	static DECLARE_MUTEX(lock);
 	struct address_group_entry *new_group, *group;
@@ -106,7 +106,7 @@ static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const 
 	return error;
 }
 
-int AddAddressGroupPolicy(char *data, const int is_delete)
+int AddAddressGroupPolicy(char *data, const u8 is_delete)
 {
 	int count, is_ipv6;
 	u16 min_address[8], max_address[8];
@@ -292,7 +292,6 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_IP_NETWORK_ACL;
@@ -333,12 +332,12 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	return error;
 }
 
-static int CheckNetworkEntry(const int is_ipv6, const int operation, const u32 *address, const u16 port)
+static int CheckNetworkEntry(const u8 is_ipv6, const int operation, const u32 *address, const u16 port)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
 	const char *keyword = network2keyword(operation);
-	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_NETWORK);
+	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_NETWORK);
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -374,11 +373,11 @@ static int CheckNetworkEntry(const int is_ipv6, const int operation, const u32 *
 		}
 		return CheckSupervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s %u.%u.%u.%u %u\n", domain->domainname->name, keyword, HIPQUAD(ip), port);
 	}
-	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6: IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, 1, NULL);
+	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK, domain)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6: IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, 1, NULL);
 	return 0;
 }
 
-int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete)
+int AddNetworkPolicy(char *data, struct domain_info *domain, const u8 is_delete)
 {
 	u8 sock_type, operation, record_type;
 	u16 min_address[8], max_address[8];
@@ -442,37 +441,37 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete
 	return -EINVAL;
 }
 
-int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port)
+int CheckNetworkListenACL(const u8 is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_LISTEN, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkListenACL);
 
-int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkConnectACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT), (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkConnectACL);
 
-int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkBindACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_BIND : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_BIND : NETWORK_ACL_RAW_BIND), (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkBindACL);
 
-int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port)
+int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkAcceptACL);
 
-int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkSendMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkSendMsgACL);
 
-int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
