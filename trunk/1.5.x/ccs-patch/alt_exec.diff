@@ -1,8 +1,8 @@
 Index: fs/tomoyo_network.c
 ===================================================================
---- fs/tomoyo_network.c	(revision 463)
+--- fs/tomoyo_network.c	(revision 512)
 +++ fs/tomoyo_network.c	(working copy)
-@@ -462,7 +462,11 @@
+@@ -461,7 +461,11 @@
  
  int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port)
  {
@@ -15,7 +15,7 @@ Index: fs/tomoyo_network.c
  }
  EXPORT_SYMBOL(CheckNetworkAcceptACL);
  
-@@ -474,7 +478,11 @@
+@@ -473,7 +477,11 @@
  
  int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
  {
@@ -30,18 +30,18 @@ Index: fs/tomoyo_network.c
  
 Index: fs/tomoyo_domain.c
 ===================================================================
---- fs/tomoyo_domain.c	(revision 463)
+--- fs/tomoyo_domain.c	(revision 512)
 +++ fs/tomoyo_domain.c	(working copy)
-@@ -642,7 +642,7 @@
+@@ -626,7 +626,7 @@
  	return NULL;
  }
  
 -static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain)
-+static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain, const int do_perm_check)
++static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain, const u8 do_perm_check)
  {
  	/* This function assumes that the size of buffer returned by realpath() = CCS_MAX_PATHNAME_LEN. */
  	struct domain_info *old_domain = current->domain_info, *domain = NULL;
-@@ -681,6 +681,8 @@
+@@ -665,6 +665,8 @@
  	else l.name = old_domain_name;
  	fill_path_info(&l);
  
@@ -50,7 +50,7 @@ Index: fs/tomoyo_domain.c
  	/* Check 'alias' directive. */
  	if (pathcmp(&r, &s)) {
  		struct alias_entry *ptr;
-@@ -730,6 +732,7 @@
+@@ -714,6 +716,7 @@
  	/* Check execute permission. */
  	if ((retval = CheckExecPerm(&r, filp)) < 0) goto out;
  
@@ -58,7 +58,7 @@ Index: fs/tomoyo_domain.c
  	/* Allocate memory for calcurating domain name. */
  	retval = -ENOMEM;
  	if ((new_domain_name = ccs_alloc(CCS_MAX_PATHNAME_LEN + 16)) == NULL) goto out;
-@@ -772,18 +775,93 @@
+@@ -756,18 +759,93 @@
  	return retval;
  }
  
@@ -153,7 +153,7 @@ Index: fs/tomoyo_domain.c
  #else
  	retval = 0; next_domain = prev_domain;
  #endif
-@@ -794,6 +872,7 @@
+@@ -778,6 +856,7 @@
  		if (retval < 0) current->domain_info = prev_domain;
  		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
  	}
@@ -163,9 +163,9 @@ Index: fs/tomoyo_domain.c
  
 Index: fs/ccs_common.c
 ===================================================================
---- fs/ccs_common.c	(revision 463)
+--- fs/ccs_common.c	(revision 512)
 +++ fs/ccs_common.c	(working copy)
-@@ -78,11 +78,14 @@
+@@ -77,11 +77,14 @@
  	[CCS_TOMOYO_MAX_REJECT_LOG]      = { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
  	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
  	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
@@ -180,7 +180,7 @@ Index: fs/ccs_common.c
  };
  
  static struct profile *profile_ptr[MAX_PROFILES];
-@@ -492,6 +495,13 @@
+@@ -491,6 +494,13 @@
  	if (is_enforce) return "ERROR"; else return "WARNING";
  }
  
@@ -194,18 +194,20 @@ Index: fs/ccs_common.c
  /*************************  DOMAIN POLICY HANDLER  *************************/
  
  /* Check whether the given access control is enabled. */
-@@ -564,6 +574,10 @@
+@@ -580,6 +590,12 @@
  		profile->comment = SaveName(cp + 1);
  		return 0;
  	}
 +	if (strcmp(data, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword) == 0) {
-+		profile->alt_exec = SaveName(cp + 1);
++		cp++;
++		if (*cp && !IsCorrectPath(cp, 1, -1, -1, __FUNCTION__)) cp = "";
++		profile->alt_exec = SaveName(cp);
 +		return 0;
 +	}
  	if (sscanf(cp + 1, "%u", &value) != 1) return -EINVAL;
  #ifdef CONFIG_TOMOYO
  	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
-@@ -609,11 +623,15 @@
+@@ -625,11 +641,15 @@
  				case CCS_TOMOYO_MAX_GRANT_LOG:
  				case CCS_TOMOYO_MAX_REJECT_LOG:
  				case CCS_TOMOYO_VERBOSE:
@@ -221,7 +223,7 @@ Index: fs/ccs_common.c
  				} else {
  					if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, profile->value[j])) break;
  				}
-@@ -1225,8 +1243,16 @@
+@@ -1241,8 +1261,16 @@
  	int pos, len;
  	static unsigned int serial = 0;
  	struct query_entry *query_entry;
@@ -242,7 +244,7 @@ Index: fs/ccs_common.c
  	va_end(args);
 Index: include/linux/ccs_common.h
 ===================================================================
---- include/linux/ccs_common.h	(revision 463)
+--- include/linux/ccs_common.h	(revision 512)
 +++ include/linux/ccs_common.h	(working copy)
 @@ -274,7 +274,9 @@
  #define CCS_TOMOYO_MAX_REJECT_LOG               13
@@ -265,7 +267,7 @@ Index: include/linux/ccs_common.h
  const char *GetMSG(const u8 is_enforce);
 Index: include/linux/tomoyo.h
 ===================================================================
---- include/linux/tomoyo.h	(revision 463)
+--- include/linux/tomoyo.h	(revision 512)
 +++ include/linux/tomoyo.h	(working copy)
 @@ -99,6 +99,7 @@
  
