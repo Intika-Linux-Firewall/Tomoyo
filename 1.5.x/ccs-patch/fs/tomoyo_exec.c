@@ -23,7 +23,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const int is_granted)
+static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const u8 is_granted)
 {
 	char *buf;
 	int len;
@@ -61,7 +61,6 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_ARGV0_ACL;
@@ -113,19 +112,19 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 	AuditArgv0Log(filename, argv0, !error);
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
-		const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ARGV0);
+		const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ARGV0);
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Run %s as %s denied for %s\n", GetMSG(is_enforce), filename->name, argv0, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\n" KEYWORD_ALLOW_ARGV0 "%s %s\n", domain->domainname->name, filename->name, argv0);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_ARGV0)) AddArgv0Entry(filename->name, argv0, domain, 1, NULL);
+		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_ARGV0, domain)) AddArgv0Entry(filename->name, argv0, domain, 1, NULL);
 		if (!is_enforce) error = 0;
 	}
 	return error;
 }
 EXPORT_SYMBOL(CheckArgv0Perm);
 
-int AddArgv0Policy(char *data, struct domain_info *domain, const int is_delete)
+int AddArgv0Policy(char *data, struct domain_info *domain, const u8 is_delete)
 {
 	char *argv0 = strchr(data, ' ');
 	char *cp;

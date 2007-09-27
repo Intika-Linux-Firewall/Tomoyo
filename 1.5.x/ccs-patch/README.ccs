@@ -1029,3 +1029,14 @@ Fix 2007/09/05
       next message from wanted source with MSG_PEEK flags.
 
 Version 1.5.0 2007/09/20   Usability enhancement release.
+
+Fix 2007/09/27
+
+    @ Avoid eating memory after quota exceeded.
+
+      Although ACL entries in a domain won't be added if the domain's quota
+      has exceeded, SaveName() in AddFileACL() is called anyway.
+      This caused unneeded memory consumption.
+
+      Now, quota checking is done before getting domain_acl_lock lock.
+      This may exceed quota by one or two entries, but that won't matter.

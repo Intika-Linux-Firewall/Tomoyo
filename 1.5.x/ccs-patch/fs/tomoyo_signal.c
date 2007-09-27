@@ -26,7 +26,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const int is_granted)
+static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const u8 is_granted)
 {
 	char *buf;
 	int len;
@@ -66,7 +66,6 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_SIGNAL_ACL;
@@ -97,7 +96,7 @@ int CheckSignalACL(const int sig, const int pid)
 	const char *dest_pattern;
 	struct acl_info *ptr;
 	const u16 hash = sig;
-	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_SIGNAL);
+	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_SIGNAL);
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL)) return 0;
 	if (!sig) return 0;                               /* No check for NULL signal. */
 	if (current->pid == pid) {
@@ -136,12 +135,12 @@ int CheckSignalACL(const int sig, const int pid)
 	}
 	AuditSignalLog(sig, dest->domainname, 0);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_SIGNAL "%d %s\n", domain->domainname->name, sig, dest_pattern);
-	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_SIGNAL)) AddSignalEntry(sig, dest_pattern, domain, 1, NULL);
+	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_SIGNAL, domain)) AddSignalEntry(sig, dest_pattern, domain, 1, NULL);
 	return 0;
 }
 EXPORT_SYMBOL(CheckSignalACL);
 
-int AddSignalPolicy(char *data, struct domain_info *domain, const int is_delete)
+int AddSignalPolicy(char *data, struct domain_info *domain, const u8 is_delete)
 {
 	int sig;
 	char *domainname = strchr(data, ' ');

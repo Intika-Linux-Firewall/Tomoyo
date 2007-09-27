@@ -82,7 +82,7 @@ static int wrapped_chrdev_open(struct inode * inode, struct file * filp)
 }
 
 /* lookup_create() without nameidata. Called only while initialization. */
-static struct dentry *lookup_create2(const char *name, struct dentry *base, int is_dir)
+static struct dentry *lookup_create2(const char *name, struct dentry *base, const u8 is_dir)
 {
 	struct dentry *dentry;
 	const int len = name ? strlen(name) : 0;
@@ -501,7 +501,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static int first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.5.0   2007/09/20\n");
+		printk("SYAORAN: 1.5.1-pre   2007/09/27\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);

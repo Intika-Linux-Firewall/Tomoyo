@@ -56,7 +56,7 @@ struct mount_entry {
 	const struct path_info *dir_name;
 	const struct path_info *fs_type;
 	unsigned long flags;
-	int is_deleted;
+	u8 is_deleted;
 };
 
 /*************************  MOUNT RESTRICTION HANDLER  *************************/
@@ -68,7 +68,7 @@ static void put_filesystem(struct file_system_type *fs)
 
 static struct mount_entry *mount_list = NULL;
 
-static int AddMountACL(const char *dev_name, const char *dir_name, const char *fs_type, const unsigned long flags, const int is_delete)
+static int AddMountACL(const char *dev_name, const char *dir_name, const char *fs_type, const unsigned long flags, const u8 is_delete)
 {
 	struct mount_entry *new_entry, *ptr;
 	const struct path_info *fs, *dev, *dir;
@@ -141,7 +141,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 
 static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, unsigned long flags)
 {
-	const int is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_MOUNT);
+	const u8 is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_MOUNT);
 	int error = -EPERM;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_MOUNT)) return 0;
 	if (!type) type = "<NULL>";
@@ -289,7 +289,7 @@ static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, uns
 			ccs_free(realname2);
 			ccs_free(realname1);
 		}
-		if (error && !is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_MOUNT)) {
+		if (error && !is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_MOUNT, NULL)) {
 			AddMountACL(need_dev ? requested_dev_name : dev_name, requested_dir_name, type, flags, 0);
 			UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 		}
@@ -309,7 +309,7 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, const unsig
 }
 EXPORT_SYMBOL(CheckMountPermission);
 
-int AddMountPolicy(char *data, const int is_delete)
+int AddMountPolicy(char *data, const u8 is_delete)
 {
 	char *cp, *cp2;
 	const char *fs, *dev, *dir;

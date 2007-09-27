@@ -27,7 +27,7 @@ extern struct semaphore domain_acl_lock;
 struct globally_readable_file_entry {
 	struct globally_readable_file_entry *next;
 	const struct path_info *filename;
-	int is_deleted;
+	u8 is_deleted;
 };
 
 /***** The structure for filename patterns. *****/
@@ -35,7 +35,7 @@ struct globally_readable_file_entry {
 struct pattern_entry {
 	struct pattern_entry *next;
 	const struct path_info *pattern;
-	int is_deleted;
+	u8 is_deleted;
 };
 
 /***** The structure for non-rewritable-by-default file patterns. *****/
@@ -43,7 +43,7 @@ struct pattern_entry {
 struct no_rewrite_entry {
 	struct no_rewrite_entry *next;
 	const struct path_info *pattern;
-	int is_deleted;
+	u8 is_deleted;
 };
 
 /***** The structure for detailed write operations. *****/
@@ -118,7 +118,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditFileLog(const struct path_info *filename, const u8 perm, const int is_granted)
+static int AuditFileLog(const struct path_info *filename, const u8 perm, const u8 is_granted)
 {
 	char *buf;
 	int len;
@@ -129,7 +129,7 @@ static int AuditFileLog(const struct path_info *filename, const u8 perm, const i
 	return WriteAuditLog(buf, is_granted);
 }
 
-static int AuditWriteLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const int is_granted)
+static int AuditWriteLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const u8 is_granted)
 {
 	char *buf;
 	int len;
@@ -144,7 +144,7 @@ static int AuditWriteLog(const char *operation, const struct path_info *filename
 
 static struct globally_readable_file_entry *globally_readable_list = NULL;
 
-static int AddGloballyReadableEntry(const char *filename, const int is_delete)
+static int AddGloballyReadableEntry(const char *filename, const u8 is_delete)
 {
 	struct globally_readable_file_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -186,7 +186,7 @@ static int IsGloballyReadableFile(const struct path_info *filename)
 	return 0;
 }
 
-int AddGloballyReadablePolicy(char *filename, const int is_delete)
+int AddGloballyReadablePolicy(char *filename, const u8 is_delete)
 {
 	return AddGloballyReadableEntry(filename, is_delete);
 }
@@ -207,7 +207,7 @@ int ReadGloballyReadablePolicy(struct io_buffer *head)
 
 static struct group_entry *group_list = NULL;
 
-static int AddGroupEntry(const char *group_name, const char *member_name, const int is_delete)
+static int AddGroupEntry(const char *group_name, const char *member_name, const u8 is_delete)
 {
 	static DECLARE_MUTEX(lock);
 	struct group_entry *new_group, *group;
@@ -259,7 +259,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 	return error;
 }
 
-int AddGroupPolicy(char *data, const int is_delete)
+int AddGroupPolicy(char *data, const u8 is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp) return -EINVAL;
@@ -321,7 +321,7 @@ int ReadGroupPolicy(struct io_buffer *head)
 
 static struct pattern_entry *pattern_list = NULL;
 
-static int AddPatternEntry(const char *pattern, const int is_delete)
+static int AddPatternEntry(const char *pattern, const u8 is_delete)
 {
 	struct pattern_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -374,7 +374,7 @@ static const struct path_info *GetPattern(const struct path_info *filename)
 	return filename;
 }
 
-int AddPatternPolicy(char *pattern, const int is_delete)
+int AddPatternPolicy(char *pattern, const u8 is_delete)
 {
 	return AddPatternEntry(pattern, is_delete);
 }
@@ -395,7 +395,7 @@ int ReadPatternPolicy(struct io_buffer *head)
 
 static struct no_rewrite_entry *no_rewrite_list = NULL;
 
-static int AddNoRewriteEntry(const char *pattern, const int is_delete)
+static int AddNoRewriteEntry(const char *pattern, const u8 is_delete)
 {
 	struct no_rewrite_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -440,7 +440,7 @@ static int IsNoRewriteFile(const struct path_info *filename)
 	return 0;
 }
 
-int AddNoRewritePolicy(char *pattern, const int is_delete)
+int AddNoRewritePolicy(char *pattern, const u8 is_delete)
 {
 	return AddNoRewriteEntry(pattern, is_delete);
 }
@@ -509,7 +509,6 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 				continue;
 			}
 	first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_FILE_ACL;
@@ -562,12 +561,12 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	AuditFileLog(filename, perm, !error);
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
-		const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+		const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Access %d(%s) to %s denied for %s\n", GetMSG(is_enforce), perm, operation, filename->name, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\n%d %s\n", domain->domainname->name, perm, filename->name);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) {
+		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) {
 			/* Don't use patterns if execution bit is on. */
 			const struct path_info *patterned_file = ((perm & 1) == 0) ? GetPattern(filename) : filename;
 			AddFileACL(patterned_file->name, perm, domain, 1, NULL);
@@ -577,7 +576,7 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	return error;
 }
 
-int AddFilePolicy(char *data, struct domain_info *domain, const int is_delete)
+int AddFilePolicy(char *data, struct domain_info *domain, const u8 is_delete)
 {
 	char *filename = strchr(data, ' ');
 	char *cp;
@@ -646,7 +645,6 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = type;
@@ -710,7 +708,6 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = type;
@@ -781,7 +778,7 @@ static int CheckSingleWritePermission2(const unsigned int operation, const struc
 {
 	int error;
 	struct domain_info * const domain = current->domain_info;
-	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	error = CheckSingleWriteACL(operation, filename, obj);
 	AuditWriteLog(acltype2keyword(operation), filename, NULL, !error);
@@ -790,7 +787,7 @@ static int CheckSingleWritePermission2(const unsigned int operation, const struc
 			printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), filename->name, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, acltype2keyword(operation), filename->name);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, 1, NULL);
+		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, 1, NULL);
 		if (!is_enforce) error = 0;
 	}
 	if (!error && operation == TYPE_TRUNCATE_ACL && IsNoRewriteFile(filename)) {
@@ -825,7 +822,7 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 	const int acc_mode = ACC_MODE(flag);
 	int error = -ENOMEM;
 	struct path_info *buf;
-	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	if (acc_mode == 0) return 0;
 	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
@@ -859,7 +856,7 @@ int CheckSingleWritePermission(const unsigned int operation, struct dentry *dent
 {
 	int error = -ENOMEM;
 	struct path_info *buf;
-	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	buf = GetPath(dentry, mnt);
 	if (buf) {
@@ -886,7 +883,7 @@ EXPORT_SYMBOL(CheckSingleWritePermission);
 int CheckReWritePermission(struct file *filp)
 {
 	int error = -ENOMEM;
-	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	struct path_info *buf = GetPath(filp->f_dentry, filp->f_vfsmnt);
 	if (buf) {
 		if (IsNoRewriteFile(buf)) {
@@ -910,7 +907,7 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 	int error = -ENOMEM;
 	struct path_info *buf1, *buf2;
 	struct domain_info * const domain = current->domain_info;
-	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	buf1 = GetPath(dentry1, mnt1);
 	buf2 = GetPath(dentry2, mnt2);
@@ -940,7 +937,7 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 				printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
 			}
 			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, acltype2keyword(operation), buf1->name, buf2->name);
-			else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, 1, NULL);
+			else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, 1, NULL);
 		}
 	}
 	ccs_free(buf1);

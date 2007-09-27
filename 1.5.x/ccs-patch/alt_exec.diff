@@ -4,7 +4,7 @@ Index: fs/tomoyo_network.c
 +++ fs/tomoyo_network.c	(working copy)
 @@ -462,7 +462,11 @@
  
- int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port)
+ int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port)
  {
 -	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
 +	int retval;
@@ -17,7 +17,7 @@ Index: fs/tomoyo_network.c
  
 @@ -474,7 +478,11 @@
  
- int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
+ int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
  {
 -	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 +	int retval;
@@ -262,7 +262,7 @@ Index: include/linux/ccs_common.h
 +const char *GetAltExec(void);
  const char *GetEXE(void);
  const char *GetLastName(const struct domain_info *domain);
- const char *GetMSG(const int is_enforce);
+ const char *GetMSG(const u8 is_enforce);
 Index: include/linux/tomoyo.h
 ===================================================================
 --- include/linux/tomoyo.h	(revision 463)
