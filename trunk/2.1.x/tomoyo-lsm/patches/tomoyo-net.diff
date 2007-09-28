@@ -16,9 +16,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/net.c |  983 ++++++++++++++++++++++++++++++++++++++++++++++++++
  1 files changed, 983 insertions(+)
 
+Index: linux-2.6/security/tomoyo/net.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/net.c	2007-09-21 14:21:50.000000000 +0900
-@@ -0,0 +1,983 @@
++++ linux-2.6/security/tomoyo/net.c	2007-09-28 09:09:20.000000000 +0900
+@@ -0,0 +1,975 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -31,12 +33,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/*************************  AUDIT FUNCTIONS  *************************/
 +
-+static int tmy_audit_network_log(const int is_ipv6,
++static int tmy_audit_network_log(const u8 is_ipv6,
 +				 const char *operation,
 +				 const u32 *address,
 +				 const u16 port,
-+				 const int is_granted,
-+				 const int is_enforce)
++				 const u8 is_granted,
++				 const u8 is_enforce)
 +{
 +	char *buf;
 +	int len = 256;
@@ -79,7 +81,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				    const u8 is_ipv6,
 +				    const u16 *min_address,
 +				    const u16 *max_address,
-+				    const int is_delete)
++				    const u8 is_delete)
 +{
 +	static DECLARE_MUTEX(lock);
 +	struct addr_group_entry *new_group;
@@ -188,10 +190,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + */
-+int tmy_add_addr_group_policy(char *data, const int is_delete)
++int tmy_add_addr_group_policy(char *data, const u8 is_delete)
 +{
 +	int count;
-+	int is_ipv6;
++	u8 is_ipv6;
 +	u16 min_address[8];
 +	u16 max_address[8];
 +	unsigned int min[8];
@@ -496,11 +498,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return found;
 +}
 +
-+/*
-+ * @is_add:   1  add this entry if not quota exceeded
-+ *           -1  always add this entry
-+ *            0  remove this entry
-+ */
 +static int tmy_add_network_entry(const u8 operation,
 +				 const u8 record_type,
 +				 const struct addr_group_entry *group,
@@ -510,7 +507,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				 const u16 max_port,
 +				 struct domain_info *domain,
 +				 const struct condition_list *cond,
-+				 const u8 is_add)
++				 const u8 is_delete)
 +{
 +	struct acl_info *ptr;
 +	int error = -ENOMEM;
@@ -523,7 +520,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	down(&domain_acl_lock);
 +
-+	if (!is_add)
++	if (is_delete)
 +		goto remove;
 +
 +	ptr = domain->first_acl_ptr;
@@ -553,9 +550,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			continue;
 +		}
 +first_entry: ;
-+		if (is_add == 1 && tmy_too_many_acl(domain))
-+			break;
-+
 +		/* Not found. Append it to the tail. */
 +		acl = tmy_alloc_element(sizeof(*acl));
 +		if (!acl)
@@ -610,7 +604,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/* Check network permission. */
-+static int tmy_network_entry(const int is_ipv6,
++static int tmy_network_entry(const u8 is_ipv6,
 +			     const int operation,
 +			     const u32 *address,
 +			     const u16 port)
@@ -618,7 +612,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct domain_info * const domain = TMY_SECURITY->domain;
 +	struct acl_info *ptr;
 +	const char *keyword = tmy_network2keyword(operation);
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_NETWORK);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_NETWORK);
 +	/* using host byte order to allow u32 comparison than memcmp().*/
 +	const u32 ip = ntohl(*address);
 +
@@ -678,11 +672,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	}
 +
-+	if (tmy_accept(TMY_MAC_FOR_NETWORK))
++	if (tmy_accept(TMY_MAC_FOR_NETWORK, domain))
 +		tmy_add_network_entry(operation,
 +				      is_ipv6 ? TMY_TYPE_IPv6 : TMY_TYPE_IPv4,
 +				      NULL, address, address,
-+				      port, port, domain, NULL, 1);
++				      port, port, domain, NULL, 0);
 +
 +	return 0;
 +}
@@ -700,7 +694,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_add_network_policy(char *data,
 +			   struct domain_info *domain,
 +			   const struct condition_list *cond,
-+			   const int is_delete)
++			   const u8 is_delete)
 +{
 +	u8 sock_type;
 +	u8 operation;
@@ -851,7 +845,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				     (u32 *) min_address,
 +				     (u32 *) max_address,
 +				     min_port, max_port, domain,
-+				     cond, is_delete ? 0 : -1);
++				     cond, is_delete);
 +
 +out: ;
 +	return -EINVAL;
@@ -866,7 +860,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero if permission granted.
 + * Returns nonzero if permission denied.
 + */
-+int tmy_network_listen_acl(const int is_ipv6,
++int tmy_network_listen_acl(const u8 is_ipv6,
 +			   const u8 *address,
 +			   const u16 port)
 +{
@@ -886,7 +880,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero if permission granted.
 + * Returns nonzero if permission denied.
 + */
-+int tmy_network_connect_acl(const int is_ipv6,
++int tmy_network_connect_acl(const u8 is_ipv6,
 +			    const int sock_type,
 +			    const u8 *address,
 +			    const u16 port)
@@ -919,7 +913,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero if permission granted.
 + * Returns nonzero if permission denied.
 + */
-+int tmy_network_bind_acl(const int is_ipv6,
++int tmy_network_bind_acl(const u8 is_ipv6,
 +			 const int sock_type,
 +			 const u8 *address,
 +			 const u16 port)
@@ -952,7 +946,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero if permission granted.
 + * Returns nonzero if permission denied.
 + */
-+int tmy_network_sendmsg_acl(const int is_ipv6,
++int tmy_network_sendmsg_acl(const u8 is_ipv6,
 +			    const int sock_type,
 +			    const u8 *address,
 +			    const u16 port)
@@ -977,7 +971,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero if permission granted.
 + * Returns nonzero if permission denied.
 + */
-+int tmy_network_accept_acl(const int is_ipv6, const u8 *address,
++int tmy_network_accept_acl(const u8 is_ipv6, const u8 *address,
 +			   const u16 port)
 +{
 +	return tmy_network_entry(is_ipv6, TMY_NETWORK_ACL_TCP_ACCEPT,
@@ -994,7 +988,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero if permission granted.
 + * Returns nonzero if permission denied.
 + */
-+int tmy_network_recvmsg_acl(const int is_ipv6, const int sock_type,
++int tmy_network_recvmsg_acl(const u8 is_ipv6, const int sock_type,
 +			    const u8 *address, const u16 port)
 +{
 +	return tmy_network_entry(is_ipv6, sock_type == SOCK_DGRAM ?

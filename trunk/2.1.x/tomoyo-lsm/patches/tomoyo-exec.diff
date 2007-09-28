@@ -11,9 +11,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/exec.c |  230 +++++++++++++++++++++++++++++++++++++++++++++++++
  1 files changed, 230 insertions(+)
 
+Index: linux-2.6/security/tomoyo/exec.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/exec.c	2007-09-21 14:21:50.000000000 +0900
-@@ -0,0 +1,230 @@
++++ linux-2.6/security/tomoyo/exec.c	2007-09-28 09:10:49.000000000 +0900
+@@ -0,0 +1,222 @@
 +/*
 + * security/tomoyo/exec.c
 + *
@@ -27,8 +29,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_audit_argv0_log(const struct path_info *filename,
 +			       const char *argv0,
-+			       const int is_granted,
-+			       const int is_enforce)
++			       const u8 is_granted,
++			       const u8 is_enforce)
 +{
 +	char *buf;
 +	int len;
@@ -58,16 +60,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/*************************  ARGV0 MISMATCH HANDLER  *************************/
 +
-+/*
-+ * @is_add:   1  add this entry if not quota exceeded
-+ *           -1  always add this entry
-+ *            0  remove this entry
-+ */
 +static int tmy_add_argv0_entry(const char *filename,
 +			       const char *argv0,
 +			       struct domain_info *domain,
 +			       const struct condition_list *cond,
-+			       const u8 is_add)
++			       const u8 is_delete)
 +{
 +	struct acl_info *ptr;
 +	const struct path_info *saved_filename;
@@ -86,7 +83,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	down(&domain_acl_lock);
 +
-+	if (!is_add)
++	if (is_delete)
 +		goto remove;
 +
 +	ptr = domain->first_acl_ptr;
@@ -110,9 +107,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +
 +first_entry: ;
-+		if (is_add == 1 && tmy_too_many_acl(domain))
-+			break;
-+
 +		/* Not found. Append it to the tail. */
 +		acl = tmy_alloc_element(sizeof(*acl));
 +		if (!acl)
@@ -189,7 +183,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0)
 +{
 +	int error = 0;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_ARGV0);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_ARGV0);
 +
 +	if (!tmy_flags(TMY_MAC_FOR_ARGV0))
 +		return 0;
@@ -208,9 +202,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					       domain->domainname->name,
 +					       filename->name, argv0);
 +
-+		else if (tmy_accept(TMY_MAC_FOR_ARGV0))
++		else if (tmy_accept(TMY_MAC_FOR_ARGV0, domain))
 +			tmy_add_argv0_entry(filename->name, argv0, domain,
-+					    NULL, 1);
++					    NULL, 0);
 +
 +		if (!is_enforce)
 +			error = 0;
@@ -232,7 +226,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_add_argv0_policy(char *data,
 +			 struct domain_info *domain,
 +			 const struct condition_list *cond,
-+			 const int is_delete)
++			 const u8 is_delete)
 +{
 +	char *argv0 = strchr(data, ' ');
 +
@@ -242,5 +236,5 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	*argv0++ = '\0';
 +
 +	return tmy_add_argv0_entry(data, argv0, domain, cond,
-+				   is_delete ? 0 : -1);
++				   is_delete);
 +}

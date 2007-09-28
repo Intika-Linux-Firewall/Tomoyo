@@ -12,9 +12,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/signal.c |  238 +++++++++++++++++++++++++++++++++++++++++++++++
  1 files changed, 238 insertions(+)
 
+Index: linux-2.6/security/tomoyo/signal.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/signal.c	2007-09-21 14:21:51.000000000 +0900
-@@ -0,0 +1,238 @@
++++ linux-2.6/security/tomoyo/signal.c	2007-09-28 09:11:46.000000000 +0900
+@@ -0,0 +1,229 @@
 +/*
 + * security/tomoyo/signal.c
 + *
@@ -28,8 +30,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_audit_signal_log(const int signal,
 +				const struct path_info *dest_domain,
-+				const int is_granted,
-+				const int is_enforce)
++				const u8 is_granted,
++				const u8 is_enforce)
 +{
 +	char *buf;
 +	int len;
@@ -58,15 +60,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/*************************  SIGNAL ACL HANDLER  *************************/
 +
-+/*
-+ * @is_add:   1  add this entry if not quota exceeded
-+ *           -1  always add this entry
-+ *            0  remove this entry
-+ */
 +static int tmy_add_signal_entry(const u16 sig, const char *dest_pattern,
 +				struct domain_info *domain,
 +				const struct condition_list *cond,
-+				const u8 is_add)
++				const u8 is_delete)
 +{
 +	struct acl_info *ptr;
 +	const struct path_info *saved_dest_pattern;
@@ -84,7 +81,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	down(&domain_acl_lock);
 +
-+	if (!is_add)
++	if (is_delete)
 +		goto remove;
 +
 +	ptr = domain->first_acl_ptr;
@@ -109,8 +106,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +
 +first_entry: ;
-+		if (is_add == 1 && tmy_too_many_acl(domain))
-+			break;
 +		/* Not found. Append it to the tail. */
 +		acl = tmy_alloc_element(sizeof(*acl));
 +		if (!acl)
@@ -123,9 +118,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = tmy_add_acl(ptr, domain, (struct acl_info *) acl);
 +		break;
 +	}
-+
 +	goto ok;
-+
 +remove: ;
 +	error = -ENOENT;
 +	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -159,7 +152,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const char *dest_pattern;
 +	struct acl_info *ptr;
 +	const u16 hash = sig;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_SIGNAL);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_SIGNAL);
 +
 +	if (!tmy_flags(TMY_MAC_FOR_SIGNAL))
 +		return 0;
@@ -222,8 +215,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return tmy_supervisor("%s\n" TMY_ALLOW_SIGNAL "%d %s\n",
 +				      domain->domainname->name,
 +				      sig, dest_pattern);
-+	if (tmy_accept(TMY_MAC_FOR_SIGNAL))
-+		tmy_add_signal_entry(sig, dest_pattern, domain, NULL, 1);
++	if (tmy_accept(TMY_MAC_FOR_SIGNAL, domain))
++		tmy_add_signal_entry(sig, dest_pattern, domain, NULL, 0);
 +
 +	return 0;
 +}
@@ -241,7 +234,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_add_signal_policy(char *data,
 +			  struct domain_info *domain,
 +			  const struct condition_list *cond,
-+			  const int is_delete)
++			  const u8 is_delete)
 +{
 +	int sig;
 +	char *domainname = strchr(data, ' ');
@@ -249,7 +242,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (sscanf(data, "%d", &sig) == 1 && domainname &&
 +	    tmy_is_domain_def(domainname + 1))
 +		return tmy_add_signal_entry(sig, domainname + 1, domain,
-+					    cond, is_delete ? 0 : -1);
++					    cond, is_delete);
 +
 +	return -EINVAL;
 +}
