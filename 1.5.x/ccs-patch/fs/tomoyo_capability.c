@@ -159,14 +159,14 @@ static int AuditCapabilityLog(const unsigned int capability, const u8 is_granted
 
 /*************************  CAPABILITY ACL HANDLER  *************************/
 
-static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const u8 is_add, const struct condition_list *condition)
+static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	struct acl_info *ptr;
 	int error = -ENOMEM;
 	const u16 hash = capability;
 	if (!domain) return -EINVAL;
 	down(&domain_acl_lock);
-	if (is_add) {
+	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			struct capability_acl_record *new_ptr = (struct capability_acl_record *) ptr;
@@ -220,7 +220,7 @@ int CheckCapabilityACL(const unsigned int capability)
 	}
 	AuditCapabilityLog(capability, 0);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, capability2keyword(capability));
-	if (CheckCapabilityAccept(capability, domain)) AddCapabilityACL(capability, domain, 1, NULL);
+	if (CheckCapabilityAccept(capability, domain)) AddCapabilityACL(capability, domain, NULL, 0);
 	return 0;
 }
 EXPORT_SYMBOL(CheckCapabilityACL);
@@ -233,7 +233,7 @@ int AddCapabilityPolicy(char *data, struct domain_info *domain, const u8 is_dele
 	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {
 		if (strcmp(data, capability_control_array[capability].keyword) == 0) {
-			return AddCapabilityACL(capability, domain, is_delete ? 0 : -1, condition);
+			return AddCapabilityACL(capability, domain, condition, is_delete);
 		}
 	}
 	return -EINVAL;
