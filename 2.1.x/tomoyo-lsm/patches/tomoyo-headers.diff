@@ -7,8 +7,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/include/tomoyo.h   |  517 +++++++++++++++++++++++++++++++++++++
  2 files changed, 561 insertions(+)
 
+Index: linux-2.6/security/tomoyo/include/realpath.h
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/realpath.h	2007-09-21 14:21:50.000000000 +0900
++++ linux-2.6/security/tomoyo/include/realpath.h	2007-09-27 17:42:02.000000000 +0900
 @@ -0,0 +1,44 @@
 +/*
 + * security/tomoyo/include/realpath.h
@@ -54,8 +56,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +extern void tmy_realpath_init(void);
 +
 +#endif
+Index: linux-2.6/security/tomoyo/include/tomoyo.h
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-09-21 14:21:50.000000000 +0900
++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-09-27 17:42:42.000000000 +0900
 @@ -0,0 +1,517 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
@@ -66,7 +70,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#ifndef _TOMOYO_H
 +#define _TOMOYO_H
 +
-+#define TOMOYO_VERSION_CODE "2.1.0-rc3"
++#define TOMOYO_VERSION_CODE "2.1.0-rc4"
 +
 +#include <linux/string.h>
 +#include <linux/mm.h>
@@ -108,7 +112,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct group_member {
 +	struct group_member *next;
 +	const struct path_info *member_name;
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +struct group_entry {
@@ -403,44 +407,44 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		   unsigned long flags);
 +int tmy_conceal_mount(struct nameidata *nd);
 +int tmy_umount_perm(struct vfsmount *mnt);
-+int tmy_add_mount_policy(char *data, const int is_delete);
++int tmy_add_mount_policy(char *data, const u8 is_delete);
 +int tmy_read_mount_policy(struct io_buffer *head);
-+int tmy_add_no_umount_policy(char *data, const int is_delete);
++int tmy_add_no_umount_policy(char *data, const u8 is_delete);
 +int tmy_read_no_umount_policy(struct io_buffer *head);
 +int tmy_pivot_root_perm(struct nameidata *old_nd,
 +			struct nameidata *new_nd);
-+int tmy_add_pivot_root_policy(char *data, const int is_delete);
++int tmy_add_pivot_root_policy(char *data, const u8 is_delete);
 +int tmy_read_pivot_root_policy(struct io_buffer *head);
 +
-+int tmy_add_aggregator_policy(char *data, const int is_delete);
-+int tmy_add_addr_group_policy(char *data, const int is_delete);
-+int tmy_add_alias_policy(char *data, const int is_delete);
++int tmy_add_aggregator_policy(char *data, const u8 is_delete);
++int tmy_add_addr_group_policy(char *data, const u8 is_delete);
++int tmy_add_alias_policy(char *data, const u8 is_delete);
 +int tmy_add_argv0_policy(char *data,
 +			 struct domain_info *domain,
 +			 const struct condition_list *cond,
-+			 const int is_delete);
++			 const u8 is_delete);
 +int tmy_add_acl(struct acl_info *ptr,
 +		struct domain_info *domain,
 +		struct acl_info *new_ptr);
 +int tmy_add_domain_initializer_policy(char *data,
-+				      const int is_not,
-+				      const int is_delete);
++				      const u8 is_not,
++				      const u8 is_delete);
 +int tmy_add_domain_keeper_policy(char *data,
-+				 const int is_not,
-+				 const int is_delete);
++				 const u8 is_not,
++				 const u8 is_delete);
 +int tmy_file_perm(const char *filename0, const u8 perm, const char *operation);
 +int tmy_add_file_policy(char *data,
 +			struct domain_info *domain,
 +			const struct condition_list *cond,
-+			const int is_delete);
-+int tmy_add_globally_readable_policy(char *data, const int is_delete);
-+int tmy_add_group_policy(char *data, const int is_delete);
++			const u8 is_delete);
++int tmy_add_globally_readable_policy(char *data, const u8 is_delete);
++int tmy_add_group_policy(char *data, const u8 is_delete);
 +int tmy_add_network_policy(char *data,
 +			   struct domain_info *domain,
 +			   const struct condition_list *cond,
-+			   const int is_delete);
-+int tmy_add_no_rewrite_policy(char *pattern, const int is_delete);
-+int tmy_add_pattern_policy(char *data, const int is_delete);
++			   const u8 is_delete);
++int tmy_add_no_rewrite_policy(char *pattern, const u8 is_delete);
++int tmy_add_pattern_policy(char *data, const u8 is_delete);
 +int tmy_supervisor(const char *fmt, ...)
 +	__attribute__((format(printf, 1, 2)));
 +
@@ -466,25 +470,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_read_pattern_policy(struct io_buffer *head);
 +int tmy_read_addr_group_policy(struct io_buffer *head);
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0);
-+int tmy_network_listen_acl(const int is_ipv6,
++int tmy_network_listen_acl(const u8 is_ipv6,
 +			   const u8 *address,
 +			   const u16 port);
-+int tmy_network_connect_acl(const int is_ipv6,
++int tmy_network_connect_acl(const u8 is_ipv6,
 +			    const int sock_type,
 +			    const u8 *address,
 +			    const u16 port);
-+int tmy_network_bind_acl(const int is_ipv6,
++int tmy_network_bind_acl(const u8 is_ipv6,
 +			 const int sock_type,
 +			 const u8 *address,
 +			 const u16 port);
-+int tmy_network_sendmsg_acl(const int is_ipv6,
++int tmy_network_sendmsg_acl(const u8 is_ipv6,
 +			    const int sock_type,
 +			    const u8 *address,
 +			    const u16 port);
-+int tmy_network_accept_acl(const int is_ipv6,
++int tmy_network_accept_acl(const u8 is_ipv6,
 +			   const u8 *address,
 +			   const u16 port);
-+int tmy_network_recvmsg_acl(const int is_ipv6,
++int tmy_network_recvmsg_acl(const u8 is_ipv6,
 +			    const int sock_type,
 +			    const u8 *address,
 +			    const u16 port);
@@ -493,18 +497,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_add_signal_policy(char *data,
 +			  struct domain_info *domain,
 +			  const struct condition_list *cond,
-+			  const int is_delete);
++			  const u8 is_delete);
 +
 +char *tmy_init_audit_log(int *len);
-+int tmy_write_audit_log(char *log, const int is_granted, const int is_enforce);
++int tmy_write_audit_log(char *log, const u8 is_granted, const u8 is_enforce);
 +int tmy_acltype2paths(const unsigned int acl_type);
 +int tmy_io_printf(struct io_buffer *head, const char *fmt, ...)
 +	__attribute__((format(printf, 2, 3)));
 +struct domain_info *tmy_find_domain(const char *domainname);
 +struct domain_info *tmy_new_domain(const char *domainname, const u8 profile);
 +struct domain_info *tmy_undelete_domain(const char *domainname0);
-+unsigned int tmy_accept(const unsigned int index);
-+unsigned int tmy_enforce(const unsigned int index);
++u8 tmy_accept(const unsigned int index,
++	      struct domain_info * const domain);
++u8 tmy_enforce(const unsigned int index);
 +unsigned int tmy_flags(const unsigned int index);
 +unsigned int tmy_audit_grant(void);
 +unsigned int tmy_audit_reject(void);
@@ -566,7 +571,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#define TMY_CHECK_READ_FOR_OPEN_EXEC 1
 +
-+int tmy_too_many_acl(struct domain_info * const domain);
 +char *tmy_print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
 +const char *tmy_network2keyword(const unsigned int operation);
 +

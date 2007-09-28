@@ -12,9 +12,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/file.c | 1565 +++++++++++++++++++++++++++++++++++++++++++++++++
  1 files changed, 1565 insertions(+)
 
+Index: linux-2.6/security/tomoyo/file.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/file.c	2007-09-21 14:21:50.000000000 +0900
-@@ -0,0 +1,1565 @@
++++ linux-2.6/security/tomoyo/file.c	2007-09-28 18:05:42.000000000 +0900
+@@ -0,0 +1,1544 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -32,7 +34,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct globally_readable_file_entry {
 +	struct globally_readable_file_entry *next;
 +	const struct path_info *filename;
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +/***** The structure for filename patterns. *****/
@@ -40,7 +42,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct pattern_entry {
 +	struct pattern_entry *next;
 +	const struct path_info *pattern;
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +/***** The structure for non-rewritable-by-default file patterns. *****/
@@ -48,7 +50,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct no_rewrite_entry {
 +	struct no_rewrite_entry *next;
 +	const struct path_info *pattern;
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +/***** The structure for detailed write operations. *****/
@@ -149,19 +151,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				    const char *filename2,
 +				    struct domain_info * const domain,
 +				    const struct condition_list *cond,
-+				    const u8 is_add);
++				    const u8 is_delete);
 +static int tmy_add_single_write_acl(const u8 type,
 +				    const char *filename,
 +				    struct domain_info * const domain,
 +				    const struct condition_list *cond,
-+				    const u8 is_add);
++				    const u8 is_delete);
 +
 +/*************************  AUDIT FUNCTIONS  *************************/
 +
 +static int tmy_audit_file_log(const struct path_info *filename,
 +			      const u8 perm,
-+			      const int is_granted,
-+			      const int is_enforce)
++			      const u8 is_granted,
++			      const u8 is_enforce)
 +{
 +	char *buf;
 +	int len;
@@ -192,8 +194,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_audit_write_log(const char *operation,
 +			       const struct path_info *filename1,
 +			       const struct path_info *filename2,
-+			       const int is_granted,
-+			       const int is_enforce)
++			       const u8 is_granted,
++			       const u8 is_enforce)
 +{
 +	char *buf;
 +	int len;
@@ -227,7 +229,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static struct globally_readable_file_entry *globally_readable_list;
 +
 +static int tmy_add_globally_readable_entry(const char *filename,
-+					   const int is_delete)
++					   const u8 is_delete)
 +{
 +	struct globally_readable_file_entry *new_entry;
 +	struct globally_readable_file_entry *ptr;
@@ -298,7 +300,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + */
-+int tmy_add_globally_readable_policy(char *filename, const int is_delete)
++int tmy_add_globally_readable_policy(char *filename, const u8 is_delete)
 +{
 +	return tmy_add_globally_readable_entry(filename, is_delete);
 +}
@@ -335,7 +337,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_add_group_entry(const char *group_name,
 +			       const char *member_name,
-+			       const int is_delete)
++			       const u8 is_delete)
 +{
 +	static DECLARE_MUTEX(lock);
 +	struct group_entry *new_group;
@@ -428,7 +430,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + */
-+int tmy_add_group_policy(char *data, const int is_delete)
++int tmy_add_group_policy(char *data, const u8 is_delete)
 +{
 +	char *cp = strchr(data, ' ');
 +
@@ -528,7 +530,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static struct pattern_entry *pattern_list;
 +
-+static int tmy_add_pattern_entry(const char *pattern, const int is_delete)
++static int tmy_add_pattern_entry(const char *pattern, const u8 is_delete)
 +{
 +	struct pattern_entry *new_entry;
 +	struct pattern_entry *ptr;
@@ -609,7 +611,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + */
-+int tmy_add_pattern_policy(char *pattern, const int is_delete)
++int tmy_add_pattern_policy(char *pattern, const u8 is_delete)
 +{
 +	return tmy_add_pattern_entry(pattern, is_delete);
 +}
@@ -644,7 +646,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static struct no_rewrite_entry *no_rewrite_list;
 +
-+static int tmy_add_no_rewrite_entry(const char *pattern, const int is_delete)
++static int tmy_add_no_rewrite_entry(const char *pattern, const u8 is_delete)
 +{
 +	struct no_rewrite_entry *new_entry;
 +	struct no_rewrite_entry *ptr;
@@ -717,7 +719,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + */
-+int tmy_add_no_rewrite_policy(char *pattern, const int is_delete)
++int tmy_add_no_rewrite_policy(char *pattern, const u8 is_delete)
 +{
 +	return tmy_add_no_rewrite_entry(pattern, is_delete);
 +}
@@ -750,16 +752,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/*************************  FILE ACL HANDLER  *************************/
 +
-+/*
-+ * @is_add:   1  add this entry if not quota exceeded
-+ *           -1  always add this entry
-+ *            0  remove this entry
-+ */
 +static int tmy_add_file_acl(const char *filename,
 +			    u8 perm,
 +			    struct domain_info * const domain,
 +			    const struct condition_list *cond,
-+			    const u8 is_add)
++			    const u8 is_delete)
 +{
 +	const struct path_info *saved;
 +	struct acl_info *ptr;
@@ -784,24 +781,26 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		is_group = 1;
 +	} else {
 +
++		if (tmy_strendswith(filename, "/"))
++			/*
++			 * Valid permissions for directory are
++			 * only 'allow_mkdir' and 'allow_rmdir'.
++			 */
++			return 0;
++
 +		saved = tmy_save_name(filename);
 +		if (!saved)
 +			return -ENOMEM;
 +
-+		if (!saved->is_dir) {
-+			if (is_add && perm == 4 &&
-+			    tmy_globally_readable(saved))
-+				return 0;
-+		} else if ((perm & 2) == 0 && is_add)
-+			/* Don't add if the directory doesn't have */
-+			/* write permission.                       */
++		if (!is_delete && perm == 4 &&
++		    tmy_globally_readable(saved))
 +			return 0;
 +
 +	}
 +
 +	down(&domain_acl_lock);
 +
-+	if (!is_add)
++	if (is_delete)
 +		goto remove;
 +
 +	ptr = domain->first_acl_ptr;
@@ -832,9 +831,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +
 +first_entry: ;
-+		if (is_add == 1 && tmy_too_many_acl(domain))
-+			break;
-+
 +		/* Not found. Append it to the tail. */
 +		acl = tmy_alloc_element(sizeof(*acl));
 +		if (!acl)
@@ -915,7 +911,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int error = 0;
 +	struct domain_info * const domain = TMY_SECURITY->domain;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +
 +	if (!filename)
 +		return 0;
@@ -932,12 +928,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				       domain->domainname->name,
 +				       perm, filename->name);
 +
-+	else if (tmy_accept(TMY_MAC_FOR_FILE)) {
++	else if (tmy_accept(TMY_MAC_FOR_FILE, domain)) {
 +		/* Don't use patterns if execution bit is on. */
 +		const struct path_info *patterned =
 +			((perm & 1) == 0) ?
 +			tmy_get_pattern(filename) : filename;
-+		tmy_add_file_acl(patterned->name, perm, domain, NULL, 1);
++		tmy_add_file_acl(patterned->name, perm, domain, NULL, 0);
 +	}
 +
 +	if (!is_enforce)
@@ -981,7 +977,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_add_file_policy(char *data,
 +			struct domain_info *domain,
 +			const struct condition_list *cond,
-+			const int is_delete)
++			const u8 is_delete)
 +{
 +	char *filename = strchr(data, ' ');
 +	unsigned int perm;
@@ -993,7 +989,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (sscanf(data, "%u", &perm) == 1)
 +		return tmy_add_file_acl(filename, (u8) perm, domain, cond,
-+					is_delete ? 0 : -1);
++					is_delete);
 +
 +	if (strncmp(data, "allow_", 6))
 +		goto out;
@@ -1013,11 +1009,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			return tmy_add_double_write_acl(type, filename,
 +							filename2,
 +							domain, cond,
-+							is_delete ? 0 : -1);
++							is_delete);
 +		} else
 +			return tmy_add_single_write_acl(type, filename,
 +							domain, cond,
-+							is_delete ? 0 : -1);
++							is_delete);
 +
 +		break;
 +	}
@@ -1025,16 +1021,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return -EINVAL;
 +}
 +
-+/*
-+ * @is_add:   1  add this entry if not quota exceeded
-+ *           -1  always add this entry
-+ *            0  remove this entry
-+ */
 +static int tmy_add_single_write_acl(const u8 type,
 +				    const char *filename,
 +				    struct domain_info * const domain,
 +				    const struct condition_list *cond,
-+				    const u8 is_add)
++				    const u8 is_delete)
 +{
 +	const struct path_info *saved;
 +	struct acl_info *ptr;
@@ -1059,7 +1050,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	down(&domain_acl_lock);
-+	if (!is_add)
++	if (is_delete)
 +		goto remove;
 +
 +	ptr = domain->first_acl_ptr;
@@ -1082,9 +1073,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +
 +first_entry: ;
-+		if (is_add == 1 && tmy_too_many_acl(domain))
-+			break;
-+
 +		/* Not found. Append it to the tail. */
 +		acl = tmy_alloc_element(sizeof(*acl));
 +		if (!acl)
@@ -1117,17 +1105,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/*
-+ * @is_add:   1  add this entry if not quota exceeded
-+ *           -1  always add this entry
-+ *            0  remove this entry
-+ */
 +static int tmy_add_double_write_acl(const u8 type,
 +				    const char *filename1,
 +				    const char *filename2,
 +				    struct domain_info * const domain,
 +				    const struct condition_list *cond,
-+				    const u8 is_add)
++				    const u8 is_delete)
 +{
 +	const struct path_info *saved1;
 +	const struct path_info *saved2;
@@ -1168,7 +1151,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	down(&domain_acl_lock);
 +
-+	if (!is_add)
++	if (is_delete)
 +		goto remove;
 +
 +	ptr = domain->first_acl_ptr;
@@ -1193,8 +1176,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +
 +first_entry: ;
-+		if (is_add == 1 && tmy_too_many_acl(domain))
-+			break;
 +		/* Not found. Append it to the tail. */
 +		acl = tmy_alloc_element(sizeof(*acl));
 +		if (!acl)
@@ -1308,7 +1289,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int error;
 +	struct domain_info * const domain = TMY_SECURITY->domain;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +
 +	if (!tmy_flags(TMY_MAC_FOR_FILE))
 +		return 0;
@@ -1327,10 +1308,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				       tmy_acltype2keyword(operation),
 +				       filename->name);
 +
-+	else if (tmy_accept(TMY_MAC_FOR_FILE))
++	else if (tmy_accept(TMY_MAC_FOR_FILE, domain))
 +		tmy_add_single_write_acl(operation,
 +					 tmy_get_pattern(filename)->name,
-+					 domain, NULL, 1);
++					 domain, NULL, 0);
 +
 +	if (!is_enforce)
 +		error = 0;
@@ -1380,7 +1361,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const int acc_mode = ACC_MODE(flag);
 +	int error = -ENOMEM;
 +	struct path_info *buf;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +
 +	if (!tmy_flags(TMY_MAC_FOR_FILE))
 +		return 0;
@@ -1438,7 +1419,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct obj_info obj;
 +	int error = -ENOMEM;
 +	struct path_info *buf;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +
 +	if (!tmy_flags(TMY_MAC_FOR_FILE))
 +		return 0;
@@ -1480,7 +1461,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_rewrite_perm(struct file *filp)
 +{
 +	int error = -ENOMEM;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +	struct path_info *buf = tmy_get_path(filp->f_dentry, filp->f_vfsmnt);
 +
 +	if (!buf)
@@ -1526,7 +1507,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct path_info *buf1;
 +	struct path_info *buf2;
 +	struct domain_info * const domain = TMY_SECURITY->domain;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +
 +	if (!tmy_flags(TMY_MAC_FOR_FILE))
 +		return 0;
@@ -1567,11 +1548,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				       domain->domainname->name,
 +				       tmy_acltype2keyword(operation),
 +				       buf1->name, buf2->name);
-+	else if (tmy_accept(TMY_MAC_FOR_FILE))
++	else if (tmy_accept(TMY_MAC_FOR_FILE, domain))
 +		tmy_add_double_write_acl(operation,
 +					 tmy_get_pattern(buf1)->name,
 +					 tmy_get_pattern(buf2)->name,
-+					 domain, NULL, 1);
++					 domain, NULL, 0);
 +
 +out: ;
 +	tmy_free(buf1);

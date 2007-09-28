@@ -12,8 +12,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/mount.c | 1019 ++++++++++++++++++++++++++++++++++++++++++++++++
  1 files changed, 1019 insertions(+)
 
+Index: linux-2.6/security/tomoyo/mount.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/mount.c	2007-09-21 14:21:50.000000000 +0900
++++ linux-2.6/security/tomoyo/mount.c	2007-09-27 17:42:02.000000000 +0900
 @@ -0,0 +1,1019 @@
 +/*
 + * security/tomoyo/mount.c
@@ -44,24 +46,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *dir_name;
 +	const struct path_info *fs_type;
 +	unsigned int flags; /* Mount flags. */
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +struct no_umount_entry {
 +	struct no_umount_entry *next; /* NULL if none. */
 +	const struct path_info *dir;
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +/*************************  AUDIT FUNCTIONS  *************************/
 +
-+static int tmy_audit_mount_log(const int is_granted,
-+			       const int is_enforce,
++static int tmy_audit_mount_log(const u8 is_granted,
++			       const u8 is_enforce,
 +			       const char *fmt, ...)
 +	__attribute__((format(printf, 3, 4)));
 +
-+static int tmy_audit_mount_log(const int is_granted,
-+			       const int is_enforce,
++static int tmy_audit_mount_log(const u8 is_granted,
++			       const u8 is_enforce,
 +			       const char *fmt, ...)
 +{
 +	char *buf1;
@@ -121,7 +123,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			     const char *dir_name,
 +			     const char *fs_type,
 +			     const unsigned int flags,
-+			     const int is_delete)
++			     const u8 is_delete)
 +{
 +	struct mount_entry *new_entry;
 +	struct mount_entry  *ptr;
@@ -224,7 +226,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				       char *dir_name,
 +				       char *type,
 +				       unsigned long flags,
-+				       const int is_enforce)
++				       const u8 is_enforce)
 +{
 +	int error = -EPERM;
 +	const char *realname1 = tmy_realpath(dev_name);
@@ -307,7 +309,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		   char *type,
 +		   unsigned long flags)
 +{
-+	const int is_enforce = tmy_enforce(TMY_RESTRICT_MOUNT);
++	const u8 is_enforce = tmy_enforce(TMY_RESTRICT_MOUNT);
 +	int error = -EPERM;
 +
 +	if (!tmy_flags(TMY_RESTRICT_MOUNT))
@@ -489,7 +491,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			error = tmy_mount_perm_error(dev_name, dir_name,
 +						     type, flags, is_enforce);
 +
-+		if (error && tmy_accept(TMY_RESTRICT_MOUNT)) {
++		if (error && tmy_accept(TMY_RESTRICT_MOUNT, NULL)) {
 +			tmy_add_mount_acl(need_dev ?
 +					  requested_dev_name : dev_name,
 +					  requested_dir_name, type, flags, 0);
@@ -518,7 +520,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + */
-+int tmy_add_mount_policy(char *data, const int is_delete)
++int tmy_add_mount_policy(char *data, const u8 is_delete)
 +{
 +	char *cp;
 +	char *cp2;
@@ -633,7 +635,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int flag = 0;
 +	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
-+	int is_enforce;
++	u8 is_enforce;
 +	char *dir;
 +
 +	if (!tmy_flags(TMY_DENY_CONCEAL_MOUNT))
@@ -692,7 +694,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static struct no_umount_entry *no_umount_list;
 +
 +/* Add or remove a no-unmount entry. */
-+static int tmy_add_no_umount_acl(const char *dir, const int is_delete)
++static int tmy_add_no_umount_acl(const char *dir, const u8 is_delete)
 +{
 +	struct no_umount_entry *new_entry;
 +	struct no_umount_entry *ptr;
@@ -755,7 +757,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int error = -EPERM;
 +	const char *dir0;
-+	const int is_enforce = tmy_enforce(TMY_RESTRICT_UMOUNT);
++	const u8 is_enforce = tmy_enforce(TMY_RESTRICT_UMOUNT);
 +
 +	if (!tmy_flags(TMY_RESTRICT_UMOUNT))
 +		return 0;
@@ -807,7 +809,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + */
-+int tmy_add_no_umount_policy(char *data, const int is_delete)
++int tmy_add_no_umount_policy(char *data, const u8 is_delete)
 +{
 +	return tmy_add_no_umount_acl(data, is_delete);
 +}
@@ -844,7 +846,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct pivot_root_entry *next;
 +	const struct path_info *old_root;
 +	const struct path_info *new_root;
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +/**********************  PIVOT_ROOT RESTRICTION HANDLER  **********************/
@@ -854,7 +856,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Add or remove a pivot_root entry. */
 +static int tmy_add_pivot_root_acl(const char *old_root,
 +				  const char *new_root,
-+				  const int is_delete)
++				  const u8 is_delete)
 +{
 +	struct pivot_root_entry *new_entry;
 +	struct pivot_root_entry *ptr;
@@ -927,7 +929,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int error = -EPERM;
 +	char *old_root;
 +	char *new_root;
-+	int is_enforce;
++	u8 is_enforce;
 +	struct path_info old_root_dir;
 +	struct path_info new_root_dir;
 +
@@ -976,7 +978,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (exename)
 +			tmy_free(exename);
 +
-+		if (!is_enforce && tmy_accept(TMY_RESTRICT_PIVOT_ROOT)
++		if (!is_enforce && tmy_accept(TMY_RESTRICT_PIVOT_ROOT, NULL)
 +		    && old_root && new_root) {
 +			tmy_add_pivot_root_acl(old_root, new_root, 0);
 +			tmy_update_counter(TMY_UPDATE_SYSTEMPOLICY);
@@ -999,7 +1001,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + */
-+int tmy_add_pivot_root_policy(char *data, const int is_delete)
++int tmy_add_pivot_root_policy(char *data, const u8 is_delete)
 +{
 +	char *cp = strchr(data, ' ');
 +

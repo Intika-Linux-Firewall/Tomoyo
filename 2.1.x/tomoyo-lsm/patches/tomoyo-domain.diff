@@ -11,9 +11,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/domain.c | 1291 +++++++++++++++++++++++++++++++++++++++++++++++
  1 files changed, 1291 insertions(+)
 
+Index: linux-2.6/security/tomoyo/domain.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/domain.c	2007-09-21 14:21:50.000000000 +0900
-@@ -0,0 +1,1291 @@
++++ linux-2.6/security/tomoyo/domain.c	2007-09-27 17:42:02.000000000 +0900
+@@ -0,0 +1,1256 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -61,7 +63,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct aggregator_entry *next;
 +	const struct path_info *original_name;
 +	const struct path_info *aggregated_name;
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +/***** The structure for program files that should be aliased. *****/
@@ -70,7 +72,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct alias_entry *next;
 +	const struct path_info *original_name;
 +	const struct path_info *aliased_name;
-+	int is_deleted;
++	u8 is_deleted;
 +};
 +
 +/*************************  UTILITY FUNCTIONS  *************************/
@@ -133,41 +135,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
-+/**
-+ * tmy_too_many_acl - check quota for a domain.
-+ * @domain: pointer to "struct domain_info" to examine.
-+ *
-+ * Returns nonzero if quota exceeded.
-+ * Returns zero otherwise.
-+ *
-+ * This is a safeguard for "learning mode", for appending entries
-+ * without limit dulls the system response and consumes much memory.
-+ */
-+int tmy_too_many_acl(struct domain_info * const domain)
-+{
-+	unsigned int count = 0;
-+	struct acl_info *ptr;
-+
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		if (!ptr->is_deleted)
-+			count++;
-+	}
-+	/* If there are so many entries, don't append if accept mode. */
-+	if (count < tmy_flags(TMY_MAX_ACCEPT_ENTRY))
-+		return 0;
-+
-+	if (!domain->quota_warned) {
-+		printk(KERN_INFO
-+		       "TOMOYO-WARNING: Domain '%s' has so many ACLs "
-+		       "to hold. Stopped learning mode.\n",
-+		       domain->domainname->name);
-+		domain->quota_warned = 1;
-+	}
-+
-+	return 1;
-+}
-+
-+
 +/************************  DOMAIN INITIALIZER HANDLER  ************************/
 +
 +static struct domain_initializer_entry *domain_initializer_list;
@@ -175,8 +142,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Update domain initializer list. */
 +static int tmy_add_domain_initializer_entry(const char *domainname,
 +					    const char *program,
-+					    const int is_not,
-+					    const int is_delete)
++					    const u8 is_not,
++					    const u8 is_delete)
 +{
 +	struct domain_initializer_entry *new_entry;
 +	struct domain_initializer_entry *ptr;
@@ -184,7 +151,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved_program;
 +	const struct path_info *saved_domainname = NULL;
 +	int error = -ENOMEM;
-+	int is_last_name = 0;
++	u8 is_last_name = 0;
 +
 +	if (!tmy_correct_path(program, 1, -1, -1, __FUNCTION__))
 +		return -EINVAL; /* No patterns allowed. */
@@ -298,8 +265,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * This function adds or removes a domain initializer entry.
 + */
 +int tmy_add_domain_initializer_policy(char *data,
-+				      const int is_not,
-+				      const int is_delete)
++				      const u8 is_not,
++				      const u8 is_delete)
 +{
 +	char *cp = strstr(data, " from ");
 +
@@ -352,8 +319,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Update domain keeper list. */
 +static int tmy_add_domain_keeper_entry(const char *domainname,
 +				       const char *program,
-+				       const int is_not,
-+				       const int is_delete)
++				       const u8 is_not,
++				       const u8 is_delete)
 +{
 +	struct domain_keeper_entry *new_entry;
 +	struct domain_keeper_entry *ptr;
@@ -361,7 +328,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved_program = NULL;
 +	static DECLARE_MUTEX(lock);
 +	int error = -ENOMEM;
-+	int is_last_name = 0;
++	u8 is_last_name = 0;
 +
 +	if (!tmy_is_domain_def(domainname) &&
 +	    tmy_correct_path(domainname, 1, -1, -1, __FUNCTION__))
@@ -438,8 +405,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + */
 +int tmy_add_domain_keeper_policy(char *data,
-+				 const int is_not,
-+				 const int is_delete)
++				 const u8 is_not,
++				 const u8 is_delete)
 +{
 +	char *cp = strstr(data, " from ");
 +
@@ -531,7 +498,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Update alias list. */
 +static int tmy_add_alias_entry(const char *original_name,
 +			       const char *aliased_name,
-+			       const int is_delete)
++			       const u8 is_delete)
 +{
 +	struct alias_entry *new_entry;
 +	struct alias_entry *ptr;
@@ -626,7 +593,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * This function adds or removes an alias entry.
 + */
-+int tmy_add_alias_policy(char *data, const int is_delete)
++int tmy_add_alias_policy(char *data, const u8 is_delete)
 +{
 +	char *cp = strchr(data, ' ');
 +
@@ -644,7 +611,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Update aggregator list. */
 +static int tmy_add_aggregator_entry(const char *original_name,
 +				    const char *aggregated_name,
-+				    const int is_delete)
++				    const u8 is_delete)
 +{
 +	struct aggregator_entry *new_entry;
 +	struct aggregator_entry *ptr;
@@ -739,7 +706,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * This function adds or removes an aggregator entry.
 + */
-+int tmy_add_aggregator_policy(char *data, const int is_delete)
++int tmy_add_aggregator_policy(char *data, const u8 is_delete)
 +{
 +	char *cp = strchr(data, ' ');
 +
@@ -1111,7 +1078,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	char *new_domain_name = NULL;
 +	char *real_program_name = NULL;
 +	char *symlink_program_name = NULL;
-+	const int is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
 +	int retval;
 +	struct path_info r;
 +	struct path_info s;
