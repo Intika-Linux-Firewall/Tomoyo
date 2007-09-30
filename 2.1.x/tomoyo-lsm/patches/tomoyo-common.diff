@@ -1,21 +1,21 @@
 Common functions for TOMOYO Linux.
 
-TOMOYO Linux uses /proc/tomoyo interface for configuration.
+TOMOYO Linux uses /sys/kernel/security/tomoyo interface for configuration.
 
-/proc/tomoyo/domain_policy is the domain-based access policy.
+/sys/kernel/security/tomoyo/domain_policy is the domain-based access policy.
 Access control list for files, networks, argv[0] and signal is
 stored in domain_policy.
 
-/proc/tomoyo/system_policy is the system-wide access policy.
+/sys/kernel/security/tomoyo/system_policy is the system-wide access policy.
 Access control list for mount, umount and pivot_root is
 stored in system_policy.
 
-/proc/tomoyo/exception_policy is the other settings such as
-globally readable library files, domain transition configurations
+/sys/kernel/security/tomoyo/exception_policy is the other settings such as
+globally readable files, domain transition configurations
 or pre-defined patterned pathnames.
 
-/proc/tomoyo/profile has some profiles, which configure the access
-control level of TOMOYO Linux. A profile is assigned to a domain.
+/sys/kernel/security/tomoyo/profile has some profiles, which configure
+the access control level of TOMOYO Linux. A profile is assigned to a domain.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
