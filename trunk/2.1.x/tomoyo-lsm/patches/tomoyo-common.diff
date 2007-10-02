@@ -20,12 +20,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c | 2410 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 2410 insertions(+)
+ security/tomoyo/common.c | 2406 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 2406 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-10-02 10:14:51.000000000 +0900
-@@ -0,0 +1,2410 @@
++++ linux-2.6/security/tomoyo/common.c	2007-10-02 11:26:21.000000000 +0900
+@@ -0,0 +1,2406 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -2395,16 +2395,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tmy_proc_init - initialize /sys/kernel/security/tomoyo/ interface.
++ * tmy_interface_init - initialize /sys/kernel/security/tomoyo/ interface.
 + */
-+static int __init tmy_proc_init(void)
++static int __init tmy_interface_init(void)
 +{
-+	/*static int initialized;*/
 +	struct dentry *tmy_dir;
 +
-+	/*if (initialized)
-+		return;
-+	initialized = 1;*/
 +	tmy_dir = securityfs_create_dir("tomoyo", NULL);
 +	tmy_realpath_init();
 +	tmy_find_domain(""); /* Set domainname of KERNEL domain. */
@@ -2435,4 +2431,4 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
-+postcore_initcall(tmy_proc_init);
++postcore_initcall(tmy_interface_init);
