@@ -22,11 +22,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/dummy.c         |   32 ++++++++++++++--
  5 files changed, 157 insertions(+), 12 deletions(-)
 
-Index: linux-2.6/include/linux/security.h
-===================================================================
---- linux-2.6.orig/include/linux/security.h	2007-09-28 17:51:19.000000000 +0900
-+++ linux-2.6/include/linux/security.h	2007-09-28 18:04:06.000000000 +0900
-@@ -628,6 +628,22 @@
+--- linux-2.6.orig/include/linux/security.h	2007-09-21 17:59:37.000000000 +0900
++++ linux-2.6/include/linux/security.h	2007-10-02 10:14:52.000000000 +0900
+@@ -628,6 +628,22 @@ struct request_sock;
   *	@sig contains the signal value.
   *	@secid contains the sid of the process where the signal originated
   *	Return 0 if permission is granted.
@@ -49,7 +47,7 @@ Index: linux-2.6/include/linux/security.h
   * @task_wait:
   *	Check permission before allowing a process to reap a child process @p
   *	and collect its status information.
-@@ -749,8 +765,12 @@
+@@ -749,8 +765,12 @@ struct request_sock;
   * @socket_post_accept:
   *	This hook allows a security module to copy security
   *	information into the newly created socket's inode.
@@ -62,7 +60,7 @@ Index: linux-2.6/include/linux/security.h
   * @socket_sendmsg:
   *	Check permission before transmitting a message to another socket.
   *	@sock contains the socket structure.
-@@ -764,6 +784,11 @@
+@@ -764,6 +784,11 @@ struct request_sock;
   *	@size contains the size of message structure.
   *	@flags contains the operational flags.
   *	Return 0 if permission is granted.  
@@ -74,7 +72,7 @@ Index: linux-2.6/include/linux/security.h
   * @socket_getsockname:
   *	Check permission before the local address (name) of the socket object
   *	@sock is retrieved.
-@@ -1279,6 +1304,9 @@
+@@ -1279,6 +1304,9 @@ struct security_operations {
  	int (*task_movememory) (struct task_struct * p);
  	int (*task_kill) (struct task_struct * p,
  			  struct siginfo * info, int sig, u32 secid);
@@ -84,7 +82,7 @@ Index: linux-2.6/include/linux/security.h
  	int (*task_wait) (struct task_struct * p);
  	int (*task_prctl) (int option, unsigned long arg2,
  			   unsigned long arg3, unsigned long arg4,
-@@ -1346,12 +1374,16 @@
+@@ -1346,12 +1374,16 @@ struct security_operations {
  			       struct sockaddr * address, int addrlen);
  	int (*socket_listen) (struct socket * sock, int backlog);
  	int (*socket_accept) (struct socket * sock, struct socket * newsock);
@@ -103,7 +101,7 @@ Index: linux-2.6/include/linux/security.h
  	int (*socket_getsockname) (struct socket * sock);
  	int (*socket_getpeername) (struct socket * sock);
  	int (*socket_getsockopt) (struct socket * sock, int level, int optname);
-@@ -1967,6 +1999,21 @@
+@@ -1967,6 +1999,21 @@ static inline int security_task_kill (st
  	return security_ops->task_kill (p, info, sig, secid);
  }
  
@@ -125,7 +123,7 @@ Index: linux-2.6/include/linux/security.h
  static inline int security_task_wait (struct task_struct *p)
  {
  	return security_ops->task_wait (p);
-@@ -2645,6 +2692,21 @@
+@@ -2645,6 +2692,21 @@ static inline int security_task_kill (st
  	return 0;
  }
  
@@ -147,7 +145,7 @@ Index: linux-2.6/include/linux/security.h
  static inline int security_task_wait (struct task_struct *p)
  {
  	return 0;
-@@ -2870,10 +2932,10 @@
+@@ -2870,10 +2932,10 @@ static inline int security_socket_accept
  	return security_ops->socket_accept(sock, newsock);
  }
  
@@ -161,7 +159,7 @@ Index: linux-2.6/include/linux/security.h
  }
  
  static inline int security_socket_sendmsg(struct socket * sock, 
-@@ -2889,6 +2951,13 @@
+@@ -2889,6 +2951,13 @@ static inline int security_socket_recvms
  	return security_ops->socket_recvmsg(sock, msg, size, flags);
  }
  
@@ -175,7 +173,7 @@ Index: linux-2.6/include/linux/security.h
  static inline int security_socket_getsockname(struct socket * sock)
  {
  	return security_ops->socket_getsockname(sock);
-@@ -3033,9 +3102,10 @@
+@@ -3033,9 +3102,10 @@ static inline int security_socket_accept
  	return 0;
  }
  
@@ -188,7 +186,7 @@ Index: linux-2.6/include/linux/security.h
  }
  
  static inline int security_socket_sendmsg(struct socket * sock, 
-@@ -3051,6 +3121,13 @@
+@@ -3051,6 +3121,13 @@ static inline int security_socket_recvms
  	return 0;
  }
  
@@ -202,11 +200,9 @@ Index: linux-2.6/include/linux/security.h
  static inline int security_socket_getsockname(struct socket * sock)
  {
  	return 0;
-Index: linux-2.6/kernel/signal.c
-===================================================================
---- linux-2.6.orig/kernel/signal.c	2007-09-28 17:51:20.000000000 +0900
-+++ linux-2.6/kernel/signal.c	2007-09-28 18:04:06.000000000 +0900
-@@ -2196,6 +2196,11 @@
+--- linux-2.6.orig/kernel/signal.c	2007-09-21 17:59:37.000000000 +0900
++++ linux-2.6/kernel/signal.c	2007-10-02 10:14:52.000000000 +0900
+@@ -2196,6 +2196,11 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -218,7 +214,7 @@ Index: linux-2.6/kernel/signal.c
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2251,10 +2256,16 @@
+@@ -2251,10 +2256,16 @@ static int do_tkill(int tgid, int pid, i
   */
  asmlinkage long sys_tgkill(int tgid, int pid, int sig)
  {
@@ -235,7 +231,7 @@ Index: linux-2.6/kernel/signal.c
  	return do_tkill(tgid, pid, sig);
  }
  
-@@ -2264,10 +2275,16 @@
+@@ -2264,10 +2275,16 @@ asmlinkage long sys_tgkill(int tgid, int
  asmlinkage long
  sys_tkill(int pid, int sig)
  {
@@ -252,11 +248,9 @@ Index: linux-2.6/kernel/signal.c
  	return do_tkill(0, pid, sig);
  }
  
-Index: linux-2.6/net/socket.c
-===================================================================
---- linux-2.6.orig/net/socket.c	2007-09-28 17:51:21.000000000 +0900
-+++ linux-2.6/net/socket.c	2007-09-28 18:04:06.000000000 +0900
-@@ -1437,13 +1437,16 @@
+--- linux-2.6.orig/net/socket.c	2007-09-21 18:03:29.000000000 +0900
++++ linux-2.6/net/socket.c	2007-10-02 10:14:52.000000000 +0900
+@@ -1434,13 +1434,16 @@ asmlinkage long sys_accept(int fd, struc
  			goto out_fd;
  	}
  
@@ -275,11 +269,9 @@ Index: linux-2.6/net/socket.c
  out_put:
  	fput_light(sock->file, fput_needed);
  out:
-Index: linux-2.6/security/dummy.c
-===================================================================
---- linux-2.6.orig/security/dummy.c	2007-09-28 17:51:21.000000000 +0900
-+++ linux-2.6/security/dummy.c	2007-09-28 18:04:06.000000000 +0900
-@@ -564,6 +564,21 @@
+--- linux-2.6.orig/security/dummy.c	2007-09-21 17:59:37.000000000 +0900
++++ linux-2.6/security/dummy.c	2007-10-02 10:14:52.000000000 +0900
+@@ -564,6 +564,21 @@ static int dummy_task_kill (struct task_
  	return 0;
  }
  
@@ -301,7 +293,7 @@ Index: linux-2.6/security/dummy.c
  static int dummy_task_prctl (int option, unsigned long arg2, unsigned long arg3,
  			     unsigned long arg4, unsigned long arg5)
  {
-@@ -741,10 +756,10 @@
+@@ -741,10 +756,10 @@ static int dummy_socket_accept (struct s
  	return 0;
  }
  
@@ -315,7 +307,7 @@ Index: linux-2.6/security/dummy.c
  }
  
  static int dummy_socket_sendmsg (struct socket *sock, struct msghdr *msg,
-@@ -759,6 +774,13 @@
+@@ -759,6 +774,13 @@ static int dummy_socket_recvmsg (struct 
  	return 0;
  }
  
@@ -329,7 +321,7 @@ Index: linux-2.6/security/dummy.c
  static int dummy_socket_getsockname (struct socket *sock)
  {
  	return 0;
-@@ -1053,6 +1075,9 @@
+@@ -1053,6 +1075,9 @@ void security_fixup_ops (struct security
  	set_to_dummy_if_null(ops, task_movememory);
  	set_to_dummy_if_null(ops, task_wait);
  	set_to_dummy_if_null(ops, task_kill);
@@ -339,7 +331,7 @@ Index: linux-2.6/security/dummy.c
  	set_to_dummy_if_null(ops, task_prctl);
  	set_to_dummy_if_null(ops, task_reparent_to_init);
   	set_to_dummy_if_null(ops, task_to_inode);
-@@ -1096,6 +1121,7 @@
+@@ -1096,6 +1121,7 @@ void security_fixup_ops (struct security
  	set_to_dummy_if_null(ops, socket_post_accept);
  	set_to_dummy_if_null(ops, socket_sendmsg);
  	set_to_dummy_if_null(ops, socket_recvmsg);
@@ -347,10 +339,8 @@ Index: linux-2.6/security/dummy.c
  	set_to_dummy_if_null(ops, socket_getsockname);
  	set_to_dummy_if_null(ops, socket_getpeername);
  	set_to_dummy_if_null(ops, socket_setsockopt);
-Index: linux-2.6/net/core/datagram.c
-===================================================================
---- linux-2.6.orig/net/core/datagram.c	2007-09-28 17:51:20.000000000 +0900
-+++ linux-2.6/net/core/datagram.c	2007-09-28 18:04:06.000000000 +0900
+--- linux-2.6.orig/net/core/datagram.c	2007-09-21 17:59:37.000000000 +0900
++++ linux-2.6/net/core/datagram.c	2007-10-02 10:14:52.000000000 +0900
 @@ -55,6 +55,7 @@
  #include <net/checksum.h>
  #include <net/sock.h>
@@ -359,7 +349,7 @@ Index: linux-2.6/net/core/datagram.c
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -178,6 +179,27 @@
+@@ -178,6 +179,27 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  

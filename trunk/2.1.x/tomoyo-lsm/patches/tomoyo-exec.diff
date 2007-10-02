@@ -8,13 +8,11 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/exec.c |  230 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 230 insertions(+)
+ security/tomoyo/exec.c |  222 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 222 insertions(+)
 
-Index: linux-2.6/security/tomoyo/exec.c
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/exec.c	2007-09-28 09:10:49.000000000 +0900
++++ linux-2.6/security/tomoyo/exec.c	2007-10-02 10:14:51.000000000 +0900
 @@ -0,0 +1,222 @@
 +/*
 + * security/tomoyo/exec.c
