@@ -13,7 +13,7 @@
 <h2><a name="administration_tool">&lt;&lt;Tools for system administrators&gt;&gt;</a></h2>
 
 <h3><a name="editpolicy">&lt;Policy Editor "editpolicy"&gt;</a></h3>
-<p>Edits the current policy in /proc/tomoyo/ directory.</p>
+<p>Edits the current policy in /sys/kernel/security/tomoyo/ directory.</p>
 <p>You may give one of "s" "e" "d" to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
 
 <p>&lt;Scroll&gt;</p>
@@ -69,7 +69,7 @@
 </ul>
 
 <h3><a name="setlevel">&lt;Control Level Changer "setlevel"&gt;</a></h3>
-<p>Changes the current control level (i.e. writing to /proc/tomoyo/profile ) and displays the new control level.</p>
+<p>Changes the current control level (i.e. writing to /sys/kernel/security/tomoyo/profile ) and displays the new control level.</p>
 <p>You can give the new control level from commandline parameter.</p>
 
 <h3><a name="setprofile">&lt;Profile Selector "setprofile"&gt;</a></h3>
@@ -97,8 +97,8 @@
 
 <h3><a name="findtemp">&lt;Temporal Pathnames Detector "findtemp"&gt;</a></h3>
 <p>Reads domain policy from standard input and checks the existence of pathnames, and dumps the nonexistent pathnames.</p>
-<p>The nonexistent pathnames are likely used as temporal pathnames. So find the naming rules from similar nonexistent pathnames and append the pattern to /etc/tomoyo/exception_policy.conf and /proc/tomoyo/exception_policy .</p>
-<p>You can pass the content of /etc/tomoyo/domain_policy.conf or /proc/tomoyo/domain_policy using redirection or pipes to the standard input of this program.</p>
+<p>The nonexistent pathnames are likely used as temporal pathnames. So find the naming rules from similar nonexistent pathnames and append the pattern to /etc/tomoyo/exception_policy.conf and /sys/kernel/security/tomoyo/exception_policy .</p>
+<p>You can pass the content of /etc/tomoyo/domain_policy.conf or /sys/kernel/security/tomoyo/domain_policy using redirection or pipes to the standard input of this program.</p>
 
 <h3><a name="ld-watch">&lt;Library Pathnames Updater "ld-watch"&gt;</a></h3>
 <p>Appends shared libraries to exception policy automatically using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed.</p>
@@ -108,7 +108,7 @@
 <p>Detects policy violation and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.</p>
 <p>By running this program while updating packages, you can avoid errors due to insufficient permissions.</p>
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
-<p>To enable "delayed enforcing mode", you need to either set "ALLOW_ENFORCE_GRACE=1" in /proc/tomoyo/profile using "setlevel" command or assign a profile whose ALLOW_ENFORCE_GRACE is set to 1 to domains using "setprofile" command.</p>
+<p>To enable "delayed enforcing mode", you need to either set "ALLOW_ENFORCE_GRACE=1" in /sys/kernel/security/tomoyo/profile using "setlevel" command or assign a profile whose ALLOW_ENFORCE_GRACE is set to 1 to domains using "setprofile" command.</p>
 
 <h3><a name="checkpolicy">&lt;Policy Syntax Checker "checkpolicy"&gt;</a></h3>
 <p>Reads policy files from standard input and checks syntaxes.</p>
@@ -119,7 +119,7 @@
 <p>Put this program as /sbin/tomoyo-init , and this program will be invoked automatically when execution of /sbin/init is requested by initrd.</p>
 
 <h3><a name="domainmatch">&lt;ACL Searcher "domainmatch"&gt;</a></h3>
-<p>This is a "fgrep" for /proc/tomoyo/domain_policy .</p>
+<p>This is a "fgrep" for /sys/kernel/security/tomoyo/domain_policy .</p>
 
 <h3><a name="patternize">&lt;Pathname Pattern Replacer "patternize"&gt;</a></h3>
 <p>Reads domain policy from standard input and replaces pathnames with patterns if the pathname matches to patterns given at commandline and writes to standard output. Pathnames that contains execute permission and domainnames won't be patterned.</p>

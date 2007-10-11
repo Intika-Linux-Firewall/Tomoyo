@@ -13,7 +13,7 @@
 <h2><a name="administration_tool">＜＜システム管理者用ツール＞＞</a></h2>
 
 <h3><a name="editpolicy">＜ポリシーエディタ　editpolicy＞</a></h3>
-<p>現在のポリシーを /proc/tomoyo/ ディレクトリから読み込み、編集を行う。</p>
+<p>現在のポリシーを /sys/kernel/security/tomoyo/ ディレクトリから読み込み、編集を行う。</p>
 <p>コマンドラインパラメータとして s e d のいずれかの文字を指定することで最初に表示される画面を指定できる。省略すると最初にドメイン一覧表示画面が表示される。</p>
 <p>以下のキーを使用して操作する。</p>
 
@@ -98,8 +98,8 @@
 
 <h3><a name="findtemp">＜テンポラリパス検出プログラム　findtemp＞</a></h3>
 <p>標準入力からパス名の一覧を受け取り、全ての存在しないパス名を表示する。</p>
-<p>存在しなかったパス名はテンポラリなパス名として使用されている可能性が高いので、同様のパス名から規則性を判断して /etc/tomoyo/exception_policy.conf および /proc/tomoyo/exception_policy にパターン化したパス名を追加していく。</p>
-<p>/etc/tomoyo/domain_policy.conf または /proc/tomoyo/domain_policy の内容をリダイレクトまたはパイプを使用して標準入力へ渡せばよい。</p>
+<p>存在しなかったパス名はテンポラリなパス名として使用されている可能性が高いので、同様のパス名から規則性を判断して /etc/tomoyo/exception_policy.conf および /sys/kernel/security/tomoyo/exception_policy にパターン化したパス名を追加していく。</p>
+<p>/etc/tomoyo/domain_policy.conf または /sys/kernel/security/tomoyo/domain_policy の内容をリダイレクトまたはパイプを使用して標準入力へ渡せばよい。</p>
 
 <h3><a name="ld-watch">＜ライブラリファイルのパス名更新プログラム　ld-watch＞</a></h3>
 <p>/etc/ld.so.cache に登録されている共有ライブラリファイルのパス名の変化を検出し、自動的に allow_read キーワードを使って例外ポリシーに登録する。</p>
@@ -120,7 +120,7 @@
 <p>/sbin/tomoyo-init に置くことで、 initrd から /sbin/init の実行が要求されたときに自動的に呼び出される。</p>
 
 <h3><a name="domainmatch">＜アクセス許可検索ツール　domainmatch＞</a></h3>
-<p> /proc/tomoyo/domain_policy からドメイン単位で fgrep を行う。</p>
+<p> /sys/kernel/security/tomoyo/domain_policy からドメイン単位で fgrep を行う。</p>
 
 <h3><a name="patternize">＜パス名パターン化ツール　patternize＞</a></h3>
 <p>ドメイン用ポリシーを標準入力から受け取り、コマンドラインに与えられたパス名のパターンと一致した場合はパターン化してから標準出力へ送る。実行許可を含むファイルへのアクセス許可とドメイン名はパターン化されない。</p>

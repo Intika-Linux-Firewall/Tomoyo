@@ -20,7 +20,7 @@
 <p><a href="#system_policy.conf">2.3 System policy (system_policy.conf)</a></p>
 <p><a href="#domain_policy.conf">2.4 Domain policy (domain_policy.conf)</a></p>
 <p><a href="#exception_policy.conf">2.5 Exception policy (exception_policy.conf)</a></p>
-<h2><a href="#/proc/tomoyo/">3. /proc/tomoyo/ interface</a></h2>
+<h2><a href="#/sys/kernel/security/tomoyo/">3. /sys/kernel/security/tomoyo/ interface</a></h2>
 <p><a href="#profile">3.1 profile</a></p>
 <p><a href="#system_policy">3.2 system_policy</a></p>
 <p><a href="#domain_policy">3.3 domain_policy</a></p>
@@ -183,8 +183,8 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <h1><a name="policy_files_and_syntaxes">2. Types and syntaxes of policy files</a></h1>
 <p>All policy files are kept in /etc/tomoyo/ directory. Files in this directory are loaded just before starting /sbin/init by /sbin/tomoyo-init .</p>
 <h2><a name="manager.conf">2.1 Policy Manager Definitions (manager.conf)</a></h2>
-<p>Since it is not secure that all processes can modify policies, this file defines PROGRAM or DOMAIN that can do write access to /proc/tomoyo/ interface.</p>
-<p>PROGRAM or DOMAIN that are not declared in this file cannot do write access to /proc/tomoyo/ interface. If you don't allow policy updates at production state, delete this file.</p>
+<p>Since it is not secure that all processes can modify policies, this file defines PROGRAM or DOMAIN that can do write access to /sys/kernel/security/tomoyo/ interface.</p>
+<p>PROGRAM or DOMAIN that are not declared in this file cannot do write access to /sys/kernel/security/tomoyo/ interface. If you don't allow policy updates at production state, delete this file.</p>
 <p>(Example)<br>
 /usr/lib/ccs/loadpolicy<br>
 /usr/lib/ccs/editpolicy<br>
@@ -701,54 +701,54 @@ allow_network TCP connect @local-address 1024-65535
 <p>Use this directive when you want to escape from a DOMAIN that is kept by "keep_domain" directive.</p>
 
 <hr>
-<h1><a name="/proc/tomoyo/">3. /proc/tomoyo/ interface</a></h1>
+<h1><a name="/sys/kernel/security/tomoyo/">3. /sys/kernel/security/tomoyo/ interface</a></h1>
 <p>This is the interface to read/append/delete policies after boot. Only PROGRAMs that are declared in <a href="#manager.conf">Policy Manager Definition</a> can append/delete policies.</p>
 <h2><a name="profile">3.1 profile</a></h2>
 <p>This file is to get or set the value of current control status.</p>
 <p>(Example)<br>
-cat /proc/tomoyo/profile<br>
-echo 'MAC_FOR_FILE=1' &gt; /proc/tomoyo/profile</p>
+cat /sys/kernel/security/tomoyo/profile<br>
+echo 'MAC_FOR_FILE=1' &gt; /sys/kernel/security/tomoyo/profile</p>
 <h2><a name="system_policy">3.2 system_policy</a></h2>
 <p>This file is to read, append or delete current <a href="#system_policy.conf">System policy</a>.</p>
 <p>(Example)<br>
-echo 'allow_mount /proc /proc/ proc' &gt; /proc/tomoyo/system_policy<br>
-echo 'delete allow_mount /proc /proc/ proc' &gt; /proc/tomoyo/system_policy<br>
-cat /proc/tomoyo/system_policy</p>
+echo 'allow_mount /proc /proc/ proc' &gt; /sys/kernel/security/tomoyo/system_policy<br>
+echo 'delete allow_mount /proc /proc/ proc' &gt; /sys/kernel/security/tomoyo/system_policy<br>
+cat /sys/kernel/security/tomoyo/system_policy</p>
 <h2><a name="domain_policy">3.3 domain_policy</a></h2>
 <p>This file is to read, append or delete current <a href="#domain_policy.conf">Domain policy</a>.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
-printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/tomoyo/domain_policy</p>
+printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /sys/kernel/security/tomoyo/domain_policy</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
-printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/tomoyo/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /sys/kernel/security/tomoyo/domain_policy</p>
 <p>(Example) Selecting specific domain and removing ACLs.<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /proc/tomoyo/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /sys/kernel/security/tomoyo/domain_policy</p>
 <p>(Example) Deleting specific domain.<br>
-printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/tomoyo/domain_policy</p>
+printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /sys/kernel/security/tomoyo/domain_policy</p>
 <p>(Example) Reading current domain policy.<br>
-cat /proc/tomoyo/domain_policy</p>
+cat /sys/kernel/security/tomoyo/domain_policy</p>
 <h2><a name="exception_policy">3.4 exception_policy</a></h2>
 <p>This file is to read, append or delete current <a href="#exception_policy.conf">Exception policy</a>.</p>
 <p>(Example)<br>
-echo 'file_pattern /proc/\$/status' &gt; /proc/tomoyo/exception_policy<br>
-echo 'delete file_pattern /proc/\$/status' &gt; /proc/tomoyo/exception_policy<br>
-cat /proc/tomoyo/exception_policy</p>
+echo 'file_pattern /proc/\$/status' &gt; /sys/kernel/security/tomoyo/exception_policy<br>
+echo 'delete file_pattern /proc/\$/status' &gt; /sys/kernel/security/tomoyo/exception_policy<br>
+cat /sys/kernel/security/tomoyo/exception_policy</p>
 <h2><a name="query">3.5 query</a></h2>
 <p>This file is used to manually grant or reject individual access requests when the policy violation occurs in enforce mode. If a policy violation occur
 in a process whose domain is assigned a profile for enforce mode and "ALLOW_ENFORCE_GRACE=1", the administrator can judge interactively using "ccs-queryd" command.</p>
 
 <h2><a name="manager">3.6 manager</a></h2>
-<p>This file is used to read or append the list of PROGRAMS or DOMAINS that can write to /proc/tomoyo/ interface.</p>
+<p>This file is used to read or append the list of PROGRAMS or DOMAINS that can write to /sys/kernel/security/tomoyo/ interface.</p>
 
 <h2><a name=".domain_status">3.7 .domain_status</a></h2>
 <p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "setprofile" command can do line-oriented processing easily.</p>
 <h2><a name="meminfo">3.8 meminfo</a></h2>
 <p>This file is to show the total RAM used to keep policy in the kernel by TOMOYO Linux.</p>
 <p>(Example)<br>
-cat /proc/tomoyo/meminfo</p>
+cat /sys/kernel/security/tomoyo/meminfo</p>
 <h2><a name="self_domain">3.9 self_domain</a></h2>
 <p>This file is to show the name of domain the caller process belongs to.</p>
 <p>(Example)<br>
-cat /proc/tomoyo/self_domain</p>
+cat /sys/kernel/security/tomoyo/self_domain</p>
 <h2><a name=".process_status">3.10 .process_status</a></h2>
 <p>This file is used by "ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by PROGRAMS that aren't registered as policy manager.</p>
 <h2><a name=".updates_counter">3.11 .updates_counter</a></h2>
