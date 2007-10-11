@@ -218,11 +218,6 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <td>Yes</td>
 </tr>
 <tr>
-<td>MAC_FOR_SIGNAL</td>
-<td>Enable MAC for signal.</td>
-<td>Yes</td>
-</tr>
-<tr>
 <td>DENY_CONCEAL_MOUNT</td>
 <td>Forbid mount requests that hides an existing mount.</td>
 <td>No</td>
@@ -426,7 +421,6 @@ Therefore /dev/ and /dev/pts/ must not be unmounted for systems where / is read-
 <li>MAC for files</li>
 <li>MAC for argv[0]</li>
 <li>MAC for network addresses and ports</li>
-<li>MAC for signals</li>
 </ul>
 
 <p>You may specify additional condition for each permissions as needed. The syntax for additional condition is described later.</p>
@@ -478,7 +472,6 @@ programs to behave as cat in the domain of /bin/ls by creating a symbolic link n
 <tr><td>Directive</td><td>Granted Operation</td><td>Example</td></tr>
 <tr><td>allow_network TCP bind</td><td>Bind to local TCP address/port.</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
 <tr><td>allow_network TCP listen</td><td>Listen to local TCP address/port.</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP accept</td><td>Accept from and communicate with remote TCP address/port.</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
 <tr><td>allow_network TCP connect</td><td>Connect to and communicate with remote TCP address/port.</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
 <tr><td>allow_network UDP bind</td><td>Bind to local UDP address/port.</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
 <tr><td>allow_network UDP connect</td><td>Communicate with remote UDP address/port.</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
@@ -486,11 +479,6 @@ programs to behave as cat in the domain of /bin/ls by creating a symbolic link n
 <tr><td>allow_network RAW connect</td><td>Communicate with remote IP address/protocol.</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
 </table>
 <p>Use of "::" for IPv6 address representation is not supported. You need to use "0:0:0:0:0:0:0:1" for "::1".</p>
-<h3>MAC for signals</h3>
-<p>To grant permissions for signals, use allow_signal directive followed by signal number and Target domain.</p>
-<p>There are two exceptions. If signal number is 0, it is always granted. If the Target domain and the Source domain are the same, it is always granted.</p>
-<p>In other cases, signals are granted only when the signal number matches and the Target domain starts with the Target domain declared with this directive.</p>
-<p>If only &lt;kernel&gt; is declared as a Target domain, the Source domain can send signals to any domain with that signal number.</p>
 
 <h3><a name="conditional_acl">Conditional permission</a></h3>
 
@@ -630,7 +618,7 @@ address_group local-address 192.168.0.0-192.168.255.255
 
 <table border="1">
 <tr><td>
-allow_network TCP accept @local-address 1024-65535
+allow_network TCP connect @local-address 1024-65535
 </td></tr>
 </table>
 
