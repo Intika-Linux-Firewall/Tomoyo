@@ -20,7 +20,7 @@
 <p><a href="#system_policy.conf">2.3 システムポリシー（system_policy.conf）</a></p>
 <p><a href="#domain_policy.conf">2.4 ドメイン別ポリシー（domain_policy.conf）</a></p>
 <p><a href="#exception_policy.conf">2.5 例外ポリシー（exception_policy.conf）</a></p>
-<h2><a href="#/proc/tomoyo/">3. /proc/tomoyo/ インタフェース</a></h2>
+<h2><a href="#/sys/kernel/security/tomoyo/">3. /sys/kernel/security/tomoyo/ インタフェース</a></h2>
 <p><a href="#profile">3.1 profile</a></p>
 <p><a href="#system_policy">3.2 system_policy</a></p>
 <p><a href="#domain_policy">3.3 domain_policy</a></p>
@@ -179,8 +179,8 @@
 <h1><a name="policy_files_and_syntaxes">2. ポリシーファイルの分類と構文</a></h1>
 <p>ポリシーファイルは全て /etc/tomoyo/ ディレクトリに作成しておく。このディレクトリに存在するファイルが /sbin/init の開始時に /sbin/tomoyo-init によって読み込まれるようになっている。</p>
 <h2><a name="manager.conf">2.1 ポリシーマネージャ定義（manager.conf）</a></h2>
-<p>全てのプログラムがポリシーの変更を行えるのは危険であるため、このファイルには /proc/tomoyo/ インタフェースへの書き込みアクセスを許可するプログラムまたはドメインを定義しておく。</p>
-<p>このファイルに定義されていないプログラムやドメインからは /proc/tomoyo/ インタフェースへの書き込みアクセスができない。システム運用時にポリシーの変更を許可しない場合はこのファイルを削除しておく。</p>
+<p>全てのプログラムがポリシーの変更を行えるのは危険であるため、このファイルには /sys/kernel/security/tomoyo/ インタフェースへの書き込みアクセスを許可するプログラムまたはドメインを定義しておく。</p>
+<p>このファイルに定義されていないプログラムやドメインからは /sys/kernel/security/tomoyo/ インタフェースへの書き込みアクセスができない。システム運用時にポリシーの変更を許可しない場合はこのファイルを削除しておく。</p>
 <p>（例）<br>
 /usr/lib/ccs/loadpolicy<br>
 /usr/lib/ccs/editpolicy<br>
@@ -719,37 +719,37 @@ allow_network TCP accept @local-address 1024-65535
 <p>このディレクティブはドメイン遷移を行わせたい場合に使用する。</p>
 
 <hr>
-<h1><a name="/proc/tomoyo/">3. /proc/tomoyo/ インタフェース</a></h1>
+<h1><a name="/sys/kernel/security/tomoyo/">3. /sys/kernel/security/tomoyo/ インタフェース</a></h1>
 <p>これは、起動後にポリシーを読み出し／追加／削除を行うためのインタフェースである。<a href="#manager.conf">ポリシーマネージャ定義</a>で定義されたプログラムのみがポリシーの追加と削除を行える。</p>
 <h2><a name="profile">3.1 profile</a></h2>
 <p>現在の制御レベルを取得または変更する。</p>
 <p>（例）<br>
-cat /proc/tomoyo/profile<br>
-echo 'MAC_FOR_FILE=1' &gt; /proc/tomoyo/profile</p>
+cat /sys/kernel/security/tomoyo/profile<br>
+echo 'MAC_FOR_FILE=1' &gt; /sys/kernel/security/tomoyo/profile</p>
 <h2><a name="system_policy">3.2 system_policy</a></h2>
 <p>現在の<a href="#system_policy.conf">システムポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）<br>
-echo 'allow_mount /proc /proc/ proc' &gt; /proc/tomoyo/system_policy<br>
-echo 'delete allow_mount /proc /proc/ proc' &gt; /proc/tomoyo/system_policy<br>
-cat /proc/tomoyo/system_policy</p>
+echo 'allow_mount /proc /proc/ proc' &gt; /sys/kernel/security/tomoyo/system_policy<br>
+echo 'delete allow_mount /proc /proc/ proc' &gt; /sys/kernel/security/tomoyo/system_policy<br>
+cat /sys/kernel/security/tomoyo/system_policy</p>
 <h2><a name="domain_policy">3.3 domain_policy</a></h2>
 <p>現在の<a href="#domain_policy.conf">ドメイン別ポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成される）<br>
-printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/tomoyo/domain_policy</p>
+printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /sys/kernel/security/tomoyo/domain_policy</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されない）<br>
-printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/tomoyo/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /sys/kernel/security/tomoyo/domain_policy</p>
 <p>（例）ドメインを選択してアクセス許可を削除<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /proc/tomoyo/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /sys/kernel/security/tomoyo/domain_policy</p>
 <p>（例）特定のドメインを削除<br>
-printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/tomoyo/domain_policy</p>
+printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /sys/kernel/security/tomoyo/domain_policy</p>
 <p>（例）ドメイン別ポリシーの読み出し<br>
-cat /proc/tomoyo/domain_policy</p>
+cat /sys/kernel/security/tomoyo/domain_policy</p>
 <h2><a name="exception_policy">3.4 exception_policy</a></h2>
 <p>現在の<a href="#exception_policy.conf">例外ポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）<br>
-echo 'file_pattern /proc/\$/status' &gt; /proc/tomoyo/exception_policy<br>
-echo 'delete file_pattern /proc/\$/status' &gt; /proc/tomoyo/exception_policy<br>
-cat /proc/tomoyo/exception_policy</p>
+echo 'file_pattern /proc/\$/status' &gt; /sys/kernel/security/tomoyo/exception_policy<br>
+echo 'delete file_pattern /proc/\$/status' &gt; /sys/kernel/security/tomoyo/exception_policy<br>
+cat /sys/kernel/security/tomoyo/exception_policy</p>
 <h2><a name="query">3.5 query</a></h2>
 <p>強制モードで動作中にポリシー違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用する。 ALLOW_ENFORCE_GRACE=1 に設定されているプロファイルが割り当てられているドメインに対して強制モードでポリシー違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できる。</p>
 <h2><a name="manager">3.6 manager</a></h2>
@@ -759,11 +759,11 @@ cat /proc/tomoyo/exception_policy</p>
 <h2><a name="meminfo">3.8 meminfo</a></h2>
 <p>TOMOYO Linuxがポリシーを保持するために使用しているカーネルのメモリ情報を取得する。</p>
 <p>（例）<br>
-cat /proc/tomoyo/meminfo<br></p>
+cat /sys/kernel/security/tomoyo/meminfo<br></p>
 <h2><a name="self_domain">3.9 self_domain</a></h2>
 <p>呼び出し元プロセスが属しているドメインの名前を取得する。</p>
 <p>（例）<br>
-cat /proc/tomoyo/self_domain</p>
+cat /sys/kernel/security/tomoyo/self_domain</p>
 <h2><a name=".process_status">3.10 .process_status</a></h2>
 <p>ccstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシーマネージャとして登録されていないプログラムでも書き込みを行える。</p>
 <h2><a name=".updates_counter">3.11 .updates_counter</a></h2>
