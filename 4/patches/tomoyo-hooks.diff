@@ -7,12 +7,12 @@ this file will become more simpler and "namespace_sem" can remain "static".
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/tomoyo.c |  753 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 753 insertions(+)
+ security/tomoyo/tomoyo.c |  600 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 600 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-10-11 13:14:46.000000000 +0900
-@@ -0,0 +1,753 @@
++++ linux-2.6/security/tomoyo/tomoyo.c	2007-10-11 16:00:02.000000000 +0900
+@@ -0,0 +1,600 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -520,135 +520,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+#ifdef TMY_LSM_EXPANSION
-+static int tmy_socket_post_accept(struct socket *sock, struct socket *newsock)
-+{
-+	int error = 0;
-+	int addr_len;
-+	char addr[MAX_SOCK_ADDR];
-+	struct sockaddr *sockaddr = (struct sockaddr *) addr;
-+
-+	/* I don't check if called by kernel process. */
-+	if (segment_eq(get_fs(), KERNEL_DS))
-+		return 0;
-+
-+	if ((newsock->sk->sk_family != PF_INET) &&
-+	    (newsock->sk->sk_family != PF_INET6))
-+		return error;
-+
-+	if (newsock->ops->getname(newsock, sockaddr, &addr_len, 2) == 0) {
-+		switch (sockaddr->sa_family) {
-+			struct sockaddr_in6 *in6;
-+			struct sockaddr_in *in;
-+
-+		case AF_INET6:
-+			in6 = (struct sockaddr_in6 *) addr;
-+			error = tmy_network_accept_acl(1,
-+						       in6->sin6_addr.s6_addr,
-+						       in6->sin6_port);
-+			break;
-+
-+		case AF_INET:
-+			in = (struct sockaddr_in *) addr;
-+			error = tmy_network_accept_acl(0, (u8 *) &in->sin_addr,
-+						       in->sin_port);
-+			break;
-+		}
-+	} else
-+		error = -EPERM;
-+
-+	if (error)
-+		return -ECONNABORTED;
-+	return error;
-+}
-+
-+static int tmy_post_recv_datagram(struct sock *sk,
-+				  struct sk_buff *skb,
-+				  unsigned int flags)
-+{
-+	int error = 0;
-+	const unsigned int type = sk->sk_type;
-+
-+	/* skb_recv_datagram() didn't dequeue. */
-+	if (!skb)
-+		return 0;
-+
-+	/* skb_recv_datagram() can be called from interrupt context. */
-+	if (in_interrupt())
-+		return 0;
-+	/* I don't check if called by kernel process. */
-+	if (segment_eq(get_fs(), KERNEL_DS))
-+		return 0;
-+
-+	if (type != SOCK_DGRAM && type != SOCK_RAW)
-+		return 0;
-+
-+	switch (sk->sk_family) {
-+		struct sockaddr_in6 sin6;
-+		struct sockaddr_in sin;
-+		u16 port;
-+
-+	case AF_INET6:
-+
-+		if (type == SOCK_DGRAM) {
-+			/* UDP IPv6 */
-+			sin6.sin6_family = AF_INET6;
-+			sin6.sin6_port = udp_hdr(skb)->source;
-+
-+			if (skb->protocol == htons(ETH_P_IP))
-+				ipv6_addr_set(&sin6.sin6_addr, 0, 0,
-+					      htonl(0xffff),
-+					      ip_hdr(skb)->saddr);
-+			else
-+				ipv6_addr_copy(&sin6.sin6_addr,
-+					       &ipv6_hdr(skb)->saddr);
-+
-+			port = sin6.sin6_port;
-+		} else {
-+			/* RAW IPv6 */
-+			sin6.sin6_family = AF_INET6;
-+			sin6.sin6_port = 0;
-+			ipv6_addr_copy(&sin6.sin6_addr, &ipv6_hdr(skb)->saddr);
-+
-+			port = htons(sk->sk_protocol);
-+		}
-+
-+		error = tmy_network_recvmsg_acl(1, type,
-+						sin6.sin6_addr.s6_addr,	port);
-+
-+		break;
-+
-+	case AF_INET:
-+
-+		if (type == SOCK_DGRAM) {
-+			/* UDP IPv4 */
-+			sin.sin_family = AF_INET;
-+			sin.sin_port = udp_hdr(skb)->source;
-+			sin.sin_addr.s_addr = ip_hdr(skb)->saddr;
-+
-+			port = sin.sin_port;
-+		} else {
-+			/* RAW IPv4 */
-+			sin.sin_family = AF_INET;
-+			sin.sin_addr.s_addr = ip_hdr(skb)->saddr;
-+			sin.sin_port = 0;
-+
-+			port = htons(sk->sk_protocol);
-+		}
-+
-+		error = tmy_network_recvmsg_acl(0, type,
-+						(u8 *) &sin.sin_addr, port);
-+
-+		break;
-+
-+	}
-+
-+	if (error)
-+		error = -EAGAIN;
-+	return error;
-+}
-+#endif
-+
 +static int tmy_sb_mount(char *dev_name,
 +			struct nameidata *nd,
 +			char *type,
@@ -686,23 +557,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return tmy_pivot_root_perm(old_nd, new_nd);
 +}
 +
-+#ifdef TMY_LSM_EXPANSION
-+static int tmy_task_kill_unlocked(int pid, int sig)
-+{
-+	return tmy_signal_acl(sig, pid);
-+}
-+
-+static int tmy_task_tkill_unlocked(int pid, int sig)
-+{
-+	return tmy_signal_acl(sig, pid);
-+}
-+
-+static int tmy_task_tgkill_unlocked(int tgid, int pid, int sig)
-+{
-+	return tmy_signal_acl(sig, pid);
-+}
-+#endif
-+
 +static struct security_operations tomoyo_security_ops = {
 +	.task_alloc_security   = tmy_task_alloc_security,
 +	.task_free_security    = tmy_task_free_security,
@@ -729,13 +583,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.sb_mount              = tmy_sb_mount,
 +	.sb_umount             = tmy_sb_umount,
 +	.sb_pivotroot          = tmy_sb_pivotroot,
-+#ifdef TMY_LSM_EXPANSION
-+	.socket_post_accept    = tmy_socket_post_accept,
-+	.post_recv_datagram    = tmy_post_recv_datagram,
-+	.task_kill_unlocked    = tmy_task_kill_unlocked,
-+	.task_tkill_unlocked   = tmy_task_tkill_unlocked,
-+	.task_tgkill_unlocked  = tmy_task_tgkill_unlocked,
-+#endif
 +};
 +
 +static int __init tmy_init(void)
