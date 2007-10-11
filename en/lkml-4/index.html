@@ -3,19 +3,19 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>How to use TOMOYO Linux 2.1</title>
+<title>How to use TOMOYO Linux</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 
-<h1>TOMOYO Linux 2.1 Installation</h1>
+<h1>TOMOYO Linux Installation</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<p>This page describes how to install and experience TOMOYO Linux 2.1. TOMOYO Linux 2.1 was submitted to LKML in August 2007.</p>
+<p>This page describes how to install and experience TOMOYO Linux. TOMOYO Linux was submitted to LKML in October 2007.</p>
 
 <h2>Compiling TOMOYO Linux kernel</h2>
 
-<p>TOMOYO Linux 2.1 supports latest vanilla kernels (2.6.23-rc3 and later) available at http://www.kernel.org/ . Download it and extract it.</p>
+<p>TOMOYO Linux supports latest vanilla kernels (2.6.23-rc3 and later) available at http://www.kernel.org/ . Download it and extract it.</p>
 
 <p>The procedure below is for people who don't have subversion or quilt packages installed. If you have subversion and quilt packages installed, you don't have to follow the procedure below.</p>
 
@@ -25,11 +25,11 @@ $ tar -jxf linux-2.6.23.tar.bz2
 $ cd linux-2.6.23
 </pre>
 
-<p>The latest TOMOYO Linux 2.1 patch is available at http://svn.sourceforge.jp/svnroot/tomoyo/trunk/2.1.x/tomoyo-lsm/patches/ . Download it and extract it at the kernel source directory.</p>
+<p>The latest TOMOYO Linux patch is available at http://svn.sourceforge.jp/svnroot/tomoyo/tags/lkml/4/patches/ . Download it and extract it at the kernel source directory.</p>
 
 <pre>
-$ wget -O tomoyo-2.1.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/2.1.x/tomoyo-lsm/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/2.1.x/tomoyo-lsm/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
-$ tar -zxvf tomoyo-2.1.tar.gz
+$ wget -O tomoyo.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/4/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/4/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
+$ tar -zxvf tomoyo.tar.gz
 $ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
 </pre>
 
@@ -60,11 +60,11 @@ $ make -s
 
 <p>Create initrd if you need. Edit /boot/grub/grub.conf or /boot/grub/menu.lst if you need.</p>
 
-<p>Regarding TOMOYO Linux 2.0, you had to edit /boot/grub/grub.conf or /boot/grub/menu.lst to add "init=/.init" parameter to kernel's command line option. But regarding TOMOYO Linux 2.1, you don't need to edit /boot/grub/grub.conf or /boot/grub/menu.lst to add "init=/sbin/tomoyo-init" parameter because the TOMOYO Linux 2.1 kernel automatically executes /sbin/tomoyo-init when /sbin/init is about to start.</p>
+<p>Regarding TOMOYO Linux 2.0, you had to edit /boot/grub/grub.conf or /boot/grub/menu.lst to add "init=/.init" parameter to kernel's command line option. But regarding TOMOYO Linux, you don't need to edit /boot/grub/grub.conf or /boot/grub/menu.lst to add "init=/sbin/tomoyo-init" parameter because the TOMOYO Linux kernel automatically executes /sbin/tomoyo-init when /sbin/init is about to start.</p>
 
 <h2>Compiling TOMOYO Linux tools</h2>
 
-<p>You can download TOMOYO Linux 2.1 tools at http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz . Download it and extract it and compile it. The tools are installed in /usr/lib/ccs .</p>
+<p>You can download TOMOYO Linux tools at http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz . Download it and extract it and compile it. The tools are installed in /usr/lib/ccs .</p>
 
 <pre>
 $ wget -O tomoyo-tools.tar.gz '<a href="http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz">http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz</a>'
@@ -76,7 +76,7 @@ $ make
 
 <h2>Initial Configuration</h2>
 
-<p>Run tomoyo_init_policy.sh included in TOMOYO Linux 2.1 tools to perform initial configuration.</p>
+<p>Run tomoyo_init_policy.sh included in TOMOYO Linux tools to perform initial configuration.</p>
 
 <pre>
 # /usr/lib/ccs/tomoyo_init_policy.sh
@@ -104,7 +104,7 @@ TOMOYO Linux&gt;
 
 <p>If you press 'Enter' key or wait for 10 seconds, TOMOYO Linux gets enabled and policy is loaded. If you have trouble such as unable to login because of inappropriate TOMOYO Linux configuration, enter "disable" and press 'Enter' key to disable TOMOYO Linux.</p>
 
-<p>Login to the system as root user, and run editpolicy included in TOMOYO Linux 2.1 tools.</p>
+<p>Login to the system as root user, and run editpolicy included in TOMOYO Linux tools.</p>
 
 <pre>
 # /usr/lib/ccs/editpolicy
@@ -202,7 +202,6 @@ allow_network TCP listen 192.168.1.135 80
 
 <pre>
 4 /var/www/html/index.html
-allow_network TCP accept 192.168.1.1 2389
 </pre>
 
 <p>Some patterns for pathname is supported (See <a href="policy-reference.html#exception_policy.conf">Policy Specificatiions of TOMOYO Linux</a>) . In network permissions, you can also use range for both IP address and port number.</p>
@@ -215,7 +214,6 @@ allow_network TCP accept 192.168.1.1 2389
 4 /var/www/\*/\*/\*
 4 /var/www/\*/\*/\*/\*
 4 /var/www/\*/\*/\*/\*/\*
-allow_network TCP accept 192.168.0.0-192.168.255.255 1024-65535
 </pre>
 
 <p>'\*' means "more than or equals to 0 character other than '/'". To append an entry using editpolicy, press 'A' key and input content and press 'Enter' key.</p>
@@ -237,7 +235,6 @@ address_group PRIVATE_IP 192.168.0.0-192.168.255.255
 
 <pre>
 4 @WEB_CONTENTS
-allow_network TCP accept @PRIVATE_IP 1024-65535
 </pre>
 
 <p>As you see, by using path_group and address_group, you can write access permissions briefly.</p>
