@@ -8,12 +8,12 @@ Domain information is stored in task_struct->security.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/domain.c | 1256 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 1256 insertions(+)
+ security/tomoyo/domain.c | 1259 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1259 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/domain.c	2007-10-02 11:26:21.000000000 +0900
-@@ -0,0 +1,1256 @@
++++ linux-2.6.23/security/tomoyo/domain.c	2007-10-11 13:14:45.000000000 +0900
+@@ -0,0 +1,1259 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -27,16 +27,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/*************************  VARIABLES  *************************/
 +
++struct domain_info KERNEL_DOMAIN;
++
 +/* Lock for appending domain's ACL. */
-+DECLARE_MUTEX(domain_acl_lock);
++DEFINE_MUTEX(domain_acl_lock);
 +
 +/* Domain creation lock. */
-+static DECLARE_MUTEX(new_domain_assign_lock);
++static DEFINE_MUTEX(new_domain_assign_lock);
 +
 +/***** The structure for program files to force domain reconstruction. *****/
 +
 +struct domain_initializer_entry {
-+	struct domain_initializer_entry *next;
++	struct list_head list;
 +	const struct path_info *domainname;    /* This may be NULL */
 +	const struct path_info *program;
 +	u8 is_deleted;
@@ -47,7 +49,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/***** The structure for domains to not to transit domains. *****/
 +
 +struct domain_keeper_entry {
-+	struct domain_keeper_entry *next;
++	struct list_head list;
 +	const struct path_info *domainname;
 +	const struct path_info *program;       /* This may be NULL */
 +	u8 is_deleted;
@@ -58,7 +60,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/***** The structure for program files that should be aggregated. *****/
 +
 +struct aggregator_entry {
-+	struct aggregator_entry *next;
++	struct list_head list;
 +	const struct path_info *original_name;
 +	const struct path_info *aggregated_name;
 +	u8 is_deleted;
@@ -67,7 +69,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/***** The structure for program files that should be aliased. *****/
 +
 +struct alias_entry {
-+	struct alias_entry *next;
++	struct list_head list;
 +	const struct path_info *original_name;
 +	const struct path_info *aliased_name;
 +	u8 is_deleted;
@@ -91,26 +93,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/**
 + * tmy_add_acl - add an entry to a domain.
-+ * @ptr: pointer to the last "struct acl_info" of @domain. May be NULL.
 + * @domain: pointer to "struct domain_info".
-+ * @new_ptr: pointer to "struct acl_info" to add.
++ * @acl: pointer to "struct acl_info" to add.
 + *
 + * Returns zero.
-+ *
-+ * To be honest, I can calculate @ptr from @domain.
-+ * But since the caller knows @ptr, I use it.
 + */
-+int tmy_add_acl(struct acl_info *ptr,
-+		struct domain_info *domain,
-+		struct acl_info *new_ptr)
++int tmy_add_acl(struct domain_info *domain, struct acl_info *acl)
 +{
-+	mb(); /* Instead of using spinlock. */
-+
-+	if (!ptr)
-+		domain->first_acl_ptr = (struct acl_info *) new_ptr;
-+	else
-+		ptr->next = (struct acl_info *) new_ptr;
-+
++	INIT_LIST_HEAD(&acl->list);
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by domain_acl_lock. */
++	list_add_tail_rcu(&acl->list, &domain->acl_info_list);
 +	tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
 +	return 0;
 +}
@@ -123,8 +116,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * TOMOYO Linux doesn't free memory used by policy because policies are not
 + * so frequently changed after entring into enforcing mode.
-+ * This makes the code free of read-lock.
-+ * The caller uses "down(&domain_acl_lock);" as write-lock.
 + */
 +int tmy_del_acl(struct acl_info *ptr)
 +{
@@ -135,7 +126,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/************************  DOMAIN INITIALIZER HANDLER  ************************/
 +
-+static struct domain_initializer_entry *domain_initializer_list;
++static LIST_HEAD(domain_initializer_list);
 +
 +/* Update domain initializer list. */
 +static int tmy_add_domain_initializer_entry(const char *domainname,
@@ -145,7 +136,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct domain_initializer_entry *new_entry;
 +	struct domain_initializer_entry *ptr;
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	const struct path_info *saved_program;
 +	const struct path_info *saved_domainname = NULL;
 +	int error = -ENOMEM;
@@ -171,17 +162,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved_program)
 +		return -ENOMEM;
 +
-+	down(&lock);
++	mutex_lock(&mutex);
 +
-+	for (ptr = domain_initializer_list; ptr; ptr = ptr->next) {
-+		if (ptr->is_not == is_not &&
-+		    ptr->domainname == saved_domainname &&
-+		    ptr->program == saved_program) {
-+			ptr->is_deleted = is_delete;
-+			error = 0;
-+			goto out;
-+		}
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain_initializer_list, list) {
++		if (ptr->is_not != is_not ||
++		    ptr->domainname != saved_domainname ||
++		    ptr->program != saved_program)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	if (is_delete) {
 +		error = -ENOENT;
@@ -197,19 +192,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	new_entry->is_not = is_not;
 +	new_entry->is_last_name = is_last_name;
 +
-+	mb(); /* Instead of using spinlock. */
-+	ptr = domain_initializer_list;
-+	if (ptr) {
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = new_entry;
-+	} else
-+		domain_initializer_list = new_entry;
-+
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_entry->list, &domain_initializer_list);
 +	error = 0;
 +out: ;
-+
-+	up(&lock);
++	mutex_unlock(&mutex);
 +	return error;
 +}
 +
@@ -222,33 +210,38 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tmy_read_domain_initializer_policy(struct io_buffer *head)
 +{
-+	struct domain_initializer_entry *ptr = head->read_var2;
++	struct list_head *pos;
++	int error = -ENOMEM;
 +
-+	if (!ptr)
-+		ptr = domain_initializer_list;
-+
-+	while (ptr) {
-+		head->read_var2 = ptr;
-+		if (!ptr->is_deleted) {
-+			const char *s1 = ptr->is_not ? "no_" : "";
-+			const char *s2 = TMY_INITIALIZE_DOMAIN;
-+			const char *s3 = ptr->program->name;
-+
-+			if (ptr->domainname) {
-+				if (tmy_io_printf(head, "%s%s%s from %s\n",
-+						  s1, s2, s3,
-+						  ptr->domainname->name))
-+					break;
-+			} else {
-+				if (tmy_io_printf(head, "%s%s%s\n",
-+						  s1, s2, s3))
-+					break;
-+			}
++	rcu_read_lock();
++	pos = head->read_var2;
++	if (!pos)
++		pos = &domain_initializer_list;
++	list_for_each_continue_rcu(pos, &domain_initializer_list) {
++		struct domain_initializer_entry *ptr;
++		ptr = list_entry(pos, struct domain_initializer_entry, list);
++		head->read_var2 = pos->prev;
++		if (ptr->is_deleted)
++			continue;
++		if (ptr->domainname) {
++			if (tmy_io_printf(head, "%s" TMY_INITIALIZE_DOMAIN
++					  "%s from %s\n",
++					  ptr->is_not ? "no_" : "",
++					  ptr->program->name,
++					  ptr->domainname->name))
++				goto out;
++		} else {
++			if (tmy_io_printf(head, "%s" TMY_INITIALIZE_DOMAIN
++					  "%s\n",
++					  ptr->is_not ? "no_" : "",
++					  ptr->program->name))
++				goto out;
 +		}
-+		ptr = ptr->next;
 +	}
-+
-+	return ptr ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/**
@@ -285,7 +278,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct domain_initializer_entry *ptr;
 +	int flag = 0;
 +
-+	for (ptr = domain_initializer_list; ptr; ptr = ptr->next) {
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain_initializer_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
 +
@@ -301,18 +295,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +		if (tmy_pathcmp(ptr->program, program))
 +			continue;
-+		if (ptr->is_not)
-+			return 0;
-+
++		if (ptr->is_not) {
++			flag = 0;
++			break;
++		}
 +		flag = 1;
 +	}
-+
++	rcu_read_unlock();
 +	return flag;
 +}
 +
 +/*************************  DOMAIN KEEPER HANDLER  *************************/
 +
-+static struct domain_keeper_entry *domain_keeper_list;
++static LIST_HEAD(domain_keeper_list);
 +
 +/* Update domain keeper list. */
 +static int tmy_add_domain_keeper_entry(const char *domainname,
@@ -324,7 +319,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct domain_keeper_entry *ptr;
 +	const struct path_info *saved_domainname;
 +	const struct path_info *saved_program = NULL;
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	int error = -ENOMEM;
 +	u8 is_last_name = 0;
 +
@@ -348,17 +343,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved_domainname)
 +		return -ENOMEM;
 +
-+	down(&lock);
-+
-+	for (ptr = domain_keeper_list; ptr; ptr = ptr->next) {
-+		if (ptr->is_not == is_not &&
-+		    ptr->domainname == saved_domainname &&
-+		    ptr->program == saved_program) {
-+			ptr->is_deleted = is_delete;
-+			error = 0;
-+			goto out;
-+		}
++	mutex_lock(&mutex);
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain_keeper_list, list) {
++		if (ptr->is_not != is_not ||
++		    ptr->domainname != saved_domainname ||
++		    ptr->program != saved_program)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	if (is_delete) {
 +		error = -ENOENT;
@@ -373,20 +371,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	new_entry->program = saved_program;
 +	new_entry->is_not = is_not;
 +	new_entry->is_last_name = is_last_name;
-+
-+	mb(); /* Instead of using spinlock. */
-+	ptr = domain_keeper_list;
-+	if (ptr) {
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = new_entry;
-+	} else
-+		domain_keeper_list = new_entry;
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_entry->list, &domain_keeper_list);
 +	error = 0;
-+
 +out: ;
-+
-+	up(&lock);
++	mutex_unlock(&mutex);
 +	return error;
 +}
 +
@@ -426,16 +416,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tmy_read_domain_keeper_policy(struct io_buffer *head)
 +{
-+	struct domain_keeper_entry *ptr = head->read_var2;
++	struct list_head *pos;
++	int error = -ENOMEM;
 +
-+	if (!ptr)
-+		ptr = domain_keeper_list;
-+
-+	for (; ptr; ptr = ptr->next) {
-+		head->read_var2 = ptr;
++	rcu_read_lock();
++	pos = head->read_var2;
++	if (!pos)
++		pos = &domain_keeper_list;
++	list_for_each_continue_rcu(pos, &domain_keeper_list) {
++		struct domain_keeper_entry *ptr;
++		ptr = list_entry(pos, struct domain_keeper_entry, list);
++		head->read_var2 = pos->prev;
 +		if (ptr->is_deleted)
 +			continue;
-+
 +		if (ptr->program) {
 +			if (tmy_io_printf(head,
 +					  "%s" TMY_KEEP_DOMAIN
@@ -443,20 +436,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					  ptr->is_not ? "no_" : "",
 +					  ptr->program->name,
 +					  ptr->domainname->name))
-+				break;
-+
++				goto out;
 +		} else {
 +			if (tmy_io_printf(head,
 +					  "%s" TMY_KEEP_DOMAIN
 +					  "%s\n",
 +					  ptr->is_not ? "no_" : "",
 +					  ptr->domainname->name))
-+				break;
-+
++				goto out;
 +		}
 +	}
-+
-+	return ptr ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/* Should I remain in current domain? */
@@ -467,10 +460,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct domain_keeper_entry *ptr;
 +	int flag = 0;
 +
-+	for (ptr = domain_keeper_list; ptr; ptr = ptr->next) {
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain_keeper_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
-+
 +		if (!ptr->is_last_name) {
 +			if (ptr->domainname != domainname)
 +				continue;
@@ -478,20 +471,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (tmy_pathcmp(ptr->domainname, last_name))
 +				continue;
 +		}
-+
 +		if (ptr->program && tmy_pathcmp(ptr->program, program))
 +			continue;
-+		if (ptr->is_not)
-+			return 0;
++		if (ptr->is_not) {
++			flag = 0;
++			break;
++		}
 +		flag = 1;
 +	}
-+
++	rcu_read_unlock();
 +	return flag;
 +}
 +
 +/*********************  SYMBOLIC LINKED PROGRAM HANDLER  *********************/
 +
-+static struct alias_entry *alias_list;
++static LIST_HEAD(alias_list);
 +
 +/* Update alias list. */
 +static int tmy_add_alias_entry(const char *original_name,
@@ -500,7 +494,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct alias_entry *new_entry;
 +	struct alias_entry *ptr;
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	const struct path_info *saved_original_name;
 +	const struct path_info *saved_aliased_name;
 +	int error = -ENOMEM;
@@ -514,16 +508,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved_original_name || !saved_aliased_name)
 +		return -ENOMEM;
 +
-+	down(&lock);
++	mutex_lock(&mutex);
 +
-+	for (ptr = alias_list; ptr; ptr = ptr->next) {
-+		if (ptr->original_name == saved_original_name &&
-+		    ptr->aliased_name == saved_aliased_name) {
-+			ptr->is_deleted = is_delete;
-+			error = 0;
-+			goto out;
-+		}
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &alias_list, list) {
++		if (ptr->original_name != saved_original_name ||
++		    ptr->aliased_name != saved_aliased_name)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	if (is_delete) {
 +		error = -ENOENT;
@@ -537,20 +535,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	new_entry->original_name = saved_original_name;
 +	new_entry->aliased_name = saved_aliased_name;
 +
-+	mb(); /* Instead of using spinlock. */
-+	ptr = alias_list;
-+	if (ptr) {
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = new_entry;
-+	} else
-+		alias_list = new_entry;
-+
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_entry->list, &alias_list);
 +	error = 0;
 +out: ;
-+
-+	up(&lock);
-+
++	mutex_unlock(&mutex);
 +	return error;
 +}
 +
@@ -563,22 +553,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tmy_read_alias_policy(struct io_buffer *head)
 +{
-+	struct alias_entry *ptr = head->read_var2;
++	struct list_head *pos;
++	int error = -ENOMEM;
 +
-+	if (!ptr)
-+		ptr = alias_list;
-+
-+	for (; ptr; ptr = ptr->next) {
-+		head->read_var2 = ptr;
-+		if (!ptr->is_deleted &&
-+		    tmy_io_printf(head,
++	rcu_read_lock();
++	pos = head->read_var2;
++	if (!pos)
++		pos = &alias_list;
++	list_for_each_continue_rcu(pos, &alias_list) {
++		struct alias_entry *ptr;
++		ptr = list_entry(pos, struct alias_entry, list);
++		head->read_var2 = pos->prev;
++		if (ptr->is_deleted)
++			continue;
++		if (tmy_io_printf(head,
 +				  TMY_ALIAS "%s %s\n",
 +				  ptr->original_name->name,
 +				  ptr->aliased_name->name))
-+			break;
++			goto out;
 +	}
-+
-+	return ptr ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/**
@@ -604,7 +601,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/************************  DOMAIN AGGREGATOR HANDLER  ************************/
 +
-+static struct aggregator_entry *aggregator_list;
++static LIST_HEAD(aggregator_list);
 +
 +/* Update aggregator list. */
 +static int tmy_add_aggregator_entry(const char *original_name,
@@ -613,7 +610,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct aggregator_entry *new_entry;
 +	struct aggregator_entry *ptr;
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	const struct path_info *saved_original_name;
 +	const struct path_info *saved_aggregated_name;
 +	int error = -ENOMEM;
@@ -624,19 +621,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	saved_original_name = tmy_save_name(original_name);
 +	saved_aggregated_name = tmy_save_name(aggregated_name);
-+	if (!saved_original_name || saved_aggregated_name)
++	if (!saved_original_name || !saved_aggregated_name)
 +		return -ENOMEM;
 +
-+	down(&lock);
++	mutex_lock(&mutex);
 +
-+	for (ptr = aggregator_list; ptr; ptr = ptr->next) {
-+		if (ptr->original_name == saved_original_name &&
-+		    ptr->aggregated_name == saved_aggregated_name) {
-+			ptr->is_deleted = is_delete;
-+			error = 0;
-+			goto out;
-+		}
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &aggregator_list, list) {
++		if (ptr->original_name != saved_original_name ||
++		    ptr->aggregated_name != saved_aggregated_name)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	if (is_delete) {
 +		error = -ENOENT;
@@ -650,20 +651,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	new_entry->original_name = saved_original_name;
 +	new_entry->aggregated_name = saved_aggregated_name;
 +
-+	mb(); /* Instead of using spinlock. */
-+	ptr = aggregator_list;
-+	if (ptr) {
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = new_entry;
-+	} else
-+		aggregator_list = new_entry;
-+
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_entry->list, &aggregator_list);
 +	error = 0;
 +out: ;
-+
-+	up(&lock);
-+
++	mutex_unlock(&mutex);
 +	return error;
 +}
 +
@@ -676,22 +669,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tmy_read_aggregator_policy(struct io_buffer *head)
 +{
-+	struct aggregator_entry *ptr = head->read_var2;
++	struct list_head *pos;
++	int error = -ENOMEM;
 +
-+	if (!ptr)
-+		ptr = aggregator_list;
-+
-+	for (; ptr; ptr = ptr->next) {
-+		head->read_var2 = ptr;
-+		if (!ptr->is_deleted &&
-+		    tmy_io_printf(head,
++	rcu_read_lock();
++	pos = head->read_var2;
++	if (!pos)
++		pos = &aggregator_list;
++	list_for_each_continue_rcu(pos, &aggregator_list) {
++		struct aggregator_entry *ptr;
++		ptr = list_entry(pos, struct aggregator_entry, list);
++		head->read_var2 = pos->prev;
++		if (ptr->is_deleted)
++			continue;
++		if (tmy_io_printf(head,
 +				  TMY_AGGREGATOR "%s %s\n",
 +				  ptr->original_name->name,
 +				  ptr->aggregated_name->name))
-+			break;
++			goto out;
 +	}
-+
-+	return ptr ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/**
@@ -737,38 +737,33 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_delete_domain(char *domainname0)
 +{
 +	struct domain_info *domain;
++	struct domain_info *domain2;
 +	struct path_info domainname;
 +
 +	domainname.name = domainname0;
 +	tmy_fill_path_info(&domainname);
 +
-+	down(&new_domain_assign_lock);
-+
-+	/* Is there an active domain? */ /* Never delete KERNEL_DOMAIN */
-+	for (domain = KERNEL_DOMAIN.next; domain; domain = domain->next) {
-+		if (domain->is_deleted ||
++	mutex_lock(&new_domain_assign_lock);
++	/* Is there an active domain? */
++	rcu_read_lock();
++	list_for_each_entry_rcu(domain, &domain_list, list) {
++		/* Never delete KERNEL_DOMAIN */
++		if (domain == &KERNEL_DOMAIN || domain->is_deleted ||
 +		    tmy_pathcmp(domain->domainname, &domainname))
 +			continue;
-+		break;
-+	}
-+	if (domain) {
-+		struct domain_info *domain2;
-+
 +		/* Mark already deleted domains as non undeletable. */
-+		for (domain2 = KERNEL_DOMAIN.next;
-+		     domain2;
-+		     domain2 = domain2->next) {
++		list_for_each_entry_rcu(domain2, &domain_list, list) {
 +			if (!domain2->is_deleted ||
 +			    tmy_pathcmp(domain2->domainname, &domainname))
 +				continue;
 +			domain2->is_deleted = 255;
 +		}
-+
 +		/* Delete and mark active domain as undeletable. */
 +		domain->is_deleted = 1;
++		break;
 +	}
-+
-+	up(&new_domain_assign_lock);
++	rcu_read_unlock();
++	mutex_unlock(&new_domain_assign_lock);
 +
 +	return 0;
 +}
@@ -796,9 +791,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	domainname.name = domainname0;
 +	tmy_fill_path_info(&domainname);
 +
-+	down(&new_domain_assign_lock);
++	mutex_lock(&new_domain_assign_lock);
 +
-+	for (domain = KERNEL_DOMAIN.next; domain; domain = domain->next) {
++	rcu_read_lock();
++	list_for_each_entry_rcu(domain, &domain_list, list) {
 +		if (tmy_pathcmp(&domainname, domain->domainname))
 +			continue;
 +
@@ -814,8 +810,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	if (candidate_domain)
 +		candidate_domain->is_deleted = 0;
-+
-+	up(&new_domain_assign_lock);
++	rcu_read_unlock();
++	mutex_unlock(&new_domain_assign_lock);
 +
 +	return candidate_domain;
 +}
@@ -835,24 +831,22 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct domain_info *tmy_find_domain(const char *domainname0)
 +{
 +	struct domain_info *domain;
-+	static int first = 1;
++	struct domain_info *found = NULL;
 +	struct path_info domainname;
 +
 +	domainname.name = domainname0;
 +	tmy_fill_path_info(&domainname);
 +
-+	if (first) {
-+		KERNEL_DOMAIN.domainname = tmy_save_name(TMY_ROOT_NAME);
-+		first = 0;
++	rcu_read_lock();
++	list_for_each_entry_rcu(domain, &domain_list, list) {
++		if (domain->is_deleted ||
++		    tmy_pathcmp(&domainname, domain->domainname))
++			continue;
++		found = domain;
++		break;
 +	}
-+
-+	for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
-+		if (!domain->is_deleted &&
-+		    !tmy_pathcmp(&domainname, domain->domainname))
-+			return domain;
-+	}
-+
-+	return NULL;
++	rcu_read_unlock();
++	return found;
 +}
 +
 +/**
@@ -871,8 +865,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct domain_info *domain = NULL;
 +	const struct path_info *saved_domainname;
++	int error = -ENOMEM;
 +
-+	down(&new_domain_assign_lock);
++	mutex_lock(&new_domain_assign_lock);
 +
 +	domain = tmy_find_domain(domainname);
 +	if (domain)
@@ -886,7 +881,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto out;
 +
 +	/* Can I reuse memory of deleted domain? */
-+	for (domain = KERNEL_DOMAIN.next; domain; domain = domain->next) {
++	rcu_read_lock();
++	list_for_each_entry_rcu(domain, &domain_list, list) {
 +		struct task_struct *p;
 +		struct acl_info *ptr;
 +		int flag;
@@ -916,33 +912,36 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		/* OK. Let's reuse memory for this deleted domain. */
 +
 +		/* Delete all entries in this deleted domain. */
-+		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next)
++		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list)
 +			ptr->is_deleted = 1;
 +
 +		domain->profile = profile;
 +		domain->quota_warned = 0;
 +
-+		mb(); /* Instead of using spinlock. */
++		mb(); /* Avoid out-of-order execution. */
 +		/* Undelete this deleted domain. */
 +		domain->is_deleted = 0;
-+		goto out;
++		error = 0;
++		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	/* No memory reusable. Create using new memory. */
 +	domain = tmy_alloc_element(sizeof(*domain));
-+	if (domain) {
-+		struct domain_info *ptr = &KERNEL_DOMAIN;
++	if (!domain)
++		goto out;
 +
-+		domain->domainname = saved_domainname;
-+		domain->profile = profile;
-+
-+		mb(); /* Instead of using spinlock. */
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = domain;
-+	}
++	INIT_LIST_HEAD(&domain->list);
++	INIT_LIST_HEAD(&domain->acl_info_list);
++	domain->domainname = saved_domainname;
++	domain->profile = profile;
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by new_domain_assign_lock. */
++	list_add_tail_rcu(&domain->list, &domain_list);
 +out: ;
-+	up(&new_domain_assign_lock);
++	mutex_unlock(&new_domain_assign_lock);
 +
 +	return domain;
 +}
@@ -1125,7 +1124,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		struct alias_entry *ptr;
 +
 +		/* Is this program allowed to be called via symbolic links? */
-+		for (ptr = alias_list; ptr; ptr = ptr->next) {
++		rcu_read_lock();
++		list_for_each_entry_rcu(ptr, &alias_list, list) {
 +			if (ptr->is_deleted ||
 +			    tmy_pathcmp(&r, ptr->original_name) ||
 +			    tmy_pathcmp(&s, ptr->aliased_name))
@@ -1137,6 +1137,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			tmy_fill_path_info(&r);
 +			break;
 +		}
++		rcu_read_unlock();
 +	}
 +
 +	/* Compare basename of real_program_name and argv[0] */
@@ -1189,7 +1190,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		struct aggregator_entry *ptr;
 +
 +		/* Is this program allowed to be aggregated? */
-+		for (ptr = aggregator_list; ptr; ptr = ptr->next) {
++		rcu_read_lock();
++		list_for_each_entry_rcu(ptr, &aggregator_list, list) {
 +			if (ptr->is_deleted ||
 +			    !tmy_path_match(&r, ptr->original_name))
 +				continue;
@@ -1200,6 +1202,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			tmy_fill_path_info(&r);
 +			break;
 +		}
++		rcu_read_unlock();
 +	}
 +
 +	/* Check execute permission. */

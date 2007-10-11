@@ -9,12 +9,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/file.c | 1544 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 1544 insertions(+)
+ security/tomoyo/file.c | 1551 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1551 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/file.c	2007-10-02 11:26:22.000000000 +0900
-@@ -0,0 +1,1544 @@
++++ linux-2.6.23/security/tomoyo/file.c	2007-10-11 13:14:46.000000000 +0900
+@@ -0,0 +1,1551 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -30,7 +30,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/***** The structure for globally readable files. *****/
 +
 +struct globally_readable_file_entry {
-+	struct globally_readable_file_entry *next;
++	struct list_head list;
 +	const struct path_info *filename;
 +	u8 is_deleted;
 +};
@@ -38,7 +38,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/***** The structure for filename patterns. *****/
 +
 +struct pattern_entry {
-+	struct pattern_entry *next;
++	struct list_head list;
 +	const struct path_info *pattern;
 +	u8 is_deleted;
 +};
@@ -46,7 +46,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/***** The structure for non-rewritable-by-default file patterns. *****/
 +
 +struct no_rewrite_entry {
-+	struct no_rewrite_entry *next;
++	struct list_head list;
 +	const struct path_info *pattern;
 +	u8 is_deleted;
 +};
@@ -224,14 +224,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/**********************  GLOBALLY READABLE FILE HANDLER  **********************/
 +
-+static struct globally_readable_file_entry *globally_readable_list;
++static LIST_HEAD(globally_readable_file_entry_list);
 +
 +static int tmy_add_globally_readable_entry(const char *filename,
 +					   const u8 is_delete)
 +{
 +	struct globally_readable_file_entry *new_entry;
 +	struct globally_readable_file_entry *ptr;
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	const struct path_info *saved;
 +	int error = -ENOMEM;
 +
@@ -241,15 +241,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved)
 +		return -ENOMEM;
 +
-+	down(&lock);
++	mutex_lock(&mutex);
 +
-+	for (ptr = globally_readable_list; ptr; ptr = ptr->next) {
-+		if (ptr->filename == saved) {
-+			ptr->is_deleted = is_delete;
-+			error = 0;
-+			goto out;
-+		}
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &globally_readable_file_entry_list, list) {
++		if (ptr->filename != saved)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +	if (is_delete) {
 +		error = -ENOENT;
 +		goto out;
@@ -260,34 +264,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto out;
 +
 +	new_entry->filename = saved;
-+	mb(); /* Instead of using spinlock. */
-+	ptr = globally_readable_list;
-+	if (ptr) {
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = new_entry;
-+	} else
-+		globally_readable_list = new_entry;
-+
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_entry->list, &globally_readable_file_entry_list);
 +	error = 0;
-+
 +out: ;
-+	up(&lock);
-+
++	mutex_unlock(&mutex);
 +	return error;
 +}
 +
 +static int tmy_globally_readable(const struct path_info *filename)
 +{
 +	struct globally_readable_file_entry *ptr;
++	u8 found = 0;
 +
-+	for (ptr = globally_readable_list; ptr; ptr = ptr->next) {
-+		if (!ptr->is_deleted &&
-+		    !tmy_pathcmp(filename, ptr->filename))
-+			return 1;
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &globally_readable_file_entry_list, list) {
++		if (ptr->is_deleted || tmy_pathcmp(filename, ptr->filename))
++			continue;
++		found = 1;
++		break;
 +	}
-+
-+	return 0;
++	rcu_read_unlock();
++	return found;
 +}
 +
 +/**
@@ -312,39 +311,47 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tmy_read_globally_readable_policy(struct io_buffer *head)
 +{
-+	struct globally_readable_file_entry *ptr = head->read_var2;
++	struct list_head *pos;
++	int error = -ENOMEM;
 +
-+	if (!ptr)
-+		ptr = globally_readable_list;
-+
-+	while (ptr) {
-+		head->read_var2 = ptr;
-+		if (!ptr->is_deleted &&
-+		    tmy_io_printf(head, TMY_ALLOW_READ "%s\n",
++	rcu_read_lock();
++	pos = head->read_var2;
++	if (!pos)
++		pos = &globally_readable_file_entry_list;
++	list_for_each_continue_rcu(pos, &globally_readable_file_entry_list) {
++		struct globally_readable_file_entry *ptr;
++		ptr = list_entry(pos, struct globally_readable_file_entry,
++				 list);
++		head->read_var2 = pos->prev;
++		if (ptr->is_deleted)
++			continue;
++		if (tmy_io_printf(head, TMY_ALLOW_READ "%s\n",
 +				  ptr->filename->name))
-+			break;
-+		ptr = ptr->next;
++			goto out;
 +	}
-+
-+	return ptr ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/*************************  FILE GROUP HANDLER  *************************/
 +
-+static struct group_entry *group_list;
++static LIST_HEAD(path_group_entry_list);
 +
 +static int tmy_add_group_entry(const char *group_name,
 +			       const char *member_name,
 +			       const u8 is_delete)
 +{
-+	static DECLARE_MUTEX(lock);
-+	struct group_entry *new_group;
-+	struct group_entry *group;
-+	struct group_member *new_member;
-+	struct group_member *member;
++	static DEFINE_MUTEX(mutex);
++	struct path_group_entry *new_group;
++	struct path_group_entry *group;
++	struct path_group_member *new_member;
++	struct path_group_member *member;
 +	const struct path_info *saved_group;
 +	const struct path_info *saved_member;
 +	int error = -ENOMEM;
++	u8 group_found = 0;
 +
 +	if (!tmy_correct_path(group_name, 0, 0, 0, __FUNCTION__) ||
 +	    !group_name[0] ||
@@ -358,43 +365,40 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved_group || !saved_member)
 +		return -ENOMEM;
 +
-+	down(&lock);
-+	for (group = group_list; group; group = group->next) {
++	mutex_lock(&mutex);
++	rcu_read_lock();
++	list_for_each_entry_rcu(group, &path_group_entry_list, list) {
 +		if (saved_group != group->group_name)
 +			continue;
-+
-+		for (member = group->first_member;
-+		     member;
-+		     member = member->next) {
++		group_found = 1;
++		list_for_each_entry_rcu(member, &group->path_group_member_list,
++					list) {
 +			if (member->member_name == saved_member) {
 +				member->is_deleted = is_delete;
 +				error = 0;
-+				goto out;
++				break;
 +			}
 +		}
 +		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	if (is_delete) {
 +		error = -ENOENT;
 +		goto out;
 +	}
 +
-+	if (!group) {
++	if (!group_found) {
 +		new_group = tmy_alloc_element(sizeof(*new_group));
 +		if (!new_group)
 +			goto out;
++		INIT_LIST_HEAD(&new_group->path_group_member_list);
 +		new_group->group_name = saved_group;
-+		mb(); /* Instead of using spinlock. */
-+		group = group_list;
-+
-+		if (group) {
-+			while (group->next)
-+				group = group->next;
-+			group->next = new_group;
-+		} else
-+			group_list = new_group;
-+
++		mb(); /* Avoid out-of-order execution. */
++		/* RCU: Protected by mutex. */
++		list_add_tail_rcu(&new_group->list, &path_group_entry_list);
 +		group = new_group;
 +	}
 +
@@ -402,20 +406,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!new_member)
 +		goto out;
 +
++	INIT_LIST_HEAD(&new_member->list);
 +	new_member->member_name = saved_member;
-+	mb(); /* Instead of using spinlock. */
-+	member = group->first_member;
-+
-+	if (member) {
-+		while (member->next)
-+			member = member->next;
-+		member->next = new_member;
-+	} else
-+		group->first_member = new_member;
-+
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_member->list, &group->path_group_member_list);
 +	error = 0;
 +out: ;
-+	up(&lock);
++	mutex_unlock(&mutex);
 +
 +	return error;
 +}
@@ -438,17 +436,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return tmy_add_group_entry(data, cp, is_delete);
 +}
 +
-+static struct group_entry *tmy_new_path_group(const char *group_name)
++static struct path_group_entry *tmy_new_path_group(const char *group_name)
 +{
 +	int i;
-+	struct group_entry *group;
++	struct path_group_entry *group;
++	u8 found = 0;
 +
 +	for (i = 0; i <= 1; i++) {
-+		for (group = group_list; group; group = group->next) {
-+			if (strcmp(group_name, group->group_name->name) == 0)
-+				return group;
++		rcu_read_lock();
++		list_for_each_entry_rcu(group, &path_group_entry_list, list) {
++			if (strcmp(group_name, group->group_name->name) == 0) {
++				found = 1;
++				break;
++			}
 +		}
-+
++		rcu_read_unlock();
++		if (found)
++			return group;
 +		if (i == 0) {
 +			/*
 +			 * Add a dummy entry to create new path group
@@ -458,81 +462,91 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			tmy_add_group_entry(group_name, "/", 1);
 +		}
 +	}
-+
 +	return NULL;
 +}
 +
 +static int tmy_path_match_group(const struct path_info *pathname,
-+				const struct group_entry *group,
++				const struct path_group_entry *group,
 +				const int may_use_pattern)
 +{
-+	struct group_member *member;
++	struct path_group_member *member;
++	u8 found = 0;
 +
-+	for (member = group->first_member; member; member = member->next) {
++	rcu_read_lock();
++	list_for_each_entry_rcu(member, &group->path_group_member_list, list) {
 +		if (member->is_deleted)
 +			continue;
-+
 +		if (!member->member_name->is_patterned) {
-+			if (!tmy_pathcmp(pathname, member->member_name))
-+				return 1;
++			if (!tmy_pathcmp(pathname, member->member_name)) {
++				found = 1;
++				break;
++			}
 +		} else if (may_use_pattern) {
-+			if (tmy_path_match(pathname, member->member_name))
-+				return 1;
++			if (tmy_path_match(pathname, member->member_name)) {
++				found = 1;
++				break;
++			}
 +		}
 +	}
-+
-+	return 0;
++	rcu_read_unlock();
++	return found;
 +}
 +
 +/**
-+ * tmy_read_group_policy - read path group policy.
++ * tmy_read_path_group_policy - read path group policy.
 + * @head: pointer to "struct io_buffer".
 + *
 + * Returns nonzero if reading incomplete.
 + * Returns zero otherwise.
 + */
-+int tmy_read_group_policy(struct io_buffer *head)
++int tmy_read_path_group_policy(struct io_buffer *head)
 +{
-+	struct group_entry *group = head->read_var1;
-+	struct group_member *member = head->read_var2;
++	struct list_head *gpos;
++	struct list_head *mpos;
++	int error = -ENOMEM;
 +
-+	if (!group)
-+		group = group_list;
-+
-+	while (group) {
-+		head->read_var1 = group;
-+		if (!member)
-+			member = group->first_member;
-+		while (member) {
-+			head->read_var2 = member;
-+			if (!member->is_deleted &&
-+			    tmy_io_printf(head,
++	rcu_read_lock();
++	gpos = head->read_var1;
++	if (!gpos)
++		gpos = &path_group_entry_list;
++	list_for_each_continue_rcu(gpos, &path_group_entry_list) {
++		struct path_group_entry *group;
++		group = list_entry(gpos, struct path_group_entry, list);
++		head->read_var1 = gpos->prev;
++		mpos = head->read_var2;
++		if (!mpos)
++			mpos = &group->path_group_member_list;
++		list_for_each_continue_rcu(mpos,
++					   &group->path_group_member_list) {
++			struct path_group_member *member;
++			member = list_entry(mpos, struct path_group_member,
++					    list);
++			head->read_var2 = mpos->prev;
++			if (member->is_deleted)
++				continue;
++			if (tmy_io_printf(head,
 +					  TMY_PATH_GROUP "%s %s\n",
 +					  group->group_name->name,
 +					  member->member_name->name))
-+				break;
-+			member = member->next;
++				goto out;
 +		}
-+
-+		if (member)
-+			break;
-+
 +		head->read_var2 = NULL;
-+		group = group->next;
 +	}
-+
-+	return group ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/*************************  FILE PATTERN HANDLER  *************************/
 +
-+static struct pattern_entry *pattern_list;
++static LIST_HEAD(pattern_entry_list);
 +
 +static int tmy_add_pattern_entry(const char *pattern, const u8 is_delete)
 +{
 +	struct pattern_entry *new_entry;
 +	struct pattern_entry *ptr;
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	const struct path_info *saved;
 +	int error = -ENOMEM;
 +
@@ -543,15 +557,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved)
 +		return -ENOMEM;
 +
-+	down(&lock);
-+
-+	for (ptr = pattern_list; ptr; ptr = ptr->next) {
-+		if (saved == ptr->pattern) {
-+			ptr->is_deleted = is_delete;
-+			error = 0;
-+			goto out;
-+		}
++	mutex_lock(&mutex);
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &pattern_entry_list, list) {
++		if (saved != ptr->pattern)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	if (is_delete) {
 +		error = -ENOENT;
@@ -559,23 +576,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	new_entry = tmy_alloc_element(sizeof(*new_entry));
-+
 +	if (!new_entry)
 +		goto out;
 +	new_entry->pattern = saved;
-+	mb(); /* Instead of using spinlock. */
-+
-+	ptr = pattern_list;
-+	if (ptr) {
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = new_entry;
-+	} else
-+		pattern_list = new_entry;
-+
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_entry->list, &pattern_entry_list);
 +	error = 0;
 +out: ;
-+	up(&lock);
++	mutex_unlock(&mutex);
 +	return error;
 +}
 +
@@ -583,21 +592,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct pattern_entry *ptr;
 +	const struct path_info *pattern = NULL;
++	u8 found = 0;
 +
-+	for (ptr = pattern_list; ptr; ptr = ptr->next) {
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &pattern_entry_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
 +		if (!tmy_path_match(filename, ptr->pattern))
 +			continue;
-+
 +		pattern = ptr->pattern;
-+		if (!tmy_strendswith(pattern->name, "/\\*"))
++		if (!tmy_strendswith(pattern->name, "/\\*")) {
++			found = 1;
 +			break;
++		}
 +	}
-+
-+	if (pattern)
++	rcu_read_unlock();
++	if (found)
 +		filename = pattern;
-+
 +	return filename;
 +}
 +
@@ -623,32 +634,38 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tmy_read_pattern_policy(struct io_buffer *head)
 +{
-+	struct pattern_entry *ptr = head->read_var2;
++	struct list_head *pos;
++	int error = -ENOMEM;
 +
-+	if (!ptr)
-+		ptr = pattern_list;
-+
-+	while (ptr) {
-+		head->read_var2 = ptr;
-+		if (!ptr->is_deleted &&
-+		    tmy_io_printf(head, TMY_FILE_PATTERN "%s\n",
++	rcu_read_lock();
++	pos = head->read_var2;
++	if (!pos)
++		pos = &pattern_entry_list;
++	list_for_each_continue_rcu(pos, &pattern_entry_list) {
++		struct pattern_entry *ptr;
++		ptr = list_entry(pos, struct pattern_entry, list);
++		head->read_var2 = pos->prev;
++		if (ptr->is_deleted)
++			continue;
++		if (tmy_io_printf(head, TMY_FILE_PATTERN "%s\n",
 +				  ptr->pattern->name))
-+			break;
-+		ptr = ptr->next;
++			goto out;
 +	}
-+
-+	return ptr ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/***********************  NON REWRITABLE FILE HANDLER  ***********************/
 +
-+static struct no_rewrite_entry *no_rewrite_list;
++static LIST_HEAD(no_rewrite_entry_list);
 +
 +static int tmy_add_no_rewrite_entry(const char *pattern, const u8 is_delete)
 +{
 +	struct no_rewrite_entry *new_entry;
 +	struct no_rewrite_entry *ptr;
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	const struct path_info *saved;
 +	int error = -ENOMEM;
 +
@@ -658,14 +675,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved)
 +		return -ENOMEM;
 +
-+	down(&lock);
-+	for (ptr = no_rewrite_list; ptr; ptr = ptr->next) {
-+		if (ptr->pattern == saved) {
-+			ptr->is_deleted = is_delete;
-+			error = 0;
-+			goto out;
-+		}
++	mutex_lock(&mutex);
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &no_rewrite_entry_list, list) {
++		if (ptr->pattern != saved)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	if (is_delete) {
 +		error = -ENOENT;
@@ -675,38 +696,31 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	new_entry = tmy_alloc_element(sizeof(*new_entry));
 +	if (!new_entry)
 +		goto out;
-+
 +	new_entry->pattern = saved;
-+	mb(); /* Instead of using spinlock. */
-+
-+	ptr = no_rewrite_list;
-+	if (ptr) {
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = new_entry;
-+	} else
-+		no_rewrite_list = new_entry;
-+
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_entry->list, &no_rewrite_entry_list);
 +	error = 0;
 +out: ;
-+	up(&lock);
-+
++	mutex_unlock(&mutex);
 +	return error;
 +}
 +
 +static int tmy_is_no_rewrite_file(const struct path_info *filename)
 +{
 +	struct no_rewrite_entry *ptr;
-+
-+	for (ptr = no_rewrite_list; ptr; ptr = ptr->next) {
++	u8 found = 0;
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &no_rewrite_entry_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
 +		if (!tmy_path_match(filename, ptr->pattern))
 +			continue;
-+		return 1;
++		found = 1;
++		break;
 +	}
-+
-+	return 0;
++	rcu_read_unlock();
++	return found;
 +}
 +
 +/**
@@ -731,21 +745,27 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tmy_read_no_rewrite_policy(struct io_buffer *head)
 +{
-+	struct no_rewrite_entry *ptr = head->read_var2;
++	struct list_head *pos;
++	int error = -ENOMEM;
 +
-+	if (!ptr)
-+		ptr = no_rewrite_list;
-+
-+	while (ptr) {
-+		head->read_var2 = ptr;
-+		if (!ptr->is_deleted &&
-+		    tmy_io_printf(head, TMY_DENY_REWRITE "%s\n",
++	rcu_read_lock();
++	pos = head->read_var2;
++	if (!pos)
++		pos = &no_rewrite_entry_list;
++	list_for_each_continue_rcu(pos, &no_rewrite_entry_list) {
++		struct no_rewrite_entry *ptr;
++		ptr = list_entry(pos, struct no_rewrite_entry, list);
++		head->read_var2 = pos->prev;
++		if (ptr->is_deleted)
++			continue;
++		if (tmy_io_printf(head, TMY_DENY_REWRITE "%s\n",
 +				  ptr->pattern->name))
-+			break;
-+		ptr = ptr->next;
++			goto out;
 +	}
-+
-+	return ptr ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/*************************  FILE ACL HANDLER  *************************/
@@ -758,6 +778,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct path_info *saved;
 +	struct acl_info *ptr;
++	struct file_acl *acl;
 +	int error = -ENOMEM;
 +	u8 is_group = 0;
 +
@@ -796,71 +817,62 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	}
 +
-+	down(&domain_acl_lock);
++	mutex_lock(&domain_acl_lock);
 +
 +	if (is_delete)
 +		goto remove;
 +
-+	ptr = domain->first_acl_ptr;
-+	if (!ptr)
-+		goto first_entry;
-+
-+	while (1) {
-+		struct file_acl *acl = (struct file_acl *) ptr;
-+
-+		if ((ptr->type == TMY_TYPE_FILE_ACL) &&
-+		    ptr->cond == cond &&
-+		    (acl->u.filename == saved)) {
-+			if (ptr->is_deleted) {
-+				acl->perm = 0;
-+				mb(); /* Instead of using spinlock. */
-+				ptr->is_deleted = 0;
-+			}
-+			/* Found. Just 'OR' the permission bits. */
-+			acl->perm |= perm;
-+			error = 0;
-+			tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
-+			break;
-+		}
-+
-+		if (ptr->next) {
-+			ptr = ptr->next;
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct file_acl, head);
++		if (ptr->type != TMY_TYPE_FILE_ACL ||
++		    ptr->cond != cond ||
++		    acl->u.filename != saved)
 +			continue;
++		if (ptr->is_deleted) {
++			acl->perm = 0;
++			mb(); /* Avoid out-of-order execution. */
++			ptr->is_deleted = 0;
 +		}
-+
-+first_entry: ;
-+		/* Not found. Append it to the tail. */
-+		acl = tmy_alloc_element(sizeof(*acl));
-+		if (!acl)
-+			break;
-+
-+		acl->head.type = TMY_TYPE_FILE_ACL;
-+		acl->head.cond = cond;
-+		acl->perm = perm;
-+		acl->u_is_group = is_group;
-+		acl->u.filename = saved;
-+		error = tmy_add_acl(ptr, domain,
-+				    (struct acl_info *) acl);
++		acl->perm |= perm;
++		error = 0;
 +		break;
 +	}
++	rcu_read_unlock();
++
++	if (!error) {
++		tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
++		goto ok;
++	}
++
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++	acl->head.type = TMY_TYPE_FILE_ACL;
++	acl->head.cond = cond;
++	acl->perm = perm;
++	acl->u_is_group = is_group;
++	acl->u.filename = saved;
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct file_acl *acl = (struct file_acl *) ptr;
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct file_acl, head);
 +		if (ptr->type != TMY_TYPE_FILE_ACL ||
 +		    ptr->cond != cond ||
 +		    ptr->is_deleted ||
 +		    acl->perm != perm ||
 +		    acl->u.filename != saved)
 +			continue;
-+
 +		error = tmy_del_acl(ptr);
 +		break;
 +	}
++	rcu_read_unlock();
 +ok: ;
-+	up(&domain_acl_lock);
++	mutex_unlock(&domain_acl_lock);
 +	return error;
 +}
 +
@@ -870,6 +882,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct domain_info *domain = TMY_SECURITY->domain;
 +	struct acl_info *ptr;
 +	const int may_use_pat = ((perm & 1) == 0);
++	int error = -EPERM;
 +
 +	if (!tmy_flags(TMY_MAC_FOR_FILE))
 +		return 0;
@@ -878,28 +891,32 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			return 0;
 +	}
 +
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct file_acl *acl = (struct file_acl *) ptr;
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		struct file_acl *acl;
++		acl = container_of(ptr, struct file_acl, head);
 +		if (ptr->type != TMY_TYPE_FILE_ACL ||
 +		    ptr->is_deleted ||
 +		    (acl->perm & perm) != perm ||
 +		    tmy_check_condition(ptr->cond, obj))
 +			continue;
-+
 +		if (acl->u_is_group) {
 +			if (tmy_path_match_group(filename,
 +						 acl->u.group,
-+						 may_use_pat))
-+				return 0;
++						 may_use_pat)) {
++				error = 0;
++				break;
++			}
 +		} else {
 +			if ((may_use_pat || !acl->u.filename->is_patterned) &&
-+			    tmy_path_match(filename, acl->u.filename))
-+				return 0;
++			    tmy_path_match(filename, acl->u.filename)) {
++				error = 0;
++				break;
++			}
 +		}
 +	}
-+
-+	return -EPERM;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +static int tmy_file_perm2(const struct path_info *filename,
@@ -1027,6 +1044,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct path_info *saved;
 +	struct acl_info *ptr;
++	struct single_acl *acl;
 +	int error = -ENOMEM;
 +	u8 is_group = 0;
 +
@@ -1047,58 +1065,51 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			return -ENOMEM;
 +	}
 +
-+	down(&domain_acl_lock);
++	mutex_lock(&domain_acl_lock);
 +	if (is_delete)
 +		goto remove;
 +
-+	ptr = domain->first_acl_ptr;
-+	if (!ptr)
-+		goto first_entry;
-+	while (1) {
-+		struct single_acl *acl = (struct single_acl *) ptr;
-+
-+		if (ptr->type == type && ptr->cond == cond) {
-+			if (acl->u.filename == saved) {
-+				ptr->is_deleted = 0;
-+				/* Found. Nothing to do. */
-+				error = 0;
-+				break;
-+			}
-+		}
-+		if (ptr->next) {
-+			ptr = ptr->next;
++	/* Scan the list for the same entry. */
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct single_acl, head);
++		if (ptr->type != type ||
++		    ptr->cond != cond ||
++		    acl->u.filename != saved)
 +			continue;
-+		}
-+
-+first_entry: ;
-+		/* Not found. Append it to the tail. */
-+		acl = tmy_alloc_element(sizeof(*acl));
-+		if (!acl)
-+			break;
-+
-+		acl->head.type = type;
-+		acl->head.cond = cond;
-+		acl->u_is_group = is_group;
-+		acl->u.filename = saved;
-+		error = tmy_add_acl(ptr, domain,
-+				    (struct acl_info *) acl);
++		ptr->is_deleted = 0;
++		error = 0;
 +		break;
 +	}
++	rcu_read_unlock();
++
++	if (!error)
++		goto ok;
++
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++	acl->head.type = type;
++	acl->head.cond = cond;
++	acl->u_is_group = is_group;
++	acl->u.filename = saved;
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct single_acl *acl = (struct single_acl *) ptr;
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct single_acl, head);
 +		if (ptr->type != type || ptr->is_deleted ||
 +		    ptr->cond != cond || acl->u.filename != saved)
 +			continue;
-+
 +		error = tmy_del_acl(ptr);
 +		break;
 +	}
++	rcu_read_unlock();
 +ok: ;
-+	up(&domain_acl_lock);
++	mutex_unlock(&domain_acl_lock);
 +
 +	return error;
 +}
@@ -1113,6 +1124,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved1;
 +	const struct path_info *saved2;
 +	struct acl_info *ptr;
++	struct double_acl *acl;
 +	int error = -ENOMEM;
 +	u8 is_group1 = 0;
 +	u8 is_group2 = 0;
@@ -1147,65 +1159,56 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			return -ENOMEM;
 +	}
 +
-+	down(&domain_acl_lock);
++	mutex_lock(&domain_acl_lock);
 +
 +	if (is_delete)
 +		goto remove;
 +
-+	ptr = domain->first_acl_ptr;
-+	if (!ptr)
-+		goto first_entry;
-+	while (1) {
-+		struct double_acl *acl = (struct double_acl *) ptr;
-+
-+		if (ptr->type == type && ptr->cond == cond) {
-+			if (acl->u1.filename1 == saved1 &&
-+			    acl->u2.filename2 == saved2) {
-+				ptr->is_deleted = 0;
-+				/* Found. Nothing to do. */
-+				error = 0;
-+				break;
-+			}
-+		}
-+
-+		if (ptr->next) {
-+			ptr = ptr->next;
++	/* Scan the list for the same entry. */
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct double_acl, head);
++		if (ptr->type != type || ptr->cond != cond ||
++		    acl->u1.filename1 != saved1 ||
++		    acl->u2.filename2 != saved2)
 +			continue;
-+		}
-+
-+first_entry: ;
-+		/* Not found. Append it to the tail. */
-+		acl = tmy_alloc_element(sizeof(*acl));
-+		if (!acl)
-+			break;
-+
-+		acl->head.type = type;
-+		acl->head.cond = cond;
-+		acl->u1_is_group = is_group1;
-+		acl->u2_is_group = is_group2;
-+		acl->u1.filename1 = saved1;
-+		acl->u2.filename2 = saved2;
-+		error = tmy_add_acl(ptr, domain,
-+				    (struct acl_info *) acl);
++		ptr->is_deleted = 0;
++		error = 0;
 +		break;
 +	}
++	rcu_read_unlock();
++
++	if (!error)
++		goto ok;
++
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++	acl->head.type = type;
++	acl->head.cond = cond;
++	acl->u1_is_group = is_group1;
++	acl->u2_is_group = is_group2;
++	acl->u1.filename1 = saved1;
++	acl->u2.filename2 = saved2;
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct double_acl *acl = (struct double_acl *) ptr;
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct double_acl, head);
 +		if (ptr->type != type || ptr->is_deleted ||
 +		    ptr->cond != cond ||
 +		    acl->u1.filename1 != saved1 ||
 +		    acl->u2.filename2 != saved2)
 +			continue;
-+
 +		error = tmy_del_acl(ptr);
 +		break;
 +	}
++	rcu_read_unlock();
 +ok: ;
-+	up(&domain_acl_lock);
++	mutex_unlock(&domain_acl_lock);
 +	return error;
 +}
 +
@@ -1215,28 +1218,32 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct domain_info *domain = TMY_SECURITY->domain;
 +	struct acl_info *ptr;
++	int error = -EPERM;
 +
 +	if (!tmy_flags(TMY_MAC_FOR_FILE))
 +		return 0;
 +
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct single_acl *acl = (struct single_acl *) ptr;
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		struct single_acl *acl;
++		acl = container_of(ptr, struct single_acl, head);
 +		if (ptr->type != type || ptr->is_deleted ||
 +		    tmy_check_condition(ptr->cond, obj))
 +			continue;
-+
 +		if (acl->u_is_group) {
-+			if (!tmy_path_match_group(filename, acl->u.group, 1))
-+				continue;
++			if (tmy_path_match_group(filename, acl->u.group, 1)) {
++				error = 0;
++				break;
++			}
 +		} else {
-+			if (!tmy_path_match(filename, acl->u.filename))
-+				continue;
++			if (tmy_path_match(filename, acl->u.filename)) {
++				error = 0;
++				break;
++			}
 +		}
-+		return 0;
 +	}
-+
-+	return -EPERM;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +static int tmy_double_write_acl(const u8 type,
@@ -1246,17 +1253,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct domain_info *domain = TMY_SECURITY->domain;
 +	struct acl_info *ptr;
++	int error = -EPERM;
 +
 +	if (!tmy_flags(TMY_MAC_FOR_FILE))
 +		return 0;
 +
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct double_acl *acl = (struct double_acl *) ptr;
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		struct double_acl *acl;
++		acl = container_of(ptr, struct double_acl, head);
 +		if (ptr->type != type || ptr->is_deleted ||
 +		    tmy_check_condition(ptr->cond, obj))
 +			continue;
-+
 +		if (acl->u1_is_group) {
 +			if (!tmy_path_match_group(filename1,
 +						  acl->u1.group1, 1))
@@ -1265,7 +1273,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (!tmy_path_match(filename1, acl->u1.filename1))
 +				continue;
 +		}
-+
 +		if (acl->u2_is_group) {
 +			if (!tmy_path_match_group(filename2,
 +						  acl->u2.group2, 1))
@@ -1274,11 +1281,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (!tmy_path_match(filename2, acl->u2.filename2))
 +				continue;
 +		}
-+
-+		return 0;
++		error = 0;
++		break;
 +	}
-+
-+	return -EPERM;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +static int tmy_single_write_perm2(const unsigned int operation,

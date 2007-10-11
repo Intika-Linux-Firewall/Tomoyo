@@ -7,12 +7,12 @@ this file will become more simpler and "namespace_sem" can remain "static".
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/tomoyo.c |  748 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 748 insertions(+)
+ security/tomoyo/tomoyo.c |  753 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 753 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/tomoyo.c	2007-10-02 11:26:22.000000000 +0900
-@@ -0,0 +1,748 @@
++++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-10-11 13:14:46.000000000 +0900
+@@ -0,0 +1,753 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -37,7 +37,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define MAX_SOCK_ADDR 128 /* net/socket.c */
 +
 +/* The initial domain. */
-+struct domain_info KERNEL_DOMAIN = { NULL, NULL, NULL, 0, 0, 0 };
++
++LIST_HEAD(domain_list);
 +
 +static struct kmem_cache *tmy_cachep;
 +
@@ -746,12 +747,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
 +
-+	/*tmy_proc_init();*/
++	INIT_LIST_HEAD(&KERNEL_DOMAIN.list);
++	INIT_LIST_HEAD(&KERNEL_DOMAIN.acl_info_list);
++	KERNEL_DOMAIN.domainname = tmy_save_name(TMY_ROOT_NAME);
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: No protection is needed here. */
++	list_add_tail_rcu(&KERNEL_DOMAIN.list, &domain_list);
 +
 +	tmy_cachep = kmem_cache_create("tomoyo_security",
 +				       sizeof(struct tmy_security),
 +				       0, SLAB_PANIC, NULL);
-+
 +	init_task.security = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
 +	((struct tmy_security *) init_task.security)->domain = &KERNEL_DOMAIN;
 +	((struct tmy_security *) init_task.security)->prev_domain = NULL;

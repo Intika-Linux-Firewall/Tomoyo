@@ -13,12 +13,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/net.c |  975 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 975 insertions(+)
+ security/tomoyo/net.c |  963 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 963 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/net.c	2007-10-02 11:26:22.000000000 +0900
-@@ -0,0 +1,975 @@
++++ linux-2.6.23/security/tomoyo/net.c	2007-10-11 13:14:46.000000000 +0900
+@@ -0,0 +1,963 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -73,7 +73,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/*************************  ADDRESS GROUP HANDLER  *************************/
 +
 +/* List of address group. */
-+static struct addr_group_entry *group_list;
++static LIST_HEAD(addr_group_entry_list);
 +
 +static int tmy_add_addr_group_entry(const char *group_name,
 +				    const u8 is_ipv6,
@@ -81,7 +81,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				    const u16 *max_address,
 +				    const u8 is_delete)
 +{
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	struct addr_group_entry *new_group;
 +	struct addr_group_entry *group;
 +	struct addr_group_member *new_member;
@@ -97,20 +97,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved_group_name)
 +		return -ENOMEM;
 +
-+	down(&lock);
++	mutex_lock(&mutex);
 +
-+	for (group = group_list; group; group = group->next) {
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(group, &addr_group_entry_list, list) {
 +		if (saved_group_name != group->group_name)
 +			continue;
-+
-+		for (member = group->first_member;
-+		     member;
-+		     member = member->next) {
-+
++		list_for_each_entry_rcu(member, &group->addr_group_member_list,
++					list) {
 +			if (member->is_ipv6 != is_ipv6)
 +				continue;
-+
 +			if (is_ipv6) {
 +				if (memcmp(member->min.ipv6, min_address, 16) ||
 +				    memcmp(member->max.ipv6, max_address, 16))
@@ -120,32 +116,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				    member->max.ipv4 != *(u32 *) max_address)
 +					continue;
 +			}
-+
 +			member->is_deleted = is_delete;
 +			error = 0;
-+			goto out;
++			break;
 +		}
 +		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto out;
 +
 +	if (is_delete) {
 +		error = -ENOENT;
 +		goto out;
 +	}
 +
-+	if (!group) {
++	if (error) {
 +		new_group = tmy_alloc_element(sizeof(*new_group));
 +		if (!new_group)
 +			goto out;
 +		new_group->group_name = saved_group_name;
-+		mb(); /* Instead of using spinlock. */
-+		group = group_list;
-+		if (group) {
-+			while (group->next)
-+				group = group->next;
-+			group->next = new_group;
-+		} else
-+			group_list = new_group;
++		INIT_LIST_HEAD(&new_group->addr_group_member_list);
++		mb(); /* Avoid out-of-order execution. */
++		/* RCU: Protected by mutex. */
++		list_add_tail_rcu(&new_group->list, &addr_group_entry_list);
 +		group = new_group;
 +	}
 +
@@ -162,20 +156,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		new_member->min.ipv4 = *(u32 *) min_address;
 +		new_member->max.ipv4 = *(u32 *) max_address;
 +	}
-+
-+	mb(); /* Instead of using spinlock. */
-+
-+	member = group->first_member;
-+	if (member) {
-+		while (member->next)
-+			member = member->next;
-+		member->next = new_member;
-+	} else
-+		group->first_member = new_member;
-+
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&new_member->list, &group->addr_group_member_list);
 +	error = 0;
 +out: ;
-+	up(&lock);
++	mutex_unlock(&mutex);
 +
 +	return error;
 +}
@@ -233,18 +219,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		       &max[2], &max[3]);
 +
 +	if (count == 4 || count == 8) {
-+		u32 ip = ((((u8) min[0]) << 24) +
-+			  (((u8) min[1]) << 16) +
-+			  (((u8) min[2]) << 8) +
-+			  (u8) min[3]);
++		u32 ip = ((((u8) min[0]) << 24)
++			  + (((u8) min[1]) << 16)
++			  + (((u8) min[2]) << 8)
++			  + (u8) min[3]);
 +
 +		*(u32 *) min_address = ip;
 +
 +		if (count == 8)
-+			ip = ((((u8) max[0]) << 24) +
-+			      (((u8) max[1]) << 16) +
-+			      (((u8) max[2]) << 8) +
-+			      (u8) max[3]);
++			ip = ((((u8) max[0]) << 24)
++			      + (((u8) max[1]) << 16)
++			      + (((u8) max[2]) << 8)
++			      + (u8) max[3]);
 +
 +		*(u32 *) max_address = ip;
 +		is_ipv6 = 0;
@@ -264,14 +250,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int i;
 +	struct addr_group_entry *group;
++	u8 found = 0;
 +
 +	for (i = 0; i <= 1; i++) {
-+		for (group = group_list; group; group = group->next) {
-+
-+			if (strcmp(name, group->group_name->name) == 0)
-+				return group;
-+
++		rcu_read_lock();
++		list_for_each_entry_rcu(group, &addr_group_entry_list, list) {
++			if (strcmp(name, group->group_name->name) == 0) {
++				found = 1;
++				break;
++			}
 +		}
++		rcu_read_unlock();
++		if (found)
++			return group;
 +
 +		if (i == 0) {
 +			/*
@@ -293,30 +284,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct addr_group_member *member;
 +	const u32 ip = ntohl(*address);
++	u8 found = 0;
 +
-+	for (member = group->first_member; member; member = member->next) {
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(member, &group->addr_group_member_list, list) {
 +		if (member->is_deleted)
 +			continue;
-+
 +		if (member->is_ipv6) {
-+
 +			if (is_ipv6 &&
 +			    memcmp(member->min.ipv6, address, 16) <= 0 &&
-+			    memcmp(address, member->max.ipv6, 16) <= 0)
-+				return 1;
-+
++			    memcmp(address, member->max.ipv6, 16) <= 0) {
++				found = 1;
++				break;
++			}
 +		} else {
-+
 +			if (!is_ipv6 &&
 +			    member->min.ipv4 <= ip &&
-+			    ip <= member->max.ipv4)
-+				return 1;
-+
++			    ip <= member->max.ipv4) {
++				found = 1;
++				break;
++			}
 +		}
 +	}
-+
-+	return 0;
++	rcu_read_unlock();
++	return found;
 +}
 +
 +static int tmy_read_addr_group(struct io_buffer *head,
@@ -373,35 +364,38 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tmy_read_addr_group_policy(struct io_buffer *head)
 +{
-+	struct addr_group_entry *group = head->read_var1;
-+	struct addr_group_member *member = head->read_var2;
++	struct list_head *gpos;
++	struct list_head *mpos;
++	int error = -ENOMEM;
 +
-+	if (!group)
-+		group = group_list;
-+
-+	while (group) {
-+		head->read_var1 = group;
-+		if (!member)
-+			member = group->first_member;
-+		while (member) {
-+
-+			head->read_var2 = member;
-+			if (member->is_deleted) {
-+				member = member->next;
++	rcu_read_lock();
++	gpos = head->read_var1;
++	if (!gpos)
++		gpos = &addr_group_entry_list;
++	list_for_each_continue_rcu(gpos, &addr_group_entry_list) {
++		struct addr_group_entry *group;
++		group = list_entry(gpos, struct addr_group_entry, list);
++		head->read_var1 = gpos->prev;
++		mpos = head->read_var2;
++		if (!mpos)
++			mpos = &group->addr_group_member_list;
++		list_for_each_continue_rcu(mpos,
++					   &group->addr_group_member_list) {
++			struct addr_group_member *member;
++			member = list_entry(mpos, struct addr_group_member,
++					    list);
++			head->read_var2 = mpos->prev;
++			if (member->is_deleted)
 +				continue;
-+			}
-+
 +			if (tmy_read_addr_group(head, group, member))
-+				break;
-+
-+			member = member->next;
++				goto out;
 +		}
-+		if (member)
-+			break;
 +		head->read_var2 = NULL;
-+		group = group->next;
 +	}
-+	return group ? -ENOMEM : 0;
++	error = 0;
++out: ;
++	rcu_read_unlock();
++	return error;
 +}
 +
 +/***********************  NETWORK NETWORK ACL HANDLER  ***********************/
@@ -508,6 +502,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				 const u8 is_delete)
 +{
 +	struct acl_info *ptr;
++	struct net_acl *acl;
 +	int error = -ENOMEM;
 +	/* using host byte order to allow u32 comparison than memcmp().*/
 +	const u32 min_ip = ntohl(*min_address);
@@ -516,69 +511,60 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!domain)
 +		return -EINVAL;
 +
-+	down(&domain_acl_lock);
++	mutex_lock(&domain_acl_lock);
 +
 +	if (is_delete)
 +		goto remove;
 +
-+	ptr = domain->first_acl_ptr;
-+	if (!ptr)
-+		goto first_entry;
-+
-+	while (1) {
-+		struct net_acl *acl = (struct net_acl *) ptr;
-+
-+		if (ptr->type == TMY_TYPE_IP_NETWORK_ACL &&
-+		    ptr->cond == cond &&
-+		    acl->operation_type == operation &&
-+		    acl->record_type == record_type &&
-+		    acl->min_port == min_port &&
-+		    max_port == acl->max_port &&
-+		    tmy_cmp_network_entry(record_type, acl,
-+					  group, min_ip, max_ip,
-+					  min_address,
-+					  max_address)) {
-+			ptr->is_deleted = 0;
-+			error = 0;
-+			break;
-+		}
-+
-+		if (ptr->next) {
-+			ptr = ptr->next;
++	/* Scan the list for the same entry. */
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct net_acl, head);
++		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
++		    ptr->cond != cond ||
++		    acl->operation_type != operation ||
++		    acl->record_type != record_type ||
++		    acl->min_port != min_port ||
++		    max_port != acl->max_port ||
++		    !tmy_cmp_network_entry(record_type, acl,
++					   group, min_ip, max_ip,
++					   min_address,
++					   max_address))
 +			continue;
-+		}
-+first_entry: ;
-+		/* Not found. Append it to the tail. */
-+		acl = tmy_alloc_element(sizeof(*acl));
-+		if (!acl)
-+			break;
-+
-+		acl->head.type = TMY_TYPE_IP_NETWORK_ACL;
-+		acl->head.cond = cond;
-+		acl->operation_type = operation;
-+		acl->record_type = record_type;
-+
-+		if (record_type == TMY_TYPE_ADDRESS_GROUP)
-+			acl->u.group = group;
-+		else if (record_type == TMY_TYPE_IPv4) {
-+			acl->u.ipv4.min = min_ip;
-+			acl->u.ipv4.max = max_ip;
-+		} else {
-+			memmove(acl->u.ipv6.min, min_address, 16);
-+			memmove(acl->u.ipv6.max, max_address, 16);
-+		}
-+
-+		acl->min_port = min_port;
-+		acl->max_port = max_port;
-+		error = tmy_add_acl(ptr, domain,
-+				    (struct acl_info *) acl);
++		ptr->is_deleted = 0;
++		error = 0;
 +		break;
 +	}
++	rcu_read_unlock();
++	if (!error)
++		goto ok;
++
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++	acl->head.type = TMY_TYPE_IP_NETWORK_ACL;
++	acl->head.cond = cond;
++	acl->operation_type = operation;
++	acl->record_type = record_type;
++	if (record_type == TMY_TYPE_ADDRESS_GROUP)
++		acl->u.group = group;
++	else if (record_type == TMY_TYPE_IPv4) {
++		acl->u.ipv4.min = min_ip;
++		acl->u.ipv4.max = max_ip;
++	} else {
++		memmove(acl->u.ipv6.min, min_address, 16);
++		memmove(acl->u.ipv6.max, max_address, 16);
++	}
++	acl->min_port = min_port;
++	acl->max_port = max_port;
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct net_acl *acl = (struct net_acl *) ptr;
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct net_acl, head);
 +		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
 +		    ptr->cond != cond ||
 +		    ptr->is_deleted ||
@@ -591,13 +577,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					   min_address,
 +					   max_address))
 +			continue;
-+
 +		error = tmy_del_acl(ptr);
 +		break;
 +	}
++	rcu_read_unlock();
 +ok: ;
-+	up(&domain_acl_lock);
-+
++	mutex_unlock(&domain_acl_lock);
 +	return error;
 +}
 +
@@ -613,13 +598,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_NETWORK);
 +	/* using host byte order to allow u32 comparison than memcmp().*/
 +	const u32 ip = ntohl(*address);
++	int error = -EPERM;
 +
 +	if (!tmy_flags(TMY_MAC_FOR_NETWORK))
 +		return 0;
 +
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct net_acl *acl = (struct net_acl *) ptr;
-+
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		struct net_acl *acl;
++		acl = container_of(ptr, struct net_acl, head);
 +		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
 +		    ptr->is_deleted ||
 +		    acl->operation_type != operation ||
@@ -627,26 +614,27 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		    acl->max_port < port ||
 +		    tmy_check_condition(ptr->cond, NULL))
 +			continue;
-+
 +		if (acl->record_type == TMY_TYPE_ADDRESS_GROUP &&
-+		    tmy_address_match_group(is_ipv6, address, acl->u.group))
++		    tmy_address_match_group(is_ipv6, address, acl->u.group)) {
++			error = 0;
 +			break;
-+
-+		else if (acl->record_type == TMY_TYPE_IPv4 && !is_ipv6 &&
-+			 (acl->u.ipv4.min <= ip && ip <= acl->u.ipv4.max))
++		} else if (acl->record_type == TMY_TYPE_IPv4 && !is_ipv6 &&
++			   (acl->u.ipv4.min <= ip && ip <= acl->u.ipv4.max)) {
++			error = 0;
 +			break;
-+
-+		else if (acl->record_type == TMY_TYPE_IPv6 && is_ipv6 &&
++		} else if (acl->record_type == TMY_TYPE_IPv6 && is_ipv6 &&
 +			 memcmp(acl->u.ipv6.min, address, 16) <= 0 &&
-+			 memcmp(address, acl->u.ipv6.max, 16) <= 0)
++			   memcmp(address, acl->u.ipv6.max, 16) <= 0) {
++			error = 0;
 +			break;
-+
++		}
 +	}
++	rcu_read_unlock();
 +
 +	tmy_audit_network_log(is_ipv6, keyword, address,
-+			      port, ptr != 0, is_enforce);
++			      port, !error, is_enforce);
 +
-+	if (ptr)
++	if (!error)
 +		return 0;
 +
 +	if (is_enforce) {
@@ -798,17 +786,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (count == 4 || count == 8) {
 +
-+		u32 ip = htonl((((u8) min[0]) << 24) +
-+			       (((u8) min[1]) << 16) +
-+			       (((u8) min[2]) << 8) +
-+			       (u8) min[3]);
++		u32 ip = htonl((((u8) min[0]) << 24)
++			       + (((u8) min[1]) << 16)
++			       + (((u8) min[2]) << 8)
++			       + (u8) min[3]);
 +		*(u32 *) min_address = ip;
 +
 +		if (count == 8)
-+			ip = htonl((((u8) max[0]) << 24) +
-+				   (((u8) max[1]) << 16) +
-+				   (((u8) max[2]) << 8) +
-+				   (u8) max[3]);
++			ip = htonl((((u8) max[0]) << 24)
++				   + (((u8) max[1]) << 16)
++				   + (((u8) max[2]) << 8)
++				   + (u8) max[3]);
 +		*(u32 *) max_address = ip;
 +		record_type = TMY_TYPE_IPv4;
 +

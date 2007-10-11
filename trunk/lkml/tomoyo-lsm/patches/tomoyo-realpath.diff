@@ -5,12 +5,12 @@ or chroot()ed, TOMOYO Linux uses the original pathname.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/realpath.c |  697 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 697 insertions(+)
+ security/tomoyo/realpath.c |  713 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 713 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/realpath.c	2007-10-02 11:26:21.000000000 +0900
-@@ -0,0 +1,697 @@
++++ linux-2.6.23/security/tomoyo/realpath.c	2007-10-11 13:14:45.000000000 +0900
+@@ -0,0 +1,713 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -397,7 +397,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +void *tmy_alloc_element(const unsigned int size)
 +{
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(lock);
 +	static char *buf;
 +	static unsigned int buf_used_len = PAGE_SIZE;
 +	char *ptr = NULL;
@@ -406,10 +406,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (word_aligned_size > PAGE_SIZE)
 +		return NULL;
 +
-+	down(&lock);
++	mutex_lock(&lock);
 +
 +	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
-+		ptr = kmalloc(PAGE_SIZE, GFP_KERNEL);
++		ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
 +
 +		if (!ptr) {
 +			printk(KERN_INFO "ERROR: "
@@ -417,7 +417,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (!sbin_init_started)
 +				panic("MAC Initialization failed.\n");
 +		} else {
-+			memset(ptr, 0, PAGE_SIZE);
 +			buf = ptr;
 +			allocated_memory_for_elements += PAGE_SIZE;
 +			buf_used_len = word_aligned_size;
@@ -441,7 +440,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	}
 +
-+	up(&lock);
++	mutex_unlock(&lock);
 +	return ptr;
 +}
 +
@@ -463,13 +462,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* List of tokens. */
 +struct name_entry {
-+	struct name_entry *next; /* NULL if none. */
++	struct list_head list;
 +	struct path_info entry;
 +};
 +
 +/* List of free memory. */
 +struct free_memory_block_list {
-+	struct free_memory_block_list *next; /* NULL if none. */
++	struct list_head list;
 +	char *ptr; /* Pointer to a free area. */
 +	int len;   /* Length of the area.     */
 +};
@@ -486,15 +485,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +const struct path_info *tmy_save_name(const char *name)
 +{
-+	static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
++	static LIST_HEAD(fmb_list);
++	struct free_memory_block_list *fmb;
 +	static struct name_entry name_list[MAX_HASH]; /* The list of names. */
-+	static DECLARE_MUTEX(lock);
 +	struct name_entry *ptr;
-+	struct name_entry *prev = NULL;
++	static DEFINE_MUTEX(mutex);
 +	unsigned int hash;
-+	struct free_memory_block_list *fmb = &fmb_list;
 +	int len;
 +	static int first_call = 1;
++	u8 found = 0;
 +
 +	if (!name)
 +		return NULL;
@@ -507,7 +506,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	hash = full_name_hash((const unsigned char *) name, len - 1);
 +
-+	down(&lock);
++	mutex_lock(&mutex);
 +
 +	if (first_call) {
 +		int i;
@@ -516,6 +515,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		memset(&name_list, 0, sizeof(name_list));
 +
 +		for (i = 0; i < MAX_HASH; i++) {
++			INIT_LIST_HEAD(&name_list[i].list);
 +			name_list[i].entry.name = "/";
 +			tmy_fill_path_info(&name_list[i].entry);
 +		}
@@ -524,29 +524,35 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			panic("Bad size.");
 +	}
 +
-+	ptr = &name_list[hash % MAX_HASH];
-+	while (ptr) {
-+		if (hash == ptr->entry.hash &&
-+		    strcmp(name, ptr->entry.name) == 0)
-+			goto out;
-+		prev = ptr;
-+		ptr = ptr->next;
-+	}
-+
-+	while (len > fmb->len) {
-+		char *cp;
-+
-+		if (fmb->next) {
-+			fmb = fmb->next;
++	rcu_read_lock();
++	list_for_each_entry_rcu(ptr, &name_list[hash % MAX_HASH].list, list) {
++		if (hash != ptr->entry.hash ||
++		    strcmp(name, ptr->entry.name))
 +			continue;
-+		}
++		found = 1;
++		break;
++	}
++	rcu_read_unlock();
++	if (found)
++		goto out;
 +
-+		cp = kmalloc(PAGE_SIZE, GFP_KERNEL);
++	rcu_read_lock();
++	list_for_each_entry_rcu(fmb, &fmb_list, list) {
++		if (len <= fmb->len) {
++			found = 1;
++			break;
++		}
++	}
++	rcu_read_unlock();
++
++	if (!found) {
++		char *cp;
++		cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
 +		if (!cp)
 +			goto out2;
 +
-+		fmb->next = tmy_alloc_element(sizeof(*fmb));
-+		if (!fmb->next) {
++		fmb = tmy_alloc_element(sizeof(*fmb));
++		if (!fmb) {
 +			kfree(cp);
 +out2: ;
 +			printk(KERN_INFO
@@ -555,13 +561,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				panic("MAC Initialization failed.\n");
 +			goto out; /* ptr == NULL */
 +		}
-+
-+		memset(cp, 0, PAGE_SIZE);
 +		allocated_memory_for_savename += PAGE_SIZE;
-+		fmb = fmb->next;
 +		fmb->ptr = cp;
 +		fmb->len = PAGE_SIZE;
-+
++		mb(); /* Avoid out-of-order execution. */
++		/* RCU: Protected by mutex. */
++		list_add_tail_rcu(&fmb->list, &fmb_list);
 +	}
 +
 +	ptr = tmy_alloc_element(sizeof(*ptr));
@@ -573,18 +578,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tmy_fill_path_info(&ptr->entry);
 +	fmb->ptr += len;
 +	fmb->len -= len;
-+
-+	prev->next = ptr; /* prev != NULL because name_list is not empty. */
-+	if (fmb->len == 0) {
-+		struct free_memory_block_list *ptr = &fmb_list;
-+		while (ptr->next != fmb)
-+			ptr = ptr->next;
-+		ptr->next = fmb->next;
-+	}
++	mb(); /* Avoid out-of-order execution. */
++	/* RCU: Protected by mutex. */
++	list_add_tail_rcu(&ptr->list, &name_list[hash % MAX_HASH].list);
++	if (fmb->len == 0)
++		list_del_rcu(&fmb->list);
 +out: ;
-+
-+	up(&lock);
-+
++	mutex_unlock(&mutex);
 +	return ptr ? &ptr->entry : NULL;
 +}
 +
@@ -592,25 +592,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* List of temporary memory blocks. */
 +struct cache_entry {
++	struct rcu_head rcu;
 +	struct list_head list;
 +	void *ptr;
 +	int size;
 +};
 +
++static DEFINE_SPINLOCK(cache_list_lock);
 +static struct kmem_cache *tmy_cachep;
 +
 +/**
 + * tmy_realpath_init - initialize memory allocator.
 + */
-+void tmy_realpath_init(void)
++static int __init tmy_realpath_init(void)
 +{
 +	tmy_cachep = kmem_cache_create("tomoyo_cache",
 +				       sizeof(struct cache_entry),
 +				       0, SLAB_PANIC, NULL);
++	return 0;
 +}
++postcore_initcall(tmy_realpath_init);
++
 +
 +static LIST_HEAD(cache_list);
-+static DEFINE_SPINLOCK(cache_list_lock);
 +static unsigned int dynamic_memory_size;
 +
 +/**
@@ -636,7 +640,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +void *tmy_alloc(const size_t size)
 +{
-+	void *ret = kmalloc(size, GFP_KERNEL);
++	void *ret = kzalloc(size, GFP_KERNEL);
 +	struct cache_entry *new_entry;
 +
 +	if (!ret) {
@@ -653,21 +657,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		kfree(ret);
 +		ret = NULL;
 +	} else {
++
++		/* INIT_RCU_HEAD(&new_entry->rcu); */
 +		INIT_LIST_HEAD(&new_entry->list);
 +		new_entry->ptr = ret;
-+		new_entry->size = size;
++		new_entry->size = ksize(ret);
 +
 +		/***** CRITICAL SECTION START *****/
 +		spin_lock(&cache_list_lock);
-+		list_add_tail(&new_entry->list, &cache_list);
-+		dynamic_memory_size += size;
++		list_add_rcu(&new_entry->list, &cache_list);
++		dynamic_memory_size += new_entry->size;
 +		spin_unlock(&cache_list_lock);
 +		/***** CRITICAL SECTION END *****/
-+
-+		memset(ret, 0, size);
 +	}
 +
 +	return ret;
++}
++
++/* callback function for call_rcu(). */
++static void tmy_free_cachep(struct rcu_head *head)
++{
++	struct cache_entry *entry;
++	entry = container_of(head, struct cache_entry, rcu);
++	kmem_cache_free(tmy_cachep, entry);
 +}
 +
 +/**
@@ -681,30 +693,34 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +void tmy_free(const void *p)
 +{
-+	struct list_head *v;
++	struct list_head *pos;
++	struct list_head *tmp;
 +	struct cache_entry *entry = NULL;
++	u8 found = 0;
 +	if (!p)
 +		return;
 +
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&cache_list_lock);
-+	list_for_each_prev(v, &cache_list) {
-+		entry = list_entry(v, struct cache_entry, list);
-+		if (entry->ptr != p) {
-+			entry = NULL;
++	rcu_read_lock();
++	list_for_each_safe_rcu(pos, tmp, &cache_list) {
++		entry = list_entry(pos, struct cache_entry, list);
++		if (entry->ptr != p)
 +			continue;
++		/***** CRITICAL SECTION START *****/
++		spin_lock(&cache_list_lock);
++		if (entry->ptr) {
++			list_del_rcu(&entry->list);
++			dynamic_memory_size -= entry->size;
++			found = 1;
 +		}
-+		list_del(&entry->list);
-+		dynamic_memory_size -= entry->size;
++		entry->ptr = NULL;
++		spin_unlock(&cache_list_lock);
++		/***** CRITICAL SECTION END *****/
 +		break;
 +	}
-+	spin_unlock(&cache_list_lock);
-+	/***** CRITICAL SECTION END *****/
-+
-+	if (entry) {
++	rcu_read_unlock();
++	if (found) {
++		call_rcu(&entry->rcu, tmy_free_cachep);
 +		kfree(p);
-+		kmem_cache_free(tmy_cachep, entry);
 +	} else
 +		printk(KERN_INFO "BUG: tmy_free() with invalid pointer.\n");
-+
 +}
