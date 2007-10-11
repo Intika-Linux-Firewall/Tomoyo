@@ -4,11 +4,11 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/include/realpath.h |   43 +++
- security/tomoyo/include/tomoyo.h   |  514 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 557 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  513 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 556 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/include/realpath.h	2007-10-11 13:14:45.000000000 +0900
++++ linux-2.6/security/tomoyo/include/realpath.h	2007-10-11 15:53:12.000000000 +0900
 @@ -0,0 +1,43 @@
 +/*
 + * security/tomoyo/include/realpath.h
@@ -54,8 +54,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#endif
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/include/tomoyo.h	2007-10-11 13:14:45.000000000 +0900
-@@ -0,0 +1,514 @@
++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-10-11 16:09:13.000000000 +0900
+@@ -0,0 +1,513 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -318,16 +318,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TMY_MAC_FOR_FILE         1
 +#define TMY_MAC_FOR_ARGV0        2
 +#define TMY_MAC_FOR_NETWORK      3
-+#define TMY_MAC_FOR_SIGNAL       4
-+#define TMY_DENY_CONCEAL_MOUNT   5
-+#define TMY_RESTRICT_MOUNT       6
-+#define TMY_RESTRICT_UMOUNT      7
-+#define TMY_RESTRICT_PIVOT_ROOT  8
-+#define TMY_MAX_ACCEPT_ENTRY     9
-+#define TMY_AUDIT_GRANT         10
-+#define TMY_AUDIT_REJECT        11
-+#define TMY_ALLOW_ENFORCE_GRACE 12
-+#define TMY_MAX_CONTROL_INDEX   13
++#define TMY_DENY_CONCEAL_MOUNT   4
++#define TMY_RESTRICT_MOUNT       5
++#define TMY_RESTRICT_UMOUNT      6
++#define TMY_RESTRICT_PIVOT_ROOT  7
++#define TMY_MAX_ACCEPT_ENTRY     8
++#define TMY_AUDIT_GRANT          9
++#define TMY_AUDIT_REJECT        10
++#define TMY_ALLOW_ENFORCE_GRACE 11
++#define TMY_MAX_CONTROL_INDEX   12
 +
 +#define TMY_NETWORK_ACL_UDP_BIND    0
 +#define TMY_NETWORK_ACL_UDP_CONNECT 1
