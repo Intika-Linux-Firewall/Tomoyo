@@ -3581,10 +3581,10 @@ perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
 %endif
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
-# wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+# tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
+wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -55.0.9.EL/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.9-55.0.9.EL.txt
+patch -sp1 < patches/ccs-patch-2.6.9-55.0.9.EL.txt
 
 # END OF PATCH APPLICATIONS
 
