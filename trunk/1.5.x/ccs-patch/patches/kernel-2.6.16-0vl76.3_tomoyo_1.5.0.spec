@@ -914,8 +914,8 @@ cd linux-%{kversion}
 sh ../suspend2-%{swsusp2_version}/apply
 
 # TOMOYO Linux
-# tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
 wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.3custom/" -- Makefile
 patch -sp1 < patches/ccs-patch-2.6.16-0vl76.3.txt
 
