@@ -279,7 +279,7 @@ cd linux-2.6.22
 # TOMOYO Linux
 wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
-patch -sp1 < patches/ccs-patch-2.6.22.5-31_SUSE.txt
+patch -sp1 < patches/ccs-patch-2.6.22.5-31_SUSE.diff
 sed -i -e 's:-ccs::' -- Makefile
 cat config.ccs >> .config
 cp .config .config.orig
