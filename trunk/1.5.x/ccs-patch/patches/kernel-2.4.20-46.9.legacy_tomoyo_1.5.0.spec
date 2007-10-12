@@ -1417,10 +1417,10 @@ cd linux-%{version}
 %patch11050 -p2
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
-# wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+# tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
+wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 sed -i -e "s/^SUBLEVEL.*/SUBLEVEL = 20/" -e "s/^EXTRAVERSION.*/EXTRAVERSION = -46.9.legacycustom/" -- Makefile
-patch -sp1 < ccs-patch-2.4.20-46.9.legacy.txt
+patch -sp1 < patches/ccs-patch-2.4.20-46.9.legacy.txt
 
 # END OF PATCH APPLICATIONS
 
