@@ -1982,8 +1982,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %endif
 
 # TOMOYO Linux
-# tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
 wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.14.el5/" -- Makefile
 patch -sp1 < patches/ccs-patch-2.6.18-8.1.14.el5.txt
 
