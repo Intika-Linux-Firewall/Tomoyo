@@ -482,28 +482,29 @@ ln -sf /boot/System.map-2.6.16-0vl76.3-ccs /boot/System.map
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.22 を使用するものとします。</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.23 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # カーネルモジュールをインストールするディレクトリを作成する。<br>
-mkdir -p /lib/modules/2.6.22-ccs<br>
+mkdir -p /lib/modules/2.6.23-ccs<br>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.22.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.6.22.tar.bz2<br>
+tar -jxf linux-2.6.23.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.6.22<br>
+cd linux-2.6.23<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.0-20070920.tar.gz<br>
+wget -O ccs-patch-2.6.23.txt 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.23.diff?rev=562&amp;root=tomoyo'<br>
 # 展開する。<br>
 tar -zxf ccs-patch-1.5.0-20070920.tar.gz<br>
 # カーネルパッチを適用する。<br>
-patch -sp1 &lt; ccs-patch-2.6.22.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.23.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
