@@ -49,6 +49,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
 <li><a href="#2.6.8-16sarge7">Kernel 2.6.8-16sarge7 for Debian Sarge</a>
 <li><a href="#2.6.18-13etch4">Kernel 2.6.18-13etch4 for Debian Etch</a>
+<li><a href="#2.6.22-4lenny">Kernel 2.6.22-4lenny for Debian Lenny</a>
 <li><a href="#2.6.16.53-0.16">Kernel 2.6.16.53-0.16 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.8-0.7">Kernel 2.6.18.8-0.7 for OpenSUSE 10.2</a>
 <li><a href="#2.6.22.5-31">Kernel 2.6.22.5-31 for OpenSUSE 10.3</a>
@@ -337,7 +338,31 @@ make -s menuconfig<br>
 make -s<br>
 make -s install modules modules_install<br>
 # Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.18-ccs 2.6.18-ccs
+mkinitrd -o /boot/initrd.img-2.6.18-13etch4-ccs 2.6.18-13etch4-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.22-4lenny">Kernel 2.6.22-4lenny for Debian Lenny</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+apt-get install linux-source-2.6.22<br>
+tar -jxf /usr/src/linux-source-2.6.22.tar.bz2<br>
+# Move to the source directory.<br>
+cd linux-source-2.6.22/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.0-20070920.tar.gz<br>
+wget -O ccs-patch-2.6.22-4lenny.txt 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22-4lenny.diff?root=tomoyo'<br>
+tar -zxf ccs-patch-1.5.0-20070920.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.22-4lenny.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s install modules modules_install<br>
+# Create initrd.<br>
+mkinitrd -o /boot/initrd.img-2.6.22-4lenny-ccs 2.6.22-4lenny-ccs
 </td></tr>
 </table>
 
