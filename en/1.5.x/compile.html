@@ -51,7 +51,9 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.18-13etch4">Kernel 2.6.18-13etch4 for Debian Etch</a>
 <li><a href="#2.6.16.53-0.16">Kernel 2.6.16.53-0.16 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.8-0.7">Kernel 2.6.18.8-0.7 for OpenSUSE 10.2</a>
+<li><a href="#2.6.22.5-31">Kernel 2.6.22.5-31 for OpenSUSE 10.3</a>
 <li><a href="#2.6.9-42.16AX">Kernel 2.6.9-42.16AX for Asianux 2.0</a>
+<li><a href="#2.6.18-8.10AX">Kernel 2.6.18-8.10AX for Asianux 3.0</a>
 <li><a href="#2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a>
 <li><a href="#2.6.20.3-ubuntu1">Kernel 2.6.20.3-ubuntu1 for Ubuntu 7.04</a>
 <li><a href="#2.6.16-0vl76.3">Kernel 2.6.16-0vl76.3 for VineLinux 4.1</a>
@@ -387,6 +389,30 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
+<h2><a name="2.6.22.5-31">Kernel 2.6.22.5-31 for OpenSUSE 10.3</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://download.opensuse.org/distribution/10.3/repo/oss/suse/i586/kernel-source-2.6.22.5-31.i586.rpm<br>
+rpm -ivh kernel-source-2.6.22.5-31.i586.rpm<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.22.5-31/<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.0-20070920.tar.gz<br>
+wget -O ccs-patch-2.6.22.5-31_SUSE.txt 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22.5-31_SUSE.diff?root=tomoyo'<br>
+tar -zxf ccs-patch-1.5.0-20070920.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.22.5-31_SUSE.txt<br>
+# Move to the output directory.<br>
+cd /usr/src/linux-2.6.22.5-31-obj/i386/default/<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
 <h2><a name="2.6.9-42.16AX">Kernel 2.6.9-42.16AX for Asianux 2.0</a></h2>
 
 <table border="1">
@@ -406,6 +432,33 @@ wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.0-20070920.tar.gz<
 wget -O ccs-patch-2.6.9-42.16AX.txt 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-42.16AX.diff?root=tomoyo'<br>
 tar -zxf ccs-patch-1.5.0-20070920.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.9-42.16AX.txt<br>
+# Enable options for TOMOYO Linux.<br>
+make -s menuconfig<br>
+# Compile as usual.<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.18-8.10AX">Kernel 2.6.18-8.10AX for Asianux 3.0</a></h2>
+
+<table border="1">
+<tr><td>
+# Download and install kernel source.<br>
+wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/src/kernel-2.6.18-8.10AX.src.rpm<br>
+rpm -ivh kernel-2.6.18-8.10AX.src.rpm<br>
+# Prepare for compilation.<br>
+rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.18/linux-2.6.18/ /usr/src/linux-2.6.18-8.10AX<br>
+# Move to the source directory.<br>
+cd /usr/src/linux-2.6.18-8.10AX/<br>
+# Modify version number.<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.10AX/' Makefile<br>
+# Download and apply TOMOYO Linux patch.<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.0-20070920.tar.gz<br>
+wget -O ccs-patch-2.6.18-8.10AX.txt 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.18-8.10AX.diff?root=tomoyo'<br>
+tar -zxf ccs-patch-1.5.0-20070920.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.18-8.10AX.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
