@@ -49,6 +49,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
 <li><a href="#2.6.8-16sarge7">Debian Sarge 用のカーネル 2.6.8-16sarge7</a>
 <li><a href="#2.6.18-13etch4">Debian Etch 用のカーネル 2.6.18-13etch4</a>
+<li><a href="#2.6.22-4lenny">Debian Lenny 用のカーネル 2.6.22-4lenny</a>
 <li><a href="#2.6.16.53-0.16">OpenSUSE 10.1 用のカーネル 2.6.16.53-0.16</a>
 <li><a href="#2.6.18.8-0.7">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.7</a>
 <li><a href="#2.6.22.5-31">OpenSUSE 10.3 用のカーネル 2.6.22.5-31</a>
@@ -337,7 +338,31 @@ make -s menuconfig<br>
 make -s<br>
 make -s install modules modules_install<br>
 # initrd を作成する。<br>
-mkinitrd -o /boot/initrd.img-2.6.18-ccs 2.6.18-ccs
+mkinitrd -o /boot/initrd.img-2.6.18-13etch4-ccs 2.6.18-13etch4-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.22-4lenny">Debian Lenny 用のカーネル 2.6.22-4lenny</a></h2>
+
+<table border="1">
+<tr><td>
+# カーネルのソースをダウンロードしてインストールする。<br>
+apt-get install linux-source-2.6.22<br>
+tar -jxf /usr/src/linux-source-2.6.22.tar.bz2<br>
+# ソースのディレクトリへ移動する。<br>
+cd linux-source-2.6.22/<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.0-20070920.tar.gz<br>
+wget -O ccs-patch-2.6.22-4lenny.txt 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22-4lenny.diff?root=tomoyo'<br>
+tar -zxf ccs-patch-1.5.0-20070920.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.22-4lenny.txt<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s install modules modules_install<br>
+# initrd を作成する。<br>
+mkinitrd -o /boot/initrd.img-2.6.22-4lenny-ccs 2.6.22-4lenny-ccs
 </td></tr>
 </table>
 
