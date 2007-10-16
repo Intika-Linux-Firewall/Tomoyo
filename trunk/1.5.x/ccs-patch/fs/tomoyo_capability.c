@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -225,12 +225,9 @@ int CheckCapabilityACL(const unsigned int capability)
 }
 EXPORT_SYMBOL(CheckCapabilityACL);
 
-int AddCapabilityPolicy(char *data, struct domain_info *domain, const u8 is_delete)
+int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	unsigned int capability;
-	const struct condition_list *condition = NULL;
-	char *cp = FindConditionPart(data);
-	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {
 		if (strcmp(data, capability_control_array[capability].keyword) == 0) {
 			return AddCapabilityACL(capability, domain, condition, is_delete);

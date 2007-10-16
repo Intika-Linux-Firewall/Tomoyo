@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -756,6 +756,88 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	return retval;
 }
 
+static int CheckEnviron(struct linux_binprm *bprm)
+{
+	char *arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
+	int arg_len = 0;
+	unsigned long pos = bprm->p;
+	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+	int argv_count = bprm->argc;
+	int envp_count = bprm->envc;
+	//printk("start %d %d\n", argv_count, envp_count);
+	int error = -ENOMEM;
+	if (!arg_ptr) goto out;
+	if (!envp_count) {
+		error = 0;
+		goto out;
+	}
+	while (error == -ENOMEM) {
+		struct page *page;
+		const char *kaddr;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
+#else
+		page = bprm->page[i];
+#endif
+		/* Map */
+		kaddr = kmap(page);
+		if (!kaddr) { /* Mapping failed. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+			put_page(page);
+#endif
+			goto out;
+		}
+		/* Read. */
+		while (argv_count && offset < PAGE_SIZE) {
+			if (!kaddr[offset++]) argv_count--;
+		}
+		if (argv_count) goto unmap_page;
+		while (offset < PAGE_SIZE) {
+			const unsigned char c = kaddr[offset++];
+			if (arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+				if (c == '=') {
+					arg_ptr[arg_len++] = '\0';
+				} else if (c == '\\') {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = '\\';
+				} else if (c > ' ' && c < 127) {
+					arg_ptr[arg_len++] = c;
+				} else {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = (c >> 6) + '0';
+					arg_ptr[arg_len++] = ((c >> 3) & 7) + '0';
+					arg_ptr[arg_len++] = (c & 7) + '0';
+				}
+			} else {
+				arg_ptr[arg_len] = '\0';
+			}
+			if (c) continue;
+			if (CheckEnvPerm(arg_ptr)) {
+				error = -EPERM;
+				break;
+			}
+			if (!--envp_count) {
+				error = 0;
+				break;
+			}
+			arg_len = 0;
+		}
+	unmap_page:
+		/* Unmap. */
+		kunmap(page);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+		put_page(page);
+		pos += PAGE_SIZE - offset;
+#endif
+		i++;
+		offset = 0;
+	}
+ out:
+	ccs_free(arg_ptr);
+	if (error && !CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ENV)) error = 0;
+	return error;
+}
+
 #endif
 
 int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
@@ -772,11 +854,14 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 	retval = 0; next_domain = prev_domain;
 #endif
 	if (retval == 0) {
-		current->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 		current->domain_info = next_domain;
-		retval = search_binary_handler(bprm, regs);
-		if (retval < 0) current->domain_info = prev_domain;
+#if defined(CONFIG_TOMOYO)
+		if (CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV)) retval = CheckEnviron(bprm);
+#endif
+		current->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+		if (!retval) retval = search_binary_handler(bprm, regs);
 		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+		if (retval < 0) current->domain_info = prev_domain;
 	}
 	return retval;
 }

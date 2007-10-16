@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -140,14 +140,11 @@ int CheckSignalACL(const int sig, const int pid)
 }
 EXPORT_SYMBOL(CheckSignalACL);
 
-int AddSignalPolicy(char *data, struct domain_info *domain, const u8 is_delete)
+int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	int sig;
 	char *domainname = strchr(data, ' ');
 	if (sscanf(data, "%d", &sig) == 1 && domainname && IsDomainDef(domainname + 1)) {
-		const struct condition_list *condition = NULL;
-		const char *cp = FindConditionPart(domainname + 1);
-		if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 		return AddSignalEntry(sig, domainname + 1, domain, condition, is_delete);
 	}
 	return -EINVAL;

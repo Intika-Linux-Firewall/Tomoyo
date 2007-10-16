@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -575,18 +575,14 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	return error;
 }
 
-int AddFilePolicy(char *data, struct domain_info *domain, const u8 is_delete)
+int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	char *filename = strchr(data, ' ');
-	char *cp;
-	const struct condition_list *condition = NULL;
 	unsigned int perm;
 	u8 type;
 	if (!filename) return -EINVAL;
 	*filename++ = '\0';
 	if (sscanf(data, "%u", &perm) == 1) {
-		cp = FindConditionPart(filename);
-		if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) goto out;
 		return AddFileACL(filename, (u8) perm, domain, condition, is_delete);
 	}
 	if (strncmp(data, "allow_", 6)) goto out;
@@ -597,12 +593,8 @@ int AddFilePolicy(char *data, struct domain_info *domain, const u8 is_delete)
 			char *filename2 = strchr(filename, ' ');
 			if (!filename2) break;
 			*filename2++ = '\0';
-			cp = FindConditionPart(filename2);
-			if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) goto out;
 			return AddDoubleWriteACL(type, filename, filename2, domain, condition, is_delete);
 		} else {
-			cp = FindConditionPart(filename);
-			if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) goto out;
 			return AddSingleWriteACL(type, filename, domain, condition, is_delete);
 		}
 		break;

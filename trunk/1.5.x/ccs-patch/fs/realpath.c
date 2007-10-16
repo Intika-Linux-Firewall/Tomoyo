@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -391,6 +391,19 @@ unsigned int GetMemoryUsedForDynamic(void)
 	return dynamic_memory_size;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+static int round2(size_t size)
+{
+#if PAGE_SIZE == 4096
+	size_t bsize = 32;
+#else
+	size_t bsize = 64;
+#endif
+	while (size > bsize) bsize <<= 1;
+	return bsize;
+}
+#endif
+
 void *ccs_alloc(const size_t size)
 {
 	void *ret = kmalloc(size, GFP_KERNEL);
@@ -401,10 +414,14 @@ void *ccs_alloc(const size_t size)
 		} else {
 			INIT_LIST_HEAD(&new_entry->list);
 			new_entry->ptr = ret;
-			new_entry->size = size;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+			new_entry->size = ksize(ret);
+#else
+			new_entry->size = round2(size);
+#endif
 			spin_lock(&cache_list_lock);
 			list_add_tail(&new_entry->list, &cache_list);
-			dynamic_memory_size += size;
+			dynamic_memory_size += new_entry->size;
 			spin_unlock(&cache_list_lock);
 			memset(ret, 0, size);
 		}

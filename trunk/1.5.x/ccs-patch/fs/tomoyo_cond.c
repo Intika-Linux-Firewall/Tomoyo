@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -16,16 +16,6 @@
 #include <linux/ccs_common.h>
 #include <linux/realpath.h>
 #include <linux/version.h>
-
-char *FindConditionPart(char *data)
-{
-	char *cp = strstr(data, " if "), *cp2;
-	if (cp) {
-		while ((cp2 = strstr(cp + 3, " if ")) != NULL) cp = cp2;
-		*cp++ = '\0';
-	}
-	return cp;
-}
 
 #define VALUE_TYPE_DECIMAL     1
 #define VALUE_TYPE_OCTAL       2
