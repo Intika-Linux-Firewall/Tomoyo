@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -89,7 +89,6 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 	int error = -EPERM;
 	struct acl_info *ptr;
 	struct path_info argv0;
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) return 0;
 	argv0.name = argv0_;
 	fill_path_info(&argv0);
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -106,7 +105,6 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 {
 	int error = 0;
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) return 0;
 	if (!filename || !argv0 || !*argv0) return 0;
 	error = CheckArgv0ACL(filename, argv0);
 	AuditArgv0Log(filename, argv0, !error);
@@ -124,15 +122,11 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 }
 EXPORT_SYMBOL(CheckArgv0Perm);
 
-int AddArgv0Policy(char *data, struct domain_info *domain, const u8 is_delete)
+int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	char *argv0 = strchr(data, ' ');
-	char *cp;
-	const struct condition_list *condition = NULL;
 	if (!argv0) return -EINVAL;
 	*argv0++ = '\0';
-	cp = FindConditionPart(argv0);
-	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	return AddArgv0Entry(data, argv0, domain, condition, is_delete);
 }
 

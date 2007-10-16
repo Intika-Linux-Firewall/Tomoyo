@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -377,7 +377,7 @@ static int CheckNetworkEntry(const u8 is_ipv6, const int operation, const u32 *a
 	return 0;
 }
 
-int AddNetworkPolicy(char *data, struct domain_info *domain, const u8 is_delete)
+int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	u8 sock_type, operation, record_type;
 	u16 min_address[8], max_address[8];
@@ -385,9 +385,6 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const u8 is_delete)
 	u16 min_port, max_port;
 	int count;
 	char *cp1 = NULL, *cp2 = NULL;
-	const struct condition_list *condition = NULL;
-	cp1 = FindConditionPart(data);
-	if (cp1 && (condition = FindOrAssignNewCondition(cp1)) == NULL) goto out;
 	if ((cp1 = strchr(data, ' ')) == NULL) goto out; cp1++;
 	if (strncmp(data, "TCP ", 4) == 0) sock_type = SOCK_STREAM;
 	else if (strncmp(data, "UDP ", 4) == 0) sock_type = SOCK_DGRAM;

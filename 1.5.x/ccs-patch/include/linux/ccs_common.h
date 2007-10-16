@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.1-pre   2007/10/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -142,6 +142,11 @@ struct argv0_acl_record {
 	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
 };
 
+struct env_acl_record {
+	struct acl_info head;           /* type = TYPE_ENV_ACL  */
+	const struct path_info *env;    /* environment variable */
+};
+
 struct capability_acl_record {
 	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
 	u16 capability;
@@ -213,6 +218,8 @@ struct ip_network_acl_record {
 #define KEYWORD_ALLOW_CAPABILITY_LEN     (sizeof(KEYWORD_ALLOW_CAPABILITY) - 1)
 #define KEYWORD_ALLOW_CHROOT             "allow_chroot "
 #define KEYWORD_ALLOW_CHROOT_LEN         (sizeof(KEYWORD_ALLOW_CHROOT) - 1)
+#define KEYWORD_ALLOW_ENV                "allow_env "
+#define KEYWORD_ALLOW_ENV_LEN            (sizeof(KEYWORD_ALLOW_ENV) - 1)
 #define KEYWORD_ALLOW_MOUNT              "allow_mount "
 #define KEYWORD_ALLOW_MOUNT_LEN          (sizeof(KEYWORD_ALLOW_MOUNT) - 1)
 #define KEYWORD_ALLOW_NETWORK            "allow_network "
@@ -261,20 +268,21 @@ struct ip_network_acl_record {
 #define CCS_PROFILE_COMMENT                      0  /* profile.conf            */
 #define CCS_TOMOYO_MAC_FOR_FILE                  1  /* domain_policy.conf      */
 #define CCS_TOMOYO_MAC_FOR_ARGV0                 2  /* domain_policy.conf      */
-#define CCS_TOMOYO_MAC_FOR_NETWORK               3  /* domain_policy.conf      */
-#define CCS_TOMOYO_MAC_FOR_SIGNAL                4  /* domain_policy.conf      */
-#define CCS_SAKURA_DENY_CONCEAL_MOUNT            5
-#define CCS_SAKURA_RESTRICT_CHROOT               6  /* system_policy.conf      */
-#define CCS_SAKURA_RESTRICT_MOUNT                7  /* system_policy.conf      */
-#define CCS_SAKURA_RESTRICT_UNMOUNT              8  /* system_policy.conf      */
-#define CCS_SAKURA_RESTRICT_PIVOT_ROOT           9  /* system_policy.conf      */
-#define CCS_SAKURA_RESTRICT_AUTOBIND            10  /* system_policy.conf      */
-#define CCS_TOMOYO_MAX_ACCEPT_ENTRY             11
-#define CCS_TOMOYO_MAX_GRANT_LOG                12
-#define CCS_TOMOYO_MAX_REJECT_LOG               13
-#define CCS_TOMOYO_VERBOSE                      14
-#define CCS_ALLOW_ENFORCE_GRACE                 15
-#define CCS_MAX_CONTROL_INDEX                   16
+#define CCS_TOMOYO_MAC_FOR_ENV                   3  /* domain_policy.conf      */
+#define CCS_TOMOYO_MAC_FOR_NETWORK               4  /* domain_policy.conf      */
+#define CCS_TOMOYO_MAC_FOR_SIGNAL                5  /* domain_policy.conf      */
+#define CCS_SAKURA_DENY_CONCEAL_MOUNT            6
+#define CCS_SAKURA_RESTRICT_CHROOT               7  /* system_policy.conf      */
+#define CCS_SAKURA_RESTRICT_MOUNT                8  /* system_policy.conf      */
+#define CCS_SAKURA_RESTRICT_UNMOUNT              9  /* system_policy.conf      */
+#define CCS_SAKURA_RESTRICT_PIVOT_ROOT          10  /* system_policy.conf      */
+#define CCS_SAKURA_RESTRICT_AUTOBIND            11  /* system_policy.conf      */
+#define CCS_TOMOYO_MAX_ACCEPT_ENTRY             12
+#define CCS_TOMOYO_MAX_GRANT_LOG                13
+#define CCS_TOMOYO_MAX_REJECT_LOG               14
+#define CCS_TOMOYO_VERBOSE                      15
+#define CCS_ALLOW_ENFORCE_GRACE                 16
+#define CCS_MAX_CONTROL_INDEX                   17
 
 /*************************  Index numbers for updates counter.  *************************/
 
@@ -311,7 +319,6 @@ struct io_buffer {
 
 /*************************  PROTOTYPES  *************************/
 
-char *FindConditionPart(char *data);
 char *InitAuditLog(int *len);
 void *ccs_alloc(const size_t size);
 char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
@@ -325,23 +332,25 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition);
 int AddAddressGroupPolicy(char *data, const u8 is_delete);
 int AddAggregatorPolicy(char *data, const u8 is_delete);
 int AddAliasPolicy(char *data, const u8 is_delete);
-int AddArgv0Policy(char *data, struct domain_info *domain, const u8 is_delete);
-int AddCapabilityPolicy(char *data, struct domain_info *domain, const u8 is_delete);
+int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
+int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
 int AddChrootPolicy(char *data, const u8 is_delete);
 int AddDomainACL(struct acl_info *ptr, struct domain_info *domain, struct acl_info *new_ptr);
 int AddDomainInitializerPolicy(char *data, const u8 is_not, const u8 is_delete);
 int AddDomainKeeperPolicy(char *data, const u8 is_not, const u8 is_delete);
-int AddFilePolicy(char *data, struct domain_info *domain, const u8 is_delete);
+int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
+int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
 int AddGloballyReadablePolicy(char *data, const u8 is_delete);
+int AddGloballyUsableEnvPolicy(char *env, const u8 is_delete);
 int AddGroupPolicy(char *data, const u8 is_delete);
 int AddMountPolicy(char *data, const u8 is_delete);
-int AddNetworkPolicy(char *data, struct domain_info *domain, const u8 is_delete);
+int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
 int AddNoRewritePolicy(char *pattern, const u8 is_delete);
 int AddNoUmountPolicy(char *data, const u8 is_delete);
 int AddPatternPolicy(char *data, const u8 is_delete);
 int AddPivotRootPolicy(char *data, const u8 is_delete);
 int AddReservedPortPolicy(char *data, const u8 is_delete);
-int AddSignalPolicy(char *data, struct domain_info *domain, const u8 is_delete);
+int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
 int CCS_CloseControl(struct file *file);
 int CCS_OpenControl(const int type, struct file *file);
 int CCS_PollControl(struct file *file, poll_table *wait);
@@ -367,6 +376,7 @@ int ReadChrootPolicy(struct io_buffer *head);
 int ReadDomainInitializerPolicy(struct io_buffer *head);
 int ReadDomainKeeperPolicy(struct io_buffer *head);
 int ReadGloballyReadablePolicy(struct io_buffer *head);
+int ReadGloballyUsableEnvPolicy(struct io_buffer *head);
 int ReadGrantLog(struct io_buffer *head);
 int ReadGroupPolicy(struct io_buffer *head);
 int ReadMountPolicy(struct io_buffer *head);
