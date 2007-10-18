@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -64,7 +64,6 @@ static struct {
 	[CCS_PROFILE_COMMENT]            = { "COMMENT",             0, 0 }, /* Reserved for string. */
 	[CCS_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
 	[CCS_TOMOYO_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
-	[CCS_TOMOYO_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
 	[CCS_TOMOYO_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
 	[CCS_TOMOYO_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
 	[CCS_SAKURA_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
@@ -487,7 +486,7 @@ const char *GetEXE(void)
 	return NULL;
 }
 
-const char *GetMSG(const u8 is_enforce)
+const char *GetMSG(const int is_enforce)
 {
 	if (is_enforce) return "ERROR"; else return "WARNING";
 }
@@ -512,7 +511,7 @@ unsigned int TomoyoVerboseMode(void)
 }
 
 /* Check whether the given access control is enforce mode. */
-u8 CheckCCSEnforce(const unsigned int index)
+unsigned int CheckCCSEnforce(const unsigned int index)
 {
 	return CheckCCSFlags(index) == 3;
 }
@@ -535,7 +534,7 @@ unsigned int CheckDomainQuota(struct domain_info * const domain)
 }
 
 /* Check whether the given access control is learning mode. */
-u8 CheckCCSAccept(const unsigned int index, struct domain_info * const domain)
+unsigned int CheckCCSAccept(const unsigned int index, struct domain_info * const domain)
 {
 	if (CheckCCSFlags(index) != 1) return 0;
 	return CheckDomainQuota(domain);
@@ -620,7 +619,6 @@ static int ReadProfile(struct io_buffer *head)
 #ifndef CONFIG_TOMOYO
 				case CCS_TOMOYO_MAC_FOR_FILE:
 				case CCS_TOMOYO_MAC_FOR_ARGV0:
-				case CCS_TOMOYO_MAC_FOR_ENV:
 				case CCS_TOMOYO_MAC_FOR_NETWORK:
 				case CCS_TOMOYO_MAC_FOR_SIGNAL:
 				case CCS_TOMOYO_MAX_ACCEPT_ENTRY:
@@ -662,7 +660,7 @@ struct policy_manager_entry {
 
 static struct policy_manager_entry *policy_manager_list = NULL;
 
-static int AddManagerEntry(const char *manager, const u8 is_delete)
+static int AddManagerEntry(const char *manager, u8 is_delete)
 {
 	struct policy_manager_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -708,7 +706,7 @@ static int AddManagerEntry(const char *manager, const u8 is_delete)
 static int AddManagerPolicy(struct io_buffer *head)
 {
 	const char *data = head->write_buf;
-	u8 is_delete = 0;
+	int is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
@@ -763,24 +761,12 @@ static int IsPolicyManager(void)
 
 /*************************  DOMAIN POLICY HANDLER  *************************/
 
-static char *FindConditionPart(char *data)
-{
-	char *cp = strstr(data, " if "), *cp2;
-	if (cp) {
-		while ((cp2 = strstr(cp + 3, " if ")) != NULL) cp = cp2;
-		*cp++ = '\0';
-	}
-	return cp;
-}
-
 static int AddDomainPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct domain_info *domain = head->write_var1;
-	u8 is_delete = 0, is_select = 0, is_undelete = 0;
+	int is_delete = 0, is_select = 0, is_undelete = 0;
 	unsigned int profile;
-	const struct condition_list *cond = NULL;
-	char *cp;	
 	if (!isRoot()) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
@@ -808,25 +794,18 @@ static int AddDomainPolicy(struct io_buffer *head)
 		return 0;
 	}
 	if (!domain) return -EINVAL;
-
 	if (sscanf(data, KEYWORD_USE_PROFILE "%u", &profile) == 1 && profile < MAX_PROFILES) {
 		if (profile_ptr[profile] || !sbin_init_started) domain->profile = (u8) profile;
-		return 0;
-	}
-	cp = FindConditionPart(data);
-	if (cp && (cond = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
-	if (strncmp(data, KEYWORD_ALLOW_CAPABILITY, KEYWORD_ALLOW_CAPABILITY_LEN) == 0) {
-		return AddCapabilityPolicy(data + KEYWORD_ALLOW_CAPABILITY_LEN, domain, cond, is_delete);
+	} else if (strncmp(data, KEYWORD_ALLOW_CAPABILITY, KEYWORD_ALLOW_CAPABILITY_LEN) == 0) {
+		return AddCapabilityPolicy(data + KEYWORD_ALLOW_CAPABILITY_LEN, domain, is_delete);
 	} else if (strncmp(data, KEYWORD_ALLOW_NETWORK, KEYWORD_ALLOW_NETWORK_LEN) == 0) {
-		return AddNetworkPolicy(data + KEYWORD_ALLOW_NETWORK_LEN, domain, cond, is_delete);
+		return AddNetworkPolicy(data + KEYWORD_ALLOW_NETWORK_LEN, domain, is_delete);
 	} else if (strncmp(data, KEYWORD_ALLOW_SIGNAL, KEYWORD_ALLOW_SIGNAL_LEN) == 0) {
-		return AddSignalPolicy(data + KEYWORD_ALLOW_SIGNAL_LEN, domain, cond, is_delete);
+		return AddSignalPolicy(data + KEYWORD_ALLOW_SIGNAL_LEN, domain, is_delete);
 	} else if (strncmp(data, KEYWORD_ALLOW_ARGV0, KEYWORD_ALLOW_ARGV0_LEN) == 0) {
-		return AddArgv0Policy(data + KEYWORD_ALLOW_ARGV0_LEN, domain, cond, is_delete);
-	} else if (strncmp(data, KEYWORD_ALLOW_ENV, KEYWORD_ALLOW_ENV_LEN) == 0) {
-		return AddEnvPolicy(data + KEYWORD_ALLOW_ENV_LEN, domain, cond, is_delete);
+		return AddArgv0Policy(data + KEYWORD_ALLOW_ARGV0_LEN, domain, is_delete);
 	} else {
-		return AddFilePolicy(data, domain, cond, is_delete);
+		return AddFilePolicy(data, domain, is_delete);
 	}
 	return -EINVAL;
 }
@@ -870,12 +849,6 @@ static int ReadDomainPolicy(struct io_buffer *head)
 					struct argv0_acl_record *ptr2 = (struct argv0_acl_record *) ptr;
 					if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
 						      ptr2->filename->name, ptr2->argv0->name) ||
-					    DumpCondition(head, ptr->cond)) {
-						head->read_avail = pos; break;
-					}
-				} else if (acl_type == TYPE_ENV_ACL) {
-					struct env_acl_record *ptr2 = (struct env_acl_record *) ptr;
-					if (io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr2->env->name) ||
 					    DumpCondition(head, ptr->cond)) {
 						head->read_avail = pos; break;
 					}
@@ -1030,7 +1003,7 @@ static int ReadPID(struct io_buffer *head)
 static int AddExceptionPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
-	u8 is_delete = 0;
+	int is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	UpdateCounter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
@@ -1051,8 +1024,6 @@ static int AddExceptionPolicy(struct io_buffer *head)
 		return AddAggregatorPolicy(data + KEYWORD_AGGREGATOR_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_ALLOW_READ, KEYWORD_ALLOW_READ_LEN) == 0) {
 		return AddGloballyReadablePolicy(data + KEYWORD_ALLOW_READ_LEN, is_delete);
-	} else if (strncmp(data, KEYWORD_ALLOW_ENV, KEYWORD_ALLOW_ENV_LEN) == 0) {
-		return AddGloballyUsableEnvPolicy(data + KEYWORD_ALLOW_ENV_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_FILE_PATTERN, KEYWORD_FILE_PATTERN_LEN) == 0) {
 		return AddPatternPolicy(data + KEYWORD_FILE_PATTERN_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_PATH_GROUP, KEYWORD_PATH_GROUP_LEN) == 0) {
@@ -1079,27 +1050,24 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 			if (ReadGloballyReadablePolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 3;
 		case 3:
-			if (ReadGloballyUsableEnvPolicy(head)) break;
+			if (ReadDomainInitializerPolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 4;
 		case 4:
-			if (ReadDomainInitializerPolicy(head)) break;
+			if (ReadAliasPolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 5;
 		case 5:
-			if (ReadAliasPolicy(head)) break;
+			if (ReadAggregatorPolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 6;
 		case 6:
-			if (ReadAggregatorPolicy(head)) break;
+			if (ReadPatternPolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 7;
 		case 7:
-			if (ReadPatternPolicy(head)) break;
+			if (ReadNoRewritePolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 8;
 		case 8:
-			if (ReadNoRewritePolicy(head)) break;
-			head->read_var2 = NULL; head->read_step = 9;
-		case 9:
 			if (ReadGroupPolicy(head)) break;
-			head->read_var1 = head->read_var2 = NULL; head->read_step = 10;
-		case 10:
+			head->read_var1 = head->read_var2 = NULL; head->read_step = 9;
+		case 9:
 			if (ReadAddressGroupPolicy(head)) break;
 			head->read_eof = 1;
 			break;
@@ -1119,7 +1087,7 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 static int AddSystemPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
-	u8 is_delete = 0;
+	int is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
@@ -1229,10 +1197,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.2-pre   2007/10/19\n");
+	printk("SAKURA: 1.5.1   2007/10/19\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.2-pre   2007/10/19\n");
+	printk("TOMOYO: 1.5.1   2007/10/19\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
@@ -1474,7 +1442,7 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 static int ReadVersion(struct io_buffer *head)
 {
 	if (!head->read_eof) {
-		if (io_printf(head, "1.5.2-pre") == 0) head->read_eof = 1;
+		if (io_printf(head, "1.5.1") == 0) head->read_eof = 1;
 	}
 	return 0;
 }

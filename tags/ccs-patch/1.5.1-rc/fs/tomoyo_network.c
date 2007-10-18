@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -24,7 +24,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditNetworkLog(const u8 is_ipv6, const char *operation, const u32 *address, const u16 port, const u8 is_granted)
+static int AuditNetworkLog(const int is_ipv6, const char *operation, const u32 *address, const u16 port, const int is_granted)
 {
 	char *buf;
 	int len = 256;
@@ -45,7 +45,7 @@ static int AuditNetworkLog(const u8 is_ipv6, const char *operation, const u32 *a
 
 static struct address_group_entry *group_list = NULL;
 
-static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const u16 *min_address, const u16 *max_address, const u8 is_delete)
+static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const u16 *min_address, const u16 *max_address, const int is_delete)
 {
 	static DECLARE_MUTEX(lock);
 	struct address_group_entry *new_group, *group;
@@ -106,7 +106,7 @@ static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const 
 	return error;
 }
 
-int AddAddressGroupPolicy(char *data, const u8 is_delete)
+int AddAddressGroupPolicy(char *data, const int is_delete)
 {
 	int count, is_ipv6;
 	u16 min_address[8], max_address[8];
@@ -332,12 +332,12 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	return error;
 }
 
-static int CheckNetworkEntry(const u8 is_ipv6, const int operation, const u32 *address, const u16 port)
+static int CheckNetworkEntry(const int is_ipv6, const int operation, const u32 *address, const u16 port)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
 	const char *keyword = network2keyword(operation);
-	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_NETWORK);
+	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_NETWORK);
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -373,11 +373,11 @@ static int CheckNetworkEntry(const u8 is_ipv6, const int operation, const u32 *a
 		}
 		return CheckSupervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s %u.%u.%u.%u %u\n", domain->domainname->name, keyword, HIPQUAD(ip), port);
 	}
-	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK, domain)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6: IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, NULL, 0);
+	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK, domain)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, NULL, 0);
 	return 0;
 }
 
-int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete)
 {
 	u8 sock_type, operation, record_type;
 	u16 min_address[8], max_address[8];
@@ -385,6 +385,9 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condit
 	u16 min_port, max_port;
 	int count;
 	char *cp1 = NULL, *cp2 = NULL;
+	const struct condition_list *condition = NULL;
+	cp1 = FindConditionPart(data);
+	if (cp1 && (condition = FindOrAssignNewCondition(cp1)) == NULL) goto out;
 	if ((cp1 = strchr(data, ' ')) == NULL) goto out; cp1++;
 	if (strncmp(data, "TCP ", 4) == 0) sock_type = SOCK_STREAM;
 	else if (strncmp(data, "UDP ", 4) == 0) sock_type = SOCK_DGRAM;
@@ -438,37 +441,37 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condit
 	return -EINVAL;
 }
 
-int CheckNetworkListenACL(const u8 is_ipv6, const u8 *address, const u16 port)
+int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_LISTEN, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkListenACL);
 
-int CheckNetworkConnectACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT), (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkConnectACL);
 
-int CheckNetworkBindACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_BIND : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_BIND : NETWORK_ACL_RAW_BIND), (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkBindACL);
 
-int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port)
+int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkAcceptACL);
 
-int CheckNetworkSendMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkSendMsgACL);
 
-int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }

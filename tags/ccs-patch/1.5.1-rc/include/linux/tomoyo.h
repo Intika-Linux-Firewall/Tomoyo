@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -56,16 +56,13 @@ int CheckReWritePermission(struct file *filp);
 /* Check whether the basename of program and argv0 is allowed to differ. */
 int CheckArgv0Perm(const struct path_info *filename, const char *argv0);
 
-/* Check whether the given environment is allowed to be received. */
-int CheckEnvPerm(const char *env);
-
 /* Check whether the given IP address and port number are allowed to use. */
-int CheckNetworkListenACL(const u8 is_ipv6, const u8 *address, const u16 port);
-int CheckNetworkConnectACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port);
-int CheckNetworkBindACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port);
-int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port);
-int CheckNetworkSendMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port);
-int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port);
+int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port);
+int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port);
+int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port);
+int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port);
+int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port);
+int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port);
 
 /* Check whether the given signal is allowed to use. */
 int CheckSignalACL(const int sig, const int pid);
@@ -82,13 +79,12 @@ static inline int CheckSingleWritePermission(const unsigned int operation, struc
 static inline int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2) { return 0; }
 static inline int CheckReWritePermission(struct file *filp) { return 0; }
 static inline int CheckArgv0Perm(const struct path_info *filename, const char *argv0) { return 0; }
-static inline int CheckEnvPerm(const char *env) { return 0; }
-static inline int CheckNetworkListenACL(const u8 is_ipv6, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkConnectACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkBindACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkSendMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
 static inline int CheckSignalACL(const int sig, const int pid) { return 0; }
 static inline int CheckCapabilityACL(const unsigned int capability) { return 0; }
 
@@ -122,10 +118,9 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 
 #define TYPE_FILE_ACL         100
 #define TYPE_ARGV0_ACL        101
-#define TYPE_ENV_ACL          102
-#define TYPE_CAPABILITY_ACL   103
-#define TYPE_IP_NETWORK_ACL   104
-#define TYPE_SIGNAL_ACL       105
+#define TYPE_CAPABILITY_ACL   102
+#define TYPE_IP_NETWORK_ACL   103
+#define TYPE_SIGNAL_ACL       104
 
 /*************************  Index numbers for Capability Controls.  *************************/
 

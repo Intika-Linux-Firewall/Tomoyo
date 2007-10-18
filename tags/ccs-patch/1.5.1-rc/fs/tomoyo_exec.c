@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -23,7 +23,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const u8 is_granted)
+static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const int is_granted)
 {
 	char *buf;
 	int len;
@@ -89,6 +89,7 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 	int error = -EPERM;
 	struct acl_info *ptr;
 	struct path_info argv0;
+	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) return 0;
 	argv0.name = argv0_;
 	fill_path_info(&argv0);
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -105,12 +106,13 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 {
 	int error = 0;
+	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) return 0;
 	if (!filename || !argv0 || !*argv0) return 0;
 	error = CheckArgv0ACL(filename, argv0);
 	AuditArgv0Log(filename, argv0, !error);
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
-		const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ARGV0);
+		const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ARGV0);
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Run %s as %s denied for %s\n", GetMSG(is_enforce), filename->name, argv0, GetLastName(domain));
 		}
@@ -122,11 +124,15 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 }
 EXPORT_SYMBOL(CheckArgv0Perm);
 
-int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+int AddArgv0Policy(char *data, struct domain_info *domain, const int is_delete)
 {
 	char *argv0 = strchr(data, ' ');
+	char *cp;
+	const struct condition_list *condition = NULL;
 	if (!argv0) return -EINVAL;
 	*argv0++ = '\0';
+	cp = FindConditionPart(argv0);
+	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	return AddArgv0Entry(data, argv0, domain, condition, is_delete);
 }
 
