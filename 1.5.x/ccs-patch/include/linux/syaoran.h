@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.2-pre   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -501,7 +501,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static int first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.5.1-pre   2007/09/27\n");
+		printk("SYAORAN: 1.5.2-pre   2007/10/19\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
