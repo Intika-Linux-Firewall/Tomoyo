@@ -21,7 +21,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # that the kernel isn't the stock RHL kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 46.9.legacy_tomoyo_1.5.0
+%define release 46.9.legacy_tomoyo_1.5.1
 %define sublevel 20
 %define kversion 2.4.%{sublevel}
 # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
@@ -1417,8 +1417,8 @@ cd linux-%{version}
 %patch11050 -p2
 
 # TOMOYO Linux
-wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
+# wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
 sed -i -e "s/^SUBLEVEL.*/SUBLEVEL = 20/" -e "s/^EXTRAVERSION.*/EXTRAVERSION = -46.9.legacycustom/" -- Makefile
 patch -sp1 < patches/ccs-patch-2.4.20-46.9.legacy.diff
 
