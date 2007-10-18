@@ -398,7 +398,7 @@ Name: ccs-kernel%{?variant}
 Group: System Environment/Kernel
 License: GPLv2
 Version: %{rpmversion}
-Release: %{pkg_release}_tomoyo_1.5.0
+Release: %{pkg_release}_tomoyo_1.5.1
 # DO NOT CHANGE THE 'ExclusiveArch' LINE TO TEMPORARILY EXCLUDE AN ARCHITECTURE BUILD.
 # SET %nobuildarches (ABOVE) INSTEAD
 ExclusiveArch: noarch %{all_x86} x86_64 ppc ppc64 ia64 sparc sparc64 s390x alpha alphaev56
@@ -1458,8 +1458,8 @@ ApplyPatch linux-2.6-pcspkr-use-the-global-pit-lock.patch
 ApplyPatch linux-2.6-pmtrace-time-fix.patch
 
 # TOMOYO Linux
-wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-tar -zxf %_sourcedir/ccs-patch-1.5.0-20070920.tar.gz
+# wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
+tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
 sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .9-91.fc7:' -- Makefile
 patch -sp1 < patches/ccs-patch-2.6.22.9-91.fc7.diff
 
