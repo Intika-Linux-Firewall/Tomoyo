@@ -1,8 +1,43 @@
+Index: include/linux/ccs_common.h
+===================================================================
+--- include/linux/ccs_common.h	(revision 589)
++++ include/linux/ccs_common.h	(working copy)
+@@ -282,7 +282,9 @@
+ #define CCS_TOMOYO_MAX_REJECT_LOG               14
+ #define CCS_TOMOYO_VERBOSE                      15
+ #define CCS_ALLOW_ENFORCE_GRACE                 16
+-#define CCS_MAX_CONTROL_INDEX                   17
++#define CCS_SLEEP_PERIOD                        17
++#define CCS_TOMOYO_ALT_EXEC                     18
++#define CCS_MAX_CONTROL_INDEX                   19
+ 
+ /*************************  Index numbers for updates counter.  *************************/
+ 
+@@ -322,6 +324,7 @@
+ char *InitAuditLog(int *len);
+ void *ccs_alloc(const size_t size);
+ char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
++const char *GetAltExec(void);
+ const char *GetEXE(void);
+ const char *GetLastName(const struct domain_info *domain);
+ const char *GetMSG(const u8 is_enforce);
+Index: include/linux/tomoyo.h
+===================================================================
+--- include/linux/tomoyo.h	(revision 589)
++++ include/linux/tomoyo.h	(working copy)
+@@ -103,6 +103,7 @@
+ 
+ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs);
+ #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
++#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
+ 
+ /*************************  Index numbers for Access Controls.  *************************/
+ 
 Index: fs/tomoyo_network.c
 ===================================================================
---- fs/tomoyo_network.c	(revision 512)
+--- fs/tomoyo_network.c	(revision 596)
 +++ fs/tomoyo_network.c	(working copy)
-@@ -461,7 +461,11 @@
+@@ -458,7 +458,11 @@
  
  int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port)
  {
@@ -15,7 +50,7 @@ Index: fs/tomoyo_network.c
  }
  EXPORT_SYMBOL(CheckNetworkAcceptACL);
  
-@@ -473,7 +477,11 @@
+@@ -470,7 +474,11 @@
  
  int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
  {
@@ -30,7 +65,7 @@ Index: fs/tomoyo_network.c
  
 Index: fs/tomoyo_domain.c
 ===================================================================
---- fs/tomoyo_domain.c	(revision 512)
+--- fs/tomoyo_domain.c	(revision 589)
 +++ fs/tomoyo_domain.c	(working copy)
 @@ -626,7 +626,7 @@
  	return NULL;
@@ -58,8 +93,8 @@ Index: fs/tomoyo_domain.c
  	/* Allocate memory for calcurating domain name. */
  	retval = -ENOMEM;
  	if ((new_domain_name = ccs_alloc(CCS_MAX_PATHNAME_LEN + 16)) == NULL) goto out;
-@@ -756,18 +759,93 @@
- 	return retval;
+@@ -838,18 +841,93 @@
+ 	return error;
  }
  
 +static void UnEscape(unsigned char *dest)
@@ -153,9 +188,9 @@ Index: fs/tomoyo_domain.c
  #else
  	retval = 0; next_domain = prev_domain;
  #endif
-@@ -778,6 +856,7 @@
- 		if (retval < 0) current->domain_info = prev_domain;
+@@ -863,6 +941,7 @@
  		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+ 		if (retval < 0) current->domain_info = prev_domain;
  	}
 +	ccs_free(alt_exec);
  	return retval;
@@ -163,9 +198,9 @@ Index: fs/tomoyo_domain.c
  
 Index: fs/ccs_common.c
 ===================================================================
---- fs/ccs_common.c	(revision 512)
+--- fs/ccs_common.c	(revision 589)
 +++ fs/ccs_common.c	(working copy)
-@@ -77,11 +77,14 @@
+@@ -78,11 +78,14 @@
  	[CCS_TOMOYO_MAX_REJECT_LOG]      = { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
  	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
  	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
@@ -180,7 +215,7 @@ Index: fs/ccs_common.c
  };
  
  static struct profile *profile_ptr[MAX_PROFILES];
-@@ -491,6 +494,13 @@
+@@ -492,6 +495,13 @@
  	if (is_enforce) return "ERROR"; else return "WARNING";
  }
  
@@ -194,7 +229,7 @@ Index: fs/ccs_common.c
  /*************************  DOMAIN POLICY HANDLER  *************************/
  
  /* Check whether the given access control is enabled. */
-@@ -580,6 +590,12 @@
+@@ -581,6 +591,12 @@
  		profile->comment = SaveName(cp + 1);
  		return 0;
  	}
@@ -207,7 +242,7 @@ Index: fs/ccs_common.c
  	if (sscanf(cp + 1, "%u", &value) != 1) return -EINVAL;
  #ifdef CONFIG_TOMOYO
  	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
-@@ -625,11 +641,15 @@
+@@ -627,11 +643,15 @@
  				case CCS_TOMOYO_MAX_GRANT_LOG:
  				case CCS_TOMOYO_MAX_REJECT_LOG:
  				case CCS_TOMOYO_VERBOSE:
@@ -223,7 +258,7 @@ Index: fs/ccs_common.c
  				} else {
  					if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, profile->value[j])) break;
  				}
-@@ -1241,8 +1261,16 @@
+@@ -1273,8 +1293,16 @@
  	int pos, len;
  	static unsigned int serial = 0;
  	struct query_entry *query_entry;
@@ -242,38 +277,3 @@ Index: fs/ccs_common.c
  	va_start(args, fmt);
  	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
  	va_end(args);
-Index: include/linux/ccs_common.h
-===================================================================
---- include/linux/ccs_common.h	(revision 512)
-+++ include/linux/ccs_common.h	(working copy)
-@@ -274,7 +274,9 @@
- #define CCS_TOMOYO_MAX_REJECT_LOG               13
- #define CCS_TOMOYO_VERBOSE                      14
- #define CCS_ALLOW_ENFORCE_GRACE                 15
--#define CCS_MAX_CONTROL_INDEX                   16
-+#define CCS_SLEEP_PERIOD                        16
-+#define CCS_TOMOYO_ALT_EXEC                     17
-+#define CCS_MAX_CONTROL_INDEX                   18
- 
- /*************************  Index numbers for updates counter.  *************************/
- 
-@@ -315,6 +317,7 @@
- char *InitAuditLog(int *len);
- void *ccs_alloc(const size_t size);
- char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
-+const char *GetAltExec(void);
- const char *GetEXE(void);
- const char *GetLastName(const struct domain_info *domain);
- const char *GetMSG(const u8 is_enforce);
-Index: include/linux/tomoyo.h
-===================================================================
---- include/linux/tomoyo.h	(revision 512)
-+++ include/linux/tomoyo.h	(working copy)
-@@ -99,6 +99,7 @@
- 
- int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs);
- #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
-+#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
- 
- /*************************  Index numbers for Access Controls.  *************************/
- 
