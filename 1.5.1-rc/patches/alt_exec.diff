@@ -1,0 +1,279 @@
+Index: fs/tomoyo_network.c
+===================================================================
+--- fs/tomoyo_network.c	(revision 512)
++++ fs/tomoyo_network.c	(working copy)
+@@ -461,7 +461,11 @@
+ 
+ int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port)
+ {
+-	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
++	int retval;
++	current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
++	retval = CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
++	current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
++	return retval;
+ }
+ EXPORT_SYMBOL(CheckNetworkAcceptACL);
+ 
+@@ -473,7 +477,11 @@
+ 
+ int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+ {
+-	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
++	int retval;
++	current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
++	retval = CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
++	current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
++	return retval;
+ }
+ EXPORT_SYMBOL(CheckNetworkRecvMsgACL);
+ 
+Index: fs/tomoyo_domain.c
+===================================================================
+--- fs/tomoyo_domain.c	(revision 512)
++++ fs/tomoyo_domain.c	(working copy)
+@@ -626,7 +626,7 @@
+ 	return NULL;
+ }
+ 
+-static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain)
++static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain, const u8 do_perm_check)
+ {
+ 	/* This function assumes that the size of buffer returned by realpath() = CCS_MAX_PATHNAME_LEN. */
+ 	struct domain_info *old_domain = current->domain_info, *domain = NULL;
+@@ -665,6 +665,8 @@
+ 	else l.name = old_domain_name;
+ 	fill_path_info(&l);
+ 
++	if (!do_perm_check) goto ok;
++
+ 	/* Check 'alias' directive. */
+ 	if (pathcmp(&r, &s)) {
+ 		struct alias_entry *ptr;
+@@ -714,6 +716,7 @@
+ 	/* Check execute permission. */
+ 	if ((retval = CheckExecPerm(&r, filp)) < 0) goto out;
+ 
++ ok: ;
+ 	/* Allocate memory for calcurating domain name. */
+ 	retval = -ENOMEM;
+ 	if ((new_domain_name = ccs_alloc(CCS_MAX_PATHNAME_LEN + 16)) == NULL) goto out;
+@@ -756,18 +759,93 @@
+ 	return retval;
+ }
+ 
++static void UnEscape(unsigned char *dest)
++{
++	unsigned char *src = dest;
++	unsigned char c, d, e;
++	while ((c = *src++) != '\0') {
++		if (c != '\\') {
++			*dest++ = c;
++			continue;
++		}
++		c = *src++;
++		if (c == '\\') {
++			*dest++ = c;
++		} else if (c >= '0' && c <= '3' &&
++			   (d = *src++) >= '0' && d <= '7' &&
++			   (e = *src++) >= '0' && e <= '7') {
++			*dest++ = ((c - '0') << 6) | ((d - '0') << 3) | (e - '0');
++		} else {
++			break;
++		}
++	}
++	*dest = '\0';
++}
++
++static int try_alt_exec(struct linux_binprm *bprm, char **alt_exec0)
++{
++	struct file *filp;
++	int retval;
++	/* domainname must not be modified. */
++	char *domainname = (char *) current->domain_info->domainname->name;
++	char *alt_exec;
++	const char *alt_exec1 = GetAltExec();
++	if (!alt_exec1 || *alt_exec1 != '/') return -EINVAL;
++	retval = strlen(alt_exec1) + 1;
++	*alt_exec0 = alt_exec = ccs_alloc(retval);
++	if (!alt_exec) return -ENOMEM;
++	memmove(alt_exec, alt_exec1, retval);
++	UnEscape(alt_exec);
++	allow_write_access(bprm->file);
++	fput(bprm->file);
++	bprm->file = NULL;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23)
++	retval = remove_arg_zero(bprm);
++	if (retval) return retval;
++#else
++	remove_arg_zero(bprm);
+ #endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
++	retval = copy_strings_kernel(1, &bprm->interp, bprm);
++#else
++	retval = copy_strings_kernel(1, &bprm->filename, bprm);
++#endif
++	if (retval < 0) return retval;
++	bprm->argc++;
++	retval = copy_strings_kernel(1, &domainname, bprm);
++	if (retval < 0) return retval;
++	bprm->argc++;
++	retval = copy_strings_kernel(1, &alt_exec, bprm);
++	if (retval < 0) return retval;
++	bprm->argc++;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
++	bprm->interp = alt_exec;
++#endif
++	filp = open_exec(alt_exec);
++	if (IS_ERR(filp)) return PTR_ERR(filp);
++	bprm->file= filp;
++	bprm->filename = alt_exec;
++	return prepare_binprm(bprm);
++}
+ 
++#endif
++
+ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
+ {
+ 	struct domain_info *next_domain = NULL, *prev_domain = current->domain_info;
+  	int retval;
++	char *alt_exec = NULL; /* Keep valid until search_binary_handler() finishes. */
+ #if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
+ 	extern void CCS_LoadPolicy(const char *filename);
+ 	CCS_LoadPolicy(bprm->filename);
+ #endif
+ #if defined(CONFIG_TOMOYO)
+-	retval = FindNextDomain(bprm, &next_domain);
++	retval = FindNextDomain(bprm, &next_domain, 1);
++	if (retval == -EPERM && try_alt_exec(bprm, &alt_exec) >= 0) {
++		current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
++		retval = FindNextDomain(bprm, &next_domain, 0);
++		current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
++	}
+ #else
+ 	retval = 0; next_domain = prev_domain;
+ #endif
+@@ -778,6 +856,7 @@
+ 		if (retval < 0) current->domain_info = prev_domain;
+ 		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+ 	}
++	ccs_free(alt_exec);
+ 	return retval;
+ }
+ 
+Index: fs/ccs_common.c
+===================================================================
+--- fs/ccs_common.c	(revision 512)
++++ fs/ccs_common.c	(working copy)
+@@ -77,11 +77,14 @@
+ 	[CCS_TOMOYO_MAX_REJECT_LOG]      = { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
+ 	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
+ 	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
++	[CCS_SLEEP_PERIOD]               = { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
++	[CCS_TOMOYO_ALT_EXEC]            = { "ALT_EXEC",            0, 0 }, /* Reserved for string. */
+ };
+ 
+ struct profile {
+ 	unsigned int value[CCS_MAX_CONTROL_INDEX];
+ 	const struct path_info *comment;
++	const struct path_info *alt_exec;
+ };
+ 
+ static struct profile *profile_ptr[MAX_PROFILES];
+@@ -491,6 +494,13 @@
+ 	if (is_enforce) return "ERROR"; else return "WARNING";
+ }
+ 
++const char *GetAltExec(void)
++{
++	const u8 profile = current->domain_info->profile;
++	const struct path_info *alt_exec = profile_ptr[profile] ? profile_ptr[profile]->alt_exec : NULL;
++	return alt_exec ? alt_exec->name : NULL;
++}
++
+ /*************************  DOMAIN POLICY HANDLER  *************************/
+ 
+ /* Check whether the given access control is enabled. */
+@@ -580,6 +590,12 @@
+ 		profile->comment = SaveName(cp + 1);
+ 		return 0;
+ 	}
++	if (strcmp(data, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword) == 0) {
++		cp++;
++		if (*cp && !IsCorrectPath(cp, 1, -1, -1, __FUNCTION__)) cp = "";
++		profile->alt_exec = SaveName(cp);
++		return 0;
++	}
+ 	if (sscanf(cp + 1, "%u", &value) != 1) return -EINVAL;
+ #ifdef CONFIG_TOMOYO
+ 	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
+@@ -625,11 +641,15 @@
+ 				case CCS_TOMOYO_MAX_GRANT_LOG:
+ 				case CCS_TOMOYO_MAX_REJECT_LOG:
+ 				case CCS_TOMOYO_VERBOSE:
++				case CCS_TOMOYO_ALT_EXEC:
+ #endif
+ 					continue;
+ 				}
+ 				if (j == CCS_PROFILE_COMMENT) {
+ 					if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_PROFILE_COMMENT].keyword, profile->comment ? profile->comment->name : "")) break;
++				} else if (j == CCS_TOMOYO_ALT_EXEC) {
++					const struct path_info *alt_exec = profile->alt_exec;
++					if (alt_exec && io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword, alt_exec->name)) break;
+ 				} else {
+ 					if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, profile->value[j])) break;
+ 				}
+@@ -1241,8 +1261,16 @@
+ 	int pos, len;
+ 	static unsigned int serial = 0;
+ 	struct query_entry *query_entry;
+-	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE)) return -EPERM;
+-	if (!atomic_read(&queryd_watcher)) return -EPERM;
++	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE) || !atomic_read(&queryd_watcher)) {
++		if ((current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR) == 0) {
++			int i;
++			for (i = 0; i < CheckCCSFlags(CCS_SLEEP_PERIOD); i++) {
++				set_current_state(TASK_INTERRUPTIBLE);
++				schedule_timeout(HZ / 10);
++			}
++		}
++		return -EPERM;
++	}
+ 	va_start(args, fmt);
+ 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
+ 	va_end(args);
+Index: include/linux/ccs_common.h
+===================================================================
+--- include/linux/ccs_common.h	(revision 512)
++++ include/linux/ccs_common.h	(working copy)
+@@ -274,7 +274,9 @@
+ #define CCS_TOMOYO_MAX_REJECT_LOG               13
+ #define CCS_TOMOYO_VERBOSE                      14
+ #define CCS_ALLOW_ENFORCE_GRACE                 15
+-#define CCS_MAX_CONTROL_INDEX                   16
++#define CCS_SLEEP_PERIOD                        16
++#define CCS_TOMOYO_ALT_EXEC                     17
++#define CCS_MAX_CONTROL_INDEX                   18
+ 
+ /*************************  Index numbers for updates counter.  *************************/
+ 
+@@ -315,6 +317,7 @@
+ char *InitAuditLog(int *len);
+ void *ccs_alloc(const size_t size);
+ char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
++const char *GetAltExec(void);
+ const char *GetEXE(void);
+ const char *GetLastName(const struct domain_info *domain);
+ const char *GetMSG(const u8 is_enforce);
+Index: include/linux/tomoyo.h
+===================================================================
+--- include/linux/tomoyo.h	(revision 512)
++++ include/linux/tomoyo.h	(working copy)
+@@ -99,6 +99,7 @@
+ 
+ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs);
+ #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
++#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
+ 
+ /*************************  Index numbers for Access Controls.  *************************/
+ 
