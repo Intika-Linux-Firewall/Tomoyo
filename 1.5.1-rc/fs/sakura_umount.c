@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,14 +29,14 @@ extern const char *ccs_log_level;
 struct no_umount_entry {
 	struct no_umount_entry *next;
 	const struct path_info *dir;
-	u8 is_deleted;
+	int is_deleted;
 };
 
 /*************************  UMOUNT RESTRICTION HANDLER  *************************/
 
 static struct no_umount_entry *no_umount_list = NULL;
 
-static int AddNoUmountACL(const char *dir, const u8 is_delete)
+static int AddNoUmountACL(const char *dir, const int is_delete)
 {
 	struct no_umount_entry *new_entry, *ptr;
 	const struct path_info *saved_dir;
@@ -75,7 +75,7 @@ int SAKURA_MayUmount(struct vfsmount *mnt)
 {
 	int error = -EPERM;
 	const char *dir0;
-	const u8 is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_UNMOUNT);
+	const int is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_UNMOUNT);
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_UNMOUNT)) return 0;
 	dir0 = realpath_from_dentry(mnt->mnt_root, mnt);
 	if (dir0) {
@@ -102,7 +102,7 @@ int SAKURA_MayUmount(struct vfsmount *mnt)
 }
 EXPORT_SYMBOL(SAKURA_MayUmount);
 
-int AddNoUmountPolicy(char *data, const u8 is_delete)
+int AddNoUmountPolicy(char *data, const int is_delete)
 {
 	return AddNoUmountACL(data, is_delete);
 }

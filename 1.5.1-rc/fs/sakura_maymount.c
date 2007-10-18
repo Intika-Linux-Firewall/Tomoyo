@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -77,7 +77,7 @@ int SAKURA_MayMount(struct nameidata *nd)
 	}
 	if (flag) {
 		int error = -EPERM;
-		const u8 is_enforce = CheckCCSEnforce(CCS_SAKURA_DENY_CONCEAL_MOUNT);
+		const int is_enforce = CheckCCSEnforce(CCS_SAKURA_DENY_CONCEAL_MOUNT);
 		const char *dir = realpath_from_dentry(nd->dentry, nd->mnt);
 		if (dir) {
 			const char *exename = GetEXE();

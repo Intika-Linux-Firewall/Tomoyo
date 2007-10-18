@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -89,13 +89,13 @@ static unsigned int CheckCapabilityFlags(const unsigned int index)
 }
 
 /* Check whether the given capability control is enforce mode. */
-static u8 CheckCapabilityEnforce(const unsigned int index)
+static unsigned int CheckCapabilityEnforce(const unsigned int index)
 {
 	return CheckCapabilityFlags(index) == 3;
 }
 
 /* Check whether the given capability control is learning mode. */
-static u8 CheckCapabilityAccept(const unsigned int index, struct domain_info * const domain)
+static unsigned int CheckCapabilityAccept(const unsigned int index, struct domain_info * const domain)
 {
 	if (CheckCapabilityFlags(index) != 1) return 0;
 	return CheckDomainQuota(domain);
@@ -147,7 +147,7 @@ int ReadCapabilityStatus(struct io_buffer *head)
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditCapabilityLog(const unsigned int capability, const u8 is_granted)
+static int AuditCapabilityLog(const unsigned int capability, const int is_granted)
 {
 	char *buf;
 	int len = 64;
@@ -206,7 +206,7 @@ int CheckCapabilityACL(const unsigned int capability)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
-	const u8 is_enforce = CheckCapabilityEnforce(capability);
+	const int is_enforce = CheckCapabilityEnforce(capability);
 	const u16 hash = capability;
 	if (!CheckCapabilityFlags(capability)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -225,9 +225,12 @@ int CheckCapabilityACL(const unsigned int capability)
 }
 EXPORT_SYMBOL(CheckCapabilityACL);
 
-int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+int AddCapabilityPolicy(char *data, struct domain_info *domain, const int is_delete)
 {
 	unsigned int capability;
+	const struct condition_list *condition = NULL;
+	char *cp = FindConditionPart(data);
+	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {
 		if (strcmp(data, capability_control_array[capability].keyword) == 0) {
 			return AddCapabilityACL(capability, domain, condition, is_delete);

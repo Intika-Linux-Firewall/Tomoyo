@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -58,7 +58,7 @@ static unsigned int GetMaxRejectLog(void)
  * Write audit log.
  * Caller must allocate buf with InitAuditLog().
  */
-int WriteAuditLog(char *buf, const u8 is_granted)
+int WriteAuditLog(char *buf, const int is_granted)
 {
 	struct log_entry *new_entry = ccs_alloc(sizeof(*new_entry));
 	if (!new_entry) goto out;
@@ -92,7 +92,7 @@ int WriteAuditLog(char *buf, const u8 is_granted)
 	return -ENOMEM;
 }
 
-int CanSaveAuditLog(const u8 is_granted)
+int CanSaveAuditLog(const int is_granted)
 {
 	if (is_granted) {
 		if (grant_log_count < GetMaxGrantLog()) return 0;

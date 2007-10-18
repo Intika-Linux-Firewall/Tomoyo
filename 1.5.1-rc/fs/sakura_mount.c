@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -56,7 +56,7 @@ struct mount_entry {
 	const struct path_info *dir_name;
 	const struct path_info *fs_type;
 	unsigned long flags;
-	u8 is_deleted;
+	int is_deleted;
 };
 
 /*************************  MOUNT RESTRICTION HANDLER  *************************/
@@ -68,7 +68,7 @@ static void put_filesystem(struct file_system_type *fs)
 
 static struct mount_entry *mount_list = NULL;
 
-static int AddMountACL(const char *dev_name, const char *dir_name, const char *fs_type, const unsigned long flags, const u8 is_delete)
+static int AddMountACL(const char *dev_name, const char *dir_name, const char *fs_type, const unsigned long flags, const int is_delete)
 {
 	struct mount_entry *new_entry, *ptr;
 	const struct path_info *fs, *dev, *dir;
@@ -141,7 +141,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 
 static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, unsigned long flags)
 {
-	const u8 is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_MOUNT);
+	const int is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_MOUNT);
 	int error = -EPERM;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_MOUNT)) return 0;
 	if (!type) type = "<NULL>";
@@ -309,7 +309,7 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, const unsig
 }
 EXPORT_SYMBOL(CheckMountPermission);
 
-int AddMountPolicy(char *data, const u8 is_delete)
+int AddMountPolicy(char *data, const int is_delete)
 {
 	char *cp, *cp2;
 	const char *fs, *dev, *dir;

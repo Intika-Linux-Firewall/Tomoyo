@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -66,7 +66,7 @@ struct aggregator_entry {
 	struct aggregator_entry *next;
 	const struct path_info *original_name;
 	const struct path_info *aggregated_name;
-	u8 is_deleted;
+	int is_deleted;
 };
 
 /***** The structure for program files that should be aliased. *****/
@@ -75,7 +75,7 @@ struct alias_entry {
 	struct alias_entry *next;
 	const struct path_info *original_name;
 	const struct path_info *aliased_name;
-	u8 is_deleted;
+	int is_deleted;
 };
 
 /*************************  VARIABLES  *************************/
@@ -112,13 +112,13 @@ int DelDomainACL(struct acl_info *ptr)
 
 static struct domain_initializer_entry *domain_initializer_list = NULL;
 
-static int AddDomainInitializerEntry(const char *domainname, const char *program, const u8 is_not, const u8 is_delete)
+static int AddDomainInitializerEntry(const char *domainname, const char *program, const int is_not, const int is_delete)
 {
 	struct domain_initializer_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_program, *saved_domainname = NULL;
 	int error = -ENOMEM;
-	u8 is_last_name = 0;
+	int is_last_name = 0;
 	if (!IsCorrectPath(program, 1, -1, -1, __FUNCTION__)) return -EINVAL; /* No patterns allowed. */
 	if (domainname) {
 		if (!IsDomainDef(domainname) && IsCorrectPath(domainname, 1, -1, -1, __FUNCTION__)) {
@@ -176,7 +176,7 @@ int ReadDomainInitializerPolicy(struct io_buffer *head)
 	return ptr ? -ENOMEM : 0;
 }
 
-int AddDomainInitializerPolicy(char *data, const u8 is_not, const u8 is_delete)
+int AddDomainInitializerPolicy(char *data, const int is_not, const int is_delete)
 {
 	char *cp = strstr(data, " from ");
 	if (cp) {
@@ -211,13 +211,13 @@ static int IsDomainInitializer(const struct path_info *domainname, const struct 
 
 static struct domain_keeper_entry *domain_keeper_list = NULL;
 
-static int AddDomainKeeperEntry(const char *domainname, const char *program, const u8 is_not, const u8 is_delete)
+static int AddDomainKeeperEntry(const char *domainname, const char *program, const int is_not, const int is_delete)
 {
 	struct domain_keeper_entry *new_entry, *ptr;
 	const struct path_info *saved_domainname, *saved_program = NULL;
 	static DECLARE_MUTEX(lock);
 	int error = -ENOMEM;
-	u8 is_last_name = 0;
+	int is_last_name = 0;
 	if (!IsDomainDef(domainname) && IsCorrectPath(domainname, 1, -1, -1, __FUNCTION__)) {
 		is_last_name = 1;
 	} else if (!IsCorrectDomain(domainname, __FUNCTION__)) {
@@ -257,7 +257,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 	return error;
 }
 
-int AddDomainKeeperPolicy(char *data, const u8 is_not, const u8 is_delete)
+int AddDomainKeeperPolicy(char *data, const int is_not, const int is_delete)
 {
 	char *cp = strstr(data, " from ");
 	if (cp) {
@@ -308,7 +308,7 @@ static int IsDomainKeeper(const struct path_info *domainname, const struct path_
 
 static struct alias_entry *alias_list = NULL;
 
-static int AddAliasEntry(const char *original_name, const char *aliased_name, const u8 is_delete)
+static int AddAliasEntry(const char *original_name, const char *aliased_name, const int is_delete)
 {
 	struct alias_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -355,7 +355,7 @@ int ReadAliasPolicy(struct io_buffer *head)
 	return ptr ? -ENOMEM : 0;
 }
 
-int AddAliasPolicy(char *data, const u8 is_delete)
+int AddAliasPolicy(char *data, const int is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp) return -EINVAL;
@@ -367,7 +367,7 @@ int AddAliasPolicy(char *data, const u8 is_delete)
 
 static struct aggregator_entry *aggregator_list = NULL;
 
-static int AddAggregatorEntry(const char *original_name, const char *aggregated_name, const u8 is_delete)
+static int AddAggregatorEntry(const char *original_name, const char *aggregated_name, const int is_delete)
 {
 	struct aggregator_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -414,7 +414,7 @@ int ReadAggregatorPolicy(struct io_buffer *head)
 	return ptr ? -ENOMEM : 0;
 }
 
-int AddAggregatorPolicy(char *data, const u8 is_delete)
+int AddAggregatorPolicy(char *data, const int is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp) return -EINVAL;
@@ -635,7 +635,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	struct file *filp = bprm->file;
 	char *new_domain_name = NULL;
 	char *real_program_name = NULL, *symlink_program_name = NULL;
-	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	int retval;
 	struct path_info r, s, l;
 
@@ -756,88 +756,6 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	return retval;
 }
 
-static int CheckEnviron(struct linux_binprm *bprm)
-{
-	char *arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
-	int arg_len = 0;
-	unsigned long pos = bprm->p;
-	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
-	int argv_count = bprm->argc;
-	int envp_count = bprm->envc;
-	//printk("start %d %d\n", argv_count, envp_count);
-	int error = -ENOMEM;
-	if (!arg_ptr) goto out;
-	if (!envp_count) {
-		error = 0;
-		goto out;
-	}
-	while (error == -ENOMEM) {
-		struct page *page;
-		const char *kaddr;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
-		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
-#else
-		page = bprm->page[i];
-#endif
-		/* Map */
-		kaddr = kmap(page);
-		if (!kaddr) { /* Mapping failed. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
-			put_page(page);
-#endif
-			goto out;
-		}
-		/* Read. */
-		while (argv_count && offset < PAGE_SIZE) {
-			if (!kaddr[offset++]) argv_count--;
-		}
-		if (argv_count) goto unmap_page;
-		while (offset < PAGE_SIZE) {
-			const unsigned char c = kaddr[offset++];
-			if (arg_len < CCS_MAX_PATHNAME_LEN - 10) {
-				if (c == '=') {
-					arg_ptr[arg_len++] = '\0';
-				} else if (c == '\\') {
-					arg_ptr[arg_len++] = '\\';
-					arg_ptr[arg_len++] = '\\';
-				} else if (c > ' ' && c < 127) {
-					arg_ptr[arg_len++] = c;
-				} else {
-					arg_ptr[arg_len++] = '\\';
-					arg_ptr[arg_len++] = (c >> 6) + '0';
-					arg_ptr[arg_len++] = ((c >> 3) & 7) + '0';
-					arg_ptr[arg_len++] = (c & 7) + '0';
-				}
-			} else {
-				arg_ptr[arg_len] = '\0';
-			}
-			if (c) continue;
-			if (CheckEnvPerm(arg_ptr)) {
-				error = -EPERM;
-				break;
-			}
-			if (!--envp_count) {
-				error = 0;
-				break;
-			}
-			arg_len = 0;
-		}
-	unmap_page:
-		/* Unmap. */
-		kunmap(page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
-		put_page(page);
-		pos += PAGE_SIZE - offset;
-#endif
-		i++;
-		offset = 0;
-	}
- out:
-	ccs_free(arg_ptr);
-	if (error && !CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ENV)) error = 0;
-	return error;
-}
-
 #endif
 
 int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
@@ -854,14 +772,11 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 	retval = 0; next_domain = prev_domain;
 #endif
 	if (retval == 0) {
-		current->domain_info = next_domain;
-#if defined(CONFIG_TOMOYO)
-		if (CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV)) retval = CheckEnviron(bprm);
-#endif
 		current->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
-		if (!retval) retval = search_binary_handler(bprm, regs);
-		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+		current->domain_info = next_domain;
+		retval = search_binary_handler(bprm, regs);
 		if (retval < 0) current->domain_info = prev_domain;
+		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 	}
 	return retval;
 }

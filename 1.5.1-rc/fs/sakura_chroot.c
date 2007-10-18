@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,14 +29,14 @@ extern const char *ccs_log_level;
 struct chroot_entry {
 	struct chroot_entry *next;
 	const struct path_info *dir;
-	u8 is_deleted;
+	int is_deleted;
 };
 
 /*************************  CHROOT RESTRICTION HANDLER  *************************/
 
 static struct chroot_entry *chroot_list = NULL;
 
-static int AddChrootACL(const char *dir, const u8 is_delete)
+static int AddChrootACL(const char *dir, const int is_delete)
 {
 	struct chroot_entry *new_entry, *ptr;
 	const struct path_info *saved_dir;
@@ -93,7 +93,7 @@ int CheckChRootPermission(struct nameidata *nd)
 		}
 	}
 	if (error) {
-		const u8 is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_CHROOT);
+		const int is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_CHROOT);
 		const char *exename = GetEXE();
 		printk("SAKURA-%s: chroot %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), root_name, current->pid, exename);
 		if (is_enforce && CheckSupervisor("# %s is requesting\nchroot %s\n", exename, root_name) == 0) error = 0;
@@ -109,7 +109,7 @@ int CheckChRootPermission(struct nameidata *nd)
 }
 EXPORT_SYMBOL(CheckChRootPermission);
 
-int AddChrootPolicy(char *data, const u8 is_delete)
+int AddChrootPolicy(char *data, const int is_delete)
 {
 	return AddChrootACL(data, is_delete);
 }

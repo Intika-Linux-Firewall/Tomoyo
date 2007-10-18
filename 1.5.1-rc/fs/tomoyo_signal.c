@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.1   2007/10/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -26,7 +26,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const u8 is_granted)
+static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const int is_granted)
 {
 	char *buf;
 	int len;
@@ -96,7 +96,7 @@ int CheckSignalACL(const int sig, const int pid)
 	const char *dest_pattern;
 	struct acl_info *ptr;
 	const u16 hash = sig;
-	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_SIGNAL);
+	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_SIGNAL);
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL)) return 0;
 	if (!sig) return 0;                               /* No check for NULL signal. */
 	if (current->pid == pid) {
@@ -140,11 +140,14 @@ int CheckSignalACL(const int sig, const int pid)
 }
 EXPORT_SYMBOL(CheckSignalACL);
 
-int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+int AddSignalPolicy(char *data, struct domain_info *domain, const int is_delete)
 {
 	int sig;
 	char *domainname = strchr(data, ' ');
 	if (sscanf(data, "%d", &sig) == 1 && domainname && IsDomainDef(domainname + 1)) {
+		const struct condition_list *condition = NULL;
+		const char *cp = FindConditionPart(domainname + 1);
+		if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 		return AddSignalEntry(sig, domainname + 1, domain, condition, is_delete);
 	}
 	return -EINVAL;

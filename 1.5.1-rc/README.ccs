@@ -1041,17 +1041,4 @@ Fix 2007/09/27
       Now, quota checking is done before getting domain_acl_lock lock.
       This may exceed quota by one or two entries, but that won't matter.
 
-Fix 2007/10/16
-
-    @ Add environment variable check.
-
-      There are environment variables that may cause dangerous behavior
-      like LD_\* .
-      So I introduced 'allow_env' directive that allows specified
-      environment variable inherited to next domain.
-      Unlike other permissions, this check is done at execve() time
-      using next domain's ACL information.
-
-      To manage commonly inherited environments like PATH ,
-      you can use 'allow_env' directive in exception policy
-      to globally grant specified environment variable.
+Version 1.5.1 2007/10/19   Minor update release.
