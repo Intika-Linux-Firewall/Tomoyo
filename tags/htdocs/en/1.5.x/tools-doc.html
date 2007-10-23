@@ -133,8 +133,8 @@
 <h3><a name="patternize">&lt;Pathname Pattern Replacer "patternize"&gt;</a></h3>
 <p>Reads domain policy from standard input and replaces pathnames with patterns if the pathname matches to patterns given at commandline and writes to standard output. Pathnames that contains execute permission and domainnames won't be patterned.</p>
 
-<h3><a name="make_exception.sh">&lt;Template Generator for Exception Policy "make_alias.sh/make_allow_read.sh/make_exception.sh/make_file_pattern.sh"&gt;</a></h3>
-<p>Generates templates for exception policy. You need to review the output because automatically generated exception policy may contain redundant or dangerous entries.</p>
+<h3><a name="init_policy.sh">&lt;Policy Template Generator "init_policy.sh"&gt;</a></h3>
+<p>Generates templates for policy. You need to review the output because automatically generated policy may contain redundant or dangerous entries.</p>
 
 <hr>
 <h2><a name="authentication_tool">&lt;&lt;Tools for reinforcing login authentications&gt;&gt;</a></h2>
@@ -145,12 +145,16 @@
 
 <h3><a name="honey">&lt;An example program for password authentication with timings "honey"&gt;</a></h3>
 <p>This program fails unless the correct password is typed with the correct time interval. Conventional authentication programs don't check the time interval of typing, but this program does to prevent password brute force attack.</p>
+
 <h3><a name="candy">&lt;An example program for password authentication with time limit "candy"&gt;</a></h3>
 <p>This program fails unless the correct password is typed and this program was invoked within 10 seconds after the parent process was invoked. Conventional authentication programs don't check the time interval between the invocation time of parent process and the invocation time of child process, but this program does to prevent password brute force attack.</p>
+
 <h3><a name="groovy">&lt;An example program for lockfile authentication "groovy"&gt;</a></h3>
 <p>This program fails while the file /tmp/.lockme exists. This program prompts for password, but doesn't check for password. This program checks for the existence of the file /tmp/.lockme . This program prevents password brute force attack by keeping locked just before you run this program. This is a program for demonstration, and using a filename that are apparent to crackers. You must customize if you want to use.</p>
+
 <h3><a name="checktoken">&lt;An example program for token authentication "gettoken / checktoken"&gt;</a></h3>
 <p>This program generates tokens based on the system time. The authentication will succeed if the output of "gettoken" is passwd to the input of "checktoken". These are programs for demonstration, and the algorithm is too poor. You must customize if you want to use.</p>
+
 <h3><a name="chaplet">&lt;An example program for challenge-handshake authentication "chaplet"&gt;</a></h3>
 <p>This program displays strings as a challenge data. The authentication will succeed if you input only numerical letters from the challenge data as a response data. This is a program for demonstration, and the algorithm is too poor. You must customize if you want to use.</p>
 
