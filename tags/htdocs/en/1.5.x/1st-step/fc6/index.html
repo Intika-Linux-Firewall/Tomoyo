@@ -28,7 +28,7 @@
 
 <h2><a name="l1">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.5.0 on Fedora Core 6 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.5.1 on Fedora Core 6 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 
 <ol>
@@ -61,22 +61,22 @@ But regarding Fedora Core 6, a binary kernel package is and this page uses it.</
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.22.9-61.fc6_tomoyo_1.5.0.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.22.9-61.fc6_tomoyo_1.5.1.i586.rpm</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.22.9-61.fc6_tomoyo_1.5.0.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.22.9-61.fc6_tomoyo_1.5.1.i586.rpm</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/grub.conf if installation finishes successfully.</p>
 
 <pre>
-title Fedora Core (2.6.22.9-61.fc6_tomoyo_1.5.0)
+title Fedora Core (2.6.22.9-61.fc6_tomoyo_1.5.1)
     root (hd0,0)
-    kernel /vmlinuz-2.6.22.9-61.fc6_tomoyo_1.5.0 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.22.9-61.fc6_tomoyo_1.5.0.img
+    kernel /vmlinuz-2.6.22.9-61.fc6_tomoyo_1.5.1 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.22.9-61.fc6_tomoyo_1.5.1.img
 </pre>
 
 <p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
