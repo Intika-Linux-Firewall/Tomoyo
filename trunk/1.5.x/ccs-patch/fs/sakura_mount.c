@@ -61,10 +61,12 @@ struct mount_entry {
 
 /*************************  MOUNT RESTRICTION HANDLER  *************************/
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)
 static void put_filesystem(struct file_system_type *fs)
 {
 	module_put(fs->owner);
 }
+#endif
 
 static struct mount_entry *mount_list = NULL;
 

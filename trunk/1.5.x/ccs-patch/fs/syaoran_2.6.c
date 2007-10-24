@@ -51,6 +51,7 @@
 #include <linux/namei.h>
 #include <linux/version.h>
 #include <linux/sched.h>
+#include <linux/mm.h>
 
 static struct super_operations syaoran_ops;
 static struct address_space_operations syaoran_aops;
@@ -211,11 +212,20 @@ static int syaoran_setattr(struct dentry * dentry, struct iattr * attr)
 	return error;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)
 static struct address_space_operations syaoran_aops = {
 	.readpage       = simple_readpage,
 	.prepare_write  = simple_prepare_write,
 	.commit_write   = simple_commit_write
 };
+#else
+static struct address_space_operations syaoran_aops = {
+        .readpage       = simple_readpage,
+        .write_begin    = simple_write_begin,
+        .write_end      = simple_write_end,
+        .set_page_dirty = __set_page_dirty_no_writeback,
+};
+#endif
 
 static struct file_operations syaoran_file_operations = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
