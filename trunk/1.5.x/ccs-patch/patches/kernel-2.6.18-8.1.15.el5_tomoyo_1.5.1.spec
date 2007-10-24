@@ -32,7 +32,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.1.14%{?dist}_tomoyo_1.5.1
+%define release 8.1.15%{?dist}_tomoyo_1.5.1
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -699,6 +699,7 @@ Patch20023: xen-register-pit-handlers-to-the-correct-domain.patch
 Patch20024: xen-quick-fix-for-cannot-allocate-memory.patch
 Patch20025: xen-fix-tlb-flushing-in-shadow-pagetable-mode.patch
 Patch20026: xen-enable-booting-on-machines-with-64G.patch
+Patch20027: xen-guest-access-to-msr-may-cause-crash-data-corruption.patch
 # end of Xen patches
 
 Patch21007: linux-2.6-netlabel-error-checking-cleanups.patch
@@ -952,7 +953,17 @@ Patch21260: linux-2.6-fs-move-msdos-compat-ioctl-to-msdos-dir.patch
 Patch21261: linux-2.6-fs-fix-vfat-compat-ioctls-on-64-bit-systems.patch
 Patch21262: linux-2.6-mm-prevent-the-stack-growth-into-hugetlb-regions.patch
 Patch21263: linux-2.6-x86_64-entry-path-zero-extend-all-registers-after-ptrace.patch
-
+Patch21264: linux-2.6-dlm-tcp-connection-to-dlm-port-blocks-operations.patch
+Patch21265: linux-2.6-ppc-4k-userspace-page-map-support-in-64k-kernels.patch
+Patch21266: linux-2.6-ptrace-null-pointer-dereference-triggered.patch
+Patch21267: linux-2.6-fs-hugetlb-fix-prio_tree-unit.patch
+Patch21268: linux-2.6-x86_64-dont-leak-nt-bit-into-next-task.patch
+Patch21269: linux-2.6-fs-reset-current-pdeath_signal-on-suid-execution.patch
+Patch21270: linux-2.6-misc-bounds-check-ordering-issue-in-random-driver.patch
+Patch21271: linux-2.6-usb-usblcd-locally-triggerable-memory-consumption.patch
+Patch21272: linux-2.6-net-igmp-check-null-when-allocate-gfp_atomic-skbs.patch
+Patch21273: linux-2.6-scsi-aacraid-missing-ioctl-permission-checks.patch
+ 
 # empty final patch file to facilitate testing of kernel patches
 Patch99999: linux-kernel-test.patch
 
@@ -1972,6 +1983,16 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21261 -p1
 %patch21262 -p1
 %patch21263 -p1
+%patch21264 -p1
+%patch21265 -p1
+%patch21266 -p1
+%patch21267 -p1
+%patch21268 -p1
+%patch21269 -p1
+%patch21270 -p1
+%patch21271 -p1
+%patch21272 -p1
+%patch21273 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
 perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
@@ -1984,8 +2005,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.14.el5/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.18-8.1.14.el5.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.15.el5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-8.1.15.el5.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -2072,6 +2093,7 @@ cd xen
 %patch20024 -p1
 %patch20025 -p1
 %patch20026 -p1
+%patch20027 -p1
 # Update the Makefile version strings
 sed -i -e 's/\(^export XEN_BUILDER.*$\)/\1'%{?dist}'/' Makefile
 sed -i -e 's/\(^export XEN_BUILDVERSION.*$\)/\1'-%{PACKAGE_RELEASE}'/' Makefile
@@ -2249,7 +2271,7 @@ BuildKernel() {
 
     for i in `cat modnames`
     do
-      sh ./scripts/modsign/modsign.sh $i CentOS
+      sh ./scripts/modsign/modsign.sh $i CentOS 
       mv -f $i.signed $i
     done
     unset KEYFLAGS
@@ -2826,7 +2848,7 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
  
 %changelog
-* Fri Sep 28 2007 Tru Huynh <tru@centos.org> [2.6.18-8.1.14.el5.centos]
+* Mon Oct 22 2007 Karanbir Singh <kbsingh@centos.org> [2.6.18-8.1.15.el5]
 - Change gpg key to CentOS
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
