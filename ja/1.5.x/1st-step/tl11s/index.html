@@ -45,8 +45,8 @@
 <p>TurboLinux 11 Serverにはバイナリパッケージが提供されていますので、それを利用します。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.0-1.TL11S.i386.rpm</span>
-# <span class="user">rpm -ivh ccs-tools-1.5.0-1.TL11S.i386.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.1-1.TL11S.i386.rpm</span>
+# <span class="user">rpm -ivh ccs-tools-1.5.1-1.TL11S.i386.rpm</span>
 </pre>
 
 <p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
@@ -188,30 +188,15 @@ bashを使っている場合には以下のようにします。</p>
 # <span class="user">/sbin/ccs-init</span>
 </pre>
 
-<p>/sbin/ccs-init により、以下のプロンプトが表示されます。</p>
+<p>問題が無ければすぐに終了します。</p>
 
-<pre>
-TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
-TOMOYO Linux&gt;
-</pre>
-
-<p>この状態で Enter キーを押すか、そのまま10秒待つと、ポリシーが読み込まれます。</p>
-
-<p>ポリシーが読み込まれてから、 Linux を再起動してください。</p>
+<p>Linux を再起動してください。</p>
 
 <pre>
 # <span class="user">reboot</span>
 </pre>
 
-<p>起動時に /sbin/ccs-init が実行されることで、以下のプロンプトが表示されます。</p>
-
-<pre>
-TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
-TOMOYO Linux&gt;
-</pre>
-
-<p>この状態で Enter キーを押すか、そのまま10秒待つと、ポリシーが読み込まれ、 Linuxが起動します。
-起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
+<p>起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
 
 <p><img alt="rootでログイン" title="rootでログイン" width="720" height="400" src="login.png"></p>
 
