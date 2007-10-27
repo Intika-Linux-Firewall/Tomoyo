@@ -58,7 +58,7 @@ static unsigned int GetMaxRejectLog(void)
  * Write audit log.
  * Caller must allocate buf with InitAuditLog().
  */
-int WriteAuditLog(char *buf, const u8 is_granted)
+int WriteAuditLog(char *buf, const bool is_granted)
 {
 	struct log_entry *new_entry = ccs_alloc(sizeof(*new_entry));
 	if (!new_entry) goto out;
@@ -92,7 +92,7 @@ int WriteAuditLog(char *buf, const u8 is_granted)
 	return -ENOMEM;
 }
 
-int CanSaveAuditLog(const u8 is_granted)
+int CanSaveAuditLog(const bool is_granted)
 {
 	if (is_granted) {
 		if (grant_log_count < GetMaxGrantLog()) return 0;

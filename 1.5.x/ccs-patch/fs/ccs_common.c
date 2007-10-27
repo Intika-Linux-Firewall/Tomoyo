@@ -128,7 +128,7 @@ static void NormalizeLine(unsigned char *buffer)
  *  Check whether the given filename follows the naming rules.
  *  Returns nonzero if follows, zero otherwise.
  */
-int IsCorrectPath(const char *filename, const int start_type, const int pattern_type, const int end_type, const char *function)
+bool IsCorrectPath(const char *filename, const int start_type, const int pattern_type, const int end_type, const char *function)
 {
 	int contains_pattern = 0;
 	char c, d, e;
@@ -194,7 +194,7 @@ int IsCorrectPath(const char *filename, const int start_type, const int pattern_
  *  Check whether the given domainname follows the naming rules.
  *  Returns nonzero if follows, zero otherwise.
  */
-int IsCorrectDomain(const unsigned char *domainname, const char *function)
+bool IsCorrectDomain(const unsigned char *domainname, const char *function)
 {
 	unsigned char c, d, e;
 	const char *org_domainname = domainname;
@@ -234,7 +234,7 @@ int IsCorrectDomain(const unsigned char *domainname, const char *function)
 	return 0;
 }
 
-int IsDomainDef(const unsigned char *buffer)
+bool IsDomainDef(const unsigned char *buffer)
 {
 	/* while (*buffer && (*buffer <= ' ' || *buffer >= 127)) buffer++; */
 	return strncmp(buffer, ROOT_NAME, ROOT_NAME_LEN) == 0;
@@ -487,7 +487,7 @@ const char *GetEXE(void)
 	return NULL;
 }
 
-const char *GetMSG(const u8 is_enforce)
+const char *GetMSG(const bool is_enforce)
 {
 	if (is_enforce) return "ERROR"; else return "WARNING";
 }
@@ -506,19 +506,19 @@ unsigned int CheckCCSFlags(const unsigned int index)
 }
 EXPORT_SYMBOL(CheckCCSFlags);
 
-unsigned int TomoyoVerboseMode(void)
+bool TomoyoVerboseMode(void)
 {
-	return CheckCCSFlags(CCS_TOMOYO_VERBOSE);
+	return CheckCCSFlags(CCS_TOMOYO_VERBOSE) != 0;
 }
 
 /* Check whether the given access control is enforce mode. */
-u8 CheckCCSEnforce(const unsigned int index)
+bool CheckCCSEnforce(const unsigned int index)
 {
 	return CheckCCSFlags(index) == 3;
 }
 EXPORT_SYMBOL(CheckCCSEnforce);
 
-unsigned int CheckDomainQuota(struct domain_info * const domain)
+bool CheckDomainQuota(struct domain_info * const domain)
 {
 	unsigned int count = 0;
 	struct acl_info *ptr;
@@ -535,7 +535,7 @@ unsigned int CheckDomainQuota(struct domain_info * const domain)
 }
 
 /* Check whether the given access control is learning mode. */
-u8 CheckCCSAccept(const unsigned int index, struct domain_info * const domain)
+bool CheckCCSAccept(const unsigned int index, struct domain_info * const domain)
 {
 	if (CheckCCSFlags(index) != 1) return 0;
 	return CheckDomainQuota(domain);
@@ -656,19 +656,19 @@ static int ReadProfile(struct io_buffer *head)
 struct policy_manager_entry {
 	struct policy_manager_entry *next;
 	const struct path_info *manager;
-	u8 is_domain;
-	u8 is_deleted;
+	bool is_domain;
+	bool is_deleted;
 };
 
 static struct policy_manager_entry *policy_manager_list = NULL;
 
-static int AddManagerEntry(const char *manager, const u8 is_delete)
+static int AddManagerEntry(const char *manager, const bool is_delete)
 {
 	struct policy_manager_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_manager;
 	int error = -ENOMEM;
-	u8 is_domain = 0;
+	bool is_domain = 0;
 	if (!isRoot()) return -EPERM;
 	if (IsDomainDef(manager)) {
 		if (!IsCorrectDomain(manager, __FUNCTION__)) return -EINVAL;
@@ -708,7 +708,7 @@ static int AddManagerEntry(const char *manager, const u8 is_delete)
 static int AddManagerPolicy(struct io_buffer *head)
 {
 	const char *data = head->write_buf;
-	u8 is_delete = 0;
+	bool is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
@@ -777,7 +777,7 @@ static int AddDomainPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct domain_info *domain = head->write_var1;
-	u8 is_delete = 0, is_select = 0, is_undelete = 0;
+	bool is_delete = 0, is_select = 0, is_undelete = 0;
 	unsigned int profile;
 	const struct condition_list *cond = NULL;
 	char *cp;	
@@ -932,7 +932,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 					if (keyword) {
 						if (acltype2paths(acl_type) == 2) {
 							struct double_acl_record *ptr2 = (struct double_acl_record *) ptr;
-							const u8 b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
+							const bool b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
 							if (io_printf(head, "allow_%s %s%s %s%s", keyword, 
 								      b0 ? "@" : "", b0 ? ptr2->u1.group1->group_name->name : ptr2->u1.filename1->name,
 								      b1 ? "@" : "", b1 ? ptr2->u2.group2->group_name->name : ptr2->u2.filename2->name)
@@ -941,7 +941,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 							}
 						} else {
 							struct single_acl_record *ptr2 = (struct single_acl_record *) ptr;
-							const u8 b = ptr2->u_is_group;
+							const bool b = ptr2->u_is_group;
 							if (io_printf(head, "allow_%s %s%s", keyword,
 								      b ? "@" : "", b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)
 							    || DumpCondition(head, ptr->cond)) {
@@ -1030,7 +1030,7 @@ static int ReadPID(struct io_buffer *head)
 static int AddExceptionPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
-	u8 is_delete = 0;
+	bool is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	UpdateCounter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
@@ -1119,7 +1119,7 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 static int AddSystemPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
-	u8 is_delete = 0;
+	bool is_delete = 0;
 	if (!isRoot()) return -EPERM;
 	UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {

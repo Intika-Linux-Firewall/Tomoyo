@@ -44,9 +44,9 @@ struct domain_initializer_entry {
 	struct domain_initializer_entry *next;
 	const struct path_info *domainname;    /* This may be NULL */
 	const struct path_info *program;
-	u8 is_deleted;
-	u8 is_not;
-	u8 is_last_name;
+	bool is_deleted;
+	bool is_not;
+	bool is_last_name;
 };
 
 /***** The structure for domains to not to transit domains. *****/
@@ -55,9 +55,9 @@ struct domain_keeper_entry {
 	struct domain_keeper_entry *next;
 	const struct path_info *domainname;
 	const struct path_info *program;       /* This may be NULL */
-	u8 is_deleted;
-	u8 is_not;
-	u8 is_last_name;
+	bool is_deleted;
+	bool is_not;
+	bool is_last_name;
 };
 
 /***** The structure for program files that should be aggregated. *****/
@@ -66,7 +66,7 @@ struct aggregator_entry {
 	struct aggregator_entry *next;
 	const struct path_info *original_name;
 	const struct path_info *aggregated_name;
-	u8 is_deleted;
+	bool is_deleted;
 };
 
 /***** The structure for program files that should be aliased. *****/
@@ -75,7 +75,7 @@ struct alias_entry {
 	struct alias_entry *next;
 	const struct path_info *original_name;
 	const struct path_info *aliased_name;
-	u8 is_deleted;
+	bool is_deleted;
 };
 
 /*************************  VARIABLES  *************************/
@@ -112,13 +112,13 @@ int DelDomainACL(struct acl_info *ptr)
 
 static struct domain_initializer_entry *domain_initializer_list = NULL;
 
-static int AddDomainInitializerEntry(const char *domainname, const char *program, const u8 is_not, const u8 is_delete)
+static int AddDomainInitializerEntry(const char *domainname, const char *program, const bool is_not, const bool is_delete)
 {
 	struct domain_initializer_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	const struct path_info *saved_program, *saved_domainname = NULL;
 	int error = -ENOMEM;
-	u8 is_last_name = 0;
+	bool is_last_name = 0;
 	if (!IsCorrectPath(program, 1, -1, -1, __FUNCTION__)) return -EINVAL; /* No patterns allowed. */
 	if (domainname) {
 		if (!IsDomainDef(domainname) && IsCorrectPath(domainname, 1, -1, -1, __FUNCTION__)) {
@@ -176,7 +176,7 @@ int ReadDomainInitializerPolicy(struct io_buffer *head)
 	return ptr ? -ENOMEM : 0;
 }
 
-int AddDomainInitializerPolicy(char *data, const u8 is_not, const u8 is_delete)
+int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_delete)
 {
 	char *cp = strstr(data, " from ");
 	if (cp) {
@@ -211,13 +211,13 @@ static int IsDomainInitializer(const struct path_info *domainname, const struct 
 
 static struct domain_keeper_entry *domain_keeper_list = NULL;
 
-static int AddDomainKeeperEntry(const char *domainname, const char *program, const u8 is_not, const u8 is_delete)
+static int AddDomainKeeperEntry(const char *domainname, const char *program, const bool is_not, const bool is_delete)
 {
 	struct domain_keeper_entry *new_entry, *ptr;
 	const struct path_info *saved_domainname, *saved_program = NULL;
 	static DECLARE_MUTEX(lock);
 	int error = -ENOMEM;
-	u8 is_last_name = 0;
+	bool is_last_name = 0;
 	if (!IsDomainDef(domainname) && IsCorrectPath(domainname, 1, -1, -1, __FUNCTION__)) {
 		is_last_name = 1;
 	} else if (!IsCorrectDomain(domainname, __FUNCTION__)) {
@@ -257,7 +257,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 	return error;
 }
 
-int AddDomainKeeperPolicy(char *data, const u8 is_not, const u8 is_delete)
+int AddDomainKeeperPolicy(char *data, const bool is_not, const bool is_delete)
 {
 	char *cp = strstr(data, " from ");
 	if (cp) {
@@ -308,7 +308,7 @@ static int IsDomainKeeper(const struct path_info *domainname, const struct path_
 
 static struct alias_entry *alias_list = NULL;
 
-static int AddAliasEntry(const char *original_name, const char *aliased_name, const u8 is_delete)
+static int AddAliasEntry(const char *original_name, const char *aliased_name, const bool is_delete)
 {
 	struct alias_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -355,7 +355,7 @@ int ReadAliasPolicy(struct io_buffer *head)
 	return ptr ? -ENOMEM : 0;
 }
 
-int AddAliasPolicy(char *data, const u8 is_delete)
+int AddAliasPolicy(char *data, const bool is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp) return -EINVAL;
@@ -367,7 +367,7 @@ int AddAliasPolicy(char *data, const u8 is_delete)
 
 static struct aggregator_entry *aggregator_list = NULL;
 
-static int AddAggregatorEntry(const char *original_name, const char *aggregated_name, const u8 is_delete)
+static int AddAggregatorEntry(const char *original_name, const char *aggregated_name, const bool is_delete)
 {
 	struct aggregator_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -414,7 +414,7 @@ int ReadAggregatorPolicy(struct io_buffer *head)
 	return ptr ? -ENOMEM : 0;
 }
 
-int AddAggregatorPolicy(char *data, const u8 is_delete)
+int AddAggregatorPolicy(char *data, const bool is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp) return -EINVAL;
@@ -635,7 +635,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	struct file *filp = bprm->file;
 	char *new_domain_name = NULL;
 	char *real_program_name = NULL, *symlink_program_name = NULL;
-	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
 	int retval;
 	struct path_info r, s, l;
 

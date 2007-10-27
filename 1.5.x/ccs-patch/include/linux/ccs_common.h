@@ -36,6 +36,10 @@
 #define __user
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
+typedef _Bool bool;
+#endif
+
 struct mini_stat {
 	uid_t uid;
 	gid_t gid;
@@ -44,10 +48,10 @@ struct mini_stat {
 struct dentry;
 struct vfsmount;
 struct obj_info {
-	u8 validate_done;
-	u8 path1_valid;
-	u8 path1_parent_valid;
-	u8 path2_parent_valid;
+	bool validate_done;
+	bool path1_valid;
+	bool path1_parent_valid;
+	bool path2_parent_valid;
 	struct dentry *path1_dentry;
 	struct vfsmount *path1_vfsmnt;
 	struct dentry *path2_dentry;
@@ -63,8 +67,8 @@ struct path_info {
 	u32 hash;        /* = full_name_hash(name, strlen(name)) */
 	u16 total_len;   /* = strlen(name)                       */
 	u16 const_len;   /* = const_part_length(name)            */
-	u8 is_dir;       /* = strendswith(name, "/")             */
-	u8 is_patterned; /* = PathContainsPattern(name)          */
+	bool is_dir;       /* = strendswith(name, "/")             */
+	bool is_patterned; /* = PathContainsPattern(name)          */
 	u16 depth;       /* = PathDepth(name)                    */
 };
 
@@ -73,7 +77,7 @@ struct path_info {
 struct group_member {
 	struct group_member *next;
 	const struct path_info *member_name;
-	u8 is_deleted;
+	bool is_deleted;
 };
 
 struct group_entry {
@@ -88,8 +92,8 @@ struct address_group_member {
 		u32 ipv4;    /* Host byte order    */
 		u16 ipv6[8]; /* Network byte order */
 	} min, max;
-	u8 is_deleted;
-	u8 is_ipv6;
+	bool is_deleted;
+	bool is_ipv6;
 };
 
 struct address_group_entry {
@@ -112,7 +116,7 @@ struct acl_info {
 	struct acl_info *next;
 	const struct condition_list *cond;
 	u8 type;
-	u8 is_deleted;
+	bool is_deleted;
 } __attribute__((__packed__));
 
 struct domain_info {
@@ -121,7 +125,7 @@ struct domain_info {
 	const struct path_info *domainname; /* Name of this domain. Never NULL.      */
 	u8 profile;                         /* Profile to use.                       */
 	u8 is_deleted;                      /* Delete flag.                          */
-	u8 quota_warned;                    /* Quota warnning done flag.             */
+	bool quota_warned;                  /* Quota warnning done flag.             */
 };
 
 #define MAX_PROFILES 256
@@ -129,7 +133,7 @@ struct domain_info {
 struct file_acl_record {
 	struct acl_info head;                       /* type = TYPE_FILE_ACL        */
 	u8 perm;
-	u8 u_is_group;
+	bool u_is_group;
 	union {
 		const struct path_info *filename;   /* Pointer to single pathname. */
 		const struct group_entry *group;    /* Pointer to pathname group.  */
@@ -160,7 +164,7 @@ struct signal_acl_record {
 
 struct single_acl_record {
 	struct acl_info head;                     /* type = TYPE_*               */
-	u8 u_is_group;
+	bool u_is_group;
 	union {
 		const struct path_info *filename; /* Pointer to single pathname. */
 		const struct group_entry *group;  /* Pointer to pathname group.  */
@@ -169,8 +173,8 @@ struct single_acl_record {
 
 struct double_acl_record {
 	struct acl_info head;           /* type = TYPE_RENAME_ACL or TYPE_LINK_ACL */
-	u8 u1_is_group;
-	u8 u2_is_group;
+	bool u1_is_group;
+	bool u2_is_group;
 	union {
 		const struct path_info *filename1;  /* Pointer to single pathname. */
 		const struct group_entry *group1;   /* Pointer to pathname group.  */
@@ -324,47 +328,47 @@ void *ccs_alloc(const size_t size);
 char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
 const char *GetEXE(void);
 const char *GetLastName(const struct domain_info *domain);
-const char *GetMSG(const u8 is_enforce);
+const char *GetMSG(const bool is_enforce);
 const char *acltype2keyword(const unsigned int acl_type);
 const char *capability2keyword(const unsigned int capability);
 const char *network2keyword(const unsigned int operation);
 const struct condition_list *FindOrAssignNewCondition(const char *condition);
-int AddAddressGroupPolicy(char *data, const u8 is_delete);
-int AddAggregatorPolicy(char *data, const u8 is_delete);
-int AddAliasPolicy(char *data, const u8 is_delete);
-int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
-int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
-int AddChrootPolicy(char *data, const u8 is_delete);
+int AddAddressGroupPolicy(char *data, const bool is_delete);
+int AddAggregatorPolicy(char *data, const bool is_delete);
+int AddAliasPolicy(char *data, const bool is_delete);
+int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+int AddChrootPolicy(char *data, const bool is_delete);
 int AddDomainACL(struct acl_info *ptr, struct domain_info *domain, struct acl_info *new_ptr);
-int AddDomainInitializerPolicy(char *data, const u8 is_not, const u8 is_delete);
-int AddDomainKeeperPolicy(char *data, const u8 is_not, const u8 is_delete);
-int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
-int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
-int AddGloballyReadablePolicy(char *data, const u8 is_delete);
-int AddGloballyUsableEnvPolicy(char *env, const u8 is_delete);
-int AddGroupPolicy(char *data, const u8 is_delete);
-int AddMountPolicy(char *data, const u8 is_delete);
-int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
-int AddNoRewritePolicy(char *pattern, const u8 is_delete);
-int AddNoUmountPolicy(char *data, const u8 is_delete);
-int AddPatternPolicy(char *data, const u8 is_delete);
-int AddPivotRootPolicy(char *data, const u8 is_delete);
-int AddReservedPortPolicy(char *data, const u8 is_delete);
-int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete);
+int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_delete);
+int AddDomainKeeperPolicy(char *data, const bool is_not, const bool is_delete);
+int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+int AddGloballyReadablePolicy(char *data, const bool is_delete);
+int AddGloballyUsableEnvPolicy(char *env, const bool is_delete);
+int AddGroupPolicy(char *data, const bool is_delete);
+int AddMountPolicy(char *data, const bool is_delete);
+int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+int AddNoRewritePolicy(char *pattern, const bool is_delete);
+int AddNoUmountPolicy(char *data, const bool is_delete);
+int AddPatternPolicy(char *data, const bool is_delete);
+int AddPivotRootPolicy(char *data, const bool is_delete);
+int AddReservedPortPolicy(char *data, const bool is_delete);
+int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
 int CCS_CloseControl(struct file *file);
 int CCS_OpenControl(const int type, struct file *file);
 int CCS_PollControl(struct file *file, poll_table *wait);
 int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len);
 int CCS_WriteControl(struct file *file, const char __user *buffer, const int buffer_len);
-int CanSaveAuditLog(const u8 is_granted);
+int CanSaveAuditLog(const bool is_granted);
 int CheckCondition(const struct condition_list *condition, struct obj_info *obj_info);
 int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
 int DelDomainACL(struct acl_info *ptr);
 int DeleteDomain(char *data);
 int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
-int IsCorrectDomain(const unsigned char *domainname, const char *function);
-int IsCorrectPath(const char *filename, const int start_type, const int pattern_type, const int end_type, const char *function);
-int IsDomainDef(const unsigned char *buffer);
+bool IsCorrectDomain(const unsigned char *domainname, const char *function);
+bool IsCorrectPath(const char *filename, const int start_type, const int pattern_type, const int end_type, const char *function);
+bool IsDomainDef(const unsigned char *buffer);
 int PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0);
 int PollGrantLog(struct file *file, poll_table *wait);
 int PollRejectLog(struct file *file, poll_table *wait);
@@ -387,22 +391,22 @@ int ReadPivotRootPolicy(struct io_buffer *head);
 int ReadRejectLog(struct io_buffer *head);
 int ReadReservedPortPolicy(struct io_buffer *head);
 int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile);
-int WriteAuditLog(char *log, const u8 is_granted);
+int WriteAuditLog(char *log, const bool is_granted);
 int acltype2paths(const unsigned int acl_type);
 int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 struct domain_info *FindDomain(const char *domainname);
 struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile);
 struct domain_info *UndeleteDomain(const char *domainname0);
-u8 CheckCCSAccept(const unsigned int index, struct domain_info * const domain);
-u8 CheckCCSEnforce(const unsigned int index);
+bool CheckCCSAccept(const unsigned int index, struct domain_info * const domain);
+bool CheckCCSEnforce(const unsigned int index);
 unsigned int CheckCCSFlags(const unsigned int index);
-unsigned int CheckDomainQuota(struct domain_info * const domain);
-unsigned int TomoyoVerboseMode(void);
+bool CheckDomainQuota(struct domain_info * const domain);
+bool TomoyoVerboseMode(void);
 void UpdateCounter(const unsigned char index);
 void ccs_free(const void *p);
 void fill_path_info(struct path_info *ptr);
 
-static inline int pathcmp(const struct path_info *a, const struct path_info *b)
+static inline bool pathcmp(const struct path_info *a, const struct path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }

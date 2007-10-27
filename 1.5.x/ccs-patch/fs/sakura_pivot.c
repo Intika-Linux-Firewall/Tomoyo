@@ -30,14 +30,14 @@ struct pivot_root_entry {
 	struct pivot_root_entry *next;
 	const struct path_info *old_root;
 	const struct path_info *new_root;
-	u8 is_deleted;
+	bool is_deleted;
 };
 
 /*************************  PIVOT_ROOT RESTRICTION HANDLER  *************************/
 
 static struct pivot_root_entry *pivot_root_list = NULL;
 
-static int AddPivotRootACL(const char *old_root, const char *new_root, const u8 is_delete)
+static int AddPivotRootACL(const char *old_root, const char *new_root, const bool is_delete)
 {
 	struct pivot_root_entry *new_entry, *ptr;
 	const struct path_info *saved_old_root, *saved_new_root;
@@ -98,7 +98,7 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 		}
 	}
 	if (error) {
-		const u8 is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
+		const bool is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
 		const char *exename = GetEXE();
 		printk("SAKURA-%s: pivot_root %s %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), new_root, old_root, current->pid, exename);
 		if (is_enforce && CheckSupervisor("# %s is requesting\npivot_root %s %s\n", exename, new_root, old_root) == 0) error = 0;
@@ -115,7 +115,7 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 }
 EXPORT_SYMBOL(CheckPivotRootPermission);
 
-int AddPivotRootPolicy(char *data, const u8 is_delete)
+int AddPivotRootPolicy(char *data, const bool is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp) return -EINVAL;

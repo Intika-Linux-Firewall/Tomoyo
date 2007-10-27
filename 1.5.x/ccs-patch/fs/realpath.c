@@ -54,7 +54,7 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 {
 	char *start = buffer;
 	char *end = buffer + buflen;
-	u8 is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
+	bool is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
 
 	if (buflen < 256) goto out;
 
