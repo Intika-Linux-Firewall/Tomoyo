@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -81,7 +81,7 @@ static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const 
 	if (!group) {
 		if ((new_group = alloc_element(sizeof(*new_group))) == NULL) goto out;
 		new_group->group_name = saved_group_name;
-		mb(); /* Instead of using spinlock. */
+		mb(); /* Avoid out-of-order execution. */
 		if ((group = group_list) != NULL) {
 			while (group->next) group = group->next; group->next = new_group;
 		} else {
@@ -98,7 +98,7 @@ static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const 
 		new_member->min.ipv4 = * (u32 *) min_address;
 		new_member->max.ipv4 = * (u32 *) max_address;
 	}
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((member = group->first_member) != NULL) {
 		while (member->next) member = member->next; member->next = new_member;
 	} else {
@@ -256,14 +256,14 @@ const char *network2keyword(const unsigned int operation)
 	return keyword;
 }
 
-static int AddNetworkEntry(const u8 operation, const u8 record_type, const struct address_group_entry *group, const u32 *min_address, const u32 *max_address, const u16 min_port, const u16 max_port, struct domain_info *domain, const u8 is_add, const struct condition_list *condition)
+static int AddNetworkEntry(const u8 operation, const u8 record_type, const struct address_group_entry *group, const u32 *min_address, const u32 *max_address, const u16 min_port, const u16 max_port, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	struct acl_info *ptr;
 	int error = -ENOMEM;
 	const u32 min_ip = ntohl(*min_address), max_ip = ntohl(*max_address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!domain) return -EINVAL;
 	down(&domain_acl_lock);
-	if (is_add) {
+	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			struct ip_network_acl_record *new_ptr;
@@ -296,7 +296,6 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_IP_NETWORK_ACL;
@@ -376,7 +375,7 @@ static int CheckNetworkEntry(const int is_ipv6, const int operation, const u32 *
 		}
 		return CheckSupervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s %u.%u.%u.%u %u\n", domain->domainname->name, keyword, HIPQUAD(ip), port);
 	}
-	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6: IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, 1, NULL);
+	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK, domain)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6: IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, NULL, 0);
 	return 0;
 }
 
@@ -438,7 +437,7 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete
 	if (strchr(cp1, ' ')) goto out;
 	if ((count = sscanf(cp1, "%hu-%hu", &min_port, &max_port)) == 1 || count == 2) {
 		if (count == 1) max_port = min_port;
-		return AddNetworkEntry(operation, record_type, group, (u32 *) min_address, (u32 *) max_address, min_port, max_port, domain, is_delete ? 0 : -1, condition);
+		return AddNetworkEntry(operation, record_type, group, (u32 *) min_address, (u32 *) max_address, min_port, max_port, domain, condition, is_delete);
 	}
  out: ;
 	return -EINVAL;

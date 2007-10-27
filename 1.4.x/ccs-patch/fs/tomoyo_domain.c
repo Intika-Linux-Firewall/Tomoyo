@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/13
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -95,7 +95,7 @@ const char *GetLastName(const struct domain_info *domain)
 
 int AddDomainACL(struct acl_info *ptr, struct domain_info *domain, struct acl_info *new_ptr)
 {
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if (!ptr) domain->first_acl_ptr = (struct acl_info *) new_ptr;
 	else ptr->next = (struct acl_info *) new_ptr;
 	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
@@ -108,22 +108,6 @@ int DelDomainACL(struct acl_info *ptr)
 	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
-
-int TooManyDomainACL(struct domain_info * const domain) {
-	unsigned int count = 0;
-	struct acl_info *ptr;
-	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		if (!ptr->is_deleted) count++;
-	}
-	/* If there are so many entries, don't append if accept mode. */
-	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 0;
-	if (!domain->quota_warned) {
-		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped auto-append mode.\n", domain->domainname->name);
-		domain->quota_warned = 1;
-	}
-	return 1;
-}
-
 
 /*************************  DOMAIN INITIALIZER HANDLER  *************************/
 
@@ -164,7 +148,7 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
 	new_entry->is_oldstyle = is_oldstyle;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = domain_initializer_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -263,7 +247,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = domain_keeper_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -349,7 +333,7 @@ static int AddAliasEntry(const char *original_name, const char *aliased_name, co
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aliased_name = saved_aliased_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = alias_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -408,7 +392,7 @@ static int AddAggregatorEntry(const char *original_name, const char *aggregated_
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aggregated_name = saved_aggregated_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = aggregator_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -551,7 +535,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) ptr->is_deleted = 1;
 		domain->profile = profile;
 		domain->quota_warned = 0;
-		mb(); /* Instead of using spinlock. */
+		mb(); /* Avoid out-of-order execution. */
 		domain->is_deleted = 0;
 		goto out;
 	}
@@ -560,7 +544,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		struct domain_info *ptr = &KERNEL_DOMAIN;
 		domain->domainname = saved_domainname;
 		domain->profile = profile;
-		mb(); /* Instead of using spinlock. */
+		mb(); /* Avoid out-of-order execution. */
 		while (ptr->next) ptr = ptr->next; ptr->next = domain;
 	}
  out: ;

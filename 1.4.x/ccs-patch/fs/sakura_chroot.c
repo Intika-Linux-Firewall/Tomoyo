@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -58,7 +58,7 @@ static int AddChrootACL(const char *dir, const int is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->dir = saved_dir;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = chroot_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -98,7 +98,7 @@ int CheckChRootPermission(struct nameidata *nd)
 		printk("SAKURA-%s: chroot %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), root_name, current->pid, exename);
 		if (is_enforce && CheckSupervisor("# %s is requesting\nchroot %s\n", exename, root_name) == 0) error = 0;
 		if (exename) ccs_free(exename);
-		if (!is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_CHROOT) && root_name) {
+		if (!is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_CHROOT, NULL) && root_name) {
 			AddChrootACL(root_name, 0);
 			UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 		}

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -94,10 +94,11 @@ static unsigned int CheckCapabilityEnforce(const unsigned int index)
 	return CheckCapabilityFlags(index) == 3;
 }
 
-/* Check whether the given capability control is accept mode. */
-static unsigned int CheckCapabilityAccept(const unsigned int index)
+/* Check whether the given capability control is learning mode. */
+static unsigned int CheckCapabilityAccept(const unsigned int index, struct domain_info * const domain)
 {
-	return CheckCapabilityFlags(index) == 1;
+	if (CheckCapabilityFlags(index) != 1) return 0;
+	return CheckDomainQuota(domain);
 }
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
@@ -109,7 +110,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) ptr->value[i] = capability_control_array[i].current_value;
-			mb(); /* Instead of using spinlock. */
+			mb(); /* Avoid out-of-order execution. */
 			profile_ptr[profile] = ptr;
 		}
 	}
@@ -162,14 +163,14 @@ static inline void AuditCapabilityLog(const unsigned int capability, const int i
 
 /*************************  CAPABILITY ACL HANDLER  *************************/
 
-static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const u8 is_add, const struct condition_list *condition)
+static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	struct acl_info *ptr;
 	int error = -ENOMEM;
 	const u16 hash = capability;
 	if (!domain) return -EINVAL;
 	down(&domain_acl_lock);
-	if (is_add) {
+	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			struct capability_acl_record *new_ptr;
@@ -184,7 +185,6 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_CAPABILITY_ACL;
@@ -222,7 +222,7 @@ int CheckCapabilityACL(const unsigned int capability)
 	}
 	AuditCapabilityLog(capability, 0);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, capability2keyword(capability));
-	if (CheckCapabilityAccept(capability)) AddCapabilityACL(capability, domain, 1, NULL);
+	if (CheckCapabilityAccept(capability, domain)) AddCapabilityACL(capability, domain, NULL, 0);
 	return 0;
 }
 EXPORT_SYMBOL(CheckCapabilityACL);
@@ -235,7 +235,7 @@ int AddCapabilityPolicy(char *data, struct domain_info *domain, const int is_del
 	if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {
 		if (strcmp(data, capability_control_array[capability].keyword) == 0) {
-			return AddCapabilityACL(capability, domain, is_delete ? 0 : -1, condition);
+			return AddCapabilityACL(capability, domain, condition, is_delete);
 		}
 	}
 	return -EINVAL;
