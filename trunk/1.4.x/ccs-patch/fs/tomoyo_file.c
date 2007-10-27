@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -122,8 +122,8 @@ static struct path_info *GetPath(struct dentry *dentry, struct vfsmount *mnt)
 
 /*************************  PROTOTYPES  *************************/
 
-static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition);
-static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition);
+static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const struct condition_list *condition, const u8 is_delete);
+static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const struct condition_list *condition, const u8 is_delete);
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
@@ -220,7 +220,7 @@ static int AddGloballyReadableEntry(const char *filename, const int is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->filename = saved_filename;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = globally_readable_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -292,7 +292,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 	if (!group) {
 		if ((new_group = alloc_element(sizeof(*new_group))) == NULL) goto out;
 		new_group->group_name = saved_group_name;
-		mb(); /* Instead of using spinlock. */
+		mb(); /* Avoid out-of-order execution. */
 		if ((group = group_list) != NULL) {
 			while (group->next) group = group->next; group->next = new_group;
 		} else {
@@ -302,7 +302,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 	}
 	if ((new_member = alloc_element(sizeof(*new_member))) == NULL) goto out;
 	new_member->member_name = saved_member_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((member = group->first_member) != NULL) {
 		while (member->next) member = member->next; member->next = new_member;
 	} else {
@@ -398,7 +398,7 @@ static int AddPatternEntry(const char *pattern, const int is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->pattern = saved_pattern;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = pattern_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -472,7 +472,7 @@ static int AddNoRewriteEntry(const char *pattern, const int is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->pattern = saved_pattern;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = no_rewrite_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -514,7 +514,7 @@ int ReadNoRewritePolicy(struct io_buffer *head)
 
 /*************************  FILE ACL HANDLER  *************************/
 
-static int AddFileACL(const char *filename, u8 perm, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition)
+static int AddFileACL(const char *filename, u8 perm, struct domain_info * const domain, const struct condition_list *condition, const u8 is_delete)
 {
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
@@ -533,7 +533,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 	} else {
 		if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
 		if (!saved_filename->is_dir) {
-			if (perm == 4 && IsGloballyReadableFile(saved_filename) && is_add) {
+			if (perm == 4 && !is_delete && IsGloballyReadableFile(saved_filename)) {
 				return 0;   /* Don't add if the file is globally readable files. */
 			}
 		} else {
@@ -541,7 +541,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 		}
 	}
 	down(&domain_acl_lock);
-	if (is_add) {
+	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			struct file_acl_record *new_ptr;
@@ -564,7 +564,6 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 				continue;
 			}
 	first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_FILE_ACL;
@@ -620,10 +619,10 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 			printk("TOMOYO-%s: Access %d(%s) to %s denied for %s\n", GetMSG(is_enforce), perm, operation, filename->name, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\n%d %s\n", domain->domainname->name, perm, filename->name);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) {
+		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) {
 			/* Don't use patterns if execution bit is on. */
 			const struct path_info *patterned_file = ((perm & 1) == 0) ? GetPattern(filename) : filename;
-			AddFileACL(patterned_file->name, perm, domain, 1, NULL);
+			AddFileACL(patterned_file->name, perm, domain, NULL, 0);
 		}
 		if (!is_enforce) error = 0;
 	}
@@ -642,7 +641,7 @@ int AddFilePolicy(char *data, struct domain_info *domain, const int is_delete)
 	if (sscanf(data, "%u", &perm) == 1) {
 		cp = FindConditionPart(filename);
 		if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) goto out;
-		return AddFileACL(filename, (u8) perm, domain, is_delete ? 0 : -1, condition);
+		return AddFileACL(filename, (u8) perm, domain, condition, is_delete);
 	}
 	if (strncmp(data, "allow_", 6)) goto out;
 	data += 6;
@@ -654,11 +653,11 @@ int AddFilePolicy(char *data, struct domain_info *domain, const int is_delete)
 			*filename2++ = '\0';
 			cp = FindConditionPart(filename2);
 			if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) goto out;
-			return AddDoubleWriteACL(type, filename, filename2, domain, is_delete ? 0 : -1, condition);
+			return AddDoubleWriteACL(type, filename, filename2, domain, condition, is_delete);
 		} else {
 			cp = FindConditionPart(filename);
 			if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) goto out;
-			return AddSingleWriteACL(type, filename, domain, is_delete ? 0 : -1, condition);
+			return AddSingleWriteACL(type, filename, domain, condition, is_delete);
 		}
 		break;
 	}
@@ -666,7 +665,7 @@ int AddFilePolicy(char *data, struct domain_info *domain, const int is_delete)
 	return -EINVAL;
 }
 
-static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition)
+static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const struct condition_list *condition, const u8 is_delete)
 {
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
@@ -682,7 +681,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 		if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
 	}
 	down(&domain_acl_lock);
-	if (is_add) {
+	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			struct single_acl_record *new_ptr;
@@ -699,7 +698,6 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = type;
@@ -722,7 +720,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	return error;
 }
 
-static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const u8 is_add, const struct condition_list *condition)
+static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const struct condition_list *condition, const u8 is_delete)
 {
 	const struct path_info *saved_filename1, *saved_filename2;
 	struct acl_info *ptr;
@@ -745,7 +743,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 		if ((saved_filename2 = SaveName(filename2)) == NULL) return -ENOMEM;
 	}
 	down(&domain_acl_lock);
-	if (is_add) {
+	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			struct double_acl_record *new_ptr;
@@ -762,7 +760,6 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = type;
@@ -842,7 +839,7 @@ static int CheckSingleWritePermission2(const unsigned int operation, const struc
 				printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), filename->name, GetLastName(domain));
 			}
 			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, acltype2keyword(operation), filename->name);
-			else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, 1, NULL);
+			else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, NULL, 0);
 			if (!is_enforce) error = 0;
 		}
 	} else {
@@ -997,7 +994,7 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 					printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
 				}
 				if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, acltype2keyword(operation), buf1->name, buf2->name);
-				else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, 1, NULL);
+				else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, NULL, 0);
 			}
 		} else {
 			error = CheckFilePerm2(buf1, 2, acltype2keyword(operation), &obj);

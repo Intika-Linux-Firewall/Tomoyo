@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/13
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -517,10 +517,27 @@ unsigned int CheckCCSEnforce(const unsigned int index)
 }
 EXPORT_SYMBOL(CheckCCSEnforce);
 
-/* Check whether the given access control is accept mode. */
-unsigned int CheckCCSAccept(const unsigned int index)
+unsigned int CheckDomainQuota(struct domain_info * const domain)
 {
-	return CheckCCSFlags(index) == 1;
+	unsigned int count = 0;
+	struct acl_info *ptr;
+	if (!domain) return 1;
+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+		if (!ptr->is_deleted) count++;
+	}
+	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 1;
+	if (!domain->quota_warned) {
+		domain->quota_warned = 1;
+		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped learning mode.\n", domain->domainname->name);
+	}
+	return 0;
+}
+
+/* Check whether the given access control is learning mode. */
+unsigned int CheckCCSAccept(const unsigned int index, struct domain_info * const domain)
+{
+	if (CheckCCSFlags(index) != 1) return 0;
+	return CheckDomainQuota(domain);
 }
 EXPORT_SYMBOL(CheckCCSAccept);
 
@@ -533,7 +550,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) ptr->value[i] = ccs_control_array[i].current_value;
-			mb(); /* Instead of using spinlock. */
+			mb(); /* Avoid out-of-order execution. */
 			profile_ptr[profile] = ptr;
 		}
 	}
@@ -695,7 +712,7 @@ static int AddManagerEntry(const char *manager, u8 is_delete)
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->manager = saved_manager;
 	new_entry->is_domain = is_domain;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = policy_manager_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -1231,10 +1248,10 @@ void CCS_LoadPolicy(const char *filename)
 	}
 
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.4.3-rc   2007/09/13\n");
+	printk("SAKURA: 1.4.3-rc   2007/10/27\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.4.3-rc   2007/09/13\n");
+	printk("TOMOYO: 1.4.3-rc   2007/10/27\n");
 #endif
 	if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

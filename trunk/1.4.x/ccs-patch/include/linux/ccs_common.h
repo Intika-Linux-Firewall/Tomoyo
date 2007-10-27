@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/13
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -378,16 +378,16 @@ int ReadRejectLog(struct io_buffer *head);
 int ReadReservedPortPolicy(struct io_buffer *head);
 int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile);
 int SetPermissionMapping(struct io_buffer *head);
-int TooManyDomainACL(struct domain_info * const domain);
 int WriteAuditLog(char *log, const int is_granted);
 int acltype2paths(const unsigned int acl_type);
 int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 struct domain_info *FindDomain(const char *domainname);
 struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile);
 struct domain_info *UndeleteDomain(const char *domainname0);
-unsigned int CheckCCSAccept(const unsigned int index);
+unsigned int CheckCCSAccept(const unsigned int index, struct domain_info * const domain);
 unsigned int CheckCCSEnforce(const unsigned int index);
 unsigned int CheckCCSFlags(const unsigned int index);
+unsigned int CheckDomainQuota(struct domain_info * const domain);
 unsigned int TomoyoVerboseMode(void);
 void UpdateCounter(const unsigned char index);
 void ccs_free(const void *p);

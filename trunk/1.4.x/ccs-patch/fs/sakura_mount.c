@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -163,7 +163,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 	new_entry->fs_type = fs;
 	new_entry->enabled_options = enable;
 	new_entry->disabled_options = disable;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = mount_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -360,7 +360,7 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, unsigned lo
 			ccs_free(realname2);
 			ccs_free(realname1);
 		}
-		if (error && !is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_MOUNT)) {
+		if (error && !is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_MOUNT, NULL)) {
 			AddMountACL(need_dev ? requested_dev_name : dev_name, requested_dir_name, type, 0, 0, 0);
 			UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 		}

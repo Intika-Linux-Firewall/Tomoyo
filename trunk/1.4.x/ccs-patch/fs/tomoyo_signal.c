@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.4.3-rc   2007/09/09
+ * Version: 1.4.3-rc   2007/10/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -43,7 +43,7 @@ static inline void AuditSignalLog(const int signal, const struct path_info *dest
 
 /*************************  SIGNAL ACL HANDLER  *************************/
 
-static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain_info *domain, const u8 is_add, const struct condition_list *condition)
+static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
 {
 	struct acl_info *ptr;
 	const struct path_info *saved_dest_pattern;
@@ -53,7 +53,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	if (!dest_pattern || !IsCorrectDomain(dest_pattern, __FUNCTION__)) return -EINVAL;
 	if ((saved_dest_pattern = SaveName(dest_pattern)) == NULL) return -ENOMEM;
 	down(&domain_acl_lock);
-	if (is_add) {
+	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
 			struct signal_acl_record *new_ptr;
@@ -70,7 +70,6 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 				continue;
 			}
 		first_entry: ;
-			if (is_add == 1 && TooManyDomainACL(domain)) break;
 			/* Not found. Append it to the tail. */
 			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
 			new_ptr->head.type = TYPE_SIGNAL_ACL;
@@ -138,7 +137,7 @@ int CheckSignalACL(const int sig, const int pid)
 	}
 	AuditSignalLog(sig, dest->domainname, 0);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_SIGNAL "%d %s\n", domain->domainname->name, sig, dest_pattern);
-	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_SIGNAL)) AddSignalEntry(sig, dest_pattern, domain, 1, NULL);
+	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_SIGNAL, domain)) AddSignalEntry(sig, dest_pattern, domain, NULL, 0);
 	return 0;
 }
 EXPORT_SYMBOL(CheckSignalACL);
@@ -151,7 +150,7 @@ int AddSignalPolicy(char *data, struct domain_info *domain, const int is_delete)
 		const struct condition_list *condition = NULL;
 		const char *cp = FindConditionPart(domainname + 1);
 		if (cp && (condition = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
-		return AddSignalEntry(sig, domainname + 1, domain, is_delete ? 0 : -1, condition);
+		return AddSignalEntry(sig, domainname + 1, domain, condition, is_delete);
 	}
 	return -EINVAL;
 }
