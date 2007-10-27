@@ -9,12 +9,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/signal.c |  229 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 229 insertions(+)
+ security/tomoyo/signal.c |  219 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 219 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/signal.c	2007-10-02 11:26:22.000000000 +0900
-@@ -0,0 +1,229 @@
++++ linux-2.6/security/tomoyo/signal.c	2007-10-27 20:48:10.000000000 +0900
+@@ -0,0 +1,219 @@
 +/*
 + * security/tomoyo/signal.c
 + *
@@ -28,8 +28,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_audit_signal_log(const int signal,
 +				const struct path_info *dest_domain,
-+				const u8 is_granted,
-+				const u8 is_enforce)
++				const bool is_granted,
++				const bool is_enforce)
 +{
 +	char *buf;
 +	int len;
@@ -61,9 +61,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_add_signal_entry(const u16 sig, const char *dest_pattern,
 +				struct domain_info *domain,
 +				const struct condition_list *cond,
-+				const u8 is_delete)
++				const bool is_delete)
 +{
 +	struct acl_info *ptr;
++	struct signal_acl *acl;
 +	const struct path_info *saved_dest_pattern;
 +	int error = -ENOMEM;
 +
@@ -77,17 +78,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved_dest_pattern)
 +		return -ENOMEM;
 +
-+	down(&domain_acl_lock);
++	mutex_lock(&domain_acl_lock);
 +
 +	if (is_delete)
 +		goto remove;
 +
-+	ptr = domain->first_acl_ptr;
-+	if (!ptr)
-+		goto first_entry;
-+
-+	while (1) {
-+		struct signal_acl *acl = (struct signal_acl *) ptr;
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = (struct signal_acl *) ptr;
 +
 +		if (ptr->type == TMY_TYPE_SIGNAL_ACL && acl->sig == sig
 +		    && ptr->cond == cond
@@ -95,32 +92,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			ptr->is_deleted = 0;
 +			/* Found. Nothing to do. */
 +			error = 0;
-+			break;
++			goto ok;
 +		}
-+
-+		if (ptr->next) {
-+			ptr = ptr->next;
-+			continue;
-+		}
-+
-+first_entry: ;
-+		/* Not found. Append it to the tail. */
-+		acl = tmy_alloc_element(sizeof(*acl));
-+		if (!acl)
-+			break;
-+
-+		acl->head.type = TMY_TYPE_SIGNAL_ACL;
-+		acl->head.cond = cond;
-+		acl->sig = sig;
-+		acl->domainname = saved_dest_pattern;
-+		error = tmy_add_acl(ptr, domain, (struct acl_info *) acl);
-+		break;
 +	}
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++
++	acl->head.type = TMY_TYPE_SIGNAL_ACL;
++	acl->head.cond = cond;
++	acl->sig = sig;
++	acl->domainname = saved_dest_pattern;
++	error = tmy_add_acl(domain, (struct acl_info *) acl);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct signal_acl *acl = (struct signal_acl *) ptr;
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = (struct signal_acl *) ptr;
 +		if (ptr->type != TMY_TYPE_SIGNAL_ACL || ptr->cond != cond ||
 +		    ptr->is_deleted || acl->sig != sig ||
 +		    tmy_pathcmp(acl->domainname, saved_dest_pattern))
@@ -130,7 +119,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +ok: ;
-+	up(&domain_acl_lock);
++	mutex_unlock(&domain_acl_lock);
 +
 +	return error;
 +}
@@ -150,7 +139,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const char *dest_pattern;
 +	struct acl_info *ptr;
 +	const u16 hash = sig;
-+	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_SIGNAL);
++	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_SIGNAL);
++	bool found = 0;
 +
 +	if (!tmy_flags(TMY_MAC_FOR_SIGNAL))
 +		return 0;
@@ -186,7 +176,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	dest_pattern = dest->domainname->name;
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct signal_acl *acl = (struct signal_acl *) ptr;
 +
 +		if (ptr->type == TMY_TYPE_SIGNAL_ACL && ptr->is_deleted == 0
@@ -197,18 +187,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (strncmp(acl->domainname->name,
 +				    dest_pattern, len) == 0
 +			    && (dest_pattern[len] == ' ' ||
-+				dest_pattern[len] == '\0'))
++				dest_pattern[len] == '\0')) {
++				found = 1;
 +				break;
-+
++			}
 +		}
 +	}
 +
-+	if (ptr) {
-+		tmy_audit_signal_log(sig, dest->domainname, 1, is_enforce);
-+		return 0;
-+	}
++	tmy_audit_signal_log(sig, dest->domainname, found, is_enforce);
 +
-+	tmy_audit_signal_log(sig, dest->domainname, 0, is_enforce);
++	if (found)
++		return 0;
++
 +	if (is_enforce)
 +		return tmy_supervisor("%s\n" TMY_ALLOW_SIGNAL "%d %s\n",
 +				      domain->domainname->name,
@@ -232,7 +222,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_add_signal_policy(char *data,
 +			  struct domain_info *domain,
 +			  const struct condition_list *cond,
-+			  const u8 is_delete)
++			  const bool is_delete)
 +{
 +	int sig;
 +	char *domainname = strchr(data, ' ');
