@@ -23,7 +23,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditEnvLog(const char *env, const u8 is_granted)
+static int AuditEnvLog(const char *env, const bool is_granted)
 {
 	char *buf;
 	int len;
@@ -39,14 +39,14 @@ static int AuditEnvLog(const char *env, const u8 is_granted)
 struct globally_usable_env_entry {
 	struct globally_usable_env_entry *next;
 	const struct path_info *env;
-	u8 is_deleted;
+	bool is_deleted;
 };
 
 /*************************  GLOBALLY USABLE ENVIRONMENT HANDLER  *************************/
 
 static struct globally_usable_env_entry *globally_usable_env_list = NULL;
 
-static int AddGloballyUsableEnvEntry(const char *env, const u8 is_delete)
+static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 {
 	struct globally_usable_env_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
@@ -88,7 +88,7 @@ static int IsGloballyUsableEnv(const struct path_info *env)
 	return 0;
 }
 
-int AddGloballyUsableEnvPolicy(char *env, const u8 is_delete)
+int AddGloballyUsableEnvPolicy(char *env, const bool is_delete)
 {
 	return AddGloballyUsableEnvEntry(env, is_delete);
 }
@@ -107,7 +107,7 @@ int ReadGloballyUsableEnvPolicy(struct io_buffer *head)
 
 /*************************  ENVIRONMENT VARIABLE CHECKING HANDLER  *************************/
 
-static int AddEnvEntry(const char *env, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+static int AddEnvEntry(const char *env, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	struct acl_info *ptr;
 	const struct path_info *saved_env;
@@ -182,7 +182,7 @@ int CheckEnvPerm(const char *env)
 	AuditEnvLog(env, !error);
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
-		const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ENV);
+		const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ENV);
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Environ %s denied for %s\n", GetMSG(is_enforce), env, GetLastName(domain));
 		}
@@ -194,7 +194,7 @@ int CheckEnvPerm(const char *env)
 }
 EXPORT_SYMBOL(CheckEnvPerm);
 
-int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	return AddEnvEntry(data, domain, condition, is_delete);
 }

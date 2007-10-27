@@ -354,7 +354,8 @@ int CheckCondition(const struct condition_list *ptr, struct obj_info *obj)
 	if (!ptr) return 0;
 	ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(*ptr));
 	for (i = 0; i < ptr->length; i++) {
-		const u8 match = ((*ptr2) >> 16) & 1, left = (*ptr2) >> 8, right = *ptr2;
+		const bool match = ((*ptr2) >> 16) & 1;
+		const u8 left = (*ptr2) >> 8, right = *ptr2;
 		ptr2++;
 		if ((left >= PATH1_UID && left < MAX_KEYWORD) || (right >= PATH1_UID && right < MAX_KEYWORD)) {
 			if (!obj) goto out;

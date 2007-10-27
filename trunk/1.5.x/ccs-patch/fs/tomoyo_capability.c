@@ -89,13 +89,13 @@ static unsigned int CheckCapabilityFlags(const unsigned int index)
 }
 
 /* Check whether the given capability control is enforce mode. */
-static u8 CheckCapabilityEnforce(const unsigned int index)
+static bool CheckCapabilityEnforce(const unsigned int index)
 {
 	return CheckCapabilityFlags(index) == 3;
 }
 
 /* Check whether the given capability control is learning mode. */
-static u8 CheckCapabilityAccept(const unsigned int index, struct domain_info * const domain)
+static bool CheckCapabilityAccept(const unsigned int index, struct domain_info * const domain)
 {
 	if (CheckCapabilityFlags(index) != 1) return 0;
 	return CheckDomainQuota(domain);
@@ -147,7 +147,7 @@ int ReadCapabilityStatus(struct io_buffer *head)
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditCapabilityLog(const unsigned int capability, const u8 is_granted)
+static int AuditCapabilityLog(const unsigned int capability, const bool is_granted)
 {
 	char *buf;
 	int len = 64;
@@ -159,7 +159,7 @@ static int AuditCapabilityLog(const unsigned int capability, const u8 is_granted
 
 /*************************  CAPABILITY ACL HANDLER  *************************/
 
-static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	struct acl_info *ptr;
 	int error = -ENOMEM;
@@ -206,7 +206,7 @@ int CheckCapabilityACL(const unsigned int capability)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
-	const u8 is_enforce = CheckCapabilityEnforce(capability);
+	const bool is_enforce = CheckCapabilityEnforce(capability);
 	const u16 hash = capability;
 	if (!CheckCapabilityFlags(capability)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -225,7 +225,7 @@ int CheckCapabilityACL(const unsigned int capability)
 }
 EXPORT_SYMBOL(CheckCapabilityACL);
 
-int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	unsigned int capability;
 	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {

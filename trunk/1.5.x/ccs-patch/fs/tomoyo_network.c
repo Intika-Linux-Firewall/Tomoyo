@@ -24,7 +24,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditNetworkLog(const u8 is_ipv6, const char *operation, const u32 *address, const u16 port, const u8 is_granted)
+static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 *address, const u16 port, const bool is_granted)
 {
 	char *buf;
 	int len = 256;
@@ -45,7 +45,7 @@ static int AuditNetworkLog(const u8 is_ipv6, const char *operation, const u32 *a
 
 static struct address_group_entry *group_list = NULL;
 
-static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const u16 *min_address, const u16 *max_address, const u8 is_delete)
+static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, const u16 *min_address, const u16 *max_address, const bool is_delete)
 {
 	static DECLARE_MUTEX(lock);
 	struct address_group_entry *new_group, *group;
@@ -106,7 +106,7 @@ static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const 
 	return error;
 }
 
-int AddAddressGroupPolicy(char *data, const u8 is_delete)
+int AddAddressGroupPolicy(char *data, const bool is_delete)
 {
 	int count, is_ipv6;
 	u16 min_address[8], max_address[8];
@@ -156,7 +156,7 @@ static struct address_group_entry *FindOrAssignNewAddressGroup(const char *group
 	return NULL;
 }
 
-static int AddressMatchesToGroup(const u8 is_ipv6, const u32 *address, const struct address_group_entry *group)
+static int AddressMatchesToGroup(const bool is_ipv6, const u32 *address, const struct address_group_entry *group)
 {
 	struct address_group_member *member;
 	const u32 ip = ntohl(*address);
@@ -252,7 +252,7 @@ const char *network2keyword(const unsigned int operation)
 	return keyword;
 }
 
-static int AddNetworkEntry(const u8 operation, const u8 record_type, const struct address_group_entry *group, const u32 *min_address, const u32 *max_address, const u16 min_port, const u16 max_port, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+static int AddNetworkEntry(const u8 operation, const u8 record_type, const struct address_group_entry *group, const u32 *min_address, const u32 *max_address, const u16 min_port, const u16 max_port, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	struct acl_info *ptr;
 	int error = -ENOMEM;
@@ -332,12 +332,12 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	return error;
 }
 
-static int CheckNetworkEntry(const u8 is_ipv6, const int operation, const u32 *address, const u16 port)
+static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 *address, const u16 port)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
 	const char *keyword = network2keyword(operation);
-	const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_NETWORK);
+	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_NETWORK);
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
@@ -377,7 +377,7 @@ static int CheckNetworkEntry(const u8 is_ipv6, const int operation, const u32 *a
 	return 0;
 }
 
-int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	u8 sock_type, operation, record_type;
 	u16 min_address[8], max_address[8];

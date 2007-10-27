@@ -23,7 +23,7 @@ extern struct semaphore domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const u8 is_granted)
+static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const bool is_granted)
 {
 	char *buf;
 	int len;
@@ -36,7 +36,7 @@ static int AuditArgv0Log(const struct path_info *filename, const char *argv0, co
 
 /*************************  ARGV0 MISMATCH HANDLER  *************************/
 
-static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	struct acl_info *ptr;
 	const struct path_info *saved_filename, *saved_argv0;
@@ -110,7 +110,7 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 	AuditArgv0Log(filename, argv0, !error);
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
-		const u8 is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ARGV0);
+		const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ARGV0);
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Run %s as %s denied for %s\n", GetMSG(is_enforce), filename->name, argv0, GetLastName(domain));
 		}
@@ -122,7 +122,7 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 }
 EXPORT_SYMBOL(CheckArgv0Perm);
 
-int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const u8 is_delete)
+int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	char *argv0 = strchr(data, ' ');
 	if (!argv0) return -EINVAL;
