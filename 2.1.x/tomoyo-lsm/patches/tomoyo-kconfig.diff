@@ -6,9 +6,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/Kconfig         |    1 +
  security/Makefile        |    1 +
- security/tomoyo/Kconfig  |   18 ++++++++++++++++++
+ security/tomoyo/Kconfig  |   27 +++++++++++++++++++++++++++
  security/tomoyo/Makefile |    3 +++
- 4 files changed, 23 insertions(+)
+ 4 files changed, 32 insertions(+)
 
 --- linux-2.6.orig/security/Kconfig	2007-10-26 21:33:01.000000000 +0900
 +++ linux-2.6/security/Kconfig	2007-10-26 21:33:52.000000000 +0900
@@ -29,13 +29,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +obj-$(CONFIG_SECURITY_TOMOYO)       += tomoyo/
 \ No newline at end of file
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/Kconfig	2007-10-26 21:48:02.000000000 +0900
-@@ -0,0 +1,18 @@
++++ linux-2.6/security/tomoyo/Kconfig	2007-10-27 23:27:09.000000000 +0900
+@@ -0,0 +1,27 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux support"
 +	depends on SECURITY
 +	select SECURITY_NETWORK
-+	select AUDIT
 +	default n
 +	help
 +	  This selects TOMOYO Linux.
@@ -49,6 +48,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	  TOMOYO Linux is also applicable to figuring out the behavior
 +	  of your system, for TOMOYO uses the canonicalized absolute
 +	  pathnames and TreeView style domain transitions.
++
++config SECURITY_TOMOYO_USE_AUDITD
++	bool "Use standard auditing subsystem"
++	depends on SECURITY_TOMOYO && AUDIT
++	default n
++	help
++	  This makes audit logs sent to standard auditing subsystem.
++
++	  Say 'N' here to make audit logs sent to TOMOYO Linux's management
++          interface.
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 +++ linux-2.6/security/tomoyo/Makefile	2007-10-26 21:48:02.000000000 +0900
 @@ -0,0 +1,3 @@

@@ -13,7 +13,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 1438 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/file.c	2007-10-27 20:48:10.000000000 +0900
++++ linux-2.6/security/tomoyo/file.c	2007-10-27 21:13:52.000000000 +0900
 @@ -0,0 +1,1438 @@
 +/*
 + * security/tomoyo/file.c
@@ -175,7 +175,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	len = filename->total_len + 8;
-+	buf = tmy_init_audit_log(&len);
++	buf = tmy_init_audit_log(&len, is_enforce);
 +
 +	if (!buf)
 +		return -ENOMEM;
@@ -186,7 +186,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		 perm,
 +		 filename->name);
 +
-+	return tmy_write_audit_log(buf, is_granted, is_enforce);
++	return tmy_write_audit_log(buf, is_granted);
 +}
 +
 +static int tmy_audit_write_log(const char *operation,
@@ -211,7 +211,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		(filename2 ? filename2->total_len : 0)
 +		+ 16;
 +
-+	buf = tmy_init_audit_log(&len);
++	buf = tmy_init_audit_log(&len, is_enforce);
 +	if (!buf)
 +		return -ENOMEM;
 +
@@ -219,7 +219,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		 "allow_%s %s %s",
 +		 operation, filename1->name, filename2 ? filename2->name : "");
 +
-+	return tmy_write_audit_log(buf, is_granted, is_enforce);
++	return tmy_write_audit_log(buf, is_granted);
 +}
 +
 +/**********************  GLOBALLY READABLE FILE HANDLER  **********************/

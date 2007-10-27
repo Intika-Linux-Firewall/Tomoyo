@@ -13,7 +13,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 219 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/signal.c	2007-10-27 20:48:10.000000000 +0900
++++ linux-2.6/security/tomoyo/signal.c	2007-10-27 21:13:06.000000000 +0900
 @@ -0,0 +1,219 @@
 +/*
 + * security/tomoyo/signal.c
@@ -43,7 +43,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	len = dest_domain->total_len;
-+	buf = tmy_init_audit_log(&len);
++	buf = tmy_init_audit_log(&len, is_enforce);
 +
 +	if (!buf)
 +		return -ENOMEM;
@@ -53,7 +53,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		 "%s%d %s",
 +		 TMY_ALLOW_SIGNAL, signal, dest_domain->name);
 +
-+	return tmy_write_audit_log(buf, is_granted, is_enforce);
++	return tmy_write_audit_log(buf, is_granted);
 +}
 +
 +/*************************  SIGNAL ACL HANDLER  *************************/

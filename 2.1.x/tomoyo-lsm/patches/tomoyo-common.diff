@@ -20,12 +20,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c | 2369 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2369 insertions(+)
+ security/tomoyo/common.c | 2403 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2403 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-10-27 20:50:04.000000000 +0900
-@@ -0,0 +1,2369 @@
++++ linux-2.6/security/tomoyo/common.c	2007-10-27 23:39:28.000000000 +0900
+@@ -0,0 +1,2403 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -73,8 +73,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TMY_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
 +	[TMY_MAX_ACCEPT_ENTRY]    =
 +	{ "MAX_ACCEPT_ENTRY", MAX_ACCEPT_ENTRY, INT_MAX },
++#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
 +	[TMY_AUDIT_GRANT]         = { "AUDIT_GRANT",         0, 1 },
 +	[TMY_AUDIT_REJECT]        = { "AUDIT_REJECT",        1, 1 },
++#else
++	[TMY_MAX_GRANT_LOG]       = { "MAX_GRANT_LOG",       1024, INT_MAX },
++	[TMY_MAX_REJECT_LOG]      = { "MAX_REJECT_LOG",      1024, INT_MAX },
++#endif
 +	[TMY_ALLOW_ENFORCE_GRACE] = { "ALLOW_ENFORCE_GRACE", 0, 1 },
 +};
 +
@@ -825,12 +830,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		0;
 +}
 +
++#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
 +/**
 + * tmy_audit_grant - get flags of auditing grant logs.
 + *
 + * Returns current value of auditing grant log flags.
 + */
-+unsigned int tmy_audit_grant(void)
++bool tmy_audit_grant(void)
 +{
 +	return tmy_flags(TMY_AUDIT_GRANT);
 +}
@@ -840,10 +846,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns current value of auditing reject log flags.
 + */
-+unsigned int tmy_audit_reject(void)
++bool tmy_audit_reject(void)
 +{
 +	return tmy_flags(TMY_AUDIT_REJECT);
 +}
++#endif
++
 +
 +/**
 + * tmy_enforce - check whether the given access control is enforce mode.
@@ -2047,13 +2055,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
 +		      "/sys/kernel/security/tomoyo/profile:          %10u\n"
 +		      "/sys/kernel/security/tomoyo/query:            %10u\n"
-+		      "/sys/kernel/security/tomoyo/manager:          %10u\n",
++		      "/sys/kernel/security/tomoyo/manager:          %10u\n"
++#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
++		      "/sys/kernel/security/tomoyo/grant_log:        %10u\n"
++		      "/sys/kernel/security/tomoyo/reject_log:       %10u\n"
++#endif
++		      ,
 +		      counter[TMY_UPDATE_DOMAINPOLICY],
 +		      counter[TMY_UPDATE_SYSTEMPOLICY],
 +		      counter[TMY_UPDATE_EXCEPTIONPOLICY],
 +		      counter[TMY_UPDATE_PROFILE],
 +		      counter[TMY_UPDATE_QUERY],
-+		      counter[TMY_UPDATE_MANAGER]);
++		      counter[TMY_UPDATE_MANAGER]
++#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
++		      , counter[TMY_UPDATE_GRANT_LOG]
++		      , counter[TMY_UPDATE_REJECT_LOG]
++#endif
++		      );
 +	head->read_eof = 1;
 +
 +	return 0;
@@ -2118,30 +2136,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	mutex_init(&head->write_mutex);
 +
 +	switch (type) {
-+	case TMY_POLICY_DOMAINPOLICY:
++	case TMY_DOMAINPOLICY:
 +		head->write = tmy_add_domain_policy;
 +		head->read = tmy_read_domain_policy;
 +		break;
-+	case TMY_POLICY_SYSTEMPOLICY:
++	case TMY_SYSTEMPOLICY:
 +		head->write = tmy_add_system_policy;
 +		head->read = tmy_read_system_policy;
 +		break;
-+	case TMY_POLICY_EXCEPTIONPOLICY:
++	case TMY_EXCEPTIONPOLICY:
 +		head->write = tmy_add_exception_policy;
 +		head->read = tmy_read_exception_policy;
 +		break;
-+	case TMY_POLICY_DOMAIN_STATUS:
++	case TMY_DOMAIN_STATUS:
 +		head->write = tmy_update_domain_profile;
 +		head->read = tmy_read_domain_profile;
 +		break;
-+	case TMY_INFO_PROCESS_STATUS:
++	case TMY_PROCESS_STATUS:
 +		head->write = tmy_write_pid;
 +		head->read = tmy_read_pid;
 +		break;
-+	case TMY_INFO_SELFDOMAIN:
++	case TMY_SELFDOMAIN:
 +		head->read = tmy_read_self_domain;
 +		break;
-+	case TMY_INFO_MEMINFO:
++	case TMY_MEMINFO:
 +		head->read = tmy_read_memory_counter;
 +		head->readbuf_size = 128;
 +		break;
@@ -2149,24 +2167,34 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		head->write = tmy_set_profile;
 +		head->read = tmy_read_profile;
 +		break;
-+	case TMY_POLICY_QUERY:
++	case TMY_QUERY:
 +		head->poll = tmy_poll_query;
 +		head->write = tmy_write_answer;
 +		head->read = tmy_read_query;
 +		break;
-+	case TMY_POLICY_MANAGER:
++	case TMY_MANAGER:
 +		head->write = tmy_add_manager_policy;
 +		head->read = tmy_read_manager_policy;
 +		break;
-+	case TMY_INFO_UPDATESCOUNTER:
++	case TMY_UPDATESCOUNTER:
 +		head->read = tmy_read_updates_counter;
 +		break;
 +	case TMY_VERSION:
 +		head->read = tmy_read_version;
 +		break;
++#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
++	case TMY_GRANT_LOG:
++		head->read = tmy_read_grant_log;
++		head->poll = tmy_poll_grant_log;
++		break;
++	case TMY_REJECT_LOG:
++		head->read = tmy_read_reject_log;
++		head->poll = tmy_poll_reject_log;
++		break;
++#endif
 +	}
 +
-+	if (type != TMY_POLICY_QUERY) {
++	if (type != TMY_QUERY) {
 +		if (!head->readbuf_size)
 +			head->readbuf_size = PAGE_SIZE * 2;
 +		head->read_buf = tmy_alloc(head->readbuf_size);
@@ -2188,7 +2216,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	file->private_data = head;
 +
-+	if (type == TMY_INFO_SELFDOMAIN)
++	if (type == TMY_SELFDOMAIN)
 +		tmy_read_control(file, NULL, 0);
 +	else if (head->write == tmy_write_answer)
 +		atomic_inc(&queryd_watcher);
@@ -2368,29 +2396,35 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	tmy_dir = securityfs_create_dir("tomoyo", NULL);
 +	tmy_create_entry("query",            0600, tmy_dir,
-+			 TMY_POLICY_QUERY);
++			 TMY_QUERY);
 +	tmy_create_entry("domain_policy",    0600, tmy_dir,
-+			 TMY_POLICY_DOMAINPOLICY);
++			 TMY_DOMAINPOLICY);
 +	tmy_create_entry("system_policy",    0600, tmy_dir,
-+			 TMY_POLICY_SYSTEMPOLICY);
++			 TMY_SYSTEMPOLICY);
 +	tmy_create_entry("exception_policy", 0600, tmy_dir,
-+			 TMY_POLICY_EXCEPTIONPOLICY);
++			 TMY_EXCEPTIONPOLICY);
 +	tmy_create_entry(".domain_status",   0600, tmy_dir,
-+			 TMY_POLICY_DOMAIN_STATUS);
++			 TMY_DOMAIN_STATUS);
 +	tmy_create_entry(".process_status",  0400, tmy_dir,
-+			 TMY_INFO_PROCESS_STATUS);
++			 TMY_PROCESS_STATUS);
 +	tmy_create_entry("self_domain",      0400, tmy_dir,
-+			 TMY_INFO_SELFDOMAIN);
++			 TMY_SELFDOMAIN);
 +	tmy_create_entry("meminfo",          0400, tmy_dir,
-+			 TMY_INFO_MEMINFO);
++			 TMY_MEMINFO);
 +	tmy_create_entry("profile",          0600, tmy_dir,
 +			 TMY_PROFILE);
 +	tmy_create_entry("manager",          0600, tmy_dir,
-+			 TMY_POLICY_MANAGER);
++			 TMY_MANAGER);
 +	tmy_create_entry(".updates_counter", 0400, tmy_dir,
-+			 TMY_INFO_UPDATESCOUNTER);
++			 TMY_UPDATESCOUNTER);
 +	tmy_create_entry("version",          0400, tmy_dir,
 +			 TMY_VERSION);
++#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
++	tmy_create_entry("grant_log",        0400, tmy_dir,
++			 TMY_GRANT_LOG);
++	tmy_create_entry("reject_log",       0400, tmy_dir,
++			 TMY_REJECT_LOG);
++#endif
 +	return 0;
 +}
 +
