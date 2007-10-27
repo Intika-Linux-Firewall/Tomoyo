@@ -8,12 +8,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/exec.c |  222 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 222 insertions(+)
+ security/tomoyo/exec.c |  210 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 210 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/exec.c	2007-10-02 11:26:22.000000000 +0900
-@@ -0,0 +1,222 @@
++++ linux-2.6/security/tomoyo/exec.c	2007-10-27 20:48:10.000000000 +0900
+@@ -0,0 +1,210 @@
 +/*
 + * security/tomoyo/exec.c
 + *
@@ -27,8 +27,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_audit_argv0_log(const struct path_info *filename,
 +			       const char *argv0,
-+			       const u8 is_granted,
-+			       const u8 is_enforce)
++			       const bool is_granted,
++			       const bool is_enforce)
 +{
 +	char *buf;
 +	int len;
@@ -62,9 +62,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			       const char *argv0,
 +			       struct domain_info *domain,
 +			       const struct condition_list *cond,
-+			       const u8 is_delete)
++			       const bool is_delete)
 +{
 +	struct acl_info *ptr;
++	struct argv0_acl *acl;
 +	const struct path_info *saved_filename;
 +	const struct path_info *saved_argv0;
 +	int error = -ENOMEM;
@@ -79,52 +80,39 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!saved_filename || !saved_argv0)
 +		return -ENOMEM;
 +
-+	down(&domain_acl_lock);
++	mutex_lock(&domain_acl_lock);
 +
 +	if (is_delete)
 +		goto remove;
 +
-+	ptr = domain->first_acl_ptr;
-+	if (!ptr)
-+		goto first_entry;
-+	while (1) {
-+		struct argv0_acl *acl = (struct argv0_acl *) ptr;
-+
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = (struct argv0_acl *) ptr;
 +		if (ptr->type == TMY_TYPE_ARGV0_ACL && ptr->cond == cond &&
 +		    acl->filename == saved_filename &&
 +		    acl->argv0 == saved_argv0) {
 +			ptr->is_deleted = 0;
 +			/* Found. Nothing to do. */
 +			error = 0;
-+			break;
++			goto ok;
 +		}
-+
-+		if (ptr->next) {
-+			ptr = ptr->next;
-+			continue;
-+		}
-+
-+first_entry: ;
-+		/* Not found. Append it to the tail. */
-+		acl = tmy_alloc_element(sizeof(*acl));
-+		if (!acl)
-+			break;
-+
-+		acl->head.type = TMY_TYPE_ARGV0_ACL;
-+		acl->head.cond = cond;
-+		acl->filename = saved_filename;
-+		acl->argv0 = saved_argv0;
-+		error = tmy_add_acl(ptr, domain,
-+				    (struct acl_info *) acl);
-+
-+		break;
 +	}
++
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++
++	acl->head.type = TMY_TYPE_ARGV0_ACL;
++	acl->head.cond = cond;
++	acl->filename = saved_filename;
++	acl->argv0 = saved_argv0;
++	error = tmy_add_acl(domain,
++			    (struct acl_info *) acl);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-+		struct argv0_acl *acl = (struct argv0_acl *) ptr;
-+
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = (struct argv0_acl *) ptr;
 +		if (ptr->type != TMY_TYPE_ARGV0_ACL ||
 +		    ptr->cond != cond || ptr->is_deleted ||
 +		    acl->filename != saved_filename ||
@@ -135,7 +123,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		break;
 +	}
 +ok: ;
-+	up(&domain_acl_lock);
++	mutex_unlock(&domain_acl_lock);
 +
 +	return error;
 +}
@@ -154,7 +142,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	argv0.name = argv0_;
 +	tmy_fill_path_info(&argv0);
 +
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct argv0_acl *acl = (struct argv0_acl *) ptr;
 +
 +		if (ptr->type == TMY_TYPE_ARGV0_ACL &&
@@ -181,7 +169,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0)
 +{
 +	int error = 0;
-+	const u8 is_enforce = tmy_enforce(TMY_MAC_FOR_ARGV0);
++	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_ARGV0);
 +
 +	if (!tmy_flags(TMY_MAC_FOR_ARGV0))
 +		return 0;
@@ -224,7 +212,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_add_argv0_policy(char *data,
 +			 struct domain_info *domain,
 +			 const struct condition_list *cond,
-+			 const u8 is_delete)
++			 const bool is_delete)
 +{
 +	char *argv0 = strchr(data, ' ');
 +

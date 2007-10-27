@@ -20,12 +20,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c | 2406 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 2406 insertions(+)
+ security/tomoyo/common.c | 2369 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2369 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/common.c	2007-10-02 11:26:21.000000000 +0900
-@@ -0,0 +1,2406 @@
++++ linux-2.6/security/tomoyo/common.c	2007-10-27 20:50:04.000000000 +0900
+@@ -0,0 +1,2369 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -55,7 +55,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/*************************  VARIABLES  *************************/
 +
 +/* /sbin/init started? */
-+int sbin_init_started;
++bool sbin_init_started;
 +
 +static struct {
 +	const char *keyword;
@@ -197,12 +197,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *                0 if it does not matter
 + * @function:     string to display if the @filename is invalid
 + *
-+ * Returns nonzero if the pathname is valid.
-+ * Returns zero otherwise.
++ * Returns true if the pathname is valid.
++ * Returns false otherwise.
 + *
 + * Check whether the given pathname follows the naming rules.
 + */
-+int tmy_correct_path(const char *filename,
++bool tmy_correct_path(const char *filename,
 +		     const int start_type,
 +		     const int pattern_type,
 +		     const int end_type,
@@ -294,12 +294,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * @domainname: the domainname to check.
 + * @function:   string to display if the @domainname is invalid.
 + *
-+ * Returns nonzero if the domainname is valid.
-+ * Returns zero otherwise.
++ * Returns true if the domainname is valid.
++ * Returns false otherwise.
 + *
 + * Check whether the given domainname follows the naming rules.
 + */
-+int tmy_is_correct_domain(const unsigned char *domainname,
++bool tmy_is_correct_domain(const unsigned char *domainname,
 +			  const char *function)
 +{
 +	unsigned char c;
@@ -452,14 +452,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * @pattern_end:  end address of the pattern.
 + *
 + * Handle all patterns other than '\-' pattern.
-+ * Returns nonzero if matches.
-+ * Returns zero otherwise.
++ * Returns true if matches.
++ * Returns false otherwise.
 + *
 + * @filename and @pattern do not contain '/'.
 + * @filename and @pattern are not '\0'-terminated.
 + * @pattern does not contain '\-'.
 + */
-+static int tmy_file_match2(const char *filename,
++static bool tmy_file_match2(const char *filename,
 +			   const char *filename_end,
 +			   const char *pattern,
 +			   const char *pattern_end)
@@ -625,20 +625,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * @pattern_end:  end address of the pattern.
 + *
 + * Handle patterns containing '\-' pattern.
-+ * Returns nonzero if matches.
-+ * Returns zero otherwise.
++ * Returns true if matches.
++ * Returns false otherwise.
 + *
 + * @filename and @pattern do not contain '/'.
 + * @filename and @pattern are not '\0'-terminated.
 + */
-+static int tmy_file_match(const char *filename,
++static bool tmy_file_match(const char *filename,
 +			  const char *filename_end,
 +			  const char *pattern,
 +			  const char *pattern_end)
 +{
 +	const char *pattern_start = pattern;
-+	int first = 1;
-+	int result;
++	bool first = 1;
++	bool result;
 +
 +	while (pattern < pattern_end - 1) {
 +		/* Split at "\-" pattern. */
@@ -672,8 +672,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * @pathname0: pointer to a token to compare.
 + * @pattern0:  pointer to a pattern to compare.
 + *
-+ * Returns nonzero if @pathname0 matches to @pattern0 .
-+ * Returns zero otherwise.
++ * Returns true if @pathname0 matches to @pattern0 .
++ * Returns false otherwise.
 + *
 + *
 + *  Check whether the given token matches to the given pattern.
@@ -692,7 +692,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *    \a     1 alphabet character.
 + *    \-     Subtraction operator.
 + */
-+int tmy_path_match(const struct path_info *pathname0,
++bool tmy_path_match(const struct path_info *pathname0,
 +		   const struct path_info *pattern0)
 +{
 +	const char *pathname = pathname0->name;
@@ -852,7 +852,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns nonzero if given access control is enforce mode.
 + * Returns zero otherwise.
 + */
-+u8 tmy_enforce(const unsigned int index)
++bool tmy_enforce(const unsigned int index)
 +{
 +	return tmy_flags(index) == 3;
 +}
@@ -869,7 +869,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * This is a safeguard for "learning mode", for appending entries
 + * without limit dulls the system response and consumes much memory.
 + */
-+u8 tmy_accept(const unsigned int index,
++bool tmy_accept(const unsigned int index,
 +	      struct domain_info * const domain)
 +{
 +	unsigned int count = 0;
@@ -878,7 +878,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0;
 +	if (!domain)
 +		return 1;
-+	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (!ptr->is_deleted)
 +			count++;
 +	}
@@ -898,10 +898,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Create a new profile. */
 +static struct profile *tmy_find_new_profile(const unsigned int profile)
 +{
-+	static DECLARE_MUTEX(profile_lock);
++	static DEFINE_MUTEX(profile_lock);
 +	struct profile *ptr = NULL;
 +
-+	down(&profile_lock);
++	mutex_lock(&profile_lock);
 +
 +	ptr = profile_ptr[profile];
 +	if (profile < TMY_MAX_PROFILES && ptr == NULL) {
@@ -915,7 +915,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +	}
 +
-+	up(&profile_lock);
++	mutex_unlock(&profile_lock);
 +
 +	return ptr;
 +}
@@ -1018,24 +1018,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/*************************  POLICY MANAGER HANDLER  *************************/
 +
 +struct policy_manager_entry {
-+	struct policy_manager_entry *next;
++	struct list_head list;
 +	const struct path_info *manager;
-+	u8 is_domain;
-+	u8 is_deleted;
++	bool is_domain;
++	bool is_deleted;
 +};
 +
-+static struct policy_manager_entry *policy_manager_list;
++static LIST_HEAD(policy_manager_list);
 +
 +/* Update manager list. */
-+static int tmy_add_manager_entry(const char *manager, const u8 is_delete)
++static int tmy_add_manager_entry(const char *manager, const bool is_delete)
 +{
 +	struct policy_manager_entry *new_entry;
 +	struct policy_manager_entry *ptr;
-+	static DECLARE_MUTEX(lock);
++	static DEFINE_MUTEX(mutex);
 +	const struct path_info *saved_manager;
 +	int error = -ENOMEM;
 +
-+	u8 is_domain = 0;
++	bool is_domain = 0;
 +	if (!tmy_is_root())
 +		return -EPERM;
 +	if (tmy_is_domain_def(manager)) {
@@ -1051,9 +1051,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (saved_manager == NULL)
 +		return -ENOMEM;
 +
-+	down(&lock);
++	mutex_lock(&mutex);
 +
-+	for (ptr = policy_manager_list; ptr; ptr = ptr->next) {
++	list_for_each_entry(ptr, &policy_manager_list, list) {
 +		if (ptr->manager == saved_manager) {
 +			ptr->is_deleted = is_delete;
 +			error = 0;
@@ -1071,18 +1071,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto out;
 +	new_entry->manager = saved_manager;
 +	new_entry->is_domain = is_domain;
-+	mb(); /* Instead of using spinlock. */
-+	ptr = policy_manager_list;
-+	if (ptr) {
-+		while (ptr->next)
-+			ptr = ptr->next;
-+		ptr->next = new_entry;
-+	} else
-+		policy_manager_list = new_entry;
++	list_add_tail_mb(&new_entry->list, &policy_manager_list);
 +	error = 0;
 +out: ;
 +
-+	up(&lock);
++	mutex_unlock(&mutex);
 +
 +	if (!error)
 +		tmy_update_counter(TMY_UPDATE_MANAGER);
@@ -1093,7 +1086,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_add_manager_policy(struct io_buffer *head)
 +{
 +	char *data = head->write_buf;
-+	u8 is_delete = 0;
++	bool is_delete = 0;
 +
 +	if (!tmy_is_root())
 +		return -EPERM;
@@ -1105,21 +1098,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Read manager list.*/
 +static int tmy_read_manager_policy(struct io_buffer *head)
 +{
-+	struct policy_manager_entry *ptr = head->read_var2;
++	struct list_head *pos;
 +	if (head->read_eof)
 +		return 0;
 +	if (!tmy_is_root())
 +		return -EPERM;
-+	if (!ptr)
-+		ptr = policy_manager_list;
-+	while (ptr) {
-+		head->read_var2 = ptr;
++	list_for_each_cookie(pos, head->read_var2, &policy_manager_list) {
++		struct policy_manager_entry *ptr;
++		ptr = list_entry(pos, struct policy_manager_entry, list);
 +		if (!ptr->is_deleted &&
 +		    tmy_io_printf(head, "%s\n", ptr->manager->name))
 +			break;
-+		ptr = ptr->next;
 +	}
-+	if (!ptr)
++	if (!head->read_var2)
 +		head->read_eof = 1;
 +	return 0;
 +}
@@ -1143,12 +1134,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const char *exe;
 +	const struct path_info *domainname =
 +		TMY_SECURITY->domain->domainname;
++	bool found = 0;
 +
 +	/* Everyone can modify policy before /sbin/init starts. */
 +	if (!sbin_init_started)
 +		return 1;
 +
-+	for (ptr = policy_manager_list; ptr; ptr = ptr->next) {
++	list_for_each_entry(ptr, &policy_manager_list, list) {
 +		if (!ptr->is_deleted &&
 +		    ptr->is_domain &&
 +		    !tmy_pathcmp(domainname, ptr->manager))
@@ -1159,14 +1151,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!exe)
 +		return 0;
 +
-+	for (ptr = policy_manager_list; ptr; ptr = ptr->next) {
++	list_for_each_entry(ptr, &policy_manager_list, list) {
 +		if (!ptr->is_deleted &&
 +		    !ptr->is_domain &&
-+		    !strcmp(exe, ptr->manager->name))
++		    !strcmp(exe, ptr->manager->name)) {
++			found = 1;
 +			break;
++		}
 +	}
 +
-+	if (!ptr) { /* Reduce error messages. */
++	if (!found) { /* Reduce error messages. */
 +		static pid_t last_pid;
 +		const pid_t pid = current->pid;
 +		if (last_pid != pid) {
@@ -1178,7 +1172,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	tmy_free(exe);
-+	return ptr ? 1 : 0;
++	return found;
 +}
 +
 +/*************************  DOMAIN POLICY HANDLER  *************************/
@@ -1190,9 +1184,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	char *cp;
 +	const struct condition_list *cond = NULL;
 +	struct domain_info *domain = head->write_var1;
-+	u8 is_delete = 0;
-+	u8 is_select = 0;
-+	u8 is_undelete = 0;
++	bool is_delete = 0;
++	bool is_select = 0;
++	bool is_undelete = 0;
 +	unsigned int profile;
 +
 +	if (!tmy_is_root())
@@ -1360,8 +1354,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (tmy_acltype2paths(acl_type) == 2) {
 +		struct double_acl *ptr2 = (struct double_acl *) ptr;
-+		const u8 b1 = ptr2->u1_is_group;
-+		const u8 b2 = ptr2->u2_is_group;
++		const bool b1 = ptr2->u1_is_group;
++		const bool b2 = ptr2->u2_is_group;
 +
 +		if (tmy_io_printf(head,
 +				  "allow_%s %s%s %s%s",
@@ -1375,7 +1369,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			return -ENOMEM;
 +	} else {
 +		struct single_acl *ptr2 = (struct single_acl *) ptr;
-+		const u8 b = ptr2->u_is_group;
++		const bool b = ptr2->u_is_group;
 +
 +		if (tmy_io_printf(head,
 +				  "allow_%s %s%s",
@@ -1391,47 +1385,45 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Read domain policy. */
 +static int tmy_read_domain_policy(struct io_buffer *head)
 +{
-+	struct domain_info *domain = head->read_var1;
++	struct list_head *dpos;
++	struct list_head *apos;
 +
 +	if (head->read_eof)
 +		return 0;
-+	switch (head->read_step) {
-+	case 0: break; /* Resume from printing domainname. */
-+	case 1: goto step1; /* Resume from printing profile number. */
-+	case 2: goto step2; /* Resume from printing ACL entries. */
-+	case 3: goto step3; /* Resume from printing trailing '\n'. */
-+	default: return -EINVAL;
++
++	if (head->read_step == 0) {
++		if (!tmy_is_root())
++			return -EPERM;
++		head->read_step = 1;
 +	}
-+
-+	if (!tmy_is_root())
-+		return -EPERM;
-+
-+	for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
-+		struct acl_info *ptr;
++	list_for_each_cookie(dpos, head->read_var1, &domain_list) {
++		struct domain_info *domain;
++		domain = list_entry(dpos, struct domain_info, list);
++		if (head->read_step != 1)
++			goto acl_loop;
 +		if (domain->is_deleted)
 +			continue;
-+		head->read_var1 = domain;
-+		head->read_var2 = NULL;
-+		head->read_step = 1;
-+
-+step1: ;
 +		if (tmy_io_printf(head,
 +				  "%s\n" TMY_USE_PROFILE "%u\n%s\n",
 +				  domain->domainname->name,
 +				  domain->profile,
 +				  domain->quota_warned ?
 +				  "quota_exceeded\n" : ""))
-+			break;
-+		head->read_var2 = domain->first_acl_ptr;
++			return 0;
 +		head->read_step = 2;
-+
-+step2: ;
-+		for (ptr = head->read_var2; ptr; ptr = ptr->next) {
-+			const u8 acl_type = ptr->type;
-+			const int pos = head->read_avail;
-+			head->read_var2 = ptr;
++acl_loop: ;
++		if (head->read_step == 3)
++			goto tail_mark;
++		list_for_each_cookie(apos, head->read_var2,
++				     &domain->acl_info_list) {
++			struct acl_info *ptr;
++			int pos;
++			u8 acl_type;
++			ptr = list_entry(apos, struct acl_info, list);
 +			if (ptr->is_deleted)
 +				continue;
++			pos = head->read_avail;
++			acl_type = ptr->type;
 +			if (acl_type == TMY_TYPE_FILE_ACL) {
 +				if (print_file_rwx_acl(head, ptr))
 +					goto print_acl_rollback;
@@ -1450,50 +1442,37 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (tmy_dump_condition(head, ptr->cond)) {
 +print_acl_rollback: ;
 +				head->read_avail = pos;
-+				break;
++				return 0;
 +			}
 +		}
-+		if (ptr)
-+			break;
-+		head->read_var2 = NULL;
 +		head->read_step = 3;
-+
-+step3: ;
++tail_mark: ;
 +		if (tmy_io_printf(head, "\n"))
-+			break;
++			return 0;
++		head->read_step = 1;
 +	}
-+
-+	if (!domain)
-+		head->read_eof = 1;
++	head->read_eof = 1;
 +	return 0;
 +}
 +
 +/* Read domainname and its profile values. */
 +static int tmy_read_domain_profile(struct io_buffer *head)
 +{
-+	struct domain_info *domain;
-+
++	struct list_head *pos;
 +	if (head->read_eof)
 +		return 0;
-+
-+	if (head->read_step == 0) {
-+		head->read_var1 = &KERNEL_DOMAIN;
-+		head->read_step = 1;
-+	}
 +	if (!tmy_is_root())
 +		return -EPERM;
-+
-+	for (domain = head->read_var1; domain; domain = domain->next) {
++	list_for_each_cookie(pos, head->read_var1, &domain_list) {
++		struct domain_info *domain;
++		domain = list_entry(pos, struct domain_info, list);
 +		if (domain->is_deleted)
 +			continue;
-+		head->read_var1 = domain;
 +		if (tmy_io_printf(head, "%u %s\n",
 +				  domain->profile, domain->domainname->name))
-+			break;
++			return 0;
 +	}
-+	if (!domain)
-+		head->read_eof = 1;
-+
++	head->read_eof = 1;
 +	return 0;
 +}
 +
@@ -1564,7 +1543,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_add_system_policy(struct io_buffer *head)
 +{
 +	char *data = head->write_buf;
-+	u8 is_delete = 0;
++	bool is_delete = 0;
 +
 +	if (!tmy_is_root())
 +		return -EPERM;
@@ -1588,20 +1567,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	if (head->read_eof)
 +		return 0;
-+
 +	switch (head->read_step) {
 +	case 0:
 +		if (!tmy_is_root())
 +			return -EPERM;
-+		head->read_var2 = NULL; head->read_step = 1;
++		head->read_step = 1;
 +	case 1:
 +		if (tmy_read_mount_policy(head))
 +			break;
-+		head->read_var2 = NULL; head->read_step = 2;
++		head->read_step = 2;
 +	case 2:
 +		if (tmy_read_no_umount_policy(head))
 +			break;
-+		head->read_var2 = NULL; head->read_step = 3;
++		head->read_step = 3;
 +	case 3:
 +		if (tmy_read_pivot_root_policy(head))
 +			break;
@@ -1610,7 +1588,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	default:
 +		return -EINVAL;
 +	}
-+
 +	return 0;
 +}
 +
@@ -1619,7 +1596,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_add_exception_policy(struct io_buffer *head)
 +{
 +	char *data = head->write_buf;
-+	u8 is_delete = 0;
++	bool is_delete = 0;
 +
 +	if (!tmy_is_root())
 +		return -EPERM;
@@ -1649,7 +1626,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (tmy_strstarts(&data, TMY_DENY_REWRITE))
 +		return tmy_add_no_rewrite_policy(data, is_delete);
 +	if (tmy_strstarts(&data, TMY_ADDRESS_GROUP))
-+		return tmy_add_addr_group_policy(data, is_delete);
++		return tmy_add_address_group_policy(data, is_delete);
 +
 +	return -EINVAL;
 +}
@@ -1659,63 +1636,51 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	if (head->read_eof)
 +		return 0;
-+
 +	switch (head->read_step) {
 +	case 0:
 +		if (!tmy_is_root())
 +			return -EPERM;
-+		head->read_var2 = NULL;
 +		head->read_step = 1;
 +	case 1:
 +		if (tmy_read_domain_keeper_policy(head))
 +			break;
-+		head->read_var2 = NULL;
 +		head->read_step = 2;
 +	case 2:
 +		if (tmy_read_globally_readable_policy(head))
 +			break;
-+		head->read_var2 = NULL;
 +		head->read_step = 3;
 +	case 3:
 +		if (tmy_read_domain_initializer_policy(head))
 +			break;
-+		head->read_var2 = NULL;
 +		head->read_step = 4;
 +	case 4:
 +		if (tmy_read_alias_policy(head))
 +			break;
-+		head->read_var2 = NULL;
 +		head->read_step = 5;
 +	case 5:
 +		if (tmy_read_aggregator_policy(head))
 +			break;
-+		head->read_var2 = NULL;
 +		head->read_step = 6;
 +	case 6:
 +		if (tmy_read_pattern_policy(head))
 +			break;
-+		head->read_var2 = NULL;
 +		head->read_step = 7;
 +	case 7:
 +		if (tmy_read_no_rewrite_policy(head))
 +			break;
-+		head->read_var2 = NULL;
 +		head->read_step = 8;
 +	case 8:
-+		if (tmy_read_group_policy(head))
++		if (tmy_read_path_group_policy(head))
 +			break;
-+		head->read_var1 = NULL;
-+		head->read_var2 = NULL;
 +		head->read_step = 9;
 +	case 9:
-+		if (tmy_read_addr_group_policy(head))
++		if (tmy_read_address_group_policy(head))
 +			break;
 +		head->read_eof = 1;
 +		break;
 +	default:
 +		return -EINVAL;
 +	}
-+
 +	return 0;
 +}
 +
@@ -1763,7 +1728,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
 +
-+	printk(KERN_INFO "TOMOYO: %s   2007/08/21\n", TOMOYO_VERSION_CODE);
++	printk(KERN_INFO "TOMOYO: %s   2007/10/27\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
 +		panic("TOMOYO: No profiles loaded.\n");
@@ -1773,7 +1738,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	{ /* Check all profiles currently assigned to domains are defined. */
 +		struct domain_info *domain;
-+		for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
++		list_for_each_entry(domain, &domain_list, list) {
 +			const u8 profile = domain->profile;
 +			if (profile_ptr[profile])
 +				continue;
@@ -2149,8 +2114,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (!head)
 +		return -ENOMEM;
-+	init_MUTEX(&head->read_sem);
-+	init_MUTEX(&head->write_sem);
++	mutex_init(&head->read_mutex);
++	mutex_init(&head->write_mutex);
 +
 +	switch (type) {
 +	case TMY_POLICY_DOMAINPOLICY:
@@ -2270,12 +2235,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -ENOSYS;
 +	if (!access_ok(VERIFY_WRITE, buffer, buffer_len))
 +		return -EFAULT;
-+	if (down_interruptible(&head->read_sem))
++	if (mutex_lock_interruptible(&head->read_mutex))
 +		return -EINTR;
 +	len = head->read(head);
 +	if (len >= 0)
 +		len = tmy_copy_to_user(head, buffer, buffer_len);
-+	up(&head->read_sem);
++	mutex_unlock(&head->read_mutex);
 +
 +	return len;
 +}
@@ -2299,7 +2264,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		/* Forbid updating policies for non manager programs. */
 +		return -EPERM;
 +
-+	if (down_interruptible(&head->write_sem))
++	if (mutex_lock_interruptible(&head->write_mutex))
 +		return -EINTR;
 +	while (avail_len > 0) {
 +		char c;
@@ -2320,7 +2285,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		tmy_normalize_line(cp0);
 +		head->write(head);
 +	}
-+	up(&head->write_sem);
++	mutex_unlock(&head->write_mutex);
 +
 +	return error;
 +}
@@ -2402,8 +2367,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct dentry *tmy_dir;
 +
 +	tmy_dir = securityfs_create_dir("tomoyo", NULL);
-+	tmy_realpath_init();
-+	tmy_find_domain(""); /* Set domainname of KERNEL domain. */
 +	tmy_create_entry("query",            0600, tmy_dir,
 +			 TMY_POLICY_QUERY);
 +	tmy_create_entry("domain_policy",    0600, tmy_dir,
