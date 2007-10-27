@@ -1,6 +1,6 @@
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-exec.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-exec.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-exec.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-exec.diff	(working copy)
 @@ -8,12 +8,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -148,56 +148,9 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-exec.diff
  +{
  +	char *argv0 = strchr(data, ' ');
  +
-Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-condition.diff
-===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-condition.diff	(revision 614)
-+++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-condition.diff	(working copy)
-@@ -6,10 +6,10 @@
- Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- ---
-  security/tomoyo/condition.c |  680 ++++++++++++++++++++++++++++++++++++++++++++
-- 1 files changed, 680 insertions(+)
-+ 1 file changed, 680 insertions(+)
- 
- --- /dev/null	1970-01-01 00:00:00.000000000 +0000
--+++ linux-2.6/security/tomoyo/condition.c	2007-10-02 11:26:22.000000000 +0900
-++++ linux-2.6/security/tomoyo/condition.c	2007-10-27 00:01:51.000000000 +0900
- @@ -0,0 +1,680 @@
- +/*
- + * security/tomoyo/condition.c
-@@ -273,9 +273,9 @@
- +			*ptr2++ = right_max;
- +	}
- +	{
--+		static DECLARE_MUTEX(lock);
-++		static DEFINE_MUTEX(mutex);
- +		struct condition_list *prev = NULL;
--+		down(&lock);
-++		mutex_lock(&mutex);
- +		for (ptr = &head; ptr; prev = ptr, ptr = ptr->next) {
- +			/* Don't compare if size differs. */
- +			if (ptr->length != new_ptr->length)
-@@ -302,7 +302,7 @@
- +		/* Append to chain. */
- +		prev->next = new_ptr;
- +ok: ;
--+		up(&lock);
-++		mutex_unlock(&mutex);
- +	}
- +	return new_ptr;
- +out2: ;
-@@ -386,7 +386,7 @@
- +		return 0;
- +	ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(*ptr));
- +	for (i = 0; i < ptr->length; i++) {
--+		const u8 match = ((*ptr2) >> 16) & 1;
-++		const bool match = ((*ptr2) >> 16) & 1;
- +		const u8 left = (*ptr2) >> 8;
- +		const u8 right = *ptr2;
- +		ptr2++;
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff	(working copy)
 @@ -13,12 +13,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -205,14 +158,14 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  ---
 - security/tomoyo/net.c |  975 ++++++++++++++++++++++++++++++++++++++++++++++++++
 - 1 files changed, 975 insertions(+)
-+ security/tomoyo/net.c |  928 ++++++++++++++++++++++++++++++++++++++++++++++++++
-+ 1 file changed, 928 insertions(+)
++ security/tomoyo/net.c |  933 ++++++++++++++++++++++++++++++++++++++++++++++++++
++ 1 file changed, 933 insertions(+)
  
  --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 -+++ linux-2.6/security/tomoyo/net.c	2007-10-02 11:26:22.000000000 +0900
 -@@ -0,0 +1,975 @@
-++++ linux-2.6/security/tomoyo/net.c	2007-10-27 00:01:51.000000000 +0900
-+@@ -0,0 +1,928 @@
+++++ linux-2.6/security/tomoyo/net.c	2007-10-27 17:21:17.000000000 +0900
++@@ -0,0 +1,933 @@
  +/*
  + * security/tomoyo/net.c
  + *
@@ -232,15 +185,16 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +{
  +	char *buf;
  +	int len = 256;
-@@ -73,15 +73,15 @@
+@@ -73,19 +73,19 @@
  +/*************************  ADDRESS GROUP HANDLER  *************************/
  +
  +/* List of address group. */
 -+static struct addr_group_entry *group_list;
 ++static LIST_HEAD(address_group_list);
  +
- +static int tmy_add_addr_group_entry(const char *group_name,
+-+static int tmy_add_addr_group_entry(const char *group_name,
 -+				    const u8 is_ipv6,
+++static int tmy_add_address_group_entry(const char *group_name,
 ++				    const bool is_ipv6,
  +				    const u16 *min_address,
  +				    const u16 *max_address,
@@ -248,11 +202,19 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
 ++				    const bool is_delete)
  +{
 -+	static DECLARE_MUTEX(lock);
+-+	struct addr_group_entry *new_group;
+-+	struct addr_group_entry *group;
+-+	struct addr_group_member *new_member;
+-+	struct addr_group_member *member;
 ++	static DEFINE_MUTEX(mutex);
- +	struct addr_group_entry *new_group;
- +	struct addr_group_entry *group;
- +	struct addr_group_member *new_member;
-@@ -97,20 +97,14 @@
+++	struct address_group_entry *new_group;
+++	struct address_group_entry *group;
+++	struct address_group_member *new_member;
+++	struct address_group_member *member;
+ +	const struct path_info *saved_group_name;
+ +	int error = -ENOMEM;
+ +
+@@ -97,20 +97,15 @@
  +	if (!saved_group_name)
  +		return -ENOMEM;
  +
@@ -269,14 +231,15 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
 -+		     member;
 -+		     member = member->next) {
 -+
-++		list_for_each_entry(member, &group->address_group_member_list, list) {
+++		list_for_each_entry(member, &group->address_group_member_list,
+++				    list) {
  +			if (member->is_ipv6 != is_ipv6)
  +				continue;
 -+
  +			if (is_ipv6) {
  +				if (memcmp(member->min.ipv6, min_address, 16) ||
  +				    memcmp(member->max.ipv6, max_address, 16))
-@@ -120,7 +114,6 @@
+@@ -120,7 +115,6 @@
  +				    member->max.ipv4 != *(u32 *) max_address)
  +					continue;
  +			}
@@ -284,7 +247,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +			member->is_deleted = is_delete;
  +			error = 0;
  +			goto out;
-@@ -138,14 +131,7 @@
+@@ -138,14 +132,7 @@
  +		if (!new_group)
  +			goto out;
  +		new_group->group_name = saved_group_name;
@@ -300,7 +263,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +		group = new_group;
  +	}
  +
-@@ -163,19 +149,10 @@
+@@ -163,35 +150,26 @@
  +		new_member->max.ipv4 = *(u32 *) max_address;
  +	}
  +
@@ -322,12 +285,18 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +
  +	return error;
  +}
-@@ -188,10 +165,10 @@
+ +
+ +/**
+-+ * tmy_add_addr_group_policy - add or delete address group policy.
+++ * tmy_add_address_group_policy - add or delete address group policy.
+ + * @data: a line to parse.
+ + * @is_delete: is this delete request?
+ + *
  + * Returns zero on success.
  + * Returns nonzero on failure.
  + */
 -+int tmy_add_addr_group_policy(char *data, const u8 is_delete)
-++int tmy_add_addr_group_policy(char *data, const bool is_delete)
+++int tmy_add_address_group_policy(char *data, const bool is_delete)
  +{
  +	int count;
 -+	u8 is_ipv6;
@@ -335,8 +304,22 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +	u16 min_address[8];
  +	u16 max_address[8];
  +	unsigned int min[8];
-@@ -266,11 +243,9 @@
- +	struct addr_group_entry *group;
+@@ -256,21 +234,19 @@
+ +	return -EINVAL;
+ +
+ +ok: ;
+-+	return tmy_add_addr_group_entry(data, is_ipv6, min_address, max_address,
+-+					is_delete);
+++	return tmy_add_address_group_entry(data, is_ipv6, min_address,
+++					   max_address, is_delete);
+ +}
+ +
+-+static struct addr_group_entry *tmy_new_addr_group(const char *name)
+++static struct address_group_entry *tmy_new_address_group(const char *name)
+ +{
+ +	int i;
+-+	struct addr_group_entry *group;
+++	struct address_group_entry *group;
  +
  +	for (i = 0; i <= 1; i++) {
 -+		for (group = group_list; group; group = group->next) {
@@ -348,16 +331,28 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +		}
  +
  +		if (i == 0) {
-@@ -287,15 +262,14 @@
+@@ -279,23 +255,22 @@
+ +			 * and delete that entry.
+ +			 */
+ +			const u16 dum[2] = { 0, 0 };
+-+			tmy_add_addr_group_entry(name, 0, dum, dum, 0);
+-+			tmy_add_addr_group_entry(name, 0, dum, dum, 1);
+++			tmy_add_address_group_entry(name, 0, dum, dum, 0);
+++			tmy_add_address_group_entry(name, 0, dum, dum, 1);
+ +		}
+ +	}
+ +
  +	return NULL;
  +}
  +
 -+static int tmy_address_match_group(const u8 is_ipv6,
 ++static int tmy_address_match_group(const bool is_ipv6,
  +				   const u32 *address,
- +				   const struct addr_group_entry *group)
+-+				   const struct addr_group_entry *group)
+++				   const struct address_group_entry *group)
  +{
- +	struct addr_group_member *member;
+-+	struct addr_group_member *member;
+++	struct address_group_member *member;
  +	const u32 ip = ntohl(*address);
  +
 -+	for (member = group->first_member; member; member = member->next) {
@@ -366,9 +361,32 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +		if (member->is_deleted)
  +			continue;
  +
-@@ -373,35 +347,21 @@
+@@ -319,9 +294,9 @@
+ +	return 0;
+ +}
+ +
+-+static int tmy_read_addr_group(struct io_buffer *head,
+-+			       struct addr_group_entry *group,
+-+			       struct addr_group_member *member)
+++static int tmy_read_address_group(struct io_buffer *head,
+++			       struct address_group_entry *group,
+++			       struct address_group_member *member)
+ +{
+ +	char buf[128];
+ +	if (!member)
+@@ -365,43 +340,31 @@
+ +}
+ +
+ +/**
+-+ * tmy_read_addr_group_policy - read address group policy
+++ * tmy_read_address_group_policy - read address group policy
+ + * @head: pointer to "struct io_buffer".
+ + *
+ + * Returns nonzero if reading incomplete.
+ + * Returns zero otherwise.
  + */
- +int tmy_read_addr_group_policy(struct io_buffer *head)
+-+int tmy_read_addr_group_policy(struct io_buffer *head)
+++int tmy_read_address_group_policy(struct io_buffer *head)
  +{
 -+	struct addr_group_entry *group = head->read_var1;
 -+	struct addr_group_member *member = head->read_var2;
@@ -388,19 +406,22 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
 ++	struct list_head *gpos;
 ++	struct list_head *mpos;
 ++	list_for_each_cookie(gpos, head->read_var1, &address_group_list) {
-++		struct addr_group_entry *group;
-++		group = list_entry(gpos, struct addr_group_entry, list);
-++		list_for_each_cookie(mpos, head->read_var2, &group->address_group_member_list) {
-++			struct addr_group_member *member;
-++			member = list_entry(mpos, struct addr_group_member, list);
+++		struct address_group_entry *group;
+++		group = list_entry(gpos, struct address_group_entry, list);
+++		list_for_each_cookie(mpos, head->read_var2,
+++				     &group->address_group_member_list) {
+++			struct address_group_member *member;
+++			member = list_entry(mpos, struct address_group_member,
+++					    list);
 ++			if (member->is_deleted)
  +				continue;
 -+			}
 -+
- +			if (tmy_read_addr_group(head, group, member))
+-+			if (tmy_read_addr_group(head, group, member))
 -+				break;
 -+
 -+			member = member->next;
+++			if (tmy_read_address_group(head, group, member))
 ++				return -ENOMEM;
  +		}
 -+		if (member)
@@ -413,7 +434,24 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +}
  +
  +/***********************  NETWORK NETWORK ACL HANDLER  ***********************/
-@@ -505,9 +465,10 @@
+@@ -464,7 +427,7 @@
+ +/* Compare IPv4/IPv6 address. */
+ +static int tmy_cmp_network_entry(const u8 record_type,
+ +				 struct net_acl *acl,
+-+				 const struct addr_group_entry *group,
+++				 const struct address_group_entry *group,
+ +				 const u32 min_ip,
+ +				 const u32 max_ip,
+ +				 const u32 *min_address,
+@@ -498,16 +461,17 @@
+ +
+ +static int tmy_add_network_entry(const u8 operation,
+ +				 const u8 record_type,
+-+				 const struct addr_group_entry *group,
+++				 const struct address_group_entry *group,
+ +				 const u32 *min_address,
+ +				 const u32 *max_address,
+ +				 const u16 min_port,
  +				 const u16 max_port,
  +				 struct domain_info *domain,
  +				 const struct condition_list *cond,
@@ -425,7 +463,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +	int error = -ENOMEM;
  +	/* using host byte order to allow u32 comparison than memcmp().*/
  +	const u32 min_ip = ntohl(*min_address);
-@@ -516,18 +477,13 @@
+@@ -516,18 +480,13 @@
  +	if (!domain)
  +		return -EINVAL;
  +
@@ -447,7 +485,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +		if (ptr->type == TMY_TYPE_IP_NETWORK_ACL &&
  +		    ptr->cond == cond &&
  +		    acl->operation_type == operation &&
-@@ -540,45 +496,38 @@
+@@ -540,45 +499,38 @@
  +					  max_address)) {
  +			ptr->is_deleted = 0;
  +			error = 0;
@@ -518,7 +556,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
  +		    ptr->cond != cond ||
  +		    ptr->is_deleted ||
-@@ -591,18 +540,17 @@
+@@ -591,18 +543,17 @@
  +					   min_address,
  +					   max_address))
  +			continue;
@@ -539,7 +577,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +			     const int operation,
  +			     const u32 *address,
  +			     const u16 port)
-@@ -610,16 +558,16 @@
+@@ -610,16 +561,16 @@
  +	struct domain_info * const domain = TMY_SECURITY->domain;
  +	struct acl_info *ptr;
  +	const char *keyword = tmy_network2keyword(operation);
@@ -559,7 +597,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
  +		    ptr->is_deleted ||
  +		    acl->operation_type != operation ||
-@@ -628,25 +576,30 @@
+@@ -628,25 +579,32 @@
  +		    tmy_check_condition(ptr->cond, NULL))
  +			continue;
  +
@@ -577,12 +615,14 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
 -+			break;
 -+
 ++		if (acl->record_type == TMY_TYPE_ADDRESS_GROUP) {
-++			if (tmy_address_match_group(is_ipv6, address, acl->u.group)) {
+++			if (tmy_address_match_group(is_ipv6, address,
+++			    acl->u.group)) {
 ++				found = 1;
 ++				break;
 ++			}
 ++		} else if (acl->record_type == TMY_TYPE_IPv4) {
-++			if (!is_ipv6 && (acl->u.ipv4.min <= ip && ip <= acl->u.ipv4.max)) {
+++			if (!is_ipv6 &&
+++			    (acl->u.ipv4.min <= ip && ip <= acl->u.ipv4.max)) {
 ++				found = 1;
 ++				break;
 ++			}
@@ -605,7 +645,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +		return 0;
  +
  +	if (is_enforce) {
-@@ -692,7 +645,7 @@
+@@ -692,7 +650,7 @@
  +int tmy_add_network_policy(char *data,
  +			   struct domain_info *domain,
  +			   const struct condition_list *cond,
@@ -614,7 +654,25 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +{
  +	u8 sock_type;
  +	u8 operation;
-@@ -858,7 +811,7 @@
+@@ -701,7 +659,7 @@
+ +	u16 max_address[8];
+ +	unsigned int min[8];
+ +	unsigned int max[8];
+-+	struct addr_group_entry *group = NULL;
+++	struct address_group_entry *group = NULL;
+ +	u16 min_port;
+ +	u16 max_port;
+ +	int count;
+@@ -818,7 +776,7 @@
+ +
+ +	if (*cp2 == '@') {
+ +
+-+		group = tmy_new_addr_group(cp2 + 1);
+++		group = tmy_new_address_group(cp2 + 1);
+ +		if (!group)
+ +			return -ENOMEM;
+ +		record_type = TMY_TYPE_ADDRESS_GROUP;
+@@ -858,7 +816,7 @@
  + * Returns zero if permission granted.
  + * Returns nonzero if permission denied.
  + */
@@ -623,7 +681,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +			   const u8 *address,
  +			   const u16 port)
  +{
-@@ -878,7 +831,7 @@
+@@ -878,7 +836,7 @@
  + * Returns zero if permission granted.
  + * Returns nonzero if permission denied.
  + */
@@ -632,7 +690,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +			    const int sock_type,
  +			    const u8 *address,
  +			    const u16 port)
-@@ -911,7 +864,7 @@
+@@ -911,7 +869,7 @@
  + * Returns zero if permission granted.
  + * Returns nonzero if permission denied.
  + */
@@ -641,7 +699,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +			 const int sock_type,
  +			 const u8 *address,
  +			 const u16 port)
-@@ -944,7 +897,7 @@
+@@ -944,7 +902,7 @@
  + * Returns zero if permission granted.
  + * Returns nonzero if permission denied.
  + */
@@ -650,7 +708,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +			    const int sock_type,
  +			    const u8 *address,
  +			    const u16 port)
-@@ -969,7 +922,7 @@
+@@ -969,7 +927,7 @@
  + * Returns zero if permission granted.
  + * Returns nonzero if permission denied.
  + */
@@ -659,7 +717,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +			   const u16 port)
  +{
  +	return tmy_network_entry(is_ipv6, TMY_NETWORK_ACL_TCP_ACCEPT,
-@@ -986,7 +939,7 @@
+@@ -986,7 +944,7 @@
  + * Returns zero if permission granted.
  + * Returns nonzero if permission denied.
  + */
@@ -668,9 +726,56 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-net.diff
  +			    const u8 *address, const u16 port)
  +{
  +	return tmy_network_entry(is_ipv6, sock_type == SOCK_DGRAM ?
+Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-condition.diff
+===================================================================
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-condition.diff	(revision 620)
++++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-condition.diff	(working copy)
+@@ -6,10 +6,10 @@
+ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+ ---
+  security/tomoyo/condition.c |  680 ++++++++++++++++++++++++++++++++++++++++++++
+- 1 files changed, 680 insertions(+)
++ 1 file changed, 680 insertions(+)
+ 
+ --- /dev/null	1970-01-01 00:00:00.000000000 +0000
+-+++ linux-2.6/security/tomoyo/condition.c	2007-10-02 11:26:22.000000000 +0900
+++++ linux-2.6/security/tomoyo/condition.c	2007-10-27 00:01:51.000000000 +0900
+ @@ -0,0 +1,680 @@
+ +/*
+ + * security/tomoyo/condition.c
+@@ -273,9 +273,9 @@
+ +			*ptr2++ = right_max;
+ +	}
+ +	{
+-+		static DECLARE_MUTEX(lock);
+++		static DEFINE_MUTEX(mutex);
+ +		struct condition_list *prev = NULL;
+-+		down(&lock);
+++		mutex_lock(&mutex);
+ +		for (ptr = &head; ptr; prev = ptr, ptr = ptr->next) {
+ +			/* Don't compare if size differs. */
+ +			if (ptr->length != new_ptr->length)
+@@ -302,7 +302,7 @@
+ +		/* Append to chain. */
+ +		prev->next = new_ptr;
+ +ok: ;
+-+		up(&lock);
+++		mutex_unlock(&mutex);
+ +	}
+ +	return new_ptr;
+ +out2: ;
+@@ -386,7 +386,7 @@
+ +		return 0;
+ +	ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(*ptr));
+ +	for (i = 0; i < ptr->length; i++) {
+-+		const u8 match = ((*ptr2) >> 16) & 1;
+++		const bool match = ((*ptr2) >> 16) & 1;
+ +		const u8 left = (*ptr2) >> 8;
+ +		const u8 right = *ptr2;
+ +		ptr2++;
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff	(working copy)
 @@ -20,12 +20,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -678,17 +783,122 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  ---
 - security/tomoyo/common.c | 2406 +++++++++++++++++++++++++++++++++++++++++++++++
 - 1 files changed, 2406 insertions(+)
-+ security/tomoyo/common.c | 2383 +++++++++++++++++++++++++++++++++++++++++++++++
-+ 1 file changed, 2383 insertions(+)
++ security/tomoyo/common.c | 2384 +++++++++++++++++++++++++++++++++++++++++++++++
++ 1 file changed, 2384 insertions(+)
  
  --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 -+++ linux-2.6/security/tomoyo/common.c	2007-10-02 11:26:21.000000000 +0900
 -@@ -0,0 +1,2406 @@
-++++ linux-2.6/security/tomoyo/common.c	2007-10-27 00:01:51.000000000 +0900
-+@@ -0,0 +1,2383 @@
+++++ linux-2.6/security/tomoyo/common.c	2007-10-27 17:20:23.000000000 +0900
++@@ -0,0 +1,2384 @@
  +/*
  + * security/tomoyo/common.c
  + *
+@@ -55,7 +55,7 @@
+ +/*************************  VARIABLES  *************************/
+ +
+ +/* /sbin/init started? */
+-+int sbin_init_started;
+++bool sbin_init_started;
+ +
+ +static struct {
+ +	const char *keyword;
+@@ -197,12 +197,12 @@
+ + *                0 if it does not matter
+ + * @function:     string to display if the @filename is invalid
+ + *
+-+ * Returns nonzero if the pathname is valid.
+-+ * Returns zero otherwise.
+++ * Returns true if the pathname is valid.
+++ * Returns false otherwise.
+ + *
+ + * Check whether the given pathname follows the naming rules.
+ + */
+-+int tmy_correct_path(const char *filename,
+++bool tmy_correct_path(const char *filename,
+ +		     const int start_type,
+ +		     const int pattern_type,
+ +		     const int end_type,
+@@ -294,12 +294,12 @@
+ + * @domainname: the domainname to check.
+ + * @function:   string to display if the @domainname is invalid.
+ + *
+-+ * Returns nonzero if the domainname is valid.
+-+ * Returns zero otherwise.
+++ * Returns true if the domainname is valid.
+++ * Returns false otherwise.
+ + *
+ + * Check whether the given domainname follows the naming rules.
+ + */
+-+int tmy_is_correct_domain(const unsigned char *domainname,
+++bool tmy_is_correct_domain(const unsigned char *domainname,
+ +			  const char *function)
+ +{
+ +	unsigned char c;
+@@ -452,14 +452,14 @@
+ + * @pattern_end:  end address of the pattern.
+ + *
+ + * Handle all patterns other than '\-' pattern.
+-+ * Returns nonzero if matches.
+-+ * Returns zero otherwise.
+++ * Returns true if matches.
+++ * Returns false otherwise.
+ + *
+ + * @filename and @pattern do not contain '/'.
+ + * @filename and @pattern are not '\0'-terminated.
+ + * @pattern does not contain '\-'.
+ + */
+-+static int tmy_file_match2(const char *filename,
+++static bool tmy_file_match2(const char *filename,
+ +			   const char *filename_end,
+ +			   const char *pattern,
+ +			   const char *pattern_end)
+@@ -625,20 +625,20 @@
+ + * @pattern_end:  end address of the pattern.
+ + *
+ + * Handle patterns containing '\-' pattern.
+-+ * Returns nonzero if matches.
+-+ * Returns zero otherwise.
+++ * Returns true if matches.
+++ * Returns false otherwise.
+ + *
+ + * @filename and @pattern do not contain '/'.
+ + * @filename and @pattern are not '\0'-terminated.
+ + */
+-+static int tmy_file_match(const char *filename,
+++static bool tmy_file_match(const char *filename,
+ +			  const char *filename_end,
+ +			  const char *pattern,
+ +			  const char *pattern_end)
+ +{
+ +	const char *pattern_start = pattern;
+-+	int first = 1;
+-+	int result;
+++	bool first = 1;
+++	bool result;
+ +
+ +	while (pattern < pattern_end - 1) {
+ +		/* Split at "\-" pattern. */
+@@ -672,8 +672,8 @@
+ + * @pathname0: pointer to a token to compare.
+ + * @pattern0:  pointer to a pattern to compare.
+ + *
+-+ * Returns nonzero if @pathname0 matches to @pattern0 .
+-+ * Returns zero otherwise.
+++ * Returns true if @pathname0 matches to @pattern0 .
+++ * Returns false otherwise.
+ + *
+ + *
+ + *  Check whether the given token matches to the given pattern.
+@@ -692,7 +692,7 @@
+ + *    \a     1 alphabet character.
+ + *    \-     Subtraction operator.
+ + */
+-+int tmy_path_match(const struct path_info *pathname0,
+++bool tmy_path_match(const struct path_info *pathname0,
+ +		   const struct path_info *pattern0)
+ +{
+ +	const char *pathname = pathname0->name;
 @@ -852,7 +852,7 @@
  + * Returns nonzero if given access control is enforce mode.
  + * Returns zero otherwise.
@@ -916,7 +1126,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +
  +		if (tmy_io_printf(head,
  +				  "allow_%s %s%s",
-@@ -1391,47 +1385,45 @@
+@@ -1391,47 +1385,46 @@
  +/* Read domain policy. */
  +static int tmy_read_domain_policy(struct io_buffer *head)
  +{
@@ -972,10 +1182,11 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
 -+			const u8 acl_type = ptr->type;
 -+			const int pos = head->read_avail;
 -+			head->read_var2 = ptr;
-++	acl_loop: ;
+++acl_loop: ;
 ++		if (head->read_step == 3)
 ++			goto tail_mark;
-++		list_for_each_cookie(apos, head->read_var2, &domain->acl_info_list) {
+++		list_for_each_cookie(apos, head->read_var2,
+++				     &domain->acl_info_list) {
 ++			struct acl_info *ptr;
 ++			int pos;
 ++			u8 acl_type;
@@ -987,7 +1198,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +			if (acl_type == TMY_TYPE_FILE_ACL) {
  +				if (print_file_rwx_acl(head, ptr))
  +					goto print_acl_rollback;
-@@ -1450,50 +1442,37 @@
+@@ -1450,50 +1443,37 @@
  +			if (tmy_dump_condition(head, ptr->cond)) {
  +print_acl_rollback: ;
  +				head->read_avail = pos;
@@ -1001,7 +1212,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +		head->read_step = 3;
 -+
 -+step3: ;
-++	tail_mark: ;
+++tail_mark: ;
  +		if (tmy_io_printf(head, "\n"))
 -+			break;
 ++			return 0;
@@ -1049,7 +1260,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +	return 0;
  +}
  +
-@@ -1564,7 +1543,7 @@
+@@ -1564,7 +1544,7 @@
  +static int tmy_add_system_policy(struct io_buffer *head)
  +{
  +	char *data = head->write_buf;
@@ -1058,7 +1269,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +
  +	if (!tmy_is_root())
  +		return -EPERM;
-@@ -1619,7 +1598,7 @@
+@@ -1619,7 +1599,7 @@
  +static int tmy_add_exception_policy(struct io_buffer *head)
  +{
  +	char *data = head->write_buf;
@@ -1067,7 +1278,25 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +
  +	if (!tmy_is_root())
  +		return -EPERM;
-@@ -1763,7 +1742,7 @@
+@@ -1649,7 +1629,7 @@
+ +	if (tmy_strstarts(&data, TMY_DENY_REWRITE))
+ +		return tmy_add_no_rewrite_policy(data, is_delete);
+ +	if (tmy_strstarts(&data, TMY_ADDRESS_GROUP))
+-+		return tmy_add_addr_group_policy(data, is_delete);
+++		return tmy_add_address_group_policy(data, is_delete);
+ +
+ +	return -EINVAL;
+ +}
+@@ -1708,7 +1688,7 @@
+ +		head->read_var2 = NULL;
+ +		head->read_step = 9;
+ +	case 9:
+-+		if (tmy_read_addr_group_policy(head))
+++		if (tmy_read_address_group_policy(head))
+ +			break;
+ +		head->read_eof = 1;
+ +		break;
+@@ -1763,7 +1743,7 @@
  +		call_usermodehelper(argv[0], argv, envp, 1);
  +	}
  +
@@ -1076,7 +1305,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +
  +	if (!profile_loaded)
  +		panic("TOMOYO: No profiles loaded.\n");
-@@ -1773,7 +1752,7 @@
+@@ -1773,7 +1753,7 @@
  +
  +	{ /* Check all profiles currently assigned to domains are defined. */
  +		struct domain_info *domain;
@@ -1085,51 +1314,51 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +			const u8 profile = domain->profile;
  +			if (profile_ptr[profile])
  +				continue;
-@@ -2149,8 +2128,8 @@
+@@ -2149,8 +2129,8 @@
  +
  +	if (!head)
  +		return -ENOMEM;
 -+	init_MUTEX(&head->read_sem);
 -+	init_MUTEX(&head->write_sem);
-++	mutex_init(&head->read_sem);
-++	mutex_init(&head->write_sem);
+++	mutex_init(&head->read_mutex);
+++	mutex_init(&head->write_mutex);
  +
  +	switch (type) {
  +	case TMY_POLICY_DOMAINPOLICY:
-@@ -2270,12 +2249,12 @@
+@@ -2270,12 +2250,12 @@
  +		return -ENOSYS;
  +	if (!access_ok(VERIFY_WRITE, buffer, buffer_len))
  +		return -EFAULT;
 -+	if (down_interruptible(&head->read_sem))
-++	if (mutex_lock_interruptible(&head->read_sem))
+++	if (mutex_lock_interruptible(&head->read_mutex))
  +		return -EINTR;
  +	len = head->read(head);
  +	if (len >= 0)
  +		len = tmy_copy_to_user(head, buffer, buffer_len);
 -+	up(&head->read_sem);
-++	mutex_unlock(&head->read_sem);
+++	mutex_unlock(&head->read_mutex);
  +
  +	return len;
  +}
-@@ -2299,7 +2278,7 @@
+@@ -2299,7 +2279,7 @@
  +		/* Forbid updating policies for non manager programs. */
  +		return -EPERM;
  +
 -+	if (down_interruptible(&head->write_sem))
-++	if (mutex_lock_interruptible(&head->write_sem))
+++	if (mutex_lock_interruptible(&head->write_mutex))
  +		return -EINTR;
  +	while (avail_len > 0) {
  +		char c;
-@@ -2320,7 +2299,7 @@
+@@ -2320,7 +2300,7 @@
  +		tmy_normalize_line(cp0);
  +		head->write(head);
  +	}
 -+	up(&head->write_sem);
-++	mutex_unlock(&head->write_sem);
+++	mutex_unlock(&head->write_mutex);
  +
  +	return error;
  +}
-@@ -2402,8 +2381,6 @@
+@@ -2402,8 +2382,6 @@
  +	struct dentry *tmy_dir;
  +
  +	tmy_dir = securityfs_create_dir("tomoyo", NULL);
@@ -1140,7 +1369,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-common.diff
  +	tmy_create_entry("domain_policy",    0600, tmy_dir,
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-realpath.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-realpath.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-realpath.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-realpath.diff	(working copy)
 @@ -5,12 +5,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -1297,7 +1526,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-realpath.diff
  +	return ret;
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-mount.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-mount.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-mount.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-mount.diff	(working copy)
 @@ -9,12 +9,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -1776,7 +2005,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-mount.diff
  +}
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-audit.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-audit.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-audit.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-audit.diff	(working copy)
 @@ -13,7 +13,7 @@
   2 files changed, 71 insertions(+)
@@ -1811,7 +2040,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-audit.diff
   
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff	(working copy)
 @@ -8,12 +8,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -1825,7 +2054,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff
  --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 -+++ linux-2.6/security/tomoyo/domain.c	2007-10-02 11:26:21.000000000 +0900
 -@@ -0,0 +1,1256 @@
-++++ linux-2.6/security/tomoyo/domain.c	2007-10-27 00:04:04.000000000 +0900
+++++ linux-2.6/security/tomoyo/domain.c	2007-10-27 17:14:40.000000000 +0900
 +@@ -0,0 +1,1170 @@
  +/*
  + * security/tomoyo/domain.c
@@ -1898,7 +2127,22 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff
  +};
  +
  +/*************************  UTILITY FUNCTIONS  *************************/
-@@ -91,26 +94,15 @@
+@@ -79,38 +82,27 @@
+ + * tmy_is_domain_def - check if the line is likely a domain definition.
+ + * @buffer: the line to check.
+ + *
+-+ * Returns nonzero if @buffer is likely a domain definition.
+-+ * Returns zero otherwise.
+++ * Returns true if @buffer is likely a domain definition.
+++ * Returns false otherwise.
+ + *
+ + * For complete validation check, use tmy_is_correct_domain().
+ + */
+-+int tmy_is_domain_def(const unsigned char *buffer)
+++bool tmy_is_domain_def(const unsigned char *buffer)
+ +{
+ +	return strncmp(buffer, TMY_ROOT_NAME, TMY_ROOT_NAME_LEN) == 0;
+ +}
  +
  +/**
  + * tmy_add_acl - add an entry to a domain.
@@ -2167,7 +2411,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff
 -+
 -+	for (; ptr; ptr = ptr->next) {
 -+		head->read_var2 = ptr;
-++        struct list_head *pos;
+++	struct list_head *pos;
 ++	list_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
 ++		struct domain_keeper_entry *ptr;
 ++		ptr = list_entry(pos, struct domain_keeper_entry, list);
@@ -2297,7 +2541,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff
 -+		if (!ptr->is_deleted &&
 -+		    tmy_io_printf(head,
 ++	struct list_head *pos;
-++        list_for_each_cookie(pos, head->read_var2, &alias_list) {
+++	list_for_each_cookie(pos, head->read_var2, &alias_list) {
 ++		struct alias_entry *ptr;
 ++		ptr = list_entry(pos, struct alias_entry, list);
 ++		if (ptr->is_deleted)
@@ -2397,7 +2641,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff
 -+		if (!ptr->is_deleted &&
 -+		    tmy_io_printf(head,
 ++	struct list_head *pos;
-++        list_for_each_cookie(pos, head->read_var2, &aggregator_list) {
+++	list_for_each_cookie(pos, head->read_var2, &aggregator_list) {
 ++		struct aggregator_entry *ptr;
 ++		ptr = list_entry(pos, struct aggregator_entry, list);
 ++		if (ptr->is_deleted)
@@ -2582,7 +2826,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-domain.diff
  +				continue;
 Index: trunk/2.1.x/tomoyo-lsm/patches/namespace.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/namespace.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/namespace.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/namespace.diff	(working copy)
 @@ -5,10 +5,10 @@
  Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
@@ -2600,7 +2844,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/namespace.diff
   static int hash_mask __read_mostly, hash_bits __read_mostly;
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff	(working copy)
 @@ -3,13 +3,13 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -2610,8 +2854,8 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
 - security/tomoyo/include/tomoyo.h   |  517 +++++++++++++++++++++++++++++++++++++
 - 2 files changed, 561 insertions(+)
 + security/tomoyo/include/realpath.h |   43 ++
-+ security/tomoyo/include/tomoyo.h   |  551 +++++++++++++++++++++++++++++++++++++
-+ 2 files changed, 594 insertions(+)
++ security/tomoyo/include/tomoyo.h   |  552 +++++++++++++++++++++++++++++++++++++
++ 2 files changed, 595 insertions(+)
  
  --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 -+++ linux-2.6/security/tomoyo/include/realpath.h	2007-10-02 11:26:21.000000000 +0900
@@ -2631,8 +2875,8 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 -+++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-10-02 11:26:21.000000000 +0900
 -@@ -0,0 +1,517 @@
-++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-10-26 23:30:39.000000000 +0900
-+@@ -0,0 +1,551 @@
+++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-10-27 17:20:15.000000000 +0900
++@@ -0,0 +1,552 @@
  +/*
  + * security/tomoyo/include/tomoyo.h
  + *
@@ -2645,7 +2889,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  +
  +#include <linux/string.h>
  +#include <linux/mm.h>
-@@ -81,8 +80,43 @@
+@@ -81,9 +80,44 @@
  +#include <stdarg.h>
  +#include <linux/delay.h>
  +
@@ -2673,7 +2917,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
 ++ * list_for_each_cookie().
 ++ */
 ++static inline void list_add_tail_mb(struct list_head *new,
-++                                    struct list_head *head)
+++				    struct list_head *head)
 ++{
 ++	struct list_head *prev = head->prev;
 ++	struct list_head *next = head;
@@ -2686,10 +2930,12 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
 ++
  +extern struct rw_semaphore namespace_sem;
 -+extern struct semaphore domain_acl_lock;
+-+extern int sbin_init_started;
 ++extern struct mutex domain_acl_lock;
- +extern int sbin_init_started;
+++extern bool sbin_init_started;
  +
  +struct tmy_security {
+ +	struct domain_info *domain;
 @@ -98,23 +132,23 @@
  +	u32 hash;        /* = full_name_hash(name, strlen(name)) */
  +	u16 total_len;   /* = strlen(name)                       */
@@ -2808,8 +3054,9 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  +	} u2;
  +};
  +
- +struct addr_group_member {
+-+struct addr_group_member {
 -+	struct addr_group_member *next;
+++struct address_group_member {
 ++	struct list_head list;
  +	union {
  +		u32 ipv4;    /* Host byte order    */
@@ -2821,8 +3068,9 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
 ++	bool is_ipv6;
  +};
  +
- +struct addr_group_entry {
+-+struct addr_group_entry {
 -+	struct addr_group_entry *next;
+++struct address_group_entry {
 ++	struct list_head list;
  +	const struct path_info *group_name;
 -+	struct addr_group_member *first_member;
@@ -2839,24 +3087,51 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  +	struct acl_info head;
  +	u8 operation_type;
  +	u8 record_type;
-@@ -369,12 +403,12 @@
+@@ -248,7 +282,7 @@
+ +			u16 min[8];
+ +			u16 max[8];
+ +		} ipv6;
+-+		const struct addr_group_entry *group;
+++		const struct address_group_entry *group;
+ +	} u;
+ +	u16 min_port;           /* Start of port number range. */
+ +	u16 max_port;           /* End of port number range.   */
+@@ -369,16 +403,16 @@
  +
  +struct io_buffer {
  +	int (*read) (struct io_buffer *);
 -+	struct semaphore read_sem;
-++	struct mutex read_sem;
+++	struct mutex read_mutex;      /* Lock for reading.                    */
  +	int (*write) (struct io_buffer *);
 -+	struct semaphore write_sem;
-++	struct mutex write_sem;
+++	struct mutex write_mutex;     /* Lock for updating.                   */
  +	int (*poll) (struct file *file, poll_table *wait);
 -+	void *read_var1;              /* The position currently reading from. */
 -+	void *read_var2;              /* Extra variables for reading.         */
+-+	struct domain_info *write_var1;	 /* The position currently writing to.*/
 ++	struct list_head *read_var1;  /* The position currently reading from. */
 ++	struct list_head *read_var2;  /* Extra variables for reading.         */
- +	struct domain_info *write_var1;	 /* The position currently writing to.*/
+++	struct domain_info *write_var1; /* The position currently writing to. */
  +	int read_step;                /* The step for reading.                */
  +	char *read_buf;               /* Buffer for reading.                  */
-@@ -403,44 +437,42 @@
+-+	int read_eof;                 /* EOF flag for reading.                */
+++	bool read_eof;                /* EOF flag for reading.                */
+ +	int read_avail;               /* Bytes available for reading.         */
+ +	int readbuf_size;             /* Size of read buffer.                 */
+ +	char *write_buf;              /* Buffer for writing.                  */
+@@ -391,9 +425,9 @@
+ +char *tmy_find_condition_part(char *data);
+ +const struct condition_list *tmy_assign_condition(const char *condition);
+ +int tmy_check_condition(const struct condition_list *ptr,
+-+	struct obj_info *obj);
+++			struct obj_info *obj);
+ +int tmy_dump_condition(struct io_buffer *head,
+-+	const struct condition_list *ptr);
+++		       const struct condition_list *ptr);
+ +const char *tmy_get_exe(void);
+ +const char *tmy_acltype2keyword(const unsigned int acl_type);
+ +
+@@ -403,58 +437,56 @@
  +		   unsigned long flags);
  +int tmy_conceal_mount(struct nameidata *nd);
  +int tmy_umount_perm(struct vfsmount *mnt);
@@ -2876,7 +3151,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
 -+int tmy_add_addr_group_policy(char *data, const u8 is_delete);
 -+int tmy_add_alias_policy(char *data, const u8 is_delete);
 ++int tmy_add_aggregator_policy(char *data, const bool is_delete);
-++int tmy_add_addr_group_policy(char *data, const bool is_delete);
+++int tmy_add_address_group_policy(char *data, const bool is_delete);
 ++int tmy_add_alias_policy(char *data, const bool is_delete);
  +int tmy_add_argv0_policy(char *data,
  +			 struct domain_info *domain,
@@ -2919,9 +3194,30 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  +int tmy_supervisor(const char *fmt, ...)
  +	__attribute__((format(printf, 1, 2)));
  +
-@@ -466,25 +498,25 @@
+ +int tmy_del_acl(struct acl_info *ptr);
+ +int tmy_delete_domain(char *data);
+-+int tmy_is_correct_domain(const unsigned char *domainname,
+++bool tmy_is_correct_domain(const unsigned char *domainname,
+ +			  const char *function);
+-+int tmy_correct_path(const char *filename,
+++bool tmy_correct_path(const char *filename,
+ +		     const int start_type,
+ +		     const int pattern_type,
+ +		     const int end_type,
+ +		     const char *function);
+-+int tmy_is_domain_def(const unsigned char *buffer);
+-+int tmy_path_match(const struct path_info *pathname0,
+++bool tmy_is_domain_def(const unsigned char *buffer);
+++bool tmy_path_match(const struct path_info *pathname0,
+ +		   const struct path_info *pattern0);
+ +int tmy_read_aggregator_policy(struct io_buffer *head);
+ +int tmy_read_alias_policy(struct io_buffer *head);
+@@ -464,27 +496,27 @@
+ +int tmy_read_group_policy(struct io_buffer *head);
+ +int tmy_read_no_rewrite_policy(struct io_buffer *head);
  +int tmy_read_pattern_policy(struct io_buffer *head);
- +int tmy_read_addr_group_policy(struct io_buffer *head);
+-+int tmy_read_addr_group_policy(struct io_buffer *head);
+++int tmy_read_address_group_policy(struct io_buffer *head);
  +int tmy_argv0_perm(const struct path_info *filename, const char *argv0);
 -+int tmy_network_listen_acl(const u8 is_ipv6,
 ++int tmy_network_listen_acl(const bool is_ipv6,
@@ -2951,7 +3247,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  +			    const int sock_type,
  +			    const u8 *address,
  +			    const u16 port);
-@@ -493,19 +525,19 @@
+@@ -493,19 +525,20 @@
  +int tmy_add_signal_policy(char *data,
  +			  struct domain_info *domain,
  +			  const struct condition_list *cond,
@@ -2960,7 +3256,8 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  +
  +char *tmy_init_audit_log(int *len);
 -+int tmy_write_audit_log(char *log, const u8 is_granted, const u8 is_enforce);
-++int tmy_write_audit_log(char *log, const bool is_granted, const bool is_enforce);
+++int tmy_write_audit_log(char *log, const bool is_granted,
+++			const bool is_enforce);
  +int tmy_acltype2paths(const unsigned int acl_type);
  +int tmy_io_printf(struct io_buffer *head, const char *fmt, ...)
  +	__attribute__((format(printf, 2, 3)));
@@ -2968,14 +3265,24 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  +struct domain_info *tmy_new_domain(const char *domainname, const u8 profile);
  +struct domain_info *tmy_undelete_domain(const char *domainname0);
 -+u8 tmy_accept(const unsigned int index,
-++bool tmy_accept(const unsigned int index,
- +	      struct domain_info * const domain);
+-+	      struct domain_info * const domain);
 -+u8 tmy_enforce(const unsigned int index);
+++bool tmy_accept(const unsigned int index,
+++		struct domain_info * const domain);
 ++bool tmy_enforce(const unsigned int index);
  +unsigned int tmy_flags(const unsigned int index);
  +unsigned int tmy_audit_grant(void);
  +unsigned int tmy_audit_reject(void);
-@@ -521,6 +553,7 @@
+@@ -514,13 +547,14 @@
+ +void tmy_free(const void *p);
+ +void tmy_fill_path_info(struct path_info *ptr);
+ +
+-+static inline int tmy_pathcmp(const struct path_info *a,
+-+			      const struct path_info *b)
+++static inline bool tmy_pathcmp(const struct path_info *a,
+++			       const struct path_info *b)
+ +{
+ +	return a->hash != b->hash || strcmp(a->name, b->name);
  +}
  +
  +extern struct domain_info KERNEL_DOMAIN;
@@ -2985,7 +3292,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-headers.diff
  +			 struct domain_info **);
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-signal.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-signal.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-signal.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-signal.diff	(working copy)
 @@ -9,12 +9,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -3158,7 +3465,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-signal.diff
  +	char *domainname = strchr(data, ' ');
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff	(working copy)
 @@ -9,12 +9,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -3166,14 +3473,14 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  ---
 - security/tomoyo/file.c | 1544 +++++++++++++++++++++++++++++++++++++++++++++++++
 - 1 files changed, 1544 insertions(+)
-+ security/tomoyo/file.c | 1434 +++++++++++++++++++++++++++++++++++++++++++++++++
-+ 1 file changed, 1434 insertions(+)
++ security/tomoyo/file.c | 1436 +++++++++++++++++++++++++++++++++++++++++++++++++
++ 1 file changed, 1436 insertions(+)
  
  --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 -+++ linux-2.6/security/tomoyo/file.c	2007-10-02 11:26:22.000000000 +0900
 -@@ -0,0 +1,1544 @@
-++++ linux-2.6/security/tomoyo/file.c	2007-10-27 00:01:51.000000000 +0900
-+@@ -0,0 +1,1434 @@
+++++ linux-2.6/security/tomoyo/file.c	2007-10-27 17:13:53.000000000 +0900
++@@ -0,0 +1,1436 @@
  +/*
  + * security/tomoyo/file.c
  + *
@@ -3314,7 +3621,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +{
  +	return tmy_add_globally_readable_entry(filename, is_delete);
  +}
-@@ -312,36 +304,32 @@
+@@ -312,36 +304,33 @@
  + */
  +int tmy_read_globally_readable_policy(struct io_buffer *head)
  +{
@@ -3330,7 +3637,8 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
 ++	struct list_head *pos;
 ++	list_for_each_cookie(pos, head->read_var2, &globally_readable_list) {
 ++		struct globally_readable_file_entry *ptr;
-++		ptr = list_entry(pos, struct globally_readable_file_entry, list);
+++		ptr = list_entry(pos, struct globally_readable_file_entry,
+++				 list);
 ++		if (ptr->is_deleted)
 ++			continue;
 ++		if (tmy_io_printf(head, TMY_ALLOW_READ "%s\n",
@@ -3367,7 +3675,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +	const struct path_info *saved_group;
  +	const struct path_info *saved_member;
  +	int error = -ENOMEM;
-@@ -358,14 +346,12 @@
+@@ -358,14 +347,12 @@
  +	if (!saved_group || !saved_member)
  +		return -ENOMEM;
  +
@@ -3377,15 +3685,16 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
 ++	list_for_each_entry(group, &path_group_list, list) {
  +		if (saved_group != group->group_name)
  +			continue;
- +
+-+
 -+		for (member = group->first_member;
 -+		     member;
 -+		     member = member->next) {
-++		list_for_each_entry(member, &group->path_group_member_list, list) {
+++		list_for_each_entry(member, &group->path_group_member_list,
+++				    list) {
  +			if (member->member_name == saved_member) {
  +				member->is_deleted = is_delete;
  +				error = 0;
-@@ -384,38 +370,20 @@
+@@ -384,38 +371,20 @@
  +		new_group = tmy_alloc_element(sizeof(*new_group));
  +		if (!new_group)
  +			goto out;
@@ -3428,7 +3737,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	return error;
  +}
-@@ -428,7 +396,7 @@
+@@ -428,7 +397,7 @@
  + * Returns zero on success.
  + * Returns nonzero on failure.
  + */
@@ -3437,7 +3746,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +{
  +	char *cp = strchr(data, ' ');
  +
-@@ -438,13 +406,13 @@
+@@ -438,13 +407,13 @@
  +	return tmy_add_group_entry(data, cp, is_delete);
  +}
  +
@@ -3454,7 +3763,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +			if (strcmp(group_name, group->group_name->name) == 0)
  +				return group;
  +		}
-@@ -463,15 +431,14 @@
+@@ -463,15 +432,13 @@
  +}
  +
  +static int tmy_path_match_group(const struct path_info *pathname,
@@ -3463,9 +3772,9 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +				const int may_use_pattern)
  +{
 -+	struct group_member *member;
-++	struct path_group_member *member;
- +
+-+
 -+	for (member = group->first_member; member; member = member->next) {
+++	struct path_group_member *member;
 ++	list_for_each_entry(member, &group->path_group_member_list, list) {
  +		if (member->is_deleted)
  +			continue;
@@ -3473,7 +3782,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		if (!member->member_name->is_patterned) {
  +			if (!tmy_pathcmp(pathname, member->member_name))
  +				return 1;
-@@ -493,46 +460,35 @@
+@@ -493,46 +460,37 @@
  + */
  +int tmy_read_group_policy(struct io_buffer *head)
  +{
@@ -3491,14 +3800,16 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
 -+			head->read_var2 = member;
 -+			if (!member->is_deleted &&
 -+			    tmy_io_printf(head,
-++        struct list_head *gpos;
-++        struct list_head *mpos;
+++	struct list_head *gpos;
+++	struct list_head *mpos;
 ++	list_for_each_cookie(gpos, head->read_var1, &path_group_list) {
 ++		struct path_group_entry *group;
 ++		group = list_entry(gpos, struct path_group_entry, list);
-++		list_for_each_cookie(mpos, head->read_var2, &group->path_group_member_list) {
+++		list_for_each_cookie(mpos, head->read_var2,
+++				     &group->path_group_member_list) {
 ++			struct path_group_member *member;
-++			member = list_entry(mpos, struct path_group_member, list);
+++			member = list_entry(mpos, struct path_group_member,
+++					    list);
 ++			if (member->is_deleted)
 ++				continue;
 ++			if (tmy_io_printf(head,
@@ -3536,7 +3847,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +	const struct path_info *saved;
  +	int error = -ENOMEM;
  +
-@@ -543,9 +499,9 @@
+@@ -543,9 +501,9 @@
  +	if (!saved)
  +		return -ENOMEM;
  +
@@ -3548,7 +3859,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		if (saved == ptr->pattern) {
  +			ptr->is_deleted = is_delete;
  +			error = 0;
-@@ -563,19 +519,10 @@
+@@ -563,19 +521,10 @@
  +	if (!new_entry)
  +		goto out;
  +	new_entry->pattern = saved;
@@ -3570,7 +3881,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +	return error;
  +}
  +
-@@ -584,12 +531,11 @@
+@@ -584,12 +533,11 @@
  +	struct pattern_entry *ptr;
  +	const struct path_info *pattern = NULL;
  +
@@ -3584,7 +3895,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		pattern = ptr->pattern;
  +		if (!tmy_strendswith(pattern->name, "/\\*"))
  +			break;
-@@ -609,7 +555,7 @@
+@@ -609,7 +557,7 @@
  + * Returns zero on success.
  + * Returns nonzero on failure.
  + */
@@ -3593,7 +3904,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +{
  +	return tmy_add_pattern_entry(pattern, is_delete);
  +}
-@@ -623,32 +569,28 @@
+@@ -623,32 +571,28 @@
  + */
  +int tmy_read_pattern_policy(struct io_buffer *head)
  +{
@@ -3638,7 +3949,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +	const struct path_info *saved;
  +	int error = -ENOMEM;
  +
-@@ -658,8 +600,8 @@
+@@ -658,8 +602,8 @@
  +	if (!saved)
  +		return -ENOMEM;
  +
@@ -3649,7 +3960,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		if (ptr->pattern == saved) {
  +			ptr->is_deleted = is_delete;
  +			error = 0;
-@@ -677,19 +619,10 @@
+@@ -677,19 +621,10 @@
  +		goto out;
  +
  +	new_entry->pattern = saved;
@@ -3671,7 +3982,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	return error;
  +}
-@@ -698,7 +631,7 @@
+@@ -698,7 +633,7 @@
  +{
  +	struct no_rewrite_entry *ptr;
  +
@@ -3680,7 +3991,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		if (ptr->is_deleted)
  +			continue;
  +		if (!tmy_path_match(filename, ptr->pattern))
-@@ -717,7 +650,7 @@
+@@ -717,7 +652,7 @@
  + * Returns zero on success.
  + * Returns nonzero on failure.
  + */
@@ -3689,7 +4000,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +{
  +	return tmy_add_no_rewrite_entry(pattern, is_delete);
  +}
-@@ -731,21 +664,17 @@
+@@ -731,21 +666,17 @@
  + */
  +int tmy_read_no_rewrite_policy(struct io_buffer *head)
  +{
@@ -3720,7 +4031,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +}
  +
  +/*************************  FILE ACL HANDLER  *************************/
-@@ -754,12 +683,13 @@
+@@ -754,12 +685,13 @@
  +			    u8 perm,
  +			    struct domain_info * const domain,
  +			    const struct condition_list *cond,
@@ -3736,7 +4047,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	if (!domain)
  +		return -EINVAL;
-@@ -796,71 +726,55 @@
+@@ -796,71 +728,55 @@
  +
  +	}
  +
@@ -3827,7 +4138,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +	return error;
  +}
  +
-@@ -878,7 +792,7 @@
+@@ -878,7 +794,7 @@
  +			return 0;
  +	}
  +
@@ -3836,7 +4147,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		struct file_acl *acl = (struct file_acl *) ptr;
  +
  +		if (ptr->type != TMY_TYPE_FILE_ACL ||
-@@ -909,7 +823,7 @@
+@@ -909,7 +825,7 @@
  +{
  +	int error = 0;
  +	struct domain_info * const domain = TMY_SECURITY->domain;
@@ -3845,7 +4156,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	if (!filename)
  +		return 0;
-@@ -975,7 +889,7 @@
+@@ -975,7 +891,7 @@
  +int tmy_add_file_policy(char *data,
  +			struct domain_info *domain,
  +			const struct condition_list *cond,
@@ -3854,7 +4165,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +{
  +	char *filename = strchr(data, ' ');
  +	unsigned int perm;
-@@ -1023,12 +937,13 @@
+@@ -1023,12 +939,13 @@
  +				    const char *filename,
  +				    struct domain_info * const domain,
  +				    const struct condition_list *cond,
@@ -3870,7 +4181,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	if (!domain)
  +		return -EINVAL;
-@@ -1047,48 +962,36 @@
+@@ -1047,48 +964,36 @@
  +			return -ENOMEM;
  +	}
  +
@@ -3935,7 +4246,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +		if (ptr->type != type || ptr->is_deleted ||
  +		    ptr->cond != cond || acl->u.filename != saved)
-@@ -1098,7 +1001,7 @@
+@@ -1098,7 +1003,7 @@
  +		break;
  +	}
  +ok: ;
@@ -3944,7 +4255,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	return error;
  +}
-@@ -1108,14 +1011,15 @@
+@@ -1108,14 +1013,15 @@
  +				    const char *filename2,
  +				    struct domain_info * const domain,
  +				    const struct condition_list *cond,
@@ -3963,7 +4274,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	if (!domain)
  +		return -EINVAL;
-@@ -1147,65 +1051,51 @@
+@@ -1147,65 +1053,51 @@
  +			return -ENOMEM;
  +	}
  +
@@ -4050,7 +4361,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +	return error;
  +}
  +
-@@ -1219,7 +1109,7 @@
+@@ -1219,7 +1111,7 @@
  +	if (!tmy_flags(TMY_MAC_FOR_FILE))
  +		return 0;
  +
@@ -4059,7 +4370,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		struct single_acl *acl = (struct single_acl *) ptr;
  +
  +		if (ptr->type != type || ptr->is_deleted ||
-@@ -1250,7 +1140,7 @@
+@@ -1250,7 +1142,7 @@
  +	if (!tmy_flags(TMY_MAC_FOR_FILE))
  +		return 0;
  +
@@ -4068,7 +4379,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		struct double_acl *acl = (struct double_acl *) ptr;
  +
  +		if (ptr->type != type || ptr->is_deleted ||
-@@ -1287,7 +1177,7 @@
+@@ -1287,7 +1179,7 @@
  +{
  +	int error;
  +	struct domain_info * const domain = TMY_SECURITY->domain;
@@ -4077,7 +4388,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	if (!tmy_flags(TMY_MAC_FOR_FILE))
  +		return 0;
-@@ -1359,7 +1249,7 @@
+@@ -1359,7 +1251,7 @@
  +	const int acc_mode = ACC_MODE(flag);
  +	int error = -ENOMEM;
  +	struct path_info *buf;
@@ -4086,7 +4397,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	if (!tmy_flags(TMY_MAC_FOR_FILE))
  +		return 0;
-@@ -1417,7 +1307,7 @@
+@@ -1417,7 +1309,7 @@
  +	struct obj_info obj;
  +	int error = -ENOMEM;
  +	struct path_info *buf;
@@ -4095,7 +4406,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +
  +	if (!tmy_flags(TMY_MAC_FOR_FILE))
  +		return 0;
-@@ -1459,7 +1349,7 @@
+@@ -1459,7 +1351,7 @@
  +int tmy_rewrite_perm(struct file *filp)
  +{
  +	int error = -ENOMEM;
@@ -4104,7 +4415,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +	struct path_info *buf = tmy_get_path(filp->f_dentry, filp->f_vfsmnt);
  +
  +	if (!buf)
-@@ -1505,7 +1395,7 @@
+@@ -1505,7 +1397,7 @@
  +	struct path_info *buf1;
  +	struct path_info *buf2;
  +	struct domain_info * const domain = TMY_SECURITY->domain;
@@ -4115,7 +4426,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-file.diff
  +		return 0;
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-kconfig.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-kconfig.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-kconfig.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-kconfig.diff	(working copy)
 @@ -10,9 +10,9 @@
   security/tomoyo/Makefile |    3 +++
@@ -4161,7 +4472,7 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-kconfig.diff
  +tomoyo_func-objs := domain.o common.o realpath.o audit.o file.o exec.o net.o mount.o signal.o condition.o
 Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-hooks.diff
 ===================================================================
---- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-hooks.diff	(revision 614)
+--- trunk/2.1.x/tomoyo-lsm/patches/tomoyo-hooks.diff	(revision 620)
 +++ trunk/2.1.x/tomoyo-lsm/patches/tomoyo-hooks.diff	(working copy)
 @@ -7,12 +7,12 @@
  Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
@@ -4169,29 +4480,28 @@ Index: trunk/2.1.x/tomoyo-lsm/patches/tomoyo-hooks.diff
  ---
 - security/tomoyo/tomoyo.c |  748 +++++++++++++++++++++++++++++++++++++++++++++++
 - 1 files changed, 748 insertions(+)
-+ security/tomoyo/tomoyo.c |  751 +++++++++++++++++++++++++++++++++++++++++++++++
-+ 1 file changed, 751 insertions(+)
++ security/tomoyo/tomoyo.c |  750 +++++++++++++++++++++++++++++++++++++++++++++++
++ 1 file changed, 750 insertions(+)
  
  --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 -+++ linux-2.6/security/tomoyo/tomoyo.c	2007-10-02 11:26:22.000000000 +0900
 -@@ -0,0 +1,748 @@
-++++ linux-2.6/security/tomoyo/tomoyo.c	2007-10-27 00:01:51.000000000 +0900
-+@@ -0,0 +1,751 @@
+++++ linux-2.6/security/tomoyo/tomoyo.c	2007-10-27 17:10:42.000000000 +0900
++@@ -0,0 +1,750 @@
  +/*
  + * security/tomoyo/tomoyo.c
  + *
-@@ -36,8 +36,8 @@
+@@ -36,8 +36,7 @@
  +#include "realpath.h"
  +#define MAX_SOCK_ADDR 128 /* net/socket.c */
  +
 -+/* The initial domain. */
 -+struct domain_info KERNEL_DOMAIN = { NULL, NULL, NULL, 0, 0, 0 };
-++extern struct domain_info KERNEL_DOMAIN;
 ++LIST_HEAD(domain_list);
  +
  +static struct kmem_cache *tmy_cachep;
  +
-@@ -746,7 +746,10 @@
+@@ -746,7 +745,10 @@
  +
  +	printk(KERN_INFO "TOMOYO Linux initialized\n");
  +
