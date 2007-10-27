@@ -4,8 +4,8 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/include/realpath.h |   43 ++
- security/tomoyo/include/tomoyo.h   |  552 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 595 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  566 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 609 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 +++ linux-2.6/security/tomoyo/include/realpath.h	2007-10-26 21:52:05.000000000 +0900
@@ -54,8 +54,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#endif
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-10-27 20:16:42.000000000 +0900
-@@ -0,0 +1,552 @@
++++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-10-27 23:40:20.000000000 +0900
+@@ -0,0 +1,566 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -360,8 +360,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TMY_RESTRICT_UMOUNT      7
 +#define TMY_RESTRICT_PIVOT_ROOT  8
 +#define TMY_MAX_ACCEPT_ENTRY     9
++#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
 +#define TMY_AUDIT_GRANT         10
 +#define TMY_AUDIT_REJECT        11
++#else
++#define TMY_MAX_GRANT_LOG       10
++#define TMY_MAX_REJECT_LOG      11
++#endif
 +#define TMY_ALLOW_ENFORCE_GRACE 12
 +#define TMY_MAX_CONTROL_INDEX   13
 +
@@ -382,24 +387,28 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TMY_UPDATE_PROFILE         3
 +#define TMY_UPDATE_QUERY           4
 +#define TMY_UPDATE_MANAGER         5
-+#define TMY_MAX_UPDATES_COUNTER    6
++#define TMY_UPDATE_GRANT_LOG       6
++#define TMY_UPDATE_REJECT_LOG      7
++#define TMY_MAX_UPDATES_COUNTER    8
 +
-+/***********************  Indexes for /proc interfaces.  **********************/
++/***************  Indexes for /sys/kernel/security interfaces.  ***************/
 +
-+#define TMY_POLICY_DOMAINPOLICY     0
-+#define TMY_POLICY_SYSTEMPOLICY     1
-+#define TMY_POLICY_EXCEPTIONPOLICY  2
-+#define TMY_POLICY_DOMAIN_STATUS    3
-+#define TMY_INFO_PROCESS_STATUS     4
-+#define TMY_INFO_MEMINFO            5
-+#define TMY_INFO_SELFDOMAIN         6
-+#define TMY_PROFILE                 7
-+#define TMY_POLICY_QUERY            8
-+#define TMY_POLICY_MANAGER          9
-+#define TMY_INFO_UPDATESCOUNTER    10
-+#define TMY_VERSION                11
++#define TMY_DOMAINPOLICY     0
++#define TMY_SYSTEMPOLICY     1
++#define TMY_EXCEPTIONPOLICY  2
++#define TMY_DOMAIN_STATUS    3
++#define TMY_PROCESS_STATUS   4
++#define TMY_MEMINFO          5
++#define TMY_SELFDOMAIN       6
++#define TMY_PROFILE          7
++#define TMY_QUERY            8
++#define TMY_MANAGER          9
++#define TMY_UPDATESCOUNTER  10
++#define TMY_GRANT_LOG       11
++#define TMY_REJECT_LOG      12
++#define TMY_VERSION         13
 +
-+/********************  The structure for /proc interfaces.  *******************/
++/***************  The structure for /sys/kernel/security interfaces.  *********/
 +
 +struct io_buffer {
 +	int (*read) (struct io_buffer *);
@@ -527,9 +536,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			  const struct condition_list *cond,
 +			  const bool is_delete);
 +
-+char *tmy_init_audit_log(int *len);
-+int tmy_write_audit_log(char *log, const bool is_granted,
-+			const bool is_enforce);
++char *tmy_init_audit_log(int *len, const unsigned int mode);
++int tmy_write_audit_log(char *log, const bool is_granted);
 +int tmy_acltype2paths(const unsigned int acl_type);
 +int tmy_io_printf(struct io_buffer *head, const char *fmt, ...)
 +	__attribute__((format(printf, 2, 3)));
@@ -540,12 +548,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		struct domain_info * const domain);
 +bool tmy_enforce(const unsigned int index);
 +unsigned int tmy_flags(const unsigned int index);
-+unsigned int tmy_audit_grant(void);
-+unsigned int tmy_audit_reject(void);
++bool tmy_audit_grant(void);
++bool tmy_audit_reject(void);
 +void tmy_update_counter(const unsigned char index);
 +void *tmy_alloc(const size_t size);
 +void tmy_free(const void *p);
 +void tmy_fill_path_info(struct path_info *ptr);
++
++#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
++int tmy_read_grant_log(struct io_buffer *head);
++int tmy_poll_grant_log(struct file *file, poll_table *wait);
++int tmy_read_reject_log(struct io_buffer *head);
++int tmy_poll_reject_log(struct file *file, poll_table *wait);
++#endif
 +
 +static inline bool tmy_pathcmp(const struct path_info *a,
 +			       const struct path_info *b)
@@ -558,7 +573,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +void tmy_load_policy(const char *filename);
 +int tmy_find_next_domain(struct linux_binprm *,
 +			 struct domain_info **);
-+/*void tmy_proc_init(void);*/
 +
 +struct path_info;
 +
