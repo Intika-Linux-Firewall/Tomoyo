@@ -1,20 +1,30 @@
-This patch makes access logs sent to auditing subsystem.
-TOMOYO Linux uses two channels for auditing.
+This patch makes access logs sent to wither auditing subsystem or
+/sys/kernel/security/tomoyo/ interface.
+
+TOMOYO Linux uses two channels when using auditing subsystem.
 One is 'AUDIT_TMY_GRANTED', used for auditing accesses which are
 granted in the TOMOYO Linux policy.
 The other is 'AUDIT_TMY_REJECTED', used for auditing accesses which
 are not granted in the TOMOYO Linux policy.
 
+TOMOYO Linux uses two files when using /sys/kernel/security/tomoyo/ interface.
+One is 'grant_log', used for auditing accesses which are
+granted in the TOMOYO Linux policy.
+The other is 'reject_log', used for auditing accesses which
+are not granted in the TOMOYO Linux policy.
+The userland daemon /usr/lib/ccs/ccs-auditd will save these logs.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
----
  include/linux/audit.h   |    3 
- security/tomoyo/audit.c |  253 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 256 insertions(+)
+ security/tomoyo/audit.c |  258 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 261 insertions(+)
 
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/audit.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/audit.c	2007-10-27 23:31:28.000000000 +0900
-@@ -0,0 +1,253 @@
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/audit.c	2007-10-29 11:28:12.000000000 +0900
+@@ -0,0 +1,258 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -30,14 +40,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/**
 + * tmy_init_audit_log - allocate and initialize audit buffer.
 + * @len: pointer to length of requested size.
-+ * @mode: profile value for this log. (This is 'is_enforce' flag for now.)
++ * @profile: profile number for this log.
++ * @mode: profile value for this log.
 + *
 + * Returns pointer to audit buffer on success. @len received allocated size.
 + * Returns NULL on failure.
 + *
 + * @len must not be a NULL.
 + */
-+char *tmy_init_audit_log(int *len, const unsigned int mode)
++char *tmy_init_audit_log(int *len, const u8 profile, const unsigned int mode)
 +{
 +	char *buf;
 +	struct task_struct *task = current;
@@ -49,10 +60,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!buf)
 +		return NULL;
 +
-+	snprintf(buf, (*len) - 1,
-+		 "mode=%u pid=%d uid=%d gid=%d euid=%d egid=%d "
++	snprintf(buf, (*len) - 1, "profile=%u mode=%u "
++		 "pid=%d uid=%d gid=%d euid=%d egid=%d "
 +		 "suid=%d sgid=%d fsuid=%d fsgid=%d : %s : ",
-+		 mode, task->pid, task->uid, task->gid, task->euid, task->egid,
++		 profile, mode,
++		 task->pid, task->uid, task->gid, task->euid, task->egid,
 +		 task->suid, task->sgid, task->fsuid, task->fsgid, domainname);
 +
 +	return buf;
@@ -125,14 +137,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/**
 + * tmy_init_audit_log - allocate and initialize audit buffer.
 + * @len: pointer to length of requested size.
-+ * @mode: profile value for this log. (This is 'is_enforce' flag for now.)
++ * @profile: profile number for this log.
++ * @mode: profile value for this log.
 + *
 + * Returns pointer to audit buffer on success. @len received allocated size.
 + * Returns NULL on failure.
 + *
 + * @len must not be a NULL.
 + */
-+char *tmy_init_audit_log(int *len, const unsigned int mode)
++char *tmy_init_audit_log(int *len, const u8 profile, const unsigned int mode)
 +{
 +	char *buf;
 +	struct timeval tv;
@@ -143,10 +156,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	buf = tmy_alloc(*len);
 +	if (!buf)
 +		return NULL;
-+	snprintf(buf, (*len) - 1, "#timestamp=%lu mode=%u "
++	snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%u "
 +		 "pid=%d uid=%d gid=%d euid=%d egid=%d "
 +		 "suid=%d sgid=%d fsuid=%d fsgid=%d \n%s\n",
-+		 tv.tv_sec, mode,
++		 tv.tv_sec, profile, mode,
 +		 task->pid, task->uid, task->gid, task->euid, task->egid,
 +		 task->suid, task->sgid, task->fsuid, task->fsgid, domainname);
 +	return buf;
@@ -215,7 +228,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/***** CRITICAL SECTION END *****/
 +	if (ptr) {
 +		head->read_buf = ptr->log;
-+		head->readbuf_size = head->read_avail = strlen(ptr->log) + 1;
++		head->read_avail = strlen(ptr->log) + 1;
++		head->readbuf_size = head->read_avail;
 +		tmy_free(ptr);
 +	}
 +	return 0;
@@ -252,7 +266,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/***** CRITICAL SECTION END *****/
 +	if (ptr) {
 +		head->read_buf = ptr->log;
-+		head->readbuf_size = head->read_avail = strlen(ptr->log) + 1;
++		head->read_avail = strlen(ptr->log) + 1;
++		head->readbuf_size = head->read_avail;
 +		tmy_free(ptr);
 +	}
 +	return 0;
@@ -268,9 +283,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +#endif
---- linux-2.6.orig/include/linux/audit.h	2007-10-26 21:33:00.000000000 +0900
-+++ linux-2.6/include/linux/audit.h	2007-10-26 21:33:52.000000000 +0900
-@@ -123,6 +123,9 @@
+Index: linux-2.6.23-tomoyo-2.1/include/linux/audit.h
+===================================================================
+--- linux-2.6.23-tomoyo-2.1.orig/include/linux/audit.h	2007-10-29 09:48:20.000000000 +0900
++++ linux-2.6.23-tomoyo-2.1/include/linux/audit.h	2007-10-29 09:48:53.000000000 +0900
+@@ -120,6 +120,9 @@
  
  #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */
  

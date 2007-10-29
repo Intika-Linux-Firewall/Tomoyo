@@ -6,13 +6,14 @@ this file will become more simpler and "namespace_sem" can remain "static".
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
----
- security/tomoyo/tomoyo.c |  750 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 750 insertions(+)
+ security/tomoyo/tomoyo.c |  874 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 874 insertions(+)
 
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/tomoyo.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/tomoyo.c	2007-10-27 20:48:10.000000000 +0900
-@@ -0,0 +1,750 @@
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/tomoyo.c	2007-10-29 15:46:24.000000000 +0900
+@@ -0,0 +1,874 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -200,7 +201,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_inode_setattr(struct dentry *dentry, struct iattr *iattr)
 +{
-+	if (iattr->ia_valid & ATTR_SIZE)
++	int err = 0;
++	unsigned int ia_valid = iattr->ia_valid;
++	if (ia_valid & ATTR_MODE)
++		err = tmy_capable(TMY_SYS_CHMOD);
++	if (!err && (ia_valid & (ATTR_UID | ATTR_GID)))
++		err = tmy_capable(TMY_SYS_CHOWN);
++	if (err)
++		return err;
++	if (ia_valid & ATTR_SIZE)
 +		return tmy_do_single_write_perm(TMY_TYPE_TRUNCATE_ACL, dentry);
 +	return 0;
 +}
@@ -212,6 +221,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_inode_unlink(struct inode *dir, struct dentry *dentry)
 +{
++	const int err = tmy_capable(TMY_SYS_UNLINK);
++	if (err)
++		return err;
 +	return tmy_do_single_write_perm(TMY_TYPE_UNLINK_ACL, dentry);
 +}
 +
@@ -229,6 +241,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			     struct dentry *dentry,
 +			     const char *old_name)
 +{
++	const int err = tmy_capable(TMY_SYS_SYMLINK);
++	if (err)
++		return err;
 +	return tmy_do_single_write_perm(TMY_TYPE_SYMLINK_ACL, dentry);
 +}
 +
@@ -237,14 +252,31 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			   int mode,
 +			   dev_t dev)
 +{
-+	if (S_ISCHR(mode))
++	int err;
++	if (S_ISCHR(mode)) {
++		err = tmy_capable(TMY_CREATE_CHAR_DEV);
++		if (err)
++			return err;
 +		return tmy_do_single_write_perm(TMY_TYPE_MKCHAR_ACL, dentry);
-+	if (S_ISBLK(mode))
++	}
++	if (S_ISBLK(mode)) {
++		err = tmy_capable(TMY_CREATE_BLOCK_DEV);
++		if (err)
++			return err;
 +		return tmy_do_single_write_perm(TMY_TYPE_MKBLOCK_ACL, dentry);
-+	if (S_ISFIFO(mode))
++	}
++	if (S_ISFIFO(mode)) {
++		err = tmy_capable(TMY_CREATE_FIFO);
++		if (err)
++			return err;
 +		return tmy_do_single_write_perm(TMY_TYPE_MKFIFO_ACL, dentry);
-+	if (S_ISSOCK(mode))
++	}
++	if (S_ISSOCK(mode)) {
++		err = tmy_capable(TMY_CREATE_UNIX_SOCKET);
++		if (err)
++			return err;
 +		return tmy_do_single_write_perm(TMY_TYPE_MKSOCK_ACL, dentry);
++	}
 +
 +	return 0;
 +}
@@ -295,6 +327,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			  struct inode *inode,
 +			  struct dentry *new_dentry)
 +{
++	const int err = tmy_capable(TMY_SYS_LINK);
++	if (err)
++		return err;
 +	return tmy_do_double_write_perm(TMY_TYPE_LINK_ACL,
 +					old_dentry, new_dentry);
 +}
@@ -304,6 +339,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			    struct inode *new_inode,
 +			    struct dentry *new_dentry)
 +{
++	const int err = tmy_capable(TMY_SYS_RENAME);
++	if (err)
++		return err;
 +	return tmy_do_double_write_perm(TMY_TYPE_RENAME_ACL,
 +					old_dentry,
 +					new_dentry);
@@ -322,15 +360,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	char addr[MAX_SOCK_ADDR];
 +	int addr_len;
-+	int error = 0;
++	int error;
 +
 +	/* I don't check if called by kernel process. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +
 +	if (sock->type != SOCK_STREAM)
-+		return error;
++		return 0;
 +	if (sock->sk->sk_family != PF_INET && sock->sk->sk_family != PF_INET6)
++		return 0;
++
++	error = tmy_capable(TMY_INET_STREAM_SOCKET_LISTEN);
++	if (error)
 +		return error;
 +
 +	if (sock->ops->getname(sock, (struct sockaddr *) addr, &addr_len, 0))
@@ -355,6 +397,31 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
++static int tmy_socket_create(int family, int type, int protocol, int kern)
++{
++	int error = 0;
++	if (kern)
++		return 0;
++	if (family == PF_INET || family == PF_INET6) {
++		switch (type) {
++		case SOCK_STREAM:
++			return tmy_capable(TMY_INET_STREAM_SOCKET_CREATE);
++			break;
++		case SOCK_DGRAM:
++			return tmy_capable(TMY_USE_INET_DGRAM_SOCKET);
++			break;
++		case SOCK_RAW:
++			return tmy_capable(TMY_USE_INET_RAW_SOCKET);
++			break;
++		}
++	} else if (family == PF_PACKET) {
++		return tmy_capable(TMY_USE_PACKET_SOCKET);
++	} else if (family == PF_ROUTE) {
++		return tmy_capable(TMY_USE_ROUTE_SOCKET);
++	}
++	return error;
++}
++
 +static int tmy_socket_connect(struct socket *sock,
 +			      struct sockaddr *addr,
 +			      int addr_len0)
@@ -367,8 +434,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +
++	if (type == SOCK_STREAM) {
++		error = tmy_capable(TMY_INET_STREAM_SOCKET_CONNECT);
++		if (error)
++			return error;
++	}
++
 +	if (type != SOCK_STREAM && type != SOCK_DGRAM && type != SOCK_RAW)
-+		return error;
++		return 0;
 +
 +	switch (addr->sa_family) {
 +		struct sockaddr_in6 *in6;
@@ -653,10 +726,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			unsigned long flags,
 +			void *data)
 +{
-+	char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
++	char *buf;
 +	char *dir_name;
 +	int error;
 +
++	error = tmy_capable(TMY_SYS_MOUNT);
++	if (error)
++		return error;
++
++	buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
 +	if (!buf)
 +		return -ENOMEM;
 +
@@ -676,27 +754,70 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_sb_umount(struct vfsmount *mnt, int flags)
 +{
++	const int err = tmy_capable(TMY_SYS_UMOUNT);
++	if (err)
++		return err;
 +	return tmy_umount_perm(mnt);
++}
++
++static int tmy_settime(struct timespec *ts, struct timezone *tz)
++{
++	return tmy_capable(TMY_SYS_SETTIME);
++}
++
++static int tmy_task_setnice(struct task_struct *p, int nice)
++{
++	return tmy_capable(TMY_SYS_NICE);
 +}
 +
 +static int tmy_sb_pivotroot(struct nameidata *old_nd, struct nameidata *new_nd)
 +{
++	const int err = tmy_capable(TMY_SYS_PIVOT_ROOT);
++	if (err)
++		return err;
 +	return tmy_pivot_root_perm(old_nd, new_nd);
++}
++
++static int tmy_task_capable(struct task_struct *tsk, int cap)
++{
++	int err = 0;
++	if (cap == CAP_SYS_CHROOT)
++		err = tmy_capable(TMY_SYS_CHROOT);
++	else if (cap == CAP_SYS_TTY_CONFIG)
++		err = tmy_capable(TMY_SYS_VHANGUP);
++	else if (cap == CAP_SYS_BOOT)
++		err = tmy_capable(TMY_SYS_REBOOT);
++	else if (cap == CAP_SYS_TIME)
++		err = tmy_capable(TMY_SYS_SETTIME);
++	if (err)
++		return err;
++	if (cap_raised (tsk->cap_effective, cap))
++		return 0;
++	return -EPERM;
 +}
 +
 +#ifdef TMY_LSM_EXPANSION
 +static int tmy_task_kill_unlocked(int pid, int sig)
 +{
++	const int err = tmy_capable(TMY_SYS_KILL);
++	if (err)
++		return err;
 +	return tmy_signal_acl(sig, pid);
 +}
 +
 +static int tmy_task_tkill_unlocked(int pid, int sig)
 +{
++	const int err = tmy_capable(TMY_SYS_KILL);
++	if (err)
++		return err;
 +	return tmy_signal_acl(sig, pid);
 +}
 +
 +static int tmy_task_tgkill_unlocked(int tgid, int pid, int sig)
 +{
++	const int err = tmy_capable(TMY_SYS_KILL);
++	if (err)
++		return err;
 +	return tmy_signal_acl(sig, pid);
 +}
 +#endif
@@ -721,12 +842,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.inode_rename          = tmy_inode_rename,
 +	.file_fcntl            = tmy_file_fcntl,
 +	.socket_listen 	       = tmy_socket_listen,
++	.socket_create         = tmy_socket_create,
 +	.socket_connect        = tmy_socket_connect,
 +	.socket_bind 	       = tmy_socket_bind,
 +	.socket_sendmsg        = tmy_socket_sendmsg,
 +	.sb_mount              = tmy_sb_mount,
 +	.sb_umount             = tmy_sb_umount,
 +	.sb_pivotroot          = tmy_sb_pivotroot,
++	.settime               = tmy_settime,
++	.task_setnice          = tmy_task_setnice,
++	.capable               = tmy_task_capable,
 +#ifdef TMY_LSM_EXPANSION
 +	.socket_post_accept    = tmy_socket_post_accept,
 +	.post_recv_datagram    = tmy_post_recv_datagram,

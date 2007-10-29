@@ -8,13 +8,14 @@ the policy using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
----
- security/tomoyo/mount.c |  967 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 967 insertions(+)
+ security/tomoyo/mount.c |  977 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 977 insertions(+)
 
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/mount.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/mount.c	2007-10-27 21:13:30.000000000 +0900
-@@ -0,0 +1,967 @@
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/mount.c	2007-10-29 11:32:27.000000000 +0900
+@@ -0,0 +1,977 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -56,12 +57,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/*************************  AUDIT FUNCTIONS  *************************/
 +
 +static int tmy_audit_mount_log(const bool is_granted,
-+			       const bool is_enforce,
++			       const u8 profile,
++			       const unsigned int mode,
 +			       const char *fmt, ...)
-+	__attribute__((format(printf, 3, 4)));
++	__attribute__((format(printf, 4, 5)));
 +
 +static int tmy_audit_mount_log(const bool is_granted,
-+			       const bool is_enforce,
++			       const u8 profile,
++			       const unsigned int mode,
 +			       const char *fmt, ...)
 +{
 +	char *buf1;
@@ -91,7 +94,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -ENOMEM;
 +	}
 +
-+	buf2 = tmy_init_audit_log(&len, is_enforce);
++	buf2 = tmy_init_audit_log(&len, profile, mode);
 +
 +	if (!buf2) {
 +		tmy_free(buf1);
@@ -191,16 +194,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				       char *dir_name,
 +				       char *type,
 +				       unsigned long flags,
-+				       const bool is_enforce)
++				       const u8 profile,
++				       const unsigned int mode)
 +{
 +	int error = -EPERM;
 +	const char *realname1 = tmy_realpath(dev_name);
 +	const char *realname2 = tmy_realpath(dir_name);
 +	const char *exename = tmy_get_exe();
++	const bool is_enforce = (mode == 3);
 +
 +	if (!strcmp(type, MOUNT_REMOUNT_KEYWORD)) {
 +
-+		tmy_audit_mount_log(0, is_enforce,
++		tmy_audit_mount_log(0, profile, mode,
 +				    "mount -o remount %s 0x%lX",
 +				    realname2 ? realname2 : dir_name,
 +				    flags);
@@ -212,7 +217,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	} else if (!strcmp(type, MOUNT_BIND_KEYWORD) ||
 +		   !strcmp(type, MOUNT_MOVE_KEYWORD)) {
 +
-+		tmy_audit_mount_log(0, is_enforce, "mount %s %s %s 0x%lX",
++		tmy_audit_mount_log(0, profile, mode, "mount %s %s %s 0x%lX",
 +				    type, realname1 ? realname1 : dev_name,
 +				    realname2 ? realname2 : dir_name, flags);
 +		if (is_enforce &&
@@ -228,7 +233,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		   !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
 +		   !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD)) {
 +
-+		tmy_audit_mount_log(0, is_enforce, "mount %s %s 0x%lX", type,
++		tmy_audit_mount_log(0, profile, mode, "mount %s %s 0x%lX", type,
 +				    realname2 ? realname2 : dir_name, flags);
 +		if (is_enforce &&
 +		    tmy_supervisor("# %s is requesting\nmount %s %s 0x%lX",
@@ -239,7 +244,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	} else {
 +
-+		tmy_audit_mount_log(0, is_enforce, "mount -t %s %s %s 0x%lX",
++		tmy_audit_mount_log(0, profile, mode, "mount -t %s %s %s 0x%lX",
 +				    type, realname1 ? realname1 : dev_name,
 +				    realname2 ? realname2 : dir_name, flags);
 +		if (is_enforce &&
@@ -282,10 +287,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		   char *type,
 +		   unsigned long flags)
 +{
-+	const bool is_enforce = tmy_enforce(TMY_RESTRICT_MOUNT);
++	const u8 profile = TMY_SECURITY->domain->profile;
++	const unsigned int mode = tmy_flags(TMY_RESTRICT_MOUNT);
++	const bool is_enforce = (mode == 3);
 +	int error = -EPERM;
 +
-+	if (!tmy_flags(TMY_RESTRICT_MOUNT))
++	if (!mode)
 +		return 0;
 +	if (!type)
 +		type = "<NULL>";
@@ -299,7 +306,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case 0:
 +		break;
 +	default:
-+		tmy_audit_mount_log(0, 1, "%s%s%sare given "
++		tmy_audit_mount_log(0, profile, mode, "%s%s%sare given "
 +				    "for single mount operation",
 +				    flags & MS_REMOUNT ? "remount " : "",
 +				    flags & MS_MOVE    ? "move " : "",
@@ -315,7 +322,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case 0:
 +		break;
 +	default:
-+		tmy_audit_mount_log(0, 1, "%s%s%s%sare given "
++		tmy_audit_mount_log(0, profile, mode, "%s%s%s%sare given "
 +				    "for single mount operation",
 +				    flags & MS_UNBINDABLE ? "unbindable " : "",
 +				    flags & MS_PRIVATE    ? "private " : "",
@@ -429,30 +436,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			error = 0;
 +
 +			if (need_dev > 0)
-+				tmy_audit_mount_log(1, is_enforce,
++				tmy_audit_mount_log(1, profile, mode,
 +						    "mount -t %s %s %s 0x%lX",
 +						    type,
 +						    requested_dev_name,
 +						    requested_dir_name, flags);
 +			else if (need_dev < 0)
-+				tmy_audit_mount_log(1, is_enforce,
++				tmy_audit_mount_log(1, profile, mode,
 +						    "mount %s %s %s 0x%lX",
 +						    type, requested_dev_name,
 +						    requested_dir_name, flags);
 +			else if (!strcmp(type, MOUNT_REMOUNT_KEYWORD))
-+				tmy_audit_mount_log(1, is_enforce,
++				tmy_audit_mount_log(1, profile, mode,
 +						    "mount -o remount %s 0x%lX",
 +						    requested_dir_name, flags);
 +			else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
 +				 !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
 +				 !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
 +				 !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD))
-+				tmy_audit_mount_log(1, is_enforce,
++				tmy_audit_mount_log(1, profile, mode,
 +						    "mount %s %s 0x%lX",
 +						    type, requested_dir_name,
 +						    flags);
 +			else
-+				tmy_audit_mount_log(1, is_enforce,
++				tmy_audit_mount_log(1, profile, mode,
 +						    "mount %s on %s 0x%lX",
 +						    type, requested_dir_name,
 +						    flags);
@@ -461,10 +468,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +
 +		if (error)
-+			error = tmy_mount_perm_error(dev_name, dir_name,
-+						     type, flags, is_enforce);
++			error = tmy_mount_perm_error(dev_name, dir_name, type,
++						     flags, profile, mode);
 +
-+		if (error && tmy_accept(TMY_RESTRICT_MOUNT, NULL)) {
++		if (error && mode == 1) {
 +			tmy_add_mount_acl(need_dev ?
 +					  requested_dev_name : dev_name,
 +					  requested_dir_name, type, flags, 0);
@@ -603,11 +610,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_conceal_mount(struct nameidata *nd)
 +{
 +	int flag = 0;
++	const u8 profile = TMY_SECURITY->domain->profile;
++	const unsigned int mode = tmy_flags(TMY_DENY_CONCEAL_MOUNT);
++	const bool is_enforce = (mode == 3);
 +	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
-+	bool is_enforce;
 +	char *dir;
 +
-+	if (!tmy_flags(TMY_DENY_CONCEAL_MOUNT))
++	if (!mode)
 +		return 0;
 +
 +	if (namespace) {
@@ -629,7 +638,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +	}
 +
-+	is_enforce = tmy_enforce(TMY_DENY_CONCEAL_MOUNT);
 +	dir = tmy_realpath_dentry(nd->dentry, nd->mnt);
 +
 +	if (flag) {
@@ -637,7 +645,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (dir) {
 +			const char *exename = tmy_get_exe();
 +
-+			tmy_audit_mount_log(0, is_enforce, "mount %s", dir);
++			tmy_audit_mount_log(0, profile, mode, "mount %s", dir);
 +			if (is_enforce &&
 +			    tmy_supervisor("# %s is requesting\nmount on %s\n",
 +					   exename, dir) == 0)
@@ -651,7 +659,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			return error;
 +	} else {
 +		if (dir)
-+			tmy_audit_mount_log(1, is_enforce, "mount %s", dir);
++			tmy_audit_mount_log(1, profile, mode, "mount %s", dir);
 +		tmy_free(dir);
 +	}
 +
@@ -717,9 +725,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int error = -EPERM;
 +	const char *dir0;
-+	const bool is_enforce = tmy_enforce(TMY_RESTRICT_UMOUNT);
++	const u8 profile = TMY_SECURITY->domain->profile;
++	const unsigned int mode = tmy_flags(TMY_RESTRICT_UMOUNT);
++	const bool is_enforce = (mode == 3);
 +
-+	if (!tmy_flags(TMY_RESTRICT_UMOUNT))
++	if (!mode)
 +		return 0;
 +
 +	dir0 = tmy_realpath_dentry(mnt->mnt_root, mnt);
@@ -744,7 +754,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (found) {
 +			const char *exename = tmy_get_exe();
 +
-+			tmy_audit_mount_log(0, is_enforce, "umount %s", dir0);
++			tmy_audit_mount_log(0, profile, mode, "umount %s",
++					    dir0);
 +			if (is_enforce &&
 +			    tmy_supervisor("# %s is requesting\nunmount %s\n",
 +					   exename, dir0) == 0)
@@ -752,7 +763,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +			tmy_free(exename);
 +		} else {
-+			tmy_audit_mount_log(1, is_enforce, "umount %s", dir0);
++			tmy_audit_mount_log(1, profile, mode, "umount %s",
++					    dir0);
 +			error = 0;
 +		}
 +
@@ -877,13 +889,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_pivot_root_perm(struct nameidata *old_nd, struct nameidata *new_nd)
 +{
 +	int error = -EPERM;
++	const u8 profile = TMY_SECURITY->domain->profile;
++	const unsigned int mode = tmy_flags(TMY_RESTRICT_PIVOT_ROOT);
++	const bool is_enforce = (mode == 3);
 +	char *old_root;
 +	char *new_root;
-+	bool is_enforce;
 +	struct path_info old_root_dir;
 +	struct path_info new_root_dir;
 +
-+	if (!tmy_flags(TMY_RESTRICT_PIVOT_ROOT))
++	if (!mode)
 +		return 0;
 +
 +	old_root = tmy_realpath_dentry(old_nd->dentry, old_nd->mnt);
@@ -911,9 +925,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +out: ;
-+
-+	is_enforce = tmy_enforce(TMY_RESTRICT_PIVOT_ROOT);
-+	tmy_audit_mount_log(!error, is_enforce, "pivot_root %s %s",
++	tmy_audit_mount_log(!error, profile, mode, "pivot_root %s %s",
 +			    new_root, old_root);
 +
 +	if (error) {
@@ -927,8 +939,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (exename)
 +			tmy_free(exename);
 +
-+		if (!is_enforce && tmy_accept(TMY_RESTRICT_PIVOT_ROOT, NULL)
-+		    && old_root && new_root) {
++		if (!is_enforce && mode == 1 && old_root && new_root) {
 +			tmy_add_pivot_root_acl(old_root, new_root, 0);
 +			tmy_update_counter(TMY_UPDATE_SYSTEMPOLICY);
 +		}

@@ -8,13 +8,14 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
----
- security/tomoyo/signal.c |  219 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 219 insertions(+)
+ security/tomoyo/signal.c |  222 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 222 insertions(+)
 
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/signal.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/signal.c	2007-10-27 21:13:06.000000000 +0900
-@@ -0,0 +1,219 @@
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/signal.c	2007-10-29 10:39:31.000000000 +0900
+@@ -0,0 +1,222 @@
 +/*
 + * security/tomoyo/signal.c
 + *
@@ -29,7 +30,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_audit_signal_log(const int signal,
 +				const struct path_info *dest_domain,
 +				const bool is_granted,
-+				const bool is_enforce)
++				const u8 profile,
++				const unsigned int mode)
 +{
 +	char *buf;
 +	int len;
@@ -43,7 +45,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	len = dest_domain->total_len;
-+	buf = tmy_init_audit_log(&len, is_enforce);
++	buf = tmy_init_audit_log(&len, profile, mode);
 +
 +	if (!buf)
 +		return -ENOMEM;
@@ -139,15 +141,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const char *dest_pattern;
 +	struct acl_info *ptr;
 +	const u16 hash = sig;
-+	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_SIGNAL);
++	const u8 profile = domain->profile;
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_SIGNAL);
++	const bool is_enforce = (mode == 3);
 +	bool found = 0;
 +
-+	if (!tmy_flags(TMY_MAC_FOR_SIGNAL))
++	if (!mode)
 +		return 0;
 +	if (!sig)
 +		return 0; /* No check for NULL signal. */
 +	if (current->pid == pid) {
-+		tmy_audit_signal_log(sig, domain->domainname, 1, is_enforce);
++		tmy_audit_signal_log(sig, domain->domainname, 1, profile, mode);
 +		return 0; /* No check for self. */
 +	}
 +
@@ -171,7 +175,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	if (domain == dest) {
-+		tmy_audit_signal_log(sig, dest->domainname, 1, is_enforce);
++		tmy_audit_signal_log(sig, dest->domainname, 1, profile, mode);
 +		return 0;
 +	}
 +
@@ -194,7 +198,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +	}
 +
-+	tmy_audit_signal_log(sig, dest->domainname, found, is_enforce);
++	tmy_audit_signal_log(sig, dest->domainname, found, profile, mode);
 +
 +	if (found)
 +		return 0;
@@ -203,7 +207,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return tmy_supervisor("%s\n" TMY_ALLOW_SIGNAL "%d %s\n",
 +				      domain->domainname->name,
 +				      sig, dest_pattern);
-+	if (tmy_accept(TMY_MAC_FOR_SIGNAL, domain))
++	if (mode == 1 && tmy_quota())
 +		tmy_add_signal_entry(sig, dest_pattern, domain, NULL, 0);
 +
 +	return 0;

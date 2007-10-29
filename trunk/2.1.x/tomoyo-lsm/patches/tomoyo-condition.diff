@@ -4,12 +4,13 @@ process's UID,GID etc. and/or requested pathname's UID/GID.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
----
  security/tomoyo/condition.c |  680 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 680 insertions(+)
+ 1 files changed, 680 insertions(+)
 
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/condition.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/condition.c	2007-10-27 20:48:10.000000000 +0900
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/condition.c	2007-10-29 09:48:53.000000000 +0900
 @@ -0,0 +1,680 @@
 +/*
 + * security/tomoyo/condition.c
