@@ -1,0 +1,455 @@
+Capability access control functions for TOMOYO Linux.
+TOMOYO Linux checks permission for non-POSIX capability
+so that the number of capabilities won't be limited to 32 or 64.
+
+Each permission can be automatically accumulated into
+the policy of each domain using 'learning mode'.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+ security/tomoyo/capability.c |  364 +++++++++++++++++++++++--------------------
+ 1 files changed, 200 insertions(+), 164 deletions(-)
+
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/capability.c
+===================================================================
+--- linux-2.6.23-tomoyo-2.1.orig/security/tomoyo/capability.c	2007-10-29 09:46:07.000000000 +0900
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/capability.c	2007-10-29 15:46:04.000000000 +0900
+@@ -1,129 +1,109 @@
+ /*
+- * fs/tomoyo_capability.c
+- *
+- * Implementation of the Domain-Based Mandatory Access Control.
+- *
+- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+- *
+- * Version: 1.5.2-pre   2007/10/19
+- *
+- * This file is applicable to both 2.4.30 and 2.6.11 and later.
+- * See README.ccs for ChangeLog.
++ * security/tomoyo/capability.c
+  *
++ * Capability access control functions for TOMOYO Linux.
+  */
+-/***** TOMOYO Linux start. *****/
+-
+-#include <linux/ccs_common.h>
+-#include <linux/tomoyo.h>
+-#include <linux/realpath.h>
+-
+-/*************************  VARIABLES  *************************/
+-
+-extern struct semaphore domain_acl_lock;
+-extern int sbin_init_started;
++#include "tomoyo.h"
++#include "realpath.h"
++#include <linux/hardirq.h>
+ 
+ static struct {
+ 	const char *keyword;
+ 	unsigned int current_value;
+-	const char *capability_name;
+-} capability_control_array[TOMOYO_MAX_CAPABILITY_INDEX] = { /* domain_policy.txt */
+-	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = { "inet_tcp_create", 0,     "socket(PF_INET, SOCK_STREAM)" },
+-	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = { "inet_tcp_listen", 0,     "listen(PF_INET, SOCK_STREAM)" },
+-	[TOMOYO_INET_STREAM_SOCKET_CONNECT] = { "inet_tcp_connect", 0,    "connect(PF_INET, SOCK_STREAM)" },
+-	[TOMOYO_USE_INET_DGRAM_SOCKET]      = { "use_inet_udp", 0,        "socket(PF_INET, SOCK_DGRAM)" },
+-	[TOMOYO_USE_INET_RAW_SOCKET]        = { "use_inet_ip", 0,         "socket(PF_INET, SOCK_RAW)" },
+-	[TOMOYO_USE_ROUTE_SOCKET]           = { "use_route", 0,           "socket(PF_ROUTE)" },
+-	[TOMOYO_USE_PACKET_SOCKET]          = { "use_packet", 0,          "socket(PF_PACKET)" },
+-	[TOMOYO_SYS_MOUNT]                  = { "SYS_MOUNT", 0,           "sys_mount()" },
+-	[TOMOYO_SYS_UMOUNT]                 = { "SYS_UMOUNT", 0,          "sys_umount()" },
+-	[TOMOYO_SYS_REBOOT]                 = { "SYS_REBOOT", 0,          "sys_reboot()" },
+-	[TOMOYO_SYS_CHROOT]                 = { "SYS_CHROOT", 0,          "sys_chroot()" },
+-	[TOMOYO_SYS_KILL]                   = { "SYS_KILL", 0,            "sys_kill()" },
+-	[TOMOYO_SYS_VHANGUP]                = { "SYS_VHANGUP", 0,         "sys_vhangup()" },
+-	[TOMOYO_SYS_SETTIME]                = { "SYS_TIME", 0,            "sys_settimeofday()" },
+-	[TOMOYO_SYS_NICE]                   = { "SYS_NICE", 0,            "sys_nice()" },
+-	[TOMOYO_SYS_SETHOSTNAME]            = { "SYS_SETHOSTNAME", 0,     "sys_sethostname()" },
+-	[TOMOYO_USE_KERNEL_MODULE]          = { "use_kernel_module", 0,   "kernel_module" },
+-	[TOMOYO_CREATE_FIFO]                = { "create_fifo", 0,         "mknod(FIFO)" },
+-	[TOMOYO_CREATE_BLOCK_DEV]           = { "create_block_dev", 0,    "mknod(BDEV)" },
+-	[TOMOYO_CREATE_CHAR_DEV]            = { "create_char_dev", 0,     "mknod(CDEV)" },
+-	[TOMOYO_CREATE_UNIX_SOCKET]         = { "create_unix_socket", 0,  "mknod(SOCKET)" },
+-	[TOMOYO_SYS_LINK]                   = { "SYS_LINK", 0,            "sys_link()"  },
+-	[TOMOYO_SYS_SYMLINK]                = { "SYS_SYMLINK", 0,         "sys_symlink()" },
+-	[TOMOYO_SYS_RENAME]                 = { "SYS_RENAME", 0,          "sys_rename()" },
+-	[TOMOYO_SYS_UNLINK]                 = { "SYS_UNLINK", 0,          "sys_unlink()" },
+-	[TOMOYO_SYS_CHMOD]                  = { "SYS_CHMOD", 0,           "sys_chmod()" },
+-	[TOMOYO_SYS_CHOWN]                  = { "SYS_CHOWN", 0,           "sys_chown()" },
+-	[TOMOYO_SYS_IOCTL]                  = { "SYS_IOCTL", 0,           "sys_ioctl()" },
+-	[TOMOYO_SYS_KEXEC_LOAD]             = { "SYS_KEXEC_LOAD", 0,      "sys_kexec_load()" },
+-	[TOMOYO_SYS_PIVOT_ROOT]             = { "SYS_PIVOT_ROOT", 0,      "sys_pivot_root()" },
++} capability_control_array[TMY_MAX_CAPABILITY_INDEX] = {
++	[TMY_INET_STREAM_SOCKET_CREATE]  = { "inet_tcp_create", 0 },    /* OK */
++	[TMY_INET_STREAM_SOCKET_LISTEN]  = { "inet_tcp_listen", 0 },    /* OK */
++	[TMY_INET_STREAM_SOCKET_CONNECT] = { "inet_tcp_connect", 0 },   /* OK */
++	[TMY_USE_INET_DGRAM_SOCKET]      = { "use_inet_udp", 0 },       /* OK */
++	[TMY_USE_INET_RAW_SOCKET]        = { "use_inet_ip", 0 },        /* OK */
++	[TMY_USE_ROUTE_SOCKET]           = { "use_route", 0 },          /* OK */
++	[TMY_USE_PACKET_SOCKET]          = { "use_packet", 0 },         /* OK */
++	[TMY_SYS_MOUNT]                  = { "SYS_MOUNT", 0 },          /* OK */
++	[TMY_SYS_UMOUNT]                 = { "SYS_UMOUNT", 0 },         /* OK */
++	[TMY_SYS_REBOOT]                 = { "SYS_REBOOT", 0 },       /* Over */
++	[TMY_SYS_CHROOT]                 = { "SYS_CHROOT", 0 },         /* OK */
++	[TMY_SYS_KILL]                   = { "SYS_KILL", 0 },         /* None */
++	[TMY_SYS_VHANGUP]                = { "SYS_VHANGUP", 0 },      /* Over */
++	[TMY_SYS_SETTIME]                = { "SYS_TIME", 0 },         /* Over */
++	[TMY_SYS_NICE]                   = { "SYS_NICE", 0 },           /* OK */
++	[TMY_SYS_SETHOSTNAME]            = { "SYS_SETHOSTNAME", 0 },  /* None */
++	[TMY_USE_KERNEL_MODULE]         = { "use_kernel_module", 0 }, /* Over */
++	[TMY_CREATE_FIFO]                = { "create_fifo", 0 },        /* OK */
++	[TMY_CREATE_BLOCK_DEV]           = { "create_block_dev", 0 },   /* OK */
++	[TMY_CREATE_CHAR_DEV]            = { "create_char_dev", 0 },    /* OK */
++	[TMY_CREATE_UNIX_SOCKET]         = { "create_unix_socket", 0 }, /* OK */
++	[TMY_SYS_LINK]                   = { "SYS_LINK", 0 },           /* OK */
++	[TMY_SYS_SYMLINK]                = { "SYS_SYMLINK", 0 },        /* OK */
++	[TMY_SYS_RENAME]                 = { "SYS_RENAME", 0 },         /* OK */
++	[TMY_SYS_UNLINK]                 = { "SYS_UNLINK", 0 },         /* OK */
++	[TMY_SYS_CHMOD]                  = { "SYS_CHMOD", 0 },          /* OK */
++	[TMY_SYS_CHOWN]                  = { "SYS_CHOWN", 0 },          /* OK */
++	[TMY_SYS_IOCTL]                  = { "SYS_IOCTL", 0 },        /* Over */
++	[TMY_SYS_KEXEC_LOAD]             = { "SYS_KEXEC_LOAD", 0 },   /* None */
++	[TMY_SYS_PIVOT_ROOT]             = { "SYS_PIVOT_ROOT", 0 },     /* OK */
+ };
+ 
+ struct profile {
+-	unsigned char value[TOMOYO_MAX_CAPABILITY_INDEX];
++	unsigned char value[TMY_MAX_CAPABILITY_INDEX];
+ };
+ 
+-static struct profile *profile_ptr[MAX_PROFILES];
++static struct profile *profile_ptr[TMY_MAX_PROFILES];
+ 
+ /*************************  UTILITY FUNCTIONS  *************************/
+ 
+-const char *capability2keyword(const unsigned int capability)
++const char *tmy_capability2keyword(const unsigned int capability)
+ {
+-	return capability < TOMOYO_MAX_CAPABILITY_INDEX	? capability_control_array[capability].keyword : NULL;
+-}
+-
+-static const char *capability2name(const unsigned int capability)
+-{
+-	return capability < TOMOYO_MAX_CAPABILITY_INDEX	? capability_control_array[capability].capability_name : NULL;
++	return capability < TMY_MAX_CAPABILITY_INDEX ?
++		capability_control_array[capability].keyword : NULL;
+ }
+ 
+ /* Check whether the given capability control is enabled. */
+-static unsigned int CheckCapabilityFlags(const unsigned int index)
++static unsigned int tmy_capability_flags(const unsigned int index)
+ {
+-	const u8 profile = current->domain_info->profile;
+-	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
+-#if MAX_PROFILES != 256
+-		&& profile < MAX_PROFILES
++	const u8 profile = TMY_SECURITY->domain->profile;
++	/* All operations might sleep. See tmy_supervisor(). */
++	might_sleep();
++	if (in_interrupt())
++		return 0;
++	return sbin_init_started && index < TMY_MAX_CAPABILITY_INDEX
++#if TMY_MAX_PROFILES != 256
++		&& profile < TMY_MAX_PROFILES
+ #endif
+ 		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
+ }
+ 
+-/* Check whether the given capability control is enforce mode. */
+-static bool CheckCapabilityEnforce(const unsigned int index)
++static struct profile *tmy_new_capability_profile(const unsigned int profile)
+ {
+-	return CheckCapabilityFlags(index) == 3;
+-}
+-
+-/* Check whether the given capability control is learning mode. */
+-static bool CheckCapabilityAccept(const unsigned int index, struct domain_info * const domain)
+-{
+-	if (CheckCapabilityFlags(index) != 1) return 0;
+-	return CheckDomainQuota(domain);
+-}
+-
+-static struct profile *FindOrAssignNewProfile(const unsigned int profile)
+-{
+-	static DECLARE_MUTEX(profile_lock);
+-	struct profile *ptr = NULL;
+-	down(&profile_lock);
+-	if (profile < MAX_PROFILES && (ptr = profile_ptr[profile]) == NULL) {
+-		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
+-			int i;
+-			for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) ptr->value[i] = capability_control_array[i].current_value;
+-			mb(); /* Instead of using spinlock. */
+-			profile_ptr[profile] = ptr;
+-		}
+-	}
+-	up(&profile_lock);
++	static DEFINE_MUTEX(mutex);
++	struct profile *ptr;
++	int i;
++	if (profile >= TMY_MAX_PROFILES)
++		return NULL;
++	mutex_lock(&mutex);
++	ptr = profile_ptr[profile];
++	if (ptr)
++		goto ok;
++	ptr = tmy_alloc_element(sizeof(*ptr));
++	if (!ptr)
++		goto ok;
++	for (i = 0; i < TMY_MAX_CAPABILITY_INDEX; i++)
++		ptr->value[i] = capability_control_array[i].current_value;
++	mb(); /* Avoid out-of-order execution. */
++	profile_ptr[profile] = ptr;
++ok: ;
++	mutex_unlock(&mutex);
+ 	return ptr;
+ }
+ 
+-int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile)
++int tmy_set_capability_profile(const char *data, unsigned int value,
++			       const unsigned int profile)
+ {
+ 	int i;
+-	struct profile *ptr = FindOrAssignNewProfile(profile);
+-	if (!ptr) return -EINVAL;
+-	for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) {
++	struct profile *ptr;
++	ptr = tmy_new_capability_profile(profile);
++	if (!ptr)
++		return -EINVAL;
++	for (i = 0; i < TMY_MAX_CAPABILITY_INDEX; i++) {
+ 		if (strcmp(data, capability_control_array[i].keyword)) continue;
+ 		if (value > 3) value = 3;
+ 		ptr->value[i] = value;
+@@ -132,108 +112,164 @@ int SetCapabilityStatus(const char *data
+ 	return -EINVAL;
+ }
+ 
+-int ReadCapabilityStatus(struct io_buffer *head)
++int tmy_read_capability_profile(struct io_buffer *head)
+ {
+ 	int step;
+-	for (step = head->read_step; step < MAX_PROFILES * TOMOYO_MAX_CAPABILITY_INDEX; step++) {
+-		const int i = step / TOMOYO_MAX_CAPABILITY_INDEX, j = step % TOMOYO_MAX_CAPABILITY_INDEX;
++	for (step = head->read_step;
++	     step < TMY_MAX_PROFILES * TMY_MAX_CAPABILITY_INDEX; step++) {
++		const int i = step / TMY_MAX_CAPABILITY_INDEX;
++		const int j = step % TMY_MAX_CAPABILITY_INDEX;
+ 		const struct profile *profile = profile_ptr[i];
+ 		head->read_step = step;
+-		if (!profile) continue;
+-		if (io_printf(head, "%u-" KEYWORD_MAC_FOR_CAPABILITY "%s=%u\n", i, capability_control_array[j].keyword, profile->value[j])) break;
++		if (!profile)
++			continue;
++		if (tmy_io_printf(head, "%u-" TMY_MAC_FOR_CAPABILITY "%s=%u\n",
++				  i, capability_control_array[j].keyword,
++				  profile->value[j]))
++			break;
+ 	}
+-	return step < MAX_PROFILES * TOMOYO_MAX_CAPABILITY_INDEX ? -ENOMEM : 0;
++	return step < TMY_MAX_PROFILES * TMY_MAX_CAPABILITY_INDEX ? -ENOMEM : 0;
+ }
+ 
+ /*************************  AUDIT FUNCTIONS  *************************/
+ 
+-static int AuditCapabilityLog(const unsigned int capability, const bool is_granted)
++static int tmy_audit_capability_log(const unsigned int capability,
++				    const bool is_granted,
++				    const u8 profile, const unsigned int mode)
+ {
+ 	char *buf;
+-	int len = 64;
+-	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
+-	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
+-	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_CAPABILITY "%s\n", capability2keyword(capability));
+-	return WriteAuditLog(buf, is_granted);
++	int len = 64 ;
++
++	if (is_granted) {
++		if (!tmy_audit_grant())
++			return 0;
++	} else {
++		if (!tmy_audit_reject())
++			return 0;
++	}
++
++	buf = tmy_init_audit_log(&len, profile, mode);
++
++	if (!buf)
++		return -ENOMEM;
++
++	snprintf(buf + strlen(buf),
++		 len - strlen(buf) - 1,
++		 TMY_ALLOW_CAPABILITY "%s\n",
++		 tmy_capability2keyword(capability));
++
++	return tmy_write_audit_log(buf, is_granted);
+ }
+ 
+ /*************************  CAPABILITY ACL HANDLER  *************************/
+ 
+-static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
++static int tmy_add_capability_acl(const unsigned int capability,
++				  struct domain_info *domain,
++				  const struct condition_list *condition,
++				  const bool is_delete)
+ {
+ 	struct acl_info *ptr;
++	struct capability_acl *acl;
+ 	int error = -ENOMEM;
+ 	const u16 hash = capability;
+-	if (!domain) return -EINVAL;
+-	down(&domain_acl_lock);
+-	if (!is_delete) {
+-		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
+-		while (1) {
+-			struct capability_acl_record *new_ptr = (struct capability_acl_record *) ptr;
+-			if (ptr->type == TYPE_CAPABILITY_ACL && new_ptr->capability == hash && ptr->cond == condition) {
+-				ptr->is_deleted = 0;
+-				/* Found. Nothing to do. */
+-				error = 0;
+-				break;
+-			}
+-			if (ptr->next) {
+-				ptr = ptr->next;
+-				continue;
+-			}
+-		first_entry: ;
+-			/* Not found. Append it to the tail. */
+-			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
+-			new_ptr->head.type = TYPE_CAPABILITY_ACL;
+-			new_ptr->capability = hash;
+-			new_ptr->head.cond = condition;
+-			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
+-			break;
+-		}
+-	} else {
+-		error = -ENOENT;
+-		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+-			struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
+-			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || ptr2->capability != hash || ptr->cond != condition) continue;
+-			error = DelDomainACL(ptr);
+-			break;
++	if (!domain)
++		return -EINVAL;
++	mutex_lock(&domain_acl_lock);
++	if (is_delete)
++		goto remove;
++
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = (struct capability_acl *) ptr;
++		if (ptr->type == TMY_TYPE_CAPABILITY_ACL
++		    && acl->capability == hash
++		    && ptr->cond == condition) {
++			ptr->is_deleted = 0;
++			/* Found. Nothing to do. */
++			error = 0;
++			tmy_update_counter(TMY_UPDATE_DOMAINPOLICY);
++			goto ok;
+ 		}
+ 	}
+-	up(&domain_acl_lock);
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++	acl->head.type = TMY_TYPE_CAPABILITY_ACL;
++	acl->head.cond = condition;
++	acl->capability = hash;
++	error = tmy_add_acl(domain, (struct acl_info *) acl);
++	goto ok;
++remove: ;
++	error = -ENOENT;
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = (struct capability_acl *) ptr;
++		if (ptr->type != TMY_TYPE_CAPABILITY_ACL || ptr->is_deleted ||
++		    acl->capability != hash || ptr->cond != condition) continue;
++		error = tmy_del_acl(ptr);
++		break;
++	}
++ok: ;
++	mutex_unlock(&domain_acl_lock);
+ 	return error;
+ }
+ 
+-int CheckCapabilityACL(const unsigned int capability)
++/**
++ * tmy_capable - check permission for capability.
++ * @capability: capability index.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
++int tmy_capable(const unsigned int capability)
+ {
+-	struct domain_info * const domain = current->domain_info;
++	struct domain_info * const domain = TMY_SECURITY->domain;
+ 	struct acl_info *ptr;
+-	const bool is_enforce = CheckCapabilityEnforce(capability);
++	const u8 profile = domain->profile;
++	const unsigned int mode = tmy_capability_flags(capability);
++	const bool is_enforce = (mode == 3);
+ 	const u16 hash = capability;
+-	if (!CheckCapabilityFlags(capability)) return 0;
+-	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+-		struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
+-		if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || ptr2->capability != hash || CheckCondition(ptr->cond, NULL)) continue;
+-		AuditCapabilityLog(capability, 1);
++	if (!mode)
++		return 0;
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct capability_acl *acl = (struct capability_acl *) ptr;
++		if (ptr->type != TMY_TYPE_CAPABILITY_ACL || ptr->is_deleted
++		    || acl->capability != hash
++		    || tmy_check_condition(ptr->cond, NULL))
++			continue;
++		tmy_audit_capability_log(capability, 1, profile, mode);
+ 		return 0;
+ 	}
+-	if (TomoyoVerboseMode()) {
+-		printk("TOMOYO-%s: %s denied for %s\n", GetMSG(is_enforce), capability2name(capability), GetLastName(domain));
+-	}
+-	AuditCapabilityLog(capability, 0);
+-	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, capability2keyword(capability));
+-	if (CheckCapabilityAccept(capability, domain)) AddCapabilityACL(capability, domain, NULL, 0);
++	tmy_audit_capability_log(capability, 0, profile, mode);
++	if (is_enforce)
++		return tmy_supervisor("%s\n" TMY_ALLOW_CAPABILITY "%s\n",
++				      domain->domainname->name,
++				      tmy_capability2keyword(capability));
++	if (mode == 1 && tmy_quota())
++		tmy_add_capability_acl(capability, domain, NULL, 0);
+ 	return 0;
+ }
+-EXPORT_SYMBOL(CheckCapabilityACL);
+ 
+-int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
++/**
++ * tmy_add_capability_policy - add or delete capability policy.
++ * @data:      a line to parse.
++ * @domain:    pointer to "struct domain_info".
++ * @cond:      pointer to "struct condition_list". May be NULL.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
++int tmy_add_capability_policy(char *data, struct domain_info *domain,
++			      const struct condition_list *cond,
++			      const bool is_delete)
+ {
+ 	unsigned int capability;
+-	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {
+-		if (strcmp(data, capability_control_array[capability].keyword) == 0) {
+-			return AddCapabilityACL(capability, domain, condition, is_delete);
+-		}
++	for (capability = 0; capability < TMY_MAX_CAPABILITY_INDEX;
++	     capability++) {
++		if (strcmp(data, capability_control_array[capability].keyword))
++			continue;
++		return tmy_add_capability_acl(capability, domain,
++					      cond, is_delete);
+ 	}
+ 	return -EINVAL;
+ }
+-
+-/***** TOMOYO Linux end. *****/
