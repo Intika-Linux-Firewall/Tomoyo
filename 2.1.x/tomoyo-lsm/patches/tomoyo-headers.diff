@@ -2,13 +2,14 @@ Data structures and prototype defitions for TOMOYO Linux.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
----
  security/tomoyo/include/realpath.h |   43 ++
- security/tomoyo/include/tomoyo.h   |  566 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 609 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  649 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 692 insertions(+)
 
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/include/realpath.h
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/realpath.h	2007-10-26 21:52:05.000000000 +0900
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/include/realpath.h	2007-10-29 09:48:53.000000000 +0900
 @@ -0,0 +1,43 @@
 +/*
 + * security/tomoyo/include/realpath.h
@@ -53,9 +54,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +char *sysctlpath_from_table(struct ctl_table *table);
 +
 +#endif
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/include/tomoyo.h
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/include/tomoyo.h	2007-10-27 23:40:20.000000000 +0900
-@@ -0,0 +1,566 @@
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/include/tomoyo.h	2007-10-29 15:27:55.000000000 +0900
+@@ -0,0 +1,649 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -65,7 +68,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#ifndef _TOMOYO_H
 +#define _TOMOYO_H
 +
-+#define TOMOYO_VERSION_CODE "2.1.0-rc6"
++#define TOMOYO_VERSION_CODE "2.1.0-rc7"
 +
 +#include <linux/string.h>
 +#include <linux/mm.h>
@@ -110,7 +113,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct list_head *next = head;
 +	new->next = next;
 +	new->prev = prev;
-+	mb();
++	mb(); /* Avoid out-of-order execution. */
 +	next->prev = new;
 +	prev->next = new;
 +}
@@ -296,6 +299,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *domainname;
 +};
 +
++struct capability_acl {
++	/* type = TYPE_CAPABILITY_ACL */
++	struct acl_info head;
++	u16 capability;
++};
++
 +/*************************  Keywords for ACLs.  *************************/
 +
 +#define TMY_AGGREGATOR               	"aggregator "
@@ -348,6 +357,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TMY_ALLOW_SIGNAL        "allow_signal "
 +#define TMY_ALLOW_SIGNAL_LEN    (sizeof(TMY_ALLOW_SIGNAL) - 1)
 +
++#define TMY_ALLOW_CAPABILITY    "allow_capability "
++#define TMY_ALLOW_CAPABILITY_LEN  (sizeof(TMY_ALLOW_CAPABILITY) - 1)
++#define TMY_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
++#define TMY_MAC_FOR_CAPABILITY_LEN   (sizeof(TMY_MAC_FOR_CAPABILITY) - 1)
++
 +/********************  Index numbers for Access Controls.  ********************/
 +
 +#define TMY_COMMENT              0
@@ -378,6 +392,70 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TMY_NETWORK_ACL_TCP_ACCEPT  5
 +#define TMY_NETWORK_ACL_RAW_BIND    6
 +#define TMY_NETWORK_ACL_RAW_CONNECT 7
++
++/*************  Index numbers for Capability Controls.  **********/
++
++/* socket(PF_INET or PF_INET6, SOCK_STREAM, *)                   */
++#define TMY_INET_STREAM_SOCKET_CREATE         0
++  /* listen() for PF_INET or PF_INET6, SOCK_STREAM               */
++#define TMY_INET_STREAM_SOCKET_LISTEN         1
++  /* connect() for PF_INET or PF_INET6, SOCK_STREAM              */
++#define TMY_INET_STREAM_SOCKET_CONNECT        2
++  /* socket(PF_INET or PF_INET6, SOCK_DGRAM, *)                  */
++#define TMY_USE_INET_DGRAM_SOCKET             3
++  /* socket(PF_INET or PF_INET6, SOCK_RAW, *)                    */
++#define TMY_USE_INET_RAW_SOCKET               4
++  /* socket(PF_ROUTE, *, *)                                      */
++#define TMY_USE_ROUTE_SOCKET                  5
++  /* socket(PF_PACKET, *, *)                                     */
++#define TMY_USE_PACKET_SOCKET                 6
++  /* sys_mount()                                                 */
++#define TMY_SYS_MOUNT                         7
++  /* sys_umount()                                                */
++#define TMY_SYS_UMOUNT                        8
++  /* sys_reboot()                                                */
++#define TMY_SYS_REBOOT                        9
++  /* sys_chroot()                                                */
++#define TMY_SYS_CHROOT                       10
++  /* sys_kill(), sys_tkill(), sys_tgkill()                       */
++#define TMY_SYS_KILL                         11
++  /* sys_vhangup()                                               */
++#define TMY_SYS_VHANGUP                      12
++  /* do_settimeofday(), sys_adjtimex()                           */
++#define TMY_SYS_SETTIME                      13
++  /* sys_nice(), sys_setpriority()                               */
++#define TMY_SYS_NICE                         14
++  /* sys_sethostname(), sys_setdomainname()                      */
++#define TMY_SYS_SETHOSTNAME                  15
++  /* sys_create_module(), sys_init_module(), sys_delete_module() */
++#define TMY_USE_KERNEL_MODULE                16
++  /* sys_mknod(S_IFIFO)                                          */
++#define TMY_CREATE_FIFO                      17
++  /* sys_mknod(S_IFBLK)                                          */
++#define TMY_CREATE_BLOCK_DEV                 18
++  /* sys_mknod(S_IFCHR)                                          */
++#define TMY_CREATE_CHAR_DEV                  19
++  /* sys_mknod(S_IFSOCK)                                         */
++#define TMY_CREATE_UNIX_SOCKET               20
++  /* sys_link()                                                  */
++#define TMY_SYS_LINK                         21
++  /* sys_symlink()                                               */
++#define TMY_SYS_SYMLINK                      22
++  /* sys_rename()                                                */
++#define TMY_SYS_RENAME                       23
++  /* sys_unlink()                                                */
++#define TMY_SYS_UNLINK                       24
++  /* sys_chmod(), sys_fchmod()                                   */
++#define TMY_SYS_CHMOD                        25
++  /* sys_chown(), sys_fchown(), sys_lchown()                     */
++#define TMY_SYS_CHOWN                        26
++  /* sys_ioctl(), compat_sys_ioctl()                             */
++#define TMY_SYS_IOCTL                        27
++  /* sys_kexec_load()                                            */
++#define TMY_SYS_KEXEC_LOAD                   28
++  /* sys_pivot_root()                                            */
++#define TMY_SYS_PIVOT_ROOT                   29
++#define TMY_MAX_CAPABILITY_INDEX             30
 +
 +/********************  Index numbers for updates counter.  ********************/
 +
@@ -463,6 +541,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			 const struct condition_list *cond,
 +			 const bool is_delete);
 +int tmy_add_acl(struct domain_info *domain, struct acl_info *acl);
++int tmy_add_capability_policy(char *data,
++			      struct domain_info *domain,
++			      const struct condition_list *cond,
++			      const bool is_delete);
 +int tmy_add_domain_initializer_policy(char *data,
 +				      const bool is_not,
 +				      const bool is_delete);
@@ -507,6 +589,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_read_pattern_policy(struct io_buffer *head);
 +int tmy_read_address_group_policy(struct io_buffer *head);
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0);
++int tmy_capable(const unsigned int capability);
 +int tmy_network_listen_acl(const bool is_ipv6,
 +			   const u8 *address,
 +			   const u16 port);
@@ -536,7 +619,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			  const struct condition_list *cond,
 +			  const bool is_delete);
 +
-+char *tmy_init_audit_log(int *len, const unsigned int mode);
++char *tmy_init_audit_log(int *len, const u8 profile, const unsigned int mode);
 +int tmy_write_audit_log(char *log, const bool is_granted);
 +int tmy_acltype2paths(const unsigned int acl_type);
 +int tmy_io_printf(struct io_buffer *head, const char *fmt, ...)
@@ -544,9 +627,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct domain_info *tmy_find_domain(const char *domainname);
 +struct domain_info *tmy_new_domain(const char *domainname, const u8 profile);
 +struct domain_info *tmy_undelete_domain(const char *domainname0);
-+bool tmy_accept(const unsigned int index,
-+		struct domain_info * const domain);
-+bool tmy_enforce(const unsigned int index);
++bool tmy_quota(void);
 +unsigned int tmy_flags(const unsigned int index);
 +bool tmy_audit_grant(void);
 +bool tmy_audit_reject(void);
@@ -554,6 +635,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +void *tmy_alloc(const size_t size);
 +void tmy_free(const void *p);
 +void tmy_fill_path_info(struct path_info *ptr);
++const char *tmy_capability2keyword(const unsigned int capability);
++int tmy_read_capability_profile(struct io_buffer *head);
++int tmy_set_capability_profile(const char *data, unsigned int value,
++			       const unsigned int profile);
 +
 +#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
 +int tmy_read_grant_log(struct io_buffer *head);
@@ -612,6 +697,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TMY_TYPE_ARGV0_ACL      101
 +#define TMY_TYPE_IP_NETWORK_ACL 103
 +#define TMY_TYPE_SIGNAL_ACL     104
++#define TMY_TYPE_CAPABILITY_ACL 105
 +
 +#define TMY_CHECK_READ_FOR_OPEN_EXEC 1
 +

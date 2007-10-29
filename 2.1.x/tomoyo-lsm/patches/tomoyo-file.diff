@@ -8,13 +8,14 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
----
- security/tomoyo/file.c | 1438 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1438 insertions(+)
+ security/tomoyo/file.c | 1453 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 1453 insertions(+)
 
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/file.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/file.c	2007-10-27 21:13:52.000000000 +0900
-@@ -0,0 +1,1438 @@
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/file.c	2007-10-29 10:40:12.000000000 +0900
+@@ -0,0 +1,1453 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -161,7 +162,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_audit_file_log(const struct path_info *filename,
 +			      const u8 perm,
 +			      const bool is_granted,
-+			      const bool is_enforce)
++			      const u8 profile,
++			      const unsigned int mode)
 +{
 +	char *buf;
 +	int len;
@@ -175,7 +177,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	len = filename->total_len + 8;
-+	buf = tmy_init_audit_log(&len, is_enforce);
++	buf = tmy_init_audit_log(&len, profile, mode);
 +
 +	if (!buf)
 +		return -ENOMEM;
@@ -193,7 +195,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			       const struct path_info *filename1,
 +			       const struct path_info *filename2,
 +			       const bool is_granted,
-+			       const bool is_enforce)
++			       const u8 profile,
++			       const unsigned int mode)
 +{
 +	char *buf;
 +	int len;
@@ -211,7 +214,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		(filename2 ? filename2->total_len : 0)
 +		+ 16;
 +
-+	buf = tmy_init_audit_log(&len, is_enforce);
++	buf = tmy_init_audit_log(&len, profile, mode);
 +	if (!buf)
 +		return -ENOMEM;
 +
@@ -827,14 +830,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int error = 0;
 +	struct domain_info * const domain = TMY_SECURITY->domain;
-+	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 profile = domain->profile;
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_FILE);
++	const bool is_enforce = (mode == 3);
 +
 +	if (!filename)
 +		return 0;
 +
 +	error = tmy_file_acl(filename, perm, obj);
 +
-+	tmy_audit_file_log(filename, perm, !error, is_enforce);
++	tmy_audit_file_log(filename, perm, !error, profile, mode);
 +
 +	if (!error)
 +		return error;
@@ -844,7 +849,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				       domain->domainname->name,
 +				       perm, filename->name);
 +
-+	else if (tmy_accept(TMY_MAC_FOR_FILE, domain)) {
++	else if (mode == 1 && tmy_quota()) {
 +		/* Don't use patterns if execution bit is on. */
 +		const struct path_info *patterned =
 +			((perm & 1) == 0) ?
@@ -1181,15 +1186,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int error;
 +	struct domain_info * const domain = TMY_SECURITY->domain;
-+	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 profile = domain->profile;
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_FILE);
++	const bool is_enforce = (mode == 3);
 +
-+	if (!tmy_flags(TMY_MAC_FOR_FILE))
++	if (!mode)
 +		return 0;
 +
 +	error = tmy_single_write_acl(operation, filename, obj);
 +
 +	tmy_audit_write_log(tmy_acltype2keyword(operation),
-+			    filename, NULL, !error, is_enforce);
++			    filename, NULL, !error, profile, mode);
 +
 +	if (!error)
 +		goto ok;
@@ -1200,7 +1207,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				       tmy_acltype2keyword(operation),
 +				       filename->name);
 +
-+	else if (tmy_accept(TMY_MAC_FOR_FILE, domain))
++	else if (mode == 1 && tmy_quota())
 +		tmy_add_single_write_acl(operation,
 +					 tmy_get_pattern(filename)->name,
 +					 domain, NULL, 0);
@@ -1253,9 +1260,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const int acc_mode = ACC_MODE(flag);
 +	int error = -ENOMEM;
 +	struct path_info *buf;
-+	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_FILE);
++	const bool is_enforce = (mode == 3);
 +
-+	if (!tmy_flags(TMY_MAC_FOR_FILE))
++	if (!mode)
 +		return 0;
 +	if (acc_mode == 0)
 +		return 0;
@@ -1311,9 +1319,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct obj_info obj;
 +	int error = -ENOMEM;
 +	struct path_info *buf;
-+	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_FILE);
++	const bool is_enforce = (mode == 3);
 +
-+	if (!tmy_flags(TMY_MAC_FOR_FILE))
++	if (!mode)
 +		return 0;
 +
 +	buf = tmy_get_path(dentry, mnt);
@@ -1353,9 +1362,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_rewrite_perm(struct file *filp)
 +{
 +	int error = -ENOMEM;
-+	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
-+	struct path_info *buf = tmy_get_path(filp->f_dentry, filp->f_vfsmnt);
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_FILE);
++	const bool is_enforce = (mode == 3);
++	struct path_info *buf;
 +
++	if (!mode)
++		return 0;
++
++	buf = tmy_get_path(filp->f_dentry, filp->f_vfsmnt);
 +	if (!buf)
 +		goto out;
 +
@@ -1399,9 +1413,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct path_info *buf1;
 +	struct path_info *buf2;
 +	struct domain_info * const domain = TMY_SECURITY->domain;
-+	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_FILE);
++	const u8 profile = domain->profile;
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_FILE);
++	const bool is_enforce = (mode == 3);
 +
-+	if (!tmy_flags(TMY_MAC_FOR_FILE))
++	if (!mode)
 +		return 0;
 +	buf1 = tmy_get_path(dentry1, mnt1);
 +	buf2 = tmy_get_path(dentry2, mnt2);
@@ -1430,7 +1446,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	error = tmy_double_write_acl(operation, buf1, buf2, &obj);
 +
 +	tmy_audit_write_log(tmy_acltype2keyword(operation),
-+			    buf1, buf2, !error, is_enforce);
++			    buf1, buf2, !error, profile, mode);
 +
 +	if (!error)
 +		goto out;
@@ -1440,7 +1456,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				       domain->domainname->name,
 +				       tmy_acltype2keyword(operation),
 +				       buf1->name, buf2->name);
-+	else if (tmy_accept(TMY_MAC_FOR_FILE, domain))
++	else if (mode == 1 && tmy_quota())
 +		tmy_add_double_write_acl(operation,
 +					 tmy_get_pattern(buf1)->name,
 +					 tmy_get_pattern(buf2)->name,

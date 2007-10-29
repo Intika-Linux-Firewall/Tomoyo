@@ -7,13 +7,14 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
----
- security/tomoyo/exec.c |  210 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 210 insertions(+)
+ security/tomoyo/exec.c |  213 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 213 insertions(+)
 
+Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/exec.c
+===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6/security/tomoyo/exec.c	2007-10-27 21:13:59.000000000 +0900
-@@ -0,0 +1,210 @@
++++ linux-2.6.23-tomoyo-2.1/security/tomoyo/exec.c	2007-10-29 10:40:21.000000000 +0900
+@@ -0,0 +1,213 @@
 +/*
 + * security/tomoyo/exec.c
 + *
@@ -28,7 +29,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_audit_argv0_log(const struct path_info *filename,
 +			       const char *argv0,
 +			       const bool is_granted,
-+			       const bool is_enforce)
++			       const u8 profile,
++			       const unsigned int mode)
 +{
 +	char *buf;
 +	int len;
@@ -42,7 +44,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	len = filename->total_len + strlen(argv0) + 8;
-+	buf = tmy_init_audit_log(&len, is_enforce);
++	buf = tmy_init_audit_log(&len, profile, mode);
 +
 +	if (!buf)
 +		return -ENOMEM;
@@ -169,16 +171,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0)
 +{
 +	int error = 0;
-+	const bool is_enforce = tmy_enforce(TMY_MAC_FOR_ARGV0);
++	const u8 profile = TMY_SECURITY->domain->profile;
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_ARGV0);
++	const bool is_enforce = (mode == 3);
 +
-+	if (!tmy_flags(TMY_MAC_FOR_ARGV0))
++	if (!mode)
 +		return 0;
 +	if (!filename || !argv0 || !*argv0)
 +		return 0;
 +
 +	error = tmy_argv0_acl(filename, argv0);
 +
-+	tmy_audit_argv0_log(filename, argv0, !error, is_enforce);
++	tmy_audit_argv0_log(filename, argv0, !error, profile, mode);
 +
 +	if (error) {
 +		struct domain_info * const domain = TMY_SECURITY->domain;
@@ -188,7 +192,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					       domain->domainname->name,
 +					       filename->name, argv0);
 +
-+		else if (tmy_accept(TMY_MAC_FOR_ARGV0, domain))
++		else if (mode == 1 && tmy_quota())
 +			tmy_add_argv0_entry(filename->name, argv0, domain,
 +					    NULL, 0);
 +
