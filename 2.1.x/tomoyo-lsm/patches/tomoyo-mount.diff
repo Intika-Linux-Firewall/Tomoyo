@@ -8,12 +8,12 @@ the policy using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/mount.c |  989 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 989 insertions(+)
+ security/tomoyo/mount.c |  987 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 987 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/mount.c	2007-11-01 13:11:06.446312376 +0900
-@@ -0,0 +1,989 @@
++++ linux-2.6.23/security/tomoyo/mount.c	2007-11-01 17:31:24.884251632 +0900
+@@ -0,0 +1,987 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -22,13 +22,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#include "tomoyo.h"
 +#include "realpath.h"
-+#include <linux/namei.h>
-+#include <linux/version.h>
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
-+#include <linux/mount.h>
-+#include <linux/mnt_namespace.h>
-+#else
-+#include <linux/namespace.h>
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
++static inline void put_filesystem(struct file_system_type *fs)
++{
++	module_put(fs->owner);
++}
++#endif
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)
++#define MS_UNBINDABLE   (1<<17) /* change to unbindable */
++#define MS_PRIVATE      (1<<18) /* change to private */
++#define MS_SLAVE        (1<<19) /* change to slave */
++#define MS_SHARED       (1<<20) /* change to shared */
 +#endif
 +
 +/***** KEYWORDS for mount restrictions. *****/
@@ -267,14 +273,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tmy_free(realname1);
 +	return error;
 +}
-+
-+#include <linux/version.h>
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-+static void put_filesystem(struct file_system_type *fs)
-+{
-+	module_put(fs->owner);
-+}
-+#endif
 +
 +/**
 + * tmy_mount_perm - check for mount permission.
