@@ -22,10 +22,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.c | 2412 +++++++++++++++++++++++++++++++++++++++++++++++
  1 files changed, 2412 insertions(+)
 
-Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/common.c
+Index: linux-2.6.23-tomoyo2.1/security/tomoyo/common.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo-2.1/security/tomoyo/common.c	2007-10-29 15:30:10.000000000 +0900
++++ linux-2.6.23-tomoyo2.1/security/tomoyo/common.c	2007-11-01 10:33:47.267028352 +0900
 @@ -0,0 +1,2412 @@
 +/*
 + * security/tomoyo/common.c
@@ -1748,7 +1748,7 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/common.c
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
 +
-+	printk(KERN_INFO "TOMOYO: %s   2007/10/29\n", TOMOYO_VERSION_CODE);
++	printk(KERN_INFO "TOMOYO: %s   2007/11/01\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
 +		panic("TOMOYO: No profiles loaded.\n");

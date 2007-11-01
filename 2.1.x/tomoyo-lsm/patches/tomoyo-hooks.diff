@@ -2,18 +2,18 @@ LSM wrapper functions for TOMOYO Linux access control.
 If bind mounts are used, TOMOYO requires all permissions for
 all possible pathnames (whereas AppArmor requires one of possible pathnames).
 If "struct vfsmount" is passed to LSM hooks as AppArmor proposes,
-this file will become more simpler and "namespace_sem" can remain "static".
+this file will become more simpler.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/tomoyo.c |  874 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 874 insertions(+)
+ security/tomoyo/tomoyo.c |  895 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 895 insertions(+)
 
-Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/tomoyo.c
+Index: linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo-2.1/security/tomoyo/tomoyo.c	2007-10-29 15:46:24.000000000 +0900
-@@ -0,0 +1,874 @@
++++ linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c	2007-11-01 10:33:29.265764960 +0900
+@@ -0,0 +1,895 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -26,7 +26,13 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/tomoyo.c
 +#include <linux/security.h>
 +#include <linux/highmem.h>
 +#include <linux/namei.h>
++#include <linux/version.h>
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
++#include <linux/mount.h>
 +#include <linux/mnt_namespace.h>
++#else
++#include <linux/namespace.h>
++#endif
 +#include <linux/sysctl.h>
 +#include <linux/sched.h>
 +#include <linux/uaccess.h>
@@ -39,7 +45,11 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/tomoyo.c
 +
 +LIST_HEAD(domain_list);
 +
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 +static struct kmem_cache *tmy_cachep;
++#else
++static kmem_cache_t *tmy_cachep;
++#endif
 +
 +static int tmy_task_alloc_security(struct task_struct *p)
 +{
@@ -157,46 +167,49 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/tomoyo.c
 +
 +static int tmy_do_single_write_perm(int operation, struct dentry *dentry)
 +{
-+	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
-+	struct list_head *p;
-+	int ret = 0;
-+	int error = 0;
-+	int index = 0;
-+	int index2 = 0;
-+
-+	if (!dentry || !namespace)
++	int err = 0;
++	struct task_struct *task = current;
++	struct seq_file m;
++	loff_t pos = 0;
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
++	struct namespace *namespace = NULL;
++#else
++	struct mnt_namespace *namespace = NULL;
++#endif
++	if (!dentry)
 +		return 0;
-+
-+start: ;
-+	index2 = 0;
-+
-+	/* lock namespace */
-+	down_read(&namespace_sem);
-+
-+	list_for_each(p, &namespace->list) {
-+		struct vfsmount *mnt = list_entry(p, struct vfsmount, mnt_list);
-+
-+		if (mnt->mnt_root->d_sb != dentry->d_sb)
-+			continue;
-+		if (index2++ < index)
-+			continue;
-+
-+		/* unlock namespace */
-+		up_read(&namespace_sem);
-+		error = tmy_single_write_perm(operation, dentry, mnt);
-+
-+		if (error != 0)
-+			ret = error;
-+
-+		index++;
-+
-+		goto start;
++	if (!sbin_init_started)
++		return 0;
++	memset(&m, 0, sizeof(m));
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
++	namespace = task->namespace;
++#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
++	if (task->nsproxy)
++		namespace = task->nsproxy->namespace;
++#else
++	if (task->nsproxy)
++		namespace = task->nsproxy->mnt_ns;
++#endif
++	if (!namespace)
++		return 0;
++	m.private = namespace;
++	while (!err) {
++		struct list_head *p;
++		struct vfsmount *mnt;
++		p = mounts_op.start(&m, &pos);
++		if (!p) {
++			mounts_op.stop(NULL, NULL);
++			break;
++		}
++		mnt = list_entry(p, struct vfsmount, mnt_list);
++		mntget(mnt);
++		mounts_op.stop(NULL, NULL);
++		pos++;
++		if (mnt->mnt_root->d_sb == dentry->d_sb)
++			err = tmy_single_write_perm(operation, dentry, mnt);
++		mntput(mnt);
 +	}
-+
-+	/* unlock namespace */
-+	up_read(&namespace_sem);
-+
-+	return ret;
++	return err;
 +}
 +
 +static int tmy_inode_setattr(struct dentry *dentry, struct iattr *iattr)
@@ -285,42 +298,50 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/tomoyo.c
 +				    struct dentry *old_dentry,
 +				    struct dentry *new_dentry)
 +{
-+	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
-+	struct list_head *p;
-+	int ret = 0;
-+	int error = 0;
-+	int index = 0;
-+	int index2 = 0;
-+
++	int err = 0;
++	struct task_struct *task = current;
++	struct seq_file m;
++	loff_t pos = 0;
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
++	struct namespace *namespace = NULL;
++#else
++	struct mnt_namespace *namespace = NULL;
++#endif
 +	if (!old_dentry || !new_dentry)
 +		return 0;
-+start: ;
-+	index2 = 0;
-+
-+	/* lock namespace */
-+	down_read(&namespace_sem);
-+
-+	list_for_each(p, &namespace->list) {
-+		struct vfsmount *mnt = list_entry(p, struct vfsmount, mnt_list);
-+
-+		if (mnt->mnt_root->d_sb != old_dentry->d_sb)
-+			continue;
-+		if (index2++ < index)
-+			continue;
-+		/* unlock namespace */
-+		up_read(&namespace_sem);
-+		error = tmy_double_write_perm(operation, old_dentry, mnt,
-+					      new_dentry, mnt);
-+		if (error != 0)
-+			ret = error;
-+		index++;
-+		goto start;
++	if (!sbin_init_started)
++		return 0;
++	memset(&m, 0, sizeof(m));
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
++	namespace = task->namespace;
++#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
++	if (task->nsproxy)
++		namespace = task->nsproxy->namespace;
++#else
++	if (task->nsproxy)
++		namespace = task->nsproxy->mnt_ns;
++#endif
++	if (!namespace)
++		return 0;
++	m.private = namespace;
++	while (!err) {
++		struct list_head *p;
++		struct vfsmount *mnt;
++		p = mounts_op.start(&m, &pos);
++		if (!p) {
++			mounts_op.stop(NULL, NULL);
++			break;
++		}
++		mnt = list_entry(p, struct vfsmount, mnt_list);
++		mntget(mnt);
++		mounts_op.stop(NULL, NULL);
++		pos++;
++		if (mnt->mnt_root->d_sb == old_dentry->d_sb)
++			err = tmy_double_write_perm(operation, old_dentry, mnt,
++						    new_dentry, mnt);
++		mntput(mnt);
 +	}
-+
-+	/* unlock namespace */
-+	up_read(&namespace_sem);
-+
-+	return ret;
++	return err;
 +}
 +
 +static int tmy_inode_link(struct dentry *old_dentry,
