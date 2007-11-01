@@ -7,14 +7,14 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/capability.c |  275 +++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 275 insertions(+)
+ security/tomoyo/capability.c |  276 +++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 276 insertions(+)
 
-Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/capability.c
+Index: linux-2.6.23-tomoyo2.1/security/tomoyo/capability.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo-2.1/security/tomoyo/capability.c	2007-10-29 15:46:04.000000000 +0900
-@@ -0,0 +1,275 @@
++++ linux-2.6.23-tomoyo2.1/security/tomoyo/capability.c	2007-11-01 10:32:36.024858808 +0900
+@@ -0,0 +1,276 @@
 +/*
 + * security/tomoyo/capability.c
 + *
@@ -86,7 +86,8 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/capability.c
 +#if TMY_MAX_PROFILES != 256
 +		&& profile < TMY_MAX_PROFILES
 +#endif
-+		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
++		&& profile_ptr[profile] ?
++		profile_ptr[profile]->value[index] : 0;
 +}
 +
 +static struct profile *tmy_new_capability_profile(const unsigned int profile)

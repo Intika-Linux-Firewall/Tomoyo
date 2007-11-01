@@ -21,10 +21,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/dummy.c         |   32 ++++++++++++++--
  5 files changed, 157 insertions(+), 12 deletions(-)
 
-Index: linux-2.6.23-tomoyo-2.1/include/linux/security.h
+Index: linux-2.6.23-tomoyo2.1/include/linux/security.h
 ===================================================================
---- linux-2.6.23-tomoyo-2.1.orig/include/linux/security.h	2007-10-29 12:08:33.000000000 +0900
-+++ linux-2.6.23-tomoyo-2.1/include/linux/security.h	2007-10-29 12:09:36.000000000 +0900
+--- linux-2.6.23-tomoyo2.1.orig/include/linux/security.h	2007-10-10 05:31:38.000000000 +0900
++++ linux-2.6.23-tomoyo2.1/include/linux/security.h	2007-10-31 14:57:01.000000000 +0900
 @@ -628,6 +628,22 @@ struct request_sock;
   *	@sig contains the signal value.
   *	@secid contains the sid of the process where the signal originated
@@ -201,10 +201,10 @@ Index: linux-2.6.23-tomoyo-2.1/include/linux/security.h
  static inline int security_socket_getsockname(struct socket * sock)
  {
  	return 0;
-Index: linux-2.6.23-tomoyo-2.1/kernel/signal.c
+Index: linux-2.6.23-tomoyo2.1/kernel/signal.c
 ===================================================================
---- linux-2.6.23-tomoyo-2.1.orig/kernel/signal.c	2007-10-29 12:08:33.000000000 +0900
-+++ linux-2.6.23-tomoyo-2.1/kernel/signal.c	2007-10-29 12:09:36.000000000 +0900
+--- linux-2.6.23-tomoyo2.1.orig/kernel/signal.c	2007-10-10 05:31:38.000000000 +0900
++++ linux-2.6.23-tomoyo2.1/kernel/signal.c	2007-10-31 14:57:01.000000000 +0900
 @@ -2196,6 +2196,11 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
@@ -251,10 +251,10 @@ Index: linux-2.6.23-tomoyo-2.1/kernel/signal.c
  	return do_tkill(0, pid, sig);
  }
  
-Index: linux-2.6.23-tomoyo-2.1/net/socket.c
+Index: linux-2.6.23-tomoyo2.1/net/socket.c
 ===================================================================
---- linux-2.6.23-tomoyo-2.1.orig/net/socket.c	2007-10-29 12:08:33.000000000 +0900
-+++ linux-2.6.23-tomoyo-2.1/net/socket.c	2007-10-29 12:09:36.000000000 +0900
+--- linux-2.6.23-tomoyo2.1.orig/net/socket.c	2007-10-10 05:31:38.000000000 +0900
++++ linux-2.6.23-tomoyo2.1/net/socket.c	2007-10-31 14:57:01.000000000 +0900
 @@ -1434,13 +1434,16 @@ asmlinkage long sys_accept(int fd, struc
  			goto out_fd;
  	}
@@ -274,10 +274,10 @@ Index: linux-2.6.23-tomoyo-2.1/net/socket.c
  out_put:
  	fput_light(sock->file, fput_needed);
  out:
-Index: linux-2.6.23-tomoyo-2.1/security/dummy.c
+Index: linux-2.6.23-tomoyo2.1/security/dummy.c
 ===================================================================
---- linux-2.6.23-tomoyo-2.1.orig/security/dummy.c	2007-10-29 12:08:33.000000000 +0900
-+++ linux-2.6.23-tomoyo-2.1/security/dummy.c	2007-10-29 12:09:36.000000000 +0900
+--- linux-2.6.23-tomoyo2.1.orig/security/dummy.c	2007-10-10 05:31:38.000000000 +0900
++++ linux-2.6.23-tomoyo2.1/security/dummy.c	2007-10-31 14:57:01.000000000 +0900
 @@ -564,6 +564,21 @@ static int dummy_task_kill (struct task_
  	return 0;
  }
@@ -346,10 +346,10 @@ Index: linux-2.6.23-tomoyo-2.1/security/dummy.c
  	set_to_dummy_if_null(ops, socket_getsockname);
  	set_to_dummy_if_null(ops, socket_getpeername);
  	set_to_dummy_if_null(ops, socket_setsockopt);
-Index: linux-2.6.23-tomoyo-2.1/net/core/datagram.c
+Index: linux-2.6.23-tomoyo2.1/net/core/datagram.c
 ===================================================================
---- linux-2.6.23-tomoyo-2.1.orig/net/core/datagram.c	2007-10-29 12:08:33.000000000 +0900
-+++ linux-2.6.23-tomoyo-2.1/net/core/datagram.c	2007-10-29 12:09:36.000000000 +0900
+--- linux-2.6.23-tomoyo2.1.orig/net/core/datagram.c	2007-10-10 05:31:38.000000000 +0900
++++ linux-2.6.23-tomoyo2.1/net/core/datagram.c	2007-10-31 14:57:01.000000000 +0900
 @@ -55,6 +55,7 @@
  #include <net/checksum.h>
  #include <net/sock.h>

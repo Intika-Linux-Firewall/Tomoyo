@@ -8,14 +8,14 @@ the policy using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/mount.c |  977 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 977 insertions(+)
+ security/tomoyo/mount.c |  989 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 989 insertions(+)
 
-Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/mount.c
+Index: linux-2.6.23-tomoyo2.1/security/tomoyo/mount.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo-2.1/security/tomoyo/mount.c	2007-10-29 11:32:27.000000000 +0900
-@@ -0,0 +1,977 @@
++++ linux-2.6.23-tomoyo2.1/security/tomoyo/mount.c	2007-11-01 10:34:53.259995896 +0900
+@@ -0,0 +1,989 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -25,7 +25,13 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/mount.c
 +#include "tomoyo.h"
 +#include "realpath.h"
 +#include <linux/namei.h>
++#include <linux/version.h>
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
++#include <linux/mount.h>
 +#include <linux/mnt_namespace.h>
++#else
++#include <linux/namespace.h>
++#endif
 +
 +/***** KEYWORDS for mount restrictions. *****/
 +
@@ -613,7 +619,13 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/mount.c
 +	const u8 profile = TMY_SECURITY->domain->profile;
 +	const unsigned int mode = tmy_flags(TMY_DENY_CONCEAL_MOUNT);
 +	const bool is_enforce = (mode == 3);
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
++	struct namespace *namespace = current->namespace;
++#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
++	struct namespace *namespace = current->nsproxy->namespace;
++#else
 +	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
++#endif
 +	char *dir;
 +
 +	if (!mode)

@@ -4,14 +4,14 @@ or chroot()ed, TOMOYO Linux uses the original pathname.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/realpath.c |  671 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 671 insertions(+)
+ security/tomoyo/realpath.c |  675 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 675 insertions(+)
 
-Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/realpath.c
+Index: linux-2.6.23-tomoyo2.1/security/tomoyo/realpath.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo-2.1/security/tomoyo/realpath.c	2007-10-29 09:48:53.000000000 +0900
-@@ -0,0 +1,671 @@
++++ linux-2.6.23-tomoyo2.1/security/tomoyo/realpath.c	2007-11-01 10:33:36.897604744 +0900
+@@ -0,0 +1,675 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -572,7 +572,11 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/realpath.c
 +	int size;
 +};
 +
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 +static struct kmem_cache *tmy_cachep;
++#else
++static kmem_cache_t *tmy_cachep;
++#endif
 +
 +/**
 + * tmy_realpath_init - initialize memory allocator.

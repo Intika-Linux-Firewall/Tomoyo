@@ -3,13 +3,13 @@ Data structures and prototype defitions for TOMOYO Linux.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/include/realpath.h |   43 ++
- security/tomoyo/include/tomoyo.h   |  649 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 692 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  654 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 697 insertions(+)
 
-Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/include/realpath.h
+Index: linux-2.6.23-tomoyo2.1/security/tomoyo/include/realpath.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo-2.1/security/tomoyo/include/realpath.h	2007-10-29 09:48:53.000000000 +0900
++++ linux-2.6.23-tomoyo2.1/security/tomoyo/include/realpath.h	2007-10-31 14:57:00.000000000 +0900
 @@ -0,0 +1,43 @@
 +/*
 + * security/tomoyo/include/realpath.h
@@ -54,11 +54,11 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/include/realpath.h
 +char *sysctlpath_from_table(struct ctl_table *table);
 +
 +#endif
-Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/include/tomoyo.h
+Index: linux-2.6.23-tomoyo2.1/security/tomoyo/include/tomoyo.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo-2.1/security/tomoyo/include/tomoyo.h	2007-10-29 15:27:55.000000000 +0900
-@@ -0,0 +1,649 @@
++++ linux-2.6.23-tomoyo2.1/security/tomoyo/include/tomoyo.h	2007-11-01 10:34:13.324067080 +0900
+@@ -0,0 +1,654 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -68,7 +68,7 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/include/tomoyo.h
 +#ifndef _TOMOYO_H
 +#define _TOMOYO_H
 +
-+#define TOMOYO_VERSION_CODE "2.1.0-rc7"
++#define TOMOYO_VERSION_CODE "2.1.0-rc9"
 +
 +#include <linux/string.h>
 +#include <linux/mm.h>
@@ -82,6 +82,11 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/include/tomoyo.h
 +#include <linux/uaccess.h>
 +#include <stdarg.h>
 +#include <linux/delay.h>
++
++#include <linux/version.h>
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
++typedef _Bool bool;
++#endif
 +
 +/**
 + * list_for_each_cookie - iterate over a list with cookie.
@@ -118,7 +123,7 @@ Index: linux-2.6.23-tomoyo-2.1/security/tomoyo/include/tomoyo.h
 +	prev->next = new;
 +}
 +
-+extern struct rw_semaphore namespace_sem;
++extern struct seq_operations mounts_op;
 +extern struct mutex domain_acl_lock;
 +extern bool sbin_init_started;
 +
