@@ -3,13 +3,11 @@ Data structures and prototype defitions for TOMOYO Linux.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/include/realpath.h |   43 ++
- security/tomoyo/include/tomoyo.h   |  654 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 697 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  691 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 734 insertions(+)
 
-Index: linux-2.6.23-tomoyo2.1/security/tomoyo/include/realpath.h
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo2.1/security/tomoyo/include/realpath.h	2007-10-31 14:57:00.000000000 +0900
++++ linux-2.6.23/security/tomoyo/include/realpath.h	2007-11-01 13:11:06.284337000 +0900
 @@ -0,0 +1,43 @@
 +/*
 + * security/tomoyo/include/realpath.h
@@ -54,11 +52,9 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/include/realpath.h
 +char *sysctlpath_from_table(struct ctl_table *table);
 +
 +#endif
-Index: linux-2.6.23-tomoyo2.1/security/tomoyo/include/tomoyo.h
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo2.1/security/tomoyo/include/tomoyo.h	2007-11-01 10:34:13.324067080 +0900
-@@ -0,0 +1,654 @@
++++ linux-2.6.23/security/tomoyo/include/tomoyo.h	2007-11-01 13:28:35.122889304 +0900
+@@ -0,0 +1,691 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -79,13 +75,50 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/include/tomoyo.h
 +#include <linux/init.h>
 +#include <linux/slab.h>
 +#include <linux/poll.h>
-+#include <linux/uaccess.h>
++#include <linux/version.h>
 +#include <stdarg.h>
 +#include <linux/delay.h>
++#include <linux/proc_fs.h>
 +
-+#include <linux/version.h>
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 18)
++#include <asm/uaccess.h>
++#else
++#include <linux/uaccess.h>
++#endif
++
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 +typedef _Bool bool;
++#endif
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
++#define mutex semaphore
++#define mutex_init(mutex) init_MUTEX(mutex)
++#define mutex_lock(mutex) down(mutex)
++#define mutex_unlock(mutex) up(mutex)
++#define mutex_lock_interruptible(mutex) down_interruptible(mutex)
++#define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
++#endif
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
++#define NIPQUAD_FMT "%u.%u.%u.%u"
++#define NIP6_FMT "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x"
++#endif
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)
++#define MS_UNBINDABLE   (1<<17) /* change to unbindable */
++#define MS_PRIVATE      (1<<18) /* change to private */
++#define MS_SLAVE        (1<<19) /* change to slave */
++#define MS_SHARED       (1<<20) /* change to shared */
++#endif
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
++static inline void *kzalloc(size_t size, int flags)
++{
++	void *ret = kmalloc(size, flags);
++	if (ret)
++		memset(ret, 0, size);
++	return ret;
++}
 +#endif
 +
 +/**

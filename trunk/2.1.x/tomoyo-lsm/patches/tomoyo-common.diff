@@ -19,14 +19,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/common.c | 2412 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 2412 insertions(+)
+ security/tomoyo/common.c | 2434 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2434 insertions(+)
 
-Index: linux-2.6.23-tomoyo2.1/security/tomoyo/common.c
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo2.1/security/tomoyo/common.c	2007-11-01 10:33:47.267028352 +0900
-@@ -0,0 +1,2412 @@
++++ linux-2.6.23/security/tomoyo/common.c	2007-11-01 13:11:06.334329400 +0900
+@@ -0,0 +1,2434 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -39,7 +37,6 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/common.c
 +#include <linux/file.h>
 +#include <linux/module.h>
 +#include <linux/slab.h>
-+#include <linux/uaccess.h>
 +#include <stdarg.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
@@ -2349,8 +2346,13 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/common.c
 +/* open() operation for /sys/kernel/security/tomoyo/ interface. */
 +static int tmy_open(struct inode *inode, struct file *file)
 +{
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
++	return tmy_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
++				file);
++#else
 +	return tmy_open_control(((u8 *) file->f_dentry->d_inode->i_private)
 +				- ((u8 *) NULL), file);
++#endif
 +}
 +
 +/* close() operation for /sys/kernel/security/tomoyo/ interface. */
@@ -2388,6 +2390,19 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/common.c
 +};
 +
 +/* Associate /sys/kernel/security/tomoyo/ interface with key. */
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
++static void __init tmy_create_entry(const char *name,
++			     const mode_t mode,
++			     struct proc_dir_entry *parent,
++			     const int key)
++{
++	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
++	if (entry) {
++		entry->proc_fops = &tmy_operations;
++		entry->data = ((u8 *) NULL) + key;
++	}
++}
++#else
 +static void __init tmy_create_entry(const char *name,
 +			     const mode_t mode,
 +			     struct dentry *parent,
@@ -2396,15 +2411,20 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/common.c
 +	securityfs_create_file(name, mode, parent, ((u8 *) NULL) + key,
 +			       &tmy_operations);
 +}
++#endif
 +
 +/**
 + * tmy_interface_init - initialize /sys/kernel/security/tomoyo/ interface.
 + */
 +static int __init tmy_interface_init(void)
 +{
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
++	struct proc_dir_entry *tmy_dir;
++	tmy_dir = proc_mkdir("tomoyo", NULL);
++#else
 +	struct dentry *tmy_dir;
-+
 +	tmy_dir = securityfs_create_dir("tomoyo", NULL);
++#endif
 +	tmy_create_entry("query",            0600, tmy_dir,
 +			 TMY_QUERY);
 +	tmy_create_entry("domain_policy",    0600, tmy_dir,

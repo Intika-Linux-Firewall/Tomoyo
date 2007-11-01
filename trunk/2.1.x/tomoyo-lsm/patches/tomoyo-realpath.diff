@@ -4,14 +4,12 @@ or chroot()ed, TOMOYO Linux uses the original pathname.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/realpath.c |  675 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 675 insertions(+)
+ security/tomoyo/realpath.c |  682 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 682 insertions(+)
 
-Index: linux-2.6.23-tomoyo2.1/security/tomoyo/realpath.c
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo2.1/security/tomoyo/realpath.c	2007-11-01 10:33:36.897604744 +0900
-@@ -0,0 +1,675 @@
++++ linux-2.6.23/security/tomoyo/realpath.c	2007-11-01 13:11:06.308333352 +0900
+@@ -0,0 +1,682 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -26,7 +24,6 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/realpath.c
 +#include <linux/smp_lock.h>
 +#include <linux/module.h>
 +#include <linux/slab.h>
-+#include <linux/uaccess.h>
 +#include <asm/atomic.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
@@ -294,6 +291,7 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/realpath.c
 +	return NULL;
 +}
 +
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
 +/* tmy_get_absolute_path() for "struct ctl_table". */
 +static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
 +{
@@ -357,6 +355,7 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/realpath.c
 +	tmy_free(buf);
 +	return NULL;
 +}
++#endif
 +
 +/***** Private memory allocator. *****/
 +
@@ -583,9 +582,15 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/realpath.c
 + */
 +static int __init tmy_realpath_init(void)
 +{
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 +	tmy_cachep = kmem_cache_create("tomoyo_cache",
 +				       sizeof(struct cache_entry),
 +				       0, SLAB_PANIC, NULL);
++#else
++	tmy_cachep = kmem_cache_create("tomoyo_cache",
++				       sizeof(struct cache_entry),
++				       0, SLAB_PANIC, NULL, NULL);
++#endif
 +	return 0;
 +}
 +postcore_initcall(tmy_realpath_init);
