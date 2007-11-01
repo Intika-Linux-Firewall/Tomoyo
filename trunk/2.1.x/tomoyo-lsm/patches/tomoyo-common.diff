@@ -19,31 +19,20 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/common.c | 2434 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2434 insertions(+)
+ security/tomoyo/common.c | 2426 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2426 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/common.c	2007-11-01 13:11:06.334329400 +0900
-@@ -0,0 +1,2434 @@
++++ linux-2.6.23/security/tomoyo/common.c	2007-11-01 17:45:33.395258352 +0900
+@@ -0,0 +1,2426 @@
 +/*
 + * security/tomoyo/common.c
 + *
 + * Common functions for TOMOYO Linux.
 + */
 +
-+#include <linux/string.h>
-+#include <linux/mm.h>
-+#include <linux/utime.h>
-+#include <linux/file.h>
-+#include <linux/module.h>
-+#include <linux/slab.h>
-+#include <stdarg.h>
-+#include <linux/namei.h>
-+#include <linux/mount.h>
-+#include <linux/security.h>
-+#include <linux/hardirq.h>
-+#include "realpath.h"
 +#include "tomoyo.h"
++#include "realpath.h"
 +
 +#define MAX_ACCEPT_ENTRY 2048
 +
@@ -2349,6 +2338,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
 +	return tmy_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
 +				file);
++#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
++	return tmy_open_control(((u8 *) file->f_dentry->d_inode->u.generic_ip)
++				- ((u8 *) NULL), file);
 +#else
 +	return tmy_open_control(((u8 *) file->f_dentry->d_inode->i_private)
 +				- ((u8 *) NULL), file);

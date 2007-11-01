@@ -17,12 +17,12 @@ The userland daemon /usr/lib/ccs/ccs-auditd will save these logs.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  include/linux/audit.h   |    3 
- security/tomoyo/audit.c |  264 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 267 insertions(+)
+ security/tomoyo/audit.c |  262 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 265 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/audit.c	2007-11-01 13:36:09.189860632 +0900
-@@ -0,0 +1,264 @@
++++ linux-2.6.23/security/tomoyo/audit.c	2007-11-01 17:31:24.884251632 +0900
+@@ -0,0 +1,262 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -32,8 +32,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include "tomoyo.h"
 +
 +#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+
-+#include <linux/audit.h>
 +
 +/**
 + * tmy_init_audit_log - allocate and initialize audit buffer.
@@ -287,8 +285,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +#endif
---- linux-2.6.23.orig/include/linux/audit.h	2007-11-01 13:10:53.338305096 +0900
-+++ linux-2.6.23/include/linux/audit.h	2007-11-01 13:11:06.556295656 +0900
+--- linux-2.6.23.orig/include/linux/audit.h	2007-11-01 13:10:53.000000000 +0900
++++ linux-2.6.23/include/linux/audit.h	2007-11-01 13:11:06.000000000 +0900
 @@ -120,6 +120,9 @@
  
  #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */

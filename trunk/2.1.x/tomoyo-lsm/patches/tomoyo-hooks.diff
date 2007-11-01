@@ -6,38 +6,36 @@ this file will become more simpler.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/tomoyo.c |  904 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 904 insertions(+)
+ security/tomoyo/tomoyo.c |  917 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 917 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-01 13:11:06.491305536 +0900
-@@ -0,0 +1,904 @@
++++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-01 17:31:24.885251480 +0900
+@@ -0,0 +1,917 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
 + * LSM hooks for TOMOYO Linux.
 + */
 +
-+#include <linux/module.h>
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/security.h>
-+#include <linux/highmem.h>
-+#include <linux/namei.h>
-+#include <linux/version.h>
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
-+#include <linux/mount.h>
-+#include <linux/mnt_namespace.h>
-+#else
-+#include <linux/namespace.h>
-+#endif
-+#include <linux/sysctl.h>
-+#include <linux/sched.h>
-+#include <net/ip.h>
-+#include <net/ipv6.h>
-+
 +#include "tomoyo.h"
 +#include "realpath.h"
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
++static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
++{
++	return skb->nh.iph;
++}
++static inline struct udphdr *udp_hdr(const struct sk_buff *skb)
++{
++	return skb->h.uh;
++}
++static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
++{
++	return skb->nh.ipv6h;
++}
++#endif
++
 +#define MAX_SOCK_ADDR 128 /* net/socket.c */
 +
 +LIST_HEAD(domain_list);
@@ -95,10 +93,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return retval;
 +}
 +
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 11)
++static void tomoyo_bprm_apply_creds(struct linux_binprm *bprm, int unsafe)
++{
++	TMY_SECURITY->prev_domain = TMY_SECURITY->domain;
++}
++#else
 +static void tmy_bprm_post_apply_creds(struct linux_binprm *bprm)
 +{
 +	TMY_SECURITY->prev_domain = TMY_SECURITY->domain;
 +}
++#endif
 +
 +static void tmy_bprm_free_security(struct linux_binprm *bprm)
 +{
@@ -780,10 +785,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return tmy_umount_perm(mnt);
 +}
 +
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 10)
 +static int tmy_settime(struct timespec *ts, struct timezone *tz)
 +{
 +	return tmy_capable(TMY_SYS_SETTIME);
 +}
++#endif
 +
 +static int tmy_task_setnice(struct task_struct *p, int nice)
 +{
@@ -847,7 +854,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.task_free_security    = tmy_task_free_security,
 +	.bprm_alloc_security   = tmy_bprm_alloc_security,
 +	.bprm_check_security   = tmy_bprm_check_security,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 11)
++	.bprm_apply_creds      = tomoyo_bprm_apply_creds,
++#else
 +	.bprm_post_apply_creds = tmy_bprm_post_apply_creds,
++#endif
 +	.bprm_free_security    = tmy_bprm_free_security,
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
 +	.sysctl                = tmy_sysctl,
@@ -871,7 +882,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.sb_mount              = tmy_sb_mount,
 +	.sb_umount             = tmy_sb_umount,
 +	.sb_pivotroot          = tmy_sb_pivotroot,
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 10)
 +	.settime               = tmy_settime,
++#endif
 +	.task_setnice          = tmy_task_setnice,
 +	.capable               = tmy_task_capable,
 +#ifdef TMY_LSM_EXPANSION
