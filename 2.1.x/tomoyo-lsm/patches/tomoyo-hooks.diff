@@ -6,14 +6,12 @@ this file will become more simpler.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/tomoyo.c |  895 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 895 insertions(+)
+ security/tomoyo/tomoyo.c |  904 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 904 insertions(+)
 
-Index: linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c	2007-11-01 10:33:29.265764960 +0900
-@@ -0,0 +1,895 @@
++++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-01 13:11:06.491305536 +0900
+@@ -0,0 +1,904 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -35,7 +33,6 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c
 +#endif
 +#include <linux/sysctl.h>
 +#include <linux/sched.h>
-+#include <linux/uaccess.h>
 +#include <net/ip.h>
 +#include <net/ipv6.h>
 +
@@ -109,6 +106,7 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c
 +	TMY_SECURITY->flags &= ~TMY_CHECK_READ_FOR_OPEN_EXEC;
 +}
 +
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
 +static int tmy_sysctl(struct ctl_table *table, int op)
 +{
 +	int error;
@@ -126,6 +124,7 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c
 +
 +	return error;
 +}
++#endif
 +
 +static int tmy_inode_permission(struct inode *inode,
 +				int mask,
@@ -850,7 +849,9 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c
 +	.bprm_check_security   = tmy_bprm_check_security,
 +	.bprm_post_apply_creds = tmy_bprm_post_apply_creds,
 +	.bprm_free_security    = tmy_bprm_free_security,
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
 +	.sysctl                = tmy_sysctl,
++#endif
 +	.inode_permission      = tmy_inode_permission,
 +	.inode_setattr         = tmy_inode_setattr,
 +	.inode_create          = tmy_inode_create,
@@ -896,9 +897,15 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/tomoyo.c
 +	KERNEL_DOMAIN.domainname = tmy_save_name(TMY_ROOT_NAME);
 +	list_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
 +
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 +	tmy_cachep = kmem_cache_create("tomoyo_security",
 +				       sizeof(struct tmy_security),
 +				       0, SLAB_PANIC, NULL);
++#else
++	tmy_cachep = kmem_cache_create("tomoyo_security",
++				       sizeof(struct tmy_security),
++				       0, SLAB_PANIC, NULL, NULL);
++#endif
 +
 +	init_task.security = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
 +	((struct tmy_security *) init_task.security)->domain = &KERNEL_DOMAIN;

@@ -17,14 +17,12 @@ The userland daemon /usr/lib/ccs/ccs-auditd will save these logs.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  include/linux/audit.h   |    3 
- security/tomoyo/audit.c |  258 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 261 insertions(+)
+ security/tomoyo/audit.c |  264 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 267 insertions(+)
 
-Index: linux-2.6.23-tomoyo2.1/security/tomoyo/audit.c
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23-tomoyo2.1/security/tomoyo/audit.c	2007-10-31 14:57:01.000000000 +0900
-@@ -0,0 +1,258 @@
++++ linux-2.6.23/security/tomoyo/audit.c	2007-11-01 13:36:09.189860632 +0900
+@@ -0,0 +1,264 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -86,7 +84,13 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/audit.c
 +	struct audit_buffer *ab;
 +	int type = is_granted ? AUDIT_TMY_GRANTED : AUDIT_TMY_REJECTED;
 +
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 13)
++	ab = audit_log_start(current->audit_context);
++#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
++	ab = audit_log_start(current->audit_context, type);
++#else
 +	ab = audit_log_start(current->audit_context, GFP_KERNEL, type);
++#endif
 +	if (ab) {
 +		audit_log_format(ab, "TOMOYO: %s", buf);
 +		audit_log_end(ab);
@@ -283,10 +287,8 @@ Index: linux-2.6.23-tomoyo2.1/security/tomoyo/audit.c
 +	return 0;
 +}
 +#endif
-Index: linux-2.6.23-tomoyo2.1/include/linux/audit.h
-===================================================================
---- linux-2.6.23-tomoyo2.1.orig/include/linux/audit.h	2007-10-10 05:31:38.000000000 +0900
-+++ linux-2.6.23-tomoyo2.1/include/linux/audit.h	2007-10-31 14:57:01.000000000 +0900
+--- linux-2.6.23.orig/include/linux/audit.h	2007-11-01 13:10:53.338305096 +0900
++++ linux-2.6.23/include/linux/audit.h	2007-11-01 13:11:06.556295656 +0900
 @@ -120,6 +120,9 @@
  
  #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */
