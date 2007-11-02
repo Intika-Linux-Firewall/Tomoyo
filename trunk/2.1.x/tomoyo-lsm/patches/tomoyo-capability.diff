@@ -11,7 +11,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 276 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/capability.c	2007-11-02 13:48:04.000000000 +0900
++++ linux-2.6.23/security/tomoyo/capability.c	2007-11-02 18:15:18.435688808 +0900
 @@ -0,0 +1,276 @@
 +/*
 + * security/tomoyo/capability.c
@@ -40,7 +40,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TMY_SYS_KILL]                   = { "SYS_KILL", 0 },         /* None */
 +	[TMY_SYS_VHANGUP]                = { "SYS_VHANGUP", 0 },      /* Over */
 +	[TMY_SYS_SETTIME]                = { "SYS_TIME", 0 },         /* Over */
-+	[TMY_SYS_NICE]                   = { "SYS_NICE", 0 },           /* OK */
++	[TMY_SYS_NICE]                   = { "SYS_NICE", 0 },         /* None */
 +	[TMY_SYS_SETHOSTNAME]            = { "SYS_SETHOSTNAME", 0 },  /* None */
 +	[TMY_USE_KERNEL_MODULE]         = { "use_kernel_module", 0 }, /* Over */
 +	[TMY_CREATE_FIFO]                = { "create_fifo", 0 },        /* OK */

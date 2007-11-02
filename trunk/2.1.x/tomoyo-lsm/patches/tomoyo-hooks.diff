@@ -6,12 +6,12 @@ this file will become more simpler.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/tomoyo.c |  933 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 933 insertions(+)
+ security/tomoyo/tomoyo.c |  927 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 927 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-02 14:45:27.000000000 +0900
-@@ -0,0 +1,933 @@
++++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-02 18:18:55.618671976 +0900
+@@ -0,0 +1,927 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -808,11 +808,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +#endif
 +
-+static int tmy_task_setnice(struct task_struct *p, int nice)
-+{
-+	return tmy_capable(TMY_SYS_NICE);
-+}
-+
 +static int tmy_sb_pivotroot(struct nameidata *old_nd, struct nameidata *new_nd)
 +{
 +	const int err = tmy_capable(TMY_SYS_PIVOT_ROOT);
@@ -901,7 +896,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 10)
 +	.settime               = tmy_settime,
 +#endif
-+	.task_setnice          = tmy_task_setnice,
 +	.capable               = tmy_task_capable,
 +#ifdef TMY_LSM_EXPANSION
 +	.socket_post_accept    = tmy_socket_post_accept,
