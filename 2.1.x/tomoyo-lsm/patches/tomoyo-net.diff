@@ -15,10 +15,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/net.c |  942 ++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 942 insertions(+)
 
-Index: linux-2.6.23.1-tomoyo2/security/tomoyo/net.c
-===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23.1-tomoyo2/security/tomoyo/net.c	2007-11-02 12:02:23.000000000 +0900
++++ linux-2.6.23/security/tomoyo/net.c	2007-11-02 13:48:04.000000000 +0900
 @@ -0,0 +1,942 @@
 +/*
 + * security/tomoyo/net.c
@@ -70,7 +68,7 @@ Index: linux-2.6.23.1-tomoyo2/security/tomoyo/net.c
 +			 NIPQUAD_FMT, NIPQUAD(ip));
 +	}
 +
-+	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u", port);
++	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u\n", port);
 +
 +	return tmy_write_audit_log(buf, is_granted);
 +}
