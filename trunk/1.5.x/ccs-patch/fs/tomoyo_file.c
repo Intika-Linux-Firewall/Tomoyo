@@ -20,7 +20,7 @@
 
 /*************************  VARIABLES  *************************/
 
-extern struct semaphore domain_acl_lock;
+extern struct mutex domain_acl_lock;
 
 /***** The structure for globally readable files. *****/
 
@@ -147,12 +147,12 @@ static struct globally_readable_file_entry *globally_readable_list = NULL;
 static int AddGloballyReadableEntry(const char *filename, const bool is_delete)
 {
 	struct globally_readable_file_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_filename;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(filename, 1, -1, -1, __FUNCTION__)) return -EINVAL; /* No patterns allowed. */
 	if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = globally_readable_list; ptr; ptr = ptr->next) {
 		if (ptr->filename == saved_filename) {
 			ptr->is_deleted = is_delete;
@@ -173,7 +173,7 @@ static int AddGloballyReadableEntry(const char *filename, const bool is_delete)
 	}
 	error = 0;
  out: ;
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -209,7 +209,7 @@ static struct group_entry *group_list = NULL;
 
 static int AddGroupEntry(const char *group_name, const char *member_name, const bool is_delete)
 {
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	struct group_entry *new_group, *group;
 	struct group_member *new_member, *member;
 	const struct path_info *saved_group_name, *saved_member_name;
@@ -218,7 +218,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 		!IsCorrectPath(member_name, 0, 0, 0, __FUNCTION__) || !member_name[0]) return -EINVAL;
 	if ((saved_group_name = SaveName(group_name)) == NULL ||
 		(saved_member_name = SaveName(member_name)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (group = group_list; group; group = group->next) {
 		if (saved_group_name != group->group_name) continue;
 		for (member = group->first_member; member; member = member->next) {
@@ -255,7 +255,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -324,12 +324,12 @@ static struct pattern_entry *pattern_list = NULL;
 static int AddPatternEntry(const char *pattern, const bool is_delete)
 {
 	struct pattern_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_pattern;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(pattern, 0, 1, 0, __FUNCTION__)) return -EINVAL;
 	if ((saved_pattern = SaveName(pattern)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = pattern_list; ptr; ptr = ptr->next) {
 		if (saved_pattern == ptr->pattern) {
 			ptr->is_deleted = is_delete;
@@ -351,7 +351,7 @@ static int AddPatternEntry(const char *pattern, const bool is_delete)
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -398,12 +398,12 @@ static struct no_rewrite_entry *no_rewrite_list = NULL;
 static int AddNoRewriteEntry(const char *pattern, const bool is_delete)
 {
 	struct no_rewrite_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_pattern;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(pattern, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if ((saved_pattern = SaveName(pattern)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = no_rewrite_list; ptr; ptr = ptr->next) {
 		if (ptr->pattern == saved_pattern) {
 			ptr->is_deleted = is_delete;
@@ -425,7 +425,7 @@ static int AddNoRewriteEntry(const char *pattern, const bool is_delete)
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -484,7 +484,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 			return 0;   /* Don't add if the file is globally readable files. */
 		}
 	}
-	down(&domain_acl_lock);
+	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
@@ -527,7 +527,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 			break;
 		}
 	}
-	up(&domain_acl_lock);
+	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 
@@ -618,7 +618,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	} else {
 		if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
 	}
-	down(&domain_acl_lock);
+	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
@@ -655,7 +655,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 			break;
 		}
 	}
-	up(&domain_acl_lock);
+	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 
@@ -681,7 +681,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	} else {
 		if ((saved_filename2 = SaveName(filename2)) == NULL) return -ENOMEM;
 	}
-	down(&domain_acl_lock);
+	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
@@ -720,7 +720,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 			break;
 		}
 	}
-	up(&domain_acl_lock);
+	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 

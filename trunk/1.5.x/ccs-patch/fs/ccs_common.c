@@ -544,9 +544,9 @@ EXPORT_SYMBOL(CheckCCSAccept);
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 {
-	static DECLARE_MUTEX(profile_lock);
+	static DEFINE_MUTEX(profile_lock);
 	struct profile *ptr = NULL;
-	down(&profile_lock);
+	mutex_lock(&profile_lock);
 	if (profile < MAX_PROFILES && (ptr = profile_ptr[profile]) == NULL) {
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
@@ -555,7 +555,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 			profile_ptr[profile] = ptr;
 		}
 	}
-	up(&profile_lock);
+	mutex_unlock(&profile_lock);
 	return ptr;
 }
 
@@ -665,7 +665,7 @@ static struct policy_manager_entry *policy_manager_list = NULL;
 static int AddManagerEntry(const char *manager, const bool is_delete)
 {
 	struct policy_manager_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_manager;
 	int error = -ENOMEM;
 	bool is_domain = 0;
@@ -677,7 +677,7 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 		if (!IsCorrectPath(manager, 1, -1, -1, __FUNCTION__)) return -EINVAL;
 	}
 	if ((saved_manager = SaveName(manager)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = policy_manager_list; ptr; ptr = ptr->next) {
 		if (ptr->manager == saved_manager) {
 			ptr->is_deleted = is_delete;
@@ -700,7 +700,7 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	if (!error) UpdateCounter(CCS_UPDATES_COUNTER_MANAGER);
 	return error;
 }
@@ -1229,10 +1229,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.2-pre   2007/10/19\n");
+	printk("SAKURA: 1.5.2-pre   2007/11/05\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.2-pre   2007/10/19\n");
+	printk("TOMOYO: 1.5.2-pre   2007/11/05\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
@@ -1501,8 +1501,8 @@ int CCS_OpenControl(const int type, struct file *file)
 {
 	struct io_buffer *head = ccs_alloc(sizeof(*head));
 	if (!head) return -ENOMEM;
-	init_MUTEX(&head->read_sem);
-	init_MUTEX(&head->write_sem);
+	mutex_init(&head->read_sem);
+	mutex_init(&head->write_sem);
 	switch (type) {
 #ifdef CONFIG_SAKURA
 	case CCS_SYSTEMPOLICY:
@@ -1611,10 +1611,10 @@ int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len
 	struct io_buffer *head = file->private_data;
 	if (!head->read) return -ENOSYS;
 	if (!access_ok(VERIFY_WRITE, buffer, buffer_len)) return -EFAULT;
-	if (down_interruptible(&head->read_sem)) return -EINTR;
+	if (mutex_lock_interruptible(&head->read_sem)) return -EINTR;
 	len = head->read(head);
 	if (len >= 0) len = CopyToUser(head, buffer, buffer_len);
-	up(&head->read_sem);
+	mutex_unlock(&head->read_sem);
 	return len;
 }
 
@@ -1630,7 +1630,7 @@ int CCS_WriteControl(struct file *file, const char __user *buffer, const int buf
 	if (head->write != WritePID && !IsPolicyManager()) {
 		return -EPERM; /* Forbid updating policies for non manager programs. */
 	}
-	if (down_interruptible(&head->write_sem)) return -EINTR;
+	if (mutex_lock_interruptible(&head->write_sem)) return -EINTR;
 	while (avail_len > 0) {
 		char c;
 		if (head->write_avail >= head->writebuf_size - 1) {
@@ -1648,7 +1648,7 @@ int CCS_WriteControl(struct file *file, const char __user *buffer, const int buf
 		NormalizeLine(cp0);
 		head->write(head);
 	}
-	up(&head->write_sem);
+	mutex_unlock(&head->write_sem);
 	return error;
 }
 

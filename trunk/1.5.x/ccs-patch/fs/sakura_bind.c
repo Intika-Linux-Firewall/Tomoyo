@@ -33,8 +33,9 @@ static struct reserved_entry *reservedport_list = NULL;
 static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool is_delete)
 {
 	struct reserved_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
+	mutex_lock(&lock);
 	for (ptr = reservedport_list; ptr; ptr = ptr->next) {
 		if (ptr->min_port == min_port && max_port == ptr->max_port) {
 			ptr->is_deleted = is_delete;
@@ -56,7 +57,7 @@ static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool i
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 

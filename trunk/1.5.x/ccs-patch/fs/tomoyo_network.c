@@ -20,7 +20,7 @@
 
 /*************************  VARIABLES  *************************/
 
-extern struct semaphore domain_acl_lock;
+extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
@@ -47,14 +47,14 @@ static struct address_group_entry *group_list = NULL;
 
 static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, const u16 *min_address, const u16 *max_address, const bool is_delete)
 {
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	struct address_group_entry *new_group, *group;
 	struct address_group_member *new_member, *member;
 	const struct path_info *saved_group_name;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(group_name, 0, 0, 0, __FUNCTION__) || !group_name[0]) return -EINVAL;
 	if ((saved_group_name = SaveName(group_name)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (group = group_list; group; group = group->next) {
 		if (saved_group_name != group->group_name) continue;
 		for (member = group->first_member; member; member = member->next) {
@@ -102,7 +102,7 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -258,7 +258,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	int error = -ENOMEM;
 	const u32 min_ip = ntohl(*min_address), max_ip = ntohl(*max_address); /* using host byte order to allow u32 comparison than memcmp().*/
 	if (!domain) return -EINVAL;
-	down(&domain_acl_lock);
+	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
@@ -328,7 +328,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			break;
 		}
 	}
-	up(&domain_acl_lock);
+	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 
@@ -438,37 +438,37 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condit
 	return -EINVAL;
 }
 
-int CheckNetworkListenACL(const u8 is_ipv6, const u8 *address, const u16 port)
+int CheckNetworkListenACL(const _Bool is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_LISTEN, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkListenACL);
 
-int CheckNetworkConnectACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkConnectACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT), (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkConnectACL);
 
-int CheckNetworkBindACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkBindACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_BIND : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_BIND : NETWORK_ACL_RAW_BIND), (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkBindACL);
 
-int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port)
+int CheckNetworkAcceptACL(const _Bool is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkAcceptACL);
 
-int CheckNetworkSendMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkSendMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
 EXPORT_SYMBOL(CheckNetworkSendMsgACL);
 
-int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port)
+int CheckNetworkRecvMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }

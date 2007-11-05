@@ -235,13 +235,13 @@ unsigned int GetMemoryUsedForElements(void)
 /* Allocate memory for structures. The RAM is chunked, so NEVER try to kfree() the returned pointer. */
 void *alloc_element(const unsigned int size)
 {
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	static char *buf = NULL;
 	static unsigned int buf_used_len = PAGE_SIZE;
 	char *ptr = NULL;
 	const unsigned int word_aligned_size = ROUNDUP(size);
 	if (word_aligned_size > PAGE_SIZE) return NULL;
-	down(&lock);
+	mutex_lock(&lock);
 	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
 		if ((ptr = kmalloc(PAGE_SIZE, GFP_KERNEL)) == NULL) {
 			printk("ERROR: Out of memory for alloc_element().\n");
@@ -264,7 +264,7 @@ void *alloc_element(const unsigned int size)
 			}
 		}
 	}
-	up(&lock);
+	mutex_unlock(&lock);
 	return ptr;
 }
 
@@ -295,7 +295,7 @@ const struct path_info *SaveName(const char *name)
 {
 	static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
 	static struct name_entry name_list[MAX_HASH]; /* The list of names. */
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	struct name_entry *ptr, *prev = NULL;
 	unsigned int hash;
 	struct free_memory_block_list *fmb = &fmb_list;
@@ -308,7 +308,7 @@ const struct path_info *SaveName(const char *name)
 		return NULL;
 	}
 	hash = full_name_hash((const unsigned char *) name, len - 1);
-	down(&lock);
+	mutex_lock(&lock);
 	if (first_call) {
 		int i;
 		first_call = 0;
@@ -354,7 +354,7 @@ const struct path_info *SaveName(const char *name)
 		while (ptr->next != fmb) ptr = ptr->next; ptr->next = fmb->next;
 	}
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return ptr ? &ptr->entry : NULL;
 }
 

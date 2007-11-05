@@ -19,7 +19,7 @@
 
 /*************************  VARIABLES  *************************/
 
-extern struct semaphore domain_acl_lock;
+extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
@@ -49,12 +49,12 @@ static struct globally_usable_env_entry *globally_usable_env_list = NULL;
 static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 {
 	struct globally_usable_env_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_env;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(env, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if ((saved_env = SaveName(env)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = globally_usable_env_list; ptr; ptr = ptr->next) {
 		if (ptr->env == saved_env) {
 			ptr->is_deleted = is_delete;
@@ -75,7 +75,7 @@ static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 	}
 	error = 0;
  out: ;
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -116,7 +116,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 	if ((saved_env = SaveName(env)) == NULL) return -ENOMEM;
 	if (!is_delete && IsGloballyUsableEnv(saved_env)) return 0;
 	
-	down(&domain_acl_lock);
+	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
@@ -151,7 +151,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 			break;
 		}
 	}
-	up(&domain_acl_lock);
+	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 

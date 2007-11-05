@@ -40,11 +40,11 @@ static int AddNoUmountACL(const char *dir, const bool is_delete)
 {
 	struct no_umount_entry *new_entry, *ptr;
 	const struct path_info *saved_dir;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	if (!IsCorrectPath(dir, 1, 0, 1, __FUNCTION__)) return -EINVAL;
 	if ((saved_dir = SaveName(dir)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = no_umount_list; ptr; ptr = ptr->next) {
 		if (ptr->dir == saved_dir) {
 			ptr->is_deleted = is_delete;
@@ -67,7 +67,7 @@ static int AddNoUmountACL(const char *dir, const bool is_delete)
 	error = 0;
 	printk("%sDon't allow umount %s\n", ccs_log_level, dir);
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
