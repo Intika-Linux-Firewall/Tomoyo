@@ -22,7 +22,7 @@
 /* The initial domain. */
 extern struct domain_info KERNEL_DOMAIN;
 
-extern struct semaphore domain_acl_lock;
+extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
@@ -48,7 +48,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	if (!domain) return -EINVAL;
 	if (!dest_pattern || !IsCorrectDomain(dest_pattern, __FUNCTION__)) return -EINVAL;
 	if ((saved_dest_pattern = SaveName(dest_pattern)) == NULL) return -ENOMEM;
-	down(&domain_acl_lock);
+	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
@@ -85,7 +85,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 			break;
 		}
 	}
-	up(&domain_acl_lock);
+	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 

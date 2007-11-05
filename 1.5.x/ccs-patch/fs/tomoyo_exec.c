@@ -19,7 +19,7 @@
 
 /*************************  VARIABLES  *************************/
 
-extern struct semaphore domain_acl_lock;
+extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
@@ -43,7 +43,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 	int error = -ENOMEM;
 	if (!IsCorrectPath(filename, 1, 0, -1, __FUNCTION__) || !IsCorrectPath(argv0, -1, 0, -1, __FUNCTION__) || strchr(argv0, '/')) return -EINVAL;
 	if ((saved_filename = SaveName(filename)) == NULL || (saved_argv0 = SaveName(argv0)) == NULL) return -ENOMEM;
-	down(&domain_acl_lock);
+	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
@@ -79,7 +79,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 			break;
 		}
 	}
-	up(&domain_acl_lock);
+	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 

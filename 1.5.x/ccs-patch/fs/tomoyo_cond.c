@@ -208,9 +208,9 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		if (right == MAX_KEYWORD + 1) *ptr2++ = right_max;
 	}
 	{
-		static DECLARE_MUTEX(lock);
+		static DEFINE_MUTEX(lock);
 		struct condition_list *prev = NULL;
-		down(&lock);
+		mutex_lock(&lock);
 		for (ptr = &head; ptr; prev = ptr, ptr = ptr->next) {
 			/* Don't compare if size differs. */
 			if (ptr->length != new_ptr->length) continue;
@@ -229,7 +229,7 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		/* Append to chain. */
 		prev->next = new_ptr;
 	ok:
-		up(&lock);
+		mutex_unlock(&lock);
 	}
 	return new_ptr;
  out2:

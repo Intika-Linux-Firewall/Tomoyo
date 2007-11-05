@@ -60,12 +60,12 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0);
 int CheckEnvPerm(const char *env);
 
 /* Check whether the given IP address and port number are allowed to use. */
-int CheckNetworkListenACL(const u8 is_ipv6, const u8 *address, const u16 port);
-int CheckNetworkConnectACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port);
-int CheckNetworkBindACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port);
-int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port);
-int CheckNetworkSendMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port);
-int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port);
+int CheckNetworkListenACL(const _Bool is_ipv6, const u8 *address, const u16 port);
+int CheckNetworkConnectACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port);
+int CheckNetworkBindACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port);
+int CheckNetworkAcceptACL(const _Bool is_ipv6, const u8 *address, const u16 port);
+int CheckNetworkSendMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port);
+int CheckNetworkRecvMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port);
 
 /* Check whether the given signal is allowed to use. */
 int CheckSignalACL(const int sig, const int pid);
@@ -83,12 +83,12 @@ static inline int CheckDoubleWritePermission(const unsigned int operation, struc
 static inline int CheckReWritePermission(struct file *filp) { return 0; }
 static inline int CheckArgv0Perm(const struct path_info *filename, const char *argv0) { return 0; }
 static inline int CheckEnvPerm(const char *env) { return 0; }
-static inline int CheckNetworkListenACL(const u8 is_ipv6, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkConnectACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkBindACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkAcceptACL(const u8 is_ipv6, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkSendMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
-static inline int CheckNetworkRecvMsgACL(const u8 is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkListenACL(const _Bool is_ipv6, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkConnectACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkBindACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkAcceptACL(const _Bool is_ipv6, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkSendMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
+static inline int CheckNetworkRecvMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
 static inline int CheckSignalACL(const int sig, const int pid) { return 0; }
 static inline int CheckCapabilityACL(const unsigned int capability) { return 0; }
 

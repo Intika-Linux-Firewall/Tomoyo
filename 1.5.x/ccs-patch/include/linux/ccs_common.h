@@ -40,6 +40,15 @@
 typedef _Bool bool;
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
+#define mutex semaphore
+#define mutex_init(mutex) init_MUTEX(mutex)
+#define mutex_lock(mutex) down(mutex)
+#define mutex_unlock(mutex) up(mutex)
+#define mutex_lock_interruptible(mutex) down_interruptible(mutex)
+#define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
+#endif
+
 struct mini_stat {
 	uid_t uid;
 	gid_t gid;
@@ -304,9 +313,9 @@ struct ip_network_acl_record {
 
 struct io_buffer {
 	int (*read) (struct io_buffer *);
-	struct semaphore read_sem;
+	struct mutex read_sem;
 	int (*write) (struct io_buffer *);
-	struct semaphore write_sem;
+	struct mutex write_sem;
 	int (*poll) (struct file *file, poll_table *wait);
 	void *read_var1;                  /* The position currently reading from. */
 	void *read_var2;                  /* Extra variables for reading.         */

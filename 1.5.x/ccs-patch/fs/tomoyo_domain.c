@@ -34,7 +34,7 @@ extern int sbin_init_started;
 #ifdef CONFIG_TOMOYO
 
 /* Lock for appending domain's ACL. */
-DECLARE_MUTEX(domain_acl_lock);
+DEFINE_MUTEX(domain_acl_lock);
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
@@ -81,7 +81,7 @@ struct alias_entry {
 /*************************  VARIABLES  *************************/
 
 /* Domain creation lock. */
-static DECLARE_MUTEX(new_domain_assign_lock);
+static DEFINE_MUTEX(new_domain_assign_lock);
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
@@ -115,7 +115,7 @@ static struct domain_initializer_entry *domain_initializer_list = NULL;
 static int AddDomainInitializerEntry(const char *domainname, const char *program, const bool is_not, const bool is_delete)
 {
 	struct domain_initializer_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_program, *saved_domainname = NULL;
 	int error = -ENOMEM;
 	bool is_last_name = 0;
@@ -129,7 +129,7 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 		if ((saved_domainname = SaveName(domainname)) == NULL) return -ENOMEM;
 	}
 	if ((saved_program = SaveName(program)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = domain_initializer_list; ptr; ptr = ptr->next) {
 		if (ptr->is_not == is_not && ptr->domainname == saved_domainname && ptr->program == saved_program) {
 			ptr->is_deleted = is_delete;
@@ -154,7 +154,7 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -215,7 +215,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 {
 	struct domain_keeper_entry *new_entry, *ptr;
 	const struct path_info *saved_domainname, *saved_program = NULL;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	bool is_last_name = 0;
 	if (!IsDomainDef(domainname) && IsCorrectPath(domainname, 1, -1, -1, __FUNCTION__)) {
@@ -228,7 +228,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 		if ((saved_program = SaveName(program)) == NULL) return -ENOMEM;
 	}
 	if ((saved_domainname = SaveName(domainname)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = domain_keeper_list; ptr; ptr = ptr->next) {
 		if (ptr->is_not == is_not && ptr->domainname == saved_domainname && ptr->program == saved_program) {
 			ptr->is_deleted = is_delete;
@@ -253,7 +253,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -311,12 +311,12 @@ static struct alias_entry *alias_list = NULL;
 static int AddAliasEntry(const char *original_name, const char *aliased_name, const bool is_delete)
 {
 	struct alias_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_original_name, *saved_aliased_name;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(original_name, 1, -1, -1, __FUNCTION__) || !IsCorrectPath(aliased_name, 1, -1, -1, __FUNCTION__)) return -EINVAL; /* No patterns allowed. */
 	if ((saved_original_name = SaveName(original_name)) == NULL || (saved_aliased_name = SaveName(aliased_name)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = alias_list; ptr; ptr = ptr->next) {
 		if (ptr->original_name == saved_original_name && ptr->aliased_name == saved_aliased_name) {
 			ptr->is_deleted = is_delete;
@@ -339,7 +339,7 @@ static int AddAliasEntry(const char *original_name, const char *aliased_name, co
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -370,12 +370,12 @@ static struct aggregator_entry *aggregator_list = NULL;
 static int AddAggregatorEntry(const char *original_name, const char *aggregated_name, const bool is_delete)
 {
 	struct aggregator_entry *new_entry, *ptr;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_original_name, *saved_aggregated_name;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(original_name, 1, 0, -1, __FUNCTION__) || !IsCorrectPath(aggregated_name, 1, -1, -1, __FUNCTION__)) return -EINVAL;
 	if ((saved_original_name = SaveName(original_name)) == NULL || (saved_aggregated_name = SaveName(aggregated_name)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = aggregator_list; ptr; ptr = ptr->next) {
 		if (ptr->original_name == saved_original_name && ptr->aggregated_name == saved_aggregated_name) {
 			ptr->is_deleted = is_delete;
@@ -398,7 +398,7 @@ static int AddAggregatorEntry(const char *original_name, const char *aggregated_
 	}
 	error = 0;
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -432,7 +432,7 @@ int DeleteDomain(char *domainname0)
 	struct path_info domainname;
 	domainname.name = domainname0;
 	fill_path_info(&domainname);
-	down(&new_domain_assign_lock);
+	mutex_lock(&new_domain_assign_lock);
 #ifdef DEBUG_DOMAIN_UNDELETE
 	printk("DeleteDomain %s\n", domainname0);
 	for (domain = KERNEL_DOMAIN.next; domain; domain = domain->next) {
@@ -461,7 +461,7 @@ int DeleteDomain(char *domainname0)
 		printk("Marked %p as undeletable\n", domain);
 #endif
 	}
-	up(&new_domain_assign_lock);
+	mutex_unlock(&new_domain_assign_lock);
 	return 0;
 }
 
@@ -471,7 +471,7 @@ struct domain_info *UndeleteDomain(const char *domainname0)
 	struct path_info domainname;
 	domainname.name = domainname0;
 	fill_path_info(&domainname);
-	down(&new_domain_assign_lock);
+	mutex_lock(&new_domain_assign_lock);
 #ifdef DEBUG_DOMAIN_UNDELETE
 	printk("UndeleteDomain %s\n", domainname0);
 	for (domain = KERNEL_DOMAIN.next; domain; domain = domain->next) {
@@ -498,7 +498,7 @@ struct domain_info *UndeleteDomain(const char *domainname0)
 		printk("%p was undeleted.\n", candidate_domain);
 #endif
 	}
-	up(&new_domain_assign_lock);
+	mutex_unlock(&new_domain_assign_lock);
 	return candidate_domain;
 }
 
@@ -508,7 +508,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 {
 	struct domain_info *domain = NULL;
 	const struct path_info *saved_domainname;
-	down(&new_domain_assign_lock);
+	mutex_lock(&new_domain_assign_lock);
 	if ((domain = FindDomain(domainname)) != NULL) goto out;
 	if (!IsCorrectDomain(domainname, __FUNCTION__)) goto out;
 	if ((saved_domainname = SaveName(domainname)) == NULL) goto out;
@@ -546,7 +546,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		while (ptr->next) ptr = ptr->next; ptr->next = domain;
 	}
  out: ;
-	up(&new_domain_assign_lock);
+	mutex_unlock(&new_domain_assign_lock);
 	return domain;
 }
 
@@ -794,7 +794,7 @@ static int CheckEnviron(struct linux_binprm *bprm)
 		if (argv_count) goto unmap_page;
 		while (offset < PAGE_SIZE) {
 			const unsigned char c = kaddr[offset++];
-			if (arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
 				if (c == '=') {
 					arg_ptr[arg_len++] = '\0';
 				} else if (c == '\\') {

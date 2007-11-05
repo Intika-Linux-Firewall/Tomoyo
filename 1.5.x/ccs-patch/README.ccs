@@ -1055,3 +1055,16 @@ Fix 2007/10/16
       To manage commonly inherited environments like PATH ,
       you can use 'allow_env' directive in exception policy
       to globally grant specified environment variable.
+
+Fix 2007/11/05
+
+    @ Replace semaphore with mutex.
+
+      I replaced semaphore with mutex.
+
+    @ Add missing down() in AddReservedEntry().
+
+      Mutex debugging capability told me that I had forgotten to call down()
+      since TOMOYO version 1.3.2 .
+      This function is not called by learning mode,
+      so the semaphore's counter will not overflow for normal usage.

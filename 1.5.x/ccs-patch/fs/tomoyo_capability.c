@@ -19,7 +19,7 @@
 
 /*************************  VARIABLES  *************************/
 
-extern struct semaphore domain_acl_lock;
+extern struct mutex domain_acl_lock;
 extern int sbin_init_started;
 
 static struct {
@@ -103,9 +103,9 @@ static bool CheckCapabilityAccept(const unsigned int index, struct domain_info *
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 {
-	static DECLARE_MUTEX(profile_lock);
+	static DEFINE_MUTEX(profile_lock);
 	struct profile *ptr = NULL;
-	down(&profile_lock);
+	mutex_lock(&profile_lock);
 	if (profile < MAX_PROFILES && (ptr = profile_ptr[profile]) == NULL) {
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
@@ -114,7 +114,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 			profile_ptr[profile] = ptr;
 		}
 	}
-	up(&profile_lock);
+	mutex_unlock(&profile_lock);
 	return ptr;
 }
 
@@ -165,7 +165,7 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	int error = -ENOMEM;
 	const u16 hash = capability;
 	if (!domain) return -EINVAL;
-	down(&domain_acl_lock);
+	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
 		while (1) {
@@ -198,7 +198,7 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 			break;
 		}
 	}
-	up(&domain_acl_lock);
+	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 

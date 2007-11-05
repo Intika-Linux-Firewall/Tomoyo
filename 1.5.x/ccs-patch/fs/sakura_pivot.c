@@ -41,11 +41,11 @@ static int AddPivotRootACL(const char *old_root, const char *new_root, const boo
 {
 	struct pivot_root_entry *new_entry, *ptr;
 	const struct path_info *saved_old_root, *saved_new_root;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	if (!IsCorrectPath(old_root, 1, 0, 1, __FUNCTION__) || !IsCorrectPath(new_root, 1, 0, 1, __FUNCTION__)) return -EINVAL;
 	if ((saved_old_root = SaveName(old_root)) == NULL || (saved_new_root = SaveName(new_root)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = pivot_root_list; ptr; ptr = ptr->next) {
 		if (ptr->old_root == saved_old_root && ptr->new_root == saved_new_root) {
 			ptr->is_deleted = is_delete;
@@ -69,7 +69,7 @@ static int AddPivotRootACL(const char *old_root, const char *new_root, const boo
 	error = 0;
 	printk("%sAllow pivot_root(%s, %s)\n", ccs_log_level, new_root, old_root);
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 

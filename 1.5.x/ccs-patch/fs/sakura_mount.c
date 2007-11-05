@@ -74,7 +74,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 {
 	struct mount_entry *new_entry, *ptr;
 	const struct path_info *fs, *dev, *dir;
-	static DECLARE_MUTEX(lock);
+	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	if ((fs = SaveName(fs_type)) == NULL) return -EINVAL;
 	if (!dev_name) dev_name = "<NULL>"; /* Map dev_name to "<NULL>" for if no dev_name given. */
@@ -85,7 +85,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 		strcmp(fs->name, MOUNT_MAKE_SHARED_KEYWORD) == 0) dev_name = "any";
 	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 1, 0, 1, __FUNCTION__)) return -EINVAL; 
 	if ((dev = SaveName(dev_name)) == NULL || (dir = SaveName(dir_name)) == NULL) return -ENOMEM;
-	down(&lock);
+	mutex_lock(&lock);
 	for (ptr = mount_list; ptr; ptr = ptr->next) {
 		if (ptr->flags != flags || pathcmp(ptr->dev_name, dev) || pathcmp(ptr->dir_name, dir) || pathcmp(ptr->fs_type, fs)) continue;
 		error = 0;
@@ -137,7 +137,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 		if (type) put_filesystem(type);
 	}
  out:
-	up(&lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
