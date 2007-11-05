@@ -6,12 +6,12 @@ this file will become more simpler.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/tomoyo.c |  927 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 927 insertions(+)
+ security/tomoyo/tomoyo.c |  952 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 952 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-02 18:18:55.618671976 +0900
-@@ -0,0 +1,927 @@
++++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-05 16:55:38.307124208 +0900
+@@ -0,0 +1,952 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -395,6 +395,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!(arg & O_APPEND))
 +		return tmy_rewrite_perm(file);
 +	return 0;
++}
++
++static int tmy_file_ioctl(struct file *file, unsigned int cmd,
++			  unsigned long arg)
++{
++	switch (cmd) {
++	case FIOCLEX:
++	case FIONCLEX:
++	case FIONBIO:
++	case FIOASYNC:
++	case FIOQSIZE:
++		return 0;
++	case FIBMAP:
++	case FIGETBSZ:
++	case FIONREAD:
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
++		if (S_ISREG(file->f_dentry->d_inode->i_mode))
++			return 0;
++#else
++		if (S_ISREG(file->f_path.dentry->d_inode->i_mode))
++			return 0;
++#endif
++	}
++	return tmy_capable(TMY_SYS_IOCTL);
 +}
 +
 +static int tmy_socket_listen(struct socket *sock, int backlog)
@@ -885,6 +909,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.inode_link            = tmy_inode_link,
 +	.inode_rename          = tmy_inode_rename,
 +	.file_fcntl            = tmy_file_fcntl,
++	.file_ioctl            = tmy_file_ioctl,
 +	.socket_listen 	       = tmy_socket_listen,
 +	.socket_create         = tmy_socket_create,
 +	.socket_connect        = tmy_socket_connect,
