@@ -43,7 +43,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.17-1.2142_FC4">Fedora Core 4 用のカーネル 2.6.17-1.2142_FC4</a>
 <li><a href="#2.6.20-1.2320.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2320.fc5</a>
 <li><a href="#2.6.22.9-61.fc6">Fedora Core 6 用のカーネル 2.6.22.9-61.fc6</a>
-<li><a href="#2.6.23.1-10.fc7">Fedora 7 用のカーネル 2.6.23.1-10.fc7</a>
+<li><a href="#2.6.23.1-21.fc7">Fedora 7 用のカーネル 2.6.23.1-21.fc7</a>
 <li><a href="#2.6.9-55.0.12.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.12.EL</a>
 <li><a href="#2.6.18-8.1.15.el5">CentOS 5 用のカーネル 2.6.18-8.1.15.el5</a>
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
@@ -191,25 +191,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.23.1-10.fc7">Fedora 7 用のカーネル 2.6.23.1-10.fc7</a></h2>
+<h2><a name="2.6.23.1-21.fc7">Fedora 7 用のカーネル 2.6.23.1-21.fc7</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.23.1-10.fc7.src.rpm<br>
-rpm -ivh kernel-2.6.23.1-10.fc7.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.23.1-21.fc7.src.rpm<br>
+rpm -ivh kernel-2.6.23.1-21.fc7.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.23.1-10.fc7<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.1-21.fc7<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.23.1-10.fc7/<br>
+cd /usr/src/linux-2.6.23.1-21.fc7/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .9-91.fc7/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-21.fc7/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.1-20071019.tar.gz<br>
 tar -zxf ccs-patch-1.5.1-20071019.tar.gz<br>
-wget -O /usr/src/ccs-patch-2.6.23.1-10.fc7.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.23.1-10.fc7.diff?root=tomoyo'<br>
-patch -sp1 &lt; /usr/src/ccs-patch-2.6.23.1-10.fc7.diff<br>
+wget -O /usr/src/ccs-patch-2.6.23.1-21.fc7.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.23.1-21.fc7.diff?root=tomoyo'<br>
+patch -sp1 &lt; /usr/src/ccs-patch-2.6.23.1-21.fc7.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
