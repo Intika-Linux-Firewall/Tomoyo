@@ -43,7 +43,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a>
 <li><a href="#2.6.20-1.2320.fc5">Kernel 2.6.20-1.2320.fc5 for Fedora Core 5</a>
 <li><a href="#2.6.22.9-61.fc6">Kernel 2.6.22.9-61.fc6 for Fedora Core 6</a>
-<li><a href="#2.6.23.1-10.fc7">Kernel 2.6.23.1-10.fc7 for Fedora 7</a>
+<li><a href="#2.6.23.1-21.fc7">Kernel 2.6.23.1-21.fc7 for Fedora 7</a>
 <li><a href="#2.6.9-55.0.12.EL">Kernel 2.6.9-55.0.12.EL for CentOS 4.5</a>
 <li><a href="#2.6.18-8.1.15.el5">Kernel 2.6.18-8.1.15.el5 for CentOS 5</a>
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
@@ -191,25 +191,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.23.1-10.fc7">Kernel 2.6.23.1-10.fc7 for Fedora 7</a></h2>
+<h2><a name="2.6.23.1-21.fc7">Kernel 2.6.23.1-21.fc7 for Fedora 7</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.23.1-10.fc7.src.rpm<br>
-rpm -ivh kernel-2.6.23.1-10.fc7.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.23.1-21.fc7.src.rpm<br>
+rpm -ivh kernel-2.6.23.1-21.fc7.src.rpm<br>
 # Prepare for compilation.<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.23.1-10.fc7<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.1-21.fc7<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.23.1-10.fc7/<br>
+cd /usr/src/linux-2.6.23.1-21.fc7/<br>
 # Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .9-91.fc7/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-21.fc7/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.1-20071019.tar.gz<br>
 tar -zxf ccs-patch-1.5.1-20071019.tar.gz<br>
-wget -O /usr/src/ccs-patch-2.6.23.1-10.fc7.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.23.1-10.fc7.diff?root=tomoyo'<br>
-patch -sp1 &lt; /usr/src/ccs-patch-2.6.23.1-10.fc7.diff<br>
+wget -O /usr/src/ccs-patch-2.6.23.1-21.fc7.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.23.1-21.fc7.diff?root=tomoyo'<br>
+patch -sp1 &lt; /usr/src/ccs-patch-2.6.23.1-21.fc7.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
