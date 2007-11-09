@@ -1300,7 +1300,7 @@ ApplyPatch linux-2.6-selinux-sigchld-wait.patch
 ApplyPatch linux-2.6-cputime-fix-accounting.patch
 
 # TOMOYO Linux
-# tar -zxf %_sourcedir/ccs-patch-1.4.3-pre.tar.gz
+#tar -zxf %_sourcedir/ccs-patch-1.4.3-pre.tar.gz
 wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.4.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .1-42.fc8:' -- Makefile
 patch -sp1 < ccs-patch-2.6.23.1-42.fc8.txt
