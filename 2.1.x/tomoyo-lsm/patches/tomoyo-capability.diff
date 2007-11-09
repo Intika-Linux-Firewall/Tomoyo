@@ -7,12 +7,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/capability.c |  276 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 276 insertions(+)
+ security/tomoyo/capability.c |  318 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 318 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/capability.c	2007-11-02 18:15:18.000000000 +0900
-@@ -0,0 +1,276 @@
++++ linux-2.6.23/security/tomoyo/capability.c	2007-11-09 17:06:34.000000000 +0900
+@@ -0,0 +1,318 @@
 +/*
 + * security/tomoyo/capability.c
 + *
@@ -25,37 +25,68 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static struct {
 +	const char *keyword;
 +	unsigned int current_value;
++	const char *capability_name;
 +} capability_control_array[TMY_MAX_CAPABILITY_INDEX] = {
-+	[TMY_INET_STREAM_SOCKET_CREATE]  = { "inet_tcp_create", 0 },    /* OK */
-+	[TMY_INET_STREAM_SOCKET_LISTEN]  = { "inet_tcp_listen", 0 },    /* OK */
-+	[TMY_INET_STREAM_SOCKET_CONNECT] = { "inet_tcp_connect", 0 },   /* OK */
-+	[TMY_USE_INET_DGRAM_SOCKET]      = { "use_inet_udp", 0 },       /* OK */
-+	[TMY_USE_INET_RAW_SOCKET]        = { "use_inet_ip", 0 },        /* OK */
-+	[TMY_USE_ROUTE_SOCKET]           = { "use_route", 0 },          /* OK */
-+	[TMY_USE_PACKET_SOCKET]          = { "use_packet", 0 },         /* OK */
-+	[TMY_SYS_MOUNT]                  = { "SYS_MOUNT", 0 },          /* OK */
-+	[TMY_SYS_UMOUNT]                 = { "SYS_UMOUNT", 0 },         /* OK */
-+	[TMY_SYS_REBOOT]                 = { "SYS_REBOOT", 0 },       /* Over */
-+	[TMY_SYS_CHROOT]                 = { "SYS_CHROOT", 0 },         /* OK */
-+	[TMY_SYS_KILL]                   = { "SYS_KILL", 0 },         /* None */
-+	[TMY_SYS_VHANGUP]                = { "SYS_VHANGUP", 0 },      /* Over */
-+	[TMY_SYS_SETTIME]                = { "SYS_TIME", 0 },         /* Over */
-+	[TMY_SYS_NICE]                   = { "SYS_NICE", 0 },         /* None */
-+	[TMY_SYS_SETHOSTNAME]            = { "SYS_SETHOSTNAME", 0 },  /* None */
-+	[TMY_USE_KERNEL_MODULE]         = { "use_kernel_module", 0 }, /* Over */
-+	[TMY_CREATE_FIFO]                = { "create_fifo", 0 },        /* OK */
-+	[TMY_CREATE_BLOCK_DEV]           = { "create_block_dev", 0 },   /* OK */
-+	[TMY_CREATE_CHAR_DEV]            = { "create_char_dev", 0 },    /* OK */
-+	[TMY_CREATE_UNIX_SOCKET]         = { "create_unix_socket", 0 }, /* OK */
-+	[TMY_SYS_LINK]                   = { "SYS_LINK", 0 },           /* OK */
-+	[TMY_SYS_SYMLINK]                = { "SYS_SYMLINK", 0 },        /* OK */
-+	[TMY_SYS_RENAME]                 = { "SYS_RENAME", 0 },         /* OK */
-+	[TMY_SYS_UNLINK]                 = { "SYS_UNLINK", 0 },         /* OK */
-+	[TMY_SYS_CHMOD]                  = { "SYS_CHMOD", 0 },          /* OK */
-+	[TMY_SYS_CHOWN]                  = { "SYS_CHOWN", 0 },          /* OK */
-+	[TMY_SYS_IOCTL]                  = { "SYS_IOCTL", 0 },        /* Over */
-+	[TMY_SYS_KEXEC_LOAD]             = { "SYS_KEXEC_LOAD", 0 },   /* None */
-+	[TMY_SYS_PIVOT_ROOT]             = { "SYS_PIVOT_ROOT", 0 },     /* OK */
++	[TMY_INET_STREAM_SOCKET_CREATE]  = /* OK */
++	{ "inet_tcp_create", 0, "socket(PF_INET, SOCK_STREAM)" },
++	[TMY_INET_STREAM_SOCKET_LISTEN]  = /* OK */
++	{ "inet_tcp_listen", 0, "listen(PF_INET, SOCK_STREAM)" },
++	[TMY_INET_STREAM_SOCKET_CONNECT] = /* OK */
++	{ "inet_tcp_connect", 0, "connect(PF_INET, SOCK_STREAM)" },
++	[TMY_USE_INET_DGRAM_SOCKET]      = /* OK */
++	{ "use_inet_udp", 0, "socket(PF_INET, SOCK_DGRAM)" },
++	[TMY_USE_INET_RAW_SOCKET]        = /* OK */
++	{ "use_inet_ip", 0, "socket(PF_INET, SOCK_RAW)" },
++	[TMY_USE_ROUTE_SOCKET]           = /* OK */
++	{ "use_route", 0, "socket(PF_ROUTE)" },
++	[TMY_USE_PACKET_SOCKET]          = /* OK */
++	{ "use_packet", 0, "socket(PF_PACKET)" },
++	[TMY_SYS_MOUNT]                  = /* OK */
++	{ "SYS_MOUNT", 0, "sys_mount()" },
++	[TMY_SYS_UMOUNT]                 = /* OK */
++	{ "SYS_UMOUNT", 0, "sys_umount()" },
++	[TMY_SYS_REBOOT]                 = /* Too many hooks. */
++	{ "SYS_REBOOT", 0, "sys_reboot()" },
++	[TMY_SYS_CHROOT]                 = /* OK */
++	{ "SYS_CHROOT", 0, "sys_chroot()" },
++	[TMY_SYS_KILL]                   = /* No appropriate hook. */
++	{ "SYS_KILL", 0, "sys_kill()" },
++	[TMY_SYS_VHANGUP]                = /* Too many hooks. */
++	{ "SYS_VHANGUP", 0, "sys_vhangup()" },
++	[TMY_SYS_SETTIME]                = /* Too many hooks. */
++	{ "SYS_TIME", 0, "sys_settimeofday()" },
++	[TMY_SYS_NICE]                   = /* No appropriate hook. */
++	{ "SYS_NICE", 0, "sys_nice()" },
++	[TMY_SYS_SETHOSTNAME]            = /* No appropriate hook. */
++	{ "SYS_SETHOSTNAME", 0, "sys_sethostname()" },
++	[TMY_USE_KERNEL_MODULE]          = /* Too many hooks. */
++	{ "use_kernel_module", 0, "kernel_module" },
++	[TMY_CREATE_FIFO]                = /* OK */
++	{ "create_fifo", 0, "mknod(FIFO)" },
++	[TMY_CREATE_BLOCK_DEV]           = /* OK */
++	{ "create_block_dev", 0, "mknod(BDEV)" },
++	[TMY_CREATE_CHAR_DEV]            = /* OK */
++	{ "create_char_dev", 0, "mknod(CDEV)" },
++	[TMY_CREATE_UNIX_SOCKET]         = /* OK */
++	{ "create_unix_socket", 0, "mknod(SOCKET)" },
++	[TMY_SYS_LINK]                   = /* OK */
++	{ "SYS_LINK", 0, "sys_link()" },
++	[TMY_SYS_SYMLINK]                = /* OK */
++	{ "SYS_SYMLINK", 0, "sys_symlink()" },
++	[TMY_SYS_RENAME]                 = /* OK */
++	{ "SYS_RENAME", 0, "sys_rename()" },
++	[TMY_SYS_UNLINK]                 = /* OK */
++	{ "SYS_UNLINK", 0, "sys_unlink()" },
++	[TMY_SYS_CHMOD]                  = /* OK */
++	{ "SYS_CHMOD", 0, "sys_chmod()" },
++	[TMY_SYS_CHOWN]                  = /* OK */
++	{ "SYS_CHOWN", 0, "sys_chown()" },
++	[TMY_SYS_IOCTL]                  = /* Too many hooks. */
++	{ "SYS_IOCTL", 0, "sys_ioctl()" },
++	[TMY_SYS_KEXEC_LOAD]             = /* No appropriate hook. */
++	{ "SYS_KEXEC_LOAD", 0, "sys_kexec_load()" },
++	[TMY_SYS_PIVOT_ROOT]             = /* OK */
++	{ "SYS_PIVOT_ROOT", 0, "sys_pivot_root()" },
 +};
 +
 +struct profile {
@@ -70,6 +101,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	return capability < TMY_MAX_CAPABILITY_INDEX ?
 +		capability_control_array[capability].keyword : NULL;
++}
++
++static const char *tmy_capability2name(const unsigned int capability)
++{
++	return capability < TMY_MAX_CAPABILITY_INDEX ?
++		capability_control_array[capability].capability_name : NULL;
 +}
 +
 +/* Check whether the given capability control is enabled. */
@@ -255,6 +292,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		tmy_audit_capability_log(capability, 1, profile, mode);
 +		return 0;
 +	}
++	if (tmy_flags(TMY_VERBOSE))
++		tmy_audit("TOMOYO-%s: %s denied for %s\n",
++			  tmy_getmsg(is_enforce),
++			  tmy_capability2name(capability),
++			  tmy_lastname(domain));
 +	tmy_audit_capability_log(capability, 0, profile, mode);
 +	if (is_enforce)
 +		return tmy_supervisor("%s\n" TMY_ALLOW_CAPABILITY "%s\n",
