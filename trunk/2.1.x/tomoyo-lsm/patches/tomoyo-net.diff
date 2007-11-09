@@ -12,12 +12,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/net.c |  942 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 942 insertions(+)
+ security/tomoyo/net.c |  956 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 956 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/net.c	2007-11-02 13:48:04.000000000 +0900
-@@ -0,0 +1,942 @@
++++ linux-2.6.23/security/tomoyo/net.c	2007-11-09 17:07:54.000000000 +0900
+@@ -0,0 +1,956 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -614,6 +614,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (found)
 +		return 0;
++
++	if (tmy_flags(TMY_VERBOSE)) {
++		if (is_ipv6) {
++			char buf[64];
++			tmy_print_ipv6(buf, sizeof(buf), (const u16 *) address);
++			tmy_audit("TOMOYO-%s: %s to %s %u denied for %s\n",
++				  tmy_getmsg(is_enforce), keyword, buf, port,
++				  tmy_lastname(domain));
++		} else {
++			tmy_audit("TOMOYO-%s: %s to %u.%u.%u.%u %u denied for "
++				  "%s\n", tmy_getmsg(is_enforce), keyword,
++				  HIPQUAD(ip), port, tmy_lastname(domain));
++		}
++	}
 +
 +	if (is_enforce) {
 +

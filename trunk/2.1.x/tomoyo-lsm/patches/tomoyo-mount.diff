@@ -8,12 +8,12 @@ the policy using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/mount.c | 1093 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1093 insertions(+)
+ security/tomoyo/mount.c |  928 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 928 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/mount.c	2007-11-05 10:02:11.000000000 +0900
-@@ -0,0 +1,1093 @@
++++ linux-2.6.23/security/tomoyo/mount.c	2007-11-09 17:17:06.000000000 +0900
+@@ -0,0 +1,928 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -63,70 +63,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *dir;
 +	bool is_deleted;
 +};
-+
-+/*************************  AUDIT FUNCTIONS  *************************/
-+
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+static int tmy_audit_mount_log(const bool is_granted,
-+			       const u8 profile,
-+			       const unsigned int mode,
-+			       const char *fmt, ...)
-+	__attribute__((format(printf, 4, 5)));
-+
-+static int tmy_audit_mount_log(const bool is_granted,
-+			       const u8 profile,
-+			       const unsigned int mode,
-+			       const char *fmt, ...)
-+{
-+	char *buf1;
-+	char *buf2;
-+	unsigned int len;
-+	va_list args;
-+
-+	if (is_granted) {
-+		if (!tmy_audit_grant())
-+			return 0;
-+	} else {
-+		if (!tmy_audit_reject())
-+			return 0;
-+	}
-+
-+	buf1 = tmy_alloc(PAGE_SIZE);
-+
-+	if (!buf1)
-+		return -ENOMEM;
-+
-+	va_start(args, fmt);
-+	len = vsnprintf(buf1, PAGE_SIZE, fmt, args);
-+	va_end(args);
-+
-+	if (len >= PAGE_SIZE) {
-+		tmy_free(buf1);
-+		return -ENOMEM;
-+	}
-+
-+	buf2 = tmy_init_audit_log(&len, profile, mode);
-+
-+	if (!buf2) {
-+		tmy_free(buf1);
-+		return -ENOMEM;
-+	}
-+
-+	snprintf(buf2 + strlen(buf2),
-+		 len - strlen(buf2),
-+		 "%s\n", buf1);
-+
-+	tmy_free(buf1);
-+
-+	return tmy_write_audit_log(buf2, is_granted);
-+}
-+#else
-+static const char *tmy_getmsg(bool is_enforce)
-+{
-+	return is_enforce ? "ERROR" : "WARNING";
-+}
-+#endif
-+
 +
 +/************************  MOUNT RESTRICTION HANDLER  ************************/
 +
@@ -222,18 +158,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const bool is_enforce = (mode == 3);
 +
 +	if (!strcmp(type, MOUNT_REMOUNT_KEYWORD)) {
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+		tmy_audit_mount_log(0, profile, mode,
-+				    "mount -o remount %s 0x%lX",
-+				    realname2 ? realname2 : dir_name,
-+				    flags);
-+#else
-+		printk(KERN_WARNING "TOMOYO-%s: mount -o remount %s 0x%lX "
-+		       "(pid=%d:exe=%s): Permission denied.\n",
-+		       tmy_getmsg(is_enforce),
-+		       realname2 ? realname2 : dir_name, flags,
-+		       current->pid, exename);
-+#endif
++		tmy_audit(KERN_WARNING "TOMOYO-%s: mount -o remount %s 0x%lX "
++			  "(pid=%d:exe=%s): Permission denied.\n",
++			  tmy_getmsg(is_enforce),
++			  realname2 ? realname2 : dir_name, flags,
++			  current->pid, exename);
 +		if (is_enforce &&
 +		    !tmy_supervisor("# %s is requesting\nmount -o remount %s\n",
 +				    exename, realname2 ? realname2 : dir_name))
@@ -241,18 +170,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	} else if (!strcmp(type, MOUNT_BIND_KEYWORD) ||
 +		   !strcmp(type, MOUNT_MOVE_KEYWORD)) {
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+		tmy_audit_mount_log(0, profile, mode, "mount %s %s %s 0x%lX",
-+				    type, realname1 ? realname1 : dev_name,
-+				    realname2 ? realname2 : dir_name, flags);
-+#else
-+		printk(KERN_WARNING "TOMOYO-%s: mount %s %s %s 0x%lX "
-+		       "(pid=%d:exe=%s): Permission denied.\n",
-+		       tmy_getmsg(is_enforce), type,
-+		       realname1 ? realname1 : dev_name,
-+		       realname2 ? realname2 : dir_name,
-+		       flags, current->pid, exename);
-+#endif
++		tmy_audit(KERN_WARNING "TOMOYO-%s: mount %s %s %s 0x%lX "
++			  "(pid=%d:exe=%s): Permission denied.\n",
++			  tmy_getmsg(is_enforce), type,
++			  realname1 ? realname1 : dev_name,
++			  realname2 ? realname2 : dir_name,
++			  flags, current->pid, exename);
 +		if (is_enforce &&
 +		    tmy_supervisor("# %s is requesting\nmount %s %s %s 0x%lX\n",
 +				   exename, type,
@@ -265,16 +188,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		   !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
 +		   !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
 +		   !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD)) {
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+		tmy_audit_mount_log(0, profile, mode, "mount %s %s 0x%lX", type,
-+				    realname2 ? realname2 : dir_name, flags);
-+#else
-+		printk(KERN_WARNING "TOMOYO-%s: mount %s %s 0x%lX "
-+		       "(pid=%d:exe=%s): Permission denied.\n",
-+		       tmy_getmsg(is_enforce), type,
-+		       realname2 ? realname2 : dir_name,
-+		       flags, current->pid, exename);
-+#endif
++		tmy_audit(KERN_WARNING "TOMOYO-%s: mount %s %s 0x%lX "
++			  "(pid=%d:exe=%s): Permission denied.\n",
++			  tmy_getmsg(is_enforce), type,
++			  realname2 ? realname2 : dir_name,
++			  flags, current->pid, exename);
 +		if (is_enforce &&
 +		    tmy_supervisor("# %s is requesting\nmount %s %s 0x%lX",
 +				   exename, type,
@@ -283,18 +201,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			error = 0;
 +
 +	} else {
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+		tmy_audit_mount_log(0, profile, mode, "mount -t %s %s %s 0x%lX",
-+				    type, realname1 ? realname1 : dev_name,
-+				    realname2 ? realname2 : dir_name, flags);
-+#else
-+		printk(KERN_WARNING "TOMOYO-%s: mount -t %s %s %s 0x%lX "
-+		       "(pid=%d:exe=%s): Permission denied.\n",
-+		       tmy_getmsg(is_enforce), type,
-+		       realname1 ? realname1 : dev_name,
-+		       realname2 ? realname2 : dir_name,
-+		       flags, current->pid, exename);
-+#endif
++		tmy_audit(KERN_WARNING "TOMOYO-%s: mount -t %s %s %s 0x%lX "
++			  "(pid=%d:exe=%s): Permission denied.\n",
++			  tmy_getmsg(is_enforce), type,
++			  realname1 ? realname1 : dev_name,
++			  realname2 ? realname2 : dir_name,
++			  flags, current->pid, exename);
 +		if (is_enforce &&
 +		    tmy_supervisor("# %s is requesting\n"
 +				   "mount -t %s %s %s 0x%lX\n",
@@ -346,19 +258,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case 0:
 +		break;
 +	default:
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+		tmy_audit_mount_log(0, profile, mode, "%s%s%sare given "
-+				    "for single mount operation",
-+				    flags & MS_REMOUNT ? "remount " : "",
-+				    flags & MS_MOVE    ? "move " : "",
-+				    flags & MS_BIND    ? "bind " : "");
-+#else
-+		printk(KERN_WARNING "TOMOYO-ERROR: %s%s%sare given "
-+		       "for single mount operation.\n",
-+		       flags & MS_REMOUNT ? "'remount' " : "",
-+		       flags & MS_MOVE    ? "'move' " : "",
-+		       flags & MS_BIND    ? "'bind' " : "");
-+#endif
++		tmy_audit(KERN_WARNING "TOMOYO-ERROR: %s%s%sare given "
++			  "for single mount operation.\n",
++			  flags & MS_REMOUNT ? "'remount' " : "",
++			  flags & MS_MOVE    ? "'move' " : "",
++			  flags & MS_BIND    ? "'bind' " : "");
 +		return -EINVAL;
 +	}
 +
@@ -370,21 +274,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case 0:
 +		break;
 +	default:
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+		tmy_audit_mount_log(0, profile, mode, "%s%s%s%sare given "
-+				    "for single mount operation",
-+				    flags & MS_UNBINDABLE ? "unbindable " : "",
-+				    flags & MS_PRIVATE    ? "private " : "",
-+				    flags & MS_SLAVE      ? "slave " : "",
-+				    flags & MS_SHARED     ? "shared " : "");
-+#else
-+		printk(KERN_WARNING "TOMOYO-ERROR: %s%s%s%sare given "
-+		       "for single mount operation.\n",
-+		       flags & MS_UNBINDABLE ? "'unbindable' " : "",
-+		       flags & MS_PRIVATE    ? "'private' " : "",
-+		       flags & MS_SLAVE      ? "'slave' " : "",
-+		       flags & MS_SHARED     ? "'shared' " : "");
-+#endif
++		tmy_audit(KERN_WARNING "TOMOYO-ERROR: %s%s%s%sare given "
++			  "for single mount operation.\n",
++			  flags & MS_UNBINDABLE ? "'unbindable' " : "",
++			  flags & MS_PRIVATE    ? "'private' " : "",
++			  flags & MS_SLAVE      ? "'slave' " : "",
++			  flags & MS_SHARED     ? "'shared' " : "");
 +		return -EINVAL;
 +	}
 +
@@ -493,66 +388,32 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			error = 0;
 +
 +			if (need_dev > 0)
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+				tmy_audit_mount_log(1, profile, mode,
-+						    "mount -t %s %s %s 0x%lX",
-+						    type,
-+						    requested_dev_name,
-+						    requested_dir_name, flags);
-+#else
-+				printk(KERN_DEBUG "TOMOYO-NOTICE: "
-+				       "'mount -t %s %s %s 0x%lX' accepted.\n",
-+				       type, requested_dev_name,
-+				       requested_dir_name, flags);
-+#endif
++				tmy_audit(KERN_DEBUG "TOMOYO-NOTICE: "
++					  "'mount -t %s %s %s 0x%lX' "
++					  "accepted.\n",
++					  type, requested_dev_name,
++					  requested_dir_name, flags);
 +			else if (need_dev < 0)
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+				tmy_audit_mount_log(1, profile, mode,
-+						    "mount %s %s %s 0x%lX",
-+						    type, requested_dev_name,
-+						    requested_dir_name, flags);
-+#else
-+				printk(KERN_DEBUG "TOMOYO-NOTICE: "
-+				       "'mount %s %s %s 0x%lX' accepted.\n",
-+				       type, requested_dev_name,
-+				       requested_dir_name, flags);
-+#endif
++				tmy_audit(KERN_DEBUG "TOMOYO-NOTICE: "
++					  "'mount %s %s %s 0x%lX' accepted.\n",
++					  type, requested_dev_name,
++					  requested_dir_name, flags);
 +			else if (!strcmp(type, MOUNT_REMOUNT_KEYWORD))
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+				tmy_audit_mount_log(1, profile, mode,
-+						    "mount -o remount %s 0x%lX",
-+						    requested_dir_name, flags);
-+#else
-+				printk(KERN_DEBUG "TOMOYO-NOTICE: "
-+				       "'mount -o remount %s 0x%lX' "
-+				       "accepted.\n",
-+				       requested_dir_name, flags);
-+#endif
++				tmy_audit(KERN_DEBUG "TOMOYO-NOTICE: "
++					  "'mount -o remount %s 0x%lX' "
++					  "accepted.\n",
++					  requested_dir_name, flags);
 +			else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
 +				 !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
 +				 !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
 +				 !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD))
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+				tmy_audit_mount_log(1, profile, mode,
-+						    "mount %s %s 0x%lX",
-+						    type, requested_dir_name,
-+						    flags);
-+#else
-+				printk(KERN_DEBUG "TOMOYO-NOTICE: "
-+				       "'mount %s %s 0x%lX' accepted.\n",
-+				       type, requested_dir_name, flags);
-+#endif
++				tmy_audit(KERN_DEBUG "TOMOYO-NOTICE: "
++					  "'mount %s %s 0x%lX' accepted.\n",
++					  type, requested_dir_name, flags);
 +			else
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+				tmy_audit_mount_log(1, profile, mode,
-+						    "mount %s on %s 0x%lX",
-+						    type, requested_dir_name,
-+						    flags);
-+#else
-+				printk(KERN_DEBUG "TOMOYO-NOTICE: "
-+				       "'mount %s on %s 0x%lX' accepted.\n",
-+				       type, requested_dir_name, flags);
-+#endif
++				tmy_audit(KERN_DEBUG "TOMOYO-NOTICE: "
++					  "'mount %s on %s 0x%lX' accepted.\n",
++					  type, requested_dir_name, flags);
 +			break;
 +		}
 +
@@ -699,7 +560,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_conceal_mount(struct nameidata *nd)
 +{
 +	int flag = 0;
-+	const u8 profile = TMY_SECURITY->domain->profile;
 +	const unsigned int mode = tmy_flags(TMY_DENY_CONCEAL_MOUNT);
 +	const bool is_enforce = (mode == 3);
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
@@ -709,7 +569,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#else
 +	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
 +#endif
-+	char *dir;
 +
 +	if (!mode)
 +		return 0;
@@ -733,19 +592,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +	}
 +
-+	dir = tmy_realpath_dentry(nd->dentry, nd->mnt);
 +
 +	if (flag) {
 +		int error = -EPERM;
++		char *dir;
++		dir = tmy_realpath_dentry(nd->dentry, nd->mnt);
 +		if (dir) {
 +			const char *exename = tmy_get_exe();
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+			tmy_audit_mount_log(0, profile, mode, "mount %s", dir);
-+#else
-+			printk("TOMOYO-%s: mount %s (pid=%d:exe=%s): "
-+			       "Permission denied.\n", tmy_getmsg(is_enforce),
-+			       dir, current->pid, exename);
-+#endif
++			tmy_audit("TOMOYO-%s: mount %s (pid=%d:exe=%s): "
++				  "Permission denied.\n",
++				  tmy_getmsg(is_enforce),
++				  dir, current->pid, exename);
 +			if (is_enforce &&
 +			    tmy_supervisor("# %s is requesting\nmount on %s\n",
 +					   exename, dir) == 0)
@@ -757,12 +614,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +		if (is_enforce)
 +			return error;
-+	} else {
-+		if (dir)
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+			tmy_audit_mount_log(1, profile, mode, "mount %s", dir);
-+#endif
-+		tmy_free(dir);
 +	}
 +
 +	return 0;
@@ -827,7 +678,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int error = -EPERM;
 +	const char *dir0;
-+	const u8 profile = TMY_SECURITY->domain->profile;
 +	const unsigned int mode = tmy_flags(TMY_RESTRICT_UMOUNT);
 +	const bool is_enforce = (mode == 3);
 +
@@ -855,14 +705,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +		if (found) {
 +			const char *exename = tmy_get_exe();
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+			tmy_audit_mount_log(0, profile, mode, "umount %s",
-+					    dir0);
-+#else
-+			printk("TOMOYO-%s: umount %s (pid=%d:exe=%s): "
-+			       "Permission denied.\n", tmy_getmsg(is_enforce),
-+			       dir0, current->pid, exename);
-+#endif
++			tmy_audit("TOMOYO-%s: umount %s (pid=%d:exe=%s): "
++				  "Permission denied.\n",
++				  tmy_getmsg(is_enforce),
++				  dir0, current->pid, exename);
 +			if (is_enforce &&
 +			    tmy_supervisor("# %s is requesting\nunmount %s\n",
 +					   exename, dir0) == 0)
@@ -870,10 +716,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +			tmy_free(exename);
 +		} else {
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+			tmy_audit_mount_log(1, profile, mode, "umount %s",
-+					    dir0);
-+#endif
 +			error = 0;
 +		}
 +
@@ -998,7 +840,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_pivot_root_perm(struct nameidata *old_nd, struct nameidata *new_nd)
 +{
 +	int error = -EPERM;
-+	const u8 profile = TMY_SECURITY->domain->profile;
 +	const unsigned int mode = tmy_flags(TMY_RESTRICT_PIVOT_ROOT);
 +	const bool is_enforce = (mode == 3);
 +	char *old_root;
@@ -1034,18 +875,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +out: ;
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+	tmy_audit_mount_log(!error, profile, mode, "pivot_root %s %s",
-+			    new_root, old_root);
-+#endif
 +	if (error) {
 +		const char *exename = tmy_get_exe();
-+#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+		printk("TOMOYO-%s: pivot_root %s %s (pid=%d:exe=%s): "
-+		       "Permission denied.\n", tmy_getmsg(is_enforce),
-+		       new_root, old_root, current->pid, exename);
-+#endif
-+		 if (is_enforce &&
++		tmy_audit("TOMOYO-%s: pivot_root %s %s (pid=%d:exe=%s): "
++			  "Permission denied.\n", tmy_getmsg(is_enforce),
++			  new_root, old_root, current->pid, exename);
++		if (is_enforce &&
 +		    tmy_supervisor("# %s is requesting\npivot_root %s %s\n",
 +				   exename, new_root, old_root) == 0)
 +			error = 0;

@@ -19,12 +19,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/common.c | 2426 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2426 insertions(+)
+ security/tomoyo/common.c | 2429 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2429 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/common.c	2007-11-05 10:03:32.000000000 +0900
-@@ -0,0 +1,2426 @@
++++ linux-2.6.23/security/tomoyo/common.c	2007-11-09 17:37:44.000000000 +0900
+@@ -0,0 +1,2429 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -61,13 +61,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TMY_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
 +	[TMY_MAX_ACCEPT_ENTRY]    =
 +	{ "MAX_ACCEPT_ENTRY", MAX_ACCEPT_ENTRY, INT_MAX },
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+	[TMY_AUDIT_GRANT]         = { "AUDIT_GRANT",         0, 1 },
-+	[TMY_AUDIT_REJECT]        = { "AUDIT_REJECT",        1, 1 },
-+#else
 +	[TMY_MAX_GRANT_LOG]       = { "MAX_GRANT_LOG",       1024, INT_MAX },
 +	[TMY_MAX_REJECT_LOG]      = { "MAX_REJECT_LOG",      1024, INT_MAX },
-+#endif
++	[TMY_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
 +	[TMY_ALLOW_ENFORCE_GRACE] = { "ALLOW_ENFORCE_GRACE", 0, 1 },
 +};
 +
@@ -796,6 +792,31 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return NULL;
 +}
 +
++/**
++ * tmy_lastname - get last part of domainname.
++ *
++ * Returns last part of domainname.
++ */
++const char *tmy_lastname(const struct domain_info *domain)
++{
++	const char *cp0 = domain->domainname->name;
++	const char *cp1 = strrchr(cp0, ' ');
++	if (cp1)
++		return cp1 + 1;
++	return cp0;
++}
++
++/**
++ * tmy_get_msg - get message from mode.
++ * @is_enforce: enforcing flag.
++ *
++ * Returns "ERROR" if enforcing, "WARNING" otherwise.
++ */
++const char *tmy_getmsg(bool is_enforce)
++{
++	return is_enforce ? "ERROR" : "WARNING";
++}
++
 +/*************************  DOMAIN POLICY HANDLER  *************************/
 +
 +/**
@@ -818,28 +839,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		profile_ptr[profile]->value[index] :
 +		0;
 +}
-+
-+#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+/**
-+ * tmy_audit_grant - get flags of auditing grant logs.
-+ *
-+ * Returns current value of auditing grant log flags.
-+ */
-+bool tmy_audit_grant(void)
-+{
-+	return tmy_flags(TMY_AUDIT_GRANT);
-+}
-+
-+/**
-+ * tmy_audit_reject - get flags of auditing reject logs.
-+ *
-+ * Returns current value of auditing reject log flags.
-+ */
-+bool tmy_audit_reject(void)
-+{
-+	return tmy_flags(TMY_AUDIT_REJECT);
-+}
-+#endif
 +
 +/**
 + * tmy_quota - check quota.
@@ -1734,7 +1733,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
 +
-+	printk(KERN_INFO "TOMOYO: %s   2007/11/05\n", TOMOYO_VERSION_CODE);
++	printk(KERN_INFO "TOMOYO: %s   2007/11/09\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
 +		panic("TOMOYO: No profiles loaded.\n");
@@ -2048,26 +2047,34 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/***** CRITICAL SECTION END *****/
 +
 +	tmy_io_printf(head,
-+		      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
++		      "/proc/tomoyo/system_policy:    %10u\n"
++		      "/proc/tomoyo/domain_policy:    %10u\n"
++		      "/proc/tomoyo/exception_policy: %10u\n"
++		      "/proc/tomoyo/profile:          %10u\n"
++		      "/proc/tomoyo/query:            %10u\n"
++		      "/proc/tomoyo/manager:          %10u\n"
++		      "/proc/tomoyo/grant_log:        %10u\n"
++		      "/proc/tomoyo/reject_log:       %10u\n",
++#else
 +		      "/sys/kernel/security/tomoyo/system_policy:    %10u\n"
++		      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
 +		      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
 +		      "/sys/kernel/security/tomoyo/profile:          %10u\n"
 +		      "/sys/kernel/security/tomoyo/query:            %10u\n"
-+#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
++		      "/sys/kernel/security/tomoyo/manager:          %10u\n"
 +		      "/sys/kernel/security/tomoyo/grant_log:        %10u\n"
-+		      "/sys/kernel/security/tomoyo/reject_log:       %10u\n"
++		      "/sys/kernel/security/tomoyo/reject_log:       %10u\n",
 +#endif
-+		      "/sys/kernel/security/tomoyo/manager:          %10u\n",
-+		      counter[TMY_UPDATE_DOMAINPOLICY],
 +		      counter[TMY_UPDATE_SYSTEMPOLICY],
++		      counter[TMY_UPDATE_DOMAINPOLICY],
 +		      counter[TMY_UPDATE_EXCEPTIONPOLICY],
 +		      counter[TMY_UPDATE_PROFILE],
 +		      counter[TMY_UPDATE_QUERY],
-+#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
++		      counter[TMY_UPDATE_MANAGER],
 +		      counter[TMY_UPDATE_GRANT_LOG],
-+		      counter[TMY_UPDATE_REJECT_LOG],
-+#endif
-+		      counter[TMY_UPDATE_MANAGER]);
++		      counter[TMY_UPDATE_REJECT_LOG]);
++
 +	head->read_eof = 1;
 +
 +	return 0;
@@ -2178,7 +2185,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case TMY_VERSION:
 +		head->read = tmy_read_version;
 +		break;
-+#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
 +	case TMY_GRANT_LOG:
 +		head->read = tmy_read_grant_log;
 +		head->poll = tmy_poll_grant_log;
@@ -2187,7 +2193,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		head->read = tmy_read_reject_log;
 +		head->poll = tmy_poll_reject_log;
 +		break;
-+#endif
 +	}
 +
 +	if (type != TMY_QUERY) {
@@ -2441,12 +2446,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			 TMY_UPDATESCOUNTER);
 +	tmy_create_entry("version",          0400, tmy_dir,
 +			 TMY_VERSION);
-+#ifndef CONFIG_SECURITY_TOMOYO_USE_AUDITD
 +	tmy_create_entry("grant_log",        0400, tmy_dir,
 +			 TMY_GRANT_LOG);
 +	tmy_create_entry("reject_log",       0400, tmy_dir,
 +			 TMY_REJECT_LOG);
-+#endif
 +	return 0;
 +}
 +

@@ -1,13 +1,5 @@
-This patch makes access logs sent to wither auditing subsystem or
-/sys/kernel/security/tomoyo/ interface.
-
-TOMOYO Linux uses two channels when using auditing subsystem.
-One is 'AUDIT_TMY_GRANTED', used for auditing accesses which are
-granted in the TOMOYO Linux policy.
-The other is 'AUDIT_TMY_REJECTED', used for auditing accesses which
-are not granted in the TOMOYO Linux policy.
-
-TOMOYO Linux uses two files when using /sys/kernel/security/tomoyo/ interface.
+TOMOYO Linux uses /sys/kernel/security/tomoyo/ interface
+for reporting access logs in domain policy format.
 One is 'grant_log', used for auditing accesses which are
 granted in the TOMOYO Linux policy.
 The other is 'reject_log', used for auditing accesses which
@@ -16,13 +8,12 @@ The userland daemon /usr/lib/ccs/ccs-auditd will save these logs.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- include/linux/audit.h   |    3 
- security/tomoyo/audit.c |  264 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 267 insertions(+)
+ security/tomoyo/audit.c |  244 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 244 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/audit.c	2007-11-02 13:48:04.000000000 +0900
-@@ -0,0 +1,264 @@
++++ linux-2.6.23/security/tomoyo/audit.c	2007-11-09 18:09:28.000000000 +0900
+@@ -0,0 +1,244 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -32,75 +23,56 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include "tomoyo.h"
 +
 +#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
-+
 +/**
-+ * tmy_init_audit_log - allocate and initialize audit buffer.
-+ * @len: pointer to length of requested size.
-+ * @profile: profile number for this log.
-+ * @mode: profile value for this log.
-+ *
-+ * Returns pointer to audit buffer on success. @len received allocated size.
-+ * Returns NULL on failure.
-+ *
-+ * @len must not be a NULL.
-+ */
-+char *tmy_init_audit_log(int *len, const u8 profile, const unsigned int mode)
-+{
-+	char *buf;
-+	struct task_struct *task = current;
-+	const char *domainname = TMY_SECURITY->domain->domainname->name;
-+
-+	*len += strlen(domainname) + 256;
-+	buf = tmy_alloc(*len);
-+
-+	if (!buf)
-+		return NULL;
-+
-+	snprintf(buf, (*len) - 1, "profile=%u mode=%u "
-+		 "pid=%d uid=%d gid=%d euid=%d egid=%d "
-+		 "suid=%d sgid=%d fsuid=%d fsgid=%d : %s : ",
-+		 profile, mode,
-+		 task->pid, task->uid, task->gid, task->euid, task->egid,
-+		 task->suid, task->sgid, task->fsuid, task->fsgid, domainname);
-+
-+	return buf;
-+}
-+
-+/**
-+ * tmy_write_audit_log - write audit log.
-+ * @buf:        pointer to access log contents.
-+ * @is_granted: is the access request granted?
++ * tmy_audit - write audit log.
++ * @fmt:  format strings for printf().
 + *
 + * Returns zero on success.
 + * Returns nonzero on failure.
 + *
 + * Write audit log.
-+ * Caller must allocate @buf with tmy_init_audit_log().
 + */
-+int tmy_write_audit_log(char *buf, const bool is_granted)
++int tmy_audit(const char *fmt, ...)
 +{
 +	struct audit_buffer *ab;
-+	int type = is_granted ? AUDIT_TMY_GRANTED : AUDIT_TMY_REJECTED;
-+
++	int len;
++	va_list args;
++	char *buf;
++	char *cp;
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 13)
 +	ab = audit_log_start(current->audit_context);
 +#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-+	ab = audit_log_start(current->audit_context, type);
++	ab = audit_log_start(current->audit_context, AUDIT_KERNEL);
 +#else
-+	ab = audit_log_start(current->audit_context, GFP_KERNEL, type);
++	ab = audit_log_start(current->audit_context, GFP_KERNEL, AUDIT_KERNEL);
 +#endif
-+	if (ab) {
-+		char *cp = strchr(buf, '\0') - 1;
-+		if (cp >= buf && *cp == '\n') *cp = '\0';
-+		audit_log_format(ab, "TOMOYO: %s", buf);
-+		audit_log_end(ab);
++	if (!ab)
++		return -ENOMEM;
++	buf = kzalloc(PAGE_SIZE, GFP_KERNEL);
++	if (!buf)
++		goto out;
++	va_start(args, fmt);
++	len = vsnprintf(buf, PAGE_SIZE - 1, fmt, args);
++	va_end(args);
++	if (len > PAGE_SIZE - 1) {
++		kfree(buf);
++		buf = kzalloc(len + 16, GFP_KERNEL);
++		if (!buf)
++			goto out;
++		va_start(args, fmt);
++		vsnprintf(buf, len + 15, fmt, args);
++		va_end(args);
 +	}
-+
-+	tmy_free(buf);
-+	return ab ? 0 : -ENOMEM;
++	cp = strchr(buf, '\0') - 1;
++	if (cp >= buf && *cp == '\n')
++		*cp = '\0';
++	audit_log_format(ab, "TOMOYO: %s", buf);
++	kfree(buf);
++out: ;
++	audit_log_end(ab);
++	return buf ? 0 : -ENOMEM;
 +}
-+
-+#else
++#endif
 +
 +static DECLARE_WAIT_QUEUE_HEAD(grant_log_wait);
 +static DECLARE_WAIT_QUEUE_HEAD(reject_log_wait);
@@ -286,16 +258,3 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return POLLIN | POLLRDNORM;
 +	return 0;
 +}
-+#endif
---- linux-2.6.23.orig/include/linux/audit.h	2007-10-10 05:31:38.000000000 +0900
-+++ linux-2.6.23/include/linux/audit.h	2007-11-01 17:16:15.000000000 +0900
-@@ -120,6 +120,9 @@
- 
- #define AUDIT_KERNEL		2000	/* Asynchronous audit record. NOT A REQUEST. */
- 
-+#define AUDIT_TMY_GRANTED  2001 /* TOMOYO Linux audit granted */
-+#define AUDIT_TMY_REJECTED 2002 /* TOMOYO Linux audit rejected */
-+
- /* Rule flags */
- #define AUDIT_FILTER_USER	0x00	/* Apply rule to user-generated messages */
- #define AUDIT_FILTER_TASK	0x01	/* Apply rule at task creation (not syscall) */

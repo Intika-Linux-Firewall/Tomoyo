@@ -1,8 +1,15 @@
-LSM wrapper functions for TOMOYO Linux access control.
-If bind mounts are used, TOMOYO requires all permissions for
-all possible pathnames (whereas AppArmor requires one of possible pathnames).
-If "struct vfsmount" is passed to LSM hooks as AppArmor proposes,
-this file will become more simpler.
+LSM wrapper functions for TOMOYO Linux's access control.
+
+********** IMPORTANT WARNING : KNOWN BUGS **********
+According to lockdep, there is a possibility of deadlock when TOMOYO tries to
+acquire namespace_sem for reading if an inode's mutex is already held.
+
+There is probably only one clean solution that can avoid this deadlock:
+Pass "struct vfsmount" to LSM hooks as AppArmor proposes
+so that TOMOYO needn't to walk through process's namespace list.
+
+See http://lkml.org/lkml/2007/11/5/388 and http://lkml.org/lkml/2007/11/7/292
+for details.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
@@ -10,7 +17,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 952 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-05 16:55:38.307124208 +0900
++++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-05 16:55:38.000000000 +0900
 @@ -0,0 +1,952 @@
 +/*
 + * security/tomoyo/tomoyo.c
