@@ -434,6 +434,7 @@
 <ul>
 <li>ファイルに対するアクセス許可</li>
 <li>指定可能な argv[0] の組み合わせ</li>
+<li>使用可能なケイパビリティ</li>
 <li>使用可能なネットワークアドレスとポート</li>
 <li>使用可能なシグナル</li>
 </ul>
@@ -477,6 +478,150 @@
 プログラムへのシンボリックリンクを経由してプログラムを実行する場合、 TOMOYO Linux のドメイン遷移は filename が指すパス名を正規化した内容に基づいて行われるのに対し、振る舞いは argv[0] （通常は filename が指すパス名と同じ内容）に基づいて行われてしまう。例えば、 /bin/ls と /bin/cat が busybox へのハードリンクとして提供されている環境において、 /tmp/cat という /bin/ls へのシンボリックリンクを作成して /tmp/cat を実行することにより、 /bin/ls のためのドメインで cat として振舞うことができてしまうという抜け穴になる。</p>
 <p>このディレクティブの目的は、 filename と argv[0] の内容の組み合わせを制限することでそのような抜け穴を塞ぐことである。</p>
 
+<h3>使用可能なケイパビリティ</h3>
+<p>ケイパビリティのアクセス許可を指定するには、 allow_capability というディレクティブに続けて、ケイパビリティを指定する。以下のケイパビリティが指定できる。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>inet_tcp_create</td>
+<td>TCP ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>inet_tcp_listen</td>
+<td>TCP ソケットの listen を許可</td>
+</tr>
+<tr>
+<td>inet_tcp_connect</td>
+<td>TCP ソケットの connect を許可</td>
+</tr>
+<tr>
+<td>use_inet_udp</td>
+<td>UDP ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>use_inet_ip</td>
+<td>RAW ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>use_route</td>
+<td>ROUTE ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>use_packet</td>
+<td>PACKET ソケットの使用を許可</td>
+</tr>
+<tr>
+<td>use_kernel_module</td>
+<td>create_module(2) init_module(2) delete_module(2) の使用を許可</td>
+</tr>
+<tr>
+<td>create_fifo</td>
+<td>mknod(2) で FIFO の作成を許可</td>
+</tr>
+<tr>
+<td>create_block_dev</td>
+<td>mknod(2) でブロック型デバイスの作成を許可</td>
+</tr>
+<tr>
+<td>create_char_dev</td>
+<td>mknod(2) でキャラクタ型デバイスの作成を許可</td>
+</tr>
+<tr>
+<td>create_unix_socket</td>
+<td>mknod(2) で UNIX ドメインソケットの作成を許可</td>
+</tr>
+<tr>
+<td>SYS_MOUNT</td>
+<td>mount(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_UMOUNT</td>
+<td>umount(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_REBOOT</td>
+<td>reboot(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_CHROOT</td>
+<td>chroot(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_KILL</td>
+<td>0 以外のシグナルで kill(2) tkill(2) tgkill(2)の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_VHANGUP</td>
+<td>vhangup(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_TIME</td>
+<td>stime(2) settimeofday(2) adjtimex(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_NICE</td>
+<td>nice(2) setpriority(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_SETHOSTNAME</td>
+<td>sethostname(2) setdomainname(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_LINK</td>
+<td>link(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_SYMLINK</td>
+<td>symlink(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_RENAME</td>
+<td>rename(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_UNLINK</td>
+<td>unlink(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_CHMOD</td>
+<td>chmod(2) fchmod(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_CHOWN</td>
+<td>chown(2) fchown(2) lchown(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_IOCTL</td>
+<td>ioctl(2) compat_sys_ioctl(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_KEXEC_LOAD</td>
+<td>kexec_load(2) の使用を許可</td>
+</tr>
+<tr>
+<td>SYS_PIVOT_ROOT</td>
+<td>pivot_root(2) の使用を許可</td>
+</tr>
+</table>
+<p>allow_capability ディレクティブの目的は、プログラムが呼び出すことができるシステムコールを制限することである。幾つかのシステムコールに対しては他のディレクティブやポリシーファイルを使用してより詳細な制限が可能になっている。</p>
+<ul>
+<li>作成を許可するキャラクタ型デバイスファイルのパス名を allow_mkblock ディレクティブを使用して制限することができる。
+<li>作成を許可するブロック型デバイスファイルのパス名を allow_mkchar ディレクティブを使用して制限することができる。
+<li>作成を許可する FIFO のパス名を allow_mkfifo ディレクティブを使用して制限することができる。
+<li>作成を許可する UNIX ドメインソケットのパス名を allow_mksock ディレクティブを使用して制限することができる。
+<li>作成を許可するシンボリックリンクのパス名を allow_symlink ディレクティブを使用して制限することができる。
+<li>削除を許可するパス名を allow_unlink ディレクティブを使用して制限することができる。
+<li>ハードリンクを許可する組み合わせを allow_link ディレクティブを使用して制限することができる。
+<li>パス名の変更を許可する組み合わせを allow_rename ディレクティブを使用して制限することができる。
+<li>使用を許可する IP アドレスの範囲ととポート番号の範囲を allow_network ディレクティブを使用して制限することができる。
+<li>送信可能なシグナルの番号と送信先のドメインを allow_signal ディレクティブを使用して制限することができる。
+<li>マウントを許可するデバイスおよびマウントポイントを allow_mount ディレクティブを使用して制限することができる。
+<li>アンマウントを許可しないマウントポイントを deny_unmount ディレクティブを使用して指定することができる。
+<li>pivot_root で交換できるディレクトリを allow_pivot_root ディレクティブを使用して制限することができる。
+</ul>
 <h3>使用可能なネットワークアドレスとポート</h3>
 <p>ネットワークのアクセス許可を指定するには、 allow_network というディレクティブに続けて、プロトコル（TCP UDP RAW の何れか）、 IP アドレス、ポート番号（TCP UDP の場合）またはプロトコル番号（RAW の場合）を指定する。 IPv4 プロトコルおよび IPv6 プロトコルで使用するローカルポート番号が対象である。</p>
 <table border="1">
