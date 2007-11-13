@@ -213,6 +213,12 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <td>Yes</td>
 </tr>
 <tr>
+<td>MAC_FOR_CAPABILITY::***</td>
+<td>Enable MAC for capabilities.<br>
+The *** matches to values that can be given using allow_capability directive described in <a href="#domain_policy.conf">Domain policy</a>.</td>
+<td>Yes</td>
+</tr>
+<tr>
 <td>MAC_FOR_NETWORK</td>
 <td>Enable MAC for network addresses and ports.</td>
 <td>Yes</td>
@@ -248,13 +254,18 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <td>-</td>
 </tr>
 <tr>
-<td>AUDIT_GRANT</td>
-<td>Enable to audit policy-granted logs.</td>
+<td>MAX_GRANT_LOG</td>
+<td>Limits the max number of grant logs that the kernel can hold.</td>
 <td>-</td>
 </tr>
 <tr>
-<td>AUDIT_REJECT</td>
-<td>Enable to audit policy-violated logs.</td>
+<td>MAX_REJECT_LOG</td>
+<td>Limits the max number of reject logs that the kernel can hold.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>TOMOYO_VERBOSE</td>
+<td>Dump domain policy violation messages to auditing subsystem or syslog.</td>
 <td>-</td>
 </tr>
 <tr>
@@ -425,6 +436,7 @@ Therefore /dev/ and /dev/pts/ must not be unmounted for systems where / is read-
 <ul>
 <li>MAC for files</li>
 <li>MAC for argv[0]</li>
+<li>MAC for capabilities</li>
 <li>MAC for network addresses and ports</li>
 <li>MAC for signals</li>
 </ul>
@@ -472,6 +484,152 @@ For example, in a system that provides /bin/ls and /bin/cat as hard links of bus
 programs to behave as cat in the domain of /bin/ls by creating a symbolic link named /tmp/cat that points to /bin/ls and executing /tmp/cat .</p>
 <p>The purpose of this directive is to restrict the combinations of filename and argv[0] so that such loopholes won't occur.</p>
 
+<h3>MAC for capabilities</h3>
+<p>To grant capability permission, use allow_capability directive followed by a capability.<br>
+The following capabilities are applicable.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>inet_tcp_create</td>
+<td>Grant socket(PF_INET or PF_INET6, SOCK_STREAM, *)</td>
+</tr>
+<tr>
+<td>inet_tcp_listen</td>
+<td>Grant listen() for PF_INET or PF_INET6, SOCK_STREAM</td>
+</tr>
+<tr>
+<td>inet_tcp_connect</td>
+<td>Grant connect() for PF_INET or PF_INET6, SOCK_STREAM</td>
+</tr>
+<tr>
+<td>use_inet_udp</td>
+<td>Grant socket(PF_INET, SOCK_DGRAM, *)</td>
+</tr>
+<tr>
+<td>use_inet_ip</td>
+<td>Grant socket(PF_INET, SOCK_RAW, *)</td>
+</tr>
+<tr>
+<td>use_route</td>
+<td>Grant socket(PF_ROUTE, *, *)</td>
+</tr>
+<tr>
+<td>use_packet</td>
+<td>Grant socket(PF_PACKET, *, *)</td>
+</tr>
+<tr>
+<td>use_kernel_module</td>
+<td>Grant create_module(2) init_module(2) delete_module(2)</td>
+</tr>
+<tr>
+<td>create_fifo</td>
+<td>Grant mknod(2) for FIFO.</td>
+</tr>
+<tr>
+<td>create_block_dev</td>
+<td>Grant mknod(2) for block device.</td>
+</tr>
+<tr>
+<td>create_char_dev</td>
+<td>Grant mknod(2) for character device.</td>
+</tr>
+<tr>
+<td>create_unix_socket</td>
+<td>Grant mknod(2) for unix domain sockets.</td>
+</tr>
+<tr>
+<td>SYS_MOUNT</td>
+<td>Grant mount(2)</td>
+</tr>
+<tr>
+<td>SYS_UMOUNT</td>
+<td>Grant umount(2)</td>
+</tr>
+<tr>
+<td>SYS_REBOOT</td>
+<td>Grant reboot(2)</td>
+</tr>
+<tr>
+<td>SYS_CHROOT</td>
+<td>Grant chroot(2)<br></td>
+</tr>
+<tr>
+<td>SYS_KILL</td>
+<td>Grant kill(2) tkill(2) tgkill(2) with non-0 signal.</td>
+</tr>
+<tr>
+<td>SYS_VHANGUP</td>
+<td>Grant vhangup(2)</td>
+</tr>
+<tr>
+<td>SYS_TIME</td>
+<td>Grant stime(2) settimeofday(2) adjtimex(2)</td>
+</tr>
+<tr>
+<td>SYS_NICE</td>
+<td>Grant nice(2) setpriority(2)</td>
+</tr>
+<tr>
+<td>SYS_SETHOSTNAME</td>
+<td>Grant sethostname(2) setdomainname(2)</td>
+</tr>
+<tr>
+<td>SYS_LINK</td>
+<td>Grant link(2)</td>
+</tr>
+<tr>
+<td>SYS_SYMLINK</td>
+<td>Grant symlink(2)</td>
+</tr>
+<tr>
+<td>SYS_RENAME</td>
+<td>Grant rename(2)</td>
+</tr>
+<tr>
+<td>SYS_UNLINK</td>
+<td>Grant unlink(2)</td>
+</tr>
+<tr>
+<td>SYS_CHMOD</td>
+<td>Grant chmod(2) fchmod(2)</td>
+</tr>
+<tr>
+<td>SYS_CHOWN</td>
+<td>Grant chown(2) fchown(2) lchown(2)</td>
+</tr>
+<tr>
+<td>SYS_IOCTL</td>
+<td>Grant ioctl(2) compat_sys_ioctl(2)</td>
+</tr>
+<tr>
+<td>SYS_KEXEC_LOAD</td>
+<td>Grant kexec_load(2)</td>
+</tr>
+<tr>
+<td>SYS_PIVOT_ROOT</td>
+<td>Grant pivot_root(2)<br></td>
+</tr>
+</table>
+<p>The purpose of allow_capability directive is to restrict system calls that a PROGRAM can call.<br>
+You can restrict more strictly with other directives and policy files for some system calls.</p>
+<ul>
+<li>You can restrict creation of block device files with allow_mkblock directive.
+<li>You can restrict creation of character device files with allow_mkchar directive.
+<li>You can restrict creation of FIFOs with allow_mkfifo directive.
+<li>You can restrict creation of UNIX domain sockets with allow_mksock directive.
+<li>You can restrict creation of symbolic links with allow_symlink directive.
+<li>You can restrict deletion of non-directories with allow_unlink directive.
+<li>You can restrict combination of pathnames that can be hard linked with allow_link directive.
+<li>You can restrict combination of pathnames that can be renamed with allow_rename directive.
+<li>You can restrict IP addresses and ports with allow_network directive.
+<li>You can restrict signal numbers and Target domain with allow_signal directive.
+<li>You can restrict devices and directories with allow_mount directive.
+<li>You can restrict directories that you don't allow unmount with deny_unmount directive.
+<li>You can restrict directories that can exchange with allow_pivot_root directive.
+</ul>
 <h3>MAC for networking addresses and ports</h3>
 <p>To grant permission for ports, use allow_network directive followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>
 <table border="1">
