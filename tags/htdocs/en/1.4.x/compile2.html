@@ -768,8 +768,7 @@ sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.11AX/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
-wget -O /usr/src/ccs-patch-2.6.18-8.11AX.txt 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.18-8.11AX.txt?root=tomoyo'<br>
-patch -sp1 &lt; /usr/src/ccs-patch-2.6.18-8.11AX.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.18-8.11AX.txt<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
