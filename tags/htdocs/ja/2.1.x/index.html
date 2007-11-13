@@ -64,11 +64,11 @@ $ make -s
 
 <h2>TOMOYO Linux ツールの作成</h2>
 
-<p>TOMOYO Linux 2.1 で使用するツールは http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz からダウンロードできます。以下のようにダウンロードして展開後、コンパイルしてください。ツールは/usr/lib/ccsにインストールされます。</p>
+<p>TOMOYO Linux 2.1 で使用するツールは http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz からダウンロードできます。以下のようにダウンロードして展開後、コンパイルしてください。ツールは/usr/lib/ccsにインストールされます。</p>
 
 <pre>
-$ wget -O tomoyo-tools.tar.gz '<a href="http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz">http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz</a>'
-$ tar -zxf tomoyo-tools.tar.gz
+$ wget <a href="http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz">http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz</a>
+$ tar -zxf ccs-tools-1.5.1-20071019.tar.gz
 $ cd ccstools
 $ make
 # make install
@@ -95,16 +95,7 @@ $ make
 # echo 'use_profile 1' &gt;&gt; /etc/tomoyo/domain_policy.conf
 </pre>
 
-<p>以上の設定を行って TOMOYO Linux カーネルで起動すると、 /sbin/init の開始直前に以下のメッセージが表示されます。</p>
-
-<pre>
-TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
-TOMOYO Linux&gt;
-</pre>
-
-<p>ここでEnterキーを押すか10秒間待つことでTOMOYO Linuxが有効になり、ポリシーが読み込まれます。TOMOYO Linuxの設定を誤りログインできないなどの問題が生じた場合は、このプロンプトでdisableと入力することでTOMOYO Linuxを無効にして起動できます。</p>
-
-<p>ログインプロンプトが表示されたらログインしてrootユーザになり、TOMOYO Linuxツール群に同梱されているeditpolicyコマンドを実行してみてください。</p>
+<p>TOMOYO Linux カーネルで起動して、ログインしてrootユーザになり、TOMOYO Linuxツール群に同梱されているeditpolicyコマンドを実行してみてください。</p>
 
 <pre>
 # /usr/lib/ccs/editpolicy

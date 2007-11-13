@@ -62,11 +62,11 @@ $ make -s
 
 <h2>Compiling TOMOYO Linux tools</h2>
 
-<p>You can download TOMOYO Linux 2.1 tools at http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz . Download it and extract it and compile it. The tools are installed in /usr/lib/ccs .</p>
+<p>You can download TOMOYO Linux 2.1 tools at http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz . Download it and extract it and compile it. The tools are installed in /usr/lib/ccs .</p>
 
 <pre>
-$ wget -O tomoyo-tools.tar.gz '<a href="http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz">http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.0-20070920.tar.gz</a>'
-$ tar -zxf tomoyo-tools.tar.gz
+$ wget <a href="http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz">http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz</a>
+$ tar -zxf ccs-tools-1.5.1-20071019.tar.gz
 $ cd ccstools
 $ make
 # make install
@@ -93,16 +93,7 @@ You will get initial configuration files in /etc/tomoyo/ directory.
 # echo 'use_profile 1' &gt;&gt; /etc/tomoyo/domain_policy.conf
 </pre>
 
-<p>When you boot with TOMOYO Linux kernel, you will see the following message when /sbin/init is about to start.</p>
-
-<pre>
-TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
-TOMOYO Linux&gt;
-</pre>
-
-<p>If you press 'Enter' key or wait for 10 seconds, TOMOYO Linux gets enabled and policy is loaded. If you have trouble such as unable to login because of inappropriate TOMOYO Linux configuration, enter "disable" and press 'Enter' key to disable TOMOYO Linux.</p>
-
-<p>Login to the system as root user, and run editpolicy included in TOMOYO Linux 2.1 tools.</p>
+<p>Reboot and login to the system as root user, and run editpolicy included in TOMOYO Linux 2.1 tools.</p>
 
 <pre>
 # /usr/lib/ccs/editpolicy
