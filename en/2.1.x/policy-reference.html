@@ -29,9 +29,11 @@
 <p><a href="#manager">3.6 manager</a></p>
 <p><a href="#.domain_status">3.7 .domain_status</a></p>
 <p><a href="#meminfo">3.8 meminfo</a></p>
-<p><a href="#self_domain">3.9 self_domain</a></p>
-<p><a href="#.process_status">3.10 .process_status</a></p>
-<p><a href="#.updates_counter">3.11 .updates_counter</a></p>
+<p><a href="#grant_log">3.9 grant_log</a></p>
+<p><a href="#reject_log">3.10 reject_log</a></p>
+<p><a href="#self_domain">3.11 self_domain</a></p>
+<p><a href="#.process_status">3.12 .process_status</a></p>
+<p><a href="#.updates_counter">3.13 .updates_counter</a></p>
 <hr>
 <h1><a name="Introduction">1. Introduction</a></h1>
 <h2><a name="word_definition">1.1 Word definition</a></h2>
@@ -486,7 +488,7 @@ programs to behave as cat in the domain of /bin/ls by creating a symbolic link n
 
 <h3>MAC for capabilities</h3>
 <p>To grant capability permission, use allow_capability directive followed by a capability.<br>
-The following capabilities are applicable.</p>
+The following capabilities are applicable. (BUG: Due to LSM limitation, some of them are not working.)</p>
 <table border="1">
 <tr>
 <td>Value</td>
@@ -915,13 +917,21 @@ in a process whose domain is assigned a profile for enforce mode and "ALLOW_ENFO
 <p>This file is to show the total RAM used to keep policy in the kernel by TOMOYO Linux.</p>
 <p>(Example)<br>
 cat /sys/kernel/security/tomoyo/meminfo</p>
-<h2><a name="self_domain">3.9 self_domain</a></h2>
+<h2><a name="grant_log">3.9 grant_log</a></h2>
+<p>This file holds the granted log. The reader process returns immediately if no granted logs exists. To wait until a granted log is generated, use select(2) for readability. The max number of logs that the kernel can hold is limited to MAX_GRANT_LOG, so read out timely.</p>
+<p>(Example)<br>
+cat /sys/kernel/security/tomoyo/grant_log</p>
+<h2><a name="reject_log">3.10 reject_log</a></h2>
+<p>This file holds the rejected log. The reader process returns immediately if no violation logs exists. To wait until a violation log is generated, use select(2) for readability. The max number of logs that the kernel can hold is limited to MAX_REJECT_LOG, so read out timely.</p>
+<p>(Example)<br>
+cat /sys/kernel/security/tomoyo/reject_log</p>
+<h2><a name="self_domain">3.11 self_domain</a></h2>
 <p>This file is to show the name of domain the caller process belongs to.</p>
 <p>(Example)<br>
 cat /sys/kernel/security/tomoyo/self_domain</p>
-<h2><a name=".process_status">3.10 .process_status</a></h2>
+<h2><a name=".process_status">3.12 .process_status</a></h2>
 <p>This file is used by "ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by PROGRAMS that aren't registered as policy manager.</p>
-<h2><a name=".updates_counter">3.11 .updates_counter</a></h2>
+<h2><a name=".updates_counter">3.13 .updates_counter</a></h2>
 <p>This file is a counter used by policy update monitor programs so that they can easily find that the policies may have changed since last check. The counter values are reset to 0 whenever it is referred.</p>
 <hr>
 <p><a href="index.html#manual">Return to index</a></p>
