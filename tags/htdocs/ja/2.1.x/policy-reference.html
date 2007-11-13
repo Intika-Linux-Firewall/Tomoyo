@@ -29,9 +29,11 @@
 <p><a href="#manager">3.6 manager</a></p>
 <p><a href="#.domain_status">3.7 .domain_status</a></p>
 <p><a href="#meminfo">3.8 meminfo</a></p>
-<p><a href="#self_domain">3.9 self_domain</a></p>
-<p><a href="#.process_status">3.10 .process_status</a></p>
-<p><a href="#.updates_counter">3.11 .updates_counter</a></p>
+<p><a href="#grant_log">3.9 grant_log</a></p>
+<p><a href="#reject_log">3.10 reject_log</a></p>
+<p><a href="#self_domain">3.11 self_domain</a></p>
+<p><a href="#.process_status">3.12 .process_status</a></p>
+<p><a href="#.updates_counter">3.13 .updates_counter</a></p>
 <hr>
 <h1><a name="Introduction">1. はじめに</a></h1>
 <h2><a name="word_definition">1.1 用語の定義</a></h2>
@@ -484,7 +486,7 @@
 <p>このディレクティブの目的は、 filename と argv[0] の内容の組み合わせを制限することでそのような抜け穴を塞ぐことである。</p>
 
 <h3>使用可能なケイパビリティ</h3>
-<p>ケイパビリティのアクセス許可を指定するには、 allow_capability というディレクティブに続けて、ケイパビリティを指定する。以下のケイパビリティが指定できる。</p>
+<p>ケイパビリティのアクセス許可を指定するには、 allow_capability というディレクティブに続けて、ケイパビリティを指定する。以下のケイパビリティが指定できる。 (BUG: Due to LSM limitation, some of them are not working.)</p>
 <table border="1">
 <tr>
 <td>値</td>
@@ -910,13 +912,21 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 <p>TOMOYO Linuxがポリシーを保持するために使用しているカーネルのメモリ情報を取得する。</p>
 <p>（例）<br>
 cat /sys/kernel/security/tomoyo/meminfo<br></p>
-<h2><a name="self_domain">3.9 self_domain</a></h2>
+<h2><a name="grant_log">3.9 grant_log</a></h2>
+<p>ドメイン別ポリシーに対するアクセス許可ログを取得する。 取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使うこと。 記憶できる件数はMAX_GRANT_LOG件までである。 それ以上は記録されないので、随時読み出すようにする必要がある。</p>
+<p>（例）<br>
+cat /sys/kernel/security/tomoyo/grant_log</p>
+<h2><a name="reject_log">3.10 reject_log</a></h2>
+<p>ドメイン別ポリシーに対するアクセス拒否ログを取得する。 取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使うこと。 記憶できる件数はMAX_REJECT_LOG件までである。 それ以上は記録されないので、随時読み出すようにする必要がある。</p>
+<p>（例）<br>
+cat /sys/kernel/security/tomoyo/reject_log</p>
+<h2><a name="self_domain">3.11 self_domain</a></h2>
 <p>呼び出し元プロセスが属しているドメインの名前を取得する。</p>
 <p>（例）<br>
 cat /sys/kernel/security/tomoyo/self_domain</p>
-<h2><a name=".process_status">3.10 .process_status</a></h2>
+<h2><a name=".process_status">3.12 .process_status</a></h2>
 <p>ccstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシーマネージャとして登録されていないプログラムでも書き込みを行える。</p>
-<h2><a name=".updates_counter">3.11 .updates_counter</a></h2>
+<h2><a name=".updates_counter">3.13 .updates_counter</a></h2>
 <p>ポリシーの変更を検出するためのカウンタ。参照されるたびに 0 にリセットされる。ポリシーの更新を監視するプログラムのためのインタフェース。</p>
 <hr>
 <p><a href="index.html#manual">目次へ戻る</a></p>
