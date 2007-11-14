@@ -1,0 +1,289 @@
+config SAKURA
+	bool "SAKURA (Domain-Free Mandatory Access Control) support"
+	default y
+	help
+	  Say Y here to support the Domain-Free Mandatory Access Control.
+
+	  SAKURA stands for
+	  "Security Advancement Know-how Upon Read-only Approach".
+	  As the name shows, SAKURA was originally a methodology to make
+	  root fs read-only to avoid tampering the system files.
+	  But now, SAKURA is not only a methodology but also a kernel patch
+	  that improves the system security with less effort.
+
+	  SAKURA can restrict operations that affect systemwide.
+
+config SAKURA_RESTRICT_MOUNT
+	bool "mount() restriction support"
+	default y
+	depends on SAKURA
+	help
+	  This option allows you to restrict combinations of
+	  (type, device, dir) that the system can mount.
+
+	  For example, the WWW contents are stored at /var/www directory
+	  in a HDD, if tmpfs is mounted on /var/www by an attacker,
+	  the WWW contents will be hidden.
+	  You can prevent the attacker from mounting tmpfs on /var/www
+	  with this option.
+
+config SAKURA_RESTRICT_CHROOT
+	bool "chroot() restriction support"
+	default y
+	depends on SAKURA
+	help
+	  This option allows you to restrict directories
+	  that the system can chroot to.
+
+	  If an attacker can chroot to arbitrary directories,
+	  the attacker can create a directory tree with malicious programs
+	  under a writable directory
+	  and execute them after chroot to that directory.
+	  You can prevent the attacker with this option.
+
+	  This option becomes more powerful if either root fs is read-only
+	  or mandatory file access controls are enforced.
+
+config SAKURA_RESTRICT_UNMOUNT
+	bool "umount() restriction support"
+	default y
+	depends on SAKURA
+	help
+	  This option allows you to reject unmount requests
+	  for specific directories.
+
+	  For example, many programs refer /proc,
+	  so if /proc is unmounted by an attacker,
+	  the system will go wrong.
+	  You can prevent the attacker from unmounting
+	  /proc with this option.
+
+config SAKURA_DENY_CONCEAL_MOUNT
+	bool "Conceal mount disabler support"
+	default y
+	depends on SAKURA
+	help
+	  This option allows you to prevent mount requests
+	  that conceals existing mounts.
+
+	  For example, if tmpfs is mounted on /dev or /dev/shm
+	  when /dev/shm is already mounted, the files in /dev/shm
+	  will be hidden.
+	  You can prevent such cases with this option.
+
+config SAKURA_RESTRICT_PIVOT_ROOT
+	bool "pivot_root() restriction support"
+	default y
+	depends on SAKURA
+	help
+	  This option allows you to restrict root directories
+	  that the system can exchange.
+
+	  In most systems, pivot_root is not used
+	  after /sbin/init starts.
+
+config SAKURA_RESTRICT_AUTOBIND
+	bool "Autobind restriction support"
+	default y
+	depends on SAKURA
+	help
+	  This option allows you to prevent specific local ports
+	  from being assigned by automatic port assignment function
+	  (which is called by "bind() with port = 0" or
+	  "connect() without bind()").
+
+	  For example, some proxy server uses port 8080, so this port
+	  should not be assigned by automatic port assignment function.
+
+	  You can create a single local ports range
+	  for automatic port assignment function
+	  via /proc/sys/net/ipv4/ip_local_port_range .
+	  This option allows you to divide the single range into multiple.
+
+config TOMOYO
+	bool "TOMOYO (Domain-Based Mandatory Access Control) support"
+	default y
+	help
+	  Say Y here to support the Domain-Based Mandatory Access Control.
+
+	  TOMOYO stands for "Task Oriented Management Obviates Your Onus".
+	  TOMOYO is intended to provide the Domain-Based MAC
+	  utilizing task_struct.
+
+	  The word "domain" in TOMOYO is a class that a process
+	  (i.e. task_struct) belong to.
+	  The domain of a process changes whenever the process
+	  executes a program.
+	  This allows you to classify at the finest level.
+	  The access permission is granted to domains, not to processes.
+	  Policy is defined as "Which domain can access to which resource.".
+	  There is no concept of "user id" nor "role" like RBAC.
+
+	  The biggest feature of TOMOYO is that TOMOYO has "accept mode".
+	  The accept mode can automatically generate policy definition,
+	  and dramatically reduces the policy definition labors.
+
+	  TOMOYO is much simpler and easier than SELinux.
+
+	  TOMOYO is applicable to figuring out the system's behavior, for
+	  TOMOYO uses the canonicalized absolute pathnames and
+	  TreeView style domain transitions.
+
+	  You can make custom root fs with minimum files
+	  to run minimum applications with TOMOYO.
+
+config TOMOYO_MAX_ACCEPT_ENTRY
+	int "Default maximal count for accept mode"
+	default 2048
+	range 0 2147483647
+	depends on TOMOYO
+	help
+	  This is the default value for maximal ACL entries
+	  that are automatically appended into policy at "accept mode".
+	  Some programs access thousands of objects, so running
+	  such programs in "accept mode" dulls the system response
+	  and consumes much memory.
+	  This is the safeguard for such programs.
+
+config TOMOYO_MAC_FOR_FILE
+	bool "File Access Control support"
+	default y
+	depends on TOMOYO
+	help
+	  Say Y here to support the MAC for file access.
+
+	  This is the main feature of TOMOYO.
+	  If you don't say Y to this option,
+	  you can't improve the system security.
+
+config TOMOYO_MAC_FOR_ARGV0
+	bool "argv[0] checker support"
+	default y
+	depends on TOMOYO
+	help
+	  Say Y here to support the MAC for argv0.
+
+	  The domain transition is done based on filename passed to do_execve(),
+	  while the behavior is defined based on argv[0].
+	  There is no problem if the filename is argv[0]-unaware application.
+	  But if argv[0]-aware, passing malicious argv[0] may cause
+	  unexpected behavior.
+	  This option allows you to prevent unexpected argv[0].
+
+config TOMOYO_MAC_FOR_NETWORK
+	bool "Network Address Port Control support"
+	default y
+	depends on TOMOYO
+	help
+	  Say Y here to support the MAC for network address and port usage.
+
+	  This option allows you to restrict IP address and port numbers
+	  that a domain can use.
+	  For example, you can use this option to allow SSH server to
+	  "bind to TCP port 22 on address 10.0.0.1"
+	  "listen to TCP port 22 on address 10.0.0.1"
+	  "accept from TCP port between 1024 and 65535 on address
+	   between 10.0.0.3 and 10.0.0.254"
+	  "communicate with UDP port 53 of address 10.0.0.2"
+	  using the following policy.
+
+	  allow_bind TCP 10.0.0.1 22
+	  allow_listen TCP 10.0.0.1 22
+	  allow_accept TCP 10.0.0.3-10.0.0.254 1024-65535
+	  allow_connect UDP 10.0.0.2 53
+
+config TOMOYO_MAC_FOR_SIGNAL
+	bool "Signal Control support"
+	default y
+	depends on TOMOYO
+	help
+	  Say Y here to support the MAC for signal delivery.
+
+	  This option allows you to restrict
+	  the combination of (signal number, destination domain)
+	  that a domain can deliver.
+
+	  Without this option, any process that are running as root
+	  can kill arbitrary processes.
+
+config TOMOYO_MAC_FOR_CAPABILITY
+	bool "Capability Control support"
+	default y
+	depends on TOMOYO
+	help
+	  Say Y here to support the MAC for capabilities.
+
+	  The capabilities in TOMOYO are not the Linux (POSIX) capabilities.
+	  The capabilities in TOMOYO are the boolean flags of system calls
+	  that a domain can call.
+
+	  You should say Y to this option, for the policy syntax can't
+	  distinguish regular files, FIFOs, unix domain sockets,
+	  symbolic links and device files.
+	  This option allows you to restrict type of files
+	  that a domain can create using mknod.
+
+config TOMOYO_AUDIT
+	bool "Auditing support"
+	default y
+	depends on TOMOYO
+	help
+	  Say Y here to support access log auditing.
+	
+	  If you enable this option, you can read
+	  access grant logs and access reject logs via
+	  /proc/ccs/info/grant_log and /proc/ccs/info/reject_log .
+	  If you don't need these logs you can disable this option.
+
+config TOMOYO_MAX_GRANT_LOG
+	int "Default maximal count for grant log"
+	default 1024
+	range 0 2147483647
+	depends on TOMOYO_AUDIT
+	help
+	  This is the default value for maximal entries for
+	  access grant logs that the kernel can hold on memory.
+	  You can read the log via /proc/ccs/info/grant_log.
+	  If you don't need access grant logs,
+	  you may set this value to 0.
+
+config TOMOYO_MAX_REJECT_LOG
+	int "Default maximal count for reject log"
+	default 1024
+	range 0 2147483647
+	depends on TOMOYO_AUDIT
+	help
+	  This is the default value for maximal entries for
+	  access reject logs that the kernel can hold on memory.
+	  You can read the log via /proc/ccs/info/reject_log.
+	  If you don't need access reject logs,
+	  you may set this value to 0.
+
+config SYAORAN
+	tristate "SYAORAN (Tamper-Proof Device Filesystem) support"
+	default m
+	help
+	  Say Y or M here to support the Tamper-Proof Device Filesystem.
+
+	  SYAORAN stands for
+	  "Simple Yet All-important Object Realizing Abiding Nexus".
+	  SYAORAN is a filesystem for /dev with Mandatory Access Control.
+
+	  SAKURA can make root fs read-only, but the system can't work
+	  if /dev is read-only. Therefore you need to mount a writable
+	  filesystem (such as tmpfs) for /dev if root fs is read-only.
+
+	  But the writable /dev means that files on /dev might be tampered.
+	  For example, if /dev/null is deleted and re-created as a symbolic
+	  link to /dev/hda by an attacker, the contents of the IDE HDD
+	  will be destroyed at a blow.
+
+	  Also, TOMOYO controls file access by pathnames,
+	  not by security labels.
+	  Therefore /dev/null, for example, might be tampered
+	  if a process have write permission to /dev/null .
+
+	  SYAORAN can ensure /dev/null is a character device file
+	  with major=1 minor=3.
+
+	  You can use SAKURA to make /dev not unmountable.
