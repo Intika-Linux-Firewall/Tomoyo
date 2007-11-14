@@ -326,16 +326,20 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.12-2.3.legacy_FC3">Fedora Core 3 用のカーネル 2.6.12-2.3.legacy_FC3</a>
 <li><a href="#2.6.17-1.2142_FC4">Fedora Core 4 用のカーネル 2.6.17-1.2142_FC4</a>
 <li><a href="#2.6.20-1.2320.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2320.fc5</a>
-<li><a href="#2.6.22.2-42.fc6">Fedora Core 6 用のカーネル 2.6.22.2-42.fc6</a>
-<li><a href="#2.6.22.4-65.fc7">Fedora 7 用のカーネル 2.6.22.4-65.fc7</a>
-<li><a href="#2.6.9-55.0.2.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.2.EL</a>
-<li><a href="#2.6.18-8.1.8.el5">CentOS 5 用のカーネル 2.6.18-8.1.8.el5</a>
+<li><a href="#2.6.22.9-61.fc6">Fedora Core 6 用のカーネル 2.6.22.9-61.fc6</a>
+<li><a href="#2.6.23.1-21.fc7">Fedora 7 用のカーネル 2.6.23.1-21.fc7</a>
+<li><a href="#2.6.23.1-49.fc8">Fedora 8 用のカーネル 2.6.23.1-49.fc8</a>
+<li><a href="#2.6.9-55.0.12.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.12.EL</a>
+<li><a href="#2.6.18-8.1.15.el5">CentOS 5 用のカーネル 2.6.18-8.1.15.el5</a>
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
 <li><a href="#2.6.8-16sarge7">Debian Sarge 用のカーネル 2.6.8-16sarge7</a>
-<li><a href="#2.6.18-13etch1">Debian Etch 用のカーネル 2.6.18-13etch1</a>
-<li><a href="#2.6.16.27-0.9">OpenSUSE 10.1 用のカーネル 2.6.16.27-0.9</a>
-<li><a href="#2.6.18.8-0.5">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.5</a>
-<li><a href="#2.6.9-42.14AX">Asianux 2.0 用のカーネル 2.6.9-42.14AX</a>
+<li><a href="#2.6.18-13etch4">Debian Etch 用のカーネル 2.6.18-13etch4</a>
+<li><a href="#2.6.22-4lenny">Debian Lenny 用のカーネル 2.6.22-4lenny</a>
+<li><a href="#2.6.16.53-0.16">OpenSUSE 10.1 用のカーネル 2.6.16.53-0.16</a>
+<li><a href="#2.6.18.8-0.7">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.7</a>
+<li><a href="#2.6.22.12-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.12-0.1</a>
+<li><a href="#2.6.9-42.17AX">Asianux 2.0 用のカーネル 2.6.9-42.17AX</a>
+<li><a href="#2.6.18-8.11AX">Asianux 3.0 用のカーネル 2.6.18-8.11AX</a>
 <li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
 <li><a href="#2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a>
 <li><a href="#2.6.16-0vl76.3">VineLinux 4.1 用のカーネル 2.6.16-0vl76.3</a>
@@ -350,13 +354,13 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.riken.go.jp/Linux/fedoralegacy/redhat/9/updates/i386/kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
+wget http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/updates/i386/kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
 rpm -ivh kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
 # ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.4.20-46.9.legacy/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.4.20-46.9.legacy.txt<br>
 # カーネルコンフィグ以外の一時ファイルを削除する。<br>
 mv .config config<br>
@@ -374,7 +378,7 @@ make -s dep modules modules_install install
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.riken.go.jp/Linux/fedoralegacy/fedora/3/updates/SRPMS/kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
+wget http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/updates/SRPMS/kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
 rpm -ivh kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
@@ -384,8 +388,8 @@ cd /usr/src/linux-2.6.12-2.3.legacy_FC3/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -2.3.legacy_FC3/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.12-2.3.legacy_FC3.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -409,8 +413,8 @@ cd /usr/src/linux-2.6.17-1.2142_FC4/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2142_FC4/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.17-1.2142_FC4.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -435,8 +439,8 @@ cd /usr/src/linux-2.6.20-1.2320.fc5/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2320.fc5/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.20-1.2320.fc5.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -446,25 +450,24 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.2-42.fc6">Fedora Core 6 用のカーネル 2.6.22.2-42.fc6</a></h2>
+<h2><a name="2.6.22.9-61.fc6">Fedora Core 6 用のカーネル 2.6.22.9-61.fc6</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.22.2-42.fc6.src.rpm<br>
-rpm -ivh kernel-2.6.22.2-42.fc6.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.22.9-61.fc6.src.rpm<br>
+rpm -ivh kernel-2.6.22.9-61.fc6.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.2-42.fc6<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.9-61.fc6<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.22.2-42.fc6/<br>
+cd /usr/src/linux-2.6.22.9-61.fc6/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .2-42.fc6/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .9-61.fc6/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-wget -O ccs-patch-2.6.22.2-42.fc6.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=2019&amp;aid=10726'<br>
-patch -sp1 &lt; ccs-patch-2.6.22.2-42.fc6.txt<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.22.9-61.fc6.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -473,25 +476,24 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.4-65.fc7">Fedora 7 用のカーネル 2.6.22.4-65.fc7</a></h2>
+<h2><a name="2.6.23.1-21.fc7">Fedora 7 用のカーネル 2.6.23.1-21.fc7</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/development/source/SRPMS/kernel-2.6.22.4-65.fc7.src.rpm<br>
-rpm -ivh kernel-2.6.22.4-65.fc7.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/updates/7/SRPMS/kernel-2.6.23.1-21.fc7.src.rpm<br>
+rpm -ivh kernel-2.6.23.1-21.fc7.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.4-65.fc7<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.1-21.fc7<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.22.4-65.fc7/<br>
+cd /usr/src/linux-2.6.23.1-21.fc7/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .4-65.fc7/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-21.fc7/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-wget -O ccs-patch-2.6.22.4-65.fc7.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=2026&amp;aid=10726'<br>
-patch -sp1 &lt; ccs-patch-2.6.22.4-65.fc7.txt<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.23.1-21.fc7.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -500,24 +502,24 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-55.0.2.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.2.EL</a></h2>
+<h2><a name="2.6.23.1-49.fc8">Fedora 8 用のカーネル 2.6.23.1-49.fc8</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://mirrors.kernel.org/centos/4.5/updates/SRPMS/kernel-2.6.9-55.0.2.EL.src.rpm<br>
-rpm -ivh kernel-2.6.9-55.0.2.EL.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/updates/8/SRPMS/kernel-2.6.23.1-49.fc8.src.rpm<br>
+rpm -ivh kernel-2.6.23.1-49.fc8.src.rpm<br>
 # コンパイルの準備をする。<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-55.0.2.EL<br>
+rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.1-49.fc8<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.9-55.0.2.EL/<br>
+cd /usr/src/linux-2.6.23.1-49.fc8/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -55.0.2.EL/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-49.fc8/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.9-55.0.2.EL.txt<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.23.1-49.fc8.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -526,24 +528,50 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-8.1.8.el5">CentOS 5 用のカーネル 2.6.18-8.1.8.el5</a></h2>
+<h2><a name="2.6.9-55.0.12.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.12.EL</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://mirrors.kernel.org/centos/5.0/updates/SRPMS/kernel-2.6.18-8.1.8.el5.src.rpm<br>
-rpm -ivh kernel-2.6.18-8.1.8.el5.src.rpm<br>
+wget http://mirrors.kernel.org/centos/4.5/updates/SRPMS/kernel-2.6.9-55.0.12.EL.src.rpm<br>
+rpm -ivh kernel-2.6.9-55.0.12.EL.src.rpm<br>
+# コンパイルの準備をする。<br>
+rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-55.0.12.EL<br>
+# ソースのディレクトリへ移動する。<br>
+cd /usr/src/linux-2.6.9-55.0.12.EL/<br>
+# バージョン番号を修正する。<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -55.0.12.EL/' Makefile<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.9-55.0.12.EL.txt<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.18-8.1.15.el5">CentOS 5 用のカーネル 2.6.18-8.1.15.el5</a></h2>
+
+<table border="1">
+<tr><td>
+# カーネルのソースをダウンロードしてインストールする。<br>
+wget http://mirrors.kernel.org/centos/5.0/updates/SRPMS/kernel-2.6.18-8.1.15.el5.src.rpm<br>
+rpm -ivh kernel-2.6.18-8.1.15.el5.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i686/ /usr/src/linux-2.6.18-8.1.8.el5<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i686/ /usr/src/linux-2.6.18-8.1.15.el5<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/2.6.18-8.1.8.el5/<br>
+cd /usr/src/2.6.18-8.1.15.el5/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.1.8.el5/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.1.15.el5/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.18-8.1.8.el5.txt<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.18-8.1.15.el5.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -562,8 +590,8 @@ tar -jxf /usr/src/kernel-source-2.4.27.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd kernel-source-2.4.27/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.4.27-10sarge5.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -584,8 +612,8 @@ tar -jxf /usr/src/kernel-source-2.6.8.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd kernel-source-2.6.8/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.8-16sarge7.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -597,7 +625,7 @@ mkinitrd -o /boot/initrd.img-2.6.8-16sarge7-ccs 2.6.8-16sarge7-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-13etch1">Debian Etch 用のカーネル 2.6.18-13etch1</a></h2>
+<h2><a name="2.6.18-13etch4">Debian Etch 用のカーネル 2.6.18-13etch4</a></h2>
 
 <table border="1">
 <tr><td>
@@ -607,35 +635,57 @@ tar -jxf /usr/src/linux-source-2.6.18.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.18/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-wget -O ccs-patch-2.6.18-13etch1.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=2014&amp;aid=10726'<br>
-patch -sp1 &lt; ccs-patch-2.6.18-13etch1.txt<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.18-13etch4.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
 # initrd を作成する。<br>
-mkinitrd -o /boot/initrd.img-2.6.18-ccs 2.6.18-ccs
+mkinitrd -o /boot/initrd.img-2.6.18-13etch4-ccs 2.6.18-13etch4-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.16.27-0.9">OpenSUSE 10.1 用のカーネル 2.6.16.27-0.9</a></h2>
+<h2><a name="2.6.22-4lenny">Debian Lenny 用のカーネル 2.6.22-4lenny</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.27-0.9.i586.rpm<br>
-rpm -ivh kernel-source-2.6.16.27-0.9.i586.rpm<br>
+apt-get install linux-source-2.6.22<br>
+tar -jxf /usr/src/linux-source-2.6.22.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.16.27-0.9/<br>
+cd linux-source-2.6.22/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.16.27-0.9_SUSE.txt<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.22-4lenny.txt<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s install modules modules_install<br>
+# initrd を作成する。<br>
+mkinitrd -o /boot/initrd.img-2.6.22-4lenny-ccs 2.6.22-4lenny-ccs
+</td></tr>
+</table>
+
+<h2><a name="2.6.16.53-0.16">OpenSUSE 10.1 用のカーネル 2.6.16.53-0.16</a></h2>
+
+<table border="1">
+<tr><td>
+# カーネルのソースをダウンロードしてインストールする。<br>
+wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.53-0.16.i586.rpm<br>
+rpm -ivh kernel-source-2.6.16.53-0.16.i586.rpm<br>
+# ソースのディレクトリへ移動する。<br>
+cd /usr/src/linux-2.6.16.53-0.16/<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.16.53-0.16_SUSE.txt<br>
 # 出力先のディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.16.27-0.9-obj/i386/default/<br>
+cd /usr/src/linux-2.6.16.53-0.16-obj/i386/default/<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -644,21 +694,21 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18.8-0.5">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.5</a></h2>
+<h2><a name="2.6.18.8-0.7">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.7</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.5.i586.rpm<br>
-rpm -ivh kernel-source-2.6.18.8-0.5.i586.rpm<br>
+wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.7.i586.rpm<br>
+rpm -ivh kernel-source-2.6.18.8-0.7.i586.rpm<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.18.8-0.5/<br>
+cd /usr/src/linux-2.6.18.8-0.7/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-patch -sp1 &lt; ccs-patch-2.6.18.8-0.5_SUSE.txt<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.18.8-0.7_SUSE.txt<br>
 # 出力先のディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.18.8-0.5-obj/i386/default/<br>
+cd /usr/src/linux-2.6.18.8-0.7-obj/i386/default/<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -667,25 +717,73 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-42.15AX">Asianux 2.0 用のカーネル 2.6.9-42.15AX</a></h2>
+<h2><a name="2.6.22.12-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.12-0.1</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.15AX.src.rpm<br>
-rpm -ivh kernel-2.6.9-42.15AX.src.rpm<br>
+wget http://ftp.novell.co.jp/pub/suse/opensuse/update/10.3/rpm/i586/kernel-source-2.6.22.12-0.1.i586.rpm<br>
+rpm -ivh kernel-source-2.6.22.12-0.1.i586.rpm<br>
+# ソースのディレクトリへ移動する。<br>
+cd /usr/src/linux-2.6.22.12-0.1/<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.22.12-0.1_SUSE.txt<br>
+# 出力先のディレクトリへ移動する。<br>
+cd /usr/src/linux-2.6.22.12-0.1-obj/i386/default/<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.9-42.17AX">Asianux 2.0 用のカーネル 2.6.9-42.17AX</a></h2>
+
+<table border="1">
+<tr><td>
+# カーネルのソースをダウンロードしてインストールする。<br>
+wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.17AX.src.rpm<br>
+rpm -ivh kernel-2.6.9-42.17AX.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
-mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.15AX<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.17AX<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.9-42.15AX/<br>
+cd /usr/src/linux-2.6.9-42.17AX/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.15AX/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.17AX/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-wget -O ccs-patch-2.6.9-42.15AX.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1976&amp;aid=10726'<br>
-patch -sp1 &lt; ccs-patch-2.6.9-42.15AX.txt<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.9-42.17AX.txt<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr>
+</table>
+
+<h2><a name="2.6.18-8.11AX">Asianux 3.0 用のカーネル 2.6.18-8.11AX</a></h2>
+
+<table border="1">
+<tr><td>
+# カーネルのソースをダウンロードしてインストールする。<br>
+wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.11AX.src.rpm<br>
+rpm -ivh kernel-2.6.18-8.11AX.src.rpm<br>
+# コンパイルの準備をする。<br>
+rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.18/linux-2.6.18/ /usr/src/linux-2.6.18-8.11AX<br>
+# ソースのディレクトリへ移動する。<br>
+cd /usr/src/linux-2.6.18-8.11AX/<br>
+# バージョン番号を修正する。<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.11AX/' Makefile<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
+patch -sp1 &lt; ccs-patch-2.6.18-8.11AX.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -704,8 +802,8 @@ tar -jxf /usr/src/linux-source-2.6.17.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.17/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.17.14-ubuntu1.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -727,8 +825,8 @@ tar -jxf /usr/src/linux-source-2.6.20.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.20/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.20.3-ubuntu1.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -751,9 +849,8 @@ apt-get install kernel-source<br>
 # ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.16/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
-wget -O ccs-patch-2.6.16-0vl76.3.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1981&amp;aid=10726'<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.16-0vl76.3.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -771,28 +868,28 @@ ln -sf /boot/System.map-2.6.16-0vl76.3-ccs /boot/System.map
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.22 を使用するものとします。</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.23 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # カーネルモジュールをインストールするディレクトリを作成する。<br>
-mkdir -p /lib/modules/2.6.22-ccs<br>
+mkdir -p /lib/modules/2.6.23-ccs<br>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.22.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.6.22.tar.bz2<br>
+tar -jxf linux-2.6.23.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.6.22<br>
+cd linux-2.6.23<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 # カーネルパッチを適用する。<br>
-patch -sp1 &lt; ccs-patch-2.6.22.txt<br>
+patch -sp1 &lt; ccs-patch-2.6.23.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -813,7 +910,6 @@ mkdir -p /lib/modules/2.4.35-ccs<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
 wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.35.tar.bz2<br>
-wget -O ccs-patch-2.4.35.txt 'http://sourceforge.jp/tracker/download.php?group_id=1973&amp;atid=7342&amp;file_id=1988&amp;aid=10726'<br>
 # 展開する。<br>
 tar -jxf linux-2.4.35.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
@@ -821,9 +917,9 @@ cd linux-2.4.35<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.2-20070713.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.4.2-20070713.tar.gz<br>
+tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; ccs-patch-2.4.35.txt<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
