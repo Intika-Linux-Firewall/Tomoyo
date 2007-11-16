@@ -15,7 +15,10 @@
 
 <h2>Compiling TOMOYO Linux kernel</h2>
 
-<p>TOMOYO Linux supports 2.6.24-rc2-mm1 kernel. Download it and extract it.</p>
+<table border="1">
+<tr><td>
+
+<p>If you want to apply TOMOYO Linux patch against 2.6.24-rc2-mm1 kernel, do the following steps.</p>
 
 <pre>
 $ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2
@@ -30,8 +33,6 @@ $ mv series patches/
 $ quilt push -a
 </pre>
 
-<p>The TOMOYO Linux patch is available at http://svn.sourceforge.jp/svnroot/tomoyo/tags/lkml/5/patches/ . Download it and extract it at the kernel source directory.</p>
-
 <pre>
 $ wget -O tomoyo.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/5/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/5/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
 $ tar -zxvf tomoyo.tar.gz
@@ -39,7 +40,9 @@ $ cat patches/series.tomoyo >> patches/series
 $ quilt push -a
 </pre>
 
-<p>For those who want to apply TOMOYO Linux patch against released kernels (from 2.6.8 to 2.6.23), do the following procedure instead of downloading -mm kernel sources.</p>
+</td></tr><tr><td>
+
+<p>If you want to apply TOMOYO Linux patch against released kernels (from 2.6.8 to 2.6.23), do the following steps.</p>
 
 <pre>
 $ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2
@@ -49,6 +52,21 @@ $ wget http://osdn.dl.sourceforge.jp/tomoyo/28120/tomoyo-lsm-2.1.0-20071111.tar.
 $ tar -zxvf tomoyo-lsm-2.1.0-20071111.tar.gz
 $ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
 </pre>
+
+<p>Please be aware that there is a window for AB-BA deadlock (see http://lkml.org/lkml/2007/11/5/388 for detail) in tomoyo-lsm-2.1.0-20071111.tar.gz .</p>
+<pre>
+For example, deadlock happens if one thread requests
+
+  touch /tmp/file
+
+and another thread requests
+
+  mount -t tmpfs none /tmp/
+
+at the same time.
+</pre>
+</td></tr>
+</table>
 
 <p>Edit Makefile's EXTRAVERSION= line if you need.</p>
 
