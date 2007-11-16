@@ -8,12 +8,12 @@ the policy using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/mount.c |  928 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 928 insertions(+)
+ security/tomoyo/mount.c |  908 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 908 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/mount.c	2007-11-09 17:17:06.000000000 +0900
-@@ -0,0 +1,928 @@
++++ linux-2.6-mm/security/tomoyo/mount.c	2007-11-14 15:59:44.000000000 +0900
+@@ -0,0 +1,908 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -22,20 +22,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#include "tomoyo.h"
 +#include "realpath.h"
-+
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-+static inline void put_filesystem(struct file_system_type *fs)
-+{
-+	module_put(fs->owner);
-+}
-+#endif
-+
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)
-+#define MS_UNBINDABLE   (1<<17) /* change to unbindable */
-+#define MS_PRIVATE      (1<<18) /* change to private */
-+#define MS_SLAVE        (1<<19) /* change to slave */
-+#define MS_SHARED       (1<<20) /* change to shared */
-+#endif
 +
 +/***** KEYWORDS for mount restrictions. *****/
 +
@@ -516,8 +502,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (IS_ROOT(dentry) || !d_unhashed(dentry)) {
 +		while (1) {
 +
-+			if (nd->mnt->mnt_root == vfsmnt->mnt_root &&
-+			    nd->dentry == dentry) {
++			if (nd->path.mnt->mnt_root == vfsmnt->mnt_root &&
++			    nd->path.dentry == dentry) {
 +				flag = 1;
 +				break;
 +			}
@@ -562,13 +548,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int flag = 0;
 +	const unsigned int mode = tmy_flags(TMY_DENY_CONCEAL_MOUNT);
 +	const bool is_enforce = (mode == 3);
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-+	struct namespace *namespace = current->namespace;
-+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-+	struct namespace *namespace = current->nsproxy->namespace;
-+#else
 +	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
-+#endif
 +
 +	if (!mode)
 +		return 0;
@@ -596,7 +576,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (flag) {
 +		int error = -EPERM;
 +		char *dir;
-+		dir = tmy_realpath_dentry(nd->dentry, nd->mnt);
++		dir = tmy_realpath_dentry(nd->path.dentry, nd->path.mnt);
 +		if (dir) {
 +			const char *exename = tmy_get_exe();
 +			tmy_audit("TOMOYO-%s: mount %s (pid=%d:exe=%s): "
@@ -850,8 +830,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!mode)
 +		return 0;
 +
-+	old_root = tmy_realpath_dentry(old_nd->dentry, old_nd->mnt);
-+	new_root = tmy_realpath_dentry(new_nd->dentry, new_nd->mnt);
++	old_root = tmy_realpath_dentry(old_nd->path.dentry, old_nd->path.mnt);
++	new_root = tmy_realpath_dentry(new_nd->path.dentry, new_nd->path.mnt);
 +
 +	if (!old_root || !new_root)
 +		goto out;

@@ -7,12 +7,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/capability.c |  318 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 318 insertions(+)
+ security/tomoyo/capability.c |  320 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 320 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/capability.c	2007-11-09 17:06:34.000000000 +0900
-@@ -0,0 +1,318 @@
++++ linux-2.6-mm/security/tomoyo/capability.c	2007-11-14 15:15:44.000000000 +0900
+@@ -0,0 +1,320 @@
 +/*
 + * security/tomoyo/capability.c
 + *
@@ -157,8 +157,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!ptr)
 +		return -EINVAL;
 +	for (i = 0; i < TMY_MAX_CAPABILITY_INDEX; i++) {
-+		if (strcmp(data, capability_control_array[i].keyword)) continue;
-+		if (value > 3) value = 3;
++		if (strcmp(data, capability_control_array[i].keyword))
++			continue;
++		if (value > 3)
++			value = 3;
 +		ptr->value[i] = value;
 +		return 0;
 +	}

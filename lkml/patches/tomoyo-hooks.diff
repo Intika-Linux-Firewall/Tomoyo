@@ -1,24 +1,16 @@
 LSM wrapper functions for TOMOYO Linux's access control.
 
-********** IMPORTANT WARNING : KNOWN BUGS **********
-According to lockdep, there is a possibility of deadlock when TOMOYO tries to
-acquire namespace_sem for reading if an inode's mutex is already held.
-
-There is probably only one clean solution that can avoid this deadlock:
-Pass "struct vfsmount" to LSM hooks as AppArmor proposes
-so that TOMOYO needn't to walk through process's namespace list.
-
-See http://lkml.org/lkml/2007/11/5/388 and http://lkml.org/lkml/2007/11/7/292
-for details.
+To avoid namespace_sem deadlock, this patch uses
+"current->last_vfsmount" associated by wrapper functions.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/tomoyo.c |  952 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 952 insertions(+)
+ security/tomoyo/tomoyo.c |  822 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 822 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/tomoyo.c	2007-11-05 16:55:38.000000000 +0900
-@@ -0,0 +1,952 @@
++++ linux-2.6-mm/security/tomoyo/tomoyo.c	2007-11-14 15:56:26.000000000 +0900
+@@ -0,0 +1,822 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -28,30 +20,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include "tomoyo.h"
 +#include "realpath.h"
 +
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
-+static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
-+{
-+	return skb->nh.iph;
-+}
-+static inline struct udphdr *udp_hdr(const struct sk_buff *skb)
-+{
-+	return skb->h.uh;
-+}
-+static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
-+{
-+	return skb->nh.ipv6h;
-+}
-+#endif
-+
 +#define MAX_SOCK_ADDR 128 /* net/socket.c */
 +
 +LIST_HEAD(domain_list);
 +
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 +static struct kmem_cache *tmy_cachep;
-+#else
-+static kmem_cache_t *tmy_cachep;
-+#endif
 +
 +static int tmy_task_alloc_security(struct task_struct *p)
 +{
@@ -100,17 +73,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return retval;
 +}
 +
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 11)
-+static void tomoyo_bprm_apply_creds(struct linux_binprm *bprm, int unsafe)
-+{
-+	TMY_SECURITY->prev_domain = TMY_SECURITY->domain;
-+}
-+#else
 +static void tmy_bprm_post_apply_creds(struct linux_binprm *bprm)
 +{
 +	TMY_SECURITY->prev_domain = TMY_SECURITY->domain;
 +}
-+#endif
 +
 +static void tmy_bprm_free_security(struct linux_binprm *bprm)
 +{
@@ -118,7 +84,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TMY_SECURITY->flags &= ~TMY_CHECK_READ_FOR_OPEN_EXEC;
 +}
 +
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
 +static int tmy_sysctl(struct ctl_table *table, int op)
 +{
 +	int error;
@@ -136,7 +101,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	return error;
 +}
-+#endif
 +
 +static int tmy_inode_permission(struct inode *inode,
 +				int mask,
@@ -146,7 +110,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (S_ISDIR(inode->i_mode)) /* ignore because inode is directory */
 +		return 0;
-+	if (!nd || !nd->dentry || !nd->mnt)
++	/*
++	if (!nd) {
++		printk("tmy_inode_permission: NULL nameidata\n");
++		dump_stack();
++		return 0;
++	} else if (!nd->mnt) {
++		printk("tmy_inode_permission: NULL vfsmount\n");
++		dump_stack();
++		return 0;
++	}
++	*/
++	if (!nd || !nd->path.dentry || !nd->path.mnt)
 +		return 0;
 +	/*
 +	 * If called by other than do_execve(), I check for read permission of
@@ -173,62 +148,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			flag |= O_APPEND;
 +	}
 +
-+	return tmy_open_perm(nd->dentry, nd->mnt, flag);
++	return tmy_open_perm(nd->path.dentry, nd->path.mnt, flag);
 +}
 +
 +static int tmy_do_single_write_perm(int operation, struct dentry *dentry)
 +{
-+	int err = 0;
-+	struct task_struct *task = current;
-+	struct seq_file m;
-+	loff_t pos = 0;
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-+	struct namespace *namespace = NULL;
-+#else
-+	struct mnt_namespace *namespace = NULL;
-+#endif
-+	if (!dentry)
++	struct vfsmount *mnt = current->last_vfsmount;
++	if (!dentry || !mnt)
 +		return 0;
 +	if (!sbin_init_started)
 +		return 0;
-+	memset(&m, 0, sizeof(m));
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-+	namespace = task->namespace;
-+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-+	if (task->nsproxy)
-+		namespace = task->nsproxy->namespace;
-+#else
-+	if (task->nsproxy)
-+		namespace = task->nsproxy->mnt_ns;
-+#endif
-+	if (!namespace)
-+		return 0;
-+	m.private = namespace;
-+	while (!err) {
-+		struct vfsmount *mnt;
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 23)
-+		mnt = mounts_op.start(&m, &pos);
-+		if (!mnt) {
-+			mounts_op.stop(&m, NULL);
-+			break;
-+		}
-+#else
-+		struct list_head *p;
-+		p = mounts_op.start(&m, &pos);
-+		if (!p) {
-+			mounts_op.stop(&m, NULL);
-+			break;
-+		}
-+		mnt = list_entry(p, struct vfsmount, mnt_list);
-+#endif
-+		mntget(mnt);
-+		mounts_op.stop(&m, NULL);
-+		pos++;
-+		if (mnt->mnt_root->d_sb == dentry->d_sb)
-+			err = tmy_single_write_perm(operation, dentry, mnt);
-+		mntput(mnt);
-+	}
-+	return err;
++	return tmy_single_write_perm(operation, dentry, mnt);
 +}
 +
 +static int tmy_inode_setattr(struct dentry *dentry, struct iattr *iattr)
@@ -317,58 +247,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				    struct dentry *old_dentry,
 +				    struct dentry *new_dentry)
 +{
-+	int err = 0;
-+	struct task_struct *task = current;
-+	struct seq_file m;
-+	loff_t pos = 0;
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-+	struct namespace *namespace = NULL;
-+#else
-+	struct mnt_namespace *namespace = NULL;
-+#endif
-+	if (!old_dentry || !new_dentry)
++	struct vfsmount *mnt = current->last_vfsmount;
++	if (!old_dentry || !new_dentry || !mnt)
 +		return 0;
 +	if (!sbin_init_started)
 +		return 0;
-+	memset(&m, 0, sizeof(m));
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-+	namespace = task->namespace;
-+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-+	if (task->nsproxy)
-+		namespace = task->nsproxy->namespace;
-+#else
-+	if (task->nsproxy)
-+		namespace = task->nsproxy->mnt_ns;
-+#endif
-+	if (!namespace)
-+		return 0;
-+	m.private = namespace;
-+	while (!err) {
-+		struct vfsmount *mnt;
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 23)
-+		mnt = mounts_op.start(&m, &pos);
-+		if (!mnt) {
-+			mounts_op.stop(&m, NULL);
-+			break;
-+		}
-+#else
-+		struct list_head *p;
-+		p = mounts_op.start(&m, &pos);
-+		if (!p) {
-+			mounts_op.stop(&m, NULL);
-+			break;
-+		}
-+		mnt = list_entry(p, struct vfsmount, mnt_list);
-+#endif
-+		mntget(mnt);
-+		mounts_op.stop(&m, NULL);
-+		pos++;
-+		if (mnt->mnt_root->d_sb == old_dentry->d_sb)
-+			err = tmy_double_write_perm(operation, old_dentry, mnt,
-+						    new_dentry, mnt);
-+		mntput(mnt);
-+	}
-+	return err;
++	return tmy_double_write_perm(operation, old_dentry, mnt,
++				     new_dentry, mnt);
 +}
 +
 +static int tmy_inode_link(struct dentry *old_dentry,
@@ -417,13 +302,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case FIBMAP:
 +	case FIGETBSZ:
 +	case FIONREAD:
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-+		if (S_ISREG(file->f_dentry->d_inode->i_mode))
-+			return 0;
-+#else
 +		if (S_ISREG(file->f_path.dentry->d_inode->i_mode))
 +			return 0;
-+#endif
 +	}
 +	return tmy_capable(TMY_SYS_IOCTL);
 +}
@@ -810,7 +690,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!buf)
 +		return -ENOMEM;
 +
-+	dir_name = d_path(nd->dentry, nd->mnt, buf, PAGE_SIZE);
++	dir_name = d_path(&nd->path, buf, PAGE_SIZE);
 +
 +	if (IS_ERR(dir_name))
 +		error = PTR_ERR(dir_name);
@@ -832,12 +712,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return tmy_umount_perm(mnt);
 +}
 +
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 10)
 +static int tmy_settime(struct timespec *ts, struct timezone *tz)
 +{
 +	return tmy_capable(TMY_SYS_SETTIME);
 +}
-+#endif
 +
 +static int tmy_sb_pivotroot(struct nameidata *old_nd, struct nameidata *new_nd)
 +{
@@ -860,7 +738,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		err = tmy_capable(TMY_SYS_SETTIME);
 +	if (err)
 +		return err;
-+	if (cap_raised (tsk->cap_effective, cap))
++	if (cap_raised(tsk->cap_effective, cap))
 +		return 0;
 +	return -EPERM;
 +}
@@ -896,15 +774,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.task_free_security    = tmy_task_free_security,
 +	.bprm_alloc_security   = tmy_bprm_alloc_security,
 +	.bprm_check_security   = tmy_bprm_check_security,
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 11)
-+	.bprm_apply_creds      = tomoyo_bprm_apply_creds,
-+#else
 +	.bprm_post_apply_creds = tmy_bprm_post_apply_creds,
-+#endif
 +	.bprm_free_security    = tmy_bprm_free_security,
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
 +	.sysctl                = tmy_sysctl,
-+#endif
 +	.inode_permission      = tmy_inode_permission,
 +	.inode_setattr         = tmy_inode_setattr,
 +	.inode_create          = tmy_inode_create,
@@ -925,9 +797,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.sb_mount              = tmy_sb_mount,
 +	.sb_umount             = tmy_sb_umount,
 +	.sb_pivotroot          = tmy_sb_pivotroot,
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 10)
 +	.settime               = tmy_settime,
-+#endif
 +	.capable               = tmy_task_capable,
 +#ifdef TMY_LSM_EXPANSION
 +	.socket_post_accept    = tmy_socket_post_accept,
@@ -951,17 +821,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	INIT_LIST_HEAD(&KERNEL_DOMAIN.acl_info_list);
 +	KERNEL_DOMAIN.domainname = tmy_save_name(TMY_ROOT_NAME);
 +	list_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
-+
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 +	tmy_cachep = kmem_cache_create("tomoyo_security",
 +				       sizeof(struct tmy_security),
 +				       0, SLAB_PANIC, NULL);
-+#else
-+	tmy_cachep = kmem_cache_create("tomoyo_security",
-+				       sizeof(struct tmy_security),
-+				       0, SLAB_PANIC, NULL, NULL);
-+#endif
-+
 +	init_task.security = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
 +	((struct tmy_security *) init_task.security)->domain = &KERNEL_DOMAIN;
 +	((struct tmy_security *) init_task.security)->prev_domain = NULL;

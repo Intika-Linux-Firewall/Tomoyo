@@ -12,12 +12,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/net.c |  956 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 956 insertions(+)
+ security/tomoyo/net.c |  952 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 952 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/net.c	2007-11-09 17:07:54.000000000 +0900
-@@ -0,0 +1,956 @@
++++ linux-2.6-mm/security/tomoyo/net.c	2007-11-14 15:15:44.000000000 +0900
+@@ -0,0 +1,952 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -26,10 +26,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#include "tomoyo.h"
 +#include "realpath.h"
-+
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
-+#define NIP6_FMT "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x"
-+#endif
 +
 +/*************************  AUDIT FUNCTIONS  *************************/
 +
