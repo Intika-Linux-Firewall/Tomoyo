@@ -39,6 +39,17 @@ $ cat patches/series.tomoyo >> patches/series
 $ quilt push -a
 </pre>
 
+<p>For those who want to apply TOMOYO Linux patch against released kernels (from 2.6.8 to 2.6.23), do the following procedure instead of downloading -mm kernel sources.</p>
+
+<pre>
+$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2
+$ tar -jxf linux-2.6.23.tar.bz2
+$ cd linux-2.6.23
+$ wget http://osdn.dl.sourceforge.jp/tomoyo/28120/tomoyo-lsm-2.1.0-20071111.tar.gz
+$ tar -zxvf tomoyo-lsm-2.1.0-20071111.tar.gz
+$ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
+</pre>
+
 <p>Edit Makefile's EXTRAVERSION= line if you need.</p>
 
 <p>Next, create a kernel config with TOMOYO Linux enabled.</p>
