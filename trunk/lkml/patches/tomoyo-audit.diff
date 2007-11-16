@@ -8,12 +8,12 @@ The userland daemon /usr/lib/ccs/ccs-auditd will save these logs.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/audit.c |  244 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 244 insertions(+)
+ security/tomoyo/audit.c |  238 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 238 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/audit.c	2007-11-09 18:09:28.000000000 +0900
-@@ -0,0 +1,244 @@
++++ linux-2.6-mm/security/tomoyo/audit.c	2007-11-14 15:15:44.000000000 +0900
+@@ -0,0 +1,238 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -39,13 +39,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	va_list args;
 +	char *buf;
 +	char *cp;
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 13)
-+	ab = audit_log_start(current->audit_context);
-+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-+	ab = audit_log_start(current->audit_context, AUDIT_KERNEL);
-+#else
 +	ab = audit_log_start(current->audit_context, GFP_KERNEL, AUDIT_KERNEL);
-+#endif
 +	if (!ab)
 +		return -ENOMEM;
 +	buf = kzalloc(PAGE_SIZE, GFP_KERNEL);

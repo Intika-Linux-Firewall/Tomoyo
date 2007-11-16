@@ -3,7 +3,7 @@ Common functions for TOMOYO Linux.
 TOMOYO Linux uses /sys/kernel/security/tomoyo interface for configuration.
 
 /sys/kernel/security/tomoyo/domain_policy is the domain-based access policy.
-Access control list for files, networks, argv[0], capabilities and signal is
+Access control list for files, networks, argv[0], capabilities  and signal is
 stored in domain_policy.
 
 /sys/kernel/security/tomoyo/system_policy is the system-wide access policy.
@@ -19,12 +19,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/common.c | 2429 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2429 insertions(+)
+ security/tomoyo/common.c | 2391 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2391 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6.23/security/tomoyo/common.c	2007-11-12 16:15:28.695220608 +0900
-@@ -0,0 +1,2429 @@
++++ linux-2.6-mm/security/tomoyo/common.c	2007-11-14 15:57:51.000000000 +0900
+@@ -0,0 +1,2391 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1724,7 +1724,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			       " now since %s doesn't exist.\n", tmy_loader);
 +			return;
 +		}
-+		path_release(&nd);
++		path_put(&nd.path);
 +		argv[0] = (char *) tmy_loader;
 +		argv[1] = NULL;
 +		envp[0] = "HOME=/";
@@ -2047,16 +2047,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/***** CRITICAL SECTION END *****/
 +
 +	tmy_io_printf(head,
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-+		      "/proc/tomoyo/system_policy:    %10u\n"
-+		      "/proc/tomoyo/domain_policy:    %10u\n"
-+		      "/proc/tomoyo/exception_policy: %10u\n"
-+		      "/proc/tomoyo/profile:          %10u\n"
-+		      "/proc/tomoyo/query:            %10u\n"
-+		      "/proc/tomoyo/manager:          %10u\n"
-+		      "/proc/tomoyo/grant_log:        %10u\n"
-+		      "/proc/tomoyo/reject_log:       %10u\n",
-+#else
 +		      "/sys/kernel/security/tomoyo/system_policy:    %10u\n"
 +		      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
 +		      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
@@ -2065,7 +2055,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		      "/sys/kernel/security/tomoyo/manager:          %10u\n"
 +		      "/sys/kernel/security/tomoyo/grant_log:        %10u\n"
 +		      "/sys/kernel/security/tomoyo/reject_log:       %10u\n",
-+#endif
 +		      counter[TMY_UPDATE_SYSTEMPOLICY],
 +		      counter[TMY_UPDATE_DOMAINPOLICY],
 +		      counter[TMY_UPDATE_EXCEPTIONPOLICY],
@@ -2340,16 +2329,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* open() operation for /sys/kernel/security/tomoyo/ interface. */
 +static int tmy_open(struct inode *inode, struct file *file)
 +{
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-+	return tmy_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
-+				file);
-+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-+	return tmy_open_control(((u8 *) file->f_dentry->d_inode->u.generic_ip)
-+				- ((u8 *) NULL), file);
-+#else
 +	return tmy_open_control(((u8 *) file->f_dentry->d_inode->i_private)
 +				- ((u8 *) NULL), file);
-+#endif
 +}
 +
 +/* close() operation for /sys/kernel/security/tomoyo/ interface. */
@@ -2387,19 +2368,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +};
 +
 +/* Associate /sys/kernel/security/tomoyo/ interface with key. */
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-+static void __init tmy_create_entry(const char *name,
-+			     const mode_t mode,
-+			     struct proc_dir_entry *parent,
-+			     const int key)
-+{
-+	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
-+	if (entry) {
-+		entry->proc_fops = &tmy_operations;
-+		entry->data = ((u8 *) NULL) + key;
-+	}
-+}
-+#else
 +static void __init tmy_create_entry(const char *name,
 +			     const mode_t mode,
 +			     struct dentry *parent,
@@ -2408,20 +2376,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	securityfs_create_file(name, mode, parent, ((u8 *) NULL) + key,
 +			       &tmy_operations);
 +}
-+#endif
 +
 +/**
 + * tmy_interface_init - initialize /sys/kernel/security/tomoyo/ interface.
 + */
 +static int __init tmy_interface_init(void)
 +{
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-+	struct proc_dir_entry *tmy_dir;
-+	tmy_dir = proc_mkdir("tomoyo", NULL);
-+#else
 +	struct dentry *tmy_dir;
 +	tmy_dir = securityfs_create_dir("tomoyo", NULL);
-+#endif
 +	tmy_create_entry("query",            0600, tmy_dir,
 +			 TMY_QUERY);
 +	tmy_create_entry("domain_policy",    0600, tmy_dir,
