@@ -3,34 +3,40 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>How to use TOMOYO Linux 2.1</title>
+<title>How to use TOMOYO Linux</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 
-<h1>TOMOYO Linux 2.1 Installation</h1>
+<h1>TOMOYO Linux Installation</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<p>This page describes how to install and experience TOMOYO Linux 2.1. TOMOYO Linux 2.1 was submitted to LKML in August 2007.</p>
+<p>This page describes how to install and experience TOMOYO Linux. TOMOYO Linux was submitted to LKML in November 2007.</p>
 
 <h2>Compiling TOMOYO Linux kernel</h2>
 
-<p>TOMOYO Linux 2.1 supports kernels from 2.6.8 to 2.6.23 . Download it and extract it.</p>
-
-<p>The procedure below is for people who don't have subversion or quilt packages installed. If you have subversion and quilt packages installed, you don't have to follow the procedure below.</p>
+<p>TOMOYO Linux supports 2.6.24-rc2-mm1 kernel. Download it and extract it.</p>
 
 <pre>
 $ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2
+$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/testing/patch-2.6.24-rc2.bz2
+$ wget http://www.kernel.org/pub/linux/kernel/people/akpm/mm/broken-out-2007-11-13-04-14.tar.gz
 $ tar -jxf linux-2.6.23.tar.bz2
 $ cd linux-2.6.23
+$ bzcat ../patch-2.6.24-rc2.bz2 | patch -sp1
+$ tar -zxf ../broken-out-2007-11-13-04-14.tar.gz
+$ mv broken-out/ patches
+$ mv series patches/
+$ quilt push -a
 </pre>
 
-<p>The latest TOMOYO Linux 2.1 patch is available at http://svn.sourceforge.jp/svnroot/tomoyo/trunk/2.1.x/tomoyo-lsm/patches/ . Download it and extract it at the kernel source directory.</p>
+<p>The TOMOYO Linux patch is available at http://svn.sourceforge.jp/svnroot/tomoyo/tags/lkml/5/patches/ . Download it and extract it at the kernel source directory.</p>
 
 <pre>
-$ wget -O tomoyo-2.1.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/2.1.x/tomoyo-lsm/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/2.1.x/tomoyo-lsm/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
-$ tar -zxvf tomoyo-2.1.tar.gz
-$ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
+$ wget -O tomoyo.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/5/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/5/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
+$ tar -zxvf tomoyo.tar.gz
+$ cat patches/series.tomoyo >> patches/series
+$ quilt push -a
 </pre>
 
 <p>Edit Makefile's EXTRAVERSION= line if you need.</p>
@@ -62,7 +68,7 @@ $ make -s
 
 <h2>Compiling TOMOYO Linux tools</h2>
 
-<p>You can download TOMOYO Linux 2.1 tools at http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz . Download it and extract it and compile it. The tools are installed in /usr/lib/ccs .</p>
+<p>You can download TOMOYO Linux tools at http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz . Download it and extract it and compile it. The tools are installed in /usr/lib/ccs .</p>
 
 <pre>
 $ wget <a href="http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz">http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.1-20071019.tar.gz</a>
@@ -74,7 +80,7 @@ $ make
 
 <h2>Initial Configuration</h2>
 
-<p>Run tomoyo_init_policy.sh included in TOMOYO Linux 2.1 tools to perform initial configuration.</p>
+<p>Run tomoyo_init_policy.sh included in TOMOYO Linux tools to perform initial configuration.</p>
 
 <pre>
 # /usr/lib/ccs/tomoyo_init_policy.sh
@@ -93,7 +99,7 @@ You will get initial configuration files in /etc/tomoyo/ directory.
 # echo 'use_profile 1' &gt;&gt; /etc/tomoyo/domain_policy.conf
 </pre>
 
-<p>Reboot and login to the system as root user, and run editpolicy included in TOMOYO Linux 2.1 tools.</p>
+<p>Reboot and login to the system as root user, and run editpolicy included in TOMOYO Linux tools.</p>
 
 <pre>
 # /usr/lib/ccs/editpolicy
