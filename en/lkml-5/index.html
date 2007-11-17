@@ -53,18 +53,20 @@ $ tar -zxvf tomoyo-lsm-2.1.0-20071111.tar.gz
 $ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
 </pre>
 
-<p>Please be aware that there is a window for AB-BA deadlock (see http://lkml.org/lkml/2007/11/5/388 for detail) in tomoyo-lsm-2.1.0-20071111.tar.gz .</p>
+<p>Please be aware that there is a window for AB-BA deadlock (see http://lkml.org/lkml/2007/11/5/388 for detail) in tomoyo-lsm-2.1.0-20071111.tar.gz .<br>
+For example, deadlock happens if one thread requests</p>
+
 <pre>
-For example, deadlock happens if one thread requests
-
   touch /tmp/file
-
-and another thread requests
-
-  mount -t tmpfs none /tmp/
-
-at the same time.
 </pre>
+
+<p>and another thread requests</p>
+
+<pre>
+  mount -t tmpfs none /tmp/
+</pre>
+
+<p>at the same time.</p>
 </td></tr>
 </table>
 
