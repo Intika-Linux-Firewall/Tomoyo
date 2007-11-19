@@ -463,7 +463,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct file_acl_record, head);
+			acl = container_of(ptr, struct file_acl_record, head);
 			if (ptr->type == TYPE_FILE_ACL && ptr->cond == condition) {
 				if (acl->u.filename == saved_filename) {
 					if (ptr->is_deleted) {
@@ -489,7 +489,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct file_acl_record, head);
+			acl = container_of(ptr, struct file_acl_record, head);
 			if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || ptr->cond != condition || acl->perm != perm) continue;
 			if (acl->u.filename != saved_filename) continue;
 			error = DelDomainACL(ptr);
@@ -512,7 +512,7 @@ static int CheckFileACL(const struct path_info *filename, const u8 perm, struct 
 	}
 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct file_acl_record *acl;
-		acl = list_entry(ptr, struct file_acl_record, head);
+		acl = container_of(ptr, struct file_acl_record, head);
 		if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || (acl->perm & perm) != perm || CheckCondition(ptr->cond, obj)) continue;
 		if (acl->u_is_group) {
 			if (PathMatchesToGroup(filename, acl->u.group, may_use_pattern)) return 0;
@@ -593,7 +593,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct single_acl_record, head);
+			acl = container_of(ptr, struct single_acl_record, head);
 			if (ptr->type == type && ptr->cond == condition) {
 				if (acl->u.filename == saved_filename) {
 					ptr->is_deleted = 0;
@@ -613,7 +613,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	} else {
 		error = -ENOENT;
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct single_acl_record, head);
+			acl = container_of(ptr, struct single_acl_record, head);
 			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
 			if (acl->u.filename != saved_filename) continue;
 			error = DelDomainACL(ptr);
@@ -651,7 +651,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct double_acl_record, head);
+			acl = container_of(ptr, struct double_acl_record, head);
 			if (ptr->type == type && ptr->cond == condition) {
 				if (acl->u1.filename1 == saved_filename1 && acl->u2.filename2 == saved_filename2) {
 					ptr->is_deleted = 0;
@@ -673,7 +673,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	} else {
 		error = -ENOENT;
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct double_acl_record, head);
+			acl = container_of(ptr, struct double_acl_record, head);
 			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
 			error = DelDomainACL(ptr);
@@ -692,7 +692,7 @@ static int CheckSingleWriteACL(const u8 type, const struct path_info *filename, 
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct single_acl_record *acl;
-		acl = list_entry(ptr, struct single_acl_record, head);
+		acl = container_of(ptr, struct single_acl_record, head);
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
 		if (acl->u_is_group) {
 			if (!PathMatchesToGroup(filename, acl->u.group, 1)) continue;
@@ -711,7 +711,7 @@ static int CheckDoubleWriteACL(const u8 type, const struct path_info *filename1,
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct double_acl_record *acl;
-		acl = list_entry(ptr, struct double_acl_record, head);
+		acl = container_of(ptr, struct double_acl_record, head);
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
 		if (acl->u1_is_group) {
 			if (!PathMatchesToGroup(filename1, acl->u1.group1, 1)) continue;

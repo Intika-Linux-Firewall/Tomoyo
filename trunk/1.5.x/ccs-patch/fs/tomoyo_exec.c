@@ -47,7 +47,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct argv0_acl_record, head);
+			acl = container_of(ptr, struct argv0_acl_record, head);
 			if (ptr->type == TYPE_ARGV0_ACL && ptr->cond == condition) {
 				if (acl->filename == saved_filename && acl->argv0 == saved_argv0) {
 					ptr->is_deleted = 0;
@@ -67,7 +67,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 	} else {
 		error = -ENOENT;
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct argv0_acl_record, head);
+			acl = container_of(ptr, struct argv0_acl_record, head);
 			if (ptr->type != TYPE_ARGV0_ACL || ptr->is_deleted || ptr->cond != condition) continue;
 			if (acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
 			error = DelDomainACL(ptr);
@@ -89,7 +89,7 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 	fill_path_info(&argv0);
 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct argv0_acl_record *acl;
-		acl = list_entry(ptr, struct argv0_acl_record, head);
+		acl = container_of(ptr, struct argv0_acl_record, head);
 		if (ptr->type == TYPE_ARGV0_ACL && ptr->is_deleted == 0 && CheckCondition(ptr->cond, NULL) == 0 &&
 			PathMatchesToPattern(filename, acl->filename) &&
 			PathMatchesToPattern(&argv0, acl->argv0)) {

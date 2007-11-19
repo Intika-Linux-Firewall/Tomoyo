@@ -169,7 +169,7 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct capability_acl_record, head);
+			acl = container_of(ptr, struct capability_acl_record, head);
 			if (ptr->type == TYPE_CAPABILITY_ACL && acl->capability == hash && ptr->cond == condition) {
 				ptr->is_deleted = 0;
 				/* Found. Nothing to do. */
@@ -186,7 +186,7 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	} else {
 		error = -ENOENT;
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct capability_acl_record, head);
+			acl = container_of(ptr, struct capability_acl_record, head);
 			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || acl->capability != hash || ptr->cond != condition) continue;
 			error = DelDomainACL(ptr);
 			break;
@@ -206,7 +206,7 @@ int CheckCapabilityACL(const unsigned int capability)
 	if (!CheckCapabilityFlags(capability)) return 0;
 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
-		acl = list_entry(ptr, struct capability_acl_record, head);
+		acl = container_of(ptr, struct capability_acl_record, head);
 		if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || acl->capability != hash || CheckCondition(ptr->cond, NULL)) continue;
 		AuditCapabilityLog(capability, 1);
 		return 0;

@@ -250,7 +250,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct ip_network_acl_record, head);
+			acl = container_of(ptr, struct ip_network_acl_record, head);
 			if (ptr->type == TYPE_IP_NETWORK_ACL && acl->operation_type == operation && acl->record_type == record_type && ptr->cond == condition && acl->min_port == min_port && max_port == acl->max_port) {
 				if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 					if (acl->u.group == group) {
@@ -297,7 +297,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	} else {
 		error = -ENOENT;
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct ip_network_acl_record, head);
+			acl = container_of(ptr, struct ip_network_acl_record, head);
 			if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || acl->operation_type != operation || acl->record_type != record_type || ptr->cond != condition || acl->min_port != min_port || acl->max_port != max_port) continue;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 				if (acl->u.group != group) continue;
@@ -326,7 +326,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK)) return 0;
 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ip_network_acl_record *acl;
-		acl = list_entry(ptr, struct ip_network_acl_record, head);
+		acl = container_of(ptr, struct ip_network_acl_record, head);
 		if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || acl->operation_type != operation || port < acl->min_port || acl->max_port < port || CheckCondition(ptr->cond, NULL)) continue;
 		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 			if (!AddressMatchesToGroup(is_ipv6, address, acl->u.group)) continue;
