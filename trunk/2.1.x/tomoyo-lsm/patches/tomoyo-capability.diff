@@ -8,12 +8,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/capability.c |  320 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 320 insertions(+)
+ security/tomoyo/capability.c |  321 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 321 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-mm/security/tomoyo/capability.c	2007-11-14 15:15:44.000000000 +0900
-@@ -0,0 +1,320 @@
++++ linux-2.6-mm/security/tomoyo/capability.c	2007-11-19 21:25:38.000000000 +0900
+@@ -0,0 +1,321 @@
 +/*
 + * security/tomoyo/capability.c
 + *
@@ -235,7 +235,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto remove;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct capability_acl *) ptr;
++		acl = container_of(ptr, struct capability_acl, head);
 +		if (ptr->type == TMY_TYPE_CAPABILITY_ACL
 +		    && acl->capability == hash
 +		    && ptr->cond == condition) {
@@ -253,12 +253,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	acl->head.type = TMY_TYPE_CAPABILITY_ACL;
 +	acl->head.cond = condition;
 +	acl->capability = hash;
-+	error = tmy_add_acl(domain, (struct acl_info *) acl);
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct capability_acl *) ptr;
++		acl = container_of(ptr, struct capability_acl, head);
 +		if (ptr->type != TMY_TYPE_CAPABILITY_ACL || ptr->is_deleted ||
 +		    acl->capability != hash || ptr->cond != condition) continue;
 +		error = tmy_del_acl(ptr);
@@ -287,7 +287,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!mode)
 +		return 0;
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		struct capability_acl *acl = (struct capability_acl *) ptr;
++		struct capability_acl *acl;
++		acl = container_of(ptr, struct capability_acl, head);
 +		if (ptr->type != TMY_TYPE_CAPABILITY_ACL || ptr->is_deleted
 +		    || acl->capability != hash
 +		    || tmy_check_condition(ptr->cond, NULL))

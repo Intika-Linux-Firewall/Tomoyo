@@ -22,8 +22,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/security.c      |   25 ++++++++++++++-
  6 files changed, 169 insertions(+), 15 deletions(-)
 
---- linux-2.6.23.orig/include/linux/security.h	2007-11-17 00:35:44.000000000 +0900
-+++ linux-2.6.23/include/linux/security.h	2007-11-17 00:37:26.000000000 +0900
+--- linux-2.6-mm.orig/include/linux/security.h	2007-11-19 21:09:56.000000000 +0900
++++ linux-2.6-mm/include/linux/security.h	2007-11-19 21:15:17.000000000 +0900
 @@ -657,6 +657,25 @@ struct request_sock;
   *	@sig contains the signal value.
   *	@secid contains the sid of the process where the signal originated
@@ -178,8 +178,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline int security_socket_getsockname(struct socket * sock)
  {
  	return 0;
---- linux-2.6.23.orig/kernel/signal.c	2007-11-17 00:35:51.000000000 +0900
-+++ linux-2.6.23/kernel/signal.c	2007-11-17 00:37:26.000000000 +0900
+--- linux-2.6-mm.orig/kernel/signal.c	2007-11-19 21:10:01.000000000 +0900
++++ linux-2.6-mm/kernel/signal.c	2007-11-19 21:15:17.000000000 +0900
 @@ -2218,6 +2218,11 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
@@ -226,8 +226,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return do_tkill(0, pid, sig);
  }
  
---- linux-2.6.23.orig/net/socket.c	2007-11-17 00:35:03.000000000 +0900
-+++ linux-2.6.23/net/socket.c	2007-11-17 00:37:26.000000000 +0900
+--- linux-2.6-mm.orig/net/socket.c	2007-11-19 21:09:05.000000000 +0900
++++ linux-2.6-mm/net/socket.c	2007-11-19 21:15:17.000000000 +0900
 @@ -1442,13 +1442,16 @@ asmlinkage long sys_accept(int fd, struc
  			goto out_fd;
  	}
@@ -247,8 +247,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  out_put:
  	fput_light(sock->file, fput_needed);
  out:
---- linux-2.6.23.orig/security/dummy.c	2007-11-17 00:35:44.000000000 +0900
-+++ linux-2.6.23/security/dummy.c	2007-11-17 00:37:26.000000000 +0900
+--- linux-2.6-mm.orig/security/dummy.c	2007-11-19 21:09:57.000000000 +0900
++++ linux-2.6-mm/security/dummy.c	2007-11-19 21:15:17.000000000 +0900
 @@ -576,6 +576,21 @@ static int dummy_task_kill (struct task_
  	return 0;
  }
@@ -317,8 +317,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	set_to_dummy_if_null(ops, socket_getsockname);
  	set_to_dummy_if_null(ops, socket_getpeername);
  	set_to_dummy_if_null(ops, socket_setsockopt);
---- linux-2.6.23.orig/net/core/datagram.c	2007-10-10 05:31:38.000000000 +0900
-+++ linux-2.6.23/net/core/datagram.c	2007-11-18 12:17:59.000000000 +0900
+--- linux-2.6-mm.orig/net/core/datagram.c	2007-10-10 05:31:38.000000000 +0900
++++ linux-2.6-mm/net/core/datagram.c	2007-11-19 21:15:17.000000000 +0900
 @@ -55,6 +55,7 @@
  #include <net/checksum.h>
  #include <net/sock.h>
@@ -383,8 +383,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  no_packet:
  	*err = error;
  	return NULL;
---- linux-2.6.23.orig/security/security.c	2007-11-17 00:35:44.000000000 +0900
-+++ linux-2.6.23/security/security.c	2007-11-17 00:37:26.000000000 +0900
+--- linux-2.6-mm.orig/security/security.c	2007-11-19 21:09:56.000000000 +0900
++++ linux-2.6-mm/security/security.c	2007-11-19 21:15:17.000000000 +0900
 @@ -662,6 +662,21 @@ int security_task_kill(struct task_struc
  	return security_ops->task_kill(p, info, sig, secid);
  }

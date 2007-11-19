@@ -9,12 +9,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/file.c | 1471 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1471 insertions(+)
+ security/tomoyo/file.c | 1473 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1473 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-mm/security/tomoyo/file.c	2007-11-14 15:15:44.000000000 +0900
-@@ -0,0 +1,1471 @@
++++ linux-2.6-mm/security/tomoyo/file.c	2007-11-19 21:22:53.000000000 +0900
+@@ -0,0 +1,1473 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -739,7 +739,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto remove;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct file_acl *) ptr;
++		acl = container_of(ptr, struct file_acl, head);
 +		if ((ptr->type == TMY_TYPE_FILE_ACL) &&
 +		    ptr->cond == cond &&
 +		    (acl->u.filename == saved)) {
@@ -765,12 +765,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	acl->perm = perm;
 +	acl->u_is_group = is_group;
 +	acl->u.filename = saved;
-+	error = tmy_add_acl(domain, (struct acl_info *) acl);
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct file_acl *) ptr;
++		acl = container_of(ptr, struct file_acl, head);
 +		if (ptr->type != TMY_TYPE_FILE_ACL ||
 +		    ptr->cond != cond ||
 +		    ptr->is_deleted ||
@@ -800,7 +800,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		struct file_acl *acl = (struct file_acl *) ptr;
++		struct file_acl *acl;
++		acl = container_of(ptr, struct file_acl, head);
 +
 +		if (ptr->type != TMY_TYPE_FILE_ACL ||
 +		    ptr->is_deleted ||
@@ -981,7 +982,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto remove;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct single_acl *) ptr;
++		acl = container_of(ptr, struct single_acl, head);
 +		if (ptr->type == type && ptr->cond == cond) {
 +			if (acl->u.filename == saved) {
 +				ptr->is_deleted = 0;
@@ -1000,12 +1001,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	acl->head.cond = cond;
 +	acl->u_is_group = is_group;
 +	acl->u.filename = saved;
-+	error = tmy_add_acl(domain, (struct acl_info *) acl);
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct single_acl *) ptr;
++		acl = container_of(ptr, struct single_acl, head);
 +
 +		if (ptr->type != type || ptr->is_deleted ||
 +		    ptr->cond != cond || acl->u.filename != saved)
@@ -1071,7 +1072,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto remove;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct double_acl *) ptr;
++		acl = container_of(ptr, struct double_acl, head);
 +		if (ptr->type == type && ptr->cond == cond) {
 +			if (acl->u1.filename1 == saved1 &&
 +			    acl->u2.filename2 == saved2) {
@@ -1093,13 +1094,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	acl->u2_is_group = is_group2;
 +	acl->u1.filename1 = saved1;
 +	acl->u2.filename2 = saved2;
-+	error = tmy_add_acl(domain,
-+			    (struct acl_info *) acl);
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct double_acl *) ptr;
++		acl = container_of(ptr, struct double_acl, head);
 +		if (ptr->type != type || ptr->is_deleted ||
 +		    ptr->cond != cond ||
 +		    acl->u1.filename1 != saved1 ||
@@ -1124,7 +1124,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		struct single_acl *acl = (struct single_acl *) ptr;
++		struct single_acl *acl;
++		acl = container_of(ptr, struct single_acl, head);
 +
 +		if (ptr->type != type || ptr->is_deleted ||
 +		    tmy_check_condition(ptr->cond, obj))
@@ -1155,7 +1156,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		struct double_acl *acl = (struct double_acl *) ptr;
++		struct double_acl *acl;
++		acl = container_of(ptr, struct double_acl, head);
 +
 +		if (ptr->type != type || ptr->is_deleted ||
 +		    tmy_check_condition(ptr->cond, obj))

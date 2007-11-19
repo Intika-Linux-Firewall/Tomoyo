@@ -25,7 +25,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 2391 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-mm/security/tomoyo/common.c	2007-11-14 15:57:51.000000000 +0900
++++ linux-2.6-mm/security/tomoyo/common.c	2007-11-19 21:25:02.000000000 +0900
 @@ -0,0 +1,2391 @@
 +/*
 + * security/tomoyo/common.c
@@ -1238,7 +1238,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static inline int print_file_rwx_acl(struct io_buffer *head,
 +				     struct acl_info *ptr)
 +{
-+	struct file_acl *ptr2 = (struct file_acl *) ptr;
++	struct file_acl *ptr2 = container_of(ptr, struct file_acl, head);
 +	const unsigned char b = ptr2->u_is_group;
 +
 +	if (tmy_io_printf(head, "%d %s%s",
@@ -1253,7 +1253,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static inline int print_argv0_acl(struct io_buffer *head,
 +				  struct acl_info *ptr)
 +{
-+	struct argv0_acl *ptr2 = (struct argv0_acl *) ptr;
++	struct argv0_acl *ptr2 = container_of(ptr, struct argv0_acl, head);
 +
 +	if (tmy_io_printf(head, TMY_ALLOW_ARGV0 "%s %s",
 +			  ptr2->filename->name, ptr2->argv0->name))
@@ -1265,7 +1265,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static inline int print_network_acl(struct io_buffer *head,
 +				    struct acl_info *ptr)
 +{
-+	struct net_acl *ptr2 = (struct net_acl *) ptr;
++	struct net_acl *ptr2 = container_of(ptr, struct net_acl, head);
 +	u8 record_type = ptr2->record_type;
 +	u32 min_address;
 +	u32 max_address;
@@ -1326,7 +1326,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static inline int print_signal_acl(struct io_buffer *head,
 +				   struct acl_info *ptr)
 +{
-+	struct signal_acl *ptr2 = (struct signal_acl *) ptr;
++	struct signal_acl *ptr2 = container_of(ptr, struct signal_acl, head);
 +
 +	if (tmy_io_printf(head, TMY_ALLOW_SIGNAL "%u %s",
 +			  ptr2->sig, ptr2->domainname->name))
@@ -1338,7 +1338,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static inline int print_capability_acl(struct io_buffer *head,
 +				       struct acl_info *ptr)
 +{
-+	struct capability_acl *ptr2 = (struct capability_acl *) ptr;
++	struct capability_acl *ptr2 = container_of(ptr, struct capability_acl, head);
 +
 +	if (tmy_io_printf(head, TMY_ALLOW_CAPABILITY "%s",
 +			  tmy_capability2keyword(ptr2->capability)))
@@ -1357,7 +1357,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0; /* This must not happen. */
 +
 +	if (tmy_acltype2paths(acl_type) == 2) {
-+		struct double_acl *ptr2 = (struct double_acl *) ptr;
++		struct double_acl *ptr2 = container_of(ptr, struct double_acl, head);
 +		const bool b1 = ptr2->u1_is_group;
 +		const bool b2 = ptr2->u2_is_group;
 +
@@ -1372,7 +1372,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				  ptr2->u2.filename2->name))
 +			return -ENOMEM;
 +	} else {
-+		struct single_acl *ptr2 = (struct single_acl *) ptr;
++		struct single_acl *ptr2 = container_of(ptr, struct single_acl, head);
 +		const bool b = ptr2->u_is_group;
 +
 +		if (tmy_io_printf(head,
