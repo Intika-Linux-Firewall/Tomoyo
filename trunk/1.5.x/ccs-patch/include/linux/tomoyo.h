@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -103,6 +103,7 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
 
 int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs);
 #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
+#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
 
 /*************************  Index numbers for Access Controls.  *************************/
 

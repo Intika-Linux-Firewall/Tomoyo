@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -110,7 +110,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) ptr->value[i] = capability_control_array[i].current_value;
-			mb(); /* Instead of using spinlock. */
+			mb(); /* Avoid out-of-order execution. */
 			profile_ptr[profile] = ptr;
 		}
 	}
@@ -162,42 +162,37 @@ static int AuditCapabilityLog(const unsigned int capability, const bool is_grant
 static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	struct acl_info *ptr;
+	struct capability_acl_record *acl;
 	int error = -ENOMEM;
 	const u16 hash = capability;
 	if (!domain) return -EINVAL;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
-		while (1) {
-			struct capability_acl_record *new_ptr = (struct capability_acl_record *) ptr;
-			if (ptr->type == TYPE_CAPABILITY_ACL && new_ptr->capability == hash && ptr->cond == condition) {
+		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+			acl = list_entry(ptr, struct capability_acl_record, head);
+			if (ptr->type == TYPE_CAPABILITY_ACL && acl->capability == hash && ptr->cond == condition) {
 				ptr->is_deleted = 0;
 				/* Found. Nothing to do. */
 				error = 0;
-				break;
+				goto out;
 			}
-			if (ptr->next) {
-				ptr = ptr->next;
-				continue;
-			}
-		first_entry: ;
-			/* Not found. Append it to the tail. */
-			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
-			new_ptr->head.type = TYPE_CAPABILITY_ACL;
-			new_ptr->capability = hash;
-			new_ptr->head.cond = condition;
-			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
-			break;
 		}
+		/* Not found. Append it to the tail. */
+		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+		acl->head.type = TYPE_CAPABILITY_ACL;
+		acl->capability = hash;
+		acl->head.cond = condition;
+		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-			struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
-			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || ptr2->capability != hash || ptr->cond != condition) continue;
+		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+			acl = list_entry(ptr, struct capability_acl_record, head);
+			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || acl->capability != hash || ptr->cond != condition) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
 	}
+ out: ;
 	mutex_unlock(&domain_acl_lock);
 	return error;
 }
@@ -209,9 +204,10 @@ int CheckCapabilityACL(const unsigned int capability)
 	const bool is_enforce = CheckCapabilityEnforce(capability);
 	const u16 hash = capability;
 	if (!CheckCapabilityFlags(capability)) return 0;
-	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
-		if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || ptr2->capability != hash || CheckCondition(ptr->cond, NULL)) continue;
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct capability_acl_record *acl;
+		acl = list_entry(ptr, struct capability_acl_record, head);
+		if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || acl->capability != hash || CheckCondition(ptr->cond, NULL)) continue;
 		AuditCapabilityLog(capability, 1);
 		return 0;
 	}

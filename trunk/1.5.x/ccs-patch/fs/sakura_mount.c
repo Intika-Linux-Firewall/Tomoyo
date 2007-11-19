@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -51,7 +51,7 @@ extern const char *ccs_log_level;
 /***** The structure for mount restrictions. *****/
 
 struct mount_entry {
-	struct mount_entry *next;
+	struct list_head list;
 	const struct path_info *dev_name;
 	const struct path_info *dir_name;
 	const struct path_info *fs_type;
@@ -68,7 +68,7 @@ static void put_filesystem(struct file_system_type *fs)
 }
 #endif
 
-static struct mount_entry *mount_list = NULL;
+static LIST_HEAD(mount_list);
 
 static int AddMountACL(const char *dev_name, const char *dir_name, const char *fs_type, const unsigned long flags, const bool is_delete)
 {
@@ -83,10 +83,10 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 		strcmp(fs->name, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
 		strcmp(fs->name, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
 		strcmp(fs->name, MOUNT_MAKE_SHARED_KEYWORD) == 0) dev_name = "any";
-	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 1, 0, 1, __FUNCTION__)) return -EINVAL; 
+	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 1, 0, 1, __FUNCTION__)) return -EINVAL;
 	if ((dev = SaveName(dev_name)) == NULL || (dir = SaveName(dir_name)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	for (ptr = mount_list; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &mount_list, list) {
 		if (ptr->flags != flags || pathcmp(ptr->dev_name, dev) || pathcmp(ptr->dir_name, dir) || pathcmp(ptr->fs_type, fs)) continue;
 		error = 0;
 		if (is_delete) {
@@ -109,12 +109,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 	new_entry->dir_name = dir;
 	new_entry->fs_type = fs;
 	new_entry->flags = flags;
-	mb(); /* Instead of using spinlock. */
-	if ((ptr = mount_list) != NULL) {
-		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
-	} else {
-		mount_list = new_entry;
-	}
+	list_add_tail_mb(&new_entry->list, &mount_list);
 	error = 0;
 	ptr = new_entry;
  update:
@@ -235,7 +230,7 @@ static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, uns
 			error = -ENODEV;
 			goto cleanup;
 		}
-		for (ptr = mount_list; ptr; ptr = ptr->next) {
+		list_for_each_entry(ptr, &mount_list, list) {
 			if (ptr->is_deleted) continue;
 			
 			/* Compare options */
@@ -325,14 +320,14 @@ int AddMountPolicy(char *data, const bool is_delete)
 
 int ReadMountPolicy(struct io_buffer *head)
 {
-	struct mount_entry *ptr = head->read_var2;
-	if (!ptr) ptr = mount_list;
-	while (ptr) {
-		head->read_var2 = ptr;
-		if (ptr->is_deleted == 0 && io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n", ptr->dev_name->name, ptr->dir_name->name, ptr->fs_type->name, ptr->flags)) break;
-		ptr = ptr->next;
+	struct list_head *pos;
+	list_for_each_cookie(pos, head->read_var2, &mount_list) {
+		struct mount_entry *ptr;
+		ptr = list_entry(pos, struct mount_entry, list);
+		if (ptr->is_deleted) continue;
+		if (io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n", ptr->dev_name->name, ptr->dir_name->name, ptr->fs_type->name, ptr->flags)) return -ENOMEM;
 	}
-	return ptr ? -ENOMEM : 0;
+	return 0;
 }
 
 /***** SAKURA Linux end. *****/

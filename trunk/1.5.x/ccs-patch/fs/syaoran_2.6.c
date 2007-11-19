@@ -5,7 +5,7 @@
  *
  * Portions Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -220,10 +220,10 @@ static struct address_space_operations syaoran_aops = {
 };
 #else
 static struct address_space_operations syaoran_aops = {
-        .readpage       = simple_readpage,
-        .write_begin    = simple_write_begin,
-        .write_end      = simple_write_end,
-        .set_page_dirty = __set_page_dirty_no_writeback,
+	.readpage       = simple_readpage,
+	.write_begin    = simple_write_begin,
+	.write_end      = simple_write_end,
+	.set_page_dirty = __set_page_dirty_no_writeback,
 };
 #endif
 

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -20,7 +20,7 @@
 /***** The structure for reserved ports. *****/
 
 struct reserved_entry {
-	struct reserved_entry *next; /* Pointer to next record. NULL if none. */
+	struct list_head list;
 	bool is_deleted;             /* Delete flag.                          */
 	u16 min_port;                /* Start of port number range.           */
 	u16 max_port;                /* End of port number range.             */
@@ -28,7 +28,7 @@ struct reserved_entry {
 
 /*************************  NETWORK RESERVED ACL HANDLER  *************************/
 
-static struct reserved_entry *reservedport_list = NULL;
+static LIST_HEAD(reservedport_list);
 
 static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool is_delete)
 {
@@ -36,7 +36,7 @@ static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool i
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	mutex_lock(&lock);
-	for (ptr = reservedport_list; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &reservedport_list, list) {
 		if (ptr->min_port == min_port && max_port == ptr->max_port) {
 			ptr->is_deleted = is_delete;
 			goto out;
@@ -49,12 +49,7 @@ static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool i
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->min_port = min_port;
 	new_entry->max_port = max_port;
-	mb(); /* Instead of using spinlock. */
-	if ((ptr = reservedport_list) != NULL) {
-		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
-	} else {
-		reservedport_list = new_entry;
-	}
+	list_add_tail_mb(&new_entry->list, &reservedport_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -66,7 +61,7 @@ int SAKURA_MayAutobind(const u16 port)
 	/* Must not sleep, for called inside spin_lock. */
 	struct reserved_entry *ptr;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_AUTOBIND)) return 0;
-	for (ptr = reservedport_list; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &reservedport_list, list) {
 		if (ptr->min_port <= port && port <= ptr->max_port && !ptr->is_deleted) return -EPERM;
 	}
 	return 0;
@@ -89,20 +84,18 @@ int AddReservedPortPolicy(char *data, const bool is_delete)
 
 int ReadReservedPortPolicy(struct io_buffer *head)
 {
-	struct reserved_entry *ptr = head->read_var2;
-	if (!ptr) ptr = reservedport_list;
-	while (ptr) {
-		head->read_var2 = ptr;
-		if (!ptr->is_deleted) {
-			if (ptr->min_port != ptr->max_port) {
-				if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u-%u\n", ptr->min_port, ptr->max_port)) break;
-			} else {
-				if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u\n", ptr->min_port)) break;
-			}
+	struct list_head *pos;
+	list_for_each_cookie(pos, head->read_var2, &reservedport_list) {
+		struct reserved_entry *ptr;
+		ptr = list_entry(pos, struct reserved_entry, list);
+		if (ptr->is_deleted) continue;
+		if (ptr->min_port != ptr->max_port) {
+			if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u-%u\n", ptr->min_port, ptr->max_port)) return -ENOMEM;
+		} else {
+			if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u\n", ptr->min_port)) return -ENOMEM;
 		}
-		ptr = ptr->next;
 	}
-	return ptr ? -ENOMEM : 0;
+	return 0;
 }
 
 /***** SAKURA Linux end. *****/

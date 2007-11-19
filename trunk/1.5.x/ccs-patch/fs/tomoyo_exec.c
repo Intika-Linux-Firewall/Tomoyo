@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -39,46 +39,42 @@ static int AuditArgv0Log(const struct path_info *filename, const char *argv0, co
 static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	struct acl_info *ptr;
+	struct argv0_acl_record *acl;
 	const struct path_info *saved_filename, *saved_argv0;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(filename, 1, 0, -1, __FUNCTION__) || !IsCorrectPath(argv0, -1, 0, -1, __FUNCTION__) || strchr(argv0, '/')) return -EINVAL;
 	if ((saved_filename = SaveName(filename)) == NULL || (saved_argv0 = SaveName(argv0)) == NULL) return -ENOMEM;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
-		while (1) {
-			struct argv0_acl_record *new_ptr;
+		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+			acl = list_entry(ptr, struct argv0_acl_record, head);
 			if (ptr->type == TYPE_ARGV0_ACL && ptr->cond == condition) {
-				if (((struct argv0_acl_record *) ptr)->filename == saved_filename && ((struct argv0_acl_record *) ptr)->argv0 == saved_argv0) {
+				if (acl->filename == saved_filename && acl->argv0 == saved_argv0) {
 					ptr->is_deleted = 0;
 					/* Found. Nothing to do. */
 					error = 0;
-					break;
+					goto out;
 				}
 			}
-			if (ptr->next) {
-				ptr = ptr->next;
-				continue;
-			}
-		first_entry: ;
-			/* Not found. Append it to the tail. */
-			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
-			new_ptr->head.type = TYPE_ARGV0_ACL;
-			new_ptr->head.cond = condition;
-			new_ptr->filename = saved_filename;
-			new_ptr->argv0 = saved_argv0;
-			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
-			break;
 		}
+		/* Not found. Append it to the tail. */
+		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+		acl->head.type = TYPE_ARGV0_ACL;
+		acl->head.cond = condition;
+		acl->filename = saved_filename;
+		acl->argv0 = saved_argv0;
+		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+			acl = list_entry(ptr, struct argv0_acl_record, head);
 			if (ptr->type != TYPE_ARGV0_ACL || ptr->is_deleted || ptr->cond != condition) continue;
-			if (((struct argv0_acl_record *) ptr)->filename != saved_filename || ((struct argv0_acl_record *) ptr)->argv0 != saved_argv0) continue;
+			if (acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
 	}
+ out: ;
 	mutex_unlock(&domain_acl_lock);
 	return error;
 }
@@ -91,10 +87,12 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 	struct path_info argv0;
 	argv0.name = argv0_;
 	fill_path_info(&argv0);
-	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct argv0_acl_record *acl;
+		acl = list_entry(ptr, struct argv0_acl_record, head);
 		if (ptr->type == TYPE_ARGV0_ACL && ptr->is_deleted == 0 && CheckCondition(ptr->cond, NULL) == 0 &&
-			PathMatchesToPattern(filename, ((struct argv0_acl_record *) ptr)->filename) &&
-			PathMatchesToPattern(&argv0, ((struct argv0_acl_record *) ptr)->argv0)) {
+			PathMatchesToPattern(filename, acl->filename) &&
+			PathMatchesToPattern(&argv0, acl->argv0)) {
 			error = 0;
 			break;
 		}
