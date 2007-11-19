@@ -875,23 +875,23 @@ static int ReadDomainPolicy(struct io_buffer *head)
 			pos = head->read_avail;
 			acl_type = ptr->type;
 			if (acl_type == TYPE_FILE_ACL) {
-				struct file_acl_record *ptr2 = list_entry(ptr, struct file_acl_record, head);
+				struct file_acl_record *ptr2 = container_of(ptr, struct file_acl_record, head);
 				const unsigned char b = ptr2->u_is_group;
 				if (io_printf(head, "%d %s%s", ptr2->perm,
 					      b ? "@" : "",
 					      b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)) goto print_acl_rollback;
 			} else if (acl_type == TYPE_ARGV0_ACL) {
-				struct argv0_acl_record *ptr2 = list_entry(ptr, struct argv0_acl_record, head);
+				struct argv0_acl_record *ptr2 = container_of(ptr, struct argv0_acl_record, head);
 				if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
 					      ptr2->filename->name, ptr2->argv0->name)) goto print_acl_rollback;
 			} else if (acl_type == TYPE_ENV_ACL) {
-				struct env_acl_record *ptr2 = list_entry(ptr, struct env_acl_record, head);
+				struct env_acl_record *ptr2 = container_of(ptr, struct env_acl_record, head);
 				if (io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr2->env->name)) goto print_acl_rollback;
 			} else if (acl_type == TYPE_CAPABILITY_ACL) {
-				struct capability_acl_record *ptr2 = list_entry(ptr, struct capability_acl_record, head);
+				struct capability_acl_record *ptr2 = container_of(ptr, struct capability_acl_record, head);
 				if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(ptr2->capability))) goto print_acl_rollback;
 			} else if (acl_type == TYPE_IP_NETWORK_ACL) {
-				struct ip_network_acl_record *ptr2 = list_entry(ptr, struct ip_network_acl_record, head);
+				struct ip_network_acl_record *ptr2 = container_of(ptr, struct ip_network_acl_record, head);
 				if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr2->operation_type))) goto print_acl_rollback;
 				switch (ptr2->record_type) {
 				case IP_RECORD_TYPE_ADDRESS_GROUP:
@@ -923,19 +923,19 @@ static int ReadDomainPolicy(struct io_buffer *head)
 					if (min_port != max_port && io_printf(head, "-%u", max_port)) goto print_acl_rollback;
 				}
 			} else if (acl_type == TYPE_SIGNAL_ACL) {
-				struct signal_acl_record *ptr2 = list_entry(ptr, struct signal_acl_record, head);
+				struct signal_acl_record *ptr2 = container_of(ptr, struct signal_acl_record, head);
 				if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr2->sig, ptr2->domainname->name)) goto print_acl_rollback;
 			} else {
 				const char *keyword = acltype2keyword(acl_type);
 				if (!keyword) continue;
 				if (acltype2paths(acl_type) == 2) {
-					struct double_acl_record *ptr2 = list_entry(ptr, struct double_acl_record, head);
+					struct double_acl_record *ptr2 = container_of(ptr, struct double_acl_record, head);
 					const bool b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
 					if (io_printf(head, "allow_%s %s%s %s%s", keyword,
 						      b0 ? "@" : "", b0 ? ptr2->u1.group1->group_name->name : ptr2->u1.filename1->name,
 						      b1 ? "@" : "", b1 ? ptr2->u2.group2->group_name->name : ptr2->u2.filename2->name)) goto print_acl_rollback;
 				} else {
-					struct single_acl_record *ptr2 = list_entry(ptr, struct single_acl_record, head);
+					struct single_acl_record *ptr2 = container_of(ptr, struct single_acl_record, head);
 					const bool b = ptr2->u_is_group;
 					if (io_printf(head, "allow_%s %s%s", keyword,
 						      b ? "@" : "", b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)) goto print_acl_rollback;

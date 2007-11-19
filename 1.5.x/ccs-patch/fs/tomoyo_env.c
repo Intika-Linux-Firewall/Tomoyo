@@ -115,7 +115,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct env_acl_record, head);
+			acl = container_of(ptr, struct env_acl_record, head);
 			if (ptr->type == TYPE_ENV_ACL && ptr->cond == condition) {
 				if (acl->env == saved_env) {
 					ptr->is_deleted = 0;
@@ -134,7 +134,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 	} else {
 		error = -ENOENT;
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = list_entry(ptr, struct env_acl_record, head);
+			acl = container_of(ptr, struct env_acl_record, head);
 			if (ptr->type != TYPE_ENV_ACL || ptr->is_deleted || ptr->cond != condition) continue;
 			if (acl->env != saved_env) continue;
 			error = DelDomainACL(ptr);
@@ -157,7 +157,7 @@ static int CheckEnvACL(const char *env_)
 	if (IsGloballyUsableEnv(&env)) return 0;
 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct env_acl_record *acl;
-		acl = list_entry(ptr, struct env_acl_record, head);
+		acl = container_of(ptr, struct env_acl_record, head);
 		if (ptr->type == TYPE_ENV_ACL && ptr->is_deleted == 0 && CheckCondition(ptr->cond, NULL) == 0 &&
 		    PathMatchesToPattern(&env, acl->env)) {
 			error = 0;
