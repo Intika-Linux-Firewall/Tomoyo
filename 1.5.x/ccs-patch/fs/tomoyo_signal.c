@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -42,6 +42,7 @@ static int AuditSignalLog(const int signal, const struct path_info *dest_domain,
 static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	struct acl_info *ptr;
+	struct signal_acl_record *acl;
 	const struct path_info *saved_dest_pattern;
 	const u16 hash = sig;
 	int error = -ENOMEM;
@@ -50,41 +51,35 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	if ((saved_dest_pattern = SaveName(dest_pattern)) == NULL) return -ENOMEM;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		if ((ptr = domain->first_acl_ptr) == NULL) goto first_entry;
-		while (1) {
-			struct signal_acl_record *new_ptr = (struct signal_acl_record *) ptr;
-			if (ptr->type == TYPE_SIGNAL_ACL && new_ptr->sig == hash && ptr->cond == condition) {
-				if (!pathcmp(new_ptr->domainname, saved_dest_pattern)) {
+		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+			acl = list_entry(ptr, struct signal_acl_record, head);
+			if (ptr->type == TYPE_SIGNAL_ACL && acl->sig == hash && ptr->cond == condition) {
+				if (!pathcmp(acl->domainname, saved_dest_pattern)) {
 					ptr->is_deleted = 0;
 					/* Found. Nothing to do. */
 					error = 0;
-					break;
+					goto out;
 				}
 			}
-			if (ptr->next) {
-				ptr = ptr->next;
-				continue;
-			}
-		first_entry: ;
-			/* Not found. Append it to the tail. */
-			if ((new_ptr = alloc_element(sizeof(*new_ptr))) == NULL) break;
-			new_ptr->head.type = TYPE_SIGNAL_ACL;
-			new_ptr->sig = hash;
-			new_ptr->head.cond = condition;
-			new_ptr->domainname = saved_dest_pattern;
-			error = AddDomainACL(ptr, domain, (struct acl_info *) new_ptr);
-			break;
 		}
+		/* Not found. Append it to the tail. */
+		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+		acl->head.type = TYPE_SIGNAL_ACL;
+		acl->sig = hash;
+		acl->head.cond = condition;
+		acl->domainname = saved_dest_pattern;
+		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-			struct signal_acl_record *ptr2 = (struct signal_acl_record *) ptr;
-			if (ptr->type != TYPE_SIGNAL_ACL || ptr->is_deleted || ptr2->sig != hash || ptr->cond != condition) continue;
-			if (pathcmp(ptr2->domainname, saved_dest_pattern)) continue;
+		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+			acl = list_entry(ptr, struct signal_acl_record, head);
+			if (ptr->type != TYPE_SIGNAL_ACL || ptr->is_deleted || acl->sig != hash || ptr->cond != condition) continue;
+			if (pathcmp(acl->domainname, saved_dest_pattern)) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
 	}
+ out: ;
 	mutex_unlock(&domain_acl_lock);
 	return error;
 }
@@ -97,6 +92,7 @@ int CheckSignalACL(const int sig, const int pid)
 	struct acl_info *ptr;
 	const u16 hash = sig;
 	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_SIGNAL);
+	bool found = 0;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL)) return 0;
 	if (!sig) return 0;                               /* No check for NULL signal. */
 	if (current->pid == pid) {
@@ -119,21 +115,22 @@ int CheckSignalACL(const int sig, const int pid)
 		return 0;
 	}
 	dest_pattern = dest->domainname->name;
-	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		struct signal_acl_record *ptr2 = (struct signal_acl_record *) ptr;
-		if (ptr->type == TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && ptr2->sig == hash && CheckCondition(ptr->cond, NULL) == 0) {
-			const int len = ptr2->domainname->total_len;
-			if (strncmp(ptr2->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) break;
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct signal_acl_record *acl;
+		acl = list_entry(ptr, struct signal_acl_record, head);
+		if (ptr->type == TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && acl->sig == hash && CheckCondition(ptr->cond, NULL) == 0) {
+			const int len = acl->domainname->total_len;
+			if (strncmp(acl->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) {
+				found = 1;
+				break;
+			}
 		}
 	}
-	if (ptr) {
-		AuditSignalLog(sig, dest->domainname, 1);
-		return 0;
-	}
+	AuditSignalLog(sig, dest->domainname, found);
+	if (found) return 0;
 	if (TomoyoVerboseMode()) {
 		printk("TOMOYO-%s: Signal %d to %s denied for %s\n", GetMSG(is_enforce), sig, GetLastName(dest), GetLastName(domain));
 	}
-	AuditSignalLog(sig, dest->domainname, 0);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_SIGNAL "%d %s\n", domain->domainname->name, sig, dest_pattern);
 	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_SIGNAL, domain)) AddSignalEntry(sig, dest_pattern, domain, NULL, 0);
 	return 0;

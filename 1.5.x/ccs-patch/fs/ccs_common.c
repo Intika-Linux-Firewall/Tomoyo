@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -78,11 +78,14 @@ static struct {
 	[CCS_TOMOYO_MAX_REJECT_LOG]      = { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
 	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
 	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
+	[CCS_SLEEP_PERIOD]               = { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
+	[CCS_TOMOYO_ALT_EXEC]            = { "ALT_EXEC",            0, 0 }, /* Reserved for string. */
 };
 
 struct profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct path_info *comment;
+	const struct path_info *alt_exec;
 };
 
 static struct profile *profile_ptr[MAX_PROFILES];
@@ -243,15 +246,10 @@ bool IsDomainDef(const unsigned char *buffer)
 struct domain_info *FindDomain(const char *domainname0)
 {
 	struct domain_info *domain;
-	static int first = 1;
 	struct path_info domainname;
 	domainname.name = domainname0;
 	fill_path_info(&domainname);
-	if (first) {
-		KERNEL_DOMAIN.domainname = SaveName(ROOT_NAME);
-		first = 0;
-	}
-	for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
+	list_for_each_entry(domain, &domain_list, list) {
 		if (!domain->is_deleted && !pathcmp(&domainname, domain->domainname)) return domain;
 	}
 	return NULL;
@@ -476,12 +474,11 @@ int io_printf(struct io_buffer *head, const char *fmt, ...)
 const char *GetEXE(void)
 {
 	if (current->mm) {
-		struct vm_area_struct *vma = current->mm->mmap;
-		while (vma) {
+		struct vm_area_struct *vma;
+		for (vma = current->mm->mmap; vma; vma = vma->vm_next) {
 			if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
 				return realpath_from_dentry(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt);
 			}
-			vma = vma->vm_next;
 		}
 	}
 	return NULL;
@@ -490,6 +487,13 @@ const char *GetEXE(void)
 const char *GetMSG(const bool is_enforce)
 {
 	if (is_enforce) return "ERROR"; else return "WARNING";
+}
+
+const char *GetAltExec(void)
+{
+	const u8 profile = current->domain_info->profile;
+	const struct path_info *alt_exec = profile_ptr[profile] ? profile_ptr[profile]->alt_exec : NULL;
+	return alt_exec ? alt_exec->name : NULL;
 }
 
 /*************************  DOMAIN POLICY HANDLER  *************************/
@@ -523,7 +527,7 @@ bool CheckDomainQuota(struct domain_info * const domain)
 	unsigned int count = 0;
 	struct acl_info *ptr;
 	if (!domain) return 1;
-	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		if (!ptr->is_deleted) count++;
 	}
 	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 1;
@@ -551,7 +555,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) ptr->value[i] = ccs_control_array[i].current_value;
-			mb(); /* Instead of using spinlock. */
+			mb(); /* Avoid out-of-order execution. */
 			profile_ptr[profile] = ptr;
 		}
 	}
@@ -581,6 +585,16 @@ static int SetProfile(struct io_buffer *head)
 		profile->comment = SaveName(cp + 1);
 		return 0;
 	}
+#if 0
+#ifdef CONFIG_TOMOYO
+	if (strcmp(data, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword) == 0) {
+		cp++;
+		if (*cp && !IsCorrectPath(cp, 1, -1, -1, __FUNCTION__)) cp = "";
+		profile->alt_exec = SaveName(cp);
+		return 0;
+	}
+#endif
+#endif
 	if (sscanf(cp + 1, "%u", &value) != 1) return -EINVAL;
 #ifdef CONFIG_TOMOYO
 	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
@@ -628,16 +642,21 @@ static int ReadProfile(struct io_buffer *head)
 				case CCS_TOMOYO_MAX_REJECT_LOG:
 				case CCS_TOMOYO_VERBOSE:
 #endif
+				case CCS_TOMOYO_ALT_EXEC:
+				case CCS_SLEEP_PERIOD:
 					continue;
 				}
 				if (j == CCS_PROFILE_COMMENT) {
 					if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_PROFILE_COMMENT].keyword, profile->comment ? profile->comment->name : "")) break;
+				} else if (j == CCS_TOMOYO_ALT_EXEC) {
+					const struct path_info *alt_exec = profile->alt_exec;
+					if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword, alt_exec ? alt_exec->name : "")) break;
 				} else {
 					if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, profile->value[j])) break;
 				}
 			}
 			if (step == MAX_PROFILES * CCS_MAX_CONTROL_INDEX) {
-				head->read_var2 = "";
+				head->read_var2 = (void *) "";
 				head->read_step = 0;
 			}
 		}
@@ -654,13 +673,13 @@ static int ReadProfile(struct io_buffer *head)
 /*************************  POLICY MANAGER HANDLER  *************************/
 
 struct policy_manager_entry {
-	struct policy_manager_entry *next;
+	struct list_head list;
 	const struct path_info *manager;
 	bool is_domain;
 	bool is_deleted;
 };
 
-static struct policy_manager_entry *policy_manager_list = NULL;
+static LIST_HEAD(policy_manager_list);
 
 static int AddManagerEntry(const char *manager, const bool is_delete)
 {
@@ -678,7 +697,7 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 	}
 	if ((saved_manager = SaveName(manager)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	for (ptr = policy_manager_list; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &policy_manager_list, list) {
 		if (ptr->manager == saved_manager) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -692,12 +711,7 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->manager = saved_manager;
 	new_entry->is_domain = is_domain;
-	mb(); /* Instead of using spinlock. */
-	if ((ptr = policy_manager_list) != NULL) {
-		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
-	} else {
-		policy_manager_list = new_entry;
-	}
+	list_add_tail_mb(&new_entry->list, &policy_manager_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -719,17 +733,16 @@ static int AddManagerPolicy(struct io_buffer *head)
 
 static int ReadManagerPolicy(struct io_buffer *head)
 {
-	if (!head->read_eof) {
-		struct policy_manager_entry *ptr = head->read_var2;
-		if (!isRoot()) return -EPERM;
-		if (!ptr) ptr = policy_manager_list;
-		while (ptr) {
-			head->read_var2 = ptr;
-			if (!ptr->is_deleted && io_printf(head, "%s\n", ptr->manager->name)) break;
-			ptr = ptr->next;
-		}
-		if (!ptr) head->read_eof = 1;
+	struct list_head *pos;
+	if (head->read_eof) return 0;
+	if (!isRoot()) return -EPERM;
+	list_for_each_cookie(pos, head->read_var2, &policy_manager_list) {
+		struct policy_manager_entry *ptr;
+		ptr = list_entry(pos, struct policy_manager_entry, list);
+		if (ptr->is_deleted) continue;
+		if (io_printf(head, "%s\n", ptr->manager->name)) return 0;
 	}
+	head->read_eof = 1;
 	return 0;
 }
 
@@ -739,15 +752,19 @@ static int IsPolicyManager(void)
 	struct policy_manager_entry *ptr;
 	const char *exe;
 	const struct path_info *domainname = current->domain_info->domainname;
+	bool found = 0;
 	if (!sbin_init_started) return 1;
-	for (ptr = policy_manager_list; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &policy_manager_list, list) {
 		if (!ptr->is_deleted && ptr->is_domain && !pathcmp(domainname, ptr->manager)) return 1;
 	}
 	if ((exe = GetEXE()) == NULL) return 0;
-	for (ptr = policy_manager_list; ptr; ptr = ptr->next) {
-		if (!ptr->is_deleted && !ptr->is_domain && !strcmp(exe, ptr->manager->name)) break;
+	list_for_each_entry(ptr, &policy_manager_list, list) {
+		if (!ptr->is_deleted && !ptr->is_domain && !strcmp(exe, ptr->manager->name)) {
+			found = 1;
+			break;
+		}
 	}
-	if (!ptr) { /* Reduce error messages. */
+	if (!found) { /* Reduce error messages. */
 		static pid_t last_pid = 0;
 		const pid_t pid = current->pid;
 		if (last_pid != pid) {
@@ -756,7 +773,7 @@ static int IsPolicyManager(void)
 		}
 	}
 	ccs_free(exe);
-	return ptr ? 1 : 0;
+	return found;
 }
 
 #ifdef CONFIG_TOMOYO
@@ -833,131 +850,109 @@ static int AddDomainPolicy(struct io_buffer *head)
 
 static int ReadDomainPolicy(struct io_buffer *head)
 {
-	if (!head->read_eof) {
-		struct domain_info *domain = head->read_var1;
-		switch (head->read_step) {
-		case 0: break;
-		case 1: goto step1;
-		case 2: goto step2;
-		case 3: goto step3;
-		default: return -EINVAL;
-		}
+	struct list_head *dpos;
+	struct list_head *apos;
+	if (head->read_eof) return 0;
+	if (head->read_step == 0) {
 		if (!isRoot()) return -EPERM;
-		for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
+		head->read_step = 1;
+	}
+	list_for_each_cookie(dpos, head->read_var1, &domain_list) {
+		struct domain_info *domain;
+		domain = list_entry(dpos, struct domain_info, list);
+		if (head->read_step != 1) goto acl_loop;
+		if (domain->is_deleted) continue;
+		if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "")) return 0;
+		head->read_step = 2;
+	acl_loop: ;
+		if (head->read_step == 3) goto tail_mark;
+		list_for_each_cookie(apos, head->read_var2, &domain->acl_info_list) {
 			struct acl_info *ptr;
-			if (domain->is_deleted) continue;
-			head->read_var1 = domain;
-			head->read_var2 = NULL; head->read_step = 1;
-		step1:
-			if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "")) break;
-			head->read_var2 = domain->first_acl_ptr; head->read_step = 2;
-		step2:
-			for (ptr = head->read_var2; ptr; ptr = ptr->next) {
-				const u8 acl_type = ptr->type;
-				const int pos = head->read_avail;
-				head->read_var2 = ptr;
-				if (ptr->is_deleted) continue;
-				if (acl_type == TYPE_FILE_ACL) {
-					struct file_acl_record *ptr2 = (struct file_acl_record *) ptr;
-					const unsigned char b = ptr2->u_is_group;
-					if (io_printf(head, "%d %s%s", ptr2->perm,
-						      b ? "@" : "",
-						      b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)
-					    || DumpCondition(head, ptr->cond)) {
-						head->read_avail = pos; break;
-					}
-				} else if (acl_type == TYPE_ARGV0_ACL) {
-					struct argv0_acl_record *ptr2 = (struct argv0_acl_record *) ptr;
-					if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
-						      ptr2->filename->name, ptr2->argv0->name) ||
-					    DumpCondition(head, ptr->cond)) {
-						head->read_avail = pos; break;
-					}
-				} else if (acl_type == TYPE_ENV_ACL) {
-					struct env_acl_record *ptr2 = (struct env_acl_record *) ptr;
-					if (io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr2->env->name) ||
-					    DumpCondition(head, ptr->cond)) {
-						head->read_avail = pos; break;
-					}
-				} else if (acl_type == TYPE_CAPABILITY_ACL) {
-					struct capability_acl_record *ptr2 = (struct capability_acl_record *) ptr;
-					if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(ptr2->capability)) ||
-					    DumpCondition(head, ptr->cond)) {
-						head->read_avail = pos; break;
-					}
-				} else if (acl_type == TYPE_IP_NETWORK_ACL) {
-					struct ip_network_acl_record *ptr2 = (struct ip_network_acl_record *) ptr;
-					if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr2->operation_type))) break;
-					switch (ptr2->record_type) {
-					case IP_RECORD_TYPE_ADDRESS_GROUP:
-						if (io_printf(head, "@%s", ptr2->u.group->group_name->name)) goto print_ip_record_out;
-						break;
-					case IP_RECORD_TYPE_IPv4:
-						{
-							const u32 min_address = ptr2->u.ipv4.min, max_address = ptr2->u.ipv4.max;
-							if (io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address))) goto print_ip_record_out;
-							if (min_address != max_address && io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address))) goto print_ip_record_out;
-						}
-						break;
-					case IP_RECORD_TYPE_IPv6:
-						{
-							char buf[64];
-							const u16 *min_address = ptr2->u.ipv6.min, *max_address = ptr2->u.ipv6.max;
-							print_ipv6(buf, sizeof(buf), min_address);
-							if (io_printf(head, "%s", buf)) goto print_ip_record_out;
-							if (memcmp(min_address, max_address, 16)) {
-								print_ipv6(buf, sizeof(buf), max_address);
-								if (io_printf(head, "-%s", buf)) goto print_ip_record_out;
-							}
-						}
-						break;
-					}
+			int pos;
+			u8 acl_type;
+			ptr = list_entry(apos, struct acl_info, list);
+			if (ptr->is_deleted) continue;
+			pos = head->read_avail;
+			acl_type = ptr->type;
+			if (acl_type == TYPE_FILE_ACL) {
+				struct file_acl_record *ptr2 = list_entry(ptr, struct file_acl_record, head);
+				const unsigned char b = ptr2->u_is_group;
+				if (io_printf(head, "%d %s%s", ptr2->perm,
+					      b ? "@" : "",
+					      b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)) goto print_acl_rollback;
+			} else if (acl_type == TYPE_ARGV0_ACL) {
+				struct argv0_acl_record *ptr2 = list_entry(ptr, struct argv0_acl_record, head);
+				if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
+					      ptr2->filename->name, ptr2->argv0->name)) goto print_acl_rollback;
+			} else if (acl_type == TYPE_ENV_ACL) {
+				struct env_acl_record *ptr2 = list_entry(ptr, struct env_acl_record, head);
+				if (io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr2->env->name)) goto print_acl_rollback;
+			} else if (acl_type == TYPE_CAPABILITY_ACL) {
+				struct capability_acl_record *ptr2 = list_entry(ptr, struct capability_acl_record, head);
+				if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(ptr2->capability))) goto print_acl_rollback;
+			} else if (acl_type == TYPE_IP_NETWORK_ACL) {
+				struct ip_network_acl_record *ptr2 = list_entry(ptr, struct ip_network_acl_record, head);
+				if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr2->operation_type))) goto print_acl_rollback;
+				switch (ptr2->record_type) {
+				case IP_RECORD_TYPE_ADDRESS_GROUP:
+					if (io_printf(head, "@%s", ptr2->u.group->group_name->name)) goto print_acl_rollback;
+					break;
+				case IP_RECORD_TYPE_IPv4:
 					{
-						const u16 min_port = ptr2->min_port, max_port = ptr2->max_port;
-						if (io_printf(head, " %u", min_port)) goto print_ip_record_out;
-						if (min_port != max_port && io_printf(head, "-%u", max_port)) goto print_ip_record_out;
+						const u32 min_address = ptr2->u.ipv4.min, max_address = ptr2->u.ipv4.max;
+						if (io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address))) goto print_acl_rollback;
+						if (min_address != max_address && io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address))) goto print_acl_rollback;
 					}
-					if (DumpCondition(head, ptr->cond)) {
-					print_ip_record_out: ;
-					head->read_avail = pos; break;
-					}
-				} else if (acl_type == TYPE_SIGNAL_ACL) {
-					struct signal_acl_record *ptr2 = (struct signal_acl_record *) ptr;
-					if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr2->sig, ptr2->domainname->name) ||
-					    DumpCondition(head, ptr->cond)) {
-						head->read_avail = pos; break;
-					}
-				} else {
-					const char *keyword = acltype2keyword(acl_type);
-					if (keyword) {
-						if (acltype2paths(acl_type) == 2) {
-							struct double_acl_record *ptr2 = (struct double_acl_record *) ptr;
-							const bool b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
-							if (io_printf(head, "allow_%s %s%s %s%s", keyword, 
-								      b0 ? "@" : "", b0 ? ptr2->u1.group1->group_name->name : ptr2->u1.filename1->name,
-								      b1 ? "@" : "", b1 ? ptr2->u2.group2->group_name->name : ptr2->u2.filename2->name)
-							    || DumpCondition(head, ptr->cond)) {
-								head->read_avail = pos; break;
-							}
-						} else {
-							struct single_acl_record *ptr2 = (struct single_acl_record *) ptr;
-							const bool b = ptr2->u_is_group;
-							if (io_printf(head, "allow_%s %s%s", keyword,
-								      b ? "@" : "", b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)
-							    || DumpCondition(head, ptr->cond)) {
-								head->read_avail = pos; break;
-							}
+					break;
+				case IP_RECORD_TYPE_IPv6:
+					{
+						char buf[64];
+						const u16 *min_address = ptr2->u.ipv6.min, *max_address = ptr2->u.ipv6.max;
+						print_ipv6(buf, sizeof(buf), min_address);
+						if (io_printf(head, "%s", buf)) goto print_acl_rollback;
+						if (memcmp(min_address, max_address, 16)) {
+							print_ipv6(buf, sizeof(buf), max_address);
+							if (io_printf(head, "-%s", buf)) goto print_acl_rollback;
 						}
 					}
+					break;
+				}
+				{
+					const u16 min_port = ptr2->min_port, max_port = ptr2->max_port;
+					if (io_printf(head, " %u", min_port)) goto print_acl_rollback;
+					if (min_port != max_port && io_printf(head, "-%u", max_port)) goto print_acl_rollback;
+				}
+			} else if (acl_type == TYPE_SIGNAL_ACL) {
+				struct signal_acl_record *ptr2 = list_entry(ptr, struct signal_acl_record, head);
+				if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr2->sig, ptr2->domainname->name)) goto print_acl_rollback;
+			} else {
+				const char *keyword = acltype2keyword(acl_type);
+				if (!keyword) continue;
+				if (acltype2paths(acl_type) == 2) {
+					struct double_acl_record *ptr2 = list_entry(ptr, struct double_acl_record, head);
+					const bool b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
+					if (io_printf(head, "allow_%s %s%s %s%s", keyword,
+						      b0 ? "@" : "", b0 ? ptr2->u1.group1->group_name->name : ptr2->u1.filename1->name,
+						      b1 ? "@" : "", b1 ? ptr2->u2.group2->group_name->name : ptr2->u2.filename2->name)) goto print_acl_rollback;
+				} else {
+					struct single_acl_record *ptr2 = list_entry(ptr, struct single_acl_record, head);
+					const bool b = ptr2->u_is_group;
+					if (io_printf(head, "allow_%s %s%s", keyword,
+						      b ? "@" : "", b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)) goto print_acl_rollback;
 				}
 			}
-			if (ptr) break;
-			head->read_var2 = NULL; head->read_step = 3;
-		step3:
-			if (io_printf(head, "\n")) break;
+			if (DumpCondition(head, ptr->cond)) {
+			print_acl_rollback: ;
+			head->read_avail = pos;
+			return 0;
+			}
 		}
-		if (!domain) head->read_eof = 1;
+		head->read_step = 3;
+	tail_mark: ;
+		if (io_printf(head, "\n")) return 0;
+		head->read_step = 1;
 	}
+	head->read_eof = 1;
 	return 0;
 }
 
@@ -981,20 +976,16 @@ static int UpdateDomainProfile(struct io_buffer *head)
 
 static int ReadDomainProfile(struct io_buffer *head)
 {
-	if (!head->read_eof) {
+	struct list_head *pos;
+	if (head->read_eof) return 0;
+	if (!isRoot()) return -EPERM;
+	list_for_each_cookie(pos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
-		if (head->read_step == 0) {
-			head->read_var1 = &KERNEL_DOMAIN;
-			head->read_step = 1;
-		}
-		if (!isRoot()) return -EPERM;
-		for (domain = head->read_var1; domain; domain = domain->next) {
-			if (domain->is_deleted) continue;
-			head->read_var1 = domain;
-			if (io_printf(head, "%u %s\n", domain->profile, domain->domainname->name)) break;
-		}
-		if (!domain) head->read_eof = 1;
+		domain = list_entry(pos, struct domain_info, list);
+		if (domain->is_deleted) continue;
+		if (io_printf(head, "%u %s\n", domain->profile, domain->domainname->name)) return 0;
 	}
+	head->read_eof = 1;
 	return 0;
 }
 
@@ -1056,7 +1047,7 @@ static int AddExceptionPolicy(struct io_buffer *head)
 	} else if (strncmp(data, KEYWORD_FILE_PATTERN, KEYWORD_FILE_PATTERN_LEN) == 0) {
 		return AddPatternPolicy(data + KEYWORD_FILE_PATTERN_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_PATH_GROUP, KEYWORD_PATH_GROUP_LEN) == 0) {
-		return AddGroupPolicy(data + KEYWORD_PATH_GROUP_LEN, is_delete);
+		return AddPathGroupPolicy(data + KEYWORD_PATH_GROUP_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_DENY_REWRITE, KEYWORD_DENY_REWRITE_LEN) == 0) {
 		return AddNoRewritePolicy(data + KEYWORD_DENY_REWRITE_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_ADDRESS_GROUP, KEYWORD_ADDRESS_GROUP_LEN) == 0) {
@@ -1097,7 +1088,7 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 			if (ReadNoRewritePolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 9;
 		case 9:
-			if (ReadGroupPolicy(head)) break;
+			if (ReadPathGroupPolicy(head)) break;
 			head->read_var1 = head->read_var2 = NULL; head->read_step = 10;
 		case 10:
 			if (ReadAddressGroupPolicy(head)) break;
@@ -1229,10 +1220,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.2-pre   2007/11/05\n");
+	printk("SAKURA: 1.5.2-pre   2007/11/19\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.2-pre   2007/11/05\n");
+	printk("TOMOYO: 1.5.2-pre   2007/11/19\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
@@ -1240,9 +1231,9 @@ void CCS_LoadPolicy(const char *filename)
 	ccs_log_level = KERN_WARNING;
 	{ /* Check all profiles currently assigned to domains are defined. */
 		struct domain_info *domain;
-		for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
+		list_for_each_entry(domain, &domain_list, list) {
 			const u8 profile = domain->profile;
-			if (!profile_ptr[profile]) panic("Profile %u (used by '%s') not defined.\n", profile, domain->domainname->name); 
+			if (!profile_ptr[profile]) panic("Profile %u (used by '%s') not defined.\n", profile, domain->domainname->name);
 		}
 	}
 }
@@ -1273,8 +1264,18 @@ int CheckSupervisor(const char *fmt, ...)
 	int pos, len;
 	static unsigned int serial = 0;
 	struct query_entry *query_entry;
-	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE)) return -EPERM;
-	if (!atomic_read(&queryd_watcher)) return -EPERM;
+	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE) || !atomic_read(&queryd_watcher)) {
+#if 0
+		if ((current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR) == 0) {
+			int i;
+			for (i = 0; i < CheckCCSFlags(CCS_SLEEP_PERIOD); i++) {
+				set_current_state(TASK_INTERRUPTIBLE);
+				schedule_timeout(HZ / 10);
+			}
+		}
+#endif
+		return -EPERM;
+	}
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);

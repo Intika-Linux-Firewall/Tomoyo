@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -27,14 +27,14 @@ extern const char *ccs_log_level;
 /***** The structure for unmount restrictions. *****/
 
 struct no_umount_entry {
-	struct no_umount_entry *next;
+	struct list_head list;
 	const struct path_info *dir;
 	bool is_deleted;
 };
 
 /*************************  UMOUNT RESTRICTION HANDLER  *************************/
 
-static struct no_umount_entry *no_umount_list = NULL;
+static LIST_HEAD(no_umount_list);
 
 static int AddNoUmountACL(const char *dir, const bool is_delete)
 {
@@ -45,7 +45,7 @@ static int AddNoUmountACL(const char *dir, const bool is_delete)
 	if (!IsCorrectPath(dir, 1, 0, 1, __FUNCTION__)) return -EINVAL;
 	if ((saved_dir = SaveName(dir)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	for (ptr = no_umount_list; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &no_umount_list, list) {
 		if (ptr->dir == saved_dir) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -58,12 +58,7 @@ static int AddNoUmountACL(const char *dir, const bool is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->dir = saved_dir;
-	mb(); /* Instead of using spinlock. */
-	if ((ptr = no_umount_list) != NULL) {
-		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
-	} else {
-		no_umount_list = new_entry;
-	}
+	list_add_tail_mb(&new_entry->list, &no_umount_list);
 	error = 0;
 	printk("%sDon't allow umount %s\n", ccs_log_level, dir);
  out:
@@ -81,13 +76,17 @@ int SAKURA_MayUmount(struct vfsmount *mnt)
 	if (dir0) {
 		struct no_umount_entry *ptr;
 		struct path_info dir;
+		bool found = 0;
 		dir.name = dir0;
 		fill_path_info(&dir);
-		for (ptr = no_umount_list; ptr; ptr = ptr->next) {
+		list_for_each_entry(ptr, &no_umount_list, list) {
 			if (ptr->is_deleted) continue;
-			if (PathMatchesToPattern(&dir, ptr->dir)) break;
+			if (PathMatchesToPattern(&dir, ptr->dir)) {
+				found = 1;
+				break;
+			}
 		}
-		if (ptr) {
+		if (found) {
 			const char *exename = GetEXE();
 			printk("SAKURA-%s: umount %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), dir0, current->pid, exename);
 			if (is_enforce && CheckSupervisor("# %s is requesting\nunmount %s\n", exename, dir0) == 0) error = 0;
@@ -109,14 +108,14 @@ int AddNoUmountPolicy(char *data, const bool is_delete)
 
 int ReadNoUmountPolicy(struct io_buffer *head)
 {
-	struct no_umount_entry *ptr = head->read_var2;
-	if (!ptr) ptr = no_umount_list;
-	while (ptr) {
-		head->read_var2 = ptr;
-		if (ptr->is_deleted == 0 && io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n", ptr->dir->name)) break;
-		ptr = ptr->next;
+	struct list_head *pos;
+	list_for_each_cookie(pos, head->read_var2, &no_umount_list) {
+		struct no_umount_entry *ptr;
+		ptr = list_entry(pos, struct no_umount_entry, list);
+		if (ptr->is_deleted) continue;
+		if (io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n", ptr->dir->name)) return -ENOMEM;
 	}
-	return ptr ? -ENOMEM : 0;
+	return 0;
 }
 
 /***** SAKURA Linux end. *****/

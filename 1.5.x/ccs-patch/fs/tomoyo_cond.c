@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -55,7 +55,7 @@ static struct condition_list {
 	struct condition_list *next;
 	int length;
 	/* "unsigned long condition[length]" comes here.*/
-} head = { NULL, 0 };
+} head;
 
 #define TASK_UID          0
 #define TASK_EUID         1

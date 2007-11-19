@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -27,14 +27,14 @@ extern const char *ccs_log_level;
 /***** The structure for chroot restrictions. *****/
 
 struct chroot_entry {
-	struct chroot_entry *next;
+	struct list_head list;
 	const struct path_info *dir;
 	bool is_deleted;
 };
 
 /*************************  CHROOT RESTRICTION HANDLER  *************************/
 
-static struct chroot_entry *chroot_list = NULL;
+static LIST_HEAD(chroot_list);
 
 static int AddChrootACL(const char *dir, const bool is_delete)
 {
@@ -45,7 +45,7 @@ static int AddChrootACL(const char *dir, const bool is_delete)
 	if (!IsCorrectPath(dir, 1, 0, 1, __FUNCTION__)) return -EINVAL;
 	if ((saved_dir = SaveName(dir)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	for (ptr = chroot_list; ptr; ptr = ptr->next) {
+	list_for_each_entry(ptr, &chroot_list, list) {
 		if (ptr->dir == saved_dir) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -58,12 +58,7 @@ static int AddChrootACL(const char *dir, const bool is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->dir = saved_dir;
-	mb(); /* Instead of using spinlock. */
-	if ((ptr = chroot_list) != NULL) {
-		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
-	} else {
-		chroot_list = new_entry;
-	}
+	list_add_tail_mb(&new_entry->list, &chroot_list);
 	error = 0;
 	printk("%sAllow chroot() to %s\n", ccs_log_level, dir);
  out:
@@ -83,7 +78,7 @@ int CheckChRootPermission(struct nameidata *nd)
 		fill_path_info(&dir);
 		if (dir.is_dir) {
 			struct chroot_entry *ptr;
-			for (ptr = chroot_list; ptr; ptr = ptr->next) {
+			list_for_each_entry(ptr, &chroot_list, list) {
 				if (ptr->is_deleted) continue;
 				if (PathMatchesToPattern(&dir, ptr->dir)) {
 					error = 0;
@@ -116,14 +111,14 @@ int AddChrootPolicy(char *data, const bool is_delete)
 
 int ReadChrootPolicy(struct io_buffer *head)
 {
-	struct chroot_entry *ptr = head->read_var2;
-	if (!ptr) ptr = chroot_list;
-	while (ptr) {
-		head->read_var2 = ptr;
-		if (ptr->is_deleted == 0 && io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n", ptr->dir->name)) break;
-		ptr = ptr->next;
+	struct list_head *pos;
+	list_for_each_cookie(pos, head->read_var2, &chroot_list) {
+		struct chroot_entry *ptr;
+		ptr = list_entry(pos, struct chroot_entry, list);
+		if (ptr->is_deleted) continue;
+		if (io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n", ptr->dir->name)) return -ENOMEM;
 	}
-	return ptr ? -ENOMEM : 0;
+	return 0;
 }
 
 /***** SAKURA Linux end. *****/

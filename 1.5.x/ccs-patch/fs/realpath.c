@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -380,6 +380,10 @@ void __init realpath_Init(void)
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL, NULL);
 #endif
 	if (!ccs_cachep) panic("Can't create cache.\n");
+	INIT_LIST_HEAD(&KERNEL_DOMAIN.acl_info_list);
+	KERNEL_DOMAIN.domainname = SaveName(ROOT_NAME);
+	list_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
+	if (FindDomain(ROOT_NAME) != &KERNEL_DOMAIN) panic("Can't register KERNEL_DOMAIN");
 }
 
 static LIST_HEAD(cache_list);

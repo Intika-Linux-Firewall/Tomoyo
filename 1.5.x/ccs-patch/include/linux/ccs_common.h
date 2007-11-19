@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -49,6 +49,41 @@ typedef _Bool bool;
 #define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
 #endif
 
+/**
+ * list_for_each_cookie - iterate over a list with cookie.
+ * @pos:        the &struct list_head to use as a loop cursor.
+ * @cookie:     the &struct list_head to use as a cookie.
+ * @head:       the head for your list.
+ *
+ * Same with list_for_each except that this primitive uses cookie
+ * so that we can continue iteration.
+ */
+#define list_for_each_cookie(pos, cookie, head) \
+	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
+	     (cookie) = pos, pos = pos->next)
+
+/**
+ * list_add_tail_mb - add a new entry with memory barrier.
+ * @new: new entry to be added.
+ * @head: list head to add it before.
+ *
+ * Same with list_add_tail_rcu() except that this primitive uses mb()
+ * so that we can traverse forwards using list_for_each() and
+ * list_for_each_cookie().
+ */
+static inline void list_add_tail_mb(struct list_head *new,
+				    struct list_head *head)
+{
+	struct list_head *prev = head->prev;
+	struct list_head *next = head;
+	new->next = next;
+	new->prev = prev;
+	mb(); /* Avoid out-of-order execution. */
+	next->prev = new;
+	prev->next = new;
+}
+
 struct mini_stat {
 	uid_t uid;
 	gid_t gid;
@@ -83,20 +118,20 @@ struct path_info {
 
 #define CCS_MAX_PATHNAME_LEN 4000
 
-struct group_member {
-	struct group_member *next;
+struct path_group_member {
+	struct list_head list;
 	const struct path_info *member_name;
 	bool is_deleted;
 };
 
-struct group_entry {
-	struct group_entry *next;
+struct path_group_entry {
+	struct list_head list;
 	const struct path_info *group_name;
-	struct group_member *first_member;
+	struct list_head path_group_member_list;
 };
 
 struct address_group_member {
-	struct address_group_member *next;
+	struct list_head list;
 	union {
 		u32 ipv4;    /* Host byte order    */
 		u16 ipv6[8]; /* Network byte order */
@@ -106,9 +141,9 @@ struct address_group_member {
 };
 
 struct address_group_entry {
-	struct address_group_entry *next;
+	struct list_head list;
 	const struct path_info *group_name;
-	struct address_group_member *first_member;
+	struct list_head address_group_member_list;
 };
 
 /*
@@ -122,15 +157,15 @@ struct address_group_entry {
 struct condition_list;
 
 struct acl_info {
-	struct acl_info *next;
+	struct list_head list;
 	const struct condition_list *cond;
 	u8 type;
 	bool is_deleted;
 } __attribute__((__packed__));
 
 struct domain_info {
-	struct domain_info *next;           /* Pointer to next record. NULL if none. */
-	struct acl_info *first_acl_ptr;     /* Pointer to first acl. NULL if none.   */
+	struct list_head list;
+	struct list_head acl_info_list;
 	const struct path_info *domainname; /* Name of this domain. Never NULL.      */
 	u8 profile;                         /* Profile to use.                       */
 	u8 is_deleted;                      /* Delete flag.                          */
@@ -144,8 +179,8 @@ struct file_acl_record {
 	u8 perm;
 	bool u_is_group;
 	union {
-		const struct path_info *filename;   /* Pointer to single pathname. */
-		const struct group_entry *group;    /* Pointer to pathname group.  */
+		const struct path_info *filename;     /* Pointer to single pathname. */
+		const struct path_group_entry *group; /* Pointer to pathname group.  */
 	} u;
 };
 
@@ -175,8 +210,8 @@ struct single_acl_record {
 	struct acl_info head;                     /* type = TYPE_*               */
 	bool u_is_group;
 	union {
-		const struct path_info *filename; /* Pointer to single pathname. */
-		const struct group_entry *group;  /* Pointer to pathname group.  */
+		const struct path_info *filename;     /* Pointer to single pathname. */
+		const struct path_group_entry *group; /* Pointer to pathname group.  */
 	} u;
 };
 
@@ -185,12 +220,12 @@ struct double_acl_record {
 	bool u1_is_group;
 	bool u2_is_group;
 	union {
-		const struct path_info *filename1;  /* Pointer to single pathname. */
-		const struct group_entry *group1;   /* Pointer to pathname group.  */
+		const struct path_info *filename1;     /* Pointer to single pathname. */
+		const struct path_group_entry *group1; /* Pointer to pathname group.  */
 	} u1;
 	union {
-		const struct path_info *filename2;  /* Pointer to single pathname. */
-		const struct group_entry *group2;   /* Pointer to pathname group.  */
+		const struct path_info *filename2;     /* Pointer to single pathname. */
+		const struct path_group_entry *group2; /* Pointer to pathname group.  */
 	} u2;
 };
 
@@ -295,7 +330,9 @@ struct ip_network_acl_record {
 #define CCS_TOMOYO_MAX_REJECT_LOG               14
 #define CCS_TOMOYO_VERBOSE                      15
 #define CCS_ALLOW_ENFORCE_GRACE                 16
-#define CCS_MAX_CONTROL_INDEX                   17
+#define CCS_SLEEP_PERIOD                        17  /* profile.conf            */
+#define CCS_TOMOYO_ALT_EXEC                     18  /* profile.conf            */
+#define CCS_MAX_CONTROL_INDEX                   19
 
 /*************************  Index numbers for updates counter.  *************************/
 
@@ -317,8 +354,8 @@ struct io_buffer {
 	int (*write) (struct io_buffer *);
 	struct mutex write_sem;
 	int (*poll) (struct file *file, poll_table *wait);
-	void *read_var1;                  /* The position currently reading from. */
-	void *read_var2;                  /* Extra variables for reading.         */
+	struct list_head *read_var1;      /* The position currently reading from. */
+	struct list_head *read_var2;      /* Extra variables for reading.         */
 	struct domain_info *write_var1;   /* The position currently writing to.   */
 	int read_step;                    /* The step for reading.                */
 	char *read_buf;                   /* Buffer for reading.                  */
@@ -335,6 +372,7 @@ struct io_buffer {
 char *InitAuditLog(int *len);
 void *ccs_alloc(const size_t size);
 char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
+const char *GetAltExec(void);
 const char *GetEXE(void);
 const char *GetLastName(const struct domain_info *domain);
 const char *GetMSG(const bool is_enforce);
@@ -348,18 +386,18 @@ int AddAliasPolicy(char *data, const bool is_delete);
 int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
 int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
 int AddChrootPolicy(char *data, const bool is_delete);
-int AddDomainACL(struct acl_info *ptr, struct domain_info *domain, struct acl_info *new_ptr);
+int AddDomainACL(struct domain_info *domain, struct acl_info *acl);
 int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_delete);
 int AddDomainKeeperPolicy(char *data, const bool is_not, const bool is_delete);
 int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
 int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
 int AddGloballyReadablePolicy(char *data, const bool is_delete);
 int AddGloballyUsableEnvPolicy(char *env, const bool is_delete);
-int AddGroupPolicy(char *data, const bool is_delete);
 int AddMountPolicy(char *data, const bool is_delete);
 int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
 int AddNoRewritePolicy(char *pattern, const bool is_delete);
 int AddNoUmountPolicy(char *data, const bool is_delete);
+int AddPathGroupPolicy(char *data, const bool is_delete);
 int AddPatternPolicy(char *data, const bool is_delete);
 int AddPivotRootPolicy(char *data, const bool is_delete);
 int AddReservedPortPolicy(char *data, const bool is_delete);
@@ -391,10 +429,10 @@ int ReadDomainKeeperPolicy(struct io_buffer *head);
 int ReadGloballyReadablePolicy(struct io_buffer *head);
 int ReadGloballyUsableEnvPolicy(struct io_buffer *head);
 int ReadGrantLog(struct io_buffer *head);
-int ReadGroupPolicy(struct io_buffer *head);
 int ReadMountPolicy(struct io_buffer *head);
 int ReadNoRewritePolicy(struct io_buffer *head);
 int ReadNoUmountPolicy(struct io_buffer *head);
+int ReadPathGroupPolicy(struct io_buffer *head);
 int ReadPatternPolicy(struct io_buffer *head);
 int ReadPivotRootPolicy(struct io_buffer *head);
 int ReadRejectLog(struct io_buffer *head);
@@ -419,4 +457,7 @@ static inline bool pathcmp(const struct path_info *a, const struct path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
+
+extern struct list_head domain_list;
+
 #endif

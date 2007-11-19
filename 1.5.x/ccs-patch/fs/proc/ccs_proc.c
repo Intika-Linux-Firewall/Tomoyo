@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -77,7 +77,6 @@ void __init CCSProc_Init(void)
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
 	extern void __init realpath_Init(void);
 	realpath_Init();
-	FindDomain(""); /* Set domainname of KERNEL domain. */
 	CreateEntry("query",            0600, ccs_dir, CCS_QUERY);
 #ifdef CONFIG_SAKURA
 	CreateEntry("system_policy",    0600, ccs_dir, CCS_SYSTEMPOLICY);
