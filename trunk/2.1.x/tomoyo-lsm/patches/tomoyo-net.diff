@@ -1,0 +1,973 @@
+Subject: Network access control functions.
+
+TOMOYO Linux checks permission by the following four parameters.
+  * protocol type (TCP, UDP, RAW)
+  * access type (bind, listen, connect, accept)
+  * IP address (Both IPv4 and IPv6 are available)
+  * port number
+In order to check 'TCP accept' and 'UDP connect',
+LSM expansion patch ([TOMOYO 18/18]) is needed.
+
+Each permission can be automatically accumulated into
+the policy of each domain using 'learning mode'.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+ security/tomoyo/net.c |  952 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 952 insertions(+)
+
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6-mm/security/tomoyo/net.c	2007-11-14 15:15:44.000000000 +0900
+@@ -0,0 +1,952 @@
++/*
++ * security/tomoyo/net.c
++ *
++ * Network access control functions for TOMOYO Linux.
++ */
++
++#include "tomoyo.h"
++#include "realpath.h"
++
++/*************************  AUDIT FUNCTIONS  *************************/
++
++static int tmy_audit_network_log(const bool is_ipv6,
++				 const char *operation,
++				 const u32 *address,
++				 const u16 port,
++				 const bool is_granted,
++				 const u8 profile,
++				 const unsigned int mode)
++{
++	char *buf;
++	int len = 256;
++
++	if (is_granted) {
++		if (!tmy_audit_grant())
++			return 0;
++	} else {
++		if (!tmy_audit_reject())
++			return 0;
++	}
++
++	buf = tmy_init_audit_log(&len, profile, mode);
++	if (!buf)
++		return -ENOMEM;
++
++	snprintf(buf + strlen(buf), len - strlen(buf) - 1,
++		 TMY_ALLOW_NETWORK "%s ", operation);
++
++	if (is_ipv6)
++		tmy_print_ipv6(buf + strlen(buf), len - strlen(buf),
++			       (const u16 *) address);
++	else {
++		u32 ip = *address;
++		snprintf(buf + strlen(buf), len - strlen(buf) - 1,
++			 NIPQUAD_FMT, NIPQUAD(ip));
++	}
++
++	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u\n", port);
++
++	return tmy_write_audit_log(buf, is_granted);
++}
++
++/*************************  ADDRESS GROUP HANDLER  *************************/
++
++/* List of address group. */
++static LIST_HEAD(address_group_list);
++
++static int tmy_add_address_group_entry(const char *group_name,
++				    const bool is_ipv6,
++				    const u16 *min_address,
++				    const u16 *max_address,
++				    const bool is_delete)
++{
++	static DEFINE_MUTEX(mutex);
++	struct address_group_entry *new_group;
++	struct address_group_entry *group;
++	struct address_group_member *new_member;
++	struct address_group_member *member;
++	const struct path_info *saved_group_name;
++	int error = -ENOMEM;
++	bool found = 0;
++
++	if (!tmy_correct_path(group_name, 0, 0, 0, __FUNCTION__) ||
++	    !group_name[0])
++		return -EINVAL;
++
++	saved_group_name = tmy_save_name(group_name);
++	if (!saved_group_name)
++		return -ENOMEM;
++
++	mutex_lock(&mutex);
++
++	list_for_each_entry(group, &address_group_list, list) {
++		if (saved_group_name != group->group_name)
++			continue;
++		list_for_each_entry(member, &group->address_group_member_list,
++				    list) {
++			if (member->is_ipv6 != is_ipv6)
++				continue;
++			if (is_ipv6) {
++				if (memcmp(member->min.ipv6, min_address, 16) ||
++				    memcmp(member->max.ipv6, max_address, 16))
++					continue;
++			} else {
++				if (member->min.ipv4 != *(u32 *) min_address ||
++				    member->max.ipv4 != *(u32 *) max_address)
++					continue;
++			}
++			member->is_deleted = is_delete;
++			error = 0;
++			goto out;
++		}
++		found = 1;
++		break;
++	}
++
++	if (is_delete) {
++		error = -ENOENT;
++		goto out;
++	}
++
++	if (!found) {
++		new_group = tmy_alloc_element(sizeof(*new_group));
++		if (!new_group)
++			goto out;
++		INIT_LIST_HEAD(&new_group->address_group_member_list);
++		new_group->group_name = saved_group_name;
++		list_add_tail_mb(&new_group->list, &address_group_list);
++		group = new_group;
++	}
++
++	new_member = tmy_alloc_element(sizeof(*new_member));
++	if (!new_member)
++		goto out;
++
++	new_member->is_ipv6 = is_ipv6;
++
++	if (is_ipv6) {
++		memmove(new_member->min.ipv6, min_address, 16);
++		memmove(new_member->max.ipv6, max_address, 16);
++	} else {
++		new_member->min.ipv4 = *(u32 *) min_address;
++		new_member->max.ipv4 = *(u32 *) max_address;
++	}
++
++	list_add_tail_mb(&new_member->list, &group->address_group_member_list);
++	error = 0;
++out: ;
++	mutex_unlock(&mutex);
++
++	return error;
++}
++
++/**
++ * tmy_add_address_group_policy - add or delete address group policy.
++ * @data: a line to parse.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
++int tmy_add_address_group_policy(char *data, const bool is_delete)
++{
++	int count;
++	bool is_ipv6;
++	u16 min_address[8];
++	u16 max_address[8];
++	unsigned int min[8];
++	unsigned int max[8];
++	char *cp = strchr(data, ' ');
++
++	if (!cp)
++		return -EINVAL;
++
++	*cp++ = '\0';
++	count = sscanf(cp,
++		       NIP6_FMT "-" NIP6_FMT,
++		       &min[0], &min[1], &min[2], &min[3],
++		       &min[4], &min[5], &min[6], &min[7],
++		       &max[0], &max[1], &max[2], &max[3],
++		       &max[4], &max[5], &max[6], &max[7]);
++
++	if (count == 8 || count == 16) {
++
++		int i;
++
++		for (i = 0; i < 8; i++) {
++			min_address[i] = htons((u16) min[i]);
++			max_address[i] = htons((u16) max[i]);
++		}
++		if (count == 8)
++			memmove(max_address, min_address, sizeof(min_address));
++		is_ipv6 = 1;
++
++		goto ok;
++
++	}
++
++	count = sscanf(cp,
++		       NIPQUAD_FMT "-" NIPQUAD_FMT,
++		       &min[0], &min[1],
++		       &min[2], &min[3],
++		       &max[0], &max[1],
++		       &max[2], &max[3]);
++
++	if (count == 4 || count == 8) {
++		u32 ip = ((((u8) min[0]) << 24) +
++			  (((u8) min[1]) << 16) +
++			  (((u8) min[2]) << 8) +
++			  (u8) min[3]);
++
++		*(u32 *) min_address = ip;
++
++		if (count == 8)
++			ip = ((((u8) max[0]) << 24) +
++			      (((u8) max[1]) << 16) +
++			      (((u8) max[2]) << 8) +
++			      (u8) max[3]);
++
++		*(u32 *) max_address = ip;
++		is_ipv6 = 0;
++
++		goto ok;
++
++	}
++
++	return -EINVAL;
++
++ok: ;
++	return tmy_add_address_group_entry(data, is_ipv6, min_address,
++					   max_address, is_delete);
++}
++
++static struct address_group_entry *tmy_new_address_group(const char *name)
++{
++	int i;
++	struct address_group_entry *group;
++
++	for (i = 0; i <= 1; i++) {
++		list_for_each_entry(group, &address_group_list, list) {
++			if (strcmp(name, group->group_name->name) == 0)
++				return group;
++		}
++
++		if (i == 0) {
++			/*
++			 * Add a dummy entry to create new address group
++			 * and delete that entry.
++			 */
++			const u16 dum[2] = { 0, 0 };
++			tmy_add_address_group_entry(name, 0, dum, dum, 0);
++			tmy_add_address_group_entry(name, 0, dum, dum, 1);
++		}
++	}
++
++	return NULL;
++}
++
++static int tmy_address_match_group(const bool is_ipv6,
++				   const u32 *address,
++				   const struct address_group_entry *group)
++{
++	struct address_group_member *member;
++	const u32 ip = ntohl(*address);
++
++	list_for_each_entry(member, &group->address_group_member_list, list) {
++		if (member->is_deleted)
++			continue;
++
++		if (member->is_ipv6) {
++
++			if (is_ipv6 &&
++			    memcmp(member->min.ipv6, address, 16) <= 0 &&
++			    memcmp(address, member->max.ipv6, 16) <= 0)
++				return 1;
++
++		} else {
++
++			if (!is_ipv6 &&
++			    member->min.ipv4 <= ip &&
++			    ip <= member->max.ipv4)
++				return 1;
++
++		}
++	}
++
++	return 0;
++}
++
++static int tmy_read_address_group(struct io_buffer *head,
++			       struct address_group_entry *group,
++			       struct address_group_member *member)
++{
++	char buf[128];
++	if (!member)
++		return 0;
++
++	if (member->is_ipv6) {
++
++		const u16 *min_addr = member->min.ipv6;
++		const u16 *max_addr = member->max.ipv6;
++
++		tmy_print_ipv6(buf, sizeof(buf), min_addr);
++
++		if (memcmp(min_addr, max_addr, 16)) {
++			char *cp = strchr(buf, '\0');
++			int len = sizeof(buf) - strlen(buf);
++
++			*cp++ = '-';
++			tmy_print_ipv6(cp, len, max_addr);
++		}
++
++	} else {
++
++		const u32 min_addr = member->min.ipv4;
++		const u32 max_addr = member->max.ipv4;
++
++		memset(buf, 0, sizeof(buf));
++		snprintf(buf, sizeof(buf) - 1,
++			 NIPQUAD_FMT, HIPQUAD(min_addr));
++
++		if (min_addr != max_addr) {
++			const int len = strlen(buf);
++
++			snprintf(buf + len, sizeof(buf) - 1 - len,
++				 "-" NIPQUAD_FMT, HIPQUAD(max_addr));
++		}
++
++	}
++
++	return tmy_io_printf(head, TMY_ADDRESS_GROUP "%s %s\n",
++			     group->group_name->name, buf);
++}
++
++/**
++ * tmy_read_address_group_policy - read address group policy
++ * @head: pointer to "struct io_buffer".
++ *
++ * Returns nonzero if reading incomplete.
++ * Returns zero otherwise.
++ */
++int tmy_read_address_group_policy(struct io_buffer *head)
++{
++	struct list_head *gpos;
++	struct list_head *mpos;
++	list_for_each_cookie(gpos, head->read_var1, &address_group_list) {
++		struct address_group_entry *group;
++		group = list_entry(gpos, struct address_group_entry, list);
++		list_for_each_cookie(mpos, head->read_var2,
++				     &group->address_group_member_list) {
++			struct address_group_member *member;
++			member = list_entry(mpos, struct address_group_member,
++					    list);
++			if (member->is_deleted)
++				continue;
++			if (tmy_read_address_group(head, group, member))
++				return -ENOMEM;
++		}
++	}
++	return 0;
++}
++
++/***********************  NETWORK NETWORK ACL HANDLER  ***********************/
++
++/**
++ * tmy_print_ipv6 - print ipv6 address
++ * @buffer:     pointer to buffer to save the result.
++ * @buffer_len: sizeof @buffer .
++ * @ip:         pointer to an IPv6 address in network byte order.
++ *
++ * Returns @buffer .
++ */
++char *tmy_print_ipv6(char *buffer, const int buffer_len, const u16 *ip)
++{
++	memset(buffer, 0, buffer_len);
++	snprintf(buffer, buffer_len - 1, NIP6_FMT,
++		 ntohs(ip[0]), ntohs(ip[1]), ntohs(ip[2]), ntohs(ip[3]),
++		 ntohs(ip[4]), ntohs(ip[5]), ntohs(ip[6]), ntohs(ip[7]));
++	return buffer;
++}
++
++/**
++ * tmy_network2keyword - get keyword from access control index.
++ * @operation: index number.
++ *
++ * Returns keyword that corresponds with @operation .
++ */
++const char *tmy_network2keyword(const unsigned int operation)
++{
++	const char *keyword = "unknown";
++	switch (operation) {
++	case TMY_NETWORK_ACL_UDP_BIND:
++		keyword = "UDP bind";
++		break;
++	case TMY_NETWORK_ACL_UDP_CONNECT:
++		keyword = "UDP connect";
++		break;
++	case TMY_NETWORK_ACL_TCP_BIND:
++		keyword = "TCP bind";
++		break;
++	case TMY_NETWORK_ACL_TCP_LISTEN:
++		keyword = "TCP listen";
++		break;
++	case TMY_NETWORK_ACL_TCP_CONNECT:
++		keyword = "TCP connect";
++		break;
++	case TMY_NETWORK_ACL_TCP_ACCEPT:
++		keyword = "TCP accept";
++		break;
++	case TMY_NETWORK_ACL_RAW_BIND:
++		keyword = "RAW bind";
++		break;
++	case TMY_NETWORK_ACL_RAW_CONNECT:
++		keyword = "RAW connect";
++		break;
++	}
++	return keyword;
++}
++
++/* Compare IPv4/IPv6 address. */
++static int tmy_cmp_network_entry(const u8 record_type,
++				 struct net_acl *acl,
++				 const struct address_group_entry *group,
++				 const u32 min_ip,
++				 const u32 max_ip,
++				 const u32 *min_address,
++				 const u32 *max_address)
++{
++	int found = 0;
++
++	switch (record_type) {
++
++	case TMY_TYPE_ADDRESS_GROUP:
++		if (acl->u.group == group)
++			found = 1;
++		break;
++
++	case TMY_TYPE_IPv4:
++		if (acl->u.ipv4.min == min_ip &&
++		    max_ip == acl->u.ipv4.max)
++			found = 1;
++		break;
++
++	case TMY_TYPE_IPv6:
++		if (memcmp(acl->u.ipv6.min, min_address, 16) == 0 &&
++		    memcmp(max_address, acl->u.ipv6.max, 16) == 0)
++			found = 1;
++		break;
++
++	}
++
++	return found;
++}
++
++static int tmy_add_network_entry(const u8 operation,
++				 const u8 record_type,
++				 const struct address_group_entry *group,
++				 const u32 *min_address,
++				 const u32 *max_address,
++				 const u16 min_port,
++				 const u16 max_port,
++				 struct domain_info *domain,
++				 const struct condition_list *cond,
++				 const bool is_delete)
++{
++	struct acl_info *ptr;
++	struct net_acl *acl;
++	int error = -ENOMEM;
++	/* using host byte order to allow u32 comparison than memcmp().*/
++	const u32 min_ip = ntohl(*min_address);
++	const u32 max_ip = ntohl(*max_address);
++
++	if (!domain)
++		return -EINVAL;
++
++	mutex_lock(&domain_acl_lock);
++
++	if (is_delete)
++		goto remove;
++
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = (struct net_acl *) ptr;
++		if (ptr->type == TMY_TYPE_IP_NETWORK_ACL &&
++		    ptr->cond == cond &&
++		    acl->operation_type == operation &&
++		    acl->record_type == record_type &&
++		    acl->min_port == min_port &&
++		    max_port == acl->max_port &&
++		    tmy_cmp_network_entry(record_type, acl,
++					  group, min_ip, max_ip,
++					  min_address,
++					  max_address)) {
++			ptr->is_deleted = 0;
++			error = 0;
++			goto ok;
++		}
++	}
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++
++	acl->head.type = TMY_TYPE_IP_NETWORK_ACL;
++	acl->head.cond = cond;
++	acl->operation_type = operation;
++	acl->record_type = record_type;
++
++	if (record_type == TMY_TYPE_ADDRESS_GROUP)
++		acl->u.group = group;
++	else if (record_type == TMY_TYPE_IPv4) {
++		acl->u.ipv4.min = min_ip;
++		acl->u.ipv4.max = max_ip;
++	} else {
++		memmove(acl->u.ipv6.min, min_address, 16);
++		memmove(acl->u.ipv6.max, max_address, 16);
++	}
++
++	acl->min_port = min_port;
++	acl->max_port = max_port;
++	error = tmy_add_acl(domain,
++			    (struct acl_info *) acl);
++	goto ok;
++remove: ;
++	error = -ENOENT;
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = (struct net_acl *) ptr;
++		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
++		    ptr->cond != cond ||
++		    ptr->is_deleted ||
++		    acl->operation_type != operation ||
++		    acl->record_type != record_type ||
++		    acl->min_port != min_port ||
++		    acl->max_port != max_port ||
++		    !tmy_cmp_network_entry(record_type, acl,
++					   group, min_ip, max_ip,
++					   min_address,
++					   max_address))
++			continue;
++		error = tmy_del_acl(ptr);
++		break;
++	}
++ok: ;
++	mutex_unlock(&domain_acl_lock);
++
++	return error;
++}
++
++/* Check network permission. */
++static int tmy_network_entry(const bool is_ipv6,
++			     const int operation,
++			     const u32 *address,
++			     const u16 port)
++{
++	struct domain_info * const domain = TMY_SECURITY->domain;
++	const u8 profile = domain->profile;
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_NETWORK);
++	struct acl_info *ptr;
++	const char *keyword = tmy_network2keyword(operation);
++	const bool is_enforce = (mode == 3);
++	/* using host byte order to allow u32 comparison than memcmp().*/
++	const u32 ip = ntohl(*address);
++	bool found = 0;
++
++	if (!mode)
++		return 0;
++
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct net_acl *acl = (struct net_acl *) ptr;
++		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
++		    ptr->is_deleted ||
++		    acl->operation_type != operation ||
++		    port < acl->min_port ||
++		    acl->max_port < port ||
++		    tmy_check_condition(ptr->cond, NULL))
++			continue;
++
++		if (acl->record_type == TMY_TYPE_ADDRESS_GROUP) {
++			if (tmy_address_match_group(is_ipv6, address,
++			    acl->u.group)) {
++				found = 1;
++				break;
++			}
++		} else if (acl->record_type == TMY_TYPE_IPv4) {
++			if (!is_ipv6 &&
++			    (acl->u.ipv4.min <= ip && ip <= acl->u.ipv4.max)) {
++				found = 1;
++				break;
++			}
++		} else {
++			if (is_ipv6 &&
++			    memcmp(acl->u.ipv6.min, address, 16) <= 0 &&
++			    memcmp(address, acl->u.ipv6.max, 16) <= 0) {
++				found = 1;
++				break;
++			}
++		}
++	}
++
++	tmy_audit_network_log(is_ipv6, keyword, address,
++			      port, found, profile, mode);
++
++	if (found)
++		return 0;
++
++	if (tmy_flags(TMY_VERBOSE)) {
++		if (is_ipv6) {
++			char buf[64];
++			tmy_print_ipv6(buf, sizeof(buf), (const u16 *) address);
++			tmy_audit("TOMOYO-%s: %s to %s %u denied for %s\n",
++				  tmy_getmsg(is_enforce), keyword, buf, port,
++				  tmy_lastname(domain));
++		} else {
++			tmy_audit("TOMOYO-%s: %s to %u.%u.%u.%u %u denied for "
++				  "%s\n", tmy_getmsg(is_enforce), keyword,
++				  HIPQUAD(ip), port, tmy_lastname(domain));
++		}
++	}
++
++	if (is_enforce) {
++
++		if (is_ipv6) {
++
++			char buf[64];
++
++			tmy_print_ipv6(buf, sizeof(buf), (const u16 *) address);
++			return tmy_supervisor("%s\n" TMY_ALLOW_NETWORK
++					      "%s %s %u\n",
++					      domain->domainname->name, keyword,
++					      buf, port);
++
++		}
++
++		return tmy_supervisor("%s\n" TMY_ALLOW_NETWORK
++				      "%s " NIPQUAD_FMT " %u\n",
++				      domain->domainname->name, keyword,
++				      HIPQUAD(ip), port);
++
++	}
++
++	if (mode == 1 && tmy_quota())
++		tmy_add_network_entry(operation,
++				      is_ipv6 ? TMY_TYPE_IPv6 : TMY_TYPE_IPv4,
++				      NULL, address, address,
++				      port, port, domain, NULL, 0);
++
++	return 0;
++}
++
++/**
++ * tmy_add_signal_policy - add or delete signal policy.
++ * @data:      a line to parse.
++ * @domain:    pointer to "struct domain_info".
++ * @cond:      pointer to "struct condition_list". May be NULL.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
++int tmy_add_network_policy(char *data,
++			   struct domain_info *domain,
++			   const struct condition_list *cond,
++			   const bool is_delete)
++{
++	u8 sock_type;
++	u8 operation;
++	u8 record_type;
++	u16 min_address[8];
++	u16 max_address[8];
++	unsigned int min[8];
++	unsigned int max[8];
++	struct address_group_entry *group = NULL;
++	u16 min_port;
++	u16 max_port;
++	int count;
++	char *cp1 = NULL;
++	char *cp2 = NULL;
++
++	cp1 = strchr(data, ' ');
++	if (!cp1)
++		goto out;
++	cp1++;
++
++	if (strncmp(data, "TCP ", 4) == 0)
++		sock_type = SOCK_STREAM;
++	else if (strncmp(data, "UDP ", 4) == 0)
++		sock_type = SOCK_DGRAM;
++	else if (strncmp(data, "RAW ", 4) == 0)
++		sock_type = SOCK_RAW;
++	else
++		goto out;
++
++	cp2 = strchr(cp1, ' ');
++	if (!cp2)
++		goto out;
++	cp2++;
++
++	if (strncmp(cp1, "bind ", 5) == 0) {
++		switch (sock_type) {
++		case SOCK_STREAM:
++			operation = TMY_NETWORK_ACL_TCP_BIND;
++			break;
++		case SOCK_DGRAM:
++			operation = TMY_NETWORK_ACL_UDP_BIND;
++			break;
++		default:
++			operation = TMY_NETWORK_ACL_RAW_BIND;
++			break;
++		}
++	} else if (strncmp(cp1, "connect ", 8) == 0) {
++		switch (sock_type) {
++		case SOCK_STREAM:
++			operation = TMY_NETWORK_ACL_TCP_CONNECT;
++			break;
++		case SOCK_DGRAM:
++			operation = TMY_NETWORK_ACL_UDP_CONNECT;
++			break;
++		default:
++			operation = TMY_NETWORK_ACL_RAW_CONNECT;
++			break;
++		}
++	} else if (sock_type == SOCK_STREAM &&
++		   strncmp(cp1, "listen ", 7) == 0)
++		operation = TMY_NETWORK_ACL_TCP_LISTEN;
++
++	else if (sock_type == SOCK_STREAM &&
++		 strncmp(cp1, "accept ", 7) == 0)
++		operation = TMY_NETWORK_ACL_TCP_ACCEPT;
++
++	else
++		goto out;
++
++	cp1 = strchr(cp2, ' ');
++	if (!cp1)
++		goto out;
++	*cp1++ = '\0';
++
++	count = sscanf(cp2,
++		       NIP6_FMT "-" NIP6_FMT,
++		       &min[0], &min[1], &min[2], &min[3],
++		       &min[4], &min[5], &min[6], &min[7],
++		       &max[0], &max[1], &max[2], &max[3],
++		       &max[4], &max[5], &max[6], &max[7]);
++
++	if (count == 8 || count == 16) {
++
++		int i;
++
++		for (i = 0; i < 8; i++) {
++			min_address[i] = htons((u16) min[i]);
++			max_address[i] = htons((u16) max[i]);
++		}
++
++		if (count == 8)
++			memmove(max_address, min_address, sizeof(min_address));
++		record_type = TMY_TYPE_IPv6;
++
++		goto ok;
++
++	}
++
++	count = sscanf(cp2,
++		       NIPQUAD_FMT "-" NIPQUAD_FMT,
++		       &min[0], &min[1], &min[2], &min[3],
++		       &max[0], &max[1], &max[2], &max[3]);
++
++	if (count == 4 || count == 8) {
++
++		u32 ip = htonl((((u8) min[0]) << 24) +
++			       (((u8) min[1]) << 16) +
++			       (((u8) min[2]) << 8) +
++			       (u8) min[3]);
++		*(u32 *) min_address = ip;
++
++		if (count == 8)
++			ip = htonl((((u8) max[0]) << 24) +
++				   (((u8) max[1]) << 16) +
++				   (((u8) max[2]) << 8) +
++				   (u8) max[3]);
++		*(u32 *) max_address = ip;
++		record_type = TMY_TYPE_IPv4;
++
++		goto ok;
++
++	}
++
++	if (*cp2 == '@') {
++
++		group = tmy_new_address_group(cp2 + 1);
++		if (!group)
++			return -ENOMEM;
++		record_type = TMY_TYPE_ADDRESS_GROUP;
++
++		goto ok;
++	}
++
++	goto out;
++
++ok: ;
++	if (strchr(cp1, ' '))
++		goto out;
++
++	count = sscanf(cp1, "%hu-%hu", &min_port, &max_port);
++	if (count != 1 && count != 2)
++		goto out;
++
++	if (count == 1)
++		max_port = min_port;
++
++	return tmy_add_network_entry(operation, record_type, group,
++				     (u32 *) min_address,
++				     (u32 *) max_address,
++				     min_port, max_port, domain,
++				     cond, is_delete);
++
++out: ;
++	return -EINVAL;
++}
++
++/**
++ * tmy_network_listen_acl - check permission for listen(2) operation.
++ * @is_ipv6: is @address an IPv6 address?
++ * @address: pointer to IPv4/IPv6 address in network byte order.
++ * @port:    TCP or UDP's port number.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
++int tmy_network_listen_acl(const bool is_ipv6,
++			   const u8 *address,
++			   const u16 port)
++{
++	return tmy_network_entry(is_ipv6,
++				 TMY_NETWORK_ACL_TCP_LISTEN,
++				 (const u32 *) address,
++				 ntohs(port));
++}
++
++/**
++ * tmy_network_connect_acl - check permission for connect(2) operation.
++ * @is_ipv6:   is @address an IPv6 address?
++ * @sock_type: socket type (TCP, UDP or IP).
++ * @address:   pointer to IPv4/IPv6 address in network byte order.
++ * @port:      TCP or UDP's port number or IP's protocol number.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
++int tmy_network_connect_acl(const bool is_ipv6,
++			    const int sock_type,
++			    const u8 *address,
++			    const u16 port)
++{
++	int type;
++
++	switch (sock_type) {
++	case SOCK_STREAM:
++		type = TMY_NETWORK_ACL_TCP_CONNECT;
++		break;
++	case SOCK_DGRAM:
++		type = TMY_NETWORK_ACL_UDP_CONNECT;
++		break;
++	default:
++		type = TMY_NETWORK_ACL_RAW_CONNECT;
++		break;
++	}
++
++	return tmy_network_entry(is_ipv6, type,
++				 (const u32 *) address, ntohs(port));
++}
++
++/**
++ * tmy_network_bind_acl - check permission for bind(2) operation.
++ * @is_ipv6:   is @address an IPv6 address?
++ * @sock_type: socket type (TCP, UDP or IP).
++ * @address:   pointer to IPv4/IPv6 address in network byte order.
++ * @port:      TCP or UDP's port number or IP's protocol number.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
++int tmy_network_bind_acl(const bool is_ipv6,
++			 const int sock_type,
++			 const u8 *address,
++			 const u16 port)
++{
++	int type;
++
++	switch (sock_type) {
++	case SOCK_STREAM:
++		type = TMY_NETWORK_ACL_TCP_BIND;
++		break;
++	case SOCK_DGRAM:
++		type = TMY_NETWORK_ACL_UDP_BIND;
++		break;
++	default:
++		type = TMY_NETWORK_ACL_RAW_BIND;
++		break;
++	}
++
++	return tmy_network_entry(is_ipv6, type,
++				 (const u32 *) address, ntohs(port));
++}
++
++/**
++ * tmy_network_sendmsg_acl - check permission for sendmsg(2) operation.
++ * @is_ipv6:   is @address an IPv6 address?
++ * @sock_type: socket type (UDP or IP).
++ * @address:   pointer to IPv4/IPv6 address in network byte order.
++ * @port:      UDP's port number or IP's protocol number.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
++int tmy_network_sendmsg_acl(const bool is_ipv6,
++			    const int sock_type,
++			    const u8 *address,
++			    const u16 port)
++{
++	int type;
++
++	if (sock_type == SOCK_DGRAM)
++		type = TMY_NETWORK_ACL_UDP_CONNECT;
++	else
++		type = TMY_NETWORK_ACL_RAW_CONNECT;
++
++	return tmy_network_entry(is_ipv6, type,
++				 (const u32 *) address, ntohs(port));
++}
++
++/**
++ * tmy_network_accept_acl - check permission for accept(2) operation.
++ * @is_ipv6:   is @address an IPv6 address?
++ * @address:   pointer to IPv4/IPv6 address in network byte order.
++ * @port:      TCP client's port number.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
++int tmy_network_accept_acl(const bool is_ipv6, const u8 *address,
++			   const u16 port)
++{
++	return tmy_network_entry(is_ipv6, TMY_NETWORK_ACL_TCP_ACCEPT,
++				 (const u32 *) address, ntohs(port));
++}
++
++/**
++ * tmy_network_recvmsg_acl - check permission for recvmsg(2) operation.
++ * @is_ipv6:   is @address an IPv6 address?
++ * @sock_type: socket type (UDP or IP).
++ * @address:   pointer to IPv4/IPv6 address in network byte order.
++ * @port:      UDP's port number or IP's protocol number.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
++int tmy_network_recvmsg_acl(const bool is_ipv6, const int sock_type,
++			    const u8 *address, const u16 port)
++{
++	return tmy_network_entry(is_ipv6, sock_type == SOCK_DGRAM ?
++				 TMY_NETWORK_ACL_UDP_CONNECT :
++				 TMY_NETWORK_ACL_RAW_CONNECT,
++				 (const u32 *) address, ntohs(port));
++}

@@ -1,0 +1,406 @@
+Subject: LSM expansion for TOMOYO Linux.
+
+LSM hooks for sending signal:
+   * task_kill_unlocked is added in sys_kill
+   * task_tkill_unlocked is added in sys_tkill
+   * task_tgkill_unlocked is added in sys_tgkill
+LSM hooks for network accept and recv:
+   * socket_post_accept is modified to return int.
+   * post_recv_datagram is added in skb_recv_datagram.
+
+You can try TOMOYO Linux without this patch, but in that case, you
+can't use access control functionality for restricting signal
+transmission and incoming network data.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+ include/linux/security.h |   74 +++++++++++++++++++++++++++++++++++++++++++----
+ kernel/signal.c          |   17 ++++++++++
+ net/core/datagram.c      |   22 +++++++++++++
+ net/socket.c             |    7 +++-
+ security/dummy.c         |   32 ++++++++++++++++++--
+ security/security.c      |   25 ++++++++++++++-
+ 6 files changed, 165 insertions(+), 12 deletions(-)
+
+--- linux-2.6-mm.orig/include/linux/security.h	2007-11-14 15:14:10.000000000 +0900
++++ linux-2.6-mm/include/linux/security.h	2007-11-14 15:15:44.000000000 +0900
+@@ -657,6 +657,25 @@ struct request_sock;
+  *	@sig contains the signal value.
+  *	@secid contains the sid of the process where the signal originated
+  *	Return 0 if permission is granted.
++ * @task_kill_unlocked:
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_kill.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
++ *	Return 0 if permission is granted.
++ * @task_tkill_unlocked:
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_tkill.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
++ *	Return 0 if permission is granted.
++ * @task_tgkill_unlocked:
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_tgkill.
++ *	@tgid contains the thread group id.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
++ *	Return 0 if permission is granted.
+  * @task_wait:
+  *	Check permission before allowing a process to reap a child process @p
+  *	and collect its status information.
+@@ -778,8 +797,12 @@ struct request_sock;
+  * @socket_post_accept:
+  *	This hook allows a security module to copy security
+  *	information into the newly created socket's inode.
++ *	This hook also allows a security module to filter connections
++ *	from unwanted peers.
++ *	The connection will be aborted if this hook returns nonzero.
+  *	@sock contains the listening socket structure.
+  *	@newsock contains the newly created server socket for connection.
++ *	Return 0 if permission is granted.
+  * @socket_sendmsg:
+  *	Check permission before transmitting a message to another socket.
+  *	@sock contains the socket structure.
+@@ -793,6 +816,12 @@ struct request_sock;
+  *	@size contains the size of message structure.
+  *	@flags contains the operational flags.
+  *	Return 0 if permission is granted.  
++ * @post_recv_datagram:
++ *	Check permission after receiving a datagram.
++ *	@sk contains the socket.
++ *	@skb contains the socket buffer (may be NULL).
++ *	@flags contains the operational flags.
++ *	Return 0 if permission is granted.
+  * @socket_getsockname:
+  *	Check permission before the local address (name) of the socket object
+  *	@sock is retrieved.
+@@ -1319,6 +1348,9 @@ struct security_operations {
+ 	int (*task_movememory) (struct task_struct * p);
+ 	int (*task_kill) (struct task_struct * p,
+ 			  struct siginfo * info, int sig, u32 secid);
++	int (*task_kill_unlocked) (int pid, int sig);
++	int (*task_tkill_unlocked) (int pid, int sig);
++	int (*task_tgkill_unlocked) (int tgid, int pid, int sig);
+ 	int (*task_wait) (struct task_struct * p);
+ 	int (*task_prctl) (int option, unsigned long arg2,
+ 			   unsigned long arg3, unsigned long arg4,
+@@ -1384,12 +1416,16 @@ struct security_operations {
+ 			       struct sockaddr * address, int addrlen);
+ 	int (*socket_listen) (struct socket * sock, int backlog);
+ 	int (*socket_accept) (struct socket * sock, struct socket * newsock);
+-	void (*socket_post_accept) (struct socket * sock,
+-				    struct socket * newsock);
++#define TMY_LSM_EXPANSION
++	int (*socket_post_accept) (struct socket *sock,
++				   struct socket *newsock);
+ 	int (*socket_sendmsg) (struct socket * sock,
+ 			       struct msghdr * msg, int size);
+ 	int (*socket_recvmsg) (struct socket * sock,
+ 			       struct msghdr * msg, int size, int flags);
++	int (*post_recv_datagram) (struct sock *sk,
++				   struct sk_buff *skb,
++				   unsigned int flags);
+ 	int (*socket_getsockname) (struct socket * sock);
+ 	int (*socket_getpeername) (struct socket * sock);
+ 	int (*socket_getsockopt) (struct socket * sock, int level, int optname);
+@@ -1567,6 +1603,9 @@ int security_task_getscheduler(struct ta
+ int security_task_movememory(struct task_struct *p);
+ int security_task_kill(struct task_struct *p, struct siginfo *info,
+ 			int sig, u32 secid);
++int security_task_kill_unlocked(int pid, int sig);
++int security_task_tkill_unlocked(int pid, int sig);
++int security_task_tgkill_unlocked(int tgid, int pid, int sig);
+ int security_task_wait(struct task_struct *p);
+ int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
+ 			 unsigned long arg4, unsigned long arg5);
+@@ -2112,6 +2151,21 @@ static inline int security_task_kill (st
+ 	return cap_task_kill(p, info, sig, secid);
+ }
+ 
++static inline int security_task_kill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static inline int security_task_tkill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static inline int security_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return 0;
++}
++
+ static inline int security_task_wait (struct task_struct *p)
+ {
+ 	return 0;
+@@ -2294,10 +2348,12 @@ int security_socket_bind(struct socket *
+ int security_socket_connect(struct socket *sock, struct sockaddr *address, int addrlen);
+ int security_socket_listen(struct socket *sock, int backlog);
+ int security_socket_accept(struct socket *sock, struct socket *newsock);
+-void security_socket_post_accept(struct socket *sock, struct socket *newsock);
++int security_socket_post_accept(struct socket *sock, struct socket *newsock);
+ int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size);
+ int security_socket_recvmsg(struct socket *sock, struct msghdr *msg,
+ 			    int size, int flags);
++int security_post_recv_datagram(struct sock *sk, struct sk_buff *skb,
++				unsigned int flags);
+ int security_socket_getsockname(struct socket *sock);
+ int security_socket_getpeername(struct socket *sock);
+ int security_socket_getsockopt(struct socket *sock, int level, int optname);
+@@ -2373,9 +2429,10 @@ static inline int security_socket_accept
+ 	return 0;
+ }
+ 
+-static inline void security_socket_post_accept(struct socket * sock, 
+-					       struct socket * newsock)
++static inline int security_socket_post_accept(struct socket *sock,
++					      struct socket *newsock)
+ {
++	return 0;
+ }
+ 
+ static inline int security_socket_sendmsg(struct socket * sock, 
+@@ -2391,6 +2448,13 @@ static inline int security_socket_recvms
+ 	return 0;
+ }
+ 
++static inline int security_post_recv_datagram(struct sock *sk,
++					      struct sk_buff *skb,
++					      unsigned int flags)
++{
++	return 0;
++}
++
+ static inline int security_socket_getsockname(struct socket * sock)
+ {
+ 	return 0;
+--- linux-2.6-mm.orig/kernel/signal.c	2007-11-14 15:14:17.000000000 +0900
++++ linux-2.6-mm/kernel/signal.c	2007-11-14 15:15:44.000000000 +0900
+@@ -2218,6 +2218,11 @@ asmlinkage long
+ sys_kill(int pid, int sig)
+ {
+ 	struct siginfo info;
++	int ret;
++
++	ret = security_task_kill_unlocked(pid, sig);
++	if (ret)
++		return ret;
+ 
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+@@ -2273,10 +2278,16 @@ static int do_tkill(int tgid, int pid, i
+  */
+ asmlinkage long sys_tgkill(int tgid, int pid, int sig)
+ {
++	int ret;
++
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0 || tgid <= 0)
+ 		return -EINVAL;
+ 
++	ret = security_task_tgkill_unlocked(tgid, pid, sig);
++	if (ret)
++		return ret;
++
+ 	return do_tkill(tgid, pid, sig);
+ }
+ 
+@@ -2286,10 +2297,16 @@ asmlinkage long sys_tgkill(int tgid, int
+ asmlinkage long
+ sys_tkill(int pid, int sig)
+ {
++	int ret;
++
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0)
+ 		return -EINVAL;
+ 
++	ret = security_task_tkill_unlocked(pid, sig);
++	if (ret)
++		return ret;
++
+ 	return do_tkill(0, pid, sig);
+ }
+ 
+--- linux-2.6-mm.orig/net/socket.c	2007-11-14 15:12:08.000000000 +0900
++++ linux-2.6-mm/net/socket.c	2007-11-14 15:15:44.000000000 +0900
+@@ -1442,13 +1442,16 @@ asmlinkage long sys_accept(int fd, struc
+ 			goto out_fd;
+ 	}
+ 
++	/* Filter connections from unwanted peers like TCP Wrapper. */
++	err = security_socket_post_accept(sock, newsock);
++	if (err)
++		goto out_fd;
++
+ 	/* File flags are not inherited via accept() unlike another OSes. */
+ 
+ 	fd_install(newfd, newfile);
+ 	err = newfd;
+ 
+-	security_socket_post_accept(sock, newsock);
+-
+ out_put:
+ 	fput_light(sock->file, fput_needed);
+ out:
+--- linux-2.6-mm.orig/security/dummy.c	2007-11-14 15:14:10.000000000 +0900
++++ linux-2.6-mm/security/dummy.c	2007-11-14 15:15:44.000000000 +0900
+@@ -576,6 +576,21 @@ static int dummy_task_kill (struct task_
+ 	return 0;
+ }
+ 
++static int dummy_task_kill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static int dummy_task_tkill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static int dummy_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return 0;
++}
++
+ static int dummy_task_prctl (int option, unsigned long arg2, unsigned long arg3,
+ 			     unsigned long arg4, unsigned long arg5)
+ {
+@@ -753,10 +768,10 @@ static int dummy_socket_accept (struct s
+ 	return 0;
+ }
+ 
+-static void dummy_socket_post_accept (struct socket *sock, 
+-				      struct socket *newsock)
++static int dummy_socket_post_accept(struct socket *sock,
++				    struct socket *newsock)
+ {
+-	return;
++	return 0;
+ }
+ 
+ static int dummy_socket_sendmsg (struct socket *sock, struct msghdr *msg,
+@@ -771,6 +786,13 @@ static int dummy_socket_recvmsg (struct 
+ 	return 0;
+ }
+ 
++static int dummy_post_recv_datagram(struct sock *sk,
++				    struct sk_buff *skb,
++				    unsigned int flags)
++{
++	return 0;
++}
++
+ static int dummy_socket_getsockname (struct socket *sock)
+ {
+ 	return 0;
+@@ -1062,6 +1084,9 @@ void security_fixup_ops (struct security
+ 	set_to_dummy_if_null(ops, task_movememory);
+ 	set_to_dummy_if_null(ops, task_wait);
+ 	set_to_dummy_if_null(ops, task_kill);
++	set_to_dummy_if_null(ops, task_kill_unlocked);
++	set_to_dummy_if_null(ops, task_tkill_unlocked);
++	set_to_dummy_if_null(ops, task_tgkill_unlocked);
+ 	set_to_dummy_if_null(ops, task_prctl);
+ 	set_to_dummy_if_null(ops, task_reparent_to_init);
+  	set_to_dummy_if_null(ops, task_to_inode);
+@@ -1104,6 +1129,7 @@ void security_fixup_ops (struct security
+ 	set_to_dummy_if_null(ops, socket_post_accept);
+ 	set_to_dummy_if_null(ops, socket_sendmsg);
+ 	set_to_dummy_if_null(ops, socket_recvmsg);
++	set_to_dummy_if_null(ops, post_recv_datagram);
+ 	set_to_dummy_if_null(ops, socket_getsockname);
+ 	set_to_dummy_if_null(ops, socket_getpeername);
+ 	set_to_dummy_if_null(ops, socket_setsockopt);
+--- linux-2.6-mm.orig/net/core/datagram.c	2007-10-10 05:31:38.000000000 +0900
++++ linux-2.6-mm/net/core/datagram.c	2007-11-14 15:15:44.000000000 +0900
+@@ -55,6 +55,7 @@
+ #include <net/checksum.h>
+ #include <net/sock.h>
+ #include <net/tcp_states.h>
++#include <linux/security.h>
+ 
+ /*
+  *	Is a socket 'connection oriented' ?
+@@ -178,6 +179,27 @@ struct sk_buff *skb_recv_datagram(struct
+ 		} else
+ 			skb = skb_dequeue(&sk->sk_receive_queue);
+ 
++		error = security_post_recv_datagram(sk, skb, flags);
++		if (error) {
++			unsigned long cpu_flags;
++
++			if (!(flags & MSG_PEEK))
++				goto no_peek;
++
++			spin_lock_irqsave(&sk->sk_receive_queue.lock,
++					  cpu_flags);
++			if (skb == skb_peek(&sk->sk_receive_queue)) {
++				__skb_unlink(skb,
++					     &sk->sk_receive_queue);
++				atomic_dec(&skb->users);
++			}
++			spin_unlock_irqrestore(&sk->sk_receive_queue.lock,
++					       cpu_flags);
++no_peek:
++			skb_free_datagram(sk, skb);
++			goto no_packet;
++		}
++
+ 		if (skb)
+ 			return skb;
+ 
+--- linux-2.6-mm.orig/security/security.c	2007-11-14 15:14:10.000000000 +0900
++++ linux-2.6-mm/security/security.c	2007-11-14 15:54:12.000000000 +0900
+@@ -662,6 +662,21 @@ int security_task_kill(struct task_struc
+ 	return security_ops->task_kill(p, info, sig, secid);
+ }
+ 
++int security_task_kill_unlocked(int pid, int sig)
++{
++	return security_ops->task_kill_unlocked(pid, sig);
++}
++
++int security_task_tkill_unlocked(int pid, int sig)
++{
++	return security_ops->task_tkill_unlocked(pid, sig);
++}
++
++int security_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return security_ops->task_tgkill_unlocked(tgid, pid, sig);
++}
++
+ int security_task_wait(struct task_struct *p)
+ {
+ 	return security_ops->task_wait(p);
+@@ -869,9 +884,9 @@ int security_socket_accept(struct socket
+ 	return security_ops->socket_accept(sock, newsock);
+ }
+ 
+-void security_socket_post_accept(struct socket *sock, struct socket *newsock)
++int security_socket_post_accept(struct socket *sock, struct socket *newsock)
+ {
+-	security_ops->socket_post_accept(sock, newsock);
++	return security_ops->socket_post_accept(sock, newsock);
+ }
+ 
+ int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
+@@ -885,6 +900,12 @@ int security_socket_recvmsg(struct socke
+ 	return security_ops->socket_recvmsg(sock, msg, size, flags);
+ }
+ 
++int security_post_recv_datagram(struct sock *sk, struct sk_buff *skb,
++				unsigned int flags)
++{
++	return security_ops->post_recv_datagram(sk, skb, flags);
++}
++
+ int security_socket_getsockname(struct socket *sock)
+ {
+ 	return security_ops->socket_getsockname(sock);

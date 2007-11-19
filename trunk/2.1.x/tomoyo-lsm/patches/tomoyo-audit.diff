@@ -1,0 +1,256 @@
+Subject: Auditing interface.
+
+TOMOYO Linux uses /sys/kernel/security/tomoyo/ interface
+for reporting access logs in domain policy format.
+One is 'grant_log', used for auditing accesses which are
+granted in the TOMOYO Linux policy.
+The other is 'reject_log', used for auditing accesses which
+are not granted in the TOMOYO Linux policy.
+The userland daemon /usr/lib/ccs/ccs-auditd will save these logs.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+ security/tomoyo/audit.c |  238 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 238 insertions(+)
+
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6-mm/security/tomoyo/audit.c	2007-11-14 15:15:44.000000000 +0900
+@@ -0,0 +1,238 @@
++/*
++ * security/tomoyo/audit.c
++ *
++ * Audit functions for TOMOYO Linux
++ */
++
++#include "tomoyo.h"
++
++#ifdef CONFIG_SECURITY_TOMOYO_USE_AUDITD
++/**
++ * tmy_audit - write audit log.
++ * @fmt:  format strings for printf().
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ *
++ * Write audit log.
++ */
++int tmy_audit(const char *fmt, ...)
++{
++	struct audit_buffer *ab;
++	int len;
++	va_list args;
++	char *buf;
++	char *cp;
++	ab = audit_log_start(current->audit_context, GFP_KERNEL, AUDIT_KERNEL);
++	if (!ab)
++		return -ENOMEM;
++	buf = kzalloc(PAGE_SIZE, GFP_KERNEL);
++	if (!buf)
++		goto out;
++	va_start(args, fmt);
++	len = vsnprintf(buf, PAGE_SIZE - 1, fmt, args);
++	va_end(args);
++	if (len > PAGE_SIZE - 1) {
++		kfree(buf);
++		buf = kzalloc(len + 16, GFP_KERNEL);
++		if (!buf)
++			goto out;
++		va_start(args, fmt);
++		vsnprintf(buf, len + 15, fmt, args);
++		va_end(args);
++	}
++	cp = strchr(buf, '\0') - 1;
++	if (cp >= buf && *cp == '\n')
++		*cp = '\0';
++	audit_log_format(ab, "TOMOYO: %s", buf);
++	kfree(buf);
++out: ;
++	audit_log_end(ab);
++	return buf ? 0 : -ENOMEM;
++}
++#endif
++
++static DECLARE_WAIT_QUEUE_HEAD(grant_log_wait);
++static DECLARE_WAIT_QUEUE_HEAD(reject_log_wait);
++
++static DEFINE_SPINLOCK(audit_log_lock);
++
++struct log_entry {
++	struct list_head list;
++	char *log;
++};
++
++static LIST_HEAD(grant_log);
++static LIST_HEAD(reject_log);
++
++static int grant_log_count;
++static int reject_log_count;
++
++/**
++ * tmy_audit_grant - get flags of auditing grant logs.
++ *
++ * Returns current value of auditing grant log flags.
++ */
++bool tmy_audit_grant(void)
++{
++	return grant_log_count < tmy_flags(TMY_MAX_GRANT_LOG);
++}
++
++/**
++ * tmy_audit_reject - get flags of auditing reject logs.
++ *
++ * Returns current value of auditing reject log flags.
++ */
++bool tmy_audit_reject(void)
++{
++	return reject_log_count < tmy_flags(TMY_MAX_REJECT_LOG);
++}
++
++/**
++ * tmy_init_audit_log - allocate and initialize audit buffer.
++ * @len: pointer to length of requested size.
++ * @profile: profile number for this log.
++ * @mode: profile value for this log.
++ *
++ * Returns pointer to audit buffer on success. @len received allocated size.
++ * Returns NULL on failure.
++ *
++ * @len must not be a NULL.
++ */
++char *tmy_init_audit_log(int *len, const u8 profile, const unsigned int mode)
++{
++	char *buf;
++	struct timeval tv;
++	struct task_struct *task = current;
++	const char *domainname = TMY_SECURITY->domain->domainname->name;
++	do_gettimeofday(&tv);
++	*len += strlen(domainname) + 256;
++	buf = tmy_alloc(*len);
++	if (!buf)
++		return NULL;
++	snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%u "
++		 "pid=%d uid=%d gid=%d euid=%d egid=%d "
++		 "suid=%d sgid=%d fsuid=%d fsgid=%d \n%s\n",
++		 tv.tv_sec, profile, mode,
++		 task->pid, task->uid, task->gid, task->euid, task->egid,
++		 task->suid, task->sgid, task->fsuid, task->fsgid, domainname);
++	return buf;
++}
++
++/**
++ * tmy_write_audit_log - write audit log.
++ * @buf:        pointer to access log contents.
++ * @is_granted: is the access request granted?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ *
++ * Write audit log.
++ * Caller must allocate @buf with tmy_init_audit_log().
++ */
++int tmy_write_audit_log(char *buf, const bool is_granted)
++{
++	struct log_entry *new_entry;
++	new_entry = tmy_alloc(sizeof(*new_entry));
++	if (!new_entry) {
++		tmy_free(buf);
++		return -ENOMEM;
++	}
++	INIT_LIST_HEAD(&new_entry->list);
++	new_entry->log = buf;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&audit_log_lock);
++	if (is_granted) {
++		list_add_tail(&new_entry->list, &grant_log);
++		grant_log_count++;
++		buf = NULL;
++		tmy_update_counter(TMY_UPDATE_GRANT_LOG);
++	} else {
++		list_add_tail(&new_entry->list, &reject_log);
++		reject_log_count++;
++		buf = NULL;
++		tmy_update_counter(TMY_UPDATE_REJECT_LOG);
++	}
++	spin_unlock(&audit_log_lock);
++	/***** CRITICAL SECTION END *****/
++	if (is_granted)
++		wake_up(&grant_log_wait);
++	else
++		wake_up(&reject_log_wait);
++	return 0;
++}
++
++int tmy_read_grant_log(struct io_buffer *head)
++{
++	struct log_entry *ptr = NULL;
++	if (head->read_avail) return 0;
++	if (head->read_buf) {
++		tmy_free(head->read_buf);
++		head->read_buf = NULL;
++		head->readbuf_size = 0;
++	}
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&audit_log_lock);
++	if (!list_empty(&grant_log)) {
++		ptr = list_entry(grant_log.next, struct log_entry, list);
++		list_del(&ptr->list);
++		grant_log_count--;
++	}
++	spin_unlock(&audit_log_lock);
++	/***** CRITICAL SECTION END *****/
++	if (ptr) {
++		head->read_buf = ptr->log;
++		head->read_avail = strlen(ptr->log) + 1;
++		head->readbuf_size = head->read_avail;
++		tmy_free(ptr);
++	}
++	return 0;
++}
++
++int tmy_poll_grant_log(struct file *file, poll_table *wait)
++{
++	if (grant_log_count)
++		return POLLIN | POLLRDNORM;
++	poll_wait(file, &grant_log_wait, wait);
++	if (grant_log_count)
++		return POLLIN | POLLRDNORM;
++	return 0;
++}
++
++int tmy_read_reject_log(struct io_buffer *head)
++{
++	struct log_entry *ptr = NULL;
++	if (head->read_avail)
++		return 0;
++	if (head->read_buf) {
++		tmy_free(head->read_buf);
++		head->read_buf = NULL;
++		head->readbuf_size = 0;
++	}
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&audit_log_lock);
++	if (!list_empty(&reject_log)) {
++		ptr = list_entry(reject_log.next, struct log_entry, list);
++		list_del(&ptr->list);
++		reject_log_count--;
++	}
++	spin_unlock(&audit_log_lock);
++	/***** CRITICAL SECTION END *****/
++	if (ptr) {
++		head->read_buf = ptr->log;
++		head->read_avail = strlen(ptr->log) + 1;
++		head->readbuf_size = head->read_avail;
++		tmy_free(ptr);
++	}
++	return 0;
++}
++
++int tmy_poll_reject_log(struct file *file, poll_table *wait)
++{
++	if (reject_log_count)
++		return POLLIN | POLLRDNORM;
++	poll_wait(file, &reject_log_wait, wait);
++	if (reject_log_count)
++		return POLLIN | POLLRDNORM;
++	return 0;
++}
