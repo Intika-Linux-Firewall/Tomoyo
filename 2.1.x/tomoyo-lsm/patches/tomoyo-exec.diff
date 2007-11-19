@@ -12,7 +12,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 218 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-mm/security/tomoyo/exec.c	2007-11-14 15:15:44.000000000 +0900
++++ linux-2.6-mm/security/tomoyo/exec.c	2007-11-19 21:23:29.000000000 +0900
 @@ -0,0 +1,218 @@
 +/*
 + * security/tomoyo/exec.c
@@ -87,7 +87,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto remove;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct argv0_acl *) ptr;
++		acl = container_of(ptr, struct argv0_acl, head);
 +		if (ptr->type == TMY_TYPE_ARGV0_ACL && ptr->cond == cond &&
 +		    acl->filename == saved_filename &&
 +		    acl->argv0 == saved_argv0) {
@@ -107,13 +107,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	acl->head.cond = cond;
 +	acl->filename = saved_filename;
 +	acl->argv0 = saved_argv0;
-+	error = tmy_add_acl(domain,
-+			    (struct acl_info *) acl);
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct argv0_acl *) ptr;
++		acl = container_of(ptr, struct argv0_acl, head);
 +		if (ptr->type != TMY_TYPE_ARGV0_ACL ||
 +		    ptr->cond != cond || ptr->is_deleted ||
 +		    acl->filename != saved_filename ||
@@ -144,7 +143,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tmy_fill_path_info(&argv0);
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		struct argv0_acl *acl = (struct argv0_acl *) ptr;
++		struct argv0_acl *acl;
++		acl = container_of(ptr, struct argv0_acl, head);
 +
 +		if (ptr->type == TMY_TYPE_ARGV0_ACL &&
 +		    ptr->is_deleted == 0 &&

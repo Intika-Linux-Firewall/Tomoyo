@@ -11,8 +11,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  net/unix/af_unix.c |    3 ++-
  3 files changed, 34 insertions(+), 26 deletions(-)
 
---- linux-2.6-mm.orig/fs/open.c	2007-11-14 15:14:48.000000000 +0900
-+++ linux-2.6-mm/fs/open.c	2007-11-14 15:15:38.000000000 +0900
+--- linux-2.6-mm.orig/fs/open.c	2007-11-19 21:10:13.000000000 +0900
++++ linux-2.6-mm/fs/open.c	2007-11-19 21:15:16.000000000 +0900
 @@ -271,7 +271,8 @@ static long do_sys_truncate(const char _
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
@@ -106,8 +106,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(file->f_vfsmnt);
  out_fput:
  	fput(file);
---- linux-2.6-mm.orig/fs/namei.c	2007-11-14 15:14:48.000000000 +0900
-+++ linux-2.6-mm/fs/namei.c	2007-11-14 15:22:32.000000000 +0900
+--- linux-2.6-mm.orig/fs/namei.c	2007-11-19 21:10:13.000000000 +0900
++++ linux-2.6-mm/fs/namei.c	2007-11-19 21:15:16.000000000 +0900
 @@ -1663,7 +1663,7 @@ int may_open(struct nameidata *nd, int a
  		if (!error) {
  			DQUOT_INIT(inode);
@@ -209,8 +209,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
  	dput(new_dentry);
---- linux-2.6-mm.orig/net/unix/af_unix.c	2007-11-14 15:14:48.000000000 +0900
-+++ linux-2.6-mm/net/unix/af_unix.c	2007-11-14 15:15:38.000000000 +0900
+--- linux-2.6-mm.orig/net/unix/af_unix.c	2007-11-19 21:10:13.000000000 +0900
++++ linux-2.6-mm/net/unix/af_unix.c	2007-11-19 21:15:16.000000000 +0900
 @@ -842,7 +842,8 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)

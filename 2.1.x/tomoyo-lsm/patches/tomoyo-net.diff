@@ -17,7 +17,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 952 insertions(+)
 
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-mm/security/tomoyo/net.c	2007-11-14 15:15:44.000000000 +0900
++++ linux-2.6-mm/security/tomoyo/net.c	2007-11-19 21:28:25.000000000 +0900
 @@ -0,0 +1,952 @@
 +/*
 + * security/tomoyo/net.c
@@ -489,7 +489,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto remove;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct net_acl *) ptr;
++		acl = container_of(ptr, struct net_acl, head);
 +		if (ptr->type == TMY_TYPE_IP_NETWORK_ACL &&
 +		    ptr->cond == cond &&
 +		    acl->operation_type == operation &&
@@ -527,13 +527,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	acl->min_port = min_port;
 +	acl->max_port = max_port;
-+	error = tmy_add_acl(domain,
-+			    (struct acl_info *) acl);
++	error = tmy_add_acl(domain, &acl->head);
 +	goto ok;
 +remove: ;
 +	error = -ENOENT;
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		acl = (struct net_acl *) ptr;
++		acl = container_of(ptr, struct net_acl, head);
 +		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
 +		    ptr->cond != cond ||
 +		    ptr->is_deleted ||
@@ -575,7 +574,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0;
 +
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		struct net_acl *acl = (struct net_acl *) ptr;
++		struct net_acl *acl;
++		acl = container_of(ptr, struct net_acl, head);
 +		if (ptr->type != TMY_TYPE_IP_NETWORK_ACL ||
 +		    ptr->is_deleted ||
 +		    acl->operation_type != operation ||
@@ -657,7 +657,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tmy_add_signal_policy - add or delete signal policy.
++ * tmy_add_network_policy - add or delete network policy.
 + * @data:      a line to parse.
 + * @domain:    pointer to "struct domain_info".
 + * @cond:      pointer to "struct condition_list". May be NULL.
