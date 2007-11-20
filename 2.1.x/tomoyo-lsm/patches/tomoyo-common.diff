@@ -21,12 +21,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/common.c | 2391 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2391 insertions(+)
+ security/tomoyo/common.c | 2394 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2394 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/common.c
-@@ -0,0 +1,2391 @@
+@@ -0,0 +1,2394 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1338,7 +1338,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static inline int print_capability_acl(struct io_buffer *head,
 +				       struct acl_info *ptr)
 +{
-+	struct capability_acl *ptr2 = container_of(ptr, struct capability_acl, head);
++	struct capability_acl *ptr2 =
++		container_of(ptr, struct capability_acl, head);
 +
 +	if (tmy_io_printf(head, TMY_ALLOW_CAPABILITY "%s",
 +			  tmy_capability2keyword(ptr2->capability)))
@@ -1357,7 +1358,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0; /* This must not happen. */
 +
 +	if (tmy_acltype2paths(acl_type) == 2) {
-+		struct double_acl *ptr2 = container_of(ptr, struct double_acl, head);
++		struct double_acl *ptr2 =
++			container_of(ptr, struct double_acl, head);
 +		const bool b1 = ptr2->u1_is_group;
 +		const bool b2 = ptr2->u2_is_group;
 +
@@ -1372,7 +1374,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				  ptr2->u2.filename2->name))
 +			return -ENOMEM;
 +	} else {
-+		struct single_acl *ptr2 = container_of(ptr, struct single_acl, head);
++		struct single_acl *ptr2
++			= container_of(ptr, struct single_acl, head);
 +		const bool b = ptr2->u_is_group;
 +
 +		if (tmy_io_printf(head,
