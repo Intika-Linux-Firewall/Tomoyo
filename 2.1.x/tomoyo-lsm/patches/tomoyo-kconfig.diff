@@ -10,8 +10,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/Makefile |    2 ++
  4 files changed, 30 insertions(+)
 
---- linux-2.6-mm.orig/security/Kconfig	2007-11-19 21:09:05.000000000 +0900
-+++ linux-2.6-mm/security/Kconfig	2007-11-19 21:15:17.000000000 +0900
+--- linux-2.6-mm.orig/security/Kconfig
++++ linux-2.6-mm/security/Kconfig
 @@ -104,6 +104,7 @@ config SECURITY_ROOTPLUG
  	  If you are unsure how to answer this question, answer N.
  
@@ -20,15 +20,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  endmenu
  
---- linux-2.6-mm.orig/security/Makefile	2007-10-10 05:31:38.000000000 +0900
-+++ linux-2.6-mm/security/Makefile	2007-11-19 21:15:17.000000000 +0900
+--- linux-2.6-mm.orig/security/Makefile
++++ linux-2.6-mm/security/Makefile
 @@ -16,3 +16,4 @@ obj-$(CONFIG_SECURITY)			+= security.o d
  obj-$(CONFIG_SECURITY_SELINUX)		+= selinux/built-in.o
  obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
 +obj-$(CONFIG_SECURITY_TOMOYO)           += tomoyo/
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-mm/security/tomoyo/Kconfig	2007-11-19 21:15:17.000000000 +0900
+--- /dev/null
++++ linux-2.6-mm/security/tomoyo/Kconfig
 @@ -0,0 +1,26 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux support"
@@ -56,8 +56,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	  This makes messages sent to auditing subsystem.
 +
 +	  If you say 'N' here, messages will be sent to printk().
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-2.6-mm/security/tomoyo/Makefile	2007-11-19 21:15:17.000000000 +0900
+--- /dev/null
++++ linux-2.6-mm/security/tomoyo/Makefile
 @@ -0,0 +1,2 @@
 +obj-$(CONFIG_SECURITY_TOMOYO) += tomoyo.o domain.o common.o realpath.o audit.o file.o exec.o net.o mount.o signal.o capability.o condition.o
 +EXTRA_CFLAGS += -Isecurity/tomoyo/include
