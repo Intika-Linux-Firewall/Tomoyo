@@ -13,12 +13,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/net.c |  952 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 952 insertions(+)
+ security/tomoyo/net.c |  889 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 889 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/net.c
-@@ -0,0 +1,952 @@
+@@ -0,0 +1,889 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -32,7 +32,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tmy_audit_network_log(const bool is_ipv6,
 +				 const char *operation,
-+				 const u32 *address,
++				 const u8 *address,
 +				 const u16 port,
 +				 const bool is_granted,
 +				 const u8 profile,
@@ -58,7 +58,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (is_ipv6)
 +		tmy_print_ipv6(buf + strlen(buf), len - strlen(buf),
-+			       (const u16 *) address);
++			       address);
 +	else {
 +		u32 ip = *address;
 +		snprintf(buf + strlen(buf), len - strlen(buf) - 1,
@@ -76,10 +76,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static LIST_HEAD(address_group_list);
 +
 +static int tmy_add_address_group_entry(const char *group_name,
-+				    const bool is_ipv6,
-+				    const u16 *min_address,
-+				    const u16 *max_address,
-+				    const bool is_delete)
++				       const bool is_ipv6,
++				       const u8 *min_address,
++				       const u8 *max_address,
++				       const bool is_delete)
 +{
 +	static DEFINE_MUTEX(mutex);
 +	struct address_group_entry *new_group;
@@ -89,6 +89,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved_group_name;
 +	int error = -ENOMEM;
 +	bool found = 0;
++	const u32 min_ip = ntohl(*(u32 *) min_address);
++	const u32 max_ip = ntohl(*(u32 *) max_address);
 +
 +	if (!tmy_correct_path(group_name, 0, 0, 0, __FUNCTION__) ||
 +	    !group_name[0])
@@ -112,8 +114,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				    memcmp(member->max.ipv6, max_address, 16))
 +					continue;
 +			} else {
-+				if (member->min.ipv4 != *(u32 *) min_address ||
-+				    member->max.ipv4 != *(u32 *) max_address)
++				if (member->min.ipv4 != min_ip ||
++				    member->max.ipv4 != max_ip)
 +					continue;
 +			}
 +			member->is_deleted = is_delete;
@@ -149,8 +151,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		memmove(new_member->min.ipv6, min_address, 16);
 +		memmove(new_member->max.ipv6, max_address, 16);
 +	} else {
-+		new_member->min.ipv4 = *(u32 *) min_address;
-+		new_member->max.ipv4 = *(u32 *) max_address;
++		new_member->min.ipv4 = min_ip;
++		new_member->max.ipv4 = max_ip;
 +	}
 +
 +	list_add_tail_mb(&new_member->list, &group->address_group_member_list);
@@ -173,72 +175,46 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int count;
 +	bool is_ipv6;
-+	u16 min_address[8];
-+	u16 max_address[8];
-+	unsigned int min[8];
-+	unsigned int max[8];
++	u8 min_address[16];
++	u8 max_address[16];
 +	char *cp = strchr(data, ' ');
 +
++	/*** Parse address_group_name part ***/
 +	if (!cp)
 +		return -EINVAL;
-+
 +	*cp++ = '\0';
-+	count = sscanf(cp,
-+		       NIP6_FMT "-" NIP6_FMT,
-+		       &min[0], &min[1], &min[2], &min[3],
-+		       &min[4], &min[5], &min[6], &min[7],
-+		       &max[0], &max[1], &max[2], &max[3],
-+		       &max[4], &max[5], &max[6], &max[7]);
 +
-+	if (count == 8 || count == 16) {
-+
-+		int i;
-+
-+		for (i = 0; i < 8; i++) {
-+			min_address[i] = htons((u16) min[i]);
-+			max_address[i] = htons((u16) max[i]);
-+		}
-+		if (count == 8)
-+			memmove(max_address, min_address, sizeof(min_address));
-+		is_ipv6 = 1;
-+
-+		goto ok;
-+
-+	}
-+
-+	count = sscanf(cp,
-+		       NIPQUAD_FMT "-" NIPQUAD_FMT,
-+		       &min[0], &min[1],
-+		       &min[2], &min[3],
-+		       &max[0], &max[1],
-+		       &max[2], &max[3]);
-+
-+	if (count == 4 || count == 8) {
-+		u32 ip = ((((u8) min[0]) << 24) +
-+			  (((u8) min[1]) << 16) +
-+			  (((u8) min[2]) << 8) +
-+			  (u8) min[3]);
-+
-+		*(u32 *) min_address = ip;
-+
-+		if (count == 8)
-+			ip = ((((u8) max[0]) << 24) +
-+			      (((u8) max[1]) << 16) +
-+			      (((u8) max[2]) << 8) +
-+			      (u8) max[3]);
-+
-+		*(u32 *) max_address = ip;
-+		is_ipv6 = 0;
-+
-+		goto ok;
-+
-+	}
-+
-+	return -EINVAL;
-+
++	/*** Parse address part ***/
++	/* single IPv6 or IPv6 range */
++	count = strcspn(cp, "-");
++	if (!in6_pton(cp, count, min_address, -1, NULL))
++		goto no_ipv6;
++	is_ipv6 = 1;
++	cp += count;
++	if (*cp++ != '-')
++		goto copy_address;
++	if (!in6_pton(cp, -1, max_address, -1, NULL))
++		goto out;
++	goto ok;
++no_ipv6:
++	/* single IPv4 or IPv4 range */
++	if (!in4_pton(cp, count, min_address, -1, NULL))
++		goto out;
++	is_ipv6 = 0;
++	cp += count;
++	if (*cp++ != '-')
++		goto copy_address;
++	if (!in4_pton(cp, -1, max_address, -1, NULL))
++		goto out;
++	goto ok;
++copy_address:
++	memmove(max_address, min_address, sizeof(max_address));
 +ok: ;
-+	return tmy_add_address_group_entry(data, is_ipv6, min_address,
++	return tmy_add_address_group_entry(data, is_ipv6,
++					   min_address,
 +					   max_address, is_delete);
++out:
++	return -EINVAL;
 +}
 +
 +static struct address_group_entry *tmy_new_address_group(const char *name)
@@ -257,7 +233,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			 * Add a dummy entry to create new address group
 +			 * and delete that entry.
 +			 */
-+			const u16 dum[2] = { 0, 0 };
++			const u8 dum[4] = { 0, 0, 0, 0 };
 +			tmy_add_address_group_entry(name, 0, dum, dum, 0);
 +			tmy_add_address_group_entry(name, 0, dum, dum, 1);
 +		}
@@ -267,11 +243,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +static int tmy_address_match_group(const bool is_ipv6,
-+				   const u32 *address,
++				   const u8 *address,
 +				   const struct address_group_entry *group)
 +{
 +	struct address_group_member *member;
-+	const u32 ip = ntohl(*address);
++	const u32 ip = ntohl(*(u32 *) address);
 +
 +	list_for_each_entry(member, &group->address_group_member_list, list) {
 +		if (member->is_deleted)
@@ -307,14 +283,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (member->is_ipv6) {
 +
-+		const u16 *min_addr = member->min.ipv6;
-+		const u16 *max_addr = member->max.ipv6;
++		const u8 *min_addr = member->min.ipv6;
++		const u8 *max_addr = member->max.ipv6;
 +
 +		tmy_print_ipv6(buf, sizeof(buf), min_addr);
 +
 +		if (memcmp(min_addr, max_addr, 16)) {
 +			char *cp = strchr(buf, '\0');
-+			int len = sizeof(buf) - strlen(buf);
++			int len = sizeof(buf) - strlen(buf) - 1;
 +
 +			*cp++ = '-';
 +			tmy_print_ipv6(cp, len, max_addr);
@@ -380,12 +356,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns @buffer .
 + */
-+char *tmy_print_ipv6(char *buffer, const int buffer_len, const u16 *ip)
++char *tmy_print_ipv6(char *buffer, const int buffer_len, const u8 *ip)
 +{
 +	memset(buffer, 0, buffer_len);
 +	snprintf(buffer, buffer_len - 1, NIP6_FMT,
-+		 ntohs(ip[0]), ntohs(ip[1]), ntohs(ip[2]), ntohs(ip[3]),
-+		 ntohs(ip[4]), ntohs(ip[5]), ntohs(ip[6]), ntohs(ip[7]));
++		 NIP6(*(struct in6_addr *)ip));
 +	return buffer;
 +}
 +
@@ -433,8 +408,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				 const struct address_group_entry *group,
 +				 const u32 min_ip,
 +				 const u32 max_ip,
-+				 const u32 *min_address,
-+				 const u32 *max_address)
++				 const u8 *min_address,
++				 const u8 *max_address)
 +{
 +	int found = 0;
 +
@@ -465,8 +440,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tmy_add_network_entry(const u8 operation,
 +				 const u8 record_type,
 +				 const struct address_group_entry *group,
-+				 const u32 *min_address,
-+				 const u32 *max_address,
++				 const u8 *min_address,
++				 const u8 *max_address,
 +				 const u16 min_port,
 +				 const u16 max_port,
 +				 struct domain_info *domain,
@@ -477,8 +452,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct net_acl *acl;
 +	int error = -ENOMEM;
 +	/* using host byte order to allow u32 comparison than memcmp().*/
-+	const u32 min_ip = ntohl(*min_address);
-+	const u32 max_ip = ntohl(*max_address);
++	const u32 min_ip = ntohl(*(u32 *) min_address);
++	const u32 max_ip = ntohl(*(u32 *) max_address);
 +
 +	if (!domain)
 +		return -EINVAL;
@@ -557,7 +532,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Check network permission. */
 +static int tmy_network_entry(const bool is_ipv6,
 +			     const int operation,
-+			     const u32 *address,
++			     const u8 *address,
 +			     const u16 port)
 +{
 +	struct domain_info * const domain = TMY_SECURITY->domain;
@@ -567,7 +542,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const char *keyword = tmy_network2keyword(operation);
 +	const bool is_enforce = (mode == 3);
 +	/* using host byte order to allow u32 comparison than memcmp().*/
-+	const u32 ip = ntohl(*address);
++	const u32 ip = ntohl(*(u32 *) address);
 +	bool found = 0;
 +
 +	if (!mode)
@@ -586,7 +561,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +		if (acl->record_type == TMY_TYPE_ADDRESS_GROUP) {
 +			if (tmy_address_match_group(is_ipv6, address,
-+			    acl->u.group)) {
++						    acl->u.group)) {
 +				found = 1;
 +				break;
 +			}
@@ -615,7 +590,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (tmy_flags(TMY_VERBOSE)) {
 +		if (is_ipv6) {
 +			char buf[64];
-+			tmy_print_ipv6(buf, sizeof(buf), (const u16 *) address);
++			tmy_print_ipv6(buf, sizeof(buf), address);
 +			tmy_audit("TOMOYO-%s: %s to %s %u denied for %s\n",
 +				  tmy_getmsg(is_enforce), keyword, buf, port,
 +				  tmy_lastname(domain));
@@ -632,7 +607,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +			char buf[64];
 +
-+			tmy_print_ipv6(buf, sizeof(buf), (const u16 *) address);
++			tmy_print_ipv6(buf, sizeof(buf), address);
 +			return tmy_supervisor("%s\n" TMY_ALLOW_NETWORK
 +					      "%s %s %u\n",
 +					      domain->domainname->name, keyword,
@@ -674,10 +649,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	u8 sock_type;
 +	u8 operation;
 +	u8 record_type;
-+	u16 min_address[8];
-+	u16 max_address[8];
-+	unsigned int min[8];
-+	unsigned int max[8];
++	u8 min_address[16];
++	u8 max_address[16];
 +	struct address_group_entry *group = NULL;
 +	u16 min_port;
 +	u16 max_port;
@@ -739,89 +712,58 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	else
 +		goto out;
 +
++	/*** Parse port part. ***/
 +	cp1 = strchr(cp2, ' ');
 +	if (!cp1)
 +		goto out;
 +	*cp1++ = '\0';
-+
-+	count = sscanf(cp2,
-+		       NIP6_FMT "-" NIP6_FMT,
-+		       &min[0], &min[1], &min[2], &min[3],
-+		       &min[4], &min[5], &min[6], &min[7],
-+		       &max[0], &max[1], &max[2], &max[3],
-+		       &max[4], &max[5], &max[6], &max[7]);
-+
-+	if (count == 8 || count == 16) {
-+
-+		int i;
-+
-+		for (i = 0; i < 8; i++) {
-+			min_address[i] = htons((u16) min[i]);
-+			max_address[i] = htons((u16) max[i]);
-+		}
-+
-+		if (count == 8)
-+			memmove(max_address, min_address, sizeof(min_address));
-+		record_type = TMY_TYPE_IPv6;
-+
-+		goto ok;
-+
-+	}
-+
-+	count = sscanf(cp2,
-+		       NIPQUAD_FMT "-" NIPQUAD_FMT,
-+		       &min[0], &min[1], &min[2], &min[3],
-+		       &max[0], &max[1], &max[2], &max[3]);
-+
-+	if (count == 4 || count == 8) {
-+
-+		u32 ip = htonl((((u8) min[0]) << 24) +
-+			       (((u8) min[1]) << 16) +
-+			       (((u8) min[2]) << 8) +
-+			       (u8) min[3]);
-+		*(u32 *) min_address = ip;
-+
-+		if (count == 8)
-+			ip = htonl((((u8) max[0]) << 24) +
-+				   (((u8) max[1]) << 16) +
-+				   (((u8) max[2]) << 8) +
-+				   (u8) max[3]);
-+		*(u32 *) max_address = ip;
-+		record_type = TMY_TYPE_IPv4;
-+
-+		goto ok;
-+
-+	}
-+
-+	if (*cp2 == '@') {
-+
-+		group = tmy_new_address_group(cp2 + 1);
-+		if (!group)
-+			return -ENOMEM;
-+		record_type = TMY_TYPE_ADDRESS_GROUP;
-+
-+		goto ok;
-+	}
-+
-+	goto out;
-+
-+ok: ;
 +	if (strchr(cp1, ' '))
 +		goto out;
-+
 +	count = sscanf(cp1, "%hu-%hu", &min_port, &max_port);
 +	if (count != 1 && count != 2)
 +		goto out;
-+
 +	if (count == 1)
 +		max_port = min_port;
 +
++	/*** Parse address part. ***/
++	if (*cp2 != '@')
++		goto no_address_group;
++	/* @address_group_name */
++	group = tmy_new_address_group(cp2 + 1);
++	if (!group)
++		return -ENOMEM;
++	record_type = TMY_TYPE_ADDRESS_GROUP;
++	goto ok;
++no_address_group:
++	count = strcspn(cp2, "-");
++	if (!in6_pton(cp2, count, min_address, -1, NULL))
++		goto no_ipv6;
++	/* single IPv6 or IPv6 range */
++	record_type = TMY_TYPE_IPv6;
++	cp2 += count;
++	if (*cp2++ != '-')
++		goto copy_address;
++	if (!in6_pton(cp2, -1, max_address, -1, NULL))
++		goto out;
++	goto ok;
++no_ipv6:
++	if (!in4_pton(cp2, count, min_address, -1, NULL))
++		goto out;
++	/* single IPv4 or IPv4 range */
++	record_type = TMY_TYPE_IPv4;
++	cp2 += count;
++	if (*cp2++ != '-')
++		goto copy_address;
++	if (!in4_pton(cp2, -1, max_address, -1, NULL))
++		goto out;
++	goto ok;
++copy_address:
++	memmove(max_address, min_address, sizeof(max_address));
++ok: ;
 +	return tmy_add_network_entry(operation, record_type, group,
-+				     (u32 *) min_address,
-+				     (u32 *) max_address,
++				     min_address, max_address,
 +				     min_port, max_port, domain,
 +				     cond, is_delete);
-+
 +out: ;
 +	return -EINVAL;
 +}
@@ -839,10 +781,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			   const u8 *address,
 +			   const u16 port)
 +{
-+	return tmy_network_entry(is_ipv6,
-+				 TMY_NETWORK_ACL_TCP_LISTEN,
-+				 (const u32 *) address,
-+				 ntohs(port));
++	return tmy_network_entry(is_ipv6, TMY_NETWORK_ACL_TCP_LISTEN,
++				 address, ntohs(port));
 +}
 +
 +/**
@@ -874,8 +814,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		break;
 +	}
 +
-+	return tmy_network_entry(is_ipv6, type,
-+				 (const u32 *) address, ntohs(port));
++	return tmy_network_entry(is_ipv6, type, address, ntohs(port));
 +}
 +
 +/**
@@ -907,8 +846,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		break;
 +	}
 +
-+	return tmy_network_entry(is_ipv6, type,
-+				 (const u32 *) address, ntohs(port));
++	return tmy_network_entry(is_ipv6, type, address, ntohs(port));
 +}
 +
 +/**
@@ -933,8 +871,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	else
 +		type = TMY_NETWORK_ACL_RAW_CONNECT;
 +
-+	return tmy_network_entry(is_ipv6, type,
-+				 (const u32 *) address, ntohs(port));
++	return tmy_network_entry(is_ipv6, type, address, ntohs(port));
 +}
 +
 +/**
@@ -950,7 +887,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			   const u16 port)
 +{
 +	return tmy_network_entry(is_ipv6, TMY_NETWORK_ACL_TCP_ACCEPT,
-+				 (const u32 *) address, ntohs(port));
++				 address, ntohs(port));
 +}
 +
 +/**
@@ -969,5 +906,5 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return tmy_network_entry(is_ipv6, sock_type == SOCK_DGRAM ?
 +				 TMY_NETWORK_ACL_UDP_CONNECT :
 +				 TMY_NETWORK_ACL_RAW_CONNECT,
-+				 (const u32 *) address, ntohs(port));
++				 address, ntohs(port));
 +}

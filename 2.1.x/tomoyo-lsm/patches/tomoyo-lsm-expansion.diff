@@ -12,11 +12,11 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- include/linux/security.h |   40 ++++++++++++++++++++++++++++++++++++++++
+ include/linux/security.h |   41 +++++++++++++++++++++++++++++++++++++++++
  kernel/signal.c          |   17 +++++++++++++++++
  security/dummy.c         |   18 ++++++++++++++++++
  security/security.c      |   15 +++++++++++++++
- 4 files changed, 90 insertions(+)
+ 4 files changed, 91 insertions(+)
 
 --- linux-2.6-mm.orig/include/linux/security.h
 +++ linux-2.6-mm/include/linux/security.h
@@ -56,17 +56,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int (*task_wait) (struct task_struct * p);
  	int (*task_prctl) (int option, unsigned long arg2,
  			   unsigned long arg3, unsigned long arg4,
-@@ -1581,6 +1603,9 @@ int security_task_getscheduler(struct ta
+@@ -1581,6 +1603,10 @@ int security_task_getscheduler(struct ta
  int security_task_movememory(struct task_struct *p);
  int security_task_kill(struct task_struct *p, struct siginfo *info,
  			int sig, u32 secid);
++#define __HAVE_LSM_TASK_KILL_UNLOCKED
 +int security_task_kill_unlocked(int pid, int sig);
 +int security_task_tkill_unlocked(int pid, int sig);
 +int security_task_tgkill_unlocked(int tgid, int pid, int sig);
  int security_task_wait(struct task_struct *p);
  int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
  			 unsigned long arg4, unsigned long arg5);
-@@ -2126,6 +2151,21 @@ static inline int security_task_kill (st
+@@ -2126,6 +2152,21 @@ static inline int security_task_kill (st
  	return cap_task_kill(p, info, sig, secid);
  }
  
