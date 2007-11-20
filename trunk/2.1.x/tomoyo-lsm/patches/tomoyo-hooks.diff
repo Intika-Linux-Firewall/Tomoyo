@@ -5,12 +5,12 @@ To avoid namespace_sem deadlock, this patch uses
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/tomoyo.c |  822 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 822 insertions(+)
+ security/tomoyo/tomoyo.c |  820 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 820 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/tomoyo.c
-@@ -0,0 +1,822 @@
+@@ -0,0 +1,820 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -543,7 +543,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+#ifdef TMY_LSM_EXPANSION
 +static int tmy_socket_post_accept(struct socket *sock, struct socket *newsock)
 +{
 +	int error = 0;
@@ -585,9 +584,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+static int tmy_post_recv_datagram(struct sock *sk,
-+				  struct sk_buff *skb,
-+				  unsigned int flags)
++static int tmy_socket_post_recv_datagram(struct sock *sk,
++					 struct sk_buff *skb,
++					 unsigned int flags)
 +{
 +	int error = 0;
 +	const unsigned int type = sk->sk_type;
@@ -670,7 +669,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = -EAGAIN;
 +	return error;
 +}
-+#endif
 +
 +static int tmy_sb_mount(char *dev_name,
 +			struct nameidata *nd,
@@ -743,7 +741,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return -EPERM;
 +}
 +
-+#ifdef TMY_LSM_EXPANSION
++#ifdef __HAVE_LSM_TASK_KILL_UNLOCKED
 +static int tmy_task_kill_unlocked(int pid, int sig)
 +{
 +	const int err = tmy_capable(TMY_SYS_KILL);
@@ -770,41 +768,41 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#endif
 +
 +static struct security_operations tomoyo_security_ops = {
-+	.task_alloc_security   = tmy_task_alloc_security,
-+	.task_free_security    = tmy_task_free_security,
-+	.bprm_alloc_security   = tmy_bprm_alloc_security,
-+	.bprm_check_security   = tmy_bprm_check_security,
-+	.bprm_post_apply_creds = tmy_bprm_post_apply_creds,
-+	.bprm_free_security    = tmy_bprm_free_security,
-+	.sysctl                = tmy_sysctl,
-+	.inode_permission      = tmy_inode_permission,
-+	.inode_setattr         = tmy_inode_setattr,
-+	.inode_create          = tmy_inode_create,
-+	.inode_unlink          = tmy_inode_unlink,
-+	.inode_mkdir           = tmy_inode_mkdir,
-+	.inode_rmdir           = tmy_inode_rmdir,
-+	.inode_symlink         = tmy_inode_symlink,
-+	.inode_mknod           = tmy_inode_mknod,
-+	.inode_link            = tmy_inode_link,
-+	.inode_rename          = tmy_inode_rename,
-+	.file_fcntl            = tmy_file_fcntl,
-+	.file_ioctl            = tmy_file_ioctl,
-+	.socket_listen 	       = tmy_socket_listen,
-+	.socket_create         = tmy_socket_create,
-+	.socket_connect        = tmy_socket_connect,
-+	.socket_bind 	       = tmy_socket_bind,
-+	.socket_sendmsg        = tmy_socket_sendmsg,
-+	.sb_mount              = tmy_sb_mount,
-+	.sb_umount             = tmy_sb_umount,
-+	.sb_pivotroot          = tmy_sb_pivotroot,
-+	.settime               = tmy_settime,
-+	.capable               = tmy_task_capable,
-+#ifdef TMY_LSM_EXPANSION
-+	.socket_post_accept    = tmy_socket_post_accept,
-+	.post_recv_datagram    = tmy_post_recv_datagram,
-+	.task_kill_unlocked    = tmy_task_kill_unlocked,
-+	.task_tkill_unlocked   = tmy_task_tkill_unlocked,
-+	.task_tgkill_unlocked  = tmy_task_tgkill_unlocked,
++	.task_alloc_security       = tmy_task_alloc_security,
++	.task_free_security        = tmy_task_free_security,
++	.bprm_alloc_security       = tmy_bprm_alloc_security,
++	.bprm_check_security       = tmy_bprm_check_security,
++	.bprm_post_apply_creds     = tmy_bprm_post_apply_creds,
++	.bprm_free_security        = tmy_bprm_free_security,
++	.sysctl                    = tmy_sysctl,
++	.inode_permission          = tmy_inode_permission,
++	.inode_setattr             = tmy_inode_setattr,
++	.inode_create              = tmy_inode_create,
++	.inode_unlink              = tmy_inode_unlink,
++	.inode_mkdir               = tmy_inode_mkdir,
++	.inode_rmdir               = tmy_inode_rmdir,
++	.inode_symlink             = tmy_inode_symlink,
++	.inode_mknod               = tmy_inode_mknod,
++	.inode_link                = tmy_inode_link,
++	.inode_rename              = tmy_inode_rename,
++	.file_fcntl                = tmy_file_fcntl,
++	.file_ioctl                = tmy_file_ioctl,
++	.socket_listen 	           = tmy_socket_listen,
++	.socket_create             = tmy_socket_create,
++	.socket_connect            = tmy_socket_connect,
++	.socket_bind 	           = tmy_socket_bind,
++	.socket_sendmsg            = tmy_socket_sendmsg,
++	.sb_mount                  = tmy_sb_mount,
++	.sb_umount                 = tmy_sb_umount,
++	.sb_pivotroot              = tmy_sb_pivotroot,
++	.settime                   = tmy_settime,
++	.capable                   = tmy_task_capable,
++	.socket_post_accept        = tmy_socket_post_accept,
++	.socket_post_recv_datagram = tmy_socket_post_recv_datagram,
++#ifdef __HAVE_LSM_TASK_KILL_UNLOCKED
++	.task_kill_unlocked        = tmy_task_kill_unlocked,
++	.task_tkill_unlocked       = tmy_task_tkill_unlocked,
++	.task_tgkill_unlocked      = tmy_task_tgkill_unlocked,
 +#endif
 +};
 +
