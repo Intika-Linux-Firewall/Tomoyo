@@ -32,13 +32,52 @@ static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 
 	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_NETWORK "%s ", operation);
 	if (is_ipv6) {
-		print_ipv6(buf + strlen(buf), len - strlen(buf), (const u16 *) address);
+		print_ipv6(buf + strlen(buf), len - strlen(buf), (const struct in6_addr *) address);
 	} else {
 		u32 ip = *address;
 		snprintf(buf + strlen(buf), len - strlen(buf) - 1, "%u.%u.%u.%u", NIPQUAD(ip));
 	}
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u\n", port);
 	return WriteAuditLog(buf, is_granted);
+}
+
+/*************************  UTILITY FUNCTIONS  *************************/
+
+/* Keep the given IPv6 address on the RAM. The RAM is shared, so NEVER try to modify or kfree() the returned address. */
+static const struct in6_addr *SaveIPv6Address(const struct in6_addr *addr)
+{
+	static const int block_size = 16;
+	struct addr_list {
+		struct in6_addr addr[block_size];
+		struct addr_list *next;
+		u32 in_use_count;
+	};
+	static struct addr_list *list = NULL;
+	struct addr_list *ptr;
+	static DEFINE_MUTEX(lock);
+	int i = block_size;
+	if (!addr) return NULL;
+	mutex_lock(&lock);
+	for (ptr = list; ptr; ptr = ptr->next) {
+		for (i = 0; i < ptr->in_use_count; i++) {
+			if (memcmp(&ptr->addr[i], addr, sizeof(*addr)) == 0) goto ok;
+		}
+		if (i < block_size) break;
+	}
+	if (i == block_size && (ptr = alloc_element(sizeof(*ptr))) != NULL) {
+		struct addr_list *p = list;
+		if (p) {
+			while (p->next) p = p->next;
+			p->next = ptr;
+		} else {
+			list = ptr;
+		}
+		i = 0;
+	}
+	if (ptr) ptr->addr[ptr->in_use_count++] = *addr;
+ok:
+	mutex_unlock(&lock);
+	return ptr ? &ptr->addr[i] : NULL;
 }
 
 /*************************  ADDRESS GROUP HANDLER  *************************/
@@ -51,17 +90,22 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 	struct address_group_entry *new_group, *group;
 	struct address_group_member *new_member, *member;
 	const struct path_info *saved_group_name;
+	const struct in6_addr *saved_min_address = NULL, *saved_max_address = NULL;
 	int error = -ENOMEM;
 	bool found = 0;
 	if (!IsCorrectPath(group_name, 0, 0, 0, __FUNCTION__) || !group_name[0]) return -EINVAL;
 	if ((saved_group_name = SaveName(group_name)) == NULL) return -ENOMEM;
+	if (is_ipv6) {
+		if ((saved_min_address = SaveIPv6Address((struct in6_addr *) min_address)) == NULL
+		    || (saved_max_address = SaveIPv6Address((struct in6_addr *) max_address))) return -ENOMEM;
+	}
 	mutex_lock(&lock);
 	list_for_each_entry(group, &address_group_list, list) {
 		if (saved_group_name != group->group_name) continue;
 		list_for_each_entry(member, &group->address_group_member_list, list) {
 			if (member->is_ipv6 != is_ipv6) continue;
 			if (is_ipv6) {
-				if (memcmp(member->min.ipv6, min_address, 16) || memcmp(member->max.ipv6, max_address, 16)) continue;
+				if (member->min.ipv6 != saved_min_address || member->max.ipv6 != saved_max_address) continue;
 			} else {
 				if (member->min.ipv4 != * (u32 *) min_address || member->max.ipv4 != * (u32 *) max_address) continue;
 			}
@@ -86,8 +130,8 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 	if ((new_member = alloc_element(sizeof(*new_member))) == NULL) goto out;
 	new_member->is_ipv6 = is_ipv6;
 	if (is_ipv6) {
-		memmove(new_member->min.ipv6, min_address, 16);
-		memmove(new_member->max.ipv6, max_address, 16);
+		new_member->min.ipv6 = saved_min_address;
+		new_member->max.ipv6 = saved_max_address;
 	} else {
 		new_member->min.ipv4 = * (u32 *) min_address;
 		new_member->max.ipv4 = * (u32 *) max_address;
@@ -107,10 +151,10 @@ int AddAddressGroupPolicy(char *data, const bool is_delete)
 	if (!cp) return -EINVAL;
 	*cp++ = '\0';
 	if ((count = sscanf(cp, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
-						&min_address[0], &min_address[1], &min_address[2], &min_address[3],
-						&min_address[4], &min_address[5], &min_address[6], &min_address[7],
-						&max_address[0], &max_address[1], &max_address[2], &max_address[3],
-						&max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
+			    &min_address[0], &min_address[1], &min_address[2], &min_address[3],
+			    &min_address[4], &min_address[5], &min_address[6], &min_address[7],
+			    &max_address[0], &max_address[1], &max_address[2], &max_address[3],
+			    &max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
 		int i;
 		for (i = 0; i < 8; i++) {
 			min_address[i] = htons(min_address[i]);
@@ -119,8 +163,8 @@ int AddAddressGroupPolicy(char *data, const bool is_delete)
 		if (count == 8) memmove(max_address, min_address, sizeof(min_address));
 		is_ipv6 = 1;
 	} else if ((count = sscanf(cp, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
-							   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
- 							   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
+				   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
+				   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
 		u32 ip = ((((u8) min_address[0]) << 24) + (((u8) min_address[1]) << 16) + (((u8) min_address[2]) << 8) + (u8) min_address[3]);
 		* (u32 *) min_address = ip;
 		if (count == 8) ip = ((((u8) max_address[0]) << 24) + (((u8) max_address[1]) << 16) + (((u8) max_address[2]) << 8) + (u8) max_address[3]);
@@ -177,9 +221,9 @@ int ReadAddressGroupPolicy(struct io_buffer *head)
 			member = list_entry(mpos, struct address_group_member, list);
 			if (member->is_deleted) continue;
 			if (member->is_ipv6) {
-				const u16 *min_address = member->min.ipv6, *max_address = member->max.ipv6;
+				const struct in6_addr *min_address = member->min.ipv6, *max_address = member->max.ipv6;
 				print_ipv6(buf, sizeof(buf), min_address);
-				if (memcmp(min_address, max_address, 16)) {
+				if (min_address != max_address) {
 					char *cp = strchr(buf, '\0');
 					*cp++ = '-';
 					print_ipv6(cp, sizeof(buf) - strlen(buf), max_address);
@@ -201,10 +245,22 @@ int ReadAddressGroupPolicy(struct io_buffer *head)
 
 /*************************  NETWORK NETWORK ACL HANDLER  *************************/
 
-char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip)
+#if !defined(NIP6)
+#define NIP6(addr) \
+        ntohs((addr).s6_addr16[0]), \
+        ntohs((addr).s6_addr16[1]), \
+        ntohs((addr).s6_addr16[2]), \
+        ntohs((addr).s6_addr16[3]), \
+        ntohs((addr).s6_addr16[4]), \
+        ntohs((addr).s6_addr16[5]), \
+        ntohs((addr).s6_addr16[6]), \
+        ntohs((addr).s6_addr16[7])
+#endif
+
+char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip)
 {
 	memset(buffer, 0, buffer_len);
-	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x", ntohs(ip[0]), ntohs(ip[1]), ntohs(ip[2]), ntohs(ip[3]), ntohs(ip[4]), ntohs(ip[5]), ntohs(ip[6]), ntohs(ip[7]));
+	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x", NIP6(*ip));
 	return buffer;
 }
 
@@ -246,7 +302,12 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	struct ip_network_acl_record *acl;
 	int error = -ENOMEM;
 	const u32 min_ip = ntohl(*min_address), max_ip = ntohl(*max_address); /* using host byte order to allow u32 comparison than memcmp().*/
+	const struct in6_addr *saved_min_address = NULL, *saved_max_address = NULL;
 	if (!domain) return -EINVAL;
+	if (record_type == IP_RECORD_TYPE_IPv6) {
+		if ((saved_min_address = SaveIPv6Address((struct in6_addr *) min_address)) == NULL
+		    || (saved_max_address = SaveIPv6Address((struct in6_addr *) max_address))) return -ENOMEM;
+	}
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -267,7 +328,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 						goto out;
 					}
 				} else if (record_type == IP_RECORD_TYPE_IPv6) {
-					if (memcmp(acl->u.ipv6.min, min_address, 16) == 0 && memcmp(max_address, acl->u.ipv6.max, 16) == 0) {
+					if (acl->u.ipv6.min == saved_min_address && saved_max_address == acl->u.ipv6.max) {
 						ptr->is_deleted = 0;
 						/* Found. Nothing to do. */
 						error = 0;
@@ -288,8 +349,8 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			acl->u.ipv4.min = min_ip;
 			acl->u.ipv4.max = max_ip;
 		} else {
-			memmove(acl->u.ipv6.min, min_address, 16);
-			memmove(acl->u.ipv6.max, max_address, 16);
+			acl->u.ipv6.min = saved_min_address;
+			acl->u.ipv6.max = saved_max_address;
 		}
 		acl->min_port = min_port;
 		acl->max_port = max_port;
@@ -304,7 +365,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			} else if (record_type == IP_RECORD_TYPE_IPv4) {
 				if (acl->u.ipv4.min != min_ip || max_ip != acl->u.ipv4.max) continue;
 			} else if (record_type == IP_RECORD_TYPE_IPv6) {
-				if (memcmp(acl->u.ipv6.min, min_address, 16) || memcmp(max_address, acl->u.ipv6.max, 16)) continue;
+				if (acl->u.ipv6.min != saved_min_address || saved_max_address != acl->u.ipv6.max) continue;
 			}
 			error = DelDomainACL(ptr);
 			break;
@@ -344,7 +405,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 
 	if (TomoyoVerboseMode()) {
 		if (is_ipv6) {
 			char buf[64];
-			print_ipv6(buf, sizeof(buf), (const u16 *) address);
+			print_ipv6(buf, sizeof(buf), (const struct in6_addr *) address);
 			printk("TOMOYO-%s: %s to %s %u denied for %s\n", GetMSG(is_enforce), keyword, buf, port, GetLastName(domain));
 		} else {
 			printk("TOMOYO-%s: %s to %u.%u.%u.%u %u denied for %s\n", GetMSG(is_enforce), keyword, HIPQUAD(ip), port, GetLastName(domain));
@@ -354,7 +415,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 
 	if (is_enforce) {
 		if (is_ipv6) {
 			char buf[64];
-			print_ipv6(buf, sizeof(buf), (const u16 *) address);
+			print_ipv6(buf, sizeof(buf), (const struct in6_addr *) address);
 			return CheckSupervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s %s %u\n", domain->domainname->name, keyword, buf, port);
 		}
 		return CheckSupervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s %u.%u.%u.%u %u\n", domain->domainname->name, keyword, HIPQUAD(ip), port);
@@ -390,10 +451,10 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condit
 	}
 	if ((cp1 = strchr(cp2, ' ')) == NULL) goto out; *cp1++ = '\0';
 	if ((count = sscanf(cp2, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
-						&min_address[0], &min_address[1], &min_address[2], &min_address[3],
-						&min_address[4], &min_address[5], &min_address[6], &min_address[7],
-						&max_address[0], &max_address[1], &max_address[2], &max_address[3],
-						&max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
+			    &min_address[0], &min_address[1], &min_address[2], &min_address[3],
+			    &min_address[4], &min_address[5], &min_address[6], &min_address[7],
+			    &max_address[0], &max_address[1], &max_address[2], &max_address[3],
+			    &max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
 		int i;
 		for (i = 0; i < 8; i++) {
 			min_address[i] = htons(min_address[i]);
@@ -402,8 +463,8 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condit
 		if (count == 8) memmove(max_address, min_address, sizeof(min_address));
 		record_type = IP_RECORD_TYPE_IPv6;
 	} else if ((count = sscanf(cp2, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
-							   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
- 							   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
+				   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
+				   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
 		u32 ip = htonl((((u8) min_address[0]) << 24) + (((u8) min_address[1]) << 16) + (((u8) min_address[2]) << 8) + (u8) min_address[3]);
 		* (u32 *) min_address = ip;
 		if (count == 8) ip = htonl((((u8) max_address[0]) << 24) + (((u8) max_address[1]) << 16) + (((u8) max_address[2]) << 8) + (u8) max_address[3]);

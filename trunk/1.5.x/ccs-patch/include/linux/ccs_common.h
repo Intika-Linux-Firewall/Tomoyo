@@ -130,11 +130,12 @@ struct path_group_entry {
 	struct list_head path_group_member_list;
 };
 
+struct in6_addr;
 struct address_group_member {
 	struct list_head list;
 	union {
-		u32 ipv4;    /* Host byte order    */
-		u16 ipv6[8]; /* Network byte order */
+		u32 ipv4;                    /* Host byte order    */
+		const struct in6_addr *ipv6; /* Network byte order */
 	} min, max;
 	bool is_deleted;
 	bool is_ipv6;
@@ -243,8 +244,8 @@ struct ip_network_acl_record {
 			u32 max; /* End of IPv4 address range. Host endian.   */
 		} ipv4;
 		struct {
-			u16 min[8]; /* Start of IPv6 address range. Big endian.      */
-			u16 max[8]; /* End of IPv6 address range. Big endian.        */
+			const struct in6_addr *min; /* Start of IPv6 address range. Big endian.      */
+			const struct in6_addr *max; /* End of IPv6 address range. Big endian.        */
 		} ipv6;
 		const struct address_group_entry *group; /* Pointer to address group. */
 	} u;
@@ -371,7 +372,7 @@ struct io_buffer {
 
 char *InitAuditLog(int *len);
 void *ccs_alloc(const size_t size);
-char *print_ipv6(char *buffer, const int buffer_len, const u16 *ip);
+char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
 const char *GetAltExec(void);
 const char *GetEXE(void);
 const char *GetLastName(const struct domain_info *domain);
