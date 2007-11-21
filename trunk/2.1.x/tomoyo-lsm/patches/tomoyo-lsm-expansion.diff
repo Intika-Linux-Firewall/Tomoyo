@@ -46,7 +46,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @task_wait:
   *	Check permission before allowing a process to reap a child process @p
   *	and collect its status information.
-@@ -1332,6 +1351,9 @@ struct security_operations {
+@@ -1336,6 +1355,9 @@ struct security_operations {
  	int (*task_movememory) (struct task_struct * p);
  	int (*task_kill) (struct task_struct * p,
  			  struct siginfo * info, int sig, u32 secid);
@@ -56,7 +56,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int (*task_wait) (struct task_struct * p);
  	int (*task_prctl) (int option, unsigned long arg2,
  			   unsigned long arg3, unsigned long arg4,
-@@ -1581,6 +1603,10 @@ int security_task_getscheduler(struct ta
+@@ -1586,6 +1608,10 @@ int security_task_getscheduler(struct ta
  int security_task_movememory(struct task_struct *p);
  int security_task_kill(struct task_struct *p, struct siginfo *info,
  			int sig, u32 secid);
@@ -67,7 +67,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_task_wait(struct task_struct *p);
  int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
  			 unsigned long arg4, unsigned long arg5);
-@@ -2126,6 +2152,21 @@ static inline int security_task_kill (st
+@@ -2132,6 +2158,21 @@ static inline int security_task_kill (st
  	return cap_task_kill(p, info, sig, secid);
  }
  
@@ -161,7 +161,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static int dummy_task_prctl (int option, unsigned long arg2, unsigned long arg3,
  			     unsigned long arg4, unsigned long arg5)
  {
-@@ -1068,6 +1083,9 @@ void security_fixup_ops (struct security
+@@ -1073,6 +1088,9 @@ void security_fixup_ops (struct security
  	set_to_dummy_if_null(ops, task_movememory);
  	set_to_dummy_if_null(ops, task_wait);
  	set_to_dummy_if_null(ops, task_kill);
