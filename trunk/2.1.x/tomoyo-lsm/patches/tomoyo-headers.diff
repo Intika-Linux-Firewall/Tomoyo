@@ -3,8 +3,8 @@ Subject: Data structures and prototype defitions.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/include/realpath.h |   45 ++
- security/tomoyo/include/tomoyo.h   |  672 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 717 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  674 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 719 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/realpath.h
@@ -56,7 +56,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#endif
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/tomoyo.h
-@@ -0,0 +1,672 @@
+@@ -0,0 +1,674 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -270,11 +270,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	} u2;
 +};
 +
++struct in6_addr;
 +struct address_group_member {
 +	struct list_head list;
 +	union {
-+		u32 ipv4;    /* Host byte order    */
-+		u8 ipv6[16]; /* Network byte order */
++		u32 ipv4;                    /* Host byte order    */
++		const struct in6_addr *ipv6; /* Network byte order */
 +	} min, max;
 +	bool is_deleted;
 +	bool is_ipv6;
@@ -301,8 +302,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			u32 max;
 +		} ipv4;
 +		struct {
-+			u8 min[16];
-+			u8 max[16];
++			const struct in6_addr *min;
++			const struct in6_addr *max;
 +		} ipv6;
 +		const struct address_group_entry *group;
 +	} u;
@@ -722,7 +723,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#define TMY_CHECK_READ_FOR_OPEN_EXEC 1
 +
-+char *tmy_print_ipv6(char *buffer, const int buffer_len, const u8 *ip);
++char *tmy_print_ipv6(char *buffer, const int buffer_len,
++		     const struct in6_addr *ip);
 +const char *tmy_network2keyword(const unsigned int operation);
 +
 +/* to check "if task.parent.pid" condition. */
