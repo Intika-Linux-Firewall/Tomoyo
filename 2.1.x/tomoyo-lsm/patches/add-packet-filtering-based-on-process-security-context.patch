@@ -36,8 +36,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/security.c      |   10 ++++++++--
  5 files changed, 76 insertions(+), 14 deletions(-)
 
---- linux-2.6.23.orig/include/linux/security.h
-+++ linux-2.6.23/include/linux/security.h
+--- linux-2.6.23.orig/include/linux/security.h	2007-11-21 10:47:36.390383216 +0900
++++ linux-2.6.23/include/linux/security.h	2007-11-21 10:48:54.404523264 +0900
 @@ -778,8 +778,12 @@ struct request_sock;
   * @socket_post_accept:
   *	This hook allows a security module to copy security
@@ -67,7 +67,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @socket_getsockname:
   *	Check permission before the local address (name) of the socket object
   *	@sock is retrieved.
-@@ -1384,12 +1397,13 @@ struct security_operations {
+@@ -1389,12 +1402,13 @@ struct security_operations {
  			       struct sockaddr * address, int addrlen);
  	int (*socket_listen) (struct socket * sock, int backlog);
  	int (*socket_accept) (struct socket * sock, struct socket * newsock);
@@ -83,7 +83,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int (*socket_getsockname) (struct socket * sock);
  	int (*socket_getpeername) (struct socket * sock);
  	int (*socket_getsockopt) (struct socket * sock, int level, int optname);
-@@ -2294,10 +2308,12 @@ int security_socket_bind(struct socket *
+@@ -2307,10 +2321,12 @@ int security_socket_bind(struct socket *
  int security_socket_connect(struct socket *sock, struct sockaddr *address, int addrlen);
  int security_socket_listen(struct socket *sock, int backlog);
  int security_socket_accept(struct socket *sock, struct socket *newsock);
@@ -97,7 +97,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_socket_getsockname(struct socket *sock);
  int security_socket_getpeername(struct socket *sock);
  int security_socket_getsockopt(struct socket *sock, int level, int optname);
-@@ -2373,9 +2389,10 @@ static inline int security_socket_accept
+@@ -2386,9 +2402,10 @@ static inline int security_socket_accept
  	return 0;
  }
  
@@ -110,7 +110,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static inline int security_socket_sendmsg(struct socket * sock, 
-@@ -2391,6 +2408,13 @@ static inline int security_socket_recvms
+@@ -2404,6 +2421,13 @@ static inline int security_socket_recvms
  	return 0;
  }
  
@@ -124,8 +124,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline int security_socket_getsockname(struct socket * sock)
  {
  	return 0;
---- linux-2.6.23.orig/net/socket.c
-+++ linux-2.6.23/net/socket.c
+--- linux-2.6.23.orig/net/socket.c	2007-11-21 10:43:01.989098552 +0900
++++ linux-2.6.23/net/socket.c	2007-11-21 10:48:54.405523112 +0900
 @@ -1442,13 +1442,16 @@ asmlinkage long sys_accept(int fd, struc
  			goto out_fd;
  	}
@@ -145,8 +145,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  out_put:
  	fput_light(sock->file, fput_needed);
  out:
---- linux-2.6.23.orig/security/dummy.c
-+++ linux-2.6.23/security/dummy.c
+--- linux-2.6.23.orig/security/dummy.c	2007-11-21 10:47:36.522363152 +0900
++++ linux-2.6.23/security/dummy.c	2007-11-21 10:48:54.407522808 +0900
 @@ -753,10 +753,10 @@ static int dummy_socket_accept (struct s
  	return 0;
  }
@@ -174,7 +174,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static int dummy_socket_getsockname (struct socket *sock)
  {
  	return 0;
-@@ -1104,6 +1110,7 @@ void security_fixup_ops (struct security
+@@ -1110,6 +1116,7 @@ void security_fixup_ops (struct security
  	set_to_dummy_if_null(ops, socket_post_accept);
  	set_to_dummy_if_null(ops, socket_sendmsg);
  	set_to_dummy_if_null(ops, socket_recvmsg);
@@ -182,8 +182,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	set_to_dummy_if_null(ops, socket_getsockname);
  	set_to_dummy_if_null(ops, socket_getpeername);
  	set_to_dummy_if_null(ops, socket_setsockopt);
---- linux-2.6.23.orig/net/core/datagram.c
-+++ linux-2.6.23/net/core/datagram.c
+--- linux-2.6.23.orig/net/core/datagram.c	2007-10-10 05:31:38.000000000 +0900
++++ linux-2.6.23/net/core/datagram.c	2007-11-21 10:48:54.432519008 +0900
 @@ -55,6 +55,7 @@
  #include <net/checksum.h>
  #include <net/sock.h>
@@ -245,9 +245,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  no_packet:
  	*err = error;
  	return NULL;
---- linux-2.6.23.orig/security/security.c
-+++ linux-2.6.23/security/security.c
-@@ -869,9 +869,9 @@ int security_socket_accept(struct socket
+--- linux-2.6.23.orig/security/security.c	2007-11-21 10:47:36.412379872 +0900
++++ linux-2.6.23/security/security.c	2007-11-21 10:48:54.433518856 +0900
+@@ -875,9 +875,9 @@ int security_socket_accept(struct socket
  	return security_ops->socket_accept(sock, newsock);
  }
  
@@ -259,7 +259,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
-@@ -885,6 +885,12 @@ int security_socket_recvmsg(struct socke
+@@ -891,6 +891,12 @@ int security_socket_recvmsg(struct socke
  	return security_ops->socket_recvmsg(sock, msg, size, flags);
  }
  

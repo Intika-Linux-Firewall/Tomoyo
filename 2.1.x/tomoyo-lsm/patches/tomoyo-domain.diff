@@ -8,12 +8,12 @@ Domain information is stored in task_struct->security.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/domain.c | 1168 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1168 insertions(+)
+ security/tomoyo/domain.c | 1169 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1169 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/domain.c
-@@ -0,0 +1,1168 @@
+@@ -0,0 +1,1169 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -926,7 +926,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		page = bprm->page[i];
 +#endif
 +		kaddr = kmap(page);
-+		if (!kaddr) { /* Mapping failed. */
++		if (!kaddr) {
++			/* Mapping failed. */
 +#ifdef CONFIG_MMU
 +			put_page(page);
 +#endif

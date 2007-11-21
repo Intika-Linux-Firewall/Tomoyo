@@ -8,12 +8,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/capability.c |  321 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 321 insertions(+)
+ security/tomoyo/capability.c |  322 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 322 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/capability.c
-@@ -0,0 +1,321 @@
+@@ -0,0 +1,322 @@
 +/*
 + * security/tomoyo/capability.c
 + *
@@ -260,7 +260,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		acl = container_of(ptr, struct capability_acl, head);
 +		if (ptr->type != TMY_TYPE_CAPABILITY_ACL || ptr->is_deleted ||
-+		    acl->capability != hash || ptr->cond != condition) continue;
++		    acl->capability != hash || ptr->cond != condition)
++			continue;
 +		error = tmy_del_acl(ptr);
 +		break;
 +	}

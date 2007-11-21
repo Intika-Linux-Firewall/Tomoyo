@@ -6,12 +6,12 @@ or chroot()ed, TOMOYO Linux uses the original pathname.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/realpath.c |  658 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 658 insertions(+)
+ security/tomoyo/realpath.c |  659 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 659 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/realpath.c
-@@ -0,0 +1,658 @@
+@@ -0,0 +1,659 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -418,7 +418,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		buf_used_len += word_aligned_size;
 +
 +		for (i = 0; i < word_aligned_size; i++) {
-+			if (ptr[i]) { /* This must not happen! */
++			if (ptr[i]) {
++				/* This must not happen! */
 +				printk(KERN_ERR
 +				       "WARNING: Reserved memory was tainted! "
 +				       "The system might go wrong.\n");

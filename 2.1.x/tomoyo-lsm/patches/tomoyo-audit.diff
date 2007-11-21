@@ -10,12 +10,12 @@ The userland daemon /usr/lib/ccs/ccs-auditd will save these logs.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/audit.c |  238 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 238 insertions(+)
+ security/tomoyo/audit.c |  239 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 239 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/audit.c
-@@ -0,0 +1,238 @@
+@@ -0,0 +1,239 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -183,7 +183,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_read_grant_log(struct io_buffer *head)
 +{
 +	struct log_entry *ptr = NULL;
-+	if (head->read_avail) return 0;
++	if (head->read_avail)
++		return 0;
 +	if (head->read_buf) {
 +		tmy_free(head->read_buf);
 +		head->read_buf = NULL;

@@ -6,12 +6,12 @@ process's UID,GID etc. and/or requested pathname's UID/GID.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/condition.c |  680 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 680 insertions(+)
+ security/tomoyo/condition.c |  684 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 684 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/condition.c
-@@ -0,0 +1,680 @@
+@@ -0,0 +1,684 @@
 +/*
 + * security/tomoyo/condition.c
 + *
@@ -55,13 +55,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (*cp == '0') {
 +		char c = *(cp + 1);
 +		if (c == 'x' || c == 'X') {
-+			base = 16; cp += 2;
++			base = 16;
++			cp += 2;
 +		} else if (c >= '0' && c <= '7') {
-+			base = 8; cp++;
++			base = 8;
++			cp++;
 +		}
 +	}
 +	*result = simple_strtoul(cp, &ep, base);
-+	if (cp == ep) return 0; /* 00 */
++	if (cp == ep) /* 00 */
++		return 0;
 +	*str = ep;
 +	return (base == 16 ? VALUE_TYPE_HEXADECIMAL :
 +		(base == 8 ? VALUE_TYPE_OCTAL : VALUE_TYPE_DECIMAL));
@@ -239,7 +242,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (strncmp(condition, "!=", 2) == 0)
 +			condition += 2;
 +		else if (*condition == '=') {
-+			match |= 1; condition++;
++			match |= 1;
++			condition++;
 +		} else
 +			goto out2;
 +		counter--; /* header */
