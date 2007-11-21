@@ -13,12 +13,12 @@ the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/net.c |  889 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 889 insertions(+)
+ security/tomoyo/net.c |  940 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 940 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/net.c
-@@ -0,0 +1,889 @@
+@@ -0,0 +1,940 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -58,7 +58,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (is_ipv6)
 +		tmy_print_ipv6(buf + strlen(buf), len - strlen(buf),
-+			       address);
++			       (const struct in6_addr *) address);
 +	else {
 +		u32 ip = *address;
 +		snprintf(buf + strlen(buf), len - strlen(buf) - 1,
@@ -68,6 +68,49 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u\n", port);
 +
 +	return tmy_write_audit_log(buf, is_granted);
++}
++
++/*************************  UTILITY FUNCTIONS  *************************/
++
++static const struct in6_addr *tmy_save_ipv6_address(const struct in6_addr *addr)
++{
++	static const int block_size = 16;
++	struct addr_list {
++		struct in6_addr addr[block_size];
++		struct addr_list *next;
++		u32 in_use_count;
++	};
++	static struct addr_list *list;
++	struct addr_list *ptr;
++	static DEFINE_MUTEX(lock);
++	int i = block_size;
++	if (!addr)
++		return NULL;
++	mutex_lock(&lock);
++	for (ptr = list; ptr; ptr = ptr->next) {
++		for (i = 0; i < ptr->in_use_count; i++)
++			if (memcmp(&ptr->addr[i], addr, sizeof(*addr)) == 0)
++				goto out;
++		if (i < block_size)
++			break;
++	}
++	if (i == block_size) {
++		struct addr_list *p = list;
++		ptr = tmy_alloc_element(sizeof(*ptr));
++		if (!ptr)
++			goto out;
++		if (p) {
++			while (p->next)
++				p = p->next;
++			p->next = ptr;
++		} else
++			list = ptr;
++		i = 0;
++	}
++	ptr->addr[ptr->in_use_count++] = *addr;
++out:
++	mutex_unlock(&lock);
++	return ptr ? &ptr->addr[i] : NULL;
 +}
 +
 +/*************************  ADDRESS GROUP HANDLER  *************************/
@@ -91,6 +134,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool found = 0;
 +	const u32 min_ip = ntohl(*(u32 *) min_address);
 +	const u32 max_ip = ntohl(*(u32 *) max_address);
++	const struct in6_addr *saved_min_address = NULL;
++	const struct in6_addr *saved_max_address = NULL;
++	if (is_ipv6) {
++		saved_min_address =
++			tmy_save_ipv6_address((struct in6_addr *) min_address);
++		saved_max_address =
++			tmy_save_ipv6_address((struct in6_addr *) max_address);
++		if (!saved_min_address || !saved_max_address)
++			return -ENOMEM;
++	}
 +
 +	if (!tmy_correct_path(group_name, 0, 0, 0, __FUNCTION__) ||
 +	    !group_name[0])
@@ -110,8 +163,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (member->is_ipv6 != is_ipv6)
 +				continue;
 +			if (is_ipv6) {
-+				if (memcmp(member->min.ipv6, min_address, 16) ||
-+				    memcmp(member->max.ipv6, max_address, 16))
++				if (member->min.ipv6 != saved_min_address ||
++				    member->max.ipv6 != saved_max_address)
 +					continue;
 +			} else {
 +				if (member->min.ipv4 != min_ip ||
@@ -148,8 +201,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	new_member->is_ipv6 = is_ipv6;
 +
 +	if (is_ipv6) {
-+		memmove(new_member->min.ipv6, min_address, 16);
-+		memmove(new_member->max.ipv6, max_address, 16);
++		new_member->min.ipv6 = saved_min_address;
++		new_member->max.ipv6 = saved_max_address;
 +	} else {
 +		new_member->min.ipv4 = min_ip;
 +		new_member->max.ipv4 = max_ip;
@@ -283,12 +336,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (member->is_ipv6) {
 +
-+		const u8 *min_addr = member->min.ipv6;
-+		const u8 *max_addr = member->max.ipv6;
++		const struct in6_addr *min_addr = member->min.ipv6;
++		const struct in6_addr *max_addr = member->max.ipv6;
 +
 +		tmy_print_ipv6(buf, sizeof(buf), min_addr);
 +
-+		if (memcmp(min_addr, max_addr, 16)) {
++		if (min_addr != max_addr) {
 +			char *cp = strchr(buf, '\0');
 +			int len = sizeof(buf) - strlen(buf) - 1;
 +
@@ -356,11 +409,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns @buffer .
 + */
-+char *tmy_print_ipv6(char *buffer, const int buffer_len, const u8 *ip)
++char *tmy_print_ipv6(char *buffer, const int buffer_len,
++		     const struct in6_addr *ip)
 +{
 +	memset(buffer, 0, buffer_len);
-+	snprintf(buffer, buffer_len - 1, NIP6_FMT,
-+		 NIP6(*(struct in6_addr *)ip));
++	snprintf(buffer, buffer_len - 1, NIP6_FMT, NIP6(*ip));
 +	return buffer;
 +}
 +
@@ -408,33 +461,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				 const struct address_group_entry *group,
 +				 const u32 min_ip,
 +				 const u32 max_ip,
-+				 const u8 *min_address,
-+				 const u8 *max_address)
++				 const struct in6_addr *saved_min_address,
++				 const struct in6_addr *saved_max_address)
 +{
-+	int found = 0;
-+
 +	switch (record_type) {
-+
 +	case TMY_TYPE_ADDRESS_GROUP:
-+		if (acl->u.group == group)
-+			found = 1;
-+		break;
-+
++		return acl->u.group == group;
 +	case TMY_TYPE_IPv4:
-+		if (acl->u.ipv4.min == min_ip &&
-+		    max_ip == acl->u.ipv4.max)
-+			found = 1;
-+		break;
-+
-+	case TMY_TYPE_IPv6:
-+		if (memcmp(acl->u.ipv6.min, min_address, 16) == 0 &&
-+		    memcmp(max_address, acl->u.ipv6.max, 16) == 0)
-+			found = 1;
-+		break;
-+
++		return acl->u.ipv4.min == min_ip &&
++			max_ip == acl->u.ipv4.max;
++	default:
++		return acl->u.ipv6.min == saved_min_address &&
++			saved_max_address ==  acl->u.ipv6.max;
 +	}
-+
-+	return found;
 +}
 +
 +static int tmy_add_network_entry(const u8 operation,
@@ -454,9 +493,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/* using host byte order to allow u32 comparison than memcmp().*/
 +	const u32 min_ip = ntohl(*(u32 *) min_address);
 +	const u32 max_ip = ntohl(*(u32 *) max_address);
-+
++	const struct in6_addr *saved_min_address = NULL;
++	const struct in6_addr *saved_max_address = NULL;
 +	if (!domain)
 +		return -EINVAL;
++
++	if (record_type == TMY_TYPE_IPv6) {
++		saved_min_address =
++			tmy_save_ipv6_address((struct in6_addr *) min_address);
++		saved_max_address =
++			tmy_save_ipv6_address((struct in6_addr *) max_address);
++		if (!saved_min_address || !saved_max_address)
++			return -ENOMEM;
++	}
 +
 +	mutex_lock(&domain_acl_lock);
 +
@@ -473,8 +522,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		    max_port == acl->max_port &&
 +		    tmy_cmp_network_entry(record_type, acl,
 +					  group, min_ip, max_ip,
-+					  min_address,
-+					  max_address)) {
++					  saved_min_address,
++					  saved_max_address)) {
 +			ptr->is_deleted = 0;
 +			error = 0;
 +			goto ok;
@@ -496,8 +545,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		acl->u.ipv4.min = min_ip;
 +		acl->u.ipv4.max = max_ip;
 +	} else {
-+		memmove(acl->u.ipv6.min, min_address, 16);
-+		memmove(acl->u.ipv6.max, max_address, 16);
++		acl->u.ipv6.min = saved_min_address;
++		acl->u.ipv6.max = saved_max_address;
 +	}
 +
 +	acl->min_port = min_port;
@@ -517,8 +566,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		    acl->max_port != max_port ||
 +		    !tmy_cmp_network_entry(record_type, acl,
 +					   group, min_ip, max_ip,
-+					   min_address,
-+					   max_address))
++					   saved_min_address,
++					   saved_max_address))
 +			continue;
 +		error = tmy_del_acl(ptr);
 +		break;
@@ -590,7 +639,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (tmy_flags(TMY_VERBOSE)) {
 +		if (is_ipv6) {
 +			char buf[64];
-+			tmy_print_ipv6(buf, sizeof(buf), address);
++			tmy_print_ipv6(buf, sizeof(buf),
++				       (const struct in6_addr *) address);
 +			tmy_audit("TOMOYO-%s: %s to %s %u denied for %s\n",
 +				  tmy_getmsg(is_enforce), keyword, buf, port,
 +				  tmy_lastname(domain));
@@ -607,7 +657,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +			char buf[64];
 +
-+			tmy_print_ipv6(buf, sizeof(buf), address);
++			tmy_print_ipv6(buf, sizeof(buf),
++				       (const struct in6_addr *) address);
 +			return tmy_supervisor("%s\n" TMY_ALLOW_NETWORK
 +					      "%s %s %u\n",
 +					      domain->domainname->name, keyword,
