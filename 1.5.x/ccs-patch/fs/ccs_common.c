@@ -907,10 +907,10 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				case IP_RECORD_TYPE_IPv6:
 					{
 						char buf[64];
-						const u16 *min_address = ptr2->u.ipv6.min, *max_address = ptr2->u.ipv6.max;
+						const struct in6_addr *min_address = ptr2->u.ipv6.min, *max_address = ptr2->u.ipv6.max;
 						print_ipv6(buf, sizeof(buf), min_address);
 						if (io_printf(head, "%s", buf)) goto print_acl_rollback;
-						if (memcmp(min_address, max_address, 16)) {
+						if (min_address != max_address) {
 							print_ipv6(buf, sizeof(buf), max_address);
 							if (io_printf(head, "-%s", buf)) goto print_acl_rollback;
 						}
