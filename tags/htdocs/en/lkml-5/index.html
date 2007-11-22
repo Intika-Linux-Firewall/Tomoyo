@@ -48,12 +48,12 @@ $ quilt push -a
 $ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2
 $ tar -jxf linux-2.6.23.tar.bz2
 $ cd linux-2.6.23
-$ wget http://osdn.dl.sourceforge.jp/tomoyo/28120/tomoyo-lsm-2.1.0-20071111.tar.gz
-$ tar -zxvf tomoyo-lsm-2.1.0-20071111.tar.gz
+$ wget http://osdn.dl.sourceforge.jp/tomoyo/28120/tomoyo-lsm-2.1.1-20071123.tar.gz
+$ tar -zxvf tomoyo-lsm-2.1.1-20071123.tar.gz
 $ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
 </pre>
 
-<p>Please be aware that there is a window for AB-BA deadlock (see http://lkml.org/lkml/2007/11/5/388 for detail) in tomoyo-lsm-2.1.0-20071111.tar.gz .<br>
+<p>Please be aware that there is a window for AB-BA deadlock (see http://lkml.org/lkml/2007/11/5/388 for detail) in tomoyo-lsm-2.1.1-20071123.tar.gz .<br>
 For example, deadlock happens if one thread requests</p>
 
 <pre>
