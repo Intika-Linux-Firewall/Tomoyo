@@ -46,7 +46,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 	if ((saved_filename = SaveName(filename)) == NULL || (saved_argv0 = SaveName(argv0)) == NULL) return -ENOMEM;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct argv0_acl_record, head);
 			if (ptr->type == TYPE_ARGV0_ACL && ptr->cond == condition) {
 				if (acl->filename == saved_filename && acl->argv0 == saved_argv0) {
@@ -66,7 +66,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct argv0_acl_record, head);
 			if (ptr->type != TYPE_ARGV0_ACL || ptr->is_deleted || ptr->cond != condition) continue;
 			if (acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
@@ -87,7 +87,7 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 	struct path_info argv0;
 	argv0.name = argv0_;
 	fill_path_info(&argv0);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct argv0_acl_record *acl;
 		acl = container_of(ptr, struct argv0_acl_record, head);
 		if (ptr->type == TYPE_ARGV0_ACL && ptr->is_deleted == 0 && CheckCondition(ptr->cond, NULL) == 0 &&

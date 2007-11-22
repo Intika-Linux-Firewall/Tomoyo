@@ -20,7 +20,7 @@
 /***** The structure for reserved ports. *****/
 
 struct reserved_entry {
-	struct list_head list;
+	struct list1_head list;
 	bool is_deleted;             /* Delete flag.                          */
 	u16 min_port;                /* Start of port number range.           */
 	u16 max_port;                /* End of port number range.             */
@@ -28,7 +28,7 @@ struct reserved_entry {
 
 /*************************  NETWORK RESERVED ACL HANDLER  *************************/
 
-static LIST_HEAD(reservedport_list);
+static LIST1_HEAD(reservedport_list);
 
 static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool is_delete)
 {
@@ -36,7 +36,7 @@ static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool i
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &reservedport_list, list) {
+	list1_for_each_entry(ptr, &reservedport_list, list) {
 		if (ptr->min_port == min_port && max_port == ptr->max_port) {
 			ptr->is_deleted = is_delete;
 			goto out;
@@ -49,7 +49,7 @@ static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool i
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->min_port = min_port;
 	new_entry->max_port = max_port;
-	list_add_tail_mb(&new_entry->list, &reservedport_list);
+	list1_add_tail_mb(&new_entry->list, &reservedport_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -61,7 +61,7 @@ int SAKURA_MayAutobind(const u16 port)
 	/* Must not sleep, for called inside spin_lock. */
 	struct reserved_entry *ptr;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_AUTOBIND)) return 0;
-	list_for_each_entry(ptr, &reservedport_list, list) {
+	list1_for_each_entry(ptr, &reservedport_list, list) {
 		if (ptr->min_port <= port && port <= ptr->max_port && !ptr->is_deleted) return -EPERM;
 	}
 	return 0;
@@ -84,10 +84,10 @@ int AddReservedPortPolicy(char *data, const bool is_delete)
 
 int ReadReservedPortPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &reservedport_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &reservedport_list) {
 		struct reserved_entry *ptr;
-		ptr = list_entry(pos, struct reserved_entry, list);
+		ptr = list1_entry(pos, struct reserved_entry, list);
 		if (ptr->is_deleted) continue;
 		if (ptr->min_port != ptr->max_port) {
 			if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u-%u\n", ptr->min_port, ptr->max_port)) return -ENOMEM;

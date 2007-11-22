@@ -27,7 +27,7 @@ extern const char *ccs_log_level;
 /***** The structure for pivot_root restrictions. *****/
 
 struct pivot_root_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *old_root;
 	const struct path_info *new_root;
 	bool is_deleted;
@@ -35,7 +35,7 @@ struct pivot_root_entry {
 
 /*************************  PIVOT_ROOT RESTRICTION HANDLER  *************************/
 
-static LIST_HEAD(pivot_root_list);
+static LIST1_HEAD(pivot_root_list);
 
 static int AddPivotRootACL(const char *old_root, const char *new_root, const bool is_delete)
 {
@@ -46,7 +46,7 @@ static int AddPivotRootACL(const char *old_root, const char *new_root, const boo
 	if (!IsCorrectPath(old_root, 1, 0, 1, __FUNCTION__) || !IsCorrectPath(new_root, 1, 0, 1, __FUNCTION__)) return -EINVAL;
 	if ((saved_old_root = SaveName(old_root)) == NULL || (saved_new_root = SaveName(new_root)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &pivot_root_list, list) {
+	list1_for_each_entry(ptr, &pivot_root_list, list) {
 		if (ptr->old_root == saved_old_root && ptr->new_root == saved_new_root) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -60,7 +60,7 @@ static int AddPivotRootACL(const char *old_root, const char *new_root, const boo
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->old_root = saved_old_root;
 	new_entry->new_root = saved_new_root;
-	list_add_tail_mb(&new_entry->list, &pivot_root_list);
+	list1_add_tail_mb(&new_entry->list, &pivot_root_list);
 	error = 0;
 	printk("%sAllow pivot_root(%s, %s)\n", ccs_log_level, new_root, old_root);
  out:
@@ -83,7 +83,7 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 		fill_path_info(&new_root_dir);
 		if (old_root_dir.is_dir && new_root_dir.is_dir) {
 			struct pivot_root_entry *ptr;
-			list_for_each_entry(ptr, &pivot_root_list, list) {
+			list1_for_each_entry(ptr, &pivot_root_list, list) {
 				if (ptr->is_deleted) continue;
 				if (PathMatchesToPattern(&old_root_dir, ptr->old_root) && PathMatchesToPattern(&new_root_dir, ptr->new_root)) {
 					error = 0;
@@ -120,10 +120,10 @@ int AddPivotRootPolicy(char *data, const bool is_delete)
 
 int ReadPivotRootPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &pivot_root_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &pivot_root_list) {
 		struct pivot_root_entry *ptr;
-		ptr = list_entry(pos, struct pivot_root_entry, list);
+		ptr = list1_entry(pos, struct pivot_root_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n", ptr->new_root->name, ptr->old_root->name)) return -ENOMEM;
 	}

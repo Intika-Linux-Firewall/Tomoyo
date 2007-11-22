@@ -51,7 +51,7 @@ extern const char *ccs_log_level;
 /***** The structure for mount restrictions. *****/
 
 struct mount_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *dev_name;
 	const struct path_info *dir_name;
 	const struct path_info *fs_type;
@@ -68,7 +68,7 @@ static void put_filesystem(struct file_system_type *fs)
 }
 #endif
 
-static LIST_HEAD(mount_list);
+static LIST1_HEAD(mount_list);
 
 static int AddMountACL(const char *dev_name, const char *dir_name, const char *fs_type, const unsigned long flags, const bool is_delete)
 {
@@ -86,7 +86,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 1, 0, 1, __FUNCTION__)) return -EINVAL;
 	if ((dev = SaveName(dev_name)) == NULL || (dir = SaveName(dir_name)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &mount_list, list) {
+	list1_for_each_entry(ptr, &mount_list, list) {
 		if (ptr->flags != flags || pathcmp(ptr->dev_name, dev) || pathcmp(ptr->dir_name, dir) || pathcmp(ptr->fs_type, fs)) continue;
 		error = 0;
 		if (is_delete) {
@@ -109,7 +109,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 	new_entry->dir_name = dir;
 	new_entry->fs_type = fs;
 	new_entry->flags = flags;
-	list_add_tail_mb(&new_entry->list, &mount_list);
+	list1_add_tail_mb(&new_entry->list, &mount_list);
 	error = 0;
 	ptr = new_entry;
  update:
@@ -230,7 +230,7 @@ static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, uns
 			error = -ENODEV;
 			goto cleanup;
 		}
-		list_for_each_entry(ptr, &mount_list, list) {
+		list1_for_each_entry(ptr, &mount_list, list) {
 			if (ptr->is_deleted) continue;
 			
 			/* Compare options */
@@ -320,10 +320,10 @@ int AddMountPolicy(char *data, const bool is_delete)
 
 int ReadMountPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &mount_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &mount_list) {
 		struct mount_entry *ptr;
-		ptr = list_entry(pos, struct mount_entry, list);
+		ptr = list1_entry(pos, struct mount_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n", ptr->dev_name->name, ptr->dir_name->name, ptr->fs_type->name, ptr->flags)) return -ENOMEM;
 	}

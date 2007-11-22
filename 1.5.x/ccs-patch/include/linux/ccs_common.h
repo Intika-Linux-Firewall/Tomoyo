@@ -49,19 +49,86 @@ typedef _Bool bool;
 #define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
 #endif
 
+#if 0
+
+#define list1_head list_head
+#define LIST1_HEAD_INIT LIST_HEAD_INIT
+#define LIST1_HEAD LIST_HEAD
+#define INIT_LIST1_HEAD INIT_LIST_HEAD
+#define list1_entry list_entry
+#define list1_for_each list_for_each
+#define list1_for_each_entry list_for_each_entry
+#define list1_for_each_cookie(pos, cookie, head) \
+	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
+		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
+		(cookie) = pos, pos = pos->next)
+static inline void list1_add_tail_mb(struct list1_head *new,
+				     struct list1_head *head)
+{
+	struct list_head *prev = head->prev;
+	struct list_head *next = head;
+	new->next = next;
+	new->prev = prev;
+	mb(); /* Avoid out-of-order execution. */
+	next->prev = new;
+	prev->next = new;
+}
+
+#else /////////////////////////////////////////////////////////////////////////
+
+struct list1_head {
+	struct list1_head *next;
+};
+
+#define LIST1_HEAD_INIT(name) { &(name) }
+#define LIST1_HEAD(name) struct list1_head name = LIST1_HEAD_INIT(name)
+
+static inline void INIT_LIST1_HEAD(struct list1_head *list)
+{
+	list->next = list;
+}
+
 /**
- * list_for_each_cookie - iterate over a list with cookie.
- * @pos:        the &struct list_head to use as a loop cursor.
- * @cookie:     the &struct list_head to use as a cookie.
+ * list1_entry - get the struct for this entry
+ * @ptr:        the &struct list1_head pointer.
+ * @type:       the type of the struct this is embedded in.
+ * @member:     the name of the list1_struct within the struct.
+ */
+#define list1_entry(ptr, type, member) container_of(ptr, type, member)
+
+/**
+ * list1_for_each        -       iterate over a list
+ * @pos:        the &struct list1_head to use as a loop cursor.
+ * @head:       the head for your list.
+ */
+#define list1_for_each(pos, head) \
+	for (pos = (head)->next; prefetch(pos->next), pos != (head); \
+		pos = pos->next)
+
+/**
+ * list1_for_each_entry  -       iterate over list of given type
+ * @pos:        the type * to use as a loop cursor.
+ * @head:       the head for your list.
+ * @member:     the name of the list1_struct within the struct.
+ */
+#define list1_for_each_entry(pos, head, member)                          \
+	for (pos = list1_entry((head)->next, typeof(*pos), member);      \
+		prefetch(pos->member.next), &pos->member != (head);        \
+		pos = list1_entry(pos->member.next, typeof(*pos), member))
+
+/**
+ * list1_for_each_cookie - iterate over a list with cookie.
+ * @pos:        the &struct list1_head to use as a loop cursor.
+ * @cookie:     the &struct list1_head to use as a cookie.
  * @head:       the head for your list.
  *
  * Same with list_for_each except that this primitive uses cookie
  * so that we can continue iteration.
  */
-#define list_for_each_cookie(pos, cookie, head) \
+#define list1_for_each_cookie(pos, cookie, head) \
 	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
-	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
-	     (cookie) = pos, pos = pos->next)
+		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
+		(cookie) = pos, pos = pos->next)
 
 /**
  * list_add_tail_mb - add a new entry with memory barrier.
@@ -72,17 +139,18 @@ typedef _Bool bool;
  * so that we can traverse forwards using list_for_each() and
  * list_for_each_cookie().
  */
-static inline void list_add_tail_mb(struct list_head *new,
-				    struct list_head *head)
+static inline void list1_add_tail_mb(struct list1_head *new,
+				     struct list1_head *head)
 {
-	struct list_head *prev = head->prev;
-	struct list_head *next = head;
-	new->next = next;
-	new->prev = prev;
+	struct list1_head *pos = head;
+	new->next = head;
 	mb(); /* Avoid out-of-order execution. */
-	next->prev = new;
-	prev->next = new;
+	while (pos->next != head)
+		pos = pos->next;
+	pos->next = new;
 }
+
+#endif
 
 struct mini_stat {
 	uid_t uid;
@@ -119,20 +187,20 @@ struct path_info {
 #define CCS_MAX_PATHNAME_LEN 4000
 
 struct path_group_member {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *member_name;
 	bool is_deleted;
 };
 
 struct path_group_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *group_name;
-	struct list_head path_group_member_list;
+	struct list1_head path_group_member_list;
 };
 
 struct in6_addr;
 struct address_group_member {
-	struct list_head list;
+	struct list1_head list;
 	union {
 		u32 ipv4;                    /* Host byte order    */
 		const struct in6_addr *ipv6; /* Network byte order */
@@ -142,9 +210,9 @@ struct address_group_member {
 };
 
 struct address_group_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *group_name;
-	struct list_head address_group_member_list;
+	struct list1_head address_group_member_list;
 };
 
 /*
@@ -158,15 +226,15 @@ struct address_group_entry {
 struct condition_list;
 
 struct acl_info {
-	struct list_head list;
+	struct list1_head list;
 	const struct condition_list *cond;
 	u8 type;
 	bool is_deleted;
 } __attribute__((__packed__));
 
 struct domain_info {
-	struct list_head list;
-	struct list_head acl_info_list;
+	struct list1_head list;
+	struct list1_head acl_info_list;
 	const struct path_info *domainname; /* Name of this domain. Never NULL.      */
 	u8 profile;                         /* Profile to use.                       */
 	u8 is_deleted;                      /* Delete flag.                          */
@@ -355,8 +423,8 @@ struct io_buffer {
 	int (*write) (struct io_buffer *);
 	struct mutex write_sem;
 	int (*poll) (struct file *file, poll_table *wait);
-	struct list_head *read_var1;      /* The position currently reading from. */
-	struct list_head *read_var2;      /* Extra variables for reading.         */
+	struct list1_head *read_var1;     /* The position currently reading from. */
+	struct list1_head *read_var2;     /* Extra variables for reading.         */
 	struct domain_info *write_var1;   /* The position currently writing to.   */
 	int read_step;                    /* The step for reading.                */
 	char *read_buf;                   /* Buffer for reading.                  */
@@ -459,6 +527,6 @@ static inline bool pathcmp(const struct path_info *a, const struct path_info *b)
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
-extern struct list_head domain_list;
+extern struct list1_head domain_list;
 
 #endif

@@ -249,7 +249,7 @@ struct domain_info *FindDomain(const char *domainname0)
 	struct path_info domainname;
 	domainname.name = domainname0;
 	fill_path_info(&domainname);
-	list_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &domain_list, list) {
 		if (!domain->is_deleted && !pathcmp(&domainname, domain->domainname)) return domain;
 	}
 	return NULL;
@@ -527,7 +527,7 @@ bool CheckDomainQuota(struct domain_info * const domain)
 	unsigned int count = 0;
 	struct acl_info *ptr;
 	if (!domain) return 1;
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		if (!ptr->is_deleted) count++;
 	}
 	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 1;
@@ -673,13 +673,13 @@ static int ReadProfile(struct io_buffer *head)
 /*************************  POLICY MANAGER HANDLER  *************************/
 
 struct policy_manager_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *manager;
 	bool is_domain;
 	bool is_deleted;
 };
 
-static LIST_HEAD(policy_manager_list);
+static LIST1_HEAD(policy_manager_list);
 
 static int AddManagerEntry(const char *manager, const bool is_delete)
 {
@@ -697,7 +697,7 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 	}
 	if ((saved_manager = SaveName(manager)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &policy_manager_list, list) {
+	list1_for_each_entry(ptr, &policy_manager_list, list) {
 		if (ptr->manager == saved_manager) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -711,7 +711,7 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->manager = saved_manager;
 	new_entry->is_domain = is_domain;
-	list_add_tail_mb(&new_entry->list, &policy_manager_list);
+	list1_add_tail_mb(&new_entry->list, &policy_manager_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -733,12 +733,12 @@ static int AddManagerPolicy(struct io_buffer *head)
 
 static int ReadManagerPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
+	struct list1_head *pos;
 	if (head->read_eof) return 0;
 	if (!isRoot()) return -EPERM;
-	list_for_each_cookie(pos, head->read_var2, &policy_manager_list) {
+	list1_for_each_cookie(pos, head->read_var2, &policy_manager_list) {
 		struct policy_manager_entry *ptr;
-		ptr = list_entry(pos, struct policy_manager_entry, list);
+		ptr = list1_entry(pos, struct policy_manager_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, "%s\n", ptr->manager->name)) return 0;
 	}
@@ -754,11 +754,11 @@ static int IsPolicyManager(void)
 	const struct path_info *domainname = current->domain_info->domainname;
 	bool found = 0;
 	if (!sbin_init_started) return 1;
-	list_for_each_entry(ptr, &policy_manager_list, list) {
+	list1_for_each_entry(ptr, &policy_manager_list, list) {
 		if (!ptr->is_deleted && ptr->is_domain && !pathcmp(domainname, ptr->manager)) return 1;
 	}
 	if ((exe = GetEXE()) == NULL) return 0;
-	list_for_each_entry(ptr, &policy_manager_list, list) {
+	list1_for_each_entry(ptr, &policy_manager_list, list) {
 		if (!ptr->is_deleted && !ptr->is_domain && !strcmp(exe, ptr->manager->name)) {
 			found = 1;
 			break;
@@ -850,27 +850,27 @@ static int AddDomainPolicy(struct io_buffer *head)
 
 static int ReadDomainPolicy(struct io_buffer *head)
 {
-	struct list_head *dpos;
-	struct list_head *apos;
+	struct list1_head *dpos;
+	struct list1_head *apos;
 	if (head->read_eof) return 0;
 	if (head->read_step == 0) {
 		if (!isRoot()) return -EPERM;
 		head->read_step = 1;
 	}
-	list_for_each_cookie(dpos, head->read_var1, &domain_list) {
+	list1_for_each_cookie(dpos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
-		domain = list_entry(dpos, struct domain_info, list);
+		domain = list1_entry(dpos, struct domain_info, list);
 		if (head->read_step != 1) goto acl_loop;
 		if (domain->is_deleted) continue;
 		if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "")) return 0;
 		head->read_step = 2;
 	acl_loop: ;
 		if (head->read_step == 3) goto tail_mark;
-		list_for_each_cookie(apos, head->read_var2, &domain->acl_info_list) {
+		list1_for_each_cookie(apos, head->read_var2, &domain->acl_info_list) {
 			struct acl_info *ptr;
 			int pos;
 			u8 acl_type;
-			ptr = list_entry(apos, struct acl_info, list);
+			ptr = list1_entry(apos, struct acl_info, list);
 			if (ptr->is_deleted) continue;
 			pos = head->read_avail;
 			acl_type = ptr->type;
@@ -976,12 +976,12 @@ static int UpdateDomainProfile(struct io_buffer *head)
 
 static int ReadDomainProfile(struct io_buffer *head)
 {
-	struct list_head *pos;
+	struct list1_head *pos;
 	if (head->read_eof) return 0;
 	if (!isRoot()) return -EPERM;
-	list_for_each_cookie(pos, head->read_var1, &domain_list) {
+	list1_for_each_cookie(pos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
-		domain = list_entry(pos, struct domain_info, list);
+		domain = list1_entry(pos, struct domain_info, list);
 		if (domain->is_deleted) continue;
 		if (io_printf(head, "%u %s\n", domain->profile, domain->domainname->name)) return 0;
 	}
@@ -1231,7 +1231,7 @@ void CCS_LoadPolicy(const char *filename)
 	ccs_log_level = KERN_WARNING;
 	{ /* Check all profiles currently assigned to domains are defined. */
 		struct domain_info *domain;
-		list_for_each_entry(domain, &domain_list, list) {
+		list1_for_each_entry(domain, &domain_list, list) {
 			const u8 profile = domain->profile;
 			if (!profile_ptr[profile]) panic("Profile %u (used by '%s') not defined.\n", profile, domain->domainname->name);
 		}

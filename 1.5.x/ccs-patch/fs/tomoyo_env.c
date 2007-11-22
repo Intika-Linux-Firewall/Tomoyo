@@ -37,14 +37,14 @@ static int AuditEnvLog(const char *env, const bool is_granted)
 /***** The structure for globally usable environments. *****/
 
 struct globally_usable_env_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *env;
 	bool is_deleted;
 };
 
 /*************************  GLOBALLY USABLE ENVIRONMENT HANDLER  *************************/
 
-static LIST_HEAD(globally_usable_env_list);
+static LIST1_HEAD(globally_usable_env_list);
 
 static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 {
@@ -55,7 +55,7 @@ static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 	if (!IsCorrectPath(env, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if ((saved_env = SaveName(env)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &globally_usable_env_list, list) {
+	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
 		if (ptr->env == saved_env) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -67,7 +67,7 @@ static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->env = saved_env;
-	list_add_tail_mb(&new_entry->list, &globally_usable_env_list);
+	list1_add_tail_mb(&new_entry->list, &globally_usable_env_list);
 	error = 0;
  out: ;
 	mutex_unlock(&lock);
@@ -77,7 +77,7 @@ static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 static int IsGloballyUsableEnv(const struct path_info *env)
 {
 	struct globally_usable_env_entry *ptr;
-	list_for_each_entry(ptr, &globally_usable_env_list, list) {
+	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
 		if (!ptr->is_deleted && PathMatchesToPattern(env, ptr->env)) return 1;
 	}
 	return 0;
@@ -90,10 +90,10 @@ int AddGloballyUsableEnvPolicy(char *env, const bool is_delete)
 
 int ReadGloballyUsableEnvPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &globally_usable_env_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &globally_usable_env_list) {
 		struct globally_usable_env_entry *ptr;
-		ptr = list_entry(pos, struct globally_usable_env_entry, list);
+		ptr = list1_entry(pos, struct globally_usable_env_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_ALLOW_ENV "%s\n", ptr->env->name)) return -ENOMEM;
 	}
@@ -114,7 +114,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 	
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct env_acl_record, head);
 			if (ptr->type == TYPE_ENV_ACL && ptr->cond == condition) {
 				if (acl->env == saved_env) {
@@ -133,7 +133,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct env_acl_record, head);
 			if (ptr->type != TYPE_ENV_ACL || ptr->is_deleted || ptr->cond != condition) continue;
 			if (acl->env != saved_env) continue;
@@ -155,7 +155,7 @@ static int CheckEnvACL(const char *env_)
 	env.name = env_;
 	fill_path_info(&env);
 	if (IsGloballyUsableEnv(&env)) return 0;
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct env_acl_record *acl;
 		acl = container_of(ptr, struct env_acl_record, head);
 		if (ptr->type == TYPE_ENV_ACL && ptr->is_deleted == 0 && CheckCondition(ptr->cond, NULL) == 0 &&

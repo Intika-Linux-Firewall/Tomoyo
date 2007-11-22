@@ -51,7 +51,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	if ((saved_dest_pattern = SaveName(dest_pattern)) == NULL) return -ENOMEM;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct signal_acl_record, head);
 			if (ptr->type == TYPE_SIGNAL_ACL && acl->sig == hash && ptr->cond == condition) {
 				if (!pathcmp(acl->domainname, saved_dest_pattern)) {
@@ -71,7 +71,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct signal_acl_record, head);
 			if (ptr->type != TYPE_SIGNAL_ACL || ptr->is_deleted || acl->sig != hash || ptr->cond != condition) continue;
 			if (pathcmp(acl->domainname, saved_dest_pattern)) continue;
@@ -115,7 +115,7 @@ int CheckSignalACL(const int sig, const int pid)
 		return 0;
 	}
 	dest_pattern = dest->domainname->name;
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct signal_acl_record *acl;
 		acl = container_of(ptr, struct signal_acl_record, head);
 		if (ptr->type == TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && acl->sig == hash && CheckCondition(ptr->cond, NULL) == 0) {
