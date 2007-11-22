@@ -27,14 +27,14 @@ extern const char *ccs_log_level;
 /***** The structure for chroot restrictions. *****/
 
 struct chroot_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *dir;
 	bool is_deleted;
 };
 
 /*************************  CHROOT RESTRICTION HANDLER  *************************/
 
-static LIST_HEAD(chroot_list);
+static LIST1_HEAD(chroot_list);
 
 static int AddChrootACL(const char *dir, const bool is_delete)
 {
@@ -45,7 +45,7 @@ static int AddChrootACL(const char *dir, const bool is_delete)
 	if (!IsCorrectPath(dir, 1, 0, 1, __FUNCTION__)) return -EINVAL;
 	if ((saved_dir = SaveName(dir)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &chroot_list, list) {
+	list1_for_each_entry(ptr, &chroot_list, list) {
 		if (ptr->dir == saved_dir) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -58,7 +58,7 @@ static int AddChrootACL(const char *dir, const bool is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->dir = saved_dir;
-	list_add_tail_mb(&new_entry->list, &chroot_list);
+	list1_add_tail_mb(&new_entry->list, &chroot_list);
 	error = 0;
 	printk("%sAllow chroot() to %s\n", ccs_log_level, dir);
  out:
@@ -78,7 +78,7 @@ int CheckChRootPermission(struct nameidata *nd)
 		fill_path_info(&dir);
 		if (dir.is_dir) {
 			struct chroot_entry *ptr;
-			list_for_each_entry(ptr, &chroot_list, list) {
+			list1_for_each_entry(ptr, &chroot_list, list) {
 				if (ptr->is_deleted) continue;
 				if (PathMatchesToPattern(&dir, ptr->dir)) {
 					error = 0;
@@ -111,10 +111,10 @@ int AddChrootPolicy(char *data, const bool is_delete)
 
 int ReadChrootPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &chroot_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &chroot_list) {
 		struct chroot_entry *ptr;
-		ptr = list_entry(pos, struct chroot_entry, list);
+		ptr = list1_entry(pos, struct chroot_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n", ptr->dir->name)) return -ENOMEM;
 	}

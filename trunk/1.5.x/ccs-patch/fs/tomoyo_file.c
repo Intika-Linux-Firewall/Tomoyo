@@ -25,7 +25,7 @@ extern struct mutex domain_acl_lock;
 /***** The structure for globally readable files. *****/
 
 struct globally_readable_file_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *filename;
 	bool is_deleted;
 };
@@ -33,7 +33,7 @@ struct globally_readable_file_entry {
 /***** The structure for filename patterns. *****/
 
 struct pattern_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *pattern;
 	bool is_deleted;
 };
@@ -41,7 +41,7 @@ struct pattern_entry {
 /***** The structure for non-rewritable-by-default file patterns. *****/
 
 struct no_rewrite_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *pattern;
 	bool is_deleted;
 };
@@ -142,7 +142,7 @@ static int AuditWriteLog(const char *operation, const struct path_info *filename
 
 /*************************  GLOBALLY READABLE FILE HANDLER  *************************/
 
-static LIST_HEAD(globally_readable_list);
+static LIST1_HEAD(globally_readable_list);
 
 static int AddGloballyReadableEntry(const char *filename, const bool is_delete)
 {
@@ -153,7 +153,7 @@ static int AddGloballyReadableEntry(const char *filename, const bool is_delete)
 	if (!IsCorrectPath(filename, 1, -1, -1, __FUNCTION__)) return -EINVAL; /* No patterns allowed. */
 	if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &globally_readable_list, list) {
+	list1_for_each_entry(ptr, &globally_readable_list, list) {
 		if (ptr->filename == saved_filename) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -165,7 +165,7 @@ static int AddGloballyReadableEntry(const char *filename, const bool is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->filename = saved_filename;
-	list_add_tail_mb(&new_entry->list, &globally_readable_list);
+	list1_add_tail_mb(&new_entry->list, &globally_readable_list);
 	error = 0;
  out: ;
 	mutex_unlock(&lock);
@@ -175,7 +175,7 @@ static int AddGloballyReadableEntry(const char *filename, const bool is_delete)
 static int IsGloballyReadableFile(const struct path_info *filename)
 {
 	struct globally_readable_file_entry *ptr;
-	list_for_each_entry(ptr, &globally_readable_list, list) {
+	list1_for_each_entry(ptr, &globally_readable_list, list) {
 		if (!ptr->is_deleted && !pathcmp(filename, ptr->filename)) return 1;
 	}
 	return 0;
@@ -188,10 +188,10 @@ int AddGloballyReadablePolicy(char *filename, const bool is_delete)
 
 int ReadGloballyReadablePolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &globally_readable_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &globally_readable_list) {
 		struct globally_readable_file_entry *ptr;
-		ptr = list_entry(pos, struct globally_readable_file_entry, list);
+		ptr = list1_entry(pos, struct globally_readable_file_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_ALLOW_READ "%s\n", ptr->filename->name)) return -ENOMEM;
 	}
@@ -200,7 +200,7 @@ int ReadGloballyReadablePolicy(struct io_buffer *head)
 
 /*************************  FILE GROUP HANDLER  *************************/
 
-static LIST_HEAD(path_group_list);
+static LIST1_HEAD(path_group_list);
 
 static int AddPathGroupEntry(const char *group_name, const char *member_name, const bool is_delete)
 {
@@ -215,9 +215,9 @@ static int AddPathGroupEntry(const char *group_name, const char *member_name, co
 	if ((saved_group_name = SaveName(group_name)) == NULL ||
 		(saved_member_name = SaveName(member_name)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(group, &path_group_list, list) {
+	list1_for_each_entry(group, &path_group_list, list) {
 		if (saved_group_name != group->group_name) continue;
-		list_for_each_entry(member, &group->path_group_member_list, list) {
+		list1_for_each_entry(member, &group->path_group_member_list, list) {
 			if (member->member_name == saved_member_name) {
 				member->is_deleted = is_delete;
 				error = 0;
@@ -233,14 +233,14 @@ static int AddPathGroupEntry(const char *group_name, const char *member_name, co
 	}
 	if (!found) {
 		if ((new_group = alloc_element(sizeof(*new_group))) == NULL) goto out;
-		INIT_LIST_HEAD(&new_group->path_group_member_list);
+		INIT_LIST1_HEAD(&new_group->path_group_member_list);
 		new_group->group_name = saved_group_name;
-		list_add_tail_mb(&new_group->list, &path_group_list);
+		list1_add_tail_mb(&new_group->list, &path_group_list);
 		group = new_group;
 	}
 	if ((new_member = alloc_element(sizeof(*new_member))) == NULL) goto out;
 	new_member->member_name = saved_member_name;
-	list_add_tail_mb(&new_member->list, &group->path_group_member_list);
+	list1_add_tail_mb(&new_member->list, &group->path_group_member_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -260,7 +260,7 @@ static struct path_group_entry *FindOrAssignNewPathGroup(const char *group_name)
 	int i;
 	struct path_group_entry *group;
 	for (i = 0; i <= 1; i++) {
-		list_for_each_entry(group, &path_group_list, list) {
+		list1_for_each_entry(group, &path_group_list, list) {
 			if (strcmp(group_name, group->group_name->name) == 0) return group;
 		}
 		if (i == 0) {
@@ -274,7 +274,7 @@ static struct path_group_entry *FindOrAssignNewPathGroup(const char *group_name)
 static int PathMatchesToGroup(const struct path_info *pathname, const struct path_group_entry *group, const bool may_use_pattern)
 {
 	struct path_group_member *member;
-	list_for_each_entry(member, &group->path_group_member_list, list) {
+	list1_for_each_entry(member, &group->path_group_member_list, list) {
 		if (member->is_deleted) continue;
 		if (!member->member_name->is_patterned) {
 			if (!pathcmp(pathname, member->member_name)) return 1;
@@ -287,14 +287,14 @@ static int PathMatchesToGroup(const struct path_info *pathname, const struct pat
 
 int ReadPathGroupPolicy(struct io_buffer *head)
 {
-	struct list_head *gpos;
-	struct list_head *mpos;
-	list_for_each_cookie(gpos, head->read_var1, &path_group_list) {
+	struct list1_head *gpos;
+	struct list1_head *mpos;
+	list1_for_each_cookie(gpos, head->read_var1, &path_group_list) {
 		struct path_group_entry *group;
-		group = list_entry(gpos, struct path_group_entry, list);
-		list_for_each_cookie(mpos, head->read_var2, &group->path_group_member_list) {
+		group = list1_entry(gpos, struct path_group_entry, list);
+		list1_for_each_cookie(mpos, head->read_var2, &group->path_group_member_list) {
 			struct path_group_member *member;
-			member = list_entry(mpos, struct path_group_member, list);
+			member = list1_entry(mpos, struct path_group_member, list);
 			if (member->is_deleted) continue;
 			if (io_printf(head, KEYWORD_PATH_GROUP "%s %s\n", group->group_name->name, member->member_name->name)) return -ENOMEM;
 		}
@@ -304,7 +304,7 @@ int ReadPathGroupPolicy(struct io_buffer *head)
 
 /*************************  FILE PATTERN HANDLER  *************************/
 
-static LIST_HEAD(pattern_list);
+static LIST1_HEAD(pattern_list);
 
 static int AddPatternEntry(const char *pattern, const bool is_delete)
 {
@@ -315,7 +315,7 @@ static int AddPatternEntry(const char *pattern, const bool is_delete)
 	if (!IsCorrectPath(pattern, 0, 1, 0, __FUNCTION__)) return -EINVAL;
 	if ((saved_pattern = SaveName(pattern)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &pattern_list, list) {
+	list1_for_each_entry(ptr, &pattern_list, list) {
 		if (saved_pattern == ptr->pattern) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -328,7 +328,7 @@ static int AddPatternEntry(const char *pattern, const bool is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->pattern = saved_pattern;
-	list_add_tail_mb(&new_entry->list, &pattern_list);
+	list1_add_tail_mb(&new_entry->list, &pattern_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -339,7 +339,7 @@ static const struct path_info *GetPattern(const struct path_info *filename)
 {
 	struct pattern_entry *ptr;
 	const struct path_info *pattern = NULL;
-	list_for_each_entry(ptr, &pattern_list, list) {
+	list1_for_each_entry(ptr, &pattern_list, list) {
 		if (ptr->is_deleted) continue;
 		if (!PathMatchesToPattern(filename, ptr->pattern)) continue;
 		pattern = ptr->pattern;
@@ -361,10 +361,10 @@ int AddPatternPolicy(char *pattern, const bool is_delete)
 
 int ReadPatternPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &pattern_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &pattern_list) {
 		struct pattern_entry *ptr;
-		ptr = list_entry(pos, struct pattern_entry, list);
+		ptr = list1_entry(pos, struct pattern_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_FILE_PATTERN "%s\n", ptr->pattern->name)) return -ENOMEM;
 	}
@@ -373,7 +373,7 @@ int ReadPatternPolicy(struct io_buffer *head)
 
 /*************************  NON REWRITABLE FILE HANDLER  *************************/
 
-static LIST_HEAD(no_rewrite_list);
+static LIST1_HEAD(no_rewrite_list);
 
 static int AddNoRewriteEntry(const char *pattern, const bool is_delete)
 {
@@ -384,7 +384,7 @@ static int AddNoRewriteEntry(const char *pattern, const bool is_delete)
 	if (!IsCorrectPath(pattern, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if ((saved_pattern = SaveName(pattern)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &no_rewrite_list, list) {
+	list1_for_each_entry(ptr, &no_rewrite_list, list) {
 		if (ptr->pattern == saved_pattern) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -397,7 +397,7 @@ static int AddNoRewriteEntry(const char *pattern, const bool is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->pattern = saved_pattern;
-	list_add_tail_mb(&new_entry->list, &no_rewrite_list);
+	list1_add_tail_mb(&new_entry->list, &no_rewrite_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -407,7 +407,7 @@ static int AddNoRewriteEntry(const char *pattern, const bool is_delete)
 static int IsNoRewriteFile(const struct path_info *filename)
 {
 	struct no_rewrite_entry *ptr;
-	list_for_each_entry(ptr, &no_rewrite_list, list) {
+	list1_for_each_entry(ptr, &no_rewrite_list, list) {
 		if (ptr->is_deleted) continue;
 		if (!PathMatchesToPattern(filename, ptr->pattern)) continue;
 		return 1;
@@ -422,10 +422,10 @@ int AddNoRewritePolicy(char *pattern, const bool is_delete)
 
 int ReadNoRewritePolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &no_rewrite_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &no_rewrite_list) {
 		struct no_rewrite_entry *ptr;
-		ptr = list_entry(pos, struct no_rewrite_entry, list);
+		ptr = list1_entry(pos, struct no_rewrite_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_DENY_REWRITE "%s\n", ptr->pattern->name)) return -ENOMEM;
 	}
@@ -462,7 +462,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 	}
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct file_acl_record, head);
 			if (ptr->type == TYPE_FILE_ACL && ptr->cond == condition) {
 				if (acl->u.filename == saved_filename) {
@@ -488,7 +488,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 		acl->u.filename = saved_filename;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct file_acl_record, head);
 			if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || ptr->cond != condition || acl->perm != perm) continue;
 			if (acl->u.filename != saved_filename) continue;
@@ -510,7 +510,7 @@ static int CheckFileACL(const struct path_info *filename, const u8 perm, struct 
 	if (!filename->is_dir) {
 		if (perm == 4 && IsGloballyReadableFile(filename)) return 0;
 	}
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct file_acl_record *acl;
 		acl = container_of(ptr, struct file_acl_record, head);
 		if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || (acl->perm & perm) != perm || CheckCondition(ptr->cond, obj)) continue;
@@ -592,7 +592,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	}
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct single_acl_record, head);
 			if (ptr->type == type && ptr->cond == condition) {
 				if (acl->u.filename == saved_filename) {
@@ -612,7 +612,7 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct single_acl_record, head);
 			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
 			if (acl->u.filename != saved_filename) continue;
@@ -650,7 +650,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	}
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct double_acl_record, head);
 			if (ptr->type == type && ptr->cond == condition) {
 				if (acl->u1.filename1 == saved_filename1 && acl->u2.filename2 == saved_filename2) {
@@ -672,7 +672,7 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct double_acl_record, head);
 			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
@@ -690,7 +690,7 @@ static int CheckSingleWriteACL(const u8 type, const struct path_info *filename, 
 	const struct domain_info *domain = current->domain_info;
 	struct acl_info *ptr;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct single_acl_record *acl;
 		acl = container_of(ptr, struct single_acl_record, head);
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
@@ -709,7 +709,7 @@ static int CheckDoubleWriteACL(const u8 type, const struct path_info *filename1,
 	const struct domain_info *domain = current->domain_info;
 	struct acl_info *ptr;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct double_acl_record *acl;
 		acl = container_of(ptr, struct double_acl_record, head);
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;

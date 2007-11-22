@@ -29,7 +29,7 @@
 struct domain_info KERNEL_DOMAIN;
 
 /* List of domains. */
-LIST_HEAD(domain_list);
+LIST1_HEAD(domain_list);
 
 /* /sbin/init started? */
 extern int sbin_init_started;
@@ -44,7 +44,7 @@ DEFINE_MUTEX(domain_acl_lock);
 /***** The structure for program files to force domain reconstruction. *****/
 
 struct domain_initializer_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *domainname;    /* This may be NULL */
 	const struct path_info *program;
 	bool is_deleted;
@@ -55,7 +55,7 @@ struct domain_initializer_entry {
 /***** The structure for domains to not to transit domains. *****/
 
 struct domain_keeper_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *domainname;
 	const struct path_info *program;       /* This may be NULL */
 	bool is_deleted;
@@ -66,7 +66,7 @@ struct domain_keeper_entry {
 /***** The structure for program files that should be aggregated. *****/
 
 struct aggregator_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *original_name;
 	const struct path_info *aggregated_name;
 	bool is_deleted;
@@ -75,7 +75,7 @@ struct aggregator_entry {
 /***** The structure for program files that should be aliased. *****/
 
 struct alias_entry {
-	struct list_head list;
+	struct list1_head list;
 	const struct path_info *original_name;
 	const struct path_info *aliased_name;
 	bool is_deleted;
@@ -97,7 +97,7 @@ const char *GetLastName(const struct domain_info *domain)
 
 int AddDomainACL(struct domain_info *domain, struct acl_info *acl)
 {
-	list_add_tail_mb(&acl->list, &domain->acl_info_list);
+	list1_add_tail_mb(&acl->list, &domain->acl_info_list);
 	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
@@ -111,7 +111,7 @@ int DelDomainACL(struct acl_info *ptr)
 
 /*************************  DOMAIN INITIALIZER HANDLER  *************************/
 
-static LIST_HEAD(domain_initializer_list);
+static LIST1_HEAD(domain_initializer_list);
 
 static int AddDomainInitializerEntry(const char *domainname, const char *program, const bool is_not, const bool is_delete)
 {
@@ -131,7 +131,7 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	}
 	if ((saved_program = SaveName(program)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &domain_initializer_list, list) {
+	list1_for_each_entry(ptr, &domain_initializer_list, list) {
 		if (ptr->is_not == is_not && ptr->domainname == saved_domainname && ptr->program == saved_program) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -147,7 +147,7 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
-	list_add_tail_mb(&new_entry->list, &domain_initializer_list);
+	list1_add_tail_mb(&new_entry->list, &domain_initializer_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -156,10 +156,10 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 
 int ReadDomainInitializerPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &domain_initializer_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &domain_initializer_list) {
 		struct domain_initializer_entry *ptr;
-		ptr = list_entry(pos, struct domain_initializer_entry, list);
+		ptr = list1_entry(pos, struct domain_initializer_entry, list);
 		if (ptr->is_deleted) continue;
 		if (ptr->domainname) {
 			if (io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN "%s from %s\n", ptr->is_not ? "no_" : "", ptr->program->name, ptr->domainname->name)) return -ENOMEM;
@@ -185,7 +185,7 @@ static bool IsDomainInitializer(const struct path_info *domainname, const struct
 {
 	struct domain_initializer_entry *ptr;
 	bool flag = 0;
-	list_for_each_entry(ptr,  &domain_initializer_list, list) {
+	list1_for_each_entry(ptr,  &domain_initializer_list, list) {
 		if (ptr->is_deleted) continue;
 		if (ptr->domainname) {
 			if (!ptr->is_last_name) {
@@ -203,7 +203,7 @@ static bool IsDomainInitializer(const struct path_info *domainname, const struct
 
 /*************************  DOMAIN KEEPER HANDLER  *************************/
 
-static LIST_HEAD(domain_keeper_list);
+static LIST1_HEAD(domain_keeper_list);
 
 static int AddDomainKeeperEntry(const char *domainname, const char *program, const bool is_not, const bool is_delete)
 {
@@ -223,7 +223,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 	}
 	if ((saved_domainname = SaveName(domainname)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &domain_keeper_list, list) {
+	list1_for_each_entry(ptr, &domain_keeper_list, list) {
 		if (ptr->is_not == is_not && ptr->domainname == saved_domainname && ptr->program == saved_program) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -239,7 +239,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
-	list_add_tail_mb(&new_entry->list, &domain_keeper_list);
+	list1_add_tail_mb(&new_entry->list, &domain_keeper_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -259,10 +259,10 @@ int AddDomainKeeperPolicy(char *data, const bool is_not, const bool is_delete)
 
 int ReadDomainKeeperPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
 		struct domain_keeper_entry *ptr;
-		ptr = list_entry(pos, struct domain_keeper_entry, list);
+		ptr = list1_entry(pos, struct domain_keeper_entry, list);
 		if (ptr->is_deleted) continue;
 		if (ptr->program) {
 			if (io_printf(head, "%s" KEYWORD_KEEP_DOMAIN "%s from %s\n", ptr->is_not ? "no_" : "", ptr->program->name, ptr->domainname->name)) return -ENOMEM;
@@ -277,7 +277,7 @@ static bool IsDomainKeeper(const struct path_info *domainname, const struct path
 {
 	struct domain_keeper_entry *ptr;
 	bool flag = 0;
-	list_for_each_entry(ptr, &domain_keeper_list, list) {
+	list1_for_each_entry(ptr, &domain_keeper_list, list) {
 		if (ptr->is_deleted) continue;
 		if (!ptr->is_last_name) {
 			if (ptr->domainname != domainname) continue;
@@ -293,7 +293,7 @@ static bool IsDomainKeeper(const struct path_info *domainname, const struct path
 
 /*************************  SYMBOLIC LINKED PROGRAM HANDLER  *************************/
 
-static LIST_HEAD(alias_list);
+static LIST1_HEAD(alias_list);
 
 static int AddAliasEntry(const char *original_name, const char *aliased_name, const bool is_delete)
 {
@@ -304,7 +304,7 @@ static int AddAliasEntry(const char *original_name, const char *aliased_name, co
 	if (!IsCorrectPath(original_name, 1, -1, -1, __FUNCTION__) || !IsCorrectPath(aliased_name, 1, -1, -1, __FUNCTION__)) return -EINVAL; /* No patterns allowed. */
 	if ((saved_original_name = SaveName(original_name)) == NULL || (saved_aliased_name = SaveName(aliased_name)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &alias_list, list) {
+	list1_for_each_entry(ptr, &alias_list, list) {
 		if (ptr->original_name == saved_original_name && ptr->aliased_name == saved_aliased_name) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -318,7 +318,7 @@ static int AddAliasEntry(const char *original_name, const char *aliased_name, co
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aliased_name = saved_aliased_name;
-	list_add_tail_mb(&new_entry->list, &alias_list);
+	list1_add_tail_mb(&new_entry->list, &alias_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -327,10 +327,10 @@ static int AddAliasEntry(const char *original_name, const char *aliased_name, co
 
 int ReadAliasPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &alias_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &alias_list) {
 		struct alias_entry *ptr;
-		ptr = list_entry(pos, struct alias_entry, list);
+		ptr = list1_entry(pos, struct alias_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_ALIAS "%s %s\n", ptr->original_name->name, ptr->aliased_name->name)) return -ENOMEM;
 	}
@@ -347,7 +347,7 @@ int AddAliasPolicy(char *data, const bool is_delete)
 
 /*************************  DOMAIN AGGREGATOR HANDLER  *************************/
 
-static LIST_HEAD(aggregator_list);
+static LIST1_HEAD(aggregator_list);
 
 static int AddAggregatorEntry(const char *original_name, const char *aggregated_name, const bool is_delete)
 {
@@ -358,7 +358,7 @@ static int AddAggregatorEntry(const char *original_name, const char *aggregated_
 	if (!IsCorrectPath(original_name, 1, 0, -1, __FUNCTION__) || !IsCorrectPath(aggregated_name, 1, -1, -1, __FUNCTION__)) return -EINVAL;
 	if ((saved_original_name = SaveName(original_name)) == NULL || (saved_aggregated_name = SaveName(aggregated_name)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
-	list_for_each_entry(ptr, &aggregator_list, list) {
+	list1_for_each_entry(ptr, &aggregator_list, list) {
 		if (ptr->original_name == saved_original_name && ptr->aggregated_name == saved_aggregated_name) {
 			ptr->is_deleted = is_delete;
 			error = 0;
@@ -372,7 +372,7 @@ static int AddAggregatorEntry(const char *original_name, const char *aggregated_
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aggregated_name = saved_aggregated_name;
-	list_add_tail_mb(&new_entry->list, &aggregator_list);
+	list1_add_tail_mb(&new_entry->list, &aggregator_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -381,10 +381,10 @@ static int AddAggregatorEntry(const char *original_name, const char *aggregated_
 
 int ReadAggregatorPolicy(struct io_buffer *head)
 {
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &aggregator_list) {
+	struct list1_head *pos;
+	list1_for_each_cookie(pos, head->read_var2, &aggregator_list) {
 		struct aggregator_entry *ptr;
-		ptr = list_entry(pos, struct aggregator_entry, list);
+		ptr = list1_entry(pos, struct aggregator_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, KEYWORD_AGGREGATOR "%s %s\n", ptr->original_name->name, ptr->aggregated_name->name)) return -ENOMEM;
 	}
@@ -412,18 +412,18 @@ int DeleteDomain(char *domainname0)
 	mutex_lock(&new_domain_assign_lock);
 #ifdef DEBUG_DOMAIN_UNDELETE
 	printk("DeleteDomain %s\n", domainname0);
-	list_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &domain_list, list) {
 		if (pathcmp(domain->domainname, &domainname)) continue;
 		printk("List: %p %u\n", domain, domain->is_deleted);
 	}
 #endif
 	/* Is there an active domain? */
-	list_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &domain_list, list) {
 		struct domain_info *domain2;
 		/* Never delete KERNEL_DOMAIN */
 		if (domain == &KERNEL_DOMAIN || domain->is_deleted || pathcmp(domain->domainname, &domainname)) continue;
 		/* Mark already deleted domains as non undeletable. */
-		list_for_each_entry(domain2, &domain_list, list) {
+		list1_for_each_entry(domain2, &domain_list, list) {
 			if (!domain2->is_deleted || pathcmp(domain2->domainname, &domainname)) continue;
 #ifdef DEBUG_DOMAIN_UNDELETE
 			if (domain2->is_deleted != 255) printk("Marked %p as non undeletable\n", domain2);
@@ -450,12 +450,12 @@ struct domain_info *UndeleteDomain(const char *domainname0)
 	mutex_lock(&new_domain_assign_lock);
 #ifdef DEBUG_DOMAIN_UNDELETE
 	printk("UndeleteDomain %s\n", domainname0);
-	list_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &domain_list, list) {
 		if (pathcmp(domain->domainname, &domainname)) continue;
 		printk("List: %p %u\n", domain, domain->is_deleted);
 	}
 #endif
-	list_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &domain_list, list) {
 		if (pathcmp(&domainname, domain->domainname)) continue;
 		if (!domain->is_deleted) {
 			/* This domain is active. I can't undelete. */
@@ -489,7 +489,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 	if (!IsCorrectDomain(domainname, __FUNCTION__)) goto out;
 	if ((saved_domainname = SaveName(domainname)) == NULL) goto out;
 	/* Can I reuse memory of deleted domain? */
-	list_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &domain_list, list) {
 		struct task_struct *p;
 		struct acl_info *ptr;
 		int flag;
@@ -506,7 +506,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 #ifdef DEBUG_DOMAIN_UNDELETE
 		printk("Reusing %p %s\n", domain, domain->domainname->name);
 #endif
-		list_for_each_entry(ptr, &domain->acl_info_list, list) ptr->is_deleted = 1;
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) ptr->is_deleted = 1;
 		domain->profile = profile;
 		domain->quota_warned = 0;
 		mb(); /* Avoid out-of-order execution. */
@@ -515,10 +515,10 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 	}
 	/* No memory reusable. Create using new memory. */
 	if ((domain = alloc_element(sizeof(*domain))) != NULL) {
-		INIT_LIST_HEAD(&domain->acl_info_list);
+		INIT_LIST1_HEAD(&domain->acl_info_list);
 		domain->domainname = saved_domainname;
 		domain->profile = profile;
-		list_add_tail_mb(&domain->list, &domain_list);
+		list1_add_tail_mb(&domain->list, &domain_list);
 	}
  out: ;
 	mutex_unlock(&new_domain_assign_lock);
@@ -646,7 +646,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	if (pathcmp(&r, &s)) {
 		struct alias_entry *ptr;
 		/* Is this program allowed to be called via symbolic links? */
-		list_for_each_entry(ptr, &alias_list, list) {
+		list1_for_each_entry(ptr, &alias_list, list) {
 			if (ptr->is_deleted || pathcmp(&r, ptr->original_name) || pathcmp(&s, ptr->aliased_name)) continue;
 			memset(real_program_name, 0, CCS_MAX_PATHNAME_LEN);
 			strncpy(real_program_name, ptr->aliased_name->name, CCS_MAX_PATHNAME_LEN - 1);
@@ -679,7 +679,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	{
 		struct aggregator_entry *ptr;
 		/* Is this program allowed to be aggregated? */
-		list_for_each_entry(ptr, &aggregator_list, list) {
+		list1_for_each_entry(ptr, &aggregator_list, list) {
 			if (ptr->is_deleted || !PathMatchesToPattern(&r, ptr->original_name)) continue;
 			memset(real_program_name, 0, CCS_MAX_PATHNAME_LEN);
 			strncpy(real_program_name, ptr->aggregated_name->name, CCS_MAX_PATHNAME_LEN - 1);
@@ -916,7 +916,9 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 		if (retval < 0) current->domain_info = prev_domain;
 	}
+#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 	ccs_free(alt_exec);
+#endif
 	return retval;
 }
 

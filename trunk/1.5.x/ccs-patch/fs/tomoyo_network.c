@@ -82,7 +82,7 @@ ok:
 
 /*************************  ADDRESS GROUP HANDLER  *************************/
 
-static LIST_HEAD(address_group_list);
+static LIST1_HEAD(address_group_list);
 
 static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, const u16 *min_address, const u16 *max_address, const bool is_delete)
 {
@@ -97,12 +97,12 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 	if ((saved_group_name = SaveName(group_name)) == NULL) return -ENOMEM;
 	if (is_ipv6) {
 		if ((saved_min_address = SaveIPv6Address((struct in6_addr *) min_address)) == NULL
-		    || (saved_max_address = SaveIPv6Address((struct in6_addr *) max_address))) return -ENOMEM;
+		    || (saved_max_address = SaveIPv6Address((struct in6_addr *) max_address)) == NULL) return -ENOMEM;
 	}
 	mutex_lock(&lock);
-	list_for_each_entry(group, &address_group_list, list) {
+	list1_for_each_entry(group, &address_group_list, list) {
 		if (saved_group_name != group->group_name) continue;
-		list_for_each_entry(member, &group->address_group_member_list, list) {
+		list1_for_each_entry(member, &group->address_group_member_list, list) {
 			if (member->is_ipv6 != is_ipv6) continue;
 			if (is_ipv6) {
 				if (member->min.ipv6 != saved_min_address || member->max.ipv6 != saved_max_address) continue;
@@ -122,9 +122,9 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 	}
 	if (!found) {
 		if ((new_group = alloc_element(sizeof(*new_group))) == NULL) goto out;
-		INIT_LIST_HEAD(&new_group->address_group_member_list);
+		INIT_LIST1_HEAD(&new_group->address_group_member_list);
 		new_group->group_name = saved_group_name;
-		list_add_tail_mb(&new_group->list, &address_group_list);
+		list1_add_tail_mb(&new_group->list, &address_group_list);
 		group = new_group;
 	}
 	if ((new_member = alloc_element(sizeof(*new_member))) == NULL) goto out;
@@ -136,7 +136,7 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 		new_member->min.ipv4 = * (u32 *) min_address;
 		new_member->max.ipv4 = * (u32 *) max_address;
 	}
-	list_add_tail_mb(&new_member->list, &group->address_group_member_list);
+	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -181,7 +181,7 @@ static struct address_group_entry *FindOrAssignNewAddressGroup(const char *group
 	int i;
 	struct address_group_entry *group;
 	for (i = 0; i <= 1; i++) {
-		list_for_each_entry(group, &address_group_list, list) {
+		list1_for_each_entry(group, &address_group_list, list) {
 			if (strcmp(group_name, group->group_name->name) == 0) return group;
 		}
 		if (i == 0) {
@@ -197,7 +197,7 @@ static int AddressMatchesToGroup(const bool is_ipv6, const u32 *address, const s
 {
 	struct address_group_member *member;
 	const u32 ip = ntohl(*address);
-	list_for_each_entry(member, &group->address_group_member_list, list) {
+	list1_for_each_entry(member, &group->address_group_member_list, list) {
 		if (member->is_deleted) continue;
 		if (member->is_ipv6) {
 			if (is_ipv6 && memcmp(member->min.ipv6, address, 16) <= 0 && memcmp(address, member->max.ipv6, 16) <= 0) return 1;
@@ -210,15 +210,15 @@ static int AddressMatchesToGroup(const bool is_ipv6, const u32 *address, const s
 
 int ReadAddressGroupPolicy(struct io_buffer *head)
 {
-	struct list_head *gpos;
-	struct list_head *mpos;
-	list_for_each_cookie(gpos, head->read_var1, &address_group_list) {
+	struct list1_head *gpos;
+	struct list1_head *mpos;
+	list1_for_each_cookie(gpos, head->read_var1, &address_group_list) {
 		struct address_group_entry *group;
-		group = list_entry(gpos, struct address_group_entry, list);
-		list_for_each_cookie(mpos, head->read_var2, &group->address_group_member_list) {
+		group = list1_entry(gpos, struct address_group_entry, list);
+		list1_for_each_cookie(mpos, head->read_var2, &group->address_group_member_list) {
 			char buf[128];
 			struct address_group_member *member;
-			member = list_entry(mpos, struct address_group_member, list);
+			member = list1_entry(mpos, struct address_group_member, list);
 			if (member->is_deleted) continue;
 			if (member->is_ipv6) {
 				const struct in6_addr *min_address = member->min.ipv6, *max_address = member->max.ipv6;
@@ -306,11 +306,11 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	if (!domain) return -EINVAL;
 	if (record_type == IP_RECORD_TYPE_IPv6) {
 		if ((saved_min_address = SaveIPv6Address((struct in6_addr *) min_address)) == NULL
-		    || (saved_max_address = SaveIPv6Address((struct in6_addr *) max_address))) return -ENOMEM;
+		    || (saved_max_address = SaveIPv6Address((struct in6_addr *) max_address)) == NULL) return -ENOMEM;
 	}
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct ip_network_acl_record, head);
 			if (ptr->type == TYPE_IP_NETWORK_ACL && acl->operation_type == operation && acl->record_type == record_type && ptr->cond == condition && acl->min_port == min_port && max_port == acl->max_port) {
 				if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
@@ -357,7 +357,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct ip_network_acl_record, head);
 			if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || acl->operation_type != operation || acl->record_type != record_type || ptr->cond != condition || acl->min_port != min_port || acl->max_port != max_port) continue;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
@@ -385,7 +385,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
 	bool found = 0;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK)) return 0;
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ip_network_acl_record *acl;
 		acl = container_of(ptr, struct ip_network_acl_record, head);
 		if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || acl->operation_type != operation || port < acl->min_port || acl->max_port < port || CheckCondition(ptr->cond, NULL)) continue;
