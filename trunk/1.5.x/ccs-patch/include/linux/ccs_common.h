@@ -49,6 +49,12 @@ typedef _Bool bool;
 #define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#define container_of(ptr, type, member) ({                      \
+	const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
+		(type *)( (char *)__mptr - offsetof(type,member) );})
+#endif
+
 #if 0
 
 #define list1_head list_head
