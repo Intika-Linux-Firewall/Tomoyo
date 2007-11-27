@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/11/19
+ * Version: 1.5.2-pre   2007/11/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -49,32 +49,28 @@ static const struct in6_addr *SaveIPv6Address(const struct in6_addr *addr)
 	static const int block_size = 16;
 	struct addr_list {
 		struct in6_addr addr[block_size];
-		struct addr_list *next;
+		struct list1_head list;
 		u32 in_use_count;
 	};
-	static struct addr_list *list = NULL;
+	static LIST1_HEAD(address_list);
 	struct addr_list *ptr;
 	static DEFINE_MUTEX(lock);
 	int i = block_size;
 	if (!addr) return NULL;
 	mutex_lock(&lock);
-	for (ptr = list; ptr; ptr = ptr->next) {
+	list1_for_each_entry(ptr, &address_list, list) {
 		for (i = 0; i < ptr->in_use_count; i++) {
 			if (memcmp(&ptr->addr[i], addr, sizeof(*addr)) == 0) goto ok;
 		}
 		if (i < block_size) break;
 	}
-	if (i == block_size && (ptr = alloc_element(sizeof(*ptr))) != NULL) {
-		struct addr_list *p = list;
-		if (p) {
-			while (p->next) p = p->next;
-			p->next = ptr;
-		} else {
-			list = ptr;
-		}
+	if (i == block_size) {
+		ptr = alloc_element(sizeof(*ptr));
+		if (!ptr) goto ok;
+		list1_add_tail_mb(&ptr->list, &address_list);
 		i = 0;
 	}
-	if (ptr) ptr->addr[ptr->in_use_count++] = *addr;
+	ptr->addr[ptr->in_use_count++] = *addr;
 ok:
 	mutex_unlock(&lock);
 	return ptr ? &ptr->addr[i] : NULL;

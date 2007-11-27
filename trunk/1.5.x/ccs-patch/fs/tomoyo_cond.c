@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/11/19
+ * Version: 1.5.2-pre   2007/11/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -50,12 +50,14 @@ static void print_ulong(char *buffer, const int buffer_len, const unsigned long 
 		snprintf(buffer, buffer_len, "0x%lX", value);
 	}
 }
-			
-static struct condition_list {
-	struct condition_list *next;
+
+struct condition_list {
+	struct list1_head list;
 	int length;
 	/* "unsigned long condition[length]" comes here.*/
-} head;
+};
+
+static LIST1_HEAD(condition_list);
 
 #define TASK_UID          0
 #define TASK_EUID         1
@@ -106,7 +108,7 @@ static struct {
 const struct condition_list *FindOrAssignNewCondition(const char *condition)
 {
 	const char *start;
-	struct condition_list *ptr, *new_ptr;
+	struct condition_list *new_ptr;
 	unsigned long *ptr2;
 	int counter = 0, size;
 	int left, right;
@@ -209,13 +211,13 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 	}
 	{
 		static DEFINE_MUTEX(lock);
-		struct condition_list *prev = NULL;
+		struct condition_list *ptr;
 		mutex_lock(&lock);
-		for (ptr = &head; ptr; prev = ptr, ptr = ptr->next) {
+		list1_for_each_entry(ptr, &condition_list, list) {
 			/* Don't compare if size differs. */
 			if (ptr->length != new_ptr->length) continue;
-			/* Compare ptr and new_ptr except ptr->next and new_ptr->next . */
-			if (memcmp(((u8 *) ptr) + sizeof(ptr->next), ((u8 *) new_ptr) + sizeof(new_ptr->next), size - sizeof(ptr->next))) continue;
+			/* Compare ptr and new_ptr except ptr->list and new_ptr->list . */
+			if (memcmp(((u8 *) ptr) + sizeof(ptr->list), ((u8 *) new_ptr) + sizeof(new_ptr->list), size - sizeof(ptr->list))) continue;
 			/* Same entry found. Share this entry. */
 			ccs_free(new_ptr);
 			new_ptr = ptr;
@@ -223,11 +225,13 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		}
 		/* Same entry not found. Save this entry. */
 		ptr = alloc_element(size);
-		if (ptr) memmove(ptr, new_ptr, size);
+		if (ptr) {
+			memmove(ptr, new_ptr, size);
+			/* Append to chain. */
+			list1_add_tail_mb(&ptr->list, &condition_list);
+		}
 		ccs_free(new_ptr);
 		new_ptr = ptr;
-		/* Append to chain. */
-		prev->next = new_ptr;
 	ok:
 		mutex_unlock(&lock);
 	}
