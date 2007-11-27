@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/11/19
+ * Version: 1.5.2-pre   2007/11/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -280,27 +280,28 @@ unsigned int GetMemoryUsedForSaveName(void)
 #define MAX_HASH 256
 
 struct name_entry {
-	struct name_entry *next; /* Pointer to next record. NULL if none.             */
+	struct list1_head list;
 	struct path_info entry;
 };
 
 struct free_memory_block_list {
-	struct free_memory_block_list *next; /* Pointer to next record. NULL if none. */
+	struct list_head list;
 	char *ptr;                           /* Pointer to a free area.               */
 	int len;                             /* Length of the area.                   */
 };
 
+static struct list1_head name_list[MAX_HASH]; /* The list of names. */
+
 /* Keep the given name on the RAM. The RAM is shared, so NEVER try to modify or kfree() the returned name. */
 const struct path_info *SaveName(const char *name)
 {
-	static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
-	static struct name_entry name_list[MAX_HASH]; /* The list of names. */
+	static LIST_HEAD(fmb_list);
 	static DEFINE_MUTEX(lock);
-	struct name_entry *ptr, *prev = NULL;
+	struct name_entry *ptr;
 	unsigned int hash;
-	struct free_memory_block_list *fmb = &fmb_list;
+	struct free_memory_block_list *fmb;
 	int len;
-	static int first_call = 1;
+	char *cp;
 	if (!name) return NULL;
 	len = strlen(name) + 1;
 	if (len > CCS_MAX_PATHNAME_LEN) {
@@ -309,49 +310,39 @@ const struct path_info *SaveName(const char *name)
 	}
 	hash = full_name_hash((const unsigned char *) name, len - 1);
 	mutex_lock(&lock);
-	if (first_call) {
-		int i;
-		first_call = 0;
-		memset(&name_list, 0, sizeof(name_list));
-		for (i = 0; i < MAX_HASH; i++) {
-			name_list[i].entry.name = "/";
-			fill_path_info(&name_list[i].entry);
-		}
-		if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE) panic("Bad size.");
-	}
-	ptr = &name_list[hash % MAX_HASH];
-	while (ptr) {
+	list1_for_each_entry(ptr, &name_list[hash % MAX_HASH], list) {
 		if (hash == ptr->entry.hash && strcmp(name, ptr->entry.name) == 0) goto out;
-		prev = ptr; ptr = ptr->next;
 	}
-	while (len > fmb->len) {
-		if (fmb->next) {
-			fmb = fmb->next;
-		} else {
-			char *cp;
-			if ((cp = kmalloc(PAGE_SIZE, GFP_KERNEL)) == NULL || (fmb->next = alloc_element(sizeof(*fmb))) == NULL) {
-				kfree(cp);
-				printk("ERROR: Out of memory for SaveName().\n");
-				if (!sbin_init_started) panic("MAC Initialization failed.\n");
-				goto out; /* ptr == NULL */
-			}
-			memset(cp, 0, PAGE_SIZE);
-			allocated_memory_for_savename += PAGE_SIZE;
-			fmb = fmb->next;
-			fmb->ptr = cp;
-			fmb->len = PAGE_SIZE;
-		}
+	list_for_each_entry(fmb, &fmb_list, list) {
+		if (len <= fmb->len) goto ready;
 	}
-	if ((ptr = alloc_element(sizeof(*ptr))) == NULL) goto out;
+	cp = kmalloc(PAGE_SIZE, GFP_KERNEL);
+	fmb = kmalloc(sizeof(*fmb), GFP_KERNEL);
+	if (!cp || !fmb) {
+		kfree(cp);
+		kfree(fmb);
+		printk("ERROR: Out of memory for SaveName().\n");
+		if (!sbin_init_started) panic("MAC Initialization failed.\n");
+		ptr = NULL;
+		goto out;
+	}
+	memset(cp, 0, PAGE_SIZE);
+	allocated_memory_for_savename += PAGE_SIZE;
+	list_add(&fmb->list, &fmb_list);
+	fmb->ptr = cp;
+	fmb->len = PAGE_SIZE;
+ ready:
+	ptr = alloc_element(sizeof(*ptr));
+	if (!ptr) goto out;
 	ptr->entry.name = fmb->ptr;
 	memmove(fmb->ptr, name, len);
 	fill_path_info(&ptr->entry);
 	fmb->ptr += len;
 	fmb->len -= len;
-	prev->next = ptr; /* prev != NULL because name_list is not empty. */
+	list1_add_tail_mb(&ptr->list, &name_list[hash % MAX_HASH]);
 	if (fmb->len == 0) {
-		struct free_memory_block_list *ptr = &fmb_list;
-		while (ptr->next != fmb) ptr = ptr->next; ptr->next = fmb->next;
+		list_del(&fmb->list);
+		kfree(fmb);
 	}
  out:
 	mutex_unlock(&lock);
@@ -374,12 +365,17 @@ static kmem_cache_t *ccs_cachep = NULL;
 
 void __init realpath_Init(void)
 {
+	int i;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23)
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL);
 #else
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL, NULL);
 #endif
 	if (!ccs_cachep) panic("Can't create cache.\n");
+	for (i = 0; i < MAX_HASH; i++) {
+		INIT_LIST1_HEAD(&name_list[i]);
+	}
+	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE) panic("Bad size.");
 	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
 	KERNEL_DOMAIN.domainname = SaveName(ROOT_NAME);
 	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);

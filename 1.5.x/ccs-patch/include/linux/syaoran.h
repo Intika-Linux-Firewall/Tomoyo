@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/10/19
+ * Version: 1.5.2-pre   2007/11/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -250,7 +250,7 @@ __setup("SYAORAN=", SYAORAN_Setup);
 #endif
 
 struct dev_entry {
-	struct dev_entry *next;             /* Pointer to next record. NULL if none.                                 */
+	struct list_head list;
 	char *name;                         /* Binary form of pathname under mount point. Never NULL.                */
 	mode_t mode;                        /* Mode and permissions. setuid/setgid/sticky bits are not supported.    */
 	uid_t uid;
@@ -263,7 +263,7 @@ struct dev_entry {
 };
 
 struct syaoran_sb_info {
-	struct dev_entry *first_entry; /* Pointer to first file acl. NULL if not assigned. */
+	struct list_head list;
 	int initialize_done;           /* Zero if initialization is in progress.           */
 	int is_permissive_mode;        /* Nonzero if permissive mode.                      */
 };
@@ -332,12 +332,6 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 	error = -ENOMEM;
 	if ((entry = kmalloc(sizeof(*entry), GFP_KERNEL)) == NULL) goto out;
 	memset(entry, 0, sizeof(*entry));
-	if (!info->first_entry) {
-		info->first_entry = entry;
-	} else {
-		struct dev_entry *p = info->first_entry;
-		while (p->next) p = p->next; p->next = entry;
-	}
 	if (S_ISLNK(perm)) {
 		if ((entry->printable_symlink_data = strdup(args[ARG_SYMLINK_DATA])) == NULL) goto out;
 	}
@@ -357,6 +351,7 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 	entry->gid = gid;
 	entry->kdev = S_ISCHR(perm) || S_ISBLK(perm) ? MKDEV(major, minor) : 0;
 	entry->flags = flags;
+	list_add(&entry->list, &info->list);
 	/* printk("Entry added.\n"); */
 	error = 0;
  out:
@@ -371,21 +366,19 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 static void syaoran_put_super(struct super_block *sb)
 {
 	struct syaoran_sb_info *info;
-	struct dev_entry *entry;
+	struct dev_entry *entry, *tmp;
 	if (!sb) return;
 	info = (struct syaoran_sb_info *) sb->s_fs_info;
 	if (!info) return;
-	entry = info->first_entry;
-	while (entry) {
-		struct dev_entry *next = entry->next;
-		kfree(entry->name); entry->name = NULL;
-		kfree(entry->symlink_data); entry->symlink_data = NULL;
-		kfree(entry->printable_name); entry->printable_name = NULL;
-		kfree(entry->printable_symlink_data); entry->printable_symlink_data = NULL;
-		kfree(entry); entry = next;
+	list_for_each_entry_safe(entry, tmp, &info->list, list) {
+		kfree(entry->name);
+		kfree(entry->symlink_data);
+		kfree(entry->printable_name);
+		kfree(entry->printable_symlink_data);
+		list_del(&entry->list);
 		/* printk("Entry removed.\n"); */
+		kfree(entry);
 	}
-	info->first_entry = NULL;
 	kfree(info);
 	sb->s_fs_info = NULL;
 	printk("%s: Unused memory freed.\n", __FUNCTION__);
@@ -488,7 +481,7 @@ static void MakeInitialNodes(struct super_block *sb)
 		syaoran_create_tracelog(sb, ".syaoran");
 		syaoran_create_tracelog(sb, ".syaoran_all");
 	}
-	for (entry = info->first_entry; entry; entry = entry->next) {
+	list_for_each_entry(entry, &info->list, list) {
 		if ((entry->flags & NO_CREATE_AT_MOUNT) == 0) MakeNode(entry, sb->s_root);
 	}
 	info->initialize_done = 1;
@@ -501,7 +494,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static int first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.5.2-pre   2007/10/19\n");
+		printk("SYAORAN: 1.5.2-pre   2007/11/27\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
@@ -546,6 +539,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 			if ((p = sb->s_fs_info = kmalloc(sizeof(*p), GFP_KERNEL)) == NULL) goto out;
 			memset(p, 0, sizeof(*p));
 			p->is_permissive_mode = is_permissive_mode;
+			INIT_LIST_HEAD(&((struct syaoran_sb_info *) sb->s_fs_info)->list);
 			printk("SYAORAN: Reading '%s'\n", filename);
 			error = ReadConfigFile(f, sb);
 		out:
@@ -621,7 +615,7 @@ static int CheckFlags(struct syaoran_sb_info *info, struct dentry *dentry, int m
 	memset(filename, 0, sizeof(filename));
 	if (local_realpath_from_dentry(dentry, filename, sizeof(filename) - 1) == 0) {
 		struct dev_entry *entry;
-		for (entry = info->first_entry; entry; entry = entry->next) {
+		list_for_each_entry(entry, &info->list, list) {
 			if ((mode & S_IFMT) != (entry->mode & S_IFMT)) continue;
 			if ((S_ISBLK(mode) || S_ISCHR(mode)) && dev != entry->kdev) continue;
 			if (strcmp(entry->name, filename + 1)) continue;
@@ -717,21 +711,30 @@ static int MayModifyNode(struct dentry *dentry, unsigned int flags)
  */
 
 struct syaoran_read_struct {
-	char *buf;               /* Buffer for reading.                                        */
-	int avail;               /* Bytes available for reading.                               */
-	struct super_block *sb;  /* The super_block of this partition.                         */
-	struct dev_entry *entry; /* The entry currently reading from.                          */
-	int read_all;            /* Nonzero if dump all entries.                               */
+	char *buf;               /* Buffer for reading.                */
+	int avail;               /* Bytes available for reading.       */
+	struct super_block *sb;  /* The super_block of this partition. */
+	struct dev_entry *entry; /* The entry currently reading from.  */
+	bool read_all;           /* Dump all entries?                  */
+	struct list_head *pos;   /* Current position.                  */
 };
+
+#define list_for_each_cookie(pos, cookie, head) \
+	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
+		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
+		(cookie) = pos, pos = pos->next)
 
 static void ReadTable(struct syaoran_read_struct *head, char *buf, int count)
 {
 	struct super_block *sb = head->sb;
 	struct syaoran_sb_info *info = (struct syaoran_sb_info *) sb->s_fs_info;
-	struct dev_entry *entry;
+	struct list_head *pos;
+	const bool read_all = head->read_all;
 	if (!info) return;
-	for (entry = head->entry; entry; entry = entry->next) {
-		const unsigned int flags = entry->flags & ~DEVICE_USED;
+	if (!head->pos) return;
+	list_for_each_cookie(pos, head->pos, &info->list) {
+		struct dev_entry *entry = list_entry(pos, struct dev_entry, list);
+		const unsigned int flags = read_all ? entry->flags : entry->flags & ~DEVICE_USED;
 		const char *name = entry->printable_name;
 		const uid_t uid = entry->uid;
 		const gid_t gid = entry->gid;
@@ -739,12 +742,12 @@ static void ReadTable(struct syaoran_read_struct *head, char *buf, int count)
 		int len = 0;
 		switch (entry->mode & S_IFMT) {
 		case S_IFCHR:
-			if (head->read_all) len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c %3u %3u\n", name, perm, uid, gid, entry->flags, 'c', MAJOR(entry->kdev), MINOR(entry->kdev));
-			else if (entry->flags & DEVICE_USED) len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c %3u %3u\n", name, perm, uid, gid, flags, 'c', MAJOR(entry->kdev), MINOR(entry->kdev));
+			if (!head->read_all && !(entry->flags & DEVICE_USED)) break;
+			len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c %3u %3u\n", name, perm, uid, gid, flags, 'c', MAJOR(entry->kdev), MINOR(entry->kdev));
 			break;
 		case S_IFBLK:
-			if (head->read_all) len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c %3u %3u\n", name, perm, uid, gid, entry->flags, 'b', MAJOR(entry->kdev), MINOR(entry->kdev));
-			else if (entry->flags & DEVICE_USED) len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c %3u %3u\n", name, perm, uid, gid, flags, 'b', MAJOR(entry->kdev), MINOR(entry->kdev));
+			if (!head->read_all && !(entry->flags & DEVICE_USED)) break;
+			len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c %3u %3u\n", name, perm, uid, gid, flags, 'b', MAJOR(entry->kdev), MINOR(entry->kdev));
 			break;
 		case S_IFIFO:
 			len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c\n", name, perm, uid, gid, flags, 'p');
@@ -762,11 +765,10 @@ static void ReadTable(struct syaoran_read_struct *head, char *buf, int count)
 			len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c\n", name, perm, uid, gid, flags, 'f');
 			break;
 		}
-		if (len < 0 || count < len) break;
+		if (len < 0 || count <= len) break;
 		count -= len;
 		buf += len;
 		head->avail += len;
-		head->entry = entry->next;
 	}
 }
 
@@ -777,7 +779,7 @@ static int syaoran_trace_open(struct inode *inode, struct file *file)
 	memset(head, 0, sizeof(*head));
 	head->sb = inode->i_sb;
 	head->read_all = (strcmp(file->f_dentry->d_name.name, ".syaoran_all") == 0);
-	head->entry = ((struct syaoran_sb_info *) head->sb->s_fs_info)->first_entry;
+	head->pos = &((struct syaoran_sb_info *) head->sb->s_fs_info)->list;
 	if ((head->buf = kmalloc(PAGE_SIZE * 2, GFP_KERNEL)) == NULL) {
 		kfree(head);
 		return -ENOMEM;

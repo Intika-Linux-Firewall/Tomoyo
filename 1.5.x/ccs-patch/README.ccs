@@ -1068,3 +1068,16 @@ Fix 2007/11/05
       since TOMOYO version 1.3.2 .
       This function is not called by learning mode,
       so the semaphore's counter will not overflow for normal usage.
+
+Fix 2005/11/27
+
+    @ Fix ReadTable() truncation bug.
+
+      "snprintf(str, size, format, ...) >= size" means truncated.
+      But I was checking for "snprintf(str, size, format, ...) > size".
+      As a result, some entries might be dumped without '\n'.
+
+    @ Purge direct "->prev"/"->next" manipulation.
+
+      All list manipulations use "struct list_head" or "struct list1_head".
+      "struct list1_head" doesn't have "->prev" member to save memory usage.
