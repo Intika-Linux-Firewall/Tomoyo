@@ -40,6 +40,19 @@
 #define s_fs_info u.generic_sbp
 #endif
 
+#define list_for_each_cookie(pos, cookie, head) \
+	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
+		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
+		(cookie) = pos, pos = pos->next)
+
+#ifndef list_for_each_entry_safe
+#define list_for_each_entry_safe(pos, n, head, member)                  \
+	for (pos = list_entry((head)->next, typeof(*pos), member),      \
+		n = list_entry(pos->member.next, typeof(*pos), member); \
+		&pos->member != (head);                                    \
+		pos = n, n = list_entry(n->member.next, typeof(*n), member))
+#endif
+
 /* The following constants are used to restrict operations.*/
 
 #define MAY_CREATE          1 /* This file is allowed to mknod()              */
@@ -333,7 +346,7 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 	if ((entry = kmalloc(sizeof(*entry), GFP_KERNEL)) == NULL) goto out;
 	memset(entry, 0, sizeof(*entry));
 	if (S_ISLNK(perm)) {
-		if ((entry->printable_symlink_data = strdup(args[ARG_SYMLINK_DATA])) == NULL) goto out;
+		if ((entry->printable_symlink_data = strdup(args[ARG_SYMLINK_DATA])) == NULL) goto out_freemem;
 	}
 	if ((entry->printable_name = strdup(args[ARG_FILENAME])) == NULL) goto out_freemem;
 	if (S_ISLNK(perm)) {
@@ -351,7 +364,7 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 	entry->gid = gid;
 	entry->kdev = S_ISCHR(perm) || S_ISBLK(perm) ? MKDEV(major, minor) : 0;
 	entry->flags = flags;
-	list_add(&entry->list, &info->list);
+	list_add_tail(&entry->list, &info->list);
 	/* printk("Entry added.\n"); */
 	error = 0;
  out:
@@ -360,6 +373,7 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 	kfree(entry->printable_symlink_data);
 	kfree(entry->printable_name);
 	kfree(entry->symlink_data);
+	kfree(entry);
 	goto out;
 }
 
@@ -715,21 +729,16 @@ struct syaoran_read_struct {
 	int avail;               /* Bytes available for reading.       */
 	struct super_block *sb;  /* The super_block of this partition. */
 	struct dev_entry *entry; /* The entry currently reading from.  */
-	bool read_all;           /* Dump all entries?                  */
+	_Bool read_all;          /* Dump all entries?                  */
 	struct list_head *pos;   /* Current position.                  */
 };
-
-#define list_for_each_cookie(pos, cookie, head) \
-	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
-		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
-		(cookie) = pos, pos = pos->next)
 
 static void ReadTable(struct syaoran_read_struct *head, char *buf, int count)
 {
 	struct super_block *sb = head->sb;
 	struct syaoran_sb_info *info = (struct syaoran_sb_info *) sb->s_fs_info;
 	struct list_head *pos;
-	const bool read_all = head->read_all;
+	const _Bool read_all = head->read_all;
 	if (!info) return;
 	if (!head->pos) return;
 	list_for_each_cookie(pos, head->pos, &info->list) {
