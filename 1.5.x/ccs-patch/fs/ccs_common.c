@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/11/27
+ * Version: 1.5.2-pre   2007/11/29
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -473,15 +473,19 @@ int io_printf(struct io_buffer *head, const char *fmt, ...)
  */
 const char *GetEXE(void)
 {
-	if (current->mm) {
-		struct vm_area_struct *vma;
-		for (vma = current->mm->mmap; vma; vma = vma->vm_next) {
-			if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-				return realpath_from_dentry(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt);
-			}
+	struct mm_struct *mm = current->mm;
+	struct vm_area_struct *vma;
+	const char *cp = NULL;
+	if (!mm) return NULL;
+	down_read(&mm->mmap_sem);
+	for (vma = mm->mmap; vma; vma = vma->vm_next) {
+		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
+			cp = realpath_from_dentry(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt);
+			break;
 		}
 	}
-	return NULL;
+	up_read(&mm->mmap_sem);
+	return cp;
 }
 
 const char *GetMSG(const bool is_enforce)
@@ -1220,10 +1224,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.2-pre   2007/11/27\n");
+	printk("SAKURA: 1.5.2-pre   2007/11/29\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.2-pre   2007/11/27\n");
+	printk("TOMOYO: 1.5.2-pre   2007/11/29\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
