@@ -12,18 +12,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- linux-2.6-mm.orig/security/Kconfig
 +++ linux-2.6-mm/security/Kconfig
-@@ -104,6 +104,7 @@ config SECURITY_ROOTPLUG
- 	  If you are unsure how to answer this question, answer N.
+@@ -105,6 +105,7 @@ config SECURITY_ROOTPLUG
  
  source security/selinux/Kconfig
+ source security/smack/Kconfig
 +source security/tomoyo/Kconfig
  
  endmenu
  
 --- linux-2.6-mm.orig/security/Makefile
 +++ linux-2.6-mm/security/Makefile
-@@ -16,3 +16,4 @@ obj-$(CONFIG_SECURITY)			+= security.o d
- obj-$(CONFIG_SECURITY_SELINUX)		+= selinux/built-in.o
+@@ -18,3 +18,4 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
+ obj-$(CONFIG_SECURITY_SMACK)		+= commoncap.o smack/built-in.o
  obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
 +obj-$(CONFIG_SECURITY_TOMOYO)           += tomoyo/
