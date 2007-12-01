@@ -20,7 +20,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- linux-2.6-mm.orig/include/linux/security.h
 +++ linux-2.6-mm/include/linux/security.h
-@@ -657,6 +657,25 @@ struct request_sock;
+@@ -652,6 +652,25 @@ struct request_sock;
   *	@sig contains the signal value.
   *	@secid contains the sid of the process where the signal originated
   *	Return 0 if permission is granted.
@@ -46,7 +46,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @task_wait:
   *	Check permission before allowing a process to reap a child process @p
   *	and collect its status information.
-@@ -1336,6 +1355,9 @@ struct security_operations {
+@@ -1331,6 +1350,9 @@ struct security_operations {
  	int (*task_movememory) (struct task_struct * p);
  	int (*task_kill) (struct task_struct * p,
  			  struct siginfo * info, int sig, u32 secid);
@@ -56,7 +56,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int (*task_wait) (struct task_struct * p);
  	int (*task_prctl) (int option, unsigned long arg2,
  			   unsigned long arg3, unsigned long arg4,
-@@ -1586,6 +1608,10 @@ int security_task_getscheduler(struct ta
+@@ -1581,6 +1603,10 @@ int security_task_getscheduler(struct ta
  int security_task_movememory(struct task_struct *p);
  int security_task_kill(struct task_struct *p, struct siginfo *info,
  			int sig, u32 secid);
@@ -67,7 +67,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_task_wait(struct task_struct *p);
  int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
  			 unsigned long arg4, unsigned long arg5);
-@@ -2132,6 +2158,21 @@ static inline int security_task_kill (st
+@@ -2127,6 +2153,21 @@ static inline int security_task_kill (st
  	return cap_task_kill(p, info, sig, secid);
  }
  
@@ -91,7 +91,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
 --- linux-2.6-mm.orig/kernel/signal.c
 +++ linux-2.6-mm/kernel/signal.c
-@@ -2218,6 +2218,11 @@ asmlinkage long
+@@ -2214,6 +2214,11 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -103,7 +103,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2273,10 +2278,16 @@ static int do_tkill(int tgid, int pid, i
+@@ -2269,10 +2274,16 @@ static int do_tkill(int tgid, int pid, i
   */
  asmlinkage long sys_tgkill(int tgid, int pid, int sig)
  {
@@ -120,7 +120,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return do_tkill(tgid, pid, sig);
  }
  
-@@ -2286,10 +2297,16 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2282,10 +2293,16 @@ asmlinkage long sys_tgkill(int tgid, int
  asmlinkage long
  sys_tkill(int pid, int sig)
  {
