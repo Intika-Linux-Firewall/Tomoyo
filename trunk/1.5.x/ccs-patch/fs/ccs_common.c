@@ -1273,7 +1273,7 @@ int CheckSupervisor(const char *fmt, ...)
 	static unsigned int serial = 0;
 	struct query_entry *query_entry;
 	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE) || !atomic_read(&queryd_watcher)) {
-#if 0
+#ifndef ALT_EXEC
 		if ((current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR) == 0) {
 			int i;
 			for (i = 0; i < CheckCCSFlags(CCS_SLEEP_PERIOD); i++) {
