@@ -567,6 +567,8 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 	return ptr;
 }
 
+/* #define ALT_EXEC */
+
 static int SetProfile(struct io_buffer *head)
 {
 	char *data = head->write_buf;
@@ -589,7 +591,7 @@ static int SetProfile(struct io_buffer *head)
 		profile->comment = SaveName(cp + 1);
 		return 0;
 	}
-#if 0
+#ifdef ALT_EXEC
 #ifdef CONFIG_TOMOYO
 	if (strcmp(data, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword) == 0) {
 		cp++;
@@ -646,8 +648,10 @@ static int ReadProfile(struct io_buffer *head)
 				case CCS_TOMOYO_MAX_REJECT_LOG:
 				case CCS_TOMOYO_VERBOSE:
 #endif
+#ifndef ALT_EXEC
 				case CCS_TOMOYO_ALT_EXEC:
 				case CCS_SLEEP_PERIOD:
+#endif
 					continue;
 				}
 				if (j == CCS_PROFILE_COMMENT) {
