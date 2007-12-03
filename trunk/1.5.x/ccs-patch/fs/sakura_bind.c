@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.1   2007/10/19
+ * Version: 1.5.2-rc   2007/12/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -35,9 +35,11 @@ static int AddReservedEntry(const u16 min_port, const u16 max_port, const int is
 	struct reserved_entry *new_entry, *ptr;
 	static DECLARE_MUTEX(lock);
 	int error = -ENOMEM;
+	down(&lock);
 	for (ptr = reservedport_list; ptr; ptr = ptr->next) {
 		if (ptr->min_port == min_port && max_port == ptr->max_port) {
 			ptr->is_deleted = is_delete;
+			error = 0;
 			goto out;
 		}
 	}
