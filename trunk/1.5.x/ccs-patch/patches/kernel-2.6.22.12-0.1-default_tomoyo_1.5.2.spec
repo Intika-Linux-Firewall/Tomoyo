@@ -39,7 +39,7 @@ Url:            http://www.kernel.org/
 %endif
 Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
 Version:        2.6.22.12
-Release: 0.1_tomoyo_1.5.1
+Release: 0.1_tomoyo_1.5.2
 License:        GPL v2 or later
 Group:          System/Kernel
 AutoReqProv:    on
@@ -279,8 +279,8 @@ source .rpm-defs
 cd linux-2.6.22
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
-patch -sp1 < /usr/src/ccs-patch-2.6.22.12-0.1_SUSE.diff
+tar -zxf %_sourcedir/ccs-patch-1.5.2-20071019.tar.gz
+patch -sp1 < patches/ccs-patch-2.6.22.12-0.1_SUSE.diff
 sed -i -e 's:-ccs::' -- Makefile
 cat config.ccs >> .config
 cp .config .config.orig
