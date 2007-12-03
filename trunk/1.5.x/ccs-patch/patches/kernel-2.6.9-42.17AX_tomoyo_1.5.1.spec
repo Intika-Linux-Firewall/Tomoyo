@@ -5,22 +5,20 @@ summary: the linux kernel (the core of the linux operating system)
 
 %define buildup 1
 %define buildsmp 1
-%define buildsource 0
+%define buildsource 1
 %define buildhugemem 1
 %define buildlargesmp 1
 %define builddoc 0
-%define buildxen 1
 %define kabi 1
 
 %define FC2 0
 %define FC3 0
 
-#added to allow build with unpackaged or missing docs (CentOS-4)
-%define _unpackaged_files_terminate_build 0
-%define _missing_doc_files_terminate_build 0
+%define WITH_LKST 0
 
-%define rh_release_version 4
-%define rh_release_update 5
+%if %(echo ${WITH_LKST:-0})
+%define WITH_LKST 1
+%endif
 
 # Versions of various parts
 
@@ -30,7 +28,8 @@ summary: the linux kernel (the core of the linux operating system)
 # that the kernel isn't the stock distribution kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 55.0.9.EL_tomoyo_1.5.1
+%define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
+%define release 42.17AX%{axbsys}_tomoyo_1.5.1
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -49,7 +48,7 @@ summary: the linux kernel (the core of the linux operating system)
 %define KVERREL %{PACKAGE_VERSION}-%{PACKAGE_RELEASE}
 
 # groups of related archs
-%define all_x86 i586 i686
+%define all_x86 i686
 
 # Override generic defaults with per-arch defaults 
 
@@ -66,30 +65,26 @@ summary: the linux kernel (the core of the linux operating system)
 %define buildhugemem 0
 %endif
 
-%ifnarch i686 x86_64
-%define buildxen 0
-%endif
-
 # Second, per-architecture exclusions (ifarch)
 
 %ifarch %{all_x86}
 %define buildlargesmp 0
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-i?86*.config
 %define image_install_path boot
-%define signmodules 1
+%define signmodules 0
 %endif
 
 %ifarch x86_64
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-x86_64*.config
 %define image_install_path boot
-%define signmodules 1
+%define signmodules 0
 %endif
 
 %ifarch ppc64
 %define buildsmp 0
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-ppc64*.config
 %define image_install_path boot
-%define signmodules 1
+%define signmodules 0
 %define make_target bzImage zImage.stub
 %endif
 
@@ -98,7 +93,7 @@ summary: the linux kernel (the core of the linux operating system)
 %define buildlargesmp 0
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-ppc64*.config
 %define image_install_path boot
-%define signmodules 1
+%define signmodules 0
 %define make_target bzImage
 %endif
 
@@ -126,8 +121,8 @@ summary: the linux kernel (the core of the linux operating system)
 %ifarch ia64
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-ia64*.config
 %define buildsmp 0
-%define image_install_path boot/efi/EFI/redhat
-%define signmodules 1
+%define image_install_path boot/efi/EFI/asianux
+%define signmodules 0
 %endif
 
 # TOMOYO Linux
@@ -150,7 +145,7 @@ summary: the linux kernel (the core of the linux operating system)
 # problems with the newer kernel or lack certain things that make 
 # integration in the distro harder than needed.
 #
-%define package_conflicts  cipe < 1.4.5, tux < 2.1.0, kudzu <= 0.92, initscripts < 7.23, dev < 3.2-7, iptables < 1.2.5-3, bcm5820 < 1.81, nvidia-rh72 <= 1.0, ipw2200-firmware < 2.4
+%define package_conflicts  cipe < 1.4.5, tux < 2.1.0, kudzu <= 0.92, initscripts < 7.23, dev < 3.2-7, iptables < 1.2.5-3, bcm5820 < 1.81, nvidia-rh72 <= 1.0, ipw2200-firmware < 2.2
 
 #
 # Several packages had bugs in them that became obvious when the NPTL
@@ -171,7 +166,7 @@ summary: the linux kernel (the core of the linux operating system)
 # (we used to just turn off AutoReqProv on all packages)
 #
 %define _use_internal_dependency_generator 0
-%define __find_provides /usr/lib/rpm/redhat/find-kmod-provides.sh
+%define __find_provides /usr/lib/rpm/asianux/find-kmod-provides.sh
 %define __find_requires %{nil}
 
 Name: ccs-kernel
@@ -183,6 +178,7 @@ ExclusiveArch: noarch %{all_x86} x86_64 ppc64 ppc64iseries s390 s390x ia64
 ExclusiveOS: Linux
 Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
+Provides: oracleasm = 2.0.3
 Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}
 
 %if %{kabi}
@@ -203,7 +199,7 @@ Conflicts: %{nptl_conflicts}
 #
 BuildPreReq: module-init-tools, patch >= 2.5.4, bash >= 2.03, sh-utils, tar
 BuildPreReq: bzip2, findutils, gzip, m4, perl, make >= 3.78, gnupg, kernel-utils 
-BuildRequires: gcc >= 2.96-98, binutils >= 2.12, redhat-rpm-config >= 8.0.32.1
+BuildRequires: gcc >= 2.96-98, binutils >= 2.12, asianux-rpm-config >= 5.0
 BuildConflicts: rhbuildsys(DiskFree) < 500Mb
 
 
@@ -211,12 +207,8 @@ BuildConflicts: rhbuildsys(DiskFree) < 500Mb
 Source0: ftp://ftp.kernel.org/pub/linux/kernel/v2.6/linux-%{kversion}.tar.bz2
 
 Source10: COPYING.modules
-Source11: genkey.centos
+Source11: genkey
 Source12: modsign_exclude
-
-#Added sources for the i586 Kernel (CentOS-4)
-Source20: kernel-%{kversion}-i586.config
-Source21: kernel-%{kversion}-i586-smp.config
 
 Source22: kernel-%{kversion}-i686.config
 Source23: kernel-%{kversion}-i686-smp.config
@@ -232,8 +224,6 @@ Source32: kernel-%{kversion}-ppc.config
 Source33: kernel-%{kversion}-ia64.config
 Source34: kernel-%{kversion}-ia64-largesmp.config
 Source35: kernel-%{kversion}-ppc64-largesmp.config
-Source36: kernel-%{kversion}-i686-xenU.config
-Source37: kernel-%{kversion}-x86_64-xenU.config
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
@@ -322,19 +312,6 @@ Patch269: linux-2.6.9-x86-sci-override.patch
 Patch270: linux-2.6.9-x86-timer-over-8254.patch
 Patch271: linux-2.6.9-x8664-lapic-status.patch
 Patch272: linux-2.6.9-x8664-ebda-alloc.patch
-Patch273: linux-2.6.9-x86-time.patch
-Patch274: linux-2.6.9-x8664-iommu.patch
-Patch275: linux-2.6.9-x86-acpi-parse.patch
-Patch276: linux-2.6.9-x8664-mptable.patch
-Patch277: linux-2.6.9-x8664-flush-pmd.patch
-Patch278: linux-2.6.9-x8664-mpparse.patch
-Patch279: linux-2.6.9-x8664-physflat.patch
-Patch280: linux-2.6.9-x8664-nvidia-hpet.patch
-Patch281: linux-2.6.9-x8664-clear-kernel-mapping.patch
-Patch282: linux-2.6.9-x86-acpi-skip-timer-nvidia.patch
-Patch283: linux-2.6.9-x8664-e820.patch
-Patch284: linux-2.6.9-x86-nvidia-hpet.patch
-Patch285: linux-2.6.9-x86_64-zero-extend-regs.patch
 
 # 300 - 399   ppc(64)
 Patch300: linux-2.6.2-ppc64-build.patch
@@ -407,13 +384,6 @@ Patch366: linux-2.6.9-ppc64-vmx.patch
 Patch367: linux-2.6.9-ppc64-eeh.patch
 Patch368: linux-2.6.9-ppc64-ptrace.patch
 Patch369: linux-2.6.9-ppc64-user-access.patch
-Patch370: linux-2.6.9-ppc64-eclipz.patch
-Patch371: linux-2.6.9-ppc-hvc-ntty.patch
-Patch372: linux-2.6.9-ppc-ehea.patch
-Patch373: linux-2.6.9-ppc-ebus.patch
-Patch374: linux-2.6.9-ppc64-request-irq.patch
-Patch375: linux-2.6.9-ppc64-translate-intel-binary.patch
-Patch376: linux-2.6.9-ppc64-sctu.patch
 
 # 400 - 499   ia64
 Patch400: linux-2.6.3-ia64-build.patch
@@ -458,12 +428,6 @@ Patch438: linux-2.6.9-ia64-unaligned.patch
 Patch439: linux-2.6.9-ia64-irq-share.patch
 Patch440: linux-2.6.9-ia64-mmu-context.patch
 Patch441: linux-2.6.9-ia64-osinit-dump.patch
-Patch442: linux-2.6.9-ia64-itc-sync.patch
-Patch443: linux-2.6.9-ia64-fls.patch
-Patch444: linux-2.6.9-ia64-discontig.patch
-Patch445: linux-2.6.9-ia64-iomap.patch
-Patch446: linux-2.6.9-ia64-lapic-status.patch
-Patch447: linux-2.6.9-ia64-disable-cmc-interrupt.patch
 
 # 500 - 599   s390(x)
 Patch500: linux-2.6.1-s390-compile.patch
@@ -516,14 +480,6 @@ Patch547: linux-2.6.9-s390-crypto-overwrite.patch
 Patch548: linux-2.6.9-s390-lcs-update.patch
 Patch549: linux-2.6.9-s390-hypfs.patch
 Patch550: linux-2.6.9-s390-copy-from-user.patch
-Patch551: linux-2.6.9-s390-cio-update.patch
-Patch552: linux-2.6.9-s390-scsi-reboot.patch
-Patch553: linux-2.6.9-s390-3270-console.patch
-Patch554: linux-2.6.9-s390-tape-update.patch
-Patch555: linux-2.6.9-s390-appldata.patch
-Patch556: linux-2.6.9-s390-monreader.patch
-Patch557: linux-2.6.9-s390-cmm.patch
-Patch558: linux-2.6.9-s390-netiucv.patch
 
 #
 # Patches 900 through 1000 are reserved for bugfixes to the core system
@@ -598,12 +554,9 @@ Patch1080: linux-2.6.7-voluntary-preemption.patch
 Patch1081: linux-2.6.7-early-schedule.patch
 Patch1082: linux-2.6.9-ramfs.patch
 
-Patch1083: linux-2.6.9-jbd-journal-commit.patch
 Patch1084: linux-2.6.9-ext2-readdir-fpos.patch
-Patch1085: linux-2.6.9-ext3-doff.patch
-Patch1086: linux-2.6.9-ext3-delete-orphan-inode.patch
+
 Patch1087: linux-2.6.9-ext3-robustness.patch
-Patch1088: linux-2.6.9-ext3-dir-hole.patch
 
 # SATA bits.
 Patch1100: linux-2.6.9-sata.patch
@@ -756,7 +709,9 @@ Patch1332: linux-2.6.9-bonding.patch
 Patch1333: linux-2.6.9-net-sctp-shutdown.patch
 Patch1334: linux-2.6.9-net-sctp-receive-buffer.patch
 Patch1335: linux-2.6.9-net-sctp.patch
-Patch1336: linux-2.6.9-netfilter.patch
+Patch1336: linux-2.6.9-sctp-sysctl-64bit-fix.patch
+Patch1337: linux-2.6.9-sctp-msecs-jiffies-conv.patch
+Patch1338: linux-2.6.9-sctp-use-linearize.patch
 
 # NIC driver updates
 Patch1350: linux-2.6.9-net-b44-4g4g.patch
@@ -797,11 +752,7 @@ Patch1385: linux-2.6.9-net-tg3-ethtool.patch
 Patch1386: linux-2.6.9-net-bnx2-driver.patch
 Patch1387: linux-2.6.9-net-mii-update.patch
 Patch1388: linux-2.6.9-net-sky2.patch
-Patch1389: linux-2.6.9-net-add-skge.patch
-Patch1390: linux-2.6.9-amd8111e.patch
-Patch1391: linux-2.6.9-r8169-update.patch
-Patch1392: linux-2.6.19-tg3-update.patch
-Patch1393: linux-2.6.9-qla3xxx.patch
+patch1389: linux-2.6.9-net-add-skge.patch
 Patch1394: linux-2.6.9-pppoe.patch
 
 # ACPI Horrors.
@@ -811,7 +762,6 @@ Patch1402: linux-2.6.9-acpi-debug-level.patch
 Patch1403: linux-2.6.9-acpi-reset-mechanism.patch
 Patch1404: linux-2.6.9-acpi-panic-pci_root_add.patch
 Patch1405: linux-2.6.9-acpi-xsdt.patch
-Patch1406: linux-2.6.9-acpi-shutdown.patch
 
 # Kprobes
 Patch1450: linux-2.6.12-kprobes-base.patch
@@ -841,7 +791,6 @@ Patch1510: linux-2.6.7-netdump.patch
 Patch1520: linux-2.6.8-netconsole.patch
 Patch1521: linux-2.6.9-netconsole-tg3-oops.patch
 Patch1530: linux-2.6.9-netpoll-oops.patch
-Patch1531: linux-2.6.9-netpoll-fixes.patch
 
 # Diskdump goodies.
 Patch1540: linux-2.6.8-diskdump-3.patch
@@ -943,7 +892,6 @@ Patch1994: linux-2.6.9-active-pci-support.patch
 Patch1995: linux-2.6.9-pci-scan-device-master-abort.patch
 Patch1996: linux-2.6.9-pci-bar-size.patch
 Patch1997: linux-2.6.9-sched-pin-inline.patch
-Patch1998: linux-2.6.9-on-each-cpu.patch
 
 # VM bits.
 Patch2000: linux-2.6.9-vm-tame-oomkiller.patch
@@ -978,9 +926,6 @@ Patch2031: linux-2.6.9-fork-optimization.patch
 Patch2032: linux-2.6.9-swap-lock-page.patch
 Patch2033: linux-2.6.9-bootmem.patch
 Patch2034: linux-2.6.9-busy-inodes.patch
-Patch2035: linux-2.6.9-vm-deadlock.patch
-Patch2036: linux-2.6.9-vm-swap-io-error.patch
-Patch2037: linux-2.6.9-vm-balance.patch
 
 # IDE bits.
 Patch2100: linux-2.6.9-ide-csb6-raid.patch
@@ -1007,11 +952,6 @@ Patch2210: linux-2.6.9-usb-ehci-nvidia.patch
 Patch2211: linux-2.6.9-usb-cd-size.patch
 Patch2212: linux-2.6.9-usb-error-handling.patch
 Patch2213: linux-2.6.9-pizzaro-reboot.patch
-Patch2214: linux-2.6.9-usb-hid.patch
-Patch2215: linux-2.6.9-usb-uhci-hcd-race.patch
-Patch2216: linux-2.6.9-ohci.patch
-Patch2217: linux-2.6.9-pwc-update.patch
-Patch2218: linux-2.6.9-usb-storage.patch
 
 # More SCSI bits.
 Patch2300: linux-2.6.9-scsi-silence-sg_io-warning.patch
@@ -1044,10 +984,6 @@ Patch2326: linux-2.6.9-scsi-qla2xxx-update.patch
 Patch2327: linux-2.6.9-scsi-aic7xxx.patch
 Patch2328: linux-2.6.9-scsi-adp94xx.patch
 Patch2329: linux-2.6.9-scsi-3ware-update.patch
-Patch2330: linux-2.6.9-scsi-sr.patch
-Patch2331: linux-2.6.9-scsi-scsicam.patch
-Patch2332: linux-2.6.18-sata-update.patch
-Patch2333: linux-2.6.9-scsi-qla4xxx.patch
 
 # Audit patches
 Patch2400: linux-2.6.9-audit-retcode.patch
@@ -1109,7 +1045,6 @@ Patch2455: linux-2.6.9-audit-dup-rules.patch
 Patch2456: linux-2.6.9-audit-ppc64-syscallresult.patch
 Patch2457: linux-2.6.9-audit-syscall-fail.patch
 Patch2458: linux-2.6.9-audit-msg2.patch
-Patch2459: linux-2.6.9-audit-updates.patch
 
 # Key management patches
 Patch2500: linux-2.6.13-taskaux.patch
@@ -1140,16 +1075,6 @@ Patch2566: linux-2.6.9-fd-limit.patch
 Patch2567: linux-2.6.9-dio-gfs-locking.patch
 Patch2568: linux-2.6.9-poll.patch
 Patch2569: linux-2.6.9-fs-lsm-hooks.patch
-Patch2570: linux-2.6.9-dio-error-propogation.patch
-Patch2571: linux-2.6.9-fs-may-exec.patch
-Patch2572: linux-2.6.9-fs-close.patch
-Patch2573: linux-2.6.9-fs-mtime.patch
-Patch2574: linux-2.6.9-fs-quota.patch
-Patch2575: linux-2.6.9-fs-wide-inumbers.patch
-Patch2576: linux-2.6.9-fs-read-write-barrier.patch
-Patch2577: linux-2.6.9-fs-prevent-inode-overflow.patch
-Patch2578: linux-2.6.9-fs-lustre-support.patch
-Patch2579: linux-2.6.9-fs-inode-accounting.patch
 
 # Device Mapper patches
 Patch2600: linux-2.6.13-dm-swap-error.patch
@@ -1166,28 +1091,58 @@ Patch2610: linux-2.6.13-dm-mpath-pg-init.patch
 Patch2611: linux-2.6.13-dm-mpath-scsi-error.patch
 Patch2612: linux-2.6.14-dm-updates.patch
 Patch2613: linux-2.6.9-dm-mirror-update.patch
-Patch2614: linux-2.6.19-dm-updates.patch
 
 # OpenIB Infiniband patches
-Patch2700: linux-2.6.9-OFED-1.1.patch
+Patch2700: linux-2.6.9-OFED-1.0-rc6.patch
 Patch2701: linux-2.6.9-spinlock-define.patch
 Patch2702: linux-2.6.9-if_infiniband.patch
 Patch2703: linux-2.6.9-gfp_t-typedef.patch
 Patch2704: linux-2.6.9-empty-debugfs.patch
-Patch2705: linux-2.6.9-pci_find_next_cap.patch
-Patch2706: linux-2.6.9-wait_for_completion_timeout.patch
-Patch2707: linux-2.6.9-OpenIB-build.patch
-Patch2708: linux-2.6.9-OpenIB-read_mostly.patch
-Patch2709: linux-2.6.9-OpenIB-flush_core_git.patch
-Patch2710: linux-2.6.9-OpenIB-flush_users.patch
-Patch2711: linux-2.6.9-OpenIB-mad_rmpp_requester_retry.patch
-Patch2712: linux-2.6.9-OpenIB-srp_avoid_null_deref.patch
-Patch2713: linux-2.6.9-OpenIB-4g-dma.patch
-Patch2714: linux-2.6.9-scsi_scan_target-export.patch
-Patch2715: linux-2.6.9-mutex-backport.patch
-# Uncertain patches
-Patch2720: linux-2.6.9-OpenIB-rdma_misc.patch
-Patch2721: linux-2.6.9-OpenIB-sa_pack_unpack.patch
+Patch2705: linux-2.6.9-mutex-backport.patch
+Patch2706: linux-2.6.9-pci_find_next_cap.patch
+Patch2707: linux-2.6.9-scsi_scan_target-export.patch
+Patch2708: linux-2.6.9-wait_for_completion_timeout.patch
+Patch2709: linux-2.6.9-OpenIB-build.patch
+Patch2710: linux-2.6.9-OpenIB-core.patch
+Patch2711: linux-2.6.9-OpenIB-idr.patch
+Patch2712: linux-2.6.9-OpenIB-mthca-dev.patch
+Patch2713: linux-2.6.9-OpenIB-mthca-provider.patch
+Patch2714: linux-2.6.9-OpenIB-sdp-orphan.patch
+Patch2715: linux-2.6.9-OpenIB-srp-locking.patch
+Patch2716: linux-2.6.9-OpenIB-umad.patch
+Patch2717: linux-2.6.9-OpenIB-uverbs.patch
+Patch2718: linux-2.6.9-OpenIB-srp-header.patch
+Patch2719: linux-2.6.9-OpenIB-addr-arp.patch
+Patch2720: linux-2.6.9-OpenIB-addr-include.patch
+Patch2721: linux-2.6.9-OpenIB-ucm-devt.patch
+Patch2722: linux-2.6.9-OpenIB-ucma.patch
+Patch2723: linux-2.6.9-OpenIB-device-backport.patch
+Patch2724: linux-2.6.9-OpenIB-read_mostly.patch
+Patch2725: linux-2.6.9-OpenIB-scatterlist.patch
+Patch2726: linux-2.6.9-OpenIB-ipoib-neighbour.patch
+Patch2727: linux-2.6.9-OpenIB-skb_header_release.patch
+Patch2728: linux-2.6.9-OpenIB-ia64-bitop.patch
+Patch2729: linux-2.6.9-OpenIB-net-includes.patch
+Patch2730: linux-2.6.9-OpenIB-workqueue.patch
+Patch2731: linux-2.6.9-OpenIB-add_lmc_cache.patch
+Patch2732: linux-2.6.9-OpenIB-flush_core_git.patch
+Patch2733: linux-2.6.9-OpenIB-flush_users.patch
+Patch2734: linux-2.6.9-OpenIB-git_ucm_ib_listen.patch
+Patch2735: linux-2.6.9-OpenIB-ipath_rollup.patch
+Patch2736: linux-2.6.9-OpenIB-ipoib_misaligned.patch
+Patch2737: linux-2.6.9-OpenIB-ipoib_netif_wake_fix.patch
+Patch2738: linux-2.6.9-OpenIB-local_sa.patch
+Patch2739: linux-2.6.9-OpenIB-mad_rmpp_requester_retry.patch
+Patch2740: linux-2.6.9-OpenIB-rdma_misc.patch
+Patch2741: linux-2.6.9-OpenIB-request_check_GID_LID.patch
+Patch2742: linux-2.6.9-OpenIB-sa_pack_unpack.patch
+Patch2743: linux-2.6.9-OpenIB-srp_avoid_null_deref.patch
+Patch2744: linux-2.6.9-OpenIB-srp_saquery.patch
+Patch2745: linux-2.6.9-OpenIB-ipath-backport.patch
+Patch2746: linux-2.6.9-OpenIB-srp-host.patch
+Patch2747: linux-2.6.9-OFED-rc6-to-final.patch
+Patch2748: linux-2.6.9-OpenIB-mthca_cq_error.patch
+Patch2749: linux-2.6.9-OpenIB-sdp_fix.patch
 
 # EDAC Support
 Patch2800: linux-2.6.9-edac.patch
@@ -1211,9 +1166,8 @@ Patch3007: linux-2.6.9-emulex-lpfc-801626.patch
 Patch3008: linux-2.6.9-emulex-lpfc-shutdown.patch
 Patch3009: linux-2.6.9-emulex-lpfcdfc-20014.patch
 
-
 # Speedtouch USB DSL modem driver.
-Patch3015: linux-2.6.9-speedtouch.patch
+Patch3010: linux-2.6.9-speedtouch.patch
 
 # Intel Centrino wireless drivers.
 Patch3020: linux-2.6.9-ipw2100.patch
@@ -1278,31 +1232,6 @@ Patch4051: linux-2.6.9-i2c.patch
 Patch4052: linux-2.6.9-audit-execve.patch
 Patch4053: linux-2.6.9-rsa-driver-fixes.patch
 Patch4054: linux-2.6.9-boot-cpu-id.patch
-Patch4055: linux-2.6.9-fork-race.patch
-Patch4056: linux-2.6.9-mousedev-release.patch
-Patch4057: linux-2.6.9-sun-partition.patch
-Patch4058: linux-2.6.9-hotplug-ppb-support.patch
-Patch4059: linux-2.6.9-sched-accouting.patch
-Patch4060: linux-2.6.9-sched-lock-ordering.patch
-Patch4061: linux-2.6.9-keymap.patch
-Patch4062: linux-2.6.9-procfs-setuid-maps.patch
-Patch4063: linux-2.6.9-loop.patch
-Patch4064: linux-2.6.9-shm.patch
-Patch4065: linux-2.6.9-gate-vma.patch
-Patch4066: linux-2.6.9-udf.patch
-Patch4067: linux-2.6.9-smsc47b397-sensors.patch
-Patch4068: linux-2.6.9-input-poll-error.patch
-Patch4069: linux-2.6.9-sys-time-compat.patch
-Patch4070: linux-2.6.9-irq-uidhash-lock.patch
-Patch4071: linux-2.6.9-signal.patch
-Patch4072: linux-2.6.9-x86-acpi-pstate.patch
-Patch4073: linux-2.6.9-proc-readdir.patch
-Patch4074: linux-2.6.9-nic-ordering.patch
-Patch4075: linux-2.6.9-lofft-elf-core.patch
-Patch4076: linux-2.6.9-module.patch
-Patch4077: linux-2.6.9-pcmcia.patch
-Patch4078: linux-2.6.9-video.patch
-Patch4079: linux-2.6.9-version_h.patch
 Patch4080: linux-2.6.9-core-dump.patch
 Patch4081: linux-2.6.9-compat.patch
 Patch4082: linux-2.6.9-bluetooth.patch
@@ -1312,16 +1241,6 @@ Patch4100: linux-2.6.9-alsa-vx222-newid.patch
 Patch4101: linux-2.6.9-alsa-intel-hd-driver.patch
 Patch4102: linux-2.6.9-alsa-realtek-alc260.patch
 Patch4103: linux-2.6.9-alsa-intel-hd-driver-update.patch
-
-# Xen patches.
-Patch4200: linux-2.6.9-xen-changedfiles.patch
-Patch4201: linux-2.6.9-xen-newfiles.patch
-Patch4202: linux-2.6.9-xen-hotplug.patch
-Patch4203: linux-2.6.9-xen-updates.patch
-Patch4204: linux-2.6.9-xen-rebase.patch
-Patch4205: linux-2.6.9-xen-pvfb.patch
-Patch4206: linux-2.6.9-xen-console.patch
-Patch4207: linux-2.6.9-xen-more-updates.patch
 
 # Security fixes.
 Patch5000: linux-2.6.9-CAN-2004-1056-drm-insufficient-locking.patch
@@ -1354,6 +1273,7 @@ Patch5027: linux-2.6.9-CAN-2005-2555-cap-net-admin.patch
 Patch5028: linux-2.6.9-CAN-2005-2100-44split.patch
 Patch5029: linux-2.6.9-CAN-2005-2490-sendmsg-compat.patch
 Patch5030: linux-2.6.9-CAN-2005-2492-sendmsg.patch
+Patch5031: linux-2.6.9-CAN-2005-2872-ipt-recent.patch
 Patch5032: linux-2.6.9-CAN-2005-3053-set-mempolicy.patch
 Patch5033: linux-2.6.9-CAN-2005-3110-ebtables-race.patch
 Patch5034: linux-2.6.9-CAN-2005-3119-key-leak.patch
@@ -1412,6 +1332,331 @@ Patch10001: linux-2.6.9-exports.patch
 Patch10002: linux-2.6.9-slab-update.patch
 Patch10003: linux-2.6.9-pci-ids.patch
 
+
+# update from 2.6.9-42.0.3.EL
+Patch90000: linux-2.6.9-ia64-perfmon-update-update-from-rhel.patch
+Patch90001: linux-2.6.9-ipw2100-update-update-from-rhel.patch
+Patch90002: linux-2.6.9-ipw2200-update-update-from-rhel.patch
+Patch90003: linux-2.6.9-net-sctp-update-from-rhel.patch
+Patch90004: linux-2.6.9-x86_64-hugetlb-update-from-rhel.patch
+Patch90005: linux-2.6.12-network-update-from-rhel.patch
+# update from 2.6.9-42.29.EL
+Patch95000: linux-2.6.9-x8664-core-from-rhel5.patch
+Patch95001: linux-2.6.10-sysfs-update-from-rhel5.patch
+Patch95002: linux-2.6.12-network-from-rhel5.patch
+Patch95003: linux-2.6.9-sched-lock-ordering.patch
+Patch95004: linux-2.6.9-scsi-sr.patch
+Patch95005: linux-2.6.9-x86-acpi-parse.patch
+# 2.6.9-42.29.EL fixes
+Patch97000: linux-2.6.9-topdown-mmap-fix.patch
+Patch97001: linux-2.6.9-x8664-core-fix.patch
+Patch97002: linux-2.6.12-addrconf-fix.patch
+Patch97003: linux-2.6.9-quirks-from-rhel5.patch
+Patch97004: linux-2.6.9-x86_64-nmi-switch-from-rhel.patch
+# 2.6.9-55.EL CVE fixes & Update CIFS to 1.45
+Patch97010: linux-2.6.9-cifs-update-1.45.patch
+Patch97011: linux-2.6.9-procfs-setuid-maps.patch
+Patch97015: linux-2.6.9-CVE-2005-3257-fix-loadkeys.patch
+Patch97016: linux-2.6.9-CVE-2006-1863-cifs-dir.patch
+Patch97017: linux-2.6.9-CVE-2005-2873-ipt_recent-crash.patch
+Patch97018: linux-2.6.9-CVE-2005-2873-ipt_recent-crash-fix.patch
+Patch97019: linux-2.6.9-CVE-2007-1592-ipv6-triggerable.patch
+Patch97020: linux-2.6.9-CVE-2007-3379-gate-vma.patch
+# 2.6.9-55.0.2.EL CVE fixes
+Patch98000: linux-2.6.9-CVE-2006-5158-nfs-lockd.patch
+Patch98001: linux-2.6.9-CVE-2007-0773-fput-ioctl.patch
+Patch98002: linux-2.6.9-CVE-2007-2172-fib_semantics-bound.patch
+Patch98003: linux-2.6.9-CVE-2007-2876-ip_conntrack_sctp.patch
+# 2.6.9-55.0.6.EL CVE fixes
+Patch98005: linux-2.6.9-CVE-2006-0558-ia64-perfmon-crash.patch
+Patch98006: linux-2.6.9-CVE-2007-1217-capi-buffer-overflow.patch
+# 2.6.9-55.0.9.EL CVE fixes
+Patch98007: linux-2.6.9-CVE-2007-4573-x86_64-zero-extend-regs.patch
+
+#
+# Asianux:
+#
+# 100200 - 100299   x86(-64)
+#
+Patch100202: linux-2.6.9-x86_64-posix_timer_expire.patch
+Patch100203: linux-2.6.9-x86_64-preempt.patch
+Patch100204: linux-2.6.9-x86_64-xconfig.patch
+Patch100206: linux-2.6.9-cpumask.patch
+Patch100208: linux-2.6.9-x86-smp-nmi-watchdog-race-fix.patch
+Patch100209: linux-2.6.9-x86_64-lost_ticks_warning.patch
+Patch100227: linux-2.6.9-add-missing-refrigerator-support-to-io_apic.patch
+Patch100245: linux-2.6.9-mmconfig-tlb-race-fix.patch
+Patch100250: linux-2.6.9-x86-pci-ioapic-fix.patch
+Patch100255: linux-2.6.15-x86_64-write-apic-id.patch
+Patch100260: linux-2.6-ignore-64bit-bars-on-32bit.patch
+Patch100261: linux-2.6-pci-64bit-bar-on-32bit-arch.patch
+Patch100262: linux-2.6.9-x86_64-mmconfig-fix.patch
+Patch100263: linux-2.6.15-x86-convert-bigsmp-to-use-flat-physical-mode.patch
+Patch100264: linux-2.6.9-ia32e-stack-vm_account-fix.patch
+Patch100265: linux-2.6.9-x86_64-dma-usage-fix1.patch
+Patch100266: linux-2.6.9-x86_64-dma-usage-fix2.patch
+
+#
+# 100300 - 100399   ppc(64)
+#
+# 100400 - 100499   ia64
+#
+# Patches 100500 through 101000 are reserved for bugfixes to the core system
+# and patches related to how RPMs are build
+#
+Patch100502: linux-2.6.9-asianux-compileh.patch
+#
+# Linux Event Logging for the Enterprise
+#
+Patch100610: linux-2.6.4-evlog.patch
+Patch100611: linux-2.6.4-evlog-legacy.patch
+# kdb support
+Patch100620: linux-2.6.9-kdb-4.4-common.patch
+Patch100621: linux-2.6.9-kdb-4.4-i386.patch
+Patch100622: linux-2.6.9-kdb-4.4-x86_64.patch
+Patch100623: linux-2.6.9-kdb-4.4-ia64.patch
+Patch100625: linux-2.6.9-kdb-4.4-KDB_ENTER.patch
+Patch100626: linux-2.6.9-kdb-noblink-option.patch
+Patch100627: linux-2.6.9-kdb-kdbsupport-fix.patch
+Patch100628: linux-2.6.9-kdb-4.4-x86_64-reboot-ssb-fix.patch
+# force umount
+Patch100640: linux-2.6.9-fumount-6.37.patch
+# oracle asm 2.0.3
+Patch100650: linux-2.6.9-oracleasm-2.0.3.patch
+# misc
+Patch100680: linux-2.6.9-posix_mmap.patch
+Patch100720: linux-2.6.9-netem-memory-leak-fix.patch
+Patch100732: linux-2.6.9-suppress-might_sleep-if-oopsing-fix.patch
+Patch100733: linux-2.6.9-deadlock-uidhash_lock-and-tasklist_lock.patch
+Patch100742: linux-2.6.9-selinux-dynamic-context-transition.patch
+Patch100774: linux-2.6.9-sis-ide.patch
+Patch100775: linux-2.6.9-ipv6-anycast-refcnt-fix.patch
+Patch100776: linux-2.6.9-openipmi-compat.patch
+# block device IO performance improvement
+Patch100794: linux-2.6.9-blk-misc.patch
+# misc sysrq fix
+Patch100810: linux-2.6.9-sysrq-fix.patch
+#
+Patch100820: linux-2.6.9-fork-invalidates-fd-fix.patch
+Patch100830: linux-2.6.9-vmalloc_fix.patch
+Patch100840: linux-2.6.9-hugetlb-unmap-fix.patch
+Patch100850: linux-2.6.9-ucode-rhel4-u4.patch
+Patch100860: linux-2.6.9-oprofile-kernel.patch
+Patch100870: linux-2.6.9-use-all_unreclaimable.patch
+Patch100871: linux-2.6.9-tweaks-cfq-nr_request.patch
+Patch100875: linux-2.6.9-percpu-warning.patch
+# sysfs fixes
+Patch100900: linux-2.6.9-sysfs_hash_and_remove_file-fix.patch
+Patch100901: linux-2.6.9-sysfs-fix-sysfs_add_link-leak.patch
+Patch100902: linux-2.6.9-sysfs-get_patch-fix.patch
+Patch100903: linux-2.6.9-sysfs_remove_dir-invalidate.patch
+Patch100904: linux-2.6.20-sysfs_readdir-fix-null-dereference.patch
+#
+# Patches 101000 to 104999 are reserved for bugfixes to drivers and filesystems
+#
+Patch101382: linux-2.6.9-e1000-wakeup-s5-fix.patch
+# update e1000 7.3.15
+Patch101383: linux-2.6.9-e1000-7.3.15.patch
+Patch101384: linux-2.6.9-e1000-7.3.15-update.patch
+Patch101385: linux-2.6.9-e1000-7.2.9.patch
+Patch101386: linux-2.6.9-e1000-7.2.9-update.patch
+Patch101387: linux-2.6.9-e1000-7.2.9-80003es2lan-fix.patch
+Patch101388: linux-2.6.9-e1000-7.2.9-ERT-fix.patch
+Patch101389: linux-2.6.9-e1000-7.2.9-enable-1000.patch
+Patch101390: linux-2.6.9-e1000-7.2.9-add-SIOCSMIIREG.patch
+Patch101391: linux-2.6.9-e1000-7.2.9-update_stats-fix.patch
+Patch101392: linux-2.6.9-e1000-7.2.9-phy-reg-race-fix.patch
+Patch101393: linux-2.6.9-e1000-7.2.9-SIOCSMIIREG-fix.patch
+#
+# Diskdump goodies for Asianux.
+#
+Patch101500: linux-2.6.8-crashdump-common-fix.patch
+#
+Patch101570: linux-2.6.9-diskdump-sata_sx4.patch
+Patch101576: linux-2.6.9-diskdump-usb-storage.patch
+# ignore obsolete module option
+Patch101583: linux-2.6.9-cciss-dump-obsoleted-option.patch
+Patch101584: linux-2.6.9-mpt-fusion-driver-initialization-failure-fix.patch
+#
+Patch101660: linux-2.6.9-ide_noraid.patch
+Patch101670: linux-2.6.9-pciehp.patch
+Patch101680: linux-2.6.9-pciehp-warnnig-fix.patch
+Patch101690: linux-2.6.9-pcie-pm-quirk.patch
+Patch101691: linux-2.6.9-pxh-shpc-msi.patch
+#
+# add bcm5700
+#
+Patch101710: linux-2.6.9-bcm5700-v8.3.14a.patch
+Patch101711: linux-2.6.9-bcm5700-netdump.patch
+#
+Patch101800: linux-2.6.9-hangul_kbd.patch
+#
+# add sk98lin
+#
+Patch102030: linux-2.6.9-sk98lin-v8.16.2.3.patch
+Patch102031: linux-2.6.9-sk98lin_v8.41.2.3.patch
+Patch102032: linux-2.6.9-sk98lin_v8.41.2.3-update.patch
+# update tg3 3.58b
+Patch102040: linux-2.6.9-tg3-3.58b.patch
+Patch102041: linux-2.6.9-tg3-3.58b-fixes.patch
+# update sky2 to 1.6
+Patch102050: linux-2.6.9-net-sky2-v1.6.patch
+# update s2io to 2.0.14.5152
+Patch102055: linux-2.6.9-s2io-2.0.14.5152.patch
+# IOAT 1.7
+Patch102060: linux-2.6.9-ioat-1.7.patch
+Patch102061: linux-2.6.9-ioat-disable.patch
+#
+# Ext2/Ext3 fixes
+#
+Patch102100: linux-2.6.9-ext2-quota-leak-fix.patch
+Patch102102: linux-2.6.9-commit-superblock-before-panicking.patch
+Patch102103: linux-2.6.9-commit-superblock-before-panicking-fix.patch
+Patch102106: linux-2.6.9-divide-by-zero-mount-ext3-fix.patch
+Patch102107: linux-2.6.9-divide-by-zero-on-bad-ext2-fix.patch
+#
+# Scsi
+#
+# dpt_i2o
+Patch102110: linux-2.6.9-scsi-dpt_i2o_2.5.0_2419.patch
+Patch102111: linux-2.6.9-scsi-dpt_i2o-Kconfig_enable-64BIT.patch
+Patch102112: linux-2.6.9-scsi-dpt_i2o-enable_asm.patch
+Patch102113: linux-2.6.9-dpt_i2o-hba_reset-fix.patch
+Patch102114: linux-2.6.9-dpt_i2o-ioctl-fix.patch
+Patch102115: linux-2.6.9-dpt_i2o-refcnt-fix.patch
+#
+Patch102200: linux-2.6.9-usb_sg-unlink-deadlock-fix.patch
+Patch102201: linux-2.6.9-scsi-aic79xx-ignore_hostraid.patch
+Patch102202: linux-2.6.9-aic79xx-module_param-fix.patch
+Patch102211: linux-2.6.9-add-wake_up_all-for-waitqueue-in-usbfs_remove_file-fix.patch
+Patch102301: linux-2.6.9-i2o-request-regions.patch
+#
+Patch102401: linux-2.6.9-loop-device-resursion-avoidance.patch
+Patch102402: linux-2.6.9-random-overflow-fix.patch
+Patch102501: linux-2.6.9-umount-avoid-racy-block-size-set-fix.patch
+Patch102510: linux-2.6.9-nls-Japanese.patch
+Patch102520: linux-2.6.9-scsi-device-busy.patch
+Patch102521: linux-2.6.12-rc2-fix-scsi-serial_number-race.patch
+Patch102522: linux-2.6.9-st-oops-module-removal-fix.patch
+Patch102523: linux-2.6.9-st-refcnt-and-related-fixes.patch
+Patch102524: linux-2.6.9-scsi_device_lookup-fix.patch
+# stex
+Patch102530: linux-2.6.9-stex-3.0.0.1.patch
+# aacraid
+Patch102540: linux-2.6.9-aacraid-1.1.5-2420.patch
+Patch102541: linux-2.6.9-aacraid-1.1.5-2431.patch
+# megaraid_sas
+Patch102550: linux-2.6.9-megaraid_sas-zcr.patch
+Patch102551: linux-2.6.9-megaraid_sas-03.05-update.patch
+Patch102552: linux-2.6.9-megaraid_sas-03.05-sync_cache-fix.patch
+Patch102553: linux-2.6.9-megaraid_sas-03.05-diskdump-fix.patch
+Patch102554: linux-2.6.9-megaraid_sas-msleep.patch
+Patch102555: linux-2.6.9-megaraid_sas-timeout.patch
+# qla2xxx failover 8.01.06
+Patch102560: linux-2.6.9-qlogic-8.01.06-failover.patch
+Patch102561: linux-2.6.9-qlogic-8.01.06-failover-fix.patch
+#
+# libata
+#
+Patch102580: linux-2.6.20-ata_task_ioctl-smart-fix.patch
+Patch102581: linux-2.6.9-ata_task_ioctl-smart-fix2.patch
+#
+# md fixes
+#
+Patch102604: linux-2.6.9-md-fix-typo-in-super_1_sync-fix.patch
+#
+# usb
+#
+Patch102700: linux-2.6.9-usb-core-hub_start_disconnect-add-parent-lock.patch
+Patch102701: linux-2.6.9-usb-ohci-add-mod_param-set_fminterval.patch
+#
+# efi fix
+#
+Patch103000: linux-2.6.9-efi-acpi-fix.patch
+# fix 103000 bug on HPrx7620(IA64)
+Patch103001: linux-2.6.9-fix-efi-acpi-osl177.patch
+# fix a bug when CONFIG_ACPI_DEBU=y
+Patch103002: linux-2.6.9-fix-CONFIG_ACPI_DEBUG-ON.patch
+#
+# misc Taiwan string
+#
+Patch103220: linux-2.6.9-tw.patch
+#
+# Patches from 130000 to 130999 are reserved for XFS support.
+#
+Patch130000: linux-2.6.9-xfs_sgicore.patch
+Patch130001: linux-2.6.9-xfs_rhel.patch
+Patch130010: linux-2.6.9-xfs-quota.patch
+Patch130020: linux-2.6.9-xfs-export.patch
+Patch130030: linux-2.6.9-xfs-stack-dynamic.patch
+Patch130031: linux-2.6.9-xfs-stack-mempool.patch
+#
+# Patches from 131000 to 131999 are reserved for OCFS2 support.
+#
+Patch131000: linux-2.6.9-ocfs2-1.2.3.patch
+#
+# Patches 150000 to 160000 are reserved for NEC FT patches
+#
+Patch150000: linux-2.6.9-acpiphp-p2p-bridge.patch
+Patch150010: linux-2.6.9-necft-exports.patch
+Patch150020: linux-2.6.9-scsi-hostno-alloc.patch
+Patch150021: linux-2.6.9-scsi-hostno-alloc-fixes.patch
+Patch150030: linux-2.6.9-usb-ohci-hub-fix.patch
+Patch150040: linux-2.6.9-vesafb-off.patch
+Patch150050: linux-2.6.9-usb-ohci-no-autosuspend.patch
+Patch150060: linux-2.6.9-usb-ohci-urb_unlinks-NULL-check.patch
+Patch150070: linux-2.6.9-bond-mii-report.patch
+#
+# Patches 200000 through 210000 are reserved for non-standard patches
+#
+Patch200721: linux-2.6.9-multicast-bind-autobind-race-fix.patch
+#
+# TESTING
+#
+# mm fixes
+Patch200752: linux-2.6.9-vmscan-count-writeback-pages-in-nr_scanned-fix.patch
+Patch200753: linux-2.6.9-orphaned-pagecache-memleak-fix.patch
+Patch200754: linux-2.6.9-iounmap-and-pageattr-memleak-fix.patch
+# USB fixes
+#Patch202202: linux-2.6.9-usb-ehci-qh-update-race-fix.patch
+#Patch202203: linux-2.6.9-usb-ehci-requeue-revisit.patch
+#Patch202205: linux-2.6.9-ehci-park-mode-disable.patch
+#Patch202206: linux-2.6.9-khubd-looks-at-ports-after-probe.patch
+#Patch202207: linux-2.6.9-ohci-zero-length-control-in-transfer-fix.patch
+#Patch202300: linux-2.6.9-evdev-usb-mouse-disconnect-oops-fix.patch
+# misc
+Patch202500: linux-2.6.9-reduce-i_sem-usage-during-file-sync-oprations.patch
+Patch202700: linux-2.6.9-ieee1394-vmalloc-leak-fix.patch
+#
+# LKST
+#
+# lkst standard patches
+Patch240010: linux-2.6.9-preassigned-2.6.9.patch
+Patch240020: linux-2.6.9-kernelhooks-v1.8-269-base.patch
+Patch240030: linux-2.6.9-kernelhooks-v1.8-fix_kconfig.patch
+Patch240040: linux-2.6.9-kernelhooks-v1.8-fix_kmakefile.patch
+Patch240050: linux-2.6.9-kernelhooks-v1.8-resolve_dependency.patch
+Patch240060: linux-2.6.9-kernelhooks-v1.8-support_ia64.patch
+Patch240070: linux-2.6.9-kernelhooks-v1.8-support_x86_64.patch
+Patch240080: linux-2.6.9-lkst-core.patch
+Patch240090: linux-2.6.9-lkst-events-std.patch
+# performace analyzing patch
+Patch240100: linux-2.6.9-lkst-events-perf.patch
+# extra event set patch
+Patch240110: linux-2.6.9-lkst-events-ext1.patch
+# extra kernel modules
+Patch240120: linux-2.6.9-lkst-modules.patch
+# restore functions once deleted by linux-2.6.0-4g4g.patch
+Patch240200: linux-2.6.9-restore-page_table_range_init.patch
+Patch240201: linux-2.6.9-dont-use-bootmem_low.patch
+# restore MACROS once deleted by linux-2.6.9-exports.patch
+Patch240210: linux-2.6.9-restore-MOD_INC_USE_COUNT.patch
+# dummy files for building ppc64
+Patch240220: linux-2.6.9-lkst-dummy-support_ppc64.patch
+Patch240230: linux-2.6.9-lkst-nr-cpus-check.patch
+Patch240240: linux-2.6.9-lkst-sleepon.patch
+
+
 # empty final patch file to facilitate testing of kernel patches
 Patch20000: linux-kernel-test.patch
 
@@ -1435,7 +1680,7 @@ Provides: kernel-devel-%{_target_cpu} = %{rpmversion}-%{release}
 This package provides kernel headers and makefiles sufficient to build modules
 against the kernel package.
 
-%package sourcecode
+%package source
 Summary: The source code for the Linux kernel.
 Group: Development/System
 Prereq: fileutils
@@ -1445,10 +1690,9 @@ Requires: /usr/bin/strip
 # for xconfig and gconfig
 Requires: qt-devel, gtk2-devel readline-devel ncurses-devel
 Provides: kernel-source
-Obsoletes: kernel-source <= 2.6.6
 
-%description sourcecode
-The kernel-sourcecode package contains the source code files for the Linux
+%description source
+The kernel-source package contains the source code files for the Linux
 kernel. The source files can be used to build a custom kernel that is
 smaller by virtue of only including drivers for your particular hardware, if
 you are so inclined (and you know what you're doing). The customisation
@@ -1459,10 +1703,6 @@ linking such modules into the default operating system kernels.
 %package doc
 Summary: Various documentation bits found in the kernel source.
 Group: Documentation
-%if !%{buildsource}
-Obsoletes: kernel-source <= 2.6.6
-Obsoletes: kernel-sourcecode <= 2.6.6
-%endif
 
 %description doc
 This package contains documentation files from the kernel
@@ -1479,6 +1719,7 @@ Summary: The Linux kernel compiled for SMP machines.
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
+Provides: oracleasm = 2.0.3
 Prereq: %{kernel_prereq}
 Conflicts: %{kernel_dot_org_conflicts}
 Conflicts: %{package_conflicts}
@@ -1517,6 +1758,7 @@ Summary: The Linux kernel compiled for machines with 16 Gigabytes of memory or m
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
+Provides: oracleasm = 2.0.3
 Prereq: %{kernel_prereq}
 Conflicts: %{kernel_dot_org_conflicts}
 Conflicts: %{package_conflicts}
@@ -1551,6 +1793,7 @@ Summary: The Linux kernel compiled for machines with more than 64 CPUs.
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-drm = 4.3.0
+Provides: oracleasm = 2.0.3
 Prereq: %{kernel_prereq}
 Conflicts: %{kernel_dot_org_conflicts}
 Conflicts: %{package_conflicts}
@@ -1565,6 +1808,10 @@ Obsoletes: kernel-enterprise < 2.4.10
 Provides: kernel-largesmp-%{_target_cpu} = %{rpmversion}-%{release}
 %if %{kabi}
 Provides: kABI(%{kabi_major}largesmp.%{_target_cpu}) = %{kabi_minor}
+%endif
+
+%if %{WITH_LKST}
+Requires: lkstutils >= 2.3-6AX
 %endif
 
 %description largesmp
@@ -1584,40 +1831,6 @@ AutoReqProv: no
 %description largesmp-devel
 This package provides kernel headers and makefiles sufficient to build modules
 against the many CPUs kernel package.
-
-%package xenU
-Summary: The Linux kernel compiled to run as a paravirtualized Xen guest.
-
-Group: System Environment/Kernel
-Provides: kernel = %{version}
-Provides: kernel-drm = 4.3.0
-Prereq: %{kernel_prereq}
-Conflicts: %{kernel_dot_org_conflicts}
-Conflicts: %{package_conflicts}
-Conflicts: %{nptl_conflicts}
-# We can't let RPM do the dependencies automatic because it'll then pick up
-# a correct but undesirable perl dependency from the module headers which
-# isn't required for the kernel proper to function
-
-Provides: kernel-xenU-%{_target_cpu} = %{rpmversion}-%{release}
-%if %{kabi}
-Provides: kABI(%{kabi_major}xenU.%{_target_cpu}) = %{kabi_minor}
-%endif
-
-%description xenU
-
-This package includes a version of the Linux kernel configured to run as
-an unprivileged paravirtualized Xen guest.
-
-%package xenU-devel
-Summary: Development package for building modules for the Xen guest kernel.
-Group: System Environment/Kernel
-Provides: kernel-xenU-devel-%{_target_cpu} = %{rpmversion}-%{release}
-AutoReqProv: no
-
-%description xenU-devel
-This package provides kernel headers and makefiles sufficient to build modules
-against the Xen guest kernel.
 
 %prep
 
@@ -1792,32 +2005,6 @@ cd linux-%{kversion}
 %patch271 -p1
 # avoid EBDA for early memory map allocation
 %patch272 -p1
-# initialize cpukhz
-%patch273 -p1
-# remove iommu optimization
-%patch274 -p1
-# correctly parse acpi mcfg table
-%patch275 -p1
-# remove erroneous printing of missing mptable
-%patch276 -p1
-# add tlb flush when freeing pmds
-%patch277 -p1
-# access MPC table via proper virtual address
-%patch278 -p1
-# add x8664 physflat
-%patch279 -p1
-# x8664: honor hpet timer irq override
-%patch280 -p1
-# x8664: fix memleak in clear_kernel_mapping
-%patch281 -p1
-# x86: skip acpi timer nvidia
-%patch282 -p1
-# x86/64: allow larger 128 size e820 maps
-%patch283 -p1
-# x86: honor hpet timer irq override
-%patch284 -p1
-# x8664: zeros upper halfs of 64-bit registers on 32-bit sysenter
-%patch285 -p1
 
 # 
 # ppc64
@@ -1962,20 +2149,6 @@ cd linux-%{kversion}
 %patch368 -p1
 # fix userspace access checks
 %patch369 -p1
-# support ppc64 eClipz platform
-%patch370 -p1
-# protect hvc driver against n_tty line discipline bug
-%patch371 -p1
-# add ehea driver
-%patch372 -p1
-# add IBM ebus
-%patch373 -p1
-# ppc64: return correct value from requiest_irq()
-%patch374 -p1
-# ppc64: translate intel binary
-%patch375 -p1
-# ppc64: fix sctu Data buffer miscompare on RHEL4.5
-%patch376 -p1
 
 #
 # ia64
@@ -2027,12 +2200,6 @@ cd linux-%{kversion}
 %patch439 -p1
 %patch440 -p1
 %patch441 -p1
-%patch442 -p1
-%patch443 -p1
-%patch444 -p1
-%patch445 -p1
-%patch446 -p1
-%patch447 -p1
 
 #
 # s390
@@ -2138,22 +2305,6 @@ cd linux-%{kversion}
 %patch549 -p1
 # s390: add padding to copy-from_user
 %patch550 -p1
-# s390: cio update
-%patch551 -p1
-# s390: support reboot from scsi devices
-%patch552 -p1
-# s390: fix 3270 console driver crash
-%patch553 -p1
-# s390: update tape driver
-%patch554 -p1
-# s390: fix deadlock in appldata
-%patch555 -p1
-# s390: add monreader device driver
-%patch556 -p1
-# s390: update cmm driver
-%patch557 -p1
-# s390: netiucv avoid duplicate iucv-interfaces to the same peer
-%patch558 -p1
 
 #
 # Patches 500 through 1000 are reserved for bugfixes to the core system
@@ -2199,7 +2350,7 @@ cd linux-%{kversion}
 #
 # TUX
 #
-%patch940 -p1 -E
+%patch940 -p1
 
 # rwsem update
 %patch945 -p1
@@ -2316,18 +2467,10 @@ cd linux-%{kversion}
 #ramfs fixes
 %patch1082 -p1
 
-# fix jbd journal commit aborts
-%patch1083 -p1
 # fix ext2 readdir f_pos revalidation logic
 %patch1084 -p1
-# make sure that d_off != 0 for '.' and '..' on ext3 with dir_index enabled
-%patch1085 -p1
-# ext3: correctly delelte orphaned inodes under directio
-%patch1086 -p1
 # ext3: make the fs robust when it has already been corrupted
 %patch1087 -p1
-# ext3: make sure readdir doesn't fail
-%patch1088 -p1
 
 #
 # Sata update
@@ -2575,8 +2718,9 @@ cd linux-%{kversion}
 %patch1334 -p1
 # various sctp fixes
 %patch1335 -p1
-# netfilter updates
 %patch1336 -p1
+%patch1337 -p1
+%patch1338 -p1
 
 # NIC driver fixes.
 # Fix problems with b44 & 4g/4g
@@ -2657,14 +2801,6 @@ cd linux-%{kversion}
 %patch1388 -p1
 # add skge net driver
 %patch1389 -p1
-# amd8111e fix napi interrupt in poll
-%patch1390 -p1
-# r8169 update
-%patch1391 -p1
-# tg3 update: 2.64-rh
-%patch1392 -p1
-# add qla3xxx driver
-%patch1393 -p1
 # PPPOE fixes
 %patch1394 -p1
 
@@ -2681,8 +2817,6 @@ cd linux-%{kversion}
 %patch1404 -p1
 # Support ACPI 2.0 systems with no XSDT
 %patch1405 -p1
-# acpi: fix lid close causing reset on shutdown
-%patch1406 -p1 
 
 #kprobes
 %patch1450 -p1
@@ -2718,8 +2852,6 @@ cd linux-%{kversion}
 %patch1521 -p1
 
 %patch1530 -p1
-%patch1531 -p1
-
 %patch1540 -p1
 %patch1541 -p1
 %patch1542 -p1
@@ -2866,9 +2998,6 @@ cd linux-%{kversion}
 %patch1996 -p1
 # schedule updates
 %patch1997 -p1
-# disable lock irqs for on-each-cpu
-%patch1998 -p1
-
 
 #
 # VM related fixes.
@@ -2937,12 +3066,6 @@ cd linux-%{kversion}
 %patch2033 -p1
 # fix busy inodes after unmount
 %patch2034 -p1
-# fix vm deadlock case
-%patch2035 -p1
-# make sure swap reads and writes deal with i/o errors properly
-%patch2036 -p1
-# vm balance
-%patch2037 -p1
 
 # IDE bits.
 # Make CSB6 driver support configurations.
@@ -2991,16 +3114,6 @@ cd linux-%{kversion}
 %patch2212 -p1
 # pizzaro reboot fix
 %patch2213 -p1
-# calculate interval once
-%patch2214 -p1
-# close uhci-hcd races
-%patch2215 -p1
-# ohci hang fixes
-%patch2216 -p1
-# pwc driver update
-%patch2217 -p1
-# whitelist IBM Advanced Management Module 2
-%patch2218 -p1
 
 # SCSI bits.
 # Drop the 'deprecated SG_IO warning'.
@@ -3063,14 +3176,6 @@ cd linux-%{kversion}
 %patch2328 -p1
 # 3ware updates
 %patch2329 -p1
-# fix use after free
-%patch2330 -p1
-# truncate fix for scsicam_bios_param
-%patch2331 -p1
-#sata updates
-%patch2332 -p1
-# qla4xxx
-%patch2333 -p1
 
 # Audit layer
 %patch2400 -p1
@@ -3132,7 +3237,6 @@ cd linux-%{kversion}
 %patch2456 -p1
 %patch2457 -p1
 %patch2458 -p1
-%patch2459 -p1
 
 # Key management patches
 %patch2500 -p1
@@ -3181,27 +3285,6 @@ cd linux-%{kversion}
 %patch2568 -p1
 # make readv/writev go through lsm
 %patch2569 -p1
-# propogate dio errors
-%patch2570 -p1
-# restrict permsioon() to return EACESS if no exec bits are set
-%patch2571 -p1
-# return proper error code on interrupted close()
-%patch2572 -p1
-# update mtime at proper times
-%patch2573 -p1
-# fix quota BUG() call on invalid reference counting
-%patch2574 -p1
-# add wide inodes for 32-bit platforms if FS sets certain flags
-%patch2575 -p1
-# add barrier to get correct pos value in read/write
-%patch2576 -p1
-# prevent inode number overflows
-%patch2577 -p1
-# lustre support
-%patch2578 -p1
-# fix inode nr_unused accounting
-%patch2579 -p1
-
 
 # Device Mapper fixes
 %patch2600 -p1
@@ -3218,7 +3301,6 @@ cd linux-%{kversion}
 %patch2611 -p1
 %patch2612 -p1
 %patch2613 -p1
-%patch2614 -p1
 
 # OpenIB Infiniband support
 %patch2700 -p1
@@ -3237,9 +3319,40 @@ cd linux-%{kversion}
 %patch2713 -p1
 %patch2714 -p1
 %patch2715 -p1
-# Don't apply these two for now
-#%patch2720 -p1
-#%patch2721 -p1
+%patch2716 -p1
+%patch2717 -p1
+%patch2718 -p1
+%patch2719 -p1
+%patch2720 -p1
+%patch2721 -p1
+%patch2722 -p1
+%patch2723 -p1
+%patch2724 -p1
+%patch2725 -p1
+%patch2726 -p1
+%patch2727 -p1
+%patch2728 -p1
+%patch2729 -p1
+%patch2730 -p1
+%patch2731 -p1
+%patch2732 -p1
+%patch2733 -p1
+%patch2734 -p1
+%patch2735 -p1
+%patch2736 -p1
+%patch2737 -p1
+%patch2738 -p1
+%patch2739 -p1
+%patch2740 -p1
+%patch2741 -p1
+%patch2742 -p1
+%patch2743 -p1
+%patch2744 -p1
+%patch2745 -p1
+%patch2746 -p1
+%patch2747 -p1
+%patch2748 -p1
+%patch2749 -p1
 
 # Intial EDAC support
 %patch2800 -p1
@@ -3268,7 +3381,7 @@ cd linux-%{kversion}
 %patch3009 -p1
 
 # Speedtouch
-%patch3015 -p1
+%patch3010 -p1
 
 # Intel wireless
 %patch3020 -p1
@@ -3387,56 +3500,6 @@ cd linux-%{kversion}
 %patch4053 -p1
 # recognize boot cpu apic id properly
 %patch4054 -p1
-# fix fork races
-%patch4055 -p1
-# fix memory leak in mousedev close
-%patch4056 -p1
-# fix sign error in sun partittions
-%patch4057 -p1
-# add hotplugh support for pci-to-pci bridges
-%patch4058 -p1
-# fix scheduler accouting bug
-%patch4059 -p1
-# fix rq lock ordering deadlock
-%patch4060 -p1
-# fix keymap permissions
-%patch4061 -p1
-# allow suid process to read properly read /proc/<pid>/maps
-%patch4062 -p1
-# loop: implement fallback to file_operations->write
-%patch4063 -p1
-# shm: fix for shmdt() mishandling of unusual shm segments
-%patch4064 -p1
-# fix race b/w 32-bit exec and read of /proc/pid/maps
-%patch4065 -p1
-# properly mount udf readonly
-%patch4066 -p1
-# add support for smsc47b397 sensors
-%patch4067 -p1
-# return proper error for poll() for various input devices
-%patch4068 -p1
-# correct sys_(s)time compat calls
-%patch4069 -p1
-# disable irqs when taking uidhash_lock
-%patch4070 -p1
-# clear sa_mask for sys_signal
-%patch4071 -p1
-# x86: Support for p-state transitions on Intel and support for ACPI 3.0 _PSD method
-%patch4072 -p1
-# fix /proc readdir tgid race
-%patch4073 -p1
-# fix nic ordering
-%patch4074 -p1
-# allow for > 2G core dumps
-%patch4075 -p1
-# flush icache before loading new modules
-%patch4076 -p1
-# fix pcmcia panics on Sun Bladeserver
-%patch4077 -p1
-# use GFP_DMA when allocating memory for mmap
-%patch4078 -p1
-# Provide RH version/release info for compile time conditionals
-%patch4079 -p1
 # core dump fixes
 %patch4080 -p1
 # compat layer fixes
@@ -3453,24 +3516,6 @@ cd linux-%{kversion}
 %patch4102 -p1
 # intel hd audio driver update, remove empty files
 %patch4103 -p1 -E
-
-# Xen patches
-# base xen patch for existing files
-%patch4200 -p1 
-# base xen patch that creates new files
-%patch4201 -p1
-# add cpu hotplug support
-%patch4202 -p1
-# xen core updates
-%patch4203 -p1
-# xen re-base and updates to RHEL5
-%patch4204 -p1
-# add xen frame buffer support
-%patch4205 -p1
-# fix xen console
-%patch4206 -p1
-# xen updates
-%patch4207 -p1
 
 # Security issues.
 %patch5000 -p1
@@ -3503,6 +3548,7 @@ cd linux-%{kversion}
 %patch5028 -p1
 %patch5029 -p1
 %patch5030 -p1
+%patch5031 -p1
 %patch5032 -p1
 %patch5033 -p1
 %patch5034 -p1
@@ -3566,14 +3612,392 @@ cd linux-%{kversion}
 # patch for pci ids
 %patch10003 -p1
 
+# kernel-2.6.9-42.0.3.EL
+%patch90000 -p1
+%patch90001 -p1
+%patch90002 -p1
+%patch90003 -p1
+%patch90004 -p1
+%patch90005 -p1
+# update from RHEL4U5-beta
+%patch95000 -p1
+%patch95001 -p1
+%patch95002 -p1
+%patch95003 -p1
+%patch95004 -p1
+%patch95005 -p1
+# RHEL4U5-beta fixes
+%patch97000 -p1
+%patch97001 -p1
+%patch97002 -p1
+%patch97003 -p1
+%patch97004 -p1
+# 2.6.9-55.EL fixes
+%patch97010 -p1
+%patch97011 -p1
+%patch97015 -p1
+%patch97016 -p1
+%patch97017 -p1
+%patch97018 -p1
+%patch97019 -p1
+%patch97020 -p1
+# 2.6.9-55.0.2.EL CVE fixes
+%patch98000 -p1
+%patch98001 -p1
+%patch98002 -p1
+%patch98003 -p1
+# 2.6.9-55.0.6.EL CVE fixes
+%patch98005 -p1
+%patch98006 -p1
+# 2.6.9-55.0.9.EL CVE fixes
+%patch98007 -p1
+
+# Asianux:
+# Patches 100100 through 100500 are meant for architecture patches
+
+# 100200 - 100299   x86(-64)
+# fix to confirm posix spec
+%patch100202 -p1
+# high-priority process can't preempt low-priority process when PREEMPT
+%patch100203 -p1
+# fix: make xconfig failed on x86_64
+%patch100204 -p1
+# bugfix: use cpumask_t to replace unsigned long
+%patch100206 -p1
+# SMP NMI watchdog race fix
+%patch100208 -p1
+# x86_64 "many lost ticks" warning
+%patch100209 -p1
+# add missing refrigerator in kirqd
+%patch100227 -p1
+# arch/i386/pci/mmconfig.c tlb flush fix
+%patch100245 -p1
+# stratus ioapic fix
+%patch100250 -p1
+# x86-64 apic fix
+%patch100255 -p1
+# 64bit resource fix
+%patch100260 -p1
+%patch100261 -p1
+# clear_kernel_mapping() warning fix
+%patch100262 -p1
+# use physflat mode on i386-bigsmp
+%patch100263 -p1
+#stack virtual memory account
+%patch100264 -p1
+#dma usage fix
+%patch100265 -p1
+%patch100266 -p1
+
+#
+# Patches 100500 through 101000 are reserved for bugfixes to the core system
+# and patches related to how RPMs are build
+#
+
+# Fix the /proc/version string.
+%patch100502 -p1
+
+# Linux Event Logging for the Enterprise  
+%patch100610 -p1
+%patch100611 -p1
+
+# kdb support
+%patch100620 -p1
+%patch100621 -p1
+%patch100622 -p1
+%patch100623 -p1
+# fix: kdb miss asmlinkage
+%patch100625 -p1
+# add noblink option
+%patch100626 -p1
+# fix build error
+%patch100627 -p1
+# fix kdb "ss" "ssb" "reboot" command for x86_64
+%patch100628 -p1
+
+# force umount
+%patch100640 -p1
+# oracle asm 2.0.3
+%patch100650 -p1
+# bugfix: posix test mmap fails
+%patch100680 -p1
+# sch_netem: memory leak
+%patch100720 -p1
+# suppress might_sleep() if oopsing
+%patch100732 -p1
+# fix deadlock between uidhash_lock and tasklist_lock
+%patch100733 -p1
+# Fix ltp testcases for dynamic context transitions of selinux
+%patch100742 -p1
+
+# SIS 964/965/966 IDE Controller support
+%patch100774 -p1
+%patch100775 -p1
+
+# add register_ioctl32_conversion() for some IPMI ioctls
+%patch100776 -p1
+
+# block device IO performance improvement
+%patch100794 -p1
+
+# misc sysrq fix
+%patch100810 -p1
+# fix fork() bug invalidates file descriptors
+%patch100820 -p1
+# fix oom roll-back of __vmalloc
+%patch100830 -p1
+# hugetlb fix
+%patch100840 -p1
+# microcode driver fix
+%patch100850 -p1
+# oprofile add new cpuid
+%patch100860 -p1
+# oops killer tweaks
+%patch100870 -p1
+%patch100871 -p1
+%patch100875 -p1
+# sysfs fixes
+%patch100900 -p1
+%patch100901 -p1
+%patch100902 -p1
+%patch100903 -p1
+%patch100904 -p1
+#
+# Patches 101000 to 105000 are reserved for bugfixes to drivers and filesystems
+#
+
+# fix e1000 driver doesn't work when wakeup from s5
+%patch101382 -p1
+# update e1000 7.3.15
+#%patch101383 -p1
+#%patch101384 -p1
+%patch101385 -p1
+%patch101386 -p1
+%patch101387 -p1
+# improve JumboFrame performance
+%patch101388 -p1
+# add SIOCSMIIREG handling and 0x1000 DeviceID
+%patch101389 -p1
+%patch101390 -p1
+# fix tick interrupt when system has high stress
+%patch101391 -p1
+%patch101392 -p1
+%patch101393 -p1
+
+#
+# Various crash dumping patches for Asianux
+#
+#
+%patch101500 -p1
+#
+%patch101570 -p1
+%patch101576 -p1
+%patch101583 -p1
+%patch101584 -p1
+
+# bugfix: Embedded IDE/PCI drivers not honoring Sub ID's/Class code
+%patch101660 -p1
+# bugfix: pciehp driver may not loaded under some BIOS/FW implementations
+%patch101670 -p1
+%patch101680 -p1
+# some pcie pm fix
+%patch101690 -p1
+%patch101691 -p1
+
+# add bcm5700 v8.3.14a
+%patch101710 -p1
+%patch101711 -p1
+
+#Patch from hangul_kbd patch
+%patch101800 -p1
+# sk98lin update
+%patch102030 -p1
+%patch102031 -p1
+%patch102032 -p1
+# update tg3 3.58b
+%patch102040 -p1
+%patch102041 -p1
+# update sky2 to 1.6
+%patch102050 -p1
+# update s2io to 2.0.14.5152
+%patch102055 -p1
+# IOAT 1.7
+%patch102060 -p1
+%patch102061 -p1
+# Ext2/Ext3 fixes
+%patch102100 -p1
+%patch102102 -p1
+%patch102103 -p1
+%patch102106 -p1
+%patch102107 -p1
+# SCSI_DPT_I2O 2.5.0-2419
+%patch102110 -p1
+%patch102111 -p1
+%patch102112 -p1
+# dpt_i2o deadlock in adpt_hba_reset() path
+%patch102113 -p1
+%patch102114 -p1
+%patch102115 -p1
+# usb_sg_*() unlink deadlock fix 
+%patch102200 -p1
+# aic79xx ignore HostRAID
+%patch102201 -p1
+%patch102202 -p1
+# USB fix 
+%patch102211 -p1
+# I2O: move pci_request_regions() just behind pci_enable_device()
+%patch102301 -p1
+
+# avoid to mount a loop device on itself, etc.
+%patch102401 -p1
+# random: overflow fix
+%patch102402 -p1
+# umount: avoid racy block-size set
+%patch102501 -p1
+# fix NLS CP932 mapping
+%patch102510 -p1
+# scsi: fix locking bug on decrement of device_busy
+%patch102520 -p1
+# scsi serial_number race
+%patch102521 -p1
+# Oops when scsi tape (acpi-hotplug-pci) was unpluged
+%patch102522 -p1
+%patch102523 -p1
+# __scsi_device_lookup
+%patch102524 -p1
+# stex 3.0.0.1
+%patch102530 -p1
+# aacraid 1.1.5-2420
+%patch102540 -p1
+# aacraid 1.1.5-2431
+%patch102541 -p1
+# megaraid_sas new pci id
+%patch102550 -p1
+%patch102551 -p1
+%patch102552 -p1
+%patch102553 -p1
+%patch102554 -p1
+%patch102555 -p1
+# qla2xxx failover 8.01.06
+%patch102560 -p1
+%patch102561 -p1
+# libata
+%patch102580 -p1
+%patch102581 -p1
+
+# md fixes
+%patch102604 -p1
+
+# usb
+%patch102700 -p1
+%patch102701 -p1
+
+# support efi when memory bigger than 896M 
+%patch103000 -p1
+# fix 103000 patch
+%patch103001 -p1
+# for CONFIG_ACPI_DEBUG
+%patch103002 -p1
+
+# misc Taiwan string
+%patch103220 -p1
+
+# XFS code from sgi
+%patch130000 -p1
+%patch130001 -p1
+%patch130010 -p1
+%patch130020 -p1
+# fix kernel panic when XFS uses over 4KB stack
+%patch130030 -p1
+%patch130031 -p1
+# OCFS2
+%patch131000 -p1
+
+#
+# Patches 150000 to 160000 are reserved for NEC FT patches
+#
+# acpiphp PCI-to-PCI bridge support
+%patch150000 -p1
+# export some scsi_lib routines
+%patch150010 -p1
+# add option to scsi host no allocation
+%patch150020 -p1
+%patch150021 -p1
+# avoid usb ohci hub hang
+%patch150030 -p1
+# make vesafb init fail when "video=vesafb:off"
+%patch150040 -p1
+# add no_autosuspend ohci-hcd module option to stop auto suspend
+%patch150050 -p1
+# avoid oops in finish_unlinks() 
+%patch150060 -p1
+%patch150070 -p1
+
+#
+# Patches 200000 through 210000 are reserved for non-standard patches
+#
+
+#[NETLINK]: Fix multicast bind/autobind race
+%patch200721 -p1
+
+# mm fixes
+%patch200752 -p1
+%patch200753 -p1
+%patch200754 -p1
+
+# USB fixes
+#%patch202202 -p1
+#%patch202203 -p1
+#%patch202205 -p1
+#%patch202206 -p1
+#%patch202207 -p1
+
+# Input driver fixes
+#%patch202300 -p1
+# Reduce i_sem usage during file sync operations
+%patch202500 -p1
+
+# ieee1394 fixes
+%patch202700 -p1
+
+# LKST
+%if %{WITH_LKST}
+# standard patches
+%patch240010 -p1
+%patch240020 -p1
+%patch240030 -p1
+%patch240040 -p1
+%patch240050 -p1
+%patch240060 -p1
+%patch240070 -p1
+%patch240080 -p1
+%patch240090 -p1
+# performace analyzing patch
+%patch240100 -p1
+# extra event set patch
+%patch240110 -p1
+# extra kernel modules
+%patch240120 -p1
+# restore functions once deleted by linux-2.6.0-4g4g.patch
+%patch240200 -p1
+%patch240201 -p1
+# restore MACROS once deleted by linux-2.6.9-exports.patch
+%patch240210 -p1
+# dummy files for building ppc64
+%patch240220 -p1
+# check NR_CPUS
+%patch240230 -p1
+# hide sleep_on() warnings
+%patch240240 -p1
+%endif
+# END OF LKST
+
+
 # make sure the kernel has the sublevel we know it has. This looks weird
 # but for -pre and -rc versions we need it since we only want to use
 # the higher version when the final kernel is released.
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
 perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
-perl -p -i -e "s/^RHEL_VERSION.*/RHEL_VERSION = %{rh_release_version}/" Makefile
-perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
-
 
 # conditionally applied test patch for debugging convenience
 %if %([ -s %{PATCH20000} ] && echo 1 || echo 0)
@@ -3583,8 +4007,8 @@ perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -55.0.9.EL/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.9-55.0.9.EL.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.17AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-42.17AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -3621,7 +4045,7 @@ find . -name "*~" -exec rm -fv {} \;
 #
 
 gpg --homedir . --batch --gen-key %{SOURCE11} 
-gpg --homedir . --export --keyring ./kernel.pub CentOS > extract.pub
+gpg --homedir . --export --keyring ./kernel.pub Asianux > extract.pub
 make linux-%{kversion}/scripts/bin2c
 linux-%{kversion}/scripts/bin2c ksign_def_public_key __initdata < extract.pub > linux-%{kversion}/crypto/signature/key.h
 
@@ -3705,14 +4129,7 @@ BuildKernel() {
 %ifarch x86_64
     mkdir $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/asm-i386
     cp -a asm-i386/ide.h asm-i386/node.h asm-i386/cpu.h $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/asm-i386
-    if [ -n $1 -a z"$1" = z"xenU" ] ; then
-	cp -a asm-i386/mach-xen $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/asm-i386
-    fi
 %endif
-    # kernel-xenU-devel also gets include/xen
-    if [ -n $1 -a z"$1" = z"xenU" ] ; then
-	cp -a xen $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include
-    fi
     # Make sure the Makefile and version.h have a matching timestamp so that
     # external modules can be built
     touch -r $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/Makefile $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/linux/version.h
@@ -3735,7 +4152,7 @@ BuildKernel() {
     for i in ` find $RPM_BUILD_ROOT/lib/modules/$KernelVer -name "*.ko" -type f` ; do
 	if [ x`echo \`basename $i \` | join - $RPM_SOURCE_DIR/modsign_exclude | wc -l` = x0 ]
 	then
-		sh ./scripts/modsign/modsign.sh $i CentOS 
+		sh ./scripts/modsign/modsign.sh $i Asianux
 		mv -f $i.signed $i
 	fi
     done
@@ -3782,10 +4199,6 @@ BuildKernel hugemem
 BuildKernel largesmp
 %endif
 
-%if %{buildxen}
-BuildKernel xenU
-%endif
-
 ###
 ### install
 ###
@@ -3796,20 +4209,6 @@ cd linux-%{kversion}
 
 # architectures that don't get kernel-source (i586/i686/athlon) dont need
 # much of an install because the build phase already copied the needed files
-
-%if %{buildxen}
-mkdir -p $RPM_BUILD_ROOT/etc/ld.so.conf.d
-rm -f $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
-cat > $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf <<\EOF
-# This directive teaches ldconfig to search in nosegneg subdirectories
-# and cache the DSOs there with extra bit 0 set in their hwcap match
-# fields.  In Xen guest kernels, the vDSO tells the dynamic linker to
-# search in nosegneg subdirectories and to match this extra hwcap bit
-# in the ld.so.cache file.
-hwcap 0 nosegneg
-EOF
-chmod 444 $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
-%endif
 
 %if %{builddoc}
 mkdir -p $RPM_BUILD_ROOT/usr/share/doc/kernel-doc-%{kversion}/Documentation
@@ -3835,15 +4234,6 @@ tar cf - . | tar xf - -C $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}
 # don't accidentally overwrite their currently working moduleset and hose
 # their system
 perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -%{release}custom/" $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}/Makefile
-
-# some config options may be appropriate for an rpm kernel build but are less so for custom user builds,
-# change those to values that are more appropriate as default for people who build their own kernel.
-perl -p -i -e "s/^CONFIG_DEBUG_INFO.*/# CONFIG_DEBUG_INFO is not set/" $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}/configs/*
-perl -p -i -e "s/^.*CONFIG_DEBUG_PAGEALLOC.*/# CONFIG_DEBUG_PAGEALLOC is not set/" $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}/configs/*
-perl -p -i -e "s/^.*CONFIG_DEBUG_SLAB.*/# CONFIG_DEBUG_SLAB is not set/" $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}/configs/*
-perl -p -i -e "s/^.*CONFIG_DEBUG_SPINLOCK.*/# CONFIG_DEBUG_SPINLOCK is not set/" $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}/configs/*
-perl -p -i -e "s/^.*CONFIG_DEBUG_HIGHMEM.*/# CONFIG_DEBUG_HIGHMEM is not set/" $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}/configs/*
-perl -p -i -e "s/^.*CONFIG_MODULE_SIG.*/# CONFIG_MODULE_SIG is not set/" $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}/configs/*
 
 install -m 644 %{SOURCE10}  $RPM_BUILD_ROOT/usr/src/linux-%{KVERREL}
 %endif
@@ -3877,10 +4267,6 @@ exit 0
 /sbin/modprobe loop 2> /dev/null > /dev/null  || :
 exit 0
 
-%pre xenU
-/sbin/modprobe loop 2> /dev/null > /dev/null  || :
-exit 0
-
 %post 
 [ -x /usr/sbin/module_upgrade ] && /usr/sbin/module_upgrade
 [ -x /sbin/new-kernel-pkg ] && /sbin/new-kernel-pkg --package kernel --mkinitrd --depmod --install %{KVERREL}
@@ -3889,7 +4275,8 @@ exit 0
 if [ -x /usr/sbin/hardlink ] ; then
 pushd /usr/src/kernels/%{KVERREL}-%{_target_cpu} > /dev/null ; {
 	cd /usr/src/kernels/%{KVERREL}-%{_target_cpu}
-	find . -type f | while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
+	find . -type f -not -size 0 | \
+		while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
 }
 popd > /dev/null
 fi
@@ -3902,7 +4289,8 @@ fi
 if [ -x /usr/sbin/hardlink ] ; then
 pushd /usr/src/kernels/%{KVERREL}-smp-%{_target_cpu} > /dev/null ; {
 	cd /usr/src/kernels/%{KVERREL}-smp-%{_target_cpu}
-	find . -type f | while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
+	find . -type f -not -size 0 | \
+		while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
 }
 popd > /dev/null
 fi
@@ -3915,7 +4303,8 @@ fi
 if [ -x /usr/sbin/hardlink ] ; then
 pushd /usr/src/kernels/%{KVERREL}-hugemem-%{_target_cpu} > /dev/null ; {
 	cd /usr/src/kernels/%{KVERREL}-hugemem-%{_target_cpu}
-	find . -type f | while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
+	find . -type f -not -size 0 | \
+		while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
 }
 popd > /dev/null
 fi
@@ -3928,20 +4317,8 @@ fi
 if [ -x /usr/sbin/hardlink ] ; then
 pushd /usr/src/kernels/%{KVERREL}-largesmp-%{_target_cpu} > /dev/null ; {
 	cd /usr/src/kernels/%{KVERREL}-largesmp-%{_target_cpu}
-	find . -type f | while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
-}
-popd > /dev/null
-fi
-
-%post xenU
-[ -x /usr/sbin/module_upgrade ] && /usr/sbin/module_upgrade
-[ -x /sbin/new-kernel-pkg ] && /sbin/new-kernel-pkg --package kernel-xenU --mkinitrd --depmod --install %{KVERREL}xenU
-
-%post xenU-devel
-if [ -x /usr/sbin/hardlink ] ; then
-pushd /usr/src/kernels/%{KVERREL}-xenU-%{_target_cpu} > /dev/null ; {
-	cd /usr/src/kernels/%{KVERREL}-xenU-%{_target_cpu}
-	find . -type f | while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
+	find . -type f -not -size 0 | \
+		while read f; do hardlink -c /usr/src/kernels/*/$f $f ; done
 }
 popd > /dev/null
 fi
@@ -3961,10 +4338,6 @@ fi
 %preun largesmp
 /sbin/modprobe loop 2> /dev/null > /dev/null  || :
 [ -x /sbin/new-kernel-pkg ] && /sbin/new-kernel-pkg --rminitrd --rmmoddep --remove %{KVERREL}largesmp
-
-%preun xenU
-/sbin/modprobe loop 2> /dev/null > /dev/null  || :
-[ -x /sbin/new-kernel-pkg ] && /sbin/new-kernel-pkg --rminitrd --rmmoddep --remove %{KVERREL}xenU
 
 
 ###
@@ -4047,30 +4420,10 @@ fi
 %verify(not mtime) /usr/src/kernels/%{KVERREL}-largesmp-%{_target_cpu}
 %endif
 
-%if %{buildxen}
-%files xenU
-%defattr(-,root,root)
-/%{image_install_path}/*-%{KVERREL}xenU
-/boot/System.map-%{KVERREL}xenU
-/boot/config-%{KVERREL}xenU
-%dir /lib/modules/%{KVERREL}xenU
-/lib/modules/%{KVERREL}xenU/kernel
-/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
-%if %{kabi}
-%dir /lib/modules/kabi-%{kabi_major}-%{kabi_minor}xenU
-%endif
-
-%files xenU-devel
-%defattr(-,root,root)
-/lib/modules/%{KVERREL}xenU/build
-/lib/modules/%{KVERREL}xenU/source
-%verify(not mtime) /usr/src/kernels/%{KVERREL}-xenU-%{_target_cpu}
-%endif
-
 # only some architecture builds need kernel-source and kernel-doc
 
 %if %{buildsource}
-%files sourcecode
+%files source
 %defattr(-,root,root)
 /usr/src/linux-%{KVERREL}/
 %endif
@@ -4083,9 +4436,9 @@ fi
 %endif
 
 %changelog
-* Thu Sep 27 2007 Tru Huynh <tru@centos.org>  [2.6.9-55.0.9]
-- rolled in standard centos changes (build for i586, change genkey to
-  genkey.centos, do not terminate build on extra files).
+* Thu Oct  4 2007 YongWoo Nam <ywnam@haansoft.com> [2.6.9-42.17AX]
+- CVE-2007-4573 : fix x86_64 (+ xen) syscall vulnerability (Patch98007)
+- if reboot the system when RAID is rebuilded, the kernel may crash (OGAWA Hirofumi) (Patch102555)
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start 

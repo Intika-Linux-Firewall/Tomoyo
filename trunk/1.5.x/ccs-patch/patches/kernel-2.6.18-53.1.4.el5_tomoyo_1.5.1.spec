@@ -2,18 +2,47 @@ Summary: The Linux kernel (the core of the Linux operating system)
 
 # What parts do we want to build?  We must build at least one kernel.
 # These are the kernels that are built IF the architecture allows it.
+# All should default to 1 (enabled) and be flipped to 0 (disabled)
+# by later arch-specific checks
 
-%define buildup 1
-# Only used on archs without run-time support (ie ppc, sparc64)
-%define buildsmp 0
-%define buildpae 0
-# Whether to apply the Xen patches, leave this enabled.
+# The following build options are enabled by default.
+# Use either --without <opt> in your rpmbuild command or force values
+# to 0 in here to disable them
+#
+# standard kernel
+%define with_up      %{?_without_up:      0} %{?!_without_up:      1}
+# kernel-smp (only valid for ppc 32-bit, sparc64)
+%define with_smp     %{?_without_smp:     0} %{?!_without_smp:     1}
+# kernel-PAE (only valid for i686)
+%define with_pae     %{?_without_pae:     0} %{?!_without_pae:     1}
+# kernel-xen (only valid for i686, x86_64 and ia64)
+%define with_xen     %{?_without_xen:     0} %{?!_without_xen:     1}
+# kernel-kdump (only valid for ppc64)
+%define with_kdump   %{?_without_kdump:   0} %{?!_without_kdump:   1}
+# kernel-debug
+%define with_debug   %{?_without_debug:   0} %{!?_without_debug:   1}
+# kernel-doc
+%define with_doc     %{?_without_doc:     0} %{?!_without_doc:     1}
+# kernel-headers
+%define with_headers %{?_without_headers: 0} %{?!_without_headers: 1}
+
+# Control whether we perform a compat. check against published ABI.
+%define with_kabichk %{?_without_kabichk: 0} %{?!_without_kabichk: 1}
+
+# Additional options for user-friendly one-off kernel building:
+#
+# Only build the base kernel (--with baseonly):
+%define with_baseonly %{?_with_baseonly: 1} %{?!_with_baseonly: 0}
+# Only build the smp kernel (--with smponly):
+%define with_smponly  %{?_with_smponly:  1} %{?!_with_smponly:  0}
+
+# Whether to apply the Xen patches -- leave this enabled.
 %define includexen 1
-# Whether to build the Xen kernels, disable if you want.
-%define buildxen 1
-%define builddoc 0
-%define buildkdump 1
-%define buildheaders 1
+
+# Set debugbuildsenabled to 1 for production (build separate debug kernels)
+#  and 0 for rawhide (all kernels are debug kernels).
+# See also 'make debug' and 'make release'.
+%define debugbuildsenabled 1
 
 # Versions of various parts
 
@@ -23,68 +52,111 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define dist .el5
 %define rhel 5
 
+# Values used for RHEL version info in version.h
+%define rh_release_major %{rhel}
+%define rh_release_minor 1
+
 #
 # Polite request for people who spin their own kernel rpms:
-# please modify the "release" field in a way that identifies
-# that the kernel isn't the stock distribution kernel, for example by
-# adding some text to the end of the version number.
+# please modify the "buildid" define in a way that identifies
+# that the kernel isn't the stock distribution kernel, for example,
+# by setting the define to ".local" or ".bz123456"
+#
+% define buildid _tomoyo_1.5.1
 #
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.1.14%{?dist}_tomoyo_1.5.1
+%define release 53.1.4%{?dist}%{?buildid}
 %define signmodules 0
-%define xen_hv_cset 11772
+%define xen_hv_cset 15042
+%define xen_abi_ver 3.1
 %define make_target bzImage
 %define kernel_image x86
-%define xen_flags verbose=y crash_debug=y
+%define xen_flags verbose=y crash_debug=y XEN_VENDORVERSION=-%{PACKAGE_RELEASE}
 %define xen_target vmlinuz
 %define xen_image vmlinuz
 
 %define KVERREL %{PACKAGE_VERSION}-%{PACKAGE_RELEASE}
 %define hdrarch %_target_cpu
 
+# if requested, only build base kernel
+%if %{with_baseonly}
+%define with_smp 0
+%define with_pae 0
+%define with_xen 0
+%define with_kdump 0
+%define with_debug 0
+%endif
+
+# if requested, only build smp kernel
+%if %{with_smponly}
+%define with_up 0
+%define with_pae 0
+%define with_xen 0
+%define with_kdump 0
+%define with_debug 0
+%endif
+
 # groups of related archs
 #OLPC stuff
 %if 0%{?olpc}
-%define buildxen 0
-%define buildkdump 0
+%define with_xen 0
+%define with_kdump 0
 %endif
 # Don't build 586 kernels for RHEL builds.
 %if 0%{?rhel}
 %define all_x86 i386 i686
 # we differ here b/c of the reloc patches
 %ifarch i686 x86_64
-%define buildkdump 0
+%define with_kdump 0
 %endif
 %else
 %define all_x86 i386 i586 i686
 %endif
 
-# Override generic defaults with per-arch defaults
+# Overrides for generic default options
 
+# Only ppc and sparc64 need separate smp kernels
+%ifnarch ppc sparc64
+%define with_smp 0
+%endif
+
+# pae is only valid on i686
+%ifnarch i686
+%define with_pae 0
+%endif
+
+# xen only builds on i686, x86_64 and ia64
+%ifnarch i686 x86_64 ia64
+%define with_xen 0
+%endif
+
+# only build kernel-kdump on i686, x86_64 and ppc64
+%ifnarch i686 x86_64 ppc64 ppc64iseries
+%define with_kdump 0
+%endif
+
+# only package docs noarch
+%ifnarch noarch
+%define with_doc 0
+%endif
+
+# no need to build headers again for these arches,
+# they can just use i386 and ppc64 headers
+%ifarch i586 i686 ppc64iseries
+%define with_headers 0
+%endif
+
+# obviously, don't build noarch kernels or headers
 %ifarch noarch
-%define builddoc 1
-%define buildup 0
-%define buildheaders 0
+%define with_up 0
+%define with_headers 0
+%define with_debug 0
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-*.config
 %endif
 
-# kdump only builds on i686, x86_64, ppc64 ...
-%ifnarch i686 x86_64 ppc64 ppc64iseries
-%define buildkdump 0
-%endif
-
-# Xen only builds on i686, x86_64 and ia64 ...
-%ifnarch i686 x86_64 ia64
-%define buildxen 0
-%endif
-
-# Second, per-architecture exclusions (ifarch)
-
-%ifarch ppc64iseries i686 i586
-%define buildheaders 0
-%endif
+# Per-arch tweaks
 
 %ifarch %{all_x86}
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-i?86*.config
@@ -94,9 +166,8 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %endif
 
 %ifarch i686
-%define buildpae 1
-# we build always xen HV with pae
-%define xen_flags verbose=y crash_debug=y pae=y
+# we build always xen i686 HV with pae
+%define xen_flags verbose=y crash_debug=y pae=y XEN_VENDORVERSION=-%{PACKAGE_RELEASE}
 %endif
 
 %ifarch x86_64
@@ -123,7 +194,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %endif
 
 %ifarch s390x
-%define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-s390x.config
+%define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-s390x*.config
 %define image_install_path boot
 %define make_target image
 %define kernel_image arch/s390/boot/image
@@ -137,7 +208,6 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %endif
 
 %ifarch sparc64
-%define buildsmp 1
 %define all_arch_configs $RPM_SOURCE_DIR/kernel-%{kversion}-sparc64*.config
 %define make_target image
 %define kernel_image image
@@ -149,7 +219,6 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define make_target vmlinux
 %define kernel_image vmlinux
 %define kernel_image_elf 1
-%define buildsmp 1
 %define hdrarch powerpc
 %endif
 
@@ -159,8 +228,8 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define signmodules 1
 %define make_target compressed
 %define kernel_image vmlinux.gz
-# ia64 xen HV doesn't building with debug=y at the moment
-%define xen_flags verbose=y crash_debug=y
+# ia64 xen HV doesn't build with debug=y at the moment
+%define xen_flags verbose=y crash_debug=y XEN_VENDORVERSION=-%{PACKAGE_RELEASE}
 %define xen_target compressed
 %define xen_image vmlinux.gz
 %endif
@@ -175,11 +244,12 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define nobuildarches i386 s390 ppc
 
 %ifarch %nobuildarches
-%define buildup 0
-%define buildsmp 0
-%define buildpae 0
-%define buildxen 0
-%define buildkdump 0
+%define with_up 0
+%define with_smp 0
+%define with_pae 0
+%define with_xen 0
+%define with_kdump 0
+%define with_debug 0
 %define _enable_debug_packages 0
 %endif
 
@@ -251,7 +321,7 @@ BuildPreReq: bzip2, findutils, gzip, m4, perl, make >= 3.78, diffutils
 BuildPreReq: gnupg
 %endif
 BuildRequires: gcc >= 3.4.2, binutils >= 2.12, redhat-rpm-config
-%if %{buildheaders}
+%if %{with_headers}
 BuildRequires: unifdef
 %endif
 BuildConflicts: rhbuildsys(DiskFree) < 500Mb
@@ -269,34 +339,38 @@ Source15: merge.pl
 
 Source20: kernel-%{kversion}-i586.config
 Source21: kernel-%{kversion}-i686.config
-Source22: kernel-%{kversion}-i686-PAE.config
+Source22: kernel-%{kversion}-i686-debug.config
+Source23: kernel-%{kversion}-i686-PAE.config
 
-Source23: kernel-%{kversion}-x86_64.config
-Source24: kernel-%{kversion}-x86_64-kdump.config
+Source24: kernel-%{kversion}-x86_64.config
+Source25: kernel-%{kversion}-x86_64-debug.config
+#Source26: kernel-%{kversion}-x86_64-kdump.config
 
-Source25: kernel-%{kversion}-ppc.config
-Source26: kernel-%{kversion}-ppc-smp.config
-Source27: kernel-%{kversion}-ppc64.config
-Source28: kernel-%{kversion}-ppc64-kdump.config
-#Source29: kernel-%{kversion}-ppc64iseries.config
+Source27: kernel-%{kversion}-ppc.config
+Source28: kernel-%{kversion}-ppc-smp.config
+Source29: kernel-%{kversion}-ppc64.config
+Source29: kernel-%{kversion}-ppc64-debug.config
+Source30: kernel-%{kversion}-ppc64-kdump.config
+#Source31: kernel-%{kversion}-ppc64iseries.config
 
-Source30: kernel-%{kversion}-s390.config
-Source31: kernel-%{kversion}-s390x.config
+Source32: kernel-%{kversion}-s390.config
+Source33: kernel-%{kversion}-s390x.config
+Source34: kernel-%{kversion}-s390x-debug.config
 
-Source32: kernel-%{kversion}-ia64.config
+Source35: kernel-%{kversion}-ia64.config
+Source36: kernel-%{kversion}-ia64-debug.config
 
-Source33: kernel-%{kversion}-i686-xen.config
-Source34: kernel-%{kversion}-x86_64-xen.config
-Source35: kernel-%{kversion}-i686-kdump.config
-Source36: kernel-%{kversion}-ia64-xen.config
-#Source37: kernel-%{kversion}-ppc64iseries-kdump.config
+Source37: kernel-%{kversion}-i686-xen.config
+Source38: kernel-%{kversion}-x86_64-xen.config
+#Source39: kernel-%{kversion}-i686-kdump.config
+Source40: kernel-%{kversion}-ia64-xen.config
+#Source41: kernel-%{kversion}-ppc64iseries-kdump.config
 
 #Source66: kernel-%{kversion}-sparc.config
 #Source67: kernel-%{kversion}-sparc64.config
 #Source68: kernel-%{kversion}-sparc64-smp.config
 
 Source80: config-rhel-generic
-Source81: config-rhel-x86-generic
 Source82: config-rhel-ppc64-generic
 Source83: config-olpc-generic
 
@@ -312,6 +386,19 @@ Source106: kabi_whitelist_ppc64kdump
 Source109: kabi_whitelist_s390x
 Source110: kabi_whitelist_x86_64
 Source111: kabi_whitelist_x86_64xen
+
+Source120: Module.kabi_i686
+Source121: Module.kabi_i686PAE
+Source122: Module.kabi_i686xen
+Source123: Module.kabi_ia64
+#Source124: Module.kabi_ia64xen
+Source125: Module.kabi_ppc64
+Source126: Module.kabi_ppc64kdump
+Source127: Module.kabi_s390x
+Source128: Module.kabi_x86_64
+Source129: Module.kabi_x86_64xen
+
+Source130: check-kabi
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
@@ -353,7 +440,6 @@ Patch215: linux-2.6-x86_64-page-align-e820-area.patch
 Patch216: linux-2.6-x86_64-dirty-page-tracking.patch
 
 # 300 - 399   ppc(64)
-Patch301: linux-2.6-cell-mambo-drivers.patch
 Patch302: linux-2.6-hvc-console.patch
 Patch303: linux-2.6-ppc-rtas-check.patch
 Patch304: linux-2.6-ppc64-export-copypage.patch
@@ -673,32 +759,35 @@ Patch2801: linux-2.6-wireless-ipw2200-1_2_0-update.patch
 Patch10000: linux-2.6-compile-fixes.patch
 
 # Xen hypervisor patches (20000+)
-Patch20000: xen-printf-rate-limit.patch
-Patch20001: xen-version-strings.patch
-Patch20002: xen-grant-table-operations-security.patch
-Patch20003: xen-amd-v-menu-timer-issue.patch
-Patch20004: xen-pae-handle-64bit-addresses-correctly.patch
-Patch20005: xen-fix-vcpu-hotplug-statistics.patch
-Patch20007: xen-amd-v-hvm-fix-for-windows-hibernate.patch
-Patch20008: xen-make-windows-vista-work.patch
-Patch20009: xen-ia64-making-it-work.patch
-Patch20010: xen-ia64-fix-vti-panic-when-config-sets-maxmem.patch
-Patch20011: xen-fix-swiotlb-for-b44-module-xen-patch.patch
-Patch20012: xen-fix-for-smp-xen-guest-slow-boot-issue-on-amd-systems.patch
-Patch20013: xen-hvm-crashes-on-ia32e-smp.patch
-Patch20014: xen-make-ballooning-work-right.patch
-Patch20015: xen-oprofile-on-intel-core.patch
-Patch20016: xen-emulation-accesses-faulting-on-page-boundary.patch
-Patch20017: xen-ia64-guest-networking-finally-works.patch
-Patch20018: xen-race-condition-concerning-vlapic-interrupts.patch
-Patch20019: xen-emulate-pit-channels-for-vbios-support.patch
-Patch20020: xen-greater-than-4g-guest-fix.patch
-Patch20021: xen-make-hvm-hypercall-table-nr_hypercalls-entries-big.patch
-Patch20022: xen-replace-inappropriate-domain_crash_synchronous-use.patch
-Patch20023: xen-register-pit-handlers-to-the-correct-domain.patch
-Patch20024: xen-quick-fix-for-cannot-allocate-memory.patch
-Patch20025: xen-fix-tlb-flushing-in-shadow-pagetable-mode.patch
-Patch20026: xen-enable-booting-on-machines-with-64G.patch
+Patch20001: xen-ugly-console.patch
+Patch20002: xen-amd-s-asid-implementation.patch
+Patch20003: xen-add-amd-v-support-for-domain-live-migration.patch
+Patch20004: xen-windows-hvm-guest-image-migration-causes-blue-screen.patch
+Patch20005: xen-guest-access-to-msr-may-cause-crash-data-corruption.patch
+Patch20006: xen-ia64-guest-os-hangs-on-ipf-montetito.patch
+Patch20007: xen-ia64-domu-panics-by-save-restore.patch
+Patch20008: xen-ia64-hvm-domain-creation-panics-if-xenheap-not-enough.patch
+Patch20009: xen-ia64-cannot-create-guest-domain-due-to-rid-problem.patch
+Patch20010: xen-ia64-hvm-guest-hangs-on-vcpu-migration.patch
+Patch20011: xen-ia64-boot-46-guestos-makes-dom0-hang.patch
+Patch20012: xen-ia64-windows-guest-panic-by-incorrect-ld4-s-emulation.patch
+Patch20013: xen-ia64-dom0-boot-fails-on-numa-hardware.patch
+Patch20014: xen-ia64-smp-windows-guest-boot-fails-sometimes.patch
+Patch20015: xen-ia64-windows-guest-cannot-boot-with-debug-mode.patch
+Patch20016: xen-ia64-hv-with-crash_debug-y-doesnt-boot-on-numa-machine.patch
+Patch20017: xen-make-crashkernel-foo-16m-work.patch
+Patch20018: xen-x86-hv-workaround-for-invalid-pae-pte-clears.patch
+Patch20019: xen-amd-v-fix-for-w2k3-guest-w-nested-paging.patch
+Patch20020: xen-ia64-fix-for-hang-when-running-gdb.patch
+Patch20021: xen-set-correct-paging-bit-identifier-when-np-enabled.patch
+Patch20022: xen-fix-mce-errors-on-amd-v.patch
+Patch20023: xen-allow-dom0-to-boot-with-greater-than-2-vcpus.patch
+Patch20024: xen-ia64-support-nvram.patch
+Patch20025: xen-ia64-use-panic_notifier-list.patch
+Patch20026: xen-remove-assumption-first-numa-node-discovered-is-node0.patch
+Patch20027: xen-increase-limits-to-boot-large-ia64-platforms.patch
+Patch20028: xen-ia64-set-nodes_shift-to-8.patch
+Patch20029: xen-x86-32-bit-asid-mode-hangs-dom0-on-amd.patch
 # end of Xen patches
 
 Patch21007: linux-2.6-netlabel-error-checking-cleanups.patch
@@ -919,40 +1008,604 @@ Patch21227: linux-2.6-security-fix-key-serial-number-collision-problem.patch
 Patch21228: linux-2.6-cpufreq-remove-__initdata-from-tscsync.patch
 Patch21229: linux-2.6-pcmcia-buffer-overflow-in-omnikey-cardman-driver.patch
 Patch21230: linux-2.6-utrace-exploit-and-unkillable-cpu-fixes.patch
-Patch21231: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-1.patch
-Patch21232: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-2.patch
-Patch21233: linux-2.6-audit-gfp_kernel-allocation-non-blocking-context.patch
-Patch21234: linux-2.6-s390-page_mkclean-causes-data-corruption.patch
-Patch21235: linux-2.6-ipv6-fix-routing-regression.patch
-Patch21236: linux-2.6-mm-gdb-does-not-accurately-output-the-backtrace.patch
-Patch21237: linux-2.6-nmi-change-watchdog-timeout-to-30-seconds.patch
-Patch21238: linux-2.6-dlm-fix-mode-munging.patch
-Patch21239: linux-2.6-net-kernel-headers-missing-include-of-types-h.patch
-Patch21240: linux-2.6-net-fib_semantics-c-out-of-bounds-check.patch
-Patch21241: linux-2.6-net-disallow-rho-by-default.patch
-Patch21242: linux-2.6-net-fix-user-oops-able-bug-in-fib-netlink.patch
-Patch21243: linux-2.6-net-ipv6-fragments-bypass-nf_conntrack-netfilter.patch
-Patch21244: linux-2.6-net-ipv6_fl_socklist-is-inadvertently-shared.patch
-Patch21245: linux-2.6-net-null-pointer-dereferences-in-netfilter-code.patch
-Patch21246: linux-2.6-fs-prevent-oops-in-compat-sys-mount.patch
-Patch21247: linux-2.6-e1000-fix-watchdog-timeout-panics.patch
-Patch21248: linux-2.6-ext3-return-enoent-from-ext3_link-race-with-unlink.patch
-Patch21249: linux-2.6-bluetooth-setsockopt-information-leaks.patch
-Patch21250: linux-2.6-net-pppoe-memory-leak.patch
-Patch21251: linux-2.6-random-entropy-fixes.patch
-Patch21252: linux-2.6-ide-serverworks-data-corruptor.patch
-Patch21253: linux-2.6-ppc64-restore-sigcontext.patch
-Patch21254: linux-2.6-misc-cpuset-information-leak.patch
-Patch21255: linux-2.6-net-ip_conntrack_sctp-remote-triggerable-panic.patch
-Patch21256: linux-2.6-misc-overflow-in-capi-subsystem.patch
-Patch21257: linux-2.6-cifs-fix-signing-sec-mount-options.patch
-Patch21258: linux-2.6-cifs-respect-umask-when-unix-extensions-enabled.patch
-Patch21259: linux-2.6-misc-i915_dma-fix-batch-buffer-security-bit.patch
-Patch21260: linux-2.6-fs-move-msdos-compat-ioctl-to-msdos-dir.patch
-Patch21261: linux-2.6-fs-fix-vfat-compat-ioctls-on-64-bit-systems.patch
-Patch21262: linux-2.6-mm-prevent-the-stack-growth-into-hugetlb-regions.patch
-Patch21263: linux-2.6-x86_64-entry-path-zero-extend-all-registers-after-ptrace.patch
-
+Patch21231: linux-2.6-x86-fix-boot_params-and-pci_fixup-warnings.patch
+Patch21232: linux-2.6-x86-cpu-hotplug-smpboot-misc-modpost-warning-fixes.patch
+Patch21233: linux-2.6-x86-declare-functions-__init-to-avoid-compile-warnings.patch
+Patch21234: linux-2.6-init-break-init-two-parts-avoid-modpost-warnings.patch
+Patch21235: linux-2.6-serial-change-serial8250_console_setup-to-__init.patch
+Patch21236: linux-2.6-x86-fix-apci-related-modpost-warnings.patch
+Patch21237: linux-2.6-x86-apic-probe-__init-fixes.patch
+Patch21238: linux-2.6-x86-change-__init-to-__cpuinit-data-in-smp-code.patch
+Patch21239: linux-2.6-x86-remove-__init-from-efi_get_time.patch
+Patch21240: linux-2.6-irq-remove-__init-from-noirqdebug_setup.patch
+Patch21241: linux-2.6-x86-remove-__init-from-sysenter_setup.patch
+Patch21242: linux-2.6-rtc-__init-to-__devinit-in-drivers-probe-functions.patch
+Patch21243: linux-2.6-usb-__init-to-__devinit-in-isp116x_probe.patch
+Patch21244: linux-2.6-video-change-nvidiafb_remove-to-__devexit.patch
+Patch21245: linux-2.6-atm-fix-__initdata-declarations-in-he-c.patch
+Patch21246: linux-2.6-x86-reorganize-smp_alternatives-sections-in-vmlinuz.patch
+Patch21247: linux-2.6-video-change-rivafb_remove-to-__deviexit.patch
+Patch21248: linux-2.6-net-__devinit-__devexit-cleanups-for-de2104x-driver.patch
+Patch21249: linux-2.6-mm-remove-__initdata-from-initkmem_list3.patch
+Patch21250: linux-2.6-sound-fix-data-declarations-in-sound-drivers.patch
+Patch21251: linux-2.6-x86-fix-various-data-declarations-in-cyrix-c.patch
+Patch21252: linux-2.6-nfs-version-2-over-udp-is-not-working-properly.patch
+Patch21253: linux-2.6-audit-gfp_kernel-allocation-non-blocking-context.patch
+Patch21254: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-1.patch
+Patch21255: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-2.patch
+Patch21256: linux-2.6-mm-gdb-does-not-accurately-output-the-backtrace.patch
+Patch21257: linux-2.6-x86_64-dont-leak-nt-bit-into-next-task.patch
+Patch21258: linux-2.6-dlm-fix-user-unlocking.patch
+Patch21259: linux-2.6-dlm-fix-master-recovery.patch
+Patch21260: linux-2.6-dlm-saved-dlm-message-can-be-dropped.patch
+Patch21261: linux-2.6-dlm-can-miss-clearing-resend-flag.patch
+Patch21262: linux-2.6-dlm-increase-default-lock-limit.patch
+Patch21263: linux-2.6-dlm-make-lock_dlm-drop_count-tunable-in-sysfs.patch
+Patch21264: linux-2.6-gfs2-fix-missing-unlock_page.patch
+Patch21265: linux-2.6-gfs2-fix-list-corruption-in-lops-c.patch
+Patch21266: linux-2.6-gfs2-shrink-in-core-inode-size.patch
+Patch21267: linux-2.6-gfs2-occasional-panic-in-gfs2_unlink.patch
+Patch21268: linux-2.6-gfs2-fix-softlockups.patch
+Patch21269: linux-2.6-gfs2-correctly-display-revalidated-directories.patch
+Patch21270: linux-2.6-sched-remove-__cpuinitdata-from-cpu_isolated_map.patch
+Patch21271: linux-2.6-ppc-reduce-num_pmcs-to-6-for-power6.patch
+Patch21272: linux-2.6-s390-page_mkclean-causes-data-corruption.patch
+Patch21273: linux-2.6-nfs-fix-disabling-protocols-when-starting-server.patch
+Patch21274: linux-2.6-misc-longer-cd-timeout.patch
+Patch21275: linux-2.6-kdump-bounds-checking-for-crashkernel-args.patch
+Patch21276: linux-2.6-acpi-fix-pci-root-bridge-querying-time.patch
+Patch21277: linux-2.6-scsi-missing-pci-device-in-aic79xx-driver.patch
+Patch21278: linux-2.6-ext3-return-enoent-from-ext3_link-race-with-unlink.patch
+Patch21279: linux-2.6-misc-fix-race-in-efi-variable-delete-code.patch
+Patch21280: linux-2.6-usb-airprime-corrupts-ppp-session-for-evdo-card.patch
+Patch21281: linux-2.6-scsi-fix-incorrect-last-scatg-length.patch
+Patch21282: linux-2.6-ext3-buffer-memorder-fix.patch
+Patch21283: linux-2.6-suspend-fix-x86_64-relocatable-kernel-swsusp.patch
+Patch21284: linux-2.6-s390-runtime-switch-for-dasd-erp-logging.patch
+Patch21285: linux-2.6-cpu-hotplug-make-and-module-insertion-cause-panic.patch
+Patch21286: linux-2.6-s390-crypto-support-for-3592-tape-devices.patch
+Patch21287: linux-2.6-s390-direct-yield-for-spinlocks.patch
+Patch21288: linux-2.6-gfs2-nfs-v2-mount-failure.patch
+Patch21289: linux-2.6-gfs2-nfs-causes-recursive-locking.patch
+Patch21290: linux-2.6-gfs2-inconsistent-inode-number-lookups.patch
+Patch21291: linux-2.6-gfs2-remove-an-incorrect-assert.patch
+Patch21292: linux-2.6-scsi-blacklist-touch-up.patch
+Patch21293: linux-2.6-edac-add-support-for-revision-f-processors.patch
+Patch21294: linux-2.6-s390-kprobes-breaks-bug_on.patch
+Patch21295: linux-2.6-ipv6-anycast6-unbalanced-inet6_dev-refcnt.patch
+Patch21296: linux-2.6-fs-fix-error-handling-in-check_partition-again.patch
+Patch21297: linux-2.6-ext3-handle-orphan-inodes-vs-readonly-snapshots.patch
+Patch21298: linux-2.6-pci-include-devices-in-nic-ordering-patch.patch
+Patch21299: linux-2.6-s390-dump-on-panic-support.patch
+Patch21300: linux-2.6-gfs2-resolve-deadlock-when-write-and-access-file.patch
+Patch21301: linux-2.6-gfs2-honor-the-noalloc-flag-during-block-alloc.patch
+Patch21303: linux-2.6-s390-pseudo-random-number-generator.patch
+Patch21304: linux-2.6-xen-fix-netfront-teardown.patch
+Patch21305: linux-2.6-misc-ipc-msgsnd-msgrcv-larger-than-64k-fix.patch
+Patch21306: linux-2.6-module-module_firmware-support.patch
+Patch21307: linux-2.6-cifs-recognize-when-a-file-is-no-longer-read-only.patch
+Patch21308: linux-2.6-tux-date-overflow-fix.patch
+Patch21309: linux-2.6-ipv6-fix-routing-regression.patch
+Patch21310: linux-2.6-net-clean-up-xfrm_audit_log-interface.patch
+Patch21311: linux-2.6-net-wait-for-ipsec-sa-resolution-socket-contexts.patch
+Patch21312: linux-2.6-security-invalidate-flow-cache-after-policy-reload.patch
+Patch21313: linux-2.6-mm-some-db2-operations-cause-system-to-hang.patch
+Patch21314: linux-2.6-x86-ich9-device-ids.patch
+Patch21315: linux-2.6-pcie-remove-warning-for-devices-with-no-irq-pin.patch
+Patch21316: linux-2.6-scsi-ata_task_ioctl-should-return-ata-registers.patch
+Patch21317: linux-2.6-ide-sb600-ide-only-has-one-channel.patch
+Patch21318: linux-2.6-net-stop-leak-in-flow-cache-code.patch
+Patch21319: linux-2.6-elevator-move-clearing-of-unplug-flag-earlier.patch
+Patch21320: linux-2.6-x86-fix-mtrr-modpost-warnings.patch
+Patch21321: linux-2.6-net-xfrm_policy-delete-security-check-misplaced.patch
+Patch21322: linux-2.6-agp-agpgart-fixes-and-new-pci-ids.patch
+Patch21323: linux-2.6-mm-make-do_brk-correctly-return-einval-for-ppc64.patch
+Patch21324: linux-2.6-misc-amd-ati-sb600-smbus-support.patch
+Patch21325: linux-2.6-dm-stalls-on-resume-if-noflush-is-used.patch
+Patch21326: linux-2.6-ppc64-remove-bug_on-in-hugetlb_get_unmapped_area.patch
+Patch21327: linux-2.6-fs-make-counters-in-new_inode-and-iunique-32-bits.patch
+Patch21328: linux-2.6-xen-better-fix-for-netfront_tx_slot_available.patch
+Patch21329: linux-2.6-net-expand-in-kernel-socket-api.patch
+Patch21330: linux-2.6-ipc-mqueue-nested-locking-annotation.patch
+Patch21331: linux-2.6-nfs-fix-multiple-dentries-point-to-same-dir-inode.patch
+Patch21332: linux-2.6-ppc64-allow-vmsplice-to-work-in-32-bit-mode.patch
+Patch21333: linux-2.6-nmi-change-watchdog-timeout-to-30-seconds.patch
+Patch21334: linux-2.6-s390-crypto-driver-update.patch
+Patch21335: linux-2.6-x86-fix-invalid-write-to-nmi-msr.patch
+Patch21336: linux-2.6-s390-fix-dasd-reservations.patch
+Patch21337: linux-2.6-ppc64-cell-platform-base-kernel-support.patch
+Patch21338: linux-2.6-net-ipsec-panic-when-large-sec-context-in-acquire.patch
+Patch21339: linux-2.6-gfs2-clean-up-of-glock-code.patch
+Patch21340: linux-2.6-gfs2-incorrect-flushing-of-rgrps.patch
+Patch21341: linux-2.6-gfs2-hangs-waiting-for-semaphore.patch
+Patch21342: linux-2.6-x86-tick-divider.patch
+Patch21343: linux-2.6-mm-oom-kills-current-process-on-memoryless-node.patch
+Patch21344: linux-2.6-ppc64-handle-power6-partition-modes.patch
+Patch21345: linux-2.6-ppc64-handle-power6-partition-modes-2.patch
+Patch21346: linux-2.6-dlm-zero-new-user-lvbs.patch
+Patch21347: linux-2.6-dlm-overlapping-cancel-and-unlock.patch
+Patch21348: linux-2.6-dlm-split-create_message-function.patch
+Patch21349: linux-2.6-dlm-add-orphan-purging-code.patch
+Patch21350: linux-2.6-dlm-interface-for-purge.patch
+Patch21351: linux-2.6-dlm-change-lkid-format.patch
+Patch21352: linux-2.6-dlm-fix-mode-munging.patch
+Patch21353: linux-2.6-gfs2-use-log_error-before-lm_out_error.patch
+Patch21354: linux-2.6-x86_64-fix-misconfigured-k8-north-bridge.patch
+Patch21355: linux-2.6-cifs-windows-server-bad-domain-null-terminator.patch
+Patch21356: linux-2.6-ia64-fix-stack-layout-issues-when-using-ulimit-s.patch
+Patch21357: linux-2.6-mm-unmap-memory-range-disturbs-page-referenced.patch
+Patch21358: linux-2.6-net-kernel-headers-missing-include-of-types-h.patch
+Patch21359: linux-2.6-gfs2-lockdump-support.patch
+Patch21360: linux-2.6-x86_64-calgary-iommu-cleanups-and-fixes.patch
+Patch21361: linux-2.6-misc-k8temp.patch
+Patch21362: linux-2.6-gfs2_delete_inode-13.patch
+Patch21363: linux-2.6-autofs4-fix-race-between-mount-and-expire.patch
+Patch21364: linux-2.6-misc-efi-only-warn-on-pre-1-00-version.patch
+Patch21365: linux-2.6-net-fix-user-oops-able-bug-in-fib-netlink.patch
+Patch21366: linux-2.6-serial-panic-in-check_modem_status-on-8250.patch
+Patch21367: linux-2.6-security-supress-selinux-printk-messages.patch
+Patch21368: linux-2.6-dm-kmirrord-deadlock-when-dirty-log-on-mirror.patch
+Patch21369: linux-2.6-dm-failures-when-creating-many-snapshots.patch
+Patch21370: linux-2.6-gfs2-does-a-mutex_lock-instead-of-a-mutex_unlock.patch
+Patch21371: linux-2.6-x86_64-gatt-pages-must-be-uncacheable.patch
+Patch21372: linux-2.6-ipc-bounds-checking-for-shmmax.patch
+Patch21373: linux-2.6-misc-getcpu-system-call.patch
+Patch21374: linux-2.6-net-fib_semantics-c-out-of-bounds-check.patch
+Patch21375: linux-2.6-net-disallow-rho-by-default.patch
+Patch21376: linux-2.6-net-ipv6-fragments-bypass-nf_conntrack-netfilter.patch
+Patch21377: linux-2.6-net-null-pointer-dereferences-in-netfilter-code.patch
+Patch21378: linux-2.6-mm-null-current-mm-in-grab_swap_token-causes-oops.patch
+Patch21379: linux-2.6-dlm-rename-dlm_config_info-fields.patch
+Patch21380: linux-2.6-dlm-add-config-entry-to-enable-log_debug.patch
+Patch21381: linux-2.6-dlm-expose-dlm_config_info-fields-in-configfs.patch
+Patch21382: linux-2.6-net-ipv6_fl_socklist-is-inadvertently-shared.patch
+Patch21383: linux-2.6-e1000-fix-watchdog-timeout-panics.patch
+Patch21385: linux-2.6-ixgb-fix-early-tso-completion.patch
+Patch21386: linux-2.6-intel-rng-fix-deadlock-in-smp_call_function.patch
+Patch21387: linux-2.6-x86-greyhound-cpuinfo-output-cleanups.patch
+Patch21388: linux-2.6-x86-fix-cpuid-calls-to-support-gh-processors.patch
+Patch21389: linux-2.6-x86-fix-to-nmi-to-support-gh-processors.patch
+Patch21390: linux-2.6-x86-use-cpuid-calls-to-check-for-mce.patch
+Patch21391: linux-2.6-x86-tell-sysrq-m-to-poke-the-nmi-watchdog.patch
+Patch21392: linux-2.6-mm-optimize-kill_bdev.patch
+Patch21393: linux-2.6-ppc64-eeh-pci-error-recovery-support.patch
+Patch21394: linux-2.6-scsi-scsi_transport_spi-sense-buffer-size-error.patch
+Patch21395: linux-2.6-fs-stack-overflow-with-non-4k-page-size.patch
+Patch21396: linux-2.6-mm-oom-killer-breaks-s390-cmm.patch
+Patch21397: linux-2.6-scsi-update-qlogic-qla2xxx-driver-to-8-01-07-k6.patch
+Patch21398: linux-2.6-v4l-use-__gfp_dma32-in-videobuf_vm_nopage.patch
+Patch21399: linux-2.6-pty-race-could-lead-to-double-idr-index-free.patch
+Patch21400: linux-2.6-misc-fix-softlockup-warnings-during-sysrq-t.patch
+Patch21401: linux-2.6-gfs2-panic-if-you-try-to-rm-lost-found-directory.patch
+Patch21402: linux-2.6-gfs2-deadlock-running-d_rwdirectlarge.patch
+Patch21403: linux-2.6-gfs2-mmap-problems-with-distributed-test-cases.patch
+Patch21404: linux-2.6-gfs2-flush-the-glock-completely-in-inode_go_sync.patch
+Patch21406: linux-2.6-ia64-fpswa-exceptions-take-excessive-system-time.patch
+Patch21407: linux-2.6-ia64-mca-init-issues-with-printk-messages-console.patch
+Patch21408: linux-2.6-fs-prevent-oops-in-compat-sys-mount.patch
+Patch21409: linux-2.6-mm-memory-less-node-support.patch
+Patch21410: linux-2.6-misc-lockdep-annotate-declare_wait_queue_head.patch
+Patch21411: linux-2.6-mm-vm-scalability-issues.patch
+Patch21412: linux-2.6-net-rpc-simplify-data-check-remove-bug_on.patch
+Patch21413: linux-2.6-md-dm-multipath-rr-path-order-is-inverted.patch
+Patch21414: linux-2.6-md-dm-fix-suspend-error-path.patch
+Patch21415: linux-2.6-md-dm-allow-offline-devices-in-table.patch
+Patch21416: linux-2.6-scsi-update-for-new-sas-raid.patch
+Patch21417: linux-2.6-gfs2-bring-gfs2-uptodate.patch
+Patch21418: linux-2.6-misc-xen-fix-microcode-driver-for-new-firmware.patch
+Patch21419: linux-2.6-net-high-tcp-latency-with-small-packets.patch
+Patch21420: linux-2.6-ia64-platform_kernel_launch_event-is-a-noop.patch
+Patch21421: linux-2.6-acpi-_cid-support-for-pci-root-bridge-detection.patch
+Patch21422: linux-2.6-scsi-fix-bogus-warnings-from-sb600-dvd-drive.patch
+Patch21424: linux-2.6-autofs-fix-panic-on-mount-fail-missing-module.patch
+Patch21425: linux-2.6-nfs-add-nordirplus-option-to-nfs-client.patch
+Patch21426: linux-2.6-fix-oom-wrongly-kill-processes-through-mpol_bind.patch
+Patch21427: linux-2.6-ia64-sn-correctly-update-smp_affinity-mask.patch
+Patch21428: linux-2.6-md-dm-crypt-fix-possible-data-corruptions.patch
+Patch21429: linux-2.6-ia64-eliminate-deadlock-on-xpc-disconnects.patch
+Patch21430: linux-2.6-md-incorrect-param-to-dm_io-causes-read-failures.patch
+Patch21431: linux-2.6-nfs-rpc-downsized-response-buffer-checksum.patch
+Patch21432: linux-2.6-md-dm-io-fix-panic-on-large-request.patch
+Patch21433: linux-2.6-fs-invalid-segmentation-violation-during-exec.patch
+Patch21434: linux-2.6-nfs-protocol-v3-write-procedure-patch.patch
+Patch21435: linux-2.6-mm-bug_on-in-shmem_writepage-is-triggered.patch
+Patch21436: linux-2.6-net-rpc-krb5-memory-leak.patch
+Patch21437: linux-2.6-misc-bluetooth-setsockopt-information-leaks.patch
+Patch21438: linux-2.6-gfs2-shrink-size-of-struct-gdlm_lock.patch
+Patch21439: linux-2.6-gfs2-fixes-related-to-gfs2_grow.patch
+Patch21440: linux-2.6-net-fix-dos-in-pppoe.patch
+Patch21441: linux-2.6-misc-random-fix-error-in-entropy-extraction.patch
+Patch21442: linux-2.6-nfs-nfsv4-referrals-support.patch
+Patch21443: linux-2.6-acpi-update-ibm_acpi-module.patch
+Patch21444: linux-2.6-misc-xen-kill-sys_lock-unlock-in-microcode-driver.patch
+Patch21445: linux-2.6-net-enable-and-update-qla3xxx-networking-driver.patch
+Patch21447: linux-2.6-ppc64-support-for-ibm-power-off-ups-rtas-call.patch
+Patch21448: linux-2.6-pci-dynamic-add-and-remove-of-pci-e.patch
+Patch21449: linux-2.6-ppc64-handle-symbol-lookup-for-kprobes.patch
+Patch21450: linux-2.6-x86_64-wall-time-drops-lost-timer-ticks.patch
+Patch21451: linux-2.6-mm-reduce-madv_dontneed-contention.patch
+Patch21452: linux-2.6-audit-log-targets-of-signals.patch
+Patch21453: linux-2.6-ppc64-fix-xmon-off-and-cleanup-xmon-init.patch
+Patch21454: linux-2.6-net-ixgb-update-1-0-109-to-add-pci-error-recovery.patch
+Patch21455: linux-2.6-ppc64-eeh-is-improperly-enabled-for-power4-system.patch
+Patch21456: linux-2.6-nfs-nlm-fix-double-free-in-__nlm_async_call.patch
+Patch21457: linux-2.6-dlm-consolidate-transport-protocols.patch
+Patch21458: linux-2.6-dlm-block-scand-during-recovery.patch
+Patch21459: linux-2.6-dlm-add-lock-timeouts-and-time-warning.patch
+Patch21460: linux-2.6-dlm-cancel-in-conversion-deadlock.patch
+Patch21461: linux-2.6-dlm-fix-new_lockspace-error-exit.patch
+Patch21462: linux-2.6-dlm-wait-for-config-check-during-join.patch
+Patch21463: linux-2.6-dlm-canceling-deadlocked-lock.patch
+Patch21464: linux-2.6-dlm-dumping-master-locks.patch
+Patch21465: linux-2.6-dlm-misc-device-removed-on-lockspace-removal-fail.patch
+Patch21466: linux-2.6-dlm-fix-queue_work-oops.patch
+Patch21467: linux-2.6-dlm-allow-users-to-create-the-default-lockspace.patch
+Patch21468: linux-2.6-scsi-megaraid-update-version-reported-by-megaioc_qdrvrver.patch
+Patch21469: linux-2.6-scsi-9650se-not-recognized-by-3w-9xxx-module.patch
+Patch21470: linux-2.6-aio-fix-buggy-put_ioctx-call-in-aio_complete.patch
+Patch21471: linux-2.6-mm-prevent-oom-kill-of-unkillable-children.patch
+Patch21472: linux-2.6-edac-k8_edac-don-t-panic-on-pcc-check.patch
+Patch21473: linux-2.6-misc-synclink_gt-fix-init-error-handling.patch
+Patch21474: linux-2.6-s390-zfcp-driver-fixes.patch
+Patch21475: linux-2.6-scsi-scsi_error-c-fix-lost-eh-commands.patch
+Patch21476: linux-2.6-nfs-enable-nosharecache-mounts.patch
+Patch21477: linux-2.6-s390-runtime-switch-for-qdio-performance-stats.patch
+Patch21478: linux-2.6-scsi-add-kernel-support-for-areca-raid-controller.patch
+Patch21479: linux-2.6-sata-move-sata-drivers-to-drivers-ata.patch
+Patch21480: linux-2.6-sata-super-jumbo-update.patch
+Patch21481: linux-2.6-pci-update-ata-msi-ichx-quirks.patch
+Patch21482: linux-2.6-ipmi-update-to-latest.patch
+Patch21483: linux-2.6-cpufreq-identifies-num-of-proc-in-powernow-k8.patch
+Patch21484: linux-2.6-ppc64-cell-spe-and-performance.patch
+Patch21485: linux-2.6-ppc64-spufs-move-to-sdk2-1.patch
+Patch21486: linux-2.6-ppc64-update-ehea-driver-to-latest-version.patch
+Patch21487: linux-2.6-ppc64-enable-dlpar-support-for-hea.patch
+Patch21488: linux-2.6-ppc64-msi-support-for-pci-e.patch
+Patch21489: linux-2.6-ppc64-dma-4gb-boundary-protection.patch
+Patch21490: linux-2.6-x86_64-fix-a-cast-in-the-lost-ticks-code.patch
+Patch21491: linux-2.6-audit-auditing-ptrace.patch
+Patch21492: linux-2.6-audit-avc_path-handling.patch
+Patch21493: linux-2.6-audit-add-subtrees-support.patch
+Patch21494: linux-2.6-dio-clean-up-completion-phase-of-direct_io_worker.patch
+Patch21495: linux-2.6-x86-add-greyhound-performance-counter-events.patch
+Patch21496: linux-2.6-block-fix-null-bio-crash-in-loop-worker-thread.patch
+Patch21497: linux-2.6-audit-pfkey_delete-and-xfrm_del_sa-hooks-wrong.patch
+Patch21498: linux-2.6-net-netlabel-verify-level-has-valid-cipso-mapping.patch
+Patch21499: linux-2.6-audit-xfrm_add_sa_expire-return-code-error.patch
+Patch21500: linux-2.6-audit-init-audit-record-sid-information-to-zero.patch
+Patch21501: linux-2.6-audit-collect-inode-info-for-all-f-xattr-cmds.patch
+Patch21502: linux-2.6-audit-pfkey_spdget-does-not-audit-xrfm-changes.patch
+Patch21503: linux-2.6-audit-match-proto-when-searching-for-larval-sa.patch
+Patch21504: linux-2.6-audit-add-space-in-ipv6-xfrm-audit-record.patch
+Patch21505: linux-2.6-audit-sad-spd-flush-have-no-security-check.patch
+Patch21506: linux-2.6-s390-sclp-race-condition.patch
+Patch21507: linux-2.6-s390-ifenslave-c-causes-panic-with-vlan-and-osa.patch
+Patch21508: linux-2.6-dasd-prevent-dasd-from-flooding-the-console.patch
+Patch21509: linux-2.6-dasd-export-dasd-status-to-userspace.patch
+Patch21510: linux-2.6-ide-packet-command-error-when-installing-rpm.patch
+Patch21511: linux-2.6-misc-include-taskstats-h-in-kernel-headers-pkg.patch
+Patch21512: linux-2.6-nfs-numerous-oops-memory-leaks-and-hangs-upstream.patch
+Patch21513: linux-2.6-mm-shared-page-table-for-hugetlb-page.patch
+Patch21514: linux-2.6-nfs-fixed-oops-in-symlink-code.patch
+Patch21515: linux-2.6-dio-invalidate-clean-pages-before-dio-write.patch
+Patch21516: linux-2.6-audit-make-audit-config-immutable-in-kernel.patch
+Patch21517: linux-2.6-cifs-update-to-version-1-48arh.patch
+Patch21518: linux-2.6-s390-fix-possible-reboot-hang-on-s390.patch
+Patch21519: linux-2.6-gfs2-cleanup-inode-number-handling.patch
+Patch21520: linux-2.6-gfs2-quotas-non-functional.patch
+Patch21521: linux-2.6-gfs2-fix-calc-for-log-blocks-with-small-sizes.patch
+Patch21522: linux-2.6-scsi-update-mpt-fusion-to-3-04-04.patch
+Patch21523: linux-2.6-scsi-fix-for-slow-dvd-drive.patch
+Patch21524: linux-2.6-scsi-mpt-adds-did_bus_busy-status-on-scsi-busy.patch
+Patch21525: linux-2.6-gfs2-statfs-sign-problem-and-cleanup-_host-struct.patch
+Patch21526: linux-2.6-gfs2-add-nanosecond-timestamp-feature.patch
+Patch21527: linux-2.6-md-unconditionalize-log-flush.patch
+Patch21528: linux-2.6-md-rh_in_sync-should-be-allowed-to-block.patch
+Patch21529: linux-2.6-dlm-fix-debugfs-ref-counting-problem.patch
+Patch21530: linux-2.6-scsi-update-iser-driver.patch
+Patch21531: linux-2.6-scsi-update-qla4xxx-driver.patch
+Patch21532: linux-2.6-ide-serverworks-data-corruptor.patch
+Patch21533: linux-2.6-scsi-update-qla2xxx-firmware.patch
+Patch21534: linux-2.6-scsi-omnibus-lpfc-driver-update.patch
+Patch21535: linux-2.6-pci-i-o-space-mismatch-with-p64h2.patch
+Patch21536: linux-2.6-scsi-add-fc-link-speeds.patch
+Patch21538: linux-2.6-x86-mce-thermal-throttling.patch
+Patch21539: linux-2.6-fs-fix-ext2-overflows-on-filesystems-8t.patch
+Patch21540: linux-2.6-scsi-megaraid_sas-update.patch
+Patch21541: linux-2.6-x86-rtc-support-for-hpet-legacy-replacement-mode.patch
+Patch21542: linux-2.6-x86_64-fix-regression-in-kexec.patch
+Patch21543: linux-2.6-scsi-update-iscsi_tcp-driver.patch
+Patch21544: linux-2.6-scsi-cciss-ignore-unsent-commands-on-kexec-boot.patch
+Patch21545: linux-2.6-scsi-update-aacraid-driver-to-1-1-5-2437.patch
+Patch21546: linux-2.6-gfs2-can-t-mount-file-system-on-aoe-device.patch
+Patch21547: linux-2.6-gfs2-missing-lost-inode-recovery-code.patch
+Patch21548: linux-2.6-ipsec-make-xfrm_acq_expires-proc-tunable.patch
+Patch21549: linux-2.6-gfs2-journaled-data-issues.patch
+Patch21550: linux-2.6-dlm-variable-allocation-types.patch
+Patch21551: linux-2.6-fs-nfs-does-not-support-leases-send-correct-error.patch
+Patch21552: linux-2.6-audit-softlockup-messages-loading-selinux-policy.patch
+Patch21553: linux-2.6-misc-cpuset-information-leak.patch
+Patch21554: linux-2.6-x86_64-disable-mmconf-for-hp-dc5700-microtower.patch
+Patch21555: linux-2.6-x86_64-add-l3-cache-support-to-some-processors.patch
+Patch21556: linux-2.6-audit-allow-audit-filtering-on-bit-operations.patch
+Patch21557: linux-2.6-audit-broken-class-based-syscall-audit.patch
+Patch21558: linux-2.6-usb-strange-urbs-and-running-out-iommu.patch
+Patch21559: linux-2.6-net-ip_conntrack_sctp-remote-triggerable-panic.patch
+Patch21560: linux-2.6-x86_64-sparsemem-memmap-allocation-above-4g.patch
+Patch21561: linux-2.6-net-mac80211-inclusion.patch
+Patch21562: linux-2.6-audit-0-does-not-disable-all-audit-messages.patch
+Patch21563: linux-2.6-audit-when-opening-existing-messege-queue.patch
+Patch21564: linux-2.6-scsi-spi-dv-fixup.patch
+Patch21565: linux-2.6-ppc64-update-of-spidernet-to-2-0-a-for-cell.patch
+Patch21566: linux-2.6-net-tg3-update-to-driver-version-3-76.patch
+Patch21567: linux-2.6-net-bonding-update-to-driver-version-3-1-2.patch
+Patch21568: linux-2.6-net-forcedeth-update-to-driver-version-0-60.patch
+Patch21569: linux-2.6-net-sky2-update-to-version-1-14-from-2-6-21.patch
+Patch21571: linux-2.6-net-b44-ethernet-driver-update.patch
+Patch21572: linux-2.6-net-ipw200-backports-from-2-6-22-rc1.patch
+Patch21573: linux-2.6-net-bnx2-update-to-driver-version-1-5-11.patch
+Patch21574: linux-2.6-net-e1000-update-to-driver-version-7-3-20-k2.patch
+Patch21575: linux-2.6-net-softmac-updates-from-2-6-21.patch
+Patch21576: linux-2.6-net-bcm43xx-backport-from-2-6-22-rc1.patch
+Patch21577: linux-2.6-net-allow-packet-drops-during-ipsec-larval-state.patch
+Patch21578: linux-2.6-pci-irqbalance-causes-oops-during-pci-removal.patch
+Patch21579: linux-2.6-x86_64-fix-tsc-reporting-with-constant-tsc.patch
+Patch21581: linux-2.6-acpi-acpi_prt-list-incomplete.patch
+Patch21582: linux-2.6-drm-agpgart-and-drm-support-for-bearlake-graphics.patch
+Patch21583: linux-2.6-net-cxgb3-initial-support-for-chelsio-t3-card.patch
+Patch21584: linux-2.6-net-netxen-initial-support-for-netxen-10gbe-nic.patch
+Patch21585: linux-2.6-xen-bimodal-drivers-protocol-header.patch
+Patch21586: linux-2.6-xen-bimodal-drivers-pvfb-frontend.patch
+Patch21587: linux-2.6-xen-bimodal-drivers-blkfront-driver.patch
+Patch21588: linux-2.6-xen-binmodal-drivers-block-backends.patch
+Patch21589: linux-2.6-xen-blktap-kill-bogous-flush.patch
+Patch21590: linux-2.6-xen-blktap-cleanups.patch
+Patch21591: linux-2.6-xen-blktap-race-fix-1.patch
+Patch21592: linux-2.6-xen-blktap-race-2.patch
+Patch21593: linux-2.6-xen-blkback-blktap-fix-id-type.patch
+Patch21594: linux-2.6-xen-save-restore-fix.patch
+Patch21595: linux-2.6-xen-ia64-fix-hvm-interrupts-on-ipf.patch
+Patch21596: linux-2.6-xen-ia64-fix-xm-mem-set-hypercall-on-ia64.patch
+Patch21597: linux-2.6-xen-xen0-can-not-startx-in-tiger4.patch
+Patch21598: linux-2.6-xen-ia64-uncorrectable-error-make-hypervisor-hung.patch
+Patch21599: linux-2.6-xen-change-to-new-intr-deliver-mechanism.patch
+Patch21600: linux-2.6-xen-ia64-changed-foreign-domain-page-map-semantic.patch
+Patch21601: linux-2.6-xen-ia64-evtchn_callback-fix-and-clean.patch
+Patch21602: linux-2.6-xen-ia64-kernel-panics-when-dom0_mem-is-specified.patch
+Patch21603: linux-2.6-xen-ia64-para-domain-vmcore-not-work-under-crash.patch
+Patch21604: linux-2.6-xen-ia64-improve-performance-of-system-call.patch
+Patch21605: linux-2.6-xen-ia64-set-irq_per_cpu-status-on-percpu-irqs.patch
+Patch21606: linux-2.6-xen-ia64-fix-for-irq_desc-missing-in-new-upstream.patch
+Patch21607: linux-2.6-xen-support-new-xm-command-xm-trigger.patch
+Patch21608: linux-2.6-xen-ia64-cannot-measure-process-time-accurately.patch
+Patch21609: linux-2.6-xen-ia64-skip-mca-setup-on-domu.patch
+Patch21610: linux-2.6-xen-ia64-xm-save-restore-does-not-work.patch
+Patch21611: linux-2.6-xen-ia64-use-generic-swiotlb-h-header.patch
+Patch21612: linux-2.6-xen-ia64-fix-pv-on-hvm-driver.patch
+Patch21613: linux-2.6-xen-change-interface-version-for-3-1.patch
+Patch21614: linux-2.6-xen-expand-vnif-num-per-guest-domain-to-over-four.patch
+Patch21615: linux-2.6-xen-x86_64-fix-fs-gs-registers-for-vt-bootup.patch
+Patch21616: linux-2.6-net-s2io--native-support-for-pci-error-recovery.patch
+Patch21617: linux-2.6-fs-fuse-minor-vfs-change.patch
+Patch21618: linux-2.6-md-move-fn-call-that-could-block-outside-spinlock.patch
+Patch21619: linux-2.6-scsi-raid1-goes-read-only-after-resync.patch
+Patch21620: linux-2.6-ppc64-donate-cycles-from-dedicated-cpu.patch
+Patch21622: linux-2.6-openib-kernel-backports-for-ofed-1-2-update.patch
+Patch21623: linux-2.6-openib-update-ofed-code-to-1-2.patch
+Patch21624: linux-2.6-net-fix-tx_checksum-flag-bug-in-qla3xxx-driver.patch
+Patch21625: linux-2.6-s390-qdio-system-hang-with-zfcp-adapter-problems.patch
+Patch21626: linux-2.6-input-i8042_interrupt-race-deliver-bytes-swapped.patch
+Patch21627: linux-2.6-gfs2-panic-in-unlink.patch
+Patch21628: linux-2.6-gfs2-posix-lock-fixes.patch
+Patch21629: linux-2.6-misc-disable-pnpacpi-on-ibm-x460.patch
+Patch21630: linux-2.6-misc-utrace-update.patch
+Patch21631: linux-2.6-net-update-netxen_nic-driver-to-version-3-x-x.patch
+Patch21632: linux-2.6-net-ixgb-update-to-driver-version-1-0-126-k2.patch
+Patch21633: linux-2.6-ia64-altix-acpi-support.patch
+Patch21634: linux-2.6-security-allow-nfs-nohide-and-selinux-to-work.patch
+Patch21635: linux-2.6-nfs-closes-and-umounts-are-racing.patch
+Patch21636: linux-2.6-x86_64-system-panic-on-boot-up-no-memory-in-node0.patch
+Patch21637: linux-2.6-fs-setuid-program-unable-to-read-own-proc-pid-map.patch
+Patch21638: linux-2.6-x86_64-fix-casting-issue-in-tick-divider-patch.patch
+Patch21639: linux-2.6-sound-alsa-update.patch
+Patch21640: linux-2.6-md-add-dm-rdac-hardware-handler.patch
+Patch21641: linux-2.6-pata-ide-hotplug-support-promise-pata_pdc2027x.patch
+Patch21642: linux-2.6-pci-pci-x-pci-express-read-control-interface.patch
+Patch21643: linux-2.6-ide-cannot-find-ide-device-with-ati-amd-sb700.patch
+Patch21644: linux-2.6-i2c-smbus-does-not-work-on-ati-amd-sb700-chipset.patch
+Patch21645: linux-2.6-x86_64-c-state-divisor-not-functioning-correctly.patch
+Patch21646: linux-2.6-agp-fix-amd-64-agp-aperture-validation.patch
+Patch21648: linux-2.6-gfs2-assert-fail-writing-to-journaled-file-umount.patch
+Patch21649: linux-2.6-xen-kdump-kexec-support.patch
+Patch21650: linux-2.6-firewire-new-stack-technology-preview.patch
+Patch21651: linux-2.6-sata-combined-mode-regression-fix.patch
+Patch21652: linux-2.6-scsi-cciss-driver-updates.patch
+Patch21654: linux-2.6-md-fix-eio-on-writes-after-log-failure.patch
+Patch21655: linux-2.6-xen-ia64-kernel-panics-when-dom0_mem-is-specified_2.patch
+Patch21656: linux-2.6-scsi-update-aic94xx-and-libsas-to-1-0-3.patch
+Patch21657: linux-2.6-audit-oops-when-audit-disabled-with-files-watched.patch
+Patch21658: linux-2.6-xen-fix-kexec-highmem-failure.patch
+Patch21659: linux-2.6-ppc64-data-buffer-miscompare.patch
+Patch21660: linux-2.6-audit-subtree-watching-cleanups.patch
+Patch21661: linux-2.6-gfs2-igrab-of-inode-in-wrong-state.patch
+Patch21663: linux-2.6-gfs2-eio-error-from-gfs2_block_truncate_page.patch
+Patch21664: linux-2.6-gfs2-obtaining-no_formal_ino-from-directory-entry.patch
+Patch21665: linux-2.6-gfs2-remove-i_mode-pass-from-nfs-file-handle.patch
+Patch21666: linux-2.6-gfs2-inode-size-inconsistency.patch
+Patch21668: linux-2.6-dm-allow-invalid-snapshots-to-be-activated.patch
+Patch21669: linux-2.6-dlm-tcp-connection-to-dlm-port-blocks-operations.patch
+Patch21670: linux-2.6-misc-overflow-in-capi-subsystem.patch
+Patch21671: linux-2.6-nfs-nfsd-oops-when-exporting-krb5p-mount.patch
+Patch21672: linux-2.6-scsi-check-portstates-before-invoking-target-scan.patch
+Patch21673: linux-2.6-xen-ia64-enable-blktap-driver.patch
+Patch21674: linux-2.6-ppc64-fix-64k-pages-with-kexec-on-hash-table.patch
+Patch21675: linux-2.6-ppc64-ehea-driver-cause-panic-on-recv-vlan-packet.patch
+Patch21676: linux-2.6-pci-unable-to-reserve-mem-region-on-module-reload.patch
+Patch21677: linux-2.6-sata-add-hitachi-to-ncq-blacklist.patch
+Patch21678: linux-2.6-gfs2-lockup-detected-in-databuf_lo_before_commit.patch
+Patch21679: linux-2.6-gfs2-mounted-file-system-won-t-suspend.patch
+Patch21680: linux-2.6-edac-panic-memory-corruption-on-non-kdump-kernels.patch
+Patch21681: linux-2.6-wireless-iwlwifi-add-driver.patch
+Patch21682: linux-2.6-linux-2.6-dlm-clear-othercon-ptrs-when-connection-closed.patch
+Patch21683: linux-2.6-linux-2.6-dlm-fix-null-reference-in-send_ls_not_ready.patch
+Patch21684: linux-2.6-linux-2.6-gfs2-soft-lockup-in-rgblk_search.patch
+Patch21685: linux-2.6-linux-2.6-xen-fix-time-going-backwards-gettimeofday.patch
+Patch21686: linux-2.6-utrace-zombie-to-exit_dead-before-release_task.patch
+Patch21687: linux-2.6-sata-regression-in-support-for-third-party-module.patch
+Patch21688: linux-2.6-nfs-re-enable-force-umount.patch
+Patch21689: linux-2.6-xen-race-load-xenblk-ko-and-scan-lvm-partitions.patch
+Patch21690: linux-2.6-gfs2-locksmith-revolver-deadlocks.patch
+Patch21691: linux-2.6-gfs2-fix-an-oops-in-the-glock-dumping-code.patch
+Patch21692: linux-2.6-scsi-cciss-re-add-missing-kmalloc.patch
+Patch21693: linux-2.6-scsi-update-stex-driver.patch
+Patch21694: linux-2.6-ppc64-axon-mem-does-not-handle-double-bit-errors.patch
+Patch21695: linux-2.6-xen-netloop-do-not-clobber-cloned-skb-page-frags.patch
+Patch21696: linux-2.6-cifs-fix-signing-sec-mount-options.patch
+Patch21697: linux-2.6-cifs-respect-umask-when-unix-extensions-enabled.patch
+Patch21698: linux-2.6-x86-fix-tscsync-frequency-transitions.patch
+Patch21699: linux-2.6-ppc-disable-pci-e-compl-timeouts-on-i-o-adapters.patch
+Patch21700: linux-2.6-gfs2-bug-relating-to-inherit_jdata-flag-on-inodes.patch
+Patch21701: linux-2.6-scsi-adaptec-add-sc-58300-hba-pci-id.patch
+Patch21702: linux-2.6-gfs2-reduce-number-of-gfs2_scand-processes-to-one.patch
+Patch21703: linux-2.6-ppc-no-boot-hang-response-for-pci-e-errors.patch
+Patch21704: linux-2.6-net-e1000e-initial-support.patch
+Patch21705: linux-2.6-net-igb-initial-support.patch
+Patch21706: linux-2.6-net-e1000-add-support-for-hp-mezzanine-cards.patch
+Patch21707: linux-2.6-net-e1000-add-support-for-bolton-nics.patch
+Patch21708: linux-2.6-fs-move-msdos-compat-ioctl-to-msdos-dir.patch
+Patch21709: linux-2.6-fs-fix-vfat-compat-ioctls-on-64-bit-systems.patch
+Patch21710: linux-2.6-ata-add-additional-device-ids-for-sb700.patch
+Patch21711: linux-2.6-ppc-pci-host-bridge-i-o-window-not-starting-at-0.patch
+Patch21712: linux-2.6-net-tg3-small-update-for-kdump-fix.patch
+Patch21713: linux-2.6-ppc-4k-userspace-page-map-support-in-64k-kernels.patch
+Patch21714: linux-2.6-net-forcedeth-fix-nic-poll.patch
+Patch21715: linux-2.6-scsi-cciss-support-for-p700m.patch
+Patch21716: linux-2.6-scsi-pci-shutdown-for-cciss-driver.patch
+Patch21717: linux-2.6-dlm-fix-basts-for-granted-pr-waiting-cw.patch
+Patch21718: linux-2.6-x86-support-in-fid-did-to-frequency-conversion.patch
+Patch21719: linux-2.6-fix-restore-path-for-5-1-pv-guests.patch
+Patch21720: linux-2.6-misc-i915_dma-fix-batch-buffer-security-bit.patch
+Patch21721: linux-2.6-xen-use-xencons-xvc-by-default-on-non-x86.patch
+Patch21722: linux-2.6-gfs2-invalid-metadata-block.patch
+Patch21723: linux-2.6-audit-sub-tree-cleanups.patch
+Patch21724: linux-2.6-audit-sub-tree-memory-leaks.patch
+Patch21725: linux-2.6-sub-tree-signal-handling-fix.patch
+Patch21726: linux-2.6-ppc-ehca-driver-use-remap_4k_pfn-in-64k-kernel.patch
+Patch21727: linux-2.6-wireless-iwlwifi-update-to-version-1-0-0.patch
+Patch21728: linux-2.6-xen-ia64-cannot-use-e100-and-ide-controller.patch
+Patch21729: linux-2.6-ppc-dlpar-remove-i-o-resource-failed.patch
+Patch21731: linux-2.6-xen-netfront-avoid-deref-skb-after-freed.patch
+Patch21732: linux-2.6-misc-workaround-for-qla2xxx-vs-xen-swiotlb.patch
+Patch21733: linux-2.6-net-tg3-pci-ids-missed-during-backport.patch
+Patch21734: linux-2.6-agp-945-965gme-bridge-id-bug-fix-and-cleanups.patch
+Patch21735: linux-2.6-net-forcedeth-optimize-the-tx-data-path.patch
+Patch21736: linux-2.6-xen-ia64-allow-guests-to-vga-install.patch
+Patch21737: linux-2.6-sound-audio-playback-does-not-work.patch
+Patch21738: linux-2.6-scsi-fix-qla4xxx-underrun-and-online-handling.patch
+Patch21739: linux-2.6-mm-prevent-the-stack-growth-into-hugetlb-regions.patch
+Patch21740: linux-2.6-misc-miss-critical-phys_to_virt-in-lib-swiotlb-c.patch
+Patch21741: linux-2.6-x86-blacklist-for-hp-dl585g2-and-hp-dc5700.patch
+Patch21742: linux-2.6-ia64-fsys_gettimeofday-leaps-days-with-nojitter.patch
+Patch21743: linux-2.6-xen-blktap-tries-to-access-beyond-end-of-disk.patch
+Patch21744: linux-2.6-net-s2io-update-to-driver-version-2-0-25-1.patch
+Patch21745: linux-2.6-scsi-cciss-increase-max-sectors-to-2048.patch
+Patch21746: linux-2.6-misc-fix-broken-altsysrq-f.patch
+Patch21747: linux-2.6-mm-separate-mapped-file-and-anon-page-in-show_mem.patch
+Patch21748: linux-2.6-sound-fix-panic-in-hda_codec.patch
+Patch21749: linux-2.6-misc-cpu-hotplug-notifiers-to-use-raw_notifier.patch
+Patch21750: linux-2.6-x86_64-fix-mmio-config-space-quirks.patch
+Patch21751: linux-2.6-gfs2-hang-when-using-a-large-sparse-quota-file.patch
+Patch21752: linux-2.6-net-fix-dlpar-remove-of-ehea-logical-port.patch
+Patch21753: linux-2.6-gfs2-unstuff-quota-inode.patch
+Patch21754: linux-2.6-ppc-fix-detection-of-pci-e-based-devices.patch
+Patch21755: linux-2.6-scsi-fix-iscsi-write-handling-regression.patch
+Patch21756: linux-2.6-sound-support-ad1984-codec.patch
+Patch21757: linux-2.6-fs-cifs-fix-deadlock-in-cifs_get_inode_info_unix.patch
+Patch21758: linux-2.6-gfs2-panic-after-can-t-parse-mount-arguments.patch
+Patch21759: linux-2.6-gfs2-fix-truncate-panic.patch
+Patch21760: linux-2.6-scsi-sata-raid-150-4-6-do-not-support-64-bit-dma.patch
+Patch21761: linux-2.6-scsi-uninitialized-field-in-gdth-c.patch
+Patch21762: linux-2.6-audit-stop-multiple-messages-from-being-printed.patch
+Patch21763: linux-2.6-2-scsi-cciss-set-max-command-queue-depth.patch
+Patch21764: linux-2.6-ppc-eeh-better-status-string-detection.patch
+Patch21765: linux-2.6-dlm-reuse-connections-rather-than-freeing-them.patch
+Patch21766: linux-2.6-gfs2-more-problems-unstuffing-journaled-files.patch
+Patch21767: linux-2.6-scsi-qla2xxx-disable-msi-x-by-default.patch
+Patch21768: linux-2.6-gfs2-glock-dump-dumps-glocks-for-all-file-systems.patch
+Patch21769: linux-2.6-misc-microphone-stops-working.patch
+Patch21770: linux-2.6-fs-hugetlb-fix-prio_tree-unit.patch
+Patch21771: linux-2.6-gfs2-bad-mount-option-causes-panic-null-sb-ptr.patch
+Patch21772: linux-2.6-gfs2-fix-inode-meta-data-corruption.patch
+Patch21773: linux-2.6-gfs2-distributed-mmap-test-cases-deadlock.patch
+Patch21774: linux-2.6-net-tg3-update-to-fix-suspend-resume-problems.patch
+Patch21775: linux-2.6-openib-fix-two-ipath-controllers-on-same-subnet.patch
+Patch21776: linux-2.6-gfs2-fix-lock-ordering-of-unlink.patch
+Patch21777: linux-2.6-nfs-nfs4-closes-and-umounts-are-racing.patch
+Patch21778: linux-2.6-autofs-autofs4-fix-race-between-mount-and-expire.patch
+Patch21779: linux-2.6-xen-fix-privcmd-to-remove-nopage-handler.patch
+Patch21780: linux-2.6-misc-re-export-some-symbols-as-export_symbol_gpl.patch
+Patch21781: linux-2.6-mm-madvise-call-to-kernel-loops-forever.patch
+Patch21782: linux-2.6-net-igmp-check-null-when-allocate-gfp_atomic-skbs.patch
+Patch21783: linux-2.6-net-qla3xxx-read-iscsi-target-disk-fail.patch
+Patch21784: linux-2.6-scsi-iscsi-borked-kmalloc.patch
+Patch21785: linux-2.6-scsi-qla2xxx-nvram-vpd-upd-produce-soft-lockups.patch
+Patch21786: linux-2.6-xen-ia64-alloc-with-gfp_kernel-in-inter-ctxt-fix.patch
+Patch21787: linux-2.6-ptrace-null-pointer-dereference-triggered.patch
+Patch21788: linux-2.6-xen-allow-32-bit-xen-to-kdump-4g-physical-memory.patch
+Patch21789: linux-2.6-s390-hypfs-inode-corruption-due-to-missing-lock.patch
+Patch21790: linux-2.6-scsi-megaraid_sas-intercept-cmd-and-throttle-io.patch
+Patch21791: linux-2.6-scsi-fusion-allow-vmwares-emulator-to-work-again.patch
+Patch21792: linux-2.6-s390-qdio-refresh-buffer-for-iqdio-asynch-out-q.patch
+Patch21793: linux-2.6-ppc64-fix-spu-slb-sz-and-invalid-hugepage-faults.patch
+Patch21794: linux-2.6-misc-bounds-check-ordering-issue-in-random-driver.patch
+Patch21795: linux-2.6-usb-usblcd-locally-triggerable-memory-consumption.patch
+Patch21796: linux-2.6-nfs-enable-nosharecache-mounts-fixes.patch
+Patch21797: linux-2.6-autofs4-fix-deadlock-during-directory-create.patch
+Patch21798: linux-2.6-x86_64-fix-32-bit-ptrace-access-to-debug-regs.patch
+Patch21799: linux-2.6-dlm-make-dlm_sendd-cond_resched-more.patch
+Patch21800: linux-2.6-gfs2-move-inode-delete-logic-out-of-blocking_cb.patch
+Patch21801: linux-2.6-gfs2-mount-hung-after-recovery.patch
+Patch21802: linux-2.6-fs-reset-current-pdeath_signal-on-suid-execution.patch
+Patch21803: linux-2.6-scsi-qlogic-nvram-vpd-update-memory-corruptions.patch
+Patch21804: linux-2.6-gfs2-operations-hang-after-mount-resend.patch
+Patch21805: linux-2.6-gfs2-allow-proc-to-handle-multiple-flocks-on-file.patch
+Patch21806: linux-2.6-fs-ext3-do_split-leaves-free-space-in-both-blocks.patch
+Patch21807: linux-2.6-net-s2io-check-for-error_state-in-isr.patch
+Patch21808: linux-2.6-net-cxgb3-backport-fixups-and-sysfs-corrections.patch
+Patch21809: linux-2.6-sata-libata-probing-fixes-and-other-cleanups.patch
+Patch21810: linux-2.6-net-s2io-check-for-error_state-in-isr-more.patch
+Patch21811: linux-2.6-gfs2-deadlock-run-revolver-load-with-lock_nolock.patch
+Patch21812: linux-2.6-gfs2-fix-i_cache-stale-entry.patch
+Patch21813: linux-2.6-x86_64-syscall-vulnerability.patch
+Patch21814: linux-2.6-gfs2-solve-journal-release-invalidate-page-issues.patch
+Patch21815: linux-2.6-scsi-aacraid-missing-ioctl-permission-checks.patch
+Patch21816: linux-2.6-gfs2-gfs2_writepage-workaround.patch
+Patch21817: linux-2.6-gfs2-dlm-schedule-during-recovery-loops.patch
+Patch21818: linux-2.6-gfs2-get-super-block-a-different-way.patch
+Patch21819: linux-2.6-net-iwlwifi-avoid-bug_on-in-tx-cmd-queue-process.patch
+Patch21820: linux-2.6-sound-allow-creation-of-null-parent-devices.patch
+Patch21821: linux-2.6-scsi-megaraid_sas-kabi-fix-for-proc-entries.patch
+Patch21822: linux-2.6-gfs2-handle-multiple-demote-requests.patch
+Patch21823: linux-2.6-net-bnx2-add-phy-workaround-for-5709-a1.patch 
+Patch21824: linux-2.6-cifs-fix-mem-corruption-due-to-bad-error-handling.patch 
+Patch21825: linux-2.6-audit-improper-handle-of-audit_log_start-ret-val.patch 
+Patch21826: linux-2.6-fs-jbd-wait-for-t_sync_datalist-buf-to-complete.patch 
+Patch21827: linux-2.6-mm-ia64-flush-i-cache-before-set_pte.patch 
+Patch21828: linux-2.6-x86-fixes-for-the-tick-divider-patch.patch 
+Patch21829: linux-2.6-alsa-convert-snd-page-alloc-proc-file-to-seq_file.patch 
+Patch21830: linux-2.6-ppc-kexec-kdump-kernel-hung-on-p5-and-p6.patch
+Patch21831: linux-2.6-net-forcedeth-msi-interrupt-bugfix.patch
+Patch21832: linux-2.6-nfs4-umounts-oops-in-shrink_dcache_for_umount.patch
+Patch21836: linux-2.6-net-ieee80211-off-by-two-integer-underflow.patch
+Patch21837: linux-2.6-autofs4-fix-race-between-mount-and-expire-2.patch
+Patch21838: linux-2.6-audit-still-alloc-contexts-when-audit-is-disabled.patch
+Patch21839: linux-2.6-scsi-ibmvscsi-client-cant-handle-deactive-active.patch
+Patch21840: linux-2.6-scsi-ibmvscsi-unable-to-cont-migrating-lpar-error.patch
+Patch21841: linux-2.6-ppc-system-cpus-stuck-in-h_join-after-migrating.patch
+Patch21842: linux-2.6-fs-missing-dput-in-do_lookup-error-leaks-dentries.patch
+Patch21843: linux-2.6-net-tg3-fix-performance-regression-on-5705.patch
+# adds rhel version info to version.h
+Patch99990: linux-2.6-rhel-version-h.patch
 # empty final patch file to facilitate testing of kernel patches
 Patch99999: linux-kernel-test.patch
 
@@ -1088,12 +1741,53 @@ Prereq: /usr/bin/find
 This package provides kernel headers and makefiles sufficient to build modules
 against the SMP kernel package.
 
+%if %{?debugbuildsenabled}
+%package debug
+Summary: The Linux kernel compiled with extra debugging enabled.
+Group: System Environment/Kernel
+Provides: kernel = %{version}
+Provides: kernel-drm = 4.3.0
+Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}-debug
+Prereq: %{kernel_prereq}
+Conflicts: %{kernel_dot_org_conflicts}
+Conflicts: %{package_conflicts}
+AutoReq: no
+AutoProv: yes
+%description debug
+The kernel package contains the Linux kernel (vmlinuz), the core of any
+Linux operating system.  The kernel handles the basic functions
+of the operating system:  memory allocation, process allocation, device
+input and output, etc.
+
+This variant of the kernel has numerous debugging options enabled.
+It should only be installed when trying to gather additional information
+on kernel bugs, as some of these options impact performance noticably.
+
+%package debug-debuginfo
+Summary: Debug information for package %{name}-debug
+Group: Development/Debug
+Requires: %{name}-debuginfo-common-%{_target_cpu} = %{KVERREL}
+Provides: %{name}-debug-debuginfo-%{_target_cpu} = %{KVERREL}
+%description debug-debuginfo
+This package provides debug information for package %{name}-debug
+
+%package debug-devel
+Summary: Development package for building kernel modules to match the kernel.
+Group: System Environment/Kernel
+AutoReqProv: no
+Prereq: /usr/bin/find
+%description debug-devel
+This package provides kernel headers and makefiles sufficient to build modules
+against the kernel package.
+%endif
+
 %package xen
 Summary: The Linux kernel compiled for Xen VM operations
 
 Group: System Environment/Kernel
 Provides: kernel = %{version}
 Provides: kernel-%{_target_cpu} = %{rpmversion}-%{release}xen
+Provides: xen-hypervisor-abi = %{xen_abi_ver}
 Prereq: %{kernel_prereq}
 Conflicts: %{kernel_dot_org_conflicts}
 Conflicts: %{package_conflicts}
@@ -1165,16 +1859,9 @@ against the kdump kernel package.
     $RPM_SOURCE_DIR/merge.pl $RPM_SOURCE_DIR/config-rhel-generic $i.tmp > $i
     rm $i.tmp
   done
-  for i in $RPM_SOURCE_DIR/kernel-%{kversion}-{i586,i686,i686-PAE,x86_64}*.config
-  do
-    echo i is this file  $i
-    mv $i $i.tmp
-    $RPM_SOURCE_DIR/merge.pl $RPM_SOURCE_DIR/config-rhel-x86-generic $i.tmp > $i
-    rm $i.tmp
-  done
+  #CONFIG_FB_MATROX is disabled for rhel generic but needed for ppc64 rhel
   for i in $RPM_SOURCE_DIR/kernel-%{kversion}-ppc64.config
   do
-    echo i is this file  $i
     mv $i $i.tmp
     $RPM_SOURCE_DIR/merge.pl $RPM_SOURCE_DIR/config-rhel-ppc64-generic $i.tmp > $i
     rm $i.tmp
@@ -1268,8 +1955,6 @@ cd linux-%{kversion}.%{_target_cpu}
 #
 # PowerPC
 #
-# Support the IBM Mambo simulator; core as well as disk and network drivers.
-%patch301 -p1
 # Make HVC console generic; support simulator console device using it.
 #%patch302 -p1
 # Check properly for successful RTAS instantiation
@@ -1972,9 +2657,576 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21261 -p1
 %patch21262 -p1
 %patch21263 -p1
+%patch21264 -p1
+%patch21265 -p1
+%patch21266 -p1
+%patch21267 -p1
+%patch21268 -p1
+%patch21269 -p1
+%patch21270 -p1
+%patch21271 -p1
+%patch21272 -p1
+%patch21273 -p1
+%patch21274 -p1
+%patch21275 -p1
+%patch21276 -p1
+%patch21277 -p1
+%patch21278 -p1
+%patch21279 -p1
+%patch21280 -p1
+%patch21281 -p1
+%patch21282 -p1
+%patch21283 -p1
+%patch21284 -p1
+%patch21285 -p1
+%patch21286 -p1
+%patch21287 -p1
+%patch21288 -p1
+%patch21289 -p1
+%patch21290 -p1
+%patch21291 -p1
+%patch21292 -p1
+%patch21293 -p1
+%patch21294 -p1
+%patch21295 -p1
+%patch21296 -p1
+%patch21297 -p1
+%patch21298 -p1
+%patch21299 -p1
+%patch21300 -p1
+%patch21301 -p1
+%patch21303 -p1
+%patch21304 -p1
+%patch21305 -p1
+%patch21306 -p1
+%patch21307 -p1
+%patch21308 -p1
+%patch21309 -p1
+%patch21310 -p1
+%patch21311 -p1
+%patch21312 -p1
+%patch21313 -p1
+%patch21314 -p1
+%patch21315 -p1
+%patch21316 -p1
+%patch21317 -p1
+%patch21318 -p1
+%patch21319 -p1
+%patch21320 -p1
+%patch21321 -p1
+%patch21322 -p1
+%patch21323 -p1
+%patch21324 -p1
+%patch21325 -p1
+%patch21326 -p1
+%patch21327 -p1
+%patch21328 -p1
+%patch21329 -p1
+%patch21330 -p1
+%patch21331 -p1
+%patch21332 -p1
+%patch21333 -p1
+%patch21334 -p1
+%patch21335 -p1
+%patch21336 -p1
+%patch21337 -p1
+%patch21338 -p1
+%patch21339 -p1
+%patch21340 -p1
+%patch21341 -p1
+%patch21342 -p1
+%patch21343 -p1
+%patch21344 -p1
+%patch21345 -p1
+%patch21346 -p1
+%patch21347 -p1
+%patch21348 -p1
+%patch21349 -p1
+%patch21350 -p1
+%patch21351 -p1
+%patch21352 -p1
+%patch21353 -p1
+%patch21354 -p1
+%patch21355 -p1
+%patch21356 -p1
+%patch21357 -p1
+%patch21358 -p1
+%patch21359 -p1
+%patch21360 -p1
+%patch21361 -p1
+%patch21362 -p1
+%patch21363 -p1
+%patch21364 -p1
+%patch21365 -p1
+%patch21366 -p1
+%patch21367 -p1
+%patch21368 -p1
+%patch21369 -p1
+%patch21370 -p1
+%patch21371 -p1
+%patch21372 -p1
+%patch21373 -p1
+%patch21374 -p1
+%patch21375 -p1
+%patch21376 -p1
+%patch21377 -p1
+%patch21378 -p1
+%patch21379 -p1
+%patch21380 -p1
+%patch21381 -p1
+%patch21382 -p1
+%patch21383 -p1
+%patch21385 -p1
+%patch21386 -p1
+%patch21387 -p1
+%patch21388 -p1
+%patch21389 -p1
+%patch21390 -p1
+%patch21391 -p1
+%patch21392 -p1
+%patch21393 -p1
+%patch21394 -p1
+%patch21395 -p1
+%patch21396 -p1
+%patch21397 -p1
+%patch21398 -p1
+%patch21399 -p1
+%patch21400 -p1
+%patch21401 -p1
+%patch21402 -p1
+%patch21403 -p1
+%patch21404 -p1
+%patch21406 -p1
+%patch21407 -p1
+%patch21408 -p1
+%patch21409 -p1
+%patch21410 -p1
+%patch21411 -p1
+%patch21412 -p1
+%patch21413 -p1
+%patch21414 -p1
+%patch21415 -p1
+%patch21416 -p1
+%patch21417 -p1
+%patch21418 -p1
+%patch21419 -p1
+%patch21420 -p1
+%patch21421 -p1
+%patch21422 -p1
+%patch21424 -p1
+%patch21425 -p1
+%patch21426 -p1
+%patch21427 -p1
+%patch21428 -p1
+%patch21429 -p1
+%patch21430 -p1
+%patch21431 -p1
+%patch21432 -p1
+%patch21433 -p1
+%patch21434 -p1
+%patch21435 -p1
+%patch21436 -p1
+%patch21437 -p1
+%patch21438 -p1
+%patch21439 -p1
+%patch21440 -p1
+%patch21441 -p1
+%patch21442 -p1
+%patch21443 -p1
+%patch21444 -p1
+%patch21445 -p1
+%patch21447 -p1
+%patch21448 -p1
+%patch21449 -p1
+%patch21450 -p1
+%patch21451 -p1
+%patch21452 -p1
+%patch21453 -p1
+%patch21454 -p1
+%patch21455 -p1
+%patch21456 -p1
+%patch21457 -p1
+%patch21458 -p1
+%patch21459 -p1
+%patch21460 -p1
+%patch21461 -p1
+%patch21462 -p1
+%patch21463 -p1
+%patch21464 -p1
+%patch21465 -p1
+%patch21466 -p1
+%patch21467 -p1
+%patch21468 -p1
+%patch21469 -p1
+%patch21470 -p1
+%patch21471 -p1
+%patch21472 -p1
+%patch21473 -p1
+%patch21474 -p1
+%patch21475 -p1
+%patch21476 -p1
+%patch21477 -p1
+%patch21478 -p1
+%patch21479 -p1
+%patch21480 -p1
+%patch21481 -p1
+%patch21482 -p1
+%patch21483 -p1
+%patch21484 -p1
+%patch21485 -p1
+%patch21486 -p1
+%patch21487 -p1
+%patch21488 -p1
+%patch21489 -p1
+%patch21490 -p1
+%patch21491 -p1
+%patch21492 -p1
+%patch21493 -p1
+%patch21494 -p1
+%patch21495 -p1
+%patch21496 -p1
+%patch21497 -p1
+%patch21498 -p1
+%patch21499 -p1
+%patch21500 -p1
+%patch21501 -p1
+%patch21502 -p1
+%patch21503 -p1
+%patch21504 -p1
+%patch21505 -p1
+%patch21506 -p1
+%patch21507 -p1
+%patch21508 -p1
+%patch21509 -p1
+%patch21510 -p1
+%patch21511 -p1
+%patch21512 -p1
+%patch21513 -p1
+%patch21514 -p1
+%patch21515 -p1
+%patch21516 -p1
+%patch21517 -p1
+%patch21518 -p1
+%patch21519 -p1
+%patch21520 -p1
+%patch21521 -p1
+%patch21522 -p1
+%patch21523 -p1
+%patch21524 -p1
+%patch21525 -p1
+%patch21526 -p1
+%patch21527 -p1
+%patch21528 -p1
+%patch21529 -p1
+%patch21530 -p1
+%patch21531 -p1
+%patch21532 -p1
+%patch21533 -p1
+%patch21534 -p1
+%patch21535 -p1
+%patch21536 -p1
+%patch21538 -p1
+%patch21539 -p1
+%patch21540 -p1
+%patch21541 -p1
+%patch21542 -p1
+%patch21543 -p1
+%patch21544 -p1
+%patch21545 -p1
+%patch21546 -p1
+%patch21547 -p1
+%patch21548 -p1
+%patch21549 -p1
+%patch21550 -p1
+%patch21551 -p1
+%patch21552 -p1
+%patch21553 -p1
+%patch21554 -p1
+%patch21555 -p1
+%patch21556 -p1
+%patch21557 -p1
+%patch21558 -p1
+%patch21559 -p1
+%patch21560 -p1
+%patch21561 -p1
+%patch21562 -p1
+%patch21563 -p1
+%patch21564 -p1
+%patch21565 -p1
+%patch21566 -p1
+%patch21567 -p1
+%patch21568 -p1
+%patch21569 -p1
+%patch21571 -p1
+%patch21572 -p1
+%patch21573 -p1
+%patch21574 -p1
+%patch21575 -p1
+%patch21576 -p1
+%patch21577 -p1
+%patch21578 -p1
+%patch21579 -p1
+%patch21581 -p1
+%patch21582 -p1
+%patch21583 -p1
+%patch21584 -p1
+%patch21585 -p1
+%patch21586 -p1
+%patch21587 -p1
+%patch21588 -p1
+%patch21589 -p1
+%patch21590 -p1
+%patch21591 -p1
+%patch21592 -p1
+%patch21593 -p1
+%patch21594 -p1
+%patch21595 -p1
+%patch21596 -p1
+%patch21597 -p1
+%patch21598 -p1
+%patch21599 -p1
+%patch21600 -p1
+%patch21601 -p1
+%patch21602 -p1
+%patch21603 -p1
+%patch21604 -p1
+%patch21605 -p1
+%patch21606 -p1
+%patch21607 -p1
+%patch21608 -p1
+%patch21609 -p1
+%patch21610 -p1
+%patch21611 -p1
+%patch21612 -p1
+%patch21613 -p1
+%patch21614 -p1
+%patch21615 -p1
+%patch21616 -p1
+%patch21617 -p1
+%patch21618 -p1
+%patch21619 -p1
+%patch21620 -p1
+%patch21622 -p1
+%patch21623 -p1
+%patch21624 -p1
+%patch21625 -p1
+%patch21626 -p1
+%patch21627 -p1
+%patch21628 -p1
+%patch21629 -p1
+%patch21630 -p1
+%patch21631 -p1
+%patch21632 -p1
+%patch21633 -p1
+%patch21634 -p1
+%patch21635 -p1
+%patch21636 -p1
+%patch21637 -p1
+%patch21638 -p1
+%patch21639 -p1
+%patch21640 -p1
+%patch21641 -p1
+%patch21642 -p1
+%patch21643 -p1
+%patch21644 -p1
+%patch21645 -p1
+%patch21646 -p1
+%patch21648 -p1
+%patch21649 -p1
+%patch21650 -p1
+%patch21651 -p1
+%patch21652 -p1
+%patch21654 -p1
+%patch21655 -p1
+%patch21656 -p1
+%patch21657 -p1
+%patch21658 -p1
+%patch21659 -p1
+%patch21660 -p1
+%patch21661 -p1
+%patch21663 -p1
+%patch21664 -p1
+%patch21665 -p1
+%patch21666 -p1
+%patch21668 -p1
+%patch21669 -p1
+%patch21670 -p1
+%patch21671 -p1
+%patch21672 -p1
+%patch21673 -p1
+%patch21674 -p1
+%patch21675 -p1
+%patch21676 -p1
+%patch21677 -p1
+%patch21678 -p1
+%patch21679 -p1
+%patch21680 -p1
+%patch21681 -p1
+%patch21682 -p1
+%patch21683 -p1
+%patch21684 -p1
+%patch21685 -p1
+%patch21686 -p1
+%patch21687 -p1
+%patch21688 -p1
+%patch21689 -p1
+%patch21690 -p1
+%patch21691 -p1
+%patch21692 -p1
+%patch21693 -p1
+%patch21694 -p1
+%patch21695 -p1
+%patch21696 -p1
+%patch21697 -p1
+%patch21698 -p1
+%patch21699 -p1
+%patch21700 -p1
+%patch21701 -p1
+%patch21702 -p1
+%patch21703 -p1
+%patch21704 -p1
+%patch21705 -p1
+%patch21706 -p1
+%patch21707 -p1
+%patch21708 -p1
+%patch21709 -p1
+%patch21710 -p1
+%patch21711 -p1
+%patch21712 -p1
+%patch21713 -p1
+%patch21714 -p1
+%patch21715 -p1
+%patch21716 -p1
+%patch21717 -p1
+%patch21718 -p1
+%patch21719 -p1
+%patch21720 -p1
+%patch21721 -p1
+%patch21722 -p1
+%patch21723 -p1
+%patch21724 -p1
+%patch21725 -p1
+%patch21726 -p1
+%patch21727 -p1
+%patch21728 -p1
+%patch21729 -p1
+%patch21731 -p1
+%patch21732 -p1
+%patch21733 -p1
+%patch21734 -p1
+%patch21735 -p1
+%patch21736 -p1
+%patch21737 -p1
+%patch21738 -p1
+%patch21739 -p1
+%patch21740 -p1
+%patch21741 -p1
+%patch21742 -p1
+%patch21743 -p1
+%patch21744 -p1
+%patch21745 -p1
+%patch21746 -p1
+%patch21747 -p1
+%patch21748 -p1
+%patch21749 -p1
+%patch21750 -p1
+%patch21751 -p1
+%patch21752 -p1
+%patch21753 -p1
+%patch21754 -p1
+%patch21755 -p1
+%patch21756 -p1
+%patch21757 -p1
+%patch21758 -p1
+%patch21759 -p1
+%patch21760 -p1
+%patch21761 -p1
+%patch21762 -p1
+%patch21763 -p1
+%patch21764 -p1
+%patch21765 -p1
+%patch21766 -p1
+%patch21767 -p1
+%patch21768 -p1
+%patch21769 -p1
+%patch21770 -p1
+%patch21771 -p1
+%patch21772 -p1
+%patch21773 -p1
+%patch21774 -p1
+%patch21775 -p1
+%patch21776 -p1
+%patch21777 -p1
+%patch21778 -p1
+%patch21779 -p1
+%patch21780 -p1
+%patch21781 -p1
+%patch21782 -p1
+%patch21783 -p1
+%patch21784 -p1
+%patch21785 -p1
+%patch21786 -p1
+%patch21787 -p1
+%patch21788 -p1
+%patch21789 -p1
+%patch21790 -p1
+%patch21791 -p1
+%patch21792 -p1
+%patch21793 -p1
+%patch21794 -p1
+%patch21795 -p1
+%patch21796 -p1
+%patch21797 -p1
+%patch21798 -p1
+%patch21799 -p1
+%patch21800 -p1
+%patch21801 -p1
+%patch21802 -p1
+%patch21803 -p1
+%patch21804 -p1
+%patch21805 -p1
+%patch21806 -p1
+%patch21807 -p1
+%patch21808 -p1
+%patch21809 -p1
+%patch21810 -p1
+%patch21811 -p1
+%patch21812 -p1
+%patch21813 -p1
+%patch21814 -p1
+%patch21815 -p1
+%patch21816 -p1
+%patch21817 -p1
+%patch21818 -p1
+%patch21819 -p1
+%patch21820 -p1
+%patch21821 -p1
+%patch21822 -p1
+%patch21823 -p1
+%patch21824 -p1
+%patch21825 -p1
+%patch21826 -p1
+%patch21827 -p1
+%patch21828 -p1
+%patch21829 -p1
+%patch21830 -p1
+%patch21831 -p1
+%patch21832 -p1
+%patch21836 -p1
+%patch21837 -p1
+%patch21838 -p1
+%patch21839 -p1
+%patch21840 -p1
+%patch21841 -p1
+%patch21842 -p1
+%patch21843 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
+# patch the Makefile to include rhel version info
+%patch99990 -p1
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
 perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
+perl -p -i -e "s/^RHEL_MAJOR.*/RHEL_MAJOR = %{rh_release_major}/" Makefile
+perl -p -i -e "s/^RHEL_MINOR.*/RHEL_MINOR = %{rh_release_minor}/" Makefile
 
 # conditionally applied test patch for debugging convenience
 %if %([ -s %{PATCH99999} ] && echo 1 || echo 0)
@@ -1984,8 +3236,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.1.14.el5/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.18-8.1.14.el5.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -53.1.4.el5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-53.1.4.el5.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -2008,6 +3260,11 @@ rm -f kernel-%{kversion}-i586.config
 rm -f kernel-%{kversion}-*PAE*.config
 rm -f kernel-%{kversion}-*xen*.config
 rm -f kernel-%{kversion}-*kdump*.config
+%endif
+
+%if 0%{?debugbuildsenabled}
+%else
+rm -f kernel-%{kversion}-*-debug.config
 %endif
 
 # now run oldconfig over all the config files
@@ -2046,12 +3303,12 @@ fi
 %setup -D -T -q -n %{name}-%{version} -a1
 cd xen
 # Any necessary hypervisor patches go here
-%patch20000 -p1
-%patch20001 -p1
+%patch20001 -p2 -R
 %patch20002 -p1
 %patch20003 -p1
 %patch20004 -p1
 %patch20005 -p1
+%patch20006 -p1
 %patch20007 -p1
 %patch20008 -p1
 %patch20009 -p1
@@ -2072,9 +3329,10 @@ cd xen
 %patch20024 -p1
 %patch20025 -p1
 %patch20026 -p1
-# Update the Makefile version strings
-sed -i -e 's/\(^export XEN_BUILDER.*$\)/\1'%{?dist}'/' Makefile
-sed -i -e 's/\(^export XEN_BUILDVERSION.*$\)/\1'-%{PACKAGE_RELEASE}'/' Makefile
+%patch20027 -p1
+%patch20028 -p1
+%patch20029 -p1
+# end of necessary hypervisor patches
 %endif
 
 
@@ -2167,6 +3425,17 @@ BuildKernel() {
     rm -f %{_tmppath}/kernel-$KernelVer-kabideps
     %_sourcedir/kabitool -b . -d %{_tmppath}/kernel-$KernelVer-kabideps -k $KernelVer -w $RPM_BUILD_ROOT/kabi_whitelist
 
+%if %{with_kabichk}
+    echo "**** kABI checking is enabled in kernel SPEC file. ****"
+    chmod 0755 $RPM_SOURCE_DIR/check-kabi
+    if [ -e $RPM_SOURCE_DIR/Module.kabi_%{_target_cpu}$Flavour ]; then
+	cp $RPM_SOURCE_DIR/Module.kabi_%{_target_cpu}$Flavour $RPM_BUILD_ROOT/Module.kabi
+	$RPM_SOURCE_DIR/check-kabi -k $RPM_BUILD_ROOT/Module.kabi -s Module.symvers || exit 1
+    else
+	echo "**** NOTE: Cannot find reference Module.kabi file. ****"
+    fi
+%endif
+
     # And save the headers/makefiles etc for building modules against
     #
     # This all looks scary, but the end result is supposed to be:
@@ -2186,6 +3455,9 @@ BuildKernel() {
     cp --parents `find  -type f -name "Makefile*" -o -name "Kconfig*"` $RPM_BUILD_ROOT/lib/modules/$KernelVer/build
     cp Module.symvers $RPM_BUILD_ROOT/lib/modules/$KernelVer/build
     mv $RPM_BUILD_ROOT/kabi_whitelist $RPM_BUILD_ROOT/lib/modules/$KernelVer/build
+    if [ -e $RPM_BUILD_ROOT/Module.kabi ]; then
+	mv $RPM_BUILD_ROOT/Module.kabi $RPM_BUILD_ROOT/lib/modules/$KernelVer/build
+    fi
     cp symsets-$KernelVer.tar.gz $RPM_BUILD_ROOT/lib/modules/$KernelVer/build
     # then drop all but the needed Makefiles/Kconfig files
     rm -rf $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/Documentation
@@ -2298,46 +3570,44 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/boot
 
 %if %{includexen}
-%if %{buildxen}
+%if %{with_xen}
   cd xen
   mkdir -p $RPM_BUILD_ROOT/%{image_install_path} $RPM_BUILD_ROOT/boot
   make %{?_smp_mflags} %{xen_flags}
   install -m 644 xen.gz $RPM_BUILD_ROOT/%{image_install_path}/xen.gz-%{KVERREL}
   install -m 755 xen-syms $RPM_BUILD_ROOT/boot/xen-syms-%{KVERREL}
   cd ..
-  # need to let BuildKernel() create directory first.  The problem here is BuildKernel
-  # doesn't mkdir a new directory, but instead 'mv /lib/modules/<kern>/build to <new dir>
-  # if the <new dir> were to exist already, then the contents of 'build' are placed in a sub-dir
-  # named 'build' under <new dir>.  ugh.  So save xen directory temporarily instead
-  mkdir -p $RPM_BUILD_ROOT/usr/src/kernels
-  mv xen $RPM_BUILD_ROOT/usr/src/kernels/%{KVERREL}-xen-%{_target_cpu}-HV-temp
 %endif
 %endif
 
 cd linux-%{kversion}.%{_target_cpu}
 
-%if %{buildup}
+%if %{with_up}
 BuildKernel %make_target %kernel_image
 %endif
 
-%if %{buildpae}
+%if %{with_pae}
 BuildKernel %make_target %kernel_image PAE
 %endif
 
-%if %{buildsmp}
+%if %{with_smp}
 BuildKernel %make_target %kernel_image smp
 %endif
 
 %if %{includexen}
-%if %{buildxen}
+%if %{with_xen}
 BuildKernel %xen_target %xen_image xen
-# Now the directory is properly created, copy xen over
-mv $RPM_BUILD_ROOT/usr/src/kernels/%{KVERREL}-xen-%{_target_cpu}-HV-temp $RPM_BUILD_ROOT/usr/src/kernels/%{KVERREL}-xen-%{_target_cpu}/xen
 %endif
 %endif
 
-%if %{buildkdump}
+%if %{with_kdump}
 BuildKernel %make_target %kernel_image kdump
+%endif
+
+%if %{debugbuildsenabled}
+%if %{with_debug}
+BuildKernel %make_target %kernel_image debug
+%endif
 %endif
 
 ###
@@ -2362,6 +3632,11 @@ It provides the kernel source files common to all builds.
 %files debuginfo-common
 %defattr(-,root,root)
 /usr/src/debug/%{name}-%{version}/linux-%{kversion}.%{_target_cpu}
+%if %{includexen}
+%if %{with_xen}
+/usr/src/debug/%{name}-%{version}/xen
+%endif
+%endif
 %dir /usr/src/debug
 %dir /usr/lib/debug
 %dir /usr/lib/debug/%{image_install_path}
@@ -2378,9 +3653,16 @@ It provides the kernel source files common to all builds.
 %install
 
 cd linux-%{kversion}.%{_target_cpu}
+%ifnarch %nobuildarches noarch
+mkdir -p $RPM_BUILD_ROOT/etc/modprobe.d
+cat > $RPM_BUILD_ROOT/etc/modprobe.d/blacklist-firewire << \EOF
+# Comment out the next line to enable the firewire drivers
+blacklist firewire-ohci
+EOF
+%endif
 
 %if %{includexen}
-%if %{buildxen}
+%if %{with_xen}
 mkdir -p $RPM_BUILD_ROOT/etc/ld.so.conf.d
 rm -f $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
 cat > $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf <<\EOF
@@ -2395,7 +3677,7 @@ chmod 444 $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
 %endif
 %endif
 
-%if %{builddoc}
+%if %{with_doc}
 mkdir -p $RPM_BUILD_ROOT/usr/share/doc/kernel-doc-%{kversion}/Documentation
 
 # sometimes non-world-readable files sneak into the kernel source tree
@@ -2404,7 +3686,7 @@ chmod -R a+r *
 tar cf - Documentation | tar xf - -C $RPM_BUILD_ROOT/usr/share/doc/kernel-doc-%{kversion}
 %endif
 
-%if %{buildheaders}
+%if %{with_headers}
 # Install kernel headers
 make ARCH=%{hdrarch} INSTALL_HDR_PATH=$RPM_BUILD_ROOT/usr headers_install
 
@@ -2501,6 +3783,26 @@ if [ "$HARDLINK" != "no" -a -x /usr/sbin/hardlink ] ; then
   popd > /dev/null
 fi
 
+%if %{debugbuildsenabled}
+%post debug
+/sbin/new-kernel-pkg --package kernel-debug --mkinitrd --depmod --install %{KVERREL}debug || exit $?
+if [ -x /sbin/weak-modules ]
+then
+    /sbin/weak-modules --add-kernel %{KVERREL}debug || exit $?
+fi
+
+%post debug-devel
+if [ -f /etc/sysconfig/kernel ]
+then
+    . /etc/sysconfig/kernel || exit $?
+fi
+if [ "$HARDLINK" != "no" -a -x /usr/sbin/hardlink ] ; then
+  pushd /usr/src/kernels/%{KVERREL}-debug-%{_target_cpu} > /dev/null
+  /usr/bin/find . -type f | while read f; do hardlink -c /usr/src/kernels/*FC*/$f $f ; done
+  popd > /dev/null
+fi
+%endif
+
 %post xen
 if [ `uname -i` == "x86_64" -o `uname -i` == "i386" ]; then
   if [ -f /etc/sysconfig/kernel ]; then
@@ -2578,6 +3880,15 @@ then
     /sbin/weak-modules --remove-kernel %{KVERREL}kdump || exit $?
 fi
 
+%if %{debugbuildsenabled}
+%preun debug
+/sbin/new-kernel-pkg --rminitrd --rmmoddep --remove %{KVERREL}debug || exit $?
+if [ -x /sbin/weak-modules ]
+then
+    /sbin/weak-modules --remove-kernel %{KVERREL}debug || exit $?
+fi
+%endif
+
 %preun xen
 /sbin/new-kernel-pkg --rminitrd --rmmoddep --remove %{KVERREL}xen || exit $?
 if [ -x /sbin/weak-modules ]
@@ -2593,7 +3904,7 @@ fi
 # or empty otherwise.
 %define elf_image_install_path %{?kernel_image_elf:%{image_install_path}}
 
-%if %{buildup}
+%if %{with_up}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
 %package debuginfo
@@ -2628,19 +3939,20 @@ This is required to use SystemTap with %{name}-%{KVERREL}.
 /lib/modules/%{KVERREL}/updates
 /lib/modules/%{KVERREL}/weak-updates
 %ghost /boot/initrd-%{KVERREL}.img
+%config(noreplace) /etc/modprobe.d/blacklist-firewire
 
 %files devel
 %defattr(-,root,root)
 %verify(not mtime) /usr/src/kernels/%{KVERREL}-%{_target_cpu}
 %endif
 
-%if %{buildheaders}
+%if %{with_headers}
 %files headers
 %defattr(-,root,root)
 /usr/include/*
 %endif
 
-%if %{buildpae}
+%if %{with_pae}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
 %package PAE-debuginfo
@@ -2675,6 +3987,7 @@ This is required to use SystemTap with %{name}-PAE-%{KVERREL}.
 /lib/modules/%{KVERREL}PAE/updates
 /lib/modules/%{KVERREL}PAE/weak-updates
 %ghost /boot/initrd-%{KVERREL}PAE.img
+%config(noreplace) /etc/modprobe.d/blacklist-firewire
 
 %files PAE-devel
 %defattr(-,root,root)
@@ -2682,7 +3995,7 @@ This is required to use SystemTap with %{name}-PAE-%{KVERREL}.
 /usr/src/kernels/%{KVERREL}PAE-%{_target_cpu}
 %endif
 
-%if %{buildsmp}
+%if %{with_smp}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
 %package smp-debuginfo
@@ -2717,6 +4030,7 @@ This is required to use SystemTap with %{name}-smp-%{KVERREL}.
 /lib/modules/%{KVERREL}smp/updates
 /lib/modules/%{KVERREL}smp/weak-updates
 %ghost /boot/initrd-%{KVERREL}smp.img
+%config(noreplace) /etc/modprobe.d/blacklist-firewire
 
 %files smp-devel
 %defattr(-,root,root)
@@ -2724,8 +4038,45 @@ This is required to use SystemTap with %{name}-smp-%{KVERREL}.
 /usr/src/kernels/%{KVERREL}smp-%{_target_cpu}
 %endif
 
+%if %{debugbuildsenabled}
+%if %{with_debug}
+%if "%{_enable_debug_packages}" == "1"
+%ifnarch noarch
+%files debug-debuginfo
+%defattr(-,root,root)
+%if "%{elf_image_install_path}" != ""
+/usr/lib/debug/%{elf_image_install_path}/*-%{KVERREL}debug.debug
+%endif
+/usr/lib/debug/lib/modules/%{KVERREL}debug
+/usr/lib/debug/usr/src/kernels/%{KVERREL}-debug-%{_target_cpu}
+%endif
+%endif
+
+%files debug
+%defattr(-,root,root)
+/%{image_install_path}/vmlinuz-%{KVERREL}debug
+/boot/System.map-%{KVERREL}debug
+/boot/symvers-%{KVERREL}debug.gz
+/boot/config-%{KVERREL}debug
+%dir /lib/modules/%{KVERREL}debug
+/lib/modules/%{KVERREL}debug/kernel
+/lib/modules/%{KVERREL}debug/build
+/lib/modules/%{KVERREL}debug/source
+/lib/modules/%{KVERREL}debug/extra
+/lib/modules/%{KVERREL}debug/updates
+/lib/modules/%{KVERREL}debug/weak-updates
+%ghost /boot/initrd-%{KVERREL}debug.img
+%config(noreplace) /etc/modprobe.d/blacklist-firewire
+
+%files debug-devel
+%defattr(-,root,root)
+%verify(not mtime) /usr/src/kernels/%{KVERREL}-debug-%{_target_cpu}
+/usr/src/kernels/%{KVERREL}debug-%{_target_cpu}
+%endif
+%endif
+
 %if %{includexen}
-%if %{buildxen}
+%if %{with_xen}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
 %package xen-debuginfo
@@ -2764,6 +4115,7 @@ This is required to use SystemTap with %{name}-xen-%{KVERREL}.
 /lib/modules/%{KVERREL}xen/updates
 /lib/modules/%{KVERREL}xen/weak-updates
 %ghost /boot/initrd-%{KVERREL}xen.img
+%config(noreplace) /etc/modprobe.d/blacklist-firewire
 
 %files xen-devel
 %defattr(-,root,root)
@@ -2773,7 +4125,7 @@ This is required to use SystemTap with %{name}-xen-%{KVERREL}.
 
 %endif
 
-%if %{buildkdump}
+%if %{with_kdump}
 %if "%{_enable_debug_packages}" == "1"
 %ifnarch noarch
 %package kdump-debuginfo
@@ -2808,6 +4160,7 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 /lib/modules/%{KVERREL}kdump/updates
 /lib/modules/%{KVERREL}kdump/weak-updates
 %ghost /boot/initrd-%{KVERREL}kdump.img
+%config(noreplace) /etc/modprobe.d/blacklist-firewire
 
 %files kdump-devel
 %defattr(-,root,root)
@@ -2817,17 +4170,17 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 
 # only some architecture builds need kernel-doc
 
-%if %{builddoc}
+%if %{with_doc}
 %files doc
 %defattr(-,root,root)
 %{_datadir}/doc/kernel-doc-%{kversion}/Documentation/*
 %dir %{_datadir}/doc/kernel-doc-%{kversion}/Documentation
 %dir %{_datadir}/doc/kernel-doc-%{kversion}
 %endif
- 
+
 %changelog
-* Fri Sep 28 2007 Tru Huynh <tru@centos.org> [2.6.18-8.1.14.el5.centos]
-- Change gpg key to CentOS
+* Fri Nov 30 2007 Karanbir Singh <kbsingh@centos.org> 
+- Rolled in CentOS Branding
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel

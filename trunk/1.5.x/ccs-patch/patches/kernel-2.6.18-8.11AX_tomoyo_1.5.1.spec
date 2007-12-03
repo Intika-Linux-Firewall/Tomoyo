@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.10%{?dist}_tomoyo_1.5.1
+%define release 8.11%{?dist}_tomoyo_1.5.1
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -987,7 +987,8 @@ Patch21316: linux-2.6-scsi-ata_task_ioctl-should-return-ata-registers.patch
 Patch21318: linux-2.6-net-stop-leak-in-flow-cache-code.patch
 Patch21319: linux-2.6-elevator-move-clearing-of-unplug-flag-earlier.patch
 Patch21320: linux-2.6-x86-fix-mtrr-modpost-warnings.patch
-#Patch21321 ~ Patch21322
+#Patch21321
+Patch21322: linux-2.6-agp-agpgart-fixes-and-new-pci-ids.patch
 Patch21323: linux-2.6-mm-make-do_brk-correctly-return-einval-for-ppc64.patch
 #Patch21324 ~ Patch21325
 Patch21326: linux-2.6-ppc64-remove-bug_on-in-hugetlb_get_unmapped_area.patch
@@ -1057,7 +1058,8 @@ Patch21440: linux-2.6-net-fix-dos-in-pppoe.patch
 Patch21441: linux-2.6-misc-random-fix-error-in-entropy-extraction.patch
 #Patch21442 ~ Patch21443
 Patch21444: linux-2.6-misc-xen-kill-sys_lock-unlock-in-microcode-driver.patch
-#Patch21445 ~ Patch21450
+#Patch21445 ~ Patch21449
+Patch21450: linux-2.6-x86_64-wall-time-drops-lost-timer-ticks.patch
 Patch21451: linux-2.6-mm-reduce-madv_dontneed-contention.patch
 #Patch21452 ~ Patch21454
 Patch21455: linux-2.6-ppc64-eeh-is-improperly-enabled-for-power4-system.patch
@@ -1086,12 +1088,16 @@ Patch21553: linux-2.6-misc-cpuset-information-leak.patch
 #Patch21554 ~ Patch21558
 Patch21559: linux-2.6-net-ip_conntrack_sctp-remote-triggerable-panic.patch
 Patch21560: linux-2.6-x86_64-sparsemem-memmap-allocation-above-4g.patch
-#Patch21561 ~ Patch21616
+#Patch21561 ~ Patch21581
+Patch21582: linux-2.6-drm-agpgart-and-drm-support-for-bearlake-graphics.patch
+#Patch21583 ~ Patch21616
 Patch21617: linux-2.6-fs-fuse-minor-vfs-change.patch
 #Patch21618 ~ Patch21635
 Patch21636: linux-2.6-x86_64-system-panic-on-boot-up-no-memory-in-node0.patch
 Patch21637: linux-2.6-fs-setuid-program-unable-to-read-own-proc-pid-map.patch
-#Patch21638 ~ Patch21650
+#Patch21638 ~ Patch21645
+Patch21646: linux-2.6-agp-fix-amd-64-agp-aperture-validation.patch
+#Patch21647 ~ Patch21650
 Patch21651: linux-2.6-sata-combined-mode-regression-fix.patch
 #Patch21652 ~ Patch21658
 Patch21659: linux-2.6-ppc64-data-buffer-miscompare.patch
@@ -1102,7 +1108,16 @@ Patch21676: linux-2.6-pci-unable-to-reserve-mem-region-on-module-reload.patch
 Patch21677: linux-2.6-sata-add-hitachi-to-ncq-blacklist.patch
 #Patch21677 ~ Patch21686
 Patch21687: linux-2.6-sata-regression-in-support-for-third-party-module.patch
-#Patch21688
+#Patch21688 ~ Patch21707
+Patch21708: linux-2.6-fs-move-msdos-compat-ioctl-to-msdos-dir.patch
+Patch21709: linux-2.6-fs-fix-vfat-compat-ioctls-on-64-bit-systems.patch
+#Patch21710 ~ Patch21719
+Patch21720: linux-2.6-misc-i915_dma-fix-batch-buffer-security-bit.patch
+#Patch21721 ~ Patch21733
+Patch21734: linux-2.6-agp-945-965gme-bridge-id-bug-fix-and-cleanups.patch
+#Patch21735 ~ Patch21739
+Patch21740: linux-2.6-misc-miss-critical-phys_to_virt-in-lib-swiotlb-c.patch
+#Patch21741 ~ Patch21766
 # empty final patch file to facilitate testing of kernel patches
 Patch99999: linux-kernel-test.patch
 
@@ -1259,6 +1274,12 @@ Patch103053: linux-2.6-get_devres_head-null-check.patch
 Patch103054: linux-2.6-e1000-7.2.9-kill-pcie-support.patch
 # igb
 Patch103055: linux-2.6-net-igb-initial-support.patch
+# bnx2 tweaks message
+Patch103056: linux-2.6.18-bnx2-puzzle-message-cleanup.patch
+# fat12 race fix
+Patch103057: linux-2.6-fat12-entry-race-fix.patch
+# e1000 length check
+Patch103058: linux-2.6-e1000-adjust-length-fix.patch
 
 # revoke base force umount
 Patch200000: linux-2.6-revoke-special-mmap-handling.patch
@@ -2339,6 +2360,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21319 -p1
 %patch21320 -p1
 #
+%patch21322 -p1
 %patch21323 -p1
 #
 %patch21326 -p1
@@ -2407,6 +2429,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 #
 %patch21444 -p1
 #
+%patch21450 -p1
 %patch21451 -p1
 #
 %patch21455 -p1
@@ -2436,10 +2459,14 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21559 -p1
 %patch21560 -p1
 #
+%patch21582 -p1
+#
 %patch21617 -p1
 #
 %patch21636 -p1
 %patch21637 -p1
+#
+%patch21646 -p1
 #
 %patch21651 -p1
 #
@@ -2451,6 +2478,13 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21677 -p1
 #
 %patch21687 -p1
+#
+%patch21708 -p1
+%patch21709 -p1
+#
+%patch21720 -p1
+#
+%patch21734 -p1
 #
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
@@ -2612,6 +2646,12 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %patch103054 -p1
 # igb
 %patch103055 -p1
+# bnx2 tweaks message
+%patch103056 -p1
+# fat12 race fix
+%patch103057 -p1
+# e1000 length check
+%patch103058 -p1
 
 # revoke base force umount
 %patch200000 -p1
@@ -2630,8 +2670,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.10AX/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.18-8.10AX.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.11AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-8.11AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -3513,10 +3553,19 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
 
 %changelog
-* Tue Aug 14 2007 <ax-kernel@asianux.com> [2.6.18-8.10AX]
-- rename e1000n to e1000e for forward compatibility
-- remove PCI Express support from e1000 [Patch103054]
-- igb: initial support for igb netdriver [Bug#3455, Patch103055]
+* Tue Aug 28 2007 <ax-kernel@asianux.com> [2.6.18-8.11AX]
+- e1000 adjust and check length [But#3564, Patch103058]
+- [x86_64] wall time is not compensated for lost timer ticks [Patch21450]
+- fat12 race fix [Patch103057]
+- Cleanup a pluzzle message in bnx2 [Patch103056]
+- [misc] Missing critical phys_to_virt in lib/swiotlb.c [Patch21740]
+- [fs] fix VFAT compat ioctls on 64-bit systems [Patch21709]
+- [fs] Move msdos compat ioctl to msdos dir [Patch21708]
+- [agp] agpgart fixes and new pci ids [Patch21322]
+- [drm] agpgart and drm support for bearlake graphics [Patch21582]
+- [agp] Fix AMD-64 AGP aperture validation [Patch21646]
+- [misc] i915_dma: fix batch buffer security bit for i965 chipsets [Patch21720]
+- [agp] 945/965GME: bridge id, bug fix, and cleanups [Patch21734]
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
