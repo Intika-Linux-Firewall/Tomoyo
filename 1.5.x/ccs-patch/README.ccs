@@ -1042,3 +1042,24 @@ Fix 2007/09/27
       This may exceed quota by one or two entries, but that won't matter.
 
 Version 1.5.1 2007/10/19   Minor update release.
+
+Fix 2007/12/03
+
+    @ Add missing down() in AddReservedEntry().
+
+      Mutex debugging capability told me that I had forgotten to call down()
+      since TOMOYO version 1.3.2 .
+      This function is not called by learning mode,
+      so the semaphore's counter will not overflow for normal usage.
+
+    @ Fix ReadTable() truncation bug.
+
+      "snprintf(str, size, format, ...) >= size" means truncated.
+      But I was checking for "snprintf(str, size, format, ...) > size".
+      As a result, some entries might be dumped without '\n'.
+
+    @ Add missing semaphore in GetEXE().
+
+      mm->mmap_sem was missing.
+
+Version 1.5.2 2007/12/??   Minor update release.

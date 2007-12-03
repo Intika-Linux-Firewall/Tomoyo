@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.1   2007/10/19
+ * Version: 1.5.2-rc   2007/12/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -501,7 +501,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static int first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.5.1   2007/10/19\n");
+		printk("SYAORAN: 1.5.2-rc   2007/12/03\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
@@ -762,7 +762,7 @@ static void ReadTable(struct syaoran_read_struct *head, char *buf, int count)
 			len = snprintf(buf, count, "%-20s %3o %3u %3u %2u %c\n", name, perm, uid, gid, flags, 'f');
 			break;
 		}
-		if (len < 0 || count < len) break;
+		if (len < 0 || count <= len) break;
 		count -= len;
 		buf += len;
 		head->avail += len;

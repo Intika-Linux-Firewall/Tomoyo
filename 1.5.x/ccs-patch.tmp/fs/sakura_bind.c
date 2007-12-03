@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.2-pre   2007/11/27
+ * Version: 1.5.3-pre   2007/12/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -39,6 +39,7 @@ static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool i
 	list1_for_each_entry(ptr, &reservedport_list, list) {
 		if (ptr->min_port == min_port && max_port == ptr->max_port) {
 			ptr->is_deleted = is_delete;
+			error = 0;
 			goto out;
 		}
 	}
