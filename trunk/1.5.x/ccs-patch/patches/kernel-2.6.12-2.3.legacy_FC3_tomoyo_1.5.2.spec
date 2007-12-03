@@ -780,7 +780,7 @@ cd linux-%{kversion}
 
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-tar -zxf %_sourcedir/ccs-patch-1.5.2-20071019.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -2.3.legacy_FC3/" -- Makefile
 patch -sp1 < patches/ccs-patch-2.6.12-2.3.legacy_FC3.diff
 
