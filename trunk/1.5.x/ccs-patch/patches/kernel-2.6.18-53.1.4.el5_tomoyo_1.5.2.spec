@@ -62,7 +62,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # that the kernel isn't the stock distribution kernel, for example,
 # by setting the define to ".local" or ".bz123456"
 #
-% define buildid _tomoyo_1.5.2
+%define buildid _tomoyo_1.5.2
 #
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
