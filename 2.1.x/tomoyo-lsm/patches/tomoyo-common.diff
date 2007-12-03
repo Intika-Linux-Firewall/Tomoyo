@@ -795,8 +795,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	down_read(&mm->mmap_sem);
 +	for (vma = mm->mmap; vma; vma = vma->vm_next)
 +		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-+			cp = tmy_realpath_from_dentry(vma->vm_file->f_dentry,
-+						      vma->vm_file->f_vfsmnt);
++			cp = tmy_realpath_dentry(vma->vm_file->f_dentry,
++						 vma->vm_file->f_vfsmnt);
 +			break;
 +		}
 +	up_read(&mm->mmap_sem);
