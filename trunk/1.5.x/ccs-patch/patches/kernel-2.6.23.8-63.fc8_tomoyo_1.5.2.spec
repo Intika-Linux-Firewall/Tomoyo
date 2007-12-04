@@ -23,7 +23,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # Bah. Have to set this to a negative for the moment to fix rpm ordering after
 # moving the spec file. cvs sucks. Should be sure to fix this once 2.6.23 is out.
 %define fedora_cvs_origin 209
-%define fedora_build %(R="$Revision: 1.258 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.272 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
 # Do we have a 2.6.21.y update to apply?
-%define stable_update 1
+%define stable_update 8
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -561,7 +561,13 @@ Patch00: patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 
 %endif
 
+# -stable RC
+Patch02: patch-2.6.23.9-rc1.bz2
+
 %if !%{nopatches}
+
+# revert upstream changes we get from elsewhere
+Patch05: linux-2.6-upstream-reverts.patch
 
 Patch19: linux-2.6-highres-timers.patch
 
@@ -588,12 +594,9 @@ Patch50: linux-2.6-ia64-build-id-linker-script-fix.patch
 Patch60: linux-2.6-x86-tune-generic.patch
 Patch61: linux-2.6-x86-setup-add-near-jump.patch
 Patch70: linux-2.6-x86_64-silence-up-apic-errors.patch
-Patch71: linux-2.6-x86-tsc-calibration-1.patch
 Patch72: linux-2.6-x86-tsc-calibration-2.patch
 Patch75: linux-2.6-x86-debug-boot.patch
 Patch76: linux-2.6-x86-clean-up-oops-bug-reports.patch
-Patch77: linux-2.6-x86_64-revert-sparsemem-4g.patch
-Patch78: linux-2.6-x86_64-fix-global_flush_tlb-bug.patch
 
 Patch80: linux-2.6-alsa-1.0.15-merge-1.patch
 Patch81: linux-2.6-alsa-1.0.15-merge-2.patch
@@ -644,13 +647,13 @@ Patch423: linux-2.6-gfs-locking-exports.patch
 Patch424: linux-2.6-cifs-fix-incomplete-rcv.patch
 Patch425: linux-2.6-cifs-typo-in-cifs_reconnect-fix.patch
 Patch426: linux-2.6-cifs-fix-bad-handling-of-EAGAIN.patch
-Patch428: linux-2.6-nfs-fix-writeback-race.patch
 
 Patch430: linux-2.6-net-silence-noisy-printks.patch
-Patch431: linux-2.6-net-fix-panic-removing-teql-devices.patch
-Patch432: linux-2.6-net-l2tp-fix-oops-in-xmit-receive.patch
+Patch431: linux-2.6-netfilter-fix-null-deref-nf_nat_move_storage.patch
 Patch440: linux-2.6-sha_alignment.patch
 Patch450: linux-2.6-input-kill-stupid-messages.patch
+Patch451: linux-2.6-input-alps-add-dell-vostro-1400.patch
+Patch452: linux-2.6-input-alps-add-thinkpad-r61.patch
 Patch460: linux-2.6-serial-460800.patch
 Patch461: linux-2.6-serial_pnp-add-new-wacom-ids.patch
 Patch480: linux-2.6-proc-self-maps-fix.patch
@@ -668,13 +671,17 @@ Patch640: linux-2.6-defaults-nommconf.patch
 Patch660: linux-2.6-libata-ali-atapi-dma.patch
 Patch661: linux-2.6-libata-acpi-enable.patch
 Patch662: linux-2.6-libata-add-dma-disable-option.patch
+Patch665: linux-2.6-libata-dont-fail-revalidation-for-bad-gtf-methods.patch
+Patch666: linux-2.6-libata-pata_serverworks-fix-drive-combinations.patch
 Patch670: linux-2.6-ata-quirk.patch
 Patch680: linux-2.6-wireless.patch
 Patch681: linux-2.6-wireless-pending.patch
 Patch690: linux-2.6-at76.patch
 Patch691: linux-2.6-ath5k.patch
 Patch692: linux-2.6-zd1211rw-mac80211.patch
-Patch700: linux-2.6-drivers-ssb-debug-revision.patch
+Patch693: linux-2.6-rtl8180.patch
+Patch694: linux-2.6-b43-rev-d.patch
+Patch700: linux-2.6-cfg80211-extras.patch
 Patch710: linux-2.6-netdev-e1000e-01.patch
 Patch711: linux-2.6-netdev-e1000e-02.patch
 Patch712: linux-2.6-netdev-e1000e-03.patch
@@ -693,8 +700,6 @@ Patch770: linux-2.6-pmtrace-time-fix.patch
 Patch800: linux-2.6-wakeups-hdaps.patch
 Patch801: linux-2.6-wakeups.patch
 Patch820: linux-2.6-compile-fixes.patch
-Patch900: linux-2.6-md-raid5-fix-clearing-of-biofill-operations.patch
-Patch901: linux-2.6-md-raid5-move-code-to-proper-place.patch
 Patch1100: linux-2.6-add-mmf_dump_elf_headers.patch
 Patch1101: linux-2.6-default-mmf_dump_elf_headers.patch
 Patch1102: linux-2.6-add-sys-module-name-notes.patch
@@ -709,9 +714,6 @@ Patch1210: linux-2.6-ps3-storage-alias.patch
 Patch1220: linux-2.6-ps3-legacy-bootloader-hack.patch
 Patch1230: linux-2.6-powerpc-spu-vicinity.patch
 
-Patch1240: linux-2.6-acpi-sleep-fix-GPE-suspend-cleanup.patch
-Patch1241: linux-2.6-acpi-suspend-wrong-order-of-GPE-restore.patch
-
 Patch1300: linux-2.6-usb-suspend-classes.patch
 Patch1305: linux-2.6-usb-storage-initialize-huawei-e220-properly.patch
 Patch1400: linux-2.6-smarter-relatime.patch
@@ -721,19 +723,18 @@ Patch1505: linux-2.6-xfs-refactor-xfs_mountfs.patch
 Patch1509: linux-2.6-xfs-setfattr-32bit-compat.patch
 Patch1512: linux-2.6-firewire-multi-lun.patch
 Patch1515: linux-2.6-lirc.patch
+Patch1520: linux-2.6-dcdbas-autoload.patch
 
-Patch1600: linux-2.6-params-sysfs-skip-missing-period.patch
+Patch1610: linux-2.6-pci-dont-size-transparent-bridges.patch
 
 #nouveau + drm fixes
 Patch1800: drm-mm-git.patch
 Patch1801: nouveau-drm.patch
-Patch1802: linux-2.6-drm-fix-i915-allocation.patch
-Patch1803: linux-2.6-drm-radeon-x800-pcie-fix.patch
 
 # Fix lockdep bug in firewire.
 Patch1900: linux-2.6-firewire-lockdep.patch
-# Log note re: OHCI 1.0 not supporting isochronous I/O
-Patch1910: linux-2.6-firewire-log-ohci-1.0-unsupported.patch
+# OHCI 1.0 isochronous receive support
+Patch1910: linux-2.6-firewire-ohci-1.0-iso-receive.patch
 # Work around E100 NAPI bug
 Patch2000: linux-2.6-net-e100-disable-polling.patch
 # fix thinkpad key events for volume/brightness
@@ -743,9 +744,7 @@ Patch2200: linux-2.6-selinux-no-revalidate-read-write.patch
 Patch2201: linux-2.6-selinux-ebitmap-for-avc-miss.patch
 Patch2202: linux-2.6-selinux-ebitmap-for-avc-miss-cleanup.patch
 Patch2203: linux-2.6-selinux-sigchld-wait.patch
-# cputime accounting is broken, fix is in 2.6.24
-Patch2220: linux-2.6-sched-keep-stime-monotonic.patch
-Patch2221: linux-2.6-sched-keep-utime-monotonic.patch
+Patch2204: linux-2.6-selinux-ebitmap-loop-bug.patch
 
 %endif
 
@@ -1028,12 +1027,18 @@ ApplyPatch patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 
 %endif
 
+# -stable RC
+ApplyPatch patch-2.6.23.9-rc1.bz2
+
 # This patch adds a "make nonint_oldconfig" which is non-interactive and
 # also gives a list of missing options at the end. Useful for automated
 # builds (as used in the buildsystem).
 ApplyPatch linux-2.6-build-nonintconfig.patch
 
 %if !%{nopatches}
+
+# Revert -stable pieces we get from elsewhere here
+ApplyPatch linux-2.6-upstream-reverts.patch -R
 
 # patch-2.6.23-hrt3.patch
 ApplyPatch linux-2.6-highres-timers.patch
@@ -1081,9 +1086,6 @@ ApplyPatch linux-2.6-alsa-hda-stac-dmic.patch
 # Nouveau DRM + drm fixes
 ApplyPatch drm-mm-git.patch
 ApplyPatch nouveau-drm.patch
-ApplyPatch linux-2.6-drm-fix-i915-allocation.patch
-# Fix for 228414
-ApplyPatch linux-2.6-drm-radeon-x800-pcie-fix.patch
 
 # enable sysrq-c on all kernels, not only kexec
 ApplyPatch linux-2.6-sysrq-c.patch
@@ -1099,16 +1101,11 @@ ApplyPatch linux-2.6-x86-setup-add-near-jump.patch
 # Suppress APIC errors on UP x86-64.
 #ApplyPatch linux-2.6-x86_64-silence-up-apic-errors.patch
 # fix x86 tsc clock calibration
-ApplyPatch linux-2.6-x86-tsc-calibration-1.patch
 ApplyPatch linux-2.6-x86-tsc-calibration-2.patch
 # debug early boot
 #ApplyPatch linux-2.6-x86-debug-boot.patch
 # shorter i386 oops reports (scheduled for 2.6.24)
 ApplyPatch linux-2.6-x86-clean-up-oops-bug-reports.patch
-# revert: x86_64: allocate sparsemem memmap above 4G
-ApplyPatch linux-2.6-x86_64-revert-sparsemem-4g.patch
-# fix global tlb flush bug
-ApplyPatch linux-2.6-x86_64-fix-global_flush_tlb-bug.patch
 
 #
 # PowerPC
@@ -1183,8 +1180,8 @@ ApplyPatch linux-2.6-crash-driver.patch
 #
 # synchronize irqs poperly
 ApplyPatch linux-2.6-irq-synchronization.patch
-# don't create bogus sysfs files
-ApplyPatch linux-2.6-params-sysfs-skip-missing-period.patch
+# don't resize transparent bridges
+ApplyPatch linux-2.6-pci-dont-size-transparent-bridges.patch
 
 #
 # SCSI Bits.
@@ -1205,22 +1202,21 @@ ApplyPatch linux-2.6-gfs-locking-exports.patch
 ApplyPatch linux-2.6-cifs-fix-incomplete-rcv.patch
 ApplyPatch linux-2.6-cifs-typo-in-cifs_reconnect-fix.patch
 ApplyPatch linux-2.6-cifs-fix-bad-handling-of-EAGAIN.patch
-# nfs writeback race data corruption
-ApplyPatch linux-2.6-nfs-fix-writeback-race.patch
 
 # Networking
 # Disable easy to trigger printk's.
 ApplyPatch linux-2.6-net-silence-noisy-printks.patch
-# fix panic in teql
-ApplyPatch linux-2.6-net-fix-panic-removing-teql-devices.patch
-# fix oops in l2tp
-ApplyPatch linux-2.6-net-l2tp-fix-oops-in-xmit-receive.patch
+# fix oops in netfilter
+ApplyPatch linux-2.6-netfilter-fix-null-deref-nf_nat_move_storage.patch
 
 # Misc fixes
 # Fix SHA1 alignment problem on ia64
 ApplyPatch linux-2.6-sha_alignment.patch
 # The input layer spews crap no-one cares about.
 ApplyPatch linux-2.6-input-kill-stupid-messages.patch
+# Add support for some new mouse configurations
+ApplyPatch linux-2.6-input-alps-add-dell-vostro-1400.patch
+ApplyPatch linux-2.6-input-alps-add-thinkpad-r61.patch
 # Allow to use 480600 baud on 16C950 UARTs
 ApplyPatch linux-2.6-serial-460800.patch
 # add ids for new wacom tablets
@@ -1263,18 +1259,25 @@ ApplyPatch linux-2.6-ata-quirk.patch
 ApplyPatch linux-2.6-libata-acpi-enable.patch
 # add option to disable PATA DMA
 ApplyPatch linux-2.6-libata-add-dma-disable-option.patch
+# fix resume failure on some systems
+ApplyPatch linux-2.6-libata-dont-fail-revalidation-for-bad-gtf-methods.patch
+# serverworks is broken with some drive combinations
+ApplyPatch linux-2.6-libata-pata_serverworks-fix-drive-combinations.patch
 
 # wireless patches headed for 2.6.24
 ApplyPatch linux-2.6-wireless.patch
 # wireless patches staged for 2.6.25
 ApplyPatch linux-2.6-wireless-pending.patch
+
 # Add misc wireless bits from upstream wireless tree
 ApplyPatch linux-2.6-at76.patch
 ApplyPatch linux-2.6-ath5k.patch
 ApplyPatch linux-2.6-zd1211rw-mac80211.patch
+ApplyPatch linux-2.6-rtl8180.patch
+ApplyPatch linux-2.6-b43-rev-d.patch
 
-# debug the SSB driver
-ApplyPatch linux-2.6-drivers-ssb-debug-revision.patch
+# Restore ability to add/remove virtual i/fs to mac80211 devices
+ApplyPatch linux-2.6-cfg80211-extras.patch
 
 # latest Intel driver for ich9
 ApplyPatch linux-2.6-netdev-e1000e-01.patch
@@ -1305,15 +1308,8 @@ ApplyPatch linux-2.6-wakeups-hdaps.patch
 ApplyPatch linux-2.6-wakeups.patch
 
 # dm / md
-# raid5 data corruption fix
-ApplyPatch linux-2.6-md-raid5-fix-clearing-of-biofill-operations.patch
-# fix misapplication of above fix
-ApplyPatch linux-2.6-md-raid5-move-code-to-proper-place.patch
 
 # ACPI
-# suspend/resume fixes from 2.6.24
-ApplyPatch linux-2.6-acpi-sleep-fix-GPE-suspend-cleanup.patch
-ApplyPatch linux-2.6-acpi-suspend-wrong-order-of-GPE-restore.patch
 
 # USB
 # Do USB suspend only on certain classes of device.
@@ -1358,8 +1354,11 @@ ApplyPatch linux-2.6-firewire-multi-lun.patch
 # http://www.lirc.org/
 ApplyPatch linux-2.6-lirc.patch
 
+# DMI autoloading for dcdbas driver
+ApplyPatch linux-2.6-dcdbas-autoload.patch
+
 ApplyPatch linux-2.6-firewire-lockdep.patch
-ApplyPatch linux-2.6-firewire-log-ohci-1.0-unsupported.patch
+ApplyPatch linux-2.6-firewire-ohci-1.0-iso-receive.patch
 ApplyPatch linux-2.6-net-e100-disable-polling.patch
 ApplyPatch linux-2.6-thinkpad-key-events.patch
 
@@ -1370,16 +1369,13 @@ ApplyPatch linux-2.6-selinux-no-revalidate-read-write.patch
 ApplyPatch linux-2.6-selinux-ebitmap-for-avc-miss.patch
 ApplyPatch linux-2.6-selinux-ebitmap-for-avc-miss-cleanup.patch
 ApplyPatch linux-2.6-selinux-sigchld-wait.patch
-
-# cputime accounting fix, fixes "task using 9999% of CPU"
-ApplyPatch linux-2.6-sched-keep-utime-monotonic.patch
-ApplyPatch linux-2.6-sched-keep-stime-monotonic.patch
+ApplyPatch linux-2.6-selinux-ebitmap-loop-bug.patch
 
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .1-49.fc8:' -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.23.1-49.fc8.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .8-63.fc8:' -- Makefile
+patch -sp1 < patches/ccs-patch-2.6.23.8-63.fc8.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -1980,8 +1976,9 @@ fi
 
 
 %changelog
-* Thu Nov  8 2007 John W. Linville <linville@redhat.com>
-- Resync wireless bits from current upstream
+* Wed Nov 21 2007 John W. Linville <linville@redhat.com>
+- Revise b43 rev D support (new upstream patch)
+- Restore ability to add/remove virtual i/fs to mac80211 devices
 
 * Sun May 27 2007 Dave Jones <davej@redhat.com>
 - Start F8 branch. Rebase to 2.6.22rc3
