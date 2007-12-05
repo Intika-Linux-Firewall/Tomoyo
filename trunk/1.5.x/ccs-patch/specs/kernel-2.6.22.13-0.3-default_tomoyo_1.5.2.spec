@@ -1,5 +1,5 @@
 #
-# spec file for package kernel-default (Version 2.6.22.12)
+# spec file for package kernel-default (Version 2.6.22.13)
 #
 # Copyright (c) 2007 SUSE LINUX Products GmbH, Nuernberg, Germany.
 # This file and all modifications and additions to the pristine
@@ -38,8 +38,8 @@ Url:            http://www.kernel.org/
 %define build_vanilla 1
 %endif
 Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
-Version:        2.6.22.12
-Release: 0.1_tomoyo_1.5.1
+Version:        2.6.22.13
+Release: 0.3_tomoyo_1.5.2
 License:        GPL v2 or later
 Group:          System/Kernel
 AutoReqProv:    on
@@ -93,7 +93,7 @@ Conflicts:      sysfsutils < 2.0
 #Conflicts:    kernel
 %else
 %if ! %build_xen
-Provides:       kernel = 2.6.22.12-%source_rel
+Provides:       kernel = 2.6.22.13-%source_rel
 %endif
 %endif
 %ifarch alpha
@@ -194,13 +194,13 @@ The standard kernel for both uniprocessor and multiprocessor systems.
 
 
 
-Source Timestamp: 2007/11/06 23:05:18 UTC
+Source Timestamp: 2007/11/19 15:02:58 UTC
 CVS Branch: SL103_BRANCH
 
 %prep
 if ! [ -e %_sourcedir/linux-2.6.22.tar.bz2 ]; then
-    echo "The kernel-default-2.6.22.12.nosrc.rpm package does not contain the" \
-	 "complete sources. Please install kernel-source-2.6.22.12.src.rpm."
+    echo "The kernel-default-2.6.22.13.nosrc.rpm package does not contain the" \
+	 "complete sources. Please install kernel-source-2.6.22.13.src.rpm."
     exit 1
 fi
 echo "Architecture symbol(s):" %symbols
@@ -279,8 +279,8 @@ source .rpm-defs
 cd linux-2.6.22
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
-patch -sp1 < /usr/src/ccs-patch-2.6.22.12-0.1_SUSE.diff
+tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
+patch -sp1 < patches/ccs-patch-2.6.22.13-0.3_SUSE.diff
 sed -i -e 's:-ccs::' -- Makefile
 cat config.ccs >> .config
 cp .config .config.orig
@@ -294,8 +294,8 @@ rm .config.orig
 %endif
 make prepare $MAKE_ARGS
 KERNELRELEASE=$(make -s kernelrelease $MAKE_ARGS)
-if [ 2.6.22.12-%source_rel != ${KERNELRELEASE%%-*} ]; then
-    echo "Kernel release mismatch: 2.6.22.12-%source_rel" \
+if [ 2.6.22.13-%source_rel != ${KERNELRELEASE%%-*} ]; then
+    echo "Kernel release mismatch: 2.6.22.13-%source_rel" \
 	 "!= ${KERNELRELEASE%%-*}" >&2
     exit 1
 fi
@@ -587,9 +587,10 @@ install -m 644 %_sourcedir/module-renames %buildroot/etc/modprobe.d/
 %postun -f postun.sh
 
 %files -f kernel.files
+
 %changelog
-* Tue Nov 13 2007 - philips@suse.de
-- patches.drivers/e1000e.patch: e1000e: revert to working version
-  (FATE 302349).
+* Thu Nov 22 2007 - jbenc@suse.cz
+- patches.fixes/mac80211_fix_scan.diff: Fixed a typo, updated to be
+  more close to the upstream version.
 * Thu May 08 2003 - kraxel@suse.de
 - initial release

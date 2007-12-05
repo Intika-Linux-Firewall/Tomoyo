@@ -1,5 +1,5 @@
 #
-# spec file for package kernel-default (Version 2.6.16.53)
+# spec file for package kernel-default (Version 2.6.18.8)
 #
 # Copyright (c) 2007 SUSE LINUX Products GmbH, Nuernberg, Germany.
 # This file and all modifications and additions to the pristine
@@ -12,30 +12,40 @@
 
 Name:           ccs-kernel-default
 Url:            http://www.kernel.org/
+%if 0%{?opensuse_bs}
+# Strip off the build number ("y") from the "x.y" release number
+%define source_rel %(release=%release; echo ${release%.*})
+%else
+# We don't have build numbers internally
+%define source_rel %release
+%endif
 %define build_kdump %([ default != kdump ] ; echo $?)
 %define build_xen %(case default in (xen*) echo 1;; (*) echo 0;; esac)
 %define build_um  %([ default != um ] ; echo $?)
+%define build_vanilla  %([ default != vanilla ] ; echo $?)
 %ifarch ia64
 # arch/ia64/scripts/unwcheck.py
 BuildRequires:  python
 %endif
-Version:        2.6.16.53
-Release: 0.16_tomoyo_1.5.1
-Summary:        The Standard Kernel
+Version:        2.6.18.8
+Release: 0.7_tomoyo_1.5.2
+Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
 License:        GPL v2 or later
 Group:          System/Kernel
 %if %build_um
 #Conflicts:    kernel
 %else
 %if !%build_xen
-Provides:       kernel = 2.6.16.53-%release
+Provides:       kernel = 2.6.18.8-%source_rel
 %endif
 %endif
 Provides:       kernel-default-nongpl
 Obsoletes:      kernel-default-nongpl
+%ifarch alpha
+%else
 %ifarch %ix86
-Provides:       k_athlon k_debug k_deflt k_deflt_22 k_deflt_24 k_eide k_laptop k_orig k_pentiu k_pos_ibm
-Obsoletes:      k_athlon k_debug k_deflt k_deflt_22 k_deflt_24 k_eide k_laptop k_orig k_pentiu k_pos_ibm
+Provides:       k_athlon k_debug k_deflt k_deflt_22 k_deflt_24 k_eide k_laptop k_orig k_pentiu k_pos_ibm k_psmp k_smp k_smp_22 k_smp_24 smp kernel-smp
+Obsoletes:      k_athlon k_debug k_deflt k_deflt_22 k_deflt_24 k_eide k_laptop k_orig k_pentiu k_pos_ibm k_psmp k_smp k_smp_22 k_smp_24 smp kernel-smp
 %else
 %ifarch ia64
 Provides:       k_debug k_deflt k_itanium2 k_itanium2-smp k_smp kernel-sn2
@@ -52,8 +62,9 @@ Provides:       kernel-64bit k_deflt
 Obsoletes:      kernel-64bit k_deflt
 %else
 %ifarch x86_64
-Provides:       k_deflt
-Obsoletes:      k_deflt
+Provides:       k_deflt k_numa k_smp smp kernel-smp
+Obsoletes:      k_deflt k_numa k_smp smp kernel-smp
+%endif
 %endif
 %endif
 %endif
@@ -61,15 +72,16 @@ Obsoletes:      k_deflt
 %endif
 %endif
 %ifarch %ix86 x86_64
-%if "default" != "default" && "default" != "kdump"
 Requires:       irqbalance
 %endif
+%if %build_xen
+Requires:       xen >= xen-3.0.2_09697
 %endif
 Conflicts:      apparmor-profiles <= 2.0-34
 Conflicts:      apparmor-parser <= 2.0-21.1
 AutoReqProv:    on
 %define my_builddir %_builddir/%{name}-%{version}
-Source0:        http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.16.tar.bz2
+Source0:        http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.18.tar.bz2
 Source1:        functions.sh
 Source11:       postun.sh
 Source12:       post.sh
@@ -95,25 +107,20 @@ Source102:      patches.drivers.tar.bz2
 Source103:      patches.fixes.tar.bz2
 Source104:      patches.rpmify.tar.bz2
 Source105:      patches.suse.tar.bz2
-Source106:      patches.xfs.tar.bz2
-Source107:      patches.uml.tar.bz2
-Source108:      patches.xen.tar.bz2
-Source109:      patches.addon.tar.bz2
-Source110:      patches.kernel.org.tar.bz2
+Source106:      patches.uml.tar.bz2
+Source107:      patches.xen.tar.bz2
+Source108:      patches.addon.tar.bz2
+Source109:      patches.kernel.org.tar.bz2
 Source120:      kabi.tar.bz2
 PreReq:         mkinitrd >= 1.2
 PreReq:         coreutils
-%if %sles_version > 0
-PreReq:         perl-Bootloader >= 0.4.16
-%else
-# perl-Bootloader won't get updated on 10.1
-PreReq:         perl-Bootloader >= 0.2.20-7
-%endif
+PreReq:         perl-Bootloader >= 0.4.14
 PreReq:         rpm
+PreReq:         /sbin/update-bootloader
 #!BuildIgnore: irqbalance xen
 #!BuildIgnore: perl-Bootloader mkinitrd
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
-ExclusiveArch:  %ix86 ia64 ppc ppc64 s390x x86_64
+ExclusiveArch:  alpha %ix86 ia64 ppc ppc64 s390x x86_64
 # These files are found in the kernel-source package:
 NoSource:       0
 NoSource:       100
@@ -126,46 +133,29 @@ NoSource:       106
 NoSource:       107
 NoSource:       108
 NoSource:       109
-NoSource:       110
 NoSource:       120
-# The following KMPs have been integrated into the kernel package. (We add
-# "a" to the versions here to ignore the kernel version, which is part of
-# the KMP version, i.e., 7.3.15_2.6.16.21_0.8)
-Obsoletes:      intel-e1000-kmp < 7.3.15a
-Obsoletes:      adaptec-aic94xx-kmp < 1.0.2a
-Obsoletes:      broadcom-bnx2-kmp < 1.5.5ba
-Obsoletes:      broadcom-tg3-kmp < 3.71ba
-Obsoletes:      fsc-sky2-kmp < 1.10a
-Obsoletes:      fujitsujp-pciehp-kmp < 0.4FJ2.0.1a
-Obsoletes:      fujitsujp-fusion < 3.03.16FJ1.0a
-Obsoletes:      fujitsujp-e1000 < 7.0.33FJ1.0a
-Obsoletes:      fujitsujp-lpfc < 8.1.6FJ1.0a
-Obsoletes:      intel-ipw3945-kmp < 1.1.0a
-Obsoletes:      qlogic-qla2xxx-kmp < 8.01.07a
-Obsoletes:      sgi-fusion-kmp < 3.04.02a
-Obsoletes:      intel-hda-codec-kmp < 1.0a
 # Provide the exported symbols as "ksym(symbol) = hash"
 %define __find_provides %_sourcedir/find-provides %name
 # Will modules not listed in supported.conf abort the kernel build (0/1)?
 %define supported_modules_check 0
 %define tolerate_unknown_new_config_options 0
-# kABI change tolerance (default in maintenance should be 4, 6, 8 or 15;
-# see scripts/kabi-checks)
+# kABI change tolerance (default in maintenance should be 4, 6, 8 or 15,
+# 31 is the maximum; see scripts/kabi-checks)
 %define tolerate_kabi_changes 31
 %(chmod +x %_sourcedir/{arch-symbols,guards,config-subst,check-for-config-changes,check-supported-list,built-in-where,find-provides,make-symsets,find-types,kabi-checks,install-configs})
 
 %description
-The standard kernel.
+The standard kernel for both uniprocessor and multiprocessor systems.
 
 
 
-Source Timestamp: 2007/10/02 16:57:49 UTC
-CVS Branch: SLES10_SP1_BRANCH
+Source Timestamp: 2007/10/02 17:21:08 UTC
+CVS Branch: SL102_BRANCH
 
 %prep
-if ! [ -e %_sourcedir/linux-2.6.16.tar.bz2 ]; then
-    echo "The kernel-default-2.6.16.53.nosrc.rpm package does not contain the" \
-	 "complete sources. Please install kernel-source-2.6.16.53.src.rpm."
+if ! [ -e %_sourcedir/linux-2.6.18.tar.bz2 ]; then
+    echo "The kernel-default-2.6.18.8.nosrc.rpm package does not contain the" \
+	 "complete sources. Please install kernel-source-2.6.18.8.src.rpm."
     exit 1
 fi
 symbols=$(
@@ -176,7 +166,7 @@ symbols=$(
 )
 echo "Architecture symbol(s):" $symbols
 # Unpack all sources and patches
-%setup -q -c -T -a 0 -a 100 -a 101 -a 102 -a 103 -a 104 -a 105 -a 106 -a 107 -a 108 -a 109 -a 110 -a 120
+%setup -q -c -T -a 0 -a 100 -a 101 -a 102 -a 103 -a 104 -a 105 -a 106 -a 107 -a 108 -a 109 -a 120
 # Generate the list of supported modules
 (   %_sourcedir/guards $symbols < %_sourcedir/supported.conf
     for how in external; do
@@ -185,8 +175,8 @@ echo "Architecture symbol(s):" $symbols
 	    %_sourcedir/guards $symbols $how < %_sourcedir/supported.conf \
 	) | sort | uniq -u | sed -e 's:$: '"$how"':'
     done
-) | sed -e 's,.*/,,' | sort > linux-2.6.16/Module.supported
-cd linux-2.6.16
+) | sed -e 's,.*/,,' | sort > linux-2.6.18/Module.supported
+cd linux-2.6.18
 # Find out for which architecture to build. We do this here, and use the
 # result in the %build and %install sections.
 #
@@ -203,19 +193,24 @@ if [ $# -ne 1 ]; then
 fi
 subarch=${1%/*}
 # Apply the patches needed for this architecture.
+%if !%build_vanilla
 for patch in $(%_sourcedir/guards $symbols < %_sourcedir/series.conf); do
     if ! patch -s -E -p1 --no-backup-if-mismatch -i ../$patch; then
 	echo "*** Patch $patch failed ***"
 	exit 1
     fi
 done
-%_sourcedir/install-configs %_sourcedir %my_builddir %release
-config=arch/$subarch/defconfig.default
-cat $config \
-%if %{defined __debug_package}
-    | %_sourcedir/config-subst CONFIG_DEBUG_INFO y \
+%else
+for patch in $(%_sourcedir/guards $symbols < %_sourcedir/series.conf | egrep kernel.org\|rpmify); do
+    if ! patch -s -E -p1 --no-backup-if-mismatch -i ../$patch; then
+	echo "*** Patch $patch failed ***"
+	exit 1
+    fi
+done
 %endif
-    > .config
+%_sourcedir/install-configs %_sourcedir %my_builddir %source_rel
+config=arch/$subarch/defconfig.default
+%_sourcedir/config-subst CONFIG_DEBUG_INFO < $config > .config
 # We compile for this sub-architecture (i.e., machine architecture):
 %if %build_um
 cat > ../.rpm-defs <<EOF
@@ -230,7 +225,7 @@ SUBARCH=$subarch
 MAKE_ARGS="ARCH=$subarch"
 EOF
 %endif
-%if %{defined __debug_package}
+%if 0%{?__debug_package:1}
 cat >> ../.rpm-defs <<EOF
 MAKE_ARGS="\$MAKE_ARGS CONFIG_DEBUG_INFO=y"
 EOF
@@ -238,11 +233,11 @@ EOF
 
 %build
 source .rpm-defs
-cd linux-2.6.16
+cd linux-2.6.18
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-tar -zxf %_sourcedir/ccs-patch-1.5.1-20071019.tar.gz
-patch -sp1 < patches/ccs-patch-2.6.16.53-0.16_SUSE.diff
+tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
+patch -sp1 < patches/ccs-patch-2.6.18.8-0.7_SUSE.diff
 cat config.ccs >> .config
 cp .config .config.orig
 %if %{tolerate_unknown_new_config_options}
@@ -253,6 +248,7 @@ make silentoldconfig $MAKE_ARGS < /dev/null
 %_sourcedir/check-for-config-changes .config.orig .config
 rm .config.orig
 %endif
+make prepare $MAKE_ARGS
 KERNELRELEASE=$(make -s kernelrelease)
 echo "KERNELRELEASE=$KERNELRELEASE" >> ../.rpm-defs
 cat > .kernel-binary.spec.buildenv <<EOF
@@ -282,7 +278,7 @@ export NO_BRP_STRIP_DEBUG=true
 export NO_BRP_STALE_LINK_ERROR=yes
 # skip long-running sanity checks
 export NO_BRP_NOEXECSTACK=yes
-cd linux-2.6.16
+cd linux-2.6.18
 rm -rf %buildroot
 mkdir -p %buildroot/boot
 # (Could strip out non-public symbols.)
@@ -290,7 +286,7 @@ cp -p System.map %buildroot/boot/System.map-$KERNELRELEASE
 add_vmlinux()
 {
     local vmlinux=boot/vmlinux-$KERNELRELEASE
-%if %{defined __debug_package}
+%if 0%{?__debug_package:1}
     local vmlinux_debug=usr/lib/debug/$vmlinux.debug
     mkdir -p $(dirname %buildroot/$vmlinux_debug)
     cp vmlinux %buildroot/$vmlinux
@@ -330,11 +326,11 @@ add_vmlinux()
     cp -p vmlinuz %buildroot/boot/vmlinuz-$KERNELRELEASE
     image=vmlinuz
 %else
+# architecture specifics
 %ifarch %ix86 x86_64
     add_vmlinux --compressed
     cp -p arch/*/boot/bzImage %buildroot/boot/vmlinuz-$KERNELRELEASE
     image=vmlinuz
-%endif
 %endif
 %ifarch alpha
     add_vmlinux --compressed
@@ -360,8 +356,11 @@ add_vmlinux()
     if [ -e init/kerntypes.o ]; then
 	cp init/kerntypes.o %buildroot/boot/Kerntypes-$KERNELRELEASE
     fi
+# end of build_xen
 %endif
-# kdump
+# end of build_um
+%endif
+# end of build_kdump
 %endif
 (   cat %_sourcedir/functions.sh
     sed -e "s:@KERNELRELEASE@:$KERNELRELEASE:g" \
@@ -375,7 +374,7 @@ add_vmlinux()
 	-e "s:@FLAVOR""@:default:g" \
         %_sourcedir/postun.sh
 ) > ../postun.sh
-%if %build_kdump || %build_um || %build_xen
+%if %build_kdump || %build_um || %build_xen || %build_vanilla
 suffix=-default
 %endif
 ln -s $image$suffix %buildroot/boot/$image$suffix
@@ -390,6 +389,18 @@ if ! %_sourcedir/check-supported-list \
     echo "Consistency check error: please update supported.conf."
 fi
 gzip -c9 < Module.symvers > %buildroot/boot/symvers-$KERNELRELEASE.gz
+# Group the exported symbols listed in symvers.gz by directory, and
+# create a database of sets. Preserve exports from previous kernels
+# (stored in old-symsets.tar.gz) when possible.
+old_symsets=%my_builddir/kabi/$SUBARCH/symsets-default.tar.gz
+[ -e $old_symsets ] || old_symsets=
+(   grep -v $'\tvmlinux$' Module.symvers
+    # Find out in which built-in.o files the exported symbols that ended
+    # up in vmlinux were defined.
+    grep $'\tvmlinux$' Module.symvers | %_sourcedir/built-in-where
+) | %_sourcedir/make-symsets \
+    %buildroot/boot/symsets-$KERNELRELEASE.tar.gz \
+    $old_symsets
 # Also put the resulting file in $obj_dir/$SUBARCH/default
 # so that kernel-source + kernel-default is sufficient for building
 # modules that have modversions as well.
@@ -415,8 +426,6 @@ fi
     || ln -s $SUBARCH %buildroot/$obj_dir/ppc64
 %endif
 # Check for kABI changes
-ignore_kabi_changes=
-[ -e %_sourcedir/IGNORE-KABI-BADNESS ] && ignore_kabi_changes=1
 KABI=0
 if [ -e %my_builddir/kabi/$SUBARCH/symvers-default ]; then
     %_sourcedir/kabi-checks \
@@ -427,46 +436,20 @@ if [ -e %my_builddir/kabi/$SUBARCH/symvers-default ]; then
     || KABI=$?
 fi
 if [ $KABI -gt %tolerate_kabi_changes ]; then
-#    # Create an unresolved dummy shared library symbol: this way we can keep
-#    # the kernel rpm but installing the package will fail without --nodeps,
-#    # and the Autobuild team will detect packages with excessive badness as
-#    # well.
-#    gcc -o dummy.o -shared -Wl,-soname,kabi_badness_$KABI
-#    gcc -o %buildroot/boot/kabi-badness-$KABI -nostdlib -shared dummy.o
-#    rm dummy.o
-#
     echo "kABI changes of badness $KABI exceed the maximum allowed badness" \
-	 "of %tolerate_kabi_changes."
-    #echo "The kernel package created will have an unresolved" \
-    #     "\`kabi_badness_$KABI' requirement."
-    echo "
-Please try to avoid the kABI changes.  If this is not feasible,
-get permission to bump %%tolerate_kabi_changes and/or ignore the ABI \
-changes with scripts/ignore-kabi-changes.
-"
-    if [ -z "$ignore_kabi_changes" ]; then
-echo "Create a file IGNORE-KABI-BADNESS in the kernel-source directory to
-build this kernel even though its badness is higher than allowed for an
-official kernel"
-	exit 1
+	 "of %tolerate_kabi_changes. Please try to avoid the kABI changes."
+    if [ ! -e %my_builddir/kabi/$SUBARCH/ignore-default -a \
+	 ! -e %_sourcedir/IGNORE-KABI-BADNESS ]; then
+	echo "Create a file IGNORE-KABI-BADNESS in the kernel-source" \
+	     "directory to build this kernel even though its badness is" \
+	     "higher than allowed for an official kernel."
+       exit 1
     fi
+    # Indicate the ABI badness in build result emails.
+    echo "KABI BADNESS $KABI" > %_rpmdir/%_arch/mbuild_subject.tag
 fi
-# Group the exported symbols listed in symvers.gz by directory, and
-# create a database of sets. Preserve exports from previous kernels
-# (stored in old-symsets.tar.gz) when possible.
-old_symsets=%my_builddir/kabi/$SUBARCH/symsets-default.tar.gz
-[ -e $old_symsets ] || old_symsets=
-(   grep -v $'\tvmlinux$' Module.symvers
-    # Find out in which built-in.o files the exported symbols that ended
-    # up in vmlinux were defined.
-    grep $'\tvmlinux$' Module.symvers | %_sourcedir/built-in-where
-) > Module.symvers.annotated
-%_sourcedir/make-symsets < Module.symvers.annotated \
-    %buildroot/boot/symsets-$KERNELRELEASE.tar.gz \
-    $old_symsets ||
-[ -n "$ignore_kabi_changes" -o %tolerate_kabi_changes -ge 8 ]
-# We were building in %my_builddir/linux-2.6.16, but the sources will
-# later be installed in /usr/src/linux-2.6.16-%release. Fix up the
+# We were building in %my_builddir/linux-2.6.18, but the sources will
+# later be installed in /usr/src/linux-2.6.18-%source_rel. Fix up the
 # build symlink.
 rm -f %buildroot/lib/modules/$KERNELRELEASE/{source,build}
 ln -s /usr/src/linux-${KERNELRELEASE%%-default} \
@@ -514,9 +497,10 @@ install -m 644 %_sourcedir/module-renames %buildroot/etc/modprobe.d/
 %files -f kernel.files
 %changelog
 * Tue Oct 02 2007 - lmb@suse.de
+- patches.fixes/alsa-convert-snd-page-alloc-proc-file-to-use-seq_file:
+  Reorder include and EXPORT_SYMBOL to avoid kABI modification.
 - patches.xen/handle-bogus-cs-selector-in-single-step-instruction-decoding:
   Handle bogus %%cs selector in single-step instruction decoding
   (326270, CVE-2007-3731).
-
 * Thu May 08 2003 - kraxel@suse.de
 - initial release
