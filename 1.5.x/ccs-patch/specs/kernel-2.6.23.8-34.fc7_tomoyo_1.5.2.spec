@@ -20,7 +20,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # kernel spec when the kernel is rebased, so fedora_build automatically
 # works out to the offset from the rebase, so it doesn't get too ginormous.
 %define fedora_cvs_origin 3351
-%define fedora_build %(R="$Revision: 1.3372 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.3385 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -30,7 +30,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
 # Do we have a 2.6.x.y update to apply?
-%define stable_update 1
+%define stable_update 8
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -502,11 +502,12 @@ Patch00: patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 %endif
 
 # -stable RC
-# Patch02: patch-2.6.22.6-rc1.patch
+Patch02: patch-2.6.23.9-rc1.bz2
 
 %if !%{nopatches}
 
 # Revert -stable pieces we get from elsewhere here
+Patch05: linux-2.6-upstream-reverts.patch
 
 Patch10: linux-2.6-utrace-tracehook.patch
 Patch11: linux-2.6-utrace-tracehook-ia64.patch
@@ -528,12 +529,9 @@ Patch26: linux-2.6-utrace-ptrace-compat-avr32.patch
 #Patch20: nouveau-drm.patch
 Patch30: linux-2.6-sysrq-c.patch
 
-Patch50: linux-2.6-x86_64-revert-sparsemem-4g.patch
-Patch51: linux-2.6-x86_64-fix-global_flush_tlb-bug.patch
-
 Patch70: linux-2.6-x86-tune-generic.patch
-Patch71: linux-2.6-x86-tsc-calibration-1.patch
 Patch72: linux-2.6-x86-tsc-calibration-2.patch
+Patch73: linux-2.6-x86-setup-add-near-jump.patch
 
 Patch100: linux-2.6-g5-therm-shutdown.patch
 Patch120: linux-2.6-ppc32-ucmpdi2.patch
@@ -549,6 +547,8 @@ Patch200: linux-2.6-modsign-verify.patch
 Patch210: linux-2.6-modsign-ksign.patch
 Patch220: linux-2.6-modsign-core.patch
 Patch230: linux-2.6-modsign-script.patch
+
+Patch240: linux-2.6-modules-modalias-platform.patch
 
 Patch250: linux-2.6-debug-sizeof-structs.patch
 Patch260: linux-2.6-debug-nmi-timeout.patch
@@ -568,10 +568,12 @@ Patch404: linux-2.6-scsi-mpt-vmware-fix.patch
 Patch420: linux-2.6-squashfs.patch
 Patch422: linux-2.6-gfs-locking-exports.patch
 Patch424: linux-2.6-cifs-fix-incomplete-rcv.patch
-Patch426: linux-2.6-cifs-typo-in-cifs_reconnect-fix.patch
-Patch428: linux-2.6-cifs-fix-bad-handling-of-EAGAIN.patch
+Patch425: linux-2.6-cifs-typo-in-cifs_reconnect-fix.patch
+Patch426: linux-2.6-cifs-fix-bad-handling-of-EAGAIN.patch
+Patch427: linux-2.6-cifs-fix-oops-on-second-mount.patch
 
 Patch430: linux-2.6-net-silence-noisy-printks.patch
+Patch431: linux-2.6-netfilter-fix-null-deref-nf_nat_move_storage.patch
 
 Patch440: linux-2.6-sha_alignment.patch
 Patch450: linux-2.6-input-kill-stupid-messages.patch
@@ -594,18 +596,16 @@ Patch635: linux-2.6-defaults-nommconf.patch
 
 Patch660: linux-2.6-libata-ali-atapi-dma.patch
 Patch662: linux-2.6-ata-quirk.patch
-Patch664: linux-2.6-libata-add-dma-disable-option.patch
+Patch663: linux-2.6-libata-add-dma-disable-option.patch
+Patch664: linux-2.6-libata-dont-fail-revalidation-for-bad-gtf-methods.patch
+Patch665: linux-2.6-libata-pata_serverworks-fix-drive-combinations.patch
 Patch666: linux-2.6-ppc-pegasos-via-ata-legacy-irq.patch
 
 Patch680: linux-2.6-wireless.patch
 Patch682: linux-2.6-bcm43xx-pci-neuter.patch
-Patch683: linux-2.6-iwlwifi-fixes.patch
 Patch690: linux-2.6-at76.patch
 Patch691: linux-2.6-ath5k.patch
-Patch692: linux-2.6-ath5k-fixes.patch
 Patch693: linux-2.6-zd1211rw-mac80211.patch
-Patch694: linux-2.6-mac80211-extras.patch
-Patch695: linux-2.6-wireless-fixes.patch
 Patch700: linux-2.6-b43-module-alias.patch
 Patch701: linux-2.6-b43-use-old-fw.patch
 
@@ -623,20 +623,15 @@ Patch730: linux-2.6-net-e100-disable-polling.patch
 
 Patch750: linux-2.6-firewire-multi-lun.patch
 Patch751: linux-2.6-firewire-lockdep.patch
-
-Patch770: linux-2.6-acpi-sleep-fix-GPE-suspend-cleanup.patch
-Patch771: linux-2.6-acpi-suspend-wrong-order-of-GPE-restore.patch
+Patch752: linux-2.6-firewire-ohci-1.0-iso-receive.patch
 
 Patch780: linux-2.6-usb-storage-initialize-huawei-e220-properly.patch
-Patch781: linux-2.6-usb-suspend-classes.patch
+Patch781: linux-2.6-usb-autosuspend-default-disable.patch
 
 Patch800: linux-2.6-wakeups-hdaps.patch
 Patch801: linux-2.6-wakeups.patch
 
-Patch900: linux-2.6-md-raid5-fix-clearing-of-biofill-operations.patch
-
 # PS3 updates from 2.6.23
-
 # PS3 Wireless support hasn't yet been merged
 Patch1300: linux-2.6-ps3-gelic-wireless.patch
 # Handle booting from the 2.6.16 kboot
@@ -645,10 +640,6 @@ Patch1310: linux-2.6-ps3-legacy-bootloader-hack.patch
 Patch1320: linux-2.6-ps3-storage-alias.patch
 
 Patch1500: linux-2.6-pmtrace-time-fix.patch
-Patch1510: linux-2.6-sched-keep-stime-monotonic.patch
-Patch1511: linux-2.6-sched-keep-utime-monotonic.patch
-
-Patch1600: linux-2.6-params-sysfs-skip-missing-period.patch
 
 %endif
 
@@ -1083,7 +1074,7 @@ ApplyPatch patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 %endif
 
 # -stable RC
-# ApplyPatch patch-2.6.22.9-rc1.patch
+ApplyPatch patch-2.6.23.9-rc1.bz2
 
 # This patch adds a "make nonint_oldconfig" which is non-interactive and
 # also gives a list of missing options at the end. Useful for automated
@@ -1093,6 +1084,7 @@ ApplyPatch linux-2.6-build-nonintconfig.patch
 %if !%{nopatches}
 
 # Revert -stable pieces we get from elsewhere here
+ApplyPatch linux-2.6-upstream-reverts.patch -R
 
 # Roland's utrace ptrace replacement.
 ApplyPatch linux-2.6-utrace-tracehook.patch -F2
@@ -1116,23 +1108,19 @@ ApplyPatch linux-2.6-utrace-ptrace-compat-avr32.patch
 # setuid /proc/self/maps fix. (dependent on utrace)
 ApplyPatch linux-2.6-proc-self-maps-fix.patch
 
-# Some USB devices don't work after auto-suspend, disable by default.
-ApplyPatch linux-2.6-usb-suspend-classes.patch
+# Disable USB autosuspend by default.
+ApplyPatch linux-2.6-usb-autosuspend-default-disable.patch
 
 # enable sysrq-c on all kernels, not only kexec
 ApplyPatch linux-2.6-sysrq-c.patch
 
 # Architecture patches
 # x86(-64)
-# fixes oops on boot with AGP
-ApplyPatch linux-2.6-x86_64-revert-sparsemem-4g.patch
-# fix race in tlb flushing
-ApplyPatch linux-2.6-x86_64-fix-global_flush_tlb-bug.patch
-
 # Compile 686 kernels tuned for Pentium4.
 ApplyPatch linux-2.6-x86-tune-generic.patch
+# x86: fix boot on 486
+ApplyPatch linux-2.6-x86-setup-add-near-jump.patch
 # fix tsc calibration
-ApplyPatch linux-2.6-x86-tsc-calibration-1.patch
 ApplyPatch linux-2.6-x86-tsc-calibration-2.patch
 
 # add vidfail capability;
@@ -1166,6 +1154,9 @@ ApplyPatch linux-2.6-modsign-verify.patch
 ApplyPatch linux-2.6-modsign-ksign.patch
 ApplyPatch linux-2.6-modsign-core.patch
 ApplyPatch linux-2.6-modsign-script.patch
+
+# re-enable platform driver module aliases
+ApplyPatch linux-2.6-modules-modalias-platform.patch
 
 #
 # bugfixes to drivers and filesystems
@@ -1218,10 +1209,14 @@ ApplyPatch linux-2.6-gfs-locking-exports.patch
 ApplyPatch linux-2.6-cifs-fix-incomplete-rcv.patch
 ApplyPatch linux-2.6-cifs-typo-in-cifs_reconnect-fix.patch
 ApplyPatch linux-2.6-cifs-fix-bad-handling-of-EAGAIN.patch
+# fix oops mounting filesystem a second time
+ApplyPatch linux-2.6-cifs-fix-oops-on-second-mount.patch
 
 # Networking
 # Disable easy to trigger printk's.
 ApplyPatch linux-2.6-net-silence-noisy-printks.patch
+# fix oops in netfilter (#259501)
+ApplyPatch linux-2.6-netfilter-fix-null-deref-nf_nat_move_storage.patch
 
 # Misc fixes
 # Fix SHA1 alignment problem on ia64
@@ -1272,21 +1267,20 @@ ApplyPatch linux-2.6-ata-quirk.patch
 ApplyPatch linux-2.6-libata-add-dma-disable-option.patch
 # fix Pegasos libata glitches
 ApplyPatch linux-2.6-ppc-pegasos-via-ata-legacy-irq.patch
+# fix resume failure on some systems                                  
+ApplyPatch linux-2.6-libata-dont-fail-revalidation-for-bad-gtf-methods.patch   
+# serverworks is broken with some drive combinations                  
+ApplyPatch linux-2.6-libata-pata_serverworks-fix-drive-combinations.patch 
 
 # post-2.6.23 wireless patches from upstream
 ApplyPatch linux-2.6-wireless.patch
 # pre-2.6.25 wireless patches from upstream
 #ApplyPatch linux-2.6-wireless-pending.patch
-# late-breaking iwlwifi fixes (will be rolled into wireless-pending patch)
-ApplyPatch linux-2.6-iwlwifi-fixes.patch
 
 # Add misc wireless bits from upstream wireless tree
 ApplyPatch linux-2.6-at76.patch
 ApplyPatch linux-2.6-ath5k.patch
-ApplyPatch linux-2.6-ath5k-fixes.patch
 ApplyPatch linux-2.6-zd1211rw-mac80211.patch
-ApplyPatch linux-2.6-mac80211-extras.patch
-ApplyPatch linux-2.6-wireless-fixes.patch
 # avoid bcm3xx vs bcm43xx-mac80211 PCI ID conflicts
 ApplyPatch linux-2.6-bcm43xx-pci-neuter.patch
 # add module alias for "bcm43xx-mac80211"
@@ -1317,6 +1311,7 @@ ApplyPatch linux-2.6-net-e100-disable-polling.patch
 #
 ApplyPatch linux-2.6-firewire-multi-lun.patch
 ApplyPatch linux-2.6-firewire-lockdep.patch
+ApplyPatch linux-2.6-firewire-ohci-1.0-iso-receive.patch
 
 # USB
 #
@@ -1325,17 +1320,11 @@ ApplyPatch linux-2.6-usb-storage-initialize-huawei-e220-properly.patch
 
 # ACPI patches
 # suspend/resume fixes
-ApplyPatch linux-2.6-acpi-sleep-fix-GPE-suspend-cleanup.patch
-ApplyPatch linux-2.6-acpi-suspend-wrong-order-of-GPE-restore.patch
 
 # Fix excessive wakeups
 # Make hdaps timer only tick when in use.
 ApplyPatch linux-2.6-wakeups-hdaps.patch
 ApplyPatch linux-2.6-wakeups.patch
-
-# dm / md
-# raid5 data corruption fix
-ApplyPatch linux-2.6-md-raid5-fix-clearing-of-biofill-operations.patch
 
 # Pending PS3 patches
 ApplyPatch linux-2.6-ps3-gelic-wireless.patch
@@ -1346,18 +1335,11 @@ ApplyPatch linux-2.6-ps3-storage-alias.patch
 # Fix time distortion in pm_trace (bz 250238)
 ApplyPatch linux-2.6-pmtrace-time-fix.patch
 
-# fix "top shows 9999% CPU usage"
-ApplyPatch linux-2.6-sched-keep-utime-monotonic.patch
-ApplyPatch linux-2.6-sched-keep-stime-monotonic.patch
-
-# fix weird file in /sys/module/nousb
-ApplyPatch linux-2.6-params-sysfs-skip-missing-period.patch
-
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .1-21.fc7:' -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.23.1-21.fc7.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .8-34.fc7:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.23.8-34.fc7.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -2284,8 +2266,8 @@ fi
 %endif
 
 %changelog
-* Thu Nov 01 2007 Chuck Ebbert <cebbert@redhat.com>
-- e100: don't crash on startup
+* Thu Nov 22 2007 Kyle McMartin <kmcmartin@redhat.com>
+- Linux 2.6.23.9-rc1
 
 * Wed Oct 10 2007 Chuck Ebbert <cebbert@redhat.com>
 - Linux 2.6.23
