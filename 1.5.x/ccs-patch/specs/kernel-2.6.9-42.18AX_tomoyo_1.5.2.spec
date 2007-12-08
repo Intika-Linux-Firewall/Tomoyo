@@ -29,7 +29,7 @@ summary: the linux kernel (the core of the linux operating system)
 # adding some text to the end of the version number.
 #
 %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
-%define release 42.17AX%{axbsys}_tomoyo_1.5.2
+%define release 42.18AX%{axbsys}_tomoyo_1.5.2
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -1372,6 +1372,15 @@ Patch98005: linux-2.6.9-CVE-2006-0558-ia64-perfmon-crash.patch
 Patch98006: linux-2.6.9-CVE-2007-1217-capi-buffer-overflow.patch
 # 2.6.9-55.0.9.EL CVE fixes
 Patch98007: linux-2.6.9-CVE-2007-4573-x86_64-zero-extend-regs.patch
+# 2.6.9-55.0.12.EL CVE fixes
+Patch98010: linux-2.6.9-CVE-2006-6921-dos-with-wedged-processes.patch
+Patch98011: linux-2.6.9-CVE-2007-2878-vfat-put_dirent32-dos.patch
+Patch98012: linux-2.6.9-CVE-2007-3739-stack-grow-limit.patch
+Patch98013: linux-2.6.9-CVE-2007-4571-alsa-procfs.patch
+Patch98014: linux-2.6.9-CVE-2007-3105-random-bound-check.patch
+Patch98015: linux-2.6.9-CVE-2007-3848-pdeath-signal-suid.patch
+Patch98016: linux-2.6.9-CVE-2007-3740-cifs-honour-umask.patch
+Patch98017: linux-2.6.9-CVE-2007-3843-cifs-signing-mount.patch
 
 #
 # Asianux:
@@ -1395,6 +1404,8 @@ Patch100263: linux-2.6.15-x86-convert-bigsmp-to-use-flat-physical-mode.patch
 Patch100264: linux-2.6.9-ia32e-stack-vm_account-fix.patch
 Patch100265: linux-2.6.9-x86_64-dma-usage-fix1.patch
 Patch100266: linux-2.6.9-x86_64-dma-usage-fix2.patch
+Patch100267: linux-2.6.12-rc2-x86_64-fix-missing-delay.patch
+Patch100268: linux-2.6.9-x8664-mtrr-updates.patch
 
 #
 # 100300 - 100399   ppc(64)
@@ -1545,6 +1556,7 @@ Patch102530: linux-2.6.9-stex-3.0.0.1.patch
 # aacraid
 Patch102540: linux-2.6.9-aacraid-1.1.5-2420.patch
 Patch102541: linux-2.6.9-aacraid-1.1.5-2431.patch
+Patch102542: linux-2.6.9-CVE-2007-4308-aacraid-ioctl-permission-check.patch
 # megaraid_sas
 Patch102550: linux-2.6.9-megaraid_sas-zcr.patch
 Patch102551: linux-2.6.9-megaraid_sas-03.05-update.patch
@@ -3651,6 +3663,15 @@ cd linux-%{kversion}
 %patch98006 -p1
 # 2.6.9-55.0.9.EL CVE fixes
 %patch98007 -p1
+# 2.6.9-55.0.12.EL CVE fixes
+%patch98010 -p1
+%patch98011 -p1
+%patch98012 -p1
+%patch98013 -p1
+%patch98014 -p1
+%patch98015 -p1
+%patch98016 -p1
+%patch98017 -p1
 
 # Asianux:
 # Patches 100100 through 100500 are meant for architecture patches
@@ -3688,6 +3709,8 @@ cd linux-%{kversion}
 #dma usage fix
 %patch100265 -p1
 %patch100266 -p1
+%patch100267 -p1
+%patch100268 -p1
 
 #
 # Patches 100500 through 101000 are reserved for bugfixes to the core system
@@ -3871,6 +3894,8 @@ cd linux-%{kversion}
 %patch102540 -p1
 # aacraid 1.1.5-2431
 %patch102541 -p1
+# fix CVE-2007-4308
+%patch102542 -p1
 # megaraid_sas new pci id
 %patch102550 -p1
 %patch102551 -p1
@@ -4007,8 +4032,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.17AX/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.9-42.17AX.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.18AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-42.18AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -4436,9 +4461,18 @@ fi
 %endif
 
 %changelog
-* Thu Oct  4 2007 YongWoo Nam <ywnam@haansoft.com> [2.6.9-42.17AX]
-- CVE-2007-4573 : fix x86_64 (+ xen) syscall vulnerability (Patch98007)
-- if reboot the system when RAID is rebuilded, the kernel may crash (OGAWA Hirofumi) (Patch102555)
+* Fri Nov  9 2007 YongWoo Nam <ywnam@haansoft.com> [2.6.9-42.18AX]
+- CVE-2006-6921 : fix denial of service with wedged processes (Patch98010)
+- CVE-2007-2878 : fix VFAT compat ioctls DoS on 64-bit (Patch98011)
+- CVE-2007-3739 : fix stack growing into hugetlb reserved regions (Patch98012)
+- CVE-2007-4571 : fix ALSA memory disclosure flaw (Patch98013)
+- CVE-2007-3105 : fix bound check ordering issue in random driver (Patch98014)
+- CVE-2007-3848 : fix privilege escalation via PR_SET_PDEATHSIG (Patch98015)
+- CVE-2007-3740 : makes CIFS honour a process' umask (Patch98016)
+- CVE-2007-3843 : fix signing mount options and error handling for CIFS (Patch98017)
+- CVE-2007-4308 : fix missing ioctl() permission checks in aacraid driver (Patch102542)
+- fix machine check errors with Clovertown G0-step CPU (OGAWA Hirofumi) (Patch100268)
+- x86_64: Fix missing delay when the TSC counter just overflowed (Toyo Abe) (Patch100267)
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start 
