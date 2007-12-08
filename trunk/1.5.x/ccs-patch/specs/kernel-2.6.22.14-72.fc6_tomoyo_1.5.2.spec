@@ -20,7 +20,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # kernel spec when the kernel is rebased, so fedora_build automatically
 # works out to the offset from the rebase, so it doesn't get too ginormous.
 %define fedora_cvs_origin 2968
-%define fedora_build %(R="$Revision: 1.3029 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.3040 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -30,7 +30,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
 # Do we have a 2.6.21.y update to apply?
-%define stable_update 9
+%define stable_update 14
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -501,8 +501,8 @@ Patch00: patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 
 %endif
 
-# stable -rc
-# Patch02: patch-2.6.22.6-rc1.patch
+# unreleased stable patch
+# Patch02: patch-2.6.22.12-rc1.bz2
 
 %if !%{nopatches}
 
@@ -525,13 +525,12 @@ Patch25: linux-2.6-utrace-ptrace-compat-s390.patch
 Patch26: linux-2.6-utrace-ptrace-compat-avr32.patch
 
 Patch30: linux-2.6-sysrq-c.patch
-Patch35: linux-2.6-genirq-fixes.patch
 Patch40: linux-2.6-x86-tune-generic.patch
 Patch50: linux-2.6-x86-vga-vidfail.patch
-Patch52: linux-2.6-amd-fix-broken-lapic-timer-detect.patch
 Patch90: linux-2.6-kvm-suspend.patch
 
 Patch100: linux-2.6-g5-therm-shutdown.patch
+Patch110: linux-2.6-ppc-fix-dso-unwind.patch
 Patch120: linux-2.6-ppc32-ucmpdi2.patch
 Patch130: linux-2.6-ibmvscsi-schizo.patch
 Patch140: linux-2.6-pmac-zilog.patch
@@ -559,9 +558,9 @@ Patch340: linux-2.6-debug-sysfs-crash-debugging.patch
 Patch350: linux-2.6-devmem.patch
 Patch370: linux-2.6-crash-driver.patch
 Patch390: linux-2.6-dev-get-driver-properly.patch
+Patch391: linux-2.6-sysfs-deprecated-fix-nested-devices.patch
 
 Patch400: linux-2.6-scsi-cpqarray-set-master.patch
-Patch401: linux-2.6-aacraid-ioctl-security.patch
 Patch404: linux-2.6-scsi-mpt-vmware-fix.patch
 
 Patch420: linux-2.6-squashfs.patch
@@ -583,6 +582,7 @@ Patch590: linux-2.6-unexport-symbols.patch
 Patch600: linux-2.6-vm-silence-atomic-alloc-failures.patch
 Patch601: linux-2.6-input-ff-create-limit-memory.patch
 Patch602: linux-2.6-x86_64-e820_hole_size.patch
+Patch603: linux-2.6-x86_64-fix-boot-speed-on-vt.patch
 
 Patch610: linux-2.6-defaults-fat-utf8.patch
 Patch620: linux-2.6-defaults-unicode-vt.patch
@@ -592,10 +592,7 @@ Patch636: linux-2.6-nohz-highres-disable.patch
 Patch640: linux-2.6-default_pci_no_msi.patch
 Patch641: linux-2.6-drivers_pci_no_mmconf.patch
 
-Patch650: linux-2.6-lvm-snapshot-deadlock-fix.patch
-
 Patch660: linux-2.6-libata-ali-atapi-dma.patch
-Patch662: linux-2.6-ata-update-noncq.patch
 Patch663: linux-2.6-ata-quirk.patch
 Patch667: linux-2.6-libata-ata_piix_fix_pio-mwdma-programming.patch
 Patch669: linux-2.6-libata-restore-combined-mode.patch
@@ -607,7 +604,6 @@ Patch674: linux-2.6-libata-pata_via-cable-detect.patch
 Patch677: linux-2.6-libata-pata_sis-fix-dma-timing.patch
 Patch678: linux-2.6-libata-pata_sis-dma-add-missing-entry.patch
 Patch679: linux-2.6-libata-sata_sil24-fix-irq-clearing-race.patch
-Patch680: linux-2.6-libata-2.6.23-rc8-noncq.patch
 
 Patch689: git-wireless-dev.patch
 Patch690: linux-2.6-e1000-ich9.patch
@@ -631,7 +627,6 @@ Patch780: linux-2.6-usb-storage-initialize-huawei-e220-properly.patch
 Patch781: linux-2.6-usb-allow-1-byte-replies.patch
 Patch782: linux-2.6-usb-fixup-interval-lengths.patch
 
-Patch790: linux-2.6-acpi-disable-cstates-in-suspend.patch
 Patch791: linux-2.6-acpi-kill-dmesg-spam.patch
 
 Patch800: linux-2.6-wakeups-hdaps.patch
@@ -639,6 +634,7 @@ Patch801: linux-2.6-wakeups.patch
 Patch900: linux-2.6-sched-cfs-v2.6.22.5-v20.5.patch
 Patch901: linux-2.6-sched-cfs-updates.patch
 Patch902: linux-2.6-timekeeping-fixes.patch
+Patch903: linux-2.6-sched-disable-precise-accounting.patch
 Patch1000: linux-2.6-dmi-based-module-autoloading.patch
 Patch1030: linux-2.6-nfs-nosharecache.patch
 Patch1400: linux-2.6-pcspkr-use-the-global-pit-lock.patch
@@ -1076,8 +1072,8 @@ ApplyPatch patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 
 %endif
 
-# stable -rc
-# ApplyPatch patch-2.6.22.9-rc1.patch
+# unreleased stable patch
+# ApplyPatch patch-2.6.22.12-rc1.bz2
 
 # This patch adds a "make nonint_oldconfig" which is non-interactive and
 # also gives a list of missing options at the end. Useful for automated
@@ -1092,6 +1088,8 @@ ApplyPatch linux-2.6-sched-cfs-v2.6.22.5-v20.5.patch
 ApplyPatch linux-2.6-sched-cfs-updates.patch
 # timekeeping fixes that were in the Fedora CFS patch
 ApplyPatch linux-2.6-timekeeping-fixes.patch
+# disable precise CPU accountint to prevent divide-by-0
+ApplyPatch linux-2.6-sched-disable-precise-accounting.patch
 
 # Roland's utrace ptrace replacement.
 ApplyPatch linux-2.6-utrace-tracehook.patch -F2
@@ -1118,9 +1116,6 @@ ApplyPatch linux-2.6-proc-self-maps-fix.patch
 # enable sysrq-c on all kernels, not only kexec
 ApplyPatch linux-2.6-sysrq-c.patch
 
-# genirq fixes from 2.6.23
-ApplyPatch linux-2.6-genirq-fixes.patch
-
 # Architecture patches
 # x86(-64)
 # Compile 686 kernels tuned for Pentium4.
@@ -1131,8 +1126,6 @@ ApplyPatch linux-2.6-x86-tune-generic.patch
 # for the installer cd that wants to automatically fall back to textmode
 # in that case
 ApplyPatch linux-2.6-x86-vga-vidfail.patch
-# check all AMD CPU cores for broken lapic timer
-ApplyPatch linux-2.6-amd-fix-broken-lapic-timer-detect.patch
 
 # patch to fix suspend with kvm loaded and guests running
 ApplyPatch linux-2.6-kvm-suspend.patch
@@ -1142,6 +1135,8 @@ ApplyPatch linux-2.6-kvm-suspend.patch
 #
 # Alleviate G5 thermal shutdown problems
 ApplyPatch linux-2.6-g5-therm-shutdown.patch
+# Fix ppc64 vDSO DWARF info for CR register
+ApplyPatch linux-2.6-ppc-fix-dso-unwind.patch
 # Temporary hack to work around GCC PR #25724 / #21237
 ApplyPatch linux-2.6-ppc32-ucmpdi2.patch
 # Fix up ibmvscsi for combined pSeries/iSeries build
@@ -1207,14 +1202,14 @@ ApplyPatch linux-2.6-crash-driver.patch
 # driver core
 #
 ApplyPatch linux-2.6-dev-get-driver-properly.patch
+# fix deprecated device links
+ApplyPatch linux-2.6-sysfs-deprecated-fix-nested-devices.patch
 
 #
 # SCSI Bits.
 #
 # fix cpqarray pci enable
 ApplyPatch linux-2.6-scsi-cpqarray-set-master.patch
-# aacraid: ioctl handler needs permission check
-ApplyPatch linux-2.6-aacraid-ioctl-security.patch
 # fix vmware's broken emulation of SCSI controller
 ApplyPatch linux-2.6-scsi-mpt-vmware-fix.patch
 
@@ -1261,6 +1256,8 @@ ApplyPatch linux-2.6-vm-silence-atomic-alloc-failures.patch
 ApplyPatch linux-2.6-input-ff-create-limit-memory.patch
 # fix sizing of memory holes on x86_64
 ApplyPatch linux-2.6-x86_64-e820_hole_size.patch
+# fix boot speed on VT enabled processors
+ApplyPatch linux-2.6-x86_64-fix-boot-speed-on-vt.patch
 
 # Changes to upstream defaults.
 # Use UTF-8 by default on VFAT.
@@ -1278,14 +1275,8 @@ ApplyPatch linux-2.6-nohz-highres-disable.patch
 # Some USB devices don't work after auto-suspend, disable by default.
 ApplyPatch linux-2.6-usb-autosuspend-default-disable.patch
 
-# fix LVM deadlock
-ApplyPatch linux-2.6-lvm-snapshot-deadlock-fix.patch
-
 # Disable ATAPI DMA on ALI chipsets.
 ApplyPatch linux-2.6-libata-ali-atapi-dma.patch
-# libata: don't initialize sg in ata_exec_internal() if DMA_NONE
-# libata: update the noncq list
-ApplyPatch linux-2.6-ata-update-noncq.patch
 # ia64 ata quirk
 ApplyPatch linux-2.6-ata-quirk.patch
 # NSIA
@@ -1307,8 +1298,6 @@ ApplyPatch linux-2.6-libata-pata_sis-fix-dma-timing.patch
 ApplyPatch linux-2.6-libata-pata_sis-dma-add-missing-entry.patch
 # sata_sil24 irq race fix
 ApplyPatch linux-2.6-libata-sata_sil24-fix-irq-clearing-race.patch
-# update the libata NONCQ list
-ApplyPatch linux-2.6-libata-2.6.23-rc8-noncq.patch
 
 # Add the new wireless stack and drivers from wireless-dev
 ApplyPatch git-wireless-dev.patch
@@ -1356,8 +1345,6 @@ ApplyPatch linux-2.6-usb-fixup-interval-lengths.patch
 # timers
 
 # ACPI patches
-# fix some suspend bugs
-ApplyPatch linux-2.6-acpi-disable-cstates-in-suspend.patch
 # silence noisy message
 ApplyPatch linux-2.6-acpi-kill-dmesg-spam.patch
 
@@ -1377,8 +1364,8 @@ ApplyPatch linux-2.6-pcspkr-use-the-global-pit-lock.patch
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .9-61.fc6:' -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.22.9-61.fc6.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .14-72.fc6:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.22.14-72.fc6.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -2304,10 +2291,8 @@ fi
 %endif
 
 %changelog
-* Thu Sep 27 2007 Chuck Ebbert <cebbert@redhat.com>
-- Revert to old RTC driver.
-- Zero fill environment for uevent handlers.
-- Update the libata NCQ disk blacklist.
+* Wed Nov 21 2007 Chuck Ebbert <cebbert@redhat.com>
+- Linux 2.6.22.14
 
 * Mon Jul 09 2007 Dave Jones <davej@redhat.com>
 - Rebase to 2.6.22
