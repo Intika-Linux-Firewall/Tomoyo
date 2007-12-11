@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.11%{?dist}_tomoyo_1.5.2
+%define release 8.12%{?dist}_tomoyo_1.5.2
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -702,6 +702,7 @@ Patch20023: xen-register-pit-handlers-to-the-correct-domain.patch
 Patch20024: xen-quick-fix-for-cannot-allocate-memory.patch
 Patch20025: xen-fix-tlb-flushing-in-shadow-pagetable-mode.patch
 Patch20026: xen-enable-booting-on-machines-with-64G.patch
+Patch20027: xen-guest-access-to-msr-may-cause-crash-data-corruption.patch
 # Asianux Xen Patch
 Patch20500: xen-support-new-microcode.patch
 Patch20501: xen-ia64-use-relative-path.patch
@@ -951,7 +952,9 @@ Patch21253: linux-2.6-audit-gfp_kernel-allocation-non-blocking-context.patch
 Patch21254: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-1.patch
 Patch21255: linux-2.6-net-ipv6-security-holes-in-ipv6_sockglue-c-2.patch
 Patch21256: linux-2.6-mm-gdb-does-not-accurately-output-the-backtrace.patch
-#Patch21257 ~ Patch21269
+# linux-2.6.18.8-port-for-axs3.patch is including this
+Patch21257: linux-2.6-x86_64-dont-leak-nt-bit-into-next-task.patch
+#Patch21258 ~ Patch21269
 Patch21270: linux-2.6-sched-remove-__cpuinitdata-from-cpu_isolated_map.patch
 #Patch21271
 Patch21272: linux-2.6-s390-page_mkclean-causes-data-corruption.patch
@@ -1101,23 +1104,46 @@ Patch21646: linux-2.6-agp-fix-amd-64-agp-aperture-validation.patch
 Patch21651: linux-2.6-sata-combined-mode-regression-fix.patch
 #Patch21652 ~ Patch21658
 Patch21659: linux-2.6-ppc64-data-buffer-miscompare.patch
-#Patch21660 ~ Patch21669
+#Patch21660 ~ Patch21668
+# Patch21669 is from 2.6.18-8.1.15, it's slightly different with RHEL5.1
+Patch21669: linux-2.6-dlm-tcp-connection-to-dlm-port-blocks-operations.patch
 Patch21670: linux-2.6-misc-overflow-in-capi-subsystem.patch
 #Patch21671 ~ Patch21675
 Patch21676: linux-2.6-pci-unable-to-reserve-mem-region-on-module-reload.patch
 Patch21677: linux-2.6-sata-add-hitachi-to-ncq-blacklist.patch
 #Patch21677 ~ Patch21686
 Patch21687: linux-2.6-sata-regression-in-support-for-third-party-module.patch
-#Patch21688 ~ Patch21707
+#Patch21688 ~ Patch21695
+Patch21696: linux-2.6-cifs-fix-signing-sec-mount-options.patch
+Patch21697: linux-2.6-cifs-respect-umask-when-unix-extensions-enabled.patch
+#Patch21698 ~ Patch21707
 Patch21708: linux-2.6-fs-move-msdos-compat-ioctl-to-msdos-dir.patch
 Patch21709: linux-2.6-fs-fix-vfat-compat-ioctls-on-64-bit-systems.patch
-#Patch21710 ~ Patch21719
+#Patch21710 ~ Patch21712
+Patch21713: linux-2.6-ppc-4k-userspace-page-map-support-in-64k-kernels.patch
+#Patch21714 ~ Patch21719
 Patch21720: linux-2.6-misc-i915_dma-fix-batch-buffer-security-bit.patch
 #Patch21721 ~ Patch21733
 Patch21734: linux-2.6-agp-945-965gme-bridge-id-bug-fix-and-cleanups.patch
-#Patch21735 ~ Patch21739
+#Patch21735 ~ Patch21738
+Patch21739: linux-2.6-mm-prevent-the-stack-growth-into-hugetlb-regions.patch
 Patch21740: linux-2.6-misc-miss-critical-phys_to_virt-in-lib-swiotlb-c.patch
-#Patch21741 ~ Patch21766
+#Patch21741 ~ Patch21769
+Patch21770: linux-2.6-fs-hugetlb-fix-prio_tree-unit.patch
+#Patch21771 ~ Patch21781
+Patch21782: linux-2.6-net-igmp-check-null-when-allocate-gfp_atomic-skbs.patch
+#Patch21783 ~ Patch21786
+Patch21787: linux-2.6-ptrace-null-pointer-dereference-triggered.patch
+#Patch21788 ~ Patch21793
+Patch21794: linux-2.6-misc-bounds-check-ordering-issue-in-random-driver.patch
+Patch21795: linux-2.6-usb-usblcd-locally-triggerable-memory-consumption.patch
+#Patch21796 ~ Patch21801
+Patch21802: linux-2.6-fs-reset-current-pdeath_signal-on-suid-execution.patch
+#Patch21803 ~ Patch21812
+Patch21813: linux-2.6-x86_64-syscall-vulnerability.patch
+#Patch21814
+Patch21815: linux-2.6-scsi-aacraid-missing-ioctl-permission-checks.patch
+#Patch21816 ~ Patch21822
 # empty final patch file to facilitate testing of kernel patches
 Patch99999: linux-kernel-test.patch
 
@@ -1137,7 +1163,6 @@ Patch100105: linux-2.6-hugetlb-free-alloc-race-fix.patch
 Patch100110: linux-2.6.18-hugetlb-set-dirty.patch
 Patch100111: linux-2.6.18-hugetlb-resv_huge_pages-fix.patch
 Patch100112: linux-2.6.18-hugetlb-fix-size-parse.patch
-Patch100113: linux-2.6.18-hugetlb-fix-prio-tree.patch
 Patch100114: linux-2.6.18-hugetlb-prepare_hugepage_range-fix.patch
 # i386 efi regparm fix
 Patch100115: linux-2.6.18-i386-efi-regparm-fix.patch
@@ -1280,6 +1305,13 @@ Patch103056: linux-2.6.18-bnx2-puzzle-message-cleanup.patch
 Patch103057: linux-2.6-fat12-entry-race-fix.patch
 # e1000 length check
 Patch103058: linux-2.6-e1000-adjust-length-fix.patch
+# igb wol fix
+Patch103059: linux-2.6-igb-wol-fix.patch
+# megaraid_sas initialization fix
+Patch103060: linux-2.6-megaraid_sas-init-timeout.patch
+# ext3/jbd minor fixes
+Patch103061: linux-2.6-ext3-journal_stop-assert-fix.patch
+Patch103062: linux-2.6-ext3-journal_do_submit_data-fix.patch
 
 # revoke base force umount
 Patch200000: linux-2.6-revoke-special-mmap-handling.patch
@@ -2323,6 +2355,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21254 -p1
 %patch21255 -p1
 %patch21256 -p1
+#%patch21257 -p1
 #
 %patch21270 -p1
 #
@@ -2472,6 +2505,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 #
 %patch21659 -p1
 #
+%patch21669 -p1
 %patch21670 -p1
 #
 %patch21676 -p1
@@ -2479,12 +2513,35 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 #
 %patch21687 -p1
 #
+%patch21696 -p1
+%patch21697 -p1
+#
 %patch21708 -p1
 %patch21709 -p1
+#
+%patch21713 -p1
 #
 %patch21720 -p1
 #
 %patch21734 -p1
+#
+%patch21739 -p1
+%patch21740 -p1
+#
+%patch21770 -p1
+#
+%patch21782 -p1
+#
+%patch21787 -p1
+#
+%patch21794 -p1
+%patch21795 -p1
+#
+%patch21802 -p1
+#
+%patch21813 -p1
+#
+%patch21815 -p1
 #
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 perl -p -i -e "s/^SUBLEVEL.*/SUBLEVEL = %{sublevel}/" Makefile
@@ -2511,7 +2568,6 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %patch100110 -p1
 %patch100111 -p1
 %patch100112 -p1
-%patch100113 -p1
 %patch100114 -p1
 # i386 efi regparm fix
 %patch100115 -p1
@@ -2652,6 +2708,13 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %patch103057 -p1
 # e1000 length check
 %patch103058 -p1
+# igb wol fix
+%patch103059 -p1
+# megaraid_sas initialization fix
+%patch103060 -p1
+# ext3/jbd minor fixes
+%patch103061 -p1
+%patch103062 -p1
 
 # revoke base force umount
 %patch200000 -p1
@@ -2670,8 +2733,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.11AX/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.18-8.11AX.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.12AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-8.12AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -2758,6 +2821,7 @@ cd xen
 %patch20024 -p1
 %patch20025 -p1
 %patch20026 -p1
+%patch20027 -p1
 # Asianux Xen Patch
 %patch20500 -p1
 %patch20501 -p1
@@ -3553,19 +3617,12 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
 
 %changelog
-* Tue Aug 28 2007 <ax-kernel@asianux.com> [2.6.18-8.11AX]
-- e1000 adjust and check length [But#3564, Patch103058]
-- [x86_64] wall time is not compensated for lost timer ticks [Patch21450]
-- fat12 race fix [Patch103057]
-- Cleanup a pluzzle message in bnx2 [Patch103056]
-- [misc] Missing critical phys_to_virt in lib/swiotlb.c [Patch21740]
-- [fs] fix VFAT compat ioctls on 64-bit systems [Patch21709]
-- [fs] Move msdos compat ioctl to msdos dir [Patch21708]
-- [agp] agpgart fixes and new pci ids [Patch21322]
-- [drm] agpgart and drm support for bearlake graphics [Patch21582]
-- [agp] Fix AMD-64 AGP aperture validation [Patch21646]
-- [misc] i915_dma: fix batch buffer security bit for i965 chipsets [Patch21720]
-- [agp] 945/965GME: bridge id, bug fix, and cleanups [Patch21734]
+* Thu Oct 25 2007 <ax-kernel@asianux.com> [2.6.18-8.12AX]
+- ext3/jbd minor fixes [Bug#3690, Patch103061, Patch103062]
+- Fix initializa timeout for megaraid_sas [Bug#3689, Patch103060]
+- Fix WOL for second port on 82575EB_COPPER [Bug#3688, Patch103059]
+- merge 2.6.18-8.1.15.el5 [Bug#3656, Bug#3683]
+- cleanup: replace Patch103035 by Patch21770
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
