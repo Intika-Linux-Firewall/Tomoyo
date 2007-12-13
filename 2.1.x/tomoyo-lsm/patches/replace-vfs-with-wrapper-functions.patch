@@ -211,7 +211,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	dput(new_dentry);
 --- linux-2.6-mm.orig/net/unix/af_unix.c
 +++ linux-2.6-mm/net/unix/af_unix.c
-@@ -824,7 +824,8 @@ static int unix_bind(struct socket *sock
+@@ -822,7 +822,8 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
