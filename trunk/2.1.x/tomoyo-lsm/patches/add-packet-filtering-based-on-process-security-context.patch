@@ -33,15 +33,15 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
  include/linux/security.h |   34 +++++++++++++++++++++++++++++-----
- net/core/datagram.c      |   26 ++++++++++++++++++++++++--
+ net/core/datagram.c      |   29 ++++++++++++++++++++++++++++-
  net/socket.c             |    7 +++++--
  security/dummy.c         |   13 ++++++++++---
  security/security.c      |   10 ++++++++--
- 5 files changed, 76 insertions(+), 14 deletions(-)
+ 5 files changed, 80 insertions(+), 13 deletions(-)
 
 --- linux-2.6-mm.orig/include/linux/security.h
 +++ linux-2.6-mm/include/linux/security.h
-@@ -778,8 +778,12 @@ struct request_sock;
+@@ -773,8 +773,12 @@ struct request_sock;
   * @socket_post_accept:
   *	This hook allows a security module to copy security
   *	information into the newly created socket's inode.
@@ -54,7 +54,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @socket_sendmsg:
   *	Check permission before transmitting a message to another socket.
   *	@sock contains the socket structure.
-@@ -793,6 +797,15 @@ struct request_sock;
+@@ -788,6 +792,15 @@ struct request_sock;
   *	@size contains the size of message structure.
   *	@flags contains the operational flags.
   *	Return 0 if permission is granted.  
@@ -64,13 +64,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *	from unwanted peers based on the process receiving this datagram.
 + *	The packet will be discarded if this hook returns nonzero.
 + *	@sk contains the socket.
-+ *	@skb contains the socket buffer (may be NULL).
++ *	@skb contains the socket buffer.
 + *	@flags contains the operational flags.
 + *	Return 0 if permission is granted.
   * @socket_getsockname:
   *	Check permission before the local address (name) of the socket object
   *	@sock is retrieved.
-@@ -1389,12 +1402,13 @@ struct security_operations {
+@@ -1384,12 +1397,13 @@ struct security_operations {
  			       struct sockaddr * address, int addrlen);
  	int (*socket_listen) (struct socket * sock, int backlog);
  	int (*socket_accept) (struct socket * sock, struct socket * newsock);
@@ -86,7 +86,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int (*socket_getsockname) (struct socket * sock);
  	int (*socket_getpeername) (struct socket * sock);
  	int (*socket_getsockopt) (struct socket * sock, int level, int optname);
-@@ -2307,10 +2321,12 @@ int security_socket_bind(struct socket *
+@@ -2302,10 +2316,12 @@ int security_socket_bind(struct socket *
  int security_socket_connect(struct socket *sock, struct sockaddr *address, int addrlen);
  int security_socket_listen(struct socket *sock, int backlog);
  int security_socket_accept(struct socket *sock, struct socket *newsock);
@@ -100,7 +100,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_socket_getsockname(struct socket *sock);
  int security_socket_getpeername(struct socket *sock);
  int security_socket_getsockopt(struct socket *sock, int level, int optname);
-@@ -2386,9 +2402,10 @@ static inline int security_socket_accept
+@@ -2381,9 +2397,10 @@ static inline int security_socket_accept
  	return 0;
  }
  
@@ -113,7 +113,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static inline int security_socket_sendmsg(struct socket * sock, 
-@@ -2404,6 +2421,13 @@ static inline int security_socket_recvms
+@@ -2399,6 +2416,13 @@ static inline int security_socket_recvms
  	return 0;
  }
  
@@ -129,7 +129,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
 --- linux-2.6-mm.orig/net/socket.c
 +++ linux-2.6-mm/net/socket.c
-@@ -1442,13 +1442,16 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1454,13 +1454,16 @@ asmlinkage long sys_accept(int fd, struc
  			goto out_fd;
  	}
  
@@ -195,7 +195,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -148,6 +149,7 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -148,6 +149,7 @@ struct sk_buff *__skb_recv_datagram(stru
  {
  	struct sk_buff *skb;
  	long timeo;
@@ -203,28 +203,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/*
  	 * Caller is allowed not to check sk->sk_err before skb_recv_datagram()
  	 */
-@@ -166,8 +168,6 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -165,7 +167,6 @@ struct sk_buff *__skb_recv_datagram(stru
+ 		 * Look at current nfs client by the way...
  		 * However, this function was corrent in any case. 8)
  		 */
- 		if (flags & MSG_PEEK) {
--			unsigned long cpu_flags;
--
- 			spin_lock_irqsave(&sk->sk_receive_queue.lock,
- 					  cpu_flags);
- 			skb = skb_peek(&sk->sk_receive_queue);
-@@ -178,6 +178,11 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->sk_receive_queue);
+-		unsigned long cpu_flags;
+ 
+ 		spin_lock_irqsave(&sk->sk_receive_queue.lock, cpu_flags);
+ 		skb = skb_peek(&sk->sk_receive_queue);
+@@ -179,6 +180,14 @@ struct sk_buff *__skb_recv_datagram(stru
+ 		}
+ 		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
  
 +		/* Filter packets from unwanted peers. */
-+		error = security_socket_post_recv_datagram(sk, skb, flags);
-+		if (error)
-+			goto force_dequeue;
++		if (skb) {
++			error = security_socket_post_recv_datagram(sk, skb,
++								   flags);
++			if (error)
++				goto force_dequeue;
++		}
 +
  		if (skb)
  			return skb;
  
-@@ -190,6 +195,23 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -191,6 +200,24 @@ struct sk_buff *__skb_recv_datagram(stru
  
  	return NULL;
  
@@ -241,6 +243,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (skb == skb_peek(&sk->sk_receive_queue)) {
 +		__skb_unlink(skb, &sk->sk_receive_queue);
 +		atomic_dec(&skb->users);
++		/* Do I have something to do with skb->peeked ? */
 +	}
 +	spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
 +no_peek:
