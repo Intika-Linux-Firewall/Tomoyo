@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -512,7 +512,6 @@ unsigned int CheckCCSFlags(const unsigned int index)
 #endif
 		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
 }
-EXPORT_SYMBOL(CheckCCSFlags);
 
 bool TomoyoVerboseMode(void)
 {
@@ -524,7 +523,6 @@ bool CheckCCSEnforce(const unsigned int index)
 {
 	return CheckCCSFlags(index) == 3;
 }
-EXPORT_SYMBOL(CheckCCSEnforce);
 
 bool CheckDomainQuota(struct domain_info * const domain)
 {
@@ -548,7 +546,6 @@ bool CheckCCSAccept(const unsigned int index, struct domain_info * const domain)
 	if (CheckCCSFlags(index) != 1) return 0;
 	return CheckDomainQuota(domain);
 }
-EXPORT_SYMBOL(CheckCCSAccept);
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 {
@@ -1228,10 +1225,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.3-pre   2007/12/03\n");
+	printk("SAKURA: 1.5.3-pre   2007/12/17\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.3-pre   2007/12/03\n");
+	printk("TOMOYO: 1.5.3-pre   2007/12/17\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

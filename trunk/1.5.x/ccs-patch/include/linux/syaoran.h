@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -205,7 +205,7 @@ static int fs_symlink(const char *pathname, struct dentry *base, char *oldname, 
 static void NormalizeLine(unsigned char *buffer)
 {
 	unsigned char *sp = buffer, *dp = buffer;
-	int first = 1;
+	_Bool first = 1;
 	while (*sp && (*sp <= ' ' || *sp >= 127)) sp++;
 	while (*sp) {
 		if (!first) *dp++ = ' ';
@@ -277,8 +277,8 @@ struct dev_entry {
 
 struct syaoran_sb_info {
 	struct list_head list;
-	int initialize_done;           /* Zero if initialization is in progress.           */
-	int is_permissive_mode;        /* Nonzero if permissive mode.                      */
+	_Bool initialize_done;           /* False if initialization is in progress. */
+	_Bool is_permissive_mode;        /* True if permissive mode.                */
 };
 
 static int RegisterNodeInfo(char *buffer, struct super_block *sb)
@@ -505,10 +505,10 @@ static void MakeInitialNodes(struct super_block *sb)
 static int Syaoran_Initialize(struct super_block *sb, void *data)
 {
 	int error = -EINVAL;
-	static int first = 1;
+	static _Bool first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.5.3-pre   2007/12/03\n");
+		printk("SYAORAN: 1.5.3-pre   2007/12/17\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
@@ -533,7 +533,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	if (data) {
 		struct file *f;
 		char *filename = (char *) data;
-		int is_permissive_mode = syaoran_default_mode;
+		_Bool is_permissive_mode = syaoran_default_mode;
 		/* If mode is given with mount operation, use it. */
 		if (strncmp(filename, "accept=", 7) == 0) {
 			filename += 7;
@@ -541,7 +541,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 		} else if (strncmp(filename, "enforce=", 8) == 0) {
 			filename += 8;
 			is_permissive_mode = 0;
-		} else if (is_permissive_mode == -1) {
+		} else if (syaoran_default_mode == -1) {
 			/* If mode is not given with command line, abort mount. */
 			printk("SYAORAN: Missing 'accept=' or 'enforce='.\n");
 			return -EINVAL;

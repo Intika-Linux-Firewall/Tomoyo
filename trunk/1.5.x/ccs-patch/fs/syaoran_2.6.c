@@ -5,7 +5,7 @@
  *
  * Portions Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/17
  *
  * This file is applicable to 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -73,7 +73,7 @@ static struct backing_dev_info syaoran_backing_dev_info = {
 
 #include <linux/syaoran.h>
 
-struct inode *syaoran_get_inode(struct super_block *sb, int mode, dev_t dev)
+static struct inode *syaoran_get_inode(struct super_block *sb, int mode, dev_t dev)
 {
 	struct inode * inode = new_inode(sb);
 
@@ -118,8 +118,7 @@ struct inode *syaoran_get_inode(struct super_block *sb, int mode, dev_t dev)
  * File creation. Allocate an inode, and we're done..
  */
 /* SMP-safe */
-static int
-syaoran_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
+static int syaoran_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
 {
 	struct inode * inode;
 	int error = -ENOSPC;
@@ -219,11 +218,17 @@ static struct address_space_operations syaoran_aops = {
 	.commit_write   = simple_commit_write
 };
 #else
+static int syaoran_set_page_dirty_no_writeback(struct page *page)
+{
+	if (!PageDirty(page))
+		SetPageDirty(page);
+	return 0;
+}
 static struct address_space_operations syaoran_aops = {
 	.readpage       = simple_readpage,
 	.write_begin    = simple_write_begin,
 	.write_end      = simple_write_end,
-	.set_page_dirty = __set_page_dirty_no_writeback,
+	.set_page_dirty = syaoran_set_page_dirty_no_writeback,
 };
 #endif
 
@@ -310,19 +315,18 @@ static int syaoran_fill_super(struct super_block * sb, void * data, int silent)
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-struct super_block *syaoran_get_sb(struct file_system_type *fs_type,
+static struct super_block *syaoran_get_sb(struct file_system_type *fs_type,
 	int flags, const char *dev_name, void *data)
 {
 	return get_sb_nodev(fs_type, flags, data, syaoran_fill_super);
 }
 #else
-int syaoran_get_sb(struct file_system_type *fs_type,
+static int syaoran_get_sb(struct file_system_type *fs_type,
 	int flags, const char *dev_name, void *data, struct vfsmount *mnt)
 {
 	return get_sb_nodev(fs_type, flags, data, syaoran_fill_super, mnt);
 }
 #endif
-EXPORT_SYMBOL(syaoran_get_sb);
 
 static struct file_system_type syaoran_fs_type = {
 	.owner      = THIS_MODULE,
@@ -341,7 +345,7 @@ static void __exit exit_syaoran_fs(void)
 	unregister_filesystem(&syaoran_fs_type);
 }
 
-module_init(init_syaoran_fs)
-module_exit(exit_syaoran_fs)
+module_init(init_syaoran_fs);
+module_exit(exit_syaoran_fs);
 
 MODULE_LICENSE("GPL");

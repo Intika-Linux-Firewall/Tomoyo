@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -304,7 +304,6 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, const unsig
 {
 	return CheckMountPermission2(dev_name, dir_name, type, *flags);
 }
-EXPORT_SYMBOL(CheckMountPermission);
 
 int AddMountPolicy(char *data, const bool is_delete)
 {
