@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -185,7 +185,6 @@ int CheckEnvPerm(const char *env)
 	}
 	return error;
 }
-EXPORT_SYMBOL(CheckEnvPerm);
 
 int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {

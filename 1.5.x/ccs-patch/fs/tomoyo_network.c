@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -485,19 +485,16 @@ int CheckNetworkListenACL(const _Bool is_ipv6, const u8 *address, const u16 port
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_LISTEN, (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkListenACL);
 
 int CheckNetworkConnectACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT), (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkConnectACL);
 
 int CheckNetworkBindACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_BIND : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_BIND : NETWORK_ACL_RAW_BIND), (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkBindACL);
 
 int CheckNetworkAcceptACL(const _Bool is_ipv6, const u8 *address, const u16 port)
 {
@@ -507,13 +504,11 @@ int CheckNetworkAcceptACL(const _Bool is_ipv6, const u8 *address, const u16 port
 	current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
 }
-EXPORT_SYMBOL(CheckNetworkAcceptACL);
 
 int CheckNetworkSendMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkSendMsgACL);
 
 int CheckNetworkRecvMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
@@ -523,6 +518,5 @@ int CheckNetworkRecvMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *a
 	current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
 }
-EXPORT_SYMBOL(CheckNetworkRecvMsgACL);
 
 /***** TOMOYO Linux end. *****/
