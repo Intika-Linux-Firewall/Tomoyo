@@ -87,7 +87,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		dev_name = "any";
 +
 +	if (!tmy_correct_path(dev_name, 0, 0, 0, __FUNCTION__) ||
-+	    !tmy_correct_path(dir_name, 1, 0, 1, __FUNCTION__))
++	    !tmy_correct_path(dir_name, 0, 0, 0, __FUNCTION__))
 +		return -EINVAL;
 +
 +	dev = tmy_save_name(dev_name);

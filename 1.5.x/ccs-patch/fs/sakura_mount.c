@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -83,7 +83,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 		strcmp(fs->name, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
 		strcmp(fs->name, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
 		strcmp(fs->name, MOUNT_MAKE_SHARED_KEYWORD) == 0) dev_name = "any";
-	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 1, 0, 1, __FUNCTION__)) return -EINVAL;
+	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if ((dev = SaveName(dev_name)) == NULL || (dir = SaveName(dir_name)) == NULL) return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &mount_list, list) {
