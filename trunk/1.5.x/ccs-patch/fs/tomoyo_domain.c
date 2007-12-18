@@ -734,9 +734,11 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	return retval;
 }
 
-static int CheckEnviron(struct linux_binprm *bprm, const u8 profile, const unsigned int mode)
+static int CheckEnviron(struct linux_binprm *bprm)
 {
-	char *arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV);
+	char *arg_ptr;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
 	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
@@ -744,11 +746,9 @@ static int CheckEnviron(struct linux_binprm *bprm, const u8 profile, const unsig
 	int envp_count = bprm->envc;
 	//printk("start %d %d\n", argv_count, envp_count);
 	int error = -ENOMEM;
+	if (!mode || !envp_count) return 0;
+	arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
 	if (!arg_ptr) goto out;
-	if (!envp_count) {
-		error = 0;
-		goto out;
-	}
 	while (error == -ENOMEM) {
 		struct page *page;
 		const char *kaddr;
@@ -904,11 +904,8 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 		current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	}
 	if (retval == 0) {
-		const u8 profile = next_domain->profile;
-		unsigned int mode;
 		current->domain_info = next_domain;
-		mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV);
-		if (mode) retval = CheckEnviron(bprm, profile, mode);
+		retval = CheckEnviron(bprm);
 		current->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 		if (!retval) retval = search_binary_handler(bprm, regs);
 		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;

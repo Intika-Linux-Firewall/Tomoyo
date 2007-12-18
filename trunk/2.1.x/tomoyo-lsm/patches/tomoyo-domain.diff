@@ -8,12 +8,12 @@ Domain information is stored in task_struct->security.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/domain.c | 1260 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1260 insertions(+)
+ security/tomoyo/domain.c | 1261 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1261 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/domain.c
-@@ -0,0 +1,1260 @@
+@@ -0,0 +1,1261 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -1186,7 +1186,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +int tmy_check_environ(struct linux_binprm *bprm)
 +{
-+	char *arg_ptr = tmy_alloc(TMY_MAX_PATHNAME_LEN);
++	const u8 profile = TMY_SECURITY->domain->profile;
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_ENV);
++	char *arg_ptr;
 +	int arg_len = 0;
 +	unsigned long pos = bprm->p;
 +	int i = pos / PAGE_SIZE;
@@ -1194,12 +1196,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int argv_count = bprm->argc;
 +	int envp_count = bprm->envc;
 +	int error = -ENOMEM;
++	if (!mode || !envp_count)
++		return 0;
++	arg_ptr = tmy_alloc(TMY_MAX_PATHNAME_LEN);
 +	if (!arg_ptr)
 +		goto out;
-+	if (!envp_count) {
-+		error = 0;
-+		goto out;
-+	}
 +	while (error == -ENOMEM) {
 +		struct page *page;
 +		const char *kaddr;
@@ -1248,7 +1249,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			}
 +			if (c)
 +				continue;
-+			if (tmy_env_perm(arg_ptr)) {
++			if (tmy_env_perm(arg_ptr, profile, mode)) {
 +				error = -EPERM;
 +				break;
 +			}
@@ -1270,7 +1271,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +out:
 +	tmy_free(arg_ptr);
-+	if (error && tmy_flags(TMY_MAC_FOR_ENV) != 3)
++	if (error && mode != 3)
 +		error = 0;
 +	return error;
 +}

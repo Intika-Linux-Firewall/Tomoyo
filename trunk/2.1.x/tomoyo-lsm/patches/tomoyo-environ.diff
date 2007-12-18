@@ -10,12 +10,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/environ.c |  279 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 279 insertions(+)
+ security/tomoyo/environ.c |  277 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 277 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/environ.c
-@@ -0,0 +1,279 @@
+@@ -0,0 +1,277 @@
 +/*
 + * security/tomoyo/environ.c
 + *
@@ -238,11 +238,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns zero if permission granted.
 + * Returns nonzero if permission denied.
 + */
-+int tmy_env_perm(const char *env)
++int tmy_env_perm(const char *env, const u8 profile, const unsigned int mode)
 +{
 +	int error = 0;
-+	const u8 profile = TMY_SECURITY->domain->profile;
-+	const unsigned int mode = tmy_flags(TMY_MAC_FOR_ENV);
 +	const bool is_enforce = (mode == 3);
 +
 +	if (!mode)
