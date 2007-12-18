@@ -138,9 +138,10 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 
 static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, unsigned long flags)
 {
-	const bool is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_MOUNT);
+	const unsigned int mode = CheckCCSFlags(CCS_SAKURA_RESTRICT_MOUNT);
+	const bool is_enforce = (mode == 3);
 	int error = -EPERM;
-	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_MOUNT)) return 0;
+	if (!mode) return 0;
 	if (!type) type = "<NULL>";
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL) flags &= ~MS_MGC_MSK;
 	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
@@ -286,7 +287,7 @@ static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, uns
 			ccs_free(realname2);
 			ccs_free(realname1);
 		}
-		if (error && !is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_MOUNT, NULL)) {
+		if (error && mode == 1) {
 			AddMountACL(need_dev ? requested_dev_name : dev_name, requested_dir_name, type, flags, 0);
 			UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 		}

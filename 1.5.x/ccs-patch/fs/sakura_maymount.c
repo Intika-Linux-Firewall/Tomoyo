@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -31,6 +31,7 @@
 int SAKURA_MayMount(struct nameidata *nd)
 {
 	int flag = 0;
+	const unsigned int mode = CheckCCSFlags(CCS_SAKURA_DENY_CONCEAL_MOUNT);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
 	struct namespace *namespace = current->namespace;
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
@@ -38,7 +39,7 @@ int SAKURA_MayMount(struct nameidata *nd)
 #else
 	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
 #endif
-	if (!CheckCCSFlags(CCS_SAKURA_DENY_CONCEAL_MOUNT)) return 0;
+	if (!mode) return 0;
 	if (namespace) {
 		struct list_head *p;
 		list_for_each(p, &namespace->list) {
@@ -77,7 +78,7 @@ int SAKURA_MayMount(struct nameidata *nd)
 	}
 	if (flag) {
 		int error = -EPERM;
-		const bool is_enforce = CheckCCSEnforce(CCS_SAKURA_DENY_CONCEAL_MOUNT);
+		const bool is_enforce = (mode == 3);
 		const char *dir = realpath_from_dentry(nd->dentry, nd->mnt);
 		if (dir) {
 			const char *exename = GetEXE();

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -70,8 +70,9 @@ int SAKURA_MayUmount(struct vfsmount *mnt)
 {
 	int error = -EPERM;
 	const char *dir0;
-	const bool is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_UNMOUNT);
-	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_UNMOUNT)) return 0;
+	const unsigned int mode = CheckCCSFlags(CCS_SAKURA_RESTRICT_UNMOUNT);
+	const bool is_enforce = (mode == 3);
+	if (!mode) return 0;
 	dir0 = realpath_from_dentry(mnt->mnt_root, mnt);
 	if (dir0) {
 		struct no_umount_entry *ptr;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -32,7 +32,7 @@ static LIST_HEAD(reject_log);
 
 static int grant_log_count = 0, reject_log_count = 0;
 
-char *InitAuditLog(int *len)
+char *InitAuditLog(int *len, const u8 profile, const unsigned int mode)
 {
 	char *buf;
 	struct timeval tv;
@@ -40,7 +40,7 @@ char *InitAuditLog(int *len)
 	const char *domainname = current->domain_info->domainname->name;
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
-	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d\n%s\n", tv.tv_sec, task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, domainname);
+	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%u pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d\n%s\n", tv.tv_sec, profile, mode, task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, domainname);
 	return buf;
 }
 

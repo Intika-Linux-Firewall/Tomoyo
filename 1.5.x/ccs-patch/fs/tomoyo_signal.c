@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -26,13 +26,13 @@ extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const bool is_granted)
+static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const bool is_granted, const u8 profile, const unsigned int mode)
 {
 	char *buf;
 	int len;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	len = dest_domain->total_len;
-	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_SIGNAL "%d %s\n", signal, dest_domain->name);
 	return WriteAuditLog(buf, is_granted);
 }
@@ -91,12 +91,14 @@ int CheckSignalACL(const int sig, const int pid)
 	const char *dest_pattern;
 	struct acl_info *ptr;
 	const u16 hash = sig;
-	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_SIGNAL);
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL); 
+	const bool is_enforce = (mode == 3);
 	bool found = 0;
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL)) return 0;
+	if (!mode) return 0;
 	if (!sig) return 0;                               /* No check for NULL signal. */
 	if (current->pid == pid) {
-		AuditSignalLog(sig, domain->domainname, 1);
+		AuditSignalLog(sig, domain->domainname, 1, profile, mode);
 		return 0;                /* No check for self. */
 	}
 	{ /* Simplified checking. */
@@ -111,7 +113,7 @@ int CheckSignalACL(const int sig, const int pid)
 		if (!dest) return 0; /* I can't find destinatioin. */
 	}
 	if (domain == dest) {
-		AuditSignalLog(sig, dest->domainname, 1);
+		AuditSignalLog(sig, dest->domainname, 1, profile, mode);
 		return 0;
 	}
 	dest_pattern = dest->domainname->name;
@@ -126,13 +128,13 @@ int CheckSignalACL(const int sig, const int pid)
 			}
 		}
 	}
-	AuditSignalLog(sig, dest->domainname, found);
+	AuditSignalLog(sig, dest->domainname, found, profile, mode);
 	if (found) return 0;
 	if (TomoyoVerboseMode()) {
 		printk("TOMOYO-%s: Signal %d to %s denied for %s\n", GetMSG(is_enforce), sig, GetLastName(dest), GetLastName(domain));
 	}
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_SIGNAL "%d %s\n", domain->domainname->name, sig, dest_pattern);
-	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_SIGNAL, domain)) AddSignalEntry(sig, dest_pattern, domain, NULL, 0);
+	if (mode == 1 && CheckDomainQuota(domain)) AddSignalEntry(sig, dest_pattern, domain, NULL, 0);
 	return 0;
 }
 

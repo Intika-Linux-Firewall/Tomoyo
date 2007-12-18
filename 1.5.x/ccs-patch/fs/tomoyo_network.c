@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -24,12 +24,12 @@ extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 *address, const u16 port, const bool is_granted)
+static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 *address, const u16 port, const bool is_granted, const u8 profile, const unsigned int mode)
 {
 	char *buf;
 	int len = 256;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
-	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_NETWORK "%s ", operation);
 	if (is_ipv6) {
 		print_ipv6(buf + strlen(buf), len - strlen(buf), (const struct in6_addr *) address);
@@ -377,10 +377,12 @@ static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
 	const char *keyword = network2keyword(operation);
-	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_NETWORK);
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK);
+	const bool is_enforce = (mode == 3);
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
 	bool found = 0;
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK)) return 0;
+	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ip_network_acl_record *acl;
 		acl = container_of(ptr, struct ip_network_acl_record, head);
@@ -394,9 +396,8 @@ static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 
 		}
 		found = 1;
 		break;
-			
 	}
-	AuditNetworkLog(is_ipv6, keyword, address, port, found);
+	AuditNetworkLog(is_ipv6, keyword, address, port, found, profile, mode);
 	if (found) return 0;
 	if (TomoyoVerboseMode()) {
 		if (is_ipv6) {
@@ -407,7 +408,6 @@ static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 
 			printk("TOMOYO-%s: %s to %u.%u.%u.%u %u denied for %s\n", GetMSG(is_enforce), keyword, HIPQUAD(ip), port, GetLastName(domain));
 		}
 	}
-	AuditNetworkLog(is_ipv6, keyword, address, port, 0);
 	if (is_enforce) {
 		if (is_ipv6) {
 			char buf[64];
@@ -416,7 +416,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 
 		}
 		return CheckSupervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s %u.%u.%u.%u %u\n", domain->domainname->name, keyword, HIPQUAD(ip), port);
 	}
-	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_NETWORK, domain)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, NULL, 0);
+	if (mode == 1 && CheckDomainQuota(domain)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, NULL, 0);
 	return 0;
 }
 

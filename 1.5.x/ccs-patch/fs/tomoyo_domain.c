@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -610,7 +610,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	struct file *filp = bprm->file;
 	char *new_domain_name = NULL;
 	char *real_program_name = NULL, *symlink_program_name = NULL;
-	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const bool is_enforce = (CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE) == 3);
 	int retval;
 	struct path_info r, s, l;
 
@@ -734,7 +734,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	return retval;
 }
 
-static int CheckEnviron(struct linux_binprm *bprm)
+static int CheckEnviron(struct linux_binprm *bprm, const u8 profile, const unsigned int mode)
 {
 	char *arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
 	int arg_len = 0;
@@ -790,7 +790,7 @@ static int CheckEnviron(struct linux_binprm *bprm)
 				arg_ptr[arg_len] = '\0';
 			}
 			if (c) continue;
-			if (CheckEnvPerm(arg_ptr)) {
+			if (CheckEnvPerm(arg_ptr, profile, mode)) {
 				error = -EPERM;
 				break;
 			}
@@ -812,7 +812,7 @@ static int CheckEnviron(struct linux_binprm *bprm)
 	}
  out:
 	ccs_free(arg_ptr);
-	if (error && !CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ENV)) error = 0;
+	if (error && mode != 3) error = 0;
 	return error;
 }
 
@@ -903,23 +903,22 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 		retval = FindNextDomain(bprm, &next_domain, 0);
 		current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	}
-#else
-	retval = 0; next_domain = prev_domain;
-#endif
 	if (retval == 0) {
+		const u8 profile = next_domain->profile;
+		unsigned int mode;
 		current->domain_info = next_domain;
-#if defined(CONFIG_TOMOYO)
-		if (CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV)) retval = CheckEnviron(bprm);
-#endif
+		mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV);
+		if (mode) retval = CheckEnviron(bprm, profile, mode);
 		current->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 		if (!retval) retval = search_binary_handler(bprm, regs);
 		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 		if (retval < 0) current->domain_info = prev_domain;
 	}
-#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 	ccs_free(alt_exec);
-#endif
 	return retval;
+#else
+	return search_binary_handler(bprm, regs);
+#endif
 }
 
 /***** TOMOYO Linux end. *****/

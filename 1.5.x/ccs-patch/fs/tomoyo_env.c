@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -23,13 +23,13 @@ extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditEnvLog(const char *env, const bool is_granted)
+static int AuditEnvLog(const char *env, const bool is_granted, const u8 profile, const unsigned int mode)
 {
 	char *buf;
 	int len;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	len = strlen(env) + 8;
-	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_ENV "%s\n", env);
 	return WriteAuditLog(buf, is_granted);
 }
@@ -167,20 +167,20 @@ static int CheckEnvACL(const char *env_)
 	return error;
 }
 
-int CheckEnvPerm(const char *env)
+int CheckEnvPerm(const char *env, const u8 profile, const unsigned int mode)
 {
 	int error = 0;
 	if (!env || !*env) return 0;
 	error = CheckEnvACL(env);
-	AuditEnvLog(env, !error);
+	AuditEnvLog(env, !error, profile, mode);
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
-		const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ENV);
+		const bool is_enforce = (mode == 3);
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Environ %s denied for %s\n", GetMSG(is_enforce), env, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\n" KEYWORD_ALLOW_ENV "%s\n", domain->domainname->name, env);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_ENV, domain)) AddEnvEntry(env, domain, NULL, 0);
+		else if (mode == 1 && CheckDomainQuota(domain)) AddEnvEntry(env, domain, NULL, 0);
 		if (!is_enforce) error = 0;
 	}
 	return error;

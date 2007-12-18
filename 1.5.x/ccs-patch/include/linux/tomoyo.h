@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -57,7 +57,7 @@ int CheckReWritePermission(struct file *filp);
 int CheckArgv0Perm(const struct path_info *filename, const char *argv0);
 
 /* Check whether the given environment is allowed to be received. */
-int CheckEnvPerm(const char *env);
+int CheckEnvPerm(const char *env, const u8 profile, const unsigned int mode);
 
 /* Check whether the given IP address and port number are allowed to use. */
 int CheckNetworkListenACL(const _Bool is_ipv6, const u8 *address, const u16 port);

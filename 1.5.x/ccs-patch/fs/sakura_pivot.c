@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -72,7 +72,8 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 {
 	int error = -EPERM;
 	char *old_root, *new_root;
-	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_PIVOT_ROOT)) return 0;
+	const unsigned int mode = CheckCCSFlags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
+	if (!mode) return 0;
 	old_root = realpath_from_dentry(old_nd->dentry, old_nd->mnt);
 	new_root = realpath_from_dentry(new_nd->dentry, new_nd->mnt);
 	if (old_root && new_root) {
@@ -93,12 +94,12 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 		}
 	}
 	if (error) {
-		const bool is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
+		const bool is_enforce = (mode == 3);
 		const char *exename = GetEXE();
 		printk("SAKURA-%s: pivot_root %s %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), new_root, old_root, current->pid, exename);
 		if (is_enforce && CheckSupervisor("# %s is requesting\npivot_root %s %s\n", exename, new_root, old_root) == 0) error = 0;
 		if (exename) ccs_free(exename);
-		if (!is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_PIVOT_ROOT, NULL) && old_root && new_root) {
+		if (mode == 1 && old_root && new_root) {
 			AddPivotRootACL(old_root, new_root, 0);
 			UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 		}
