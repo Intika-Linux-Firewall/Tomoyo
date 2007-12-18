@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -118,24 +118,24 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditFileLog(const struct path_info *filename, const u8 perm, const bool is_granted)
+static int AuditFileLog(const struct path_info *filename, const u8 perm, const bool is_granted, const u8 profile, const unsigned int mode)
 {
 	char *buf;
 	int len;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	len = filename->total_len + 8;
-	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, "%d %s\n", perm, filename->name);
 	return WriteAuditLog(buf, is_granted);
 }
 
-static int AuditWriteLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const bool is_granted)
+static int AuditWriteLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const bool is_granted, const u8 profile, const unsigned int mode)
 {
 	char *buf;
 	int len;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	len = strlen(operation) + filename1->total_len + (filename2 ? filename2->total_len : 0) + 16;
-	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, "allow_%s %s %s\n", operation, filename1->name, filename2 ? filename2->name : "");
 	return WriteAuditLog(buf, is_granted);
 }
@@ -523,20 +523,20 @@ static int CheckFileACL(const struct path_info *filename, const u8 perm, struct 
 	return -EPERM;
 }
 
-static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const char *operation, struct obj_info *obj)
+static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const char *operation, struct obj_info *obj, const u8 profile, const unsigned int mode)
 {
 	int error = 0;
 	if (!filename) return 0;
 	error = CheckFileACL(filename, perm, obj);
-	AuditFileLog(filename, perm, !error);
+	AuditFileLog(filename, perm, !error, profile, mode);
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
-		const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+		const bool is_enforce = (mode == 3);
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Access %d(%s) to %s denied for %s\n", GetMSG(is_enforce), perm, operation, filename->name, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\n%d %s\n", domain->domainname->name, perm, filename->name);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) {
+		else if (mode == 1 && CheckDomainQuota(domain)) {
 			/* Don't use patterns if execution bit is on. */
 			const struct path_info *patterned_file = ((perm & 1) == 0) ? GetPattern(filename) : filename;
 			AddFileACL(patterned_file->name, perm, domain, NULL, 0);
@@ -728,24 +728,24 @@ static int CheckDoubleWriteACL(const u8 type, const struct path_info *filename1,
 	return -EPERM;
 }
 
-static int CheckSingleWritePermission2(const unsigned int operation, const struct path_info *filename, struct obj_info *obj)
+static int CheckSingleWritePermission2(const unsigned int operation, const struct path_info *filename, struct obj_info *obj, const u8 profile, const unsigned int mode)
 {
 	int error;
 	struct domain_info * const domain = current->domain_info;
-	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
+	const bool is_enforce = (mode == 3);
+	if (!mode) return 0;
 	error = CheckSingleWriteACL(operation, filename, obj);
-	AuditWriteLog(acltype2keyword(operation), filename, NULL, !error);
+	AuditWriteLog(acltype2keyword(operation), filename, NULL, !error, profile, mode);
 	if (error) {
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), filename->name, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, acltype2keyword(operation), filename->name);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, NULL, 0);
+		else if (mode == 1 && CheckDomainQuota(domain)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, NULL, 0);
 		if (!is_enforce) error = 0;
 	}
 	if (!error && operation == TYPE_TRUNCATE_ACL && IsNoRewriteFile(filename)) {
-		error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, filename, obj);
+		error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, filename, obj, profile, mode);
 	}
 	return error;
 }
@@ -753,20 +753,24 @@ static int CheckSingleWritePermission2(const unsigned int operation, const struc
 int CheckFilePerm(const char *filename0, const u8 perm, const char *operation)
 {
 	struct path_info filename;
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	if (!mode) return 0;
 	filename.name = filename0;
 	fill_path_info(&filename);
-	return CheckFilePerm2(&filename, perm, operation, NULL);
+	return CheckFilePerm2(&filename, perm, operation, NULL, profile, mode);
 }
 
 int CheckExecPerm(const struct path_info *filename, struct file *filp)
 {
 	struct obj_info obj;
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	if (!mode) return 0;
 	memset(&obj, 0, sizeof(obj));
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	obj.path1_dentry = filp->f_dentry;
 	obj.path1_vfsmnt = filp->f_vfsmnt;
-	return CheckFilePerm2(filename, 1, "do_execve", &obj);
+	return CheckFilePerm2(filename, 1, "do_execve", &obj, profile, mode);
 }
 
 int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag)
@@ -774,8 +778,10 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 	const int acc_mode = ACC_MODE(flag);
 	int error = -ENOMEM;
 	struct path_info *buf;
-	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const bool is_enforce = (mode == 3);
+	if (!mode) return 0;
 	if (acc_mode == 0) return 0;
 	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
 		/* I don't check directories here because mkdir() and rmdir() don't call me. */
@@ -791,12 +797,12 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 		if ((acc_mode & MAY_WRITE)) {
 			if ((flag & O_TRUNC) || !(flag & O_APPEND)) {
 				if (IsNoRewriteFile(buf)) {
-					error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, buf, &obj);
+					error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, buf, &obj, profile, mode);
 				}
 			}
 		}
-		if (error == 0) error = CheckFilePerm2(buf, acc_mode, "open", &obj);
-		if (error == 0 && (flag & O_TRUNC)) error = CheckSingleWritePermission2(TYPE_TRUNCATE_ACL, buf, &obj);
+		if (error == 0) error = CheckFilePerm2(buf, acc_mode, "open", &obj, profile, mode);
+		if (error == 0 && (flag & O_TRUNC)) error = CheckSingleWritePermission2(TYPE_TRUNCATE_ACL, buf, &obj, profile, mode);
 		ccs_free(buf);
 	}
 	if (!is_enforce) error = 0;
@@ -807,8 +813,10 @@ int CheckSingleWritePermission(const unsigned int operation, struct dentry *dent
 {
 	int error = -ENOMEM;
 	struct path_info *buf;
-	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const bool is_enforce = (mode == 3);
+	if (!mode) return 0;
 	buf = GetPath(dentry, mnt);
 	if (buf) {
 		struct obj_info obj;
@@ -823,7 +831,7 @@ int CheckSingleWritePermission(const unsigned int operation, struct dentry *dent
 		memset(&obj, 0, sizeof(obj));
 		obj.path1_dentry = dentry;
 		obj.path1_vfsmnt = mnt;
-		error = CheckSingleWritePermission2(operation, buf, &obj);
+		error = CheckSingleWritePermission2(operation, buf, &obj, profile, mode);
 		ccs_free(buf);
 	}
 	if (!is_enforce) error = 0;
@@ -834,7 +842,9 @@ EXPORT_SYMBOL(CheckSingleWritePermission);
 int CheckReWritePermission(struct file *filp)
 {
 	int error = -ENOMEM;
-	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const bool is_enforce = (mode == 3);
 	struct path_info *buf = GetPath(filp->f_dentry, filp->f_vfsmnt);
 	if (buf) {
 		if (IsNoRewriteFile(buf)) {
@@ -842,7 +852,7 @@ int CheckReWritePermission(struct file *filp)
 			memset(&obj, 0, sizeof(obj));
 			obj.path1_dentry = filp->f_dentry;
 			obj.path1_vfsmnt = filp->f_vfsmnt;
-			error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, buf, &obj);
+			error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, buf, &obj, profile, mode);
 		} else {
 			error = 0;
 		}
@@ -857,8 +867,10 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 	int error = -ENOMEM;
 	struct path_info *buf1, *buf2;
 	struct domain_info * const domain = current->domain_info;
-	const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const bool is_enforce = (mode == 3);
+	if (!mode) return 0;
 	buf1 = GetPath(dentry1, mnt1);
 	buf2 = GetPath(dentry2, mnt2);
 	if (buf1 && buf2) {
@@ -881,13 +893,13 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 		obj.path2_dentry = dentry2;
 		obj.path2_vfsmnt = mnt2;
 		error = CheckDoubleWriteACL(operation, buf1, buf2, &obj);
-		AuditWriteLog(acltype2keyword(operation), buf1, buf2, !error);
+		AuditWriteLog(acltype2keyword(operation), buf1, buf2, !error, profile, mode);
 		if (error) {
 			if (TomoyoVerboseMode()) {
 				printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
 			}
 			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, acltype2keyword(operation), buf1->name, buf2->name);
-			else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_FILE, domain)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, NULL, 0);
+			else if (mode == 1 && CheckDomainQuota(domain)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, NULL, 0);
 		}
 	}
 	ccs_free(buf1);

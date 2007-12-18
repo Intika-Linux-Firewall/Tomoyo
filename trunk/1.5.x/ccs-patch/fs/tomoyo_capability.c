@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -88,19 +88,6 @@ static unsigned int CheckCapabilityFlags(const unsigned int index)
 		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
 }
 
-/* Check whether the given capability control is enforce mode. */
-static bool CheckCapabilityEnforce(const unsigned int index)
-{
-	return CheckCapabilityFlags(index) == 3;
-}
-
-/* Check whether the given capability control is learning mode. */
-static bool CheckCapabilityAccept(const unsigned int index, struct domain_info * const domain)
-{
-	if (CheckCapabilityFlags(index) != 1) return 0;
-	return CheckDomainQuota(domain);
-}
-
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 {
 	static DEFINE_MUTEX(profile_lock);
@@ -147,12 +134,12 @@ int ReadCapabilityStatus(struct io_buffer *head)
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditCapabilityLog(const unsigned int capability, const bool is_granted)
+static int AuditCapabilityLog(const unsigned int capability, const bool is_granted, const u8 profile, const unsigned int mode)
 {
 	char *buf;
 	int len = 64;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
-	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_CAPABILITY "%s\n", capability2keyword(capability));
 	return WriteAuditLog(buf, is_granted);
 }
@@ -201,22 +188,24 @@ int CheckCapabilityACL(const unsigned int capability)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
-	const bool is_enforce = CheckCapabilityEnforce(capability);
+	const u8 profile = current->domain_info->profile;
+	const unsigned int mode = CheckCapabilityFlags(capability);
+	const bool is_enforce = (mode == 3);
 	const u16 hash = capability;
-	if (!CheckCapabilityFlags(capability)) return 0;
+	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
 		acl = container_of(ptr, struct capability_acl_record, head);
 		if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || acl->capability != hash || CheckCondition(ptr->cond, NULL)) continue;
-		AuditCapabilityLog(capability, 1);
+		AuditCapabilityLog(capability, 1, profile, mode);
 		return 0;
 	}
 	if (TomoyoVerboseMode()) {
 		printk("TOMOYO-%s: %s denied for %s\n", GetMSG(is_enforce), capability2name(capability), GetLastName(domain));
 	}
-	AuditCapabilityLog(capability, 0);
+	AuditCapabilityLog(capability, 0, profile, capability);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, capability2keyword(capability));
-	if (CheckCapabilityAccept(capability, domain)) AddCapabilityACL(capability, domain, NULL, 0);
+	if (mode == 1 && CheckDomainQuota(domain)) AddCapabilityACL(capability, domain, NULL, 0);
 	return 0;
 }
 EXPORT_SYMBOL(CheckCapabilityACL);

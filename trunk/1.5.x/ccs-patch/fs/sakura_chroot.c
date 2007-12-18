@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -70,7 +70,8 @@ int CheckChRootPermission(struct nameidata *nd)
 {
 	int error = -EPERM;
 	char *root_name;
-	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_CHROOT)) return 0;
+	const unsigned int mode = CheckCCSFlags(CCS_SAKURA_RESTRICT_CHROOT); 
+	if (!mode) return 0;
 	root_name = realpath_from_dentry(nd->dentry, nd->mnt);
 	if (root_name) {
 		struct path_info dir;
@@ -88,12 +89,12 @@ int CheckChRootPermission(struct nameidata *nd)
 		}
 	}
 	if (error) {
-		const bool is_enforce = CheckCCSEnforce(CCS_SAKURA_RESTRICT_CHROOT);
+		const bool is_enforce = (mode == 3);
 		const char *exename = GetEXE();
 		printk("SAKURA-%s: chroot %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), root_name, current->pid, exename);
 		if (is_enforce && CheckSupervisor("# %s is requesting\nchroot %s\n", exename, root_name) == 0) error = 0;
 		if (exename) ccs_free(exename);
-		if (!is_enforce && CheckCCSAccept(CCS_SAKURA_RESTRICT_CHROOT, NULL) && root_name) {
+		if (mode == 1 && root_name) {
 			AddChrootACL(root_name, 0);
 			UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 		}

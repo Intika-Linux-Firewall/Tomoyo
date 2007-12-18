@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -23,13 +23,13 @@ extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const bool is_granted)
+static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const bool is_granted, const u8 profile, const unsigned int mode)
 {
 	char *buf;
 	int len;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	len = filename->total_len + strlen(argv0) + 8;
-	if ((buf = InitAuditLog(&len)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_ARGV0 "%s %s\n", filename->name, argv0);
 	return WriteAuditLog(buf, is_granted);
 }
@@ -103,17 +103,19 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 {
 	int error = 0;
+	struct domain_info * const domain = current->domain_info;
+	const u8 profile = domain->profile;
+	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0);
 	if (!filename || !argv0 || !*argv0) return 0;
 	error = CheckArgv0ACL(filename, argv0);
-	AuditArgv0Log(filename, argv0, !error);
+	AuditArgv0Log(filename, argv0, !error, profile, mode);
 	if (error) {
-		struct domain_info * const domain = current->domain_info;
-		const bool is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_ARGV0);
+		const bool is_enforce = (mode == 3);
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Run %s as %s denied for %s\n", GetMSG(is_enforce), filename->name, argv0, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\n" KEYWORD_ALLOW_ARGV0 "%s %s\n", domain->domainname->name, filename->name, argv0);
-		else if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_ARGV0, domain)) AddArgv0Entry(filename->name, argv0, domain, NULL, 0);
+		else if (mode == 1 && CheckDomainQuota(domain)) AddArgv0Entry(filename->name, argv0, domain, NULL, 0);
 		if (!is_enforce) error = 0;
 	}
 	return error;

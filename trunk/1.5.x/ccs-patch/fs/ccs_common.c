@@ -518,12 +518,6 @@ bool TomoyoVerboseMode(void)
 	return CheckCCSFlags(CCS_TOMOYO_VERBOSE) != 0;
 }
 
-/* Check whether the given access control is enforce mode. */
-bool CheckCCSEnforce(const unsigned int index)
-{
-	return CheckCCSFlags(index) == 3;
-}
-
 bool CheckDomainQuota(struct domain_info * const domain)
 {
 	unsigned int count = 0;
@@ -538,13 +532,6 @@ bool CheckDomainQuota(struct domain_info * const domain)
 		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped learning mode.\n", domain->domainname->name);
 	}
 	return 0;
-}
-
-/* Check whether the given access control is learning mode. */
-bool CheckCCSAccept(const unsigned int index, struct domain_info * const domain)
-{
-	if (CheckCCSFlags(index) != 1) return 0;
-	return CheckDomainQuota(domain);
 }
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
@@ -1228,7 +1215,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.5.3-pre   2007/12/18\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.3-pre   2007/12/17\n");
+	printk("TOMOYO: 1.5.3-pre   2007/12/18\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

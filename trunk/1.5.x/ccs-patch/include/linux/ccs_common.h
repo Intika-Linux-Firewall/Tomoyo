@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2007  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2007/12/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -444,7 +444,7 @@ struct io_buffer {
 
 /*************************  PROTOTYPES  *************************/
 
-char *InitAuditLog(int *len);
+char *InitAuditLog(int *len, const u8 profile, const unsigned int mode);
 void *ccs_alloc(const size_t size);
 char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
 const char *GetAltExec(void);
@@ -519,8 +519,7 @@ int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((form
 struct domain_info *FindDomain(const char *domainname);
 struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile);
 struct domain_info *UndeleteDomain(const char *domainname0);
-bool CheckCCSAccept(const unsigned int index, struct domain_info * const domain);
-bool CheckCCSEnforce(const unsigned int index);
+bool CheckCCSQuota(struct domain_info * const domain);
 unsigned int CheckCCSFlags(const unsigned int index);
 bool CheckDomainQuota(struct domain_info * const domain);
 bool TomoyoVerboseMode(void);
