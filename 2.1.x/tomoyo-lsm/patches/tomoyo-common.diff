@@ -21,12 +21,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/common.c | 2404 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2404 insertions(+)
+ security/tomoyo/common.c | 2427 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2427 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/common.c
-@@ -0,0 +1,2404 @@
+@@ -0,0 +1,2427 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -55,6 +55,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TMY_COMMENT]             = { "COMMENT",             0, 0 },
 +	[TMY_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
 +	[TMY_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
++	[TMY_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
 +	[TMY_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
 +	[TMY_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
 +	[TMY_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
@@ -1234,6 +1235,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return tmy_add_network_policy(data, domain, cond, is_delete);
 +	else if (tmy_strstarts(&data, TMY_ALLOW_ARGV0))
 +		return tmy_add_argv0_policy(data, domain, cond, is_delete);
++	else if (tmy_strstarts(&data, TMY_ALLOW_ENV))
++		return tmy_add_env_policy(data, domain, cond, is_delete);
 +	else if (tmy_strstarts(&data, TMY_ALLOW_SIGNAL))
 +		return tmy_add_signal_policy(data, domain, cond, is_delete);
 +	else if (tmy_strstarts(&data, TMY_ALLOW_CAPABILITY))
@@ -1267,6 +1270,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (tmy_io_printf(head, TMY_ALLOW_ARGV0 "%s %s",
 +			  ptr2->filename->name, ptr2->argv0->name))
++		return -ENOMEM;
++	return 0;
++}
++
++/* Dump environment variable's ACL. */
++static inline int print_env_acl(struct io_buffer *head,
++				struct acl_info *ptr)
++{
++	struct env_acl *ptr2 = container_of(ptr, struct env_acl, head);
++
++	if (tmy_io_printf(head, TMY_ALLOW_ENV "%s", ptr2->env->name))
 +		return -ENOMEM;
 +	return 0;
 +}
@@ -1446,6 +1460,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					goto print_acl_rollback;
 +			} else if (acl_type == TMY_TYPE_ARGV0_ACL) {
 +				if (print_argv0_acl(head, ptr))
++					goto print_acl_rollback;
++			} else if (acl_type == TMY_TYPE_ENV_ACL) {
++				if (print_env_acl(head, ptr))
 +					goto print_acl_rollback;
 +			} else if (acl_type == TMY_TYPE_IP_NETWORK_ACL) {
 +				if (print_network_acl(head, ptr))
@@ -1639,6 +1656,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return tmy_add_aggregator_policy(data, is_delete);
 +	if (tmy_strstarts(&data, TMY_ALLOW_READ))
 +		return tmy_add_globally_readable_policy(data, is_delete);
++	if (tmy_strstarts(&data, TMY_ALLOW_ENV))
++		return tmy_add_globally_usable_env_policy(data, is_delete);
 +	if (tmy_strstarts(&data, TMY_FILE_PATTERN))
 +		return tmy_add_pattern_policy(data, is_delete);
 +	if (tmy_strstarts(&data, TMY_PATH_GROUP))
@@ -1670,30 +1689,34 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			break;
 +		head->read_step = 3;
 +	case 3:
-+		if (tmy_read_domain_initializer_policy(head))
++		if (tmy_read_globally_usable_env_policy(head))
 +			break;
 +		head->read_step = 4;
 +	case 4:
-+		if (tmy_read_alias_policy(head))
++		if (tmy_read_domain_initializer_policy(head))
 +			break;
 +		head->read_step = 5;
 +	case 5:
-+		if (tmy_read_aggregator_policy(head))
++		if (tmy_read_alias_policy(head))
 +			break;
 +		head->read_step = 6;
 +	case 6:
-+		if (tmy_read_pattern_policy(head))
++		if (tmy_read_aggregator_policy(head))
 +			break;
 +		head->read_step = 7;
 +	case 7:
-+		if (tmy_read_no_rewrite_policy(head))
++		if (tmy_read_pattern_policy(head))
 +			break;
 +		head->read_step = 8;
 +	case 8:
-+		if (tmy_read_path_group_policy(head))
++		if (tmy_read_no_rewrite_policy(head))
 +			break;
 +		head->read_step = 9;
 +	case 9:
++		if (tmy_read_path_group_policy(head))
++			break;
++		head->read_step = 10;
++	case 10:
 +		if (tmy_read_address_group_policy(head))
 +			break;
 +		head->read_eof = 1;

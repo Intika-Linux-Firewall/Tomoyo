@@ -3,8 +3,8 @@ Subject: Data structures and prototype defitions.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/include/realpath.h |   45 ++
- security/tomoyo/include/tomoyo.h   |  674 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 719 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  693 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 738 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/realpath.h
@@ -56,7 +56,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#endif
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/tomoyo.h
-@@ -0,0 +1,674 @@
+@@ -0,0 +1,693 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -245,6 +245,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
 +};
 +
++struct env_acl {
++	/* type = TMY_TYPE_ENV_ACL */
++	struct acl_info head;
++	const struct path_info *env; /* Pointer to env variable's name. */
++};
++
 +struct single_acl {
 +	/* type = TMY_TYPE_* */
 +	struct acl_info head;
@@ -361,44 +367,48 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TMY_ALLOW_PIVOT_ROOT            "allow_pivot_root "
 +#define TMY_ALLOW_PIVOT_ROOT_LEN        (sizeof(TMY_ALLOW_PIVOT_ROOT) - 1)
 +
-+#define TMY_USE_PROFILE "use_profile "
++#define TMY_USE_PROFILE                 "use_profile "
 +
-+#define TMY_ROOT_NAME 		"<kernel>"
-+#define TMY_ROOT_NAME_LEN 	(sizeof(TMY_ROOT_NAME) - 1)
++#define TMY_ROOT_NAME 		        "<kernel>"
++#define TMY_ROOT_NAME_LEN 	        (sizeof(TMY_ROOT_NAME) - 1)
 +
-+#define TMY_ALLOW_ARGV0         "allow_argv0 "
-+#define TMY_ALLOW_ARGV0_LEN     (sizeof(TMY_ALLOW_ARGV0) - 1)
++#define TMY_ALLOW_ARGV0                 "allow_argv0 "
++#define TMY_ALLOW_ARGV0_LEN             (sizeof(TMY_ALLOW_ARGV0) - 1)
 +
-+#define TMY_ADDRESS_GROUP       "address_group "
-+#define TMY_ADDRESS_GROUP_LEN   (sizeof(TMY_ADDRESS_GROUP) - 1)
-+#define TMY_ALLOW_NETWORK       "allow_network "
-+#define TMY_ALLOW_NETWORK_LEN   (sizeof(TMY_ALLOW_NETWORK) - 1)
++#define TMY_ALLOW_ENV                   "allow_env "
++#define TMY_ALLOW_ENV_LEN               (sizeof(TMY_ALLOW_ENV) - 1)
 +
-+#define TMY_ALLOW_SIGNAL        "allow_signal "
-+#define TMY_ALLOW_SIGNAL_LEN    (sizeof(TMY_ALLOW_SIGNAL) - 1)
++#define TMY_ADDRESS_GROUP               "address_group "
++#define TMY_ADDRESS_GROUP_LEN           (sizeof(TMY_ADDRESS_GROUP) - 1)
++#define TMY_ALLOW_NETWORK               "allow_network "
++#define TMY_ALLOW_NETWORK_LEN           (sizeof(TMY_ALLOW_NETWORK) - 1)
 +
-+#define TMY_ALLOW_CAPABILITY    "allow_capability "
-+#define TMY_ALLOW_CAPABILITY_LEN  (sizeof(TMY_ALLOW_CAPABILITY) - 1)
-+#define TMY_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
-+#define TMY_MAC_FOR_CAPABILITY_LEN   (sizeof(TMY_MAC_FOR_CAPABILITY) - 1)
++#define TMY_ALLOW_SIGNAL                "allow_signal "
++#define TMY_ALLOW_SIGNAL_LEN            (sizeof(TMY_ALLOW_SIGNAL) - 1)
++
++#define TMY_ALLOW_CAPABILITY            "allow_capability "
++#define TMY_ALLOW_CAPABILITY_LEN        (sizeof(TMY_ALLOW_CAPABILITY) - 1)
++#define TMY_MAC_FOR_CAPABILITY          "MAC_FOR_CAPABILITY::"
++#define TMY_MAC_FOR_CAPABILITY_LEN      (sizeof(TMY_MAC_FOR_CAPABILITY) - 1)
 +
 +/********************  Index numbers for Access Controls.  ********************/
 +
 +#define TMY_COMMENT              0
 +#define TMY_MAC_FOR_FILE         1
 +#define TMY_MAC_FOR_ARGV0        2
-+#define TMY_MAC_FOR_NETWORK      3
-+#define TMY_MAC_FOR_SIGNAL       4
-+#define TMY_DENY_CONCEAL_MOUNT   5
-+#define TMY_RESTRICT_MOUNT       6
-+#define TMY_RESTRICT_UMOUNT      7
-+#define TMY_RESTRICT_PIVOT_ROOT  8
-+#define TMY_MAX_ACCEPT_ENTRY     9
-+#define TMY_MAX_GRANT_LOG       10
-+#define TMY_MAX_REJECT_LOG      11
-+#define TMY_VERBOSE             12
-+#define TMY_ALLOW_ENFORCE_GRACE 13
-+#define TMY_MAX_CONTROL_INDEX   14
++#define TMY_MAC_FOR_ENV          3
++#define TMY_MAC_FOR_NETWORK      4
++#define TMY_MAC_FOR_SIGNAL       5
++#define TMY_DENY_CONCEAL_MOUNT   6
++#define TMY_RESTRICT_MOUNT       7
++#define TMY_RESTRICT_UMOUNT      8
++#define TMY_RESTRICT_PIVOT_ROOT  9
++#define TMY_MAX_ACCEPT_ENTRY    10
++#define TMY_MAX_GRANT_LOG       11
++#define TMY_MAX_REJECT_LOG      12
++#define TMY_VERBOSE             13
++#define TMY_ALLOW_ENFORCE_GRACE 14
++#define TMY_MAX_CONTROL_INDEX   15
 +
 +#define TMY_NETWORK_ACL_UDP_BIND    0
 +#define TMY_NETWORK_ACL_UDP_CONNECT 1
@@ -569,12 +579,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_add_domain_keeper_policy(char *data,
 +				 const bool is_not,
 +				 const bool is_delete);
++int tmy_add_env_policy(char *data,
++		       struct domain_info *domain,
++		       const struct condition_list *cond,
++		       const bool is_delete);
 +int tmy_file_perm(const char *filename0, const u8 perm, const char *operation);
 +int tmy_add_file_policy(char *data,
 +			struct domain_info *domain,
 +			const struct condition_list *cond,
 +			const bool is_delete);
 +int tmy_add_globally_readable_policy(char *data, const bool is_delete);
++int tmy_add_globally_usable_env_policy(char *env, const bool is_delete);
 +int tmy_add_group_policy(char *data, const bool is_delete);
 +int tmy_add_network_policy(char *data,
 +			   struct domain_info *domain,
@@ -608,11 +623,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_read_domain_initializer_policy(struct io_buffer *head);
 +int tmy_read_domain_keeper_policy(struct io_buffer *head);
 +int tmy_read_globally_readable_policy(struct io_buffer *head);
++int tmy_read_globally_usable_env_policy(struct io_buffer *head);
 +int tmy_read_path_group_policy(struct io_buffer *head);
 +int tmy_read_no_rewrite_policy(struct io_buffer *head);
 +int tmy_read_pattern_policy(struct io_buffer *head);
 +int tmy_read_address_group_policy(struct io_buffer *head);
 +int tmy_argv0_perm(const struct path_info *filename, const char *argv0);
++int tmy_env_perm(const char *env);
 +int tmy_capable(const unsigned int capability);
 +int tmy_network_listen_acl(const bool is_ipv6,
 +			   const u8 *address,
@@ -680,6 +697,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +void tmy_load_policy(const char *filename);
 +int tmy_find_next_domain(struct linux_binprm *,
 +			 struct domain_info **);
++int tmy_check_environ(struct linux_binprm *bprm);
 +
 +struct path_info;
 +
@@ -717,6 +735,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#define TMY_TYPE_FILE_ACL    	100
 +#define TMY_TYPE_ARGV0_ACL      101
++#define TMY_TYPE_ENV_ACL        102
 +#define TMY_TYPE_IP_NETWORK_ACL 103
 +#define TMY_TYPE_SIGNAL_ACL     104
 +#define TMY_TYPE_CAPABILITY_ACL 105

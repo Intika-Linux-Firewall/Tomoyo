@@ -5,12 +5,12 @@ To avoid namespace_sem deadlock, this patch uses
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
- security/tomoyo/tomoyo.c |  820 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 820 insertions(+)
+ security/tomoyo/tomoyo.c |  826 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 826 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/tomoyo.c
-@@ -0,0 +1,820 @@
+@@ -0,0 +1,826 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -64,9 +64,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	      & TMY_CHECK_READ_FOR_OPEN_EXEC)) {
 +		retval = tmy_find_next_domain(bprm, &next_domain);
 +		if (retval == 0) {
++			struct domain_info *domain = TMY_SECURITY->domain;
 +			TMY_SECURITY->domain = next_domain;
-+			TMY_SECURITY->flags |=
-+				TMY_CHECK_READ_FOR_OPEN_EXEC;
++			if (tmy_flags(TMY_MAC_FOR_ENV))
++				retval = tmy_check_environ(bprm);
++			if (!retval)
++				TMY_SECURITY->flags |=
++					TMY_CHECK_READ_FOR_OPEN_EXEC;
++			else
++				TMY_SECURITY->domain = domain;
 +		}
 +	}
 +
