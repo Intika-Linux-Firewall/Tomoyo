@@ -1,0 +1,297 @@
+Subject: environment variable name check functions.
+
+TOMOYO Linux checks environment variable's names passed to execve()
+because some envorinment variables affects to the behavior of program
+like argv[0].
+
+Each permission can be automatically accumulated into
+the policy of each domain using 'learning mode'.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/environ.c |  279 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 279 insertions(+)
+
+--- /dev/null
++++ linux-2.6-mm/security/tomoyo/environ.c
+@@ -0,0 +1,279 @@
++/*
++ * security/tomoyo/environ.c
++ *
++ * Environment variable access control functions for TOMOYO Linux.
++ */
++
++#include "tomoyo.h"
++#include "realpath.h"
++
++/*************************  AUDIT FUNCTIONS  *************************/
++
++static int tmy_audit_env_log(const char *env,
++			     const bool is_granted,
++			     const u8 profile,
++			     const unsigned int mode)
++{
++	char *buf;
++	int len;
++
++	if (is_granted) {
++		if (!tmy_audit_grant())
++			return 0;
++	} else {
++		if (!tmy_audit_reject())
++			return 0;
++	}
++
++	len = strlen(env) + 8;
++	buf = tmy_init_audit_log(&len, profile, mode);
++
++	if (!buf)
++		return -ENOMEM;
++
++	snprintf(buf + strlen(buf),
++		 len - strlen(buf) - 1,
++		 TMY_ALLOW_ENV "%s",
++		 env);
++
++	return tmy_write_audit_log(buf, is_granted);
++}
++
++/***** The structure for globally usable environments. *****/
++
++struct globally_usable_env_entry {
++	struct list_head list;
++	const struct path_info *env;
++	bool is_deleted;
++};
++
++/*******************  GLOBALLY USABLE ENVIRONMENT HANDLER  ********************/
++
++static LIST_HEAD(globally_usable_env_list);
++
++static int tmy_add_globally_usable_env_entry(const char *env,
++					     const bool is_delete)
++{
++	struct globally_usable_env_entry *new_entry;
++	struct globally_usable_env_entry *ptr;
++	static DEFINE_MUTEX(lock);
++	const struct path_info *saved_env;
++	int error = -ENOMEM;
++	if (!tmy_correct_path(env, 0, 0, 0, __FUNCTION__))
++		return -EINVAL;
++	saved_env = tmy_save_name(env);
++	if (!saved_env)
++		return -ENOMEM;
++	mutex_lock(&lock);
++	list_for_each_entry(ptr, &globally_usable_env_list, list) {
++		if (ptr->env == saved_env) {
++			ptr->is_deleted = is_delete;
++			error = 0;
++			goto out;
++		}
++	}
++	if (is_delete) {
++		error = -ENOENT;
++		goto out;
++	}
++	new_entry = tmy_alloc_element(sizeof(*new_entry));
++	if (!new_entry)
++		goto out;
++	new_entry->env = saved_env;
++	list_add_tail_mb(&new_entry->list, &globally_usable_env_list);
++	error = 0;
++out:
++	mutex_unlock(&lock);
++	return error;
++}
++
++static bool tmy_is_globally_usable_env(const struct path_info *env)
++{
++	struct globally_usable_env_entry *ptr;
++	list_for_each_entry(ptr, &globally_usable_env_list, list) {
++		if (!ptr->is_deleted && tmy_path_match(env, ptr->env))
++			return 1;
++	}
++	return 0;
++}
++
++int tmy_add_globally_usable_env_policy(char *env, const bool is_delete)
++{
++	return tmy_add_globally_usable_env_entry(env, is_delete);
++}
++
++int tmy_read_globally_usable_env_policy(struct io_buffer *head)
++{
++	struct list_head *pos;
++	list_for_each_cookie(pos, head->read_var2, &globally_usable_env_list) {
++		struct globally_usable_env_entry *ptr;
++		ptr = list_entry(pos, struct globally_usable_env_entry, list);
++		if (ptr->is_deleted)
++			continue;
++		if (tmy_io_printf(head, TMY_ALLOW_ENV "%s\n",
++				  ptr->env->name))
++			return -ENOMEM;
++	}
++	return 0;
++}
++
++/******************  ENVIRONMENT VARIABLE Checking HANDLER  *******************/
++
++static int tmy_add_env_entry(const char *env,
++			     struct domain_info *domain,
++			     const struct condition_list *cond,
++			     const bool is_delete)
++{
++	struct acl_info *ptr;
++	struct env_acl *acl;
++	const struct path_info *saved_env;
++	int error = -ENOMEM;
++
++	if (!tmy_correct_path(env, 0, 0, 0, __FUNCTION__))
++		return -EINVAL;
++
++	saved_env = tmy_save_name(env);
++	if (!saved_env)
++		return -ENOMEM;
++	if (!is_delete && tmy_is_globally_usable_env(saved_env))
++		return 0;
++
++	mutex_lock(&domain_acl_lock);
++
++	if (is_delete)
++		goto remove;
++
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct env_acl, head);
++		if (ptr->type == TMY_TYPE_ENV_ACL && ptr->cond == cond &&
++		    acl->env == saved_env) {
++			ptr->is_deleted = 0;
++			/* Found. Nothing to do. */
++			error = 0;
++			goto ok;
++		}
++	}
++
++	/* Not found. Append it to the tail. */
++	acl = tmy_alloc_element(sizeof(*acl));
++	if (!acl)
++		goto ok;
++
++	acl->head.type = TMY_TYPE_ENV_ACL;
++	acl->head.cond = cond;
++	acl->env = saved_env;
++	error = tmy_add_acl(domain, &acl->head);
++	goto ok;
++remove: ;
++	error = -ENOENT;
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		acl = container_of(ptr, struct env_acl, head);
++		if (ptr->type != TMY_TYPE_ENV_ACL ||
++		    ptr->cond != cond || ptr->is_deleted ||
++		    acl->env != saved_env)
++			continue;
++
++		error = tmy_del_acl(ptr);
++		break;
++	}
++ok: ;
++	mutex_unlock(&domain_acl_lock);
++
++	return error;
++}
++
++static int tmy_env_acl(const char *env_)
++{
++	const struct domain_info *domain = TMY_SECURITY->domain;
++	int error = -EPERM;
++	struct acl_info *ptr;
++	struct path_info env;
++
++	if (!tmy_flags(TMY_MAC_FOR_ENV))
++		return 0;
++
++	env.name = env_;
++	tmy_fill_path_info(&env);
++	if (tmy_is_globally_usable_env(&env))
++		return 0;
++
++	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct env_acl *acl;
++		acl = container_of(ptr, struct env_acl, head);
++
++		if (ptr->type == TMY_TYPE_ENV_ACL &&
++		    ptr->is_deleted == 0 &&
++		    tmy_check_condition(ptr->cond, NULL) == 0 &&
++		    tmy_path_match(&env, acl->env)) {
++			error = 0;
++			break;
++		}
++	}
++
++	return error;
++}
++
++/**
++ * tmy_env_perm - check for environment variable permission.
++ * @env:    pointer to environment variable.
++ *
++ * Returns zero if permission granted.
++ * Returns nonzero if permission denied.
++ */
++int tmy_env_perm(const char *env)
++{
++	int error = 0;
++	const u8 profile = TMY_SECURITY->domain->profile;
++	const unsigned int mode = tmy_flags(TMY_MAC_FOR_ENV);
++	const bool is_enforce = (mode == 3);
++
++	if (!mode)
++		return 0;
++	if (!env || !*env)
++		return 0;
++
++	error = tmy_env_acl(env);
++
++	tmy_audit_env_log(env, !error, profile, mode);
++
++	if (error) {
++		struct domain_info * const domain = TMY_SECURITY->domain;
++
++		if (tmy_flags(TMY_VERBOSE))
++			tmy_audit("TOMOYO-%s: Environment variable %s "
++				  "denied for %s\n",
++				  tmy_getmsg(is_enforce), env,
++				  tmy_lastname(domain));
++
++		if (is_enforce)
++			error = tmy_supervisor("%s\n" TMY_ALLOW_ENV "%s\n",
++					       domain->domainname->name, env);
++
++		else if (mode == 1 && tmy_quota())
++			tmy_add_env_entry(env, domain, NULL, 0);
++
++		if (!is_enforce)
++			error = 0;
++	}
++
++	return error;
++}
++
++/**
++ * tmy_add_env_policy - add or delete environment variable policy.
++ * @data:      a line to parse.
++ * @domain:    pointer to "struct domain_info".
++ * @cond:      pointer to "struct condition_list". May be NULL.
++ * @is_delete: is this delete request?
++ *
++ * Returns zero on success.
++ * Returns nonzero on failure.
++ */
++int tmy_add_env_policy(char *data,
++			 struct domain_info *domain,
++			 const struct condition_list *cond,
++			 const bool is_delete)
++{
++	return tmy_add_env_entry(data, domain, cond,
++				 is_delete);
++}
