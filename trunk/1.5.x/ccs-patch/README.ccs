@@ -769,7 +769,7 @@ Fix 2007/01/19
 
     @ Allow reuse of memory allocated for domain policy.
 
-      As with domain policy, unlike other policies, didn't have
+      Regarding domain policy, unlike other policies, didn't have
       "is_deleted" flag and new memory were allocated
       if the deleted entries are given again.
       But to allow administrators switch domain policy periodically,
@@ -1093,3 +1093,12 @@ Fix 2007/12/17
     @ Remove unused EXPORT_SYMBOL().
 
       Mark some functions static.
+
+Fix 2007/12/18
+
+    @ Fix AddMountACL() rejection bug.
+
+      To my surprise, "mount --bind source dest" accepts
+      not only "both source and dest are directory"
+      but also "both source and dest are non-directory".
+      I was rejecting if dest is not a derectory in AddMountACL().
