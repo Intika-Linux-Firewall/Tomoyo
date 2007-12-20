@@ -42,20 +42,20 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.12-2.3.legacy_FC3">Fedora Core 3 用のカーネル 2.6.12-2.3.legacy_FC3</a>
 <li><a href="#2.6.17-1.2142_FC4">Fedora Core 4 用のカーネル 2.6.17-1.2142_FC4</a>
 <li><a href="#2.6.20-1.2320.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2320.fc5</a>
-<li><a href="#2.6.22.9-61.fc6">Fedora Core 6 用のカーネル 2.6.22.9-61.fc6</a>
-<li><a href="#2.6.23.1-21.fc7">Fedora 7 用のカーネル 2.6.23.1-21.fc7</a>
+<li><a href="#2.6.22.14-72.fc6">Fedora Core 6 用のカーネル 2.6.22.14-72.fc6</a>
+<li><a href="#2.6.23.8-34.fc7">Fedora 7 用のカーネル 2.6.23.8-34.fc7</a>
 <li><a href="#2.6.23.8-63.fc8">Fedora 8 用のカーネル 2.6.23.8-63.fc8</a>
 <li><a href="#2.6.9-55.0.12.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.12.EL</a>
 <li><a href="#2.6.18-53.1.4.el5">CentOS 5.1 用のカーネル 2.6.18-53.1.4.el5</a>
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
 <li><a href="#2.6.8-16sarge7">Debian Sarge 用のカーネル 2.6.8-16sarge7</a>
-<li><a href="#2.6.18-13etch4">Debian Etch 用のカーネル 2.6.18-13etch4</a>
+<li><a href="#2.6.18-13etch5">Debian Etch 用のカーネル 2.6.18-13etch5</a>
 <li><a href="#2.6.22-4lenny">Debian Lenny 用のカーネル 2.6.22-4lenny</a>
 <li><a href="#2.6.16.53-0.16">OpenSUSE 10.1 用のカーネル 2.6.16.53-0.16</a>
 <li><a href="#2.6.18.8-0.7">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.7</a>
 <li><a href="#2.6.22.13-0.3">OpenSUSE 10.3 用のカーネル 2.6.22.13-0.3</a>
-<li><a href="#2.6.9-42.17AX">Asianux 2.0 用のカーネル 2.6.9-42.17AX</a>
-<li><a href="#2.6.18-8.11AX">Asianux 3.0 用のカーネル 2.6.18-8.11AX</a>
+<li><a href="#2.6.9-42.18AX">Asianux 2.0 用のカーネル 2.6.9-42.18AX</a>
+<li><a href="#2.6.18-8.12AX">Asianux 3.0 用のカーネル 2.6.18-8.12AX</a>
 <li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
 <li><a href="#2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a>
 <li><a href="#2.6.16-0vl76.3">VineLinux 4.1 用のカーネル 2.6.16-0vl76.3</a>
@@ -166,24 +166,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.9-61.fc6">Fedora Core 6 用のカーネル 2.6.22.9-61.fc6</a></h2>
+<h2><a name="2.6.22.14-72.fc6">Fedora Core 6 用のカーネル 2.6.22.14-72.fc6</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.22.9-61.fc6.src.rpm<br>
-rpm -ivh kernel-2.6.22.9-61.fc6.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.22.14-72.fc6.src.rpm<br>
+rpm -ivh kernel-2.6.22.14-72.fc6.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.9-61.fc6<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.14-72.fc6<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.22.9-61.fc6/<br>
+cd /usr/src/linux-2.6.22.14-72.fc6/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .9-61.fc6/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .14-72.fc6/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.2-20071205.tar.gz<br>
 tar -zxf ccs-patch-1.5.2-20071205.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.22.9-61.fc6.diff<br>
+wget -O patches/ccs-patch-2.6.22.14-72.fc6.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22.14-72.fc6.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.22.14-72.fc6.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -192,24 +193,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.23.1-21.fc7">Fedora 7 用のカーネル 2.6.23.1-21.fc7</a></h2>
+<h2><a name="2.6.23.8-34.fc7">Fedora 7 用のカーネル 2.6.23.8-34.fc7</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/updates/7/SRPMS/kernel-2.6.23.1-21.fc7.src.rpm<br>
-rpm -ivh kernel-2.6.23.1-21.fc7.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/updates/7/SRPMS/kernel-2.6.23.8-34.fc7.src.rpm<br>
+rpm -ivh kernel-2.6.23.8-34.fc7.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.1-21.fc7<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.8-34.fc7<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.23.1-21.fc7/<br>
+cd /usr/src/linux-2.6.23.8-34.fc7/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-21.fc7/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .8-34.fc7/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.2-20071205.tar.gz<br>
 tar -zxf ccs-patch-1.5.2-20071205.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.23.1-21.fc7.diff<br>
+wget -O patches/ccs-patch-2.6.23.8-34.fc7.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.23.8-34.fc7.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.23.8-34.fc7.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -341,7 +343,7 @@ mkinitrd -o /boot/initrd.img-2.6.8-16sarge7-ccs 2.6.8-16sarge7-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-13etch4">Debian Etch 用のカーネル 2.6.18-13etch4</a></h2>
+<h2><a name="2.6.18-13etch5">Debian Etch 用のカーネル 2.6.18-13etch5</a></h2>
 
 <table border="1">
 <tr><td>
@@ -353,14 +355,15 @@ cd linux-source-2.6.18/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.2-20071205.tar.gz<br>
 tar -zxf ccs-patch-1.5.2-20071205.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-13etch4.diff<br>
+wget -O patches/ccs-patch-2.6.18-13etch5.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.18-13etch5.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.18-13etch5.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
 # initrd を作成する。<br>
-mkinitrd -o /boot/initrd.img-2.6.18-13etch4-ccs 2.6.18-13etch4-ccs
+mkinitrd -o /boot/initrd.img-2.6.18-13etch5-ccs 2.6.18-13etch5-ccs
 </td></tr>
 </table>
 
@@ -456,24 +459,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-42.17AX">Asianux 2.0 用のカーネル 2.6.9-42.17AX</a></h2>
+<h2><a name="2.6.9-42.18AX">Asianux 2.0 用のカーネル 2.6.9-42.18AX</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.17AX.src.rpm<br>
-rpm -ivh kernel-2.6.9-42.17AX.src.rpm<br>
+wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.18AX.src.rpm<br>
+rpm -ivh kernel-2.6.9-42.18AX.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
-mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.17AX<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.18AX<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.9-42.17AX/<br>
+cd /usr/src/linux-2.6.9-42.18AX/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.17AX/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.18AX/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.2-20071205.tar.gz<br>
 tar -zxf ccs-patch-1.5.2-20071205.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.9-42.17AX.diff<br>
+wget -O patches/ccs-patch-2.6.9-42.18AX.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-42.18AX.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.9-42.18AX.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
@@ -482,24 +486,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-8.11AX">Asianux 3.0 用のカーネル 2.6.18-8.11AX</a></h2>
+<h2><a name="2.6.18-8.12AX">Asianux 3.0 用のカーネル 2.6.18-8.12AX</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.11AX.src.rpm<br>
-rpm -ivh kernel-2.6.18-8.11AX.src.rpm<br>
+wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.12AX.src.rpm<br>
+rpm -ivh kernel-2.6.18-8.12AX.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
-mv /usr/src/asianux/BUILD/kernel-2.6.18/linux-2.6.18/ /usr/src/linux-2.6.18-8.11AX<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.18/linux-2.6.18/ /usr/src/linux-2.6.18-8.12AX<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.18-8.11AX/<br>
+cd /usr/src/linux-2.6.18-8.12AX/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.11AX/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.12AX/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.2-20071205.tar.gz<br>
 tar -zxf ccs-patch-1.5.2-20071205.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-8.11AX.diff<br>
+wget -O patches/ccs-patch-2.6.18-8.12AX.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.18-8.12AX.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.18-8.12AX.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
