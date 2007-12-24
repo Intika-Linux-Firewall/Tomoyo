@@ -23,7 +23,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # Bah. Have to set this to a negative for the moment to fix rpm ordering after
 # moving the spec file. cvs sucks. Should be sure to fix this once 2.6.23 is out.
 %define fedora_cvs_origin 209
-%define fedora_build %(R="$Revision: 1.272 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.294 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
 # Do we have a 2.6.21.y update to apply?
-%define stable_update 8
+%define stable_update 9
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -562,14 +562,15 @@ Patch00: patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 %endif
 
 # -stable RC
-Patch02: patch-2.6.23.9-rc1.bz2
+#Patch02: patch-2.6.23.9-rc1.bz2
 
 %if !%{nopatches}
 
 # revert upstream changes we get from elsewhere
 Patch05: linux-2.6-upstream-reverts.patch
 
-Patch19: linux-2.6-highres-timers.patch
+Patch10: linux-2.6-highres-timers.patch
+Patch11: linux-2.6-highres-timers-fix-hang.patch
 
 Patch21: linux-2.6-utrace-tracehook.patch
 Patch22: linux-2.6-utrace-tracehook-ia64.patch
@@ -600,10 +601,10 @@ Patch76: linux-2.6-x86-clean-up-oops-bug-reports.patch
 
 Patch80: linux-2.6-alsa-1.0.15-merge-1.patch
 Patch81: linux-2.6-alsa-1.0.15-merge-2.patch
-Patch82: linux-2.6-alsa.git-000-771af442.patch
-Patch83: linux-2.6-alsa.git-004-ba76a374.patch
-Patch84: linux-2.6-alsa-hda-stac-dmic.patch
-Patch85: linux-2.6-alsa-revert-hda-stac-volume.patch
+Patch82: linux-2.6-alsa-1.0.15-merge-3.patch
+Patch86: linux-2.6-alsa-support-sis7019.patch
+Patch87: linux-2.6-alsa-hda-stac-dmic.patch
+Patch88: linux-2.6-alsa-drivers-set-device-links.patch
 
 Patch100: linux-2.6-g5-therm-shutdown.patch
 Patch120: linux-2.6-ppc32-ucmpdi2.patch
@@ -615,6 +616,9 @@ Patch137: linux-2.6-powerpc-generic-suspend-4-kill-pmu-sleep-notifier.patch
 Patch138: linux-2.6-powerpc-generic-suspend-5-pmu-pm_ops.patch
 Patch140: linux-2.6-ppc-pegasos-via-ata-legacy-irq.patch
 Patch141: linux-2.6-ppc-fix-dso-unwind.patch
+Patch142: linux-2.6-rheap-modular.patch
+Patch143: linux-2.6-bestcomm-dma.patch
+Patch144: linux-2.6-fec_mpc52xx.patch
 
 Patch150: linux-2.6-build-nonintconfig.patch
 Patch160: linux-2.6-execshield.patch
@@ -673,14 +677,20 @@ Patch661: linux-2.6-libata-acpi-enable.patch
 Patch662: linux-2.6-libata-add-dma-disable-option.patch
 Patch665: linux-2.6-libata-dont-fail-revalidation-for-bad-gtf-methods.patch
 Patch666: linux-2.6-libata-pata_serverworks-fix-drive-combinations.patch
+Patch667: linux-2.6-libata-correct-iordy-handling.patch
 Patch670: linux-2.6-ata-quirk.patch
+Patch671: linux-2.6-libata-tape-max-sectors.patch
+Patch672: linux-2.6-libata-work-around-drq-1-err-1-for-tapes.patch
+Patch673: linux-2.6-libata-use-stuck-err-for-tapes.patch
+Patch674: linux-2.6-libata-scsi-allow-short-commands.patch
+Patch675: linux-2.6-libata-ahci-enable-ahci-mode-before-reset.patch
+
 Patch680: linux-2.6-wireless.patch
 Patch681: linux-2.6-wireless-pending.patch
 Patch690: linux-2.6-at76.patch
 Patch691: linux-2.6-ath5k.patch
-Patch692: linux-2.6-zd1211rw-mac80211.patch
-Patch693: linux-2.6-rtl8180.patch
-Patch694: linux-2.6-b43-rev-d.patch
+Patch692: linux-2.6-rtl8180.patch
+Patch693: linux-2.6-ath5k-use-soft-wep.patch
 Patch700: linux-2.6-cfg80211-extras.patch
 Patch710: linux-2.6-netdev-e1000e-01.patch
 Patch711: linux-2.6-netdev-e1000e-02.patch
@@ -693,10 +703,16 @@ Patch717: linux-2.6-netdev-e1000e-08.patch
 Patch718: linux-2.6-netdev-e1000e-09.patch
 Patch719: linux-2.6-netdev-e1000e-10.patch
 Patch720: linux-2.6-e1000-bad-csum-allow.patch
+Patch721: linux-2.6-netdev-e1000-disable-alpm.patch
 Patch730: linux-2.6-netdev-spidernet-fix-interrupt-handling.patch
 #Patch780: linux-2.6-clockevents-fix-resume-logic.patch
 Patch750: linux-2.6-acpi-git-ec-init-fixes.patch
 Patch770: linux-2.6-pmtrace-time-fix.patch
+Patch775: linux-2.6-acpi-button-send-initial-state.patch
+Patch780: linux-2.6-acpi-cpuidle-0-upstream.patch
+Patch781: linux-2.6-acpi-cpuidle-1-fix-C3-for-no-bm-ctrl.patch
+Patch782: linux-2.6-acpi-cpuidle-2-fix-HP-nx6125-regression.patch
+Patch783: linux-2.6-acpi-dont-init-ec-early-with-no-ini.patch
 Patch800: linux-2.6-wakeups-hdaps.patch
 Patch801: linux-2.6-wakeups.patch
 Patch820: linux-2.6-compile-fixes.patch
@@ -716,6 +732,9 @@ Patch1230: linux-2.6-powerpc-spu-vicinity.patch
 
 Patch1300: linux-2.6-usb-suspend-classes.patch
 Patch1305: linux-2.6-usb-storage-initialize-huawei-e220-properly.patch
+Patch1306: linux-2.6-usb-storage-always-set-the-allow_restart-flag.patch
+Patch1307: linux-2.6-usb-huawei-fix-init-in-modem-mode.patch
+
 Patch1400: linux-2.6-smarter-relatime.patch
 Patch1503: linux-2.6-xfs-optimize-away-dmapi-tests.patch
 Patch1504: linux-2.6-xfs-optimize-away-realtime-tests.patch
@@ -1028,7 +1047,7 @@ ApplyPatch patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 %endif
 
 # -stable RC
-ApplyPatch patch-2.6.23.9-rc1.bz2
+#ApplyPatch patch-2.6.23.9-rc1.bz2
 
 # This patch adds a "make nonint_oldconfig" which is non-interactive and
 # also gives a list of missing options at the end. Useful for automated
@@ -1042,6 +1061,8 @@ ApplyPatch linux-2.6-upstream-reverts.patch -R
 
 # patch-2.6.23-hrt3.patch
 ApplyPatch linux-2.6-highres-timers.patch
+# fix possible hang
+ApplyPatch linux-2.6-highres-timers-fix-hang.patch
 
 # Roland's utrace ptrace replacement.
 # Main patch includes i386, x86_64, powerpc.
@@ -1075,13 +1096,13 @@ ApplyPatch linux-2.6-proc-self-maps-fix.patch
 # ALSA 1.0.15
 ApplyPatch linux-2.6-alsa-1.0.15-merge-1.patch
 ApplyPatch linux-2.6-alsa-1.0.15-merge-2.patch
-# ALSA updates headed upstream for 2.6.24
-ApplyPatch linux-2.6-alsa.git-000-771af442.patch
-ApplyPatch linux-2.6-alsa.git-004-ba76a374.patch
-# undo the STAC volume control update
-ApplyPatch linux-2.6-alsa-revert-hda-stac-volume.patch
+ApplyPatch linux-2.6-alsa-1.0.15-merge-3.patch
+# support SiS 7019 audio (for K12LTSP thin client)
+ApplyPatch linux-2.6-alsa-support-sis7019.patch
 # ALSA enhancments for 2.6.25
 ApplyPatch linux-2.6-alsa-hda-stac-dmic.patch
+# Fix missing controls on some devices caused by missing sysfs links
+ApplyPatch linux-2.6-alsa-drivers-set-device-links.patch
 
 # Nouveau DRM + drm fixes
 ApplyPatch drm-mm-git.patch
@@ -1132,6 +1153,10 @@ ApplyPatch linux-2.6-powerpc-generic-suspend-5-pmu-pm_ops.patch
 ApplyPatch linux-2.6-ppc-pegasos-via-ata-legacy-irq.patch
 # fix unwind
 ApplyPatch linux-2.6-ppc-fix-dso-unwind.patch
+# FEC support on MPC52xx
+ApplyPatch linux-2.6-rheap-modular.patch
+ApplyPatch linux-2.6-bestcomm-dma.patch
+ApplyPatch linux-2.6-fec_mpc52xx.patch
 
 # Exec shield
 ApplyPatch linux-2.6-execshield.patch
@@ -1263,6 +1288,16 @@ ApplyPatch linux-2.6-libata-add-dma-disable-option.patch
 ApplyPatch linux-2.6-libata-dont-fail-revalidation-for-bad-gtf-methods.patch
 # serverworks is broken with some drive combinations
 ApplyPatch linux-2.6-libata-pata_serverworks-fix-drive-combinations.patch
+# fix libata IORDY handling
+ApplyPatch linux-2.6-libata-correct-iordy-handling.patch
+# fix ATA tape drives
+ApplyPatch linux-2.6-libata-tape-max-sectors.patch
+ApplyPatch linux-2.6-libata-work-around-drq-1-err-1-for-tapes.patch
+ApplyPatch linux-2.6-libata-use-stuck-err-for-tapes.patch
+# allow 12-byte SCSI commands for ATAPI devices
+ApplyPatch linux-2.6-libata-scsi-allow-short-commands.patch
+# fix ahci reset
+ApplyPatch linux-2.6-libata-ahci-enable-ahci-mode-before-reset.patch
 
 # wireless patches headed for 2.6.24
 ApplyPatch linux-2.6-wireless.patch
@@ -1272,9 +1307,10 @@ ApplyPatch linux-2.6-wireless-pending.patch
 # Add misc wireless bits from upstream wireless tree
 ApplyPatch linux-2.6-at76.patch
 ApplyPatch linux-2.6-ath5k.patch
-ApplyPatch linux-2.6-zd1211rw-mac80211.patch
 ApplyPatch linux-2.6-rtl8180.patch
-ApplyPatch linux-2.6-b43-rev-d.patch
+
+# Make ath5k use software WEP
+ApplyPatch linux-2.6-ath5k-use-soft-wep.patch
 
 # Restore ability to add/remove virtual i/fs to mac80211 devices
 ApplyPatch linux-2.6-cfg80211-extras.patch
@@ -1293,6 +1329,8 @@ ApplyPatch linux-2.6-netdev-e1000e-10.patch
 
 # Workaround for flaky e1000 EEPROMs
 ApplyPatch linux-2.6-e1000-bad-csum-allow.patch
+# disable link power savings, should fix bad eeprom checksum too
+ApplyPatch linux-2.6-netdev-e1000-disable-alpm.patch
 # spidernet: fix interrupt handling
 ApplyPatch linux-2.6-netdev-spidernet-fix-interrupt-handling.patch
 
@@ -1301,6 +1339,14 @@ ApplyPatch linux-2.6-netdev-spidernet-fix-interrupt-handling.patch
 ApplyPatch linux-2.6-acpi-git-ec-init-fixes.patch
 # fix date/time display when using PM_TRACE
 ApplyPatch linux-2.6-pmtrace-time-fix.patch
+# Send button state on create / resume
+ApplyPatch linux-2.6-acpi-button-send-initial-state.patch
+# fix cpuidle regressions
+ApplyPatch linux-2.6-acpi-cpuidle-0-upstream.patch
+ApplyPatch linux-2.6-acpi-cpuidle-1-fix-C3-for-no-bm-ctrl.patch
+ApplyPatch linux-2.6-acpi-cpuidle-2-fix-HP-nx6125-regression.patch
+# fix EC init
+ApplyPatch linux-2.6-acpi-dont-init-ec-early-with-no-ini.patch
 
 # Fix excessive wakeups
 # Make hdaps timer only tick when in use.
@@ -1316,6 +1362,9 @@ ApplyPatch linux-2.6-wakeups.patch
 ApplyPatch linux-2.6-usb-suspend-classes.patch
 # initialize strange modem/storage device properly (from F7 kernel)
 ApplyPatch linux-2.6-usb-storage-initialize-huawei-e220-properly.patch
+ApplyPatch linux-2.6-usb-huawei-fix-init-in-modem-mode.patch
+# some usb disks spin down automatically and need allow_restart
+ApplyPatch linux-2.6-usb-storage-always-set-the-allow_restart-flag.patch
 
 # implement smarter atime updates support.
 ApplyPatch linux-2.6-smarter-relatime.patch
@@ -1374,8 +1423,8 @@ ApplyPatch linux-2.6-selinux-ebitmap-loop-bug.patch
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .8-63.fc8:' -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.23.8-63.fc8.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .9-85.fc8:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.23.9-85.fc8.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -1976,9 +2025,8 @@ fi
 
 
 %changelog
-* Wed Nov 21 2007 John W. Linville <linville@redhat.com>
-- Revise b43 rev D support (new upstream patch)
-- Restore ability to add/remove virtual i/fs to mac80211 devices
+* Fri Dec 07 2007 Chuck Ebbert <cebbert@redhat.com> 2.6.23.9-84
+- highres-timers: fix possible hang
 
 * Sun May 27 2007 Dave Jones <davej@redhat.com>
 - Start F8 branch. Rebase to 2.6.22rc3
