@@ -1,7 +1,14 @@
 Subject: Add wrapper functions for VFS helper functions.
 
-This patch allows LSM hooks refer previously associated "struct vfsmount" parameter
-so that they can calculate pathname of given "struct dentry".
+This patch allows LSM hooks refer previously associated "struct vfsmount"
+parameter so that they can calculate pathname of given "struct dentry".
+
+AppArmor's approach is to add "struct vfsmount" parameter to all related
+functions, while my approach is to store "struct vfsmount" parameter
+in "struct task_struct". My approach resembles to "syscall auditing" because
+"syscall auditing" saves parameters at the entrance of a system call
+in "struct audit_context" of "struct task_struct"
+instead of adding parameters to all functions.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
