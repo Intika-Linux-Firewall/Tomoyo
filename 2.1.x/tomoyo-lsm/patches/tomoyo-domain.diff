@@ -752,7 +752,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct domain_info *tmy_find_domain(const char *domainname0)
 +{
 +	struct domain_info *domain;
-+	static int first = 1;
++	static bool first = 1;
 +	struct path_info domainname;
 +
 +	domainname.name = domainname0;
@@ -1000,7 +1000,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	 * This is needed because policies are not loaded
 +	 * until starting /sbin/init .
 +	 */
-+	static int first = 1;
++	static bool first = 1;
 +	if (first) {
 +		tmy_add_domain_initializer_entry(NULL, "/sbin/hotplug", 0, 0);
 +		tmy_add_domain_initializer_entry(NULL, "/sbin/modprobe", 0, 0);

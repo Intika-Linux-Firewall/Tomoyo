@@ -3,6 +3,28 @@ Subject: Capability access control functions.
 TOMOYO Linux checks permission for non-POSIX capability
 so that the number of capabilities won't be limited to 32 or 64.
 
+TOMOYO Linux uses per-a-domain capability, an approach that associate
+capabilities with each domain, and assign a domain for each process.
+
+The advantages of this approach are that
+
+(1) minimum capabilities required for a process is directly given
+    compared to setting/clearing/inheriting bit fields of a process's
+    capability value.
+
+(2) it can support as many types of capabilities as you want
+    without consuming much memory because you don't need to allocate
+    memory for per-a-task basis.
+
+Although current implementation can handle up to 65536 types of capabilities.
+we don't have enough hooks for checking/distinguishing
+"What operation is requested.".
+Therefore, some of capabilities defined in this module doesn't work.
+We want to insert a new hook like operation_capable(type_of_operation)
+so that we can have enough hooks for checking/distinguishing requests.
+May be system call auditing mechanism helps distinguish operations that are
+all-combined into capable(CAP_SYS_ADMIN) operation?
+
 Each permission can be automatically accumulated into
 the policy of each domain using 'learning mode'.
 
