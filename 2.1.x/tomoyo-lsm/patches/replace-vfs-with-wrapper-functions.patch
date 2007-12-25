@@ -2,7 +2,21 @@ Subject: Replace VFS with wrapper functions.
 
 This patch replaces VFS helper function calls caused by
 userland process's request with VFS wrapper functions call.
-This patch doesn't modify individual filesystems in fs/*/ directory.
+I don't have a plan to control VFS helper function calls
+caused by the kernel. Therefore, this patch doesn't modify
+individual filesystems in fs/*/ directory.
+
+I need to know the vfsmount parameter from LSM hooks so that
+I can calculate the pathname of a given dentry.
+
+Scanning the caller process's namespace list cannot reliably
+determine which vfsmount the given dentry belongs to
+because the corresponding vfsmount parameter appears for
+multiple times when bind mounts are used.
+
+What is worse, accessing namespace_sem from LSM hooks triggers
+AB-BA deadlock. Therefore, I definitely need either AppArmor's
+"Add struct vfsmount parameter to ..." patches or this patch.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
