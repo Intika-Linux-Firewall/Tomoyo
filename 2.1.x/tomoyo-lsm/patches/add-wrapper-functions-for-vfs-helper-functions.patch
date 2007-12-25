@@ -8,7 +8,7 @@ functions, while my approach is to store "struct vfsmount" parameter
 in "struct task_struct". My approach resembles to "syscall auditing" because
 "syscall auditing" saves parameters at the entrance of a system call
 in "struct audit_context" of "struct task_struct"
-instead of adding parameters to all functions.
+instead of adding parameters needed for auditing to all functions.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---

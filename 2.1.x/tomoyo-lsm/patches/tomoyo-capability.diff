@@ -20,16 +20,20 @@ Although current implementation can handle up to 65536 types of capabilities.
 we don't have enough hooks for checking/distinguishing
 "What operation is requested.".
 Therefore, some of capabilities defined in this module doesn't work.
-We want to insert a new hook like operation_capable(type_of_operation)
+We want to insert a new hook like operation_capable(syscall_number)
 so that we can have enough hooks for checking/distinguishing requests.
+
 May be system call auditing mechanism helps distinguish operations that are
-all-combined into capable(CAP_SYS_ADMIN) operation?
+all-combined into capable(CAP_SYS_ADMIN) operation. But to use it,
+we think we have to enable system call auditing for all processes,
+which may cause performance and log flooding problem?
 
 Each permission can be automatically accumulated into
 the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
  security/tomoyo/capability.c |  322 +++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 322 insertions(+)
 
