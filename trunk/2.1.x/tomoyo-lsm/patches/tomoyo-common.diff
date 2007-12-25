@@ -101,7 +101,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	unsigned char *sp = buffer;
 +	unsigned char *dp = buffer;
-+	int first = 1;
++	bool first = 1;
 +
 +	while (*sp && (*sp <= 0x20 || *sp >= 0x7F))
 +		sp++;
@@ -200,7 +200,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		     const int end_type,
 +		     const char *function)
 +{
-+	int contains_pattern = 0;
++	bool contains_pattern = 0;
 +	char c;
 +	char d;
 +	char e;
@@ -1771,7 +1771,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
 +
-+	printk(KERN_INFO "TOMOYO: %s   2007/12/18\n", TOMOYO_VERSION_CODE);
++	printk(KERN_INFO "TOMOYO: %s   2007/12/25\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
 +		panic("TOMOYO: No profiles loaded.\n");
@@ -1921,7 +1921,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Check for pending access requests. */
 +static int tmy_poll_query(struct file *file, poll_table *wait)
 +{
-+	int found;
++	bool found;
 +
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&query_lock);
