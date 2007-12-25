@@ -23,7 +23,7 @@ Summary(ja): Linux カーネル (Linux オペレーティングシステムの心臓部分)
 %define sublevel 16
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 0vl76.3_tomoyo_1.5.2
+%define release 0vl76.27_tomoyo_1.5.2
 
 %define make_target bzImage
 
@@ -127,7 +127,7 @@ Summary(ja): Linux カーネル (Linux オペレーティングシステムの心臓部分)
 # Packages that need to be installed before the kernel is, because the %post
 # scripts use them.
 #
-%define kernel_prereq  fileutils, modutils >= 3.2.2 , initscripts >= 5.83, mkinitrd >= 3.5.23
+%define kernel_prereq  fileutils, modutils >= 3.2.2 , initscripts >= 5.83, mkinitrd >= 4.2.1.8-0vl2.1
 
 Name: ccs-kernel
 Group: System Environment/Kernel
@@ -181,9 +181,6 @@ Source32: kernel-%{kversion}-ppc.config
 # Source 100 - 500 for Vine Linux
 # fb boot logo
 Source100: logo_vine_clut224.ppm
-# software suspend 2.2.5
-%define swsusp2_version 2.2.5-for-2.6.16.9
-Source200: suspend2-%{swsusp2_version}.tar.bz2
 
 #
 # Patches 0 through 100 are meant for core subsystem upgrades
@@ -216,6 +213,8 @@ Patch352: offb-bootx-fix1.patch
 Patch353: offb-bootx-fix2.patch
 Patch354: bootx-with-ramdisk.patch
 Patch355: eMac-lockup-fix.patch
+
+Patch370: linux-2.6.16-swsusp-ppc.patch
 
 # 400 - 499   ia64
 # 500 - 599   s390(x)
@@ -257,8 +256,8 @@ Patch1361: linux-2.6.16-net-e1000-suspend.patch
 Patch1370: linux-2.6.16-r8169-update.patch
 Patch1371: linux-2.6.16_Corega_LAPCIGT.patch
 Patch1375: linux-2.6.16-r1000-1.0.4.patch
-Patch1390: linux-2.6.16-tg3-3.66d.patch
-Patch1391: linux-2.6.16-forcedeth-0.60.patch
+Patch1390: linux-2.6.16-tg3-3.81c.patch
+Patch1391: linux-2.6.16-forcedeth-0.62.patch
 
 Patch1400: linux-2.6-pcmcia-disable-warning.patch
 
@@ -288,6 +287,9 @@ Patch1850: linux-2.6-mv643xx-compile-fix.patch
 Patch1860: linux-2.6-softlockup-disable.patch
 Patch1870: linux-2.6-revert-sched.patch
 Patch1880: linux-2.6.16-mmconfig-new-intel-motherboards.patch
+Patch1890: linux-2.6.16_ppp_bufsize_fix.patch
+Patch1892: linux-2.6.16_pwc_v4l_oops_fix.patch
+Patch1894: linux-2.6.16-ipt_recent-update.patch
 
 # Warn about usage of various obsolete functionality that may go away.
 Patch1900: linux-2.6-obsolete-idescsi-warning.patch
@@ -305,10 +307,19 @@ Patch2100: linux-2.6-promise-pdc2037x.patch
 Patch2110: linux-2.6.16.28-ahci-newids.patch
 Patch2120: linux-2.6.16-sata_via-vt8237a.patch
 Patch2130: linux-2.6.16.29-libata-acpi.patch
+Patch2140: linux-2.6.16-libata-ich9.patch
+Patch2141: linux-2.6.16-libata-generic-ahci.patch
+Patch2142: linux-2.6.16-ide-libata-mcp67.patch
+Patch2143: linux-2.6.16-libata-ata_piix-update.patch
+Patch2144: linux-2.6.16-libata-sb600-force-ahci.patch
+Patch2145: linux-2.6.16-libata-sata_via-newids.patch
+Patch2146: linux-2.6.16-libata-ahci-newids.patch
+Patch2147: linux-2.6.16-sata_nv-mcp61.patch
 
 # IDE
 Patch2200: linux-2.6.16-ide-driver-jmicron.patch
 Patch2210: linux-2.6.16-ide-generic-marvell-pata.patch
+Patch2220: linux-2.6.16-ide-atiixp-sb600.patch
 
 # SCSI
 Patch2300: linux-2.6.16_3w-9xxx_2.26.06.002.patch
@@ -316,9 +327,17 @@ Patch2300: linux-2.6.16_3w-9xxx_2.26.06.002.patch
 # alsa-driver 1.0.12
 # Patch3000: linux-2.6.16.34-alsa-1.0.12.patch
 Patch3000: linux-2.6.16.36-alsa-1.0.12.patch
+Patch3010: linux-2.6.16-alsa-hda-intel-ich9-rs690-mcp6x.patch
 
 # fix firmware_class to use mutexes
 Patch3100: linux-2.6.16-firmware_class-mutexes.patch
+
+# AGPGART update
+Patch3200: linux-2.6.16-agpgart-intel-965.patch
+Patch3201: linux-2.6.16-agpgart-945gme-965gme-g33.patch
+# DRM update
+Patch3210: linux-2.6.16-drm-intel-945gme.patch
+## Patch3220: linux-2.6.16-drm-intel-965.patch
 
 #
 # External drivers that are about to get accepted upstream
@@ -329,6 +348,12 @@ Patch4000: linux-2.6.16-bcm43xx.patch
 
 # sdhci driver
 Patch4010: linux-2.6.16-sdhci-0.12.patch
+
+# e1000e driver
+Patch4020: linux-2.6.16-e1000e-0.2.0.patch
+
+# atl1 driver
+Patch4030: linux-2.6.16-atl1-2.0.7.patch
 
 #
 # 6000 to 10000 is for Vine Linux
@@ -363,6 +388,11 @@ Patch6040: linux-2.6.16-squashfs-3.0.patch
 # http://www.paken.org/linuxwiki/index.php?CX23416GYC-STVLP%A4%CE%B2%F2%C0%CF
 Patch7000: linux-2.6.16.34-saa7133gyc-stvlp_ivtv.patch
 Patch7010: ivtv_061003patch.patch.gz
+
+#
+# tuxonice (aka suspend2) patch
+%define swsusp2_version 2.2.8-for-2.6.16.21
+Patch9000: suspend2-%{swsusp2_version}.patch.bz2
 
 #
 # 10000 to 20000 is for stuff that has to come last due to the
@@ -400,6 +430,25 @@ Patch20280: linux-2.6.16_CVE-2007-2453.patch
 Patch20290: linux-2.6.16_CVE-2007-2875.patch
 Patch20300: linux-2.6.16_CVE-2007-2876.patch
 Patch20310: linux-2.6.16_CVE-2006-7203.patch
+Patch20320: linux-2.6.16_CVE-2007-3513.patch
+Patch20330: linux-2.6.16_CVE-2007-1353.patch
+Patch20340: linux-2.6.16_CVE-2007-3105.patch
+Patch20350: linux-2.6.16_CVE-2007-4308.patch
+Patch20360: linux-2.6.16_CVE-2007-3848.patch
+Patch20370: linux-2.6.16_CVE-2007-3739.patch
+Patch20380: linux-2.6.16_CVE-2007-3740.patch
+Patch20390: linux-2.6.16_CVE-2007-3731.patch
+Patch20400: linux-2.6.16_CVE-2007-4133.patch
+Patch20410: linux-2.6.16_CVE-2007-0504.patch
+Patch20420: linux-2.6.16_CVE-2007-2242.patch
+Patch20430: linux-2.6.16_CVE-2007-3104.patch
+Patch20440: linux-2.6.16_CVE-2007-4571.patch
+Patch20450: linux-2.6.16_CVE-2007-4997.patch
+Patch20460: linux-2.6.16_CVE-2007-5093.patch
+
+Patch20470: linux-2.6.16_CVE-2007-5500.patch
+Patch20480: linux-2.6.16_CVE-2007-5501.patch
+Patch20490: linux-2.6.16_CVE-2006-6058.patch
 
 # mol-0.9.71_pre8 for ppc
 %define molver 0.9.71
@@ -579,7 +628,7 @@ This package is built for kernel-%{rpmversion}-%{release}.
 
 %prep
 
-%setup -q -n %{name}-%{kversion} -c -a 200
+%setup -q -n %{name}-%{kversion} -c
 cd linux-%{kversion}
 
 #
@@ -638,6 +687,8 @@ cd linux-%{kversion}
 %patch353 -p1
 %patch354 -p1
 %patch355 -p1
+
+%patch370 -p1
 
 #
 # ia64
@@ -718,9 +769,9 @@ cd linux-%{kversion}
 %patch1371 -p1
 # r1000 driver
 %patch1375 -p1
-# tg3 update (3.66d)
+# tg3 update (3.81c)
 %patch1390 -p1
-# forcedeth update (0.60)
+# forcedeth update (0.62)
 %patch1391 -p1
 
 # disable pcmcia warnings
@@ -780,6 +831,11 @@ cd linux-%{kversion}
 # backported from 2.6.19-rc
 %patch1880 -p1
 
+# ppp fix
+%patch1890 -p1
+# iptables recent module fix
+%patch1894 -p1 -b .25days
+
 # Warn about obsolete functionality usage.
 %patch1900 -p1
 %patch1901 -p1
@@ -803,20 +859,48 @@ cd linux-%{kversion}
 %patch2120 -p1
 # use ACPI on libata suspend/resume function.
 %patch2130 -p1
+# add ICH9 series chipset support for AHCI
+%patch2140 -p1
+# add generic PCI class for AHCI
+%patch2141 -p1
+# add MCP65/MCP67 support for amd74xx
+# add MCP67 support for AHCI
+%patch2142 -p1
+# update ata_piix to fix port mapping in ICH8
+%patch2143 -p1
+# force SB600 SATA as AHCI mode, even if it was set as Legacy/IDE mode in BIOS
+%patch2144 -p1
+# Add newer chipset support for sata_via
+%patch2145 -p1
+# Add newer chipset(sb700,mcp7x,via) support for ahci
+%patch2146 -p1
+# add MCP61 support for sata_nv
+%patch2147 -p1
 
 # JMicron legacy IDE driver
 %patch2200 -p1
 # support Marvell PATA controller by generic ide driver.
 %patch2210 -p1
+# add support AMD/ATI SB600 to IDE/atiixp driver
+%patch2220 -p1
 
 # 3w-9xxx update (2.26.02.008)
 %patch2300 -p1 -b .3w_update
 
 # Alsa update
 %patch3000 -p1
+# add ICH9/RS690/MCP6x ids to hda_intel
+%patch3010 -p1
 
 # firmware_class
 %patch3100 -p1
+
+# agpgart/intel-agp
+%patch3200 -p1
+%patch3201 -p1
+
+# drm/i915
+%patch3210 -p1
 
 #
 # External drivers that are about to get accepted upstream
@@ -827,6 +911,12 @@ cd linux-%{kversion}
 
 # sdhci driver
 %patch4010 -p1
+
+# e1000e (0.2.0)
+%patch4020 -p1
+
+# atl1 (2.0.7)
+%patch4030 -p1
 
 #
 # Patches 5000 to 6000 are reserved for new drivers that are about to
@@ -863,6 +953,9 @@ cd linux-%{kversion}
 # saa7133gyc/ivtv
 %patch7000 -p1
 %patch7010 -p1
+
+# tuxonice (suspend2)
+%patch9000 -p1
 
 #
 # final stuff
@@ -904,20 +997,39 @@ cd linux-%{kversion}
 %patch20300 -p1 -b .CVE-2007-2876
 %patch20310 -p1 -b .CVE-2006-7203
 
+%patch20320 -p1 -b .CVE-2007-3513
+%patch20330 -p1 -b .CVE-2007-1353
+%patch20340 -p1 -b .CVE-2007-3105
+%patch20350 -p1 -b .CVE-2007-4308
+%patch20360 -p1 -b .CVE-2007-3848
+
+%patch20370 -p1 -b .CVE-2007-3739
+%patch20380 -p1 -b .CVE-2007-3740
+%patch20390 -p1 -b .CVE-2007-3731
+%patch20400 -p1 -b .CVE-2007-4133
+
+%patch20410 -p1 -b .CVE-2007-0504
+%patch20420 -p1 -b .CVE-2007-2242
+%patch20430 -p1 -b .CVE-2007-3104
+%patch20440 -p1 -b .CVE-2007-4571
+
+%patch20450 -p1 -b .CVE-2007-4997
+%patch20460 -p1 -b .CVE-2007-5093
+%patch1892  -p1 -b .pwc_oops
+
+%patch20470 -p1 -b .CVE-2007-5500
+%patch20480 -p1 -b .CVE-2007-5501
+%patch20490 -p1 -b .CVE-2006-6058
+
 #
 # misc small stuff to make things compile or otherwise improve performance
 #
 
-#
-# apply software suspend patches
-#
-sh ../suspend2-%{swsusp2_version}/apply
-
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.3custom/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.16-0vl76.3.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.27custom/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.16-0vl76.27.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -1336,8 +1448,6 @@ fi
 /usr/src/kernels/%{KVERREL}smp-%{_target_cpu}
 %endif
 
-
-
 # only some architecture builds need kernel-source
 %if %{buildsource}
 %files source
@@ -1361,10 +1471,9 @@ fi
 %{_libdir}/mol/%{molver}/modules/
 %endif
 
-
 %changelog
-* Sun Jun 17 2007 Satoshi IWAMOTO <satoshi.iwamoto@nifty.ne.jp> 2.6.16-0vl76.3
-- add patch20310 for fox CVE-2006-7203(compat_sys_mount())
+* Tue Dec 18 2007 Daisuke SUZUKI <daisuke@linux.or.jp> 2.6.16-0vl76.27
+- update to forcedeth-0.62 (patch1391)
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start
