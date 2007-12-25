@@ -6,13 +6,14 @@ TOMOYO Linux checks permission by the following four parameters.
   * IP address (Both IPv4 and IPv6 are available)
   * port number
 In order to check 'TCP accept' and 'UDP connect',
-LSM expansion patch ([TOMOYO 18/18]) is needed.
+modification against net/socket.c and net/core/datagram.c is needed.
 
 Each permission can be automatically accumulated into
 the policy of each domain using 'learning mode'.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
  security/tomoyo/net.c |  940 ++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 940 insertions(+)
 
