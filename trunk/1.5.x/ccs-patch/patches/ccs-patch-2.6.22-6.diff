@@ -1,18 +1,18 @@
-diff -ubBpEr linux-source-2.6.22-4/Makefile linux-source-2.6.22-4-ccs/Makefile
---- linux-source-2.6.22-4/Makefile	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/Makefile	2007-10-12 13:22:40.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/Makefile linux-source-2.6.22-6-ccs/Makefile
+--- linux-source-2.6.22-6/Makefile	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/Makefile	2007-12-28 15:27:26.000000000 +0900
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 22
 -EXTRAVERSION =
-+EXTRAVERSION = -4lenny-ccs
++EXTRAVERSION = -6-ccs
  NAME = Holy Dancing Manatees, Batman!
  
  # *DOCUMENTATION*
-diff -ubBpEr linux-source-2.6.22-4/fs/Kconfig linux-source-2.6.22-4-ccs/fs/Kconfig
---- linux-source-2.6.22-4/fs/Kconfig	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/Kconfig	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/Kconfig linux-source-2.6.22-6-ccs/fs/Kconfig
+--- linux-source-2.6.22-6/fs/Kconfig	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/Kconfig	2007-12-28 15:27:11.000000000 +0900
 @@ -2070,5 +2070,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -21,18 +21,18 @@ diff -ubBpEr linux-source-2.6.22-4/fs/Kconfig linux-source-2.6.22-4-ccs/fs/Kconf
 +
  endmenu
  
-diff -ubBpEr linux-source-2.6.22-4/fs/Makefile linux-source-2.6.22-4-ccs/fs/Makefile
---- linux-source-2.6.22-4/fs/Makefile	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/Makefile	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/Makefile linux-source-2.6.22-6-ccs/fs/Makefile
+--- linux-source-2.6.22-6/fs/Makefile	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/Makefile	2007-12-28 15:27:11.000000000 +0900
 @@ -118,3 +118,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
-diff -ubBpEr linux-source-2.6.22-4/fs/attr.c linux-source-2.6.22-4-ccs/fs/attr.c
---- linux-source-2.6.22-4/fs/attr.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/attr.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/attr.c linux-source-2.6.22-6-ccs/fs/attr.c
+--- linux-source-2.6.22-6/fs/attr.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/attr.c	2007-12-28 15:27:11.000000000 +0900
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -64,9 +64,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/attr.c linux-source-2.6.22-4-ccs/fs/attr.c
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
-diff -ubBpEr linux-source-2.6.22-4/fs/compat.c linux-source-2.6.22-4-ccs/fs/compat.c
---- linux-source-2.6.22-4/fs/compat.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/compat.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/compat.c linux-source-2.6.22-6-ccs/fs/compat.c
+--- linux-source-2.6.22-6/fs/compat.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/compat.c	2007-12-28 15:27:11.000000000 +0900
 @@ -55,6 +55,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -86,9 +86,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/compat.c linux-source-2.6.22-4-ccs/fs/comp
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
-diff -ubBpEr linux-source-2.6.22-4/fs/compat_ioctl.c linux-source-2.6.22-4-ccs/fs/compat_ioctl.c
---- linux-source-2.6.22-4/fs/compat_ioctl.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/compat_ioctl.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/compat_ioctl.c linux-source-2.6.22-6-ccs/fs/compat_ioctl.c
+--- linux-source-2.6.22-6/fs/compat_ioctl.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/compat_ioctl.c	2007-12-28 15:27:11.000000000 +0900
 @@ -113,6 +113,9 @@
  #include <linux/dvb/frontend.h>
  #include <linux/dvb/video.h>
@@ -109,9 +109,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/compat_ioctl.c linux-source-2.6.22-4-ccs/f
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
-diff -ubBpEr linux-source-2.6.22-4/fs/exec.c linux-source-2.6.22-4-ccs/fs/exec.c
---- linux-source-2.6.22-4/fs/exec.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/exec.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/exec.c linux-source-2.6.22-6-ccs/fs/exec.c
+--- linux-source-2.6.22-6/fs/exec.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/exec.c	2007-12-28 15:27:11.000000000 +0900
 @@ -59,6 +59,10 @@
  #include <linux/kmod.h>
  #endif
@@ -145,7 +145,7 @@ diff -ubBpEr linux-source-2.6.22-4/fs/exec.c linux-source-2.6.22-4-ccs/fs/exec.c
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1217,7 +1229,7 @@ int do_execve(char * filename,
+@@ -1212,7 +1224,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -154,9 +154,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/exec.c linux-source-2.6.22-4-ccs/fs/exec.c
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
-diff -ubBpEr linux-source-2.6.22-4/fs/fcntl.c linux-source-2.6.22-4-ccs/fs/fcntl.c
---- linux-source-2.6.22-4/fs/fcntl.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/fcntl.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/fcntl.c linux-source-2.6.22-6-ccs/fs/fcntl.c
+--- linux-source-2.6.22-6/fs/fcntl.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/fcntl.c	2007-12-28 15:27:11.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -178,9 +178,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/fcntl.c linux-source-2.6.22-4-ccs/fs/fcntl
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
-diff -ubBpEr linux-source-2.6.22-4/fs/ioctl.c linux-source-2.6.22-4-ccs/fs/ioctl.c
---- linux-source-2.6.22-4/fs/ioctl.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/ioctl.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/ioctl.c linux-source-2.6.22-6-ccs/fs/ioctl.c
+--- linux-source-2.6.22-6/fs/ioctl.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/ioctl.c	2007-12-28 15:27:11.000000000 +0900
 @@ -16,6 +16,9 @@
  
  #include <asm/uaccess.h>
@@ -201,9 +201,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/ioctl.c linux-source-2.6.22-4-ccs/fs/ioctl
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-diff -ubBpEr linux-source-2.6.22-4/fs/namei.c linux-source-2.6.22-4-ccs/fs/namei.c
---- linux-source-2.6.22-4/fs/namei.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/namei.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/namei.c linux-source-2.6.22-6-ccs/fs/namei.c
+--- linux-source-2.6.22-6/fs/namei.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/namei.c	2007-12-28 15:27:11.000000000 +0900
 @@ -36,6 +36,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -380,9 +380,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/namei.c linux-source-2.6.22-4-ccs/fs/namei
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-diff -ubBpEr linux-source-2.6.22-4/fs/namespace.c linux-source-2.6.22-4-ccs/fs/namespace.c
---- linux-source-2.6.22-4/fs/namespace.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/namespace.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/namespace.c linux-source-2.6.22-6-ccs/fs/namespace.c
+--- linux-source-2.6.22-6/fs/namespace.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/namespace.c	2007-12-28 15:27:11.000000000 +0900
 @@ -28,6 +28,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -484,9 +484,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/namespace.c linux-source-2.6.22-4-ccs/fs/n
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
-diff -ubBpEr linux-source-2.6.22-4/fs/open.c linux-source-2.6.22-4-ccs/fs/open.c
---- linux-source-2.6.22-4/fs/open.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/open.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/open.c linux-source-2.6.22-6-ccs/fs/open.c
+--- linux-source-2.6.22-6/fs/open.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/open.c	2007-12-28 15:27:11.000000000 +0900
 @@ -26,6 +26,12 @@
  #include <linux/syscalls.h>
  #include <linux/rcupdate.h>
@@ -543,9 +543,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/open.c linux-source-2.6.22-4-ccs/fs/open.c
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
-diff -ubBpEr linux-source-2.6.22-4/fs/proc/Makefile linux-source-2.6.22-4-ccs/fs/proc/Makefile
---- linux-source-2.6.22-4/fs/proc/Makefile	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/proc/Makefile	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/proc/Makefile linux-source-2.6.22-6-ccs/fs/proc/Makefile
+--- linux-source-2.6.22-6/fs/proc/Makefile	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/proc/Makefile	2007-12-28 15:27:11.000000000 +0900
 @@ -15,3 +15,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -553,9 +553,9 @@ diff -ubBpEr linux-source-2.6.22-4/fs/proc/Makefile linux-source-2.6.22-4-ccs/fs
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
-diff -ubBpEr linux-source-2.6.22-4/fs/proc/proc_misc.c linux-source-2.6.22-4-ccs/fs/proc/proc_misc.c
---- linux-source-2.6.22-4/fs/proc/proc_misc.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/fs/proc/proc_misc.c	2007-10-12 13:23:23.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/fs/proc/proc_misc.c linux-source-2.6.22-6-ccs/fs/proc/proc_misc.c
+--- linux-source-2.6.22-6/fs/proc/proc_misc.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/fs/proc/proc_misc.c	2007-12-28 15:27:45.000000000 +0900
 @@ -737,4 +737,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
@@ -565,14 +565,14 @@ diff -ubBpEr linux-source-2.6.22-4/fs/proc/proc_misc.c linux-source-2.6.22-4-ccs
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.22-4lenny 2007/10/13\n");
++		printk("Hook version: 2.6.22-6 2007/12/28\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
-diff -ubBpEr linux-source-2.6.22-4/include/linux/init_task.h linux-source-2.6.22-4-ccs/include/linux/init_task.h
---- linux-source-2.6.22-4/include/linux/init_task.h	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/include/linux/init_task.h	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/include/linux/init_task.h linux-source-2.6.22-6-ccs/include/linux/init_task.h
+--- linux-source-2.6.22-6/include/linux/init_task.h	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/include/linux/init_task.h	2007-12-28 15:27:11.000000000 +0900
 @@ -169,6 +169,10 @@ extern struct group_info init_groups;
  	},								\
  	INIT_TRACE_IRQFLAGS						\
@@ -584,9 +584,9 @@ diff -ubBpEr linux-source-2.6.22-4/include/linux/init_task.h linux-source-2.6.22
  }
  
  
-diff -ubBpEr linux-source-2.6.22-4/include/linux/sched.h linux-source-2.6.22-4-ccs/include/linux/sched.h
---- linux-source-2.6.22-4/include/linux/sched.h	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/include/linux/sched.h	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/include/linux/sched.h linux-source-2.6.22-6-ccs/include/linux/sched.h
+--- linux-source-2.6.22-6/include/linux/sched.h	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/include/linux/sched.h	2007-12-28 15:27:11.000000000 +0900
 @@ -27,6 +27,11 @@
  #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
@@ -610,9 +610,9 @@ diff -ubBpEr linux-source-2.6.22-4/include/linux/sched.h linux-source-2.6.22-4-c
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
-diff -ubBpEr linux-source-2.6.22-4/kernel/compat.c linux-source-2.6.22-4-ccs/kernel/compat.c
---- linux-source-2.6.22-4/kernel/compat.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/compat.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/compat.c linux-source-2.6.22-6-ccs/kernel/compat.c
+--- linux-source-2.6.22-6/kernel/compat.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/compat.c	2007-12-28 15:27:11.000000000 +0900
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -633,9 +633,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/compat.c linux-source-2.6.22-4-ccs/ker
  
  	do_settimeofday(&tv);
  	return 0;
-diff -ubBpEr linux-source-2.6.22-4/kernel/kexec.c linux-source-2.6.22-4-ccs/kernel/kexec.c
---- linux-source-2.6.22-4/kernel/kexec.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/kexec.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/kexec.c linux-source-2.6.22-6-ccs/kernel/kexec.c
+--- linux-source-2.6.22-6/kernel/kexec.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/kexec.c	2007-12-28 15:27:11.000000000 +0900
 @@ -28,6 +28,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -656,9 +656,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/kexec.c linux-source-2.6.22-4-ccs/kern
  
  	/*
  	 * Verify we have a legal set of flags
-diff -ubBpEr linux-source-2.6.22-4/kernel/kmod.c linux-source-2.6.22-4-ccs/kernel/kmod.c
---- linux-source-2.6.22-4/kernel/kmod.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/kmod.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/kmod.c linux-source-2.6.22-6-ccs/kernel/kmod.c
+--- linux-source-2.6.22-6/kernel/kmod.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/kmod.c	2007-12-28 15:27:11.000000000 +0900
 @@ -170,6 +170,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -671,9 +671,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/kmod.c linux-source-2.6.22-4-ccs/kerne
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
-diff -ubBpEr linux-source-2.6.22-4/kernel/module.c linux-source-2.6.22-4-ccs/kernel/module.c
---- linux-source-2.6.22-4/kernel/module.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/module.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/module.c linux-source-2.6.22-6-ccs/kernel/module.c
+--- linux-source-2.6.22-6/kernel/module.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/module.c	2007-12-28 15:27:11.000000000 +0900
 @@ -45,6 +45,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -704,9 +704,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/module.c linux-source-2.6.22-4-ccs/ker
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
-diff -ubBpEr linux-source-2.6.22-4/kernel/sched.c linux-source-2.6.22-4-ccs/kernel/sched.c
---- linux-source-2.6.22-4/kernel/sched.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/sched.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/sched.c linux-source-2.6.22-6-ccs/kernel/sched.c
+--- linux-source-2.6.22-6/kernel/sched.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/sched.c	2007-12-28 15:27:11.000000000 +0900
 @@ -56,6 +56,9 @@
  
  #include <asm/tlb.h>
@@ -727,9 +727,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/sched.c linux-source-2.6.22-4-ccs/kern
  
  	/*
  	 * Setpriority might change our priority at the same moment.
-diff -ubBpEr linux-source-2.6.22-4/kernel/signal.c linux-source-2.6.22-4-ccs/kernel/signal.c
---- linux-source-2.6.22-4/kernel/signal.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/signal.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/signal.c linux-source-2.6.22-6-ccs/kernel/signal.c
+--- linux-source-2.6.22-6/kernel/signal.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/signal.c	2007-12-28 15:27:11.000000000 +0900
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -740,7 +740,7 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/signal.c linux-source-2.6.22-4-ccs/ker
  
  /*
   * SLAB caches for signal bits.
-@@ -2160,6 +2163,10 @@ asmlinkage long
+@@ -2159,6 +2162,10 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -751,7 +751,7 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/signal.c linux-source-2.6.22-4-ccs/ker
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2218,6 +2225,10 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2217,6 +2224,10 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -762,7 +762,7 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/signal.c linux-source-2.6.22-4-ccs/ker
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2231,6 +2242,10 @@ sys_tkill(int pid, int sig)
+@@ -2230,6 +2241,10 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -773,10 +773,10 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/signal.c linux-source-2.6.22-4-ccs/ker
  
  	return do_tkill(0, pid, sig);
  }
-diff -ubBpEr linux-source-2.6.22-4/kernel/sys.c linux-source-2.6.22-4-ccs/kernel/sys.c
---- linux-source-2.6.22-4/kernel/sys.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/sys.c	2007-10-12 13:22:16.000000000 +0900
-@@ -39,6 +39,9 @@
+diff -ubBpEr linux-source-2.6.22-6/kernel/sys.c linux-source-2.6.22-6-ccs/kernel/sys.c
+--- linux-source-2.6.22-6/kernel/sys.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/sys.c	2007-12-28 15:27:11.000000000 +0900
+@@ -40,6 +40,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
  #include <asm/unistd.h>
@@ -786,7 +786,7 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/sys.c linux-source-2.6.22-4-ccs/kernel
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -662,6 +665,9 @@ asmlinkage long sys_setpriority(int whic
+@@ -663,6 +666,9 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -796,7 +796,7 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/sys.c linux-source-2.6.22-4-ccs/kernel
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -892,6 +898,9 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -894,6 +900,9 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -806,7 +806,7 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/sys.c linux-source-2.6.22-4-ccs/kernel
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1868,6 +1877,9 @@ asmlinkage long sys_sethostname(char __u
+@@ -1869,6 +1878,9 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -816,7 +816,7 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/sys.c linux-source-2.6.22-4-ccs/kernel
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1913,6 +1925,9 @@ asmlinkage long sys_setdomainname(char _
+@@ -1914,6 +1926,9 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -826,9 +826,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/sys.c linux-source-2.6.22-4-ccs/kernel
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
-diff -ubBpEr linux-source-2.6.22-4/kernel/sysctl.c linux-source-2.6.22-4-ccs/kernel/sysctl.c
---- linux-source-2.6.22-4/kernel/sysctl.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/sysctl.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/sysctl.c linux-source-2.6.22-6-ccs/kernel/sysctl.c
+--- linux-source-2.6.22-6/kernel/sysctl.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/sysctl.c	2007-12-28 15:27:11.000000000 +0900
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -931,9 +931,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/sysctl.c linux-source-2.6.22-4-ccs/ker
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
-diff -ubBpEr linux-source-2.6.22-4/kernel/time/ntp.c linux-source-2.6.22-4-ccs/kernel/time/ntp.c
---- linux-source-2.6.22-4/kernel/time/ntp.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/time/ntp.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/time/ntp.c linux-source-2.6.22-6-ccs/kernel/time/ntp.c
+--- linux-source-2.6.22-6/kernel/time/ntp.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/time/ntp.c	2007-12-28 15:27:11.000000000 +0900
 @@ -16,6 +16,9 @@
  
  #include <asm/div64.h>
@@ -954,9 +954,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/time/ntp.c linux-source-2.6.22-4-ccs/k
  
  	/* Now we validate the data before disabling interrupts */
  
-diff -ubBpEr linux-source-2.6.22-4/kernel/time.c linux-source-2.6.22-4-ccs/kernel/time.c
---- linux-source-2.6.22-4/kernel/time.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/kernel/time.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/kernel/time.c linux-source-2.6.22-6-ccs/kernel/time.c
+--- linux-source-2.6.22-6/kernel/time.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/kernel/time.c	2007-12-28 15:27:11.000000000 +0900
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -987,9 +987,9 @@ diff -ubBpEr linux-source-2.6.22-4/kernel/time.c linux-source-2.6.22-4-ccs/kerne
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
-diff -ubBpEr linux-source-2.6.22-4/net/core/datagram.c linux-source-2.6.22-4-ccs/net/core/datagram.c
---- linux-source-2.6.22-4/net/core/datagram.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/net/core/datagram.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/net/core/datagram.c linux-source-2.6.22-6-ccs/net/core/datagram.c
+--- linux-source-2.6.22-6/net/core/datagram.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/net/core/datagram.c	2007-12-28 15:27:11.000000000 +0900
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1013,9 +1013,9 @@ diff -ubBpEr linux-source-2.6.22-4/net/core/datagram.c linux-source-2.6.22-4-ccs
  		if (skb)
  			return skb;
  
-diff -ubBpEr linux-source-2.6.22-4/net/ipv4/inet_connection_sock.c linux-source-2.6.22-4-ccs/net/ipv4/inet_connection_sock.c
---- linux-source-2.6.22-4/net/ipv4/inet_connection_sock.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/net/ipv4/inet_connection_sock.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/net/ipv4/inet_connection_sock.c linux-source-2.6.22-6-ccs/net/ipv4/inet_connection_sock.c
+--- linux-source-2.6.22-6/net/ipv4/inet_connection_sock.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/net/ipv4/inet_connection_sock.c	2007-12-28 15:27:11.000000000 +0900
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1036,9 +1036,9 @@ diff -ubBpEr linux-source-2.6.22-4/net/ipv4/inet_connection_sock.c linux-source-
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
-diff -ubBpEr linux-source-2.6.22-4/net/ipv4/inet_hashtables.c linux-source-2.6.22-4-ccs/net/ipv4/inet_hashtables.c
---- linux-source-2.6.22-4/net/ipv4/inet_hashtables.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/net/ipv4/inet_hashtables.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/net/ipv4/inet_hashtables.c linux-source-2.6.22-6-ccs/net/ipv4/inet_hashtables.c
+--- linux-source-2.6.22-6/net/ipv4/inet_hashtables.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/net/ipv4/inet_hashtables.c	2007-12-28 15:27:11.000000000 +0900
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1059,9 +1059,9 @@ diff -ubBpEr linux-source-2.6.22-4/net/ipv4/inet_hashtables.c linux-source-2.6.2
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
-diff -ubBpEr linux-source-2.6.22-4/net/ipv4/udp.c linux-source-2.6.22-4-ccs/net/ipv4/udp.c
---- linux-source-2.6.22-4/net/ipv4/udp.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/net/ipv4/udp.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/net/ipv4/udp.c linux-source-2.6.22-6-ccs/net/ipv4/udp.c
+--- linux-source-2.6.22-6/net/ipv4/udp.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/net/ipv4/udp.c	2007-12-28 15:27:11.000000000 +0900
 @@ -102,6 +102,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1092,9 +1092,9 @@ diff -ubBpEr linux-source-2.6.22-4/net/ipv4/udp.c linux-source-2.6.22-4-ccs/net/
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
-diff -ubBpEr linux-source-2.6.22-4/net/ipv6/inet6_hashtables.c linux-source-2.6.22-4-ccs/net/ipv6/inet6_hashtables.c
---- linux-source-2.6.22-4/net/ipv6/inet6_hashtables.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/net/ipv6/inet6_hashtables.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/net/ipv6/inet6_hashtables.c linux-source-2.6.22-6-ccs/net/ipv6/inet6_hashtables.c
+--- linux-source-2.6.22-6/net/ipv6/inet6_hashtables.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/net/ipv6/inet6_hashtables.c	2007-12-28 15:27:11.000000000 +0900
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1115,9 +1115,9 @@ diff -ubBpEr linux-source-2.6.22-4/net/ipv6/inet6_hashtables.c linux-source-2.6.
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
-diff -ubBpEr linux-source-2.6.22-4/net/socket.c linux-source-2.6.22-4-ccs/net/socket.c
---- linux-source-2.6.22-4/net/socket.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/net/socket.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/net/socket.c linux-source-2.6.22-6-ccs/net/socket.c
+--- linux-source-2.6.22-6/net/socket.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/net/socket.c	2007-12-28 15:27:11.000000000 +0900
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1140,7 +1140,7 @@ diff -ubBpEr linux-source-2.6.22-4/net/socket.c linux-source-2.6.22-4-ccs/net/so
  
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
-@@ -1105,6 +1113,10 @@ static int __sock_create(int family, int
+@@ -1102,6 +1110,10 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1151,7 +1151,7 @@ diff -ubBpEr linux-source-2.6.22-4/net/socket.c linux-source-2.6.22-4-ccs/net/so
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1333,6 +1345,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1330,6 +1342,9 @@ asmlinkage long sys_bind(int fd, struct 
  			err = security_socket_bind(sock,
  						   (struct sockaddr *)address,
  						   addrlen);
@@ -1161,7 +1161,7 @@ diff -ubBpEr linux-source-2.6.22-4/net/socket.c linux-source-2.6.22-4-ccs/net/so
  			if (!err)
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
-@@ -1362,6 +1377,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1359,6 +1374,9 @@ asmlinkage long sys_listen(int fd, int b
  			backlog = sysctl_somaxconn;
  
  		err = security_socket_listen(sock, backlog);
@@ -1171,7 +1171,7 @@ diff -ubBpEr linux-source-2.6.22-4/net/socket.c linux-source-2.6.22-4-ccs/net/so
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1426,6 +1444,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1423,6 +1441,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1184,7 +1184,7 @@ diff -ubBpEr linux-source-2.6.22-4/net/socket.c linux-source-2.6.22-4-ccs/net/so
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1490,6 +1514,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1487,6 +1511,10 @@ asmlinkage long sys_connect(int fd, stru
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;
@@ -1195,9 +1195,9 @@ diff -ubBpEr linux-source-2.6.22-4/net/socket.c linux-source-2.6.22-4-ccs/net/so
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
-diff -ubBpEr linux-source-2.6.22-4/net/unix/af_unix.c linux-source-2.6.22-4-ccs/net/unix/af_unix.c
---- linux-source-2.6.22-4/net/unix/af_unix.c	2007-10-12 13:22:11.000000000 +0900
-+++ linux-source-2.6.22-4-ccs/net/unix/af_unix.c	2007-10-12 13:22:16.000000000 +0900
+diff -ubBpEr linux-source-2.6.22-6/net/unix/af_unix.c linux-source-2.6.22-6-ccs/net/unix/af_unix.c
+--- linux-source-2.6.22-6/net/unix/af_unix.c	2007-12-28 15:27:04.000000000 +0900
++++ linux-source-2.6.22-6-ccs/net/unix/af_unix.c	2007-12-28 15:27:11.000000000 +0900
 @@ -115,6 +115,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
