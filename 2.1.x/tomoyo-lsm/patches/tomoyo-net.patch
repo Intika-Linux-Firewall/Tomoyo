@@ -14,12 +14,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/net.c |  940 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 940 insertions(+)
+ security/tomoyo/net.c |  934 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 934 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/net.c
-@@ -0,0 +1,940 @@
+@@ -0,0 +1,934 @@
 +/*
 + * security/tomoyo/net.c
 + *
@@ -54,19 +54,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!buf)
 +		return -ENOMEM;
 +
-+	snprintf(buf + strlen(buf), len - strlen(buf) - 1,
-+		 TMY_ALLOW_NETWORK "%s ", operation);
++	tmy_sncatprintf(buf, len - 1, TMY_ALLOW_NETWORK "%s ", operation);
 +
 +	if (is_ipv6)
 +		tmy_print_ipv6(buf + strlen(buf), len - strlen(buf),
 +			       (const struct in6_addr *) address);
 +	else {
 +		u32 ip = *address;
-+		snprintf(buf + strlen(buf), len - strlen(buf) - 1,
-+			 NIPQUAD_FMT, NIPQUAD(ip));
++		tmy_sncatprintf(buf, len - 1, NIPQUAD_FMT, NIPQUAD(ip));
 +	}
 +
-+	snprintf(buf + strlen(buf), len - strlen(buf) - 1, " %u\n", port);
++	tmy_sncatprintf(buf, len - 1, " %u\n", port);
 +
 +	return tmy_write_audit_log(buf, is_granted);
 +}
@@ -359,13 +357,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		snprintf(buf, sizeof(buf) - 1,
 +			 NIPQUAD_FMT, HIPQUAD(min_addr));
 +
-+		if (min_addr != max_addr) {
-+			const int len = strlen(buf);
-+
-+			snprintf(buf + len, sizeof(buf) - 1 - len,
-+				 "-" NIPQUAD_FMT, HIPQUAD(max_addr));
-+		}
-+
++		if (min_addr != max_addr)
++			tmy_sncatprintf(buf, sizeof(buf) - 1,
++					"-" NIPQUAD_FMT, HIPQUAD(max_addr));
 +	}
 +
 +	return tmy_io_printf(head, TMY_ADDRESS_GROUP "%s %s\n",
