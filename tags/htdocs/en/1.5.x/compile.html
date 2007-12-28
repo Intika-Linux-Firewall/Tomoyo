@@ -49,7 +49,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.18-53.1.4.el5">Kernel 2.6.18-53.1.4.el5 for CentOS 5.1</a>
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
 <li><a href="#2.6.8-16sarge7">Kernel 2.6.8-16sarge7 for Debian Sarge</a>
-<li><a href="#2.6.18-13etch6">Kernel 2.6.18-13etch6 for Debian Etch</a>
+<li><a href="#2.6.18-17">Kernel 2.6.18-17 for Debian Etch</a>
 <li><a href="#2.6.22-4lenny">Kernel 2.6.22-4lenny for Debian Lenny</a>
 <li><a href="#2.6.16.53-0.16">Kernel 2.6.16.53-0.16 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.8-0.7">Kernel 2.6.18.8-0.7 for OpenSUSE 10.2</a>
@@ -344,7 +344,7 @@ mkinitrd -o /boot/initrd.img-2.6.8-16sarge7-ccs 2.6.8-16sarge7-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-13etch6">Kernel 2.6.18-13etch6 for Debian Etch</a></h2>
+<h2><a name="2.6.18-17">Kernel 2.6.18-17 for Debian Etch</a></h2>
 
 <table border="1">
 <tr><td>
@@ -356,15 +356,15 @@ cd linux-source-2.6.18/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.2-20071205.tar.gz<br>
 tar -zxf ccs-patch-1.5.2-20071205.tar.gz<br>
-wget -O patches/ccs-patch-2.6.18-13etch6.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.18-13etch6.diff?root=tomoyo'<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-13etch6.diff<br>
+wget -O patches/ccs-patch-2.6.18-17.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.18-17.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.18-17.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
 make -s<br>
 make -s install modules modules_install<br>
 # Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.18-13etch6-ccs 2.6.18-13etch6-ccs
+mkinitrd -o /boot/initrd.img-2.6.18-17-ccs 2.6.18-17-ccs
 </td></tr>
 </table>
 
