@@ -10,12 +10,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/environ.c |  277 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 277 insertions(+)
+ security/tomoyo/environ.c |  274 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 274 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/environ.c
-@@ -0,0 +1,277 @@
+@@ -0,0 +1,274 @@
 +/*
 + * security/tomoyo/environ.c
 + *
@@ -49,10 +49,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!buf)
 +		return -ENOMEM;
 +
-+	snprintf(buf + strlen(buf),
-+		 len - strlen(buf) - 1,
-+		 TMY_ALLOW_ENV "%s",
-+		 env);
++	tmy_sncatprintf(buf, len - 1, TMY_ALLOW_ENV "%s", env);
 +
 +	return tmy_write_audit_log(buf, is_granted);
 +}

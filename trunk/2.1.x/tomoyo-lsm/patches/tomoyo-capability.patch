@@ -34,12 +34,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/capability.c |  322 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 322 insertions(+)
+ security/tomoyo/capability.c |  320 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 320 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/capability.c
-@@ -0,0 +1,322 @@
+@@ -0,0 +1,320 @@
 +/*
 + * security/tomoyo/capability.c
 + *
@@ -235,9 +235,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!buf)
 +		return -ENOMEM;
 +
-+	snprintf(buf + strlen(buf),
-+		 len - strlen(buf) - 1,
-+		 TMY_ALLOW_CAPABILITY "%s\n",
++	tmy_sncatprintf(buf, len - 1, TMY_ALLOW_CAPABILITY "%s\n",
 +		 tmy_capability2keyword(capability));
 +
 +	return tmy_write_audit_log(buf, is_granted);

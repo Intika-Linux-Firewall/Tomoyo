@@ -9,12 +9,12 @@ the policy of each domain using 'learning mode'.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/exec.c |  218 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 218 insertions(+)
+ security/tomoyo/exec.c |  215 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 215 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/exec.c
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,215 @@
 +/*
 + * security/tomoyo/exec.c
 + *
@@ -49,11 +49,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!buf)
 +		return -ENOMEM;
 +
-+	snprintf(buf + strlen(buf),
-+		 len - strlen(buf) - 1,
-+		 TMY_ALLOW_ARGV0 "%s %s",
-+		 filename->name,
-+		 argv0);
++	tmy_sncatprintf(buf, len - 1, TMY_ALLOW_ARGV0 "%s %s",
++			filename->name, argv0);
 +
 +	return tmy_write_audit_log(buf, is_granted);
 +}

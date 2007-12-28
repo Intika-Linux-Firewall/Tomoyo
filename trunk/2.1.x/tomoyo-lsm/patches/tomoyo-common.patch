@@ -21,12 +21,12 @@ the access control level of TOMOYO Linux. A profile is assigned to a domain.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c | 2427 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2427 insertions(+)
+ security/tomoyo/common.c | 2450 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2450 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/common.c
-@@ -0,0 +1,2427 @@
+@@ -0,0 +1,2450 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -775,6 +775,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	head->read_avail += len;
 +
 +	return 0;
++}
++
++/**
++ * tmy_sncatprintf - append version of snprintf().
++ * @buf: pointer to buffer.
++ * @len: sizeof(buffer).
++ *
++ * This function is equivalent to
++ *   snprintf(buf + strlen(buf), len - strlen(buf), fmt, ...) if (*buf).
++ *   snprintf(buf, len, fmt, ...) if (!*buf).
++ */
++int tmy_sncatprintf(char *buf, int len, const char *fmt, ...)
++{
++	va_list args;
++	char *p = memchr(buf, '\0', len);
++	if (p) {
++		len -= (p - buf);
++		buf = p;
++	}
++	va_start(args, fmt);
++	len = vsnprintf(buf, len, fmt, args);
++	va_end(args);
++	return len;
 +}
 +
 +/**
@@ -1771,7 +1794,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
 +
-+	printk(KERN_INFO "TOMOYO: %s   2007/12/25\n", TOMOYO_VERSION_CODE);
++	printk(KERN_INFO "TOMOYO: %s   2007/12/28\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
 +		panic("TOMOYO: No profiles loaded.\n");

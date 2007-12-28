@@ -4,8 +4,8 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/include/realpath.h |   45 ++
- security/tomoyo/include/tomoyo.h   |  693 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 738 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  695 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 740 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/realpath.h
@@ -57,7 +57,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#endif
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/tomoyo.h
-@@ -0,0 +1,693 @@
+@@ -0,0 +1,695 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -666,6 +666,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tmy_acltype2paths(const unsigned int acl_type);
 +int tmy_io_printf(struct io_buffer *head, const char *fmt, ...)
 +	__attribute__((format(printf, 2, 3)));
++int tmy_sncatprintf(char *buf, int len, const char *fmt, ...)
++	__attribute__((format(printf, 3, 4)));
 +struct domain_info *tmy_find_domain(const char *domainname);
 +struct domain_info *tmy_new_domain(const char *domainname, const u8 profile);
 +struct domain_info *tmy_undelete_domain(const char *domainname0);
