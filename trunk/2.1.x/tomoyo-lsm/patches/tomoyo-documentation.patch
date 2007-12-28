@@ -3,12 +3,12 @@ Subject: TOMOYO Linux documentation.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- Documentation/TOMOYO.txt |  228 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 228 insertions(+)
+ Documentation/TOMOYO.txt |  266 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 266 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/Documentation/TOMOYO.txt
-@@ -0,0 +1,228 @@
+@@ -0,0 +1,266 @@
 +Subject: TOMOYO Linux Security Goal
 +
 +This document is intended to specify the security goal that TOMOYO Linux is
@@ -27,16 +27,46 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +gathers information and arranges the results as policy definitions.
 +These things made it possible for users to write policy from scratch.
 +Troubleshooting can be done by users.
-+We put some TOMOYO Linux policy examples on our web site.
 +
++We put some TOMOYO Linux policy examples on our web site.
 +http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/etch/domain_policy.conf?v=policy-sample
++
++Here's our version of Linux security comparison table.
++http://tomoyo.sourceforge.jp/wiki-e/?WhatIs#comparison
 +
 +2. TOMOYO Linux Security Goal
 +
 +The TOMOYO Linux's security goal is to provide "MAC that covers practical
 +requirements for most users and keeps usable for most administrators".
 +TOMOYO Linux is not a tool for security professional but for average users
-+and administrators.
++and administrators. We keep TOMOYO Linux understandable and customizable
++so that end users (i.e. administrators) can configure policy for their systems.
++
++TOMOYO Linux can authorize part of kernel resources which SELinux can
++and part of other resources which SELinux can't.
++
++Currently, TOMOYO Linux can authorize
++
++  * execve() of programs.
++  * open() of files for reading/writing.
++  * creat()/link()/rename()/unlink()/symlink()/mkfifo()/mksock()/mkblock()/
++    mkchar()/truncate()/mkdir()/rmdir() of files and directries
++    that are visible to userland process's namespace.
++  * namespace manipulation. (i.e. mount()/umount()/pivot_root())
++  * TCP/IP networking operations based on IPv4/v6 addresses and port numbers.
++    (Need to add LSM hooks for incoming connections/packets.)
++  * booleans for some operations. (Part of POSIX capability and TOMOYO Linux's
++    original capability.)
++  * signal transmissions. (Needs to add LSM hooks.)
++  * argv[0] passed to execve().
++  * environment variables' names passed to execve().
++
++TOMOYO Linux is purely restrictive. No requests which are denied by existent
++access control mechanisms (e.g. DAC) will be reversed by TOMOYO Linux.
++
++TOMOYO Linux is not intended to provide information flow control
++(in other words, analyze and restrict how information propagates).
++Controlling information flow is not the region of interest for TOMOYO Linux.
 +
 +3. Our Approach
 +
@@ -68,6 +98,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +This rule allows administrator distinguish and manage fine-grained context.
 +Domain transition forms tree structure like a directory tree of filesystems.
 +Each domain has different set of permissions that are essential for that domain.
++
++TOMOYO Linux's region of interest is how to minimize means granted to each PIH,
++although not all permissions TOMOYO Linux can authorize.
++
++The "learning mode" is primary source of policy. TOMOYO Linux depends on change
++of behavior to detect intruders. All unprecedented behaviors should be detected
++and rejected. TOMOYO Linux's power comes from
++"know all and understand what requests can happen within your system".
 +
 +4. Things you can do with TOMOYO Linux.
 +
