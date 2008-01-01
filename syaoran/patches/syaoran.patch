@@ -45,56 +45,69 @@ its attributes in addition to what tmpfs does.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- fs/ramfs/inode.c   |  101 ++++-
- fs/ramfs/syaoran.h | 1045 +++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 1139 insertions(+), 7 deletions(-)
+ fs/Kconfig         |   18 +
+ fs/ramfs/inode.c   |  230 ++++++++++++
+ fs/ramfs/syaoran.h |  945 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 1186 insertions(+), 7 deletions(-)
 
 --- linux-2.6-mm.orig/fs/ramfs/inode.c
 +++ linux-2.6-mm/fs/ramfs/inode.c
-@@ -35,6 +35,7 @@
- #include <linux/sched.h>
+@@ -36,6 +36,13 @@
  #include <asm/uaccess.h>
  #include "internal.h"
-+#include "syaoran.h"
  
++#define TMPFS_WITH_MAC    1
++#define TMPFS_WITHOUT_MAC 0
++#include <linux/quotaops.h>
++#ifdef CONFIG_SYAORAN
++#include "syaoran.h"
++#endif
++
  /* some random number */
  #define RAMFS_MAGIC	0x858458f6
-@@ -49,7 +50,8 @@ static struct backing_dev_info ramfs_bac
+ 
+@@ -49,7 +56,8 @@ static struct backing_dev_info ramfs_bac
  			  BDI_CAP_READ_MAP | BDI_CAP_WRITE_MAP | BDI_CAP_EXEC_MAP,
  };
  
 -struct inode *ramfs_get_inode(struct super_block *sb, int mode, dev_t dev)
 +struct inode *__ramfs_get_inode(struct super_block *sb, int mode, dev_t dev,
-+				const int mac)
++				const bool tmpfs_with_mac)
  {
  	struct inode * inode = new_inode(sb);
  
-@@ -65,10 +67,19 @@ struct inode *ramfs_get_inode(struct sup
+@@ -65,10 +73,23 @@ struct inode *ramfs_get_inode(struct sup
  		switch (mode & S_IFMT) {
  		default:
  			init_special_inode(inode, mode, dev);
-+			if (mac) {
++#ifdef CONFIG_SYAORAN
++			if (tmpfs_with_mac) {
 +				if (S_ISBLK(mode))
 +					inode->i_fop = &wrapped_def_blk_fops;
 +				else if (S_ISCHR(mode))
 +					inode->i_fop = &wrapped_def_chr_fops;
 +				inode->i_op = &syaoran_file_inode_operations;
 +			}
++#endif
  			break;
  		case S_IFREG:
  			inode->i_op = &ramfs_file_inode_operations;
  			inode->i_fop = &ramfs_file_operations;
-+			if (mac)
++#ifdef CONFIG_SYAORAN
++			if (tmpfs_with_mac)
 +				inode->i_op = &syaoran_file_inode_operations;
++#endif
  			break;
  		case S_IFDIR:
  			inode->i_op = &ramfs_dir_inode_operations;
-@@ -79,12 +90,19 @@ struct inode *ramfs_get_inode(struct sup
+@@ -79,12 +100,21 @@ struct inode *ramfs_get_inode(struct sup
  			break;
  		case S_IFLNK:
  			inode->i_op = &page_symlink_inode_operations;
-+			if (mac)
++#ifdef CONFIG_SYAORAN
++			if (tmpfs_with_mac)
 +				inode->i_op = &syaoran_symlink_inode_operations;
++#endif
  			break;
  		}
  	}
@@ -103,13 +116,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 +struct inode *ramfs_get_inode(struct super_block *sb, int mode, dev_t dev)
 +{
-+	return __ramfs_get_inode(sb, mode, dev, 0);
++	return __ramfs_get_inode(sb, mode, dev, TMPFS_WITHOUT_MAC);
 +}
 +
  /*
   * File creation. Allocate an inode, and we're done..
   */
-@@ -92,9 +110,17 @@ struct inode *ramfs_get_inode(struct sup
+@@ -92,9 +122,19 @@ struct inode *ramfs_get_inode(struct sup
  static int
  ramfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
  {
@@ -117,6 +130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct inode *inode;
  	int error = -ENOSPC;
  
++#ifdef CONFIG_SYAORAN
 +	/*** SYAORAN start. ***/
 +	if (dir->i_sb->s_op == &syaoran_ops) {
 +		if (syaoran_may_create_node(dentry, mode, dev) < 0)
@@ -124,15 +138,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		inode = syaoran_get_inode(dir->i_sb, mode, dev);
 +	/*** SYAORAN end. ***/
 +	} else
++#endif
 +		inode = ramfs_get_inode(dir->i_sb, mode, dev);
  	if (inode) {
  		if (dir->i_mode & S_ISGID) {
  			inode->i_gid = dir->i_gid;
-@@ -127,7 +153,14 @@ static int ramfs_symlink(struct inode * 
+@@ -127,7 +167,16 @@ static int ramfs_symlink(struct inode * 
  	struct inode *inode;
  	int error = -ENOSPC;
  
 -	inode = ramfs_get_inode(dir->i_sb, S_IFLNK|S_IRWXUGO, 0);
++#ifdef CONFIG_SYAORAN
 +	/*** SYAORAN start. ***/
 +	if (dir->i_sb->s_op == &syaoran_ops) {
 +		if (syaoran_may_create_node(dentry, S_IFLNK, 0) < 0)
@@ -140,11 +156,123 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		inode = syaoran_get_inode(dir->i_sb, S_IFLNK|S_IRWXUGO, 0);
 +	/*** SYAORAN end. ***/
 +	} else
++#endif
 +		inode = ramfs_get_inode(dir->i_sb, S_IFLNK|S_IRWXUGO, 0);
  	if (inode) {
  		int l = strlen(symname)+1;
  		error = page_symlink(inode, symname, l);
-@@ -146,13 +179,14 @@ static int ramfs_symlink(struct inode * 
+@@ -143,16 +192,125 @@ static int ramfs_symlink(struct inode * 
+ 	return error;
+ }
+ 
++static int ramfs_link(struct dentry *old_dentry, struct inode *dir,
++			struct dentry *dentry)
++{
++#ifdef CONFIG_SYAORAN
++	struct inode *inode;
++	if (dir->i_sb->s_op != &syaoran_ops)
++		goto ok;
++	/*** SYAORAN start. ***/
++	inode = old_dentry->d_inode;
++	if (!inode ||
++	    syaoran_may_create_node(dentry, inode->i_mode, inode->i_rdev))
++		return -EPERM;
++	/*** SYAORAN end. ***/
++ok:
++#endif
++	return simple_link(old_dentry, dir, dentry);
++}
++
++static int ramfs_unlink(struct inode *dir, struct dentry *dentry)
++{
++#ifdef CONFIG_SYAORAN
++	if (dir->i_sb->s_op != &syaoran_ops)
++		goto ok;
++	/*** SYAORAN start. ***/
++	if (syaoran_may_modify_node(dentry, MAY_DELETE))
++		return -EPERM;
++	/*** SYAORAN end. ***/
++ok:
++#endif
++	return simple_unlink(dir, dentry);
++}
++
++static int ramfs_rename(struct inode *old_dir, struct dentry *old_dentry,
++			  struct inode *new_dir, struct dentry *new_dentry)
++{
++#ifdef CONFIG_SYAORAN
++	struct inode *inode;
++	if (old_dir->i_sb->s_op != &syaoran_ops)
++		goto ok;
++	/*** SYAORAN start. ***/
++	inode = old_dentry->d_inode;
++	if (!inode || syaoran_may_modify_node(old_dentry, MAY_DELETE) ||
++	    syaoran_may_create_node(new_dentry, inode->i_mode, inode->i_rdev))
++		return -EPERM;
++	/*** SYAORAN end. ***/
++ok:
++#endif
++	return simple_rename(old_dir, old_dentry, new_dir, new_dentry);
++}
++
++static int ramfs_rmdir(struct inode *dir, struct dentry *dentry)
++{
++#ifdef CONFIG_SYAORAN
++	if (dir->i_sb->s_op != &syaoran_ops)
++		goto ok;
++	/*** SYAORAN start. ***/
++	if (syaoran_may_modify_node(dentry, MAY_DELETE))
++		return -EPERM;
++	/*** SYAORAN end. ***/
++ok:
++#endif
++	return simple_rmdir(dir, dentry);
++}
++
++/*
++ * Original tmpfs doesn't set ramfs_dir_inode_operations.setattr field.
++ * Now I'm setting the field to share tmpfs/rootfs/syaoran code.
++ * Side effect is that the checking order of notify_change() has changed from
++ *  inode_change_ok() -> security_inode_setattr() ->
++ *                                     DQUOT_TRANSFER() -> inode_setattr()
++ * to
++ *  security_inode_setattr() -> inode_change_ok() ->
++ *                                     DQUOT_TRANSFER() -> inode_setattr()
++ *
++ * Is this change problematic? If problematic, I'll stop sharing the field.
++ */
++static int ramfs_setattr(struct dentry *dentry, struct iattr *attr)
++{
++	unsigned int ia_valid;
++	struct inode *inode = dentry->d_inode;
++	int error = inode_change_ok(inode, attr);
++#ifdef CONFIG_SYAORAN
++	unsigned int flags = 0;
++	if (inode->i_sb->s_op != &syaoran_ops)
++		goto ok;
++	/*** SYAORAN start. ***/
++	ia_valid = attr->ia_valid;
++	if (ia_valid & (ATTR_UID | ATTR_GID))
++		flags |= MAY_CHOWN;
++	if (ia_valid & ATTR_MODE)
++		flags |= MAY_CHMOD;
++	if (syaoran_may_modify_node(dentry, flags))
++		return -EPERM;
++	/*** SYAORAN end. ***/
++ok:
++#else
++	ia_valid = attr->ia_valid;
++#endif
++	if (!error) {
++		if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
++		    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
++			error = DQUOT_TRANSFER(inode, attr) ? -EDQUOT : 0;
++		if (!error)
++			error = inode_setattr(inode, attr);
++	}
++	return error;
++}
++
  static const struct inode_operations ramfs_dir_inode_operations = {
  	.create		= ramfs_create,
  	.lookup		= simple_lookup,
@@ -163,10 +291,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  static const struct super_operations ramfs_ops = {
-@@ -184,6 +218,35 @@ static int ramfs_fill_super(struct super
- 	return 0;
+@@ -208,6 +366,7 @@ static struct file_system_type rootfs_fs
+ 	.kill_sb	= kill_litter_super,
+ };
+ 
++
+ static int __init init_ramfs_fs(void)
+ {
+ 	return register_filesystem(&ramfs_fs_type);
+@@ -237,3 +396,60 @@ int __init init_rootfs(void)
  }
  
+ MODULE_LICENSE("GPL");
++
++#ifdef CONFIG_SYAORAN
 +static int syaoran_fill_super(struct super_block *sb, void *data, int silent)
 +{
 +	struct inode *inode;
@@ -196,13 +334,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
- int ramfs_get_sb(struct file_system_type *fs_type,
- 	int flags, const char *dev_name, void *data, struct vfsmount *mnt)
- {
-@@ -197,6 +260,13 @@ static int rootfs_get_sb(struct file_sys
- 			    mnt);
- }
- 
 +static int syaoran_get_sb(struct file_system_type *fs_type, int flags,
 +			  const char *dev_name, void *data,
 +			  struct vfsmount *mnt)
@@ -210,25 +341,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return get_sb_nodev(fs_type, flags, data, syaoran_fill_super, mnt);
 +}
 +
- static struct file_system_type ramfs_fs_type = {
- 	.name		= "ramfs",
- 	.get_sb		= ramfs_get_sb,
-@@ -207,6 +277,11 @@ static struct file_system_type rootfs_fs
- 	.get_sb		= rootfs_get_sb,
- 	.kill_sb	= kill_litter_super,
- };
 +static struct file_system_type syaoran_fs_type = {
 +	.name           = "syaoran",
 +	.get_sb         = syaoran_get_sb,
 +	.kill_sb        = kill_litter_super,
 +};
- 
- static int __init init_ramfs_fs(void)
- {
-@@ -237,3 +312,15 @@ int __init init_rootfs(void)
- }
- 
- MODULE_LICENSE("GPL");
 +
 +static int __init init_syaoran_fs(void)
 +{
@@ -241,9 +358,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +module_init(init_syaoran_fs);
 +module_exit(exit_syaoran_fs);
++
++#endif
 --- /dev/null
 +++ linux-2.6-mm/fs/ramfs/syaoran.h
-@@ -0,0 +1,1045 @@
+@@ -0,0 +1,945 @@
 +/*
 + * fs/ramfs/syaoran.h
 + *
@@ -256,7 +375,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#include <linux/namei.h>
 +#include <linux/mm.h>
-+#include <linux/quotaops.h>
 +
 +#define list_for_each_cookie(pos, cookie, head) \
 +	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
@@ -286,12 +404,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int syaoran_create_tracelog(struct super_block *sb,
 +				   const char *filename);
 +static struct inode *__ramfs_get_inode(struct super_block *sb, int mode,
-+				       dev_t dev, int mac);
++				       dev_t dev, bool tmpfs_with_mac);
 +
 +static struct inode *syaoran_get_inode(struct super_block *sb, int mode,
 +				       dev_t dev)
 +{
-+	return __ramfs_get_inode(sb, mode, dev, 1);
++	return __ramfs_get_inode(sb, mode, dev, TMPFS_WITH_MAC);
 +}
 +
 +static struct super_operations syaoran_ops = {
@@ -301,24 +419,22 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +};
 +
 +/* Wraps blkdev_open() to trace open operation for block devices. */
-+static int (*org_blkdev_open) (struct inode *inode, struct file *filp);
 +static struct file_operations wrapped_def_blk_fops;
 +
 +static int wrapped_blkdev_open(struct inode *inode, struct file *filp)
 +{
-+	int error = org_blkdev_open(inode, filp);
++	int error = def_blk_fops.open(inode, filp);
 +	if (error != -ENXIO)
 +		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
 +	return error;
 +}
 +
 +/* Wraps chrdev_open() to trace open operation for character devices. */
-+static int (*org_chrdev_open) (struct inode *inode, struct file *filp);
 +static struct file_operations wrapped_def_chr_fops;
 +
 +static int wrapped_chrdev_open(struct inode *inode, struct file *filp)
 +{
-+	int error = org_chrdev_open(inode, filp);
++	int error = def_chr_fops.open(inode, filp);
 +	if (error != -ENXIO)
 +		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
 +	return error;
@@ -578,102 +694,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				   dentry->d_inode->i_rdev, flags);
 +}
 +
-+static int ramfs_link(struct dentry *old_dentry, struct inode *dir,
-+			struct dentry *dentry)
-+{
-+	struct inode *inode;
-+	if (dir->i_sb->s_op != &syaoran_ops)
-+		goto ok;
-+	/*** SYAORAN start. ***/
-+	inode = old_dentry->d_inode;
-+	if (!inode ||
-+	    syaoran_may_create_node(dentry, inode->i_mode, inode->i_rdev))
-+		return -EPERM;
-+	/*** SYAORAN end. ***/
-+ok:
-+	return simple_link(old_dentry, dir, dentry);
-+}
-+
-+static int ramfs_unlink(struct inode *dir, struct dentry *dentry)
-+{
-+	if (dir->i_sb->s_op != &syaoran_ops)
-+		goto ok;
-+	/*** SYAORAN start. ***/
-+	if (syaoran_may_modify_node(dentry, MAY_DELETE))
-+		return -EPERM;
-+	/*** SYAORAN end. ***/
-+ok:
-+	return simple_unlink(dir, dentry);
-+}
-+
-+static int ramfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-+			  struct inode *new_dir, struct dentry *new_dentry)
-+{
-+	struct inode *inode;
-+	if (old_dir->i_sb->s_op != &syaoran_ops)
-+		goto ok;
-+	/*** SYAORAN start. ***/
-+	inode = old_dentry->d_inode;
-+	if (!inode || syaoran_may_modify_node(old_dentry, MAY_DELETE) ||
-+	    syaoran_may_create_node(new_dentry, inode->i_mode, inode->i_rdev))
-+		return -EPERM;
-+	/*** SYAORAN end. ***/
-+ok:
-+	return simple_rename(old_dir, old_dentry, new_dir, new_dentry);
-+}
-+
-+static int ramfs_rmdir(struct inode *dir, struct dentry *dentry)
-+{
-+	if (dir->i_sb->s_op != &syaoran_ops)
-+		goto ok;
-+	/*** SYAORAN start. ***/
-+	if (syaoran_may_modify_node(dentry, MAY_DELETE))
-+		return -EPERM;
-+	/*** SYAORAN end. ***/
-+ok:
-+	return simple_rmdir(dir, dentry);
-+}
-+
-+/*
-+ * Original tmpfs doesn't set ramfs_dir_inode_operations.setattr field.
-+ * Now I'm setting the field to share tmpfs/rootfs/SYAORAN code.
-+ * Side effect is that the checking order of notify_change() has changed from
-+ *  inode_change_ok() -> security_inode_setattr() ->
-+ *                                     DQUOT_TRANSFER() -> inode_setattr()
-+ * to
-+ *  security_inode_setattr() -> inode_change_ok() ->
-+ *                                     DQUOT_TRANSFER() -> inode_setattr()
-+ *
-+ * Is this change problematic? If problematic, I'll stop sharing the field.
-+ */
-+static int ramfs_setattr(struct dentry *dentry, struct iattr *attr)
-+{
-+	unsigned int ia_valid;
-+	unsigned int flags = 0;
-+	struct inode *inode = dentry->d_inode;
-+	int error = inode_change_ok(inode, attr);
-+	if (inode->i_sb->s_op != &syaoran_ops)
-+		goto ok;
-+	/*** SYAORAN start. ***/
-+	ia_valid = attr->ia_valid;
-+	if (ia_valid & (ATTR_UID | ATTR_GID))
-+		flags |= MAY_CHOWN;
-+	if (ia_valid & ATTR_MODE)
-+		flags |= MAY_CHMOD;
-+	if (syaoran_may_modify_node(dentry, flags))
-+		return -EPERM;
-+	/*** SYAORAN end. ***/
-+ok:
-+	if (!error) {
-+		if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
-+		    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
-+			error = DQUOT_TRANSFER(inode, attr) ? -EDQUOT : 0;
-+		if (!error)
-+			error = inode_setattr(inode, attr);
-+	}
-+	return error;
-+}
-+
++static int ramfs_setattr(struct dentry *dentry, struct iattr *attr);
 +static struct inode_operations syaoran_file_inode_operations = {
 +	.getattr        = simple_getattr,
 +	.setattr        = ramfs_setattr,
@@ -1093,10 +1114,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -EINVAL;
 +	}
 +	wrapped_def_blk_fops = def_blk_fops;
-+	org_blkdev_open = wrapped_def_blk_fops.open;
 +	wrapped_def_blk_fops.open = wrapped_blkdev_open;
 +	wrapped_def_chr_fops = def_chr_fops;
-+	org_chrdev_open = wrapped_def_chr_fops.open;
 +	wrapped_def_chr_fops.open = wrapped_chrdev_open;
 +	f = open_pathname(AT_FDCWD, filename, O_RDONLY, 0600);
 +	if (IS_ERR(f)) {
@@ -1289,3 +1308,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	dput(base);
 +	return error;
 +}
+--- linux-2.6-mm.orig/fs/Kconfig
++++ linux-2.6-mm/fs/Kconfig
+@@ -978,6 +978,24 @@ config TMPFS_POSIX_ACL
+ 
+ 	  If you don't know what Access Control Lists are, say N.
+ 
++config SYAORAN
++	bool "Tamper-proof device filesystem support"
++	depends on TMPFS
++	help
++	  If you mount this filesystem for /dev directory instead of tmpfs,
++	  you can guarantee the following thing.
++
++	  "Applications using well-known device locations under /dev
++	   get the device they want" (e.g. an application that accesses
++	   /dev/null can always get a character special device
++	   with major=1 and minor=3).
++
++	  The list of possible combinations of filename and its attributes
++	  that can exist on this filesystem is defined at mount time
++	  using a configuration file.
++
++	  If unsure, say N.
++
+ config HUGETLBFS
+ 	bool "HugeTLB file system support"
+ 	depends on X86 || IA64 || PPC64 || SPARC64 || (SUPERH && MMU) || BROKEN
