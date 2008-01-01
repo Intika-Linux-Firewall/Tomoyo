@@ -46,8 +46,8 @@ its attributes in addition to what tmpfs does.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  fs/ramfs/inode.c   |  101 ++++-
- fs/ramfs/syaoran.h | 1066 +++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 1160 insertions(+), 7 deletions(-)
+ fs/ramfs/syaoran.h | 1045 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 1139 insertions(+), 7 deletions(-)
 
 --- linux-2.6-mm.orig/fs/ramfs/inode.c
 +++ linux-2.6-mm/fs/ramfs/inode.c
@@ -243,15 +243,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +module_exit(exit_syaoran_fs);
 --- /dev/null
 +++ linux-2.6-mm/fs/ramfs/syaoran.h
-@@ -0,0 +1,1066 @@
+@@ -0,0 +1,1045 @@
 +/*
 + * fs/ramfs/syaoran.h
 + *
 + * Implementation of the Tamper-Proof Device Filesystem.
 + *
-+ * Copyright (C) 2005-2007  NTT DATA CORPORATION
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 1.5.3-pre   2007/12/23
++ * Version: 1.5.3-pre   2008/01/01
 + */
 +
 +#include <linux/namei.h>
@@ -1070,74 +1070,53 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int syaoran_initialize(struct super_block *sb, void *data)
 +{
 +	int error = -EINVAL;
++	struct file *f;
++	char *filename = (char *) data;
++	bool is_permissive_mode = 0;
++	struct syaoran_sb_info *p;
 +	static bool first = 1;
 +	if (first) {
 +		first = 0;
-+		printk(KERN_INFO "SYAORAN: 1.5.3-pre   2007/12/23\n");
++		printk(KERN_INFO "SYAORAN: 1.5.3-pre   2008/01/01\n");
 +	}
-+	{
-+		struct inode *inode = new_inode(sb);
-+		if (!inode)
-+			return -EINVAL;
-+		/* Create /dev/ram0 to get the value of blkdev_open(). */
-+		init_special_inode(inode, S_IFBLK | 0666, MKDEV(1, 0));
-+		wrapped_def_blk_fops = *inode->i_fop;
-+		iput(inode);
-+		org_blkdev_open = wrapped_def_blk_fops.open;
-+		wrapped_def_blk_fops.open = wrapped_blkdev_open;
-+	}
-+	{
-+		struct inode *inode = new_inode(sb);
-+		if (!inode)
-+			return -EINVAL;
-+		/* Create /dev/null to get the value of chrdev_open(). */
-+		init_special_inode(inode, S_IFCHR | 0666, MKDEV(1, 3));
-+		wrapped_def_chr_fops = *inode->i_fop;
-+		iput(inode);
-+		org_chrdev_open = wrapped_def_chr_fops.open;
-+		wrapped_def_chr_fops.open = wrapped_chrdev_open;
-+	}
-+	if (data) {
-+		struct file *f;
-+		char *filename = (char *) data;
-+		bool is_permissive_mode = 0;
-+		if (strncmp(filename, "accept=", 7) == 0) {
-+			filename += 7;
-+			is_permissive_mode = 1;
-+		} else if (strncmp(filename, "enforce=", 8) == 0) {
-+			filename += 8;
-+			is_permissive_mode = 0;
-+		} else {
-+			printk(KERN_INFO
-+			       "SYAORAN: Missing 'accept=' or 'enforce='.\n");
-+			return -EINVAL;
-+		}
-+		f = open_pathname(AT_FDCWD, filename, O_RDONLY, 0600);
-+		if (!IS_ERR(f)) {
-+			struct syaoran_sb_info *p;
-+			if (!S_ISREG(f->f_dentry->d_inode->i_mode))
-+				goto out;
-+			p = kzalloc(sizeof(*p), GFP_KERNEL);
-+			if (!p)
-+				goto out;
-+			p->is_permissive_mode = is_permissive_mode;
-+			sb->s_fs_info = p;
-+			INIT_LIST_HEAD(&((struct syaoran_sb_info *)
-+					 sb->s_fs_info)->list);
-+			printk(KERN_INFO "SYAORAN: Reading '%s'\n", filename);
-+			error = read_config_file(f, sb);
-+out:
-+			if (error)
-+				printk(KERN_INFO "SYAORAN: Can't read '%s'\n",
-+				       filename);
-+			filp_close(f, NULL);
-+		} else {
-+			printk(KERN_INFO "SYAORAN: Can't open '%s'\n",
-+			       filename);
-+		}
-+	} else {
++	if (!filename) {
 +		printk(KERN_INFO "SYAORAN: Missing config-file path.\n");
++		return -EINVAL;
++	} else if (strncmp(filename, "accept=", 7) == 0) {
++		filename += 7;
++		is_permissive_mode = 1;
++	} else if (strncmp(filename, "enforce=", 8) == 0) {
++		filename += 8;
++		is_permissive_mode = 0;
++	} else {
++		printk(KERN_INFO "SYAORAN: Missing 'accept=' or 'enforce='.\n");
++		return -EINVAL;
 +	}
++	wrapped_def_blk_fops = def_blk_fops;
++	org_blkdev_open = wrapped_def_blk_fops.open;
++	wrapped_def_blk_fops.open = wrapped_blkdev_open;
++	wrapped_def_chr_fops = def_chr_fops;
++	org_chrdev_open = wrapped_def_chr_fops.open;
++	wrapped_def_chr_fops.open = wrapped_chrdev_open;
++	f = open_pathname(AT_FDCWD, filename, O_RDONLY, 0600);
++	if (IS_ERR(f)) {
++		printk(KERN_INFO "SYAORAN: Can't open '%s'\n", filename);
++		return -EINVAL;
++	}
++	if (!S_ISREG(f->f_dentry->d_inode->i_mode))
++		goto out;
++	p = kzalloc(sizeof(*p), GFP_KERNEL);
++	if (!p)
++		goto out;
++	p->is_permissive_mode = is_permissive_mode;
++	sb->s_fs_info = p;
++	INIT_LIST_HEAD(&((struct syaoran_sb_info *) sb->s_fs_info)->list);
++	printk(KERN_INFO "SYAORAN: Reading '%s'\n", filename);
++	error = read_config_file(f, sb);
++out:
++	if (error)
++		printk(KERN_INFO "SYAORAN: Can't read '%s'\n", filename);
++	filp_close(f, NULL);
 +	return error;
 +}
 +
