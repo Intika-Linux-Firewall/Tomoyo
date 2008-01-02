@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Free Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -31,7 +31,7 @@
 int SAKURA_MayMount(struct nameidata *nd)
 {
 	int flag = 0;
-	const unsigned int mode = CheckCCSFlags(CCS_SAKURA_DENY_CONCEAL_MOUNT);
+	const u8 mode = CheckCCSFlags(CCS_SAKURA_DENY_CONCEAL_MOUNT);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
 	struct namespace *namespace = current->namespace;
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
