@@ -873,6 +873,11 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				u8 bit = head->read_bit;
 				while (bit < MAX_SINGLE_PATH_OPERATION) {
 					if (perm & (1 << bit)) {
+						/* Print "read/write" instead of "read" and "write". */
+						if ((bit == TYPE_READ_ACL || bit == TYPE_WRITE_ACL) && (perm & (1 << TYPE_READ_WRITE_ACL))) {
+							bit++;
+							continue;
+						}
 						pos = head->read_avail;
 						if (io_printf(head, "allow_%s %s%s ", sp_operation2keyword(bit),
 							      b ? "@" : "", b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)

@@ -117,21 +117,31 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 
 /*************************  Index numbers for File Controls.  *************************/
 
-#define TYPE_EXECUTE_ACL           0
-#define TYPE_READ_ACL              1
-#define TYPE_WRITE_ACL             2
-#define TYPE_CREATE_ACL            3
-#define TYPE_UNLINK_ACL            4
-#define TYPE_MKDIR_ACL             5
-#define TYPE_RMDIR_ACL             6
-#define TYPE_MKFIFO_ACL            7
-#define TYPE_MKSOCK_ACL            8
-#define TYPE_MKBLOCK_ACL           9
-#define TYPE_MKCHAR_ACL           10
-#define TYPE_TRUNCATE_ACL         11
-#define TYPE_SYMLINK_ACL          12
-#define TYPE_REWRITE_ACL          13
-#define MAX_SINGLE_PATH_OPERATION 14
+/*
+ * TYPE_READ_WRITE_ACL is special. TYPE_READ_WRITE_ACL is automatically set
+ * if both TYPE_READ_ACL and TYPE_WRITE_ACL are set. Both TYPE_READ_ACL and
+ * TYPE_WRITE_ACL are automatically set if TYPE_READ_WRITE_ACL is set.
+ * TYPE_READ_WRITE_ACL is automatically cleared if either TYPE_READ_ACL or
+ * TYPE_WRITE_ACL is cleared. Both TYPE_READ_ACL and TYPE_WRITE_ACL are
+ * automatically cleared if TYPE_READ_WRITE_ACL is cleared.
+ */
+
+#define TYPE_READ_WRITE_ACL        0
+#define TYPE_EXECUTE_ACL           1
+#define TYPE_READ_ACL              2
+#define TYPE_WRITE_ACL             3
+#define TYPE_CREATE_ACL            4
+#define TYPE_UNLINK_ACL            5
+#define TYPE_MKDIR_ACL             6
+#define TYPE_RMDIR_ACL             7
+#define TYPE_MKFIFO_ACL            8
+#define TYPE_MKSOCK_ACL            9
+#define TYPE_MKBLOCK_ACL          10
+#define TYPE_MKCHAR_ACL           11
+#define TYPE_TRUNCATE_ACL         12
+#define TYPE_SYMLINK_ACL          13
+#define TYPE_REWRITE_ACL          14
+#define MAX_SINGLE_PATH_OPERATION 15
 
 #define TYPE_LINK_ACL             0
 #define TYPE_RENAME_ACL           1
