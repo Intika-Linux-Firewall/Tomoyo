@@ -249,16 +249,6 @@ struct domain_info {
 
 #define MAX_PROFILES 256
 
-struct file_acl_record {
-	struct acl_info head;                       /* type = TYPE_FILE_ACL        */
-	u8 perm;
-	bool u_is_group;
-	union {
-		const struct path_info *filename;     /* Pointer to single pathname. */
-		const struct path_group_entry *group; /* Pointer to pathname group.  */
-	} u;
-};
-
 struct argv0_acl_record {
 	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
 	const struct path_info *filename; /* Pointer to single pathname. */

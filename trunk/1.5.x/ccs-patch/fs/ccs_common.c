@@ -866,13 +866,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 			if (ptr->is_deleted) continue;
 			pos = head->read_avail;
 			acl_type = ptr->type;
-			if (acl_type == TYPE_FILE_ACL) {
-				struct file_acl_record *ptr2 = container_of(ptr, struct file_acl_record, head);
-				const unsigned char b = ptr2->u_is_group;
-				if (io_printf(head, "%d %s%s", ptr2->perm,
-					      b ? "@" : "",
-					      b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)) goto print_acl_rollback;
-			} else if (acl_type == TYPE_SINGLE_PATH_ACL) {
+			if (acl_type == TYPE_SINGLE_PATH_ACL) {
 				struct single_acl_record *ptr2 = container_of(ptr, struct single_acl_record, head);
 				const bool b = ptr2->u_is_group;
 				const u16 perm = ptr2->perm;
