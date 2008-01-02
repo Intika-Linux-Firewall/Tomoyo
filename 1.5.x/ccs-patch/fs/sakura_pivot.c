@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Free Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -72,7 +72,7 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 {
 	int error = -EPERM;
 	char *old_root, *new_root;
-	const unsigned int mode = CheckCCSFlags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
+	const u8 mode = CheckCCSFlags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
 	if (!mode) return 0;
 	old_root = realpath_from_dentry(old_nd->dentry, old_nd->mnt);
 	new_root = realpath_from_dentry(new_nd->dentry, new_nd->mnt);

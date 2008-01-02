@@ -1246,7 +1246,7 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.3-pre   2007/12/18\n");
+	printk("SAKURA: 1.5.3-pre   2008/01/02\n");
 #endif
 #ifdef CONFIG_TOMOYO
 	printk("TOMOYO: 1.5.3-pre   2008/01/02\n");
