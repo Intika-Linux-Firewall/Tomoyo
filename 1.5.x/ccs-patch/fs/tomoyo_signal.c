@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -26,7 +26,7 @@ extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const bool is_granted, const u8 profile, const unsigned int mode)
+static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const bool is_granted, const u8 profile, const u8 mode)
 {
 	char *buf;
 	int len;
@@ -92,7 +92,7 @@ int CheckSignalACL(const int sig, const int pid)
 	struct acl_info *ptr;
 	const u16 hash = sig;
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL); 
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL); 
 	const bool is_enforce = (mode == 3);
 	bool found = 0;
 	if (!mode) return 0;

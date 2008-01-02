@@ -503,7 +503,7 @@ const char *GetAltExec(void)
 /*************************  DOMAIN POLICY HANDLER  *************************/
 
 /* Check whether the given access control is enabled. */
-unsigned int CheckCCSFlags(const unsigned int index)
+unsigned int CheckCCSFlags(const u8 index)
 {
 	const u8 profile = current->domain_info->profile;
 	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
@@ -919,7 +919,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				while (bit < TOMOYO_MAX_CAPABILITY_INDEX) {
 					if (capability & (1 << bit)) {
 						pos = head->read_avail;
-						if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(bit)) ||
+						if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", cap_operation2keyword(bit)) ||
 						    DumpCondition(head, ptr->cond)) {
 							head->read_bit = bit;
 							head->read_avail = pos;
@@ -931,7 +931,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				head->read_bit = 0;
 			} else if (acl_type == TYPE_IP_NETWORK_ACL) {
 				struct ip_network_acl_record *ptr2 = container_of(ptr, struct ip_network_acl_record, head);
-				if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr2->operation_type))) goto print_acl_rollback;
+				if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", net_operation2keyword(ptr2->operation_type))) goto print_acl_rollback;
 				switch (ptr2->record_type) {
 				case IP_RECORD_TYPE_ADDRESS_GROUP:
 					if (io_printf(head, "@%s", ptr2->u.group->group_name->name)) goto print_acl_rollback;
@@ -1071,7 +1071,7 @@ static int AddExceptionPolicy(struct io_buffer *head)
 	} else if (strncmp(data, KEYWORD_ALLOW_ENV, KEYWORD_ALLOW_ENV_LEN) == 0) {
 		return AddGloballyUsableEnvPolicy(data + KEYWORD_ALLOW_ENV_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_FILE_PATTERN, KEYWORD_FILE_PATTERN_LEN) == 0) {
-		return AddPatternPolicy(data + KEYWORD_FILE_PATTERN_LEN, is_delete);
+		return AddFilePatternPolicy(data + KEYWORD_FILE_PATTERN_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_PATH_GROUP, KEYWORD_PATH_GROUP_LEN) == 0) {
 		return AddPathGroupPolicy(data + KEYWORD_PATH_GROUP_LEN, is_delete);
 	} else if (strncmp(data, KEYWORD_DENY_REWRITE, KEYWORD_DENY_REWRITE_LEN) == 0) {
@@ -1108,7 +1108,7 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 			if (ReadAggregatorPolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 7;
 		case 7:
-			if (ReadPatternPolicy(head)) break;
+			if (ReadFilePatternPolicy(head)) break;
 			head->read_var2 = NULL; head->read_step = 8;
 		case 8:
 			if (ReadNoRewritePolicy(head)) break;

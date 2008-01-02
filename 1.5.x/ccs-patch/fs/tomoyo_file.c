@@ -74,13 +74,13 @@ static const char *dp_keyword[MAX_DOUBLE_PATH_OPERATION] = {
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
-const char *sp_operation2keyword(const unsigned int operation)
+const char *sp_operation2keyword(const u8 operation)
 {
 	return (operation < MAX_SINGLE_PATH_OPERATION)
 		? sp_keyword[operation] : NULL;
 }
 
-const char *dp_operation2keyword(const unsigned int operation)
+const char *dp_operation2keyword(const u8 operation)
 {
 	return (operation < MAX_DOUBLE_PATH_OPERATION)
 		? dp_keyword[operation] : NULL;
@@ -122,18 +122,7 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditFileLog(const struct path_info *filename, const u8 perm, const bool is_granted, const u8 profile, const unsigned int mode)
-{
-	char *buf;
-	int len;
-	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
-	len = filename->total_len + 8;
-	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
-	snprintf(buf + strlen(buf), len - strlen(buf) - 1, "%d %s\n", perm, filename->name);
-	return WriteAuditLog(buf, is_granted);
-}
-
-static int AuditWriteLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const bool is_granted, const u8 profile, const unsigned int mode)
+static int AuditFileLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const bool is_granted, const u8 profile, const u8 mode)
 {
 	char *buf;
 	int len;
@@ -310,7 +299,7 @@ int ReadPathGroupPolicy(struct io_buffer *head)
 
 static LIST1_HEAD(pattern_list);
 
-static int AddPatternEntry(const char *pattern, const bool is_delete)
+static int AddFilePatternEntry(const char *pattern, const bool is_delete)
 {
 	struct pattern_entry *new_entry, *ptr;
 	static DEFINE_MUTEX(lock);
@@ -339,7 +328,7 @@ static int AddPatternEntry(const char *pattern, const bool is_delete)
 	return error;
 }
 
-static const struct path_info *GetPattern(const struct path_info *filename)
+static const struct path_info *GetFilePattern(const struct path_info *filename)
 {
 	struct pattern_entry *ptr;
 	const struct path_info *pattern = NULL;
@@ -358,12 +347,12 @@ static const struct path_info *GetPattern(const struct path_info *filename)
 	return filename;
 }
 
-int AddPatternPolicy(char *pattern, const bool is_delete)
+int AddFilePatternPolicy(char *pattern, const bool is_delete)
 {
-	return AddPatternEntry(pattern, is_delete);
+	return AddFilePatternEntry(pattern, is_delete);
 }
 
-int ReadPatternPolicy(struct io_buffer *head)
+int ReadFilePatternPolicy(struct io_buffer *head)
 {
 	struct list1_head *pos;
 	list1_for_each_cookie(pos, head->read_var2, &pattern_list) {
@@ -444,10 +433,8 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 		printk(KERN_DEBUG "%s: Invalid permission '%d %s'\n", __FUNCTION__, perm, filename);
 		return -EINVAL;
 	}
-	if (filename[0] != '@') {
-		if (strendswith(filename, "/")) {
-			return 0; /* Valid permissions for directory are only 'allow_mkdir' and 'allow_rmdir'. */
-		}
+	if (filename[0] != '@' && strendswith(filename, "/")) {
+		return 0; /* Valid permissions for directory are only 'allow_mkdir' and 'allow_rmdir'. */
 	}
 	if (perm & 4) AddSinglePathACL(TYPE_READ_ACL, filename, domain, condition, is_delete);
 	if (perm & 2) AddSinglePathACL(TYPE_WRITE_ACL, filename, domain, condition, is_delete);
@@ -481,22 +468,31 @@ static int CheckFileACL(const struct path_info *filename, const u8 operation, st
 	return -EPERM;
 }
 
-static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const char *operation, struct obj_info *obj, const u8 profile, const unsigned int mode)
+static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const char *operation, struct obj_info *obj, const u8 profile, const u8 mode)
 {
 	int error = 0;
 	if (!filename) return 0;
 	error = CheckFileACL(filename, perm, obj);
-	AuditFileLog(filename, perm, !error, profile, mode);
+	if (perm & 4) AuditFileLog("read", filename, NULL, !error, profile, mode);
+	if (perm & 2) AuditFileLog("write", filename, NULL, !error, profile, mode);
+	if (perm & 1) AuditFileLog("execute", filename, NULL, !error, profile, mode);
 	if (error) {
 		struct domain_info * const domain = current->domain_info;
 		const bool is_enforce = (mode == 3);
 		if (TomoyoVerboseMode()) {
-			printk("TOMOYO-%s: Access %d(%s) to %s denied for %s\n", GetMSG(is_enforce), perm, operation, filename->name, GetLastName(domain));
+			if (perm & 4) printk("TOMOYO-%s: Access 'read(%s) %s denied for %s\n", GetMSG(is_enforce), operation, filename->name, GetLastName(domain));
+			if (perm & 2) printk("TOMOYO-%s: Access 'write(%s) %s denied for %s\n", GetMSG(is_enforce), operation, filename->name, GetLastName(domain));
+			if (perm & 1) printk("TOMOYO-%s: Access 'execute(%s) %s denied for %s\n", GetMSG(is_enforce), operation, filename->name, GetLastName(domain));
 		}
-		if (is_enforce) error = CheckSupervisor("%s\n%d %s\n", domain->domainname->name, perm, filename->name);
-		else if (mode == 1 && CheckDomainQuota(domain)) {
+		if (is_enforce) {
+			int error2 = 0;
+			if (perm & 4) error2 |= CheckSupervisor("%s\nallow_read %s\n", domain->domainname->name, filename->name);
+			if (perm & 2) error2 |= CheckSupervisor("%s\nallow_write %s\n", domain->domainname->name, filename->name);
+			if (perm & 1) error2 |= CheckSupervisor("%s\nallow_execute %s\n", domain->domainname->name, filename->name);
+			if (!error2) error = 0;
+		} else if (mode == 1 && CheckDomainQuota(domain)) {
 			/* Don't use patterns if execution bit is on. */
-			const struct path_info *patterned_file = ((perm & 1) == 0) ? GetPattern(filename) : filename;
+			const struct path_info *patterned_file = ((perm & 1) == 0) ? GetFilePattern(filename) : filename;
 			AddFileACL(patterned_file->name, perm, domain, NULL, 0);
 		}
 		if (!is_enforce) error = 0;
@@ -556,7 +552,7 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 			if (ptr->type == TYPE_SINGLE_PATH_ACL && ptr->cond == condition) {
 				if (acl->u.filename == saved_filename) {
 					acl->perm |= perm;
-					/* Found. Nothing to do. */
+					UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 					error = 0;
 					goto out;
 				}
@@ -577,6 +573,7 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 			if (ptr->type != TYPE_SINGLE_PATH_ACL || ptr->cond != condition) continue;
 			if (acl->u.filename != saved_filename) continue;
 			acl->perm &= ~perm;
+			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 			error = 0;
 			break;
 		}
@@ -617,7 +614,7 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 			if (ptr->type == TYPE_DOUBLE_PATH_ACL && ptr->cond == condition) {
 				if (acl->u1.filename1 == saved_filename1 && acl->u2.filename2 == saved_filename2) {
 					acl->perm |= perm;
-					/* Found. Nothing to do. */
+					UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 					error = 0;
 					goto out;
 				}
@@ -640,6 +637,7 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 			if (ptr->type != TYPE_DOUBLE_PATH_ACL || ptr->cond != condition) continue;
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
 			acl->perm &= ~perm;
+			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 			error = 0;
 			break;
 		}
@@ -673,11 +671,12 @@ static int CheckDoublePathACL(const u8 type, const struct path_info *filename1, 
 {
 	const struct domain_info *domain = current->domain_info;
 	struct acl_info *ptr;
+	const u8 perm = 1 << type;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct double_acl_record *acl;
 		acl = container_of(ptr, struct double_acl_record, head);
-		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
+		if (ptr->type != TYPE_DOUBLE_PATH_ACL || !(acl->perm & perm) || CheckCondition(ptr->cond, obj)) continue;
 		if (acl->u1_is_group) {
 			if (!PathMatchesToGroup(filename1, acl->u1.group1, 1)) continue;
 		} else {
@@ -693,20 +692,20 @@ static int CheckDoublePathACL(const u8 type, const struct path_info *filename1, 
 	return -EPERM;
 }
 
-static int CheckSinglePathPermission2(const unsigned int operation, const struct path_info *filename, struct obj_info *obj, const u8 profile, const unsigned int mode)
+static int CheckSinglePathPermission2(const u8 operation, const struct path_info *filename, struct obj_info *obj, const u8 profile, const u8 mode)
 {
 	int error;
 	struct domain_info * const domain = current->domain_info;
 	const bool is_enforce = (mode == 3);
 	if (!mode) return 0;
 	error = CheckSinglePathACL(operation, filename, obj);
-	AuditWriteLog(sp_operation2keyword(operation), filename, NULL, !error, profile, mode);
+	AuditFileLog(sp_operation2keyword(operation), filename, NULL, !error, profile, mode);
 	if (error) {
 		if (TomoyoVerboseMode()) {
 			printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), sp_operation2keyword(operation), filename->name, GetLastName(domain));
 		}
 		if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, sp_operation2keyword(operation), filename->name);
-		else if (mode == 1 && CheckDomainQuota(domain)) AddSinglePathACL(operation, GetPattern(filename)->name, domain, NULL, 0);
+		else if (mode == 1 && CheckDomainQuota(domain)) AddSinglePathACL(operation, GetFilePattern(filename)->name, domain, NULL, 0);
 		if (!is_enforce) error = 0;
 	}
 	if (!error && operation == TYPE_TRUNCATE_ACL && IsNoRewriteFile(filename)) {
@@ -719,7 +718,7 @@ int CheckFilePerm(const char *filename0, const u8 perm, const char *operation)
 {
 	struct path_info filename;
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!mode) return 0;
 	filename.name = filename0;
 	fill_path_info(&filename);
@@ -730,7 +729,7 @@ int CheckExecPerm(const struct path_info *filename, struct file *filp)
 {
 	struct obj_info obj;
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!mode) return 0;
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = filp->f_dentry;
@@ -744,7 +743,7 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 	int error = -ENOMEM;
 	struct path_info *buf;
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
 	const bool is_enforce = (mode == 3);
 	if (!mode) return 0;
 	if (acc_mode == 0) return 0;
@@ -774,12 +773,12 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 	return error;
 }
 
-int CheckSinglePathPermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt)
+int CheckSinglePathPermission(const u8 operation, struct dentry *dentry, struct vfsmount *mnt)
 {
 	int error = -ENOMEM;
 	struct path_info *buf;
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
 	const bool is_enforce = (mode == 3);
 	if (!mode) return 0;
 	buf = GetPath(dentry, mnt);
@@ -808,7 +807,7 @@ int CheckReWritePermission(struct file *filp)
 {
 	int error = -ENOMEM;
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
 	const bool is_enforce = (mode == 3);
 	struct path_info *buf = GetPath(filp->f_dentry, filp->f_vfsmnt);
 	if (buf) {
@@ -827,13 +826,13 @@ int CheckReWritePermission(struct file *filp)
 	return error;
 }
 
-int CheckDoublePathPermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2)
+int CheckDoublePathPermission(const u8 operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2)
 {
 	int error = -ENOMEM;
 	struct path_info *buf1, *buf2;
 	struct domain_info * const domain = current->domain_info;
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
 	const bool is_enforce = (mode == 3);
 	if (!mode) return 0;
 	buf1 = GetPath(dentry1, mnt1);
@@ -858,13 +857,13 @@ int CheckDoublePathPermission(const unsigned int operation, struct dentry *dentr
 		obj.path2_dentry = dentry2;
 		obj.path2_vfsmnt = mnt2;
 		error = CheckDoublePathACL(operation, buf1, buf2, &obj);
-		AuditWriteLog(dp_operation2keyword(operation), buf1, buf2, !error, profile, mode);
+		AuditFileLog(dp_operation2keyword(operation), buf1, buf2, !error, profile, mode);
 		if (error) {
 			if (TomoyoVerboseMode()) {
 				printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), dp_operation2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
 			}
 			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, dp_operation2keyword(operation), buf1->name, buf2->name);
-			else if (mode == 1 && CheckDomainQuota(domain)) AddDoublePathACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, NULL, 0);
+			else if (mode == 1 && CheckDomainQuota(domain)) AddDoublePathACL(operation, GetFilePattern(buf1)->name, GetFilePattern(buf2)->name, domain, NULL, 0);
 		}
 	}
 	ccs_free(buf1);

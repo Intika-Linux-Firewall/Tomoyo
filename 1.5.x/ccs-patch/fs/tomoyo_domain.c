@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -737,7 +737,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 static int CheckEnviron(struct linux_binprm *bprm)
 {
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV);
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV);
 	char *arg_ptr;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;

@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -24,7 +24,7 @@ extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 *address, const u16 port, const bool is_granted, const u8 profile, const unsigned int mode)
+static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 *address, const u16 port, const bool is_granted, const u8 profile, const u8 mode)
 {
 	char *buf;
 	int len = 256;
@@ -260,7 +260,7 @@ char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip)
 	return buffer;
 }
 
-const char *network2keyword(const unsigned int operation)
+const char *net_operation2keyword(const u8 operation)
 {
 	const char *keyword = "unknown";
 	switch (operation) {
@@ -372,13 +372,13 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	return error;
 }
 
-static int CheckNetworkEntry(const bool is_ipv6, const int operation, const u32 *address, const u16 port)
+static int CheckNetworkEntry(const bool is_ipv6, const u8 operation, const u32 *address, const u16 port)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
-	const char *keyword = network2keyword(operation);
+	const char *keyword = net_operation2keyword(operation);
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK);
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK);
 	const bool is_enforce = (mode == 3);
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
 	bool found = 0;

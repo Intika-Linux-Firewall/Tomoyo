@@ -24,7 +24,7 @@ extern int sbin_init_started;
 
 static struct {
 	const char *keyword;
-	unsigned int current_value;
+	u8 current_value;
 	const char *capability_name;
 } capability_control_array[TOMOYO_MAX_CAPABILITY_INDEX] = { /* domain_policy.conf */
 	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = { "inet_tcp_create", 0,     "socket(PF_INET, SOCK_STREAM)" },
@@ -67,18 +67,18 @@ static struct profile *profile_ptr[MAX_PROFILES];
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
-const char *capability2keyword(const unsigned int capability)
+const char *cap_operation2keyword(const u8 operation)
 {
-	return capability < TOMOYO_MAX_CAPABILITY_INDEX	? capability_control_array[capability].keyword : NULL;
+	return operation < TOMOYO_MAX_CAPABILITY_INDEX ? capability_control_array[operation].keyword : NULL;
 }
 
-static const char *capability2name(const unsigned int capability)
+static const char *cap_operation2name(const u8 operation)
 {
-	return capability < TOMOYO_MAX_CAPABILITY_INDEX	? capability_control_array[capability].capability_name : NULL;
+	return operation < TOMOYO_MAX_CAPABILITY_INDEX ? capability_control_array[operation].capability_name : NULL;
 }
 
 /* Check whether the given capability control is enabled. */
-static unsigned int CheckCapabilityFlags(const unsigned int index)
+static u8 CheckCapabilityFlags(const u8 index)
 {
 	const u8 profile = current->domain_info->profile;
 	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
@@ -88,12 +88,16 @@ static unsigned int CheckCapabilityFlags(const unsigned int index)
 		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
 }
 
-static struct profile *FindOrAssignNewProfile(const unsigned int profile)
+static struct profile *FindOrAssignNewProfile(const u8 profile)
 {
 	static DEFINE_MUTEX(profile_lock);
 	struct profile *ptr = NULL;
 	mutex_lock(&profile_lock);
-	if (profile < MAX_PROFILES && (ptr = profile_ptr[profile]) == NULL) {
+	if (
+#if MAX_PROFILES != 256
+	    profile < MAX_PROFILES && 
+#endif
+	    (ptr = profile_ptr[profile]) == NULL) {
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) ptr->value[i] = capability_control_array[i].current_value;
@@ -105,7 +109,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 	return ptr;
 }
 
-int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile)
+int SetCapabilityStatus(const char *data, u8 value, const u8 profile)
 {
 	int i;
 	struct profile *ptr = FindOrAssignNewProfile(profile);
@@ -134,35 +138,34 @@ int ReadCapabilityStatus(struct io_buffer *head)
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditCapabilityLog(const unsigned int capability, const bool is_granted, const u8 profile, const unsigned int mode)
+static int AuditCapabilityLog(const u8 operation, const bool is_granted, const u8 profile, const u8 mode)
 {
 	char *buf;
 	int len = 64;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
-	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_CAPABILITY "%s\n", capability2keyword(capability));
+	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_CAPABILITY "%s\n", cap_operation2keyword(operation));
 	return WriteAuditLog(buf, is_granted);
 }
 
 /*************************  CAPABILITY ACL HANDLER  *************************/
 
-static int AddCapabilityACL(const unsigned int capability, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
+static int AddCapabilityACL(const u8 operation, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	struct acl_info *ptr;
 	struct capability_acl_record *acl;
 	int error = -ENOMEM;
-	const u32 bit = 1 << capability;
+	const u32 capability = 1 << operation;
 	if (!domain) return -EINVAL;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->cond != condition) continue;
 			acl = container_of(ptr, struct capability_acl_record, head);
-			if (ptr->type == TYPE_CAPABILITY_ACL && ptr->cond == condition) {
-				acl->capability |= bit;
-				/* Found. Nothing to do. */
-				error = 0;
-				goto out;
-			}
+			acl->capability |= capability;
+			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
+			error = 0;
+			goto out;
 		}
 		/* Not found. Append it to the tail. */
 		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
@@ -173,10 +176,11 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct capability_acl_record, head);
 			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->cond != condition) continue;
-			acl->capability &= ~bit;
-			//error = DelDomainACL(ptr);
+			acl = container_of(ptr, struct capability_acl_record, head);
+			acl->capability &= ~capability;
+			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
+			error = 0;
 			break;
 		}
 	}
@@ -185,35 +189,35 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	return error;
 }
 
-int CheckCapabilityACL(const unsigned int capability)
+int CheckCapabilityACL(const u8 operation)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
 	const u8 profile = current->domain_info->profile;
-	const unsigned int mode = CheckCapabilityFlags(capability);
+	const u8 mode = CheckCapabilityFlags(operation);
 	const bool is_enforce = (mode == 3);
-	const u32 bit = 1 << capability;
+	const u32 capability = 1 << operation;
 	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
 		acl = container_of(ptr, struct capability_acl_record, head);
-		if (ptr->type != TYPE_CAPABILITY_ACL || !(acl->capability & bit) || CheckCondition(ptr->cond, NULL)) continue;
-		AuditCapabilityLog(capability, 1, profile, mode);
+		if (ptr->type != TYPE_CAPABILITY_ACL || !(acl->capability & capability) || CheckCondition(ptr->cond, NULL)) continue;
+		AuditCapabilityLog(operation, 1, profile, mode);
 		return 0;
 	}
 	if (TomoyoVerboseMode()) {
-		printk("TOMOYO-%s: %s denied for %s\n", GetMSG(is_enforce), capability2name(capability), GetLastName(domain));
+		printk("TOMOYO-%s: %s denied for %s\n", GetMSG(is_enforce), cap_operation2name(operation), GetLastName(domain));
 	}
-	AuditCapabilityLog(capability, 0, profile, capability);
-	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, capability2keyword(capability));
-	if (mode == 1 && CheckDomainQuota(domain)) AddCapabilityACL(capability, domain, NULL, 0);
+	AuditCapabilityLog(operation, 0, profile, capability);
+	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, cap_operation2keyword(operation));
+	if (mode == 1 && CheckDomainQuota(domain)) AddCapabilityACL(operation, domain, NULL, 0);
 	return 0;
 }
 EXPORT_SYMBOL(CheckCapabilityACL);
 
 int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
-	unsigned int capability;
+	u8 capability;
 	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {
 		if (strcmp(data, capability_control_array[capability].keyword) == 0) {
 			return AddCapabilityACL(capability, domain, condition, is_delete);
