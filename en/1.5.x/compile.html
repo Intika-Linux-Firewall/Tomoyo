@@ -626,20 +626,20 @@ make -s install modules modules_install
 
 <h2><a name="2.4-vanilla">Vanilla 2.4 kernels</a></h2>
 
-<p>2.4.30 and later are supported. The following is the case of version 2.4.35 .</p>
+<p>2.4.30 and later are supported. The following is the case of version 2.4.36 .</p>
 
 <table border="1">
 <tr><td>
 # Create a directory where the kernel modules are installed.<br>
-mkdir -p /lib/modules/2.4.35-ccs<br>
+mkdir -p /lib/modules/2.4.36-ccs<br>
 # Move to the source directory.<br>
 cd /usr/src/<br>
 # Download kernel source.<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.35.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.36.tar.bz2<br>
 # Extract.<br>
-tar -jxf linux-2.4.35.tar.bz2<br>
+tar -jxf linux-2.4.36.tar.bz2<br>
 # Move to the extracted directory.<br>
-cd linux-2.4.35<br>
+cd linux-2.4.36<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
@@ -647,7 +647,8 @@ wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.2-20071205.tar.gz<
 # Extract.<br>
 tar -zxf ccs-patch-1.5.2-20071205.tar.gz<br>
 # Apply the kernel patch.<br>
-patch -sp1 &lt; patches/ccs-patch-2.4.35.diff<br>
+wget -O patches/ccs-patch-2.4.36.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.4.36.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.4.36.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
