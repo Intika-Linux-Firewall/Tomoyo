@@ -127,7 +127,6 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 #define TYPE_RENAME_ACL           1
 #define MAX_DOUBLE_PATH_OPERATION 2
 
-#define TYPE_FILE_ACL        100
 #define TYPE_SINGLE_PATH_ACL 101
 #define TYPE_DOUBLE_PATH_ACL 102
 #define TYPE_ARGV0_ACL       103

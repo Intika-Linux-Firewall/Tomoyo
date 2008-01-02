@@ -440,84 +440,38 @@ int ReadNoRewritePolicy(struct io_buffer *head)
 
 static int AddFileACL(const char *filename, u8 perm, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete)
 {
-	const struct path_info *saved_filename;
-	struct acl_info *ptr;
-	struct file_acl_record *acl;
-	int error = -ENOMEM;
-	bool is_group = 0;
-	if (!domain) return -EINVAL;
 	if (perm > 7 || !perm) {
 		printk(KERN_DEBUG "%s: Invalid permission '%d %s'\n", __FUNCTION__, perm, filename);
 		return -EINVAL;
 	}
-	if (!IsCorrectPath(filename, 0, 0, 0, __FUNCTION__)) return -EINVAL;
-	if (filename[0] == '@') {
-		/* This cast is OK because I don't dereference in this function. */
-		if ((saved_filename = (struct path_info *) FindOrAssignNewPathGroup(filename + 1)) == NULL) return -ENOMEM;
-		is_group = 1;
-	} else {
+	if (filename[0] != '@') {
 		if (strendswith(filename, "/")) {
 			return 0; /* Valid permissions for directory are only 'allow_mkdir' and 'allow_rmdir'. */
 		}
-		if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
-		if (!is_delete && perm == 4 && IsGloballyReadableFile(saved_filename)) {
-			return 0;   /* Don't add if the file is globally readable files. */
-		}
 	}
-	mutex_lock(&domain_acl_lock);
-	if (!is_delete) {
-		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct file_acl_record, head);
-			if (ptr->type == TYPE_FILE_ACL && ptr->cond == condition) {
-				if (acl->u.filename == saved_filename) {
-					if (ptr->is_deleted) {
-						acl->perm = 0;
-						mb(); /* Avoid out-of-order execution. */
-						ptr->is_deleted = 0;
-					}
-					/* Found. Just 'OR' the permission bits. */
-					acl->perm |= perm;
-					error = 0;
-					UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-					goto out;
-				}
-			}
-		}
-		/* Not found. Append it to the tail. */
-		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = TYPE_FILE_ACL;
-		acl->perm = perm;
-		acl->u_is_group = is_group;
-		acl->head.cond = condition;
-		acl->u.filename = saved_filename;
-		error = AddDomainACL(domain, &acl->head);
-	} else {
-		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct file_acl_record, head);
-			if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || ptr->cond != condition || acl->perm != perm) continue;
-			if (acl->u.filename != saved_filename) continue;
-			error = DelDomainACL(ptr);
-			break;
-		}
-	}
- out: ;
-	mutex_unlock(&domain_acl_lock);
-	return error;
+	if (perm & 4) AddSinglePathACL(TYPE_READ_ACL, filename, domain, condition, is_delete);
+	if (perm & 2) AddSinglePathACL(TYPE_WRITE_ACL, filename, domain, condition, is_delete);
+	if (perm & 1) AddSinglePathACL(TYPE_EXECUTE_ACL, filename, domain, condition, is_delete);
+	return 0;
 }
 
-static int CheckFileACL(const struct path_info *filename, const u8 perm, struct obj_info *obj)
+static int CheckFileACL(const struct path_info *filename, const u8 operation, struct obj_info *obj)
 {
 	const struct domain_info *domain = current->domain_info;
 	struct acl_info *ptr;
-	const bool may_use_pattern = ((perm & 1) == 0);
+	const bool may_use_pattern = (operation != 1);
+	u16 perm = 0;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	if (!filename->is_dir) {
-		if (perm == 4 && IsGloballyReadableFile(filename)) return 0;
+		if (operation == 4 && IsGloballyReadableFile(filename)) return 0;
 	}
+	if (operation & 4) perm |= 1 << TYPE_READ_ACL;
+	if (operation & 2) perm |= 1 << TYPE_WRITE_ACL;
+	if (operation & 1) perm |= 1 << TYPE_EXECUTE_ACL;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		struct file_acl_record *acl;
-		acl = container_of(ptr, struct file_acl_record, head);
-		if (ptr->type != TYPE_FILE_ACL || ptr->is_deleted || (acl->perm & perm) != perm || CheckCondition(ptr->cond, obj)) continue;
+		struct single_acl_record *acl;
+		acl = container_of(ptr, struct single_acl_record, head);
+		if (ptr->type != TYPE_SINGLE_PATH_ACL || (acl->perm & perm) != perm || CheckCondition(ptr->cond, obj)) continue;
 		if (acl->u_is_group) {
 			if (PathMatchesToGroup(filename, acl->u.group, may_use_pattern)) return 0;
 		} else if (may_use_pattern || !acl->u.filename->is_patterned) {
