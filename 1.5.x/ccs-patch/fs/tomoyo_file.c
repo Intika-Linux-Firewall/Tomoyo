@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -46,40 +46,44 @@ struct no_rewrite_entry {
 	bool is_deleted;
 };
 
-/***** The structure for detailed write operations. *****/
+/***** Keyword array for single path operations. *****/
 
-static struct {
-	const char *keyword;
-	const int paths;
-} acl_type_array[] = { /* mapping.txt */
-	{ "create",   1 }, /* TYPE_CREATE_ACL   */
-	{ "unlink",   1 }, /* TYPE_UNLINK_ACL   */
-	{ "mkdir",    1 }, /* TYPE_MKDIR_ACL    */
-	{ "rmdir",    1 }, /* TYPE_RMDIR_ACL    */
-	{ "mkfifo",   1 }, /* TYPE_MKFIFO_ACL   */
-	{ "mksock",   1 }, /* TYPE_MKSOCK_ACL   */
-	{ "mkblock",  1 }, /* TYPE_MKBLOCK_ACL  */
-	{ "mkchar",   1 }, /* TYPE_MKCHAR_ACL   */
-	{ "truncate", 1 }, /* TYPE_TRUNCATE_ACL */
-	{ "symlink",  1 }, /* TYPE_SYMLINK_ACL  */
-	{ "link",     2 }, /* TYPE_LINK_ACL     */
-	{ "rename",   2 }, /* TYPE_RENAME_ACL   */
-	{ "rewrite",  1 }, /* TYPE_REWRITE_ACL  */
-	{ NULL, 0 }
+static const char *sp_keyword[MAX_SINGLE_PATH_OPERATION] = {
+	[TYPE_EXECUTE_ACL]  = "execute",
+	[TYPE_READ_ACL]     = "read",
+	[TYPE_WRITE_ACL]    = "write",
+	[TYPE_CREATE_ACL]   = "create",
+	[TYPE_UNLINK_ACL]   = "unlink" ,
+	[TYPE_MKDIR_ACL]    = "mkdir",
+	[TYPE_RMDIR_ACL]    = "rmdir",
+	[TYPE_MKFIFO_ACL]   = "mkfifo",
+	[TYPE_MKSOCK_ACL]   = "mksock",
+	[TYPE_MKBLOCK_ACL]  = "mkblock",
+	[TYPE_MKCHAR_ACL]   = "mkchar",
+	[TYPE_TRUNCATE_ACL] = "truncate",
+	[TYPE_SYMLINK_ACL]  = "symlink",
+	[TYPE_REWRITE_ACL]  = "rewrite",
+};
+
+/***** Keyword array for double path operations. *****/
+
+static const char *dp_keyword[MAX_DOUBLE_PATH_OPERATION] = {
+	[TYPE_LINK_ACL]    = "link",
+	[TYPE_RENAME_ACL]  = "rename",
 };
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
-const char *acltype2keyword(const unsigned int acl_type)
+const char *sp_operation2keyword(const unsigned int operation)
 {
-	return (acl_type < sizeof(acl_type_array) / sizeof(acl_type_array[0]))
-		? acl_type_array[acl_type].keyword : NULL;
+	return (operation < MAX_SINGLE_PATH_OPERATION)
+		? sp_keyword[operation] : NULL;
 }
 
-int acltype2paths(const unsigned int acl_type)
+const char *dp_operation2keyword(const unsigned int operation)
 {
-	return (acl_type < sizeof(acl_type_array) / sizeof(acl_type_array[0]))
-		? acl_type_array[acl_type].paths : 0;
+	return (operation < MAX_DOUBLE_PATH_OPERATION)
+		? dp_keyword[operation] : NULL;
 }
 
 static int strendswith(const char *name, const char *tail)
@@ -113,8 +117,8 @@ static struct path_info *GetPath(struct dentry *dentry, struct vfsmount *mnt)
 
 /*************************  PROTOTYPES  *************************/
 
-static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete);
-static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete);
+static int AddDoublePathACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete);
+static int AddSinglePathACL(const u8 type, const char *filename, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete);
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
@@ -549,6 +553,7 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	char *filename = strchr(data, ' ');
+	char *filename2;
 	unsigned int perm;
 	u8 type;
 	if (!filename) return -EINVAL;
@@ -558,29 +563,29 @@ int AddFilePolicy(char *data, struct domain_info *domain, const struct condition
 	}
 	if (strncmp(data, "allow_", 6)) goto out;
 	data += 6;
-	for (type = 0; acl_type_array[type].keyword; type++) {
-		if (strcmp(data, acl_type_array[type].keyword)) continue;
-		if (acl_type_array[type].paths == 2) {
-			char *filename2 = strchr(filename, ' ');
-			if (!filename2) break;
-			*filename2++ = '\0';
-			return AddDoubleWriteACL(type, filename, filename2, domain, condition, is_delete);
-		} else {
-			return AddSingleWriteACL(type, filename, domain, condition, is_delete);
-		}
-		break;
+	for (type = 0; type < MAX_SINGLE_PATH_OPERATION; type++) {
+		if (strcmp(data, sp_keyword[type])) continue;
+		return AddSinglePathACL(type, filename, domain, condition, is_delete);
+	}
+	filename2 = strchr(filename, ' ');
+	if (!filename2) goto out;
+	*filename2++ = '\0';
+	for (type = 0; type < MAX_DOUBLE_PATH_OPERATION; type++) {
+		if (strcmp(data, dp_keyword[type])) continue;
+		return AddDoublePathACL(type, filename, filename2, domain, condition, is_delete);
 	}
  out:
 	return -EINVAL;
 }
 
-static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete)
+static int AddSinglePathACL(const u8 type, const char *filename, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete)
 {
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
 	struct single_acl_record *acl;
 	int error = -ENOMEM;
 	bool is_group = 0;
+	const u16 perm = 1 << type;
 	if (!domain) return -EINVAL;
 	if (!IsCorrectPath(filename, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if (filename[0] == '@') {
@@ -594,9 +599,9 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct single_acl_record, head);
-			if (ptr->type == type && ptr->cond == condition) {
+			if (ptr->type == TYPE_SINGLE_PATH_ACL && ptr->cond == condition) {
 				if (acl->u.filename == saved_filename) {
-					ptr->is_deleted = 0;
+					acl->perm |= perm;
 					/* Found. Nothing to do. */
 					error = 0;
 					goto out;
@@ -605,8 +610,9 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 		}
 		/* Not found. Append it to the tail. */
 		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = type;
+		acl->head.type = TYPE_SINGLE_PATH_ACL;
 		acl->head.cond = condition;
+		acl->perm = perm;
 		acl->u_is_group = is_group;
 		acl->u.filename = saved_filename;
 		error = AddDomainACL(domain, &acl->head);
@@ -614,9 +620,10 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct single_acl_record, head);
-			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
+			if (ptr->type != TYPE_SINGLE_PATH_ACL || ptr->cond != condition) continue;
 			if (acl->u.filename != saved_filename) continue;
-			error = DelDomainACL(ptr);
+			acl->perm &= ~perm;
+			error = 0;
 			break;
 		}
 	}
@@ -625,13 +632,14 @@ static int AddSingleWriteACL(const u8 type, const char *filename, struct domain_
 	return error;
 }
 
-static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete)
+static int AddDoublePathACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete)
 {
 	const struct path_info *saved_filename1, *saved_filename2;
 	struct acl_info *ptr;
 	struct double_acl_record *acl;
 	int error = -ENOMEM;
 	bool is_group1 = 0, is_group2 = 0;
+	const u8 perm = 1 << type;
 	if (!domain) return -EINVAL;
 	if (!IsCorrectPath(filename1, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(filename2, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if (filename1[0] == '@') {
@@ -652,9 +660,9 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct double_acl_record, head);
-			if (ptr->type == type && ptr->cond == condition) {
+			if (ptr->type == TYPE_DOUBLE_PATH_ACL && ptr->cond == condition) {
 				if (acl->u1.filename1 == saved_filename1 && acl->u2.filename2 == saved_filename2) {
-					ptr->is_deleted = 0;
+					acl->perm |= perm;
 					/* Found. Nothing to do. */
 					error = 0;
 					goto out;
@@ -663,8 +671,9 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 		}
 		/* Not found. Append it to the tail. */
 		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = type;
+		acl->head.type = TYPE_DOUBLE_PATH_ACL;
 		acl->head.cond = condition;
+		acl->perm = perm;
 		acl->u1_is_group = is_group1;
 		acl->u2_is_group = is_group2;
 		acl->u1.filename1 = saved_filename1;
@@ -674,9 +683,10 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct double_acl_record, head);
-			if (ptr->type != type || ptr->is_deleted || ptr->cond != condition) continue;
+			if (ptr->type != TYPE_DOUBLE_PATH_ACL || ptr->cond != condition) continue;
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
-			error = DelDomainACL(ptr);
+			acl->perm &= ~perm;
+			error = 0;
 			break;
 		}
 	}
@@ -685,15 +695,16 @@ static int AddDoubleWriteACL(const u8 type, const char *filename1, const char *f
 	return error;
 }
 
-static int CheckSingleWriteACL(const u8 type, const struct path_info *filename, struct obj_info *obj)
+static int CheckSinglePathACL(const u8 type, const struct path_info *filename, struct obj_info *obj)
 {
 	const struct domain_info *domain = current->domain_info;
 	struct acl_info *ptr;
+	const u16 perm = 1 << type;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct single_acl_record *acl;
 		acl = container_of(ptr, struct single_acl_record, head);
-		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
+		if (ptr->type != TYPE_SINGLE_PATH_ACL || !(acl->perm & perm) || CheckCondition(ptr->cond, obj)) continue;
 		if (acl->u_is_group) {
 			if (!PathMatchesToGroup(filename, acl->u.group, 1)) continue;
 		} else {
@@ -704,7 +715,7 @@ static int CheckSingleWriteACL(const u8 type, const struct path_info *filename, 
 	return -EPERM;
 }
 
-static int CheckDoubleWriteACL(const u8 type, const struct path_info *filename1, const struct path_info *filename2, struct obj_info *obj)
+static int CheckDoublePathACL(const u8 type, const struct path_info *filename1, const struct path_info *filename2, struct obj_info *obj)
 {
 	const struct domain_info *domain = current->domain_info;
 	struct acl_info *ptr;
@@ -728,24 +739,24 @@ static int CheckDoubleWriteACL(const u8 type, const struct path_info *filename1,
 	return -EPERM;
 }
 
-static int CheckSingleWritePermission2(const unsigned int operation, const struct path_info *filename, struct obj_info *obj, const u8 profile, const unsigned int mode)
+static int CheckSinglePathPermission2(const unsigned int operation, const struct path_info *filename, struct obj_info *obj, const u8 profile, const unsigned int mode)
 {
 	int error;
 	struct domain_info * const domain = current->domain_info;
 	const bool is_enforce = (mode == 3);
 	if (!mode) return 0;
-	error = CheckSingleWriteACL(operation, filename, obj);
-	AuditWriteLog(acltype2keyword(operation), filename, NULL, !error, profile, mode);
+	error = CheckSinglePathACL(operation, filename, obj);
+	AuditWriteLog(sp_operation2keyword(operation), filename, NULL, !error, profile, mode);
 	if (error) {
 		if (TomoyoVerboseMode()) {
-			printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), filename->name, GetLastName(domain));
+			printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), sp_operation2keyword(operation), filename->name, GetLastName(domain));
 		}
-		if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, acltype2keyword(operation), filename->name);
-		else if (mode == 1 && CheckDomainQuota(domain)) AddSingleWriteACL(operation, GetPattern(filename)->name, domain, NULL, 0);
+		if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, sp_operation2keyword(operation), filename->name);
+		else if (mode == 1 && CheckDomainQuota(domain)) AddSinglePathACL(operation, GetPattern(filename)->name, domain, NULL, 0);
 		if (!is_enforce) error = 0;
 	}
 	if (!error && operation == TYPE_TRUNCATE_ACL && IsNoRewriteFile(filename)) {
-		error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, filename, obj, profile, mode);
+		error = CheckSinglePathPermission2(TYPE_REWRITE_ACL, filename, obj, profile, mode);
 	}
 	return error;
 }
@@ -797,19 +808,19 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 		if ((acc_mode & MAY_WRITE)) {
 			if ((flag & O_TRUNC) || !(flag & O_APPEND)) {
 				if (IsNoRewriteFile(buf)) {
-					error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, buf, &obj, profile, mode);
+					error = CheckSinglePathPermission2(TYPE_REWRITE_ACL, buf, &obj, profile, mode);
 				}
 			}
 		}
 		if (error == 0) error = CheckFilePerm2(buf, acc_mode, "open", &obj, profile, mode);
-		if (error == 0 && (flag & O_TRUNC)) error = CheckSingleWritePermission2(TYPE_TRUNCATE_ACL, buf, &obj, profile, mode);
+		if (error == 0 && (flag & O_TRUNC)) error = CheckSinglePathPermission2(TYPE_TRUNCATE_ACL, buf, &obj, profile, mode);
 		ccs_free(buf);
 	}
 	if (!is_enforce) error = 0;
 	return error;
 }
 
-int CheckSingleWritePermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt)
+int CheckSinglePathPermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt)
 {
 	int error = -ENOMEM;
 	struct path_info *buf;
@@ -831,13 +842,13 @@ int CheckSingleWritePermission(const unsigned int operation, struct dentry *dent
 		memset(&obj, 0, sizeof(obj));
 		obj.path1_dentry = dentry;
 		obj.path1_vfsmnt = mnt;
-		error = CheckSingleWritePermission2(operation, buf, &obj, profile, mode);
+		error = CheckSinglePathPermission2(operation, buf, &obj, profile, mode);
 		ccs_free(buf);
 	}
 	if (!is_enforce) error = 0;
 	return error;
 }
-EXPORT_SYMBOL(CheckSingleWritePermission);
+EXPORT_SYMBOL(CheckSinglePathPermission);
 
 int CheckReWritePermission(struct file *filp)
 {
@@ -852,7 +863,7 @@ int CheckReWritePermission(struct file *filp)
 			memset(&obj, 0, sizeof(obj));
 			obj.path1_dentry = filp->f_dentry;
 			obj.path1_vfsmnt = filp->f_vfsmnt;
-			error = CheckSingleWritePermission2(TYPE_REWRITE_ACL, buf, &obj, profile, mode);
+			error = CheckSinglePathPermission2(TYPE_REWRITE_ACL, buf, &obj, profile, mode);
 		} else {
 			error = 0;
 		}
@@ -862,7 +873,7 @@ int CheckReWritePermission(struct file *filp)
 	return error;
 }
 
-int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2)
+int CheckDoublePathPermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2)
 {
 	int error = -ENOMEM;
 	struct path_info *buf1, *buf2;
@@ -892,14 +903,14 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 		obj.path1_vfsmnt = mnt1;
 		obj.path2_dentry = dentry2;
 		obj.path2_vfsmnt = mnt2;
-		error = CheckDoubleWriteACL(operation, buf1, buf2, &obj);
-		AuditWriteLog(acltype2keyword(operation), buf1, buf2, !error, profile, mode);
+		error = CheckDoublePathACL(operation, buf1, buf2, &obj);
+		AuditWriteLog(dp_operation2keyword(operation), buf1, buf2, !error, profile, mode);
 		if (error) {
 			if (TomoyoVerboseMode()) {
-				printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), acltype2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
+				printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), dp_operation2keyword(operation), buf1->name, buf2->name, GetLastName(domain));
 			}
-			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, acltype2keyword(operation), buf1->name, buf2->name);
-			else if (mode == 1 && CheckDomainQuota(domain)) AddDoubleWriteACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, NULL, 0);
+			if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s %s\n", domain->domainname->name, dp_operation2keyword(operation), buf1->name, buf2->name);
+			else if (mode == 1 && CheckDomainQuota(domain)) AddDoublePathACL(operation, GetPattern(buf1)->name, GetPattern(buf2)->name, domain, NULL, 0);
 		}
 	}
 	ccs_free(buf1);

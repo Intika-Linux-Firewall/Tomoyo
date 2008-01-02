@@ -3,9 +3,9 @@
  *
  * Common functions for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -872,6 +872,45 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				if (io_printf(head, "%d %s%s", ptr2->perm,
 					      b ? "@" : "",
 					      b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)) goto print_acl_rollback;
+			} else if (acl_type == TYPE_SINGLE_PATH_ACL) {
+				struct single_acl_record *ptr2 = container_of(ptr, struct single_acl_record, head);
+				const bool b = ptr2->u_is_group;
+				const u16 perm = ptr2->perm;
+				u8 bit = head->read_bit;
+				while (bit < MAX_SINGLE_PATH_OPERATION) {
+					if (perm & (1 << bit)) {
+						pos = head->read_avail;
+						if (io_printf(head, "allow_%s %s%s ", sp_operation2keyword(bit),
+							      b ? "@" : "", b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)
+						    || DumpCondition(head, ptr->cond)) {
+							head->read_bit = bit;
+							head->read_avail = pos;
+							return 0;
+						}
+					}
+					bit++;
+				}
+				head->read_bit = 0;
+			} else if (acl_type == TYPE_DOUBLE_PATH_ACL) {
+				struct double_acl_record *ptr2 = container_of(ptr, struct double_acl_record, head);
+				const bool b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
+				const u8 perm = ptr2->perm;
+				u8 bit = head->read_bit;
+				while (bit < MAX_DOUBLE_PATH_OPERATION) {
+					if (perm & (1 << bit)) {
+						pos = head->read_avail;
+						if (io_printf(head, "allow_%s %s%s %s%s", dp_operation2keyword(bit),
+							      b0 ? "@" : "", b0 ? ptr2->u1.group1->group_name->name : ptr2->u1.filename1->name,
+							      b1 ? "@" : "", b1 ? ptr2->u2.group2->group_name->name : ptr2->u2.filename2->name)
+						    || DumpCondition(head, ptr->cond)) {
+							head->read_bit = bit;
+							head->read_avail = pos;
+							return 0;
+						}
+					}
+					bit++;
+				}
+				head->read_bit = 0; 
 			} else if (acl_type == TYPE_ARGV0_ACL) {
 				struct argv0_acl_record *ptr2 = container_of(ptr, struct argv0_acl_record, head);
 				if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
@@ -881,7 +920,21 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				if (io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr2->env->name)) goto print_acl_rollback;
 			} else if (acl_type == TYPE_CAPABILITY_ACL) {
 				struct capability_acl_record *ptr2 = container_of(ptr, struct capability_acl_record, head);
-				if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(ptr2->capability))) goto print_acl_rollback;
+				const u32 capability = ptr2->capability;
+				u8 bit = head->read_bit;
+				while (bit < TOMOYO_MAX_CAPABILITY_INDEX) {
+					if (capability & (1 << bit)) {
+						pos = head->read_avail;
+						if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", capability2keyword(bit)) ||
+						    DumpCondition(head, ptr->cond)) {
+							head->read_bit = bit;
+							head->read_avail = pos;
+							return 0;
+						}
+					}
+					bit++;
+				}
+				head->read_bit = 0;
 			} else if (acl_type == TYPE_IP_NETWORK_ACL) {
 				struct ip_network_acl_record *ptr2 = container_of(ptr, struct ip_network_acl_record, head);
 				if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", network2keyword(ptr2->operation_type))) goto print_acl_rollback;
@@ -918,22 +971,9 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				struct signal_acl_record *ptr2 = container_of(ptr, struct signal_acl_record, head);
 				if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr2->sig, ptr2->domainname->name)) goto print_acl_rollback;
 			} else {
-				const char *keyword = acltype2keyword(acl_type);
-				if (!keyword) continue;
-				if (acltype2paths(acl_type) == 2) {
-					struct double_acl_record *ptr2 = container_of(ptr, struct double_acl_record, head);
-					const bool b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
-					if (io_printf(head, "allow_%s %s%s %s%s", keyword,
-						      b0 ? "@" : "", b0 ? ptr2->u1.group1->group_name->name : ptr2->u1.filename1->name,
-						      b1 ? "@" : "", b1 ? ptr2->u2.group2->group_name->name : ptr2->u2.filename2->name)) goto print_acl_rollback;
-				} else {
-					struct single_acl_record *ptr2 = container_of(ptr, struct single_acl_record, head);
-					const bool b = ptr2->u_is_group;
-					if (io_printf(head, "allow_%s %s%s", keyword,
-						      b ? "@" : "", b ? ptr2->u.group->group_name->name : ptr2->u.filename->name)) goto print_acl_rollback;
-				}
+				BUG();
 			}
-			if (DumpCondition(head, ptr->cond)) {
+			if (acl_type != TYPE_SINGLE_PATH_ACL && acl_type != TYPE_DOUBLE_PATH_ACL && acl_type != TYPE_CAPABILITY_ACL && DumpCondition(head, ptr->cond)) {
 			print_acl_rollback: ;
 			head->read_avail = pos;
 			return 0;
@@ -1215,7 +1255,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.5.3-pre   2007/12/18\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.3-pre   2007/12/18\n");
+	printk("TOMOYO: 1.5.3-pre   2008/01/02\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

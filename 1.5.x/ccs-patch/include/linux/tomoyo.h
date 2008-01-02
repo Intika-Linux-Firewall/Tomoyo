@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -41,16 +41,16 @@ struct inode;
 struct linux_binprm;
 struct pt_regs;
 
+#define CheckSingleWritePermission CheckSinglePathPermission
+#define CheckDoubleWritePermission CheckDoublePathPermission
+
 #if defined(CONFIG_TOMOYO)
 
-/* Check whether the given filename is allowed to read/write/execute. */
 int CheckFilePerm(const char *filename, const u8 perm, const char *operation);
 int CheckExecPerm(const struct path_info *filename, struct file *filp);
-/* Check whether the given dentry is allowed to read/write/execute. */
 int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag);
-/* Check whether the given dentry is allowed to write. */
-int CheckSingleWritePermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt);
-int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2);
+int CheckSinglePathPermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt);
+int CheckDoublePathPermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2);
 int CheckReWritePermission(struct file *filp);
 
 /* Check whether the basename of program and argv0 is allowed to differ. */
@@ -78,8 +78,8 @@ int CheckCapabilityACL(const unsigned int capability);
 static inline int CheckFilePerm(const char *filename, const u8 perm, const char *operation) { return 0; }
 static inline int CheckExecPerm(const struct path_info *filename, struct file *filp)  { return 0; }
 static inline int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag) { return 0; }
-static inline int CheckSingleWritePermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt) { return 0; }
-static inline int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2) { return 0; }
+static inline int CheckSinglePathPermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt) { return 0; }
+static inline int CheckDoublePathPermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2) { return 0; }
 static inline int CheckReWritePermission(struct file *filp) { return 0; }
 static inline int CheckArgv0Perm(const struct path_info *filename, const char *argv0) { return 0; }
 static inline int CheckEnvPerm(const char *env) { return 0; }
@@ -107,26 +107,34 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 
 /*************************  Index numbers for Access Controls.  *************************/
 
-#define TYPE_CREATE_ACL       0
-#define TYPE_UNLINK_ACL       1
-#define TYPE_MKDIR_ACL        2
-#define TYPE_RMDIR_ACL        3
-#define TYPE_MKFIFO_ACL       4
-#define TYPE_MKSOCK_ACL       5
-#define TYPE_MKBLOCK_ACL      6
-#define TYPE_MKCHAR_ACL       7
-#define TYPE_TRUNCATE_ACL     8
-#define TYPE_SYMLINK_ACL      9
-#define TYPE_LINK_ACL        10
-#define TYPE_RENAME_ACL      11
-#define TYPE_REWRITE_ACL     12
+#define TYPE_EXECUTE_ACL           0
+#define TYPE_READ_ACL              1
+#define TYPE_WRITE_ACL             2
+#define TYPE_CREATE_ACL            3
+#define TYPE_UNLINK_ACL            4
+#define TYPE_MKDIR_ACL             5
+#define TYPE_RMDIR_ACL             6
+#define TYPE_MKFIFO_ACL            7
+#define TYPE_MKSOCK_ACL            8
+#define TYPE_MKBLOCK_ACL           9
+#define TYPE_MKCHAR_ACL           10
+#define TYPE_TRUNCATE_ACL         11
+#define TYPE_SYMLINK_ACL          12
+#define TYPE_REWRITE_ACL          13
+#define MAX_SINGLE_PATH_OPERATION 14
 
-#define TYPE_FILE_ACL         100
-#define TYPE_ARGV0_ACL        101
-#define TYPE_ENV_ACL          102
-#define TYPE_CAPABILITY_ACL   103
-#define TYPE_IP_NETWORK_ACL   104
-#define TYPE_SIGNAL_ACL       105
+#define TYPE_LINK_ACL             0
+#define TYPE_RENAME_ACL           1
+#define MAX_DOUBLE_PATH_OPERATION 2
+
+#define TYPE_FILE_ACL        100
+#define TYPE_SINGLE_PATH_ACL 101
+#define TYPE_DOUBLE_PATH_ACL 102
+#define TYPE_ARGV0_ACL       103
+#define TYPE_ENV_ACL         104
+#define TYPE_CAPABILITY_ACL  105
+#define TYPE_IP_NETWORK_ACL  106
+#define TYPE_SIGNAL_ACL      107
 
 /*************************  Index numbers for Capability Controls.  *************************/
 
