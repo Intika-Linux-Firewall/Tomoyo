@@ -49,15 +49,15 @@ struct pt_regs;
 int CheckFilePerm(const char *filename, const u8 perm, const char *operation);
 int CheckExecPerm(const struct path_info *filename, struct file *filp);
 int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag);
-int CheckSinglePathPermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt);
-int CheckDoublePathPermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2);
+int CheckSinglePathPermission(const u8 operation, struct dentry *dentry, struct vfsmount *mnt);
+int CheckDoublePathPermission(const u8 operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2);
 int CheckReWritePermission(struct file *filp);
 
 /* Check whether the basename of program and argv0 is allowed to differ. */
 int CheckArgv0Perm(const struct path_info *filename, const char *argv0);
 
 /* Check whether the given environment is allowed to be received. */
-int CheckEnvPerm(const char *env, const u8 profile, const unsigned int mode);
+int CheckEnvPerm(const char *env, const u8 profile, const u8 mode);
 
 /* Check whether the given IP address and port number are allowed to use. */
 int CheckNetworkListenACL(const _Bool is_ipv6, const u8 *address, const u16 port);
@@ -71,18 +71,18 @@ int CheckNetworkRecvMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *a
 int CheckSignalACL(const int sig, const int pid);
 
 /* Check whether the given capability is allowed to use. */
-int CheckCapabilityACL(const unsigned int capability);
+int CheckCapabilityACL(const u8 operation);
 
 #else
 
 static inline int CheckFilePerm(const char *filename, const u8 perm, const char *operation) { return 0; }
 static inline int CheckExecPerm(const struct path_info *filename, struct file *filp)  { return 0; }
 static inline int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag) { return 0; }
-static inline int CheckSinglePathPermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt) { return 0; }
-static inline int CheckDoublePathPermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2) { return 0; }
+static inline int CheckSinglePathPermission(const u8 operation, struct dentry *dentry, struct vfsmount *mnt) { return 0; }
+static inline int CheckDoublePathPermission(const u8 operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2) { return 0; }
 static inline int CheckReWritePermission(struct file *filp) { return 0; }
 static inline int CheckArgv0Perm(const struct path_info *filename, const char *argv0) { return 0; }
-static inline int CheckEnvPerm(const char *env) { return 0; }
+static inline int CheckEnvPerm(const char *env, const u8 profile, const u8 mode) { return 0; }
 static inline int CheckNetworkListenACL(const _Bool is_ipv6, const u8 *address, const u16 port) { return 0; }
 static inline int CheckNetworkConnectACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
 static inline int CheckNetworkBindACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
@@ -90,7 +90,7 @@ static inline int CheckNetworkAcceptACL(const _Bool is_ipv6, const u8 *address, 
 static inline int CheckNetworkSendMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
 static inline int CheckNetworkRecvMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port) { return 0; }
 static inline int CheckSignalACL(const int sig, const int pid) { return 0; }
-static inline int CheckCapabilityACL(const unsigned int capability) { return 0; }
+static inline int CheckCapabilityACL(const u8 operation) { return 0; }
 
 #endif
 
@@ -106,6 +106,16 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
 
 /*************************  Index numbers for Access Controls.  *************************/
+
+#define TYPE_SINGLE_PATH_ACL 0
+#define TYPE_DOUBLE_PATH_ACL 1
+#define TYPE_ARGV0_ACL       2
+#define TYPE_ENV_ACL         3
+#define TYPE_CAPABILITY_ACL  4
+#define TYPE_IP_NETWORK_ACL  5
+#define TYPE_SIGNAL_ACL      6
+
+/*************************  Index numbers for File Controls.  *************************/
 
 #define TYPE_EXECUTE_ACL           0
 #define TYPE_READ_ACL              1
@@ -126,14 +136,6 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 #define TYPE_LINK_ACL             0
 #define TYPE_RENAME_ACL           1
 #define MAX_DOUBLE_PATH_OPERATION 2
-
-#define TYPE_SINGLE_PATH_ACL 101
-#define TYPE_DOUBLE_PATH_ACL 102
-#define TYPE_ARGV0_ACL       103
-#define TYPE_ENV_ACL         104
-#define TYPE_CAPABILITY_ACL  105
-#define TYPE_IP_NETWORK_ACL  106
-#define TYPE_SIGNAL_ACL      107
 
 /*************************  Index numbers for Capability Controls.  *************************/
 
