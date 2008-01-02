@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -26,7 +26,7 @@ static struct {
 	const char *keyword;
 	unsigned int current_value;
 	const char *capability_name;
-} capability_control_array[TOMOYO_MAX_CAPABILITY_INDEX] = { /* domain_policy.txt */
+} capability_control_array[TOMOYO_MAX_CAPABILITY_INDEX] = { /* domain_policy.conf */
 	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = { "inet_tcp_create", 0,     "socket(PF_INET, SOCK_STREAM)" },
 	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = { "inet_tcp_listen", 0,     "listen(PF_INET, SOCK_STREAM)" },
 	[TOMOYO_INET_STREAM_SOCKET_CONNECT] = { "inet_tcp_connect", 0,    "connect(PF_INET, SOCK_STREAM)" },
@@ -151,14 +151,14 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 	struct acl_info *ptr;
 	struct capability_acl_record *acl;
 	int error = -ENOMEM;
-	const u16 hash = capability;
+	const u32 bit = 1 << capability;
 	if (!domain) return -EINVAL;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct capability_acl_record, head);
-			if (ptr->type == TYPE_CAPABILITY_ACL && acl->capability == hash && ptr->cond == condition) {
-				ptr->is_deleted = 0;
+			if (ptr->type == TYPE_CAPABILITY_ACL && ptr->cond == condition) {
+				acl->capability |= bit;
 				/* Found. Nothing to do. */
 				error = 0;
 				goto out;
@@ -167,15 +167,16 @@ static int AddCapabilityACL(const unsigned int capability, struct domain_info *d
 		/* Not found. Append it to the tail. */
 		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
 		acl->head.type = TYPE_CAPABILITY_ACL;
-		acl->capability = hash;
+		acl->capability = 1 << capability;
 		acl->head.cond = condition;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			acl = container_of(ptr, struct capability_acl_record, head);
-			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || acl->capability != hash || ptr->cond != condition) continue;
-			error = DelDomainACL(ptr);
+			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->cond != condition) continue;
+			acl->capability &= ~bit;
+			//error = DelDomainACL(ptr);
 			break;
 		}
 	}
@@ -191,12 +192,12 @@ int CheckCapabilityACL(const unsigned int capability)
 	const u8 profile = current->domain_info->profile;
 	const unsigned int mode = CheckCapabilityFlags(capability);
 	const bool is_enforce = (mode == 3);
-	const u16 hash = capability;
+	const u32 bit = 1 << capability;
 	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
 		acl = container_of(ptr, struct capability_acl_record, head);
-		if (ptr->type != TYPE_CAPABILITY_ACL || ptr->is_deleted || acl->capability != hash || CheckCondition(ptr->cond, NULL)) continue;
+		if (ptr->type != TYPE_CAPABILITY_ACL || !(acl->capability & bit) || CheckCondition(ptr->cond, NULL)) continue;
 		AuditCapabilityLog(capability, 1, profile, mode);
 		return 0;
 	}

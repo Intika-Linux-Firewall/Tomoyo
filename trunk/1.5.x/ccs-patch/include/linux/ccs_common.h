@@ -3,9 +3,9 @@
  *
  * Common functions for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/18
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -272,7 +272,7 @@ struct env_acl_record {
 
 struct capability_acl_record {
 	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
-	u16 capability;
+	u32 capability;
 };
 
 struct signal_acl_record {
@@ -282,16 +282,17 @@ struct signal_acl_record {
 };
 
 struct single_acl_record {
-	struct acl_info head;                     /* type = TYPE_*               */
+	struct acl_info head;                         /* type = TYPE_SINGLE_PATH_ACL */
 	bool u_is_group;
 	union {
 		const struct path_info *filename;     /* Pointer to single pathname. */
 		const struct path_group_entry *group; /* Pointer to pathname group.  */
 	} u;
+	u16 perm;
 };
 
 struct double_acl_record {
-	struct acl_info head;           /* type = TYPE_RENAME_ACL or TYPE_LINK_ACL */
+	struct acl_info head;                          /* type = TYPE_DOUBLE_PATH_ACL */
 	bool u1_is_group;
 	bool u2_is_group;
 	union {
@@ -302,6 +303,7 @@ struct double_acl_record {
 		const struct path_info *filename2;     /* Pointer to single pathname. */
 		const struct path_group_entry *group2; /* Pointer to pathname group.  */
 	} u2;
+	u8 perm;
 };
 
 #define IP_RECORD_TYPE_ADDRESS_GROUP 0
@@ -434,7 +436,8 @@ struct io_buffer {
 	struct domain_info *write_var1;   /* The position currently writing to.   */
 	int read_step;                    /* The step for reading.                */
 	char *read_buf;                   /* Buffer for reading.                  */
-	int read_eof;                     /* EOF flag for reading.                */
+	bool read_eof;                    /* EOF flag for reading.                */
+	u8 read_bit;                      /* Extra variable for reading.          */
 	int read_avail;                   /* Bytes available for reading.         */
 	int readbuf_size;                 /* Size of read buffer.                 */
 	char *write_buf;                  /* Buffer for writing.                  */
@@ -451,8 +454,9 @@ const char *GetAltExec(void);
 const char *GetEXE(void);
 const char *GetLastName(const struct domain_info *domain);
 const char *GetMSG(const bool is_enforce);
-const char *acltype2keyword(const unsigned int acl_type);
 const char *capability2keyword(const unsigned int capability);
+const char *dp_operation2keyword(const unsigned int operation);
+const char *sp_operation2keyword(const unsigned int operation);
 const char *network2keyword(const unsigned int operation);
 const struct condition_list *FindOrAssignNewCondition(const char *condition);
 int AddAddressGroupPolicy(char *data, const bool is_delete);
@@ -514,7 +518,6 @@ int ReadRejectLog(struct io_buffer *head);
 int ReadReservedPortPolicy(struct io_buffer *head);
 int SetCapabilityStatus(const char *data, unsigned int value, const unsigned int profile);
 int WriteAuditLog(char *log, const bool is_granted);
-int acltype2paths(const unsigned int acl_type);
 int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 struct domain_info *FindDomain(const char *domainname);
 struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile);
