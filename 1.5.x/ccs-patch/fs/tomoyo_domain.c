@@ -32,7 +32,7 @@ struct domain_info KERNEL_DOMAIN;
 LIST1_HEAD(domain_list);
 
 /* /sbin/init started? */
-extern int sbin_init_started;
+extern bool sbin_init_started;
 
 #ifdef CONFIG_TOMOYO
 
@@ -492,7 +492,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 	list1_for_each_entry(domain, &domain_list, list) {
 		struct task_struct *p;
 		struct acl_info *ptr;
-		int flag;
+		bool flag;
 		if (!domain->is_deleted || domain->domainname != saved_domainname) continue;
 		flag = 0;
 		/***** CRITICAL SECTION START *****/
@@ -618,7 +618,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 		/*
 		 * Built-in initializers. This is needed because policies are not loaded until starting /sbin/init .
 		 */
-		static int first = 1;
+		static bool first = 1;
 		if (first) {
 			AddDomainInitializerEntry(NULL, "/sbin/hotplug", 0, 0);
 			AddDomainInitializerEntry(NULL, "/sbin/modprobe", 0, 0);

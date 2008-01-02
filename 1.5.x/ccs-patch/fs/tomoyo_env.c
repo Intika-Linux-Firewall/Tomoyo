@@ -74,7 +74,7 @@ static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 	return error;
 }
 
-static int IsGloballyUsableEnv(const struct path_info *env)
+static bool IsGloballyUsableEnv(const struct path_info *env)
 {
 	struct globally_usable_env_entry *ptr;
 	list1_for_each_entry(ptr, &globally_usable_env_list, list) {

@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/03
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,7 +21,8 @@
 #define VALUE_TYPE_OCTAL       2
 #define VALUE_TYPE_HEXADECIMAL 3
 
-static int parse_ulong(unsigned long *result, const char **str)
+/* Don't use u8 because we use "<< 8". */
+static u16 parse_ulong(unsigned long *result, const char **str)
 {
 	const char *cp = *str;
 	char *ep;
