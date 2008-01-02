@@ -52,7 +52,7 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 /*************************  VARIABLES  *************************/
 
 /* /sbin/init started? */
-int sbin_init_started = 0;
+bool sbin_init_started = 0;
 
 const char *ccs_log_level = KERN_DEBUG;
 
@@ -131,7 +131,7 @@ static void NormalizeLine(unsigned char *buffer)
  *  Check whether the given filename follows the naming rules.
  *  Returns nonzero if follows, zero otherwise.
  */
-bool IsCorrectPath(const char *filename, const int start_type, const int pattern_type, const int end_type, const char *function)
+bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function)
 {
 	int contains_pattern = 0;
 	char c, d, e;
@@ -1524,7 +1524,7 @@ static int ReadSelfDomain(struct io_buffer *head)
 	return 0;
 }
 
-int CCS_OpenControl(const int type, struct file *file)
+int CCS_OpenControl(const u8 type, struct file *file)
 {
 	struct io_buffer *head = ccs_alloc(sizeof(*head));
 	if (!head) return -ENOMEM;

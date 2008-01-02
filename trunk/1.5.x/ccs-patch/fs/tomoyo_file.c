@@ -86,7 +86,7 @@ const char *dp_operation2keyword(const u8 operation)
 		? dp_keyword[operation] : NULL;
 }
 
-static int strendswith(const char *name, const char *tail)
+static bool strendswith(const char *name, const char *tail)
 {
 	int len;
 	if (!name || !tail) return 0;
@@ -165,7 +165,7 @@ static int AddGloballyReadableEntry(const char *filename, const bool is_delete)
 	return error;
 }
 
-static int IsGloballyReadableFile(const struct path_info *filename)
+static bool IsGloballyReadableFile(const struct path_info *filename)
 {
 	struct globally_readable_file_entry *ptr;
 	list1_for_each_entry(ptr, &globally_readable_list, list) {
@@ -250,7 +250,7 @@ int AddPathGroupPolicy(char *data, const bool is_delete)
 
 static struct path_group_entry *FindOrAssignNewPathGroup(const char *group_name)
 {
-	int i;
+	u8 i;
 	struct path_group_entry *group;
 	for (i = 0; i <= 1; i++) {
 		list1_for_each_entry(group, &path_group_list, list) {
@@ -264,7 +264,7 @@ static struct path_group_entry *FindOrAssignNewPathGroup(const char *group_name)
 	return NULL;
 }
 
-static int PathMatchesToGroup(const struct path_info *pathname, const struct path_group_entry *group, const bool may_use_pattern)
+static bool PathMatchesToGroup(const struct path_info *pathname, const struct path_group_entry *group, const bool may_use_pattern)
 {
 	struct path_group_member *member;
 	list1_for_each_entry(member, &group->path_group_member_list, list) {
@@ -397,7 +397,7 @@ static int AddNoRewriteEntry(const char *pattern, const bool is_delete)
 	return error;
 }
 
-static int IsNoRewriteFile(const struct path_info *filename)
+static bool IsNoRewriteFile(const struct path_info *filename)
 {
 	struct no_rewrite_entry *ptr;
 	list1_for_each_entry(ptr, &no_rewrite_list, list) {
@@ -739,7 +739,7 @@ int CheckExecPerm(const struct path_info *filename, struct file *filp)
 
 int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag)
 {
-	const int acc_mode = ACC_MODE(flag);
+	const u8 acc_mode = ACC_MODE(flag);
 	int error = -ENOMEM;
 	struct path_info *buf;
 	const u8 profile = current->domain_info->profile;

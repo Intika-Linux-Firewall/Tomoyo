@@ -3,9 +3,9 @@
  *
  * /proc interface for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2007/12/17
+ * Version: 1.5.3-pre   2008/01/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -63,7 +63,7 @@ static struct file_operations ccs_operations = {
 	write:   ccs_write
 };
 
-static __init void CreateEntry(const char *name, const mode_t mode, struct proc_dir_entry *parent, const int key)
+static __init void CreateEntry(const char *name, const mode_t mode, struct proc_dir_entry *parent, const u8 key)
 {
 	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
 	if (entry) {

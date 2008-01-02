@@ -20,7 +20,7 @@
 /*************************  VARIABLES  *************************/
 
 extern struct mutex domain_acl_lock;
-extern int sbin_init_started;
+extern bool sbin_init_started;
 
 static struct {
 	const char *keyword;
@@ -99,7 +99,7 @@ static struct profile *FindOrAssignNewProfile(const u8 profile)
 #endif
 	    (ptr = profile_ptr[profile]) == NULL) {
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
-			int i;
+			u8 i;
 			for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) ptr->value[i] = capability_control_array[i].current_value;
 			mb(); /* Avoid out-of-order execution. */
 			profile_ptr[profile] = ptr;
@@ -111,7 +111,7 @@ static struct profile *FindOrAssignNewProfile(const u8 profile)
 
 int SetCapabilityStatus(const char *data, u8 value, const u8 profile)
 {
-	int i;
+	u8 i;
 	struct profile *ptr = FindOrAssignNewProfile(profile);
 	if (!ptr) return -EINVAL;
 	for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) {

@@ -46,7 +46,7 @@ static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 
 /* Keep the given IPv6 address on the RAM. The RAM is shared, so NEVER try to modify or kfree() the returned address. */
 static const struct in6_addr *SaveIPv6Address(const struct in6_addr *addr)
 {
-	static const int block_size = 16;
+	static const u8 block_size = 16;
 	struct addr_list {
 		struct in6_addr addr[block_size];
 		struct list1_head list;
@@ -55,7 +55,7 @@ static const struct in6_addr *SaveIPv6Address(const struct in6_addr *addr)
 	static LIST1_HEAD(address_list);
 	struct addr_list *ptr;
 	static DEFINE_MUTEX(lock);
-	int i = block_size;
+	u8 i = block_size;
 	if (!addr) return NULL;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &address_list, list) {
@@ -141,7 +141,8 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 
 int AddAddressGroupPolicy(char *data, const bool is_delete)
 {
-	int count, is_ipv6;
+	u8 count;
+	bool is_ipv6;
 	u16 min_address[8], max_address[8];
 	char *cp = strchr(data, ' ');
 	if (!cp) return -EINVAL;
@@ -151,7 +152,7 @@ int AddAddressGroupPolicy(char *data, const bool is_delete)
 			    &min_address[4], &min_address[5], &min_address[6], &min_address[7],
 			    &max_address[0], &max_address[1], &max_address[2], &max_address[3],
 			    &max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
-		int i;
+		u8 i;
 		for (i = 0; i < 8; i++) {
 			min_address[i] = htons(min_address[i]);
 			max_address[i] = htons(max_address[i]);
@@ -174,7 +175,7 @@ int AddAddressGroupPolicy(char *data, const bool is_delete)
 
 static struct address_group_entry *FindOrAssignNewAddressGroup(const char *group_name)
 {
-	int i;
+	u8 i;
 	struct address_group_entry *group;
 	for (i = 0; i <= 1; i++) {
 		list1_for_each_entry(group, &address_group_list, list) {
@@ -189,7 +190,7 @@ static struct address_group_entry *FindOrAssignNewAddressGroup(const char *group
 	return NULL;
 }
 
-static int AddressMatchesToGroup(const bool is_ipv6, const u32 *address, const struct address_group_entry *group)
+static bool AddressMatchesToGroup(const bool is_ipv6, const u32 *address, const struct address_group_entry *group)
 {
 	struct address_group_member *member;
 	const u32 ip = ntohl(*address);
@@ -426,7 +427,7 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condit
 	u16 min_address[8], max_address[8];
 	struct address_group_entry *group = NULL;
 	u16 min_port, max_port;
-	int count;
+	u8 count;
 	char *cp1 = NULL, *cp2 = NULL;
 	if ((cp1 = strchr(data, ' ')) == NULL) goto out; cp1++;
 	if (strncmp(data, "TCP ", 4) == 0) sock_type = SOCK_STREAM;
@@ -451,7 +452,7 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condit
 			    &min_address[4], &min_address[5], &min_address[6], &min_address[7],
 			    &max_address[0], &max_address[1], &max_address[2], &max_address[3],
 			    &max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
-		int i;
+		u8 i;
 		for (i = 0; i < 8; i++) {
 			min_address[i] = htons(min_address[i]);
 			max_address[i] = htons(max_address[i]);
