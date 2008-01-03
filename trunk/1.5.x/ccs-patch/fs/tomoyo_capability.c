@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/02
+ * Version: 1.5.3-pre   2008/01/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -154,30 +154,59 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 {
 	struct acl_info *ptr;
 	struct capability_acl_record *acl;
+	struct capability_acl_record_with_condition *p;
 	int error = -ENOMEM;
 	const u32 capability = 1 << operation;
 	if (!domain) return -EINVAL;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->cond != condition) continue;
-			acl = container_of(ptr, struct capability_acl_record, head);
+			switch (ptr->type) {
+			case TYPE_CAPABILITY_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct capability_acl_record, head);
+				break;
+			case TYPE_CAPABILITY_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct capability_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
 			acl->capability |= capability;
 			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 			error = 0;
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = TYPE_CAPABILITY_ACL;
+		if (condition) {
+			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
+			acl = &p->record;
+			p->condition = condition;
+			acl->head.type = TYPE_CAPABILITY_ACL_WITH_CONDITION;
+		} else {
+			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+			acl->head.type = TYPE_CAPABILITY_ACL;
+		}
 		acl->capability = 1 << capability;
-		acl->head.cond = condition;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			if (ptr->type != TYPE_CAPABILITY_ACL || ptr->cond != condition) continue;
-			acl = container_of(ptr, struct capability_acl_record, head);
+			switch (ptr->type) {
+			case TYPE_CAPABILITY_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct capability_acl_record, head);
+				break;
+			case TYPE_CAPABILITY_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct capability_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
 			acl->capability &= ~capability;
 			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 			error = 0;
@@ -197,20 +226,36 @@ int CheckCapabilityACL(const u8 operation)
 	const u8 mode = CheckCapabilityFlags(operation);
 	const bool is_enforce = (mode == 3);
 	const u32 capability = 1 << operation;
+	bool found = 0;
 	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
-		acl = container_of(ptr, struct capability_acl_record, head);
-		if (ptr->type != TYPE_CAPABILITY_ACL || !(acl->capability & capability) || CheckCondition(ptr->cond, NULL)) continue;
-		AuditCapabilityLog(operation, 1, profile, mode);
-		return 0;
+		struct capability_acl_record_with_condition *p;
+		const struct condition_list *cond;
+		switch (ptr->type) {
+		default:
+			continue;
+		case TYPE_CAPABILITY_ACL:
+			acl = container_of(ptr, struct capability_acl_record, head);
+			cond = NULL;
+			break;
+		case TYPE_CAPABILITY_ACL_WITH_CONDITION:
+			p = container_of(ptr, struct capability_acl_record_with_condition, record.head);
+			acl = &p->record;
+			cond = p->condition;
+			break;
+		}
+		if (!(acl->capability & capability) || !CheckCondition(cond, NULL)) continue;
+		found = 1;
+		break;
 	}
+	AuditCapabilityLog(operation, found, profile, mode);
+	if (found) return 0;
 	if (TomoyoVerboseMode()) {
 		printk("TOMOYO-%s: %s denied for %s\n", GetMSG(is_enforce), cap_operation2name(operation), GetLastName(domain));
 	}
-	AuditCapabilityLog(operation, 0, profile, capability);
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, cap_operation2keyword(operation));
-	if (mode == 1 && CheckDomainQuota(domain)) AddCapabilityACL(operation, domain, NULL, 0);
+	else if (mode == 1 && CheckDomainQuota(domain)) AddCapabilityACL(operation, domain, NULL, 0);
 	return 0;
 }
 EXPORT_SYMBOL(CheckCapabilityACL);

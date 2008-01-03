@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/02
+ * Version: 1.5.3-pre   2008/01/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -297,6 +297,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 {
 	struct acl_info *ptr;
 	struct ip_network_acl_record *acl;
+	struct ip_network_acl_record_with_condition *p;
 	int error = -ENOMEM;
 	const u32 min_ip = ntohl(*min_address), max_ip = ntohl(*max_address); /* using host byte order to allow u32 comparison than memcmp().*/
 	const struct in6_addr *saved_min_address = NULL, *saved_max_address = NULL;
@@ -308,38 +309,52 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct ip_network_acl_record, head);
-			if (ptr->type == TYPE_IP_NETWORK_ACL && acl->operation_type == operation && acl->record_type == record_type && ptr->cond == condition && acl->min_port == min_port && max_port == acl->max_port) {
-				if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-					if (acl->u.group == group) {
-						ptr->is_deleted = 0;
-						/* Found. Nothing to do. */
-						error = 0;
-						goto out;
-					}
-				} else if (record_type == IP_RECORD_TYPE_IPv4) {
-					if (acl->u.ipv4.min == min_ip && max_ip == acl->u.ipv4.max) {
-						ptr->is_deleted = 0;
-						/* Found. Nothing to do. */
-						error = 0;
-						goto out;
-					}
-				} else if (record_type == IP_RECORD_TYPE_IPv6) {
-					if (acl->u.ipv6.min == saved_min_address && saved_max_address == acl->u.ipv6.max) {
-						ptr->is_deleted = 0;
-						/* Found. Nothing to do. */
-						error = 0;
-						goto out;
-					}
-				}
+			switch (ptr->type) {
+			case TYPE_IP_NETWORK_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct ip_network_acl_record, head);
+				break;
+			case TYPE_IP_NETWORK_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct ip_network_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
+			if (acl->operation_type != operation || acl->record_type != record_type || acl->min_port != min_port || max_port != acl->max_port) continue;
+			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
+				if (acl->u.group != group) continue;
+				ptr->is_deleted = 0;
+				/* Found. Nothing to do. */
+				error = 0;
+				goto out;
+			} else if (record_type == IP_RECORD_TYPE_IPv4) {
+				if (acl->u.ipv4.min != min_ip || max_ip != acl->u.ipv4.max) continue;
+				ptr->is_deleted = 0;
+				/* Found. Nothing to do. */
+				error = 0;
+				goto out;
+			} else if (record_type == IP_RECORD_TYPE_IPv6) {
+				if (acl->u.ipv6.min != saved_min_address || saved_max_address != acl->u.ipv6.max) continue;
+				ptr->is_deleted = 0;
+				/* Found. Nothing to do. */
+				error = 0;
+				goto out;
 			}
 		}
 		/* Not found. Append it to the tail. */
-		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = TYPE_IP_NETWORK_ACL;
+		if (condition) {
+			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
+			acl = &p->record;
+			p->condition = condition;
+			acl->head.type = TYPE_IP_NETWORK_ACL_WITH_CONDITION;
+		} else {
+			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+			acl->head.type = TYPE_IP_NETWORK_ACL;
+		}
 		acl->operation_type = operation;
 		acl->record_type = record_type;
-		acl->head.cond = condition;
 		if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 			acl->u.group = group;
 		} else if (record_type == IP_RECORD_TYPE_IPv4) {
@@ -355,8 +370,20 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct ip_network_acl_record, head);
-			if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || acl->operation_type != operation || acl->record_type != record_type || ptr->cond != condition || acl->min_port != min_port || acl->max_port != max_port) continue;
+			switch (ptr->type) {
+			case TYPE_IP_NETWORK_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct ip_network_acl_record, head);
+				break;
+			case TYPE_IP_NETWORK_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct ip_network_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
+			if (acl->operation_type != operation || acl->record_type != record_type || acl->min_port != min_port || max_port != acl->max_port || ptr->is_deleted) continue;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 				if (acl->u.group != group) continue;
 			} else if (record_type == IP_RECORD_TYPE_IPv4) {
@@ -386,8 +413,22 @@ static int CheckNetworkEntry(const bool is_ipv6, const u8 operation, const u32 *
 	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ip_network_acl_record *acl;
-		acl = container_of(ptr, struct ip_network_acl_record, head);
-		if (ptr->type != TYPE_IP_NETWORK_ACL || ptr->is_deleted || acl->operation_type != operation || port < acl->min_port || acl->max_port < port || CheckCondition(ptr->cond, NULL)) continue;
+		struct ip_network_acl_record_with_condition *p;
+		const struct condition_list *cond;
+		switch (ptr->type) {
+		default:
+			continue;
+		case TYPE_IP_NETWORK_ACL:
+			acl = container_of(ptr, struct ip_network_acl_record, head);
+			cond = NULL;
+			break;
+		case TYPE_IP_NETWORK_ACL_WITH_CONDITION:
+			p = container_of(ptr, struct ip_network_acl_record_with_condition, record.head);
+			acl = &p->record;
+			cond = p->condition;
+			break;
+		}
+		if (ptr->is_deleted || acl->operation_type != operation || port < acl->min_port || acl->max_port < port || !CheckCondition(cond, NULL)) continue;
 		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 			if (!AddressMatchesToGroup(is_ipv6, address, acl->u.group)) continue;
 		} else if (acl->record_type == IP_RECORD_TYPE_IPv4) {
@@ -417,7 +458,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const u8 operation, const u32 *
 		}
 		return CheckSupervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s %u.%u.%u.%u %u\n", domain->domainname->name, keyword, HIPQUAD(ip), port);
 	}
-	if (mode == 1 && CheckDomainQuota(domain)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, NULL, 0);
+	else if (mode == 1 && CheckDomainQuota(domain)) AddNetworkEntry(operation, is_ipv6 ? IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4, NULL, address, address, port, port, domain, NULL, 0);
 	return 0;
 }
 

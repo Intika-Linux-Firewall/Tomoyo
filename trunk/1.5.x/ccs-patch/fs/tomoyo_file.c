@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/02
+ * Version: 1.5.3-pre   2008/01/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -460,8 +460,22 @@ static int CheckFileACL(const struct path_info *filename, const u8 operation, st
 	else BUG();
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct single_acl_record *acl;
-		acl = container_of(ptr, struct single_acl_record, head);
-		if (ptr->type != TYPE_SINGLE_PATH_ACL || (acl->perm & perm) != perm || CheckCondition(ptr->cond, obj)) continue;
+		struct single_acl_record_with_condition *p;
+		const struct condition_list *cond;
+		switch (ptr->type) {
+		default:
+			continue;
+		case TYPE_SINGLE_PATH_ACL:
+			acl = container_of(ptr, struct single_acl_record, head);
+			cond = NULL;
+			break;
+		case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
+			p = container_of(ptr, struct single_acl_record_with_condition, record.head);
+			acl = &p->record;
+			cond = p->condition;
+			break;
+		}
+		if ((acl->perm & perm) != perm || !CheckCondition(cond, obj)) continue;
 		if (acl->u_is_group) {
 			if (PathMatchesToGroup(filename, acl->u.group, may_use_pattern)) return 0;
 		} else if (may_use_pattern || !acl->u.filename->is_patterned) {
@@ -473,6 +487,8 @@ static int CheckFileACL(const struct path_info *filename, const u8 operation, st
 
 static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const char *operation, struct obj_info *obj, const u8 profile, const u8 mode)
 {
+	struct domain_info * const domain = current->domain_info;
+	const bool is_enforce = (mode == 3);
 	const char *msg;
 	int error = 0;
 	if (!filename) return 0;
@@ -483,21 +499,17 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	else if (perm == 1) msg = sp_operation2keyword(TYPE_EXECUTE_ACL);
 	else BUG();
 	AuditFileLog(msg, filename, NULL, !error, profile, mode);
-	if (error) {
-		struct domain_info * const domain = current->domain_info;
-		const bool is_enforce = (mode == 3);
-		if (TomoyoVerboseMode()) {
-			printk("TOMOYO-%s: Access '%s(%s) %s denied for %s\n", GetMSG(is_enforce), msg, operation, filename->name, GetLastName(domain));
-		}
-		if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, msg, filename->name);
-		else if (mode == 1 && CheckDomainQuota(domain)) {
-			/* Don't use patterns for execute permission. */
-			const struct path_info *patterned_file = (perm != 1) ? GetFilePattern(filename) : filename;
-			AddFileACL(patterned_file->name, perm, domain, NULL, 0);
-		}
-		if (!is_enforce) error = 0;
+	if (!error) return 0;
+	if (TomoyoVerboseMode()) {
+		printk("TOMOYO-%s: Access '%s(%s) %s denied for %s\n", GetMSG(is_enforce), msg, operation, filename->name, GetLastName(domain));
 	}
-	return error;
+	if (is_enforce) return CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, msg, filename->name);
+	else if (mode == 1 && CheckDomainQuota(domain)) {
+		/* Don't use patterns for execute permission. */
+		const struct path_info *patterned_file = (perm != 1) ? GetFilePattern(filename) : filename;
+		AddFileACL(patterned_file->name, perm, domain, NULL, 0);
+	}
+	return 0;
 }
 
 int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
@@ -534,6 +546,7 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
 	struct single_acl_record *acl;
+	struct single_acl_record_with_condition *p;
 	int error = -ENOMEM;
 	bool is_group = 0;
 	const u16 perm = 1 << type;
@@ -549,22 +562,37 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct single_acl_record, head);
-			if (ptr->type == TYPE_SINGLE_PATH_ACL && ptr->cond == condition) {
-				if (acl->u.filename == saved_filename) {
-					acl->perm |= perm;
-					if ((acl->perm & rw_mask) == rw_mask) acl->perm |= 1 << TYPE_READ_WRITE_ACL;
-					else if (acl->perm & (1 << TYPE_READ_WRITE_ACL)) acl->perm |= rw_mask;
-					UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-					error = 0;
-					goto out;
-				}
+			switch (ptr->type) {
+			case TYPE_SINGLE_PATH_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct single_acl_record, head);
+				break;
+			case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct single_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
 			}
+			if (acl->u.filename != saved_filename) continue;
+			acl->perm |= perm;
+			if ((acl->perm & rw_mask) == rw_mask) acl->perm |= 1 << TYPE_READ_WRITE_ACL;
+			else if (acl->perm & (1 << TYPE_READ_WRITE_ACL)) acl->perm |= rw_mask;
+			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
+			error = 0;
+			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = TYPE_SINGLE_PATH_ACL;
-		acl->head.cond = condition;
+		if (condition) {
+			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
+			acl = &p->record;
+			p->condition = condition;
+			acl->head.type = TYPE_SINGLE_PATH_ACL_WITH_CONDITION;
+		} else {
+			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+			acl->head.type = TYPE_SINGLE_PATH_ACL;
+		}
 		acl->perm = perm;
 		acl->u_is_group = is_group;
 		acl->u.filename = saved_filename;
@@ -572,15 +600,26 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct single_acl_record, head);
-			if (ptr->type != TYPE_SINGLE_PATH_ACL || ptr->cond != condition) continue;
+			switch (ptr->type) {
+			case TYPE_SINGLE_PATH_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct single_acl_record, head);
+				break;
+			case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct single_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
 			if (acl->u.filename != saved_filename) continue;
 			acl->perm &= ~perm;
 			if ((acl->perm & rw_mask) != rw_mask) acl->perm &= ~(1 << TYPE_READ_WRITE_ACL);
 			else if (!(acl->perm & (1 << TYPE_READ_WRITE_ACL))) acl->perm &= ~rw_mask;
 			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 			error = 0;
-			break;
+			goto out;
 		}
 	}
  out: ;
@@ -593,6 +632,7 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 	const struct path_info *saved_filename1, *saved_filename2;
 	struct acl_info *ptr;
 	struct double_acl_record *acl;
+	struct double_acl_record_with_condition *p;
 	int error = -ENOMEM;
 	bool is_group1 = 0, is_group2 = 0;
 	const u8 perm = 1 << type;
@@ -615,20 +655,35 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct double_acl_record, head);
-			if (ptr->type == TYPE_DOUBLE_PATH_ACL && ptr->cond == condition) {
-				if (acl->u1.filename1 == saved_filename1 && acl->u2.filename2 == saved_filename2) {
-					acl->perm |= perm;
-					UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-					error = 0;
-					goto out;
-				}
+			switch (ptr->type) {
+			case TYPE_DOUBLE_PATH_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct double_acl_record, head);
+				break;
+			case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct double_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
 			}
+			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
+			acl->perm |= perm;
+			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
+			error = 0;
+			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = TYPE_DOUBLE_PATH_ACL;
-		acl->head.cond = condition;
+		if (condition) {
+			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
+			acl = &p->record;
+			p->condition = condition;
+			acl->head.type = TYPE_DOUBLE_PATH_ACL_WITH_CONDITION;
+		} else {
+			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+			acl->head.type = TYPE_DOUBLE_PATH_ACL;
+		}
 		acl->perm = perm;
 		acl->u1_is_group = is_group1;
 		acl->u2_is_group = is_group2;
@@ -638,8 +693,19 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct double_acl_record, head);
-			if (ptr->type != TYPE_DOUBLE_PATH_ACL || ptr->cond != condition) continue;
+			switch (ptr->type) {
+			case TYPE_DOUBLE_PATH_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct double_acl_record, head);
+				break;
+			case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct double_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
 			acl->perm &= ~perm;
 			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
@@ -660,8 +726,22 @@ static int CheckSinglePathACL(const u8 type, const struct path_info *filename, s
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct single_acl_record *acl;
-		acl = container_of(ptr, struct single_acl_record, head);
-		if (ptr->type != TYPE_SINGLE_PATH_ACL || !(acl->perm & perm) || CheckCondition(ptr->cond, obj)) continue;
+		struct single_acl_record_with_condition *p;
+		const struct condition_list *cond;
+		switch (ptr->type) {
+		default:
+			continue;
+		case TYPE_SINGLE_PATH_ACL:
+			acl = container_of(ptr, struct single_acl_record, head);
+			cond = NULL;
+			break;
+		case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
+			p = container_of(ptr, struct single_acl_record_with_condition, record.head);
+			acl = &p->record;
+			cond = p->condition;
+			break;
+		}
+		if (!(acl->perm & perm) || !CheckCondition(cond, obj)) continue;
 		if (acl->u_is_group) {
 			if (!PathMatchesToGroup(filename, acl->u.group, 1)) continue;
 		} else {
@@ -680,8 +760,22 @@ static int CheckDoublePathACL(const u8 type, const struct path_info *filename1, 
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct double_acl_record *acl;
-		acl = container_of(ptr, struct double_acl_record, head);
-		if (ptr->type != TYPE_DOUBLE_PATH_ACL || !(acl->perm & perm) || CheckCondition(ptr->cond, obj)) continue;
+		struct double_acl_record_with_condition *p;
+		const struct condition_list *cond;
+		switch (ptr->type) {
+		default:
+			continue;
+		case TYPE_DOUBLE_PATH_ACL:
+			acl = container_of(ptr, struct double_acl_record, head);
+			cond = NULL;
+			break;
+		case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
+			p = container_of(ptr, struct double_acl_record_with_condition, record.head);
+			acl = &p->record;
+			cond = p->condition;
+			break;
+		}
+		if (!(acl->perm & perm) || !CheckCondition(cond, obj)) continue;
 		if (acl->u1_is_group) {
 			if (!PathMatchesToGroup(filename1, acl->u1.group1, 1)) continue;
 		} else {
@@ -707,14 +801,14 @@ static int CheckSinglePathPermission2(const u8 operation, const struct path_info
 	error = CheckSinglePathACL(operation, filename, obj);
 	msg = sp_operation2keyword(operation);
 	AuditFileLog(msg, filename, NULL, !error, profile, mode);
-	if (error) {
-		if (TomoyoVerboseMode()) {
-			printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), msg, filename->name, GetLastName(domain));
-		}
-		if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, msg, filename->name);
-		else if (mode == 1 && CheckDomainQuota(domain)) AddSinglePathACL(operation, GetFilePattern(filename)->name, domain, NULL, 0);
-		if (!is_enforce) error = 0;
+	if (!error) goto next;
+	if (TomoyoVerboseMode()) {
+		printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), msg, filename->name, GetLastName(domain));
 	}
+	if (is_enforce) error = CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, msg, filename->name);
+	else if (mode == 1 && CheckDomainQuota(domain)) AddSinglePathACL(operation, GetFilePattern(filename)->name, domain, NULL, 0);
+	if (!is_enforce) error = 0;
+ next:
 	if (!error && operation == TYPE_TRUNCATE_ACL && IsNoRewriteFile(filename)) {
 		error = CheckSinglePathPermission2(TYPE_REWRITE_ACL, filename, obj, profile, mode);
 	}

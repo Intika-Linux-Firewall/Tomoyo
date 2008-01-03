@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/02
+ * Version: 1.5.3-pre   2008/01/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -106,6 +106,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 {
 	struct acl_info *ptr;
 	struct env_acl_record *acl;
+	struct env_acl_record_with_condition *p;
 	const struct path_info *saved_env;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(env, 0, 0, 0, __FUNCTION__)) return -EINVAL;
@@ -115,28 +116,54 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct env_acl_record, head);
-			if (ptr->type == TYPE_ENV_ACL && ptr->cond == condition) {
-				if (acl->env == saved_env) {
-					ptr->is_deleted = 0;
-					/* Found. Nothing to do. */
-					error = 0;
-					goto out;
-				}
+			switch (ptr->type) {
+			case TYPE_ENV_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct env_acl_record, head);
+				break;
+			case TYPE_ENV_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct env_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
 			}
+			if (acl->env != saved_env) continue;
+			ptr->is_deleted = 0;
+			/* Found. Nothing to do. */
+			error = 0;
+			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = TYPE_ENV_ACL;
-		acl->head.cond = condition;
+		if (condition) {
+			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
+			acl = &p->record;
+			p->condition = condition;
+			acl->head.type = TYPE_ENV_ACL_WITH_CONDITION;
+		} else {
+			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+			acl->head.type = TYPE_ENV_ACL;
+		}
 		acl->env = saved_env;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct env_acl_record, head);
-			if (ptr->type != TYPE_ENV_ACL || ptr->is_deleted || ptr->cond != condition) continue;
-			if (acl->env != saved_env) continue;
+			switch (ptr->type) {
+			case TYPE_ENV_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct env_acl_record, head);
+				break;
+			case TYPE_ENV_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct env_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
+			if (ptr->is_deleted || acl->env != saved_env) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -157,12 +184,25 @@ static int CheckEnvACL(const char *env_)
 	if (IsGloballyUsableEnv(&env)) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct env_acl_record *acl;
-		acl = container_of(ptr, struct env_acl_record, head);
-		if (ptr->type == TYPE_ENV_ACL && ptr->is_deleted == 0 && CheckCondition(ptr->cond, NULL) == 0 &&
-		    PathMatchesToPattern(&env, acl->env)) {
-			error = 0;
+		struct env_acl_record_with_condition *p;
+		const struct condition_list *cond;
+		switch (ptr->type) {
+		default:
+			continue;
+		case TYPE_ENV_ACL:
+			acl = container_of(ptr, struct env_acl_record, head);
+			cond = NULL;
+			break;
+		case TYPE_ENV_ACL_WITH_CONDITION:
+			p = container_of(ptr, struct env_acl_record_with_condition, record.head);
+			acl = &p->record;
+			cond = p->condition;
 			break;
 		}
+		if (ptr->is_deleted || !CheckCondition(cond, NULL) ||
+		    !PathMatchesToPattern(&env, acl->env)) continue;
+		error = 0;
+		break;
 	}
 	return error;
 }
@@ -170,20 +210,18 @@ static int CheckEnvACL(const char *env_)
 int CheckEnvPerm(const char *env, const u8 profile, const u8 mode)
 {
 	int error = 0;
+	struct domain_info * const domain = current->domain_info;
+	const bool is_enforce = (mode == 3);
 	if (!env || !*env) return 0;
 	error = CheckEnvACL(env);
 	AuditEnvLog(env, !error, profile, mode);
-	if (error) {
-		struct domain_info * const domain = current->domain_info;
-		const bool is_enforce = (mode == 3);
-		if (TomoyoVerboseMode()) {
-			printk("TOMOYO-%s: Environ %s denied for %s\n", GetMSG(is_enforce), env, GetLastName(domain));
-		}
-		if (is_enforce) error = CheckSupervisor("%s\n" KEYWORD_ALLOW_ENV "%s\n", domain->domainname->name, env);
-		else if (mode == 1 && CheckDomainQuota(domain)) AddEnvEntry(env, domain, NULL, 0);
-		if (!is_enforce) error = 0;
+	if (!error) return 0;
+	if (TomoyoVerboseMode()) {
+		printk("TOMOYO-%s: Environ %s denied for %s\n", GetMSG(is_enforce), env, GetLastName(domain));
 	}
-	return error;
+	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_ENV "%s\n", domain->domainname->name, env);
+	else if (mode == 1 && CheckDomainQuota(domain)) AddEnvEntry(env, domain, NULL, 0);
+	return 0;
 }
 
 int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/02
+ * Version: 1.5.3-pre   2008/01/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -40,6 +40,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 {
 	struct acl_info *ptr;
 	struct argv0_acl_record *acl;
+	struct argv0_acl_record_with_condition *p;
 	const struct path_info *saved_filename, *saved_argv0;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(filename, 1, 0, -1, __FUNCTION__) || !IsCorrectPath(argv0, -1, 0, -1, __FUNCTION__) || strchr(argv0, '/')) return -EINVAL;
@@ -47,29 +48,55 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct argv0_acl_record, head);
-			if (ptr->type == TYPE_ARGV0_ACL && ptr->cond == condition) {
-				if (acl->filename == saved_filename && acl->argv0 == saved_argv0) {
-					ptr->is_deleted = 0;
-					/* Found. Nothing to do. */
-					error = 0;
-					goto out;
-				}
+			switch (ptr->type) {
+			case TYPE_ARGV0_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct argv0_acl_record, head);
+				break;
+			case TYPE_ARGV0_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct argv0_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
 			}
+			if (acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
+			ptr->is_deleted = 0;
+			/* Found. Nothing to do. */
+			error = 0;
+			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = TYPE_ARGV0_ACL;
-		acl->head.cond = condition;
+		if (condition) {
+			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
+			acl = &p->record;
+			p->condition = condition;
+			acl->head.type = TYPE_ARGV0_ACL_WITH_CONDITION;
+		} else {
+			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+			acl->head.type = TYPE_ARGV0_ACL;
+		}
 		acl->filename = saved_filename;
 		acl->argv0 = saved_argv0;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct argv0_acl_record, head);
-			if (ptr->type != TYPE_ARGV0_ACL || ptr->is_deleted || ptr->cond != condition) continue;
-			if (acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
+			switch (ptr->type) {
+			case TYPE_ARGV0_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct argv0_acl_record, head);
+				break;
+			case TYPE_ARGV0_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct argv0_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
+			if (ptr->is_deleted || acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -89,13 +116,26 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 	fill_path_info(&argv0);
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct argv0_acl_record *acl;
-		acl = container_of(ptr, struct argv0_acl_record, head);
-		if (ptr->type == TYPE_ARGV0_ACL && ptr->is_deleted == 0 && CheckCondition(ptr->cond, NULL) == 0 &&
-			PathMatchesToPattern(filename, acl->filename) &&
-			PathMatchesToPattern(&argv0, acl->argv0)) {
-			error = 0;
+		struct argv0_acl_record_with_condition *p;
+		const struct condition_list *cond;
+		switch (ptr->type) {
+		default:
+			continue;
+		case TYPE_ARGV0_ACL:
+			acl = container_of(ptr, struct argv0_acl_record, head);
+			cond = NULL;
+			break;
+		case TYPE_ARGV0_ACL_WITH_CONDITION:
+			p = container_of(ptr, struct argv0_acl_record_with_condition, record.head);
+			acl = &p->record;
+			cond = p->condition;
 			break;
 		}
+		if (ptr->is_deleted || !CheckCondition(cond, NULL) ||
+		    !PathMatchesToPattern(filename, acl->filename) ||
+		    !PathMatchesToPattern(&argv0, acl->argv0)) continue;
+		error = 0;
+		break;
 	}
 	return error;
 }
@@ -106,19 +146,17 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 	struct domain_info * const domain = current->domain_info;
 	const u8 profile = domain->profile;
 	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0);
+	const bool is_enforce = (mode == 3);
 	if (!filename || !argv0 || !*argv0) return 0;
 	error = CheckArgv0ACL(filename, argv0);
 	AuditArgv0Log(filename, argv0, !error, profile, mode);
-	if (error) {
-		const bool is_enforce = (mode == 3);
-		if (TomoyoVerboseMode()) {
-			printk("TOMOYO-%s: Run %s as %s denied for %s\n", GetMSG(is_enforce), filename->name, argv0, GetLastName(domain));
-		}
-		if (is_enforce) error = CheckSupervisor("%s\n" KEYWORD_ALLOW_ARGV0 "%s %s\n", domain->domainname->name, filename->name, argv0);
-		else if (mode == 1 && CheckDomainQuota(domain)) AddArgv0Entry(filename->name, argv0, domain, NULL, 0);
-		if (!is_enforce) error = 0;
+	if (!error) return 0;
+	if (TomoyoVerboseMode()) {
+		printk("TOMOYO-%s: Run %s as %s denied for %s\n", GetMSG(is_enforce), filename->name, argv0, GetLastName(domain));
 	}
-	return error;
+	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_ARGV0 "%s %s\n", domain->domainname->name, filename->name, argv0);
+	else if (mode == 1 && CheckDomainQuota(domain)) AddArgv0Entry(filename->name, argv0, domain, NULL, 0);
+	return 0;
 }
 
 int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
