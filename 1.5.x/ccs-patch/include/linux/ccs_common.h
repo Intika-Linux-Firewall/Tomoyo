@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/02
+ * Version: 1.5.3-pre   2008/01/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -233,7 +233,6 @@ struct condition_list;
 
 struct acl_info {
 	struct list1_head list;
-	const struct condition_list *cond;
 	u8 type;
 	bool is_deleted;
 } __attribute__((__packed__));
@@ -249,28 +248,6 @@ struct domain_info {
 
 #define MAX_PROFILES 256
 
-struct argv0_acl_record {
-	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
-	const struct path_info *filename; /* Pointer to single pathname. */
-	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
-};
-
-struct env_acl_record {
-	struct acl_info head;           /* type = TYPE_ENV_ACL  */
-	const struct path_info *env;    /* environment variable */
-};
-
-struct capability_acl_record {
-	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
-	u32 capability;
-};
-
-struct signal_acl_record {
-	struct acl_info head;               /* type = TYPE_SIGNAL_ACL          */
-	u16 sig;
-	const struct path_info *domainname; /* Pointer to destination pattern. */
-};
-
 struct single_acl_record {
 	struct acl_info head;                         /* type = TYPE_SINGLE_PATH_ACL */
 	bool u_is_group;
@@ -279,6 +256,11 @@ struct single_acl_record {
 		const struct path_group_entry *group; /* Pointer to pathname group.  */
 	} u;
 	u16 perm;
+};
+
+struct single_acl_record_with_condition {
+	struct single_acl_record record; /* head.type = TYPE_SINGLE_PATH_ACL_WITH_CONDITION */
+	const struct condition_list *condition;
 };
 
 struct double_acl_record {
@@ -294,6 +276,53 @@ struct double_acl_record {
 		const struct path_group_entry *group2; /* Pointer to pathname group.  */
 	} u2;
 	u8 perm;
+};
+
+struct double_acl_record_with_condition {
+	struct double_acl_record record; /* head.type = TYPE_DOUBLE_PATH_ACL_WITH_CONDITION */
+	const struct condition_list *condition;
+};
+
+struct argv0_acl_record {
+	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
+	const struct path_info *filename; /* Pointer to single pathname. */
+	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
+};
+
+struct argv0_acl_record_with_condition {
+	struct argv0_acl_record record; /* head.type = TYPE_ARGV0_ACL_WITH_CONDITION */
+	const struct condition_list *condition;
+};
+
+struct env_acl_record {
+	struct acl_info head;           /* type = TYPE_ENV_ACL  */
+	const struct path_info *env;    /* environment variable */
+};
+
+struct env_acl_record_with_condition {
+	struct env_acl_record record; /* head.type = TYPE_ENV_ACL_WITH_CONDITION */
+	const struct condition_list *condition;
+};
+
+struct capability_acl_record {
+	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
+	u32 capability;
+};
+
+struct capability_acl_record_with_condition {
+	struct capability_acl_record record; /* head.type = TYPE_CAPABILITY_ACL_WITH_CONDITION */
+	const struct condition_list *condition;
+};
+
+struct signal_acl_record {
+	struct acl_info head;               /* type = TYPE_SIGNAL_ACL          */
+	u16 sig;
+	const struct path_info *domainname; /* Pointer to destination pattern. */
+};
+
+struct signal_acl_record_with_condition {
+	struct signal_acl_record record; /* head.type = TYPE_SIGNAL_ACL_WITH_CONDITION */
+	const struct condition_list *condition;
 };
 
 #define IP_RECORD_TYPE_ADDRESS_GROUP 0
@@ -317,6 +346,11 @@ struct ip_network_acl_record {
 	} u;
 	u16 min_port;           /* Start of port number range.                   */
 	u16 max_port;           /* End of port number range.                     */
+};
+
+struct ip_network_acl_record_with_condition {
+	struct ip_network_acl_record record; /* type = TYPE_IP_NETWORK_ACL_WITH_CONDITION */
+	const struct condition_list *condition;
 };
 
 /*************************  Keywords for ACLs.  *************************/
@@ -477,11 +511,11 @@ int CCS_PollControl(struct file *file, poll_table *wait);
 int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len);
 int CCS_WriteControl(struct file *file, const char __user *buffer, const int buffer_len);
 int CanSaveAuditLog(const bool is_granted);
-int CheckCondition(const struct condition_list *condition, struct obj_info *obj_info);
 int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
 int DelDomainACL(struct acl_info *ptr);
 int DeleteDomain(char *data);
 int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
+bool CheckCondition(const struct condition_list *condition, struct obj_info *obj_info);
 bool IsCorrectDomain(const unsigned char *domainname, const char *function);
 bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function);
 bool IsDomainDef(const unsigned char *buffer);

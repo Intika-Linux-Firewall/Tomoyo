@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/02
+ * Version: 1.5.3-pre   2008/01/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -43,6 +43,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 {
 	struct acl_info *ptr;
 	struct signal_acl_record *acl;
+	struct signal_acl_record_with_condition *p;
 	const struct path_info *saved_dest_pattern;
 	const u16 hash = sig;
 	int error = -ENOMEM;
@@ -52,29 +53,55 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct signal_acl_record, head);
-			if (ptr->type == TYPE_SIGNAL_ACL && acl->sig == hash && ptr->cond == condition) {
-				if (!pathcmp(acl->domainname, saved_dest_pattern)) {
-					ptr->is_deleted = 0;
-					/* Found. Nothing to do. */
-					error = 0;
-					goto out;
-				}
+			switch (ptr->type) {
+			case TYPE_SIGNAL_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct signal_acl_record, head);
+				break;
+			case TYPE_SIGNAL_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct signal_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
 			}
+			if (acl->sig != hash || pathcmp(acl->domainname, saved_dest_pattern)) continue;
+			ptr->is_deleted = 0;
+			/* Found. Nothing to do. */
+			error = 0;
+			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-		acl->head.type = TYPE_SIGNAL_ACL;
+		if (condition) {
+			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
+			acl = &p->record;
+			p->condition = condition;
+			acl->head.type = TYPE_SIGNAL_ACL_WITH_CONDITION;
+		} else {
+			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
+			acl->head.type = TYPE_SIGNAL_ACL;
+		}
 		acl->sig = hash;
-		acl->head.cond = condition;
 		acl->domainname = saved_dest_pattern;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			acl = container_of(ptr, struct signal_acl_record, head);
-			if (ptr->type != TYPE_SIGNAL_ACL || ptr->is_deleted || acl->sig != hash || ptr->cond != condition) continue;
-			if (pathcmp(acl->domainname, saved_dest_pattern)) continue;
+			switch (ptr->type) {
+			case TYPE_SIGNAL_ACL:
+				if (condition) continue;
+				acl = container_of(ptr, struct signal_acl_record, head);
+				break;
+			case TYPE_SIGNAL_ACL_WITH_CONDITION:
+				p = container_of(ptr, struct signal_acl_record_with_condition, record.head);
+				if (p->condition != condition) continue;
+				acl = &p->record;
+				break;
+			default:
+				continue;
+			}
+			if (ptr->is_deleted || acl->sig != hash || pathcmp(acl->domainname, saved_dest_pattern)) continue;
 			error = DelDomainACL(ptr);
 			break;
 		}
@@ -119,13 +146,27 @@ int CheckSignalACL(const int sig, const int pid)
 	dest_pattern = dest->domainname->name;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct signal_acl_record *acl;
-		acl = container_of(ptr, struct signal_acl_record, head);
-		if (ptr->type == TYPE_SIGNAL_ACL && ptr->is_deleted == 0 && acl->sig == hash && CheckCondition(ptr->cond, NULL) == 0) {
+		struct signal_acl_record_with_condition *p;
+		const struct condition_list *cond;
+		switch (ptr->type) {
+		default:
+			continue;
+		case TYPE_SIGNAL_ACL:
+			acl = container_of(ptr, struct signal_acl_record, head);
+			cond = NULL;
+			break;
+		case TYPE_SIGNAL_ACL_WITH_CONDITION:
+			p = container_of(ptr, struct signal_acl_record_with_condition, record.head);
+			acl = &p->record;
+			cond = p->condition;
+			break;
+		}
+		if (!ptr->is_deleted && acl->sig == hash && CheckCondition(cond, NULL)) {
 			const int len = acl->domainname->total_len;
-			if (strncmp(acl->domainname->name, dest_pattern, len) == 0 && (dest_pattern[len] == ' ' || dest_pattern[len] == '\0')) {
-				found = 1;
-				break;
-			}
+			if (strncmp(acl->domainname->name, dest_pattern, len)) continue;
+			if (dest_pattern[len] != ' ' && dest_pattern[len] != '\0') continue;
+			found = 1;
+			break;
 		}
 	}
 	AuditSignalLog(sig, dest->domainname, found, profile, mode);
@@ -134,7 +175,7 @@ int CheckSignalACL(const int sig, const int pid)
 		printk("TOMOYO-%s: Signal %d to %s denied for %s\n", GetMSG(is_enforce), sig, GetLastName(dest), GetLastName(domain));
 	}
 	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_SIGNAL "%d %s\n", domain->domainname->name, sig, dest_pattern);
-	if (mode == 1 && CheckDomainQuota(domain)) AddSignalEntry(sig, dest_pattern, domain, NULL, 0);
+	else if (mode == 1 && CheckDomainQuota(domain)) AddSignalEntry(sig, dest_pattern, domain, NULL, 0);
 	return 0;
 }
 

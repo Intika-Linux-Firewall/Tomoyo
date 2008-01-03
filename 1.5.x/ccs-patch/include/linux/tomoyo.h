@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/02
+ * Version: 1.5.3-pre   2008/01/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -107,13 +107,20 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 
 /*************************  Index numbers for Access Controls.  *************************/
 
-#define TYPE_SINGLE_PATH_ACL 0
-#define TYPE_DOUBLE_PATH_ACL 1
-#define TYPE_ARGV0_ACL       2
-#define TYPE_ENV_ACL         3
-#define TYPE_CAPABILITY_ACL  4
-#define TYPE_IP_NETWORK_ACL  5
-#define TYPE_SIGNAL_ACL      6
+#define TYPE_SINGLE_PATH_ACL                 0
+#define TYPE_SINGLE_PATH_ACL_WITH_CONDITION  1 
+#define TYPE_DOUBLE_PATH_ACL                 2
+#define TYPE_DOUBLE_PATH_ACL_WITH_CONDITION  3
+#define TYPE_ARGV0_ACL                       4
+#define TYPE_ARGV0_ACL_WITH_CONDITION        5
+#define TYPE_ENV_ACL                         6
+#define TYPE_ENV_ACL_WITH_CONDITION          7
+#define TYPE_CAPABILITY_ACL                  8
+#define TYPE_CAPABILITY_ACL_WITH_CONDITION   9
+#define TYPE_IP_NETWORK_ACL                 10
+#define TYPE_IP_NETWORK_ACL_WITH_CONDITION  11
+#define TYPE_SIGNAL_ACL                     12
+#define TYPE_SIGNAL_ACL_WITH_CONDITION      13
 
 /*************************  Index numbers for File Controls.  *************************/
 

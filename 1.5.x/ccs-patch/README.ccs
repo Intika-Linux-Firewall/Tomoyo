@@ -1106,3 +1106,24 @@ Fix 2007/12/18
     @ Change log format.
 
       Profile number and mode is added in audit logs.
+
+Fix 2008/01/03
+
+    @ Change directive for file's read/write/execute permission.
+
+      Directives for file's read/write/execute permissions were
+      4/2/1 respectively. But for easier understanding, they are now
+      replaced by read/write/execute (e.g. "allow_read" instead of "4").
+      But for easier inputting, 4/2/1 are still accepted instead of
+      allow_read/allow_write/allow_execute respectively.
+
+    @ Change internal data structure.
+
+      Since I don't have more than 32 types of capability permissions and
+      16 types of file permissions, I combined them using bit-fields.
+
+      Each entry had a field for conditional permission support.
+      But since this field is unlikely used, I separated the field from
+      common part.
+
+      These changes will reduce memory used by policy.
