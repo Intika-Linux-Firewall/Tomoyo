@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/03
+ * Version: 1.5.3-pre   2008/01/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -57,6 +57,7 @@ static struct {
 	[TOMOYO_SYS_IOCTL]                  = { "SYS_IOCTL", 0,           "sys_ioctl()" },
 	[TOMOYO_SYS_KEXEC_LOAD]             = { "SYS_KEXEC_LOAD", 0,      "sys_kexec_load()" },
 	[TOMOYO_SYS_PIVOT_ROOT]             = { "SYS_PIVOT_ROOT", 0,      "sys_pivot_root()" },
+	[TOMOYO_SYS_PTRACE]                 = { "SYS_PTRACE", 0,          "sys_ptrace()" },
 };
 
 struct profile {

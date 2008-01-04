@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/03
+ * Version: 1.5.3-pre   2008/01/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -67,6 +67,7 @@ int SAKURA_MayAutobind(const u16 port)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(SAKURA_MayAutobind);
 
 int AddReservedPortPolicy(char *data, const bool is_delete)
 {

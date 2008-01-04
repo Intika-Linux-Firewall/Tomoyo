@@ -186,7 +186,8 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 #define TOMOYO_SYS_IOCTL                        27  /* sys_ioctl(), compat_sys_ioctl()                             */
 #define TOMOYO_SYS_KEXEC_LOAD                   28  /* sys_kexec_load()                                            */
 #define TOMOYO_SYS_PIVOT_ROOT                   29  /* sys_pivot_root()                                            */
-#define TOMOYO_MAX_CAPABILITY_INDEX             30
+#define TOMOYO_SYS_PTRACE                       30  /* sys_ptrace()                                                */
+#define TOMOYO_MAX_CAPABILITY_INDEX             31
 
 /*************************  Index numbers for Network Controls.  *************************/
 
