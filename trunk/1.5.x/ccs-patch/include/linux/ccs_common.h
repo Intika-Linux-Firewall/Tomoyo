@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/03
+ * Version: 1.5.3-pre   2008/01/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -229,12 +229,9 @@ struct address_group_entry {
 
 /*************************  The structure for domains.  *************************/
 
-struct condition_list;
-
 struct acl_info {
 	struct list1_head list;
 	u8 type;
-	bool is_deleted;
 } __attribute__((__packed__));
 
 struct domain_info {
@@ -248,23 +245,26 @@ struct domain_info {
 
 #define MAX_PROFILES 256
 
-struct single_acl_record {
+struct condition_list;
+
+struct single_path_acl_record {
 	struct acl_info head;                         /* type = TYPE_SINGLE_PATH_ACL */
 	bool u_is_group;
+	u16 perm;
 	union {
 		const struct path_info *filename;     /* Pointer to single pathname. */
 		const struct path_group_entry *group; /* Pointer to pathname group.  */
 	} u;
-	u16 perm;
 };
 
-struct single_acl_record_with_condition {
-	struct single_acl_record record; /* head.type = TYPE_SINGLE_PATH_ACL_WITH_CONDITION */
+struct single_path_acl_record_with_condition {
+	struct single_path_acl_record record; /* head.type = TYPE_SINGLE_PATH_ACL_WITH_CONDITION */
 	const struct condition_list *condition;
 };
 
-struct double_acl_record {
+struct double_path_acl_record {
 	struct acl_info head;                          /* type = TYPE_DOUBLE_PATH_ACL */
+	u8 perm;
 	bool u1_is_group;
 	bool u2_is_group;
 	union {
@@ -275,16 +275,16 @@ struct double_acl_record {
 		const struct path_info *filename2;     /* Pointer to single pathname. */
 		const struct path_group_entry *group2; /* Pointer to pathname group.  */
 	} u2;
-	u8 perm;
 };
 
-struct double_acl_record_with_condition {
-	struct double_acl_record record; /* head.type = TYPE_DOUBLE_PATH_ACL_WITH_CONDITION */
+struct double_path_acl_record_with_condition {
+	struct double_path_acl_record record; /* head.type = TYPE_DOUBLE_PATH_ACL_WITH_CONDITION */
 	const struct condition_list *condition;
 };
 
 struct argv0_acl_record {
 	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
+	bool is_deleted;
 	const struct path_info *filename; /* Pointer to single pathname. */
 	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
 };
@@ -296,6 +296,7 @@ struct argv0_acl_record_with_condition {
 
 struct env_acl_record {
 	struct acl_info head;           /* type = TYPE_ENV_ACL  */
+	bool is_deleted;
 	const struct path_info *env;    /* environment variable */
 };
 
@@ -306,7 +307,8 @@ struct env_acl_record_with_condition {
 
 struct capability_acl_record {
 	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
-	u32 capability;
+	bool is_deleted;
+	u8 operation;
 };
 
 struct capability_acl_record_with_condition {
@@ -316,6 +318,7 @@ struct capability_acl_record_with_condition {
 
 struct signal_acl_record {
 	struct acl_info head;               /* type = TYPE_SIGNAL_ACL          */
+	bool is_deleted;
 	u16 sig;
 	const struct path_info *domainname; /* Pointer to destination pattern. */
 };
@@ -331,8 +334,11 @@ struct signal_acl_record_with_condition {
 
 struct ip_network_acl_record {
 	struct acl_info head;   /* type = TYPE_IP_NETWORK_ACL */
+	bool is_deleted;
 	u8 operation_type;
 	u8 record_type;         /* IP_RECORD_TYPE_*           */
+	u16 min_port;           /* Start of port number range.                   */
+	u16 max_port;           /* End of port number range.                     */
 	union {
 		struct {
 			u32 min; /* Start of IPv4 address range. Host endian. */
@@ -344,8 +350,6 @@ struct ip_network_acl_record {
 		} ipv6;
 		const struct address_group_entry *group; /* Pointer to address group. */
 	} u;
-	u16 min_port;           /* Start of port number range.                   */
-	u16 max_port;           /* End of port number range.                     */
 };
 
 struct ip_network_acl_record_with_condition {
@@ -512,7 +516,7 @@ int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len
 int CCS_WriteControl(struct file *file, const char __user *buffer, const int buffer_len);
 int CanSaveAuditLog(const bool is_granted);
 int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-int DelDomainACL(struct acl_info *ptr);
+int DelDomainACL(void);
 int DeleteDomain(char *data);
 int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
 bool CheckCondition(const struct condition_list *condition, struct obj_info *obj_info);

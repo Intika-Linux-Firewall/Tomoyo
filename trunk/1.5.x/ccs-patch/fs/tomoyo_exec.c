@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/03
+ * Version: 1.5.3-pre   2008/01/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -62,7 +62,7 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 				continue;
 			}
 			if (acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
-			ptr->is_deleted = 0;
+			acl->is_deleted = 0;
 			/* Found. Nothing to do. */
 			error = 0;
 			goto out;
@@ -96,8 +96,9 @@ static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_
 			default:
 				continue;
 			}
-			if (ptr->is_deleted || acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
-			error = DelDomainACL(ptr);
+			if (acl->is_deleted || acl->filename != saved_filename || acl->argv0 != saved_argv0) continue;
+			acl->is_deleted = 1;
+			error = DelDomainACL();
 			break;
 		}
 	}
@@ -131,7 +132,7 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 			cond = p->condition;
 			break;
 		}
-		if (ptr->is_deleted || !CheckCondition(cond, NULL) ||
+		if (acl->is_deleted || !CheckCondition(cond, NULL) ||
 		    !PathMatchesToPattern(filename, acl->filename) ||
 		    !PathMatchesToPattern(&argv0, acl->argv0)) continue;
 		error = 0;

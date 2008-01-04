@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/03
+ * Version: 1.5.3-pre   2008/01/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -325,19 +325,19 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			if (acl->operation_type != operation || acl->record_type != record_type || acl->min_port != min_port || max_port != acl->max_port) continue;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 				if (acl->u.group != group) continue;
-				ptr->is_deleted = 0;
+				acl->is_deleted = 0;
 				/* Found. Nothing to do. */
 				error = 0;
 				goto out;
 			} else if (record_type == IP_RECORD_TYPE_IPv4) {
 				if (acl->u.ipv4.min != min_ip || max_ip != acl->u.ipv4.max) continue;
-				ptr->is_deleted = 0;
+				acl->is_deleted = 0;
 				/* Found. Nothing to do. */
 				error = 0;
 				goto out;
 			} else if (record_type == IP_RECORD_TYPE_IPv6) {
 				if (acl->u.ipv6.min != saved_min_address || saved_max_address != acl->u.ipv6.max) continue;
-				ptr->is_deleted = 0;
+				acl->is_deleted = 0;
 				/* Found. Nothing to do. */
 				error = 0;
 				goto out;
@@ -383,7 +383,7 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			default:
 				continue;
 			}
-			if (acl->operation_type != operation || acl->record_type != record_type || acl->min_port != min_port || max_port != acl->max_port || ptr->is_deleted) continue;
+			if (acl->operation_type != operation || acl->record_type != record_type || acl->min_port != min_port || max_port != acl->max_port || acl->is_deleted) continue;
 			if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 				if (acl->u.group != group) continue;
 			} else if (record_type == IP_RECORD_TYPE_IPv4) {
@@ -391,7 +391,8 @@ static int AddNetworkEntry(const u8 operation, const u8 record_type, const struc
 			} else if (record_type == IP_RECORD_TYPE_IPv6) {
 				if (acl->u.ipv6.min != saved_min_address || saved_max_address != acl->u.ipv6.max) continue;
 			}
-			error = DelDomainACL(ptr);
+			acl->is_deleted = 1;
+			error = DelDomainACL();
 			break;
 		}
 	}
@@ -428,7 +429,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const u8 operation, const u32 *
 			cond = p->condition;
 			break;
 		}
-		if (ptr->is_deleted || acl->operation_type != operation || port < acl->min_port || acl->max_port < port || !CheckCondition(cond, NULL)) continue;
+		if (acl->is_deleted || acl->operation_type != operation || port < acl->min_port || acl->max_port < port || !CheckCondition(cond, NULL)) continue;
 		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 			if (!AddressMatchesToGroup(is_ipv6, address, acl->u.group)) continue;
 		} else if (acl->record_type == IP_RECORD_TYPE_IPv4) {

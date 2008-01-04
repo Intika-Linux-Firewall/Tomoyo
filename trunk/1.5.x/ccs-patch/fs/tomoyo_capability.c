@@ -156,7 +156,6 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 	struct capability_acl_record *acl;
 	struct capability_acl_record_with_condition *p;
 	int error = -ENOMEM;
-	const u32 capability = 1 << operation;
 	if (!domain) return -EINVAL;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
@@ -174,8 +173,9 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 			default:
 				continue;
 			}
-			acl->capability |= capability;
-			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
+			if (acl->operation != operation) continue;
+			acl->is_deleted = 0;
+			/* Found. Nothing to do. */
 			error = 0;
 			goto out;
 		}
@@ -189,7 +189,7 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
 			acl->head.type = TYPE_CAPABILITY_ACL;
 		}
-		acl->capability = 1 << capability;
+		acl->operation = operation;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
@@ -207,9 +207,9 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 			default:
 				continue;
 			}
-			acl->capability &= ~capability;
-			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-			error = 0;
+			if (acl->is_deleted || acl->operation != operation) continue;
+			acl->is_deleted = 1;
+			error = DelDomainACL();
 			break;
 		}
 	}
@@ -225,7 +225,6 @@ int CheckCapabilityACL(const u8 operation)
 	const u8 profile = current->domain_info->profile;
 	const u8 mode = CheckCapabilityFlags(operation);
 	const bool is_enforce = (mode == 3);
-	const u32 capability = 1 << operation;
 	bool found = 0;
 	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -245,7 +244,7 @@ int CheckCapabilityACL(const u8 operation)
 			cond = p->condition;
 			break;
 		}
-		if (!(acl->capability & capability) || !CheckCondition(cond, NULL)) continue;
+		if (acl->operation != operation || !CheckCondition(cond, NULL)) continue;
 		found = 1;
 		break;
 	}
