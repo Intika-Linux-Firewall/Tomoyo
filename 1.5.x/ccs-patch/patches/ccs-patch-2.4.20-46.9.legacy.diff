@@ -1,6 +1,53 @@
-diff -ubBpEr linux-2.4.20-46.9.legacy/Documentation/Configure.help linux-2.4.20-46.9.legacy-ccs/Documentation/Configure.help
---- linux-2.4.20-46.9.legacy/Documentation/Configure.help	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/Documentation/Configure.help	2007-08-14 13:00:26.000000000 +0900
+---
+ Documentation/Configure.help |   89 ++++++++++++++++++++++++++++++++++++++++
+ Makefile                     |    2 
+ arch/alpha/kernel/ptrace.c   |    8 +++
+ arch/arm/kernel/ptrace.c     |    8 +++
+ arch/cris/kernel/ptrace.c    |    8 +++
+ arch/i386/kernel/ptrace.c    |    8 +++
+ arch/ia64/kernel/ptrace.c    |    8 +++
+ arch/m68k/kernel/ptrace.c    |    8 +++
+ arch/mips/kernel/ptrace.c    |    8 +++
+ arch/mips64/kernel/ptrace.c  |   13 +++++
+ arch/parisc/kernel/ptrace.c  |    8 +++
+ arch/ppc/kernel/ptrace.c     |    8 +++
+ arch/ppc64/kernel/ptrace.c   |    8 +++
+ arch/s390/kernel/ptrace.c    |    8 +++
+ arch/s390x/kernel/ptrace.c   |    8 +++
+ arch/sh/kernel/ptrace.c      |    8 +++
+ arch/sparc/kernel/ptrace.c   |    8 +++
+ arch/sparc64/kernel/ptrace.c |    8 +++
+ arch/x86_64/kernel/ptrace.c  |    8 +++
+ fs/Config.in                 |    3 +
+ fs/Makefile                  |    2 
+ fs/attr.c                    |    7 +++
+ fs/exec.c                    |   15 ++++++
+ fs/fcntl.c                   |    7 +++
+ fs/ioctl.c                   |    6 ++
+ fs/namei.c                   |   66 +++++++++++++++++++++++++++++
+ fs/namespace.c               |   48 +++++++++++++++++++++
+ fs/open.c                    |   24 ++++++++++
+ fs/proc/Makefile             |    4 +
+ fs/proc/proc_misc.c          |    9 ++++
+ include/linux/sched.h        |   13 +++++
+ kernel/kmod.c                |    5 ++
+ kernel/module.c              |   12 +++++
+ kernel/sched.c               |    6 ++
+ kernel/signal.c              |   11 ++++
+ kernel/sys.c                 |   18 ++++++++
+ kernel/sysctl.c              |   95 ++++++++++++++++++++++++++++++++++++++++++-
+ kernel/time.c                |   12 +++++
+ net/core/datagram.c          |    8 +++
+ net/ipv4/tcp_ipv4.c          |    9 ++++
+ net/ipv4/udp.c               |    9 ++++
+ net/ipv6/tcp_ipv6.c          |    6 ++
+ net/ipv6/udp.c               |    9 ++++
+ net/socket.c                 |   27 +++++++++++-
+ net/unix/af_unix.c           |   10 ++++
+ 45 files changed, 666 insertions(+), 7 deletions(-)
+
+--- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
++++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
 @@ -26506,6 +26506,95 @@ IPMI Watchdog Timer
  CONFIG_IPMI_WATCHDOG
    This enables the IPMI watchdog timer.
@@ -97,9 +144,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/Documentation/Configure.help linux-2.4.20-
  #
  # A couple of things I keep forgetting:
  #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
-diff -ubBpEr linux-2.4.20-46.9.legacy/Makefile linux-2.4.20-46.9.legacy-ccs/Makefile
---- linux-2.4.20-46.9.legacy/Makefile	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/Makefile	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/Makefile
++++ linux-2.4.20-46.9.legacy/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 4
@@ -109,9 +155,428 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/Makefile linux-2.4.20-46.9.legacy-ccs/Make
  
  KERNELRELEASE=$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
  
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/Config.in linux-2.4.20-46.9.legacy-ccs/fs/Config.in
---- linux-2.4.20-46.9.legacy/fs/Config.in	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/Config.in	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/alpha/kernel/ptrace.c
+@@ -18,6 +18,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/fpu.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "proto.h"
+ 
+@@ -249,6 +252,11 @@ sys_ptrace(long request, long pid, long 
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
+--- linux-2.4.20-46.9.legacy.orig/arch/arm/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/arm/kernel/ptrace.c
+@@ -20,6 +20,9 @@
+ #include <asm/uaccess.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ptrace.h"
+ 
+@@ -576,6 +579,11 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.4.20-46.9.legacy.orig/arch/cris/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/cris/kernel/ptrace.c
+@@ -44,6 +44,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -108,6 +111,11 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.4.20-46.9.legacy.orig/arch/i386/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/i386/kernel/ptrace.c
+@@ -22,6 +22,9 @@
+ #include <asm/debugreg.h>
+ #include <asm/ldt.h>
+ #include <asm/desc.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -233,6 +236,11 @@ asmlinkage int sys_ptrace(long request, 
+ 	struct task_struct *child;
+ 	struct user * dummy = NULL;
+ 	int i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.4.20-46.9.legacy.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/ia64/kernel/ptrace.c
+@@ -27,6 +27,9 @@
+ #ifdef CONFIG_PERFMON
+ # include <asm/perfmon.h>
+ #endif
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Bits in the PSR that we allow ptrace() to change:
+@@ -1153,6 +1156,11 @@ sys_ptrace (long request, pid_t pid, uns
+ 	struct task_struct *child;
+ 	struct switch_stack *sw;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.4.20-46.9.legacy.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/m68k/kernel/ptrace.c
+@@ -25,6 +25,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -104,6 +107,11 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.4.20-46.9.legacy.orig/arch/mips/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/mips/kernel/ptrace.c
+@@ -27,6 +27,9 @@
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
+ #include <asm/cpu.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Called by kernel/ptrace.c when detaching..
+@@ -43,6 +46,11 @@ asmlinkage int sys_ptrace(long request, 
+ 	struct task_struct *child;
+ 	int ret;
+ 	extern void save_fp(struct task_struct *);
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ #if 0
+--- linux-2.4.20-46.9.legacy.orig/arch/mips64/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/mips64/kernel/ptrace.c
+@@ -29,6 +29,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Called by kernel/ptrace.c when detaching..
+@@ -48,6 +51,11 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+@@ -314,6 +322,11 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ #if 0
+--- linux-2.4.20-46.9.legacy.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/parisc/kernel/ptrace.c
+@@ -21,6 +21,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/offset.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* These are used in entry.S, syscall_restore_rfi.  We need to record the
+  * current stepping mode somewhere other than in PSW, because there is no
+@@ -94,6 +97,11 @@ long sys_ptrace(long request, pid_t pid,
+ #ifdef DEBUG_PTRACE
+ 	long oaddr=addr, odata=data;
+ #endif
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.4.20-46.9.legacy.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/ppc/kernel/ptrace.c
+@@ -32,6 +32,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Set of msr bits that gdb can change on behalf of a process.
+@@ -161,6 +164,11 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.4.20-46.9.legacy.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/ppc64/kernel/ptrace.c
+@@ -30,6 +30,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Set of msr bits that gdb can change on behalf of a process.
+@@ -98,6 +101,11 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.4.20-46.9.legacy.orig/arch/s390/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/s390/kernel/ptrace.c
+@@ -37,6 +37,9 @@
+ #include <asm/pgalloc.h>
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ 
+ void FixPerRegisters(struct task_struct *task)
+@@ -221,6 +224,11 @@ asmlinkage int sys_ptrace(long request, 
+ 	unsigned long tmp;
+ 	int copied;
+ 	ptrace_area   parea; 
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) 
+--- linux-2.4.20-46.9.legacy.orig/arch/s390x/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/s390x/kernel/ptrace.c
+@@ -43,6 +43,9 @@
+ #else
+ #define parent_31bit 0
+ #endif
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ 
+ void FixPerRegisters(struct task_struct *task)
+@@ -431,6 +434,11 @@ asmlinkage int sys_ptrace(long request, 
+ #define sizeof_parent_long 8
+ #define dataptr (u8 *)&data
+ #endif
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) 
+ 	{
+--- linux-2.4.20-46.9.legacy.orig/arch/sh/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/sh/kernel/ptrace.c
+@@ -26,6 +26,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -162,6 +165,11 @@ asmlinkage int sys_ptrace(long request, 
+ 	struct task_struct *child, *tsk = current;
+ 	struct user * dummy = NULL;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.4.20-46.9.legacy.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/sparc/kernel/ptrace.c
+@@ -21,6 +21,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define MAGIC_CONSTANT 0x80000000
+ 
+@@ -262,6 +265,11 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long data = regs->u_regs[UREG_I3];
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ #ifdef DEBUG_PTRACE
+--- linux-2.4.20-46.9.legacy.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/sparc64/kernel/ptrace.c
+@@ -26,6 +26,9 @@
+ #include <asm/psrcompat.h>
+ #include <asm/visasm.h>
+ #include <asm/spitfire.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define MAGIC_CONSTANT 0x80000000
+ 
+@@ -108,6 +111,11 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long data = regs->u_regs[UREG_I3];
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	if (current->thread.flags & SPARC_FLAG_32BIT) {
+ 		addr &= 0xffffffffUL;
+--- linux-2.4.20-46.9.legacy.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.4.20-46.9.legacy/arch/x86_64/kernel/ptrace.c
+@@ -22,6 +22,9 @@
+ #include <asm/processor.h>
+ #include <asm/i387.h>
+ #include <asm/debugreg.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -175,6 +178,11 @@ asmlinkage long sys_ptrace(long request,
+ 	struct task_struct *child;
+ 	struct user * dummy = NULL;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	/* This lock_kernel fixes a subtle race with suid exec */
+ 	lock_kernel();
+--- linux-2.4.20-46.9.legacy.orig/fs/Config.in
++++ linux-2.4.20-46.9.legacy/fs/Config.in
 @@ -169,4 +169,7 @@ comment 'Partition Types'
  source fs/partitions/Config.in
  endmenu
@@ -120,9 +585,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/Config.in linux-2.4.20-46.9.legacy-ccs/
 +source fs/Config.ccs.in
 +
  endmenu
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/Makefile linux-2.4.20-46.9.legacy-ccs/fs/Makefile
---- linux-2.4.20-46.9.legacy/fs/Makefile	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/Makefile	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/Makefile
++++ linux-2.4.20-46.9.legacy/fs/Makefile
 @@ -85,5 +85,5 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
@@ -130,9 +594,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/Makefile linux-2.4.20-46.9.legacy-ccs/f
 -
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/attr.c linux-2.4.20-46.9.legacy-ccs/fs/attr.c
---- linux-2.4.20-46.9.legacy/fs/attr.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/attr.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/attr.c
++++ linux-2.4.20-46.9.legacy/fs/attr.c
 @@ -12,6 +12,9 @@
  #include <linux/dnotify.h>
  #include <linux/fcntl.h>
@@ -154,9 +617,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/attr.c linux-2.4.20-46.9.legacy-ccs/fs/
  
  	lock_kernel();
  	if (inode->i_op && inode->i_op->setattr) 
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/exec.c linux-2.4.20-46.9.legacy-ccs/fs/exec.c
---- linux-2.4.20-46.9.legacy/fs/exec.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/exec.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/exec.c
++++ linux-2.4.20-46.9.legacy/fs/exec.c
 @@ -51,6 +51,10 @@
  #include <linux/kmod.h>
  #endif
@@ -200,9 +662,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/exec.c linux-2.4.20-46.9.legacy-ccs/fs/
  	if (retval >= 0)
  		/* execve success */
  		return retval;
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/fcntl.c linux-2.4.20-46.9.legacy-ccs/fs/fcntl.c
---- linux-2.4.20-46.9.legacy/fs/fcntl.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/fcntl.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/fcntl.c
++++ linux-2.4.20-46.9.legacy/fs/fcntl.c
 @@ -15,6 +15,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -224,9 +685,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/fcntl.c linux-2.4.20-46.9.legacy-ccs/fs
  	/* Did FASYNC state change? */
  	if ((arg ^ filp->f_flags) & FASYNC) {
  		if (filp->f_op && filp->f_op->fasync) {
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/ioctl.c linux-2.4.20-46.9.legacy-ccs/fs/ioctl.c
---- linux-2.4.20-46.9.legacy/fs/ioctl.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/ioctl.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/ioctl.c
++++ linux-2.4.20-46.9.legacy/fs/ioctl.c
 @@ -10,6 +10,9 @@
  
  #include <asm/uaccess.h>
@@ -247,9 +707,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/ioctl.c linux-2.4.20-46.9.legacy-ccs/fs
  			error = -ENOTTY;
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namei.c linux-2.4.20-46.9.legacy-ccs/fs/namei.c
---- linux-2.4.20-46.9.legacy/fs/namei.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/namei.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/namei.c
++++ linux-2.4.20-46.9.legacy/fs/namei.c
 @@ -28,6 +28,11 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -431,9 +890,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namei.c linux-2.4.20-46.9.legacy-ccs/fs
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namespace.c linux-2.4.20-46.9.legacy-ccs/fs/namespace.c
---- linux-2.4.20-46.9.legacy/fs/namespace.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/namespace.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/namespace.c
++++ linux-2.4.20-46.9.legacy/fs/namespace.c
 @@ -21,6 +21,13 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
@@ -552,9 +1010,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/namespace.c linux-2.4.20-46.9.legacy-cc
  	read_lock(&current->fs->lock);
  	user_nd.mnt = mntget(current->fs->rootmnt);
  	user_nd.dentry = dget(current->fs->root);
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/open.c linux-2.4.20-46.9.legacy-ccs/fs/open.c
---- linux-2.4.20-46.9.legacy/fs/open.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/open.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/open.c
++++ linux-2.4.20-46.9.legacy/fs/open.c
 @@ -20,6 +20,13 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
@@ -614,9 +1071,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/open.c linux-2.4.20-46.9.legacy-ccs/fs/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->tty);
  		return 0;
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/proc/Makefile linux-2.4.20-46.9.legacy-ccs/fs/proc/Makefile
---- linux-2.4.20-46.9.legacy/fs/proc/Makefile	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/proc/Makefile	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/proc/Makefile
++++ linux-2.4.20-46.9.legacy/fs/proc/Makefile
 @@ -18,4 +18,8 @@ ifeq ($(CONFIG_PROC_DEVICETREE),y)
  obj-y += proc_devtree.o
  endif
@@ -626,9 +1082,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/proc/Makefile linux-2.4.20-46.9.legacy-
 +obj-$(CONFIG_TOMOYO) += ccs_proc.o
 +
  include $(TOPDIR)/Rules.make
-diff -ubBpEr linux-2.4.20-46.9.legacy/fs/proc/proc_misc.c linux-2.4.20-46.9.legacy-ccs/fs/proc/proc_misc.c
---- linux-2.4.20-46.9.legacy/fs/proc/proc_misc.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/fs/proc/proc_misc.c	2007-08-15 08:57:29.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/fs/proc/proc_misc.c
++++ linux-2.4.20-46.9.legacy/fs/proc/proc_misc.c
 @@ -630,4 +630,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -638,14 +1093,13 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/fs/proc/proc_misc.c linux-2.4.20-46.9.lega
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.20-46.9.legacy 2007/09/05\n");
++		printk("Hook version: 2.4.20-46.9.legacy 2008/01/04\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
-diff -ubBpEr linux-2.4.20-46.9.legacy/include/linux/sched.h linux-2.4.20-46.9.legacy-ccs/include/linux/sched.h
---- linux-2.4.20-46.9.legacy/include/linux/sched.h	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/include/linux/sched.h	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/include/linux/sched.h
++++ linux-2.4.20-46.9.legacy/include/linux/sched.h
 @@ -33,6 +33,11 @@ extern unsigned long event;
  struct exec_domain;
  extern int panic_timeout;
@@ -680,9 +1134,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/include/linux/sched.h linux-2.4.20-46.9.le
  }
  
  
-diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/kmod.c linux-2.4.20-46.9.legacy-ccs/kernel/kmod.c
---- linux-2.4.20-46.9.legacy/kernel/kmod.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/kmod.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/kernel/kmod.c
++++ linux-2.4.20-46.9.legacy/kernel/kmod.c
 @@ -135,6 +135,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
@@ -695,9 +1148,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/kmod.c linux-2.4.20-46.9.legacy-ccs
  	/* Go, go, go... */
  	if (execve(program_path, argv, envp) < 0)
  		return -errno;
-diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/module.c linux-2.4.20-46.9.legacy-ccs/kernel/module.c
---- linux-2.4.20-46.9.legacy/kernel/module.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/module.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/kernel/module.c
++++ linux-2.4.20-46.9.legacy/kernel/module.c
 @@ -10,6 +10,9 @@
  #include <linux/slab.h>
  #include <linux/kmod.h>
@@ -738,9 +1190,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/module.c linux-2.4.20-46.9.legacy-c
  
  	lock_kernel();
  	if (name_user) {
-diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sched.c linux-2.4.20-46.9.legacy-ccs/kernel/sched.c
---- linux-2.4.20-46.9.legacy/kernel/sched.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/sched.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/kernel/sched.c
++++ linux-2.4.20-46.9.legacy/kernel/sched.c
 @@ -30,6 +30,9 @@
  #include <linux/blkdev.h>
  #include <linux/delay.h>
@@ -761,9 +1212,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sched.c linux-2.4.20-46.9.legacy-cc
  
  	/*
  	 *	Setpriority might change our priority at the same moment.
-diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/signal.c linux-2.4.20-46.9.legacy-ccs/kernel/signal.c
---- linux-2.4.20-46.9.legacy/kernel/signal.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/signal.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/kernel/signal.c
++++ linux-2.4.20-46.9.legacy/kernel/signal.c
 @@ -21,6 +21,9 @@
  #include <asm/param.h>
  #include <asm/uaccess.h>
@@ -796,9 +1246,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/signal.c linux-2.4.20-46.9.legacy-c
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sys.c linux-2.4.20-46.9.legacy-ccs/kernel/sys.c
---- linux-2.4.20-46.9.legacy/kernel/sys.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/sys.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/kernel/sys.c
++++ linux-2.4.20-46.9.legacy/kernel/sys.c
 @@ -22,6 +22,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -859,9 +1308,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sys.c linux-2.4.20-46.9.legacy-ccs/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
-diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sysctl.c linux-2.4.20-46.9.legacy-ccs/kernel/sysctl.c
---- linux-2.4.20-46.9.legacy/kernel/sysctl.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/sysctl.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/kernel/sysctl.c
++++ linux-2.4.20-46.9.legacy/kernel/sysctl.c
 @@ -32,6 +32,9 @@
  #include <linux/highuid.h>
  
@@ -992,9 +1440,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/sysctl.c linux-2.4.20-46.9.legacy-c
  }
  
  /*
-diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/time.c linux-2.4.20-46.9.legacy-ccs/kernel/time.c
---- linux-2.4.20-46.9.legacy/kernel/time.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/kernel/time.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/kernel/time.c
++++ linux-2.4.20-46.9.legacy/kernel/time.c
 @@ -29,6 +29,9 @@
  #include <linux/smp_lock.h>
  
@@ -1035,9 +1482,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/kernel/time.c linux-2.4.20-46.9.legacy-ccs
  		
  	/* Now we validate the data before disabling interrupts */
  
-diff -ubBpEr linux-2.4.20-46.9.legacy/net/core/datagram.c linux-2.4.20-46.9.legacy-ccs/net/core/datagram.c
---- linux-2.4.20-46.9.legacy/net/core/datagram.c	2001-12-22 02:42:05.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/core/datagram.c	2007-08-15 08:57:15.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/net/core/datagram.c
++++ linux-2.4.20-46.9.legacy/net/core/datagram.c
 @@ -43,6 +43,10 @@
  #include <net/sock.h>
  #include <net/checksum.h>
@@ -1060,9 +1506,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/core/datagram.c linux-2.4.20-46.9.lega
  		if (skb)
  			return skb;
  
-diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/tcp_ipv4.c linux-2.4.20-46.9.legacy-ccs/net/ipv4/tcp_ipv4.c
---- linux-2.4.20-46.9.legacy/net/ipv4/tcp_ipv4.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/ipv4/tcp_ipv4.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.4.20-46.9.legacy/net/ipv4/tcp_ipv4.c
 @@ -67,6 +67,9 @@
  #include <linux/inet.h>
  #include <linux/stddef.h>
@@ -1093,9 +1538,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/tcp_ipv4.c linux-2.4.20-46.9.lega
  
  			/* Does not bother with rcv_saddr checks,
  			 * because the established check is already
-diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/udp.c linux-2.4.20-46.9.legacy-ccs/net/ipv4/udp.c
---- linux-2.4.20-46.9.legacy/net/ipv4/udp.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/ipv4/udp.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/net/ipv4/udp.c
++++ linux-2.4.20-46.9.legacy/net/ipv4/udp.c
 @@ -97,6 +97,9 @@
  #include <net/route.h>
  #include <net/inet_common.h>
@@ -1126,9 +1570,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv4/udp.c linux-2.4.20-46.9.legacy-cc
  			if (!udp_lport_inuse(result))
  				break;
  		}
-diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv6/tcp_ipv6.c linux-2.4.20-46.9.legacy-ccs/net/ipv6/tcp_ipv6.c
---- linux-2.4.20-46.9.legacy/net/ipv6/tcp_ipv6.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/ipv6/tcp_ipv6.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.4.20-46.9.legacy/net/ipv6/tcp_ipv6.c
 @@ -52,6 +52,9 @@
  #include <net/inet_ecn.h>
  
@@ -1149,9 +1592,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv6/tcp_ipv6.c linux-2.4.20-46.9.lega
  			for (tb = head->chain; tb; tb = tb->next)
  				if (tb->port == rover)
  					goto next;
-diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv6/udp.c linux-2.4.20-46.9.legacy-ccs/net/ipv6/udp.c
---- linux-2.4.20-46.9.legacy/net/ipv6/udp.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/ipv6/udp.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/net/ipv6/udp.c
++++ linux-2.4.20-46.9.legacy/net/ipv6/udp.c
 @@ -50,6 +50,9 @@
  #include <net/inet_common.h>
  
@@ -1182,9 +1624,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/ipv6/udp.c linux-2.4.20-46.9.legacy-cc
  			if (!udp_lport_inuse(result))
  				break;
  		}
-diff -ubBpEr linux-2.4.20-46.9.legacy/net/socket.c linux-2.4.20-46.9.legacy-ccs/net/socket.c
---- linux-2.4.20-46.9.legacy/net/socket.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/socket.c	2007-08-14 12:31:05.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/net/socket.c
++++ linux-2.4.20-46.9.legacy/net/socket.c
 @@ -85,6 +85,10 @@
  #include <net/scm.h>
  #include <net/tux.h>
@@ -1261,9 +1702,8 @@ diff -ubBpEr linux-2.4.20-46.9.legacy/net/socket.c linux-2.4.20-46.9.legacy-ccs/
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
-diff -ubBpEr linux-2.4.20-46.9.legacy/net/unix/af_unix.c linux-2.4.20-46.9.legacy-ccs/net/unix/af_unix.c
---- linux-2.4.20-46.9.legacy/net/unix/af_unix.c	2007-08-08 10:21:29.000000000 +0900
-+++ linux-2.4.20-46.9.legacy-ccs/net/unix/af_unix.c	2007-08-08 10:21:37.000000000 +0900
+--- linux-2.4.20-46.9.legacy.orig/net/unix/af_unix.c
++++ linux-2.4.20-46.9.legacy/net/unix/af_unix.c
 @@ -111,6 +111,9 @@
  #include <linux/rtnetlink.h>
  
