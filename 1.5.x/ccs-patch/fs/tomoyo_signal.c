@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/03
+ * Version: 1.5.3-pre   2008/01/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -67,7 +67,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 				continue;
 			}
 			if (acl->sig != hash || pathcmp(acl->domainname, saved_dest_pattern)) continue;
-			ptr->is_deleted = 0;
+			acl->is_deleted = 0;
 			/* Found. Nothing to do. */
 			error = 0;
 			goto out;
@@ -101,8 +101,9 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 			default:
 				continue;
 			}
-			if (ptr->is_deleted || acl->sig != hash || pathcmp(acl->domainname, saved_dest_pattern)) continue;
-			error = DelDomainACL(ptr);
+			if (acl->is_deleted || acl->sig != hash || pathcmp(acl->domainname, saved_dest_pattern)) continue;
+			acl->is_deleted = 1;
+			error = DelDomainACL();
 			break;
 		}
 	}
@@ -161,7 +162,7 @@ int CheckSignalACL(const int sig, const int pid)
 			cond = p->condition;
 			break;
 		}
-		if (!ptr->is_deleted && acl->sig == hash && CheckCondition(cond, NULL)) {
+		if (!acl->is_deleted && acl->sig == hash && CheckCondition(cond, NULL)) {
 			const int len = acl->domainname->total_len;
 			if (strncmp(acl->domainname->name, dest_pattern, len)) continue;
 			if (dest_pattern[len] != ' ' && dest_pattern[len] != '\0') continue;

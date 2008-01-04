@@ -102,9 +102,8 @@ int AddDomainACL(struct domain_info *domain, struct acl_info *acl)
 	return 0;
 }
 
-int DelDomainACL(struct acl_info *ptr)
+int DelDomainACL(void)
 {
-	ptr->is_deleted = 1;
 	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
@@ -506,7 +505,52 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 #ifdef DEBUG_DOMAIN_UNDELETE
 		printk("Reusing %p %s\n", domain, domain->domainname->name);
 #endif
-		list1_for_each_entry(ptr, &domain->acl_info_list, list) ptr->is_deleted = 1;
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+			switch (ptr->type) {
+			case TYPE_SINGLE_PATH_ACL:
+				container_of(ptr, struct single_path_acl_record, head)->perm = 0;
+				break;
+			case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
+				container_of(ptr, struct single_path_acl_record_with_condition, record.head)->record.perm = 0;
+				break;
+			case TYPE_DOUBLE_PATH_ACL:
+				container_of(ptr, struct double_path_acl_record, head)->perm = 0;
+				break;
+			case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
+				container_of(ptr, struct double_path_acl_record_with_condition, record.head)->record.perm = 0;
+				break;
+			case TYPE_ARGV0_ACL:
+				container_of(ptr, struct argv0_acl_record, head)->is_deleted = 1;
+				break;
+			case TYPE_ARGV0_ACL_WITH_CONDITION:
+				container_of(ptr, struct argv0_acl_record_with_condition, record.head)->record.is_deleted = 1;
+				break;
+			case TYPE_ENV_ACL:
+				container_of(ptr, struct env_acl_record, head)->is_deleted = 1;
+				break;
+			case TYPE_ENV_ACL_WITH_CONDITION:
+				container_of(ptr, struct env_acl_record_with_condition, record.head)->record.is_deleted = 1;
+				break;
+			case TYPE_CAPABILITY_ACL:
+				container_of(ptr, struct capability_acl_record, head)->is_deleted = 1;
+				break;
+			case TYPE_CAPABILITY_ACL_WITH_CONDITION:
+				container_of(ptr, struct capability_acl_record_with_condition, record.head)->record.is_deleted = 1;
+				break;
+			case TYPE_IP_NETWORK_ACL:
+				container_of(ptr, struct ip_network_acl_record, head)->is_deleted = 1;
+				break;
+			case TYPE_IP_NETWORK_ACL_WITH_CONDITION:
+				container_of(ptr, struct ip_network_acl_record_with_condition, record.head)->record.is_deleted = 1;
+				break;
+			case TYPE_SIGNAL_ACL:
+				container_of(ptr, struct signal_acl_record, head)->is_deleted = 1;
+				break;
+			case TYPE_SIGNAL_ACL_WITH_CONDITION:
+				container_of(ptr, struct signal_acl_record_with_condition, record.head)->record.is_deleted = 1;
+				break;
+			}
+		}
 		domain->profile = profile;
 		domain->quota_warned = 0;
 		mb(); /* Avoid out-of-order execution. */

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/03
+ * Version: 1.5.3-pre   2008/01/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -130,7 +130,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 				continue;
 			}
 			if (acl->env != saved_env) continue;
-			ptr->is_deleted = 0;
+			acl->is_deleted = 0;
 			/* Found. Nothing to do. */
 			error = 0;
 			goto out;
@@ -163,8 +163,9 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 			default:
 				continue;
 			}
-			if (ptr->is_deleted || acl->env != saved_env) continue;
-			error = DelDomainACL(ptr);
+			if (acl->is_deleted || acl->env != saved_env) continue;
+			acl->is_deleted = 1;
+			error = DelDomainACL();
 			break;
 		}
 	}
@@ -199,7 +200,7 @@ static int CheckEnvACL(const char *env_)
 			cond = p->condition;
 			break;
 		}
-		if (ptr->is_deleted || !CheckCondition(cond, NULL) ||
+		if (acl->is_deleted || !CheckCondition(cond, NULL) ||
 		    !PathMatchesToPattern(&env, acl->env)) continue;
 		error = 0;
 		break;
