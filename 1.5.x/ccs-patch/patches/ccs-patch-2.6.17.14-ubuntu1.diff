@@ -1,11 +1,16 @@
+This is TOMOYO Linux patch for Ubuntu 6.10.
+
+Source code for this patch is "apt-get install linux-source-2.6.17"
 ---
  Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    8 +++
  arch/ia64/kernel/ptrace.c       |    8 +++
  arch/m32r/kernel/ptrace.c       |    8 +++
  arch/s390/kernel/ptrace.c       |    8 +++
+ arch/sh64/kernel/ptrace.c       |    8 +++
  arch/sparc/kernel/ptrace.c      |    8 +++
  arch/sparc64/kernel/ptrace.c    |    8 +++
+ arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    1 
  fs/Makefile                     |    2 
  fs/attr.c                       |   11 ++++
@@ -38,7 +43,7 @@
  net/ipv6/udp.c                  |    9 +++
  net/socket.c                    |   29 +++++++++++-
  net/unix/af_unix.c              |   10 ++++
- 39 files changed, 500 insertions(+), 10 deletions(-)
+ 41 files changed, 516 insertions(+), 10 deletions(-)
 
 --- linux-source-2.6.17.14-ubuntu1.orig/Makefile
 +++ linux-source-2.6.17.14-ubuntu1/Makefile
@@ -585,7 +590,7 @@
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.17.14-ubuntu1 2008/01/04\n");
++		printk("Hook version: 2.6.17.14-ubuntu1 2008/01/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1449,3 +1454,51 @@
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/sh64/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/arch/sh64/kernel/ptrace.c
+@@ -36,6 +36,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -272,6 +275,11 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-source-2.6.17.14-ubuntu1/arch/x86_64/ia32/ptrace32.c
+@@ -27,6 +27,9 @@
+ #include <asm/debugreg.h>
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Determines which flags the user has access to [1 = access, 0 = no access].
+@@ -206,6 +209,11 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	default:
