@@ -3,9 +3,12 @@
  arch/alpha/kernel/ptrace.c      |    8 +++
  arch/ia64/kernel/ptrace.c       |    8 +++
  arch/m32r/kernel/ptrace.c       |    8 +++
+ arch/powerpc/kernel/ptrace32.c  |    8 +++
  arch/s390/kernel/ptrace.c       |    8 +++
+ arch/sh64/kernel/ptrace.c       |    8 +++
  arch/sparc/kernel/ptrace.c      |    8 +++
  arch/sparc64/kernel/ptrace.c    |    8 +++
+ arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   11 ++++
@@ -38,7 +41,7 @@
  net/ipv6/inet6_hashtables.c     |    8 ++-
  net/socket.c                    |   29 +++++++++++-
  net/unix/af_unix.c              |   10 ++++
- 39 files changed, 496 insertions(+), 8 deletions(-)
+ 42 files changed, 520 insertions(+), 8 deletions(-)
 
 --- linux-2.6.20.orig/Makefile
 +++ linux-2.6.20/Makefile
@@ -727,7 +730,7 @@
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.20 2008/01/04\n");
++		printk("Hook version: 2.6.20 2008/01/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1428,3 +1431,75 @@
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+--- linux-2.6.20.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.20/arch/powerpc/kernel/ptrace32.c
+@@ -32,6 +32,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ptrace-common.h"
+ 
+@@ -45,6 +48,11 @@ long compat_sys_ptrace(int request, int 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.20.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.20/arch/sh64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -271,6 +274,11 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {
+--- linux-2.6.20.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.20/arch/x86_64/ia32/ptrace32.c
+@@ -26,6 +26,9 @@
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
+ #include <asm/ia32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Determines which flags the user has access to [1 = access, 0 = no access].
+@@ -234,6 +237,11 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	case PTRACE_TRACEME:
