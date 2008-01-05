@@ -1,56 +1,62 @@
+This is TOMOYO Linux patch for CentOS 4.6.
+
+Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.1.EL.src.rpm
 ---
- Makefile                       |    2 
- arch/alpha/kernel/ptrace.c     |    8 +++
- arch/arm/kernel/ptrace.c       |    8 +++
- arch/arm26/kernel/ptrace.c     |    8 +++
- arch/h8300/kernel/ptrace.c     |    8 +++
- arch/i386/kernel/ptrace.c      |    8 +++
- arch/ia64/kernel/ptrace.c      |    8 +++
- arch/m32r/kernel/ptrace.c      |    8 +++
- arch/m68k/kernel/ptrace.c      |    8 +++
- arch/m68knommu/kernel/ptrace.c |    8 +++
- arch/mips/kernel/ptrace.c      |    8 +++
- arch/parisc/kernel/ptrace.c    |    8 +++
- arch/ppc/kernel/ptrace.c       |    8 +++
- arch/ppc64/kernel/ptrace.c     |    8 +++
- arch/s390/kernel/ptrace.c      |    8 +++
- arch/sh/kernel/ptrace.c        |    8 +++
- arch/sh64/kernel/ptrace.c      |    8 +++
- arch/sparc/kernel/ptrace.c     |    8 +++
- arch/sparc64/kernel/ptrace.c   |    8 +++
- arch/um/kernel/ptrace.c        |    8 +++
- arch/v850/kernel/ptrace.c      |    8 +++
- arch/x86_64/kernel/ptrace.c    |    8 +++
- fs/Kconfig                     |    2 
- fs/Makefile                    |    1 
- fs/attr.c                      |   11 ++++
- fs/compat.c                    |   13 ++++-
- fs/exec.c                      |   20 +++++++-
- fs/fcntl.c                     |    7 +++
- fs/ioctl.c                     |    6 ++
- fs/namei.c                     |   61 ++++++++++++++++++++++++++
- fs/namespace.c                 |   42 +++++++++++++++++-
- fs/open.c                      |   22 +++++++++
- fs/proc/Makefile               |    3 +
- fs/proc/proc_misc.c            |    9 +++
- include/linux/init_task.h      |    4 +
- include/linux/sched.h          |    9 +++
- kernel/compat.c                |    6 ++
- kernel/kmod.c                  |    5 ++
- kernel/module.c                |   11 +++-
- kernel/sched.c                 |    6 ++
- kernel/signal.c                |   16 ++++++
- kernel/sys.c                   |   15 ++++++
- kernel/sysctl.c                |   95 ++++++++++++++++++++++++++++++++++++++++-
- kernel/time.c                  |   12 +++++
- net/core/datagram.c            |    8 +++
- net/ipv4/tcp_ipv4.c            |    9 +++
- net/ipv4/udp.c                 |    9 +++
- net/ipv6/tcp_ipv6.c            |    6 ++
- net/ipv6/udp.c                 |    9 +++
- net/socket.c                   |   30 +++++++++++-
- net/unix/af_unix.c             |   10 ++++
- 51 files changed, 615 insertions(+), 12 deletions(-)
+ Makefile                           |    2 
+ arch/alpha/kernel/ptrace.c         |    8 +++
+ arch/arm/kernel/ptrace.c           |    8 +++
+ arch/arm26/kernel/ptrace.c         |    8 +++
+ arch/cris/arch-v10/kernel/ptrace.c |    8 +++
+ arch/h8300/kernel/ptrace.c         |    8 +++
+ arch/i386/kernel/ptrace.c          |    8 +++
+ arch/ia64/kernel/ptrace.c          |    8 +++
+ arch/m32r/kernel/ptrace.c          |    8 +++
+ arch/m68k/kernel/ptrace.c          |    8 +++
+ arch/m68knommu/kernel/ptrace.c     |    8 +++
+ arch/mips/kernel/ptrace.c          |    8 +++
+ arch/parisc/kernel/ptrace.c        |    8 +++
+ arch/ppc/kernel/ptrace.c           |    8 +++
+ arch/ppc64/kernel/ptrace.c         |    8 +++
+ arch/ppc64/kernel/ptrace32.c       |    8 +++
+ arch/s390/kernel/ptrace.c          |    8 +++
+ arch/sh/kernel/ptrace.c            |    8 +++
+ arch/sh64/kernel/ptrace.c          |    8 +++
+ arch/sparc/kernel/ptrace.c         |    8 +++
+ arch/sparc64/kernel/ptrace.c       |    8 +++
+ arch/um/kernel/ptrace.c            |    8 +++
+ arch/v850/kernel/ptrace.c          |    8 +++
+ arch/x86_64/ia32/ptrace32.c        |    8 +++
+ arch/x86_64/kernel/ptrace.c        |    8 +++
+ fs/Kconfig                         |    2 
+ fs/Makefile                        |    1 
+ fs/attr.c                          |   11 ++++
+ fs/compat.c                        |   13 ++++-
+ fs/exec.c                          |   20 +++++++
+ fs/fcntl.c                         |    7 ++
+ fs/ioctl.c                         |    6 ++
+ fs/namei.c                         |   61 +++++++++++++++++++++++
+ fs/namespace.c                     |   42 +++++++++++++++-
+ fs/open.c                          |   22 ++++++++
+ fs/proc/Makefile                   |    3 +
+ fs/proc/proc_misc.c                |    9 +++
+ include/linux/init_task.h          |    4 +
+ include/linux/sched.h              |    9 +++
+ kernel/compat.c                    |    6 ++
+ kernel/kmod.c                      |    5 +
+ kernel/module.c                    |   11 +++-
+ kernel/sched.c                     |    6 ++
+ kernel/signal.c                    |   16 ++++++
+ kernel/sys.c                       |   15 +++++
+ kernel/sysctl.c                    |   95 ++++++++++++++++++++++++++++++++++++-
+ kernel/time.c                      |   12 ++++
+ net/core/datagram.c                |    8 +++
+ net/ipv4/tcp_ipv4.c                |    9 +++
+ net/ipv4/udp.c                     |    9 +++
+ net/ipv6/tcp_ipv6.c                |    6 ++
+ net/ipv6/udp.c                     |    9 +++
+ net/socket.c                       |   30 ++++++++++-
+ net/unix/af_unix.c                 |   10 +++
+ 54 files changed, 639 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-67.0.1.EL.orig/Makefile
 +++ linux-2.6.9-67.0.1.EL/Makefile
@@ -632,7 +638,7 @@
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.9-67.0.1.EL 2008/01/04\n");
++		printk("Hook version: 2.6.9-67.0.1.EL 2008/01/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1799,3 +1805,75 @@
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
+--- linux-2.6.9-67.0.1.EL.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ linux-2.6.9-67.0.1.EL/arch/cris/arch-v10/kernel/ptrace.c
+@@ -16,6 +16,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* 
+  * Determines which bits in DCCR the user has access to.
+@@ -50,6 +53,11 @@ sys_ptrace(long request, long pid, long 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-67.0.1.EL.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.6.9-67.0.1.EL/arch/ppc64/kernel/ptrace32.c
+@@ -32,6 +32,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/ptrace-common.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -42,6 +45,11 @@ int sys32_ptrace(long request, long pid,
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.9-67.0.1.EL.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.9-67.0.1.EL/arch/x86_64/ia32/ptrace32.c
+@@ -27,6 +27,9 @@
+ #include <asm/debugreg.h>
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* determines which flags the user has access to. */
+ /* 1 = access 0 = no access */
+@@ -232,6 +235,11 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	default:

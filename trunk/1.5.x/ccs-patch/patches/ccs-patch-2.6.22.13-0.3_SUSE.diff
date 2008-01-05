@@ -1,11 +1,14 @@
+This is TOMOYO Linux patch for openSUSE 10.3.
+
+Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/kernel-source-2.6.22.13-0.3.i586.rpm
 ---
  Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    8 +++
  arch/ia64/kernel/ptrace.c       |    8 +++
  arch/m32r/kernel/ptrace.c       |    8 +++
  arch/s390/kernel/ptrace.c       |    8 +++
- arch/sparc/kernel/ptrace.c      |    8 +++
- arch/sparc64/kernel/ptrace.c    |    8 +++
+ arch/sh64/kernel/ptrace.c       |    8 +++
+ arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   11 +++++
@@ -595,7 +598,7 @@
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.22.13-0.3_SUSE 2008/01/04\n");
++		printk("Hook version: 2.6.22.13-0.3_SUSE 2008/01/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1293,30 +1296,6 @@
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.22.13-0.3.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.22.13-0.3/arch/ia64/kernel/ptrace.c
-@@ -28,6 +28,9 @@
- #ifdef CONFIG_PERFMON
- #include <asm/perfmon.h>
- #endif
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "entry.h"
- 
-@@ -1418,6 +1421,11 @@ sys_ptrace (long request, pid_t pid, uns
- 	struct task_struct *child;
- 	struct switch_stack *sw;
- 	long ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	ret = -EPERM;
 --- linux-2.6.22.13-0.3.orig/arch/m32r/kernel/ptrace.c
 +++ linux-2.6.22.13-0.3/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
@@ -1353,34 +1332,34 @@
  
  #ifdef CONFIG_COMPAT
  #include "compat_ptrace.h"
-@@ -713,6 +716,11 @@ sys_ptrace(long request, long pid, long 
+@@ -712,6 +715,11 @@ sys_ptrace(long request, long pid, long 
+ {
  	struct task_struct *child;
  	int ret;
- 
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
+ 
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
- 		 ret = ptrace_traceme();
---- linux-2.6.22.13-0.3.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.22.13-0.3/arch/sparc/kernel/ptrace.c
-@@ -23,6 +23,9 @@
- #include <asm/pgtable.h>
+--- linux-2.6.22.13-0.3.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.22.13-0.3/arch/sh64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
  #include <asm/system.h>
- #include <asm/uaccess.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- #define MAGIC_CONSTANT 0x80000000
- 
-@@ -267,6 +270,11 @@ asmlinkage void do_ptrace(struct pt_regs
- 	unsigned long addr2 = regs->u_regs[UREG_I4];
- 	struct task_struct *child;
- 	int ret;
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -271,6 +274,11 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
@@ -1388,31 +1367,31 @@
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
- #ifdef DEBUG_PTRACE
---- linux-2.6.22.13-0.3.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.22.13-0.3/arch/sparc64/kernel/ptrace.c
-@@ -32,6 +32,9 @@
- #include <asm/spitfire.h>
- #include <asm/page.h>
- #include <asm/cpudata.h>
+ 	if (first_call) {
+--- linux-2.6.22.13-0.3.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.22.13-0.3/arch/x86_64/ia32/ptrace32.c
+@@ -26,6 +26,9 @@
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
+ #include <asm/ia32.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- /* Returning from ptrace is a bit tricky because the syscall return
-  * low level code assumes any value returned which is negative and
-@@ -176,6 +179,11 @@ asmlinkage void do_ptrace(struct pt_regs
- 	unsigned long addr2 = regs->u_regs[UREG_I4];
- 	struct task_struct *child;
+ /*
+  * Determines which flags the user has access to [1 = access, 0 = no access].
+@@ -234,6 +237,11 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
  	int ret;
+ 	__u32 val;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
- 	if (test_thread_flag(TIF_32BIT)) {
- 		addr &= 0xffffffffUL;
+ 	switch (request) { 
+ 	case PTRACE_TRACEME:
 --- linux-2.6.22.13-0.3.orig/kernel/ptrace.c
 +++ linux-2.6.22.13-0.3/kernel/ptrace.c
 @@ -22,6 +22,9 @@
@@ -1425,15 +1404,39 @@
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -459,6 +462,11 @@ asmlinkage long sys_ptrace(long request,
- 	/*
- 	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
+@@ -455,6 +458,11 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
+ 
+ 	/*
+ 	 * This lock_kernel fixes a subtle race with suid exec
+--- linux-2.6.22.13-0.3.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.22.13-0.3/arch/ia64/kernel/ptrace.c
+@@ -28,6 +28,9 @@
+ #ifdef CONFIG_PERFMON
+ #include <asm/perfmon.h>
+ #endif
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "entry.h"
+ 
+@@ -1418,6 +1421,11 @@ sys_ptrace (long request, pid_t pid, uns
+ 	struct task_struct *child;
+ 	struct switch_stack *sw;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
  	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
+ 	ret = -EPERM;
