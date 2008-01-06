@@ -47,21 +47,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  fs/Kconfig               |   18 +
  include/linux/shmem_fs.h |    5 
- mm/shmem.c               |  127 ++++++++++++
+ mm/shmem.c               |  124 +++++++++++
  mm/shmem_mac.h           |   57 +++++
  mm/shmem_mac_debug.c     |  183 +++++++++++++++++
  mm/shmem_mac_init.c      |  486 +++++++++++++++++++++++++++++++++++++++++++++++
  mm/shmem_mac_main.c      |  205 +++++++++++++++++++
- 7 files changed, 1080 insertions(+), 1 deletion(-)
+ 7 files changed, 1077 insertions(+), 1 deletion(-)
 
 --- linux-2.6-mm.orig/mm/shmem.c
 +++ linux-2.6-mm/mm/shmem.c
-@@ -736,11 +736,42 @@ static void shmem_truncate(struct inode 
+@@ -736,11 +736,39 @@ static void shmem_truncate(struct inode 
  	shmem_truncate_range(inode, inode->i_size, (loff_t)-1);
  }
  
-+#include <linux/quotaops.h>
-+
 +#ifdef CONFIG_SYAORAN
 +#include "shmem_mac.h"
 +#include "shmem_mac_init.c"
@@ -78,7 +76,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +#endif
-+
 +
  static int shmem_notify_change(struct dentry *dentry, struct iattr *attr)
  {
@@ -99,7 +96,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (S_ISREG(inode->i_mode) && (attr->ia_valid & ATTR_SIZE)) {
  		if (attr->ia_size < inode->i_size) {
-@@ -1515,6 +1546,10 @@ shmem_get_inode(struct super_block *sb, 
+@@ -1515,6 +1543,10 @@ shmem_get_inode(struct super_block *sb, 
  		default:
  			inode->i_op = &shmem_special_inode_operations;
  			init_special_inode(inode, mode, dev);
@@ -110,7 +107,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			break;
  		case S_IFREG:
  			inode->i_op = &shmem_inode_operations;
-@@ -1739,8 +1774,15 @@ static int shmem_statfs(struct dentry *d
+@@ -1739,8 +1771,15 @@ static int shmem_statfs(struct dentry *d
  static int
  shmem_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
  {
@@ -127,7 +124,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (inode) {
  		error = security_inode_init_security(inode, dir, NULL, NULL,
-@@ -1792,6 +1834,13 @@ static int shmem_link(struct dentry *old
+@@ -1792,6 +1831,13 @@ static int shmem_link(struct dentry *old
  {
  	struct inode *inode = old_dentry->d_inode;
  	int ret;
@@ -141,7 +138,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	/*
  	 * No ordinary (disk based) filesystem counts links as inodes;
-@@ -1815,6 +1864,12 @@ out:
+@@ -1815,6 +1861,12 @@ out:
  static int shmem_unlink(struct inode *dir, struct dentry *dentry)
  {
  	struct inode *inode = dentry->d_inode;
@@ -154,7 +151,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (inode->i_nlink > 1 && !S_ISDIR(inode->i_mode))
  		shmem_free_inode(inode->i_sb);
-@@ -1830,6 +1885,12 @@ static int shmem_rmdir(struct inode *dir
+@@ -1830,6 +1882,12 @@ static int shmem_rmdir(struct inode *dir
  {
  	if (!simple_empty(dentry))
  		return -ENOTEMPTY;
@@ -167,7 +164,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	drop_nlink(dentry->d_inode);
  	drop_nlink(dir);
-@@ -1849,6 +1910,14 @@ static int shmem_rename(struct inode *ol
+@@ -1849,6 +1907,14 @@ static int shmem_rename(struct inode *ol
  
  	if (!simple_empty(new_dentry))
  		return -ENOTEMPTY;
@@ -182,7 +179,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (new_dentry->d_inode) {
  		(void) shmem_unlink(new_dir, new_dentry);
-@@ -1880,6 +1949,12 @@ static int shmem_symlink(struct inode *d
+@@ -1880,6 +1946,12 @@ static int shmem_symlink(struct inode *d
  	if (len > PAGE_CACHE_SIZE)
  		return -ENAMETOOLONG;
  
@@ -195,7 +192,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	inode = shmem_get_inode(dir->i_sb, S_IFLNK|S_IRWXUGO, 0);
  	if (!inode)
  		return -ENOSPC;
-@@ -1952,6 +2027,9 @@ static void shmem_put_link(struct dentry
+@@ -1952,6 +2024,9 @@ static void shmem_put_link(struct dentry
  static const struct inode_operations shmem_symlink_inline_operations = {
  	.readlink	= generic_readlink,
  	.follow_link	= shmem_follow_link_inline,
@@ -205,7 +202,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  static const struct inode_operations shmem_symlink_inode_operations = {
-@@ -1959,6 +2037,9 @@ static const struct inode_operations shm
+@@ -1959,6 +2034,9 @@ static const struct inode_operations shm
  	.readlink	= generic_readlink,
  	.follow_link	= shmem_follow_link,
  	.put_link	= shmem_put_link,
@@ -215,7 +212,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  #ifdef CONFIG_TMPFS_POSIX_ACL
-@@ -2152,6 +2233,13 @@ static int shmem_parse_options(char *opt
+@@ -2152,6 +2230,13 @@ static int shmem_parse_options(char *opt
  		} else if (!strcmp(this_char,"mpol")) {
  			if (shmem_parse_mpol(value,policy,policy_nodes))
  				goto bad_val;
@@ -229,7 +226,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		} else {
  			printk(KERN_ERR "tmpfs: Bad mount option %s\n",
  			       this_char);
-@@ -2215,6 +2303,24 @@ out:
+@@ -2215,6 +2300,24 @@ out:
  
  static void shmem_put_super(struct super_block *sb)
  {
@@ -254,7 +251,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(sb->s_fs_info);
  	sb->s_fs_info = NULL;
  }
-@@ -2279,6 +2385,15 @@ static int shmem_fill_super(struct super
+@@ -2279,6 +2382,15 @@ static int shmem_fill_super(struct super
  	sb->s_xattr = shmem_xattr_handlers;
  	sb->s_flags |= MS_POSIXACL;
  #endif
@@ -270,7 +267,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	inode = shmem_get_inode(sb, S_IFDIR | mode, 0);
  	if (!inode)
-@@ -2289,6 +2404,10 @@ static int shmem_fill_super(struct super
+@@ -2289,6 +2401,10 @@ static int shmem_fill_super(struct super
  	if (!root)
  		goto failed_iput;
  	sb->s_root = root;
@@ -281,7 +278,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  
  failed_iput:
-@@ -2401,6 +2520,9 @@ static const struct inode_operations shm
+@@ -2401,6 +2517,9 @@ static const struct inode_operations shm
  	.removexattr	= generic_removexattr,
  	.permission	= shmem_permission,
  #endif
@@ -291,7 +288,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  static const struct inode_operations shmem_special_inode_operations = {
-@@ -2412,6 +2534,9 @@ static const struct inode_operations shm
+@@ -2412,6 +2531,9 @@ static const struct inode_operations shm
  	.removexattr	= generic_removexattr,
  	.permission	= shmem_permission,
  #endif
