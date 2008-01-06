@@ -45,49 +45,57 @@ its attributes in addition to what tmpfs does.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- fs/Kconfig         |   18 +
- fs/ramfs/inode.c   |  230 ++++++++++++
- fs/ramfs/syaoran.h |  945 +++++++++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 1186 insertions(+), 7 deletions(-)
+ fs/Kconfig               |   18 +
+ fs/ramfs/inode.c         |  177 ++++++++++++++
+ fs/ramfs/syaoran.h       |   75 ++++++
+ fs/ramfs/syaoran_debug.c |  183 +++++++++++++++
+ fs/ramfs/syaoran_init.c  |  568 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ramfs/syaoran_main.c  |  207 +++++++++++++++++
+ 6 files changed, 1222 insertions(+), 6 deletions(-)
 
 --- linux-2.6-mm.orig/fs/ramfs/inode.c
 +++ linux-2.6-mm/fs/ramfs/inode.c
-@@ -36,6 +36,13 @@
+@@ -36,6 +36,20 @@
  #include <asm/uaccess.h>
  #include "internal.h"
  
++static struct inode *__ramfs_get_inode(struct super_block *sb, int mode,
++				       dev_t dev, bool tmpfs_with_mac);
++
 +#define TMPFS_WITH_MAC    1
 +#define TMPFS_WITHOUT_MAC 0
 +#include <linux/quotaops.h>
++
 +#ifdef CONFIG_SYAORAN
 +#include "syaoran.h"
++#include "syaoran_init.c"
++#include "syaoran_main.c"
++#include "syaoran_debug.c"
 +#endif
 +
  /* some random number */
  #define RAMFS_MAGIC	0x858458f6
  
-@@ -49,7 +56,8 @@ static struct backing_dev_info ramfs_bac
- 			  BDI_CAP_READ_MAP | BDI_CAP_WRITE_MAP | BDI_CAP_EXEC_MAP,
- };
+@@ -51,6 +65,12 @@ static struct backing_dev_info ramfs_bac
  
--struct inode *ramfs_get_inode(struct super_block *sb, int mode, dev_t dev)
-+struct inode *__ramfs_get_inode(struct super_block *sb, int mode, dev_t dev,
-+				const bool tmpfs_with_mac)
+ struct inode *ramfs_get_inode(struct super_block *sb, int mode, dev_t dev)
  {
++	return __ramfs_get_inode(sb, mode, dev, TMPFS_WITHOUT_MAC);
++}
++
++static struct inode *__ramfs_get_inode(struct super_block *sb, int mode,
++				       dev_t dev, const bool tmpfs_with_mac)
++{
  	struct inode * inode = new_inode(sb);
  
-@@ -65,10 +73,23 @@ struct inode *ramfs_get_inode(struct sup
+ 	if (inode) {
+@@ -65,10 +85,18 @@ struct inode *ramfs_get_inode(struct sup
  		switch (mode & S_IFMT) {
  		default:
  			init_special_inode(inode, mode, dev);
 +#ifdef CONFIG_SYAORAN
-+			if (tmpfs_with_mac) {
-+				if (S_ISBLK(mode))
-+					inode->i_fop = &wrapped_def_blk_fops;
-+				else if (S_ISCHR(mode))
-+					inode->i_fop = &wrapped_def_chr_fops;
-+				inode->i_op = &syaoran_file_inode_operations;
-+			}
++			if (tmpfs_with_mac)
++				init_syaoran_inode(inode, mode);
 +#endif
  			break;
  		case S_IFREG:
@@ -95,34 +103,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			inode->i_fop = &ramfs_file_operations;
 +#ifdef CONFIG_SYAORAN
 +			if (tmpfs_with_mac)
-+				inode->i_op = &syaoran_file_inode_operations;
++				init_syaoran_inode(inode, mode);
 +#endif
  			break;
  		case S_IFDIR:
  			inode->i_op = &ramfs_dir_inode_operations;
-@@ -79,12 +100,21 @@ struct inode *ramfs_get_inode(struct sup
+@@ -79,6 +107,10 @@ struct inode *ramfs_get_inode(struct sup
  			break;
  		case S_IFLNK:
  			inode->i_op = &page_symlink_inode_operations;
 +#ifdef CONFIG_SYAORAN
 +			if (tmpfs_with_mac)
-+				inode->i_op = &syaoran_symlink_inode_operations;
++				init_syaoran_inode(inode, mode);
 +#endif
  			break;
  		}
  	}
- 	return inode;
- }
- 
-+struct inode *ramfs_get_inode(struct super_block *sb, int mode, dev_t dev)
-+{
-+	return __ramfs_get_inode(sb, mode, dev, TMPFS_WITHOUT_MAC);
-+}
-+
- /*
-  * File creation. Allocate an inode, and we're done..
-  */
-@@ -92,9 +122,19 @@ struct inode *ramfs_get_inode(struct sup
+@@ -92,9 +124,19 @@ struct inode *ramfs_get_inode(struct sup
  static int
  ramfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
  {
@@ -143,7 +140,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (inode) {
  		if (dir->i_mode & S_ISGID) {
  			inode->i_gid = dir->i_gid;
-@@ -127,7 +167,16 @@ static int ramfs_symlink(struct inode * 
+@@ -127,7 +169,16 @@ static int ramfs_symlink(struct inode * 
  	struct inode *inode;
  	int error = -ENOSPC;
  
@@ -161,7 +158,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (inode) {
  		int l = strlen(symname)+1;
  		error = page_symlink(inode, symname, l);
-@@ -143,16 +192,125 @@ static int ramfs_symlink(struct inode * 
+@@ -143,16 +194,130 @@ static int ramfs_symlink(struct inode * 
  	return error;
  }
  
@@ -243,7 +240,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static int ramfs_setattr(struct dentry *dentry, struct iattr *attr)
 +{
-+	unsigned int ia_valid;
++	unsigned int ia_valid = attr->ia_valid;
 +	struct inode *inode = dentry->d_inode;
 +	int error = inode_change_ok(inode, attr);
 +#ifdef CONFIG_SYAORAN
@@ -251,7 +248,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (inode->i_sb->s_op != &syaoran_ops)
 +		goto ok;
 +	/*** SYAORAN start. ***/
-+	ia_valid = attr->ia_valid;
 +	if (ia_valid & (ATTR_UID | ATTR_GID))
 +		flags |= MAY_CHOWN;
 +	if (ia_valid & ATTR_MODE)
@@ -260,8 +256,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -EPERM;
 +	/*** SYAORAN end. ***/
 +ok:
-+#else
-+	ia_valid = attr->ia_valid;
 +#endif
 +	if (!error) {
 +		if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
@@ -278,91 +272,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	.lookup		= simple_lookup,
 -	.link		= simple_link,
 -	.unlink		= simple_unlink,
++	/* Set link() hook for tracking link operation. */
 +	.link		= ramfs_link,
++	/* Set unlink() hook for tracking unlink operation. */
 +	.unlink		= ramfs_unlink,
++	/* Set symlink() hook for tracking symlink operation. */
  	.symlink	= ramfs_symlink,
++	/* Set mkdir() hook for tracking mkdir operation. */
  	.mkdir		= ramfs_mkdir,
 -	.rmdir		= simple_rmdir,
++	/* Set rmdir() hook for tracking rmdir operation. */
 +	.rmdir		= ramfs_rmdir,
++	/* Set mknod() hook for tracking mknod operation. */
  	.mknod		= ramfs_mknod,
 -	.rename		= simple_rename,
++	/* Set rename() hook for tracking rename operation. */
 +	.rename		= ramfs_rename,
++	/* Set setattr() hook for tracking chmod/chown operations. */
 +	.setattr        = ramfs_setattr,
  };
  
  static const struct super_operations ramfs_ops = {
-@@ -208,6 +366,7 @@ static struct file_system_type rootfs_fs
- 	.kill_sb	= kill_litter_super,
- };
- 
-+
- static int __init init_ramfs_fs(void)
- {
- 	return register_filesystem(&ramfs_fs_type);
-@@ -237,3 +396,60 @@ int __init init_rootfs(void)
- }
- 
- MODULE_LICENSE("GPL");
-+
-+#ifdef CONFIG_SYAORAN
-+static int syaoran_fill_super(struct super_block *sb, void *data, int silent)
-+{
-+	struct inode *inode;
-+	struct dentry *root;
-+	int error;
-+
-+	sb->s_maxbytes = MAX_LFS_FILESIZE;
-+	sb->s_blocksize = PAGE_CACHE_SIZE;
-+	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
-+	sb->s_magic = SYAORAN_MAGIC;
-+	sb->s_op = &syaoran_ops;
-+	sb->s_time_gran = 1;
-+	error = syaoran_initialize(sb, data);
-+	if (error < 0)
-+		return error;
-+	inode = syaoran_get_inode(sb, S_IFDIR | 0755, 0);
-+	if (!inode)
-+		return -ENOMEM;
-+
-+	root = d_alloc_root(inode);
-+	if (!root) {
-+		iput(inode);
-+		return -ENOMEM;
-+	}
-+	sb->s_root = root;
-+	syaoran_make_initial_nodes(sb);
-+	return 0;
-+}
-+
-+static int syaoran_get_sb(struct file_system_type *fs_type, int flags,
-+			  const char *dev_name, void *data,
-+			  struct vfsmount *mnt)
-+{
-+	return get_sb_nodev(fs_type, flags, data, syaoran_fill_super, mnt);
-+}
-+
-+static struct file_system_type syaoran_fs_type = {
-+	.name           = "syaoran",
-+	.get_sb         = syaoran_get_sb,
-+	.kill_sb        = kill_litter_super,
-+};
-+
-+static int __init init_syaoran_fs(void)
-+{
-+	return register_filesystem(&syaoran_fs_type);
-+}
-+
-+static void __exit exit_syaoran_fs(void)
-+{
-+	unregister_filesystem(&syaoran_fs_type);
-+}
-+module_init(init_syaoran_fs);
-+module_exit(exit_syaoran_fs);
-+
-+#endif
 --- /dev/null
 +++ linux-2.6-mm/fs/ramfs/syaoran.h
-@@ -0,0 +1,945 @@
+@@ -0,0 +1,75 @@
 +/*
 + * fs/ramfs/syaoran.h
 + *
@@ -370,16 +303,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 1.5.3-pre   2008/01/01
++ * Version: 1.5.3-pre   2008/01/06
 + */
++
++#ifndef SYAORAN_H
++#define SYAORAN_H
 +
 +#include <linux/namei.h>
 +#include <linux/mm.h>
 +
-+#define list_for_each_cookie(pos, cookie, head) \
-+	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
-+		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
-+		(cookie) = pos, pos = pos->next)
++static struct super_operations syaoran_ops;
++static void init_syaoran_inode(struct inode *inode, int mode);
++
++static int syaoran_create_tracelog(struct super_block *sb,
++				   const char *filename);
++static int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags);
 +
 +/* The following constants are used to restrict operations.*/
 +
@@ -392,53 +330,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* some random number */
 +#define SYAORAN_MAGIC    0x2F646576 /* = '/dev' */
-+
-+static struct inode_operations syaoran_file_inode_operations;
-+static struct inode_operations syaoran_symlink_inode_operations;
-+
-+static void syaoran_put_super(struct super_block *sb);
-+static int syaoran_initialize(struct super_block *sb, void *data);
-+static void syaoran_make_initial_nodes(struct super_block *sb);
-+static int syaoran_may_create_node(struct dentry *dentry, int mode, int dev);
-+static int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags);
-+static int syaoran_create_tracelog(struct super_block *sb,
-+				   const char *filename);
-+static struct inode *__ramfs_get_inode(struct super_block *sb, int mode,
-+				       dev_t dev, bool tmpfs_with_mac);
-+
-+static struct inode *syaoran_get_inode(struct super_block *sb, int mode,
-+				       dev_t dev)
-+{
-+	return __ramfs_get_inode(sb, mode, dev, TMPFS_WITH_MAC);
-+}
-+
-+static struct super_operations syaoran_ops = {
-+	.statfs     = simple_statfs,
-+	.drop_inode = generic_delete_inode,
-+	.put_super  = syaoran_put_super,
-+};
-+
-+/* Wraps blkdev_open() to trace open operation for block devices. */
-+static struct file_operations wrapped_def_blk_fops;
-+
-+static int wrapped_blkdev_open(struct inode *inode, struct file *filp)
-+{
-+	int error = def_blk_fops.open(inode, filp);
-+	if (error != -ENXIO)
-+		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
-+	return error;
-+}
-+
-+/* Wraps chrdev_open() to trace open operation for character devices. */
-+static struct file_operations wrapped_def_chr_fops;
-+
-+static int wrapped_chrdev_open(struct inode *inode, struct file *filp)
-+{
-+	int error = def_chr_fops.open(inode, filp);
-+	if (error != -ENXIO)
-+		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
-+	return error;
-+}
 +
 +struct dev_entry {
 +	struct list_head list;
@@ -473,246 +364,245 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool is_permissive_mode; /* True if permissive mode. */
 +};
 +
-+static void syaoran_put_super(struct super_block *sb)
++static inline struct inode *syaoran_get_inode(struct super_block *sb,
++					      int mode, dev_t dev)
 +{
-+	struct syaoran_sb_info *info;
-+	struct dev_entry *entry;
-+	struct dev_entry *tmp;
-+	if (!sb)
-+		return;
-+	info = (struct syaoran_sb_info *) sb->s_fs_info;
++	return __ramfs_get_inode(sb, mode, dev, TMPFS_WITH_MAC);
++}
++
++#endif
+--- linux-2.6-mm.orig/fs/Kconfig
++++ linux-2.6-mm/fs/Kconfig
+@@ -978,6 +978,24 @@ config TMPFS_POSIX_ACL
+ 
+ 	  If you don't know what Access Control Lists are, say N.
+ 
++config SYAORAN
++	bool "Tamper-proof device filesystem support"
++	depends on TMPFS
++	help
++	  If you mount this filesystem for /dev directory instead of tmpfs,
++	  you can guarantee the following thing.
++
++	  "Applications using well-known device locations under /dev
++	   get the device they want" (e.g. an application that accesses
++	   /dev/null can always get a character special device
++	   with major=1 and minor=3).
++
++	  The list of possible combinations of filename and its attributes
++	  that can exist on this filesystem is defined at mount time
++	  using a configuration file.
++
++	  If unsure, say N.
++
+ config HUGETLBFS
+ 	bool "HugeTLB file system support"
+ 	depends on X86 || IA64 || PPC64 || SPARC64 || (SUPERH && MMU) || BROKEN
+--- /dev/null
++++ linux-2.6-mm/fs/ramfs/syaoran_debug.c
+@@ -0,0 +1,183 @@
++/*
++ * fs/ramfs/syaoran_debug.c
++ *
++ * Implementation of the Tamper-Proof Device Filesystem.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.5.3-pre   2008/01/06
++ */
++/*
++ * The following structure and codes are used for transferring data
++ * to interfaces files.
++ */
++
++#define list_for_each_cookie(pos, cookie, head) \
++	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
++		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
++		(cookie) = pos, pos = pos->next)
++
++struct syaoran_read_struct {
++	char *buf;               /* Buffer for reading.                */
++	int avail;               /* Bytes available for reading.       */
++	struct super_block *sb;  /* The super_block of this partition. */
++	struct dev_entry *entry; /* The entry currently reading from.  */
++	bool read_all;           /* Dump all entries?                  */
++	struct list_head *pos;   /* Current position.                  */
++};
++
++static void syaoran_read_table(struct syaoran_read_struct *head, char *buf,
++			       int count)
++{
++	struct super_block *sb = head->sb;
++	struct syaoran_sb_info *info =
++		(struct syaoran_sb_info *) sb->s_fs_info;
++	struct list_head *pos;
++	const bool read_all = head->read_all;
 +	if (!info)
 +		return;
-+	list_for_each_entry_safe(entry, tmp, &info->list, list) {
-+		kfree(entry->name);
-+		kfree(entry->symlink_data);
-+		kfree(entry->printable_name);
-+		kfree(entry->printable_symlink_data);
-+		list_del(&entry->list);
-+		/* printk("Entry removed.\n"); */
-+		kfree(entry);
-+	}
-+	kfree(info);
-+	sb->s_fs_info = NULL;
-+	printk(KERN_DEBUG "%s: Unused memory freed.\n", __FUNCTION__);
-+}
-+
-+/* Get absolute pathname from mount point. */
-+static int get_local_absolute_path(struct dentry *dentry, char *buffer,
-+				   int buflen)
-+{
-+	char *start = buffer;
-+	char *end = buffer + buflen;
-+	int namelen;
-+
-+	if (buflen < 256)
-+		goto out;
-+
-+	*--end = '\0';
-+	buflen--;
-+	for (;;) {
-+		struct dentry *parent;
-+		if (IS_ROOT(dentry))
-+			break;
-+		parent = dentry->d_parent;
-+		namelen = dentry->d_name.len;
-+		buflen -= namelen + 1;
-+		if (buflen < 0)
-+			goto out;
-+		end -= namelen;
-+		memcpy(end, dentry->d_name.name, namelen);
-+		*--end = '/';
-+		dentry = parent;
-+	}
-+	if (*end == '/') {
-+		buflen++;
-+		end++;
-+	}
-+	namelen = dentry->d_name.len;
-+	buflen -= namelen;
-+	if (buflen < 0)
-+		goto out;
-+	end -= namelen;
-+	memcpy(end, dentry->d_name.name, namelen);
-+	memmove(start, end, strlen(end) + 1);
-+	return 0;
-+out:
-+	return -ENOMEM;
-+}
-+
-+/* Get absolute pathname of the given dentry from mount point. */
-+static int local_realpath_from_dentry(struct dentry *dentry, char *newname,
-+				      int newname_len)
-+{
-+	int error;
-+	struct dentry *d_dentry;
-+	if (!dentry || !newname || newname_len <= 0)
-+		return -EINVAL;
-+	d_dentry = dget(dentry);
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&dcache_lock);
-+	error = get_local_absolute_path(d_dentry, newname, newname_len);
-+	spin_unlock(&dcache_lock);
-+	/***** CRITICAL SECTION END *****/
-+	dput(d_dentry);
-+	return error;
-+}
-+
-+static int syaoran_check_flags(struct syaoran_sb_info *info,
-+			       struct dentry *dentry, int mode, int dev,
-+			       unsigned int flags)
-+{
-+	int error = -EPERM;
-+	struct dev_entry *entry;
-+	/*
-+	 * Since local_realpath_from_dentry() holds dcache_lock,
-+	 * allocating buffer using kmalloc() won't help improving concurrency.
-+	 * Therefore, I use static buffer here.
-+	 */
-+	static char filename[PAGE_SIZE];
-+	static DEFINE_SPINLOCK(lock);
-+	spin_lock(&lock);
-+	memset(filename, 0, sizeof(filename));
-+	if (local_realpath_from_dentry(dentry, filename, sizeof(filename) - 1))
-+		goto out;
-+	list_for_each_entry(entry, &info->list, list) {
-+		if ((mode & S_IFMT) != (entry->mode & S_IFMT))
-+			continue;
-+		if ((S_ISBLK(mode) || S_ISCHR(mode)) && dev != entry->kdev)
-+			continue;
-+		if (strcmp(entry->name, filename + 1))
-+			continue;
-+		if (info->is_permissive_mode) {
-+			entry->flags |= flags;
-+			error = 0;
-+		} else {
-+			if ((entry->flags & flags) == flags)
-+				error = 0;
-+		}
-+		break;
-+	}
-+out:
-+	if (error && strlen(filename) < (sizeof(filename) / 4) - 16) {
-+		const char *name;
-+		const uid_t uid = current->fsuid;
-+		const gid_t gid = current->fsgid;
-+		const mode_t perm = mode & 0777;
-+		flags &= ~DEVICE_USED;
-+		{
-+			char *end = filename + sizeof(filename) - 1;
-+			const char *cp = strchr(filename, '\0') - 1;
-+			while (cp > filename) {
-+				const unsigned char c = *cp--;
-+				if (c == '\\') {
-+					*--end = '\\';
-+					*--end = '\\';
-+				} else if (c > ' ' && c < 127) {
-+					*--end = c;
-+				} else {
-+					*--end = (c & 7) + '0';
-+					*--end = ((c >> 3) & 7) + '0';
-+					*--end = (c >> 6) + '0';
-+					*--end = '\\';
-+				}
-+			}
-+			name = end;
-+		}
-+		switch (mode & S_IFMT) {
++	if (!head->pos)
++		return;
++	list_for_each_cookie(pos, head->pos, &info->list) {
++		struct dev_entry *entry =
++			list_entry(pos, struct dev_entry, list);
++		const unsigned int flags =
++			read_all ? entry->flags : entry->flags & ~DEVICE_USED;
++		const char *name = entry->printable_name;
++		const uid_t uid = entry->uid;
++		const gid_t gid = entry->gid;
++		const mode_t perm = entry->mode & 0777;
++		int len = 0;
++		switch (entry->mode & S_IFMT) {
 +		case S_IFCHR:
-+			printk(KERN_DEBUG
-+			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %3u %3u\n",
-+			       name, perm, uid, gid, flags, 'c',
-+			       MAJOR(dev), MINOR(dev));
++			if (!head->read_all && !(entry->flags & DEVICE_USED))
++				break;
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c %3u %3u\n",
++				       name, perm, uid, gid, flags, 'c',
++				       MAJOR(entry->kdev), MINOR(entry->kdev));
 +			break;
 +		case S_IFBLK:
-+			printk(KERN_DEBUG
-+			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %3u %3u\n",
-+			       name, perm, uid, gid, flags, 'b',
-+			       MAJOR(dev), MINOR(dev));
++			if (!head->read_all && !(entry->flags & DEVICE_USED))
++				break;
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c %3u %3u\n",
++				       name, perm, uid, gid, flags, 'b',
++				       MAJOR(entry->kdev), MINOR(entry->kdev));
 +			break;
 +		case S_IFIFO:
-+			printk(KERN_DEBUG
-+			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
-+			       name, perm, uid, gid, flags, 'p');
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c\n",
++				       name, perm, uid, gid, flags, 'p');
 +			break;
 +		case S_IFSOCK:
-+			printk(KERN_DEBUG
-+			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
-+			       name, perm, uid, gid, flags, 's');
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c\n",
++				       name, perm, uid, gid, flags, 's');
 +			break;
 +		case S_IFDIR:
-+			printk(KERN_DEBUG
-+			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
-+			       name, perm, uid, gid, flags, 'd');
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c\n",
++				       name, perm, uid, gid, flags, 'd');
 +			break;
 +		case S_IFLNK:
-+			printk(KERN_DEBUG
-+			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %s\n",
-+			       name, perm, uid, gid, flags, 'l', "unknown");
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c %s\n",
++				       name, perm, uid, gid, flags, 'l',
++				       entry->printable_symlink_data);
 +			break;
 +		case S_IFREG:
-+			printk(KERN_DEBUG
-+			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
-+			       name, perm, uid, gid, flags, 'f');
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c\n",
++				       name, perm, uid, gid, flags, 'f');
 +			break;
 +		}
++		if (len < 0 || count <= len)
++			break;
++		count -= len;
++		buf += len;
++		head->avail += len;
 +	}
-+	spin_unlock(&lock);
++}
++
++static int syaoran_trace_open(struct inode *inode, struct file *file)
++{
++	struct syaoran_read_struct *head =
++		kzalloc(sizeof(*head), GFP_KERNEL);
++	if (!head)
++		return -ENOMEM;
++	head->sb = inode->i_sb;
++	head->read_all =
++		(strcmp(file->f_dentry->d_name.name, ".syaoran_all") == 0);
++	head->pos = &((struct syaoran_sb_info *) head->sb->s_fs_info)->list;
++	head->buf = kzalloc(PAGE_SIZE * 2, GFP_KERNEL);
++	if (!head->buf) {
++		kfree(head);
++		return -ENOMEM;
++	}
++	file->private_data = head;
++	return 0;
++}
++
++static int syaoran_trace_release(struct inode *inode, struct file *file)
++{
++	struct syaoran_read_struct *head = file->private_data;
++	kfree(head->buf);
++	kfree(head);
++	file->private_data = NULL;
++	return 0;
++}
++
++static ssize_t syaoran_trace_read(struct file *file, char __user *buf,
++				  size_t count, loff_t *ppos)
++{
++	struct syaoran_read_struct *head =
++		(struct syaoran_read_struct *) file->private_data;
++	int len = head->avail;
++	char *cp = head->buf;
++	if (!access_ok(VERIFY_WRITE, buf, count))
++		return -EFAULT;
++	syaoran_read_table(head, cp + len, PAGE_SIZE * 2 - len);
++	len = head->avail;
++	if (len > count)
++		len = count;
++	if (len > 0) {
++		if (copy_to_user(buf, cp, len))
++			return -EFAULT;
++		head->avail -= len;
++		memmove(cp, cp + len, head->avail);
++	}
++	return len;
++}
++
++static struct file_operations syaoran_trace_operations = {
++	.open    = syaoran_trace_open,
++	.release = syaoran_trace_release,
++	.read    = syaoran_trace_read,
++};
++
++/* Create interface files for reading status. */
++static int syaoran_create_tracelog(struct super_block *sb, const char *filename)
++{
++	struct inode *inode;
++	struct dentry *base = dget(sb->s_root);
++	struct dentry *dentry = lookup_create2(filename, base, 0);
++	int error = PTR_ERR(dentry);
++	if (IS_ERR(dentry))
++		goto out;
++	inode = syaoran_get_inode(sb, S_IFREG | 0400, 0);
++	if (!inode)
++		error = -ENOSPC;
++	else {
++		/* Override file operation. */
++		inode->i_fop = &syaoran_trace_operations;
++		d_instantiate(dentry, inode);
++		dget(dentry); /* Extra count - pin the dentry in core */
++		error = 0;
++	}
++	dput(dentry);
++out:
++	mutex_unlock(&base->d_inode->i_mutex);
++	dput(base);
 +	return error;
 +}
-+
-+/* Check whether the given dentry is allowed to mknod. */
-+static int syaoran_may_create_node(struct dentry *dentry, int mode, int dev)
-+{
-+	struct syaoran_sb_info *info =
-+		(struct syaoran_sb_info *) dentry->d_sb->s_fs_info;
-+	if (!info) {
-+		printk(KERN_DEBUG "%s: dentry->d_sb->s_fs_info == NULL\n",
-+		       __FUNCTION__);
-+		return -EPERM;
-+	}
-+	if (!info->initialize_done)
-+		return 0;
-+	return syaoran_check_flags(info, dentry, mode, dev, MAY_CREATE);
-+}
-+
-+/* Check whether the given dentry is allowed to chmod/chown/unlink. */
-+static int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags)
-+{
-+	struct syaoran_sb_info *info =
-+		(struct syaoran_sb_info *) dentry->d_sb->s_fs_info;
-+	if (!info) {
-+		printk(KERN_DEBUG "%s: dentry->d_sb->s_fs_info == NULL\n",
-+		       __FUNCTION__);
-+		return -EPERM;
-+	}
-+	if (flags == DEVICE_USED && !info->is_permissive_mode)
-+		return 0;
-+	if (!dentry->d_inode)
-+		return -ENOENT;
-+	return syaoran_check_flags(info, dentry, dentry->d_inode->i_mode,
-+				   dentry->d_inode->i_rdev, flags);
-+}
-+
-+static int ramfs_setattr(struct dentry *dentry, struct iattr *attr);
-+static struct inode_operations syaoran_file_inode_operations = {
-+	.getattr        = simple_getattr,
-+	.setattr        = ramfs_setattr,
-+};
-+
-+static struct inode_operations syaoran_symlink_inode_operations = {
-+	.readlink       = generic_readlink,
-+	.follow_link    = page_follow_link_light,
-+	.put_link       = page_put_link,
-+	.setattr        = ramfs_setattr,
-+};
+--- /dev/null
++++ linux-2.6-mm/fs/ramfs/syaoran_init.c
+@@ -0,0 +1,568 @@
++/*
++ * fs/ramfs/syaoran_init.c
++ *
++ * Implementation of the Tamper-Proof Device Filesystem.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.5.3-pre   2008/01/06
++ */
 +
 +/*
 + * The following codes are used for processing the policy file and
-+ * creating initial nodes.
++ * creating initial nodes at mount time.
 + */
 +
-+/* lookup_create() without nameidata. Called only while initialization. */
++/* lookup_create() without nameidata */
 +static struct dentry *lookup_create2(const char *name, struct dentry *base,
 +				     const bool is_dir)
 +{
@@ -732,7 +622,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return dentry;
 +}
 +
-+/* mkdir(). Called only while initialization. */
 +static int fs_mkdir(const char *pathname, struct dentry *base, int mode,
 +		    uid_t user, gid_t group)
 +{
@@ -752,7 +641,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/* mknod(). Called only while initialization. */
 +static int fs_mknod(const char *filename, struct dentry *base, int mode,
 +		    dev_t dev, uid_t user, gid_t group)
 +{
@@ -784,7 +672,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/* symlink(). Called only while initialization. */
 +static int fs_symlink(const char *pathname, struct dentry *base,
 +		      char *oldname, int mode, uid_t user, gid_t group)
 +{
@@ -1098,7 +985,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	static bool first = 1;
 +	if (first) {
 +		first = 0;
-+		printk(KERN_INFO "SYAORAN: 1.5.3-pre   2008/01/01\n");
++		printk(KERN_INFO "SYAORAN: 1.5.3-pre   2008/01/06\n");
 +	}
 +	if (!filename) {
 +		printk(KERN_INFO "SYAORAN: Missing config-file path.\n");
@@ -1113,10 +1000,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		printk(KERN_INFO "SYAORAN: Missing 'accept=' or 'enforce='.\n");
 +		return -EINVAL;
 +	}
-+	wrapped_def_blk_fops = def_blk_fops;
-+	wrapped_def_blk_fops.open = wrapped_blkdev_open;
-+	wrapped_def_chr_fops = def_chr_fops;
-+	wrapped_def_chr_fops.open = wrapped_chrdev_open;
 +	f = open_pathname(AT_FDCWD, filename, O_RDONLY, 0600);
 +	if (IS_ERR(f)) {
 +		printk(KERN_INFO "SYAORAN: Can't open '%s'\n", filename);
@@ -1139,199 +1022,346 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/*
-+ * The following structure and codes are used for transferring data
-+ * to interfaces files.
-+ */
-+
-+struct syaoran_read_struct {
-+	char *buf;               /* Buffer for reading.                */
-+	int avail;               /* Bytes available for reading.       */
-+	struct super_block *sb;  /* The super_block of this partition. */
-+	struct dev_entry *entry; /* The entry currently reading from.  */
-+	_Bool read_all;          /* Dump all entries?                  */
-+	struct list_head *pos;   /* Current position.                  */
-+};
-+
-+static void syaoran_read_table(struct syaoran_read_struct *head, char *buf,
-+			       int count)
-+{
-+	struct super_block *sb = head->sb;
-+	struct syaoran_sb_info *info =
-+		(struct syaoran_sb_info *) sb->s_fs_info;
-+	struct list_head *pos;
-+	const _Bool read_all = head->read_all;
-+	if (!info)
-+		return;
-+	if (!head->pos)
-+		return;
-+	list_for_each_cookie(pos, head->pos, &info->list) {
-+		struct dev_entry *entry =
-+			list_entry(pos, struct dev_entry, list);
-+		const unsigned int flags =
-+			read_all ? entry->flags : entry->flags & ~DEVICE_USED;
-+		const char *name = entry->printable_name;
-+		const uid_t uid = entry->uid;
-+		const gid_t gid = entry->gid;
-+		const mode_t perm = entry->mode & 0777;
-+		int len = 0;
-+		switch (entry->mode & S_IFMT) {
-+		case S_IFCHR:
-+			if (!head->read_all && !(entry->flags & DEVICE_USED))
-+				break;
-+			len = snprintf(buf, count,
-+				       "%-20s %3o %3u %3u %2u %c %3u %3u\n",
-+				       name, perm, uid, gid, flags, 'c',
-+				       MAJOR(entry->kdev), MINOR(entry->kdev));
-+			break;
-+		case S_IFBLK:
-+			if (!head->read_all && !(entry->flags & DEVICE_USED))
-+				break;
-+			len = snprintf(buf, count,
-+				       "%-20s %3o %3u %3u %2u %c %3u %3u\n",
-+				       name, perm, uid, gid, flags, 'b',
-+				       MAJOR(entry->kdev), MINOR(entry->kdev));
-+			break;
-+		case S_IFIFO:
-+			len = snprintf(buf, count,
-+				       "%-20s %3o %3u %3u %2u %c\n",
-+				       name, perm, uid, gid, flags, 'p');
-+			break;
-+		case S_IFSOCK:
-+			len = snprintf(buf, count,
-+				       "%-20s %3o %3u %3u %2u %c\n",
-+				       name, perm, uid, gid, flags, 's');
-+			break;
-+		case S_IFDIR:
-+			len = snprintf(buf, count,
-+				       "%-20s %3o %3u %3u %2u %c\n",
-+				       name, perm, uid, gid, flags, 'd');
-+			break;
-+		case S_IFLNK:
-+			len = snprintf(buf, count,
-+				       "%-20s %3o %3u %3u %2u %c %s\n",
-+				       name, perm, uid, gid, flags, 'l',
-+				       entry->printable_symlink_data);
-+			break;
-+		case S_IFREG:
-+			len = snprintf(buf, count,
-+				       "%-20s %3o %3u %3u %2u %c\n",
-+				       name, perm, uid, gid, flags, 'f');
-+			break;
-+		}
-+		if (len < 0 || count <= len)
-+			break;
-+		count -= len;
-+		buf += len;
-+		head->avail += len;
-+	}
-+}
-+
-+static int syaoran_trace_open(struct inode *inode, struct file *file)
-+{
-+	struct syaoran_read_struct *head =
-+		kzalloc(sizeof(*head), GFP_KERNEL);
-+	if (!head)
-+		return -ENOMEM;
-+	head->sb = inode->i_sb;
-+	head->read_all =
-+		(strcmp(file->f_dentry->d_name.name, ".syaoran_all") == 0);
-+	head->pos = &((struct syaoran_sb_info *) head->sb->s_fs_info)->list;
-+	head->buf = kzalloc(PAGE_SIZE * 2, GFP_KERNEL);
-+	if (!head->buf) {
-+		kfree(head);
-+		return -ENOMEM;
-+	}
-+	file->private_data = head;
-+	return 0;
-+}
-+
-+static int syaoran_trace_release(struct inode *inode, struct file *file)
-+{
-+	struct syaoran_read_struct *head = file->private_data;
-+	kfree(head->buf);
-+	kfree(head);
-+	file->private_data = NULL;
-+	return 0;
-+}
-+
-+static ssize_t syaoran_trace_read(struct file *file, char __user *buf,
-+				  size_t count, loff_t *ppos)
-+{
-+	struct syaoran_read_struct *head =
-+		(struct syaoran_read_struct *) file->private_data;
-+	int len = head->avail;
-+	char *cp = head->buf;
-+	if (!access_ok(VERIFY_WRITE, buf, count))
-+		return -EFAULT;
-+	syaoran_read_table(head, cp + len, PAGE_SIZE * 2 - len);
-+	len = head->avail;
-+	if (len > count)
-+		len = count;
-+	if (len > 0) {
-+		if (copy_to_user(buf, cp, len))
-+			return -EFAULT;
-+		head->avail -= len;
-+		memmove(cp, cp + len, head->avail);
-+	}
-+	return len;
-+}
-+
-+static struct file_operations syaoran_trace_operations = {
-+	.open    = syaoran_trace_open,
-+	.release = syaoran_trace_release,
-+	.read    = syaoran_trace_read,
-+};
-+
-+/* Create interface files for reading status. */
-+static int syaoran_create_tracelog(struct super_block *sb, const char *filename)
++static int syaoran_fill_super(struct super_block *sb, void *data, int silent)
 +{
 +	struct inode *inode;
-+	struct dentry *base = dget(sb->s_root);
-+	struct dentry *dentry = lookup_create2(filename, base, 0);
-+	int error = PTR_ERR(dentry);
-+	if (IS_ERR(dentry))
-+		goto out;
-+	inode = syaoran_get_inode(sb, S_IFREG | 0400, 0);
++	struct dentry *root;
++	int error;
++
++	sb->s_maxbytes = MAX_LFS_FILESIZE;
++	sb->s_blocksize = PAGE_CACHE_SIZE;
++	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
++	sb->s_magic = SYAORAN_MAGIC;
++	sb->s_op = &syaoran_ops;
++	sb->s_time_gran = 1;
++	error = syaoran_initialize(sb, data);
++	if (error < 0)
++		return error;
++	inode = syaoran_get_inode(sb, S_IFDIR | 0755, 0);
 +	if (!inode)
-+		error = -ENOSPC;
-+	else {
-+		/* Override file operation. */
-+		inode->i_fop = &syaoran_trace_operations;
-+		d_instantiate(dentry, inode);
-+		dget(dentry); /* Extra count - pin the dentry in core */
-+		error = 0;
++		return -ENOMEM;
++
++	root = d_alloc_root(inode);
++	if (!root) {
++		iput(inode);
++		return -ENOMEM;
 +	}
-+	dput(dentry);
-+out:
-+	mutex_unlock(&base->d_inode->i_mutex);
-+	dput(base);
++	sb->s_root = root;
++	syaoran_make_initial_nodes(sb);
++	return 0;
++}
++
++static int syaoran_get_sb(struct file_system_type *fs_type, int flags,
++			  const char *dev_name, void *data,
++			  struct vfsmount *mnt)
++{
++	return get_sb_nodev(fs_type, flags, data, syaoran_fill_super, mnt);
++}
++
++static void syaoran_put_super(struct super_block *sb)
++{
++	struct syaoran_sb_info *info;
++	struct dev_entry *entry;
++	struct dev_entry *tmp;
++	if (!sb)
++		return;
++	info = (struct syaoran_sb_info *) sb->s_fs_info;
++	if (!info)
++		return;
++	list_for_each_entry_safe(entry, tmp, &info->list, list) {
++		kfree(entry->name);
++		kfree(entry->symlink_data);
++		kfree(entry->printable_name);
++		kfree(entry->printable_symlink_data);
++		list_del(&entry->list);
++		/* printk("Entry removed.\n"); */
++		kfree(entry);
++	}
++	kfree(info);
++	sb->s_fs_info = NULL;
++	printk(KERN_DEBUG "%s: Unused memory freed.\n", __FUNCTION__);
++}
++
++static struct file_system_type syaoran_fs_type = {
++	.name           = "syaoran",
++	.get_sb         = syaoran_get_sb,
++	.kill_sb        = kill_litter_super,
++};
++
++static struct file_operations wrapped_def_blk_fops;
++static struct file_operations wrapped_def_chr_fops;
++static struct inode_operations syaoran_file_inode_operations;
++static struct inode_operations syaoran_symlink_inode_operations;
++static int ramfs_setattr(struct dentry *dentry, struct iattr *attr);
++static const struct super_operations ramfs_ops;
++
++static void init_syaoran_inode(struct inode *inode, int mode)
++{
++	/* Set open() hook for tracking open request. */
++	if (S_ISBLK(mode))
++		inode->i_fop = &wrapped_def_blk_fops;
++	else if (S_ISCHR(mode))
++		inode->i_fop = &wrapped_def_chr_fops;
++	/*
++	 * Set setattr() hook for tracking chmod/chwon request.
++	 * The setattr() hook of derectory is already set by
++	 * ramfs_dir_inode_operations.
++	 */
++	if (S_ISLNK(mode))
++		inode->i_op = &syaoran_symlink_inode_operations;
++	else
++		inode->i_op = &syaoran_file_inode_operations;
++}
++
++static int wrapped_blkdev_open(struct inode *inode, struct file *filp)
++{
++	int error = def_blk_fops.open(inode, filp);
++	if (error != -ENXIO)
++		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
 +	return error;
 +}
---- linux-2.6-mm.orig/fs/Kconfig
-+++ linux-2.6-mm/fs/Kconfig
-@@ -978,6 +978,24 @@ config TMPFS_POSIX_ACL
- 
- 	  If you don't know what Access Control Lists are, say N.
- 
-+config SYAORAN
-+	bool "Tamper-proof device filesystem support"
-+	depends on TMPFS
-+	help
-+	  If you mount this filesystem for /dev directory instead of tmpfs,
-+	  you can guarantee the following thing.
 +
-+	  "Applications using well-known device locations under /dev
-+	   get the device they want" (e.g. an application that accesses
-+	   /dev/null can always get a character special device
-+	   with major=1 and minor=3).
++static int wrapped_chrdev_open(struct inode *inode, struct file *filp)
++{
++	int error = def_chr_fops.open(inode, filp);
++	if (error != -ENXIO)
++		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
++	return error;
++}
 +
-+	  The list of possible combinations of filename and its attributes
-+	  that can exist on this filesystem is defined at mount time
-+	  using a configuration file.
++static int __init init_syaoran_fs(void)
++{
++	/* Set open() hook for tracking open operation of block devices. */
++	wrapped_def_blk_fops = def_blk_fops;
++	wrapped_def_blk_fops.open = wrapped_blkdev_open;
++	/* Set open() hook for tracking open operation of character devices. */
++	wrapped_def_chr_fops = def_chr_fops;
++	wrapped_def_chr_fops.open = wrapped_chrdev_open;
++	/* Set setattr() hook for tracking chmod/chown operations of file. */
++	syaoran_file_inode_operations = ramfs_file_inode_operations;
++	syaoran_file_inode_operations.setattr = ramfs_setattr;
++	/* Set setattr() hook for tracking chmod/chown operations of symlink. */
++	syaoran_symlink_inode_operations = page_symlink_inode_operations;
++	syaoran_symlink_inode_operations.setattr = ramfs_setattr;
++	/* Set umount() hook for freeing memory. */
++	syaoran_ops = ramfs_ops;
++	syaoran_ops.put_super = syaoran_put_super;
++	return register_filesystem(&syaoran_fs_type);
++}
 +
-+	  If unsure, say N.
++static void __exit exit_syaoran_fs(void)
++{
++	unregister_filesystem(&syaoran_fs_type);
++}
++module_init(init_syaoran_fs);
++module_exit(exit_syaoran_fs);
+--- /dev/null
++++ linux-2.6-mm/fs/ramfs/syaoran_main.c
+@@ -0,0 +1,207 @@
++/*
++ * fs/ramfs/syaoran_main.c
++ *
++ * Implementation of the Tamper-Proof Device Filesystem.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.5.3-pre   2008/01/06
++ */
 +
- config HUGETLBFS
- 	bool "HugeTLB file system support"
- 	depends on X86 || IA64 || PPC64 || SPARC64 || (SUPERH && MMU) || BROKEN
++/* Get absolute pathname from mount point. */
++static int get_local_absolute_path(struct dentry *dentry, char *buffer,
++				   int buflen)
++{
++	char *start = buffer;
++	char *end = buffer + buflen;
++	int namelen;
++
++	if (buflen < 256)
++		goto out;
++
++	*--end = '\0';
++	buflen--;
++	for (;;) {
++		struct dentry *parent;
++		if (IS_ROOT(dentry))
++			break;
++		parent = dentry->d_parent;
++		namelen = dentry->d_name.len;
++		buflen -= namelen + 1;
++		if (buflen < 0)
++			goto out;
++		end -= namelen;
++		memcpy(end, dentry->d_name.name, namelen);
++		*--end = '/';
++		dentry = parent;
++	}
++	if (*end == '/') {
++		buflen++;
++		end++;
++	}
++	namelen = dentry->d_name.len;
++	buflen -= namelen;
++	if (buflen < 0)
++		goto out;
++	end -= namelen;
++	memcpy(end, dentry->d_name.name, namelen);
++	memmove(start, end, strlen(end) + 1);
++	return 0;
++out:
++	return -ENOMEM;
++}
++
++/* Get absolute pathname of the given dentry from mount point. */
++static int local_realpath_from_dentry(struct dentry *dentry, char *newname,
++				      int newname_len)
++{
++	int error;
++	struct dentry *d_dentry;
++	if (!dentry || !newname || newname_len <= 0)
++		return -EINVAL;
++	d_dentry = dget(dentry);
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&dcache_lock);
++	error = get_local_absolute_path(d_dentry, newname, newname_len);
++	spin_unlock(&dcache_lock);
++	/***** CRITICAL SECTION END *****/
++	dput(d_dentry);
++	return error;
++}
++
++static int syaoran_check_flags(struct syaoran_sb_info *info,
++			       struct dentry *dentry, int mode, int dev,
++			       unsigned int flags)
++{
++	int error = -EPERM;
++	struct dev_entry *entry;
++	/*
++	 * Since local_realpath_from_dentry() holds dcache_lock,
++	 * allocating buffer using kmalloc() won't help improving concurrency.
++	 * Therefore, I use static buffer here.
++	 */
++	static char filename[PAGE_SIZE];
++	static DEFINE_SPINLOCK(lock);
++	spin_lock(&lock);
++	memset(filename, 0, sizeof(filename));
++	if (local_realpath_from_dentry(dentry, filename, sizeof(filename) - 1))
++		goto out;
++	list_for_each_entry(entry, &info->list, list) {
++		if ((mode & S_IFMT) != (entry->mode & S_IFMT))
++			continue;
++		if ((S_ISBLK(mode) || S_ISCHR(mode)) && dev != entry->kdev)
++			continue;
++		if (strcmp(entry->name, filename + 1))
++			continue;
++		if (info->is_permissive_mode) {
++			entry->flags |= flags;
++			error = 0;
++		} else {
++			if ((entry->flags & flags) == flags)
++				error = 0;
++		}
++		break;
++	}
++out:
++	if (error && strlen(filename) < (sizeof(filename) / 4) - 16) {
++		const char *name;
++		const uid_t uid = current->fsuid;
++		const gid_t gid = current->fsgid;
++		const mode_t perm = mode & 0777;
++		flags &= ~DEVICE_USED;
++		{
++			char *end = filename + sizeof(filename) - 1;
++			const char *cp = strchr(filename, '\0') - 1;
++			while (cp > filename) {
++				const unsigned char c = *cp--;
++				if (c == '\\') {
++					*--end = '\\';
++					*--end = '\\';
++				} else if (c > ' ' && c < 127) {
++					*--end = c;
++				} else {
++					*--end = (c & 7) + '0';
++					*--end = ((c >> 3) & 7) + '0';
++					*--end = (c >> 6) + '0';
++					*--end = '\\';
++				}
++			}
++			name = end;
++		}
++		switch (mode & S_IFMT) {
++		case S_IFCHR:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %3u %3u\n",
++			       name, perm, uid, gid, flags, 'c',
++			       MAJOR(dev), MINOR(dev));
++			break;
++		case S_IFBLK:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %3u %3u\n",
++			       name, perm, uid, gid, flags, 'b',
++			       MAJOR(dev), MINOR(dev));
++			break;
++		case S_IFIFO:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
++			       name, perm, uid, gid, flags, 'p');
++			break;
++		case S_IFSOCK:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
++			       name, perm, uid, gid, flags, 's');
++			break;
++		case S_IFDIR:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
++			       name, perm, uid, gid, flags, 'd');
++			break;
++		case S_IFLNK:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %s\n",
++			       name, perm, uid, gid, flags, 'l', "unknown");
++			break;
++		case S_IFREG:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
++			       name, perm, uid, gid, flags, 'f');
++			break;
++		}
++	}
++	spin_unlock(&lock);
++	return error;
++}
++
++/* Check whether the given dentry is allowed to mknod. */
++static int syaoran_may_create_node(struct dentry *dentry, int mode, int dev)
++{
++	struct syaoran_sb_info *info =
++		(struct syaoran_sb_info *) dentry->d_sb->s_fs_info;
++	if (!info) {
++		printk(KERN_DEBUG "%s: dentry->d_sb->s_fs_info == NULL\n",
++		       __FUNCTION__);
++		return -EPERM;
++	}
++	if (!info->initialize_done)
++		return 0;
++	return syaoran_check_flags(info, dentry, mode, dev, MAY_CREATE);
++}
++
++/* Check whether the given dentry is allowed to chmod/chown/unlink. */
++static int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags)
++{
++	struct syaoran_sb_info *info =
++		(struct syaoran_sb_info *) dentry->d_sb->s_fs_info;
++	if (!info) {
++		printk(KERN_DEBUG "%s: dentry->d_sb->s_fs_info == NULL\n",
++		       __FUNCTION__);
++		return -EPERM;
++	}
++	if (flags == DEVICE_USED && !info->is_permissive_mode)
++		return 0;
++	if (!dentry->d_inode)
++		return -ENOENT;
++	return syaoran_check_flags(info, dentry, dentry->d_inode->i_mode,
++				   dentry->d_inode->i_rdev, flags);
++}
++
