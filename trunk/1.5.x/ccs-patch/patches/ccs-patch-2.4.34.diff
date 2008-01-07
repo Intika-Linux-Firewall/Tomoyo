@@ -20,8 +20,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  arch/s390x/kernel/ptrace.c   |    8 +++
  arch/sh/kernel/ptrace.c      |    8 +++
  arch/sh64/kernel/ptrace.c    |    8 +++
- arch/sparc/kernel/ptrace.c   |    8 +++
- arch/sparc64/kernel/ptrace.c |    8 +++
+ arch/sparc/kernel/ptrace.c   |   11 ++++
+ arch/sparc64/kernel/ptrace.c |   11 ++++
  arch/x86_64/ia32/ptrace32.c  |    8 +++
  arch/x86_64/kernel/ptrace.c  |    8 +++
  fs/Config.in                 |    3 +
@@ -50,7 +50,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    9 ++++
  net/socket.c                 |   27 +++++++++++-
  net/unix/af_unix.c           |   10 ++++
- 48 files changed, 686 insertions(+), 7 deletions(-)
+ 48 files changed, 692 insertions(+), 7 deletions(-)
 
 --- linux-2.4.34.orig/Documentation/Configure.help
 +++ linux-2.4.34/Documentation/Configure.help
@@ -545,13 +545,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -262,6 +265,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -262,6 +265,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -569,13 +572,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -108,6 +111,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -108,6 +111,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
