@@ -1,0 +1,201 @@
+Subject: Add signal hooks at sleepable location.
+
+This patch adds LSM hooks for sending signal.
+
+   * task_kill_unlocked is added in sys_kill
+   * task_tkill_unlocked is added in sys_tkill
+   * task_tgkill_unlocked is added in sys_tgkill
+
+We know sleepable hooks are racy.
+But we want to add sleepable hooks because TOMOYO Linux supports
+"delayed enforcing" mode which allows administrator judge interactively.
+
+You can try TOMOYO Linux without this patch, but in that case, you
+can't use access control functionality for restricting signal transmission.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ include/linux/security.h |   41 +++++++++++++++++++++++++++++++++++++++++
+ kernel/signal.c          |   17 +++++++++++++++++
+ security/dummy.c         |   18 ++++++++++++++++++
+ security/security.c      |   15 +++++++++++++++
+ 4 files changed, 91 insertions(+)
+
+--- linux-2.6-mm.orig/include/linux/security.h
++++ linux-2.6-mm/include/linux/security.h
+@@ -674,6 +674,25 @@ struct request_sock;
+  *	@sig contains the signal value.
+  *	@secid contains the sid of the process where the signal originated
+  *	Return 0 if permission is granted.
++ * @task_kill_unlocked:
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_kill.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
++ *	Return 0 if permission is granted.
++ * @task_tkill_unlocked:
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_tkill.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
++ *	Return 0 if permission is granted.
++ * @task_tgkill_unlocked:
++ *	Check permission before sending signal @sig to the process of @pid
++ *	with sys_tgkill.
++ *	@tgid contains the thread group id.
++ *	@pid contains the pid of target process.
++ *	@sig contains the signal value.
++ *	Return 0 if permission is granted.
+  * @task_wait:
+  *	Check permission before allowing a process to reap a child process @p
+  *	and collect its status information.
+@@ -1364,6 +1383,9 @@ struct security_operations {
+ 	int (*task_movememory) (struct task_struct * p);
+ 	int (*task_kill) (struct task_struct * p,
+ 			  struct siginfo * info, int sig, u32 secid);
++	int (*task_kill_unlocked) (int pid, int sig);
++	int (*task_tkill_unlocked) (int pid, int sig);
++	int (*task_tgkill_unlocked) (int tgid, int pid, int sig);
+ 	int (*task_wait) (struct task_struct * p);
+ 	int (*task_prctl) (int option, unsigned long arg2,
+ 			   unsigned long arg3, unsigned long arg4,
+@@ -1622,6 +1644,10 @@ int security_task_getscheduler(struct ta
+ int security_task_movememory(struct task_struct *p);
+ int security_task_kill(struct task_struct *p, struct siginfo *info,
+ 			int sig, u32 secid);
++#define __HAVE_LSM_TASK_KILL_UNLOCKED
++int security_task_kill_unlocked(int pid, int sig);
++int security_task_tkill_unlocked(int pid, int sig);
++int security_task_tgkill_unlocked(int tgid, int pid, int sig);
+ int security_task_wait(struct task_struct *p);
+ int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
+ 			 unsigned long arg4, unsigned long arg5);
+@@ -2168,6 +2194,21 @@ static inline int security_task_kill (st
+ 	return cap_task_kill(p, info, sig, secid);
+ }
+ 
++static inline int security_task_kill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static inline int security_task_tkill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static inline int security_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return 0;
++}
++
+ static inline int security_task_wait (struct task_struct *p)
+ {
+ 	return 0;
+--- linux-2.6-mm.orig/kernel/signal.c
++++ linux-2.6-mm/kernel/signal.c
+@@ -2219,6 +2219,11 @@ asmlinkage long
+ sys_kill(int pid, int sig)
+ {
+ 	struct siginfo info;
++	int ret;
++
++	ret = security_task_kill_unlocked(pid, sig);
++	if (ret)
++		return ret;
+ 
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+@@ -2274,10 +2279,16 @@ static int do_tkill(int tgid, int pid, i
+  */
+ asmlinkage long sys_tgkill(int tgid, int pid, int sig)
+ {
++	int ret;
++
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0 || tgid <= 0)
+ 		return -EINVAL;
+ 
++	ret = security_task_tgkill_unlocked(tgid, pid, sig);
++	if (ret)
++		return ret;
++
+ 	return do_tkill(tgid, pid, sig);
+ }
+ 
+@@ -2287,10 +2298,16 @@ asmlinkage long sys_tgkill(int tgid, int
+ asmlinkage long
+ sys_tkill(int pid, int sig)
+ {
++	int ret;
++
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0)
+ 		return -EINVAL;
+ 
++	ret = security_task_tkill_unlocked(pid, sig);
++	if (ret)
++		return ret;
++
+ 	return do_tkill(0, pid, sig);
+ }
+ 
+--- linux-2.6-mm.orig/security/dummy.c
++++ linux-2.6-mm/security/dummy.c
+@@ -599,6 +599,21 @@ static int dummy_task_kill (struct task_
+ 	return 0;
+ }
+ 
++static int dummy_task_kill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static int dummy_task_tkill_unlocked(int pid, int sig)
++{
++	return 0;
++}
++
++static int dummy_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return 0;
++}
++
+ static int dummy_task_prctl (int option, unsigned long arg2, unsigned long arg3,
+ 			     unsigned long arg4, unsigned long arg5)
+ {
+@@ -1104,6 +1119,9 @@ void security_fixup_ops (struct security
+ 	set_to_dummy_if_null(ops, task_movememory);
+ 	set_to_dummy_if_null(ops, task_wait);
+ 	set_to_dummy_if_null(ops, task_kill);
++	set_to_dummy_if_null(ops, task_kill_unlocked);
++	set_to_dummy_if_null(ops, task_tkill_unlocked);
++	set_to_dummy_if_null(ops, task_tgkill_unlocked);
+ 	set_to_dummy_if_null(ops, task_prctl);
+ 	set_to_dummy_if_null(ops, task_reparent_to_init);
+  	set_to_dummy_if_null(ops, task_to_inode);
+--- linux-2.6-mm.orig/security/security.c
++++ linux-2.6-mm/security/security.c
+@@ -682,6 +682,21 @@ int security_task_kill(struct task_struc
+ 	return security_ops->task_kill(p, info, sig, secid);
+ }
+ 
++int security_task_kill_unlocked(int pid, int sig)
++{
++	return security_ops->task_kill_unlocked(pid, sig);
++}
++
++int security_task_tkill_unlocked(int pid, int sig)
++{
++	return security_ops->task_tkill_unlocked(pid, sig);
++}
++
++int security_task_tgkill_unlocked(int tgid, int pid, int sig)
++{
++	return security_ops->task_tgkill_unlocked(tgid, pid, sig);
++}
++
+ int security_task_wait(struct task_struct *p)
+ {
+ 	return security_ops->task_wait(p);
