@@ -177,7 +177,9 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 
 <p>(6) Check whether the Destination domain is defined, and deny if not.</p>
 
-<p>(7) Performe regular steps for executing PROGRAM. If successfully completed, the process transits to Destination domain.</p>
+<p>(7) Check whether all environment variable names are permitted by "allow_env" directive, and deny if not.</p>
+
+<p>(8) Performe regular steps for executing PROGRAM. If successfully completed, the process transits to Destination domain.</p>
 </td></tr>
 </table>
 
@@ -212,6 +214,11 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <tr>
 <td>MAC_FOR_ARGV0</td>
 <td>Enable MAC for argv[0] checks.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_ENV</td>
+<td>Enable MAC for environment variable names checks.</td>
 <td>Yes</td>
 </tr>
 <tr>
@@ -438,6 +445,7 @@ Therefore /dev/ and /dev/pts/ must not be unmounted for systems where / is read-
 <ul>
 <li>MAC for files</li>
 <li>MAC for argv[0]</li>
+<li>MAC for environment variable names</li>
 <li>MAC for capabilities</li>
 <li>MAC for network addresses and ports</li>
 <li>MAC for signals</li>
@@ -485,6 +493,13 @@ When invoking a program via a symbolic link, the domain transition of TOMOYO Lin
 For example, in a system that provides /bin/ls and /bin/cat as hard links of busybox, it becomes a loophole that allows
 programs to behave as cat in the domain of /bin/ls by creating a symbolic link named /tmp/cat that points to /bin/ls and executing /tmp/cat .</p>
 <p>The purpose of this directive is to restrict the combinations of filename and argv[0] so that such loopholes won't occur.</p>
+
+<h3>MAC for environment variable names</h3>
+
+<p>To restrict the list of acceptable environment variable names, use allow_env directive followed by the name of environment variables.</p>
+
+<p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[]. Some environment variables (e.g. LD_PRELOAD) affects the behavior of executed program.</p>
+<p>The purpose of this directive is to prevent attackers from passing dangerous environment variables.</p>
 
 <h3>MAC for capabilities</h3>
 <p>To grant capability permission, use allow_capability directive followed by a capability.<br>
@@ -711,6 +726,7 @@ You can restrict more strictly with other directives and policy files for some s
 <li>Pathname group</li>
 <li>Address group</li>
 <li>Unconditionally readable files</li>
+<li>Unconditionally acceptable environment variable names</li>
 <li>Files that aren't rewritable by default</li>
 <li>Programs invocable via symbolic links</li>
 <li>Program aggregations</li>
@@ -799,6 +815,11 @@ allow_network TCP accept @local-address 1024-65535
 <h3>Unconditionally readable files</h3>
 
 <p>To grant unconditionally readable permissions, use allow_read directive followed by Canonicalized File. This directive is intended to reduce size of <a href="#domain_policy.conf">Domain policy</a> by granting read access to library files such as GLIBC and locale files. You should not grant password files such as /etc/passwd, for all process can read if DAC is granted.</p>
+
+<h3>Unconditionally acceptable environment variable names</h3>
+
+<p>To grant unconditionally acceptable environment variable names, use allow_env directive followed by the name of evironment variable.
+This directive is intended to reduce size of <a href="#domain_policy.conf">Domain policy</a> by granting commonly used environment variable names such as "PATH" and "TERM". The easiest way to copy from Domain policy is to run "awk ' { if ( $1 == "allow_env") print $1 " " $2; } ' /sys/kernel/security/tomoyo/domain_policy | /usr/lib/ccs/loadpolicy -e".</p>
 
 <h3>Files that aren't rewritable by default</h3>
 
