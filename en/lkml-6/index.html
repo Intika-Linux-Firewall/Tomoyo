@@ -1,0 +1,280 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>How to use TOMOYO Linux</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+
+<h1>TOMOYO Linux Installation</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<p>This page describes how to install and experience TOMOYO Linux. TOMOYO Linux was submitted to LKML in November 2007.</p>
+
+<h2>Compiling TOMOYO Linux kernel</h2>
+
+<table border="1">
+<tr><td>
+
+<p>If you want to apply TOMOYO Linux patch against 2.6.24-rc2-mm1 kernel, do the following steps.</p>
+
+<pre>
+$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2
+$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/testing/patch-2.6.24-rc2.bz2
+$ wget http://www.kernel.org/pub/linux/kernel/people/akpm/mm/broken-out-2007-11-13-04-14.tar.gz
+$ tar -jxf linux-2.6.23.tar.bz2
+$ cd linux-2.6.23
+$ bzcat ../patch-2.6.24-rc2.bz2 | patch -sp1
+$ tar -zxf ../broken-out-2007-11-13-04-14.tar.gz
+$ mv broken-out/ patches
+$ mv series patches/
+$ quilt push -a
+</pre>
+
+<pre>
+$ wget -O tomoyo.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/5/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/5/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
+$ tar -zxvf tomoyo.tar.gz
+$ cat patches/series.tomoyo >> patches/series
+$ quilt push -a
+</pre>
+
+</td></tr><tr><td>
+
+<p>If you want to apply TOMOYO Linux patch against released kernels (from 2.6.8 to 2.6.23), do the following steps.</p>
+
+<pre>
+$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.12.tar.bz2
+$ tar -jxf linux-2.6.23.12.tar.bz2
+$ cd linux-2.6.23.12
+$ wget http://osdn.dl.sourceforge.jp/tomoyo/28120/tomoyo-lsm-2.1.1-20071123.tar.gz
+$ tar -zxvf tomoyo-lsm-2.1.1-20071123.tar.gz
+$ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
+</pre>
+
+<p>Please be aware that there is a window for AB-BA deadlock (see http://lkml.org/lkml/2007/11/5/388 for detail) in tomoyo-lsm-2.1.1-20071123.tar.gz .<br>
+For example, deadlock happens if one thread requests</p>
+
+<pre>
+  touch /tmp/file
+</pre>
+
+<p>and another thread requests</p>
+
+<pre>
+  mount -t tmpfs none /tmp/
+</pre>
+
+<p>at the same time.</p>
+</td></tr>
+</table>
+
+<p>Edit Makefile's EXTRAVERSION= line if you need.</p>
+
+<p>Next, create a kernel config with TOMOYO Linux enabled.</p>
+
+<pre>
+$ make -s menuconfig
+</pre>
+
+<p>Go to "Security options" screen and unselect "Default Linux Capabilities", "Root Plug Support", "NSA SELinux Support" and select "TOMOYO Linux support" as shown below.</p>
+
+<pre>
+[*] Enable different security models
+&lt; &gt;   Default Linux Capabilities
+&lt; &gt;   Root Plug Support
+[ ] NSA SELinux Support
+[*] TOMOYO Linux support
+</pre>
+
+<p>After creating a kernel config, compile the kernel.</p>
+
+<pre>
+$ make -s
+# make -s modules_install install
+</pre>
+
+<p>Create initrd if you need. Edit /boot/grub/grub.conf or /boot/grub/menu.lst if you need.</p>
+
+<h2>Compiling TOMOYO Linux tools</h2>
+
+<p>You can download TOMOYO Linux tools at http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.2-20071205.tar.gz . Download it and extract it and compile it. The tools are installed in /usr/lib/ccs .</p>
+
+<pre>
+$ wget <a href="http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.2-20071205.tar.gz">http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.2-20071205.tar.gz</a>
+$ tar -zxf ccs-tools-1.5.2-20071205.tar.gz
+$ cd ccstools
+$ make
+# make install
+</pre>
+
+<h2>Initial Configuration</h2>
+
+<p>Run tomoyo_init_policy.sh included in TOMOYO Linux tools to perform initial configuration.</p>
+
+<pre>
+# /usr/lib/ccs/tomoyo_init_policy.sh
+</pre>
+
+<p>
+You will get initial configuration files in /etc/tomoyo/ directory.
+</p>
+
+<h1>Tutorial</h1>
+
+<p>Before starting tutorial, configure TOMOYO Linux to learn whole system behavior.</p>
+
+<pre>
+# echo '&lt;kernel&gt;' &gt; /etc/tomoyo/domain_policy.conf
+# echo 'use_profile 1' &gt;&gt; /etc/tomoyo/domain_policy.conf
+</pre>
+
+<p>Reboot and login to the system as root user, and run editpolicy included in TOMOYO Linux tools.</p>
+
+<pre>
+# /usr/lib/ccs/editpolicy
+</pre>
+
+<img src="howtouse/editpolicy1.png" alt="Initial screen of editpolicy" title="Inital screen of editpolicy" width="720" height="400">
+
+<p>editpolicy is a CUI tool to view and edit TOMOYO Linux's policy. The initial screen shows list of domains generated from the execution of /sbin/init till execution of /usr/lib/ccs/editpolicy . All domains begin at &lt;kernel&gt; and new domain is created whenever execve() is called.</p>
+
+<p>Each line shows an integer value between the line number and domain names. This integer value is called "profile number" and it represents profile currently assigned to a domain. A profile is a correction of TOMOYO Linux's access control level, and the contents of /etc/tomoyo/profile.conf is loaded into kernel via /sys/kernel/security/tomoyo/profile by /sbin/tomoyo-init .</p>
+
+<p>The following 4 profiles were automatically generated by execution of tomoyo_init_policy.sh . A profile is assigned to domains.</p>
+
+<ul>
+<li>profile 0 (disabled): Disabled. Works as if regular kernel.</li>
+<li>profile 1 (learning): Learning mode. Not rejected if the request violates policy. Automatically appended to policy.</li>
+<li>profile 2 (permissive): Permissive mode. Not rejected if the request violates policy. Not appended to policy automatically.</li>
+<li>profile 3 (enforcing): Enforce mode. Rejected if the request violates policy.</li>
+</ul>
+
+<p>Move the cursor to some domain you like and press 'Enter' key to see ACL given to the domain.</p>
+
+<p><img src="howtouse/editpolicy_init.png" alt="ACL of /sbin/init" title="ACL of /sbin/init" width="720" height="400"></p>
+
+<p>Browse the policy which is the results of learning boot sequence. You can easily know what process accesses what pathnames and/or resources.</p>
+
+<p>Detailed usage of editpolicy is in <a href="tool-editpolicy.html">How to use Policy Editor</a>.</p>
+
+<p>To quit editpolicy, press 'Q' key.</p>
+
+<h2>First step: learning and enforcing commands</h2>
+
+<p>Now, the domain for login shell is already learning mode. Try the following commands.</p>
+
+<pre>
+# head /etc/passwd
+# bash
+# tail /etc/mtab
+# exit
+</pre>
+
+<p>You can operate as if the normal Linux, but the TOMOYO Linux kernel is monitoring accesses and generating policies and storing on the memory in the background.</p>
+
+<p>Now, run editpolicy again. Change profile for the domains for login shell and its children/descendants from "learning mode" to "enforcing mode".</p>
+
+<ul>
+<li>Move the cursor to the domain for login shell and press 'Space' key to show '&amp;' mark.</li>
+<li>Press 'C' key to copy '&amp;' mark to all domains under the cursor line.</li>
+<li>Move the cursor to the next domain of the domain for login shell's children/descendants.</li>
+<li>Press 'Space' key to clear '&amp;' mark.</li>
+<li>Press 'C' key to copy ' ' mark to all domains under the cursor line.</li>
+</ul>
+
+<p><img src="howtouse/editpolicy2.png" width="720" height="400" alt="Mark bash and its children's domains" title="Mark bash and its children's domains"></p>
+
+<p>After you marked '&amp;' to domains for login shell and its children/descendants, press 'S' '3' 'Enter' key to change profile for these domains from 1 to 3.</p>
+
+<p><img src="howtouse/editpolicy3.png" width="720" height="400" alt="Profiles of bash and its children's domains became 3" title="Profiles of bash and its children's domains became 3"></p>
+
+<p>After changing the profile for domain for login shell to 3, press 'Q' key to quit editpolicy and run some commands.</p>
+
+<pre>
+# head /etc/passwd                 # OK
+# head /etc/shadow                 # NG
+# rm -fr /                         # NG
+# tail /etc/mtab                   # NG
+# bash                             # OK
+# tail /etc/mtab                   # OK
+# head /etc/passwd                 # NG
+</pre>
+
+<p>You can only run the operations you have just executed in learning mode. You ran "tail /etc/mtab" while in "learning mode", but you can't run it at the first stage of shell and you can run it at the second stage of shell. This is because these shells (first stage and second stage) have different "process invocation history" (i.e. these shells are in different domains) and permissions accumulated into these domains differ.</p>
+
+<p>After you tried a series of operations, change profiles for domains for login shell to 1 using editpolicy, and proceed to the next tutorial.</p>
+
+<h2>Second step: learning and enforcing server</h2>
+
+<p>Next, let us learn and tune Apache policy. If Apache is not installed on your system, please install it.</p>
+
+<p>Execute editpolicy (see the first step) and assign profile number 1 to an Apache domain.</p>
+
+<p>Restart Apache and see the Apache domain. You can see the access permissions needed in Apache start sequence like follows:</p>
+
+<pre>
+4 /etc/httpd/conf/httpd.conf
+allow_create /var/run/httpd.pid
+allow_unlink /var/run/httpd.pid
+allow_network TCP bind 192.168.1.135 80
+allow_network TCP listen 192.168.1.135 80
+</pre>
+
+<p>These permissions allow Apache to open configuration files for reading and to bind/listen at self IP-address and port number 80. Moreover, request some web contents using web browser.</p>
+
+<p>When you reload Apache policy, you can see the new permissions:</p>
+
+<pre>
+4 /var/www/html/index.html
+allow_network TCP accept 192.168.1.1 2389
+</pre>
+
+<p>Some patterns for pathname is supported (See <a href="policy-reference.html#exception_policy.conf">Policy Specificatiions of TOMOYO Linux</a>) . In network permissions, you can also use range for both IP address and port number.</p>
+
+<p>Using pattern and range, Apache policy can be written like follows:</p>
+
+<pre>
+4 /var/www/\*
+4 /var/www/\*/\*
+4 /var/www/\*/\*/\*
+4 /var/www/\*/\*/\*/\*
+4 /var/www/\*/\*/\*/\*/\*
+allow_network TCP accept 192.168.0.0-192.168.255.255 1024-65535
+</pre>
+
+<p>'\*' means "more than or equals to 0 character other than '/'". To append an entry using editpolicy, press 'A' key and input content and press 'Enter' key.</p>
+
+<p>You can write above entries directly in the domain, or define path/address groups and write them.</p>
+
+<p>Press 'Tab' key twice, then you can see "Exception Policy Editor" view. Press 'A' key and append the following entries:</p>
+
+<pre>
+path_group WEB_CONTENTS /var/www/\*
+path_group WEB_CONTENTS /var/www/\*/\*
+path_group WEB_CONTENTS /var/www/\*/\*/\*
+path_group WEB_CONTENTS /var/www/\*/\*/\*/\*
+path_group WEB_CONTENTS /var/www/\*/\*/\*/\*/\*
+address_group PRIVATE_IP 192.168.0.0-192.168.255.255
+</pre>
+
+<p>After appending them, press 'Tab' and enter Apache domain again. And append the following entries:</p>
+
+<pre>
+4 @WEB_CONTENTS
+allow_network TCP accept @PRIVATE_IP 1024-65535
+</pre>
+
+<p>As you see, by using path_group and address_group, you can write access permissions briefly.</p>
+
+<h2>Other documents</h2>
+
+<ul>
+<li><a href="policy-reference.html">Policy Specifications of TOMOYO Linux</a>: Detailed description of TOMOYO Linux functionalities and policy.</li>
+<li><a href="tools-doc.html">Tools Documentation</a>: Usage of userland tools.</li>
+<li><a href="tool-editpolicy.html">How to use Policy Editor</a>: Detailed usage of editpolicy.</li>
+</ul>
+
+</body>
+</html>
