@@ -15,60 +15,21 @@
 
 <h2>Compiling TOMOYO Linux kernel</h2>
 
-<table border="1">
-<tr><td>
-
-<p>If you want to apply TOMOYO Linux patch against 2.6.24-rc2-mm1 kernel, do the following steps.</p>
-
 <pre>
-$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2
-$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/testing/patch-2.6.24-rc2.bz2
-$ wget http://www.kernel.org/pub/linux/kernel/people/akpm/mm/broken-out-2007-11-13-04-14.tar.gz
-$ tar -jxf linux-2.6.23.tar.bz2
-$ cd linux-2.6.23
-$ bzcat ../patch-2.6.24-rc2.bz2 | patch -sp1
-$ tar -zxf ../broken-out-2007-11-13-04-14.tar.gz
-$ mv broken-out/ patches
-$ mv series patches/
-$ quilt push -a
+$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.24-rc6.tar.bz2
+$ wget http://www2.kernel.org/pub/linux/kernel/people/akpm/patches/2.6/2.6.24-rc6/2.6.24-rc6-mm1/2.6.24-rc6-mm1.bz2
+$ wget http://www2.kernel.org/pub/linux/kernel/people/akpm/patches/2.6/2.6.24-rc6/2.6.24-rc6-mm1/hot-fixes/x86-fix-system-gate-related-crash.patch
+$ tar -jxf linux-2.6.24-rc6.tar.bz2
+$ cd linux-2.6.24-rc6
+$ bzcat ../2.6.24-rc6-mm1.bz2 | patch -sp1
+$ patch -sp1 < ../x86-fix-system-gate-related-crash.patch
 </pre>
 
 <pre>
-$ wget -O tomoyo.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/5/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/5/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
+$ wget -O tomoyo.tar.gz '<a href="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/6/patches.tar.gz?root=tomoyo&amp;view=tar">http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/tags/lkml/6/patches.tar.gz?root=tomoyo&amp;view=tar</a>'
 $ tar -zxvf tomoyo.tar.gz
-$ cat patches/series.tomoyo >> patches/series
 $ quilt push -a
 </pre>
-
-</td></tr><tr><td>
-
-<p>If you want to apply TOMOYO Linux patch against released kernels (from 2.6.8 to 2.6.23), do the following steps.</p>
-
-<pre>
-$ wget http://www2.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.12.tar.bz2
-$ tar -jxf linux-2.6.23.12.tar.bz2
-$ cd linux-2.6.23.12
-$ wget http://osdn.dl.sourceforge.jp/tomoyo/28120/tomoyo-lsm-2.1.1-20071123.tar.gz
-$ tar -zxvf tomoyo-lsm-2.1.1-20071123.tar.gz
-$ /bin/sh -c 'for i in `cat patches/series`; do patch -p1 &lt; patches/$i; done'
-</pre>
-
-<p>Please be aware that there is a window for AB-BA deadlock (see http://lkml.org/lkml/2007/11/5/388 for detail) in tomoyo-lsm-2.1.1-20071123.tar.gz .<br>
-For example, deadlock happens if one thread requests</p>
-
-<pre>
-  touch /tmp/file
-</pre>
-
-<p>and another thread requests</p>
-
-<pre>
-  mount -t tmpfs none /tmp/
-</pre>
-
-<p>at the same time.</p>
-</td></tr>
-</table>
 
 <p>Edit Makefile's EXTRAVERSION= line if you need.</p>
 
