@@ -1,7 +1,13 @@
+This is TOMOYO Linux patch for Fedora Core 6.
+
+Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SRPMS/kernel-2.6.22.14-72.fc6.src.rpm
 ---
  Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    8 +++
+ arch/ia64/ia32/sys_ia32.c       |    8 +++
  arch/m32r/kernel/ptrace.c       |    8 +++
+ arch/mips/kernel/ptrace32.c     |    8 +++
+ arch/sh64/kernel/ptrace.c       |    8 +++
  arch/sparc/kernel/ptrace.c      |    8 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
@@ -36,7 +42,7 @@
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   28 +++++++++++++
  net/unix/af_unix.c              |   10 ++++
- 37 files changed, 465 insertions(+), 3 deletions(-)
+ 40 files changed, 489 insertions(+), 3 deletions(-)
 
 --- linux-2.6.22.14-72.fc6.orig/Makefile
 +++ linux-2.6.22.14-72.fc6/Makefile
@@ -591,7 +597,7 @@
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.22.14-72.fc6 2008/01/04\n");
++		printk("Hook version: 2.6.22.14-72.fc6 2008/01/10\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1344,3 +1350,75 @@
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
  		 current->pid, request, pid, addr, cdata);
+--- linux-2.6.22.14-72.fc6.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.22.14-72.fc6/arch/ia64/ia32/sys_ia32.c
+@@ -57,6 +57,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1741,6 +1744,11 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.22.14-72.fc6.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.22.14-72.fc6/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs (struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs (struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,11 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.22.14-72.fc6.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.22.14-72.fc6/arch/sh64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -271,6 +274,11 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {

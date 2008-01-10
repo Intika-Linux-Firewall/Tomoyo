@@ -4,12 +4,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.1/rp
 ---
  Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    8 +++
+ arch/ia64/ia32/sys_ia32.c       |    8 +++
  arch/ia64/kernel/ptrace.c       |    8 +++
  arch/m32r/kernel/ptrace.c       |    8 +++
+ arch/mips/kernel/ptrace32.c     |    8 +++
+ arch/powerpc/kernel/ptrace32.c  |    8 +++
  arch/s390/kernel/ptrace.c       |    8 +++
  arch/sh64/kernel/ptrace.c       |    8 +++
  arch/sparc/kernel/ptrace.c      |    8 +++
- arch/sparc64/kernel/ptrace.c    |    8 +++
+ arch/sparc64/kernel/ptrace.c    |   11 ++++
  arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
@@ -43,7 +46,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.1/rp
  net/ipv6/udp.c                  |    9 +++
  net/socket.c                    |   30 +++++++++++-
  net/unix/af_unix.c              |   10 ++++
- 41 files changed, 517 insertions(+), 10 deletions(-)
+ 44 files changed, 544 insertions(+), 10 deletions(-)
 
 --- linux-2.6.16.53-0.16.orig/Makefile
 +++ linux-2.6.16.53-0.16/Makefile
@@ -591,7 +594,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.1/rp
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.16.53-0.16_SUSE 2008/01/05\n");
++		printk("Hook version: 2.6.16.53-0.16_SUSE 2008/01/10\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1411,13 +1414,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.1/rp
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
-@@ -173,6 +176,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -173,6 +176,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1495,3 +1501,75 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.1/rp
  
  	switch (request) { 
  	default:
+--- linux-2.6.16.53-0.16.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.16.53-0.16/arch/ia64/ia32/sys_ia32.c
+@@ -58,6 +58,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1755,6 +1758,11 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.16.53-0.16.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.16.53-0.16/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs (struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs (struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,11 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.16.53-0.16.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.16.53-0.16/arch/powerpc/kernel/ptrace32.c
+@@ -33,6 +33,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ptrace-common.h"
+ 
+@@ -46,6 +49,11 @@ long compat_sys_ptrace(int request, int 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
