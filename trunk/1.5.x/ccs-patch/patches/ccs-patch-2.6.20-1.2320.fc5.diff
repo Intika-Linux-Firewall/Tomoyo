@@ -1,11 +1,19 @@
+This is TOMOYO Linux patch for Fedora Core 5.
+
+Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/5/SRPMS/kernel-2.6.20-1.2320.fc5.src.rpm
 ---
  Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    8 +++
+ arch/ia64/ia32/sys_ia32.c       |    8 +++
  arch/ia64/kernel/ptrace.c       |    8 +++
  arch/m32r/kernel/ptrace.c       |    8 +++
+ arch/mips/kernel/ptrace32.c     |    8 +++
+ arch/powerpc/kernel/ptrace32.c  |    8 +++
  arch/s390/kernel/ptrace.c       |    8 +++
+ arch/sh64/kernel/ptrace.c       |    8 +++
  arch/sparc/kernel/ptrace.c      |    8 +++
- arch/sparc64/kernel/ptrace.c    |    8 +++
+ arch/sparc64/kernel/ptrace.c    |   11 ++++
+ arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   11 ++++
@@ -38,7 +46,7 @@
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   29 +++++++++++-
  net/unix/af_unix.c              |   10 ++++
- 39 files changed, 495 insertions(+), 7 deletions(-)
+ 44 files changed, 538 insertions(+), 7 deletions(-)
 
 --- linux-2.6.20-1.2320.fc5.orig/Makefile
 +++ linux-2.6.20-1.2320.fc5/Makefile
@@ -183,13 +191,16 @@
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
-@@ -176,6 +179,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -176,6 +179,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -727,7 +738,7 @@
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.20-1.2320.fc5 2008/01/04\n");
++		printk("Hook version: 2.6.20-1.2320.fc5 2008/01/10\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1419,3 +1430,123 @@
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+--- linux-2.6.20-1.2320.fc5.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.20-1.2320.fc5/arch/ia64/ia32/sys_ia32.c
+@@ -56,6 +56,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1754,6 +1757,11 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.20-1.2320.fc5.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.20-1.2320.fc5/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs (struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs (struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,11 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.20-1.2320.fc5.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.20-1.2320.fc5/arch/powerpc/kernel/ptrace32.c
+@@ -32,6 +32,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ptrace-common.h"
+ 
+@@ -45,6 +48,11 @@ long compat_sys_ptrace(int request, int 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.20-1.2320.fc5.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.20-1.2320.fc5/arch/sh64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -271,6 +274,11 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {
+--- linux-2.6.20-1.2320.fc5.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.20-1.2320.fc5/arch/x86_64/ia32/ptrace32.c
+@@ -26,6 +26,9 @@
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
+ #include <asm/ia32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Determines which flags the user has access to [1 = access, 0 = no access].
+@@ -234,6 +237,11 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	case PTRACE_TRACEME:
