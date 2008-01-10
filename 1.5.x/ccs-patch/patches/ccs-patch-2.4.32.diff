@@ -8,6 +8,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  arch/arm/kernel/ptrace.c     |    8 +++
  arch/cris/kernel/ptrace.c    |    8 +++
  arch/i386/kernel/ptrace.c    |    8 +++
+ arch/ia64/ia32/sys_ia32.c    |    8 +++
  arch/ia64/kernel/ptrace.c    |    8 +++
  arch/m68k/kernel/ptrace.c    |    8 +++
  arch/mips/kernel/ptrace.c    |    8 +++
@@ -50,7 +51,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    9 +++
  net/socket.c                 |   27 ++++++++++-
  net/unix/af_unix.c           |   10 ++++
- 48 files changed, 694 insertions(+), 8 deletions(-)
+ 49 files changed, 702 insertions(+), 8 deletions(-)
 
 --- linux-2.4.32.orig/Documentation/Configure.help
 +++ linux-2.4.32/Documentation/Configure.help
@@ -1811,3 +1812,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	switch (request) { 
  	case PTRACE_TRACEME:
+--- linux-2.4.32.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.4.32/arch/ia64/ia32/sys_ia32.c
+@@ -57,6 +57,9 @@
+ #include <net/scm.h>
+ #include <net/sock.h>
+ #include <asm/ia32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define DEBUG	0
+ 
+@@ -3130,6 +3133,11 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
