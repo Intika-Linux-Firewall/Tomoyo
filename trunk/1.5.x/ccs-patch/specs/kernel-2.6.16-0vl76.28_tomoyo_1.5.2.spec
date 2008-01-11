@@ -23,7 +23,7 @@ Summary(ja): Linux カーネル (Linux オペレーティングシステムの心臓部分)
 %define sublevel 16
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 0vl76.27_tomoyo_1.5.2
+%define release 0vl76.28_tomoyo_1.5.2
 
 %define make_target bzImage
 
@@ -445,10 +445,14 @@ Patch20430: linux-2.6.16_CVE-2007-3104.patch
 Patch20440: linux-2.6.16_CVE-2007-4571.patch
 Patch20450: linux-2.6.16_CVE-2007-4997.patch
 Patch20460: linux-2.6.16_CVE-2007-5093.patch
-
 Patch20470: linux-2.6.16_CVE-2007-5500.patch
 Patch20480: linux-2.6.16_CVE-2007-5501.patch
 Patch20490: linux-2.6.16_CVE-2006-6058.patch
+
+Patch20500: linux-2.6.16_CVE-2007-5966.patch
+Patch20510: linux-2.6.16_CVE-2007-6063.patch
+Patch20520: linux-2.6.16_CVE-2007-6206.patch
+Patch20530: linux-2.6.16_CVE-2007-6417.patch
 
 # mol-0.9.71_pre8 for ppc
 %define molver 0.9.71
@@ -1021,6 +1025,11 @@ cd linux-%{kversion}
 %patch20480 -p1 -b .CVE-2007-5501
 %patch20490 -p1 -b .CVE-2006-6058
 
+%patch20500 -p1 -b .CVE-2007-5966
+%patch20510 -p1 -b .CVE-2007-6063
+%patch20520 -p1 -b .CVE-2007-6206
+%patch20530 -p1 -b .CVE-2007-6417
+
 #
 # misc small stuff to make things compile or otherwise improve performance
 #
@@ -1028,8 +1037,8 @@ cd linux-%{kversion}
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.27custom/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.16-0vl76.27.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.28custom/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.16-0vl76.28.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -1472,8 +1481,11 @@ fi
 %endif
 
 %changelog
-* Tue Dec 18 2007 Daisuke SUZUKI <daisuke@linux.or.jp> 2.6.16-0vl76.27
-- update to forcedeth-0.62 (patch1391)
+* Thu Dec 27 2007 Satoshi IWAMOTO <satoshi.iwamoto@nifty.ne.jp> 2.6.16-0vl76.28
+- add patch20500 for fix CVE-2007-5966 (hrtimer DoS)
+- add patch20510 for fix CVE-2007-6063 (isdn BOF)
+- add patch20520 for fix CVE-2007-6206 (coredump info leakage)
+- add patch20530 for fix CVE-2007-6417 (tmpf)
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start
