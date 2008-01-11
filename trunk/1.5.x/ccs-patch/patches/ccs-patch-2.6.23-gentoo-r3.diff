@@ -1,11 +1,19 @@
+This is TOMOYO Linux patch for Gentoo Linux 2007.0.
+
+Source code for this patch is "emerge gentoo-sources"
 ---
  Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    8 +++
+ arch/ia64/ia32/sys_ia32.c       |    8 +++
  arch/ia64/kernel/ptrace.c       |    8 +++
  arch/m32r/kernel/ptrace.c       |    8 +++
+ arch/mips/kernel/ptrace32.c     |    8 +++
+ arch/powerpc/kernel/ptrace32.c  |    8 +++
  arch/s390/kernel/ptrace.c       |    8 +++
- arch/sparc/kernel/ptrace.c      |    8 +++
- arch/sparc64/kernel/ptrace.c    |    8 +++
+ arch/sh64/kernel/ptrace.c       |    8 +++
+ arch/sparc/kernel/ptrace.c      |   11 +++++
+ arch/sparc64/kernel/ptrace.c    |   11 +++++
+ arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   11 +++++
@@ -39,7 +47,7 @@
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   28 +++++++++++++
  net/unix/af_unix.c              |   10 ++++
- 40 files changed, 484 insertions(+), 3 deletions(-)
+ 45 files changed, 530 insertions(+), 3 deletions(-)
 
 --- linux-2.6.23-gentoo-r3.orig/Makefile
 +++ linux-2.6.23-gentoo-r3/Makefile
@@ -160,13 +168,16 @@
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -267,6 +270,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -184,13 +195,16 @@
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
-@@ -176,6 +179,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -176,6 +179,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -738,7 +752,7 @@
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.23-gentoo-r3 2008/01/04\n");
++		printk("Hook version: 2.6.23-gentoo-r3 2008/01/11\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1407,3 +1421,123 @@
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+--- linux-2.6.23-gentoo-r3.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.23-gentoo-r3/arch/ia64/ia32/sys_ia32.c
+@@ -55,6 +55,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1758,6 +1761,11 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.23-gentoo-r3.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.23-gentoo-r3/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs (struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs (struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,11 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.23-gentoo-r3.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.23-gentoo-r3/arch/powerpc/kernel/ptrace32.c
+@@ -32,6 +32,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -87,6 +90,11 @@ long compat_sys_ptrace(int request, int 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.23-gentoo-r3.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.23-gentoo-r3/arch/sh64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -260,6 +263,11 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {
+--- linux-2.6.23-gentoo-r3.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.23-gentoo-r3/arch/x86_64/ia32/ptrace32.c
+@@ -27,6 +27,9 @@
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
+ #include <asm/ia32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Determines which flags the user has access to [1 = access, 0 = no access].
+@@ -235,6 +238,11 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	case PTRACE_TRACEME:

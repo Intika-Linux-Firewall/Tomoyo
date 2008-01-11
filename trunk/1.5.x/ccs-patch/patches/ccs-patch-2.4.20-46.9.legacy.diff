@@ -1,3 +1,6 @@
+This is TOMOYO Linux patch for RedHat Linux 9.
+
+Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/updates/i386/kernel-source-2.4.20-46.9.legacy.i386.rpm
 ---
  Documentation/Configure.help |   89 ++++++++++++++++++++++++++++++++++++++++
  Makefile                     |    2 
@@ -5,6 +8,7 @@
  arch/arm/kernel/ptrace.c     |    8 +++
  arch/cris/kernel/ptrace.c    |    8 +++
  arch/i386/kernel/ptrace.c    |    8 +++
+ arch/ia64/ia32/sys_ia32.c    |    8 +++
  arch/ia64/kernel/ptrace.c    |    8 +++
  arch/m68k/kernel/ptrace.c    |    8 +++
  arch/mips/kernel/ptrace.c    |    8 +++
@@ -12,11 +16,13 @@
  arch/parisc/kernel/ptrace.c  |    8 +++
  arch/ppc/kernel/ptrace.c     |    8 +++
  arch/ppc64/kernel/ptrace.c   |    8 +++
+ arch/ppc64/kernel/ptrace32.c |    8 +++
  arch/s390/kernel/ptrace.c    |    8 +++
  arch/s390x/kernel/ptrace.c   |    8 +++
  arch/sh/kernel/ptrace.c      |    8 +++
- arch/sparc/kernel/ptrace.c   |    8 +++
- arch/sparc64/kernel/ptrace.c |    8 +++
+ arch/sparc/kernel/ptrace.c   |   11 ++++
+ arch/sparc64/kernel/ptrace.c |   11 ++++
+ arch/x86_64/ia32/ptrace32.c  |    8 +++
  arch/x86_64/kernel/ptrace.c  |    8 +++
  fs/Config.in                 |    3 +
  fs/Makefile                  |    2 
@@ -44,7 +50,7 @@
  net/ipv6/udp.c               |    9 ++++
  net/socket.c                 |   27 +++++++++++-
  net/unix/af_unix.c           |   10 ++++
- 45 files changed, 666 insertions(+), 7 deletions(-)
+ 48 files changed, 696 insertions(+), 7 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -515,13 +521,16 @@
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -262,6 +265,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -262,6 +265,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -539,13 +548,16 @@
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -108,6 +111,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -108,6 +111,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1093,7 +1105,7 @@
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.20-46.9.legacy 2008/01/04\n");
++		printk("Hook version: 2.4.20-46.9.legacy 2008/01/11\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1735,3 +1747,75 @@
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+--- linux-2.4.20-46.9.legacy.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.4.20-46.9.legacy/arch/ia64/ia32/sys_ia32.c
+@@ -56,6 +56,9 @@
+ #include <net/scm.h>
+ #include <net/sock.h>
+ #include <asm/ia32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define DEBUG	0
+ 
+@@ -3065,6 +3068,11 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.4.20-46.9.legacy.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.4.20-46.9.legacy/arch/ppc64/kernel/ptrace32.c
+@@ -30,6 +30,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Set of msr bits that gdb can change on behalf of a process.
+@@ -87,6 +90,11 @@ int sys32_ptrace(long request, long pid,
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.4.20-46.9.legacy.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.4.20-46.9.legacy/arch/x86_64/ia32/ptrace32.c
+@@ -24,6 +24,9 @@
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
+ #include <linux/mm.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define R32(l,q) \
+ 	case offsetof(struct user32, regs.l): stack[offsetof(struct pt_regs, q)/8] = val; break
+@@ -199,6 +202,11 @@ asmlinkage long sys32_ptrace(long reques
+ 	struct pt_regs *childregs; 
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	case PTRACE_TRACEME:
