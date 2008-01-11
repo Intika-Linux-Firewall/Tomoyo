@@ -1,5 +1,5 @@
 #
-# spec file for package kernel-default (Version 2.6.16.53)
+# spec file for package kernel-default (Version 2.6.16.54)
 #
 # Copyright (c) 2007 SUSE LINUX Products GmbH, Nuernberg, Germany.
 # This file and all modifications and additions to the pristine
@@ -19,8 +19,8 @@ Url:            http://www.kernel.org/
 # arch/ia64/scripts/unwcheck.py
 BuildRequires:  python
 %endif
-Version:        2.6.16.53
-Release: 0.16_tomoyo_1.5.2
+Version:        2.6.16.54
+Release: 0.2.3_tomoyo_1.5.2
 Summary:        The Standard Kernel
 License:        GPL v2 or later
 Group:          System/Kernel
@@ -28,7 +28,7 @@ Group:          System/Kernel
 #Conflicts:    kernel
 %else
 %if !%build_xen
-Provides:       kernel = 2.6.16.53-%release
+Provides:       kernel = 2.6.16.54-%release
 %endif
 %endif
 Provides:       kernel-default-nongpl
@@ -159,13 +159,13 @@ The standard kernel.
 
 
 
-Source Timestamp: 2007/10/02 16:57:49 UTC
+Source Timestamp: 2007/11/22 18:32:07 UTC
 CVS Branch: SLES10_SP1_BRANCH
 
 %prep
 if ! [ -e %_sourcedir/linux-2.6.16.tar.bz2 ]; then
-    echo "The kernel-default-2.6.16.53.nosrc.rpm package does not contain the" \
-	 "complete sources. Please install kernel-source-2.6.16.53.src.rpm."
+    echo "The kernel-default-2.6.16.54.nosrc.rpm package does not contain the" \
+	 "complete sources. Please install kernel-source-2.6.16.54.src.rpm."
     exit 1
 fi
 symbols=$(
@@ -242,7 +242,7 @@ cd linux-2.6.16
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-patch -sp1 < patches/ccs-patch-2.6.16.53-0.16_SUSE.diff
+patch -sp1 < /usr/src/ccs-patch-2.6.16.54-0.2.3_SUSE.diff
 cat config.ccs >> .config
 cp .config .config.orig
 %if %{tolerate_unknown_new_config_options}
@@ -513,10 +513,10 @@ install -m 644 %_sourcedir/module-renames %buildroot/etc/modprobe.d/
 
 %files -f kernel.files
 %changelog
-* Tue Oct 02 2007 - lmb@suse.de
-- patches.xen/handle-bogus-cs-selector-in-single-step-instruction-decoding:
-  Handle bogus %%cs selector in single-step instruction decoding
-  (326270, CVE-2007-3731).
-
+* Fri Nov 23 2007 - jblunck@suse.de
+- patches.xen/xen-max-skbuff-order: disabled for maint update.
+- patches.arch/ia64-ptrace-lockup-fix: reverted changes for maint update.
+- patches.arch/x86_64_powernow_display_cpus_correctly.patch: disabled
+  for maint update.
 * Thu May 08 2003 - kraxel@suse.de
 - initial release
