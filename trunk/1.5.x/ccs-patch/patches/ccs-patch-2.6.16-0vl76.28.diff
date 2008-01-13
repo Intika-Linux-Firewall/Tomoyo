@@ -11,7 +11,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  arch/powerpc/kernel/ptrace32.c  |    8 +++
  arch/s390/kernel/ptrace.c       |    8 +++
  arch/sh64/kernel/ptrace.c       |    8 +++
- arch/sparc/kernel/ptrace.c      |    8 +++
+ arch/sparc/kernel/ptrace.c      |   11 ++++
  arch/sparc64/kernel/ptrace.c    |   11 ++++
  arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    2 
@@ -46,7 +46,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/ipv6/udp.c                  |    9 +++
  net/socket.c                    |   30 +++++++++++-
  net/unix/af_unix.c              |   10 ++++
- 44 files changed, 545 insertions(+), 11 deletions(-)
+ 44 files changed, 548 insertions(+), 11 deletions(-)
 
 --- linux-2.6.16-0vl76.28.orig/Makefile
 +++ linux-2.6.16-0vl76.28/Makefile
@@ -594,7 +594,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.16-0vl76.28 2008/01/10\n");
++		printk("Hook version: 2.6.16-0vl76.28 2008/01/13\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1399,13 +1399,16 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -267,6 +270,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  

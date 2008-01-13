@@ -11,7 +11,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/5/SR
  arch/powerpc/kernel/ptrace32.c  |    8 +++
  arch/s390/kernel/ptrace.c       |    8 +++
  arch/sh64/kernel/ptrace.c       |    8 +++
- arch/sparc/kernel/ptrace.c      |    8 +++
+ arch/sparc/kernel/ptrace.c      |   11 ++++
  arch/sparc64/kernel/ptrace.c    |   11 ++++
  arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    2 
@@ -46,7 +46,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/5/SR
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   29 +++++++++++-
  net/unix/af_unix.c              |   10 ++++
- 44 files changed, 538 insertions(+), 7 deletions(-)
+ 44 files changed, 541 insertions(+), 7 deletions(-)
 
 --- linux-2.6.20-1.2320.fc5.orig/Makefile
 +++ linux-2.6.20-1.2320.fc5/Makefile
@@ -167,13 +167,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/5/SR
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -267,6 +270,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -738,7 +741,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/5/SR
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.20-1.2320.fc5 2008/01/10\n");
++		printk("Hook version: 2.6.20-1.2320.fc5 2008/01/13\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
