@@ -1,0 +1,1409 @@
+Subject: Simple tamper-proof device filesystem.
+
+The goal of this filesystem is to guarantee that
+"applications using well-known device locations under /dev
+get the device they want" (e.g. an application that accesses /dev/null can
+always get a character special device with major=1 and minor=3).
+
+This idea sounds silly? Indeed, if you think the root can do whatever
+he/she wants do do. But this filesystem makes sense when used with
+access control mechanisms like MAC (mandatory access control).
+I want to use this filesystem in case where a process with root privilege was
+hijacked but the behavior of the hijacked process is still restricted by MAC.
+
+Why not use FUSE?
+
+  Because /dev has to be available through the lifetime of the kernel.
+  It is not acceptable if /dev stops working due to SIGKILL or OOM-killer.
+
+Why not use SELinux?
+
+  Because SELinux doesn't guarantee filename and its attribute.
+  As far as I know, no MAC implementation can handle filename and its attribute.
+  I guess this is because
+
+    Filename and its attributes pairs are conventionally considered as
+    constant and reliable.
+
+    It makes the MAC's policy syntax complicated to describe this attribute
+    enforcement information in MAC's policy.
+
+  I want to add functionality that the MACs are missing.
+  Instead of adding this functionality per MAC,
+  I propose to add it as ground work, to be combined with any MAC.
+
+Why not drop CAP_MKNOD?
+
+  Dropping CAP_MKNOD is not enough for emulating this filesystem because
+  a process can still rename()/unlink() to break filename and its attributes
+  handling (e.g. mv /dev/sda1 /dev/sda1.tmp; mv /dev/sda2 /dev/sda1;
+  mv /dev/sda1.tmp /dev/sda2 or unlink /dev/null; touch /dev/null ).
+
+This time, I'm implementing this filesystem as an extension to tmpfs
+because what this filesystem does are nothing but check filename and
+its attributes in addition to what tmpfs does.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ fs/Kconfig               |   18 +
+ include/linux/shmem_fs.h |   79 +++++++
+ mm/Makefile              |    1 
+ mm/shmem.c               |   46 +++-
+ mm/shmem_mac.h           |   53 +++++
+ mm/shmem_mac_debug.c     |  187 ++++++++++++++++++
+ mm/shmem_mac_init.c      |  481 +++++++++++++++++++++++++++++++++++++++++++++++
+ mm/shmem_mac_main.c      |  300 +++++++++++++++++++++++++++++
+ 8 files changed, 1154 insertions(+), 11 deletions(-)
+
+--- linux-2.6-mm.orig/mm/shmem.c
++++ linux-2.6-mm/mm/shmem.c
+@@ -137,11 +137,6 @@ static inline void shmem_swp_unmap(swp_e
+ 	kunmap_atomic(entry, KM_USER1);
+ }
+ 
+-static inline struct shmem_sb_info *SHMEM_SB(struct super_block *sb)
+-{
+-	return sb->s_fs_info;
+-}
+-
+ /*
+  * shmem_file_setup pre-accounts the whole fixed size of a VM object,
+  * for shared memory and for shared anonymous (/dev/zero) mappings
+@@ -741,6 +736,8 @@ static int shmem_notify_change(struct de
+ 	struct inode *inode = dentry->d_inode;
+ 	struct page *page = NULL;
+ 	int error;
++	if (!shmem_mac_may_setattr(dentry, attr))
++		return -EPERM;
+ 
+ 	if (S_ISREG(inode->i_mode) && (attr->ia_valid & ATTR_SIZE)) {
+ 		if (attr->ia_size < inode->i_size) {
+@@ -1486,7 +1483,7 @@ static int shmem_mmap(struct file *file,
+ 	return 0;
+ }
+ 
+-static struct inode *
++struct inode *
+ shmem_get_inode(struct super_block *sb, int mode, dev_t dev)
+ {
+ 	struct inode *inode;
+@@ -1515,6 +1512,7 @@ shmem_get_inode(struct super_block *sb, 
+ 		default:
+ 			inode->i_op = &shmem_special_inode_operations;
+ 			init_special_inode(inode, mode, dev);
++			init_shmem_mac_inode(inode, mode);
+ 			break;
+ 		case S_IFREG:
+ 			inode->i_op = &shmem_inode_operations;
+@@ -1739,8 +1737,11 @@ static int shmem_statfs(struct dentry *d
+ static int
+ shmem_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
+ {
+-	struct inode *inode = shmem_get_inode(dir->i_sb, mode, dev);
++	struct inode *inode;
+ 	int error = -ENOSPC;
++	if (!shmem_mac_may_create_node(dir, dentry, mode, dev))
++		return -EPERM;
++	inode = shmem_get_inode(dir->i_sb, mode, dev);
+ 
+ 	if (inode) {
+ 		error = security_inode_init_security(inode, dir, NULL, NULL,
+@@ -1792,6 +1793,9 @@ static int shmem_link(struct dentry *old
+ {
+ 	struct inode *inode = old_dentry->d_inode;
+ 	int ret;
++	if (!shmem_mac_may_create_node(inode, dentry, inode->i_mode,
++				       inode->i_rdev))
++		return -EPERM;
+ 
+ 	/*
+ 	 * No ordinary (disk based) filesystem counts links as inodes;
+@@ -1815,6 +1819,8 @@ out:
+ static int shmem_unlink(struct inode *dir, struct dentry *dentry)
+ {
+ 	struct inode *inode = dentry->d_inode;
++	if (!shmem_mac_may_modify_node(dentry, MAY_DELETE))
++		return -EPERM;
+ 
+ 	if (inode->i_nlink > 1 && !S_ISDIR(inode->i_mode))
+ 		shmem_free_inode(inode->i_sb);
+@@ -1830,6 +1836,8 @@ static int shmem_rmdir(struct inode *dir
+ {
+ 	if (!simple_empty(dentry))
+ 		return -ENOTEMPTY;
++	if (!shmem_mac_may_modify_node(dentry, MAY_DELETE))
++		return -EPERM;
+ 
+ 	drop_nlink(dentry->d_inode);
+ 	drop_nlink(dir);
+@@ -1849,6 +1857,10 @@ static int shmem_rename(struct inode *ol
+ 
+ 	if (!simple_empty(new_dentry))
+ 		return -ENOTEMPTY;
++	if (!shmem_mac_may_modify_node(old_dentry, MAY_DELETE) ||
++	    !shmem_mac_may_create_node(inode, new_dentry, inode->i_mode,
++				       inode->i_rdev))
++		return -EPERM;
+ 
+ 	if (new_dentry->d_inode) {
+ 		(void) shmem_unlink(new_dir, new_dentry);
+@@ -1880,6 +1892,8 @@ static int shmem_symlink(struct inode *d
+ 	if (len > PAGE_CACHE_SIZE)
+ 		return -ENAMETOOLONG;
+ 
++	if (!shmem_mac_may_create_node(dir, dentry, S_IFLNK, 0))
++		return -EPERM;
+ 	inode = shmem_get_inode(dir->i_sb, S_IFLNK|S_IRWXUGO, 0);
+ 	if (!inode)
+ 		return -ENOSPC;
+@@ -1952,6 +1966,7 @@ static void shmem_put_link(struct dentry
+ static const struct inode_operations shmem_symlink_inline_operations = {
+ 	.readlink	= generic_readlink,
+ 	.follow_link	= shmem_follow_link_inline,
++	SHMEM_MAC_SETATTR
+ };
+ 
+ static const struct inode_operations shmem_symlink_inode_operations = {
+@@ -1959,6 +1974,7 @@ static const struct inode_operations shm
+ 	.readlink	= generic_readlink,
+ 	.follow_link	= shmem_follow_link,
+ 	.put_link	= shmem_put_link,
++	SHMEM_MAC_SETATTR
+ };
+ 
+ #ifdef CONFIG_TMPFS_POSIX_ACL
+@@ -2152,7 +2168,7 @@ static int shmem_parse_options(char *opt
+ 		} else if (!strcmp(this_char,"mpol")) {
+ 			if (shmem_parse_mpol(value,policy,policy_nodes))
+ 				goto bad_val;
+-		} else {
++		} else if (!is_shmem_mac_options(this_char)) {
+ 			printk(KERN_ERR "tmpfs: Bad mount option %s\n",
+ 			       this_char);
+ 			return 1;
+@@ -2215,6 +2231,7 @@ out:
+ 
+ static void shmem_put_super(struct super_block *sb)
+ {
++	shmem_mac_put_super(sb);
+ 	kfree(sb->s_fs_info);
+ 	sb->s_fs_info = NULL;
+ }
+@@ -2279,6 +2296,10 @@ static int shmem_fill_super(struct super
+ 	sb->s_xattr = shmem_xattr_handlers;
+ 	sb->s_flags |= MS_POSIXACL;
+ #endif
++	err = shmem_mac_fill_super(sb, data);
++	if (err)
++		goto failed;
++	err = -ENOMEM;
+ 
+ 	inode = shmem_get_inode(sb, S_IFDIR | mode, 0);
+ 	if (!inode)
+@@ -2289,6 +2310,7 @@ static int shmem_fill_super(struct super
+ 	if (!root)
+ 		goto failed_iput;
+ 	sb->s_root = root;
++	shmem_mac_initialize(sb);
+ 	return 0;
+ 
+ failed_iput:
+@@ -2401,6 +2423,7 @@ static const struct inode_operations shm
+ 	.removexattr	= generic_removexattr,
+ 	.permission	= shmem_permission,
+ #endif
++	SHMEM_MAC_SETATTR
+ };
+ 
+ static const struct inode_operations shmem_special_inode_operations = {
+@@ -2412,6 +2435,7 @@ static const struct inode_operations shm
+ 	.removexattr	= generic_removexattr,
+ 	.permission	= shmem_permission,
+ #endif
++	SHMEM_MAC_SETATTR
+ };
+ 
+ static const struct super_operations shmem_ops = {
+@@ -2434,9 +2458,9 @@ static struct vm_operations_struct shmem
+ #endif
+ };
+ 
+-
+-static int shmem_get_sb(struct file_system_type *fs_type,
+-	int flags, const char *dev_name, void *data, struct vfsmount *mnt)
++int shmem_get_sb(struct file_system_type *fs_type,
++		 int flags, const char *dev_name, void *data,
++		 struct vfsmount *mnt)
+ {
+ 	return get_sb_nodev(fs_type, flags, data, shmem_fill_super, mnt);
+ }
+--- /dev/null
++++ linux-2.6-mm/mm/shmem_mac.h
+@@ -0,0 +1,53 @@
++/*
++ * mm/shm_mac.h
++ *
++ * Implementation of the Tamper-Proof Device Filesystem.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.5.3-pre   2008/01/13
++ */
++
++#ifndef __SHMEM_MAC_H
++#define __SHMEM_MAC_H
++
++struct dev_entry {
++	struct list_head list;
++	/* Binary form of pathname under mount point. Never NULL. */
++	char *name;
++	/*
++	 * Mode and permissions. setuid/setgid/sticky bits are not supported.
++	 */
++	mode_t mode;
++	uid_t uid;
++	gid_t gid;
++	dev_t kdev;
++	/*
++	 * Binary form of initial contents for the symlink.
++	 * NULL if not symlink.
++	 */
++	char *symlink_data;
++	/* File access control flags. */
++	unsigned int flags;
++	/* Text form of pathname under mount point. Never NULL. */
++	const char *printable_name;
++	/*
++	 * Text form of initial contents for the symlink.
++	 * NULL if not symlink.
++	 */
++	const char *printable_symlink_data;
++};
++
++extern struct file_system_type syaoran_fs_type;
++extern int shmem_get_sb(struct file_system_type *fs_type, int flags,
++			const char *dev_name, void *data,
++			struct vfsmount *mnt);
++extern struct inode *shmem_get_inode(struct super_block *sb, int mode,
++				     dev_t dev);
++extern int syaoran_create_tracelog(struct super_block *sb,
++				   const char *filename);
++extern int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags);
++extern struct dentry *lookup_create2(const char *name, struct dentry *base,
++				     const bool is_dir);
++
++#endif
+--- /dev/null
++++ linux-2.6-mm/mm/shmem_mac_debug.c
+@@ -0,0 +1,187 @@
++/*
++ * mm/shmem_mac_debug.c
++ *
++ * Implementation of the Tamper-Proof Device Filesystem.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.5.3-pre   2008/01/13
++ */
++/*
++ * The following structure and codes are used for transferring data
++ * to interfaces files.
++ */
++
++#include <linux/stat.h>
++#include <linux/fs.h>
++#include <linux/shmem_fs.h>
++#include <linux/uaccess.h>
++#include "shmem_mac.h"
++
++#define list_for_each_cookie(pos, cookie, head) \
++	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
++		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
++		(cookie) = pos, pos = pos->next)
++
++struct syaoran_read_struct {
++	char *buf;               /* Buffer for reading.                */
++	int avail;               /* Bytes available for reading.       */
++	struct super_block *sb;  /* The super_block of this partition. */
++	struct dev_entry *entry; /* The entry currently reading from.  */
++	bool read_all;           /* Dump all entries?                  */
++	struct list_head *pos;   /* Current position.                  */
++};
++
++static void syaoran_read_table(struct syaoran_read_struct *head, char *buf,
++			       int count)
++{
++	struct shmem_sb_info *info = SHMEM_SB(head->sb);
++	struct list_head *pos;
++	const bool read_all = head->read_all;
++	if (!info)
++		return;
++	if (!head->pos)
++		return;
++	list_for_each_cookie(pos, head->pos, &info->list) {
++		struct dev_entry *entry =
++			list_entry(pos, struct dev_entry, list);
++		const unsigned int flags =
++			read_all ? entry->flags : entry->flags & ~DEVICE_USED;
++		const char *name = entry->printable_name;
++		const uid_t uid = entry->uid;
++		const gid_t gid = entry->gid;
++		const mode_t perm = entry->mode & 0777;
++		int len = 0;
++		switch (entry->mode & S_IFMT) {
++		case S_IFCHR:
++			if (!head->read_all && !(entry->flags & DEVICE_USED))
++				break;
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c %3u %3u\n",
++				       name, perm, uid, gid, flags, 'c',
++				       MAJOR(entry->kdev), MINOR(entry->kdev));
++			break;
++		case S_IFBLK:
++			if (!head->read_all && !(entry->flags & DEVICE_USED))
++				break;
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c %3u %3u\n",
++				       name, perm, uid, gid, flags, 'b',
++				       MAJOR(entry->kdev), MINOR(entry->kdev));
++			break;
++		case S_IFIFO:
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c\n",
++				       name, perm, uid, gid, flags, 'p');
++			break;
++		case S_IFSOCK:
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c\n",
++				       name, perm, uid, gid, flags, 's');
++			break;
++		case S_IFDIR:
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c\n",
++				       name, perm, uid, gid, flags, 'd');
++			break;
++		case S_IFLNK:
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c %s\n",
++				       name, perm, uid, gid, flags, 'l',
++				       entry->printable_symlink_data);
++			break;
++		case S_IFREG:
++			len = snprintf(buf, count,
++				       "%-20s %3o %3u %3u %2u %c\n",
++				       name, perm, uid, gid, flags, 'f');
++			break;
++		}
++		if (len < 0 || count <= len)
++			break;
++		count -= len;
++		buf += len;
++		head->avail += len;
++	}
++}
++
++static int syaoran_trace_open(struct inode *inode, struct file *file)
++{
++	struct syaoran_read_struct *head =
++		kzalloc(sizeof(*head), GFP_KERNEL);
++	if (!head)
++		return -ENOMEM;
++	head->sb = inode->i_sb;
++	head->read_all =
++		(strcmp(file->f_dentry->d_name.name, ".syaoran_all") == 0);
++	head->pos = &(SHMEM_SB(head->sb)->list);
++	head->buf = kzalloc(PAGE_SIZE * 2, GFP_KERNEL);
++	if (!head->buf) {
++		kfree(head);
++		return -ENOMEM;
++	}
++	file->private_data = head;
++	return 0;
++}
++
++static int syaoran_trace_release(struct inode *inode, struct file *file)
++{
++	struct syaoran_read_struct *head = file->private_data;
++	kfree(head->buf);
++	kfree(head);
++	file->private_data = NULL;
++	return 0;
++}
++
++static ssize_t syaoran_trace_read(struct file *file, char __user *buf,
++				  size_t count, loff_t *ppos)
++{
++	struct syaoran_read_struct *head =
++		(struct syaoran_read_struct *) file->private_data;
++	int len = head->avail;
++	char *cp = head->buf;
++	if (!access_ok(VERIFY_WRITE, buf, count))
++		return -EFAULT;
++	syaoran_read_table(head, cp + len, PAGE_SIZE * 2 - len);
++	len = head->avail;
++	if (len > count)
++		len = count;
++	if (len > 0) {
++		if (copy_to_user(buf, cp, len))
++			return -EFAULT;
++		head->avail -= len;
++		memmove(cp, cp + len, head->avail);
++	}
++	return len;
++}
++
++static struct file_operations syaoran_trace_operations = {
++	.open    = syaoran_trace_open,
++	.release = syaoran_trace_release,
++	.read    = syaoran_trace_read,
++};
++
++/* Create interface files for reading status. */
++int syaoran_create_tracelog(struct super_block *sb, const char *filename)
++{
++	struct inode *inode;
++	struct dentry *base = dget(sb->s_root);
++	struct dentry *dentry = lookup_create2(filename, base, 0);
++	int error = PTR_ERR(dentry);
++	if (IS_ERR(dentry))
++		goto out;
++	inode = shmem_get_inode(sb, S_IFREG | 0400, 0);
++	if (!inode)
++		error = -ENOSPC;
++	else {
++		/* Override file operation. */
++		inode->i_fop = &syaoran_trace_operations;
++		d_instantiate(dentry, inode);
++		dget(dentry); /* Extra count - pin the dentry in core */
++		error = 0;
++	}
++	dput(dentry);
++out:
++	mutex_unlock(&base->d_inode->i_mutex);
++	dput(base);
++	return error;
++}
+--- /dev/null
++++ linux-2.6-mm/mm/shmem_mac_init.c
+@@ -0,0 +1,481 @@
++/*
++ * mm/shmem_mac_init.c
++ *
++ * Implementation of the Tamper-Proof Device Filesystem.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.5.3-pre   2008/01/13
++ */
++
++#include <linux/smp_lock.h>
++#include <linux/namei.h>
++#include <linux/stat.h>
++#include <linux/fs.h>
++#include <linux/shmem_fs.h>
++#include "shmem_mac.h"
++
++/*
++ * The following codes are used for processing the policy file and
++ * creating initial nodes at mount time.
++ */
++
++/* lookup_create() without nameidata */
++struct dentry *lookup_create2(const char *name, struct dentry *base,
++			      const bool is_dir)
++{
++	struct dentry *dentry;
++	const int len = name ? strlen(name) : 0;
++	mutex_lock(&base->d_inode->i_mutex);
++	dentry = lookup_one_len(name, base, len);
++	if (IS_ERR(dentry))
++		goto fail;
++	if (!is_dir && name[len] && !dentry->d_inode)
++		goto enoent;
++	return dentry;
++enoent:
++	dput(dentry);
++	dentry = ERR_PTR(-ENOENT);
++fail:
++	return dentry;
++}
++
++static int fs_mkdir(const char *pathname, struct dentry *base, int mode,
++		    uid_t user, gid_t group)
++{
++	struct dentry *dentry = lookup_create2(pathname, base, 1);
++	int error = PTR_ERR(dentry);
++	if (!IS_ERR(dentry)) {
++		error = vfs_mkdir(base->d_inode, dentry, mode);
++		if (!error) {
++			lock_kernel();
++			dentry->d_inode->i_uid = user;
++			dentry->d_inode->i_gid = group;
++			unlock_kernel();
++		}
++		dput(dentry);
++	}
++	mutex_unlock(&base->d_inode->i_mutex);
++	return error;
++}
++
++static int fs_mknod(const char *filename, struct dentry *base, int mode,
++		    dev_t dev, uid_t user, gid_t group)
++{
++	struct dentry *dentry;
++	int error;
++	switch (mode & S_IFMT) {
++	case S_IFCHR:
++	case S_IFBLK:
++	case S_IFIFO:
++	case S_IFSOCK:
++	case S_IFREG:
++		break;
++	default:
++		return -EPERM;
++	}
++	dentry = lookup_create2(filename, base, 0);
++	error = PTR_ERR(dentry);
++	if (!IS_ERR(dentry)) {
++		error = vfs_mknod(base->d_inode, dentry, mode, dev);
++		if (!error) {
++			lock_kernel();
++			dentry->d_inode->i_uid = user;
++			dentry->d_inode->i_gid = group;
++			unlock_kernel();
++		}
++		dput(dentry);
++	}
++	mutex_unlock(&base->d_inode->i_mutex);
++	return error;
++}
++
++static int fs_symlink(const char *pathname, struct dentry *base,
++		      char *oldname, int mode, uid_t user, gid_t group)
++{
++	struct dentry *dentry = lookup_create2(pathname, base, 0);
++	int error = PTR_ERR(dentry);
++	if (!IS_ERR(dentry)) {
++		error = vfs_symlink(base->d_inode, dentry, oldname, S_IALLUGO);
++		if (!error) {
++			lock_kernel();
++			dentry->d_inode->i_mode = mode;
++			dentry->d_inode->i_uid = user;
++			dentry->d_inode->i_gid = group;
++			unlock_kernel();
++		}
++		dput(dentry);
++	}
++	mutex_unlock(&base->d_inode->i_mutex);
++	return error;
++}
++
++/*
++ * Format string.
++ * Leading and trailing whitespaces are removed.
++ * Multiple whitespaces are packed into single space.
++ */
++static void syaoran_normalize_line(unsigned char *buffer)
++{
++	unsigned char *sp = buffer;
++	unsigned char *dp = buffer;
++	bool first = 1;
++	while (*sp && (*sp <= ' ' || *sp >= 127))
++		sp++;
++	while (*sp) {
++		if (!first)
++			*dp++ = ' ';
++		first = 0;
++		while (*sp > ' ' && *sp < 127)
++			*dp++ = *sp++;
++		while (*sp && (*sp <= ' ' || *sp >= 127))
++			sp++;
++	}
++	*dp = '\0';
++}
++
++/* Convert text form of filename into binary form. */
++static void syaoran_unescape(char *filename)
++{
++	char *cp = filename;
++	char c, d, e;
++	if (!cp)
++		return;
++	while ((c = *filename++) != '\0') {
++		if (c != '\\') {
++			* cp++ = c;
++			continue;
++		}
++		if ((c = *filename++) == '\\') {
++			* cp++ = c;
++			continue;
++		}
++		if (c < '0' || c > '3')
++			break;
++		d = *filename++;
++		if (d < '0' || d > '7')
++			break;
++		e = *filename++;
++		if (e < '0' || e > '7')
++			break;
++		*(unsigned char *) cp++ = (unsigned char)
++			(((unsigned char) (c - '0') << 6) +
++			 ((unsigned char) (d - '0') << 3) +
++			 (unsigned char) (e - '0'));
++	}
++	*cp = '\0';
++}
++
++static inline char *strdup(const char *data)
++{
++	return kstrdup(data, GFP_KERNEL);
++}
++
++static int register_node_info(char *buffer, struct super_block *sb)
++{
++	enum {
++		ARG_FILENAME     = 0,
++		ARG_PERMISSION   = 1,
++		ARG_UID          = 2,
++		ARG_GID          = 3,
++		ARG_FLAGS        = 4,
++		ARG_DEV_TYPE     = 5,
++		ARG_SYMLINK_DATA = 6,
++		ARG_DEV_MAJOR    = 6,
++		ARG_DEV_MINOR    = 7,
++		MAX_ARG          = 8
++	};
++	char *args[MAX_ARG];
++	int i;
++	int error = -EINVAL;
++	unsigned int perm, uid, gid, flags, major = 0, minor = 0;
++	struct shmem_sb_info *info = SHMEM_SB(sb);
++	struct dev_entry *entry;
++	memset(args, 0, sizeof(args));
++	args[0] = buffer;
++	for (i = 1; i < MAX_ARG; i++) {
++		args[i] = strchr(args[i - 1] + 1, ' ');
++		if (!args[i])
++			break;
++		*args[i]++ = '\0';
++	}
++	/*
++	  printk("<%s> <%s> <%s> <%s> <%s> <%s> <%s> <%s>\n",
++	  args[0], args[1], args[2], args[3], args[4], args[5],
++	  args[6], args[7]);
++	*/
++	if (!args[ARG_FILENAME] || !args[ARG_PERMISSION] || !args[ARG_UID] ||
++	    !args[ARG_GID] || !args[ARG_DEV_TYPE] || !args[ARG_FLAGS])
++		goto out;
++	if (sscanf(args[ARG_PERMISSION], "%o", &perm) != 1 || !(perm <= 0777)
++	    || sscanf(args[ARG_UID], "%u", &uid) != 1
++	    || sscanf(args[ARG_GID], "%u", &gid) != 1
++	    || sscanf(args[ARG_FLAGS], "%u", &flags) != 1
++	    || *(args[ARG_DEV_TYPE] + 1))
++		goto out;
++	switch (*args[ARG_DEV_TYPE]) {
++	case 'c':
++		perm |= S_IFCHR;
++		if (!args[ARG_DEV_MAJOR]
++		    || sscanf(args[ARG_DEV_MAJOR], "%u", &major) != 1
++		    || !args[ARG_DEV_MINOR]
++		    || sscanf(args[ARG_DEV_MINOR], "%u", &minor) != 1)
++			goto out;
++		break;
++	case 'b':
++		perm |= S_IFBLK;
++		if (!args[ARG_DEV_MAJOR]
++		    || sscanf(args[ARG_DEV_MAJOR], "%u", &major) != 1
++		    || !args[ARG_DEV_MINOR]
++		    || sscanf(args[ARG_DEV_MINOR], "%u", &minor) != 1)
++			goto out;
++		break;
++	case 'l':
++		perm |= S_IFLNK;
++		if (!args[ARG_SYMLINK_DATA])
++			goto out;
++		break;
++	case 'd':
++		perm |= S_IFDIR;
++		break;
++	case 's':
++		perm |= S_IFSOCK;
++		break;
++	case 'p':
++		perm |= S_IFIFO;
++		break;
++	case 'f':
++		perm |= S_IFREG;
++		break;
++	default:
++		goto out;
++	}
++	error = -ENOMEM;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	if (!entry)
++		goto out;
++	if (S_ISLNK(perm)) {
++		entry->printable_symlink_data = strdup(args[ARG_SYMLINK_DATA]);
++		if (!entry->printable_symlink_data)
++			goto out_freemem;
++	}
++	entry->printable_name = strdup(args[ARG_FILENAME]);
++	if (!entry->printable_name)
++		goto out_freemem;
++	if (S_ISLNK(perm)) {
++		entry->symlink_data = strdup(entry->printable_symlink_data);
++		if (!entry->symlink_data)
++			goto out_freemem;
++		syaoran_unescape(entry->symlink_data);
++	}
++	entry->name = strdup(entry->printable_name);
++	if (!entry->name)
++		goto out_freemem;
++	syaoran_unescape(entry->name);
++	/*
++	 * Drop trailing '/', for GetLocalAbsolutePath() doesn't append
++	 *  trailing '/'.
++	 */
++	i = strlen(entry->name);
++	if (i && entry->name[i - 1] == '/')
++		entry->name[i - 1] = '\0';
++	entry->mode = perm;
++	entry->uid = uid;
++	entry->gid = gid;
++	entry->kdev = S_ISCHR(perm) || S_ISBLK(perm) ? MKDEV(major, minor) : 0;
++	entry->flags = flags;
++	list_add_tail(&entry->list, &info->list);
++	/* printk("Entry added.\n"); */
++	error = 0;
++out:
++	return error;
++out_freemem:
++	kfree(entry->printable_symlink_data);
++	kfree(entry->printable_name);
++	kfree(entry->symlink_data);
++	kfree(entry);
++	goto out;
++}
++
++static int read_config_file(struct file *file, struct super_block *sb)
++{
++	char *buffer;
++	int error = -ENOMEM;
++	if (!file)
++		return -EINVAL;
++	buffer = kzalloc(PAGE_SIZE, GFP_KERNEL);
++	if (buffer) {
++		int len;
++		char *cp;
++		unsigned long offset = 0;
++		while ((len = kernel_read(file, offset, buffer, PAGE_SIZE)) > 0
++		       && (cp = memchr(buffer, '\n', len)) != NULL) {
++			*cp = '\0';
++			offset += cp - buffer + 1;
++			syaoran_normalize_line(buffer);
++			if (register_node_info(buffer, sb) == -ENOMEM)
++				goto out;
++		}
++		error = 0;
++	}
++out:
++	kfree(buffer);
++	return error;
++}
++
++static void make_node(struct dev_entry *entry, struct dentry *root)
++{
++	struct dentry *base = dget(root);
++	char *filename = entry->name;
++	char *name = filename;
++	unsigned int c;
++	const mode_t perm = entry->mode;
++	const uid_t uid = entry->uid;
++	const gid_t gid = entry->gid;
++	goto start;
++	while ((c = *(unsigned char *) filename) != '\0') {
++		if (c == '/') {
++			struct dentry *new_base;
++			const int len = filename - name;
++			*filename = '\0';
++			mutex_lock(&base->d_inode->i_mutex);
++			new_base = lookup_one_len(name, base, len);
++			mutex_unlock(&base->d_inode->i_mutex);
++			dput(base);
++			*filename = '/';
++			filename++;
++			if (IS_ERR(new_base))
++				return;
++			if (!new_base->d_inode ||
++			    !S_ISDIR(new_base->d_inode->i_mode)) {
++				dput(new_base);
++				return;
++			}
++			base = new_base;
++start:
++			name = filename;
++		} else {
++			filename++;
++		}
++	}
++	filename = (char *) name;
++	if (S_ISLNK(perm)) {
++		fs_symlink(filename, base, entry->symlink_data, perm, uid, gid);
++	} else if (S_ISDIR(perm)) {
++		fs_mkdir(filename, base, perm ^ S_IFDIR, uid, gid);
++	} else if (S_ISSOCK(perm) || S_ISFIFO(perm) || S_ISREG(perm)) {
++		fs_mknod(filename, base, perm, 0, uid, gid);
++	} else if (S_ISCHR(perm) || S_ISBLK(perm)) {
++		fs_mknod(filename, base, perm, entry->kdev, uid, gid);
++	}
++	dput(base);
++}
++
++/* Create files according to the policy file. */
++static void syaoran_make_initial_nodes(struct super_block *sb)
++{
++	struct shmem_sb_info *info;
++	struct dev_entry *entry;
++	if (!sb)
++		return;
++	info = SHMEM_SB(sb);
++	if (!info)
++		return;
++	if (info->is_permissive_mode) {
++		syaoran_create_tracelog(sb, ".syaoran");
++		syaoran_create_tracelog(sb, ".syaoran_all");
++	}
++	list_for_each_entry(entry, &info->list, list) {
++		if ((entry->flags & NO_CREATE_AT_MOUNT) == 0)
++			make_node(entry, sb->s_root);
++	}
++	info->initialize_done = 1;
++}
++
++/* Read policy file. */
++static int syaoran_initialize(struct super_block *sb, void *data)
++{
++	int error = -EINVAL;
++	struct file *f;
++	char *filename = (char *) data;
++	bool is_permissive_mode = 0;
++	struct shmem_sb_info *p = SHMEM_SB(sb);
++	static bool first = 1;
++	if (first) {
++		first = 0;
++		printk(KERN_INFO "SYAORAN: 1.5.3-pre   2008/01/13\n");
++	}
++	INIT_LIST_HEAD(&(SHMEM_SB(sb)->list));
++	if (!filename) {
++		printk(KERN_INFO "SYAORAN: Missing config-file path.\n");
++		return -EINVAL;
++	} else if (strncmp(filename, "accept=", 7) == 0) {
++		filename += 7;
++		is_permissive_mode = 1;
++	} else if (strncmp(filename, "enforce=", 8) == 0) {
++		filename += 8;
++		is_permissive_mode = 0;
++	} else {
++		printk(KERN_INFO "SYAORAN: Missing 'accept=' or 'enforce='.\n");
++		return -EINVAL;
++	}
++	f = open_pathname(AT_FDCWD, filename, O_RDONLY, 0600);
++	if (IS_ERR(f)) {
++		printk(KERN_INFO "SYAORAN: Can't open '%s'\n", filename);
++		return -EINVAL;
++	}
++	if (!S_ISREG(f->f_dentry->d_inode->i_mode))
++		goto out;
++	p->is_permissive_mode = is_permissive_mode;
++	printk(KERN_INFO "SYAORAN: Reading '%s'\n", filename);
++	error = read_config_file(f, sb);
++out:
++	if (error)
++		printk(KERN_INFO "SYAORAN: Can't read '%s'\n", filename);
++	filp_close(f, NULL);
++	return error;
++}
++
++bool is_shmem_mac_options(char *this_char)
++{
++	if (!strcmp(this_char, "accept")) {
++		this_char[6] = '=';
++		return true;
++	} else if (!strcmp(this_char, "enforce")) {
++		this_char[7] = '=';
++		return true;
++	}
++	return false;
++}
++
++void shmem_mac_initialize(struct super_block *sb)
++{
++	if (sb->s_type == &syaoran_fs_type)
++		syaoran_make_initial_nodes(sb);
++}
++
++int shmem_mac_fill_super(struct super_block *sb, void *data)
++{
++	if (sb->s_type == &syaoran_fs_type)
++		return syaoran_initialize(sb, data);
++	return 0;
++}
++
++void shmem_mac_put_super(struct super_block *sb)
++{
++	struct shmem_sb_info *info = SHMEM_SB(sb);
++	struct dev_entry *entry;
++	struct dev_entry *tmp;
++	if (sb->s_type != &syaoran_fs_type)
++		return;
++	list_for_each_entry_safe(entry, tmp, &info->list, list) {
++		kfree(entry->name);
++		kfree(entry->symlink_data);
++		kfree(entry->printable_name);
++		kfree(entry->printable_symlink_data);
++		list_del(&entry->list);
++		/* printk("Entry removed.\n"); */
++		kfree(entry);
++	}
++	printk(KERN_DEBUG "%s: Unused memory freed.\n", __FUNCTION__);
++}
+--- /dev/null
++++ linux-2.6-mm/mm/shmem_mac_main.c
+@@ -0,0 +1,300 @@
++/*
++ * mm/shmem_mac_main.c
++ *
++ * Implementation of the Tamper-Proof Device Filesystem.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.5.3-pre   2008/01/13
++ */
++
++#include <linux/stat.h>
++#include <linux/fs.h>
++#include <linux/shmem_fs.h>
++#include "shmem_mac.h"
++
++/* Get absolute pathname from mount point. */
++static int get_local_absolute_path(struct dentry *dentry, char *buffer,
++				   int buflen)
++{
++	char *start = buffer;
++	char *end = buffer + buflen;
++	int namelen;
++
++	if (buflen < 256)
++		goto out;
++
++	*--end = '\0';
++	buflen--;
++	for (;;) {
++		struct dentry *parent;
++		if (IS_ROOT(dentry))
++			break;
++		parent = dentry->d_parent;
++		namelen = dentry->d_name.len;
++		buflen -= namelen + 1;
++		if (buflen < 0)
++			goto out;
++		end -= namelen;
++		memcpy(end, dentry->d_name.name, namelen);
++		*--end = '/';
++		dentry = parent;
++	}
++	if (*end == '/') {
++		buflen++;
++		end++;
++	}
++	namelen = dentry->d_name.len;
++	buflen -= namelen;
++	if (buflen < 0)
++		goto out;
++	end -= namelen;
++	memcpy(end, dentry->d_name.name, namelen);
++	memmove(start, end, strlen(end) + 1);
++	return 0;
++out:
++	return -ENOMEM;
++}
++
++/* Get absolute pathname of the given dentry from mount point. */
++static int local_realpath_from_dentry(struct dentry *dentry, char *newname,
++				      int newname_len)
++{
++	int error;
++	struct dentry *d_dentry;
++	if (!dentry || !newname || newname_len <= 0)
++		return -EINVAL;
++	d_dentry = dget(dentry);
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&dcache_lock);
++	error = get_local_absolute_path(d_dentry, newname, newname_len);
++	spin_unlock(&dcache_lock);
++	/***** CRITICAL SECTION END *****/
++	dput(d_dentry);
++	return error;
++}
++
++static int syaoran_check_flags(struct shmem_sb_info *info,
++			       struct dentry *dentry, int mode, dev_t dev,
++			       unsigned int flags)
++{
++	int error = -EPERM;
++	struct dev_entry *entry;
++	/*
++	 * Since local_realpath_from_dentry() holds dcache_lock,
++	 * allocating buffer using kmalloc() won't help improving concurrency.
++	 * Therefore, I use static buffer here.
++	 */
++	static char filename[PAGE_SIZE];
++	static DEFINE_SPINLOCK(lock);
++	spin_lock(&lock);
++	memset(filename, 0, sizeof(filename));
++	if (local_realpath_from_dentry(dentry, filename, sizeof(filename) - 1))
++		goto out;
++	list_for_each_entry(entry, &info->list, list) {
++		if ((mode & S_IFMT) != (entry->mode & S_IFMT))
++			continue;
++		if ((S_ISBLK(mode) || S_ISCHR(mode)) && dev != entry->kdev)
++			continue;
++		if (strcmp(entry->name, filename + 1))
++			continue;
++		if (info->is_permissive_mode) {
++			entry->flags |= flags;
++			error = 0;
++		} else {
++			if ((entry->flags & flags) == flags)
++				error = 0;
++		}
++		break;
++	}
++out:
++	if (error && strlen(filename) < (sizeof(filename) / 4) - 16) {
++		const char *name;
++		const uid_t uid = current->fsuid;
++		const gid_t gid = current->fsgid;
++		const mode_t perm = mode & 0777;
++		flags &= ~DEVICE_USED;
++		{
++			char *end = filename + sizeof(filename) - 1;
++			const char *cp = strchr(filename, '\0') - 1;
++			while (cp > filename) {
++				const unsigned char c = *cp--;
++				if (c == '\\') {
++					* --end = '\\';
++					* --end = '\\';
++				} else if (c > ' ' && c < 127) {
++					*--end = c;
++				} else {
++					*--end = (c & 7) + '0';
++					*--end = ((c >> 3) & 7) + '0';
++					*--end = (c >> 6) + '0';
++					*--end = '\\';
++				}
++			}
++			name = end;
++		}
++		switch (mode & S_IFMT) {
++		case S_IFCHR:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %3u %3u\n",
++			       name, perm, uid, gid, flags, 'c',
++			       MAJOR(dev), MINOR(dev));
++			break;
++		case S_IFBLK:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %3u %3u\n",
++			       name, perm, uid, gid, flags, 'b',
++			       MAJOR(dev), MINOR(dev));
++			break;
++		case S_IFIFO:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
++			       name, perm, uid, gid, flags, 'p');
++			break;
++		case S_IFSOCK:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
++			       name, perm, uid, gid, flags, 's');
++			break;
++		case S_IFDIR:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
++			       name, perm, uid, gid, flags, 'd');
++			break;
++		case S_IFLNK:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c %s\n",
++			       name, perm, uid, gid, flags, 'l', "unknown");
++			break;
++		case S_IFREG:
++			printk(KERN_DEBUG
++			       "SYAORAN-ERROR: %s %3o %3u %3u %2u %c\n",
++			       name, perm, uid, gid, flags, 'f');
++			break;
++		}
++	}
++	spin_unlock(&lock);
++	return error;
++}
++
++/* Check whether the given dentry is allowed to mknod. */
++static int syaoran_may_create_node(struct dentry *dentry, int mode, dev_t dev)
++{
++	struct shmem_sb_info *info = SHMEM_SB(dentry->d_sb);
++	if (!info) {
++		printk(KERN_DEBUG "%s: dentry->d_sb->s_fs_info == NULL\n",
++		       __FUNCTION__);
++		return -EPERM;
++	}
++	if (!info->initialize_done)
++		return 0;
++	return syaoran_check_flags(info, dentry, mode, dev, MAY_CREATE);
++}
++
++/* Check whether the given dentry is allowed to chmod/chown/unlink. */
++int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags)
++{
++	struct shmem_sb_info *info = SHMEM_SB(dentry->d_sb);
++	if (!info) {
++		printk(KERN_DEBUG "%s: dentry->d_sb->s_fs_info == NULL\n",
++		       __FUNCTION__);
++		return -EPERM;
++	}
++	if (flags == DEVICE_USED && !info->is_permissive_mode)
++		return 0;
++	if (!dentry->d_inode)
++		return -ENOENT;
++	return syaoran_check_flags(info, dentry, dentry->d_inode->i_mode,
++				   dentry->d_inode->i_rdev, flags);
++}
++
++bool shmem_mac_may_setattr(struct dentry *dentry, struct iattr *attr)
++{
++	if (dentry->d_inode->i_sb->s_type == &syaoran_fs_type) {
++		unsigned int flags = 0;
++		if (attr->ia_valid & (ATTR_UID | ATTR_GID))
++			flags |= MAY_CHOWN;
++		if (attr->ia_valid & ATTR_MODE)
++			flags |= MAY_CHMOD;
++		if (syaoran_may_modify_node(dentry, flags))
++			return false;
++	}
++	return true;
++}
++
++bool shmem_mac_may_modify_node(struct dentry *dentry, int flags)
++{
++	if (dentry->d_inode->i_sb->s_type == &syaoran_fs_type) {
++		if (syaoran_may_modify_node(dentry, flags))
++			return false;
++	}
++	return true;
++}
++
++bool shmem_mac_may_create_node(struct inode *dir, struct dentry *dentry,
++			       int mode, dev_t dev)
++{
++	if (dir->i_sb->s_type == &syaoran_fs_type) {
++		if (syaoran_may_create_node(dentry, mode, dev) < 0)
++			return false;
++	}
++	return true;
++}
++
++static struct file_operations wrapped_def_blk_fops;
++static struct file_operations wrapped_def_chr_fops;
++
++static int wrapped_blkdev_open(struct inode *inode, struct file *filp)
++{
++	int error = def_blk_fops.open(inode, filp);
++	if (error != -ENXIO)
++		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
++	return error;
++}
++
++static int wrapped_chrdev_open(struct inode *inode, struct file *filp)
++{
++	int error = def_chr_fops.open(inode, filp);
++	if (error != -ENXIO)
++		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
++	return error;
++}
++
++static void init_syaoran_inode(struct inode *inode, int mode)
++{
++	/* Set open() hook for tracking open request. */
++	if (S_ISBLK(mode))
++		inode->i_fop = &wrapped_def_blk_fops;
++	else if (S_ISCHR(mode))
++		inode->i_fop = &wrapped_def_chr_fops;
++}
++
++void init_shmem_mac_inode(struct inode *inode, int mode)
++{
++	if (inode->i_sb->s_type == &syaoran_fs_type)
++		init_syaoran_inode(inode, mode);
++}
++
++struct file_system_type syaoran_fs_type = {
++	.name           = "syaoran",
++	.get_sb         = shmem_get_sb,
++	.kill_sb        = kill_litter_super,
++};
++
++static int __init init_syaoran_fs(void)
++{
++	/* Set open() hook for tracking open operation of block devices. */
++	wrapped_def_blk_fops = def_blk_fops;
++	wrapped_def_blk_fops.open = wrapped_blkdev_open;
++	/* Set open() hook for tracking open operation of character devices. */
++	wrapped_def_chr_fops = def_chr_fops;
++	wrapped_def_chr_fops.open = wrapped_chrdev_open;
++	return register_filesystem(&syaoran_fs_type);
++}
++
++static void __exit exit_syaoran_fs(void)
++{
++	unregister_filesystem(&syaoran_fs_type);
++}
++module_init(init_syaoran_fs);
++module_exit(exit_syaoran_fs);
+--- linux-2.6-mm.orig/fs/Kconfig
++++ linux-2.6-mm/fs/Kconfig
+@@ -978,6 +978,24 @@ config TMPFS_POSIX_ACL
+ 
+ 	  If you don't know what Access Control Lists are, say N.
+ 
++config SYAORAN
++	bool "Tamper-proof device filesystem support"
++	depends on TMPFS
++	help
++	  If you mount this filesystem for /dev directory instead of tmpfs,
++	  you can guarantee the following thing.
++
++	  "Applications using well-known device locations under /dev
++	   get the device they want" (e.g. an application that accesses
++	   /dev/null can always get a character special device
++	   with major=1 and minor=3).
++
++	  The list of possible combinations of filename and its attributes
++	  that can exist on this filesystem is defined at mount time
++	  using a configuration file.
++
++	  If unsure, say N.
++
+ config HUGETLBFS
+ 	bool "HugeTLB file system support"
+ 	depends on X86 || IA64 || PPC64 || SPARC64 || (SUPERH && MMU) || BROKEN
+--- linux-2.6-mm.orig/include/linux/shmem_fs.h
++++ linux-2.6-mm/include/linux/shmem_fs.h
+@@ -33,6 +33,11 @@ struct shmem_sb_info {
+ 	int policy;		    /* Default NUMA memory alloc policy */
+ 	nodemask_t policy_nodes;    /* nodemask for preferred and bind */
+ 	spinlock_t    stat_lock;
++#ifdef CONFIG_SYAORAN
++	struct list_head list;    /* List of filename/attributes pairs. */
++	bool initialize_done;     /* False if initialization is in progress. */
++	bool is_permissive_mode;  /* True if permissive mode. */
++#endif
+ };
+ 
+ static inline struct shmem_inode_info *SHMEM_I(struct inode *inode)
+@@ -40,6 +45,11 @@ static inline struct shmem_inode_info *S
+ 	return container_of(inode, struct shmem_inode_info, vfs_inode);
+ }
+ 
++static inline struct shmem_sb_info *SHMEM_SB(struct super_block *sb)
++{
++	return sb->s_fs_info;
++}
++
+ #ifdef CONFIG_TMPFS_POSIX_ACL
+ int shmem_permission(struct inode *, int, struct nameidata *);
+ int shmem_acl_init(struct inode *, struct inode *);
+@@ -60,4 +70,73 @@ static inline void shmem_acl_destroy_ino
+ }
+ #endif  /* CONFIG_TMPFS_POSIX_ACL */
+ 
++/* The following constants are used to restrict operations.*/
++
++#define MAY_CREATE          1 /* This file is allowed to be mknod()ed.        */
++#define MAY_DELETE          2 /* This file is allowed to be unlink()ed.       */
++#define MAY_CHMOD           4 /* This file is allowed to be chmod()ed.        */
++#define MAY_CHOWN           8 /* This file is allowed to be chown()ed.        */
++#define DEVICE_USED        16 /* This block or character device file is used. */
++#define NO_CREATE_AT_MOUNT 32 /* Don't create this file at mount().           */
++
++#ifdef CONFIG_SYAORAN
++
++#define SHMEM_MAC_SETATTR .setattr = shmem_notify_change
++
++bool shmem_mac_may_setattr(struct dentry *dentry, struct iattr *attr);
++void init_shmem_mac_inode(struct inode *inode, int mode);
++bool shmem_mac_may_create_node(struct inode *dir, struct dentry *dentry,
++			       int mode, dev_t dev);
++bool shmem_mac_may_modify_node(struct dentry *dentry, int flags);
++void shmem_mac_put_super(struct super_block *sb);
++int shmem_mac_fill_super(struct super_block *sb, void *data);
++void shmem_mac_initialize(struct super_block *sb);
++bool is_shmem_mac_options(char *this_char);
++
++#else
++
++#define SHMEM_MAC_SETATTR
++
++static inline bool shmem_mac_may_setattr(struct dentry *dentry,
++					 struct iattr *attr)
++{
++	return true;
++}
++
++static inline void init_shmem_mac_inode(struct inode *inode, int mode)
++{
++}
++
++static inline bool shmem_mac_may_create_node(struct inode *dir,
++					     struct dentry *dentry, int mode,
++					     dev_t dev)
++{
++	return true;
++}
++
++static inline bool shmem_mac_may_modify_node(struct dentry *dentry, int flags)
++{
++	return true;
++}
++
++static inline void shmem_mac_put_super(struct super_block *sb)
++{
++}
++
++static inline int shmem_mac_fill_super(struct super_block *sb, void *data)
++{
++	return 0;
++}
++
++static inline void shmem_mac_initialize(struct super_block *sb)
++{
++}
++
++static inline bool is_shmem_mac_options(char *this_char)
++{
++	return false;
++}
++
++#endif
++
+ #endif
+--- linux-2.6-mm.orig/mm/Makefile
++++ linux-2.6-mm/mm/Makefile
+@@ -22,6 +22,7 @@ obj-$(CONFIG_SPARSEMEM)	+= sparse.o
+ obj-$(CONFIG_SPARSEMEM_VMEMMAP) += sparse-vmemmap.o
+ obj-$(CONFIG_SHMEM) += shmem.o
+ obj-$(CONFIG_TMPFS_POSIX_ACL) += shmem_acl.o
++obj-$(CONFIG_SYAORAN) += shmem_mac_init.o shmem_mac_main.o shmem_mac_debug.o
+ obj-$(CONFIG_TINY_SHMEM) += tiny-shmem.o
+ obj-$(CONFIG_SLOB) += slob.o
+ obj-$(CONFIG_SLAB) += slab.o
