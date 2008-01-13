@@ -19,7 +19,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  arch/s390/kernel/ptrace.c          |    8 +++
  arch/sh/kernel/ptrace.c            |    8 +++
  arch/sh64/kernel/ptrace.c          |    8 +++
- arch/sparc/kernel/ptrace.c         |    8 +++
+ arch/sparc/kernel/ptrace.c         |   11 ++++
  arch/sparc64/kernel/ptrace.c       |   11 ++++
  arch/um/kernel/ptrace.c            |    8 +++
  arch/v850/kernel/ptrace.c          |    8 +++
@@ -53,7 +53,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/ipv6/udp.c                     |    9 +++
  net/socket.c                       |   30 ++++++++++-
  net/unix/af_unix.c                 |   10 +++
- 53 files changed, 635 insertions(+), 10 deletions(-)
+ 53 files changed, 638 insertions(+), 10 deletions(-)
 
 --- linux-2.6.8-13.orig/fs/Kconfig
 +++ linux-2.6.8-13/fs/Kconfig
@@ -599,7 +599,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.8-13 2008/01/10\n");
++		printk("Hook version: 2.6.8-13 2008/01/13\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1612,13 +1612,16 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -266,6 +269,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -266,6 +269,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  

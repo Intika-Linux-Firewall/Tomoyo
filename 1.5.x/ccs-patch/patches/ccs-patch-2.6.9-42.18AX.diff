@@ -23,7 +23,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  arch/s390/kernel/ptrace.c          |    8 +++
  arch/sh/kernel/ptrace.c            |    8 +++
  arch/sh64/kernel/ptrace.c          |    8 +++
- arch/sparc/kernel/ptrace.c         |    8 +++
+ arch/sparc/kernel/ptrace.c         |   11 ++++
  arch/sparc64/kernel/ptrace.c       |   11 ++++
  arch/um/kernel/ptrace.c            |    8 +++
  arch/v850/kernel/ptrace.c          |    8 +++
@@ -57,7 +57,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/ipv6/udp.c                     |    9 +++
  net/socket.c                       |   30 ++++++++++-
  net/unix/af_unix.c                 |   10 +++
- 55 files changed, 654 insertions(+), 13 deletions(-)
+ 55 files changed, 657 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-42.18AX.orig/Makefile
 +++ linux-2.6.9-42.18AX/Makefile
@@ -641,7 +641,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.9-42.18AX 2008/01/10\n");
++		printk("Hook version: 2.6.9-42.18AX 2008/01/13\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
@@ -1655,13 +1655,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -266,6 +269,11 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -266,6 +269,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
