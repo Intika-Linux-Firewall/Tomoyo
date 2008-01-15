@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>Access analysis using TOMOYO Linux</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="../../ja/1.5.x/analysis.html">Japanese Page</a></p>
+<h1>Access Analysis using TOMOYO Linux</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<p>Since the policy of TOMOYO Linux is represented using pathnames, TOMOYO Linux is applicable for tracing file accesses.<br>
+You can use TOMOYO Linux to find how programs access files or what program is creating files on specific directories.</p>
+
+<h1>Preparation</h1>
+
+<h2>Install TOMOYO Linux kernel</h2>
+
+<p>TOMOYO Linux provides some binary kernel packages. If you want to use binary kernel packages, download and install.</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.4.20-46.9.legacy_tomoyo_1.5.2.i386.rpm
+</td></tr><tr><td>
+Fedora Core 3 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+Fedora Core 4 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.17-1.2142_FC4_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+Fedora Core 5 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.20-1.2320.fc5_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+Fedora Core 6 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.22.14-72.fc6_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+Fedora 7 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.23.12-52.fc7_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+Fedora 8 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.23.9-85.fc8_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+CentOS 4.6 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.9-67.0.1.EL_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+CentOS 5.1 (80686 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.18-53.1.4.el5_tomoyo_1.5.2.i686.rpm
+</td></tr><tr><td>
+Debian Sarge (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.4.27-10sarge5-ccs-i586_1.5.2_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.6.8-16sarge7-ccs-i586_1.5.2_i386.deb
+</td></tr><tr><td>
+Debian Etch (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.18-17-ccs-i586_1.5.2_i386.deb
+</td></tr><tr><td>
+Debian Lenny</td><td>
+Add these entries to /etc/apt/sources.list :<br>
+deb http://www.mithril-linux.org/~henrich/debian/package/ ./<br>
+deb-src http://www.mithril-linux.org/~henrich/debian/package/ ./<br>
+And, run:<br>
+apt-get update<br>
+apt-get install linux-image-2.6.22ccs.1.5.0
+</td></tr><tr><td>
+OpenSUSE 10.1 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-default-2.6.16.54-0.2.3_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+OpenSUSE 10.2 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-default-2.6.18.8-0.7_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+OpenSUSE 10.3 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-default-2.6.22.13-0.3_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+Asianux 2.0 (80686 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.9-42.18AX_tomoyo_1.5.2.i686.rpm
+</td></tr><tr><td>
+Asianux 3.0 (80686 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.18-8.12AX_tomoyo_1.5.2.i686.rpm
+</td></tr><tr><td>
+Ubuntu 6.10 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.17-12-generic-ccs1.5.2_2.6.17.1-12.42_i386.deb
+</td></tr><tr><td>
+Ubuntu 7.04 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.20-16-generic-ccs1.5.2_2.6.20-16.33_i386.deb
+</td></tr><tr><td>
+Ubuntu 7.10</td><td>
+Add these entries to /etc/apt/sources.list :<br>
+deb http://archive.ubuntulinux.jp/ubuntu-ja gutsy-experimental/<br>
+deb-src http://archive.ubuntulinux.jp/ubuntu-ja gutsy-experimental/<br>
+And, run:<br>
+apt-get update<br>
+apt-get install tomoyo-linux
+</td></tr><tr><td>
+Vine Linux 4.2 (80586 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.16-0vl76.28_tomoyo_1.5.2.i586.rpm
+</td></tr><tr><td>
+Nature's Linux 1.5.1 (Pentium III and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.6.18.8p1up-tomoyo1.5.0_nlug1_i386.deb
+</td></tr>
+</table>
+
+<p>If the CPU architecture differs or you want to customize kernel configuration, you need to compile kernel. To compile kernel, see <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
+
+<p>If you are using distributions that support SELinux, you might encounter errors while installing packages if SELinux is not disabled. If you see error messages shown below while installing packages, retry after you disable SELinux. You can disable SELinux by either "changing SELINUX=disabled in /etc/selinux/config and reboot" or "adding selinux=0 to the kernel's boot paramaters".</p>
+
+<table border="1">
+<tr><td>
+[root@localhost ~]# rpm -ihv kernel-2.6.9-67.0.1.EL_tomoyo_1.5.2.i586.rpm<br>
+Preparing...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;########################################### [100%]<br>
+Error: %pre(kernel-2.6.9-67.0.1.EL_tomoyo_1.5.2.i586) scriptlet failed, exit status 255<br>
+Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.9-67.0.1.EL_tomoyo_1.5.2
+</td></tr>
+</table>
+
+<p>TOMOYO Linux itself can coexist with SELinux. You may continue with SELinux enabled if you want.</p>
+
+<h2>Install TOMOYO Linux tools</h2>
+
+<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract.</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.RHL9.i386.rpm
+</td></tr><tr><td>
+Fedora Core 3 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.FC3.i386.rpm
+</td></tr><tr><td>
+Fedora Core 4 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.FC4.i386.rpm
+</td></tr><tr><td>
+Fedora Core 5 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.FC5.i386.rpm
+</td></tr><tr><td>
+Fedora Core 6 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.FC6.i386.rpm
+</td></tr><tr><td>
+Fedora 7 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.F7.i386.rpm
+</td></tr><tr><td>
+Fedora 8 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.F8.i386.rpm
+</td></tr><tr><td>
+CentOS 4.6 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.CentOS4.6.i386.rpm
+</td></tr><tr><td>
+CentOS 5.1 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.CentOS5.1.i386.rpm
+</td></tr><tr><td>
+Debian Sarge (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Sarge_i386.deb
+</td></tr><tr><td>
+Debian Etch (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Etch_i386.deb
+</td></tr><tr><td>
+Debian Lenny</td><td>
+apt-get install tomoyo-ccstools
+</td></tr><tr><td>
+OpenSUSE 10.1 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.SUSE10.1.i386.rpm
+</td></tr><tr><td>
+OpenSUSE 10.2 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.SUSE10.2.i386.rpm
+</td></tr><tr><td>
+OpenSUSE 10.3 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.SUSE10.3.i386.rpm
+</td></tr><tr><td>
+Asianux 2.0 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.AX2.i386.rpm
+</td></tr><tr><td>
+Asianux 3.0 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.AX3.i386.rpm
+</td></tr><tr><td>
+Ubuntu 6.10 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Ubuntu6.10_i386.deb
+</td></tr><tr><td>
+Ubuntu 7.04 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Ubuntu7.04_i386.deb
+</td></tr><tr><td>
+Ubuntu 7.10</td><td>
+apt-get install tomoyo-ccstools
+</td></tr><tr><td>
+Vine Linux 4.2 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.Vine4.2.i386.rpm
+</td></tr><tr><td>
+Nature's Linux 1.5.1 (80386 and later)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-nlug1_i386.deb
+</td></tr><tr><td>
+Others (Source Package)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.2-20071205.tar.gz
+</td></tr>
+</table>
+
+<p>If you downloaded a source package file, run the following commands.</p>
+
+<table border="1">
+<tr><td>
+tar -zxf ccs-tools-1.5.2-20071205.tar.gz<br>
+make -C ccstools/ all install
+</td></tr>
+</table>
+
+<h2>Create Policy</h2>
+
+<p>Create /etc/ccs/profile.conf with the following contents.</p>
+
+<table border="1">
+<tr><td>
+MAC_FOR_FILE=1<BR>
+MAX_ACCEPT_ENTRY=1048576<BR>
+MAX_GRANT_LOG=0<BR>
+MAX_REJECT_LOG=0<BR>
+TOMOYO_VERBOSE=0<BR>
+</td></tr>
+</table>
+
+<p>Run the following command.</p>
+
+<table border="1">
+<tr><td>
+/usr/lib/ccs/init_policy.sh
+</td></tr>
+</table>
+
+<h1>Analysis</h1>
+
+<p>Reboot with TOMOYO Linux kernel.</p>
+
+<p>Run applications you want to analyze.</p>
+
+<p>You can see the list of programs executed until now by executing /usr/lib/ccs/editpolicy . Choose a program and press "Enter" to see the list of files accessed by the program.</p>
+
+<p>You can save the list of all accessed files until now as /etc/ccs/domain_policy.conf by executing /usr/lib/ccs/savepolicy .</p>
+
+</body>
+</html>
