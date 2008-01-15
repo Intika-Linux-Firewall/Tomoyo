@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Free Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -81,7 +81,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 		strcmp(fs->name, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
 		strcmp(fs->name, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
 		strcmp(fs->name, MOUNT_MAKE_SHARED_KEYWORD) == 0) dev_name = "any";
-	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 1, 0, 1, __FUNCTION__)) return -EINVAL; 
+	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 0, 0, 0, __FUNCTION__)) return -EINVAL; 
 	if ((dev = SaveName(dev_name)) == NULL || (dir = SaveName(dir_name)) == NULL) return -ENOMEM;
 	down(&lock);
 	for (ptr = mount_list; ptr; ptr = ptr->next) {
@@ -107,7 +107,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 	new_entry->dir_name = dir;
 	new_entry->fs_type = fs;
 	new_entry->flags = flags;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = mount_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -307,7 +307,6 @@ int CheckMountPermission(char *dev_name, char *dir_name, char *type, const unsig
 {
 	return CheckMountPermission2(dev_name, dir_name, type, *flags);
 }
-EXPORT_SYMBOL(CheckMountPermission);
 
 int AddMountPolicy(char *data, const int is_delete)
 {

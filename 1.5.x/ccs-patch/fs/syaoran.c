@@ -3,9 +3,9 @@
  *
  * Implementation of the Tamper-Proof Device Filesystem.
  *
- * Portions Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Portions Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to 2.4.30 and later.
  * See README.ccs for ChangeLog.
@@ -394,7 +394,7 @@ static void __exit exit_syaoran_fs(void)
 	unregister_filesystem(&syaoran_fs_type);
 }
 
-module_init(init_syaoran_fs)
-module_exit(exit_syaoran_fs)
+module_init(init_syaoran_fs);
+module_exit(exit_syaoran_fs);
 
 MODULE_LICENSE("GPL");

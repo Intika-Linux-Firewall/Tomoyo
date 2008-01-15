@@ -3,9 +3,9 @@
  *
  * Common functions for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -506,7 +506,6 @@ unsigned int CheckCCSFlags(const unsigned int index)
 #endif
 		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
 }
-EXPORT_SYMBOL(CheckCCSFlags);
 
 unsigned int TomoyoVerboseMode(void)
 {
@@ -518,7 +517,6 @@ unsigned int CheckCCSEnforce(const unsigned int index)
 {
 	return CheckCCSFlags(index) == 3;
 }
-EXPORT_SYMBOL(CheckCCSEnforce);
 
 unsigned int CheckDomainQuota(struct domain_info * const domain)
 {
@@ -542,7 +540,6 @@ unsigned int CheckCCSAccept(const unsigned int index, struct domain_info * const
 	if (CheckCCSFlags(index) != 1) return 0;
 	return CheckDomainQuota(domain);
 }
-EXPORT_SYMBOL(CheckCCSAccept);
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 {
@@ -553,7 +550,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) ptr->value[i] = ccs_control_array[i].current_value;
-			mb(); /* Instead of using spinlock. */
+			mb(); /* Avoid out-of-order execution. */
 			profile_ptr[profile] = ptr;
 		}
 	}
@@ -693,7 +690,7 @@ static int AddManagerEntry(const char *manager, u8 is_delete)
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->manager = saved_manager;
 	new_entry->is_domain = is_domain;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = policy_manager_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -1200,10 +1197,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.2   2007/12/05\n");
+	printk("SAKURA: 1.5.3-pre   2008/01/15\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.2   2007/12/05\n");
+	printk("TOMOYO: 1.5.3-pre   2008/01/15\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
@@ -1445,7 +1442,7 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 static int ReadVersion(struct io_buffer *head)
 {
 	if (!head->read_eof) {
-		if (io_printf(head, "1.5.2") == 0) head->read_eof = 1;
+		if (io_printf(head, "1.5.3-pre") == 0) head->read_eof = 1;
 	}
 	return 0;
 }
