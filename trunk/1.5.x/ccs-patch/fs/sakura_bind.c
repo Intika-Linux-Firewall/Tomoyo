@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Free Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -50,7 +50,7 @@ static int AddReservedEntry(const u16 min_port, const u16 max_port, const int is
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->min_port = min_port;
 	new_entry->max_port = max_port;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = reservedport_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {

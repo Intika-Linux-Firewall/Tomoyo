@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -165,7 +165,7 @@ static int AddGloballyReadableEntry(const char *filename, const int is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->filename = saved_filename;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = globally_readable_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -237,7 +237,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 	if (!group) {
 		if ((new_group = alloc_element(sizeof(*new_group))) == NULL) goto out;
 		new_group->group_name = saved_group_name;
-		mb(); /* Instead of using spinlock. */
+		mb(); /* Avoid out-of-order execution. */
 		if ((group = group_list) != NULL) {
 			while (group->next) group = group->next; group->next = new_group;
 		} else {
@@ -247,7 +247,7 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 	}
 	if ((new_member = alloc_element(sizeof(*new_member))) == NULL) goto out;
 	new_member->member_name = saved_member_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((member = group->first_member) != NULL) {
 		while (member->next) member = member->next; member->next = new_member;
 	} else {
@@ -343,7 +343,7 @@ static int AddPatternEntry(const char *pattern, const int is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->pattern = saved_pattern;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = pattern_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -417,7 +417,7 @@ static int AddNoRewriteEntry(const char *pattern, const int is_delete)
 	}
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->pattern = saved_pattern;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = no_rewrite_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -803,7 +803,6 @@ int CheckFilePerm(const char *filename0, const u8 perm, const char *operation)
 	fill_path_info(&filename);
 	return CheckFilePerm2(&filename, perm, operation, NULL);
 }
-EXPORT_SYMBOL(CheckFilePerm);
 
 int CheckExecPerm(const struct path_info *filename, struct file *filp)
 {
@@ -814,7 +813,6 @@ int CheckExecPerm(const struct path_info *filename, struct file *filp)
 	obj.path1_vfsmnt = filp->f_vfsmnt;
 	return CheckFilePerm2(filename, 1, "do_execve", &obj);
 }
-EXPORT_SYMBOL(CheckExecPerm);
 
 int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag)
 {
@@ -849,7 +847,6 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 	if (!is_enforce) error = 0;
 	return error;
 }
-EXPORT_SYMBOL(CheckOpenPermission);
 
 int CheckSingleWritePermission(const unsigned int operation, struct dentry *dentry, struct vfsmount *mnt)
 {
@@ -899,7 +896,6 @@ int CheckReWritePermission(struct file *filp)
 	if (!is_enforce) error = 0;
 	return error;
 }
-EXPORT_SYMBOL(CheckReWritePermission);
 
 int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2)
 {
@@ -944,6 +940,5 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 	if (!is_enforce) error = 0;
 	return error;
 }
-EXPORT_SYMBOL(CheckDoubleWritePermission);
 
 /***** TOMOYO Linux end. *****/

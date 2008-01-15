@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -138,7 +138,6 @@ int CheckSignalACL(const int sig, const int pid)
 	if (CheckCCSAccept(CCS_TOMOYO_MAC_FOR_SIGNAL, domain)) AddSignalEntry(sig, dest_pattern, domain, NULL, 0);
 	return 0;
 }
-EXPORT_SYMBOL(CheckSignalACL);
 
 int AddSignalPolicy(char *data, struct domain_info *domain, const int is_delete)
 {

@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -94,7 +94,7 @@ const char *GetLastName(const struct domain_info *domain)
 
 int AddDomainACL(struct acl_info *ptr, struct domain_info *domain, struct acl_info *new_ptr)
 {
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if (!ptr) domain->first_acl_ptr = (struct acl_info *) new_ptr;
 	else ptr->next = (struct acl_info *) new_ptr;
 	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
@@ -146,7 +146,7 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = domain_initializer_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -245,7 +245,7 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = domain_keeper_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -331,7 +331,7 @@ static int AddAliasEntry(const char *original_name, const char *aliased_name, co
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aliased_name = saved_aliased_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = alias_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -390,7 +390,7 @@ static int AddAggregatorEntry(const char *original_name, const char *aggregated_
 	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aggregated_name = saved_aggregated_name;
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((ptr = aggregator_list) != NULL) {
 		while (ptr->next) ptr = ptr->next; ptr->next = new_entry;
 	} else {
@@ -533,7 +533,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) ptr->is_deleted = 1;
 		domain->profile = profile;
 		domain->quota_warned = 0;
-		mb(); /* Instead of using spinlock. */
+		mb(); /* Avoid out-of-order execution. */
 		domain->is_deleted = 0;
 		goto out;
 	}
@@ -542,7 +542,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		struct domain_info *ptr = &KERNEL_DOMAIN;
 		domain->domainname = saved_domainname;
 		domain->profile = profile;
-		mb(); /* Instead of using spinlock. */
+		mb(); /* Avoid out-of-order execution. */
 		while (ptr->next) ptr = ptr->next; ptr->next = domain;
 	}
  out: ;

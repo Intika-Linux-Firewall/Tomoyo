@@ -3,9 +3,9 @@
  *
  * Implementation of the Tamper-Proof Device Filesystem.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -501,7 +501,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static int first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.5.2   2007/12/05\n");
+		printk("SYAORAN: 1.5.3-pre   2008/01/15\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);

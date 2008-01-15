@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -77,7 +77,7 @@ static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const 
 	if (!group) {
 		if ((new_group = alloc_element(sizeof(*new_group))) == NULL) goto out;
 		new_group->group_name = saved_group_name;
-		mb(); /* Instead of using spinlock. */
+		mb(); /* Avoid out-of-order execution. */
 		if ((group = group_list) != NULL) {
 			while (group->next) group = group->next; group->next = new_group;
 		} else {
@@ -94,7 +94,7 @@ static int AddAddressGroupEntry(const char *group_name, const u8 is_ipv6, const 
 		new_member->min.ipv4 = * (u32 *) min_address;
 		new_member->max.ipv4 = * (u32 *) max_address;
 	}
-	mb(); /* Instead of using spinlock. */
+	mb(); /* Avoid out-of-order execution. */
 	if ((member = group->first_member) != NULL) {
 		while (member->next) member = member->next; member->next = new_member;
 	} else {
@@ -445,36 +445,30 @@ int CheckNetworkListenACL(const int is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_LISTEN, (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkListenACL);
 
 int CheckNetworkConnectACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT), (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkConnectACL);
 
 int CheckNetworkBindACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_STREAM ? NETWORK_ACL_TCP_BIND : (sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_BIND : NETWORK_ACL_RAW_BIND), (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkBindACL);
 
 int CheckNetworkAcceptACL(const int is_ipv6, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, NETWORK_ACL_TCP_ACCEPT, (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkAcceptACL);
 
 int CheckNetworkSendMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkSendMsgACL);
 
 int CheckNetworkRecvMsgACL(const int is_ipv6, const int sock_type, const u8 *address, const u16 port)
 {
 	return CheckNetworkEntry(is_ipv6, sock_type == SOCK_DGRAM ? NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT, (const u32 *) address, ntohs(port));
 }
-EXPORT_SYMBOL(CheckNetworkRecvMsgACL);
 
 /***** TOMOYO Linux end. *****/

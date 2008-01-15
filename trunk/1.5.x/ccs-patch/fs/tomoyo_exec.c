@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -122,7 +122,6 @@ int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 	}
 	return error;
 }
-EXPORT_SYMBOL(CheckArgv0Perm);
 
 int AddArgv0Policy(char *data, struct domain_info *domain, const int is_delete)
 {

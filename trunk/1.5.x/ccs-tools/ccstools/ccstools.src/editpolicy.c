@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  */
 #include "ccstools.h"
@@ -1605,8 +1605,13 @@ static void split_acl(char *data, struct path_info *arg1, struct path_info *arg2
 	char *cp;
 	arg1->name = data;
 	cp = strstr(data, " if ");
-	if (cp) *cp++ = '\0';
-	else cp = "";
+	if (cp) {
+		char *cp2;
+		while ((cp2 = strstr(cp + 3, " if ")) != NULL) cp = cp2;
+		*cp++ = '\0';
+	} else {
+		cp = "";
+	}
 	arg3->name = cp;
 	cp = strchr(data, ' ');
 	if (cp) *cp++ = '\0';
@@ -1623,7 +1628,8 @@ static void try_optimize(const int current) {
 	int directive_index, directive_len, index;
 	struct path_info sarg1, sarg2, sarg3;
 	struct path_info darg1, darg2, darg3;
-	static const char *directive_list[30] = {
+#define max_optimize_directive_index 30
+	static const char *directive_list[max_optimize_directive_index] = {
 		[0]  = "1 ",
 		[1]  = "2 ",
 		[2]  = "3 ",
@@ -1655,17 +1661,25 @@ static void try_optimize(const int current) {
 		[28] = "allow_network RAW bind ",
 		[29] = "allow_network RAW connect ",
 	};
+	static int directive_list_len[max_optimize_directive_index];
+	static int first = 1;
+	if (first) {
+		first = 0;
+		for (directive_index = 0; directive_index < max_optimize_directive_index; directive_index++) {
+			directive_list_len[directive_index] = strlen(directive_list[directive_index]);
+		}
+	}
 	if (current < 0) return;
 	cp = generic_acl_list[current];
-	for (directive_index = 0; directive_index < 30; directive_index++) {
-		if (strncmp(cp, directive_list[directive_index], strlen(directive_list[directive_index])) == 0) break;
+	for (directive_index = 0; directive_index < max_optimize_directive_index; directive_index++) {
+		if (strncmp(cp, directive_list[directive_index], directive_list_len[directive_index]) == 0) break;
 	}
-	if (directive_index == 30) return;
+	if (directive_index == max_optimize_directive_index) return;
 	cp = strdup(cp);
 	if (!cp) return;
 	
 	directive = directive_list[directive_index];
-	directive_len = strlen(directive);
+	directive_len = directive_list_len[directive_index];
 
 	split_acl(cp + directive_len, &sarg1, &sarg2, &sarg3);
 	
@@ -1683,13 +1697,7 @@ static void try_optimize(const int current) {
 		if (pathcmp(&sarg3, &darg3)) continue;
 
 		/* Compare first word. */
-		if (directive_index == 20) {
-			/* Pathname component. */
-			if (pathcmp(&sarg1, &darg1)) {
-				/* allow_argv0 doesn't support path_group. */
-				if (darg1.name[0] == '@' || darg1.is_patterned || !PathMatchesToPattern(&darg1, &sarg1)) continue;
-			}
-		} else if (directive_index < 20) {
+		if (directive_index < 20) {
 			if (pathcmp(&sarg1, &darg1)) {
 				const int may_use_pattern = !darg1.is_patterned
 					&& (directive_index != 0) && (directive_index != 2) && (directive_index != 4) && (directive_index != 6);
@@ -1709,6 +1717,12 @@ static void try_optimize(const int current) {
 					/* Pathname component. */
 					if (!may_use_pattern || !PathMatchesToPattern(&darg1, &sarg1)) continue;
 				}
+			}
+		} else if (directive_index == 20) {
+			/* Pathname component. */
+			if (pathcmp(&sarg1, &darg1)) {
+				/* allow_argv0 doesn't support path_group. */
+				if (darg1.name[0] == '@' || darg1.is_patterned || !PathMatchesToPattern(&darg1, &sarg1)) continue;
 			}
 		} else if (directive_index == 21) {
 			/* Signal number component. */
@@ -2109,6 +2123,7 @@ static int GenericListLoop(void) {
 				} else {
 					printw("A/a        Add a new entry.\n"
 						   "D/d        Delete selected entries.\n");
+					if (current_screen == SCREEN_ACL_LIST) printw("O/o        Set selection state to other entries included in an entry at the cursor position.\n");
 				}
 				printw("Arrow-keys and PageUp/PageDown/Home/End keys for scroll.\n\n"
 					   "Press '?' to escape from this help.\n"); refresh();
