@@ -1127,3 +1127,11 @@ Fix 2008/01/03
       common part.
 
       These changes will reduce memory used by policy.
+
+Fix 2008/01/15
+
+    @ Add ptrace() hook.
+
+      To prevent attackers from controlling important processes using
+      ptrace(), I added a hook for ptrace().
+      Most programs (except strace(1) and gdb(1)) won't use ptrace(2).

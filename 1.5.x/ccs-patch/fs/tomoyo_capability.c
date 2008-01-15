@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/04
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -245,7 +245,7 @@ int CheckCapabilityACL(const u8 operation)
 			cond = p->condition;
 			break;
 		}
-		if (acl->operation != operation || !CheckCondition(cond, NULL)) continue;
+		if (acl->is_deleted || acl->operation != operation || !CheckCondition(cond, NULL)) continue;
 		found = 1;
 		break;
 	}
