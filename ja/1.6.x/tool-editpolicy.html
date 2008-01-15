@@ -1,0 +1,221 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<HTML lang="ja-JP">
+<HEAD>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>ポリシーエディタの使い方</title>
+<link rel=stylesheet href="tomoyo.css" media=all>
+</HEAD>
+<body>
+<p style="text-align:right;"><a href="../../en/1.5.x/tool-editpolicy.html">English Page</a></p>
+<h1>ポリシーエディタの使い方</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>基本操作</h1>
+
+<h2>（０）ポリシーエディタを使う前に</h2>
+
+<p>TOMOYO Linux には、 CUI で動作するポリシーエディタが付属しています。</p>
+
+<p>予め /proc/ccs/manager に「editpolicy が動作するドメインのドメイン名」または「editpolicy へのパス名（通常は /usr/lib/ccs/editpolicy ）」が登録されている必要があります。</p>
+
+<p>シェルプロンプトから editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
+
+<h2>（１）ポリシーエディタを終了するには</h2>
+
+<p>ポリシーエディタを終了するには、「Q」キーを押します。</p>
+
+<h2>（２）最新の情報に更新するには</h2>
+
+<p>最新の情報に更新するには、「R」キーを押します。</p>
+
+<h2>（３）カーソルを移動させるには</h2>
+
+<p>カーソルを移動させるには「↑」「↓」キーまたは「PageUp」「PageDown」キーを押します。</p>
+
+<h2>（４）横方向にスクロールさせるには</h2>
+
+<p>横方向にスクロールさせるには、「←」「→」キーまたは「Home」「End」キーを押します。</p>
+
+<h2>（５）検索するには</h2>
+
+<p>検索を開始するには、「F」キーを押して、検索したい文字列を入力し、最後に「Enter」キーを押します。<br>
+<img src="editpolicy/find-first.png" alt="Find First" WIDTH="720" HEIGHT="400"></p>
+
+<p>前回入力した文字列で順方向（下方向）に検索を続行するには、「N」キーを押します。</p>
+
+<p>前回入力した文字列で逆方向（上方向）に検索を続行するには、「P」キーを押します。</p>
+
+<h2>（６）画面を切り替えるには</h2>
+
+<p>ポリシーエディタには４つの画面があります。</p>
+
+<table border="0">
+<tr><td>(1) ドメイン遷移一覧画面</td></tr>
+<tr><td>(2) システムポリシーの編集画面</td></tr>
+<tr><td>(3) 例外ポリシーの編集画面</td></tr>
+<tr><td>(4) ドメインに対するアクセス許可の編集画面</td></tr>
+</table>
+
+<p>「Tab」キーを押すと(1)→(2)→(3)→(1)の順番で画面が切り替わります。</p>
+
+<p>(1)の画面において「Enter」キーを押すと、(4)に切り替わります。</p>
+<p>(4)の画面において「Enter」キーまたは「Tab」キーを押すと(1)に切り替わります。</p>
+
+<p>ドメイン遷移一覧画面の例<br>
+<img src="editpolicy/domain-list.png" alt="Screen for Domain List" WIDTH="720" HEIGHT="400"></p>
+<p>システムポリシーの編集画面の例<br>
+<img src="editpolicy/system-policy.png" alt="Screen for System Policy" WIDTH="720" HEIGHT="400"></p>
+<p>例外ポリシーの編集画面の例<br>
+<img src="editpolicy/exception-policy.png" alt="Screen for Exception Policy" WIDTH="720" HEIGHT="400"></p>
+<p>ドメインに対するアクセス許可の編集画面の例<br>
+<img src="editpolicy/domain-policy.png" alt="Screen for Domain Policy" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（７）エントリを追加するには</h2>
+
+<p>エントリを追加するには、「A」キーを押して、追加したい内容を入力し、最後に「Enter」キーを押します。入力した内容はヒストリに残っており「Insert」キーでヒストリの内容を確認できます。ヒストリの内容を呼び出すには「↑」「↓」キーを使います。</p>
+
+<p>ドメイン遷移一覧画面の例<br>
+<img src="editpolicy/add-domain-list.png" alt="Adding an entry into  List" WIDTH="720" HEIGHT="400"></p>
+
+<p>システムポリシーの編集画面の例<br>
+<img src="editpolicy/add-system-policy.png" alt="Adding System Policy" WIDTH="720" HEIGHT="400"></p>
+
+<p>例外ポリシーの編集画面の例<br>
+<img src="editpolicy/add-exception-policy.png" alt="Adding Exception Policy" WIDTH="720" HEIGHT="400"></p>
+
+<p>ドメインに対するアクセス許可の編集画面の例<br>
+<img src="editpolicy/add-domain-policy.png" alt="Adding Domain Policy" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（８）エントリを選択するには</h2>
+
+<p>エントリを選択するには、選択したいエントリにカーソルを合わせて「スペース」キーを押します。選択されると行頭に「&amp;」マークが表示されます。<br>
+<img src="editpolicy/select.png" alt="Selecting an entry" WIDTH="720" HEIGHT="400"></p>
+
+<p>もう一度「スペース」キーを押すと選択解除されます。選択解除されると行頭の「&amp;」マークが消えます。</p>
+
+<h2>（９）エントリを一括選択するには</h2>
+
+<p>「C」キーを押すと、カーソルのある行の選択状態（行頭の「&amp;」マークの有無）がカーソル行以下の全エントリに複写されます。<br>
+<img src="editpolicy/copy.png" alt="Copying selection state" WIDTH="720" HEIGHT="400"></p>
+
+<p>特定の範囲のみを選択するには、選択対象となる最初のエントリにカーソルを合わせて「&amp;」マークを表示させてから「C」キーを押し、選択対象となる最後のエントリの次のエントリにカーソルを合わせて「&amp;」マークを消してから「C」キーを押します。</p>
+
+<h2>（１０）エントリを削除するには</h2>
+
+<p>削除したいエントリを１個以上選択してから「D」キーを押します。削除を確認するためのプロンプトが表示されるので、「Y」キーを押すと削除されます。<br>
+<img src="editpolicy/delete.png" alt="Deleting selected entries" WIDTH="720" HEIGHT="400"></p>
+
+<h1>ドメイン遷移一覧画面に固有の機能</h1>
+
+<h2>（０）この画面について</h2>
+
+<p>ドメイン遷移一覧画面では、インデント付きのツリー構造でドメイン遷移の一覧が表示されます。起こりうるドメイン遷移の組み合わせをこの画面で確認することができます。</p>
+
+<p>「行番号」の右側には、そのドメインに割り当てられている「プロファイル番号」が表示されます。
+プロファイル番号の右側には、そのドメインのドメイン名に含まれる最後の「プログラムのパス名」が表示されます。「プロファイル番号」と「プログラムのパス名」の間には、ドメインの属性に応じて「#」「*」「!」が表示される場合があります。</p>
+
+<h2>（１）ドメインのプロファイル番号を変更する方法について</h2>
+
+<p>プロファイルの割り当てを変更したいドメインを１個以上選択してから「S」キーを押します。すると、プロファイル番号の入力を求めるプロンプトが表示されるので、プロファイル番号を入力し、最後に「Enter」キーを押します。<br>
+<img src="editpolicy/profile.png" alt="Setting profile number" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（２）「!」マークが表示されているドメインについて</h2>
+
+<p>「!」マークが表示されているドメインは、 initialize_domain 構文または keep_domain 構文により到達できないドメインであることを示しています。到達できない理由が「プログラムのパス名」の右側に表示されます。<br>
+<img src="editpolicy/unreachable.png" alt="Unreachable Domain" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（３）「*」マークが表示されているドメインについて</h2>
+
+<p>「*」マークが表示されているドメインは、 initialize_domain 構文により複数のドメインからこのドメインに遷移する可能性があることを示しています。「*」マークが表示されていないドメインはそのドメインの親ドメインからのみ遷移します。<br>
+<img src="editpolicy/initialize_domain-dest.png" alt="Initialization Target" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（４）「#」マークが表示されているドメインについて</h2>
+
+<p>「#」マークが表示されているドメインは、 keep_domain 構文により複数のプログラムがこのドメインで動作する（プログラムを実行してもドメイン遷移が発生しない）可能性があることを示しています。<br>
+<img src="editpolicy/keep_domain.png" alt="Keeping Domain" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（５）プログラムのパス名の後ろに「( -&gt; 数字 )」という表示があるドメインについて</h2>
+
+<p>これは実際のドメインではありません。「プログラムのパス名」が initialize_domain 構文により指定されているために、親ドメインから実行されると「数字」が示す行番号のドメインへ遷移することを示しています。<br>
+<img src="editpolicy/initialize_domain-src.png" alt="Initialization Source" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（６）プログラムのパス名の後ろに「( -&gt; Not Found )」という表示があるドメインについて</h2>
+
+<p>これは実際のドメインではありません。「プログラムのパス名」が initialize_domain 構文により指定されていますが、遷移先のドメインがまだ作成されていないことを示しています。<br>
+<img src="editpolicy/initialize_domain-nodest.png" alt="No Initialization Target" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（７）「( プログラムのパス名 )」という表示があるドメインについて</h2>
+
+<p>ドメインが削除されたなどの理由により、このドメインが存在していないことを示しています。インデントを崩さないようにするために、親ドメインが存在しないのに子孫ドメインが存在している場合にのみ表示されます。このドメインを作成するには、このドメインにカーソルを合わせて「Insert」→「A」→「↑」→「Enter」キーの順に入力してください。<br>
+<img src="editpolicy/deleted-domain.png" alt="Deleted Domain" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（８）ドメイン遷移を初期化する方法について</h2>
+
+<p>TOMOYO Linux では原則としてプログラムを実行する度にドメイン遷移を行うので、同じプログラムでも親ドメインが異なれば異なるドメインに属することになりますが、デーモンとして動作するプログラムの場合は親ドメインに関わらず同一のドメインで動作してくれる方が都合が良いことがあります。そのような場合は initialize_domain 構文と no_initialize_domain 構文を使うことで親ドメインに関わらず &lt;kernel&gt; 直下のドメインで動作させることができます。</p>
+
+<p>例として、 /usr/sbin/sendmail.sendmail を常に &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインで動作させる方法を示します。</p>
+<p>initialize_domain を指定する前は以下のように複数のドメインで同一のプログラムが実行されています。<br>
+<img src="editpolicy/before-initialize_domain-1.png" alt="Before initialize_domain" WIDTH="720" HEIGHT="400"><br>
+<img src="editpolicy/before-initialize_domain-2.png" alt="Before initialize_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから initialize_domain /usr/sbin/sendmail.sendmail と入力し、「Enter」キーを押します。これは、 /usr/sbin/sendmail.sendmail が実行された場合には &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインへ遷移するということを意味します。<br>
+<img src="editpolicy/adding-initialize_domain.png" alt="Adding initialize_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>その後、ドメイン一覧画面に戻ると、既に作成されたドメインに「!」マークが現れています。さらに、遷移先である &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインがまだ作成されていないので「（-&gt; Not Found）」という表示も現れています。<br>
+<img src="editpolicy/after-initialize_domain.png" alt="After initialize_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>「（-&gt; Not Found）」という表示を消すために、「A」キーを押して &lt;kernel&gt; /usr/sbin/sendmail.sendmail と入力し、「Enter」キーを押します。<br>
+<img src="editpolicy/adding-initialize_domain-target.png" alt="Adding initialization target" WIDTH="720" HEIGHT="400"></p>
+
+<p>すると、「（-&gt; Not Found）」という表示は遷移先の行番号に変化しました。<br>
+<img src="editpolicy/after-initialize_domain-target.png" alt="After initialize_domain target" WIDTH="720" HEIGHT="400"><br>
+<img src="editpolicy/added-initialize_domain-target.png" alt="Added initialization target" WIDTH="720" HEIGHT="400"></p>
+
+<p>しかし、 /bin.mail から /usr/sbin/sendmail.sendmail が実行される場合はデーモンとして動作させるわけではないため、 &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインへ遷移させたくないと考えるかもしれません。<br>
+<img src="editpolicy/before-no_initialize_domain.png" alt="Before no_initialize_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>そのような場合、例外ポリシー編集画面に切り替えて、「A」キーを押してから no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail と入力し、「Enter」キーを押します。これは、ドメイン名が /bin/mail で終わるドメインから /usr/sbin/sendmail.sendmail が実行される場合には &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインへ遷移させないということを意味します。<br>
+<img src="editpolicy/adding-no_initialize_domain.png" alt="Adding no_initialize_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>ドメイン一覧画面に戻ると、 /bin/mail から実行される /usr/sbin/sendmail.sendmail には「!」マークが消えていることを確認できます。<br>
+<img src="editpolicy/after-no_initialize_domain.png" alt="After no_initialize_domain" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（９）ドメイン遷移を抑制する方法について</h2>
+
+<p>TOMOYO Linux では原則としてプログラムを実行する度にドメイン遷移を行いますが、 keep_domain 構文と no_keep_domain 構文を使うことで不要なドメイン遷移を抑制できます。</p>
+
+<p>例として、コンソールからログインしたドメイン（&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash）ではドメイン遷移をさせないようにする方法を示します。</p>
+<p>keep_domain を指定する前は以下のようなドメイン遷移が発生しています。<br>
+<img src="editpolicy/before-keep_domain.png" alt="Before keep_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash と入力し、「Enter」キーを押します。<br>
+<img src="editpolicy/adding-keep_domain-1.png" alt="Adding keep_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash ドメインの行に「#」という表示が現れ、その子孫ドメインには「!」という表示が現れます。<br>
+<img src="editpolicy/after-keep_domain-1.png" alt="After keep_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>ログインしてから man コマンドを実行していますが、 man コマンドは複雑な処理をするので別ドメインで動作させることにします。<br>
+<img src="editpolicy/before-no_keep_domain.png" alt="Before no_keep_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから no_keep_domain /usr/bin/man from /bin/bash （または no_keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash）と入力し、「Enter」キーを押します。<br>
+<img src="editpolicy/adding-no_keep_domain.png" alt="Adding no_keep_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ドメインとその子孫ドメインから「!」という表示が消えました。<br>
+<p><img src="editpolicy/after-no_keep_domain.png" alt="After no_keep_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>/usr/bin/man コマンドからいくつかのコマンドが実行されていますが、これらはドメイン遷移させる必要が無いので、ドメイン遷移をさせないことにします。例外ポリシー編集画面に切り替えて、「A」キーを押してから keep_domain /usr/bin/man（または keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ）と入力し、「Enter」キーを押します。<br>
+<img src="editpolicy/adding-keep_domain-2.png" alt="Addint keep_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ドメインの行に「#」という表示が現れ、その子孫ドメインには「!」という表示が現れます。<br>
+<img src="editpolicy/after-keep_domain-2.png" alt="After keep_domain" WIDTH="720" HEIGHT="400"></p>
+
+<p>到達不能になったドメインは残しておいても無駄なので、削除することにします。「!」というマークが表示されている行を「スペース」キーを使って選択し、「D」キーを押してから「Y」キーを押すことで削除できます。<br>
+<img src="editpolicy/before-delete.png" alt="Before deleting unreachable domains" WIDTH="720" HEIGHT="400"></p>
+
+<p>到達不能になったドメインの削除後は以下のようになります。<br>
+<img src="editpolicy/after-delete.png" alt="After deleting unreachable domains" WIDTH="720" HEIGHT="400"></p>
+
+<p>アクセス制限を行うことが目的である場合は、再度学習を行い、最後に強制モード用のプロファイルを割り当てることを忘れないでください。</p>
+</body>
+</html>

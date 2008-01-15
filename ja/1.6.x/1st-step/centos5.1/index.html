@@ -1,0 +1,420 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書 （CentOS 5.1版）</title>
+<link rel="stylesheet" href="../startup.css" media="all" type="text/css">
+<link rev="made" href="mailto:k.takeda26@gmail.com"> 
+</head>
+<body>
+<p style="text-align:right;"><a href="../../../../en/1.5.x/1st-step/centos5.1/index.html">English Page</a></p>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （CentOS 5.1版）</h1>
+
+<ul>
+<li><a href="#l1">概要</a></li>
+<li><a href="#l2">カーネルのインストール</a></li>
+<li><a href="#l3">ツールのインストール</a></li>
+<li><a href="#l4">自動設定スクリプトの実行</a>
+<li><a href="#l5">監査ログの取得準備</a></li>
+<li><a href="#l6">運用</a>
+<ul>
+<li><a href="#l7">システムの起動</a></li>
+<li><a href="#l8">ログイン後の操作の学習</a></li>
+<li><a href="#l9">ポリシーの参照</a></li>
+<li><a href="#l10">強制アクセス制御</a></li>
+</ul></li>
+</ul>
+
+<h2><a name="l1">概要</a></h2>
+
+<p>以下では、CentOS 5.1にTOMOYO Linux 1.5.2を導入する手順を解説します。
+この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
+
+<p>導入の流れは以下の通りです。</p>
+
+<ol>
+<li>カーネルとツールのインストール</li>
+<li>基本的な設定</li>
+<li>ポリシーの自動学習と試験運用</li>
+</ol>
+
+<h2><a name="l2">カーネルのインストール</a></h2>
+
+<p>CentOSは、インストール時のデフォルトでSELinuxが有効になっています。
+本来TOMOYO LinuxとSELinuxは共存が可能ですが、混乱を避けるためにSELinuxを無効にしておくことを推奨します。</p>
+
+<p>SELinuxを無効にするには、/etc/selinux/configファイルのSELINUX=の行を以下のように変更します。</p>
+
+<pre>
+SELINUX=<span class="user">disabled</span>
+</pre>
+
+<p>変更が終わったらLinuxを再起動して、getenforceコマンドでSELinuxが無効になっているかを確かめてください。</p>
+
+<pre>
+# <span class="user">getenforce</span>
+Disabled
+</pre>
+
+<p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
+しかしCentOS 5.1の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
+
+<p>まずはパッケージをダウンロードします。</p>
+
+<pre>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.18-53.1.4.el5_tomoyo_1.5.2.i686.rpm</span>
+</pre>
+
+<p>次に、ダウンロードしてきたパッケージをインストールします。</p>
+
+<pre>
+# <span class="user">rpm --install kernel-2.6.18-53.1.4.el5_tomoyo_1.5.2.i686.rpm</span>
+</pre>
+
+<p>この際特にメッセージは表示されませんが、インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
+
+<pre>
+title CentOS (2.6.18-53.1.4.el5_tomoyo_1.5.2)
+    root (hd0,0)
+    kernel /vmlinuz-2.6.18-53.1.4.el5_tomoyo_1.5.2 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.18-53.1.4.el5_tomoyo_1.5.2.img
+</pre>
+
+<p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
+
+<pre>
+<span class="user">#</span>timeout=5
+</pre>
+
+<pre>
+<span class="user">#</span>hiddenmenu
+</pre>
+
+<h2><a name="l3">ツールのインストール</a></h2>
+
+<p>カーネルの次は、TOMOYO Linuxのツールをインストールします。
+ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
+
+<p>バイナリパッケージが用意されていますので、それを利用します。</p>
+
+<pre>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.CentOS5.1.i386.rpm</span>
+# <span class="user">rpm -ivh ccs-tools-1.5.2-1.CentOS5.1.i386.rpm</span>
+</pre>
+
+<p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
+bashを使っている場合には以下のようにします。</p>
+
+<pre>
+# <span class="user">echo 'export PATH=$PATH:/usr/lib/ccs' &gt;&gt; ~/.bashrc</span>
+# <span class="user">source ~/.bashrc</span>
+</pre>
+
+<p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
+
+<h2><a name="l4">自動設定スクリプトの実行</a></h2>
+
+<p>この節の操作を自動で行うスクリプトが付属しているのでそれを実行します。</p>
+
+<pre># <span class="user">init_policy.sh --file-only-profile</span></pre>
+
+<p>init_policy.shは10分以上時間を要する場合がありますので気長にお待ちください。</p>
+
+<h3>設定の保存ディレクトリについて</h3>
+
+<p>TOMOYO Linuxの設定を保存するディレクトリは/etc/ccsです。</p>
+
+<h3>プロファイルについて</h3>
+
+<p>TOMOYO Linuxには多くの機能があり、どの機能をON/OFFにするのかの設定をプロファイルとよびます。
+プロファイルは複数作成して切り替えて使うことができます。
+すべてのプロファイルは/etc/ccs/profile.confという単一のファイルに保存します。</p>
+<p>今回はファイルに対するアクセス制御の機能のみを利用するため、
+/etc/ccs/profile.confの内容は以下のようなっているはずです。</p>
+
+<pre>
+0-COMMENT=-----DISABLED_MODE-----
+0-MAC_FOR_FILE=0
+0-TOMOYO_VERBOSE=0
+1-COMMENT=-----LEARNING_MODE-----
+1-MAC_FOR_FILE=1
+1-TOMOYO_VERBOSE=0
+2-COMMENT=-----PERMISSIVE_MODE-----
+2-MAC_FOF_FILE=2
+2-TOMOYO_VERBOSE=1
+3-COMMENT=-----ENFORCE_MODE-----
+3-MAC_FOR_FILE=3
+3-TOMOYO_VERBOSE=1
+</pre>
+
+<p>profile.confの1行は以下のような構文になっています。</p>
+
+<pre>
+（プロファイル番号）-（設定項目）=（制御モード）
+</pre>
+
+<p>すなわち、行頭の番号がプロファイルを切り替えるためのプロファイル番号で、
+'=' の左が設定項目、'=' の右が制御モードです。</p>
+
+<p>設定項目COMMENTは、プロファイルを区別しやすくするためのコメントで、TOMOYO Linuxの機能には影響を与えません。</p>
+
+<p>設定項目MAC_FOR_FILEは「ファイルに対するアクセス制御」を表しており、
+制御モードが0なら無効、1なら学習、2なら確認（アクセス拒否ログを出力するが実際には拒否しない）、3なら強制、という設定が行えます。</p>
+
+<p>設定項目TOMOYO_VERBOSEは「アクセス拒否の情報をコンソールに出力するかどうか」を表しており、
+制御モードが0なら出力なし、1なら出力ありになります。</p>
+
+<p>上記設定では、プロファイル番号が0～3の4つのプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
+
+<table><tbody>
+<tr><th>プロファイル0</th><td>ファイルに対するアクセス制御を無効にする、コンソールにアクセス拒否を出力しない</td></tr>
+<tr><th>プロファイル1</th><td>ファイルに対するアクセス制御を学習モードにする、コンソールにアクセス拒否を出力しない</td></tr>
+<tr><th>プロファイル2</th><td>ファイルに対するアクセス制御を確認モードにする、コンソールにアクセス拒否を出力する</td></tr>
+<tr><th>プロファイル3</th><td>ファイルに対するアクセス制御を強制モードにする、コンソールにアクセス拒否を出力する</td></tr>
+</tbody></table>
+
+<p>プロファイル1の学習モードで行ったアクセスを元にポリシーを作成し、
+プロファイル2の確認モードで仮運用して必要なポリシーが作成できているかを確かめ、
+プロファイル3の強制モードで本運用としてアクセス制御を行う、
+というのが基本的な運用の流れです。</p>
+
+<h3>ポリシーの変更を許可するプログラムについて</h3>
+
+<p>ポリシーを変更することができるプログラムは、/etc/ccs/manager.confというファイルで指定します。
+以下のプログラムが指定されているはずです。</p>
+
+<pre>
+/usr/lib/ccs/loadpolicy
+/usr/lib/ccs/editpolicy
+/usr/lib/ccs/setlevel
+/usr/lib/ccs/setprofile
+/usr/lib/ccs/ld-watch
+/usr/lib/ccs/ccs-queryd
+</pre>
+
+<h3>例外ポリシーについて</h3>
+
+<p>/etc/ccs/exception_policy.conf には以下の7種類の例外が指定されています。</p>
+
+<ol>
+<li>/proc/PID のように同様のパス名をパターン化する際のパターン名</li>
+<li>すべてのプログラムに対して参照することを許可するパス名</li>
+<li>デーモンとして動作させるプログラムのパス名</li>
+<li>ドメイン遷移を行わないドメイン</li>
+<li>追記を許可して書き換えを禁止するファイルのパス名</li>
+<li>1つに集約して扱うプログラムのパス名</li>
+<li>シンボリックリンクの名前で実行するプログラムのパス名</li>
+</ol>
+
+<h2><a name="l5">監査ログの取得準備</a></h2>
+
+<p>TOMOYO Linuxのログは、アクセスが許可された要求のログと、アクセスが拒否された要求のログの2種類に分けることができます。
+今回は、アクセス拒否ログのみを保存する設定を行います。</p>
+
+<p>ログを保存するには、ccs-toolsのccs-auditdというデーモンプログラムを使用します。
+アクセス拒否ログのみを保存する設定でccs-auditdをLinuxの起動時に実行するには、
+以下のコマンドで/etc/rc.d/rc.localの末尾にccs-auditdの起動コマンドを追加します。</p>
+
+<pre>
+# <span class="user">echo "/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
+</pre>
+
+<p>この設定では、/var/log/tomoyo/reject_log.txtにアクセス拒否ログが保存されます。
+ログを保存するディレクトリをあらかじめ作っておきます。</p>
+
+<pre>
+# <span class="user">mkdir -p /var/log/tomoyo</span>
+</pre>
+
+<p>以上でTOMOYO Linuxを使うための基本的な設定は終わりです。</p>
+
+<h2><a name="l6">運用</a></h2>
+
+<p>それでは、いよいよTOMOYO Linuxカーネルで起動してみましょう。</p>
+
+<h3><a name="l7">システムの起動</a></h3>
+
+<p>まずはLinuxを再起動します。</p>
+
+<pre>
+# <span class="user">reboot</span>
+</pre>
+
+<p>カーネルの選択画面でTOMOYO Linuxのカーネルを選択してEnterを押します。</p>
+
+<p><img alt="TOMOYO Linuxのカーネルを選択" title="TOMOYO Linuxのカーネルを選択" width="640" height="480" src="grub.png"></p>
+
+<p>起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
+
+<p><img alt="rootでログイン" title="rootでログイン" width="720" height="400" src="login.png"></p>
+
+<h3><a name="l8">ログイン後の操作の学習</a></h3>
+
+<p>今回は、以下の操作をTOMOYO Linuxに学習させ、強制モードでは学習させた操作以外が拒否されることを確かめます。</p>
+
+<ol>
+<li>dateコマンドを実行する</li>
+<li>headコマンドで/etc/passwdの先頭3行を表示する</li>
+<li>tcshを起動する</li>
+<li>tailコマンドで/etc/passwdの末尾3行を表示する</li>
+<li>tcshを終了する</li>
+</ol>
+
+<p>まずは学習モードの設定を行います。</p>
+
+<p>プロファイル1が学習モードです。
+このプロファイルを以下のコマンドで/sbin/mingettyから起動されるプログラムに割り当てます。
+</p>
+
+<pre>
+# <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/mingetty'</span>
+</pre>
+
+<p>このコマンドは、</p>
+
+<blockquote><p>/sbin/mingettyから起動されるプログラムすべてにプロファイル1を割り当てる</p></blockquote>
+
+<p>という意味です。/sbin/mingettyはログインシェルを起動するプログラムで、
+/sbin/mingetty以下にプロファイル1を割り当てることで、ログイン後の操作を学習する設定になります。
+設定は即時に有効になるので、上記setprofileコマンドを実行したあとは既に学習モードになっています。</p>
+
+<p>&lt;kernel&gt; /sbin/mingettyを引用符で囲まないと、シェルのリダイレクト機能が働いて
+/sbin/mingettyの内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
+
+<p>それでは、前述の4つの操作を学習させましょう。学習は通常のLinuxのように操作することで行えます。</p>
+
+<p><img alt="操作の学習" title="操作の学習" width="720" height="400" src="ope_learning.png"></p>
+
+<p>一見普通のLinuxと変わりなく操作できますが、
+裏ではTOMOYO Linuxがアクセス許可を監視し、
+操作ごとにポリシーとしてメモリ上に記憶しています。</p>
+
+<h3><a name="l9">ポリシーの参照</a></h3>
+
+<p>生成されたポリシーの参照・編集には、ccs-toolsのeditpolicyを用います。</p>
+
+<pre>
+# <span class="user">editpolicy</span>
+</pre>
+
+<p>editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
+この「プロセスの呼び出し」を、TOMOYO Linuxでは「ドメイン遷移」とよびます。</p>
+
+<p><img alt="ドメイン遷移" title="ドメイン遷移" width="720" height="400" src="editpolicy1.png"></p>
+
+<p>ドメイン遷移の中から、mingettyを探してみてください。ドメイン遷移からmingettyを検索するには、
+'f'キーを押して、下に出たプロンプトで"mingetty"と入力してEnterキーを押します。</p>
+
+<p><img alt="mingetty以下のドメイン" title="mingetty以下のドメイン" width="720" height="400" src="editpolicy2.png"></p>
+
+<p>行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/mingetty 以下のドメインが 1 になっているのは、先ほど setprofile コマンドを用いて 1 を割り当てたためです。</p>
+
+<p>/sbin/mingetty下の/bin/login以下では、ログインしてからのプロセス実行履歴が分かります。
+その中からさらに、/usr/bin/headコマンドを探してみてください。
+headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
+
+<p><img alt="headのポリシー" title="headのポリシー" width="720" height="400" src="editpolicy3.png"></p>
+
+<p>これは先ほどの操作で学習したポリシーで、</p>
+
+<blockquote>
+<p>&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
+<ul>
+<li>/etc/passwdへの読み込みアクセスを許可する（青下線）</li>
+</ul>
+</blockquote>
+
+<p>ということを意味しています。</p>
+
+<p>TOMOYO Linuxでは、
+「プログラムの絶対パスで表現したプロセスの実行履歴」をドメインとよびます。
+すべてのプロセスはいずれか1つのドメインに所属しており、
+アクセス制御はドメインごとにポリシーとして設定します。</p>
+
+<p>ドメインにおけるファイルに対するアクセス許可は、
+通常のLinuxにおけるファイルに対するパーミッションと
+同様の3種類（読み込み・書き込み・実行）の他にも、
+ファイルの新規作成・削除・名前変更なども設定できます。</p>
+
+<p>ポリシーはメモリ上に置かれており、このままLinuxをシャットダウンしてしまうと、
+学習したポリシーも失われてしまいます。ポリシーをハードディスクの/etc/ccs以下に
+保存するには以下のようにします。</p>
+
+<pre>
+# <span class="user">savepolicy</span>
+</pre>
+
+<h3><a name="l10">強制アクセス制御</a></h3>
+
+<p>それでは、先ほど自動学習したポリシーを使って、強制アクセス制御を体験してみましょう。</p>
+
+<p>'q'キーでeditpolicyを終了してから、以下のコマンドを実行します。</p>
+
+<pre>
+# <span class="user">setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty'</span>
+</pre>
+
+<p>この操作により、/sbin/mingetty以下のドメインに強制アクセス制御が適用されるようになります。</p>
+
+<p>この状態で以下の操作を行ってみます。</p>
+
+<ol>
+<li>dateコマンドを実行</li>
+<li>headコマンドで/etc/passwdの先頭3行を表示</li>
+<li>tailコマンドで/etc/passwdの末尾3行を表示（エラー）</li>
+<li>headコマンドで/etc/shadowの先頭3行を表示（エラー）</li>
+<li>tcshを起動</li>
+<li>dateコマンドを実行（エラー）</li>
+</ol>
+
+<p><img alt="強制アクセス制御の様子" title="強制アクセス制御の様子" width="720" height="400" src="ope_enforcing.png"></p>
+
+<p>図中の赤下線のコマンドは先ほど学習モードで行った操作ですので、問題なく実行できます。
+逆に青下線のコマンドはエラーになります。</p>
+
+<p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
+
+<pre>
+#2007-09-23 20:24:39# pid=2199 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
+1 /usr/bin/tail
+
+#2007-09-23 20:24:39# pid=2199 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
+4 /usr/bin/tail
+
+#2007-09-23 20:24:42# pid=2200 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head
+4 /etc/shadow
+
+#2007-09-23 20:24:45# pid=2222 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh
+1 /bin/date
+</pre>
+
+<p>このようにTOMOYO Linuxのファイルに対するアクセス制御を用いれば、</p>
+
+<ul>
+<li>どのような実行履歴を持つプロセスが</li>
+<li>いつ</li>
+<li>どんなファイルに</li>
+<li>どんなアクセスを</li>
+</ul>
+
+<p>行ったかを監視することもできます。</p>
+
+<hr>
+<address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
+<a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
+Last modified: $Date$<br>
+<!--#include virtual="/cgi-bin/counter.pl" -->
+</address>
+
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+
+<p><a href="http://validator.w3.org/check?uri=referer">
+<img src="http://www.w3.org/Icons/valid-html401" alt="Valid HTML 4.01 Strict" height="31" width="88"></a></p>
+
+</body>
+</html>
