@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.2   2007/12/05
+ * Version: 1.5.3-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -232,8 +232,12 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 		
 	if (!skb) return 0;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 	if (in_interrupt()) return 0;
-	
+#else
+	if (in_atomic()) return 0;
+#endif
+
 	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
 	
 	if (type != SOCK_DGRAM && type != SOCK_RAW) return 0;

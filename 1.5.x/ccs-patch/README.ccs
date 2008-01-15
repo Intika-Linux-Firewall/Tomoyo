@@ -1077,4 +1077,10 @@ Fix 2008/01/15
       but also "both source and dest are non-directory".
       I was rejecting if dest is not a directory in AddMountACL().
 
+    @ Fix sleep condition check in CheckSocketRecvDatagramPermission().
+
+      It seems that correct method to use is in_atomic()
+      rather than in_interrupt() because in_atomic() returns nonzero
+      whenever scheduling is not allowed.
+
 Version 1.5.3 2008/??/??   Minor update release.

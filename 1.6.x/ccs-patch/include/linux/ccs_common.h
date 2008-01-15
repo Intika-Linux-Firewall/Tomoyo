@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/04
+ * Version: 1.6.0-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -30,6 +30,9 @@
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 #include <linux/kmod.h>
+#include <asm/hardirq.h>
+#else
+#include <linux/hardirq.h>
 #endif
 
 #ifndef __user
@@ -552,6 +555,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 struct domain_info *UndeleteDomain(const char *domainname0);
 bool CheckCCSQuota(struct domain_info * const domain);
 unsigned int CheckCCSFlags(const u8 index);
+unsigned int CheckCCSFlags_NoSleepCheck(const u8 index);
 bool CheckDomainQuota(struct domain_info * const domain);
 bool TomoyoVerboseMode(void);
 void UpdateCounter(const unsigned char index);

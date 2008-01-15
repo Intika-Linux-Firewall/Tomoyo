@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -232,7 +232,11 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 		
 	if (!skb) return 0;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 	if (in_interrupt()) return 0;
+#else
+	if (in_atomic()) return 0;
+#endif
 	
 	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
 	

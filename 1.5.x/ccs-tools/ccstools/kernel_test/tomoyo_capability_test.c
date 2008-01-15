@@ -3,9 +3,9 @@
  *
  * Testing program for fs/tomoyo_capability.c
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.0   2007/09/20
+ * Version: 1.5.3-pre   2008/01/15
  *
  */
 #include "include.h"
@@ -245,6 +245,7 @@ static void StageCapabilityTest(void) {
 		SetCapability("SYS_VHANGUP");
 		switch (forkpty(&pty_fd, NULL, NULL, NULL)) {
 		case 0:
+			errno = 0;
 			vhangup();
 			/* Unreachable if vhangup() succeeded. */
 			status = errno;
@@ -257,6 +258,7 @@ static void StageCapabilityTest(void) {
 			close(pipe_fd[1]);
 			read(pipe_fd[0], &status, sizeof(status));
 			wait(NULL);
+			close(pipe_fd[0]);
 			close(pty_fd);
 			ShowPrompt("SYS_VHANGUP");
 			errno = status;
