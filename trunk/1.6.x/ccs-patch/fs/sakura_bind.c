@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/04
+ * Version: 1.6.0-pre   2008/01/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -61,7 +61,7 @@ int SAKURA_MayAutobind(const u16 port)
 {
 	/* Must not sleep, for called inside spin_lock. */
 	struct reserved_entry *ptr;
-	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_AUTOBIND)) return 0;
+	if (!CheckCCSFlags_NoSleepCheck(CCS_SAKURA_RESTRICT_AUTOBIND)) return 0;
 	list1_for_each_entry(ptr, &reservedport_list, list) {
 		if (ptr->min_port <= port && port <= ptr->max_port && !ptr->is_deleted) return -EPERM;
 	}

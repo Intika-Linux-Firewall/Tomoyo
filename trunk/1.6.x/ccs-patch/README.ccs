@@ -1135,3 +1135,9 @@ Fix 2008/01/15
       To prevent attackers from controlling important processes using
       ptrace(), I added a hook for ptrace().
       Most programs (except strace(1) and gdb(1)) won't use ptrace(2).
+
+    @ Fix sleep condition check in CheckSocketRecvDatagramPermission().
+
+      It seems that correct method to use is in_atomic()
+      rather than in_interrupt() because in_atomic() returns nonzero
+      whenever scheduling is not allowed.

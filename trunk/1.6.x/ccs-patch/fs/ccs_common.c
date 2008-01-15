@@ -503,7 +503,7 @@ const char *GetAltExec(void)
 /*************************  DOMAIN POLICY HANDLER  *************************/
 
 /* Check whether the given access control is enabled. */
-unsigned int CheckCCSFlags(const u8 index)
+unsigned int CheckCCSFlags_NoSleepCheck(const u8 index)
 {
 	const u8 profile = current->domain_info->profile;
 	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
@@ -511,6 +511,26 @@ unsigned int CheckCCSFlags(const u8 index)
 		&& profile < MAX_PROFILES
 #endif
 		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
+}
+
+unsigned int CheckCCSFlags(const u8 index)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+	if (unlikely(in_interrupt()))
+#else
+	if (unlikely(in_atomic()))
+#endif
+	{
+		static u8 count = 20;
+		if (count) {
+			count--;
+			printk(KERN_ERR "BUG: sleeping function called from invalid context.\n");
+			dump_stack();
+		}
+		/* Return 0 so that no MAC checks are performed. */
+		return 0;
+	}
+	return CheckCCSFlags_NoSleepCheck(index);
 }
 
 bool TomoyoVerboseMode(void)
@@ -1374,12 +1394,11 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/01/04\n");
+	printk("SAKURA: 1.6.0-pre   2008/01/15\n");
 #endif
 #ifdef CONFIG_TOMOYO
 	printk("TOMOYO: 1.6.0-pre   2008/01/15\n");
 #endif
-	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;
 	ccs_log_level = KERN_WARNING;
