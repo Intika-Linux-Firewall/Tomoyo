@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/15
+ * Version: 1.5.3-pre   2008/01/16
  *
  */
 #include "ccstools.h"
@@ -913,6 +913,30 @@ static FILE *open_write(const char *filename) {
 	}
 }
 
+static struct alias_list {
+	char *keyword;
+	char *alias;
+} *alias = NULL;
+static int alias_len = 0;
+
+static void map_perm_keyword(const u8 forward) {
+	int i;
+	for (i = 0; i < alias_len; i++) {
+		char *cp1, *cp2;
+		int len1, len2, len3;
+		cp1 = forward ? alias[i].keyword : alias[i].alias;
+		len1 = strlen(cp1);
+		if (strncmp(cp1, shared_buffer, len1)) continue;
+		cp2 = forward ? alias[i].alias : alias[i].keyword;
+		len2 = strlen(cp2);
+		len3 = strlen(shared_buffer + len1) + 1;
+		if (len3 + len2 >= shared_buffer_len) break;
+		memmove(shared_buffer + len2, shared_buffer + len1, len3);
+		memmove(shared_buffer, cp2, len2);
+		break;
+	}
+}
+					
 static void ReadGenericPolicy(void) {
 	FILE *fp;
 	while (generic_acl_list_count) free(generic_acl_list[--generic_acl_list_count]);
@@ -924,6 +948,7 @@ static void ReadGenericPolicy(void) {
 				if (IsDomainDef(shared_buffer)) {
 					flag = strcmp(shared_buffer, current_domain) == 0 ? 1 : 0;
 				} else if (flag && shared_buffer[0] && strncmp(shared_buffer, KEYWORD_USE_PROFILE, KEYWORD_USE_PROFILE_LEN)) {
+					map_perm_keyword(1);
 					if ((generic_acl_list = (char **) realloc(generic_acl_list, (generic_acl_list_count + 1) * sizeof(char *))) == NULL
 						|| (generic_acl_list[generic_acl_list_count++] = strdup(shared_buffer)) == NULL) OutOfMemory();
 				}
@@ -1622,53 +1647,47 @@ static void split_acl(char *data, struct path_info *arg1, struct path_info *arg2
 	fill_path_info(arg3);
 }
 
+#define max_optimize_directive_index 30
+static const char *directive_list[max_optimize_directive_index] = {
+	[0]  = "1 ",
+	[1]  = "2 ",
+	[2]  = "3 ",
+	[3]  = "4 ",
+	[4]  = "5 ",
+	[5]  = "6 ",
+	[6]  = "7 ",
+	[7]  = "allow_create ",
+	[8]  = "allow_unlink ",
+	[9]  = "allow_mkdir ",
+	[10] = "allow_rmdir ",
+	[11] = "allow_mkfifo ",
+	[12] = "allow_mksock ",
+	[13] = "allow_mkblock ",
+	[14] = "allow_mkchar ",
+	[15] = "allow_truncate ",
+	[16] = "allow_symlink ",
+	[17] = "allow_link ",
+	[18] = "allow_rename ",
+	[19] = "allow_rewrite ",
+	[20] = "allow_argv0 ",
+	[21] = "allow_signal ",
+	[22] = "allow_network UDP bind ",
+	[23] = "allow_network UDP connect ",
+	[24] = "allow_network TCP bind ",
+	[25] = "allow_network TCP listen ",
+	[26] = "allow_network TCP connect ",
+	[27] = "allow_network TCP accept ",
+	[28] = "allow_network RAW bind ",
+	[29] = "allow_network RAW connect ",
+};
+static int directive_list_len[max_optimize_directive_index];
+
 static void try_optimize(const int current) {
 	char *cp;
 	const char *directive;
 	int directive_index, directive_len, index;
 	struct path_info sarg1, sarg2, sarg3;
 	struct path_info darg1, darg2, darg3;
-#define max_optimize_directive_index 30
-	static const char *directive_list[max_optimize_directive_index] = {
-		[0]  = "1 ",
-		[1]  = "2 ",
-		[2]  = "3 ",
-		[3]  = "4 ",
-		[4]  = "5 ",
-		[5]  = "6 ",
-		[6]  = "7 ",
-		[7]  = "allow_create ",
-		[8]  = "allow_unlink ",
-		[9]  = "allow_mkdir ",
-		[10] = "allow_rmdir ",
-		[11] = "allow_mkfifo ",
-		[12] = "allow_mksock ",
-		[13] = "allow_mkblock ",
-		[14] = "allow_mkchar ",
-		[15] = "allow_truncate ",
-		[16] = "allow_symlink ",
-		[17] = "allow_link ",
-		[18] = "allow_rename ",
-		[19] = "allow_rewrite ",
-		[20] = "allow_argv0 ",
-		[21] = "allow_signal ",
-		[22] = "allow_network UDP bind ",
-		[23] = "allow_network UDP connect ",
-		[24] = "allow_network TCP bind ",
-		[25] = "allow_network TCP listen ",
-		[26] = "allow_network TCP connect ",
-		[27] = "allow_network TCP accept ",
-		[28] = "allow_network RAW bind ",
-		[29] = "allow_network RAW connect ",
-	};
-	static int directive_list_len[max_optimize_directive_index];
-	static int first = 1;
-	if (first) {
-		first = 0;
-		for (directive_index = 0; directive_index < max_optimize_directive_index; directive_index++) {
-			directive_list_len[directive_index] = strlen(directive_list[directive_index]);
-		}
-	}
 	if (current < 0) return;
 	cp = generic_acl_list[current];
 	for (directive_index = 0; directive_index < max_optimize_directive_index; directive_index++) {
@@ -1992,9 +2011,21 @@ static int GenericListLoop(void) {
 					} else {
 						FILE *fp = open_write(policy_file);
 						if (fp) {
-							if (current_screen == SCREEN_ACL_LIST) fprintf(fp, "select %s\n", current_domain);
-							for (index = 0; index < generic_acl_list_count; index++) {
-								if (generic_acl_list_selected[index]) fprintf(fp, "delete %s\n", generic_acl_list[index]);
+							if (current_screen == SCREEN_ACL_LIST) {
+								fprintf(fp, "select %s\n", current_domain);
+								get();
+								for (index = 0; index < generic_acl_list_count; index++) {
+									if (!generic_acl_list_selected[index]) continue; 
+									memset(shared_buffer, 0, shared_buffer_len);
+									strncpy(shared_buffer, generic_acl_list[index], shared_buffer_len);
+									map_perm_keyword(0);
+									fprintf(fp, "delete %s\n", shared_buffer);
+								}
+								put();
+							} else {
+								for (index = 0; index < generic_acl_list_count; index++) {
+									if (generic_acl_list_selected[index]) fprintf(fp, "delete %s\n", generic_acl_list[index]);
+								}
 							}
 							fclose(fp);
 						}
@@ -2020,8 +2051,17 @@ static int GenericListLoop(void) {
 					} else {
 						FILE *fp = open_write(policy_file);
 						if (fp) {
-							if (current_screen == SCREEN_ACL_LIST) fprintf(fp, "select %s\n", current_domain);
-							fprintf(fp, "%s\n", line);
+							if (current_screen == SCREEN_ACL_LIST) {
+								fprintf(fp, "select %s\n", current_domain);
+								get();
+								memset(shared_buffer, 0, shared_buffer_len);
+								strncpy(shared_buffer, line, shared_buffer_len);
+								map_perm_keyword(0);
+								fprintf(fp, "%s\n", shared_buffer);
+								put();
+							} else {
+								fprintf(fp, "%s\n", line);
+							}
 							fclose(fp);
 						}
 					}
@@ -2280,6 +2320,40 @@ int editpolicy_main(int argc, char *argv[]) {
 			return 1;
 		}
 	}
+	{ /* example: export EDITPOLICY_KEYWORD_MAP="4=r-- 1=allow_execute 6=rw- allow_capability=capability" */
+		int i;
+		char *env = getenv("EDITPOLICY_KEYWORD_MAP");
+		char *p = env ? strtok(env, " ") : NULL;
+		while (p) {
+			char *cp = strchr(p, '=');
+			if (cp > p && *(cp + 1)) {
+				int i;
+				char *cp2;
+				if ((alias = (struct alias_list *) realloc(alias, (alias_len + 1) * sizeof(struct alias_list))) == NULL) OutOfMemory();
+				if ((cp2 = strdup(cp)) == NULL) OutOfMemory();
+				i = strlen(cp2 + 1);
+				memmove(cp2, cp2 + 1, i);
+				cp2[i] = ' ';
+				alias[alias_len].alias = cp2;
+				*cp = ' ';
+				*(cp + 1) = '\0';
+				if ((cp2 = strdup(p)) == NULL) OutOfMemory();
+				alias[alias_len].keyword = cp2;
+				for (i = 0; i < max_optimize_directive_index; i++) {
+					if (strcmp(cp2, directive_list[i])) continue;
+					directive_list[i] = alias[alias_len].alias;
+					break;
+				}
+				alias_len++;
+				*(cp + 1) = '.';
+			}
+			p = strtok(NULL, " ");
+		}
+		for (i = 0; i < max_optimize_directive_index; i++) {
+			directive_list_len[i] = strlen(directive_list[i]);
+		}
+	}
+
 	{
 		char *cp = strrchr(argv[0], '/');
 		if (!cp) cp = argv[0];

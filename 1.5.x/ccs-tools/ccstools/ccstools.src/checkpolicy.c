@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/15
+ * Version: 1.5.3-pre   2008/01/16
  *
  */
 #include "ccstools.h"
@@ -283,7 +283,6 @@ static void CheckFilePolicy(char *data) {
 static void CheckMountPolicy(char *data) {
 	char *cp, *cp2;
 	const char *fs, *dev, *dir;
-	unsigned int enable = 0, disable = 0;
 	cp2 = data; if ((cp = strchr(cp2, ' ')) == NULL) goto out; *cp = '\0'; dev = cp2;
 	cp2 = cp + 1; if ((cp = strchr(cp2, ' ')) == NULL) goto out; *cp = '\0'; dir = cp2;
 	cp2 = cp + 1;
