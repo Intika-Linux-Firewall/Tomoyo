@@ -142,7 +142,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const u8 profile = TMY_SECURITY->domain->profile;
 +	/* All operations might sleep. See tmy_supervisor(). */
 +	might_sleep();
-+	if (in_interrupt())
++	if (in_atomic())
 +		return 0;
 +	return sbin_init_started && index < TMY_MAX_CAPABILITY_INDEX
 +#if TMY_MAX_PROFILES != 256

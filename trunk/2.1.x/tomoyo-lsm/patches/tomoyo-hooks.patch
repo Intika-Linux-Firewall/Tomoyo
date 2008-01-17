@@ -602,7 +602,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0;
 +
 +	/* skb_recv_datagram() can be called from interrupt context. */
-+	if (in_interrupt())
++	if (in_atomic())
 +		return 0;
 +	/* I don't check if called by kernel process. */
 +	if (segment_eq(get_fs(), KERNEL_DS))

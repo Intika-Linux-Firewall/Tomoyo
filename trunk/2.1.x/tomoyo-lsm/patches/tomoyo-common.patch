@@ -867,7 +867,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	/* All operations might sleep. See tmy_supervisor(). */
 +	might_sleep();
-+	if (in_interrupt())
++	if (in_atomic())
 +		return 0;
 +	return sbin_init_started && index < TMY_MAX_CONTROL_INDEX
 +		&& profile_ptr[profile] ?
