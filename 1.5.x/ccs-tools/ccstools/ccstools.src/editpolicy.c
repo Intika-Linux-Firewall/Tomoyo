@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/16
+ * Version: 1.5.3-pre   2008/01/17
  *
  */
 #include "ccstools.h"
@@ -913,21 +913,21 @@ static FILE *open_write(const char *filename) {
 	}
 }
 
-static struct alias_list {
+static struct directive_alias_list {
 	char *keyword;
 	char *alias;
-} *alias = NULL;
-static int alias_len = 0;
+} *directive_alias = NULL;
+static int directive_alias_len = 0;
 
 static void map_perm_keyword(const u8 forward) {
 	int i;
-	for (i = 0; i < alias_len; i++) {
+	for (i = 0; i < directive_alias_len; i++) {
 		char *cp1, *cp2;
 		int len1, len2, len3;
-		cp1 = forward ? alias[i].keyword : alias[i].alias;
+		cp1 = forward ? directive_alias[i].keyword : directive_alias[i].alias;
 		len1 = strlen(cp1);
 		if (strncmp(cp1, shared_buffer, len1)) continue;
-		cp2 = forward ? alias[i].alias : alias[i].keyword;
+		cp2 = forward ? directive_alias[i].alias : directive_alias[i].keyword;
 		len2 = strlen(cp2);
 		len3 = strlen(shared_buffer + len1) + 1;
 		if (len3 + len2 >= shared_buffer_len) break;
@@ -2306,6 +2306,17 @@ static void policy_daemon(void) {
 	_exit(0);
 }
 
+static char *strdup2(const char *s) {
+	const int len = strlen(s);
+	char *cp = malloc(len + 2);
+	if (cp) {
+		memmove(cp, s, len);
+		cp[len] = ' ';
+		cp[len + 1] = '\0'; 
+	}
+	return cp;
+}
+
 int editpolicy_main(int argc, char *argv[]) {
 	memset(current_y, 0, sizeof(current_y));
 	memset(current_item_index, 0, sizeof(current_item_index));
@@ -2320,34 +2331,38 @@ int editpolicy_main(int argc, char *argv[]) {
 			return 1;
 		}
 	}
-	{ /* example: export EDITPOLICY_KEYWORD_MAP="4=r-- 1=allow_execute 6=rw- allow_capability=capability" */
+	{ /* example: export EDITPOLICY_KEYWORD_ALIAS="4=r--:1=allow_execute:6=rw-:allow_capability=capability" */
 		int i;
-		char *env = getenv("EDITPOLICY_KEYWORD_MAP");
-		char *p = env ? strtok(env, " ") : NULL;
-		while (p) {
-			char *cp = strchr(p, '=');
-			if (cp > p && *(cp + 1)) {
-				int i;
-				char *cp2;
-				if ((alias = (struct alias_list *) realloc(alias, (alias_len + 1) * sizeof(struct alias_list))) == NULL) OutOfMemory();
-				if ((cp2 = strdup(cp)) == NULL) OutOfMemory();
-				i = strlen(cp2 + 1);
-				memmove(cp2, cp2 + 1, i);
-				cp2[i] = ' ';
-				alias[alias_len].alias = cp2;
-				*cp = ' ';
-				*(cp + 1) = '\0';
-				if ((cp2 = strdup(p)) == NULL) OutOfMemory();
-				alias[alias_len].keyword = cp2;
-				for (i = 0; i < max_optimize_directive_index; i++) {
-					if (strcmp(cp2, directive_list[i])) continue;
-					directive_list[i] = alias[alias_len].alias;
-					break;
-				}
-				alias_len++;
-				*(cp + 1) = '.';
+		char accept_list[100];
+		char *env = getenv("EDITPOLICY_KEYWORD_ALIAS");
+		char *token;
+		memset(accept_list, 0, sizeof(accept_list));
+		for (i = 0; i < 95; i++) accept_list[i] = i + 32;
+		if (!env || strspn(env, accept_list) != strlen(env)) env = "";
+		for (token = strtok(env, ":"); token; token = strtok(NULL, ":")) {
+			char *separator;
+			char *cp;
+			if ((directive_alias = (struct directive_alias_list *) realloc(directive_alias, (directive_alias_len + 1) * sizeof(struct directive_alias_list))) == NULL) OutOfMemory();
+			if ((token = strdup(token)) == NULL) OutOfMemory();
+			separator = strchr(token, '=');
+			if (!separator) goto out;
+			*separator = '\0';
+			NormalizeLine(token);
+			NormalizeLine(separator + 1);
+			if (!*token || !*(separator + 1)) goto out;
+			if ((cp = strdup2(separator + 1)) == NULL) OutOfMemory();
+			directive_alias[directive_alias_len].alias = cp;
+			if ((cp = strdup2(token)) == NULL) OutOfMemory();
+			directive_alias[directive_alias_len].keyword = cp;
+			/* Modify keyword list for try_optimize(). */
+			for (i = 0; i < max_optimize_directive_index; i++) {
+				if (strcmp(cp, directive_list[i])) continue;
+				directive_list[i] = directive_alias[directive_alias_len].alias;
+				break;
 			}
-			p = strtok(NULL, " ");
+			directive_alias_len++;
+		out:
+			free(token);
 		}
 		for (i = 0; i < max_optimize_directive_index; i++) {
 			directive_list_len[i] = strlen(directive_list[i]);
