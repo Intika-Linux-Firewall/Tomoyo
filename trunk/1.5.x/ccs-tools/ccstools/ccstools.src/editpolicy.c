@@ -936,7 +936,7 @@ static void map_perm_keyword(const u8 forward) {
 		break;
 	}
 }
-					
+
 static void ReadGenericPolicy(void) {
 	FILE *fp;
 	while (generic_acl_list_count) free(generic_acl_list[--generic_acl_list_count]);
@@ -1714,7 +1714,7 @@ static void try_optimize(const int current) {
 	
 		/* Compare condition part. */
 		if (pathcmp(&sarg3, &darg3)) continue;
-
+		
 		/* Compare first word. */
 		if (directive_index < 20) {
 			if (pathcmp(&sarg1, &darg1)) {
@@ -2015,7 +2015,7 @@ static int GenericListLoop(void) {
 								fprintf(fp, "select %s\n", current_domain);
 								get();
 								for (index = 0; index < generic_acl_list_count; index++) {
-									if (!generic_acl_list_selected[index]) continue; 
+									if (!generic_acl_list_selected[index]) continue;
 									memset(shared_buffer, 0, shared_buffer_len);
 									strncpy(shared_buffer, generic_acl_list[index], shared_buffer_len);
 									map_perm_keyword(0);
@@ -2331,7 +2331,7 @@ int editpolicy_main(int argc, char *argv[]) {
 			return 1;
 		}
 	}
-	{ /* example: export EDITPOLICY_KEYWORD_ALIAS="4=r--:1=allow_execute:6=rw-:allow_capability=capability" */
+	{ /* example: export EDITPOLICY_KEYWORD_ALIAS="1=--x:2=-w-:3=-wx:4=r--:5=r-x:6=rw-:7=rwx" */
 		int i;
 		char accept_list[100];
 		char *env = getenv("EDITPOLICY_KEYWORD_ALIAS");
@@ -2368,7 +2368,6 @@ int editpolicy_main(int argc, char *argv[]) {
 			directive_list_len[i] = strlen(directive_list[i]);
 		}
 	}
-
 	{
 		char *cp = strrchr(argv[0], '/');
 		if (!cp) cp = argv[0];
