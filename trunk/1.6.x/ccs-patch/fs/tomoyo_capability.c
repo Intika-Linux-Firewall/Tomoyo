@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/15
+ * Version: 1.6.0-pre   2008/01/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -161,7 +161,7 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
+			switch (ptr->type & ~ACL_DELETED) {
 			case TYPE_CAPABILITY_ACL:
 				if (condition) continue;
 				acl = container_of(ptr, struct capability_acl_record, head);
@@ -175,9 +175,7 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 				continue;
 			}
 			if (acl->operation != operation) continue;
-			acl->is_deleted = 0;
-			/* Found. Nothing to do. */
-			error = 0;
+			error = AddDomainACL(NULL, ptr);
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
@@ -208,9 +206,8 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 			default:
 				continue;
 			}
-			if (acl->is_deleted || acl->operation != operation) continue;
-			acl->is_deleted = 1;
-			error = DelDomainACL();
+			if (acl->operation != operation) continue;
+			error = DelDomainACL(ptr);
 			break;
 		}
 	}
@@ -245,7 +242,7 @@ int CheckCapabilityACL(const u8 operation)
 			cond = p->condition;
 			break;
 		}
-		if (acl->is_deleted || acl->operation != operation || !CheckCondition(cond, NULL)) continue;
+		if (acl->operation != operation || !CheckCondition(cond, NULL)) continue;
 		found = 1;
 		break;
 	}

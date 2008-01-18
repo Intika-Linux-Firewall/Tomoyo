@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/01/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -97,13 +97,15 @@ const char *GetLastName(const struct domain_info *domain)
 
 int AddDomainACL(struct domain_info *domain, struct acl_info *acl)
 {
-	list1_add_tail_mb(&acl->list, &domain->acl_info_list);
+	if (domain) list1_add_tail_mb(&acl->list, &domain->acl_info_list);
+	else acl->type &= ~ACL_DELETED;
 	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
 
-int DelDomainACL(void)
+int DelDomainACL(struct acl_info *acl)
 {
+	if (acl) acl->type |= ACL_DELETED;
 	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
@@ -506,50 +508,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		printk("Reusing %p %s\n", domain, domain->domainname->name);
 #endif
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
-			case TYPE_SINGLE_PATH_ACL:
-				container_of(ptr, struct single_path_acl_record, head)->perm = 0;
-				break;
-			case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
-				container_of(ptr, struct single_path_acl_record_with_condition, record.head)->record.perm = 0;
-				break;
-			case TYPE_DOUBLE_PATH_ACL:
-				container_of(ptr, struct double_path_acl_record, head)->perm = 0;
-				break;
-			case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
-				container_of(ptr, struct double_path_acl_record_with_condition, record.head)->record.perm = 0;
-				break;
-			case TYPE_ARGV0_ACL:
-				container_of(ptr, struct argv0_acl_record, head)->is_deleted = 1;
-				break;
-			case TYPE_ARGV0_ACL_WITH_CONDITION:
-				container_of(ptr, struct argv0_acl_record_with_condition, record.head)->record.is_deleted = 1;
-				break;
-			case TYPE_ENV_ACL:
-				container_of(ptr, struct env_acl_record, head)->is_deleted = 1;
-				break;
-			case TYPE_ENV_ACL_WITH_CONDITION:
-				container_of(ptr, struct env_acl_record_with_condition, record.head)->record.is_deleted = 1;
-				break;
-			case TYPE_CAPABILITY_ACL:
-				container_of(ptr, struct capability_acl_record, head)->is_deleted = 1;
-				break;
-			case TYPE_CAPABILITY_ACL_WITH_CONDITION:
-				container_of(ptr, struct capability_acl_record_with_condition, record.head)->record.is_deleted = 1;
-				break;
-			case TYPE_IP_NETWORK_ACL:
-				container_of(ptr, struct ip_network_acl_record, head)->is_deleted = 1;
-				break;
-			case TYPE_IP_NETWORK_ACL_WITH_CONDITION:
-				container_of(ptr, struct ip_network_acl_record_with_condition, record.head)->record.is_deleted = 1;
-				break;
-			case TYPE_SIGNAL_ACL:
-				container_of(ptr, struct signal_acl_record, head)->is_deleted = 1;
-				break;
-			case TYPE_SIGNAL_ACL_WITH_CONDITION:
-				container_of(ptr, struct signal_acl_record_with_condition, record.head)->record.is_deleted = 1;
-				break;
-			}
+			ptr->type |= ACL_DELETED;
 		}
 		domain->profile = profile;
 		domain->quota_warned = 0;

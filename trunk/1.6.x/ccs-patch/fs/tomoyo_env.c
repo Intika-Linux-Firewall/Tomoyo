@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/04
+ * Version: 1.6.0-pre   2008/01/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -116,7 +116,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
+			switch (ptr->type & ~ACL_DELETED) {
 			case TYPE_ENV_ACL:
 				if (condition) continue;
 				acl = container_of(ptr, struct env_acl_record, head);
@@ -130,9 +130,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 				continue;
 			}
 			if (acl->env != saved_env) continue;
-			acl->is_deleted = 0;
-			/* Found. Nothing to do. */
-			error = 0;
+			error = AddDomainACL(NULL, ptr);
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
@@ -163,9 +161,8 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 			default:
 				continue;
 			}
-			if (acl->is_deleted || acl->env != saved_env) continue;
-			acl->is_deleted = 1;
-			error = DelDomainACL();
+			if (acl->env != saved_env) continue;
+			error = DelDomainACL(ptr);
 			break;
 		}
 	}
@@ -200,7 +197,7 @@ static int CheckEnvACL(const char *env_)
 			cond = p->condition;
 			break;
 		}
-		if (acl->is_deleted || !CheckCondition(cond, NULL) ||
+		if (!CheckCondition(cond, NULL) ||
 		    !PathMatchesToPattern(&env, acl->env)) continue;
 		error = 0;
 		break;
