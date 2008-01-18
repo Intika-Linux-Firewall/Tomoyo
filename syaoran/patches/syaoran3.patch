@@ -51,9 +51,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  mm/shmem.c               |   46 +++-
  mm/shmem_mac.h           |   53 +++++
  mm/shmem_mac_debug.c     |  187 ++++++++++++++++++
- mm/shmem_mac_init.c      |  481 +++++++++++++++++++++++++++++++++++++++++++++++
+ mm/shmem_mac_init.c      |  482 +++++++++++++++++++++++++++++++++++++++++++++++
  mm/shmem_mac_main.c      |  300 +++++++++++++++++++++++++++++
- 8 files changed, 1154 insertions(+), 11 deletions(-)
+ 8 files changed, 1155 insertions(+), 11 deletions(-)
 
 --- linux-2.6-mm.orig/mm/shmem.c
 +++ linux-2.6-mm/mm/shmem.c
@@ -485,7 +485,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 --- /dev/null
 +++ linux-2.6-mm/mm/shmem_mac_init.c
-@@ -0,0 +1,481 @@
+@@ -0,0 +1,482 @@
 +/*
 + * mm/shmem_mac_init.c
 + *
@@ -631,11 +631,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return;
 +	while ((c = *filename++) != '\0') {
 +		if (c != '\\') {
-+			* cp++ = c;
++			*cp++ = c;
 +			continue;
 +		}
-+		if ((c = *filename++) == '\\') {
-+			* cp++ = c;
++		c = *filename++;
++		if (c == '\\') {
++			*cp++ = c;
 +			continue;
 +		}
 +		if (c < '0' || c > '3')
@@ -1092,8 +1093,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			while (cp > filename) {
 +				const unsigned char c = *cp--;
 +				if (c == '\\') {
-+					* --end = '\\';
-+					* --end = '\\';
++					*--end = '\\';
++					*--end = '\\';
 +				} else if (c > ' ' && c < 127) {
 +					*--end = c;
 +				} else {
