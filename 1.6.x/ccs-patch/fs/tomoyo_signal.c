@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/04
+ * Version: 1.6.0-pre   2008/01/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -53,7 +53,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
+			switch (ptr->type & ~ACL_DELETED) {
 			case TYPE_SIGNAL_ACL:
 				if (condition) continue;
 				acl = container_of(ptr, struct signal_acl_record, head);
@@ -67,9 +67,7 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 				continue;
 			}
 			if (acl->sig != hash || pathcmp(acl->domainname, saved_dest_pattern)) continue;
-			acl->is_deleted = 0;
-			/* Found. Nothing to do. */
-			error = 0;
+			error = AddDomainACL(NULL, ptr);
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
@@ -101,9 +99,8 @@ static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain
 			default:
 				continue;
 			}
-			if (acl->is_deleted || acl->sig != hash || pathcmp(acl->domainname, saved_dest_pattern)) continue;
-			acl->is_deleted = 1;
-			error = DelDomainACL();
+			if (acl->sig != hash || pathcmp(acl->domainname, saved_dest_pattern)) continue;
+			error = DelDomainACL(ptr);
 			break;
 		}
 	}
@@ -162,7 +159,7 @@ int CheckSignalACL(const int sig, const int pid)
 			cond = p->condition;
 			break;
 		}
-		if (!acl->is_deleted && acl->sig == hash && CheckCondition(cond, NULL)) {
+		if (acl->sig == hash && CheckCondition(cond, NULL)) {
 			const int len = acl->domainname->total_len;
 			if (strncmp(acl->domainname->name, dest_pattern, len)) continue;
 			if (dest_pattern[len] != ' ' && dest_pattern[len] != '\0') continue;

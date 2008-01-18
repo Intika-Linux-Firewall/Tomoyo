@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/15
+ * Version: 1.6.0-pre   2008/01/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -232,9 +232,11 @@ struct address_group_entry {
 
 /*************************  The structure for domains.  *************************/
 
+#define ACL_DELETED  0x80
+
 struct acl_info {
 	struct list1_head list;
-	u8 type;
+	u8 type; /* MSB is is_deleted flag. */
 } __attribute__((__packed__));
 
 struct domain_info {
@@ -287,7 +289,6 @@ struct double_path_acl_record_with_condition {
 
 struct argv0_acl_record {
 	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
-	bool is_deleted;
 	const struct path_info *filename; /* Pointer to single pathname. */
 	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
 };
@@ -299,7 +300,6 @@ struct argv0_acl_record_with_condition {
 
 struct env_acl_record {
 	struct acl_info head;           /* type = TYPE_ENV_ACL  */
-	bool is_deleted;
 	const struct path_info *env;    /* environment variable */
 };
 
@@ -310,7 +310,6 @@ struct env_acl_record_with_condition {
 
 struct capability_acl_record {
 	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
-	bool is_deleted;
 	u8 operation;
 };
 
@@ -321,7 +320,6 @@ struct capability_acl_record_with_condition {
 
 struct signal_acl_record {
 	struct acl_info head;               /* type = TYPE_SIGNAL_ACL          */
-	bool is_deleted;
 	u16 sig;
 	const struct path_info *domainname; /* Pointer to destination pattern. */
 };
@@ -337,7 +335,6 @@ struct signal_acl_record_with_condition {
 
 struct ip_network_acl_record {
 	struct acl_info head;   /* type = TYPE_IP_NETWORK_ACL */
-	bool is_deleted;
 	u8 operation_type;
 	u8 record_type;         /* IP_RECORD_TYPE_*           */
 	u16 min_port;           /* Start of port number range.                   */
@@ -519,7 +516,7 @@ int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len
 int CCS_WriteControl(struct file *file, const char __user *buffer, const int buffer_len);
 int CanSaveAuditLog(const bool is_granted);
 int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-int DelDomainACL(void);
+int DelDomainACL(struct acl_info *acl);
 int DeleteDomain(char *data);
 int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
 bool CheckCondition(const struct condition_list *condition, struct obj_info *obj_info);

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/15
+ * Version: 1.6.0-pre   2008/01/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -544,51 +544,7 @@ bool CheckDomainQuota(struct domain_info * const domain)
 	struct acl_info *ptr;
 	if (!domain) return 1;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		switch (ptr->type) {
-		case TYPE_SINGLE_PATH_ACL:
-			if (!container_of(ptr, struct single_path_acl_record, head)->perm) continue;
-			break;
-		case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
-			if (!container_of(ptr, struct single_path_acl_record_with_condition, record.head)->record.perm) continue;
-			break;
-		case TYPE_DOUBLE_PATH_ACL:
-			if (!container_of(ptr, struct double_path_acl_record, head)->perm) continue;
-			break;
-		case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
-			if (!container_of(ptr, struct double_path_acl_record_with_condition, record.head)->record.perm) continue;
-			break;
-		case TYPE_ARGV0_ACL:
-			if (container_of(ptr, struct argv0_acl_record, head)->is_deleted) continue;
-			break;
-		case TYPE_ARGV0_ACL_WITH_CONDITION:
-			if (container_of(ptr, struct argv0_acl_record_with_condition, record.head)->record.is_deleted) continue;
-			break;
-		case TYPE_ENV_ACL:
-			if (container_of(ptr, struct env_acl_record, head)->is_deleted) continue;
-			break;
-		case TYPE_ENV_ACL_WITH_CONDITION:
-			if (container_of(ptr, struct env_acl_record_with_condition, record.head)->record.is_deleted) continue;
-			break;
-		case TYPE_CAPABILITY_ACL:
-			if (!container_of(ptr, struct capability_acl_record, head)->is_deleted) continue;
-			break;
-		case TYPE_CAPABILITY_ACL_WITH_CONDITION:
-			if (!container_of(ptr, struct capability_acl_record_with_condition, record.head)->record.is_deleted) continue;
-			break;
-		case TYPE_IP_NETWORK_ACL:
-			if (container_of(ptr, struct ip_network_acl_record, head)->is_deleted) continue;
-			break;
-		case TYPE_IP_NETWORK_ACL_WITH_CONDITION:
-			if (container_of(ptr, struct ip_network_acl_record_with_condition, record.head)->record.is_deleted) continue;
-			break;
-		case TYPE_SIGNAL_ACL:
-			if (container_of(ptr, struct signal_acl_record, head)->is_deleted) continue;
-			break;
-		case TYPE_SIGNAL_ACL_WITH_CONDITION:
-			if (container_of(ptr, struct signal_acl_record_with_condition, record.head)->record.is_deleted) continue;
-			break;
-		}
-		count++;
+		if (!(ptr->type & ACL_DELETED)) count++;
 	}
 	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 1;
 	if (!domain->quota_warned) {
@@ -853,7 +809,7 @@ static int AddDomainPolicy(struct io_buffer *head)
 	bool is_delete = 0, is_select = 0, is_undelete = 0;
 	unsigned int profile;
 	const struct condition_list *cond = NULL;
-	char *cp;	
+	char *cp;
 	if (!isRoot()) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
@@ -865,7 +821,6 @@ static int AddDomainPolicy(struct io_buffer *head)
 		data += KEYWORD_UNDELETE_LEN;
 		is_undelete = 1;
 	}
-	UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	if (IsDomainDef(data)) {
 		if (is_delete) {
 			DeleteDomain(data);
@@ -878,6 +833,7 @@ static int AddDomainPolicy(struct io_buffer *head)
 			domain = FindOrAssignNewDomain(data, 0);
 		}
 		head->write_var1 = domain;
+		UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 		return 0;
 	}
 	if (!domain) return -EINVAL;
@@ -958,7 +914,6 @@ static bool print_double_path_acl(struct io_buffer *head, struct double_path_acl
 static bool print_argv0_acl(struct io_buffer *head, struct argv0_acl_record *ptr, const struct condition_list *cond)
 {
 	int pos = head->read_avail;
-	if (ptr->is_deleted) return 0;
 	if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
 		      ptr->filename->name, ptr->argv0->name)) goto out;
 	if (DumpCondition(head, cond)) goto out;
@@ -971,7 +926,6 @@ static bool print_argv0_acl(struct io_buffer *head, struct argv0_acl_record *ptr
 static bool print_env_acl(struct io_buffer *head, struct env_acl_record *ptr, const struct condition_list *cond)
 {
 	int pos = head->read_avail;
-	if (ptr->is_deleted) return 0;
 	if (io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name)) goto out;
 	if (DumpCondition(head, cond)) goto out;
 	return 1;
@@ -983,7 +937,6 @@ static bool print_env_acl(struct io_buffer *head, struct env_acl_record *ptr, co
 static bool print_capability_acl(struct io_buffer *head, struct capability_acl_record *ptr, const struct condition_list *cond)
 {
 	int pos = head->read_avail;
-	if (ptr->is_deleted) return 0;
 	if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", cap_operation2keyword(ptr->operation))) goto out;
 	if (DumpCondition(head, cond)) goto out;
 	return 1;
@@ -995,7 +948,6 @@ static bool print_capability_acl(struct io_buffer *head, struct capability_acl_r
 static bool print_network_acl(struct io_buffer *head, struct ip_network_acl_record *ptr, const struct condition_list *cond)
 {
 	int pos = head->read_avail;
-	if (ptr->is_deleted) return 0;
 	if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", net_operation2keyword(ptr->operation_type))) goto out;
 	switch (ptr->record_type) {
 	case IP_RECORD_TYPE_ADDRESS_GROUP:
@@ -1036,7 +988,6 @@ static bool print_network_acl(struct io_buffer *head, struct ip_network_acl_reco
 static bool print_signal_acl(struct io_buffer *head, struct signal_acl_record *ptr, const struct condition_list *cond)
 {
 	int pos = head->read_avail;
-	if (ptr->is_deleted) return 0;
 	if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr->sig, ptr->domainname->name)) goto out;
 	if (DumpCondition(head, cond)) goto out;
 	return 1;
@@ -1068,7 +1019,9 @@ static int ReadDomainPolicy(struct io_buffer *head)
 			u8 acl_type;
 			ptr = list1_entry(apos, struct acl_info, list);
 			acl_type = ptr->type;
-			if (acl_type == TYPE_SINGLE_PATH_ACL) {
+			if (acl_type & ACL_DELETED) {
+				/* Deleted entry. */
+			} else if (acl_type == TYPE_SINGLE_PATH_ACL) {
 				if (!print_single_path_acl(head, container_of(ptr, struct single_path_acl_record, head), NULL)) return 0;
 			} else if (acl_type == TYPE_SINGLE_PATH_ACL_WITH_CONDITION) {
 				struct single_path_acl_record_with_condition *p;
@@ -1397,7 +1350,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.6.0-pre   2008/01/15\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/01/15\n");
+	printk("TOMOYO: 1.6.0-pre   2008/01/18\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;

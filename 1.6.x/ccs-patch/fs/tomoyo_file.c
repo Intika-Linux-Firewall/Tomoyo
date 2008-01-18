@@ -566,7 +566,7 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
+			switch (ptr->type & ~ACL_DELETED) {
 			case TYPE_SINGLE_PATH_ACL:
 				if (condition) continue;
 				acl = container_of(ptr, struct single_path_acl_record, head);
@@ -580,11 +580,11 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 				continue;
 			}
 			if (acl->u.filename != saved_filename) continue;
+			if (ptr->type & ACL_DELETED) acl->perm = 0;
 			acl->perm |= perm;
 			if ((acl->perm & rw_mask) == rw_mask) acl->perm |= 1 << TYPE_READ_WRITE_ACL;
 			else if (acl->perm & (1 << TYPE_READ_WRITE_ACL)) acl->perm |= rw_mask;
-			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-			error = 0;
+			error = AddDomainACL(NULL, ptr);
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
@@ -621,8 +621,7 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 			acl->perm &= ~perm;
 			if ((acl->perm & rw_mask) != rw_mask) acl->perm &= ~(1 << TYPE_READ_WRITE_ACL);
 			else if (!(acl->perm & (1 << TYPE_READ_WRITE_ACL))) acl->perm &= ~rw_mask;
-			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-			error = 0;
+			error = DelDomainACL(acl->perm ? NULL : ptr);
 			goto out;
 		}
 	}
@@ -659,7 +658,7 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
+			switch (ptr->type & ~ACL_DELETED) {
 			case TYPE_DOUBLE_PATH_ACL:
 				if (condition) continue;
 				acl = container_of(ptr, struct double_path_acl_record, head);
@@ -673,9 +672,9 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 				continue;
 			}
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
+			if (ptr->type & ACL_DELETED) acl->perm = 0;
 			acl->perm |= perm;
-			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-			error = 0;
+			error = AddDomainACL(NULL, ptr);
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
@@ -712,8 +711,7 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 			}
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
 			acl->perm &= ~perm;
-			UpdateCounter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
-			error = 0;
+			error = DelDomainACL(acl->perm ? NULL : ptr);
 			break;
 		}
 	}
