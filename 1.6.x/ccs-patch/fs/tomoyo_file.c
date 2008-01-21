@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/04
+ * Version: 1.6.0-pre   2008/01/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -449,22 +449,9 @@ static int CheckSinglePathACL2(const struct path_info *filename, const u16 perm,
 	struct acl_info *ptr;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct single_path_acl_record *acl;
-		struct single_path_acl_record_with_condition *p;
-		const struct condition_list *cond;
-		switch (ptr->type) {
-		default:
-			continue;
-		case TYPE_SINGLE_PATH_ACL:
-			acl = container_of(ptr, struct single_path_acl_record, head);
-			cond = NULL;
-			break;
-		case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
-			p = container_of(ptr, struct single_path_acl_record_with_condition, record.head);
-			acl = &p->record;
-			cond = p->condition;
-			break;
-		}
-		if (!(acl->perm & perm) || !CheckCondition(cond, obj)) continue;
+		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SINGLE_PATH_ACL) continue;
+		acl = container_of(ptr, struct single_path_acl_record, head);
+		if (!(acl->perm & perm) || !CheckCondition(ptr, obj)) continue;
 		if (acl->u_is_group) {
 			if (PathMatchesToGroup(filename, acl->u.group, may_use_pattern)) return 0;
 		} else if (may_use_pattern || !acl->u.filename->is_patterned) {
@@ -550,7 +537,6 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
 	struct single_path_acl_record *acl;
-	struct single_path_acl_record_with_condition *p;
 	int error = -ENOMEM;
 	bool is_group = 0;
 	const u16 perm = 1 << type;
@@ -566,19 +552,9 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type & ~ACL_DELETED) {
-			case TYPE_SINGLE_PATH_ACL:
-				if (condition) continue;
-				acl = container_of(ptr, struct single_path_acl_record, head);
-				break;
-			case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
-				p = container_of(ptr, struct single_path_acl_record_with_condition, record.head);
-				if (p->condition != condition) continue;
-				acl = &p->record;
-				break;
-			default:
-				continue;
-			}
+			if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION)) != TYPE_SINGLE_PATH_ACL) continue;
+			if (GetConditionPart(ptr) != condition) continue;
+			acl = container_of(ptr, struct single_path_acl_record, head);
 			if (acl->u.filename != saved_filename) continue;
 			if (ptr->type & ACL_DELETED) acl->perm = 0;
 			acl->perm |= perm;
@@ -588,15 +564,7 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if (condition) {
-			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
-			acl = &p->record;
-			p->condition = condition;
-			acl->head.type = TYPE_SINGLE_PATH_ACL_WITH_CONDITION;
-		} else {
-			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-			acl->head.type = TYPE_SINGLE_PATH_ACL;
-		}
+		if ((acl = alloc_acl_element(TYPE_SINGLE_PATH_ACL, condition)) == NULL) goto out;
 		acl->perm = perm;
 		acl->u_is_group = is_group;
 		acl->u.filename = saved_filename;
@@ -604,19 +572,9 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
-			case TYPE_SINGLE_PATH_ACL:
-				if (condition) continue;
-				acl = container_of(ptr, struct single_path_acl_record, head);
-				break;
-			case TYPE_SINGLE_PATH_ACL_WITH_CONDITION:
-				p = container_of(ptr, struct single_path_acl_record_with_condition, record.head);
-				if (p->condition != condition) continue;
-				acl = &p->record;
-				break;
-			default:
-				continue;
-			}
+			if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SINGLE_PATH_ACL) continue;
+			if (GetConditionPart(ptr) != condition) continue;
+			acl = container_of(ptr, struct single_path_acl_record, head);
 			if (acl->u.filename != saved_filename) continue;
 			acl->perm &= ~perm;
 			if ((acl->perm & rw_mask) != rw_mask) acl->perm &= ~(1 << TYPE_READ_WRITE_ACL);
@@ -635,7 +593,6 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 	const struct path_info *saved_filename1, *saved_filename2;
 	struct acl_info *ptr;
 	struct double_path_acl_record *acl;
-	struct double_path_acl_record_with_condition *p;
 	int error = -ENOMEM;
 	bool is_group1 = 0, is_group2 = 0;
 	const u8 perm = 1 << type;
@@ -658,19 +615,9 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type & ~ACL_DELETED) {
-			case TYPE_DOUBLE_PATH_ACL:
-				if (condition) continue;
-				acl = container_of(ptr, struct double_path_acl_record, head);
-				break;
-			case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
-				p = container_of(ptr, struct double_path_acl_record_with_condition, record.head);
-				if (p->condition != condition) continue;
-				acl = &p->record;
-				break;
-			default:
-				continue;
-			}
+			if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION)) != TYPE_DOUBLE_PATH_ACL) continue;
+			if (GetConditionPart(ptr) != condition) continue;
+			acl = container_of(ptr, struct double_path_acl_record, head);
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
 			if (ptr->type & ACL_DELETED) acl->perm = 0;
 			acl->perm |= perm;
@@ -678,15 +625,7 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if (condition) {
-			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
-			acl = &p->record;
-			p->condition = condition;
-			acl->head.type = TYPE_DOUBLE_PATH_ACL_WITH_CONDITION;
-		} else {
-			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-			acl->head.type = TYPE_DOUBLE_PATH_ACL;
-		}
+		if ((acl = alloc_acl_element(TYPE_DOUBLE_PATH_ACL, condition)) == NULL) goto out;
 		acl->perm = perm;
 		acl->u1_is_group = is_group1;
 		acl->u2_is_group = is_group2;
@@ -696,19 +635,9 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
-			case TYPE_DOUBLE_PATH_ACL:
-				if (condition) continue;
-				acl = container_of(ptr, struct double_path_acl_record, head);
-				break;
-			case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
-				p = container_of(ptr, struct double_path_acl_record_with_condition, record.head);
-				if (p->condition != condition) continue;
-				acl = &p->record;
-				break;
-			default:
-				continue;
-			}
+			if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_DOUBLE_PATH_ACL) continue;
+			if (GetConditionPart(ptr) != condition) continue;
+			acl = container_of(ptr, struct double_path_acl_record, head);
 			if (acl->u1.filename1 != saved_filename1 || acl->u2.filename2 != saved_filename2) continue;
 			acl->perm &= ~perm;
 			error = DelDomainACL(acl->perm ? NULL : ptr);
@@ -734,22 +663,9 @@ static int CheckDoublePathACL(const u8 type, const struct path_info *filename1, 
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct double_path_acl_record *acl;
-		struct double_path_acl_record_with_condition *p;
-		const struct condition_list *cond;
-		switch (ptr->type) {
-		default:
-			continue;
-		case TYPE_DOUBLE_PATH_ACL:
-			acl = container_of(ptr, struct double_path_acl_record, head);
-			cond = NULL;
-			break;
-		case TYPE_DOUBLE_PATH_ACL_WITH_CONDITION:
-			p = container_of(ptr, struct double_path_acl_record_with_condition, record.head);
-			acl = &p->record;
-			cond = p->condition;
-			break;
-		}
-		if (!(acl->perm & perm) || !CheckCondition(cond, obj)) continue;
+		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_DOUBLE_PATH_ACL) continue;
+		acl = container_of(ptr, struct double_path_acl_record, head);
+		if (!(acl->perm & perm) || !CheckCondition(ptr, obj)) continue;
 		if (acl->u1_is_group) {
 			if (!PathMatchesToGroup(filename1, acl->u1.group1, 1)) continue;
 		} else {

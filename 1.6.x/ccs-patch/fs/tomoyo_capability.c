@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/18
+ * Version: 1.6.0-pre   2008/01/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -155,57 +155,28 @@ static int AddCapabilityACL(const u8 operation, struct domain_info *domain, cons
 {
 	struct acl_info *ptr;
 	struct capability_acl_record *acl;
-	struct capability_acl_record_with_condition *p;
 	int error = -ENOMEM;
 	if (!domain) return -EINVAL;
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type & ~ACL_DELETED) {
-			case TYPE_CAPABILITY_ACL:
-				if (condition) continue;
-				acl = container_of(ptr, struct capability_acl_record, head);
-				break;
-			case TYPE_CAPABILITY_ACL_WITH_CONDITION:
-				p = container_of(ptr, struct capability_acl_record_with_condition, record.head);
-				if (p->condition != condition) continue;
-				acl = &p->record;
-				break;
-			default:
-				continue;
-			}
+			if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION)) != TYPE_CAPABILITY_ACL) continue;
+			if (GetConditionPart(ptr) != condition) continue;
+			acl = container_of(ptr, struct capability_acl_record, head);
 			if (acl->operation != operation) continue;
 			error = AddDomainACL(NULL, ptr);
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if (condition) {
-			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
-			acl = &p->record;
-			p->condition = condition;
-			acl->head.type = TYPE_CAPABILITY_ACL_WITH_CONDITION;
-		} else {
-			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-			acl->head.type = TYPE_CAPABILITY_ACL;
-		}
+		if ((acl = alloc_acl_element(TYPE_CAPABILITY_ACL, condition)) == NULL) goto out;
 		acl->operation = operation;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
-			case TYPE_CAPABILITY_ACL:
-				if (condition) continue;
-				acl = container_of(ptr, struct capability_acl_record, head);
-				break;
-			case TYPE_CAPABILITY_ACL_WITH_CONDITION:
-				p = container_of(ptr, struct capability_acl_record_with_condition, record.head);
-				if (p->condition != condition) continue;
-				acl = &p->record;
-				break;
-			default:
-				continue;
-			}
+			if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL) continue;
+			if (GetConditionPart(ptr) != condition) continue;
+			acl = container_of(ptr, struct capability_acl_record, head);
 			if (acl->operation != operation) continue;
 			error = DelDomainACL(ptr);
 			break;
@@ -227,22 +198,9 @@ int CheckCapabilityACL(const u8 operation)
 	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
-		struct capability_acl_record_with_condition *p;
-		const struct condition_list *cond;
-		switch (ptr->type) {
-		default:
-			continue;
-		case TYPE_CAPABILITY_ACL:
-			acl = container_of(ptr, struct capability_acl_record, head);
-			cond = NULL;
-			break;
-		case TYPE_CAPABILITY_ACL_WITH_CONDITION:
-			p = container_of(ptr, struct capability_acl_record_with_condition, record.head);
-			acl = &p->record;
-			cond = p->condition;
-			break;
-		}
-		if (acl->operation != operation || !CheckCondition(cond, NULL)) continue;
+		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL) continue;
+		acl = container_of(ptr, struct capability_acl_record, head);
+		if (acl->operation != operation || !CheckCondition(ptr, NULL)) continue;
 		found = 1;
 		break;
 	}

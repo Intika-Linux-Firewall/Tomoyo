@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/01/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -349,13 +349,14 @@ static void GetAttributes(struct obj_info *obj)
 }
 #endif
 
-bool CheckCondition(const struct condition_list *ptr, struct obj_info *obj)
+bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 {
 	extern asmlinkage long sys_getppid(void);
 	struct task_struct *task = current;
 	int i;
 	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
 	const unsigned long *ptr2;
+	const struct condition_list *ptr = GetConditionPart(acl);
 	if (!ptr) return 1;
 	ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(*ptr));
 	for (i = 0; i < ptr->length; i++) {

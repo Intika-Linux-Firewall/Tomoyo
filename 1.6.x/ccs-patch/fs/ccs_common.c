@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/18
+ * Version: 1.6.0-pre   2008/01/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1017,59 +1017,26 @@ static int ReadDomainPolicy(struct io_buffer *head)
 		list1_for_each_cookie(apos, head->read_var2, &domain->acl_info_list) {
 			struct acl_info *ptr;
 			u8 acl_type;
+			const struct condition_list *cond;
 			ptr = list1_entry(apos, struct acl_info, list);
-			acl_type = ptr->type;
+			cond = GetConditionPart(ptr);
+			acl_type = ptr->type & ~ACL_WITH_CONDITION;
 			if (acl_type & ACL_DELETED) {
 				/* Deleted entry. */
 			} else if (acl_type == TYPE_SINGLE_PATH_ACL) {
-				if (!print_single_path_acl(head, container_of(ptr, struct single_path_acl_record, head), NULL)) return 0;
-			} else if (acl_type == TYPE_SINGLE_PATH_ACL_WITH_CONDITION) {
-				struct single_path_acl_record_with_condition *p;
-				p = container_of(ptr, struct single_path_acl_record_with_condition, record.head);
-				BUG_ON(!p->condition);
-				if (!print_single_path_acl(head, &p->record, p->condition)) return 0;
+				if (!print_single_path_acl(head, container_of(ptr, struct single_path_acl_record, head), cond)) return 0;
 			} else if (acl_type == TYPE_DOUBLE_PATH_ACL) {
-				if (!print_double_path_acl(head, container_of(ptr, struct double_path_acl_record, head), NULL)) return 0;
-			} else if (acl_type == TYPE_DOUBLE_PATH_ACL_WITH_CONDITION) {
-				struct double_path_acl_record_with_condition *p;
-				p = container_of(ptr, struct double_path_acl_record_with_condition, record.head);
-				BUG_ON(!p->condition);
-				if (!print_double_path_acl(head, &p->record, p->condition)) return 0;
+				if (!print_double_path_acl(head, container_of(ptr, struct double_path_acl_record, head), cond)) return 0;
 			} else if (acl_type == TYPE_ARGV0_ACL) {
-				if (!print_argv0_acl(head, container_of(ptr, struct argv0_acl_record, head), NULL)) return 0;
-			} else if (acl_type == TYPE_ARGV0_ACL_WITH_CONDITION) {
-				struct argv0_acl_record_with_condition *p;
-				p = container_of(ptr, struct argv0_acl_record_with_condition, record.head);
-				BUG_ON(!p->condition);
-				if (!print_argv0_acl(head, &p->record, p->condition)) return 0;
+				if (!print_argv0_acl(head, container_of(ptr, struct argv0_acl_record, head), cond)) return 0;
 			} else if (acl_type == TYPE_ENV_ACL) {
-				if (!print_env_acl(head, container_of(ptr, struct env_acl_record, head), NULL)) return 0;
-			} else if (acl_type == TYPE_ENV_ACL_WITH_CONDITION) {
-				struct env_acl_record_with_condition *p;
-				p = container_of(ptr, struct env_acl_record_with_condition, record.head);
-				BUG_ON(!p->condition);
-				if (!print_env_acl(head, &p->record, p->condition)) return 0;
+				if (!print_env_acl(head, container_of(ptr, struct env_acl_record, head), cond)) return 0;
 			} else if (acl_type == TYPE_CAPABILITY_ACL) {
-				if (!print_capability_acl(head, container_of(ptr, struct capability_acl_record, head), NULL)) return 0;
-			} else if (acl_type == TYPE_CAPABILITY_ACL_WITH_CONDITION) {
-				struct capability_acl_record_with_condition *p;
-				p = container_of(ptr, struct capability_acl_record_with_condition, record.head);
-				BUG_ON(!p->condition);
-				if (!print_capability_acl(head, &p->record, p->condition)) return 0;
+				if (!print_capability_acl(head, container_of(ptr, struct capability_acl_record, head), cond)) return 0;
 			} else if (acl_type == TYPE_IP_NETWORK_ACL) {
-				if (!print_network_acl(head, container_of(ptr, struct ip_network_acl_record, head), NULL)) return 0;
-			} else if (acl_type == TYPE_IP_NETWORK_ACL_WITH_CONDITION) {
-				struct ip_network_acl_record_with_condition *p;
-				p = container_of(ptr, struct ip_network_acl_record_with_condition, record.head);
-				BUG_ON(!p->condition);
-				if (!print_network_acl(head, &p->record, p->condition)) return 0;
+				if (!print_network_acl(head, container_of(ptr, struct ip_network_acl_record, head), cond)) return 0;
 			} else if (acl_type == TYPE_SIGNAL_ACL) {
-				if (!print_signal_acl(head, container_of(ptr, struct signal_acl_record, head), NULL)) return 0;
-			} else if (acl_type == TYPE_SIGNAL_ACL_WITH_CONDITION) {
-				struct signal_acl_record_with_condition *p;
-				p = container_of(ptr, struct signal_acl_record_with_condition, record.head);
-				BUG_ON(!p->condition);
-				if (!print_signal_acl(head, &p->record, p->condition)) return 0;
+				if (!print_signal_acl(head, container_of(ptr, struct signal_acl_record, head), cond)) return 0;
 			} else {
 				BUG();
 			}
@@ -1350,7 +1317,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.6.0-pre   2008/01/15\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/01/18\n");
+	printk("TOMOYO: 1.6.0-pre   2008/01/21\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;
@@ -1790,4 +1757,59 @@ int CCS_CloseControl(struct file *file)
 	ccs_free(head); head = NULL;
 	file->private_data = NULL;
 	return 0;
+}
+
+struct acl_info_with_condition {
+	const struct condition_list *cond;
+	struct acl_info head;
+} __attribute__((__packed__));
+
+void *alloc_acl_element(const u8 acl_type, const struct condition_list *condition)
+{
+	int len;
+	struct acl_info_with_condition *ptr;
+	switch (acl_type) {
+	case TYPE_SINGLE_PATH_ACL:
+		len = sizeof(struct single_path_acl_record);
+		break;
+	case TYPE_DOUBLE_PATH_ACL:
+		len = sizeof(struct double_path_acl_record);
+		break;
+	case TYPE_ARGV0_ACL:
+		len = sizeof(struct argv0_acl_record);
+		break;
+	case TYPE_ENV_ACL:
+		len = sizeof(struct env_acl_record);
+		break;
+	case TYPE_CAPABILITY_ACL:
+		len = sizeof(struct capability_acl_record);
+		break;
+	case TYPE_IP_NETWORK_ACL:
+		len = sizeof(struct ip_network_acl_record);
+		break;
+	case TYPE_SIGNAL_ACL:
+		len = sizeof(struct signal_acl_record);
+		break;
+	default:
+		return NULL;
+	}
+	if (condition) len += sizeof(const struct condition_list *);
+	ptr = alloc_element(len);
+	if (!ptr) return NULL;
+	if (condition) {
+		ptr->cond = condition;
+		ptr->head.type = acl_type | ACL_WITH_CONDITION;
+		return &ptr->head;
+	}
+	((struct acl_info *) ptr)->type = acl_type;
+	return ptr;
+}
+
+const struct condition_list *GetConditionPart(const struct acl_info *acl)
+{
+	if (acl->type & ACL_WITH_CONDITION) {
+		struct acl_info_with_condition *v = container_of(acl, struct acl_info_with_condition, head);
+		return v->cond;
+	}
+	return NULL;
 }

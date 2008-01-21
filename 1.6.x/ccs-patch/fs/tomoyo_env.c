@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/18
+ * Version: 1.6.0-pre   2008/01/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -106,7 +106,6 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 {
 	struct acl_info *ptr;
 	struct env_acl_record *acl;
-	struct env_acl_record_with_condition *p;
 	const struct path_info *saved_env;
 	int error = -ENOMEM;
 	if (!IsCorrectPath(env, 0, 0, 0, __FUNCTION__)) return -EINVAL;
@@ -116,51 +115,23 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type & ~ACL_DELETED) {
-			case TYPE_ENV_ACL:
-				if (condition) continue;
-				acl = container_of(ptr, struct env_acl_record, head);
-				break;
-			case TYPE_ENV_ACL_WITH_CONDITION:
-				p = container_of(ptr, struct env_acl_record_with_condition, record.head);
-				if (p->condition != condition) continue;
-				acl = &p->record;
-				break;
-			default:
-				continue;
-			}
+			if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION)) != TYPE_ENV_ACL) continue;
+			if (GetConditionPart(ptr) != condition) continue;
+			acl = container_of(ptr, struct env_acl_record, head);
 			if (acl->env != saved_env) continue;
 			error = AddDomainACL(NULL, ptr);
 			goto out;
 		}
 		/* Not found. Append it to the tail. */
-		if (condition) {
-			if ((p = alloc_element(sizeof(*p))) == NULL) goto out;
-			acl = &p->record;
-			p->condition = condition;
-			acl->head.type = TYPE_ENV_ACL_WITH_CONDITION;
-		} else {
-			if ((acl = alloc_element(sizeof(*acl))) == NULL) goto out;
-			acl->head.type = TYPE_ENV_ACL;
-		}
+		if ((acl = alloc_acl_element(TYPE_ENV_ACL, condition)) == NULL) goto out;
 		acl->env = saved_env;
 		error = AddDomainACL(domain, &acl->head);
 	} else {
 		error = -ENOENT;
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			switch (ptr->type) {
-			case TYPE_ENV_ACL:
-				if (condition) continue;
-				acl = container_of(ptr, struct env_acl_record, head);
-				break;
-			case TYPE_ENV_ACL_WITH_CONDITION:
-				p = container_of(ptr, struct env_acl_record_with_condition, record.head);
-				if (p->condition != condition) continue;
-				acl = &p->record;
-				break;
-			default:
-				continue;
-			}
+			if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL) continue;
+			if (GetConditionPart(ptr) != condition) continue;
+			acl = container_of(ptr, struct env_acl_record, head);
 			if (acl->env != saved_env) continue;
 			error = DelDomainACL(ptr);
 			break;
@@ -182,22 +153,9 @@ static int CheckEnvACL(const char *env_)
 	if (IsGloballyUsableEnv(&env)) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct env_acl_record *acl;
-		struct env_acl_record_with_condition *p;
-		const struct condition_list *cond;
-		switch (ptr->type) {
-		default:
-			continue;
-		case TYPE_ENV_ACL:
-			acl = container_of(ptr, struct env_acl_record, head);
-			cond = NULL;
-			break;
-		case TYPE_ENV_ACL_WITH_CONDITION:
-			p = container_of(ptr, struct env_acl_record_with_condition, record.head);
-			acl = &p->record;
-			cond = p->condition;
-			break;
-		}
-		if (!CheckCondition(cond, NULL) ||
+		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL) continue;
+		acl = container_of(ptr, struct env_acl_record, head);
+		if (!CheckCondition(ptr, NULL) ||
 		    !PathMatchesToPattern(&env, acl->env)) continue;
 		error = 0;
 		break;
