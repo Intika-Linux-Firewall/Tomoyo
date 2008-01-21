@@ -53,75 +53,15 @@
 
 <h2><a name="install-kernel">カーネルのインストール</a></h2>
 
-<p>TOMOYO Linux では、いくつかのコンパイル済みのカーネルをパッケージにして提供しています。コンパイル済みのカーネルを利用する場合は、以下のファイルをダウンロードしてインストールしてください。</p>
-
-<table border="1">
-<tr><td>
-RedHat Linux 9 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.4.20-46.9.legacy_tomoyo_1.2.i386.rpm
-</td></tr><tr><td>
-Fedora Core 3 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 4 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.17-1.2142_FC4_tomoyo_1.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 5 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.18-1.2200_FC5_tomoyo_1.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 6 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.18-1.2798_tomoyo_1.2.i586.rpm
-</td></tr><tr><td>
-CentOS 4.4 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-2.6.9-42.0.3.EL_tomoyo_1.2.i586.rpm
-</td></tr><tr><td>
-Debian Sarge （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-image-2.4.27-10sarge4-ccs_1.2_i586.deb<br>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-image-2.6.8-16sarge5-ccs_1.2_i586.deb
-</td></tr><tr><td>
-OpenSUSE 10.1 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/kernel-default-2.6.16.21-0.25_tomoyo_1.2.i586.rpm
-</td></tr>
-</table>
-
-<p>アーキテクチャが異なる場合やカスタマイズしたい場合には、カーネルをコンパイルする必要があります。カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
+<p>カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
 
 <h2><a name="install-tool">ツールのインストール</a></h2>
 
-<p>TOMOYO Linux では、いくつかのコンパイル済みのツールを提供しています。コンパイル済みのツールを利用する場合は、以下のファイルをダウンロードして /root/ ディレクトリの下に展開してください。</p>
+<p>ツールをコンパイルするには、以下のコマンドを実行してください。</p>
 
 <table border="1">
 <tr><td>
-RedHat Linux 9 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-RHL9.tar.gz
-</td></tr><tr><td>
-Fedora Core 3 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-FC3.tar.gz
-</td></tr><tr><td>
-Fedora Core 4 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-FC4.tar.gz
-</td></tr><tr><td>
-Fedora Core 5 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-FC5.tar.gz
-</td></tr><tr><td>
-Fedora Core 6 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-FC6.tar.gz
-</td></tr><tr><td>
-CentOS 4.4 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-CentOS4.4.tar.gz
-</td></tr><tr><td>
-Debian Sarge （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-Sarge.tar.gz
-</td></tr><tr><td>
-OpenSUSE 10.1 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/21518/ccs-tools-1.2-i386-SUSE10.1.tar.gz
-</td></tr>
-</table>
-
-<p>アーキテクチャが異なる場合には、ツールをコンパイルする必要があります。ツールをコンパイルするには、以下のコマンドを実行してください。</p>
-
-<table border="1">
-<tr><td>
+cd /root/<br>
 # TOMOYO Linux ツールのソースをダウンロードする。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/21579/ccs-tools-1.2-20060903.tar.gz<br>
 # 展開する。<br>
