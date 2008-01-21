@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/18
+ * Version: 1.6.0-pre   2008/01/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -232,11 +232,13 @@ struct address_group_entry {
 
 /*************************  The structure for domains.  *************************/
 
-#define ACL_DELETED  0x80
+#define ACL_DELETED        0x80
+#define ACL_WITH_CONDITION 0x40
 
+/* Keep this struct first because "struct condition_list *" is added before this struct. */
 struct acl_info {
 	struct list1_head list;
-	u8 type; /* MSB is is_deleted flag. */
+	u8 type; /* MSB is is_deleted flag. Next bit is with_condition flag. */
 } __attribute__((__packed__));
 
 struct domain_info {
@@ -250,8 +252,6 @@ struct domain_info {
 
 #define MAX_PROFILES 256
 
-struct condition_list;
-
 struct single_path_acl_record {
 	struct acl_info head;                         /* type = TYPE_SINGLE_PATH_ACL */
 	bool u_is_group;
@@ -260,11 +260,6 @@ struct single_path_acl_record {
 		const struct path_info *filename;     /* Pointer to single pathname. */
 		const struct path_group_entry *group; /* Pointer to pathname group.  */
 	} u;
-};
-
-struct single_path_acl_record_with_condition {
-	struct single_path_acl_record record; /* head.type = TYPE_SINGLE_PATH_ACL_WITH_CONDITION */
-	const struct condition_list *condition;
 };
 
 struct double_path_acl_record {
@@ -282,20 +277,10 @@ struct double_path_acl_record {
 	} u2;
 };
 
-struct double_path_acl_record_with_condition {
-	struct double_path_acl_record record; /* head.type = TYPE_DOUBLE_PATH_ACL_WITH_CONDITION */
-	const struct condition_list *condition;
-};
-
 struct argv0_acl_record {
 	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
 	const struct path_info *filename; /* Pointer to single pathname. */
 	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
-};
-
-struct argv0_acl_record_with_condition {
-	struct argv0_acl_record record; /* head.type = TYPE_ARGV0_ACL_WITH_CONDITION */
-	const struct condition_list *condition;
 };
 
 struct env_acl_record {
@@ -303,30 +288,15 @@ struct env_acl_record {
 	const struct path_info *env;    /* environment variable */
 };
 
-struct env_acl_record_with_condition {
-	struct env_acl_record record; /* head.type = TYPE_ENV_ACL_WITH_CONDITION */
-	const struct condition_list *condition;
-};
-
 struct capability_acl_record {
 	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
 	u8 operation;
-};
-
-struct capability_acl_record_with_condition {
-	struct capability_acl_record record; /* head.type = TYPE_CAPABILITY_ACL_WITH_CONDITION */
-	const struct condition_list *condition;
 };
 
 struct signal_acl_record {
 	struct acl_info head;               /* type = TYPE_SIGNAL_ACL          */
 	u16 sig;
 	const struct path_info *domainname; /* Pointer to destination pattern. */
-};
-
-struct signal_acl_record_with_condition {
-	struct signal_acl_record record; /* head.type = TYPE_SIGNAL_ACL_WITH_CONDITION */
-	const struct condition_list *condition;
 };
 
 #define IP_RECORD_TYPE_ADDRESS_GROUP 0
@@ -350,11 +320,6 @@ struct ip_network_acl_record {
 		} ipv6;
 		const struct address_group_entry *group; /* Pointer to address group. */
 	} u;
-};
-
-struct ip_network_acl_record_with_condition {
-	struct ip_network_acl_record record; /* type = TYPE_IP_NETWORK_ACL_WITH_CONDITION */
-	const struct condition_list *condition;
 };
 
 /*************************  Keywords for ACLs.  *************************/
@@ -475,6 +440,8 @@ struct io_buffer {
 
 /*************************  PROTOTYPES  *************************/
 
+struct condition_list;
+
 char *InitAuditLog(int *len, const u8 profile, const u8 mode);
 void *ccs_alloc(const size_t size);
 char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
@@ -519,7 +486,7 @@ int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)))
 int DelDomainACL(struct acl_info *acl);
 int DeleteDomain(char *data);
 int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
-bool CheckCondition(const struct condition_list *condition, struct obj_info *obj_info);
+bool CheckCondition(const struct acl_info *acl, struct obj_info *obj_info);
 bool IsCorrectDomain(const unsigned char *domainname, const char *function);
 bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function);
 bool IsDomainDef(const unsigned char *buffer);
@@ -555,6 +522,8 @@ unsigned int CheckCCSFlags(const u8 index);
 unsigned int CheckCCSFlags_NoSleepCheck(const u8 index);
 bool CheckDomainQuota(struct domain_info * const domain);
 bool TomoyoVerboseMode(void);
+void *alloc_acl_element(const u8 acl_type, const struct condition_list *condition);
+const struct condition_list *GetConditionPart(const struct acl_info *acl);
 void UpdateCounter(const unsigned char index);
 void ccs_free(const void *p);
 void fill_path_info(struct path_info *ptr);
