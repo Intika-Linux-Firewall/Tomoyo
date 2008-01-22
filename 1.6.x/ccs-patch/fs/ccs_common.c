@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/21
+ * Version: 1.6.0-pre   2008/01/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1317,7 +1317,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.6.0-pre   2008/01/15\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/01/21\n");
+	printk("TOMOYO: 1.6.0-pre   2008/01/22\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;
@@ -1759,15 +1759,10 @@ int CCS_CloseControl(struct file *file)
 	return 0;
 }
 
-struct acl_info_with_condition {
-	const struct condition_list *cond;
-	struct acl_info head;
-} __attribute__((__packed__));
-
 void *alloc_acl_element(const u8 acl_type, const struct condition_list *condition)
 {
 	int len;
-	struct acl_info_with_condition *ptr;
+	struct acl_info *ptr;
 	switch (acl_type) {
 	case TYPE_SINGLE_PATH_ACL:
 		len = sizeof(struct single_path_acl_record);
@@ -1793,23 +1788,20 @@ void *alloc_acl_element(const u8 acl_type, const struct condition_list *conditio
 	default:
 		return NULL;
 	}
-	if (condition) len += sizeof(const struct condition_list *);
+	if (!condition) len -= sizeof(ptr->cond);
 	ptr = alloc_element(len);
 	if (!ptr) return NULL;
 	if (condition) {
 		ptr->cond = condition;
-		ptr->head.type = acl_type | ACL_WITH_CONDITION;
-		return &ptr->head;
+		ptr->type = acl_type | ACL_WITH_CONDITION;
+		return ptr;
 	}
-	((struct acl_info *) ptr)->type = acl_type;
+	ptr = (void *) (((u8 *) ptr) - sizeof(ptr->cond));
+	ptr->type = acl_type;
 	return ptr;
 }
 
 const struct condition_list *GetConditionPart(const struct acl_info *acl)
 {
-	if (acl->type & ACL_WITH_CONDITION) {
-		struct acl_info_with_condition *v = container_of(acl, struct acl_info_with_condition, head);
-		return v->cond;
-	}
-	return NULL;
+	return (acl->type & ACL_WITH_CONDITION) ? acl->cond : NULL;
 }

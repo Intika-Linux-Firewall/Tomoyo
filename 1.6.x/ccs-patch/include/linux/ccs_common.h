@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/21
+ * Version: 1.6.0-pre   2008/01/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -235,8 +235,8 @@ struct address_group_entry {
 #define ACL_DELETED        0x80
 #define ACL_WITH_CONDITION 0x40
 
-/* Keep this struct first because "struct condition_list *" is added before this struct. */
 struct acl_info {
+	const struct condition_list *cond; /* Use GetConditionPart() to read me. */
 	struct list1_head list;
 	u8 type; /* MSB is is_deleted flag. Next bit is with_condition flag. */
 } __attribute__((__packed__));
