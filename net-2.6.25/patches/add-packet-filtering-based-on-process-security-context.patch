@@ -1,33 +1,38 @@
 Subject: Add packet filtering based on process's security context.
 
-This patch allows LSM modules filter incoming connections/datagrams
-based on the process's security context who is attempting to pick up.
+This patch modifies security_socket_post_accept() and introduces
+security_socket_post_recv_datagram() LSM hooks.
 
-There are already hooks to filter incoming connections/datagrams
-based on the socket's security context, but these hooks are not
-applicable when one wants to do TCP Wrapper-like filtering
-(e.g. App1 is permitted to accept TCP connections from 192.168.0.0/16).
+Currently, security_socket_post_accept() is called *after* fd_install()
+at sys_accept(). This means that userland process might access accept()ed
+but not yet properly labeled socket.
+I believe this security_socket_post_accept() should be called *before*
+fd_install() for the three reasons.
 
-Precautions: This approach has a side effect which unlikely occurs.
+ * The userland process will always access proper context labeled by
+   security_socket_post_accept() rather than default context labeled by
+   security_inode_alloc() (called from alloc_inode() from new_inode() from
+   sock_alloc() from sys_accept()). This gives a security module
+   a chance to perform access control based on proper context.
 
-If a socket is shared by multiple processes with differnt policy,
-the process who should be able to accept this connection
-will not be able to accept this connection
-because socket_post_accept() aborts this connection.
-But if socket_post_accept() doesn't abort this connection,
-the process who must not be able to accept this connection
-will repeat accept() forever, which is a worse side effect.
+ * If security_socket_post_accept() failed to assign proper context
+   (e.g. -ENOMEM), the accept()ed socket can't have proper context.
+   Use of void for security_socket_post_accept() deprives a security module
+   of a chance to abandon the accept()ed socket.
 
-Similarly, if a socket is shared by multiple processes with differnt policy,
-the process who should be able to pick up this datagram
-will not be able to pick up this datagram
-because socket_post_recv_datagram() discards this datagram.
-But if socket_post_recv_datagram() doesn't discard this datagram,
-the process who must not be able to pick up this datagram
-will repeat recvmsg() forever, which is a worse side effect.
+ * A security module can perform connection filtering based on
+   process's security context.
+   If security_socket_post_accept() is called after fd_install(),
+   it is too late to do so because the accept()ed socket is already visible
+   to userland processes.
 
-So, don't give different permissions between processes who shares one socket.
-Otherwise, some connections/datagrams cannot be delivered to intended process.
+
+Currently, there is no way to directly map security context from incoming
+packet to user process. This is because the creator or owner of a socket is
+not always the receiver of an incoming packet. The userland process who
+receives the incoming packet is not known until a process calls sys_recvmsg().
+So, I want to add a LSM hook to give a security module a chance to control
+after the recipient of the incoming packet is known.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
