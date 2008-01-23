@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/22
+ * Version: 1.6.0-pre   2008/01/23
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -436,6 +436,8 @@ struct io_buffer {
 	char *write_buf;                  /* Buffer for writing.                  */
 	int write_avail;                  /* Bytes available for writing.         */
 	int writebuf_size;                /* Size of write buffer.                */
+	uid_t uid;                        /* User ID of this entry.               */
+	gid_t gid;                        /* Group ID of this entry.              */
 };
 
 /*************************  PROTOTYPES  *************************/

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/22
+ * Version: 1.6.0-pre   2008/01/23
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -103,9 +103,10 @@ __setup("TOMOYO_QUIET", TOMOYO_Quiet_Setup);
 #endif
 
 /* Am I root? */
-static int isRoot(void)
+static int isRoot(struct io_buffer *head)
 {
-	return !current->uid && !current->euid;
+	const struct task_struct *task = current;
+	return (!task->uid && !task->euid) || task->uid == head->uid || task->gid == head->gid;
 }
 
 /*
@@ -579,7 +580,7 @@ static int SetProfile(struct io_buffer *head)
 	unsigned int i, value;
 	char *cp;
 	struct profile *profile;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	i = simple_strtoul(data, &cp, 10);
 	if (data != cp) {
 		if (*cp != '-') return -EINVAL;
@@ -623,7 +624,7 @@ static int SetProfile(struct io_buffer *head)
 static int ReadProfile(struct io_buffer *head)
 {
 	if (!head->read_eof) {
-		if (!isRoot()) return -EPERM;
+		if (!isRoot(head)) return -EPERM;
 		if (!head->read_var2) {
 			int step;
 			for (step = head->read_step; step < MAX_PROFILES * CCS_MAX_CONTROL_INDEX; step++) {
@@ -700,7 +701,6 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 	const struct path_info *saved_manager;
 	int error = -ENOMEM;
 	bool is_domain = 0;
-	if (!isRoot()) return -EPERM;
 	if (IsDomainDef(manager)) {
 		if (!IsCorrectDomain(manager, __FUNCTION__)) return -EINVAL;
 		is_domain = 1;
@@ -735,7 +735,7 @@ static int AddManagerPolicy(struct io_buffer *head)
 {
 	const char *data = head->write_buf;
 	bool is_delete = 0;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
 		is_delete = 1;
@@ -747,7 +747,7 @@ static int ReadManagerPolicy(struct io_buffer *head)
 {
 	struct list1_head *pos;
 	if (head->read_eof) return 0;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	list1_for_each_cookie(pos, head->read_var2, &policy_manager_list) {
 		struct policy_manager_entry *ptr;
 		ptr = list1_entry(pos, struct policy_manager_entry, list);
@@ -810,7 +810,7 @@ static int AddDomainPolicy(struct io_buffer *head)
 	unsigned int profile;
 	const struct condition_list *cond = NULL;
 	char *cp;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
 		is_delete = 1;
@@ -1002,7 +1002,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 	struct list1_head *apos;
 	if (head->read_eof) return 0;
 	if (head->read_step == 0) {
-		if (!isRoot()) return -EPERM;
+		if (!isRoot(head)) return -EPERM;
 		head->read_step = 1;
 	}
 	list1_for_each_cookie(dpos, head->read_var1, &domain_list) {
@@ -1058,7 +1058,7 @@ static int UpdateDomainProfile(struct io_buffer *head)
 	char *cp = strchr(data, ' ');
 	struct domain_info *domain;
 	unsigned int profile;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	if (!cp) return -EINVAL;
 	*cp = '\0';
 	domain = FindDomain(cp + 1);
@@ -1072,7 +1072,7 @@ static int ReadDomainProfile(struct io_buffer *head)
 {
 	struct list1_head *pos;
 	if (head->read_eof) return 0;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	list1_for_each_cookie(pos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
 		domain = list1_entry(pos, struct domain_info, list);
@@ -1116,7 +1116,7 @@ static int AddExceptionPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	bool is_delete = 0;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	UpdateCounter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
@@ -1155,7 +1155,7 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 	if (!head->read_eof) {
 		switch (head->read_step) {
 		case 0:
-			if (!isRoot()) return -EPERM;
+			if (!isRoot(head)) return -EPERM;
 			head->read_var2 = NULL; head->read_step = 1;
 		case 1:
 			if (ReadDomainKeeperPolicy(head)) break;
@@ -1205,7 +1205,7 @@ static int AddSystemPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	bool is_delete = 0;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
@@ -1229,7 +1229,7 @@ static int ReadSystemPolicy(struct io_buffer *head)
 	if (!head->read_eof) {
 		switch (head->read_step) {
 		case 0:
-			if (!isRoot()) return -EPERM;
+			if (!isRoot(head)) return -EPERM;
 			head->read_var2 = NULL; head->read_step = 1;
 		case 1:
 			if (ReadMountPolicy(head)) break;
@@ -1314,10 +1314,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/01/15\n");
+	printk("SAKURA: 1.6.0-pre   2008/01/23\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/01/22\n");
+	printk("TOMOYO: 1.6.0-pre   2008/01/23\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;
@@ -1673,6 +1673,11 @@ int CCS_OpenControl(const u8 type, struct file *file)
 			return -ENOMEM;
 		}
 	}
+	{ /* Set owner of this entry. */
+		struct inode *inode = file->f_dentry->d_inode;
+		head->uid = inode ? inode->i_uid : 0;
+		head->gid = inode ? inode->i_gid : 0;
+	}
 	file->private_data = head;
 	if (type == CCS_SELFDOMAIN) CCS_ReadControl(file, NULL, 0);
 	else if (head->write == WriteAnswer) atomic_inc(&queryd_watcher);
@@ -1720,7 +1725,7 @@ int CCS_WriteControl(struct file *file, const char __user *buffer, const int buf
 	char *cp0 = head->write_buf;
 	if (!head->write) return -ENOSYS;
 	if (!access_ok(VERIFY_READ, buffer, buffer_len)) return -EFAULT;
-	if (!isRoot()) return -EPERM;
+	if (!isRoot(head)) return -EPERM;
 	if (head->write != WritePID && !IsPolicyManager()) {
 		return -EPERM; /* Forbid updating policies for non manager programs. */
 	}
