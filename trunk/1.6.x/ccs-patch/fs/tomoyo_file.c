@@ -492,7 +492,7 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	AuditFileLog(msg, filename, NULL, !error, profile, mode);
 	if (!error) return 0;
 	if (TomoyoVerboseMode()) {
-		printk("TOMOYO-%s: Access '%s(%s) %s denied for %s\n", GetMSG(is_enforce), msg, operation, filename->name, GetLastName(domain));
+		printk("TOMOYO-%s: Access '%s(%s) %s' denied for %s\n", GetMSG(is_enforce), msg, operation, filename->name, GetLastName(domain));
 	}
 	if (is_enforce) return CheckSupervisor("%s\nallow_%s %s\n", domain->domainname->name, msg, filename->name);
 	else if (mode == 1 && CheckDomainQuota(domain)) {
