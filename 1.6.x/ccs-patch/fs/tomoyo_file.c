@@ -548,6 +548,9 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 		is_group = 1;
 	} else {
 		if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
+		if (!is_delete && type == TYPE_READ_ACL && IsGloballyReadableFile(saved_filename)) {
+			return 0;   /* Don't add if the file is globally readable files. */
+		}
 	}
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
