@@ -67,7 +67,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 53.1.4%{?dist}%{?buildid}
+%define release 53.1.6%{?dist}%{?buildid}
 %define signmodules 0
 %define xen_hv_cset 15042
 %define xen_abi_ver 3.1
@@ -788,6 +788,7 @@ Patch20026: xen-remove-assumption-first-numa-node-discovered-is-node0.patch
 Patch20027: xen-increase-limits-to-boot-large-ia64-platforms.patch
 Patch20028: xen-ia64-set-nodes_shift-to-8.patch
 Patch20029: xen-x86-32-bit-asid-mode-hangs-dom0-on-amd.patch
+Patch20030: xen-ia64-vulnerability-of-copy_to_user-in-pal-emu.patch
 # end of Xen patches
 
 Patch21007: linux-2.6-netlabel-error-checking-cleanups.patch
@@ -1604,6 +1605,23 @@ Patch21840: linux-2.6-scsi-ibmvscsi-unable-to-cont-migrating-lpar-error.patch
 Patch21841: linux-2.6-ppc-system-cpus-stuck-in-h_join-after-migrating.patch
 Patch21842: linux-2.6-fs-missing-dput-in-do_lookup-error-leaks-dentries.patch
 Patch21843: linux-2.6-net-tg3-fix-performance-regression-on-5705.patch
+Patch21844: linux-2.6-fs-sysfs-store-inode-nrs-in-s_ino.patch
+Patch21845: linux-2.6-fs-sysfs-fix-condition-check-in-sysfs_drop_dentry.patch
+Patch21846: linux-2.6-fs-sysfs-fix-race-condition-around-sd-s_dentry.patch
+Patch21847: linux-2.6-ia64-remove-stack-hard-limit.patch
+Patch21848: linux-2.6-nfs-introducde-nfs_removeargs-and-nfs_removeres.patch
+Patch21849: linux-2.6-nfs-infrastructure-changes-for-silly-renames.patch
+Patch21850: linux-2.6-nfs-clean-up-the-silly-rename-code.patch
+Patch21851: linux-2.6-nfs-fix-a-race-in-silly-rename.patch
+Patch21852: linux-2.6-nfs-let-rpciod-finish-sillyrename-then-umount.patch
+Patch21853: linux-2.6-fs-core-dump-file-ownership.patch
+Patch21854: linux-2.6-x86_64-fix-race-conditions-in-setup_apic_timer.patch
+Patch21855: linux-2.6-misc-tux-get-rid-of-o_atomiclookup.patch
+Patch21856: linux-2.6-net-s2io-allow-vlan-creation-on-interfaces.patch
+Patch21857: linux-2.6-net-s2io-correct-vlan-frame-reception.patch
+Patch21858: linux-2.6-fs-cifs-buffer-overflow-due-to-corrupt-response.patch
+Patch21859: linux-2.6-ia64-ptrace-access-to-user-register-backing.patch
+Patch21860: linux-2.6-fs-corruption-by-unprivileged-user-in-directories.patch
 # adds rhel version info to version.h
 Patch99990: linux-2.6-rhel-version-h.patch
 # empty final patch file to facilitate testing of kernel patches
@@ -3220,6 +3238,23 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21841 -p1
 %patch21842 -p1
 %patch21843 -p1
+%patch21844 -p1
+%patch21845 -p1
+%patch21846 -p1
+%patch21847 -p1
+%patch21848 -p1
+%patch21849 -p1
+%patch21850 -p1
+%patch21851 -p1
+%patch21852 -p1
+%patch21853 -p1
+%patch21854 -p1
+%patch21855 -p1
+%patch21856 -p1
+%patch21857 -p1
+%patch21858 -p1
+%patch21859 -p1
+%patch21860 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 # patch the Makefile to include rhel version info
 %patch99990 -p1
@@ -3236,8 +3271,8 @@ perl -p -i -e "s/^RHEL_MINOR.*/RHEL_MINOR = %{rh_release_minor}/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -53.1.4.el5/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.18-53.1.4.el5.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -53.1.6.el5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-53.1.6.el5.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -3332,6 +3367,7 @@ cd xen
 %patch20027 -p1
 %patch20028 -p1
 %patch20029 -p1
+%patch20030 -p1
 # end of necessary hypervisor patches
 %endif
 
@@ -4179,8 +4215,8 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
 
 %changelog
-* Fri Nov 30 2007 Karanbir Singh <kbsingh@centos.org> 
-- Rolled in CentOS Branding
+* Wed Jan 23 2008 Karanbir Singh <kbsingh@centos.org> 
+- Roll in CentOS Brand changes
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
