@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/21
+ * Version: 1.6.0-pre   2008/01/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -463,7 +463,7 @@ static int CheckSinglePathACL2(const struct path_info *filename, const u16 perm,
 
 static int CheckFileACL(const struct path_info *filename, const u8 operation, struct obj_info *obj)
 {
-	u16 perm;
+	u16 perm = 0;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	if (!filename->is_dir) {
 		if (operation == 4 && IsGloballyReadableFile(filename)) return 0;
@@ -480,7 +480,7 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 {
 	struct domain_info * const domain = current->domain_info;
 	const bool is_enforce = (mode == 3);
-	const char *msg;
+	const char *msg = "<unknown>";
 	int error = 0;
 	if (!filename) return 0;
 	error = CheckFileACL(filename, perm, obj);
