@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3-pre   2008/01/23
+ * Version: 1.5.3-pre   2008/01/24
  *
  */
 #include "ccstools.h"
@@ -1594,24 +1594,48 @@ static const char *directive_list[max_optimize_directive_index] = {
 	[29] = "allow_network RAW connect ",
 };
 static int directive_list_len[max_optimize_directive_index];
+static int sort_type = 0;
 
 static int string_acl_compare(const void *a, const void *b) {
 	const char *a0 = * (char **) a;
 	const char *b0 = * (char **) b;
 	int i;
-	for (i = 0; i < max_optimize_directive_index; i++) {
-		if (strncmp(a0, directive_list[i], directive_list_len[i])) continue;
-		a0 += directive_list_len[i];
-		break;
+	if (sort_type == 0) {
+		int index_a = max_optimize_directive_index;
+		int index_b = max_optimize_directive_index;
+		for (i = 0; i < max_optimize_directive_index; i++) {
+			if (strncmp(a0, directive_list[i], directive_list_len[i])) continue;
+			index_a = i;
+			break;
+		}
+		for (i = 0; i < max_optimize_directive_index; i++) {
+			if (strncmp(b0, directive_list[i], directive_list_len[i])) continue;
+			index_b = i;
+			break;
+		}
+		if (index_a < 7 && index_b < 7) {
+			if (*a0 && *b0) return strcmp(a0 + 1, b0 + 1);
+		} else if (index_a < 7) {
+			return -1;
+		} else if (index_b < 7) {
+			return 1;
+		}
+	} else if (sort_type == 1) {
+		for (i = 0; i < max_optimize_directive_index; i++) {
+			if (strncmp(a0, directive_list[i], directive_list_len[i])) continue;
+			a0 += directive_list_len[i];
+			break;
+		}
+		for (i = 0; i < max_optimize_directive_index; i++) {
+			if (strncmp(b0, directive_list[i], directive_list_len[i])) continue;
+			b0 += directive_list_len[i];
+			break;
+		}
+		i = strcmp(a0, b0);
+		if (i == 0) i = strcmp(* (char **) a, * (char **) b);
+		return i;
 	}
-	for (i = 0; i < max_optimize_directive_index; i++) {
-		if (strncmp(b0, directive_list[i], directive_list_len[i])) continue;
-		b0 += directive_list_len[i];
-		break;
-	}
-	i = strcmp(a0, b0);
-	if (i == 0) i = strcmp(* (char **) a, * (char **) b);
-	return i;
+	return strcmp(a0, b0);
 }
 
 static void try_optimize(const int current) {
@@ -2073,6 +2097,10 @@ static int GenericListLoop(void) {
 		case 'O':
 			if (current_screen == SCREEN_ACL_LIST) try_optimize(current);
 			break;
+		case '@':
+			if (current_screen != SCREEN_ACL_LIST) break;
+			sort_type = (sort_type + 1) % 3;
+			goto start;
 		case '?':
 			{
 				int c;
