@@ -897,8 +897,8 @@ static bool print_double_path_acl(struct io_buffer *head, struct double_path_acl
 		msg = dp_operation2keyword(bit);
 		pos = head->read_avail;
 		if (io_printf(head, "allow_%s ", msg)) goto out;
-		if (b0 && io_printf(head, "@%s", ptr->u1.group1->group_name->name)) goto out;
-		if (!b0 && io_printf(head, "%s", ptr->u1.filename1->name)) goto out;
+		if (b0 && io_printf(head, "@%s ", ptr->u1.group1->group_name->name)) goto out;
+		if (!b0 && io_printf(head, "%s ", ptr->u1.filename1->name)) goto out;
 		if (b1 && io_printf(head, "@%s", ptr->u2.group2->group_name->name)) goto out;
 		if (!b1 && io_printf(head, "%s", ptr->u2.filename2->name)) goto out;
 		if (DumpCondition(head, cond)) goto out;
