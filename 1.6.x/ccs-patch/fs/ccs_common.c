@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/23
+ * Version: 1.6.0-pre   2008/01/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -106,7 +106,7 @@ __setup("TOMOYO_QUIET", TOMOYO_Quiet_Setup);
 static int isRoot(struct io_buffer *head)
 {
 	const struct task_struct *task = current;
-	return (!task->uid && !task->euid) || task->uid == head->uid || task->gid == head->gid;
+	return (!task->uid && !task->euid) || (task->uid && task->uid == head->uid) || (task->gid && task->gid == head->gid);
 }
 
 /*
@@ -1314,10 +1314,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/01/23\n");
+	printk("SAKURA: 1.6.0-pre   2008/01/24\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/01/23\n");
+	printk("TOMOYO: 1.6.0-pre   2008/01/24\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;

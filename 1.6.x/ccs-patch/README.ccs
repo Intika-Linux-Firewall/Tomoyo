@@ -1141,3 +1141,18 @@ Fix 2008/01/15
       It seems that correct method to use is in_atomic()
       rather than in_interrupt() because in_atomic() returns nonzero
       whenever scheduling is not allowed.
+
+Fix 2008/01/24
+
+    @ Support /proc/ccs/ access by non-root user.
+
+      Until now, only root user can access /proc/ccs/ interface.
+      But to permit /proc/ccs/ access by non-root user so that
+      it won't require ssh login by root user when administrating
+      from remote host, I eased restrictions on this interface.
+
+           (current->uid == 0 && current->euid == 0) ||
+           (current->uid != 0 && current->uid == inode->i_uid) ||
+           (current->gid != 0 && current->gid == inode->i_gid)
+
+      The inode's uid and gid are set using chown/chgrp commands.
