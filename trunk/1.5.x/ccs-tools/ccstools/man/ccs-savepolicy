@@ -3,9 +3,9 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-savepolicy 1.5.2
+ccs-savepolicy 1.5.3
 
-Copyright (C) 2005-2007 NTT DATA CORPORATION.
+Copyright (C) 2005-2008 NTT DATA CORPORATION.
 
 This program is free software; you may redistribute it under the terms of
 the GNU General Public License. This program has absolutely no warranty.
@@ -17,6 +17,8 @@ Usage: ccs-savepolicy [s][e][d][a][f]
 
 This program saves TOMOYO Linux's policy from kernel into files.
 
+ -     Write policy to stdout. Specify only one of "sedpm" option when you use this option.
+
  s     Save system_policy. ( /etc/ccs/system_policy.conf )
 
  e     Save exception_policy. ( /etc/ccs/exception_policy.conf )
@@ -24,6 +26,10 @@ This program saves TOMOYO Linux's policy from kernel into files.
  d     Save domain_policy. ( /etc/ccs/domain_policy.conf )
 
  a     Save system_policy, exception_policy and domain_policy. This is default.
+
+ p     Save profile. ( /etc/ccs/profile.conf )
+
+ m     Save manager. ( /etc/ccs/manager.conf )
 
  f     Forcefully save even if the on-memory policy and the on-disk policy are identical.
 
