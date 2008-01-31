@@ -20,7 +20,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # kernel spec when the kernel is rebased, so fedora_build automatically
 # works out to the offset from the rebase, so it doesn't get too ginormous.
 %define fedora_cvs_origin 3351
-%define fedora_build %(R="$Revision: 1.3403 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.3415 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -30,7 +30,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
 # Do we have a 2.6.x.y update to apply?
-%define stable_update 12
+%define stable_update 14
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -574,6 +574,7 @@ Patch430: linux-2.6-net-silence-noisy-printks.patch
 
 Patch440: linux-2.6-sha_alignment.patch
 Patch450: linux-2.6-input-kill-stupid-messages.patch
+Patch451: linux-2.6-input-fix-sync-loss-acer-aspire.patch
 Patch460: linux-2.6-serial-460800.patch
 Patch461: linux-2.6-serial_pnp-add-new-wacom-ids.patch
 Patch480: linux-2.6-proc-self-maps-fix.patch
@@ -585,6 +586,7 @@ Patch600: linux-2.6-vm-silence-atomic-alloc-failures.patch
 Patch601: linux-2.6-input-ff-create-limit-memory.patch
 Patch602: linux-2.6-mm-fix-ptrace-access-beyond-vma.patch
 Patch603: linux-2.6-dio-fix-cache-invalidation-after-sync-writes.patch
+Patch604: linux-2.6-slub-provide-proc-slabinfo.patch
 
 Patch610: linux-2.6-defaults-fat-utf8.patch
 Patch620: linux-2.6-defaults-unicode-vt.patch
@@ -606,6 +608,7 @@ Patch675: linux-2.6-libata-ahci-enable-ahci-mode-before-reset.patch
 
 Patch680: linux-2.6-wireless.patch
 Patch681: linux-2.6-wireless-pending.patch
+Patch682: linux-2.6-wireless-pending-too.patch
 Patch690: linux-2.6-at76.patch
 Patch691: linux-2.6-ath5k.patch
 Patch692: linux-2.6-rtl8180.patch
@@ -1239,6 +1242,8 @@ ApplyPatch linux-2.6-net-silence-noisy-printks.patch
 ApplyPatch linux-2.6-sha_alignment.patch
 # The input layer spews crap no-one cares about.
 ApplyPatch linux-2.6-input-kill-stupid-messages.patch
+# Fix loss of sync on some touchpads
+ApplyPatch linux-2.6-input-fix-sync-loss-acer-aspire.patch
 # Allow to use 480600 baud on 16C950 UARTs
 ApplyPatch linux-2.6-serial-460800.patch
 # support new wacom pads
@@ -1263,6 +1268,8 @@ ApplyPatch linux-2.6-input-ff-create-limit-memory.patch
 ApplyPatch linux-2.6-mm-fix-ptrace-access-beyond-vma.patch
 # fix invalid data read after direct IO write
 ApplyPatch linux-2.6-dio-fix-cache-invalidation-after-sync-writes.patch
+# re-add /proc/slabinfo
+ApplyPatch linux-2.6-slub-provide-proc-slabinfo.patch
 
 # Changes to upstream defaults.
 # Use UTF-8 by default on VFAT.
@@ -1294,7 +1301,7 @@ ApplyPatch linux-2.6-libata-tape-max-sectors.patch
 ApplyPatch linux-2.6-libata-work-around-drq-1-err-1-for-tapes.patch
 ApplyPatch linux-2.6-libata-use-stuck-err-for-tapes.patch
 # allow 12-byte SCSI commands for ATAPI devices
-ApplyPatch linux-2.6-libata-scsi-allow-short-commands.patch
+# ApplyPatch linux-2.6-libata-scsi-allow-short-commands.patch
 # fix ahci reset
 ApplyPatch linux-2.6-libata-ahci-enable-ahci-mode-before-reset.patch
 
@@ -1316,6 +1323,9 @@ ApplyPatch linux-2.6-zd1211rw-module-alias.patch
 ApplyPatch linux-2.6-b43-module-alias.patch
 # Make ath5k use software WEP
 ApplyPatch linux-2.6-ath5k-use-soft-wep.patch
+
+# Some more 2.6.25 stuff, here due to upstream process anomalies...
+ApplyPatch linux-2.6-wireless-pending-too.patch
 
 # e1000e goes here
 # latest Intel driver for ich9
@@ -1386,8 +1396,8 @@ fi
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .12-52.fc7:' -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.23.12-52.fc7.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .14-64.fc7:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.23.14-64.fc7.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -2314,9 +2324,8 @@ fi
 %endif
 
 %changelog
-* Tue Dec 18 2007 Chuck Ebbert <cebbert@redhat.com> 2.6.23.10-52
-- Linux 2.6.23.12
-- Add fixed version of APM emulation patch removed in 2.6.23.10
+* Sat Jan 19 2008 Kyle McMartin <kmcmartin@redhat.com> 2.6.23.14-64
+- Revert CONFIG_PHYSICAL_START on x86_64.
 
 * Wed Oct 10 2007 Chuck Ebbert <cebbert@redhat.com> 2.6.23-1
 - Linux 2.6.23
