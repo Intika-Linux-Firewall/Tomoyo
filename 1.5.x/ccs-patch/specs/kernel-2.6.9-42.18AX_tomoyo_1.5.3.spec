@@ -29,7 +29,7 @@ summary: the linux kernel (the core of the linux operating system)
 # adding some text to the end of the version number.
 #
 %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
-%define release 42.18AX%{axbsys}_tomoyo_1.5.2
+%define release 42.18AX%{axbsys}_tomoyo_1.5.3
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -4031,9 +4031,9 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.18AX/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.9-42.18AX.diff
+patch -sp1 < patches/ccs-patch-2.6.9-42.18AX.diff
 
 # END OF PATCH APPLICATIONS
 
