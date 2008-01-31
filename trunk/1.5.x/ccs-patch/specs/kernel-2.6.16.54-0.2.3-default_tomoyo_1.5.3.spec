@@ -20,7 +20,7 @@ Url:            http://www.kernel.org/
 BuildRequires:  python
 %endif
 Version:        2.6.16.54
-Release: 0.2.3_tomoyo_1.5.2
+Release: 0.2.3_tomoyo_1.5.3
 Summary:        The Standard Kernel
 License:        GPL v2 or later
 Group:          System/Kernel
@@ -241,8 +241,8 @@ source .rpm-defs
 cd linux-2.6.16
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
-tar -zxf %_sourcedir/ccs-patch-1.5.2-20071205.tar.gz
-patch -sp1 < /usr/src/ccs-patch-2.6.16.54-0.2.3_SUSE.diff
+tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
+patch -sp1 < patches/ccs-patch-2.6.16.54-0.2.3_SUSE.diff
 cat config.ccs >> .config
 cp .config .config.orig
 %if %{tolerate_unknown_new_config_options}
