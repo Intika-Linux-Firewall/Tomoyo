@@ -1,7 +1,7 @@
 #
 # spec file for package kernel-default (Version 2.6.18.8)
 #
-# Copyright (c) 2007 SUSE LINUX Products GmbH, Nuernberg, Germany.
+# Copyright (c) 2008 SUSE LINUX Products GmbH, Nuernberg, Germany.
 # This file and all modifications and additions to the pristine
 # package are under the same license as the package itself.
 #
@@ -28,7 +28,7 @@ Url:            http://www.kernel.org/
 BuildRequires:  python
 %endif
 Version:        2.6.18.8
-Release: 0.7_tomoyo_1.5.3
+Release: 0.8_tomoyo_1.5.3
 Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
 License:        GPL v2 or later
 Group:          System/Kernel
@@ -149,7 +149,7 @@ The standard kernel for both uniprocessor and multiprocessor systems.
 
 
 
-Source Timestamp: 2007/10/02 17:21:08 UTC
+Source Timestamp: 2008/01/21 06:27:30 UTC
 CVS Branch: SL102_BRANCH
 
 %prep
@@ -237,8 +237,7 @@ cd linux-2.6.18
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-patch -sp1 < patches/ccs-patch-2.6.18.8-0.7_SUSE.diff
-cat config.ccs >> .config
+patch -sp1 < /usr/src/ccs-patch-2.6.18.8-0.8_SUSE.diff
 cp .config .config.orig
 %if %{tolerate_unknown_new_config_options}
 MAKE_ARGS="$MAKE_ARGS -k"
@@ -496,11 +495,10 @@ install -m 644 %_sourcedir/module-renames %buildroot/etc/modprobe.d/
 
 %files -f kernel.files
 %changelog
-* Tue Oct 02 2007 - lmb@suse.de
-- patches.fixes/alsa-convert-snd-page-alloc-proc-file-to-use-seq_file:
-  Reorder include and EXPORT_SYMBOL to avoid kABI modification.
-- patches.xen/handle-bogus-cs-selector-in-single-step-instruction-decoding:
-  Handle bogus %%cs selector in single-step instruction decoding
-  (326270, CVE-2007-3731).
+* Mon Jan 21 2008 - npiggin@suse.de
+- patches.fixes/nopage-range-fix.patch: insufficient range checks
+  of certain fault handlers (CVE-2008-0007) (353207).
+- patches.xen/xen3-auto-xen-arch-fix.patch: insufficient range
+  checks of certain fault handlers (CVE-2008-0007) (353207).
 * Thu May 08 2003 - kraxel@suse.de
 - initial release
