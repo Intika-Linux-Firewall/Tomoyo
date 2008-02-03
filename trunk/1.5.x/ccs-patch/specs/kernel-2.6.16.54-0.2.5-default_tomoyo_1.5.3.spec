@@ -1,7 +1,7 @@
 #
 # spec file for package kernel-default (Version 2.6.16.54)
 #
-# Copyright (c) 2007 SUSE LINUX Products GmbH, Nuernberg, Germany.
+# Copyright (c) 2008 SUSE LINUX Products GmbH, Nuernberg, Germany.
 # This file and all modifications and additions to the pristine
 # package are under the same license as the package itself.
 #
@@ -20,7 +20,7 @@ Url:            http://www.kernel.org/
 BuildRequires:  python
 %endif
 Version:        2.6.16.54
-Release: 0.2.3_tomoyo_1.5.3
+Release: 0.2.5_tomoyo_1.5.3
 Summary:        The Standard Kernel
 License:        GPL v2 or later
 Group:          System/Kernel
@@ -159,7 +159,7 @@ The standard kernel.
 
 
 
-Source Timestamp: 2007/11/22 18:32:07 UTC
+Source Timestamp: 2008/01/21 13:29:51 UTC
 CVS Branch: SLES10_SP1_BRANCH
 
 %prep
@@ -242,7 +242,7 @@ cd linux-2.6.16
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-patch -sp1 < patches/ccs-patch-2.6.16.54-0.2.3_SUSE.diff
+patch -sp1 < /usr/src/ccs-patch-2.6.16.54-0.2.5_SUSE.diff
 cat config.ccs >> .config
 cp .config .config.orig
 %if %{tolerate_unknown_new_config_options}
@@ -513,10 +513,9 @@ install -m 644 %_sourcedir/module-renames %buildroot/etc/modprobe.d/
 
 %files -f kernel.files
 %changelog
-* Fri Nov 23 2007 - jblunck@suse.de
-- patches.xen/xen-max-skbuff-order: disabled for maint update.
-- patches.arch/ia64-ptrace-lockup-fix: reverted changes for maint update.
-- patches.arch/x86_64_powernow_display_cpus_correctly.patch: disabled
-  for maint update.
+* Mon Jan 21 2008 - rw@suse.de
+- patches.arch/ia64-kernel-unaligned-fix:
+  [ia64] Fix unaligned handler for floating point instructions
+  with base update. (354069)
 * Thu May 08 2003 - kraxel@suse.de
 - initial release

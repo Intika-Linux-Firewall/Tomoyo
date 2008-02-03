@@ -52,7 +52,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.8-17">Debian Sarge 用のカーネル 2.6.8-17</a>
 <li><a href="#2.6.18-17etch1">Debian Etch 用のカーネル 2.6.18-17etch1</a>
 <li><a href="#2.6.22-6">Debian Lenny 用のカーネル 2.6.22-6</a>
-<li><a href="#2.6.16.54-0.2.3">OpenSUSE 10.1 用のカーネル 2.6.16.54-0.2.3</a>
+<li><a href="#2.6.16.54-0.2.5">OpenSUSE 10.1 用のカーネル 2.6.16.54-0.2.5</a>
 <li><a href="#2.6.18.8-0.8">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.8</a>
 <li><a href="#2.6.22.16-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.16-0.1</a>
 <li><a href="#2.6.9-42.18AX">Asianux 2.0 用のカーネル 2.6.9-42.18AX</a>
@@ -388,21 +388,22 @@ mkinitrd -o /boot/initrd.img-2.6.22-6-ccs 2.6.22-6-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.16.54-0.2.3">OpenSUSE 10.1 用のカーネル 2.6.16.54-0.2.3</a></h2>
+<h2><a name="2.6.16.54-0.2.5">OpenSUSE 10.1 用のカーネル 2.6.16.54-0.2.5</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.54-0.2.3.i586.rpm<br>
-rpm -ivh kernel-source-2.6.16.54-0.2.3.i586.rpm<br>
+wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.54-0.2.5.i586.rpm<br>
+rpm -ivh kernel-source-2.6.16.54-0.2.5.i586.rpm<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.16.54-0.2.3/<br>
+cd /usr/src/linux-2.6.16.54-0.2.5/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.3-20080131.tar.gz<br>
 tar -zxf ccs-patch-1.5.3-20080131.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.16.54-0.2.3_SUSE.diff<br>
+wget -O patches/ccs-patch-2.6.16.54-0.2.5_SUSE.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.16.54-0.2.5_SUSE.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.16.54-0.2.5_SUSE.diff<br>
 # 出力先のディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.16.54-0.2.3-obj/i386/default/<br>
+cd /usr/src/linux-2.6.16.54-0.2.5-obj/i386/default/<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
