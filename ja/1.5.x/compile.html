@@ -46,7 +46,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.22.14-72.fc6">Fedora Core 6 用のカーネル 2.6.22.14-72.fc6</a>
 <li><a href="#2.6.23.14-64.fc7">Fedora 7 用のカーネル 2.6.23.14-64.fc7</a>
 <li><a href="#2.6.23.14-107.fc8">Fedora 8 用のカーネル 2.6.23.14-107.fc8</a>
-<li><a href="#2.6.9-67.0.1.EL">CentOS 4.6 用のカーネル 2.6.9-67.0.1.EL</a>
+<li><a href="#2.6.9-67.0.4.EL">CentOS 4.6 用のカーネル 2.6.9-67.0.4.EL</a>
 <li><a href="#2.6.18-53.1.6.el5">CentOS 5.1 用のカーネル 2.6.18-53.1.6.el5</a>
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
 <li><a href="#2.6.8-17">Debian Sarge 用のカーネル 2.6.8-17</a>
@@ -245,24 +245,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-67.0.1.EL">CentOS 4.6 用のカーネル 2.6.9-67.0.1.EL</a></h2>
+<h2><a name="2.6.9-67.0.4.EL">CentOS 4.6 用のカーネル 2.6.9-67.0.4.EL</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://mirrors.kernel.org/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.1.EL.src.rpm<br>
-rpm -ivh kernel-2.6.9-67.0.1.EL.src.rpm<br>
+wget http://mirrors.kernel.org/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.4.EL.src.rpm<br>
+rpm -ivh kernel-2.6.9-67.0.4.EL.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-67.0.1.EL<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-67.0.4.EL<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.9-67.0.1.EL/<br>
+cd /usr/src/linux-2.6.9-67.0.4.EL/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -67.0.1.EL/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -67.0.4.EL/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.3-20080131.tar.gz<br>
 tar -zxf ccs-patch-1.5.3-20080131.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.9-67.0.1.EL.diff<br>
+wget -O patches/ccs-patch-2.6.9-67.0.4.EL.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-67.0.4.EL.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.9-67.0.4.EL.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
