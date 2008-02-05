@@ -30,7 +30,7 @@ summary: the linux kernel (the core of the linux operating system)
 # that the kernel isn't the stock distribution kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 67.0.1.EL_tomoyo_1.5.3
+%define release 67.0.4.EL_tomoyo_1.5.3
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -1448,7 +1448,11 @@ Patch5072: linux-2.6.9-CVE-2006-6106-capi-size-check.patch
 Patch5073: linux-2.6.9-CVE-2007-3739-hugetlb-stack.patch
 Patch5074: linux-2.6.9-CVE-2007-4573-x8664-syscall.patch
 Patch5075: linux-2.6.9-CVE-2007-5494-fs-leak-dentry.patch
-
+Patch5076: linux-2.6.9-CVE-2007-6206-coredump-to-current-uid.patch
+Patch5077: linux-2.6.9-CVE-2007-6151-isdn-memory-overrun.patch
+Patch5078: linux-2.6.9-CVE-2007-6063-isdn-net-setcfg.patch
+Patch5079: linux-2.6.9-CVE-2007-4130-ia64-set-mempolicy-panic.patch
+Patch5080: linux-2.6.9-CVE-2008-0001-fs-corrupt.patch
 
 # Security fixes that don't have CANs assigned (yet?)
 # These get renamed if one is later assigned.
@@ -3694,6 +3698,11 @@ cd linux-%{kversion}
 %patch5073 -p1
 %patch5074 -p1
 %patch5075 -p1
+%patch5076 -p1
+%patch5077 -p1
+%patch5078 -p1
+%patch5079 -p1
+%patch5080 -p1
 
 # Security fixes without CAN-CVE's yet.
 %patch5100 -p1
@@ -3733,8 +3742,8 @@ perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.1.EL/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.9-67.0.1.EL.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.4.EL/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-67.0.4.EL.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -3896,7 +3905,7 @@ BuildKernel() {
     for i in ` find $RPM_BUILD_ROOT/lib/modules/$KernelVer -name "*.ko" -type f` ; do
 	if [ x`echo \`basename $i \` | join - $RPM_SOURCE_DIR/modsign_exclude | wc -l` = x0 ]
 	then
-		sh ./scripts/modsign/modsign.sh $i CentOS
+		sh ./scripts/modsign/modsign.sh $i CentOS 
 		mv -f $i.signed $i
 	fi
     done
@@ -4249,7 +4258,7 @@ fi
 %endif
 
 %changelog
-* Wed Dec 19 2007 Johnny Hughes  [2.6.9-67.0.1]
+* Wed Feb  3 2008 Johnny Hughes <johnny@centos.org>  [2.6.9-67.0.4]
 - rolled in standard centos changes (build for i586, change genkey to
   genkey.centos, do not terminate build on extra files).
 
