@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/24
+ * Version: 1.6.0-pre   2008/02/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -32,6 +32,9 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/ccs_common.h>
 #include <linux/ccs_proc.h>
 #include <linux/tomoyo.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
+#define find_task_by_pid find_task_by_vpid
+#endif
 
 #ifdef CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
 #define MAX_ACCEPT_ENTRY (CONFIG_TOMOYO_MAX_ACCEPT_ENTRY)
@@ -1314,10 +1317,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/01/24\n");
+	printk("SAKURA: 1.6.0-pre   2008/02/05\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/01/24\n");
+	printk("TOMOYO: 1.6.0-pre   2008/02/05\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;

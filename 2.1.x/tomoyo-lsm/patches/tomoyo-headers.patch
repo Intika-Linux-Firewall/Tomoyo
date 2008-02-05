@@ -4,8 +4,8 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/include/realpath.h |   45 ++
- security/tomoyo/include/tomoyo.h   |  695 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 740 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  694 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 739 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/realpath.h
@@ -57,7 +57,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#endif
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/tomoyo.h
-@@ -0,0 +1,695 @@
+@@ -0,0 +1,694 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -138,7 +138,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	prev->next = new;
 +}
 +
-+extern struct seq_operations mounts_op;
 +extern struct mutex domain_acl_lock;
 +extern bool sbin_init_started;
 +

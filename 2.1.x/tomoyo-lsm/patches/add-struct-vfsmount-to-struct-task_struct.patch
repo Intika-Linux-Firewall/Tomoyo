@@ -12,7 +12,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- linux-2.6-mm.orig/include/linux/init_task.h
 +++ linux-2.6-mm/include/linux/init_task.h
-@@ -197,6 +197,7 @@ extern struct group_info init_groups;
+@@ -196,6 +196,7 @@ extern struct group_info init_groups;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
@@ -22,10 +22,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- linux-2.6-mm.orig/include/linux/sched.h
 +++ linux-2.6-mm/include/linux/sched.h
-@@ -1253,6 +1253,8 @@ struct task_struct {
- 	int make_it_fail;
+@@ -1262,6 +1262,8 @@ struct task_struct {
+ 	int latency_record_count;
+ 	struct latency_record latency_record[LT_SAVECOUNT];
  #endif
- 	struct prop_local_single dirties;
 +	/* vfsmount info for LSM hooks. */
 +	struct vfsmount *last_vfsmount;
  };

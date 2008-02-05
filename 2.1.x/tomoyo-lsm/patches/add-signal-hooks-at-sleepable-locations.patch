@@ -95,7 +95,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
 --- linux-2.6-mm.orig/kernel/signal.c
 +++ linux-2.6-mm/kernel/signal.c
-@@ -2219,6 +2219,11 @@ asmlinkage long
+@@ -2220,6 +2220,11 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -107,7 +107,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2274,10 +2279,16 @@ static int do_tkill(int tgid, int pid, i
+@@ -2275,10 +2280,16 @@ static int do_tkill(int tgid, int pid, i
   */
  asmlinkage long sys_tgkill(int tgid, int pid, int sig)
  {
@@ -124,7 +124,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return do_tkill(tgid, pid, sig);
  }
  
-@@ -2287,10 +2298,16 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2288,10 +2299,16 @@ asmlinkage long sys_tgkill(int tgid, int
  asmlinkage long
  sys_tkill(int pid, int sig)
  {

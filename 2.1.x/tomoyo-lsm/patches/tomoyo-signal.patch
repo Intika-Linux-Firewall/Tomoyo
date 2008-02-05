@@ -157,13 +157,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		struct task_struct *p = NULL;
 +		read_lock(&tasklist_lock);
 +		if (pid > 0)
-+			p = find_task_by_pid((pid_t) pid);
++			p = find_task_by_vpid((pid_t) pid);
 +		else if (pid == 0)
 +			p = current;
 +		else if (pid == -1)
 +			dest = &KERNEL_DOMAIN;
 +		else
-+			p = find_task_by_pid((pid_t) -pid);
++			p = find_task_by_vpid((pid_t) -pid);
 +		if (p)
 +			/* "struct task_struct"->security is not NULL. */
 +			dest = ((struct tmy_security *) p->security)->domain;
