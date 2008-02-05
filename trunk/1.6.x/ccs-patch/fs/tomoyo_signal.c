@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/21
+ * Version: 1.6.0-pre   2008/02/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -16,6 +16,10 @@
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
 #include <linux/realpath.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
+#define find_task_by_pid find_task_by_vpid
+#endif
 
 /*************************  VARIABLES  *************************/
 

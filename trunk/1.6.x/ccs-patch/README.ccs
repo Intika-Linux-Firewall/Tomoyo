@@ -1156,3 +1156,11 @@ Fix 2008/01/24
            (current->gid != 0 && current->gid == inode->i_gid)
 
       The inode's uid and gid are set using chown/chgrp commands.
+
+Fix 2008/02/05
+
+    @ Use find_task_by_vpid() instead of find_task_pid().
+
+      Kernel 2.6.24 introduced PID namespace.
+      To search PID given from userland, the kernel needs to use
+      find_task_by_vpid() instead of find_task_pid().

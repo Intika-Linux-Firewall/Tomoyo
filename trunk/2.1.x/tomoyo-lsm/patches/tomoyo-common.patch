@@ -1557,7 +1557,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	/***** CRITICAL SECTION START *****/
 +	read_lock(&tasklist_lock);
-+	p = find_task_by_pid(pid);
++	p = find_task_by_vpid(pid);
 +	if (p) {
 +		/* "struct task_struct"->security is not NULL. */
 +		domain = ((struct tmy_security *) p->security)->domain;
@@ -1794,7 +1794,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
 +
-+	printk(KERN_INFO "TOMOYO: %s   2007/12/28\n", TOMOYO_VERSION_CODE);
++	printk(KERN_INFO "TOMOYO: %s   2008/02/05\n", TOMOYO_VERSION_CODE);
 +
 +	if (!profile_loaded)
 +		panic("TOMOYO: No profiles loaded.\n");
