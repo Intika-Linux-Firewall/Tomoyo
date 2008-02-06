@@ -39,7 +39,7 @@ Url:            http://www.kernel.org/
 %endif
 Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
 Version:        2.6.22.16
-Release: 0.1_tomoyo_1.5.3
+Release: 0.2_tomoyo_1.5.3
 License:        GPL v2 or later
 Group:          System/Kernel
 AutoReqProv:    on
@@ -194,7 +194,7 @@ The standard kernel for both uniprocessor and multiprocessor systems.
 
 
 
-Source Timestamp: 2008/01/23 14:28:52 UTC
+Source Timestamp: 2008/02/01 19:36:55 UTC
 CVS Branch: SL103_BRANCH
 
 %prep
@@ -280,7 +280,7 @@ cd linux-2.6.22
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-patch -sp1 < patches/ccs-patch-2.6.22.16-0.1_SUSE.diff
+patch -sp1 < /usr/src/ccs-patch-2.6.22.16-0.2_SUSE.diff
 sed -i -e 's:-ccs::' -- Makefile
 cat config.ccs >> .config
 cp .config .config.orig
@@ -586,9 +586,8 @@ install -m 644 %_sourcedir/module-renames %buildroot/etc/modprobe.d/
 %postun -f postun.sh
 
 %files -f kernel.files
-
 %changelog
-* Wed Jan 23 2008 - jeffm@suse.de
-- Update reference module symbol versions.
+* Fri Feb 01 2008 - trenn@suse.de
+- patches.fixes/acpica_sizeof.patch: Delete.
 * Thu May 08 2003 - kraxel@suse.de
 - initial release

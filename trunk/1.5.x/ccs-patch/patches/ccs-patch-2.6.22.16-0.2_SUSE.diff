@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for openSUSE 10.3.
 
-Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/kernel-source-2.6.22.16-0.1.i586.rpm
+Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/kernel-source-2.6.22.16-0.2.i586.rpm
 ---
  Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    8 +++
@@ -50,8 +50,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  net/unix/af_unix.c              |   10 ++++
  46 files changed, 533 insertions(+), 6 deletions(-)
 
---- linux-2.6.22.16-0.1.orig/Makefile
-+++ linux-2.6.22.16-0.1/Makefile
+--- linux-2.6.22.16-0.2.orig/Makefile
++++ linux-2.6.22.16-0.2/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
@@ -61,8 +61,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  NAME = Holy Dancing Manatees, Batman!
  
  # *DOCUMENTATION*
---- linux-2.6.22.16-0.1.orig/fs/Kconfig
-+++ linux-2.6.22.16-0.1/fs/Kconfig
+--- linux-2.6.22.16-0.2.orig/fs/Kconfig
++++ linux-2.6.22.16-0.2/fs/Kconfig
 @@ -2112,5 +2112,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -71,16 +71,16 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
 +
  endmenu
  
---- linux-2.6.22.16-0.1.orig/fs/Makefile
-+++ linux-2.6.22.16-0.1/fs/Makefile
+--- linux-2.6.22.16-0.2.orig/fs/Makefile
++++ linux-2.6.22.16-0.2/fs/Makefile
 @@ -123,3 +123,5 @@ obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
  obj-$(CONFIG_SQUASHFS)          += squashfs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.22.16-0.1.orig/fs/attr.c
-+++ linux-2.6.22.16-0.1/fs/attr.c
+--- linux-2.6.22.16-0.2.orig/fs/attr.c
++++ linux-2.6.22.16-0.2/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -112,8 +112,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.22.16-0.1.orig/fs/compat.c
-+++ linux-2.6.22.16-0.1/fs/compat.c
+--- linux-2.6.22.16-0.2.orig/fs/compat.c
++++ linux-2.6.22.16-0.2/fs/compat.c
 @@ -55,6 +55,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -133,8 +133,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.22.16-0.1.orig/fs/compat_ioctl.c
-+++ linux-2.6.22.16-0.1/fs/compat_ioctl.c
+--- linux-2.6.22.16-0.2.orig/fs/compat_ioctl.c
++++ linux-2.6.22.16-0.2/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #include <linux/dvb/frontend.h>
  #include <linux/dvb/video.h>
@@ -155,8 +155,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.22.16-0.1.orig/fs/exec.c
-+++ linux-2.6.22.16-0.1/fs/exec.c
+--- linux-2.6.22.16-0.2.orig/fs/exec.c
++++ linux-2.6.22.16-0.2/fs/exec.c
 @@ -59,6 +59,10 @@
  #include <linux/kmod.h>
  #endif
@@ -199,8 +199,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.22.16-0.1.orig/fs/fcntl.c
-+++ linux-2.6.22.16-0.1/fs/fcntl.c
+--- linux-2.6.22.16-0.2.orig/fs/fcntl.c
++++ linux-2.6.22.16-0.2/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -222,8 +222,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.22.16-0.1.orig/fs/ioctl.c
-+++ linux-2.6.22.16-0.1/fs/ioctl.c
+--- linux-2.6.22.16-0.2.orig/fs/ioctl.c
++++ linux-2.6.22.16-0.2/fs/ioctl.c
 @@ -16,6 +16,9 @@
  
  #include <asm/uaccess.h>
@@ -244,8 +244,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.22.16-0.1.orig/fs/namei.c
-+++ linux-2.6.22.16-0.1/fs/namei.c
+--- linux-2.6.22.16-0.2.orig/fs/namei.c
++++ linux-2.6.22.16-0.2/fs/namei.c
 @@ -36,6 +36,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -422,8 +422,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.22.16-0.1.orig/fs/namespace.c
-+++ linux-2.6.22.16-0.1/fs/namespace.c
+--- linux-2.6.22.16-0.2.orig/fs/namespace.c
++++ linux-2.6.22.16-0.2/fs/namespace.c
 @@ -28,6 +28,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -525,8 +525,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.22.16-0.1.orig/fs/open.c
-+++ linux-2.6.22.16-0.1/fs/open.c
+--- linux-2.6.22.16-0.2.orig/fs/open.c
++++ linux-2.6.22.16-0.2/fs/open.c
 @@ -26,6 +26,12 @@
  #include <linux/syscalls.h>
  #include <linux/rcupdate.h>
@@ -583,8 +583,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.22.16-0.1.orig/fs/proc/Makefile
-+++ linux-2.6.22.16-0.1/fs/proc/Makefile
+--- linux-2.6.22.16-0.2.orig/fs/proc/Makefile
++++ linux-2.6.22.16-0.2/fs/proc/Makefile
 @@ -15,3 +15,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -592,8 +592,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.22.16-0.1.orig/fs/proc/proc_misc.c
-+++ linux-2.6.22.16-0.1/fs/proc/proc_misc.c
+--- linux-2.6.22.16-0.2.orig/fs/proc/proc_misc.c
++++ linux-2.6.22.16-0.2/fs/proc/proc_misc.c
 @@ -851,4 +851,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
@@ -603,13 +603,13 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.22.16-0.1_SUSE 2008/01/31\n");
++		printk("Hook version: 2.6.22.16-0.2_SUSE 2008/02/06\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.22.16-0.1.orig/include/linux/init_task.h
-+++ linux-2.6.22.16-0.1/include/linux/init_task.h
+--- linux-2.6.22.16-0.2.orig/include/linux/init_task.h
++++ linux-2.6.22.16-0.2/include/linux/init_task.h
 @@ -169,6 +169,10 @@ extern struct group_info init_groups;
  	},								\
  	INIT_TRACE_IRQFLAGS						\
@@ -621,8 +621,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  }
  
  
---- linux-2.6.22.16-0.1.orig/include/linux/sched.h
-+++ linux-2.6.22.16-0.1/include/linux/sched.h
+--- linux-2.6.22.16-0.2.orig/include/linux/sched.h
++++ linux-2.6.22.16-0.2/include/linux/sched.h
 @@ -26,6 +26,11 @@
  #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
@@ -646,8 +646,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.22.16-0.1.orig/include/linux/syaoran.h
-+++ linux-2.6.22.16-0.1/include/linux/syaoran.h
+--- linux-2.6.22.16-0.2.orig/include/linux/syaoran.h
++++ linux-2.6.22.16-0.2/include/linux/syaoran.h
 @@ -108,7 +108,7 @@ static int fs_mkdir(const char *pathname
  	struct dentry *dentry = lookup_create2(pathname, base, 1);
  	int error = PTR_ERR(dentry);
@@ -675,8 +675,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  #else
  		error = vfs_symlink(base->d_inode, dentry, oldname);
  #endif
---- linux-2.6.22.16-0.1.orig/kernel/compat.c
-+++ linux-2.6.22.16-0.1/kernel/compat.c
+--- linux-2.6.22.16-0.2.orig/kernel/compat.c
++++ linux-2.6.22.16-0.2/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -697,8 +697,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.22.16-0.1.orig/kernel/kexec.c
-+++ linux-2.6.22.16-0.1/kernel/kexec.c
+--- linux-2.6.22.16-0.2.orig/kernel/kexec.c
++++ linux-2.6.22.16-0.2/kernel/kexec.c
 @@ -28,6 +28,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -719,8 +719,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.22.16-0.1.orig/kernel/kmod.c
-+++ linux-2.6.22.16-0.1/kernel/kmod.c
+--- linux-2.6.22.16-0.2.orig/kernel/kmod.c
++++ linux-2.6.22.16-0.2/kernel/kmod.c
 @@ -170,6 +170,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -733,8 +733,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
---- linux-2.6.22.16-0.1.orig/kernel/module.c
-+++ linux-2.6.22.16-0.1/kernel/module.c
+--- linux-2.6.22.16-0.2.orig/kernel/module.c
++++ linux-2.6.22.16-0.2/kernel/module.c
 @@ -45,6 +45,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -765,8 +765,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.22.16-0.1.orig/kernel/sched.c
-+++ linux-2.6.22.16-0.1/kernel/sched.c
+--- linux-2.6.22.16-0.2.orig/kernel/sched.c
++++ linux-2.6.22.16-0.2/kernel/sched.c
 @@ -56,6 +56,9 @@
  
  #include <asm/tlb.h>
@@ -787,8 +787,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.22.16-0.1.orig/kernel/signal.c
-+++ linux-2.6.22.16-0.1/kernel/signal.c
+--- linux-2.6.22.16-0.2.orig/kernel/signal.c
++++ linux-2.6.22.16-0.2/kernel/signal.c
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -832,8 +832,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.22.16-0.1.orig/kernel/sys.c
-+++ linux-2.6.22.16-0.1/kernel/sys.c
+--- linux-2.6.22.16-0.2.orig/kernel/sys.c
++++ linux-2.6.22.16-0.2/kernel/sys.c
 @@ -39,6 +39,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -884,8 +884,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.22.16-0.1.orig/kernel/sysctl.c
-+++ linux-2.6.22.16-0.1/kernel/sysctl.c
+--- linux-2.6.22.16-0.2.orig/kernel/sysctl.c
++++ linux-2.6.22.16-0.2/kernel/sysctl.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -988,8 +988,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
---- linux-2.6.22.16-0.1.orig/kernel/time.c
-+++ linux-2.6.22.16-0.1/kernel/time.c
+--- linux-2.6.22.16-0.2.orig/kernel/time.c
++++ linux-2.6.22.16-0.2/kernel/time.c
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -1020,8 +1020,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.22.16-0.1.orig/kernel/time/ntp.c
-+++ linux-2.6.22.16-0.1/kernel/time/ntp.c
+--- linux-2.6.22.16-0.2.orig/kernel/time/ntp.c
++++ linux-2.6.22.16-0.2/kernel/time/ntp.c
 @@ -16,6 +16,9 @@
  
  #include <asm/div64.h>
@@ -1042,8 +1042,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.22.16-0.1.orig/net/core/datagram.c
-+++ linux-2.6.22.16-0.1/net/core/datagram.c
+--- linux-2.6.22.16-0.2.orig/net/core/datagram.c
++++ linux-2.6.22.16-0.2/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1067,8 +1067,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  		if (skb)
  			return skb;
  
---- linux-2.6.22.16-0.1.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.22.16-0.1/net/ipv4/inet_connection_sock.c
+--- linux-2.6.22.16-0.2.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.22.16-0.2/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1089,8 +1089,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.22.16-0.1.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.22.16-0.1/net/ipv4/inet_hashtables.c
+--- linux-2.6.22.16-0.2.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.22.16-0.2/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1111,8 +1111,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.22.16-0.1.orig/net/ipv4/udp.c
-+++ linux-2.6.22.16-0.1/net/ipv4/udp.c
+--- linux-2.6.22.16-0.2.orig/net/ipv4/udp.c
++++ linux-2.6.22.16-0.2/net/ipv4/udp.c
 @@ -102,6 +102,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1143,8 +1143,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
---- linux-2.6.22.16-0.1.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.22.16-0.1/net/ipv6/inet6_hashtables.c
+--- linux-2.6.22.16-0.2.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.22.16-0.2/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1165,8 +1165,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.22.16-0.1.orig/net/socket.c
-+++ linux-2.6.22.16-0.1/net/socket.c
+--- linux-2.6.22.16-0.2.orig/net/socket.c
++++ linux-2.6.22.16-0.2/net/socket.c
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1244,8 +1244,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
---- linux-2.6.22.16-0.1.orig/net/unix/af_unix.c
-+++ linux-2.6.22.16-0.1/net/unix/af_unix.c
+--- linux-2.6.22.16-0.2.orig/net/unix/af_unix.c
++++ linux-2.6.22.16-0.2/net/unix/af_unix.c
 @@ -115,6 +115,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1277,8 +1277,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, nd.mnt, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.22.16-0.1.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.22.16-0.1/arch/alpha/kernel/ptrace.c
+--- linux-2.6.22.16-0.2.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.22.16-0.2/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1301,8 +1301,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.22.16-0.1.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.22.16-0.1/arch/m32r/kernel/ptrace.c
+--- linux-2.6.22.16-0.2.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.22.16-0.2/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1325,8 +1325,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.22.16-0.1.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.22.16-0.1/arch/s390/kernel/ptrace.c
+--- linux-2.6.22.16-0.2.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.22.16-0.2/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1349,8 +1349,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.22.16-0.1.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.22.16-0.1/arch/sh64/kernel/ptrace.c
+--- linux-2.6.22.16-0.2.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.22.16-0.2/arch/sh64/kernel/ptrace.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1373,8 +1373,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	lock_kernel();
  	if (first_call) {
---- linux-2.6.22.16-0.1.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.22.16-0.1/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.22.16-0.2.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.22.16-0.2/arch/x86_64/ia32/ptrace32.c
 @@ -26,6 +26,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -1397,8 +1397,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-2.6.22.16-0.1.orig/kernel/ptrace.c
-+++ linux-2.6.22.16-0.1/kernel/ptrace.c
+--- linux-2.6.22.16-0.2.orig/kernel/ptrace.c
++++ linux-2.6.22.16-0.2/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  
  #include <asm/pgtable.h>
@@ -1421,8 +1421,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.22.16-0.1.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.22.16-0.1/arch/ia64/kernel/ptrace.c
+--- linux-2.6.22.16-0.2.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.22.16-0.2/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -1445,8 +1445,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.22.16-0.1.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.22.16-0.1/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.22.16-0.2.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.22.16-0.2/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -1469,8 +1469,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.22.16-0.1.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.22.16-0.1/arch/mips/kernel/ptrace32.c
+--- linux-2.6.22.16-0.2.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.22.16-0.2/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1493,8 +1493,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.22.16-0.1.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-2.6.22.16-0.1/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.22.16-0.2.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.22.16-0.2/arch/powerpc/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -1517,8 +1517,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.22.16-0.1.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.22.16-0.1/arch/sparc/kernel/ptrace.c
+--- linux-2.6.22.16-0.2.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.22.16-0.2/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1544,8 +1544,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.22.16-0.1.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.22.16-0.1/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.22.16-0.2.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.22.16-0.2/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
