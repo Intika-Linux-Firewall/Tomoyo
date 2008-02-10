@@ -28,7 +28,7 @@
 
 <h2><a name="l1">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.5.2 on Debian Etch systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.5.3 on Debian Etch systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 
 <ol>
@@ -45,22 +45,22 @@ But regarding Debian Etch, a binary kernel package is and this page uses it.</p>
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.18-17-ccs-i586_1.5.2_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.18-17etch1-ccs-i586_1.5.3_i386.deb</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">dpkg -i linux-image-2.6.18-17-ccs-i586_1.5.2_i386.deb</span>
+# <span class="user">dpkg -i linux-image-2.6.18-17etch1-ccs-i586_1.5.3_i386.deb</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
 
 <pre>
-title           Debian GNU/Linux, kernel 2.6.18-17-ccs
+title           Debian GNU/Linux, kernel 2.6.18-17etch1-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.18-17-ccs root=/dev/sda1 ro
-initrd          /boot/initrd.img-2.6.18-17-ccs
+kernel          /boot/vmlinuz-2.6.18-17etch1-ccs root=/dev/sda1 ro
+initrd          /boot/initrd.img-2.6.18-17etch1-ccs
 savedefault
 boot
 </pre>
@@ -79,8 +79,8 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 <p>A binary tools package is provided and this page uses it.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Etch_i386.deb</span>
-# <span class="user">dpkg -i ccs-tools_1.5.2-1_Etch_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.3-1_Etch_i386.deb</span>
+# <span class="user">dpkg -i ccs-tools_1.5.3-1_Etch_i386.deb</span>
 </pre>
 
 <p>Add /usr/lib/ccs (the location of TOMOYO Linux tools) to the environment variable PATH.
@@ -235,15 +235,7 @@ You need to create the directory to save before you run this script.</p>
 
 <p><img alt="Booting with TOMOYO Linux kernel" title="Booting with TOMOYO Linux kernel" width="720" height="400" src="grub.png"></p>
 
-<p>The following prompt will appear.</p>
-
-<pre>
-TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
-TOMOYO Linux&gt;
-</pre>
-
-<p>Wait 10 seconds or press 'Enter' key to continue. The exception policy will be loaded and the system starts.
-After the login prompt appear, log in as root.</p>
+<p>After the login prompt appear, log in as root.</p>
 
 <p><img alt="Log in as root" title="Log in as root" width="720" height="400" src="login.png"></p>
 
