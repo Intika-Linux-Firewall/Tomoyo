@@ -23,7 +23,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # Bah. Have to set this to a negative for the moment to fix rpm ordering after
 # moving the spec file. cvs sucks. Should be sure to fix this once 2.6.23 is out.
 %define fedora_cvs_origin 209
-%define fedora_build %(R="$Revision: 1.316 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.324 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -666,6 +666,7 @@ Patch430: linux-2.6-net-silence-noisy-printks.patch
 # Patch431: linux-2.6-netfilter-fix-null-deref-nf_nat_move_storage.patch
 Patch440: linux-2.6-sha_alignment.patch
 Patch450: linux-2.6-input-kill-stupid-messages.patch
+Patch451: linux-2.6-input-fix-sync-loss-acer-aspire.patch
 # Patch451: linux-2.6-input-alps-add-dell-vostro-1400.patch
 # Patch452: linux-2.6-input-alps-add-thinkpad-r61.patch
 Patch460: linux-2.6-serial-460800.patch
@@ -1268,6 +1269,8 @@ ApplyPatch linux-2.6-net-silence-noisy-printks.patch
 ApplyPatch linux-2.6-sha_alignment.patch
 # The input layer spews crap no-one cares about.
 ApplyPatch linux-2.6-input-kill-stupid-messages.patch
+# Fix loss of sync caused by adding dell Vostro 1400
+ApplyPatch linux-2.6-input-fix-sync-loss-acer-aspire.patch
 # Add support for some new mouse configurations
 # ApplyPatch linux-2.6-input-alps-add-dell-vostro-1400.patch
 # ApplyPatch linux-2.6-input-alps-add-thinkpad-r61.patch
@@ -1326,7 +1329,7 @@ ApplyPatch linux-2.6-libata-tape-max-sectors.patch
 ApplyPatch linux-2.6-libata-work-around-drq-1-err-1-for-tapes.patch
 ApplyPatch linux-2.6-libata-use-stuck-err-for-tapes.patch
 # allow 12-byte SCSI commands for ATAPI devices
-ApplyPatch linux-2.6-libata-scsi-allow-short-commands.patch
+# ApplyPatch linux-2.6-libata-scsi-allow-short-commands.patch
 # fix ahci reset
 ApplyPatch linux-2.6-libata-ahci-enable-ahci-mode-before-reset.patch
 
@@ -1459,8 +1462,8 @@ ApplyPatch linux-2.6-freezer-fix-apm-emulation-breakage.patch
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .14-107.fc8:' -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.23.14-107.fc8.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .14-115.fc8:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.23.14-115.fc8.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -2061,8 +2064,8 @@ fi
 
 
 %changelog
-* Mon Jan 14 2008 Kyle McMartin <kmcmartin@redhat.com>
-- Linux 2.6.23.14
+* Mon Jan 21 2008 Chuck Ebbert <cebbert@redhat.com> 2.6.23.14-115
+- No change, just increment release.
 
 * Sun May 27 2007 Dave Jones <davej@redhat.com>
 - Start F8 branch. Rebase to 2.6.22rc3
