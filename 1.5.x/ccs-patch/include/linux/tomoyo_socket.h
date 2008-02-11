@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/02/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -269,6 +269,9 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 		break;
 	}
 	if (error) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+		lock_sock(sk);
+#endif
 		/*
 		 * Remove from queue if MSG_PEEK is used so that
 		 * the head message from unwanted source in receive queue will not
@@ -286,6 +289,9 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 		}
 		/* Drop reference count. */
 		skb_free_datagram(sk, skb);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+		release_sock(sk);
+#endif
 		/* Hope less harmful than -EPERM. */
 		error = -EAGAIN;
 	}
