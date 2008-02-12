@@ -20,7 +20,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # kernel spec when the kernel is rebased, so fedora_build automatically
 # works out to the offset from the rebase, so it doesn't get too ginormous.
 %define fedora_cvs_origin 3351
-%define fedora_build %(R="$Revision: 1.3415 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.3431 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -30,7 +30,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
 # Do we have a 2.6.x.y update to apply?
-%define stable_update 14
+%define stable_update 15
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -506,6 +506,9 @@ Patch00: patch-2.6.%{base_sublevel}-git%{gitrev}.bz2
 
 %if !%{nopatches}
 
+# security CVE 2008-0600 - vmsplice fixage.
+Patch04: linux-2.6-cve-2008-0600.patch
+
 # Revert -stable pieces we get from elsewhere here
 Patch05: linux-2.6-upstream-reverts.patch
 
@@ -562,6 +565,7 @@ Patch370: linux-2.6-crash-driver.patch
 Patch400: linux-2.6-scsi-cpqarray-set-master.patch
 Patch401: linux-2.6-scsi-async-double-add.patch
 Patch404: linux-2.6-scsi-mpt-vmware-fix.patch
+Patch405: linux-2.6-scsi-initio-fix-hang-on-load.patch
 
 Patch420: linux-2.6-squashfs.patch
 Patch422: linux-2.6-gfs-locking-exports.patch
@@ -571,22 +575,26 @@ Patch426: linux-2.6-cifs-fix-bad-handling-of-EAGAIN.patch
 Patch427: linux-2.6-cifs-fix-oops-on-second-mount.patch
 
 Patch430: linux-2.6-net-silence-noisy-printks.patch
+Patch431: linux-2.6-netfilter-really-fix-oops-in-nf_nat_move_storage.patch
 
 Patch440: linux-2.6-sha_alignment.patch
 Patch450: linux-2.6-input-kill-stupid-messages.patch
 Patch451: linux-2.6-input-fix-sync-loss-acer-aspire.patch
+Patch452: linux-2.6-input-appletouch-macbook3-trackpad.patch
 Patch460: linux-2.6-serial-460800.patch
 Patch461: linux-2.6-serial_pnp-add-new-wacom-ids.patch
 Patch480: linux-2.6-proc-self-maps-fix.patch
 Patch510: linux-2.6-silence-noise.patch
 Patch570: linux-2.6-selinux-mprotect-checks.patch
+Patch571: linux-2.6-selinux-fix-netlabel-leak.patch
 Patch590: linux-2.6-unexport-symbols.patch
 
 Patch600: linux-2.6-vm-silence-atomic-alloc-failures.patch
 Patch601: linux-2.6-input-ff-create-limit-memory.patch
-Patch602: linux-2.6-mm-fix-ptrace-access-beyond-vma.patch
+# Patch602: linux-2.6-mm-fix-ptrace-access-beyond-vma.patch
 Patch603: linux-2.6-dio-fix-cache-invalidation-after-sync-writes.patch
 Patch604: linux-2.6-slub-provide-proc-slabinfo.patch
+Patch605: linux-2.6-futex-fix-fixups.patch
 
 Patch610: linux-2.6-defaults-fat-utf8.patch
 Patch620: linux-2.6-defaults-unicode-vt.patch
@@ -605,13 +613,12 @@ Patch672: linux-2.6-libata-work-around-drq-1-err-1-for-tapes.patch
 Patch673: linux-2.6-libata-use-stuck-err-for-tapes.patch
 Patch674: linux-2.6-libata-scsi-allow-short-commands.patch
 Patch675: linux-2.6-libata-ahci-enable-ahci-mode-before-reset.patch
+Patch676: linux-2.6-libata-fix-bogus-lba48-disks.patch
 
 Patch680: linux-2.6-wireless.patch
 Patch681: linux-2.6-wireless-pending.patch
-Patch682: linux-2.6-wireless-pending-too.patch
 Patch690: linux-2.6-at76.patch
-Patch691: linux-2.6-ath5k.patch
-Patch692: linux-2.6-rtl8180.patch
+Patch691: linux-2.6-rndis_wext.patch
 Patch700: linux-2.6-bcm43xx-pci-neuter.patch
 Patch701: linux-2.6-zd1211rw-module-alias.patch
 Patch702: linux-2.6-b43-module-alias.patch
@@ -633,11 +640,17 @@ Patch730: linux-2.6-net-e100-disable-polling.patch
 Patch740: linux-2.6-snd-ad1988-fix-spdif-output.patch
 Patch741: linux-2.6-alsa-drivers-set-device-links.patch
 
-Patch750: linux-2.6-firewire-multi-lun.patch
-Patch751: linux-2.6-firewire-lockdep.patch
-Patch752: linux-2.6-firewire-ohci-1.0-iso-receive.patch
+# Updated firewire stack from linux1394 git
+# snap from http://me.in-berlin.de/~s5r6/linux1394/updates/2.6.23/
+Patch750: linux-2.6-firewire-git-update.patch
 
 Patch760: linux-2.6-acpi-button-send-initial-state.patch
+Patch761: linux-2.6-acpi-video-backlight-rationalize.patch
+Patch762: linux-2.6-acpi-video-brightness-bigger-buffer.patch
+Patch763: linux-2.6-acpi-video-fix-multiple-busses.patch
+Patch764: linux-2.6-acpi-git-ec-init-fixes.patch
+Patch765: linux-2.6-acpi-dont-init-ec-early-with-no-ini.patch
+Patch766: linux-2.6-acpi_ec_early_init_fix.patch
 
 Patch780: linux-2.6-usb-storage-initialize-huawei-e220-properly.patch
 Patch781: linux-2.6-usb-autosuspend-default-disable.patch
@@ -659,7 +672,9 @@ Patch1320: linux-2.6-ps3-storage-alias.patch
 
 Patch1500: linux-2.6-pmtrace-time-fix.patch
 
-Patch2300: linux-2.6-freezer-fix-apm-emulation-breakage.patch
+Patch1520: linux-2.6-dcdbas-autoload.patch
+
+# Patch2300: linux-2.6-freezer-fix-apm-emulation-breakage.patch
 
 %endif
 
@@ -1106,6 +1121,8 @@ ApplyPatch linux-2.6-build-nonintconfig.patch
 # Revert -stable pieces we get from elsewhere here
 ApplyPatch linux-2.6-upstream-reverts.patch -R
 
+ApplyPatch linux-2.6-cve-2008-0600.patch
+
 # Roland's utrace ptrace replacement.
 ApplyPatch linux-2.6-utrace-tracehook.patch -F2
 ApplyPatch linux-2.6-utrace-tracehook-ia64.patch
@@ -1218,6 +1235,8 @@ ApplyPatch linux-2.6-scsi-cpqarray-set-master.patch
 ApplyPatch linux-2.6-scsi-async-double-add.patch
 # fix vmware's broken emulation of SCSI controller
 ApplyPatch linux-2.6-scsi-mpt-vmware-fix.patch
+# fin initio driver
+ApplyPatch linux-2.6-scsi-initio-fix-hang-on-load.patch
 
 # Filesystem patches.
 # Squashfs
@@ -1236,6 +1255,8 @@ ApplyPatch linux-2.6-cifs-fix-oops-on-second-mount.patch
 # Networking
 # Disable easy to trigger printk's.
 ApplyPatch linux-2.6-net-silence-noisy-printks.patch
+# fix oops in netfilter again
+ApplyPatch linux-2.6-netfilter-really-fix-oops-in-nf_nat_move_storage.patch
 
 # Misc fixes
 # Fix SHA1 alignment problem on ia64
@@ -1244,6 +1265,8 @@ ApplyPatch linux-2.6-sha_alignment.patch
 ApplyPatch linux-2.6-input-kill-stupid-messages.patch
 # Fix loss of sync on some touchpads
 ApplyPatch linux-2.6-input-fix-sync-loss-acer-aspire.patch
+# Add support for new macbook trackpads
+ApplyPatch linux-2.6-input-appletouch-macbook3-trackpad.patch
 # Allow to use 480600 baud on 16C950 UARTs
 ApplyPatch linux-2.6-serial-460800.patch
 # support new wacom pads
@@ -1253,6 +1276,8 @@ ApplyPatch linux-2.6-silence-noise.patch
 
 # Fix the SELinux mprotect checks on executable mappings
 ApplyPatch linux-2.6-selinux-mprotect-checks.patch
+# Fix leak in netlabel
+ApplyPatch linux-2.6-selinux-fix-netlabel-leak.patch
 
 # Remove kernel-internal functionality that nothing external should use.
 ApplyPatch linux-2.6-unexport-symbols.patch
@@ -1265,11 +1290,13 @@ ApplyPatch linux-2.6-vm-silence-atomic-alloc-failures.patch
 # don't let input FF drivers allocate too much memory
 ApplyPatch linux-2.6-input-ff-create-limit-memory.patch
 # fix ptrace access beyond vma
-ApplyPatch linux-2.6-mm-fix-ptrace-access-beyond-vma.patch
+#ApplyPatch linux-2.6-mm-fix-ptrace-access-beyond-vma.patch
 # fix invalid data read after direct IO write
 ApplyPatch linux-2.6-dio-fix-cache-invalidation-after-sync-writes.patch
 # re-add /proc/slabinfo
 ApplyPatch linux-2.6-slub-provide-proc-slabinfo.patch
+# fix oops with futex on uniprocessor machine
+ApplyPatch linux-2.6-futex-fix-fixups.patch
 
 # Changes to upstream defaults.
 # Use UTF-8 by default on VFAT.
@@ -1304,6 +1331,8 @@ ApplyPatch linux-2.6-libata-use-stuck-err-for-tapes.patch
 # ApplyPatch linux-2.6-libata-scsi-allow-short-commands.patch
 # fix ahci reset
 ApplyPatch linux-2.6-libata-ahci-enable-ahci-mode-before-reset.patch
+# work around broken lba48 disks
+ApplyPatch linux-2.6-libata-fix-bogus-lba48-disks.patch
 
 # post-2.6.23 wireless patches from upstream
 ApplyPatch linux-2.6-wireless.patch
@@ -1312,8 +1341,7 @@ ApplyPatch linux-2.6-wireless-pending.patch
 
 # Add misc wireless bits from upstream wireless tree
 ApplyPatch linux-2.6-at76.patch
-ApplyPatch linux-2.6-ath5k.patch
-ApplyPatch linux-2.6-rtl8180.patch
+ApplyPatch linux-2.6-rndis_wext.patch
 
 # avoid bcm3xx vs bcm43xx-mac80211 PCI ID conflicts
 ApplyPatch linux-2.6-bcm43xx-pci-neuter.patch
@@ -1323,9 +1351,6 @@ ApplyPatch linux-2.6-zd1211rw-module-alias.patch
 ApplyPatch linux-2.6-b43-module-alias.patch
 # Make ath5k use software WEP
 ApplyPatch linux-2.6-ath5k-use-soft-wep.patch
-
-# Some more 2.6.25 stuff, here due to upstream process anomalies...
-ApplyPatch linux-2.6-wireless-pending-too.patch
 
 # e1000e goes here
 # latest Intel driver for ich9
@@ -1352,11 +1377,9 @@ ApplyPatch linux-2.6-snd-ad1988-fix-spdif-output.patch
 ApplyPatch linux-2.6-alsa-drivers-set-device-links.patch
 
 # misc
-# The multi-lun patch fixes #242254, but won't be in 2.6.23.
 #
-ApplyPatch linux-2.6-firewire-multi-lun.patch
-ApplyPatch linux-2.6-firewire-lockdep.patch
-ApplyPatch linux-2.6-firewire-ohci-1.0-iso-receive.patch
+# FireWire updates and fixes
+ApplyPatch linux-2.6-firewire-git-update.patch
 
 # USB
 #
@@ -1367,6 +1390,14 @@ ApplyPatch linux-2.6-usb-huawei-fix-init-in-modem-mode.patch
 # ACPI patches
 # suspend/resume fixes
 ApplyPatch linux-2.6-acpi-button-send-initial-state.patch
+# fix multiple ACPI brightness problems (F8#427518)
+ApplyPatch linux-2.6-acpi-video-backlight-rationalize.patch
+ApplyPatch linux-2.6-acpi-video-brightness-bigger-buffer.patch
+ApplyPatch linux-2.6-acpi-video-fix-multiple-busses.patch
+# copy EC fixes from F8
+ApplyPatch linux-2.6-acpi-git-ec-init-fixes.patch
+ApplyPatch linux-2.6-acpi-dont-init-ec-early-with-no-ini.patch
+ApplyPatch linux-2.6-acpi_ec_early_init_fix.patch
 
 # Fix excessive wakeups
 # Make hdaps timer only tick when in use.
@@ -1382,8 +1413,8 @@ ApplyPatch linux-2.6-ps3-storage-alias.patch
 # Fix time distortion in pm_trace (bz 250238)
 ApplyPatch linux-2.6-pmtrace-time-fix.patch
 
-# removed in 2.6.23.10
-ApplyPatch linux-2.6-freezer-fix-apm-emulation-breakage.patch
+# autload the Dell dcdbas driver via DMI
+ApplyPatch linux-2.6-dcdbas-autoload.patch
 
 #
 # misc small stuff to make things compile
@@ -1396,8 +1427,8 @@ fi
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .14-64.fc7:' -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.23.14-64.fc7.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .15-80.fc7:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.23.15-80.fc7.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -2324,8 +2355,8 @@ fi
 %endif
 
 %changelog
-* Sat Jan 19 2008 Kyle McMartin <kmcmartin@redhat.com> 2.6.23.14-64
-- Revert CONFIG_PHYSICAL_START on x86_64.
+* Sun Feb 10 2008 Dave Airlie <airlied@redhat.com> 2.6.23.15-80
+- CVE-2008-0600 - remote root vulnerability in vmsplice
 
 * Wed Oct 10 2007 Chuck Ebbert <cebbert@redhat.com> 2.6.23-1
 - Linux 2.6.23
