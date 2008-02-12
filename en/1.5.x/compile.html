@@ -44,13 +44,13 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a>
 <li><a href="#2.6.20-1.2320.fc5">Kernel 2.6.20-1.2320.fc5 for Fedora Core 5</a>
 <li><a href="#2.6.22.14-72.fc6">Kernel 2.6.22.14-72.fc6 for Fedora Core 6</a>
-<li><a href="#2.6.23.14-64.fc7">Kernel 2.6.23.14-64.fc7 for Fedora 7</a>
+<li><a href="#2.6.23.15-80.fc7">Kernel 2.6.23.15-80.fc7 for Fedora 7</a>
 <li><a href="#2.6.23.14-115.fc8">Kernel 2.6.23.14-115.fc8 for Fedora 8</a>
 <li><a href="#2.6.9-67.0.4.EL">Kernel 2.6.9-67.0.4.EL for CentOS 4.6</a>
 <li><a href="#2.6.18-53.1.6.el5">Kernel 2.6.18-53.1.6.el5 for CentOS 5.1</a>
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
 <li><a href="#2.6.8-17">Kernel 2.6.8-17 for Debian Sarge</a>
-<li><a href="#2.6.18-17etch1">Kernel 2.6.18-17etch1 for Debian Etch</a>
+<li><a href="#2.6.18-18etch1">Kernel 2.6.18-18etch1 for Debian Etch</a>
 <li><a href="#2.6.22-6">Kernel 2.6.22-6 for Debian Lenny</a>
 <li><a href="#2.6.16.54-0.2.5">Kernel 2.6.16.54-0.2.5 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.8-0.8">Kernel 2.6.18.8-0.8 for OpenSUSE 10.2</a>
@@ -193,24 +193,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.23.14-64.fc7">Kernel 2.6.23.14-64.fc7 for Fedora 7</a></h2>
+<h2><a name="2.6.23.15-80.fc7">Kernel 2.6.23.15-80.fc7 for Fedora 7</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/updates/7/SRPMS/kernel-2.6.23.14-64.fc7.src.rpm<br>
-rpm -ivh kernel-2.6.23.14-64.fc7.src.rpm<br>
+wget http://download.fedora.redhat.com/pub/fedora/linux/updates/7/SRPMS/kernel-2.6.23.15-80.fc7.src.rpm<br>
+rpm -ivh kernel-2.6.23.15-80.fc7.src.rpm<br>
 # Prepare for compilation.<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.14-64.fc7<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.15-80.fc7<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.23.14-64.fc7/<br>
+cd /usr/src/linux-2.6.23.15-80.fc7/<br>
 # Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .14-64.fc7/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .15-80.fc7/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.3-20080131.tar.gz<br>
 tar -zxf ccs-patch-1.5.3-20080131.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.23.14-64.fc7.diff<br>
+wget -O patches/ccs-patch-2.6.23.15-80.fc7.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.23.15-80.fc7.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.23.15-80.fc7.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
@@ -344,7 +345,7 @@ mkinitrd -o /boot/initrd.img-2.6.8-17-ccs 2.6.8-17-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-17etch1">Kernel 2.6.18-17etch1 for Debian Etch</a></h2>
+<h2><a name="2.6.18-18etch1">Kernel 2.6.18-18etch1 for Debian Etch</a></h2>
 
 <table border="1">
 <tr><td>
@@ -356,14 +357,15 @@ cd linux-source-2.6.18/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.3-20080131.tar.gz<br>
 tar -zxf ccs-patch-1.5.3-20080131.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-17etch1.diff<br>
+wget -O patches/ccs-patch-2.6.18-18etch1.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.18-18etch1.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.18-18etch1.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
 make -s<br>
 make -s install modules modules_install<br>
 # Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.18-17etch1-ccs 2.6.18-17etch1-ccs
+mkinitrd -o /boot/initrd.img-2.6.18-18etch1-ccs 2.6.18-18etch1-ccs
 </td></tr>
 </table>
 
