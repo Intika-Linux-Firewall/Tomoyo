@@ -61,22 +61,22 @@ But regarding CentOS 5.1, a binary kernel package is and this page uses it.</p>
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.18-53.1.6.el5_tomoyo_1.5.3.i686.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.18-53.1.13.el5_tomoyo_1.5.3.i686.rpm</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.18-53.1.6.el5_tomoyo_1.5.3.i686.rpm</span>
+# <span class="user">rpm --install kernel-2.6.18-53.1.13.el5_tomoyo_1.5.3.i686.rpm</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/grub.conf if installation finishes successfully.</p>
 
 <pre>
-title CentOS (2.6.18-53.1.6.el5_tomoyo_1.5.3)
+title CentOS (2.6.18-53.1.13.el5_tomoyo_1.5.3)
     root (hd0,0)
-    kernel /vmlinuz-2.6.18-53.1.6.el5_tomoyo_1.5.3 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.18-53.1.6.el5_tomoyo_1.5.3.img
+    kernel /vmlinuz-2.6.18-53.1.13.el5_tomoyo_1.5.3 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.18-53.1.13.el5_tomoyo_1.5.3.img
 </pre>
 
 <p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
