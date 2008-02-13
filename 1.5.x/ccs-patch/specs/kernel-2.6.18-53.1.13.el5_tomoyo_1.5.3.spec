@@ -67,7 +67,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 53.1.6%{?dist}%{?buildid}
+%define release 53.1.13%{?dist}%{?buildid}
 %define signmodules 0
 %define xen_hv_cset 15042
 %define xen_abi_ver 3.1
@@ -1622,6 +1622,7 @@ Patch21857: linux-2.6-net-s2io-correct-vlan-frame-reception.patch
 Patch21858: linux-2.6-fs-cifs-buffer-overflow-due-to-corrupt-response.patch
 Patch21859: linux-2.6-ia64-ptrace-access-to-user-register-backing.patch
 Patch21860: linux-2.6-fs-corruption-by-unprivileged-user-in-directories.patch
+Patch21861: linux-2.6-x86_64-fs-vmsplice_to_pipe-flaw.patch
 # adds rhel version info to version.h
 Patch99990: linux-2.6-rhel-version-h.patch
 # empty final patch file to facilitate testing of kernel patches
@@ -3255,6 +3256,7 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21858 -p1
 %patch21859 -p1
 %patch21860 -p1
+%patch21861 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 # patch the Makefile to include rhel version info
 %patch99990 -p1
@@ -3271,8 +3273,8 @@ perl -p -i -e "s/^RHEL_MINOR.*/RHEL_MINOR = %{rh_release_minor}/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -53.1.6.el5/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.18-53.1.6.el5.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -53.1.13.el5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-53.1.13.el5.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -4215,8 +4217,8 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
 
 %changelog
-* Wed Jan 23 2008 Karanbir Singh <kbsingh@centos.org> 
-- Roll in CentOS Brand changes
+* Tue Feb 12 2008 Karanbir Singh <kbsingh@centos.org>
+- Rebuild for CentOS, change key to CentOS
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
