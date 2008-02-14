@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/21
+ * Version: 1.6.0-pre   2008/02/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -17,12 +17,123 @@
 #include <linux/realpath.h>
 #include <linux/version.h>
 
+#include <linux/tomoyo.h>
+#include <linux/highmem.h>
+#include <linux/binfmts.h>
+
+static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned long index, const struct path_info *name, const struct path_info *value)
+{
+	/*
+	  if exec.argc=3                  // if (argc == 3)
+	  if exec.argv[1]="-c"            // if (argc >= 2 && strcmp(argv[1], "-c") == 0)
+	  if exec.argv[1]!="-c"           // if (argc < 2 || strcmp(argv[1], "-c"))
+	  if exec.envc=10-20              // if (envc >= 10 && envc <= 20)
+	  if exec.envc!=10-20             // if (envc < 10 || envc > 20)
+	  if exec.envp["HOME"]!=NULL      // if (getenv("HOME"))
+	  if exec.envp["HOME"]=NULL       // if (!getenv("HOME"))
+	  if exec.envp["HOME"]="/"        // if (getenv("HOME") && strcmp(getenv("HOME"), "/") == 0)
+	  if exec.envp["HOME"]!="/"       // if (!getenv("HOME") || strcmp(getenv("HOME", "/")) 
+	*/
+	char *arg_ptr;
+	int arg_len = 0;
+	unsigned long pos = bprm->p;
+	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+	int argv_count = bprm->argc;
+	int envp_count = bprm->envc;
+	bool result = false;
+	printk(KERN_DEBUG "argc=%d envc=%d\n", argv_count, envp_count);
+	arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
+	if (!arg_ptr) return false;
+	while (argv_count || envp_count) {
+		struct page *page;
+		const char *kaddr;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
+		pos += PAGE_SIZE - offset;
+#else
+		page = bprm->page[i];
+#endif
+		/* Map */
+		kaddr = kmap(page);
+		if (!kaddr) { /* Mapping failed. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+			put_page(page);
+#endif
+			goto out;
+		}
+		while (offset < PAGE_SIZE) {
+			/* Read. */
+			struct path_info arg;
+			const unsigned char c = kaddr[offset++];
+			arg.name = arg_ptr;
+			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+				if (c == '\\') {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = '\\';
+				} else if (c > ' ' && c < 127) {
+					arg_ptr[arg_len++] = c;
+				} else {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = (c >> 6) + '0';
+					arg_ptr[arg_len++] = ((c >> 3) & 7) + '0';
+					arg_ptr[arg_len++] = (c & 7) + '0';
+				}
+			} else {
+				arg_ptr[arg_len] = '\0';
+			}
+			if (c) continue;
+			/* Check. */
+			if (argv_count) {
+				printk(KERN_DEBUG "argv[%d]=' %s '\n", bprm->argc - argv_count, arg_ptr);
+				if (is_argv && bprm->argc - argv_count == index) {
+					fill_path_info(&arg);
+					result = PathMatchesToPattern(&arg, value);
+				}
+				argv_count--;
+				if (result) break;
+				if (!argv_count && is_argv) break;
+			} else if (envp_count) {
+				char *cp;
+				printk(KERN_DEBUG "envp[%d]=' %s '\n", bprm->envc - envp_count, arg_ptr);
+				if (!is_argv && (cp = strchr(arg_ptr, '=')) != NULL) {
+					*cp = '\0';
+					fill_path_info(&arg);
+					if (PathMatchesToPattern(&arg, name)) {
+						if (value) {
+							arg.name = cp + 1;
+							fill_path_info(&arg);
+							if (PathMatchesToPattern(&arg, value)) result = true;
+						} else {
+							result = true;
+						}
+					}
+				}
+				envp_count--;
+				if (result) break;
+			} else {
+				break;
+			}
+			arg_len = 0;
+		}
+		/* Unmap. */
+		kunmap(page);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+		put_page(page);
+#endif
+		i++;
+		offset = 0;
+	}
+ out:
+	ccs_free(arg_ptr);
+	return result;
+}
+
 #define VALUE_TYPE_DECIMAL     1
 #define VALUE_TYPE_OCTAL       2
 #define VALUE_TYPE_HEXADECIMAL 3
 
 /* Don't use u8 because we use "<< 8". */
-static u16 parse_ulong(unsigned long *result, const char **str)
+static u16 parse_ulong(unsigned long *result, char **str)
 {
 	const char *cp = *str;
 	char *ep;
@@ -52,10 +163,15 @@ static void print_ulong(char *buffer, const int buffer_len, const unsigned long 
 	}
 }
 
+union element {
+	const struct path_info *string;
+	unsigned long value;
+};
+
 struct condition_list {
 	struct list1_head list;
 	int length;
-	/* "unsigned long condition[length]" comes here.*/
+	/* "element condition[length]" comes here.*/
 };
 
 static LIST1_HEAD(condition_list);
@@ -79,7 +195,11 @@ static LIST1_HEAD(condition_list);
 #define PATH2_PARENT_UID 16
 #define PATH2_PARENT_GID 17
 #define PATH2_PARENT_INO 18
-#define MAX_KEYWORD      19
+#define EXEC_ARGC        19
+#define EXEC_ENVC        20
+#define EXEC_ARGV        21
+#define EXEC_ENVP        22
+#define MAX_KEYWORD      23
 
 static struct {
 	const char *keyword;
@@ -103,17 +223,22 @@ static struct {
 	[PATH1_PARENT_INO] = { "path1.parent.ino",  16 },
 	[PATH2_PARENT_UID] = { "path2.parent.uid",  16 },
 	[PATH2_PARENT_GID] = { "path2.parent.gid",  16 },
-	[PATH2_PARENT_INO] = { "path2.parent.ino",  16 }
+	[PATH2_PARENT_INO] = { "path2.parent.ino",  16 },
+	[EXEC_ARGC]        = { "exec.argc",          9 },
+	[EXEC_ENVC]        = { "exec.envc",          9 },
+	[EXEC_ARGV]        = { "exec.argv[",        10 },
+	[EXEC_ENVP]        = { "exec.envp[\"",      11 },
 };
 
-const struct condition_list *FindOrAssignNewCondition(const char *condition)
+const struct condition_list *FindOrAssignNewCondition(char *condition)
 {
-	const char *start;
+	char *start;
 	struct condition_list *new_ptr;
-	unsigned long *ptr2;
+	union element *ptr2;
 	int counter = 0, size;
 	int left, right;
 	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
+	const struct path_info *left_name = NULL, *right_name = NULL;
 	if (strncmp(condition, "if ", 3)) return NULL;
 	condition += 3;
 	start = condition;
@@ -125,7 +250,28 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 				break;
 			}
 		}
-		if (left == MAX_KEYWORD) {
+		if (left == EXEC_ARGV) {
+			if (!parse_ulong(&left_min, &condition)) goto out;
+			if (*condition++ != ']') goto out;
+			counter++; /* body */
+		} else if (left == EXEC_ENVP) {
+			char *tmp = condition;
+			while (1) {
+				const char c = *condition;
+				/*
+				 * Since environment variable names don't contain '=',
+				 * I can treat '"]=' and '"]!=' sequences as delimiters.
+				 */
+				if (strncmp(condition, "\"]=", 3) == 0 || strncmp(condition, "\"]!=", 4) == 0) break;
+				if (!c || c == ' ') goto out;
+				condition++;
+			}
+			*condition = '\0';
+			if (!SaveName(tmp)) goto out;
+			counter++; /* body */
+			*condition = '"';
+			condition += 2;
+		} else if (left == MAX_KEYWORD) {
 			if (!parse_ulong(&left_min, &condition)) goto out;
 			counter++; /* body */
 			if (*condition == '-') {
@@ -138,6 +284,33 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 		else if (*condition == '=') condition++;
 		else goto out;
 		counter++; /* header */
+		if (left == EXEC_ENVP && strncmp(condition, "NULL", 4) == 0) {
+			char c;
+			condition += 4;
+			c = *condition;
+			counter++; /* body */
+			if (!c || c == ' ') continue;
+			goto out;
+		} else if (left == EXEC_ARGV || left == EXEC_ENVP) {
+			char c;
+			char *tmp;
+			if (*condition++ != '"') goto out;
+			tmp = condition;
+			while (1) {
+				c = *condition++;
+				if (!c || c == ' ') goto out;
+				if (c != '"') continue;
+				c = *condition;
+				if (!c || c == ' ') break;
+			}
+			c = *--condition;
+			*condition = '\0';
+			if (!SaveName(tmp)) goto out;
+			counter++; /* body */
+			*condition = c;
+			condition++;
+			continue;
+		}
 		for (right = 0; right < MAX_KEYWORD; right++) {
 			if (strncmp(condition, condition_control_keyword[right].keyword, condition_control_keyword[right].keyword_len) == 0) {
 				condition += condition_control_keyword[right].keyword_len;
@@ -154,11 +327,11 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 			}
 		}
 	}
-	size = sizeof(*new_ptr) + counter * sizeof(unsigned long);
+	size = sizeof(*new_ptr) + counter * sizeof(union element);
 	new_ptr = ccs_alloc(size);
 	if (!new_ptr) return NULL;
 	new_ptr->length = counter;
-	ptr2 = (unsigned long *) (((u8 *) new_ptr) + sizeof(*new_ptr));
+	ptr2 = (union element *) (((u8 *) new_ptr) + sizeof(*new_ptr));
 	condition = start;
 	while (*condition) {
 		unsigned int match = 0;
@@ -169,7 +342,29 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 				break;
 			}
 		}
-		if (left == MAX_KEYWORD) {
+		if (left == EXEC_ARGV) {
+			if (!parse_ulong(&left_min, &condition)) goto out;
+			if (*condition++ != ']') goto out;
+			counter--; /* body */
+		} else if (left == EXEC_ENVP) {
+			char *tmp = condition;
+			while (1) {
+				char c = *condition;
+				/*
+				 * Since environment variable names don't contain '=',
+				 * I can treat "\"]=" and "\"]!=" sequences as delimiters.
+				 */
+				if (strncmp(condition, "\"]=", 3) == 0 || strncmp(condition, "\"]!=", 4) == 0) break;
+				if (!c || c == ' ') goto out;
+				condition++;
+			}
+			*condition = '\0';
+			left_name = SaveName(tmp);
+			BUG_ON(!left_name);
+			counter--; /* body */
+			*condition = '\"';
+			condition += 2;
+		} else if (left == MAX_KEYWORD) {
 			match |= parse_ulong(&left_min, &condition) << 2;
 			counter--; /* body */
 			if (*condition == '-') {
@@ -187,6 +382,37 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 			goto out2;
 		}
 		counter--; /* header */
+		if (left == EXEC_ENVP && strncmp(condition, "NULL", 4) == 0) {
+			char c;
+			condition += 4;
+			right_name = NULL;
+			counter--; /* body */
+			c = *condition;
+			if (c && c != ' ') goto out;
+			right = 0;
+			goto skip_right;
+		} else if (left == EXEC_ARGV || left == EXEC_ENVP) {
+			char c;
+			char *tmp;
+			if (*condition++ != '"') goto out;
+			tmp = condition;
+			while (1) {
+				c = *condition++;
+				if (!c || c == ' ') goto out;
+				if (c != '"') continue;
+				c = *condition;
+				if (!c || c == ' ') break;
+			}
+			c = *--condition;
+			*condition = '\0';
+			right_name = SaveName(tmp);
+			BUG_ON(!right_name);
+			counter--; /* body */
+			*condition = c;
+			condition++;
+			right = 0;
+			goto skip_right;
+		}
 		for (right = 0; right < MAX_KEYWORD; right++) {
 			if (strncmp(condition, condition_control_keyword[right].keyword, condition_control_keyword[right].keyword_len) == 0) {
 				condition += condition_control_keyword[right].keyword_len;
@@ -203,13 +429,22 @@ const struct condition_list *FindOrAssignNewCondition(const char *condition)
 				right++;
 			}
 		}
-		if (counter < 0) goto out2;
-		*ptr2++ = (match << 16) | (left << 8) | right;
-		if (left >= MAX_KEYWORD) *ptr2++ = left_min;
-		if (left == MAX_KEYWORD + 1) *ptr2++ = left_max;
-		if (right >= MAX_KEYWORD) *ptr2++ = right_min;
-		if (right == MAX_KEYWORD + 1) *ptr2++ = right_max;
+skip_right:
+		if (counter < 0) {
+			WARN_ON(counter < 0);
+			goto out2;
+		}
+		ptr2->value = (match << 16) | (left << 8) | right;
+		ptr2++;
+		if (left == EXEC_ARGV) { ptr2->value = left_min; ptr2++; }
+		if (left == EXEC_ENVP) { ptr2->string = left_name; ptr2++; }
+		if (left == EXEC_ARGV || left == EXEC_ENVP) { ptr2->string = right_name; ptr2++; }
+		if (left >= MAX_KEYWORD) { ptr2->value = left_min; ptr2++; }
+		if (left == MAX_KEYWORD + 1) { ptr2->value = left_max; ptr2++; }
+		if (right >= MAX_KEYWORD) { ptr2->value = right_min; ptr2++; }
+		if (right == MAX_KEYWORD + 1) { ptr2->value = right_max; ptr2++; }
 	}
+	WARN_ON(counter);
 	{
 		static DEFINE_MUTEX(lock);
 		struct condition_list *ptr;
@@ -355,14 +590,39 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 	struct task_struct *task = current;
 	int i;
 	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
-	const unsigned long *ptr2;
+	const union element *ptr2;
 	const struct condition_list *ptr = GetConditionPart(acl);
+	struct linux_binprm *bprm;
 	if (!ptr) return 1;
-	ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(*ptr));
+	bprm = obj->bprm;
+	ptr2 = (union element *) (((u8 *) ptr) + sizeof(*ptr));
 	for (i = 0; i < ptr->length; i++) {
-		const bool match = ((*ptr2) >> 16) & 1;
-		const u8 left = (*ptr2) >> 8, right = *ptr2;
+		const bool match = ((ptr2->value) >> 16) & 1;
+		const u8 left = (ptr2->value) >> 8, right = ptr2->value;
 		ptr2++;
+		if (left == EXEC_ARGV) {
+			bool result;
+			unsigned long index = ptr2->value; ptr2++; i++;
+			const struct path_info *value = ptr2->string; ptr2++; i++;
+			if (!bprm) goto out;
+			result = ScanBprm(bprm, true, index, NULL, value);
+			if (!match) result = !result;
+			if (result) continue;
+			goto out;
+		} else if (left == EXEC_ENVP) {
+			bool result;
+			const struct path_info *name = ptr2->string; ptr2++; i++;
+			const struct path_info *value = ptr2->string; ptr2++; i++;
+			if (!bprm) goto out;
+			result = ScanBprm(bprm, false, 0, name, value);
+			if (value) {
+				if (!match) result = !result;
+			} else {
+				if (match) result = !result;
+			}
+			if (result) continue;
+			goto out;
+		}
 		if ((left >= PATH1_UID && left < MAX_KEYWORD) || (right >= PATH1_UID && right < MAX_KEYWORD)) {
 			if (!obj) goto out;
 			if (!obj->validate_done) {
@@ -408,8 +668,14 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 		case PATH2_PARENT_INO:
 			if (!obj->path2_parent_valid) goto out;
 			left_min = left_max = obj->path2_parent_stat.ino; break;
-		case MAX_KEYWORD:     left_min = left_max = *ptr2++; i++; break;
-		case MAX_KEYWORD + 1: left_min = *ptr2++; left_max = *ptr2++; i += 2; break;
+		case EXEC_ARGC:
+			if (!bprm) goto out;
+			left_min = left_max = bprm->argc; i++; break;
+		case EXEC_ENVC:
+			if (!bprm) goto out;
+			left_min = left_max = bprm->envc; i++; break;
+		case MAX_KEYWORD:     left_min = left_max = ptr2->value; ptr2++; i++; break;
+		case MAX_KEYWORD + 1: left_min = ptr2->value; ptr2++; left_max = ptr2->value; ptr2++; i += 2; break;
 		}
 		switch (right) {
 		case TASK_UID:   right_min = right_max = task->uid; break;
@@ -449,8 +715,14 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 		case PATH2_PARENT_INO:
 			if (!obj->path2_parent_valid) goto out;
 			right_min = right_max = obj->path2_parent_stat.ino; break;
-		case MAX_KEYWORD:     right_min = right_max = *ptr2++; i++; break;
-		case MAX_KEYWORD + 1: right_min = *ptr2++; right_max = *ptr2++; i += 2; break;
+		case EXEC_ARGC:
+			if (!bprm) goto out;
+			right_min = right_max = bprm->argc; i++; break;
+		case EXEC_ENVC:
+			if (!bprm) goto out;
+			right_min = right_max = bprm->envc; i++; break;
+		case MAX_KEYWORD:     right_min = right_max = ptr2->value; ptr2++; i++; break;
+		case MAX_KEYWORD + 1: right_min = ptr2->value; ptr2++; right_max = ptr2->value; ptr2++; i += 2; break;
 		}
 		if (match) {
 			if (left_min <= right_max && left_max >= right_min) continue;
@@ -467,35 +739,51 @@ int DumpCondition(struct io_buffer *head, const struct condition_list *ptr)
 {
 	if (ptr) {
 		int i;
-		const unsigned long *ptr2 = (unsigned long *) (((u8 *) ptr) + sizeof(*ptr));
+		const union element *ptr2 = (union element *) (((u8 *) ptr) + sizeof(*ptr));
 		char buffer[32];
 		memset(buffer, 0, sizeof(buffer));
 		for (i = 0; i < ptr->length; i++) {
-			const u16 match = (*ptr2) >> 16;
-			const u8 left = (*ptr2) >> 8, right = *ptr2;
+			const u16 match = (ptr2->value) >> 16;
+			const u8 left = (ptr2->value) >> 8, right = ptr2->value;
 			ptr2++;
 			if (io_printf(head, "%s", i ? " " : " if ")) break;
-			if (left < MAX_KEYWORD) {
+			if (left == EXEC_ARGV) {
+				unsigned long index = ptr2->value; ptr2++;
+				if (io_printf(head, "%s%lu]", condition_control_keyword[left].keyword, index)) break;
+				i++;
+			} else if (left == EXEC_ENVP) {
+				const struct path_info *name = ptr2->string; ptr2++;
+				if (io_printf(head, "%s%s\"]", condition_control_keyword[left].keyword, name->name)) break;
+				i++;
+			} else if (left < MAX_KEYWORD) {
 				if (io_printf(head, "%s", condition_control_keyword[left].keyword)) break;
 			} else {
-				print_ulong(buffer, sizeof(buffer) - 1, *ptr2++, (match >> 2) & 3);
+				print_ulong(buffer, sizeof(buffer) - 1, ptr2->value, (match >> 2) & 3); ptr2++;
 				if (io_printf(head, "%s", buffer)) break;
 				i++;
 				if (left == MAX_KEYWORD + 1) {
-					print_ulong(buffer, sizeof(buffer) - 1, *ptr2++, (match >> 4) & 3);
+					print_ulong(buffer, sizeof(buffer) - 1, ptr2->value, (match >> 4) & 3); ptr2++;
 					if (io_printf(head, "-%s", buffer)) break;
 					i++;
 				}
 			}
 			if (io_printf(head, "%s", (match & 1) ? "=" : "!=")) break;
-			if (right < MAX_KEYWORD) {
+			if (left == EXEC_ARGV || left == EXEC_ENVP) {
+				const struct path_info *name = ptr2->string; ptr2++;
+				if (name) {
+					if (io_printf(head, "\"%s\"", name->name)) break;
+				} else {
+					if (io_printf(head, "NULL")) break;
+				}
+				i++;
+			} else if (right < MAX_KEYWORD) {
 				if (io_printf(head, "%s", condition_control_keyword[right].keyword)) break;
 			} else {
-				print_ulong(buffer, sizeof(buffer) - 1, *ptr2++, (match >> 6) & 3);
+				print_ulong(buffer, sizeof(buffer) - 1, ptr2->value, (match >> 6) & 3); ptr2++;
 				if (io_printf(head, "%s", buffer)) break;
 				i++;
 				if (right == MAX_KEYWORD + 1) {
-					print_ulong(buffer, sizeof(buffer) - 1, *ptr2++, (match >> 8) & 3);
+					print_ulong(buffer, sizeof(buffer) - 1, ptr2->value, (match >> 8) & 3); ptr2++;
 					if (io_printf(head, "-%s", buffer)) break;
 					i++;
 				}

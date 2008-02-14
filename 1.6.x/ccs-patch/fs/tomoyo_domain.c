@@ -610,7 +610,6 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	struct domain_info *old_domain = current->domain_info, *domain = NULL;
 	const char *old_domain_name = old_domain->domainname->name;
 	const char *original_name = bprm->filename;
-	struct file *filp = bprm->file;
 	char *new_domain_name = NULL;
 	char *real_program_name = NULL, *symlink_program_name = NULL;
 	const bool is_enforce = (CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE) == 3);
@@ -692,7 +691,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	}
 
 	/* Check execute permission. */
-	if ((retval = CheckExecPerm(&r, filp)) < 0) goto out;
+	if ((retval = CheckExecPerm(&r, bprm)) < 0) goto out;
 
  ok: ;
 	/* Allocate memory for calcurating domain name. */

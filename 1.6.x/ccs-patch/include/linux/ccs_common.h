@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/23
+ * Version: 1.6.0-pre   2008/02/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -181,6 +181,7 @@ struct obj_info {
 	/* I don't handle path2_stat for rename operation. */
 	struct mini_stat path1_parent_stat;
 	struct mini_stat path2_parent_stat;
+	struct linux_binprm *bprm;
 };
 
 struct path_info {
@@ -455,7 +456,7 @@ const char *cap_operation2keyword(const u8 operation);
 const char *dp_operation2keyword(const u8 operation);
 const char *sp_operation2keyword(const u8 operation);
 const char *net_operation2keyword(const u8 operation);
-const struct condition_list *FindOrAssignNewCondition(const char *condition);
+const struct condition_list *FindOrAssignNewCondition(char *condition);
 int AddAddressGroupPolicy(char *data, const bool is_delete);
 int AddAggregatorPolicy(char *data, const bool is_delete);
 int AddAliasPolicy(char *data, const bool is_delete);

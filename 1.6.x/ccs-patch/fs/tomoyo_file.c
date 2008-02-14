@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/24
+ * Version: 1.6.0-pre   2008/02/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -719,15 +719,16 @@ int CheckFilePerm(const char *filename0, const u8 perm, const char *operation)
 	return CheckFilePerm2(&filename, perm, operation, NULL, profile, mode);
 }
 
-int CheckExecPerm(const struct path_info *filename, struct file *filp)
+int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm)
 {
 	struct obj_info obj;
 	const u8 profile = current->domain_info->profile;
 	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE);
 	if (!mode) return 0;
 	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = filp->f_dentry;
-	obj.path1_vfsmnt = filp->f_vfsmnt;
+	obj.path1_dentry = bprm->file->f_dentry;
+	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
+	obj.bprm = bprm;
 	return CheckFilePerm2(filename, 1, "do_execve", &obj, profile, mode);
 }
 

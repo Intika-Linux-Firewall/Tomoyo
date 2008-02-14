@@ -1164,3 +1164,23 @@ Fix 2008/02/05
       Kernel 2.6.24 introduced PID namespace.
       To search PID given from userland, the kernel needs to use
       find_task_by_vpid() instead of find_task_pid().
+
+Fix 2008/02/14
+
+    @ Add execve() parameter checking.
+
+      Until now, it was impossible to check argv[] and envp[] parameters
+      passed to execve().
+      I expanded conditional permission syntax so that
+      { argc, envc, argv[] , envp[] } parameters can be checked if needed.
+      This will allow administrator permit execution of /bin/sh only when
+      /bin/sh is invoked in the form of "/bin/sh -c" and environment variable
+      HOME is set by specifying
+
+        allow_execute /bin/sh if exec.argv[1]="-c" exec.envp["HOME"]!=NULL
+
+      in the policy.
+      This extension will make exploit codes difficult to start /bin/sh because
+      they unlikely set up environment variables and unlikely specify "-c"
+      option when invoking /bin/sh , whereas proper functions likely set up
+      environment variables and likely specify "-c" option.
