@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/18
+ * Version: 1.6.0-pre   2008/02/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -757,6 +757,7 @@ static int CheckEnviron(struct linux_binprm *bprm)
 		const char *kaddr;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
 		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
+		pos += PAGE_SIZE - offset;
 #else
 		page = bprm->page[i];
 #endif
@@ -808,7 +809,6 @@ static int CheckEnviron(struct linux_binprm *bprm)
 		kunmap(page);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
 		put_page(page);
-		pos += PAGE_SIZE - offset;
 #endif
 		i++;
 		offset = 0;
