@@ -1209,6 +1209,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1,
 +				   &page, NULL) <= 0)
 +			goto out;
++		pos += PAGE_SIZE - offset;
 +#else
 +		page = bprm->page[i];
 +#endif
@@ -1265,7 +1266,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		kunmap(page);
 +#ifdef CONFIG_MMU
 +		put_page(page);
-+		pos += PAGE_SIZE - offset;
 +#endif
 +		i++;
 +		offset = 0;
