@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/14
+ * Version: 1.6.0-pre   2008/02/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -42,6 +42,9 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
 typedef _Bool bool;
 #endif
+
+#define false 0
+#define true 1
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
 #define mutex semaphore
@@ -445,7 +448,7 @@ struct io_buffer {
 
 struct condition_list;
 
-char *InitAuditLog(int *len, const u8 profile, const u8 mode);
+char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm);
 void *ccs_alloc(const size_t size);
 char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
 const char *GetAltExec(void);

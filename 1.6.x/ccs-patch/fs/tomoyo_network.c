@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/21
+ * Version: 1.6.0-pre   2008/02/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,7 +29,7 @@ static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 
 	char *buf;
 	int len = 256;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
-	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode, NULL)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_NETWORK "%s ", operation);
 	if (is_ipv6) {
 		print_ipv6(buf + strlen(buf), len - strlen(buf), (const struct in6_addr *) address);

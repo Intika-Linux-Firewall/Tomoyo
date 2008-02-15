@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/21
+ * Version: 1.6.0-pre   2008/02/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,7 +29,7 @@ static int AuditEnvLog(const char *env, const bool is_granted, const u8 profile,
 	int len;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	len = strlen(env) + 8;
-	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode, NULL)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_ENV "%s\n", env);
 	return WriteAuditLog(buf, is_granted);
 }

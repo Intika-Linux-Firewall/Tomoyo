@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/14
+ * Version: 1.6.0-pre   2008/02/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,7 +21,7 @@
 #include <linux/highmem.h>
 #include <linux/binfmts.h>
 
-static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned long index, const struct path_info *name, const struct path_info *value)
+static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned long index, const struct path_info *name, const struct path_info *value, bool *failed)
 {
 	/*
 	  if exec.argc=3                  // if (argc == 3)
@@ -41,14 +41,21 @@ static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned lon
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
 	bool result = false;
-	printk(KERN_DEBUG "argc=%d envc=%d\n", argv_count, envp_count);
 	arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
-	if (!arg_ptr) return false;
+	if (!arg_ptr) {
+		*failed = true;
+		printk("ccs_alloc() failed\n");
+		return false;
+	}
 	while (argv_count || envp_count) {
 		struct page *page;
 		const char *kaddr;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
-		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
+		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) {
+			*failed = true;
+			printk("get_user_pages() failed\n");
+			goto out;
+		}
 		pos += PAGE_SIZE - offset;
 #else
 		page = bprm->page[i];
@@ -59,6 +66,8 @@ static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned lon
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
 			put_page(page);
 #endif
+			*failed = true;
+			printk("kmap() failed\n");
 			goto out;
 		}
 		while (offset < PAGE_SIZE) {
@@ -84,18 +93,19 @@ static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned lon
 			if (c) continue;
 			/* Check. */
 			if (argv_count) {
-				printk(KERN_DEBUG "argv[%d]=' %s '\n", bprm->argc - argv_count, arg_ptr);
 				if (is_argv && bprm->argc - argv_count == index) {
 					fill_path_info(&arg);
 					result = PathMatchesToPattern(&arg, value);
+					argv_count = envp_count = 0;
+					break;
 				}
-				argv_count--;
-				if (result) break;
-				if (!argv_count && is_argv) break;
+				if (--argv_count == 0 && is_argv) {
+					envp_count = 0;
+					break;
+				}
 			} else if (envp_count) {
-				char *cp;
-				printk(KERN_DEBUG "envp[%d]=' %s '\n", bprm->envc - envp_count, arg_ptr);
-				if (!is_argv && (cp = strchr(arg_ptr, '=')) != NULL) {
+				char *cp = strchr(arg_ptr, '=');
+				if (cp) {
 					*cp = '\0';
 					fill_path_info(&arg);
 					if (PathMatchesToPattern(&arg, name)) {
@@ -106,10 +116,13 @@ static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned lon
 						} else {
 							result = true;
 						}
+						if (result) {
+							envp_count = 0;
+							break;
+						}
 					}
 				}
-				envp_count--;
-				if (result) break;
+				if (--envp_count == 0) break;
 			} else {
 				break;
 			}
@@ -593,6 +606,7 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 	const union element *ptr2;
 	const struct condition_list *ptr = GetConditionPart(acl);
 	struct linux_binprm *bprm;
+	bool failed = false;
 	if (!ptr) return 1;
 	bprm = obj->bprm;
 	ptr2 = (union element *) (((u8 *) ptr) + sizeof(*ptr));
@@ -602,19 +616,24 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 		ptr2++;
 		if (left == EXEC_ARGV) {
 			bool result;
-			unsigned long index = ptr2->value; ptr2++; i++;
-			const struct path_info *value = ptr2->string; ptr2++; i++;
+			unsigned long index;
+			const struct path_info *value;
+			index = ptr2->value; ptr2++; i++;
+			value = ptr2->string; ptr2++; i++;
 			if (!bprm) goto out;
-			result = ScanBprm(bprm, true, index, NULL, value);
+			result = ScanBprm(bprm, true, index, NULL, value, &failed);
+			if (failed) goto out;
 			if (!match) result = !result;
 			if (result) continue;
 			goto out;
 		} else if (left == EXEC_ENVP) {
 			bool result;
-			const struct path_info *name = ptr2->string; ptr2++; i++;
-			const struct path_info *value = ptr2->string; ptr2++; i++;
+			const struct path_info *name, *value;
+			name = ptr2->string; ptr2++; i++;
+			value = ptr2->string; ptr2++; i++;
 			if (!bprm) goto out;
-			result = ScanBprm(bprm, false, 0, name, value);
+			result = ScanBprm(bprm, false, 0, name, value, &failed);
+			if (failed) goto out;
 			if (value) {
 				if (!match) result = !result;
 			} else {

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/21
+ * Version: 1.6.0-pre   2008/02/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,7 +29,7 @@ static int AuditArgv0Log(const struct path_info *filename, const char *argv0, co
 	int len;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	len = filename->total_len + strlen(argv0) + 8;
-	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode, NULL)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_ARGV0 "%s %s\n", filename->name, argv0);
 	return WriteAuditLog(buf, is_granted);
 }
