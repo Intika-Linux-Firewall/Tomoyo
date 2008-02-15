@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/14
+ * Version: 1.6.0-pre   2008/02/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -16,6 +16,7 @@
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
 #include <linux/realpath.h>
+#include <linux/binfmts.h>
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 
 /*************************  VARIABLES  *************************/
@@ -123,13 +124,13 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
-static int AuditFileLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const bool is_granted, const u8 profile, const u8 mode)
+static int AuditFileLog(const char *operation, const struct path_info *filename1, const struct path_info *filename2, const bool is_granted, const u8 profile, const u8 mode, struct linux_binprm *bprm)
 {
 	char *buf;
 	int len;
 	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
 	len = strlen(operation) + filename1->total_len + (filename2 ? filename2->total_len : 0) + 16;
-	if ((buf = InitAuditLog(&len, profile, mode)) == NULL) return -ENOMEM;
+	if ((buf = InitAuditLog(&len, profile, mode, bprm)) == NULL) return -ENOMEM;
 	snprintf(buf + strlen(buf), len - strlen(buf) - 1, "allow_%s %s %s\n", operation, filename1->name, filename2 ? filename2->name : "");
 	return WriteAuditLog(buf, is_granted);
 }
@@ -489,7 +490,7 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	else if (perm == 2) msg = sp_operation2keyword(TYPE_WRITE_ACL);
 	else if (perm == 1) msg = sp_operation2keyword(TYPE_EXECUTE_ACL);
 	else BUG();
-	AuditFileLog(msg, filename, NULL, !error, profile, mode);
+	AuditFileLog(msg, filename, NULL, !error, profile, mode, obj->bprm);
 	if (!error) return 0;
 	if (TomoyoVerboseMode()) {
 		printk("TOMOYO-%s: Access '%s(%s) %s' denied for %s\n", GetMSG(is_enforce), msg, operation, filename->name, GetLastName(domain));
@@ -693,7 +694,7 @@ static int CheckSinglePathPermission2(const u8 operation, const struct path_info
 	if (!mode) return 0;
 	error = CheckSinglePathACL(operation, filename, obj);
 	msg = sp_operation2keyword(operation);
-	AuditFileLog(msg, filename, NULL, !error, profile, mode);
+	AuditFileLog(msg, filename, NULL, !error, profile, mode, NULL);
 	if (!error) goto next;
 	if (TomoyoVerboseMode()) {
 		printk("TOMOYO-%s: Access '%s %s' denied for %s\n", GetMSG(is_enforce), msg, filename->name, GetLastName(domain));
@@ -854,7 +855,7 @@ int CheckDoublePathPermission(const u8 operation, struct dentry *dentry1, struct
 		obj.path2_vfsmnt = mnt2;
 		error = CheckDoublePathACL(operation, buf1, buf2, &obj);
 		msg = dp_operation2keyword(operation);
-		AuditFileLog(msg, buf1, buf2, !error, profile, mode);
+		AuditFileLog(msg, buf1, buf2, !error, profile, mode, NULL);
 		if (error) {
 			if (TomoyoVerboseMode()) {
 				printk("TOMOYO-%s: Access '%s %s %s' denied for %s\n", GetMSG(is_enforce), msg, buf1->name, buf2->name, GetLastName(domain));

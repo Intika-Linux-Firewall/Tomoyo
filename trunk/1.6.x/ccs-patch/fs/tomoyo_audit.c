@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/02/15
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -14,6 +14,110 @@
 /***** TOMOYO Linux start. *****/
 
 #include <linux/ccs_common.h>
+#include <linux/tomoyo.h>
+#include <linux/highmem.h>
+#include <linux/binfmts.h>
+
+static char *DumpBprm(struct linux_binprm *bprm)
+{
+	static const int buffer_len = PAGE_SIZE * 2;
+	char *buffer = ccs_alloc(buffer_len);
+	char *cp, *last_start;
+	int len;
+	unsigned long pos = bprm->p;
+	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+	int argv_count = bprm->argc;
+	int envp_count = bprm->envc;
+	bool truncated = false;
+	if (!buffer) return NULL;
+	len = snprintf(buffer, buffer_len - 1, "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
+	cp = buffer + len;
+	if (!argv_count) {
+		memmove(cp, "} envp[]={ ", 11);
+		cp += 11;
+	}
+	if (!envp_count) *cp++ = '}';
+	last_start = cp;
+	while (argv_count || envp_count) {
+		struct page *page;
+		const char *kaddr;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
+		pos += PAGE_SIZE - offset;
+#else
+		page = bprm->page[i];
+#endif
+		/* Map */
+		kaddr = kmap(page);
+		if (!kaddr) { /* Mapping failed. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+			put_page(page);
+#endif
+			goto out;
+		}
+		/* Read. */
+		while (offset < PAGE_SIZE) {
+			const unsigned char c = kaddr[offset++];
+			if (cp == last_start) *cp++ = '"';
+			if (cp >= buffer + buffer_len - 32) {
+				/* Preserve some room for "..." string. */
+				truncated = true;
+			} else if (c == '\\') {
+				*cp++ = '\\';
+				*cp++ = '\\';
+			} else if (c > ' ' && c < 127) {
+				*cp++ = c;
+			} else if (!c) {
+				*cp++ = '"';
+				*cp++ = ' ';
+				last_start = cp;
+			} else {
+				*cp++ = '\\';
+				*cp++ = (c >> 6) + '0';
+				*cp++ = ((c >> 3) & 7) + '0';
+				*cp++ = (c & 7) + '0';
+			}
+			if (c) continue;
+			if (argv_count) {
+				if (--argv_count == 0) {
+					if (truncated) {
+						cp = last_start;
+						memmove(cp, "... ", 4);
+						cp += 4;
+					}
+					memmove(cp, "} envp[]={ ", 11);
+					cp += 11;
+					if (!envp_count) goto no_envp;
+					last_start = cp;
+				}
+			} else if (envp_count) {
+				if (--envp_count == 0) {
+					if (truncated) {
+						cp = last_start;
+						memmove(cp, "... ", 4);
+						cp += 4;
+					}
+				no_envp:
+					*cp++ = '}';
+					*cp++ = '\0';
+				}
+			} else {
+				break;
+			}
+		}
+		/* Unmap. */
+		kunmap(page);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+		put_page(page);
+#endif
+		i++;
+		offset = 0;
+	}
+	return buffer;
+ out:
+	snprintf(buffer, buffer_len - 1, "argc=%d envc=%d argv[]={ ... } envp[]= { ... }", argv_count, envp_count);
+	return buffer;
+}
 
 /*************************  AUDIT FUNCTIONS  *************************/
 
@@ -32,15 +136,22 @@ static LIST_HEAD(reject_log);
 
 static int grant_log_count = 0, reject_log_count = 0;
 
-char *InitAuditLog(int *len, const u8 profile, const u8 mode)
+char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm)
 {
 	char *buf;
+	char *bprm_info = "";
 	struct timeval tv;
 	struct task_struct *task = current;
 	const char *domainname = current->domain_info->domainname->name;
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
-	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%u pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d\n%s\n", tv.tv_sec, profile, mode, task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, domainname);
+	if (bprm) {
+		bprm_info = DumpBprm(bprm);
+		if (!bprm_info) return NULL;
+		*len += strlen(bprm_info);
+	}
+	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%u pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d %s\n%s\n", tv.tv_sec, profile, mode, task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, bprm_info, domainname);
+	if (bprm) ccs_free(bprm_info);
 	return buf;
 }
 
