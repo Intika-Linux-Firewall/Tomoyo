@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/02/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -76,7 +76,11 @@ int CheckChRootPermission(struct nameidata *nd)
 	int error = -EPERM;
 	char *root_name;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_CHROOT)) return 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+	root_name = realpath_from_dentry(nd->path.dentry, nd->path.mnt);
+#else
 	root_name = realpath_from_dentry(nd->dentry, nd->mnt);
+#endif
 	if (root_name) {
 		struct path_info dir;
 		dir.name = root_name;
