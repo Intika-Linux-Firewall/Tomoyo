@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/02/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -48,10 +48,17 @@ int SAKURA_MayMount(struct nameidata *nd)
 			spin_lock(&dcache_lock);
 			if (IS_ROOT(dentry) || !d_unhashed(dentry)) {
 				while (1) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+					if (nd->path.mnt->mnt_root == vfsmnt->mnt_root && nd->path.dentry == dentry) {
+						flag = 1;
+						break;
+					}
+#else
 					if (nd->mnt->mnt_root == vfsmnt->mnt_root && nd->dentry == dentry) {
 						flag = 1;
 						break;
 					}
+#endif
 					if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 						spin_lock(&vfsmount_lock);
@@ -79,7 +86,11 @@ int SAKURA_MayMount(struct nameidata *nd)
 	if (flag) {
 		int error = -EPERM;
 		const bool is_enforce = (mode == 3);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+		const char *dir = realpath_from_dentry(nd->path.dentry, nd->path.mnt);
+#else
 		const char *dir = realpath_from_dentry(nd->dentry, nd->mnt);
+#endif
 		if (dir) {
 			const char *exename = GetEXE();
 			printk("SAKURA-%s: mount %s (pid=%d:exe=%s): Permission denied.\n", GetMSG(is_enforce), dir, current->pid, exename);

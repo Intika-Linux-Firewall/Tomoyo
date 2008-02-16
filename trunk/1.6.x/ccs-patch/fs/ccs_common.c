@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1296,7 +1296,11 @@ void CCS_LoadPolicy(const char *filename)
 			printk("Not activating Mandatory Access Control now since %s doesn't exist.\n", ccs_loader);
 			return;
 		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+		path_put(&nd.path);
+#else
 		path_release(&nd);
+#endif
 	}
 	if (!profile_loaded) {
 		char *argv[2], *envp[3];
@@ -1317,10 +1321,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/02/05\n");
+	printk("SAKURA: 1.6.0-pre   2008/02/16\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/02/15\n");
+	printk("TOMOYO: 1.6.0-pre   2008/02/16\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;

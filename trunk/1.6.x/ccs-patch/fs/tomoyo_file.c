@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -490,7 +490,7 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	else if (perm == 2) msg = sp_operation2keyword(TYPE_WRITE_ACL);
 	else if (perm == 1) msg = sp_operation2keyword(TYPE_EXECUTE_ACL);
 	else BUG();
-	AuditFileLog(msg, filename, NULL, !error, profile, mode, obj->bprm);
+	AuditFileLog(msg, filename, NULL, !error, profile, mode, obj ? obj->bprm : NULL);
 	if (!error) return 0;
 	if (TomoyoVerboseMode()) {
 		printk("TOMOYO-%s: Access '%s(%s) %s' denied for %s\n", GetMSG(is_enforce), msg, operation, filename->name, GetLastName(domain));

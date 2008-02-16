@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/02/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -78,8 +78,13 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 	int error = -EPERM;
 	char *old_root, *new_root;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_PIVOT_ROOT)) return 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+	old_root = realpath_from_dentry(old_nd->path.dentry, old_nd->path.mnt);
+	new_root = realpath_from_dentry(new_nd->path.dentry, new_nd->path.mnt);
+#else
 	old_root = realpath_from_dentry(old_nd->dentry, old_nd->mnt);
 	new_root = realpath_from_dentry(new_nd->dentry, new_nd->mnt);
+#endif
 	if (old_root && new_root) {
 		struct path_info old_root_dir, new_root_dir;
 		old_root_dir.name = old_root;

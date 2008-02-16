@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/02/16
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -193,8 +193,13 @@ char *realpath(const char *pathname)
 {
 	struct nameidata nd;
 	if (pathname && path_lookup(pathname, lookup_flags, &nd) == 0) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+		char *buf = realpath_from_dentry(nd.path.dentry, nd.path.mnt);
+		path_put(&nd.path);
+#else
 		char *buf = realpath_from_dentry(nd.dentry, nd.mnt);
 		path_release(&nd);
+#endif
 		return buf;
 	}
 	return NULL;
@@ -204,8 +209,13 @@ char *realpath_nofollow(const char *pathname)
 {
 	struct nameidata nd;
 	if (pathname && path_lookup(pathname, lookup_flags ^ LOOKUP_FOLLOW, &nd) == 0) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+		char *buf = realpath_from_dentry(nd.path.dentry, nd.path.mnt);
+		path_put(&nd.path);
+#else
 		char *buf = realpath_from_dentry(nd.dentry, nd.mnt);
 		path_release(&nd);
+#endif
 		return buf;
 	}
 	return NULL;
