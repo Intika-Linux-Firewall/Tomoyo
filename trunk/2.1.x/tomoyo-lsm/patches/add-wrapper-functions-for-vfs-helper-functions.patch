@@ -17,7 +17,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- linux-2.6-mm.orig/include/linux/fs.h
 +++ linux-2.6-mm/include/linux/fs.h
-@@ -1088,6 +1088,116 @@ extern int vfs_rmdir(struct inode *, str
+@@ -1133,6 +1133,116 @@ extern int vfs_rmdir(struct inode *, str
  extern int vfs_unlink(struct inode *, struct dentry *);
  extern int vfs_rename(struct inode *, struct dentry *, struct inode *, struct dentry *);
  
@@ -134,7 +134,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * VFS dentry helper functions.
   */
-@@ -1565,6 +1675,21 @@ static inline int break_lease(struct ino
+@@ -1612,6 +1722,21 @@ static inline int break_lease(struct ino
  
  extern int do_truncate(struct dentry *, loff_t start, unsigned int time_attrs,
  		       struct file *filp);
@@ -155,8 +155,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
  extern long do_sys_open(int dfd, const char __user *filename, int flags,
  			int mode);
- extern struct file * dentry_open(struct dentry *, struct vfsmount *, int);
-@@ -1726,6 +1851,19 @@ extern int permission(struct inode *, in
+ extern struct file *filp_open(const char *, int, int);
+@@ -1773,6 +1898,19 @@ extern int permission(struct inode *, in
  extern int generic_permission(struct inode *, int,
  		int (*check_acl)(struct inode *, int));
  

@@ -234,7 +234,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved;
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(filename, 1, -1, -1, __FUNCTION__))
++	if (!tmy_correct_path(filename, 1, -1, -1, __func__))
 +		return -EINVAL; /* No patterns allowed. */
 +	saved = tmy_save_name(filename);
 +	if (!saved)
@@ -335,9 +335,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int error = -ENOMEM;
 +	bool found = 0;
 +
-+	if (!tmy_correct_path(group_name, 0, 0, 0, __FUNCTION__) ||
++	if (!tmy_correct_path(group_name, 0, 0, 0, __func__) ||
 +	    !group_name[0] ||
-+	    !tmy_correct_path(member_name, 0, 0, 0, __FUNCTION__) ||
++	    !tmy_correct_path(member_name, 0, 0, 0, __func__) ||
 +	    !member_name[0])
 +		return -EINVAL;
 +
@@ -495,7 +495,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved;
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(pattern, 0, 1, 0, __FUNCTION__))
++	if (!tmy_correct_path(pattern, 0, 1, 0, __func__))
 +		return -EINVAL;
 +
 +	saved = tmy_save_name(pattern);
@@ -597,7 +597,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved;
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(pattern, 0, 0, 0, __FUNCTION__))
++	if (!tmy_correct_path(pattern, 0, 0, 0, __func__))
 +		return -EINVAL;
 +	saved = tmy_save_name(pattern);
 +	if (!saved)
@@ -698,10 +698,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -EINVAL;
 +	if (perm > 7 || !perm) {
 +		printk(KERN_DEBUG "%s: Invalid permission '%d %s'\n",
-+		       __FUNCTION__, perm, filename);
++		       __func__, perm, filename);
 +		return -EINVAL;
 +	}
-+	if (!tmy_correct_path(filename, 0, 0, 0, __FUNCTION__))
++	if (!tmy_correct_path(filename, 0, 0, 0, __func__))
 +		return -EINVAL;
 +
 +	if (filename[0] == '@') {
@@ -958,7 +958,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (!domain)
 +		return -EINVAL;
-+	if (!tmy_correct_path(filename, 0, 0, 0, __FUNCTION__))
++	if (!tmy_correct_path(filename, 0, 0, 0, __func__))
 +		return -EINVAL;
 +
 +	if (filename[0] == '@') {
@@ -1034,8 +1034,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	if (!domain)
 +		return -EINVAL;
-+	if (!tmy_correct_path(filename1, 0, 0, 0, __FUNCTION__) ||
-+	    !tmy_correct_path(filename2, 0, 0, 0, __FUNCTION__))
++	if (!tmy_correct_path(filename1, 0, 0, 0, __func__) ||
++	    !tmy_correct_path(filename2, 0, 0, 0, __func__))
 +		return -EINVAL;
 +
 +	if (filename1[0] == '@') {

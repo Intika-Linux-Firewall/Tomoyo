@@ -142,15 +142,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int error = -ENOMEM;
 +	bool is_last_name = 0;
 +
-+	if (!tmy_correct_path(program, 1, -1, -1, __FUNCTION__))
++	if (!tmy_correct_path(program, 1, -1, -1, __func__))
 +		return -EINVAL; /* No patterns allowed. */
 +
 +	if (domainname) {
 +		if (!tmy_is_domain_def(domainname) &&
-+		    tmy_correct_path(domainname, 1, -1, -1, __FUNCTION__))
++		    tmy_correct_path(domainname, 1, -1, -1, __func__))
 +			is_last_name = 1;
 +
-+		else if (!tmy_is_correct_domain(domainname, __FUNCTION__))
++		else if (!tmy_is_correct_domain(domainname, __func__))
 +			return -EINVAL;
 +
 +		saved_domainname = tmy_save_name(domainname);
@@ -301,14 +301,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool is_last_name = 0;
 +
 +	if (!tmy_is_domain_def(domainname) &&
-+	    tmy_correct_path(domainname, 1, -1, -1, __FUNCTION__))
++	    tmy_correct_path(domainname, 1, -1, -1, __func__))
 +		is_last_name = 1;
 +
-+	else if (!tmy_is_correct_domain(domainname, __FUNCTION__))
++	else if (!tmy_is_correct_domain(domainname, __func__))
 +		return -EINVAL;
 +
 +	if (program) {
-+		if (!tmy_correct_path(program, 1, -1, -1, __FUNCTION__))
++		if (!tmy_correct_path(program, 1, -1, -1, __func__))
 +			return -EINVAL;
 +
 +		saved_program = tmy_save_name(program);
@@ -457,8 +457,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved_aliased_name;
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(original_name, 1, -1, -1, __FUNCTION__) ||
-+	    !tmy_correct_path(aliased_name, 1, -1, -1, __FUNCTION__))
++	if (!tmy_correct_path(original_name, 1, -1, -1, __func__) ||
++	    !tmy_correct_path(aliased_name, 1, -1, -1, __func__))
 +		return -EINVAL; /* No patterns allowed. */
 +
 +	saved_original_name = tmy_save_name(original_name);
@@ -556,8 +556,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved_aggregated_name;
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(original_name, 1, 0, -1, __FUNCTION__) ||
-+	    !tmy_correct_path(aggregated_name, 1, -1, -1, __FUNCTION__))
++	if (!tmy_correct_path(original_name, 1, 0, -1, __func__) ||
++	    !tmy_correct_path(aggregated_name, 1, -1, -1, __func__))
 +		return -EINVAL;
 +
 +	saved_original_name = tmy_save_name(original_name);
@@ -796,7 +796,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (domain)
 +		goto out;
 +
-+	if (!tmy_is_correct_domain(domainname, __FUNCTION__))
++	if (!tmy_is_correct_domain(domainname, __func__))
 +		goto out;
 +
 +	saved_domainname = tmy_save_name(domainname);

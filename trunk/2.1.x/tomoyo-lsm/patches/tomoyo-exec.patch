@@ -69,8 +69,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved_argv0;
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(filename, 1, 0, -1, __FUNCTION__) ||
-+	    !tmy_correct_path(argv0, -1, 0, -1, __FUNCTION__) ||
++	if (!tmy_correct_path(filename, 1, 0, -1, __func__) ||
++	    !tmy_correct_path(argv0, -1, 0, -1, __func__) ||
 +	    strchr(argv0, '/'))
 +		return -EINVAL;
 +

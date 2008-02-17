@@ -87,8 +87,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	    strcmp(fs->name, MOUNT_MAKE_SHARED_KEYWORD) == 0)
 +		dev_name = "any";
 +
-+	if (!tmy_correct_path(dev_name, 0, 0, 0, __FUNCTION__) ||
-+	    !tmy_correct_path(dir_name, 0, 0, 0, __FUNCTION__))
++	if (!tmy_correct_path(dev_name, 0, 0, 0, __func__) ||
++	    !tmy_correct_path(dir_name, 0, 0, 0, __func__))
 +		return -EINVAL;
 +
 +	dev = tmy_save_name(dev_name);
@@ -614,7 +614,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	static DEFINE_MUTEX(mutex);
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(dir, 1, 0, 1, __FUNCTION__))
++	if (!tmy_correct_path(dir, 1, 0, 1, __func__))
 +		return -EINVAL;
 +	saved_dir = tmy_save_name(dir);
 +	if (!saved_dir)
@@ -769,8 +769,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	static DEFINE_MUTEX(mutex);
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(old_root, 1, 0, 1, __FUNCTION__) ||
-+	    !tmy_correct_path(new_root, 1, 0, 1, __FUNCTION__))
++	if (!tmy_correct_path(old_root, 1, 0, 1, __func__) ||
++	    !tmy_correct_path(new_root, 1, 0, 1, __func__))
 +		return -EINVAL;
 +
 +	saved_old_root = tmy_save_name(old_root);

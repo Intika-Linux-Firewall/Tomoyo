@@ -71,7 +71,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!domain)
 +		return -EINVAL;
 +	if (!dest_pattern ||
-+	    !tmy_is_correct_domain(dest_pattern, __FUNCTION__))
++	    !tmy_is_correct_domain(dest_pattern, __func__))
 +		return -EINVAL;
 +
 +	saved_dest_pattern = tmy_save_name(dest_pattern);
