@@ -74,7 +74,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	static DEFINE_MUTEX(lock);
 +	const struct path_info *saved_env;
 +	int error = -ENOMEM;
-+	if (!tmy_correct_path(env, 0, 0, 0, __FUNCTION__))
++	if (!tmy_correct_path(env, 0, 0, 0, __func__))
 +		return -EINVAL;
 +	saved_env = tmy_save_name(env);
 +	if (!saved_env)
@@ -144,7 +144,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct path_info *saved_env;
 +	int error = -ENOMEM;
 +
-+	if (!tmy_correct_path(env, 0, 0, 0, __FUNCTION__))
++	if (!tmy_correct_path(env, 0, 0, 0, __func__))
 +		return -EINVAL;
 +
 +	saved_env = tmy_save_name(env);
