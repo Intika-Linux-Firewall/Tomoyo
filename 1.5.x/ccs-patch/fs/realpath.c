@@ -193,7 +193,7 @@ char *realpath(const char *pathname)
 {
 	struct nameidata nd;
 	if (pathname && path_lookup(pathname, lookup_flags, &nd) == 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
 		char *buf = realpath_from_dentry(nd.path.dentry, nd.path.mnt);
 		path_put(&nd.path);
 #else
@@ -209,7 +209,7 @@ char *realpath_nofollow(const char *pathname)
 {
 	struct nameidata nd;
 	if (pathname && path_lookup(pathname, lookup_flags ^ LOOKUP_FOLLOW, &nd) == 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
 		char *buf = realpath_from_dentry(nd.path.dentry, nd.path.mnt);
 		path_put(&nd.path);
 #else

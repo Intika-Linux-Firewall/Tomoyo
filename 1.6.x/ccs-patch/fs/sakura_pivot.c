@@ -74,7 +74,7 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 	char *old_root, *new_root;
 	const u8 mode = CheckCCSFlags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
 	if (!mode) return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
 	old_root = realpath_from_dentry(old_nd->path.dentry, old_nd->path.mnt);
 	new_root = realpath_from_dentry(new_nd->path.dentry, new_nd->path.mnt);
 #else
