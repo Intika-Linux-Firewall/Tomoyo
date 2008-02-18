@@ -49,19 +49,19 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  net/unix/af_unix.c              |   10 ++++
  45 files changed, 530 insertions(+), 3 deletions(-)
 
---- linux-source-2.6.22-6.orig/Makefile
-+++ linux-source-2.6.22-6/Makefile
+--- linux-source-2.6.22-6.lenny1.orig/Makefile
++++ linux-source-2.6.22-6.lenny1/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 22
 -EXTRAVERSION =
-+EXTRAVERSION = -6-ccs
++EXTRAVERSION = -6.lenny1-ccs
  NAME = Holy Dancing Manatees, Batman!
  
  # *DOCUMENTATION*
---- linux-source-2.6.22-6.orig/fs/Kconfig
-+++ linux-source-2.6.22-6/fs/Kconfig
+--- linux-source-2.6.22-6.lenny1.orig/fs/Kconfig
++++ linux-source-2.6.22-6.lenny1/fs/Kconfig
 @@ -2070,5 +2070,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -70,16 +70,16 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
 +
  endmenu
  
---- linux-source-2.6.22-6.orig/fs/Makefile
-+++ linux-source-2.6.22-6/fs/Makefile
+--- linux-source-2.6.22-6.lenny1.orig/fs/Makefile
++++ linux-source-2.6.22-6.lenny1/fs/Makefile
 @@ -118,3 +118,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-source-2.6.22-6.orig/fs/attr.c
-+++ linux-source-2.6.22-6/fs/attr.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/attr.c
++++ linux-source-2.6.22-6.lenny1/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -111,8 +111,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-source-2.6.22-6.orig/fs/compat.c
-+++ linux-source-2.6.22-6/fs/compat.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/compat.c
++++ linux-source-2.6.22-6.lenny1/fs/compat.c
 @@ -55,6 +55,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -132,8 +132,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-source-2.6.22-6.orig/fs/compat_ioctl.c
-+++ linux-source-2.6.22-6/fs/compat_ioctl.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/compat_ioctl.c
++++ linux-source-2.6.22-6.lenny1/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #include <linux/dvb/frontend.h>
  #include <linux/dvb/video.h>
@@ -154,8 +154,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-source-2.6.22-6.orig/fs/exec.c
-+++ linux-source-2.6.22-6/fs/exec.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/exec.c
++++ linux-source-2.6.22-6.lenny1/fs/exec.c
 @@ -59,6 +59,10 @@
  #include <linux/kmod.h>
  #endif
@@ -194,12 +194,12 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		goto out;
  
 -	retval = search_binary_handler(bprm,regs);
-+	retval = search_binary_handler_with_transition(bprm,regs);
++	retval = search_binary_handler_with_transition(bprm, regs);
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-source-2.6.22-6.orig/fs/fcntl.c
-+++ linux-source-2.6.22-6/fs/fcntl.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/fcntl.c
++++ linux-source-2.6.22-6.lenny1/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -221,8 +221,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-source-2.6.22-6.orig/fs/ioctl.c
-+++ linux-source-2.6.22-6/fs/ioctl.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/ioctl.c
++++ linux-source-2.6.22-6.lenny1/fs/ioctl.c
 @@ -16,6 +16,9 @@
  
  #include <asm/uaccess.h>
@@ -243,8 +243,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-source-2.6.22-6.orig/fs/namei.c
-+++ linux-source-2.6.22-6/fs/namei.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/namei.c
++++ linux-source-2.6.22-6.lenny1/fs/namei.c
 @@ -36,6 +36,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -306,15 +306,15 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  			break;
  		case S_IFCHR: case S_IFBLK:
 +			/***** TOMOYO Linux start. *****/
-+ 			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
-+ 			/***** TOMOYO Linux end. *****/
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
++			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,
  					new_decode_dev(dev));
  			break;
  		case S_IFIFO: case S_IFSOCK:
 +			/***** TOMOYO Linux start. *****/
-+ 			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
-+ 			/***** TOMOYO Linux end. *****/
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
@@ -353,8 +353,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		if (inode)
  			atomic_inc(&inode->i_count);
 +		/***** TOMOYO Linux start. *****/
-+ 		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
-+ 		/***** TOMOYO Linux end. *****/
++		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
++		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
@@ -403,7 +403,7 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  	if (new_dentry == trap)
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
-+ 	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
++	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
 +		(error = CheckDoubleWritePermission(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
 +		goto exit5;
 +	}
@@ -421,8 +421,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-source-2.6.22-6.orig/fs/namespace.c
-+++ linux-source-2.6.22-6/fs/namespace.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/namespace.c
++++ linux-source-2.6.22-6.lenny1/fs/namespace.c
 @@ -28,6 +28,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -524,8 +524,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-source-2.6.22-6.orig/fs/open.c
-+++ linux-source-2.6.22-6/fs/open.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/open.c
++++ linux-source-2.6.22-6.lenny1/fs/open.c
 @@ -26,6 +26,12 @@
  #include <linux/syscalls.h>
  #include <linux/rcupdate.h>
@@ -582,8 +582,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-source-2.6.22-6.orig/fs/proc/Makefile
-+++ linux-source-2.6.22-6/fs/proc/Makefile
+--- linux-source-2.6.22-6.lenny1.orig/fs/proc/Makefile
++++ linux-source-2.6.22-6.lenny1/fs/proc/Makefile
 @@ -15,3 +15,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -591,8 +591,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-source-2.6.22-6.orig/fs/proc/proc_misc.c
-+++ linux-source-2.6.22-6/fs/proc/proc_misc.c
+--- linux-source-2.6.22-6.lenny1.orig/fs/proc/proc_misc.c
++++ linux-source-2.6.22-6.lenny1/fs/proc/proc_misc.c
 @@ -737,4 +737,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
@@ -602,13 +602,13 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
 +	{
 +		extern void __init CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.22-6 2008/01/13\n");
++		printk("Hook version: 2.6.22-6.lenny1 2008/02/18\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-source-2.6.22-6.orig/include/linux/init_task.h
-+++ linux-source-2.6.22-6/include/linux/init_task.h
+--- linux-source-2.6.22-6.lenny1.orig/include/linux/init_task.h
++++ linux-source-2.6.22-6.lenny1/include/linux/init_task.h
 @@ -169,6 +169,10 @@ extern struct group_info init_groups;
  	},								\
  	INIT_TRACE_IRQFLAGS						\
@@ -620,8 +620,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  }
  
  
---- linux-source-2.6.22-6.orig/include/linux/sched.h
-+++ linux-source-2.6.22-6/include/linux/sched.h
+--- linux-source-2.6.22-6.lenny1.orig/include/linux/sched.h
++++ linux-source-2.6.22-6.lenny1/include/linux/sched.h
 @@ -27,6 +27,11 @@
  #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
@@ -645,8 +645,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-source-2.6.22-6.orig/kernel/compat.c
-+++ linux-source-2.6.22-6/kernel/compat.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/compat.c
++++ linux-source-2.6.22-6.lenny1/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -667,8 +667,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-source-2.6.22-6.orig/kernel/kexec.c
-+++ linux-source-2.6.22-6/kernel/kexec.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/kexec.c
++++ linux-source-2.6.22-6.lenny1/kernel/kexec.c
 @@ -28,6 +28,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -689,8 +689,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-source-2.6.22-6.orig/kernel/kmod.c
-+++ linux-source-2.6.22-6/kernel/kmod.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/kmod.c
++++ linux-source-2.6.22-6.lenny1/kernel/kmod.c
 @@ -170,6 +170,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -703,8 +703,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
---- linux-source-2.6.22-6.orig/kernel/module.c
-+++ linux-source-2.6.22-6/kernel/module.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/module.c
++++ linux-source-2.6.22-6.lenny1/kernel/module.c
 @@ -45,6 +45,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -735,8 +735,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-source-2.6.22-6.orig/kernel/sched.c
-+++ linux-source-2.6.22-6/kernel/sched.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/sched.c
++++ linux-source-2.6.22-6.lenny1/kernel/sched.c
 @@ -56,6 +56,9 @@
  
  #include <asm/tlb.h>
@@ -757,8 +757,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-source-2.6.22-6.orig/kernel/signal.c
-+++ linux-source-2.6.22-6/kernel/signal.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/signal.c
++++ linux-source-2.6.22-6.lenny1/kernel/signal.c
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -802,8 +802,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	return do_tkill(0, pid, sig);
  }
---- linux-source-2.6.22-6.orig/kernel/sys.c
-+++ linux-source-2.6.22-6/kernel/sys.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/sys.c
++++ linux-source-2.6.22-6.lenny1/kernel/sys.c
 @@ -40,6 +40,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -854,8 +854,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-source-2.6.22-6.orig/kernel/sysctl.c
-+++ linux-source-2.6.22-6/kernel/sysctl.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/sysctl.c
++++ linux-source-2.6.22-6.lenny1/kernel/sysctl.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -958,8 +958,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
---- linux-source-2.6.22-6.orig/kernel/time.c
-+++ linux-source-2.6.22-6/kernel/time.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/time.c
++++ linux-source-2.6.22-6.lenny1/kernel/time.c
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -990,8 +990,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-source-2.6.22-6.orig/kernel/time/ntp.c
-+++ linux-source-2.6.22-6/kernel/time/ntp.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/time/ntp.c
++++ linux-source-2.6.22-6.lenny1/kernel/time/ntp.c
 @@ -16,6 +16,9 @@
  
  #include <asm/div64.h>
@@ -1012,8 +1012,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-source-2.6.22-6.orig/net/core/datagram.c
-+++ linux-source-2.6.22-6/net/core/datagram.c
+--- linux-source-2.6.22-6.lenny1.orig/net/core/datagram.c
++++ linux-source-2.6.22-6.lenny1/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1037,8 +1037,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		if (skb)
  			return skb;
  
---- linux-source-2.6.22-6.orig/net/ipv4/inet_connection_sock.c
-+++ linux-source-2.6.22-6/net/ipv4/inet_connection_sock.c
+--- linux-source-2.6.22-6.lenny1.orig/net/ipv4/inet_connection_sock.c
++++ linux-source-2.6.22-6.lenny1/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1059,8 +1059,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-source-2.6.22-6.orig/net/ipv4/inet_hashtables.c
-+++ linux-source-2.6.22-6/net/ipv4/inet_hashtables.c
+--- linux-source-2.6.22-6.lenny1.orig/net/ipv4/inet_hashtables.c
++++ linux-source-2.6.22-6.lenny1/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1081,8 +1081,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-source-2.6.22-6.orig/net/ipv4/udp.c
-+++ linux-source-2.6.22-6/net/ipv4/udp.c
+--- linux-source-2.6.22-6.lenny1.orig/net/ipv4/udp.c
++++ linux-source-2.6.22-6.lenny1/net/ipv4/udp.c
 @@ -102,6 +102,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1113,8 +1113,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
---- linux-source-2.6.22-6.orig/net/ipv6/inet6_hashtables.c
-+++ linux-source-2.6.22-6/net/ipv6/inet6_hashtables.c
+--- linux-source-2.6.22-6.lenny1.orig/net/ipv6/inet6_hashtables.c
++++ linux-source-2.6.22-6.lenny1/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1135,8 +1135,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-source-2.6.22-6.orig/net/socket.c
-+++ linux-source-2.6.22-6/net/socket.c
+--- linux-source-2.6.22-6.lenny1.orig/net/socket.c
++++ linux-source-2.6.22-6.lenny1/net/socket.c
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1214,8 +1214,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
---- linux-source-2.6.22-6.orig/net/unix/af_unix.c
-+++ linux-source-2.6.22-6/net/unix/af_unix.c
+--- linux-source-2.6.22-6.lenny1.orig/net/unix/af_unix.c
++++ linux-source-2.6.22-6.lenny1/net/unix/af_unix.c
 @@ -115,6 +115,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1247,8 +1247,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-source-2.6.22-6.orig/arch/alpha/kernel/ptrace.c
-+++ linux-source-2.6.22-6/arch/alpha/kernel/ptrace.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/alpha/kernel/ptrace.c
++++ linux-source-2.6.22-6.lenny1/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1271,8 +1271,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-source-2.6.22-6.orig/arch/ia64/kernel/ptrace.c
-+++ linux-source-2.6.22-6/arch/ia64/kernel/ptrace.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/ia64/kernel/ptrace.c
++++ linux-source-2.6.22-6.lenny1/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -1295,8 +1295,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-source-2.6.22-6.orig/arch/m32r/kernel/ptrace.c
-+++ linux-source-2.6.22-6/arch/m32r/kernel/ptrace.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/m32r/kernel/ptrace.c
++++ linux-source-2.6.22-6.lenny1/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1319,8 +1319,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.22-6.orig/arch/s390/kernel/ptrace.c
-+++ linux-source-2.6.22-6/arch/s390/kernel/ptrace.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/s390/kernel/ptrace.c
++++ linux-source-2.6.22-6.lenny1/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1343,8 +1343,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-source-2.6.22-6.orig/arch/sparc/kernel/ptrace.c
-+++ linux-source-2.6.22-6/arch/sparc/kernel/ptrace.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/sparc/kernel/ptrace.c
++++ linux-source-2.6.22-6.lenny1/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1370,8 +1370,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-source-2.6.22-6.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-source-2.6.22-6/arch/sparc64/kernel/ptrace.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/sparc64/kernel/ptrace.c
++++ linux-source-2.6.22-6.lenny1/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -1397,8 +1397,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-source-2.6.22-6.orig/kernel/ptrace.c
-+++ linux-source-2.6.22-6/kernel/ptrace.c
+--- linux-source-2.6.22-6.lenny1.orig/kernel/ptrace.c
++++ linux-source-2.6.22-6.lenny1/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  
  #include <asm/pgtable.h>
@@ -1421,8 +1421,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-source-2.6.22-6.orig/arch/sh64/kernel/ptrace.c
-+++ linux-source-2.6.22-6/arch/sh64/kernel/ptrace.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/sh64/kernel/ptrace.c
++++ linux-source-2.6.22-6.lenny1/arch/sh64/kernel/ptrace.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1445,8 +1445,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	lock_kernel();
  	if (first_call) {
---- linux-source-2.6.22-6.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-source-2.6.22-6/arch/x86_64/ia32/ptrace32.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-source-2.6.22-6.lenny1/arch/x86_64/ia32/ptrace32.c
 @@ -26,6 +26,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -1469,8 +1469,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-source-2.6.22-6.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-source-2.6.22-6/arch/ia64/ia32/sys_ia32.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-source-2.6.22-6.lenny1/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -1493,8 +1493,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.22-6.orig/arch/mips/kernel/ptrace32.c
-+++ linux-source-2.6.22-6/arch/mips/kernel/ptrace32.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/mips/kernel/ptrace32.c
++++ linux-source-2.6.22-6.lenny1/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1517,8 +1517,8 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-source-2.6.22-6.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-source-2.6.22-6/arch/powerpc/kernel/ptrace32.c
+--- linux-source-2.6.22-6.lenny1.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-source-2.6.22-6.lenny1/arch/powerpc/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>

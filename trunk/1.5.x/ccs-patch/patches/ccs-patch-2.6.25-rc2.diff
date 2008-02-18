@@ -433,7 +433,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	if (new_dentry == trap)
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
-+ 	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
++	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
 +		(error = CheckDoubleWritePermission(TYPE_RENAME_ACL, old_dentry, oldnd.path.mnt, new_dentry, newnd.path.mnt)) < 0) {
 +		goto exit5;
 +	}
