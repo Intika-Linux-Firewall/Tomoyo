@@ -1179,7 +1179,7 @@ void CCS_LoadPolicy(const char *filename)
 			printk("Not activating Mandatory Access Control now since %s doesn't exist.\n", ccs_loader);
 			return;
 		}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
 		path_put(&nd.path);
 #else
 		path_release(&nd);

@@ -72,7 +72,7 @@ int CheckChRootPermission(struct nameidata *nd)
 	char *root_name;
 	const u8 mode = CheckCCSFlags(CCS_SAKURA_RESTRICT_CHROOT); 
 	if (!mode) return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
 	root_name = realpath_from_dentry(nd->path.dentry, nd->path.mnt);
 #else
 	root_name = realpath_from_dentry(nd->dentry, nd->mnt);
