@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -533,6 +533,7 @@ const struct condition_list *GetConditionPart(const struct acl_info *acl);
 void UpdateCounter(const unsigned char index);
 void ccs_free(const void *p);
 void fill_path_info(struct path_info *ptr);
+void UpdateCondition(const struct acl_info *acl);
 
 static inline bool pathcmp(const struct path_info *a, const struct path_info *b)
 {

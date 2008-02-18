@@ -1184,3 +1184,23 @@ Fix 2008/02/14
       they unlikely set up environment variables and unlikely specify "-c"
       option when invoking /bin/sh , whereas proper functions likely set up
       environment variables and likely specify "-c" option.
+
+Fix 2008/02/18
+
+    @ Add process state checking.
+
+      Until now, it was impossible to change ACL without executing program.
+      I added three variables for performing stateful checking within a domain.
+      You can set current process's state like:
+
+        allow_network TCP accept @TRUSTED_HOSTS 1024-65535 ; set task.state[0]=1
+        allow_network TCP accept @UNTRUSTED_HOSTS 1024-65535 ; set task.state[0]=0
+
+      and you can use the state like
+
+        allow_read /path/to/important/file if task.state[0]=1
+
+      in the policy.
+      The state changes when the request was granted by the MAC's policy,
+      so please be careful with situations where the state has changed successfully
+      but the request was not processed because of other reasons (e.g. out of memory).

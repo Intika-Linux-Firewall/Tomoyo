@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -183,8 +183,9 @@ union element {
 
 struct condition_list {
 	struct list1_head list;
-	int length;
-	/* "element condition[length]" comes here.*/
+	u32 length;
+	u8 post_state[4];
+	/* "union element condition[length]" comes here.*/
 };
 
 static LIST1_HEAD(condition_list);
@@ -212,7 +213,10 @@ static LIST1_HEAD(condition_list);
 #define EXEC_ENVC        20
 #define EXEC_ARGV        21
 #define EXEC_ENVP        22
-#define MAX_KEYWORD      23
+#define TASK_STATE_0     23
+#define TASK_STATE_1     24
+#define TASK_STATE_2     25
+#define MAX_KEYWORD      26
 
 static struct {
 	const char *keyword;
@@ -241,22 +245,45 @@ static struct {
 	[EXEC_ENVC]        = { "exec.envc",          9 },
 	[EXEC_ARGV]        = { "exec.argv[",        10 },
 	[EXEC_ENVP]        = { "exec.envp[\"",      11 },
+	[TASK_STATE_0]     = { "task.state[0]",     13 },
+	[TASK_STATE_1]     = { "task.state[1]",     13 },
+	[TASK_STATE_2]     = { "task.state[2]",     13 },
 };
 
 const struct condition_list *FindOrAssignNewCondition(char *condition)
 {
-	char *start;
+	char *start = condition;
 	struct condition_list *new_ptr;
 	union element *ptr2;
-	int counter = 0, size;
-	int left, right;
+	u32 counter = 0, size;
+	u8 left, right, i;
 	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
 	const struct path_info *left_name = NULL, *right_name = NULL;
-	if (strncmp(condition, "if ", 3)) return NULL;
-	condition += 3;
+	u8 post_state[4] = { 0, 0, 0, 0 };
+	if ((condition = strstr(condition, "; set ")) != NULL) {
+		*condition = '\0';
+		condition += 6;
+		while (1) {
+			while (*condition == ' ') condition++;
+			if (!*condition) break;
+			if (strncmp(condition, "task.state[0]=", 14) == 0) i = 0;
+			else if (strncmp(condition, "task.state[1]=", 14) == 0) i = 1;
+			else if (strncmp(condition, "task.state[2]=", 14) == 0) i = 2;
+			else goto out;
+			condition += 14;
+			if (post_state[3] & (1 << i)) goto out;
+			post_state[3] |= 1 << i;
+			if (!parse_ulong(&right_min, &condition) || right_min > 255) goto out;
+			post_state[i] = (u8) right_min;
+		}
+	}
+	condition = start;
+	if (strncmp(condition, "if ", 3) == 0) condition += 3;
+	else if (*condition) return NULL;
 	start = condition;
-	while (*condition) {
-		if (*condition == ' ') condition++;
+	while (1) {
+		while (*condition == ' ') condition++;
+		if (!*condition) break;
 		for (left = 0; left < MAX_KEYWORD; left++) {
 			if (strncmp(condition, condition_control_keyword[left].keyword, condition_control_keyword[left].keyword_len) == 0) {
 				condition += condition_control_keyword[left].keyword_len;
@@ -344,11 +371,13 @@ const struct condition_list *FindOrAssignNewCondition(char *condition)
 	new_ptr = ccs_alloc(size);
 	if (!new_ptr) return NULL;
 	new_ptr->length = counter;
+	for (i = 0; i < 4; i++) new_ptr->post_state[i] = post_state[i];
 	ptr2 = (union element *) (((u8 *) new_ptr) + sizeof(*new_ptr));
 	condition = start;
-	while (*condition) {
+	while (1) {
 		unsigned int match = 0;
-		if (*condition == ' ') condition++;
+		while (*condition == ' ') condition++;
+		if (!*condition) break;
 		for (left = 0; left < MAX_KEYWORD; left++) {
 			if (strncmp(condition, condition_control_keyword[left].keyword, condition_control_keyword[left].keyword_len) == 0) {
 				condition += condition_control_keyword[left].keyword_len;
@@ -601,7 +630,7 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 {
 	extern asmlinkage long sys_getppid(void);
 	struct task_struct *task = current;
-	int i;
+	u32 i;
 	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
 	const union element *ptr2;
 	const struct condition_list *ptr = GetConditionPart(acl);
@@ -693,6 +722,9 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 		case EXEC_ENVC:
 			if (!bprm) goto out;
 			left_min = left_max = bprm->envc; i++; break;
+		case TASK_STATE_0: left_min = left_max = (u8) (task->tomoyo_flags >> 24); break;
+		case TASK_STATE_1: left_min = left_max = (u8) (task->tomoyo_flags >> 16); break;
+		case TASK_STATE_2: left_min = left_max = (u8) (task->tomoyo_flags >> 8); break;
 		case MAX_KEYWORD:     left_min = left_max = ptr2->value; ptr2++; i++; break;
 		case MAX_KEYWORD + 1: left_min = ptr2->value; ptr2++; left_max = ptr2->value; ptr2++; i += 2; break;
 		}
@@ -740,6 +772,9 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 		case EXEC_ENVC:
 			if (!bprm) goto out;
 			right_min = right_max = bprm->envc; i++; break;
+		case TASK_STATE_0: right_min = right_max = (u8) (task->tomoyo_flags >> 24); break;
+		case TASK_STATE_1: right_min = right_max = (u8) (task->tomoyo_flags >> 16); break;
+		case TASK_STATE_2: right_min = right_max = (u8) (task->tomoyo_flags >> 8); break;
 		case MAX_KEYWORD:     right_min = right_max = ptr2->value; ptr2++; i++; break;
 		case MAX_KEYWORD + 1: right_min = ptr2->value; ptr2++; right_max = ptr2->value; ptr2++; i += 2; break;
 		}
@@ -754,10 +789,27 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 	return 1;
 }
 
+void UpdateCondition(const struct acl_info *acl)
+{
+	/* Don't change lower bits because TOMOYO_CHECK_READ_FOR_OPEN_EXEC
+	   and CCS_DONT_SLEEP_ON_ENFORCE_ERROR needs them. */
+	const struct condition_list *ptr = GetConditionPart(acl);
+	struct task_struct *task;
+	u32 tomoyo_flags = current->tomoyo_flags;
+	const u8 flags = ptr ? ptr->post_state[3] : 0;
+	if (!flags) return;
+	task = current;
+	tomoyo_flags = task->tomoyo_flags;
+	if (flags & 1) { tomoyo_flags &= ~0xFF000000; tomoyo_flags |= ptr->post_state[0] << 24; }
+	if (flags & 2) { tomoyo_flags &= ~0x00FF0000; tomoyo_flags |= ptr->post_state[1] << 16; }
+	if (flags & 4) { tomoyo_flags &= ~0x0000FF00; tomoyo_flags |= ptr->post_state[2] << 8; }
+	task->tomoyo_flags = tomoyo_flags;
+}
+
 int DumpCondition(struct io_buffer *head, const struct condition_list *ptr)
 {
 	if (ptr) {
-		int i;
+		u32 i;
 		const union element *ptr2 = (union element *) (((u8 *) ptr) + sizeof(*ptr));
 		char buffer[32];
 		memset(buffer, 0, sizeof(buffer));
@@ -809,6 +861,15 @@ int DumpCondition(struct io_buffer *head, const struct condition_list *ptr)
 			}
 		}
 		if (i < ptr->length) return -ENOMEM;
+		if ((i = ptr->post_state[3]) != 0) {
+			unsigned int j;
+			if (io_printf(head, " ; set")) return -ENOMEM;
+			for (j = 0; j < 3; j++) {
+				if (i & (1 << j)) {
+					if (io_printf(head, " task.state[%u]=%u", j, ptr->post_state[j])) return -ENOMEM;
+				}
+			}
+		}
 	}
 	return io_printf(head, "\n") ? -ENOMEM : 0;
 }

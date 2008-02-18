@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -90,6 +90,7 @@ static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 		if (!CheckCondition(ptr, NULL) ||
 		    !PathMatchesToPattern(filename, acl->filename) ||
 		    !PathMatchesToPattern(&argv0, acl->argv0)) continue;
+		UpdateCondition(ptr);
 		error = 0;
 		break;
 	}

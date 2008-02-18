@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -142,6 +142,7 @@ char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binpr
 	char *bprm_info = "";
 	struct timeval tv;
 	struct task_struct *task = current;
+	u32 tomoyo_flags = task->tomoyo_flags;
 	const char *domainname = current->domain_info->domainname->name;
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
@@ -150,7 +151,7 @@ char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binpr
 		if (!bprm_info) return NULL;
 		*len += strlen(bprm_info);
 	}
-	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%u pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d %s\n%s\n", tv.tv_sec, profile, mode, task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, bprm_info, domainname);
+	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%u pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n%s\n", tv.tv_sec, profile, mode, task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8), bprm_info, domainname);
 	if (bprm) ccs_free(bprm_info);
 	return buf;
 }

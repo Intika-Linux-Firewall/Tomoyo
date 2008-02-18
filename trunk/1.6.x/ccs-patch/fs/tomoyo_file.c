@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/16
+ * Version: 1.6.0-pre   2008/02/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -454,10 +454,14 @@ static int CheckSinglePathACL2(const struct path_info *filename, const u16 perm,
 		acl = container_of(ptr, struct single_path_acl_record, head);
 		if (!(acl->perm & perm) || !CheckCondition(ptr, obj)) continue;
 		if (acl->u_is_group) {
-			if (PathMatchesToGroup(filename, acl->u.group, may_use_pattern)) return 0;
+			if (!PathMatchesToGroup(filename, acl->u.group, may_use_pattern)) continue;
 		} else if (may_use_pattern || !acl->u.filename->is_patterned) {
-			if (PathMatchesToPattern(filename, acl->u.filename)) return 0;
+			if (!PathMatchesToPattern(filename, acl->u.filename)) continue;
+		} else {
+			continue;
 		}
+		UpdateCondition(ptr);
+		return 0;
 	}
 	return -EPERM;
 }
@@ -680,6 +684,7 @@ static int CheckDoublePathACL(const u8 type, const struct path_info *filename1, 
 		} else {
 			if (!PathMatchesToPattern(filename2, acl->u2.filename2)) continue;
 		}
+		UpdateCondition(ptr);
 		return 0;
 	}
 	return -EPERM;

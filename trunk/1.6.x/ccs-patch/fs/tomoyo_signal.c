@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -125,6 +125,7 @@ int CheckSignalACL(const int sig, const int pid)
 			const int len = acl->domainname->total_len;
 			if (strncmp(acl->domainname->name, dest_pattern, len)) continue;
 			if (dest_pattern[len] != ' ' && dest_pattern[len] != '\0') continue;
+			UpdateCondition(ptr);
 			found = 1;
 			break;
 		}
