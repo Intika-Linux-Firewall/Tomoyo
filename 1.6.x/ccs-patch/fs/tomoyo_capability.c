@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -201,6 +201,7 @@ int CheckCapabilityACL(const u8 operation)
 		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL) continue;
 		acl = container_of(ptr, struct capability_acl_record, head);
 		if (acl->operation != operation || !CheckCondition(ptr, NULL)) continue;
+		UpdateCondition(ptr);
 		found = 1;
 		break;
 	}

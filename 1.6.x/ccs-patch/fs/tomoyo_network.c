@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/15
+ * Version: 1.6.0-pre   2008/02/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -384,6 +384,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const u8 operation, const u32 *
 		} else {
 			if (!is_ipv6 || memcmp(acl->u.ipv6.min, address, 16) > 0 || memcmp(address, acl->u.ipv6.max, 16) > 0) continue;
 		}
+		UpdateCondition(ptr);
 		found = 1;
 		break;
 	}
