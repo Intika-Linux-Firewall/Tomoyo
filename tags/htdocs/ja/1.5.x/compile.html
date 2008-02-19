@@ -51,7 +51,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
 <li><a href="#2.6.8-17">Debian Sarge 用のカーネル 2.6.8-17</a>
 <li><a href="#2.6.18-18etch1">Debian Etch 用のカーネル 2.6.18-18etch1</a>
-<li><a href="#2.6.22-6">Debian Lenny 用のカーネル 2.6.22-6</a>
+<li><a href="#2.6.22-6.lenny1">Debian Lenny 用のカーネル 2.6.22-6.lenny1</a>
 <li><a href="#2.6.16.54-0.2.5">OpenSUSE 10.1 用のカーネル 2.6.16.54-0.2.5</a>
 <li><a href="#2.6.18.8-0.9">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.9</a>
 <li><a href="#2.6.22.17-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.17-0.1</a>
@@ -370,7 +370,7 @@ mkinitrd -o /boot/initrd.img-2.6.18-18etch1-ccs 2.6.18-18etch1-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.22-6">Debian Lenny 用のカーネル 2.6.22-6</a></h2>
+<h2><a name="2.6.22-6.lenny1">Debian Lenny 用のカーネル 2.6.22-6.lenny1</a></h2>
 
 <table border="1">
 <tr><td>
@@ -382,14 +382,15 @@ cd linux-source-2.6.22/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.3-20080131.tar.gz<br>
 tar -zxf ccs-patch-1.5.3-20080131.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.22-6.diff<br>
+wget -O patches/ccs-patch-2.6.22-6.lenny1.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22-6.lenny1.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.22-6.lenny1.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
 # initrd を作成する。<br>
-mkinitrd -o /boot/initrd.img-2.6.22-6-ccs 2.6.22-6-ccs
+mkinitrd -o /boot/initrd.img-2.6.22-6.lenny1-ccs 2.6.22-6.lenny1-ccs
 </td></tr>
 </table>
 
@@ -593,20 +594,20 @@ ln -sf /boot/System.map-2.6.16-0vl76.28-ccs /boot/System.map
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.23 を使用するものとします。</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.24 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # カーネルモジュールをインストールするディレクトリを作成する。<br>
-mkdir -p /lib/modules/2.6.23-ccs<br>
+mkdir -p /lib/modules/2.6.24-ccs<br>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.24.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.6.23.tar.bz2<br>
+tar -jxf linux-2.6.24.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.6.23<br>
+cd linux-2.6.24<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
@@ -614,7 +615,7 @@ wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.3-20080131.tar.gz<
 # 展開する。<br>
 tar -zxf ccs-patch-1.5.3-20080131.tar.gz<br>
 # カーネルパッチを適用する。<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.23.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.24.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>

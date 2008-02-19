@@ -28,7 +28,7 @@
 
 <h2><a name="l1">概要</a></h2>
 
-<p>以下では、Debian SargeにTOMOYO Linux 1.5.2を導入する手順を解説します。
+<p>以下では、Debian SargeにTOMOYO Linux 1.5.3を導入する手順を解説します。
 この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -47,22 +47,22 @@
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.6.8-16sarge7-ccs-i586_1.5.2_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.6.8-4-686-smp-ccs1.5.3_2.6.8-17_i386.deb</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">dpkg --install kernel-image-2.6.8-16sarge7-ccs-i586_1.5.2_i386.deb</span>
+# <span class="user">dpkg --install kernel-image-2.6.8-4-686-smp-ccs1.5.3_2.6.8-17_i386.deb</span>
 </pre>
 
 <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 
 <pre>
-title           Debian GNU/Linux, kernel 2.6.8-16sarge7-ccs
+title           Debian GNU/Linux, kernel 2.6.8-4-686-smp-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.8-16sarge7-ccs root=/dev/sda1 ro
-initrd          /boot/initrd.img-2.6.8-16sarge7-ccs
+kernel          /boot/vmlinuz-2.6.8-4-686-smp-ccs root=/dev/sda1 ro
+initrd          /boot/initrd.img-2.6.8-4-686-smp-ccs
 savedefault
 boot
 </pre>
@@ -81,8 +81,8 @@ boot
 <p>バイナリパッケージが用意されていますので、それを利用します。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Sarge_i386.deb</span>
-# <span class="user">dpkg -i ccs-tools_1.5.2-1_Sarge_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.3-1_Sarge_i386.deb</span>
+# <span class="user">dpkg -i ccs-tools_1.5.3-1_Sarge_i386.deb</span>
 </pre>
 
 <p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
@@ -242,16 +242,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p><img alt="TOMOYO Linuxのカーネルを選択" title="TOMOYO Linuxのカーネルを選択" width="720" height="400" src="grub.png"></p>
 
-<p>起動途中で以下のメッセージが表示されます。</p>
-
-<pre>
-TOMOYO Linux: Enter 'disable' within 10 seconds to disable TOMOYO Linux.
-TOMOYO Linux&gt;
-</pre>
-
-<p>この状態でEnterキーを押すか10秒間待つと、先ほど作成した例外ポリシーが読み込まれ、
-Linuxが起動します。
-起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
+<p>起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
 
 <p><img alt="rootでログイン" title="rootでログイン" width="720" height="400" src="login.png"></p>
 

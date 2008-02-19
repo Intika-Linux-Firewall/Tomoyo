@@ -120,6 +120,11 @@
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
 <p>To enable "delayed enforcing mode", you need to either set "ALLOW_ENFORCE_GRACE=1" in /proc/ccs/profile using "setlevel" command or assign a profile whose ALLOW_ENFORCE_GRACE is set to 1 to domains using "setprofile" command.</p>
 
+<h3><a name="ccs-notifyd">&lt;Policy Violation Notifyier "ccs-notifyd"&gt;</a></h3>
+<p>Detects policy violation and take some actions (e.g. send a mail) to notify it to the administrator.</p>
+<p>By running this program from /etc/crontab , you can know the occurrence of policy violation in enforcing mode as soon as possible.</p>
+<p>To use this daemon, you need to either set "ALLOW_ENFORCE_GRACE=1" in /proc/ccs/profile using "setlevel" command or assign a profile whose ALLOW_ENFORCE_GRACE is set to 1 to domains using "setprofile" command, for this daemon uses "delayed enforcing mode" for detecting.</p>
+
 <h3><a name="checkpolicy">&lt;Policy Syntax Checker "checkpolicy"&gt;</a></h3>
 <p>Reads policy files from standard input and checks syntaxes.</p>
 <p>Prints errors with line numbers if any.</p>

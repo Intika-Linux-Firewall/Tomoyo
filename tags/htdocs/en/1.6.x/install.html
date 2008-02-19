@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="../../ja/1.5.x/install.html">Japanese Page</a></p>
+<p style="text-align:right;"><a href="../../ja/1.6.x/install.html">Japanese Page</a></p>
 <h1>TOMOYO Linux Install manual</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
@@ -15,186 +15,16 @@
 
 <h2>Install TOMOYO Linux kernel</h2>
 
-<p>TOMOYO Linux provides some binary kernel packages. If you want to use binary kernel packages, download and install.</p>
-
-<table border="1">
-<tr><td>
-RedHat Linux 9 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.4.20-46.9.legacy_tomoyo_1.5.2.i386.rpm
-</td></tr><tr><td>
-Fedora Core 3 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 4 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.17-1.2142_FC4_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 5 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.20-1.2320.fc5_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 6 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.22.14-72.fc6_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-Fedora 7 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.23.12-52.fc7_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-Fedora 8 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.23.9-85.fc8_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-CentOS 4.6 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.9-67.0.1.EL_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-CentOS 5.1 (80686 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.18-53.1.4.el5_tomoyo_1.5.2.i686.rpm
-</td></tr><tr><td>
-Debian Sarge (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.4.27-10sarge5-ccs-i586_1.5.2_i386.deb<br>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.6.8-16sarge7-ccs-i586_1.5.2_i386.deb
-</td></tr><tr><td>
-Debian Etch (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.18-17-ccs-i586_1.5.2_i386.deb
-</td></tr><tr><td>
-Debian Lenny</td><td>
-Add these entries to /etc/apt/sources.list :<br>
-deb http://www.mithril-linux.org/~henrich/debian/package/ ./<br>
-deb-src http://www.mithril-linux.org/~henrich/debian/package/ ./<br>
-And, run:<br>
-apt-get update<br>
-apt-get install linux-image-2.6.22ccs.1.5.0
-</td></tr><tr><td>
-OpenSUSE 10.1 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-default-2.6.16.54-0.2.3_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-OpenSUSE 10.2 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-default-2.6.18.8-0.7_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-OpenSUSE 10.3 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-default-2.6.22.13-0.3_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-Asianux 2.0 (80686 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.9-42.18AX_tomoyo_1.5.2.i686.rpm
-</td></tr><tr><td>
-Asianux 3.0 (80686 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.18-8.12AX_tomoyo_1.5.2.i686.rpm
-</td></tr><tr><td>
-Ubuntu 6.10 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.17-12-generic-ccs1.5.2_2.6.17.1-12.42_i386.deb
-</td></tr><tr><td>
-Ubuntu 7.04 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.20-16-generic-ccs1.5.2_2.6.20-16.33_i386.deb
-</td></tr><tr><td>
-Ubuntu 7.10</td><td>
-Add these entries to /etc/apt/sources.list :<br>
-deb http://archive.ubuntulinux.jp/ubuntu-ja gutsy-experimental/<br>
-deb-src http://archive.ubuntulinux.jp/ubuntu-ja gutsy-experimental/<br>
-And, run:<br>
-apt-get update<br>
-apt-get install tomoyo-linux
-</td></tr><tr><td>
-Vine Linux 4.2 (80586 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.16-0vl76.28_tomoyo_1.5.2.i586.rpm
-</td></tr><tr><td>
-Nature's Linux 1.5.1 (Pentium III and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.6.18.8p1up-tomoyo1.5.0_nlug1_i386.deb
-</td></tr>
-</table>
-
-<p>If the CPU architecture differs or you want to customize kernel configuration, you need to compile kernel. To compile kernel, see <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
-
-<p>If you are using distributions that support SELinux, you might encounter errors while installing packages if SELinux is not disabled. If you see error messages shown below while installing packages, retry after you disable SELinux. You can disable SELinux by either "changing SELINUX=disabled in /etc/selinux/config and reboot" or "adding selinux=0 to the kernel's boot paramaters".</p>
-
-<table border="1">
-<tr><td>
-[root@localhost ~]# rpm -ihv kernel-2.6.9-67.0.1.EL_tomoyo_1.5.2.i586.rpm<br>
-Preparing...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;########################################### [100%]<br>
-Error: %pre(kernel-2.6.9-67.0.1.EL_tomoyo_1.5.2.i586) scriptlet failed, exit status 255<br>
-Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.9-67.0.1.EL_tomoyo_1.5.2
-</td></tr>
-</table>
-
-<p>TOMOYO Linux itself can coexist with SELinux. You may continue with SELinux enabled if you want.</p>
+<p>Since 1.6.0 has not released yet, binary packages are not provided yet. You need to compile the kernel according to <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
 
 <h2>Install TOMOYO Linux tools</h2>
 
-<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract.</p>
+<p>Since 1.6.0 has not released yet, binary packages are not provided yet. You need to compile the tools as follows.</p>
 
 <table border="1">
 <tr><td>
-RedHat Linux 9 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.RHL9.i386.rpm
-</td></tr><tr><td>
-Fedora Core 3 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.FC3.i386.rpm
-</td></tr><tr><td>
-Fedora Core 4 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.FC4.i386.rpm
-</td></tr><tr><td>
-Fedora Core 5 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.FC5.i386.rpm
-</td></tr><tr><td>
-Fedora Core 6 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.FC6.i386.rpm
-</td></tr><tr><td>
-Fedora 7 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.F7.i386.rpm
-</td></tr><tr><td>
-Fedora 8 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.F8.i386.rpm
-</td></tr><tr><td>
-CentOS 4.6 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.CentOS4.6.i386.rpm
-</td></tr><tr><td>
-CentOS 5.1 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.CentOS5.1.i386.rpm
-</td></tr><tr><td>
-Debian Sarge (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Sarge_i386.deb
-</td></tr><tr><td>
-Debian Etch (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Etch_i386.deb
-</td></tr><tr><td>
-Debian Lenny</td><td>
-apt-get install tomoyo-ccstools
-</td></tr><tr><td>
-OpenSUSE 10.1 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.SUSE10.1.i386.rpm
-</td></tr><tr><td>
-OpenSUSE 10.2 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.SUSE10.2.i386.rpm
-</td></tr><tr><td>
-OpenSUSE 10.3 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.SUSE10.3.i386.rpm
-</td></tr><tr><td>
-Asianux 2.0 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.AX2.i386.rpm
-</td></tr><tr><td>
-Asianux 3.0 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.AX3.i386.rpm
-</td></tr><tr><td>
-Ubuntu 6.10 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Ubuntu6.10_i386.deb
-</td></tr><tr><td>
-Ubuntu 7.04 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-1_Ubuntu7.04_i386.deb
-</td></tr><tr><td>
-Ubuntu 7.10</td><td>
-apt-get install tomoyo-ccstools
-</td></tr><tr><td>
-Vine Linux 4.2 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.2-1.Vine4.2.i386.rpm
-</td></tr><tr><td>
-Nature's Linux 1.5.1 (80386 and later)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.2-nlug1_i386.deb
-</td></tr><tr><td>
-Others (Source Package)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.2-20071205.tar.gz
-</td></tr>
-</table>
-
-<p>If you downloaded a source package file, run the following commands.</p>
-
-<table border="1">
-<tr><td>
-tar -zxf ccs-tools-1.5.2-20071205.tar.gz<br>
+wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-tools.tar.gz<br>
 make -C ccstools/ all install
 </td></tr>
 </table>
@@ -271,8 +101,14 @@ reboot
 <td>Yes</td>
 </tr>
 <tr>
+<td>MAC_FOR_ENV</td>
+<td>Enable MAC for environment variables' names.</td>
+<td>0</td>
+<td>Yes</td>
+</tr>
+<tr>
 <td>MAC_FOR_CAPABILITY::</td>
-<td>Enable MAC for capabilities. There are 29 types of capabilities and you can enable/disable selectively.</td>
+<td>Enable MAC for capabilities. There are 31 types of capabilities and you can enable/disable selectively.</td>
 <td>0</td>
 <td>Yes</td>
 </tr>
@@ -700,15 +536,15 @@ The following is the guideline.</p>
 <tr><td>
 &lt;kernel&gt; ... /bin/bash<br>
 use_profile 3<br>
-1 /bin/tcsh<br>
+allow_execute /bin/tcsh<br>
 <br>
 &lt;kernel&gt; ... /bin/bash /bin/tcsh<br>
 use_profile 3<br>
-1 /bin/cat<br>
+allow_execute /bin/cat<br>
 <br>
 &lt;kernel&gt; ... /bin/bash /bin/tcsh /bin/cat<br>
 use_profile 3<br>
-4 /etc/fstab
+allow_read /etc/fstab
 
 </td></tr>
 </table>
@@ -719,15 +555,15 @@ use_profile 3<br>
 <tr><td>
 &lt;kernel&gt; ... /bin/bash<br>
 use_profile 3<br>
-1 /bin/tcsh<br>
+allow_execute /bin/tcsh<br>
 <br>
 &lt;kernel&gt; /bin/tcsh<br>
 use_profile 3<br>
-1 /bin/cat<br>
+allow_execute /bin/cat<br>
 <br>
 &lt;kernel&gt; /bin/tcsh /bin/cat<br>
 use_profile 3<br>
-4 /etc/fstab
+allow_read /etc/fstab
 </td></tr>
 </table>
 
@@ -891,23 +727,23 @@ loadpolicy d
 [root@sakura tomoyo]# cat /var/log/tomoyo/reject_log.tmp<br>
 #2006-11-10 10:17:29# pid=4498 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
-4 /etc/inittab<br>
+allow_read /etc/inittab<br>
 <br>
 #2006-11-10 10:17:41# pid=4501 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
-4 /etc/resolv.conf<br>
+allow_read /etc/resolv.conf<br>
 <br>
 #2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
-1 /usr/bin/whoami<br>
+allow_execute /usr/bin/whoami<br>
 <br>
 #2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
-4 /etc/nsswitch.conf<br>
+allow_read /etc/nsswitch.conf<br>
 <br>
 #2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
-4 /etc/passwd<br>
+allow_read /etc/passwd<br>
 <br>
 </td></tr>
 </table>
@@ -917,20 +753,20 @@ loadpolicy d
 [root@sakura tomoyo]# sortpolicy &lt; /var/log/tomoyo/reject_log.tmp<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
 <br>
-1 /usr/bin/whoami<br>
+allow_execute /usr/bin/whoami<br>
 #2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 <br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
 <br>
-4 /etc/inittab<br>
-4 /etc/resolv.conf<br>
+allow_read /etc/inittab<br>
+allow_read /etc/resolv.conf<br>
 #2006-11-10 10:17:41# pid=4501 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 #2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 <br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
 <br>
-4 /etc/nsswitch.conf<br>
-4 /etc/passwd<br>
+allow_read /etc/nsswitch.conf<br>
+allow_read /etc/passwd<br>
 #2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
 <br>
 </td></tr>
@@ -947,17 +783,17 @@ loadpolicy d
 [root@sakura tomoyo]# cat /var/log/tomoyo/diff.tmp<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
 <br>
-1 /usr/bin/whoami<br>
+allow_execute /usr/bin/whoami<br>
 <br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
 <br>
-4 /etc/inittab<br>
-4 /etc/resolv.conf<br>
+allow_read /etc/inittab<br>
+allow_read /etc/resolv.conf<br>
 <br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
 <br>
-4 /etc/nsswitch.conf<br>
-4 /etc/passwd<br>
+allow_read /etc/nsswitch.conf<br>
+allow_read /etc/passwd<br>
 <br>
 </td></tr>
 </table>
@@ -1045,11 +881,11 @@ The following example allows /usr/sbin/httpd to read files in the /var/www/html/
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 use_profile 3<br>
-4 /var/www/html/\*<br>
-4 /var/www/html/\*/\*<br>
-4 /var/www/html/\*/\*/\*<br>
-4 /var/www/html/\*/\*/\*/\*<br>
-4 /var/www/html/\*/\*/\*/\*/\*
+allow_read /var/www/html/\*<br>
+allow_read /var/www/html/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*/\*/\*
 </td></tr>
 </table>
 
@@ -1071,7 +907,7 @@ path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*/\*
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 use_profile 3<br>
-4 @WEB-CONTENTS
+allow_read @WEB-CONTENTS
 </td></tr>
 </table>
 
@@ -1085,15 +921,15 @@ The following example shows /usr/sbin/smbd should handle all log files equally.<
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 use_profile 3<br>
-2 /var/log/samba/host1.log<br>
-2 /var/log/samba/host2.log<br>
-2 /var/log/samba/host3.log<br>
-2 /var/log/samba/host4.log<br>
-2 /var/log/samba/host5.log
+allow_write /var/log/samba/host1.log<br>
+allow_write /var/log/samba/host2.log<br>
+allow_write /var/log/samba/host3.log<br>
+allow_write /var/log/samba/host4.log<br>
+allow_write /var/log/samba/host5.log
 </td><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 use_profile 3<br>
-2 /var/log/samba/\*.log
+allow_write /var/log/samba/\*.log
 </td></tr>
 </table>
 
@@ -1146,13 +982,13 @@ use_profile 3<br>
 [root@sakura ~]# domainmatch /etc/mtab~2302<br>
 &lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
 allow_create /etc/mtab~2302<br>
-2 /etc/mtab~2302<br>
+allow_write /etc/mtab~2302<br>
 allow_link /etc/mtab~2302 /etc/mtab~<br>
 allow_unlink /etc/mtab~2302<br>
 [root@sakura ~]# domainmatch /tmp/sh-thd-1163113704<br>
 &lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
 allow_create /tmp/sh-thd-1163113704<br>
-6 /tmp/sh-thd-1163113704<br>
+allow_read/write /tmp/sh-thd-1163113704<br>
 allow_unlink /tmp/sh-thd-1163113704<br>
 </td></tr>
 </table>
@@ -1202,33 +1038,33 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <tr><td>
 [root@sakura ~]# diff /etc/ccs/domain_policy.conf /etc/ccs/domain_policy.tmp<br>
 2326,2331c2326,2331<br>
-&lt; 6 /tmp/sh-thd-1163110572<br>
-&lt; 6 /tmp/sh-thd-1163113704<br>
+&lt; allow_read/write /tmp/sh-thd-1163110572<br>
+&lt; allow_read/write /tmp/sh-thd-1163113704<br>
 &lt; allow_create /tmp/sh-thd-1163110572<br>
 &lt; allow_create /tmp/sh-thd-1163113704<br>
 &lt; allow_unlink /tmp/sh-thd-1163110572<br>
 &lt; allow_unlink /tmp/sh-thd-1163113704<br>
 ---<br>
-&gt; 6 /tmp/sh-thd-\$<br>
-&gt; 6 /tmp/sh-thd-\$<br>
+&gt; allow_read/write /tmp/sh-thd-\$<br>
+&gt; allow_read/write /tmp/sh-thd-\$<br>
 &gt; allow_create /tmp/sh-thd-\$<br>
 &gt; allow_create /tmp/sh-thd-\$<br>
 &gt; allow_unlink /tmp/sh-thd-\$<br>
 &gt; allow_unlink /tmp/sh-thd-\$<br>
 3331,3336c3331,3336<br>
-&lt; 2 /etc/mtab~2328<br>
-&lt; 2 /etc/mtab~2329<br>
-&lt; 2 /etc/mtab~2330<br>
-&lt; 2 /etc/mtab~2331<br>
-&lt; 2 /etc/mtab~2332<br>
-&lt; 2 /etc/mtab~2383<br>
+&lt; allow_write /etc/mtab~2328<br>
+&lt; allow_write /etc/mtab~2329<br>
+&lt; allow_write /etc/mtab~2330<br>
+&lt; allow_write /etc/mtab~2331<br>
+&lt; allow_write /etc/mtab~2332<br>
+&lt; allow_write /etc/mtab~2383<br>
 ---<br>
-&gt; 2 /etc/mtab~\$<br>
-&gt; 2 /etc/mtab~\$<br>
-&gt; 2 /etc/mtab~\$<br>
-&gt; 2 /etc/mtab~\$<br>
-&gt; 2 /etc/mtab~\$<br>
-&gt; 2 /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
 3338,3349c3338,3349<br>
 &lt; allow_create /etc/mtab~2328<br>
 &lt; allow_create /etc/mtab~2329<br>
@@ -1270,11 +1106,11 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 &gt; allow_unlink /etc/mtab~\$<br>
 &gt; allow_unlink /etc/mtab~\$<br>
 3439,3440c3439,3440<br>
-&lt; 2 /etc/mtab~2302<br>
-&lt; 2 /etc/mtab~2339<br>
+&lt; allow_write /etc/mtab~2302<br>
+&lt; allow_write /etc/mtab~2339<br>
 ---<br>
-&gt; 2 /etc/mtab~\$<br>
-&gt; 2 /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
 3443,3446c3443,3446<br>
 &lt; allow_create /etc/mtab~2302<br>
 &lt; allow_create /etc/mtab~2339<br>
@@ -1401,7 +1237,7 @@ path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 use_profile 3<br>
 <br>
-6 @HOME-FTP-FILE<br>
+allow_read/write @HOME-FTP-FILE<br>
 allow_mkdir @HOME-FTP-DIR<br>
 allow_rmdir @HOME-FTP-DIR<br>
 allow_create @HOME-FTP-FILE<br>
@@ -1413,7 +1249,7 @@ allow_rename @HOME-FTP-DIR @HOME-FTP-DIR
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 use_profile 3<br>
 <br>
-6 @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_read/write @HOME-FTP-FILE if task.uid=path1.uid<br>
 allow_mkdir @HOME-FTP-DIR if task.uid=path1.parent.uid<br>
 allow_rmdir @HOME-FTP-DIR if task.uid=path1.uid<br>
 allow_create @HOME-FTP-FILE if task.uid=path1.parent.uid<br>
@@ -1432,7 +1268,7 @@ allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=p
 &lt;kernel&gt; /usr/sbin/smbd<br>
 use_profile 3<br>
 <br>
-6 @HOME-SMB-FILE<br>
+allow_read/write @HOME-SMB-FILE<br>
 allow_mkdir @HOME-SMB-DIR<br>
 allow_rmdir @HOME-SMB-DIR<br>
 allow_create @HOME-SMB-FILE<br>
@@ -1444,7 +1280,7 @@ allow_rename @HOME-SMB-DIR @HOME-SMB-DIR
 &lt;kernel&gt; /usr/sbin/smbd<br>
 use_profile 3<br>
 <br>
-6 @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_read/write @HOME-SMB-FILE if task.euid=path1.uid<br>
 allow_mkdir @HOME-SMB-DIR if task.euid=path1.parent.uid<br>
 allow_rmdir @HOME-SMB-DIR if task.euid=path1.uid<br>
 allow_create @HOME-SMB-FILE if task.euid=path1.parent.uid<br>
@@ -1463,12 +1299,12 @@ allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid
 &lt;kernel&gt; /usr/sbin/sshd<br>
 use_profile 3<br>
 <br>
-1 /bin/bash
+allow_execute /bin/bash
 </td><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 use_profile 3<br>
 <br>
-1 /bin/bash if task.uid!=0 task.euid!=0
+allow_execute /bin/bash if task.uid!=0 task.euid!=0
 </td></tr>
 </table>
 

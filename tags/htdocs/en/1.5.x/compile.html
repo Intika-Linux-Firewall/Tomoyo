@@ -51,7 +51,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
 <li><a href="#2.6.8-17">Kernel 2.6.8-17 for Debian Sarge</a>
 <li><a href="#2.6.18-18etch1">Kernel 2.6.18-18etch1 for Debian Etch</a>
-<li><a href="#2.6.22-6">Kernel 2.6.22-6 for Debian Lenny</a>
+<li><a href="#2.6.22-6.lenny1">Kernel 2.6.22-6.lenny1 for Debian Lenny</a>
 <li><a href="#2.6.16.54-0.2.5">Kernel 2.6.16.54-0.2.5 for OpenSUSE 10.1</a>
 <li><a href="#2.6.18.8-0.9">Kernel 2.6.18.8-0.9 for OpenSUSE 10.2</a>
 <li><a href="#2.6.22.17-0.1">Kernel 2.6.22.17-0.1 for OpenSUSE 10.3</a>
@@ -370,7 +370,7 @@ mkinitrd -o /boot/initrd.img-2.6.18-18etch1-ccs 2.6.18-18etch1-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.22-6">Kernel 2.6.22-6 for Debian Lenny</a></h2>
+<h2><a name="2.6.22-6.lenny1">Kernel 2.6.22-6.lenny1 for Debian Lenny</a></h2>
 
 <table border="1">
 <tr><td>
@@ -382,14 +382,15 @@ cd linux-source-2.6.22/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.3-20080131.tar.gz<br>
 tar -zxf ccs-patch-1.5.3-20080131.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.22-6.diff<br>
+wget -O patches/ccs-patch-2.6.22-6.lenny1.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22-6.lenny1.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.22-6.lenny1.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
 make -s<br>
 make -s install modules modules_install<br>
 # Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.22-6-ccs 2.6.22-6-ccs
+mkinitrd -o /boot/initrd.img-2.6.22-6.lenny1-ccs 2.6.22-6.lenny1-ccs
 </td></tr>
 </table>
 
@@ -593,20 +594,20 @@ ln -sf /boot/System.map-2.6.16-0vl76.28-ccs /boot/System.map
 
 <h2><a name="2.6-vanilla">Vanilla 2.6 kernels</a></h2>
 
-<p>2.6.11 and later are supported. The following is the case of version 2.6.23 .</p>
+<p>2.6.11 and later are supported. The following is the case of version 2.6.24 .</p>
 
 <table border="1">
 <tr><td>
 # Create a directory where the kernel modules are installed.<br>
-mkdir -p /lib/modules/2.6.23-ccs<br>
+mkdir -p /lib/modules/2.6.24-ccs<br>
 # Move to the source directory.<br>
 cd /usr/src/<br>
 # Download kernel source.<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.24.tar.bz2<br>
 # Extract.<br>
-tar -jxf linux-2.6.23.tar.bz2<br>
+tar -jxf linux-2.6.24.tar.bz2<br>
 # Move to the extracted directory.<br>
-cd linux-2.6.23<br>
+cd linux-2.6.24<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
@@ -614,7 +615,7 @@ wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.3-20080131.tar.gz<
 # Extract.<br>
 tar -zxf ccs-patch-1.5.3-20080131.tar.gz<br>
 # Apply the kernel patch.<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.23.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.24.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
