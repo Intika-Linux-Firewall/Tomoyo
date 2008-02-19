@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="../../en/1.5.x/tools-doc.html">English Page</a></p>
+<p style="text-align:right;"><a href="../../en/1.6.x/tools-doc.html">English Page</a></p>
 <h1>各種ツールのドキュメント</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 <hr>
@@ -120,6 +120,11 @@
 <p>このプログラムをソフトウェアのアップデート時に実行しておくことで、アクセス許可の不足によるエラーを回避することができる。</p>
 <p>無条件に要求されたアクセスを許可しないこと。ポリシー違反の原因はパッケージの更新によって発生するものとは限らず、攻撃者による悪意ある要求の可能性もある。もし、攻撃者による悪意ある要求に対して許可を与えてしまった場合、システムに侵入されることになる。</p>
 <p>遅延強制モードを有効にするには、 setprofile コマンドを用いて遅延強制モードを有効にしたいプロファイルの ALLOW_ENFORCE_GRACE を 1 に設定する必要がある。</p>
+
+<h3><a name="ccs-notifyd">＜ポリシー違反通知デーモン　ccs-notifyd＞</a></h3>
+<p>ポリシー違反を検出し、（メールを送信するなどの）指定された処理を行うことにより、管理者に通知する。</p>
+<p>このデーモンを /etc/crontab から起動するように設定しておくことで、強制モードにおけるポリシー違反の発生をできるだけ早く知ることができるようになる。</p>
+<p>このデーモンは遅延強制モード用インタフェースを用いてポリシー違反を検出するため、予めプロファイルの ALLOW_ENFORCE_GRACE を 1 に設定する必要がある。</p>
 
 <h3><a name="checkpolicy">＜ポリシー構文検査プログラム　checkpolicy＞</a></h3>
 <p>標準入力からポリシーファイルの内容を読み込み、構文をチェックする。</p>

@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="../../ja/1.5.x/policy-reference.html">Japanese Page</a></p>
+<p style="text-align:right;"><a href="../../ja/1.6.x/policy-reference.html">Japanese Page</a></p>
 <h1 style="text-align:center;">Policy Specifications of TOMOYO Linux</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1><a name="index">Index</a></h1>
@@ -117,14 +117,8 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <p>Search domain policy for</p>
 
 <ul>
-<li>1 "Candidate 1"
-<li>3 "Candidate 1"
-<li>5 "Candidate 1"
-<li>7 "Candidate 1"
-<li>1 @"a pathname group containing Candidate 1"
-<li>3 @"a pathname group containing Candidate 1"
-<li>5 @"a pathname group containing Candidate 1"
-<li>7 @"a pathname group containing Candidate 1"
+<li>allow_execute "Candidate 1"
+<li>allow_execute @"a pathname group containing Candidate 1"
 </ul>
 
 <p>and deny if not found one.</p>
@@ -177,7 +171,12 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 
 <p>(6) Check whether the Destination domain is defined, and deny if not.</p>
 
-<p>(7) Performe regular steps for executing PROGRAM. If successfully completed, the process transits to Destination domain.</p>
+</td></tr>
+<tr><td>Checking environment variables</td><td>
+
+<p>(1) Examine all environment variables' names are granted in the Destination domain, and deny if more than one of them are not granted.</p>
+
+<p>(2) Performe regular steps for executing PROGRAM. If successfully completed, the process transits to Destination domain.</p>
 </td></tr>
 </table>
 
@@ -212,6 +211,11 @@ Since TOMOYO Linux uses Canonicalized Pathname, if /sbin/pidof is executed, the 
 <tr>
 <td>MAC_FOR_ARGV0</td>
 <td>Enable MAC for argv[0] checks.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAC_FOR_ENV</td>
+<td>Enable MAC for environment variables' names.</td>
 <td>Yes</td>
 </tr>
 <tr>
@@ -515,6 +519,7 @@ For example, some proxy server uses local port 8080, so port 8080 should not be 
 <ul>
 <li>MAC for files</li>
 <li>MAC for argv[0]</li>
+<li>MAC for environment variables' names</li>
 <li>MAC for capabilities</li>
 <li>MAC for network addresses and ports</li>
 <li>MAC for signals</li>
@@ -528,13 +533,10 @@ For example, some proxy server uses local port 8080, so port 8080 should not be 
 <P>To grant file permission, use the following directives.</P>
 <table border="1">
 <tr><td>Directive</td><td>Granted Operation</td><td>Example</td></tr>
-<tr><td>1</td><td>Execute</td><td>1 /bin/ls</td></tr>
-<tr><td>2</td><td>Write</td><td>2 /dev/null</td></tr>
-<tr><td>3</td><td>Write and Execute</td><td>&nbsp;</td></tr>
-<tr><td>4</td><td>Read</td><td>4 /proc/meminfo</td></tr>
-<tr><td>5</td><td>Read and Execute</td><td>&nbsp;</td></tr>
-<tr><td>6</td><td>Read and Write</td><td>6 /dev/null</td></tr>
-<tr><td>7</td><td>Read and Write and Execute</td><td>&nbsp;</td></tr>
+<tr><td>allow_execute</td><td>Execute</td><td>allow_execute /bin/ls</td></tr>
+<tr><td>allow_write</td><td>Open for writing</td><td>allow_write /dev/null</td></tr>
+<tr><td>allow_read</td><td>Open for reading</td><td>allow_read /proc/meminfo</td></tr>
+<tr><td>allow_read/write</td><td>Open for reading and writing</td><td>allow_read/write /dev/null</td></tr>
 <tr><td>allow_create</td><td>Create regular file</td><td>allow_create /var/lock/subsys/crond</td></tr>
 <tr><td>allow_unlink</td><td>Delete non-directory</td><td>allow_unlink /var/lock/subsys/crond</td></tr>
 <tr><td>allow_mkdir</td><td>Create directory</td><td>allow_mkdir /tmp/logwatch.\*/</td></tr>
@@ -550,7 +552,7 @@ For example, some proxy server uses local port 8080, so port 8080 should not be 
 <tr><td>allow_rewrite</td><td>Overwrite</td><td>allow_rewrite /var/log/messages</td></tr>
 </table>
 
-<p>You may use wildcards for directives other than 1 3 5 and 7. You should avoid using directives 3 5 and 7 as hard as possible.</p>
+<p>You may use wildcards for directives other than allow_execute.</p>
 
 <h3>MAC for argv[0]</h3>
 
@@ -562,6 +564,13 @@ When invoking a program via a symbolic link, the domain transition of TOMOYO Lin
 For example, in a system that provides /bin/ls and /bin/cat as hard links of busybox, it becomes a loophole that allows
 programs to behave as cat in the domain of /bin/ls by creating a symbolic link named /tmp/cat that points to /bin/ls and executing /tmp/cat .</p>
 <p>The purpose of this directive is to restrict the combinations of filename and argv[0] so that such loopholes won't occur.</p>
+
+<h3>MAC for environment variables' names</h3>
+
+<p>To restrict the name of environment variables, use allow_env directive followed by "the name of environment variable".</p>
+
+<p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[]. Many programs behave differently depending on envp[].</p>
+<p>The purpose of this directive is to restrict the environment variables passed to executed programs.</p>
 
 <h3>MAC for capabilities</h3>
 <p>To grant capability permission, use allow_capability directive followed by a capability.<br>
@@ -691,6 +700,10 @@ The following capabilities are applicable.</p>
 <td>SYS_PIVOT_ROOT</td>
 <td>Grant pivot_root(2)<br></td>
 </tr>
+<tr>
+<td>SYS_PTRACE</td>
+<td>Grant ptrace(2)<br></td>
+</tr>
 </table>
 <p>The purpose of allow_capability directive is to restrict system calls that a PROGRAM can call.<br>
 You can restrict more strictly with other directives and policy files for some system calls.</p>
@@ -736,9 +749,9 @@ You can restrict more strictly with other directives and policy files for some s
 
 <table border="1">
 <tr><td>Example</td><td>Meaning</td></tr>
-<tr><td>4 /etc/passwd</td><td>Allow reading /etc/passwd .</td></tr>
-<tr><td>4 /etc/passwd if task.uid=0</td><td>Allow reading /etc/passwd if the process's UID is 0.</td></tr>
-<tr><td>4 /etc/passwd if task.uid!=0</td><td>Allow reading /etc/passwd if the process's UID is not 0.</td></tr>
+<tr><td>allow_read /etc/passwd</td><td>Allow reading /etc/passwd .</td></tr>
+<tr><td>allow_read /etc/passwd if task.uid=0</td><td>Allow reading /etc/passwd if the process's UID is 0.</td></tr>
+<tr><td>allow_read /etc/passwd if task.uid!=0</td><td>Allow reading /etc/passwd if the process's UID is not 0.</td></tr>
 <tr><td>allow_network TCP connect 10.0.0.1</td><td>Connect to 10.0.0.1 using TCP.</td></tr>
 <tr><td>allow_network TCP connect 10.0.0.1 if task.uid=100</td><td>Connect to 10.0.0.1 using TCP if the process's UID is 100.</td></tr>
 <tr><td>allow_capability SYS_KILL</td><td>Allow calling kill(2).</td></tr>
@@ -789,6 +802,7 @@ You can restrict more strictly with other directives and policy files for some s
 <li>Pathname group</li>
 <li>Address group</li>
 <li>Unconditionally readable files</li>
+<li>Unconditionally acceptable environment variavles' names</li>
 <li>Files that aren't rewritable by default</li>
 <li>Programs invocable via symbolic links</li>
 <li>Program aggregations</li>
@@ -846,7 +860,7 @@ path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
 
 <table border="1">
 <tr><td>
-4 @HOME-DIR-FILE
+allow_read @HOME-DIR-FILE
 </td></tr>
 </table>
 
@@ -877,6 +891,10 @@ allow_network TCP accept @local-address 1024-65535
 <h3>Unconditionally readable files</h3>
 
 <p>To grant unconditionally readable permissions, use allow_read directive followed by Canonicalized File. This directive is intended to reduce size of <a href="#domain_policy.conf">Domain policy</a> by granting read access to library files such as GLIBC and locale files. You should not grant password files such as /etc/passwd, for all process can read if DAC is granted.</p>
+
+<h3>Unconditionally acceptable environment variavles' names</h3>
+
+<p>To grant unconditionally acceptable environment variables' names, use allow_env directive followed by the name of environment variables. This directive is intended to reduce memory usage for commonly granted environment variables (e.g. PATH and HOME). You should not grant dangerous environment variables like LD_PRELOAD .</p>
 
 <h3>Files that aren't rewritable by default</h3>
 
@@ -967,11 +985,11 @@ cat /proc/ccs/system_policy</p>
 <h2><a name="domain_policy">3.3 domain_policy</a></h2>
 <p>This file is to read, append or delete current <a href="#domain_policy.conf">Domain policy</a>.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
-printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
+printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
-printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
 <p>(Example) Selecting specific domain and removing ACLs.<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /proc/ccs/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" &gt; /proc/ccs/domain_policy</p>
 <p>(Example) Deleting specific domain.<br>
 printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/ccs/domain_policy</p>
 <p>(Example) Reading current domain policy.<br>

@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="../../en/1.5.x/policy-reference.html">English Page</a></p>
+<p style="text-align:right;"><a href="../../en/1.6.x/policy-reference.html">English Page</a></p>
 <h1 style="text-align:center;">TOMOYO Linux ポリシー解説書</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1><a name="index">目次</a></h1>
@@ -113,14 +113,8 @@
 <p>ドメイン別ポリシーから</p>
 
 <ul>
-<li>1 「パス名候補１」
-<li>3 「パス名候補１」
-<li>5 「パス名候補１」
-<li>7 「パス名候補１」
-<li>1 @「パス名候補１」を含むグループ名
-<li>3 @「パス名候補１」を含むグループ名
-<li>5 @「パス名候補１」を含むグループ名
-<li>7 @「パス名候補１」を含むグループ名
+<li>allow_execute 「パス名候補１」
+<li>allow_execute @「パス名候補１」を含むグループ名
 </ul>
 
 <p>というエントリを探す。見つからなければ拒否する。</p>
@@ -173,7 +167,12 @@
 
 <p>(6) ドメイン別ポリシーから「遷移先ドメイン」を探す。見つからなければ拒否する。</p>
 
-<p>(7)通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移する。</p>
+</td></tr>
+<tr><td>環境変数のチェック</td><td>
+
+<p>(1)全ての環境変数名が「遷移先ドメイン」で許可されているかどうかを検査し、許可されていないものが見つかった場合は拒否する。</p>
+
+<p>(2)通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移する。</p>
 </td></tr>
 </table>
 
@@ -208,6 +207,11 @@
 <tr>
 <td>MAC_FOR_ARGV0</td>
 <td>プログラム実行時の argv[0] のチェックを有効にする。</td>
+<td>○</td>
+</tr>
+<tr>
+<td>MAC_FOR_ENV</td>
+<td>プログラム実行時の環境変数名のチェックを有効にする。</td>
 <td>○</td>
 </tr>
 <tr>
@@ -505,6 +509,7 @@
 <ul>
 <li>ファイルに対するアクセス許可</li>
 <li>指定可能な argv[0] の組み合わせ</li>
+<li>指定可能な環境変数名</li>
 <li>使用可能なケイパビリティ</li>
 <li>使用可能なネットワークアドレスとポート</li>
 <li>使用可能なシグナル</li>
@@ -517,13 +522,10 @@
 <P>ファイルに対するアクセス許可としては、以下のディレクティブが存在する。</P>
 <table border="1">
 <tr><td>ディレクティブ</td><td>許可されるアクセス</td><td>指定例</td></tr>
-<tr><td>1</td><td>プログラムの実行</td><td>1 /bin/ls</td></tr>
-<tr><td>2</td><td>ファイルの書き込み</td><td>2 /dev/null</td></tr>
-<tr><td>3</td><td>ファイルの書き込みと実行</td><td>&nbsp;</td></tr>
-<tr><td>4</td><td>ファイルの読み込み</td><td>4 /proc/meminfo</td></tr>
-<tr><td>5</td><td>ファイルの読み込みと実行</td><td>&nbsp;</td></tr>
-<tr><td>6</td><td>ファイルの読み書き</td><td>6 /dev/null</td></tr>
-<tr><td>7</td><td>ファイルの読み書きと実行</td><td>&nbsp;</td></tr>
+<tr><td>allow_execute</td><td>プログラムの実行</td><td>allow_execute /bin/ls</td></tr>
+<tr><td>allow_write</td><td>ファイルの書き込みモードでのオープン</td><td>allow_write /dev/null</td></tr>
+<tr><td>allow_read</td><td>ファイルの読み込みモードでのオープン</td><td>allow_read /proc/meminfo</td></tr>
+<tr><td>allow_read/write</td><td>ファイルの読み書きモードでのオープン</td><td>allow_read/write /dev/null</td></tr>
 <tr><td>allow_create</td><td>ファイルの新規作成</td><td>allow_create /var/lock/subsys/crond</td></tr>
 <tr><td>allow_unlink</td><td>ファイルの削除</td><td>allow_unlink /var/lock/subsys/crond</td></tr>
 <tr><td>allow_mkdir</td><td>ディレクトリの作成</td><td>allow_mkdir /tmp/logwatch.\*/</td></tr>
@@ -539,7 +541,7 @@
 <tr><td>allow_rewrite</td><td>ファイル内容の上書き</td><td>allow_rewrite /var/log/messages</td></tr>
 </table>
 
-<p>1 3 5 7 以外のディレクティブではワイルドカードを使用できる。なお、ディレクティブ 3 5 7 の指定は極力避けるべきである。</p>
+<p>allow_execute 以外のディレクティブではワイルドカードを使用できる。</p>
 
 <h3>指定可能な argv[0] の組み合わせ</h3>
 
@@ -548,6 +550,13 @@
 <p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができる。いくつかのプログラム（例えば busybox ）は argv[0] の内容によって振る舞いを変化させる。
 プログラムへのシンボリックリンクを経由してプログラムを実行する場合、 TOMOYO Linux のドメイン遷移は filename が指すパス名を正規化した内容に基づいて行われるのに対し、振る舞いは argv[0] （通常は filename が指すパス名と同じ内容）に基づいて行われてしまう。例えば、 /bin/ls と /bin/cat が busybox へのハードリンクとして提供されている環境において、 /tmp/cat という /bin/ls へのシンボリックリンクを作成して /tmp/cat を実行することにより、 /bin/ls のためのドメインで cat として振舞うことができてしまうという抜け穴になる。</p>
 <p>このディレクティブの目的は、 filename と argv[0] の内容の組み合わせを制限することでそのような抜け穴を塞ぐことである。</p>
+
+<h3>指定可能な環境変数名</h3>
+
+<p>環境変数名を制限するには、 allow_env というディレクティブに続けて、「環境変数名」を指定する。</p>
+
+<p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができる。多くのプログラムは envp[] の内容によって振る舞いを変化させる。</p>
+<p>このディレクティブの目的は、実行されるプログラムに渡される環境変数を制限することである。</p>
 
 <h3>使用可能なケイパビリティ</h3>
 <p>ケイパビリティのアクセス許可を指定するには、 allow_capability というディレクティブに続けて、ケイパビリティを指定する。以下のケイパビリティが指定できる。</p>
@@ -676,6 +685,10 @@
 <td>SYS_PIVOT_ROOT</td>
 <td>pivot_root(2) の使用を許可</td>
 </tr>
+<tr>
+<td>SYS_PTRACE</td>
+<td>ptrace(2) の使用を許可</td>
+</tr>
 </table>
 <p>allow_capability ディレクティブの目的は、プログラムが呼び出すことができるシステムコールを制限することである。幾つかのシステムコールに対しては他のディレクティブやポリシーファイルを使用してより詳細な制限が可能になっている。</p>
 <ul>
@@ -721,9 +734,9 @@
 
 <table border="1">
 <tr><td>指定例</td><td>意味</td></tr>
-<tr><td>4 /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
-<tr><td>4 /etc/passwd if task.uid=0</td><td>プロセスのユーザIDが0の場合に限り、/etc/passwd の参照を許可</td></tr>
-<tr><td>4 /etc/passwd if task.uid!=0</td><td>プロセスのユーザIDが0ではない場合に限り、/etc/passwd の参照を許可</td></tr>
+<tr><td>allow_read /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
+<tr><td>allow_read /etc/passwd if task.uid=0</td><td>プロセスのユーザIDが0の場合に限り、/etc/passwd の参照を許可</td></tr>
+<tr><td>allow_read /etc/passwd if task.uid!=0</td><td>プロセスのユーザIDが0ではない場合に限り、/etc/passwd の参照を許可</td></tr>
 <tr><td>allow_network TCP connect 10.0.0.1</td><td>TCP プロトコルで 10.0.0.1 への接続を許可</td></tr>
 <tr><td>allow_network TCP connect 10.0.0.1 if task.uid=100</td><td>プロセスのユーザIDが100の場合に限り、TCP プロトコルで 10.0.0.1 への接続を許可</td></tr>
 <tr><td>allow_capability SYS_KILL</td><td>kill(2) の使用を許可</td></tr>
@@ -775,6 +788,7 @@
 <li>パス名のグループ</li>
 <li>アドレスのグループ</li>
 <li>無条件に読み込みを許可するファイル</li>
+<li>無条件に受け取ることができる環境変数名</li>
 <li>書き換えを禁止するファイル</li>
 <li>シンボリックリンクの名前で実行するプログラム</li>
 <li>集約するプログラム</li>
@@ -834,7 +848,7 @@ path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
 
 <table border="1">
 <tr><td>
-4 @HOME-DIR-FILE
+allow_read @HOME-DIR-FILE
 </td></tr>
 </table>
 
@@ -866,6 +880,10 @@ allow_network TCP accept @local-address 1024-65535
 <h3>無条件に読み込みを許可するファイル</h3>
 
 <p>無条件に読み込みを許可するファイルを指定するには、 allow_read というディレクティブに続けて、正規化されたファイル名を指定する。このディレクティブの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルを指定することで、<a href="#domain_policy.conf">ドメイン別ポリシー</a>の記述量を減らすことである。ＤＡＣで許可されれば全てのプロセスが読み込めるので、くれぐれも /etc/passwd のようなファイルを指定しないこと。</p>
+
+<h3>無条件に受け取ることができる環境変数名</h3>
+
+<p>無条件に受け取ってよい環境変数名を指定するには、 allow_env というディレクティブに続けて、環境変数名を指定する。このディレクティブの目的は、 PATH や HOME のように一般的に使われている環境変数を許可するためのメモリ消費を抑えるためである。くれぐれも LD_PRELOAD のような危険な環境変数を指定しないこと。</p>
 
 <h3>書き換えを禁止するファイル</h3>
 
@@ -952,11 +970,11 @@ cat /proc/ccs/system_policy</p>
 <h2><a name="domain_policy">3.3 domain_policy</a></h2>
 <p>現在の<a href="#domain_policy.conf">ドメイン別ポリシー</a>を読み出しまたは追加または削除する。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成される）<br>
-printf "&lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
+printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されない）<br>
-printf "select &lt;kernel&gt; /sbin/init\n4 /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）ドメインを選択してアクセス許可を削除<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete 4 /etc/passwd\ndelete 4 /etc/shadow\n" &gt; /proc/ccs/domain_policy</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）特定のドメインを削除<br>
 printf "delete &lt;kernel&gt; /sbin/init\n" &gt; /proc/ccs/domain_policy</p>
 <p>（例）ドメイン別ポリシーの読み出し<br>
