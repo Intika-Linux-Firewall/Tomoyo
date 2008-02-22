@@ -444,15 +444,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/5/SR
  			break;
  		case S_IFCHR: case S_IFBLK:
 +			/***** TOMOYO Linux start. *****/
-+ 			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
-+ 			/***** TOMOYO Linux end. *****/
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
++			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,
  					new_decode_dev(dev));
  			break;
  		case S_IFIFO: case S_IFSOCK:
 +			/***** TOMOYO Linux start. *****/
-+ 			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
-+ 			/***** TOMOYO Linux end. *****/
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
@@ -491,8 +491,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/5/SR
  		if (inode)
  			atomic_inc(&inode->i_count);
 +		/***** TOMOYO Linux start. *****/
-+ 		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
-+ 		/***** TOMOYO Linux end. *****/
++		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
++		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
@@ -541,7 +541,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/5/SR
  	if (new_dentry == trap)
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
-+ 	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
++	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
 +		(error = CheckDoubleWritePermission(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
 +		goto exit5;
 +	}
