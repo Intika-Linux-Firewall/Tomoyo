@@ -58,19 +58,19 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  net/unix/af_unix.c                 |   10 +++
  54 files changed, 640 insertions(+), 11 deletions(-)
 
---- kernel-source-2.6.8-17.orig/Makefile
-+++ kernel-source-2.6.8-17/Makefile
+--- kernel-source-2.6.8-17sarge1.orig/Makefile
++++ kernel-source-2.6.8-17sarge1/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 8
 -EXTRAVERSION =
-+EXTRAVERSION = -17-ccs
++EXTRAVERSION = -17sarge1-ccs
  NAME=Zonked Quokka
  
  # *DOCUMENTATION*
---- kernel-source-2.6.8-17.orig/fs/Kconfig
-+++ kernel-source-2.6.8-17/fs/Kconfig
+--- kernel-source-2.6.8-17sarge1.orig/fs/Kconfig
++++ kernel-source-2.6.8-17sarge1/fs/Kconfig
 @@ -1789,5 +1789,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -79,16 +79,16 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
 +
  endmenu
  
---- kernel-source-2.6.8-17.orig/fs/Makefile
-+++ kernel-source-2.6.8-17/fs/Makefile
+--- kernel-source-2.6.8-17sarge1.orig/fs/Makefile
++++ kernel-source-2.6.8-17sarge1/fs/Makefile
 @@ -92,3 +92,5 @@ obj-$(CONFIG_JFS_FS)		+= jfs/
  obj-$(CONFIG_XFS_FS)		+= xfs/
  obj-$(CONFIG_AFS_FS)		+= afs/
  obj-$(CONFIG_BEFS_FS)		+= befs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- kernel-source-2.6.8-17.orig/fs/attr.c
-+++ kernel-source-2.6.8-17/fs/attr.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/attr.c
++++ kernel-source-2.6.8-17sarge1/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -120,8 +120,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- kernel-source-2.6.8-17.orig/fs/compat.c
-+++ kernel-source-2.6.8-17/fs/compat.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/compat.c
++++ kernel-source-2.6.8-17sarge1/fs/compat.c
 @@ -46,6 +46,9 @@
  
  #include <asm/uaccess.h>
@@ -151,8 +151,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	if (retval >= 0) {
  		free_arg_pages(&bprm);
  
---- kernel-source-2.6.8-17.orig/fs/exec.c
-+++ kernel-source-2.6.8-17/fs/exec.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/exec.c
++++ kernel-source-2.6.8-17sarge1/fs/exec.c
 @@ -54,6 +54,10 @@
  #include <linux/kmod.h>
  #endif
@@ -186,7 +186,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1145,7 +1157,8 @@ int do_execve(char * filename,
+@@ -1150,7 +1162,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -196,8 +196,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	if (retval >= 0) {
  		free_arg_pages(&bprm);
  
---- kernel-source-2.6.8-17.orig/fs/fcntl.c
-+++ kernel-source-2.6.8-17/fs/fcntl.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/fcntl.c
++++ kernel-source-2.6.8-17sarge1/fs/fcntl.c
 @@ -18,6 +18,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -219,8 +219,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- kernel-source-2.6.8-17.orig/fs/ioctl.c
-+++ kernel-source-2.6.8-17/fs/ioctl.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/ioctl.c
++++ kernel-source-2.6.8-17sarge1/fs/ioctl.c
 @@ -14,6 +14,9 @@
  
  #include <asm/uaccess.h>
@@ -241,8 +241,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	error = security_file_ioctl(filp, cmd, arg);
  	if (error) {
---- kernel-source-2.6.8-17.orig/fs/namei.c
-+++ kernel-source-2.6.8-17/fs/namei.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/namei.c
++++ kernel-source-2.6.8-17sarge1/fs/namei.c
 @@ -32,6 +32,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -420,8 +420,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- kernel-source-2.6.8-17.orig/fs/namespace.c
-+++ kernel-source-2.6.8-17/fs/namespace.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/namespace.c
++++ kernel-source-2.6.8-17sarge1/fs/namespace.c
 @@ -23,6 +23,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -535,8 +535,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- kernel-source-2.6.8-17.orig/fs/open.c
-+++ kernel-source-2.6.8-17/fs/open.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/open.c
++++ kernel-source-2.6.8-17sarge1/fs/open.c
 @@ -25,6 +25,13 @@
  
  #include <asm/unistd.h>
@@ -594,8 +594,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- kernel-source-2.6.8-17.orig/fs/proc/Makefile
-+++ kernel-source-2.6.8-17/fs/proc/Makefile
+--- kernel-source-2.6.8-17sarge1.orig/fs/proc/Makefile
++++ kernel-source-2.6.8-17sarge1/fs/proc/Makefile
 @@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
  
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
@@ -603,8 +603,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- kernel-source-2.6.8-17.orig/fs/proc/proc_misc.c
-+++ kernel-source-2.6.8-17/fs/proc/proc_misc.c
+--- kernel-source-2.6.8-17sarge1.orig/fs/proc/proc_misc.c
++++ kernel-source-2.6.8-17sarge1/fs/proc/proc_misc.c
 @@ -709,4 +709,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -614,13 +614,13 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.6.8-17 2008/01/13\n");
++		printk("Hook version: 2.6.8-17sarge1 2008/02/24\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
---- kernel-source-2.6.8-17.orig/include/linux/init_task.h
-+++ kernel-source-2.6.8-17/include/linux/init_task.h
+--- kernel-source-2.6.8-17sarge1.orig/include/linux/init_task.h
++++ kernel-source-2.6.8-17sarge1/include/linux/init_task.h
 @@ -112,6 +112,10 @@ extern struct group_info init_groups;
  	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
@@ -632,8 +632,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  }
  
  
---- kernel-source-2.6.8-17.orig/include/linux/sched.h
-+++ kernel-source-2.6.8-17/include/linux/sched.h
+--- kernel-source-2.6.8-17sarge1.orig/include/linux/sched.h
++++ kernel-source-2.6.8-17sarge1/include/linux/sched.h
 @@ -32,6 +32,11 @@
  
  struct exec_domain;
@@ -657,8 +657,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- kernel-source-2.6.8-17.orig/kernel/kmod.c
-+++ kernel-source-2.6.8-17/kernel/kmod.c
+--- kernel-source-2.6.8-17sarge1.orig/kernel/kmod.c
++++ kernel-source-2.6.8-17sarge1/kernel/kmod.c
 @@ -166,6 +166,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -671,8 +671,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- kernel-source-2.6.8-17.orig/kernel/module.c
-+++ kernel-source-2.6.8-17/kernel/module.c
+--- kernel-source-2.6.8-17sarge1.orig/kernel/module.c
++++ kernel-source-2.6.8-17sarge1/kernel/module.c
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/semaphore.h>
@@ -705,8 +705,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- kernel-source-2.6.8-17.orig/kernel/sched.c
-+++ kernel-source-2.6.8-17/kernel/sched.c
+--- kernel-source-2.6.8-17sarge1.orig/kernel/sched.c
++++ kernel-source-2.6.8-17sarge1/kernel/sched.c
 @@ -43,6 +43,9 @@
  #include <asm/tlb.h>
  
@@ -727,8 +727,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- kernel-source-2.6.8-17.orig/kernel/signal.c
-+++ kernel-source-2.6.8-17/kernel/signal.c
+--- kernel-source-2.6.8-17sarge1.orig/kernel/signal.c
++++ kernel-source-2.6.8-17sarge1/kernel/signal.c
 @@ -25,6 +25,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -773,8 +773,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	info.si_signo = sig;
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
---- kernel-source-2.6.8-17.orig/kernel/sys.c
-+++ kernel-source-2.6.8-17/kernel/sys.c
+--- kernel-source-2.6.8-17sarge1.orig/kernel/sys.c
++++ kernel-source-2.6.8-17sarge1/kernel/sys.c
 @@ -28,6 +28,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -825,8 +825,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- kernel-source-2.6.8-17.orig/kernel/sysctl.c
-+++ kernel-source-2.6.8-17/kernel/sysctl.c
+--- kernel-source-2.6.8-17sarge1.orig/kernel/sysctl.c
++++ kernel-source-2.6.8-17sarge1/kernel/sysctl.c
 @@ -42,6 +42,9 @@
  #include <linux/dcache.h>
  
@@ -957,8 +957,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  }
  
  /*
---- kernel-source-2.6.8-17.orig/kernel/time.c
-+++ kernel-source-2.6.8-17/kernel/time.c
+--- kernel-source-2.6.8-17sarge1.orig/kernel/time.c
++++ kernel-source-2.6.8-17sarge1/kernel/time.c
 @@ -30,6 +30,9 @@
  #include <linux/smp_lock.h>
  #include <asm/uaccess.h>
@@ -999,8 +999,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  		
  	/* Now we validate the data before disabling interrupts */
  
---- kernel-source-2.6.8-17.orig/net/core/datagram.c
-+++ kernel-source-2.6.8-17/net/core/datagram.c
+--- kernel-source-2.6.8-17sarge1.orig/net/core/datagram.c
++++ kernel-source-2.6.8-17sarge1/net/core/datagram.c
 @@ -54,6 +54,10 @@
  #include <net/sock.h>
  #include <net/checksum.h>
@@ -1023,8 +1023,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  		if (skb)
  			return skb;
  
---- kernel-source-2.6.8-17.orig/net/ipv4/tcp_ipv4.c
-+++ kernel-source-2.6.8-17/net/ipv4/tcp_ipv4.c
+--- kernel-source-2.6.8-17sarge1.orig/net/ipv4/tcp_ipv4.c
++++ kernel-source-2.6.8-17sarge1/net/ipv4/tcp_ipv4.c
 @@ -74,6 +74,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -1055,8 +1055,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
   			/* Does not bother with rcv_saddr checks,
   			 * because the established check is already
---- kernel-source-2.6.8-17.orig/net/ipv4/udp.c
-+++ kernel-source-2.6.8-17/net/ipv4/udp.c
+--- kernel-source-2.6.8-17sarge1.orig/net/ipv4/udp.c
++++ kernel-source-2.6.8-17sarge1/net/ipv4/udp.c
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1087,8 +1087,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- kernel-source-2.6.8-17.orig/net/ipv6/tcp_ipv6.c
-+++ kernel-source-2.6.8-17/net/ipv6/tcp_ipv6.c
+--- kernel-source-2.6.8-17sarge1.orig/net/ipv6/tcp_ipv6.c
++++ kernel-source-2.6.8-17sarge1/net/ipv6/tcp_ipv6.c
 @@ -62,6 +62,9 @@
  
  #include <linux/proc_fs.h>
@@ -1109,8 +1109,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- kernel-source-2.6.8-17.orig/net/ipv6/udp.c
-+++ kernel-source-2.6.8-17/net/ipv6/udp.c
+--- kernel-source-2.6.8-17sarge1.orig/net/ipv6/udp.c
++++ kernel-source-2.6.8-17sarge1/net/ipv6/udp.c
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1141,8 +1141,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- kernel-source-2.6.8-17.orig/net/socket.c
-+++ kernel-source-2.6.8-17/net/socket.c
+--- kernel-source-2.6.8-17sarge1.orig/net/socket.c
++++ kernel-source-2.6.8-17sarge1/net/socket.c
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1222,8 +1222,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- kernel-source-2.6.8-17.orig/net/unix/af_unix.c
-+++ kernel-source-2.6.8-17/net/unix/af_unix.c
+--- kernel-source-2.6.8-17sarge1.orig/net/unix/af_unix.c
++++ kernel-source-2.6.8-17sarge1/net/unix/af_unix.c
 @@ -118,6 +118,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1255,8 +1255,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- kernel-source-2.6.8-17.orig/arch/alpha/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/alpha/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/alpha/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/alpha/kernel/ptrace.c
 @@ -19,6 +19,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1279,8 +1279,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- kernel-source-2.6.8-17.orig/arch/arm/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/arm/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/arm/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/arm/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1303,8 +1303,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/arm26/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/arm26/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/arm26/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/arm26/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1327,8 +1327,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/h8300/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/h8300/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/h8300/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/h8300/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1351,8 +1351,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/i386/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/i386/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/i386/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/i386/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  #include <asm/debugreg.h>
  #include <asm/ldt.h>
@@ -1375,8 +1375,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/ia64/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/ia64/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/ia64/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -1399,8 +1399,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/m68k/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/m68k/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/m68k/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/m68k/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1423,8 +1423,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/m68knommu/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/m68knommu/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/m68knommu/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/m68knommu/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1447,8 +1447,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/mips/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/mips/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/mips/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/mips/kernel/ptrace.c
 @@ -34,6 +34,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1471,8 +1471,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- kernel-source-2.6.8-17.orig/arch/parisc/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/parisc/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/parisc/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/parisc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1495,8 +1495,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/ppc/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/ppc/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/ppc/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/ppc/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -1519,8 +1519,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- kernel-source-2.6.8-17.orig/arch/ppc64/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/ppc64/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/ppc64/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/ppc64/kernel/ptrace.c
 @@ -33,6 +33,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1543,8 +1543,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- kernel-source-2.6.8-17.orig/arch/s390/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/s390/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/s390/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/s390/kernel/ptrace.c
 @@ -38,6 +38,9 @@
  #include <asm/pgalloc.h>
  #include <asm/system.h>
@@ -1567,8 +1567,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  
---- kernel-source-2.6.8-17.orig/arch/sh/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/sh/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/sh/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/sh/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1591,8 +1591,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/sh64/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/sh64/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/sh64/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/sh64/kernel/ptrace.c
 @@ -34,6 +34,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1615,8 +1615,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/sparc/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/sparc/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/sparc/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/sparc/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1642,8 +1642,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- kernel-source-2.6.8-17.orig/arch/sparc64/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/sparc64/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/sparc64/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/sparc64/kernel/ptrace.c
 @@ -27,6 +27,9 @@
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
@@ -1669,8 +1669,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- kernel-source-2.6.8-17.orig/arch/um/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/um/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/um/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/um/kernel/ptrace.c
 @@ -16,6 +16,9 @@
  #include "asm/uaccess.h"
  #include "kern_util.h"
@@ -1693,8 +1693,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/v850/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/v850/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/v850/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/v850/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/ptrace.h>
  #include <asm/processor.h>
@@ -1717,8 +1717,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  
---- kernel-source-2.6.8-17.orig/arch/x86_64/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/x86_64/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/x86_64/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/x86_64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/desc.h>
  #include <asm/proto.h>
@@ -1729,7 +1729,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -189,6 +192,11 @@ asmlinkage long sys_ptrace(long request,
+@@ -185,6 +188,11 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	long i, ret;
  	unsigned ui;
@@ -1741,8 +1741,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- kernel-source-2.6.8-17.orig/arch/cris/arch-v10/kernel/ptrace.c
-+++ kernel-source-2.6.8-17/arch/cris/arch-v10/kernel/ptrace.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ kernel-source-2.6.8-17sarge1/arch/cris/arch-v10/kernel/ptrace.c
 @@ -16,6 +16,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1765,8 +1765,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.6.8-17.orig/arch/ppc64/kernel/ptrace32.c
-+++ kernel-source-2.6.8-17/arch/ppc64/kernel/ptrace32.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/ppc64/kernel/ptrace32.c
++++ kernel-source-2.6.8-17sarge1/arch/ppc64/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1789,8 +1789,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- kernel-source-2.6.8-17.orig/arch/x86_64/ia32/ptrace32.c
-+++ kernel-source-2.6.8-17/arch/x86_64/ia32/ptrace32.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/x86_64/ia32/ptrace32.c
++++ kernel-source-2.6.8-17sarge1/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/debugreg.h>
  #include <asm/i387.h>
@@ -1813,8 +1813,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	switch (request) { 
  	default:
---- kernel-source-2.6.8-17.orig/arch/ia64/ia32/sys_ia32.c
-+++ kernel-source-2.6.8-17/arch/ia64/ia32/sys_ia32.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/ia64/ia32/sys_ia32.c
++++ kernel-source-2.6.8-17sarge1/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -1837,8 +1837,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- kernel-source-2.6.8-17.orig/arch/mips/kernel/ptrace32.c
-+++ kernel-source-2.6.8-17/arch/mips/kernel/ptrace32.c
+--- kernel-source-2.6.8-17sarge1.orig/arch/mips/kernel/ptrace32.c
++++ kernel-source-2.6.8-17sarge1/arch/mips/kernel/ptrace32.c
 @@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
