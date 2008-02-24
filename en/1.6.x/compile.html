@@ -48,8 +48,8 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.23.15-137.fc8">Kernel 2.6.23.15-137.fc8 for Fedora 8</a>
 <li><a href="#2.6.9-67.0.4.EL">Kernel 2.6.9-67.0.4.EL for CentOS 4.6</a>
 <li><a href="#2.6.18-53.1.13.el5">Kernel 2.6.18-53.1.13.el5 for CentOS 5.1</a>
-<li><a href="#2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a>
-<li><a href="#2.6.8-17">Kernel 2.6.8-17 for Debian Sarge</a>
+<li><a href="#2.4.27-10sarge6">Kernel 2.4.27-10sarge6 for Debian Sarge</a>
+<li><a href="#2.6.8-17sarge1">Kernel 2.6.8-17sarge1 for Debian Sarge</a>
 <li><a href="#2.6.18-18etch1">Kernel 2.6.18-18etch1 for Debian Etch</a>
 <li><a href="#2.6.22-6.lenny1">Kernel 2.6.22-6.lenny1 for Debian Lenny</a>
 <li><a href="#2.6.16.54-0.2.5">Kernel 2.6.16.54-0.2.5 for OpenSUSE 10.1</a>
@@ -297,7 +297,7 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.4.27-10sarge5">Kernel 2.4.27-10sarge5 for Debian Sarge</a></h2>
+<h2><a name="2.4.27-10sarge6">Kernel 2.4.27-10sarge6 for Debian Sarge</a></h2>
 
 <table border="1">
 <tr><td>
@@ -309,17 +309,17 @@ cd kernel-source-2.4.27/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
 tar -zxf ccs-patch.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.4.27-10sarge5.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.4.27-10sarge6.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
 make -s dep install modules modules_install<br>
 # Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.4.27-10sarge5-ccs 2.4.27-10sarge5-ccs
+mkinitrd -o /boot/initrd.img-2.4.27-10sarge6-ccs 2.4.27-10sarge6-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.8-17">Kernel 2.6.8-17 for Debian Sarge</a></h2>
+<h2><a name="2.6.8-17sarge1">Kernel 2.6.8-17sarge1 for Debian Sarge</a></h2>
 
 <table border="1">
 <tr><td>
@@ -331,14 +331,14 @@ cd kernel-source-2.6.8/<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
 tar -zxf ccs-patch.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.8-17.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.8-17sarge1.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
 make -s<br>
 make -s install modules modules_install<br>
 # Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.8-17-ccs 2.6.8-17-ccs
+mkinitrd -o /boot/initrd.img-2.6.8-17sarge1-ccs 2.6.8-17sarge1-ccs
 </td></tr>
 </table>
 
