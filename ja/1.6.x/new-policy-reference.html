@@ -1732,23 +1732,74 @@ cat /proc/ccs/version</p>
 <ul>
 <li>argv[0] には、ALT_EXECで指定されたプログラムのパス名が入っています。</li>
 <li>argv[1] には、許可されていないプログラムの実行を要求したプロセスのドメイン名が入っています。</li>
-<li>argv[2] には、許可されていないプログラムのパス名が入っています。</li>
-<li>argv[3] 以降には、呼び出し元プロセスが渡した argv[1] 以降の内容が入っています。</li>
-<li>環境変数 envp[] は呼び出し元プロセスが渡した内容をそのまま引き継ぎます。</li>
+<li>argv[2] には、許可されていないプログラムの実行を要求したプロセスのパス名が入っています。</li>
+<li>argv[3] には、許可されていないプログラムの実行を要求したプロセスの情報が入っています。</li>
+<li>argv[4] には、許可されなかったプログラムのパス名が入っています。</li>
+<li>argv[5] には、プログラム実行時の引数の数が入っています。</li>
+<li>argv[6] には、プログラム実行時の環境変数の数が入っています。</li>
+<li>argv[7] から argv[6 + argc] には、呼び出し元プロセスが渡した argv[] の内容が入っています。</li>
+<li>argv[7 + argc] から argv [6 + argc + envc] には、呼び出し元プロセスが渡した envp[] の内容が入っています。</li>
+<li>環境変数 envp[] は全てクリアされます。</li>
 <li>標準入出力などは呼び出し元プロセスのものを引き継ぎます。</li>
 </ul>
 
 <p>パラメータを表示するサンプルプログラムは以下のようになります。</p>
 
 <table border="1">
-<tr><td>
-#! /bin/sh<br>
-echo "DOMAIN=" $1<br>
-shift<br>
-echo "You don't have permission to call ""$@"<br>
-env<br>
+<tr><td><pre>
+#! /bin/sh
+# Don't invoke this program from the command line.
+# This program is invoked by the kernel, with all environment variables cleared.
+# You might need to set environment variable PATH to run this program.
+#
+[ $# -ge 6 ] || exit 1
+
+echo "----- Domain information -----"
+echo $1
+shift
+
+echo "----- Program information -----"
+echo $1
+shift
+
+echo "----- Process information -----"
+echo $1
+shift
+
+echo "----- Rejected Program information -----"
+echo $1
+shift
+
+ARGC=$1
+shift
+echo "----- Number of commandline arguments -----"
+echo $ARGC
+
+ENVC=$1
+shift
+echo "----- Number of environment variables -----"
+echo $ENVC
+
+echo "----- argv[] information -----"
+
+while [ $ARGC -gt 0 ]
+do
+  echo $1
+  shift
+  ARGC=`expr $ARGC - 1`
+done
+
+echo "----- envp[] information -----"
+
+while [ $ENVC -gt 0 ]
+do
+  echo $1
+  shift
+  ENVC=`expr $ENVC - 1`
+done
+
 exit 1
-</td></tr>
+</pre></td></tr>
 </table>
 
 <p>この機能を使用する際には、以下の点に注意してください。</p>
@@ -1757,7 +1808,7 @@ exit 1
 <li>ALT_EXECで指定されたプログラムに対して実行許可（<a href="#domain_policy_allow_execute">allow_execute</a>）を与える必要はありませんし、与えるべきではありません。</li>
 <li>プロセスがchroot内部の環境で動作している場合、ALT_EXECで指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスがchroot内部の環境で動作している場合に、chroot外部の環境にあるプログラムを実行できてしまうと危険なので、ALT_EXECで指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
 <li>ALT_EXECで指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば&lt;kernel&gt;直下にALT_EXECで指定されたプログラム用のドメインを作成して、そのプログラムを<a href="#exception_policy_initialize_domain">initialize_domain</a>キーワードで指定するなどの準備をしてください。</li>
-<li>ALT_EXECで指定されたプログラムは環境変数の影響を受ける可能性があります。そのため、ALT_EXECで指定されたプログラムは、LD_PRELOAD等の環境変数の影響を受けないスタティックリンクリンクされたプログラムを使うことを推奨します。また、ALT_EXECで指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
+<li>ALT_EXECで指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、ALT_EXECで指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
 </ul>
 
 <p>この機能は、機構を提供しているだけです。この機構を活用できるかどうかはあなた次第です。</p>
