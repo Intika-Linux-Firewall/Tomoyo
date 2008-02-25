@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/14
+ * Version: 1.6.0-pre   2008/02/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -841,50 +841,151 @@ static void UnEscape(unsigned char *dest)
 	*dest = '\0';
 }
 
-static int try_alt_exec(struct linux_binprm *bprm, char **alt_exec0)
+static int try_alt_exec(struct linux_binprm *bprm, char **work)
 {
+	/*
+	 * Contents of modified bprm.
+	 * The envp[] in original bprm is moved to argv[] so that
+	 * the alternatively executed program won't be affected by
+	 * some dangerous environment variables like LD_PRELOAD .
+	 *
+	 * modified bprm->argc
+	 *    = original bprm->argc + original bprm->envc + 7
+	 * modified bprm->envc
+	 *    = 0
+	 *
+	 * modified bprm->argv[0]
+	 *    = the program's name specified by alt_exec
+	 * modified bprm->argv[1]
+	 *    = current->domain_info->domainname->name
+	 * modified bprm->argv[2]
+	 *    = the current process's name
+	 * modified bprm->argv[3]
+	 *    = the current process's information (e.g. uid/gid).
+	 * modified bprm->argv[4]
+	 *    = original bprm->filename
+	 * modified bprm->argv[5]
+	 *    = original bprm->argc in string expression
+	 * modified bprm->argv[6]
+	 *    = original bprm->envc in string expression
+	 * modified bprm->argv[7]
+	 *    = original bprm->argv[0]
+	 *  ...
+	 * modified bprm->argv[bprm->argc + 6]
+	 *     = original bprm->argv[bprm->argc - 1]
+	 * modified bprm->argv[bprm->argc + 7]
+	 *     = original bprm->envp[0]
+	 *  ...
+	 * modified bprm->argv[bprm->envc + bprm->argc + 6]
+	 *     = original bprm->envp[bprm->envc - 1]
+	 */
 	struct file *filp;
 	int retval;
-	/* domainname must not be modified. */
-	char *domainname = (char *) current->domain_info->domainname->name;
+	const int original_argc = bprm->argc;
+	const int original_envc = bprm->envc;
+	struct task_struct *task = current;
+	static const int buffer_len = PAGE_SIZE;
+	char *buffer = NULL;
 	char *alt_exec;
 	const char *alt_exec1 = GetAltExec();
 	if (!alt_exec1 || *alt_exec1 != '/') return -EINVAL;
 	retval = strlen(alt_exec1) + 1;
-	*alt_exec0 = alt_exec = ccs_alloc(retval);
+	alt_exec = ccs_alloc(retval);
 	if (!alt_exec) return -ENOMEM;
+	*work = alt_exec;
 	memmove(alt_exec, alt_exec1, retval);
 	UnEscape(alt_exec);
+
+	/* Close the rejected program's dentry. */
 	allow_write_access(bprm->file);
 	fput(bprm->file);
 	bprm->file = NULL;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23)
-	retval = remove_arg_zero(bprm);
-	if (retval) return retval;
-#else
-	remove_arg_zero(bprm);
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-	retval = copy_strings_kernel(1, &bprm->interp, bprm);
-#else
-	retval = copy_strings_kernel(1, &bprm->filename, bprm);
-#endif
-	if (retval < 0) return retval;
-	bprm->argc++;
-	retval = copy_strings_kernel(1, &domainname, bprm);
-	if (retval < 0) return retval;
-	bprm->argc++;
-	retval = copy_strings_kernel(1, &alt_exec, bprm);
-	if (retval < 0) return retval;
-	bprm->argc++;
+
+	/* Allocate buffer. */
+	buffer = ccs_alloc(buffer_len);
+	if (!buffer) return -ENOMEM;
+
+	/* Move envp[] to argv[] */
+	bprm->argc += bprm->envc;
+	bprm->envc = 0;
+
+	/* Set argv[6] */
+	{
+		snprintf(buffer, buffer_len - 1, "%d", original_envc);
+		retval = copy_strings_kernel(1, &buffer, bprm);
+		if (retval < 0) goto out;
+		bprm->argc++;
+	}
+
+	/* Set argv[5] */
+	{
+		snprintf(buffer, buffer_len - 1, "%d", original_argc);
+		retval = copy_strings_kernel(1, &buffer, bprm);
+		if (retval < 0) goto out;
+		bprm->argc++;
+	}
+
+	/* Set argv[4] */
+	{
+		retval = copy_strings_kernel(1, &bprm->filename, bprm);
+		if (retval < 0) goto out;
+		bprm->argc++;
+	}
+
+	/* Set argv[3] */
+	{
+		const u32 tomoyo_flags = task->tomoyo_flags;
+		snprintf(buffer, buffer_len - 1, "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u", task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8));
+		retval = copy_strings_kernel(1, &buffer, bprm);
+		if (retval < 0) goto out;
+		bprm->argc++;
+	}
+
+	/* Set argv[2] */
+	{
+		char *exe = (char *) GetEXE();
+		if (exe) {
+			retval = copy_strings_kernel(1, &exe, bprm);
+			ccs_free(exe);
+		} else {
+			snprintf(buffer, buffer_len - 1, "<unknown>");
+			retval = copy_strings_kernel(1, &buffer, bprm);
+		}
+		if (retval < 0) goto out;
+		bprm->argc++;
+	}
+
+	/* Set argv[1] */
+	{
+		strncpy(buffer, task->domain_info->domainname->name, buffer_len - 1);
+		retval = copy_strings_kernel(1, &buffer, bprm);
+		if (retval < 0) goto out;
+		bprm->argc++;
+	}
+
+	/* Set argv[0] */
+	{
+		retval = copy_strings_kernel(1, &alt_exec, bprm);
+		if (retval < 0) goto out;
+		bprm->argc++;
+	}
+
+	/* OK, now restart the process with the alternative program's dentry. */
+	filp = open_exec(alt_exec);
+	if (IS_ERR(filp)) {
+		retval = PTR_ERR(filp);
+		goto out;
+	}
+	bprm->file= filp;
+	bprm->filename = alt_exec;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 	bprm->interp = alt_exec;
 #endif
-	filp = open_exec(alt_exec);
-	if (IS_ERR(filp)) return PTR_ERR(filp);
-	bprm->file= filp;
-	bprm->filename = alt_exec;
-	return prepare_binprm(bprm);
+	retval = 0;
+ out:
+	/* Free buffer. */
+	ccs_free(buffer);
+	return retval;
 }
 
 #endif
@@ -893,14 +994,14 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 {
 	struct domain_info *next_domain = NULL, *prev_domain = current->domain_info;
  	int retval;
-	char *alt_exec = NULL; /* Keep valid until search_binary_handler() finishes. */
+	char *work = NULL; /* Keep valid until search_binary_handler() finishes. */
 #if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 	extern void CCS_LoadPolicy(const char *filename);
 	CCS_LoadPolicy(bprm->filename);
 #endif
 #if defined(CONFIG_TOMOYO)
 	retval = FindNextDomain(bprm, &next_domain, 1);
-	if (retval == -EPERM && try_alt_exec(bprm, &alt_exec) >= 0) {
+	if (retval == -EPERM && try_alt_exec(bprm, &work) == 0 && prepare_binprm(bprm) >= 0) {
 		current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 		retval = FindNextDomain(bprm, &next_domain, 0);
 		current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
@@ -913,7 +1014,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 		if (retval < 0) current->domain_info = prev_domain;
 	}
-	ccs_free(alt_exec);
+	ccs_free(work);
 	return retval;
 #else
 	return search_binary_handler(bprm, regs);
