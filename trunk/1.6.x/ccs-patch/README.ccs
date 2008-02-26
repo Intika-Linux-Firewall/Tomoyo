@@ -933,8 +933,8 @@ Fix 2007/07/04
 
     @ Fix ReadAddressGroupPolicy() bug.
 
-      ReadAddressGroupPolicy() fails if both "path_group" and "address_group" are used
-      because I forgot to set "head->read_var1 = NULL".
+      ReadAddressGroupPolicy() fails if both "path_group" and "address_group"
+      are used because I forgot to set "head->read_var1 = NULL".
 
 Fix 2007/07/10
 
@@ -949,14 +949,15 @@ Fix 2007/08/06
 
     @ Remove mount-flags manipulation.
 
-      Until now, administrator is permitted to turn on/off specific mount options
-      regardless of mount options passed to kernel.
+      Until now, administrator is permitted to turn on/off specific mount
+      options regardless of mount options passed to kernel.
       I removed this feature because "exact option matching" sounds better than
       "automatic option enabler/disabler".
 
     @ Remove /proc/ccs/info/mapping .
 
-      I removed /proc/ccs/info/mapping because nobody seems to use this feature.
+      I removed /proc/ccs/info/mapping because nobody seems to use this
+      feature.
 
     @ Call external policy loader automatically.
 
@@ -980,7 +981,8 @@ Fix 2007/08/13
       can handle interactive operations by opening /dev/console .
       Now, there is no difference between init=/sbin/ccs-init and
       call_usermodehelper("/sbin/ccs-init"), and users no longer need to
-      add init=/sbin/ccs-init parameter to load policy before /sbin/init starts.
+      add init=/sbin/ccs-init parameter to load policy before /sbin/init
+      starts.
 
 Fix 2007/08/14
 
@@ -1142,21 +1144,6 @@ Fix 2008/01/15
       rather than in_interrupt() because in_atomic() returns nonzero
       whenever scheduling is not allowed.
 
-Fix 2008/01/24
-
-    @ Support /proc/ccs/ access by non-root user.
-
-      Until now, only root user can access /proc/ccs/ interface.
-      But to permit /proc/ccs/ access by non-root user so that
-      it won't require ssh login by root user when administrating
-      from remote host, I eased restrictions on this interface.
-
-           (current->uid == 0 && current->euid == 0) ||
-           (current->uid != 0 && current->uid == inode->i_uid) ||
-           (current->gid != 0 && current->gid == inode->i_gid)
-
-      The inode's uid and gid are set using chown/chgrp commands.
-
 Fix 2008/02/05
 
     @ Use find_task_by_vpid() instead of find_task_pid().
@@ -1202,5 +1189,17 @@ Fix 2008/02/18
 
       in the policy.
       The state changes when the request was granted by the MAC's policy,
-      so please be careful with situations where the state has changed successfully
-      but the request was not processed because of other reasons (e.g. out of memory).
+      so please be careful with situations where the state has changed
+      successfully but the request was not processed because of other reasons
+      (e.g. out of memory).
+
+Fix 2008/02/26
+
+    @ Support /proc/ccs/ access by non-root user.
+
+      Until now, only root user can access /proc/ccs/ interface.
+      But to permit /proc/ccs/ access by non-root user so that it won't require
+      ssh login by root user when administrating from remote host,
+      I made "(current->uid == 0 && current->euid == 0)" requirement optional.
+      If this requirement is disabled, only "conventional DAC permission
+      checks" and "/proc/ccs/manager checks" are used.
