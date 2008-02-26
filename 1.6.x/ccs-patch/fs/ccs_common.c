@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/25
+ * Version: 1.6.0-pre   2008/02/26
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -55,7 +55,7 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 /*************************  VARIABLES  *************************/
 
 /* /sbin/init started? */
-bool sbin_init_started = 0;
+bool sbin_init_started = false;
 
 const char *ccs_log_level = KERN_DEBUG;
 
@@ -92,6 +92,7 @@ struct profile {
 };
 
 static struct profile *profile_ptr[MAX_PROFILES];
+static bool manage_by_non_root = false;
 
 /*************************  UTILITY FUNCTIONS  *************************/
 
@@ -105,13 +106,6 @@ static int __init TOMOYO_Quiet_Setup(char *str)
 __setup("TOMOYO_QUIET", TOMOYO_Quiet_Setup);
 #endif
 
-/* Am I root? */
-static int isRoot(struct io_buffer *head)
-{
-	const struct task_struct *task = current;
-	return (!task->uid && !task->euid) || (task->uid && task->uid == head->uid) || (task->gid && task->gid == head->gid);
-}
-
 /*
  * Format string.
  * Leading and trailing whitespaces are removed.
@@ -120,11 +114,11 @@ static int isRoot(struct io_buffer *head)
 static void NormalizeLine(unsigned char *buffer)
 {
 	unsigned char *sp = buffer, *dp = buffer;
-	int first = 1;
+	bool first = true;
 	while (*sp && (*sp <= ' ' || *sp >= 127)) sp++;
 	while (*sp) {
 		if (!first) *dp++ = ' ';
-		first = 0;
+		first = false;
 		while (*sp > ' ' && *sp < 127) *dp++ = *sp++;
 		while (*sp && (*sp <= ' ' || *sp >= 127)) sp++;
 	}
@@ -133,11 +127,11 @@ static void NormalizeLine(unsigned char *buffer)
 
 /*
  *  Check whether the given filename follows the naming rules.
- *  Returns nonzero if follows, zero otherwise.
+ *  Returns true if follows, false otherwise.
  */
 bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function)
 {
-	int contains_pattern = 0;
+	bool contains_pattern = false;
 	char c, d, e;
 	const char *original_filename = filename;
 	if (!filename) goto out;
@@ -169,7 +163,7 @@ bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_t
 			case 'A':   /* "\A" */
 			case '-':   /* "\-" */
 				if (pattern_type == -1) break; /* Must not contain pattern */
-				contains_pattern = 1;
+				contains_pattern = true;
 				continue;
 			case '0':   /* "\ooo" */
 			case '1':
@@ -191,15 +185,15 @@ bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_t
 	if (pattern_type == 1) { /* Must contain pattern */
 		if (!contains_pattern) goto out;
 	}
-	return 1;
+	return true;
  out:
 	printk(KERN_DEBUG "%s: Invalid pathname '%s'\n", function, original_filename);
-	return 0;
+	return false;
 }
 
 /*
  *  Check whether the given domainname follows the naming rules.
- *  Returns nonzero if follows, zero otherwise.
+ *  Returns true if follows, false otherwise.
  */
 bool IsCorrectDomain(const unsigned char *domainname, const char *function)
 {
@@ -207,7 +201,7 @@ bool IsCorrectDomain(const unsigned char *domainname, const char *function)
 	const char *org_domainname = domainname;
 	if (!domainname || strncmp(domainname, ROOT_NAME, ROOT_NAME_LEN)) goto out;
 	domainname += ROOT_NAME_LEN;
-	if (!*domainname) return 1;
+	if (!*domainname) return true;
 	do {
 		if (*domainname++ != ' ') goto out;
 		if (*domainname++ != '/') goto out;
@@ -235,10 +229,10 @@ bool IsCorrectDomain(const unsigned char *domainname, const char *function)
 			}
 		}
 	} while (*domainname);
-	return 1;
+	return true;
  out:
 	printk(KERN_DEBUG "%s: Invalid domainname '%s'\n", function, org_domainname);
-	return 0;
+	return false;
 }
 
 bool IsDomainDef(const unsigned char *buffer)
@@ -306,40 +300,40 @@ void fill_path_info(struct path_info *ptr)
 	ptr->depth = PathDepth(name);
 }
 
-static int FileMatchesToPattern2(const char *filename, const char *filename_end, const char *pattern, const char *pattern_end)
+static bool FileMatchesToPattern2(const char *filename, const char *filename_end, const char *pattern, const char *pattern_end)
 {
 	while (filename < filename_end && pattern < pattern_end) {
 		if (*pattern != '\\') {
-			if (*filename++ != *pattern++) return 0;
+			if (*filename++ != *pattern++) return false;
 		} else {
 			char c = *filename;
 			pattern++;
 			switch (*pattern) {
 			case '?':
 				if (c == '/') {
-					return 0;
+					return false;
 				} else if (c == '\\') {
 					if ((c = filename[1]) == '\\') {
 						filename++; /* safe because filename is \\ */
 					} else if (c >= '0' && c <= '3' && (c = filename[2]) >= '0' && c <= '7' && (c = filename[3]) >= '0' && c <= '7') {
 						filename += 3; /* safe because filename is \ooo */
 					} else {
-						return 0;
+						return false;
 					}
 				}
 				break;
 			case '\\':
-				if (c != '\\') return 0;
-				if (*++filename != '\\') return 0; /* safe because *filename != '\0' */
+				if (c != '\\') return false;
+				if (*++filename != '\\') return false; /* safe because *filename != '\0' */
 				break;
 			case '+':
-				if (c < '0' || c > '9') return 0;
+				if (c < '0' || c > '9') return false;
 				break;
 			case 'x':
-				if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) return 0;
+				if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))) return false;
 				break;
 			case 'a':
-				if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))) return 0;
+				if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))) return false;
 				break;
 			case '0':
 			case '1':
@@ -352,13 +346,13 @@ static int FileMatchesToPattern2(const char *filename, const char *filename_end,
 					pattern += 2; /* safe because pattern is \ooo  */
 					break;
 				}
-				return 0; /* Not matched. */
+				return false; /* Not matched. */
 			case '*':
 			case '@':
 				{
 					int i;
 					for (i = 0; i <= filename_end - filename; i++) {
-						if (FileMatchesToPattern2(filename + i, filename_end, pattern + 1, pattern_end)) return 1;
+						if (FileMatchesToPattern2(filename + i, filename_end, pattern + 1, pattern_end)) return true;
 						if ((c = filename[i]) == '.' && *pattern == '@') break;
 						if (c == '\\') {
 							if ((c = filename[i + 1]) == '\\') {
@@ -370,7 +364,7 @@ static int FileMatchesToPattern2(const char *filename, const char *filename_end,
 							}
 						}
 					}
-					return 0; /* Not matched. */
+					return false; /* Not matched. */
 				}
 			default:
 				{
@@ -383,10 +377,10 @@ static int FileMatchesToPattern2(const char *filename, const char *filename_end,
 						while (((c = filename[j]) >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) j++;
 					}
 					for (i = 1; i <= j; i++) {
-						if (FileMatchesToPattern2(filename + i, filename_end, pattern + 1, pattern_end)) return 1;
+						if (FileMatchesToPattern2(filename + i, filename_end, pattern + 1, pattern_end)) return true;
 					}
 				}
-				return 0; /* Not matched or bad pattern. */
+				return false; /* Not matched or bad pattern. */
 			}
 			filename++; /* safe because *filename != '\0' */
 			pattern++; /* safe because *pattern != '\0' */
@@ -396,17 +390,17 @@ static int FileMatchesToPattern2(const char *filename, const char *filename_end,
 	return (filename == filename_end && pattern == pattern_end);
 }
 
-static int FileMatchesToPattern(const char *filename, const char *filename_end, const char *pattern, const char *pattern_end)
+static bool FileMatchesToPattern(const char *filename, const char *filename_end, const char *pattern, const char *pattern_end)
 {
 	const char *pattern_start = pattern;
-	int first = 1;
-	int result;
+	bool first = true;
+	bool result;
 	while (pattern < pattern_end - 1) {
 		if (*pattern++ != '\\' || *pattern++ != '-') continue;
 		result = FileMatchesToPattern2(filename, filename_end, pattern_start, pattern - 2);
 		if (first) result = !result;
-		if (result) return 0;
-		first = 0;
+		if (result) return false;
+		first = false;
 		pattern_start = pattern;
 	}
 	result = FileMatchesToPattern2(filename, filename_end, pattern_start, pattern_end);
@@ -415,7 +409,7 @@ static int FileMatchesToPattern(const char *filename, const char *filename_end, 
 
 /*
  *  Check whether the given pathname matches to the given pattern.
- *  Returns nonzero if matches, zero otherwise.
+ *  Returns true if matches, false otherwise.
  *
  *  The following patterns are available.
  *    \\     \ itself.
@@ -432,20 +426,20 @@ static int FileMatchesToPattern(const char *filename, const char *filename_end, 
  *    \-     Subtraction operator.
  */
 
-int PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0)
+bool PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0)
 {
-	/* if (!pathname || !pattern) return 0; */
+	/* if (!pathname || !pattern) return false; */
 	const char *pathname = pathname0->name, *pattern = pattern0->name;
 	const int len = pattern0->const_len;
 	if (!pattern0->is_patterned) return !pathcmp(pathname0, pattern0);
-	if (pathname0->depth != pattern0->depth) return 0;
-	if (strncmp(pathname, pattern, len)) return 0;
+	if (pathname0->depth != pattern0->depth) return false;
+	if (strncmp(pathname, pattern, len)) return false;
 	pathname += len; pattern += len;
 	while (*pathname && *pattern) {
 		const char *pathname_delimiter = strchr(pathname, '/'), *pattern_delimiter = strchr(pattern, '/');
 		if (!pathname_delimiter) pathname_delimiter = strchr(pathname, '\0');
 		if (!pattern_delimiter) pattern_delimiter = strchr(pattern, '\0');
-		if (!FileMatchesToPattern(pathname, pathname_delimiter, pattern, pattern_delimiter)) return 0;
+		if (!FileMatchesToPattern(pathname, pathname_delimiter, pattern, pattern_delimiter)) return false;
 		pathname = *pathname_delimiter ? pathname_delimiter + 1 : pathname_delimiter;
 		pattern = *pattern_delimiter ? pattern_delimiter + 1 : pattern_delimiter;
 	}
@@ -546,16 +540,16 @@ bool CheckDomainQuota(struct domain_info * const domain)
 {
 	unsigned int count = 0;
 	struct acl_info *ptr;
-	if (!domain) return 1;
+	if (!domain) return true;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		if (!(ptr->type & ACL_DELETED)) count++;
 	}
-	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return 1;
+	if (count < CheckCCSFlags(CCS_TOMOYO_MAX_ACCEPT_ENTRY)) return true;
 	if (!domain->quota_warned) {
-		domain->quota_warned = 1;
+		domain->quota_warned = true;
 		printk("TOMOYO-WARNING: Domain '%s' has so many ACLs to hold. Stopped learning mode.\n", domain->domainname->name);
 	}
-	return 0;
+	return false;
 }
 
 static struct profile *FindOrAssignNewProfile(const unsigned int profile)
@@ -583,7 +577,6 @@ static int SetProfile(struct io_buffer *head)
 	unsigned int i, value;
 	char *cp;
 	struct profile *profile;
-	if (!isRoot(head)) return -EPERM;
 	i = simple_strtoul(data, &cp, 10);
 	if (data != cp) {
 		if (*cp != '-') return -EINVAL;
@@ -626,62 +619,60 @@ static int SetProfile(struct io_buffer *head)
 
 static int ReadProfile(struct io_buffer *head)
 {
-	if (!head->read_eof) {
-		if (!isRoot(head)) return -EPERM;
-		if (!head->read_var2) {
-			int step;
-			for (step = head->read_step; step < MAX_PROFILES * CCS_MAX_CONTROL_INDEX; step++) {
-				const int i = step / CCS_MAX_CONTROL_INDEX, j = step % CCS_MAX_CONTROL_INDEX;
-				const struct profile *profile = profile_ptr[i];
-				head->read_step = step;
-				if (!profile) continue;
-				switch (j) {
-				case -1: /* Dummy */
+	int step;
+	if (head->read_eof) return 0;
+	if (head->read_var2) goto print_capability;
+	for (step = head->read_step; step < MAX_PROFILES * CCS_MAX_CONTROL_INDEX; step++) {
+		const int i = step / CCS_MAX_CONTROL_INDEX, j = step % CCS_MAX_CONTROL_INDEX;
+		const struct profile *profile = profile_ptr[i];
+		head->read_step = step;
+		if (!profile) continue;
+		switch (j) {
+		case -1: /* Dummy */
 #ifndef CONFIG_SAKURA
-				case CCS_SAKURA_DENY_CONCEAL_MOUNT:
-				case CCS_SAKURA_RESTRICT_CHROOT:
-				case CCS_SAKURA_RESTRICT_MOUNT:
-				case CCS_SAKURA_RESTRICT_UNMOUNT:
-				case CCS_SAKURA_RESTRICT_PIVOT_ROOT:
-				case CCS_SAKURA_RESTRICT_AUTOBIND:
+		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
+		case CCS_SAKURA_RESTRICT_CHROOT:
+		case CCS_SAKURA_RESTRICT_MOUNT:
+		case CCS_SAKURA_RESTRICT_UNMOUNT:
+		case CCS_SAKURA_RESTRICT_PIVOT_ROOT:
+		case CCS_SAKURA_RESTRICT_AUTOBIND:
 #endif
 #ifndef CONFIG_TOMOYO
-				case CCS_TOMOYO_MAC_FOR_FILE:
-				case CCS_TOMOYO_MAC_FOR_ARGV0:
-				case CCS_TOMOYO_MAC_FOR_ENV:
-				case CCS_TOMOYO_MAC_FOR_NETWORK:
-				case CCS_TOMOYO_MAC_FOR_SIGNAL:
-				case CCS_TOMOYO_MAX_ACCEPT_ENTRY:
-				case CCS_TOMOYO_MAX_GRANT_LOG:
-				case CCS_TOMOYO_MAX_REJECT_LOG:
-				case CCS_TOMOYO_VERBOSE:
+		case CCS_TOMOYO_MAC_FOR_FILE:
+		case CCS_TOMOYO_MAC_FOR_ARGV0:
+		case CCS_TOMOYO_MAC_FOR_ENV:
+		case CCS_TOMOYO_MAC_FOR_NETWORK:
+		case CCS_TOMOYO_MAC_FOR_SIGNAL:
+		case CCS_TOMOYO_MAX_ACCEPT_ENTRY:
+		case CCS_TOMOYO_MAX_GRANT_LOG:
+		case CCS_TOMOYO_MAX_REJECT_LOG:
+		case CCS_TOMOYO_VERBOSE:
 #endif
 #ifndef ALT_EXEC
-				case CCS_TOMOYO_ALT_EXEC:
-				case CCS_SLEEP_PERIOD:
+		case CCS_TOMOYO_ALT_EXEC:
+		case CCS_SLEEP_PERIOD:
 #endif
-					continue;
-				}
-				if (j == CCS_PROFILE_COMMENT) {
-					if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_PROFILE_COMMENT].keyword, profile->comment ? profile->comment->name : "")) break;
-				} else if (j == CCS_TOMOYO_ALT_EXEC) {
-					const struct path_info *alt_exec = profile->alt_exec;
-					if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword, alt_exec ? alt_exec->name : "")) break;
-				} else {
-					if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, profile->value[j])) break;
-				}
-			}
-			if (step == MAX_PROFILES * CCS_MAX_CONTROL_INDEX) {
-				head->read_var2 = (void *) "";
-				head->read_step = 0;
-			}
+			continue;
 		}
-		if (head->read_var2) {
+		if (j == CCS_PROFILE_COMMENT) {
+			if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_PROFILE_COMMENT].keyword, profile->comment ? profile->comment->name : "")) break;
+		} else if (j == CCS_TOMOYO_ALT_EXEC) {
+			const struct path_info *alt_exec = profile->alt_exec;
+			if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword, alt_exec ? alt_exec->name : "")) break;
+		} else {
+			if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, profile->value[j])) break;
+		}
+	}
+	if (step == MAX_PROFILES * CCS_MAX_CONTROL_INDEX) {
+		head->read_var2 = (void *) "";
+		head->read_step = 0;
+	}
+ print_capability:
+	if (head->read_var2) {
 #ifdef CONFIG_TOMOYO
-			if (ReadCapabilityStatus(head) == 0)
+		if (ReadCapabilityStatus(head) == 0)
 #endif
-				head->read_eof = 1;
-		}
+			head->read_eof = true;
 	}
 	return 0;
 }
@@ -703,10 +694,10 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_manager;
 	int error = -ENOMEM;
-	bool is_domain = 0;
+	bool is_domain = false;
 	if (IsDomainDef(manager)) {
 		if (!IsCorrectDomain(manager, __FUNCTION__)) return -EINVAL;
-		is_domain = 1;
+		is_domain = true;
 	} else {
 		if (!IsCorrectPath(manager, 1, -1, -1, __FUNCTION__)) return -EINVAL;
 	}
@@ -737,11 +728,14 @@ static int AddManagerEntry(const char *manager, const bool is_delete)
 static int AddManagerPolicy(struct io_buffer *head)
 {
 	const char *data = head->write_buf;
-	bool is_delete = 0;
-	if (!isRoot(head)) return -EPERM;
+	bool is_delete = false;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
-		is_delete = 1;
+		is_delete = true;
+	}
+	if (strcmp(data, "manage_by_non_root") == 0) {
+		manage_by_non_root = is_delete;
+		return 0;
 	}
 	return AddManagerEntry(data, is_delete);
 }
@@ -750,32 +744,33 @@ static int ReadManagerPolicy(struct io_buffer *head)
 {
 	struct list1_head *pos;
 	if (head->read_eof) return 0;
-	if (!isRoot(head)) return -EPERM;
 	list1_for_each_cookie(pos, head->read_var2, &policy_manager_list) {
 		struct policy_manager_entry *ptr;
 		ptr = list1_entry(pos, struct policy_manager_entry, list);
 		if (ptr->is_deleted) continue;
 		if (io_printf(head, "%s\n", ptr->manager->name)) return 0;
 	}
-	head->read_eof = 1;
+	head->read_eof = true;
 	return 0;
 }
 
 /* Check whether the current process is a policy manager. */
-static int IsPolicyManager(void)
+static bool IsPolicyManager(void)
 {
 	struct policy_manager_entry *ptr;
 	const char *exe;
-	const struct path_info *domainname = current->domain_info->domainname;
-	bool found = 0;
-	if (!sbin_init_started) return 1;
+	const struct task_struct *task = current;
+	const struct path_info *domainname = task->domain_info->domainname;
+	bool found = false;
+	if (!sbin_init_started) return true;
+	if (!manage_by_non_root && (task->uid || task->euid)) return false;
 	list1_for_each_entry(ptr, &policy_manager_list, list) {
-		if (!ptr->is_deleted && ptr->is_domain && !pathcmp(domainname, ptr->manager)) return 1;
+		if (!ptr->is_deleted && ptr->is_domain && !pathcmp(domainname, ptr->manager)) return true;
 	}
-	if ((exe = GetEXE()) == NULL) return 0;
+	if ((exe = GetEXE()) == NULL) return false;
 	list1_for_each_entry(ptr, &policy_manager_list, list) {
 		if (!ptr->is_deleted && !ptr->is_domain && !strcmp(exe, ptr->manager->name)) {
-			found = 1;
+			found = true;
 			break;
 		}
 	}
@@ -811,20 +806,19 @@ static int AddDomainPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct domain_info *domain = head->write_var1;
-	bool is_delete = 0, is_select = 0, is_undelete = 0;
+	bool is_delete = false, is_select = false, is_undelete = false;
 	unsigned int profile;
 	const struct condition_list *cond = NULL;
 	char *cp;
-	if (!isRoot(head)) return -EPERM;
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
-		is_delete = 1;
+		is_delete = true;
 	} else if (strncmp(data, KEYWORD_SELECT, KEYWORD_SELECT_LEN) == 0) {
 		data += KEYWORD_SELECT_LEN;
-		is_select = 1;
+		is_select = true;
 	} else if (strncmp(data, KEYWORD_UNDELETE, KEYWORD_UNDELETE_LEN) == 0) {
 		data += KEYWORD_UNDELETE_LEN;
-		is_undelete = 1;
+		is_undelete = true;
 	}
 	if (IsDomainDef(data)) {
 		if (is_delete) {
@@ -883,11 +877,11 @@ static bool print_single_path_acl(struct io_buffer *head, struct single_path_acl
 		if (DumpCondition(head, cond)) goto out;
 	}
 	head->read_bit = 0;
-	return 1;
+	return true;
  out:
 	head->read_bit = bit;
 	head->read_avail = pos;
-	return 0;
+	return false;
 }
 
 static bool print_double_path_acl(struct io_buffer *head, struct double_path_acl_record *ptr, const struct condition_list *cond)
@@ -909,11 +903,11 @@ static bool print_double_path_acl(struct io_buffer *head, struct double_path_acl
 		if (DumpCondition(head, cond)) goto out;
 	}
 	head->read_bit = 0; 
-	return 1;
+	return true;
  out:
 	head->read_bit = bit;
 	head->read_avail = pos;
-	return 0;
+	return false;
 }
 
 static bool print_argv0_acl(struct io_buffer *head, struct argv0_acl_record *ptr, const struct condition_list *cond)
@@ -922,10 +916,10 @@ static bool print_argv0_acl(struct io_buffer *head, struct argv0_acl_record *ptr
 	if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
 		      ptr->filename->name, ptr->argv0->name)) goto out;
 	if (DumpCondition(head, cond)) goto out;
-	return 1;
+	return true;
  out:
 	head->read_avail = pos;
-	return 0;
+	return false;
 }
 
 static bool print_env_acl(struct io_buffer *head, struct env_acl_record *ptr, const struct condition_list *cond)
@@ -933,10 +927,10 @@ static bool print_env_acl(struct io_buffer *head, struct env_acl_record *ptr, co
 	int pos = head->read_avail;
 	if (io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name)) goto out;
 	if (DumpCondition(head, cond)) goto out;
-	return 1;
+	return true;
  out:
 	head->read_avail = pos;
-	return 0;
+	return false;
 }
 
 static bool print_capability_acl(struct io_buffer *head, struct capability_acl_record *ptr, const struct condition_list *cond)
@@ -944,10 +938,10 @@ static bool print_capability_acl(struct io_buffer *head, struct capability_acl_r
 	int pos = head->read_avail;
 	if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", cap_operation2keyword(ptr->operation))) goto out;
 	if (DumpCondition(head, cond)) goto out;
-	return 1;
+	return true;
  out:
 	head->read_avail = pos;
-	return 0;
+	return false;
 }
 
 static bool print_network_acl(struct io_buffer *head, struct ip_network_acl_record *ptr, const struct condition_list *cond)
@@ -984,10 +978,10 @@ static bool print_network_acl(struct io_buffer *head, struct ip_network_acl_reco
 		if (min_port != max_port && io_printf(head, "-%u", max_port)) goto out;
 	}
 	if (DumpCondition(head, cond)) goto out;
-	return 1;
+	return true;
  out:
 	head->read_avail = pos;
-	return 0;
+	return false;
 }
 
 static bool print_signal_acl(struct io_buffer *head, struct signal_acl_record *ptr, const struct condition_list *cond)
@@ -995,10 +989,10 @@ static bool print_signal_acl(struct io_buffer *head, struct signal_acl_record *p
 	int pos = head->read_avail;
 	if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr->sig, ptr->domainname->name)) goto out;
 	if (DumpCondition(head, cond)) goto out;
-	return 1;
+	return true;
  out:
 	head->read_avail = pos;
-	return 0;
+	return false;
 }
 
 static int ReadDomainPolicy(struct io_buffer *head)
@@ -1006,10 +1000,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 	struct list1_head *dpos;
 	struct list1_head *apos;
 	if (head->read_eof) return 0;
-	if (head->read_step == 0) {
-		if (!isRoot(head)) return -EPERM;
-		head->read_step = 1;
-	}
+	if (head->read_step == 0) head->read_step = 1;
 	list1_for_each_cookie(dpos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
 		domain = list1_entry(dpos, struct domain_info, list);
@@ -1051,7 +1042,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 		if (io_printf(head, "\n")) return 0;
 		head->read_step = 1;
 	}
-	head->read_eof = 1;
+	head->read_eof = true;
 	return 0;
 }
 
@@ -1063,7 +1054,6 @@ static int UpdateDomainProfile(struct io_buffer *head)
 	char *cp = strchr(data, ' ');
 	struct domain_info *domain;
 	unsigned int profile;
-	if (!isRoot(head)) return -EPERM;
 	if (!cp) return -EINVAL;
 	*cp = '\0';
 	domain = FindDomain(cp + 1);
@@ -1077,21 +1067,20 @@ static int ReadDomainProfile(struct io_buffer *head)
 {
 	struct list1_head *pos;
 	if (head->read_eof) return 0;
-	if (!isRoot(head)) return -EPERM;
 	list1_for_each_cookie(pos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
 		domain = list1_entry(pos, struct domain_info, list);
 		if (domain->is_deleted) continue;
 		if (io_printf(head, "%u %s\n", domain->profile, domain->domainname->name)) return 0;
 	}
-	head->read_eof = 1;
+	head->read_eof = true;
 	return 0;
 }
 
 static int WritePID(struct io_buffer *head)
 {
 	head->read_step = (int) simple_strtoul(head->write_buf, NULL, 10);
-	head->read_eof = 0;
+	head->read_eof = false;
 	return 0;
 }
 
@@ -1108,7 +1097,7 @@ static int ReadPID(struct io_buffer *head)
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
 		if (domain) io_printf(head, "%d %u %s", pid, domain->profile, domain->domainname->name);
-		head->read_eof = 1;
+		head->read_eof = true;
 	}
 	return 0;
 }
@@ -1120,12 +1109,11 @@ static int ReadPID(struct io_buffer *head)
 static int AddExceptionPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
-	bool is_delete = 0;
-	if (!isRoot(head)) return -EPERM;
+	bool is_delete = false;
 	UpdateCounter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
-		is_delete = 1;
+		is_delete = true;
 	}
 	if (strncmp(data, KEYWORD_KEEP_DOMAIN, KEYWORD_KEEP_DOMAIN_LEN) == 0) {
 		return AddDomainKeeperPolicy(data + KEYWORD_KEEP_DOMAIN_LEN, 0, is_delete);
@@ -1160,7 +1148,6 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 	if (!head->read_eof) {
 		switch (head->read_step) {
 		case 0:
-			if (!isRoot(head)) return -EPERM;
 			head->read_var2 = NULL; head->read_step = 1;
 		case 1:
 			if (ReadDomainKeeperPolicy(head)) break;
@@ -1191,7 +1178,7 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 			head->read_var1 = head->read_var2 = NULL; head->read_step = 10;
 		case 10:
 			if (ReadAddressGroupPolicy(head)) break;
-			head->read_eof = 1;
+			head->read_eof = true;
 			break;
 		default:
 			return -EINVAL;
@@ -1209,12 +1196,11 @@ static int ReadExceptionPolicy(struct io_buffer *head)
 static int AddSystemPolicy(struct io_buffer *head)
 {
 	char *data = head->write_buf;
-	bool is_delete = 0;
-	if (!isRoot(head)) return -EPERM;
+	bool is_delete = false;
 	UpdateCounter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	if (strncmp(data, KEYWORD_DELETE, KEYWORD_DELETE_LEN) == 0) {
 		data += KEYWORD_DELETE_LEN;
-		is_delete = 1;
+		is_delete = true;
 	}
 	if (strncmp(data, KEYWORD_ALLOW_MOUNT, KEYWORD_ALLOW_MOUNT_LEN) == 0)
 		return AddMountPolicy(data + KEYWORD_ALLOW_MOUNT_LEN, is_delete);
@@ -1234,7 +1220,6 @@ static int ReadSystemPolicy(struct io_buffer *head)
 	if (!head->read_eof) {
 		switch (head->read_step) {
 		case 0:
-			if (!isRoot(head)) return -EPERM;
 			head->read_var2 = NULL; head->read_step = 1;
 		case 1:
 			if (ReadMountPolicy(head)) break;
@@ -1250,7 +1235,7 @@ static int ReadSystemPolicy(struct io_buffer *head)
 			head->read_var2 = NULL; head->read_step = 5;
 		case 5:
 			if (ReadReservedPortPolicy(head)) break;
-			head->read_eof = 1;
+			head->read_eof = true;
 			break;
 		default:
 			return -EINVAL;
@@ -1263,7 +1248,7 @@ static int ReadSystemPolicy(struct io_buffer *head)
 
 /*************************  POLICY LOADER  *************************/
 
-static int profile_loaded = 0;
+static bool profile_loaded = false;
 
 static const char *ccs_loader = NULL;
 
@@ -1323,13 +1308,13 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/02/16\n");
+	printk("SAKURA: 1.6.0-pre   2008/02/26\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/02/25\n");
+	printk("TOMOYO: 1.6.0-pre   2008/02/26\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
-	sbin_init_started = 1;
+	sbin_init_started = true;
 	ccs_log_level = KERN_WARNING;
 	{ /* Check all profiles currently assigned to domains are defined. */
 		struct domain_info *domain;
@@ -1569,7 +1554,7 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 				  counter[CCS_UPDATES_COUNTER_MANAGER],
 				  counter[CCS_UPDATES_COUNTER_GRANT_LOG],
 				  counter[CCS_UPDATES_COUNTER_REJECT_LOG]);
-		head->read_eof = 1;
+		head->read_eof = true;
 	}
 	return 0;
 }
@@ -1577,7 +1562,7 @@ static int ReadUpdatesCounter(struct io_buffer *head)
 static int ReadVersion(struct io_buffer *head)
 {
 	if (!head->read_eof) {
-		if (io_printf(head, "1.6.0-pre") == 0) head->read_eof = 1;
+		if (io_printf(head, "1.6.0-pre") == 0) head->read_eof = true;
 	}
 	return 0;
 }
@@ -1586,7 +1571,7 @@ static int ReadMemoryCounter(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		const int shared = GetMemoryUsedForSaveName(), private = GetMemoryUsedForElements(), dynamic = GetMemoryUsedForDynamic();
-		if (io_printf(head, "Shared:  %10u\nPrivate: %10u\nDynamic: %10u\nTotal:   %10u\n", shared, private, dynamic, shared + private + dynamic) == 0) head->read_eof = 1;
+		if (io_printf(head, "Shared:  %10u\nPrivate: %10u\nDynamic: %10u\nTotal:   %10u\n", shared, private, dynamic, shared + private + dynamic) == 0) head->read_eof = true;
 	}
 	return 0;
 }
@@ -1595,7 +1580,7 @@ static int ReadSelfDomain(struct io_buffer *head)
 {
 	if (!head->read_eof) {
 		io_printf(head, "%s", current->domain_info->domainname->name);
-		head->read_eof = 1;
+		head->read_eof = true;
 	}
 	return 0;
 }
@@ -1682,11 +1667,6 @@ int CCS_OpenControl(const u8 type, struct file *file)
 			return -ENOMEM;
 		}
 	}
-	{ /* Set owner of this entry. */
-		struct inode *inode = file->f_dentry->d_inode;
-		head->uid = inode ? inode->i_uid : 0;
-		head->gid = inode ? inode->i_gid : 0;
-	}
 	file->private_data = head;
 	if (type == CCS_SELFDOMAIN) CCS_ReadControl(file, NULL, 0);
 	else if (head->write == WriteAnswer) atomic_inc(&queryd_watcher);
@@ -1734,7 +1714,6 @@ int CCS_WriteControl(struct file *file, const char __user *buffer, const int buf
 	char *cp0 = head->write_buf;
 	if (!head->write) return -ENOSYS;
 	if (!access_ok(VERIFY_READ, buffer, buffer_len)) return -EFAULT;
-	if (!isRoot(head)) return -EPERM;
 	if (head->write != WritePID && !IsPolicyManager()) {
 		return -EPERM; /* Forbid updating policies for non manager programs. */
 	}
@@ -1765,7 +1744,7 @@ int CCS_CloseControl(struct file *file)
 {
 	struct io_buffer *head = file->private_data;
 	if (head->write == WriteAnswer) atomic_dec(&queryd_watcher);
-	else if (head->read == ReadMemoryCounter) profile_loaded = 1;
+	else if (head->read == ReadMemoryCounter) profile_loaded = true;
 	ccs_free(head->read_buf); head->read_buf = NULL;
 	ccs_free(head->write_buf); head->write_buf = NULL;
 	ccs_free(head); head = NULL;

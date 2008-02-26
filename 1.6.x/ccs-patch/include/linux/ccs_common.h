@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/18
+ * Version: 1.6.0-pre   2008/02/26
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -440,8 +440,6 @@ struct io_buffer {
 	char *write_buf;                  /* Buffer for writing.                  */
 	int write_avail;                  /* Bytes available for writing.         */
 	int writebuf_size;                /* Size of write buffer.                */
-	uid_t uid;                        /* User ID of this entry.               */
-	gid_t gid;                        /* Group ID of this entry.              */
 };
 
 /*************************  PROTOTYPES  *************************/
@@ -496,7 +494,7 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj_info);
 bool IsCorrectDomain(const unsigned char *domainname, const char *function);
 bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function);
 bool IsDomainDef(const unsigned char *buffer);
-int PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0);
+bool PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0);
 int PollGrantLog(struct file *file, poll_table *wait);
 int PollRejectLog(struct file *file, poll_table *wait);
 int ReadAddressGroupPolicy(struct io_buffer *head);
