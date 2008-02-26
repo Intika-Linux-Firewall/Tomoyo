@@ -294,19 +294,11 @@ Total:          119794
 <p>カーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシーを変更することができるプログラム名を /proc/ccs/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
 
 <ul>
-<li>ユーザＩＤと実効ユーザＩＤの両方が０であるプロセス</li>
-<li>ユーザＩＤが０ではないが、カーネルとのインタフェースの所有者ＩＤがプロセスのユーザＩＤと一致するプロセス</li>
-<li>グループＩＤが０ではないが、カーネルとのインタフェースのグループＩＤがプロセスのグループＩＤと一致するプロセス</li>
-</ul>
-
-<p>で、なおかつ</p>
-
-<ul>
 <li>/proc/ccs/manager に登録されているプログラム名を持つプロセス</li>
 <li>/proc/ccs/manager に登録されているドメイン名を持つプロセス</li>
 </ul>
 
-<p>だけがカーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシーを変更できます。</p>
+<p>だけがカーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシーを変更できます。以下に例を示します。</p>
 
 <table border="1">
 <tr><td>
@@ -321,24 +313,25 @@ Total:          119794
 </td></tr>
 </table>
 
-
-<p>/proc/ccs/manager の内容が上記の場合のポリシー変更の可否について、以下に例を示します。</p>
+<p>上記の制約に加えて、デフォルトではユーザＩＤと実効ユーザＩＤの両方が０であるプロセスだけがポリシーを変更できますが、 非 root ユーザによるポリシーの変更を認めたい場合には /proc/ccs/manager に対して</p>
 
 <table border="1">
-<tr><td colspan="4">プロセスの権限</td><td colspan="3">インタフェースの権限</td><td rowspan="2">ポリシー変更の可否</td></tr>
-<tr><td>プログラム名またはドメイン名</td><td>ユーザＩＤ</td><td>実効ユーザＩＤ</td><td>グループＩＤ</td><td>ファイル名</td><td>所有者ＩＤ</td><td>グループＩＤ</td></tr>
-<tr><td>/usr/lib/ccs/editpolicy</td><td>0</td><td>0</td><td>任意</td><td>/proc/ccs/domain_policy</td><td>任意</td><td>任意</td><td>○</td></tr>
-<tr><td>/usr/lib/ccs/editpolicy</td><td>500</td><td>任意</td><td>任意</td><td>/proc/ccs/exception_policy</td><td>500</td><td>任意</td><td>○</td></tr>
-<tr><td>/usr/lib/ccs/loadpolicy</td><td>任意</td><td>任意</td><td>1000</td><td>/proc/ccs/manager</td><td>任意</td><td>1000</td><td>○</td></tr>
-<tr><td>/usr/lib/ccs/ld-watch</td><td>0</td><td>0 以外</td><td>0</td><td>/proc/ccs/exception_policy.conf</td><td>任意</td><td>任意</td><td>×</td></tr>
-<tr><td>/bin/tcsh</td><td>任意</td><td>任意</td><td>任意</td><td>/proc/ccs/profile</td><td>任意</td><td>任意</td><td>×</td></tr>
-<tr><td>&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash</td><td>1000</td><td>任意</td><td>任意</td><td>/proc/ccs/domain_policy</td><td>1000</td><td>任意</td><td>○</td></tr>
-<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>
+# echo manage_by_non_root | loadpolicy -m
+</td></tr>
 </table>
 
-<p>ただし、学習モード用のプロファイルが割り当てられているプロセスは、アクセスを要求するだけで<a href="#system_policy">/proc/ccs/system_policy</a>または<a href="#domain_policy">/proc/ccs/domain_policy</a>へと自動的にアクセス許可が追加されていきます。</p>
+<p>のように manage_by_non_root というキーワードを書き込むことで、ユーザＩＤと実効ユーザＩＤのチェックを無効にすることができます。また、再びユーザＩＤと実効ユーザＩＤのチェックを有効にするには、</p>
+
+<table border="1">
+<tr><td>
+# echo delete manage_by_non_root | loadpolicy -m
+</td></tr>
+</table>
+
+<p>のように delete manage_by_non_root というキーワードを書き込んでください。 /proc/ccs/ 以下のエントリの所有者は root なので、非 root ユーザによるアクセスを認めるためには必要に応じて chown/chmod を実行してください。</p>
+
+<p>なお、学習モード用のプロファイルが割り当てられているプロセスは、アクセスを要求するだけで<a href="#system_policy">/proc/ccs/system_policy</a>または<a href="#domain_policy">/proc/ccs/domain_policy</a>へと自動的にアクセス許可が追加されていきます。</p>
 
 <h1><a name="Domain_Rules">4. ドメインに関して</a></h1>
 
