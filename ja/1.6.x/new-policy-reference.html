@@ -144,6 +144,8 @@
 <li><a href="#domain_policy_allow_capability">allow_capability</a></li>
 <li><a href="#domain_policy_allow_signal">allow_signal</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
+<li><a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></li>
+<li><a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
 </ul>
 
@@ -1327,6 +1329,18 @@ deny_autobind 8080</p>
 
 <p>これは、このドメインに対して割り当てられているプロファイル番号を示しています。プロファイル番号は 0 ～ 255 の値をとります。</p>
 
+<h3><a name="domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></h3>
+
+<p>これは、このドメインに対しては例外ポリシーで指定されている allow_env を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
+
+<p>関連項目：<a href="#exception_policy_allow_read">allow_read</a></p>
+
+<h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
+
+<p>これは、このドメインに対しては例外ポリシーで指定されている allow_env を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
+
+<p>関連項目：<a href="#exception_policy_allow_env">allow_env</a></p>
+
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
 <p>これは、学習モードで動作中にアクセス許可の数が<a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a>で指定された値に到達したため、このドメインに対してはアクセス許可を学習しきれなかったことを示しています。チューニングを行うなどしてアクセス許可の数を減らすようにしてください。</p>
@@ -1391,13 +1405,15 @@ allow_network TCP accept @local-address 1024-65535
 
 <h3><a name="exception_policy_allow_read">allow_read</a></h3>
 
-<p>無条件に読み込みを許可するファイルを指定するには、 allow_read というディレクティブに続けて、正規化されたファイル名を指定する。このディレクティブの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルを指定することで、<a href="#domain_policy">ドメイン別ポリシー</a>の記述量を減らすことである。ＤＡＣで許可されれば全てのプロセスが読み込めるので、くれぐれも /etc/passwd のようなファイルを指定しないこと。</p>
+<p>無条件に読み込みを許可するファイルを指定するには、 allow_read というディレクティブに続けて、正規化されたファイル名を指定します。このディレクティブの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルのように、どのようなプログラムから参照されても構わないというファイルを指定することで、各ドメインで記述しないで済むようにすることです。なお、各ドメインで ignore_global_allow_read という指定をすると、ここで指定された allow_read は無視されます。</p>
+
+<p>関連項目：<a href="#domain_policy_allow_read">allow_read</a> <a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></p>
 
 <h3><a name="exception_policy_allow_env">allow_env</a></h3>
 
-<p>無条件に受け取ってよい環境変数名を指定するには、 allow_env というディレクティブに続けて、環境変数名を指定する。このディレクティブの目的は、 PATH や HOME のように一般的に使われている環境変数を許可するためのメモリ消費を抑えるためである。くれぐれも LD_PRELOAD のような危険な環境変数を指定しないこと。</p>
+<p>無条件に受け取ってよい環境変数名を指定するには、 allow_env というディレクティブに続けて、環境変数名を指定します。このディレクティブの目的は、 PATH や HOME のように、どのようなプログラムに渡されても構わないような環境変数名を指定することで、各ドメインで記述しないで済むようにすることです。くれぐれも LD_PRELOAD のような危険な環境変数を指定しないでください。なお、各ドメインで ignore_global_allow_env という指定をすると、ここで指定された allow_env は無視されます。</p>
 
-<p>関連項目：<a href="#domain_policy_allow_env">allow_env</a></p>
+<p>関連項目：<a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a> <a href="#domain_policy_allow_env">allow_env</a></p>
 
 <h3><a name="exception_policy_deny_rewrite">deny_rewrite</a></h3>
 
