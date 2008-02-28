@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/26
+ * Version: 1.6.0-pre   2008/02/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -841,6 +841,16 @@ static int AddDomainPolicy(struct io_buffer *head)
 		if (profile_ptr[profile] || !sbin_init_started) domain->profile = (u8) profile;
 		return 0;
 	}
+	if (strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_READ) == 0) {
+		if (!is_delete) domain->flags |= DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ;
+		else domain->flags &= ~DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ;
+		return 0;
+	}
+	if (strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_ENV) == 0) {
+		if (!is_delete) domain->flags |= DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV;
+		else domain->flags &= ~DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV;
+		return 0;
+	}
 	cp = FindConditionPart(data);
 	if (cp && (cond = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	if (strncmp(data, KEYWORD_ALLOW_CAPABILITY, KEYWORD_ALLOW_CAPABILITY_LEN) == 0) {
@@ -1006,7 +1016,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 		domain = list1_entry(dpos, struct domain_info, list);
 		if (head->read_step != 1) goto acl_loop;
 		if (domain->is_deleted) continue;
-		if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "")) return 0;
+		if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n%s%s", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ ? KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV ? KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n" : "")) return 0;
 		head->read_step = 2;
 	acl_loop: ;
 		if (head->read_step == 3) goto tail_mark;
@@ -1311,7 +1321,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.6.0-pre   2008/02/26\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/02/26\n");
+	printk("TOMOYO: 1.6.0-pre   2008/02/28\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = true;

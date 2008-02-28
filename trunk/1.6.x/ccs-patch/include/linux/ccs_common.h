@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/26
+ * Version: 1.6.0-pre   2008/02/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -37,6 +37,10 @@
 
 #ifndef __user
 #define __user
+#endif
+
+#ifndef WARN_ON
+#define WARN_ON(x) do { } while (0)
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
@@ -252,9 +256,13 @@ struct domain_info {
 	u8 profile;                         /* Profile to use.                       */
 	u8 is_deleted;                      /* Delete flag.                          */
 	bool quota_warned;                  /* Quota warnning done flag.             */
+	u8 flags;                           /* Ignore default?                       */
 };
 
 #define MAX_PROFILES 256
+
+#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1 /* Ignore "allow_read" in exception_policy */
+#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2 /* Ignore "allow_env" in exception_policy  */
 
 struct single_path_acl_record {
 	struct acl_info head;                         /* type = TYPE_SINGLE_PATH_ACL */
@@ -378,6 +386,8 @@ struct ip_network_acl_record {
 #define KEYWORD_UNDELETE_LEN             (sizeof(KEYWORD_UNDELETE) - 1)
 
 #define KEYWORD_USE_PROFILE              "use_profile "
+#define KEYWORD_IGNORE_GLOBAL_ALLOW_READ "ignore_global_allow_read"
+#define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV  "ignore_global_allow_env"
 
 #define KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
 #define KEYWORD_MAC_FOR_CAPABILITY_LEN   (sizeof(KEYWORD_MAC_FOR_CAPABILITY) - 1)
