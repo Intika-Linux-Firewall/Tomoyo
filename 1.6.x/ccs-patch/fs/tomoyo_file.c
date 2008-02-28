@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/18
+ * Version: 1.6.0-pre   2008/02/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -470,9 +470,6 @@ static int CheckFileACL(const struct path_info *filename, const u8 operation, st
 {
 	u16 perm = 0;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
-	if (!filename->is_dir) {
-		if (operation == 4 && IsGloballyReadableFile(filename)) return 0;
-	}
 	if (operation == 6) perm = 1 << TYPE_READ_WRITE_ACL;
 	else if (operation == 4) perm = 1 << TYPE_READ_ACL;
 	else if (operation == 2) perm = 1 << TYPE_WRITE_ACL;
@@ -489,6 +486,7 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	int error = 0;
 	if (!filename) return 0;
 	error = CheckFileACL(filename, perm, obj);
+	if (error && perm == 4 && (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0 && IsGloballyReadableFile(filename)) error = 0;
 	if (perm == 6) msg = sp_operation2keyword(TYPE_READ_WRITE_ACL);
 	else if (perm == 4) msg = sp_operation2keyword(TYPE_READ_ACL);
 	else if (perm == 2) msg = sp_operation2keyword(TYPE_WRITE_ACL);
@@ -553,9 +551,6 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 		is_group = 1;
 	} else {
 		if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
-		if (!is_delete && type == TYPE_READ_ACL && IsGloballyReadableFile(saved_filename)) {
-			return 0;   /* Don't add if the file is globally readable files. */
-		}
 	}
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {

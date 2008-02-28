@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/18
+ * Version: 1.6.0-pre   2008/02/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -110,8 +110,7 @@ static int AddEnvEntry(const char *env, struct domain_info *domain, const struct
 	int error = -ENOMEM;
 	if (!IsCorrectPath(env, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if ((saved_env = SaveName(env)) == NULL) return -ENOMEM;
-	if (!is_delete && IsGloballyUsableEnv(saved_env)) return 0;
-	
+
 	mutex_lock(&domain_acl_lock);
 	if (!is_delete) {
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -150,7 +149,7 @@ static int CheckEnvACL(const char *env_)
 	struct path_info env;
 	env.name = env_;
 	fill_path_info(&env);
-	if (IsGloballyUsableEnv(&env)) return 0;
+
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct env_acl_record *acl;
 		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL) continue;
@@ -161,6 +160,7 @@ static int CheckEnvACL(const char *env_)
 		error = 0;
 		break;
 	}
+	if (error && (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV) == 0 && IsGloballyUsableEnv(&env)) error = 0;
 	return error;
 }
 

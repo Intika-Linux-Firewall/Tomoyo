@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/25
+ * Version: 1.6.0-pre   2008/02/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -510,6 +510,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			ptr->type |= ACL_DELETED;
 		}
+		domain->flags = 0;
 		domain->profile = profile;
 		domain->quota_warned = 0;
 		mb(); /* Avoid out-of-order execution. */
@@ -969,6 +970,9 @@ static int try_alt_exec(struct linux_binprm *bprm, char **work)
 		if (retval < 0) goto out;
 		bprm->argc++;
 	}
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,23) || LINUX_VERSION_CODE == KERNEL_VERSION(2,6,24)
+	bprm->argv_len = bprm->exec - bprm->p;
+#endif
 
 	/* OK, now restart the process with the alternative program's dentry. */
 	filp = open_exec(alt_exec);
