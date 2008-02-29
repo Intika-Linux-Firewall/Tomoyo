@@ -59,7 +59,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.18-8.12AX">Asianux 3.0 用のカーネル 2.6.18-8.12AX</a>
 <li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
 <li><a href="#2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a>
-<li><a href="#2.6.16-0vl76.28">VineLinux 4.2 用のカーネル 2.6.16-0vl76.28</a>
+<li><a href="#2.6.16-0vl76.33">VineLinux 4.2 用のカーネル 2.6.16-0vl76.33</a>
 <li><a href="#2.6-vanilla">バニラ 2.6 カーネル</a>
 <li><a href="#2.4-vanilla">バニラ 2.4 カーネル</a>
 </ul>
@@ -555,7 +555,7 @@ mkinitramfs -o /boot/initrd.img-2.6.20.3-ubuntu1-ccs 2.6.20.3-ubuntu1-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.16-0vl76.28">VineLinux 4.2 用のカーネル 2.6.16-0vl76.28</a></h2>
+<h2><a name="2.6.16-0vl76.33">VineLinux 4.2 用のカーネル 2.6.16-0vl76.33</a></h2>
 
 <table border="1">
 <tr><td>
@@ -568,18 +568,18 @@ cd /usr/src/linux-2.6.16/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
 tar -zxf ccs-patch.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.16-0vl76.28.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.16-0vl76.33.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install<br>
 # initrd を作成する。<br>
-mkinitrd /boot/initrd.img-2.6.16-0vl76.28-ccs 2.6.16-0vl76.28-ccs<br>
+mkinitrd /boot/initrd.img-2.6.16-0vl76.33-ccs 2.6.16-0vl76.33-ccs<br>
 # シンボリックリンクを更新する。<br>
-ln -sf /boot/vmlinuz-2.6.16-0vl76.28-ccs /boot/vmlinuz<br>
-ln -sf /boot/initrd.img-2.6.16-0vl76.28-ccs /boot/initrd.img<br>
-ln -sf /boot/System.map-2.6.16-0vl76.28-ccs /boot/System.map
+ln -sf /boot/vmlinuz-2.6.16-0vl76.33-ccs /boot/vmlinuz<br>
+ln -sf /boot/initrd.img-2.6.16-0vl76.33-ccs /boot/initrd.img<br>
+ln -sf /boot/System.map-2.6.16-0vl76.33-ccs /boot/System.map
 </td></tr>
 </table>
 
