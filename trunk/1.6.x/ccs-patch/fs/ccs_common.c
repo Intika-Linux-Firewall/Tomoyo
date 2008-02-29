@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/28
+ * Version: 1.6.0-pre   2008/02/29
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -569,8 +569,6 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 	return ptr;
 }
 
-/* #define ALT_EXEC */
-
 static int SetProfile(struct io_buffer *head)
 {
 	char *data = head->write_buf;
@@ -592,7 +590,6 @@ static int SetProfile(struct io_buffer *head)
 		profile->comment = SaveName(cp + 1);
 		return 0;
 	}
-#ifdef ALT_EXEC
 #ifdef CONFIG_TOMOYO
 	if (strcmp(data, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword) == 0) {
 		cp++;
@@ -600,7 +597,6 @@ static int SetProfile(struct io_buffer *head)
 		profile->alt_exec = SaveName(cp);
 		return 0;
 	}
-#endif
 #endif
 	if (sscanf(cp + 1, "%u", &value) != 1) return -EINVAL;
 #ifdef CONFIG_TOMOYO
@@ -647,10 +643,6 @@ static int ReadProfile(struct io_buffer *head)
 		case CCS_TOMOYO_MAX_GRANT_LOG:
 		case CCS_TOMOYO_MAX_REJECT_LOG:
 		case CCS_TOMOYO_VERBOSE:
-#endif
-#ifndef ALT_EXEC
-		case CCS_TOMOYO_ALT_EXEC:
-		case CCS_SLEEP_PERIOD:
 #endif
 			continue;
 		}
@@ -1321,7 +1313,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.6.0-pre   2008/02/26\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/02/28\n");
+	printk("TOMOYO: 1.6.0-pre   2008/02/29\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -1362,7 +1354,6 @@ int CheckSupervisor(const char *fmt, ...)
 	static unsigned int serial = 0;
 	struct query_entry *query_entry;
 	if (!CheckCCSFlags(CCS_ALLOW_ENFORCE_GRACE) || !atomic_read(&queryd_watcher)) {
-#ifdef ALT_EXEC
 		if ((current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR) == 0) {
 			int i;
 			for (i = 0; i < CheckCCSFlags(CCS_SLEEP_PERIOD); i++) {
@@ -1370,7 +1361,6 @@ int CheckSupervisor(const char *fmt, ...)
 				schedule_timeout(HZ / 10);
 			}
 		}
-#endif
 		return -EPERM;
 	}
 	va_start(args, fmt);
