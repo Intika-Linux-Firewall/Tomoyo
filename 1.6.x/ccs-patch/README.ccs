@@ -1203,3 +1203,56 @@ Fix 2008/02/26
       I made "(current->uid == 0 && current->euid == 0)" requirement optional.
       If this requirement is disabled, only "conventional DAC permission
       checks" and "/proc/ccs/manager checks" are used.
+
+Fix 2008/02/29
+
+    @ Add sleep_on_violation feature.
+
+      Some exploit codes (e.g. trans2open for Samba) continue running
+      until it achieves the purpose of the exploit code (e.g. invoke /bin/sh).
+
+      If such code is injected due to buffer overflow but the kernel
+      rejects the request, it triggers infinite "Permission denied" loop.
+      As a result, the CPU usage becomes 100% and gives bad effects to
+      the rest of processes.
+      This is a side effect of rejecting the request from the exploit code
+      which wouldn't happen if the request from the exploit code was granted.
+
+      To avoid such CPU consumption, I added a penalty that forcibly
+      sleeps for specified period when a request is rejected.
+
+      This penalty doesn't work if the exploit code does nothing but
+      continue running, but I think most exploit code's purpose is
+      to start some program rather than to slow down the target system.
+
+    @ Add alt_exec feature.
+
+      Since TOMOYO Linux's approach is "know all essential requests in advance
+      and create policy that permits only them", you can regard anomalous
+      requests as attacks (if you want to do so).
+
+      Common MAC implementations merely reject requests that violate policy.
+      But I added a special handler for execve() to TOMOYO Linux.
+
+      This handler is triggered when a process requested to execute a program
+      but the request was rejected by the policy.
+      This handler executes a program specified by the administrator
+      instead of a program requested by the process.
+
+      Most attackers attempt to execute /bin/sh to start something malicious.
+      Attackers execute an exploit code using buffer overflow vulnerability
+      to steal control of a process. But this handler can get back control
+      if an exploit code requests execve() that is not permitted by policy.
+
+      By default, this handler does nothing (i.e. merely reject execve()
+      request). You can specify any program to start what you want to do.
+
+      You can redirect attackers to somewhere else (e.g. honeypot).
+      This makes it possible to act your Linux box as an on-demand honeypot
+      while keeping regular services for your usage.
+
+      You can collect information of the attacker (e.g. IP address) and
+      update firewall configuration.
+
+      You can silently terminate a process who requested execve()
+      that is not permitted by policy.
