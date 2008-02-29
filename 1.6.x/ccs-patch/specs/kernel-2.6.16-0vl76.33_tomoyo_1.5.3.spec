@@ -23,7 +23,7 @@ Summary(ja): Linux カーネル (Linux オペレーティングシステムの心臓部分)
 %define sublevel 16
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 0vl76.28_tomoyo_1.5.3
+%define release 0vl76.33_tomoyo_1.5.3
 
 %define make_target bzImage
 
@@ -241,6 +241,7 @@ Patch1070: linux-2.6-sleepon.patch
 # NFS bits.
 Patch1201: linux-2.6-NFSD-ctlbits.patch
 Patch1203: linux-2.6-NFSD-badness.patch
+Patch1205: linux-2.6.16_nfs-timestamp-fix.patch
 
 # NIC driver updates
 Patch1301: linux-2.6-net-sundance-ip100A.patch
@@ -258,6 +259,7 @@ Patch1371: linux-2.6.16_Corega_LAPCIGT.patch
 Patch1375: linux-2.6.16-r1000-1.0.4.patch
 Patch1390: linux-2.6.16-tg3-3.81c.patch
 Patch1391: linux-2.6.16-forcedeth-0.62.patch
+Patch1392: linux-2.6.16-forcedeth-0.62_suspend_disable.patch
 
 Patch1400: linux-2.6-pcmcia-disable-warning.patch
 
@@ -453,6 +455,11 @@ Patch20500: linux-2.6.16_CVE-2007-5966.patch
 Patch20510: linux-2.6.16_CVE-2007-6063.patch
 Patch20520: linux-2.6.16_CVE-2007-6206.patch
 Patch20530: linux-2.6.16_CVE-2007-6417.patch
+Patch20540: linux-2.6.16_CVE-2008-0001.patch
+
+Patch20550: linux-2.6.16_CVE-2007-5904.patch
+Patch20560: linux-2.6.16_CVE-2008-0007.patch
+Patch20570: linux-2.6.16_CVE-2007-6151.patch
 
 # mol-0.9.71_pre8 for ppc
 %define molver 0.9.71
@@ -747,6 +754,8 @@ cd linux-%{kversion}
 %patch1201 -p1
 # Fix badness.
 %patch1203 -p1
+# Fix cp -a timestamp problem
+%patch1205 -p1
 
 # NIC driver fixes.
 # New PCI ID for sundance driver.
@@ -777,6 +786,8 @@ cd linux-%{kversion}
 %patch1390 -p1
 # forcedeth update (0.62)
 %patch1391 -p1
+# forcedeth suspend/resume disable
+%patch1392 -p1
 
 # disable pcmcia warnings
 %patch1400 -p1
@@ -1029,6 +1040,11 @@ cd linux-%{kversion}
 %patch20510 -p1 -b .CVE-2007-6063
 %patch20520 -p1 -b .CVE-2007-6206
 %patch20530 -p1 -b .CVE-2007-6417
+%patch20540 -p1 -b .CVE-2008-0001
+
+%patch20550 -p1 -b .CVE-2007-5904
+%patch20560 -p1 -b .CVE-2008-0007
+%patch20570 -p1 -b .CVE-2007-6151
 
 #
 # misc small stuff to make things compile or otherwise improve performance
@@ -1037,8 +1053,8 @@ cd linux-%{kversion}
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.28custom/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.16-0vl76.28.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.33custom/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.16-0vl76.33.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -1481,11 +1497,8 @@ fi
 %endif
 
 %changelog
-* Thu Dec 27 2007 Satoshi IWAMOTO <satoshi.iwamoto@nifty.ne.jp> 2.6.16-0vl76.28
-- add patch20500 for fix CVE-2007-5966 (hrtimer DoS)
-- add patch20510 for fix CVE-2007-6063 (isdn BOF)
-- add patch20520 for fix CVE-2007-6206 (coredump info leakage)
-- add patch20530 for fix CVE-2007-6417 (tmpf)
+* Fri Feb 15 2008 Satoshi IWAMOTO <satoshi.iwamoto@nifty.ne.jp> 2.6.16-0vl76.33
+- add patch20570 for fix CVE-2007-6151 (ISDN isdn_ioctl)
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start
