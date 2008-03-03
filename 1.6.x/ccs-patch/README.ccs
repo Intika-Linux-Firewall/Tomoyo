@@ -1256,3 +1256,24 @@ Fix 2008/02/29
 
       You can silently terminate a process who requested execve()
       that is not permitted by policy.
+
+Fix 2008/03/03
+
+    @ Add "force_alt_exec" keyword.
+
+      To be able to fully utilize "alt_exec" feature,
+      I added "force_alt_exec" keyword so that
+      all execute requests are replaced by the execute request of a program
+      specified by alt_exec feature.
+
+      If this keyword is specified for a domain, the domain no longer
+      executes any programs regardless of the mode of file access control
+      (i.e. the domain won't execute even if MAC_FOR_FILE=0 ).
+      Instead, the domain executes the program specified by alt_exec feature
+      and the program specified by alt_exec feature validates the execute
+      request and executes it if it is appropriate to execute.
+
+      If you can tolerate that there is no chance to return an error code
+      to the caller to tell the execute request was rejected,
+      this is more flexible approach than in-kernel execve() parameter
+      checking because we can do argv[] and envp[] checking easily.

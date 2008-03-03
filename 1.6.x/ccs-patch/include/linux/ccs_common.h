@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/28
+ * Version: 1.6.0-pre   2008/03/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -75,7 +75,7 @@ typedef _Bool bool;
 #define list1_for_each list_for_each
 #define list1_for_each_entry list_for_each_entry
 #define list1_for_each_cookie(pos, cookie, head) \
-	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
+	for (({if (!cookie) cookie = head;}), pos = (cookie)->next; \
 		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
 		(cookie) = pos, pos = pos->next)
 static inline void list1_add_tail_mb(struct list1_head *new,
@@ -142,7 +142,7 @@ static inline void INIT_LIST1_HEAD(struct list1_head *list)
  * so that we can continue iteration.
  */
 #define list1_for_each_cookie(pos, cookie, head) \
-	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
+	for (({if (!cookie) cookie = head;}), pos = (cookie)->next; \
 		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
 		(cookie) = pos, pos = pos->next)
 
@@ -263,6 +263,7 @@ struct domain_info {
 
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1 /* Ignore "allow_read" in exception_policy */
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2 /* Ignore "allow_env" in exception_policy  */
+#define DOMAIN_FLAGS_FORCE_ALT_EXEC           4 /* Always use ALT_EXEC for execute request */
 
 struct single_path_acl_record {
 	struct acl_info head;                         /* type = TYPE_SINGLE_PATH_ACL */
@@ -388,6 +389,7 @@ struct ip_network_acl_record {
 #define KEYWORD_USE_PROFILE              "use_profile "
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_READ "ignore_global_allow_read"
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV  "ignore_global_allow_env"
+#define KEYWORD_FORCE_ALT_EXEC           "force_alt_exec"
 
 #define KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
 #define KEYWORD_MAC_FOR_CAPABILITY_LEN   (sizeof(KEYWORD_MAC_FOR_CAPABILITY) - 1)
@@ -538,6 +540,7 @@ bool CheckDomainQuota(struct domain_info * const domain);
 bool TomoyoVerboseMode(void);
 void *alloc_acl_element(const u8 acl_type, const struct condition_list *condition);
 const struct condition_list *GetConditionPart(const struct acl_info *acl);
+void CCS_LoadPolicy(const char *filename);
 void UpdateCounter(const unsigned char index);
 void ccs_free(const void *p);
 void fill_path_info(struct path_info *ptr);

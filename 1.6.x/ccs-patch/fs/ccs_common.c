@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/29
+ * Version: 1.6.0-pre   2008/03/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -843,6 +843,11 @@ static int AddDomainPolicy(struct io_buffer *head)
 		else domain->flags &= ~DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV;
 		return 0;
 	}
+	if (strcmp(data, KEYWORD_FORCE_ALT_EXEC) == 0) {
+		if (!is_delete) domain->flags |= DOMAIN_FLAGS_FORCE_ALT_EXEC;
+		else domain->flags &= ~DOMAIN_FLAGS_FORCE_ALT_EXEC;
+		return 0;
+	}
 	cp = FindConditionPart(data);
 	if (cp && (cond = FindOrAssignNewCondition(cp)) == NULL) return -EINVAL;
 	if (strncmp(data, KEYWORD_ALLOW_CAPABILITY, KEYWORD_ALLOW_CAPABILITY_LEN) == 0) {
@@ -1008,7 +1013,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 		domain = list1_entry(dpos, struct domain_info, list);
 		if (head->read_step != 1) goto acl_loop;
 		if (domain->is_deleted) continue;
-		if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n%s%s", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ ? KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV ? KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n" : "")) return 0;
+		if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n%s%s%s", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ ? KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV ? KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n" : "", domain->flags & DOMAIN_FLAGS_FORCE_ALT_EXEC ? KEYWORD_FORCE_ALT_EXEC "\n" : "")) return 0;
 		head->read_step = 2;
 	acl_loop: ;
 		if (head->read_step == 3) goto tail_mark;
@@ -1310,10 +1315,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/02/26\n");
+	printk("SAKURA: 1.6.0-pre   2008/03/03\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/02/29\n");
+	printk("TOMOYO: 1.6.0-pre   2008/03/03\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -1327,6 +1332,17 @@ void CCS_LoadPolicy(const char *filename)
 	}
 }
 
+#ifndef CONFIG_TOMOYO
+
+int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
+{
+#ifdef CONFIG_SAKURA
+	CCS_LoadPolicy(bprm->filename);
+#endif
+	return search_binary_handler(bprm, regs);
+}
+
+#endif
 
 /*************************  MAC Decision Delayer  *************************/
 
