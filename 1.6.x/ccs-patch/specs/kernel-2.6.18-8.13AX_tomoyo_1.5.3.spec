@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.12%{?dist}_tomoyo_1.5.3
+%define release 8.13%{?dist}_tomoyo_1.5.3
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -1326,6 +1326,10 @@ Patch200008: linux-2.6-revoke-support-for-ext2-and-ext3.patch
 Patch200009: linux-2.6-revoke-add-documentation.patch
 Patch200010: linux-2.6-revoke-wire-up-i386-system-calls.patch
 Patch200011: linux-2.6-revoke-force-umount.patch
+# 2.6.18-53.1.4.el5
+Patch200105: linux-2.6-CVE-2007-4571-alsa-convert-snd-page-alloc-proc-file-to-seq_file.patch
+Patch200106: linux-2.6-CVE-2007-4997-net-ieee80211-off-by-two-integer-underflow.patch
+Patch200107: linux-2.6-CVE-2007-5494-fs-missing-dput-in-do_lookup-error-leaks-dentries.patch
 
 # END OF PATCH DEFINITIONS
 
@@ -2729,12 +2733,16 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 #%patch200009 -p1
 #%patch200010 -p1
 %patch200011 -p1
+# 2.6.18-53.1.4.el5
+%patch200105 -p1
+%patch200106 -p1
+%patch200107 -p1
 
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.12AX/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.18-8.12AX.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.13AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-8.13AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -3617,12 +3625,10 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
 
 %changelog
-* Thu Oct 25 2007 <ax-kernel@asianux.com> [2.6.18-8.12AX]
-- ext3/jbd minor fixes [Bug#3690, Patch103061, Patch103062]
-- Fix initializa timeout for megaraid_sas [Bug#3689, Patch103060]
-- Fix WOL for second port on 82575EB_COPPER [Bug#3688, Patch103059]
-- merge 2.6.18-8.1.15.el5 [Bug#3656, Bug#3683]
-- cleanup: replace Patch103035 by Patch21770
+* Thu Jan  3 2008 <ax-kernel@asianux.com> [2.6.18-8.13AX]
+- CVE-2007-4571 : Convert snd-page-alloc proc file to use seq_file for alsa [Patch200105]
+- CVE-2007-4997 : off-by-two integer underflow for ieee80211 [Patch200106]
+- CVE-2007-5494 : missing dput in do_lookup error leaks dentries for fs [Patch200107]
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
