@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/03/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -41,7 +41,7 @@
 #endif
 
 #define list_for_each_cookie(pos, cookie, head) \
-	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
+	for (({if (!cookie) cookie = head;}), pos = (cookie)->next; \
 		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
 		(cookie) = pos, pos = pos->next)
 
@@ -508,7 +508,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static _Bool first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.6.0-pre   2008/01/03\n");
+		printk("SYAORAN: 1.6.0-pre   2008/03/03\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);

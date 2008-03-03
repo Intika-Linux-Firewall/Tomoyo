@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/28
+ * Version: 1.6.0-pre   2008/03/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -992,19 +992,14 @@ static int try_alt_exec(struct linux_binprm *bprm, char **work)
 	return retval;
 }
 
-#endif
-
 int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
 {
 	struct domain_info *next_domain = NULL, *prev_domain = current->domain_info;
  	int retval;
 	char *work = NULL; /* Keep valid until search_binary_handler() finishes. */
-#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-	extern void CCS_LoadPolicy(const char *filename);
 	CCS_LoadPolicy(bprm->filename);
-#endif
-#if defined(CONFIG_TOMOYO)
-	retval = FindNextDomain(bprm, &next_domain, 1);
+	if (prev_domain->flags & DOMAIN_FLAGS_FORCE_ALT_EXEC) retval = -EPERM;
+	else retval = FindNextDomain(bprm, &next_domain, 1);
 	if (retval == -EPERM && try_alt_exec(bprm, &work) == 0 && prepare_binprm(bprm) >= 0) {
 		current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 		retval = FindNextDomain(bprm, &next_domain, 0);
@@ -1020,9 +1015,8 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 	}
 	ccs_free(work);
 	return retval;
-#else
-	return search_binary_handler(bprm, regs);
-#endif
 }
+
+#endif
 
 /***** TOMOYO Linux end. *****/
