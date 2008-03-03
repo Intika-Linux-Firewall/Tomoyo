@@ -9,7 +9,7 @@
 <body>
 <p style="text-align:right;"><a href="../../en/1.6.x/policy-reference.html">English Page</a></p>
 <h1 style="text-align:center;">TOMOYO Linux ポリシー解説書</h1>
-<p style="text-align:right;">Last modified: $Date: 2008-02-19 17:32:30 +0900 (Tue, 19 Feb 2008) $</p>
+<p style="text-align:right;">Last modified: $Date: 2008-03-03 16:32:30 +0900 (Mon, 3 Mar 2008) $</p>
 <h1><a name="index">目次</a></h1>
 <h2><a href="#Keyword_Index">1. キーワード一覧</a></p>
 <h2><a href="#Introduction">2. はじめに</a></h2>
@@ -32,6 +32,7 @@
 <h2><a href="#features_for_advanced">上級者向けの機能</a></h2>
 <p><a href="#stateful_acl">ステートフルなアクセス許可の指定</a></p>
 <p><a href="#alt_exec_penalty">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
+<p><a href="#always_alt_exec">プログラムの実行可否をカーネルの外部で判断</a></p>
 
 <hr>
 
@@ -146,6 +147,7 @@
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></li>
 <li><a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></li>
+<li><a href="#domain_policy_force_alt_exec">force_alt_exec</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
 </ul>
 
@@ -364,7 +366,7 @@ Total:          119794
 
 <p>というエントリを探す。見つかった場合は「パス名候補２」を「パス名候補１」とする。</p>
 </td></tr>
-<tr><td>argv[0] のチェック</td><td>
+<tr><td><a name="exec_stage_check_argv0">argv[0] のチェック</a></td><td>
 <p>「パス名候補１」の最後の / 以降の部分と argv[0] の最後の / 以降の部分が異なっている場合、ドメイン別ポリシーから</p>
 
 <ul>
@@ -382,7 +384,7 @@ Total:          119794
 
 <p>というエントリを探す。見つかった場合は、「集約されたパス名」を「パス名候補１」とする。</p>
 </td></tr>
-<tr><td>権限のチェック</td><td>
+<tr><td><a name="exec_stage_check_execute">権限のチェック</a></td><td>
 <p>ドメイン別ポリシーから</p>
 
 <ul>
@@ -392,7 +394,7 @@ Total:          119794
 
 <p>というエントリを探す。見つからなければ拒否する。</p>
 </td></tr>
-<tr><td>遷移先の決定</td><td>
+<tr><td><a name="exec_stage_check_destination">遷移先の決定</a></td><td>
 
 <p>(1) 例外ポリシーから</p>
 
@@ -448,6 +450,81 @@ Total:          119794
 <p>(2)通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移する。</p>
 </td></tr>
 </table>
+
+<p>ただし、</p>
+
+<ul>
+<li>上記手順の「<a href="#exec_stage_check_argv0">argv[0] のチェック</a>」「<a href="#exec_stage_check_execute">権限のチェック</a>」「<a href="#exec_stage_check_destination">遷移先の決定</a>」の何れかに於いて拒否されたが、プロファイルの <a href="#profile_ALT_EXEC">ALT_EXEC</a>でプログラムのパス名が指定されている</li>
+<li>プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_force_alt_exec">force_alt_exec</a> キーワードが指定されている</li>
+</ul>
+
+<p>のどちらかに該当する場合には、以下の手順を実行します。</p>
+
+<table border="1">
+<tr><td>Step</td><td>内容</td></tr>
+<tr><td>プログラム名の取得</td><td>
+<p>プロファイルの <a href="#profile_ALT_EXEC">ALT_EXEC</a>で指定されているプログラムのパス名を取得し、「パス名候補１」とする。パス名が指定されていない場合は実行を拒否する。</p>
+</td></tr>
+<tr><td>情報の追加</td><td>
+<p>全ての環境変数を引数の末尾に追加し、全ての環境変数を削除する。</p>
+<p>「パス名候補１」「プログラムの実行を要求したプロセスの属しているドメインのドメイン名」「プログラムの実行を要求したプロセスのパス名」「プログラムの実行を要求したプロセスの状態」「実行が要求されたプログラムのパス名」「引数の数」「環境変数の数」を引数の先頭に挿入する。</p>
+</td></tr>
+<tr><td>遷移先の決定</td><td>
+
+<p>(1) 例外ポリシーから</p>
+
+<ul>
+<li>no_initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_initialize_domain 「パス名候補１」
+</ul>
+
+<p>というエントリを探す。見つかった場合は (3) へ進む。</p>
+
+<p>(2) 例外ポリシーから</p>
+
+<ul>
+<li>initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>initialize_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>initialize_domain 「パス名候補１」
+</ul>
+
+<p>というエントリを探す。見つかった場合は「カーネルが属しているドメインのドメイン名（&lt;kernel&gt;）」と「パス名候補１」とを連結して「遷移先ドメイン」として (6) へ進む。</p>
+
+<p>(3) 例外ポリシーから</p>
+
+<ul>
+<li>no_keep_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+</ul>
+
+<p>というエントリを探す。見つかった場合は (5) へ進む。</p>
+
+<p>(4) 例外ポリシーから</p>
+
+<ul>
+<li>keep_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「パス名候補１」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+</ul>
+
+<p>というエントリを探す。見つかった場合は「現在のプロセスが属しているドメインのドメイン名」を「遷移先ドメイン」とし、 (7) へ進む。</p>
+
+<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補１」とを連結して「遷移先ドメイン」とし、(6)へ進む。</p>
+
+<p>(6) ドメイン別ポリシーから「遷移先ドメイン」を探す。見つからなければ拒否する。</p>
+
+</td></tr>
+<tr><td>プログラムの実行</td><td>
+
+<p>通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移する。</p>
+
+</td></tr>
+</table>
+
 
 <h2><a name="access_logs">4.3 アクセスログについて</a></h2>
 
@@ -1063,15 +1140,9 @@ Total:          119794
 
 <h3><a name="profile_ALT_EXEC">ALT_EXEC</a></h3>
 
-<p>強制モードに於いて許可されていないプログラムの実行が要求された場合に、代わりに実行するプログラムを指定する。デフォルトは要求されたプログラムの実行を拒否する。</p>
+<p>強制モードに於いて許可されていないプログラムの実行が要求された場合に、代わりに実行するプログラムのパス名を指定する。パス名が指定されていないまたは / で始まらない場合には、許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否する。</p>
 
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>0</td><td>無効。通常のカーネルと同様に動作する。</td></tr>
-<tr><td>1</td><td>学習モード。ポリシーに違反しても警告をエラーにせず、ポリシーへの自動追加を行う。</td></tr>
-<tr><td>2</td><td>許容モード。ポリシーに違反してもエラーにせず、ポリシーへの自動追加も行わない。</td></tr>
-<tr><td>3</td><td>強制モード。ポリシーに違反したらエラーとする。</td></tr>
-</table>
+<p>ただし、ドメインに対して <a href="#domain_policy_force_alt_exec">force_alt_exec</a> キーワードが指定されている場合、プログラムの実行が要求された場合にはモードに関わらずここで指定されたプログラムが実行される。</p>
 
 <h2><a name="system_policy">/proc/ccs/system_policy</a></h2>
 
@@ -1331,13 +1402,22 @@ deny_autobind 8080</p>
 
 <h3><a name="domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></h3>
 
-<p>これは、このドメインに対しては例外ポリシーで指定されている allow_env を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
+<p>これは、このドメインに対しては例外ポリシーで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
 
 <p>関連項目：<a href="#exception_policy_allow_read">allow_read</a></p>
 
+<h3><a name="domain_policy_force_alt_exec">force_alt_exec</a></h3>
+
+<p>これは、このドメインに対しては常にプロファイルの <a href="#profile_ALT_EXEC">ALT_EXEC</a> で指定されたプログラムだけを実行することを示しています。つまり、プログラムの実行時にチェックされるキーワード（ <a href="#domain_policy_allow_execute">allow_execute</a> と <a href="#domain_policy_allow_argv0">allow_argv0</a> ）およびプロファイルの <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の設定内容は無視されるようになります。
+特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
+
+<p>このキーワードが指定されている場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の値に関わらず常に <a href="#profile_ALT_EXEC">ALT_EXEC</a> で指定されたプログラムが実行されます。そのため、 <a href="#profile_ALT_EXEC">ALT_EXEC</a> に適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
+
+<p>関連項目：<a href="#profile_ALT_EXEC">ALT_EXEC</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
+
 <h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
 
-<p>これは、このドメインに対しては例外ポリシーで指定されている allow_env を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
+<p>これは、このドメインに対しては例外ポリシーで指定されている <a href="#exception_policy_allow_env">allow_env</a> を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
 
 <p>関連項目：<a href="#exception_policy_allow_env">allow_env</a></p>
 
@@ -1821,6 +1901,16 @@ exit 1
 </ul>
 
 <p>この機能は、機構を提供しているだけです。この機構を活用できるかどうかはあなた次第です。</p>
+
+<h3><a name="always_alt_exec">プログラムの実行可否をカーネルの外部で判断</a></h3>
+
+<p><a href="#alt_exec_penalty">許可されていないプログラムの実行が要求された場合の代替処理指定</a>で述べたとおり、正常な動作をしている限り、ポリシーで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求を受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、<a href="#profile_ALT_EXEC">ALT_EXEC</a>の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
+
+<p>そこで、ドメインに対して <a href="#domain_policy_force_alt_exec">force_alt_exec</a>キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
+<p>カーネルの内部では利用可能なライブラリが少ない上に連続したメモリ領域の割り当てが失敗する可能性が高くなりますが、
+カーネルの外部であれば豊富なライブラリを使ってメモリ割り当ての限界を心配せずに詳細なチェックが可能になります。そこで、<a href="#profile_ALT_EXEC">ALT_EXEC</a>で指定したプログラムにプログラム実行時のパラメータをチェックしてもらい、適切であればプログラムを実行してもらうようにすることができます。</p>
+
+<p><a href="#query">/proc/ccs/query</a>を用いた処理と似ていますが、<a href="#domain_policy_force_alt_exec">force_alt_exec</a>キーワードはプログラムの実行に関して特化した機能を提供します。自由にカスタマイズできるので、 ssh 等を用いて遠隔地のマシンに問い合わせをしながらしながら判断することも可能です。</p>
 
 <hr>
 <p><a href="index.html#manual">目次へ戻る</a></p>
