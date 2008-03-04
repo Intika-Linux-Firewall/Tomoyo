@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,8 +21,6 @@
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 #include <linux/namespace.h>
 #endif
-
-extern const char *ccs_log_level;
 
 /***** The structure for unmount restrictions. *****/
 

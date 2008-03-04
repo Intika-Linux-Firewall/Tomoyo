@@ -88,10 +88,49 @@ static struct {
 	[CCS_TOMOYO_ALT_EXEC]            = { "ALT_EXEC",            0, 0 }, /* Reserved for string. */
 };
 
+#ifdef CONFIG_TOMOYO
+const char *capability_control_keyword[TOMOYO_MAX_CAPABILITY_INDEX] = {
+	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
+	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
+	[TOMOYO_INET_STREAM_SOCKET_CONNECT] = "inet_tcp_connect",
+	[TOMOYO_USE_INET_DGRAM_SOCKET]      = "use_inet_udp",
+	[TOMOYO_USE_INET_RAW_SOCKET]        = "use_inet_ip",
+	[TOMOYO_USE_ROUTE_SOCKET]           = "use_route",
+	[TOMOYO_USE_PACKET_SOCKET]          = "use_packet",
+	[TOMOYO_SYS_MOUNT]                  = "SYS_MOUNT",
+	[TOMOYO_SYS_UMOUNT]                 = "SYS_UMOUNT",
+	[TOMOYO_SYS_REBOOT]                 = "SYS_REBOOT",
+	[TOMOYO_SYS_CHROOT]                 = "SYS_CHROOT",
+	[TOMOYO_SYS_KILL]                   = "SYS_KILL",
+	[TOMOYO_SYS_VHANGUP]                = "SYS_VHANGUP",
+	[TOMOYO_SYS_SETTIME]                = "SYS_TIME",
+	[TOMOYO_SYS_NICE]                   = "SYS_NICE",
+	[TOMOYO_SYS_SETHOSTNAME]            = "SYS_SETHOSTNAME",
+	[TOMOYO_USE_KERNEL_MODULE]          = "use_kernel_module",
+	[TOMOYO_CREATE_FIFO]                = "create_fifo",
+	[TOMOYO_CREATE_BLOCK_DEV]           = "create_block_dev",
+	[TOMOYO_CREATE_CHAR_DEV]            = "create_char_dev",
+	[TOMOYO_CREATE_UNIX_SOCKET]         = "create_unix_socket",
+	[TOMOYO_SYS_LINK]                   = "SYS_LINK",
+	[TOMOYO_SYS_SYMLINK]                = "SYS_SYMLINK",
+	[TOMOYO_SYS_RENAME]                 = "SYS_RENAME",
+	[TOMOYO_SYS_UNLINK]                 = "SYS_UNLINK",
+	[TOMOYO_SYS_CHMOD]                  = "SYS_CHMOD",
+	[TOMOYO_SYS_CHOWN]                  = "SYS_CHOWN",
+	[TOMOYO_SYS_IOCTL]                  = "SYS_IOCTL",
+	[TOMOYO_SYS_KEXEC_LOAD]             = "SYS_KEXEC_LOAD",
+	[TOMOYO_SYS_PIVOT_ROOT]             = "SYS_PIVOT_ROOT",
+	[TOMOYO_SYS_PTRACE]                 = "SYS_PTRACE",
+};
+#endif
+
 struct profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct path_info *comment;
 	const struct path_info *alt_exec;
+#ifdef CONFIG_TOMOYO
+	unsigned char capability_value[TOMOYO_MAX_CAPABILITY_INDEX];
+#endif
 };
 
 static struct profile *profile_ptr[MAX_PROFILES];
@@ -514,7 +553,7 @@ unsigned int CheckCCSFlags_NoSleepCheck(const u8 index)
 		&& profile_ptr[profile] ? profile_ptr[profile]->value[index] : 0;
 }
 
-unsigned int CheckCCSFlags(const u8 index)
+static bool sleep_check(void)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 	if (unlikely(in_interrupt()))
@@ -528,11 +567,35 @@ unsigned int CheckCCSFlags(const u8 index)
 			printk(KERN_ERR "BUG: sleeping function called from invalid context.\n");
 			dump_stack();
 		}
-		/* Return 0 so that no MAC checks are performed. */
-		return 0;
+		return false;
 	}
-	return CheckCCSFlags_NoSleepCheck(index);
+	return true;
 }
+
+unsigned int CheckCCSFlags(const u8 index)
+{
+	return sleep_check() ? CheckCCSFlags_NoSleepCheck(index) : 0;
+}
+
+#ifdef CONFIG_TOMOYO
+/* Check whether the given capability control is enabled. */
+u8 CheckCapabilityFlags(const u8 index)
+{
+	const u8 profile = current->domain_info->profile;
+	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
+#if MAX_PROFILES != 256
+		&& profile < MAX_PROFILES
+#endif
+		&& sleep_check()
+		&& profile_ptr[profile] ? profile_ptr[profile]->capability_value[index] : 0;
+}
+
+const char *cap_operation2keyword(const u8 operation)
+{
+	return operation < TOMOYO_MAX_CAPABILITY_INDEX ? capability_control_keyword[operation] : NULL;
+}
+
+#endif
 
 bool TomoyoVerboseMode(void)
 {
@@ -564,6 +627,7 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
 			int i;
 			for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) ptr->value[i] = ccs_control_array[i].current_value;
+			/* Needn't to initialize "ptr->capability_value" because they are always 0. */
 			mb(); /* Avoid out-of-order execution. */
 			profile_ptr[profile] = ptr;
 		}
@@ -604,15 +668,21 @@ static int SetProfile(struct io_buffer *head)
 #ifdef CONFIG_TOMOYO
 	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
 		if (sscanf(cp + 1, "%u", &value) != 1) {
-			int j;
-			for (j = 0; j < 4; j++) {
-				if (strcmp(cp + 1, mode_4[j])) continue;
-				value = j;
+			for (i = 0; i < 4; i++) {
+				if (strcmp(cp + 1, mode_4[i])) continue;
+				value = i;
 				break;
 			}
-			if (j == 4) return -EINVAL;
+			if (i == 4) return -EINVAL;
 		}
-		return SetCapabilityStatus(data + KEYWORD_MAC_FOR_CAPABILITY_LEN, value, i);
+		if (value > 3) value = 3;
+		data += KEYWORD_MAC_FOR_CAPABILITY_LEN;
+		for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) {
+			if (strcmp(data, capability_control_keyword[i])) continue;
+			profile->capability_value[i] = value;
+			return 0;
+		}
+		return -EINVAL;
 	}
 #endif
 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
@@ -654,9 +724,8 @@ static int ReadProfile(struct io_buffer *head)
 {
 	int step;
 	if (head->read_eof) return 0;
-	if (head->read_var2) goto print_capability;
-	for (step = head->read_step; step < MAX_PROFILES * CCS_MAX_CONTROL_INDEX; step++) {
-		const int i = step / CCS_MAX_CONTROL_INDEX, j = step % CCS_MAX_CONTROL_INDEX;
+	for (step = head->read_step; step < MAX_PROFILES * (CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX); step++) {
+		const int i = step / (CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX), j = step % (CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX);
 		const struct profile *profile = profile_ptr[i];
 		head->read_step = step;
 		if (!profile) continue;
@@ -688,6 +757,11 @@ static int ReadProfile(struct io_buffer *head)
 		} else if (j == CCS_TOMOYO_ALT_EXEC) {
 			const struct path_info *alt_exec = profile->alt_exec;
 			if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword, alt_exec ? alt_exec->name : "")) break;
+		} else if (j >= CCS_MAX_CONTROL_INDEX) {
+#ifdef CONFIG_TOMOYO
+			const int k = j - CCS_MAX_CONTROL_INDEX;
+			if (io_printf(head, "%u-" KEYWORD_MAC_FOR_CAPABILITY "%s=%s\n", i, capability_control_keyword[k], mode_4[profile->capability_value[k]])) break;
+#endif
 		} else {
 			const unsigned int value = profile->value[j];
 			const char **modes = NULL;
@@ -706,17 +780,7 @@ static int ReadProfile(struct io_buffer *head)
 			}
 		}
 	}
-	if (step == MAX_PROFILES * CCS_MAX_CONTROL_INDEX) {
-		head->read_var2 = (void *) "";
-		head->read_step = 0;
-	}
- print_capability:
-	if (head->read_var2) {
-#ifdef CONFIG_TOMOYO
-		if (ReadCapabilityStatus(head) == 0)
-#endif
-			head->read_eof = true;
-	}
+	if (step == MAX_PROFILES * (CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX)) head->read_eof = true;
 	return 0;
 }
 
@@ -1382,18 +1446,6 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 }
-
-#ifndef CONFIG_TOMOYO
-
-int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
-{
-#ifdef CONFIG_SAKURA
-	CCS_LoadPolicy(bprm->filename);
-#endif
-	return search_binary_handler(bprm, regs);
-}
-
-#endif
 
 /*************************  MAC Decision Delayer  *************************/
 

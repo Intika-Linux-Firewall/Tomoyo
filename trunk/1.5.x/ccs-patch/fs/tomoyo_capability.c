@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -24,39 +24,38 @@ extern int sbin_init_started;
 
 static struct {
 	const char *keyword;
-	unsigned int current_value;
 	const char *capability_name;
 } capability_control_array[TOMOYO_MAX_CAPABILITY_INDEX] = { /* domain_policy.txt */
-	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = { "inet_tcp_create", 0,     "socket(PF_INET, SOCK_STREAM)" },
-	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = { "inet_tcp_listen", 0,     "listen(PF_INET, SOCK_STREAM)" },
-	[TOMOYO_INET_STREAM_SOCKET_CONNECT] = { "inet_tcp_connect", 0,    "connect(PF_INET, SOCK_STREAM)" },
-	[TOMOYO_USE_INET_DGRAM_SOCKET]      = { "use_inet_udp", 0,        "socket(PF_INET, SOCK_DGRAM)" },
-	[TOMOYO_USE_INET_RAW_SOCKET]        = { "use_inet_ip", 0,         "socket(PF_INET, SOCK_RAW)" },
-	[TOMOYO_USE_ROUTE_SOCKET]           = { "use_route", 0,           "socket(PF_ROUTE)" },
-	[TOMOYO_USE_PACKET_SOCKET]          = { "use_packet", 0,          "socket(PF_PACKET)" },
-	[TOMOYO_SYS_MOUNT]                  = { "SYS_MOUNT", 0,           "sys_mount()" },
-	[TOMOYO_SYS_UMOUNT]                 = { "SYS_UMOUNT", 0,          "sys_umount()" },
-	[TOMOYO_SYS_REBOOT]                 = { "SYS_REBOOT", 0,          "sys_reboot()" },
-	[TOMOYO_SYS_CHROOT]                 = { "SYS_CHROOT", 0,          "sys_chroot()" },
-	[TOMOYO_SYS_KILL]                   = { "SYS_KILL", 0,            "sys_kill()" },
-	[TOMOYO_SYS_VHANGUP]                = { "SYS_VHANGUP", 0,         "sys_vhangup()" },
-	[TOMOYO_SYS_SETTIME]                = { "SYS_TIME", 0,            "sys_settimeofday()" },
-	[TOMOYO_SYS_NICE]                   = { "SYS_NICE", 0,            "sys_nice()" },
-	[TOMOYO_SYS_SETHOSTNAME]            = { "SYS_SETHOSTNAME", 0,     "sys_sethostname()" },
-	[TOMOYO_USE_KERNEL_MODULE]          = { "use_kernel_module", 0,   "kernel_module" },
-	[TOMOYO_CREATE_FIFO]                = { "create_fifo", 0,         "mknod(FIFO)" },
-	[TOMOYO_CREATE_BLOCK_DEV]           = { "create_block_dev", 0,    "mknod(BDEV)" },
-	[TOMOYO_CREATE_CHAR_DEV]            = { "create_char_dev", 0,     "mknod(CDEV)" },
-	[TOMOYO_CREATE_UNIX_SOCKET]         = { "create_unix_socket", 0,  "mknod(SOCKET)" },
-	[TOMOYO_SYS_LINK]                   = { "SYS_LINK", 0,            "sys_link()"  },
-	[TOMOYO_SYS_SYMLINK]                = { "SYS_SYMLINK", 0,         "sys_symlink()" },
-	[TOMOYO_SYS_RENAME]                 = { "SYS_RENAME", 0,          "sys_rename()" },
-	[TOMOYO_SYS_UNLINK]                 = { "SYS_UNLINK", 0,          "sys_unlink()" },
-	[TOMOYO_SYS_CHMOD]                  = { "SYS_CHMOD", 0,           "sys_chmod()" },
-	[TOMOYO_SYS_CHOWN]                  = { "SYS_CHOWN", 0,           "sys_chown()" },
-	[TOMOYO_SYS_IOCTL]                  = { "SYS_IOCTL", 0,           "sys_ioctl()" },
-	[TOMOYO_SYS_KEXEC_LOAD]             = { "SYS_KEXEC_LOAD", 0,      "sys_kexec_load()" },
-	[TOMOYO_SYS_PIVOT_ROOT]             = { "SYS_PIVOT_ROOT", 0,      "sys_pivot_root()" },
+	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = { "inet_tcp_create",      "socket(PF_INET, SOCK_STREAM)" },
+	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = { "inet_tcp_listen",      "listen(PF_INET, SOCK_STREAM)" },
+	[TOMOYO_INET_STREAM_SOCKET_CONNECT] = { "inet_tcp_connect",     "connect(PF_INET, SOCK_STREAM)" },
+	[TOMOYO_USE_INET_DGRAM_SOCKET]      = { "use_inet_udp",         "socket(PF_INET, SOCK_DGRAM)" },
+	[TOMOYO_USE_INET_RAW_SOCKET]        = { "use_inet_ip",          "socket(PF_INET, SOCK_RAW)" },
+	[TOMOYO_USE_ROUTE_SOCKET]           = { "use_route",            "socket(PF_ROUTE)" },
+	[TOMOYO_USE_PACKET_SOCKET]          = { "use_packet",           "socket(PF_PACKET)" },
+	[TOMOYO_SYS_MOUNT]                  = { "SYS_MOUNT",            "sys_mount()" },
+	[TOMOYO_SYS_UMOUNT]                 = { "SYS_UMOUNT",           "sys_umount()" },
+	[TOMOYO_SYS_REBOOT]                 = { "SYS_REBOOT",           "sys_reboot()" },
+	[TOMOYO_SYS_CHROOT]                 = { "SYS_CHROOT",           "sys_chroot()" },
+	[TOMOYO_SYS_KILL]                   = { "SYS_KILL",             "sys_kill()" },
+	[TOMOYO_SYS_VHANGUP]                = { "SYS_VHANGUP",          "sys_vhangup()" },
+	[TOMOYO_SYS_SETTIME]                = { "SYS_TIME",             "sys_settimeofday()" },
+	[TOMOYO_SYS_NICE]                   = { "SYS_NICE",             "sys_nice()" },
+	[TOMOYO_SYS_SETHOSTNAME]            = { "SYS_SETHOSTNAME",      "sys_sethostname()" },
+	[TOMOYO_USE_KERNEL_MODULE]          = { "use_kernel_module",    "kernel_module" },
+	[TOMOYO_CREATE_FIFO]                = { "create_fifo",          "mknod(FIFO)" },
+	[TOMOYO_CREATE_BLOCK_DEV]           = { "create_block_dev",     "mknod(BDEV)" },
+	[TOMOYO_CREATE_CHAR_DEV]            = { "create_char_dev",      "mknod(CDEV)" },
+	[TOMOYO_CREATE_UNIX_SOCKET]         = { "create_unix_socket",   "mknod(SOCKET)" },
+	[TOMOYO_SYS_LINK]                   = { "SYS_LINK",             "sys_link()" },
+	[TOMOYO_SYS_SYMLINK]                = { "SYS_SYMLINK",          "sys_symlink()" },
+	[TOMOYO_SYS_RENAME]                 = { "SYS_RENAME",           "sys_rename()" },
+	[TOMOYO_SYS_UNLINK]                 = { "SYS_UNLINK",           "sys_unlink()" },
+	[TOMOYO_SYS_CHMOD]                  = { "SYS_CHMOD",            "sys_chmod()" },
+	[TOMOYO_SYS_CHOWN]                  = { "SYS_CHOWN",            "sys_chown()" },
+	[TOMOYO_SYS_IOCTL]                  = { "SYS_IOCTL",            "sys_ioctl()" },
+	[TOMOYO_SYS_KEXEC_LOAD]             = { "SYS_KEXEC_LOAD",       "sys_kexec_load()" },
+	[TOMOYO_SYS_PIVOT_ROOT]             = { "SYS_PIVOT_ROOT",       "sys_pivot_root()" },
 };
 
 struct profile {
@@ -108,8 +107,6 @@ static struct profile *FindOrAssignNewProfile(const unsigned int profile)
 	down(&profile_lock);
 	if (profile < MAX_PROFILES && (ptr = profile_ptr[profile]) == NULL) {
 		if ((ptr = alloc_element(sizeof(*ptr))) != NULL) {
-			int i;
-			for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) ptr->value[i] = capability_control_array[i].current_value;
 			mb(); /* Avoid out-of-order execution. */
 			profile_ptr[profile] = ptr;
 		}
