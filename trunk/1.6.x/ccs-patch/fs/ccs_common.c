@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/03
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -58,6 +58,9 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 bool sbin_init_started = false;
 
 const char *ccs_log_level = KERN_DEBUG;
+
+static const char *mode_4[4] = { "disabled", "learning", "permissive", "enforcing" };
+static const char *mode_2[4] = { "disabled", "enabled", "enabled", "enabled" };
 
 static struct {
 	const char *keyword;
@@ -598,15 +601,49 @@ static int SetProfile(struct io_buffer *head)
 		return 0;
 	}
 #endif
-	if (sscanf(cp + 1, "%u", &value) != 1) return -EINVAL;
 #ifdef CONFIG_TOMOYO
 	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
+		if (sscanf(cp + 1, "%u", &value) != 1) {
+			int j;
+			for (j = 0; j < 4; j++) {
+				if (strcmp(cp + 1, mode_4[j])) continue;
+				value = j;
+				break;
+			}
+			if (j == 4) return -EINVAL;
+		}
 		return SetCapabilityStatus(data + KEYWORD_MAC_FOR_CAPABILITY_LEN, value, i);
 	}
 #endif
 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
 		if (strcmp(data, ccs_control_array[i].keyword)) continue;
-		if (value > ccs_control_array[i].max_value) value = ccs_control_array[i].max_value;
+		if (sscanf(cp + 1, "%u", &value) != 1) {
+			int j;
+			const char **modes;
+			switch (i) {
+			case CCS_SAKURA_RESTRICT_AUTOBIND:
+			case CCS_TOMOYO_VERBOSE:
+			case CCS_ALLOW_ENFORCE_GRACE:
+				modes = mode_2;
+				break;
+			default:
+				modes = mode_4;
+				break;
+			}
+			for (j = 0; j < 4; j++) {
+				if (strcmp(cp + 1, modes[j])) continue;
+				value = j;
+				break;
+			}
+			if (j == 4) return -EINVAL;
+		} else if (value > ccs_control_array[i].max_value) {
+			value = ccs_control_array[i].max_value;
+		}
+		switch (i) {
+		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
+		case CCS_SAKURA_RESTRICT_UNMOUNT:
+			if (value == 1) value = 2; /* learning mode is not supported. */
+		}
 		profile->value[i] = value;
 		return 0;
 	}
@@ -652,7 +689,21 @@ static int ReadProfile(struct io_buffer *head)
 			const struct path_info *alt_exec = profile->alt_exec;
 			if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword, alt_exec ? alt_exec->name : "")) break;
 		} else {
-			if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, profile->value[j])) break;
+			const unsigned int value = profile->value[j];
+			const char **modes = NULL;
+			switch (ccs_control_array[j].max_value) {
+			case 3:
+				modes = mode_4;
+				break;
+			case 1:
+				modes = mode_2;
+				break;
+			}
+			if (modes) {
+				if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[j].keyword, modes[value])) break;
+			} else {
+				if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, value)) break;
+			}
 		}
 	}
 	if (step == MAX_PROFILES * CCS_MAX_CONTROL_INDEX) {
@@ -1315,10 +1366,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/03/03\n");
+	printk("SAKURA: 1.6.0-pre   2008/03/04\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/03/03\n");
+	printk("TOMOYO: 1.6.0-pre   2008/03/04\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = true;

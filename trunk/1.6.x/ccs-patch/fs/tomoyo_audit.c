@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/18
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -138,6 +138,7 @@ static int grant_log_count = 0, reject_log_count = 0;
 
 char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm)
 {
+	static const char *mode_4[4] = { "disabled", "learning", "permissive", "enforcing" };
 	char *buf;
 	char *bprm_info = "";
 	struct timeval tv;
@@ -151,7 +152,7 @@ char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binpr
 		if (!bprm_info) return NULL;
 		*len += strlen(bprm_info);
 	}
-	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%u pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n%s\n", tv.tv_sec, profile, mode, task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8), bprm_info, domainname);
+	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n%s\n", tv.tv_sec, profile, mode_4[mode], task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8), bprm_info, domainname);
 	if (bprm) ccs_free(bprm_info);
 	return buf;
 }
