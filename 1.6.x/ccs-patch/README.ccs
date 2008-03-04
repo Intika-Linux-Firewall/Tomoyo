@@ -1277,3 +1277,24 @@ Fix 2008/03/03
       to the caller to tell the execute request was rejected,
       this is more flexible approach than in-kernel execve() parameter
       checking because we can do argv[] and envp[] checking easily.
+
+Fix 2008/03/04
+
+    @ Use string for access control mode.
+
+      An integer expression for access control mode sometimes confuses
+      administrators because profile number is also an integer expression.
+      To avoid confusion between profile number and access control mode,
+      I introduced a string expression for access control mode.
+
+        Modes which take an integer between 0 and 3.
+
+          0 -> disabled
+          1 -> learning
+          2 -> permissive
+          3 -> enforcing
+
+        Modes which take 0 or 1.
+
+          0 -> disabled
+          1 -> enabled

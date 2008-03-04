@@ -126,13 +126,14 @@ int SetCapabilityStatus(const char *data, u8 value, const u8 profile)
 
 int ReadCapabilityStatus(struct io_buffer *head)
 {
+	static const char *mode_4[4] = { "disabled", "learning", "permissive", "enforcing" };
 	int step;
 	for (step = head->read_step; step < MAX_PROFILES * TOMOYO_MAX_CAPABILITY_INDEX; step++) {
 		const int i = step / TOMOYO_MAX_CAPABILITY_INDEX, j = step % TOMOYO_MAX_CAPABILITY_INDEX;
 		const struct profile *profile = profile_ptr[i];
 		head->read_step = step;
 		if (!profile) continue;
-		if (io_printf(head, "%u-" KEYWORD_MAC_FOR_CAPABILITY "%s=%u\n", i, capability_control_array[j].keyword, profile->value[j])) break;
+		if (io_printf(head, "%u-" KEYWORD_MAC_FOR_CAPABILITY "%s=%s\n", i, capability_control_array[j].keyword, mode_4[profile->value[j]])) break;
 	}
 	return step < MAX_PROFILES * TOMOYO_MAX_CAPABILITY_INDEX ? -ENOMEM : 0;
 }
