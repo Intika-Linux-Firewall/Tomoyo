@@ -169,9 +169,9 @@ static bool IsGloballyReadableFile(const struct path_info *filename)
 {
 	struct globally_readable_file_entry *ptr;
 	list1_for_each_entry(ptr, &globally_readable_list, list) {
-		if (!ptr->is_deleted && !pathcmp(filename, ptr->filename)) return 1;
+		if (!ptr->is_deleted && !pathcmp(filename, ptr->filename)) return true;
 	}
-	return 0;
+	return false;
 }
 
 int AddGloballyReadablePolicy(char *filename, const bool is_delete)
@@ -202,7 +202,7 @@ static int AddPathGroupEntry(const char *group_name, const char *member_name, co
 	struct path_group_member *new_member, *member;
 	const struct path_info *saved_group_name, *saved_member_name;
 	int error = -ENOMEM;
-	bool found = 0;
+	bool found = false;
 	if (!IsCorrectPath(group_name, 0, 0, 0, __FUNCTION__) || !group_name[0] ||
 		!IsCorrectPath(member_name, 0, 0, 0, __FUNCTION__) || !member_name[0]) return -EINVAL;
 	if ((saved_group_name = SaveName(group_name)) == NULL ||
@@ -217,7 +217,7 @@ static int AddPathGroupEntry(const char *group_name, const char *member_name, co
 				goto out;
 			}
 		}
-		found = 1;
+		found = true;
 		break;
 	}
 	if (is_delete) {
@@ -270,12 +270,12 @@ static bool PathMatchesToGroup(const struct path_info *pathname, const struct pa
 	list1_for_each_entry(member, &group->path_group_member_list, list) {
 		if (member->is_deleted) continue;
 		if (!member->member_name->is_patterned) {
-			if (!pathcmp(pathname, member->member_name)) return 1;
+			if (!pathcmp(pathname, member->member_name)) return true;
 		} else if (may_use_pattern) {
-			if (PathMatchesToPattern(pathname, member->member_name)) return 1;
+			if (PathMatchesToPattern(pathname, member->member_name)) return true;
 		}
 	}
-	return 0;
+	return false;
 }
 
 int ReadPathGroupPolicy(struct io_buffer *head)
@@ -403,9 +403,9 @@ static bool IsNoRewriteFile(const struct path_info *filename)
 	list1_for_each_entry(ptr, &no_rewrite_list, list) {
 		if (ptr->is_deleted) continue;
 		if (!PathMatchesToPattern(filename, ptr->pattern)) continue;
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 int AddNoRewritePolicy(char *pattern, const bool is_delete)
@@ -539,14 +539,14 @@ static int AddSinglePathACL(const u8 type, const char *filename, struct domain_i
 	struct acl_info *ptr;
 	struct single_path_acl_record *acl;
 	int error = -ENOMEM;
-	bool is_group = 0;
+	bool is_group = false;
 	const u16 perm = 1 << type;
 	if (!domain) return -EINVAL;
 	if (!IsCorrectPath(filename, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if (filename[0] == '@') {
 		/* This cast is OK because I don't dereference in this function. */
 		if ((saved_filename = (struct path_info *) FindOrAssignNewPathGroup(filename + 1)) == NULL) return -ENOMEM;
-		is_group = 1;
+		is_group = true;
 	} else {
 		if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
 	}
@@ -595,21 +595,21 @@ static int AddDoublePathACL(const u8 type, const char *filename1, const char *fi
 	struct acl_info *ptr;
 	struct double_path_acl_record *acl;
 	int error = -ENOMEM;
-	bool is_group1 = 0, is_group2 = 0;
+	bool is_group1 = false, is_group2 = false;
 	const u8 perm = 1 << type;
 	if (!domain) return -EINVAL;
 	if (!IsCorrectPath(filename1, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(filename2, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if (filename1[0] == '@') {
 		/* This cast is OK because I don't dereference in this function. */
 		if ((saved_filename1 = (struct path_info *) FindOrAssignNewPathGroup(filename1 + 1)) == NULL) return -ENOMEM;
-		is_group1 = 1;
+		is_group1 = true;
 	} else {
 		if ((saved_filename1 = SaveName(filename1)) == NULL) return -ENOMEM;
 	}
 	if (filename2[0] == '@') {
 		/* This cast is OK because I don't dereference in this function. */
 		if ((saved_filename2 = (struct path_info *) FindOrAssignNewPathGroup(filename2 + 1)) == NULL) return -ENOMEM;
-		is_group2 = 1;
+		is_group2 = true;
 	} else {
 		if ((saved_filename2 = SaveName(filename2)) == NULL) return -ENOMEM;
 	}

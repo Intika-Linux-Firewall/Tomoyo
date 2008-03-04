@@ -74,9 +74,9 @@ static bool IsGloballyUsableEnv(const struct path_info *env)
 {
 	struct globally_usable_env_entry *ptr;
 	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
-		if (!ptr->is_deleted && PathMatchesToPattern(env, ptr->env)) return 1;
+		if (!ptr->is_deleted && PathMatchesToPattern(env, ptr->env)) return true;
 	}
-	return 0;
+	return false;
 }
 
 int AddGloballyUsableEnvPolicy(char *env, const bool is_delete)

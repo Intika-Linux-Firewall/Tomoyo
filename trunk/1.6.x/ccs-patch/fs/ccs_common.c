@@ -1537,7 +1537,7 @@ int CheckSupervisor(const char *fmt, ...)
 
 static int PollQuery(struct file *file, poll_table *wait)
 {
-	int found;
+	bool found;
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&query_lock);
 	found = !list_empty(&query_list);

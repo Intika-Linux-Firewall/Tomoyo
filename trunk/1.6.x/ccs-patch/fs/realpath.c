@@ -81,7 +81,7 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 			continue;
 		}
 		if (is_dir) {
-			is_dir = 0; *--end = '/'; buflen--;
+			is_dir = false; *--end = '/'; buflen--;
 		}
 		parent = dentry->d_parent;
 		{
@@ -251,11 +251,10 @@ void *alloc_element(const unsigned int size)
 	if (word_aligned_size > PAGE_SIZE) return NULL;
 	mutex_lock(&lock);
 	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
-		if ((ptr = kmalloc(PAGE_SIZE, GFP_KERNEL)) == NULL) {
+		if ((ptr = kzalloc(PAGE_SIZE, GFP_KERNEL)) == NULL) {
 			printk("ERROR: Out of memory for alloc_element().\n");
 			if (!sbin_init_started) panic("MAC Initialization failed.\n");
 		} else {
-			memset(ptr, 0, PAGE_SIZE);
 			buf = ptr;
 			allocated_memory_for_elements += PAGE_SIZE;
 			buf_used_len = word_aligned_size;
@@ -324,8 +323,8 @@ const struct path_info *SaveName(const char *name)
 	list_for_each_entry(fmb, &fmb_list, list) {
 		if (len <= fmb->len) goto ready;
 	}
-	cp = kmalloc(PAGE_SIZE, GFP_KERNEL);
-	fmb = kmalloc(sizeof(*fmb), GFP_KERNEL);
+	cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
+	fmb = kzalloc(sizeof(*fmb), GFP_KERNEL);
 	if (!cp || !fmb) {
 		kfree(cp);
 		kfree(fmb);
@@ -334,7 +333,6 @@ const struct path_info *SaveName(const char *name)
 		ptr = NULL;
 		goto out;
 	}
-	memset(cp, 0, PAGE_SIZE);
 	allocated_memory_for_savename += PAGE_SIZE;
 	list_add(&fmb->list, &fmb_list);
 	fmb->ptr = cp;
@@ -414,7 +412,7 @@ static int round2(size_t size)
 
 void *ccs_alloc(const size_t size)
 {
-	void *ret = kmalloc(size, GFP_KERNEL);
+	void *ret = kzalloc(size, GFP_KERNEL);
 	if (ret) {
 		struct cache_entry *new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
 		if (!new_entry) {
@@ -431,7 +429,6 @@ void *ccs_alloc(const size_t size)
 			list_add_tail(&new_entry->list, &cache_list);
 			dynamic_memory_size += new_entry->size;
 			spin_unlock(&cache_list_lock);
-			memset(ret, 0, size);
 		}
 	}
 	return ret;

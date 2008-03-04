@@ -114,7 +114,7 @@ int CheckCapabilityACL(const u8 operation)
 	const u8 profile = current->domain_info->profile;
 	const u8 mode = CheckCapabilityFlags(operation);
 	const bool is_enforce = (mode == 3);
-	bool found = 0;
+	bool found = false;
 	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
@@ -122,7 +122,7 @@ int CheckCapabilityACL(const u8 operation)
 		acl = container_of(ptr, struct capability_acl_record, head);
 		if (acl->operation != operation || !CheckCondition(ptr, NULL)) continue;
 		UpdateCondition(ptr);
-		found = 1;
+		found = true;
 		break;
 	}
 	AuditCapabilityLog(operation, found, profile, mode);

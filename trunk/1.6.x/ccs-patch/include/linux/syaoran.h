@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/03
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -39,6 +39,22 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 #define s_fs_info u.generic_sbp
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
+typedef _Bool bool;
+#endif
+
+#define false 0
+#define true 1
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,14)
+static inline void *kzalloc(int size, int flags)
+{
+	void *p = kmalloc(size, flags);
+	if (p) memset(p, 0, size);
+	return p;
+}
+#endif 
 
 #define list_for_each_cookie(pos, cookie, head) \
 	for (({if (!cookie) cookie = head;}), pos = (cookie)->next; \
@@ -205,11 +221,11 @@ static int fs_symlink(const char *pathname, struct dentry *base, char *oldname, 
 static void NormalizeLine(unsigned char *buffer)
 {
 	unsigned char *sp = buffer, *dp = buffer;
-	_Bool first = 1;
+	bool first = true;
 	while (*sp && (*sp <= ' ' || *sp >= 127)) sp++;
 	while (*sp) {
 		if (!first) *dp++ = ' ';
-		first = 0;
+		first = false;
 		while (*sp > ' ' && *sp < 127) *dp++ = *sp++;
 		while (*sp && (*sp <= ' ' || *sp >= 127)) sp++;
 	}
@@ -245,7 +261,7 @@ static char *strdup(const char *str)
 {
 	char *cp;
 	const int len = str ? strlen(str) + 1 : 0;
-	if ((cp = kmalloc(len, GFP_KERNEL)) != NULL) memmove(cp, str, len);
+	if ((cp = kzalloc(len, GFP_KERNEL)) != NULL) memmove(cp, str, len);
 	return cp;
 }
 
@@ -277,8 +293,8 @@ struct dev_entry {
 
 struct syaoran_sb_info {
 	struct list_head list;
-	_Bool initialize_done;           /* False if initialization is in progress. */
-	_Bool is_permissive_mode;        /* True if permissive mode.                */
+	bool initialize_done;           /* False if initialization is in progress. */
+	bool is_permissive_mode;        /* True if permissive mode.                */
 };
 
 static int RegisterNodeInfo(char *buffer, struct super_block *sb)
@@ -343,8 +359,7 @@ static int RegisterNodeInfo(char *buffer, struct super_block *sb)
 		goto out;
 	}
 	error = -ENOMEM;
-	if ((entry = kmalloc(sizeof(*entry), GFP_KERNEL)) == NULL) goto out;
-	memset(entry, 0, sizeof(*entry));
+	if ((entry = kzalloc(sizeof(*entry), GFP_KERNEL)) == NULL) goto out;
 	if (S_ISLNK(perm)) {
 		if ((entry->printable_symlink_data = strdup(args[ARG_SYMLINK_DATA])) == NULL) goto out_freemem;
 	}
@@ -403,11 +418,10 @@ static int ReadConfigFile(struct file *file, struct super_block *sb)
 	char *buffer;
 	int error = -ENOMEM;
 	if (!file) return -EINVAL;
-	if ((buffer = kmalloc(PAGE_SIZE, GFP_KERNEL)) != NULL) {
+	if ((buffer = kzalloc(PAGE_SIZE, GFP_KERNEL)) != NULL) {
 		int len;
 		char *cp;
 		unsigned long offset = 0;
-		memset(buffer, 0, PAGE_SIZE);
 		while ((len = kernel_read(file, offset, buffer, PAGE_SIZE)) > 0 && (cp = memchr(buffer, '\n', len)) != NULL) {
 			*cp = '\0';
 			offset += cp - buffer + 1;
@@ -498,17 +512,17 @@ static void MakeInitialNodes(struct super_block *sb)
 	list_for_each_entry(entry, &info->list, list) {
 		if ((entry->flags & NO_CREATE_AT_MOUNT) == 0) MakeNode(entry, sb->s_root);
 	}
-	info->initialize_done = 1;
+	info->initialize_done = true;
 }
 
 /* Read policy file. */
 static int Syaoran_Initialize(struct super_block *sb, void *data)
 {
 	int error = -EINVAL;
-	static _Bool first = 1;
+	static bool first = true;
 	if (first) {
-		first = 0;
-		printk("SYAORAN: 1.6.0-pre   2008/03/03\n");
+		first = false;
+		printk("SYAORAN: 1.6.0-pre   2008/03/04\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
@@ -533,14 +547,14 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	if (data) {
 		struct file *f;
 		char *filename = (char *) data;
-		_Bool is_permissive_mode = syaoran_default_mode;
+		bool is_permissive_mode = syaoran_default_mode;
 		/* If mode is given with mount operation, use it. */
 		if (strncmp(filename, "accept=", 7) == 0) {
 			filename += 7;
-			is_permissive_mode = 1;
+			is_permissive_mode = true;
 		} else if (strncmp(filename, "enforce=", 8) == 0) {
 			filename += 8;
-			is_permissive_mode = 0;
+			is_permissive_mode = false;
 		} else if (syaoran_default_mode == -1) {
 			/* If mode is not given with command line, abort mount. */
 			printk("SYAORAN: Missing 'accept=' or 'enforce='.\n");
@@ -550,8 +564,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 		if (!IS_ERR(f)) {
 			struct syaoran_sb_info *p;
 			if (!S_ISREG(f->f_dentry->d_inode->i_mode)) goto out;
-			if ((p = sb->s_fs_info = kmalloc(sizeof(*p), GFP_KERNEL)) == NULL) goto out;
-			memset(p, 0, sizeof(*p));
+			if ((p = sb->s_fs_info = kzalloc(sizeof(*p), GFP_KERNEL)) == NULL) goto out;
 			p->is_permissive_mode = is_permissive_mode;
 			INIT_LIST_HEAD(&((struct syaoran_sb_info *) sb->s_fs_info)->list);
 			printk("SYAORAN: Reading '%s'\n", filename);
@@ -729,7 +742,7 @@ struct syaoran_read_struct {
 	int avail;               /* Bytes available for reading.       */
 	struct super_block *sb;  /* The super_block of this partition. */
 	struct dev_entry *entry; /* The entry currently reading from.  */
-	_Bool read_all;          /* Dump all entries?                  */
+	bool read_all;           /* Dump all entries?                  */
 	struct list_head *pos;   /* Current position.                  */
 };
 
@@ -738,7 +751,7 @@ static void ReadTable(struct syaoran_read_struct *head, char *buf, int count)
 	struct super_block *sb = head->sb;
 	struct syaoran_sb_info *info = (struct syaoran_sb_info *) sb->s_fs_info;
 	struct list_head *pos;
-	const _Bool read_all = head->read_all;
+	const bool read_all = head->read_all;
 	if (!info) return;
 	if (!head->pos) return;
 	list_for_each_cookie(pos, head->pos, &info->list) {
@@ -784,16 +797,14 @@ static void ReadTable(struct syaoran_read_struct *head, char *buf, int count)
 static int syaoran_trace_open(struct inode *inode, struct file *file)
 {
 	struct syaoran_read_struct *head;
-	if ((head = kmalloc(sizeof(*head), GFP_KERNEL)) == NULL) return -ENOMEM;
-	memset(head, 0, sizeof(*head));
+	if ((head = kzalloc(sizeof(*head), GFP_KERNEL)) == NULL) return -ENOMEM;
 	head->sb = inode->i_sb;
 	head->read_all = (strcmp(file->f_dentry->d_name.name, ".syaoran_all") == 0);
 	head->pos = &((struct syaoran_sb_info *) head->sb->s_fs_info)->list;
-	if ((head->buf = kmalloc(PAGE_SIZE * 2, GFP_KERNEL)) == NULL) {
+	if ((head->buf = kzalloc(PAGE_SIZE * 2, GFP_KERNEL)) == NULL) {
 		kfree(head);
 		return -ENOMEM;
 	}
-	memset(head->buf, 0, PAGE_SIZE * 2);
 	file->private_data = head;
 	return 0;
 }

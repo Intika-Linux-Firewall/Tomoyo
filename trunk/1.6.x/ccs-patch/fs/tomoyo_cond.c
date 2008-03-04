@@ -534,7 +534,7 @@ static void GetAttributes(struct obj_info *obj)
 			obj->path1_stat.uid = inode->i_uid;
 			obj->path1_stat.gid = inode->i_gid;
 			obj->path1_stat.ino = inode->i_ino;
-			obj->path1_valid = 1;
+			obj->path1_valid = true;
 		}
 	}
 
@@ -549,7 +549,7 @@ static void GetAttributes(struct obj_info *obj)
 			obj->path1_parent_stat.uid = inode->i_uid;
 			obj->path1_parent_stat.gid = inode->i_gid;
 			obj->path1_parent_stat.ino = inode->i_ino;
-			obj->path1_parent_valid = 1;
+			obj->path1_parent_valid = true;
 		}
 	}
 	dput(dentry);
@@ -566,7 +566,7 @@ static void GetAttributes(struct obj_info *obj)
 				obj->path2_parent_stat.uid = inode->i_uid;
 				obj->path2_parent_stat.gid = inode->i_gid;
 				obj->path2_parent_stat.ino = inode->i_ino;
-				obj->path2_parent_valid = 1;
+				obj->path2_parent_valid = true;
 			}
 		}
 		dput(dentry);
@@ -590,7 +590,7 @@ static void GetAttributes(struct obj_info *obj)
 			obj->path1_stat.uid = stat.uid;
 			obj->path1_stat.gid = stat.gid;
 			obj->path1_stat.ino = stat.ino;
-			obj->path1_valid = 1;
+			obj->path1_valid = true;
 		}
 	}
 	
@@ -603,7 +603,7 @@ static void GetAttributes(struct obj_info *obj)
 			obj->path1_parent_stat.uid = stat.uid;
 			obj->path1_parent_stat.gid = stat.gid;
 			obj->path1_parent_stat.ino = stat.ino;
-			obj->path1_parent_valid = 1;
+			obj->path1_parent_valid = true;
 		}
 	}
 	dput(dentry);
@@ -618,7 +618,7 @@ static void GetAttributes(struct obj_info *obj)
 				obj->path2_parent_stat.uid = stat.uid;
 				obj->path2_parent_stat.gid = stat.gid;
 				obj->path2_parent_stat.ino = stat.ino;
-				obj->path2_parent_valid = 1;
+				obj->path2_parent_valid = true;
 			}
 		}
 		dput(dentry);
@@ -635,7 +635,7 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 	const struct condition_list *ptr = GetConditionPart(acl);
 	struct linux_binprm *bprm;
 	bool failed = false;
-	if (!ptr) return 1;
+	if (!ptr) return true;
 	bprm = obj->bprm;
 	ptr2 = (union element *) (((u8 *) ptr) + sizeof(*ptr));
 	for (i = 0; i < ptr->length; i++) {
@@ -674,7 +674,7 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 			if (!obj) goto out;
 			if (!obj->validate_done) {
 				GetAttributes(obj);
-				obj->validate_done = 1;
+				obj->validate_done = true;
 			}
 		}
 		switch (left) {
@@ -783,9 +783,9 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 			if (left_min > right_max || left_max < right_min) continue;
 		}
 	out:
-		return 0;
+		return false;
 	}
-	return 1;
+	return true;
 }
 
 void UpdateCondition(const struct acl_info *acl)

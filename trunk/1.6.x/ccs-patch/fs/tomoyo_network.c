@@ -84,7 +84,7 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 	const struct path_info *saved_group_name;
 	const struct in6_addr *saved_min_address = NULL, *saved_max_address = NULL;
 	int error = -ENOMEM;
-	bool found = 0;
+	bool found = false;
 	if (!IsCorrectPath(group_name, 0, 0, 0, __FUNCTION__) || !group_name[0]) return -EINVAL;
 	if ((saved_group_name = SaveName(group_name)) == NULL) return -ENOMEM;
 	if (is_ipv6) {
@@ -105,7 +105,7 @@ static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, cons
 			error = 0;
 			goto out;
 		}
-		found = 1;
+		found = true;
 		break;
 	}
 	if (is_delete) {
@@ -154,7 +154,7 @@ int AddAddressGroupPolicy(char *data, const bool is_delete)
 			max_address[i] = htons(max_address[i]);
 		}
 		if (count == 8) memmove(max_address, min_address, sizeof(min_address));
-		is_ipv6 = 1;
+		is_ipv6 = true;
 	} else if ((count = sscanf(cp, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
 				   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
 				   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
@@ -162,7 +162,7 @@ int AddAddressGroupPolicy(char *data, const bool is_delete)
 		* (u32 *) min_address = ip;
 		if (count == 8) ip = ((((u8) max_address[0]) << 24) + (((u8) max_address[1]) << 16) + (((u8) max_address[2]) << 8) + (u8) max_address[3]);
 		* (u32 *) max_address = ip;
-		is_ipv6 = 0;
+		is_ipv6 = false;
 	} else {
 		return -EINVAL;
 	}
@@ -193,12 +193,12 @@ static bool AddressMatchesToGroup(const bool is_ipv6, const u32 *address, const 
 	list1_for_each_entry(member, &group->address_group_member_list, list) {
 		if (member->is_deleted) continue;
 		if (member->is_ipv6) {
-			if (is_ipv6 && memcmp(member->min.ipv6, address, 16) <= 0 && memcmp(address, member->max.ipv6, 16) <= 0) return 1;
+			if (is_ipv6 && memcmp(member->min.ipv6, address, 16) <= 0 && memcmp(address, member->max.ipv6, 16) <= 0) return true;
 		} else {
-			if (!is_ipv6 && member->min.ipv4 <= ip && ip <= member->max.ipv4) return 1;
+			if (!is_ipv6 && member->min.ipv4 <= ip && ip <= member->max.ipv4) return true;
 		}
 	}
-	return 0;
+	return false;
 }
 
 int ReadAddressGroupPolicy(struct io_buffer *head)
@@ -366,7 +366,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const u8 operation, const u32 *
 	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_NETWORK);
 	const bool is_enforce = (mode == 3);
 	const u32 ip = ntohl(*address); /* using host byte order to allow u32 comparison than memcmp().*/
-	bool found = 0;
+	bool found = false;
 	if (!mode) return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ip_network_acl_record *acl;
@@ -381,7 +381,7 @@ static int CheckNetworkEntry(const bool is_ipv6, const u8 operation, const u32 *
 			if (!is_ipv6 || memcmp(acl->u.ipv6.min, address, 16) > 0 || memcmp(address, acl->u.ipv6.max, 16) > 0) continue;
 		}
 		UpdateCondition(ptr);
-		found = 1;
+		found = true;
 		break;
 	}
 	AuditNetworkLog(is_ipv6, keyword, address, port, found, profile, mode);

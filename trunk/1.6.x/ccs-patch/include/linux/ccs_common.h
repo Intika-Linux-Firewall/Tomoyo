@@ -557,4 +557,13 @@ extern const char *ccs_log_level;
 extern struct domain_info KERNEL_DOMAIN;
 extern struct mutex domain_acl_lock;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,14)
+static inline void *kzalloc(int size, int flags)
+{
+	void *p = kmalloc(size, flags);
+	if (p) memset(p, 0, size);
+	return p;
+}
+#endif 
+
 #endif
