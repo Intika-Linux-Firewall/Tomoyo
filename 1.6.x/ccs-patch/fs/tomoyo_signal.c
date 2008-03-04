@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/18
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -20,13 +20,6 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
 #define find_task_by_pid find_task_by_vpid
 #endif
-
-/*************************  VARIABLES  *************************/
-
-/* The initial domain. */
-extern struct domain_info KERNEL_DOMAIN;
-
-extern struct mutex domain_acl_lock;
 
 /*************************  AUDIT FUNCTIONS  *************************/
 

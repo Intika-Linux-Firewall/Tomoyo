@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/03
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -30,9 +30,6 @@ struct domain_info KERNEL_DOMAIN;
 
 /* List of domains. */
 LIST1_HEAD(domain_list);
-
-/* /sbin/init started? */
-extern bool sbin_init_started;
 
 #ifdef CONFIG_TOMOYO
 
@@ -1015,6 +1012,16 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 	}
 	ccs_free(work);
 	return retval;
+}
+
+#else
+
+int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
+{
+#ifdef CONFIG_SAKURA
+	CCS_LoadPolicy(bprm->filename);
+#endif
+	return search_binary_handler(bprm, regs);
 }
 
 #endif

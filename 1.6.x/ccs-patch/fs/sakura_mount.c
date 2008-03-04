@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -35,8 +35,6 @@ static inline void module_put(struct module *module)
 	if (module) __MOD_DEC_USE_COUNT(module);
 }
 #endif
-
-extern const char *ccs_log_level;
 
 /***** KEYWORDS for mount restrictions. *****/
 

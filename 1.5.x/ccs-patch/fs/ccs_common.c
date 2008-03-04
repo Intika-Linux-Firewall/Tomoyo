@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4-pre   2008/02/16
+ * Version: 1.5.4-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1207,7 +1207,7 @@ void CCS_LoadPolicy(const char *filename)
 	printk("SAKURA: 1.5.4-pre   2008/02/16\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.4-pre   2008/02/16\n");
+	printk("TOMOYO: 1.5.4-pre   2008/03/04\n");
 #endif
 	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");

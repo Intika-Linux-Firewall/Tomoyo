@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/03
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -512,7 +512,6 @@ int PollRejectLog(struct file *file, poll_table *wait);
 int ReadAddressGroupPolicy(struct io_buffer *head);
 int ReadAggregatorPolicy(struct io_buffer *head);
 int ReadAliasPolicy(struct io_buffer *head);
-int ReadCapabilityStatus(struct io_buffer *head);
 int ReadChrootPolicy(struct io_buffer *head);
 int ReadDomainInitializerPolicy(struct io_buffer *head);
 int ReadDomainKeeperPolicy(struct io_buffer *head);
@@ -527,7 +526,6 @@ int ReadPathGroupPolicy(struct io_buffer *head);
 int ReadPivotRootPolicy(struct io_buffer *head);
 int ReadRejectLog(struct io_buffer *head);
 int ReadReservedPortPolicy(struct io_buffer *head);
-int SetCapabilityStatus(const char *data, u8 value, const u8 profile);
 int WriteAuditLog(char *log, const bool is_granted);
 int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 struct domain_info *FindDomain(const char *domainname);
@@ -536,6 +534,7 @@ struct domain_info *UndeleteDomain(const char *domainname0);
 bool CheckCCSQuota(struct domain_info * const domain);
 unsigned int CheckCCSFlags(const u8 index);
 unsigned int CheckCCSFlags_NoSleepCheck(const u8 index);
+u8 CheckCapabilityFlags(const u8 index);
 bool CheckDomainQuota(struct domain_info * const domain);
 bool TomoyoVerboseMode(void);
 void *alloc_acl_element(const u8 acl_type, const struct condition_list *condition);
@@ -552,5 +551,10 @@ static inline bool pathcmp(const struct path_info *a, const struct path_info *b)
 }
 
 extern struct list1_head domain_list;
+extern asmlinkage long sys_getppid(void);
+extern bool sbin_init_started;
+extern const char *ccs_log_level;
+extern struct domain_info KERNEL_DOMAIN;
+extern struct mutex domain_acl_lock;
 
 #endif

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/18
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -628,7 +628,6 @@ static void GetAttributes(struct obj_info *obj)
 
 bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 {
-	extern asmlinkage long sys_getppid(void);
 	struct task_struct *task = current;
 	u32 i;
 	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
