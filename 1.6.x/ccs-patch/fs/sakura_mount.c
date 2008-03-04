@@ -88,11 +88,11 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 		if (ptr->flags != flags || pathcmp(ptr->dev_name, dev) || pathcmp(ptr->dir_name, dir) || pathcmp(ptr->fs_type, fs)) continue;
 		error = 0;
 		if (is_delete) {
-			ptr->is_deleted = 1;
+			ptr->is_deleted = true;
 			goto out;
 		} else {
 			if (ptr->is_deleted) {
-				ptr->is_deleted = 0;
+				ptr->is_deleted = false;
 				goto update;
 			}
 			goto out; /* No changes. */

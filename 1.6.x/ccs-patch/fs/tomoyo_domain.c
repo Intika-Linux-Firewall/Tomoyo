@@ -117,11 +117,11 @@ static int AddDomainInitializerEntry(const char *domainname, const char *program
 	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_program, *saved_domainname = NULL;
 	int error = -ENOMEM;
-	bool is_last_name = 0;
+	bool is_last_name = false;
 	if (!IsCorrectPath(program, 1, -1, -1, __FUNCTION__)) return -EINVAL; /* No patterns allowed. */
 	if (domainname) {
 		if (!IsDomainDef(domainname) && IsCorrectPath(domainname, 1, -1, -1, __FUNCTION__)) {
-			is_last_name = 1;
+			is_last_name = true;
 		} else if (!IsCorrectDomain(domainname, __FUNCTION__)) {
 			return -EINVAL;
 		}
@@ -182,7 +182,7 @@ int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_dele
 static bool IsDomainInitializer(const struct path_info *domainname, const struct path_info *program, const struct path_info *last_name)
 {
 	struct domain_initializer_entry *ptr;
-	bool flag = 0;
+	bool flag = false;
 	list1_for_each_entry(ptr,  &domain_initializer_list, list) {
 		if (ptr->is_deleted) continue;
 		if (ptr->domainname) {
@@ -193,8 +193,8 @@ static bool IsDomainInitializer(const struct path_info *domainname, const struct
 			}
 		}
 		if (pathcmp(ptr->program, program)) continue;
-		if (ptr->is_not) return 0;
-		flag = 1;
+		if (ptr->is_not) return false;
+		flag = true;
 	}
 	return flag;
 }
@@ -209,9 +209,9 @@ static int AddDomainKeeperEntry(const char *domainname, const char *program, con
 	const struct path_info *saved_domainname, *saved_program = NULL;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
-	bool is_last_name = 0;
+	bool is_last_name = false;
 	if (!IsDomainDef(domainname) && IsCorrectPath(domainname, 1, -1, -1, __FUNCTION__)) {
-		is_last_name = 1;
+		is_last_name = true;
 	} else if (!IsCorrectDomain(domainname, __FUNCTION__)) {
 		return -EINVAL;
 	}
@@ -274,7 +274,7 @@ int ReadDomainKeeperPolicy(struct io_buffer *head)
 static bool IsDomainKeeper(const struct path_info *domainname, const struct path_info *program, const struct path_info *last_name)
 {
 	struct domain_keeper_entry *ptr;
-	bool flag = 0;
+	bool flag = false;
 	list1_for_each_entry(ptr, &domain_keeper_list, list) {
 		if (ptr->is_deleted) continue;
 		if (!ptr->is_last_name) {
@@ -283,8 +283,8 @@ static bool IsDomainKeeper(const struct path_info *domainname, const struct path
 			if (pathcmp(ptr->domainname, last_name)) continue;
 		}
 		if (ptr->program && pathcmp(ptr->program, program)) continue;
-		if (ptr->is_not) return 0;
-		flag = 1;
+		if (ptr->is_not) return false;
+		flag = true;
 	}
 	return flag;
 }
@@ -492,11 +492,11 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		struct acl_info *ptr;
 		bool flag;
 		if (!domain->is_deleted || domain->domainname != saved_domainname) continue;
-		flag = 0;
+		flag = false;
 		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		for_each_process(p) {
-			if (p->domain_info == domain) { flag = 1; break; }
+			if (p->domain_info == domain) { flag = true; break; }
 		}
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
@@ -509,7 +509,7 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 		}
 		domain->flags = 0;
 		domain->profile = profile;
-		domain->quota_warned = 0;
+		domain->quota_warned = false;
 		mb(); /* Avoid out-of-order execution. */
 		domain->is_deleted = 0;
 		goto out;
@@ -618,11 +618,11 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 		/*
 		 * Built-in initializers. This is needed because policies are not loaded until starting /sbin/init .
 		 */
-		static bool first = 1;
+		static bool first = true;
 		if (first) {
 			AddDomainInitializerEntry(NULL, "/sbin/hotplug", 0, 0);
 			AddDomainInitializerEntry(NULL, "/sbin/modprobe", 0, 0);
-			first = 0;
+			first = false;
 		}
 	}
 

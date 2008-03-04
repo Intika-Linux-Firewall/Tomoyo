@@ -5,7 +5,7 @@
  *
  * Portions Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/01/03
+ * Version: 1.6.0-pre   2008/03/04
  *
  * This file is applicable to 2.4.30 and later.
  * See README.ccs for ChangeLog.
@@ -217,7 +217,7 @@ static inline int syaoran_positive(struct dentry *dentry)
  * Note that an empty directory can still have
  * children, they just all have to be negative..
  */
-static int syaoran_empty(struct dentry *dentry)
+static bool syaoran_empty(struct dentry *dentry)
 {
 	struct list_head *list;
 
@@ -229,12 +229,12 @@ static int syaoran_empty(struct dentry *dentry)
 
 		if (syaoran_positive(de)) {
 			spin_unlock(&dcache_lock);
-			return 0;
+			return false;
 		}
 		list = list->next;
 	}
 	spin_unlock(&dcache_lock);
-	return 1;
+	return true;
 }
 
 /*

@@ -30,7 +30,7 @@
 
 int SAKURA_MayMount(struct nameidata *nd)
 {
-	int flag = 0;
+	bool flag = false;
 	const u8 mode = CheckCCSFlags(CCS_SAKURA_DENY_CONCEAL_MOUNT);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
 	struct namespace *namespace = current->namespace;
@@ -50,12 +50,12 @@ int SAKURA_MayMount(struct nameidata *nd)
 				while (1) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
 					if (nd->path.mnt->mnt_root == vfsmnt->mnt_root && nd->path.dentry == dentry) {
-						flag = 1;
+						flag = true;
 						break;
 					}
 #else
 					if (nd->mnt->mnt_root == vfsmnt->mnt_root && nd->dentry == dentry) {
-						flag = 1;
+						flag = true;
 						break;
 					}
 #endif

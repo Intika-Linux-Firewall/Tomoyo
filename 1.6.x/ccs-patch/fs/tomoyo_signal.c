@@ -87,7 +87,7 @@ int CheckSignalACL(const int sig, const int pid)
 	const u8 profile = current->domain_info->profile;
 	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL); 
 	const bool is_enforce = (mode == 3);
-	bool found = 0;
+	bool found = false;
 	if (!mode) return 0;
 	if (!sig) return 0;                               /* No check for NULL signal. */
 	if (current->pid == pid) {
@@ -119,7 +119,7 @@ int CheckSignalACL(const int sig, const int pid)
 			if (strncmp(acl->domainname->name, dest_pattern, len)) continue;
 			if (dest_pattern[len] != ' ' && dest_pattern[len] != '\0') continue;
 			UpdateCondition(ptr);
-			found = 1;
+			found = true;
 			break;
 		}
 	}

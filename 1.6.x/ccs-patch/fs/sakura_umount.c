@@ -75,13 +75,13 @@ int SAKURA_MayUmount(struct vfsmount *mnt)
 	if (dir0) {
 		struct no_umount_entry *ptr;
 		struct path_info dir;
-		bool found = 0;
+		bool found = false;
 		dir.name = dir0;
 		fill_path_info(&dir);
 		list1_for_each_entry(ptr, &no_umount_list, list) {
 			if (ptr->is_deleted) continue;
 			if (PathMatchesToPattern(&dir, ptr->dir)) {
-				found = 1;
+				found = true;
 				break;
 			}
 		}
