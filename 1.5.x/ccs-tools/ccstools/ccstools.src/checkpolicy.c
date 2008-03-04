@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/03/04
  *
  */
 #include "ccstools.h"
@@ -38,7 +38,7 @@ static int parse_ulong(unsigned long *result, const char **str) {
 static char *FindConditionPart(char *data) {
 	char *cp = strstr(data, " if "), *cp2;
 	if (cp) {
-		while ((cp2 = strstr(cp + 4, " if ")) != NULL) cp = cp2;
+		while ((cp2 = strstr(cp + 3, " if ")) != NULL) cp = cp2;
 		*cp++ = '\0';
 	}
 	return cp;
