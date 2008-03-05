@@ -53,8 +53,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  net/unix/af_unix.c           |   10 ++++
  49 files changed, 699 insertions(+), 7 deletions(-)
 
---- kernel-source-2.4.27-10sarge6.orig/Documentation/Configure.help
-+++ kernel-source-2.4.27-10sarge6/Documentation/Configure.help
+--- kernel-source-2.4.27-10sarge7.orig/Documentation/Configure.help
++++ kernel-source-2.4.27-10sarge7/Documentation/Configure.help
 @@ -29070,6 +29070,95 @@ CONFIG_SOUND_WM97XX
    
    If unsure, say N.
@@ -151,19 +151,19 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  #
  # A couple of things I keep forgetting:
  #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
---- kernel-source-2.4.27-10sarge6.orig/Makefile
-+++ kernel-source-2.4.27-10sarge6/Makefile
+--- kernel-source-2.4.27-10sarge7.orig/Makefile
++++ kernel-source-2.4.27-10sarge7/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 4
  SUBLEVEL = 27
 -EXTRAVERSION =
-+EXTRAVERSION = -10sarge6-ccs
++EXTRAVERSION = -10sarge7-ccs
  
  KERNELRELEASE=$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
  
---- kernel-source-2.4.27-10sarge6.orig/fs/Config.in
-+++ kernel-source-2.4.27-10sarge6/fs/Config.in
+--- kernel-source-2.4.27-10sarge7.orig/fs/Config.in
++++ kernel-source-2.4.27-10sarge7/fs/Config.in
 @@ -208,4 +208,7 @@ comment 'Partition Types'
  source fs/partitions/Config.in
  endmenu
@@ -172,8 +172,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
 +source fs/Config.ccs.in
 +
  endmenu
---- kernel-source-2.4.27-10sarge6.orig/fs/Makefile
-+++ kernel-source-2.4.27-10sarge6/fs/Makefile
+--- kernel-source-2.4.27-10sarge7.orig/fs/Makefile
++++ kernel-source-2.4.27-10sarge7/fs/Makefile
 @@ -84,5 +84,5 @@ obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
@@ -181,8 +181,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
 -
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
---- kernel-source-2.4.27-10sarge6.orig/fs/attr.c
-+++ kernel-source-2.4.27-10sarge6/fs/attr.c
+--- kernel-source-2.4.27-10sarge7.orig/fs/attr.c
++++ kernel-source-2.4.27-10sarge7/fs/attr.c
 @@ -12,6 +12,9 @@
  #include <linux/dnotify.h>
  #include <linux/fcntl.h>
@@ -204,8 +204,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	if (inode->i_op && inode->i_op->setattr) 
---- kernel-source-2.4.27-10sarge6.orig/fs/exec.c
-+++ kernel-source-2.4.27-10sarge6/fs/exec.c
+--- kernel-source-2.4.27-10sarge7.orig/fs/exec.c
++++ kernel-source-2.4.27-10sarge7/fs/exec.c
 @@ -48,6 +48,10 @@
  #include <linux/kmod.h>
  #endif
@@ -249,8 +249,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	if (retval >= 0)
  		/* execve success */
  		return retval;
---- kernel-source-2.4.27-10sarge6.orig/fs/fcntl.c
-+++ kernel-source-2.4.27-10sarge6/fs/fcntl.c
+--- kernel-source-2.4.27-10sarge7.orig/fs/fcntl.c
++++ kernel-source-2.4.27-10sarge7/fs/fcntl.c
 @@ -16,6 +16,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -272,8 +272,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	/* Did FASYNC state change? */
  	if ((arg ^ filp->f_flags) & FASYNC) {
  		if (filp->f_op && filp->f_op->fasync) {
---- kernel-source-2.4.27-10sarge6.orig/fs/ioctl.c
-+++ kernel-source-2.4.27-10sarge6/fs/ioctl.c
+--- kernel-source-2.4.27-10sarge7.orig/fs/ioctl.c
++++ kernel-source-2.4.27-10sarge7/fs/ioctl.c
 @@ -10,6 +10,9 @@
  
  #include <asm/uaccess.h>
@@ -294,8 +294,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  			error = -ENOTTY;
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
---- kernel-source-2.4.27-10sarge6.orig/fs/namei.c
-+++ kernel-source-2.4.27-10sarge6/fs/namei.c
+--- kernel-source-2.4.27-10sarge7.orig/fs/namei.c
++++ kernel-source-2.4.27-10sarge7/fs/namei.c
 @@ -28,6 +28,11 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -477,8 +477,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- kernel-source-2.4.27-10sarge6.orig/fs/namespace.c
-+++ kernel-source-2.4.27-10sarge6/fs/namespace.c
+--- kernel-source-2.4.27-10sarge7.orig/fs/namespace.c
++++ kernel-source-2.4.27-10sarge7/fs/namespace.c
 @@ -21,6 +21,13 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
@@ -597,8 +597,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	read_lock(&current->fs->lock);
  	user_nd.mnt = mntget(current->fs->rootmnt);
  	user_nd.dentry = dget(current->fs->root);
---- kernel-source-2.4.27-10sarge6.orig/fs/open.c
-+++ kernel-source-2.4.27-10sarge6/fs/open.c
+--- kernel-source-2.4.27-10sarge7.orig/fs/open.c
++++ kernel-source-2.4.27-10sarge7/fs/open.c
 @@ -20,6 +20,13 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
@@ -656,8 +656,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->tty);
  		return 0;
---- kernel-source-2.4.27-10sarge6.orig/fs/proc/Makefile
-+++ kernel-source-2.4.27-10sarge6/fs/proc/Makefile
+--- kernel-source-2.4.27-10sarge7.orig/fs/proc/Makefile
++++ kernel-source-2.4.27-10sarge7/fs/proc/Makefile
 @@ -18,4 +18,8 @@ ifeq ($(CONFIG_PROC_DEVICETREE),y)
  obj-y += proc_devtree.o
  endif
@@ -667,8 +667,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
 +obj-$(CONFIG_TOMOYO) += ccs_proc.o
 +
  include $(TOPDIR)/Rules.make
---- kernel-source-2.4.27-10sarge6.orig/fs/proc/proc_misc.c
-+++ kernel-source-2.4.27-10sarge6/fs/proc/proc_misc.c
+--- kernel-source-2.4.27-10sarge7.orig/fs/proc/proc_misc.c
++++ kernel-source-2.4.27-10sarge7/fs/proc/proc_misc.c
 @@ -670,4 +670,13 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
@@ -678,13 +678,13 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
 +	{
 +		extern void CCSProc_Init(void);
 +		CCSProc_Init();
-+		printk("Hook version: 2.4.27-10sarge6 2008/02/24\n");
++		printk("Hook version: 2.4.27-10sarge7 2008/03/05\n");
 +	}
 +#endif
 +	/***** CCS end. *****/
  }
---- kernel-source-2.4.27-10sarge6.orig/include/linux/sched.h
-+++ kernel-source-2.4.27-10sarge6/include/linux/sched.h
+--- kernel-source-2.4.27-10sarge7.orig/include/linux/sched.h
++++ kernel-source-2.4.27-10sarge7/include/linux/sched.h
 @@ -29,6 +29,11 @@ extern unsigned long event;
  
  struct exec_domain;
@@ -719,8 +719,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  }
  
  
---- kernel-source-2.4.27-10sarge6.orig/kernel/kmod.c
-+++ kernel-source-2.4.27-10sarge6/kernel/kmod.c
+--- kernel-source-2.4.27-10sarge7.orig/kernel/kmod.c
++++ kernel-source-2.4.27-10sarge7/kernel/kmod.c
 @@ -132,6 +132,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
@@ -733,8 +733,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	/* Go, go, go... */
  	if (execve(program_path, argv, envp) < 0)
  		return -errno;
---- kernel-source-2.4.27-10sarge6.orig/kernel/module.c
-+++ kernel-source-2.4.27-10sarge6/kernel/module.c
+--- kernel-source-2.4.27-10sarge7.orig/kernel/module.c
++++ kernel-source-2.4.27-10sarge7/kernel/module.c
 @@ -10,6 +10,9 @@
  #include <linux/slab.h>
  #include <linux/kmod.h>
@@ -775,8 +775,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	if (name_user) {
---- kernel-source-2.4.27-10sarge6.orig/kernel/sched.c
-+++ kernel-source-2.4.27-10sarge6/kernel/sched.c
+--- kernel-source-2.4.27-10sarge7.orig/kernel/sched.c
++++ kernel-source-2.4.27-10sarge7/kernel/sched.c
 @@ -32,6 +32,9 @@
  
  #include <asm/uaccess.h>
@@ -797,8 +797,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	/*
  	 *	Setpriority might change our priority at the same moment.
---- kernel-source-2.4.27-10sarge6.orig/kernel/signal.c
-+++ kernel-source-2.4.27-10sarge6/kernel/signal.c
+--- kernel-source-2.4.27-10sarge7.orig/kernel/signal.c
++++ kernel-source-2.4.27-10sarge7/kernel/signal.c
 @@ -15,6 +15,9 @@
  #include <linux/sched.h>
  
@@ -831,8 +831,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
         info.si_signo = sig;
         info.si_errno = 0;
         info.si_code = SI_TKILL;
---- kernel-source-2.4.27-10sarge6.orig/kernel/sys.c
-+++ kernel-source-2.4.27-10sarge6/kernel/sys.c
+--- kernel-source-2.4.27-10sarge7.orig/kernel/sys.c
++++ kernel-source-2.4.27-10sarge7/kernel/sys.c
 @@ -17,6 +17,9 @@
  
  #include <asm/uaccess.h>
@@ -883,8 +883,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- kernel-source-2.4.27-10sarge6.orig/kernel/sysctl.c
-+++ kernel-source-2.4.27-10sarge6/kernel/sysctl.c
+--- kernel-source-2.4.27-10sarge7.orig/kernel/sysctl.c
++++ kernel-source-2.4.27-10sarge7/kernel/sysctl.c
 @@ -33,6 +33,9 @@
  #include <linux/swap.h>
  
@@ -1015,8 +1015,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  }
  
  /*
---- kernel-source-2.4.27-10sarge6.orig/kernel/time.c
-+++ kernel-source-2.4.27-10sarge6/kernel/time.c
+--- kernel-source-2.4.27-10sarge7.orig/kernel/time.c
++++ kernel-source-2.4.27-10sarge7/kernel/time.c
 @@ -29,6 +29,9 @@
  #include <linux/smp_lock.h>
  
@@ -1057,8 +1057,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  		
  	/* Now we validate the data before disabling interrupts */
  
---- kernel-source-2.4.27-10sarge6.orig/net/core/datagram.c
-+++ kernel-source-2.4.27-10sarge6/net/core/datagram.c
+--- kernel-source-2.4.27-10sarge7.orig/net/core/datagram.c
++++ kernel-source-2.4.27-10sarge7/net/core/datagram.c
 @@ -43,6 +43,10 @@
  #include <net/sock.h>
  #include <net/checksum.h>
@@ -1081,8 +1081,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  		if (skb)
  			return skb;
  
---- kernel-source-2.4.27-10sarge6.orig/net/ipv4/tcp_ipv4.c
-+++ kernel-source-2.4.27-10sarge6/net/ipv4/tcp_ipv4.c
+--- kernel-source-2.4.27-10sarge7.orig/net/ipv4/tcp_ipv4.c
++++ kernel-source-2.4.27-10sarge7/net/ipv4/tcp_ipv4.c
 @@ -67,6 +67,9 @@
  
  #include <linux/inet.h>
@@ -1113,8 +1113,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  			/* Does not bother with rcv_saddr checks,
  			 * because the established check is already
---- kernel-source-2.4.27-10sarge6.orig/net/ipv4/udp.c
-+++ kernel-source-2.4.27-10sarge6/net/ipv4/udp.c
+--- kernel-source-2.4.27-10sarge7.orig/net/ipv4/udp.c
++++ kernel-source-2.4.27-10sarge7/net/ipv4/udp.c
 @@ -103,6 +103,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1145,8 +1145,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- kernel-source-2.4.27-10sarge6.orig/net/ipv6/tcp_ipv6.c
-+++ kernel-source-2.4.27-10sarge6/net/ipv6/tcp_ipv6.c
+--- kernel-source-2.4.27-10sarge7.orig/net/ipv6/tcp_ipv6.c
++++ kernel-source-2.4.27-10sarge7/net/ipv6/tcp_ipv6.c
 @@ -53,6 +53,9 @@
  #include <net/inet_ecn.h>
  
@@ -1167,8 +1167,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  			for (tb = head->chain; tb; tb = tb->next)
  				if (tb->port == rover)
  					goto next;
---- kernel-source-2.4.27-10sarge6.orig/net/ipv6/udp.c
-+++ kernel-source-2.4.27-10sarge6/net/ipv6/udp.c
+--- kernel-source-2.4.27-10sarge7.orig/net/ipv6/udp.c
++++ kernel-source-2.4.27-10sarge7/net/ipv6/udp.c
 @@ -52,6 +52,9 @@
  
  #include <net/checksum.h>
@@ -1199,8 +1199,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- kernel-source-2.4.27-10sarge6.orig/net/socket.c
-+++ kernel-source-2.4.27-10sarge6/net/socket.c
+--- kernel-source-2.4.27-10sarge7.orig/net/socket.c
++++ kernel-source-2.4.27-10sarge7/net/socket.c
 @@ -84,6 +84,10 @@
  #include <net/sock.h>
  #include <net/scm.h>
@@ -1277,8 +1277,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- kernel-source-2.4.27-10sarge6.orig/net/unix/af_unix.c
-+++ kernel-source-2.4.27-10sarge6/net/unix/af_unix.c
+--- kernel-source-2.4.27-10sarge7.orig/net/unix/af_unix.c
++++ kernel-source-2.4.27-10sarge7/net/unix/af_unix.c
 @@ -111,6 +111,9 @@
  #include <linux/rtnetlink.h>
  
@@ -1310,8 +1310,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- kernel-source-2.4.27-10sarge6.orig/arch/alpha/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/alpha/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/alpha/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/alpha/kernel/ptrace.c
 @@ -18,6 +18,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1334,8 +1334,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- kernel-source-2.4.27-10sarge6.orig/arch/arm/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/arm/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/arm/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/arm/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  #include <asm/uaccess.h>
  #include <asm/pgtable.h>
@@ -1358,8 +1358,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.4.27-10sarge6.orig/arch/cris/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/cris/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/cris/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/cris/kernel/ptrace.c
 @@ -48,6 +48,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1382,8 +1382,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.4.27-10sarge6.orig/arch/i386/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/i386/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/i386/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/i386/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/processor.h>
  #include <asm/i387.h>
@@ -1406,8 +1406,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.4.27-10sarge6.orig/arch/ia64/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/ia64/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/ia64/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/ia64/kernel/ptrace.c
 @@ -27,6 +27,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -1430,8 +1430,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.4.27-10sarge6.orig/arch/m68k/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/m68k/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/m68k/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/m68k/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1454,8 +1454,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.4.27-10sarge6.orig/arch/mips/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/mips/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/mips/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/mips/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/bootinfo.h>
  #include <asm/cpu.h>
@@ -1478,8 +1478,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  #if 0
---- kernel-source-2.4.27-10sarge6.orig/arch/mips64/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/mips64/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/mips64/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/mips64/kernel/ptrace.c
 @@ -30,6 +30,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1514,8 +1514,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  #if 0
---- kernel-source-2.4.27-10sarge6.orig/arch/parisc/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/parisc/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/parisc/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/parisc/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1538,8 +1538,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.4.27-10sarge6.orig/arch/ppc/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/ppc/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/ppc/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/ppc/kernel/ptrace.c
 @@ -29,6 +29,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -1562,8 +1562,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- kernel-source-2.4.27-10sarge6.orig/arch/ppc64/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/ppc64/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/ppc64/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/ppc64/kernel/ptrace.c
 @@ -30,6 +30,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -1586,8 +1586,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- kernel-source-2.4.27-10sarge6.orig/arch/s390/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/s390/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/s390/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/s390/kernel/ptrace.c
 @@ -37,6 +37,9 @@
  #include <asm/pgalloc.h>
  #include <asm/system.h>
@@ -1610,8 +1610,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
---- kernel-source-2.4.27-10sarge6.orig/arch/s390x/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/s390x/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/s390x/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/s390x/kernel/ptrace.c
 @@ -43,6 +43,9 @@
  #else
  #define parent_31bit 0
@@ -1634,8 +1634,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
  	{
---- kernel-source-2.4.27-10sarge6.orig/arch/sh/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/sh/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/sh/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/sh/kernel/ptrace.c
 @@ -26,6 +26,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1658,8 +1658,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.4.27-10sarge6.orig/arch/sh64/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/sh64/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/sh64/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/sh64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1682,8 +1682,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	ret = -EPERM;
---- kernel-source-2.4.27-10sarge6.orig/arch/sparc/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/sparc/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/sparc/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/sparc/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1709,8 +1709,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- kernel-source-2.4.27-10sarge6.orig/arch/sparc64/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/sparc64/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/sparc64/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/sparc64/kernel/ptrace.c
 @@ -26,6 +26,9 @@
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
@@ -1736,8 +1736,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	if (current->thread.flags & SPARC_FLAG_32BIT) {
  		addr &= 0xffffffffUL;
---- kernel-source-2.4.27-10sarge6.orig/arch/x86_64/kernel/ptrace.c
-+++ kernel-source-2.4.27-10sarge6/arch/x86_64/kernel/ptrace.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/x86_64/kernel/ptrace.c
++++ kernel-source-2.4.27-10sarge7/arch/x86_64/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  #include <asm/processor.h>
  #include <asm/i387.h>
@@ -1760,8 +1760,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- kernel-source-2.4.27-10sarge6.orig/arch/ppc64/kernel/ptrace32.c
-+++ kernel-source-2.4.27-10sarge6/arch/ppc64/kernel/ptrace32.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/ppc64/kernel/ptrace32.c
++++ kernel-source-2.4.27-10sarge7/arch/ppc64/kernel/ptrace32.c
 @@ -30,6 +30,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -1784,8 +1784,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- kernel-source-2.4.27-10sarge6.orig/arch/x86_64/ia32/ptrace32.c
-+++ kernel-source-2.4.27-10sarge6/arch/x86_64/ia32/ptrace32.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/x86_64/ia32/ptrace32.c
++++ kernel-source-2.4.27-10sarge7/arch/x86_64/ia32/ptrace32.c
 @@ -24,6 +24,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -1808,8 +1808,8 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- kernel-source-2.4.27-10sarge6.orig/arch/ia64/ia32/sys_ia32.c
-+++ kernel-source-2.4.27-10sarge6/arch/ia64/ia32/sys_ia32.c
+--- kernel-source-2.4.27-10sarge7.orig/arch/ia64/ia32/sys_ia32.c
++++ kernel-source-2.4.27-10sarge7/arch/ia64/ia32/sys_ia32.c
 @@ -57,6 +57,9 @@
  #include <net/scm.h>
  #include <net/sock.h>
