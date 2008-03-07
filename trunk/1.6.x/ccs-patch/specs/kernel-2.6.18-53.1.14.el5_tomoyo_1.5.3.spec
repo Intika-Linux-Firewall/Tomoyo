@@ -67,7 +67,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 53.1.13%{?dist}%{?buildid}
+%define release 53.1.14%{?dist}%{?buildid}
 %define signmodules 0
 %define xen_hv_cset 15042
 %define xen_abi_ver 3.1
@@ -789,6 +789,9 @@ Patch20027: xen-increase-limits-to-boot-large-ia64-platforms.patch
 Patch20028: xen-ia64-set-nodes_shift-to-8.patch
 Patch20029: xen-x86-32-bit-asid-mode-hangs-dom0-on-amd.patch
 Patch20030: xen-ia64-vulnerability-of-copy_to_user-in-pal-emu.patch
+Patch20031: xen-ia64-running-java-vm-causes-dom0-to-hang.patch
+Patch20032: xen-ia64-hv-hangs-on-corrected-platform-errors.patch
+Patch20033: xen-ia64-hvm-guest-memory-range-checking.patch
 # end of Xen patches
 
 Patch21007: linux-2.6-netlabel-error-checking-cleanups.patch
@@ -1622,7 +1625,21 @@ Patch21857: linux-2.6-net-s2io-correct-vlan-frame-reception.patch
 Patch21858: linux-2.6-fs-cifs-buffer-overflow-due-to-corrupt-response.patch
 Patch21859: linux-2.6-ia64-ptrace-access-to-user-register-backing.patch
 Patch21860: linux-2.6-fs-corruption-by-unprivileged-user-in-directories.patch
-Patch21861: linux-2.6-x86_64-fs-vmsplice_to_pipe-flaw.patch
+Patch21861: linux-2.6-scsi-lpfc-driver-various-fixes.patch
+Patch21867: linux-2.6-misc-enabling-a-non-hotplug-cpu-should-cause-panic.patch
+Patch21869: linux-2.6-scsi-cciss-fix-incompatibility-with-hpacucli.patch
+Patch21870: linux-2.6-nfs-discard-pagecache-data-for-dirs-on-dentry_iput.patch
+Patch21871: linux-2.6-s390-data-corruption-on-dasd-while-toggling-chpids.patch
+Patch21872: linux-2.6-audit-break-execve-records-into-smaller-parts.patch
+Patch21873: linux-2.6-ia64-enable-cmci-on-hot-plugged-processors.patch
+Patch21874: linux-2.6-x86_64-fs-vmsplice_to_pipe-flaw.patch
+Patch21875: linux-2.6-misc-denial-of-service-with-wedged-processes.patch
+Patch21876: linux-2.6-net-null-dereference-in-iwl-driver.patch
+Patch21877: linux-2.6-mm-hugepages-leak-due-to-pagetable-page-sharing.patch
+Patch21878: linux-2.6-isdn-fix-possible-isdn_net-buffer-overflows.patch
+Patch21879: linux-2.6-isdn-i4l-fix-memory-overruns.patch
+Patch21880: linux-2.6-ppc-chrp-fix-possible-strncmp-null-pointer-usage.patch
+Patch21881: linux-2.6-nfs-potential-file-corruption-issue-when-writing.patch
 # adds rhel version info to version.h
 Patch99990: linux-2.6-rhel-version-h.patch
 # empty final patch file to facilitate testing of kernel patches
@@ -3257,6 +3274,20 @@ mv drivers/xen/blktap/blktap.c drivers/xen/blktap/blktapmain.c
 %patch21859 -p1
 %patch21860 -p1
 %patch21861 -p1
+%patch21867 -p1
+%patch21869 -p1
+%patch21870 -p1
+%patch21871 -p1
+%patch21872 -p1
+%patch21873 -p1
+%patch21874 -p1
+%patch21875 -p1
+%patch21876 -p1
+%patch21877 -p1
+%patch21878 -p1
+%patch21879 -p1
+%patch21880 -p1
+%patch21881 -p1
 # correction of SUBLEVEL/EXTRAVERSION in top-level source tree Makefile
 # patch the Makefile to include rhel version info
 %patch99990 -p1
@@ -3273,8 +3304,8 @@ perl -p -i -e "s/^RHEL_MINOR.*/RHEL_MINOR = %{rh_release_minor}/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -53.1.13.el5/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.18-53.1.13.el5.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -53.1.14.el5/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-53.1.14.el5.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -3370,6 +3401,9 @@ cd xen
 %patch20028 -p1
 %patch20029 -p1
 %patch20030 -p1
+%patch20031 -p1
+%patch20032 -p1
+%patch20033 -p1
 # end of necessary hypervisor patches
 %endif
 
@@ -3559,7 +3593,7 @@ BuildKernel() {
 
     for i in `cat modnames`
     do
-      sh ./scripts/modsign/modsign.sh $i CentOS
+      sh ./scripts/modsign/modsign.sh $i CentOS 
       mv -f $i.signed $i
     done
     unset KEYFLAGS
@@ -4217,8 +4251,8 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
 
 %changelog
-* Tue Feb 12 2008 Karanbir Singh <kbsingh@centos.org>
-- Rebuild for CentOS, change key to CentOS
+* Wed Mar  5 2008 Karanbir Singh <kbsingh@centos.org>
+- Change gpg key to CentOS
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
