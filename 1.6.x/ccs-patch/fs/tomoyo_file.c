@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -504,6 +504,44 @@ static int CheckFilePerm2(const struct path_info *filename, const u8 perm, const
 	return 0;
 }
 
+static int AddExecuteHandler(const bool is_preferred, const char *filename, struct domain_info * const domain, const bool is_delete)
+{
+	const struct path_info *saved_filename;
+	struct acl_info *ptr;
+	struct execute_handler_record *acl;
+	const u8 type = is_preferred ? TYPE_PREFERRED_EXECUTE_HANDLER : TYPE_DEFAULT_EXECUTE_HANDLER;
+	int error = -ENOMEM;
+	if (!domain) return -EINVAL;
+	if (!IsCorrectPath(filename, 1, -1, -1, __FUNCTION__)) return -EINVAL;
+	if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
+	mutex_lock(&domain_acl_lock);
+	if (!is_delete) {
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+			if ((ptr->type & ~ACL_DELETED) != type) continue;
+			acl = container_of(ptr, struct execute_handler_record, head);
+			acl->handler = saved_filename;
+			error = AddDomainACL(NULL, ptr);
+			goto out;
+		}
+		/* Not found. Append it to the tail. */
+		if ((acl = alloc_acl_element(type, NULL)) == NULL) goto out;
+		acl->handler = saved_filename;
+		error = AddDomainACL(domain, &acl->head);
+	} else {
+		error = -ENOENT;
+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+			if ((ptr->type & ~ACL_DELETED) != type) continue;
+			acl = container_of(ptr, struct execute_handler_record, head);
+			if (acl->handler != saved_filename) continue;
+			error = DelDomainACL(ptr);
+			goto out;
+		}
+	}
+ out: ;
+	mutex_unlock(&domain_acl_lock);
+	return error;
+}
+
 int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 {
 	char *filename = strchr(data, ' ');
@@ -515,7 +553,14 @@ int AddFilePolicy(char *data, struct domain_info *domain, const struct condition
 	if (sscanf(data, "%u", &perm) == 1) {
 		return AddFileACL(filename, (u8) perm, domain, condition, is_delete);
 	}
-	if (strncmp(data, "allow_", 6)) goto out;
+	if (strncmp(data, "allow_", 6)) {
+		if (strcmp(data, KEYWORD_PREFERRED_EXECUTE_HANDLER) == 0) {
+			return AddExecuteHandler(true, filename, domain, is_delete);
+		} else if (strcmp(data, KEYWORD_DEFAULT_EXECUTE_HANDLER) == 0) {
+			return AddExecuteHandler(false, filename, domain, is_delete);
+		}
+		goto out;
+	}
 	data += 6;
 	for (type = 0; type < MAX_SINGLE_PATH_OPERATION; type++) {
 		if (strcmp(data, sp_keyword[type])) continue;

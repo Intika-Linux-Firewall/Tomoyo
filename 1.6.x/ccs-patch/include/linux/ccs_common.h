@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -263,7 +263,11 @@ struct domain_info {
 
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1 /* Ignore "allow_read" in exception_policy */
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2 /* Ignore "allow_env" in exception_policy  */
-#define DOMAIN_FLAGS_FORCE_ALT_EXEC           4 /* Always use ALT_EXEC for execute request */
+
+struct execute_handler_record {
+	struct acl_info head;                         /* type = TYPE_*_EXECUTE_HANDLER */
+	const struct path_info *handler;              /* Pointer to single pathname.   */
+};
 
 struct single_path_acl_record {
 	struct acl_info head;                         /* type = TYPE_SINGLE_PATH_ACL */
@@ -389,7 +393,8 @@ struct ip_network_acl_record {
 #define KEYWORD_USE_PROFILE              "use_profile "
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_READ "ignore_global_allow_read"
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV  "ignore_global_allow_env"
-#define KEYWORD_FORCE_ALT_EXEC           "force_alt_exec"
+#define KEYWORD_PREFERRED_EXECUTE_HANDLER "preferred_execute_handler"
+#define KEYWORD_DEFAULT_EXECUTE_HANDLER   "default_execute_handler"
 
 #define KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
 #define KEYWORD_MAC_FOR_CAPABILITY_LEN   (sizeof(KEYWORD_MAC_FOR_CAPABILITY) - 1)
@@ -417,8 +422,7 @@ struct ip_network_acl_record {
 #define CCS_TOMOYO_VERBOSE                      15
 #define CCS_ALLOW_ENFORCE_GRACE                 16
 #define CCS_SLEEP_PERIOD                        17  /* profile.conf            */
-#define CCS_TOMOYO_ALT_EXEC                     18  /* profile.conf            */
-#define CCS_MAX_CONTROL_INDEX                   19
+#define CCS_MAX_CONTROL_INDEX                   18
 
 /*************************  Index numbers for updates counter.  *************************/
 
@@ -461,7 +465,6 @@ struct condition_list;
 char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm);
 void *ccs_alloc(const size_t size);
 char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
-const char *GetAltExec(void);
 const char *GetEXE(void);
 const char *GetLastName(const struct domain_info *domain);
 const char *GetMSG(const bool is_enforce);
@@ -544,6 +547,7 @@ void UpdateCounter(const unsigned char index);
 void ccs_free(const void *p);
 void fill_path_info(struct path_info *ptr);
 void UpdateCondition(const struct acl_info *acl);
+void SetDomainFlag(struct domain_info *domain, const bool is_delete, const u8 flags);
 
 static inline bool pathcmp(const struct path_info *a, const struct path_info *b)
 {

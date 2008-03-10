@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -84,6 +84,14 @@ struct alias_entry {
 static DEFINE_MUTEX(new_domain_assign_lock);
 
 /*************************  UTILITY FUNCTIONS  *************************/
+
+void SetDomainFlag(struct domain_info *domain, const bool is_delete, const u8 flags)
+{
+	mutex_lock(&new_domain_assign_lock);
+	if (!is_delete) domain->flags |= flags;
+	else domain->flags &= ~flags;
+	mutex_unlock(&new_domain_assign_lock);
+}
 
 const char *GetLastName(const struct domain_info *domain)
 {
@@ -602,7 +610,7 @@ static char *get_argv0(struct linux_binprm *bprm)
 	return NULL;
 }
 
-static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain, const u8 do_perm_check)
+static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain, const struct path_info *path_to_verify)
 {
 	/* This function assumes that the size of buffer returned by realpath() = CCS_MAX_PATHNAME_LEN. */
 	struct domain_info *old_domain = current->domain_info, *domain = NULL;
@@ -640,7 +648,17 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	else l.name = old_domain_name;
 	fill_path_info(&l);
 
-	if (!do_perm_check) goto ok;
+	if (path_to_verify) {
+		if (pathcmp(&r, path_to_verify)) {
+			static u8 counter = 20;
+			if (counter) {
+				counter--;
+				printk("Failed to verify: %s\n", path_to_verify->name);
+			}
+			goto out;
+		}
+		goto ok;
+	}
 
 	/* Check 'alias' directive. */
 	if (pathcmp(&r, &s)) {
@@ -839,7 +857,64 @@ static void UnEscape(unsigned char *dest)
 	*dest = '\0';
 }
 
-static int try_alt_exec(struct linux_binprm *bprm, char **work)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#include <linux/namei.h>
+#include <linux/mount.h>
+#endif
+
+/*
+ * GetRootDepth - return the depth of root directory.
+ */
+static int GetRootDepth(void)
+{
+	int depth = 0;
+	struct dentry *dentry;
+	struct vfsmount *vfsmnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+	struct path root;
+#endif
+	read_lock(&current->fs->lock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+        root = current->fs->root;
+        path_get(&current->fs->root);
+	dentry = root.dentry;
+	vfsmnt = root.mnt;
+#else
+	dentry = dget(current->fs->root);
+	vfsmnt = mntget(current->fs->rootmnt);
+#endif
+	read_unlock(&current->fs->lock);
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&dcache_lock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+	spin_lock(&vfsmount_lock);
+#endif
+	for (;;) {
+		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
+			/* Global root? */
+			if (vfsmnt->mnt_parent == vfsmnt) break;
+			dentry = vfsmnt->mnt_mountpoint;
+			vfsmnt = vfsmnt->mnt_parent;
+			continue;
+		}
+		dentry = dentry->d_parent;
+		depth++;
+	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+	spin_unlock(&vfsmount_lock);
+#endif
+	spin_unlock(&dcache_lock);
+	/***** CRITICAL SECTION END *****/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+	path_put(&root);
+#else
+	dput(dentry);
+	mntput(vfsmnt);
+#endif
+	return depth;
+}
+
+static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filename, char **work, struct domain_info **next_domain)
 {
 	/*
 	 * Contents of modified bprm.
@@ -853,7 +928,7 @@ static int try_alt_exec(struct linux_binprm *bprm, char **work)
 	 *    = 0
 	 *
 	 * modified bprm->argv[0]
-	 *    = the program's name specified by alt_exec
+	 *    = the program's name specified by execute_handler
 	 * modified bprm->argv[1]
 	 *    = current->domain_info->domainname->name
 	 * modified bprm->argv[2]
@@ -882,22 +957,33 @@ static int try_alt_exec(struct linux_binprm *bprm, char **work)
 	const int original_argc = bprm->argc;
 	const int original_envc = bprm->envc;
 	struct task_struct *task = current;
-	static const int buffer_len = PAGE_SIZE;
+	static const int buffer_len = CCS_MAX_PATHNAME_LEN;
 	char *buffer = NULL;
-	char *alt_exec;
-	const char *alt_exec1 = GetAltExec();
-	if (!alt_exec1 || *alt_exec1 != '/') return -EINVAL;
-	retval = strlen(alt_exec1) + 1;
-	alt_exec = ccs_alloc(retval);
-	if (!alt_exec) return -ENOMEM;
-	*work = alt_exec;
-	memmove(alt_exec, alt_exec1, retval);
-	UnEscape(alt_exec);
+	char *execute_handler;
 
-	/* Close the rejected program's dentry. */
+	/* Close the requested program's dentry. */
 	allow_write_access(bprm->file);
 	fput(bprm->file);
 	bprm->file = NULL;
+
+	/* Allocate memory for execute handler's pathname. */
+	execute_handler = ccs_alloc(buffer_len);
+	*work = execute_handler;
+	if (!execute_handler) return -ENOMEM;
+	strncpy(execute_handler, filename->name, buffer_len - 1);
+	UnEscape(execute_handler);
+	
+	if (1) { /* Adjust root directory for open_exec(). */
+		int depth = GetRootDepth();
+		char *cp = execute_handler;
+		if (!*cp || *cp != '/') return -ENOENT;
+		while (depth) {
+			cp = strchr(cp + 1, '/');
+			if (!cp) return -ENOENT;
+			depth--;
+		}
+		memmove(execute_handler, cp, strlen(cp) + 1);
+	}
 
 	/* Allocate buffer. */
 	buffer = ccs_alloc(buffer_len);
@@ -963,7 +1049,7 @@ static int try_alt_exec(struct linux_binprm *bprm, char **work)
 
 	/* Set argv[0] */
 	{
-		retval = copy_strings_kernel(1, &alt_exec, bprm);
+		retval = copy_strings_kernel(1, &execute_handler, bprm);
 		if (retval < 0) goto out;
 		bprm->argc++;
 	}
@@ -971,45 +1057,67 @@ static int try_alt_exec(struct linux_binprm *bprm, char **work)
 	bprm->argv_len = bprm->exec - bprm->p;
 #endif
 
-	/* OK, now restart the process with the alternative program's dentry. */
-	filp = open_exec(alt_exec);
+	/* OK, now restart the process with execute handler program's dentry. */
+	filp = open_exec(execute_handler);
 	if (IS_ERR(filp)) {
 		retval = PTR_ERR(filp);
 		goto out;
 	}
 	bprm->file= filp;
-	bprm->filename = alt_exec;
+	bprm->filename = execute_handler;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-	bprm->interp = alt_exec;
+	bprm->interp = execute_handler;
 #endif
-	retval = 0;
+	retval = prepare_binprm(bprm);
+	if (retval < 0) goto out;
+	task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	retval = FindNextDomain(bprm, next_domain, filename);
+	task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
  out:
 	/* Free buffer. */
 	ccs_free(buffer);
 	return retval;
 }
 
+static const struct path_info *FindExecuteHandler(bool is_preferred_handler)
+{
+	const struct domain_info *domain = current->domain_info;
+	struct acl_info *ptr;
+	const u8 type = is_preferred_handler ? TYPE_PREFERRED_EXECUTE_HANDLER : TYPE_DEFAULT_EXECUTE_HANDLER;
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct execute_handler_record *acl;
+		if (ptr->type != type) continue;
+		acl = container_of(ptr, struct execute_handler_record, head);
+		return acl->handler;
+	}
+	return NULL;
+}
+
 int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
 {
-	struct domain_info *next_domain = NULL, *prev_domain = current->domain_info;
+	struct task_struct *task = current;
+	struct domain_info *next_domain = NULL, *prev_domain = task->domain_info;
+	const struct path_info *handler;
  	int retval;
 	char *work = NULL; /* Keep valid until search_binary_handler() finishes. */
 	CCS_LoadPolicy(bprm->filename);
-	if (prev_domain->flags & DOMAIN_FLAGS_FORCE_ALT_EXEC) retval = -EPERM;
-	else retval = FindNextDomain(bprm, &next_domain, 1);
-	if (retval == -EPERM && try_alt_exec(bprm, &work) == 0 && prepare_binprm(bprm) >= 0) {
-		current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-		retval = FindNextDomain(bprm, &next_domain, 0);
-		current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	//printk("rootdepth=%d\n", GetRootDepth());
+	handler = FindExecuteHandler(true);
+	if (handler) {
+		retval = try_alt_exec(bprm, handler, &work, &next_domain);
+	} else if ((retval = FindNextDomain(bprm, &next_domain, NULL)) == -EPERM) {
+		handler = FindExecuteHandler(false);
+		if (handler) retval = try_alt_exec(bprm, handler, &work, &next_domain);
 	}
-	if (retval == 0) {
-		current->domain_info = next_domain;
-		retval = CheckEnviron(bprm);
-		current->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
-		if (!retval) retval = search_binary_handler(bprm, regs);
-		current->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
-		if (retval < 0) current->domain_info = prev_domain;
-	}
+	if (retval) goto out;
+	task->domain_info = next_domain;
+	retval = CheckEnviron(bprm);
+	if (retval) goto out;
+	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+	retval = search_binary_handler(bprm, regs);
+	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+ out:
+	if (retval < 0) task->domain_info = prev_domain;
 	ccs_free(work);
 	return retval;
 }
