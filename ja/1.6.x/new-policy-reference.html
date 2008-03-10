@@ -31,8 +31,8 @@
 <p><a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
 <h2><a href="#features_for_advanced">上級者向けの機能</a></h2>
 <p><a href="#stateful_acl">ステートフルなアクセス許可の指定</a></p>
-<p><a href="#alt_exec_penalty">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
-<p><a href="#always_alt_exec">プログラムの実行可否をカーネルの外部で判断</a></p>
+<p><a href="#default_execute_handler_penalty">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
+<p><a href="#always_default_execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
 
 <hr>
 
@@ -89,7 +89,6 @@
 <li><a href="#profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></li>
 <li><a href="#profile_ALLOW_ENFORCE_GRACE">ALLOW_ENFORCE_GRACE</a></li>
 <li><a href="#profile_SLEEP_PERIOD">SLEEP_PERIOD</a></li>
-<li><a href="#profile_ALT_EXEC">ALT_EXEC</a></li>
 </ul>
 
 <p><a name="system_policy">/proc/ccs/system_policy</a> <a name="system_policy.conf">/etc/ccs/system_policy.conf</a></p>
@@ -147,7 +146,8 @@
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></li>
 <li><a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></li>
-<li><a href="#domain_policy_force_alt_exec">force_alt_exec</a></li>
+<li><a href="#domain_policy_preferred_execute_handler">preferred_execute_handler</a></li>
+<li><a href="#domain_policy_default_execute_handler">default_execute_handler</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
 </ul>
 
@@ -454,8 +454,8 @@ Total:          119794
 <p>ただし、</p>
 
 <ul>
-<li>上記手順の「<a href="#exec_stage_check_argv0">argv[0] のチェック</a>」「<a href="#exec_stage_check_execute">権限のチェック</a>」「<a href="#exec_stage_check_destination">遷移先の決定</a>」の何れかに於いて拒否されたが、プロファイルの <a href="#profile_ALT_EXEC">ALT_EXEC</a>でプログラムのパス名が指定されている</li>
-<li>プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_force_alt_exec">force_alt_exec</a> キーワードが指定されている</li>
+<li>上記手順の「<a href="#exec_stage_check_argv0">argv[0] のチェック</a>」「<a href="#exec_stage_check_execute">権限のチェック</a>」「<a href="#exec_stage_check_destination">遷移先の決定</a>」の何れかに於いて拒否されたが、プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_default_execute_handler">default_execute_handler</a>キーワードが指定されている</li>
+<li>プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_preferred_execute_handler">preferred_execute_handler</a> キーワードが指定されている</li>
 </ul>
 
 <p>のどちらかに該当する場合には、以下の手順を実行します。</p>
@@ -463,7 +463,7 @@ Total:          119794
 <table border="1">
 <tr><td>Step</td><td>内容</td></tr>
 <tr><td>プログラム名の取得</td><td>
-<p>プロファイルの <a href="#profile_ALT_EXEC">ALT_EXEC</a>で指定されているプログラムのパス名を取得し、「パス名候補１」とする。パス名が指定されていない場合は実行を拒否する。</p>
+<p><a href="#domain_policy_default_execute_handler">default_execute_handler</a> または <a href="#domain_policy_preferred_execute_handler">preferred_execute_handler</a>で指定されているプログラムのパス名を取得し、「パス名候補１」とする。</p>
 </td></tr>
 <tr><td>情報の追加</td><td>
 <p>全ての環境変数を引数の末尾に追加し、全ての環境変数を削除する。</p>
@@ -1135,14 +1135,8 @@ Total:          119794
 
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
-<tr><td>0 ～ 3000</td><td>スリープさせる時間を０．１秒単位で指定する。デフォルトは０。</td></tr>
+<tr><td>0 ～ 3000</td><td>スリープさせる時間を0.1秒単位で指定する。デフォルトは０。</td></tr>
 </table>
-
-<h3><a name="profile_ALT_EXEC">ALT_EXEC</a></h3>
-
-<p>強制モードに於いて許可されていないプログラムの実行が要求された場合に、代わりに実行するプログラムのパス名を指定する。パス名が指定されていないまたは / で始まらない場合には、許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否する。</p>
-
-<p>ただし、ドメインに対して <a href="#domain_policy_force_alt_exec">force_alt_exec</a> キーワードが指定されている場合、プログラムの実行が要求された場合にはモードに関わらずここで指定されたプログラムが実行される。</p>
 
 <h2><a name="system_policy">/proc/ccs/system_policy</a></h2>
 
@@ -1406,20 +1400,26 @@ deny_autobind 8080</p>
 
 <p>関連項目：<a href="#exception_policy_allow_read">allow_read</a></p>
 
-<h3><a name="domain_policy_force_alt_exec">force_alt_exec</a></h3>
-
-<p>これは、このドメインに対しては常にプロファイルの <a href="#profile_ALT_EXEC">ALT_EXEC</a> で指定されたプログラムだけを実行することを示しています。つまり、プログラムの実行時にチェックされるキーワード（ <a href="#domain_policy_allow_execute">allow_execute</a> と <a href="#domain_policy_allow_argv0">allow_argv0</a> ）およびプロファイルの <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の設定内容は無視されるようになります。
-特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
-
-<p>このキーワードが指定されている場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の値に関わらず常に <a href="#profile_ALT_EXEC">ALT_EXEC</a> で指定されたプログラムが実行されます。そのため、 <a href="#profile_ALT_EXEC">ALT_EXEC</a> に適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
-
-<p>関連項目：<a href="#profile_ALT_EXEC">ALT_EXEC</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
-
 <h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
 
 <p>これは、このドメインに対しては例外ポリシーで指定されている <a href="#exception_policy_allow_env">allow_env</a> を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
 
 <p>関連項目：<a href="#exception_policy_allow_env">allow_env</a></p>
+
+<h3><a name="domain_policy_preferred_execute_handler">preferred_execute_handler</a></h3>
+
+<p>これは、このドメインに対しては常にこのキーワードで指定されたプログラムだけを実行することを示しています。つまり、プログラムの実行時にチェックされるキーワード（ <a href="#domain_policy_allow_execute">allow_execute</a> と <a href="#domain_policy_allow_argv0">allow_argv0</a> ）の設定内容は無視されるようになります。
+特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
+
+<p>このキーワードが指定されている場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
+
+<p>関連項目：<a href="#domain_policy_default_execute_handler">default_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
+
+<h3><a name="domain_policy_default_execute_handler">default_execute_handler</a></h3>
+
+<p>これは、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
+
+<p>ただし、ドメインに対して <a href="#domain_policy_preferred_execute_handler">preferred_execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
 
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
@@ -1432,7 +1432,7 @@ deny_autobind 8080</p>
 <p>パス名のパターン化を指示するには、 file_pattern というディレクティブに続けて、パス名のパターンを指定する。パス名は正規化されたパス名でなければならない。このディレクティブは実行許可を与える場合とドメイン定義には適用されない。<br>
 例えば、プロセスＩＤを含む正規化されたパス名（/proc/PID/）は、アクセス制御が正しく行われるようにグループ化されなければならない。</p>
 
-<p>学習モード（<a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>が1に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習される。学習モード以外には影響しない。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われる。</p>
+<p>学習モード（<a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>がlearningに設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習される。学習モード以外には影響しない。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われる。</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
@@ -1681,11 +1681,11 @@ cat /proc/ccs/version</p>
 
 <table border="1">
 <tr><td>/proc/ccs/profile での指定例</td><td>意味</td></tr>
-<tr><td>3-SLEEP_PERIOD=1</td><td>プロファイル 3 が割り当てられているプロセスが強制モードに於いてポリシー違反を発生させた場合、０．１秒間スリープさせる。</td></tr>
+<tr><td>3-SLEEP_PERIOD=1</td><td>プロファイル 3 が割り当てられているプロセスが強制モードに於いてポリシー違反を発生させた場合、0.1秒間スリープさせる。</td></tr>
 <tr><td>4-SLEEP_PERIOD=10</td><td>プロファイル 4 が割り当てられているプロセスが強制モードに於いてポリシー違反を発生させた場合、１秒間スリープさせる。</td></tr>
 </table>
 
-<p>この機能は、無限ループの中でポリシー違反が発生した場合に、ＣＰＵ使用率が１００％になってしまうのを回避するための安全装置です。通常は０．１秒間スリープさせるだけで充分です。</p>
+<p>この機能は、無限ループの中でポリシー違反が発生した場合に、ＣＰＵ使用率が100%になってしまうのを回避するための安全装置です。通常は0.1秒間スリープさせるだけで充分です。</p>
 
 <p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシー違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
 
@@ -1784,7 +1784,7 @@ cat /proc/ccs/version</p>
 <li>上記の @TRUSTED_HOSTS と @UNTRUSTED_HOSTS の両方に含まれていた場合、先に一致したほうの状態変数が使われてしまう。そのため、順番に依存するアクセス許可を定義しないように注意。</li>
 </ul>
 
-<h3><a name="alt_exec_penalty">許可されていないプログラムの実行が要求された場合の代替処理指定</a></h3>
+<h3><a name="default_execute_handler_penalty">許可されていないプログラムの実行が要求された場合の代替処理指定</a></h3>
 
 <p>TOMOYO Linux では、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、不要なプログラムの実行を拒否するという振る舞いだけでなく、それ以外の振る舞いを行うこともできます。</p>
 
@@ -1812,14 +1812,14 @@ cat /proc/ccs/version</p>
 
 <table border="1">
 <tr><td>/proc/ccs/profile での指定例</td><td>意味</td></tr>
-<tr><td>3-MAC_FOR_FILE=enforcing<br>3-ALT_EXEC=/bin/true</td><td>プロファイル 3 が割り当てられているプロセスが許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行する。</td></tr>
-<tr><td>4-MAC_FOR_FILE=enforcing<br>4-ALT_EXEC=</td><td>プロファイル 4 が割り当てられているプロセスが許可されていないプログラムの実行を要求した場合、プログラムの実行要求を拒否する。</td></tr>
+<tr><td>3-MAC_FOR_FILE=enforcing<br>3-default_execute_handler=/bin/true</td><td>プロファイル 3 が割り当てられているプロセスが許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行する。</td></tr>
+<tr><td>4-MAC_FOR_FILE=enforcing<br>4-default_execute_handler=</td><td>プロファイル 4 が割り当てられているプロセスが許可されていないプログラムの実行を要求した場合、プログラムの実行要求を拒否する。</td></tr>
 </table>
 
-<p>ALT_EXECで指定されたプログラムは、以下のパラメータを受け取ります。</p>
+<p>default_execute_handlerで指定されたプログラムは、以下のパラメータを受け取ります。</p>
 
 <ul>
-<li>argv[0] には、ALT_EXECで指定されたプログラムのパス名が入っています。</li>
+<li>argv[0] には、default_execute_handlerで指定されたプログラムのパス名が入っています。</li>
 <li>argv[1] には、許可されていないプログラムの実行を要求したプロセスのドメイン名が入っています。</li>
 <li>argv[2] には、許可されていないプログラムの実行を要求したプロセスのパス名が入っています。</li>
 <li>argv[3] には、許可されていないプログラムの実行を要求したプロセスの情報が入っています。</li>
@@ -1894,23 +1894,23 @@ exit 1
 <p>この機能を使用する際には、以下の点に注意してください。</p>
 
 <ul>
-<li>ALT_EXECで指定されたプログラムに対して実行許可（<a href="#domain_policy_allow_execute">allow_execute</a>）を与える必要はありませんし、与えるべきではありません。</li>
-<li>プロセスがchroot内部の環境で動作している場合、ALT_EXECで指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスがchroot内部の環境で動作している場合に、chroot外部の環境にあるプログラムを実行できてしまうと危険なので、ALT_EXECで指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
-<li>ALT_EXECで指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば&lt;kernel&gt;直下にALT_EXECで指定されたプログラム用のドメインを作成して、そのプログラムを<a href="#exception_policy_initialize_domain">initialize_domain</a>キーワードで指定するなどの準備をしてください。</li>
-<li>ALT_EXECで指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、ALT_EXECで指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
+<li>default_execute_handlerやpreferred_execute_handlerで指定されたプログラムに対して実行許可（<a href="#domain_policy_allow_execute">allow_execute</a>）を与える必要はありませんし、与えるべきではありません。</li>
+<li>プロセスがchroot内部の環境で動作している場合、default_execute_handlerやpreferred_execute_handlerで指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスがchroot内部の環境で動作している場合に、chroot外部の環境にあるプログラムを実行できてしまうと危険なので、default_execute_handlerやpreferred_execute_handlerで指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
+<li>default_execute_handlerやpreferred_execute_handlerで指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば&lt;kernel&gt;直下にdefault_execute_handlerやpreferred_execute_handlerで指定されたプログラム用のドメインを作成して、そのプログラムを<a href="#exception_policy_initialize_domain">initialize_domain</a>キーワードで指定するなどの準備をしてください。</li>
+<li>default_execute_handlerやpreferred_execute_handlerで指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、default_execute_handlerやpreferred_execute_handlerで指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
 </ul>
 
 <p>この機能は、機構を提供しているだけです。この機構を活用できるかどうかはあなた次第です。</p>
 
-<h3><a name="always_alt_exec">プログラムの実行可否をカーネルの外部で判断</a></h3>
+<h3><a name="always_default_execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h3>
 
-<p><a href="#alt_exec_penalty">許可されていないプログラムの実行が要求された場合の代替処理指定</a>で述べたとおり、正常な動作をしている限り、ポリシーで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求を受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、<a href="#profile_ALT_EXEC">ALT_EXEC</a>の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
+<p><a href="#default_execute_handler_penalty">許可されていないプログラムの実行が要求された場合の代替処理指定</a>で述べたとおり、正常な動作をしている限り、ポリシーで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求を受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、<a href="#domain_policy_default_execute_handler">default_execute_handler</a>の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
 
-<p>そこで、ドメインに対して <a href="#domain_policy_force_alt_exec">force_alt_exec</a>キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
+<p>そこで、ドメインに対して <a href="#domain_policy_preferred_execute_handler">preferred_execute_handler</a>キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
 <p>カーネルの内部では利用可能なライブラリが少ない上に連続したメモリ領域の割り当てが失敗する可能性が高くなりますが、
-カーネルの外部であれば豊富なライブラリを使ってメモリ割り当ての限界を心配せずに詳細なチェックが可能になります。そこで、<a href="#profile_ALT_EXEC">ALT_EXEC</a>で指定したプログラムにプログラム実行時のパラメータをチェックしてもらい、適切であればプログラムを実行してもらうようにすることができます。</p>
+カーネルの外部であれば豊富なライブラリを使ってメモリ割り当ての限界を心配せずに詳細なチェックが可能になります。そこで、<a href="#domain_policy_preferred_execute_handler">preferred_execute_handler</a>で指定したプログラムにプログラム実行時のパラメータをチェックしてもらい、適切であればプログラムを実行してもらうようにすることができます。</p>
 
-<p><a href="#query">/proc/ccs/query</a>を用いた処理と似ていますが、<a href="#domain_policy_force_alt_exec">force_alt_exec</a>キーワードはプログラムの実行に関して特化した機能を提供します。自由にカスタマイズできるので、 ssh 等を用いて遠隔地のマシンに問い合わせをしながらしながら判断することも可能です。</p>
+<p>この方式の副作用は、プログラムの実行を拒否すべきと判断した場合に、プログラムの実行を要求したプロセスに通知する方法が無い点です。しかし、自由にカスタマイズできるので、 ssh 等を用いて遠隔地のマシンに問い合わせをしながらしながら判断することも可能です。</p>
 
 <hr>
 <p><a href="index.html#manual">目次へ戻る</a></p>
