@@ -1298,3 +1298,31 @@ Fix 2008/03/04
 
           0 -> disabled
           1 -> enabled
+
+Fix 2008/03/10
+
+    @ Rename "force_alt_exec" keyword to "preferred_execute_handler".
+
+      To be able to use different programs for validating execve() parameters,
+      I moved the location to specify the program's pathname from profile
+      to domain policy.
+
+      The "preferred_execute_handler" keyword takes one pathname which is
+      invoked whenever execve() request is issued. Thus, any "allow_execute"
+      keywords in a domain with "preferred_execute_handler" are ignored.
+      This keyword is designed for validating expected/desirable execve()
+      requests in userspace, although there is no way to tell the caller
+      that the execve() request was rejected.
+
+    @ Rename "alt_exec" keyword to "default_execute_handler".
+
+      The "default_execute_handler" keyword takes one pathname which is
+      invoked only when execve() request was rejected. In other words,
+      this program is invoked only when the following conditions are met.
+
+        (1) None of "allow_execute" keywords in the domain didn't match.
+        (2) The execve() request was rejected in enforcing mode.
+        (3) "preferred_execute_handler" keyword is not used by the domain.
+
+      This keyword is designed for handling unexpected/undesirable execve()
+      requests, to redirect the process issuing such requests to somewhere.

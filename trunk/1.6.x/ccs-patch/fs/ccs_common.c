@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -85,7 +85,6 @@ static struct {
 	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
 	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
 	[CCS_SLEEP_PERIOD]               = { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
-	[CCS_TOMOYO_ALT_EXEC]            = { "ALT_EXEC",            0, 0 }, /* Reserved for string. */
 };
 
 #ifdef CONFIG_TOMOYO
@@ -127,7 +126,6 @@ const char *capability_control_keyword[TOMOYO_MAX_CAPABILITY_INDEX] = {
 struct profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct path_info *comment;
-	const struct path_info *alt_exec;
 #ifdef CONFIG_TOMOYO
 	unsigned char capability_value[TOMOYO_MAX_CAPABILITY_INDEX];
 #endif
@@ -533,13 +531,6 @@ const char *GetMSG(const bool is_enforce)
 	if (is_enforce) return "ERROR"; else return "WARNING";
 }
 
-const char *GetAltExec(void)
-{
-	const u8 profile = current->domain_info->profile;
-	const struct path_info *alt_exec = profile_ptr[profile] ? profile_ptr[profile]->alt_exec : NULL;
-	return alt_exec ? alt_exec->name : NULL;
-}
-
 /*************************  DOMAIN POLICY HANDLER  *************************/
 
 /* Check whether the given access control is enabled. */
@@ -658,14 +649,6 @@ static int SetProfile(struct io_buffer *head)
 		return 0;
 	}
 #ifdef CONFIG_TOMOYO
-	if (strcmp(data, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword) == 0) {
-		cp++;
-		if (*cp && !IsCorrectPath(cp, 1, -1, -1, __FUNCTION__)) cp = "";
-		profile->alt_exec = SaveName(cp);
-		return 0;
-	}
-#endif
-#ifdef CONFIG_TOMOYO
 	if (strncmp(data, KEYWORD_MAC_FOR_CAPABILITY, KEYWORD_MAC_FOR_CAPABILITY_LEN) == 0) {
 		if (sscanf(cp + 1, "%u", &value) != 1) {
 			for (i = 0; i < 4; i++) {
@@ -754,9 +737,6 @@ static int ReadProfile(struct io_buffer *head)
 		}
 		if (j == CCS_PROFILE_COMMENT) {
 			if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_PROFILE_COMMENT].keyword, profile->comment ? profile->comment->name : "")) break;
-		} else if (j == CCS_TOMOYO_ALT_EXEC) {
-			const struct path_info *alt_exec = profile->alt_exec;
-			if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_TOMOYO_ALT_EXEC].keyword, alt_exec ? alt_exec->name : "")) break;
 		} else if (j >= CCS_MAX_CONTROL_INDEX) {
 #ifdef CONFIG_TOMOYO
 			const int k = j - CCS_MAX_CONTROL_INDEX;
@@ -841,7 +821,7 @@ static int AddManagerPolicy(struct io_buffer *head)
 		is_delete = true;
 	}
 	if (strcmp(data, "manage_by_non_root") == 0) {
-		manage_by_non_root = is_delete;
+		manage_by_non_root = !is_delete;
 		return 0;
 	}
 	return AddManagerEntry(data, is_delete);
@@ -949,18 +929,11 @@ static int AddDomainPolicy(struct io_buffer *head)
 		return 0;
 	}
 	if (strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_READ) == 0) {
-		if (!is_delete) domain->flags |= DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ;
-		else domain->flags &= ~DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ;
+		SetDomainFlag(domain, is_delete, DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
 		return 0;
 	}
 	if (strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_ENV) == 0) {
-		if (!is_delete) domain->flags |= DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV;
-		else domain->flags &= ~DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV;
-		return 0;
-	}
-	if (strcmp(data, KEYWORD_FORCE_ALT_EXEC) == 0) {
-		if (!is_delete) domain->flags |= DOMAIN_FLAGS_FORCE_ALT_EXEC;
-		else domain->flags &= ~DOMAIN_FLAGS_FORCE_ALT_EXEC;
+		SetDomainFlag(domain, is_delete, DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV);
 		return 0;
 	}
 	cp = FindConditionPart(data);
@@ -1117,6 +1090,11 @@ static bool print_signal_acl(struct io_buffer *head, struct signal_acl_record *p
 	return false;
 }
 
+static bool print_execute_handler_record(struct io_buffer *head, const char *keyword, struct execute_handler_record *ptr)
+{
+	return io_printf(head, "%s %s\n", keyword, ptr->handler->name) == 0;
+}
+
 static int ReadDomainPolicy(struct io_buffer *head)
 {
 	struct list1_head *dpos;
@@ -1128,7 +1106,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 		domain = list1_entry(dpos, struct domain_info, list);
 		if (head->read_step != 1) goto acl_loop;
 		if (domain->is_deleted) continue;
-		if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n%s%s%s", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ ? KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV ? KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n" : "", domain->flags & DOMAIN_FLAGS_FORCE_ALT_EXEC ? KEYWORD_FORCE_ALT_EXEC "\n" : "")) return 0;
+		if (io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n%s\n%s%s", domain->domainname->name, domain->profile, domain->quota_warned ? "quota_exceeded\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ ? KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n" : "", domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV ? KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n" : "")) return 0;
 		head->read_step = 2;
 	acl_loop: ;
 		if (head->read_step == 3) goto tail_mark;
@@ -1155,6 +1133,10 @@ static int ReadDomainPolicy(struct io_buffer *head)
 				if (!print_network_acl(head, container_of(ptr, struct ip_network_acl_record, head), cond)) return 0;
 			} else if (acl_type == TYPE_SIGNAL_ACL) {
 				if (!print_signal_acl(head, container_of(ptr, struct signal_acl_record, head), cond)) return 0;
+			} else if (acl_type == TYPE_PREFERRED_EXECUTE_HANDLER) {
+				if (!print_execute_handler_record(head, KEYWORD_PREFERRED_EXECUTE_HANDLER, container_of(ptr, struct execute_handler_record, head))) return 0;
+			} else if (acl_type == TYPE_DEFAULT_EXECUTE_HANDLER) {
+				if (!print_execute_handler_record(head, KEYWORD_DEFAULT_EXECUTE_HANDLER, container_of(ptr, struct execute_handler_record, head))) return 0;
 			} else {
 				BUG();
 			}
@@ -1430,10 +1412,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/03/04\n");
+	printk("SAKURA: 1.6.0-pre   2008/03/10\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/03/04\n");
+	printk("TOMOYO: 1.6.0-pre   2008/03/10\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -1896,6 +1878,10 @@ void *alloc_acl_element(const u8 acl_type, const struct condition_list *conditio
 		break;
 	case TYPE_SIGNAL_ACL:
 		len = sizeof(struct signal_acl_record);
+		break;
+	case TYPE_PREFERRED_EXECUTE_HANDLER:
+	case TYPE_DEFAULT_EXECUTE_HANDLER:
+		len = sizeof(struct execute_handler_record);
 		break;
 	default:
 		return NULL;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/02/14
+ * Version: 1.6.0-pre   2008/03/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -114,6 +114,8 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 #define TYPE_CAPABILITY_ACL                  4
 #define TYPE_IP_NETWORK_ACL                  5
 #define TYPE_SIGNAL_ACL                      6
+#define TYPE_PREFERRED_EXECUTE_HANDLER       7
+#define TYPE_DEFAULT_EXECUTE_HANDLER         8
 
 /*************************  Index numbers for File Controls.  *************************/
 
