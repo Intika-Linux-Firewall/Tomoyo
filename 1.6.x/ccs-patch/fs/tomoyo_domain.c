@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/10
+ * Version: 1.6.0-pre   2008/03/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -534,83 +534,69 @@ struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profi
 	return domain;
 }
 
-static int Escape(char *dest, const char *src, int dest_len)
+static bool get_argv0(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 {
-	while (*src) {
-		const unsigned char c = * (const unsigned char *) src;
-		if (c == '\\') {
-			dest_len -= 2;
-			if (dest_len <= 0) goto out;
-			*dest++ = '\\';
-			*dest++ = '\\';
-		} else if (c > ' ' && c < 127) {
-			if (--dest_len <= 0) goto out;
-			*dest++ = c;
-		} else {
-			dest_len -= 4;
-			if (dest_len <= 0) goto out;
-			*dest++ = '\\';
-			*dest++ = (c >> 6) + '0';
-			*dest++ = ((c >> 3) & 7) + '0';
-			*dest++ = (c & 7) + '0';
-		}
-		src++;
-	}
-	if (--dest_len <= 0) goto out;
-	*dest = '\0';
-	return 0;
- out:
-	return -ENOMEM;
-}
-
-static char *get_argv0(struct linux_binprm *bprm)
-{
-	char *arg_ptr = ccs_alloc(PAGE_SIZE); /* Initial buffer. */
+	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
 	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
-	if (!bprm->argc || !arg_ptr) goto out;
+	bool done = false;
+	if (!bprm->argc) goto out;
 	while (1) {
 		struct page *page;
+		const char *kaddr;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
 		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
+		pos += PAGE_SIZE - offset;
 #else
 		page = bprm->page[i];
 #endif
-		{ /* Map and copy to kernel buffer and unmap. */
-			const char *kaddr = kmap(page);
-			if (!kaddr) { /* Mapping failed. */
+		/* Map. */
+		kaddr = kmap(page);
+		if (!kaddr) { /* Mapping failed. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
-				put_page(page);
+			put_page(page);
 #endif
-				goto out;
-			}
-			memmove(arg_ptr + arg_len, kaddr + offset, PAGE_SIZE - offset);
-			kunmap(page);
+			goto out;
 		}
+		/* Read. */
+		while (offset < PAGE_SIZE) {
+			const unsigned char c = kaddr[offset++];
+			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+				if (c == '\\') {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = '\\';
+				} else if (c == '/') {
+					arg_len = 0;
+				} else if (c > ' ' && c < 127) {
+					arg_ptr[arg_len++] = c;
+				} else {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = (c >> 6) + '0';
+					arg_ptr[arg_len++] = ((c >> 3) & 7) + '0';
+					arg_ptr[arg_len++] = (c & 7) + '0';
+				}
+			} else {
+				arg_ptr[arg_len] = '\0';
+				done = true;
+				break;
+			}
+		}
+		/* Unmap. */
+		kunmap(page);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
 		put_page(page);
-		pos += PAGE_SIZE - offset;
 #endif
-		arg_len += PAGE_SIZE - offset;
-		if (memchr(arg_ptr, '\0', arg_len)) break;
-		{ /* Initial buffer was too small for argv[0]. Retry after expanding buffer. */
-			char *tmp_arg_ptr = ccs_alloc(arg_len + PAGE_SIZE);
-			if (!tmp_arg_ptr) goto out;
-			memmove(tmp_arg_ptr, arg_ptr, arg_len);
-			ccs_free(arg_ptr);
-			arg_ptr = tmp_arg_ptr;
-		}
 		i++;
 		offset = 0;
+		if (done) break;
 	}
-	return arg_ptr;
- out: /* Release initial buffer. */
-	ccs_free(arg_ptr);
-	return NULL;
+	return true;
+ out:
+	return false;
 }
 
-static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain, const struct path_info *path_to_verify)
+static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain, const struct path_info *path_to_verify, struct ccs_page_buffer *tmp)
 {
 	/* This function assumes that the size of buffer returned by realpath() = CCS_MAX_PATHNAME_LEN. */
 	struct domain_info *old_domain = current->domain_info, *domain = NULL;
@@ -675,22 +661,15 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	
 	/* Compare basename of real_program_name and argv[0] */
 	if (bprm->argc > 0 && CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
-		char *org_argv0 = get_argv0(bprm);
+		char *base_argv0 = tmp->buffer;
+		const char *base_filename;
 		retval = -ENOMEM;
-		if (org_argv0) {
-			const int len = strlen(org_argv0);
-			char *printable_argv0 = ccs_alloc(len * 4 + 8);
-			if (printable_argv0 && Escape(printable_argv0, org_argv0, len * 4 + 8) == 0) {
-				const char *base_argv0, *base_filename;
-				if ((base_argv0 = strrchr(printable_argv0, '/')) == NULL) base_argv0 = printable_argv0; else base_argv0++;
-				if ((base_filename = strrchr(real_program_name, '/')) == NULL) base_filename = real_program_name; else base_filename++;
-				if (strcmp(base_argv0, base_filename)) retval = CheckArgv0Perm(&r, base_argv0);
-				else retval = 0;
-			}
-			ccs_free(printable_argv0);
-			ccs_free(org_argv0);
+		if (!get_argv0(bprm, tmp)) goto out;
+		if ((base_filename = strrchr(real_program_name, '/')) == NULL) base_filename = real_program_name; else base_filename++;
+		if (strcmp(base_argv0, base_filename)) {
+			retval = CheckArgv0Perm(&r, base_argv0);
+			if (retval) goto out;
 		}
-		if (retval) goto out;
 	}
 	
 	/* Check 'aggregator' directive. */
@@ -707,13 +686,10 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	}
 
 	/* Check execute permission. */
-	if ((retval = CheckExecPerm(&r, bprm)) < 0) goto out;
+	if ((retval = CheckExecPerm(&r, bprm, tmp)) < 0) goto out;
 
  ok: ;
-	/* Allocate memory for calcurating domain name. */
-	retval = -ENOMEM;
-	if ((new_domain_name = ccs_alloc(CCS_MAX_PATHNAME_LEN + 16)) == NULL) goto out;
-	
+	new_domain_name = tmp->buffer;
 	if (IsDomainInitializer(old_domain->domainname, &r, &l)) {
 		/* Transit to the child of KERNEL_DOMAIN domain. */
 		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1, ROOT_NAME " " "%s", real_program_name);
@@ -745,18 +721,17 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 		retval = 0;
 	}
  out: ;
-	ccs_free(new_domain_name);
 	ccs_free(real_program_name);
 	ccs_free(symlink_program_name);
 	*next_domain = domain ? domain : old_domain;
 	return retval;
 }
 
-static int CheckEnviron(struct linux_binprm *bprm)
+static int CheckEnviron(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 {
 	const u8 profile = current->domain_info->profile;
 	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ENV);
-	char *arg_ptr;
+	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
 	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
@@ -765,8 +740,6 @@ static int CheckEnviron(struct linux_binprm *bprm)
 	//printk("start %d %d\n", argv_count, envp_count);
 	int error = -ENOMEM;
 	if (!mode || !envp_count) return 0;
-	arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
-	if (!arg_ptr) goto out;
 	while (error == -ENOMEM) {
 		struct page *page;
 		const char *kaddr;
@@ -776,7 +749,7 @@ static int CheckEnviron(struct linux_binprm *bprm)
 #else
 		page = bprm->page[i];
 #endif
-		/* Map */
+		/* Map. */
 		kaddr = kmap(page);
 		if (!kaddr) { /* Mapping failed. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
@@ -829,7 +802,6 @@ static int CheckEnviron(struct linux_binprm *bprm)
 		offset = 0;
 	}
  out:
-	ccs_free(arg_ptr);
 	if (error && mode != 3) error = 0;
 	return error;
 }
@@ -914,7 +886,7 @@ static int GetRootDepth(void)
 	return depth;
 }
 
-static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filename, char **work, struct domain_info **next_domain)
+static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filename, char **work, struct domain_info **next_domain, struct ccs_page_buffer *tmp)
 {
 	/*
 	 * Contents of modified bprm.
@@ -957,23 +929,20 @@ static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filen
 	const int original_argc = bprm->argc;
 	const int original_envc = bprm->envc;
 	struct task_struct *task = current;
-	static const int buffer_len = CCS_MAX_PATHNAME_LEN;
-	char *buffer = NULL;
-	char *execute_handler;
-
+       	char *buffer = tmp->buffer;
+	/* Allocate memory for execute handler's pathname. */
+	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer));
+	*work = execute_handler;
+	if (!execute_handler) return -ENOMEM;
+	strncpy(execute_handler, filename->name, sizeof(struct ccs_page_buffer) - 1);
+	UnEscape(execute_handler);
+	
 	/* Close the requested program's dentry. */
 	allow_write_access(bprm->file);
 	fput(bprm->file);
 	bprm->file = NULL;
 
-	/* Allocate memory for execute handler's pathname. */
-	execute_handler = ccs_alloc(buffer_len);
-	*work = execute_handler;
-	if (!execute_handler) return -ENOMEM;
-	strncpy(execute_handler, filename->name, buffer_len - 1);
-	UnEscape(execute_handler);
-	
-	if (1) { /* Adjust root directory for open_exec(). */
+	{ /* Adjust root directory for open_exec(). */
 		int depth = GetRootDepth();
 		char *cp = execute_handler;
 		if (!*cp || *cp != '/') return -ENOENT;
@@ -985,17 +954,13 @@ static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filen
 		memmove(execute_handler, cp, strlen(cp) + 1);
 	}
 
-	/* Allocate buffer. */
-	buffer = ccs_alloc(buffer_len);
-	if (!buffer) return -ENOMEM;
-
 	/* Move envp[] to argv[] */
 	bprm->argc += bprm->envc;
 	bprm->envc = 0;
 
 	/* Set argv[6] */
 	{
-		snprintf(buffer, buffer_len - 1, "%d", original_envc);
+		snprintf(buffer, sizeof(struct ccs_page_buffer) - 1, "%d", original_envc);
 		retval = copy_strings_kernel(1, &buffer, bprm);
 		if (retval < 0) goto out;
 		bprm->argc++;
@@ -1003,7 +968,7 @@ static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filen
 
 	/* Set argv[5] */
 	{
-		snprintf(buffer, buffer_len - 1, "%d", original_argc);
+		snprintf(buffer, sizeof(struct ccs_page_buffer) - 1, "%d", original_argc);
 		retval = copy_strings_kernel(1, &buffer, bprm);
 		if (retval < 0) goto out;
 		bprm->argc++;
@@ -1019,7 +984,7 @@ static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filen
 	/* Set argv[3] */
 	{
 		const u32 tomoyo_flags = task->tomoyo_flags;
-		snprintf(buffer, buffer_len - 1, "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u", task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8));
+		snprintf(buffer, sizeof(struct ccs_page_buffer) - 1, "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u", task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8));
 		retval = copy_strings_kernel(1, &buffer, bprm);
 		if (retval < 0) goto out;
 		bprm->argc++;
@@ -1032,7 +997,7 @@ static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filen
 			retval = copy_strings_kernel(1, &exe, bprm);
 			ccs_free(exe);
 		} else {
-			snprintf(buffer, buffer_len - 1, "<unknown>");
+			snprintf(buffer, sizeof(struct ccs_page_buffer) - 1, "<unknown>");
 			retval = copy_strings_kernel(1, &buffer, bprm);
 		}
 		if (retval < 0) goto out;
@@ -1041,7 +1006,7 @@ static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filen
 
 	/* Set argv[1] */
 	{
-		strncpy(buffer, task->domain_info->domainname->name, buffer_len - 1);
+		strncpy(buffer, task->domain_info->domainname->name, sizeof(struct ccs_page_buffer) - 1);
 		retval = copy_strings_kernel(1, &buffer, bprm);
 		if (retval < 0) goto out;
 		bprm->argc++;
@@ -1071,11 +1036,9 @@ static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filen
 	retval = prepare_binprm(bprm);
 	if (retval < 0) goto out;
 	task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = FindNextDomain(bprm, next_domain, filename);
+	retval = FindNextDomain(bprm, next_domain, filename, tmp);
 	task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
  out:
-	/* Free buffer. */
-	ccs_free(buffer);
 	return retval;
 }
 
@@ -1100,18 +1063,20 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 	const struct path_info *handler;
  	int retval;
 	char *work = NULL; /* Keep valid until search_binary_handler() finishes. */
+	struct ccs_page_buffer *buf = ccs_alloc(sizeof(struct ccs_page_buffer));
 	CCS_LoadPolicy(bprm->filename);
+	if (!buf) return -ENOMEM;
 	//printk("rootdepth=%d\n", GetRootDepth());
 	handler = FindExecuteHandler(true);
 	if (handler) {
-		retval = try_alt_exec(bprm, handler, &work, &next_domain);
-	} else if ((retval = FindNextDomain(bprm, &next_domain, NULL)) == -EPERM) {
+		retval = try_alt_exec(bprm, handler, &work, &next_domain, buf);
+	} else if ((retval = FindNextDomain(bprm, &next_domain, NULL, buf)) == -EPERM) {
 		handler = FindExecuteHandler(false);
-		if (handler) retval = try_alt_exec(bprm, handler, &work, &next_domain);
+		if (handler) retval = try_alt_exec(bprm, handler, &work, &next_domain, buf);
 	}
 	if (retval) goto out;
 	task->domain_info = next_domain;
-	retval = CheckEnviron(bprm);
+	retval = CheckEnviron(bprm, buf);
 	if (retval) goto out;
 	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 	retval = search_binary_handler(bprm, regs);
@@ -1119,6 +1084,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
  out:
 	if (retval < 0) task->domain_info = prev_domain;
 	ccs_free(work);
+	ccs_free(buf);
 	return retval;
 }
 

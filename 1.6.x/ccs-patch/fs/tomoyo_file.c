@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/10
+ * Version: 1.6.0-pre   2008/03/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -96,12 +96,7 @@ static bool strendswith(const char *name, const char *tail)
 
 static struct path_info *GetPath(struct dentry *dentry, struct vfsmount *mnt)
 {
-	struct path_info_with_data { /* Keep sizeof(struct path_info_with_data) <= PAGE_SIZE for speed. */
-		struct path_info head; /* Keep this first, for this pointer is passed to ccs_free(). */
-		char bariier1[16];
-		char body[CCS_MAX_PATHNAME_LEN];
-		char barrier2[16];
-	} *buf = ccs_alloc(sizeof(*buf));
+	struct path_info_with_data *buf = ccs_alloc(sizeof(struct ccs_page_buffer));
 	if (buf) {
 		int error;
 		if ((error = realpath_from_dentry2(dentry, mnt, buf->body, sizeof(buf->body) - 1)) == 0) {
@@ -763,7 +758,7 @@ int CheckFilePerm(const char *filename0, const u8 perm, const char *operation)
 	return CheckFilePerm2(&filename, perm, operation, NULL, profile, mode);
 }
 
-int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm)
+int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 {
 	struct obj_info obj;
 	const u8 profile = current->domain_info->profile;
@@ -773,6 +768,7 @@ int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm)
 	obj.path1_dentry = bprm->file->f_dentry;
 	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
 	obj.bprm = bprm;
+	obj.tmp = tmp;
 	return CheckFilePerm2(filename, 1, "do_execve", &obj, profile, mode);
 }
 

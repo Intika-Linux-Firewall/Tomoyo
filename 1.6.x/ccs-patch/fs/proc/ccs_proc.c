@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -94,6 +94,7 @@ void __init CCSProc_Init(void)
 	CreateEntry("manager",          0600, ccs_dir, CCS_MANAGER);
 	CreateEntry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
 	CreateEntry("version",          0400, ccs_dir, CCS_VERSION);
+	if (sizeof(struct ccs_page_buffer) <  CCS_MAX_PATHNAME_LEN - 16) panic("Bad size!");
 }
 
 #else

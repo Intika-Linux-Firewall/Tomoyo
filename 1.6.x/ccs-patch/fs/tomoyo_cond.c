@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,7 +21,7 @@
 #include <linux/highmem.h>
 #include <linux/binfmts.h>
 
-static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned long index, const struct path_info *name, const struct path_info *value, bool *failed)
+static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned long index, const struct path_info *name, const struct path_info *value, bool *failed, struct ccs_page_buffer *tmp)
 {
 	/*
 	  if exec.argc=3                  // if (argc == 3)
@@ -34,19 +34,13 @@ static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned lon
 	  if exec.envp["HOME"]="/"        // if (getenv("HOME") && strcmp(getenv("HOME"), "/") == 0)
 	  if exec.envp["HOME"]!="/"       // if (!getenv("HOME") || strcmp(getenv("HOME", "/")) 
 	*/
-	char *arg_ptr;
+	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
 	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
 	bool result = false;
-	arg_ptr = ccs_alloc(CCS_MAX_PATHNAME_LEN);
-	if (!arg_ptr) {
-		*failed = true;
-		printk("ccs_alloc() failed\n");
-		return false;
-	}
 	while (argv_count || envp_count) {
 		struct page *page;
 		const char *kaddr;
@@ -60,7 +54,7 @@ static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned lon
 #else
 		page = bprm->page[i];
 #endif
-		/* Map */
+		/* Map. */
 		kaddr = kmap(page);
 		if (!kaddr) { /* Mapping failed. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
@@ -137,7 +131,6 @@ static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned lon
 		offset = 0;
 	}
  out:
-	ccs_free(arg_ptr);
 	return result;
 }
 
@@ -649,7 +642,7 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 			index = ptr2->value; ptr2++; i++;
 			value = ptr2->string; ptr2++; i++;
 			if (!bprm) goto out;
-			result = ScanBprm(bprm, true, index, NULL, value, &failed);
+			result = ScanBprm(bprm, true, index, NULL, value, &failed, obj->tmp);
 			if (failed) goto out;
 			if (!match) result = !result;
 			if (result) continue;
@@ -660,7 +653,7 @@ bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 			name = ptr2->string; ptr2++; i++;
 			value = ptr2->string; ptr2++; i++;
 			if (!bprm) goto out;
-			result = ScanBprm(bprm, false, 0, name, value, &failed);
+			result = ScanBprm(bprm, false, 0, name, value, &failed, obj->tmp);
 			if (failed) goto out;
 			if (value) {
 				if (!match) result = !result;

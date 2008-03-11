@@ -23,5 +23,14 @@ if [ "$CONFIG_TOMOYO" = "y" ]; then
 
 fi
 
+if [ "$CONFIG_SAKURA" = "y" -o "$CONFIG_TOMOYO" = "y" ]; then
+
+  [ -z "$CONFIG_CCS_MAX_RESERVED_PAGES" ] && define_int CONFIG_CCS_MAX_RESERVED_PAGES 10
+  [ $CONFIG_CCS_MAX_RESERVED_PAGES -lt 0 ] && define_int CONFIG_CCS_MAX_RESERVED_PAGES 0
+  [ $CONFIG_CCS_MAX_RESERVED_PAGES -gt 1024 ] && define_int CONFIG_CCS_MAX_RESERVED_PAGES 1024
+  int  'Maximal pages reserved for SAKURA and TOMOYO' CONFIG_CCS_MAX_RESERVED_PAGES
+
+fi
+
 [ -z "$CONFIG_SYAORAN" ] && define_tristate CONFIG_SYAORAN m
 tristate 'SYAORAN (Tamper-Proof Device Filesystem) support' CONFIG_SYAORAN

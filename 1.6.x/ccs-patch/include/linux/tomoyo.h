@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/10
+ * Version: 1.6.0-pre   2008/03/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -40,6 +40,7 @@ struct vfsmount;
 struct inode;
 struct linux_binprm;
 struct pt_regs;
+struct ccs_page_buffer;
 
 #define CheckSingleWritePermission CheckSinglePathPermission
 #define CheckDoubleWritePermission CheckDoublePathPermission
@@ -47,7 +48,7 @@ struct pt_regs;
 #if defined(CONFIG_TOMOYO)
 
 int CheckFilePerm(const char *filename, const u8 perm, const char *operation);
-int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm);
+int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm, struct ccs_page_buffer *buf);
 int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag);
 int CheckSinglePathPermission(const u8 operation, struct dentry *dentry, struct vfsmount *mnt);
 int CheckDoublePathPermission(const u8 operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2);
@@ -76,7 +77,7 @@ int CheckCapabilityACL(const u8 operation);
 #else
 
 static inline int CheckFilePerm(const char *filename, const u8 perm, const char *operation) { return 0; }
-static inline int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm)  { return 0; }
+static inline int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm, struct ccs_page_buffer *buf)  { return 0; }
 static inline int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int flag) { return 0; }
 static inline int CheckSinglePathPermission(const u8 operation, struct dentry *dentry, struct vfsmount *mnt) { return 0; }
 static inline int CheckDoublePathPermission(const u8 operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2) { return 0; }

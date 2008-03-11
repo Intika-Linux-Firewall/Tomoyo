@@ -82,6 +82,19 @@ config TOMOYO_MAX_REJECT_LOG
 	  If you don't need access reject logs,
 	  you may set this value to 0.
 
+config CCS_MAX_RESERVED_PAGES
+	int "Maximal pages reserved for SAKURA and TOMOYO"
+	default 10
+	range 0 1024
+	depends on SAKURA || TOMOYO
+	help
+	  SAKURA and TOMOYO performs pathname based access control
+	  which entails runtime memory allocation.
+	  To reduce the possibility of swapping when allocating memory,
+	  you can reserve some pages for SAKURA and TOMOYO.
+	  The memory is allocated when it is requested for the first time
+	  and it remains in the kernel's memory.
+
 config SYAORAN
 	tristate "SYAORAN (Tamper-Proof Device Filesystem) support"
 	default m

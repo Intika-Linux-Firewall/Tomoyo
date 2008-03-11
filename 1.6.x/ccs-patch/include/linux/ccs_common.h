@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/10
+ * Version: 1.6.0-pre   2008/03/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -168,6 +168,10 @@ static inline void list1_add_tail_mb(struct list1_head *new,
 
 #endif
 
+struct ccs_page_buffer {
+	char buffer[4096];
+};
+
 struct mini_stat {
 	uid_t uid;
 	gid_t gid;
@@ -189,6 +193,7 @@ struct obj_info {
 	struct mini_stat path1_parent_stat;
 	struct mini_stat path2_parent_stat;
 	struct linux_binprm *bprm;
+	struct ccs_page_buffer *tmp;
 };
 
 struct path_info {
@@ -232,6 +237,13 @@ struct address_group_entry {
 	struct list1_head address_group_member_list;
 };
 
+struct path_info_with_data {
+	struct path_info head; /* Keep this first, for this pointer is passed to ccs_free(). */
+	char bariier1[16];
+	char body[CCS_MAX_PATHNAME_LEN];
+	char barrier2[16];
+};
+	
 /*
  *  TOMOYO uses the following structures.
  *  Memory allocated for these structures are never kfree()ed.
