@@ -997,7 +997,7 @@ static bool print_double_path_acl(struct io_buffer *head, struct double_path_acl
 		if (!b1 && io_printf(head, "%s", ptr->u2.filename2->name)) goto out;
 		if (DumpCondition(head, cond)) goto out;
 	}
-	head->read_bit = 0; 
+	head->read_bit = 0;
 	return true;
  out:
 	head->read_bit = bit;

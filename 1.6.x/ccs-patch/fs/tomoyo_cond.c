@@ -32,7 +32,7 @@ static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned lon
 	  if exec.envp["HOME"]!=NULL      // if (getenv("HOME"))
 	  if exec.envp["HOME"]=NULL       // if (!getenv("HOME"))
 	  if exec.envp["HOME"]="/"        // if (getenv("HOME") && strcmp(getenv("HOME"), "/") == 0)
-	  if exec.envp["HOME"]!="/"       // if (!getenv("HOME") || strcmp(getenv("HOME", "/")) 
+	  if exec.envp["HOME"]!="/"       // if (!getenv("HOME") || strcmp(getenv("HOME", "/"))
 	*/
 	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
@@ -546,7 +546,7 @@ static void GetAttributes(struct obj_info *obj)
 		}
 	}
 	dput(dentry);
-	
+
 	if (obj->path2_vfsmnt) {
 		spin_lock(&dcache_lock);
 		dentry = dget(obj->path2_dentry->d_parent);
@@ -572,7 +572,7 @@ static void GetAttributes(struct obj_info *obj)
 	struct dentry *dentry;
 	struct inode *inode;
 	struct kstat stat;
-	
+
 	mnt = obj->path1_vfsmnt;
 	dentry = obj->path1_dentry;
 	inode = dentry->d_inode;
@@ -586,7 +586,7 @@ static void GetAttributes(struct obj_info *obj)
 			obj->path1_valid = true;
 		}
 	}
-	
+
 	dentry = dget_parent(obj->path1_dentry);
 	inode = dentry->d_inode;
 	if (inode) {
@@ -600,7 +600,7 @@ static void GetAttributes(struct obj_info *obj)
 		}
 	}
 	dput(dentry);
-	
+
 	if ((mnt = obj->path2_vfsmnt) != NULL) {
 		dentry = dget_parent(obj->path2_dentry);
 		inode = dentry->d_inode;

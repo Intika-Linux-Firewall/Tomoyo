@@ -54,7 +54,7 @@ static inline void *kzalloc(int size, int flags)
 	if (p) memset(p, 0, size);
 	return p;
 }
-#endif 
+#endif
 
 #define list_for_each_cookie(pos, cookie, head) \
 	for (({if (!cookie) cookie = head;}), pos = (cookie)->next; \

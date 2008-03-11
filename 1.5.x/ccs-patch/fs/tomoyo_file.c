@@ -738,7 +738,7 @@ static int CheckSingleWriteACL(const u8 type, const struct path_info *filename, 
 	struct acl_info *ptr;
 	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
 	for (ptr = domain->first_acl_ptr; ptr; ptr = ptr->next) {
-		struct single_acl_record *ptr2 = (struct single_acl_record *) ptr; 
+		struct single_acl_record *ptr2 = (struct single_acl_record *) ptr;
 		if (ptr->type != type || ptr->is_deleted || CheckCondition(ptr->cond, obj)) continue;
 		if (ptr2->u_is_group) {
 			if (!PathMatchesToGroup(filename, ptr2->u.group, 1)) continue;

@@ -229,7 +229,7 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 	struct in6_addr sin6;
 	struct in_addr sin;
 	u16 port;
-		
+
 	if (!skb) return 0;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
@@ -237,11 +237,11 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 #else
 	if (in_atomic()) return 0;
 #endif
-	
+
 	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
-	
+
 	if (type != SOCK_DGRAM && type != SOCK_RAW) return 0;
-	
+
 	switch (sk->sk_family) {
 	case PF_INET6:
 		if (type == SOCK_DGRAM) { /* UDP IPv6 */

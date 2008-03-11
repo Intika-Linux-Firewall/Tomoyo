@@ -60,7 +60,7 @@ static void print_ulong(char *buffer, const int buffer_len, const unsigned long 
 		snprintf(buffer, buffer_len, "0x%lX", value);
 	}
 }
-			
+
 static struct condition_list {
 	struct condition_list *next;
 	int length;
@@ -281,7 +281,7 @@ static void GetAttributes(struct obj_info *obj)
 		}
 	}
 	dput(dentry);
-	
+
 	if (obj->path2_vfsmnt) {
 		spin_lock(&dcache_lock);
 		dentry = dget(obj->path2_dentry->d_parent);
@@ -307,7 +307,7 @@ static void GetAttributes(struct obj_info *obj)
 	struct dentry *dentry;
 	struct inode *inode;
 	struct kstat stat;
-	
+
 	mnt = obj->path1_vfsmnt;
 	dentry = obj->path1_dentry;
 	inode = dentry->d_inode;
@@ -321,7 +321,7 @@ static void GetAttributes(struct obj_info *obj)
 			obj->path1_valid = 1;
 		}
 	}
-	
+
 	dentry = dget_parent(obj->path1_dentry);
 	inode = dentry->d_inode;
 	if (inode) {
@@ -335,7 +335,7 @@ static void GetAttributes(struct obj_info *obj)
 		}
 	}
 	dput(dentry);
-	
+
 	if ((mnt = obj->path2_vfsmnt) != NULL) {
 		dentry = dget_parent(obj->path2_dentry);
 		inode = dentry->d_inode;

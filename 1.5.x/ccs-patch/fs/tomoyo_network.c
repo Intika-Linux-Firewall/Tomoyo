@@ -114,10 +114,10 @@ int AddAddressGroupPolicy(char *data, const int is_delete)
 	if (!cp) return -EINVAL;
 	*cp++ = '\0';
 	if ((count = sscanf(cp, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
-						&min_address[0], &min_address[1], &min_address[2], &min_address[3],
-						&min_address[4], &min_address[5], &min_address[6], &min_address[7],
-						&max_address[0], &max_address[1], &max_address[2], &max_address[3],
-						&max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
+			    &min_address[0], &min_address[1], &min_address[2], &min_address[3],
+			    &min_address[4], &min_address[5], &min_address[6], &min_address[7],
+			    &max_address[0], &max_address[1], &max_address[2], &max_address[3],
+			    &max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
 		int i;
 		for (i = 0; i < 8; i++) {
 			min_address[i] = htons(min_address[i]);
@@ -126,8 +126,8 @@ int AddAddressGroupPolicy(char *data, const int is_delete)
 		if (count == 8) memmove(max_address, min_address, sizeof(min_address));
 		is_ipv6 = 1;
 	} else if ((count = sscanf(cp, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
-							   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
- 							   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
+				   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
+				   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
 		u32 ip = ((((u8) min_address[0]) << 24) + (((u8) min_address[1]) << 16) + (((u8) min_address[2]) << 8) + (u8) min_address[3]);
 		* (u32 *) min_address = ip;
 		if (count == 8) ip = ((((u8) max_address[0]) << 24) + (((u8) max_address[1]) << 16) + (((u8) max_address[2]) << 8) + (u8) max_address[3]);
@@ -407,10 +407,10 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete
 	}
 	if ((cp1 = strchr(cp2, ' ')) == NULL) goto out; *cp1++ = '\0';
 	if ((count = sscanf(cp2, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
-						&min_address[0], &min_address[1], &min_address[2], &min_address[3],
-						&min_address[4], &min_address[5], &min_address[6], &min_address[7],
-						&max_address[0], &max_address[1], &max_address[2], &max_address[3],
-						&max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
+			    &min_address[0], &min_address[1], &min_address[2], &min_address[3],
+			    &min_address[4], &min_address[5], &min_address[6], &min_address[7],
+			    &max_address[0], &max_address[1], &max_address[2], &max_address[3],
+			    &max_address[4], &max_address[5], &max_address[6], &max_address[7])) == 8 || count == 16) {
 		int i;
 		for (i = 0; i < 8; i++) {
 			min_address[i] = htons(min_address[i]);
@@ -419,8 +419,8 @@ int AddNetworkPolicy(char *data, struct domain_info *domain, const int is_delete
 		if (count == 8) memmove(max_address, min_address, sizeof(min_address));
 		record_type = IP_RECORD_TYPE_IPv6;
 	} else if ((count = sscanf(cp2, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
-							   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
- 							   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
+				   &min_address[0], &min_address[1], &min_address[2], &min_address[3],
+				   &max_address[0], &max_address[1], &max_address[2], &max_address[3])) == 4 || count == 8) {
 		u32 ip = htonl((((u8) min_address[0]) << 24) + (((u8) min_address[1]) << 16) + (((u8) min_address[2]) << 8) + (u8) min_address[3]);
 		* (u32 *) min_address = ip;
 		if (count == 8) ip = htonl((((u8) max_address[0]) << 24) + (((u8) max_address[1]) << 16) + (((u8) max_address[2]) << 8) + (u8) max_address[3]);

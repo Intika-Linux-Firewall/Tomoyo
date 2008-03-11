@@ -909,7 +909,7 @@ static int ReadDomainPolicy(struct io_buffer *head)
 						if (acltype2paths(acl_type) == 2) {
 							struct double_acl_record *ptr2 = (struct double_acl_record *) ptr;
 							const u8 b0 = ptr2->u1_is_group, b1 = ptr2->u2_is_group;
-							if (io_printf(head, "allow_%s %s%s %s%s", keyword, 
+							if (io_printf(head, "allow_%s %s%s %s%s", keyword,
 								      b0 ? "@" : "", b0 ? ptr2->u1.group1->group_name->name : ptr2->u1.filename1->name,
 								      b1 ? "@" : "", b1 ? ptr2->u2.group2->group_name->name : ptr2->u2.filename2->name)
 							    || DumpCondition(head, ptr->cond)) {
@@ -1217,7 +1217,7 @@ void CCS_LoadPolicy(const char *filename)
 		struct domain_info *domain;
 		for (domain = &KERNEL_DOMAIN; domain; domain = domain->next) {
 			const u8 profile = domain->profile;
-			if (!profile_ptr[profile]) panic("Profile %u (used by '%s') not defined.\n", profile, domain->domainname->name); 
+			if (!profile_ptr[profile]) panic("Profile %u (used by '%s') not defined.\n", profile, domain->domainname->name);
 		}
 	}
 }

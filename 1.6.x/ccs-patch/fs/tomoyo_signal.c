@@ -85,7 +85,7 @@ int CheckSignalACL(const int sig, const int pid)
 	struct acl_info *ptr;
 	const u16 hash = sig;
 	const u8 profile = current->domain_info->profile;
-	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL); 
+	const u8 mode = CheckCCSFlags(CCS_TOMOYO_MAC_FOR_SIGNAL);
 	const bool is_enforce = (mode == 3);
 	bool found = false;
 	if (!mode) return 0;

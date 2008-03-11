@@ -243,7 +243,7 @@ struct path_info_with_data {
 	char body[CCS_MAX_PATHNAME_LEN];
 	char barrier2[16];
 };
-	
+
 /*
  *  TOMOYO uses the following structures.
  *  Memory allocated for these structures are never kfree()ed.
@@ -580,6 +580,6 @@ static inline void *kzalloc(int size, int flags)
 	if (p) memset(p, 0, size);
 	return p;
 }
-#endif 
+#endif
 
 #endif
