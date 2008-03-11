@@ -4,8 +4,8 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/include/realpath.h |   45 ++
- security/tomoyo/include/tomoyo.h   |  694 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 739 insertions(+)
+ security/tomoyo/include/tomoyo.h   |  695 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 740 insertions(+)
 
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/realpath.h
@@ -57,7 +57,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#endif
 --- /dev/null
 +++ linux-2.6-mm/security/tomoyo/include/tomoyo.h
-@@ -0,0 +1,694 @@
+@@ -0,0 +1,695 @@
 +/*
 + * security/tomoyo/include/tomoyo.h
 + *
@@ -113,9 +113,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * so that we can continue iteration.
 + */
 +#define list_for_each_cookie(pos, cookie, head) \
-+	for ((cookie) || ((cookie) = (head)), pos = (cookie)->next; \
-+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
-+	     (cookie) = pos, pos = pos->next)
++	for (({ if (!cookie) \
++		cookie = head; }), pos = (cookie)->next; \
++		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
++		(cookie) = pos, pos = pos->next)
 +
 +/**
 + * list_add_tail_mb - add a new entry with memory barrier.
