@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -181,7 +181,7 @@ int realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt, char *new
 /* These functions use ccs_alloc(), so caller must ccs_free() if these functions didn't return NULL. */
 char *realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
 {
-	char *buf = ccs_alloc(CCS_MAX_PATHNAME_LEN);
+	char *buf = ccs_alloc(sizeof(struct ccs_page_buffer));
 	if (buf && realpath_from_dentry2(dentry, mnt, buf, CCS_MAX_PATHNAME_LEN - 1) == 0) return buf;
 	ccs_free(buf);
 	return NULL;
@@ -278,10 +278,11 @@ void *alloc_element(const unsigned int size)
 /***** Shared memory allocator. *****/
 
 static unsigned int allocated_memory_for_savename = 0;
+static unsigned int allocated_memory_for_pool = 0;
 
 unsigned int GetMemoryUsedForSaveName(void)
 {
-	return allocated_memory_for_savename;
+	return allocated_memory_for_savename + allocated_memory_for_pool;
 }
 
 #define MAX_HASH 256
@@ -369,9 +370,20 @@ static struct kmem_cache *ccs_cachep = NULL;
 static kmem_cache_t *ccs_cachep = NULL;
 #endif
 
+#ifdef CCS_MAX_RESERVED_PAGES
+#define MAX_CCS_PAGE_BUFFER_POOL (CCS_MAX_RESERVED_PAGES)
+#else
+#define MAX_CCS_PAGE_BUFFER_POOL 10
+#endif
+
+static struct ccs_page_buffer *ccs_page_buffer_pool[MAX_CCS_PAGE_BUFFER_POOL];
+static bool ccs_page_buffer_pool_in_use[MAX_CCS_PAGE_BUFFER_POOL];
+
 void __init realpath_Init(void)
 {
 	int i;
+	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE) panic("Bad size.");
+	if (sizeof(struct path_info_with_data) > sizeof(struct ccs_page_buffer)) panic("Bad size.");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23)
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL);
 #else
@@ -381,11 +393,12 @@ void __init realpath_Init(void)
 	for (i = 0; i < MAX_HASH; i++) {
 		INIT_LIST1_HEAD(&name_list[i]);
 	}
-	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE) panic("Bad size.");
 	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
 	KERNEL_DOMAIN.domainname = SaveName(ROOT_NAME);
 	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
 	if (FindDomain(ROOT_NAME) != &KERNEL_DOMAIN) panic("Can't register KERNEL_DOMAIN");
+	memset(ccs_page_buffer_pool, 0, sizeof(ccs_page_buffer_pool));
+	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++) ccs_page_buffer_pool_in_use[i] = false;
 }
 
 static LIST_HEAD(cache_list);
@@ -410,35 +423,83 @@ static int round2(size_t size)
 }
 #endif
 
+static spinlock_t ccs_page_buffer_pool_lock = SPIN_LOCK_UNLOCKED;
+
 void *ccs_alloc(const size_t size)
 {
-	void *ret = kzalloc(size, GFP_KERNEL);
-	if (ret) {
-		struct cache_entry *new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
-		if (!new_entry) {
-			kfree(ret); ret = NULL;
-		} else {
-			INIT_LIST_HEAD(&new_entry->list);
-			new_entry->ptr = ret;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-			new_entry->size = ksize(ret);
-#else
-			new_entry->size = round2(size);
-#endif
-			spin_lock(&cache_list_lock);
-			list_add_tail(&new_entry->list, &cache_list);
-			dynamic_memory_size += new_entry->size;
-			spin_unlock(&cache_list_lock);
+	int i;
+	void *ret;
+	struct cache_entry *new_entry;
+	if (size != sizeof(struct ccs_page_buffer)) goto normal;
+	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++) {
+		struct ccs_page_buffer *ptr;
+		if (ccs_page_buffer_pool_in_use[i]) continue;
+		spin_lock(&ccs_page_buffer_pool_lock);
+		if (ccs_page_buffer_pool_in_use[i]) {
+			spin_unlock(&ccs_page_buffer_pool_lock);
+			continue;
 		}
+		ccs_page_buffer_pool_in_use[i] = true;
+		spin_unlock(&ccs_page_buffer_pool_lock);
+		ptr = ccs_page_buffer_pool[i];
+		if (!ptr) {
+			ptr = kmalloc(sizeof(struct ccs_page_buffer), GFP_KERNEL);
+			spin_lock(&ccs_page_buffer_pool_lock);
+			if (ptr) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+				allocated_memory_for_pool += ksize(ptr);
+#else
+				allocated_memory_for_pool += round2(sizeof(struct ccs_page_buffer));
+#endif
+			} else {
+				ccs_page_buffer_pool_in_use[i] = false;
+			}
+			spin_unlock(&ccs_page_buffer_pool_lock);
+			if (!ptr) goto normal;
+			ccs_page_buffer_pool[i] = ptr;
+			printk(KERN_DEBUG "Allocated permanent buffer %d/%d\n", i, MAX_CCS_PAGE_BUFFER_POOL);
+		}
+		memset(ptr, 0, sizeof(struct ccs_page_buffer));
+		return ptr;
 	}
+ normal:
+	ret = kzalloc(size, GFP_KERNEL);
+	if (!ret) goto out;
+	new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
+	if (!new_entry) {
+		kfree(ret); ret = NULL;
+		goto out;
+	}
+	INIT_LIST_HEAD(&new_entry->list);
+	new_entry->ptr = ret;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+	new_entry->size = ksize(ret);
+#else
+	new_entry->size = round2(size);
+#endif
+	spin_lock(&cache_list_lock);
+	list_add_tail(&new_entry->list, &cache_list);
+	dynamic_memory_size += new_entry->size;
+	spin_unlock(&cache_list_lock);
+ out:
 	return ret;
 }
 
 void ccs_free(const void *p)
 {
+	int i;
 	struct list_head *v;
 	struct cache_entry *entry = NULL;
 	if (!p) return;
+	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++) {
+		bool done;
+		if (p != ccs_page_buffer_pool[i]) continue;
+		spin_lock(&ccs_page_buffer_pool_lock);
+		done = ccs_page_buffer_pool_in_use[i];
+		if (done) ccs_page_buffer_pool_in_use[i] = false;
+		spin_unlock(&ccs_page_buffer_pool_lock);
+		if (done) return;
+	}
 	spin_lock(&cache_list_lock);
 	list_for_each(v, &cache_list) {
 		entry = list_entry(v, struct cache_entry, list);

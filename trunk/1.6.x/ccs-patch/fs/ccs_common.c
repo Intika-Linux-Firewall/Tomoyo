@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/10
+ * Version: 1.6.0-pre   2008/03/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1412,10 +1412,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/03/10\n");
+	printk("SAKURA: 1.6.0-pre   2008/03/11\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/03/10\n");
+	printk("TOMOYO: 1.6.0-pre   2008/03/11\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -1754,14 +1754,14 @@ int CCS_OpenControl(const u8 type, struct file *file)
 		break;
 	}
 	if (type != CCS_GRANTLOG && type != CCS_REJECTLOG && type != CCS_QUERY) {
-		if (!head->readbuf_size) head->readbuf_size = PAGE_SIZE * 2;
+		if (!head->readbuf_size) head->readbuf_size = 4096 * 2;
 		if ((head->read_buf = ccs_alloc(head->readbuf_size)) == NULL) {
 			ccs_free(head);
 			return -ENOMEM;
 		}
 	}
 	if (head->write) {
-		head->writebuf_size = PAGE_SIZE * 2;
+		head->writebuf_size = 4096 * 2;
 		if ((head->write_buf = ccs_alloc(head->writebuf_size)) == NULL) {
 			ccs_free(head->read_buf);
 			ccs_free(head);
