@@ -438,7 +438,7 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 }
 
 static int CheckSinglePathACL2(const struct path_info *filename, const u16 perm, struct obj_info *obj, const bool may_use_pattern)
-{ 
+{
 	const struct domain_info *domain = current->domain_info;
 	struct acl_info *ptr;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {

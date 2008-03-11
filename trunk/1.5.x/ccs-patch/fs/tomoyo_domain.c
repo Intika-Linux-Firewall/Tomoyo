@@ -295,7 +295,7 @@ static int IsDomainKeeper(const struct path_info *domainname, const struct path_
 		if (!ptr->is_last_name) {
 			if (ptr->domainname != domainname) continue;
 		} else {
-			if (pathcmp(ptr->domainname, last_name)) continue; 
+			if (pathcmp(ptr->domainname, last_name)) continue;
 		}
 		if (ptr->program && pathcmp(ptr->program, program)) continue;
 		if (ptr->is_not) return 0;
@@ -677,7 +677,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 			break;
 		}
 	}
-	
+
 	/* Compare basename of real_program_name and argv[0] */
 	if (bprm->argc > 0 && CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
 		char *org_argv0 = get_argv0(bprm);
@@ -697,7 +697,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 		}
 		if (retval) goto out;
 	}
-	
+
 	/* Check 'aggregator' directive. */
 	{
 		struct aggregator_entry *ptr;
@@ -717,7 +717,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	/* Allocate memory for calcurating domain name. */
 	retval = -ENOMEM;
 	if ((new_domain_name = ccs_alloc(CCS_MAX_PATHNAME_LEN + 16)) == NULL) goto out;
-	
+
 	if (IsDomainInitializer(old_domain->domainname, &r, &l)) {
 		/* Transit to the child of KERNEL_DOMAIN domain. */
 		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1, ROOT_NAME " " "%s", real_program_name);
@@ -761,7 +761,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
 {
 	struct domain_info *next_domain = NULL, *prev_domain = current->domain_info;
- 	int retval;
+	int retval;
 #if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 	extern void CCS_LoadPolicy(const char *filename);
 	CCS_LoadPolicy(bprm->filename);

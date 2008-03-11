@@ -658,7 +658,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 			break;
 		}
 	}
-	
+
 	/* Compare basename of real_program_name and argv[0] */
 	if (bprm->argc > 0 && CheckCCSFlags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
 		char *base_argv0 = tmp->buffer;
@@ -671,7 +671,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 			if (retval) goto out;
 		}
 	}
-	
+
 	/* Check 'aggregator' directive. */
 	{
 		struct aggregator_entry *ptr;
@@ -844,16 +844,19 @@ static int GetRootDepth(void)
 	struct vfsmount *vfsmnt;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
 	struct path root;
+#else
+	struct dentry *dentry0;
+	struct vfsmount *vfsmnt0;
 #endif
 	read_lock(&current->fs->lock);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
-        root = current->fs->root;
-        path_get(&current->fs->root);
+	root = current->fs->root;
+	path_get(&current->fs->root);
 	dentry = root.dentry;
 	vfsmnt = root.mnt;
 #else
-	dentry = dget(current->fs->root);
-	vfsmnt = mntget(current->fs->rootmnt);
+	dentry0 = dentry = dget(current->fs->root);
+	vfsmnt0 = vfsmnt = mntget(current->fs->rootmnt);
 #endif
 	read_unlock(&current->fs->lock);
 	/***** CRITICAL SECTION START *****/
@@ -880,8 +883,8 @@ static int GetRootDepth(void)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
 	path_put(&root);
 #else
-	dput(dentry);
-	mntput(vfsmnt);
+	dput(dentry0);
+	mntput(vfsmnt0);
 #endif
 	return depth;
 }
@@ -929,14 +932,14 @@ static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filen
 	const int original_argc = bprm->argc;
 	const int original_envc = bprm->envc;
 	struct task_struct *task = current;
-       	char *buffer = tmp->buffer;
+	char *buffer = tmp->buffer;
 	/* Allocate memory for execute handler's pathname. */
 	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer));
 	*work = execute_handler;
 	if (!execute_handler) return -ENOMEM;
 	strncpy(execute_handler, filename->name, sizeof(struct ccs_page_buffer) - 1);
 	UnEscape(execute_handler);
-	
+
 	/* Close the requested program's dentry. */
 	allow_write_access(bprm->file);
 	fput(bprm->file);
@@ -1061,7 +1064,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 	struct task_struct *task = current;
 	struct domain_info *next_domain = NULL, *prev_domain = task->domain_info;
 	const struct path_info *handler;
- 	int retval;
+	int retval;
 	char *work = NULL; /* Keep valid until search_binary_handler() finishes. */
 	struct ccs_page_buffer *buf = ccs_alloc(sizeof(struct ccs_page_buffer));
 	CCS_LoadPolicy(bprm->filename);

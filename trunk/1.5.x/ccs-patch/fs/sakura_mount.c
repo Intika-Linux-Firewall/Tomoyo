@@ -83,7 +83,7 @@ static int AddMountACL(const char *dev_name, const char *dir_name, const char *f
 		strcmp(fs->name, MOUNT_MAKE_PRIVATE_KEYWORD) == 0 ||
 		strcmp(fs->name, MOUNT_MAKE_SLAVE_KEYWORD) == 0 ||
 		strcmp(fs->name, MOUNT_MAKE_SHARED_KEYWORD) == 0) dev_name = "any";
-	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 0, 0, 0, __FUNCTION__)) return -EINVAL; 
+	if (!IsCorrectPath(dev_name, 0, 0, 0, __FUNCTION__) || !IsCorrectPath(dir_name, 0, 0, 0, __FUNCTION__)) return -EINVAL;
 	if ((dev = SaveName(dev_name)) == NULL || (dir = SaveName(dir_name)) == NULL) return -ENOMEM;
 	down(&lock);
 	for (ptr = mount_list; ptr; ptr = ptr->next) {
@@ -197,14 +197,14 @@ static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, uns
 		const char *requested_dev_name = NULL;
 		struct path_info rdev, rdir;
 		int need_dev = 0;
-		
+
 		if ((requested_dir_name = realpath(dir_name)) == NULL) {
 			error = -ENOENT;
 			goto cleanup;
 		}
 		rdir.name = requested_dir_name;
 		fill_path_info(&rdir);
-		
+
 		/* Compare fs name. */
 		if (strcmp(type, MOUNT_REMOUNT_KEYWORD) == 0) {
 			/* Needn't to resolve dev_name */
@@ -237,22 +237,22 @@ static int CheckMountPermission2(char *dev_name, char *dir_name, char *type, uns
 		}
 		for (ptr = mount_list; ptr; ptr = ptr->next) {
 			if (ptr->is_deleted) continue;
-			
+
 			/* Compare options */
 			if (ptr->flags != flags) continue;
-			
+
 			/* Compare fs name. */
 			if (strcmp(type, ptr->fs_type->name)) continue;
-			
+
 			/* Compare mount point. */
 			if (PathMatchesToPattern(&rdir, ptr->dir_name) == 0) continue;
-			
+
 			/* Compare device name. */
 			if (requested_dev_name && PathMatchesToPattern(&rdev, ptr->dev_name) == 0) continue;
-			
+
 			/* OK. */
 			error = 0;
-			
+
 			if (need_dev > 0) {
 				printk(KERN_DEBUG "SAKURA-NOTICE: 'mount -t %s %s %s 0x%lX' accepted.\n", type, requested_dev_name, requested_dir_name, flags);
 			} else if (need_dev < 0) {
