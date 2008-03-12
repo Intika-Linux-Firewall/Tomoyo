@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/11
+ * Version: 1.6.0-pre   2008/03/12
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -63,18 +63,54 @@ static struct file_operations ccs_operations = {
 	write:   ccs_write
 };
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+static int proc_notify_change(struct dentry *dentry, struct iattr *iattr)
+{
+	struct inode *inode = dentry->d_inode;
+	struct proc_dir_entry *de = PDE(inode);
+	int error;
+
+	error = inode_change_ok(inode, iattr);
+	if (error)
+		goto out;
+
+	error = inode_setattr(inode, iattr);
+	if (error)
+		goto out;
+	
+	de->uid = inode->i_uid;
+	de->gid = inode->i_gid;
+	de->mode = inode->i_mode;
+out:
+	return error;
+}
+
+static struct inode_operations ccs_dir_inode_operations;
+static struct inode_operations ccs_file_inode_operations;
+#endif
+
 static __init void CreateEntry(const char *name, const mode_t mode, struct proc_dir_entry *parent, const u8 key)
 {
 	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
 	if (entry) {
 		entry->proc_fops = &ccs_operations;
 		entry->data = ((u8 *) NULL) + key;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+		if (entry->proc_iops) ccs_file_inode_operations = *entry->proc_iops;
+		if (!ccs_file_inode_operations.setattr) ccs_file_inode_operations.setattr = proc_notify_change;
+		entry->proc_iops = &ccs_file_inode_operations;
+#endif
 	}
 }
 
 void __init CCSProc_Init(void)
 {
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+	if (ccs_dir->proc_iops) ccs_dir_inode_operations = *ccs_dir->proc_iops;
+	if (!ccs_dir_inode_operations.setattr) ccs_dir_inode_operations.setattr = proc_notify_change;
+	ccs_dir->proc_iops = &ccs_dir_inode_operations;
+#endif
 	realpath_Init();
 	CreateEntry("query",            0600, ccs_dir, CCS_QUERY);
 #ifdef CONFIG_SAKURA
