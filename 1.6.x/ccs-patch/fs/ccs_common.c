@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/11
+ * Version: 1.6.0-pre   2008/03/12
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1412,10 +1412,10 @@ void CCS_LoadPolicy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.6.0-pre   2008/03/11\n");
+	printk("SAKURA: 1.6.0-pre   2008/03/12\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.6.0-pre   2008/03/11\n");
+	printk("TOMOYO: 1.6.0-pre   2008/03/12\n");
 #endif
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = true;
