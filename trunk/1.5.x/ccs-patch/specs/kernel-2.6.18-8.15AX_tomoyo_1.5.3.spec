@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.13%{?dist}_tomoyo_1.5.3
+%define release 8.15%{?dist}_tomoyo_1.5.3
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -1230,7 +1230,7 @@ Patch103004: linux-2.6.18-ipv6_getsockopt_sticky-fixes1.patch
 Patch103005: linux-2.6.18-ipv6_getsockopt_sticky-fixes2.patch
 Patch103006: linux-2.6.18-ipv6_getsockopt_sticky-fixes3.patch
 #
-Patch103007: linux-2.6.20-sysfs_readdir-fix-null-dereference.patch
+#Patch103007: linux-2.6.20-sysfs_readdir-fix-null-dereference.patch
 Patch103010: linux-2.6.18-i2c-i801-enable-pec.patch
 Patch103011: linux-2.6.18-i2c-i801-restore.patch
 # 2.6.18.8
@@ -1330,6 +1330,16 @@ Patch200011: linux-2.6-revoke-force-umount.patch
 Patch200105: linux-2.6-CVE-2007-4571-alsa-convert-snd-page-alloc-proc-file-to-seq_file.patch
 Patch200106: linux-2.6-CVE-2007-4997-net-ieee80211-off-by-two-integer-underflow.patch
 Patch200107: linux-2.6-CVE-2007-5494-fs-missing-dput-in-do_lookup-error-leaks-dentries.patch
+# 2.6.18-53.1.6.el5
+Patch200108: linux-2.6-fs-sysfs-store-inode-nrs-in-s_ino.patch
+Patch200109: linux-2.6-fs-sysfs-fix-condition-check-in-sysfs_drop_dentry.patch
+Patch200110: linux-2.6-fs-sysfs-fix-race-condition-around-sd-s_dentry.patch
+Patch200111: linux-2.6-fs-core-dump-file-ownership.patch
+Patch200112: linux-2.6-fs-corruption-by-unprivileged-user-in-directories.patch
+Patch200113: linux-2.6-consolidate-smp_send_stop.patch 
+Patch200114: linux-2.6.18-sysrq-w-deadlock-fix.patch
+# 2.6.18-53.1.13.el5
+Patch200115: linux-2.6-CVE-2008-0600-fs-vmsplice_to_pipe-flaw.patch
 
 # END OF PATCH DEFINITIONS
 
@@ -2637,7 +2647,7 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %patch103005 -p1
 %patch103006 -p1
 #
-%patch103007 -p1
+#%patch103007 -p1
 %patch103010 -p1
 %patch103011 -p1
 # 2.6.18.8
@@ -2737,12 +2747,22 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %patch200105 -p1
 %patch200106 -p1
 %patch200107 -p1
+# 2.6.18-53.1.6.el5
+%patch200108 -p1
+%patch200109 -p1
+%patch200110 -p1
+%patch200111 -p1
+%patch200112 -p1
+%patch200113 -p1
+%patch200114 -p1
+# 2.6.18-53.1.13.el5
+%patch200115 -p1
 
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.13AX/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.18-8.13AX.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.15AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-8.15AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -3625,10 +3645,8 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
 
 %changelog
-* Thu Jan  3 2008 <ax-kernel@asianux.com> [2.6.18-8.13AX]
-- CVE-2007-4571 : Convert snd-page-alloc proc file to use seq_file for alsa [Patch200105]
-- CVE-2007-4997 : off-by-two integer underflow for ieee80211 [Patch200106]
-- CVE-2007-5494 : missing dput in do_lookup error leaks dentries for fs [Patch200107]
+* Mon Feb 25 2008 <ax-kernel@asianux.com> [2.6.18-8.15AX]
+- CVE-2008-0600 : kernel vmsplice_to_pipe flaw [Bug#3935] [Patch200110]
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
