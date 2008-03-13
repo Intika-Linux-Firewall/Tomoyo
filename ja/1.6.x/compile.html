@@ -56,7 +56,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.18.8-0.9">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.9</a>
 <li><a href="#2.6.22.17-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.17-0.1</a>
 <li><a href="#2.6.9-42.18AX">Asianux 2.0 用のカーネル 2.6.9-42.18AX</a>
-<li><a href="#2.6.18-8.13AX">Asianux 3.0 用のカーネル 2.6.18-8.13AX</a>
+<li><a href="#2.6.18-8.15AX">Asianux 3.0 用のカーネル 2.6.18-8.15AX</a>
 <li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
 <li><a href="#2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a>
 <li><a href="#2.6.16-0vl76.33">VineLinux 4.2 用のカーネル 2.6.16-0vl76.33</a>
@@ -483,24 +483,24 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-8.13AX">Asianux 3.0 用のカーネル 2.6.18-8.13AX</a></h2>
+<h2><a name="2.6.18-8.15AX">Asianux 3.0 用のカーネル 2.6.18-8.15AX</a></h2>
 
 <table border="1">
 <tr><td>
 # カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.13AX.src.rpm<br>
-rpm -ivh kernel-2.6.18-8.13AX.src.rpm<br>
+wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.15AX.src.rpm<br>
+rpm -ivh kernel-2.6.18-8.15AX.src.rpm<br>
 # コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
-mv /usr/src/asianux/BUILD/kernel-2.6.18/linux-2.6.18/ /usr/src/linux-2.6.18-8.13AX<br>
+mv /usr/src/asianux/BUILD/kernel-2.6.18/linux-2.6.18/ /usr/src/linux-2.6.18-8.15AX<br>
 # ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.18-8.13AX/<br>
+cd /usr/src/linux-2.6.18-8.15AX/<br>
 # バージョン番号を修正する。<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.13AX/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.15AX/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
 tar -zxf ccs-patch.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-8.13AX.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.18-8.15AX.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
