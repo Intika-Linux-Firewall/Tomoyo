@@ -30,7 +30,7 @@ summary: the linux kernel (the core of the linux operating system)
 # that the kernel isn't the stock distribution kernel, for example by
 # adding some text to the end of the version number.
 #
-%define release 67.0.4.EL_tomoyo_1.5.3
+%define release 67.0.7.EL_tomoyo_1.5.3
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -129,6 +129,7 @@ summary: the linux kernel (the core of the linux operating system)
 %define image_install_path boot/efi/EFI/redhat
 %define signmodules 1
 %endif
+
 
 # TOMOYO Linux
 %define signmodules 0
@@ -1468,6 +1469,11 @@ Patch10000: linux-2.6.0-compile.patch
 Patch10001: linux-2.6.9-exports.patch
 Patch10002: linux-2.6.9-slab-update.patch
 Patch10003: linux-2.6.9-pci-ids.patch
+
+Patch12000: linux-2.6.9-s390-qeth-hipersockets-layer-3-interface-to-drop-n.patch
+Patch12001: linux-2.6.9-audit-break-execve-records-into-smaller-parts.patch
+Patch12002: linux-2.6.9-cifs-fix-buffer-overflow-if-server-sends-corrupt-re.patch
+Patch12003: linux-2.6.9-x86_64-Prevent-iounmap-from-sleeping-with-a-spinloc.patch
 
 # empty final patch file to facilitate testing of kernel patches
 Patch20000: linux-kernel-test.patch
@@ -3725,6 +3731,11 @@ cd linux-%{kversion}
 # patch for pci ids
 %patch10003 -p1
 
+%patch12000 -p1
+%patch12001 -p1
+%patch12002 -p1
+%patch12003 -p1
+
 # make sure the kernel has the sublevel we know it has. This looks weird
 # but for -pre and -rc versions we need it since we only want to use
 # the higher version when the final kernel is released.
@@ -3742,8 +3753,8 @@ perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.4.EL/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.9-67.0.4.EL.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.7.EL/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-67.0.7.EL.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -4258,7 +4269,7 @@ fi
 %endif
 
 %changelog
-* Wed Feb  3 2008 Johnny Hughes <johnny@centos.org>  [2.6.9-67.0.4]
+* Wed Mar 15 2008 Johnny Hughes <johnny@centos.org>  [2.6.9-67.0.7]
 - rolled in standard centos changes (build for i586, change genkey to
   genkey.centos, do not terminate build on extra files).
 
