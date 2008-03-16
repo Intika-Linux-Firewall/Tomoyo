@@ -1,7 +1,7 @@
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h	(working copy)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h	(作業コピー)
 @@ -19,9 +19,9 @@
  #define __user
  #endif
@@ -16,8 +16,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h
  #define CCS_EXCEPTIONPOLICY       1
 Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(working copy)
+--- trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(作業コピー)
 @@ -14,15 +14,20 @@
  /*
   * A brief description about SYAORAN:
@@ -1184,8 +1184,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	up(&base->d_inode->i_sem);
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(working copy)
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(作業コピー)
 @@ -25,185 +25,268 @@
  #include <asm/uaccess.h>
  
@@ -1768,8 +1768,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(作業コピー)
 @@ -28,7 +28,7 @@
  #include <stdarg.h>
  #include <linux/delay.h>
@@ -2125,7 +2125,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  
  #define CCS_UPDATES_COUNTER_SYSTEM_POLICY    0
  #define CCS_UPDATES_COUNTER_DOMAIN_POLICY    1
-@@ -448,120 +451,163 @@
+@@ -448,120 +451,166 @@
  #define CCS_UPDATES_COUNTER_REJECT_LOG       7
  #define MAX_CCS_UPDATES_COUNTER              8
  
@@ -2186,9 +2186,14 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  struct condition_list;
  
 -char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm);
-+bool ccs_check_condition(const struct acl_info *acl, struct obj_info *obj_info);
++bool ccs_check_condition(const struct acl_info *acl,
++			 struct obj_info *obj_info);
 +bool ccs_check_domain_quota(struct domain_info * const domain);
 +bool ccs_check_quota(struct domain_info * const domain);
++bool ccs_dump_condition(struct ccs_io_buffer *head,
++			const struct condition_list *cond);
++bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
++	__attribute__ ((format(printf, 2, 3)));
 +bool ccs_is_correct_domain(const unsigned char *domainname,
 +			   const char *function);
 +bool ccs_is_correct_path(const char *filename, const s8 start_type,
@@ -2196,7 +2201,22 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 +			 const char *function);
 +bool ccs_is_domain_def(const unsigned char *buffer);
 +bool ccs_path_matches_pattern(const struct path_info *pathname0,
-+				 const struct path_info *pattern0);
++			      const struct path_info *pattern0);
++bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
++bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
++bool ccs_read_alias_policy(struct ccs_io_buffer *head);
++bool ccs_read_chroot_policy(struct ccs_io_buffer *head);
++bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
++bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head);
++bool ccs_read_file_pattern(struct ccs_io_buffer *head);
++bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
++bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
++bool ccs_read_mount_policy(struct ccs_io_buffer *head);
++bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
++bool ccs_read_no_umount_policy(struct ccs_io_buffer *head);
++bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
++bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head);
++bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
 +bool ccs_verbose_mode(void);
 +char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
 +			 struct linux_binprm *bprm);
@@ -2209,8 +2229,10 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 +const char *ccs_get_msg(const bool is_enforce);
 +const char *ccs_net2keyword(const u8 operation);
 +const char *ccs_sp2keyword(const u8 operation);
-+const struct condition_list *ccs_find_or_assign_new_condition(char *condition);
-+const struct condition_list *ccs_get_condition_part(const struct acl_info *acl);
++const struct condition_list *
++ccs_find_or_assign_new_condition(char * const condition);
++const struct condition_list *
++ccs_get_condition_part(const struct acl_info *acl);
 +int ccs_add_address_group_policy(char *data, const bool is_delete);
 +int ccs_add_aggregator_policy(char *data, const bool is_delete);
 +int ccs_add_alias_policy(char *data, const bool is_delete);
@@ -2253,33 +2275,14 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 +int ccs_close_control(struct file *file);
 +int ccs_del_domain_acl(struct acl_info *acl);
 +int ccs_delete_domain(char *data);
-+int ccs_dump_condition(struct ccs_io_buffer *head,
-+		       const struct condition_list *ptr);
-+int ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
-+	__attribute__ ((format(printf, 2, 3)));
 +int ccs_open_control(const u8 type, struct file *file);
 +int ccs_poll_control(struct file *file, poll_table *wait);
 +int ccs_poll_grant_log(struct file *file, poll_table *wait);
 +int ccs_poll_reject_log(struct file *file, poll_table *wait);
-+int ccs_read_address_group_policy(struct ccs_io_buffer *head);
-+int ccs_read_aggregator_policy(struct ccs_io_buffer *head);
-+int ccs_read_alias_policy(struct ccs_io_buffer *head);
-+int ccs_read_chroot_policy(struct ccs_io_buffer *head);
 +int ccs_read_control(struct file *file, char __user *buffer,
 +		     const int buffer_len);
-+int ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
-+int ccs_read_domain_keeper_policy(struct ccs_io_buffer *head);
-+int ccs_read_file_pattern(struct ccs_io_buffer *head);
-+int ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
-+int ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
 +int ccs_read_grant_log(struct ccs_io_buffer *head);
-+int ccs_read_mount_policy(struct ccs_io_buffer *head);
-+int ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
-+int ccs_read_no_umount_policy(struct ccs_io_buffer *head);
-+int ccs_read_path_group_policy(struct ccs_io_buffer *head);
-+int ccs_read_pivot_root_policy(struct ccs_io_buffer *head);
 +int ccs_read_reject_log(struct ccs_io_buffer *head);
-+int ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
 +int ccs_write_audit_log(char *log, const bool is_granted);
 +int ccs_write_control(struct file *file, const char __user *buffer,
 +		      const int buffer_len);
@@ -2289,7 +2292,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 +struct domain_info *ccs_undelete_domain(const char *domainname0);
 +u8 ccs_check_capability_flags(const u8 index);
 +unsigned int ccs_check_flags(const u8 index);
-+unsigned int ccs_check_flags_NoSleepCheck(const u8 index);
++unsigned int ccs_check_flags_no_sleep_check(const u8 index);
  void *ccs_alloc(const size_t size);
 -char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
 -const char *GetEXE(void);
@@ -2390,7 +2393,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  {
  	return a->hash != b->hash || strcmp(a->name, b->name);
  }
-@@ -573,11 +619,12 @@
+@@ -573,11 +622,12 @@
  extern struct domain_info KERNEL_DOMAIN;
  extern struct mutex domain_acl_lock;
  
@@ -2407,8 +2410,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/include/linux/realpath.h	(working copy)
+--- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/include/linux/realpath.h	(作業コピー)
 @@ -18,26 +18,36 @@
  struct path_info;
  
@@ -2463,8 +2466,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(working copy)
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(作業コピー)
 @@ -18,14 +18,15 @@
  /***** TOMOYO Linux start. *****/
  
@@ -2513,7 +2516,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
  	return error;
  }
  
-@@ -63,28 +67,35 @@
+@@ -63,26 +67,33 @@
  	int error;
  	down(&dir->i_zombie);
  	error = may_delete(dir, dentry, 0);
@@ -2552,23 +2555,19 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
 +	if (!dir->i_op || !dir->i_op->link)
 +		goto exit_lock;
  	error = 0;
-- exit_lock:
-+exit_lock:
+  exit_lock:
  	up(&dir->i_zombie);
- 	return error;
- }
 @@ -94,48 +105,78 @@
  	int error;
  	down(&dir->i_zombie);
  	error = may_create(dir, dentry);
 -	if (error) goto exit_lock;
 -	if (!dir->i_op || !dir->i_op->symlink) error = -EPERM;
-- exit_lock:
 +	if (error)
 +		goto exit_lock;
 +	if (!dir->i_op || !dir->i_op->symlink)
 +		error = -EPERM;
-+exit_lock:
+  exit_lock:
  	up(&dir->i_zombie);
  	return error;
  }
@@ -2768,8 +2767,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
  }
 Index: trunk/1.6.x/ccs-patch/include/linux/sakura.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/sakura.h	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/include/linux/sakura.h	(working copy)
+--- trunk/1.6.x/ccs-patch/include/linux/sakura.h	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/include/linux/sakura.h	(作業コピー)
 @@ -15,8 +15,8 @@
   * A brief description about SAKURA:
   *
@@ -2860,8 +2859,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/sakura.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(working copy)
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(作業コピー)
 @@ -22,7 +22,8 @@
   *  and dramatically reduces the policy definition labors.
   *
@@ -3205,8 +3204,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
  #endif
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(作業コピー)
 @@ -19,15 +19,21 @@
  
  /*************************  AUDIT FUNCTIONS  *************************/
@@ -3260,7 +3259,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
  		if (ptr->env == saved_env) {
-@@ -59,127 +68,161 @@
+@@ -59,127 +68,163 @@
  		}
  	}
  	if (is_delete) {
@@ -3301,7 +3300,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  }
  
 -int ReadGloballyUsableEnvPolicy(struct io_buffer *head)
-+int ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
++bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
 -	list1_for_each_cookie(pos, head->read_var2, &globally_usable_env_list) {
@@ -3313,11 +3312,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 -		if (io_printf(head, KEYWORD_ALLOW_ENV "%s\n", ptr->env->name)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s\n",
-+				  ptr->env->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s\n",
++				   ptr->env->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
  
 -/*************************  ENVIRONMENT VARIABLE CHECKING HANDLER  *************************/
@@ -3483,8 +3485,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  /***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(作業コピー)
 @@ -20,27 +20,42 @@
  
  /*************************  AUDIT FUNCTIONS  *************************/
@@ -3665,7 +3667,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  	}
  	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
  	error = 0;
-@@ -135,108 +178,155 @@
+@@ -135,108 +178,158 @@
  	return error;
  }
  
@@ -3791,7 +3793,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  }
  
 -int ReadAddressGroupPolicy(struct io_buffer *head)
-+int ccs_read_address_group_policy(struct ccs_io_buffer *head)
++bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *gpos;
  	struct list1_head *mpos;
@@ -3845,12 +3847,16 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  				}
  			}
 -			if (io_printf(head, KEYWORD_ADDRESS_GROUP "%s %s\n", group->group_name->name, buf)) return -ENOMEM;
-+			if (ccs_io_printf(head, KEYWORD_ADDRESS_GROUP "%s %s\n",
-+					  group->group_name->name, buf))
-+				return -ENOMEM;
++			if (!ccs_io_printf(head, KEYWORD_ADDRESS_GROUP
++					   "%s %s\n", group->group_name->name,
++					   buf))
++				goto out;
  		}
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
  
 -/*************************  NETWORK NETWORK ACL HANDLER  *************************/
@@ -3858,7 +3864,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
  #if !defined(NIP6)
  #define NIP6(addr) \
-@@ -250,14 +340,15 @@
+@@ -250,14 +343,15 @@
  	ntohs((addr).s6_addr16[7])
  #endif
  
@@ -3876,7 +3882,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  {
  	const char *keyword = "unknown";
  	switch (operation) {
-@@ -289,125 +380,196 @@
+@@ -289,125 +383,196 @@
  	return keyword;
  }
  
@@ -4149,7 +4155,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  {
  	u8 sock_type, operation, record_type;
  	u16 min_address[8], max_address[8];
-@@ -415,93 +577,193 @@
+@@ -415,93 +580,193 @@
  	u16 min_port, max_port;
  	u8 count;
  	char *cp1 = NULL, *cp2 = NULL;
@@ -4392,8 +4398,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/realpath.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/realpath.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/realpath.c	(作業コピー)
 @@ -1,5 +1,5 @@
  /*
 - * fs/realpath.c
@@ -5006,8 +5012,8 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c	(作業コピー)
 @@ -61,38 +61,44 @@
  static struct file_operations syaoran_file_operations;
  
@@ -5285,8 +5291,8 @@ Index: trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c
  {
 Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(作業コピー)
 @@ -16,7 +16,7 @@
  #include <linux/ccs_common.h>
  #include <linux/sakura.h>
@@ -5322,7 +5328,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &chroot_list, list) {
  		if (ptr->dir == saved_dir) {
-@@ -54,71 +57,90 @@
+@@ -54,73 +57,94 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -5362,7 +5368,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 +		error = 0;
 +	return error;
 +}
-+	
++
 +int ccs_check_chroot_permission(struct nameidata *nd)
 +{
  	int error = -EPERM;
@@ -5425,7 +5431,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  }
  
 -int ReadChrootPolicy(struct io_buffer *head)
-+int ccs_read_chroot_policy(struct ccs_io_buffer *head)
++bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &chroot_list) {
@@ -5435,16 +5441,21 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 -		if (io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n", ptr->dir->name)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
-+				  ptr->dir->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
++				   ptr->dir->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
+ 
+ /***** SAKURA Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(作業コピー)
 @@ -16,7 +16,7 @@
  #include <linux/ccs_common.h>
  #include <linux/sakura.h>
@@ -5555,7 +5566,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  					error = 0;
  					break;
  				}
-@@ -98,37 +116,50 @@
+@@ -98,39 +116,54 @@
  	}
  	if (error) {
  		const bool is_enforce = (mode == 3);
@@ -5603,7 +5614,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  }
  
 -int ReadPivotRootPolicy(struct io_buffer *head)
-+int ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
++bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &pivot_root_list) {
@@ -5613,16 +5624,21 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 -		if (io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n", ptr->new_root->name, ptr->old_root->name)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
-+				  ptr->new_root->name, ptr->old_root->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
++				   ptr->new_root->name, ptr->old_root->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
+ 
+ /***** SAKURA Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(作業コピー)
 @@ -16,35 +16,43 @@
  #include <linux/ccs_common.h>
  #include <linux/sakura.h>
@@ -5756,7 +5772,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	new_entry->dev_name = dev;
  	new_entry->dir_name = dir;
  	new_entry->fs_type = fs;
-@@ -111,37 +140,154 @@
+@@ -111,37 +140,153 @@
  	error = 0;
  	ptr = new_entry;
   update:
@@ -5913,7 +5929,6 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 +	ccs_free(realname1);
 +	return error;
 +}
-+		
 +
 +static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 +				   unsigned long flags)
@@ -5933,7 +5948,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
  	case MS_REMOUNT:
  	case MS_MOVE:
-@@ -149,7 +295,8 @@
+@@ -149,7 +294,8 @@
  	case 0:
  		break;
  	default:
@@ -5943,7 +5958,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  		       flags & MS_REMOUNT ? "'remount' " : "",
  		       flags & MS_MOVE    ? "'move' " : "",
  		       flags & MS_BIND    ? "'bind' " : "");
-@@ -163,7 +310,8 @@
+@@ -163,7 +309,8 @@
  	case 0:
  		break;
  	default:
@@ -5953,7 +5968,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  		       flags & MS_UNBINDABLE ? "'unbindable' " : "",
  		       flags & MS_PRIVATE    ? "'private' " : "",
  		       flags & MS_SLAVE      ? "'slave' " : "",
-@@ -171,19 +319,33 @@
+@@ -171,19 +318,33 @@
  		return -EINVAL;
  	}
  	if (flags & MS_REMOUNT) {
@@ -5994,7 +6009,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	} else {
  		struct mount_entry *ptr;
  		struct file_system_type *fstype = NULL;
-@@ -192,138 +354,145 @@
+@@ -192,140 +353,149 @@
  		struct path_info rdev, rdir;
  		int need_dev = 0;
  
@@ -6202,7 +6217,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  }
  
 -int ReadMountPolicy(struct io_buffer *head)
-+int ccs_read_mount_policy(struct ccs_io_buffer *head)
++bool ccs_read_mount_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &mount_list) {
@@ -6212,17 +6227,22 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -		if (io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n", ptr->dev_name->name, ptr->dir_name->name, ptr->fs_type->name, ptr->flags)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
-+				  ptr->dev_name->name, ptr->dir_name->name,
-+				  ptr->fs_type->name, ptr->flags))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
++				   ptr->dev_name->name, ptr->dir_name->name,
++				   ptr->fs_type->name, ptr->flags))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
+ 
+ /***** SAKURA Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/syaoran.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/syaoran.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/syaoran.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/syaoran.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/syaoran.c	(作業コピー)
 @@ -70,7 +70,7 @@
   * Lookup the data. This is trivial - if the dentry didn't already
   * exist, we know it is negative.
@@ -6533,8 +6553,8 @@ Index: trunk/1.6.x/ccs-patch/fs/syaoran.c
  {
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(作業コピー)
 @@ -18,7 +18,7 @@
  #include <linux/highmem.h>
  #include <linux/binfmts.h>
@@ -6619,7 +6639,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  						cp += 4;
  					}
 -				no_envp:
-+no_envp:
++ no_envp:
  					*cp++ = '}';
  					*cp++ = '\0';
  				}
@@ -6670,7 +6690,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  	char *buf;
  	char *bprm_info = "";
  	struct timeval tv;
-@@ -148,77 +161,96 @@
+@@ -148,79 +161,99 @@
  	do_gettimeofday(&tv);
  	*len += strlen(domainname) + 256;
  	if (bprm) {
@@ -6789,9 +6809,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
 +	if (head->read_avail)
 +		return 0;
  	if (head->read_buf) {
- 		ccs_free(head->read_buf); head->read_buf = NULL;
+-		ccs_free(head->read_buf); head->read_buf = NULL;
++		ccs_free(head->read_buf);
++		head->read_buf = NULL;
  		head->readbuf_size = 0;
-@@ -234,24 +266,28 @@
+ 	}
+ 	/***** CRITICAL SECTION START *****/
+@@ -234,26 +267,31 @@
  	/***** CRITICAL SECTION END *****/
  	if (ptr) {
  		head->read_buf = ptr->log;
@@ -6824,9 +6848,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
 +	if (head->read_avail)
 +		return 0;
  	if (head->read_buf) {
- 		ccs_free(head->read_buf); head->read_buf = NULL;
+-		ccs_free(head->read_buf); head->read_buf = NULL;
++		ccs_free(head->read_buf);
++		head->read_buf = NULL;
  		head->readbuf_size = 0;
-@@ -267,17 +303,20 @@
+ 	}
+ 	/***** CRITICAL SECTION START *****/
+@@ -267,17 +305,20 @@
  	/***** CRITICAL SECTION END *****/
  	if (ptr) {
  		head->read_buf = ptr->log;
@@ -6853,8 +6881,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(作業コピー)
 @@ -18,6 +18,10 @@
  #include <linux/realpath.h>
  #include <linux/highmem.h>
@@ -6982,12 +7010,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	new_entry->domainname = saved_domainname;
  	new_entry->program = saved_program;
  	new_entry->is_not = is_not;
-@@ -160,48 +182,68 @@
+@@ -160,48 +182,70 @@
  	return error;
  }
  
 -int ReadDomainInitializerPolicy(struct io_buffer *head)
-+int ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
++bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &domain_initializer_list) {
@@ -6998,22 +7026,25 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +			continue;
  		if (ptr->domainname) {
 -			if (io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN "%s from %s\n", ptr->is_not ? "no_" : "", ptr->program->name, ptr->domainname->name)) return -ENOMEM;
-+			if (ccs_io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN
-+					  "%s from %s\n",
-+					  ptr->is_not ? "no_" : "",
-+					  ptr->program->name,
-+					  ptr->domainname->name))
-+				return -ENOMEM;
++			if (!ccs_io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN
++					   "%s from %s\n",
++					   ptr->is_not ? "no_" : "",
++					   ptr->program->name,
++					   ptr->domainname->name))
++				goto out;
  		} else {
 -			if (io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN "%s\n", ptr->is_not ? "no_" : "", ptr->program->name)) return -ENOMEM;
-+			if (ccs_io_printf(head, "%s"
-+					  KEYWORD_INITIALIZE_DOMAIN "%s\n",
-+					  ptr->is_not ? "no_" : "",
-+					  ptr->program->name))
-+				return -ENOMEM;
++			if (!ccs_io_printf(head, "%s"
++					   KEYWORD_INITIALIZE_DOMAIN "%s\n",
++					   ptr->is_not ? "no_" : "",
++					   ptr->program->name))
++				goto out;
  		}
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
  
 -int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_delete)
@@ -7064,7 +7095,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		flag = true;
  	}
  	return flag;
-@@ -211,36 +253,46 @@
+@@ -211,36 +255,46 @@
  
  static LIST1_HEAD(domain_keeper_list);
  
@@ -7124,7 +7155,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	new_entry->domainname = saved_domainname;
  	new_entry->program = saved_program;
  	new_entry->is_not = is_not;
-@@ -252,76 +304,101 @@
+@@ -252,76 +306,106 @@
  	return error;
  }
  
@@ -7144,31 +7175,37 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
 -int ReadDomainKeeperPolicy(struct io_buffer *head)
-+int ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
++bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
  		struct domain_keeper_entry *ptr;
++		const char *is_not;
  		ptr = list1_entry(pos, struct domain_keeper_entry, list);
 -		if (ptr->is_deleted) continue;
 +		if (ptr->is_deleted)
 +			continue;
++		is_not = ptr->is_not ? "no_" : "";
  		if (ptr->program) {
 -			if (io_printf(head, "%s" KEYWORD_KEEP_DOMAIN "%s from %s\n", ptr->is_not ? "no_" : "", ptr->program->name, ptr->domainname->name)) return -ENOMEM;
-+			if (ccs_io_printf(head, "%s" KEYWORD_KEEP_DOMAIN "%s "
-+					  "from %s\n", ptr->is_not ? "no_" : "",
-+					  ptr->program->name,
-+					  ptr->domainname->name))
-+				return -ENOMEM;
++			if (!ccs_io_printf(head,
++					   "%s" KEYWORD_KEEP_DOMAIN "%s "
++					   "from %s\n",
++					   is_not, ptr->program->name,
++					   ptr->domainname->name))
++				goto out;
  		} else {
 -			if (io_printf(head, "%s" KEYWORD_KEEP_DOMAIN "%s\n", ptr->is_not ? "no_" : "", ptr->domainname->name)) return -ENOMEM;
-+			if (ccs_io_printf(head, "%s" KEYWORD_KEEP_DOMAIN "%s\n",
-+					  ptr->is_not ? "no_" : "",
-+					  ptr->domainname->name))
-+				return -ENOMEM;
++			if (!ccs_io_printf(head,
++					   "%s" KEYWORD_KEEP_DOMAIN "%s\n",
++					   is_not, ptr->domainname->name))
++				goto out;
  		}
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
  
 -static bool IsDomainKeeper(const struct path_info *domainname, const struct path_info *program, const struct path_info *last_name)
@@ -7249,12 +7286,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	new_entry->original_name = saved_original_name;
  	new_entry->aliased_name = saved_aliased_name;
  	list1_add_tail_mb(&new_entry->list, &alias_list);
-@@ -331,51 +408,66 @@
+@@ -331,51 +415,68 @@
  	return error;
  }
  
 -int ReadAliasPolicy(struct io_buffer *head)
-+int ccs_read_alias_policy(struct ccs_io_buffer *head)
++bool ccs_read_alias_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &alias_list) {
@@ -7264,12 +7301,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -		if (io_printf(head, KEYWORD_ALIAS "%s %s\n", ptr->original_name->name, ptr->aliased_name->name)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_ALIAS "%s %s\n",
-+				  ptr->original_name->name,
-+				  ptr->aliased_name->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_ALIAS "%s %s\n",
++				   ptr->original_name->name,
++				   ptr->aliased_name->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
  
 -int AddAliasPolicy(char *data, const bool is_delete)
@@ -7332,12 +7372,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	new_entry->original_name = saved_original_name;
  	new_entry->aggregated_name = saved_aggregated_name;
  	list1_add_tail_mb(&new_entry->list, &aggregator_list);
-@@ -385,61 +477,76 @@
+@@ -385,61 +486,78 @@
  	return error;
  }
  
 -int ReadAggregatorPolicy(struct io_buffer *head)
-+int ccs_read_aggregator_policy(struct ccs_io_buffer *head)
++bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &aggregator_list) {
@@ -7347,12 +7387,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -		if (io_printf(head, KEYWORD_AGGREGATOR "%s %s\n", ptr->original_name->name, ptr->aggregated_name->name)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_AGGREGATOR "%s %s\n",
-+				  ptr->original_name->name,
-+				  ptr->aggregated_name->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_AGGREGATOR "%s %s\n",
++				   ptr->original_name->name,
++				   ptr->aggregated_name->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
  
 -int AddAggregatorPolicy(char *data, const bool is_delete)
@@ -7424,7 +7467,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  #endif
  		break;
  	}
-@@ -447,74 +554,95 @@
+@@ -447,74 +565,95 @@
  	return 0;
  }
  
@@ -7538,7 +7581,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		domain->flags = 0;
  		domain->profile = profile;
  		domain->quota_warned = false;
-@@ -523,13 +651,14 @@
+@@ -523,13 +662,14 @@
  		goto out;
  	}
  	/* No memory reusable. Create using new memory. */
@@ -7555,7 +7598,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	mutex_unlock(&new_domain_assign_lock);
  	return domain;
  }
-@@ -539,14 +668,18 @@
+@@ -539,14 +679,18 @@
  	char *arg_ptr = tmp->buffer;
  	int arg_len = 0;
  	unsigned long pos = bprm->p;
@@ -7578,7 +7621,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		pos += PAGE_SIZE - offset;
  #else
  		page = bprm->page[i];
-@@ -554,7 +687,7 @@
+@@ -554,7 +698,7 @@
  		/* Map. */
  		kaddr = kmap(page);
  		if (!kaddr) { /* Mapping failed. */
@@ -7587,7 +7630,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			put_page(page);
  #endif
  			goto out;
-@@ -573,7 +706,8 @@
+@@ -573,7 +717,8 @@
  				} else {
  					arg_ptr[arg_len++] = '\\';
  					arg_ptr[arg_len++] = (c >> 6) + '0';
@@ -7597,7 +7640,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  					arg_ptr[arg_len++] = (c & 7) + '0';
  				}
  			} else {
-@@ -584,91 +718,121 @@
+@@ -584,91 +729,121 @@
  		}
  		/* Unmap. */
  		kunmap(page);
@@ -7751,7 +7794,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		}
  	}
  
-@@ -677,74 +841,92 @@
+@@ -677,74 +852,92 @@
  		struct aggregator_entry *ptr;
  		/* Is this program allowed to be aggregated? */
  		list1_for_each_entry(ptr, &aggregator_list, list) {
@@ -7871,7 +7914,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		pos += PAGE_SIZE - offset;
  #else
  		page = bprm->page[i];
-@@ -752,16 +934,18 @@
+@@ -752,16 +945,18 @@
  		/* Map. */
  		kaddr = kmap(page);
  		if (!kaddr) { /* Mapping failed. */
@@ -7893,7 +7936,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		while (offset < PAGE_SIZE) {
  			const unsigned char c = kaddr[offset++];
  			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
-@@ -775,14 +959,16 @@
+@@ -775,14 +970,16 @@
  				} else {
  					arg_ptr[arg_len++] = '\\';
  					arg_ptr[arg_len++] = (c >> 6) + '0';
@@ -7913,7 +7956,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  				error = -EPERM;
  				break;
  			}
-@@ -792,21 +978,22 @@
+@@ -792,21 +989,22 @@
  			}
  			arg_len = 0;
  		}
@@ -7940,7 +7983,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  {
  	unsigned char *src = dest;
  	unsigned char c, d, e;
-@@ -818,56 +1005,34 @@
+@@ -818,56 +1016,34 @@
  		c = *src++;
  		if (c == '\\') {
  			*dest++ = c;
@@ -8011,7 +8054,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			dentry = vfsmnt->mnt_mountpoint;
  			vfsmnt = vfsmnt->mnt_parent;
  			continue;
-@@ -875,21 +1040,52 @@
+@@ -875,21 +1051,52 @@
  		dentry = dentry->d_parent;
  		depth++;
  	}
@@ -8069,7 +8112,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  {
  	/*
  	 * Contents of modified bprm.
-@@ -936,9 +1132,11 @@
+@@ -936,9 +1143,11 @@
  	/* Allocate memory for execute handler's pathname. */
  	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer));
  	*work = execute_handler;
@@ -8084,7 +8127,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  	/* Close the requested program's dentry. */
  	allow_write_access(bprm->file);
-@@ -946,12 +1144,14 @@
+@@ -946,12 +1155,14 @@
  	bprm->file = NULL;
  
  	{ /* Adjust root directory for open_exec(). */
@@ -8102,7 +8145,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			depth--;
  		}
  		memmove(execute_handler, cp, strlen(cp) + 1);
-@@ -963,67 +1163,87 @@
+@@ -963,67 +1174,87 @@
  
  	/* Set argv[6] */
  	{
@@ -8204,7 +8247,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  	/* OK, now restart the process with execute handler program's dentry. */
  	filp = open_exec(execute_handler);
-@@ -1031,61 +1251,77 @@
+@@ -1031,61 +1262,77 @@
  		retval = PTR_ERR(filp);
  		goto out;
  	}
@@ -8303,7 +8346,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	ccs_free(work);
  	ccs_free(buf);
  	return retval;
-@@ -1093,10 +1329,11 @@
+@@ -1093,10 +1340,11 @@
  
  #else
  
@@ -8319,8 +8362,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(作業コピー)
 @@ -16,90 +16,103 @@
  #include <linux/ccs_common.h>
  #include <linux/sakura.h>
@@ -8491,8 +8534,8 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
  
 Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(作業コピー)
 @@ -21,7 +21,7 @@
  #include <asm/uaccess.h>
  #include <stdarg.h>
@@ -9042,7 +9085,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +				if (c != '\\')
 +					continue;
 +				if (filename[i + 1] == '\\')
-+					i++; 
++					i++;
 +				else if (is_byte_range(filename + i + 1))
 +					i += 3;
 +				else
@@ -9175,26 +9218,28 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  /*
 - *  Transactional printf() to struct io_buffer structure.
 - *  snprintf() will truncate, but io_printf() won't.
-+ *  Transactional printf() to struct ccs_io_buffer structure.
+- *  Returns zero on success, nonzero otherwise.
++ *  Transactional printf() to "struct ccs_io_buffer" structure.
 + *  snprintf() will truncate, but ccs_io_printf() won't.
-  *  Returns zero on success, nonzero otherwise.
++ *  Returns true on success, false otherwise.
   */
 -int io_printf(struct io_buffer *head, const char *fmt, ...)
-+int ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
++bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
  {
  	va_list args;
  	int len, pos = head->read_avail, size = head->readbuf_size - pos;
 -	if (size <= 0) return -ENOMEM;
 +	if (size <= 0)
-+		return -ENOMEM;
++		return false;
  	va_start(args, fmt);
  	len = vsnprintf(head->read_buf + pos, size, fmt, args);
  	va_end(args);
 -	if (pos + len >= head->readbuf_size) return -ENOMEM;
 +	if (pos + len >= head->readbuf_size)
-+		return -ENOMEM;
++		return false;
  	head->read_avail += len;
- 	return 0;
+-	return 0;
++	return true;
  }
  
  /*
@@ -9240,7 +9285,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
  /* Check whether the given access control is enabled. */
 -unsigned int CheckCCSFlags_NoSleepCheck(const u8 index)
-+unsigned int ccs_check_flags_NoSleepCheck(const u8 index)
++unsigned int ccs_check_flags_no_sleep_check(const u8 index)
  {
  	const u8 profile = current->domain_info->profile;
  	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
@@ -9287,7 +9332,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +unsigned int ccs_check_flags(const u8 index)
  {
 -	return sleep_check() ? CheckCCSFlags_NoSleepCheck(index) : 0;
-+	return sleep_check() ? ccs_check_flags_NoSleepCheck(index) : 0;
++	return sleep_check() ? ccs_check_flags_no_sleep_check(index) : 0;
  }
  
  #ifdef CONFIG_TOMOYO
@@ -9477,7 +9522,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		}
  		profile->value[i] = value;
  		return 0;
-@@ -703,15 +876,19 @@
+@@ -703,16 +876,21 @@
  	return -EINVAL;
  }
  
@@ -9490,55 +9535,70 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -	if (head->read_eof) return 0;
 -	for (step = head->read_step; step < MAX_PROFILES * (CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX); step++) {
 -		const int i = step / (CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX), j = step % (CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX);
+-		const struct profile *profile = profile_ptr[i];
 +	if (head->read_eof)
 +		return 0;
 +	for (step = head->read_step; step < MAX_PROFILES * total; step++) {
-+		const int i = step / total, j = step % total;
- 		const struct profile *profile = profile_ptr[i];
++		const int index = step / total;
++		const int type = step % total;
++		const struct profile *profile = profile_ptr[index];
  		head->read_step = step;
 -		if (!profile) continue;
+-		switch (j) {
 +		if (!profile)
 +			continue;
- 		switch (j) {
++		switch (type) {
  		case -1: /* Dummy */
  #ifndef CONFIG_SAKURA
-@@ -736,11 +913,20 @@
+ 		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
+@@ -735,17 +913,28 @@
+ #endif
  			continue;
  		}
- 		if (j == CCS_PROFILE_COMMENT) {
+-		if (j == CCS_PROFILE_COMMENT) {
 -			if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[CCS_PROFILE_COMMENT].keyword, profile->comment ? profile->comment->name : "")) break;
-+			if (ccs_io_printf(head, "%u-%s=%s\n", i,
-+					  ccs_control_array[j].keyword,
-+					  profile->comment ?
-+					  profile->comment->name : ""))
+-		} else if (j >= CCS_MAX_CONTROL_INDEX) {
++		if (type == CCS_PROFILE_COMMENT) {
++			if (!ccs_io_printf(head, "%u-%s=%s\n", index,
++					   ccs_control_array[type].keyword,
++					   profile->comment ?
++					   profile->comment->name : ""))
 +				break;
- 		} else if (j >= CCS_MAX_CONTROL_INDEX) {
++		} else if (type >= CCS_MAX_CONTROL_INDEX) {
  #ifdef CONFIG_TOMOYO
- 			const int k = j - CCS_MAX_CONTROL_INDEX;
+-			const int k = j - CCS_MAX_CONTROL_INDEX;
 -			if (io_printf(head, "%u-" KEYWORD_MAC_FOR_CAPABILITY "%s=%s\n", i, capability_control_keyword[k], mode_4[profile->capability_value[k]])) break;
-+			if (ccs_io_printf(head,
-+					  "%u-" KEYWORD_MAC_FOR_CAPABILITY
-+					  "%s=%s\n", i,
-+					  capability_control_keyword[k],
-+					  mode_4[profile->capability_value[k]]))
++			const int i = type - CCS_MAX_CONTROL_INDEX;
++			const u8 value = profile->capability_value[i];
++			if (!ccs_io_printf(head,
++					   "%u-" KEYWORD_MAC_FOR_CAPABILITY
++					   "%s=%s\n", index,
++					   capability_control_keyword[i],
++					   mode_4[value]))
 +				break;
  #endif
  		} else {
- 			const unsigned int value = profile->value[j];
-@@ -754,13 +940,20 @@
+-			const unsigned int value = profile->value[j];
++			const unsigned int value = profile->value[type];
+ 			const char **modes = NULL;
+-			switch (ccs_control_array[j].max_value) {
++			const char *keyword = ccs_control_array[type].keyword;
++			switch (ccs_control_array[type].max_value) {
+ 			case 3:
+ 				modes = mode_4;
+ 				break;
+@@ -754,13 +943,18 @@
  				break;
  			}
  			if (modes) {
 -				if (io_printf(head, "%u-%s=%s\n", i, ccs_control_array[j].keyword, modes[value])) break;
-+				if (ccs_io_printf(head, "%u-%s=%s\n", i,
-+						  ccs_control_array[j].keyword,
-+						  modes[value]))
++				if (!ccs_io_printf(head, "%u-%s=%s\n", index,
++						   keyword, modes[value]))
 +					break;
  			} else {
 -				if (io_printf(head, "%u-%s=%u\n", i, ccs_control_array[j].keyword, value)) break;
-+				if (ccs_io_printf(head, "%u-%s=%u\n", i,
-+						  ccs_control_array[j].keyword,
-+						  value))
++				if (!ccs_io_printf(head, "%u-%s=%u\n", index,
++						   keyword, value))
 +					break;
  			}
  		}
@@ -9549,7 +9609,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	return 0;
  }
  
-@@ -775,20 +968,24 @@
+@@ -775,20 +969,24 @@
  
  static LIST1_HEAD(policy_manager_list);
  
@@ -9579,7 +9639,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &policy_manager_list, list) {
  		if (ptr->manager == saved_manager) {
-@@ -801,71 +998,81 @@
+@@ -801,71 +999,81 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -9632,7 +9692,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -		if (io_printf(head, "%s\n", ptr->manager->name)) return 0;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, "%s\n", ptr->manager->name))
++		if (!ccs_io_printf(head, "%s\n", ptr->manager->name))
 +			return 0;
  	}
  	head->read_eof = true;
@@ -9683,7 +9743,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			last_pid = pid;
  		}
  	}
-@@ -877,19 +1084,21 @@
+@@ -877,19 +1085,21 @@
  
  /*************************  DOMAIN POLICY HANDLER  *************************/
  
@@ -9709,7 +9769,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	char *data = head->write_buf;
  	struct domain_info *domain = head->write_var1;
-@@ -897,64 +1106,70 @@
+@@ -897,79 +1107,96 @@
  	unsigned int profile;
  	const struct condition_list *cond = NULL;
  	char *cp;
@@ -9815,8 +9875,16 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	int pos;
  	u8 bit;
-@@ -962,14 +1177,22 @@
+-	const bool b = ptr->u_is_group;
++	const char *atmark = "";
++	const char *filename;
  	const u16 perm = ptr->perm;
++	if (ptr->u_is_group) {
++		atmark = "@";
++		filename = ptr->u.group->group_name->name;
++	} else {
++		filename = ptr->u.filename->name;
++	}
  	for (bit = head->read_bit; bit < MAX_SINGLE_PATH_OPERATION; bit++) {
  		const char *msg;
 -		if (!(perm & (1 << bit))) continue;
@@ -9833,18 +9901,14 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -		if (b && io_printf(head, "allow_%s @%s ", msg, ptr->u.group->group_name->name)) goto out;
 -		if (!b && io_printf(head, "allow_%s %s ", msg, ptr->u.filename->name)) goto out;
 -		if (DumpCondition(head, cond)) goto out;
-+		if (b && ccs_io_printf(head, "allow_%s @%s ", msg,
-+				       ptr->u.group->group_name->name))
-+			goto out;
-+		if (!b && ccs_io_printf(head, "allow_%s %s ", msg,
-+					ptr->u.filename->name))
-+			goto out;
-+		if (ccs_dump_condition(head, cond))
++		if (!ccs_io_printf(head, "allow_%s %s%s ", msg,
++				   atmark, filename) ||
++		    !ccs_dump_condition(head, cond))
 +			goto out;
  	}
  	head->read_bit = 0;
  	return true;
-@@ -979,7 +1202,9 @@
+@@ -979,23 +1206,40 @@
  	return false;
  }
  
@@ -9854,9 +9918,25 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +				  const struct condition_list *cond)
  {
  	int pos;
- 	const bool b0 = ptr->u1_is_group, b1 = ptr->u2_is_group;
-@@ -987,15 +1212,26 @@
+-	const bool b0 = ptr->u1_is_group, b1 = ptr->u2_is_group;
++	const char *atmark1 = "";
++	const char *atmark2 = "";
++	const char *filename1;
++	const char *filename2;
+ 	const u8 perm = ptr->perm;
  	u8 bit;
++	if (ptr->u1_is_group) {
++		atmark1 = "@";
++		filename1 = ptr->u1.group1->group_name->name;
++	} else {
++		filename1 = ptr->u1.filename1->name;
++	}
++	if (ptr->u2_is_group) {
++		atmark2 = "@";
++		filename2 = ptr->u2.group2->group_name->name;
++	} else {
++		filename2 = ptr->u2.filename2->name;
++	}
  	for (bit = head->read_bit; bit < MAX_DOUBLE_PATH_OPERATION; bit++) {
  		const char *msg;
 -		if (!(perm & (1 << bit))) continue;
@@ -9871,26 +9951,15 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -		if (b1 && io_printf(head, "@%s", ptr->u2.group2->group_name->name)) goto out;
 -		if (!b1 && io_printf(head, "%s", ptr->u2.filename2->name)) goto out;
 -		if (DumpCondition(head, cond)) goto out;
-+		if (ccs_io_printf(head, "allow_%s ", msg))
-+			goto out;
-+		if (b0 && ccs_io_printf(head, "@%s ",
-+					ptr->u1.group1->group_name->name))
-+			goto out;
-+		if (!b0 && ccs_io_printf(head, "%s ",
-+					 ptr->u1.filename1->name))
-+			goto out;
-+		if (b1 && ccs_io_printf(head, "@%s",
-+					ptr->u2.group2->group_name->name))
-+			goto out;
-+		if (!b1 && ccs_io_printf(head, "%s",
-+					 ptr->u2.filename2->name))
-+			goto out;
-+		if (ccs_dump_condition(head, cond))
++		if (!ccs_io_printf(head, "allow_%s %s%s %s%s", msg,
++				   atmark1, filename1,
++				   atmark2, filename2) ||
++		    !ccs_dump_condition(head, cond))
 +			goto out;
  	}
  	head->read_bit = 0;
  	return true;
-@@ -1005,145 +1241,257 @@
+@@ -1005,145 +1249,257 @@
  	return false;
  }
  
@@ -9903,10 +9972,10 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -	if (io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
 -		      ptr->filename->name, ptr->argv0->name)) goto out;
 -	if (DumpCondition(head, cond)) goto out;
-+	if (ccs_io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
++	if (!ccs_io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
 +		      ptr->filename->name, ptr->argv0->name))
 +		goto out;
-+	if (ccs_dump_condition(head, cond))
++	if (!ccs_dump_condition(head, cond))
 +		goto out;
  	return true;
   out:
@@ -9922,9 +9991,9 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	int pos = head->read_avail;
 -	if (io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name)) goto out;
 -	if (DumpCondition(head, cond)) goto out;
-+	if (ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name))
++	if (!ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name))
 +		goto out;
-+	if (ccs_dump_condition(head, cond))
++	if (!ccs_dump_condition(head, cond))
 +		goto out;
  	return true;
   out:
@@ -9940,10 +10009,10 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	int pos = head->read_avail;
 -	if (io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s", cap_operation2keyword(ptr->operation))) goto out;
 -	if (DumpCondition(head, cond)) goto out;
-+	if (ccs_io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s",
++	if (!ccs_io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s",
 +			  ccs_cap2keyword(ptr->operation)))
 +		goto out;
-+	if (ccs_dump_condition(head, cond))
++	if (!ccs_dump_condition(head, cond))
 +		goto out;
  	return true;
   out:
@@ -9957,10 +10026,10 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
 +	const u32 min_address = ptr->u.ipv4.min;
 +	const u32 max_address = ptr->u.ipv4.max;
-+	if (ccs_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
++	if (!ccs_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
 +		return false;
 +	if (min_address != max_address
-+	    && ccs_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
++	    && !ccs_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
 +		return false;
 +	return true;
 +}
@@ -9972,11 +10041,11 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +	const struct in6_addr *min_address = ptr->u.ipv6.min;
 +	const struct in6_addr *max_address = ptr->u.ipv6.max;
 +	ccs_print_ipv6(buf, sizeof(buf), min_address);
-+	if (ccs_io_printf(head, "%s", buf))
++	if (!ccs_io_printf(head, "%s", buf))
 +		return false;
 +	if (min_address != max_address) {
 +		ccs_print_ipv6(buf, sizeof(buf), max_address);
-+		if (ccs_io_printf(head, "-%s", buf))
++		if (!ccs_io_printf(head, "-%s", buf))
 +			return false;
 +	}
 +	return true;
@@ -9986,9 +10055,9 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +			     struct ip_network_acl_record *ptr)
 +{
 +	const u16 min_port = ptr->min_port, max_port = ptr->max_port;
-+	if (ccs_io_printf(head, " %u", min_port))
++	if (!ccs_io_printf(head, " %u", min_port))
 +		return false;
-+	if (min_port != max_port && ccs_io_printf(head, "-%u", max_port))
++	if (min_port != max_port && !ccs_io_printf(head, "-%u", max_port))
 +		return false;
 +	return true;
 +}
@@ -9999,13 +10068,13 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +{
  	int pos = head->read_avail;
 -	if (io_printf(head, KEYWORD_ALLOW_NETWORK "%s ", net_operation2keyword(ptr->operation_type))) goto out;
-+	if (ccs_io_printf(head, KEYWORD_ALLOW_NETWORK "%s ",
++	if (!ccs_io_printf(head, KEYWORD_ALLOW_NETWORK "%s ",
 +			  ccs_net2keyword(ptr->operation_type)))
 +		goto out;
  	switch (ptr->record_type) {
  	case IP_RECORD_TYPE_ADDRESS_GROUP:
 -		if (io_printf(head, "@%s", ptr->u.group->group_name->name)) goto out;
-+		if (ccs_io_printf(head, "@%s", ptr->u.group->group_name->name))
++		if (!ccs_io_printf(head, "@%s", ptr->u.group->group_name->name))
 +			goto out;
  		break;
  	case IP_RECORD_TYPE_IPv4:
@@ -10040,7 +10109,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -	if (DumpCondition(head, cond)) goto out;
 +	if (!print_port_entry(head, ptr))
 +		goto out;
-+	if (ccs_dump_condition(head, cond))
++	if (!ccs_dump_condition(head, cond))
 +		goto out;
  	return true;
   out:
@@ -10056,10 +10125,10 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	int pos = head->read_avail;
 -	if (io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s", ptr->sig, ptr->domainname->name)) goto out;
 -	if (DumpCondition(head, cond)) goto out;
-+	if (ccs_io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s",
++	if (!ccs_io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s",
 +			  ptr->sig, ptr->domainname->name))
 +		goto out;
-+	if (ccs_dump_condition(head, cond))
++	if (!ccs_dump_condition(head, cond))
 +		goto out;
  	return true;
   out:
@@ -10073,7 +10142,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +					 struct execute_handler_record *ptr)
  {
 -	return io_printf(head, "%s %s\n", keyword, ptr->handler->name) == 0;
-+	return !ccs_io_printf(head, "%s %s\n", keyword, ptr->handler->name);
++	return ccs_io_printf(head, "%s %s\n", keyword, ptr->handler->name);
  }
  
 -static int ReadDomainPolicy(struct io_buffer *head)
@@ -10167,7 +10236,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV)
 +			ignore_global_allow_env
 +				= KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
-+		if (ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
++		if (!ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
 +				  "%s%s%s\n", domain->domainname->name,
 +				  domain->profile, quota_exceeded,
 +				  ignore_global_allow_read,
@@ -10221,13 +10290,13 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		head->read_step = 3;
 -	tail_mark: ;
 -		if (io_printf(head, "\n")) return 0;
-+tail_mark:
-+		if (ccs_io_printf(head, "\n"))
++ tail_mark:
++		if (!ccs_io_printf(head, "\n"))
 +			return 0;
  		head->read_step = 1;
  	}
  	head->read_eof = true;
-@@ -1152,43 +1500,50 @@
+@@ -1152,43 +1508,50 @@
  
  #endif
  
@@ -10268,7 +10337,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -		if (io_printf(head, "%u %s\n", domain->profile, domain->domainname->name)) return 0;
 +		if (domain->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, "%u %s\n", domain->profile,
++		if (!ccs_io_printf(head, "%u %s\n", domain->profile,
 +				  domain->domainname->name))
 +			return 0;
  	}
@@ -10289,7 +10358,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	if (head->read_avail == 0 && !head->read_eof) {
  		const int pid = head->read_step;
-@@ -1197,10 +1552,13 @@
+@@ -1197,10 +1560,13 @@
  		/***** CRITICAL SECTION START *****/
  		read_lock(&tasklist_lock);
  		p = find_task_by_pid(pid);
@@ -10305,7 +10374,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		head->read_eof = true;
  	}
  	return 0;
-@@ -1210,78 +1568,95 @@
+@@ -1210,78 +1576,95 @@
  
  #ifdef CONFIG_TOMOYO
  
@@ -10386,75 +10455,75 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		case 1:
 -			if (ReadDomainKeeperPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 2;
-+			if (ccs_read_domain_keeper_policy(head))
++			if (!ccs_read_domain_keeper_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 2;
  		case 2:
 -			if (ReadGloballyReadablePolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 3;
-+			if (ccs_read_globally_readable_policy(head))
++			if (!ccs_read_globally_readable_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 3;
  		case 3:
 -			if (ReadGloballyUsableEnvPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 4;
-+			if (ccs_read_globally_usable_env_policy(head))
++			if (!ccs_read_globally_usable_env_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 4;
  		case 4:
 -			if (ReadDomainInitializerPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 5;
-+			if (ccs_read_domain_initializer_policy(head))
++			if (!ccs_read_domain_initializer_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 5;
  		case 5:
 -			if (ReadAliasPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 6;
-+			if (ccs_read_alias_policy(head))
++			if (!ccs_read_alias_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 6;
  		case 6:
 -			if (ReadAggregatorPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 7;
-+			if (ccs_read_aggregator_policy(head))
++			if (!ccs_read_aggregator_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 7;
  		case 7:
 -			if (ReadFilePatternPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 8;
-+			if (ccs_read_file_pattern(head))
++			if (!ccs_read_file_pattern(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 8;
  		case 8:
 -			if (ReadNoRewritePolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 9;
-+			if (ccs_read_no_rewrite_policy(head))
++			if (!ccs_read_no_rewrite_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 9;
  		case 9:
 -			if (ReadPathGroupPolicy(head)) break;
 -			head->read_var1 = head->read_var2 = NULL; head->read_step = 10;
-+			if (ccs_read_path_group_policy(head))
++			if (!ccs_read_path_group_policy(head))
 +				break;
 +			head->read_var1 = NULL;
 +			head->read_var2 = NULL;
 +			head->read_step = 10;
  		case 10:
 -			if (ReadAddressGroupPolicy(head)) break;
-+			if (ccs_read_address_group_policy(head))
++			if (!ccs_read_address_group_policy(head))
 +				break;
  			head->read_eof = true;
  			break;
  		default:
-@@ -1297,48 +1672,56 @@
+@@ -1297,48 +1680,56 @@
  
  #ifdef CONFIG_SAKURA
  
@@ -10505,39 +10574,39 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		case 1:
 -			if (ReadMountPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 2;
-+			if (ccs_read_mount_policy(head))
++			if (!ccs_read_mount_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 2;
  		case 2:
 -			if (ReadNoUmountPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 3;
-+			if (ccs_read_no_umount_policy(head))
++			if (!ccs_read_no_umount_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 3;
  		case 3:
 -			if (ReadChrootPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 4;
-+			if (ccs_read_chroot_policy(head))
++			if (!ccs_read_chroot_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 4;
  		case 4:
 -			if (ReadPivotRootPolicy(head)) break;
 -			head->read_var2 = NULL; head->read_step = 5;
-+			if (ccs_read_pivot_root_policy(head))
++			if (!ccs_read_pivot_root_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 5;
  		case 5:
 -			if (ReadReservedPortPolicy(head)) break;
-+			if (ccs_read_reserved_port_policy(head))
++			if (!ccs_read_reserved_port_policy(head))
 +				break;
  			head->read_eof = true;
  			break;
  		default:
-@@ -1354,54 +1737,66 @@
+@@ -1354,54 +1745,66 @@
  
  static bool profile_loaded = false;
  
@@ -10633,7 +10702,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		call_usermodehelper(argv[0], argv, envp, 1);
  #else
  		call_usermodehelper(argv[0], argv, envp);
-@@ -1412,19 +1807,22 @@
+@@ -1412,19 +1815,22 @@
  		}
  	}
  #ifdef CONFIG_SAKURA
@@ -10660,7 +10729,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		}
  	}
  }
-@@ -1433,7 +1831,7 @@
+@@ -1433,7 +1839,7 @@
  
  static DECLARE_WAIT_QUEUE_HEAD(query_wait);
  
@@ -10669,7 +10738,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
  struct query_entry {
  	struct list_head list;
-@@ -1447,35 +1845,41 @@
+@@ -1447,35 +1853,41 @@
  static LIST_HEAD(query_list);
  static atomic_t queryd_watcher = ATOMIC_INIT(0);
  
@@ -10723,7 +10792,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	va_start(args, fmt);
  	vsnprintf(query_entry->query + pos, len - 1 - pos, fmt, args);
  	query_entry->query_len = strlen(query_entry->query) + 1;
-@@ -1485,15 +1889,18 @@
+@@ -1485,15 +1897,18 @@
  	list_add_tail(&query_entry->list, &query_list);
  	spin_unlock(&query_lock);
  	/***** CRITICAL SECTION END *****/
@@ -10746,7 +10815,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	/***** CRITICAL SECTION START *****/
  	spin_lock(&query_lock);
  	list_del(&query_entry->list);
-@@ -1511,13 +1918,14 @@
+@@ -1511,13 +1926,14 @@
  		/* Rejected by administrator. */
  		break;
  	}
@@ -10764,7 +10833,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	bool found;
  	/***** CRITICAL SECTION START *****/
-@@ -1525,31 +1933,36 @@
+@@ -1525,31 +1941,36 @@
  	found = !list_empty(&query_list);
  	spin_unlock(&query_lock);
  	/***** CRITICAL SECTION END *****/
@@ -10807,7 +10876,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (pos++ == head->read_step) {
  			len = ptr->query_len;
  			break;
-@@ -1561,22 +1974,29 @@
+@@ -1561,22 +1982,29 @@
  		head->read_step = 0;
  		return 0;
  	}
@@ -10842,7 +10911,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_buf = buf;
  			head->read_step++;
  		} else {
-@@ -1586,7 +2006,7 @@
+@@ -1586,7 +2014,7 @@
  	return 0;
  }
  
@@ -10851,7 +10920,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	char *data = head->write_buf;
  	struct list_head *tmp;
-@@ -1594,18 +2014,23 @@
+@@ -1594,18 +2022,23 @@
  	/***** CRITICAL SECTION START *****/
  	spin_lock(&query_lock);
  	list_for_each(tmp, &query_list) {
@@ -10880,7 +10949,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		break;
  	}
  	spin_unlock(&query_lock);
-@@ -1617,18 +2042,19 @@
+@@ -1617,18 +2050,19 @@
  
  /* Policy updates counter. */
  static unsigned int updates_counter[MAX_CCS_UPDATES_COUNTER];
@@ -10904,7 +10973,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	if (!head->read_eof) {
  		unsigned int counter[MAX_CCS_UPDATES_COUNTER];
-@@ -1638,187 +2064,215 @@
+@@ -1638,187 +2072,215 @@
  		memset(updates_counter, 0, sizeof(updates_counter));
  		spin_unlock(&updates_counter_lock);
  		/***** CRITICAL SECTION END *****/
@@ -10952,8 +11021,8 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	if (!head->read_eof) {
 -		if (io_printf(head, "1.6.0-pre") == 0) head->read_eof = true;
-+		if (ccs_io_printf(head, "1.6.0-pre") == 0)
-+			head->read_eof = true;
++		ccs_io_printf(head, "1.6.0-pre");
++		head->read_eof = true;
  	}
  	return 0;
  }
@@ -10967,11 +11036,11 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +		const int shared = ccs_get_memory_used_for_save_name(),
 +			private = ccs_get_memory_used_for_elements(),
 +			dynamic = ccs_get_memory_used_for_dynamic();
-+		if (ccs_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
-+				  "Dynamic: %10u\nTotal:   %10u\n",
-+				  shared, private, dynamic,
-+				  shared + private + dynamic) == 0)
-+			head->read_eof = true;
++		ccs_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
++			      "Dynamic: %10u\nTotal:   %10u\n",
++			      shared, private, dynamic,
++			      shared + private + dynamic);
++		head->read_eof = true;
  	}
  	return 0;
  }
@@ -11198,7 +11267,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	while (avail_len > 0) {
  		char c;
  		if (head->write_avail >= head->writebuf_size - 1) {
-@@ -1828,12 +2282,14 @@
+@@ -1828,12 +2290,14 @@
  			error = -EFAULT;
  			break;
  		}
@@ -11216,7 +11285,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		head->write(head);
  	}
  	mutex_unlock(&head->write_sem);
-@@ -1841,19 +2297,25 @@
+@@ -1841,19 +2305,25 @@
  }
  
  
@@ -11250,7 +11319,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	int len;
  	struct acl_info *ptr;
-@@ -1886,20 +2348,24 @@
+@@ -1886,20 +2356,24 @@
  	default:
  		return NULL;
  	}
@@ -11284,8 +11353,8 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(作業コピー)
 @@ -23,7 +23,7 @@
  
  #if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
@@ -11443,8 +11512,8 @@ Index: trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c
  #else
 Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(作業コピー)
 @@ -26,11 +26,12 @@
  	u16 max_port;                /* End of port number range.             */
  };
@@ -11471,7 +11540,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  	new_entry->min_port = min_port;
  	new_entry->max_port = max_port;
  	list1_add_tail_mb(&new_entry->list, &reservedport_list);
-@@ -57,43 +60,55 @@
+@@ -57,46 +60,63 @@
  	return error;
  }
  
@@ -11481,7 +11550,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  	/* Must not sleep, for called inside spin_lock. */
  	struct reserved_entry *ptr;
 -	if (!CheckCCSFlags_NoSleepCheck(CCS_SAKURA_RESTRICT_AUTOBIND)) return 0;
-+	if (!ccs_check_flags_NoSleepCheck(CCS_SAKURA_RESTRICT_AUTOBIND))
++	if (!ccs_check_flags_no_sleep_check(CCS_SAKURA_RESTRICT_AUTOBIND))
 +		return 0;
  	list1_for_each_entry(ptr, &reservedport_list, list) {
 -		if (ptr->min_port <= port && port <= ptr->max_port && !ptr->is_deleted) return -EPERM;
@@ -11518,32 +11587,44 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  }
  
 -int ReadReservedPortPolicy(struct io_buffer *head)
-+int ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
++bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
++	char buffer[16];
++	memset(buffer, 0, sizeof(buffer));
  	list1_for_each_cookie(pos, head->read_var2, &reservedport_list) {
++		u16 min_port, max_port;
  		struct reserved_entry *ptr;
  		ptr = list1_entry(pos, struct reserved_entry, list);
 -		if (ptr->is_deleted) continue;
+-		if (ptr->min_port != ptr->max_port) {
+-			if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u-%u\n", ptr->min_port, ptr->max_port)) return -ENOMEM;
+-		} else {
+-			if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u\n", ptr->min_port)) return -ENOMEM;
+-		}
 +		if (ptr->is_deleted)
 +			continue;
- 		if (ptr->min_port != ptr->max_port) {
--			if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u-%u\n", ptr->min_port, ptr->max_port)) return -ENOMEM;
-+			if (ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%u-%u\n",
-+					  ptr->min_port, ptr->max_port))
-+				return -ENOMEM;
- 		} else {
--			if (io_printf(head, KEYWORD_DENY_AUTOBIND "%u\n", ptr->min_port)) return -ENOMEM;
-+			if (ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%u\n",
-+					  ptr->min_port))
-+				return -ENOMEM;
- 		}
++		min_port = ptr->min_port;
++		max_port = ptr->max_port;
++		if (min_port != max_port)
++			snprintf(buffer, sizeof(buffer) - 1,
++				 "%u-%u", min_port, max_port);
++		else
++			snprintf(buffer, sizeof(buffer) - 1, "%u", min_port);
++		if (!ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
+ }
+ 
+ /***** SAKURA Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(作業コピー)
 @@ -17,67 +17,93 @@
  #include <linux/tomoyo.h>
  #include <linux/realpath.h>
@@ -11787,8 +11868,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(作業コピー)
 @@ -74,13 +74,13 @@
  
  /*************************  UTILITY FUNCTIONS  *************************/
@@ -11920,7 +12001,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &globally_readable_list, list) {
  		if (ptr->filename == saved_filename) {
-@@ -151,37 +183,44 @@
+@@ -151,46 +183,56 @@
  	if (is_delete) {
  		error = -ENOENT; goto out;
  	}
@@ -11957,7 +12038,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
 -int ReadGloballyReadablePolicy(struct io_buffer *head)
-+int ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
++bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &globally_readable_list) {
@@ -11969,13 +12050,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +				  list);
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_ALLOW_READ "%s\n",
-+				  ptr->filename->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_ALLOW_READ "%s\n",
++				   ptr->filename->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
-@@ -190,7 +229,8 @@
+ 
+ /*************************  FILE GROUP HANDLER  *************************/
  
  static LIST1_HEAD(path_group_list);
  
@@ -11985,7 +12070,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  {
  	static DEFINE_MUTEX(lock);
  	struct path_group_entry *new_group, *group;
-@@ -198,14 +238,21 @@
+@@ -198,14 +240,21 @@
  	const struct path_info *saved_group_name, *saved_member_name;
  	int error = -ENOMEM;
  	bool found = false;
@@ -12013,7 +12098,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  			if (member->member_name == saved_member_name) {
  				member->is_deleted = is_delete;
  				error = 0;
-@@ -220,13 +267,17 @@
+@@ -220,13 +269,17 @@
  		goto out;
  	}
  	if (!found) {
@@ -12033,7 +12118,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	new_member->member_name = saved_member_name;
  	list1_add_tail_mb(&new_member->list, &group->path_group_member_list);
  	error = 0;
-@@ -235,56 +286,71 @@
+@@ -235,73 +288,93 @@
  	return error;
  }
  
@@ -12096,7 +12181,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
 -int ReadPathGroupPolicy(struct io_buffer *head)
-+int ccs_read_path_group_policy(struct ccs_io_buffer *head)
++bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *gpos;
  	struct list1_head *mpos;
@@ -12114,14 +12199,19 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +					     list);
 +			if (member->is_deleted)
 +				continue;
-+			if (ccs_io_printf(head, KEYWORD_PATH_GROUP "%s %s\n",
-+					  group->group_name->name,
-+					  member->member_name->name))
-+				return -ENOMEM;
++			if (!ccs_io_printf(head, KEYWORD_PATH_GROUP "%s %s\n",
++					   group->group_name->name,
++					   member->member_name->name))
++				goto out;
  		}
  	}
- 	return 0;
-@@ -294,14 +360,17 @@
+-	return 0;
++	return true;
++ out:
++	return false;
+ }
+ 
+ /*************************  FILE PATTERN HANDLER  *************************/
  
  static LIST1_HEAD(pattern_list);
  
@@ -12142,7 +12232,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &pattern_list, list) {
  		if (saved_pattern == ptr->pattern) {
-@@ -314,7 +383,9 @@
+@@ -314,7 +387,9 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -12153,7 +12243,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	new_entry->pattern = saved_pattern;
  	list1_add_tail_mb(&new_entry->list, &pattern_list);
  	error = 0;
-@@ -323,13 +394,16 @@
+@@ -323,13 +398,16 @@
  	return error;
  }
  
@@ -12173,7 +12263,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		pattern = ptr->pattern;
  		if (strendswith(pattern->name, "/\\*")) {
  			/* Do nothing. Try to find the better match. */
-@@ -338,39 +412,46 @@
+@@ -338,39 +416,48 @@
  			break;
  		}
  	}
@@ -12191,7 +12281,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
 -int ReadFilePatternPolicy(struct io_buffer *head)
-+int ccs_read_file_pattern(struct ccs_io_buffer *head)
++bool ccs_read_file_pattern(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &pattern_list) {
@@ -12201,11 +12291,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -		if (io_printf(head, KEYWORD_FILE_PATTERN "%s\n", ptr->pattern->name)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_FILE_PATTERN "%s\n",
-+				  ptr->pattern->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_FILE_PATTERN "%s\n",
++				   ptr->pattern->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
  
 -/*************************  NON REWRITABLE FILE HANDLER  *************************/
@@ -12230,7 +12323,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &no_rewrite_list, list) {
  		if (ptr->pattern == saved_pattern) {
-@@ -383,7 +464,9 @@
+@@ -383,7 +470,9 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -12241,7 +12334,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	new_entry->pattern = saved_pattern;
  	list1_add_tail_mb(&new_entry->list, &no_rewrite_list);
  	error = 0;
-@@ -392,187 +475,263 @@
+@@ -392,187 +481,265 @@
  	return error;
  }
  
@@ -12269,7 +12362,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
 -int ReadNoRewritePolicy(struct io_buffer *head)
-+int ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
++bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &no_rewrite_list) {
@@ -12279,11 +12372,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -		if (io_printf(head, KEYWORD_DENY_REWRITE "%s\n", ptr->pattern->name)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_DENY_REWRITE "%s\n",
-+				  ptr->pattern->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_DENY_REWRITE "%s\n",
++				   ptr->pattern->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
  
  /*************************  FILE ACL HANDLER  *************************/
@@ -12596,7 +12692,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  {
  	static const u16 rw_mask = (1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL);
  	const struct path_info *saved_filename;
-@@ -581,55 +740,81 @@
+@@ -581,55 +748,81 @@
  	int error = -ENOMEM;
  	bool is_group = false;
  	const u16 perm = 1 << type;
@@ -12717,7 +12813,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  {
  	const struct path_info *saved_filename1, *saved_filename2;
  	struct acl_info *ptr;
-@@ -637,275 +822,372 @@
+@@ -637,275 +830,372 @@
  	int error = -ENOMEM;
  	bool is_group1 = false, is_group2 = false;
  	const u8 perm = 1 << type;
@@ -13260,8 +13356,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(作業コピー)
 @@ -22,11 +22,16 @@
  static const char *cap_operation2name(const u8 operation)
  {
@@ -13469,18 +13565,80 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(working copy)
-@@ -21,18 +21,30 @@
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(作業コピー)
+@@ -21,18 +21,92 @@
  #include <linux/highmem.h>
  #include <linux/binfmts.h>
  
 -static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned long index, const struct path_info *name, const struct path_info *value, bool *failed, struct ccs_page_buffer *tmp)
-+static bool scan_bprm(struct linux_binprm *bprm, const bool is_argv,
-+		      unsigned long index, const struct path_info *name,
-+		      const struct path_info *value, bool *failed,
-+		      struct ccs_page_buffer *tmp)
++struct argv_entry {
++	unsigned int index;
++	const struct path_info *value;
++	bool is_not;
++};
++
++struct envp_entry {
++	const struct path_info *name;
++	const struct path_info *value;
++	bool is_not;
++};
++
++static bool check_argv(const unsigned int index, const char *arg_ptr,
++		       const int argc, const struct argv_entry *argv,
++		       u8 *checked)
  {
++	int i;
++	struct path_info arg;
++	arg.name = arg_ptr;
++	for (i = 0; i < argc; argv++, checked++, i++) {
++		bool result;
++		if (index != argv->index)
++			continue;
++		*checked = 1;
++		ccs_fill_path_info(&arg);
++		result = ccs_path_matches_pattern(&arg, argv->value);
++		if (argv->is_not)
++			result = !result;
++		if (!result)
++			return false;
++	}
++	return true;
++}
++
++static bool check_envp(const char *env_name, const char *env_value,
++		       const int envc, const struct envp_entry *envp,
++		       u8 *checked)
++{
++	int i;
++	struct path_info name;
++	struct path_info value;
++	name.name = env_name;
++	ccs_fill_path_info(&name);
++	value.name = env_value;
++	ccs_fill_path_info(&value);
++	for (i = 0; i < envc; envp++, checked++, i++) {
++		bool result;
++		if (!ccs_path_matches_pattern(&name, envp->name))
++			continue;
++		*checked = 1;
++		if (envp->value)
++			result = ccs_path_matches_pattern(&value, envp->value);
++		else
++			result = true;
++		if (!envp->is_not)
++			result = !result;
++		if (!result)
++			return false;
++	}
++	return true;
++}
++
++static bool scan_bprm(const struct linux_binprm *bprm,
++		      const u16 argc, const struct argv_entry *argv,
++		      const u16 envc, const struct envp_entry *envp,
++		      struct ccs_page_buffer *tmp)
++{
  	/*
 -	  if exec.argc=3                  // if (argc == 3)
 -	  if exec.argv[1]="-c"            // if (argc >= 2 && strcmp(argv[1], "-c") == 0)
@@ -13491,43 +13649,58 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -	  if exec.envp["HOME"]=NULL       // if (!getenv("HOME"))
 -	  if exec.envp["HOME"]="/"        // if (getenv("HOME") && strcmp(getenv("HOME"), "/") == 0)
 -	  if exec.envp["HOME"]!="/"       // if (!getenv("HOME") || strcmp(getenv("HOME", "/"))
-+	  if exec.argc=3 
-+	              if (argc == 3)
-+	  if exec.argv[1]="-c"
-+	              if (argc >= 2 && !strcmp(argv[1], "-c"))
-+	  if exec.argv[1]!="-c"
-+	              if (argc < 2 || strcmp(argv[1], "-c"))
-+	  if exec.envc=10-20
-+                      if (envc >= 10 && envc <= 20)
-+	  if exec.envc!=10-20
-+	              if (envc < 10 || envc > 20)
-+	  if exec.envp["HOME"]!=NULL
-+                      if (getenv("HOME"))
-+	  if exec.envp["HOME"]=NULL
-+	              if (!getenv("HOME"))
-+	  if exec.envp["HOME"]="/"
-+	              if (getenv("HOME") && !strcmp(getenv("HOME"), "/"))
-+	  if exec.envp["HOME"]!="/"
-+                      if (!getenv("HOME") || strcmp(getenv("HOME", "/"))
++	if exec.argc=3
++		if (argc == 3)
++	if exec.argv[1]="-c"
++		if (argc >= 2 && !strcmp(argv[1], "-c"))
++	if exec.argv[1]!="-c"
++		if (argc < 2 || strcmp(argv[1], "-c"))
++	if exec.envc=10-20
++		if (envc >= 10 && envc <= 20)
++	if exec.envc!=10-20
++		if (envc < 10 || envc > 20)
++	if exec.envp["HOME"]!=NULL
++		if (getenv("HOME"))
++	if exec.envp["HOME"]=NULL
++		if (!getenv("HOME"))
++	if exec.envp["HOME"]="/"
++		if (getenv("HOME") && !strcmp(getenv("HOME"), "/"))
++	if exec.envp["HOME"]!="/"
++		if (!getenv("HOME") || strcmp(getenv("HOME", "/"))
  	*/
  	char *arg_ptr = tmp->buffer;
  	int arg_len = 0;
-@@ -44,10 +56,11 @@
+@@ -40,14 +114,24 @@
+ 	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+ 	int argv_count = bprm->argc;
+ 	int envp_count = bprm->envc;
+-	bool result = false;
++	bool result;
++	u8 local_checked[32];
++	u8 *checked;
++	if (argc + envc <= sizeof(local_checked)) {
++		checked = local_checked;
++		memset(local_checked, 0, sizeof(local_checked));
++	} else {
++		checked = ccs_alloc(argc + envc);
++		if (!checked)
++			return false;
++	}
  	while (argv_count || envp_count) {
  		struct page *page;
  		const char *kaddr;
 -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
 -		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) {
+-			*failed = true;
+-			printk("get_user_pages() failed\n");
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
 +		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page,
 +				   NULL) <= 0) {
- 			*failed = true;
--			printk("get_user_pages() failed\n");
 +			printk(KERN_DEBUG "get_user_pages() failed\n");
  			goto out;
  		}
  		pos += PAGE_SIZE - offset;
-@@ -57,11 +70,11 @@
+@@ -57,11 +141,10 @@
  		/* Map. */
  		kaddr = kmap(page);
  		if (!kaddr) { /* Mapping failed. */
@@ -13535,13 +13708,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
  			put_page(page);
  #endif
- 			*failed = true;
+-			*failed = true;
 -			printk("kmap() failed\n");
 +			printk(KERN_DEBUG "kmap() failed\n");
  			goto out;
  		}
  		while (offset < PAGE_SIZE) {
-@@ -78,45 +91,54 @@
+@@ -78,45 +161,37 @@
  				} else {
  					arg_ptr[arg_len++] = '\\';
  					arg_ptr[arg_len++] = (c >> 6) + '0';
@@ -13564,23 +13737,19 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -					argv_count = envp_count = 0;
 -					break;
 -				}
-+				if (!is_argv ||
-+				    bprm->argc - argv_count != index)
-+					goto invalid_argv;
-+				ccs_fill_path_info(&arg);
-+				result = ccs_path_matches_pattern(&arg, value);
-+				argv_count = 0;
-+				envp_count = 0;
-+				break;
-+ invalid_argv:
- 				if (--argv_count == 0 && is_argv) {
+-				if (--argv_count == 0 && is_argv) {
++				if (!check_argv(bprm->argc - argv_count,
++						arg_ptr, argc, argv,
++						checked)) {
++					argv_count = 0;
  					envp_count = 0;
  					break;
  				}
++				argv_count--;
  			} else if (envp_count) {
  				char *cp = strchr(arg_ptr, '=');
--				if (cp) {
--					*cp = '\0';
+ 				if (cp) {
+ 					*cp = '\0';
 -					fill_path_info(&arg);
 -					if (PathMatchesToPattern(&arg, name)) {
 -						if (value) {
@@ -13594,34 +13763,19 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -							envp_count = 0;
 -							break;
 -						}
--					}
-+				if (!cp)
-+					goto invalid_env;
-+				*cp = '\0';
-+				ccs_fill_path_info(&arg);
-+				if (!ccs_path_matches_pattern(&arg, name))
-+					goto invalid_env;
-+				if (value) {
-+					arg.name = cp + 1;
-+					ccs_fill_path_info(&arg);
-+					if (ccs_path_matches_pattern(&arg,
-+								     value))
-+						result = true;
-+				} else {
-+					result = true;
++					if (!check_envp(arg_ptr, cp + 1,
++							envc, envp,
++							checked + argc)) {
++						envp_count = 0;
++						break;
+ 					}
  				}
 -				if (--envp_count == 0) break;
-+				if (result) {
-+					envp_count = 0;
-+					break;
-+				}
-+ invalid_env:
-+				if (--envp_count == 0)
-+					break;
++				envp_count--;
  			} else {
  				break;
  			}
-@@ -124,7 +146,7 @@
+@@ -124,13 +199,30 @@
  		}
  		/* Unmap. */
  		kunmap(page);
@@ -13630,7 +13784,38 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  		put_page(page);
  #endif
  		i++;
-@@ -145,28 +167,38 @@
+ 		offset = 0;
+ 	}
+  out:
++	/* Check unmatched entries. */
++	for (i = 0; i < argc; i++) {
++		if (checked[i])
++			continue;
++		if (argv[i].is_not)
++			checked[i] = 1;
++	}
++	for (i = 0; i < envc; envp++, i++) {
++		if (checked[argc + i])
++			continue;
++		if ((!envp->value && !envp->is_not) ||
++		    (envp->value && envp->is_not))
++			checked[argc + i] = 1;
++	}
++	result = !memchr(checked, 0, argc + envc);
++	if (checked != local_checked)
++		ccs_free(checked);
+ 	return result;
+ }
+ 
+@@ -138,49 +230,151 @@
+ #define VALUE_TYPE_OCTAL       2
+ #define VALUE_TYPE_HEXADECIMAL 3
+ 
+-/* Don't use u8 because we use "<< 8". */
+-static u16 parse_ulong(unsigned long *result, char **str)
++static u8 parse_ulong(unsigned long *result, char **str)
+ {
+ 	const char *cp = *str;
  	char *ep;
  	int base = 10;
  	if (*cp == '0') {
@@ -13678,187 +13863,385 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -	}
  }
  
- union element {
-@@ -243,204 +275,274 @@
+-union element {
+-	const struct path_info *string;
+-	unsigned long value;
+-};
+-
+ struct condition_list {
+ 	struct list1_head list;
+-	u32 length;
++	u16 condc;
++	u16 argc;
++	u16 envc;
+ 	u8 post_state[4];
+-	/* "union element condition[length]" comes here.*/
++	/* "unsigned long condition[condc]" follows here. */
++	/* "struct argv_entry argv[argc]" follows here. */
++	/* "struct envp_entry envp[envc]" follows here. */
+ };
+ 
++static bool parse_argv(char *start, struct argv_entry *argv)
++{
++	unsigned long index;
++	const struct path_info *value;
++	bool is_not;
++	char c;
++	char *cp;
++	start += 10;
++	if (parse_ulong(&index, &start) != VALUE_TYPE_DECIMAL)
++		goto out;
++	if (*start++ != ']')
++		goto out;
++	c = *start++;
++	if (c == '=')
++		is_not = false;
++	else if (c == '!' && *start++ == '=')
++		is_not = true;
++	else
++		goto out;
++	if (*start++ != '"')
++		goto out;
++	cp = strchr(start, '\0') - 1;
++	if (cp <= start || *cp != '"')
++		goto out;
++	*cp = '\0';
++	if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
++		goto out;
++	value = ccs_save_name(start);
++	if (!value)
++		goto out;
++	argv->index = index;
++	argv->is_not = is_not;
++	argv->value = value;
++	return true;
++ out:
++	return false;
++}
++
++static bool parse_envp(char *start, struct envp_entry *envp)
++{
++	const struct path_info *name;
++	const struct path_info *value;
++	bool is_not;
++	char *cp;
++	start += 11;
++	cp = start;
++	/*
++	 * Since environment variable names don't
++	 * contain '=', I can treat '"]=' and '"]!='
++	 * sequences as delimiters.
++	 */
++	while (1) {
++		if (!strncmp(start, "\"]=", 3)) {
++			is_not = false;
++			*start = '\0';
++			start += 3;
++			break;
++		} else if (!strncmp(start, "\"]!=", 4)) {
++			is_not = true;
++			*start = '\0';
++			start += 4;
++			break;
++		} else if (!*start++) {
++			goto out;
++		}
++	}
++	if (!*cp || !ccs_is_correct_path(cp, 0, 0, 0, __func__))
++		goto out;
++	name = ccs_save_name(cp);
++	if (!name)
++		goto out;
++	if (!strcmp(start, "NULL")) {
++		value = NULL;
++	} else {
++		if (*start++ != '"')
++			goto out;
++		cp = strchr(start, '\0') - 1;
++		if (cp <= start || *cp != '"')
++			goto out;
++		*cp = '\0';
++		if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
++			goto out;
++		value = ccs_save_name(start);
++		if (!value)
++			goto out;
++	}
++	envp->name = name;
++	envp->is_not = is_not;
++	envp->value = value;
++	return true;
++ out:
++	return false;
++}
++
+ static LIST1_HEAD(condition_list);
+ 
+ #define TASK_UID          0
+@@ -204,12 +398,10 @@
+ #define PATH2_PARENT_INO 18
+ #define EXEC_ARGC        19
+ #define EXEC_ENVC        20
+-#define EXEC_ARGV        21
+-#define EXEC_ENVP        22
+-#define TASK_STATE_0     23
+-#define TASK_STATE_1     24
+-#define TASK_STATE_2     25
+-#define MAX_KEYWORD      26
++#define TASK_STATE_0     21
++#define TASK_STATE_1     22
++#define TASK_STATE_2     23
++#define MAX_KEYWORD      24
+ 
+ static struct {
+ 	const char *keyword;
+@@ -236,292 +428,318 @@
+ 	[PATH2_PARENT_INO] = { "path2.parent.ino",  16 },
+ 	[EXEC_ARGC]        = { "exec.argc",          9 },
+ 	[EXEC_ENVC]        = { "exec.envc",          9 },
+-	[EXEC_ARGV]        = { "exec.argv[",        10 },
+-	[EXEC_ENVP]        = { "exec.envp[\"",      11 },
+ 	[TASK_STATE_0]     = { "task.state[0]",     13 },
+ 	[TASK_STATE_1]     = { "task.state[1]",     13 },
  	[TASK_STATE_2]     = { "task.state[2]",     13 },
  };
  
 -const struct condition_list *FindOrAssignNewCondition(char *condition)
-+const struct condition_list *ccs_find_or_assign_new_condition(char *condition)
++static bool parse_post_condition(char * const condition, u8 post_state[4])
  {
++	char *start = strstr(condition, "; set ");
++	if (!start)
++		return true;
++	*start = '\0';
++	start += 6;
++	while (1) {
++		int i;
++		unsigned long value;
++		while (*start == ' ')
++			start++;
++		if (!*start)
++			break;
++		if (!strncmp(start, "task.state[0]=", 14))
++			i = 0;
++		else if (!strncmp(start, "task.state[1]=", 14))
++			i = 1;
++		else if (!strncmp(start, "task.state[2]=", 14))
++			i = 2;
++		else
++			goto out;
++		start += 14;
++		if (post_state[3] & (1 << i))
++			goto out;
++		post_state[3] |= 1 << i;
++		if (!parse_ulong(&value, &start) || value > 255)
++			goto out;
++		post_state[i] = (u8) value;
++	}
++	return true;
++ out:
++	return false;
++}
++
++static struct condition_list *
++find_same_condition(struct condition_list *new_ptr, const u32 size)
++{
++	static DEFINE_MUTEX(lock);
++	struct condition_list *ptr;
++	mutex_lock(&lock);
++	list1_for_each_entry(ptr, &condition_list, list) {
++		/* Don't compare if size differs. */
++		if (ptr->condc != new_ptr->condc ||
++		    ptr->argc != new_ptr->argc ||
++		    ptr->envc != new_ptr->envc)
++			continue;
++		/*
++		 * Compare ptr and new_ptr
++		 * except ptr->list and new_ptr->list .
++		 */
++		if (memcmp(((u8 *) ptr) + sizeof(ptr->list),
++			   ((u8 *) new_ptr) + sizeof(new_ptr->list),
++			   size - sizeof(ptr->list)))
++			continue;
++		/* Same entry found. Share this entry. */
++		ccs_free(new_ptr);
++		new_ptr = ptr;
++		goto ok;
++	}
++	/* Same entry not found. Save this entry. */
++	ptr = ccs_alloc_element(size);
++	if (ptr) {
++		memmove(ptr, new_ptr, size);
++		/* Append to chain. */
++		list1_add_tail_mb(&ptr->list, &condition_list);
++	}
++	ccs_free(new_ptr);
++	new_ptr = ptr;
++ ok:
++	mutex_unlock(&lock);
++	return new_ptr;
++}
++
++const struct condition_list *ccs_find_or_assign_new_condition(char * const condition)
++{
  	char *start = condition;
  	struct condition_list *new_ptr;
- 	union element *ptr2;
- 	u32 counter = 0, size;
+-	union element *ptr2;
+-	u32 counter = 0, size;
++	unsigned long *ptr;
++	struct argv_entry *argv;
++	struct envp_entry *envp;
++	u32 size;
  	u8 left, right, i;
 -	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
+-	const struct path_info *left_name = NULL, *right_name = NULL;
 +	unsigned long left_min = 0;
 +	unsigned long left_max = 0;
 +	unsigned long right_min = 0;
 +	unsigned long right_max = 0;
- 	const struct path_info *left_name = NULL, *right_name = NULL;
++	u16 condc = 0;
++	u16 argc = 0;
++	u16 envc = 0;
  	u8 post_state[4] = { 0, 0, 0, 0 };
 -	if ((condition = strstr(condition, "; set ")) != NULL) {
-+	condition = strstr(condition, "; set ");
-+	if (condition) {
- 		*condition = '\0';
- 		condition += 6;
- 		while (1) {
- 			while (*condition == ' ') condition++;
+-		*condition = '\0';
+-		condition += 6;
+-		while (1) {
+-			while (*condition == ' ') condition++;
 -			if (!*condition) break;
 -			if (strncmp(condition, "task.state[0]=", 14) == 0) i = 0;
 -			else if (strncmp(condition, "task.state[1]=", 14) == 0) i = 1;
 -			else if (strncmp(condition, "task.state[2]=", 14) == 0) i = 2;
 -			else goto out;
-+			if (!*condition)
-+				break;
-+			if (!strncmp(condition, "task.state[0]=", 14))
-+				i = 0;
-+			else if (!strncmp(condition, "task.state[1]=", 14))
-+				i = 1;
-+			else if (!strncmp(condition, "task.state[2]=", 14))
-+				i = 2;
-+			else
-+				goto out;
- 			condition += 14;
+-			condition += 14;
 -			if (post_state[3] & (1 << i)) goto out;
-+			if (post_state[3] & (1 << i))
-+				goto out;
- 			post_state[3] |= 1 << i;
+-			post_state[3] |= 1 << i;
 -			if (!parse_ulong(&right_min, &condition) || right_min > 255) goto out;
-+			if (!parse_ulong(&right_min, &condition) ||
-+			    right_min > 255)
-+				goto out;
- 			post_state[i] = (u8) right_min;
- 		}
- 	}
- 	condition = start;
+-			post_state[i] = (u8) right_min;
+-		}
+-	}
+-	condition = start;
 -	if (strncmp(condition, "if ", 3) == 0) condition += 3;
 -	else if (*condition) return NULL;
-+	if (!strncmp(condition, "if ", 3))
-+		condition += 3;
-+	else if (*condition)
+-	start = condition;
++	if (!parse_post_condition(start, post_state))
++		goto out;
++	if (!strncmp(start, "if ", 3))
++		start += 3;
++	else if (*start)
 +		return NULL;
- 	start = condition;
++	/* start = condition; */
  	while (1) {
 -		while (*condition == ' ') condition++;
 -		if (!*condition) break;
-+		while (*condition == ' ')
-+			condition++;
-+		if (!*condition)
-+			break;
- 		for (left = 0; left < MAX_KEYWORD; left++) {
+-		for (left = 0; left < MAX_KEYWORD; left++) {
 -			if (strncmp(condition, condition_control_keyword[left].keyword, condition_control_keyword[left].keyword_len) == 0) {
 -				condition += condition_control_keyword[left].keyword_len;
--				break;
++		while (*start == ' ')
++			start++;
++		if (!*start)
++			break;
++		if (!strncmp(start, "exec.argv[", 10)) {
++			argc++;
++			start = strchr(start + 10, ' ');
++			if (!start)
+ 				break;
 -			}
++			continue;
++		} else if (!strncmp(start, "exec.envp[\"", 11)) {
++			envc++;
++			start = strchr(start + 11, ' ');
++			if (!start)
++				break;
++			continue;
+ 		}
+-		if (left == EXEC_ARGV) {
+-			if (!parse_ulong(&left_min, &condition)) goto out;
+-			if (*condition++ != ']') goto out;
+-			counter++; /* body */
+-		} else if (left == EXEC_ENVP) {
+-			char *tmp = condition;
+-			while (1) {
+-				const char c = *condition;
+-				/*
+-				 * Since environment variable names don't contain '=',
+-				 * I can treat '"]=' and '"]!=' sequences as delimiters.
+-				 */
+-				if (strncmp(condition, "\"]=", 3) == 0 || strncmp(condition, "\"]!=", 4) == 0) break;
+-				if (!c || c == ' ') goto out;
+-				condition++;
+-			}
+-			*condition = '\0';
+-			if (!SaveName(tmp)) goto out;
+-			counter++; /* body */
+-			*condition = '"';
+-			condition += 2;
+-		} else if (left == MAX_KEYWORD) {
+-			if (!parse_ulong(&left_min, &condition)) goto out;
+-			counter++; /* body */
+-			if (*condition == '-') {
+-				condition++;
+-				if (!parse_ulong(&left_max, &condition) || left_min > left_max) goto out;
+-				counter++; /* body */
+-			}
++		for (left = 0; left < MAX_KEYWORD; left++) {
 +			const int len =
 +				condition_control_keyword[left].keyword_len;
-+			if (strncmp(condition,
++			if (strncmp(start,
 +				    condition_control_keyword[left].keyword,
 +				    len))
 +				continue;
-+			condition += len;
++			start += len;
 +			break;
- 		}
- 		if (left == EXEC_ARGV) {
--			if (!parse_ulong(&left_min, &condition)) goto out;
--			if (*condition++ != ']') goto out;
-+			if (!parse_ulong(&left_min, &condition))
-+				goto out;
-+			if (*condition++ != ']')
-+				goto out;
- 			counter++; /* body */
- 		} else if (left == EXEC_ENVP) {
- 			char *tmp = condition;
- 			while (1) {
- 				const char c = *condition;
- 				/*
--				 * Since environment variable names don't contain '=',
--				 * I can treat '"]=' and '"]!=' sequences as delimiters.
-+				 * Since environment variable names don't
-+				 * contain '=', I can treat '"]=' and '"]!='
-+				 * sequences as delimiters.
- 				 */
--				if (strncmp(condition, "\"]=", 3) == 0 || strncmp(condition, "\"]!=", 4) == 0) break;
--				if (!c || c == ' ') goto out;
-+				if (!strncmp(condition, "\"]=", 3) ||
-+				    !strncmp(condition, "\"]!=", 4))
-+					break;
-+				if (!c || c == ' ')
-+					goto out;
- 				condition++;
- 			}
- 			*condition = '\0';
--			if (!SaveName(tmp)) goto out;
-+			if (!ccs_save_name(tmp))
-+				goto out;
- 			counter++; /* body */
- 			*condition = '"';
- 			condition += 2;
- 		} else if (left == MAX_KEYWORD) {
--			if (!parse_ulong(&left_min, &condition)) goto out;
-+			if (!parse_ulong(&left_min, &condition))
-+				goto out;
- 			counter++; /* body */
- 			if (*condition == '-') {
- 				condition++;
--				if (!parse_ulong(&left_max, &condition) || left_min > left_max) goto out;
-+				if (!parse_ulong(&left_max, &condition) ||
-+				    left_min > left_max)
-+					goto out;
- 				counter++; /* body */
- 			}
  		}
 -		if (strncmp(condition, "!=", 2) == 0) condition += 2;
 -		else if (*condition == '=') condition++;
 -		else goto out;
-+		if (strncmp(condition, "!=", 2) == 0)
-+			condition += 2;
-+		else if (*condition == '=')
-+			condition++;
-+		else
-+			goto out;
- 		counter++; /* header */
- 		if (left == EXEC_ENVP && strncmp(condition, "NULL", 4) == 0) {
- 			char c;
- 			condition += 4;
- 			c = *condition;
- 			counter++; /* body */
+-		counter++; /* header */
+-		if (left == EXEC_ENVP && strncmp(condition, "NULL", 4) == 0) {
+-			char c;
+-			condition += 4;
+-			c = *condition;
+-			counter++; /* body */
 -			if (!c || c == ' ') continue;
-+			if (!c || c == ' ')
-+				continue;
++		if (left < MAX_KEYWORD)
++			goto check_operator_1;
++		if (!parse_ulong(&left_min, &start))
  			goto out;
- 		} else if (left == EXEC_ARGV || left == EXEC_ENVP) {
- 			char c;
- 			char *tmp;
+-		} else if (left == EXEC_ARGV || left == EXEC_ENVP) {
+-			char c;
+-			char *tmp;
 -			if (*condition++ != '"') goto out;
-+			if (*condition++ != '"')
-+				goto out;
- 			tmp = condition;
- 			while (1) {
- 				c = *condition++;
+-			tmp = condition;
+-			while (1) {
+-				c = *condition++;
 -				if (!c || c == ' ') goto out;
 -				if (c != '"') continue;
-+				if (!c || c == ' ')
-+					goto out;
-+				if (c != '"')
-+					continue;
- 				c = *condition;
+-				c = *condition;
 -				if (!c || c == ' ') break;
-+				if (!c || c == ' ')
-+					break;
- 			}
- 			c = *--condition;
- 			*condition = '\0';
+-			}
+-			c = *--condition;
+-			*condition = '\0';
 -			if (!SaveName(tmp)) goto out;
-+			if (!ccs_save_name(tmp))
-+				goto out;
- 			counter++; /* body */
- 			*condition = c;
- 			condition++;
- 			continue;
- 		}
+-			counter++; /* body */
+-			*condition = c;
+-			condition++;
+-			continue;
+-		}
++		condc++; /* body */
++		if (*start != '-')
++			goto check_operator_1;
++		start++;
++		if (!parse_ulong(&left_max, &start) || left_min > left_max)
++			goto out;
++		condc++; /* body */
++ check_operator_1:
++		if (strncmp(start, "!=", 2) == 0)
++			start += 2;
++		else if (*start == '=')
++			start++;
++		else
++			goto out;
++		condc++; /* header */
  		for (right = 0; right < MAX_KEYWORD; right++) {
 -			if (strncmp(condition, condition_control_keyword[right].keyword, condition_control_keyword[right].keyword_len) == 0) {
 -				condition += condition_control_keyword[right].keyword_len;
@@ -13866,97 +14249,114 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -			}
 +			const int len =
 +				condition_control_keyword[right].keyword_len;
-+			if (strncmp(condition,
++			if (strncmp(start,
 +				    condition_control_keyword[right].keyword,
 +				    len))
 +				continue;
-+			condition += len;
++			start += len;
 +			break;
  		}
- 		if (right == MAX_KEYWORD) {
+-		if (right == MAX_KEYWORD) {
 -			if (!parse_ulong(&right_min, &condition)) goto out;
-+			if (!parse_ulong(&right_min, &condition))
-+				goto out;
- 			counter++; /* body */
- 			if (*condition == '-') {
- 				condition++;
+-			counter++; /* body */
+-			if (*condition == '-') {
+-				condition++;
 -				if (!parse_ulong(&right_max, &condition) || right_min > right_max) goto out;
-+				if (!parse_ulong(&right_max, &condition) ||
-+				    right_min > right_max)
-+					goto out;
- 				counter++; /* body */
- 			}
- 		}
+-				counter++; /* body */
+-			}
+-		}
++		if (right < MAX_KEYWORD)
++			continue;
++		if (!parse_ulong(&right_min, &start))
++			goto out;
++		condc++; /* body */
++		if (*start != '-')
++			continue;
++		start++;
++		if (!parse_ulong(&right_max, &start) || right_min > right_max)
++			goto out;
++		condc++; /* body */
  	}
- 	size = sizeof(*new_ptr) + counter * sizeof(union element);
+-	size = sizeof(*new_ptr) + counter * sizeof(union element);
++	size = sizeof(*new_ptr)
++		+ condc * sizeof(unsigned long)
++		+ argc * sizeof(struct argv_entry)
++		+ envc * sizeof(struct envp_entry);
  	new_ptr = ccs_alloc(size);
 -	if (!new_ptr) return NULL;
+-	new_ptr->length = counter;
+-	for (i = 0; i < 4; i++) new_ptr->post_state[i] = post_state[i];
+-	ptr2 = (union element *) (((u8 *) new_ptr) + sizeof(*new_ptr));
+-	condition = start;
 +	if (!new_ptr)
 +		return NULL;
- 	new_ptr->length = counter;
- 	for (i = 0; i < 4; i++) new_ptr->post_state[i] = post_state[i];
- 	ptr2 = (union element *) (((u8 *) new_ptr) + sizeof(*new_ptr));
- 	condition = start;
++	for (i = 0; i < 4; i++)
++		new_ptr->post_state[i] = post_state[i];
++	new_ptr->condc = condc;
++	new_ptr->argc = argc;
++	new_ptr->envc = envc;
++	ptr = (unsigned long *) (new_ptr + 1);
++	argv = (struct argv_entry *) (ptr + condc);
++	envp = (struct envp_entry *) (argv + argc);
++	start = condition;
  	while (1) {
- 		unsigned int match = 0;
+-		unsigned int match = 0;
 -		while (*condition == ' ') condition++;
 -		if (!*condition) break;
-+		while (*condition == ' ')
-+			condition++;
-+		if (!*condition)
-+			break;
- 		for (left = 0; left < MAX_KEYWORD; left++) {
+-		for (left = 0; left < MAX_KEYWORD; left++) {
 -			if (strncmp(condition, condition_control_keyword[left].keyword, condition_control_keyword[left].keyword_len) == 0) {
 -				condition += condition_control_keyword[left].keyword_len;
--				break;
--			}
-+			const int len =
-+				condition_control_keyword[left].keyword_len;
-+			if (strncmp(condition,
-+				    condition_control_keyword[left].keyword,
-+				    len))
-+				continue;
-+			condition += len;
++		u8 match = 0;
++		u8 left_1_type = 0;
++		u8 left_2_type = 0;
++		u8 right_1_type = 0;
++		u8 right_2_type = 0;
++		while (*start == ' ')
++			start++;
++		if (!*start)
 +			break;
++		if (!strncmp(start, "exec.argv[", 10)) {
++			char *cp = strchr(start + 10, ' ');
++			if (!parse_argv(start, argv))
++				goto out;
++			argv++;
++			if (!cp)
+ 				break;
+-			}
++			start = cp;
++			continue;
++		} else if (!strncmp(start, "exec.envp[\"", 11)) {
++			char *cp = strchr(start + 11, ' ');
++			if (!parse_envp(start, envp))
++				goto out;
++			envp++;
++			if (!cp)
++				break;
++			start = cp;
++			continue;
  		}
- 		if (left == EXEC_ARGV) {
+-		if (left == EXEC_ARGV) {
 -			if (!parse_ulong(&left_min, &condition)) goto out;
 -			if (*condition++ != ']') goto out;
-+			if (!parse_ulong(&left_min, &condition))
-+				goto out;
-+			if (*condition++ != ']')
-+				goto out;
- 			counter--; /* body */
+-			counter--; /* body */
 -		} else if (left == EXEC_ENVP) {
-+			goto check_operator;
-+		}
-+		if (left == EXEC_ENVP) {
- 			char *tmp = condition;
- 			while (1) {
- 				char c = *condition;
- 				/*
+-			char *tmp = condition;
+-			while (1) {
+-				char c = *condition;
+-				/*
 -				 * Since environment variable names don't contain '=',
 -				 * I can treat "\"]=" and "\"]!=" sequences as delimiters.
-+				 * Since environment variable names don't
-+				 * contain '=', I can treat "\"]=" and "\"]!="
-+				 * sequences as delimiters.
- 				 */
+-				 */
 -				if (strncmp(condition, "\"]=", 3) == 0 || strncmp(condition, "\"]!=", 4) == 0) break;
 -				if (!c || c == ' ') goto out;
-+				if (!strncmp(condition, "\"]=", 3) ||
-+				    !strncmp(condition, "\"]!=", 4))
-+					break;
-+				if (!c || c == ' ')
-+					goto out;
- 				condition++;
- 			}
- 			*condition = '\0';
+-				condition++;
+-			}
+-			*condition = '\0';
 -			left_name = SaveName(tmp);
-+			left_name = ccs_save_name(tmp);
- 			BUG_ON(!left_name);
- 			counter--; /* body */
- 			*condition = '\"';
- 			condition += 2;
+-			BUG_ON(!left_name);
+-			counter--; /* body */
+-			*condition = '\"';
+-			condition += 2;
 -		} else if (left == MAX_KEYWORD) {
 -			match |= parse_ulong(&left_min, &condition) << 2;
 -			counter--; /* body */
@@ -13966,72 +14366,73 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -				counter--; /* body */
 -				left++;
 -			}
-+			goto check_operator;
++		for (left = 0; left < MAX_KEYWORD; left++) {
++			const int len =
++				condition_control_keyword[left].keyword_len;
++			if (strncmp(start,
++				    condition_control_keyword[left].keyword,
++				    len))
++				continue;
++			start += len;
++			break;
  		}
 -		if (strncmp(condition, "!=", 2) == 0) {
-+		if (left < MAX_KEYWORD)
-+			goto check_operator;
-+		match |= parse_ulong(&left_min, &condition) << 2;
-+		counter--; /* body */
-+		if (*condition != '-')
-+			goto check_operator;
-+		condition++;
-+		match |= parse_ulong(&left_max, &condition) << 4;
-+		counter--; /* body */
-+		left++;
-+ check_operator:
-+		if (!strncmp(condition, "!=", 2)) {
- 			condition += 2;
- 		} else if (*condition == '=') {
+-			condition += 2;
+-		} else if (*condition == '=') {
 -			match |= 1; condition++;
++		if (left < MAX_KEYWORD)
++			goto check_operator_2;
++		left_1_type= parse_ulong(&left_min, &start);
++		condc--; /* body */
++		if (*start != '-')
++			goto check_operator_2;
++		start++;
++		left_2_type = parse_ulong(&left_max, &start);
++		condc--; /* body */
++		left++;
++ check_operator_2:
++		if (!strncmp(start, "!=", 2)) {
++			start += 2;
++		} else if (*start == '=') {
 +			match |= 1;
-+			condition++;
++			start++;
  		} else {
- 			goto out2;
+-			goto out2;
++			break; /* This shouldn't happen. */
  		}
- 		counter--; /* header */
+-		counter--; /* header */
 -		if (left == EXEC_ENVP && strncmp(condition, "NULL", 4) == 0) {
-+		if (left == EXEC_ENVP && !strncmp(condition, "NULL", 4)) {
- 			char c;
- 			condition += 4;
- 			right_name = NULL;
- 			counter--; /* body */
- 			c = *condition;
+-			char c;
+-			condition += 4;
+-			right_name = NULL;
+-			counter--; /* body */
+-			c = *condition;
 -			if (c && c != ' ') goto out;
-+			if (c && c != ' ')
-+				goto out;
- 			right = 0;
- 			goto skip_right;
- 		} else if (left == EXEC_ARGV || left == EXEC_ENVP) {
- 			char c;
- 			char *tmp;
+-			right = 0;
+-			goto skip_right;
+-		} else if (left == EXEC_ARGV || left == EXEC_ENVP) {
+-			char c;
+-			char *tmp;
 -			if (*condition++ != '"') goto out;
-+			if (*condition++ != '"')
-+				goto out;
- 			tmp = condition;
- 			while (1) {
- 				c = *condition++;
+-			tmp = condition;
+-			while (1) {
+-				c = *condition++;
 -				if (!c || c == ' ') goto out;
 -				if (c != '"') continue;
-+				if (!c || c == ' ')
-+					goto out;
-+				if (c != '"')
-+					continue;
- 				c = *condition;
+-				c = *condition;
 -				if (!c || c == ' ') break;
-+				if (!c || c == ' ')
-+					break;
- 			}
- 			c = *--condition;
- 			*condition = '\0';
+-			}
+-			c = *--condition;
+-			*condition = '\0';
 -			right_name = SaveName(tmp);
-+			right_name = ccs_save_name(tmp);
- 			BUG_ON(!right_name);
- 			counter--; /* body */
- 			*condition = c;
-@@ -449,35 +551,60 @@
- 			goto skip_right;
- 		}
+-			BUG_ON(!right_name);
+-			counter--; /* body */
+-			*condition = c;
+-			condition++;
+-			right = 0;
+-			goto skip_right;
+-		}
++		condc--; /* header */
  		for (right = 0; right < MAX_KEYWORD; right++) {
 -			if (strncmp(condition, condition_control_keyword[right].keyword, condition_control_keyword[right].keyword_len) == 0) {
 -				condition += condition_control_keyword[right].keyword_len;
@@ -14039,11 +14440,11 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -			}
 +			const int len =
 +				condition_control_keyword[right].keyword_len;
-+			if (strncmp(condition,
++			if (strncmp(start,
 +				    condition_control_keyword[right].keyword,
 +				    len))
 +				continue;
-+			condition += len;
++			start += len;
 +			break;
  		}
 -		if (right == MAX_KEYWORD) {
@@ -14055,25 +14456,39 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -				counter--; /* body */
 -				right++;
 -			}
--		}
--skip_right:
 +		if (right < MAX_KEYWORD)
-+			goto skip_right;
-+		match |= parse_ulong(&right_min, &condition) << 6;
-+		counter--; /* body */
-+		if (*condition != '-')
-+			goto skip_right;
-+		condition++;
-+		match |= parse_ulong(&right_max, &condition) << 8;
-+		counter--; /* body */
++			goto store_value;
++		right_1_type = parse_ulong(&right_min, &start);
++		condc--; /* body */
++		if (*start != '-')
++			goto store_value;
++		start++;
++		right_2_type = parse_ulong(&right_max, &start);
++		condc--; /* body */
 +		right++;
-+ skip_right:
- 		if (counter < 0) {
- 			WARN_ON(counter < 0);
- 			goto out2;
++ store_value:
++		*ptr = (((u32) match) << 16) |
++			(((u32) left_1_type) << 18) |
++			(((u32) left_2_type) << 20) |
++			(((u32) right_1_type) << 22) |
++			(((u32) right_2_type) << 24) |
++			(((u32) left) << 8) |
++			((u32) right);
++		ptr++;
++		if (left >= MAX_KEYWORD) {
++			*ptr = left_min;
++			ptr++;
  		}
- 		ptr2->value = (match << 16) | (left << 8) | right;
- 		ptr2++;
+-skip_right:
+-		if (counter < 0) {
+-			WARN_ON(counter < 0);
+-			goto out2;
++		if (left == MAX_KEYWORD + 1) {
++			*ptr = left_max;
++			ptr++;
+ 		}
+-		ptr2->value = (match << 16) | (left << 8) | right;
+-		ptr2++;
 -		if (left == EXEC_ARGV) { ptr2->value = left_min; ptr2++; }
 -		if (left == EXEC_ENVP) { ptr2->string = left_name; ptr2++; }
 -		if (left == EXEC_ARGV || left == EXEC_ENVP) { ptr2->string = right_name; ptr2++; }
@@ -14081,75 +14496,48 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -		if (left == MAX_KEYWORD + 1) { ptr2->value = left_max; ptr2++; }
 -		if (right >= MAX_KEYWORD) { ptr2->value = right_min; ptr2++; }
 -		if (right == MAX_KEYWORD + 1) { ptr2->value = right_max; ptr2++; }
-+		if (left == EXEC_ARGV) {
-+			ptr2->value = left_min;
-+			ptr2++;
-+		}
-+		if (left == EXEC_ENVP) {
-+			ptr2->string = left_name;
-+			ptr2++;
-+		}
-+		if (left == EXEC_ARGV || left == EXEC_ENVP) {
-+			ptr2->string = right_name;
-+			ptr2++;
-+		}
-+		if (left >= MAX_KEYWORD) {
-+			ptr2->value = left_min;
-+			ptr2++;
-+		}
-+		if (left == MAX_KEYWORD + 1) {
-+			ptr2->value = left_max;
-+			ptr2++;
-+		}
-+		if (right >= MAX_KEYWORD) {
-+			ptr2->value = right_min;
-+			ptr2++;
-+		}
-+		if (right == MAX_KEYWORD + 1) {
-+			ptr2->value = right_max;
-+			ptr2++;
-+		}
- 	}
- 	WARN_ON(counter);
- 	{
-@@ -486,16 +613,23 @@
- 		mutex_lock(&lock);
- 		list1_for_each_entry(ptr, &condition_list, list) {
- 			/* Don't compare if size differs. */
+-	}
+-	WARN_ON(counter);
+-	{
+-		static DEFINE_MUTEX(lock);
+-		struct condition_list *ptr;
+-		mutex_lock(&lock);
+-		list1_for_each_entry(ptr, &condition_list, list) {
+-			/* Don't compare if size differs. */
 -			if (ptr->length != new_ptr->length) continue;
 -			/* Compare ptr and new_ptr except ptr->list and new_ptr->list . */
 -			if (memcmp(((u8 *) ptr) + sizeof(ptr->list), ((u8 *) new_ptr) + sizeof(new_ptr->list), size - sizeof(ptr->list))) continue;
-+			if (ptr->length != new_ptr->length)
-+				continue;
-+			/*
-+			 * Compare ptr and new_ptr
-+			 * except ptr->list and new_ptr->list .
-+			 */
-+			if (memcmp(((u8 *) ptr) + sizeof(ptr->list),
-+				   ((u8 *) new_ptr) + sizeof(new_ptr->list),
-+				   size - sizeof(ptr->list)))
-+				continue;
- 			/* Same entry found. Share this entry. */
- 			ccs_free(new_ptr);
- 			new_ptr = ptr;
- 			goto ok;
+-			/* Same entry found. Share this entry. */
+-			ccs_free(new_ptr);
+-			new_ptr = ptr;
+-			goto ok;
++		if (right >= MAX_KEYWORD) {
++			*ptr = right_min;
++			ptr++;
  		}
- 		/* Same entry not found. Save this entry. */
+-		/* Same entry not found. Save this entry. */
 -		ptr = alloc_element(size);
-+		ptr = ccs_alloc_element(size);
- 		if (ptr) {
- 			memmove(ptr, new_ptr, size);
- 			/* Append to chain. */
-@@ -503,7 +637,7 @@
+-		if (ptr) {
+-			memmove(ptr, new_ptr, size);
+-			/* Append to chain. */
+-			list1_add_tail_mb(&ptr->list, &condition_list);
++		if (right == MAX_KEYWORD + 1) {
++			*ptr = right_max;
++			ptr++;
  		}
- 		ccs_free(new_ptr);
- 		new_ptr = ptr;
+-		ccs_free(new_ptr);
+-		new_ptr = ptr;
 -	ok:
-+ ok:
- 		mutex_unlock(&lock);
+-		mutex_unlock(&lock);
  	}
- 	return new_ptr;
-@@ -513,15 +647,17 @@
+-	return new_ptr;
+- out2:
+-	ccs_free(new_ptr);
++	BUG_ON(argc);
++	BUG_ON(envc);
++	BUG_ON(condc);
++	return find_same_condition(new_ptr, size);
+  out:
  	return NULL;
  }
  
@@ -14171,7 +14559,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  			/* Nothing to do. */
  		} else {
  			obj->path1_stat.uid = inode->i_uid;
-@@ -536,7 +672,8 @@
+@@ -536,7 +754,8 @@
  	spin_unlock(&dcache_lock);
  	inode = dentry->d_inode;
  	if (inode) {
@@ -14181,7 +14569,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  			/* Nothing to do. */
  		} else {
  			obj->path1_parent_stat.uid = inode->i_uid;
-@@ -553,7 +690,8 @@
+@@ -553,7 +772,8 @@
  		spin_unlock(&dcache_lock);
  		inode = dentry->d_inode;
  		if (inode) {
@@ -14191,7 +14579,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  				/* Nothing to do. */
  			} else {
  				obj->path2_parent_stat.uid = inode->i_uid;
-@@ -566,7 +704,7 @@
+@@ -566,7 +786,7 @@
  	}
  }
  #else
@@ -14200,7 +14588,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  {
  	struct vfsmount *mnt;
  	struct dentry *dentry;
-@@ -601,7 +739,8 @@
+@@ -601,7 +821,8 @@
  	}
  	dput(dentry);
  
@@ -14210,35 +14598,49 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  		dentry = dget_parent(obj->path2_dentry);
  		inode = dentry->d_inode;
  		if (inode) {
-@@ -619,16 +758,20 @@
+@@ -619,251 +840,431 @@
  }
  #endif
  
 -bool CheckCondition(const struct acl_info *acl, struct obj_info *obj)
 +bool ccs_check_condition(const struct acl_info *acl, struct obj_info *obj)
  {
- 	struct task_struct *task = current;
+-	struct task_struct *task = current;
++	const struct task_struct *task = current;
  	u32 i;
 -	unsigned long left_min = 0, left_max = 0, right_min = 0, right_max = 0;
+-	const union element *ptr2;
+-	const struct condition_list *ptr = GetConditionPart(acl);
+-	struct linux_binprm *bprm;
+-	bool failed = false;
+-	if (!ptr) return true;
 +	unsigned long left_min = 0;
 +	unsigned long left_max = 0;
 +	unsigned long right_min = 0;
 +	unsigned long right_max = 0;
- 	const union element *ptr2;
--	const struct condition_list *ptr = GetConditionPart(acl);
-+	const struct condition_list *ptr = ccs_get_condition_part(acl);
- 	struct linux_binprm *bprm;
- 	bool failed = false;
--	if (!ptr) return true;
-+	if (!ptr)
++	const unsigned long *ptr;
++	const struct argv_entry *argv;
++	const struct envp_entry *envp;
++	u16 condc;
++	u16 argc;
++	u16 envc;
++	const struct condition_list *cond = ccs_get_condition_part(acl);
++	const struct linux_binprm *bprm;
++	if (!cond)
 +		return true;
++	condc = cond->condc;
++	argc = cond->argc;
++	envc = cond->envc;
  	bprm = obj->bprm;
- 	ptr2 = (union element *) (((u8 *) ptr) + sizeof(*ptr));
- 	for (i = 0; i < ptr->length; i++) {
-@@ -639,231 +782,433 @@
- 			bool result;
- 			unsigned long index;
- 			const struct path_info *value;
+-	ptr2 = (union element *) (((u8 *) ptr) + sizeof(*ptr));
+-	for (i = 0; i < ptr->length; i++) {
+-		const bool match = ((ptr2->value) >> 16) & 1;
+-		const u8 left = (ptr2->value) >> 8, right = ptr2->value;
+-		ptr2++;
+-		if (left == EXEC_ARGV) {
+-			bool result;
+-			unsigned long index;
+-			const struct path_info *value;
 -			index = ptr2->value; ptr2++; i++;
 -			value = ptr2->string; ptr2++; i++;
 -			if (!bprm) goto out;
@@ -14246,59 +14648,35 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -			if (failed) goto out;
 -			if (!match) result = !result;
 -			if (result) continue;
-+			index = ptr2->value;
-+			ptr2++;
-+			i++;
-+			value = ptr2->string;
-+			ptr2++;
-+			i++;
-+			if (!bprm)
-+				goto out;
-+			result = scan_bprm(bprm, true, index, NULL, value,
-+					   &failed, obj->tmp);
-+			if (failed)
-+				goto out;
-+			if (!match)
-+				result = !result;
-+			if (result)
-+				continue;
- 			goto out;
- 		} else if (left == EXEC_ENVP) {
- 			bool result;
- 			const struct path_info *name, *value;
+-			goto out;
+-		} else if (left == EXEC_ENVP) {
+-			bool result;
+-			const struct path_info *name, *value;
 -			name = ptr2->string; ptr2++; i++;
 -			value = ptr2->string; ptr2++; i++;
 -			if (!bprm) goto out;
 -			result = ScanBprm(bprm, false, 0, name, value, &failed, obj->tmp);
 -			if (failed) goto out;
-+			name = ptr2->string;
-+			ptr2++;
-+			i++;
-+			value = ptr2->string;
-+			ptr2++;
-+			i++;
-+			if (!bprm)
-+				goto out;
-+			result = scan_bprm(bprm, false, 0, name, value, &failed,
-+					   obj->tmp);
-+			if (failed)
-+				goto out;
- 			if (value) {
+-			if (value) {
 -				if (!match) result = !result;
-+				if (!match)
-+					result = !result;
- 			} else {
+-			} else {
 -				if (match) result = !result;
-+				if (match)
-+					result = !result;
- 			}
+-			}
 -			if (result) continue;
-+			if (result)
-+				continue;
- 			goto out;
- 		}
+-			goto out;
+-		}
 -		if ((left >= PATH1_UID && left < MAX_KEYWORD) || (right >= PATH1_UID && right < MAX_KEYWORD)) {
 -			if (!obj) goto out;
++	if (!bprm && (argc || envc))
++		return false;
++	ptr = (unsigned long *) (cond + 1);
++	argv = (const struct argv_entry *) (ptr + condc);
++	envp = (const struct envp_entry *) (argv + argc);
++	for (i = 0; i < condc; i++) {
++		const u32 header = *ptr;
++		const bool match = (header >> 16) & 1;
++		const u8 left = header >> 8, right = header;
++		ptr++;
 +		if ((left >= PATH1_UID && left < MAX_KEYWORD) ||
 +		    (right >= PATH1_UID && right < MAX_KEYWORD)) {
 +			if (!obj)
@@ -14444,15 +14822,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 +			left_max = (u8) (task->tomoyo_flags >> 8);
 +			break;
 +		case MAX_KEYWORD:
-+			left_max = ptr2->value;
-+			ptr2++;
++			left_max = *ptr;
++			ptr++;
 +			i++;
 +			break;
 +		case MAX_KEYWORD + 1:
-+			left_min = ptr2->value;
-+			ptr2++;
-+			left_max = ptr2->value;
-+			ptr2++;
++			left_min = *ptr;
++			ptr++;
++			left_max = *ptr;
++			ptr++;
 +			i += 2;
 +			break;
  		}
@@ -14593,15 +14971,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 +			right_max = (u8) (task->tomoyo_flags >> 8);
 +			break;
 +		case MAX_KEYWORD:
-+			right_max = ptr2->value;
-+			ptr2++;
++			right_max = *ptr;
++			ptr++;
 +			i++;
 +			break;
 +		case MAX_KEYWORD + 1:
-+			right_min = ptr2->value;
-+			ptr2++;
-+			right_max = ptr2->value;
-+			ptr2++;
++			right_min = *ptr;
++			ptr++;
++			right_max = *ptr;
++			ptr++;
 +			i += 2;
 +			break;
  		}
@@ -14620,6 +14998,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 + out:
  		return false;
  	}
++	if (bprm && (argc || envc))
++		return scan_bprm(bprm, argc, argv, envc, envp, obj->tmp);
  	return true;
  }
  
@@ -14661,8 +15041,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  }
  
 -int DumpCondition(struct io_buffer *head, const struct condition_list *ptr)
-+int ccs_dump_condition(struct ccs_io_buffer *head,
-+		       const struct condition_list *ptr)
++bool ccs_dump_condition(struct ccs_io_buffer *head,
++			const struct condition_list *cond)
  {
 -	if (ptr) {
 -		u32 i;
@@ -14672,26 +15052,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -		for (i = 0; i < ptr->length; i++) {
 -			const u16 match = (ptr2->value) >> 16;
 -			const u8 left = (ptr2->value) >> 8, right = ptr2->value;
-+	u32 i;
-+	const union element *ptr2 = (union element *)
-+		(((u8 *) ptr) + sizeof(*ptr));
-+	char buffer[32];
-+	if (!ptr)
-+		goto no_condition;
-+	memset(buffer, 0, sizeof(buffer));
-+	for (i = 0; i < ptr->length; i++) {
-+		const u16 match = (ptr2->value) >> 16;
-+		const u8 left = (ptr2->value) >> 8;
-+		const u8 right = ptr2->value;
-+		const char *keyword = NULL;
-+		ptr2++;
-+		if (ccs_io_printf(head, "%s", i ? " " : " if "))
-+			break;
-+		if (left < MAX_KEYWORD)
-+			keyword = condition_control_keyword[left].keyword;
-+		if (left == EXEC_ARGV) {
-+			unsigned long index = ptr2->value;
- 			ptr2++;
+-			ptr2++;
 -			if (io_printf(head, "%s", i ? " " : " if ")) break;
 -			if (left == EXEC_ARGV) {
 -				unsigned long index = ptr2->value; ptr2++;
@@ -14703,48 +15064,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -				i++;
 -			} else if (left < MAX_KEYWORD) {
 -				if (io_printf(head, "%s", condition_control_keyword[left].keyword)) break;
-+			if (ccs_io_printf(head, "%s%lu]", keyword, index))
-+				break;
-+			i++;
-+			goto print_operator;
-+		}
-+		if (left == EXEC_ENVP) {
-+			const struct path_info *name = ptr2->string;
-+			ptr2++;
-+			if (ccs_io_printf(head, "%s%s\"]", keyword, name->name))
-+				break;
-+			i++;
-+			goto print_operator;
-+		}
-+		if (left < MAX_KEYWORD) {
-+			if (ccs_io_printf(head, "%s", keyword))
-+				break;
-+			goto print_operator;
-+		}
-+		print_ulong(buffer, sizeof(buffer) - 1, ptr2->value,
-+			    (match >> 2) & 3);
-+		ptr2++;
-+		if (ccs_io_printf(head, "%s", buffer))
-+			break;
-+		i++;
-+		if (left == MAX_KEYWORD + 1) {
-+			print_ulong(buffer, sizeof(buffer) - 1,
-+				    ptr2->value, (match >> 4) & 3);
-+			ptr2++;
-+			if (ccs_io_printf(head, "-%s", buffer))
-+				break;
-+			i++;
-+		}
-+	print_operator:
-+		if (ccs_io_printf(head, "%s", (match & 1) ? "=" : "!="))
-+			break;
-+		if (left == EXEC_ARGV || left == EXEC_ENVP) {
-+			const struct path_info *name = ptr2->string;
-+			ptr2++;
-+			if (name) {
-+				if (ccs_io_printf(head, "\"%s\"", name->name))
-+					break;
- 			} else {
+-			} else {
 -				print_ulong(buffer, sizeof(buffer) - 1, ptr2->value, (match >> 2) & 3); ptr2++;
 -				if (io_printf(head, "%s", buffer)) break;
 -				i++;
@@ -14753,9 +15073,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -					if (io_printf(head, "-%s", buffer)) break;
 -					i++;
 -				}
-+				if (ccs_io_printf(head, "NULL"))
-+					break;
- 			}
+-			}
 -			if (io_printf(head, "%s", (match & 1) ? "=" : "!=")) break;
 -			if (left == EXEC_ARGV || left == EXEC_ENVP) {
 -				const struct path_info *name = ptr2->string; ptr2++;
@@ -14777,8 +15095,42 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -					i++;
 -				}
 -			}
-+			i++;
-+			continue;
++	const unsigned long *ptr;
++	const struct argv_entry *argv;
++	const struct envp_entry *envp;
++	u16 condc;
++	u16 argc;
++	u16 envc;
++	u16 i;
++	u16 j;
++	char buffer[32];
++	if (!cond)
++		goto no_condition;
++	condc = cond->condc;
++	argc = cond->argc;
++	envc = cond->envc;
++	ptr = (const unsigned long *) (cond + 1);
++	argv = (const struct argv_entry *) (ptr + condc);
++	envp = (const struct envp_entry *) (argv + argc);
++	memset(buffer, 0, sizeof(buffer));
++	for (i = 0; i < condc; i++) {
++		const u32 header = *ptr;
++		const u8 match = (header >> 16) & 1;
++		const u8 left_1_type = (header >> 18) & 3;
++		const u8 left_2_type = (header >> 20) & 3;
++		const u8 right_1_type = (header >> 22) & 3;
++		const u8 right_2_type = (header >> 24) & 3;
++		const u8 left = header >> 8;
++		const u8 right = header;
++		ptr++;
++		if (!ccs_io_printf(head, "%s", i ? " " : " if "))
++			goto out;
++		if (left < MAX_KEYWORD) {
++			const char *keyword
++				= condition_control_keyword[left].keyword;
++			if (!ccs_io_printf(head, "%s", keyword))
++				goto out;
++			goto print_operator;
  		}
 -		if (i < ptr->length) return -ENOMEM;
 -		if ((i = ptr->post_state[3]) != 0) {
@@ -14789,52 +15141,90 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -					if (io_printf(head, " task.state[%u]=%u", j, ptr->post_state[j])) return -ENOMEM;
 -				}
 -			}
++		print_ulong(buffer, sizeof(buffer) - 1, *ptr, left_1_type);
++		ptr++;
++		if (!ccs_io_printf(head, "%s", buffer))
++			goto out;
++		i++;
++		if (left == MAX_KEYWORD)
++			goto print_operator;
++		print_ulong(buffer, sizeof(buffer) - 1, *ptr, left_2_type);
++		ptr++;
++		if (!ccs_io_printf(head, "-%s", buffer))
++			goto out;
++		i++;
++ print_operator:
++		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
++			goto out;
 +		if (right < MAX_KEYWORD) {
-+			keyword = condition_control_keyword[right].keyword;
-+			if (ccs_io_printf(head, "%s", keyword))
-+				break;
++			const char *keyword
++				= condition_control_keyword[right].keyword;
++			if (!ccs_io_printf(head, "%s", keyword))
++				goto out;
 +			continue;
  		}
-+		print_ulong(buffer, sizeof(buffer) - 1, ptr2->value,
-+			    (match >> 6) & 3);
-+		ptr2++;
-+		if (ccs_io_printf(head, "%s", buffer))
-+			break;
++		print_ulong(buffer, sizeof(buffer) - 1, *ptr, right_1_type);
++		ptr++;
++		if (!ccs_io_printf(head, "%s", buffer))
++			goto out;
 +		i++;
-+		if (right == MAX_KEYWORD + 1) {
-+			print_ulong(buffer, sizeof(buffer) - 1, ptr2->value,
-+				    (match >> 8) & 3);
-+			ptr2++;
-+			if (ccs_io_printf(head, "-%s", buffer))
-+				break;
-+			i++;
-+		}
++		if (right == MAX_KEYWORD)
++			continue;
++		print_ulong(buffer, sizeof(buffer) - 1, *ptr, right_2_type);
++		ptr++;
++		if (!ccs_io_printf(head, "-%s", buffer))
++			goto out;
++		i++;
  	}
 -	return io_printf(head, "\n") ? -ENOMEM : 0;
-+	if (i < ptr->length)
-+		return -ENOMEM;
-+	i = ptr->post_state[3];
-+	if (i) {
-+		unsigned int j;
-+		if (ccs_io_printf(head, " ; set"))
-+			return -ENOMEM;
-+		for (j = 0; j < 3; j++) {
-+			if (!(i & (1 << j)))
-+				continue;
-+			if (ccs_io_printf(head, " task.state[%u]=%u",
-+					  j, ptr->post_state[j]))
-+				return -ENOMEM;
++
++	if (!argc && !envc)
++		goto post_condition;
++	if (!condc && !ccs_io_printf(head, " if"))
++		goto out;
++	for (i = 0; i < argc; argv++, i++)
++		if (!ccs_io_printf(head, " exec.argc[%u]=\"%s\"", argv->index,
++				  argv->value->name))
++			goto out;
++	buffer[1] = '\0';
++	for (i = 0; i < envc; envp++, i++) {
++		const char *value = envp->value ? envp->value->name : NULL;
++		if (!ccs_io_printf(head, " exec.envp[\"%s\"]=",
++				   envp->name->name))
++			goto out;
++		if (value) {
++			if (!ccs_io_printf(head, "\"%s\"", value))
++				goto out;
++		} else {
++			if (!ccs_io_printf(head, "NULL"))
++				goto out;
 +		}
 +	}
++ post_condition:
++	i = cond->post_state[3];
++	if (!i)
++		goto no_condition;
++	if (!ccs_io_printf(head, " ; set"))
++		goto out;
++	for (j = 0; j < 3; j++) {
++		if (!(i & (1 << j)))
++			continue;
++		if (!ccs_io_printf(head, " task.state[%u]=%u", j,
++				  cond->post_state[j]))
++			goto out;
++	}
 + no_condition:
-+	return ccs_io_printf(head, "\n") ? -ENOMEM : 0;
++	if (ccs_io_printf(head, "\n"))
++		return true;
++ out:
++	return false;
  }
  
  /***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(作業コピー)
 @@ -19,105 +19,146 @@
  
  /*************************  AUDIT FUNCTIONS  *************************/
@@ -15039,8 +15429,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  /***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 1036)
-+++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
+--- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(リビジョン 1036)
++++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(作業コピー)
 @@ -16,9 +16,9 @@
  #include <linux/ccs_common.h>
  #include <linux/sakura.h>
@@ -15079,7 +15469,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &no_umount_list, list) {
  		if (ptr->dir == saved_dir) {
-@@ -54,64 +57,79 @@
+@@ -54,66 +57,83 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -15161,7 +15551,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  }
  
 -int ReadNoUmountPolicy(struct io_buffer *head)
-+int ccs_read_no_umount_policy(struct ccs_io_buffer *head)
++bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
  {
  	struct list1_head *pos;
  	list1_for_each_cookie(pos, head->read_var2, &no_umount_list) {
@@ -15171,9 +15561,14 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 -		if (io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n", ptr->dir->name)) return -ENOMEM;
 +		if (ptr->is_deleted)
 +			continue;
-+		if (ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
-+				  ptr->dir->name))
-+			return -ENOMEM;
++		if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
++				   ptr->dir->name))
++			goto out;
  	}
- 	return 0;
+-	return 0;
++	return true;
++ out:
++	return false;
  }
+ 
+ /***** SAKURA Linux end. *****/
