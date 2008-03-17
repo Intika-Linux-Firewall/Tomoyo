@@ -23,7 +23,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # Bah. Have to set this to a negative for the moment to fix rpm ordering after
 # moving the spec file. cvs sucks. Should be sure to fix this once 2.6.23 is out.
 %define fedora_cvs_origin 346
-%define fedora_build %(R="$Revision: 1.358 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.380 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -592,6 +592,8 @@ Patch60: linux-2.6-x86-tune-generic.patch
 # Patch61: linux-2.6-x86-setup-add-near-jump.patch
 Patch70: linux-2.6-x86_64-silence-up-apic-errors.patch
 Patch75: linux-2.6-x86-debug-boot.patch
+Patch76: linux-2.6-x86-dont-use-p6-nops.patch
+Patch77: linux-2.6-x86-clear-df-for-signals.patch
 
 Patch86: linux-2.6-alsa-support-sis7019.patch
 Patch87: linux-2.6-alsa-hda-stac-dmic.patch
@@ -622,6 +624,7 @@ Patch200: linux-2.6-modsign-verify.patch
 Patch210: linux-2.6-modsign-ksign.patch
 Patch220: linux-2.6-modsign-core.patch
 Patch230: linux-2.6-modsign-script.patch
+Patch240: linux-2.6-debug-resource-overflow.patch
 Patch250: linux-2.6-debug-sizeof-structs.patch
 Patch260: linux-2.6-debug-nmi-timeout.patch
 Patch270: linux-2.6-debug-taint-vm.patch
@@ -659,11 +662,15 @@ Patch620: linux-2.6-defaults-unicode-vt.patch
 Patch640: linux-2.6-defaults-nommconf.patch
 Patch660: linux-2.6-libata-ali-atapi-dma.patch
 Patch670: linux-2.6-ata-quirk.patch
+Patch671: linux-2.6-libata-fix-hpt-svw-dma-masking.patch
 
 Patch680: linux-2.6-wireless.patch
 Patch681: linux-2.6-wireless-pending.patch
+Patch682: linux-2.6-wireless-pending-fixups.patch
+Patch683: linux-2.6-wireless-pending-too.patch
 Patch690: linux-2.6-at76.patch
 Patch691: linux-2.6-rndis_wlan.patch
+Patch692: linux-2.6-ps3_gelic_wireless.patch
 Patch700: linux-2.6-cfg80211-extras.patch
 Patch701: linux-2.6-zd1211rw-module-alias.patch
 Patch720: linux-2.6-e1000-bad-csum-allow.patch
@@ -675,6 +682,7 @@ Patch725: linux-2.6-netdev-atl2.patch
 #Patch780: linux-2.6-clockevents-fix-resume-logic.patch
 Patch761: linux-2.6-acpi-video-backlight-rationalize.patch
 Patch763: linux-2.6-acpi-video-fix-multiple-busses.patch
+#Patch766: linux-2.6-acpi-disable-gpe-fix.patch
 Patch784: linux-2.6-acpi-eeepc-hotkey.patch
 
 Patch820: linux-2.6-compile-fixes.patch
@@ -682,6 +690,8 @@ Patch1101: linux-2.6-default-mmf_dump_elf_headers.patch
 Patch1103: linux-2.6-i386-vdso-install-unstripped-copies-on-disk.patch
 
 Patch1308: linux-2.6-usb-ehci-hcd-respect-nousb.patch
+Patch1309: linux-2.6-usb-serial-fix-recursive-lock.patch
+Patch1320: linux-2.6-isdn-hisax-fix-request_irq-oops.patch
 
 Patch1400: linux-2.6-smarter-relatime.patch
 Patch1504: linux-2.6-xfs-optimize-away-realtime-tests.patch
@@ -692,9 +702,6 @@ Patch1515: linux-2.6-lirc.patch
 Patch1520: linux-2.6-dcdbas-autoload.patch
 
 
-# drm-mm catchup (modesetting, ...)
-Patch1801: linux-2.6-drm-mm.patch
-Patch1800: linux-2.6-agp-mm.patch
 # nouveau + drm fixes
 Patch1802: nouveau-drm.patch
 Patch1803: linux-2.6-ppc32-ucmpdi2.patch
@@ -702,7 +709,6 @@ Patch1804: linux-2.6-drm-radeon-update.patch
 Patch1805: linux-2.6-git-initial-r500-drm.patch
 
 # Updated firewire stack from linux1394 git
-# snap from http://me.in-berlin.de/~s5r6/linux1394/updates/2.6.23/
 Patch1910: linux-2.6-firewire-git-update.patch
 Patch1911: linux-2.6-firewire-git-pending.patch
 # fix thinkpad key events for volume/brightness
@@ -1044,9 +1050,6 @@ ApplyPatch linux-2.6-alsa-hda-stac-add-delay.patch
 # kill annoying messages
 ApplyPatch linux-2.6-alsa-kill-annoying-messages.patch
 
-# drm-mm catchup (modesetting, ...)
-ApplyPatch linux-2.6-agp-mm.patch
-ApplyPatch linux-2.6-drm-mm.patch
 # Nouveau DRM + drm fixes
 ApplyPatch nouveau-drm.patch
 ApplyPatch linux-2.6-ppc32-ucmpdi2.patch
@@ -1061,14 +1064,14 @@ ApplyPatch linux-2.6-sysrq-c.patch
 # x86(-64)
 # Compile 686 kernels tuned for Pentium4.
 ApplyPatch linux-2.6-x86-tune-generic.patch
-# x86: fix boot on 486
-# ApplyPatch linux-2.6-x86-setup-add-near-jump.patch
 # Suppress APIC errors on UP x86-64.
 #ApplyPatch linux-2.6-x86_64-silence-up-apic-errors.patch
-# fix x86 tsc clock calibration
 # debug early boot
 #ApplyPatch linux-2.6-x86-debug-boot.patch
-# shorter i386 oops reports (scheduled for 2.6.24)
+# allow i686 kernel to boot on non-mainstream processors
+ApplyPatch linux-2.6-x86-dont-use-p6-nops.patch
+# clear DF before calling signal handlers
+ApplyPatch linux-2.6-x86-clear-df-for-signals.patch
 
 #
 # PowerPC
@@ -1124,6 +1127,7 @@ ApplyPatch linux-2.6-modsign-script.patch
 # pc speaker autoload
 
 # Various low-impact patches to aid debugging.
+ApplyPatch linux-2.6-debug-resource-overflow.patch
 ApplyPatch linux-2.6-debug-sizeof-structs.patch
 ApplyPatch linux-2.6-debug-nmi-timeout.patch
 ApplyPatch linux-2.6-debug-taint-vm.patch
@@ -1226,24 +1230,19 @@ ApplyPatch linux-2.6-defaults-nommconf.patch
 ApplyPatch linux-2.6-libata-ali-atapi-dma.patch
 # ia64 ata quirk
 ApplyPatch linux-2.6-ata-quirk.patch
-# Enable ACPI ATA objects
-# add option to disable PATA DMA
-# fix resume failure on some systems
-# serverworks is broken with some drive combinations
-# fix libata IORDY handling
-# fix ATA tape drives
-# allow 12-byte SCSI commands for ATAPI devices
-# fix ahci reset
-# work around broken lba48 disks
+# actually mask the intended DMA modes from the blacklist
+ApplyPatch linux-2.6-libata-fix-hpt-svw-dma-masking.patch
 
 # wireless patches headed for 2.6.25
 ApplyPatch linux-2.6-wireless.patch
 # wireless patches staged for 2.6.26
 ApplyPatch linux-2.6-wireless-pending.patch
+ApplyPatch linux-2.6-wireless-pending-fixups.patch
 
 # Add misc wireless bits from upstream wireless tree
 ApplyPatch linux-2.6-at76.patch
 ApplyPatch linux-2.6-rndis_wlan.patch
+ApplyPatch linux-2.6-ps3_gelic_wireless.patch
 
 # Restore ability to add/remove virtual i/fs to mac80211 devices
 ApplyPatch linux-2.6-cfg80211-extras.patch
@@ -1259,17 +1258,14 @@ ApplyPatch linux-2.6-netdev-e1000-disable-alpm.patch
 ApplyPatch linux-2.6-netdev-atl2.patch
 
 # ACPI/PM patches
-# fix EC init
 # fix multiple ACPI brightness problems (#427518)
 ApplyPatch linux-2.6-acpi-video-backlight-rationalize.patch
 ApplyPatch linux-2.6-acpi-video-fix-multiple-busses.patch
-# fix date/time display when using PM_TRACE
-# Send button state on create / resume
-# fix cpuidle regressions
-# fix EC init
+# disable stray gpe properly
+# need to find out why this is broken
+#ApplyPatch linux-2.6-acpi-disable-gpe-fix.patch
 # Eeepc hotkey driver
 ApplyPatch linux-2.6-acpi-eeepc-hotkey.patch
-# fix EC init fix
 
 # Fix excessive wakeups
 # Make hdaps timer only tick when in use.
@@ -1279,10 +1275,14 @@ ApplyPatch linux-2.6-acpi-eeepc-hotkey.patch
 # ACPI
 
 # USB
-# Do USB suspend only on certain classes of device.
-# initialize strange modem/storage device properly (from F7 kernel)
 # some usb disks spin down automatically and need allow_restart
 ApplyPatch linux-2.6-usb-ehci-hcd-respect-nousb.patch
+# usb-serial can deadlock (#431379)
+ApplyPatch linux-2.6-usb-serial-fix-recursive-lock.patch
+
+# ISDN
+# fix request_irq oops
+ApplyPatch linux-2.6-isdn-hisax-fix-request_irq-oops.patch
 
 # implement smarter atime updates support.
 ApplyPatch linux-2.6-smarter-relatime.patch
@@ -1312,6 +1312,7 @@ ApplyPatch linux-2.6-lirc.patch
 ApplyPatch linux-2.6-dcdbas-autoload.patch
 
 # FireWire updates and fixes
+# snap from http://me.in-berlin.de/~s5r6/linux1394/updates/
 ApplyPatch linux-2.6-firewire-git-update.patch
 ApplyPatch linux-2.6-firewire-git-pending.patch
 
@@ -1327,8 +1328,8 @@ ApplyPatch linux-2.6-uvcvideo.patch
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .3-12.fc8:' -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.24.3-12.fc8.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .3-34.fc8:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.24.3-34.fc8.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -1926,8 +1927,52 @@ fi
 
 
 %changelog
-* Tue Feb 26 2008 Chuck Ebbert <cebbert@redhat.com> 2.6.24.3-12
-- Linux 2.6.24.3
+* Tue Mar 11 2008 John W. Linville <linville@redhat.com> 2.6.24.3-34
+- rt2x00:correct rx packet length for USB devices
+- make b43_mac_{enable,suspend}() static
+- the scheduled bcm43xx removal
+- the scheduled ieee80211 softmac removal
+- the scheduled rc80211-simple.c removal
+- iwlwifi: Use eeprom form iwlcore
+- tkip: remove unused function, other cleanups
+- mac80211: remove Hi16, Lo16 helpers
+- mac80211: remove Hi8/Lo8 helpers, add initialization vector helpers
+- b43: pull out helpers for writing noise table
+- libertas: implement SSID scanning for SIOCSIWSCAN
+- rt2x00: Align RX descriptor to 4 bytes
+- rt2x00: Don't use uninitialized desc_len
+- rt2x00: Use skbdesc fields for descriptor initialization
+- rt2x00: Only disable beaconing just before beacon update
+- rt2x00: Upgrade queue->lock to use irqsave
+- rt2x00: Move firmware checksumming to driver
+- rt2x00: Start bugging when rt2x00lib doesn't filter SW diversity
+- rt2x00: Check IEEE80211_TXCTL_SEND_AFTER_DTIM flag
+- rt2x00: Rename config_preamble() to config_erp()
+- rt2x00: Add suspend/resume handlers to rt2x00rfkill
+- rt2x00: Make rt2x00leds_register return void
+- rt2x00: Always enable TSF ticking
+- rt2x00: Fix basic rate initialization
+- rt2x00: Fix compile error when rfkill is disabled
+- rt2x00: Fix RX DMA ring initialization
+- rt2x00: Fix rt2400pci signal
+- rt2x00: Release rt2x00 2.1.4
+- rt2x00: Only strip preamble bit in rt2400pci
+- prism54: support for 124a:4025 - another version of IOGear GWU513 802.11g
+- drivers/net/wireless/ath5k - convert == (true|false) to simple logical tests
+- include/net/ieee80211.h - remove duplicate include
+- rndis_wlan: cleanup, rename and reorder enums and structures
+- rndis_wlan: cleanup, rename structure members
+- rt2x00: Fix trivial log message
+- PS3: gelic: ignore scan info from zero SSID beacons
+- rt2x00: Initialize TX control field in data entries
+- rt2x00: Use the correct size when copying the control info in txdone
+- rt2x00: Don't use unitialized rxdesc->size
+- ssb: Add SPROM/invariants support for PCMCIA devices
+- iwlwifi: update copyright year
+- iwlwifi: fix bug to show hidden APs during scan
+- iwlwifi: Use sta_bcast_id variable instead of BROADCAST_ID constant
+- iwlwifi: Fix endianity in debug print
+- iwlwifi: change rate number to a constant
 
 * Sun May 27 2007 Dave Jones <davej@redhat.com>
 - Start F8 branch. Rebase to 2.6.22rc3
