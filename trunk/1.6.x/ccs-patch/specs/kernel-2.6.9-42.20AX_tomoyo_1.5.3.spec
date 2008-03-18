@@ -29,7 +29,7 @@ summary: the linux kernel (the core of the linux operating system)
 # adding some text to the end of the version number.
 #
 %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
-%define release 42.18AX%{axbsys}_tomoyo_1.5.3
+%define release 42.20AX%{axbsys}_tomoyo_1.5.3
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -712,6 +712,7 @@ Patch1335: linux-2.6.9-net-sctp.patch
 Patch1336: linux-2.6.9-sctp-sysctl-64bit-fix.patch
 Patch1337: linux-2.6.9-sctp-msecs-jiffies-conv.patch
 Patch1338: linux-2.6.9-sctp-use-linearize.patch
+Patch1339: linux-2.6.9-bond-ipv6-addr-fix.patch
 
 # NIC driver updates
 Patch1350: linux-2.6.9-net-b44-4g4g.patch
@@ -1381,6 +1382,9 @@ Patch98014: linux-2.6.9-CVE-2007-3105-random-bound-check.patch
 Patch98015: linux-2.6.9-CVE-2007-3848-pdeath-signal-suid.patch
 Patch98016: linux-2.6.9-CVE-2007-3740-cifs-honour-umask.patch
 Patch98017: linux-2.6.9-CVE-2007-3843-cifs-signing-mount.patch
+# 2.6.9-67.0.1.EL CVE fixes
+Patch98020: linux-2.6.9-CVE-2007-4997-ieee80211-underflow.patch
+Patch98021: linux-2.6.9-CVE-2007-5494-fs-leak-dentry.patch
 
 #
 # Asianux:
@@ -1406,6 +1410,7 @@ Patch100265: linux-2.6.9-x86_64-dma-usage-fix1.patch
 Patch100266: linux-2.6.9-x86_64-dma-usage-fix2.patch
 Patch100267: linux-2.6.12-rc2-x86_64-fix-missing-delay.patch
 Patch100268: linux-2.6.9-x8664-mtrr-updates.patch
+Patch100269: linux-2.6.9-ia32e-stack-vm_account-fix-fix.patch
 
 #
 # 100300 - 100399   ppc(64)
@@ -1443,10 +1448,15 @@ Patch100742: linux-2.6.9-selinux-dynamic-context-transition.patch
 Patch100774: linux-2.6.9-sis-ide.patch
 Patch100775: linux-2.6.9-ipv6-anycast-refcnt-fix.patch
 Patch100776: linux-2.6.9-openipmi-compat.patch
+Patch100777: linux-2.6.11-rc2-IPV6-learn-LLA-from-RA.patch
+Patch100778: linux-2.6.12-rc5-IPV6-Fix-xfrm-tunnel-oops.patch
+Patch100779: linux-2.6.15-rc1-coredump_wait-cleanup.patch
+Patch100780: linux-2.6.16-rc1-do_coredump-should-reset-group_stop_count-earlier.patch
 # block device IO performance improvement
 Patch100794: linux-2.6.9-blk-misc.patch
 # misc sysrq fix
 Patch100810: linux-2.6.9-sysrq-fix.patch
+Patch100811: linux-2.6.9-sysrq-w-deadlock-fix.patch
 #
 Patch100820: linux-2.6.9-fork-invalidates-fd-fix.patch
 Patch100830: linux-2.6.9-vmalloc_fix.patch
@@ -2733,6 +2743,7 @@ cd linux-%{kversion}
 %patch1336 -p1
 %patch1337 -p1
 %patch1338 -p1
+%patch1339 -p1
 
 # NIC driver fixes.
 # Fix problems with b44 & 4g/4g
@@ -3672,6 +3683,9 @@ cd linux-%{kversion}
 %patch98015 -p1
 %patch98016 -p1
 %patch98017 -p1
+# 2.6.9-67.0.1.EL CVE fixes
+%patch98020 -p1
+%patch98021 -p1
 
 # Asianux:
 # Patches 100100 through 100500 are meant for architecture patches
@@ -3711,6 +3725,7 @@ cd linux-%{kversion}
 %patch100266 -p1
 %patch100267 -p1
 %patch100268 -p1
+%patch100269 -p1
 
 #
 # Patches 100500 through 101000 are reserved for bugfixes to the core system
@@ -3760,11 +3775,21 @@ cd linux-%{kversion}
 # add register_ioctl32_conversion() for some IPMI ioctls
 %patch100776 -p1
 
+#IPV6: Does't learn Link-Layer-Address from RA w/ SLL option.
+%patch100777 -p1
+#IPv6: Panic when networkstress test of LTP runs
+%patch100778 -p1
+#OS looks stuck when sending SIGSEGV to SCHED_FIFO, multi-threaded, and rt-process.
+%patch100779 -p1
+%patch100780 -p1
+
 # block device IO performance improvement
 %patch100794 -p1
 
 # misc sysrq fix
 %patch100810 -p1
+# sysrq-w deadlock fix
+%patch100811 -p1
 # fix fork() bug invalidates file descriptors
 %patch100820 -p1
 # fix oom roll-back of __vmalloc
@@ -4032,8 +4057,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 # TOMOYO Linux
 # wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.18AX/" -- Makefile
-patch -sp1 < patches/ccs-patch-2.6.9-42.18AX.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.20AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-42.20AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -4461,18 +4486,15 @@ fi
 %endif
 
 %changelog
-* Fri Nov  9 2007 YongWoo Nam <ywnam@haansoft.com> [2.6.9-42.18AX]
-- CVE-2006-6921 : fix denial of service with wedged processes (Patch98010)
-- CVE-2007-2878 : fix VFAT compat ioctls DoS on 64-bit (Patch98011)
-- CVE-2007-3739 : fix stack growing into hugetlb reserved regions (Patch98012)
-- CVE-2007-4571 : fix ALSA memory disclosure flaw (Patch98013)
-- CVE-2007-3105 : fix bound check ordering issue in random driver (Patch98014)
-- CVE-2007-3848 : fix privilege escalation via PR_SET_PDEATHSIG (Patch98015)
-- CVE-2007-3740 : makes CIFS honour a process' umask (Patch98016)
-- CVE-2007-3843 : fix signing mount options and error handling for CIFS (Patch98017)
-- CVE-2007-4308 : fix missing ioctl() permission checks in aacraid driver (Patch102542)
-- fix machine check errors with Clovertown G0-step CPU (OGAWA Hirofumi) (Patch100268)
-- x86_64: Fix missing delay when the TSC counter just overflowed (Toyo Abe) (Patch100267)
+* Fri Feb 29 2008 Robert Lin <robert@miraclelinux.com> [2.6.9-42.20AX]
+- fix wrong IPv6 link local address of bonding device (Patch1339)
+- fix deadlock on sysrq-w (Makito Shiokawa) (Patch100811)
+- support Adaptec ASC-29320LPE (replace Patch2327)
+- fix a bug in Patch97020 for vm_account (Patch100269)
+- IPV6: Does't learn Link-Layer-Address from RA w/ SLL option (Patch100777)
+- IPv6: Panic when networkstress test of LTP runs (Patch100778)
+- OS looks stuck when sending SIGSEGV to SCHED_FIFO, multi-threaded, and
+  rt-process (Patch100779, Patch100780)
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start 
