@@ -11,23 +11,25 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h
   *
   * Copyright (C) 2005-2008  NTT DATA CORPORATION
   *
-@@ -19,9 +19,9 @@
+@@ -19,10 +19,10 @@
  #define __user
  #endif
  
 -extern void __init realpath_Init(void);
++/* Initialize realpath() related code. */
 +extern void __init ccs_realpath_init(void);
  
 -/*************************  Indexes for /proc interfaces.  *************************/
+-
 +/* Indexes for /proc/ccs/ interfaces. */
- 
  #define CCS_DOMAINPOLICY          0
  #define CCS_EXCEPTIONPOLICY       1
+ #define CCS_SYSTEMPOLICY          2
 Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
 ===================================================================
 --- trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(revision 1045)
 +++ trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(working copy)
-@@ -14,115 +14,137 @@
+@@ -14,115 +14,140 @@
  /*
   * A brief description about SYAORAN:
   *
@@ -39,9 +41,12 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
 - *  /dev needs to be writable, but this means that files on /dev might be tampered with.
 - *  SYAORAN can restrict combinations of (pathname, attribute) that the system can create.
 + *  /dev cannot be mounted for read-only mode, but this means that files on
-+ *  /dev might be tampered with.
++ *  /dev might be tampered with. In other words, a device file might have
++ *  inappropriate attributes (e.g. /dev/null has char-1-5 attributes).
 + *  SYAORAN can restrict combinations of (pathname, attribute) that
-+ *  the system can create.
++ *  the system can create so that all files on this filesystem have appropriate
++ *  attributes (e.g. /dev/null has char-1-3 attributes).
++ *
   *  The attribute is one of directory, regular file, FIFO, UNIX domain socket,
 - *  symbolic link, character or block device file with major/minor device numbers.
 + *  symbolic link, character or block device file with major/minor device
@@ -55,6 +60,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  #ifndef _LINUX_SYAORAN_H
  #define _LINUX_SYAORAN_H
  
++#include <linux/version.h>
++
 +#define false 0
 +#define true 1
 +
@@ -64,8 +71,8 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  
 -/***** SYAORAN start. *****/
 -
- #include <linux/version.h>
- 
+-#include <linux/version.h>
+-
 -#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
  #define s_fs_info u.generic_sbp
@@ -208,7 +215,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	return dentry;
   enoent:
  	dput(dentry);
-@@ -132,7 +154,8 @@
+@@ -132,7 +157,8 @@
  }
  
  /* mkdir(). Called only while initialization. */
@@ -218,7 +225,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  {
  	struct dentry *dentry = lookup_create2(pathname, base, 1);
  	int error = PTR_ERR(dentry);
-@@ -146,7 +169,7 @@
+@@ -146,7 +172,7 @@
  		}
  		dput(dentry);
  	}
@@ -227,7 +234,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	mutex_unlock(&base->d_inode->i_mutex);
  #else
  	up(&base->d_inode->i_sem);
-@@ -155,12 +178,17 @@
+@@ -155,12 +181,17 @@
  }
  
  /* mknod(). Called only while initialization. */
@@ -247,7 +254,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		break;
  	default:
  		return -EPERM;
-@@ -177,7 +205,7 @@
+@@ -177,7 +208,7 @@
  		}
  		dput(dentry);
  	}
@@ -256,7 +263,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	mutex_unlock(&base->d_inode->i_mutex);
  #else
  	up(&base->d_inode->i_sem);
-@@ -186,12 +214,13 @@
+@@ -186,12 +217,13 @@
  }
  
  /* symlink(). Called only while initialization. */
@@ -272,7 +279,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		error = vfs_symlink(base->d_inode, dentry, oldname, S_IALLUGO);
  #else
  		error = vfs_symlink(base->d_inode, dentry, oldname);
-@@ -205,7 +234,7 @@
+@@ -205,7 +237,7 @@
  		}
  		dput(dentry);
  	}
@@ -281,7 +288,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	mutex_unlock(&base->d_inode->i_mutex);
  #else
  	up(&base->d_inode->i_sem);
-@@ -218,32 +247,38 @@
+@@ -218,32 +250,38 @@
   * Leading and trailing whitespaces are removed.
   * Multiple whitespaces are packed into single space.
   */
@@ -328,7 +335,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  			*cp++ = c;
  			continue;
  		}
-@@ -252,52 +287,73 @@
+@@ -252,52 +290,73 @@
  			(e = *filename++) < '0' || e > '7') {
  			break;
  		}
@@ -419,7 +426,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  {
  	enum {
  		ARG_FILENAME     = 0,
-@@ -315,33 +371,54 @@
+@@ -315,33 +374,54 @@
  	int i;
  	int error = -EINVAL;
  	unsigned int perm, uid, gid, flags, major = 0, minor = 0;
@@ -485,7 +492,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		break;
  	case 'd':
  		perm |= S_IFDIR;
-@@ -359,20 +436,35 @@
+@@ -359,20 +439,35 @@
  		goto out;
  	}
  	error = -ENOMEM;
@@ -530,7 +537,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	}
  	entry->mode = perm;
  	entry->uid = uid;
-@@ -380,7 +472,7 @@
+@@ -380,7 +475,7 @@
  	entry->kdev = S_ISCHR(perm) || S_ISBLK(perm) ? MKDEV(major, minor) : 0;
  	entry->flags = flags;
  	list_add_tail(&entry->list, &info->list);
@@ -539,7 +546,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	error = 0;
   out:
  	return error;
-@@ -396,46 +488,54 @@
+@@ -396,46 +491,54 @@
  {
  	struct syaoran_sb_info *info;
  	struct dev_entry *entry, *tmp;
@@ -613,7 +620,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  {
  	struct dentry *base = dget(root);
  	char *filename = entry->name;
-@@ -445,12 +545,12 @@
+@@ -445,12 +548,12 @@
  	const uid_t uid = entry->uid;
  	const gid_t gid = entry->gid;
  	goto start;
@@ -628,7 +635,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  			mutex_lock(&base->d_inode->i_mutex);
  			new_base = lookup_one_len(name, base, len);
  			mutex_unlock(&base->d_inode->i_mutex);
-@@ -460,73 +560,83 @@
+@@ -460,73 +563,83 @@
  			up(&base->d_inode->i_sem);
  #endif
  			dput(base);
@@ -737,7 +744,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		/* Create /dev/ram0 to get the value of blkdev_open(). */
  		init_special_inode(inode, S_IFBLK | 0666, MKDEV(1, 0));
  		wrapped_def_blk_fops = *inode->i_fop;
-@@ -536,7 +646,8 @@
+@@ -536,7 +649,8 @@
  	}
  	{
  		struct inode *inode = new_inode(sb);
@@ -747,7 +754,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		/* Create /dev/null to get the value of chrdev_open(). */
  		init_special_inode(inode, S_IFCHR | 0666, MKDEV(1, 3));
  		wrapped_def_chr_fops = *inode->i_fop;
-@@ -544,70 +655,83 @@
+@@ -544,70 +658,83 @@
  		org_chrdev_open = wrapped_def_chr_fops.open;
  		wrapped_def_chr_fops.open = wrapped_chrdev_open;
  	}
@@ -870,7 +877,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	end -= namelen;
  	memcpy(end, dentry->d_name.name, namelen);
  	memmove(start, end, strlen(end) + 1);
-@@ -617,54 +741,70 @@
+@@ -617,54 +744,70 @@
  }
  
  /* Get absolute pathname of the given dentry from mount point. */
@@ -959,7 +966,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  				const unsigned char c = *cp--;
  				if (c == '\\') {
  					*--end = '\\';
-@@ -682,59 +822,85 @@
+@@ -682,59 +825,85 @@
  		}
  		switch (mode & S_IFMT) {
  		case S_IFCHR:
@@ -1064,7 +1071,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
   */
  
  struct syaoran_read_struct {
-@@ -746,17 +912,22 @@
+@@ -746,17 +915,22 @@
  	struct list_head *pos;   /* Current position.                  */
  };
  
@@ -1092,7 +1099,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		const char *name = entry->printable_name;
  		const uid_t uid = entry->uid;
  		const gid_t gid = entry->gid;
-@@ -764,30 +935,46 @@
+@@ -764,30 +938,46 @@
  		int len = 0;
  		switch (entry->mode & S_IFMT) {
  		case S_IFCHR:
@@ -1149,7 +1156,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		count -= len;
  		buf += len;
  		head->avail += len;
-@@ -796,12 +983,17 @@
+@@ -796,12 +986,17 @@
  
  static int syaoran_trace_open(struct inode *inode, struct file *file)
  {
@@ -1171,7 +1178,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		kfree(head);
  		return -ENOMEM;
  	}
-@@ -818,17 +1010,22 @@
+@@ -818,17 +1013,22 @@
  	return 0;
  }
  
@@ -1200,7 +1207,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  		head->avail -= len;
  		memmove(cp, cp + len, head->avail);
  	}
-@@ -836,9 +1033,9 @@
+@@ -836,9 +1036,9 @@
  }
  
  static struct file_operations syaoran_trace_operations = {
@@ -1213,7 +1220,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  };
  
  /* Create interface files for reading status. */
-@@ -853,18 +1050,21 @@
+@@ -853,18 +1053,21 @@
  			inode->i_mode = S_IFREG | 0400;
  			inode->i_uid = 0;
  			inode->i_gid = 0;
@@ -1239,7 +1246,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  			inode->i_fop = &syaoran_trace_operations;
  			d_instantiate(dentry, inode);
  			dget(dentry); /* Extra count - pin the dentry in core */
-@@ -872,7 +1072,7 @@
+@@ -872,7 +1075,7 @@
  		}
  		dput(dentry);
  	}
@@ -1248,7 +1255,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  	mutex_unlock(&base->d_inode->i_mutex);
  #else
  	up(&base->d_inode->i_sem);
-@@ -881,5 +1081,4 @@
+@@ -881,5 +1084,4 @@
  	return error;
  }
  
@@ -1258,20 +1265,24 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 ===================================================================
 --- trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(revision 1045)
 +++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(working copy)
-@@ -15,8 +15,6 @@
+@@ -15,195 +15,292 @@
  #ifndef _LINUX_TOMOYO_SOCKET_H
  #define _LINUX_TOMOYO_SOCKET_H
  
 -/***** TOMOYO Linux start. *****/
 -
- #if defined(CONFIG_TOMOYO)
- 
+-#if defined(CONFIG_TOMOYO)
+-
  #include <net/ip.h>
-@@ -25,185 +23,268 @@
+ #include <net/ipv6.h>
+ #include <net/udp.h>
  #include <asm/uaccess.h>
++#include <linux/version.h>
  
- #include <linux/version.h>
+-#include <linux/version.h>
 -#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
++#if defined(CONFIG_TOMOYO)
++
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
  #define sk_family family
  #define sk_protocol protocol
@@ -1285,6 +1296,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  #define MAX_SOCK_ADDR 128 /* net/socket.c */
  
 -static inline int CheckSocketCreatePermission(int family, int type, int protocol)
++/* Check permission for creating a socket. */
 +static inline int ccs_socket_create_permission(int family, int type,
 +					       int protocol)
  {
@@ -1306,6 +1318,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 -		error = CheckCapabilityACL(TOMOYO_USE_PACKET_SOCKET);
 -	} else if (family == PF_ROUTE) {
 -		error = CheckCapabilityACL(TOMOYO_USE_ROUTE_SOCKET);
++	/* Nothing to do if I am a kernel service. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +	if (family == PF_PACKET)
@@ -1329,6 +1342,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  }
  
 -static inline int CheckSocketListenPermission(struct socket *sock)
++/* Check permission for listening a TCP socket. */
 +static inline int ccs_socket_listen_permission(struct socket *sock)
  {
  	int error = 0;
@@ -1358,6 +1372,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 -		}
 +	char addr[MAX_SOCK_ADDR];
 +	int addr_len;
++	/* Nothing to do if I am a kernel service. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +	if (sock->type != SOCK_STREAM)
@@ -1394,6 +1409,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  }
  
 -static inline int CheckSocketConnectPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
++/* Check permission for setting the remote IP address/port pair of a socket. */
 +static inline int ccs_socket_connect_permission(struct socket *sock,
 +						struct sockaddr *addr,
 +						int addr_len)
@@ -1411,6 +1427,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 -					error = CheckNetworkConnectACL(1, SOCK_RAW, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, htons(sock->sk->sk_protocol));
 -				}
 -			}
++	/* Nothing to do if I am a kernel service. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +	switch (type) {
@@ -1479,6 +1496,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  }
  
 -static inline int CheckSocketBindPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
++/* Check permission for setting the local IP address/port pair of a socket. */
 +static inline int ccs_socket_bind_permission(struct socket *sock,
 +					     struct sockaddr *addr,
 +					     int addr_len)
@@ -1496,6 +1514,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 -					error = CheckNetworkBindACL(1, SOCK_RAW, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, htons(sock->sk->sk_protocol));
 -				}
 -			}
++	/* Nothing to do if I am a kernel service. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +	switch (type) {
@@ -1548,12 +1567,18 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  }
  
 -static inline int CheckSocketAcceptPermission(struct socket *sock, struct sockaddr *addr)
++/*
++ * Check permission for accepting a TCP socket.
++ *
++ * Currently, the LSM hook for this purpose is not provided.
++ */
 +static inline int ccs_socket_accept_permission(struct socket *sock,
 +					       struct sockaddr *addr)
  {
  	int error = 0;
  	int addr_len;
 -	if (segment_eq(get_fs(), KERNEL_DS)) return 0;
++	/* Nothing to do if I am a kernel service. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
  	switch (sock->sk->sk_family) {
@@ -1598,6 +1623,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  }
  
 -static inline int CheckSocketSendMsgPermission(struct socket *sock, struct sockaddr *addr, int addr_len)
++/* Check permission for sending a datagram via a UDP or RAW socket. */
 +static inline int ccs_socket_sendmsg_permission(struct socket *sock,
 +						struct sockaddr *addr,
 +						int addr_len)
@@ -1611,6 +1637,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 -			if (addr_len >= SIN6_LEN_RFC2133) {
 -				error = CheckNetworkSendMsgACL(1, type, ((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr, type == SOCK_DGRAM ? ((struct sockaddr_in6 *) addr)->sin6_port : htons(sock->sk->sk_protocol));
 -			}
++	/* Nothing to do if I am a kernel service. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +	if (!addr || (type != SOCK_DGRAM && type != SOCK_RAW))
@@ -1657,11 +1684,16 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  
  static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
  {
-@@ -222,31 +303,35 @@
+@@ -222,31 +319,43 @@
  
  #endif
  
 -static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_buff *skb, const unsigned int flags)
++/*
++ * Check permission for receiving a datagram via a UDP or RAW socket.
++ *
++ * Currently, the LSM hook for this purpose is not provided.
++ */
 +static inline int ccs_socket_recv_datagram_permission(struct sock *sk,
 +						      struct sk_buff *skb,
 +						      const unsigned int flags)
@@ -1676,8 +1708,10 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 -
 -#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 -	if (in_interrupt()) return 0;
++	/* Nothing to do if I didn't receive a datagram. */
 +	if (!skb)
 +		return 0;
++	/* Nothing to do if I can't sleep. */
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 +	if (in_interrupt())
 +		return 0;
@@ -1686,6 +1720,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 +	if (in_atomic())
 +		return 0;
  #endif
++	/* Nothing to do if I am a kernel service. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
 +	if (type != SOCK_DGRAM && type != SOCK_RAW)
@@ -1708,7 +1743,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  			} else {
  				ipv6_addr_copy(&sin6, &ipv6_hdr(skb)->saddr);
  			}
-@@ -255,60 +340,102 @@
+@@ -255,60 +364,102 @@
  			ipv6_addr_copy(&sin6, &ipv6_hdr(skb)->saddr);
  			port = htons(sk->sk_protocol);
  		}
@@ -2425,7 +2460,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  #define CCS_UPDATES_COUNTER_SYSTEM_POLICY    0
  #define CCS_UPDATES_COUNTER_DOMAIN_POLICY    1
  #define CCS_UPDATES_COUNTER_EXCEPTION_POLICY 2
-@@ -448,138 +506,265 @@
+@@ -448,138 +506,271 @@
  #define CCS_UPDATES_COUNTER_REJECT_LOG       7
  #define MAX_CCS_UPDATES_COUNTER              8
  
@@ -2488,6 +2523,91 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  struct condition_list;
  
 -char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm);
+-void *ccs_alloc(const size_t size);
+-char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
+-const char *GetEXE(void);
+-const char *GetLastName(const struct domain_info *domain);
+-const char *GetMSG(const bool is_enforce);
+-const char *cap_operation2keyword(const u8 operation);
+-const char *dp_operation2keyword(const u8 operation);
+-const char *sp_operation2keyword(const u8 operation);
+-const char *net_operation2keyword(const u8 operation);
+-const struct condition_list *FindOrAssignNewCondition(char *condition);
+-int AddAddressGroupPolicy(char *data, const bool is_delete);
+-int AddAggregatorPolicy(char *data, const bool is_delete);
+-int AddAliasPolicy(char *data, const bool is_delete);
+-int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+-int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+-int AddChrootPolicy(char *data, const bool is_delete);
+-int AddDomainACL(struct domain_info *domain, struct acl_info *acl);
+-int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_delete);
+-int AddDomainKeeperPolicy(char *data, const bool is_not, const bool is_delete);
+-int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+-int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+-int AddGloballyReadablePolicy(char *data, const bool is_delete);
+-int AddGloballyUsableEnvPolicy(char *env, const bool is_delete);
+-int AddFilePatternPolicy(char *data, const bool is_delete);
+-int AddMountPolicy(char *data, const bool is_delete);
+-int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+-int AddNoRewritePolicy(char *pattern, const bool is_delete);
+-int AddNoUmountPolicy(char *data, const bool is_delete);
+-int AddPathGroupPolicy(char *data, const bool is_delete);
+-int AddPivotRootPolicy(char *data, const bool is_delete);
+-int AddReservedPortPolicy(char *data, const bool is_delete);
+-int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
+-int CCS_CloseControl(struct file *file);
+-int CCS_OpenControl(const u8 type, struct file *file);
+-int CCS_PollControl(struct file *file, poll_table *wait);
+-int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len);
+-int CCS_WriteControl(struct file *file, const char __user *buffer, const int buffer_len);
+-int CanSaveAuditLog(const bool is_granted);
+-int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+-int DelDomainACL(struct acl_info *acl);
+-int DeleteDomain(char *data);
+-int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
+-bool CheckCondition(const struct acl_info *acl, struct obj_info *obj_info);
+-bool IsCorrectDomain(const unsigned char *domainname, const char *function);
+-bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function);
+-bool IsDomainDef(const unsigned char *buffer);
+-bool PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0);
+-int PollGrantLog(struct file *file, poll_table *wait);
+-int PollRejectLog(struct file *file, poll_table *wait);
+-int ReadAddressGroupPolicy(struct io_buffer *head);
+-int ReadAggregatorPolicy(struct io_buffer *head);
+-int ReadAliasPolicy(struct io_buffer *head);
+-int ReadChrootPolicy(struct io_buffer *head);
+-int ReadDomainInitializerPolicy(struct io_buffer *head);
+-int ReadDomainKeeperPolicy(struct io_buffer *head);
+-int ReadGloballyReadablePolicy(struct io_buffer *head);
+-int ReadGloballyUsableEnvPolicy(struct io_buffer *head);
+-int ReadGrantLog(struct io_buffer *head);
+-int ReadFilePatternPolicy(struct io_buffer *head);
+-int ReadMountPolicy(struct io_buffer *head);
+-int ReadNoRewritePolicy(struct io_buffer *head);
+-int ReadNoUmountPolicy(struct io_buffer *head);
+-int ReadPathGroupPolicy(struct io_buffer *head);
+-int ReadPivotRootPolicy(struct io_buffer *head);
+-int ReadRejectLog(struct io_buffer *head);
+-int ReadReservedPortPolicy(struct io_buffer *head);
+-int WriteAuditLog(char *log, const bool is_granted);
+-int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
+-struct domain_info *FindDomain(const char *domainname);
+-struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile);
+-struct domain_info *UndeleteDomain(const char *domainname0);
+-bool CheckCCSQuota(struct domain_info * const domain);
+-unsigned int CheckCCSFlags(const u8 index);
+-unsigned int CheckCCSFlags_NoSleepCheck(const u8 index);
+-u8 CheckCapabilityFlags(const u8 index);
+-bool CheckDomainQuota(struct domain_info * const domain);
+-bool TomoyoVerboseMode(void);
+-void *alloc_acl_element(const u8 acl_type, const struct condition_list *condition);
+-const struct condition_list *GetConditionPart(const struct acl_info *acl);
+-void CCS_LoadPolicy(const char *filename);
+-void UpdateCounter(const unsigned char index);
+-void ccs_free(const void *p);
+-void fill_path_info(struct path_info *ptr);
+-void UpdateCondition(const struct acl_info *acl);
+-void SetDomainFlag(struct domain_info *domain, const bool is_delete, const u8 flags);
 +/* Check conditional part of an ACL entry. */
 +bool ccs_check_condition(const struct acl_info *acl,
 +			 struct obj_info *obj_info);
@@ -2508,9 +2628,9 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 +			 const char *function);
 +/* Check whether the token can be a domainname. */
 +bool ccs_is_domain_def(const unsigned char *buffer);
-+/* Check whether the given token matches the given pattern. */
-+bool ccs_path_matches_pattern(const struct path_info *pathname0,
-+			      const struct path_info *pattern0);
++/* Check whether the given filename matches the given pattern. */
++bool ccs_path_matches_pattern(const struct path_info *filename,
++			      const struct path_info *pattern);
 +/* Dump "address_group" entry in exception policy. */
 +bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
 +/* Dump "aggregator" entry in exception policy. */
@@ -2677,103 +2797,26 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 +struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 +						  const u8 profile);
 +/* Undelete a domain. */
-+struct domain_info *ccs_undelete_domain(const char *domainname0);
++struct domain_info *ccs_undelete_domain(const char *domainname);
 +/* Write a grant log. */
 +u8 ccs_check_capability_flags(const u8 index);
++/* Check mode for specified functionality. */
 +unsigned int ccs_check_flags(const u8 index);
++/* Same with ccs_check_flags() except that it doesn't check might_sleep(). */
 +unsigned int ccs_check_flags_no_sleep_check(const u8 index);
- void *ccs_alloc(const size_t size);
--char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
--const char *GetEXE(void);
--const char *GetLastName(const struct domain_info *domain);
--const char *GetMSG(const bool is_enforce);
--const char *cap_operation2keyword(const u8 operation);
--const char *dp_operation2keyword(const u8 operation);
--const char *sp_operation2keyword(const u8 operation);
--const char *net_operation2keyword(const u8 operation);
--const struct condition_list *FindOrAssignNewCondition(char *condition);
--int AddAddressGroupPolicy(char *data, const bool is_delete);
--int AddAggregatorPolicy(char *data, const bool is_delete);
--int AddAliasPolicy(char *data, const bool is_delete);
--int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
--int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
--int AddChrootPolicy(char *data, const bool is_delete);
--int AddDomainACL(struct domain_info *domain, struct acl_info *acl);
--int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_delete);
--int AddDomainKeeperPolicy(char *data, const bool is_not, const bool is_delete);
--int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
--int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
--int AddGloballyReadablePolicy(char *data, const bool is_delete);
--int AddGloballyUsableEnvPolicy(char *env, const bool is_delete);
--int AddFilePatternPolicy(char *data, const bool is_delete);
--int AddMountPolicy(char *data, const bool is_delete);
--int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
--int AddNoRewritePolicy(char *pattern, const bool is_delete);
--int AddNoUmountPolicy(char *data, const bool is_delete);
--int AddPathGroupPolicy(char *data, const bool is_delete);
--int AddPivotRootPolicy(char *data, const bool is_delete);
--int AddReservedPortPolicy(char *data, const bool is_delete);
--int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
--int CCS_CloseControl(struct file *file);
--int CCS_OpenControl(const u8 type, struct file *file);
--int CCS_PollControl(struct file *file, poll_table *wait);
--int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len);
--int CCS_WriteControl(struct file *file, const char __user *buffer, const int buffer_len);
--int CanSaveAuditLog(const bool is_granted);
--int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
--int DelDomainACL(struct acl_info *acl);
--int DeleteDomain(char *data);
--int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
--bool CheckCondition(const struct acl_info *acl, struct obj_info *obj_info);
--bool IsCorrectDomain(const unsigned char *domainname, const char *function);
--bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function);
--bool IsDomainDef(const unsigned char *buffer);
--bool PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0);
--int PollGrantLog(struct file *file, poll_table *wait);
--int PollRejectLog(struct file *file, poll_table *wait);
--int ReadAddressGroupPolicy(struct io_buffer *head);
--int ReadAggregatorPolicy(struct io_buffer *head);
--int ReadAliasPolicy(struct io_buffer *head);
--int ReadChrootPolicy(struct io_buffer *head);
--int ReadDomainInitializerPolicy(struct io_buffer *head);
--int ReadDomainKeeperPolicy(struct io_buffer *head);
--int ReadGloballyReadablePolicy(struct io_buffer *head);
--int ReadGloballyUsableEnvPolicy(struct io_buffer *head);
--int ReadGrantLog(struct io_buffer *head);
--int ReadFilePatternPolicy(struct io_buffer *head);
--int ReadMountPolicy(struct io_buffer *head);
--int ReadNoRewritePolicy(struct io_buffer *head);
--int ReadNoUmountPolicy(struct io_buffer *head);
--int ReadPathGroupPolicy(struct io_buffer *head);
--int ReadPivotRootPolicy(struct io_buffer *head);
--int ReadRejectLog(struct io_buffer *head);
--int ReadReservedPortPolicy(struct io_buffer *head);
--int WriteAuditLog(char *log, const bool is_granted);
--int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
--struct domain_info *FindDomain(const char *domainname);
--struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile);
--struct domain_info *UndeleteDomain(const char *domainname0);
--bool CheckCCSQuota(struct domain_info * const domain);
--unsigned int CheckCCSFlags(const u8 index);
--unsigned int CheckCCSFlags_NoSleepCheck(const u8 index);
--u8 CheckCapabilityFlags(const u8 index);
--bool CheckDomainQuota(struct domain_info * const domain);
--bool TomoyoVerboseMode(void);
--void *alloc_acl_element(const u8 acl_type, const struct condition_list *condition);
--const struct condition_list *GetConditionPart(const struct acl_info *acl);
--void CCS_LoadPolicy(const char *filename);
--void UpdateCounter(const unsigned char index);
++/* Allocate memory for structures. */
 +void *ccs_alloc_acl_element(const u8 acl_type,
 +			    const struct condition_list *condition);
++/* Fill in "struct path_info" members. */
 +void ccs_fill_path_info(struct path_info *ptr);
- void ccs_free(const void *p);
--void fill_path_info(struct path_info *ptr);
--void UpdateCondition(const struct acl_info *acl);
--void SetDomainFlag(struct domain_info *domain, const bool is_delete, const u8 flags);
++/* Run policy loader when /sbin/init starts. */
 +void ccs_load_policy(const char *filename);
++/* Change "struct domain_info"->flags . */
 +void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
 +			 const u8 flags);
++/* Update the process's state. */
 +void ccs_update_condition(const struct acl_info *acl);
++/* Update the policy change counter. */
 +void ccs_update_counter(const unsigned char index);
  
 -static inline bool pathcmp(const struct path_info *a, const struct path_info *b)
@@ -2810,7 +2853,13 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 ===================================================================
 --- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 1045)
 +++ trunk/1.6.x/ccs-patch/include/linux/realpath.h	(working copy)
-@@ -18,26 +18,36 @@
+@@ -15,29 +15,51 @@
+ #ifndef _LINUX_REALPATH_H
+ #define _LINUX_REALPATH_H
+ 
++struct dentry;
++struct vfsmount;
++struct condition_list;
  struct path_info;
  
  /* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
@@ -2829,13 +2878,15 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 + * if these functions didn't return NULL.
 + */
 +char *ccs_realpath(const char *pathname);
++/* Same with ccs_realpath() except that it doesn't follow the final symlink. */
 +char *ccs_realpath_nofollow(const char *pathname);
++/* Same with ccs_realpath() except that the pathname is already solved. */
 +char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
  
 -/* Allocate memory for structures. The RAM is chunked, so NEVER try to kfree() the returned pointer. */
 -void *alloc_element(const unsigned int size);
 +/*
-+ * Allocate memory for structures.
++ * Allocate memory for ACL entry.
 + * The RAM is chunked, so NEVER try to kfree() the returned pointer.
 + */
 +void *ccs_alloc_element(const unsigned int size);
@@ -2859,18 +2910,29 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 +unsigned int ccs_get_memory_used_for_save_name(void);
  
 -unsigned int GetMemoryUsedForDynamic(void);
-+unsigned int ccs_get_memory_used_for_dynamic(void);
++/* Allocate memory for temporary use (e.g. permission checks). */
++void *ccs_alloc(const size_t size);
  
++/* Get used RAM size for ccs_alloc(). */
++unsigned int ccs_get_memory_used_for_dynamic(void);
++
++/* Free memory allocated by ccs_alloc(). */
++void ccs_free(const void *p);
++
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
 ===================================================================
 --- trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(revision 1045)
 +++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(working copy)
-@@ -15,199 +15,356 @@
+@@ -15,199 +15,357 @@
  #ifndef _LINUX_TOMOYO_VFS_H
  #define _LINUX_TOMOYO_VFS_H
  
 -/***** TOMOYO Linux start. *****/
+-
+ #include <linux/version.h>
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+ 
 +/*
 + * This file contains copy of some of VFS helper functions.
 + *
@@ -2885,11 +2947,9 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
 + * The approach to obtain "struct vfsmount" parameter from
 + * the "struct task_struct" doesn't work because it triggers deadlock.
 + */
- 
- #include <linux/version.h>
--#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
++
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
- 
++
 +/* Some of permission checks from vfs_create() . */
  static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry)
  {
@@ -3271,7 +3331,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
 +	int error;
 +	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
 +	if (old_dentry->d_inode == new_dentry->d_inode)
-+ 		return 0;
++		return 0;
 +	error = may_delete(old_dir, old_dentry, is_dir);
 +	if (error)
 +		return error;
@@ -3296,7 +3356,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/sakura.h
 ===================================================================
 --- trunk/1.6.x/ccs-patch/include/linux/sakura.h	(revision 1045)
 +++ trunk/1.6.x/ccs-patch/include/linux/sakura.h	(working copy)
-@@ -15,8 +15,8 @@
+@@ -15,12 +15,14 @@
   * A brief description about SAKURA:
   *
   *  SAKURA stands for "Security Advancement Know-how Upon Read-only Approach".
@@ -3307,7 +3367,13 @@ Index: trunk/1.6.x/ccs-patch/include/linux/sakura.h
   *  But now, SAKURA is not only a methodology but also a kernel patch
   *  that improves the system security with less effort.
   *
-@@ -30,38 +30,65 @@
+  *  SAKURA can restrict operations that affect systemwide.
++ *  SAKURA manages the filesystem's namespace related operations so that
++ *  files remains where the administrator expects.
+  */
+ 
+ #ifndef _LINUX_SAKURA_H
+@@ -30,38 +32,65 @@
  #define __user
  #endif
  
@@ -3392,7 +3458,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
 ===================================================================
 --- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 1045)
 +++ trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(working copy)
-@@ -22,7 +22,8 @@
+@@ -22,18 +22,19 @@
   *  and dramatically reduces the policy definition labors.
   *
   *  TOMOYO is applicable to figuring out the system's behavior, for
@@ -3402,7 +3468,11 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
   */
  
  #ifndef _LINUX_TOMOYO_H
-@@ -32,8 +33,6 @@
+ #define _LINUX_TOMOYO_H
+ 
++#include <linux/version.h>
++
+ #ifndef __user
  #define __user
  #endif
  
@@ -3411,7 +3481,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
  struct path_info;
  struct dentry;
  struct vfsmount;
-@@ -42,71 +41,161 @@
+@@ -42,71 +43,160 @@
  struct pt_regs;
  struct ccs_page_buffer;
  
@@ -3592,7 +3662,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
  
  #endif
  
- #include <linux/version.h>
+-#include <linux/version.h>
 -#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
  int pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
@@ -3611,7 +3681,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
  
  #define TYPE_SINGLE_PATH_ACL                 0
  #define TYPE_DOUBLE_PATH_ACL                 1
-@@ -118,7 +207,7 @@
+@@ -118,7 +208,7 @@
  #define TYPE_PREFERRED_EXECUTE_HANDLER       7
  #define TYPE_DEFAULT_EXECUTE_HANDLER         8
  
@@ -3620,7 +3690,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
  
  /*
   * TYPE_READ_WRITE_ACL is special. TYPE_READ_WRITE_ACL is automatically set
-@@ -150,42 +239,73 @@
+@@ -150,42 +240,73 @@
  #define TYPE_RENAME_ACL           1
  #define MAX_DOUBLE_PATH_OPERATION 2
  
@@ -3727,7 +3797,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
  
  #define NETWORK_ACL_UDP_BIND    0
  #define NETWORK_ACL_UDP_CONNECT 1
-@@ -196,5 +316,13 @@
+@@ -196,5 +317,13 @@
  #define NETWORK_ACL_RAW_BIND    6
  #define NETWORK_ACL_RAW_CONNECT 7
  
@@ -7264,7 +7334,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 1045)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
-@@ -11,14 +11,13 @@
+@@ -11,14 +11,14 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -7272,6 +7342,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  
  #include <linux/ccs_common.h>
  #include <linux/tomoyo.h>
++#include <linux/realpath.h>
  #include <linux/highmem.h>
  #include <linux/binfmts.h>
  
@@ -7280,7 +7351,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  {
  	static const int buffer_len = PAGE_SIZE * 2;
  	char *buffer = ccs_alloc(buffer_len);
-@@ -29,20 +28,25 @@
+@@ -29,20 +29,25 @@
  	int argv_count = bprm->argc;
  	int envp_count = bprm->envc;
  	bool truncated = false;
@@ -7311,7 +7382,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  		pos += PAGE_SIZE - offset;
  #else
  		page = bprm->page[i];
-@@ -50,7 +54,7 @@
+@@ -50,7 +55,7 @@
  		/* Map */
  		kaddr = kmap(page);
  		if (!kaddr) { /* Mapping failed. */
@@ -7320,7 +7391,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  			put_page(page);
  #endif
  			goto out;
-@@ -58,7 +62,8 @@
+@@ -58,7 +63,8 @@
  		/* Read. */
  		while (offset < PAGE_SIZE) {
  			const unsigned char c = kaddr[offset++];
@@ -7330,7 +7401,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  			if (cp >= buffer + buffer_len - 32) {
  				/* Preserve some room for "..." string. */
  				truncated = true;
-@@ -77,7 +82,8 @@
+@@ -77,7 +83,8 @@
  				*cp++ = ((c >> 3) & 7) + '0';
  				*cp++ = (c & 7) + '0';
  			}
@@ -7340,7 +7411,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  			if (argv_count) {
  				if (--argv_count == 0) {
  					if (truncated) {
-@@ -87,7 +93,8 @@
+@@ -87,7 +94,8 @@
  					}
  					memmove(cp, "} envp[]={ ", 11);
  					cp += 11;
@@ -7350,7 +7421,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  					last_start = cp;
  				}
  			} else if (envp_count) {
-@@ -97,7 +104,7 @@
+@@ -97,7 +105,7 @@
  						memmove(cp, "... ", 4);
  						cp += 4;
  					}
@@ -7359,7 +7430,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  					*cp++ = '}';
  					*cp++ = '\0';
  				}
-@@ -107,7 +114,7 @@
+@@ -107,7 +115,7 @@
  		}
  		/* Unmap. */
  		kunmap(page);
@@ -7368,7 +7439,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  		put_page(page);
  #endif
  		i++;
-@@ -115,16 +122,18 @@
+@@ -115,16 +123,18 @@
  	}
  	return buffer;
   out:
@@ -7390,7 +7461,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  
  struct log_entry {
  	struct list_head list;
-@@ -134,11 +143,14 @@
+@@ -134,11 +144,14 @@
  static LIST_HEAD(grant_log);
  static LIST_HEAD(reject_log);
  
@@ -7408,7 +7479,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  	char *buf;
  	char *bprm_info = "";
  	struct timeval tv;
-@@ -148,79 +160,99 @@
+@@ -148,79 +161,99 @@
  	do_gettimeofday(&tv);
  	*len += strlen(domainname) + 256;
  	if (bprm) {
@@ -7533,7 +7604,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  		head->readbuf_size = 0;
  	}
  	/***** CRITICAL SECTION START *****/
-@@ -234,26 +266,31 @@
+@@ -234,26 +267,31 @@
  	/***** CRITICAL SECTION END *****/
  	if (ptr) {
  		head->read_buf = ptr->log;
@@ -7572,7 +7643,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  		head->readbuf_size = 0;
  	}
  	/***** CRITICAL SECTION START *****/
-@@ -267,18 +304,19 @@
+@@ -267,18 +305,19 @@
  	/***** CRITICAL SECTION END *****/
  	if (ptr) {
  		head->read_buf = ptr->log;
@@ -9414,36 +9485,41 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  #include <linux/namei.h>
  #include <linux/mount.h>
  static const int lookup_flags = LOOKUP_FOLLOW;
-@@ -32,7 +32,7 @@
+@@ -32,7 +32,9 @@
  #include <linux/ccs_common.h>
  #include <linux/ccs_proc.h>
  #include <linux/tomoyo.h>
 -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
++
++/* To support PID namespace. */
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
  #define find_task_by_pid find_task_by_vpid
  #endif
  
-@@ -52,22 +52,27 @@
+@@ -52,22 +54,29 @@
  #define MAX_REJECT_LOG 1024
  #endif
  
 -/*************************  VARIABLES  *************************/
-+/* Variables. */
- 
+-
  /* /sbin/init started? */
  bool sbin_init_started = false;
  
++/* Log level for printk(). */
  const char *ccs_log_level = KERN_DEBUG;
  
 -static const char *mode_4[4] = { "disabled", "learning", "permissive", "enforcing" };
 -static const char *mode_2[4] = { "disabled", "enabled", "enabled", "enabled" };
++/* String table for functionality that takes 4 modes. */
 +static const char *mode_4[4] = {
 +	"disabled", "learning", "permissive", "enforcing"
 +};
++/* String table for functionality that takes 2 modes. */
 +static const char *mode_2[4] = {
 +	"disabled", "enabled", "enabled", "enabled"
 +};
  
++/* Table for profile. */
  static struct {
  	const char *keyword;
  	unsigned int current_value;
@@ -9455,7 +9531,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	[CCS_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
  	[CCS_TOMOYO_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
  	[CCS_TOMOYO_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
-@@ -79,12 +84,16 @@
+@@ -79,15 +88,20 @@
  	[CCS_SAKURA_RESTRICT_UNMOUNT]    = { "RESTRICT_UNMOUNT",    0, 3 },
  	[CCS_SAKURA_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
  	[CCS_SAKURA_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
@@ -9476,8 +9552,27 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  };
  
  #ifdef CONFIG_TOMOYO
-@@ -134,33 +143,72 @@
- static struct profile *profile_ptr[MAX_PROFILES];
++/* Capability name used by domain policy. */
+ const char *capability_control_keyword[TOMOYO_MAX_CAPABILITY_INDEX] = {
+ 	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
+ 	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
+@@ -123,69 +137,134 @@
+ };
+ #endif
+ 
+-struct profile {
++/* Profile table. Memory is allocated as needed. */
++static struct profile {
+ 	unsigned int value[CCS_MAX_CONTROL_INDEX];
+ 	const struct path_info *comment;
+ #ifdef CONFIG_TOMOYO
+ 	unsigned char capability_value[TOMOYO_MAX_CAPABILITY_INDEX];
+ #endif
+-};
++} *profile_ptr[MAX_PROFILES];
+ 
+-static struct profile *profile_ptr[MAX_PROFILES];
++/* Permit policy management by non-root user? */
  static bool manage_by_non_root = false;
  
 -/*************************  UTILITY FUNCTIONS  *************************/
@@ -9485,6 +9580,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
  #ifdef CONFIG_TOMOYO
 -static int __init TOMOYO_Quiet_Setup(char *str)
++/* Set TOMOYO_VERBOSE=0 by default. */
 +static int __init tomoyo_quiet_setup(char *str)
  {
  	ccs_control_array[CCS_TOMOYO_VERBOSE].current_value = 0;
@@ -9495,6 +9591,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +__setup("TOMOYO_QUIET", tomoyo_quiet_setup);
  #endif
  
++/* Check whether the string represents a \ooo style octal value. */
 +static bool is_byte_range(const char *str)
 +{
 +	return *str >= '0' && *str++ <= '3' &&
@@ -9502,11 +9599,14 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +		*str >= '0' && *str <= '7';
 +}
 +
++/* Check whether the character is a decimal. */
 +static bool is_decimal(const char c)
 +{
 +	return (c >= '0' && c <= '9');
 +}
 +
++
++/* Check whether the character is a hexadecimal. */
 +static bool is_hexadecimal(const char c)
 +{
 +	return ((c >= '0' && c <= '9') ||
@@ -9514,11 +9614,13 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +		(c >= 'a' && c <= 'f'));
 +}
 +
++/* Check whether the character is an alphabet. */
 +static bool is_alphabet_char(const char c)
 +{
 +	return ((c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
 +}
 +
++/* Check whether the given string starts with the given keyword. */
 +static bool str_starts(char **src, const char *find)
 +{
 +	const int len = strlen(find);
@@ -9557,8 +9659,21 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
  	*dp = '\0';
  }
-@@ -169,23 +217,31 @@
-  *  Check whether the given filename follows the naming rules.
+ 
+-/*
+- *  Check whether the given filename follows the naming rules.
++/**
++ *  ccs_is_correct_path - Check whether the given filename follows
++ *                        the naming rules.
++ *  @filename:     the pathname to check.
++ *  @start_type:   the pathname should start with '/'?
++ *                 1: must / -1:must not / 0:don't care
++ *  @pattern_type: the pathname may contain a wildcard?
++ *                 1: must / -1:must not / 0:don't care
++ *  @end_type:     the pathname should end with '/'?
++ *                 1: must / -1:must not / 0:don't care
++ *  @function:     the name of function calling me.
++ *
   *  Returns true if follows, false otherwise.
   */
 -bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function)
@@ -9597,7 +9712,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
  	while ((c = *filename++) != '\0') {
  		if (c == '\\') {
-@@ -202,20 +258,25 @@
+@@ -202,20 +281,25 @@
  			case 'a':   /* "\a" */
  			case 'A':   /* "\A" */
  			case '-':   /* "\-" */
@@ -9631,7 +9746,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			}
  			goto out;
  		} else if (c <= ' ' || c >= 127) {
-@@ -223,11 +284,13 @@
+@@ -223,45 +307,62 @@
  		}
  	}
  	if (pattern_type == 1) { /* Must contain pattern */
@@ -9647,8 +9762,14 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	return false;
  }
  
-@@ -235,33 +298,44 @@
-  *  Check whether the given domainname follows the naming rules.
+-/*
+- *  Check whether the given domainname follows the naming rules.
++/**
++ *  ccs_is_correct_domain - Check whether the given domainname follows
++ *                          the naming rules.
++ *  @domainname:   the domainname to check.
++ *  @function:     the name of function calling me.
++ *
   *  Returns true if follows, false otherwise.
   */
 -bool IsCorrectDomain(const unsigned char *domainname, const char *function)
@@ -9705,7 +9826,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  				}
  				goto out;
  			} else if (c < ' ' || c >= 127) {
-@@ -271,36 +345,41 @@
+@@ -271,64 +372,104 @@
  	} while (*domainname);
  	return true;
   out:
@@ -9716,6 +9837,13 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -bool IsDomainDef(const unsigned char *buffer)
++/**
++ *  ccs_is_domain_def - Check whether the given token can be a domainname.
++ *
++ *  @buffer:   the token to check.
++ *
++ *  Returns true if follows, false otherwise.
++ */
 +bool ccs_is_domain_def(const unsigned char *buffer)
  {
 -	/* while (*buffer && (*buffer <= ' ' || *buffer >= 127)) buffer++; */
@@ -9724,23 +9852,33 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -struct domain_info *FindDomain(const char *domainname0)
-+struct domain_info *ccs_find_domain(const char *domainname0)
++/**
++ * ccs_find_domain - Find a domain by the given name.
++ *
++ * @domainname: the domainname to find.
++ *
++ * Returns "struct domain_info" if found, NULL otherwise.
++ */
++struct domain_info *ccs_find_domain(const char *domainname)
  {
  	struct domain_info *domain;
- 	struct path_info domainname;
- 	domainname.name = domainname0;
+-	struct path_info domainname;
+-	domainname.name = domainname0;
 -	fill_path_info(&domainname);
-+	ccs_fill_path_info(&domainname);
++	struct path_info name;
++	name.name = domainname;
++	ccs_fill_path_info(&name);
  	list1_for_each_entry(domain, &domain_list, list) {
 -		if (!domain->is_deleted && !pathcmp(&domainname, domain->domainname)) return domain;
 +		if (!domain->is_deleted &&
-+		    !ccs_pathcmp(&domainname, domain->domainname))
++		    !ccs_pathcmp(&name, domain->domainname))
 +			return domain;
  	}
  	return NULL;
  }
  
 -static int PathDepth(const char *pathname)
++/* Evaluate the number of '/' in a token. */
 +static int path_depth(const char *pathname)
  {
  	int i = 0;
@@ -9757,8 +9895,9 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		}
  	}
  	return i;
-@@ -308,27 +387,39 @@
+ }
  
++/* Evaluate the initial length without a pattern in a token. */
  static int const_part_length(const char *filename)
  {
 +	char c;
@@ -9808,11 +9947,18 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -void fill_path_info(struct path_info *ptr)
++/**
++ * ccs_fill_path_info - Fill in "struct path_info" members.
++ *
++ * @ptr: "struct path_info" to fill in.
++ *
++ * The caller sets "struct path_info"->name.
++ */
 +void ccs_fill_path_info(struct path_info *ptr)
  {
  	const char *name = ptr->name;
  	const int len = strlen(name);
-@@ -337,113 +428,140 @@
+@@ -337,118 +478,152 @@
  	ptr->is_dir = len && (name[len - 1] == '/');
  	ptr->is_patterned = (ptr->const_len < len);
  	ptr->hash = full_name_hash(name, len);
@@ -9821,6 +9967,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -static bool FileMatchesToPattern2(const char *filename, const char *filename_end, const char *pattern, const char *pattern_end)
++/* Pattern matching without '/' character and "\-" pattern. */
 +static bool file_matches_to_pattern2(const char *filename,
 +				     const char *filename_end,
 +				     const char *pattern,
@@ -10008,6 +10155,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -static bool FileMatchesToPattern(const char *filename, const char *filename_end, const char *pattern, const char *pattern_end)
++/* Pattern matching without without '/' character. */
 +static bool file_matches_to_pattern(const char *filename,
 +				    const char *filename_end,
 +				    const char *pattern,
@@ -10021,6 +10169,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -		result = FileMatchesToPattern2(filename, filename_end, pattern_start, pattern - 2);
 -		if (first) result = !result;
 -		if (result) return false;
++		/* Split at "\-" pattern. */
 +		if (*pattern++ != '\\' || *pattern++ != '-')
 +			continue;
 +		result = file_matches_to_pattern2(filename, filename_end,
@@ -10038,69 +10187,94 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	return first ? result : !result;
  }
  
-@@ -465,60 +583,83 @@
+-/*
+- *  Check whether the given pathname matches to the given pattern.
++/**
++ *  ccs_path_matches_pattern - Check whether the given filename matches
++ *                             the given pattern.
++ *  @filename: The filename to check.
++ *  @pattern:  The pattern to compare.
++ *
+  *  Returns true if matches, false otherwise.
+  *
+  *  The following patterns are available.
+@@ -465,60 +640,93 @@
   *    \a     1 alphabet character.
   *    \-     Subtraction operator.
   */
 -
 -bool PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0)
-+bool ccs_path_matches_pattern(const struct path_info *pathname0,
-+				 const struct path_info *pattern0)
++bool ccs_path_matches_pattern(const struct path_info *filename,
++			      const struct path_info *pattern)
  {
 -	/* if (!pathname || !pattern) return false; */
-+	/*
-+	if (!pathname || !pattern)
-+		return false;
-+	*/
- 	const char *pathname = pathname0->name, *pattern = pattern0->name;
- 	const int len = pattern0->const_len;
+-	const char *pathname = pathname0->name, *pattern = pattern0->name;
+-	const int len = pattern0->const_len;
 -	if (!pattern0->is_patterned) return !pathcmp(pathname0, pattern0);
 -	if (pathname0->depth != pattern0->depth) return false;
 -	if (strncmp(pathname, pattern, len)) return false;
 -	pathname += len; pattern += len;
-+	if (!pattern0->is_patterned)
-+		return !ccs_pathcmp(pathname0, pattern0);
-+	if (pathname0->depth != pattern0->depth)
-+		return false;
-+	if (strncmp(pathname, pattern, len))
-+		return false;
-+	pathname += len;
-+	pattern += len;
- 	while (*pathname && *pattern) {
+-	while (*pathname && *pattern) {
 -		const char *pathname_delimiter = strchr(pathname, '/'), *pattern_delimiter = strchr(pattern, '/');
 -		if (!pathname_delimiter) pathname_delimiter = strchr(pathname, '\0');
 -		if (!pattern_delimiter) pattern_delimiter = strchr(pattern, '\0');
 -		if (!FileMatchesToPattern(pathname, pathname_delimiter, pattern, pattern_delimiter)) return false;
 -		pathname = *pathname_delimiter ? pathname_delimiter + 1 : pathname_delimiter;
 -		pattern = *pattern_delimiter ? pattern_delimiter + 1 : pattern_delimiter;
-+		const char *pathname_delimiter = strchr(pathname, '/');
-+		const char *pattern_delimiter = strchr(pattern, '/');
-+		if (!pathname_delimiter)
-+			pathname_delimiter = strchr(pathname, '\0');
-+		if (!pattern_delimiter)
-+			pattern_delimiter = strchr(pattern, '\0');
-+		if (!file_matches_to_pattern(pathname, pathname_delimiter,
-+					     pattern, pattern_delimiter))
++	/*
++	if (!filename || !pattern)
++		return false;
++	*/
++	const char *f = filename->name;
++	const char *p = pattern->name;
++	const int len = pattern->const_len;
++	/* If @pattern doesn't contain pattern, I can use strcmp(). */
++	if (!pattern->is_patterned)
++		return !ccs_pathcmp(filename, pattern);
++	/* Dont compare if the number of '/' differs. */
++	if (filename->depth != pattern->depth)
++		return false;
++	/* Compare the initial length without patterns. */
++	if (strncmp(f, p, len))
++		return false;
++	f += len;
++	p += len;
++	/* Main loop. Compare each directory component. */
++	while (*f && *p) {
++		const char *f_delimiter = strchr(f, '/');
++		const char *p_delimiter = strchr(p, '/');
++		if (!f_delimiter)
++			f_delimiter = strchr(f, '\0');
++		if (!p_delimiter)
++			p_delimiter = strchr(p, '\0');
++		if (!file_matches_to_pattern(f, f_delimiter, p, p_delimiter))
 +			return false;
-+		pathname = pathname_delimiter;
-+		if (*pathname)
-+			pathname++;
-+		pattern = pattern_delimiter;
-+		if (*pattern)
-+			pattern++;
++		f = f_delimiter;
++		if (*f)
++			f++;
++		p = p_delimiter;
++		if (*p)
++			p++;
  	}
 -	while (*pattern == '\\' && (*(pattern + 1) == '*' || *(pattern + 1) == '@')) pattern += 2;
-+	while (*pattern == '\\' &&
-+	       (*(pattern + 1) == '*' || *(pattern + 1) == '@'))
-+		pattern += 2;
- 	return (!*pathname && !*pattern);
+-	return (!*pathname && !*pattern);
++	/* Ignore trailing "\*" and "\@" in @pattern. */
++	while (*p == '\\' &&
++	       (*(p + 1) == '*' || *(p + 1) == '@'))
++		p += 2;
++	return (!*f && !*p);
  }
  
- /*
+-/*
 - *  Transactional printf() to struct io_buffer structure.
 - *  snprintf() will truncate, but io_printf() won't.
 - *  Returns zero on success, nonzero otherwise.
-+ *  Transactional printf() to "struct ccs_io_buffer" structure.
++/**
++ *  ccs_io_printf - Transactional printf() to "struct ccs_io_buffer" structure.
++ *
++ *  @head: "struct ccs_io_buffer" to write to.
++ *  @fmt:  format string.
++ *
 + *  snprintf() will truncate, but ccs_io_printf() won't.
 + *  Returns true on success, false otherwise.
   */
@@ -10123,10 +10297,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +	return true;
  }
  
- /*
+-/*
 - * Get realpath() of current process.
 - * This function uses ccs_alloc(), so caller must ccs_free() if this function didn't return NULL.
-+ * Get ccs_realpath() of current process.
++/**
++ * ccs_get_exe - Get ccs_realpath() of current process.
++ *
 + * This function uses ccs_alloc(), so caller must ccs_free()
 + * if this function didn't return NULL.
   */
@@ -10148,11 +10324,18 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			break;
  		}
  	}
-@@ -526,51 +667,55 @@
+@@ -526,51 +734,87 @@
  	return cp;
  }
  
 -const char *GetMSG(const bool is_enforce)
++/**
++ * ccs_get_msg - Get warning message.
++ *
++ * @is_enforce: Is it enforcing mode?
++ *
++ * Returns "ERROR" or "WARNING".
++ */
 +const char *ccs_get_msg(const bool is_enforce)
  {
 -	if (is_enforce) return "ERROR"; else return "WARNING";
@@ -10163,10 +10346,16 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -/*************************  DOMAIN POLICY HANDLER  *************************/
-+/* Domain policy handler. */
- 
- /* Check whether the given access control is enabled. */
+-
+-/* Check whether the given access control is enabled. */
 -unsigned int CheckCCSFlags_NoSleepCheck(const u8 index)
++/**
++ * ccs_check_flags_no_sleep_check - Check mode for specified functionality.
++ *
++ * @index: The functionality to check mode.
++ *
++ * Returns the mode of specified functionality.
++ */
 +unsigned int ccs_check_flags_no_sleep_check(const u8 index)
  {
  	const u8 profile = current->domain_info->profile;
@@ -10179,6 +10368,14 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +		profile_ptr[profile]->value[index] : 0;
  }
  
++/*
++ * Check whether it is permitted to do operations that may sleep.
++ * TOMOYO Linux supports interactive enforcement that lets processes
++ * wait for the administrator's decision.
++ * All hooks but the one for ccs_may_autobind() are inserted where
++ * it is permitted to do operations that may sleep.
++ * Thus, this warning should not happen.
++ */
  static bool sleep_check(void)
  {
 -#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
@@ -10211,6 +10408,13 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -unsigned int CheckCCSFlags(const u8 index)
++/**
++ * ccs_check_flags - Check mode for specified functionality.
++ *
++ * @index: The functionality to check mode.
++ *
++ * Returns the mode of specified functionality.
++ */
 +unsigned int ccs_check_flags(const u8 index)
  {
 -	return sleep_check() ? CheckCCSFlags_NoSleepCheck(index) : 0;
@@ -10218,13 +10422,20 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
  #ifdef CONFIG_TOMOYO
- /* Check whether the given capability control is enabled. */
+-/* Check whether the given capability control is enabled. */
 -u8 CheckCapabilityFlags(const u8 index)
++/**
++ * ccs_check_capability_flags - Check mode for specified capability.
++ *
++ * @index: The capability to check mode.
++ *
++ * Returns the mode of specified capability.
++ */
 +u8 ccs_check_capability_flags(const u8 index)
  {
  	const u8 profile = current->domain_info->profile;
  	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
-@@ -578,56 +723,74 @@
+@@ -578,56 +822,87 @@
  		&& profile < MAX_PROFILES
  #endif
  		&& sleep_check()
@@ -10234,6 +10445,13 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -const char *cap_operation2keyword(const u8 operation)
++/**
++ * ccs_cap2keyword - Convert capability operation to capability name.
++ *
++ * @operation: The capability index.
++ *
++ * Returns the name of the specified capability's name.
++ */
 +const char *ccs_cap2keyword(const u8 operation)
  {
 -	return operation < TOMOYO_MAX_CAPABILITY_INDEX ? capability_control_keyword[operation] : NULL;
@@ -10244,6 +10462,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  #endif
  
 -bool TomoyoVerboseMode(void)
++/**
++ *  ccs_verbose_mode - Write domain policy violation warning message to console?
++ *
++ *  Returns true if domain policy violation warning should be printed to
++ *  console.
++ */
 +bool ccs_verbose_mode(void)
  {
 -	return CheckCCSFlags(CCS_TOMOYO_VERBOSE) != 0;
@@ -10315,7 +10539,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	char *data = head->write_buf;
  	unsigned int i, value;
-@@ -635,33 +798,39 @@
+@@ -635,33 +910,39 @@
  	struct profile *profile;
  	i = simple_strtoul(data, &cp, 10);
  	if (data != cp) {
@@ -10369,7 +10593,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			profile->capability_value[i] = value;
  			return 0;
  		}
-@@ -669,7 +838,8 @@
+@@ -669,7 +950,8 @@
  	}
  #endif
  	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
@@ -10379,7 +10603,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (sscanf(cp + 1, "%u", &value) != 1) {
  			int j;
  			const char **modes;
-@@ -684,18 +854,21 @@
+@@ -684,18 +966,21 @@
  				break;
  			}
  			for (j = 0; j < 4; j++) {
@@ -10404,7 +10628,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		}
  		profile->value[i] = value;
  		return 0;
-@@ -703,16 +876,21 @@
+@@ -703,16 +988,21 @@
  	return -EINVAL;
  }
  
@@ -10433,7 +10657,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		case -1: /* Dummy */
  #ifndef CONFIG_SAKURA
  		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
-@@ -735,17 +913,28 @@
+@@ -735,17 +1025,28 @@
  #endif
  			continue;
  		}
@@ -10469,7 +10693,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			case 3:
  				modes = mode_4;
  				break;
-@@ -754,17 +943,22 @@
+@@ -754,17 +1055,22 @@
  				break;
  			}
  			if (modes) {
@@ -10496,7 +10720,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
  struct policy_manager_entry {
  	struct list1_head list;
-@@ -775,20 +969,24 @@
+@@ -775,20 +1081,24 @@
  
  static LIST1_HEAD(policy_manager_list);
  
@@ -10526,7 +10750,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &policy_manager_list, list) {
  		if (ptr->manager == saved_manager) {
-@@ -801,71 +999,81 @@
+@@ -801,71 +1111,81 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -10630,7 +10854,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			last_pid = pid;
  		}
  	}
-@@ -875,21 +1083,23 @@
+@@ -875,21 +1195,23 @@
  
  #ifdef CONFIG_TOMOYO
  
@@ -10659,7 +10883,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	char *data = head->write_buf;
  	struct domain_info *domain = head->write_var1;
-@@ -897,79 +1107,95 @@
+@@ -897,79 +1219,95 @@
  	unsigned int profile;
  	const struct condition_list *cond = NULL;
  	char *cp;
@@ -10798,7 +11022,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
  	head->read_bit = 0;
  	return true;
-@@ -979,23 +1205,40 @@
+@@ -979,23 +1317,40 @@
  	return false;
  }
  
@@ -10849,7 +11073,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
  	head->read_bit = 0;
  	return true;
-@@ -1005,145 +1248,257 @@
+@@ -1005,145 +1360,257 @@
  	return false;
  }
  
@@ -11186,7 +11410,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		head->read_step = 1;
  	}
  	head->read_eof = true;
-@@ -1152,43 +1507,50 @@
+@@ -1152,43 +1619,50 @@
  
  #endif
  
@@ -11248,7 +11472,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	if (head->read_avail == 0 && !head->read_eof) {
  		const int pid = head->read_step;
-@@ -1197,91 +1559,111 @@
+@@ -1197,91 +1671,111 @@
  		/***** CRITICAL SECTION START *****/
  		read_lock(&tasklist_lock);
  		p = find_task_by_pid(pid);
@@ -11416,7 +11640,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_eof = true;
  			break;
  		default:
-@@ -1293,52 +1675,60 @@
+@@ -1293,52 +1787,60 @@
  
  #endif
  
@@ -11504,7 +11728,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_eof = true;
  			break;
  		default:
-@@ -1350,58 +1740,70 @@
+@@ -1350,58 +1852,70 @@
  
  #endif
  
@@ -11605,7 +11829,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		call_usermodehelper(argv[0], argv, envp, 1);
  #else
  		call_usermodehelper(argv[0], argv, envp);
-@@ -1412,28 +1814,31 @@
+@@ -1412,28 +1926,31 @@
  		}
  	}
  #ifdef CONFIG_SAKURA
@@ -11643,7 +11867,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
  struct query_entry {
  	struct list_head list;
-@@ -1447,35 +1852,41 @@
+@@ -1447,35 +1964,41 @@
  static LIST_HEAD(query_list);
  static atomic_t queryd_watcher = ATOMIC_INIT(0);
  
@@ -11697,7 +11921,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	va_start(args, fmt);
  	vsnprintf(query_entry->query + pos, len - 1 - pos, fmt, args);
  	query_entry->query_len = strlen(query_entry->query) + 1;
-@@ -1485,15 +1896,18 @@
+@@ -1485,15 +2008,18 @@
  	list_add_tail(&query_entry->list, &query_list);
  	spin_unlock(&query_lock);
  	/***** CRITICAL SECTION END *****/
@@ -11720,7 +11944,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	/***** CRITICAL SECTION START *****/
  	spin_lock(&query_lock);
  	list_del(&query_entry->list);
-@@ -1511,13 +1925,14 @@
+@@ -1511,13 +2037,14 @@
  		/* Rejected by administrator. */
  		break;
  	}
@@ -11738,7 +11962,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	bool found;
  	/***** CRITICAL SECTION START *****/
-@@ -1525,31 +1940,36 @@
+@@ -1525,31 +2052,36 @@
  	found = !list_empty(&query_list);
  	spin_unlock(&query_lock);
  	/***** CRITICAL SECTION END *****/
@@ -11781,7 +12005,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (pos++ == head->read_step) {
  			len = ptr->query_len;
  			break;
-@@ -1561,22 +1981,29 @@
+@@ -1561,22 +2093,29 @@
  		head->read_step = 0;
  		return 0;
  	}
@@ -11816,7 +12040,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_buf = buf;
  			head->read_step++;
  		} else {
-@@ -1586,7 +2013,7 @@
+@@ -1586,7 +2125,7 @@
  	return 0;
  }
  
@@ -11825,7 +12049,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	char *data = head->write_buf;
  	struct list_head *tmp;
-@@ -1594,18 +2021,23 @@
+@@ -1594,18 +2133,23 @@
  	/***** CRITICAL SECTION START *****/
  	spin_lock(&query_lock);
  	list_for_each(tmp, &query_list) {
@@ -11854,7 +12078,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		break;
  	}
  	spin_unlock(&query_lock);
-@@ -1613,22 +2045,23 @@
+@@ -1613,22 +2157,23 @@
  	return 0;
  }
  
@@ -11883,7 +12107,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	if (!head->read_eof) {
  		unsigned int counter[MAX_CCS_UPDATES_COUNTER];
-@@ -1638,187 +2071,215 @@
+@@ -1638,187 +2183,215 @@
  		memset(updates_counter, 0, sizeof(updates_counter));
  		spin_unlock(&updates_counter_lock);
  		/***** CRITICAL SECTION END *****/
@@ -12177,7 +12401,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	while (avail_len > 0) {
  		char c;
  		if (head->write_avail >= head->writebuf_size - 1) {
-@@ -1828,12 +2289,14 @@
+@@ -1828,12 +2401,14 @@
  			error = -EFAULT;
  			break;
  		}
@@ -12195,7 +12419,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		head->write(head);
  	}
  	mutex_unlock(&head->write_sem);
-@@ -1841,19 +2304,25 @@
+@@ -1841,19 +2416,25 @@
  }
  
  
@@ -12229,7 +12453,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	int len;
  	struct acl_info *ptr;
-@@ -1886,20 +2355,24 @@
+@@ -1886,20 +2467,24 @@
  	default:
  		return NULL;
  	}
@@ -12556,7 +12780,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 1045)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
-@@ -11,73 +11,98 @@
+@@ -11,73 +11,100 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -12567,6 +12791,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  #include <linux/realpath.h>
  #include <linux/version.h>
 -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
++
++/* To support PID namespace. */
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
  #define find_task_by_pid find_task_by_vpid
  #endif
@@ -12694,7 +12920,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  {
  	struct domain_info *domain = current->domain_info;
  	struct domain_info *dest = NULL;
-@@ -85,62 +110,82 @@
+@@ -85,62 +112,82 @@
  	struct acl_info *ptr;
  	const u16 hash = sig;
  	const u8 profile = current->domain_info->profile;
