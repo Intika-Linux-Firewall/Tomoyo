@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h	(revision 1045)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h	(working copy)
 @@ -1,7 +1,7 @@
  /*
@@ -27,7 +27,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_proc.h
  #define CCS_SYSTEMPOLICY          2
 Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(revision 1045)
+--- trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(working copy)
 @@ -14,115 +14,140 @@
  /*
@@ -1268,7 +1268,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(revision 1045)
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(working copy)
 @@ -15,195 +15,292 @@
  #ifndef _LINUX_TOMOYO_SOCKET_H
@@ -1890,7 +1890,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 1045)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
 @@ -28,13 +28,21 @@
  #include <stdarg.h>
@@ -2514,7 +2514,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 -
 -struct io_buffer {
 -	int (*read) (struct io_buffer *);
-+/* The structure for reading/writing policy via /proc interfaces. */
++/* Structure for reading/writing policy via /proc interfaces. */
 +struct ccs_io_buffer {
 +	int (*read) (struct ccs_io_buffer *);
 +	int (*write) (struct ccs_io_buffer *);
@@ -2897,7 +2897,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 -#endif
 Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 1045)
+--- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/include/linux/realpath.h	(working copy)
 @@ -15,29 +15,51 @@
  #ifndef _LINUX_REALPATH_H
@@ -2968,7 +2968,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(revision 1045)
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(working copy)
 @@ -15,199 +15,357 @@
  #ifndef _LINUX_TOMOYO_VFS_H
@@ -3399,7 +3399,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/sakura.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/sakura.h	(revision 1045)
+--- trunk/1.6.x/ccs-patch/include/linux/sakura.h	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/include/linux/sakura.h	(working copy)
 @@ -15,12 +15,14 @@
   * A brief description about SAKURA:
@@ -3502,7 +3502,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/sakura.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 1045)
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(working copy)
 @@ -22,18 +22,19 @@
   *  and dramatically reduces the policy definition labors.
@@ -3860,7 +3860,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
  #endif
 Index: trunk/1.6.x/ccs-patch/README.ccs
 ===================================================================
---- trunk/1.6.x/ccs-patch/README.ccs	(revision 1045)
+--- trunk/1.6.x/ccs-patch/README.ccs	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/README.ccs	(working copy)
 @@ -1326,3 +1326,13 @@
  
@@ -3878,9 +3878,9 @@ Index: trunk/1.6.x/ccs-patch/README.ccs
 +      after 2.4.33 were different from before 2.4.32 .
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(working copy)
-@@ -11,26 +11,41 @@
+@@ -11,45 +11,69 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -3891,11 +3891,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  #include <linux/realpath.h>
  
 -/*************************  AUDIT FUNCTIONS  *************************/
-+/* Auditing functions. */
- 
+-
 -static int AuditEnvLog(const char *env, const bool is_granted, const u8 profile, const u8 mode)
 +/**
-+ * audit_env_log -
++ * audit_env_log - Audit environment variable name log.
 + *
 + * @env:        The name of environment variable.
 + * @is_granted: True if this is a granted log.
@@ -3926,22 +3925,23 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  }
  
 -/***** The structure for globally usable environments. *****/
-+/* The structure for globally usable environments. */
- 
+-
++/* Structure for "allow_env" keyword. */
  struct globally_usable_env_entry {
  	struct list1_head list;
-@@ -38,18 +53,30 @@
+ 	const struct path_info *env;
  	bool is_deleted;
  };
  
 -/*************************  GLOBALLY USABLE ENVIRONMENT HANDLER  *************************/
-+/* "allow_env" handler. */
- 
+-
++/* The list for "struct globally_usable_env_entry". */
  static LIST1_HEAD(globally_usable_env_list);
  
 -static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 +/**
-+ * update_globally_usable_env_entry -
++ * update_globally_usable_env_entry - Update "struct globally_usable_env_entry"
++ *                                    list.
 + *
 + * @env:       The name of environment variable.
 + * @is_delete: True if it is a delete request.
@@ -3965,7 +3965,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
  		if (ptr->env == saved_env) {
-@@ -59,127 +86,220 @@
+@@ -59,127 +83,222 @@
  		}
  	}
  	if (is_delete) {
@@ -3988,7 +3988,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  
 -static bool IsGloballyUsableEnv(const struct path_info *env)
 +/**
-+ * is_globally_usable_env -
++ * is_globally_usable_env - Check whether the given environment variable is
++ *                          acceptable for all domains.
 + *
 + * @env: The name of environment variable.
 + *
@@ -4008,7 +4009,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  
 -int AddGloballyUsableEnvPolicy(char *env, const bool is_delete)
 +/**
-+ * ccs_write_globally_usable_env_policy -
++ * ccs_write_globally_usable_env_policy - Write
++ *                                        "struct globally_usable_env_entry"
++ *                                        list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -4023,7 +4026,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  
 -int ReadGloballyUsableEnvPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_globally_usable_env_policy -
++ * ccs_read_globally_usable_env_policy - Dump "struct globally_usable_env_entry"
++ *                                       list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -4052,11 +4056,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  }
  
 -/*************************  ENVIRONMENT VARIABLE CHECKING HANDLER  *************************/
-+/* "allow_env" handler. */
- 
+-
 -static int AddEnvEntry(const char *env, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * update_env_entry -
++ * update_env_entry - Update "struct env_acl_record" list.
 + *
 + * @env:       The name of environment variable.
 + * @domain:    Pointer to "struct domain_info".
@@ -4147,7 +4150,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  
 -static int CheckEnvACL(const char *env_)
 +/**
-+ * check_env_acl -
++ * check_env_acl - Check permission for environment variable's name.
 + *
 + * @environ: The name of environment variable.
 + *
@@ -4190,7 +4193,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  
 -int CheckEnvPerm(const char *env, const u8 profile, const u8 mode)
 +/**
-+ * ccs_check_env_perm -
++ * ccs_check_env_perm - Check permission for environment variable's name.
 + *
 + * @env:     The name of environment variable.
 + * @profile: Profile number.
@@ -4231,7 +4234,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  
 -int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * ccs_write_env_policy -
++ * ccs_write_env_policy - Write "struct env_acl_record" list.
 + *
 + * @data:      String to parse.
 + * @domain:    Pointer to "struct domain_info".
@@ -4251,9 +4254,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 -/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(working copy)
-@@ -11,36 +11,68 @@
+@@ -11,36 +11,64 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -4265,11 +4268,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  #include <net/ip.h>
  
 -/*************************  AUDIT FUNCTIONS  *************************/
-+/* Auditing functions. */
- 
+-
 -static int AuditNetworkLog(const bool is_ipv6, const char *operation, const u32 *address, const u16 port, const bool is_granted, const u8 profile, const u8 mode)
 +/**
-+ * audit_network_log -
++ * audit_network_log - Audit network log.
 + *
 + * @is_ipv6:    True if @address is an IPv6 address.
 + * @operation:  The name of operation.
@@ -4319,8 +4321,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  }
  
 -/*************************  UTILITY FUNCTIONS  *************************/
-+/* Utility functions. */
- 
+-
 -/* Keep the given IPv6 address on the RAM. The RAM is shared, so NEVER try to modify or kfree() the returned address. */
 -static const struct in6_addr *SaveIPv6Address(const struct in6_addr *addr)
 +/**
@@ -4336,7 +4337,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  {
  	static const u8 block_size = 16;
  	struct addr_list {
-@@ -52,54 +84,91 @@
+@@ -52,54 +80,89 @@
  	struct addr_list *ptr;
  	static DEFINE_MUTEX(lock);
  	u8 i = block_size;
@@ -4371,14 +4372,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  }
  
 -/*************************  ADDRESS GROUP HANDLER  *************************/
-+/* "address_group" handler. */
- 
+-
 +/* The list for "struct address_group_entry". */
  static LIST1_HEAD(address_group_list);
  
 -static int AddAddressGroupEntry(const char *group_name, const bool is_ipv6, const u16 *min_address, const u16 *max_address, const bool is_delete)
 +/**
-+ * update_address_group_entry -
++ * update_address_group_entry - Update "struct address_group_entry" list.
 + *
 + * @group_name:  The name of group.
 + * @is_ipv6:     True if @address is an IPv6 address.
@@ -4448,7 +4448,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  			}
  			member->is_deleted = is_delete;
  			error = 0;
-@@ -113,20 +182,24 @@
+@@ -113,20 +176,24 @@
  		goto out;
  	}
  	if (!found) {
@@ -4477,13 +4477,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  	}
  	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
  	error = 0;
-@@ -135,129 +208,229 @@
+@@ -135,129 +202,224 @@
  	return error;
  }
  
 -int AddAddressGroupPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_address_group_policy -
++ * ccs_write_address_group_policy - Write "struct address_group_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -4563,7 +4563,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -static struct address_group_entry *FindOrAssignNewAddressGroup(const char *group_name)
 +/**
-+ * find_or_assign_new_address_group -
++ * find_or_assign_new_address_group - Create address group.
 + *
 + * @group_name: The name of group.
 + *
@@ -4595,7 +4595,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -static bool AddressMatchesToGroup(const bool is_ipv6, const u32 *address, const struct address_group_entry *group)
 +/**
-+ * address_matches_to_group -
++ * address_matches_to_group - Check whether the given address matches members
++ *                            of the given address group.
 + *
 + * @is_ipv6: True if @address is an IPv6 address.
 + * @address: An IPv4 or IPv6 address.
@@ -4630,7 +4631,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -int ReadAddressGroupPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_address_group_policy -
++ * ccs_read_address_group_policy - Dump "struct address_group_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -4703,8 +4704,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  }
  
 -/*************************  NETWORK NETWORK ACL HANDLER  *************************/
-+/* Network ACL handler. */
- 
+-
  #if !defined(NIP6)
 -#define NIP6(addr) \
 -	ntohs((addr).s6_addr16[0]), \
@@ -4715,20 +4715,16 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 -	ntohs((addr).s6_addr16[5]), \
 -	ntohs((addr).s6_addr16[6]), \
 -	ntohs((addr).s6_addr16[7])
-+#define NIP6(addr)				\
-+	ntohs((addr).s6_addr16[0]),		\
-+		ntohs((addr).s6_addr16[1]),	\
-+		ntohs((addr).s6_addr16[2]),	\
-+		ntohs((addr).s6_addr16[3]),	\
-+		ntohs((addr).s6_addr16[4]),	\
-+		ntohs((addr).s6_addr16[5]),	\
-+		ntohs((addr).s6_addr16[6]),	\
-+		ntohs((addr).s6_addr16[7])
++#define NIP6(addr)	\
++	ntohs((addr).s6_addr16[0]),ntohs((addr).s6_addr16[1]),\
++	ntohs((addr).s6_addr16[2]),ntohs((addr).s6_addr16[3]),\
++	ntohs((addr).s6_addr16[4]),ntohs((addr).s6_addr16[5]),\
++	ntohs((addr).s6_addr16[6]),ntohs((addr).s6_addr16[7])
  #endif
  
 -char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip)
 +/**
-+ * ccs_print_ipv6 -
++ * ccs_print_ipv6 - Dump an IPv6 address.
 + *
 + * @buffer:     Buffer to write to.
 + * @buffer_len: Size of @buffer .
@@ -4746,7 +4742,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -const char *net_operation2keyword(const u8 operation)
 +/**
-+ * ccs_net2keyword -
++ * ccs_net2keyword - Convert network operation index to network operation name.
 + *
 + * @operation: Type of operation.
 + *
@@ -4756,13 +4752,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  {
  	const char *keyword = "unknown";
  	switch (operation) {
-@@ -289,125 +462,232 @@
+@@ -289,125 +451,232 @@
  	return keyword;
  }
  
 -static int AddNetworkEntry(const u8 operation, const u8 record_type, const struct address_group_entry *group, const u32 *min_address, const u32 *max_address, const u16 min_port, const u16 max_port, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * update_network_entry -
++ * update_network_entry - Update "struct ip_network_acl_record" list.
 + *
 + * @operation:   Type of operation.
 + * @record_type: Type of address.
@@ -4936,7 +4932,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -static int CheckNetworkEntry(const bool is_ipv6, const u8 operation, const u32 *address, const u16 port)
 +/**
-+ * check_network_entry -
++ * check_network_entry - Check permission for network operation.
 + *
 + * @is_ipv6:   True if @address is an IPv6 address.
 + * @operation: Type of operation.
@@ -5050,7 +5046,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * ccs_write_network_policy -
++ * ccs_write_network_policy - Write "struct ip_network_acl_record" list.
 + *
 + * @data:      String to parse.
 + * @domain:    Pointer to "struct domain_info".
@@ -5065,7 +5061,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  {
  	u8 sock_type, operation, record_type;
  	u16 min_address[8], max_address[8];
-@@ -415,95 +695,251 @@
+@@ -415,95 +684,251 @@
  	u16 min_port, max_port;
  	u8 count;
  	char *cp1 = NULL, *cp2 = NULL;
@@ -5217,7 +5213,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -int CheckNetworkListenACL(const _Bool is_ipv6, const u8 *address, const u16 port)
 +/**
-+ * ccs_check_network_listen_acl -
++ * ccs_check_network_listen_acl - Check permission for listen() operation.
 + *
 + * @is_ipv6: True if @address is an IPv6 address.
 + * @address: An IPv4 or IPv6 address.
@@ -5235,7 +5231,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -int CheckNetworkConnectACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 +/**
-+ * ccs_check_network_connect_acl -
++ * ccs_check_network_connect_acl - Check permission for connect() operation.
 + *
 + * @is_ipv6:   True if @address is an IPv6 address.
 + * @sock_type: Type of socket. (TCP or UDP or RAW)
@@ -5265,7 +5261,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -int CheckNetworkBindACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 +/**
-+ * ccs_check_network_bind_acl -
++ * ccs_check_network_bind_acl - Check permission for bind() operation.
 + *
 + * @is_ipv6:   True if @address is an IPv6 address.
 + * @sock_type: Type of socket. (TCP or UDP or RAW)
@@ -5295,7 +5291,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -int CheckNetworkAcceptACL(const _Bool is_ipv6, const u8 *address, const u16 port)
 +/**
-+ * ccs_check_network_accept_acl -
++ * ccs_check_network_accept_acl - Check permission for accept() operation.
 + *
 + * @is_ipv6: True if @address is an IPv6 address.
 + * @address: An IPv4 or IPv6 address.
@@ -5317,7 +5313,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -int CheckNetworkSendMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 +/**
-+ * ccs_check_network_sendmsg_acl -
++ * ccs_check_network_sendmsg_acl - Check permission for sendmsg() operation.
 + *
 + * @is_ipv6:   True if @address is an IPv6 address.
 + * @sock_type: Type of socket. (UDP or RAW)
@@ -5341,7 +5337,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -int CheckNetworkRecvMsgACL(const _Bool is_ipv6, const int sock_type, const u8 *address, const u16 port)
 +/**
-+ * ccs_check_network_recvmsg_acl -
++ * ccs_check_network_recvmsg_acl - Check permission for recvmsg() operation.
 + *
 + * @is_ipv6:   True if @address is an IPv6 address.
 + * @sock_type: Type of socket. (UDP or RAW)
@@ -5368,7 +5364,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 -/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/realpath.c	(working copy)
 @@ -21,7 +21,7 @@
  #include <asm/uaccess.h>
@@ -5771,7 +5767,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  		} else {
  			buf = ptr;
  			allocated_memory_for_elements += PAGE_SIZE;
-@@ -265,22 +358,28 @@
+@@ -265,43 +358,60 @@
  		ptr = buf + buf_used_len;
  		buf_used_len += word_aligned_size;
  		for (i = 0; i < word_aligned_size; i++) {
@@ -5808,8 +5804,16 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  {
  	return allocated_memory_for_savename + allocated_memory_for_pool;
  }
-@@ -294,14 +393,22 @@
  
+ #define MAX_HASH 256
+ 
++/* Structure for string data. */
+ struct name_entry {
+ 	struct list1_head list;
+ 	struct path_info entry;
+ };
+ 
++/* Structure for available memory region. */
  struct free_memory_block_list {
  	struct list_head list;
 -	char *ptr;                           /* Pointer to a free area.               */
@@ -5818,7 +5822,9 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +	int len;               /* Length of the area.     */
  };
  
- static struct list1_head name_list[MAX_HASH]; /* The list of names. */
+-static struct list1_head name_list[MAX_HASH]; /* The list of names. */
++/* The list for "struct name_entry". */
++static struct list1_head name_list[MAX_HASH];
  
 -/* Keep the given name on the RAM. The RAM is shared, so NEVER try to modify or kfree() the returned name. */
 -const struct path_info *SaveName(const char *name)
@@ -5835,7 +5841,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  {
  	static LIST_HEAD(fmb_list);
  	static DEFINE_MUTEX(lock);
-@@ -310,27 +417,33 @@
+@@ -310,27 +420,33 @@
  	struct free_memory_block_list *fmb;
  	int len;
  	char *cp;
@@ -5875,7 +5881,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  		ptr = NULL;
  		goto out;
  	}
-@@ -339,11 +452,12 @@
+@@ -339,11 +455,12 @@
  	fmb->ptr = cp;
  	fmb->len = PAGE_SIZE;
   ready:
@@ -5891,16 +5897,16 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  	fmb->ptr += len;
  	fmb->len -= len;
  	list1_add_tail_mb(&ptr->list, &name_list[hash % MAX_HASH]);
-@@ -356,7 +470,7 @@
+@@ -356,18 +473,17 @@
  	return ptr ? &ptr->entry : NULL;
  }
  
 -/***** Dynamic memory allocator. *****/
-+/* Dynamic memory allocator. */
- 
+-
++/* Structure for temporarily allocated memory. */
  struct cache_entry {
  	struct list_head list;
-@@ -364,10 +478,10 @@
+ 	void *ptr;
  	int size;
  };
  
@@ -5914,7 +5920,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  #endif
  
  #ifdef CCS_MAX_RESERVED_PAGES
-@@ -379,38 +493,61 @@
+@@ -379,38 +495,64 @@
  static struct ccs_page_buffer *ccs_page_buffer_pool[MAX_CCS_PAGE_BUFFER_POOL];
  static bool ccs_page_buffer_pool_in_use[MAX_CCS_PAGE_BUFFER_POOL];
  
@@ -5963,13 +5969,16 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +		ccs_page_buffer_pool_in_use[i] = false;
  }
  
++/* The list for "struct cache_entry". */
  static LIST_HEAD(cache_list);
 -static spinlock_t cache_list_lock = SPIN_LOCK_UNLOCKED;
 -static unsigned int dynamic_memory_size = 0;
-+static DEFINE_SPINLOCK(cache_list_lock);
-+static unsigned int dynamic_memory_size;
  
 -unsigned int GetMemoryUsedForDynamic(void)
++static DEFINE_SPINLOCK(cache_list_lock);
++
++static unsigned int dynamic_memory_size;
++
 +/**
 + * ccs_get_memory_used_for_dynamic - Get memory used for temporal purpose.
 + *
@@ -5992,7 +6001,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  static int round2(size_t size)
  {
  #if PAGE_SIZE == 4096
-@@ -423,48 +560,66 @@
+@@ -423,48 +565,66 @@
  }
  #endif
  
@@ -6082,7 +6091,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  	new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
  	if (!new_entry) {
  		kfree(ret); ret = NULL;
-@@ -472,34 +627,50 @@
+@@ -472,34 +632,50 @@
  	}
  	INIT_LIST_HEAD(&new_entry->list);
  	new_entry->ptr = ret;
@@ -6138,7 +6147,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  	spin_lock(&cache_list_lock);
  	list_for_each(v, &cache_list) {
  		entry = list_entry(v, struct cache_entry, list);
-@@ -511,10 +682,11 @@
+@@ -511,10 +687,11 @@
  		break;
  	}
  	spin_unlock(&cache_list_lock);
@@ -6153,7 +6162,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c	(working copy)
 @@ -61,38 +61,44 @@
  static struct file_operations syaoran_file_operations;
@@ -6444,9 +6453,9 @@ Index: trunk/1.6.x/ccs-patch/fs/syaoran_2.6.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
-@@ -11,18 +11,17 @@
+@@ -11,37 +11,45 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -6463,22 +6472,22 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  #endif
  
 -/***** The structure for chroot restrictions. *****/
-+/* The structure for chroot restrictions. */
- 
+-
++/* Structure for "allow_chroot" keyword. */
  struct chroot_entry {
  	struct list1_head list;
-@@ -30,18 +29,29 @@
+ 	const struct path_info *dir;
  	bool is_deleted;
  };
  
 -/*************************  CHROOT RESTRICTION HANDLER  *************************/
-+/* Chroot restriction handler. */
- 
+-
++/* The list for "struct chroot_entry". */
  static LIST1_HEAD(chroot_list);
  
 -static int AddChrootACL(const char *dir, const bool is_delete)
 +/**
-+ * update_chroot_acl -
++ * update_chroot_acl - Update "struct chroot_entry" list.
 + *
 + * @dir:       The name of directory.
 + * @is_delete: True if it is a delete request.
@@ -6501,7 +6510,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &chroot_list, list) {
  		if (ptr->dir == saved_dir) {
-@@ -54,73 +64,124 @@
+@@ -54,73 +62,124 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -6615,7 +6624,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  
 -int AddChrootPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_chroot_policy -
++ * ccs_write_chroot_policy - Write "struct chroot_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -6630,7 +6639,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  
 -int ReadChrootPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_chroot_policy -
++ * ccs_read_chroot_policy - Dump "struct chroot_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -6659,9 +6668,9 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 -/***** SAKURA Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
-@@ -11,18 +11,17 @@
+@@ -11,19 +11,17 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -6678,22 +6687,23 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  #endif
  
 -/***** The structure for pivot_root restrictions. *****/
-+/* The structure for pivot_root restrictions. */
- 
+-
++/* Structure for "allow_pivot_root" keyword. */
  struct pivot_root_entry {
  	struct list1_head list;
-@@ -31,21 +30,37 @@
+ 	const struct path_info *old_root;
+@@ -31,21 +29,36 @@
  	bool is_deleted;
  };
  
 -/*************************  PIVOT_ROOT RESTRICTION HANDLER  *************************/
-+/* Pivot_root restriction handler. */
- 
+-
++/* The list for "struct pivot_root_entry". */
  static LIST1_HEAD(pivot_root_list);
  
 -static int AddPivotRootACL(const char *old_root, const char *new_root, const bool is_delete)
 +/**
-+ * update_pivot_root_acl -
++ * update_pivot_root_acl - Update "struct pivot_root_entry" list.
 + *
 + * @old_root:  The name of old root directory.
 + * @new_root:  The name of new root directory.
@@ -6725,7 +6735,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  			ptr->is_deleted = is_delete;
  			error = 0;
  			goto out;
-@@ -55,41 +70,60 @@
+@@ -55,41 +68,60 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -6747,7 +6757,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  
 -int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 +/**
-+ * ccs_check_pivot_root_permission -
++ * ccs_check_pivot_root_permission - Check permission for pivot_root().
 + *
 + * @old_nd: Pointer to "struct nameidata".
 + * @new_nd: Pointer to "struct nameidata".
@@ -6800,7 +6810,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  					error = 0;
  					break;
  				}
-@@ -98,39 +132,67 @@
+@@ -98,39 +130,67 @@
  	}
  	if (error) {
  		const bool is_enforce = (mode == 3);
@@ -6837,7 +6847,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  
 -int AddPivotRootPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_pivot_root_policy -
++ * ccs_write_pivot_root_policy - Write "struct pivot_root_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -6857,7 +6867,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  
 -int ReadPivotRootPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_pivot_root_policy -
++ * ccs_read_pivot_root_policy - Dump "struct pivot_root_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -6886,9 +6896,9 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 -/***** SAKURA Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(working copy)
-@@ -11,42 +11,50 @@
+@@ -11,43 +11,50 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -6949,11 +6959,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 +#define MOUNT_MAKE_SHARED_KEYWORD                        "--make-shared"
  
 -/***** The structure for mount restrictions. *****/
-+/* The structure for mount restrictions. */
- 
+-
++/* Structure for "allow_mount" keyword. */
  struct mount_entry {
  	struct list1_head list;
-@@ -57,35 +65,65 @@
+ 	const struct path_info *dev_name;
+@@ -57,35 +64,65 @@
  	bool is_deleted;
  };
  
@@ -6973,7 +6984,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  
 -static int AddMountACL(const char *dev_name, const char *dir_name, const char *fs_type, const unsigned long flags, const bool is_delete)
 +/**
-+ * update_mount_acl -
++ * update_mount_acl - Update "struct mount_entry" list.
 + *
 + * @dev_name:  Name of device file.
 + * @dir_name:  Name of mount point.
@@ -7033,7 +7044,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  		error = 0;
  		if (is_delete) {
  			ptr->is_deleted = true;
-@@ -102,7 +140,9 @@
+@@ -102,7 +139,9 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -7044,7 +7055,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	new_entry->dev_name = dev;
  	new_entry->dir_name = dir;
  	new_entry->fs_type = fs;
-@@ -111,37 +151,187 @@
+@@ -111,37 +150,187 @@
  	error = 0;
  	ptr = new_entry;
   update:
@@ -7227,7 +7238,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 +}
 +
 +/**
-+ * check_mount_permission2 -
++ * check_mount_permission2 - Check permission for mount() operation.
 + *
 + * @dev_name: Name of device file.
 + * @dir_name: Name of mount point.
@@ -7254,7 +7265,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
  	case MS_REMOUNT:
  	case MS_MOVE:
-@@ -149,7 +339,8 @@
+@@ -149,7 +338,8 @@
  	case 0:
  		break;
  	default:
@@ -7264,7 +7275,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  		       flags & MS_REMOUNT ? "'remount' " : "",
  		       flags & MS_MOVE    ? "'move' " : "",
  		       flags & MS_BIND    ? "'bind' " : "");
-@@ -163,7 +354,8 @@
+@@ -163,7 +353,8 @@
  	case 0:
  		break;
  	default:
@@ -7274,7 +7285,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  		       flags & MS_UNBINDABLE ? "'unbindable' " : "",
  		       flags & MS_PRIVATE    ? "'private' " : "",
  		       flags & MS_SLAVE      ? "'slave' " : "",
-@@ -171,19 +363,33 @@
+@@ -171,19 +362,33 @@
  		return -EINVAL;
  	}
  	if (flags & MS_REMOUNT) {
@@ -7315,7 +7326,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	} else {
  		struct mount_entry *ptr;
  		struct file_system_type *fstype = NULL;
-@@ -192,140 +398,174 @@
+@@ -192,140 +397,174 @@
  		struct path_info rdev, rdir;
  		int need_dev = 0;
  
@@ -7485,7 +7496,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -/* This is a wrapper to allow use of 1.4.x patch for 1.5.x . */
 -int CheckMountPermission(char *dev_name, char *dir_name, char *type, const unsigned long *flags)
 +/**
-+ * ccs_check_mount_permission -
++ * ccs_check_mount_permission - Check permission for mount() operation.
 + *
 + * @dev_name: Name of device file.
 + * @dir_name: Name of mount point.
@@ -7505,7 +7516,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  
 -int AddMountPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_mount_policy -
++ * ccs_write_mount_policy - Write "struct mount_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -7545,7 +7556,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  
 -int ReadMountPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_mount_policy -
++ * ccs_read_mount_policy - Dump "struct mount_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -7573,422 +7584,9 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  }
 -
 -/***** SAKURA Linux end. *****/
-Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
-===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 1045)
-+++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
-@@ -11,14 +11,21 @@
-  * See README.ccs for ChangeLog.
-  *
-  */
--/***** TOMOYO Linux start. *****/
- 
- #include <linux/ccs_common.h>
- #include <linux/tomoyo.h>
-+#include <linux/realpath.h>
- #include <linux/highmem.h>
- #include <linux/binfmts.h>
- 
--static char *DumpBprm(struct linux_binprm *bprm)
-+/**
-+ * ccs_dump_bprm -
-+ *
-+ * @bprm: Pointer to "struct linux_binprm".
-+ *
-+ * Returns the contents of @bprm on success, NULL otherwise.
-+ */
-+static char *ccs_dump_bprm(struct linux_binprm *bprm)
- {
- 	static const int buffer_len = PAGE_SIZE * 2;
- 	char *buffer = ccs_alloc(buffer_len);
-@@ -29,20 +36,25 @@
- 	int argv_count = bprm->argc;
- 	int envp_count = bprm->envc;
- 	bool truncated = false;
--	if (!buffer) return NULL;
--	len = snprintf(buffer, buffer_len - 1, "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
-+	if (!buffer)
-+		return NULL;
-+	len = snprintf(buffer, buffer_len - 1,
-+		       "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
- 	cp = buffer + len;
- 	if (!argv_count) {
- 		memmove(cp, "} envp[]={ ", 11);
- 		cp += 11;
- 	}
--	if (!envp_count) *cp++ = '}';
-+	if (!envp_count)
-+		*cp++ = '}';
- 	last_start = cp;
- 	while (argv_count || envp_count) {
- 		struct page *page;
- 		const char *kaddr;
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
--		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-+		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page,
-+				   NULL) <= 0)
-+			goto out;
- 		pos += PAGE_SIZE - offset;
- #else
- 		page = bprm->page[i];
-@@ -50,7 +62,7 @@
- 		/* Map */
- 		kaddr = kmap(page);
- 		if (!kaddr) { /* Mapping failed. */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
- 			put_page(page);
- #endif
- 			goto out;
-@@ -58,7 +70,8 @@
- 		/* Read. */
- 		while (offset < PAGE_SIZE) {
- 			const unsigned char c = kaddr[offset++];
--			if (cp == last_start) *cp++ = '"';
-+			if (cp == last_start)
-+				*cp++ = '"';
- 			if (cp >= buffer + buffer_len - 32) {
- 				/* Preserve some room for "..." string. */
- 				truncated = true;
-@@ -77,7 +90,8 @@
- 				*cp++ = ((c >> 3) & 7) + '0';
- 				*cp++ = (c & 7) + '0';
- 			}
--			if (c) continue;
-+			if (c)
-+				continue;
- 			if (argv_count) {
- 				if (--argv_count == 0) {
- 					if (truncated) {
-@@ -87,7 +101,8 @@
- 					}
- 					memmove(cp, "} envp[]={ ", 11);
- 					cp += 11;
--					if (!envp_count) goto no_envp;
-+					if (!envp_count)
-+						goto no_envp;
- 					last_start = cp;
- 				}
- 			} else if (envp_count) {
-@@ -97,7 +112,7 @@
- 						memmove(cp, "... ", 4);
- 						cp += 4;
- 					}
--				no_envp:
-+ no_envp:
- 					*cp++ = '}';
- 					*cp++ = '\0';
- 				}
-@@ -107,7 +122,7 @@
- 		}
- 		/* Unmap. */
- 		kunmap(page);
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
- 		put_page(page);
- #endif
- 		i++;
-@@ -115,16 +130,18 @@
- 	}
- 	return buffer;
-  out:
--	snprintf(buffer, buffer_len - 1, "argc=%d envc=%d argv[]={ ... } envp[]= { ... }", argv_count, envp_count);
-+	snprintf(buffer, buffer_len - 1,
-+		 "argc=%d envc=%d argv[]={ ... } envp[]= { ... }",
-+		 argv_count, envp_count);
- 	return buffer;
- }
- 
--/*************************  AUDIT FUNCTIONS  *************************/
-+/* Auditing functions. */
- 
- static DECLARE_WAIT_QUEUE_HEAD(grant_log_wait);
- static DECLARE_WAIT_QUEUE_HEAD(reject_log_wait);
- 
--static spinlock_t audit_log_lock = SPIN_LOCK_UNLOCKED;
-+static DEFINE_SPINLOCK(audit_log_lock);
- 
- struct log_entry {
- 	struct list_head list;
-@@ -134,11 +151,26 @@
- static LIST_HEAD(grant_log);
- static LIST_HEAD(reject_log);
- 
--static int grant_log_count = 0, reject_log_count = 0;
-+static int grant_log_count, reject_log_count;
- 
--char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm)
-+/**
-+ * ccs_init_audit_log -
-+ *
-+ * @len:     Required size.
-+ * @profile: Profile number.
-+ * @mode:    Access control mode.
-+ * @bprm:    Pointer to "struct linux_binprm". May be NULL.
-+ *
-+ * Returns pointer to allocated memory.
-+ *
-+ * The @len is updated to add the header lines' size on success.
-+ */
-+char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
-+			 struct linux_binprm *bprm)
- {
--	static const char *mode_4[4] = { "disabled", "learning", "permissive", "enforcing" };
-+	static const char *mode_4[4] = {
-+		"disabled", "learning", "permissive", "enforcing"
-+	};
- 	char *buf;
- 	char *bprm_info = "";
- 	struct timeval tv;
-@@ -148,79 +180,129 @@
- 	do_gettimeofday(&tv);
- 	*len += strlen(domainname) + 256;
- 	if (bprm) {
--		bprm_info = DumpBprm(bprm);
--		if (!bprm_info) return NULL;
-+		bprm_info = ccs_dump_bprm(bprm);
-+		if (!bprm_info)
-+			return NULL;
- 		*len += strlen(bprm_info);
- 	}
--	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n%s\n", tv.tv_sec, profile, mode_4[mode], task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8), bprm_info, domainname);
--	if (bprm) ccs_free(bprm_info);
-+	buf = ccs_alloc(*len);
-+	if (buf)
-+		snprintf(buf, (*len) - 1,
-+			 "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
-+			 "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
-+			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n"
-+			 "%s\n", tv.tv_sec, profile, mode_4[mode], task->pid,
-+			 task->uid, task->gid, task->euid, task->egid,
-+			 task->suid, task->sgid, task->fsuid, task->fsgid,
-+			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
-+			 (u8) (tomoyo_flags >> 8), bprm_info, domainname);
-+	if (bprm)
-+		ccs_free(bprm_info);
- 	return buf;
- }
- 
--static unsigned int GetMaxGrantLog(void)
-+/**
-+ * get_max_grant_log -
-+ *
-+ * Returns max number of spoolable grant logs.
-+ */
-+static unsigned int get_max_grant_log(void)
- {
--	return CheckCCSFlags(CCS_TOMOYO_MAX_GRANT_LOG);
-+	return ccs_check_flags(CCS_TOMOYO_MAX_GRANT_LOG);
- }
- 
--static unsigned int GetMaxRejectLog(void)
-+/**
-+ * get_max_reject_log -
-+ *
-+ * Returns max number of spoolable reject logs.
-+ */
-+static unsigned int get_max_reject_log(void)
- {
--	return CheckCCSFlags(CCS_TOMOYO_MAX_REJECT_LOG);
-+	return ccs_check_flags(CCS_TOMOYO_MAX_REJECT_LOG);
- }
- 
--/*
-- * Write audit log.
-- * Caller must allocate buf with InitAuditLog().
-+/**
-+ * ccs_write_audit_log - Write audit log.
-+ *
-+ * @buf:        Pointer to audit log.
-+ * @is_granted: True if this is a granted log.
-+ *
-+ * Returns 0 on success, -ENOMEM otherwise.
-+ *
-+ * Caller must allocate @buf with ccs_init_audit_log().
-  */
--int WriteAuditLog(char *buf, const bool is_granted)
-+int ccs_write_audit_log(char *buf, const bool is_granted)
- {
- 	struct log_entry *new_entry = ccs_alloc(sizeof(*new_entry));
--	if (!new_entry) goto out;
-+	if (!new_entry)
-+		goto out;
- 	INIT_LIST_HEAD(&new_entry->list);
- 	new_entry->log = buf;
- 	/***** CRITICAL SECTION START *****/
- 	spin_lock(&audit_log_lock);
- 	if (is_granted) {
--		if (grant_log_count < GetMaxGrantLog()) {
-+		if (grant_log_count < get_max_grant_log()) {
- 			list_add_tail(&new_entry->list, &grant_log);
- 			grant_log_count++;
- 			buf = NULL;
--			UpdateCounter(CCS_UPDATES_COUNTER_GRANT_LOG);
-+			ccs_update_counter(CCS_UPDATES_COUNTER_GRANT_LOG);
- 		}
- 	} else {
--		if (reject_log_count < GetMaxRejectLog()) {
-+		if (reject_log_count < get_max_reject_log()) {
- 			list_add_tail(&new_entry->list, &reject_log);
- 			reject_log_count++;
- 			buf = NULL;
--			UpdateCounter(CCS_UPDATES_COUNTER_REJECT_LOG);
-+			ccs_update_counter(CCS_UPDATES_COUNTER_REJECT_LOG);
- 		}
- 	}
- 	spin_unlock(&audit_log_lock);
- 	/***** CRITICAL SECTION END *****/
--	if (is_granted) wake_up(&grant_log_wait);
--	else wake_up(&reject_log_wait);
--	if (!buf) return 0;
-+	if (is_granted)
-+		wake_up(&grant_log_wait);
-+	else
-+		wake_up(&reject_log_wait);
-+	if (!buf)
-+		return 0;
- 	ccs_free(new_entry);
-- out: ;
-+ out:
- 	ccs_free(buf);
- 	return -ENOMEM;
- }
- 
--int CanSaveAuditLog(const bool is_granted)
-+/**
-+ * ccs_can_save_audit_log -
-+ *
-+ * @is_granted: True if this is a granted log.
-+ *
-+ * Returns 0 if the kernel can save, -ENOMEM otherwise.
-+ */
-+int ccs_can_save_audit_log(const bool is_granted)
- {
- 	if (is_granted) {
--		if (grant_log_count < GetMaxGrantLog()) return 0;
-+		if (grant_log_count < get_max_grant_log())
-+			return 0;
- 	} else {
--		if (reject_log_count < GetMaxRejectLog()) return 0;
-+		if (reject_log_count < get_max_reject_log())
-+			return 0;
- 	}
- 	return -ENOMEM;
- }
- 
--int ReadGrantLog(struct io_buffer *head)
-+/**
-+ * ccs_read_grant_log -
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ *
-+ * Returns 0.
-+ */
-+int ccs_read_grant_log(struct ccs_io_buffer *head)
- {
- 	struct log_entry *ptr = NULL;
--	if (head->read_avail) return 0;
-+	if (head->read_avail)
-+		return 0;
- 	if (head->read_buf) {
--		ccs_free(head->read_buf); head->read_buf = NULL;
-+		ccs_free(head->read_buf);
-+		head->read_buf = NULL;
- 		head->readbuf_size = 0;
- 	}
- 	/***** CRITICAL SECTION START *****/
-@@ -234,26 +316,46 @@
- 	/***** CRITICAL SECTION END *****/
- 	if (ptr) {
- 		head->read_buf = ptr->log;
--		head->readbuf_size = head->read_avail = strlen(ptr->log) + 1;
-+		head->read_avail = strlen(ptr->log) + 1;
-+		head->readbuf_size = head->read_avail;
- 		ccs_free(ptr);
- 	}
- 	return 0;
- }
- 
--int PollGrantLog(struct file *file, poll_table *wait)
-+/**
-+ * ccs_poll_grant_log -
-+ *
-+ * @file: Pointer to "struct file".
-+ * @wait: Pointer to "poll_table".
-+ *
-+ * Returns POLLIN | POLLRDNORM when ready to read a grant log.
-+ */
-+int ccs_poll_grant_log(struct file *file, poll_table *wait)
- {
--	if (grant_log_count) return POLLIN | POLLRDNORM;
-+	if (grant_log_count)
-+		return POLLIN | POLLRDNORM;
- 	poll_wait(file, &grant_log_wait, wait);
--	if (grant_log_count) return POLLIN | POLLRDNORM;
-+	if (grant_log_count)
-+		return POLLIN | POLLRDNORM;
- 	return 0;
- }
- 
--int ReadRejectLog(struct io_buffer *head)
-+/**
-+ * ccs_read_reject_log -
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ *
-+ * Returns 0.
-+ */
-+int ccs_read_reject_log(struct ccs_io_buffer *head)
- {
- 	struct log_entry *ptr = NULL;
--	if (head->read_avail) return 0;
-+	if (head->read_avail)
-+		return 0;
- 	if (head->read_buf) {
--		ccs_free(head->read_buf); head->read_buf = NULL;
-+		ccs_free(head->read_buf);
-+		head->read_buf = NULL;
- 		head->readbuf_size = 0;
- 	}
- 	/***** CRITICAL SECTION START *****/
-@@ -267,18 +369,27 @@
- 	/***** CRITICAL SECTION END *****/
- 	if (ptr) {
- 		head->read_buf = ptr->log;
--		head->readbuf_size = head->read_avail = strlen(ptr->log) + 1;
-+		head->read_avail = strlen(ptr->log) + 1;
-+		head->readbuf_size = head->read_avail;
- 		ccs_free(ptr);
- 	}
- 	return 0;
- }
- 
--int PollRejectLog(struct file *file, poll_table *wait)
-+/**
-+ * ccs_poll_reject_log -
-+ *
-+ * @file: Pointer to "struct file".
-+ * @wait: Pointer to "poll_table".
-+ *
-+ * Returns POLLIN | POLLRDNORM when ready to read a reject log.
-+ */
-+int ccs_poll_reject_log(struct file *file, poll_table *wait)
- {
--	if (reject_log_count) return POLLIN | POLLRDNORM;
-+	if (reject_log_count)
-+		return POLLIN | POLLRDNORM;
- 	poll_wait(file, &reject_log_wait, wait);
--	if (reject_log_count) return POLLIN | POLLRDNORM;
-+	if (reject_log_count)
-+		return POLLIN | POLLRDNORM;
- 	return 0;
- }
--
--/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/syaoran.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/syaoran.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/syaoran.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/syaoran.c	(working copy)
 @@ -70,7 +70,7 @@
   * Lookup the data. This is trivial - if the dentry didn't already
@@ -8314,9 +7912,428 @@ Index: trunk/1.6.x/ccs-patch/fs/syaoran.c
  
  static int __init init_syaoran_fs(void)
  {
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 1049)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
+@@ -11,14 +11,21 @@
+  * See README.ccs for ChangeLog.
+  *
+  */
+-/***** TOMOYO Linux start. *****/
+ 
+ #include <linux/ccs_common.h>
+ #include <linux/tomoyo.h>
++#include <linux/realpath.h>
+ #include <linux/highmem.h>
+ #include <linux/binfmts.h>
+ 
+-static char *DumpBprm(struct linux_binprm *bprm)
++/**
++ * ccs_dump_bprm - Dump "struct linux_binprm" for auditing.
++ *
++ * @bprm: Pointer to "struct linux_binprm".
++ *
++ * Returns the contents of @bprm on success, NULL otherwise.
++ */
++static char *ccs_dump_bprm(struct linux_binprm *bprm)
+ {
+ 	static const int buffer_len = PAGE_SIZE * 2;
+ 	char *buffer = ccs_alloc(buffer_len);
+@@ -29,20 +36,25 @@
+ 	int argv_count = bprm->argc;
+ 	int envp_count = bprm->envc;
+ 	bool truncated = false;
+-	if (!buffer) return NULL;
+-	len = snprintf(buffer, buffer_len - 1, "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
++	if (!buffer)
++		return NULL;
++	len = snprintf(buffer, buffer_len - 1,
++		       "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
+ 	cp = buffer + len;
+ 	if (!argv_count) {
+ 		memmove(cp, "} envp[]={ ", 11);
+ 		cp += 11;
+ 	}
+-	if (!envp_count) *cp++ = '}';
++	if (!envp_count)
++		*cp++ = '}';
+ 	last_start = cp;
+ 	while (argv_count || envp_count) {
+ 		struct page *page;
+ 		const char *kaddr;
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+-		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
++		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page,
++				   NULL) <= 0)
++			goto out;
+ 		pos += PAGE_SIZE - offset;
+ #else
+ 		page = bprm->page[i];
+@@ -50,7 +62,7 @@
+ 		/* Map */
+ 		kaddr = kmap(page);
+ 		if (!kaddr) { /* Mapping failed. */
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
+ 			put_page(page);
+ #endif
+ 			goto out;
+@@ -58,7 +70,8 @@
+ 		/* Read. */
+ 		while (offset < PAGE_SIZE) {
+ 			const unsigned char c = kaddr[offset++];
+-			if (cp == last_start) *cp++ = '"';
++			if (cp == last_start)
++				*cp++ = '"';
+ 			if (cp >= buffer + buffer_len - 32) {
+ 				/* Preserve some room for "..." string. */
+ 				truncated = true;
+@@ -77,7 +90,8 @@
+ 				*cp++ = ((c >> 3) & 7) + '0';
+ 				*cp++ = (c & 7) + '0';
+ 			}
+-			if (c) continue;
++			if (c)
++				continue;
+ 			if (argv_count) {
+ 				if (--argv_count == 0) {
+ 					if (truncated) {
+@@ -87,7 +101,8 @@
+ 					}
+ 					memmove(cp, "} envp[]={ ", 11);
+ 					cp += 11;
+-					if (!envp_count) goto no_envp;
++					if (!envp_count)
++						goto no_envp;
+ 					last_start = cp;
+ 				}
+ 			} else if (envp_count) {
+@@ -97,7 +112,7 @@
+ 						memmove(cp, "... ", 4);
+ 						cp += 4;
+ 					}
+-				no_envp:
++ no_envp:
+ 					*cp++ = '}';
+ 					*cp++ = '\0';
+ 				}
+@@ -107,7 +122,7 @@
+ 		}
+ 		/* Unmap. */
+ 		kunmap(page);
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
+ 		put_page(page);
+ #endif
+ 		i++;
+@@ -115,30 +130,50 @@
+ 	}
+ 	return buffer;
+  out:
+-	snprintf(buffer, buffer_len - 1, "argc=%d envc=%d argv[]={ ... } envp[]= { ... }", argv_count, envp_count);
++	snprintf(buffer, buffer_len - 1,
++		 "argc=%d envc=%d argv[]={ ... } envp[]= { ... }",
++		 argv_count, envp_count);
+ 	return buffer;
+ }
+ 
+-/*************************  AUDIT FUNCTIONS  *************************/
+-
+ static DECLARE_WAIT_QUEUE_HEAD(grant_log_wait);
+ static DECLARE_WAIT_QUEUE_HEAD(reject_log_wait);
+ 
+-static spinlock_t audit_log_lock = SPIN_LOCK_UNLOCKED;
++static DEFINE_SPINLOCK(audit_log_lock);
+ 
++/* Structure for audit log. */
+ struct log_entry {
+ 	struct list_head list;
+ 	char *log;
+ };
+ 
++/* The list for "struct log_entry". */
+ static LIST_HEAD(grant_log);
++
++/* The list for "struct log_entry". */
+ static LIST_HEAD(reject_log);
+ 
+-static int grant_log_count = 0, reject_log_count = 0;
++static int grant_log_count;
++static int reject_log_count;
+ 
+-char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm)
++/**
++ * ccs_init_audit_log - Allocate buffer for audit logs.
++ *
++ * @len:     Required size.
++ * @profile: Profile number.
++ * @mode:    Access control mode.
++ * @bprm:    Pointer to "struct linux_binprm". May be NULL.
++ *
++ * Returns pointer to allocated memory.
++ *
++ * The @len is updated to add the header lines' size on success.
++ */
++char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
++			 struct linux_binprm *bprm)
+ {
+-	static const char *mode_4[4] = { "disabled", "learning", "permissive", "enforcing" };
++	static const char *mode_4[4] = {
++		"disabled", "learning", "permissive", "enforcing"
++	};
+ 	char *buf;
+ 	char *bprm_info = "";
+ 	struct timeval tv;
+@@ -148,79 +183,129 @@
+ 	do_gettimeofday(&tv);
+ 	*len += strlen(domainname) + 256;
+ 	if (bprm) {
+-		bprm_info = DumpBprm(bprm);
+-		if (!bprm_info) return NULL;
++		bprm_info = ccs_dump_bprm(bprm);
++		if (!bprm_info)
++			return NULL;
+ 		*len += strlen(bprm_info);
+ 	}
+-	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n%s\n", tv.tv_sec, profile, mode_4[mode], task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8), bprm_info, domainname);
+-	if (bprm) ccs_free(bprm_info);
++	buf = ccs_alloc(*len);
++	if (buf)
++		snprintf(buf, (*len) - 1,
++			 "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
++			 "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
++			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n"
++			 "%s\n", tv.tv_sec, profile, mode_4[mode], task->pid,
++			 task->uid, task->gid, task->euid, task->egid,
++			 task->suid, task->sgid, task->fsuid, task->fsgid,
++			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
++			 (u8) (tomoyo_flags >> 8), bprm_info, domainname);
++	if (bprm)
++		ccs_free(bprm_info);
+ 	return buf;
+ }
+ 
+-static unsigned int GetMaxGrantLog(void)
++/**
++ * get_max_grant_log - Get max number of spoolable grant logs.
++ *
++ * Returns max number of spoolable grant logs.
++ */
++static unsigned int get_max_grant_log(void)
+ {
+-	return CheckCCSFlags(CCS_TOMOYO_MAX_GRANT_LOG);
++	return ccs_check_flags(CCS_TOMOYO_MAX_GRANT_LOG);
+ }
+ 
+-static unsigned int GetMaxRejectLog(void)
++/**
++ * get_max_reject_log - Get max number of spoolable reject logs.
++ *
++ * Returns max number of spoolable reject logs.
++ */
++static unsigned int get_max_reject_log(void)
+ {
+-	return CheckCCSFlags(CCS_TOMOYO_MAX_REJECT_LOG);
++	return ccs_check_flags(CCS_TOMOYO_MAX_REJECT_LOG);
+ }
+ 
+-/*
+- * Write audit log.
+- * Caller must allocate buf with InitAuditLog().
++/**
++ * ccs_write_audit_log - Write audit log.
++ *
++ * @buf:        Pointer to audit log.
++ * @is_granted: True if this is a granted log.
++ *
++ * Returns 0 on success, -ENOMEM otherwise.
++ *
++ * Caller must allocate @buf with ccs_init_audit_log().
+  */
+-int WriteAuditLog(char *buf, const bool is_granted)
++int ccs_write_audit_log(char *buf, const bool is_granted)
+ {
+ 	struct log_entry *new_entry = ccs_alloc(sizeof(*new_entry));
+-	if (!new_entry) goto out;
++	if (!new_entry)
++		goto out;
+ 	INIT_LIST_HEAD(&new_entry->list);
+ 	new_entry->log = buf;
+ 	/***** CRITICAL SECTION START *****/
+ 	spin_lock(&audit_log_lock);
+ 	if (is_granted) {
+-		if (grant_log_count < GetMaxGrantLog()) {
++		if (grant_log_count < get_max_grant_log()) {
+ 			list_add_tail(&new_entry->list, &grant_log);
+ 			grant_log_count++;
+ 			buf = NULL;
+-			UpdateCounter(CCS_UPDATES_COUNTER_GRANT_LOG);
++			ccs_update_counter(CCS_UPDATES_COUNTER_GRANT_LOG);
+ 		}
+ 	} else {
+-		if (reject_log_count < GetMaxRejectLog()) {
++		if (reject_log_count < get_max_reject_log()) {
+ 			list_add_tail(&new_entry->list, &reject_log);
+ 			reject_log_count++;
+ 			buf = NULL;
+-			UpdateCounter(CCS_UPDATES_COUNTER_REJECT_LOG);
++			ccs_update_counter(CCS_UPDATES_COUNTER_REJECT_LOG);
+ 		}
+ 	}
+ 	spin_unlock(&audit_log_lock);
+ 	/***** CRITICAL SECTION END *****/
+-	if (is_granted) wake_up(&grant_log_wait);
+-	else wake_up(&reject_log_wait);
+-	if (!buf) return 0;
++	if (is_granted)
++		wake_up(&grant_log_wait);
++	else
++		wake_up(&reject_log_wait);
++	if (!buf)
++		return 0;
+ 	ccs_free(new_entry);
+- out: ;
++ out:
+ 	ccs_free(buf);
+ 	return -ENOMEM;
+ }
+ 
+-int CanSaveAuditLog(const bool is_granted)
++/**
++ * ccs_can_save_audit_log - Check whether the kernel can save new audit log.
++ *
++ * @is_granted: True if this is a granted log.
++ *
++ * Returns 0 if the kernel can save, -ENOMEM otherwise.
++ */
++int ccs_can_save_audit_log(const bool is_granted)
+ {
+ 	if (is_granted) {
+-		if (grant_log_count < GetMaxGrantLog()) return 0;
++		if (grant_log_count < get_max_grant_log())
++			return 0;
+ 	} else {
+-		if (reject_log_count < GetMaxRejectLog()) return 0;
++		if (reject_log_count < get_max_reject_log())
++			return 0;
+ 	}
+ 	return -ENOMEM;
+ }
+ 
+-int ReadGrantLog(struct io_buffer *head)
++/**
++ * ccs_read_grant_log - Read a grant log.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns 0.
++ */
++int ccs_read_grant_log(struct ccs_io_buffer *head)
+ {
+ 	struct log_entry *ptr = NULL;
+-	if (head->read_avail) return 0;
++	if (head->read_avail)
++		return 0;
+ 	if (head->read_buf) {
+-		ccs_free(head->read_buf); head->read_buf = NULL;
++		ccs_free(head->read_buf);
++		head->read_buf = NULL;
+ 		head->readbuf_size = 0;
+ 	}
+ 	/***** CRITICAL SECTION START *****/
+@@ -234,26 +319,46 @@
+ 	/***** CRITICAL SECTION END *****/
+ 	if (ptr) {
+ 		head->read_buf = ptr->log;
+-		head->readbuf_size = head->read_avail = strlen(ptr->log) + 1;
++		head->read_avail = strlen(ptr->log) + 1;
++		head->readbuf_size = head->read_avail;
+ 		ccs_free(ptr);
+ 	}
+ 	return 0;
+ }
+ 
+-int PollGrantLog(struct file *file, poll_table *wait)
++/**
++ * ccs_poll_grant_log - Wait for a grant log.
++ *
++ * @file: Pointer to "struct file".
++ * @wait: Pointer to "poll_table".
++ *
++ * Returns POLLIN | POLLRDNORM when ready to read a grant log.
++ */
++int ccs_poll_grant_log(struct file *file, poll_table *wait)
+ {
+-	if (grant_log_count) return POLLIN | POLLRDNORM;
++	if (grant_log_count)
++		return POLLIN | POLLRDNORM;
+ 	poll_wait(file, &grant_log_wait, wait);
+-	if (grant_log_count) return POLLIN | POLLRDNORM;
++	if (grant_log_count)
++		return POLLIN | POLLRDNORM;
+ 	return 0;
+ }
+ 
+-int ReadRejectLog(struct io_buffer *head)
++/**
++ * ccs_read_reject_log - Read a reject log.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns 0.
++ */
++int ccs_read_reject_log(struct ccs_io_buffer *head)
+ {
+ 	struct log_entry *ptr = NULL;
+-	if (head->read_avail) return 0;
++	if (head->read_avail)
++		return 0;
+ 	if (head->read_buf) {
+-		ccs_free(head->read_buf); head->read_buf = NULL;
++		ccs_free(head->read_buf);
++		head->read_buf = NULL;
+ 		head->readbuf_size = 0;
+ 	}
+ 	/***** CRITICAL SECTION START *****/
+@@ -267,18 +372,27 @@
+ 	/***** CRITICAL SECTION END *****/
+ 	if (ptr) {
+ 		head->read_buf = ptr->log;
+-		head->readbuf_size = head->read_avail = strlen(ptr->log) + 1;
++		head->read_avail = strlen(ptr->log) + 1;
++		head->readbuf_size = head->read_avail;
+ 		ccs_free(ptr);
+ 	}
+ 	return 0;
+ }
+ 
+-int PollRejectLog(struct file *file, poll_table *wait)
++/**
++ * ccs_poll_reject_log - Wait for a reject log.
++ *
++ * @file: Pointer to "struct file".
++ * @wait: Pointer to "poll_table".
++ *
++ * Returns POLLIN | POLLRDNORM when ready to read a reject log.
++ */
++int ccs_poll_reject_log(struct file *file, poll_table *wait)
+ {
+-	if (reject_log_count) return POLLIN | POLLRDNORM;
++	if (reject_log_count)
++		return POLLIN | POLLRDNORM;
+ 	poll_wait(file, &reject_log_wait, wait);
+-	if (reject_log_count) return POLLIN | POLLRDNORM;
++	if (reject_log_count)
++		return POLLIN | POLLRDNORM;
+ 	return 0;
+ }
+-
+-/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
 @@ -11,24 +11,28 @@
   * See README.ccs for ChangeLog.
@@ -8350,7 +8367,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  LIST1_HEAD(domain_list);
  
  #ifdef CONFIG_TOMOYO
-@@ -36,32 +40,32 @@
+@@ -36,32 +40,30 @@
  /* Lock for appending domain's ACL. */
  DEFINE_MUTEX(domain_acl_lock);
  
@@ -8360,9 +8377,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -/***** The structure for program files to force domain reconstruction. *****/
 -
-+/*
-+ * The structure for "initialize_domain" and "no_initialize_domain" directive.
-+ */
++/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
  struct domain_initializer_entry {
  	struct list1_head list;
  	const struct path_info *domainname;    /* This may be NULL */
@@ -8376,7 +8391,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -/***** The structure for domains to not to transit domains. *****/
 -
-+/* The structure for "keep_domain" and "no_keep_domain" directive. */
++/* Structure for "keep_domain" and "no_keep_domain" keyword. */
  struct domain_keeper_entry {
  	struct list1_head list;
  	const struct path_info *domainname;
@@ -8390,27 +8405,26 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -/***** The structure for program files that should be aggregated. *****/
 -
-+/* The structure for "aggregator" directive. */
++/* Structure for "aggregator" keyword. */
  struct aggregator_entry {
  	struct list1_head list;
  	const struct path_info *original_name;
-@@ -69,8 +73,7 @@
+@@ -69,8 +71,7 @@
  	bool is_deleted;
  };
  
 -/***** The structure for program files that should be aliased. *****/
 -
-+/* The structure for "alias" directive. */
++/* Structure for "alias" keyword. */
  struct alias_entry {
  	struct list1_head list;
  	const struct path_info *original_name;
-@@ -78,77 +81,205 @@
+@@ -78,77 +79,199 @@
  	bool is_deleted;
  };
  
 -/*************************  VARIABLES  *************************/
-+/* Utility functions.*/
- 
+-
 -/* Domain creation lock. */
 -static DEFINE_MUTEX(new_domain_assign_lock);
 -
@@ -8441,7 +8455,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -const char *GetLastName(const struct domain_info *domain)
 +/**
-+ * ccs_get_last_name -
++ * ccs_get_last_name - Get last component of a domainname.
 + *
 + * @domain: Pointer to "struct domain_info".
 + *
@@ -8459,7 +8473,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -int AddDomainACL(struct domain_info *domain, struct acl_info *acl)
 +/**
-+ * ccs_add_domain_acl -
++ * ccs_add_domain_acl - Add the given ACL to the given domain.
 + *
 + * @domain: Pointer to "struct domain_info".
 + * @acl:    Pointer to "struct acl_info".
@@ -8481,7 +8495,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -int DelDomainACL(struct acl_info *acl)
 +/**
-+ * ccs_del_domain_acl -
++ * ccs_del_domain_acl - Delete the given ACL from the domain.
 + *
 + * @acl: Pointer to "struct acl_info".
 + *
@@ -8498,10 +8512,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
 -/*************************  DOMAIN INITIALIZER HANDLER  *************************/
-+/* Audit functions. */
- 
 +/**
-+ * audit_execute_handler_log -
++ * audit_execute_handler_log - Audit execute_handler log.
 + *
 + * @is_preferred: True if it is "preffered_execute_handler" log.
 + * @handler:      The realpath of the handler.
@@ -8534,9 +8546,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +		 handler);
 +	return ccs_write_audit_log(buf, true);
 +}
-+
+ 
 +/**
-+ * audit_domain_creation_log -
++ * audit_domain_creation_log - Audit domain creation log.
 + *
 + * @domainname: The name of newly created domain.
 + * @mode:       Access control mode.
@@ -8569,15 +8581,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +	return ccs_write_audit_log(buf, false);
 +}
 +
-+
-+/* Domain transition initialization handler. */
-+
 +/* The list for "struct domain_initializer_entry". */
  static LIST1_HEAD(domain_initializer_list);
  
 -static int AddDomainInitializerEntry(const char *domainname, const char *program, const bool is_not, const bool is_delete)
 +/**
-+ * update_domain_initializer_entry -
++ * update_domain_initializer_entry - Update "struct domain_initializer_entry"
++ *                                   list.
 + *
 + * @domainname: The name of domain. May be NULL.
 + * @program:    The name of program.
@@ -8643,13 +8653,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	new_entry->domainname = saved_domainname;
  	new_entry->program = saved_program;
  	new_entry->is_not = is_not;
-@@ -160,87 +291,157 @@
+@@ -160,87 +283,158 @@
  	return error;
  }
  
 -int ReadDomainInitializerPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_domain_initializer_policy -
++ * ccs_read_domain_initializer_policy - Dump "struct domain_initializer_entry"
++ *                                      list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -8689,7 +8700,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_delete)
 +/**
-+ * ccs_write_domain_initializer_policy -
++ * ccs_write_domain_initializer_policy - Write "struct domain_initializer_entry"
++ *                                       list.
 + *
 + * @data:      String to parse.
 + * @is_not:    True if it is "no_initialize_domain" entry.
@@ -8715,7 +8727,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -static bool IsDomainInitializer(const struct path_info *domainname, const struct path_info *program, const struct path_info *last_name)
 +/**
-+ * is_domain_initializer -
++ * is_domain_initializer - Check whether the given program causes
++ *                         domainname reinitialization.
 + *
 + * @domainname: The name of domain.
 + * @program:    The name of program.
@@ -8757,14 +8770,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
 -/*************************  DOMAIN KEEPER HANDLER  *************************/
-+/* Domain transition suppress handler. */
- 
+-
 +/* The list for "struct domain_keeper_entry". */
  static LIST1_HEAD(domain_keeper_list);
  
 -static int AddDomainKeeperEntry(const char *domainname, const char *program, const bool is_not, const bool is_delete)
 +/**
-+ * update_domain_keeper_entry -
++ * update_domain_keeper_entry - Update "struct domain_keeper_entry" list.
 + *
 + * @domainname: The name of domain.
 + * @program:    The name of program. May be NULL.
@@ -8829,13 +8841,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	new_entry->domainname = saved_domainname;
  	new_entry->program = saved_program;
  	new_entry->is_not = is_not;
-@@ -252,76 +453,144 @@
+@@ -252,76 +446,143 @@
  	return error;
  }
  
 -int AddDomainKeeperPolicy(char *data, const bool is_not, const bool is_delete)
 +/**
-+ * ccs_write_domain_keeper_policy -
++ * ccs_write_domain_keeper_policy - Write "struct domain_keeper_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_not:    True if it is "no_keep_domain" entry.
@@ -8860,7 +8872,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -int ReadDomainKeeperPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_domain_keeper_policy -
++ * ccs_read_domain_keeper_policy - Dump "struct domain_keeper_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -8901,7 +8913,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -static bool IsDomainKeeper(const struct path_info *domainname, const struct path_info *program, const struct path_info *last_name)
 +/**
-+ * is_domain_keeper -
++ * is_domain_keeper - Check whether the given program causes domain transition
++ *                    suppression.
 + *
 + * @domainname: The name of domain.
 + * @program:    The name of program.
@@ -8941,14 +8954,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
 -/*************************  SYMBOLIC LINKED PROGRAM HANDLER  *************************/
-+/* Synbolic linked program handler.*/
- 
+-
 +/* The list for "struct alias_entry". */
  static LIST1_HEAD(alias_list);
  
 -static int AddAliasEntry(const char *original_name, const char *aliased_name, const bool is_delete)
 +/**
-+ * update_alias_entry -
++ * update_alias_entry - Update "struct alias_entry" list.
 + *
 + * @original_name: The original program's real name.
 + * @aliased_name:  The symbolic program's symbolic link's name.
@@ -8998,13 +9010,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	new_entry->original_name = saved_original_name;
  	new_entry->aliased_name = saved_aliased_name;
  	list1_add_tail_mb(&new_entry->list, &alias_list);
-@@ -331,51 +600,93 @@
+@@ -331,51 +592,91 @@
  	return error;
  }
  
 -int ReadAliasPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_alias_policy -
++ * ccs_read_alias_policy - Dump "struct alias_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -9033,7 +9045,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -int AddAliasPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_alias_policy -
++ * ccs_write_alias_policy - Write "struct alias_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -9052,14 +9064,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
 -/*************************  DOMAIN AGGREGATOR HANDLER  *************************/
-+/* Domain aggregator handler. */
- 
+-
 +/* The list for "struct aggregator_entry". */
  static LIST1_HEAD(aggregator_list);
  
 -static int AddAggregatorEntry(const char *original_name, const char *aggregated_name, const bool is_delete)
 +/**
-+ * update_aggregator_entry -
++ * update_aggregator_entry - Update "struct aggregator_entry" list.
 + *
 + * @original_name:   The original program's name.
 + * @aggregated_name: The aggregated program's name.
@@ -9109,13 +9120,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	new_entry->original_name = saved_original_name;
  	new_entry->aggregated_name = saved_aggregated_name;
  	list1_add_tail_mb(&new_entry->list, &aggregator_list);
-@@ -385,61 +696,100 @@
+@@ -385,61 +686,100 @@
  	return error;
  }
  
 -int ReadAggregatorPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_aggregator_policy -
++ * ccs_read_aggregator_policy - Dump "struct aggregator_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -9144,7 +9155,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -int AddAggregatorPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_aggregator_policy -
++ * ccs_write_aggregator_policy - Write "struct aggregator_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -9229,7 +9240,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  #endif
  		break;
  	}
-@@ -447,74 +797,110 @@
+@@ -447,74 +787,108 @@
  	return 0;
  }
  
@@ -9293,11 +9304,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
 -/*************************  DOMAIN TRANSITION HANDLER  *************************/
-+/* Domain transition handler. */
- 
+-
 -struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile)
 +/**
-+ * ccs_find_or_assign_new_domain -
++ * ccs_find_or_assign_new_domain - Create a domain.
 + *
 + * @domainname: The name of domain.
 + * @profile:    Profile number to assign if the domain was newly created.
@@ -9360,7 +9370,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		domain->flags = 0;
  		domain->profile = profile;
  		domain->quota_warned = false;
-@@ -523,30 +909,43 @@
+@@ -523,30 +897,43 @@
  		goto out;
  	}
  	/* No memory reusable. Create using new memory. */
@@ -9379,7 +9389,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
 +/**
-+ * get_argv0 -
++ * get_argv0 - Get argv[0].
 + *
 + * @bprm: Pointer to "struct linux_binprm".
 + * @tmp:  Buffer for temporal use.
@@ -9410,7 +9420,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		pos += PAGE_SIZE - offset;
  #else
  		page = bprm->page[i];
-@@ -554,7 +953,7 @@
+@@ -554,7 +941,7 @@
  		/* Map. */
  		kaddr = kmap(page);
  		if (!kaddr) { /* Mapping failed. */
@@ -9419,7 +9429,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			put_page(page);
  #endif
  			goto out;
-@@ -573,7 +972,8 @@
+@@ -573,7 +960,8 @@
  				} else {
  					arg_ptr[arg_len++] = '\\';
  					arg_ptr[arg_len++] = (c >> 6) + '0';
@@ -9429,7 +9439,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  					arg_ptr[arg_len++] = (c & 7) + '0';
  				}
  			} else {
-@@ -584,91 +984,128 @@
+@@ -584,91 +972,128 @@
  		}
  		/* Unmap. */
  		kunmap(page);
@@ -9450,7 +9460,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_domain, const struct path_info *path_to_verify, struct ccs_page_buffer *tmp)
 +/**
-+ * find_next_domain -
++ * find_next_domain - Find a domain.
 + *
 + * @bprm:           Pointer to "struct linux_binprm".
 + * @next_domain:    Pointer to pointer to "struct domain_info".
@@ -9590,7 +9600,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		}
  	}
  
-@@ -677,74 +1114,103 @@
+@@ -677,74 +1102,103 @@
  		struct aggregator_entry *ptr;
  		/* Is this program allowed to be aggregated? */
  		list1_for_each_entry(ptr, &aggregator_list, list) {
@@ -9685,7 +9695,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -static int CheckEnviron(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 +/**
-+ * check_environ -
++ * check_environ - Check permission for environment variable names.
 + *
 + * @bprm: Pointer to "struct linux_binprm".
 + * @tmp:  Buffer for temporal use.
@@ -9721,7 +9731,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		pos += PAGE_SIZE - offset;
  #else
  		page = bprm->page[i];
-@@ -752,16 +1218,18 @@
+@@ -752,16 +1206,18 @@
  		/* Map. */
  		kaddr = kmap(page);
  		if (!kaddr) { /* Mapping failed. */
@@ -9743,7 +9753,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		while (offset < PAGE_SIZE) {
  			const unsigned char c = kaddr[offset++];
  			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
-@@ -775,14 +1243,16 @@
+@@ -775,14 +1231,16 @@
  				} else {
  					arg_ptr[arg_len++] = '\\';
  					arg_ptr[arg_len++] = (c >> 6) + '0';
@@ -9763,7 +9773,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  				error = -EPERM;
  				break;
  			}
-@@ -792,21 +1262,29 @@
+@@ -792,21 +1250,29 @@
  			}
  			arg_len = 0;
  		}
@@ -9787,7 +9797,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -static void UnEscape(unsigned char *dest)
 +/**
-+ * unescape -
++ * unescape - Unescape escaped string.
 + *
 + * @dest: String to unescape.
 + *
@@ -9797,7 +9807,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  {
  	unsigned char *src = dest;
  	unsigned char c, d, e;
-@@ -818,56 +1296,42 @@
+@@ -818,56 +1284,42 @@
  		c = *src++;
  		if (c == '\\') {
  			*dest++ = c;
@@ -9830,7 +9840,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -/*
 - * GetRootDepth - return the depth of root directory.
 +/**
-+ * root_depth -
++ * root_depth - Get number of directories to strip.
 + *
 + * @dentry: Pointer to "struct dentry".
 + * @vfsmnt: Pointer to "struct vfsmount".
@@ -9875,7 +9885,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			dentry = vfsmnt->mnt_mountpoint;
  			vfsmnt = vfsmnt->mnt_parent;
  			continue;
-@@ -875,21 +1339,65 @@
+@@ -875,21 +1327,65 @@
  		dentry = dentry->d_parent;
  		depth++;
  	}
@@ -9929,7 +9939,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -static int try_alt_exec(struct linux_binprm *bprm, const struct path_info *filename, char **work, struct domain_info **next_domain, struct ccs_page_buffer *tmp)
 +/**
-+ * try_alt_exec -
++ * try_alt_exec - Try to start execute handler.
 + *
 + * @bprm:        Pointer to "struct linux_binprm".
 + * @filename:    The name of requested program.
@@ -9946,7 +9956,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  {
  	/*
  	 * Contents of modified bprm.
-@@ -936,9 +1444,11 @@
+@@ -936,9 +1432,11 @@
  	/* Allocate memory for execute handler's pathname. */
  	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer));
  	*work = execute_handler;
@@ -9961,7 +9971,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  	/* Close the requested program's dentry. */
  	allow_write_access(bprm->file);
-@@ -946,12 +1456,14 @@
+@@ -946,12 +1444,14 @@
  	bprm->file = NULL;
  
  	{ /* Adjust root directory for open_exec(). */
@@ -9979,7 +9989,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			depth--;
  		}
  		memmove(execute_handler, cp, strlen(cp) + 1);
-@@ -963,67 +1475,87 @@
+@@ -963,67 +1463,87 @@
  
  	/* Set argv[6] */
  	{
@@ -10081,7 +10091,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  	/* OK, now restart the process with execute handler program's dentry. */
  	filp = open_exec(execute_handler);
-@@ -1031,61 +1563,98 @@
+@@ -1031,61 +1551,98 @@
  		retval = PTR_ERR(filp);
  		goto out;
  	}
@@ -10106,7 +10116,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -static const struct path_info *FindExecuteHandler(bool is_preferred_handler)
 +/**
-+ * find_execute_handler -
++ * find_execute_handler - Find an execute handler.
 + *
 + * @type: Type of execute handler.
 + *
@@ -10130,7 +10140,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
 -int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
 +/**
-+ * search_binary_handler_with_transition -
++ * search_binary_handler_with_transition - Perform domain transition.
 + *
 + * @bprm: Pointer to "struct linux_binprm".
 + * @regs: Pointer to "struct pt_regs".
@@ -10201,13 +10211,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	ccs_free(work);
  	ccs_free(buf);
  	return retval;
-@@ -1093,14 +1662,21 @@
+@@ -1093,14 +1650,21 @@
  
  #else
  
 -int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_regs *regs)
 +/**
-+ * search_binary_handler_with_transition -
++ * search_binary_handler_with_transition - Wrapper for search_binary_handler().
 + *
 + * @bprm: Pointer to "struct linux_binprm".
 + * @regs: Pointer to "struct pt_regs".
@@ -10229,9 +10239,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(working copy)
-@@ -11,96 +11,136 @@
+@@ -11,96 +11,134 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -10253,9 +10263,6 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
  #endif
  
 -/*************************  CONCEAL MOUNT PROTECTOR  *************************/
-+/* Conceal mount protector. */
- 
--int SAKURA_MayMount(struct nameidata *nd)
 +/**
 + * check_conceal_mount - Check whether this mount request shadows existing
 + *                       mounts.
@@ -10268,7 +10275,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
 + */
 +static bool check_conceal_mount(struct nameidata *nd, struct vfsmount *vfsmnt,
 +				struct dentry *dentry)
- {
++{
 +	/***** CRITICAL SECTION START *****/
 +	while (1) {
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
@@ -10292,7 +10299,8 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
 +	return false;
 +	/***** CRITICAL SECTION END *****/
 +}
-+
+ 
+-int SAKURA_MayMount(struct nameidata *nd)
 +/**
 + * print_error - Print error message.
 + *
@@ -10303,7 +10311,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
 + * decision, negative value otherwise.
 + */
 +static int print_error(struct nameidata *nd, const u8 mode)
-+{
+ {
 +	int error = -EPERM;
 +	const bool is_enforce = (mode == 3);
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
@@ -10438,7 +10446,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
 -/***** SAKURA Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
 @@ -21,7 +21,7 @@
  #include <asm/uaccess.h>
@@ -10688,18 +10696,18 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 - *  Check whether the given filename follows the naming rules.
 - *  Returns true if follows, false otherwise.
 +/**
-+ *  ccs_is_correct_path - Check whether the given filename follows
-+ *                        the naming rules.
-+ *  @filename:     the pathname to check.
-+ *  @start_type:   the pathname should start with '/'?
-+ *                 1: must / -1:must not / 0:don't care
-+ *  @pattern_type: the pathname may contain a wildcard?
-+ *                 1: must / -1:must not / 0:don't care
-+ *  @end_type:     the pathname should end with '/'?
-+ *                 1: must / -1:must not / 0:don't care
-+ *  @function:     the name of function calling me.
++ * ccs_is_correct_path - Check whether the given filename follows
++ *                       the naming rules.
++ * @filename:     the pathname to check.
++ * @start_type:   the pathname should start with '/'?
++ *                1: must / -1:must not / 0:don't care
++ * @pattern_type: the pathname may contain a wildcard?
++ *                1: must / -1:must not / 0:don't care
++ * @end_type:     the pathname should end with '/'?
++ *                1: must / -1:must not / 0:don't care
++ * @function:     the name of function calling me.
 + *
-+ *  Returns true if @filename follows the naming rules, false otherwise.
++ * Returns true if @filename follows the naming rules, false otherwise.
   */
 -bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function)
 +bool ccs_is_correct_path(const char *filename, const s8 start_type,
@@ -10791,12 +10799,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 - *  Check whether the given domainname follows the naming rules.
 - *  Returns true if follows, false otherwise.
 +/**
-+ *  ccs_is_correct_domain - Check whether the given domainname follows
-+ *                          the naming rules.
-+ *  @domainname:   the domainname to check.
-+ *  @function:     the name of function calling me.
++ * ccs_is_correct_domain - Check whether the given domainname follows
++ *                         the naming rules.
++ * @domainname:   the domainname to check.
++ * @function:     the name of function calling me.
 + *
-+ *  Returns true if @domainname follows the naming rules, false otherwise.
++ * Returns true if @domainname follows the naming rules, false otherwise.
   */
 -bool IsCorrectDomain(const unsigned char *domainname, const char *function)
 +bool ccs_is_correct_domain(const unsigned char *domainname,
@@ -10864,11 +10872,11 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
 -bool IsDomainDef(const unsigned char *buffer)
 +/**
-+ *  ccs_is_domain_def - Check whether the given token can be a domainname.
++ * ccs_is_domain_def - Check whether the given token can be a domainname.
 + *
-+ *  @buffer: The token to check.
++ * @buffer: The token to check.
 + *
-+ *  Returns true if @buffer possibly be a domainname, false otherwise.
++ * Returns true if @buffer possibly be a domainname, false otherwise.
 + */
 +bool ccs_is_domain_def(const unsigned char *buffer)
  {
@@ -11000,7 +11008,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	const char *name = ptr->name;
  	const int len = strlen(name);
-@@ -337,118 +525,171 @@
+@@ -337,188 +525,277 @@
  	ptr->is_dir = len && (name[len - 1] == '/');
  	ptr->is_patterned = (ptr->const_len < len);
  	ptr->hash = full_name_hash(name, len);
@@ -11250,18 +11258,41 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
 -/*
 - *  Check whether the given pathname matches to the given pattern.
+- *  Returns true if matches, false otherwise.
 +/**
-+ *  ccs_path_matches_pattern - Check whether the given filename matches
-+ *                             the given pattern.
-+ *  @filename: The filename to check.
-+ *  @pattern:  The pattern to compare.
-+ *
-  *  Returns true if matches, false otherwise.
++ * ccs_path_matches_pattern - Check whether the given filename matches
++ *                            the given pattern.
++ * @filename: The filename to check.
++ * @pattern:  The pattern to compare.
   *
-  *  The following patterns are available.
-@@ -465,60 +706,96 @@
-  *    \a     1 alphabet character.
-  *    \-     Subtraction operator.
+- *  The following patterns are available.
+- *    \\     \ itself.
+- *    \ooo   Octal representation of a byte.
+- *    \*     More than or equals to 0 character other than '/'.
+- *    \@     More than or equals to 0 character other than '/' or '.'.
+- *    \?     1 byte character other than '/'.
+- *    \$     More than or equals to 1 decimal digit.
+- *    \+     1 decimal digit.
+- *    \X     More than or equals to 1 hexadecimal digit.
+- *    \x     1 hexadecimal digit.
+- *    \A     More than or equals to 1 alphabet character.
+- *    \a     1 alphabet character.
+- *    \-     Subtraction operator.
++ * Returns true if matches, false otherwise.
++ *
++ * The following patterns are available.
++ *   \\     \ itself.
++ *   \ooo   Octal representation of a byte.
++ *   \*     More than or equals to 0 character other than '/'.
++ *   \@     More than or equals to 0 character other than '/' or '.'.
++ *   \?     1 byte character other than '/'.
++ *   \$     More than or equals to 1 decimal digit.
++ *   \+     1 decimal digit.
++ *   \X     More than or equals to 1 hexadecimal digit.
++ *   \x     1 hexadecimal digit.
++ *   \A     More than or equals to 1 alphabet character.
++ *   \a     1 alphabet character.
++ *   \-     Subtraction operator.
   */
 -
 -bool PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0)
@@ -11331,14 +11362,14 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 - *  snprintf() will truncate, but io_printf() won't.
 - *  Returns zero on success, nonzero otherwise.
 +/**
-+ *  ccs_io_printf - Transactional printf() to "struct ccs_io_buffer" structure.
++ * ccs_io_printf - Transactional printf() to "struct ccs_io_buffer" structure.
 + *
-+ *  @head: Pointer to "struct ccs_io_buffer".
-+ *  @fmt:  The printf()'s format string, followed by parameters.
++ * @head: Pointer to "struct ccs_io_buffer".
++ * @fmt:  The printf()'s format string, followed by parameters.
 + *
-+ *  Returns true on success, false otherwise.
++ * Returns true on success, false otherwise.
 + *
-+ *  The snprintf() will truncate, but ccs_io_printf() won't.
++ * The snprintf() will truncate, but ccs_io_printf() won't.
   */
 -int io_printf(struct io_buffer *head, const char *fmt, ...)
 +bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
@@ -11531,10 +11562,10 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
 -bool TomoyoVerboseMode(void)
 +/**
-+ *  ccs_verbose_mode - Check whether TOMOYO is verbose mode.
++ * ccs_verbose_mode - Check whether TOMOYO is verbose mode.
 + *
-+ *  Returns true if domain policy violation warning should be printed to
-+ *  console.
++ * Returns true if domain policy violation warning should be printed to
++ * console.
 + */
 +bool ccs_verbose_mode(void)
  {
@@ -11794,7 +11825,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			case 3:
  				modes = mode_4;
  				break;
-@@ -754,41 +1159,61 @@
+@@ -754,41 +1159,59 @@
  				break;
  			}
  			if (modes) {
@@ -11817,9 +11848,8 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -/*************************  POLICY MANAGER HANDLER  *************************/
-+/* Policy manager handler. */
- 
-+/* The structure for policy manager. */
+-
++/* Structure for policy manager. */
  struct policy_manager_entry {
  	struct list1_head list;
 +	/* A path to program or a domainname. */
@@ -11867,7 +11897,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &policy_manager_list, list) {
  		if (ptr->manager == saved_manager) {
-@@ -801,71 +1226,100 @@
+@@ -801,71 +1224,100 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -11991,13 +12021,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			last_pid = pid;
  		}
  	}
-@@ -875,21 +1329,38 @@
+@@ -875,21 +1327,36 @@
  
  #ifdef CONFIG_TOMOYO
  
 -/*************************  DOMAIN POLICY HANDLER  *************************/
-+/* Domain policy handler. */
- 
+-
 -static char *FindConditionPart(char *data)
 +/**
 + * ccs_find_condition_part - Find condition part from the statement.
@@ -12035,7 +12064,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	char *data = head->write_buf;
  	struct domain_info *domain = head->write_var1;
-@@ -897,79 +1368,105 @@
+@@ -897,79 +1364,105 @@
  	unsigned int profile;
  	const struct condition_list *cond = NULL;
  	char *cp;
@@ -12184,7 +12213,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
  	head->read_bit = 0;
  	return true;
-@@ -979,23 +1476,49 @@
+@@ -979,23 +1472,49 @@
  	return false;
  }
  
@@ -12244,7 +12273,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
  	head->read_bit = 0;
  	return true;
-@@ -1005,145 +1528,352 @@
+@@ -1005,145 +1524,352 @@
  	return false;
  }
  
@@ -12676,7 +12705,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		head->read_step = 1;
  	}
  	head->read_eof = true;
-@@ -1152,43 +1882,91 @@
+@@ -1152,43 +1878,91 @@
  
  #endif
  
@@ -12779,7 +12808,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	if (head->read_avail == 0 && !head->read_eof) {
  		const int pid = head->read_step;
-@@ -1197,91 +1975,126 @@
+@@ -1197,91 +1971,124 @@
  		/***** CRITICAL SECTION START *****/
  		read_lock(&tasklist_lock);
  		p = find_task_by_pid(pid);
@@ -12802,8 +12831,6 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  #ifdef CONFIG_TOMOYO
  
 -static int AddExceptionPolicy(struct io_buffer *head)
-+/* Exception policy handler. */
-+
 +/**
 + * write_exception_policy - Write exception policy.
 + *
@@ -12963,7 +12990,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_eof = true;
  			break;
  		default:
-@@ -1293,52 +2106,74 @@
+@@ -1293,52 +2100,72 @@
  
  #endif
  
@@ -12972,8 +12999,6 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  #ifdef CONFIG_SAKURA
  
 -static int AddSystemPolicy(struct io_buffer *head)
-+/* System policy handler. */
-+
 +/**
 + * write_system_policy - Write system policy.
 + *
@@ -13066,7 +13091,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_eof = true;
  			break;
  		default:
-@@ -1350,58 +2185,95 @@
+@@ -1350,58 +2177,95 @@
  
  #endif
  
@@ -13193,7 +13218,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		call_usermodehelper(argv[0], argv, envp, 1);
  #else
  		call_usermodehelper(argv[0], argv, envp);
-@@ -1412,29 +2284,35 @@
+@@ -1412,29 +2276,33 @@
  		}
  	}
  #ifdef CONFIG_SAKURA
@@ -13222,8 +13247,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
 -/*************************  MAC Decision Delayer  *************************/
-+/* Interactive enforcement handler. */
- 
+-
 +/* Wait queue for query_list. */
  static DECLARE_WAIT_QUEUE_HEAD(query_wait);
  
@@ -13231,11 +13255,11 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +/* Lock for manipurating query_list. */
 +static DEFINE_SPINLOCK(query_lock);
  
-+/* The structure for query. */
++/* Structure for query. */
  struct query_entry {
  	struct list_head list;
  	char *query;
-@@ -1444,38 +2322,55 @@
+@@ -1444,38 +2312,55 @@
  	int answer;
  };
  
@@ -13303,7 +13327,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	va_start(args, fmt);
  	vsnprintf(query_entry->query + pos, len - 1 - pos, fmt, args);
  	query_entry->query_len = strlen(query_entry->query) + 1;
-@@ -1485,15 +2380,18 @@
+@@ -1485,15 +2370,18 @@
  	list_add_tail(&query_entry->list, &query_list);
  	spin_unlock(&query_lock);
  	/***** CRITICAL SECTION END *****/
@@ -13326,7 +13350,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	/***** CRITICAL SECTION START *****/
  	spin_lock(&query_lock);
  	list_del(&query_entry->list);
-@@ -1511,13 +2409,24 @@
+@@ -1511,13 +2399,24 @@
  		/* Rejected by administrator. */
  		break;
  	}
@@ -13354,7 +13378,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	bool found;
  	/***** CRITICAL SECTION START *****/
-@@ -1525,31 +2434,43 @@
+@@ -1525,31 +2424,43 @@
  	found = !list_empty(&query_list);
  	spin_unlock(&query_lock);
  	/***** CRITICAL SECTION END *****/
@@ -13404,7 +13428,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (pos++ == head->read_step) {
  			len = ptr->query_len;
  			break;
-@@ -1561,22 +2482,29 @@
+@@ -1561,22 +2472,29 @@
  		head->read_step = 0;
  		return 0;
  	}
@@ -13439,7 +13463,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_buf = buf;
  			head->read_step++;
  		} else {
-@@ -1586,7 +2514,14 @@
+@@ -1586,7 +2504,14 @@
  	return 0;
  }
  
@@ -13455,7 +13479,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	char *data = head->write_buf;
  	struct list_head *tmp;
-@@ -1594,18 +2529,23 @@
+@@ -1594,18 +2519,23 @@
  	/***** CRITICAL SECTION START *****/
  	spin_lock(&query_lock);
  	list_for_each(tmp, &query_list) {
@@ -13484,7 +13508,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		break;
  	}
  	spin_unlock(&query_lock);
-@@ -1613,22 +2553,37 @@
+@@ -1613,22 +2543,37 @@
  	return 0;
  }
  
@@ -13528,7 +13552,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	if (!head->read_eof) {
  		unsigned int counter[MAX_CCS_UPDATES_COUNTER];
-@@ -1638,187 +2593,292 @@
+@@ -1638,187 +2583,292 @@
  		memset(updates_counter, 0, sizeof(updates_counter));
  		spin_unlock(&updates_counter_lock);
  		/***** CRITICAL SECTION END *****/
@@ -13923,7 +13947,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	while (avail_len > 0) {
  		char c;
  		if (head->write_avail >= head->writebuf_size - 1) {
-@@ -1828,32 +2888,69 @@
+@@ -1828,32 +2878,69 @@
  			error = -EFAULT;
  			break;
  		}
@@ -14005,7 +14029,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  {
  	int len;
  	struct acl_info *ptr;
-@@ -1886,20 +2983,40 @@
+@@ -1886,20 +2973,40 @@
  	default:
  		return NULL;
  	}
@@ -14055,7 +14079,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(working copy)
 @@ -23,47 +23,115 @@
  
@@ -14299,9 +14323,9 @@ Index: trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c
  #else
 Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(working copy)
-@@ -11,26 +11,32 @@
+@@ -11,26 +11,33 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -14313,6 +14337,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  
 -/***** The structure for reserved ports. *****/
 -
++/* Structure for "deny_autobind" keyword. */
  struct reserved_entry {
  	struct list1_head list;
 -	bool is_deleted;             /* Delete flag.                          */
@@ -14330,7 +14355,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  
 -static int AddReservedEntry(const u16 min_port, const u16 max_port, const bool is_delete)
 +/**
-+ * update_reserved_entry -
++ * update_reserved_entry - Update "struct reserved_entry" list.
 + *
 + * @min_port: Start of port number range.
 + * @max_port: End of port number range.
@@ -14343,7 +14368,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  {
  	struct reserved_entry *new_entry, *ptr;
  	static DEFINE_MUTEX(lock);
-@@ -47,7 +53,9 @@
+@@ -47,7 +54,9 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -14354,13 +14379,14 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  	new_entry->min_port = min_port;
  	new_entry->max_port = max_port;
  	list1_add_tail_mb(&new_entry->list, &reservedport_list);
-@@ -57,46 +65,85 @@
+@@ -57,46 +66,86 @@
  	return error;
  }
  
 -int SAKURA_MayAutobind(const u16 port)
 +/**
-+ * ccs_may_autobind -
++ * ccs_may_autobind - Check permission for bind()'s automatic port number
++ *                    selection.
 + *
 + * @port: Port number.
 + *
@@ -14389,7 +14415,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  
 -int AddReservedPortPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_reserved_port_policy -
++ * ccs_write_reserved_port_policy - Write "struct reserved_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -14420,7 +14446,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  
 -int ReadReservedPortPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_reserved_port_policy -
++ * ccs_read_reserved_port_policy - Dump "struct reserved_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -14462,9 +14488,9 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 -/***** SAKURA Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
-@@ -11,73 +11,130 @@
+@@ -11,73 +11,126 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -14482,11 +14508,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  #endif
  
 -/*************************  AUDIT FUNCTIONS  *************************/
-+/* Auditing functions. */
- 
+-
 -static int AuditSignalLog(const int signal, const struct path_info *dest_domain, const bool is_granted, const u8 profile, const u8 mode)
 +/**
-+ * audit_signal_log -
++ * audit_signal_log - Audit signal log.
 + *
 + * @signal:      Signal number.
 + * @dest_domain: Destination domainname.
@@ -14519,11 +14544,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  }
  
 -/*************************  SIGNAL ACL HANDLER  *************************/
-+/* Signal ACL handler. */
- 
+-
 -static int AddSignalEntry(const int sig, const char *dest_pattern, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * update_signal_acl -
++ * update_signal_acl - Update "struct signal_acl_record" list.
 + *
 + * @sig:          Signal number.
 + * @dest_pattern: Destination domainname.
@@ -14623,7 +14647,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  
 -int CheckSignalACL(const int sig, const int pid)
 +/**
-+ * ccs_check_signal_acl -
++ * ccs_check_signal_acl - Check permission for signal.
 + *
 + * @sig: Signal number.
 + * @pid: Target's PID.
@@ -14634,7 +14658,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  {
  	struct domain_info *domain = current->domain_info;
  	struct domain_info *dest = NULL;
-@@ -85,62 +142,92 @@
+@@ -85,62 +138,92 @@
  	struct acl_info *ptr;
  	const u16 hash = sig;
  	const u8 profile = current->domain_info->profile;
@@ -14730,7 +14754,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  
 -int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * ccs_write_signal_policy -
++ * ccs_write_signal_policy - Write "struct signal_acl_record" list.
 + *
 + * @data:      String to parse.
 + * @domain:    Pointer to "struct domain_info".
@@ -14750,15 +14774,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 -	}
 +	if (sscanf(data, "%d", &sig) == 1 && domainname &&
 +	    ccs_is_domain_def(domainname + 1))
-+		return update_signal_acl(sig, domainname + 1, domain, condition,
-+					 is_delete);
++		return update_signal_acl(sig, domainname + 1, domain,
++					 condition, is_delete);
  	return -EINVAL;
  }
 -
 -/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
 @@ -11,7 +11,6 @@
   * See README.ccs for ChangeLog.
@@ -14768,16 +14792,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
  #include <linux/ccs_common.h>
  #include <linux/tomoyo.h>
-@@ -19,41 +18,37 @@
+@@ -19,41 +18,35 @@
  #include <linux/binfmts.h>
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
 -/*************************  VARIABLES  *************************/
-+/* Variables. */
- 
+-
 -/***** The structure for globally readable files. *****/
 -
-+/* The structure for "allow_read" entry. */
++/* Structure for "allow_read" keyword. */
  struct globally_readable_file_entry {
  	struct list1_head list;
  	const struct path_info *filename;
@@ -14786,7 +14809,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -/***** The structure for filename patterns. *****/
 -
-+/* The structure for "file_pattern" entry. */
++/* Structure for "file_pattern" keyword. */
  struct pattern_entry {
  	struct list1_head list;
  	const struct path_info *pattern;
@@ -14795,7 +14818,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -/***** The structure for non-rewritable-by-default file patterns. *****/
 -
-+/* The structure for "deny_rewrite" entry. */
++/* Structure for "deny_rewrite" keyword. */
  struct no_rewrite_entry {
  	struct list1_head list;
  	const struct path_info *pattern;
@@ -14816,7 +14839,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	[TYPE_MKDIR_ACL]      = "mkdir",
  	[TYPE_RMDIR_ACL]      = "rmdir",
  	[TYPE_MKFIFO_ACL]     = "mkfifo",
-@@ -65,81 +60,160 @@
+@@ -65,81 +58,157 @@
  	[TYPE_REWRITE_ACL]    = "rewrite",
  };
  
@@ -14829,8 +14852,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  };
  
 -/*************************  UTILITY FUNCTIONS  *************************/
-+/* Utility functions. */
- 
+-
 -const char *sp_operation2keyword(const u8 operation)
 +/**
 + * ccs_sp2keyword - Get the name of single path operation.
@@ -14924,7 +14946,6 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
 -/*************************  PROTOTYPES  *************************/
-+/* Prototypes. */
 +static int update_double_path_acl(const u8 type, const char *filename1,
 +				  const char *filename2,
 +				  struct domain_info * const domain,
@@ -14988,7 +15009,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -static int AddGloballyReadableEntry(const char *filename, const bool is_delete)
 +/**
 + * update_globally_readable_entry - Update "struct globally_readable_file_entry"
-+ *                                  policy.
++ *                                  list.
 + *
 + * @filename:  Filename unconditionally permitted to open() for reading.
 + * @is_delete: True if it is a delete request.
@@ -15012,7 +15033,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &globally_readable_list, list) {
  		if (ptr->filename == saved_filename) {
-@@ -149,48 +223,95 @@
+@@ -149,48 +218,93 @@
  		}
  	}
  	if (is_delete) {
@@ -15101,14 +15122,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
 -/*************************  FILE GROUP HANDLER  *************************/
-+/* "path_group" handler. */
- 
+-
 +/* The list for "struct path_group_entry". */
  static LIST1_HEAD(path_group_list);
  
 -static int AddPathGroupEntry(const char *group_name, const char *member_name, const bool is_delete)
 +/**
-+ * update_path_group_entry -
++ * update_path_group_entry - Update "struct path_group_entry" list.
 + *
 + * @group_name:  The name of group.
 + * @member_name: The name of group's member.
@@ -15122,7 +15142,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  {
  	static DEFINE_MUTEX(lock);
  	struct path_group_entry *new_group, *group;
-@@ -198,14 +319,21 @@
+@@ -198,14 +312,21 @@
  	const struct path_info *saved_group_name, *saved_member_name;
  	int error = -ENOMEM;
  	bool found = false;
@@ -15150,7 +15170,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  			if (member->member_name == saved_member_name) {
  				member->is_deleted = is_delete;
  				error = 0;
-@@ -220,13 +348,17 @@
+@@ -220,13 +341,17 @@
  		goto out;
  	}
  	if (!found) {
@@ -15170,13 +15190,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	new_member->member_name = saved_member_name;
  	list1_add_tail_mb(&new_member->list, &group->path_group_member_list);
  	error = 0;
-@@ -235,73 +367,131 @@
+@@ -235,73 +360,132 @@
  	return error;
  }
  
 -int AddPathGroupPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_path_group_policy -
++ * ccs_write_path_group_policy - Write "struct path_group_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -15196,7 +15216,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -static struct path_group_entry *FindOrAssignNewPathGroup(const char *group_name)
 +/**
-+ * find_or_assign_new_path_group -
++ * find_or_assign_new_path_group - Create pathname group.
 + *
 + * @group_name: The name of group.
 + *
@@ -15225,7 +15245,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -static bool PathMatchesToGroup(const struct path_info *pathname, const struct path_group_entry *group, const bool may_use_pattern)
 +/**
-+ * path_matches_group -
++ * path_matches_group - Check whether the given pathname matches members of
++ *                      the given pathname group.
 + *
 + * @pathname:        The name of pathname.
 + * @group:           Pointer to "struct path_group_entry".
@@ -15258,7 +15279,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -int ReadPathGroupPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_path_group_policy -
++ * ccs_read_path_group_policy - Dump "struct path_group_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -15324,7 +15345,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &pattern_list, list) {
  		if (saved_pattern == ptr->pattern) {
-@@ -314,7 +504,9 @@
+@@ -314,7 +498,9 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -15335,7 +15356,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	new_entry->pattern = saved_pattern;
  	list1_add_tail_mb(&new_entry->list, &pattern_list);
  	error = 0;
-@@ -323,13 +515,23 @@
+@@ -323,13 +509,23 @@
  	return error;
  }
  
@@ -15362,7 +15383,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		pattern = ptr->pattern;
  		if (strendswith(pattern->name, "/\\*")) {
  			/* Do nothing. Try to find the better match. */
-@@ -338,39 +540,70 @@
+@@ -338,39 +534,70 @@
  			break;
  		}
  	}
@@ -15374,7 +15395,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -int AddFilePatternPolicy(char *pattern, const bool is_delete)
 +/**
-+ * ccs_write_pattern_policy - Write "struct pattern_entry" policy.
++ * ccs_write_pattern_policy - Write "struct pattern_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -15389,7 +15410,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -int ReadFilePatternPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_file_pattern - Dump "struct pattern_entry" policy.
++ * ccs_read_file_pattern - Dump "struct pattern_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
@@ -15445,7 +15466,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &no_rewrite_list, list) {
  		if (ptr->pattern == saved_pattern) {
-@@ -383,7 +616,9 @@
+@@ -383,7 +610,9 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -15456,7 +15477,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	new_entry->pattern = saved_pattern;
  	list1_add_tail_mb(&new_entry->list, &no_rewrite_list);
  	error = 0;
-@@ -392,187 +627,379 @@
+@@ -392,187 +621,377 @@
  	return error;
  }
  
@@ -15529,11 +15550,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
 -/*************************  FILE ACL HANDLER  *************************/
-+/* File ACL handler. */
- 
+-
 -static int AddFileACL(const char *filename, u8 perm, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * update_file_acl -
++ * update_file_acl - Update file's read/write/execute ACL.
 + *
 + * @filename:  Filename.
 + * @perm:      Permission (between 1 to 7).
@@ -15585,7 +15605,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -static int CheckSinglePathACL2(const struct path_info *filename, const u16 perm, struct obj_info *obj, const bool may_use_pattern)
 +/**
-+ * check_single_path_acl2 -
++ * check_single_path_acl2 - Check permission for single path operation.
 + *
 + * @filename:        Filename to check.
 + * @obj:             Pointer to "struct obj_info".
@@ -15743,7 +15763,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -static int AddExecuteHandler(const bool is_preferred, const char *filename, struct domain_info * const domain, const bool is_delete)
 +/**
-+ * update_execute_handler - Update "struct execute_handler_record" policy.
++ * update_execute_handler - Update "struct execute_handler_record" list.
 + *
 + * @type:      Type of execute handler.
 + * @filename:  Pathname to the execute handler.
@@ -15839,7 +15859,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * ccs_write_file_policy - Update file related policy.
++ * ccs_write_file_policy - Update file related list.
 + *
 + * @data:      String to parse.
 + * @domain:    Pointer to "struct domain_info".
@@ -15911,7 +15931,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -static int AddSinglePathACL(const u8 type, const char *filename, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * update_single_path_acl - Update "struct single_path_acl_record" policy.
++ * update_single_path_acl - Update "struct single_path_acl_record" list.
 + *
 + * @type:      Type of operation.
 + * @filename:  Filename.
@@ -15928,7 +15948,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  {
  	static const u16 rw_mask = (1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL);
  	const struct path_info *saved_filename;
-@@ -581,55 +1008,93 @@
+@@ -581,55 +1000,93 @@
  	int error = -ENOMEM;
  	bool is_group = false;
  	const u16 perm = 1 << type;
@@ -16042,7 +16062,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -static int AddDoublePathACL(const u8 type, const char *filename1, const char *filename2, struct domain_info * const domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * update_double_path_acl - Update "struct double_path_acl_record" policy.
++ * update_double_path_acl - Update "struct double_path_acl_record" list.
 + *
 + * @type:      Type of operation.
 + * @filename1: First filename.
@@ -16061,7 +16081,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  {
  	const struct path_info *saved_filename1, *saved_filename2;
  	struct acl_info *ptr;
-@@ -637,276 +1102,459 @@
+@@ -637,276 +1094,459 @@
  	int error = -ENOMEM;
  	bool is_group1 = false, is_group2 = false;
  	const u8 perm = 1 << type;
@@ -16361,7 +16381,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 -int CheckExecPerm(const struct path_info *filename, struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 +/**
-+ * ccs_check_exec_perm -
++ * ccs_check_exec_perm - Check permission for "execute".
 + *
 + * @filename: Check permission for "execute".
 + * @bprm:     Pointer to "struct linux_binprm".
@@ -16695,9 +16715,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(working copy)
-@@ -11,22 +11,33 @@
+@@ -11,22 +11,31 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -16708,10 +16728,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  #include <linux/realpath.h>
  
 -/*************************  UTILITY FUNCTIONS  *************************/
-+/* Utility functions. */
- 
+-
 +/**
-+ * cap_operation2name -
++ * cap_operation2name - Convert capability operation to capability message.
 + *
 + * @operation: Type of operation.
 + *
@@ -16738,7 +16757,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  		[TOMOYO_USE_ROUTE_SOCKET]           = "socket(PF_ROUTE)",
  		[TOMOYO_USE_PACKET_SOCKET]          = "socket(PF_PACKET)",
  		[TOMOYO_SYS_MOUNT]                  = "sys_mount()",
-@@ -54,96 +65,170 @@
+@@ -54,96 +63,166 @@
  		[TOMOYO_SYS_PIVOT_ROOT]             = "sys_pivot_root()",
  		[TOMOYO_SYS_PTRACE]                 = "sys_ptrace()",
  	};
@@ -16749,11 +16768,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  }
  
 -/*************************  AUDIT FUNCTIONS  *************************/
-+/* Auditing functions. */
- 
+-
 -static int AuditCapabilityLog(const u8 operation, const bool is_granted, const u8 profile, const u8 mode)
 +/**
-+ * audit_capability_log -
++ * audit_capability_log - Audit capability log.
 + *
 + * @operation:  Type of operation.
 + * @is_granted: True if this is a granted log.
@@ -16784,11 +16802,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  }
  
 -/*************************  CAPABILITY ACL HANDLER  *************************/
-+/* "allow_capability" handler. */
- 
+-
 -static int AddCapabilityACL(const u8 operation, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * update_capability_acl -
++ * update_capability_acl - Update "struct capability_acl_record" list.
 + *
 + * @operation: Type of operation.
 + * @domain:    Pointer to "struct domain_info".
@@ -16935,7 +16952,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  
 -int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * ccs_write_capability_policy -
++ * ccs_write_capability_policy - Write "struct capability_acl_record" list.
 + *
 + * @data:      String to parse.
 + * @domain:    Pointer to "struct domain_info".
@@ -16965,7 +16982,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
 -/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(working copy)
 @@ -11,7 +11,6 @@
   * See README.ccs for ChangeLog.
@@ -16975,17 +16992,19 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  
  #include <linux/ccs_common.h>
  #include <linux/realpath.h>
-@@ -21,18 +20,129 @@
+@@ -21,18 +20,131 @@
  #include <linux/highmem.h>
  #include <linux/binfmts.h>
  
 -static bool ScanBprm(struct linux_binprm *bprm, const bool is_argv, unsigned long index, const struct path_info *name, const struct path_info *value, bool *failed, struct ccs_page_buffer *tmp)
++/* Structure for argv[]. */
 +struct argv_entry {
 +	unsigned int index;
 +	const struct path_info *value;
 +	bool is_not;
 +};
 +
++/* Structure for envp[]. */
 +struct envp_entry {
 +	const struct path_info *name;
 +	const struct path_info *value;
@@ -17115,7 +17134,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  	*/
  	char *arg_ptr = tmp->buffer;
  	int arg_len = 0;
-@@ -40,14 +150,25 @@
+@@ -40,14 +152,25 @@
  	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
  	int argv_count = bprm->argc;
  	int envp_count = bprm->envc;
@@ -17146,7 +17165,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  			goto out;
  		}
  		pos += PAGE_SIZE - offset;
-@@ -57,11 +178,11 @@
+@@ -57,11 +180,11 @@
  		/* Map. */
  		kaddr = kmap(page);
  		if (!kaddr) { /* Mapping failed. */
@@ -17161,7 +17180,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  			goto out;
  		}
  		while (offset < PAGE_SIZE) {
-@@ -78,45 +199,36 @@
+@@ -78,45 +201,36 @@
  				} else {
  					arg_ptr[arg_len++] = '\\';
  					arg_ptr[arg_len++] = (c >> 6) + '0';
@@ -17222,7 +17241,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  			} else {
  				break;
  			}
-@@ -124,63 +236,237 @@
+@@ -124,63 +238,238 @@
  		}
  		/* Unmap. */
  		kunmap(page);
@@ -17353,6 +17372,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -	unsigned long value;
 -};
 -
++/* Structure for " if " and "; set" part. */
  struct condition_list {
  	struct list1_head list;
 -	u32 length;
@@ -17480,7 +17500,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  static LIST1_HEAD(condition_list);
  
  #define TASK_UID          0
-@@ -204,12 +490,10 @@
+@@ -204,12 +493,10 @@
  #define PATH2_PARENT_INO 18
  #define EXEC_ARGC        19
  #define EXEC_ENVC        20
@@ -17497,7 +17517,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  
  static struct {
  	const char *keyword;
-@@ -236,292 +520,360 @@
+@@ -236,292 +523,360 @@
  	[PATH2_PARENT_INO] = { "path2.parent.ino",  16 },
  	[EXEC_ARGC]        = { "exec.argc",          9 },
  	[EXEC_ENVC]        = { "exec.envc",          9 },
@@ -18103,7 +18123,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  			/* Nothing to do. */
  		} else {
  			obj->path1_stat.uid = inode->i_uid;
-@@ -531,12 +883,15 @@
+@@ -531,12 +886,15 @@
  		}
  	}
  
@@ -18120,7 +18140,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  			/* Nothing to do. */
  		} else {
  			obj->path1_parent_stat.uid = inode->i_uid;
-@@ -548,12 +903,15 @@
+@@ -548,12 +906,15 @@
  	dput(dentry);
  
  	if (obj->path2_vfsmnt) {
@@ -18137,7 +18157,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  				/* Nothing to do. */
  			} else {
  				obj->path2_parent_stat.uid = inode->i_uid;
-@@ -566,7 +924,7 @@
+@@ -566,7 +927,7 @@
  	}
  }
  #else
@@ -18146,7 +18166,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  {
  	struct vfsmount *mnt;
  	struct dentry *dentry;
-@@ -601,7 +959,8 @@
+@@ -601,7 +962,8 @@
  	}
  	dput(dentry);
  
@@ -18156,7 +18176,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  		dentry = dget_parent(obj->path2_dentry);
  		inode = dentry->d_inode;
  		if (inode) {
-@@ -619,251 +978,455 @@
+@@ -619,251 +981,455 @@
  }
  #endif
  
@@ -18808,9 +18828,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(working copy)
-@@ -11,113 +11,199 @@
+@@ -11,113 +11,195 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -18821,11 +18841,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  #include <linux/realpath.h>
  
 -/*************************  AUDIT FUNCTIONS  *************************/
-+/* Auditing functions. */
- 
+-
 -static int AuditArgv0Log(const struct path_info *filename, const char *argv0, const bool is_granted, const u8 profile, const u8 mode)
 +/**
-+ * audit_argv0_log -
++ * audit_argv0_log - Audit argv[0] log.
 + *
 + * @filename:   The fullpath of program.
 + * @argv0:      The basename of argv[0].
@@ -18859,11 +18878,10 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  }
  
 -/*************************  ARGV0 MISMATCH HANDLER  *************************/
-+/* argv[0] mismatch handler. */
- 
+-
 -static int AddArgv0Entry(const char *filename, const char *argv0, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * update_argv0_entry -
++ * update_argv0_entry - Update "struct argv0_acl_record" list.
 + *
 + * @filename:  The fullpath of the program.
 + * @argv0:     The basename of argv[0].
@@ -18962,7 +18980,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  
 -static int CheckArgv0ACL(const struct path_info *filename, const char *argv0_)
 +/**
-+ * check_argv0_acl -
++ * check_argv0_acl - Check permission for argv[0].
 + *
 + * @filename: The fullpath of the program.
 + * @argv0:    The basename of argv[0].
@@ -19003,7 +19021,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  
 -int CheckArgv0Perm(const struct path_info *filename, const char *argv0)
 +/**
-+ * ccs_check_argv0_perm -
++ * ccs_check_argv0_perm - Check permission for argv[0].
 + *
 + * @filename: The fullpath of the program.
 + * @argv0:    The basename of argv[0].
@@ -19049,7 +19067,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  
 -int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
 +/**
-+ * ccs_write_argv0_policy -
++ * ccs_write_argv0_policy - Write "struct argv0_acl_record" list.
 + *
 + * @data:      String to parse.
 + * @domain:    Pointer to "struct domain_info".
@@ -19074,9 +19092,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
 -/***** TOMOYO Linux end. *****/
 Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 1045)
+--- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 1049)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
-@@ -11,18 +11,17 @@
+@@ -11,37 +11,45 @@
   * See README.ccs for ChangeLog.
   *
   */
@@ -19094,22 +19112,22 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  #endif
  
 -/***** The structure for unmount restrictions. *****/
-+/* The structure for unmount restrictions. */
- 
+-
++/* Structure for "deny_unmount" keyword. */
  struct no_umount_entry {
  	struct list1_head list;
-@@ -30,18 +29,29 @@
+ 	const struct path_info *dir;
  	bool is_deleted;
  };
  
 -/*************************  UMOUNT RESTRICTION HANDLER  *************************/
-+/* Unmount restriction handler. */
- 
+-
++/* The list for "struct no_umount_entry". */
  static LIST1_HEAD(no_umount_list);
  
 -static int AddNoUmountACL(const char *dir, const bool is_delete)
 +/**
-+ * update_no_umount_acl -
++ * update_no_umount_acl - Update "struct no_umount_entry" list.
 + *
 + * @dir:       The name of directrory.
 + * @is_delete: True if it is a delete request.
@@ -19132,7 +19150,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  	mutex_lock(&lock);
  	list1_for_each_entry(ptr, &no_umount_list, list) {
  		if (ptr->dir == saved_dir) {
-@@ -54,66 +64,104 @@
+@@ -54,66 +62,104 @@
  		error = -ENOENT;
  		goto out;
  	}
@@ -19152,7 +19170,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  
 -int SAKURA_MayUmount(struct vfsmount *mnt)
 +/**
-+ * ccs_may_umount -
++ * ccs_may_umount - Check permission for unmount.
 + *
 + * @mnt: Pointer to "struct vfsmount".
 + *
@@ -19216,7 +19234,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  
 -int AddNoUmountPolicy(char *data, const bool is_delete)
 +/**
-+ * ccs_write_no_umount_policy -
++ * ccs_write_no_umount_policy - Write "struct no_umount_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
@@ -19231,7 +19249,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  
 -int ReadNoUmountPolicy(struct io_buffer *head)
 +/**
-+ * ccs_read_no_umount_policy -
++ * ccs_read_no_umount_policy - Dump "struct no_umount_entry" list.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
