@@ -189,8 +189,7 @@ static int audit_file_log(const char *operation,
 static LIST1_HEAD(globally_readable_list);
 
 /**
- * update_globally_readable_entry - Update "struct globally_readable_file_entry"
- *                                  list.
+ * update_globally_readable_entry - Update "struct globally_readable_file_entry" list.
  *
  * @filename:  Filename unconditionally permitted to open() for reading.
  * @is_delete: True if it is a delete request.
@@ -233,8 +232,7 @@ static int update_globally_readable_entry(const char *filename,
 }
 
 /**
- * is_globally_readable_file - Check if the file is unconditionnaly permitted
- *                             to be open()ed for reading.
+ * is_globally_readable_file - Check if the file is unconditionnaly permitted to be open()ed for reading.
  *
  * @filename: The filename to check.
  *
@@ -251,8 +249,7 @@ static bool is_globally_readable_file(const struct path_info *filename)
 }
 
 /**
- * ccs_write_globally_readable_policy - Write "struct
- *                                      globally_readable_file_entry" list.
+ * ccs_write_globally_readable_policy - Write "struct globally_readable_file_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -265,8 +262,7 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_globally_readable_policy - Dump "struct
- *                                     globally_readable_file_entry" list.
+ * ccs_read_globally_readable_policy - Read "struct globally_readable_file_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -403,8 +399,7 @@ find_or_assign_new_path_group(const char *group_name)
 }
 
 /**
- * path_matches_group - Check whether the given pathname matches members of
- *                      the given pathname group.
+ * path_matches_group - Check whether the given pathname matches members of the given pathname group.
  *
  * @pathname:        The name of pathname.
  * @group:           Pointer to "struct path_group_entry".
@@ -433,7 +428,7 @@ static bool path_matches_group(const struct path_info *pathname,
 }
 
 /**
- * ccs_read_path_group_policy - Dump "struct path_group_entry" list.
+ * ccs_read_path_group_policy - Read "struct path_group_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -553,7 +548,7 @@ int ccs_write_pattern_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_file_pattern - Dump "struct pattern_entry" list.
+ * ccs_read_file_pattern - Read "struct pattern_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -622,8 +617,7 @@ static int update_no_rewrite_entry(const char *pattern, const bool is_delete)
 }
 
 /**
- * is_no_rewrite_file - Check if the given pathname is not permitted to
- *                      be rewrited.
+ * is_no_rewrite_file - Check if the given pathname is not permitted to be rewrited.
  *
  * @filename: Filename to check.
  *
@@ -657,7 +651,7 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_no_rewrite_policy - Dump "struct no_rewrite_entry" list.
+ * ccs_read_no_rewrite_policy - Read "struct no_rewrite_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -728,6 +722,7 @@ static int update_file_acl(const char *filename, u8 perm,
  * check_single_path_acl2 - Check permission for single path operation.
  *
  * @filename:        Filename to check.
+ * @perm:            Permission.
  * @obj:             Pointer to "struct obj_info".
  * @may_use_pattern: True if patterned ACL is permitted.
  *
@@ -1396,10 +1391,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 }
 
 /**
- * ccs_check_single_path_permission - Check permission for "create", "unlink",
- *                                    "mkdir", "rmdir", "mkfifo", "mksock",
- *                                    "mkblock", "mkchar", "truncate" and
- *                                    "symlink".
+ * ccs_check_1path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "mkblock", "mkchar", "truncate" and "symlink".
  *
  * @operation: Type of operation.
  * @dentry:    Pointer to "struct dentry".
@@ -1407,7 +1399,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_single_path_permission(const u8 operation, struct dentry *dentry,
+int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 				     struct vfsmount *mnt)
 {
 	struct obj_info obj;
@@ -1441,7 +1433,7 @@ int ccs_check_single_path_permission(const u8 operation, struct dentry *dentry,
 	return error;
 }
 /* I need to export this for net/unix/af_unix.c  */
-EXPORT_SYMBOL(ccs_check_single_path_permission);
+EXPORT_SYMBOL(ccs_check_1path_perm);
 
 /**
  * ccs_check_rewrite_permission - Check permission for "rewrite".
@@ -1477,7 +1469,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 }
 
 /**
- * ccs_check_double_path_permission - Check permission for "rename" and "link".
+ * ccs_check_2path_perm - Check permission for "rename" and "link".
  *
  * @operation: Type of operation.
  * @dentry1:   Pointer to "struct dentry".
@@ -1487,7 +1479,7 @@ int ccs_check_rewrite_permission(struct file *filp)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_double_path_permission(const u8 operation,
+int ccs_check_2path_perm(const u8 operation,
 				     struct dentry *dentry1,
 				     struct vfsmount *mnt1,
 				     struct dentry *dentry2,

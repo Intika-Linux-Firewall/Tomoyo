@@ -161,7 +161,7 @@ int ccs_write_chroot_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_chroot_policy - Dump "struct chroot_entry" list.
+ * ccs_read_chroot_policy - Read "struct chroot_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *

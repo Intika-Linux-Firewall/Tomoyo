@@ -69,8 +69,8 @@ static int ccs_release(struct inode *inode, struct file *file)
 /**
  * ccs_poll - poll() for /proc/ccs/ interface.
  *
- * @file:       Pointer to "struct file".
- * @poll_table: Pointer to "poll_table".
+ * @file: Pointer to "struct file".
+ * @wait: Pointer to "poll_table".
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -123,6 +123,9 @@ static struct file_operations ccs_operations = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 /**
  * proc_notify_change - Update inode's attributes and reflect to the dentry.
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @iattr:  Pointer to "struct iattr".
  *
  * Returns 0 on success, negative value otherwise.
  *

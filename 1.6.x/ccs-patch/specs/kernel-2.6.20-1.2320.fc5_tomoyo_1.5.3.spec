@@ -1209,7 +1209,6 @@ find -name "*.p.xen" | xargs rm -f
 %patch21208 -p1
 
 # TOMOYO Linux
-# wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.5.3-20080131.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2320.fc5/" -- Makefile
 patch -sp1 < patches/ccs-patch-2.6.20-1.2320.fc5.diff

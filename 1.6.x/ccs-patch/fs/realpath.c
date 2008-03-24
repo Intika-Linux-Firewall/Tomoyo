@@ -179,8 +179,7 @@ static int get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
 }
 
 /**
- * ccs_realpath_from_dentry2 - Returns realpath(3) of the given dentry
- *                             but ignores chroot'ed root.
+ * ccs_realpath_from_dentry2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
  *
  * @dentry:      Pointer to "struct dentry".
  * @mnt:         Pointer to "struct vfsmount".
@@ -216,8 +215,7 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 }
 
 /**
- * ccs_realpath_from_dentry - Returns realpath(3) of the given pathname
- *                            but ignores chroot'ed root.
+ * ccs_realpath_from_dentry - Returns realpath(3) of the given pathname but ignores chroot'ed root.
  *
  * @dentry: Pointer to "struct dentry".
  * @mnt:    Pointer to "struct vfsmount".
@@ -288,8 +286,7 @@ char *ccs_realpath_nofollow(const char *pathname)
 }
 
 /**
- * round_up - Round up an integer so that the returned pointers are
- *            appropriately aligned.
+ * round_up - Round up an integer so that the returned pointers are appropriately aligned.
  *
  * @size: Size in bytes.
  *
@@ -311,8 +308,7 @@ static inline unsigned int round_up(const unsigned int size)
 static unsigned int allocated_memory_for_elements;
 
 /**
- * ccs_get_memory_used_for_elements - Get memory used for keeping
- *                                    ACL structures.
+ * ccs_get_memory_used_for_elements - Get memory used for keeping ACL structures.
  *
  * Returns memory used for keeping ACL structures.
  */
@@ -374,8 +370,7 @@ static unsigned int allocated_memory_for_pool;
 
 
 /**
- * ccs_get_memory_used_for_save_name - Get memory used for keeping
- *                                     string data.
+ * ccs_get_memory_used_for_save_name - Get memory used for keeping string data.
  *
  * Returns memory used for keeping string data.
  */

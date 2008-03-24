@@ -67,8 +67,7 @@ static int update_reserved_entry(const u16 min_port, const u16 max_port,
 }
 
 /**
- * ccs_may_autobind - Check permission for bind()'s automatic port number
- *                    selection.
+ * ccs_may_autobind - Check permission for bind()'s automatic port number selection.
  *
  * @port: Port number.
  *
@@ -118,7 +117,7 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_reserved_port_policy - Dump "struct reserved_entry" list.
+ * ccs_read_reserved_port_policy - Read "struct reserved_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *

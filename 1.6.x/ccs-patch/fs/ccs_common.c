@@ -258,17 +258,17 @@ static void normalize_line(unsigned char *buffer)
 }
 
 /**
- * ccs_is_correct_path - Check whether the given filename follows
- *                       the naming rules.
- * @filename:     the pathname to check.
- * @start_type:   the pathname should start with '/'?
- *                1: must / -1:must not / 0:don't care
- * @pattern_type: the pathname may contain a wildcard?
- *                1: must / -1:must not / 0:don't care
- * @end_type:     the pathname should end with '/'?
- *                1: must / -1:must not / 0:don't care
- * @function:     the name of function calling me.
+ * ccs_is_correct_path - Validate a pathname.
+ * @filename:     The pathname to check.
+ * @start_type:   Should the pathname start with '/'?
+ *                1 = must / -1 = must not / 0 = don't care
+ * @pattern_type: Can the pathname contain a wildcard?
+ *                1 = must / -1 = must not / 0 = don't care
+ * @end_type:     Should the pathname end with '/'?
+ *                1 = must / -1 = must not / 0 = don't care
+ * @function:     The name of function calling me.
  *
+ * Check whether the given filename follows the naming rules.
  * Returns true if @filename follows the naming rules, false otherwise.
  */
 bool ccs_is_correct_path(const char *filename, const s8 start_type,
@@ -349,10 +349,9 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 }
 
 /**
- * ccs_is_correct_domain - Check whether the given domainname follows
- *                         the naming rules.
- * @domainname:   the domainname to check.
- * @function:     the name of function calling me.
+ * ccs_is_correct_domain - Check whether the given domainname follows the naming rules.
+ * @domainname:   The domainname to check.
+ * @function:     The name of function calling me.
  *
  * Returns true if @domainname follows the naming rules, false otherwise.
  */
@@ -423,7 +422,7 @@ bool ccs_is_domain_def(const unsigned char *buffer)
 /**
  * ccs_find_domain - Find a domain by the given name.
  *
- * @domainname: the domainname to find.
+ * @domainname: The domainname to find.
  *
  * Returns pointer to "struct domain_info" if found, NULL otherwise.
  */
@@ -468,8 +467,7 @@ static int path_depth(const char *pathname)
 }
 
 /**
- * const_part_length - Evaluate the initial length without a pattern
- *                     in a token.
+ * const_part_length - Evaluate the initial length without a pattern in a token.
  *
  * @filename: The string to evaluate.
  *
@@ -685,8 +683,7 @@ static bool file_matches_to_pattern(const char *filename,
 }
 
 /**
- * ccs_path_matches_pattern - Check whether the given filename matches
- *                            the given pattern.
+ * ccs_path_matches_pattern - Check whether the given filename matches the given pattern.
  * @filename: The filename to check.
  * @pattern:  The pattern to compare.
  *
@@ -1426,7 +1423,7 @@ static int write_domain_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * print_single_path_acl - Dump a single path ACL entry.
+ * print_single_path_acl - Print a single path ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct single_path_acl_record".
@@ -1461,7 +1458,7 @@ static bool print_single_path_acl(struct ccs_io_buffer *head,
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s %s%s", msg,
 				   atmark, filename) ||
-		    !ccs_dump_condition(head, cond))
+		    !ccs_print_condition(head, cond))
 			goto out;
 	}
 	head->read_bit = 0;
@@ -1473,7 +1470,7 @@ static bool print_single_path_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * print_double_path_acl - Dump a double path ACL entry.
+ * print_double_path_acl - Print a double path ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct double_path_acl_record".
@@ -1513,7 +1510,7 @@ static bool print_double_path_acl(struct ccs_io_buffer *head,
 		if (!ccs_io_printf(head, "allow_%s %s%s %s%s", msg,
 				   atmark1, filename1,
 				   atmark2, filename2) ||
-		    !ccs_dump_condition(head, cond))
+		    !ccs_print_condition(head, cond))
 			goto out;
 	}
 	head->read_bit = 0;
@@ -1525,7 +1522,7 @@ static bool print_double_path_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * print_argv0_acl - Dump an argv[0] ACL entry.
+ * print_argv0_acl - Print an argv[0] ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct argv0_acl_record".
@@ -1541,7 +1538,7 @@ static bool print_argv0_acl(struct ccs_io_buffer *head,
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
 			   ptr->filename->name, ptr->argv0->name))
 		goto out;
-	if (!ccs_dump_condition(head, cond))
+	if (!ccs_print_condition(head, cond))
 		goto out;
 	return true;
  out:
@@ -1550,7 +1547,7 @@ static bool print_argv0_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * print_env_acl - Dump an evironment variable name's ACL entry.
+ * print_env_acl - Print an evironment variable name's ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct env_acl_record".
@@ -1565,7 +1562,7 @@ static bool print_env_acl(struct ccs_io_buffer *head,
 	int pos = head->read_avail;
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name))
 		goto out;
-	if (!ccs_dump_condition(head, cond))
+	if (!ccs_print_condition(head, cond))
 		goto out;
 	return true;
  out:
@@ -1574,7 +1571,7 @@ static bool print_env_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * print_capability_acl - Dump a capability ACL entry.
+ * print_capability_acl - Print a capability ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct capability_acl_record".
@@ -1590,7 +1587,7 @@ static bool print_capability_acl(struct ccs_io_buffer *head,
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s",
 			   ccs_cap2keyword(ptr->operation)))
 		goto out;
-	if (!ccs_dump_condition(head, cond))
+	if (!ccs_print_condition(head, cond))
 		goto out;
 	return true;
  out:
@@ -1599,7 +1596,7 @@ static bool print_capability_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * print_ipv4_entry - Dump IPv4 address of a network ACL entry.
+ * print_ipv4_entry - Print IPv4 address of a network ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ip_network_acl_record".
@@ -1620,7 +1617,7 @@ static bool print_ipv4_entry(struct ccs_io_buffer *head,
 }
 
 /**
- * print_ipv6_entry - Dump IPv6 address of a network ACL entry.
+ * print_ipv6_entry - Print IPv6 address of a network ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ip_network_acl_record".
@@ -1645,7 +1642,7 @@ static bool print_ipv6_entry(struct ccs_io_buffer *head,
 }
 
 /**
- * print_port_entry - Dump port number of a network ACL entry.
+ * print_port_entry - Print port number of a network ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ip_network_acl_record".
@@ -1664,7 +1661,7 @@ static bool print_port_entry(struct ccs_io_buffer *head,
 }
 
 /**
- * print_network_acl - Dump a network ACL entry.
+ * print_network_acl - Print a network ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ip_network_acl_record".
@@ -1696,7 +1693,7 @@ static bool print_network_acl(struct ccs_io_buffer *head,
 	}
 	if (!print_port_entry(head, ptr))
 		goto out;
-	if (!ccs_dump_condition(head, cond))
+	if (!ccs_print_condition(head, cond))
 		goto out;
 	return true;
  out:
@@ -1705,7 +1702,7 @@ static bool print_network_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * print_signal_acl - Dump a signal ACL entry.
+ * print_signal_acl - Print a signal ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct signale_acl_record".
@@ -1721,7 +1718,7 @@ static bool print_signal_acl(struct ccs_io_buffer *head,
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s",
 			   ptr->sig, ptr->domainname->name))
 		goto out;
-	if (!ccs_dump_condition(head, cond))
+	if (!ccs_print_condition(head, cond))
 		goto out;
 	return true;
  out:
@@ -1730,7 +1727,7 @@ static bool print_signal_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * print_execute_handler_record - Dump an execute handler ACL entry.
+ * print_execute_handler_record - Print an execute handler ACL entry.
  *
  * @head:    Pointer to "struct ccs_io_buffer".
  * @keyword: Name of the keyword.
@@ -1746,7 +1743,7 @@ static bool print_execute_handler_record(struct ccs_io_buffer *head,
 }
 
 /**
- * print_entry - Dump an ACL entry.
+ * print_entry - Print an ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to an ACL entry.
@@ -1839,7 +1836,7 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 			goto acl_loop;
 		if (domain->is_deleted)
 			continue;
-		/* Dump domainname and flags. */
+		/* Print domainname and flags. */
 		if (domain->quota_warned)
 			quota_exceeded = "quota_exceeded\n";
 		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ)
@@ -1858,7 +1855,7 @@ static int read_domain_policy(struct ccs_io_buffer *head)
  acl_loop:
 		if (head->read_step == 3)
 			goto tail_mark;
-		/* Dump ACL entries in the domain. */
+		/* Print ACL entries in the domain. */
 		list1_for_each_cookie(apos, head->read_var2,
 				      &domain->acl_info_list) {
 			struct acl_info *ptr
@@ -1886,7 +1883,8 @@ static int read_domain_policy(struct ccs_io_buffer *head)
  * Returns 0 on success, -EINVAL otherwise.
  *
  * This is equivalent to doing
- *     ( echo "select " $domainname; echo "use_profile " $profile ) | \
+ *
+ *     ( echo "select " $domainname; echo "use_profile " $profile ) |
  *     /usr/lib/ccs/ccs-loadpolicy -d
  */
 static int write_domain_profile(struct ccs_io_buffer *head)
@@ -1915,10 +1913,11 @@ static int write_domain_profile(struct ccs_io_buffer *head)
  * Returns list of profile number and domainname pairs.
  *
  * This is equivalent to doing
- *     grep -A 1 '^<kernel>' /proc/ccs/domain_policy | \
- *     awk ' BEGIN { if ( domainname == "") domainname = $0; \
- *     else if ( $1 = "use_profile" ) { print $2 " " domainname; \
- *     domainname = ""; }; '
+ *
+ *     grep -A 1 '^<kernel>' /proc/ccs/domain_policy |
+ *     awk ' BEGIN { if ( domainname == "") domainname = $0;
+ *     else if ( $1 = "use_profile" ) {
+ *     print $2 " " domainname; domainname = ""; }; '
  */
 static int read_domain_profile(struct ccs_io_buffer *head)
 {

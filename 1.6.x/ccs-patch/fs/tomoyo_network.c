@@ -295,8 +295,7 @@ find_or_assign_new_address_group(const char *group_name)
 }
 
 /**
- * address_matches_to_group - Check whether the given address matches members
- *                            of the given address group.
+ * address_matches_to_group - Check whether the given address matches members of the given address group.
  *
  * @is_ipv6: True if @address is an IPv6 address.
  * @address: An IPv4 or IPv6 address.
@@ -327,7 +326,7 @@ static bool address_matches_to_group(const bool is_ipv6, const u32 *address,
 }
 
 /**
- * ccs_read_address_group_policy - Dump "struct address_group_entry" list.
+ * ccs_read_address_group_policy - Read "struct address_group_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -396,7 +395,7 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 #endif
 
 /**
- * ccs_print_ipv6 - Dump an IPv6 address.
+ * ccs_print_ipv6 - Print an IPv6 address.
  *
  * @buffer:     Buffer to write to.
  * @buffer_len: Size of @buffer .

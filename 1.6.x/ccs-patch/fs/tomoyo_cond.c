@@ -327,7 +327,7 @@ static u8 parse_ulong(unsigned long *result, char **str)
 
 
 /**
- * print_ulong - Dump an "unsigned long" value.
+ * print_ulong - Print an "unsigned long" value.
  *
  * @buffer:     Pointer to buffer.
  * @buffer_len: Size of @buffer .
@@ -1314,14 +1314,14 @@ void ccs_update_condition(const struct acl_info *acl)
 }
 
 /**
- * ccs_dump_condition - Dump condition part.
+ * ccs_print_condition - Print condition part.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
-bool ccs_dump_condition(struct ccs_io_buffer *head,
+bool ccs_print_condition(struct ccs_io_buffer *head,
 			const struct condition_list *cond)
 {
 	const unsigned long *ptr;

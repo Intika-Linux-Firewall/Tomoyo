@@ -548,9 +548,6 @@ bool ccs_check_condition(const struct acl_info *acl,
 			 struct obj_info *obj_info);
 /* Check whether the domain has too many ACL entries to hold. */
 bool ccs_check_domain_quota(struct domain_info * const domain);
-/* Dump conditional part of an ACL entry. */
-bool ccs_dump_condition(struct ccs_io_buffer *head,
-			const struct condition_list *cond);
 /* Transactional sprintf() for policy dump. */
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
@@ -566,45 +563,48 @@ bool ccs_is_domain_def(const unsigned char *buffer);
 /* Check whether the given filename matches the given pattern. */
 bool ccs_path_matches_pattern(const struct path_info *filename,
 			      const struct path_info *pattern);
-/* Dump "address_group" entry in exception policy. */
+/* Print conditional part of an ACL entry. */
+bool ccs_print_condition(struct ccs_io_buffer *head,
+			const struct condition_list *cond);
+/* Read "address_group" entry in exception policy. */
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
-/* Dump "aggregator" entry in exception policy. */
+/* Read "aggregator" entry in exception policy. */
 bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
-/* Dump "alias" entry in exception policy. */
+/* Read "alias" entry in exception policy. */
 bool ccs_read_alias_policy(struct ccs_io_buffer *head);
-/* Dump "allow_chroot" entry in system policy. */
+/* Read "allow_chroot" entry in system policy. */
 bool ccs_read_chroot_policy(struct ccs_io_buffer *head);
 /*
- * Dump "initialize_domain" and "no_initialize_domain" entry
+ * Read "initialize_domain" and "no_initialize_domain" entry
  * in exception policy.
  */
 bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
-/* Dump "keep_domain" and "no_keep_domain" entry in exception policy. */
+/* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
 bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head);
-/* Dump "file_pattern" entry in exception policy. */
+/* Read "file_pattern" entry in exception policy. */
 bool ccs_read_file_pattern(struct ccs_io_buffer *head);
-/* Dump "allow_read" entry in exception policy. */
+/* Read "allow_read" entry in exception policy. */
 bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
-/* Dump "allow_env" entry in exception policy. */
+/* Read "allow_env" entry in exception policy. */
 bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
-/* Dump "allow_mount" entry in system policy. */
+/* Read "allow_mount" entry in system policy. */
 bool ccs_read_mount_policy(struct ccs_io_buffer *head);
-/* Dump "deny_rewrite" entry in exception policy. */
+/* Read "deny_rewrite" entry in exception policy. */
 bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
-/* Dump "deny_unmount" entry in system policy. */
+/* Read "deny_unmount" entry in system policy. */
 bool ccs_read_no_umount_policy(struct ccs_io_buffer *head);
-/* Dump "path_group" entry in exception policy. */
+/* Read "path_group" entry in exception policy. */
 bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
-/* Dump "allow_pivot_root" entry in system policy. */
+/* Read "allow_pivot_root" entry in system policy. */
 bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head);
-/* Dump "deny_autobind" entry in system policy. */
+/* Read "deny_autobind" entry in system policy. */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
 /* Write domain policy violation warning message to console? */
 bool ccs_verbose_mode(void);
 /* Allocate buffer for domain policy auditing. */
 char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
 			 struct linux_binprm *bprm);
-/* Dump an IPv6 address. */
+/* Print an IPv6 address. */
 char *ccs_print_ipv6(char *buffer, const int buffer_len,
 		     const struct in6_addr *ip);
 /* Convert capability index to capability name. */
