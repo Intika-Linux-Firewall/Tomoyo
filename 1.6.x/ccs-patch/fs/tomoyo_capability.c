@@ -5,28 +5,37 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
  *
  */
-/***** TOMOYO Linux start. *****/
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
 #include <linux/realpath.h>
 
-/*************************  UTILITY FUNCTIONS  *************************/
-
+/**
+ * cap_operation2name - Convert capability operation to capability message.
+ *
+ * @operation: Type of operation.
+ *
+ * Returns the name of capability.
+ */
 static const char *cap_operation2name(const u8 operation)
 {
 	static const char *capability_name[TOMOYO_MAX_CAPABILITY_INDEX] = {
-		[TOMOYO_INET_STREAM_SOCKET_CREATE]  = "socket(PF_INET, SOCK_STREAM)",
-		[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = "listen(PF_INET, SOCK_STREAM)",
-		[TOMOYO_INET_STREAM_SOCKET_CONNECT] = "connect(PF_INET, SOCK_STREAM)",
-		[TOMOYO_USE_INET_DGRAM_SOCKET]      = "socket(PF_INET, SOCK_DGRAM)",
-		[TOMOYO_USE_INET_RAW_SOCKET]        = "socket(PF_INET, SOCK_RAW)",
+		[TOMOYO_INET_STREAM_SOCKET_CREATE]  =
+		"socket(PF_INET, SOCK_STREAM)",
+		[TOMOYO_INET_STREAM_SOCKET_LISTEN]  =
+		"listen(PF_INET, SOCK_STREAM)",
+		[TOMOYO_INET_STREAM_SOCKET_CONNECT] =
+		"connect(PF_INET, SOCK_STREAM)",
+		[TOMOYO_USE_INET_DGRAM_SOCKET]      =
+		"socket(PF_INET, SOCK_DGRAM)",
+		[TOMOYO_USE_INET_RAW_SOCKET]        =
+		"socket(PF_INET, SOCK_RAW)",
 		[TOMOYO_USE_ROUTE_SOCKET]           = "socket(PF_ROUTE)",
 		[TOMOYO_USE_PACKET_SOCKET]          = "socket(PF_PACKET)",
 		[TOMOYO_SYS_MOUNT]                  = "sys_mount()",
@@ -54,96 +63,166 @@ static const char *cap_operation2name(const u8 operation)
 		[TOMOYO_SYS_PIVOT_ROOT]             = "sys_pivot_root()",
 		[TOMOYO_SYS_PTRACE]                 = "sys_ptrace()",
 	};
-	return operation < TOMOYO_MAX_CAPABILITY_INDEX ? capability_name[operation] : NULL;
+	if (operation < TOMOYO_MAX_CAPABILITY_INDEX)
+		return capability_name[operation];
+	return NULL;
 }
 
-/*************************  AUDIT FUNCTIONS  *************************/
-
-static int AuditCapabilityLog(const u8 operation, const bool is_granted, const u8 profile, const u8 mode)
+/**
+ * audit_capability_log - Audit capability log.
+ *
+ * @operation:  Type of operation.
+ * @is_granted: True if this is a granted log.
+ * @profile:    Profile number.
+ * @mode:       Access control mode.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int audit_capability_log(const u8 operation, const bool is_granted,
+				const u8 profile, const u8 mode)
 {
 	char *buf;
 	int len = 64;
-	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
-	if ((buf = InitAuditLog(&len, profile, mode, NULL)) == NULL) return -ENOMEM;
-	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_CAPABILITY "%s\n", cap_operation2keyword(operation));
-	return WriteAuditLog(buf, is_granted);
+	int len2;
+	if (ccs_can_save_audit_log(is_granted) < 0)
+		return -ENOMEM;
+	buf = ccs_init_audit_log(&len, profile, mode, NULL);
+	if (!buf)
+		return -ENOMEM;
+	len2 = strlen(buf);
+	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_CAPABILITY "%s\n",
+		 ccs_cap2keyword(operation));
+	return ccs_write_audit_log(buf, is_granted);
 }
 
-/*************************  CAPABILITY ACL HANDLER  *************************/
-
-static int AddCapabilityACL(const u8 operation, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
+/**
+ * update_capability_acl - Update "struct capability_acl_record" list.
+ *
+ * @operation: Type of operation.
+ * @domain:    Pointer to "struct domain_info".
+ * @condition: Pointer to "struct condition_list". May be NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int update_capability_acl(const u8 operation, struct domain_info *domain,
+				 const struct condition_list *condition,
+				 const bool is_delete)
 {
 	struct acl_info *ptr;
 	struct capability_acl_record *acl;
 	int error = -ENOMEM;
-	if (!domain) return -EINVAL;
+	if (!domain)
+		return -EINVAL;
 	mutex_lock(&domain_acl_lock);
-	if (!is_delete) {
-		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION)) != TYPE_CAPABILITY_ACL) continue;
-			if (GetConditionPart(ptr) != condition) continue;
-			acl = container_of(ptr, struct capability_acl_record, head);
-			if (acl->operation != operation) continue;
-			error = AddDomainACL(NULL, ptr);
-			goto out;
-		}
-		/* Not found. Append it to the tail. */
-		if ((acl = alloc_acl_element(TYPE_CAPABILITY_ACL, condition)) == NULL) goto out;
-		acl->operation = operation;
-		error = AddDomainACL(domain, &acl->head);
-	} else {
-		error = -ENOENT;
-		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL) continue;
-			if (GetConditionPart(ptr) != condition) continue;
-			acl = container_of(ptr, struct capability_acl_record, head);
-			if (acl->operation != operation) continue;
-			error = DelDomainACL(ptr);
-			break;
-		}
+	if (is_delete)
+		goto delete;
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+		    != TYPE_CAPABILITY_ACL)
+			continue;
+		if (ccs_get_condition_part(ptr) != condition)
+			continue;
+		acl = container_of(ptr, struct capability_acl_record, head);
+		if (acl->operation != operation)
+			continue;
+		error = ccs_add_domain_acl(NULL, ptr);
+		goto out;
 	}
- out: ;
+	/* Not found. Append it to the tail. */
+	acl = ccs_alloc_acl_element(TYPE_CAPABILITY_ACL, condition);
+	if (!acl)
+		goto out;
+	acl->operation = operation;
+	error = ccs_add_domain_acl(domain, &acl->head);
+	goto out;
+ delete:
+	error = -ENOENT;
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL)
+			continue;
+		if (ccs_get_condition_part(ptr) != condition)
+			continue;
+		acl = container_of(ptr, struct capability_acl_record, head);
+		if (acl->operation != operation)
+			continue;
+		error = ccs_del_domain_acl(ptr);
+		break;
+	}
+ out:
 	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 
-int CheckCapabilityACL(const u8 operation)
+/**
+ * ccs_capable - Check permission for capability.
+ *
+ * @operation: Type of operation.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_capable(const u8 operation)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
 	const u8 profile = current->domain_info->profile;
-	const u8 mode = CheckCapabilityFlags(operation);
+	const u8 mode = ccs_check_capability_flags(operation);
 	const bool is_enforce = (mode == 3);
 	bool found = false;
-	if (!mode) return 0;
+	if (!mode)
+		return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL) continue;
+		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL)
+			continue;
 		acl = container_of(ptr, struct capability_acl_record, head);
-		if (acl->operation != operation || !CheckCondition(ptr, NULL)) continue;
-		UpdateCondition(ptr);
+		if (acl->operation != operation ||
+		    !ccs_check_condition(ptr, NULL))
+			continue;
+		ccs_update_condition(ptr);
 		found = true;
 		break;
 	}
-	AuditCapabilityLog(operation, found, profile, mode);
-	if (found) return 0;
-	if (TomoyoVerboseMode()) {
-		printk("TOMOYO-%s: %s denied for %s\n", GetMSG(is_enforce), cap_operation2name(operation), GetLastName(domain));
-	}
-	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_CAPABILITY "%s\n", domain->domainname->name, cap_operation2keyword(operation));
-	else if (mode == 1 && CheckDomainQuota(domain)) AddCapabilityACL(operation, domain, NULL, 0);
+	audit_capability_log(operation, found, profile, mode);
+	if (found)
+		return 0;
+	if (ccs_verbose_mode())
+		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
+		       ccs_get_msg(is_enforce), cap_operation2name(operation),
+		       ccs_get_last_name(domain));
+	if (is_enforce)
+		return ccs_check_supervisor("%s\n"
+					    KEYWORD_ALLOW_CAPABILITY "%s\n",
+					    domain->domainname->name,
+					    ccs_cap2keyword(operation));
+	else if (mode == 1 && ccs_check_domain_quota(domain))
+		update_capability_acl(operation, domain, NULL, false);
 	return 0;
 }
-EXPORT_SYMBOL(CheckCapabilityACL);
+/* I need to export this for net/unix/af_unix.c */
+EXPORT_SYMBOL(ccs_capable);
 
-int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
+/**
+ * ccs_write_capability_policy - Write "struct capability_acl_record" list.
+ *
+ * @data:      String to parse.
+ * @domain:    Pointer to "struct domain_info".
+ * @condition: Pointer to "struct condition_list". May be NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_write_capability_policy(char *data, struct domain_info *domain,
+				const struct condition_list *condition,
+				const bool is_delete)
 {
 	u8 capability;
-	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX; capability++) {
-		if (strcmp(data, cap_operation2keyword(capability))) continue;
-		return AddCapabilityACL(capability, domain, condition, is_delete);
+	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX;
+	     capability++) {
+		if (strcmp(data, ccs_cap2keyword(capability)))
+			continue;
+		return update_capability_acl(capability, domain, condition,
+					     is_delete);
 	}
 	return -EINVAL;
 }
-
-/***** TOMOYO Linux end. *****/

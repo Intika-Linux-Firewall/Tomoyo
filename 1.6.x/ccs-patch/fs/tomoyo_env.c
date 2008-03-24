@@ -5,51 +5,75 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
  *
  */
-/***** TOMOYO Linux start. *****/
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
 #include <linux/realpath.h>
 
-/*************************  AUDIT FUNCTIONS  *************************/
-
-static int AuditEnvLog(const char *env, const bool is_granted, const u8 profile, const u8 mode)
+/**
+ * audit_env_log - Audit environment variable name log.
+ *
+ * @env:        The name of environment variable.
+ * @is_granted: True if this is a granted log.
+ * @profile:    Profile number.
+ * @mode:       Access control mode.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int audit_env_log(const char *env, const bool is_granted,
+			 const u8 profile, const u8 mode)
 {
 	char *buf;
 	int len;
-	if (CanSaveAuditLog(is_granted) < 0) return -ENOMEM;
+	int len2;
+	if (ccs_can_save_audit_log(is_granted) < 0)
+		return -ENOMEM;
 	len = strlen(env) + 8;
-	if ((buf = InitAuditLog(&len, profile, mode, NULL)) == NULL) return -ENOMEM;
-	snprintf(buf + strlen(buf), len - strlen(buf) - 1, KEYWORD_ALLOW_ENV "%s\n", env);
-	return WriteAuditLog(buf, is_granted);
+	buf = ccs_init_audit_log(&len, profile, mode, NULL);
+	if (!buf)
+		return -ENOMEM;
+	len2 = strlen(buf);
+	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_ENV "%s\n", env);
+	return ccs_write_audit_log(buf, is_granted);
 }
 
-/***** The structure for globally usable environments. *****/
-
+/* Structure for "allow_env" keyword. */
 struct globally_usable_env_entry {
 	struct list1_head list;
 	const struct path_info *env;
 	bool is_deleted;
 };
 
-/*************************  GLOBALLY USABLE ENVIRONMENT HANDLER  *************************/
-
+/* The list for "struct globally_usable_env_entry". */
 static LIST1_HEAD(globally_usable_env_list);
 
-static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
+/**
+ * update_globally_usable_env_entry - Update "struct globally_usable_env_entry"
+ *                                    list.
+ *
+ * @env:       The name of environment variable.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int update_globally_usable_env_entry(const char *env,
+					    const bool is_delete)
 {
 	struct globally_usable_env_entry *new_entry, *ptr;
 	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_env;
 	int error = -ENOMEM;
-	if (!IsCorrectPath(env, 0, 0, 0, __FUNCTION__)) return -EINVAL;
-	if ((saved_env = SaveName(env)) == NULL) return -ENOMEM;
+	if (!ccs_is_correct_path(env, 0, 0, 0, __func__))
+		return -EINVAL;
+	saved_env = ccs_save_name(env);
+	if (!saved_env)
+		return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
 		if (ptr->env == saved_env) {
@@ -59,127 +83,222 @@ static int AddGloballyUsableEnvEntry(const char *env, const bool is_delete)
 		}
 	}
 	if (is_delete) {
-		error = -ENOENT; goto out;
+		error = -ENOENT;
+		goto out;
 	}
-	if ((new_entry = alloc_element(sizeof(*new_entry))) == NULL) goto out;
+	new_entry = ccs_alloc_element(sizeof(*new_entry));
+	if (!new_entry)
+		goto out;
 	new_entry->env = saved_env;
 	list1_add_tail_mb(&new_entry->list, &globally_usable_env_list);
 	error = 0;
- out: ;
+ out:
 	mutex_unlock(&lock);
 	return error;
 }
 
-static bool IsGloballyUsableEnv(const struct path_info *env)
+/**
+ * is_globally_usable_env - Check whether the given environment variable is
+ *                          acceptable for all domains.
+ *
+ * @env: The name of environment variable.
+ *
+ * Returns true if @env is globally permitted environment variable's name,
+ * false otherwise.
+ */
+static bool is_globally_usable_env(const struct path_info *env)
 {
 	struct globally_usable_env_entry *ptr;
 	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
-		if (!ptr->is_deleted && PathMatchesToPattern(env, ptr->env)) return true;
+		if (!ptr->is_deleted && ccs_path_matches_pattern(env, ptr->env))
+			return true;
 	}
 	return false;
 }
 
-int AddGloballyUsableEnvPolicy(char *env, const bool is_delete)
+/**
+ * ccs_write_globally_usable_env_policy - Write
+ *                                        "struct globally_usable_env_entry"
+ *                                        list.
+ *
+ * @data:      String to parse.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
 {
-	return AddGloballyUsableEnvEntry(env, is_delete);
+	return update_globally_usable_env_entry(data, is_delete);
 }
 
-int ReadGloballyUsableEnvPolicy(struct io_buffer *head)
+/**
+ * ccs_read_globally_usable_env_policy - Dump "struct globally_usable_env_entry"
+ *                                       list.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns 0 on success, false otherwise.
+ */
+bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &globally_usable_env_list) {
+	list1_for_each_cookie(pos, head->read_var2,
+			      &globally_usable_env_list) {
 		struct globally_usable_env_entry *ptr;
 		ptr = list1_entry(pos, struct globally_usable_env_entry, list);
-		if (ptr->is_deleted) continue;
-		if (io_printf(head, KEYWORD_ALLOW_ENV "%s\n", ptr->env->name)) return -ENOMEM;
+		if (ptr->is_deleted)
+			continue;
+		if (!ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s\n",
+				   ptr->env->name))
+			goto out;
 	}
-	return 0;
+	return true;
+ out:
+	return false;
 }
 
-/*************************  ENVIRONMENT VARIABLE CHECKING HANDLER  *************************/
-
-static int AddEnvEntry(const char *env, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
+/**
+ * update_env_entry - Update "struct env_acl_record" list.
+ *
+ * @env:       The name of environment variable.
+ * @domain:    Pointer to "struct domain_info".
+ * @condition: Pointer to "struct condition_list". May be NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int update_env_entry(const char *env, struct domain_info *domain,
+			    const struct condition_list *condition,
+			    const bool is_delete)
 {
 	struct acl_info *ptr;
 	struct env_acl_record *acl;
 	const struct path_info *saved_env;
 	int error = -ENOMEM;
-	if (!IsCorrectPath(env, 0, 0, 0, __FUNCTION__)) return -EINVAL;
-	if ((saved_env = SaveName(env)) == NULL) return -ENOMEM;
+	if (!ccs_is_correct_path(env, 0, 0, 0, __func__))
+		return -EINVAL;
+	saved_env = ccs_save_name(env);
+	if (!saved_env)
+		return -ENOMEM;
 
 	mutex_lock(&domain_acl_lock);
-	if (!is_delete) {
-		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION)) != TYPE_ENV_ACL) continue;
-			if (GetConditionPart(ptr) != condition) continue;
-			acl = container_of(ptr, struct env_acl_record, head);
-			if (acl->env != saved_env) continue;
-			error = AddDomainACL(NULL, ptr);
-			goto out;
-		}
-		/* Not found. Append it to the tail. */
-		if ((acl = alloc_acl_element(TYPE_ENV_ACL, condition)) == NULL) goto out;
-		acl->env = saved_env;
-		error = AddDomainACL(domain, &acl->head);
-	} else {
-		error = -ENOENT;
-		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-			if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL) continue;
-			if (GetConditionPart(ptr) != condition) continue;
-			acl = container_of(ptr, struct env_acl_record, head);
-			if (acl->env != saved_env) continue;
-			error = DelDomainACL(ptr);
-			break;
-		}
+	if (is_delete)
+		goto delete;
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+		    != TYPE_ENV_ACL)
+			continue;
+		if (ccs_get_condition_part(ptr) != condition)
+			continue;
+		acl = container_of(ptr, struct env_acl_record, head);
+		if (acl->env != saved_env)
+			continue;
+		error = ccs_add_domain_acl(NULL, ptr);
+		goto out;
 	}
- out: ;
+	/* Not found. Append it to the tail. */
+	acl = ccs_alloc_acl_element(TYPE_ENV_ACL, condition);
+	if (!acl)
+		goto out;
+	acl->env = saved_env;
+	error = ccs_add_domain_acl(domain, &acl->head);
+	goto out;
+ delete:
+	error = -ENOENT;
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL)
+			continue;
+		if (ccs_get_condition_part(ptr) != condition)
+			continue;
+		acl = container_of(ptr, struct env_acl_record, head);
+		if (acl->env != saved_env)
+			continue;
+		error = ccs_del_domain_acl(ptr);
+		break;
+	}
+ out:
 	mutex_unlock(&domain_acl_lock);
 	return error;
 }
 
-static int CheckEnvACL(const char *env_)
+/**
+ * check_env_acl - Check permission for environment variable's name.
+ *
+ * @environ: The name of environment variable.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int check_env_acl(const char *environ)
 {
 	const struct domain_info *domain = current->domain_info;
 	int error = -EPERM;
 	struct acl_info *ptr;
 	struct path_info env;
-	env.name = env_;
-	fill_path_info(&env);
-
+	env.name = environ;
+	ccs_fill_path_info(&env);
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct env_acl_record *acl;
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL) continue;
+		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL)
+			continue;
 		acl = container_of(ptr, struct env_acl_record, head);
-		if (!CheckCondition(ptr, NULL) ||
-		    !PathMatchesToPattern(&env, acl->env)) continue;
-		UpdateCondition(ptr);
+		if (!ccs_check_condition(ptr, NULL) ||
+		    !ccs_path_matches_pattern(&env, acl->env))
+			continue;
+		ccs_update_condition(ptr);
 		error = 0;
 		break;
 	}
-	if (error && (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV) == 0 && IsGloballyUsableEnv(&env)) error = 0;
+	if (error &&
+	    (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV) == 0 &&
+	    is_globally_usable_env(&env))
+		error = 0;
 	return error;
 }
 
-int CheckEnvPerm(const char *env, const u8 profile, const u8 mode)
+/**
+ * ccs_check_env_perm - Check permission for environment variable's name.
+ *
+ * @env:     The name of environment variable.
+ * @profile: Profile number.
+ * @mode:    Access control mode.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode)
 {
 	int error = 0;
 	struct domain_info * const domain = current->domain_info;
 	const bool is_enforce = (mode == 3);
-	if (!env || !*env) return 0;
-	error = CheckEnvACL(env);
-	AuditEnvLog(env, !error, profile, mode);
-	if (!error) return 0;
-	if (TomoyoVerboseMode()) {
-		printk("TOMOYO-%s: Environ %s denied for %s\n", GetMSG(is_enforce), env, GetLastName(domain));
-	}
-	if (is_enforce) return CheckSupervisor("%s\n" KEYWORD_ALLOW_ENV "%s\n", domain->domainname->name, env);
-	else if (mode == 1 && CheckDomainQuota(domain)) AddEnvEntry(env, domain, NULL, 0);
+	if (!env || !*env)
+		return 0;
+	error = check_env_acl(env);
+	audit_env_log(env, !error, profile, mode);
+	if (!error)
+		return 0;
+	if (ccs_verbose_mode())
+		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
+		       ccs_get_msg(is_enforce), env, ccs_get_last_name(domain));
+	if (is_enforce)
+		return ccs_check_supervisor("%s\n" KEYWORD_ALLOW_ENV "%s\n",
+					    domain->domainname->name, env);
+	else if (mode == 1 && ccs_check_domain_quota(domain))
+		update_env_entry(env, domain, NULL, false);
 	return 0;
 }
 
-int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete)
+/**
+ * ccs_write_env_policy - Write "struct env_acl_record" list.
+ *
+ * @data:      String to parse.
+ * @domain:    Pointer to "struct domain_info".
+ * @condition: Pointer to "struct condition_list". May be NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_write_env_policy(char *data, struct domain_info *domain,
+			 const struct condition_list *condition,
+			 const bool is_delete)
 {
-	return AddEnvEntry(data, domain, condition, is_delete);
+	return update_env_entry(data, domain, condition, is_delete);
 }
-
-/***** TOMOYO Linux end. *****/

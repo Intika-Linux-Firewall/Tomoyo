@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/12
+ * Version: 1.6.0-pre   2008/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -23,47 +23,115 @@
 
 #if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,4,23)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
+/**
+ * PDE - Get "struct proc_dir_entry".
+ *
+ * @inode: Pointer to "struct inode".
+ *
+ * Returns pointer to "struct proc_dir_entry"
+ *
+ * This is for compatibility with older kernels.
+ */
 static inline struct proc_dir_entry *PDE(const struct inode *inode)
 {
 	return (struct proc_dir_entry *) inode->u.generic_ip;
 }
 #endif
 
+/**
+ * ccs_open - open() for /proc/ccs/ interface.
+ *
+ * @inode: Pointer to "struct inode".
+ * @file:  Pointer to "struct file".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
 static int ccs_open(struct inode *inode, struct file *file)
 {
-	return CCS_OpenControl(((u8 *) PDE(inode)->data) - ((u8 *) NULL), file);
+	return ccs_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
+				file);
 }
 
+/**
+ * ccs_release - close() for /proc/ccs/ interface.
+ *
+ * @inode: Pointer to "struct inode".
+ * @file:  Pointer to "struct file".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
 static int ccs_release(struct inode *inode, struct file *file)
 {
-	return CCS_CloseControl(file);
+	return ccs_close_control(file);
 }
 
+/**
+ * ccs_poll - poll() for /proc/ccs/ interface.
+ *
+ * @file:       Pointer to "struct file".
+ * @poll_table: Pointer to "poll_table".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
 static unsigned int ccs_poll(struct file *file, poll_table *wait)
 {
-	return CCS_PollControl(file, wait);
+	return ccs_poll_control(file, wait);
 }
 
-static ssize_t ccs_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+/**
+ * ccs_read - read() for /proc/ccs/ interface.
+ *
+ * @file:  Pointer to "struct file".
+ * @buf:   Pointer to buffer.
+ * @count: Size of @buf.
+ * @ppos:  Unused.
+ *
+ * Returns bytes read on success, negative value otherwise.
+ */
+static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
+			loff_t *ppos)
 {
-	return CCS_ReadControl(file, buf, count);
+	return ccs_read_control(file, buf, count);
 }
 
-static ssize_t ccs_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
+/**
+ * ccs_write - write() for /proc/ccs/ interface.
+ *
+ * @file:  Pointer to "struct file".
+ * @buf:   Pointer to buffer.
+ * @count: Size of @buf.
+ * @ppos:  Unused.
+ *
+ * Returns @count on success, negative value otherwise.
+ */
+static ssize_t ccs_write(struct file *file, const char __user *buf,
+			 size_t count, loff_t *ppos)
 {
-	return CCS_WriteControl(file, buf, count);
+	return ccs_write_control(file, buf, count);
 }
 
+/* Operations for /proc/ccs/interface. */
 static struct file_operations ccs_operations = {
-	open:    ccs_open,
-	release: ccs_release,
-	poll:    ccs_poll,
-	read:    ccs_read,
-	write:   ccs_write
+	.open    = ccs_open,
+	.release = ccs_release,
+	.poll    = ccs_poll,
+	.read    = ccs_read,
+	.write   = ccs_write,
 };
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+/**
+ * proc_notify_change - Update inode's attributes and reflect to the dentry.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * The 2.4 kernels don't allow chmod()/chown() for files in /proc ,
+ * while the 2.6 kernels allow.
+ * To permit management of /proc/ccs/ interface by non-root user,
+ * I modified to allow chmod()/chown() of /proc/ccs/ interface like 2.6 kernels
+ * by adding "struct inode_operations"->setattr hook.
+ */
 static int proc_notify_change(struct dentry *dentry, struct iattr *iattr)
 {
 	struct inode *inode = dentry->d_inode;
@@ -77,62 +145,88 @@ static int proc_notify_change(struct dentry *dentry, struct iattr *iattr)
 	error = inode_setattr(inode, iattr);
 	if (error)
 		goto out;
-	
+
 	de->uid = inode->i_uid;
 	de->gid = inode->i_gid;
 	de->mode = inode->i_mode;
-out:
+ out:
 	return error;
 }
 
+/* The inode operations for /proc/ccs/ directory. */
 static struct inode_operations ccs_dir_inode_operations;
+
+/* The inode operations for files under /proc/ccs/ directory. */
 static struct inode_operations ccs_file_inode_operations;
 #endif
 
-static __init void CreateEntry(const char *name, const mode_t mode, struct proc_dir_entry *parent, const u8 key)
+/**
+ * create_entry - Create interface files under /proc/ccs/ directory.
+ *
+ * @name:   The name of the interface file.
+ * @mode:   The permission of the interface file.
+ * @parent: The parent directory.
+ * @key:    Type of interface.
+ *
+ * Returns nothing.
+ */
+static void __init create_entry(const char *name, const mode_t mode,
+				struct proc_dir_entry *parent, const u8 key)
 {
 	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
 	if (entry) {
 		entry->proc_fops = &ccs_operations;
 		entry->data = ((u8 *) NULL) + key;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-		if (entry->proc_iops) ccs_file_inode_operations = *entry->proc_iops;
-		if (!ccs_file_inode_operations.setattr) ccs_file_inode_operations.setattr = proc_notify_change;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+		if (entry->proc_iops)
+			ccs_file_inode_operations = *entry->proc_iops;
+		if (!ccs_file_inode_operations.setattr)
+			ccs_file_inode_operations.setattr = proc_notify_change;
 		entry->proc_iops = &ccs_file_inode_operations;
 #endif
 	}
 }
 
-void __init CCSProc_Init(void)
+/**
+ * ccs_proc_init - Initialize /proc/ccs/ interface.
+ *
+ * Returns 0.
+ */
+static int __init ccs_proc_init(void)
 {
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-	if (ccs_dir->proc_iops) ccs_dir_inode_operations = *ccs_dir->proc_iops;
-	if (!ccs_dir_inode_operations.setattr) ccs_dir_inode_operations.setattr = proc_notify_change;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+	if (ccs_dir->proc_iops)
+		ccs_dir_inode_operations = *ccs_dir->proc_iops;
+	if (!ccs_dir_inode_operations.setattr)
+		ccs_dir_inode_operations.setattr = proc_notify_change;
 	ccs_dir->proc_iops = &ccs_dir_inode_operations;
 #endif
-	realpath_Init();
-	CreateEntry("query",            0600, ccs_dir, CCS_QUERY);
+	create_entry("query",            0600, ccs_dir, CCS_QUERY);
 #ifdef CONFIG_SAKURA
-	CreateEntry("system_policy",    0600, ccs_dir, CCS_SYSTEMPOLICY);
+	create_entry("system_policy",    0600, ccs_dir, CCS_SYSTEMPOLICY);
 #endif
 #ifdef CONFIG_TOMOYO
-	CreateEntry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
-	CreateEntry("exception_policy", 0600, ccs_dir, CCS_EXCEPTIONPOLICY);
-	CreateEntry("grant_log",        0400, ccs_dir, CCS_GRANTLOG);
-	CreateEntry("reject_log",       0400, ccs_dir, CCS_REJECTLOG);
+	create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
+	create_entry("exception_policy", 0600, ccs_dir, CCS_EXCEPTIONPOLICY);
+	create_entry("grant_log",        0400, ccs_dir, CCS_GRANTLOG);
+	create_entry("reject_log",       0400, ccs_dir, CCS_REJECTLOG);
 #endif
-	CreateEntry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
-	CreateEntry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
-	CreateEntry(".process_status",  0400, ccs_dir, CCS_PROCESS_STATUS);
-	CreateEntry("meminfo",          0400, ccs_dir, CCS_MEMINFO);
-	CreateEntry("profile",          0600, ccs_dir, CCS_PROFILE);
-	CreateEntry("manager",          0600, ccs_dir, CCS_MANAGER);
-	CreateEntry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
-	CreateEntry("version",          0400, ccs_dir, CCS_VERSION);
-	if (sizeof(struct ccs_page_buffer) <  CCS_MAX_PATHNAME_LEN - 16) panic("Bad size!");
+	create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
+	create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
+	create_entry(".process_status",  0400, ccs_dir, CCS_PROCESS_STATUS);
+	create_entry("meminfo",          0400, ccs_dir, CCS_MEMINFO);
+	create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
+	create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
+	create_entry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
+	create_entry("version",          0400, ccs_dir, CCS_VERSION);
+	if (sizeof(struct ccs_page_buffer) <  CCS_MAX_PATHNAME_LEN - 16)
+		panic("Bad size!");
+	return 0;
 }
 
-#else
-void __init CCSProc_Init(void) {}
+__initcall(ccs_proc_init);
 #endif
+
+/* For older patches. */
+void __init CCSProc_Init(void) {}

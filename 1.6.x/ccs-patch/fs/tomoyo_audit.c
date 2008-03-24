@@ -5,20 +5,27 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
  *
  */
-/***** TOMOYO Linux start. *****/
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
+#include <linux/realpath.h>
 #include <linux/highmem.h>
 #include <linux/binfmts.h>
 
-static char *DumpBprm(struct linux_binprm *bprm)
+/**
+ * ccs_dump_bprm - Dump "struct linux_binprm" for auditing.
+ *
+ * @bprm: Pointer to "struct linux_binprm".
+ *
+ * Returns the contents of @bprm on success, NULL otherwise.
+ */
+static char *ccs_dump_bprm(struct linux_binprm *bprm)
 {
 	static const int buffer_len = PAGE_SIZE * 2;
 	char *buffer = ccs_alloc(buffer_len);
@@ -29,20 +36,25 @@ static char *DumpBprm(struct linux_binprm *bprm)
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
 	bool truncated = false;
-	if (!buffer) return NULL;
-	len = snprintf(buffer, buffer_len - 1, "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
+	if (!buffer)
+		return NULL;
+	len = snprintf(buffer, buffer_len - 1,
+		       "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
 	cp = buffer + len;
 	if (!argv_count) {
 		memmove(cp, "} envp[]={ ", 11);
 		cp += 11;
 	}
-	if (!envp_count) *cp++ = '}';
+	if (!envp_count)
+		*cp++ = '}';
 	last_start = cp;
 	while (argv_count || envp_count) {
 		struct page *page;
 		const char *kaddr;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
-		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
+		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page,
+				   NULL) <= 0)
+			goto out;
 		pos += PAGE_SIZE - offset;
 #else
 		page = bprm->page[i];
@@ -50,7 +62,7 @@ static char *DumpBprm(struct linux_binprm *bprm)
 		/* Map */
 		kaddr = kmap(page);
 		if (!kaddr) { /* Mapping failed. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
 			put_page(page);
 #endif
 			goto out;
@@ -58,7 +70,8 @@ static char *DumpBprm(struct linux_binprm *bprm)
 		/* Read. */
 		while (offset < PAGE_SIZE) {
 			const unsigned char c = kaddr[offset++];
-			if (cp == last_start) *cp++ = '"';
+			if (cp == last_start)
+				*cp++ = '"';
 			if (cp >= buffer + buffer_len - 32) {
 				/* Preserve some room for "..." string. */
 				truncated = true;
@@ -77,7 +90,8 @@ static char *DumpBprm(struct linux_binprm *bprm)
 				*cp++ = ((c >> 3) & 7) + '0';
 				*cp++ = (c & 7) + '0';
 			}
-			if (c) continue;
+			if (c)
+				continue;
 			if (argv_count) {
 				if (--argv_count == 0) {
 					if (truncated) {
@@ -87,7 +101,8 @@ static char *DumpBprm(struct linux_binprm *bprm)
 					}
 					memmove(cp, "} envp[]={ ", 11);
 					cp += 11;
-					if (!envp_count) goto no_envp;
+					if (!envp_count)
+						goto no_envp;
 					last_start = cp;
 				}
 			} else if (envp_count) {
@@ -97,7 +112,7 @@ static char *DumpBprm(struct linux_binprm *bprm)
 						memmove(cp, "... ", 4);
 						cp += 4;
 					}
-				no_envp:
+ no_envp:
 					*cp++ = '}';
 					*cp++ = '\0';
 				}
@@ -107,7 +122,7 @@ static char *DumpBprm(struct linux_binprm *bprm)
 		}
 		/* Unmap. */
 		kunmap(page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
 		put_page(page);
 #endif
 		i++;
@@ -115,30 +130,50 @@ static char *DumpBprm(struct linux_binprm *bprm)
 	}
 	return buffer;
  out:
-	snprintf(buffer, buffer_len - 1, "argc=%d envc=%d argv[]={ ... } envp[]= { ... }", argv_count, envp_count);
+	snprintf(buffer, buffer_len - 1,
+		 "argc=%d envc=%d argv[]={ ... } envp[]= { ... }",
+		 argv_count, envp_count);
 	return buffer;
 }
-
-/*************************  AUDIT FUNCTIONS  *************************/
 
 static DECLARE_WAIT_QUEUE_HEAD(grant_log_wait);
 static DECLARE_WAIT_QUEUE_HEAD(reject_log_wait);
 
-static spinlock_t audit_log_lock = SPIN_LOCK_UNLOCKED;
+static DEFINE_SPINLOCK(audit_log_lock);
 
+/* Structure for audit log. */
 struct log_entry {
 	struct list_head list;
 	char *log;
 };
 
+/* The list for "struct log_entry". */
 static LIST_HEAD(grant_log);
+
+/* The list for "struct log_entry". */
 static LIST_HEAD(reject_log);
 
-static int grant_log_count = 0, reject_log_count = 0;
+static int grant_log_count;
+static int reject_log_count;
 
-char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm)
+/**
+ * ccs_init_audit_log - Allocate buffer for audit logs.
+ *
+ * @len:     Required size.
+ * @profile: Profile number.
+ * @mode:    Access control mode.
+ * @bprm:    Pointer to "struct linux_binprm". May be NULL.
+ *
+ * Returns pointer to allocated memory.
+ *
+ * The @len is updated to add the header lines' size on success.
+ */
+char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
+			 struct linux_binprm *bprm)
 {
-	static const char *mode_4[4] = { "disabled", "learning", "permissive", "enforcing" };
+	static const char *mode_4[4] = {
+		"disabled", "learning", "permissive", "enforcing"
+	};
 	char *buf;
 	char *bprm_info = "";
 	struct timeval tv;
@@ -148,79 +183,129 @@ char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binpr
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
 	if (bprm) {
-		bprm_info = DumpBprm(bprm);
-		if (!bprm_info) return NULL;
+		bprm_info = ccs_dump_bprm(bprm);
+		if (!bprm_info)
+			return NULL;
 		*len += strlen(bprm_info);
 	}
-	if ((buf = ccs_alloc(*len)) != NULL) snprintf(buf, (*len) - 1, "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n%s\n", tv.tv_sec, profile, mode_4[mode], task->pid, task->uid, task->gid, task->euid, task->egid, task->suid, task->sgid, task->fsuid, task->fsgid, (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8), bprm_info, domainname);
-	if (bprm) ccs_free(bprm_info);
+	buf = ccs_alloc(*len);
+	if (buf)
+		snprintf(buf, (*len) - 1,
+			 "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
+			 "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
+			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n"
+			 "%s\n", tv.tv_sec, profile, mode_4[mode], task->pid,
+			 task->uid, task->gid, task->euid, task->egid,
+			 task->suid, task->sgid, task->fsuid, task->fsgid,
+			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
+			 (u8) (tomoyo_flags >> 8), bprm_info, domainname);
+	if (bprm)
+		ccs_free(bprm_info);
 	return buf;
 }
 
-static unsigned int GetMaxGrantLog(void)
-{
-	return CheckCCSFlags(CCS_TOMOYO_MAX_GRANT_LOG);
-}
-
-static unsigned int GetMaxRejectLog(void)
-{
-	return CheckCCSFlags(CCS_TOMOYO_MAX_REJECT_LOG);
-}
-
-/*
- * Write audit log.
- * Caller must allocate buf with InitAuditLog().
+/**
+ * get_max_grant_log - Get max number of spoolable grant logs.
+ *
+ * Returns max number of spoolable grant logs.
  */
-int WriteAuditLog(char *buf, const bool is_granted)
+static unsigned int get_max_grant_log(void)
+{
+	return ccs_check_flags(CCS_TOMOYO_MAX_GRANT_LOG);
+}
+
+/**
+ * get_max_reject_log - Get max number of spoolable reject logs.
+ *
+ * Returns max number of spoolable reject logs.
+ */
+static unsigned int get_max_reject_log(void)
+{
+	return ccs_check_flags(CCS_TOMOYO_MAX_REJECT_LOG);
+}
+
+/**
+ * ccs_write_audit_log - Write audit log.
+ *
+ * @buf:        Pointer to audit log.
+ * @is_granted: True if this is a granted log.
+ *
+ * Returns 0 on success, -ENOMEM otherwise.
+ *
+ * Caller must allocate @buf with ccs_init_audit_log().
+ */
+int ccs_write_audit_log(char *buf, const bool is_granted)
 {
 	struct log_entry *new_entry = ccs_alloc(sizeof(*new_entry));
-	if (!new_entry) goto out;
+	if (!new_entry)
+		goto out;
 	INIT_LIST_HEAD(&new_entry->list);
 	new_entry->log = buf;
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&audit_log_lock);
 	if (is_granted) {
-		if (grant_log_count < GetMaxGrantLog()) {
+		if (grant_log_count < get_max_grant_log()) {
 			list_add_tail(&new_entry->list, &grant_log);
 			grant_log_count++;
 			buf = NULL;
-			UpdateCounter(CCS_UPDATES_COUNTER_GRANT_LOG);
+			ccs_update_counter(CCS_UPDATES_COUNTER_GRANT_LOG);
 		}
 	} else {
-		if (reject_log_count < GetMaxRejectLog()) {
+		if (reject_log_count < get_max_reject_log()) {
 			list_add_tail(&new_entry->list, &reject_log);
 			reject_log_count++;
 			buf = NULL;
-			UpdateCounter(CCS_UPDATES_COUNTER_REJECT_LOG);
+			ccs_update_counter(CCS_UPDATES_COUNTER_REJECT_LOG);
 		}
 	}
 	spin_unlock(&audit_log_lock);
 	/***** CRITICAL SECTION END *****/
-	if (is_granted) wake_up(&grant_log_wait);
-	else wake_up(&reject_log_wait);
-	if (!buf) return 0;
+	if (is_granted)
+		wake_up(&grant_log_wait);
+	else
+		wake_up(&reject_log_wait);
+	if (!buf)
+		return 0;
 	ccs_free(new_entry);
- out: ;
+ out:
 	ccs_free(buf);
 	return -ENOMEM;
 }
 
-int CanSaveAuditLog(const bool is_granted)
+/**
+ * ccs_can_save_audit_log - Check whether the kernel can save new audit log.
+ *
+ * @is_granted: True if this is a granted log.
+ *
+ * Returns 0 if the kernel can save, -ENOMEM otherwise.
+ */
+int ccs_can_save_audit_log(const bool is_granted)
 {
 	if (is_granted) {
-		if (grant_log_count < GetMaxGrantLog()) return 0;
+		if (grant_log_count < get_max_grant_log())
+			return 0;
 	} else {
-		if (reject_log_count < GetMaxRejectLog()) return 0;
+		if (reject_log_count < get_max_reject_log())
+			return 0;
 	}
 	return -ENOMEM;
 }
 
-int ReadGrantLog(struct io_buffer *head)
+/**
+ * ccs_read_grant_log - Read a grant log.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns 0.
+ */
+int ccs_read_grant_log(struct ccs_io_buffer *head)
 {
 	struct log_entry *ptr = NULL;
-	if (head->read_avail) return 0;
+	if (head->read_avail)
+		return 0;
 	if (head->read_buf) {
-		ccs_free(head->read_buf); head->read_buf = NULL;
+		ccs_free(head->read_buf);
+		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
 	/***** CRITICAL SECTION START *****/
@@ -234,26 +319,46 @@ int ReadGrantLog(struct io_buffer *head)
 	/***** CRITICAL SECTION END *****/
 	if (ptr) {
 		head->read_buf = ptr->log;
-		head->readbuf_size = head->read_avail = strlen(ptr->log) + 1;
+		head->read_avail = strlen(ptr->log) + 1;
+		head->readbuf_size = head->read_avail;
 		ccs_free(ptr);
 	}
 	return 0;
 }
 
-int PollGrantLog(struct file *file, poll_table *wait)
+/**
+ * ccs_poll_grant_log - Wait for a grant log.
+ *
+ * @file: Pointer to "struct file".
+ * @wait: Pointer to "poll_table".
+ *
+ * Returns POLLIN | POLLRDNORM when ready to read a grant log.
+ */
+int ccs_poll_grant_log(struct file *file, poll_table *wait)
 {
-	if (grant_log_count) return POLLIN | POLLRDNORM;
+	if (grant_log_count)
+		return POLLIN | POLLRDNORM;
 	poll_wait(file, &grant_log_wait, wait);
-	if (grant_log_count) return POLLIN | POLLRDNORM;
+	if (grant_log_count)
+		return POLLIN | POLLRDNORM;
 	return 0;
 }
 
-int ReadRejectLog(struct io_buffer *head)
+/**
+ * ccs_read_reject_log - Read a reject log.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns 0.
+ */
+int ccs_read_reject_log(struct ccs_io_buffer *head)
 {
 	struct log_entry *ptr = NULL;
-	if (head->read_avail) return 0;
+	if (head->read_avail)
+		return 0;
 	if (head->read_buf) {
-		ccs_free(head->read_buf); head->read_buf = NULL;
+		ccs_free(head->read_buf);
+		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
 	/***** CRITICAL SECTION START *****/
@@ -267,18 +372,27 @@ int ReadRejectLog(struct io_buffer *head)
 	/***** CRITICAL SECTION END *****/
 	if (ptr) {
 		head->read_buf = ptr->log;
-		head->readbuf_size = head->read_avail = strlen(ptr->log) + 1;
+		head->read_avail = strlen(ptr->log) + 1;
+		head->readbuf_size = head->read_avail;
 		ccs_free(ptr);
 	}
 	return 0;
 }
 
-int PollRejectLog(struct file *file, poll_table *wait)
+/**
+ * ccs_poll_reject_log - Wait for a reject log.
+ *
+ * @file: Pointer to "struct file".
+ * @wait: Pointer to "poll_table".
+ *
+ * Returns POLLIN | POLLRDNORM when ready to read a reject log.
+ */
+int ccs_poll_reject_log(struct file *file, poll_table *wait)
 {
-	if (reject_log_count) return POLLIN | POLLRDNORM;
+	if (reject_log_count)
+		return POLLIN | POLLRDNORM;
 	poll_wait(file, &reject_log_wait, wait);
-	if (reject_log_count) return POLLIN | POLLRDNORM;
+	if (reject_log_count)
+		return POLLIN | POLLRDNORM;
 	return 0;
 }
-
-/***** TOMOYO Linux end. *****/

@@ -1326,3 +1326,13 @@ Fix 2008/03/10
 
       This keyword is designed for handling unexpected/undesirable execve()
       requests, to redirect the process issuing such requests to somewhere.
+
+Fix 2008/03/18
+
+    @ Fix wrong/redundant locks in pre-vfs functions.
+
+      lock_kernel()/unlock_kernel() in pre_vfs_rename() were redundant for
+      2.6 kernels.
+
+      Locking order in pre_vfs_link() and pre_vfs_unlink() for 2.4 kernels
+      after 2.4.33 were different from before 2.4.32 .
