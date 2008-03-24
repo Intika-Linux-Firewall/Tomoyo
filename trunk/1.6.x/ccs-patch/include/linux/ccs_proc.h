@@ -1,11 +1,11 @@
 /*
  * include/linux/ccs_proc.h
  *
- * /proc interface for SAKURA and TOMOYO.
+ * /proc/ccs/ interface for SAKURA and TOMOYO.
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/04
+ * Version: 1.6.0-pre   2008/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -19,10 +19,7 @@
 #define __user
 #endif
 
-extern void __init realpath_Init(void);
-
-/*************************  Indexes for /proc interfaces.  *************************/
-
+/* Indexes for /proc/ccs/ interfaces. */
 #define CCS_DOMAINPOLICY          0
 #define CCS_EXCEPTIONPOLICY       1
 #define CCS_SYSTEMPOLICY          2

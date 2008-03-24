@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/11
+ * Version: 1.6.0-pre   2008/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,7 +21,7 @@
 #include <asm/uaccess.h>
 #include <asm/atomic.h>
 #include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
 static const int lookup_flags = LOOKUP_FOLLOW;
@@ -32,29 +32,34 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/proc_fs.h>
 #include <linux/ccs_common.h>
 
-/***** realpath handler *****/
-
-/*
- * GetAbsolutePath - return the path of a dentry but ignores chroot'ed root.
- * @dentry: dentry to report
- * @vfsmnt: vfsmnt to which the dentry belongs
- * @buffer: buffer to return value in
- * @buflen: buffer length
+/**
+ * get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
  *
- * Caller holds the dcache_lock.
+ * @dentry: Pointer to "struct dentry".
+ * @vfsmnt: Pointer to "struct vfsmount".
+ * @buffer: Pointer to buffer to return value in.
+ * @buflen: Sizeof @buffer.
+ *
+ * Returns 0 on success, -ENOMEM otherwise.
+ *
+ * Caller holds the dcache_lock and vfsmount_lock .
  * Based on __d_path() in fs/dcache.c
  *
  * If dentry is a directory, trailing '/' is appended.
- * Characters other than ' ' < c < 127 are converted to \ooo style octal string.
+ * Characters out of 0x20 < c < 0x7F range are converted to
+ * \ooo style octal string.
  * Character \ is converted to \\ string.
  */
-static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char *buffer, int buflen)
+static int get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
+			     char *buffer, int buflen)
 {
+	/***** CRITICAL SECTION START *****/
 	char *start = buffer;
 	char *end = buffer + buflen;
 	bool is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
 
-	if (buflen < 256) goto out;
+	if (buflen < 256)
+		goto out;
 
 	*--end = '\0';
 	buflen--;
@@ -64,24 +69,16 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
 			/* Global root? */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-			spin_lock(&vfsmount_lock);
-#endif
-			if (vfsmnt->mnt_parent == vfsmnt) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-				spin_unlock(&vfsmount_lock);
-#endif
+			if (vfsmnt->mnt_parent == vfsmnt)
 				break;
-			}
 			dentry = vfsmnt->mnt_mountpoint;
 			vfsmnt = vfsmnt->mnt_parent;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-			spin_unlock(&vfsmount_lock);
-#endif
 			continue;
 		}
 		if (is_dir) {
-			is_dir = false; *--end = '/'; buflen--;
+			is_dir = false;
+			*--end = '/';
+			buflen--;
 		}
 		parent = dentry->d_parent;
 		{
@@ -89,30 +86,45 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 			const char *cp = sp + dentry->d_name.len - 1;
 			unsigned char c;
 
-			/* Exception: Use /proc/self/ rather than /proc/\$/ for current process. */
-			if (IS_ROOT(parent) && *sp > '0' && *sp <= '9' && parent->d_sb && parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
+			/*
+			 * Exception: Use /proc/self/ rather than
+			 * /proc/\$/ for current process.
+			 */
+			if (IS_ROOT(parent) && *sp > '0' && *sp <= '9' &&
+			    parent->d_sb &&
+			    parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
 				char *ep;
-				const pid_t pid = (pid_t) simple_strtoul(sp, &ep, 10);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-				if (!*ep && pid == current->tgid) { sp = "self"; cp = sp + 3; }
+				const pid_t pid
+					= (pid_t) simple_strtoul(sp, &ep, 10);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+				if (!*ep && pid == current->tgid) {
+					sp = "self";
+					cp = sp + 3;
+				}
 #else
-				if (!*ep && pid == current->pid) { sp = "self"; cp = sp + 3; }
+				if (!*ep && pid == current->pid) {
+					sp = "self";
+					cp = sp + 3;
+				}
 #endif
 			}
 
 			while (sp <= cp) {
-				c = * (unsigned char *) cp;
+				c = *(unsigned char *) cp;
 				if (c == '\\') {
 					buflen -= 2;
-					if (buflen < 0) goto out;
+					if (buflen < 0)
+						goto out;
 					*--end = '\\';
 					*--end = '\\';
 				} else if (c > ' ' && c < 127) {
-					if (--buflen < 0) goto out;
+					if (--buflen < 0)
+						goto out;
 					*--end = (char) c;
 				} else {
 					buflen -= 4;
-					if (buflen < 0) goto out;
+					if (buflen < 0)
+						goto out;
 					*--end = (c & 7) + '0';
 					*--end = ((c >> 3) & 7) + '0';
 					*--end = (c >> 6) + '0';
@@ -120,29 +132,36 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 				}
 				cp--;
 			}
-			if (--buflen < 0) goto out;
+			if (--buflen < 0)
+				goto out;
 			*--end = '/';
 		}
 		dentry = parent;
 	}
-	if (*end == '/') { buflen++; end++; }
+	if (*end == '/') {
+		buflen++;
+		end++;
+	}
 	{
 		const char *sp = dentry->d_name.name;
 		const char *cp = sp + dentry->d_name.len - 1;
 		unsigned char c;
 		while (sp <= cp) {
-			c = * (unsigned char *) cp;
+			c = *(unsigned char *) cp;
 			if (c == '\\') {
 				buflen -= 2;
-				if (buflen < 0) goto out;
+				if (buflen < 0)
+					goto out;
 				*--end = '\\';
 				*--end = '\\';
 			} else if (c > ' ' && c < 127) {
-				if (--buflen < 0) goto out;
+				if (--buflen < 0)
+					goto out;
 				*--end = (char) c;
 			} else {
 				buflen -= 4;
-				if (buflen < 0) goto out;
+				if (buflen < 0)
+					goto out;
 				*--end = (c & 7) + '0';
 				*--end = ((c >> 3) & 7) + '0';
 				*--end = (c >> 6) + '0';
@@ -156,20 +175,39 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 	return 0;
  out:
 	return -ENOMEM;
+	/***** CRITICAL SECTION END *****/
 }
 
-/* Returns realpath(3) of the given dentry but ignores chroot'ed root. */
-int realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt, char *newname, int newname_len)
+/**
+ * ccs_realpath_from_dentry2 - Returns realpath(3) of the given dentry
+ *                             but ignores chroot'ed root.
+ *
+ * @dentry:      Pointer to "struct dentry".
+ * @mnt:         Pointer to "struct vfsmount".
+ * @newname:     Pointer to buffer to return value in.
+ * @newname_len: Size of @newname .
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
+			      char *newname, int newname_len)
 {
 	int error;
 	struct dentry *d_dentry;
 	struct vfsmount *d_mnt;
-	if (!dentry || !mnt || !newname || newname_len <= 0) return -EINVAL;
+	if (!dentry || !mnt || !newname || newname_len <= 0)
+		return -EINVAL;
 	d_dentry = dget(dentry);
 	d_mnt = mntget(mnt);
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&dcache_lock);
-	error = GetAbsolutePath(d_dentry, d_mnt, newname, newname_len);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	spin_lock(&vfsmount_lock);
+#endif
+	error = get_absolute_path(d_dentry, d_mnt, newname, newname_len);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	spin_unlock(&vfsmount_lock);
+#endif
 	spin_unlock(&dcache_lock);
 	/***** CRITICAL SECTION END *****/
 	dput(d_dentry);
@@ -177,25 +215,46 @@ int realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt, char *new
 	return error;
 }
 
-/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
-/* These functions use ccs_alloc(), so caller must ccs_free() if these functions didn't return NULL. */
-char *realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
+/**
+ * ccs_realpath_from_dentry - Returns realpath(3) of the given pathname
+ *                            but ignores chroot'ed root.
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount".
+ *
+ * Returns the realpath of the given @dentry and @mnt on success,
+ * NULL otherwise.
+ *
+ * These functions use ccs_alloc(), so caller must ccs_free()
+ * if these functions didn't return NULL.
+ */
+char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
 {
 	char *buf = ccs_alloc(sizeof(struct ccs_page_buffer));
-	if (buf && realpath_from_dentry2(dentry, mnt, buf, CCS_MAX_PATHNAME_LEN - 1) == 0) return buf;
+	if (buf && ccs_realpath_from_dentry2(dentry, mnt, buf,
+					     CCS_MAX_PATHNAME_LEN - 1) == 0)
+		return buf;
 	ccs_free(buf);
 	return NULL;
 }
 
-char *realpath(const char *pathname)
+/**
+ * ccs_realpath - Get realpath of a pathname.
+ *
+ * @pathname: The pathname to solve.
+ *
+ * Returns the realpath of @pathname on success, NULL otherwise.
+ */
+char *ccs_realpath(const char *pathname)
 {
 	struct nameidata nd;
 	if (pathname && path_lookup(pathname, lookup_flags, &nd) == 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
-		char *buf = realpath_from_dentry(nd.path.dentry, nd.path.mnt);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		char *buf = ccs_realpath_from_dentry(nd.path.dentry,
+						     nd.path.mnt);
 		path_put(&nd.path);
 #else
-		char *buf = realpath_from_dentry(nd.dentry, nd.mnt);
+		char *buf = ccs_realpath_from_dentry(nd.dentry, nd.mnt);
 		path_release(&nd);
 #endif
 		return buf;
@@ -203,15 +262,24 @@ char *realpath(const char *pathname)
 	return NULL;
 }
 
-char *realpath_nofollow(const char *pathname)
+/**
+ * ccs_realpath_nofollow - Get realpath of a pathname.
+ *
+ * @pathname: The pathname to solve.
+ *
+ * Returns the realpath of @pathname on success, NULL otherwise.
+ */
+char *ccs_realpath_nofollow(const char *pathname)
 {
 	struct nameidata nd;
-	if (pathname && path_lookup(pathname, lookup_flags ^ LOOKUP_FOLLOW, &nd) == 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
-		char *buf = realpath_from_dentry(nd.path.dentry, nd.path.mnt);
+	if (pathname && path_lookup(pathname, lookup_flags ^ LOOKUP_FOLLOW,
+				    &nd) == 0) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		char *buf = ccs_realpath_from_dentry(nd.path.dentry,
+						     nd.path.mnt);
 		path_put(&nd.path);
 #else
-		char *buf = realpath_from_dentry(nd.dentry, nd.mnt);
+		char *buf = ccs_realpath_from_dentry(nd.dentry, nd.mnt);
 		path_release(&nd);
 #endif
 		return buf;
@@ -219,41 +287,66 @@ char *realpath_nofollow(const char *pathname)
 	return NULL;
 }
 
-/***** Private memory allocator. *****/
-
-/*
- * Round up an integer so that the returned pointers are appropriately aligned.
- * FIXME: Are there more requirements that is needed for assigning value atomically?
+/**
+ * round_up - Round up an integer so that the returned pointers are
+ *            appropriately aligned.
+ *
+ * @size: Size in bytes.
+ *
+ * Returns rounded value of @size.
+ *
+ * FIXME: Are there more requirements that is needed for assigning value
+ * atomically?
  */
-static inline unsigned int ROUNDUP(const unsigned int size) {
-	if (sizeof(void *) >= sizeof(long)) {
-		return ((size + sizeof(void *) - 1) / sizeof(void *)) * sizeof(void *);
-	} else {
-		return ((size + sizeof(long) - 1) / sizeof(long)) * sizeof(long);
-	}
+static inline unsigned int round_up(const unsigned int size)
+{
+	if (sizeof(void *) >= sizeof(long))
+		return ((size + sizeof(void *) - 1)
+			/ sizeof(void *)) * sizeof(void *);
+	else
+		return ((size + sizeof(long) - 1)
+			/ sizeof(long)) * sizeof(long);
 }
 
-static unsigned int allocated_memory_for_elements = 0;
+static unsigned int allocated_memory_for_elements;
 
-unsigned int GetMemoryUsedForElements(void)
+/**
+ * ccs_get_memory_used_for_elements - Get memory used for keeping
+ *                                    ACL structures.
+ *
+ * Returns memory used for keeping ACL structures.
+ */
+unsigned int ccs_get_memory_used_for_elements(void)
 {
 	return allocated_memory_for_elements;
 }
 
-/* Allocate memory for structures. The RAM is chunked, so NEVER try to kfree() the returned pointer. */
-void *alloc_element(const unsigned int size)
+/**
+ * ccs_alloc_element - Allocate permanent memory for structures.
+ *
+ * @size: Size in bytes.
+ *
+ * Returns pointer to allocated memory on success, NULL otherwise.
+ *
+ * The RAM is chunked, so NEVER try to kfree() the returned pointer.
+ */
+void *ccs_alloc_element(const unsigned int size)
 {
 	static DEFINE_MUTEX(lock);
-	static char *buf = NULL;
+	static char *buf;
 	static unsigned int buf_used_len = PAGE_SIZE;
 	char *ptr = NULL;
-	const unsigned int word_aligned_size = ROUNDUP(size);
-	if (word_aligned_size > PAGE_SIZE) return NULL;
+	const unsigned int word_aligned_size = round_up(size);
+	if (word_aligned_size > PAGE_SIZE)
+		return NULL;
 	mutex_lock(&lock);
 	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
-		if ((ptr = kzalloc(PAGE_SIZE, GFP_KERNEL)) == NULL) {
-			printk("ERROR: Out of memory for alloc_element().\n");
-			if (!sbin_init_started) panic("MAC Initialization failed.\n");
+		ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
+		if (!ptr) {
+			printk(KERN_WARNING "ERROR: Out of memory "
+			       "for ccs_alloc_element().\n");
+			if (!sbin_init_started)
+				panic("MAC Initialization failed.\n");
 		} else {
 			buf = ptr;
 			allocated_memory_for_elements += PAGE_SIZE;
@@ -265,43 +358,60 @@ void *alloc_element(const unsigned int size)
 		ptr = buf + buf_used_len;
 		buf_used_len += word_aligned_size;
 		for (i = 0; i < word_aligned_size; i++) {
-			if (ptr[i]) {
-				printk(KERN_ERR "WARNING: Reserved memory was tainted! The system might go wrong.\n");
-				ptr[i] = '\0';
-			}
+			if (!ptr[i])
+				continue;
+			printk(KERN_ERR "WARNING: Reserved memory was tainted! "
+			       "The system might go wrong.\n");
+			ptr[i] = '\0';
 		}
 	}
 	mutex_unlock(&lock);
 	return ptr;
 }
 
-/***** Shared memory allocator. *****/
+static unsigned int allocated_memory_for_savename;
+static unsigned int allocated_memory_for_pool;
 
-static unsigned int allocated_memory_for_savename = 0;
-static unsigned int allocated_memory_for_pool = 0;
 
-unsigned int GetMemoryUsedForSaveName(void)
+/**
+ * ccs_get_memory_used_for_save_name - Get memory used for keeping
+ *                                     string data.
+ *
+ * Returns memory used for keeping string data.
+ */
+unsigned int ccs_get_memory_used_for_save_name(void)
 {
 	return allocated_memory_for_savename + allocated_memory_for_pool;
 }
 
 #define MAX_HASH 256
 
+/* Structure for string data. */
 struct name_entry {
 	struct list1_head list;
 	struct path_info entry;
 };
 
+/* Structure for available memory region. */
 struct free_memory_block_list {
 	struct list_head list;
-	char *ptr;                           /* Pointer to a free area.               */
-	int len;                             /* Length of the area.                   */
+	char *ptr;             /* Pointer to a free area. */
+	int len;               /* Length of the area.     */
 };
 
-static struct list1_head name_list[MAX_HASH]; /* The list of names. */
+/* The list for "struct name_entry". */
+static struct list1_head name_list[MAX_HASH];
 
-/* Keep the given name on the RAM. The RAM is shared, so NEVER try to modify or kfree() the returned name. */
-const struct path_info *SaveName(const char *name)
+/**
+ * ccs_save_name - Allocate permanent memory for string data.
+ *
+ * @name: The string to store into the permernent memory.
+ *
+ * Returns pointer to "struct path_info" on success, NULL otherwise.
+ *
+ * The RAM is shared, so NEVER try to modify or kfree() the returned name.
+ */
+const struct path_info *ccs_save_name(const char *name)
 {
 	static LIST_HEAD(fmb_list);
 	static DEFINE_MUTEX(lock);
@@ -310,27 +420,33 @@ const struct path_info *SaveName(const char *name)
 	struct free_memory_block_list *fmb;
 	int len;
 	char *cp;
-	if (!name) return NULL;
+	if (!name)
+		return NULL;
 	len = strlen(name) + 1;
 	if (len > CCS_MAX_PATHNAME_LEN) {
-		printk("ERROR: Name too long for SaveName().\n");
+		printk(KERN_WARNING "ERROR: Name too long "
+		       "for ccs_save_name().\n");
 		return NULL;
 	}
 	hash = full_name_hash((const unsigned char *) name, len - 1);
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &name_list[hash % MAX_HASH], list) {
-		if (hash == ptr->entry.hash && strcmp(name, ptr->entry.name) == 0) goto out;
+		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
+			goto out;
 	}
 	list_for_each_entry(fmb, &fmb_list, list) {
-		if (len <= fmb->len) goto ready;
+		if (len <= fmb->len)
+			goto ready;
 	}
 	cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
 	fmb = kzalloc(sizeof(*fmb), GFP_KERNEL);
 	if (!cp || !fmb) {
 		kfree(cp);
 		kfree(fmb);
-		printk("ERROR: Out of memory for SaveName().\n");
-		if (!sbin_init_started) panic("MAC Initialization failed.\n");
+		printk(KERN_WARNING "ERROR: Out of memory "
+		       "for ccs_save_name().\n");
+		if (!sbin_init_started)
+			panic("MAC Initialization failed.\n");
 		ptr = NULL;
 		goto out;
 	}
@@ -339,11 +455,12 @@ const struct path_info *SaveName(const char *name)
 	fmb->ptr = cp;
 	fmb->len = PAGE_SIZE;
  ready:
-	ptr = alloc_element(sizeof(*ptr));
-	if (!ptr) goto out;
+	ptr = ccs_alloc_element(sizeof(*ptr));
+	if (!ptr)
+		goto out;
 	ptr->entry.name = fmb->ptr;
 	memmove(fmb->ptr, name, len);
-	fill_path_info(&ptr->entry);
+	ccs_fill_path_info(&ptr->entry);
 	fmb->ptr += len;
 	fmb->len -= len;
 	list1_add_tail_mb(&ptr->list, &name_list[hash % MAX_HASH]);
@@ -356,18 +473,17 @@ const struct path_info *SaveName(const char *name)
 	return ptr ? &ptr->entry : NULL;
 }
 
-/***** Dynamic memory allocator. *****/
-
+/* Structure for temporarily allocated memory. */
 struct cache_entry {
 	struct list_head list;
 	void *ptr;
 	int size;
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
-static struct kmem_cache *ccs_cachep = NULL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
+static struct kmem_cache *ccs_cachep;
 #else
-static kmem_cache_t *ccs_cachep = NULL;
+static kmem_cache_t *ccs_cachep;
 #endif
 
 #ifdef CCS_MAX_RESERVED_PAGES
@@ -379,38 +495,67 @@ static kmem_cache_t *ccs_cachep = NULL;
 static struct ccs_page_buffer *ccs_page_buffer_pool[MAX_CCS_PAGE_BUFFER_POOL];
 static bool ccs_page_buffer_pool_in_use[MAX_CCS_PAGE_BUFFER_POOL];
 
-void __init realpath_Init(void)
+/**
+ * ccs_realpath_init - Initialize realpath related code.
+ *
+ * Returns 0.
+ */
+static int __init ccs_realpath_init(void)
 {
 	int i;
-	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE) panic("Bad size.");
-	if (sizeof(struct path_info_with_data) > sizeof(struct ccs_page_buffer)) panic("Bad size.");
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23)
-	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL);
+	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
+		panic("Bad size.");
+	if (sizeof(struct path_info_with_data) > sizeof(struct ccs_page_buffer))
+		panic("Bad size.");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
+	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry),
+				       0, 0, NULL);
 #else
-	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL, NULL);
+	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry),
+				       0, 0, NULL, NULL);
 #endif
-	if (!ccs_cachep) panic("Can't create cache.\n");
-	for (i = 0; i < MAX_HASH; i++) {
+	if (!ccs_cachep)
+		panic("Can't create cache.\n");
+	for (i = 0; i < MAX_HASH; i++)
 		INIT_LIST1_HEAD(&name_list[i]);
-	}
 	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
-	KERNEL_DOMAIN.domainname = SaveName(ROOT_NAME);
+	KERNEL_DOMAIN.domainname = ccs_save_name(ROOT_NAME);
 	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
-	if (FindDomain(ROOT_NAME) != &KERNEL_DOMAIN) panic("Can't register KERNEL_DOMAIN");
+	if (ccs_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
+		panic("Can't register KERNEL_DOMAIN");
 	memset(ccs_page_buffer_pool, 0, sizeof(ccs_page_buffer_pool));
-	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++) ccs_page_buffer_pool_in_use[i] = false;
+	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++)
+		ccs_page_buffer_pool_in_use[i] = false;
+	return 0;
 }
 
-static LIST_HEAD(cache_list);
-static spinlock_t cache_list_lock = SPIN_LOCK_UNLOCKED;
-static unsigned int dynamic_memory_size = 0;
+__initcall(ccs_realpath_init);
 
-unsigned int GetMemoryUsedForDynamic(void)
+/* The list for "struct cache_entry". */
+static LIST_HEAD(cache_list);
+
+static DEFINE_SPINLOCK(cache_list_lock);
+
+static unsigned int dynamic_memory_size;
+
+/**
+ * ccs_get_memory_used_for_dynamic - Get memory used for temporal purpose.
+ *
+ * Returns memory used for temporal purpose.
+ */
+unsigned int ccs_get_memory_used_for_dynamic(void)
 {
 	return dynamic_memory_size;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+/**
+ * round2 - Rounded up to power-of-two value.
+ *
+ * @size: Size in bytes.
+ *
+ * Returns power-of-two of @size.
+ */
 static int round2(size_t size)
 {
 #if PAGE_SIZE == 4096
@@ -423,48 +568,66 @@ static int round2(size_t size)
 }
 #endif
 
-static spinlock_t ccs_page_buffer_pool_lock = SPIN_LOCK_UNLOCKED;
+static DEFINE_SPINLOCK(ccs_page_buffer_pool_lock);
 
+/**
+ * ccs_alloc - Allocate memory for temporal purpose.
+ *
+ * @size: Size in bytes.
+ *
+ * Returns pointer to allocated memory on success, NULL otherwise.
+ */
 void *ccs_alloc(const size_t size)
 {
 	int i;
 	void *ret;
 	struct cache_entry *new_entry;
-	if (size != sizeof(struct ccs_page_buffer)) goto normal;
+	if (size != sizeof(struct ccs_page_buffer))
+		goto normal;
 	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++) {
 		struct ccs_page_buffer *ptr;
-		if (ccs_page_buffer_pool_in_use[i]) continue;
-		spin_lock(&ccs_page_buffer_pool_lock);
-		if (ccs_page_buffer_pool_in_use[i]) {
-			spin_unlock(&ccs_page_buffer_pool_lock);
+		bool in_use;
+		if (ccs_page_buffer_pool_in_use[i])
 			continue;
-		}
-		ccs_page_buffer_pool_in_use[i] = true;
+		/***** CRITICAL SECTION START *****/
+		spin_lock(&ccs_page_buffer_pool_lock);
+		in_use = ccs_page_buffer_pool_in_use[i];
+		if (!in_use)
+			ccs_page_buffer_pool_in_use[i] = true;
 		spin_unlock(&ccs_page_buffer_pool_lock);
+		/***** CRITICAL SECTION END *****/
+		if (in_use)
+			continue;
 		ptr = ccs_page_buffer_pool[i];
-		if (!ptr) {
-			ptr = kmalloc(sizeof(struct ccs_page_buffer), GFP_KERNEL);
-			spin_lock(&ccs_page_buffer_pool_lock);
-			if (ptr) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-				allocated_memory_for_pool += ksize(ptr);
+		if (ptr)
+			goto ok;
+		ptr = kmalloc(sizeof(struct ccs_page_buffer), GFP_KERNEL);
+		/***** CRITICAL SECTION START *****/
+		spin_lock(&ccs_page_buffer_pool_lock);
+		if (ptr) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+			allocated_memory_for_pool += ksize(ptr);
 #else
-				allocated_memory_for_pool += round2(sizeof(struct ccs_page_buffer));
+			allocated_memory_for_pool += round2(size);
 #endif
-			} else {
-				ccs_page_buffer_pool_in_use[i] = false;
-			}
-			spin_unlock(&ccs_page_buffer_pool_lock);
-			if (!ptr) goto normal;
-			ccs_page_buffer_pool[i] = ptr;
-			printk(KERN_DEBUG "Allocated permanent buffer %d/%d\n", i, MAX_CCS_PAGE_BUFFER_POOL);
+		} else {
+			ccs_page_buffer_pool_in_use[i] = false;
 		}
+		spin_unlock(&ccs_page_buffer_pool_lock);
+		/***** CRITICAL SECTION END *****/
+		if (!ptr)
+			goto normal;
+		ccs_page_buffer_pool[i] = ptr;
+		printk(KERN_DEBUG "Allocated permanent buffer %d/%d\n",
+		       i, MAX_CCS_PAGE_BUFFER_POOL);
+ ok:
 		memset(ptr, 0, sizeof(struct ccs_page_buffer));
 		return ptr;
 	}
  normal:
 	ret = kzalloc(size, GFP_KERNEL);
-	if (!ret) goto out;
+	if (!ret)
+		goto out;
 	new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
 	if (!new_entry) {
 		kfree(ret); ret = NULL;
@@ -472,34 +635,50 @@ void *ccs_alloc(const size_t size)
 	}
 	INIT_LIST_HEAD(&new_entry->list);
 	new_entry->ptr = ret;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	new_entry->size = ksize(ret);
 #else
 	new_entry->size = round2(size);
 #endif
+	/***** CRITICAL SECTION START *****/
 	spin_lock(&cache_list_lock);
 	list_add_tail(&new_entry->list, &cache_list);
 	dynamic_memory_size += new_entry->size;
 	spin_unlock(&cache_list_lock);
+	/***** CRITICAL SECTION END *****/
  out:
 	return ret;
 }
 
+/**
+ * ccs_free - Release memory allocated by ccs_alloc().
+ *
+ * @p: Pointer returned by ccs_alloc(). May be NULL.
+ *
+ * Returns nothing.
+ */
 void ccs_free(const void *p)
 {
 	int i;
 	struct list_head *v;
 	struct cache_entry *entry = NULL;
-	if (!p) return;
+	if (!p)
+		return;
 	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++) {
 		bool done;
-		if (p != ccs_page_buffer_pool[i]) continue;
+		if (p != ccs_page_buffer_pool[i])
+			continue;
+		/***** CRITICAL SECTION START *****/
 		spin_lock(&ccs_page_buffer_pool_lock);
 		done = ccs_page_buffer_pool_in_use[i];
-		if (done) ccs_page_buffer_pool_in_use[i] = false;
+		if (done)
+			ccs_page_buffer_pool_in_use[i] = false;
 		spin_unlock(&ccs_page_buffer_pool_lock);
-		if (done) return;
+		/***** CRITICAL SECTION END *****/
+		if (done)
+			return;
 	}
+	/***** CRITICAL SECTION START *****/
 	spin_lock(&cache_list_lock);
 	list_for_each(v, &cache_list) {
 		entry = list_entry(v, struct cache_entry, list);
@@ -511,10 +690,11 @@ void ccs_free(const void *p)
 		break;
 	}
 	spin_unlock(&cache_list_lock);
+	/***** CRITICAL SECTION END *****/
 	if (entry) {
 		kfree(p);
 		kmem_cache_free(ccs_cachep, entry);
 	} else {
-		printk("BUG: ccs_free() with invalid pointer.\n");
+		printk(KERN_WARNING "BUG: ccs_free() with invalid pointer.\n");
 	}
 }

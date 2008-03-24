@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/11
+ * Version: 1.6.0-pre   2008/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -28,12 +28,20 @@
 #include <stdarg.h>
 #include <linux/delay.h>
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/kmod.h>
 #include <asm/hardirq.h>
 #else
 #include <linux/hardirq.h>
 #endif
+
+struct dentry;
+struct vfsmount;
+struct in6_addr;
+extern asmlinkage long sys_getppid(void);
+
+#define false 0
+#define true 1
 
 #ifndef __user
 #define __user
@@ -43,12 +51,18 @@
 #define WARN_ON(x) do { } while (0)
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
+#ifndef DEFINE_SPINLOCK
+#define DEFINE_SPINLOCK(x) spinlock_t x = SPIN_LOCK_UNLOCKED
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 typedef _Bool bool;
 #endif
 
-#define false 0
-#define true 1
+
+#ifndef KERN_CONT
+#define KERN_CONT ""
+#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
 #define mutex semaphore
@@ -59,39 +73,33 @@ typedef _Bool bool;
 #define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
-#define container_of(ptr, type, member) ({                      \
-	const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
-		(type *)( (char *)__mptr - offsetof(type,member) );})
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#define container_of(ptr, type, member) ({				\
+			const typeof(((type *)0)->member) *__mptr = (ptr); \
+			(type *)((char *)__mptr - offsetof(type, member)); })
 #endif
 
-#if 0
-
-#define list1_head list_head
-#define LIST1_HEAD_INIT LIST_HEAD_INIT
-#define LIST1_HEAD LIST_HEAD
-#define INIT_LIST1_HEAD INIT_LIST_HEAD
-#define list1_entry list_entry
-#define list1_for_each list_for_each
-#define list1_for_each_entry list_for_each_entry
-#define list1_for_each_cookie(pos, cookie, head) \
-	for (({if (!cookie) cookie = head;}), pos = (cookie)->next; \
-		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
-		(cookie) = pos, pos = pos->next)
-static inline void list1_add_tail_mb(struct list1_head *new,
-				     struct list1_head *head)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
+static inline void *kzalloc(int size, int flags)
 {
-	struct list_head *prev = head->prev;
-	struct list_head *next = head;
-	new->next = next;
-	new->prev = prev;
-	mb(); /* Avoid out-of-order execution. */
-	next->prev = new;
-	prev->next = new;
+	void *p = kmalloc(size, flags);
+	if (p)
+		memset(p, 0, size);
+	return p;
 }
+#endif
 
-#else /////////////////////////////////////////////////////////////////////////
-
+/*
+ * Singly linked list.
+ *
+ * This list holds ACL entries used for access control.
+ * Since TOMOYO Linux performs string pattern matching which takes long time,
+ * I don't want to take any locks which disable preemption.
+ * Threfore, I use singly linked list that cannot delete an element
+ * but can make the code read-lock free.
+ * This is OK because ACL entries in this list are seldom deleted.
+ * You don't append garbage ACL entries without reasons, do you?
+ */
 struct list1_head {
 	struct list1_head *next;
 };
@@ -117,9 +125,9 @@ static inline void INIT_LIST1_HEAD(struct list1_head *list)
  * @pos:        the &struct list1_head to use as a loop cursor.
  * @head:       the head for your list.
  */
-#define list1_for_each(pos, head) \
-	for (pos = (head)->next; prefetch(pos->next), pos != (head); \
-		pos = pos->next)
+#define list1_for_each(pos, head)					\
+	for (pos = (head)->next; prefetch(pos->next), pos != (head);	\
+	     pos = pos->next)
 
 /**
  * list1_for_each_entry  -       iterate over list of given type
@@ -127,10 +135,10 @@ static inline void INIT_LIST1_HEAD(struct list1_head *list)
  * @head:       the head for your list.
  * @member:     the name of the list1_struct within the struct.
  */
-#define list1_for_each_entry(pos, head, member)                          \
-	for (pos = list1_entry((head)->next, typeof(*pos), member);      \
-		prefetch(pos->member.next), &pos->member != (head);        \
-		pos = list1_entry(pos->member.next, typeof(*pos), member))
+#define list1_for_each_entry(pos, head, member)				\
+	for (pos = list1_entry((head)->next, typeof(*pos), member);	\
+	     prefetch(pos->member.next), &pos->member != (head);        \
+	     pos = list1_entry(pos->member.next, typeof(*pos), member))
 
 /**
  * list1_for_each_cookie - iterate over a list with cookie.
@@ -141,10 +149,11 @@ static inline void INIT_LIST1_HEAD(struct list1_head *list)
  * Same with list_for_each except that this primitive uses cookie
  * so that we can continue iteration.
  */
-#define list1_for_each_cookie(pos, cookie, head) \
-	for (({if (!cookie) cookie = head;}), pos = (cookie)->next; \
-		prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
-		(cookie) = pos, pos = pos->next)
+#define list1_for_each_cookie(pos, cookie, head)			\
+	for (({ if (!cookie)						\
+				     cookie = head; }), pos = (cookie)->next; \
+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
+	     (cookie) = pos, pos = pos->next)
 
 /**
  * list_add_tail_mb - add a new entry with memory barrier.
@@ -166,19 +175,19 @@ static inline void list1_add_tail_mb(struct list1_head *new,
 	pos->next = new;
 }
 
-#endif
-
+/* Temporary buffer for holding pathnames. */
 struct ccs_page_buffer {
 	char buffer[4096];
 };
 
+/* Subset of "struct stat". */
 struct mini_stat {
 	uid_t uid;
 	gid_t gid;
 	ino_t ino;
 };
-struct dentry;
-struct vfsmount;
+
+/* Structure for attribute checks in addition to pathname checks. */
 struct obj_info {
 	bool validate_done;
 	bool path1_valid;
@@ -196,31 +205,41 @@ struct obj_info {
 	struct ccs_page_buffer *tmp;
 };
 
+/* Structure for holding a token. */
 struct path_info {
 	const char *name;
-	u32 hash;        /* = full_name_hash(name, strlen(name)) */
-	u16 total_len;   /* = strlen(name)                       */
-	u16 const_len;   /* = const_part_length(name)            */
+	u32 hash;          /* = full_name_hash(name, strlen(name)) */
+	u16 total_len;     /* = strlen(name)                       */
+	u16 const_len;     /* = const_part_length(name)            */
 	bool is_dir;       /* = strendswith(name, "/")             */
-	bool is_patterned; /* = PathContainsPattern(name)          */
-	u16 depth;       /* = PathDepth(name)                    */
+	bool is_patterned; /* = path_contains_pattern(name)        */
+	u16 depth;         /* = path_depth(name)                   */
 };
 
+/*
+ * This is the max length of a token.
+ *
+ * A token consists of only ASCII printable characters.
+ * Non printable characters in a token is represented in \ooo style
+ * octal string. Thus, \ itself is represented as \\ .
+ */
 #define CCS_MAX_PATHNAME_LEN 4000
 
+/* Structure for "path_group" directive. */
 struct path_group_member {
 	struct list1_head list;
 	const struct path_info *member_name;
 	bool is_deleted;
 };
 
+/* Structure for "path_group" directive. */
 struct path_group_entry {
 	struct list1_head list;
 	const struct path_info *group_name;
 	struct list1_head path_group_member_list;
 };
 
-struct in6_addr;
+/* Structure for "address_group" directive. */
 struct address_group_member {
 	struct list1_head list;
 	union {
@@ -231,213 +250,251 @@ struct address_group_member {
 	bool is_ipv6;
 };
 
+/* Structure for "address_group" directive. */
 struct address_group_entry {
 	struct list1_head list;
 	const struct path_info *group_name;
 	struct list1_head address_group_member_list;
 };
 
+/* Structure for holding requested pathname. */
 struct path_info_with_data {
-	struct path_info head; /* Keep this first, for this pointer is passed to ccs_free(). */
-	char bariier1[16];
+	/* Keep "head" first, for this pointer is passed to ccs_free(). */
+	struct path_info head;
+	char bariier1[16]; /* Safeguard for overrun. */
 	char body[CCS_MAX_PATHNAME_LEN];
-	char barrier2[16];
+	char barrier2[16]; /* Safeguard for overrun. */
 };
 
-/*
- *  TOMOYO uses the following structures.
- *  Memory allocated for these structures are never kfree()ed.
- *  Since no locks are used for reading, assignment must be performed atomically.
- */
-
-/*************************  The structure for domains.  *************************/
-
-#define ACL_DELETED        0x80
-#define ACL_WITH_CONDITION 0x40
-
+/* Common header for holding ACL entries. */
 struct acl_info {
-	const struct condition_list *cond; /* Use GetConditionPart() to read me. */
+	/*
+	 * Keep "access_me_via_ccs_get_condition_part" first, for
+	 * memory for this filed is not allocated if
+	 * (type & ACL_WITH_CONDITION) == 0.
+	 */
+	const struct condition_list *access_me_via_ccs_get_condition_part;
 	struct list1_head list;
-	u8 type; /* MSB is is_deleted flag. Next bit is with_condition flag. */
+	/*
+	 * Type of this ACL entry.
+	 *
+	 * MSB is is_deleted flag.
+	 * Next bit is with_condition flag.
+	 */
+	u8 type;
 } __attribute__((__packed__));
 
+/* This ACL entry is deleted.           */
+#define ACL_DELETED        0x80
+/* This ACL entry has conditional part. */
+#define ACL_WITH_CONDITION 0x40
+
+/* Structure for domain information. */
 struct domain_info {
 	struct list1_head list;
 	struct list1_head acl_info_list;
-	const struct path_info *domainname; /* Name of this domain. Never NULL.      */
-	u8 profile;                         /* Profile to use.                       */
-	u8 is_deleted;                      /* Delete flag.                          */
-	bool quota_warned;                  /* Quota warnning done flag.             */
-	u8 flags;                           /* Ignore default?                       */
+	/* Name of this domain. Never NULL.          */
+	const struct path_info *domainname;
+	u8 profile;        /* Profile number to use. */
+	u8 is_deleted;     /* Delete flag.           */
+	bool quota_warned; /* Quota warnning flag.   */
+	/* DOMAIN_FLAGS_IGNORE_* . Use ccs_set_domain_flag() to modify. */
+	u8 flags;
 };
 
+/* Profile number is an integer between 0 and 255. */
 #define MAX_PROFILES 256
 
-#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1 /* Ignore "allow_read" in exception_policy */
-#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2 /* Ignore "allow_env" in exception_policy  */
+/* Ignore "allow_read" directive in exception policy. */
+#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
+/* Ignore "allow_env" directive in exception policy.  */
+#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2
 
+/*
+ * Structure for "preferred_execute_handler" and "default_execute_handler"
+ * directive. These directives can exist only one entry in a domain.
+ * If "preferred_execute_handler" directive exists, all "allow_execute"
+ * and "default_execute_handler" directive are ignored.
+ */
 struct execute_handler_record {
-	struct acl_info head;                         /* type = TYPE_*_EXECUTE_HANDLER */
-	const struct path_info *handler;              /* Pointer to single pathname.   */
+	struct acl_info head;            /* type = TYPE_*_EXECUTE_HANDLER */
+	const struct path_info *handler; /* Pointer to single pathname.   */
 };
 
+/*
+ * Structure for "allow_read/write", "allow_execute", "allow_read",
+ * "allow_write", "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
+ * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
+ * "allow_truncate", "allow_symlink" and "allow_rewrite" directive.
+ */
 struct single_path_acl_record {
-	struct acl_info head;                         /* type = TYPE_SINGLE_PATH_ACL */
-	bool u_is_group;
+	struct acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
+	bool u_is_group; /* True if u points to "path_group" directive. */
 	u16 perm;
 	union {
-		const struct path_info *filename;     /* Pointer to single pathname. */
-		const struct path_group_entry *group; /* Pointer to pathname group.  */
+		/* Pointer to single pathname. */
+		const struct path_info *filename;
+		/* Pointer to pathname group. */
+		const struct path_group_entry *group;
 	} u;
 };
 
+/* Structure for "allow_rename" and "allow_link" directive. */
 struct double_path_acl_record {
-	struct acl_info head;                          /* type = TYPE_DOUBLE_PATH_ACL */
+	struct acl_info head; /* type = TYPE_DOUBLE_PATH_ACL */
 	u8 perm;
-	bool u1_is_group;
-	bool u2_is_group;
+	bool u1_is_group; /* True if u1 points to "path_group" directive. */
+	bool u2_is_group; /* True if u2 points to "path_group" directive. */
 	union {
-		const struct path_info *filename1;     /* Pointer to single pathname. */
-		const struct path_group_entry *group1; /* Pointer to pathname group.  */
+		/* Pointer to single pathname. */
+		const struct path_info *filename1;
+		/* Pointer to pathname group. */
+		const struct path_group_entry *group1;
 	} u1;
 	union {
-		const struct path_info *filename2;     /* Pointer to single pathname. */
-		const struct path_group_entry *group2; /* Pointer to pathname group.  */
+		/* Pointer to single pathname. */
+		const struct path_info *filename2;
+		/* Pointer to pathname group. */
+		const struct path_group_entry *group2;
 	} u2;
 };
 
+/* Structure for "allow_argv0" directive. */
 struct argv0_acl_record {
 	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
 	const struct path_info *filename; /* Pointer to single pathname. */
-	const struct path_info *argv0;    /* strrchr(argv[0], '/') + 1   */
+	const struct path_info *argv0;    /* = strrchr(argv[0], '/') + 1 */
 };
 
+/* Structure for "allow_env" directive in domain policy. */
 struct env_acl_record {
-	struct acl_info head;           /* type = TYPE_ENV_ACL  */
-	const struct path_info *env;    /* environment variable */
+	struct acl_info head;        /* type = TYPE_ENV_ACL  */
+	const struct path_info *env; /* environment variable */
 };
 
+/* Structure for "allow_capability" directive. */
 struct capability_acl_record {
 	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
 	u8 operation;
 };
 
+/* Structure for "allow_signal" directive. */
 struct signal_acl_record {
-	struct acl_info head;               /* type = TYPE_SIGNAL_ACL          */
+	struct acl_info head; /* type = TYPE_SIGNAL_ACL */
 	u16 sig;
-	const struct path_info *domainname; /* Pointer to destination pattern. */
+	/* Pointer to destination pattern. */
+	const struct path_info *domainname;
+};
+
+/* Structure for "allow_network" directive. */
+struct ip_network_acl_record {
+	struct acl_info head; /* type = TYPE_IP_NETWORK_ACL */
+	/*
+	 * operation_type takes one of the following constants.
+	 *   NETWORK_ACL_UDP_BIND for UDP's bind() operation.
+	 *   NETWORK_ACL_UDP_CONNECT for UDP's connect()/send()/recv()
+	 *                               operation.
+	 *   NETWORK_ACL_TCP_BIND for TCP's bind() operation.
+	 *   NETWORK_ACL_TCP_LISTEN for TCP's listen() operation.
+	 *   NETWORK_ACL_TCP_CONNECT for TCP's connect() operation.
+	 *   NETWORK_ACL_TCP_ACCEPT for TCP's accept() operation.
+	 *   NETWORK_ACL_RAW_BIND for IP's bind() operation.
+	 *   NETWORK_ACL_RAW_CONNECT for IP's connect()/send()/recv()
+	 *                               operation.
+	 */
+	u8 operation_type;
+	/*
+	 * record_type takes one of the following constants.
+	 *   IP_RECORD_TYPE_ADDRESS_GROUP
+	 *                if u points to "address_group" directive.
+	 *   IP_RECORD_TYPE_IPv4
+	 *                if u points to an IPv4 address.
+	 *   IP_RECORD_TYPE_IPv6
+	 *                if u points to an IPv6 address.
+	 */
+	u8 record_type;
+	/* Start of port number range. */
+	u16 min_port;
+	/* End of port number range.   */
+	u16 max_port;
+	union {
+		struct {
+			/* Start of IPv4 address range. Host endian. */
+			u32 min;
+			/* End of IPv4 address range. Host endian.   */
+			u32 max;
+		} ipv4;
+		struct {
+			/* Start of IPv6 address range. Big endian.  */
+			const struct in6_addr *min;
+			/* End of IPv6 address range. Big endian.    */
+			const struct in6_addr *max;
+		} ipv6;
+		/* Pointer to address group. */
+		const struct address_group_entry *group;
+	} u;
 };
 
 #define IP_RECORD_TYPE_ADDRESS_GROUP 0
 #define IP_RECORD_TYPE_IPv4          1
 #define IP_RECORD_TYPE_IPv6          2
 
-struct ip_network_acl_record {
-	struct acl_info head;   /* type = TYPE_IP_NETWORK_ACL */
-	u8 operation_type;
-	u8 record_type;         /* IP_RECORD_TYPE_*           */
-	u16 min_port;           /* Start of port number range.                   */
-	u16 max_port;           /* End of port number range.                     */
-	union {
-		struct {
-			u32 min; /* Start of IPv4 address range. Host endian. */
-			u32 max; /* End of IPv4 address range. Host endian.   */
-		} ipv4;
-		struct {
-			const struct in6_addr *min; /* Start of IPv6 address range. Big endian.      */
-			const struct in6_addr *max; /* End of IPv6 address range. Big endian.        */
-		} ipv6;
-		const struct address_group_entry *group; /* Pointer to address group. */
-	} u;
-};
+/* Keywords for ACLs. */
+#define KEYWORD_ADDRESS_GROUP             "address_group "
+#define KEYWORD_AGGREGATOR                "aggregator "
+#define KEYWORD_ALIAS                     "alias "
+#define KEYWORD_ALLOW_ARGV0               "allow_argv0 "
+#define KEYWORD_ALLOW_CAPABILITY          "allow_capability "
+#define KEYWORD_ALLOW_CHROOT              "allow_chroot "
+#define KEYWORD_ALLOW_ENV                 "allow_env "
+#define KEYWORD_ALLOW_MOUNT               "allow_mount "
+#define KEYWORD_ALLOW_NETWORK             "allow_network "
+#define KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
+#define KEYWORD_ALLOW_READ                "allow_read "
+#define KEYWORD_ALLOW_SIGNAL              "allow_signal "
+#define KEYWORD_DELETE                    "delete "
+#define KEYWORD_DENY_AUTOBIND             "deny_autobind "
+#define KEYWORD_DENY_REWRITE              "deny_rewrite "
+#define KEYWORD_DENY_UNMOUNT              "deny_unmount "
+#define KEYWORD_FILE_PATTERN              "file_pattern "
+#define KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
+#define KEYWORD_KEEP_DOMAIN               "keep_domain "
+#define KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
+#define KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
+#define KEYWORD_PATH_GROUP                "path_group "
+#define KEYWORD_SELECT                    "select "
+#define KEYWORD_UNDELETE                  "undelete "
+#define KEYWORD_USE_PROFILE               "use_profile "
+#define KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
+#define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
+#define KEYWORD_PREFERRED_EXECUTE_HANDLER "preferred_execute_handler "
+#define KEYWORD_DEFAULT_EXECUTE_HANDLER   "default_execute_handler "
+#define KEYWORD_MAC_FOR_CAPABILITY        "MAC_FOR_CAPABILITY::"
+/* A domain definition starts with <kernel> . */
+#define ROOT_NAME                         "<kernel>"
+#define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
 
-/*************************  Keywords for ACLs.  *************************/
+/* Index numbers for Access Controls. */
+#define CCS_TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
+#define CCS_TOMOYO_MAC_FOR_ARGV0                 1  /* domain_policy.conf */
+#define CCS_TOMOYO_MAC_FOR_ENV                   2  /* domain_policy.conf */
+#define CCS_TOMOYO_MAC_FOR_NETWORK               3  /* domain_policy.conf */
+#define CCS_TOMOYO_MAC_FOR_SIGNAL                4  /* domain_policy.conf */
+#define CCS_SAKURA_DENY_CONCEAL_MOUNT            5
+#define CCS_SAKURA_RESTRICT_CHROOT               6  /* system_policy.conf */
+#define CCS_SAKURA_RESTRICT_MOUNT                7  /* system_policy.conf */
+#define CCS_SAKURA_RESTRICT_UNMOUNT              8  /* system_policy.conf */
+#define CCS_SAKURA_RESTRICT_PIVOT_ROOT           9  /* system_policy.conf */
+#define CCS_SAKURA_RESTRICT_AUTOBIND            10  /* system_policy.conf */
+#define CCS_TOMOYO_MAX_ACCEPT_ENTRY             11
+#define CCS_TOMOYO_MAX_GRANT_LOG                12
+#define CCS_TOMOYO_MAX_REJECT_LOG               13
+#define CCS_TOMOYO_VERBOSE                      14
+#define CCS_ALLOW_ENFORCE_GRACE                 15
+#define CCS_SLEEP_PERIOD                        16  /* profile.conf       */
+#define CCS_MAX_CONTROL_INDEX                   17
 
-#define KEYWORD_ADDRESS_GROUP            "address_group "
-#define KEYWORD_ADDRESS_GROUP_LEN        (sizeof(KEYWORD_ADDRESS_GROUP) - 1)
-#define KEYWORD_AGGREGATOR               "aggregator "
-#define KEYWORD_AGGREGATOR_LEN           (sizeof(KEYWORD_AGGREGATOR) - 1)
-#define KEYWORD_ALIAS                    "alias "
-#define KEYWORD_ALIAS_LEN                (sizeof(KEYWORD_ALIAS) - 1)
-#define KEYWORD_ALLOW_ARGV0              "allow_argv0 "
-#define KEYWORD_ALLOW_ARGV0_LEN          (sizeof(KEYWORD_ALLOW_ARGV0) - 1)
-#define KEYWORD_ALLOW_CAPABILITY         "allow_capability "
-#define KEYWORD_ALLOW_CAPABILITY_LEN     (sizeof(KEYWORD_ALLOW_CAPABILITY) - 1)
-#define KEYWORD_ALLOW_CHROOT             "allow_chroot "
-#define KEYWORD_ALLOW_CHROOT_LEN         (sizeof(KEYWORD_ALLOW_CHROOT) - 1)
-#define KEYWORD_ALLOW_ENV                "allow_env "
-#define KEYWORD_ALLOW_ENV_LEN            (sizeof(KEYWORD_ALLOW_ENV) - 1)
-#define KEYWORD_ALLOW_MOUNT              "allow_mount "
-#define KEYWORD_ALLOW_MOUNT_LEN          (sizeof(KEYWORD_ALLOW_MOUNT) - 1)
-#define KEYWORD_ALLOW_NETWORK            "allow_network "
-#define KEYWORD_ALLOW_NETWORK_LEN        (sizeof(KEYWORD_ALLOW_NETWORK) - 1)
-#define KEYWORD_ALLOW_PIVOT_ROOT         "allow_pivot_root "
-#define KEYWORD_ALLOW_PIVOT_ROOT_LEN     (sizeof(KEYWORD_ALLOW_PIVOT_ROOT) - 1)
-#define KEYWORD_ALLOW_READ               "allow_read "
-#define KEYWORD_ALLOW_READ_LEN           (sizeof(KEYWORD_ALLOW_READ) - 1)
-#define KEYWORD_ALLOW_SIGNAL             "allow_signal "
-#define KEYWORD_ALLOW_SIGNAL_LEN         (sizeof(KEYWORD_ALLOW_SIGNAL) - 1)
-#define KEYWORD_DELETE                   "delete "
-#define KEYWORD_DELETE_LEN               (sizeof(KEYWORD_DELETE) - 1)
-#define KEYWORD_DENY_AUTOBIND            "deny_autobind "
-#define KEYWORD_DENY_AUTOBIND_LEN        (sizeof(KEYWORD_DENY_AUTOBIND) - 1)
-#define KEYWORD_DENY_REWRITE             "deny_rewrite "
-#define KEYWORD_DENY_REWRITE_LEN         (sizeof(KEYWORD_DENY_REWRITE) - 1)
-#define KEYWORD_DENY_UNMOUNT             "deny_unmount "
-#define KEYWORD_DENY_UNMOUNT_LEN         (sizeof(KEYWORD_DENY_UNMOUNT) - 1)
-#define KEYWORD_FILE_PATTERN             "file_pattern "
-#define KEYWORD_FILE_PATTERN_LEN         (sizeof(KEYWORD_FILE_PATTERN) - 1)
-#define KEYWORD_INITIALIZE_DOMAIN        "initialize_domain "
-#define KEYWORD_INITIALIZE_DOMAIN_LEN    (sizeof(KEYWORD_INITIALIZE_DOMAIN) - 1)
-#define KEYWORD_KEEP_DOMAIN              "keep_domain "
-#define KEYWORD_KEEP_DOMAIN_LEN          (sizeof(KEYWORD_KEEP_DOMAIN) - 1)
-#define KEYWORD_NO_INITIALIZE_DOMAIN     "no_initialize_domain "
-#define KEYWORD_NO_INITIALIZE_DOMAIN_LEN (sizeof(KEYWORD_NO_INITIALIZE_DOMAIN) - 1)
-#define KEYWORD_NO_KEEP_DOMAIN           "no_keep_domain "
-#define KEYWORD_NO_KEEP_DOMAIN_LEN       (sizeof(KEYWORD_NO_KEEP_DOMAIN) - 1)
-#define KEYWORD_PATH_GROUP               "path_group "
-#define KEYWORD_PATH_GROUP_LEN           (sizeof(KEYWORD_PATH_GROUP) - 1)
-#define KEYWORD_SELECT                   "select "
-#define KEYWORD_SELECT_LEN               (sizeof(KEYWORD_SELECT) - 1)
-#define KEYWORD_UNDELETE                 "undelete "
-#define KEYWORD_UNDELETE_LEN             (sizeof(KEYWORD_UNDELETE) - 1)
-
-#define KEYWORD_USE_PROFILE              "use_profile "
-#define KEYWORD_IGNORE_GLOBAL_ALLOW_READ "ignore_global_allow_read"
-#define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV  "ignore_global_allow_env"
-#define KEYWORD_PREFERRED_EXECUTE_HANDLER "preferred_execute_handler"
-#define KEYWORD_DEFAULT_EXECUTE_HANDLER   "default_execute_handler"
-
-#define KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
-#define KEYWORD_MAC_FOR_CAPABILITY_LEN   (sizeof(KEYWORD_MAC_FOR_CAPABILITY) - 1)
-
-#define ROOT_NAME "<kernel>"             /* A domain definition starts with <kernel> . */
-#define ROOT_NAME_LEN (sizeof(ROOT_NAME) - 1)
-
-/*************************  Index numbers for Access Controls.  *************************/
-
-#define CCS_PROFILE_COMMENT                      0  /* profile.conf            */
-#define CCS_TOMOYO_MAC_FOR_FILE                  1  /* domain_policy.conf      */
-#define CCS_TOMOYO_MAC_FOR_ARGV0                 2  /* domain_policy.conf      */
-#define CCS_TOMOYO_MAC_FOR_ENV                   3  /* domain_policy.conf      */
-#define CCS_TOMOYO_MAC_FOR_NETWORK               4  /* domain_policy.conf      */
-#define CCS_TOMOYO_MAC_FOR_SIGNAL                5  /* domain_policy.conf      */
-#define CCS_SAKURA_DENY_CONCEAL_MOUNT            6
-#define CCS_SAKURA_RESTRICT_CHROOT               7  /* system_policy.conf      */
-#define CCS_SAKURA_RESTRICT_MOUNT                8  /* system_policy.conf      */
-#define CCS_SAKURA_RESTRICT_UNMOUNT              9  /* system_policy.conf      */
-#define CCS_SAKURA_RESTRICT_PIVOT_ROOT          10  /* system_policy.conf      */
-#define CCS_SAKURA_RESTRICT_AUTOBIND            11  /* system_policy.conf      */
-#define CCS_TOMOYO_MAX_ACCEPT_ENTRY             12
-#define CCS_TOMOYO_MAX_GRANT_LOG                13
-#define CCS_TOMOYO_MAX_REJECT_LOG               14
-#define CCS_TOMOYO_VERBOSE                      15
-#define CCS_ALLOW_ENFORCE_GRACE                 16
-#define CCS_SLEEP_PERIOD                        17  /* profile.conf            */
-#define CCS_MAX_CONTROL_INDEX                   18
-
-/*************************  Index numbers for updates counter.  *************************/
-
+/* Index numbers for updates counter. */
 #define CCS_UPDATES_COUNTER_SYSTEM_POLICY    0
 #define CCS_UPDATES_COUNTER_DOMAIN_POLICY    1
 #define CCS_UPDATES_COUNTER_EXCEPTION_POLICY 2
@@ -448,138 +505,271 @@ struct ip_network_acl_record {
 #define CCS_UPDATES_COUNTER_REJECT_LOG       7
 #define MAX_CCS_UPDATES_COUNTER              8
 
-/*************************  The structure for /proc interfaces.  *************************/
-
-struct io_buffer {
-	int (*read) (struct io_buffer *);
-	struct mutex read_sem;
-	int (*write) (struct io_buffer *);
-	struct mutex write_sem;
+/* Structure for reading/writing policy via /proc interfaces. */
+struct ccs_io_buffer {
+	int (*read) (struct ccs_io_buffer *);
+	int (*write) (struct ccs_io_buffer *);
 	int (*poll) (struct file *file, poll_table *wait);
-	struct list1_head *read_var1;     /* The position currently reading from. */
-	struct list1_head *read_var2;     /* Extra variables for reading.         */
-	struct domain_info *write_var1;   /* The position currently writing to.   */
-	int read_step;                    /* The step for reading.                */
-	char *read_buf;                   /* Buffer for reading.                  */
-	bool read_eof;                    /* EOF flag for reading.                */
-	u8 read_bit;                      /* Extra variable for reading.          */
-	int read_avail;                   /* Bytes available for reading.         */
-	int readbuf_size;                 /* Size of read buffer.                 */
-	char *write_buf;                  /* Buffer for writing.                  */
-	int write_avail;                  /* Bytes available for writing.         */
-	int writebuf_size;                /* Size of write buffer.                */
+	/* Exclusive lock for read_buf .        */
+	struct mutex read_sem;
+	/* Exclusive lock for write_buf .       */
+	struct mutex write_sem;
+	/* The position currently reading from. */
+	struct list1_head *read_var1;
+	/* Extra variables for reading.         */
+	struct list1_head *read_var2;
+	/* The position currently writing to.   */
+	struct domain_info *write_var1;
+	/* The step for reading.                */
+	int read_step;
+	/* Buffer for reading.                  */
+	char *read_buf;
+	/* EOF flag for reading.                */
+	bool read_eof;
+	/* Extra variable for reading.          */
+	u8 read_bit;
+	/* Bytes available for reading.         */
+	int read_avail;
+	/* Size of read buffer.                 */
+	int readbuf_size;
+	/* Buffer for writing.                  */
+	char *write_buf;
+	/* Bytes available for writing.         */
+	int write_avail;
+	/* Size of write buffer.                */
+	int writebuf_size;
 };
 
-/*************************  PROTOTYPES  *************************/
-
+/* Prototype definition. */
 struct condition_list;
 
-char *InitAuditLog(int *len, const u8 profile, const u8 mode, struct linux_binprm *bprm);
-void *ccs_alloc(const size_t size);
-char *print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
-const char *GetEXE(void);
-const char *GetLastName(const struct domain_info *domain);
-const char *GetMSG(const bool is_enforce);
-const char *cap_operation2keyword(const u8 operation);
-const char *dp_operation2keyword(const u8 operation);
-const char *sp_operation2keyword(const u8 operation);
-const char *net_operation2keyword(const u8 operation);
-const struct condition_list *FindOrAssignNewCondition(char *condition);
-int AddAddressGroupPolicy(char *data, const bool is_delete);
-int AddAggregatorPolicy(char *data, const bool is_delete);
-int AddAliasPolicy(char *data, const bool is_delete);
-int AddArgv0Policy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
-int AddCapabilityPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
-int AddChrootPolicy(char *data, const bool is_delete);
-int AddDomainACL(struct domain_info *domain, struct acl_info *acl);
-int AddDomainInitializerPolicy(char *data, const bool is_not, const bool is_delete);
-int AddDomainKeeperPolicy(char *data, const bool is_not, const bool is_delete);
-int AddEnvPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
-int AddFilePolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
-int AddGloballyReadablePolicy(char *data, const bool is_delete);
-int AddGloballyUsableEnvPolicy(char *env, const bool is_delete);
-int AddFilePatternPolicy(char *data, const bool is_delete);
-int AddMountPolicy(char *data, const bool is_delete);
-int AddNetworkPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
-int AddNoRewritePolicy(char *pattern, const bool is_delete);
-int AddNoUmountPolicy(char *data, const bool is_delete);
-int AddPathGroupPolicy(char *data, const bool is_delete);
-int AddPivotRootPolicy(char *data, const bool is_delete);
-int AddReservedPortPolicy(char *data, const bool is_delete);
-int AddSignalPolicy(char *data, struct domain_info *domain, const struct condition_list *condition, const bool is_delete);
-int CCS_CloseControl(struct file *file);
-int CCS_OpenControl(const u8 type, struct file *file);
-int CCS_PollControl(struct file *file, poll_table *wait);
-int CCS_ReadControl(struct file *file, char __user *buffer, const int buffer_len);
-int CCS_WriteControl(struct file *file, const char __user *buffer, const int buffer_len);
-int CanSaveAuditLog(const bool is_granted);
-int CheckSupervisor(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-int DelDomainACL(struct acl_info *acl);
-int DeleteDomain(char *data);
-int DumpCondition(struct io_buffer *head, const struct condition_list *ptr);
-bool CheckCondition(const struct acl_info *acl, struct obj_info *obj_info);
-bool IsCorrectDomain(const unsigned char *domainname, const char *function);
-bool IsCorrectPath(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type, const char *function);
-bool IsDomainDef(const unsigned char *buffer);
-bool PathMatchesToPattern(const struct path_info *pathname0, const struct path_info *pattern0);
-int PollGrantLog(struct file *file, poll_table *wait);
-int PollRejectLog(struct file *file, poll_table *wait);
-int ReadAddressGroupPolicy(struct io_buffer *head);
-int ReadAggregatorPolicy(struct io_buffer *head);
-int ReadAliasPolicy(struct io_buffer *head);
-int ReadChrootPolicy(struct io_buffer *head);
-int ReadDomainInitializerPolicy(struct io_buffer *head);
-int ReadDomainKeeperPolicy(struct io_buffer *head);
-int ReadGloballyReadablePolicy(struct io_buffer *head);
-int ReadGloballyUsableEnvPolicy(struct io_buffer *head);
-int ReadGrantLog(struct io_buffer *head);
-int ReadFilePatternPolicy(struct io_buffer *head);
-int ReadMountPolicy(struct io_buffer *head);
-int ReadNoRewritePolicy(struct io_buffer *head);
-int ReadNoUmountPolicy(struct io_buffer *head);
-int ReadPathGroupPolicy(struct io_buffer *head);
-int ReadPivotRootPolicy(struct io_buffer *head);
-int ReadRejectLog(struct io_buffer *head);
-int ReadReservedPortPolicy(struct io_buffer *head);
-int WriteAuditLog(char *log, const bool is_granted);
-int io_printf(struct io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
-struct domain_info *FindDomain(const char *domainname);
-struct domain_info *FindOrAssignNewDomain(const char *domainname, const u8 profile);
-struct domain_info *UndeleteDomain(const char *domainname0);
-bool CheckCCSQuota(struct domain_info * const domain);
-unsigned int CheckCCSFlags(const u8 index);
-unsigned int CheckCCSFlags_NoSleepCheck(const u8 index);
-u8 CheckCapabilityFlags(const u8 index);
-bool CheckDomainQuota(struct domain_info * const domain);
-bool TomoyoVerboseMode(void);
-void *alloc_acl_element(const u8 acl_type, const struct condition_list *condition);
-const struct condition_list *GetConditionPart(const struct acl_info *acl);
-void CCS_LoadPolicy(const char *filename);
-void UpdateCounter(const unsigned char index);
-void ccs_free(const void *p);
-void fill_path_info(struct path_info *ptr);
-void UpdateCondition(const struct acl_info *acl);
-void SetDomainFlag(struct domain_info *domain, const bool is_delete, const u8 flags);
+/* Check conditional part of an ACL entry. */
+bool ccs_check_condition(const struct acl_info *acl,
+			 struct obj_info *obj_info);
+/* Check whether the domain has too many ACL entries to hold. */
+bool ccs_check_domain_quota(struct domain_info * const domain);
+/* Dump conditional part of an ACL entry. */
+bool ccs_dump_condition(struct ccs_io_buffer *head,
+			const struct condition_list *cond);
+/* Transactional sprintf() for policy dump. */
+bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
+	__attribute__ ((format(printf, 2, 3)));
+/* Check whether the domainname is correct. */
+bool ccs_is_correct_domain(const unsigned char *domainname,
+			   const char *function);
+/* Check whether the token is correct. */
+bool ccs_is_correct_path(const char *filename, const s8 start_type,
+			 const s8 pattern_type, const s8 end_type,
+			 const char *function);
+/* Check whether the token can be a domainname. */
+bool ccs_is_domain_def(const unsigned char *buffer);
+/* Check whether the given filename matches the given pattern. */
+bool ccs_path_matches_pattern(const struct path_info *filename,
+			      const struct path_info *pattern);
+/* Dump "address_group" entry in exception policy. */
+bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
+/* Dump "aggregator" entry in exception policy. */
+bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
+/* Dump "alias" entry in exception policy. */
+bool ccs_read_alias_policy(struct ccs_io_buffer *head);
+/* Dump "allow_chroot" entry in system policy. */
+bool ccs_read_chroot_policy(struct ccs_io_buffer *head);
+/*
+ * Dump "initialize_domain" and "no_initialize_domain" entry
+ * in exception policy.
+ */
+bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
+/* Dump "keep_domain" and "no_keep_domain" entry in exception policy. */
+bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head);
+/* Dump "file_pattern" entry in exception policy. */
+bool ccs_read_file_pattern(struct ccs_io_buffer *head);
+/* Dump "allow_read" entry in exception policy. */
+bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
+/* Dump "allow_env" entry in exception policy. */
+bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
+/* Dump "allow_mount" entry in system policy. */
+bool ccs_read_mount_policy(struct ccs_io_buffer *head);
+/* Dump "deny_rewrite" entry in exception policy. */
+bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
+/* Dump "deny_unmount" entry in system policy. */
+bool ccs_read_no_umount_policy(struct ccs_io_buffer *head);
+/* Dump "path_group" entry in exception policy. */
+bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
+/* Dump "allow_pivot_root" entry in system policy. */
+bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head);
+/* Dump "deny_autobind" entry in system policy. */
+bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
+/* Write domain policy violation warning message to console? */
+bool ccs_verbose_mode(void);
+/* Allocate buffer for domain policy auditing. */
+char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
+			 struct linux_binprm *bprm);
+/* Dump an IPv6 address. */
+char *ccs_print_ipv6(char *buffer, const int buffer_len,
+		     const struct in6_addr *ip);
+/* Convert capability index to capability name. */
+const char *ccs_cap2keyword(const u8 operation);
+/* Convert double path operation to operation name. */
+const char *ccs_dp2keyword(const u8 operation);
+/* Get the pathname of current process. */
+const char *ccs_get_exe(void);
+/* Get the last component of the given domainname. */
+const char *ccs_get_last_name(const struct domain_info *domain);
+/* Get warning message. */
+const char *ccs_get_msg(const bool is_enforce);
+/* Convert network operation index to operation name. */
+const char *ccs_net2keyword(const u8 operation);
+/* Convert single path operation to operation name. */
+const char *ccs_sp2keyword(const u8 operation);
+/* Create conditional part of an ACL entry. */
+const struct condition_list *
+ccs_find_or_assign_new_condition(char * const condition);
+/* Read conditional part of an ACL entry. */
+const struct condition_list *
+ccs_get_condition_part(const struct acl_info *acl);
+/* Add an ACL entry to domain's ACL list. */
+int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
+/* Check whether there is space for audit logs. */
+int ccs_can_save_audit_log(const bool is_granted);
+/* Ask supervisor's opinion. */
+int ccs_check_supervisor(const char *fmt, ...)
+	__attribute__ ((format(printf, 1, 2)));
+/* Close /proc/ccs/ interface. */
+int ccs_close_control(struct file *file);
+/* Delete an ACL entry from domain's ACL list. */
+int ccs_del_domain_acl(struct acl_info *acl);
+/* Delete a domain. */
+int ccs_delete_domain(char *data);
+/* Open operation for /proc/ccs/ interface. */
+int ccs_open_control(const u8 type, struct file *file);
+/* Poll operation for /proc/ccs/ interface. */
+int ccs_poll_control(struct file *file, poll_table *wait);
+/* Check whether there is a grant log. */
+int ccs_poll_grant_log(struct file *file, poll_table *wait);
+/* Check whether there is a reject log. */
+int ccs_poll_reject_log(struct file *file, poll_table *wait);
+/* Read operation for /proc/ccs/ interface. */
+int ccs_read_control(struct file *file, char __user *buffer,
+		     const int buffer_len);
+/* Read a grant log. */
+int ccs_read_grant_log(struct ccs_io_buffer *head);
+/* Read a reject log. */
+int ccs_read_reject_log(struct ccs_io_buffer *head);
+/* Add "address_group" entry in exception policy. */
+int ccs_write_address_group_policy(char *data, const bool is_delete);
+/* Create "aggregator" entry in exception policy. */
+int ccs_write_aggregator_policy(char *data, const bool is_delete);
+/* Create "alias" entry in exception policy. */
+int ccs_write_alias_policy(char *data, const bool is_delete);
+/* Create "allow_argv0" entry in domain policy. */
+int ccs_write_argv0_policy(char *data, struct domain_info *domain,
+			   const struct condition_list *condition,
+			   const bool is_delete);
+/* Write an audit log. */
+int ccs_write_audit_log(char *log, const bool is_granted);
+/* Create "allow_capability" entry in domain policy. */
+int ccs_write_capability_policy(char *data, struct domain_info *domain,
+				const struct condition_list *condition,
+				const bool is_delete);
+/* Create "allow_chroot" entry in system policy. */
+int ccs_write_chroot_policy(char *data, const bool is_delete);
+/*
+ * Create "initialize_domain" and "no_initialize_domain" entry
+ * in exception policy.
+ */
+int ccs_write_domain_initializer_policy(char *data, const bool is_not,
+					const bool is_delete);
+/* Create "keep_domain" and "no_keep_domain" entry in exception policy. */
+int ccs_write_domain_keeper_policy(char *data, const bool is_not,
+				   const bool is_delete);
+/* Create "allow_env" entry in domain policy. */
+int ccs_write_env_policy(char *data, struct domain_info *domain,
+			 const struct condition_list *condition,
+			 const bool is_delete);
+/*
+ * Create "allow_read/write", "allow_execute", "allow_read", "allow_write",
+ * "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
+ * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
+ * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_rename",
+ * "allow_link", "preferred_execute_handler" and "default_execute_handler"
+ * entry in domain policy.
+ */
+int ccs_write_file_policy(char *data, struct domain_info *domain,
+			  const struct condition_list *condition,
+			  const bool is_delete);
+/* Create "allow_read" entry in exception policy. */
+int ccs_write_globally_readable_policy(char *data, const bool is_delete);
+/* Create "allow_env" entry in exception policy. */
+int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
+/* Create "allow_mount" entry in system policy. */
+int ccs_write_mount_policy(char *data, const bool is_delete);
+/* Create "allow_network" entry in domain policy. */
+int ccs_write_network_policy(char *data, struct domain_info *domain,
+			     const struct condition_list *condition,
+			     const bool is_delete);
+/* Create "deny_rewrite" entry in exception policy. */
+int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
+/* Create "deny_unmount" entry in system policy. */
+int ccs_write_no_umount_policy(char *data, const bool is_delete);
+/* Create "path_group" entry in exception policy. */
+int ccs_write_path_group_policy(char *data, const bool is_delete);
+/* Create "file_pattern" entry in exception policy. */
+int ccs_write_pattern_policy(char *data, const bool is_delete);
+/* Create "allow_pivot_root" entry in system policy. */
+int ccs_write_pivot_root_policy(char *data, const bool is_delete);
+/* Create "deny_autobind" entry in system policy. */
+int ccs_write_reserved_port_policy(char *data, const bool is_delete);
+/* Create "allow_signal" entry in domain policy. */
+int ccs_write_signal_policy(char *data, struct domain_info *domain,
+			    const struct condition_list *condition,
+			    const bool is_delete);
+/* Write operation for /proc/ccs/ interface. */
+int ccs_write_control(struct file *file, const char __user *buffer,
+		      const int buffer_len);
+/* Find a domain by the given name. */
+struct domain_info *ccs_find_domain(const char *domainname);
+/* Find or create a domain by the given name. */
+struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
+						  const u8 profile);
+/* Undelete a domain. */
+struct domain_info *ccs_undelete_domain(const char *domainname);
+/* Write a grant log. */
+u8 ccs_check_capability_flags(const u8 index);
+/* Check mode for specified functionality. */
+unsigned int ccs_check_flags(const u8 index);
+/* Same with ccs_check_flags() except that it doesn't check might_sleep(). */
+unsigned int ccs_check_flags_no_sleep_check(const u8 index);
+/* Allocate memory for structures. */
+void *ccs_alloc_acl_element(const u8 acl_type,
+			    const struct condition_list *condition);
+/* Fill in "struct path_info" members. */
+void ccs_fill_path_info(struct path_info *ptr);
+/* Run policy loader when /sbin/init starts. */
+void ccs_load_policy(const char *filename);
+/* Change "struct domain_info"->flags . */
+void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
+			 const u8 flags);
+/* Update the process's state. */
+void ccs_update_condition(const struct acl_info *acl);
+/* Update the policy change counter. */
+void ccs_update_counter(const unsigned char index);
 
-static inline bool pathcmp(const struct path_info *a, const struct path_info *b)
+/* strcmp() for "struct path_info" structure. */
+static inline bool ccs_pathcmp(const struct path_info *a,
+			       const struct path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
+/* A linked list of domains. */
 extern struct list1_head domain_list;
-extern asmlinkage long sys_getppid(void);
+/* Has /sbin/init started? */
 extern bool sbin_init_started;
+/* Log level for printk(). */
 extern const char *ccs_log_level;
+/* The kernel's domain. */
 extern struct domain_info KERNEL_DOMAIN;
+/* Exclusive lock for updating domain policy. */
 extern struct mutex domain_acl_lock;
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,14)
-static inline void *kzalloc(int size, int flags)
-{
-	void *p = kmalloc(size, flags);
-	if (p) memset(p, 0, size);
-	return p;
-}
-#endif
 
 #endif
