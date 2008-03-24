@@ -52,10 +52,10 @@ int ccs_check_exec_perm(const struct path_info *filename,
 			struct ccs_page_buffer *buf);
 int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			      const int flag);
-int ccs_check_single_path_permission(const u8 operation,
+int ccs_check_1path_perm(const u8 operation,
 				     struct dentry *dentry,
 				     struct vfsmount *mnt);
-int ccs_check_double_path_permission(const u8 operation,
+int ccs_check_2path_perm(const u8 operation,
 				     struct dentry *dentry1,
 				     struct vfsmount *mnt1,
 				     struct dentry *dentry2,
@@ -86,7 +86,7 @@ int ccs_check_network_recvmsg_acl(const _Bool is_ipv6, const int sock_type,
 int ccs_check_signal_acl(const int sig, const int pid);
 
 /* Check whether the given capability is allowed to use. */
-int ccs_capable(const u8 operation);
+_Bool ccs_capable(const u8 operation);
 
 #else
 
@@ -107,13 +107,13 @@ static inline int ccs_check_open_permission(struct dentry *dentry,
 {
 	return 0;
 }
-static inline int ccs_check_single_path_permission(const u8 operation,
+static inline int ccs_check_1path_perm(const u8 operation,
 						   struct dentry *dentry,
 						   struct vfsmount *mnt)
 {
 	return 0;
 }
-static inline int ccs_check_double_path_permission(const u8 operation,
+static inline int ccs_check_2path_perm(const u8 operation,
 						   struct dentry *dentry1,
 						   struct vfsmount *mnt1,
 						   struct dentry *dentry2,
@@ -178,9 +178,9 @@ static inline int ccs_check_signal_acl(const int sig, const int pid)
 {
 	return 0;
 }
-static inline int ccs_capable(const u8 operation)
+static inline _Bool ccs_capable(const u8 operation)
 {
-	return 0;
+	return true;
 }
 
 #endif
@@ -318,9 +318,12 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 #define NETWORK_ACL_RAW_CONNECT 7
 
 /* For compatibility with 1.4.x/1.5.x patches */
-#define CheckSingleWritePermission ccs_check_single_path_permission
-#define CheckDoubleWritePermission ccs_check_double_path_permission
-#define CheckCapabilityACL         ccs_capable
+#define CheckSingleWritePermission ccs_check_1path_perm
+#define CheckDoubleWritePermission ccs_check_2path_perm
+static inline int CheckCapabilityACL(const int capability)
+{
+	return ccs_capable(capability) ? 0 : -EPERM;
+}
 #define CheckFilePerm              ccs_check_file_perm
 #define CheckSignalACL             ccs_check_signal_acl
 #define CheckOpenPermission        ccs_check_open_permission

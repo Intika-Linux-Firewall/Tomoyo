@@ -545,7 +545,7 @@ int ccs_write_mount_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_mount_policy - Dump "struct mount_entry" list.
+ * ccs_read_mount_policy - Read "struct mount_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *

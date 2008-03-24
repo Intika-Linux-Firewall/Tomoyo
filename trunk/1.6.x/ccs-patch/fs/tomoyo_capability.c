@@ -159,9 +159,9 @@ static int update_capability_acl(const u8 operation, struct domain_info *domain,
  *
  * @operation: Type of operation.
  *
- * Returns 0 on success, negative value otherwise.
+ * Returns true on success, false otherwise.
  */
-int ccs_capable(const u8 operation)
+bool ccs_capable(const u8 operation)
 {
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
@@ -170,7 +170,7 @@ int ccs_capable(const u8 operation)
 	const bool is_enforce = (mode == 3);
 	bool found = false;
 	if (!mode)
-		return 0;
+		return true;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
 		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL)
@@ -185,19 +185,19 @@ int ccs_capable(const u8 operation)
 	}
 	audit_capability_log(operation, found, profile, mode);
 	if (found)
-		return 0;
+		return true;
 	if (ccs_verbose_mode())
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
 		       ccs_get_msg(is_enforce), cap_operation2name(operation),
 		       ccs_get_last_name(domain));
 	if (is_enforce)
-		return ccs_check_supervisor("%s\n"
+		return !ccs_check_supervisor("%s\n"
 					    KEYWORD_ALLOW_CAPABILITY "%s\n",
 					    domain->domainname->name,
 					    ccs_cap2keyword(operation));
 	else if (mode == 1 && ccs_check_domain_quota(domain))
 		update_capability_acl(operation, domain, NULL, false);
-	return 0;
+	return true;
 }
 /* I need to export this for net/unix/af_unix.c */
 EXPORT_SYMBOL(ccs_capable);

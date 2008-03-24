@@ -43,21 +43,24 @@ static inline int ccs_socket_create_permission(int family, int type,
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
-	if (family == PF_PACKET)
-		return ccs_capable(TOMOYO_USE_PACKET_SOCKET);
-	if (family == PF_ROUTE)
-		return ccs_capable(TOMOYO_USE_ROUTE_SOCKET);
+	if (family == PF_PACKET && !ccs_capable(TOMOYO_USE_PACKET_SOCKET))
+		return -EPERM;
+	if (family == PF_ROUTE && !ccs_capable(TOMOYO_USE_ROUTE_SOCKET))
+		return -EPERM;
 	if (family != PF_INET && family != PF_INET6)
 		return 0;
 	switch (type) {
 	case SOCK_STREAM:
-		error = ccs_capable(TOMOYO_INET_STREAM_SOCKET_CREATE);
+		if (!ccs_capable(TOMOYO_INET_STREAM_SOCKET_CREATE))
+			error = -EPERM;
 		break;
 	case SOCK_DGRAM:
-		error = ccs_capable(TOMOYO_USE_INET_DGRAM_SOCKET);
+		if (!ccs_capable(TOMOYO_USE_INET_DGRAM_SOCKET))
+			error = -EPERM;
 		break;
 	case SOCK_RAW:
-		error = ccs_capable(TOMOYO_USE_INET_RAW_SOCKET);
+		if (!ccs_capable(TOMOYO_USE_INET_RAW_SOCKET))
+			error = -EPERM;
 		break;
 	}
 	return error;
@@ -81,9 +84,8 @@ static inline int ccs_socket_listen_permission(struct socket *sock)
 	default:
 		return 0;
 	}
-	error = ccs_capable(TOMOYO_INET_STREAM_SOCKET_LISTEN);
-	if (error)
-		return error;
+	if (!ccs_capable(TOMOYO_INET_STREAM_SOCKET_LISTEN))
+		return -EPERM;
 	if (sock->ops->getname(sock, (struct sockaddr *) addr, &addr_len, 0))
 		return -EPERM;
 	switch (((struct sockaddr *) addr)->sa_family) {
@@ -157,7 +159,7 @@ static inline int ccs_socket_connect_permission(struct socket *sock,
 	switch (sock->sk->sk_family) {
 	case PF_INET:
 	case PF_INET6:
-		if (ccs_capable(TOMOYO_INET_STREAM_SOCKET_CONNECT))
+		if (!ccs_capable(TOMOYO_INET_STREAM_SOCKET_CONNECT))
 			error = -EPERM;
 		break;
 	}

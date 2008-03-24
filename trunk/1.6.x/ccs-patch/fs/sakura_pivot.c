@@ -172,7 +172,7 @@ int ccs_write_pivot_root_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_pivot_root_policy - Dump "struct pivot_root_entry" list.
+ * ccs_read_pivot_root_policy - Read "struct pivot_root_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *

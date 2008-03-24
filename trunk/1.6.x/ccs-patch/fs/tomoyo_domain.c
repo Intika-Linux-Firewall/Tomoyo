@@ -220,8 +220,7 @@ static int audit_domain_creation_log(const char *domainname, const u8 mode,
 static LIST1_HEAD(domain_initializer_list);
 
 /**
- * update_domain_initializer_entry - Update "struct domain_initializer_entry"
- *                                   list.
+ * update_domain_initializer_entry - Update "struct domain_initializer_entry" list.
  *
  * @domainname: The name of domain. May be NULL.
  * @program:    The name of program.
@@ -284,8 +283,7 @@ static int update_domain_initializer_entry(const char *domainname,
 }
 
 /**
- * ccs_read_domain_initializer_policy - Dump "struct domain_initializer_entry"
- *                                      list.
+ * ccs_read_domain_initializer_policy - Read "struct domain_initializer_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -320,8 +318,7 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_write_domain_initializer_policy - Write "struct domain_initializer_entry"
- *                                       list.
+ * ccs_write_domain_initializer_policy - Write "struct domain_initializer_entry" list.
  *
  * @data:      String to parse.
  * @is_not:    True if it is "no_initialize_domain" entry.
@@ -344,8 +341,7 @@ int ccs_write_domain_initializer_policy(char *data, const bool is_not,
 }
 
 /**
- * is_domain_initializer - Check whether the given program causes
- *                         domainname reinitialization.
+ * is_domain_initializer - Check whether the given program causes domainname reinitialization.
  *
  * @domainname: The name of domain.
  * @program:    The name of program.
@@ -469,7 +465,7 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_not,
 }
 
 /**
- * ccs_read_domain_keeper_policy - Dump "struct domain_keeper_entry" list.
+ * ccs_read_domain_keeper_policy - Read "struct domain_keeper_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -505,8 +501,7 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * is_domain_keeper - Check whether the given program causes domain transition
- *                    suppression.
+ * is_domain_keeper - Check whether the given program causes domain transition suppression.
  *
  * @domainname: The name of domain.
  * @program:    The name of program.
@@ -593,7 +588,7 @@ static int update_alias_entry(const char *original_name,
 }
 
 /**
- * ccs_read_alias_policy - Dump "struct alias_entry" list.
+ * ccs_read_alias_policy - Read "struct alias_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -687,7 +682,7 @@ static int update_aggregator_entry(const char *original_name,
 }
 
 /**
- * ccs_read_aggregator_policy - Dump "struct aggregator_entry" list.
+ * ccs_read_aggregator_policy - Read "struct aggregator_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *

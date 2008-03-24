@@ -909,7 +909,7 @@ struct syaoran_read_struct {
 	int avail;               /* Bytes available for reading.       */
 	struct super_block *sb;  /* The super_block of this partition. */
 	struct dev_entry *entry; /* The entry currently reading from.  */
-	bool read_all;           /* Dump all entries?                  */
+	bool read_all;           /* Print all entries?                 */
 	struct list_head *pos;   /* Current position.                  */
 };
 

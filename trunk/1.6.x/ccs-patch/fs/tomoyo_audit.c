@@ -19,13 +19,13 @@
 #include <linux/binfmts.h>
 
 /**
- * ccs_dump_bprm - Dump "struct linux_binprm" for auditing.
+ * ccs_print_bprm - Print "struct linux_binprm" for auditing.
  *
  * @bprm: Pointer to "struct linux_binprm".
  *
  * Returns the contents of @bprm on success, NULL otherwise.
  */
-static char *ccs_dump_bprm(struct linux_binprm *bprm)
+static char *ccs_print_bprm(struct linux_binprm *bprm)
 {
 	static const int buffer_len = PAGE_SIZE * 2;
 	char *buffer = ccs_alloc(buffer_len);
@@ -183,7 +183,7 @@ char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
 	if (bprm) {
-		bprm_info = ccs_dump_bprm(bprm);
+		bprm_info = ccs_print_bprm(bprm);
 		if (!bprm_info)
 			return NULL;
 		*len += strlen(bprm_info);

@@ -54,8 +54,7 @@ struct globally_usable_env_entry {
 static LIST1_HEAD(globally_usable_env_list);
 
 /**
- * update_globally_usable_env_entry - Update "struct globally_usable_env_entry"
- *                                    list.
+ * update_globally_usable_env_entry - Update "struct globally_usable_env_entry" list.
  *
  * @env:       The name of environment variable.
  * @is_delete: True if it is a delete request.
@@ -98,8 +97,7 @@ static int update_globally_usable_env_entry(const char *env,
 }
 
 /**
- * is_globally_usable_env - Check whether the given environment variable is
- *                          acceptable for all domains.
+ * is_globally_usable_env - Check whether the given environment variable is acceptable for all domains.
  *
  * @env: The name of environment variable.
  *
@@ -117,9 +115,7 @@ static bool is_globally_usable_env(const struct path_info *env)
 }
 
 /**
- * ccs_write_globally_usable_env_policy - Write
- *                                        "struct globally_usable_env_entry"
- *                                        list.
+ * ccs_write_globally_usable_env_policy - Write "struct globally_usable_env_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -132,8 +128,7 @@ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_globally_usable_env_policy - Dump "struct globally_usable_env_entry"
- *                                       list.
+ * ccs_read_globally_usable_env_policy - Read "struct globally_usable_env_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *

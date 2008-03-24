@@ -26,8 +26,7 @@
 #endif
 
 /**
- * check_conceal_mount - Check whether this mount request shadows existing
- *                       mounts.
+ * check_conceal_mount - Check whether this mount request shadows existing mounts.
  *
  * @nd:     Pointer to "struct nameidata".
  * @vfsmnt: Pointer to "struct vfsmount".

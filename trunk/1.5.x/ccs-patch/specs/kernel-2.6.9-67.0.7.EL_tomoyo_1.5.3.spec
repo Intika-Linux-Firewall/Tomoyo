@@ -3751,7 +3751,6 @@ perl -p -i -e "s/^RHEL_UPDATE.*/RHEL_UPDATE = %{rh_release_update}/" Makefile
 %endif
 
 # TOMOYO Linux
-# wget -qO - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.5.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf -; tar -cf - -C ccs-patch/ . | tar -xf -; rm -fR ccs-patch/
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.7.EL/" -- Makefile
 patch -sp1 < /usr/src/ccs-patch-2.6.9-67.0.7.EL.diff

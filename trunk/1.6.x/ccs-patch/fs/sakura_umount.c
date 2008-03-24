@@ -141,7 +141,7 @@ int ccs_write_no_umount_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_no_umount_policy - Dump "struct no_umount_entry" list.
+ * ccs_read_no_umount_policy - Read "struct no_umount_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
