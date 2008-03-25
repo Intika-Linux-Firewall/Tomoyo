@@ -25,7 +25,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/namespace.c                  |   38 ++++++++++++++++++
  fs/open.c                       |   21 ++++++++++
  fs/proc/Makefile                |    3 +
- fs/proc/proc_misc.c             |    9 ++++
+ fs/proc/proc_misc.c             |    5 ++
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 ++++
  kernel/compat.c                 |    6 ++
@@ -46,7 +46,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   28 +++++++++++++
  net/unix/af_unix.c              |   10 ++++
- 44 files changed, 527 insertions(+), 3 deletions(-)
+ 44 files changed, 523 insertions(+), 3 deletions(-)
 
 --- linux-2.6.21.orig/Makefile
 +++ linux-2.6.21/Makefile
@@ -77,7 +77,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -101,7 +101,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -125,7 +125,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -149,7 +149,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
@@ -173,7 +173,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -200,7 +200,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -244,8 +244,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, attr);
 +		/***** TOMOYO Linux start. *****/
-+		if (!error && (ia_valid & ATTR_MODE)) error = CheckCapabilityACL(TOMOYO_SYS_CHMOD);
-+		if (!error && (ia_valid & (ATTR_UID | ATTR_GID))) error = CheckCapabilityACL(TOMOYO_SYS_CHOWN);
++		if (!error && (ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD)) error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) && !ccs_capable(TOMOYO_SYS_CHOWN)) error = -EPERM;
 +		/***** TOMOYO Linux end. *****/
  		if (!error)
  			error = inode->i_op->setattr(dentry, attr);
@@ -254,8 +254,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (!error)
  			error = security_inode_setattr(dentry, attr);
 +		/***** TOMOYO Linux start. *****/
-+		if (!error && (ia_valid & ATTR_MODE)) error = CheckCapabilityACL(TOMOYO_SYS_CHMOD);
-+		if (!error && (ia_valid & (ATTR_UID | ATTR_GID))) error = CheckCapabilityACL(TOMOYO_SYS_CHOWN);
++		if (!error && (ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD)) error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) && !ccs_capable(TOMOYO_SYS_CHOWN)) error = -EPERM;
 +		/***** TOMOYO Linux end. *****/
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
@@ -277,7 +277,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	default:
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = CheckCapabilityACL(TOMOYO_SYS_IOCTL)) < 0) goto out_fput;
++		if (!ccs_capable(TOMOYO_SYS_IOCTL)) { error = -EPERM; goto out_fput; }
 +		/***** TOMOYO Linux end. *****/
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
@@ -309,7 +309,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
 +	if (error) goto exit;
 +	/***** TOMOYO Linux end. *****/
 +
@@ -321,7 +321,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		    S_ISREG(inode->i_mode)) {
  			int err = vfs_permission(&nd, MAY_EXEC);
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = ccs_check_open_permission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
@@ -352,7 +352,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (((arg ^ filp->f_flags) & O_APPEND) && CheckReWritePermission(filp)) return -EPERM;
++	if (((arg ^ filp->f_flags) & O_APPEND) && ccs_check_rewrite_permission(filp)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +
  	/* O_NOATIME can only be set by the owner or superuser */
@@ -375,7 +375,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!filp->f_op)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_IOCTL) < 0) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_IOCTL)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	if (filp->f_op->unlocked_ioctl) {
@@ -398,7 +398,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		return error;
 +	/***** TOMOYO Linux start. *****/
-+	if (nd && (error = CheckSingleWritePermission(TYPE_CREATE_ACL, dentry, nd->mnt)) < 0) return error;
++	if (nd && (error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry, nd->mnt)) < 0) return error;
 +	/***** TOMOYO Linux end. *****/
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
@@ -408,7 +408,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
++	error = ccs_check_open_permission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
 +	if (error) return error;
 +	/***** TOMOYO Linux end. *****/
 +
@@ -430,10 +430,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (S_ISDIR(mode))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && CheckCapabilityACL(TOMOYO_CREATE_CHAR_DEV)) return -EPERM;
-+	if (S_ISBLK(mode) && CheckCapabilityACL(TOMOYO_CREATE_BLOCK_DEV)) return -EPERM;
-+	if (S_ISFIFO(mode) && CheckCapabilityACL(TOMOYO_CREATE_FIFO)) return -EPERM;
-+	if (S_ISSOCK(mode) && CheckCapabilityACL(TOMOYO_CREATE_UNIX_SOCKET)) return -EPERM;
++	if (S_ISCHR(mode) && !ccs_capable(TOMOYO_CREATE_CHAR_DEV)) return -EPERM;
++	if (S_ISBLK(mode) && !ccs_capable(TOMOYO_CREATE_BLOCK_DEV)) return -EPERM;
++	if (S_ISFIFO(mode) && !ccs_capable(TOMOYO_CREATE_FIFO)) return -EPERM;
++	if (S_ISSOCK(mode) && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
@@ -443,14 +443,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			break;
  		case S_IFCHR: case S_IFBLK:
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = ccs_check_1path_perm(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,
  					new_decode_dev(dev));
  			break;
  		case S_IFIFO: case S_IFSOCK:
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = ccs_check_1path_perm(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
@@ -460,7 +460,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
++	if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  	dput(dentry);
@@ -470,7 +470,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (IS_ERR(dentry))
  		goto exit2;
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
++	if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_rmdir(nd.dentry->d_inode, dentry);
  	dput(dentry);
@@ -480,7 +480,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct nameidata nd;
  	struct inode *inode = NULL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_UNLINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_UNLINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	name = getname(pathname);
@@ -490,7 +490,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (inode)
  			atomic_inc(&inode->i_count);
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
++		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
@@ -500,7 +500,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct dentry *dentry;
  	struct nameidata nd;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SYMLINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SYMLINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	from = getname(oldname);
@@ -510,7 +510,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out_unlock;
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
++	if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  	dput(dentry);
@@ -520,7 +520,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	int error;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_LINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_LINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
@@ -530,7 +530,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = CheckDoubleWritePermission(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
++	if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = ccs_check_2path_perm(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
@@ -541,7 +541,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
 +	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
-+		(error = CheckDoubleWritePermission(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
++		(error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
 +		goto exit5;
 +	}
 +	/***** TOMOYO Linux end. *****/
@@ -553,7 +553,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_RENAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_RENAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	from = getname(oldname);
@@ -578,7 +578,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		return retval;
  
 +	/***** SAKURA Linux start. *****/
-+	if (SAKURA_MayUmount(mnt) < 0) return -EPERM;
++	if (ccs_may_umount(mnt) < 0) return -EPERM;
 +	/***** SAKURA Linux end. *****/
 +
  	/*
@@ -589,7 +589,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct nameidata nd;
  	int retval;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_UMOUNT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_UMOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
@@ -600,7 +600,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0) goto out;
++	if (ccs_may_mount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  
  	err = -ENOMEM;
@@ -611,7 +611,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0) goto out;
++	if (ccs_may_umount(old_nd.mnt) < 0 || ccs_may_mount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
@@ -622,7 +622,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto unlock;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0) goto unlock;
++	if (ccs_may_mount(nd) < 0) goto unlock;
 +	/***** SAKURA Linux end. *****/
  
  	newmnt->mnt_flags = mnt_flags;
@@ -632,10 +632,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
++	if ((retval = ccs_check_mount_permission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
 +	/***** SAKURA Linux end. *****/
 +
  	/* Separate the per-mountpoint flags */
@@ -646,7 +646,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -656,7 +656,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	/***** SAKURA Linux start. *****/
-+	if (!error) error = CheckPivotRootPermission(&old_nd, &new_nd);
++	if (!error) error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
 +	/***** SAKURA Linux end. *****/
  	if (error) {
  		path_release(&old_nd);
@@ -681,7 +681,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto dput_and_out;
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = CheckSingleWritePermission(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
++	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
@@ -691,7 +691,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = CheckSingleWritePermission(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt)) == 0)
++	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
@@ -701,10 +701,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	if (!ccs_capable(TOMOYO_SYS_CHROOT)) goto dput_and_out;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if (CheckChRootPermission(&nd)) goto dput_and_out;
++	if (ccs_check_chroot_permission(&nd)) goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
@@ -714,7 +714,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  asmlinkage long sys_vhangup(void)
  {
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_VHANGUP) == 0)
++	if (!ccs_capable(TOMOYO_SYS_VHANGUP)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
@@ -730,17 +730,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.21.orig/fs/proc/proc_misc.c
 +++ linux-2.6.21/fs/proc/proc_misc.c
-@@ -747,4 +747,13 @@ void __init proc_misc_init(void)
+@@ -747,4 +747,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	{
-+		extern void __init CCSProc_Init(void);
-+		CCSProc_Init();
-+		printk("Hook version: 2.6.21 2008/01/05\n");
-+	}
++	printk(KERN_INFO "Hook version: 2.6.21 2008/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -799,7 +795,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	do_settimeofday(&tv);
@@ -821,7 +817,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_KEXEC_LOAD)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_KEXEC_LOAD)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/*
@@ -857,7 +853,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
@@ -867,7 +863,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/* Only one module load at a time, please */
@@ -890,7 +886,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	 */
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
@@ -913,7 +909,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	long nice, retval;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/*
@@ -935,8 +931,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct siginfo info;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	info.si_signo = sig;
@@ -946,8 +942,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	return do_tkill(tgid, pid, sig);
@@ -957,8 +953,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (pid <= 0)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	return do_tkill(0, pid, sig);
@@ -980,7 +976,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (which > 2 || which < 0)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/* normalize: avoid signed division (rounding problems) */
@@ -990,7 +986,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_REBOOT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_REBOOT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/* Instead of trying to make the power_off code look like
@@ -1000,7 +996,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	down_write(&uts_sem);
  	errno = -EFAULT;
@@ -1010,7 +1006,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	down_write(&uts_sem);
@@ -1095,7 +1091,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +				goto repeat;
 +			}
 +			/* printk("sysctl='%s'\n", buffer); */
-+			error = CheckFilePerm(buffer, op, "sysctl");
++			error = ccs_check_file_perm(buffer, op, "sysctl");
 +			goto out;
 +		}
 +	}
@@ -1136,7 +1132,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	do_settimeofday(&tv);
@@ -1146,7 +1142,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		return error;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	if (tz) {
@@ -1168,7 +1164,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (txc->modes && CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (txc->modes && !ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/* Now we validate the data before disabling interrupts */
@@ -1192,7 +1188,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
++		if ((error = ccs_socket_recv_datagram_permission(sk, skb, flags)) < 0) goto no_packet;
 +		/***** TOMOYO Linux end. *****/
 +
  		if (skb)
@@ -1215,7 +1211,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			head = &hashinfo->bhash[inet_bhashfn(rover, hashinfo->bhash_size)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(rover) < 0) goto next;
++			if (ccs_may_autobind(rover) < 0) goto next;
 +			/***** SAKURA Linux end. *****/
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
@@ -1237,7 +1233,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		for (i = 1; i <= range; i++) {
  			port = low + (i + offset) % range;
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(port) < 0) continue;
++			if (ccs_may_autobind(port) < 0) continue;
 +			/***** SAKURA Linux end. *****/
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
@@ -1259,7 +1255,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (SAKURA_MayAutobind(result) < 0) continue;
++				if (ccs_may_autobind(result) < 0) continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
  			}
@@ -1269,7 +1265,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
++			if (ccs_may_autobind(result) < 0) continue;
 +			/***** SAKURA Linux end. *****/
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
@@ -1291,7 +1287,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		for (i = 1; i <= range; i++) {
  			port = low + (i + offset) % range;
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(port) < 0) continue;
++			if (ccs_may_autobind(port) < 0) continue;
 +			/***** SAKURA Linux end. *****/
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
@@ -1315,7 +1311,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckSocketSendMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) return -EPERM;
++	if (ccs_socket_sendmsg_permission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	return sock->ops->sendmsg(iocb, sock, msg, size);
@@ -1325,7 +1321,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	}
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = CheckSocketCreatePermission(family, type, protocol)) < 0) return err;
++	if ((err = ccs_socket_create_permission(family, type, protocol)) < 0) return err;
 +	/***** TOMOYO Linux end. *****/
 +
  	err = security_socket_create(family, type, protocol, kern);
@@ -1336,7 +1332,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  						   (struct sockaddr *)address,
  						   addrlen);
 +			/***** TOMOYO Linux start. *****/
-+			if (!err) err = CheckSocketBindPermission(sock, (struct sockaddr *) address, addrlen);
++			if (!err) err = ccs_socket_bind_permission(sock, (struct sockaddr *) address, addrlen);
 +			/***** TOMOYO Linux end. *****/
  			if (!err)
  				err = sock->ops->bind(sock,
@@ -1346,7 +1342,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  		err = security_socket_listen(sock, backlog);
 +		/***** TOMOYO Linux start. *****/
-+		if (!err) err = CheckSocketListenPermission(sock);
++		if (!err) err = ccs_socket_listen_permission(sock);
 +		/***** TOMOYO Linux end. *****/
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
@@ -1356,7 +1352,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out_fd;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckSocketAcceptPermission(newsock, (struct sockaddr *) address)) {
++	if (ccs_socket_accept_permission(newsock, (struct sockaddr *) address)) {
 +		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
 +		goto out_fd;
 +	}
@@ -1369,7 +1365,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		goto out_put;
 +	/***** TOMOYO Linux start. *****/
-+	err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen);
++	err = ccs_socket_connect_permission(sock, (struct sockaddr *) address, addrlen);
 +	if (err) goto out_put;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1393,7 +1389,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	}
 +	/***** TOMOYO Linux start. *****/
 +	err = -EPERM;
-+	if (sunaddr->sun_path[0] && CheckCapabilityACL(TOMOYO_CREATE_UNIX_SOCKET)) goto out;
++	if (sunaddr->sun_path[0] && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET)) goto out;
 +	/***** TOMOYO Linux end. *****/
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
@@ -1403,7 +1399,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = CheckSingleWritePermission(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
@@ -1426,7 +1422,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1450,7 +1446,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	static int first_call = 1;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1474,7 +1470,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1498,7 +1494,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1522,7 +1518,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  

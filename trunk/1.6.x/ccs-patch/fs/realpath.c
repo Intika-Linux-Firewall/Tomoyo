@@ -366,8 +366,6 @@ void *ccs_alloc_element(const unsigned int size)
 }
 
 static unsigned int allocated_memory_for_savename;
-static unsigned int allocated_memory_for_pool;
-
 
 /**
  * ccs_get_memory_used_for_save_name - Get memory used for keeping string data.
@@ -376,7 +374,7 @@ static unsigned int allocated_memory_for_pool;
  */
 unsigned int ccs_get_memory_used_for_save_name(void)
 {
-	return allocated_memory_for_savename + allocated_memory_for_pool;
+	return allocated_memory_for_savename;
 }
 
 #define MAX_HASH 256
@@ -481,15 +479,6 @@ static struct kmem_cache *ccs_cachep;
 static kmem_cache_t *ccs_cachep;
 #endif
 
-#ifdef CCS_MAX_RESERVED_PAGES
-#define MAX_CCS_PAGE_BUFFER_POOL (CCS_MAX_RESERVED_PAGES)
-#else
-#define MAX_CCS_PAGE_BUFFER_POOL 10
-#endif
-
-static struct ccs_page_buffer *ccs_page_buffer_pool[MAX_CCS_PAGE_BUFFER_POOL];
-static bool ccs_page_buffer_pool_in_use[MAX_CCS_PAGE_BUFFER_POOL];
-
 /**
  * ccs_realpath_init - Initialize realpath related code.
  *
@@ -518,9 +507,6 @@ static int __init ccs_realpath_init(void)
 	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
 	if (ccs_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
 		panic("Can't register KERNEL_DOMAIN");
-	memset(ccs_page_buffer_pool, 0, sizeof(ccs_page_buffer_pool));
-	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++)
-		ccs_page_buffer_pool_in_use[i] = false;
 	return 0;
 }
 
@@ -563,8 +549,6 @@ static int round2(size_t size)
 }
 #endif
 
-static DEFINE_SPINLOCK(ccs_page_buffer_pool_lock);
-
 /**
  * ccs_alloc - Allocate memory for temporal purpose.
  *
@@ -574,53 +558,8 @@ static DEFINE_SPINLOCK(ccs_page_buffer_pool_lock);
  */
 void *ccs_alloc(const size_t size)
 {
-	int i;
-	void *ret;
 	struct cache_entry *new_entry;
-	if (size != sizeof(struct ccs_page_buffer))
-		goto normal;
-	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++) {
-		struct ccs_page_buffer *ptr;
-		bool in_use;
-		if (ccs_page_buffer_pool_in_use[i])
-			continue;
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&ccs_page_buffer_pool_lock);
-		in_use = ccs_page_buffer_pool_in_use[i];
-		if (!in_use)
-			ccs_page_buffer_pool_in_use[i] = true;
-		spin_unlock(&ccs_page_buffer_pool_lock);
-		/***** CRITICAL SECTION END *****/
-		if (in_use)
-			continue;
-		ptr = ccs_page_buffer_pool[i];
-		if (ptr)
-			goto ok;
-		ptr = kmalloc(sizeof(struct ccs_page_buffer), GFP_KERNEL);
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&ccs_page_buffer_pool_lock);
-		if (ptr) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-			allocated_memory_for_pool += ksize(ptr);
-#else
-			allocated_memory_for_pool += round2(size);
-#endif
-		} else {
-			ccs_page_buffer_pool_in_use[i] = false;
-		}
-		spin_unlock(&ccs_page_buffer_pool_lock);
-		/***** CRITICAL SECTION END *****/
-		if (!ptr)
-			goto normal;
-		ccs_page_buffer_pool[i] = ptr;
-		printk(KERN_DEBUG "Allocated permanent buffer %d/%d\n",
-		       i, MAX_CCS_PAGE_BUFFER_POOL);
- ok:
-		memset(ptr, 0, sizeof(struct ccs_page_buffer));
-		return ptr;
-	}
- normal:
-	ret = kzalloc(size, GFP_KERNEL);
+	void *ret = kzalloc(size, GFP_KERNEL);
 	if (!ret)
 		goto out;
 	new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
@@ -654,25 +593,10 @@ void *ccs_alloc(const size_t size)
  */
 void ccs_free(const void *p)
 {
-	int i;
 	struct list_head *v;
 	struct cache_entry *entry = NULL;
 	if (!p)
 		return;
-	for (i = 0; i < MAX_CCS_PAGE_BUFFER_POOL; i++) {
-		bool done;
-		if (p != ccs_page_buffer_pool[i])
-			continue;
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&ccs_page_buffer_pool_lock);
-		done = ccs_page_buffer_pool_in_use[i];
-		if (done)
-			ccs_page_buffer_pool_in_use[i] = false;
-		spin_unlock(&ccs_page_buffer_pool_lock);
-		/***** CRITICAL SECTION END *****/
-		if (done)
-			return;
-	}
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&cache_list_lock);
 	list_for_each(v, &cache_list) {
