@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/24
+ * Version: 1.6.0-pre   2008/03/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -848,13 +848,8 @@ unsigned int ccs_check_flags_no_sleep_check(const u8 index)
 static bool sleep_check(void)
 {
 	static u8 count = 20;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 	if (likely(!in_interrupt()))
 		return true;
-#else
-	if (likely(!in_atomic()))
-		return true;
-#endif
 	if (count) {
 		count--;
 		printk(KERN_ERR "BUG: sleeping function called "
@@ -2275,10 +2270,10 @@ void ccs_load_policy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.0-pre   2008/03/24\n");
+	printk(KERN_INFO "SAKURA: 1.6.0-pre   2008/03/25\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.0-pre   2008/03/24\n");
+	printk(KERN_INFO "TOMOYO: 1.6.0-pre   2008/03/25\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
