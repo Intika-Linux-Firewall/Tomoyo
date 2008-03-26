@@ -1574,7 +1574,7 @@ static const struct path_info *find_execute_handler(const u8 type)
 	struct acl_info *ptr;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct execute_handler_record *acl;
-		if ((ptr->type & ~ACL_DELETED) != type)
+		if (ptr->type != type)
 			continue;
 		acl = container_of(ptr, struct execute_handler_record, head);
 		return acl->handler;

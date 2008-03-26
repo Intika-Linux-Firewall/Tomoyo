@@ -467,8 +467,8 @@ struct ip_network_acl_record {
 #define KEYWORD_USE_PROFILE               "use_profile "
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
-#define KEYWORD_PREFERRED_EXECUTE_HANDLER "preferred_execute_handler "
-#define KEYWORD_DEFAULT_EXECUTE_HANDLER   "default_execute_handler "
+#define KEYWORD_PREFERRED_EXECUTE_HANDLER "preferred_execute_handler"
+#define KEYWORD_DEFAULT_EXECUTE_HANDLER   "default_execute_handler"
 #define KEYWORD_MAC_FOR_CAPABILITY        "MAC_FOR_CAPABILITY::"
 /* A domain definition starts with <kernel> . */
 #define ROOT_NAME                         "<kernel>"
