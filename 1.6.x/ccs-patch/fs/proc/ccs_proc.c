@@ -217,7 +217,7 @@ static int __init ccs_proc_init(void)
 #endif
 	create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
 	create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
-	create_entry(".process_status",  0400, ccs_dir, CCS_PROCESS_STATUS);
+	create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
 	create_entry("meminfo",          0400, ccs_dir, CCS_MEMINFO);
 	create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
 	create_entry("manager",          0600, ccs_dir, CCS_MANAGER);

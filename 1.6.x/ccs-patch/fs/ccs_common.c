@@ -1880,7 +1880,7 @@ static int read_domain_policy(struct ccs_io_buffer *head)
  * This is equivalent to doing
  *
  *     ( echo "select " $domainname; echo "use_profile " $profile ) |
- *     /usr/lib/ccs/ccs-loadpolicy -d
+ *     /usr/lib/ccs/loadpolicy -d
  */
 static int write_domain_profile(struct ccs_io_buffer *head)
 {
@@ -1910,9 +1910,9 @@ static int write_domain_profile(struct ccs_io_buffer *head)
  * This is equivalent to doing
  *
  *     grep -A 1 '^<kernel>' /proc/ccs/domain_policy |
- *     awk ' BEGIN { if ( domainname == "") domainname = $0;
- *     else if ( $1 = "use_profile" ) {
- *     print $2 " " domainname; domainname = ""; }; '
+ *     awk ' { if ( domainname == "" ) { if ( $1 == "<kernel>" )
+ *     domainname = $0; } else if ( $1 == "use_profile" ) {
+ *     print $2 " " domainname; domainname = ""; } } ; '
  */
 static int read_domain_profile(struct ccs_io_buffer *head)
 {
