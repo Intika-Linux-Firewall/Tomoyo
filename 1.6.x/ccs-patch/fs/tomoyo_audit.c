@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/24
+ * Version: 1.6.0-rc   2008/03/26
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -45,8 +45,6 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 		memmove(cp, "} envp[]={ ", 11);
 		cp += 11;
 	}
-	if (!envp_count)
-		*cp++ = '}';
 	last_start = cp;
 	while (argv_count || envp_count) {
 		struct page *page;
@@ -101,9 +99,8 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 					}
 					memmove(cp, "} envp[]={ ", 11);
 					cp += 11;
-					if (!envp_count)
-						goto no_envp;
 					last_start = cp;
+					truncated = false;
 				}
 			} else if (envp_count) {
 				if (--envp_count == 0) {
@@ -112,13 +109,10 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 						memmove(cp, "... ", 4);
 						cp += 4;
 					}
- no_envp:
-					*cp++ = '}';
-					*cp++ = '\0';
 				}
-			} else {
-				break;
 			}
+			if (!argv_count && !envp_count)
+				break;
 		}
 		/* Unmap. */
 		kunmap(page);
@@ -128,6 +122,8 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 		i++;
 		offset = 0;
 	}
+	*cp++ = '}';
+	*cp = '\0';
 	return buffer;
  out:
 	snprintf(buffer, buffer_len - 1,
