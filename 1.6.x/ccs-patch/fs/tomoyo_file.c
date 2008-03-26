@@ -884,7 +884,7 @@ static int update_execute_handler(const u8 type, const char *filename,
 			if (ptr->type == type)
 				ptr->type |= ACL_DELETED;
 		}
-		error = ccs_add_domain_acl(NULL, ptr);
+		error = ccs_add_domain_acl(NULL, &acl->head);
 		goto out;
 	}
 	/* Not found. Append it to the tail. */
