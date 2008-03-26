@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-pre   2008/03/24
+ * Version: 1.6.0-rc   2008/03/26
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -73,7 +73,7 @@ typedef _Bool bool;
 #define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#ifndef container_of
 #define container_of(ptr, type, member) ({				\
 			const typeof(((type *)0)->member) *__mptr = (ptr); \
 			(type *)((char *)__mptr - offsetof(type, member)); })
