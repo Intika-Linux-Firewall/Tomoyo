@@ -26,10 +26,10 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  fs/namespace.c                  |   38 ++++++++++++++++++
  fs/open.c                       |   21 ++++++++++
  fs/proc/Makefile                |    3 +
- fs/proc/proc_misc.c             |    9 ++++
+ fs/proc/proc_misc.c             |    5 ++
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 ++++
- include/linux/syaoran.h         |    6 +-
+ include/linux/syaoran.h         |    7 +--
  kernel/compat.c                 |    6 ++
  kernel/kexec.c                  |    6 ++
  kernel/kmod.c                   |    5 ++
@@ -48,7 +48,7 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   28 +++++++++++++
  net/unix/af_unix.c              |   10 ++++
- 46 files changed, 533 insertions(+), 6 deletions(-)
+ 46 files changed, 530 insertions(+), 6 deletions(-)
 
 --- linux-source-2.6.22.9.orig/Makefile
 +++ linux-source-2.6.22.9/Makefile
@@ -594,17 +594,13 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-source-2.6.22.9.orig/fs/proc/proc_misc.c
 +++ linux-source-2.6.22.9/fs/proc/proc_misc.c
-@@ -753,4 +753,13 @@ void __init proc_misc_init(void)
+@@ -753,4 +753,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	{
-+		extern void __init CCSProc_Init(void);
-+		CCSProc_Init();
-+		printk("Hook version: 2.6.22.9 2008/01/13\n");
-+	}
++	printk(KERN_INFO "Hook version: 2.6.22.9 2008/03/27\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -648,7 +644,7 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  static inline pid_t process_group(struct task_struct *tsk)
 --- linux-source-2.6.22.9.orig/include/linux/syaoran.h
 +++ linux-source-2.6.22.9/include/linux/syaoran.h
-@@ -108,7 +108,7 @@ static int fs_mkdir(const char *pathname
+@@ -163,7 +163,7 @@ static int fs_mkdir(const char *pathname
  	struct dentry *dentry = lookup_create2(pathname, base, 1);
  	int error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -657,7 +653,7 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		if (!error) {
  			lock_kernel();
  			dentry->d_inode->i_uid = user;
-@@ -139,7 +139,7 @@ static int fs_mknod(const char *filename
+@@ -199,7 +199,7 @@ static int fs_mknod(const char *filename
  	dentry = lookup_create2(filename, base, 0);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -666,12 +662,13 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  		if (!error) {
  			lock_kernel();
  			dentry->d_inode->i_uid = user;
-@@ -163,7 +163,7 @@ static int fs_symlink(const char *pathna
+@@ -224,7 +224,8 @@ static int fs_symlink(const char *pathna
  	int error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
- #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 -		error = vfs_symlink(base->d_inode, dentry, oldname, S_IALLUGO);
-+		error = vfs_symlink(base->d_inode, dentry, NULL, oldname, S_IALLUGO);
++		error = vfs_symlink(base->d_inode, dentry, NULL, oldname,
++				    S_IALLUGO);
  #else
  		error = vfs_symlink(base->d_inode, dentry, oldname);
  #endif

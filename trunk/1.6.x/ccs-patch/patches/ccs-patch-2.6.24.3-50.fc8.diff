@@ -10,7 +10,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS/k
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   11 +++++
- fs/ccs_common.c                 |    2 
  fs/compat.c                     |    5 +-
  fs/compat_ioctl.c               |    6 ++
  fs/exec.c                       |   14 ++++++
@@ -20,8 +19,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS/k
  fs/namespace.c                  |   38 ++++++++++++++++++
  fs/open.c                       |   21 ++++++++++
  fs/proc/Makefile                |    3 +
- fs/proc/proc_misc.c             |    9 ++++
- fs/tomoyo_signal.c              |    4 -
+ fs/proc/proc_misc.c             |    5 ++
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 ++++
  kernel/compat.c                 |    6 ++
@@ -42,7 +40,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS/k
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   28 +++++++++++++
  net/unix/af_unix.c              |   10 ++++
- 40 files changed, 474 insertions(+), 6 deletions(-)
+ 38 files changed, 467 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24.3-50.fc8.orig/Makefile
 +++ linux-2.6.24.3-50.fc8/Makefile
@@ -615,17 +613,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS/k
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.24.3-50.fc8.orig/fs/proc/proc_misc.c
 +++ linux-2.6.24.3-50.fc8/fs/proc/proc_misc.c
-@@ -768,4 +768,13 @@ void __init proc_misc_init(void)
+@@ -768,4 +768,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	{
-+		extern void __init CCSProc_Init(void);
-+		CCSProc_Init();
-+		printk("Hook version: 2.6.24.3-50.fc8 2008/03/27\n");
-+	}
++	printk(KERN_INFO "Hook version: 2.6.24.3-50.fc8 2008/03/27\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1365,29 +1359,3 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS/k
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.24.3-50.fc8.orig/fs/ccs_common.c
-+++ linux-2.6.24.3-50.fc8/fs/ccs_common.c
-@@ -986,7 +986,7 @@ static int ReadPID(struct io_buffer *hea
- 		struct domain_info *domain = NULL;
- 		/***** CRITICAL SECTION START *****/
- 		read_lock(&tasklist_lock);
--		p = find_task_by_pid(pid);
-+		p = find_task_by_vpid(pid);
- 		if (p) domain = p->domain_info;
- 		read_unlock(&tasklist_lock);
- 		/***** CRITICAL SECTION END *****/
---- linux-2.6.24.3-50.fc8.orig/fs/tomoyo_signal.c
-+++ linux-2.6.24.3-50.fc8/fs/tomoyo_signal.c
-@@ -106,10 +106,10 @@ int CheckSignalACL(const int sig, const 
- 	{ /* Simplified checking. */
- 		struct task_struct *p = NULL;
- 		read_lock(&tasklist_lock);
--		if (pid > 0) p = find_task_by_pid((pid_t) pid);
-+		if (pid > 0) p = find_task_by_vpid((pid_t) pid);
- 		else if (pid == 0) p = current;
- 		else if (pid == -1) dest = &KERNEL_DOMAIN;
--		else p = find_task_by_pid((pid_t) -pid);
-+		else p = find_task_by_vpid((pid_t) -pid);
- 		if (p) dest = p->domain_info;
- 		read_unlock(&tasklist_lock);
- 		if (!dest) return 0; /* I can't find destinatioin. */
