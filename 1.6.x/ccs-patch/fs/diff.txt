@@ -1,0 +1,3220 @@
+Index: trunk/1.6.x/ccs-patch/include/linux/syaoran.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(revision 1060)
++++ trunk/1.6.x/ccs-patch/include/linux/syaoran.h	(working copy)
+@@ -252,7 +252,8 @@
+  */
+ static void normalize_line(unsigned char *buffer)
+ {
+-	unsigned char *sp = buffer, *dp = buffer;
++	unsigned char *sp = buffer;
++	unsigned char *dp = buffer;
+ 	bool first = true;
+ 	while (*sp && (*sp <= ' ' || *sp >= 127))
+ 		sp++;
+@@ -272,7 +273,9 @@
+ static void unescape(char *filename)
+ {
+ 	char *cp = filename;
+-	char c, d, e;
++	char c;
++	char d;
++	char e;
+ 	if (!cp)
+ 		return;
+ 	while ((c = *filename++) != '\0') {
+@@ -285,11 +288,14 @@
+ 			*cp++ = c;
+ 			continue;
+ 		}
+-		if (c < '0' || c > '3' ||
+-		    (d = *filename++) < '0' || d > '7' ||
+-		    (e = *filename++) < '0' || e > '7') {
++		if (c < '0' || c > '3')
+ 			break;
+-		}
++		d = *filename++;
++		if (d < '0' || d > '7')
++			break;
++		e = *filename++;
++		if (e < '0' || e > '7')
++			break;
+ 		*(unsigned char *) cp++ = (unsigned char)
+ 			(((unsigned char) (c - '0') << 6)
+ 			 + ((unsigned char) (d - '0') << 3)
+@@ -313,9 +319,9 @@
+ #if !defined(MODULE)
+ static int __init syaoran_setup(char *str)
+ {
+-	if (strcmp(str, "accept") == 0)
++	if (!strcmp(str, "accept"))
+ 		syaoran_default_mode = 1;
+-	else if (strcmp(str, "enforce") == 0)
++	else if (!strcmp(str, "enforce"))
+ 		syaoran_default_mode = 0;
+ 	return 0;
+ }
+@@ -373,7 +379,12 @@
+ 	char *args[MAX_ARG];
+ 	int i;
+ 	int error = -EINVAL;
+-	unsigned int perm, uid, gid, flags, major = 0, minor = 0;
++	unsigned int perm;
++	unsigned int uid;
++	unsigned int gid;
++	unsigned int flags;
++	unsigned int major = 0;
++	unsigned int minor = 0;
+ 	struct syaoran_sb_info *info =
+ 		(struct syaoran_sb_info *) sb->s_fs_info;
+ 	struct dev_entry *entry;
+@@ -490,7 +501,8 @@
+ static void syaoran_put_super(struct super_block *sb)
+ {
+ 	struct syaoran_sb_info *info;
+-	struct dev_entry *entry, *tmp;
++	struct dev_entry *entry;
++	struct dev_entry *tmp;
+ 	if (!sb)
+ 		return;
+ 	info = (struct syaoran_sb_info *) sb->s_fs_info;
+@@ -632,7 +644,7 @@
+ 	static bool first = true;
+ 	if (first) {
+ 		first = false;
+-		printk(KERN_INFO "SYAORAN: 1.6.0-rc   2008/03/26\n");
++		printk(KERN_INFO "SYAORAN: 1.6.0-rc   2008/03/27\n");
+ 	}
+ 	{
+ 		struct inode *inode = new_inode(sb);
+@@ -661,10 +673,10 @@
+ 		return -EINVAL;
+ 	}
+ 	/* If mode is given with mount operation, use it. */
+-	if (strncmp(filename, "accept=", 7) == 0) {
++	if (!strncmp(filename, "accept=", 7)) {
+ 		filename += 7;
+ 		is_permissive_mode = true;
+-	} else if (strncmp(filename, "enforce=", 8) == 0) {
++	} else if (!strncmp(filename, "enforce=", 8)) {
+ 		filename += 8;
+ 		is_permissive_mode = false;
+ 	} else if (syaoran_default_mode == -1) {
+@@ -702,6 +714,7 @@
+ static int get_local_absolute_path(struct dentry *dentry, char *buffer,
+ 				   int buflen)
+ {
++	/***** CRITICAL SECTION START *****/
+ 	char *start = buffer;
+ 	char *end = buffer + buflen;
+ 	int namelen;
+@@ -739,24 +752,25 @@
+ 	return 0;
+  out:
+ 	return -ENOMEM;
++	/***** CRITICAL SECTION END *****/
+ }
+ 
+ /* Get absolute pathname of the given dentry from mount point. */
+ static int local_ccs_realpath_from_dentry(struct dentry *dentry, char *newname,
+ 					  int newname_len)
+ {
++	/***** CRITICAL SECTION START *****/
+ 	int error;
+ 	struct dentry *d_dentry;
+ 	if (!dentry || !newname || newname_len <= 0)
+ 		return -EINVAL;
+ 	d_dentry = dget(dentry);
+-	/***** CRITICAL SECTION START *****/
+ 	spin_lock(&dcache_lock);
+ 	error = get_local_absolute_path(d_dentry, newname, newname_len);
+ 	spin_unlock(&dcache_lock);
+-	/***** CRITICAL SECTION END *****/
+ 	dput(d_dentry);
+ 	return error;
++	/***** CRITICAL SECTION END *****/
+ }
+ 
+ static int syaoran_check_flags(struct syaoran_sb_info *info,
+Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 1060)
++++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
+@@ -221,7 +221,7 @@
+  *
+  * A token consists of only ASCII printable characters.
+  * Non printable characters in a token is represented in \ooo style
+- * octal string. Thus, \ itself is represented as \\ .
++ * octal string. Thus, \ itself is represented as \\.
+  */
+ #define CCS_MAX_PATHNAME_LEN 4000
+ 
+@@ -298,7 +298,7 @@
+ 	u8 profile;        /* Profile number to use. */
+ 	u8 is_deleted;     /* Delete flag.           */
+ 	bool quota_warned; /* Quota warnning flag.   */
+-	/* DOMAIN_FLAGS_IGNORE_* . Use ccs_set_domain_flag() to modify. */
++	/* DOMAIN_FLAGS_IGNORE_*. Use ccs_set_domain_flag() to modify. */
+ 	u8 flags;
+ };
+ 
+@@ -470,7 +470,7 @@
+ #define KEYWORD_PREFERRED_EXECUTE_HANDLER "preferred_execute_handler"
+ #define KEYWORD_DEFAULT_EXECUTE_HANDLER   "default_execute_handler"
+ #define KEYWORD_MAC_FOR_CAPABILITY        "MAC_FOR_CAPABILITY::"
+-/* A domain definition starts with <kernel> . */
++/* A domain definition starts with <kernel>. */
+ #define ROOT_NAME                         "<kernel>"
+ #define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
+ 
+@@ -510,9 +510,9 @@
+ 	int (*read) (struct ccs_io_buffer *);
+ 	int (*write) (struct ccs_io_buffer *);
+ 	int (*poll) (struct file *file, poll_table *wait);
+-	/* Exclusive lock for read_buf .        */
++	/* Exclusive lock for read_buf.         */
+ 	struct mutex read_sem;
+-	/* Exclusive lock for write_buf .       */
++	/* Exclusive lock for write_buf.        */
+ 	struct mutex write_sem;
+ 	/* The position currently reading from. */
+ 	struct list1_head *read_var1;
+@@ -604,9 +604,6 @@
+ /* Allocate buffer for domain policy auditing. */
+ char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
+ 			 struct linux_binprm *bprm);
+-/* Print an IPv6 address. */
+-char *ccs_print_ipv6(char *buffer, const int buffer_len,
+-		     const struct in6_addr *ip);
+ /* Convert capability index to capability name. */
+ const char *ccs_cap2keyword(const u8 operation);
+ /* Convert double path operation to operation name. */
+@@ -746,7 +743,10 @@
+ void ccs_fill_path_info(struct path_info *ptr);
+ /* Run policy loader when /sbin/init starts. */
+ void ccs_load_policy(const char *filename);
+-/* Change "struct domain_info"->flags . */
++/* Print an IPv6 address. */
++void ccs_print_ipv6(char *buffer, const int buffer_len,
++		    const struct in6_addr *ip);
++/* Change "struct domain_info"->flags. */
+ void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
+ 			 const u8 flags);
+ /* Update the process's state. */
+@@ -761,6 +761,18 @@
+ 	return a->hash != b->hash || strcmp(a->name, b->name);
+ }
+ 
++/* Get type of an ACL entry. */
++static inline u8 ccs_acl_type1(struct acl_info *ptr)
++{
++	return (ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION));
++}
++
++/* Get type of an ACL entry. */
++static inline u8 ccs_acl_type2(struct acl_info *ptr)
++{
++	return (ptr->type & ~ACL_WITH_CONDITION);
++}
++
+ /* A linked list of domains. */
+ extern struct list1_head domain_list;
+ /* Has /sbin/init started? */
+Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(revision 1060)
++++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_vfs.h	(working copy)
+@@ -26,7 +26,7 @@
+  * TOMOYO Linux checks permission outside VFS helper functions.
+  * To keep the DAC's permission checks are performed before the
+  * TOMOYO Linux's permission checks are performed, I'm manually inserting
+- * these functions that performs the DAC's permission checks into fs/namei.c .
++ * these functions that performs the DAC's permission checks into fs/namei.c.
+  *
+  * The approach to obtain "struct vfsmount" parameter from
+  * the "struct task_struct" doesn't work because it triggers deadlock.
+@@ -34,7 +34,7 @@
+ 
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+ 
+-/* Some of permission checks from vfs_create() . */
++/* Some of permission checks from vfs_create(). */
+ static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry)
+ {
+ 	int error;
+@@ -47,10 +47,10 @@
+ }
+ 
+ /*
+- * Some of permission checks from vfs_mknod() .
++ * Some of permission checks from vfs_mknod().
+  *
+  * This function is exported because
+- * vfs_mknod() is called from net/unix/af_unix.c .
++ * vfs_mknod() is called from net/unix/af_unix.c.
+  */
+ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
+ {
+@@ -64,7 +64,7 @@
+ }
+ EXPORT_SYMBOL(pre_vfs_mknod);
+ 
+-/* Some of permission checks from vfs_mkdir() . */
++/* Some of permission checks from vfs_mkdir(). */
+ static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+ {
+ 	int error;
+@@ -76,7 +76,7 @@
+ 	return error;
+ }
+ 
+-/* Some of permission checks from vfs_rmdir() . */
++/* Some of permission checks from vfs_rmdir(). */
+ static inline int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+ {
+ 	int error = may_delete(dir, dentry, 1);
+@@ -85,7 +85,7 @@
+ 	return error;
+ }
+ 
+-/* Some of permission checks from vfs_unlink() . */
++/* Some of permission checks from vfs_unlink(). */
+ static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+ {
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
+@@ -114,7 +114,7 @@
+ #endif
+ }
+ 
+-/* Permission checks from vfs_symlink() . */
++/* Permission checks from vfs_symlink(). */
+ static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+ {
+ 	int error;
+@@ -129,7 +129,7 @@
+ 	return error;
+ }
+ 
+-/* Some of permission checks from vfs_link() . */
++/* Some of permission checks from vfs_link(). */
+ static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+ 			       struct dentry *new_dentry)
+ {
+@@ -183,7 +183,7 @@
+ #endif
+ }
+ 
+-/* Some of permission checks from vfs_rename_dir() . */
++/* Some of permission checks from vfs_rename_dir(). */
+ static inline int pre_vfs_rename_dir(struct inode *old_dir,
+ 				     struct dentry *old_dentry,
+ 				     struct inode *new_dir,
+@@ -210,7 +210,7 @@
+ 	return error;
+ }
+ 
+-/* Some of permission checks from vfs_rename_other() . */
++/* Some of permission checks from vfs_rename_other(). */
+ static inline int pre_vfs_rename_other(struct inode *old_dir,
+ 				       struct dentry *old_dentry,
+ 				       struct inode *new_dir,
+@@ -235,7 +235,7 @@
+ 	return 0;
+ }
+ 
+-/* Some of permission checks from vfs_rename() . */
++/* Some of permission checks from vfs_rename(). */
+ static inline int pre_vfs_rename(struct inode *old_dir,
+ 				 struct dentry *old_dentry,
+ 				 struct inode *new_dir,
+@@ -259,7 +259,7 @@
+  * Permission checks before security_inode_mknod() is called.
+  *
+  * This function is exported because
+- * vfs_mknod() is called from net/unix/af_unix.c .
++ * vfs_mknod() is called from net/unix/af_unix.c.
+  */
+ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
+ {
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -21,8 +21,8 @@
+  *
+  * @env:        The name of environment variable.
+  * @is_granted: True if this is a granted log.
+- * @profile:    Profile number.
+- * @mode:       Access control mode.
++ * @profile:    Profile number used.
++ * @mode:       Access control mode used.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+@@ -34,7 +34,7 @@
+ 	int len2;
+ 	if (ccs_can_save_audit_log(is_granted) < 0)
+ 		return -ENOMEM;
+-	len = strlen(env) + 8;
++	len = strlen(env) + 64;
+ 	buf = ccs_init_audit_log(&len, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+@@ -64,7 +64,8 @@
+ static int update_globally_usable_env_entry(const char *env,
+ 					    const bool is_delete)
+ {
+-	struct globally_usable_env_entry *new_entry, *ptr;
++	struct globally_usable_env_entry *new_entry;
++	struct globally_usable_env_entry *ptr;
+ 	static DEFINE_MUTEX(lock);
+ 	const struct path_info *saved_env;
+ 	int error = -ENOMEM;
+@@ -75,11 +76,11 @@
+ 		return -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
+-		if (ptr->env == saved_env) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (ptr->env != saved_env)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -93,6 +94,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -180,8 +182,7 @@
+ 	if (is_delete)
+ 		goto delete;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+-		    != TYPE_ENV_ACL)
++		if (ccs_acl_type1(ptr) != TYPE_ENV_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -201,7 +202,7 @@
+  delete:
+ 	error = -ENOENT;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -233,7 +234,7 @@
+ 	ccs_fill_path_info(&env);
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct env_acl_record *acl;
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct env_acl_record, head);
+ 		if (!ccs_check_condition(ptr, NULL) ||
+@@ -276,7 +277,7 @@
+ 	if (is_enforce)
+ 		return ccs_check_supervisor("%s\n" KEYWORD_ALLOW_ENV "%s\n",
+ 					    domain->domainname->name, env);
+-	else if (mode == 1 && ccs_check_domain_quota(domain))
++	if (mode == 1 && ccs_check_domain_quota(domain))
+ 		update_env_entry(env, domain, NULL, false);
+ 	return 0;
+ }
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -25,37 +25,27 @@
+  * @address:    An IPv4 or IPv6 address.
+  * @port:       Port number.
+  * @is_granted: True if this is a granted log.
+- * @profile:    Profile number.
+- * @mode:       Access control mode.
++ * @profile:    Profile number used.
++ * @mode:       Access control mode used.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int audit_network_log(const bool is_ipv6, const char *operation,
+-			     const u32 *address, const u16 port,
+-			     const bool is_granted, const u8 profile,
+-			     const u8 mode)
++			     const char *address, const u16 port,
++			     const bool is_granted,
++			     const u8 profile, const u8 mode)
+ {
+ 	char *buf;
+-	int len = 256, len2;
++	int len = 256;
++	int len2;
+ 	if (ccs_can_save_audit_log(is_granted) < 0)
+ 		return -ENOMEM;
+ 	buf = ccs_init_audit_log(&len, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	len2 = strlen(buf);
+-	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_NETWORK "%s ",
+-		 operation);
+-	len2 = strlen(buf);
+-	if (is_ipv6) {
+-		ccs_print_ipv6(buf + len2, len - len2,
+-			       (const struct in6_addr *) address);
+-	} else {
+-		u32 ip = *address;
+-		snprintf(buf + len2, len - len2 - 1, "%u.%u.%u.%u",
+-			 NIPQUAD(ip));
+-	}
+-	len2 = strlen(buf);
+-	snprintf(buf + len2, len - len2 - 1, " %u\n", port);
++	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_NETWORK "%s %s %u\n",
++		 operation, address, port);
+ 	return ccs_write_audit_log(buf, is_granted);
+ }
+ 
+@@ -85,7 +75,7 @@
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &address_list, list) {
+ 		for (i = 0; i < ptr->in_use_count; i++) {
+-			if (memcmp(&ptr->addr[i], addr, sizeof(*addr)) == 0)
++			if (!memcmp(&ptr->addr[i], addr, sizeof(*addr)))
+ 				goto ok;
+ 		}
+ 		if (i < block_size)
+@@ -110,8 +100,8 @@
+ /**
+  * update_address_group_entry - Update "struct address_group_entry" list.
+  *
+- * @group_name:  The name of group.
+- * @is_ipv6:     True if @address is an IPv6 address.
++ * @group_name:  The name of address group.
++ * @is_ipv6:     True if @min_address and @max_address are IPv6 addresses.
+  * @min_address: Start of IPv4 or IPv6 address range.
+  * @max_address: End of IPv4 or IPv6 address range.
+  * @is_delete:   True if it is a delete request.
+@@ -125,8 +115,10 @@
+ 				      const bool is_delete)
+ {
+ 	static DEFINE_MUTEX(lock);
+-	struct address_group_entry *new_group, *group;
+-	struct address_group_member *new_member, *member;
++	struct address_group_entry *new_group;
++	struct address_group_entry *group;
++	struct address_group_member *new_member;
++	struct address_group_member *member;
+ 	const struct path_info *saved_group_name;
+ 	const struct in6_addr *saved_min_address = NULL;
+ 	const struct in6_addr *saved_max_address = NULL;
+@@ -199,6 +191,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -214,7 +207,8 @@
+ {
+ 	u8 count;
+ 	bool is_ipv6;
+-	u16 min_address[8], max_address[8];
++	u16 min_address[8];
++	u16 max_address[8];
+ 	char *cp = strchr(data, ' ');
+ 	if (!cp)
+ 		return -EINVAL;
+@@ -258,9 +252,9 @@
+ 			      + (u8) max_address[3]);
+ 		*(u32 *) max_address = ip;
+ 		is_ipv6 = false;
+-	} else {
+-		return -EINVAL;
++		goto ok;
+ 	}
++	return -EINVAL;
+  ok:
+ 	return update_address_group_entry(data, is_ipv6,
+ 					  min_address, max_address, is_delete);
+@@ -269,7 +263,7 @@
+ /**
+  * find_or_assign_new_address_group - Create address group.
+  *
+- * @group_name: The name of group.
++ * @group_name: The name of address group.
+  *
+  * Returns pointer to "struct address_group_entry" on success, NULL otherwise.
+  */
+@@ -280,10 +274,10 @@
+ 	struct address_group_entry *group;
+ 	for (i = 0; i <= 1; i++) {
+ 		list1_for_each_entry(group, &address_group_list, list) {
+-			if (strcmp(group_name, group->group_name->name) == 0)
++			if (!strcmp(group_name, group->group_name->name))
+ 				return group;
+ 		}
+-		if (i == 0) {
++		if (!i) {
+ 			const u16 dummy[2] = { 0, 0 };
+ 			update_address_group_entry(group_name, false,
+ 						   dummy, dummy, false);
+@@ -398,17 +392,16 @@
+  * ccs_print_ipv6 - Print an IPv6 address.
+  *
+  * @buffer:     Buffer to write to.
+- * @buffer_len: Size of @buffer .
++ * @buffer_len: Size of @buffer.
+  * @ip:         Pointer to "struct in6_addr".
+  *
+- * Returns @buffer.
++ * Returns nothing.
+  */
+-char *ccs_print_ipv6(char *buffer, const int buffer_len,
+-		     const struct in6_addr *ip)
++void ccs_print_ipv6(char *buffer, const int buffer_len,
++		    const struct in6_addr *ip)
+ {
+ 	memset(buffer, 0, buffer_len);
+ 	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x", NIP6(*ip));
+-	return buffer;
+ }
+ 
+ /**
+@@ -495,8 +488,7 @@
+ 	if (is_delete)
+ 		goto delete;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+-		    != TYPE_IP_NETWORK_ACL)
++		if (ccs_acl_type1(ptr) != TYPE_IP_NETWORK_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -542,7 +534,7 @@
+  delete:
+ 	error = -ENOENT;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_IP_NETWORK_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -593,11 +585,12 @@
+ 	/* using host byte order to allow u32 comparison than memcmp().*/
+ 	const u32 ip = ntohl(*address);
+ 	bool found = false;
++	char buf[64];
+ 	if (!mode)
+ 		return 0;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct ip_network_acl_record *acl;
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_IP_NETWORK_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct ip_network_acl_record, head);
+ 		if (acl->operation_type != operation || port < acl->min_port ||
+@@ -621,41 +614,24 @@
+ 		found = true;
+ 		break;
+ 	}
+-	audit_network_log(is_ipv6, keyword, address, port, found, profile,
+-			  mode);
++	memset(buf, 0, sizeof(buf));
++	if (is_ipv6)
++		ccs_print_ipv6(buf, sizeof(buf),
++			       (const struct in6_addr *) address);
++	else
++		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
++	audit_network_log(is_ipv6, keyword, buf, port, found, profile, mode);
+ 	if (found)
+ 		return 0;
+-	if (ccs_verbose_mode()) {
+-		if (is_ipv6) {
+-			char buf[64];
+-			ccs_print_ipv6(buf, sizeof(buf),
+-				       (const struct in6_addr *) address);
+-			printk(KERN_WARNING "TOMOYO-%s: %s to %s %u "
+-			       "denied for %s\n", ccs_get_msg(is_enforce),
+-			       keyword, buf, port, ccs_get_last_name(domain));
+-		} else {
+-			printk(KERN_WARNING "TOMOYO-%s: %s to %u.%u.%u.%u %u "
+-			       "denied for %s\n", ccs_get_msg(is_enforce),
+-			       keyword, HIPQUAD(ip), port,
+-			       ccs_get_last_name(domain));
+-		}
+-	}
+-	if (is_enforce) {
+-		if (is_ipv6) {
+-			char buf[64];
+-			ccs_print_ipv6(buf, sizeof(buf),
+-				       (const struct in6_addr *) address);
+-			return ccs_check_supervisor("%s\n"
+-						    KEYWORD_ALLOW_NETWORK "%s "
+-						    "%s %u\n",
+-						    domain->domainname->name,
+-						    keyword, buf, port);
+-		}
++	if (ccs_verbose_mode())
++		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
++		       ccs_get_msg(is_enforce), keyword, buf, port,
++		       ccs_get_last_name(domain));
++	if (is_enforce)
+ 		return ccs_check_supervisor("%s\n" KEYWORD_ALLOW_NETWORK "%s "
+-					    "%u.%u.%u.%u %u\n",
+-					    domain->domainname->name, keyword,
+-					    HIPQUAD(ip), port);
+-	} else if (mode == 1 && ccs_check_domain_quota(domain))
++					    "%s %u\n", domain->domainname->name,
++					    keyword, buf, port);
++	if (mode == 1 && ccs_check_domain_quota(domain))
+ 		update_network_entry(operation, is_ipv6 ?
+ 				     IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4,
+ 				     NULL, address, address, port, port, domain,
+@@ -677,13 +653,17 @@
+ 			     const struct condition_list *condition,
+ 			     const bool is_delete)
+ {
+-	u8 sock_type, operation, record_type;
+-	u16 min_address[8], max_address[8];
++	u8 sock_type;
++	u8 operation;
++	u8 record_type;
++	u16 min_address[8];
++	u16 max_address[8];
+ 	struct address_group_entry *group = NULL;
+-	u16 min_port, max_port;
++	u16 min_port;
++	u16 max_port;
+ 	u8 count;
+-	char *cp1 = NULL, *cp2 = NULL;
+-	cp1 = strchr(data, ' ');
++	char *cp1 = strchr(data, ' ');
++	char *cp2;
+ 	if (!cp1)
+ 		goto out;
+ 	cp1++;
+@@ -770,14 +750,17 @@
+ 				   + (u8) max_address[3]);
+ 		*(u32 *) max_address = ip;
+ 		record_type = IP_RECORD_TYPE_IPv4;
+-	} else if (*cp2 == '@') {
++		goto ok;
++	}
++	if (*cp2 == '@') {
+ 		group = find_or_assign_new_address_group(cp2 + 1);
+ 		if (!group)
+ 			return -ENOMEM;
+ 		record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
+-	} else {
+-		goto out;
++		goto ok;
+ 	}
++ out:
++	return -EINVAL;
+  ok:
+ 	if (strchr(cp1, ' '))
+ 		goto out;
+@@ -790,8 +773,6 @@
+ 				    (u32 *) min_address, (u32 *) max_address,
+ 				    min_port, max_port, domain, condition,
+ 				    is_delete);
+- out:
+-	return -EINVAL;
+ }
+ 
+ /**
+@@ -923,7 +904,7 @@
+ {
+ 	int retval;
+ 	const u8 operation
+-		= sock_type == SOCK_DGRAM ?
++		= (sock_type == SOCK_DGRAM) ?
+ 		NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT;
+ 	current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+ 	retval = check_network_entry(is_ipv6, operation, (const u32 *) address,
+Index: trunk/1.6.x/ccs-patch/fs/realpath.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/realpath.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -42,7 +42,7 @@
+  *
+  * Returns 0 on success, -ENOMEM otherwise.
+  *
+- * Caller holds the dcache_lock and vfsmount_lock .
++ * Caller holds the dcache_lock and vfsmount_lock.
+  * Based on __d_path() in fs/dcache.c
+  *
+  * If dentry is a directory, trailing '/' is appended.
+@@ -184,7 +184,7 @@
+  * @dentry:      Pointer to "struct dentry".
+  * @mnt:         Pointer to "struct vfsmount".
+  * @newname:     Pointer to buffer to return value in.
+- * @newname_len: Size of @newname .
++ * @newname_len: Size of @newname.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+@@ -212,7 +212,7 @@
+ 	dput(d_dentry);
+ 	mntput(d_mnt);
+ 	if (error)
+-		printk(KERN_DEBUG "ccs_realpath: Pathname too long.\n");
++		printk(KERN_WARNING "ccs_realpath: Pathname too long.\n");
+ 	return error;
+ }
+ 
+@@ -491,8 +491,6 @@
+ 	int i;
+ 	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
+ 		panic("Bad size.");
+-	if (sizeof(struct path_info_with_data) > sizeof(struct ccs_page_buffer))
+-		panic("Bad size.");
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
+ 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry),
+ 				       0, 0, NULL);
+@@ -546,7 +544,8 @@
+ #else
+ 	size_t bsize = 64;
+ #endif
+-	while (size > bsize) bsize <<= 1;
++	while (size > bsize)
++		bsize <<= 1;
+ 	return bsize;
+ }
+ #endif
+@@ -566,7 +565,8 @@
+ 		goto out;
+ 	new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
+ 	if (!new_entry) {
+-		kfree(ret); ret = NULL;
++		kfree(ret);
++		ret = NULL;
+ 		goto out;
+ 	}
+ 	INIT_LIST_HEAD(&new_entry->list);
+@@ -604,7 +604,8 @@
+ 	list_for_each(v, &cache_list) {
+ 		entry = list_entry(v, struct cache_entry, list);
+ 		if (entry->ptr != p) {
+-			entry = NULL; continue;
++			entry = NULL;
++			continue;
+ 		}
+ 		list_del(&entry->list);
+ 		dynamic_memory_size -= entry->size;
+Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -41,7 +41,8 @@
+  */
+ static int update_chroot_acl(const char *dir, const bool is_delete)
+ {
+-	struct chroot_entry *new_entry, *ptr;
++	struct chroot_entry *new_entry;
++	struct chroot_entry *ptr;
+ 	const struct path_info *saved_dir;
+ 	static DEFINE_MUTEX(lock);
+ 	int error = -ENOMEM;
+@@ -52,11 +53,11 @@
+ 		return -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &chroot_list, list) {
+-		if (ptr->dir == saved_dir) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (ptr->dir != saved_dir)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -71,6 +72,7 @@
+ 	printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level, dir);
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+ 	return error;
+ }
+ 
+@@ -79,30 +81,27 @@
+  *
+  * @root_name: Requested directory name.
+  * @mode:      Access control mode.
+- * @error:     Error value.
+  *
+  * Returns 0 if @mode is not enforcing mode or permitted by the administrator's
+  * decision, negative value otherwise.
+  */
+-static int print_error(const char *root_name, const u8 mode, int error)
++static int print_error(const char *root_name, const u8 mode)
+ {
++	int error;
+ 	const bool is_enforce = (mode == 3);
+ 	const char *exename = ccs_get_exe();
+ 	printk(KERN_WARNING "SAKURA-%s: chroot %s (pid=%d:exe=%s): "
+ 	       "Permission denied.\n", ccs_get_msg(is_enforce),
+ 	       root_name, current->pid, exename);
+-	if (is_enforce &&
+-	    ccs_check_supervisor("# %s is requesting\n"
+-				 "chroot %s\n", exename, root_name) == 0)
++	if (is_enforce)
++		error = ccs_check_supervisor("# %s is requesting\n"
++					     "chroot %s\n", exename, root_name);
++	else
+ 		error = 0;
+ 	if (exename)
+ 		ccs_free(exename);
+-	if (mode == 1 && root_name) {
+-		update_chroot_acl(root_name, 0);
+-		ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+-	}
+-	if (!is_enforce)
+-		error = 0;
++	if (mode == 1 && root_name)
++		update_chroot_acl(root_name, false);
+ 	return error;
+ }
+ 
+@@ -134,15 +133,15 @@
+ 			list1_for_each_entry(ptr, &chroot_list, list) {
+ 				if (ptr->is_deleted)
+ 					continue;
+-				if (ccs_path_matches_pattern(&dir, ptr->dir)) {
+-					error = 0;
+-					break;
+-				}
++				if (!ccs_path_matches_pattern(&dir, ptr->dir))
++					continue;
++				error = 0;
++				break;
+ 			}
+ 		}
+ 	}
+ 	if (error)
+-		error = print_error(root_name, mode, error);
++		error = print_error(root_name, mode);
+ 	ccs_free(root_name);
+ 	return error;
+ }
+Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -44,8 +44,10 @@
+ static int update_pivot_root_acl(const char *old_root, const char *new_root,
+ 				 const bool is_delete)
+ {
+-	struct pivot_root_entry *new_entry, *ptr;
+-	const struct path_info *saved_old_root, *saved_new_root;
++	struct pivot_root_entry *new_entry;
++	struct pivot_root_entry *ptr;
++	const struct path_info *saved_old_root;
++	const struct path_info *saved_new_root;
+ 	static DEFINE_MUTEX(lock);
+ 	int error = -ENOMEM;
+ 	if (!ccs_is_correct_path(old_root, 1, 0, 1, __func__) ||
+@@ -57,12 +59,12 @@
+ 		return -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &pivot_root_list, list) {
+-		if (ptr->old_root == saved_old_root &&
+-		    ptr->new_root == saved_new_root) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (ptr->old_root != saved_old_root ||
++		    ptr->new_root != saved_new_root)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -79,6 +81,7 @@
+ 	       new_root, old_root);
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+ 	return error;
+ }
+ 
+@@ -118,13 +121,13 @@
+ 			list1_for_each_entry(ptr, &pivot_root_list, list) {
+ 				if (ptr->is_deleted)
+ 					continue;
+-				if (ccs_path_matches_pattern(&old_root_dir,
+-							     ptr->old_root) &&
+-				    ccs_path_matches_pattern(&new_root_dir,
+-							     ptr->new_root)) {
+-					error = 0;
+-					break;
+-				}
++				if (!ccs_path_matches_pattern(&old_root_dir,
++							      ptr->old_root) ||
++				    !ccs_path_matches_pattern(&new_root_dir,
++							      ptr->new_root))
++					continue;
++				error = 0;
++				break;
+ 			}
+ 		}
+ 	}
+@@ -135,19 +138,17 @@
+ 		       "(pid=%d:exe=%s): Permission denied.\n",
+ 		       ccs_get_msg(is_enforce), new_root, old_root,
+ 		       current->pid, exename);
+-		if (is_enforce && ccs_check_supervisor("# %s is requesting\n"
+-						       "pivot_root %s %s\n",
+-						       exename, new_root,
+-						       old_root) == 0)
++		if (is_enforce)
++			error = ccs_check_supervisor("# %s is requesting\n"
++						     "pivot_root %s %s\n",
++						     exename, new_root,
++						     old_root);
++		else
+ 			error = 0;
+ 		if (exename)
+ 			ccs_free(exename);
+-		if (mode == 1 && old_root && new_root) {
++		if (mode == 1 && old_root && new_root)
+ 			update_pivot_root_acl(old_root, new_root, 0);
+-			ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+-		}
+-		if (!is_enforce)
+-			error = 0;
+ 	}
+ 	ccs_free(old_root);
+ 	ccs_free(new_root);
+Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -91,8 +91,11 @@
+ 			    const bool is_delete)
+ {
+ 	struct file_system_type *type = NULL;
+-	struct mount_entry *new_entry, *ptr;
+-	const struct path_info *fs, *dev, *dir;
++	struct mount_entry *new_entry;
++	struct mount_entry *ptr;
++	const struct path_info *fs;
++	const struct path_info *dev;
++	const struct path_info *dir;
+ 	static DEFINE_MUTEX(lock);
+ 	int error = -ENOMEM;
+ 	fs = ccs_save_name(fs_type);
+@@ -179,6 +182,7 @@
+ 		put_filesystem(type);
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+ 	return error;
+ }
+ 
+@@ -189,7 +193,7 @@
+  * @dir_name: Name of mount point.
+  * @type:     Name of filesystem type.
+  * @flags:    Mount options.
+- * @need_dev: Type of @dev_name .
++ * @need_dev: Type of @dev_name.
+  *
+  * Returns nothing.
+  */
+@@ -249,13 +253,12 @@
+ 		       ccs_get_msg(is_enforce),
+ 		       realname2 ? realname2 : dir_name,
+ 		       flags, current->pid, exename);
+-		if (is_enforce &&
+-		    ccs_check_supervisor("# %s is requesting\n"
+-					 "mount -o remount %s 0x%lX\n",
+-					 exename,
+-					 realname2 ? realname2 : dir_name,
+-					 flags) == 0)
+-			error = 0;
++		if (is_enforce)
++			error = ccs_check_supervisor("# %s is requesting\n"
++						     "mount -o remount %s "
++						     "0x%lX\n", exename,
++						     realname2 ? realname2
++						     : dir_name, flags);
+ 	} else if (!strcmp(type, MOUNT_BIND_KEYWORD)
+ 		   || !strcmp(type, MOUNT_MOVE_KEYWORD)) {
+ 		printk(KERN_WARNING "SAKURA-%s: mount %s %s %s 0x%lX "
+@@ -264,14 +267,14 @@
+ 		       realname1 ? realname1 : dev_name,
+ 		       realname2 ? realname2 : dir_name,
+ 		       flags, current->pid, exename);
+-		if (is_enforce &&
+-		    ccs_check_supervisor("# %s is requesting\n"
+-					 "mount %s %s %s 0x%lX\n", exename,
+-					 type,
+-					 realname1 ? realname1 : dev_name,
+-					 realname2 ? realname2 : dir_name,
+-					 flags) == 0)
+-			error = 0;
++		if (is_enforce)
++			error = ccs_check_supervisor("# %s is requesting\n"
++						     "mount %s %s %s 0x%lX\n",
++						     exename, type,
++						     realname1 ? realname1 :
++						     dev_name,
++						     realname2 ? realname2 :
++						     dir_name, flags);
+ 	} else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+ 		   !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
+ 		   !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
+@@ -281,12 +284,12 @@
+ 		       ccs_get_msg(is_enforce), type,
+ 		       realname2 ? realname2 : dir_name,
+ 		       flags, current->pid, exename);
+-		if (is_enforce &&
+-		    ccs_check_supervisor("# %s is requesting\n"
+-					 "mount %s %s 0x%lX", exename, type,
+-					 realname2 ? realname2 : dir_name,
+-					 flags) == 0)
+-			error = 0;
++		if (is_enforce)
++			error = ccs_check_supervisor("# %s is requesting\n"
++						     "mount %s %s 0x%lX",
++						     exename, type,
++						     realname2 ? realname2 :
++						     dir_name, flags);
+ 	} else {
+ 		printk(KERN_WARNING "SAKURA-%s: mount -t %s %s %s 0x%lX "
+ 		       "(pid=%d:exe=%s): Permission denied.\n",
+@@ -294,14 +297,14 @@
+ 		       realname1 ? realname1 : dev_name,
+ 		       realname2 ? realname2 : dir_name,
+ 		       flags, current->pid, exename);
+-		if (is_enforce &&
+-		    ccs_check_supervisor("# %s is requesting\n"
+-					 "mount -t %s %s %s 0x%lX\n",
+-					 exename, type,
+-					 realname1 ? realname1 : dev_name,
+-					 realname2 ? realname2 : dir_name,
+-					 flags) == 0)
+-			error = 0;
++		if (is_enforce)
++			error = ccs_check_supervisor("# %s is requesting\n"
++						     "mount -t %s %s %s "
++						     "0x%lX\n", exename, type,
++						     realname1 ? realname1 :
++						     dev_name,
++						     realname2 ? realname2 :
++						     dir_name, flags);
+ 	}
+ 	ccs_free(exename);
+ 	ccs_free(realname2);
+@@ -394,7 +397,8 @@
+ 		struct file_system_type *fstype = NULL;
+ 		const char *requested_dir_name = NULL;
+ 		const char *requested_dev_name = NULL;
+-		struct path_info rdev, rdir;
++		struct path_info rdev;
++		struct path_info rdir;
+ 		int need_dev = 0;
+ 
+ 		requested_dir_name = ccs_realpath(dir_name);
+@@ -474,12 +478,10 @@
+ 		if (error)
+ 			error = print_error(dev_name, dir_name, type, flags,
+ 					    is_enforce, error);
+-		if (error && mode == 1) {
++		if (error && mode == 1)
+ 			update_mount_acl(need_dev ?
+ 					 requested_dev_name : dev_name,
+ 					 requested_dir_name, type, flags, 0);
+-			ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+-		}
+  cleanup:
+ 		ccs_free(requested_dev_name);
+ 		ccs_free(requested_dir_name);
+@@ -501,7 +503,7 @@
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+- * This is a wrapper to allow use of 1.4.x patch for 1.5.x .
++ * This is a wrapper to allow use of 1.4.x patch for 1.5.x.
+  */
+ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
+ 			       const unsigned long *flags)
+@@ -519,8 +521,11 @@
+  */
+ int ccs_write_mount_policy(char *data, const bool is_delete)
+ {
+-	char *cp, *cp2;
+-	const char *fs, *dev, *dir;
++	char *cp;
++	char *cp2;
++	const char *fs;
++	const char *dev;
++	const char *dir;
+ 	unsigned long flags = 0;
+ 	cp2 = data;
+ 	cp = strchr(cp2, ' ');
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -27,12 +27,14 @@
+  */
+ static char *ccs_print_bprm(struct linux_binprm *bprm)
+ {
+-	static const int buffer_len = PAGE_SIZE * 2;
++	static const int buffer_len = 4096 * 2;
+ 	char *buffer = ccs_alloc(buffer_len);
+-	char *cp, *last_start;
++	char *cp;
++	char *last_start;
+ 	int len;
+ 	unsigned long pos = bprm->p;
+-	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
++	int i = pos / PAGE_SIZE;
++	int offset = pos % PAGE_SIZE;
+ 	int argv_count = bprm->argc;
+ 	int envp_count = bprm->envc;
+ 	bool truncated = false;
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -117,7 +117,7 @@
+ /**
+  * ccs_add_domain_acl - Add the given ACL to the given domain.
+  *
+- * @domain: Pointer to "struct domain_info".
++ * @domain: Pointer to "struct domain_info". May be NULL.
+  * @acl:    Pointer to "struct acl_info".
+  *
+  * Returns 0.
+@@ -135,7 +135,7 @@
+ /**
+  * ccs_del_domain_acl - Delete the given ACL from the domain.
+  *
+- * @acl: Pointer to "struct acl_info".
++ * @acl: Pointer to "struct acl_info". May be NULL.
+  *
+  * Returns 0.
+  */
+@@ -186,8 +186,8 @@
+  * audit_domain_creation_log - Audit domain creation log.
+  *
+  * @domainname: The name of newly created domain.
+- * @mode:       Access control mode.
+- * @profile:    Profile number.
++ * @mode:       Access control mode used.
++ * @profile:    Profile number used.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+@@ -234,9 +234,11 @@
+ 					   const bool is_not,
+ 					   const bool is_delete)
+ {
+-	struct domain_initializer_entry *new_entry, *ptr;
++	struct domain_initializer_entry *new_entry;
++	struct domain_initializer_entry *ptr;
+ 	static DEFINE_MUTEX(lock);
+-	const struct path_info *saved_program, *saved_domainname = NULL;
++	const struct path_info *saved_program;
++	const struct path_info *saved_domainname = NULL;
+ 	int error = -ENOMEM;
+ 	bool is_last_name = false;
+ 	if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
+@@ -279,6 +281,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -293,24 +296,22 @@
+ {
+ 	struct list1_head *pos;
+ 	list1_for_each_cookie(pos, head->read_var2, &domain_initializer_list) {
++		const char *no;
++		const char *from = "";
++		const char *domain = "";
+ 		struct domain_initializer_entry *ptr;
+ 		ptr = list1_entry(pos, struct domain_initializer_entry, list);
+ 		if (ptr->is_deleted)
+ 			continue;
++		no = ptr->is_not ? "no_" : "";
+ 		if (ptr->domainname) {
+-			if (!ccs_io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN
+-					   "%s from %s\n",
+-					   ptr->is_not ? "no_" : "",
+-					   ptr->program->name,
+-					   ptr->domainname->name))
++			from = " from ";
++			domain = ptr->domainname->name;
++		}
++		if (!ccs_io_printf(head,
++				   "%s" KEYWORD_INITIALIZE_DOMAIN "%s%s%s\n",
++				   no, ptr->program->name, from, domain))
+ 				goto out;
+-		} else {
+-			if (!ccs_io_printf(head, "%s"
+-					   KEYWORD_INITIALIZE_DOMAIN "%s\n",
+-					   ptr->is_not ? "no_" : "",
+-					   ptr->program->name))
+-				goto out;
+-		}
+ 	}
+ 	return true;
+  out:
+@@ -334,10 +335,8 @@
+ 		*cp = '\0';
+ 		return update_domain_initializer_entry(cp + 6, data, is_not,
+ 						       is_delete);
+-	} else {
+-		return update_domain_initializer_entry(NULL, data, is_not,
+-						       is_delete);
+ 	}
++	return update_domain_initializer_entry(NULL, data, is_not, is_delete);
+ }
+ 
+ /**
+@@ -394,8 +393,10 @@
+ 				      const char *program,
+ 				      const bool is_not, const bool is_delete)
+ {
+-	struct domain_keeper_entry *new_entry, *ptr;
+-	const struct path_info *saved_domainname, *saved_program = NULL;
++	struct domain_keeper_entry *new_entry;
++	struct domain_keeper_entry *ptr;
++	const struct path_info *saved_domainname;
++	const struct path_info *saved_program = NULL;
+ 	static DEFINE_MUTEX(lock);
+ 	int error = -ENOMEM;
+ 	bool is_last_name = false;
+@@ -439,6 +440,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -458,10 +460,8 @@
+ 		*cp = '\0';
+ 		return update_domain_keeper_entry(cp + 6, data,
+ 						  is_not, is_delete);
+-	} else {
+-		return update_domain_keeper_entry(data, NULL,
+-						  is_not, is_delete);
+ 	}
++	return update_domain_keeper_entry(data, NULL, is_not, is_delete);
+ }
+ 
+ /**
+@@ -476,24 +476,21 @@
+ 	struct list1_head *pos;
+ 	list1_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
+ 		struct domain_keeper_entry *ptr;
+-		const char *is_not;
++		const char *no;
++		const char *from = "";
++		const char *program = "";
+ 		ptr = list1_entry(pos, struct domain_keeper_entry, list);
+ 		if (ptr->is_deleted)
+ 			continue;
+-		is_not = ptr->is_not ? "no_" : "";
++		no = ptr->is_not ? "no_" : "";
+ 		if (ptr->program) {
+-			if (!ccs_io_printf(head,
+-					   "%s" KEYWORD_KEEP_DOMAIN "%s "
+-					   "from %s\n",
+-					   is_not, ptr->program->name,
+-					   ptr->domainname->name))
++			from = " from ";
++			program = ptr->program->name;
++		}
++		if (!ccs_io_printf(head,
++				   "%s" KEYWORD_KEEP_DOMAIN "%s%s%s\n", no,
++				   program, from, ptr->domainname->name))
+ 				goto out;
+-		} else {
+-			if (!ccs_io_printf(head,
+-					   "%s" KEYWORD_KEEP_DOMAIN "%s\n",
+-					   is_not, ptr->domainname->name))
+-				goto out;
+-		}
+ 	}
+ 	return true;
+  out:
+@@ -551,9 +548,11 @@
+ 			      const char *aliased_name,
+ 			      const bool is_delete)
+ {
+-	struct alias_entry *new_entry, *ptr;
++	struct alias_entry *new_entry;
++	struct alias_entry *ptr;
+ 	static DEFINE_MUTEX(lock);
+-	const struct path_info *saved_original_name, *saved_aliased_name;
++	const struct path_info *saved_original_name;
++	const struct path_info *saved_aliased_name;
+ 	int error = -ENOMEM;
+ 	if (!ccs_is_correct_path(original_name, 1, -1, -1, __func__) ||
+ 	    !ccs_is_correct_path(aliased_name, 1, -1, -1, __func__))
+@@ -584,6 +583,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -645,9 +645,11 @@
+ 				   const char *aggregated_name,
+ 				   const bool is_delete)
+ {
+-	struct aggregator_entry *new_entry, *ptr;
++	struct aggregator_entry *new_entry;
++	struct aggregator_entry *ptr;
+ 	static DEFINE_MUTEX(lock);
+-	const struct path_info *saved_original_name, *saved_aggregated_name;
++	const struct path_info *saved_original_name;
++	const struct path_info *saved_aggregated_name;
+ 	int error = -ENOMEM;
+ 	if (!ccs_is_correct_path(original_name, 1, 0, -1, __func__) ||
+ 	    !ccs_is_correct_path(aggregated_name, 1, -1, -1, __func__))
+@@ -678,6 +680,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -791,7 +794,8 @@
+  */
+ struct domain_info *ccs_undelete_domain(const char *domainname)
+ {
+-	struct domain_info *domain, *candidate_domain = NULL;
++	struct domain_info *domain;
++	struct domain_info *candidate_domain = NULL;
+ 	struct path_info name;
+ 	name.name = domainname;
+ 	ccs_fill_path_info(&name);
+@@ -864,10 +868,10 @@
+ 		/***** CRITICAL SECTION START *****/
+ 		read_lock(&tasklist_lock);
+ 		for_each_process(p) {
+-			if (p->domain_info == domain) {
+-				flag = true;
+-				break;
+-			}
++			if (p->domain_info != domain)
++				continue;
++			flag = true;
++			break;
+ 		}
+ 		read_unlock(&tasklist_lock);
+ 		/***** CRITICAL SECTION END *****/
+@@ -1009,12 +1013,14 @@
+ 	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
+ 	int retval;
+-	struct path_info r, s, l;
++	struct path_info r; /* real name */
++	struct path_info s; /* symlink name */
++	struct path_info l; /* last name */
+ 
+ 	{
+ 		/*
+ 		 * Built-in initializers. This is needed because policies are
+-		 * not loaded until starting /sbin/init .
++		 * not loaded until starting /sbin/init.
+ 		 */
+ 		static bool first = true;
+ 		if (first) {
+@@ -1045,6 +1051,7 @@
+ 
+ 	if (path_to_verify) {
+ 		if (ccs_pathcmp(&r, path_to_verify)) {
++			/* Failed to verify execute handler. */
+ 			static u8 counter = 20;
+ 			if (counter) {
+ 				counter--;
+@@ -1122,8 +1129,8 @@
+ 	} else if (old_domain == &KERNEL_DOMAIN && !sbin_init_started) {
+ 		/*
+ 		 * Needn't to transit from kernel domain before starting
+-		 * /sbin/init . But transit from kernel domain if executing
+-		 * initializers because they might start before /sbin/init .
++		 * /sbin/init. But transit from kernel domain if executing
++		 * initializers because they might start before /sbin/init.
+ 		 */
+ 		domain = old_domain;
+ 	} else if (is_domain_keeper(old_domain->domainname, &r, &l)) {
+@@ -1139,11 +1146,9 @@
+ 	domain = ccs_find_domain(new_domain_name);
+ 	if (domain)
+ 		goto done;
+-	if (is_enforce) {
+-		if (ccs_check_supervisor("#Need to create domain\n%s\n",
+-					 new_domain_name))
++	if (is_enforce && ccs_check_supervisor("#Need to create domain\n%s\n",
++					       new_domain_name))
+ 			goto done;
+-	}
+ 	domain = ccs_find_or_assign_new_domain(new_domain_name,
+ 					       old_domain->profile);
+ 	if (domain)
+@@ -1180,7 +1185,8 @@
+ 	char *arg_ptr = tmp->buffer;
+ 	int arg_len = 0;
+ 	unsigned long pos = bprm->p;
+-	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
++	int i = pos / PAGE_SIZE;
++	int offset = pos % PAGE_SIZE;
+ 	int argv_count = bprm->argc;
+ 	int envp_count = bprm->envc;
+ 	/* printk(KERN_DEBUG "start %d %d\n", argv_count, envp_count); */
+@@ -1270,7 +1276,9 @@
+ static void unescape(unsigned char *dest)
+ {
+ 	unsigned char *src = dest;
+-	unsigned char c, d, e;
++	unsigned char c;
++	unsigned char d;
++	unsigned char e;
+ 	while ((c = *src++) != '\0') {
+ 		if (c != '\\') {
+ 			*dest++ = c;
+@@ -1386,7 +1394,7 @@
+ 	 * Contents of modified bprm.
+ 	 * The envp[] in original bprm is moved to argv[] so that
+ 	 * the alternatively executed program won't be affected by
+-	 * some dangerous environment variables like LD_PRELOAD .
++	 * some dangerous environment variables like LD_PRELOAD.
+ 	 *
+ 	 * modified bprm->argc
+ 	 *    = original bprm->argc + original bprm->envc + 7
+Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -72,7 +72,7 @@
+  */
+ static int print_error(struct nameidata *nd, const u8 mode)
+ {
+-	int error = -EPERM;
++	int error;
+ 	const bool is_enforce = (mode == 3);
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+ 	const char *dir = ccs_realpath_from_dentry(nd->path.dentry,
+@@ -84,14 +84,13 @@
+ 	printk(KERN_WARNING "SAKURA-%s: mount %s (pid=%d:exe=%s): "
+ 	       "Permission denied.\n", ccs_get_msg(is_enforce), dir,
+ 	       current->pid, exename);
+-	if (is_enforce &&
+-	    ccs_check_supervisor("# %s is requesting\n"
+-				 "mount on %s\n", exename, dir) == 0)
++	if (is_enforce)
++		error = ccs_check_supervisor("# %s is requesting\n"
++					     "mount on %s\n", exename, dir);
++	else
+ 		error = 0;
+ 	ccs_free(exename);
+ 	ccs_free(dir);
+-	if (!is_enforce)
+-		error = 0;
+ 	return error;
+ }
+ 
+Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -208,6 +208,20 @@
+ }
+ 
+ /**
++ * make_byte - Make byte value from three octal characters.
++ *
++ * @c1: The first character.
++ * @c2: The second character.
++ * @c3: The third character.
++ *
++ * Returns byte value.
++ */
++static u8 make_byte(const u8 c1, const u8 c2, const u8 c3)
++{
++	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
++}
++
++/**
+  * str_starts - Check whether the given string starts with the given keyword.
+  *
+  * @src:  Pointer to pointer to the string.
+@@ -216,7 +230,7 @@
+  * Returns true if @src starts with @find, false otherwise.
+  *
+  * The @src is updated to point the first character after the @find
+- * if @src starts with @find .
++ * if @src starts with @find.
+  */
+ static bool str_starts(char **src, const char *find)
+ {
+@@ -241,7 +255,8 @@
+  */
+ static void normalize_line(unsigned char *buffer)
+ {
+-	unsigned char *sp = buffer, *dp = buffer;
++	unsigned char *sp = buffer;
++	unsigned char *dp = buffer;
+ 	bool first = true;
+ 	while (*sp && (*sp <= ' ' || *sp >= 127))
+ 		sp++;
+@@ -276,7 +291,9 @@
+ 			 const char *function)
+ {
+ 	bool contains_pattern = false;
+-	unsigned char c, d, e;
++	unsigned char c;
++	unsigned char d;
++	unsigned char e;
+ 	const char *original_filename = filename;
+ 	if (!filename)
+ 		goto out;
+@@ -326,9 +343,7 @@
+ 				e = *filename++;
+ 				if (e < '0' || e > '7')
+ 					break;
+-				c = (((u8) (c - '0')) << 6)
+-					+ (((u8) (d - '0')) << 3)
+-					+ (((u8) (e - '0')));
++				c = make_byte(c, d, e);
+ 				if (c && (c <= ' ' || c >= 127))
+ 					continue; /* pattern is not \000 */
+ 			}
+@@ -358,7 +373,9 @@
+ bool ccs_is_correct_domain(const unsigned char *domainname,
+ 			   const char *function)
+ {
+-	unsigned char c, d, e;
++	unsigned char c;
++	unsigned char d;
++	unsigned char e;
+ 	const char *org_domainname = domainname;
+ 	if (!domainname || strncmp(domainname, ROOT_NAME, ROOT_NAME_LEN))
+ 		goto out;
+@@ -387,9 +404,7 @@
+ 					e = *domainname++;
+ 					if (e < '0' || e > '7')
+ 						break;
+-					c = (((u8) (c - '0')) << 6)
+-						+ (((u8) (d - '0')) << 3)
+-						+ (((u8) (e - '0')));
++					c = make_byte(c, d, e);
+ 					if (c && (c <= ' ' || c >= 127))
+ 						/* pattern is not \000 */
+ 						continue;
+@@ -471,7 +486,7 @@
+  *
+  * @filename: The string to evaluate.
+  *
+- * Returns the initial length without a pattern in @filename .
++ * Returns the initial length without a pattern in @filename.
+  */
+ static int const_part_length(const char *filename)
+ {
+@@ -552,7 +567,8 @@
+ 		c = *filename;
+ 		pattern++;
+ 		switch (*pattern) {
+-			int i, j;
++			int i;
++			int j;
+ 		case '?':
+ 			if (c == '/') {
+ 				return false;
+@@ -761,7 +777,9 @@
+ bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
+ {
+ 	va_list args;
+-	int len, pos = head->read_avail, size = head->readbuf_size - pos;
++	int len;
++	int pos = head->read_avail;
++	int size = head->readbuf_size - pos;
+ 	if (size <= 0)
+ 		return false;
+ 	va_start(args, fmt);
+@@ -931,8 +949,59 @@
+ 	if (!domain)
+ 		return true;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if (!(ptr->type & ACL_DELETED))
++		if (ptr->type & ACL_DELETED)
++			continue;
++		switch (ccs_acl_type2(ptr)) {
++			struct single_path_acl_record *acl1;
++			struct double_path_acl_record *acl2;
++			u16 perm;
++		case TYPE_SINGLE_PATH_ACL:
++			acl1 = container_of(ptr, struct single_path_acl_record,
++					    head);
++			perm = acl1->perm;
++			if (perm & (1 << TYPE_EXECUTE_ACL))
++				count++;
++			if (perm &
++			    ((1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL)))
++				count++;
++			if (perm & (1 << TYPE_CREATE_ACL))
++				count++;
++			if (perm & (1 << TYPE_UNLINK_ACL))
++				count++;
++			if (perm & (1 << TYPE_MKDIR_ACL))
++				count++;
++			if (perm & (1 << TYPE_RMDIR_ACL))
++				count++;
++			if (perm & (1 << TYPE_MKFIFO_ACL))
++				count++;
++			if (perm & (1 << TYPE_MKSOCK_ACL))
++				count++;
++			if (perm & (1 << TYPE_MKBLOCK_ACL))
++				count++;
++			if (perm & (1 << TYPE_MKCHAR_ACL))
++				count++;
++			if (perm & (1 << TYPE_TRUNCATE_ACL))
++				count++;
++			if (perm & (1 << TYPE_SYMLINK_ACL))
++				count++;
++			if (perm & (1 << TYPE_REWRITE_ACL))
++				count++;
++			break;
++		case TYPE_DOUBLE_PATH_ACL:
++			acl2 = container_of(ptr, struct double_path_acl_record,
++					    head);
++			perm = acl2->perm;
++			if (perm & (1 << TYPE_LINK_ACL))
++				count++;
++			if (perm & (1 << TYPE_RENAME_ACL))
++				count++;
++			break;
++		case TYPE_PREFERRED_EXECUTE_HANDLER:
++		case TYPE_DEFAULT_EXECUTE_HANDLER:
++			break;
++		default:
+ 			count++;
++		}
+ 	}
+ 	if (count < ccs_check_flags(CCS_TOMOYO_MAX_ACCEPT_ENTRY))
+ 		return true;
+@@ -991,7 +1060,8 @@
+ static int write_profile(struct ccs_io_buffer *head)
+ {
+ 	char *data = head->write_buf;
+-	unsigned int i, value;
++	unsigned int i;
++	unsigned int value;
+ 	char *cp;
+ 	struct profile *profile;
+ 	i = simple_strtoul(data, &cp, 10);
+@@ -1188,7 +1258,8 @@
+  */
+ static int update_manager_entry(const char *manager, const bool is_delete)
+ {
+-	struct policy_manager_entry *new_entry, *ptr;
++	struct policy_manager_entry *new_entry;
++	struct policy_manager_entry *ptr;
+ 	static DEFINE_MUTEX(lock);
+ 	const struct path_info *saved_manager;
+ 	int error = -ENOMEM;
+@@ -1206,11 +1277,11 @@
+ 		return -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &policy_manager_list, list) {
+-		if (ptr->manager == saved_manager) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (ptr->manager != saved_manager)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -1241,7 +1312,7 @@
+ {
+ 	char *data = head->write_buf;
+ 	bool is_delete = str_starts(&data, KEYWORD_DELETE);
+-	if (strcmp(data, "manage_by_non_root") == 0) {
++	if (!strcmp(data, "manage_by_non_root")) {
+ 		manage_by_non_root = !is_delete;
+ 		return 0;
+ 	}
+@@ -1329,9 +1400,11 @@
+  */
+ static char *ccs_find_condition_part(char *data)
+ {
+-	char *cp = strstr(data, " if "), *cp2;
++	char *cp = strstr(data, " if ");
+ 	if (cp) {
+-		while ((cp2 = strstr(cp + 3, " if ")) != NULL) cp = cp2;
++		char *cp2;
++		while ((cp2 = strstr(cp + 3, " if ")) != NULL)
++			cp = cp2;
+ 		*cp++ = '\0';
+ 	} else {
+ 		cp = strstr(data, " ; set ");
+@@ -1352,7 +1425,9 @@
+ {
+ 	char *data = head->write_buf;
+ 	struct domain_info *domain = head->write_var1;
+-	bool is_delete = false, is_select = false, is_undelete = false;
++	bool is_delete = false;
++	bool is_select = false;
++	bool is_undelete = false;
+ 	unsigned int profile;
+ 	const struct condition_list *cond = NULL;
+ 	char *cp;
+@@ -1363,16 +1438,15 @@
+ 	else if (str_starts(&data, KEYWORD_UNDELETE))
+ 		is_undelete = true;
+ 	if (ccs_is_domain_def(data)) {
+-		if (is_delete) {
++		domain = NULL;
++		if (is_delete)
+ 			ccs_delete_domain(data);
+-			domain = NULL;
+-		} else if (is_select) {
++		else if (is_select)
+ 			domain = ccs_find_domain(data);
+-		} else if (is_undelete) {
++		else if (is_undelete)
+ 			domain = ccs_undelete_domain(data);
+-		} else {
++		else
+ 			domain = ccs_find_or_assign_new_domain(data, 0);
+-		}
+ 		head->write_var1 = domain;
+ 		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
+ 		return 0;
+@@ -1422,7 +1496,7 @@
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+  * @ptr:  Pointer to "struct single_path_acl_record".
+- * @cond: Pointer to "struct condition_list *". May be NULL.
++ * @cond: Pointer to "struct condition_list". May be NULL.
+  *
+  * Returns true on success, false otherwise.
+  */
+@@ -1469,7 +1543,7 @@
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+  * @ptr:  Pointer to "struct double_path_acl_record".
+- * @cond: Pointer to "struct condition_list *". May be NULL.
++ * @cond: Pointer to "struct condition_list". May be NULL.
+  *
+  * Returns true on success, false otherwise.
+  */
+@@ -1503,8 +1577,7 @@
+ 		msg = ccs_dp2keyword(bit);
+ 		pos = head->read_avail;
+ 		if (!ccs_io_printf(head, "allow_%s %s%s %s%s", msg,
+-				   atmark1, filename1,
+-				   atmark2, filename2) ||
++				   atmark1, filename1, atmark2, filename2) ||
+ 		    !ccs_print_condition(head, cond))
+ 			goto out;
+ 	}
+@@ -1521,7 +1594,7 @@
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+  * @ptr:  Pointer to "struct argv0_acl_record".
+- * @cond: Pointer to "struct condition_list *". May be NULL.
++ * @cond: Pointer to "struct condition_list". May be NULL.
+  *
+  * Returns true on success, false otherwise.
+  */
+@@ -1546,7 +1619,7 @@
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+  * @ptr:  Pointer to "struct env_acl_record".
+- * @cond: Pointer to "struct condition_list *". May be NULL.
++ * @cond: Pointer to "struct condition_list". May be NULL.
+  *
+  * Returns true on success, false otherwise.
+  */
+@@ -1570,7 +1643,7 @@
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+  * @ptr:  Pointer to "struct capability_acl_record".
+- * @cond: Pointer to "struct condition_list *". May be NULL.
++ * @cond: Pointer to "struct condition_list". May be NULL.
+  *
+  * Returns true on success, false otherwise.
+  */
+@@ -1660,7 +1733,7 @@
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+  * @ptr:  Pointer to "struct ip_network_acl_record".
+- * @cond: Pointer to "struct condition_list *". May be NULL.
++ * @cond: Pointer to "struct condition_list". May be NULL.
+  *
+  * Returns true on success, false otherwise.
+  */
+@@ -1701,7 +1774,7 @@
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+  * @ptr:  Pointer to "struct signale_acl_record".
+- * @cond: Pointer to "struct condition_list *". May be NULL.
++ * @cond: Pointer to "struct condition_list". May be NULL.
+  *
+  * Returns true on success, false otherwise.
+  */
+@@ -1748,7 +1821,7 @@
+ static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
+ {
+ 	const struct condition_list *cond = ccs_get_condition_part(ptr);
+-	const u8 acl_type = ptr->type & ~ACL_WITH_CONDITION;
++	const u8 acl_type = ccs_acl_type2(ptr);
+ 	if (acl_type & ACL_DELETED)
+ 		return true;
+ 	if (acl_type == TYPE_SINGLE_PATH_ACL) {
+@@ -1990,7 +2063,6 @@
+ {
+ 	char *data = head->write_buf;
+ 	bool is_delete = str_starts(&data, KEYWORD_DELETE);
+-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	if (str_starts(&data, KEYWORD_KEEP_DOMAIN))
+ 		return ccs_write_domain_keeper_policy(data, false, is_delete);
+ 	if (str_starts(&data, KEYWORD_NO_KEEP_DOMAIN))
+@@ -2107,7 +2179,6 @@
+ {
+ 	char *data = head->write_buf;
+ 	bool is_delete = false;
+-	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+ 	if (str_starts(&data, KEYWORD_DELETE))
+ 		is_delete = true;
+ 	if (str_starts(&data, KEYWORD_ALLOW_MOUNT))
+@@ -2174,7 +2245,7 @@
+ /* Profile loaded by policy loader? */
+ static bool profile_loaded = false;
+ 
+-/* Path to the policy loader. The default is /sbin/ccs-init . */
++/* Path to the policy loader. The default is /sbin/ccs-init. */
+ static const char *ccs_loader;
+ 
+ /**
+@@ -2229,7 +2300,7 @@
+  *
+  * This function checks whether @filename is /sbin/init , and if so
+  * invoke /sbin/ccs-init and wait for the termination of /sbin/ccs-init
+- * and then continues invocation of /sbin/init .
++ * and then continues invocation of /sbin/init.
+  * /sbin/ccs-init reads policy files in /etc/ccs/ directory and
+  * writes to /proc/ccs/ interfaces.
+  *
+@@ -2240,7 +2311,7 @@
+ 	if (sbin_init_started)
+ 		return;
+ 	/*
+-	 * Check filename is /sbin/init or /sbin/ccs-start .
++	 * Check filename is /sbin/init or /sbin/ccs-start.
+ 	 * /sbin/ccs-start is a dummy filename in case where /sbin/init can't
+ 	 * be passed.
+ 	 * You can create /sbin/ccs-start by "ln -s /bin/true /sbin/ccs-start".
+@@ -2251,7 +2322,8 @@
+ 	if (!policy_loader_exists())
+ 		return;
+ 	if (!profile_loaded) {
+-		char *argv[2], *envp[3];
++		char *argv[2];
++		char *envp[3];
+ 		printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
+ 		       ccs_loader);
+ 		argv[0] = (char *) ccs_loader;
+@@ -2270,10 +2342,10 @@
+ 		}
+ 	}
+ #ifdef CONFIG_SAKURA
+-	printk(KERN_INFO "SAKURA: 1.6.0-rc   2008/03/26\n");
++	printk(KERN_INFO "SAKURA: 1.6.0-rc   2008/03/27\n");
+ #endif
+ #ifdef CONFIG_TOMOYO
+-	printk(KERN_INFO "TOMOYO: 1.6.0-rc   2008/03/26\n");
++	printk(KERN_INFO "TOMOYO: 1.6.0-rc   2008/03/27\n");
+ #endif
+ 	printk(KERN_INFO "Mandatory Access Control activated.\n");
+ 	sbin_init_started = true;
+@@ -2324,7 +2396,8 @@
+ {
+ 	va_list args;
+ 	int error = -EPERM;
+-	int pos, len;
++	int pos;
++	int len;
+ 	static unsigned int serial;
+ 	struct query_entry *query_entry;
+ 	if (!ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE)
+@@ -2401,7 +2474,7 @@
+ }
+ 
+ /**
+- * poll_query - poll() for /proc/ccs/query .
++ * poll_query - poll() for /proc/ccs/query.
+  *
+  * @file: Pointer to "struct file".
+  * @wait: Pointer to "poll_table".
+@@ -2441,7 +2514,8 @@
+ static int read_query(struct ccs_io_buffer *head)
+ {
+ 	struct list_head *tmp;
+-	int pos = 0, len = 0;
++	int pos = 0;
++	int len = 0;
+ 	char *buf;
+ 	if (head->read_avail)
+ 		return 0;
+@@ -2455,10 +2529,10 @@
+ 	list_for_each(tmp, &query_list) {
+ 		struct query_entry *ptr
+ 			= list_entry(tmp, struct query_entry, list);
+-		if (pos++ == head->read_step) {
+-			len = ptr->query_len;
+-			break;
+-		}
++		if (pos++ != head->read_step)
++			continue;
++		len = ptr->query_len;
++		break;
+ 	}
+ 	spin_unlock(&query_lock);
+ 	/***** CRITICAL SECTION END *****/
+@@ -2474,15 +2548,15 @@
+ 		list_for_each(tmp, &query_list) {
+ 			struct query_entry *ptr
+ 				= list_entry(tmp, struct query_entry, list);
+-			if (pos++ == head->read_step) {
+-				/*
+-				 * Some query can be skipped because query_list
+-				 * can change, but I don't care.
+-				 */
+-				if (len == ptr->query_len)
+-					memmove(buf, ptr->query, len);
+-				break;
+-			}
++			if (pos++ != head->read_step)
++				continue;
++			/*
++			 * Some query can be skipped because query_list
++			 * can change, but I don't care.
++			 */
++			if (len == ptr->query_len)
++				memmove(buf, ptr->query, len);
++			break;
+ 		}
+ 		spin_unlock(&query_lock);
+ 		/***** CRITICAL SECTION END *****/
+@@ -2509,7 +2583,8 @@
+ {
+ 	char *data = head->write_buf;
+ 	struct list_head *tmp;
+-	unsigned int serial, answer;
++	unsigned int serial;
++	unsigned int answer;
+ 	/***** CRITICAL SECTION START *****/
+ 	spin_lock(&query_lock);
+ 	list_for_each(tmp, &query_list) {
+@@ -2625,9 +2700,9 @@
+ static int read_memory_counter(struct ccs_io_buffer *head)
+ {
+ 	if (!head->read_eof) {
+-		const int shared = ccs_get_memory_used_for_save_name(),
+-			private = ccs_get_memory_used_for_elements(),
+-			dynamic = ccs_get_memory_used_for_dynamic();
++		const int shared = ccs_get_memory_used_for_save_name();
++		const int private = ccs_get_memory_used_for_elements();
++		const int dynamic = ccs_get_memory_used_for_dynamic();
+ 		ccs_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
+ 			      "Dynamic: %10u\nTotal:   %10u\n",
+ 			      shared, private, dynamic,
+@@ -2737,7 +2812,7 @@
+ 	}
+ 	/*
+ 	 * Don't allocate buffer for reading if the file is one of
+-	 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query .
++	 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
+ 	 */
+ 	if (type != CCS_GRANTLOG && type != CCS_REJECTLOG
+ 	    && type != CCS_QUERY) {
+@@ -2769,7 +2844,7 @@
+ 	/*
+ 	 * If the file is /proc/ccs/query , increment the monitor count.
+ 	 * The monitor count is used by ccs_check_supervisor() to see if
+-	 * there is some process monitoring /proc/ccs/query .
++	 * there is some process monitoring /proc/ccs/query.
+ 	 */
+ 	else if (head->write == write_answer)
+ 		atomic_inc(&queryd_watcher);
+@@ -2785,7 +2860,7 @@
+  * Waits for read readiness.
+  * /proc/ccs/query is handled by /usr/lib/ccs/ccs-queryd and
+  * /proc/ccs/grant_log and /proc/ccs/reject_log are handled by
+- * /usr/lib/ccs/ccs-auditd .
++ * /usr/lib/ccs/ccs-auditd.
+  */
+ int ccs_poll_control(struct file *file, poll_table *wait)
+ {
+@@ -2971,7 +3046,7 @@
+ 	}
+ 	/*
+ 	 * If the ACL doesn't have condition part, reduce memory usage
+-	 * by eliminating sizeof(struct condition_list *) .
++	 * by eliminating sizeof(struct condition_list *).
+ 	 */
+ 	if (!condition)
+ 		len -= sizeof(ptr->access_me_via_ccs_get_condition_part);
+Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -44,11 +44,11 @@
+ 	int error = -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &reservedport_list, list) {
+-		if (ptr->min_port == min_port && max_port == ptr->max_port) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (ptr->min_port != min_port || max_port != ptr->max_port)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -63,6 +63,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+ 	return error;
+ }
+ 
+@@ -100,7 +101,8 @@
+  */
+ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
+ {
+-	unsigned int from, to;
++	unsigned int from;
++	unsigned int to;
+ 	if (strchr(data, ' '))
+ 		goto out;
+ 	if (sscanf(data, "%u-%u", &from, &to) == 2) {
+@@ -136,11 +138,8 @@
+ 			continue;
+ 		min_port = ptr->min_port;
+ 		max_port = ptr->max_port;
+-		if (min_port != max_port)
+-			snprintf(buffer, sizeof(buffer) - 1,
+-				 "%u-%u", min_port, max_port);
+-		else
+-			snprintf(buffer, sizeof(buffer) - 1, "%u", min_port);
++		snprintf(buffer, sizeof(buffer) - 1, "%u%c%u", min_port,
++			 min_port != max_port ? '-' : '\0', max_port);
+ 		if (!ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer))
+ 			goto out;
+ 	}
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -28,8 +28,8 @@
+  * @signal:      Signal number.
+  * @dest_domain: Destination domainname.
+  * @is_granted:  True if this is a granted log.
+- * @profile:     Profile number.
+- * @mode:        Access control mode.
++ * @profile:     Profile number used.
++ * @mode:        Access control mode used.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+@@ -40,14 +40,16 @@
+ {
+ 	char *buf;
+ 	int len;
++	int len2;
+ 	if (ccs_can_save_audit_log(is_granted) < 0)
+ 		return -ENOMEM;
+-	len = dest_domain->total_len;
++	len = dest_domain->total_len + 64;
+ 	buf = ccs_init_audit_log(&len, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+-	snprintf(buf + strlen(buf), len - strlen(buf) - 1,
+-		 KEYWORD_ALLOW_SIGNAL "%d %s\n", signal, dest_domain->name);
++	len2 = strlen(buf);
++	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_SIGNAL "%d %s\n",
++		 signal, dest_domain->name);
+ 	return ccs_write_audit_log(buf, is_granted);
+ }
+ 
+@@ -83,8 +85,7 @@
+ 	if (is_delete)
+ 		goto delete;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+-		    != TYPE_SIGNAL_ACL)
++		if (ccs_acl_type1(ptr) != TYPE_SIGNAL_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -106,7 +107,7 @@
+  delete:
+ 	error = -ENOENT;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SIGNAL_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -146,11 +147,12 @@
+ 	if (!sig)
+ 		return 0;                /* No check for NULL signal. */
+ 	if (current->pid == pid) {
+-		audit_signal_log(sig, domain->domainname, 1, profile, mode);
+-		return 0;                /* No check for self. */
++		audit_signal_log(sig, domain->domainname, true, profile, mode);
++		return 0;                /* No check for self process. */
+ 	}
+ 	{ /* Simplified checking. */
+ 		struct task_struct *p = NULL;
++		/***** CRITICAL SECTION START *****/
+ 		read_lock(&tasklist_lock);
+ 		if (pid > 0)
+ 			p = find_task_by_pid((pid_t) pid);
+@@ -163,26 +165,31 @@
+ 		if (p)
+ 			dest = p->domain_info;
+ 		read_unlock(&tasklist_lock);
++		/***** CRITICAL SECTION END *****/
+ 		if (!dest)
+ 			return 0; /* I can't find destinatioin. */
+ 	}
+ 	if (domain == dest) {
+-		audit_signal_log(sig, dest->domainname, 1, profile, mode);
+-		return 0;
++		audit_signal_log(sig, dest->domainname, true, profile, mode);
++		return 0;                /* No check for self domain. */
+ 	}
+ 	dest_pattern = dest->domainname->name;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct signal_acl_record *acl;
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SIGNAL_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct signal_acl_record, head);
+ 		if (acl->sig == hash && ccs_check_condition(ptr, NULL)) {
+ 			const int len = acl->domainname->total_len;
+ 			if (strncmp(acl->domainname->name, dest_pattern, len))
+ 				continue;
+-			if (dest_pattern[len] != ' ' &&
+-			    dest_pattern[len] != '\0')
++			switch (dest_pattern[len]) {
++			case ' ':
++			case '\0':
++				break;
++			default:
+ 				continue;
++			}
+ 			ccs_update_condition(ptr);
+ 			found = true;
+ 			break;
+@@ -200,8 +207,8 @@
+ 					    KEYWORD_ALLOW_SIGNAL "%d %s\n",
+ 					    domain->domainname->name,
+ 					    sig, dest_pattern);
+-	else if (mode == 1 && ccs_check_domain_quota(domain))
+-		update_signal_acl(sig, dest_pattern, domain, NULL, 0);
++	if (mode == 1 && ccs_check_domain_quota(domain))
++		update_signal_acl(sig, dest_pattern, domain, NULL, false);
+ 	return 0;
+ }
+ 
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -102,7 +102,7 @@
+ {
+ 	int len;
+ 	if (!name || !tail)
+-		return 0;
++		return false;
+ 	len = strlen(name) - strlen(tail);
+ 	return len >= 0 && !strcmp(name + len, tail);
+ }
+@@ -119,18 +119,12 @@
+ 				      struct vfsmount *mnt)
+ {
+ 	int error;
+-	/*
+-	 * This assignment is OK because
+-	 *   sizeof(struct path_info_with_data)
+-	 *   <= sizeof(struct ccs_page_buffer))
+-	 * is checked at boot time.
+-	 */
+-	struct path_info_with_data *buf
+-		= ccs_alloc(sizeof(struct ccs_page_buffer));
++	struct path_info_with_data *buf = ccs_alloc(sizeof(*buf));
+ 	if (!buf)
+ 		return NULL;
++	/* Preserve one byte for appending "/". */
+ 	error = ccs_realpath_from_dentry2(dentry, mnt, buf->body,
+-					  sizeof(buf->body) - 1);
++					  sizeof(buf->body) - 2);
+ 	if (!error) {
+ 		buf->head.name = buf->body;
+ 		ccs_fill_path_info(&buf->head);
+@@ -157,8 +151,8 @@
+  * @filename1:  First pathname.
+  * @filename2:  Second pathname. May be NULL.
+  * @is_granted: True if this is a granted log.
+- * @profile:    The mode for this request.
+- * @mode:       Access control mode for this request.
++ * @profile:    Profile number used.
++ * @mode:       Access control mode used.
+  * @bprm:       Pointer to "struct linux_binprm". May be NULL.
+  *
+  * Returns 0 on success, negative value otherwise.
+@@ -171,6 +165,7 @@
+ {
+ 	char *buf;
+ 	int len;
++	int len2;
+ 	if (ccs_can_save_audit_log(is_granted) < 0)
+ 		return -ENOMEM;
+ 	len = strlen(operation) + filename1->total_len + 16;
+@@ -179,7 +174,8 @@
+ 	buf = ccs_init_audit_log(&len, profile, mode, bprm);
+ 	if (!buf)
+ 		return -ENOMEM;
+-	snprintf(buf + strlen(buf), len - strlen(buf) - 1, "allow_%s %s %s\n",
++	len2 = strlen(buf);
++	snprintf(buf + len2, len - len2 - 1, "allow_%s %s %s\n",
+ 		 operation, filename1->name, filename2 ? filename2->name : "");
+ 	return ccs_write_audit_log(buf, is_granted);
+ }
+@@ -198,7 +194,8 @@
+ static int update_globally_readable_entry(const char *filename,
+ 					  const bool is_delete)
+ {
+-	struct globally_readable_file_entry *new_entry, *ptr;
++	struct globally_readable_file_entry *new_entry;
++	struct globally_readable_file_entry *ptr;
+ 	static DEFINE_MUTEX(lock);
+ 	const struct path_info *saved_filename;
+ 	int error = -ENOMEM;
+@@ -209,11 +206,11 @@
+ 		return -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &globally_readable_list, list) {
+-		if (ptr->filename == saved_filename) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (ptr->filename != saved_filename)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -227,6 +224,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -291,7 +289,7 @@
+ /**
+  * update_path_group_entry - Update "struct path_group_entry" list.
+  *
+- * @group_name:  The name of group.
++ * @group_name:  The name of pathname group.
+  * @member_name: The name of group's member.
+  * @is_delete:   True if it is a delete request.
+  *
+@@ -302,9 +300,12 @@
+ 				   const bool is_delete)
+ {
+ 	static DEFINE_MUTEX(lock);
+-	struct path_group_entry *new_group, *group;
+-	struct path_group_member *new_member, *member;
+-	const struct path_info *saved_group_name, *saved_member_name;
++	struct path_group_entry *new_group;
++	struct path_group_entry *group;
++	struct path_group_member *new_member;
++	struct path_group_member *member;
++	const struct path_info *saved_group_name;
++	const struct path_info *saved_member_name;
+ 	int error = -ENOMEM;
+ 	bool found = false;
+ 	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
+@@ -322,11 +323,11 @@
+ 			continue;
+ 		list1_for_each_entry(member, &group->path_group_member_list,
+ 				     list) {
+-			if (member->member_name == saved_member_name) {
+-				member->is_deleted = is_delete;
+-				error = 0;
+-				goto out;
+-			}
++			if (member->member_name != saved_member_name)
++				continue;
++			member->is_deleted = is_delete;
++			error = 0;
++			goto out;
+ 		}
+ 		found = true;
+ 		break;
+@@ -352,6 +353,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -375,7 +377,7 @@
+ /**
+  * find_or_assign_new_path_group - Create pathname group.
+  *
+- * @group_name: The name of group.
++ * @group_name: The name of pathname group.
+  *
+  * Returns pointer to "struct path_group_entry" if found, NULL otherwise.
+  */
+@@ -389,7 +391,7 @@
+ 			if (!strcmp(group_name, group->group_name->name))
+ 				return group;
+ 		}
+-		if (i == 0) {
++		if (!i) {
+ 			update_path_group_entry(group_name, "/", false);
+ 			update_path_group_entry(group_name, "/", true);
+ 		}
+@@ -471,7 +473,8 @@
+  */
+ static int update_file_pattern_entry(const char *pattern, const bool is_delete)
+ {
+-	struct pattern_entry *new_entry, *ptr;
++	struct pattern_entry *new_entry;
++	struct pattern_entry *ptr;
+ 	static DEFINE_MUTEX(lock);
+ 	const struct path_info *saved_pattern;
+ 	int error = -ENOMEM;
+@@ -482,11 +485,11 @@
+ 		return -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &pattern_list, list) {
+-		if (saved_pattern == ptr->pattern) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (saved_pattern != ptr->pattern)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -500,6 +503,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -594,11 +598,11 @@
+ 		return -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &no_rewrite_list, list) {
+-		if (ptr->pattern == saved_pattern) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (ptr->pattern != saved_pattern)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -612,6 +616,7 @@
+ 	error = 0;
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
+ 	return error;
+ }
+ 
+@@ -735,7 +740,7 @@
+ 	struct acl_info *ptr;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct single_path_acl_record *acl;
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SINGLE_PATH_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct single_path_acl_record, head);
+ 		if (!(acl->perm & perm) || !ccs_check_condition(ptr, obj))
+@@ -761,7 +766,7 @@
+  * check_file_acl - Check permission for opening files.
+  *
+  * @filename:  Filename to check.
+- * @operation: Mode (read or write or read/write or execute).
++ * @operation: Mode ("read" or "write" or "read/write" or "execute").
+  * @obj:       Pointer to "struct obj_info".
+  *
+  * Returns 0 on success, -EPERM otherwise.
+@@ -789,7 +794,7 @@
+  * check_file_perm2 - Check permission for opening files.
+  *
+  * @filename:  Filename to check.
+- * @perm:      Mode (read or write or read/write or execute).
++ * @perm:      Mode ("read" or "write" or "read/write" or "execute").
+  * @operation: Operation name passed used for verbose mode.
+  * @obj:       Pointer to "struct obj_info". May be NULL.
+  * @profile:   Profile number passed to audit logs.
+@@ -834,7 +839,7 @@
+ 		return ccs_check_supervisor("%s\nallow_%s %s\n",
+ 					    domain->domainname->name,
+ 					    msg, filename->name);
+-	else if (mode == 1 && ccs_check_domain_quota(domain)) {
++	if (mode == 1 && ccs_check_domain_quota(domain)) {
+ 		/* Don't use patterns for execute permission. */
+ 		const struct path_info *patterned_file = (perm != 1) ?
+ 			get_file_pattern(filename) : filename;
+@@ -873,9 +878,9 @@
+ 	if (is_delete)
+ 		goto delete;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++		if (ccs_acl_type1(ptr) != type)
++			continue;
+ 		/* Condition not supported. */
+-		if ((ptr->type & ~ACL_DELETED) != type)
+-			continue;
+ 		acl = container_of(ptr, struct execute_handler_record, head);
+ 		if (acl->handler != saved_filename)
+ 			continue;
+@@ -902,8 +907,9 @@
+  delete:
+ 	error = -ENOENT;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~ACL_DELETED) != type)
++		if (ccs_acl_type2(ptr) != type)
+ 			continue;
++		/* Condition not supported. */
+ 		acl = container_of(ptr, struct execute_handler_record, head);
+ 		if (acl->handler != saved_filename)
+ 			continue;
+@@ -1000,7 +1006,8 @@
+ 		return -EINVAL;
+ 	if (filename[0] == '@') {
+ 		/*
+-		 * This cast is OK because I don't dereference in this function.
++		 * This cast is OK because I don't dereference
++		 * in this function.
+ 		 */
+ 		saved_filename = (struct path_info *)
+ 			find_or_assign_new_path_group(filename + 1);
+@@ -1014,14 +1021,14 @@
+ 	if (is_delete)
+ 		goto delete;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+-		    != TYPE_SINGLE_PATH_ACL)
++		if (ccs_acl_type1(ptr) != TYPE_SINGLE_PATH_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+ 		acl = container_of(ptr, struct single_path_acl_record, head);
+ 		if (acl->u.filename != saved_filename)
+ 			continue;
++		/* Special case. Clear all bits if marked as deleted. */
+ 		if (ptr->type & ACL_DELETED)
+ 			acl->perm = 0;
+ 		acl->perm |= perm;
+@@ -1044,7 +1051,7 @@
+  delete:
+ 	error = -ENOENT;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SINGLE_PATH_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -1082,11 +1089,13 @@
+ 				  const struct condition_list *condition,
+ 				  const bool is_delete)
+ {
+-	const struct path_info *saved_filename1, *saved_filename2;
++	const struct path_info *saved_filename1;
++	const struct path_info *saved_filename2;
+ 	struct acl_info *ptr;
+ 	struct double_path_acl_record *acl;
+ 	int error = -ENOMEM;
+-	bool is_group1 = false, is_group2 = false;
++	bool is_group1 = false;
++	bool is_group2 = false;
+ 	const u8 perm = 1 << type;
+ 	if (!domain)
+ 		return -EINVAL;
+@@ -1121,8 +1130,7 @@
+ 	if (is_delete)
+ 		goto delete;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+-		    != TYPE_DOUBLE_PATH_ACL)
++		if (ccs_acl_type1(ptr) != TYPE_DOUBLE_PATH_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -1130,6 +1138,7 @@
+ 		if (acl->u1.filename1 != saved_filename1 ||
+ 		    acl->u2.filename2 != saved_filename2)
+ 			continue;
++		/* Special case. Clear all bits if marked as deleted. */
+ 		if (ptr->type & ACL_DELETED)
+ 			acl->perm = 0;
+ 		acl->perm |= perm;
+@@ -1150,7 +1159,7 @@
+  delete:
+ 	error = -ENOENT;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_DOUBLE_PATH_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -1207,7 +1216,7 @@
+ 		return 0;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct double_path_acl_record *acl;
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_DOUBLE_PATH_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct double_path_acl_record, head);
+ 		if (!(acl->perm & perm) || !ccs_check_condition(ptr, obj))
+@@ -1247,7 +1256,7 @@
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int check_single_path_permission2(const u8 operation,
++static int check_single_path_permission2(u8 operation,
+ 					 const struct path_info *filename,
+ 					 struct obj_info *obj,
+ 					 const u8 profile, const u8 mode)
+@@ -1258,11 +1267,12 @@
+ 	const bool is_enforce = (mode == 3);
+ 	if (!mode)
+ 		return 0;
++ next:
+ 	error = check_single_path_acl(operation, filename, obj);
+ 	msg = ccs_sp2keyword(operation);
+ 	audit_file_log(msg, filename, NULL, !error, profile, mode, NULL);
+ 	if (!error)
+-		goto out;
++		goto ok;
+ 	if (ccs_verbose_mode())
+ 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
+ 		       ccs_get_msg(is_enforce), msg, filename->name,
+@@ -1271,18 +1281,23 @@
+ 		error = ccs_check_supervisor("%s\nallow_%s %s\n",
+ 					     domain->domainname->name,
+ 					     msg, filename->name);
+-	else if (mode == 1 && ccs_check_domain_quota(domain))
++	if (mode == 1 && ccs_check_domain_quota(domain))
+ 		update_single_path_acl(operation,
+ 				       get_file_pattern(filename)->name,
+ 				       domain, NULL, false);
+ 	if (!is_enforce)
+ 		error = 0;
+- out:
++ ok:
++	/*
++	 * Since "allow_truncate" doesn't imply "allow_rewrite" permission,
++	 * we need to check "allow_rewrite" permission if the filename is
++	 * specified by "deny_rewrite" keyword.
++	 */
+ 	if (!error && operation == TYPE_TRUNCATE_ACL &&
+-	    is_no_rewrite_file(filename))
+-		error = check_single_path_permission2(TYPE_REWRITE_ACL,
+-						      filename, obj, profile,
+-						      mode);
++	    is_no_rewrite_file(filename)) {
++		operation = TYPE_REWRITE_ACL;
++		goto next;
++	}
+ 	return error;
+ }
+ 
+@@ -1290,7 +1305,7 @@
+  * ccs_check_file_perm - Check permission for sysctl()'s "read" and "write".
+  *
+  * @filename:  Filename to check.
+- * @perm:      Mode (read or write or read/write).
++ * @perm:      Mode ("read" or "write" or "read/write").
+  * @operation: Always "sysctl".
+  *
+  * Returns 0 on success, negative value otherwise.
+@@ -1369,6 +1384,11 @@
+ 	obj.path1_dentry = dentry;
+ 	obj.path1_vfsmnt = mnt;
+ 	error = 0;
++	/*
++	 * If the filename is specified by "deny_rewrite" keyword,
++	 * we need to check "allow_rewrite" permission when the filename is not
++	 * opened for append mode or the filename is truncated at open time.
++	 */
+ 	if ((acc_mode & MAY_WRITE) &&
+ 	    ((flag & O_TRUNC) || !(flag & O_APPEND))) {
+ 		if (is_no_rewrite_file(buf))
+@@ -1399,7 +1419,7 @@
+  * Returns 0 on success, negative value otherwise.
+  */
+ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
+-				     struct vfsmount *mnt)
++			 struct vfsmount *mnt)
+ {
+ 	struct obj_info obj;
+ 	int error = -ENOMEM;
+@@ -1416,6 +1436,7 @@
+ 	case TYPE_MKDIR_ACL:
+ 	case TYPE_RMDIR_ACL:
+ 		if (!buf->is_dir) {
++			/* ccs_get_path() preserves space for appending "/." */
+ 			strcat((char *) buf->name, "/");
+ 			ccs_fill_path_info(buf);
+ 		}
+@@ -1501,6 +1522,7 @@
+ 	if (operation == TYPE_RENAME_ACL) {
+ 		/* TYPE_LINK_ACL can't reach here for directory. */
+ 		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
++			/* ccs_get_path() preserves space for appending "/." */
+ 			if (!buf1->is_dir) {
+ 				strcat((char *) buf1->name, "/");
+ 				ccs_fill_path_info(buf1);
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -73,8 +73,8 @@
+  *
+  * @operation:  Type of operation.
+  * @is_granted: True if this is a granted log.
+- * @profile:    Profile number.
+- * @mode:       Access control mode.
++ * @profile:    Profile number used.
++ * @mode:       Access control mode used.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+@@ -118,8 +118,7 @@
+ 	if (is_delete)
+ 		goto delete;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+-		    != TYPE_CAPABILITY_ACL)
++		if (ccs_acl_type1(ptr) != TYPE_CAPABILITY_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -139,7 +138,7 @@
+  delete:
+ 	error = -ENOENT;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -173,7 +172,7 @@
+ 		return true;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct capability_acl_record *acl;
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct capability_acl_record, head);
+ 		if (acl->operation != operation ||
+@@ -195,7 +194,7 @@
+ 					    KEYWORD_ALLOW_CAPABILITY "%s\n",
+ 					    domain->domainname->name,
+ 					    ccs_cap2keyword(operation));
+-	else if (mode == 1 && ccs_check_domain_quota(domain))
++	if (mode == 1 && ccs_check_domain_quota(domain))
+ 		update_capability_acl(operation, domain, NULL, false);
+ 	return true;
+ }
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -37,9 +37,9 @@
+ /**
+  * check_argv - Check argv[] in "struct linux_binbrm".
+  *
+- * @index:   Index number of @arg_ptr .
+- * @arg_ptr: Contents of argv[@index] .
+- * @argc:    Length of @argv .
++ * @index:   Index number of @arg_ptr.
++ * @arg_ptr: Contents of argv[@index].
++ * @argc:    Length of @argv.
+  * @argv:    Pointer to "struct argv_entry".
+  * @checked: Set to true if @argv[@index] was found.
+  *
+@@ -72,7 +72,7 @@
+  *
+  * @env_name:  The name of environment variable.
+  * @env_value: The value of environment variable.
+- * @envc:      Length of @envp .
++ * @envc:      Length of @envp.
+  * @envp:      Pointer to "struct envp_entry".
+  * @checked:   Set to true if @envp[@env_name] was found.
+  *
+@@ -113,9 +113,9 @@
+  * scan_bprm - Scan "struct linux_binprm".
+  *
+  * @bprm: Pointer to "struct linux_binprm".
+- * @argc: Length of @argc .
++ * @argc: Length of @argc.
+  * @argv: Pointer to "struct argv_entry".
+- * @envc: Length of @envp .
++ * @envc: Length of @envp.
+  * @envp: Poiner to "struct envp_entry".
+  * @tmp:  Buffer for temporal use.
+  *
+@@ -149,7 +149,8 @@
+ 	char *arg_ptr = tmp->buffer;
+ 	int arg_len = 0;
+ 	unsigned long pos = bprm->p;
+-	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
++	int i = pos / PAGE_SIZE;
++	int offset = pos % PAGE_SIZE;
+ 	int argv_count = bprm->argc;
+ 	int envp_count = bprm->envc;
+ 	bool result = true;
+@@ -330,9 +331,9 @@
+  * print_ulong - Print an "unsigned long" value.
+  *
+  * @buffer:     Pointer to buffer.
+- * @buffer_len: Size of @buffer .
++ * @buffer_len: Size of @buffer.
+  * @value:      An "unsigned long" value.
+- * @type:       Type of @value .
++ * @type:       Type of @value.
+  *
+  * Returns nothing.
+  */
+@@ -575,7 +576,7 @@
+  * find_same_condition - Search for same condition list.
+  *
+  * @new_ptr: Pointer to "struct condition_list".
+- * @size:    Size of @new_ptr .
++ * @size:    Size of @new_ptr.
+  *
+  * Returns existing pointer to "struct condition_list" if the same entry was
+  * found, NULL if memory allocation failed, @new_ptr otherwise.
+@@ -594,7 +595,7 @@
+ 			continue;
+ 		/*
+ 		 * Compare ptr and new_ptr
+-		 * except ptr->list and new_ptr->list .
++		 * except ptr->list and new_ptr->list.
+ 		 */
+ 		if (memcmp(((u8 *) ptr) + sizeof(ptr->list),
+ 			   ((u8 *) new_ptr) + sizeof(new_ptr->list),
+@@ -1027,7 +1028,8 @@
+ 	for (i = 0; i < condc; i++) {
+ 		const u32 header = *ptr;
+ 		const bool match = (header >> 16) & 1;
+-		const u8 left = header >> 8, right = header;
++		const u8 left = header >> 8;
++		const u8 right = header;
+ 		ptr++;
+ 		if ((left >= PATH1_UID && left < MAX_KEYWORD) ||
+ 		    (right >= PATH1_UID && right < MAX_KEYWORD)) {
+@@ -1322,7 +1324,7 @@
+  * Returns true on success, false otherwise.
+  */
+ bool ccs_print_condition(struct ccs_io_buffer *head,
+-			const struct condition_list *cond)
++			 const struct condition_list *cond)
+ {
+ 	const unsigned long *ptr;
+ 	const struct argv_entry *argv;
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -22,8 +22,8 @@
+  * @filename:   The fullpath of program.
+  * @argv0:      The basename of argv[0].
+  * @is_granted: True if this is a granted log.
+- * @profile:    Profile number.
+- * @mode:       Access control mode.
++ * @profile:    Profile number used.
++ * @mode:       Access control mode used.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+@@ -32,10 +32,11 @@
+ 			   const u8 mode)
+ {
+ 	char *buf;
+-	int len, len2;
++	int len;
++	int len2;
+ 	if (ccs_can_save_audit_log(is_granted) < 0)
+ 		return -ENOMEM;
+-	len = filename->total_len + strlen(argv0) + 8;
++	len = filename->total_len + strlen(argv0) + 64;
+ 	buf = ccs_init_audit_log(&len, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+@@ -63,7 +64,8 @@
+ {
+ 	struct acl_info *ptr;
+ 	struct argv0_acl_record *acl;
+-	const struct path_info *saved_filename, *saved_argv0;
++	const struct path_info *saved_filename;
++	const struct path_info *saved_argv0;
+ 	int error = -ENOMEM;
+ 	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__) ||
+ 	    !ccs_is_correct_path(argv0, -1, 0, -1, __func__) ||
+@@ -77,8 +79,7 @@
+ 	if (is_delete)
+ 		goto delete;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
+-		    != TYPE_ARGV0_ACL)
++		if (ccs_acl_type1(ptr) != TYPE_ARGV0_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -100,7 +101,7 @@
+  delete:
+ 	error = -ENOENT;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ARGV0_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
+ 			continue;
+ 		if (ccs_get_condition_part(ptr) != condition)
+ 			continue;
+@@ -134,7 +135,7 @@
+ 	ccs_fill_path_info(&argv_0);
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct argv0_acl_record *acl;
+-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ARGV0_ACL)
++		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct argv0_acl_record, head);
+ 		if (!ccs_check_condition(ptr, NULL) ||
+@@ -178,7 +179,7 @@
+ 					    KEYWORD_ALLOW_ARGV0 "%s %s\n",
+ 					    domain->domainname->name,
+ 					    filename->name, argv0);
+-	else if (mode == 1 && ccs_check_domain_quota(domain))
++	if (mode == 1 && ccs_check_domain_quota(domain))
+ 		update_argv0_entry(filename->name, argv0, domain, NULL, false);
+ 	return 0;
+ }
+Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 1060)
++++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
+@@ -5,7 +5,7 @@
+  *
+  * Copyright (C) 2005-2008  NTT DATA CORPORATION
+  *
+- * Version: 1.6.0-rc   2008/03/26
++ * Version: 1.6.0-rc   2008/03/27
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -41,7 +41,8 @@
+  */
+ static int update_no_umount_acl(const char *dir, const bool is_delete)
+ {
+-	struct no_umount_entry *new_entry, *ptr;
++	struct no_umount_entry *new_entry;
++	struct no_umount_entry *ptr;
+ 	const struct path_info *saved_dir;
+ 	static DEFINE_MUTEX(lock);
+ 	int error = -ENOMEM;
+@@ -52,11 +53,11 @@
+ 		return -ENOMEM;
+ 	mutex_lock(&lock);
+ 	list1_for_each_entry(ptr, &no_umount_list, list) {
+-		if (ptr->dir == saved_dir) {
+-			ptr->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
+-		}
++		if (ptr->dir != saved_dir)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
+ 	}
+ 	if (is_delete) {
+ 		error = -ENOENT;
+@@ -71,6 +72,7 @@
+ 	printk(KERN_CONT "%sDon't allow umount %s\n", ccs_log_level, dir);
+  out:
+ 	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
+ 	return error;
+ }
+ 
+@@ -87,41 +89,38 @@
+ 	const char *dir0;
+ 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_UNMOUNT);
+ 	const bool is_enforce = (mode == 3);
++	struct no_umount_entry *ptr;
++	struct path_info dir;
++	bool found = false;
+ 	if (!mode)
+ 		return 0;
+ 	dir0 = ccs_realpath_from_dentry(mnt->mnt_root, mnt);
+-	if (dir0) {
+-		struct no_umount_entry *ptr;
+-		struct path_info dir;
+-		bool found = false;
+-		dir.name = dir0;
+-		ccs_fill_path_info(&dir);
+-		list1_for_each_entry(ptr, &no_umount_list, list) {
+-			if (ptr->is_deleted)
+-				continue;
+-			if (ccs_path_matches_pattern(&dir, ptr->dir)) {
+-				found = true;
+-				break;
+-			}
+-		}
+-		if (found) {
+-			const char *exename = ccs_get_exe();
+-			printk(KERN_WARNING "SAKURA-%s: umount %s "
+-			       "(pid=%d:exe=%s): Permission denied.\n",
+-			       ccs_get_msg(is_enforce), dir0, current->pid,
+-			       exename);
+-			if (!is_enforce)
+-				goto not_enforcing;
++	if (!dir0)
++		goto out;
++	dir.name = dir0;
++	ccs_fill_path_info(&dir);
++	list1_for_each_entry(ptr, &no_umount_list, list) {
++		if (ptr->is_deleted)
++			continue;
++		if (!ccs_path_matches_pattern(&dir, ptr->dir))
++			continue;
++		found = true;
++		break;
++	}
++	if (found) {
++		const char *exename = ccs_get_exe();
++		printk(KERN_WARNING "SAKURA-%s: umount %s "
++		       "(pid=%d:exe=%s): Permission denied.\n",
++		       ccs_get_msg(is_enforce), dir0, current->pid,
++		       exename);
++		if (is_enforce)
+ 			error = ccs_check_supervisor("# %s is requesting\n"
+ 						     "unmount %s\n",
+ 						     exename, dir0);
+- not_enforcing:
+-			ccs_free(exename);
+-		} else {
+-			error = 0;
+-		}
+-		ccs_free(dir0);
++		ccs_free(exename);
+ 	}
++	ccs_free(dir0);
++ out:
+ 	if (!is_enforce)
+ 		error = 0;
+ 	return error;
