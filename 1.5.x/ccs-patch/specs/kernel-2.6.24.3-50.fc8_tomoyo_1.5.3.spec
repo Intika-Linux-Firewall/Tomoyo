@@ -23,7 +23,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # Bah. Have to set this to a negative for the moment to fix rpm ordering after
 # moving the spec file. cvs sucks. Should be sure to fix this once 2.6.23 is out.
 %define fedora_cvs_origin 346
-%define fedora_build %(R="$Revision: 1.380 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.396 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -642,13 +642,15 @@ Patch420: linux-2.6-squashfs.patch
 Patch423: linux-2.6-gfs-locking-exports.patch
 
 Patch430: linux-2.6-net-silence-noisy-printks.patch
-# Patch431: linux-2.6-netfilter-fix-null-deref-nf_nat_move_storage.patch
 Patch431: linux-2.6-netfilter-really-fix-oops-in-nf_nat_move_storage.patch
 Patch440: linux-2.6-sha_alignment.patch
 Patch450: linux-2.6-input-kill-stupid-messages.patch
 Patch452: linux-2.6-input-appletouch-macbook3-trackpad.patch
-# Patch451: linux-2.6-input-alps-add-dell-vostro-1400.patch
-# Patch452: linux-2.6-input-alps-add-thinkpad-r61.patch
+Patch453: linux-2.6-input-apple-rename-identifiers.patch
+Patch454: linux-2.6-input-apple-add-aluminum-keyboard.patch
+Patch455: linux-2.6-input-apple-add-macbook-3rd-gen.patch
+Patch456: linux-2.6-input-apple-kbd-change-keycodes.patch
+Patch457: linux-2.6-input-apple-remove-4th-gen-kbd-quirk.patch
 Patch460: linux-2.6-serial-460800.patch
 Patch510: linux-2.6-silence-noise.patch
 Patch570: linux-2.6-selinux-mprotect-checks.patch
@@ -663,11 +665,12 @@ Patch640: linux-2.6-defaults-nommconf.patch
 Patch660: linux-2.6-libata-ali-atapi-dma.patch
 Patch670: linux-2.6-ata-quirk.patch
 Patch671: linux-2.6-libata-fix-hpt-svw-dma-masking.patch
+Patch672: linux-2.6-libata-it821x-improve-emulation-handling.patch
 
 Patch680: linux-2.6-wireless.patch
 Patch681: linux-2.6-wireless-pending.patch
 Patch682: linux-2.6-wireless-pending-fixups.patch
-Patch683: linux-2.6-wireless-pending-too.patch
+Patch683: linux-2.6-iwlwifi-sband-registration.patch
 Patch690: linux-2.6-at76.patch
 Patch691: linux-2.6-rndis_wlan.patch
 Patch692: linux-2.6-ps3_gelic_wireless.patch
@@ -681,8 +684,11 @@ Patch725: linux-2.6-netdev-atl2.patch
 
 #Patch780: linux-2.6-clockevents-fix-resume-logic.patch
 Patch761: linux-2.6-acpi-video-backlight-rationalize.patch
-Patch763: linux-2.6-acpi-video-fix-multiple-busses.patch
-#Patch766: linux-2.6-acpi-disable-gpe-fix.patch
+#Patch763: linux-2.6-acpi-video-fix-multiple-busses.patch
+Patch767: linux-2.6-acpi_ec_early_init_fix.patch
+#Patch768: linux-2.6-acpi-fix-sizeof.patch
+Patch770: linux-2.6-acpi-disable-stray-interrupt-1.patch
+Patch771: linux-2.6-acpi-disable-stray-interrupt-2.patch
 Patch784: linux-2.6-acpi-eeepc-hotkey.patch
 
 Patch820: linux-2.6-compile-fixes.patch
@@ -691,7 +697,10 @@ Patch1103: linux-2.6-i386-vdso-install-unstripped-copies-on-disk.patch
 
 Patch1308: linux-2.6-usb-ehci-hcd-respect-nousb.patch
 Patch1309: linux-2.6-usb-serial-fix-recursive-lock.patch
+Patch1310: linux-2.6-usb-serial-option-add-dell-modem-1.patch
+Patch1311: linux-2.6-usb-serial-option-add-dell-modem-2.patch
 Patch1320: linux-2.6-isdn-hisax-fix-request_irq-oops.patch
+Patch1330: linux-2.6-hwmon-coretemp-add-penryn-cpu.patch
 
 Patch1400: linux-2.6-smarter-relatime.patch
 Patch1504: linux-2.6-xfs-optimize-away-realtime-tests.patch
@@ -1184,12 +1193,14 @@ ApplyPatch linux-2.6-netfilter-really-fix-oops-in-nf_nat_move_storage.patch
 ApplyPatch linux-2.6-sha_alignment.patch
 # The input layer spews crap no-one cares about.
 ApplyPatch linux-2.6-input-kill-stupid-messages.patch
-# Fix loss of sync caused by adding dell Vostro 1400
 # Add support for new macbook trackpads
 ApplyPatch linux-2.6-input-appletouch-macbook3-trackpad.patch
-# Add support for some new mouse configurations
-# ApplyPatch linux-2.6-input-alps-add-dell-vostro-1400.patch
-# ApplyPatch linux-2.6-input-alps-add-thinkpad-r61.patch
+# Add support for new Apple keyboards
+ApplyPatch linux-2.6-input-apple-rename-identifiers.patch
+ApplyPatch linux-2.6-input-apple-add-aluminum-keyboard.patch
+ApplyPatch linux-2.6-input-apple-add-macbook-3rd-gen.patch
+ApplyPatch linux-2.6-input-apple-kbd-change-keycodes.patch
+ApplyPatch linux-2.6-input-apple-remove-4th-gen-kbd-quirk.patch
 # Allow to use 480600 baud on 16C950 UARTs
 ApplyPatch linux-2.6-serial-460800.patch
 # add ids for new wacom tablets
@@ -1232,12 +1243,15 @@ ApplyPatch linux-2.6-libata-ali-atapi-dma.patch
 ApplyPatch linux-2.6-ata-quirk.patch
 # actually mask the intended DMA modes from the blacklist
 ApplyPatch linux-2.6-libata-fix-hpt-svw-dma-masking.patch
+# fix some broken it821x adapters that have broken emulation
+ApplyPatch linux-2.6-libata-it821x-improve-emulation-handling.patch
 
 # wireless patches headed for 2.6.25
 ApplyPatch linux-2.6-wireless.patch
 # wireless patches staged for 2.6.26
 ApplyPatch linux-2.6-wireless-pending.patch
 ApplyPatch linux-2.6-wireless-pending-fixups.patch
+ApplyPatch linux-2.6-iwlwifi-sband-registration.patch
 
 # Add misc wireless bits from upstream wireless tree
 ApplyPatch linux-2.6-at76.patch
@@ -1260,10 +1274,15 @@ ApplyPatch linux-2.6-netdev-atl2.patch
 # ACPI/PM patches
 # fix multiple ACPI brightness problems (#427518)
 ApplyPatch linux-2.6-acpi-video-backlight-rationalize.patch
-ApplyPatch linux-2.6-acpi-video-fix-multiple-busses.patch
-# disable stray gpe properly
-# need to find out why this is broken
-#ApplyPatch linux-2.6-acpi-disable-gpe-fix.patch
+#ApplyPatch linux-2.6-acpi-video-fix-multiple-busses.patch
+# revert EC change in 2.6.24 that broke some notebooks (#432477)
+ApplyPatch linux-2.6-acpi_ec_early_init_fix.patch -R
+# acpi has a bug in the sizeof function causing thermal panics
+#ApplyPatch linux-2.6-acpi-fix-sizeof.patch
+# properly disable stray interrupts in acpi
+ApplyPatch linux-2.6-acpi-disable-stray-interrupt-1.patch
+ApplyPatch linux-2.6-acpi-disable-stray-interrupt-2.patch
+
 # Eeepc hotkey driver
 ApplyPatch linux-2.6-acpi-eeepc-hotkey.patch
 
@@ -1279,10 +1298,18 @@ ApplyPatch linux-2.6-acpi-eeepc-hotkey.patch
 ApplyPatch linux-2.6-usb-ehci-hcd-respect-nousb.patch
 # usb-serial can deadlock (#431379)
 ApplyPatch linux-2.6-usb-serial-fix-recursive-lock.patch
+# support two more dell modems
+ApplyPatch linux-2.6-usb-serial-option-add-dell-modem-1.patch
+ApplyPatch linux-2.6-usb-serial-option-add-dell-modem-2.patch
 
 # ISDN
 # fix request_irq oops
 ApplyPatch linux-2.6-isdn-hisax-fix-request_irq-oops.patch
+
+# hwmon
+# add penryn cpu to coretemp
+ApplyPatch linux-2.6-hwmon-coretemp-add-penryn-cpu.patch
+
 
 # implement smarter atime updates support.
 ApplyPatch linux-2.6-smarter-relatime.patch
@@ -1327,8 +1354,8 @@ ApplyPatch linux-2.6-uvcvideo.patch
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .3-34.fc8:' -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.24.3-34.fc8.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .3-50.fc8:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.24.3-50.fc8.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -1926,52 +1953,8 @@ fi
 
 
 %changelog
-* Tue Mar 11 2008 John W. Linville <linville@redhat.com> 2.6.24.3-34
-- rt2x00:correct rx packet length for USB devices
-- make b43_mac_{enable,suspend}() static
-- the scheduled bcm43xx removal
-- the scheduled ieee80211 softmac removal
-- the scheduled rc80211-simple.c removal
-- iwlwifi: Use eeprom form iwlcore
-- tkip: remove unused function, other cleanups
-- mac80211: remove Hi16, Lo16 helpers
-- mac80211: remove Hi8/Lo8 helpers, add initialization vector helpers
-- b43: pull out helpers for writing noise table
-- libertas: implement SSID scanning for SIOCSIWSCAN
-- rt2x00: Align RX descriptor to 4 bytes
-- rt2x00: Don't use uninitialized desc_len
-- rt2x00: Use skbdesc fields for descriptor initialization
-- rt2x00: Only disable beaconing just before beacon update
-- rt2x00: Upgrade queue->lock to use irqsave
-- rt2x00: Move firmware checksumming to driver
-- rt2x00: Start bugging when rt2x00lib doesn't filter SW diversity
-- rt2x00: Check IEEE80211_TXCTL_SEND_AFTER_DTIM flag
-- rt2x00: Rename config_preamble() to config_erp()
-- rt2x00: Add suspend/resume handlers to rt2x00rfkill
-- rt2x00: Make rt2x00leds_register return void
-- rt2x00: Always enable TSF ticking
-- rt2x00: Fix basic rate initialization
-- rt2x00: Fix compile error when rfkill is disabled
-- rt2x00: Fix RX DMA ring initialization
-- rt2x00: Fix rt2400pci signal
-- rt2x00: Release rt2x00 2.1.4
-- rt2x00: Only strip preamble bit in rt2400pci
-- prism54: support for 124a:4025 - another version of IOGear GWU513 802.11g
-- drivers/net/wireless/ath5k - convert == (true|false) to simple logical tests
-- include/net/ieee80211.h - remove duplicate include
-- rndis_wlan: cleanup, rename and reorder enums and structures
-- rndis_wlan: cleanup, rename structure members
-- rt2x00: Fix trivial log message
-- PS3: gelic: ignore scan info from zero SSID beacons
-- rt2x00: Initialize TX control field in data entries
-- rt2x00: Use the correct size when copying the control info in txdone
-- rt2x00: Don't use unitialized rxdesc->size
-- ssb: Add SPROM/invariants support for PCMCIA devices
-- iwlwifi: update copyright year
-- iwlwifi: fix bug to show hidden APs during scan
-- iwlwifi: Use sta_bcast_id variable instead of BROADCAST_ID constant
-- iwlwifi: Fix endianity in debug print
-- iwlwifi: change rate number to a constant
+* Thu Mar 20 2008 Chuck Ebbert <cebbert@redhat.com> 2.6.24.3-50
+- Reduce the severity of the PnP resource overflow message.
 
 * Sun May 27 2007 Dave Jones <davej@redhat.com>
 - Start F8 branch. Rebase to 2.6.22rc3
