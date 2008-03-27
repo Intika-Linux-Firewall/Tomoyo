@@ -24,7 +24,7 @@ Source code for this patch is "emerge gentoo-sources"
  fs/namespace.c                  |   38 ++++++++++++++++++
  fs/open.c                       |   21 ++++++++++
  fs/proc/Makefile                |    3 +
- fs/proc/proc_misc.c             |    9 ++++
+ fs/proc/proc_misc.c             |    5 ++
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 ++++
  kernel/compat.c                 |    6 ++
@@ -45,10 +45,10 @@ Source code for this patch is "emerge gentoo-sources"
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   28 +++++++++++++
  net/unix/af_unix.c              |   10 ++++
- 43 files changed, 514 insertions(+), 3 deletions(-)
+ 43 files changed, 510 insertions(+), 3 deletions(-)
 
---- linux.orig/Makefile
-+++ linux/Makefile
+--- linux-2.6.24-gentoo-r3.orig/Makefile
++++ linux-2.6.24-gentoo-r3/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
@@ -58,8 +58,8 @@ Source code for this patch is "emerge gentoo-sources"
  NAME = Arr Matey! A Hairy Bilge Rat!
  
  # *DOCUMENTATION*
---- linux.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.24-gentoo-r3.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.24-gentoo-r3/arch/ia64/ia32/sys_ia32.c
 @@ -55,6 +55,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -82,8 +82,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux.orig/arch/ia64/kernel/ptrace.c
-+++ linux/arch/ia64/kernel/ptrace.c
+--- linux-2.6.24-gentoo-r3.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.24-gentoo-r3/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -106,8 +106,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	lock_kernel();
  	ret = -EPERM;
---- linux.orig/arch/mips/kernel/ptrace32.c
-+++ linux/arch/mips/kernel/ptrace32.c
+--- linux-2.6.24-gentoo-r3.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.24-gentoo-r3/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -130,8 +130,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.24-gentoo-r3.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.24-gentoo-r3/arch/powerpc/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -154,8 +154,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux.orig/arch/s390/kernel/ptrace.c
-+++ linux/arch/s390/kernel/ptrace.c
+--- linux-2.6.24-gentoo-r3.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.24-gentoo-r3/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -178,8 +178,8 @@ Source code for this patch is "emerge gentoo-sources"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux.orig/arch/sh64/kernel/ptrace.c
-+++ linux/arch/sh64/kernel/ptrace.c
+--- linux-2.6.24-gentoo-r3.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.24-gentoo-r3/arch/sh64/kernel/ptrace.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -202,8 +202,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	lock_kernel();
  	if (first_call) {
---- linux.orig/arch/sparc/kernel/ptrace.c
-+++ linux/arch/sparc/kernel/ptrace.c
+--- linux-2.6.24-gentoo-r3.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.24-gentoo-r3/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -229,8 +229,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux.orig/arch/sparc64/kernel/ptrace.c
-+++ linux/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.24-gentoo-r3.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.24-gentoo-r3/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -256,8 +256,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux.orig/arch/x86/ia32/ptrace32.c
-+++ linux/arch/x86/ia32/ptrace32.c
+--- linux-2.6.24-gentoo-r3.orig/arch/x86/ia32/ptrace32.c
++++ linux-2.6.24-gentoo-r3/arch/x86/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -280,8 +280,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux.orig/fs/Kconfig
-+++ linux/fs/Kconfig
+--- linux-2.6.24-gentoo-r3.orig/fs/Kconfig
++++ linux-2.6.24-gentoo-r3/fs/Kconfig
 @@ -2179,5 +2179,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -290,16 +290,16 @@ Source code for this patch is "emerge gentoo-sources"
 +
  endmenu
  
---- linux.orig/fs/Makefile
-+++ linux/fs/Makefile
+--- linux-2.6.24-gentoo-r3.orig/fs/Makefile
++++ linux-2.6.24-gentoo-r3/fs/Makefile
 @@ -119,3 +119,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux.orig/fs/attr.c
-+++ linux/fs/attr.c
+--- linux-2.6.24-gentoo-r3.orig/fs/attr.c
++++ linux-2.6.24-gentoo-r3/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -331,8 +331,8 @@ Source code for this patch is "emerge gentoo-sources"
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux.orig/fs/compat.c
-+++ linux/fs/compat.c
+--- linux-2.6.24-gentoo-r3.orig/fs/compat.c
++++ linux-2.6.24-gentoo-r3/fs/compat.c
 @@ -55,6 +55,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -352,8 +352,8 @@ Source code for this patch is "emerge gentoo-sources"
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux.orig/fs/compat_ioctl.c
-+++ linux/fs/compat_ioctl.c
+--- linux-2.6.24-gentoo-r3.orig/fs/compat_ioctl.c
++++ linux-2.6.24-gentoo-r3/fs/compat_ioctl.c
 @@ -114,6 +114,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -374,8 +374,8 @@ Source code for this patch is "emerge gentoo-sources"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux.orig/fs/exec.c
-+++ linux/fs/exec.c
+--- linux-2.6.24-gentoo-r3.orig/fs/exec.c
++++ linux-2.6.24-gentoo-r3/fs/exec.c
 @@ -60,6 +60,10 @@
  #include <linux/kmod.h>
  #endif
@@ -418,8 +418,8 @@ Source code for this patch is "emerge gentoo-sources"
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
---- linux.orig/fs/fcntl.c
-+++ linux/fs/fcntl.c
+--- linux-2.6.24-gentoo-r3.orig/fs/fcntl.c
++++ linux-2.6.24-gentoo-r3/fs/fcntl.c
 @@ -23,6 +23,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -441,8 +441,8 @@ Source code for this patch is "emerge gentoo-sources"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux.orig/fs/ioctl.c
-+++ linux/fs/ioctl.c
+--- linux-2.6.24-gentoo-r3.orig/fs/ioctl.c
++++ linux-2.6.24-gentoo-r3/fs/ioctl.c
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -463,8 +463,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux.orig/fs/namei.c
-+++ linux/fs/namei.c
+--- linux-2.6.24-gentoo-r3.orig/fs/namei.c
++++ linux-2.6.24-gentoo-r3/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -641,8 +641,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux.orig/fs/namespace.c
-+++ linux/fs/namespace.c
+--- linux-2.6.24-gentoo-r3.orig/fs/namespace.c
++++ linux-2.6.24-gentoo-r3/fs/namespace.c
 @@ -29,6 +29,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -744,8 +744,8 @@ Source code for this patch is "emerge gentoo-sources"
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux.orig/fs/open.c
-+++ linux/fs/open.c
+--- linux-2.6.24-gentoo-r3.orig/fs/open.c
++++ linux-2.6.24-gentoo-r3/fs/open.c
 @@ -27,6 +27,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -802,8 +802,8 @@ Source code for this patch is "emerge gentoo-sources"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux.orig/fs/proc/Makefile
-+++ linux/fs/proc/Makefile
+--- linux-2.6.24-gentoo-r3.orig/fs/proc/Makefile
++++ linux-2.6.24-gentoo-r3/fs/proc/Makefile
 @@ -16,3 +16,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -811,24 +811,20 @@ Source code for this patch is "emerge gentoo-sources"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux.orig/fs/proc/proc_misc.c
-+++ linux/fs/proc/proc_misc.c
-@@ -768,4 +768,13 @@ void __init proc_misc_init(void)
+--- linux-2.6.24-gentoo-r3.orig/fs/proc/proc_misc.c
++++ linux-2.6.24-gentoo-r3/fs/proc/proc_misc.c
+@@ -768,4 +768,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	{
-+		extern void __init CCSProc_Init(void);
-+		CCSProc_Init();
-+		printk("Hook version: 2.6.24-gentoo-r3 2008/03/16\n");
-+	}
++	printk(KERN_INFO "Hook version: 2.6.24-gentoo-r3 2008/03/27\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux.orig/include/linux/init_task.h
-+++ linux/include/linux/init_task.h
+--- linux-2.6.24-gentoo-r3.orig/include/linux/init_task.h
++++ linux-2.6.24-gentoo-r3/include/linux/init_task.h
 @@ -173,6 +173,10 @@ extern struct group_info init_groups;
  	.dirties = INIT_PROP_LOCAL_SINGLE(dirties),			\
  	INIT_TRACE_IRQFLAGS						\
@@ -840,8 +836,8 @@ Source code for this patch is "emerge gentoo-sources"
  }
  
  
---- linux.orig/include/linux/sched.h
-+++ linux/include/linux/sched.h
+--- linux-2.6.24-gentoo-r3.orig/include/linux/sched.h
++++ linux-2.6.24-gentoo-r3/include/linux/sched.h
 @@ -28,6 +28,11 @@
  #define CLONE_NEWPID		0x20000000	/* New pid namespace */
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
@@ -865,8 +861,8 @@ Source code for this patch is "emerge gentoo-sources"
  };
  
  /*
---- linux.orig/kernel/compat.c
-+++ linux/kernel/compat.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/compat.c
++++ linux-2.6.24-gentoo-r3/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -887,8 +883,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux.orig/kernel/kexec.c
-+++ linux/kernel/kexec.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/kexec.c
++++ linux-2.6.24-gentoo-r3/kernel/kexec.c
 @@ -31,6 +31,9 @@
  #include <asm/system.h>
  #include <asm/semaphore.h>
@@ -909,8 +905,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux.orig/kernel/kmod.c
-+++ linux/kernel/kmod.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/kmod.c
++++ linux-2.6.24-gentoo-r3/kernel/kmod.c
 @@ -173,6 +173,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -923,8 +919,8 @@ Source code for this patch is "emerge gentoo-sources"
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
---- linux.orig/kernel/module.c
-+++ linux/kernel/module.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/module.c
++++ linux-2.6.24-gentoo-r3/kernel/module.c
 @@ -46,6 +46,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -955,8 +951,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux.orig/kernel/ptrace.c
-+++ linux/kernel/ptrace.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/ptrace.c
++++ linux-2.6.24-gentoo-r3/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  
  #include <asm/pgtable.h>
@@ -979,8 +975,8 @@ Source code for this patch is "emerge gentoo-sources"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux.orig/kernel/sched.c
-+++ linux/kernel/sched.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/sched.c
++++ linux-2.6.24-gentoo-r3/kernel/sched.c
 @@ -66,6 +66,9 @@
  
  #include <asm/tlb.h>
@@ -1001,8 +997,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux.orig/kernel/signal.c
-+++ linux/kernel/signal.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/signal.c
++++ linux-2.6.24-gentoo-r3/kernel/signal.c
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -1046,8 +1042,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	return do_tkill(0, pid, sig);
  }
---- linux.orig/kernel/sys.c
-+++ linux/kernel/sys.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/sys.c
++++ linux-2.6.24-gentoo-r3/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1098,8 +1094,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux.orig/kernel/sysctl.c
-+++ linux/kernel/sysctl.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/sysctl.c
++++ linux-2.6.24-gentoo-r3/kernel/sysctl.c
 @@ -49,6 +49,9 @@
  
  #include <asm/uaccess.h>
@@ -1202,8 +1198,8 @@ Source code for this patch is "emerge gentoo-sources"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
---- linux.orig/kernel/time.c
-+++ linux/kernel/time.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/time.c
++++ linux-2.6.24-gentoo-r3/kernel/time.c
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -1234,8 +1230,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux.orig/kernel/time/ntp.c
-+++ linux/kernel/time/ntp.c
+--- linux-2.6.24-gentoo-r3.orig/kernel/time/ntp.c
++++ linux-2.6.24-gentoo-r3/kernel/time/ntp.c
 @@ -17,6 +17,9 @@
  #include <linux/capability.h>
  #include <asm/div64.h>
@@ -1256,8 +1252,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux.orig/net/core/datagram.c
-+++ linux/net/core/datagram.c
+--- linux-2.6.24-gentoo-r3.orig/net/core/datagram.c
++++ linux-2.6.24-gentoo-r3/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1281,8 +1277,8 @@ Source code for this patch is "emerge gentoo-sources"
  		if (skb)
  			return skb;
  
---- linux.orig/net/ipv4/inet_connection_sock.c
-+++ linux/net/ipv4/inet_connection_sock.c
+--- linux-2.6.24-gentoo-r3.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.24-gentoo-r3/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1303,8 +1299,8 @@ Source code for this patch is "emerge gentoo-sources"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux.orig/net/ipv4/inet_hashtables.c
-+++ linux/net/ipv4/inet_hashtables.c
+--- linux-2.6.24-gentoo-r3.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.24-gentoo-r3/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1325,8 +1321,8 @@ Source code for this patch is "emerge gentoo-sources"
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux.orig/net/ipv4/udp.c
-+++ linux/net/ipv4/udp.c
+--- linux-2.6.24-gentoo-r3.orig/net/ipv4/udp.c
++++ linux-2.6.24-gentoo-r3/net/ipv4/udp.c
 @@ -104,6 +104,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1357,8 +1353,8 @@ Source code for this patch is "emerge gentoo-sources"
  			if (! __udp_lib_lport_inuse(rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
---- linux.orig/net/ipv6/inet6_hashtables.c
-+++ linux/net/ipv6/inet6_hashtables.c
+--- linux-2.6.24-gentoo-r3.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.24-gentoo-r3/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1379,8 +1375,8 @@ Source code for this patch is "emerge gentoo-sources"
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux.orig/net/socket.c
-+++ linux/net/socket.c
+--- linux-2.6.24-gentoo-r3.orig/net/socket.c
++++ linux-2.6.24-gentoo-r3/net/socket.c
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1458,8 +1454,8 @@ Source code for this patch is "emerge gentoo-sources"
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
---- linux.orig/net/unix/af_unix.c
-+++ linux/net/unix/af_unix.c
+--- linux-2.6.24-gentoo-r3.orig/net/unix/af_unix.c
++++ linux-2.6.24-gentoo-r3/net/unix/af_unix.c
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1491,34 +1487,3 @@ Source code for this patch is "emerge gentoo-sources"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
----
- fs/ccs_common.c    |    2 +-
- fs/tomoyo_signal.c |    4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
-
---- linux-2.6.24-gentoo-r3.orig/fs/ccs_common.c
-+++ linux-2.6.24-gentoo-r3/fs/ccs_common.c
-@@ -986,7 +986,7 @@ static int ReadPID(struct io_buffer *hea
- 		struct domain_info *domain = NULL;
- 		/***** CRITICAL SECTION START *****/
- 		read_lock(&tasklist_lock);
--		p = find_task_by_pid(pid);
-+		p = find_task_by_vpid(pid);
- 		if (p) domain = p->domain_info;
- 		read_unlock(&tasklist_lock);
- 		/***** CRITICAL SECTION END *****/
---- linux-2.6.24-gentoo-r3.orig/fs/tomoyo_signal.c
-+++ linux-2.6.24-gentoo-r3/fs/tomoyo_signal.c
-@@ -106,10 +106,10 @@ int CheckSignalACL(const int sig, const 
- 	{ /* Simplified checking. */
- 		struct task_struct *p = NULL;
- 		read_lock(&tasklist_lock);
--		if (pid > 0) p = find_task_by_pid((pid_t) pid);
-+		if (pid > 0) p = find_task_by_vpid((pid_t) pid);
- 		else if (pid == 0) p = current;
- 		else if (pid == -1) dest = &KERNEL_DOMAIN;
--		else p = find_task_by_pid((pid_t) -pid);
-+		else p = find_task_by_vpid((pid_t) -pid);
- 		if (p) dest = p->domain_info;
- 		read_unlock(&tasklist_lock);
- 		if (!dest) return 0; /* I can't find destinatioin. */
