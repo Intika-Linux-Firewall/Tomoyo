@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -72,7 +72,7 @@ static bool check_conceal_mount(struct nameidata *nd, struct vfsmount *vfsmnt,
  */
 static int print_error(struct nameidata *nd, const u8 mode)
 {
-	int error = -EPERM;
+	int error;
 	const bool is_enforce = (mode == 3);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	const char *dir = ccs_realpath_from_dentry(nd->path.dentry,
@@ -84,14 +84,13 @@ static int print_error(struct nameidata *nd, const u8 mode)
 	printk(KERN_WARNING "SAKURA-%s: mount %s (pid=%d:exe=%s): "
 	       "Permission denied.\n", ccs_get_msg(is_enforce), dir,
 	       current->pid, exename);
-	if (is_enforce &&
-	    ccs_check_supervisor("# %s is requesting\n"
-				 "mount on %s\n", exename, dir) == 0)
+	if (is_enforce)
+		error = ccs_check_supervisor("# %s is requesting\n"
+					     "mount on %s\n", exename, dir);
+	else
 		error = 0;
 	ccs_free(exename);
 	ccs_free(dir);
-	if (!is_enforce)
-		error = 0;
 	return error;
 }
 

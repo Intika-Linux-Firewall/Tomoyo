@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -42,7 +42,7 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
  *
  * Returns 0 on success, -ENOMEM otherwise.
  *
- * Caller holds the dcache_lock and vfsmount_lock .
+ * Caller holds the dcache_lock and vfsmount_lock.
  * Based on __d_path() in fs/dcache.c
  *
  * If dentry is a directory, trailing '/' is appended.
@@ -184,7 +184,7 @@ static int get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
  * @dentry:      Pointer to "struct dentry".
  * @mnt:         Pointer to "struct vfsmount".
  * @newname:     Pointer to buffer to return value in.
- * @newname_len: Size of @newname .
+ * @newname_len: Size of @newname.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -212,7 +212,7 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 	dput(d_dentry);
 	mntput(d_mnt);
 	if (error)
-		printk(KERN_DEBUG "ccs_realpath: Pathname too long.\n");
+		printk(KERN_WARNING "ccs_realpath: Pathname too long.\n");
 	return error;
 }
 
@@ -491,8 +491,6 @@ static int __init ccs_realpath_init(void)
 	int i;
 	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
 		panic("Bad size.");
-	if (sizeof(struct path_info_with_data) > sizeof(struct ccs_page_buffer))
-		panic("Bad size.");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry),
 				       0, 0, NULL);
@@ -546,7 +544,8 @@ static int round2(size_t size)
 #else
 	size_t bsize = 64;
 #endif
-	while (size > bsize) bsize <<= 1;
+	while (size > bsize)
+		bsize <<= 1;
 	return bsize;
 }
 #endif
@@ -566,7 +565,8 @@ void *ccs_alloc(const size_t size)
 		goto out;
 	new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
 	if (!new_entry) {
-		kfree(ret); ret = NULL;
+		kfree(ret);
+		ret = NULL;
 		goto out;
 	}
 	INIT_LIST_HEAD(&new_entry->list);
@@ -604,7 +604,8 @@ void ccs_free(const void *p)
 	list_for_each(v, &cache_list) {
 		entry = list_entry(v, struct cache_entry, list);
 		if (entry->ptr != p) {
-			entry = NULL; continue;
+			entry = NULL;
+			continue;
 		}
 		list_del(&entry->list);
 		dynamic_memory_size -= entry->size;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -26,7 +26,7 @@
  * TOMOYO Linux checks permission outside VFS helper functions.
  * To keep the DAC's permission checks are performed before the
  * TOMOYO Linux's permission checks are performed, I'm manually inserting
- * these functions that performs the DAC's permission checks into fs/namei.c .
+ * these functions that performs the DAC's permission checks into fs/namei.c.
  *
  * The approach to obtain "struct vfsmount" parameter from
  * the "struct task_struct" doesn't work because it triggers deadlock.
@@ -34,7 +34,7 @@
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
-/* Some of permission checks from vfs_create() . */
+/* Some of permission checks from vfs_create(). */
 static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error;
@@ -47,10 +47,10 @@ static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry)
 }
 
 /*
- * Some of permission checks from vfs_mknod() .
+ * Some of permission checks from vfs_mknod().
  *
  * This function is exported because
- * vfs_mknod() is called from net/unix/af_unix.c .
+ * vfs_mknod() is called from net/unix/af_unix.c.
  */
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 {
@@ -64,7 +64,7 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 }
 EXPORT_SYMBOL(pre_vfs_mknod);
 
-/* Some of permission checks from vfs_mkdir() . */
+/* Some of permission checks from vfs_mkdir(). */
 static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error;
@@ -76,7 +76,7 @@ static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/* Some of permission checks from vfs_rmdir() . */
+/* Some of permission checks from vfs_rmdir(). */
 static inline int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = may_delete(dir, dentry, 1);
@@ -85,7 +85,7 @@ static inline int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/* Some of permission checks from vfs_unlink() . */
+/* Some of permission checks from vfs_unlink(). */
 static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
@@ -114,7 +114,7 @@ static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 #endif
 }
 
-/* Permission checks from vfs_symlink() . */
+/* Permission checks from vfs_symlink(). */
 static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	int error;
@@ -129,7 +129,7 @@ static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/* Some of permission checks from vfs_link() . */
+/* Some of permission checks from vfs_link(). */
 static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 			       struct dentry *new_dentry)
 {
@@ -183,7 +183,7 @@ static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 #endif
 }
 
-/* Some of permission checks from vfs_rename_dir() . */
+/* Some of permission checks from vfs_rename_dir(). */
 static inline int pre_vfs_rename_dir(struct inode *old_dir,
 				     struct dentry *old_dentry,
 				     struct inode *new_dir,
@@ -210,7 +210,7 @@ static inline int pre_vfs_rename_dir(struct inode *old_dir,
 	return error;
 }
 
-/* Some of permission checks from vfs_rename_other() . */
+/* Some of permission checks from vfs_rename_other(). */
 static inline int pre_vfs_rename_other(struct inode *old_dir,
 				       struct dentry *old_dentry,
 				       struct inode *new_dir,
@@ -235,7 +235,7 @@ static inline int pre_vfs_rename_other(struct inode *old_dir,
 	return 0;
 }
 
-/* Some of permission checks from vfs_rename() . */
+/* Some of permission checks from vfs_rename(). */
 static inline int pre_vfs_rename(struct inode *old_dir,
 				 struct dentry *old_dentry,
 				 struct inode *new_dir,
@@ -259,7 +259,7 @@ static inline int pre_vfs_rename(struct inode *old_dir,
  * Permission checks before security_inode_mknod() is called.
  *
  * This function is exported because
- * vfs_mknod() is called from net/unix/af_unix.c .
+ * vfs_mknod() is called from net/unix/af_unix.c.
  */
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
 {

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -208,6 +208,20 @@ static bool is_alphabet_char(const char c)
 }
 
 /**
+ * make_byte - Make byte value from three octal characters.
+ *
+ * @c1: The first character.
+ * @c2: The second character.
+ * @c3: The third character.
+ *
+ * Returns byte value.
+ */
+static u8 make_byte(const u8 c1, const u8 c2, const u8 c3)
+{
+	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
+}
+
+/**
  * str_starts - Check whether the given string starts with the given keyword.
  *
  * @src:  Pointer to pointer to the string.
@@ -216,7 +230,7 @@ static bool is_alphabet_char(const char c)
  * Returns true if @src starts with @find, false otherwise.
  *
  * The @src is updated to point the first character after the @find
- * if @src starts with @find .
+ * if @src starts with @find.
  */
 static bool str_starts(char **src, const char *find)
 {
@@ -241,7 +255,8 @@ static bool str_starts(char **src, const char *find)
  */
 static void normalize_line(unsigned char *buffer)
 {
-	unsigned char *sp = buffer, *dp = buffer;
+	unsigned char *sp = buffer;
+	unsigned char *dp = buffer;
 	bool first = true;
 	while (*sp && (*sp <= ' ' || *sp >= 127))
 		sp++;
@@ -276,7 +291,9 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			 const char *function)
 {
 	bool contains_pattern = false;
-	unsigned char c, d, e;
+	unsigned char c;
+	unsigned char d;
+	unsigned char e;
 	const char *original_filename = filename;
 	if (!filename)
 		goto out;
@@ -326,9 +343,7 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 				e = *filename++;
 				if (e < '0' || e > '7')
 					break;
-				c = (((u8) (c - '0')) << 6)
-					+ (((u8) (d - '0')) << 3)
-					+ (((u8) (e - '0')));
+				c = make_byte(c, d, e);
 				if (c && (c <= ' ' || c >= 127))
 					continue; /* pattern is not \000 */
 			}
@@ -358,7 +373,9 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 bool ccs_is_correct_domain(const unsigned char *domainname,
 			   const char *function)
 {
-	unsigned char c, d, e;
+	unsigned char c;
+	unsigned char d;
+	unsigned char e;
 	const char *org_domainname = domainname;
 	if (!domainname || strncmp(domainname, ROOT_NAME, ROOT_NAME_LEN))
 		goto out;
@@ -387,9 +404,7 @@ bool ccs_is_correct_domain(const unsigned char *domainname,
 					e = *domainname++;
 					if (e < '0' || e > '7')
 						break;
-					c = (((u8) (c - '0')) << 6)
-						+ (((u8) (d - '0')) << 3)
-						+ (((u8) (e - '0')));
+					c = make_byte(c, d, e);
 					if (c && (c <= ' ' || c >= 127))
 						/* pattern is not \000 */
 						continue;
@@ -471,7 +486,7 @@ static int path_depth(const char *pathname)
  *
  * @filename: The string to evaluate.
  *
- * Returns the initial length without a pattern in @filename .
+ * Returns the initial length without a pattern in @filename.
  */
 static int const_part_length(const char *filename)
 {
@@ -552,7 +567,8 @@ static bool file_matches_to_pattern2(const char *filename,
 		c = *filename;
 		pattern++;
 		switch (*pattern) {
-			int i, j;
+			int i;
+			int j;
 		case '?':
 			if (c == '/') {
 				return false;
@@ -761,7 +777,9 @@ bool ccs_path_matches_pattern(const struct path_info *filename,
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
 {
 	va_list args;
-	int len, pos = head->read_avail, size = head->readbuf_size - pos;
+	int len;
+	int pos = head->read_avail;
+	int size = head->readbuf_size - pos;
 	if (size <= 0)
 		return false;
 	va_start(args, fmt);
@@ -931,8 +949,59 @@ bool ccs_check_domain_quota(struct domain_info * const domain)
 	if (!domain)
 		return true;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if (!(ptr->type & ACL_DELETED))
+		if (ptr->type & ACL_DELETED)
+			continue;
+		switch (ccs_acl_type2(ptr)) {
+			struct single_path_acl_record *acl1;
+			struct double_path_acl_record *acl2;
+			u16 perm;
+		case TYPE_SINGLE_PATH_ACL:
+			acl1 = container_of(ptr, struct single_path_acl_record,
+					    head);
+			perm = acl1->perm;
+			if (perm & (1 << TYPE_EXECUTE_ACL))
+				count++;
+			if (perm &
+			    ((1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL)))
+				count++;
+			if (perm & (1 << TYPE_CREATE_ACL))
+				count++;
+			if (perm & (1 << TYPE_UNLINK_ACL))
+				count++;
+			if (perm & (1 << TYPE_MKDIR_ACL))
+				count++;
+			if (perm & (1 << TYPE_RMDIR_ACL))
+				count++;
+			if (perm & (1 << TYPE_MKFIFO_ACL))
+				count++;
+			if (perm & (1 << TYPE_MKSOCK_ACL))
+				count++;
+			if (perm & (1 << TYPE_MKBLOCK_ACL))
+				count++;
+			if (perm & (1 << TYPE_MKCHAR_ACL))
+				count++;
+			if (perm & (1 << TYPE_TRUNCATE_ACL))
+				count++;
+			if (perm & (1 << TYPE_SYMLINK_ACL))
+				count++;
+			if (perm & (1 << TYPE_REWRITE_ACL))
+				count++;
+			break;
+		case TYPE_DOUBLE_PATH_ACL:
+			acl2 = container_of(ptr, struct double_path_acl_record,
+					    head);
+			perm = acl2->perm;
+			if (perm & (1 << TYPE_LINK_ACL))
+				count++;
+			if (perm & (1 << TYPE_RENAME_ACL))
+				count++;
+			break;
+		case TYPE_EXECUTE_HANDLER:
+		case TYPE_DENIED_EXECUTE_HANDLER:
+			break;
+		default:
 			count++;
+		}
 	}
 	if (count < ccs_check_flags(CCS_TOMOYO_MAX_ACCEPT_ENTRY))
 		return true;
@@ -991,7 +1060,8 @@ static struct profile *ccs_find_or_assign_new_profile(const unsigned int
 static int write_profile(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	unsigned int i, value;
+	unsigned int i;
+	unsigned int value;
 	char *cp;
 	struct profile *profile;
 	i = simple_strtoul(data, &cp, 10);
@@ -1188,7 +1258,8 @@ static LIST1_HEAD(policy_manager_list);
  */
 static int update_manager_entry(const char *manager, const bool is_delete)
 {
-	struct policy_manager_entry *new_entry, *ptr;
+	struct policy_manager_entry *new_entry;
+	struct policy_manager_entry *ptr;
 	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_manager;
 	int error = -ENOMEM;
@@ -1206,11 +1277,11 @@ static int update_manager_entry(const char *manager, const bool is_delete)
 		return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &policy_manager_list, list) {
-		if (ptr->manager == saved_manager) {
-			ptr->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
+		if (ptr->manager != saved_manager)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		goto out;
 	}
 	if (is_delete) {
 		error = -ENOENT;
@@ -1241,7 +1312,7 @@ static int write_manager_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	bool is_delete = str_starts(&data, KEYWORD_DELETE);
-	if (strcmp(data, "manage_by_non_root") == 0) {
+	if (!strcmp(data, "manage_by_non_root")) {
 		manage_by_non_root = !is_delete;
 		return 0;
 	}
@@ -1329,9 +1400,11 @@ static bool is_policy_manager(void)
  */
 static char *ccs_find_condition_part(char *data)
 {
-	char *cp = strstr(data, " if "), *cp2;
+	char *cp = strstr(data, " if ");
 	if (cp) {
-		while ((cp2 = strstr(cp + 3, " if ")) != NULL) cp = cp2;
+		char *cp2;
+		while ((cp2 = strstr(cp + 3, " if ")) != NULL)
+			cp = cp2;
 		*cp++ = '\0';
 	} else {
 		cp = strstr(data, " ; set ");
@@ -1352,7 +1425,9 @@ static int write_domain_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct domain_info *domain = head->write_var1;
-	bool is_delete = false, is_select = false, is_undelete = false;
+	bool is_delete = false;
+	bool is_select = false;
+	bool is_undelete = false;
 	unsigned int profile;
 	const struct condition_list *cond = NULL;
 	char *cp;
@@ -1363,16 +1438,15 @@ static int write_domain_policy(struct ccs_io_buffer *head)
 	else if (str_starts(&data, KEYWORD_UNDELETE))
 		is_undelete = true;
 	if (ccs_is_domain_def(data)) {
-		if (is_delete) {
+		domain = NULL;
+		if (is_delete)
 			ccs_delete_domain(data);
-			domain = NULL;
-		} else if (is_select) {
+		else if (is_select)
 			domain = ccs_find_domain(data);
-		} else if (is_undelete) {
+		else if (is_undelete)
 			domain = ccs_undelete_domain(data);
-		} else {
+		else
 			domain = ccs_find_or_assign_new_domain(data, 0);
-		}
 		head->write_var1 = domain;
 		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 		return 0;
@@ -1422,7 +1496,7 @@ static int write_domain_policy(struct ccs_io_buffer *head)
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct single_path_acl_record".
- * @cond: Pointer to "struct condition_list *". May be NULL.
+ * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
@@ -1469,7 +1543,7 @@ static bool print_single_path_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct double_path_acl_record".
- * @cond: Pointer to "struct condition_list *". May be NULL.
+ * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
@@ -1503,8 +1577,7 @@ static bool print_double_path_acl(struct ccs_io_buffer *head,
 		msg = ccs_dp2keyword(bit);
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s %s%s %s%s", msg,
-				   atmark1, filename1,
-				   atmark2, filename2) ||
+				   atmark1, filename1, atmark2, filename2) ||
 		    !ccs_print_condition(head, cond))
 			goto out;
 	}
@@ -1521,7 +1594,7 @@ static bool print_double_path_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct argv0_acl_record".
- * @cond: Pointer to "struct condition_list *". May be NULL.
+ * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
@@ -1546,7 +1619,7 @@ static bool print_argv0_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct env_acl_record".
- * @cond: Pointer to "struct condition_list *". May be NULL.
+ * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
@@ -1570,7 +1643,7 @@ static bool print_env_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct capability_acl_record".
- * @cond: Pointer to "struct condition_list *". May be NULL.
+ * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
@@ -1660,7 +1733,7 @@ static bool print_port_entry(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ip_network_acl_record".
- * @cond: Pointer to "struct condition_list *". May be NULL.
+ * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
@@ -1701,7 +1774,7 @@ static bool print_network_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct signale_acl_record".
- * @cond: Pointer to "struct condition_list *". May be NULL.
+ * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
@@ -1748,7 +1821,7 @@ static bool print_execute_handler_record(struct ccs_io_buffer *head,
 static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
 {
 	const struct condition_list *cond = ccs_get_condition_part(ptr);
-	const u8 acl_type = ptr->type & ~ACL_WITH_CONDITION;
+	const u8 acl_type = ccs_acl_type2(ptr);
 	if (acl_type & ACL_DELETED)
 		return true;
 	if (acl_type == TYPE_SINGLE_PATH_ACL) {
@@ -1788,18 +1861,18 @@ static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
 			= container_of(ptr, struct signal_acl_record, head);
 		return print_signal_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_PREFERRED_EXECUTE_HANDLER) {
+	if (acl_type == TYPE_EXECUTE_HANDLER) {
 		struct execute_handler_record *acl
 			= container_of(ptr, struct execute_handler_record,
 				       head);
-		const char *keyword = KEYWORD_PREFERRED_EXECUTE_HANDLER;
+		const char *keyword = KEYWORD_EXECUTE_HANDLER;
 		return print_execute_handler_record(head, keyword, acl);
 	}
-	if (acl_type == TYPE_DEFAULT_EXECUTE_HANDLER) {
+	if (acl_type == TYPE_DENIED_EXECUTE_HANDLER) {
 		struct execute_handler_record *acl
 			= container_of(ptr, struct execute_handler_record,
 				       head);
-		const char *keyword = KEYWORD_DEFAULT_EXECUTE_HANDLER;
+		const char *keyword = KEYWORD_DENIED_EXECUTE_HANDLER;
 		return print_execute_handler_record(head, keyword, acl);
 	}
 	BUG(); /* This must not happen. */
@@ -1990,7 +2063,6 @@ static int write_exception_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	bool is_delete = str_starts(&data, KEYWORD_DELETE);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	if (str_starts(&data, KEYWORD_KEEP_DOMAIN))
 		return ccs_write_domain_keeper_policy(data, false, is_delete);
 	if (str_starts(&data, KEYWORD_NO_KEEP_DOMAIN))
@@ -2107,7 +2179,6 @@ static int write_system_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	bool is_delete = false;
-	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	if (str_starts(&data, KEYWORD_DELETE))
 		is_delete = true;
 	if (str_starts(&data, KEYWORD_ALLOW_MOUNT))
@@ -2174,7 +2245,7 @@ static int read_system_policy(struct ccs_io_buffer *head)
 /* Profile loaded by policy loader? */
 static bool profile_loaded = false;
 
-/* Path to the policy loader. The default is /sbin/ccs-init . */
+/* Path to the policy loader. The default is /sbin/ccs-init. */
 static const char *ccs_loader;
 
 /**
@@ -2229,7 +2300,7 @@ static bool policy_loader_exists(void)
  *
  * This function checks whether @filename is /sbin/init , and if so
  * invoke /sbin/ccs-init and wait for the termination of /sbin/ccs-init
- * and then continues invocation of /sbin/init .
+ * and then continues invocation of /sbin/init.
  * /sbin/ccs-init reads policy files in /etc/ccs/ directory and
  * writes to /proc/ccs/ interfaces.
  *
@@ -2240,7 +2311,7 @@ void ccs_load_policy(const char *filename)
 	if (sbin_init_started)
 		return;
 	/*
-	 * Check filename is /sbin/init or /sbin/ccs-start .
+	 * Check filename is /sbin/init or /sbin/ccs-start.
 	 * /sbin/ccs-start is a dummy filename in case where /sbin/init can't
 	 * be passed.
 	 * You can create /sbin/ccs-start by "ln -s /bin/true /sbin/ccs-start".
@@ -2251,7 +2322,8 @@ void ccs_load_policy(const char *filename)
 	if (!policy_loader_exists())
 		return;
 	if (!profile_loaded) {
-		char *argv[2], *envp[3];
+		char *argv[2];
+		char *envp[3];
 		printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
 		       ccs_loader);
 		argv[0] = (char *) ccs_loader;
@@ -2270,10 +2342,10 @@ void ccs_load_policy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.0-rc   2008/03/26\n");
+	printk(KERN_INFO "SAKURA: 1.6.0-rc   2008/03/28\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.0-rc   2008/03/26\n");
+	printk(KERN_INFO "TOMOYO: 1.6.0-rc   2008/03/28\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2324,7 +2396,8 @@ int ccs_check_supervisor(const char *fmt, ...)
 {
 	va_list args;
 	int error = -EPERM;
-	int pos, len;
+	int pos;
+	int len;
 	static unsigned int serial;
 	struct query_entry *query_entry;
 	if (!ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE)
@@ -2401,7 +2474,7 @@ int ccs_check_supervisor(const char *fmt, ...)
 }
 
 /**
- * poll_query - poll() for /proc/ccs/query .
+ * poll_query - poll() for /proc/ccs/query.
  *
  * @file: Pointer to "struct file".
  * @wait: Pointer to "poll_table".
@@ -2441,7 +2514,8 @@ static int poll_query(struct file *file, poll_table *wait)
 static int read_query(struct ccs_io_buffer *head)
 {
 	struct list_head *tmp;
-	int pos = 0, len = 0;
+	int pos = 0;
+	int len = 0;
 	char *buf;
 	if (head->read_avail)
 		return 0;
@@ -2455,10 +2529,10 @@ static int read_query(struct ccs_io_buffer *head)
 	list_for_each(tmp, &query_list) {
 		struct query_entry *ptr
 			= list_entry(tmp, struct query_entry, list);
-		if (pos++ == head->read_step) {
-			len = ptr->query_len;
-			break;
-		}
+		if (pos++ != head->read_step)
+			continue;
+		len = ptr->query_len;
+		break;
 	}
 	spin_unlock(&query_lock);
 	/***** CRITICAL SECTION END *****/
@@ -2474,15 +2548,15 @@ static int read_query(struct ccs_io_buffer *head)
 		list_for_each(tmp, &query_list) {
 			struct query_entry *ptr
 				= list_entry(tmp, struct query_entry, list);
-			if (pos++ == head->read_step) {
-				/*
-				 * Some query can be skipped because query_list
-				 * can change, but I don't care.
-				 */
-				if (len == ptr->query_len)
-					memmove(buf, ptr->query, len);
-				break;
-			}
+			if (pos++ != head->read_step)
+				continue;
+			/*
+			 * Some query can be skipped because query_list
+			 * can change, but I don't care.
+			 */
+			if (len == ptr->query_len)
+				memmove(buf, ptr->query, len);
+			break;
 		}
 		spin_unlock(&query_lock);
 		/***** CRITICAL SECTION END *****/
@@ -2509,7 +2583,8 @@ static int write_answer(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct list_head *tmp;
-	unsigned int serial, answer;
+	unsigned int serial;
+	unsigned int answer;
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&query_lock);
 	list_for_each(tmp, &query_list) {
@@ -2625,9 +2700,9 @@ static int read_version(struct ccs_io_buffer *head)
 static int read_memory_counter(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
-		const int shared = ccs_get_memory_used_for_save_name(),
-			private = ccs_get_memory_used_for_elements(),
-			dynamic = ccs_get_memory_used_for_dynamic();
+		const int shared = ccs_get_memory_used_for_save_name();
+		const int private = ccs_get_memory_used_for_elements();
+		const int dynamic = ccs_get_memory_used_for_dynamic();
 		ccs_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
 			      "Dynamic: %10u\nTotal:   %10u\n",
 			      shared, private, dynamic,
@@ -2737,7 +2812,7 @@ int ccs_open_control(const u8 type, struct file *file)
 	}
 	/*
 	 * Don't allocate buffer for reading if the file is one of
-	 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query .
+	 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
 	 */
 	if (type != CCS_GRANTLOG && type != CCS_REJECTLOG
 	    && type != CCS_QUERY) {
@@ -2769,7 +2844,7 @@ int ccs_open_control(const u8 type, struct file *file)
 	/*
 	 * If the file is /proc/ccs/query , increment the monitor count.
 	 * The monitor count is used by ccs_check_supervisor() to see if
-	 * there is some process monitoring /proc/ccs/query .
+	 * there is some process monitoring /proc/ccs/query.
 	 */
 	else if (head->write == write_answer)
 		atomic_inc(&queryd_watcher);
@@ -2785,7 +2860,7 @@ int ccs_open_control(const u8 type, struct file *file)
  * Waits for read readiness.
  * /proc/ccs/query is handled by /usr/lib/ccs/ccs-queryd and
  * /proc/ccs/grant_log and /proc/ccs/reject_log are handled by
- * /usr/lib/ccs/ccs-auditd .
+ * /usr/lib/ccs/ccs-auditd.
  */
 int ccs_poll_control(struct file *file, poll_table *wait)
 {
@@ -2962,8 +3037,8 @@ void *ccs_alloc_acl_element(const u8 acl_type,
 	case TYPE_SIGNAL_ACL:
 		len = sizeof(struct signal_acl_record);
 		break;
-	case TYPE_PREFERRED_EXECUTE_HANDLER:
-	case TYPE_DEFAULT_EXECUTE_HANDLER:
+	case TYPE_EXECUTE_HANDLER:
+	case TYPE_DENIED_EXECUTE_HANDLER:
 		len = sizeof(struct execute_handler_record);
 		break;
 	default:
@@ -2971,7 +3046,7 @@ void *ccs_alloc_acl_element(const u8 acl_type,
 	}
 	/*
 	 * If the ACL doesn't have condition part, reduce memory usage
-	 * by eliminating sizeof(struct condition_list *) .
+	 * by eliminating sizeof(struct condition_list *).
 	 */
 	if (!condition)
 		len -= sizeof(ptr->access_me_via_ccs_get_condition_part);

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -27,12 +27,14 @@
  */
 static char *ccs_print_bprm(struct linux_binprm *bprm)
 {
-	static const int buffer_len = PAGE_SIZE * 2;
+	static const int buffer_len = 4096 * 2;
 	char *buffer = ccs_alloc(buffer_len);
-	char *cp, *last_start;
+	char *cp;
+	char *last_start;
 	int len;
 	unsigned long pos = bprm->p;
-	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+	int i = pos / PAGE_SIZE;
+	int offset = pos % PAGE_SIZE;
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
 	bool truncated = false;

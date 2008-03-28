@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -73,8 +73,8 @@ static const char *cap_operation2name(const u8 operation)
  *
  * @operation:  Type of operation.
  * @is_granted: True if this is a granted log.
- * @profile:    Profile number.
- * @mode:       Access control mode.
+ * @profile:    Profile number used.
+ * @mode:       Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -118,8 +118,7 @@ static int update_capability_acl(const u8 operation, struct domain_info *domain,
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
-		    != TYPE_CAPABILITY_ACL)
+		if (ccs_acl_type1(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -139,7 +138,7 @@ static int update_capability_acl(const u8 operation, struct domain_info *domain,
  delete:
 	error = -ENOENT;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -173,7 +172,7 @@ bool ccs_capable(const u8 operation)
 		return true;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_CAPABILITY_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
 		acl = container_of(ptr, struct capability_acl_record, head);
 		if (acl->operation != operation ||
@@ -195,12 +194,11 @@ bool ccs_capable(const u8 operation)
 					    KEYWORD_ALLOW_CAPABILITY "%s\n",
 					    domain->domainname->name,
 					    ccs_cap2keyword(operation));
-	else if (mode == 1 && ccs_check_domain_quota(domain))
+	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_capability_acl(operation, domain, NULL, false);
 	return true;
 }
-/* I need to export this for net/unix/af_unix.c */
-EXPORT_SYMBOL(ccs_capable);
+EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
 
 /**
  * ccs_write_capability_policy - Write "struct capability_acl_record" list.

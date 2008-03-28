@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -102,7 +102,7 @@ static bool strendswith(const char *name, const char *tail)
 {
 	int len;
 	if (!name || !tail)
-		return 0;
+		return false;
 	len = strlen(name) - strlen(tail);
 	return len >= 0 && !strcmp(name + len, tail);
 }
@@ -119,18 +119,12 @@ static struct path_info *ccs_get_path(struct dentry *dentry,
 				      struct vfsmount *mnt)
 {
 	int error;
-	/*
-	 * This assignment is OK because
-	 *   sizeof(struct path_info_with_data)
-	 *   <= sizeof(struct ccs_page_buffer))
-	 * is checked at boot time.
-	 */
-	struct path_info_with_data *buf
-		= ccs_alloc(sizeof(struct ccs_page_buffer));
+	struct path_info_with_data *buf = ccs_alloc(sizeof(*buf));
 	if (!buf)
 		return NULL;
+	/* Preserve one byte for appending "/". */
 	error = ccs_realpath_from_dentry2(dentry, mnt, buf->body,
-					  sizeof(buf->body) - 1);
+					  sizeof(buf->body) - 2);
 	if (!error) {
 		buf->head.name = buf->body;
 		ccs_fill_path_info(&buf->head);
@@ -157,8 +151,8 @@ static int update_single_path_acl(const u8 type, const char *filename,
  * @filename1:  First pathname.
  * @filename2:  Second pathname. May be NULL.
  * @is_granted: True if this is a granted log.
- * @profile:    The mode for this request.
- * @mode:       Access control mode for this request.
+ * @profile:    Profile number used.
+ * @mode:       Access control mode used.
  * @bprm:       Pointer to "struct linux_binprm". May be NULL.
  *
  * Returns 0 on success, negative value otherwise.
@@ -171,6 +165,7 @@ static int audit_file_log(const char *operation,
 {
 	char *buf;
 	int len;
+	int len2;
 	if (ccs_can_save_audit_log(is_granted) < 0)
 		return -ENOMEM;
 	len = strlen(operation) + filename1->total_len + 16;
@@ -179,7 +174,8 @@ static int audit_file_log(const char *operation,
 	buf = ccs_init_audit_log(&len, profile, mode, bprm);
 	if (!buf)
 		return -ENOMEM;
-	snprintf(buf + strlen(buf), len - strlen(buf) - 1, "allow_%s %s %s\n",
+	len2 = strlen(buf);
+	snprintf(buf + len2, len - len2 - 1, "allow_%s %s %s\n",
 		 operation, filename1->name, filename2 ? filename2->name : "");
 	return ccs_write_audit_log(buf, is_granted);
 }
@@ -198,7 +194,8 @@ static LIST1_HEAD(globally_readable_list);
 static int update_globally_readable_entry(const char *filename,
 					  const bool is_delete)
 {
-	struct globally_readable_file_entry *new_entry, *ptr;
+	struct globally_readable_file_entry *new_entry;
+	struct globally_readable_file_entry *ptr;
 	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_filename;
 	int error = -ENOMEM;
@@ -209,11 +206,11 @@ static int update_globally_readable_entry(const char *filename,
 		return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &globally_readable_list, list) {
-		if (ptr->filename == saved_filename) {
-			ptr->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
+		if (ptr->filename != saved_filename)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		goto out;
 	}
 	if (is_delete) {
 		error = -ENOENT;
@@ -227,6 +224,7 @@ static int update_globally_readable_entry(const char *filename,
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -291,7 +289,7 @@ static LIST1_HEAD(path_group_list);
 /**
  * update_path_group_entry - Update "struct path_group_entry" list.
  *
- * @group_name:  The name of group.
+ * @group_name:  The name of pathname group.
  * @member_name: The name of group's member.
  * @is_delete:   True if it is a delete request.
  *
@@ -302,9 +300,12 @@ static int update_path_group_entry(const char *group_name,
 				   const bool is_delete)
 {
 	static DEFINE_MUTEX(lock);
-	struct path_group_entry *new_group, *group;
-	struct path_group_member *new_member, *member;
-	const struct path_info *saved_group_name, *saved_member_name;
+	struct path_group_entry *new_group;
+	struct path_group_entry *group;
+	struct path_group_member *new_member;
+	struct path_group_member *member;
+	const struct path_info *saved_group_name;
+	const struct path_info *saved_member_name;
 	int error = -ENOMEM;
 	bool found = false;
 	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
@@ -322,11 +323,11 @@ static int update_path_group_entry(const char *group_name,
 			continue;
 		list1_for_each_entry(member, &group->path_group_member_list,
 				     list) {
-			if (member->member_name == saved_member_name) {
-				member->is_deleted = is_delete;
-				error = 0;
-				goto out;
-			}
+			if (member->member_name != saved_member_name)
+				continue;
+			member->is_deleted = is_delete;
+			error = 0;
+			goto out;
 		}
 		found = true;
 		break;
@@ -352,6 +353,7 @@ static int update_path_group_entry(const char *group_name,
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -375,7 +377,7 @@ int ccs_write_path_group_policy(char *data, const bool is_delete)
 /**
  * find_or_assign_new_path_group - Create pathname group.
  *
- * @group_name: The name of group.
+ * @group_name: The name of pathname group.
  *
  * Returns pointer to "struct path_group_entry" if found, NULL otherwise.
  */
@@ -389,7 +391,7 @@ find_or_assign_new_path_group(const char *group_name)
 			if (!strcmp(group_name, group->group_name->name))
 				return group;
 		}
-		if (i == 0) {
+		if (!i) {
 			update_path_group_entry(group_name, "/", false);
 			update_path_group_entry(group_name, "/", true);
 		}
@@ -471,7 +473,8 @@ static LIST1_HEAD(pattern_list);
  */
 static int update_file_pattern_entry(const char *pattern, const bool is_delete)
 {
-	struct pattern_entry *new_entry, *ptr;
+	struct pattern_entry *new_entry;
+	struct pattern_entry *ptr;
 	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_pattern;
 	int error = -ENOMEM;
@@ -482,11 +485,11 @@ static int update_file_pattern_entry(const char *pattern, const bool is_delete)
 		return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &pattern_list, list) {
-		if (saved_pattern == ptr->pattern) {
-			ptr->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
+		if (saved_pattern != ptr->pattern)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		goto out;
 	}
 	if (is_delete) {
 		error = -ENOENT;
@@ -500,6 +503,7 @@ static int update_file_pattern_entry(const char *pattern, const bool is_delete)
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -594,11 +598,11 @@ static int update_no_rewrite_entry(const char *pattern, const bool is_delete)
 		return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &no_rewrite_list, list) {
-		if (ptr->pattern == saved_pattern) {
-			ptr->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
+		if (ptr->pattern != saved_pattern)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		goto out;
 	}
 	if (is_delete) {
 		error = -ENOENT;
@@ -612,6 +616,7 @@ static int update_no_rewrite_entry(const char *pattern, const bool is_delete)
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -735,7 +740,7 @@ static int check_single_path_acl2(const struct path_info *filename,
 	struct acl_info *ptr;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct single_path_acl_record *acl;
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SINGLE_PATH_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
 		acl = container_of(ptr, struct single_path_acl_record, head);
 		if (!(acl->perm & perm) || !ccs_check_condition(ptr, obj))
@@ -761,7 +766,7 @@ static int check_single_path_acl2(const struct path_info *filename,
  * check_file_acl - Check permission for opening files.
  *
  * @filename:  Filename to check.
- * @operation: Mode (read or write or read/write or execute).
+ * @operation: Mode ("read" or "write" or "read/write" or "execute").
  * @obj:       Pointer to "struct obj_info".
  *
  * Returns 0 on success, -EPERM otherwise.
@@ -789,7 +794,7 @@ static int check_file_acl(const struct path_info *filename, const u8 operation,
  * check_file_perm2 - Check permission for opening files.
  *
  * @filename:  Filename to check.
- * @perm:      Mode (read or write or read/write or execute).
+ * @perm:      Mode ("read" or "write" or "read/write" or "execute").
  * @operation: Operation name passed used for verbose mode.
  * @obj:       Pointer to "struct obj_info". May be NULL.
  * @profile:   Profile number passed to audit logs.
@@ -834,7 +839,7 @@ static int check_file_perm2(const struct path_info *filename, const u8 perm,
 		return ccs_check_supervisor("%s\nallow_%s %s\n",
 					    domain->domainname->name,
 					    msg, filename->name);
-	else if (mode == 1 && ccs_check_domain_quota(domain)) {
+	if (mode == 1 && ccs_check_domain_quota(domain)) {
 		/* Don't use patterns for execute permission. */
 		const struct path_info *patterned_file = (perm != 1) ?
 			get_file_pattern(filename) : filename;
@@ -873,9 +878,9 @@ static int update_execute_handler(const u8 type, const char *filename,
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		/* Condition not supported. */
-		if ((ptr->type & ~ACL_DELETED) != type)
+		if (ccs_acl_type1(ptr) != type)
 			continue;
+		/* Condition not supported. */
 		acl = container_of(ptr, struct execute_handler_record, head);
 		if (acl->handler != saved_filename)
 			continue;
@@ -902,8 +907,9 @@ static int update_execute_handler(const u8 type, const char *filename,
  delete:
 	error = -ENOENT;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~ACL_DELETED) != type)
+		if (ccs_acl_type2(ptr) != type)
 			continue;
+		/* Condition not supported. */
 		acl = container_of(ptr, struct execute_handler_record, head);
 		if (acl->handler != saved_filename)
 			continue;
@@ -941,10 +947,10 @@ int ccs_write_file_policy(char *data, struct domain_info *domain,
 				       is_delete);
 	if (strncmp(data, "allow_", 6)) {
 		u8 type;
-		if (!strcmp(data, KEYWORD_PREFERRED_EXECUTE_HANDLER))
-			type = TYPE_PREFERRED_EXECUTE_HANDLER;
-		else if (!strcmp(data, KEYWORD_DEFAULT_EXECUTE_HANDLER))
-			type = TYPE_DEFAULT_EXECUTE_HANDLER;
+		if (!strcmp(data, KEYWORD_EXECUTE_HANDLER))
+			type = TYPE_EXECUTE_HANDLER;
+		else if (!strcmp(data, KEYWORD_DENIED_EXECUTE_HANDLER))
+			type = TYPE_DENIED_EXECUTE_HANDLER;
 		else
 			goto out;
 		return update_execute_handler(type, filename,
@@ -1000,7 +1006,8 @@ static int update_single_path_acl(const u8 type, const char *filename,
 		return -EINVAL;
 	if (filename[0] == '@') {
 		/*
-		 * This cast is OK because I don't dereference in this function.
+		 * This cast is OK because I don't dereference
+		 * in this function.
 		 */
 		saved_filename = (struct path_info *)
 			find_or_assign_new_path_group(filename + 1);
@@ -1014,14 +1021,14 @@ static int update_single_path_acl(const u8 type, const char *filename,
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
-		    != TYPE_SINGLE_PATH_ACL)
+		if (ccs_acl_type1(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
 		acl = container_of(ptr, struct single_path_acl_record, head);
 		if (acl->u.filename != saved_filename)
 			continue;
+		/* Special case. Clear all bits if marked as deleted. */
 		if (ptr->type & ACL_DELETED)
 			acl->perm = 0;
 		acl->perm |= perm;
@@ -1044,7 +1051,7 @@ static int update_single_path_acl(const u8 type, const char *filename,
  delete:
 	error = -ENOENT;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SINGLE_PATH_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -1082,11 +1089,13 @@ static int update_double_path_acl(const u8 type, const char *filename1,
 				  const struct condition_list *condition,
 				  const bool is_delete)
 {
-	const struct path_info *saved_filename1, *saved_filename2;
+	const struct path_info *saved_filename1;
+	const struct path_info *saved_filename2;
 	struct acl_info *ptr;
 	struct double_path_acl_record *acl;
 	int error = -ENOMEM;
-	bool is_group1 = false, is_group2 = false;
+	bool is_group1 = false;
+	bool is_group2 = false;
 	const u8 perm = 1 << type;
 	if (!domain)
 		return -EINVAL;
@@ -1121,8 +1130,7 @@ static int update_double_path_acl(const u8 type, const char *filename1,
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
-		    != TYPE_DOUBLE_PATH_ACL)
+		if (ccs_acl_type1(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -1130,6 +1138,7 @@ static int update_double_path_acl(const u8 type, const char *filename1,
 		if (acl->u1.filename1 != saved_filename1 ||
 		    acl->u2.filename2 != saved_filename2)
 			continue;
+		/* Special case. Clear all bits if marked as deleted. */
 		if (ptr->type & ACL_DELETED)
 			acl->perm = 0;
 		acl->perm |= perm;
@@ -1150,7 +1159,7 @@ static int update_double_path_acl(const u8 type, const char *filename1,
  delete:
 	error = -ENOENT;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_DOUBLE_PATH_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -1207,7 +1216,7 @@ static int check_double_path_acl(const u8 type,
 		return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct double_path_acl_record *acl;
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_DOUBLE_PATH_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
 		acl = container_of(ptr, struct double_path_acl_record, head);
 		if (!(acl->perm & perm) || !ccs_check_condition(ptr, obj))
@@ -1247,7 +1256,7 @@ static int check_double_path_acl(const u8 type,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_single_path_permission2(const u8 operation,
+static int check_single_path_permission2(u8 operation,
 					 const struct path_info *filename,
 					 struct obj_info *obj,
 					 const u8 profile, const u8 mode)
@@ -1258,11 +1267,12 @@ static int check_single_path_permission2(const u8 operation,
 	const bool is_enforce = (mode == 3);
 	if (!mode)
 		return 0;
+ next:
 	error = check_single_path_acl(operation, filename, obj);
 	msg = ccs_sp2keyword(operation);
 	audit_file_log(msg, filename, NULL, !error, profile, mode, NULL);
 	if (!error)
-		goto out;
+		goto ok;
 	if (ccs_verbose_mode())
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
 		       ccs_get_msg(is_enforce), msg, filename->name,
@@ -1271,18 +1281,23 @@ static int check_single_path_permission2(const u8 operation,
 		error = ccs_check_supervisor("%s\nallow_%s %s\n",
 					     domain->domainname->name,
 					     msg, filename->name);
-	else if (mode == 1 && ccs_check_domain_quota(domain))
+	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_single_path_acl(operation,
 				       get_file_pattern(filename)->name,
 				       domain, NULL, false);
 	if (!is_enforce)
 		error = 0;
- out:
+ ok:
+	/*
+	 * Since "allow_truncate" doesn't imply "allow_rewrite" permission,
+	 * we need to check "allow_rewrite" permission if the filename is
+	 * specified by "deny_rewrite" keyword.
+	 */
 	if (!error && operation == TYPE_TRUNCATE_ACL &&
-	    is_no_rewrite_file(filename))
-		error = check_single_path_permission2(TYPE_REWRITE_ACL,
-						      filename, obj, profile,
-						      mode);
+	    is_no_rewrite_file(filename)) {
+		operation = TYPE_REWRITE_ACL;
+		goto next;
+	}
 	return error;
 }
 
@@ -1290,7 +1305,7 @@ static int check_single_path_permission2(const u8 operation,
  * ccs_check_file_perm - Check permission for sysctl()'s "read" and "write".
  *
  * @filename:  Filename to check.
- * @perm:      Mode (read or write or read/write).
+ * @perm:      Mode ("read" or "write" or "read/write").
  * @operation: Always "sysctl".
  *
  * Returns 0 on success, negative value otherwise.
@@ -1369,6 +1384,11 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	obj.path1_dentry = dentry;
 	obj.path1_vfsmnt = mnt;
 	error = 0;
+	/*
+	 * If the filename is specified by "deny_rewrite" keyword,
+	 * we need to check "allow_rewrite" permission when the filename is not
+	 * opened for append mode or the filename is truncated at open time.
+	 */
 	if ((acc_mode & MAY_WRITE) &&
 	    ((flag & O_TRUNC) || !(flag & O_APPEND))) {
 		if (is_no_rewrite_file(buf))
@@ -1399,7 +1419,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
-				     struct vfsmount *mnt)
+			 struct vfsmount *mnt)
 {
 	struct obj_info obj;
 	int error = -ENOMEM;
@@ -1416,6 +1436,7 @@ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	case TYPE_MKDIR_ACL:
 	case TYPE_RMDIR_ACL:
 		if (!buf->is_dir) {
+			/* ccs_get_path() preserves space for appending "/." */
 			strcat((char *) buf->name, "/");
 			ccs_fill_path_info(buf);
 		}
@@ -1431,8 +1452,7 @@ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		error = 0;
 	return error;
 }
-/* I need to export this for net/unix/af_unix.c  */
-EXPORT_SYMBOL(ccs_check_1path_perm);
+EXPORT_SYMBOL(ccs_check_1path_perm); /* for net/unix/af_unix.c  */
 
 /**
  * ccs_check_rewrite_permission - Check permission for "rewrite".
@@ -1501,6 +1521,7 @@ int ccs_check_2path_perm(const u8 operation,
 	if (operation == TYPE_RENAME_ACL) {
 		/* TYPE_LINK_ACL can't reach here for directory. */
 		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
+			/* ccs_get_path() preserves space for appending "/." */
 			if (!buf1->is_dir) {
 				strcat((char *) buf1->name, "/");
 				ccs_fill_path_info(buf1);

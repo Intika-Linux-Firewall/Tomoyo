@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -44,11 +44,11 @@ static int update_reserved_entry(const u16 min_port, const u16 max_port,
 	int error = -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &reservedport_list, list) {
-		if (ptr->min_port == min_port && max_port == ptr->max_port) {
-			ptr->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
+		if (ptr->min_port != min_port || max_port != ptr->max_port)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		goto out;
 	}
 	if (is_delete) {
 		error = -ENOENT;
@@ -63,6 +63,7 @@ static int update_reserved_entry(const u16 min_port, const u16 max_port,
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
 
@@ -87,8 +88,7 @@ int ccs_may_autobind(const u16 port)
 	return 0;
 	/***** CRITICAL SECTION END *****/
 }
-/* I need to export this for net/ipv4/ and net/ipv6/ */
-EXPORT_SYMBOL(ccs_may_autobind);
+EXPORT_SYMBOL(ccs_may_autobind); /* for net/ipv4/ and net/ipv6/ */
 
 /**
  * ccs_write_reserved_port_policy - Write "struct reserved_entry" list.
@@ -100,7 +100,8 @@ EXPORT_SYMBOL(ccs_may_autobind);
  */
 int ccs_write_reserved_port_policy(char *data, const bool is_delete)
 {
-	unsigned int from, to;
+	unsigned int from;
+	unsigned int to;
 	if (strchr(data, ' '))
 		goto out;
 	if (sscanf(data, "%u-%u", &from, &to) == 2) {
@@ -136,11 +137,8 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 			continue;
 		min_port = ptr->min_port;
 		max_port = ptr->max_port;
-		if (min_port != max_port)
-			snprintf(buffer, sizeof(buffer) - 1,
-				 "%u-%u", min_port, max_port);
-		else
-			snprintf(buffer, sizeof(buffer) - 1, "%u", min_port);
+		snprintf(buffer, sizeof(buffer) - 1, "%u%c%u", min_port,
+			 min_port != max_port ? '-' : '\0', max_port);
 		if (!ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer))
 			goto out;
 	}

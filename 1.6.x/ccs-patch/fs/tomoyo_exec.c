@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -22,8 +22,8 @@
  * @filename:   The fullpath of program.
  * @argv0:      The basename of argv[0].
  * @is_granted: True if this is a granted log.
- * @profile:    Profile number.
- * @mode:       Access control mode.
+ * @profile:    Profile number used.
+ * @mode:       Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -32,10 +32,11 @@ static int audit_argv0_log(const struct path_info *filename, const char *argv0,
 			   const u8 mode)
 {
 	char *buf;
-	int len, len2;
+	int len;
+	int len2;
 	if (ccs_can_save_audit_log(is_granted) < 0)
 		return -ENOMEM;
-	len = filename->total_len + strlen(argv0) + 8;
+	len = filename->total_len + strlen(argv0) + 64;
 	buf = ccs_init_audit_log(&len, profile, mode, NULL);
 	if (!buf)
 		return -ENOMEM;
@@ -63,7 +64,8 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 {
 	struct acl_info *ptr;
 	struct argv0_acl_record *acl;
-	const struct path_info *saved_filename, *saved_argv0;
+	const struct path_info *saved_filename;
+	const struct path_info *saved_argv0;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__) ||
 	    !ccs_is_correct_path(argv0, -1, 0, -1, __func__) ||
@@ -77,8 +79,7 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
-		    != TYPE_ARGV0_ACL)
+		if (ccs_acl_type1(ptr) != TYPE_ARGV0_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -100,7 +101,7 @@ static int update_argv0_entry(const char *filename, const char *argv0,
  delete:
 	error = -ENOENT;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ARGV0_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -134,7 +135,7 @@ static int check_argv0_acl(const struct path_info *filename, const char *argv0)
 	ccs_fill_path_info(&argv_0);
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct argv0_acl_record *acl;
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ARGV0_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
 			continue;
 		acl = container_of(ptr, struct argv0_acl_record, head);
 		if (!ccs_check_condition(ptr, NULL) ||
@@ -178,7 +179,7 @@ int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0)
 					    KEYWORD_ALLOW_ARGV0 "%s %s\n",
 					    domain->domainname->name,
 					    filename->name, argv0);
-	else if (mode == 1 && ccs_check_domain_quota(domain))
+	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_argv0_entry(filename->name, argv0, domain, NULL, false);
 	return 0;
 }

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -252,7 +252,8 @@ static int fs_symlink(const char *pathname, struct dentry *base, char *oldname,
  */
 static void normalize_line(unsigned char *buffer)
 {
-	unsigned char *sp = buffer, *dp = buffer;
+	unsigned char *sp = buffer;
+	unsigned char *dp = buffer;
 	bool first = true;
 	while (*sp && (*sp <= ' ' || *sp >= 127))
 		sp++;
@@ -272,7 +273,9 @@ static void normalize_line(unsigned char *buffer)
 static void unescape(char *filename)
 {
 	char *cp = filename;
-	char c, d, e;
+	char c;
+	char d;
+	char e;
 	if (!cp)
 		return;
 	while ((c = *filename++) != '\0') {
@@ -285,11 +288,14 @@ static void unescape(char *filename)
 			*cp++ = c;
 			continue;
 		}
-		if (c < '0' || c > '3' ||
-		    (d = *filename++) < '0' || d > '7' ||
-		    (e = *filename++) < '0' || e > '7') {
+		if (c < '0' || c > '3')
 			break;
-		}
+		d = *filename++;
+		if (d < '0' || d > '7')
+			break;
+		e = *filename++;
+		if (e < '0' || e > '7')
+			break;
 		*(unsigned char *) cp++ = (unsigned char)
 			(((unsigned char) (c - '0') << 6)
 			 + ((unsigned char) (d - '0') << 3)
@@ -313,9 +319,9 @@ static int syaoran_default_mode = -1;
 #if !defined(MODULE)
 static int __init syaoran_setup(char *str)
 {
-	if (strcmp(str, "accept") == 0)
+	if (!strcmp(str, "accept"))
 		syaoran_default_mode = 1;
-	else if (strcmp(str, "enforce") == 0)
+	else if (!strcmp(str, "enforce"))
 		syaoran_default_mode = 0;
 	return 0;
 }
@@ -373,7 +379,12 @@ static int syaoran_register_node_info(char *buffer, struct super_block *sb)
 	char *args[MAX_ARG];
 	int i;
 	int error = -EINVAL;
-	unsigned int perm, uid, gid, flags, major = 0, minor = 0;
+	unsigned int perm;
+	unsigned int uid;
+	unsigned int gid;
+	unsigned int flags;
+	unsigned int major = 0;
+	unsigned int minor = 0;
 	struct syaoran_sb_info *info =
 		(struct syaoran_sb_info *) sb->s_fs_info;
 	struct dev_entry *entry;
@@ -490,7 +501,8 @@ static int syaoran_register_node_info(char *buffer, struct super_block *sb)
 static void syaoran_put_super(struct super_block *sb)
 {
 	struct syaoran_sb_info *info;
-	struct dev_entry *entry, *tmp;
+	struct dev_entry *entry;
+	struct dev_entry *tmp;
 	if (!sb)
 		return;
 	info = (struct syaoran_sb_info *) sb->s_fs_info;
@@ -632,7 +644,7 @@ static int syaoran_initialize(struct super_block *sb, void *data)
 	static bool first = true;
 	if (first) {
 		first = false;
-		printk(KERN_INFO "SYAORAN: 1.6.0-rc   2008/03/26\n");
+		printk(KERN_INFO "SYAORAN: 1.6.0-rc   2008/03/28\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
@@ -661,10 +673,10 @@ static int syaoran_initialize(struct super_block *sb, void *data)
 		return -EINVAL;
 	}
 	/* If mode is given with mount operation, use it. */
-	if (strncmp(filename, "accept=", 7) == 0) {
+	if (!strncmp(filename, "accept=", 7)) {
 		filename += 7;
 		is_permissive_mode = true;
-	} else if (strncmp(filename, "enforce=", 8) == 0) {
+	} else if (!strncmp(filename, "enforce=", 8)) {
 		filename += 8;
 		is_permissive_mode = false;
 	} else if (syaoran_default_mode == -1) {
@@ -702,6 +714,7 @@ static int syaoran_initialize(struct super_block *sb, void *data)
 static int get_local_absolute_path(struct dentry *dentry, char *buffer,
 				   int buflen)
 {
+	/***** CRITICAL SECTION START *****/
 	char *start = buffer;
 	char *end = buffer + buflen;
 	int namelen;
@@ -739,24 +752,25 @@ static int get_local_absolute_path(struct dentry *dentry, char *buffer,
 	return 0;
  out:
 	return -ENOMEM;
+	/***** CRITICAL SECTION END *****/
 }
 
 /* Get absolute pathname of the given dentry from mount point. */
 static int local_ccs_realpath_from_dentry(struct dentry *dentry, char *newname,
 					  int newname_len)
 {
+	/***** CRITICAL SECTION START *****/
 	int error;
 	struct dentry *d_dentry;
 	if (!dentry || !newname || newname_len <= 0)
 		return -EINVAL;
 	d_dentry = dget(dentry);
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&dcache_lock);
 	error = get_local_absolute_path(d_dentry, newname, newname_len);
 	spin_unlock(&dcache_lock);
-	/***** CRITICAL SECTION END *****/
 	dput(d_dentry);
 	return error;
+	/***** CRITICAL SECTION END *****/
 }
 
 static int syaoran_check_flags(struct syaoran_sb_info *info,
