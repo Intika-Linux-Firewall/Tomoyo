@@ -1320,7 +1320,7 @@ Fix 2008/03/10
       invoked only when execve() request was rejected. In other words,
       this program is invoked only when the following conditions are met.
 
-        (1) None of "allow_execute" keywords in the domain didn't match.
+        (1) None of "allow_execute" keywords in the domain matched.
         (2) The execve() request was rejected in enforcing mode.
         (3) "execute_handler" keyword is not used by the domain.
 
@@ -1352,5 +1352,10 @@ Fix 2008/03/28
       and the execute handler attempts to process original execute request.
       But the original execute request is handled by the same execute handler
       unless the execute handler ignores "execute_handler".
+
+    @ Update coding style.
+
+      I rewrote the code to pass scripts/checkpatch.pl as much as possible.
+      Function names were changed to use only lower letters.
 
 Version 1.6.0 2008/??/??   Feature enhancement release.
