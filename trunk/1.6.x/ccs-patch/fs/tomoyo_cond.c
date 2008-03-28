@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -37,9 +37,9 @@ struct envp_entry {
 /**
  * check_argv - Check argv[] in "struct linux_binbrm".
  *
- * @index:   Index number of @arg_ptr .
- * @arg_ptr: Contents of argv[@index] .
- * @argc:    Length of @argv .
+ * @index:   Index number of @arg_ptr.
+ * @arg_ptr: Contents of argv[@index].
+ * @argc:    Length of @argv.
  * @argv:    Pointer to "struct argv_entry".
  * @checked: Set to true if @argv[@index] was found.
  *
@@ -72,7 +72,7 @@ static bool check_argv(const unsigned int index, const char *arg_ptr,
  *
  * @env_name:  The name of environment variable.
  * @env_value: The value of environment variable.
- * @envc:      Length of @envp .
+ * @envc:      Length of @envp.
  * @envp:      Pointer to "struct envp_entry".
  * @checked:   Set to true if @envp[@env_name] was found.
  *
@@ -113,9 +113,9 @@ static bool check_envp(const char *env_name, const char *env_value,
  * scan_bprm - Scan "struct linux_binprm".
  *
  * @bprm: Pointer to "struct linux_binprm".
- * @argc: Length of @argc .
+ * @argc: Length of @argc.
  * @argv: Pointer to "struct argv_entry".
- * @envc: Length of @envp .
+ * @envc: Length of @envp.
  * @envp: Poiner to "struct envp_entry".
  * @tmp:  Buffer for temporal use.
  *
@@ -149,7 +149,8 @@ static bool scan_bprm(const struct linux_binprm *bprm,
 	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
-	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+	int i = pos / PAGE_SIZE;
+	int offset = pos % PAGE_SIZE;
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
 	bool result = true;
@@ -330,9 +331,9 @@ static u8 parse_ulong(unsigned long *result, char **str)
  * print_ulong - Print an "unsigned long" value.
  *
  * @buffer:     Pointer to buffer.
- * @buffer_len: Size of @buffer .
+ * @buffer_len: Size of @buffer.
  * @value:      An "unsigned long" value.
- * @type:       Type of @value .
+ * @type:       Type of @value.
  *
  * Returns nothing.
  */
@@ -575,7 +576,7 @@ static bool parse_post_condition(char * const condition, u8 post_state[4])
  * find_same_condition - Search for same condition list.
  *
  * @new_ptr: Pointer to "struct condition_list".
- * @size:    Size of @new_ptr .
+ * @size:    Size of @new_ptr.
  *
  * Returns existing pointer to "struct condition_list" if the same entry was
  * found, NULL if memory allocation failed, @new_ptr otherwise.
@@ -594,7 +595,7 @@ find_same_condition(struct condition_list *new_ptr, const u32 size)
 			continue;
 		/*
 		 * Compare ptr and new_ptr
-		 * except ptr->list and new_ptr->list .
+		 * except ptr->list and new_ptr->list.
 		 */
 		if (memcmp(((u8 *) ptr) + sizeof(ptr->list),
 			   ((u8 *) new_ptr) + sizeof(new_ptr->list),
@@ -1027,7 +1028,8 @@ bool ccs_check_condition(const struct acl_info *acl, struct obj_info *obj)
 	for (i = 0; i < condc; i++) {
 		const u32 header = *ptr;
 		const bool match = (header >> 16) & 1;
-		const u8 left = header >> 8, right = header;
+		const u8 left = header >> 8;
+		const u8 right = header;
 		ptr++;
 		if ((left >= PATH1_UID && left < MAX_KEYWORD) ||
 		    (right >= PATH1_UID && right < MAX_KEYWORD)) {
@@ -1287,8 +1289,9 @@ bool ccs_check_condition(const struct acl_info *acl, struct obj_info *obj)
 void ccs_update_condition(const struct acl_info *acl)
 {
 	/*
-	 * Don't change lower bits because TOMOYO_CHECK_READ_FOR_OPEN_EXEC
-	 * and CCS_DONT_SLEEP_ON_ENFORCE_ERROR needs them.
+	 * Don't change the lowest byte because it is reserved for
+	 * TOMOYO_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
+	 * TOMOYO_TASK_IS_EXECUTE_HANDLER.
 	 */
 	const struct condition_list *ptr = ccs_get_condition_part(acl);
 	struct task_struct *task;
@@ -1322,7 +1325,7 @@ void ccs_update_condition(const struct acl_info *acl)
  * Returns true on success, false otherwise.
  */
 bool ccs_print_condition(struct ccs_io_buffer *head,
-			const struct condition_list *cond)
+			 const struct condition_list *cond)
 {
 	const unsigned long *ptr;
 	const struct argv_entry *argv;

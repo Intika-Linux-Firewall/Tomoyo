@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -41,7 +41,8 @@ static LIST1_HEAD(chroot_list);
  */
 static int update_chroot_acl(const char *dir, const bool is_delete)
 {
-	struct chroot_entry *new_entry, *ptr;
+	struct chroot_entry *new_entry;
+	struct chroot_entry *ptr;
 	const struct path_info *saved_dir;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
@@ -52,11 +53,11 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
 		return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &chroot_list, list) {
-		if (ptr->dir == saved_dir) {
-			ptr->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
+		if (ptr->dir != saved_dir)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		goto out;
 	}
 	if (is_delete) {
 		error = -ENOENT;
@@ -71,6 +72,7 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
 	printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level, dir);
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
 
@@ -79,30 +81,27 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
  *
  * @root_name: Requested directory name.
  * @mode:      Access control mode.
- * @error:     Error value.
  *
  * Returns 0 if @mode is not enforcing mode or permitted by the administrator's
  * decision, negative value otherwise.
  */
-static int print_error(const char *root_name, const u8 mode, int error)
+static int print_error(const char *root_name, const u8 mode)
 {
+	int error;
 	const bool is_enforce = (mode == 3);
 	const char *exename = ccs_get_exe();
 	printk(KERN_WARNING "SAKURA-%s: chroot %s (pid=%d:exe=%s): "
 	       "Permission denied.\n", ccs_get_msg(is_enforce),
 	       root_name, current->pid, exename);
-	if (is_enforce &&
-	    ccs_check_supervisor("# %s is requesting\n"
-				 "chroot %s\n", exename, root_name) == 0)
+	if (is_enforce)
+		error = ccs_check_supervisor("# %s is requesting\n"
+					     "chroot %s\n", exename, root_name);
+	else
 		error = 0;
 	if (exename)
 		ccs_free(exename);
-	if (mode == 1 && root_name) {
-		update_chroot_acl(root_name, 0);
-		ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
-	}
-	if (!is_enforce)
-		error = 0;
+	if (mode == 1 && root_name)
+		update_chroot_acl(root_name, false);
 	return error;
 }
 
@@ -134,15 +133,15 @@ int ccs_check_chroot_permission(struct nameidata *nd)
 			list1_for_each_entry(ptr, &chroot_list, list) {
 				if (ptr->is_deleted)
 					continue;
-				if (ccs_path_matches_pattern(&dir, ptr->dir)) {
-					error = 0;
-					break;
-				}
+				if (!ccs_path_matches_pattern(&dir, ptr->dir))
+					continue;
+				error = 0;
+				break;
 			}
 		}
 	}
 	if (error)
-		error = print_error(root_name, mode, error);
+		error = print_error(root_name, mode);
 	ccs_free(root_name);
 	return error;
 }

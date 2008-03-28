@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -117,7 +117,7 @@ const char *ccs_get_last_name(const struct domain_info *domain)
 /**
  * ccs_add_domain_acl - Add the given ACL to the given domain.
  *
- * @domain: Pointer to "struct domain_info".
+ * @domain: Pointer to "struct domain_info". May be NULL.
  * @acl:    Pointer to "struct acl_info".
  *
  * Returns 0.
@@ -135,7 +135,7 @@ int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
 /**
  * ccs_del_domain_acl - Delete the given ACL from the domain.
  *
- * @acl: Pointer to "struct acl_info".
+ * @acl: Pointer to "struct acl_info". May be NULL.
  *
  * Returns 0.
  */
@@ -150,13 +150,13 @@ int ccs_del_domain_acl(struct acl_info *acl)
 /**
  * audit_execute_handler_log - Audit execute_handler log.
  *
- * @is_preferred: True if it is "preffered_execute_handler" log.
- * @handler:      The realpath of the handler.
- * @bprm:         Pointer to "struct linux_binprm".
+ * @is_default: True if it is "execute_handler" log.
+ * @handler:    The realpath of the handler.
+ * @bprm:       Pointer to "struct linux_binprm".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_execute_handler_log(const bool is_preferred,
+static int audit_execute_handler_log(const bool is_default,
 				     const char *handler,
 				     struct linux_binprm *bprm)
 {
@@ -175,10 +175,8 @@ static int audit_execute_handler_log(const bool is_preferred,
 		return -ENOMEM;
 	len2 = strlen(buf);
 	snprintf(buf + len2, len - len2 - 1, "%s %s\n",
-		 is_preferred ?
-		 KEYWORD_PREFERRED_EXECUTE_HANDLER :
-		 KEYWORD_DEFAULT_EXECUTE_HANDLER,
-		 handler);
+		 is_default ? KEYWORD_EXECUTE_HANDLER :
+		 KEYWORD_DENIED_EXECUTE_HANDLER, handler);
 	return ccs_write_audit_log(buf, true);
 }
 
@@ -186,8 +184,8 @@ static int audit_execute_handler_log(const bool is_preferred,
  * audit_domain_creation_log - Audit domain creation log.
  *
  * @domainname: The name of newly created domain.
- * @mode:       Access control mode.
- * @profile:    Profile number.
+ * @mode:       Access control mode used.
+ * @profile:    Profile number used.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -234,9 +232,11 @@ static int update_domain_initializer_entry(const char *domainname,
 					   const bool is_not,
 					   const bool is_delete)
 {
-	struct domain_initializer_entry *new_entry, *ptr;
+	struct domain_initializer_entry *new_entry;
+	struct domain_initializer_entry *ptr;
 	static DEFINE_MUTEX(lock);
-	const struct path_info *saved_program, *saved_domainname = NULL;
+	const struct path_info *saved_program;
+	const struct path_info *saved_domainname = NULL;
 	int error = -ENOMEM;
 	bool is_last_name = false;
 	if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
@@ -279,6 +279,7 @@ static int update_domain_initializer_entry(const char *domainname,
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -293,24 +294,22 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
 	list1_for_each_cookie(pos, head->read_var2, &domain_initializer_list) {
+		const char *no;
+		const char *from = "";
+		const char *domain = "";
 		struct domain_initializer_entry *ptr;
 		ptr = list1_entry(pos, struct domain_initializer_entry, list);
 		if (ptr->is_deleted)
 			continue;
+		no = ptr->is_not ? "no_" : "";
 		if (ptr->domainname) {
-			if (!ccs_io_printf(head, "%s" KEYWORD_INITIALIZE_DOMAIN
-					   "%s from %s\n",
-					   ptr->is_not ? "no_" : "",
-					   ptr->program->name,
-					   ptr->domainname->name))
-				goto out;
-		} else {
-			if (!ccs_io_printf(head, "%s"
-					   KEYWORD_INITIALIZE_DOMAIN "%s\n",
-					   ptr->is_not ? "no_" : "",
-					   ptr->program->name))
-				goto out;
+			from = " from ";
+			domain = ptr->domainname->name;
 		}
+		if (!ccs_io_printf(head,
+				   "%s" KEYWORD_INITIALIZE_DOMAIN "%s%s%s\n",
+				   no, ptr->program->name, from, domain))
+				goto out;
 	}
 	return true;
  out:
@@ -334,10 +333,8 @@ int ccs_write_domain_initializer_policy(char *data, const bool is_not,
 		*cp = '\0';
 		return update_domain_initializer_entry(cp + 6, data, is_not,
 						       is_delete);
-	} else {
-		return update_domain_initializer_entry(NULL, data, is_not,
-						       is_delete);
 	}
+	return update_domain_initializer_entry(NULL, data, is_not, is_delete);
 }
 
 /**
@@ -394,8 +391,10 @@ static int update_domain_keeper_entry(const char *domainname,
 				      const char *program,
 				      const bool is_not, const bool is_delete)
 {
-	struct domain_keeper_entry *new_entry, *ptr;
-	const struct path_info *saved_domainname, *saved_program = NULL;
+	struct domain_keeper_entry *new_entry;
+	struct domain_keeper_entry *ptr;
+	const struct path_info *saved_domainname;
+	const struct path_info *saved_program = NULL;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	bool is_last_name = false;
@@ -439,6 +438,7 @@ static int update_domain_keeper_entry(const char *domainname,
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -458,10 +458,8 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_not,
 		*cp = '\0';
 		return update_domain_keeper_entry(cp + 6, data,
 						  is_not, is_delete);
-	} else {
-		return update_domain_keeper_entry(data, NULL,
-						  is_not, is_delete);
 	}
+	return update_domain_keeper_entry(data, NULL, is_not, is_delete);
 }
 
 /**
@@ -476,24 +474,21 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 	struct list1_head *pos;
 	list1_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
 		struct domain_keeper_entry *ptr;
-		const char *is_not;
+		const char *no;
+		const char *from = "";
+		const char *program = "";
 		ptr = list1_entry(pos, struct domain_keeper_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		is_not = ptr->is_not ? "no_" : "";
+		no = ptr->is_not ? "no_" : "";
 		if (ptr->program) {
-			if (!ccs_io_printf(head,
-					   "%s" KEYWORD_KEEP_DOMAIN "%s "
-					   "from %s\n",
-					   is_not, ptr->program->name,
-					   ptr->domainname->name))
-				goto out;
-		} else {
-			if (!ccs_io_printf(head,
-					   "%s" KEYWORD_KEEP_DOMAIN "%s\n",
-					   is_not, ptr->domainname->name))
-				goto out;
+			from = " from ";
+			program = ptr->program->name;
 		}
+		if (!ccs_io_printf(head,
+				   "%s" KEYWORD_KEEP_DOMAIN "%s%s%s\n", no,
+				   program, from, ptr->domainname->name))
+				goto out;
 	}
 	return true;
  out:
@@ -551,9 +546,11 @@ static int update_alias_entry(const char *original_name,
 			      const char *aliased_name,
 			      const bool is_delete)
 {
-	struct alias_entry *new_entry, *ptr;
+	struct alias_entry *new_entry;
+	struct alias_entry *ptr;
 	static DEFINE_MUTEX(lock);
-	const struct path_info *saved_original_name, *saved_aliased_name;
+	const struct path_info *saved_original_name;
+	const struct path_info *saved_aliased_name;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(original_name, 1, -1, -1, __func__) ||
 	    !ccs_is_correct_path(aliased_name, 1, -1, -1, __func__))
@@ -584,6 +581,7 @@ static int update_alias_entry(const char *original_name,
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -645,9 +643,11 @@ static int update_aggregator_entry(const char *original_name,
 				   const char *aggregated_name,
 				   const bool is_delete)
 {
-	struct aggregator_entry *new_entry, *ptr;
+	struct aggregator_entry *new_entry;
+	struct aggregator_entry *ptr;
 	static DEFINE_MUTEX(lock);
-	const struct path_info *saved_original_name, *saved_aggregated_name;
+	const struct path_info *saved_original_name;
+	const struct path_info *saved_aggregated_name;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(original_name, 1, 0, -1, __func__) ||
 	    !ccs_is_correct_path(aggregated_name, 1, -1, -1, __func__))
@@ -678,6 +678,7 @@ static int update_aggregator_entry(const char *original_name,
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -791,7 +792,8 @@ int ccs_delete_domain(char *domainname)
  */
 struct domain_info *ccs_undelete_domain(const char *domainname)
 {
-	struct domain_info *domain, *candidate_domain = NULL;
+	struct domain_info *domain;
+	struct domain_info *candidate_domain = NULL;
 	struct path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
@@ -864,10 +866,10 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		for_each_process(p) {
-			if (p->domain_info == domain) {
-				flag = true;
-				break;
-			}
+			if (p->domain_info != domain)
+				continue;
+			flag = true;
+			break;
 		}
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
@@ -1009,12 +1011,14 @@ static int find_next_domain(struct linux_binprm *bprm,
 	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 	const bool is_enforce = (mode == 3);
 	int retval;
-	struct path_info r, s, l;
+	struct path_info r; /* real name */
+	struct path_info s; /* symlink name */
+	struct path_info l; /* last name */
 
 	{
 		/*
 		 * Built-in initializers. This is needed because policies are
-		 * not loaded until starting /sbin/init .
+		 * not loaded until starting /sbin/init.
 		 */
 		static bool first = true;
 		if (first) {
@@ -1045,6 +1049,7 @@ static int find_next_domain(struct linux_binprm *bprm,
 
 	if (path_to_verify) {
 		if (ccs_pathcmp(&r, path_to_verify)) {
+			/* Failed to verify execute handler. */
 			static u8 counter = 20;
 			if (counter) {
 				counter--;
@@ -1122,8 +1127,8 @@ static int find_next_domain(struct linux_binprm *bprm,
 	} else if (old_domain == &KERNEL_DOMAIN && !sbin_init_started) {
 		/*
 		 * Needn't to transit from kernel domain before starting
-		 * /sbin/init . But transit from kernel domain if executing
-		 * initializers because they might start before /sbin/init .
+		 * /sbin/init. But transit from kernel domain if executing
+		 * initializers because they might start before /sbin/init.
 		 */
 		domain = old_domain;
 	} else if (is_domain_keeper(old_domain->domainname, &r, &l)) {
@@ -1139,11 +1144,9 @@ static int find_next_domain(struct linux_binprm *bprm,
 	domain = ccs_find_domain(new_domain_name);
 	if (domain)
 		goto done;
-	if (is_enforce) {
-		if (ccs_check_supervisor("#Need to create domain\n%s\n",
-					 new_domain_name))
+	if (is_enforce && ccs_check_supervisor("#Need to create domain\n%s\n",
+					       new_domain_name))
 			goto done;
-	}
 	domain = ccs_find_or_assign_new_domain(new_domain_name,
 					       old_domain->profile);
 	if (domain)
@@ -1180,7 +1183,8 @@ static int check_environ(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
-	int i = pos / PAGE_SIZE, offset = pos % PAGE_SIZE;
+	int i = pos / PAGE_SIZE;
+	int offset = pos % PAGE_SIZE;
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
 	/* printk(KERN_DEBUG "start %d %d\n", argv_count, envp_count); */
@@ -1270,7 +1274,9 @@ static int check_environ(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 static void unescape(unsigned char *dest)
 {
 	unsigned char *src = dest;
-	unsigned char c, d, e;
+	unsigned char c;
+	unsigned char d;
+	unsigned char e;
 	while ((c = *src++) != '\0') {
 		if (c != '\\') {
 			*dest++ = c;
@@ -1386,7 +1392,7 @@ static int try_alt_exec(struct linux_binprm *bprm,
 	 * Contents of modified bprm.
 	 * The envp[] in original bprm is moved to argv[] so that
 	 * the alternatively executed program won't be affected by
-	 * some dangerous environment variables like LD_PRELOAD .
+	 * some dangerous environment variables like LD_PRELOAD.
 	 *
 	 * modified bprm->argc
 	 *    = original bprm->argc + original bprm->envc + 7
@@ -1570,8 +1576,15 @@ static int try_alt_exec(struct linux_binprm *bprm,
  */
 static const struct path_info *find_execute_handler(const u8 type)
 {
-	const struct domain_info *domain = current->domain_info;
+	struct task_struct *task = current;
+	const struct domain_info *domain = task->domain_info;
 	struct acl_info *ptr;
+	/*
+	 * Don't use execute handler if the current process is
+	 * marked as execute handler to avoid infinite execute handler loop.
+	 */
+	if (task->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)
+		return NULL;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct execute_handler_record *acl;
 		if (ptr->type != type)
@@ -1609,7 +1622,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 	if (!buf)
 		return -ENOMEM;
 	/* printk(KERN_DEBUG "rootdepth=%d\n", get_root_depth()); */
-	handler = find_execute_handler(TYPE_PREFERRED_EXECUTE_HANDLER);
+	handler = find_execute_handler(TYPE_EXECUTE_HANDLER);
 	if (handler) {
 		retval = try_alt_exec(bprm, handler, &work, &next_domain, buf);
 		if (!retval)
@@ -1619,7 +1632,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 	retval = find_next_domain(bprm, &next_domain, NULL, buf);
 	if (retval != -EPERM)
 		goto ok;
-	handler = find_execute_handler(TYPE_DEFAULT_EXECUTE_HANDLER);
+	handler = find_execute_handler(TYPE_DENIED_EXECUTE_HANDLER);
 	if (handler) {
 		retval = try_alt_exec(bprm, handler, &work, &next_domain, buf);
 		if (!retval)
@@ -1636,8 +1649,15 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 	retval = search_binary_handler(bprm, regs);
 	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
  out:
+	/* Return to previous domain if execution failed. */
 	if (retval < 0)
 		task->domain_info = prev_domain;
+	/* Mark the current process as execute handler. */
+	else if (handler)
+		task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
+	/* Mark the current process as normal process. */
+	else
+		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
 	ccs_free(work);
 	ccs_free(buf);
 	return retval;

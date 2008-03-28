@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -44,8 +44,10 @@ static LIST1_HEAD(pivot_root_list);
 static int update_pivot_root_acl(const char *old_root, const char *new_root,
 				 const bool is_delete)
 {
-	struct pivot_root_entry *new_entry, *ptr;
-	const struct path_info *saved_old_root, *saved_new_root;
+	struct pivot_root_entry *new_entry;
+	struct pivot_root_entry *ptr;
+	const struct path_info *saved_old_root;
+	const struct path_info *saved_new_root;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(old_root, 1, 0, 1, __func__) ||
@@ -57,12 +59,12 @@ static int update_pivot_root_acl(const char *old_root, const char *new_root,
 		return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &pivot_root_list, list) {
-		if (ptr->old_root == saved_old_root &&
-		    ptr->new_root == saved_new_root) {
-			ptr->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
+		if (ptr->old_root != saved_old_root ||
+		    ptr->new_root != saved_new_root)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		goto out;
 	}
 	if (is_delete) {
 		error = -ENOENT;
@@ -79,6 +81,7 @@ static int update_pivot_root_acl(const char *old_root, const char *new_root,
 	       new_root, old_root);
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
 
@@ -118,13 +121,13 @@ int ccs_check_pivot_root_permission(struct nameidata *old_nd,
 			list1_for_each_entry(ptr, &pivot_root_list, list) {
 				if (ptr->is_deleted)
 					continue;
-				if (ccs_path_matches_pattern(&old_root_dir,
-							     ptr->old_root) &&
-				    ccs_path_matches_pattern(&new_root_dir,
-							     ptr->new_root)) {
-					error = 0;
-					break;
-				}
+				if (!ccs_path_matches_pattern(&old_root_dir,
+							      ptr->old_root) ||
+				    !ccs_path_matches_pattern(&new_root_dir,
+							      ptr->new_root))
+					continue;
+				error = 0;
+				break;
 			}
 		}
 	}
@@ -135,19 +138,17 @@ int ccs_check_pivot_root_permission(struct nameidata *old_nd,
 		       "(pid=%d:exe=%s): Permission denied.\n",
 		       ccs_get_msg(is_enforce), new_root, old_root,
 		       current->pid, exename);
-		if (is_enforce && ccs_check_supervisor("# %s is requesting\n"
-						       "pivot_root %s %s\n",
-						       exename, new_root,
-						       old_root) == 0)
+		if (is_enforce)
+			error = ccs_check_supervisor("# %s is requesting\n"
+						     "pivot_root %s %s\n",
+						     exename, new_root,
+						     old_root);
+		else
 			error = 0;
 		if (exename)
 			ccs_free(exename);
-		if (mode == 1 && old_root && new_root) {
+		if (mode == 1 && old_root && new_root)
 			update_pivot_root_acl(old_root, new_root, 0);
-			ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
-		}
-		if (!is_enforce)
-			error = 0;
 	}
 	ccs_free(old_root);
 	ccs_free(new_root);

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -28,8 +28,8 @@
  * @signal:      Signal number.
  * @dest_domain: Destination domainname.
  * @is_granted:  True if this is a granted log.
- * @profile:     Profile number.
- * @mode:        Access control mode.
+ * @profile:     Profile number used.
+ * @mode:        Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -40,14 +40,16 @@ static int audit_signal_log(const int signal,
 {
 	char *buf;
 	int len;
+	int len2;
 	if (ccs_can_save_audit_log(is_granted) < 0)
 		return -ENOMEM;
-	len = dest_domain->total_len;
+	len = dest_domain->total_len + 64;
 	buf = ccs_init_audit_log(&len, profile, mode, NULL);
 	if (!buf)
 		return -ENOMEM;
-	snprintf(buf + strlen(buf), len - strlen(buf) - 1,
-		 KEYWORD_ALLOW_SIGNAL "%d %s\n", signal, dest_domain->name);
+	len2 = strlen(buf);
+	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_SIGNAL "%d %s\n",
+		 signal, dest_domain->name);
 	return ccs_write_audit_log(buf, is_granted);
 }
 
@@ -83,8 +85,7 @@ static int update_signal_acl(const int sig, const char *dest_pattern,
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
-		    != TYPE_SIGNAL_ACL)
+		if (ccs_acl_type1(ptr) != TYPE_SIGNAL_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -106,7 +107,7 @@ static int update_signal_acl(const int sig, const char *dest_pattern,
  delete:
 	error = -ENOENT;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SIGNAL_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -146,11 +147,12 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
 	if (current->pid == pid) {
-		audit_signal_log(sig, domain->domainname, 1, profile, mode);
-		return 0;                /* No check for self. */
+		audit_signal_log(sig, domain->domainname, true, profile, mode);
+		return 0;                /* No check for self process. */
 	}
 	{ /* Simplified checking. */
 		struct task_struct *p = NULL;
+		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		if (pid > 0)
 			p = find_task_by_pid((pid_t) pid);
@@ -163,26 +165,31 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		if (p)
 			dest = p->domain_info;
 		read_unlock(&tasklist_lock);
+		/***** CRITICAL SECTION END *****/
 		if (!dest)
 			return 0; /* I can't find destinatioin. */
 	}
 	if (domain == dest) {
-		audit_signal_log(sig, dest->domainname, 1, profile, mode);
-		return 0;
+		audit_signal_log(sig, dest->domainname, true, profile, mode);
+		return 0;                /* No check for self domain. */
 	}
 	dest_pattern = dest->domainname->name;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct signal_acl_record *acl;
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_SIGNAL_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
 			continue;
 		acl = container_of(ptr, struct signal_acl_record, head);
 		if (acl->sig == hash && ccs_check_condition(ptr, NULL)) {
 			const int len = acl->domainname->total_len;
 			if (strncmp(acl->domainname->name, dest_pattern, len))
 				continue;
-			if (dest_pattern[len] != ' ' &&
-			    dest_pattern[len] != '\0')
+			switch (dest_pattern[len]) {
+			case ' ':
+			case '\0':
+				break;
+			default:
 				continue;
+			}
 			ccs_update_condition(ptr);
 			found = true;
 			break;
@@ -200,8 +207,8 @@ int ccs_check_signal_acl(const int sig, const int pid)
 					    KEYWORD_ALLOW_SIGNAL "%d %s\n",
 					    domain->domainname->name,
 					    sig, dest_pattern);
-	else if (mode == 1 && ccs_check_domain_quota(domain))
-		update_signal_acl(sig, dest_pattern, domain, NULL, 0);
+	if (mode == 1 && ccs_check_domain_quota(domain))
+		update_signal_acl(sig, dest_pattern, domain, NULL, false);
 	return 0;
 }
 

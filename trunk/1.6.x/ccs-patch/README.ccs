@@ -1247,8 +1247,8 @@ Fix 2008/02/29
       By default, this handler does nothing (i.e. merely reject execve()
       request). You can specify any program to start what you want to do.
 
-      You can redirect attackers to somewhere else (e.g. honeypot).
-      This makes it possible to act your Linux box as an on-demand honeypot
+      You can redirect attackers to somewhere else (e.g. honey pot).
+      This makes it possible to act your Linux box as an on-demand honey pot
       while keeping regular services for your usage.
 
       You can collect information of the attacker (e.g. IP address) and
@@ -1301,28 +1301,28 @@ Fix 2008/03/04
 
 Fix 2008/03/10
 
-    @ Rename "force_alt_exec" keyword to "preferred_execute_handler".
+    @ Rename "force_alt_exec" keyword to "execute_handler".
 
       To be able to use different programs for validating execve() parameters,
       I moved the location to specify the program's pathname from profile
       to domain policy.
 
-      The "preferred_execute_handler" keyword takes one pathname which is
+      The "execute_handler" keyword takes one pathname which is
       invoked whenever execve() request is issued. Thus, any "allow_execute"
-      keywords in a domain with "preferred_execute_handler" are ignored.
+      keywords in a domain with "execute_handler" are ignored.
       This keyword is designed for validating expected/desirable execve()
       requests in userspace, although there is no way to tell the caller
       that the execve() request was rejected.
 
-    @ Rename "alt_exec" keyword to "default_execute_handler".
+    @ Rename "alt_exec" keyword to "denied_execute_handler".
 
-      The "default_execute_handler" keyword takes one pathname which is
+      The "denied_execute_handler" keyword takes one pathname which is
       invoked only when execve() request was rejected. In other words,
       this program is invoked only when the following conditions are met.
 
         (1) None of "allow_execute" keywords in the domain didn't match.
         (2) The execve() request was rejected in enforcing mode.
-        (3) "preferred_execute_handler" keyword is not used by the domain.
+        (3) "execute_handler" keyword is not used by the domain.
 
       This keyword is designed for handling unexpected/undesirable execve()
       requests, to redirect the process issuing such requests to somewhere.
@@ -1336,5 +1336,21 @@ Fix 2008/03/18
 
       Locking order in pre_vfs_link() and pre_vfs_unlink() for 2.4 kernels
       after 2.4.33 were different from before 2.4.32 .
+
+Fix 2008/03/28
+
+    @ Disable execute handler loop.
+
+      To be able to use "execute_handler" in a "keep_domain" domain,
+      ignore "execute_handler" and "denied_execute_handler" keywords
+      if the current process is executing programs specified by
+      "execute_handler" or "denied_execute_handler" keyword.
+
+      This exception is needed to avoid infinite execute handler loop.
+      If a domain has both "keep_domain" and "execute_handler",
+      any execute request by that domain is handled by an execute handler,
+      and the execute handler attempts to process original execute request.
+      But the original execute request is handled by the same execute handler
+      unless the execute handler ignores "execute_handler".
 
 Version 1.6.0 2008/??/??   Feature enhancement release.

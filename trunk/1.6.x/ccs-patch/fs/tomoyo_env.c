@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,8 +21,8 @@
  *
  * @env:        The name of environment variable.
  * @is_granted: True if this is a granted log.
- * @profile:    Profile number.
- * @mode:       Access control mode.
+ * @profile:    Profile number used.
+ * @mode:       Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -34,7 +34,7 @@ static int audit_env_log(const char *env, const bool is_granted,
 	int len2;
 	if (ccs_can_save_audit_log(is_granted) < 0)
 		return -ENOMEM;
-	len = strlen(env) + 8;
+	len = strlen(env) + 64;
 	buf = ccs_init_audit_log(&len, profile, mode, NULL);
 	if (!buf)
 		return -ENOMEM;
@@ -64,22 +64,23 @@ static LIST1_HEAD(globally_usable_env_list);
 static int update_globally_usable_env_entry(const char *env,
 					    const bool is_delete)
 {
-	struct globally_usable_env_entry *new_entry, *ptr;
+	struct globally_usable_env_entry *new_entry;
+	struct globally_usable_env_entry *ptr;
 	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_env;
 	int error = -ENOMEM;
-	if (!ccs_is_correct_path(env, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(env, 0, 0, 0, __func__) || strchr(env, '='))
 		return -EINVAL;
 	saved_env = ccs_save_name(env);
 	if (!saved_env)
 		return -ENOMEM;
 	mutex_lock(&lock);
 	list1_for_each_entry(ptr, &globally_usable_env_list, list) {
-		if (ptr->env == saved_env) {
-			ptr->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
+		if (ptr->env != saved_env)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		goto out;
 	}
 	if (is_delete) {
 		error = -ENOENT;
@@ -93,6 +94,7 @@ static int update_globally_usable_env_entry(const char *env,
 	error = 0;
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -170,7 +172,7 @@ static int update_env_entry(const char *env, struct domain_info *domain,
 	struct env_acl_record *acl;
 	const struct path_info *saved_env;
 	int error = -ENOMEM;
-	if (!ccs_is_correct_path(env, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(env, 0, 0, 0, __func__) || strchr(env, '='))
 		return -EINVAL;
 	saved_env = ccs_save_name(env);
 	if (!saved_env)
@@ -180,8 +182,7 @@ static int update_env_entry(const char *env, struct domain_info *domain,
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION))
-		    != TYPE_ENV_ACL)
+		if (ccs_acl_type1(ptr) != TYPE_ENV_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -201,7 +202,7 @@ static int update_env_entry(const char *env, struct domain_info *domain,
  delete:
 	error = -ENOENT;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
@@ -233,7 +234,7 @@ static int check_env_acl(const char *environ)
 	ccs_fill_path_info(&env);
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct env_acl_record *acl;
-		if ((ptr->type & ~ACL_WITH_CONDITION) != TYPE_ENV_ACL)
+		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
 			continue;
 		acl = container_of(ptr, struct env_acl_record, head);
 		if (!ccs_check_condition(ptr, NULL) ||
@@ -276,7 +277,7 @@ int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode)
 	if (is_enforce)
 		return ccs_check_supervisor("%s\n" KEYWORD_ALLOW_ENV "%s\n",
 					    domain->domainname->name, env);
-	else if (mode == 1 && ccs_check_domain_quota(domain))
+	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_env_entry(env, domain, NULL, false);
 	return 0;
 }

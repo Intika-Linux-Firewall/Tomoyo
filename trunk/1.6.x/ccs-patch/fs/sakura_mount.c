@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -91,8 +91,11 @@ static int update_mount_acl(const char *dev_name, const char *dir_name,
 			    const bool is_delete)
 {
 	struct file_system_type *type = NULL;
-	struct mount_entry *new_entry, *ptr;
-	const struct path_info *fs, *dev, *dir;
+	struct mount_entry *new_entry;
+	struct mount_entry *ptr;
+	const struct path_info *fs;
+	const struct path_info *dev;
+	const struct path_info *dir;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	fs = ccs_save_name(fs_type);
@@ -179,6 +182,7 @@ static int update_mount_acl(const char *dev_name, const char *dir_name,
 		put_filesystem(type);
  out:
 	mutex_unlock(&lock);
+	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
 
@@ -189,7 +193,7 @@ static int update_mount_acl(const char *dev_name, const char *dir_name,
  * @dir_name: Name of mount point.
  * @type:     Name of filesystem type.
  * @flags:    Mount options.
- * @need_dev: Type of @dev_name .
+ * @need_dev: Type of @dev_name.
  *
  * Returns nothing.
  */
@@ -249,13 +253,12 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       ccs_get_msg(is_enforce),
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
-		if (is_enforce &&
-		    ccs_check_supervisor("# %s is requesting\n"
-					 "mount -o remount %s 0x%lX\n",
-					 exename,
-					 realname2 ? realname2 : dir_name,
-					 flags) == 0)
-			error = 0;
+		if (is_enforce)
+			error = ccs_check_supervisor("# %s is requesting\n"
+						     "mount -o remount %s "
+						     "0x%lX\n", exename,
+						     realname2 ? realname2
+						     : dir_name, flags);
 	} else if (!strcmp(type, MOUNT_BIND_KEYWORD)
 		   || !strcmp(type, MOUNT_MOVE_KEYWORD)) {
 		printk(KERN_WARNING "SAKURA-%s: mount %s %s %s 0x%lX "
@@ -264,14 +267,14 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname1 ? realname1 : dev_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
-		if (is_enforce &&
-		    ccs_check_supervisor("# %s is requesting\n"
-					 "mount %s %s %s 0x%lX\n", exename,
-					 type,
-					 realname1 ? realname1 : dev_name,
-					 realname2 ? realname2 : dir_name,
-					 flags) == 0)
-			error = 0;
+		if (is_enforce)
+			error = ccs_check_supervisor("# %s is requesting\n"
+						     "mount %s %s %s 0x%lX\n",
+						     exename, type,
+						     realname1 ? realname1 :
+						     dev_name,
+						     realname2 ? realname2 :
+						     dir_name, flags);
 	} else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
 		   !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
 		   !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
@@ -281,12 +284,12 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       ccs_get_msg(is_enforce), type,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
-		if (is_enforce &&
-		    ccs_check_supervisor("# %s is requesting\n"
-					 "mount %s %s 0x%lX", exename, type,
-					 realname2 ? realname2 : dir_name,
-					 flags) == 0)
-			error = 0;
+		if (is_enforce)
+			error = ccs_check_supervisor("# %s is requesting\n"
+						     "mount %s %s 0x%lX",
+						     exename, type,
+						     realname2 ? realname2 :
+						     dir_name, flags);
 	} else {
 		printk(KERN_WARNING "SAKURA-%s: mount -t %s %s %s 0x%lX "
 		       "(pid=%d:exe=%s): Permission denied.\n",
@@ -294,14 +297,14 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname1 ? realname1 : dev_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
-		if (is_enforce &&
-		    ccs_check_supervisor("# %s is requesting\n"
-					 "mount -t %s %s %s 0x%lX\n",
-					 exename, type,
-					 realname1 ? realname1 : dev_name,
-					 realname2 ? realname2 : dir_name,
-					 flags) == 0)
-			error = 0;
+		if (is_enforce)
+			error = ccs_check_supervisor("# %s is requesting\n"
+						     "mount -t %s %s %s "
+						     "0x%lX\n", exename, type,
+						     realname1 ? realname1 :
+						     dev_name,
+						     realname2 ? realname2 :
+						     dir_name, flags);
 	}
 	ccs_free(exename);
 	ccs_free(realname2);
@@ -394,7 +397,8 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 		struct file_system_type *fstype = NULL;
 		const char *requested_dir_name = NULL;
 		const char *requested_dev_name = NULL;
-		struct path_info rdev, rdir;
+		struct path_info rdev;
+		struct path_info rdir;
 		int need_dev = 0;
 
 		requested_dir_name = ccs_realpath(dir_name);
@@ -474,12 +478,10 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 		if (error)
 			error = print_error(dev_name, dir_name, type, flags,
 					    is_enforce, error);
-		if (error && mode == 1) {
+		if (error && mode == 1)
 			update_mount_acl(need_dev ?
 					 requested_dev_name : dev_name,
 					 requested_dir_name, type, flags, 0);
-			ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
-		}
  cleanup:
 		ccs_free(requested_dev_name);
 		ccs_free(requested_dir_name);
@@ -501,7 +503,7 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * This is a wrapper to allow use of 1.4.x patch for 1.5.x .
+ * This is a wrapper to allow use of 1.4.x patch for 1.5.x.
  */
 int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 			       const unsigned long *flags)
@@ -519,8 +521,11 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
  */
 int ccs_write_mount_policy(char *data, const bool is_delete)
 {
-	char *cp, *cp2;
-	const char *fs, *dev, *dir;
+	char *cp;
+	char *cp2;
+	const char *fs;
+	const char *dev;
+	const char *dir;
 	unsigned long flags = 0;
 	cp2 = data;
 	cp = strchr(cp2, ' ');

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0-rc   2008/03/26
+ * Version: 1.6.0-rc   2008/03/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -221,7 +221,7 @@ struct path_info {
  *
  * A token consists of only ASCII printable characters.
  * Non printable characters in a token is represented in \ooo style
- * octal string. Thus, \ itself is represented as \\ .
+ * octal string. Thus, \ itself is represented as \\.
  */
 #define CCS_MAX_PATHNAME_LEN 4000
 
@@ -298,7 +298,7 @@ struct domain_info {
 	u8 profile;        /* Profile number to use. */
 	u8 is_deleted;     /* Delete flag.           */
 	bool quota_warned; /* Quota warnning flag.   */
-	/* DOMAIN_FLAGS_IGNORE_* . Use ccs_set_domain_flag() to modify. */
+	/* DOMAIN_FLAGS_IGNORE_*. Use ccs_set_domain_flag() to modify. */
 	u8 flags;
 };
 
@@ -311,14 +311,26 @@ struct domain_info {
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2
 
 /*
- * Structure for "preferred_execute_handler" and "default_execute_handler"
- * directive. These directives can exist only one entry in a domain.
- * If "preferred_execute_handler" directive exists, all "allow_execute"
- * and "default_execute_handler" directive are ignored.
+ * Structure for "execute_handler" and "denied_execute_handler" directive.
+ * These directives can exist only one entry in a domain.
+ *
+ * If "execute_handler" directive exists and the current process is not
+ * an execute handler, all execve() requests are replaced by execve() requests
+ * of a program specified by "execute_handler" directive.
+ * If the current process is an execute handler,
+ * "execute_handler" and "denied_execute_handler" directives are ignored.
+ * The program specified by "execute_handler" validates execve() parameters
+ * and executes the original execve() requests if appropriate.
+ *
+ * "denied_execute_handler" directive is used only when execve() request was
+ * rejected in enforcing mode (i.e. MAC_FOR_FILE=enforcing).
+ * The program specified by "denied_execute_handler" does whatever it wants
+ * to do (e.g. silently terminate, change firewall settings,
+ * redirect the user to honey pot etc.).
  */
 struct execute_handler_record {
-	struct acl_info head;            /* type = TYPE_*_EXECUTE_HANDLER */
-	const struct path_info *handler; /* Pointer to single pathname.   */
+	struct acl_info head;            /* type = TYPE_*EXECUTE_HANDLER */
+	const struct path_info *handler; /* Pointer to single pathname.  */
 };
 
 /*
@@ -467,10 +479,10 @@ struct ip_network_acl_record {
 #define KEYWORD_USE_PROFILE               "use_profile "
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
-#define KEYWORD_PREFERRED_EXECUTE_HANDLER "preferred_execute_handler"
-#define KEYWORD_DEFAULT_EXECUTE_HANDLER   "default_execute_handler"
+#define KEYWORD_EXECUTE_HANDLER           "execute_handler"
+#define KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
 #define KEYWORD_MAC_FOR_CAPABILITY        "MAC_FOR_CAPABILITY::"
-/* A domain definition starts with <kernel> . */
+/* A domain definition starts with <kernel>. */
 #define ROOT_NAME                         "<kernel>"
 #define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
 
@@ -510,9 +522,9 @@ struct ccs_io_buffer {
 	int (*read) (struct ccs_io_buffer *);
 	int (*write) (struct ccs_io_buffer *);
 	int (*poll) (struct file *file, poll_table *wait);
-	/* Exclusive lock for read_buf .        */
+	/* Exclusive lock for read_buf.         */
 	struct mutex read_sem;
-	/* Exclusive lock for write_buf .       */
+	/* Exclusive lock for write_buf.        */
 	struct mutex write_sem;
 	/* The position currently reading from. */
 	struct list1_head *read_var1;
@@ -604,9 +616,6 @@ bool ccs_verbose_mode(void);
 /* Allocate buffer for domain policy auditing. */
 char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
 			 struct linux_binprm *bprm);
-/* Print an IPv6 address. */
-char *ccs_print_ipv6(char *buffer, const int buffer_len,
-		     const struct in6_addr *ip);
 /* Convert capability index to capability name. */
 const char *ccs_cap2keyword(const u8 operation);
 /* Convert double path operation to operation name. */
@@ -691,7 +700,7 @@ int ccs_write_env_policy(char *data, struct domain_info *domain,
  * "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
  * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
  * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_rename",
- * "allow_link", "preferred_execute_handler" and "default_execute_handler"
+ * "allow_link", "execute_handler" and "denied_execute_handler"
  * entry in domain policy.
  */
 int ccs_write_file_policy(char *data, struct domain_info *domain,
@@ -746,7 +755,10 @@ void *ccs_alloc_acl_element(const u8 acl_type,
 void ccs_fill_path_info(struct path_info *ptr);
 /* Run policy loader when /sbin/init starts. */
 void ccs_load_policy(const char *filename);
-/* Change "struct domain_info"->flags . */
+/* Print an IPv6 address. */
+void ccs_print_ipv6(char *buffer, const int buffer_len,
+		    const struct in6_addr *ip);
+/* Change "struct domain_info"->flags. */
 void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
 			 const u8 flags);
 /* Update the process's state. */
@@ -759,6 +771,18 @@ static inline bool ccs_pathcmp(const struct path_info *a,
 			       const struct path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
+}
+
+/* Get type of an ACL entry. */
+static inline u8 ccs_acl_type1(struct acl_info *ptr)
+{
+	return (ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION));
+}
+
+/* Get type of an ACL entry. */
+static inline u8 ccs_acl_type2(struct acl_info *ptr)
+{
+	return (ptr->type & ~ACL_WITH_CONDITION);
 }
 
 /* A linked list of domains. */
