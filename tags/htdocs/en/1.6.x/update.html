@@ -19,7 +19,7 @@
 
 <ul>
 <li>The pathname of files has changed.
-<li>The dependency of files has changed. 
+<li>The dependency of files has changed.
 <li>The access permissions required has increased.
 </ul>
 
@@ -35,17 +35,17 @@
 
 <table border="1">
 <tr><td>
-setlevel 3-ALLOW_ENFORCE_GRACE=enabled
+/usr/sbin/ccs-setlevel 3-ALLOW_ENFORCE_GRACE=enabled
 </td></tr>
 </table>
 
-<p>You may assign profiles for "enforcing mode" that only differ the value of ALLOW_ENFORCE_GRACE using "setprofile" command instead for directly changing the values of ALLOW_ENFORCE_GRACE of existent profiles for "enforcing mode" using "setlevel" command.</p>
+<p>You may assign profiles for "enforcing mode" that only differ the value of ALLOW_ENFORCE_GRACE using "ccs-setprofile" command instead for directly changing the values of ALLOW_ENFORCE_GRACE of existent profiles for "enforcing mode" using "ccs-setlevel" command.</p>
 
 <p>Start the following command.</p>
 
 <table border="1">
 <tr><td>
-ccs-queryd
+/usr/sbin/ccs-queryd
 </td></tr>
 </table>
 
@@ -53,17 +53,17 @@ ccs-queryd
 
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
 
-<p>If either the profiles are configured with "ALLOW_ENFORCE_GRACE=disabled" or "ccs-queryd" is not running, the access requests that violated policy are rejected immediately. if both the profiles are configured with "ALLOW_ENFORCE_GRACE=disabled" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Thus, you had better not to logout while "ccs-queryd" is running.</p>
+<p>If either the profiles are configured with "ALLOW_ENFORCE_GRACE=disabled" or "ccs-queryd" is not running, the access requests that violated policy are rejected immediately. If both the profiles are configured with "ALLOW_ENFORCE_GRACE=enabled" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Thus, you had better not to logout while "ccs-queryd" is running.</p>
 
 <p>Next, start the following command at Window-2.</p>
 
 <table border="1">
 <tr><td>
-ld-watch
+/usr/sbin/ccs-ld-watch
 </td></tr>
 </table>
 
-<p>The "ld-watch" automatically appends shared libraries to exception policy using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed. By using "ld-watch", you can avoid errors "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.</p>
+<p>The "ccs-ld-watch" automatically appends shared libraries to exception policy using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed. By using "ccs-ld-watch", you can avoid errors "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.</p>
 
 <p>Next, switch to Window-3, and run the commands for updating packages.</p>
 
@@ -77,7 +77,7 @@ ld-watch
 
 <table border="1">
 <tr><td>
-savepolicy
+/usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
 
@@ -85,7 +85,7 @@ savepolicy
 
 <table border="1">
 <tr><td>
-findtemp &lt; /etc/ccs/exception_policy.conf
+/usr/sbin/ccs-findtemp &lt; /etc/ccs/exception_policy.conf
 </td></tr>
 </table>
 
@@ -93,7 +93,7 @@ findtemp &lt; /etc/ccs/exception_policy.conf
 
 <table border="1">
 <tr><td>
-loadpolicy ef
+/usr/sbin/ccs-loadpolicy ef
 </td></tr>
 </table>
 
@@ -101,7 +101,7 @@ loadpolicy ef
 
 <table border="1">
 <tr><td>
-findtemp &lt; /etc/ccs/domain_policy.conf
+/usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.conf
 </td></tr>
 </table>
 
@@ -113,7 +113,7 @@ findtemp &lt; /etc/ccs/domain_policy.conf
 
 <table border="1">
 <tr><td>
-loadpolicy df
+/usr/sbin/ccs-loadpolicy df
 </td></tr>
 </table>
 
@@ -123,7 +123,7 @@ loadpolicy df
 
 <table border="1">
 <tr><td>
-savepolicy
+/usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
 
@@ -133,7 +133,7 @@ savepolicy
 
 <table border="1">
 <tr><td>
-setlevel 3-ALLOW_ENFORCE_GRACE=disabled
+/usr/sbin/ccs-setlevel 3-ALLOW_ENFORCE_GRACE=disabled
 </td></tr>
 </table>
 
