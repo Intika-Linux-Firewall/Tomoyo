@@ -8,7 +8,7 @@
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
-<p style="text-align:right;"><a href="../../../../ja/1.5.x/1st-step/sarge/index.html">Japanese Page</a></p>
+<p style="text-align:right;"><a href="../../../../ja/1.6.x/1st-step/sarge/index.html">Japanese Page</a></p>
 <h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> Kickstarting Manual for Debian Sarge</h1>
 
 <ul>
@@ -28,7 +28,7 @@
 
 <h2><a name="l1">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.5.3 on Debian Sarge systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.6.0 on Debian Sarge systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 
 <ol>
@@ -45,13 +45,13 @@ But regarding Debian Sarge, a binary kernel package is and this page uses it.</p
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.6.8-4-686-smp-ccs1.5.3_2.6.8-17sarge1_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-image-2.6.8-4-686-smp-ccs1.6.0_2.6.8-17sarge1_i386.deb</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">dpkg -i kernel-image-2.6.8-4-686-smp-ccs1.5.3_2.6.8-17sarge1_i386.deb</span>
+# <span class="user">dpkg -i kernel-image-2.6.8-4-686-smp-ccs1.6.0_2.6.8-17sarge1_i386.deb</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
@@ -79,15 +79,15 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 <p>A binary tools package is provided and this page uses it.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.3-1_Sarge_i386.deb</span>
-# <span class="user">dpkg -i ccs-tools_1.5.3-1_Sarge_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.6.0-1_Sarge_i386.deb</span>
+# <span class="user">dpkg -i ccs-tools_1.6.0-1_Sarge_i386.deb</span>
 </pre>
 
-<p>Add /usr/lib/ccs (the location of TOMOYO Linux tools) to the environment variable PATH.
+<p>Add /usr/sbin (the location of TOMOYO Linux tools) to the environment variable PATH.
 If you are using bash, run the following commands.</p>
 
 <pre>
-# <span class="user">echo 'export PATH=$PATH:/usr/lib/ccs' &gt;&gt; ~/.bashrc</span>
+# <span class="user">echo 'export PATH=$PATH:/usr/sbin' &gt;&gt; ~/.bashrc</span>
 # <span class="user">source ~/.bashrc</span>
 </pre>
 
@@ -97,7 +97,7 @@ If you are using bash, run the following commands.</p>
 
 <p>A script is included in the tools package that performs configurations in this chapter. Run the script as follows.</p>
 
-<pre># <span class="user">init_policy.sh --file-only-profile</span></pre>
+<pre># <span class="user">/usr/lib/ccs/init_policy.sh --file-only-profile</span></pre>
 
 <p>The execution of init_policy.sh may take long time (more than 10 minutes in some environment).</p>
 
@@ -114,17 +114,17 @@ All profiles are stored in a single file /etc/ccs/profile.conf and you can switc
 
 <pre>
 0-COMMENT=-----DISABLED_MODE-----
-0-MAC_FOR_FILE=0
-0-TOMOYO_VERBOSE=0
+0-MAC_FOR_FILE=disabled
+0-TOMOYO_VERBOSE=disabled
 1-COMMENT=-----LEARNING_MODE-----
-1-MAC_FOR_FILE=1
-1-TOMOYO_VERBOSE=0
+1-MAC_FOR_FILE=learning
+1-TOMOYO_VERBOSE=disabled
 2-COMMENT=-----PERMISSIVE_MODE-----
-2-MAC_FOF_FILE=2
-2-TOMOYO_VERBOSE=1
+2-MAC_FOF_FILE=permissive
+2-TOMOYO_VERBOSE=enabled
 3-COMMENT=-----ENFORCING_MODE-----
-3-MAC_FOR_FILE=3
-3-TOMOYO_VERBOSE=1
+3-MAC_FOR_FILE=enforcing
+3-TOMOYO_VERBOSE=enabled
 </pre>
 
 <p>The syntax of an entry of /etc/ccs/profile.conf is shown below.</p>
@@ -133,7 +133,7 @@ All profiles are stored in a single file /etc/ccs/profile.conf and you can switc
 $profile_number-$topic_name=$control_mode
 </pre>
 
-<p>The leading integer ($profile_number) is the number of profile, the followed word before = ($topic_name) is the name of functionalities and the trailing integer after = ($control_mode) is the control mode.</p>
+<p>The leading integer ($profile_number) is the name of profile, the followed word before = ($topic_name) is the name of functionalities and the trailing value after = ($control_mode) is the control mode.</p>
 
 <p>The $topic_name = COMMENT is just for administrators.</p>
 
@@ -170,16 +170,21 @@ The following programs are listed.</p>
 
 <h3>About exception policy</h3>
 
-<p>/etc/ccs/exception_policy.conf contains the following 7 types of exceptions.</p>
+<p>/etc/ccs/exception_policy.conf contains the following 12 types of exceptions.</p>
 
 <ol>
-<li>Pathname patterns like /proc/PID/ to make group</li>
+<li>Pathname pattern</li>
+<li>Pathname group</li>
+<li>Address group</li>
 <li>Unconditionally readable files</li>
-<li>Domain transition initializers</li>
-<li>Domain keepers</li>
+<li>Unconditionally usable environment variable names</li>
 <li>Non-rewritable files</li>
-<li>Program aggregations</li>
 <li>Programs invocable via symbolic links</li>
+<li>Program aggregations</li>
+<li>Programs that cause domain transition initialization</li>
+<li>Programs that prevent domain transition initialization</li>
+<li>Domains that prevent domain transition</li>
+<li>Domains that cause domain transition</li>
 </ol>
 
 <h2><a name="l5">Preparation for audit logs</a></h2>
@@ -257,7 +262,7 @@ You need to create the directory to save before you run this script.</p>
 So, assign this profile to /sbin/getty and programs invoked by /sbin/getty .</p>
 
 <pre>
-# <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>This command means</p>
@@ -276,13 +281,13 @@ So, assign this profile to /sbin/getty and programs invoked by /sbin/getty .</p>
 
 <h3><a name="l9">Editing generated policies</a></h3>
 
-<p>To refer and/or edit generated policy, you can use "editpolicy" in the TOMOYO Linux tools package.</p>
+<p>To refer and/or edit generated policy, you can use "ccs-editpolicy" in the TOMOYO Linux tools package.</p>
 
 <pre>
-# <span class="user">editpolicy</span>
+# <span class="user">ccs-editpolicy</span>
 </pre>
 
-<p>When you run "editpolicy", the list of process invocation history since the bootup is shown, explaining how programs are invoked until now.
+<p>When you run "ccs-editpolicy", the list of process invocation history since the bootup is shown, explaining how programs are invoked until now.
 TOMOYO Linux calls this invocation chains as "DOMAIN transition tree".</p>
 
 <p><img alt="Domain Transition" title="Domain Transition" width="720" height="400" src="editpolicy1.png"></p>
@@ -316,7 +321,7 @@ Each process belongs to single domain, and access permissions are granted to dom
 <p>Policies are kept on the memory and if they will be lost if you shutdown the system. To save policies currently on the memory onto disk, run the following command.</p>
 
 <pre>
-# <span class="user">savepolicy</span>
+# <span class="user">ccs-savepolicy</span>
 </pre>
 
 <h3><a name="l10">Enforcing MAC</a></h3>
@@ -326,7 +331,7 @@ Each process belongs to single domain, and access permissions are granted to dom
 <p>Quit the "editpolicy" with 'q' key and run the following command.</p>
 
 <pre>
-# <span class="user">setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>From now on, the domains under /sbin/getty are protected by MAC.</p>
