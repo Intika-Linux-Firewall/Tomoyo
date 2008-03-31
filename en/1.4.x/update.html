@@ -53,7 +53,7 @@ ccs-queryd
 
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
 
-<p>If either the profiles are configured with "ALLOW_ENFORCE_GRACE=0" or "ccs-queryd" is not running, the access requests that violated policy are rejected immediately. if both the profiles are configured with "ALLOW_ENFORCE_GRACE=0" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Thus, you had better not to logout while "ccs-queryd" is running.</p>
+<p>If either the profiles are configured with "ALLOW_ENFORCE_GRACE=0" or "ccs-queryd" is not running, the access requests that violated policy are rejected immediately. If both the profiles are configured with "ALLOW_ENFORCE_GRACE=1" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Thus, you had better not to logout while "ccs-queryd" is running.</p>
 
 <p>Next, start the following command at Window-2.</p>
 
