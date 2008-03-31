@@ -286,7 +286,7 @@ The *** matches to values that can be given using allow_capability directive des
 </tr>
 <tr>
 <td>ALLOW_ENFORCE_GRACE</td>
-<td>Allow administrator judge access requests that violates policy in enforce mode interactively.</td>
+<td>Allow administrator judge access requests that violates policy in enforcing mode interactively.</td>
 <td>-</td>
 </tr>
 </table>
@@ -352,11 +352,11 @@ The default is given at the kernel compilation time.</td>
 </tr>
 <tr>
 <td>0</td>
-<td>Reject immediately if the access requests that violated policy in enforce mode.</td>
+<td>Reject immediately if the access requests that violated policy in enforcing mode.</td>
 </tr>
 <tr>
 <td>1</td>
-<td>Allow administrator judge the access requests that violated policy in enforce mode interactively.</td>
+<td>Allow administrator judge the access requests that violated policy in enforcing mode interactively.</td>
 </tr>
 </table>
 <p>You can give the following values for all but listed above.</p>
@@ -379,7 +379,7 @@ The default is given at the kernel compilation time.</td>
 </tr>
 <tr>
 <td>3</td>
-<td>Enforce mode. Rejected if the request violates policy.</td>
+<td>Enforcing mode. Rejected if the request violates policy.</td>
 </tr>
 </table>
 
@@ -1001,8 +1001,8 @@ echo 'file_pattern /proc/\$/status' &gt; /proc/ccs/exception_policy<br>
 echo 'delete file_pattern /proc/\$/status' &gt; /proc/ccs/exception_policy<br>
 cat /proc/ccs/exception_policy</p>
 <h2><a name="query">3.5 query</a></h2>
-<p>This file is used to manually grant or reject individual access requests when the policy violation occurs in enforce mode. If a policy violation occur
-in a process whose domain is assigned a profile for enforce mode and "ALLOW_ENFORCE_GRACE=1", the administrator can judge interactively using "ccs-queryd" command.</p>
+<p>This file is used to manually grant or reject individual access requests when the policy violation occurs in enforcing mode. If a policy violation occur
+in a process whose domain is assigned a profile for enforcing mode and "ALLOW_ENFORCE_GRACE=1", the administrator can judge interactively using "ccs-queryd" command.</p>
 
 <h2><a name="manager">3.6 manager</a></h2>
 <p>This file is used to read or append the list of PROGRAMS or DOMAINS that can write to /proc/ccs/ interface.</p>

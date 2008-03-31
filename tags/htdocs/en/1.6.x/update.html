@@ -23,23 +23,23 @@
 <li>The access permissions required has increased.
 </ul>
 
-<p>The ideal way to update policy is to rebuild from the scratch using learning mode. But it is not desirable to change from enforce mode to other mode if the system has once entered in production state. Suppose MAC could support per-application enforce mode, the MAC becomes useless if an application that is not running in enforce mode was cracked. For example, the whole system becomes vulnerable if only HTTP server application is running in learning mode to rebuild policy for the application. So, in TOMOYO Linux, updating policy is done while the system is running in enforce mode.</p>
+<p>The ideal way to update policy is to rebuild from the scratch using learning mode. But it is not desirable to change from enforcing mode to other mode if the system has once entered in production state. Suppose MAC could support per-application enforcing mode, the MAC becomes useless if an application that is not running in enforcing mode was cracked. For example, the whole system becomes vulnerable if only HTTP server application is running in learning mode to rebuild policy for the application. So, in TOMOYO Linux, updating policy is done while the system is running in enforcing mode.</p>
 
-<p>TOMOYO Linux includes tools that helps administrators update policy while the system is running in enforce mode. By using these tools, you can continue running the system without rebuilding from the scratch using learning mode if the modification is trivial. But note that these tools cannot always support every cases and the result of updated policy is not always the optimized.</p>
+<p>TOMOYO Linux includes tools that helps administrators update policy while the system is running in enforcing mode. By using these tools, you can continue running the system without rebuilding from the scratch using learning mode if the modification is trivial. But note that these tools cannot always support every cases and the result of updated policy is not always the optimized.</p>
 
 <h1>Procedure</h1>
 
 <p>Open three windows. Hereafter, this manual refers these windows as "Window-1", "Window-2" and "Window-3".</p>
 
-<p>First, switch to Window-1. And switch to ALLOW_ENFORCE_GRACE=1 for profiles which you want to allow interactively. For example, if you want to switch for profile 3, do the following command.</p>
+<p>First, switch to Window-1. And switch to ALLOW_ENFORCE_GRACE=enabled for profiles which you want to allow interactively. For example, if you want to switch for profile 3, do the following command.</p>
 
 <table border="1">
 <tr><td>
-setlevel 3-ALLOW_ENFORCE_GRACE=1
+setlevel 3-ALLOW_ENFORCE_GRACE=enabled
 </td></tr>
 </table>
 
-<p>You may assign profiles for "enforce mode" that only differ the value of ALLOW_ENFORCE_GRACE using "setprofile" command instead for directly changing the values of ALLOW_ENFORCE_GRACE of existent profiles for "enforce mode" using "setlevel" command.</p>
+<p>You may assign profiles for "enforcing mode" that only differ the value of ALLOW_ENFORCE_GRACE using "setprofile" command instead for directly changing the values of ALLOW_ENFORCE_GRACE of existent profiles for "enforcing mode" using "setlevel" command.</p>
 
 <p>Start the following command.</p>
 
@@ -53,7 +53,7 @@ ccs-queryd
 
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
 
-<p>If either the profiles are configured with "ALLOW_ENFORCE_GRACE=0" or "ccs-queryd" is not running, the access requests that violated policy are rejected immediately. if both the profiles are configured with "ALLOW_ENFORCE_GRACE=0" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Thus, you had better not to logout while "ccs-queryd" is running.</p>
+<p>If either the profiles are configured with "ALLOW_ENFORCE_GRACE=disabled" or "ccs-queryd" is not running, the access requests that violated policy are rejected immediately. if both the profiles are configured with "ALLOW_ENFORCE_GRACE=disabled" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Thus, you had better not to logout while "ccs-queryd" is running.</p>
 
 <p>Next, start the following command at Window-2.</p>
 
@@ -129,11 +129,11 @@ savepolicy
 
 <p>Terminate "ccs-queryd" with Ctrl-C that is running in Window-1.</p>
 
-<p>Finally, switch the profiles back to "ALLOW_ENFORCE_GRACE=0". For example, if you switched profile 3, do the following command.</p>
+<p>Finally, switch the profiles back to "ALLOW_ENFORCE_GRACE=disabled". For example, if you switched profile 3, do the following command.</p>
 
 <table border="1">
 <tr><td>
-setlevel 3-ALLOW_ENFORCE_GRACE=0
+setlevel 3-ALLOW_ENFORCE_GRACE=disabled
 </td></tr>
 </table>
 

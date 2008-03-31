@@ -118,12 +118,12 @@
 <p>Detects policy violation and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.</p>
 <p>By running this program while updating packages, you can avoid errors due to insufficient permissions.</p>
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
-<p>To enable "delayed enforcing mode", you need to either set "ALLOW_ENFORCE_GRACE=1" in /proc/ccs/profile using "setlevel" command or assign a profile whose ALLOW_ENFORCE_GRACE is set to 1 to domains using "setprofile" command.</p>
+<p>To enable "delayed enforcing mode", you need to either set "ALLOW_ENFORCE_GRACE=enabled" in /proc/ccs/profile using "setlevel" command or assign a profile with ALLOW_ENFORCE_GRACE=enabled to domains using "setprofile" command.</p>
 
 <h3><a name="ccs-notifyd">&lt;Policy Violation Notifyier "ccs-notifyd"&gt;</a></h3>
 <p>Detects policy violation and take some actions (e.g. send a mail) to notify it to the administrator.</p>
 <p>By running this program from /etc/crontab , you can know the occurrence of policy violation in enforcing mode as soon as possible.</p>
-<p>To use this daemon, you need to either set "ALLOW_ENFORCE_GRACE=1" in /proc/ccs/profile using "setlevel" command or assign a profile whose ALLOW_ENFORCE_GRACE is set to 1 to domains using "setprofile" command, for this daemon uses "delayed enforcing mode" for detecting.</p>
+<p>To use this daemon, you need to either set "ALLOW_ENFORCE_GRACE=enabled" in /proc/ccs/profile using "setlevel" command or assign a profile with ALLOW_ENFORCE_GRACE=enabled to domains using "setprofile" command, for this daemon uses "delayed enforcing mode" for detecting.</p>
 
 <h3><a name="checkpolicy">&lt;Policy Syntax Checker "checkpolicy"&gt;</a></h3>
 <p>Reads policy files from standard input and checks syntaxes.</p>
@@ -141,6 +141,15 @@
 
 <h3><a name="init_policy.sh">&lt;Policy Template Generator "init_policy.sh"&gt;</a></h3>
 <p>Generates templates for policy. You need to review the output because automatically generated policy may contain redundant or dangerous entries.</p>
+
+<h3><a name="force-logout">&lt;A program that forcibly logs the user out "force-logout"&gt;</a></h3>
+<p>This program forcibly logs the current user out. You can use this program to chase the current user away.</p>
+
+<h3><a name="audit-exec-param">&lt;A program for auditing execute parameter "audit-exec-param"&gt;</a></h3>
+<p>This program writes parameters passed to execve() to syslog before actually executes the execve() request.</p>
+<p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/misc/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program,
+tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/misc/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd" in the exception policy,
+and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "&lt;kernel&gt; /usr/sbin/httpd" domain).</p>
 
 <hr>
 <h2><a name="authentication_tool">&lt;&lt;Tools for reinforcing login authentications&gt;&gt;</a></h2>
