@@ -16,17 +16,17 @@ You can use TOMOYO Linux to find how programs access files or what program is cr
 
 <h1>Preparation</h1>
 
-<p>Since 1.6.0 has not released yet, binary packages are not provided yet. You need to compile the kernel according to <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
+<p>Binary packages are not provided yet. You need to compile the kernel according to <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
 
 <h2>Install TOMOYO Linux tools</h2>
 
-<p>Since 1.6.0 has not released yet, binary packages are not provided yet. You need to compile the tools as follows.</p>
+<p>Binary packages are not provided yet. You need to compile the tools as follows.</p>
 
 <table border="1">
 <tr><td>
 wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-tools.tar.gz<br>
-make -C ccstools/ all install
+make -C ccstools/ install
 </td></tr>
 </table>
 
@@ -36,11 +36,11 @@ make -C ccstools/ all install
 
 <table border="1">
 <tr><td>
-MAC_FOR_FILE=1<BR>
+MAC_FOR_FILE=learning<BR>
 MAX_ACCEPT_ENTRY=1048576<BR>
 MAX_GRANT_LOG=0<BR>
 MAX_REJECT_LOG=0<BR>
-TOMOYO_VERBOSE=0<BR>
+TOMOYO_VERBOSE=disabled<BR>
 </td></tr>
 </table>
 
@@ -58,9 +58,9 @@ TOMOYO_VERBOSE=0<BR>
 
 <p>Run applications you want to analyze.</p>
 
-<p>You can see the list of programs executed until now by executing /usr/lib/ccs/editpolicy . Choose a program and press "Enter" to see the list of files accessed by the program.</p>
+<p>You can see the list of programs executed until now by executing /usr/sbin/ccs-editpolicy . Choose a program and press "Enter" to see the list of files accessed by the program.</p>
 
-<p>You can save the list of all accessed files until now as /etc/ccs/domain_policy.conf by executing /usr/lib/ccs/savepolicy .</p>
+<p>You can save the list of all accessed files until now as /etc/ccs/domain_policy.conf by executing /usr/sbin/ccs-savepolicy .</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>

@@ -15,36 +15,17 @@
 
 <h2>Install TOMOYO Linux kernel</h2>
 
-<p>Since 1.6.0 has not released yet, binary packages are not provided yet. You need to compile the kernel according to <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
+<p>Binary packages are not provided yet. You need to compile the kernel according to <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
 
 <h2>Install TOMOYO Linux tools</h2>
 
-<p>Since 1.6.0 has not released yet, binary packages are not provided yet. You need to compile the tools as follows.</p>
+<p>Binary packages are not provided yet. You need to compile the tools as follows.</p>
 
 <table border="1">
 <tr><td>
 wget -O ccs-tools.tar.gz 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-tools.tar.gz<br>
-make -C ccstools/ all install
-</td></tr>
-</table>
-
-<h2>Setting command search path</h2>
-
-<p>Add the location of TOMOYO Linux tools to environment variable PATH.</p>
-<p>Add the following line to ~/.bashrc if you are using bash.</p>
-
-<table border="1">
-<tr><td>
-export PATH=$PATH:/usr/lib/ccs
-</td></tr>
-</table>
-
-<p>Add the following line to ~/.tcshrc if you are using tcsh.</p>
-
-<table border="1">
-<tr><td>
-setenv PATH "$PATH:/usr/lib/ccs"
+make -C ccstools/ install
 </td></tr>
 </table>
 
@@ -198,11 +179,11 @@ reboot
 <td>Meaning</td>
 </tr>
 <tr>
-<td>0</td>
+<td>disabled</td>
 <td>Off. Works as if regular kernel.</td>
 </tr>
 <tr>
-<td>1</td>
+<td>enabled</td>
 <td>On</td>
 </tr>
 </table>
@@ -214,11 +195,11 @@ reboot
 <td>Meaning</td>
 </tr>
 <tr>
-<td>0</td>
+<td>disabled</td>
 <td>Don't dump domain policy violation messages.</td>
 </tr>
 <tr>
-<td>1</td>
+<td>enabled</td>
 <td>Dump domain policy violation messages.</td>
 </tr>
 </table>
@@ -229,11 +210,11 @@ reboot
 <td>Meaning</td>
 </tr>
 <tr>
-<td>0</td>
+<td>disabled</td>
 <td>Reject immediately if policy violation occurs in enforcing mode.</td>
 </tr>
 <tr>
-<td>1</td>
+<td>enabled</td>
 <td>Allow interactively permitting access requests that violated policy in enforcing mode.</td>
 </tr>
 </table>
@@ -244,62 +225,62 @@ reboot
 <td>Meaning</td>
 </tr>
 <tr>
-<td>0</td>
+<td>disabled</td>
 <td>Disabled. Works as if regular kernel.</td>
 </tr>
 <tr>
-<td>1</td>
+<td>learning</td>
 <td>Learning mode. Not rejected if the request violates policy. Automatically appended to policy.</td>
 </tr>
 <tr>
-<td>2</td>
+<td>permissive</td>
 <td>Permissive mode. Not rejected if the request violates policy. Not appended to policy automatically.</td>
 </tr>
 <tr>
-<td>3</td>
-<td>Enforce mode. Rejected if the request violates policy.</td>
+<td>enforcing</td>
+<td>Enforcing mode. Rejected if the request violates policy.</td>
 </tr>
 </table>
 
 <h2>Creating profiles</h2>
 
-<p>Write profiles for "disabled", "learning mode", "permissive mode" and "enforce mode" in /etc/ccs/profile.conf . The following example is profiles for applying MAC for files and networks. The heading number is profile number that is used for assigning profiles to domains. The valid profile number range is between 0 and 255.</p>
+<p>Write profiles for "disabled", "learning mode", "permissive mode" and "enforcing mode" in /etc/ccs/profile.conf . The following example is profiles for applying MAC for files and networks. The heading integer is name of profile that is used for assigning profiles to domains. The profile name takes an integer between 0 and 255.</p>
 
 <table border="1">
 <tr><td>
 0-COMMENT=----- All Disabled -----<br>
 1-COMMENT=----- FILE and NETWORK with Learning Mode -----<br>
-1-MAC_FOR_FILE=1<br>
-1-MAC_FOR_NETWORK=1<br>
+1-MAC_FOR_FILE=learning<br>
+1-MAC_FOR_NETWORK=learning<br>
 2-COMMENT=----- FILE and NETWORK with Permissive Mode -----<br>
-2-MAC_FOR_FILE=2<br>
-2-MAC_FOR_NETWORK=2<br>
-3-COMMENT=----- FILE and NETWORK with Enforce Mode -----<br>
-3-MAC_FOR_FILE=3<br>
-3-MAC_FOR_NETWORK=3<br>
+2-MAC_FOR_FILE=permissive<br>
+2-MAC_FOR_NETWORK=permissive<br>
+3-COMMENT=----- FILE and NETWORK with enforcing mode -----<br>
+3-MAC_FOR_FILE=enforcing<br>
+3-MAC_FOR_NETWORK=enforcing<br>
 3-MAX_GRANT_LOG=0<br>
-3-ALLOW_ENFORCE_GRACE=0<br>
-4-COMMENT=----- FILE and NETWORK with Delayed Enforce Mode -----<br>
-4-MAC_FOR_FILE=3<br>
-4-MAC_FOR_NETWORK=3<br>
+3-ALLOW_ENFORCE_GRACE=disabled<br>
+4-COMMENT=----- FILE and NETWORK with Delayed enforcing mode -----<br>
+4-MAC_FOR_FILE=enforcing<br>
+4-MAC_FOR_NETWORK=enforcing<br>
 4-MAX_GRANT_LOG=0<br>
 4-MAX_REJECT_LOG=0<br>
-4-ALLOW_ENFORCE_GRACE=1
+4-ALLOW_ENFORCE_GRACE=enabled
 </td></tr>
 </table>
 
 <p>In this manual, we assume that<br>
-profile number 0 is for "disabled",<br>
-profile number 1 is for "learning mode",<br>
-profile number 2 is for "permissive mode",<br>
-profile number 3 is for "enforce mode",<br>
-profile number 4 is for "delayed enforce mode" (same as "enforce mode" except that it allows administrators handle access requests that violated policy manually).</p>
+profile 0 is for "disabled",<br>
+profile 1 is for "learning mode",<br>
+profile 2 is for "permissive mode",<br>
+profile 3 is for "enforcing mode",<br>
+profile 4 is for "delayed enforcing mode" (same as "enforcing mode" except that it allows administrators handle access requests that violated policy manually).</p>
 
-<p>You won't need to edit profiles after you once create them because you can control how to apply MAC on per-a-domain basis by changing profile numbers of domains. But if you edited /etc/ccs/profile.conf by some reason (for example, you want to add profiles), run the following command.</p>
+<p>You won't need to edit profiles after you once create them because you can control how to apply MAC on per-a-domain basis by changing profiles of domains. But if you edited /etc/ccs/profile.conf by some reason (for example, you want to add profiles), run the following command.</p>
 
 <table border="1">
 <tr><td>
-xargs -0 setlevel &lt; /etc/ccs/profile.conf
+/usr/sbin/ccs-loadpolicy p
 </td></tr>
 </table>
 
@@ -313,51 +294,51 @@ cat /proc/ccs/profile
 
 <h2>Assigning profiles to domains</h2>
 
-<p>To assign profiles to domains, use "setprofile" command. For example,</p>
+<p>To assign profiles to domains, use "ccs-setprofile" command. For example,</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 0 '&lt;kernel&gt;'
+/usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt;'
 </td></tr>
 </table>
 
-<p>will assign profile number 0 to all domains. Also,</p>
+<p>will assign profile 0 to all domains. Also,</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 1 '&lt;kernel&gt; /sbin/init'
+/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/init'
 </td></tr>
 </table>
 
-<p>will assign profile number 1 to all domains whose domainname starts with "&lt;kernel&gt; /sbin/init". Also,</p>
+<p>will assign profile 1 to all domains whose domainname starts with "&lt;kernel&gt; /sbin/init". Also,</p>
 
 <table border="1">
 <tr><td>
-setprofile 2 '&lt;kernel&gt; /sbin/init'
+/usr/sbin/ccs-setprofile 2 '&lt;kernel&gt; /sbin/init'
 </td></tr>
 </table>
 
-<p>will assign profile number 2 to only domain whose domainname is "&lt;kernel&gt; /sbin/init".</p>
+<p>will assign profile 2 to only domain whose domainname is "&lt;kernel&gt; /sbin/init".</p>
 
-<p>To see the profiles currently assigned to domains, run the following command. A list with profile numbers and domainnames are shown.</p>
+<p>To see the profiles currently assigned to domains, run the following command. A list with profiles and domainnames are shown.</p>
 <table border="1">
 <tr><td>
 cat /proc/ccs/.domain_status
 </td></tr>
 </table>
 
-<p>Basically, you don't need to switch profiles of all domains at boot because you can assign profiles by per-a-domain basis and the profile number last assigned remains in the domain policy file (/etc/ccs/domain_policy.conf) using "use_profile" directive.
-But if you can't boot by some reason (for example, you assigned profiles for "enforce mode" before giving enough permissions to domains), you can enter "disable" and press "Enter" at the prompt of /sbin/ccs-init to boot the system with MAC disabled.</p>
+<p>Basically, you don't need to switch profiles of all domains at boot because you can assign profiles by per-a-domain basis and the profile previously assigned remains in the domain policy file (/etc/ccs/domain_policy.conf) using "use_profile" directive.
+But if you can't boot by some reason (for example, you assigned profiles for "enforcing mode" before giving enough permissions to domains), you can pass "CCS=disabled" to the kernel's command line to boot the system with MAC disabled.</p>
 
-<p>To see the profiles of currently running processes and their domainnames, use ccstree command.</p>
+<p>To see the profiles of currently running processes and their domainnames, use "ccs-ccstree" command.</p>
 
 <table border="1">
 <tr><td>
-ccstree
+/usr/sbin/ccs-ccstree
 </td></tr>
 </table>
 
-<p>The ccstree command will show a list of profile number, name of process, PID and name of domain the process belongs to like pstree command, as shown below.</p>
+<p>The "ccs-ccstree" command will show a list of profile, name of process, PID and name of domain the process belongs to like pstree command, as shown below.</p>
 
 <table border="1">
 <tr><td>
@@ -406,7 +387,7 @@ The logs are in the form of domain policy so that the logs can be directly appen
 
 <table border="1">
 <tr><td>
-/usr/lib/ccs/ccs-auditd $location_to_store_access_granted_logs $location_to_store_access_rejected_logs
+/usr/sbin/ccs-auditd $location_to_store_access_granted_logs $location_to_store_access_rejected_logs
 </td></tr>
 </table>
 
@@ -416,7 +397,7 @@ The logs are in the form of domain policy so that the logs can be directly appen
 
 <table border="1">
 <tr><td>
-/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
+/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
@@ -451,7 +432,9 @@ mkdir -p /var/log/tomoyo
 <ol>
 <li>Pathname pattern
 <li>Pathname group
+<li>Address group
 <li>Unconditionally readable files
+<li>Unconditionally usable environment variable names
 <li>Non-rewritable files
 <li>Programs invocable via symbolic links
 <li>Program aggregations
@@ -463,7 +446,7 @@ mkdir -p /var/log/tomoyo
 
 <h3>(1) Pathname pattern</h3>
 
-<p>Register pathnames with patterns using the "file_pattern" directive. When a file operation is performed and the requested pathname matches to a patterned pathname registered with "file_pattern" directive, policy is generated using patterned pathnames.<br>
+<p>Register pathnames with patterns using the "file_pattern" directive. When a file operation is performed and the requested pathname matches a patterned pathname registered with "file_pattern" directive, policy is generated using patterned pathnames.<br>
 The following is the guideline.</p>
 
 <ul>
@@ -484,9 +467,13 @@ The following is the guideline.</p>
 
 <p>Register pathname groups using the "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names. An example usage is shown later.<br>
 
-<h3>(3) Unconditionally readable files</h3>
+<h3>(3) Address group</h3>
 
-<p>Register files that are allowed to be read by all programs using the "allow_read" directive. No patterns allowed. When a read access is requested and the requested pathname matches to a pathname registered with "allow_read" directive, the read access is granted without checking domain policy.<br>
+<p>Register IPv4 or IPv6 address groups using the "address_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple addresses using group names. An example usage is shown later.<br>
+
+<h3>(4) Unconditionally readable files</h3>
+
+<p>Register files that are allowed to be read by all programs using the "allow_read" directive. No patterns are allowed. When a file open request for reading is issued and the requested pathname matches a pathname registered with "allow_read" directive, the open request for read access is granted even if the pathname is not explicitly permitted by the domain policy.<br>
 The following is the guideline.</p>
 
 <ul>
@@ -497,7 +484,18 @@ The following is the guideline.</p>
 
 <p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for read access.</p>
 
-<h3>(4) Non-rewritable files</h3>
+<h3>(5) Unconditionally usable environment variable names</h3>
+
+<p>Register environment variable names that are allowed to be passed to all programs using the "allow_env" directive. Patterns are allowed. When execve() request is issued and the passed environment variable name matches matches environment variable names registered with "allow_env" directive, the environment variable name is granted without checking domain policy.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Commonly used environment variable names such as PATH and HOME
+</ul>
+
+<p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for read access.</p>
+
+<h3>(6) Non-rewritable files</h3>
 
 <p>Register files that you don't want to allow overwriting existing contents (like log files) using "deny_rewrite" directive. Patterns are allowed. Files registered with "deny_rewrite" directive are (as long as it is not explicitly given by "allow_rewrite" directive in domain policy) forbidden to "open for writing but not append mode" and "truncate".<br>
 The following is the guideline.</p>
@@ -508,18 +506,18 @@ The following is the guideline.</p>
 
 <p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for append-only access.</p>
 
-<h3>(5) Programs invocable via symbolic links</h3>
+<h3>(7) Programs invocable via symbolic links</h3>
 
 <p>Basically, TOMOYO Linux checks execute permissions using the dereferenced pathname if the requested program is a symbolic link. But to handle programs that behave differently depending on the name of invocation, you may define domains using the name of symbolic links.<br>
 To allow executing programs using the name of symbolic links, use alias directive followed by dereferenced pathname and reference pathname. No patterns are allowed.<br>
 For example, /sbin/pidof is a symbolic link to /sbin/killall5 . In normal case, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed. By specifying "alias /sbin/killall5 /sbin/pidof", you can run /sbin/pidof in the domain for /sbin/pidof .</p>
 
-<h3>(6) Program aggregations</h3>
+<h3>(8) Program aggregations</h3>
 
 <p>To deal multiple programs as a single program, use aggregator directive followed by name of original program and aggregated program. Patterns are allowed for name of original program.<br>
 For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
 
-<h3>(7) Programs that cause domain transition initialization</h3>
+<h3>(9) Programs that cause domain transition initialization</h3>
 
 <p>Register programs that initializes the domain transition history using the "initialize_domain" directive. No patterns allowed. When a program that is registered with "initialize_domain" directive is executed, the program runs just under the  &lt;kernel&gt; domain.<br>
 The following is the guideline.</p>
@@ -545,7 +543,6 @@ allow_execute /bin/cat<br>
 &lt;kernel&gt; ... /bin/bash /bin/tcsh /bin/cat<br>
 use_profile 3<br>
 allow_read /etc/fstab
-
 </td></tr>
 </table>
 
@@ -567,16 +564,16 @@ allow_read /etc/fstab
 </td></tr>
 </table>
 
-<h3>(8) Programs that prevent domain transition initialization</h3>
+<h3>(10) Programs that prevent domain transition initialization</h3>
 
 <p>To deny the effect of "initialize_domain" directive under specific conditions, use "no_initialize_domain" directive.</p>
 
-<h3>(9) Domains that prevent domain transition</h3>
+<h3>(11) Domains that prevent domain transition</h3>
 
 <p>To declare domain keepers, use "keep_domain" directive followed by domain definition.<br>
 For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless any program registered with "initialize_domain" directive is executed.</p>
 
-<h3>(10) Domains that cause domain transition</h3>
+<h3>(12) Domains that cause domain transition</h3>
 
 <p>To deny the effect of "keep_domain" directive under specific conditions, use "no_keep_domain" directive.</p>
 
@@ -602,15 +599,15 @@ For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, 
 <p>For example, if you want to protect /usr/sbin/httpd , firstly create domains for /usr/sbin/httpd .
 If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain".</p>
 
-<p>Assign a profile that doesn't perform MAC (in this manual, profile 0) to the domain current process (normally a shell) belongs to using "setprofile" command.</p>
+<p>Assign a profile that doesn't perform MAC (in this manual, profile 0) to the domain current process (normally a shell) belongs to using "ccs-setprofile" command.</p>
 
 <table border="1">
 <tr><td>
-xargs -0 setprofile 0 &lt; /proc/ccs/self_domain
+xargs -0 /usr/sbin/ccs-setprofile 0 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
-<p>This is needed to avoid assigning a profile that performs MAC in "enforce mode" to the newly created domain, for newly created domain inherits the creator's profile.</p>
+<p>This is needed to avoid assigning a profile that performs MAC in "enforcing mode" to the newly created domain, for newly created domain inherits the creator's profile.</p>
 
 <p>Start /usr/sbin/httpd .</p>
 
@@ -632,11 +629,11 @@ less /proc/ccs/.domain_status
 
 <h3>(2) Append ACLs to domains</h3>
 
-<p>After you confirmed that the domain is created, assign a profile that perform MAC in "learning mode" (in this manual, profile 1) to the domain using "setprofile" command.</p>
+<p>After you confirmed that the domain is created, assign a profile that perform MAC in "learning mode" (in this manual, profile 1) to the domain using "ccs-setprofile" command.</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
@@ -648,41 +645,41 @@ service httpd restart
 </td></tr>
 </table>
 
-<p>If the profile is configured as "1-TOMOYO-VERBOSE=1" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
+<p>If the profile is configured as "1-TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
 But regarding "learning mode", the "TOMOYO-WARNING:" messages are printed only once because necessary ACLs are automatically appended when you do the same operation again.</p>
 
 <p>If the "TOMOYO-WARNING:" messages are no longer printed when you do the operation you want to allow, proceed to the next step.</p>
 
 <h3>(3) Confirm ACLs for domains</h3>
 
-<p>After you judged that necessary ACLs are appended, assign a profile that perform MAC in "permissive mode" (in this manual, profile 2) to the domain using "setprofile" command.</p>
+<p>After you judged that necessary ACLs are appended, assign a profile that perform MAC in "permissive mode" (in this manual, profile 2) to the domain using "ccs-setprofile" command.</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
 <p>Start /usr/sbin/httpd and confirm that all necessary ACLs are appended.</p>
 
-<p>If the profile is configured as "2-TOMOYO-VERBOSE=1" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
+<p>If the profile is configured as "2-TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
 Regarding "permissive mode", the "TOMOYO-WARNING:" messages are printed again because necessary ACLs are not automatically appended when you do the same operation again.</p>
 
 <p>If the "TOMOYO-WARNING:" messages are no longer printed when you do the operation you want to allow, proceed to the next step.</p>
 
 <h3>(4) Enforce using ACLs</h3>
 
-<p>After you judged that necessary ACLs are given, assign a profile that perform MAC in "enforce mode" (in this manual, profile 3) to the domain using "setprofile" command.</p>
+<p>After you judged that necessary ACLs are given, assign a profile that perform MAC in "enforcing mode" (in this manual, profile 3) to the domain using "ccs-setprofile" command.</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
 <p>And now, /usr/sbin/httpd is protected by MAC.</p>
 
-<p>If the profile is configured with "3-TOMOYO-VERBOSE=1" (this is default), the "TOMOYO-ERROR:" messages will be printed to the console and the requests are rejected when policy violation occurs. Also, the history of policy violation is accumulated to /proc/ccs/reject_log .</p>
+<p>If the profile is configured with "3-TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-ERROR:" messages will be printed to the console and the requests are rejected when policy violation occurs. Also, the history of policy violation is accumulated to /proc/ccs/reject_log .</p>
 
 <h2>Creating policy all at once using "permissive mode"</h2>
 
@@ -690,7 +687,7 @@ setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
 
 <table border="1">
 <tr><td>
-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
@@ -699,19 +696,19 @@ Select appropriate range and pass to the filter as show below. This filter progr
 
 <table border="1">
 <tr><td>
-sortpolicy &lt; /var/log/tomoyo/reject_log.conf
+/usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
-<p>Check the output and judge whether these ACLs should be added or not. And if you judged to add, add to /etc/ccs/domain_policy.conf and run "loadpolicy" to reload domain policy.</p>
+<p>Check the output and judge whether these ACLs should be added or not. And if you judged to add, add to /etc/ccs/domain_policy.conf and run "ccs-loadpolicy" to reload domain policy.</p>
 
 <table border="1">
 <tr><td>
-loadpolicy d
+/usr/sbin/ccs-loadpolicy d
 </td></tr>
 </table>
 
-<p>If you run "loadpolicy" with "f" option (that is "loadpolicy df"), the domain policy currently in the kernel are erased before the domain policy currently on the disk is loaded.</p>
+<p>If you run "ccs-loadpolicy" with "f" option (i.e. "ccs-loadpolicy df"), the domain policy currently in the kernel are erased before the domain policy currently on the disk is loaded.</p>
 
 <h3>Operation Example</h3>
 
@@ -750,7 +747,7 @@ allow_read /etc/passwd<br>
 <p>Sort the log by domains.</p>
 <table border="1">
 <tr><td>
-[root@sakura tomoyo]# sortpolicy &lt; /var/log/tomoyo/reject_log.tmp<br>
+[root@sakura tomoyo]# /usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/reject_log.tmp<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
 <br>
 allow_execute /usr/bin/whoami<br>
@@ -774,7 +771,7 @@ allow_read /etc/passwd<br>
 <p>Since the line of timestamp is disturbing, remove lines starting with # before sorting.</p>
 <table border="1">
 <tr><td>
-[root@sakura tomoyo]# grep -v '^#' /var/log/tomoyo/reject_log.tmp | sortpolicy &gt; /var/log/tomoyo/diff.tmp<br>
+[root@sakura tomoyo]# grep -v '^#' /var/log/tomoyo/reject_log.tmp | /usr/sbin/ccs-sortpolicy &gt; /var/log/tomoyo/diff.tmp<br>
 </td></tr>
 </table>
 <p>Check the output. This is in the form of domain policy.</p>
@@ -798,13 +795,13 @@ allow_read /etc/passwd<br>
 </td></tr>
 </table>
 
-<h2>Creating policy interactively using "enforce mode"</h2>
+<h2>Creating policy interactively using "enforcing mode"</h2>
 
-<p>TOMOYO Linux allows administrators modify policies when the system is running in "enforce mode". If you want to do so, assign a profile that perform MAC in "delayed enforce mode" (in this manual, profile 4) to the domain.</p>
+<p>TOMOYO Linux allows administrators modify policies when the system is running in "enforcing mode". If you want to do so, assign a profile that perform MAC in "delayed enforcing mode" (in this manual, profile 4) to the domain.</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 4 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 4 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
@@ -812,29 +809,29 @@ setprofile -r 4 '&lt;kernel&gt; /usr/sbin/httpd'
 
 <table border="1">
 <tr><td>
-ccs-queryd
+/usr/sbin/ccs-queryd
 </td></tr>
 </table>
 
-<p>If the profile is configured with "ALLOW_ENFORCE_GRACE=1" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Otherwise, the access requests that violated policy are rejected immediately.</p>
+<p>If the profile is configured with "ALLOW_ENFORCE_GRACE=enabled" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Otherwise, the access requests that violated policy are rejected immediately.</p>
 
-<p>To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) if the profile is configured with "ALLOW_ENFORCE_GRACE=1" and "ccs-queryd" is running.</p>
+<p>To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) if the profile is configured with "ALLOW_ENFORCE_GRACE=enabled" and "ccs-queryd" is running.</p>
 
-<p>To terminate "ccs-queryd", use Ctrl-C. After you terminate "ccs-queryd", assign a profile that performs MAC in "enforce mode" (in this manual, profile 3) using "setprofile" command.</p>
+<p>To terminate "ccs-queryd", use Ctrl-C. After you terminate "ccs-queryd", assign a profile that performs MAC in "enforcing mode" (in this manual, profile 3) using "ccs-setprofile" command.</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
 <h2>Saving Policy</h2>
 
-<p>To save the policy currently in the kernel onto the disk, use "savepolicy" command.<p>
+<p>To save the policy currently in the kernel onto the disk, use "ccs-savepolicy" command.<p>
 
 <table border="1">
 <tr><td>
-savepolicy
+/usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
 
@@ -842,11 +839,11 @@ savepolicy
 
 <h2>Loading Policy</h2>
 
-<p>To load the policy currently on the disk into the kernel, use "loadpolicy" command.<p>
+<p>To load the policy currently on the disk into the kernel, use "ccs-loadpolicy" command.<p>
 
 <table border="1">
 <tr><td>
-loadpolicy af
+/usr/sbin/ccs-loadpolicy af
 </td></tr>
 </table>
 
@@ -854,19 +851,19 @@ loadpolicy af
 
 <h2>Editing Policy</h2>
 
-<p>To edit the policy currently in the kernel, use "editpolicy" command. See <a href="tool-editpolicy.html">Using Policy Editor</a> for usage.</p>
+<p>To edit the policy currently in the kernel, use "ccs-editpolicy" command. See <a href="tool-editpolicy.html">Using Policy Editor</a> for usage.</p>
 
 <table border="1">
 <tr><td>
-editpolicy
+/usr/sbin/ccs-editpolicy
 </td></tr>
 </table>
 
-<p>To edit the policy currently on the disk, use "editpolicy_offline" command. You can use "editpolicy_offline" when you are not running the system with TOMOYO Linux kernel.</p>
+<p>To edit the policy currently on the disk, use "ccs-editpolicy_offline" command. You can use "ccs-editpolicy_offline" when you are not running the system with TOMOYO Linux kernel.</p>
 
 <table border="1">
 <tr><td>
-editpolicy_offline
+/usr/sbin/ccs-editpolicy_offline
 </td></tr>
 </table>
 
@@ -937,7 +934,7 @@ allow_write /var/log/samba/\*.log
 </p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# pathmatch '/var/log/samba/\*.log'<br>
+[root@sakura ~]# /usr/sbin/ccs-pathmatch '/var/log/samba/\*.log'<br>
 /var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
 </td></tr>
 </table>
@@ -979,13 +976,13 @@ allow_write /var/log/samba/\*.log
 <p>Find domains that access these files.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# domainmatch /etc/mtab~2302<br>
+[root@sakura ~]# /usr/sbin/ccs-domainmatch /etc/mtab~2302<br>
 &lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
 allow_create /etc/mtab~2302<br>
 allow_write /etc/mtab~2302<br>
 allow_link /etc/mtab~2302 /etc/mtab~<br>
 allow_unlink /etc/mtab~2302<br>
-[root@sakura ~]# domainmatch /tmp/sh-thd-1163113704<br>
+[root@sakura ~]# /usr/sbin/ccs-domainmatch /tmp/sh-thd-1163113704<br>
 &lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
 allow_create /tmp/sh-thd-1163113704<br>
 allow_read/write /tmp/sh-thd-1163113704<br>
@@ -995,7 +992,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Save the exception policy currently in the kernel onto the disk.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# savepolicy e<br>
+[root@sakura ~]# /usr/sbin/ccs-savepolicy e<br>
 </td></tr>
 </table>
 <p>Append patterns to the exception policy on the disk if needed.</p>
@@ -1008,19 +1005,19 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Load the exception policy on the disk to the kernel.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# loadpolicy ef<br>
+[root@sakura ~]# /usr/sbin/ccs-loadpolicy ef<br>
 </td></tr>
 </table>
-<p>Patternize pathnames that match to '/etc/mtab~\$' and '/tmp/sh-thd-\$'.</p>
+<p>Patternize pathnames that match '/etc/mtab~\$' and '/tmp/sh-thd-\$'.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
+[root@sakura ~]# /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
 </td></tr>
 </table>
 <p>Confirm that these files are patternized.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.tmp<br>
+[root@sakura ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.tmp<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /halt<br>
@@ -1138,13 +1135,13 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Load the domain policy on the disk to the kernel.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# loadpolicy df<br>
+[root@sakura ~]# /usr/sbin/ccs-loadpolicy df<br>
 </td></tr>
 </table>
 <p>Confirm that the domain policy currently in the kernel is updated.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# findtemp &lt; /proc/ccs/domain_policy<br>
+[root@sakura ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /halt<br>
