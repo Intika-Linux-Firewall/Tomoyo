@@ -8,7 +8,7 @@
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
-<p style="text-align:right;"><a href="../../../../en/1.5.x/1st-step/ubuntu6.10/index.html">English Page</a></p>
+<p style="text-align:right;"><a href="../../../../en/1.6.x/1st-step/ubuntu6.10/index.html">English Page</a></p>
 <h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （Ubuntu 6.10版）</h1>
 
 <ul>
@@ -28,7 +28,7 @@
 
 <h2><a name="l1">概要</a></h2>
 
-<p>以下では、Ubuntu 6.10にTOMOYO Linux 1.5.3を導入する手順を解説します。
+<p>以下では、Ubuntu 6.10にTOMOYO Linux 1.6.0を導入する手順を解説します。
 この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -47,14 +47,14 @@
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-image-2.6.17-12-generic-ccs1.5.3_2.6.17.1-12.44_i386.deb</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/linux-restricted-modules-2.6.17-12-generic-ccs1.5.3_2.6.17.9-12.4_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.17-12-generic-ccs1.6.0_2.6.17.1-12.44_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-restricted-modules-2.6.17-12-generic-ccs1.6.0_2.6.17.9-12.4_i386.deb</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">dpkg --install linux-image-2.6.17-12-generic-ccs1.5.3_2.6.17.1-12.44_i386.deb linux-restricted-modules-2.6.17-12-generic-ccs1.5.3_2.6.17.9-12.4_i386.deb</span>
+# <span class="user">dpkg --install linux-image-2.6.17-12-generic-ccs1.6.0_2.6.17.1-12.44_i386.deb linux-restricted-modules-2.6.17-12-generic-ccs1.6.0_2.6.17.9-12.4_i386.deb</span>
 </pre>
 
 <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
@@ -85,8 +85,8 @@ boot
 <p>バイナリパッケージが用意されていますので、それを利用します。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools_1.5.3-1_Ubuntu6.10_i386.deb</span>
-# <span class="user">dpkg -i ccs-tools_1.5.3-1_Ubuntu6.10_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Ubuntu6.10_i386.deb</span>
+# <span class="user">dpkg -i ccs-tools_1.6.0-1_Ubuntu6.10_i386.deb</span>
 </pre>
 
 <p>ツールは /usr/lib/ccs ディレクトリにされます。</p>
