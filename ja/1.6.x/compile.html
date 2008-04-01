@@ -76,8 +76,8 @@ rpm -ivh kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
 # ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.4.20-46.9.legacy/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.20-46.9.legacy.diff<br>
 # カーネルコンフィグ以外の一時ファイルを削除する。<br>
 mv .config config<br>
@@ -105,8 +105,8 @@ cd /usr/src/linux-2.6.12-2.3.legacy_FC3/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -2.3.legacy_FC3/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.12-2.3.legacy_FC3.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -130,8 +130,8 @@ cd /usr/src/linux-2.6.17-1.2142_FC4/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2142_FC4/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.17-1.2142_FC4.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -156,8 +156,8 @@ cd /usr/src/linux-2.6.20-1.2320.fc5/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2320.fc5/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.20-1.2320.fc5.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -182,8 +182,8 @@ cd /usr/src/linux-2.6.22.14-72.fc6/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .14-72.fc6/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.22.14-72.fc6.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -208,8 +208,8 @@ cd /usr/src/linux-2.6.23.15-80.fc7/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .15-80.fc7/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.23.15-80.fc7.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -234,8 +234,8 @@ cd /usr/src/linux-2.6.24.3-50.fc8/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .3-50.fc8/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.24.3-50.fc8.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -260,8 +260,8 @@ cd /usr/src/linux-2.6.9-67.0.7.EL/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -67.0.7.EL/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.9-67.0.7.EL.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -286,8 +286,8 @@ cd /usr/src/2.6.18-53.1.14.el5/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -53.1.14.el5/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.18-53.1.14.el5.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -307,8 +307,8 @@ tar -jxf /usr/src/kernel-source-2.4.27.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd kernel-source-2.4.27/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.27-10sarge7.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -329,8 +329,8 @@ tar -jxf /usr/src/kernel-source-2.6.8.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd kernel-source-2.6.8/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.8-17sarge1.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -352,8 +352,8 @@ tar -jxf /usr/src/linux-source-2.6.18.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.18/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.18-18etch1.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -375,8 +375,8 @@ tar -jxf /usr/src/linux-source-2.6.22.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.22/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.22-6.lenny1.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -398,8 +398,8 @@ rpm -ivh kernel-source-2.6.16.54-0.2.5.i586.rpm<br>
 # ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.16.54-0.2.5/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.16.54-0.2.5_SUSE.diff<br>
 # 出力先のディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.16.54-0.2.5-obj/i386/default/<br>
@@ -421,8 +421,8 @@ rpm -ivh kernel-source-2.6.18.8-0.9.i586.rpm<br>
 # ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.18.8-0.9/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.18.8-0.9_SUSE.diff<br>
 # 出力先のディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.18.8-0.9-obj/i386/default/<br>
@@ -444,8 +444,8 @@ rpm -ivh kernel-source-2.6.22.17-0.1.i586.rpm<br>
 # ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.22.17-0.1/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.22.17-0.1_SUSE.diff<br>
 # 出力先のディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.22.17-0.1-obj/i386/default/<br>
@@ -472,8 +472,8 @@ cd /usr/src/linux-2.6.9-42.20AX/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.20AX/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.9-42.20AX.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -498,8 +498,8 @@ cd /usr/src/linux-2.6.18-8.15AX/<br>
 # バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.15AX/' Makefile<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.18-8.15AX.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -519,8 +519,8 @@ tar -jxf /usr/src/linux-source-2.6.17.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.17/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.17.14-ubuntu1.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -542,8 +542,8 @@ tar -jxf /usr/src/linux-source-2.6.20.tar.bz2<br>
 # ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.20/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.20.3-ubuntu1.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -566,8 +566,8 @@ apt-get install kernel-source<br>
 # ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.16/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
-tar -zxf ccs-patch.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.16-0vl76.33.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
@@ -602,9 +602,9 @@ cd linux-2.6.24<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.24.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
@@ -634,9 +634,9 @@ cd linux-2.4.36<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O - 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch.tar.gz?root=tomoyo&view=tar' | tar -zxf - ; tar -zcf ccs-patch.tar.gz -C ccs-patch/ .<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch.tar.gz<br>
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.36.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
