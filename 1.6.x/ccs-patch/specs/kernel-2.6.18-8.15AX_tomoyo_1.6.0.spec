@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.15%{?dist}_tomoyo_1.5.3
+%define release 8.15%{?dist}_tomoyo_1.6.0
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -2759,9 +2759,9 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %patch200115 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.15AX/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.18-8.15AX.diff
+patch -sp1 < patches/ccs-patch-2.6.18-8.15AX.diff
 
 # END OF PATCH APPLICATIONS
 

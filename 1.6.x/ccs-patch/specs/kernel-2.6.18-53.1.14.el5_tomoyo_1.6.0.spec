@@ -62,7 +62,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # that the kernel isn't the stock distribution kernel, for example,
 # by setting the define to ".local" or ".bz123456"
 #
-%define buildid _tomoyo_1.5.3
+%define buildid _tomoyo_1.6.0
 #
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
@@ -3302,9 +3302,9 @@ perl -p -i -e "s/^RHEL_MINOR.*/RHEL_MINOR = %{rh_release_minor}/" Makefile
 %endif
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -53.1.14.el5/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.18-53.1.14.el5.diff
+patch -sp1 < patches/ccs-patch-2.6.18-53.1.14.el5.diff
 
 # END OF PATCH APPLICATIONS
 

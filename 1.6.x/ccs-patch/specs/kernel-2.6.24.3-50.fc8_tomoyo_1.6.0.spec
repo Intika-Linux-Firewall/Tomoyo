@@ -12,7 +12,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # that the kernel isn't the stock distribution kernel, for example,
 # by setting the define to ".local" or ".bz123456"
 #
-%define buildid _tomoyo_1.5.3
+%define buildid _tomoyo_1.6.0
 
 # fedora_build defines which build revision of this kernel version we're
 # building. Rather than incrementing forever, as with the prior versioning
@@ -1353,9 +1353,9 @@ ApplyPatch linux-2.6-uvcvideo.patch
 # SELinux perf patches
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
 sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .3-50.fc8:' -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.24.3-50.fc8.diff
+patch -sp1 < patches/ccs-patch-2.6.24.3-50.fc8.diff
 
 # END OF PATCH APPLICATIONS
 

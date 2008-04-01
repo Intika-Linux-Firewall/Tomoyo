@@ -23,7 +23,7 @@ Summary(ja): Linux カーネル (Linux オペレーティングシステムの心臓部分)
 %define sublevel 16
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 0vl76.33_tomoyo_1.5.3
+%define release 0vl76.33_tomoyo_1.6.0
 
 %define make_target bzImage
 
@@ -1051,9 +1051,9 @@ cd linux-%{kversion}
 #
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.33custom/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.16-0vl76.33.diff
+patch -sp1 < patches/ccs-patch-2.6.16-0vl76.33.diff
 
 # END OF PATCH APPLICATIONS
 
