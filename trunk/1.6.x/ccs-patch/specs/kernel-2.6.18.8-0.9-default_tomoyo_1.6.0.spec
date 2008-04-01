@@ -28,7 +28,7 @@ Url:            http://www.kernel.org/
 BuildRequires:  python
 %endif
 Version:        2.6.18.8
-Release: 0.9_tomoyo_1.5.3
+Release: 0.9_tomoyo_1.6.0
 Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
 License:        GPL v2 or later
 Group:          System/Kernel
@@ -235,8 +235,8 @@ EOF
 source .rpm-defs
 cd linux-2.6.18
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-patch -sp1 < /usr/src/ccs-patch-2.6.18.8-0.9_SUSE.diff
+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
+patch -sp1 < patches/ccs-patch-2.6.18.8-0.9_SUSE.diff
 cat config.ccs >> .config
 cp .config .config.orig
 %if %{tolerate_unknown_new_config_options}

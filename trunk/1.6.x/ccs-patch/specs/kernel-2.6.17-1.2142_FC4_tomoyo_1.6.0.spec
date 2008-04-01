@@ -18,7 +18,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 17
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.5.3
+%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.6.0
 %define signmodules 0
 %define make_target bzImage
 %define kernel_image x86
@@ -731,7 +731,7 @@ cd linux-%{kversion}.%{_target_cpu}
 %patch10001 -p1
 
 # TOMOYO Linux
-tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
 sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2142_FC4/" -- Makefile
 patch -sp1 < patches/ccs-patch-2.6.17-1.2142_FC4.diff
 
