@@ -1,15 +1,25 @@
-Subject: Socket operation restriction code.
+Subject: Socket operation restriction part.
 
 This file controls socket related operations.
 
+YOSHIFUJI Hideaki advised me to use in4_pton() and in6_pton() rather than
+simple sscanf(). But they depends on CONFIG_NET.
+
+May I add "depends on NET" in Kconfig?
+Nobody needs to build kernel without CONFIG_NET?
+
+When printing IPv6 address,
+I'm using "%x:%x:%x:%x:%x:%x:%x:%x" to to make the output as short as possible.
+But using "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x" (= NIP6_FMT) is better?
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- fs/tomoyo_network.c |  903 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 903 insertions(+)
+ fs/tomoyo_network.c |  906 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 906 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.25-rc8-mm1/fs/tomoyo_network.c
-@@ -0,0 +1,903 @@
+@@ -0,0 +1,906 @@
 +/*
 + * fs/tomoyo_network.c
 + *
@@ -24,7 +34,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include <linux/ccs_common.h>
 +#include <linux/tomoyo.h>
 +#include <linux/realpath.h>
-+#include <net/ip.h>
++#include <linux/net.h>
++#include <linux/inet.h>
++#include <linux/in.h>
++#include <linux/in6.h>
 +
 +/**
 + * audit_network_log - Audit network log.

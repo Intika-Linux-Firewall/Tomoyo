@@ -1,12 +1,12 @@
-Subject: Automatic bind port selection control code.
+Subject: Automatic bind port selection control part.
 
 LSM doesn't provide hook for selecting local port. I don't know why.
 Don't you think it is not happy if some port
 (in /proc/sys/net/ipv4/ip_local_port_range) is implicitly allocated by
-bind() with "struct sockaddr_in *"->sim_port = htons(0) or
+bind() with "struct sockaddr_in *"->sin_port = htons(0) or
 connect() without bind().
 For example, 8080 could be unexpectedly used by some process
-although the administrator wanted to reserve 8080 for Squid 
+although the administrator wanted to reserve 8080 for Squid
 if /proc/sys/net/ipv4/ip_local_port_range is "5000 10000".
 
 Since selecting local port is done with a spinlock held,
