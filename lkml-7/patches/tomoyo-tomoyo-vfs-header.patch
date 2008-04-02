@@ -1,0 +1,163 @@
+Subject: Some of permission checks from VFS helper functions.
+
+TOMOYO Linux performs pathname based access control,
+but "struct vfsmount" is not passed to VFS helper functions
+which is needed for deriving requested pathname.
+
+Since I want to do conventional DAC's permission checks
+before TOMOYO Linux's permission checks, I copied some of
+permission checks from VFS helper functions.
+
+The side effect of this approach is that DAC permission checks
+are done twice. But the approach to pass "struct vfsmount" to
+VFS helper functions seems unacceptable.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ include/linux/tomoyo_vfs.h |  141 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 141 insertions(+)
+
+--- /dev/null
++++ linux-2.6.25-rc8-mm1/include/linux/tomoyo_vfs.h
+@@ -0,0 +1,141 @@
++/*
++ * include/linux/tomoyo_vfs.h
++ *
++ * Implementation of the Domain-Based Mandatory Access Control.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.6.0   2008/04/01
++ *
++ */
++
++#ifndef _LINUX_TOMOYO_VFS_H
++#define _LINUX_TOMOYO_VFS_H
++
++/*
++ * This file contains copy of some of VFS helper functions.
++ *
++ * Since TOMOYO Linux requires "struct vfsmount" parameter to calculate
++ * an absolute pathname of the requested "struct dentry" parameter
++ * but the VFS helper functions don't receive "struct vfsmount" parameter,
++ * TOMOYO Linux checks permission outside VFS helper functions.
++ * To keep the DAC's permission checks are performed before the
++ * TOMOYO Linux's permission checks are performed, I'm manually inserting
++ * these functions that performs the DAC's permission checks into fs/namei.c.
++ *
++ * The approach to obtain "struct vfsmount" parameter from
++ * the "struct task_struct" doesn't work because it triggers deadlock.
++ */
++
++/*
++ * Permission checks before security_inode_mknod() is called.
++ *
++ * This function is exported because
++ * vfs_mknod() is called from net/unix/af_unix.c.
++ */
++int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
++{
++	int error = may_create(dir, dentry, NULL);
++	if (error)
++		return error;
++	if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD))
++		return -EPERM;
++	if (!dir->i_op || !dir->i_op->mknod)
++		return -EPERM;
++	return 0;
++}
++EXPORT_SYMBOL(pre_vfs_mknod);
++
++/* Permission checks before security_inode_mkdir() is called. */
++static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
++{
++	int error = may_create(dir, dentry, NULL);
++	if (error)
++		return error;
++	if (!dir->i_op || !dir->i_op->mkdir)
++		return -EPERM;
++	return 0;
++}
++
++/* Some of permission checks before security_inode_rmdir() is called. */
++static inline int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
++{
++	int error = may_delete(dir, dentry, 1);
++	if (error)
++		return error;
++	if (!dir->i_op || !dir->i_op->rmdir)
++		return -EPERM;
++	return 0;
++}
++
++/* Some of permission checks before security_inode_unlink() is called. */
++static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
++{
++	int error = may_delete(dir, dentry, 0);
++	if (error)
++		return error;
++	if (!dir->i_op || !dir->i_op->unlink)
++		return -EPERM;
++	return 0;
++}
++
++/* Permission checks before security_inode_link() is called. */
++static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
++			       struct dentry *new_dentry)
++{
++	struct inode *inode = old_dentry->d_inode;
++	int error;
++	if (!inode)
++		return -ENOENT;
++	error = may_create(dir, new_dentry, NULL);
++	if (error)
++		return error;
++	if (dir->i_sb != inode->i_sb)
++		return -EXDEV;
++	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
++		return -EPERM;
++	if (!dir->i_op || !dir->i_op->link)
++		return -EPERM;
++	if (S_ISDIR(old_dentry->d_inode->i_mode))
++		return -EPERM;
++	return 0;
++}
++
++/* Permission checks before security_inode_symlink() is called. */
++static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
++{
++	int error = may_create(dir, dentry, NULL);
++	if (error)
++		return error;
++	if (!dir->i_op || !dir->i_op->symlink)
++		return -EPERM;
++	return 0;
++}
++
++/* Permission checks before security_inode_rename() is called. */
++static inline int pre_vfs_rename(struct inode *old_dir,
++				 struct dentry *old_dentry,
++				 struct inode *new_dir,
++				 struct dentry *new_dentry)
++{
++	int error;
++	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
++	if (old_dentry->d_inode == new_dentry->d_inode)
++		return 0;
++	error = may_delete(old_dir, old_dentry, is_dir);
++	if (error)
++		return error;
++	if (!new_dentry->d_inode)
++		error = may_create(new_dir, new_dentry, NULL);
++	else
++		error = may_delete(new_dir, new_dentry, is_dir);
++	if (error)
++		return error;
++	if (!old_dir->i_op || !old_dir->i_op->rename)
++		return -EPERM;
++	if (is_dir && new_dir != old_dir)
++		error = permission(old_dentry->d_inode, MAY_WRITE, NULL);
++	return error;
++}
++
++#endif
