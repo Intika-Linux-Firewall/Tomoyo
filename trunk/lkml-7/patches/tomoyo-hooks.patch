@@ -1,60 +1,139 @@
-This is TOMOYO Linux patch for kernel 2.6.25-rc7.
+Subject: Hooks for SAKURA and TOMOYO.
 
-Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.25-rc7.tar.bz2
+This file contains modifications against existing kernel source code
+needed to use TOMOYO Linux.
+
+Although LSM hooks are provided for performing access control,
+TOMOYO Linux doesn't use LSM because of the following reasons.
+
+Reason 1:
+
+CONFIG_SECURITY=y adds security fields to various structures and
+introduces hooks for allocating/freeing these security fields.
+But TOMOYO Linux hardly utilize them.
+
+TOMOYO Linux requires modification against only "struct task_struct",
+and adding two variables to "struct task_struct" is sufficient.
+
+I think reserving LSM hooks for other security modules (e.g. SELinux, SMACK)
+and making TOMOYO Linux coexist with them is better than
+poorly utilizing LSM hooks and making TOMOYO Linux irreconcilable.
+In fact, I'm building TOMOYO Linux kernel packages with SELinux enabled
+and I'm experiencing no problems.
+
+Reason 2:
+
+TOMOYO Linux supports "delayed enforcing" mode that allows administrator
+judge interactively when policy violation occured.
+To support that mode, all hooks but ccs_may_autobind() are called from
+context that are permitted to sleep.
+But some of LSM hooks are called from context that are not permitted to sleep.
+
+Reason 3:
+
+LSM hooks are called from VFS helper functions.
+But VFS helper functions don't receive "struct vfsmount" that are needed for
+TOMOYO Linux.
+Current specification of LSM is suitable for label based access control,
+but is not suitable for pathname based access control.
+As far as I can see, adding "struct vfsmount" to VFS helper functions
+to make LSM suitable for pathname based access control is unlikely acceptable.
+
+Reason 4:
+
+TOMOYO Linux is not only a tool for doing access control
+but also a tool for analyzing a system's behavior.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- Makefile                        |    2 
- arch/ia64/ia32/sys_ia32.c       |    9 ++
- arch/mips/kernel/ptrace32.c     |    9 ++
- arch/s390/kernel/ptrace.c       |    9 ++
- arch/sh/kernel/ptrace_64.c      |    9 ++
- arch/x86/kernel/ptrace.c        |    9 ++
- fs/Kconfig                      |    2 
- fs/Makefile                     |    2 
- fs/attr.c                       |   19 ++++++
- fs/compat.c                     |    2 
- fs/compat_ioctl.c               |    9 ++
- fs/exec.c                       |   20 ++++++
- fs/fcntl.c                      |    9 ++
- fs/ioctl.c                      |    7 ++
- fs/namei.c                      |  122 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   49 ++++++++++++++++
- fs/open.c                       |   27 ++++++++
- fs/proc/Makefile                |    3 
- fs/proc/proc_misc.c             |    5 +
- include/linux/init_task.h       |    4 +
- include/linux/sched.h           |    9 ++
- kernel/compat.c                 |    7 ++
- kernel/kexec.c                  |    7 ++
- kernel/kmod.c                   |    5 +
- kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |   15 ++++
- kernel/sched.c                  |    7 ++
- kernel/signal.c                 |   21 ++++++
- kernel/sys.c                    |   21 ++++++
- kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++++++
- kernel/time.c                   |   11 +++
- kernel/time/ntp.c               |    7 ++
- net/core/datagram.c             |   11 +++
- net/ipv4/inet_connection_sock.c |    7 ++
- net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |   10 +++
- net/socket.c                    |   41 +++++++++++++
- net/unix/af_unix.c              |   15 ++++
- 38 files changed, 631 insertions(+), 3 deletions(-)
+ Documentation/kernel-parameters.txt |   15 ++++
+ arch/ia64/ia32/sys_ia32.c           |    7 ++
+ arch/mips/kernel/ptrace32.c         |    7 ++
+ arch/s390/kernel/ptrace.c           |    7 ++
+ arch/sh/kernel/ptrace_64.c          |    7 ++
+ arch/x86/kernel/ptrace.c            |    7 ++
+ fs/Kconfig                          |    2 
+ fs/Makefile                         |    2 
+ fs/attr.c                           |   19 +++++
+ fs/compat.c                         |    2 
+ fs/compat_ioctl.c                   |    9 ++
+ fs/exec.c                           |   20 +++++-
+ fs/fcntl.c                          |    9 ++
+ fs/ioctl.c                          |    7 ++
+ fs/namei.c                          |  119 +++++++++++++++++++++++++++++++++++-
+ fs/namespace.c                      |   49 ++++++++++++++
+ fs/open.c                           |   27 ++++++++
+ fs/proc/Makefile                    |    3 
+ fs/proc/proc_misc.c                 |    5 +
+ include/linux/init_task.h           |    4 +
+ include/linux/sched.h               |    9 ++
+ kernel/compat.c                     |    7 ++
+ kernel/kexec.c                      |    7 ++
+ kernel/kmod.c                       |    5 +
+ kernel/module.c                     |   11 +++
+ kernel/ptrace.c                     |   11 +++
+ kernel/sched.c                      |    7 ++
+ kernel/signal.c                     |   21 ++++++
+ kernel/sys.c                        |   21 ++++++
+ kernel/sysctl.c                     |   94 ++++++++++++++++++++++++++++
+ kernel/time.c                       |   11 +++
+ kernel/time/ntp.c                   |    7 ++
+ net/core/datagram.c                 |   11 +++
+ net/ipv4/inet_connection_sock.c     |    7 ++
+ net/ipv4/inet_hashtables.c          |    7 ++
+ net/ipv4/udp.c                      |   10 +++
+ net/socket.c                        |   41 ++++++++++++
+ net/unix/af_unix.c                  |   15 ++++
+ 38 files changed, 626 insertions(+), 3 deletions(-)
 
---- linux-2.6.25-rc7.orig/Makefile
-+++ linux-2.6.25-rc7/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 25
--EXTRAVERSION = -rc7
-+EXTRAVERSION = -rc7-ccs
- NAME = Funky Weasel is Jiggy wit it
+--- linux-2.6.25-rc8-mm1.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.25-rc8-mm1/arch/ia64/ia32/sys_ia32.c
+@@ -51,6 +51,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
  
- # *DOCUMENTATION*
---- linux-2.6.25-rc7.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.25-rc7/arch/s390/kernel/ptrace.c
+ #include "ia32priv.h"
+ 
+@@ -1754,6 +1757,10 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.25-rc8-mm1.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.25-rc8-mm1/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs(struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs(struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,10 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.25-rc8-mm1.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.25-rc8-mm1/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -65,38 +144,82 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  #ifdef CONFIG_COMPAT
  #include "compat_ptrace.h"
-@@ -698,6 +701,12 @@ sys_ptrace(long request, long pid, long 
+@@ -698,6 +701,10 @@ sys_ptrace(long request, long pid, long 
  	struct task_struct *child;
  	int ret;
  
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-2.6.25-rc7.orig/fs/Kconfig
-+++ linux-2.6.25-rc7/fs/Kconfig
-@@ -2135,4 +2135,6 @@ endif
+--- linux-2.6.25-rc8-mm1.orig/arch/sh/kernel/ptrace_64.c
++++ linux-2.6.25-rc8-mm1/arch/sh/kernel/ptrace_64.c
+@@ -33,6 +33,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -253,6 +256,10 @@ asmlinkage int sh64_ptrace(long request,
+ {
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {
+--- linux-2.6.25-rc8-mm1.orig/arch/x86/kernel/ptrace.c
++++ linux-2.6.25-rc8-mm1/arch/x86/kernel/ptrace.c
+@@ -32,6 +32,9 @@
+ #include <asm/prctl.h>
+ #include <asm/proto.h>
+ #include <asm/ds.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "tls.h"
+ 
+@@ -1240,6 +1243,10 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) {
+ 	case PTRACE_TRACEME:
+--- linux-2.6.25-rc8-mm1.orig/fs/Kconfig
++++ linux-2.6.25-rc8-mm1/fs/Kconfig
+@@ -2196,4 +2196,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
  
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.25-rc7.orig/fs/Makefile
-+++ linux-2.6.25-rc7/fs/Makefile
-@@ -119,3 +119,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
- obj-$(CONFIG_DEBUG_FS)		+= debugfs/
+--- linux-2.6.25-rc8-mm1.orig/fs/Makefile
++++ linux-2.6.25-rc8-mm1/fs/Makefile
+@@ -121,3 +121,5 @@ obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
+ obj-$(CONFIG_UNION_FS)		+= unionfs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.25-rc7.orig/fs/attr.c
-+++ linux-2.6.25-rc7/fs/attr.c
+--- linux-2.6.25-rc8-mm1.orig/fs/attr.c
++++ linux-2.6.25-rc8-mm1/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -136,8 +259,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.25-rc7.orig/fs/compat.c
-+++ linux-2.6.25-rc7/fs/compat.c
+--- linux-2.6.25-rc8-mm1.orig/fs/compat.c
++++ linux-2.6.25-rc8-mm1/fs/compat.c
 @@ -1399,7 +1399,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
@@ -147,8 +270,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.25-rc7.orig/fs/compat_ioctl.c
-+++ linux-2.6.25-rc7/fs/compat_ioctl.c
+--- linux-2.6.25-rc8-mm1.orig/fs/compat_ioctl.c
++++ linux-2.6.25-rc8-mm1/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -172,8 +295,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.25-rc7.orig/fs/exec.c
-+++ linux-2.6.25-rc7/fs/exec.c
+--- linux-2.6.25-rc8-mm1.orig/fs/exec.c
++++ linux-2.6.25-rc8-mm1/fs/exec.c
 @@ -60,6 +60,10 @@
  #include <linux/kmod.h>
  #endif
@@ -213,17 +336,17 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd,
-@@ -1336,7 +1354,7 @@ int do_execve(char * filename,
+@@ -1325,7 +1343,7 @@ int do_execve(char * filename,
+ 	if (retval < 0)
  		goto out;
- 	bprm->argv_len = env_p - bprm->p;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = search_binary_handler_with_transition(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
---- linux-2.6.25-rc7.orig/fs/fcntl.c
-+++ linux-2.6.25-rc7/fs/fcntl.c
+--- linux-2.6.25-rc8-mm1.orig/fs/fcntl.c
++++ linux-2.6.25-rc8-mm1/fs/fcntl.c
 @@ -23,6 +23,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -247,8 +370,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.25-rc7.orig/fs/ioctl.c
-+++ linux-2.6.25-rc7/fs/ioctl.c
+--- linux-2.6.25-rc8-mm1.orig/fs/ioctl.c
++++ linux-2.6.25-rc8-mm1/fs/ioctl.c
 @@ -15,6 +15,9 @@
  #include <linux/uaccess.h>
  
@@ -259,7 +382,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  /**
   * vfs_ioctl - call filesystem specific ioctl methods
-@@ -35,6 +38,10 @@ long vfs_ioctl(struct file *filp, unsign
+@@ -35,6 +38,10 @@ static long vfs_ioctl(struct file *filp,
  
  	if (!filp->f_op)
  		goto out;
@@ -270,9 +393,9 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.25-rc7.orig/fs/namei.c
-+++ linux-2.6.25-rc7/fs/namei.c
-@@ -35,6 +35,10 @@
+--- linux-2.6.25-rc8-mm1.orig/fs/namei.c
++++ linux-2.6.25-rc8-mm1/fs/namei.c
+@@ -36,6 +36,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
@@ -283,7 +406,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1589,6 +1593,14 @@ int vfs_create(struct inode *dir, struct
+@@ -1595,6 +1599,14 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -298,7 +421,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1644,6 +1656,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1649,6 +1661,13 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -312,7 +435,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1695,6 +1714,9 @@ static int open_namei_create(struct name
+@@ -1705,6 +1724,9 @@ static int __open_namei_create(struct na
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -320,9 +443,9 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +#include <linux/tomoyo_vfs.h>
 +/***** TOMOYO Linux end. *****/
  /*
-  *	open_namei()
-  *
-@@ -1955,6 +1977,16 @@ asmlinkage long sys_mknodat(int dfd, con
+  * Note that while the flag value (low two bits) for sys_open means:
+  *	00 - read-only
+@@ -2076,6 +2098,16 @@ asmlinkage long sys_mknodat(int dfd, con
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -339,7 +462,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1973,10 +2005,34 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2101,10 +2133,34 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -373,11 +496,11 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
- 		case S_IFDIR:
-@@ -2044,6 +2100,13 @@ asmlinkage long sys_mkdirat(int dfd, con
- 
- 	if (!IS_POSIXACL(nd.path.dentry->d_inode))
- 		mode &= ~current->fs->umask;
+ 	}
+@@ -2172,6 +2228,13 @@ asmlinkage long sys_mkdirat(int dfd, con
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_dput;
 +	/***** TOMOYO Linux start. *****/
 +	error = pre_vfs_mkdir(nd.path.dentry->d_inode, dentry);
 +	if (!error)
@@ -386,12 +509,12 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
- 	dput(dentry);
- out_unlock:
-@@ -2151,6 +2214,13 @@ static long do_rmdir(int dfd, const char
- 	error = PTR_ERR(dentry);
- 	if (IS_ERR(dentry))
- 		goto exit2;
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2284,6 +2347,13 @@ static long do_rmdir(int dfd, const char
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto exit3;
 +	/***** TOMOYO Linux start. *****/
 +	error = pre_vfs_rmdir(nd.path.dentry->d_inode, dentry);
 +	if (!error)
@@ -400,9 +523,9 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
- 	dput(dentry);
- exit2:
-@@ -2211,6 +2281,10 @@ static long do_unlinkat(int dfd, const c
+ 	mnt_drop_write(nd.path.mnt);
+ exit3:
+@@ -2346,6 +2416,10 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -413,23 +536,21 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -2232,6 +2306,15 @@ static long do_unlinkat(int dfd, const c
- 		inode = dentry->d_inode;
- 		if (inode)
- 			atomic_inc(&inode->i_count);
+@@ -2370,6 +2444,13 @@ static long do_unlinkat(int dfd, const c
+ 		error = mnt_want_write(nd.path.mnt);
+ 		if (error)
+ 			goto exit2;
 +		/***** TOMOYO Linux start. *****/
 +		error = pre_vfs_unlink(nd.path.dentry->d_inode, dentry);
-+		if (error)
-+			goto exit2;
-+		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry,
-+					     nd.path.mnt);
-+		if (error)
-+			goto exit2;
++		if (!error)
++			error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry,
++						     nd.path.mnt);
++		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
+ 		mnt_drop_write(nd.path.mnt);
  	exit2:
- 		dput(dentry);
-@@ -2296,6 +2379,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2435,6 +2516,10 @@ asmlinkage long sys_symlinkat(const char
  	char * to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -440,10 +561,10 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -2313,6 +2400,13 @@ asmlinkage long sys_symlinkat(const char
- 	if (IS_ERR(dentry))
- 		goto out_unlock;
- 
+@@ -2455,6 +2540,13 @@ asmlinkage long sys_symlinkat(const char
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_dput;
 +	/***** TOMOYO Linux start. *****/
 +	error = pre_vfs_symlink(nd.path.dentry->d_inode, dentry);
 +	if (!error)
@@ -452,9 +573,9 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from, S_IALLUGO);
- 	dput(dentry);
- out_unlock:
-@@ -2385,6 +2479,10 @@ asmlinkage long sys_linkat(int olddfd, c
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2529,6 +2621,10 @@ asmlinkage long sys_linkat(int olddfd, c
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -465,10 +586,10 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
-@@ -2408,6 +2506,15 @@ asmlinkage long sys_linkat(int olddfd, c
- 	error = PTR_ERR(new_dentry);
- 	if (IS_ERR(new_dentry))
- 		goto out_unlock;
+@@ -2555,6 +2651,15 @@ asmlinkage long sys_linkat(int olddfd, c
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_dput;
 +	/***** TOMOYO Linux start. *****/
 +	error = pre_vfs_link(old_nd.path.dentry, nd.path.dentry->d_inode,
 +			     new_dentry);
@@ -479,27 +600,29 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_link(old_nd.path.dentry, nd.path.dentry->d_inode, new_dentry);
- 	dput(new_dentry);
- out_unlock:
-@@ -2633,6 +2740,17 @@ static int do_rename(int olddfd, const c
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2782,10 +2887,18 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
+ 		goto exit5;
+-
+ 	error = mnt_want_write(oldnd.path.mnt);
+ 	if (error)
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
 +	error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode,
 +			       new_dentry);
-+	if (error < 0)
-+		goto exit5;
-+	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
-+				     oldnd.path.mnt, new_dentry,
-+				     newnd.path.mnt);
-+	if (error < 0)
-+		goto exit5;
++	if (!error)
++		error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
++					     oldnd.path.mnt, new_dentry,
++					     newnd.path.mnt);
++	if (!error)
 +	/***** TOMOYO Linux end. *****/
- 
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
-@@ -2656,6 +2774,10 @@ asmlinkage long sys_renameat(int olddfd,
+ 	mnt_drop_write(oldnd.path.mnt);
+@@ -2809,6 +2922,10 @@ asmlinkage long sys_renameat(int olddfd,
  	int error;
  	char * from;
  	char * to;
@@ -510,9 +633,9 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.25-rc7.orig/fs/namespace.c
-+++ linux-2.6.25-rc7/fs/namespace.c
-@@ -30,6 +30,12 @@
+--- linux-2.6.25-rc8-mm1.orig/fs/namespace.c
++++ linux-2.6.25-rc8-mm1/fs/namespace.c
+@@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
  #include "internal.h"
@@ -525,7 +648,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
  #define HASH_SIZE (1UL << HASH_SHIFT)
-@@ -588,6 +594,11 @@ static int do_umount(struct vfsmount *mn
+@@ -1029,6 +1035,11 @@ static int do_umount(struct vfsmount *mn
  	if (retval)
  		return retval;
  
@@ -537,7 +660,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -676,6 +687,10 @@ asmlinkage long sys_umount(char __user *
+@@ -1119,6 +1130,10 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -548,7 +671,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -985,6 +1000,11 @@ static noinline int do_loopback(struct n
+@@ -1466,6 +1481,11 @@ static noinline int do_loopback(struct n
  	err = -EINVAL;
  	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
  		goto out;
@@ -560,7 +683,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
-@@ -1078,6 +1098,11 @@ static noinline int do_move_mount(struct
+@@ -1580,6 +1600,11 @@ static noinline int do_move_mount(struct
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
  
@@ -572,7 +695,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->path.dentry->d_inode))
-@@ -1184,6 +1209,11 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1684,6 +1709,11 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -583,8 +706,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +	/***** SAKURA Linux end. *****/
  
  	newmnt->mnt_flags = mnt_flags;
- 	if ((err = graft_tree(newmnt, nd)))
-@@ -1475,6 +1505,17 @@ long do_mount(char *dev_name, char *dir_
+ 	if ((err = graft_tree(newmnt, &nd->path)))
+@@ -1907,6 +1937,17 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -602,7 +725,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1742,6 +1783,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2178,6 +2219,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -611,12 +734,12 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
- 	lock_kernel();
- 
-@@ -1758,6 +1803,10 @@ asmlinkage long sys_pivot_root(const cha
+ 	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
+ 			    &new_nd);
+@@ -2192,6 +2237,10 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
- 	error = security_sb_pivotroot(&old_nd, &new_nd);
+ 	error = security_sb_pivotroot(&old_nd.path, &new_nd.path);
 +	/***** SAKURA Linux start. *****/
 +	if (!error)
 +		error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
@@ -624,8 +747,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	if (error) {
  		path_put(&old_nd.path);
  		goto out1;
---- linux-2.6.25-rc7.orig/fs/open.c
-+++ linux-2.6.25-rc7/fs/open.c
+--- linux-2.6.25-rc8-mm1.orig/fs/open.c
++++ linux-2.6.25-rc8-mm1/fs/open.c
 @@ -27,6 +27,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -651,7 +774,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -322,6 +333,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -324,6 +335,10 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -662,7 +785,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -540,6 +555,14 @@ asmlinkage long sys_chroot(const char __
+@@ -551,6 +566,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -677,7 +800,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	set_fs_root(current->fs, &nd.path);
  	set_fs_altroot();
-@@ -1169,6 +1192,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1206,6 +1229,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -688,8 +811,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.25-rc7.orig/fs/proc/Makefile
-+++ linux-2.6.25-rc7/fs/proc/Makefile
+--- linux-2.6.25-rc8-mm1.orig/fs/proc/Makefile
++++ linux-2.6.25-rc8-mm1/fs/proc/Makefile
 @@ -16,3 +16,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -697,21 +820,21 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.25-rc7.orig/fs/proc/proc_misc.c
-+++ linux-2.6.25-rc7/fs/proc/proc_misc.c
-@@ -907,4 +907,9 @@ void __init proc_misc_init(void)
- 			entry->proc_fops = &proc_sysrq_trigger_operations;
+--- linux-2.6.25-rc8-mm1.orig/fs/proc/proc_misc.c
++++ linux-2.6.25-rc8-mm1/fs/proc/proc_misc.c
+@@ -1049,4 +1049,9 @@ void __init proc_misc_init(void)
+ 		}
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.25-rc7 2008/03/26\n");
++	printk(KERN_INFO "Hook version: 2.6.25-rc8-mm1 2008/04/02\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.25-rc7.orig/include/linux/init_task.h
-+++ linux-2.6.25-rc7/include/linux/init_task.h
-@@ -196,6 +196,10 @@ extern struct group_info init_groups;
+--- linux-2.6.25-rc8-mm1.orig/include/linux/init_task.h
++++ linux-2.6.25-rc8-mm1/include/linux/init_task.h
+@@ -197,6 +197,10 @@ extern struct group_info init_groups;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
@@ -722,8 +845,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  }
  
  
---- linux-2.6.25-rc7.orig/include/linux/sched.h
-+++ linux-2.6.25-rc7/include/linux/sched.h
+--- linux-2.6.25-rc8-mm1.orig/include/linux/sched.h
++++ linux-2.6.25-rc8-mm1/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -736,7 +859,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  /*
   * Scheduling policies
   */
-@@ -1271,6 +1276,10 @@ struct task_struct {
+@@ -1278,6 +1283,10 @@ struct task_struct {
  	int latency_record_count;
  	struct latency_record latency_record[LT_SAVECOUNT];
  #endif
@@ -747,8 +870,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  };
  
  /*
---- linux-2.6.25-rc7.orig/kernel/compat.c
-+++ linux-2.6.25-rc7/kernel/compat.c
+--- linux-2.6.25-rc8-mm1.orig/kernel/compat.c
++++ linux-2.6.25-rc8-mm1/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -759,7 +882,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
  {
-@@ -869,6 +872,10 @@ asmlinkage long compat_sys_stime(compat_
+@@ -868,6 +871,10 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -770,8 +893,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.25-rc7.orig/kernel/kexec.c
-+++ linux-2.6.25-rc7/kernel/kexec.c
+--- linux-2.6.25-rc8-mm1.orig/kernel/kexec.c
++++ linux-2.6.25-rc8-mm1/kernel/kexec.c
 @@ -31,6 +31,9 @@
  #include <asm/system.h>
  #include <asm/semaphore.h>
@@ -793,8 +916,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.25-rc7.orig/kernel/kmod.c
-+++ linux-2.6.25-rc7/kernel/kmod.c
+--- linux-2.6.25-rc8-mm1.orig/kernel/kmod.c
++++ linux-2.6.25-rc8-mm1/kernel/kmod.c
 @@ -173,6 +173,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -807,8 +930,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.25-rc7.orig/kernel/module.c
-+++ linux-2.6.25-rc7/kernel/module.c
+--- linux-2.6.25-rc8-mm1.orig/kernel/module.c
++++ linux-2.6.25-rc8-mm1/kernel/module.c
 @@ -47,6 +47,9 @@
  #include <asm/cacheflush.h>
  #include <linux/license.h>
@@ -830,7 +953,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2145,6 +2152,10 @@ sys_init_module(void __user *umod,
+@@ -2157,6 +2164,10 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -841,8 +964,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.25-rc7.orig/kernel/ptrace.c
-+++ linux-2.6.25-rc7/kernel/ptrace.c
+--- linux-2.6.25-rc8-mm1.orig/kernel/ptrace.c
++++ linux-2.6.25-rc8-mm1/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -853,35 +976,31 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -548,6 +551,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -539,6 +542,10 @@ asmlinkage long sys_ptrace(long request,
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -655,6 +664,12 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -646,6 +653,10 @@ asmlinkage long compat_sys_ptrace(compat
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.25-rc7.orig/kernel/sched.c
-+++ linux-2.6.25-rc7/kernel/sched.c
-@@ -69,6 +69,9 @@
+--- linux-2.6.25-rc8-mm1.orig/kernel/sched.c
++++ linux-2.6.25-rc8-mm1/kernel/sched.c
+@@ -70,6 +70,9 @@
  
  #include <asm/tlb.h>
  #include <asm/irq_regs.h>
@@ -891,7 +1010,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  /*
   * Scheduler clock - returns current time in nanosec units.
-@@ -4376,6 +4379,10 @@ int can_nice(const struct task_struct *p
+@@ -4509,6 +4512,10 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -902,8 +1021,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.25-rc7.orig/kernel/signal.c
-+++ linux-2.6.25-rc7/kernel/signal.c
+--- linux-2.6.25-rc8-mm1.orig/kernel/signal.c
++++ linux-2.6.25-rc8-mm1/kernel/signal.c
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -914,7 +1033,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  /*
   * SLAB caches for signal bits.
-@@ -2231,6 +2234,12 @@ asmlinkage long
+@@ -2147,6 +2150,12 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -927,7 +1046,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2289,6 +2298,12 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2208,6 +2217,12 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -940,7 +1059,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2302,6 +2317,12 @@ sys_tkill(int pid, int sig)
+@@ -2221,6 +2236,12 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -953,8 +1072,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.25-rc7.orig/kernel/sys.c
-+++ linux-2.6.25-rc7/kernel/sys.c
+--- linux-2.6.25-rc8-mm1.orig/kernel/sys.c
++++ linux-2.6.25-rc8-mm1/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -989,7 +1108,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1347,6 +1360,10 @@ asmlinkage long sys_sethostname(char __u
+@@ -1359,6 +1372,10 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1000,7 +1119,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1392,6 +1409,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1404,6 +1421,10 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1011,9 +1130,9 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.25-rc7.orig/kernel/sysctl.c
-+++ linux-2.6.25-rc7/kernel/sysctl.c
-@@ -48,6 +48,9 @@
+--- linux-2.6.25-rc8-mm1.orig/kernel/sysctl.c
++++ linux-2.6.25-rc8-mm1/kernel/sysctl.c
+@@ -49,6 +49,9 @@
  
  #include <asm/uaccess.h>
  #include <asm/processor.h>
@@ -1023,11 +1142,10 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1441,6 +1444,93 @@ void register_sysctl_root(struct ctl_tab
+@@ -1503,6 +1506,92 @@ repeat:
+ 	return -ENOTDIR;
  }
  
- #ifdef CONFIG_SYSCTL_SYSCALL
-+
 +/***** TOMOYO Linux start. *****/
 +static int try_parse_table(int __user *name, int nlen, void __user *oldval,
 +			   void __user *newval, ctl_table *table)
@@ -1117,7 +1235,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1457,6 +1547,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1519,6 +1608,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1127,21 +1245,21 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = parse_table(name, nlen, oldval, oldlenp, 
- 					newval, newlen, head->ctl_table);
- 		if (error != -ENOTDIR) {
---- linux-2.6.25-rc7.orig/kernel/time.c
-+++ linux-2.6.25-rc7/kernel/time.c
-@@ -38,6 +38,9 @@
- 
+ 					newval, newlen,
+ 					head->root, head->ctl_table);
+--- linux-2.6.25-rc8-mm1.orig/kernel/time.c
++++ linux-2.6.25-rc8-mm1/kernel/time.c
+@@ -41,6 +41,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
+ #include <asm/div64.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  #include "timeconst.h"
  
-@@ -88,6 +91,10 @@ asmlinkage long sys_stime(time_t __user 
+@@ -91,6 +94,10 @@ asmlinkage long sys_stime(time_t __user 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -1152,7 +1270,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -159,6 +166,10 @@ int do_sys_settimeofday(struct timespec 
+@@ -162,6 +169,10 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -1163,11 +1281,11 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.25-rc7.orig/kernel/time/ntp.c
-+++ linux-2.6.25-rc7/kernel/time/ntp.c
-@@ -17,6 +17,9 @@
- #include <linux/capability.h>
- #include <asm/div64.h>
+--- linux-2.6.25-rc8-mm1.orig/kernel/time/ntp.c
++++ linux-2.6.25-rc8-mm1/kernel/time/ntp.c
+@@ -18,6 +18,9 @@
+ #include <linux/math64.h>
+ #include <linux/clocksource.h>
  #include <asm/timex.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
@@ -1175,7 +1293,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  /*
   * Timekeeping variables
-@@ -243,6 +246,10 @@ int do_adjtimex(struct timex *txc)
+@@ -283,6 +286,10 @@ int do_adjtimex(struct timex *txc)
  	/* In order to modify anything, you gotta be super-user! */
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
@@ -1186,8 +1304,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.25-rc7.orig/net/core/datagram.c
-+++ linux-2.6.25-rc7/net/core/datagram.c
+--- linux-2.6.25-rc8-mm1.orig/net/core/datagram.c
++++ linux-2.6.25-rc8-mm1/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1213,8 +1331,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  		if (skb)
  			return skb;
  
---- linux-2.6.25-rc7.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.25-rc7/net/ipv4/inet_connection_sock.c
+--- linux-2.6.25-rc8-mm1.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.25-rc8-mm1/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1236,8 +1354,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->ib_net == net && tb->port == rover)
  					goto next;
---- linux-2.6.25-rc7.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.25-rc7/net/ipv4/inet_hashtables.c
+--- linux-2.6.25-rc8-mm1.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.25-rc8-mm1/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1259,8 +1377,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.25-rc7.orig/net/ipv4/udp.c
-+++ linux-2.6.25-rc7/net/ipv4/udp.c
+--- linux-2.6.25-rc8-mm1.orig/net/ipv4/udp.c
++++ linux-2.6.25-rc8-mm1/net/ipv4/udp.c
 @@ -105,6 +105,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1271,7 +1389,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -176,6 +179,10 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -175,6 +178,10 @@ int udp_lib_get_port(struct sock *sk, un
  		/* 1st pass: look for empty (or shortest) hash chain */
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
@@ -1282,7 +1400,7 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  			head = &udptable[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(head))
-@@ -199,6 +206,9 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -198,6 +205,9 @@ int udp_lib_get_port(struct sock *sk, un
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1292,8 +1410,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  			if (! __udp_lib_lport_inuse(net, rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
---- linux-2.6.25-rc7.orig/net/socket.c
-+++ linux-2.6.25-rc7/net/socket.c
+--- linux-2.6.25-rc8-mm1.orig/net/socket.c
++++ linux-2.6.25-rc8-mm1/net/socket.c
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1384,8 +1502,8 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
---- linux-2.6.25-rc7.orig/net/unix/af_unix.c
-+++ linux-2.6.25-rc7/net/unix/af_unix.c
+--- linux-2.6.25-rc8-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.25-rc8-mm1/net/unix/af_unix.c
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1408,10 +1526,10 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -819,6 +827,13 @@ static int unix_bind(struct socket *sock
- 		 */
- 		mode = S_IFSOCK |
- 		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
+@@ -822,6 +830,13 @@ static int unix_bind(struct socket *sock
+ 		err = mnt_want_write(nd.path.mnt);
+ 		if (err)
+ 			goto out_mknod_dput;
 +		/***** TOMOYO Linux start. *****/
 +		err = pre_vfs_mknod(nd.path.dentry->d_inode, dentry, mode);
 +		if (!err)
@@ -1420,105 +1538,29 @@ Source code for this patch is http://www2.kernel.org/pub/linux/kernel/v2.6/testi
 +		if (!err)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
+ 		mnt_drop_write(nd.path.mnt);
  		if (err)
- 			goto out_mknod_dput;
---- linux-2.6.25-rc7.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.25-rc7/arch/ia64/ia32/sys_ia32.c
-@@ -50,6 +50,9 @@
- #include <asm/types.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
+--- linux-2.6.25-rc8-mm1.orig/Documentation/kernel-parameters.txt
++++ linux-2.6.25-rc8-mm1/Documentation/kernel-parameters.txt
+@@ -2130,6 +2130,21 @@ and is between 256 and 4096 characters. 
+ 	norandmaps	Don't use address space randomization
+ 			Equivalent to echo 0 > /proc/sys/kernel/randomize_va_space
  
- #include "ia32priv.h"
++	CCS_loader=	[SAKURA/TOMOYO] Set policy loader's location.
++			Format: a valid pathname.
++			Default value /sbin/ccs-init.
++			This program is called when /sbin/init starts.
++
++	TOMOYO_QUIET	[TOMOYO] Turn off verbose mode by default.
++			Value can be changed at runtime via /proc/ccs/profile.
++
++	SYAORAN=	[SYAORAN] Set initial access control status.
++			Format: {"accept" | "enforce"}
++			accept -- permissive (log only, no denials).
++			enforce -- enforcing (deny and log).
++			Default value is not set.
++			Value can be changed at runtime via mount option.
++
+ ______________________________________________________________________
  
-@@ -1753,6 +1756,12 @@ sys32_ptrace (int request, pid_t pid, un
- 	struct task_struct *child;
- 	unsigned int value, tmp;
- 	long i, ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-2.6.25-rc7.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.25-rc7/arch/mips/kernel/ptrace32.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/bootinfo.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- int ptrace_getregs(struct task_struct *child, __s64 __user *data);
- int ptrace_setregs(struct task_struct *child, __s64 __user *data);
-@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- #if 0
- 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.25-rc7.orig/arch/x86/kernel/ptrace.c
-+++ linux-2.6.25-rc7/arch/x86/kernel/ptrace.c
-@@ -32,6 +32,9 @@
- #include <asm/prctl.h>
- #include <asm/proto.h>
- #include <asm/ds.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "tls.h"
- 
-@@ -1239,6 +1242,12 @@ asmlinkage long sys32_ptrace(long reques
- 	void __user *datap = compat_ptr(data);
- 	int ret;
- 	__u32 val;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	switch (request) {
- 	case PTRACE_TRACEME:
---- linux-2.6.25-rc7.orig/arch/sh/kernel/ptrace_64.c
-+++ linux-2.6.25-rc7/arch/sh/kernel/ptrace_64.c
-@@ -33,6 +33,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -253,6 +256,12 @@ asmlinkage int sh64_ptrace(long request,
- {
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
+ TODO:
