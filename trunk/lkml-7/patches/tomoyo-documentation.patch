@@ -4,12 +4,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- Documentation/TOMOYO.txt |  266 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 266 insertions(+)
+ Documentation/TOMOYO.txt |  265 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 265 insertions(+)
 
 --- /dev/null
-+++ linux-2.6-mm/Documentation/TOMOYO.txt
-@@ -0,0 +1,266 @@
++++ linux-2.6.25-rc8-mm1/Documentation/TOMOYO.txt
+@@ -0,0 +1,265 @@
 +Subject: TOMOYO Linux Security Goal
 +
 +This document is intended to specify the security goal that TOMOYO Linux is
@@ -55,10 +55,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +    that are visible to userland process's namespace.
 +  * namespace manipulation. (i.e. mount()/umount()/pivot_root())
 +  * TCP/IP networking operations based on IPv4/v6 addresses and port numbers.
-+    (Need to add LSM hooks for incoming connections/packets.)
 +  * booleans for some operations. (Part of POSIX capability and TOMOYO Linux's
 +    original capability.)
-+  * signal transmissions. (Needs to add LSM hooks.)
++  * signal transmissions.
 +  * argv[0] passed to execve().
 +  * environment variables' names passed to execve().
 +
