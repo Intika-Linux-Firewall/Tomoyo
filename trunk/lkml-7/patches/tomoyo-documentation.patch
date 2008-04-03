@@ -4,12 +4,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- Documentation/TOMOYO.txt |  265 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 265 insertions(+)
+ Documentation/TOMOYO.txt |  292 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 292 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.25-rc8-mm1/Documentation/TOMOYO.txt
-@@ -0,0 +1,265 @@
+@@ -0,0 +1,292 @@
 +Subject: TOMOYO Linux Security Goal
 +
 +This document is intended to specify the security goal that TOMOYO Linux is
@@ -230,6 +230,33 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +  You can deploy custom authentication at the entry point of each subtree
 +  so that one administrator cannot proceed to other administrator's subtrees.
++
++Provide on-demand honey pot.
++
++  Since TOMOYO Linux's approach is
++  "know all essential requests in advance and create policy that permits only them",
++  you can treat anomalous requests as attacks (if you want to do so).
++
++  Common MAC implementations merely reject requests that violate policy.
++  But TOMOYO can trigger special handler for execve() requests that are not
++  permitted by policy.
++
++  Most attackers' purpose is to execute /bin/sh to start something malicious
++  rather than consume CPU resources to slow down the target system.
++
++  Attackers execute an exploit code using buffer overflow vulnerability
++  to steal control of a process.
++  TOMOYO can get back control if an exploit code requests execve()
++  that is not permitted by policy.
++  TOMOYO executes a different program (i.e. special handler prepared for
++  violation of execve() policy) instead of a program requested by attackers
++  to redirect attackers to somewhere else (e.g. honey pot).
++  This makes it possible to act your Linux box as an on-demand honey pot
++  while keeping regular services for your usage.
++
++  Of course, you may silently terminate a process who requests execve()
++  that is not permitted by policy using this redirection mechanism.
++  You may merely reject execve() requests like common MAC implementations.
 +
 +And more...
 +

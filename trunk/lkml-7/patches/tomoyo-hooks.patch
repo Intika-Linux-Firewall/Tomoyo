@@ -1,16 +1,16 @@
 Subject: Hooks for SAKURA and TOMOYO.
 
-This file contains modifications against existing kernel source code
-needed to use TOMOYO Linux.
+This file contains modifications against kernel source code
+needed to use TOMOYO Linux 1.6.
 
 Although LSM hooks are provided for performing access control,
-TOMOYO Linux doesn't use LSM because of the following reasons.
+TOMOYO Linux 1.6 doesn't use LSM because of the following reasons.
 
 Reason 1:
 
 CONFIG_SECURITY=y adds security fields to various structures and
 introduces hooks for allocating/freeing these security fields.
-But TOMOYO Linux hardly utilize them.
+But TOMOYO Linux can hardly utilize them.
 
 TOMOYO Linux requires modification against only "struct task_struct",
 and adding two variables to "struct task_struct" is sufficient.
@@ -24,10 +24,10 @@ and I'm experiencing no problems.
 Reason 2:
 
 TOMOYO Linux supports "delayed enforcing" mode that allows administrator
-judge interactively when policy violation occured.
+judge interactively when policy violation occurred.
 To support that mode, all hooks but ccs_may_autobind() are called from
-context that are permitted to sleep.
-But some of LSM hooks are called from context that are not permitted to sleep.
+context that is permitted to sleep.
+But some of LSM hooks are called from context that is not permitted to sleep.
 
 Reason 3:
 
@@ -38,13 +38,30 @@ Current specification of LSM is suitable for label based access control,
 but is not suitable for pathname based access control.
 As far as I can see, adding "struct vfsmount" to VFS helper functions
 to make LSM suitable for pathname based access control is unlikely acceptable.
+TOMOYO Linux can achieve its functionality using
+mnt_want_write()/mnt_drop_write()-like hooks.
 
 Reason 4:
 
 TOMOYO Linux is not only a tool for doing access control
 but also a tool for analyzing a system's behavior.
 
+
+Currently, this patch encloses inserted lines in
+"/***** ... start. *****/" and "/***** end. *****/" comments so that
+reviewers can easily find the range of modifications.
+Of course, these comments will go away when ready to merge.
+
+This patch makes two lines deletion by
+  sed -e 's:search_binary_handler:search_binary_handler_with_transition:'
+TOMOYO does domain transition when execve() is called.
+Thus, distinguishing search_binary_handler() from do_execve() and
+search_binary_handler() from other functions (e.g. load_script())
+makes TOMOYO's domain transition handler simple.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  Documentation/kernel-parameters.txt |   15 ++++
  arch/ia64/ia32/sys_ia32.c           |    7 ++
@@ -60,7 +77,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  fs/exec.c                           |   20 +++++-
  fs/fcntl.c                          |    9 ++
  fs/ioctl.c                          |    7 ++
- fs/namei.c                          |  119 +++++++++++++++++++++++++++++++++++-
+ fs/namei.c                          |  118 ++++++++++++++++++++++++++++++++++++
  fs/namespace.c                      |   49 ++++++++++++++
  fs/open.c                           |   27 ++++++++
  fs/proc/Makefile                    |    3 
@@ -84,7 +101,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  net/ipv4/udp.c                      |   10 +++
  net/socket.c                        |   41 ++++++++++++
  net/unix/af_unix.c                  |   15 ++++
- 38 files changed, 626 insertions(+), 3 deletions(-)
+ 38 files changed, 626 insertions(+), 2 deletions(-)
 
 --- linux-2.6.25-rc8-mm1.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25-rc8-mm1/arch/ia64/ia32/sys_ia32.c
@@ -602,11 +619,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	error = vfs_link(old_nd.path.dentry, nd.path.dentry->d_inode, new_dentry);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2782,10 +2887,18 @@ static int do_rename(int olddfd, const c
- 	error = -ENOTEMPTY;
- 	if (new_dentry == trap)
- 		goto exit5;
--
+@@ -2786,6 +2891,15 @@ static int do_rename(int olddfd, const c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -622,7 +635,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  	mnt_drop_write(oldnd.path.mnt);
-@@ -2809,6 +2922,10 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2809,6 +2923,10 @@ asmlinkage long sys_renameat(int olddfd,
  	int error;
  	char * from;
  	char * to;

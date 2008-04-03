@@ -2,10 +2,18 @@ Subject: Auditing functions for TOMOYO.
 
 This file handles audit logs for TOMOYO.
 
+TOMOYO uses /proc/ccs/ interface for reporting access logs in domain policy
+format. One is 'grant_log', used for auditing accesses which are granted
+by the domain policy. The other is 'reject_log', used for auditing accesses
+which are not granted by the domain policy.
+The userland daemon /usr/lib/ccs/ccs-auditd will save these logs.
+
 By the way, copy_strings() seems to assume that kmap() never fails.
 Does get_user_pages() guarantee that the kmap() never fails?
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/tomoyo_audit.c |  393 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 393 insertions(+)

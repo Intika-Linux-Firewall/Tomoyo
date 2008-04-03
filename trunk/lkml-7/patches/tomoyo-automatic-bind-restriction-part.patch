@@ -1,18 +1,24 @@
 Subject: Automatic bind port selection control part.
 
 LSM doesn't provide hook for selecting local port. I don't know why.
+
 Don't you think it is not happy if some port
 (in /proc/sys/net/ipv4/ip_local_port_range) is implicitly allocated by
 bind() with "struct sockaddr_in *"->sin_port = htons(0) or
-connect() without bind().
+connect() without bind()?
 For example, 8080 could be unexpectedly used by some process
-although the administrator wanted to reserve 8080 for Squid
-if /proc/sys/net/ipv4/ip_local_port_range is "5000 10000".
+although Squid wanted to use 8080 but the administrator did
+
+  echo 5000 10000 > /proc/sys/net/ipv4/ip_local_port_range
+
 
 Since selecting local port is done with a spinlock held,
 TOMOYO Linux can't support "delayed enforcing" mode for this functionality.
+But that doesn't matter.
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/sakura_bind.c |  145 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 145 insertions(+)
