@@ -2,17 +2,26 @@ Subject: Socket operation restriction part.
 
 This file controls socket related operations.
 
-YOSHIFUJI Hideaki advised me to use in4_pton() and in6_pton() rather than
-simple sscanf(). But they depends on CONFIG_NET.
+TOMOYO checks permission using the following four parameters.
+  * protocol type (TCP, UDP, RAW)
+  * access type (bind, listen, connect, accept)
+  * IPv4/IPv6 address
+  * port number
+
+
+YOSHIFUJI Hideaki advised to use in4_pton() and in6_pton() rather than
+simple sscanf(). But they depends on CONFIG_NET=y.
 
 May I add "depends on NET" in Kconfig?
-Nobody needs to build kernel without CONFIG_NET?
+Nobody tries to build TOMOYO Linux kernel without CONFIG_NET?
 
 When printing IPv6 address,
-I'm using "%x:%x:%x:%x:%x:%x:%x:%x" to to make the output as short as possible.
+I'm using "%x:%x:%x:%x:%x:%x:%x:%x" to make the output as short as possible.
 But using "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x" (= NIP6_FMT) is better?
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/tomoyo_network.c |  906 ++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 906 insertions(+)

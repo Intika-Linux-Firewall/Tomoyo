@@ -1,10 +1,13 @@
 Subject: Conditional ACL support functions.
 
-TOMOYO supports conditional permissions.
-You can use process's uid,gid etc. and/or file's uid,gid etc. if you want
-to do more stricter access control.
+TOMOYO supports conditional permissions based on
+process's UID,GID etc. and/or requested pathname's UID/GID.
+Regarding execve(), you can use argv[] and envp[] conditions.
 
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/tomoyo_cond.c | 1380 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 1380 insertions(+)

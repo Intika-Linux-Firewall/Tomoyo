@@ -1,4 +1,4 @@
-Subject: Shadow mount protector part.
+Subject: Shadow mount prevention part.
 
 It is usually an undesirable thing to allow mount requests that shadow
 already mounted tree. For example, mounting /usr when /usr/local is
@@ -6,7 +6,9 @@ already mounted is undesirable because it makes /usr/local inaccessible.
 
 This file forbids such mount request.
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/sakura_maymount.c |  113 +++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 113 insertions(+)

@@ -2,7 +2,13 @@ Subject: Environment variable restriction part.
 
 This file controls environment variable names that can be passed to execve().
 
+TOMOYO checks environment variable's names passed to execve()
+because some environment variables affect to the behavior of program
+like argv[0].
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/tomoyo_env.c |  297 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 297 insertions(+)

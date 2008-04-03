@@ -2,7 +2,15 @@ Subject: Domain transition handler.
 
 This file controls domain creation/deletion/transition.
 
+Every process belongs to a domain in TOMOYO Linux.
+Domain transition occurs when execve(2) is called
+and the domain is expressed as 'process invocation history',
+such as '<kernel> /sbin/init /etc/init.d/rc'.
+Domain information is stored in task_struct->domain_info field.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/tomoyo_domain.c | 1652 +++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 1652 insertions(+)

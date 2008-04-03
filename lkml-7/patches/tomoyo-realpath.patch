@@ -1,4 +1,4 @@
-Subject: Get realpath() of requested pathname.
+Subject: Memory and pathname management functions.
 
 TOMOYO Linux performs pathname based access control.
 To remove factors that make pathname based access control difficult
@@ -11,7 +11,9 @@ characters, may be TOMOYO Linux should be able to support 16336 (which means
 (NAME_MAX * (PATH_MAX / (NAME_MAX + 1)) * 4 + (PATH_MAX / (NAME_MAX + 1)))
 including trailing '\0'), but I think 4000 is enough for practical use.
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/realpath.c |  557 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 557 insertions(+)

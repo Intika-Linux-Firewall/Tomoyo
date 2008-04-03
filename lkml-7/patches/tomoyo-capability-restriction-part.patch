@@ -1,16 +1,28 @@
 Subject: Capability restriction part.
 
-The capability TOMOYO control is not POSIX capability.
-The capability is given to domains, not to processes.
-The capability is a kind of boolean mask for calling specific functionality.
-In other words, this file controls system calls that processes in a specific
-domain can call.
+TOMOYO Linux uses per-a-domain capability, an approach that associate
+capabilities with each domain, and assign a domain for each process.
+The advantages of this approach are that
+
+(1) Minimum capabilities required for a process is directly given
+    compared to setting/clearing/inheriting bit fields of a process's
+    capability value.
+
+(2) It can support as many types of capabilities as you want.
+    Regarding per-a-task capability, you need to allocate memory for
+    individual "task_struct". Thus, the number of supportable capabilities
+    is bound by the width of variable in bits (i.e. 32 or 64).
+    Regarding per-a-domain capability, you need to allocate memory for
+    individual domains. But you can allocate memory dynamically.
+    Thus, the number of supportable capabilities is not bounded to 32 or 64.
 
 I can support up to 65536 types of capability,
 but currently there are not so many capability hooks inserted.
 Adding more capability hooks is a future work.
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  fs/tomoyo_capability.c |  223 +++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 223 insertions(+)
