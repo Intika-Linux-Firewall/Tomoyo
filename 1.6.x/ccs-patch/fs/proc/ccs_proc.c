@@ -228,7 +228,12 @@ static int __init ccs_proc_init(void)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 __initcall(ccs_proc_init);
+#else
+security_initcall(ccs_proc_init);
+#endif
+
 #endif
 
 /* For older patches. */

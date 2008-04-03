@@ -31,6 +31,8 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/kmod.h>
 #include <asm/hardirq.h>
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 9)
+#include <asm/hardirq.h>
 #else
 #include <linux/hardirq.h>
 #endif
