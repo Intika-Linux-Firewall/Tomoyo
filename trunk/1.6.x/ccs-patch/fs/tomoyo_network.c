@@ -15,7 +15,10 @@
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
 #include <linux/realpath.h>
-#include <net/ip.h>
+#include <linux/net.h>
+#include <linux/inet.h>
+#include <linux/in.h>
+#include <linux/in6.h>
 
 /**
  * audit_network_log - Audit network log.

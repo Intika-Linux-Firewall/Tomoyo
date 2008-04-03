@@ -1359,3 +1359,20 @@ Fix 2008/03/28
       Function names were changed to use only lower letters.
 
 Version 1.6.0 2008/04/01   Feature enhancement release.
+
+Fix 2008/??/??
+
+    @ Fix "Compilation failures" and "Initialization ordering bugs"
+      with kernels before 2.4.30/2.6.11 .
+
+      2.6 kernels before 2.6.9 didn't have include/linux/hardirq.h ,
+      resulting compilation error at #include <linux/hardirq.h> .
+      I added #elif condition.
+
+      2.6 kernels before 2.6.11 calls do_execve() before initialization of
+      ccs_alloc(), resulting NULL pointer dereference.
+      I changed __initcall to security_initcall.
+
+      Some distributions with 2.6.9 kernels backported kzalloc() from 2.6.14 ,
+      resulting compilation error at kzalloc().
+      I updated ccs-patch-\*.diff .

@@ -510,7 +510,11 @@ static int __init ccs_realpath_init(void)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 __initcall(ccs_realpath_init);
+#else
+security_initcall(ccs_realpath_init);
+#endif
 
 /* The list for "struct cache_entry". */
 static LIST_HEAD(cache_list);
