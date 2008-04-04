@@ -1,6 +1,6 @@
 Subject: [For 2.6.25-rc8-mm1] TOMOYO Linux 1.6.0 released.
 
-What is this module for?
+What is TOMOYO Linux for?
 
   It is userland applications' charge to keep processes under control.
   This includes that userland applications restrict what programs are
@@ -12,16 +12,24 @@ What is this module for?
   OS command injection, directory traversal etc.
   As a result, they can't always keep processes under control.
 
-  This module is developed to take partial charge of keeping processes
+  TOMOYO Linux is developed to take partial charge of keeping processes
   under control, by teaching the kernel what programs are
   permitted to execute and what files are permitted to read/write
   by the application and letting the kernel check it once again.
+
+Can TOMOYO Linux coexist with SELinux, SMACK, AppArmor etc. ?
+
+  Yes. TOMOYO Linux 1.x is not using LSM because I want don't want to disable
+  different access control implementations.
+
+  TOMOYO Linux is good at dealing with the subject's request chains,
+  while LSM is good at dealing with object's life-cycle.
 
 What are new features of this release?
 
   This release reinforced execution parameter checks.
 
-  Introduced "execute_handler" keyword.
+  Introduced execute handler mechanism.
 
     The usage of TOMOYO Linux is that understand what programs are executed and
     what files are opened by individual applications and let the kernel
@@ -36,7 +44,7 @@ What are new features of this release?
     CPU power consumption problem (all CPU powers are eaten by the shellcode's
     infinite loop).
 
-    But by using "execute_handler", you can run different programs instead of
+    But by using execute handler, you can run different programs instead of
     just rejecting execute request to redirect the process to somewhere else.
 
     This redirection mechanism is useful for deploying on demand honey pot.
@@ -44,8 +52,8 @@ What are new features of this release?
     the attacker trying to start /bin/sh to honey pot in wartime.
 
     Also, since the fact that a program which is different from the requested
-    one is executed by "execute_handler" is not notified to the caller process,
-    you can use "execute_handler" as a transparent validation interface
+    one is executed by execute handler is not notified to the caller process,
+    you can use execute handler as a transparent validation interface
     like "Web Application Firewall" or "AntiVirus". You can monitor
     parameters passed to execve() and stdio to drop unwanted parameters or
     reject the execution of the program requested by the caller process.
@@ -58,7 +66,7 @@ What are new features of this release?
     Thus, it became possible to require specific argv[] and envp[] values
     when executing a program.
 
-  Introduced "allow_env" keyword.
+  Introduced environment variable names checks.
 
     Some environment variables (e.g. LD_PRELOAD) are used by attackers to make
     the application behave differently.
@@ -68,32 +76,24 @@ What are new features of this release?
   And various usability enhancement like more detailed access logs and
   policy management by non root user.
 
-Can TOMOYO Linux coexist with SELinux, SMACK, AppArmor etc. ?
+Is TOMOYO Linux architecture independent?
 
-  Yes. TOMOYO Linux 1.x is not using LSM because I want don't want to disable
-  different access control implementations.
-
-  TOMOYO Linux is good at dealing with the subject's request chains,
-  while LSM is good at dealing with object's life-cycle.
+  Yes. I think TOMOYO Linux doesn't contain architecture dependent code.
+  TOMOYO Linux touches only surface of the kernel code.
 
 Are older kernels supported?
 
   Yes. From 2.4.30 to 2.4.36 and from 2.6.11 to 2.6.25-rc7 are supported.
   Also, various distributions' latest kernels are supported.
 
-Is TOMOYO Linux architecture independent?
-
-  I think so. TOMOYO Linux touches only surface of the kernel code.
-  I compiled and tested for "i386" "x86_64" and "arm".
-  I cross-compiled for "sh" "powerpc" "ia64" and "parisc".
-
 Where's the web page?
 
   http://elinux.org/TomoyoLinux
-  http://tomoyo.sourceforge.jp/
+  http://tomoyo.sourceforge.jp/wiki-e/?WhatIs
+  http://sourceforge.jp/projects/tomoyo/document/fosdem2008.pdf
 
   TOMOYO Linux is compact and suits well to PC servers and embedded systems.
-  Kentaro Takeda will have a TOMOYO Linux's presentation at CELF Embedded Linux
-  Conference 2008 held in California from April 15th to the 17th.
+  There is a TOMOYO Linux presentation at CELF Embedded Linux Conference 2008
+  held in California from April 15th to the 17th.
 
 Thank you.
