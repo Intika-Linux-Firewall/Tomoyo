@@ -1,0 +1,173 @@
+Subject: Automatic bind port selection control part.
+
+LSM doesn't provide hook for selecting local port. I don't know why.
+
+Don't you think it is not happy if some port
+(in /proc/sys/net/ipv4/ip_local_port_range) is implicitly allocated by
+bind() with "struct sockaddr_in *"->sin_port = htons(0) or
+connect() without bind()?
+For example, 8080 could be unexpectedly used by some process
+although Squid wanted to use 8080 but the administrator did
+
+  echo 5000 10000 > /proc/sys/net/ipv4/ip_local_port_range
+
+
+Since selecting local port is done with a spinlock held,
+TOMOYO Linux can't support "delayed enforcing" mode for this functionality.
+But that doesn't matter.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
+---
+ fs/sakura_bind.c |  145 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 145 insertions(+)
+
+--- /dev/null
++++ linux-2.6.25-rc8-mm1/fs/sakura_bind.c
+@@ -0,0 +1,145 @@
++/*
++ * fs/sakura_bind.c
++ *
++ * Implementation of the Domain-Free Mandatory Access Control.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 1.6.0   2008/04/01
++ *
++ */
++
++#include <linux/ccs_common.h>
++#include <linux/sakura.h>
++#include <linux/realpath.h>
++
++/* Structure for "deny_autobind" keyword. */
++struct reserved_entry {
++	struct list1_head list;
++	bool is_deleted;             /* Delete flag.                         */
++	u16 min_port;                /* Start of port number range.          */
++	u16 max_port;                /* End of port number range.            */
++};
++
++/* The list for "struct reserved_entry". */
++static LIST1_HEAD(reservedport_list);
++
++/**
++ * update_reserved_entry - Update "struct reserved_entry" list.
++ *
++ * @min_port: Start of port number range.
++ * @max_port: End of port number range.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int update_reserved_entry(const u16 min_port, const u16 max_port,
++				 const bool is_delete)
++{
++	struct reserved_entry *new_entry, *ptr;
++	static DEFINE_MUTEX(lock);
++	int error = -ENOMEM;
++	mutex_lock(&lock);
++	list1_for_each_entry(ptr, &reservedport_list, list) {
++		if (ptr->min_port != min_port || max_port != ptr->max_port)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		goto out;
++	}
++	if (is_delete) {
++		error = -ENOENT;
++		goto out;
++	}
++	new_entry = ccs_alloc_element(sizeof(*new_entry));
++	if (!new_entry)
++		goto out;
++	new_entry->min_port = min_port;
++	new_entry->max_port = max_port;
++	list1_add_tail_mb(&new_entry->list, &reservedport_list);
++	error = 0;
++ out:
++	mutex_unlock(&lock);
++	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
++	return error;
++}
++
++/**
++ * ccs_may_autobind - Check permission for bind()'s automatic port number selection.
++ *
++ * @port: Port number.
++ *
++ * Returns 0 on success, -EPERM otherwise.
++ */
++int ccs_may_autobind(const u16 port)
++{
++	/***** CRITICAL SECTION START *****/
++	struct reserved_entry *ptr;
++	if (!ccs_check_flags_no_sleep_check(CCS_SAKURA_RESTRICT_AUTOBIND))
++		return 0;
++	list1_for_each_entry(ptr, &reservedport_list, list) {
++		if (ptr->min_port <= port && port <= ptr->max_port &&
++		    !ptr->is_deleted)
++			return -EPERM;
++	}
++	return 0;
++	/***** CRITICAL SECTION END *****/
++}
++EXPORT_SYMBOL(ccs_may_autobind); /* for net/ipv4/ and net/ipv6/ */
++
++/**
++ * ccs_write_reserved_port_policy - Write "struct reserved_entry" list.
++ *
++ * @data:      String to parse.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int ccs_write_reserved_port_policy(char *data, const bool is_delete)
++{
++	unsigned int from;
++	unsigned int to;
++	if (strchr(data, ' '))
++		goto out;
++	if (sscanf(data, "%u-%u", &from, &to) == 2) {
++		if (from <= to && to < 65536)
++			return update_reserved_entry(from, to, is_delete);
++	} else if (sscanf(data, "%u", &from) == 1) {
++		if (from < 65536)
++			return update_reserved_entry(from, from, is_delete);
++	}
++ out:
++	printk(KERN_WARNING "%s: ERROR: Invalid port range '%s'\n",
++	       __func__, data);
++	return -EINVAL;
++}
++
++/**
++ * ccs_read_reserved_port_policy - Read "struct reserved_entry" list.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns true on success, false otherwise.
++ */
++bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
++{
++	struct list1_head *pos;
++	char buffer[16];
++	memset(buffer, 0, sizeof(buffer));
++	list1_for_each_cookie(pos, head->read_var2, &reservedport_list) {
++		u16 min_port, max_port;
++		struct reserved_entry *ptr;
++		ptr = list1_entry(pos, struct reserved_entry, list);
++		if (ptr->is_deleted)
++			continue;
++		min_port = ptr->min_port;
++		max_port = ptr->max_port;
++		snprintf(buffer, sizeof(buffer) - 1, "%u%c%u", min_port,
++			 min_port != max_port ? '-' : '\0', max_port);
++		if (!ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer))
++			goto out;
++	}
++	return true;
++ out:
++	return false;
++}
