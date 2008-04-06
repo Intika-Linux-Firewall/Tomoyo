@@ -82,7 +82,7 @@ typedef _Bool bool;
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-static inline void *kzalloc(int size, int flags)
+static inline void *kzalloc(size_t size, int flags)
 {
 	void *p = kmalloc(size, flags);
 	if (p)
