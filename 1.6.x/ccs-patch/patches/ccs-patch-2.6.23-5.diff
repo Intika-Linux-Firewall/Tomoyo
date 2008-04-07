@@ -1,16 +1,18 @@
-This is TOMOYO Linux patch for Fedora Core 6.
-
-Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SRPMS/kernel-2.6.22.14-72.fc6.src.rpm
+This is TOMOYO Linux patch for Turbolinux 11 Server.
 ---
- Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    8 +++
  arch/ia64/ia32/sys_ia32.c       |    8 +++
+ arch/ia64/kernel/ptrace.c       |    8 +++
  arch/m32r/kernel/ptrace.c       |    8 +++
  arch/mips/kernel/ptrace32.c     |    8 +++
+ arch/powerpc/kernel/ptrace32.c  |    8 +++
+ arch/s390/kernel/ptrace.c       |    8 +++
  arch/sh64/kernel/ptrace.c       |    8 +++
  arch/sparc/kernel/ptrace.c      |   11 +++++
+ arch/sparc64/kernel/ptrace.c    |   11 +++++
+ arch/x86_64/ia32/ptrace32.c     |    8 +++
  fs/Kconfig                      |    2 
- fs/Makefile                     |    2 
+ fs/Makefile                     |    1 
  fs/attr.c                       |   11 +++++
  fs/compat.c                     |    5 +-
  fs/compat_ioctl.c               |    6 ++
@@ -28,7 +30,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  kernel/kexec.c                  |    6 ++
  kernel/kmod.c                   |    5 ++
  kernel/module.c                 |    9 ++++
- kernel/ptrace.c                 |   13 ++++++
+ kernel/ptrace.c                 |    8 +++
  kernel/sched.c                  |    6 ++
  kernel/signal.c                 |   15 +++++++
  kernel/sys.c                    |   15 +++++++
@@ -42,22 +44,161 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  net/ipv6/inet6_hashtables.c     |    6 ++
  net/socket.c                    |   28 +++++++++++++
  net/unix/af_unix.c              |   10 ++++
- 40 files changed, 488 insertions(+), 3 deletions(-)
+ 44 files changed, 524 insertions(+), 2 deletions(-)
 
---- linux-2.6.22.14-72.fc6.orig/Makefile
-+++ linux-2.6.22.14-72.fc6/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 22
--EXTRAVERSION = .14-72.fc6
-+EXTRAVERSION = .14-72.fc6-ccs
- NAME = Holy Dancing Manatees, Batman!
+--- linux-2.6.23-5.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.23-5/arch/alpha/kernel/ptrace.c
+@@ -20,6 +20,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/fpu.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
  
- # *DOCUMENTATION*
---- linux-2.6.22.14-72.fc6.orig/fs/Kconfig
-+++ linux-2.6.22.14-72.fc6/fs/Kconfig
-@@ -2135,5 +2135,7 @@ endif
+ #include "proto.h"
+ 
+@@ -268,6 +271,11 @@ do_sys_ptrace(long request, long pid, lo
+ 	unsigned long tmp;
+ 	size_t copied;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
+--- linux-2.6.23-5.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.23-5/arch/ia64/kernel/ptrace.c
+@@ -28,6 +28,9 @@
+ #ifdef CONFIG_PERFMON
+ #include <asm/perfmon.h>
+ #endif
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "entry.h"
+ 
+@@ -1422,6 +1425,11 @@ sys_ptrace (long request, pid_t pid, uns
+ 	struct task_struct *child;
+ 	struct switch_stack *sw;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.23-5.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.23-5/arch/m32r/kernel/ptrace.c
+@@ -33,6 +33,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * This routine will get a word off of the process kernel stack.
+@@ -732,6 +735,11 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.23-5.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.23-5/arch/s390/kernel/ptrace.c
+@@ -41,6 +41,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #ifdef CONFIG_COMPAT
+ #include "compat_ptrace.h"
+@@ -706,6 +709,11 @@ sys_ptrace(long request, long pid, long 
+ 	struct task_struct *child;
+ 	int ret;
+ 
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+ 		 ret = ptrace_traceme();
+--- linux-2.6.23-5.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.23-5/arch/sparc/kernel/ptrace.c
+@@ -23,6 +23,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define MAGIC_CONSTANT 0x80000000
+ 
+@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ #ifdef DEBUG_PTRACE
+--- linux-2.6.23-5.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.23-5/arch/sparc64/kernel/ptrace.c
+@@ -32,6 +32,9 @@
+ #include <asm/spitfire.h>
+ #include <asm/page.h>
+ #include <asm/cpudata.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* Returning from ptrace is a bit tricky because the syscall return
+  * low level code assumes any value returned which is negative and
+@@ -176,6 +179,14 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	if (test_thread_flag(TIF_32BIT)) {
+ 		addr &= 0xffffffffUL;
+--- linux-2.6.23-5.orig/fs/Kconfig
++++ linux-2.6.23-5/fs/Kconfig
+@@ -2143,5 +2143,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
  
@@ -65,16 +206,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
 +
  endmenu
  
---- linux-2.6.22.14-72.fc6.orig/fs/Makefile
-+++ linux-2.6.22.14-72.fc6/fs/Makefile
-@@ -119,3 +119,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
- obj-$(CONFIG_DEBUG_FS)		+= debugfs/
- obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
- obj-$(CONFIG_GFS2_FS)           += gfs2/
-+
+--- linux-2.6.23-5.orig/fs/Makefile
++++ linux-2.6.23-5/fs/Makefile
+@@ -123,3 +123,4 @@ obj-$(CONFIG_GFS2_FS)           += gfs2/
+ obj-$(CONFIG_UNION_FS)		+= unionfs/
+ obj-m                           += vmblock/
+ obj-m                           += vmhgfs/
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.22.14-72.fc6.orig/fs/attr.c
-+++ linux-2.6.22.14-72.fc6/fs/attr.c
+--- linux-2.6.23-5.orig/fs/attr.c
++++ linux-2.6.23-5/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -106,8 +246,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.22.14-72.fc6.orig/fs/compat.c
-+++ linux-2.6.22.14-72.fc6/fs/compat.c
+--- linux-2.6.23-5.orig/fs/compat.c
++++ linux-2.6.23-5/fs/compat.c
 @@ -55,6 +55,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -118,18 +258,18 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  int compat_log = 1;
  
-@@ -1419,7 +1422,7 @@ int compat_do_execve(char * filename,
+@@ -1406,7 +1409,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
 -	retval = search_binary_handler(bprm, regs);
 +	retval = search_binary_handler_with_transition(bprm, regs);
  	if (retval >= 0) {
- 		free_arg_pages(bprm);
- 
---- linux-2.6.22.14-72.fc6.orig/fs/compat_ioctl.c
-+++ linux-2.6.22.14-72.fc6/fs/compat_ioctl.c
-@@ -113,6 +113,9 @@
+ 		/* execve success */
+ 		security_bprm_free(bprm);
+--- linux-2.6.23-5.orig/fs/compat_ioctl.c
++++ linux-2.6.23-5/fs/compat_ioctl.c
+@@ -114,6 +114,9 @@
  #include <linux/dvb/frontend.h>
  #include <linux/dvb/video.h>
  #include <linux/lp.h>
@@ -137,9 +277,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
- 			      unsigned long arg, struct file *f)
-@@ -3567,6 +3570,9 @@ asmlinkage long compat_sys_ioctl(unsigne
+ #ifdef CONFIG_SPARC
+ #include <asm/fbio.h>
+@@ -3603,6 +3606,9 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -149,8 +289,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.22.14-72.fc6.orig/fs/exec.c
-+++ linux-2.6.22.14-72.fc6/fs/exec.c
+--- linux-2.6.23-5.orig/fs/exec.c
++++ linux-2.6.23-5/fs/exec.c
 @@ -59,6 +59,10 @@
  #include <linux/kmod.h>
  #endif
@@ -174,7 +314,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -490,6 +499,9 @@ struct file *open_exec(const char *name)
+@@ -683,6 +692,9 @@ struct file *open_exec(const char *name)
  		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
  		    S_ISREG(inode->i_mode)) {
  			int err = vfs_permission(&nd, MAY_EXEC);
@@ -184,17 +324,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1207,7 +1219,7 @@ int do_execve(char * filename,
- 	if (retval < 0)
+@@ -1395,7 +1407,7 @@ int do_execve(char * filename,
  		goto out;
+ 	bprm->argv_len = env_p - bprm->p;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = search_binary_handler_with_transition(bprm,regs);
  	if (retval >= 0) {
+ 		/* execve success */
  		free_arg_pages(bprm);
- 
---- linux-2.6.22.14-72.fc6.orig/fs/fcntl.c
-+++ linux-2.6.22.14-72.fc6/fs/fcntl.c
+--- linux-2.6.23-5.orig/fs/fcntl.c
++++ linux-2.6.23-5/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -215,10 +355,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
 +
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
- 		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.22.14-72.fc6.orig/fs/ioctl.c
-+++ linux-2.6.22.14-72.fc6/fs/ioctl.c
-@@ -16,6 +16,9 @@
+ 		if (!is_owner_or_cap(inode))
+--- linux-2.6.23-5.orig/fs/ioctl.c
++++ linux-2.6.23-5/fs/ioctl.c
+@@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
  #include <asm/ioctls.h>
@@ -228,7 +368,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  static long do_ioctl(struct file *filp, unsigned int cmd,
  		unsigned long arg)
-@@ -25,6 +28,9 @@ static long do_ioctl(struct file *filp, 
+@@ -23,6 +26,9 @@ static long do_ioctl(struct file *filp, 
  
  	if (!filp->f_op)
  		goto out;
@@ -238,8 +378,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.22.14-72.fc6.orig/fs/namei.c
-+++ linux-2.6.22.14-72.fc6/fs/namei.c
+--- linux-2.6.23-5.orig/fs/namei.c
++++ linux-2.6.23-5/fs/namei.c
 @@ -36,6 +36,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -251,7 +391,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1524,6 +1528,9 @@ int vfs_create(struct inode *dir, struct
+@@ -1558,6 +1562,9 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -261,8 +401,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1579,6 +1586,11 @@ int may_open(struct nameidata *nd, int a
- 		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
+@@ -1613,6 +1620,11 @@ int may_open(struct nameidata *nd, int a
+ 		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
@@ -273,7 +413,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1628,6 +1640,9 @@ static int open_namei_create(struct name
+@@ -1662,6 +1674,9 @@ static int open_namei_create(struct name
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -283,7 +423,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  /*
   *	open_namei()
   *
-@@ -1888,6 +1903,12 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1922,6 +1937,12 @@ asmlinkage long sys_mknodat(int dfd, con
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -296,7 +436,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1906,10 +1927,16 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1940,10 +1961,16 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -313,7 +453,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1977,6 +2004,9 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2011,6 +2038,9 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
@@ -323,7 +463,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  	dput(dentry);
  out_unlock:
-@@ -2084,6 +2114,9 @@ static long do_rmdir(int dfd, const char
+@@ -2118,6 +2148,9 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
@@ -333,7 +473,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	error = vfs_rmdir(nd.dentry->d_inode, dentry);
  	dput(dentry);
  exit2:
-@@ -2143,6 +2176,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2177,6 +2210,9 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -343,7 +483,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -2164,6 +2200,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2198,6 +2234,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -353,7 +493,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2228,6 +2267,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2262,6 +2301,9 @@ asmlinkage long sys_symlinkat(const char
  	char * to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -363,7 +503,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -2245,6 +2287,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2279,6 +2321,9 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
@@ -373,7 +513,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  	dput(dentry);
  out_unlock:
-@@ -2317,6 +2362,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2351,6 +2396,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -383,7 +523,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
-@@ -2340,6 +2388,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2374,6 +2422,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
@@ -393,7 +533,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2565,6 +2616,12 @@ static int do_rename(int olddfd, const c
+@@ -2599,6 +2650,12 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -406,7 +546,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
-@@ -2588,6 +2645,9 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2622,6 +2679,9 @@ asmlinkage long sys_renameat(int olddfd,
  	int error;
  	char * from;
  	char * to;
@@ -416,12 +556,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.22.14-72.fc6.orig/fs/namespace.c
-+++ linux-2.6.22.14-72.fc6/fs/namespace.c
-@@ -28,6 +28,12 @@
- #include <asm/uaccess.h>
+--- linux-2.6.23-5.orig/fs/namespace.c
++++ linux-2.6.23-5/fs/namespace.c
+@@ -29,6 +29,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
+ #include "internal.h"
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
@@ -431,7 +571,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  /* spinlock for vfsmount related operations, inplace of dcache_lock */
  __cacheline_aligned_in_smp DEFINE_SPINLOCK(vfsmount_lock);
-@@ -549,6 +555,10 @@ static int do_umount(struct vfsmount *mn
+@@ -544,6 +550,10 @@ static int do_umount(struct vfsmount *mn
  	if (retval)
  		return retval;
  
@@ -442,7 +582,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -637,6 +647,9 @@ asmlinkage long sys_umount(char __user *
+@@ -632,6 +642,9 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -452,7 +592,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -924,6 +937,10 @@ static int do_loopback(struct nameidata 
+@@ -919,6 +932,10 @@ static int do_loopback(struct nameidata 
  
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -463,7 +603,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1009,6 +1026,10 @@ static int do_move_mount(struct nameidat
+@@ -1004,6 +1021,10 @@ static int do_move_mount(struct nameidat
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
  
@@ -474,7 +614,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1110,6 +1131,10 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1105,6 +1126,10 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -485,7 +625,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1401,6 +1426,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1396,6 +1421,13 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -499,7 +639,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1677,6 +1709,9 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1672,6 +1704,9 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -509,7 +649,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	lock_kernel();
  
-@@ -1693,6 +1728,9 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1688,6 +1723,9 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -519,12 +659,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.22.14-72.fc6.orig/fs/open.c
-+++ linux-2.6.22.14-72.fc6/fs/open.c
-@@ -26,6 +26,12 @@
- #include <linux/syscalls.h>
+--- linux-2.6.23-5.orig/fs/open.c
++++ linux-2.6.23-5/fs/open.c
+@@ -27,6 +27,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
+ #include <linux/falloc.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
@@ -534,9 +674,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -266,6 +272,9 @@ static long do_sys_truncate(const char _
+@@ -268,6 +274,9 @@ static long do_sys_truncate(const char _
  	if (error)
- 		goto dput_and_out;
+ 		goto put_write_and_out;
  
 +	/***** TOMOYO Linux start. *****/
 +	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
@@ -544,7 +684,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -319,6 +328,9 @@ static long do_sys_ftruncate(unsigned in
+@@ -322,6 +331,9 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -554,7 +694,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -483,6 +495,12 @@ asmlinkage long sys_chroot(const char __
+@@ -544,6 +556,12 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -567,7 +707,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1086,6 +1104,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1156,6 +1174,9 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -577,8 +717,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.22.14-72.fc6.orig/fs/proc/Makefile
-+++ linux-2.6.22.14-72.fc6/fs/proc/Makefile
+--- linux-2.6.23-5.orig/fs/proc/Makefile
++++ linux-2.6.23-5/fs/proc/Makefile
 @@ -15,3 +15,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -586,21 +726,21 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.22.14-72.fc6.orig/fs/proc/proc_misc.c
-+++ linux-2.6.22.14-72.fc6/fs/proc/proc_misc.c
-@@ -737,4 +737,9 @@ void __init proc_misc_init(void)
+--- linux-2.6.23-5.orig/fs/proc/proc_misc.c
++++ linux-2.6.23-5/fs/proc/proc_misc.c
+@@ -748,4 +748,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.22.14-72.fc6 2008/04/07\n");
++	printk(KERN_INFO "Hook version: 2.6.23-5 2008/04/07\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.22.14-72.fc6.orig/include/linux/init_task.h
-+++ linux-2.6.22.14-72.fc6/include/linux/init_task.h
-@@ -166,6 +166,10 @@ extern struct group_info init_groups;
+--- linux-2.6.23-5.orig/include/linux/init_task.h
++++ linux-2.6.23-5/include/linux/init_task.h
+@@ -171,6 +171,10 @@ extern struct group_info init_groups;
  	},								\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
@@ -611,11 +751,11 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  }
  
  
---- linux-2.6.22.14-72.fc6.orig/include/linux/sched.h
-+++ linux-2.6.22.14-72.fc6/include/linux/sched.h
-@@ -32,6 +32,11 @@
- #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
+--- linux-2.6.23-5.orig/include/linux/sched.h
++++ linux-2.6.23-5/include/linux/sched.h
+@@ -28,6 +28,11 @@
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
+ #define CLONE_NEWUSER		0x10000000	/* New user namespace */
  
 +/***** TOMOYO Linux start. *****/
 +struct domain_info;
@@ -625,7 +765,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  /*
   * Scheduling policies
   */
-@@ -1180,6 +1185,10 @@ struct task_struct {
+@@ -1196,6 +1201,10 @@ struct task_struct {
  #ifdef CONFIG_FAULT_INJECTION
  	int make_it_fail;
  #endif
@@ -636,8 +776,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  };
  
  /*
---- linux-2.6.22.14-72.fc6.orig/kernel/compat.c
-+++ linux-2.6.22.14-72.fc6/kernel/compat.c
+--- linux-2.6.23-5.orig/kernel/compat.c
++++ linux-2.6.23-5/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -658,8 +798,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.22.14-72.fc6.orig/kernel/kexec.c
-+++ linux-2.6.22.14-72.fc6/kernel/kexec.c
+--- linux-2.6.23-5.orig/kernel/kexec.c
++++ linux-2.6.23-5/kernel/kexec.c
 @@ -28,6 +28,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -680,9 +820,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.22.14-72.fc6.orig/kernel/kmod.c
-+++ linux-2.6.22.14-72.fc6/kernel/kmod.c
-@@ -170,6 +170,11 @@ static int ____call_usermodehelper(void 
+--- linux-2.6.23-5.orig/kernel/kmod.c
++++ linux-2.6.23-5/kernel/kmod.c
+@@ -173,6 +173,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
  
@@ -694,19 +834,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
---- linux-2.6.22.14-72.fc6.orig/kernel/module.c
-+++ linux-2.6.22.14-72.fc6/kernel/module.c
-@@ -46,6 +46,9 @@
+--- linux-2.6.23-5.orig/kernel/module.c
++++ linux-2.6.23-5/kernel/module.c
+@@ -45,6 +45,9 @@
+ #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
  #include <linux/license.h>
- #include "module-verify.h"
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  extern int module_sysfs_initialized;
  
-@@ -666,6 +669,9 @@ sys_delete_module(const char __user *nam
+@@ -662,6 +665,9 @@ sys_delete_module(const char __user *nam
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -716,7 +856,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -1996,6 +2002,9 @@ sys_init_module(void __user *umod,
+@@ -1981,6 +1987,9 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -726,8 +866,32 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.22.14-72.fc6.orig/kernel/sched.c
-+++ linux-2.6.22.14-72.fc6/kernel/sched.c
+--- linux-2.6.23-5.orig/kernel/ptrace.c
++++ linux-2.6.23-5/kernel/ptrace.c
+@@ -22,6 +22,9 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * ptrace a task: make the debugger its new parent and
+@@ -459,6 +462,11 @@ asmlinkage long sys_ptrace(long request,
+ 	/*
+ 	 * This lock_kernel fixes a subtle race with suid exec
+ 	 */
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+ 		ret = ptrace_traceme();
+--- linux-2.6.23-5.orig/kernel/sched.c
++++ linux-2.6.23-5/kernel/sched.c
 @@ -63,6 +63,9 @@
  #include <linux/unistd.h>
  
@@ -738,7 +902,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  /*
   * Scheduler clock - returns current time in nanosec units.
-@@ -4057,6 +4060,9 @@ int can_nice(const struct task_struct *p
+@@ -4062,6 +4065,9 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -748,8 +912,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.22.14-72.fc6.orig/kernel/signal.c
-+++ linux-2.6.22.14-72.fc6/kernel/signal.c
+--- linux-2.6.23-5.orig/kernel/signal.c
++++ linux-2.6.23-5/kernel/signal.c
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -760,7 +924,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  /*
   * SLAB caches for signal bits.
-@@ -2064,6 +2067,10 @@ asmlinkage long
+@@ -2196,6 +2199,10 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -771,7 +935,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2122,6 +2129,10 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2254,6 +2261,10 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -782,20 +946,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2135,6 +2146,10 @@ sys_tkill(int pid, int sig)
+@@ -2267,6 +2278,10 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
 +	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.22.14-72.fc6.orig/kernel/sys.c
-+++ linux-2.6.22.14-72.fc6/kernel/sys.c
-@@ -40,6 +40,9 @@
+--- linux-2.6.23-5.orig/kernel/sys.c
++++ linux-2.6.23-5/kernel/sys.c
+@@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
  #include <asm/unistd.h>
@@ -805,7 +969,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -663,6 +666,9 @@ asmlinkage long sys_setpriority(int whic
+@@ -672,6 +675,9 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -815,7 +979,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -894,6 +900,9 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -909,6 +915,9 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -825,7 +989,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1869,6 +1878,9 @@ asmlinkage long sys_sethostname(char __u
+@@ -1884,6 +1893,9 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -835,7 +999,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1914,6 +1926,9 @@ asmlinkage long sys_setdomainname(char _
+@@ -1929,6 +1941,9 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -845,9 +1009,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.22.14-72.fc6.orig/kernel/sysctl.c
-+++ linux-2.6.22.14-72.fc6/kernel/sysctl.c
-@@ -48,6 +48,9 @@
+--- linux-2.6.23-5.orig/kernel/sysctl.c
++++ linux-2.6.23-5/kernel/sysctl.c
+@@ -49,6 +49,9 @@
  
  #include <asm/uaccess.h>
  #include <asm/processor.h>
@@ -855,9 +1019,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- extern int proc_nr_files(ctl_table *table, int write, struct file *filp,
-                      void __user *buffer, size_t *lenp, loff_t *ppos);
-@@ -1234,6 +1237,81 @@ struct ctl_table_header *sysctl_head_nex
+ #ifdef CONFIG_X86
+ #include <asm/nmi.h>
+@@ -1316,6 +1319,81 @@ struct ctl_table_header *sysctl_head_nex
  }
  
  #ifdef CONFIG_SYSCTL_SYSCALL
@@ -939,7 +1103,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1250,6 +1328,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1332,6 +1410,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -949,8 +1113,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
---- linux-2.6.22.14-72.fc6.orig/kernel/time.c
-+++ linux-2.6.22.14-72.fc6/kernel/time.c
+--- linux-2.6.23-5.orig/kernel/time.c
++++ linux-2.6.23-5/kernel/time.c
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -971,7 +1135,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -160,6 +166,9 @@ int do_sys_settimeofday(struct timespec 
+@@ -159,6 +165,9 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -981,10 +1145,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.22.14-72.fc6.orig/kernel/time/ntp.c
-+++ linux-2.6.22.14-72.fc6/kernel/time/ntp.c
-@@ -16,6 +16,9 @@
- 
+--- linux-2.6.23-5.orig/kernel/time/ntp.c
++++ linux-2.6.23-5/kernel/time/ntp.c
+@@ -17,6 +17,9 @@
+ #include <linux/capability.h>
  #include <asm/div64.h>
  #include <asm/timex.h>
 +/***** TOMOYO Linux start. *****/
@@ -993,7 +1157,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  /*
   * Timekeeping variables
-@@ -203,6 +206,9 @@ int do_adjtimex(struct timex *txc)
+@@ -246,6 +249,9 @@ int do_adjtimex(struct timex *txc)
  	/* In order to modify anything, you gotta be super-user! */
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
@@ -1003,8 +1167,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.22.14-72.fc6.orig/net/core/datagram.c
-+++ linux-2.6.22.14-72.fc6/net/core/datagram.c
+--- linux-2.6.23-5.orig/net/core/datagram.c
++++ linux-2.6.23-5/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1028,8 +1192,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  		if (skb)
  			return skb;
  
---- linux-2.6.22.14-72.fc6.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.22.14-72.fc6/net/ipv4/inet_connection_sock.c
+--- linux-2.6.23-5.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.23-5/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1050,8 +1214,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.22.14-72.fc6.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.22.14-72.fc6/net/ipv4/inet_hashtables.c
+--- linux-2.6.23-5.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.23-5/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1072,9 +1236,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.22.14-72.fc6.orig/net/ipv4/udp.c
-+++ linux-2.6.22.14-72.fc6/net/ipv4/udp.c
-@@ -102,6 +102,9 @@
+--- linux-2.6.23-5.orig/net/ipv4/udp.c
++++ linux-2.6.23-5/net/ipv4/udp.c
+@@ -103,6 +103,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
  #include "udp_impl.h"
@@ -1084,7 +1248,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -162,6 +165,9 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -163,6 +166,9 @@ int __udp_lib_get_port(struct sock *sk, 
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1094,7 +1258,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  				goto gotit;
  			}
  			size = 0;
-@@ -181,6 +187,9 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -182,6 +188,9 @@ int __udp_lib_get_port(struct sock *sk, 
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1104,8 +1268,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
---- linux-2.6.22.14-72.fc6.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.22.14-72.fc6/net/ipv6/inet6_hashtables.c
+--- linux-2.6.23-5.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.23-5/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1126,8 +1290,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.22.14-72.fc6.orig/net/socket.c
-+++ linux-2.6.22.14-72.fc6/net/socket.c
+--- linux-2.6.23-5.orig/net/socket.c
++++ linux-2.6.23-5/net/socket.c
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1140,7 +1304,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -553,6 +558,9 @@ static inline int __sock_sendmsg(struct 
+@@ -552,6 +557,9 @@ static inline int __sock_sendmsg(struct 
  	err = security_socket_sendmsg(sock, msg, size);
  	if (err)
  		return err;
@@ -1150,7 +1314,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
-@@ -1102,6 +1110,10 @@ static int __sock_create(int family, int
+@@ -1101,6 +1109,10 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1161,7 +1325,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1333,6 +1345,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1332,6 +1344,9 @@ asmlinkage long sys_bind(int fd, struct 
  			err = security_socket_bind(sock,
  						   (struct sockaddr *)address,
  						   addrlen);
@@ -1171,7 +1335,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  			if (!err)
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
-@@ -1362,6 +1377,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1361,6 +1376,9 @@ asmlinkage long sys_listen(int fd, int b
  			backlog = sysctl_somaxconn;
  
  		err = security_socket_listen(sock, backlog);
@@ -1181,7 +1345,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1426,6 +1444,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1425,6 +1443,12 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1194,7 +1358,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1490,6 +1514,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1489,6 +1513,10 @@ asmlinkage long sys_connect(int fd, stru
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;
@@ -1205,8 +1369,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
---- linux-2.6.22.14-72.fc6.orig/net/unix/af_unix.c
-+++ linux-2.6.22.14-72.fc6/net/unix/af_unix.c
+--- linux-2.6.23-5.orig/net/unix/af_unix.c
++++ linux-2.6.23-5/net/unix/af_unix.c
 @@ -115,6 +115,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1217,7 +1381,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  int sysctl_unix_max_dgram_qlen __read_mostly = 10;
  
-@@ -764,6 +767,10 @@ static int unix_bind(struct socket *sock
+@@ -791,6 +794,10 @@ static int unix_bind(struct socket *sock
  		err = unix_autobind(sock);
  		goto out;
  	}
@@ -1228,7 +1392,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -807,6 +814,9 @@ static int unix_bind(struct socket *sock
+@@ -834,6 +841,9 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
@@ -1238,43 +1402,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.22.14-72.fc6.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/alpha/kernel/ptrace.c
-@@ -20,6 +20,9 @@
+--- linux-2.6.23-5.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.23-5/arch/powerpc/kernel/ptrace32.c
+@@ -32,6 +32,9 @@
+ #include <asm/page.h>
  #include <asm/pgtable.h>
  #include <asm/system.h>
- #include <asm/fpu.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "proto.h"
- 
-@@ -268,6 +271,11 @@ do_sys_ptrace(long request, long pid, lo
- 	unsigned long tmp;
- 	size_t copied;
- 	long ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.22.14-72.fc6.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/m32r/kernel/ptrace.c
-@@ -32,6 +32,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  /*
-  * This routine will get a word off of the process kernel stack.
-@@ -742,6 +745,11 @@ asmlinkage long sys_ptrace(long request,
+  * does not yet catch signals sent when the child dies.
+@@ -87,6 +90,11 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret;
@@ -1286,72 +1426,57 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.22.14-72.fc6.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/sparc/kernel/ptrace.c
-@@ -23,6 +23,9 @@
- #include <asm/pgtable.h>
+--- linux-2.6.23-5.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.23-5/arch/sh64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
  #include <asm/system.h>
- #include <asm/uaccess.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- #define MAGIC_CONSTANT 0x80000000
- 
-@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
- 	unsigned long addr2 = regs->u_regs[UREG_I4];
- 	struct task_struct *child;
- 	int ret;
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -260,6 +263,11 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
-+		pt_error_return(regs, EPERM);
-+		return;
-+	}
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
- #ifdef DEBUG_PTRACE
---- linux-2.6.22.14-72.fc6.orig/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/kernel/ptrace.c
-@@ -26,6 +26,9 @@
- #include <asm/tracehook.h>
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
+ 	if (first_call) {
+--- linux-2.6.23-5.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.23-5/arch/x86_64/ia32/ptrace32.c
+@@ -27,6 +27,9 @@
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
+ #include <asm/ia32.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- #ifdef CONFIG_DEBUG_PREEMPT
- #define NO_LOCKS	WARN_ON(preempt_count() != 0)
-@@ -997,6 +1000,11 @@ asmlinkage long sys_ptrace(long request,
- 	struct utrace_attached_engine *engine = NULL;
- 	struct ptrace_state *state = NULL;
- 	long ret, val;
+ /*
+  * Determines which flags the user has access to [1 = access, 0 = no access].
+@@ -235,6 +238,11 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
- 	pr_debug("%d sys_ptrace(%ld, %ld, %lx, %lx)\n",
- 		 current->pid, request, pid, addr, data);
-@@ -1084,6 +1092,11 @@ asmlinkage long compat_sys_ptrace(compat
- 	struct utrace_attached_engine *engine;
- 	struct ptrace_state *state;
- 	compat_long_t ret, val;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
- 		 current->pid, request, pid, addr, cdata);
---- linux-2.6.22.14-72.fc6.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.22.14-72.fc6/arch/ia64/ia32/sys_ia32.c
-@@ -57,6 +57,9 @@
+ 	switch (request) { 
+ 	case PTRACE_TRACEME:
+--- linux-2.6.23-5.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.23-5/arch/ia64/ia32/sys_ia32.c
+@@ -55,6 +55,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1361,7 +1486,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  #include "ia32priv.h"
  
-@@ -1741,6 +1744,11 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -1758,6 +1761,11 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
@@ -1373,8 +1498,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.22.14-72.fc6.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.22.14-72.fc6/arch/mips/kernel/ptrace32.c
+--- linux-2.6.23-5.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.23-5/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1397,27 +1522,3 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.22.14-72.fc6.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/sh64/kernel/ptrace.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -271,6 +274,11 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {

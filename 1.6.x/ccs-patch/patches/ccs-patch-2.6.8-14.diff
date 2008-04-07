@@ -36,7 +36,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/namespace.c                     |   43 +++++++++++++++-
  fs/open.c                          |   22 ++++++++
  fs/proc/Makefile                   |    3 +
- fs/proc/proc_misc.c                |    9 +++
+ fs/proc/proc_misc.c                |    5 +
  include/linux/init_task.h          |    4 +
  include/linux/sched.h              |    9 +++
  kernel/kmod.c                      |    5 +
@@ -53,7 +53,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/ipv6/udp.c                     |    9 +++
  net/socket.c                       |   30 ++++++++++-
  net/unix/af_unix.c                 |   10 +++
- 53 files changed, 638 insertions(+), 10 deletions(-)
+ 53 files changed, 634 insertions(+), 10 deletions(-)
 
 --- linux-2.6.8-14.orig/fs/Kconfig
 +++ linux-2.6.8-14/fs/Kconfig
@@ -90,8 +90,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, attr);
 +		/***** TOMOYO Linux start. *****/
-+		if (!error && (ia_valid & ATTR_MODE)) error = CheckCapabilityACL(TOMOYO_SYS_CHMOD);
-+		if (!error && (ia_valid & (ATTR_UID | ATTR_GID))) error = CheckCapabilityACL(TOMOYO_SYS_CHOWN);
++		if (!error && (ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD)) error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) && !ccs_capable(TOMOYO_SYS_CHOWN)) error = -EPERM;
 +		/***** TOMOYO Linux end. *****/
  		if (!error)
  			error = inode->i_op->setattr(dentry, attr);
@@ -100,8 +100,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		if (!error)
  			error = security_inode_setattr(dentry, attr);
 +		/***** TOMOYO Linux start. *****/
-+		if (!error && (ia_valid & ATTR_MODE)) error = CheckCapabilityACL(TOMOYO_SYS_CHMOD);
-+		if (!error && (ia_valid & (ATTR_UID | ATTR_GID))) error = CheckCapabilityACL(TOMOYO_SYS_CHOWN);
++		if (!error && (ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD)) error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) && !ccs_capable(TOMOYO_SYS_CHOWN)) error = -EPERM;
 +		/***** TOMOYO Linux end. *****/
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
@@ -123,7 +123,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		goto out;
  	}
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = CheckCapabilityACL(TOMOYO_SYS_IOCTL)) < 0) goto out;
++	if (!ccs_capable(TOMOYO_SYS_IOCTL)) { error = -EPERM; goto out; }
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -155,7 +155,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
 +	if (error) goto exit;
 +	/***** TOMOYO Linux end. *****/
 +
@@ -167,7 +167,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = ccs_check_open_permission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
@@ -198,7 +198,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (!(arg & O_APPEND) && CheckReWritePermission(filp)) return -EPERM;
++	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +
  	/* O_NOATIME can only be set by the owner or superuser */
@@ -221,7 +221,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (!filp)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_IOCTL) < 0) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_IOCTL)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -244,7 +244,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (error)
  		return error;
 +	/***** TOMOYO Linux start. *****/
-+	if (nd && (error = CheckSingleWritePermission(TYPE_CREATE_ACL, dentry, nd->mnt)) < 0) return error;
++	if (nd && (error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry, nd->mnt)) < 0) return error;
 +	/***** TOMOYO Linux end. *****/
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
@@ -254,7 +254,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
++	error = ccs_check_open_permission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
 +	if (error) return error;
 +	/***** TOMOYO Linux end. *****/
 +
@@ -276,10 +276,10 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (S_ISDIR(mode))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && CheckCapabilityACL(TOMOYO_CREATE_CHAR_DEV)) return -EPERM;
-+	if (S_ISBLK(mode) && CheckCapabilityACL(TOMOYO_CREATE_BLOCK_DEV)) return -EPERM;
-+	if (S_ISFIFO(mode) && CheckCapabilityACL(TOMOYO_CREATE_FIFO)) return -EPERM;
-+	if (S_ISSOCK(mode) && CheckCapabilityACL(TOMOYO_CREATE_UNIX_SOCKET)) return -EPERM;
++	if (S_ISCHR(mode) && !ccs_capable(TOMOYO_CREATE_CHAR_DEV)) return -EPERM;
++	if (S_ISBLK(mode) && !ccs_capable(TOMOYO_CREATE_BLOCK_DEV)) return -EPERM;
++	if (S_ISFIFO(mode) && !ccs_capable(TOMOYO_CREATE_FIFO)) return -EPERM;
++	if (S_ISSOCK(mode) && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
@@ -289,14 +289,14 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			break;
  		case S_IFCHR: case S_IFBLK:
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = ccs_check_1path_perm(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,
  					new_decode_dev(dev));
  			break;
  		case S_IFIFO: case S_IFSOCK:
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = ccs_check_1path_perm(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
@@ -306,7 +306,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
@@ -316,7 +316,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
++		if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
@@ -326,7 +326,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	struct nameidata nd;
  	struct inode *inode = NULL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_UNLINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_UNLINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	name = getname(pathname);
@@ -336,7 +336,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		if (inode)
  			atomic_inc(&inode->i_count);
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
++		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
@@ -346,7 +346,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SYMLINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SYMLINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	from = getname(oldname);
@@ -356,7 +356,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
@@ -366,7 +366,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int error;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_LINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_LINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	to = getname(newname);
@@ -376,7 +376,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = CheckDoubleWritePermission(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
++		if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = ccs_check_2path_perm(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
@@ -387,7 +387,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
 +	/***** TOMOYO Linux start. *****/
 +	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
-+		(error = CheckDoubleWritePermission(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
++		(error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
 +		goto exit5;
 +	}
 +	/***** TOMOYO Linux end. *****/
@@ -400,7 +400,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_RENAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_RENAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	from = getname(oldname);
@@ -425,7 +425,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		return retval;
  
 +	/***** SAKURA Linux start. *****/
-+	if (SAKURA_MayUmount(mnt) < 0) return -EPERM;
++	if (ccs_may_umount(mnt) < 0) return -EPERM;
 +	/***** SAKURA Linux end. *****/
 +
  	/*
@@ -436,7 +436,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	struct nameidata nd;
  	int retval;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_UMOUNT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_UMOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
@@ -447,7 +447,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
 +		/***** SAKURA Linux start. *****/
 +		err = -EPERM;
-+		if (SAKURA_MayMount(nd) < 0) goto out;
++		if (ccs_may_mount(nd) < 0) goto out;
 +		/***** SAKURA Linux end. *****/
  		err = -ENOMEM;
  		if (recurse)
@@ -470,7 +470,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0) goto out;
++	if (ccs_may_umount(old_nd.mnt) < 0 || ccs_may_mount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
@@ -481,7 +481,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		goto unlock;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0) goto unlock;
++	if (ccs_may_mount(nd) < 0) goto unlock;
 +	/***** SAKURA Linux end. *****/
  
  	newmnt->mnt_flags = mnt_flags;
@@ -491,10 +491,10 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
++	if ((retval = ccs_check_mount_permission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
 +	/***** SAKURA Linux end. *****/
 +
  	/* Separate the per-mountpoint flags */
@@ -505,7 +505,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -515,7 +515,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	/***** SAKURA Linux start. *****/
-+	if (!error) error = CheckPivotRootPermission(&old_nd, &new_nd);
++	if (!error) error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
 +	/***** SAKURA Linux end. *****/
  	if (error) {
  		path_release(&old_nd);
@@ -541,7 +541,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		goto dput_and_out;
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = CheckSingleWritePermission(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
++	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
@@ -551,7 +551,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = CheckSingleWritePermission(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt)) == 0)
++	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
@@ -561,10 +561,10 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	if (!ccs_capable(TOMOYO_SYS_CHROOT)) goto dput_and_out;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if (CheckChRootPermission(&nd)) goto dput_and_out;
++	if (ccs_check_chroot_permission(&nd)) goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
@@ -574,7 +574,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  asmlinkage long sys_vhangup(void)
  {
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_VHANGUP) == 0)
++	if (!ccs_capable(TOMOYO_SYS_VHANGUP)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
@@ -590,17 +590,13 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.8-14.orig/fs/proc/proc_misc.c
 +++ linux-2.6.8-14/fs/proc/proc_misc.c
-@@ -641,4 +641,13 @@ void __init proc_misc_init(void)
+@@ -641,4 +641,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	{
-+		extern void CCSProc_Init(void);
-+		CCSProc_Init();
-+		printk("Hook version: 2.6.8-14 2008/01/24\n");
-+	}
++	printk(KERN_INFO "Hook version: 2.6.8-14 2008/04/07\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -674,7 +670,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		return -EPERM;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
@@ -685,7 +681,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		return -EPERM;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
@@ -707,7 +703,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int retval;
  	long nice;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/*
@@ -729,8 +725,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  {
  	struct siginfo info;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	info.si_signo = sig;
@@ -740,8 +736,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		return -EINVAL;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +
  	info.si_signo = sig;
@@ -752,8 +748,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		return -EINVAL;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	info.si_signo = sig;
  	info.si_errno = 0;
@@ -775,7 +771,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (which > 2 || which < 0)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/* normalize: avoid signed division (rounding problems) */
@@ -785,7 +781,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_REBOOT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_REBOOT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -795,7 +791,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	down_write(&uts_sem);
  	errno = -EFAULT;
@@ -805,7 +801,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	down_write(&uts_sem);
@@ -885,7 +881,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 +			if (table->child) {
 +				if (table->strategy) {
 +					/* printk("sysctl='%s'\n", buffer); */
-+					if (CheckFilePerm(buffer, op, "sysctl")) {
++					if (ccs_check_file_perm(buffer, op, "sysctl")) {
 +						error = -EPERM;
 +						goto out;
 +					}
@@ -896,7 +892,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 +				goto repeat;
 +			}
 +			/* printk("sysctl='%s'\n", buffer); */
-+			error = CheckFilePerm(buffer, op, "sysctl");
++			error = ccs_check_file_perm(buffer, op, "sysctl");
 +			goto out;
 +		}
 +	}
@@ -959,7 +955,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (get_user(tv.tv_sec, tptr))
  		return -EFAULT;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	tv.tv_nsec = 0;
@@ -969,7 +965,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (!capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  		
  	if (tz) {
@@ -979,7 +975,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (txc->modes && CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (txc->modes && !ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  		
  	/* Now we validate the data before disabling interrupts */
@@ -1002,7 +998,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
++		if ((error = ccs_socket_recv_datagram_permission(sk, skb, flags)) < 0) goto no_packet;
 +		/***** TOMOYO Linux end. *****/
 +
  		if (skb)
@@ -1025,7 +1021,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(rover) < 0) goto next;
++			if (ccs_may_autobind(rover) < 0) goto next;
 +			/***** SAKURA Linux end. *****/
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
@@ -1035,7 +1031,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
   			head = &tcp_bhash[tcp_bhashfn(rover)];
   			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(rover) < 0) goto next_port;
++			if (ccs_may_autobind(rover) < 0) goto next_port;
 +			/***** SAKURA Linux end. *****/
  
   			/* Does not bother with rcv_saddr checks,
@@ -1057,7 +1053,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (SAKURA_MayAutobind(result) < 0) continue;
++				if (ccs_may_autobind(result) < 0) continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
  			}
@@ -1067,7 +1063,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
++			if (ccs_may_autobind(result) < 0) continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))
  				break;
@@ -1089,7 +1085,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(rover) < 0) goto next;
++			if (ccs_may_autobind(rover) < 0) goto next;
 +			/***** SAKURA Linux end. *****/
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
@@ -1111,7 +1107,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (SAKURA_MayAutobind(result) < 0) continue;
++				if (ccs_may_autobind(result) < 0) continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
  			}
@@ -1121,7 +1117,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
++			if (ccs_may_autobind(result) < 0) continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))
  				break;
@@ -1146,7 +1142,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		return err;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckSocketSendMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) return -EPERM;
++	if (ccs_socket_sendmsg_permission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
@@ -1156,7 +1152,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	}
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = CheckSocketCreatePermission(family, type, protocol)) < 0) return err;
++	if ((err = ccs_socket_create_permission(family, type, protocol)) < 0) return err;
 +	/***** TOMOYO Linux end. *****/
 +
  	err = security_socket_create(family, type, protocol, kern);
@@ -1167,7 +1163,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  				return err;
  			}
 +			/***** TOMOYO Linux start. *****/
-+			if ((err = CheckSocketBindPermission(sock, (struct sockaddr *) address, addrlen)) == 0)
++			if ((err = ccs_socket_bind_permission(sock, (struct sockaddr *) address, addrlen)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
@@ -1178,7 +1174,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		}
 -
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = CheckSocketListenPermission(sock)) == 0)
++		if ((err = ccs_socket_listen_permission(sock)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
@@ -1188,7 +1184,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		goto out_release;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckSocketAcceptPermission(newsock, (struct sockaddr *) address)) {
++	if (ccs_socket_accept_permission(newsock, (struct sockaddr *) address)) {
 +		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
 +		goto out_release;
 +	}
@@ -1202,7 +1198,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		goto out_put;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen)) == 0)
++	if ((err = ccs_socket_connect_permission(sock, (struct sockaddr *) address, addrlen)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
@@ -1225,7 +1221,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	}
 +	/***** TOMOYO Linux start. *****/
 +	err = -EPERM;
-+	if (sunaddr->sun_path[0] && CheckCapabilityACL(TOMOYO_CREATE_UNIX_SOCKET)) goto out;
++	if (sunaddr->sun_path[0] && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET)) goto out;
 +	/***** TOMOYO Linux end. *****/
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
@@ -1235,7 +1231,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = CheckSingleWritePermission(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
@@ -1258,7 +1254,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1282,7 +1278,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1306,7 +1302,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1330,7 +1326,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1354,7 +1350,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	unsigned long __user *datap = (unsigned long __user *)data;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1378,7 +1374,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1402,7 +1398,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1426,7 +1422,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1450,7 +1446,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1474,7 +1470,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  #endif
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1498,7 +1494,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1522,7 +1518,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1546,7 +1542,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1570,7 +1566,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1594,7 +1590,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1618,7 +1614,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -1645,7 +1641,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -1672,7 +1668,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int i, ret;
 +/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +/***** TOMOYO Linux end. *****/
  
@@ -1696,7 +1692,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int rval;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1720,7 +1716,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	unsigned ui;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1744,7 +1740,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1768,7 +1764,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1792,7 +1788,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1816,7 +1812,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1840,7 +1836,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  

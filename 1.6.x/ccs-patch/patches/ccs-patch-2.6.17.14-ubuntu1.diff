@@ -25,7 +25,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  fs/namespace.c                  |   39 ++++++++++++++++
  fs/open.c                       |   23 +++++++++
  fs/proc/Makefile                |    3 +
- fs/proc/proc_misc.c             |    9 +++
+ fs/proc/proc_misc.c             |    5 ++
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 +++
  kernel/compat.c                 |    6 ++
@@ -46,10 +46,10 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  net/ipv6/udp.c                  |    9 +++
  net/socket.c                    |   29 +++++++++++-
  net/unix/af_unix.c              |   10 ++++
- 44 files changed, 546 insertions(+), 10 deletions(-)
+ 44 files changed, 542 insertions(+), 10 deletions(-)
 
---- linux-source-2.6.17.14-ubuntu1.orig/Makefile
-+++ linux-source-2.6.17.14-ubuntu1/Makefile
+--- linux-source-2.6.17-2.6.17.1.orig/Makefile
++++ linux-source-2.6.17-2.6.17.1/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
@@ -59,8 +59,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  NAME=Crazed Snow-Weasel
  
  ifdef UBUNTUBUILD
---- linux-source-2.6.17.14-ubuntu1.orig/fs/Kconfig
-+++ linux-source-2.6.17.14-ubuntu1/fs/Kconfig
+--- linux-source-2.6.17-2.6.17.1.orig/fs/Kconfig
++++ linux-source-2.6.17-2.6.17.1/fs/Kconfig
 @@ -1904,6 +1904,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -69,16 +69,16 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
  endmenu
  
---- linux-source-2.6.17.14-ubuntu1.orig/fs/Makefile
-+++ linux-source-2.6.17.14-ubuntu1/fs/Makefile
+--- linux-source-2.6.17-2.6.17.1.orig/fs/Makefile
++++ linux-source-2.6.17-2.6.17.1/fs/Makefile
 @@ -110,3 +110,5 @@ obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
  obj-$(CONFIG_GFS_FS)		+= gfs/
  obj-$(CONFIG_DAZUKO)		+= dazuko/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-source-2.6.17.14-ubuntu1.orig/fs/attr.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/attr.c
+--- linux-source-2.6.17-2.6.17.1.orig/fs/attr.c
++++ linux-source-2.6.17-2.6.17.1/fs/attr.c
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -94,8 +94,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, attr);
 +		/***** TOMOYO Linux start. *****/
-+		if (!error && (ia_valid & ATTR_MODE)) error = CheckCapabilityACL(TOMOYO_SYS_CHMOD);
-+		if (!error && (ia_valid & (ATTR_UID | ATTR_GID))) error = CheckCapabilityACL(TOMOYO_SYS_CHOWN);
++		if (!error && (ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD)) error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) && !ccs_capable(TOMOYO_SYS_CHOWN)) error = -EPERM;
 +		/***** TOMOYO Linux end. *****/
  		if (!error)
  			error = inode->i_op->setattr(dentry, attr);
@@ -104,14 +104,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		if (!error)
  			error = security_inode_setattr(dentry, attr);
 +		/***** TOMOYO Linux start. *****/
-+		if (!error && (ia_valid & ATTR_MODE)) error = CheckCapabilityACL(TOMOYO_SYS_CHMOD);
-+		if (!error && (ia_valid & (ATTR_UID | ATTR_GID))) error = CheckCapabilityACL(TOMOYO_SYS_CHOWN);
++		if (!error && (ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD)) error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) && !ccs_capable(TOMOYO_SYS_CHOWN)) error = -EPERM;
 +		/***** TOMOYO Linux end. *****/
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-source-2.6.17.14-ubuntu1.orig/fs/compat.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/compat.c
+--- linux-source-2.6.17-2.6.17.1.orig/fs/compat.c
++++ linux-source-2.6.17-2.6.17.1/fs/compat.c
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -127,7 +127,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
  	default:
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = CheckCapabilityACL(TOMOYO_SYS_IOCTL)) < 0) goto out_fput;
++		if (!ccs_capable(TOMOYO_SYS_IOCTL)) { error = -EPERM; goto out_fput; }
 +		/***** TOMOYO Linux end. *****/
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
@@ -141,8 +141,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-source-2.6.17.14-ubuntu1.orig/fs/exec.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/exec.c
+--- linux-source-2.6.17-2.6.17.1.orig/fs/exec.c
++++ linux-source-2.6.17-2.6.17.1/fs/exec.c
 @@ -56,6 +56,9 @@
  #ifdef CONFIG_KMOD
  #include <linux/kmod.h>
@@ -158,7 +158,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
 +	if (error) goto exit;
 +	/***** TOMOYO Linux end. *****/
 +
@@ -170,7 +170,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = CheckOpenPermission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = ccs_check_open_permission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
@@ -185,8 +185,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-source-2.6.17.14-ubuntu1.orig/fs/fcntl.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/fcntl.c
+--- linux-source-2.6.17-2.6.17.1.orig/fs/fcntl.c
++++ linux-source-2.6.17-2.6.17.1/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -202,14 +202,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (!(arg & O_APPEND) && CheckReWritePermission(filp)) return -EPERM;
++	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-source-2.6.17.14-ubuntu1.orig/fs/ioctl.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/ioctl.c
+--- linux-source-2.6.17-2.6.17.1.orig/fs/ioctl.c
++++ linux-source-2.6.17-2.6.17.1/fs/ioctl.c
 @@ -16,6 +16,9 @@
  
  #include <asm/uaccess.h>
@@ -225,13 +225,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (!filp->f_op)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_IOCTL) < 0) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_IOCTL)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-source-2.6.17.14-ubuntu1.orig/fs/namei.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/namei.c
+--- linux-source-2.6.17-2.6.17.1.orig/fs/namei.c
++++ linux-source-2.6.17-2.6.17.1/fs/namei.c
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -248,7 +248,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (error)
  		return error;
 +	/***** TOMOYO Linux start. *****/
-+	if (nd && (error = CheckSingleWritePermission(TYPE_CREATE_ACL, dentry, nd->mnt)) < 0) return error;
++	if (nd && (error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry, nd->mnt)) < 0) return error;
 +	/***** TOMOYO Linux end. *****/
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
@@ -258,7 +258,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  			return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = CheckOpenPermission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
++	error = ccs_check_open_permission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
 +	if (error) return error;
 +	/***** TOMOYO Linux end. *****/
 +
@@ -280,10 +280,10 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (S_ISDIR(mode))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && CheckCapabilityACL(TOMOYO_CREATE_CHAR_DEV)) return -EPERM;
-+	if (S_ISBLK(mode) && CheckCapabilityACL(TOMOYO_CREATE_BLOCK_DEV)) return -EPERM;
-+	if (S_ISFIFO(mode) && CheckCapabilityACL(TOMOYO_CREATE_FIFO)) return -EPERM;
-+	if (S_ISSOCK(mode) && CheckCapabilityACL(TOMOYO_CREATE_UNIX_SOCKET)) return -EPERM;
++	if (S_ISCHR(mode) && !ccs_capable(TOMOYO_CREATE_CHAR_DEV)) return -EPERM;
++	if (S_ISBLK(mode) && !ccs_capable(TOMOYO_CREATE_BLOCK_DEV)) return -EPERM;
++	if (S_ISFIFO(mode) && !ccs_capable(TOMOYO_CREATE_FIFO)) return -EPERM;
++	if (S_ISSOCK(mode) && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
@@ -293,14 +293,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  			break;
  		case S_IFCHR: case S_IFBLK:
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = ccs_check_1path_perm(S_ISCHR(mode) ? TYPE_MKCHAR_ACL : TYPE_MKBLOCK_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,
  					new_decode_dev(dev));
  			break;
  		case S_IFIFO: case S_IFSOCK:
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = CheckSingleWritePermission(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (error = ccs_check_1path_perm(S_ISFIFO(mode) ? TYPE_MKFIFO_ACL : TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
@@ -310,7 +310,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
@@ -320,7 +320,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
++		if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
@@ -330,7 +330,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	struct nameidata nd;
  	struct inode *inode = NULL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_UNLINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_UNLINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	name = getname(pathname);
@@ -340,7 +340,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		if (inode)
  			atomic_inc(&inode->i_count);
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
++		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
@@ -350,7 +350,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SYMLINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SYMLINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	from = getname(oldname);
@@ -360,7 +360,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
++			if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
@@ -370,7 +370,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	int error;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_LINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_LINK)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	if (flags != 0)
@@ -380,7 +380,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = CheckDoubleWritePermission(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
++		if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = ccs_check_2path_perm(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
@@ -391,7 +391,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
 +	/***** TOMOYO Linux start. *****/
 +	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
-+		(error = CheckDoubleWritePermission(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
++		(error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
 +		goto exit5;
 +	}
 +	/***** TOMOYO Linux end. *****/
@@ -404,13 +404,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_RENAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_RENAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-source-2.6.17.14-ubuntu1.orig/fs/namespace.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/namespace.c
+--- linux-source-2.6.17-2.6.17.1.orig/fs/namespace.c
++++ linux-source-2.6.17-2.6.17.1/fs/namespace.c
 @@ -26,6 +26,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -429,7 +429,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		return retval;
  
 +	/***** SAKURA Linux start. *****/
-+	if (SAKURA_MayUmount(mnt) < 0) return -EPERM;
++	if (ccs_may_umount(mnt) < 0) return -EPERM;
 +	/***** SAKURA Linux end. *****/
 +
  	/*
@@ -440,7 +440,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	struct nameidata nd;
  	int retval;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_UMOUNT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_UMOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
@@ -451,7 +451,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		goto out;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0) goto out;
++	if (ccs_may_mount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  
  	err = -ENOMEM;
@@ -463,7 +463,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
 -
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0) goto out;
++	if (ccs_may_umount(old_nd.mnt) < 0 || ccs_may_mount(nd) < 0) goto out;
 +	/***** SAKURA Linux end. *****/
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
@@ -474,7 +474,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		goto unlock;
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (SAKURA_MayMount(nd) < 0) goto unlock;
++	if (ccs_may_mount(nd) < 0) goto unlock;
 +	/***** SAKURA Linux end. *****/
  
  	newmnt->mnt_flags = mnt_flags;
@@ -484,10 +484,10 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_MOUNT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_MOUNT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if ((retval = CheckMountPermission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
++	if ((retval = ccs_check_mount_permission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
 +	/***** SAKURA Linux end. *****/
 +
  	/* Separate the per-mountpoint flags */
@@ -498,7 +498,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -508,13 +508,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	/***** SAKURA Linux start. *****/
-+	if (!error) error = CheckPivotRootPermission(&old_nd, &new_nd);
++	if (!error) error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
 +	/***** SAKURA Linux end. *****/
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-source-2.6.17.14-ubuntu1.orig/fs/open.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/open.c
+--- linux-source-2.6.17-2.6.17.1.orig/fs/open.c
++++ linux-source-2.6.17-2.6.17.1/fs/open.c
 @@ -31,6 +31,13 @@
  
  #include <asm/unistd.h>
@@ -534,7 +534,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		goto dput_and_out;
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = CheckSingleWritePermission(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
++	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
@@ -545,7 +545,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		goto out_putf;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = CheckSingleWritePermission(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt)) == 0)
++	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
@@ -555,10 +555,10 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	if (!ccs_capable(TOMOYO_SYS_CHROOT)) goto dput_and_out;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if (CheckChRootPermission(&nd)) goto dput_and_out;
++	if (ccs_check_chroot_permission(&nd)) goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
@@ -568,13 +568,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  asmlinkage long sys_vhangup(void)
  {
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_VHANGUP) == 0)
++	if (!ccs_capable(TOMOYO_SYS_VHANGUP)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-source-2.6.17.14-ubuntu1.orig/fs/proc/Makefile
-+++ linux-source-2.6.17.14-ubuntu1/fs/proc/Makefile
+--- linux-source-2.6.17-2.6.17.1.orig/fs/proc/Makefile
++++ linux-source-2.6.17-2.6.17.1/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -582,24 +582,20 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-source-2.6.17.14-ubuntu1.orig/fs/proc/proc_misc.c
-+++ linux-source-2.6.17.14-ubuntu1/fs/proc/proc_misc.c
-@@ -735,4 +735,13 @@ void __init proc_misc_init(void)
+--- linux-source-2.6.17-2.6.17.1.orig/fs/proc/proc_misc.c
++++ linux-source-2.6.17-2.6.17.1/fs/proc/proc_misc.c
+@@ -735,4 +735,9 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	{
-+		extern void __init CCSProc_Init(void);
-+		CCSProc_Init();
-+		printk("Hook version: 2.6.17.14-ubuntu1 2008/01/13\n");
-+	}
++	printk(KERN_INFO "Hook version: 2.6.17.14-ubuntu1 2008/04/07\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-source-2.6.17.14-ubuntu1.orig/include/linux/init_task.h
-+++ linux-source-2.6.17.14-ubuntu1/include/linux/init_task.h
+--- linux-source-2.6.17-2.6.17.1.orig/include/linux/init_task.h
++++ linux-source-2.6.17-2.6.17.1/include/linux/init_task.h
 @@ -123,6 +123,10 @@ extern struct group_info init_groups;
  	.journal_info	= NULL,						\
  	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
@@ -611,8 +607,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  }
  
  
---- linux-source-2.6.17.14-ubuntu1.orig/include/linux/sched.h
-+++ linux-source-2.6.17.14-ubuntu1/include/linux/sched.h
+--- linux-source-2.6.17-2.6.17.1.orig/include/linux/sched.h
++++ linux-source-2.6.17-2.6.17.1/include/linux/sched.h
 @@ -25,6 +25,11 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -636,8 +632,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/compat.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/compat.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/compat.c
++++ linux-source-2.6.17-2.6.17.1/kernel/compat.c
 @@ -23,6 +23,9 @@
  #include <linux/timex.h>
  
@@ -653,13 +649,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (err)
  		return err;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/kexec.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/kexec.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/kexec.c
++++ linux-source-2.6.17-2.6.17.1/kernel/kexec.c
 @@ -26,6 +26,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -675,13 +671,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_KEXEC_LOAD)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_KEXEC_LOAD)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/kmod.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/kmod.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/kmod.c
++++ linux-source-2.6.17-2.6.17.1/kernel/kmod.c
 @@ -149,6 +149,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -694,8 +690,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/module.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/module.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/module.c
++++ linux-source-2.6.17-2.6.17.1/kernel/module.c
 @@ -43,6 +43,9 @@
  #include <asm/uaccess.h>
  #include <asm/semaphore.h>
@@ -712,7 +708,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		return -EPERM;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
@@ -723,13 +719,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		return -EPERM;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/sched.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/sched.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/sched.c
++++ linux-source-2.6.17-2.6.17.1/kernel/sched.c
 @@ -53,6 +53,9 @@
  #include <asm/tlb.h>
  
@@ -745,13 +741,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	int retval;
  	long nice;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/signal.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/signal.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/signal.c
++++ linux-source-2.6.17-2.6.17.1/kernel/signal.c
 @@ -29,6 +29,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -767,8 +763,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  {
  	struct siginfo info;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	info.si_signo = sig;
@@ -778,8 +774,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	return do_tkill(tgid, pid, sig);
@@ -789,14 +785,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (pid <= 0)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && CheckCapabilityACL(TOMOYO_SYS_KILL) < 0) return -EPERM;
-+	if (sig && CheckSignalACL(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	return do_tkill(0, pid, sig);
  }
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/sys.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/sys.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/sys.c
++++ linux-source-2.6.17-2.6.17.1/kernel/sys.c
 @@ -38,6 +38,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -812,7 +808,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (which > 2 || which < 0)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/* normalize: avoid signed division (rounding problems) */
@@ -822,7 +818,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_REBOOT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_REBOOT)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/* Instead of trying to make the power_off code look like
@@ -832,7 +828,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	down_write(&uts_sem);
  	errno = -EFAULT;
@@ -842,13 +838,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/sysctl.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/sysctl.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/sysctl.c
++++ linux-source-2.6.17-2.6.17.1/kernel/sysctl.c
 @@ -49,6 +49,9 @@
  
  #include <asm/uaccess.h>
@@ -922,7 +918,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
 +			if (table->child) {
 +				if (table->strategy) {
 +					/* printk("sysctl='%s'\n", buffer); */
-+					if (CheckFilePerm(buffer, op, "sysctl")) {
++					if (ccs_check_file_perm(buffer, op, "sysctl")) {
 +						error = -EPERM;
 +						goto out;
 +					}
@@ -933,7 +929,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
 +				goto repeat;
 +			}
 +			/* printk("sysctl='%s'\n", buffer); */
-+			error = CheckFilePerm(buffer, op, "sysctl");
++			error = ccs_check_file_perm(buffer, op, "sysctl");
 +			goto out;
 +		}
 +	}
@@ -970,8 +966,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/time.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/time.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/time.c
++++ linux-source-2.6.17-2.6.17.1/kernel/time.c
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -987,7 +983,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (err)
  		return err;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	do_settimeofday(&tv);
@@ -997,7 +993,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (error)
  		return error;
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	if (tz) {
@@ -1007,13 +1003,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (txc->modes && CheckCapabilityACL(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (txc->modes && !ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-source-2.6.17.14-ubuntu1.orig/net/core/datagram.c
-+++ linux-source-2.6.17.14-ubuntu1/net/core/datagram.c
+--- linux-source-2.6.17-2.6.17.1.orig/net/core/datagram.c
++++ linux-source-2.6.17-2.6.17.1/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1031,14 +1027,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = CheckSocketRecvDatagramPermission(sk, skb, flags)) < 0) goto no_packet;
++		if ((error = ccs_socket_recv_datagram_permission(sk, skb, flags)) < 0) goto no_packet;
 +		/***** TOMOYO Linux end. *****/
 +
  		if (skb)
  			return skb;
  
---- linux-source-2.6.17.14-ubuntu1.orig/net/ipv4/inet_connection_sock.c
-+++ linux-source-2.6.17.14-ubuntu1/net/ipv4/inet_connection_sock.c
+--- linux-source-2.6.17-2.6.17.1.orig/net/ipv4/inet_connection_sock.c
++++ linux-source-2.6.17-2.6.17.1/net/ipv4/inet_connection_sock.c
 @@ -24,6 +24,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1054,13 +1050,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  			head = &hashinfo->bhash[inet_bhashfn(rover, hashinfo->bhash_size)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(rover) < 0) goto next;
++			if (ccs_may_autobind(rover) < 0) goto next;
 +			/***** SAKURA Linux end. *****/
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-source-2.6.17.14-ubuntu1.orig/net/ipv4/inet_hashtables.c
-+++ linux-source-2.6.17.14-ubuntu1/net/ipv4/inet_hashtables.c
+--- linux-source-2.6.17-2.6.17.1.orig/net/ipv4/inet_hashtables.c
++++ linux-source-2.6.17-2.6.17.1/net/ipv4/inet_hashtables.c
 @@ -23,6 +23,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1076,13 +1072,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		for (i = 1; i <= range; i++) {
  			port = low + (i + offset) % range;
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(port) < 0) continue;
++			if (ccs_may_autobind(port) < 0) continue;
 +			/***** SAKURA Linux end. *****/
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-source-2.6.17.14-ubuntu1.orig/net/ipv4/udp.c
-+++ linux-source-2.6.17.14-ubuntu1/net/ipv4/udp.c
+--- linux-source-2.6.17-2.6.17.1.orig/net/ipv4/udp.c
++++ linux-source-2.6.17-2.6.17.1/net/ipv4/udp.c
 @@ -109,6 +109,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1098,7 +1094,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (SAKURA_MayAutobind(result) < 0) continue;
++				if (ccs_may_autobind(result) < 0) continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
  			}
@@ -1108,13 +1104,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
++			if (ccs_may_autobind(result) < 0) continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-source-2.6.17.14-ubuntu1.orig/net/ipv6/inet6_hashtables.c
-+++ linux-source-2.6.17.14-ubuntu1/net/ipv6/inet6_hashtables.c
+--- linux-source-2.6.17-2.6.17.1.orig/net/ipv6/inet6_hashtables.c
++++ linux-source-2.6.17-2.6.17.1/net/ipv6/inet6_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1139,13 +1135,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		for (i = 1; i <= range; i++) {
  			port = low + (i + offset) % range;
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(port) < 0) continue;
++			if (ccs_may_autobind(port) < 0) continue;
 +			/***** SAKURA Linux end. *****/
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-source-2.6.17.14-ubuntu1.orig/net/ipv6/udp.c
-+++ linux-source-2.6.17.14-ubuntu1/net/ipv6/udp.c
+--- linux-source-2.6.17-2.6.17.1.orig/net/ipv6/udp.c
++++ linux-source-2.6.17-2.6.17.1/net/ipv6/udp.c
 @@ -59,6 +59,9 @@
  
  #include <linux/proc_fs.h>
@@ -1161,7 +1157,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (SAKURA_MayAutobind(result) < 0) continue;
++				if (ccs_may_autobind(result) < 0) continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
  			}
@@ -1171,13 +1167,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (SAKURA_MayAutobind(result) < 0) continue;
++			if (ccs_may_autobind(result) < 0) continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-source-2.6.17.14-ubuntu1.orig/net/socket.c
-+++ linux-source-2.6.17.14-ubuntu1/net/socket.c
+--- linux-source-2.6.17-2.6.17.1.orig/net/socket.c
++++ linux-source-2.6.17-2.6.17.1/net/socket.c
 @@ -95,6 +95,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1196,7 +1192,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		return err;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckSocketSendMsgPermission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) return -EPERM;
++	if (ccs_socket_sendmsg_permission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
@@ -1206,7 +1202,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	}
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = CheckSocketCreatePermission(family, type, protocol)) < 0) return err;
++	if ((err = ccs_socket_create_permission(family, type, protocol)) < 0) return err;
 +	/***** TOMOYO Linux end. *****/
 +
  	err = security_socket_create(family, type, protocol, kern);
@@ -1217,7 +1213,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
  			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
 +			/***** TOMOYO Linux start. *****/
-+			if (!err) err = CheckSocketBindPermission(sock, (struct sockaddr *) address, addrlen);
++			if (!err) err = ccs_socket_bind_permission(sock, (struct sockaddr *) address, addrlen);
 +			/***** TOMOYO Linux end. *****/
  			if (!err)
  				err = sock->ops->bind(sock,
@@ -1227,7 +1223,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
  		err = security_socket_listen(sock, backlog);
 +		/***** TOMOYO Linux start. *****/
-+		if (!err) err = CheckSocketListenPermission(sock);
++		if (!err) err = ccs_socket_listen_permission(sock);
 +		/***** TOMOYO Linux end. *****/
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
@@ -1237,7 +1233,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		goto out_fd;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (CheckSocketAcceptPermission(newsock, (struct sockaddr *) address)) {
++	if (ccs_socket_accept_permission(newsock, (struct sockaddr *) address)) {
 +		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
 +		goto out_fd;
 +	}
@@ -1251,13 +1247,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		goto out_put;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = CheckSocketConnectPermission(sock, (struct sockaddr *) address, addrlen)) == 0)
++	if ((err = ccs_socket_connect_permission(sock, (struct sockaddr *) address, addrlen)) == 0)
 +	/***** TOMOYO Linux end. *****/
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-source-2.6.17.14-ubuntu1.orig/net/unix/af_unix.c
-+++ linux-source-2.6.17.14-ubuntu1/net/unix/af_unix.c
+--- linux-source-2.6.17-2.6.17.1.orig/net/unix/af_unix.c
++++ linux-source-2.6.17-2.6.17.1/net/unix/af_unix.c
 @@ -117,6 +117,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1274,7 +1270,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	}
 +	/***** TOMOYO Linux start. *****/
 +	err = -EPERM;
-+	if (sunaddr->sun_path[0] && CheckCapabilityACL(TOMOYO_CREATE_UNIX_SOCKET)) goto out;
++	if (sunaddr->sun_path[0] && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET)) goto out;
 +	/***** TOMOYO Linux end. *****/
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
@@ -1284,13 +1280,13 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = CheckSingleWritePermission(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-source-2.6.17.14-ubuntu1.orig/arch/alpha/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/alpha/kernel/ptrace.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/alpha/kernel/ptrace.c
++++ linux-source-2.6.17-2.6.17.1/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1307,14 +1303,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-source-2.6.17.14-ubuntu1.orig/arch/ia64/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/ia64/kernel/ptrace.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/ia64/kernel/ptrace.c
++++ linux-source-2.6.17-2.6.17.1/arch/ia64/kernel/ptrace.c
 @@ -29,6 +29,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -1331,14 +1327,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-source-2.6.17.14-ubuntu1.orig/arch/m32r/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/m32r/kernel/ptrace.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/m32r/kernel/ptrace.c
++++ linux-source-2.6.17-2.6.17.1/arch/m32r/kernel/ptrace.c
 @@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1355,14 +1351,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.17.14-ubuntu1.orig/arch/s390/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/s390/kernel/ptrace.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/s390/kernel/ptrace.c
++++ linux-source-2.6.17-2.6.17.1/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1379,14 +1375,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-source-2.6.17.14-ubuntu1.orig/arch/sparc/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/sparc/kernel/ptrace.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/sparc/kernel/ptrace.c
++++ linux-source-2.6.17-2.6.17.1/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -1403,7 +1399,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -1412,8 +1408,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-source-2.6.17.14-ubuntu1.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/sparc64/kernel/ptrace.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/sparc64/kernel/ptrace.c
++++ linux-source-2.6.17-2.6.17.1/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -1430,7 +1426,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -1439,8 +1435,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/ptrace.c
+--- linux-source-2.6.17-2.6.17.1.orig/kernel/ptrace.c
++++ linux-source-2.6.17-2.6.17.1/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  
  #include <asm/pgtable.h>
@@ -1457,14 +1453,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	 */
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-source-2.6.17.14-ubuntu1.orig/arch/sh64/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/sh64/kernel/ptrace.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/sh64/kernel/ptrace.c
++++ linux-source-2.6.17-2.6.17.1/arch/sh64/kernel/ptrace.c
 @@ -36,6 +36,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -1481,14 +1477,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	static int first_call = 1;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	if (first_call) {
---- linux-source-2.6.17.14-ubuntu1.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/x86_64/ia32/ptrace32.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-source-2.6.17-2.6.17.1/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/debugreg.h>
  #include <asm/i387.h>
@@ -1505,14 +1501,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  	switch (request) { 
  	default:
---- linux-source-2.6.17.14-ubuntu1.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/ia64/ia32/sys_ia32.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-source-2.6.17-2.6.17.1/arch/ia64/ia32/sys_ia32.c
 @@ -57,6 +57,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -1529,14 +1525,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.17.14-ubuntu1.orig/arch/mips/kernel/ptrace32.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/mips/kernel/ptrace32.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/mips/kernel/ptrace32.c
++++ linux-source-2.6.17-2.6.17.1/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -1553,14 +1549,14 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-source-2.6.17.14-ubuntu1.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/powerpc/kernel/ptrace32.c
+--- linux-source-2.6.17-2.6.17.1.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-source-2.6.17-2.6.17.1/arch/powerpc/kernel/ptrace32.c
 @@ -33,6 +33,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -1577,7 +1573,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
