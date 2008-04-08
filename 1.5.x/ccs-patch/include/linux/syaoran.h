@@ -501,7 +501,7 @@ static int Syaoran_Initialize(struct super_block *sb, void *data)
 	static int first = 1;
 	if (first) {
 		first = 0;
-		printk("SYAORAN: 1.5.3   2008/01/31\n");
+		printk("SYAORAN: 1.5.4-pre   2008/04/08\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);

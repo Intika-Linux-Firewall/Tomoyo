@@ -1371,7 +1371,7 @@ Fix 2008/??/??
 
       2.6 kernels before 2.6.11 calls do_execve() before initialization of
       ccs_alloc(), resulting NULL pointer dereference.
-      I changed __initcall to security_initcall.
+      I changed __initcall to fs_initcall.
 
       Some distributions with 2.6.9 kernels backported kzalloc() from 2.6.14 ,
       resulting compilation error at kzalloc().
