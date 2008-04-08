@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4-pre   2008/02/16
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -16,7 +16,7 @@
 #include <linux/ccs_common.h>
 #include <linux/sakura.h>
 #include <linux/realpath.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #else
 #include <linux/fs.h>
@@ -76,7 +76,7 @@ int CheckChRootPermission(struct nameidata *nd)
 	int error = -EPERM;
 	char *root_name;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_CHROOT)) return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	root_name = realpath_from_dentry(nd->path.dentry, nd->path.mnt);
 #else
 	root_name = realpath_from_dentry(nd->dentry, nd->mnt);

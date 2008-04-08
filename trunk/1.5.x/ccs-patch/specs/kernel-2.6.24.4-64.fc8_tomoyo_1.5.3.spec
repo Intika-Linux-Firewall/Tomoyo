@@ -23,7 +23,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # Bah. Have to set this to a negative for the moment to fix rpm ordering after
 # moving the spec file. cvs sucks. Should be sure to fix this once 2.6.23 is out.
 %define fedora_cvs_origin 346
-%define fedora_build %(R="$Revision: 1.396 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
+%define fedora_build %(R="$Revision: 1.410 $"; R="${R%% \$}"; R="${R##: 1.}"; expr $R - %{fedora_cvs_origin})
 
 # base_sublevel is the kernel version we're starting with and patching
 # on top of -- for example, 2.6.22-rc7-git1 starts with a 2.6.21 base,
@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 ## If this is a released kernel ##
 %if 0%{?released_kernel}
 # Do we have a 2.6.21.y update to apply?
-%define stable_update 3
+%define stable_update 4
 # Set rpm version accordingly
 %if 0%{?stable_update}
 %define stablerev .%{stable_update}
@@ -592,7 +592,7 @@ Patch60: linux-2.6-x86-tune-generic.patch
 # Patch61: linux-2.6-x86-setup-add-near-jump.patch
 Patch70: linux-2.6-x86_64-silence-up-apic-errors.patch
 Patch75: linux-2.6-x86-debug-boot.patch
-Patch76: linux-2.6-x86-dont-use-p6-nops.patch
+# Patch76: linux-2.6-x86-dont-use-p6-nops.patch
 Patch77: linux-2.6-x86-clear-df-for-signals.patch
 
 Patch86: linux-2.6-alsa-support-sis7019.patch
@@ -633,7 +633,9 @@ Patch330: linux-2.6-debug-no-quiet.patch
 Patch350: linux-2.6-devmem.patch
 Patch370: linux-2.6-crash-driver.patch
 
-# Patch380: linux-2.6-irq-synchronization.patch
+Patch380: linux-2.6-pci-keep-SMBus-hidden-on-nx6110.patch
+Patch381: linux-2.6-pci-remove-default-pci-rom-allocation.patch
+Patch382: linux-2.6-pci-revert-remove-transparent-bridge-resizing.patch
 
 Patch400: linux-2.6-scsi-cpqarray-set-master.patch
 Patch402: linux-2.6-scsi-mpt-vmware-fix.patch
@@ -657,20 +659,19 @@ Patch570: linux-2.6-selinux-mprotect-checks.patch
 Patch590: linux-2.6-unexport-symbols.patch
 Patch600: linux-2.6-vm-silence-atomic-alloc-failures.patch
 # Patch602: linux-2.6-mm-fix-ptrace-access-beyond-vma.patch
-Patch605: linux-2.6-futex-fix-fixups.patch
+# Patch605: linux-2.6-futex-fix-fixups.patch
 
 Patch610: linux-2.6-defaults-fat-utf8.patch
 Patch620: linux-2.6-defaults-unicode-vt.patch
 Patch640: linux-2.6-defaults-nommconf.patch
 Patch660: linux-2.6-libata-ali-atapi-dma.patch
 Patch670: linux-2.6-ata-quirk.patch
-Patch671: linux-2.6-libata-fix-hpt-svw-dma-masking.patch
+# Patch671: linux-2.6-libata-fix-hpt-svw-dma-masking.patch
 Patch672: linux-2.6-libata-it821x-improve-emulation-handling.patch
 
 Patch680: linux-2.6-wireless.patch
 Patch681: linux-2.6-wireless-pending.patch
 Patch682: linux-2.6-wireless-pending-fixups.patch
-Patch683: linux-2.6-iwlwifi-sband-registration.patch
 Patch690: linux-2.6-at76.patch
 Patch691: linux-2.6-rndis_wlan.patch
 Patch692: linux-2.6-ps3_gelic_wireless.patch
@@ -725,6 +726,32 @@ Patch2100: linux-2.6-thinkpad-key-events.patch
 
 # usb video
 Patch2400: linux-2.6-uvcvideo.patch
+
+
+Patch3010: linux-x86-mtrr-2d2ee8de5f6d26ef2942e0b449aa68d9236d5777.patch
+Patch3020: linux-x86-mtrr-99fc8d424bc5d803fe92cad56c068fe64e73747a.patch
+Patch3030: linux-x86-mtrr-2f36fa13ce49ffd000249feaedfcbefbcc83a72f.patch
+Patch3040: linux-x86-mtrr-013d23e1567c4cebee0a2db5c8fa97b91b34ac2a.patch
+Patch3050: linux-x86-mtrr-c9cce83dd1d59f52e2c8f8c7d265ba4854c40785.patch
+Patch3060: linux-x86-mtrr-04e1ba852132c9ad006affcd5b8c8606295170b0.patch
+Patch3070: linux-x86-mtrr-8c61b900ebb8ec5918ffd776ba1a61a5f022566d.patch
+Patch3080: linux-x86-mtrr-a860b63c41f241c685245127a3d32f352cb04c12.patch
+Patch3090: linux-x86-mtrr-7b11fb51567dedeaf6dc03f0135c0a8bb2399818.patch
+Patch3100: linux-x86-mtrr-0b9c99b6f21c2e9e00938e9c57942ed71bfe4d21.patch
+Patch3110: linux-x86-mtrr-5548fecdff5617ba3a2f09f0e585e1ac6e1bd25c.patch
+Patch3120: linux-x86-mtrr-53756d3722172815f52272b28c6d5d5e9639adde.patch
+Patch3130: linux-x86-mtrr-2b16a2353814a513cdb5c5c739b76a19d7ea39ce.patch
+Patch3140: linux-x86-mtrr-093af8d7f0ba3c6be1485973508584ef081e9f93.patch
+Patch3150: linux-x86-mtrr-cd7d72bb27a8c7502a602bdc299f1bb0a9357975.patch
+Patch3160: linux-x86-mtrr-9a6b344ea967efa0bb5ca4cb5405f840652b66c4.patch
+Patch3170: linux-x86-mtrr-16c02ed74361433a4fc5d8bd5f67abbac6e1c5ca.patch
+Patch3180: linux-x86-mtrr-20651af9ac60fd6e31360688ad44861a7d05256a.patch
+Patch3190: linux-x86-mtrr-f5106d91f2bf9153d6420f9ebb8114f73f9ce66a.patch
+Patch3200: linux-x86-mtrr-c140df973c07ac328aafd19d4f4c413f2f8902df.patch
+Patch3210: linux-x86-mtrr-31183ba8fd05b6ddc67ab4d726167cbc52e1b346.patch
+Patch3220: linux-x86-mtrr-aaf230424204864e2833dcc1da23e2cb0b9f39cd.patch
+Patch3230: linux-x86-mtrr-5dca6a1bb014875a17289fdaae8c31e0a3641c99.patch
+
 
 %endif
 
@@ -1077,9 +1104,8 @@ ApplyPatch linux-2.6-x86-tune-generic.patch
 #ApplyPatch linux-2.6-x86_64-silence-up-apic-errors.patch
 # debug early boot
 #ApplyPatch linux-2.6-x86-debug-boot.patch
-# allow i686 kernel to boot on non-mainstream processors
-ApplyPatch linux-2.6-x86-dont-use-p6-nops.patch
 # clear DF before calling signal handlers
+# applied on top of utrace
 ApplyPatch linux-2.6-x86-clear-df-for-signals.patch
 
 #
@@ -1159,9 +1185,12 @@ ApplyPatch linux-2.6-crash-driver.patch
 #
 # driver core
 #
-# synchronize irqs poperly
-# ApplyPatch linux-2.6-irq-synchronization.patch
-# don't resize transparent bridges
+# unhiding this smbus breaks acpi thermal zones
+ApplyPatch linux-2.6-pci-keep-SMBus-hidden-on-nx6110.patch
+# fix pci resource allocation broken in 2.6.24
+ApplyPatch linux-2.6-pci-revert-remove-transparent-bridge-resizing.patch
+# make "pci=rom" work as documented: don't assign addresses to every rom by default
+ApplyPatch linux-2.6-pci-remove-default-pci-rom-allocation.patch
 
 #
 # SCSI Bits.
@@ -1221,12 +1250,6 @@ ApplyPatch linux-2.6-unexport-symbols.patch
 #
 # Silence GFP_ATOMIC failures.
 ApplyPatch linux-2.6-vm-silence-atomic-alloc-failures.patch
-# fix ptrace hang trying to access invalid memory location
-#ApplyPatch linux-2.6-mm-fix-ptrace-access-beyond-vma.patch
-# fix read after direct IO write returning stale data
-# restore /proc/slabinfo
-# fix oops with futex on uniprocessor machine
-ApplyPatch linux-2.6-futex-fix-fixups.patch
 
 # Changes to upstream defaults.
 # Use UTF-8 by default on VFAT.
@@ -1241,8 +1264,6 @@ ApplyPatch linux-2.6-defaults-nommconf.patch
 ApplyPatch linux-2.6-libata-ali-atapi-dma.patch
 # ia64 ata quirk
 ApplyPatch linux-2.6-ata-quirk.patch
-# actually mask the intended DMA modes from the blacklist
-ApplyPatch linux-2.6-libata-fix-hpt-svw-dma-masking.patch
 # fix some broken it821x adapters that have broken emulation
 ApplyPatch linux-2.6-libata-it821x-improve-emulation-handling.patch
 
@@ -1251,7 +1272,6 @@ ApplyPatch linux-2.6-wireless.patch
 # wireless patches staged for 2.6.26
 ApplyPatch linux-2.6-wireless-pending.patch
 ApplyPatch linux-2.6-wireless-pending-fixups.patch
-ApplyPatch linux-2.6-iwlwifi-sband-registration.patch
 
 # Add misc wireless bits from upstream wireless tree
 ApplyPatch linux-2.6-at76.patch
@@ -1348,14 +1368,38 @@ ApplyPatch linux-2.6-thinkpad-key-events.patch
 # usb video
 ApplyPatch linux-2.6-uvcvideo.patch
 
-# ---------- below all scheduled for 2.6.24 -----------------
+# ---------- below all scheduled for 2.6.25 -----------------
+# Backport of MTRR fixes from 2.6.25
+ApplyPatch linux-x86-mtrr-2d2ee8de5f6d26ef2942e0b449aa68d9236d5777.patch
+ApplyPatch linux-x86-mtrr-99fc8d424bc5d803fe92cad56c068fe64e73747a.patch
+ApplyPatch linux-x86-mtrr-2f36fa13ce49ffd000249feaedfcbefbcc83a72f.patch
+ApplyPatch linux-x86-mtrr-013d23e1567c4cebee0a2db5c8fa97b91b34ac2a.patch
+ApplyPatch linux-x86-mtrr-c9cce83dd1d59f52e2c8f8c7d265ba4854c40785.patch
+ApplyPatch linux-x86-mtrr-04e1ba852132c9ad006affcd5b8c8606295170b0.patch
+ApplyPatch linux-x86-mtrr-8c61b900ebb8ec5918ffd776ba1a61a5f022566d.patch
+ApplyPatch linux-x86-mtrr-a860b63c41f241c685245127a3d32f352cb04c12.patch
+ApplyPatch linux-x86-mtrr-7b11fb51567dedeaf6dc03f0135c0a8bb2399818.patch
+ApplyPatch linux-x86-mtrr-0b9c99b6f21c2e9e00938e9c57942ed71bfe4d21.patch
+ApplyPatch linux-x86-mtrr-5548fecdff5617ba3a2f09f0e585e1ac6e1bd25c.patch
+ApplyPatch linux-x86-mtrr-53756d3722172815f52272b28c6d5d5e9639adde.patch
+ApplyPatch linux-x86-mtrr-2b16a2353814a513cdb5c5c739b76a19d7ea39ce.patch
+ApplyPatch linux-x86-mtrr-093af8d7f0ba3c6be1485973508584ef081e9f93.patch
+ApplyPatch linux-x86-mtrr-cd7d72bb27a8c7502a602bdc299f1bb0a9357975.patch
+ApplyPatch linux-x86-mtrr-9a6b344ea967efa0bb5ca4cb5405f840652b66c4.patch
+ApplyPatch linux-x86-mtrr-16c02ed74361433a4fc5d8bd5f67abbac6e1c5ca.patch
+ApplyPatch linux-x86-mtrr-20651af9ac60fd6e31360688ad44861a7d05256a.patch
+ApplyPatch linux-x86-mtrr-f5106d91f2bf9153d6420f9ebb8114f73f9ce66a.patch
+ApplyPatch linux-x86-mtrr-c140df973c07ac328aafd19d4f4c413f2f8902df.patch
+ApplyPatch linux-x86-mtrr-31183ba8fd05b6ddc67ab4d726167cbc52e1b346.patch
+ApplyPatch linux-x86-mtrr-aaf230424204864e2833dcc1da23e2cb0b9f39cd.patch
+ApplyPatch linux-x86-mtrr-5dca6a1bb014875a17289fdaae8c31e0a3641c99.patch
 
 # SELinux perf patches
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .3-50.fc8:' -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.24.3-50.fc8.diff
+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .4-64.fc8:' -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.24.4-64.fc8.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -1953,8 +1997,21 @@ fi
 
 
 %changelog
-* Thu Mar 20 2008 Chuck Ebbert <cebbert@redhat.com> 2.6.24.3-50
-- Reduce the severity of the PnP resource overflow message.
+* Fri Mar 28 2008 John W. Linville <linville@redhat.com> 2.6.24.4-64
+- libertas: fix spinlock recursion bug
+- rt2x00: Ignore set_state(STATE_SLEEP) failure
+- iwlwifi: allow a default callback for ASYNC host commands
+- libertas: kill useless #define LBS_MONITOR_OFF 0
+- libertas: remove CMD_802_11_PWR_CFG
+- libertas: the compact flash driver is no longer experimental
+- libertas: reduce debug output
+- mac80211: reorder fields to make some structures smaller
+- iwlwifi: Add led support
+- mac80211: fix wrong Rx A-MPDU control via debugfs
+- mac80211: A-MPDU MLME use dynamic allocation
+- iwlwifi: rename iwl-4965-io.h to iwl-io.h
+- iwlwifi: improve NIC i/o debug prints information
+- iwlwifi: iwl_priv - clean up in types of members
 
 * Sun May 27 2007 Dave Jones <davej@redhat.com>
 - Start F8 branch. Rebase to 2.6.22rc3

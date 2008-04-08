@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -16,9 +16,9 @@
 #include <linux/ccs_common.h>
 #include <linux/sakura.h>
 #include <linux/realpath.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 #include <linux/mount.h>
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namespace.h>
 #endif
 

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4-pre   2008/02/16
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,7 +21,7 @@
 #include <asm/uaccess.h>
 #include <asm/atomic.h>
 #include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
 static const int lookup_flags = LOOKUP_FOLLOW;
@@ -66,18 +66,18 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
 			/* Global root? */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 			spin_lock(&vfsmount_lock);
 #endif
 			if (vfsmnt->mnt_parent == vfsmnt) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 				spin_unlock(&vfsmount_lock);
 #endif
 				break;
 			}
 			dentry = vfsmnt->mnt_mountpoint;
 			vfsmnt = vfsmnt->mnt_parent;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 			spin_unlock(&vfsmount_lock);
 #endif
 			continue;
@@ -95,7 +95,7 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 			if (IS_ROOT(parent) && *sp > '0' && *sp <= '9' && parent->d_sb && parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
 				char *ep;
 				const pid_t pid = (pid_t) simple_strtoul(sp, &ep, 10);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 				if (!*ep && pid == current->tgid) { sp = "self"; cp = sp + 3; }
 #else
 				if (!*ep && pid == current->pid) { sp = "self"; cp = sp + 3; }
@@ -193,7 +193,7 @@ char *realpath(const char *pathname)
 {
 	struct nameidata nd;
 	if (pathname && path_lookup(pathname, lookup_flags, &nd) == 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		char *buf = realpath_from_dentry(nd.path.dentry, nd.path.mnt);
 		path_put(&nd.path);
 #else
@@ -209,7 +209,7 @@ char *realpath_nofollow(const char *pathname)
 {
 	struct nameidata nd;
 	if (pathname && path_lookup(pathname, lookup_flags ^ LOOKUP_FOLLOW, &nd) == 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		char *buf = realpath_from_dentry(nd.path.dentry, nd.path.mnt);
 		path_put(&nd.path);
 #else
@@ -376,21 +376,27 @@ struct cache_entry {
 	int size;
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 static struct kmem_cache *ccs_cachep = NULL;
 #else
 static kmem_cache_t *ccs_cachep = NULL;
 #endif
 
-void __init realpath_Init(void)
+static void __init realpath_Init(void)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL);
 #else
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL, NULL);
 #endif
 	if (!ccs_cachep) panic("Can't create cache.\n");
 }
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+__initcall(realpath_Init);
+#else
+security_initcall(realpath_Init);
+#endif
 
 static LIST_HEAD(cache_list);
 static spinlock_t cache_list_lock = SPIN_LOCK_UNLOCKED;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -36,7 +36,7 @@
 
 #include <linux/version.h>
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define s_fs_info u.generic_sbp
 #endif
 
@@ -86,7 +86,7 @@ static struct dentry *lookup_create2(const char *name, struct dentry *base, int 
 {
 	struct dentry *dentry;
 	const int len = name ? strlen(name) : 0;
-#if LINUX_VERSION_CODE  >= KERNEL_VERSION(2,6,16)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 16)
 	mutex_lock(&base->d_inode->i_mutex);
 #else
 	down(&base->d_inode->i_sem);
@@ -117,7 +117,7 @@ static int fs_mkdir(const char *pathname, struct dentry *base, int mode, uid_t u
 		}
 		dput(dentry);
 	}
-#if LINUX_VERSION_CODE  >= KERNEL_VERSION(2,6,16)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 16)
 	mutex_unlock(&base->d_inode->i_mutex);
 #else
 	up(&base->d_inode->i_sem);
@@ -148,7 +148,7 @@ static int fs_mknod(const char *filename, struct dentry *base, int mode, dev_t d
 		}
 		dput(dentry);
 	}
-#if LINUX_VERSION_CODE  >= KERNEL_VERSION(2,6,16)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 16)
 	mutex_unlock(&base->d_inode->i_mutex);
 #else
 	up(&base->d_inode->i_sem);
@@ -162,7 +162,7 @@ static int fs_symlink(const char *pathname, struct dentry *base, char *oldname, 
 	struct dentry *dentry = lookup_create2(pathname, base, 0);
 	int error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 		error = vfs_symlink(base->d_inode, dentry, oldname, S_IALLUGO);
 #else
 		error = vfs_symlink(base->d_inode, dentry, oldname);
@@ -176,7 +176,7 @@ static int fs_symlink(const char *pathname, struct dentry *base, char *oldname, 
 		}
 		dput(dentry);
 	}
-#if LINUX_VERSION_CODE  >= KERNEL_VERSION(2,6,16)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 16)
 	mutex_unlock(&base->d_inode->i_mutex);
 #else
 	up(&base->d_inode->i_sem);
@@ -429,7 +429,7 @@ static void MakeNode(struct dev_entry *entry, struct dentry *root)
 			struct dentry *new_base;
 			const int len = filename - name;
 			*filename = '\0';
-#if LINUX_VERSION_CODE  >= KERNEL_VERSION(2,6,16)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 16)
 			mutex_lock(&base->d_inode->i_mutex);
 			new_base = lookup_one_len(name, base, len);
 			mutex_unlock(&base->d_inode->i_mutex);
@@ -831,12 +831,12 @@ static int syaoran_create_tracelog(struct super_block *sb, const char *filename)
 			inode->i_mode = S_IFREG | 0400;
 			inode->i_uid = 0;
 			inode->i_gid = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 			inode->i_blksize = PAGE_CACHE_SIZE;
 #endif
 			inode->i_blocks = 0;
 			inode->i_mapping->a_ops = &syaoran_aops;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 			inode->i_mapping->backing_dev_info = &syaoran_backing_dev_info;
 			inode->i_op = &syaoran_file_inode_operations;
 #else
@@ -850,7 +850,7 @@ static int syaoran_create_tracelog(struct super_block *sb, const char *filename)
 		}
 		dput(dentry);
 	}
-#if LINUX_VERSION_CODE  >= KERNEL_VERSION(2,6,16)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 16)
 	mutex_unlock(&base->d_inode->i_mutex);
 #else
 	up(&base->d_inode->i_sem);

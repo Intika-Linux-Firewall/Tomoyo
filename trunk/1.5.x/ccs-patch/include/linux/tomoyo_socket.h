@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4-pre   2008/02/11
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -25,7 +25,7 @@
 #include <asm/uaccess.h>
 
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define sk_family family
 #define sk_protocol protocol
 #define sk_type type
@@ -203,7 +203,7 @@ static inline int CheckSocketSendMsgPermission(struct socket *sock, struct socka
 	return error;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,22)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
 
 static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
 {
@@ -232,7 +232,7 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 
 	if (!skb) return 0;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 	if (in_interrupt()) return 0;
 #else
 	if (in_atomic()) return 0;
@@ -269,7 +269,7 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 		break;
 	}
 	if (error) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		lock_sock(sk);
 #endif
 		/*
@@ -289,7 +289,7 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 		}
 		/* Drop reference count. */
 		skb_free_datagram(sk, skb);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		release_sock(sk);
 #endif
 		/* Hope less harmful than -EPERM. */
@@ -311,4 +311,14 @@ static inline int CheckSocketRecvDatagramPermission(struct sock *sk, struct sk_b
 #endif
 
 /***** TOMOYO Linux end. *****/
+
+/* For compatibility with 1.6.x patches */
+#define ccs_socket_sendmsg_permission       CheckSocketSendMsgPermission
+#define ccs_socket_create_permission        CheckSocketCreatePermission
+#define ccs_socket_bind_permission          CheckSocketBindPermission
+#define ccs_socket_listen_permission        CheckSocketListenPermission
+#define ccs_socket_accept_permission        CheckSocketAcceptPermission
+#define ccs_socket_connect_permission       CheckSocketConnectPermission
+#define ccs_socket_recv_datagram_permission CheckSocketRecvDatagramPermission
+
 #endif
