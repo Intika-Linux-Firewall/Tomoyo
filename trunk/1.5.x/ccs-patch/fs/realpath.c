@@ -382,7 +382,7 @@ static struct kmem_cache *ccs_cachep = NULL;
 static kmem_cache_t *ccs_cachep = NULL;
 #endif
 
-static void __init realpath_Init(void)
+static int __init realpath_Init(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL);
@@ -390,12 +390,15 @@ static void __init realpath_Init(void)
 	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry), 0, 0, NULL, NULL);
 #endif
 	if (!ccs_cachep) panic("Can't create cache.\n");
+	if (FindDomain(ROOT_NAME) != &KERNEL_DOMAIN)
+		panic("Can't register KERNEL_DOMAIN");
+	return 0;
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 __initcall(realpath_Init);
 #else
-security_initcall(realpath_Init);
+fs_initcall(realpath_Init);
 #endif
 
 static LIST_HEAD(cache_list);

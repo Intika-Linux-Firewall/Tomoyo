@@ -1092,3 +1092,23 @@ Fix 2008/02/05
       Kernel 2.6.24 introduced PID namespace.
       To search PID given from userland, the kernel needs to use
       find_task_by_vpid() instead of find_task_pid().
+
+Fix 2008/04/08
+
+    @ Fix wrong/redundant locks in pre-vfs functions.
+
+      lock_kernel()/unlock_kernel() in pre_vfs_rename() were redundant for
+      2.6 kernels.
+
+      Locking order in pre_vfs_link() and pre_vfs_unlink() for 2.4 kernels
+      after 2.4.33 were different from before 2.4.32 .
+
+Fix 2008/??/??
+
+    @ Change initialization code.
+
+      To be able to use 1.6.x patches for 1.5.x, I changed initialization code.
+      CCSProc_Init() became no operation, and ccs_proc_init() is automatically
+      called via __initcall()/fs_initcall().
+      realpath_Init() is no longer called from CCSProc_Init(), it is
+      automatically called via __initcall()/fs_initcall().

@@ -72,10 +72,9 @@ static __init void CreateEntry(const char *name, const mode_t mode, struct proc_
 	}
 }
 
-static int __init CCSProc_Init(void)
+static int __init ccs_proc_init(void)
 {
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
-	FindDomain(""); /* Set domainname of KERNEL domain. */
 	CreateEntry("query",            0600, ccs_dir, CCS_QUERY);
 #ifdef CONFIG_SAKURA
 	CreateEntry("system_policy",    0600, ccs_dir, CCS_SYSTEMPOLICY);
@@ -98,9 +97,9 @@ static int __init CCSProc_Init(void)
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-__initcall(CCSProc_Init);
+__initcall(ccs_proc_init);
 #else
-security_initcall(CCSProc_Init);
+fs_initcall(ccs_proc_init);
 #endif
 
 #endif
