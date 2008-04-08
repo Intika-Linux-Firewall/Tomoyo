@@ -33,7 +33,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define sublevel 18
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
-%define release 8.15%{?dist}_tomoyo_1.5.3
+%define release 8.16%{?dist}_tomoyo_1.5.3
 %define signmodules 0
 %define xen_hv_cset 11772
 %define make_target bzImage
@@ -1340,6 +1340,11 @@ Patch200113: linux-2.6-consolidate-smp_send_stop.patch
 Patch200114: linux-2.6.18-sysrq-w-deadlock-fix.patch
 # 2.6.18-53.1.13.el5
 Patch200115: linux-2.6-CVE-2008-0600-fs-vmsplice_to_pipe-flaw.patch
+# 2.6.18-53.1.14.el5
+Patch200116: linux-2.6-CVE-2006-6921-misc-denial-of-service-with-wedged-processes.patch
+Patch200118: linux-2.6-CVE-2007-6063-isdn-fix-possible-isdn_net-buffer-overflows.patch
+Patch200119: linux-2.6-CVE-2007-6694-ppc-chrp-fix-possible-strncmp-null-pointer-usage.patch
+
 
 # END OF PATCH DEFINITIONS
 
@@ -2757,11 +2762,15 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 %patch200114 -p1
 # 2.6.18-53.1.13.el5
 %patch200115 -p1
+# 2.6.18-53.1.14.el5
+%patch200116 -p1
+%patch200118 -p1
+%patch200119 -p1
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.15AX/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.18-8.15AX.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.16AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.18-8.16AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -3644,8 +3653,10 @@ This is required to use SystemTap with %{name}-kdump-%{KVERREL}.
 %endif
 
 %changelog
-* Mon Feb 25 2008 <ax-kernel@asianux.com> [2.6.18-8.15AX]
-- CVE-2008-0600 : kernel vmsplice_to_pipe flaw [Bug#3935] [Patch200110]
+* Fri Mar  7 2008 <ax-kernel@asianux.com> [2.6.18-8.16AX]
+- CVE-2007-6063 : fix possible isdn_net buffer overflows [Patch200118]
+- CVE-2006-6921 : Denial of service with wedged processes [Patch200116]
+- CVE-2007-6694 : fix possible strncmp NULL pointer usage [Patch200119]
 
 * Tue Mar 14 2006 Dave Jones <davej@redhat.com>
 - FC5 final kernel
