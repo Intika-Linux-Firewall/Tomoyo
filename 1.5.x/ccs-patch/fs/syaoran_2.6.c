@@ -5,7 +5,7 @@
  *
  * Portions Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -62,7 +62,7 @@ static struct file_operations syaoran_file_operations;
 
 static struct backing_dev_info syaoran_backing_dev_info = {
 	.ra_pages = 0,        /* No readahead */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,12)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
 	.memory_backed  = 1,    /* Does not contribute to dirty memory */
 #else
 	.capabilities = BDI_CAP_NO_ACCT_DIRTY | BDI_CAP_NO_WRITEBACK |
@@ -81,7 +81,7 @@ static struct inode *syaoran_get_inode(struct super_block *sb, int mode, dev_t d
 		inode->i_mode = mode;
 		inode->i_uid = current->fsuid;
 		inode->i_gid = current->fsgid;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 		inode->i_blksize = PAGE_CACHE_SIZE;
 #endif
 		inode->i_blocks = 0;
@@ -211,7 +211,7 @@ static int syaoran_setattr(struct dentry * dentry, struct iattr * attr)
 	return error;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 static struct address_space_operations syaoran_aops = {
 	.readpage       = simple_readpage,
 	.prepare_write  = simple_prepare_write,
@@ -233,7 +233,7 @@ static struct address_space_operations syaoran_aops = {
 #endif
 
 static struct file_operations syaoran_file_operations = {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 	.read       = generic_file_read,
 	.write      = generic_file_write,
 #else
@@ -244,7 +244,7 @@ static struct file_operations syaoran_file_operations = {
 #endif
 	.mmap       = generic_file_mmap,
 	.fsync      = simple_sync_file,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,23)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 23)
 	.sendfile   = generic_file_sendfile,
 #else
 	.splice_read    = generic_file_splice_read,
@@ -293,7 +293,7 @@ static int syaoran_fill_super(struct super_block * sb, void * data, int silent)
 	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
 	sb->s_magic = SYAORAN_MAGIC;
 	sb->s_op = &syaoran_ops;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,9)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 9)
 	sb->s_time_gran = 1;
 #endif
 	{
@@ -314,7 +314,7 @@ static int syaoran_fill_super(struct super_block * sb, void * data, int silent)
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 18)
 static struct super_block *syaoran_get_sb(struct file_system_type *fs_type,
 	int flags, const char *dev_name, void *data)
 {

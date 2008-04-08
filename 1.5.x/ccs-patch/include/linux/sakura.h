@@ -64,4 +64,13 @@ static inline int SAKURA_MayAutobind(const u16 port) { return 0; }
 #endif
 
 /***** SAKURA Linux end. *****/
+
+/* For compatibility with 1.6.x patches */
+#define ccs_check_chroot_permission     CheckChRootPermission
+#define ccs_may_umount                  SAKURA_MayUmount
+#define ccs_may_mount                   SAKURA_MayMount
+#define ccs_check_mount_permission      CheckMountPermission
+#define ccs_check_pivot_root_permission CheckPivotRootPermission
+#define ccs_may_autobind                SAKURA_MayAutobind
+
 #endif

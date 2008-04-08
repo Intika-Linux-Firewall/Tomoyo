@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -91,7 +91,7 @@ static inline int CheckCapabilityACL(const unsigned int capability) { return 0; 
 #endif
 
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
 #else
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
@@ -168,4 +168,17 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm, struct pt_r
 #define NETWORK_ACL_RAW_CONNECT 7
 
 /***** TOMOYO Linux end. *****/
+
+/* For compatibility with 1.6.x patches */
+#define ccs_check_1path_perm         CheckSingleWritePermission
+#define ccs_check_2path_perm         CheckDoubleWritePermission
+static inline _Bool ccs_capable(const int capability)
+{
+	return !CheckCapabilityACL(capability);
+}
+#define ccs_check_file_perm          CheckFilePerm
+#define ccs_check_signal_acl         CheckSignalACL
+#define ccs_check_open_permission    CheckOpenPermission
+#define ccs_check_rewrite_permission CheckReWritePermission
+
 #endif

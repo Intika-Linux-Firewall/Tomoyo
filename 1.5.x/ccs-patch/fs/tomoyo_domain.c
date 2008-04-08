@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -588,7 +588,7 @@ static char *get_argv0(struct linux_binprm *bprm)
 	if (!bprm->argc || !arg_ptr) goto out;
 	while (1) {
 		struct page *page;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
 		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0) goto out;
 #else
 		page = bprm->page[i];
@@ -596,7 +596,7 @@ static char *get_argv0(struct linux_binprm *bprm)
 		{ /* Map and copy to kernel buffer and unmap. */
 			const char *kaddr = kmap(page);
 			if (!kaddr) { /* Mapping failed. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
 				put_page(page);
 #endif
 				goto out;
@@ -604,7 +604,7 @@ static char *get_argv0(struct linux_binprm *bprm)
 			memmove(arg_ptr + arg_len, kaddr + offset, PAGE_SIZE - offset);
 			kunmap(page);
 		}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,23) && defined(CONFIG_MMU)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
 		put_page(page);
 		pos += PAGE_SIZE - offset;
 #endif

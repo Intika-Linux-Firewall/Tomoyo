@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4-pre   2008/03/04
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,7 +21,7 @@
 #include <asm/uaccess.h>
 #include <stdarg.h>
 #include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
 static const int lookup_flags = LOOKUP_FOLLOW;
@@ -32,7 +32,7 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/ccs_common.h>
 #include <linux/ccs_proc.h>
 #include <linux/tomoyo.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 #define find_task_by_pid find_task_by_vpid
 #endif
 
@@ -1179,7 +1179,7 @@ void CCS_LoadPolicy(const char *filename)
 			printk("Not activating Mandatory Access Control now since %s doesn't exist.\n", ccs_loader);
 			return;
 		}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		path_put(&nd.path);
 #else
 		path_release(&nd);
@@ -1193,7 +1193,7 @@ void CCS_LoadPolicy(const char *filename)
 		envp[0] = "HOME=/";
 		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
 		envp[2] = NULL;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 		call_usermodehelper(argv[0], argv, envp, 1);
 #else
 		call_usermodehelper(argv[0], argv, envp);

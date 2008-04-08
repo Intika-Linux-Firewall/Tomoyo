@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -23,7 +23,7 @@
 
 #if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,4,23)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
 static inline struct proc_dir_entry *PDE(const struct inode *inode)
 {
 	return (struct proc_dir_entry *) inode->u.generic_ip;
@@ -72,11 +72,9 @@ static __init void CreateEntry(const char *name, const mode_t mode, struct proc_
 	}
 }
 
-void __init CCSProc_Init(void)
+static int __init CCSProc_Init(void)
 {
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
-	extern void __init realpath_Init(void);
-	realpath_Init();
 	FindDomain(""); /* Set domainname of KERNEL domain. */
 	CreateEntry("query",            0600, ccs_dir, CCS_QUERY);
 #ifdef CONFIG_SAKURA
@@ -96,8 +94,18 @@ void __init CCSProc_Init(void)
 	CreateEntry("manager",          0600, ccs_dir, CCS_MANAGER);
 	CreateEntry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
 	CreateEntry("version",          0400, ccs_dir, CCS_VERSION);
+	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+__initcall(CCSProc_Init);
 #else
-void __init CCSProc_Init(void) {}
+security_initcall(CCSProc_Init);
 #endif
+
+#endif
+
+/* For compatibility with 1.4.x/1.5.x patches. */
+void __init CCSProc_Init(void)
+{
+}

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.4-pre   2008/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -16,18 +16,18 @@
 #include <linux/ccs_common.h>
 #include <linux/sakura.h>
 #include <linux/realpath.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 #include <linux/namespace.h>
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)
 #define MS_UNBINDABLE	(1<<17)	/* change to unbindable */
 #define MS_PRIVATE	(1<<18)	/* change to private */
 #define MS_SLAVE	(1<<19)	/* change to slave */
 #define MS_SHARED	(1<<20)	/* change to shared */
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #else
 static inline void module_put(struct module *module)
@@ -61,7 +61,7 @@ struct mount_entry {
 
 /*************************  MOUNT RESTRICTION HANDLER  *************************/
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 static void put_filesystem(struct file_system_type *fs)
 {
 	module_put(fs->owner);
