@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4-pre   2008/04/08
+ * Version: 1.5.4-pre   2008/04/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -398,7 +398,7 @@ static int __init realpath_Init(void)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 __initcall(realpath_Init);
 #else
-fs_initcall(realpath_Init);
+core_initcall(realpath_Init);
 #endif
 
 static LIST_HEAD(cache_list);

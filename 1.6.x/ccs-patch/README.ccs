@@ -1360,7 +1360,7 @@ Fix 2008/03/28
 
 Version 1.6.0 2008/04/01   Feature enhancement release.
 
-Fix 2008/??/??
+Fix 2008/04/14
 
     @ Fix "Compilation failures" and "Initialization ordering bugs"
       with kernels before 2.4.30/2.6.11 .
@@ -1369,10 +1369,10 @@ Fix 2008/??/??
       resulting compilation error at #include <linux/hardirq.h> .
       I added #elif condition.
 
-      2.6 kernels before 2.6.11 calls do_execve() before initialization of
+      CentOS 4.6's 2.6.9 kernel calls do_execve() before initialization of
       ccs_alloc(), resulting NULL pointer dereference.
-      I changed __initcall to fs_initcall.
+      I changed __initcall to core_initcall.
 
-      Some distributions with 2.6.9 kernels backported kzalloc() from 2.6.14 ,
+      CentOS 4.6's 2.6.9 kernel backported kzalloc() from 2.6.14 ,
       resulting compilation error at kzalloc().
       I modified prototype of kzalloc().

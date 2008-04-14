@@ -1103,12 +1103,12 @@ Fix 2008/04/08
       Locking order in pre_vfs_link() and pre_vfs_unlink() for 2.4 kernels
       after 2.4.33 were different from before 2.4.32 .
 
-Fix 2008/??/??
+Fix 2008/04/14
 
     @ Change initialization code.
 
       To be able to use 1.6.x patches for 1.5.x, I changed initialization code.
       CCSProc_Init() became no operation, and ccs_proc_init() is automatically
-      called via __initcall()/fs_initcall().
+      called via __initcall()/core_initcall().
       realpath_Init() is no longer called from CCSProc_Init(), it is
-      automatically called via __initcall()/fs_initcall().
+      automatically called via __initcall()/core_initcall().
