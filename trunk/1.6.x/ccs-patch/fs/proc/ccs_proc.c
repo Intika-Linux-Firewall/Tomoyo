@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0   2008/04/01
+ * Version: 1.6.1   2008/04/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -231,7 +231,7 @@ static int __init ccs_proc_init(void)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 __initcall(ccs_proc_init);
 #else
-fs_initcall(ccs_proc_init);
+core_initcall(ccs_proc_init);
 #endif
 
 #endif
