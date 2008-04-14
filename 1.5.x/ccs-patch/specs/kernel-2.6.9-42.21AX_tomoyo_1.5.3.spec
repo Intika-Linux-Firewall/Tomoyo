@@ -29,7 +29,7 @@ summary: the linux kernel (the core of the linux operating system)
 # adding some text to the end of the version number.
 #
 %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
-%define release 42.20AX%{axbsys}_tomoyo_1.5.3
+%define release 42.21AX%{axbsys}_tomoyo_1.5.3
 %define sublevel 9
 %define kversion 2.6.%{sublevel}
 %define rpmversion 2.6.%{sublevel}
@@ -1385,6 +1385,9 @@ Patch98017: linux-2.6.9-CVE-2007-3843-cifs-signing-mount.patch
 # 2.6.9-67.0.1.EL CVE fixes
 Patch98020: linux-2.6.9-CVE-2007-4997-ieee80211-underflow.patch
 Patch98021: linux-2.6.9-CVE-2007-5494-fs-leak-dentry.patch
+# 2.6.9-67.0.7.EL
+Patch98030: linux-2.6.9-cifs-update-1.48a.RH.patch
+Patch98031: linux-2.6.9-cifs-fix-buffer-overflow-if-server-sends-corrupt-re.patch
 
 #
 # Asianux:
@@ -3686,6 +3689,9 @@ cd linux-%{kversion}
 # 2.6.9-67.0.1.EL CVE fixes
 %patch98020 -p1
 %patch98021 -p1
+# 2.6.9-67.0.7.EL
+%patch98030 -p1
+%patch98031 -p1
 
 # Asianux:
 # Patches 100100 through 100500 are meant for architecture patches
@@ -4056,8 +4062,8 @@ perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -prep/" Makefile
 
 # TOMOYO Linux
 tar -zxf %_sourcedir/ccs-patch-1.5.3-20080131.tar.gz
-sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.20AX/" -- Makefile
-patch -sp1 < /usr/src/ccs-patch-2.6.9-42.20AX.diff
+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.21AX/" -- Makefile
+patch -sp1 < /usr/src/ccs-patch-2.6.9-42.21AX.diff
 
 # END OF PATCH APPLICATIONS
 
@@ -4485,15 +4491,9 @@ fi
 %endif
 
 %changelog
-* Fri Feb 29 2008 Robert Lin <robert@miraclelinux.com> [2.6.9-42.20AX]
-- fix wrong IPv6 link local address of bonding device (Patch1339)
-- fix deadlock on sysrq-w (Makito Shiokawa) (Patch100811)
-- support Adaptec ASC-29320LPE (replace Patch2327)
-- fix a bug in Patch97020 for vm_account (Patch100269)
-- IPV6: Does't learn Link-Layer-Address from RA w/ SLL option (Patch100777)
-- IPv6: Panic when networkstress test of LTP runs (Patch100778)
-- OS looks stuck when sending SIGSEGV to SCHED_FIFO, multi-threaded, and
-  rt-process (Patch100779, Patch100780)
+* Wed Mar 19 2008 YongWoo Nam <ywnam@haansoft.com> [2.6.9-42.21AX]
+- CVE-2007-5904 : fix buffer overflow if server sends corrupt response to small request for cifs (Patch98031)
+- update CIFS to 1.48a.RH (Patch98030)
 
 * Thu Jul 03 2003 Arjan van de Ven <arjanv@redhat.com>
 - 2.6 start 
