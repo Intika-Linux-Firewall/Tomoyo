@@ -3,41 +3,41 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux ポリシ解説書</title>
+<title>Policy Specifications of TOMOYO Linux</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="../../en/1.6.x/policy-reference.html">English Page</a></p>
-<h1 style="text-align:center;">TOMOYO Linux ポリシ解説書</h1>
-<p style="text-align:right;">Last modified: $Date$</p>
-<h1><a name="index">目次</a></h1>
-<h2>1. <a href="#Keyword_Index">キーワード一覧</a></h2>
-<h2>2. <a href="#Common_Rules">はじめに</a></h2>
-<p>2.1 <a href="#word_expression_rules">単語の表記規則</a></p>
-<p>2.2 <a href="#wildcard_expression_rules">パターンの表記規則</a></p>
-<p>2.3 <a href="#word_length_rules">単語の長さに関する制約</a></p>
-<p>2.4 <a href="#line_length_rules">1 行の長さに関する制約</a></p>
-<p>2.5 <a href="#memory_allocation_rules">メモリ使用量に関する制約</a></p>
-<h2>3. <a href="#Policy_Files">ポリシファイルに関して</a></h2>
-<p>3.1 <a href="#policy_file_locations">所在について</a></p>
-<p>3.2 <a href="#policy_file_modifiers">変更について</a></p>
-<h2>4. <a href="#Domain_Rules">ドメインに関して</a></h2>
-<p>4.1 <a href="#domain_definition">ドメインとは</a></p>
-<p>4.2 <a href="#domain_transition">ドメイン遷移とは</a></p>
-<p>4.3 <a href="#access_logs">アクセスログについて</a></p>
-<h2>5. <a href="#Syntax_Details">キーワード詳細</a></h2>
-<h2>6. <a href="#Advanced_Features">便利な機能</a></h2>
-<p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></p>
-<p>6.2 <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
-<p>6.3 <a href="#stateful_acl">ステートフルなアクセス許可の指定</a></p>
-<p>6.4 <a href="#sleep_penalty">ポリシ違反時のペナルティ指定</a></p>
-<p>6.5 <a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
-<p>6.6 <a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
+<p style="text-align:right;"><a href="../../ja/1.6.x/policy-reference.html">Japanese Page</a></p>
+<h1 style="text-align:center;">Policy Specifications of TOMOYO Linux</h1>
+<p style="text-align:right;">Last modified: $Date: 2008-04-10 16:59:12 +0900 (Thu, 10 Apr 2008) $</p>
+<h1><a name="index">Index</a></h1>
+<h2>1. <a href="#Keyword_Index">Keywords Index</a></h2>
+<h2>2. <a href="#Common_Rules">Introduction</a></h2>
+<p>2.1 <a href="#word_expression_rules">Word Expression Rules</a></p>
+<p>2.2 <a href="#wildcard_expression_rules">Wildcard Expression Rules</a></p>
+<p>2.3 <a href="#word_length_rules">Word Length Rules</a></p>
+<p>2.4 <a href="#line_length_rules">Line Length Rules</a></p>
+<p>2.5 <a href="#memory_allocation_rules">Memory Allocation Rules</a></p>
+<h2>3. <a href="#Policy_Files">Policy Files</a></h2>
+<p>3.1 <a href="#policy_file_locations">Policy File's Location</a></p>
+<p>3.2 <a href="#policy_file_modifiers">Policy File's Modification</a></p>
+<h2>4. <a href="#Domain_Rules">Domain Rules</a></h2>
+<p>4.1 <a href="#domain_definition">Domain Definition</a></p>
+<p>4.2 <a href="#domain_transition">Domain Transition</a></p>
+<p>4.3 <a href="#access_logs">Access Logs</a></p>
+<h2>5. <a href="#Syntax_Details">Syntax Details</a></h2>
+<h2>6. <a href="#Advanced_Features">Advanced Features</a></h2>
+<p>6.1 <a href="#non_root_policy_update">Allowing policy modification by non root user.</a></p>
+<p>6.2 <a href="#conditional_acl">Using conditional ACL.</a></p>
+<p>6.3 <a href="#stateful_acl">Using stateful ACL.</a></p>
+<p>6.4 <a href="#sleep_penalty">Sleep penalty for policy violation.</a></p>
+<p>6.5 <a href="#execute_handler">Judging execute request outside the kernel.</a></p>
+<p>6.6 <a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></p>
 <hr>
 
-<h1>1. <a name="Keyword_Index">キーワード一覧</a></h1>
+<h1>1. <a name="Keyword_Index">Keywords Index</a></h1>
 
-<p>/proc/ccs/profile および /etc/ccs/profile.conf で使われるもの</p>
+<p>Used by /proc/ccs/profile and /etc/ccs/profile.conf</p>
 
 <ul>
 <li><a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a></li>
@@ -90,7 +90,7 @@
 <li><a href="#profile_SLEEP_PERIOD">SLEEP_PERIOD</a></li>
 </ul>
 
-<p>/proc/ccs/system_policy および /etc/ccs/system_policy.conf で使われるもの</p>
+<p>Used by /proc/ccs/system_policy and /etc/ccs/system_policy.conf</p>
 
 <ul>
 <li><a href="#system_policy_allow_mount">allow_mount</a></li>
@@ -100,7 +100,7 @@
 <li><a href="#system_policy_deny_autobind">deny_autobind</a></li>
 </ul>
 
-<p>/proc/ccs/exception_policy および /etc/ccs/exception_policy.conf で使われるもの</p>
+<p>Used by /proc/ccs/exception_policy and /etc/ccs/exception_policy.conf</p>
 
 <ul>
 <li><a href="#exception_policy_aggregator">aggregator</a></li>
@@ -117,7 +117,7 @@
 <li><a href="#exception_policy_alias">alias</a></li>
 </ul>
 
-<p>/proc/ccs/domain_policy および /etc/ccs/domain_policy.conf で使われるもの</p>
+<p>Used by /proc/ccs/domain_policy and /etc/ccs/domain_policy.conf</p>
 
 <ul>
 <li><a href="#domain_policy_allow_execute">allow_execute</a></li>
@@ -150,27 +150,28 @@
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
 </ul>
 
-<p>/proc/ccs/manager および /etc/ccs/manager.conf で使われるもの</p>
+<p>Used by /proc/ccs/manager and /etc/ccs/manager.conf</p>
 
 <ul>
 <li><a href="#manager_manage_by_non_root">manage_by_non_root</a></li>
 </ul>
 
-<h1>2. <a name="Common_Rules">はじめに</a></h1>
+<h1>2. <a name="Common_Rules">Introduction</a></h1>
 
-<h2>2.1 <a name="word_expression_rules">単語の表記規則</a></h2>
+<h2>2.1 <a name="word_expression_rules">Word Expression Rules</a></h2>
 
-<p>TOMOYO Linux はパス名を用いたアクセス制御を行います。パス名には英数字だけでなく空白や改行などの文字、漢字のような複数バイトで構成される文字などが含まれる可能性があります。そのため、いかなる文字でも正しく処理できるようにするために、 TOMOYO Linux に於いては以下の規則に従って単語を表記します。単語とは、パス名だけでなくコメントや環境変数の名前やプログラム実行時のパラメータなど、文字列として扱う全ての情報を指します。</p>
+<p>TOMOYO Linux performs pathname based access control. A pathname may contain not only alphabet and number but also space and carrige return and multibyte  (e.g. kanji) characters. Thus, to be able to handle any characters correctly,
+TOMOYO Linux follows the rules shown below to reprenent a word. A word means all tokens that are treated as string data, such as pathnames, comments, environment variable's names, parameters for program execution.</p>
 
 <ul>
-<li>NUL 文字（ 0x00 ）は文字列の終端を示すための文字であり、 \000 という表記はできません。</li>
-<li>\ 文字（ 0x5C ）は 8 進数表記であることを示すために使用されるため、 \\ のように 2 個続けます。</li>
-<li>0x01 ～ 0x20 および 0x7F ～ 0xFF は \ooo という形式の 8 進数で表記します。</li>
-<li>残りの 0x21 ～ 0x5B および 0x5D ～ 0x7E はそのままの文字で表記します。</li>
+<li>NUL character (0x00) is used for indicating end of string. Thus you cannot include \000 in a word.</li>
+<li>\ character (0x5C) is used for indicating octal expression. Thus, you need to use \\ to represent a \.</li>
+<li>Characters 0x01 - 0x20 and 0x7F - 0xFF are represented using octal expression \ooo .</li>
+<li>The rest characters (i.e. 0x21 - 0x5B and 0x5D - 0x7E) are represented as is.</li>
 </ul>
 
 <table border="1">
-<tr><td><table><tr><td></td><td>下位 4 ビット</td></tr><tr><td>上位 4 ビット</td><td></td></tr></table></td><td>0x0</td><td>0x1</td><td>0x2</td><td>0x3</td><td>0x4</td><td>0x5</td><td>0x6</td><td>0x7</td><td>0x8</td><td>0x9</td><td>0xA</td><td>0xB</td><td>0xC</td><td>0xD</td><td>0xE</td><td>0xF</td></tr>
+<tr><td><table><tr><td></td><td>Lower 4 bits</td></tr><tr><td>Higher 4 bits</td><td></td></tr></table></td><td>0x0</td><td>0x1</td><td>0x2</td><td>0x3</td><td>0x4</td><td>0x5</td><td>0x6</td><td>0x7</td><td>0x8</td><td>0x9</td><td>0xA</td><td>0xB</td><td>0xC</td><td>0xD</td><td>0xE</td><td>0xF</td></tr>
 <tr><td>0x0</td><td></td><td>\001</td><td>\002</td><td>\003</td><td>\004</td><td>\005</td><td>\006</td><td>\007</td><td>\010</td><td>\011</td><td>\012</td><td>\013</td><td>\014</td><td>\015</td><td>\016</td><td>\017</td></tr>
 <tr><td>0x1</td><td>\020</td><td>\021</td><td>\022</td><td>\023</td><td>\024</td><td>\025</td><td>\026</td><td>\027</td><td>\030</td><td>\031</td><td>\032</td><td>\033</td><td>\034</td><td>\035</td><td>\036</td><td>\037</td></tr>
 <tr><td>0x2</td><td>\040</td><td>!</td><td>"</td><td>#</td><td>$</td><td>%</td><td>&amp;</td><td>'</td><td>(</td><td>)</td><td>*</td><td>+</td><td>,</td><td>-</td><td>.</td><td>/</td></tr>
@@ -190,71 +191,71 @@
 </table>
 
 <ul>
-<li>単語と単語を区切るデリミタとして空白文字（ 0x20 ）を、行と行を区切るデリミタとして改行文字（ 0x0A ）を使用します。</li>
-<li>上記の規則に従って表記された単語と、デリミタとして使われる空白文字および改行文字のみが有効です。それ以外の文字は空白文字とみなされます。連続する空白文字は自動的に 1 個の空白文字に圧縮されます。行頭及び行末の空白文字は自動的に削除されます。</li>
+<li>Space character (0x20) is used as a delimiter that separates words. Line feed character (0x0A) is used as a delimiter that separates lines.</li>
+<li>Only words that follows the rule above and the delimiters (i.e. space character and line feed characters) are valid. All other characters are regarded as space character. Multiple spaces are automatically compressed into one space. Leading and trailing spaces are automatically deleted.</li>
 </ul>
 
-<p>以下に表記例を示します。</p>
+<p>Some examples are shown below.</p>
 
 <table border="1">
-<tr><td>単語</td><td>正しい表記</td><td>誤った表記</td></tr>
+<tr><td>Word</td><td>Correct expression</td><td>Wrong expression</td></tr>
 <tr><td>Hello world!</td><td>Hello\040world!</td><td>"Hello world!"</td></tr>
 <tr><td>/home/user/Documents and Settings/</td><td>/home/user/Documents\040and\040Settings/</td><td>/home/user/Documents and Settings/</td></tr>
-<tr><td>コメント (UTF-8 の場合)</td><td>\343\202\263\343\203\241\343\203\263\343\203\210\040(UTF-8\040\343\201\256\345\240\264\345\220\210)</td><td>コメント\040(UTF-8\040の場合)</td></tr>
 </table>
 
-<p>パス名は必ず / から始まります。パス名が / で終わる場合はディレクトリ、 / 以外で終わる場合にはディレクトリ以外であると解釈されます。</p>
+<p>Pathname must start with / character. Pathnames that end with / character is interpreted as directories, and that don't end with / character is interpreted as non-directories.</p>
 
 <table border="1">
-<tr><td>パス名</td><td>解釈</td></tr>
-<tr><td>/</td><td>ディレクトリ</td></tr>
-<tr><td>/tmp/</td><td>ディレクトリ</td></tr>
-<tr><td>/tmp</td><td>ディレクトリ以外</td></tr>
-<tr><td>tmp/</td><td>無効なパス名</td></tr>
+<tr><td>Pathname</td><td>Interpretation</td></tr>
+<tr><td>/</td><td>A directory</td></tr>
+<tr><td>/tmp/</td><td>A directory</td></tr>
+<tr><td>/tmp</td><td>Not a directory</td></tr>
+<tr><td>tmp/</td><td>Invalid pathname</td></tr>
 </table>
 
-<p>ただし、例外として、 /proc/プロセスＩＤ/fd/ ディレクトリに表示されるパイプのパス名は pipe: で、ソケットのパス名は socket: で始まります。</p>
+<p>Exceptions are pipes and sockets. Pipes begin with "pipe:" and sockets begin with "socket:" when these pathnames are accessed via /proc/PID/fd/ directory.</p>
 
-<h2>2.2 <a name="wildcard_expression_rules">パターンの表記規則</a></h2>
+<h2>2.2 <a name="wildcard_expression_rules">Wildcard Expression Rules</a></h2>
 
-<p>パス名にはテンポラリファイルのように、毎回異なる文字が使われる場合があります。そのため、ワイルドカードを用いたパターン化を行うことが必要になります。 TOMOYO Linux に於いては以下のワイルドカードをサポートしています。</p>
+<p>Like temporary files, pathnames may contain randomly selected characters. Thus, you often need to define pathnames using wildcards. TOMOYO Linux supports wildcards shown below.</p>
 
 <table border="1">
-<tr><td>ワイルドカード</td><td>意味</td><td>使用例</td></tr>
-<tr><td>\*</td><td>/ 以外の 0 文字以上</td><td>/var/log/samba/\*</td></tr>
-<tr><td>\@</td><td>/ と . 以外の 0 文字以上</td><td>/var/www/html/\@.html</td></tr>
-<tr><td>\?</td><td>/ 以外の 1 文字</td><td>/tmp/mail.\?\?\?\?\?\?</td></tr>
-<tr><td>\$</td><td>1 桁以上の 10 進数</td><td>/proc/\$/cmdline</td></tr>
-<tr><td>\+</td><td>10 進数 1 桁</td><td>/var/tmp/my_work.\+</td></tr>
-<tr><td>\X</td><td>1 桁以上の 16 進数</td><td>/var/tmp/my-work.\X</td></tr>
-<tr><td>\x</td><td>16 進数 1 桁</td><td>/tmp/my-work.\x</td></tr>
-<tr><td>\A</td><td>1 文字以上のアルファベット</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
-<tr><td>\a</td><td>アルファベット 1 文字</td><td>/home/users/\a/\*/public_html/\*.html</td></tr>
-<tr><td>\-</td><td>パス名を除外する演算子</td><td>
+<tr><td>Wildcard</td><td>Meaning</td><td>Example</td></tr>
+<tr><td>\*</td><td>More than or equals to 0 character other than '/'.</td><td>/var/log/samba/\*</td></tr>
+<tr><td>\@</td><td>More than or equals to 0 character other than '/' or '.'.</td><td>/var/www/html/\@.html</td></tr>
+<tr><td>\?</td><td>1 byte character other than '/'.</td><td>/tmp/mail.\?\?\?\?\?\?</td></tr>
+<tr><td>\$</td><td>More than or equals to 1 decimal digit.</td><td>/proc/\$/cmdline</td></tr>
+<tr><td>\+</td><td>1 decimal digit.</td><td>/var/tmp/my_work.\+</td></tr>
+<tr><td>\X</td><td>More than or equals to 1 hexadecimal digit.</td><td>/var/tmp/my-work.\X</td></tr>
+<tr><td>\x</td><td>1 hexadecimal digit.</td><td>/tmp/my-work.\x</td></tr>
+<tr><td>\A</td><td>More than or equals to 1 alphabet character.</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
+<tr><td>\a</td><td>1 alphabet character.</td><td>/home/users/\a/\*/public_html/\*.html</td></tr>
+<tr><td>\-</td><td>Pathname subtraction operator.</td><td>
  <table border="1">
- <tr><td>使用例</td><td>意味</td></tr>
- <tr><td>/etc/\*</td><td>/etc/ 直下の全ファイル</td></tr>
- <tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\*shadow\* 以外の /etc/\*</td></tr>
- <tr><td>/\*\-proc\-sys/</td><td>/proc/ と /sys/ 以外の /\*/</td></tr>
+ <tr><td>Example</td><td>Meaning</td></tr>
+ <tr><td>/etc/\*</td><td>All files in /etc/ directory.</td></tr>
+ <tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\* other than /etc/\*shadow\*</td></tr>
+ <tr><td>/\*\-proc\-sys/</td><td>/\*/ other than /proc/ /sys/</td></tr>
  </table>
 </td></tr>
 </table>
 
-<h2>2.3 <a name="word_length_rules">単語の長さに関する制約</a></h2>
+<h2>2.3 <a name="word_length_rules">Word Length Rules</a></h2>
 
-<p>Linux に於いてはパス名の長さに関する上限は存在しませんが、パス名を用いたアクセス制御を行うために無限の長さをサポートすることはできません。そのため、 TOMOYO Linux に於いては、単語の長さは終端の NUL 文字を含めて 4000 バイトまでに制限されています。</p>
+<p>There is no limitation regarding the length of pathnames in Linux. But to perform pathname based access control, it is impossible to support pathnames with infinite length. Thus, in TOMOYO Linux, the length of a word is limited to 4000 bytes including trailing NUL character.</p>
 
-<h2>2.4 <a name="line_length_rules">1 行の長さに関する制約</a></h2>
+<h2>2.4 <a name="line_length_rules">Line Length Rules</a></h2>
 
-<p>TOMOYO Linux に於いては、 1 行の長さは終端の NUL 文字を含めて 8192 バイトまでに制限されています。</p>
+<p>In TOMOYO Linux, the length of a line is limited to 8192 bytes including trailing NUL character.</p>
 
-<h2>2.5 <a name="memory_allocation_rules">メモリ使用量に関する制約</a></h2>
+<h2>2.5 <a name="memory_allocation_rules">Memory Allocation Rules</a></h2>
 
-<p>TOMOYO Linux に於いては、アクセス許可や単語を記憶するために一度割り当てられたメモリは解放されません。システムを再起動する以外に、不要になったメモリを解放する手段は存在しません。</p>
+<p>In TOMOYO Linux, memory allocated for holding access permissions and words are never freed. There is no way except rebooting the system that can free unneeded memory.</p>
 
-<p>ただし、運用開始後にはアクセス許可の変更は生じにくいという傾向があること、および、運用開始前に適切にチューニングすることによりメモリ消費量を通常は 1 メガバイト以内に抑えられることから、心配する必要はありません。</p>
+<p>But don't worry. The policy seldom change after you start production mode. By tuning policy before starting production mode, you can reduce memory usage to (usually) less than 1 MB.</p>
 
-<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /proc/ccs/meminfo から確認できます。単位はバイトです。 Shared: が単語を記憶するために使用されている量、 Private: がアクセス許可を記憶するために使用されている量で、減少することはありません。 Dynamic: がアクセス許可のチェックやアクセスログの保持などのために一時的に使用されている量で、不要になると減少します。</p>
+<p>The memory used by TOMOYO Linux can be obtained via /proc/ccs/meminfo . The unit is byte. "Shared:" indicates memory used for holding words. "Private:" indicates memory used for holding access permissions. These memory never decrease.
+"Dynamic:" indicates memory used for temporal purpose such as access permission checks and access logs. This memory decreases when it became unneeded.</p>
 
 <table border="1">
 <tr><td><pre>
@@ -267,50 +268,50 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </pre></td></tr>
 </table>
 
-<h1>3. <a name="Policy_Files">ポリシファイルに関して</a></h1>
+<h1>3. <a name="Policy_Files">Policy Files</a></h1>
 
-<h2>3.1 <a name="policy_file_locations">所在について</a></h2>
+<h2>3.1 <a name="policy_file_locations">Policy File's Location</a></h2>
 
-<p>ポリシファイルとは、アクセスの可否を定義したファイルです。システムの起動時に自動的にカーネルへと読み込まれます。</p>
+<p>Policy files are files that contain access permissions. These files are automatically loaded into the kernel upon boot.</p>
 
-<p>システムの起動時には、 /sbin/init というプログラムが実行されます。 /sbin/init の実行が要求されたときに、 /sbin/ccs-init というプログラムが存在していた場合、 /sbin/ccs-init が実行され、 /sbin/ccs-init の処理が終了してから /sbin/init の実行が開始されます。</p>
+<p>When a system boots, /sbin/init is executed. When the execution of /sbin/init is requested and if /sbin/ccs-init exists, /sbin/ccs-init is executed, and /sbin/init is executed after /sbin/ccs-init terminates.</p>
 
-<p> /sbin/ccs-init は /etc/ccs/ ディレクトリにあるポリシファイルを /proc/ccs/ ディレクトリを通じてカーネルへと読み込みます。</p>
-
-<table border="1">
-<tr><td>カーネルとのインタフェース</td><td>ポリシファイル</td><td>定義されている内容</td></tr>
-<tr><td><a href="#profile">/proc/ccs/profile</a></td><td>/etc/ccs/profile.conf</td><td>プロファイル（制御レベルを定義したもの）</td></tr>
-<tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>マネージャ（ポリシの変更ができるプログラムを定義したもの）</td></tr>
-<tr><td><a href="#system_policy">/proc/ccs/system_policy</a></td><td>/etc/ccs/system_policy.conf</td><td>システムポリシ（システム全体で適用される設定）</td></tr>
-<tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>例外ポリシ（ドメインポリシの例外を定義したもの）</td></tr>
-<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>ドメインポリシ（ドメイン単位で適用される設定）</td></tr>
-</table>
-
-<p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシファイルはありません。</p>
+<p> /sbin/ccs-init loads policy files in /etc/ccs/ directory via the kernel's /proc/ccs/ interface.</p>
 
 <table border="1">
-<tr><td>カーネルとのインタフェース</td><td>内容</td></tr>
-<tr><td><a href="#query">/proc/ccs/query</a></td><td>管理者の指示待ちとなっているアクセス要求</td></tr>
-<tr><td><a href="#.domain_status">/proc/ccs/.domain_status</a></td><td>定義されているドメイン名とプロファイル番号</td></tr>
-<tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>メモリ使用状況</td></tr>
-<tr><td><a href="#grant_log">/proc/ccs/grant_log</a></td><td>ポリシに違反しなかったアクセス要求のログ</td></tr>
-<tr><td><a href="#reject_log">/proc/ccs/reject_log</a></td><td>ポリシに違反したアクセス要求のログ</td></tr>
-<tr><td><a href="#self_domain">/proc/ccs/self_domain</a></td><td>自分が属しているドメインのドメイン名</td></tr>
-<tr><td><a href="#.process_status">/proc/ccs/.process_status</a></td><td>プロセスが属しているドメイン名とプロファイル番号</td></tr>
-<tr><td><a href="#.updates_counter">/proc/ccs/.updates_counter</a></td><td>ポリシの変更カウンタ</td></tr>
-<tr><td><a href="#version">/proc/ccs/version</a></td><td>TOMOYO Linux のバージョン</td></tr>
+<tr><td>The kernel's interface</td><td>Policy file</td><td>Contents</td></tr>
+<tr><td><a href="#profile">/proc/ccs/profile</a></td><td>/etc/ccs/profile.conf</td><td>Profiles (Collection of access control levels)</td></tr>
+<tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>Managers (Programs that can modify policy via /proc/ccs/ interface)</td></tr>
+<tr><td><a href="#system_policy">/proc/ccs/system_policy</a></td><td>/etc/ccs/system_policy.conf</td><td>System policy (Access permissions given to system)</td></tr>
+<tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>Exception policy (Collection of exceptions for domain policy)</td></tr>
+<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>Domain policy (Access permissions gioven to individual domains)</td></tr>
 </table>
 
-<h2>3.2 <a name="policy_file_modifiers">変更について</a></h2>
+<p>There are more interfaces for obtaining informations. These intafaces don't have corresponding policy files.</p>
 
-<p>カーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシを変更することができるプログラム名を /proc/ccs/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
+<table border="1">
+<tr><td>The kernel's interface</td><td>Meaning</td></tr>
+<tr><td><a href="#query">/proc/ccs/query</a></td><td>Access requests that are waiting for administrator's decision.</td></tr>
+<tr><td><a href="#.domain_status">/proc/ccs/.domain_status</a></td><td>The list of domainnames and profile numbers currently defined in domain policy.</td></tr>
+<tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>Memory usage.</td></tr>
+<tr><td><a href="#grant_log">/proc/ccs/grant_log</a></td><td>Access requests that didn't violate domain policy.</td></tr>
+<tr><td><a href="#reject_log">/proc/ccs/reject_log</a></td><td>Access requests that violated domain policy.</td></tr>
+<tr><td><a href="#self_domain">/proc/ccs/self_domain</a></td><td>The name of domain the current process belongs to.</td></tr>
+<tr><td><a href="#.process_status">/proc/ccs/.process_status</a></td><td>The list of domainnames and profile numbers currently running processes belongs to.</td></tr>
+<tr><td><a href="#.updates_counter">/proc/ccs/.updates_counter</a></td><td>Counter for policy updates.</td></tr>
+<tr><td><a href="#version">/proc/ccs/version</a></td><td>Version of TOMOYO Linux.</td></tr>
+</table>
+
+<h2>3.2 <a name="policy_file_modifiers">Policy File's Modification</a></h2>
+
+<p>Register the name of programs or domains that can modify policy via the kernel's /proc/ccs/ interface. Only</p>
 
 <ul>
-<li>/proc/ccs/manager に登録されているプログラム名を持つプロセス</li>
-<li>/proc/ccs/manager に登録されているドメイン名を持つプロセス</li>
+<li>Processes with programs listed in /proc/ccs/manager</li>
+<li>Processes with domainnames listed in /proc/ccs/manager</li>
 </ul>
 
-<p>だけがカーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシを変更できます。以下に例を示します。</p>
+<p>can modify policy via the kernel's /proc/ccs/ interface. Some examples are show below.</p>
 
 <table border="1">
 <tr><td>
@@ -325,207 +326,208 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </td></tr>
 </table>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a>の設定を行えば、非 root ユーザによるポリシの変更も可能です。</p>
+<p>By default, only processes with UID = 0 and EUID = 0 can modify policy via this interface. But by doing configurations described in <a href="#non_root_policy_update">Allowing policy modification by non root user.</a>, non root user can modify policy via this interface.</p>
 
-<p>なお、学習モード用のプロファイルが割り当てられているプロセスは、アクセスを要求するだけで <a href="#system_policy">/proc/ccs/system_policy</a> または <a href="#domain_policy">/proc/ccs/domain_policy</a> へと自動的にアクセス許可が追加されていきます。</p>
+<p>Exception is, processes that blong to domains with profiles for learning mode can append access permissions to <a href="#system_policy">/proc/ccs/system_policy</a> and <a href="#domain_policy">/proc/ccs/domain_policy</a> by simply requesting the access.</p>
 
-<h1>4. <a name="Domain_Rules">ドメインに関して</a></h1>
+<h1>4. <a name="Domain_Rules">Domain Rules</a></h1>
 
-<h2>4.1 <a name="domain_definition">ドメインとは</a></h2>
+<h2>4.1 <a name="domain_definition">Domain Definition</a></h2>
 
-<p>TOMOYO Linux には、システム全体でアクセス許可を定義するものと、ドメイン単位でアクセス許可を定義するものの 2 種類があります。前者はシステムポリシと呼ばれ、 <a href="#system_policy">/proc/ccs/system_policy</a> を通じてアクセス許可を指定します。後者はドメインポリシと呼ばれ、 <a href="#domain_policy">/proc/ccs/domain_policy</a> を通じてアクセス許可を定義します。</p>
+<p>TOMOYO Linux has two patterns of policies. One gives access permissions as a whole system. The other gives access permissions as per a domain. The former is called system policy and is managed via <a href="#system_policy">/proc/ccs/system_policy</a>. The latter is called domain policy and is managed via <a href="#domain_policy">/proc/ccs/domain_policy</a>.</p>
 
-<p>TOMOYO Linux においては、全てのプロセスがそれぞれ 1 つのドメインに属し、全てのプログラムがそれぞれ異なるドメインに属します。現在実行されている 2 つのプロセスが同一のプログラムであっても、それぞれのプロセスの直前のドメインが異なっていれば異なるドメインに属します。</p>
+<p>In TOMOYO Linux, every process belongs to a single domain, and all programs belong to different domain. Even the two processes are executing the same program, if their previous domains differ, they belong to different domain.</p>
 
-<p>全てのドメインはカーネルが属するドメイン「 &lt;kernel&gt; 」を基点として定義されます。 /sbin/init はカーネルの属するドメインから起動されますので、 /sbin/init のドメインは「 &lt;kernel&gt; /sbin/init 」と定義されます。 /etc/rc.d/rc はカーネルから起動された /sbin/init の属するドメインから起動されますので、 /etc/rc.d/rc のドメインは「 &lt;kernel&gt; /sbin/init /etc/rc.d/rc 」と定義されます。</p>
+<p>All domains are defined originating from "&lt;kernel&gt;" domain, which the kernel process belongs to. Since /sbin/init is invoked by the "&lt;kernel&gt;" domain, the domain for /sbin/init is defined as "&lt;kernel&gt; /sbin/init". Since /etc/rc.d/rc is invoked by /sbin/init invoked by the kernel, the domain for /etc/rc.d/rc is defined as "&lt;kernel&gt; /sbin/init /etc/rc.d/rc".</p>
 
-<h2>4.2 <a name="domain_transition">ドメイン遷移とは</a></h2>
+<h2>4.2 <a name="domain_transition">Domain Transition</a></h2>
 
-<p>実行時のプログラムの名前により異なる動作をするプログラムが存在します。例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクです。 TOMOYO Linux は正規化したパス名を使用するので、 /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。</p>
+<p>There are some programs that behave differently depending on the invocation name.
+For example, /sbin/pidof is a symbolic link to /sbin/killall5 . Since TOMOYO Linux uses canonicalized pathname, by default, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed.</p>
 
-<p>プロセスがプログラムを実行しようとすると、以下の処理が行われます。</p>
+<p>When a process tries to execute a program, the steps shown below are performed.</p>
 
 <table border="1">
-<tr><td>Step</td><td>内容</td></tr>
-<tr><td>プログラム名の取得</td><td>
-<p>実行しようとするプログラムの絶対パス名を取得して「パス名候補 1 」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決したパス名を取得します。</p>
-<p>実行しようとするプログラムの絶対パス名を取得して「パス名候補 2 」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決する前のパス名を取得します。</p>
+<tr><td>Step</td><td>Procedure</td></tr>
+<tr><td>Getting program's name</td><td>
+<p>Get the name of program that the process is going to execute and keep it as "Candidate 1". This procedure solves symbolic link if the program is a symbolic link.</p>
+<p>Get the name of program that the process is going to execute and keep it as "Candidate 2". This procedure does not solve symbolic link if the program is a symbolic link.</p>
 </td></tr>
-<tr><td>シンボリックリンクの識別</td><td>
-<p>「パス名候補 1 」と「パス名候補 2 」が一致しない場合、例外ポリシから</p>
+<tr><td>Handling symbolic links</td><td>
+<p>If "Candidate 1" and "Candidate 2" differ, search exception policy for</p>
 
 <ul>
-<li>alias 「パス名候補 1 」 「パス名候補 2 」
+<li>alias "Candidate 1" "Candidate 2"
 </ul>
 
-<p>というエントリを探します。見つかった場合は「パス名候補 2 」を「パス名候補 1 」とします。</p>
+<p>and if found one, replace "Candidate 1" with "Candidate 2".</p>
 </td></tr>
-<tr><td><a name="exec_stage_check_argv0">argv[0] のチェック</a></td><td>
-<p>「パス名候補 1 」の最後の / 以降の部分と argv[0] の最後の / 以降の部分が異なっている場合、ドメインポリシから</p>
+<tr><td><a name="exec_stage_check_argv0">Checking argv[0]</a></td><td>
+<p>If the basename of "Candidate 1" and the basename of argv[0] differ, search domain policy for</p>
 
 <ul>
-<li>allow_argv0 「パス名候補 1 」 「 argv[0] の最後の / 以降の部分」
+<li>allow_argv0 "Candidate 1" "the basename of argv[0]"
 </ul>
 
-<p>というエントリを探します。見つからなければプログラムの実行要求は拒否されます。</p>
+<p>and deny the execute request if not found one.</p>
 </td></tr>
-<tr><td>類似するプログラムの集約</td><td>
-<p>例外ポリシから</p>
+<tr><td>Aggregating similar programs</td><td>
+<p>Search exception policy for</p>
 
 <ul>
-<li>aggregator 「パス名候補 1 」 「集約されたパス名」
+<li>aggregator "Candidate 1" "aggregated name"
 </ul>
 
-<p>というエントリを探します。見つかった場合は、「集約されたパス名」を「パス名候補 1 」とします。</p>
+<p>and if found one, replace "Candidate 1" with "aggregated name".</p>
 </td></tr>
-<tr><td><a name="exec_stage_check_execute">権限のチェック</a></td><td>
-<p>ドメインポリシから</p>
+<tr><td><a name="exec_stage_check_execute">Checking permission</a></td><td>
+<p>Search domain policy for</p>
 
 <ul>
-<li>allow_execute 「パス名候補 1 」
-<li>allow_execute @「パス名候補 1 」を含むグループ名
+<li>allow_execute "Candidate 1"
+<li>allow_execute @"a pathname group containing Candidate 1"
 </ul>
 
-<p>というエントリを探します。見つからなければプログラムの実行要求は拒否されます。</p>
+<p>and deny the execute request if not found one.</p>
 </td></tr>
-<tr><td><a name="exec_stage_check_destination">遷移先の決定</a></td><td>
+<tr><td><a name="exec_stage_check_destination">Deciding destination domain</a></td><td>
 
-<p>(1) 例外ポリシから</p>
-
-<ul>
-<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>no_initialize_domain 「パス名候補 1 」
-</ul>
-
-<p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
-
-<p>(2) 例外ポリシから</p>
+<p>(1) Search exception policy for</p>
 
 <ul>
-<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>initialize_domain 「パス名候補 1 」
+<li>no_initialize_domain "Candidate 1" from "the name of the domain the current process belongs to"
+<li>no_initialize_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
+<li>no_initialize_domain "Candidate 1"
 </ul>
 
-<p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補 1 」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
+<p>and if found one, jump to (3).</p>
 
-<p>(3) 例外ポリシから</p>
+<p>(2) Search exception policy for</p>
 
 <ul>
-<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>initialize_domain "Candidate 1" from "the name of the domain the current process belongs to"
+<li>initialize_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
+<li>initialize_domain "Candidate 1"
 </ul>
 
-<p>というエントリを探します。見つかった場合は (5) へ進みます。</p>
+<p>and if found one, concatenate "the name of the domain that the kernel belongs to (i.e. &lt;kernel&gt;)" and "Candidate 1" and keep the result as destination domain, then jump to (6).</p>
 
-<p>(4) 例外ポリシから</p>
+<p>(3) Search exception policy for</p>
 
 <ul>
-<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」
-<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_keep_domain "Candidate 1" from "the name of the domain the current process belongs to"
+<li>no_keep_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
+<li>no_keep_domain "the name of the domain the current process belongs to"
+<li>no_keep_domain "the last part of the name of the domain the current process belongs to"
 </ul>
 
-<p>というエントリを探します。見つかった場合は「現在のプロセスが属しているドメインのドメイン名」を「遷移先ドメイン」とし、 (6) へ進みます。</p>
+<p>and if found one, jump to (5).</p>
 
-<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補 1 」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
+<p>(4) Search exception policy for</p>
 
-<p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
+<ul>
+<li>keep_domain "Candidate 1" from "the name of the domain the current process belongs to"
+<li>keep_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
+<li>keep_domain "the name of the domain the current process belongs to"
+<li>keep_domain "the last part of the name of the domain the current process belongs to"
+</ul>
+
+<p>and if found one, set "the name of the domain the current process belongs to" as destination domain, then jump to (6).</p>
+
+<p>(5) Concatenate "the name of the domain the current process belongs to" and "Candidate 1" and keep the result as destination domain.</p>
+
+<p>(6) Check whether the destination domain is defined, and deny the execute request if not.</p>
 
 </td></tr>
-<tr><td>環境変数のチェック</td><td>
+<tr><td>Checking environment variable names</td><td>
 
-<p>(1) 全ての環境変数名が「遷移先ドメイン」で許可されているかどうかを検査します。 1 つでも許可されていないものが見つかった場合は、プログラムの実行要求は拒否されます。</p>
+<p>(1) Examine all environment variables' names are granted in the destination domain, and deny the execute request if more than one of them are not granted.</p>
 
-<p>(2) 通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
+<p>(2) Perform regular steps for executing program. If successfully completed, the process transits to destination domain.</p>
 </td></tr>
 </table>
 
-<p>ただし、例外として</p>
+<p>There is an exception. If either</p>
 
 <ul>
-<li>上記手順の「 <a href="#exec_stage_check_argv0">argv[0] のチェック</a>」「<a href="#exec_stage_check_execute">権限のチェック</a>」「<a href="#exec_stage_check_destination">遷移先の決定</a>」の何れかに於いて拒否されたが、プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> キーワードが指定されている</li>
-<li>プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている</li>
+<li>The execute request was denied at "<a href="#exec_stage_check_argv0">Checking argv[0]</a>" or "<a href="#exec_stage_check_execute">Checking permission</a>" or "<a href="#exec_stage_check_destination">Deciding destination domain</a>" but the domain the process that issued execute request belongs to has <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> keyword.</li>
+<li>The domain the process that issued execute request belongs to has <a href="#domain_policy_execute_handler">execute_handler</a> keyword.</li>
 </ul>
 
-<p>のどちらかに該当し、かつ、</p>
+<p>and</p>
 
 <ul>
-<li>プログラムの実行を要求したプロセスが <a href="#domain_policy_execute_handler">execute_handler</a> キーワードまたは <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> キーワードにより起動されたプロセスではない</li>
+<li>The process that issued execute request is not a process executed by <a href="#domain_policy_execute_handler">execute_handler</a> or <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> keyword.</li>
 </ul>
 
-<p>場合には、以下の手順を実行します。この例外の使い方については「<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>」と「<a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a>」で説明します。</p>
+<p>the steps shown below is performed instead for the steps shown above. The usage of this exception is explained in "<a href="#execute_handler">Judging execute request outside the kernel.</a>" and "<a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a>"</p>
 
 <table border="1">
-<tr><td>Step</td><td>内容</td></tr>
-<tr><td>プログラム名の取得</td><td>
-<p><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> または <a href="#domain_policy_execute_handler">execute_handler</a> で指定されているプログラムのパス名を取得し、「パス名候補 1 」とします。</p>
+<tr><td>Step</td><td>Procedure</td></tr>
+<tr><td>Getting program's name</td><td>
+<p>Keep the pathname of the program specified by <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> or <a href="#domain_policy_execute_handler">execute_handler</a> and keep it as "Candidate 1".</p>
 </td></tr>
-<tr><td>情報の追加</td><td>
-<p>全ての環境変数を引数の末尾に追加し、全ての環境変数を削除します。</p>
-<p>「パス名候補 1 」「プログラムの実行を要求したプロセスの属しているドメインのドメイン名」「プログラムの実行を要求したプロセスのパス名」「プログラムの実行を要求したプロセスの状態」「実行が要求されたプログラムのパス名」「引数の数」「環境変数の数」を引数の先頭に挿入します。</p>
+<tr><td>Appending information</td><td>
+<p>Append all environment variables to the tail of arguments, and delete all environment variables.</p>
+<p>Insert "Candidate 1" "the domainname the process that issued execute request belongs to" "the pathname of the process that issued execute request" "state of the process that issued execute request" "the pathname of the requested program" "number of arguments" "number of environment variables" to the top of arguments.</p>
 </td></tr>
-<tr><td>遷移先の決定</td><td>
+<tr><td>Deciding destination domain</td><td>
 
-<p>(1) 例外ポリシから</p>
-
-<ul>
-<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>no_initialize_domain 「パス名候補 1 」
-</ul>
-
-<p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
-
-<p>(2) 例外ポリシから</p>
+<p>(1) Search exception policy for</p>
 
 <ul>
-<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>initialize_domain 「パス名候補 1 」
+<li>no_initialize_domain "Candidate 1" from "the name of the domain the current process belongs to"
+<li>no_initialize_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
+<li>no_initialize_domain "Candidate 1"
 </ul>
 
-<p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補 1 」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
+<p>and if found one, jump to (3).</p>
 
-<p>(3) 例外ポリシから</p>
+<p>(2) Search exception policy for</p>
 
 <ul>
-<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>initialize_domain "Candidate 1" from "the name of the domain the current process belongs to"
+<li>initialize_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
+<li>initialize_domain "Candidate 1"
 </ul>
 
-<p>というエントリを探します。見つかった場合は (5) へ進みます。</p>
+<p>and if found one, concatenate "the name of the domain that the kernel belongs to (i.e. &lt;kernel&gt;)" and "Candidate 1" and keep the result as destination domain, then jump to (6).</p>
 
-<p>(4) 例外ポリシから</p>
+<p>(3) Search exception policy for</p>
 
 <ul>
-<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」
-<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_keep_domain "Candidate 1" from "the name of the domain the current process belongs to"
+<li>no_keep_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
+<li>no_keep_domain "the name of the domain the current process belongs to"
+<li>no_keep_domain "the last part of the name of the domain the current process belongs to"
 </ul>
 
-<p>というエントリを探します。見つかった場合は「現在のプロセスが属しているドメインのドメイン名」を「遷移先ドメイン」とし、 (6) へ進みます。</p>
+<p>and if found one, jump to (5).</p>
 
-<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補 1 」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
+<p>(4) Search exception policy for</p>
 
-<p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
+<ul>
+<li>keep_domain "Candidate 1" from "the name of the domain the current process belongs to"
+<li>keep_domain "Candidate 1" from "the last part of the name of the domain the current process belongs to"
+<li>keep_domain "the name of the domain the current process belongs to"
+<li>keep_domain "the last part of the name of the domain the current process belongs to"
+</ul>
+
+<p>and if found one, set "the name of the domain the current process belongs to" as destination domain, then jump to (6).</p>
+
+<p>(5) Concatenate "the name of the domain the current process belongs to" and "Candidate 1" and keep the result as destination domain.</p>
+
+<p>(6) Check whether the destination domain is defined, and deny the execute request if not.</p>
 
 </td></tr>
-<tr><td>プログラムの実行</td><td>
+<tr><td>Execute program</td><td>
 
-<p>通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
+<p>Perform regular steps for executing program. If successfully completed, the process transits to destination domain.</p>
 
 </td></tr>
 </table>
 
-<h2>4.3 <a name="access_logs">アクセスログについて</a></h2>
+<h2>4.3 <a name="access_logs">Access Logs</a></h2>
 
 <p>ドメインポリシによって許可されたアクセス要求のログと拒否されたアクセス要求のログを生成します。前者は許可ログと呼ばれ、 /proc/ccs/grant_log から取得することができます。後者は拒否ログと呼ばれ、 /proc/ccs/reject_log から取得することができます。これらのログを取得してファイルとして保存するためのツールとして /usr/lib/ccs/ccs-auditd というプログラムが付属しています。</p>
 
@@ -565,7 +567,7 @@ use_profile 1
 
 <p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash /bin/audit-exec-param /bin/cat というドメインが新規作成され、プロファイルとして 1 が割り当てられたことを示しています。 TOMOYO Linux では、ドメインが自動的に新規作成されていきます。自動的に新規作成された場合には、ドメインを新規作成することになったプロセスの属しているドメインに割り当てられていたプロファイル番号が引き継がれます。</p>
 
-<p>次の例は、<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>するために要求されたのとは異なるプログラムが実行されたときのログです。</p>
+<p>次の例は、<a href="#execute_handler">Judging execute request outside the kernel.</a>するために要求されたのとは異なるプログラムが実行されたときのログです。</p>
 <table border="1">
 <tr><td>
 #2008-04-09 12:52:01# profile=1 mode=learning pid=5110 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=24 envc=0 argv[]={ "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" } envp[]={ }<br>
@@ -584,7 +586,7 @@ execute_handler /bin/audit-exec-param
 </td></tr>
 </table>
 
-<p>という操作を行うことで、ドメインポリシに追加することができます。そのため、「学習モード」を使わなくても、最初から「許容モード」を使って拒否ログを出力させ、拒否ログの内容を編集するというアプローチでもドメインポリシを定義していくことができます。「学習モード」でドメインポリシを作成する場合にはプロセスの状態（アクセスログの先頭行の内容）は加味されませんが、アクセス拒否ログからドメインポリシを生成すると、最初から<a href="#conditional_acl">条件付きアクセス許可の指定</a>を行うことができます。例えば、「学習モード」を使わずにログを生成し、</p>
+<p>という操作を行うことで、ドメインポリシに追加することができます。そのため、「学習モード」を使わなくても、最初から「許容モード」を使って拒否ログを出力させ、拒否ログの内容を編集するというアプローチでもドメインポリシを定義していくことができます。「学習モード」でドメインポリシを作成する場合にはプロセスの状態（アクセスログの先頭行の内容）は加味されませんが、アクセス拒否ログからドメインポリシを生成すると、最初から<a href="#conditional_acl">Using conditional ACL.</a>を行うことができます。例えば、「学習モード」を使わずにログを生成し、</p>
 
 <table border="1">
 <tr><td>
@@ -604,7 +606,7 @@ allow_execute /bin/cat
 
 <p>よりも細かい指定を行うことができるようになります。</p>
 
-<h1>5. <a name="Syntax_Details">キーワード詳細</a></h1>
+<h1>5. <a name="Syntax_Details">Syntax Details</a></h1>
 
 <h2><a name="profile">/proc/ccs/profile</a></h2>
 
@@ -626,17 +628,17 @@ savepolicy -p<br>
 setlevel 1-MAC_FOR_FILE=learning<br>
 echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
-<p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
+<p>関連項目：<a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="profile_MAC_FOR_FILE">MAC_FOR_FILE</a></h3>
 
 <p>ファイルに対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.
 ポリシへの自動追加も行いません。</td></tr>
 <tr><td>enforcing</td><td>強制モード。ポリシに違反したらエラーとします。</td></tr>
 </table>
@@ -646,11 +648,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>プログラム実行時の argv[0] に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_ENV">MAC_FOR_ENV</a></h3>
@@ -658,11 +660,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>プログラム実行時の環境変数名に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_create">MAC_FOR_CAPABILITY::inet_tcp_create</a></h3>
@@ -670,11 +672,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>TCP ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_listen">MAC_FOR_CAPABILITY::inet_tcp_listen</a></h3>
@@ -682,11 +684,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>TCP ソケットの listen に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_connect">MAC_FOR_CAPABILITY::inet_tcp_connect</a></h3>
@@ -694,11 +696,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>TCP ソケットの connect に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_inet_udp">MAC_FOR_CAPABILITY::use_inet_udp</a></h3>
@@ -706,11 +708,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>UDP ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_inet_ip">MAC_FOR_CAPABILITY::use_inet_ip</a></h3>
@@ -718,11 +720,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>RAW ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_route">MAC_FOR_CAPABILITY::use_route</a></h3>
@@ -730,11 +732,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>ROUTE ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_packet">MAC_FOR_CAPABILITY::use_packet</a></h3>
@@ -742,11 +744,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>PACKET ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_kernel_module">MAC_FOR_CAPABILITY::use_kernel_module</a></h3>
@@ -754,11 +756,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>create_module(2) init_module(2) delete_module(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_fifo">MAC_FOR_CAPABILITY::create_fifo</a></h3>
@@ -766,11 +768,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>mknod(2) で FIFO の作成に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_block_dev">MAC_FOR_CAPABILITY::create_block_dev</a></h3>
@@ -778,11 +780,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>mknod(2) でブロック型デバイスの作成に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_char_dev">MAC_FOR_CAPABILITY::create_char_dev</a></h3>
@@ -790,11 +792,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>mknod(2) でキャラクタ型デバイスの作成に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_unix_socket">MAC_FOR_CAPABILITY::create_unix_socket</a></h3>
@@ -802,11 +804,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>mknod(2) で UNIX ドメインソケットの作成に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_MOUNT">MAC_FOR_CAPABILITY::SYS_MOUNT</a></h3>
@@ -814,11 +816,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>mount(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UMOUNT">MAC_FOR_CAPABILITY::SYS_UMOUNT</a></h3>
@@ -826,11 +828,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>umount(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_REBOOT">MAC_FOR_CAPABILITY::SYS_REBOOT</a></h3>
@@ -838,11 +840,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>reboot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHROOT">MAC_FOR_CAPABILITY::SYS_CHROOT</a></h3>
@@ -850,11 +852,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>chroot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_KILL">MAC_FOR_CAPABILITY::SYS_VHANGUP</a></h3>
@@ -862,11 +864,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>0 以外のシグナルで kill(2) tkill(2) tgkill(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_VHANGUP">MAC_FOR_CAPABILITY::SYS_VHANGUP</a></h3>
@@ -874,11 +876,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>vhangup(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_TIME">MAC_FOR_CAPABILITY::SYS_TIME</a></h3>
@@ -886,11 +888,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>stime(2) settimeofday(2) adjtimex(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_NICE">MAC_FOR_CAPABILITY::SYS_NICE</a></h3>
@@ -898,11 +900,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>nice(2) setpriority(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_SETHOSTNAME">MAC_FOR_CAPABILITY::SYS_SETHOSTNAME</a></h3>
@@ -910,11 +912,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>sethostname(2) setdomainname(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_LINK">MAC_FOR_CAPABILITY::SYS_LINK</a></h3>
@@ -922,11 +924,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>link(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_SYMLINK">MAC_FOR_CAPABILITY::SYS_SYMLINK</a></h3>
@@ -934,11 +936,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_RENAME">MAC_FOR_CAPABILITY::SYS_RENAME</a></h3>
@@ -946,11 +948,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UNLINK">MAC_FOR_CAPABILITY::SYS_UNLINK</a></h3>
@@ -958,11 +960,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHMOD">MAC_FOR_CAPABILITY::SYS_CHMOD</a></h3>
@@ -970,11 +972,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>chmod(2) fchmod(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHOWN">MAC_FOR_CAPABILITY::SYS_CHOWN</a></h3>
@@ -982,11 +984,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>chown(2) fchown(2) lchown(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_IOCTL">MAC_FOR_CAPABILITY::SYS_IOCTL</a></h3>
@@ -994,11 +996,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>chown(2) fchown(2) lchown(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD">MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD</a></h3>
@@ -1006,11 +1008,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>kexec_load(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT">MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT</a></h3>
@@ -1018,11 +1020,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>pivot_root(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_PTRACE">MAC_FOR_CAPABILITY::SYS_PTRACE</a></h3>
@@ -1030,11 +1032,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>ptrace(2) の使用に対する強制アクセス制御のレベルを指定します。<br>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></h3>
@@ -1042,11 +1044,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>ネットワークに対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></h3>
@@ -1054,19 +1056,19 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>シグナルの送信に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_DENY_CONCEAL_MOUNT">DENY_CONCEAL_MOUNT</a></h3>
 <p>既存のマウントを隠蔽するようなマウントを禁止します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
 <tr><td>permissive</td><td>許容モード。既存のマウントを隠蔽するようなマウント要求に対して警告メッセージを表示しますが、拒否はしません。</td></tr>
 <tr><td>enforcing</td><td>強制モード。既存のマウントを隠蔽するようなマウント要求に対してエラーメッセージを表示し、拒否します。</td></tr>
 </table>
@@ -1076,11 +1078,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>chroot で移動可能なディレクトリの制限を有効にします。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_MOUNT">RESTRICT_MOUNT</a></h3>
@@ -1088,11 +1090,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>mount で指定可能なパラメータの制限を有効にします。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_UNMOUNT">RESTRICT_UNMOUNT</a></h3>
@@ -1100,8 +1102,8 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>指定されたディレクトリのアンマウントを禁止します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
 <tr><td>permissive</td><td>許容モード。指定されたディレクトリのアンマウント要求に対して警告メッセージを表示しますが、拒否はしません。</td></tr>
 <tr><td>enforcing</td><td>強制モード。指定されたディレクトリのアンマウント要求に対してエラーメッセージを表示し、拒否します。</td></tr>
 </table>
@@ -1111,11 +1113,11 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>pivot_root で交換可能なディレクトリの制限を有効にします。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></h3>
@@ -1123,8 +1125,8 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>ローカルのポート番号を自動選択させる際に特定のポート番号を選択させないようにするかどうかを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
 <tr><td>enabled</td><td>有効。ローカルのポート番号を自動選択させる際に、特定のポート番号を選択させないようにします。</td></tr>
 </table>
 
@@ -1145,7 +1147,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>ドメインポリシに対する違反を syslog に表示するかどうかを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
 <tr><td>disabled</td><td>ドメインポリシに対する違反を表示しません。</td></tr>
 <tr><td>enabled</td><td>ドメインポリシに対する違反を表示します。</td></tr>
 </table>
@@ -1155,7 +1157,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>強制モードに於いてポリシに違反したアクセス要求を対話的に許可できるようにするかどうかを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
 <tr><td>disabled</td><td>強制モードでポリシに違反したら直ちに拒否します。</td></tr>
 <tr><td>enabled</td><td>強制モードでポリシに違反しても、対話的な操作により許可することを可能にします。</td></tr>
 </table>
@@ -1165,7 +1167,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>強制モードに於いてポリシ違反が発生した場合にスリープさせるかどうかを指定します。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
+<tr><td>Value</td><td>Meaning</td></tr>
 <tr><td>0 ～ 3000</td><td>スリープさせる時間を 0.1 秒単位で指定します。デフォルトは 0 秒です。</td></tr>
 </table>
 
@@ -1182,7 +1184,7 @@ savepolicy -s<br>
 echo 'allow_mount /proc /proc/ proc' | loadpolicy -s<br>
 echo 'delete allow_mount /proc /proc/ proc' | loadpolicy -s</p>
 
-<p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
+<p>関連項目：<a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="system_policy_allow_mount">allow_mount</a></h3>
 <p>マウント許可を指定するには、 allow_mount というキーワードに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定します。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけません。マウントポイントは正規化されたディレクトリ名でなければいけません。オプションは 16 進数の数値で指定します。</p>
@@ -1246,7 +1248,7 @@ deny_autobind 8080</p>
 
 <p>ドメインを定義している行（ &lt;kernel&gt; で始まる行）の次行から次のドメインを定義している行の前行までが、そのドメインに対するアクセス許可です。</p>
 
-<p>それぞれのアクセス許可について、必要に応じて追加の条件を指定することができます。そのための構文は<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明します。さらに、必要に応じてプロセスの状態を切り替え、プロセスの状態も条件として使うための方法を<a href="#stateful_acl">ステートフルなアクセス許可の指定</a>で説明します。</p>
+<p>それぞれのアクセス許可について、必要に応じて追加の条件を指定することができます。そのための構文は<a href="#conditional_acl">Using conditional ACL.</a>で説明します。さらに、必要に応じてプロセスの状態を切り替え、プロセスの状態も条件として使うための方法を<a href="#stateful_acl">Using stateful ACL.</a>で説明します。</p>
 
 <p>現在のドメインポリシを読み出しまたは追加または削除するには、以下のように操作します。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されます）<br>
@@ -1260,7 +1262,7 @@ printf "delete &lt;kernel&gt; /sbin/init\n" | loadpolicy -d</p>
 <p>（例）ドメインポリシの読み出し<br>
 cat /proc/ccs/domain_policy</p>
 
-<p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
+<p>関連項目：<a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="domain_policy_allow_execute">allow_execute</a></h3>
 <p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。ワイルドカードで指定しなければ対応できない場合には、プログラム名をグループ化してからアクセス許可を与えてください。</p>
@@ -1492,7 +1494,7 @@ echo 'file_pattern /proc/\$/status' | loadpolicy -e<br>
 echo 'delete file_pattern /proc/\$/status' | loadpolicy -e<br>
 cat /proc/ccs/exception_policy</p>
 
-<p>関連項目： <a href="#policy_file_modifiers">変更について</a></p>
+<p>関連項目： <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="exception_policy_file_pattern">file_pattern</a></h3>
 
@@ -1698,9 +1700,9 @@ cat /proc/ccs/self_domain</p>
 <p>（例）<br>
 cat /proc/ccs/version</p>
 
-<h1>6. <a name="Advanced_Features">便利な機能</a></h1>
+<h1>6. <a name="Advanced_Features">Advanced Features</a></h1>
 
-<h2>6.1 <a name="non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></h2>
+<h2>6.1 <a name="non_root_policy_update">Allowing policy modification by non root user.</a></h2>
 
 <p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合には</p>
 
@@ -1741,12 +1743,12 @@ chown -R demo /proc/ccs/
 
 <p>を実行することで demo ユーザがポリシのあるディレクトリへのアクセスとポリシを編集するためのプログラムを実行できるようになります。</p>
 
-<h2>6.2 <a name="conditional_acl">条件付きアクセス許可の指定</a></h2>
+<h2>6.2 <a name="conditional_acl">Using conditional ACL.</a></h2>
 
 <p>アクセス許可にユーザＩＤ等に基づいた条件を付加することができます。条件は個々のアクセス許可の末尾に " if " 句を追加する形で指定します。</p>
 
 <table border="1">
-<tr><td>指定例</td><td>意味</td></tr>
+<tr><td>指定例</td><td>Meaning</td></tr>
 <tr><td>allow_read /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
 <tr><td>allow_read /etc/passwd if task.uid=0</td><td>プロセスのユーザＩＤが 0 の場合に限り、 /etc/passwd の参照を許可</td></tr>
 <tr><td>allow_read /etc/passwd if task.uid!=0</td><td>プロセスのユーザＩＤが 0 ではない場合に限り、 /etc/passwd の参照を許可</td></tr>
@@ -1759,87 +1761,87 @@ chown -R demo /proc/ccs/
 <p>以下の変数を指定できます。</p>
 
 <table border="1">
-<tr><td>変数</td><td>意味</td></tr>
-<tr><td>task.uid</td><td>呼び出したプロセスのユーザＩＤ</td></tr>
-<tr><td>task.euid</td><td>呼び出したプロセスの実効ユーザＩＤ</td></tr>
-<tr><td>task.suid</td><td>呼び出したプロセスの保存ユーザＩＤ</td></tr>
-<tr><td>task.fsuid</td><td>呼び出したプロセスのファイルシステムユーザＩＤ</td></tr>
-<tr><td>task.gid</td><td>呼び出したプロセスのグループＩＤ</td></tr>
-<tr><td>task.egid</td><td>呼び出したプロセスの実効グループＩＤ</td></tr>
-<tr><td>task.sgid</td><td>呼び出したプロセスの保存グループＩＤ</td></tr>
-<tr><td>task.fsgid</td><td>呼び出したプロセスのファイルシステムグループＩＤ</td></tr>
-<tr><td>task.pid</td><td>呼び出したプロセスのプロセスＩＤ</td></tr>
-<tr><td>task.ppid</td><td>呼び出したプロセスの親プロセスのプロセスＩＤ</td></tr>
-<tr><td>path1.uid</td><td>許可されるパス名の所有者ＩＤ</td></tr>
-<tr><td>path1.gid</td><td>許可されるパス名のグループＩＤ</td></tr>
-<tr><td>path1.ino</td><td>許可されるパス名のｉノード番号</td></tr>
-<tr><td>path1.parent.uid</td><td>許可されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
-<tr><td>path1.parent.gid</td><td>許可されるパス名の親ディレクトリのグループＩＤ</td></tr>
-<tr><td>path1.parent.ino</td><td>許可されるパス名の親ディレクトリのｉノード番号</td></tr>
-<tr><td>path2.parent.uid</td><td>作成されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
-<tr><td>path2.parent.gid</td><td>作成されるパス名の親ディレクトリのグループＩＤ</td></tr>
-<tr><td>path2.parent.ino</td><td>作成されるパス名の親ディレクトリのｉノード番号</td></tr>
-<tr><td>exec.argc</td><td>プログラム実行時の引数の数</td></tr>
-<tr><td>exec.envc</td><td>プログラム実行時の環境変数の数</td></tr>
-<tr><td>exec.argv[index]="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value である</td></tr>
-<tr><td>exec.argv[index]!="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value ではない</td></tr>
-<tr><td>exec.envp["name"]="value"</td><td>環境変数 name が定義されており、値が value である</td></tr>
-<tr><td>exec.envp["name"]!="value"</td><td>環境変数 name が定義されていないか、あるいは値が value ではない</td></tr>
-<tr><td>exec.envp["name"]!=NULL</td><td>環境変数 name が定義されている</td></tr>
-<tr><td>exec.envp["name"]=NULL</td><td>環境変数 name が定義されていない</td></tr>
+<tr><td>Variable</td><td>Meaning</td></tr>
+<tr><td>task.uid</td><td>UID of current process</td></tr>
+<tr><td>task.euid</td><td>Effective UID of current process</td></tr>
+<tr><td>task.suid</td><td>Saved UID of current process</td></tr>
+<tr><td>task.fsuid</td><td>File System UID of current process</td></tr>
+<tr><td>task.gid</td><td>GID of current process</td></tr>
+<tr><td>task.egid</td><td>Effective GID of current process</td></tr>
+<tr><td>task.sgid</td><td>Saved GID of current process</td></tr>
+<tr><td>task.fsgid</td><td>File System GID of current process</td></tr>
+<tr><td>task.pid</td><td>PID of current process</td></tr>
+<tr><td>task.ppid</td><td>PID of parent process</td></tr>
+<tr><td>path1.uid</td><td>UID of object.</td></tr>
+<tr><td>path1.gid</td><td>GID of object.</td></tr>
+<tr><td>path1.ino</td><td>i-node number of object.</td></tr>
+<tr><td>path1.parent.uid</td><td>UID of object's parent directory.</td></tr>
+<tr><td>path1.parent.gid</td><td>GID of object's parent directory.</td></tr>
+<tr><td>path1.parent.ino</td><td>i-node number of object's parent directory.</td></tr>
+<tr><td>path2.parent.uid</td><td>UID of object's parent directory.</td></tr>
+<tr><td>path2.parent.gid</td><td>GID of object's parent directory.</td></tr>
+<tr><td>path2.parent.ino</td><td>i-node number of object's parent directory.</td></tr>
+<tr><td>exec.argc</td><td>Number of argv[] passed for execute request.</td></tr>
+<tr><td>exec.envc</td><td>Number of envp[] passed for execute request.</td></tr>
+<tr><td>exec.argv[index]="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) matches "value". </td></tr>
+<tr><td>exec.argv[index]!="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) does not match "value".</td></tr>
+<tr><td>exec.envp["name"]="value"</td><td>Environment variable "name" is defined and matches "value".</td></tr>
+<tr><td>exec.envp["name"]!="value"</td><td>Environment variable "name" is not defined or does not match "value".</td></tr>
+<tr><td>exec.envp["name"]!=NULL</td><td>Environment variable "name" is defined.</td></tr>
+<tr><td>exec.envp["name"]=NULL</td><td>Environment variable "name" is not defined.</td></tr>
 </table>
 
-<p>path1 はパス名を必要とする操作の 1 個目のパス名に対応し、 path2 はパス名を必要とする操作の 2 個目のパス名に対応します。
-例えば、「 allow_rename file1 file2 」というアクセス許可の場合、 path1 が file1 に、 path2 が file2 に対応します。</p>
+<p>"path1" corresponds to the first pathname of operations that requires pathnames, and "path2" corresponds to the second pathname of operations that requires pathnames. For example, the case of "<a href="#domain_policy_allow_rename">allow_rename</a> file1 file2", path1 corresponds to file1 and path2 corresponds to file2.</p>
 
-<p>path1.uid および path1.gid は存在しないパス名に対しては指定できません。つまり、ファイル等の作成時（ allow_create 等）には使用できません。</p>
+<p>"path1" except "path1.parent" is not available for pathnames that don't exist. Thus, you can't use when creating pathnames (such as <a href="#domain_policy_allow_create">allow_create</a> keyword).</p>
 
-<p>path1.parent.uid および path1.parent.gid は常に指定可能です。</p>
+<p>"path1.parent" is always available.</p>
 
-<p>path2.parent.uid および path2.parent.gid はパス名を 2 つ必要とする操作（つまり allow_link および allow_rename ）に限り指定できます。</p>
+<p>"path2.parent" is available only for operations that require 2 pathnames (i.e. <a href="#domain_policy_allow_link">allow_link</a> and <a href="#domain_policy_allow_rename">allow_rename</a> keywords).</p>
 
-<p>path2.uid および path2.gid はサポートしていません。（ rename 操作に於いて、 path2 が存在する場合には暗黙のうちに unlink または rmdir が実行されます。）</p>
+<p>"path2" except "path2.parent" is not supported. (If "path2" already exist for "rename" operation, "unlink" or "rmdir" operation is performed implicitly.)</p>
 
-<p>sysctl による読み書き（ /proc/sys/ ディレクトリ以下のファイルを open ではなく sysctl を用いてアクセス）を行う場合については、 path1 path2 ともにサポートしていません。</p>
+<p>"path1" is not supported when accessing via "sysctl" (i.e. accessing files under /proc/sys/ directories using "sysctl" instead for "open").</p>
 
-<p>exec はプログラム実行時（つまり <a href="#domain_policy_allow_execute">allow_execute</a> ）に限り指定できます。</p>
+<p>"exec" is available only for operation taht executes a program (i.e. <a href="#domain_policy_allow_execute">allow_execute</a> keyword).</p>
 
-<h2>6.3 <a name="stateful_acl">ステートフルなアクセス許可の指定</a></h2>
+<h2>6.3 <a name="stateful_acl">Using stateful ACL.</a></h2>
 
-<p>TOMOYO Linux はユーザランドアプリケーションの修正を行わないため、プログラムの実行を伴わずにアクセス可能な資源の範囲を変更することはできません。しかし、例えば接続元クライアントのＩＰアドレスによってアクセスの可否を切り替えたいという場合があります。そのような場合に対応するため、プロセス毎に状態変数を割り当てることができ、条件付きアクセス許可の指定で使えるようになっています。</p>
+<p>Since TOMOYO Linux doesn't require modification of userland applications, it is impossible to change the range of accessible resources without domain transition.
+But there are cases you wish to change the range of accessible resources without domain transition. For example, you might wish to change the range of accessible resources depending on the client's IP address. To support such cases, you can assign state variables to each processes and you can use the state variables in<a href="#conditional_acl">Using conditional ACL.</a></p>
 
 <table border="1">
-<tr><td>変数</td><td>意味</td></tr>
-<tr><td>task.state[0]</td><td>呼び出したプロセスの状態変数 0</td></tr>
-<tr><td>task.state[1]</td><td>呼び出したプロセスの状態変数 1</td></tr>
-<tr><td>task.state[2]</td><td>呼び出したプロセスの状態変数 2</td></tr>
+<tr><td>Variable</td><td>Meaning</td></tr>
+<tr><td>task.state[0]</td><td>Current process's state variable 0</td></tr>
+<tr><td>task.state[1]</td><td>Current process's state variable 1</td></tr>
+<tr><td>task.state[2]</td><td>Current process's state variable 2</td></tr>
 </table>
 
-<p>task.state[0] ～ task.state[2] は 0 ～ 255 までの値を指定できます。この値を設定するには、以下のようにアクセス許可の指定に続けて " ; set " という句を指定します。</p>
+<p>Each task.state can take an integer value between 0 and 255. To change state variable, append " ; set " part after an ACL.</p>
 
 <table border="1">
-<tr><td>使用例</td><td>意味</td></tr>
-<tr><td>allow_network TCP accept @TRUSTED_HOSTS 1024-65535 ; set task.state[0]=1</td><td>クライアントが @TRUSTED_HOSTS である場合には、 state[0] に 1 を設定します。</td></tr>
-<tr><td>allow_network TCP accept @UNTRUSTED_HOSTS 1024-65535 ; set task.state[0]=0</td><td>クライアントが @UNTRUSTED_HOSTS である場合には、 state[0] に 0 を設定します。</td></tr>
-<tr><td>allow_execute /bin/bash if task.state[0]=1</td><td>state[0] が 1 の場合は、 /bin/bash の実行を許可します。</td></tr>
-<tr><td>allow_execute /sbin/nologin if task.state[0]=0</td><td>state[0] が 0 の場合は、 /sbin/nologin の実行を許可します。</td></tr>
-<tr><td>allow_execute /etc/passwd if task.state[2]=0 ; set task.state[2]=1</td><td>state[2] が 0 の場合は /etc/passwd の読み込みモードでのオープンを許可し、その後 state[2] に 1 を設定します。</td></tr>
+<tr><td>Example</td><td>Meaning</td></tr>
+<tr><td>allow_network TCP accept @TRUSTED_HOSTS 1024-65535 ; set task.state[0]=1</td><td>If a TCP connection is accepted from an IP address included in an address group @TRUSTED_HOSTS, set 1 to state[0].</td></tr>
+<tr><td>allow_network TCP accept @UNTRUSTED_HOSTS 1024-65535 ; set task.state[0]=0</td><td>If a TCP connection is accepted from an IP address included in an address group @UNTRUSTED_HOSTS, set 0 to state[0].</td></tr>
+<tr><td>allow_execute /bin/bash if task.state[0]=1</td><td>Allow execution of /bin/bash if state[0] is 1.</td></tr>
+<tr><td>allow_execute /sbin/nologin if task.state[0]=0</td><td>Allow execution of /sbin/nologin if state[0] is 0.</td></tr>
+<tr><td>allow_execute /etc/passwd if task.state[2]=0 ; set task.state[2]=1</td><td>If state[2] is 0, allow opening /etc/passwd for reading and then, set 1 to state[2].</td></tr>
 </table>
 
-<p>状態変数を使用する際には、以下の点に注意してください。</p>
+<p>When using the state variables, please be careful with the following points.</p>
 
 <ul>
-<li>プロセスのドメインはプログラムの実行によって自動的に変更されるのに対して、プロセスの状態変数は明示的に " ; set " という句で指定されない限り変更されません。そのため、状態変数の戻し忘れに注意してください。</li>
-<li>状態変数の設定はポリシのチェックにより許可された時点で行われます。そのため、メモリ不足などポリシのチェック以降のエラーによって、状態変数が変更されたけれどもアクセス要求は処理されなかったという状況が発生しえます。</li>
-<li>上記の @TRUSTED_HOSTS と @UNTRUSTED_HOSTS の両方に含まれていた場合、先に一致したほうの状態変数が使われてしまいます。そのため、順番に依存するアクセス許可を定義しないように注意してください。</li>
+<li>The domain a process belongs to is automatically updated upon execution of a program, but the state variables of the process are not updated unless they are explicitly specified using " ; set " part. Thus, be careful with forgetting to reset when needed.</li>
+<li>The state variables are updated when the access request is permitted by the policy. Thus, situations that the access request was not processed although the state variables were updated can happen because of errors after checking the policy (e.g. out of memory).</li>
+<li>If an IP address is included in both @TRUSTED_HOSTS and @UNTRUSTED_HOSTS, the permission which matched first is used. So, be careful with using order dependent policy.</li>
 </ul>
 
-<h2>6.4 <a name="sleep_penalty">ポリシ違反時のペナルティ指定</a></h2>
+<h2>6.4 <a name="sleep_penalty">Sleep penalty for policy violation.</a></h2>
 
 <p>強制モードでポリシ違反が発生した場合に、ポリシ違反の原因となったプロセスを一定時間スリープ状態にさせることができます。</p>
 
 <table border="1">
-<tr><td>/proc/ccs/profile での指定例</td><td>意味</td></tr>
+<tr><td>/proc/ccs/profile での指定例</td><td>Meaning</td></tr>
 <tr><td>3-SLEEP_PERIOD=1</td><td>プロファイル 3 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 0.1 秒間スリープさせます。</td></tr>
 <tr><td>4-SLEEP_PERIOD=10</td><td>プロファイル 4 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 1 秒間スリープさせます。</td></tr>
 </table>
@@ -1848,9 +1850,9 @@ chown -R demo /proc/ccs/
 
 <p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシ違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
 
-<h2>6.5 <a name="execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h2>
+<h2>6.5 <a name="execute_handler">Judging execute request outside the kernel.</a></h2>
 
-<p>TOMOYO Linux では、原則としてポリシに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">条件付きアクセス許可の指定</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
+<p>TOMOYO Linux では、原則としてポリシに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">Using conditional ACL.</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">Using conditional ACL.</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
 
 <p>そこで、 TOMOYO Linux 1.6.0 では <a href="#domain_policy_execute_handler">execute_handler</a> という仕組みが導入されました。この仕組みは、プログラムの実行可否をカーネルが判断するのではなく、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムが判断し、プログラムの実行を許可すべきと判断した場合には実際にプログラムを実行するという動作をします。</p>
 
@@ -1876,11 +1878,11 @@ chown -R demo /proc/ccs/
 <p>この機能を使うには、以下のように指定します。</p>
 
 <table border="1">
-<tr><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
+<tr><td>/proc/ccs/domain_policy の例</td><td>Meaning</td></tr>
 <tr><td>execute_handler /usr/sbin/check-and-exec</td><td>このドメインに属しているプロセスがプログラムの実行を要求した場合、要求されたプログラムを実行する代わりに /usr/sbin/check-and-exec を実行します。 /usr/sbin/check-and-exec はパラメータをチェックし、妥当と判断した場合には要求されたプログラムを実行します。</td></tr>
 </table>
 
-<p>execute_handler で指定されたプログラムは、以下のパラメータを受け取ります。<a href="#access_logs">アクセスログについて</a>で説明した、 allow_execute のログと比較してみてください。</p>
+<p>execute_handler で指定されたプログラムは、以下のパラメータを受け取ります。<a href="#access_logs">Access Logs</a>で説明した、 allow_execute のログと比較してみてください。</p>
 
 <ul>
 <li>argv[0] には、 execute_handler で指定されたプログラムのパス名が入っています。</li>
@@ -1908,7 +1910,7 @@ chown -R demo /proc/ccs/
 <p>ccs-tools のソースパッケージには、 audit-exec-param.c というサンプルプログラムが入っています。ご自由に改造してお使いください。</p>
 <p>この機能は、機構を提供しているだけです。この機構を活用できるかどうかはあなた次第です。</p>
 
-<h2>6.6 <a name="denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></h2>
+<h2>6.6 <a name="denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></h2>
 
 <p>TOMOYO Linux では、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、不要なプログラムの実行を拒否するという振る舞いだけでなく、それ以外の振る舞いを行うこともできます。</p>
 
@@ -1935,14 +1937,14 @@ chown -R demo /proc/ccs/
 <p>この機能を使うには、以下のように指定します。</p>
 
 <table border="1">
-<tr><td>/proc/ccs/profile の例</td><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
+<tr><td>/proc/ccs/profile の例</td><td>/proc/ccs/domain_policy の例</td><td>Meaning</td></tr>
 <tr><td>3-MAC_FOR_FILE=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
 </table>
 
-<p>この機能を使用する際の注意事項は<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>と同じです。</p>
+<p>この機能を使用する際の注意事項は<a href="#execute_handler">Judging execute request outside the kernel.</a>と同じです。</p>
 
 <hr>
-<p><a href="index.html#manual">目次へ戻る</a></p>
+<p><a href="index.html#manual">Return to index</a></p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>
