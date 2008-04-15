@@ -160,8 +160,8 @@
 
 <h2>2.1 <a name="word_expression_rules">Word Expression Rules</a></h2>
 
-<p>TOMOYO Linux performs pathname based access control. A pathname may contain not only alphabet and number but also space and carrige return and multibyte  (e.g. kanji) characters. Thus, to be able to handle any characters correctly,
-TOMOYO Linux follows the rules shown below to reprenent a word. A word means all tokens that are treated as string data, such as pathnames, comments, environment variable's names, parameters for program execution.</p>
+<p>TOMOYO Linux performs pathname based access control. A pathname may contain not only alphabet and number but also space and carriage return and multibyte  (e.g. kanji) characters. Thus, to be able to handle any characters correctly,
+TOMOYO Linux follows the rules shown below to represent a word. A word means all tokens that are treated as string data, such as pathnames, comments, environment variable's names, parameters for program execution.</p>
 
 <ul>
 <li>NUL character (0x00) is used for indicating end of string. Thus you cannot include \000 in a word.</li>
@@ -192,7 +192,7 @@ TOMOYO Linux follows the rules shown below to reprenent a word. A word means all
 
 <ul>
 <li>Space character (0x20) is used as a delimiter that separates words. Line feed character (0x0A) is used as a delimiter that separates lines.</li>
-<li>Only words that follows the rule above and the delimiters (i.e. space character and line feed characters) are valid. All other characters are regarded as space character. Multiple spaces are automatically compressed into one space. Leading and trailing spaces are automatically deleted.</li>
+<li>Only words that follow the rule above and the delimiters (i.e. space character and line feed characters) are valid. All other characters are regarded as space character. Multiple spaces are automatically compressed into one space. Leading and trailing spaces are automatically deleted.</li>
 </ul>
 
 <p>Some examples are shown below.</p>
@@ -203,7 +203,7 @@ TOMOYO Linux follows the rules shown below to reprenent a word. A word means all
 <tr><td>/home/user/Documents and Settings/</td><td>/home/user/Documents\040and\040Settings/</td><td>/home/user/Documents and Settings/</td></tr>
 </table>
 
-<p>Pathname must start with / character. Pathnames that end with / character is interpreted as directories, and that don't end with / character is interpreted as non-directories.</p>
+<p>Pathname must start with / character. Pathnames that end with / character are interpreted as directories, and that don't end with / character are interpreted as non-directories.</p>
 
 <table border="1">
 <tr><td>Pathname</td><td>Interpretation</td></tr>
@@ -252,9 +252,9 @@ TOMOYO Linux follows the rules shown below to reprenent a word. A word means all
 
 <p>In TOMOYO Linux, memory allocated for holding access permissions and words are never freed. There is no way except rebooting the system that can free unneeded memory.</p>
 
-<p>But don't worry. The policy seldom change after you start production mode. By tuning policy before starting production mode, you can reduce memory usage to (usually) less than 1 MB.</p>
+<p>But don't worry. The policy seldom changes after you start production mode. By tuning policy before starting production mode, you can reduce memory usage to (usually) less than 1 MB.</p>
 
-<p>The memory used by TOMOYO Linux can be obtained via /proc/ccs/meminfo . The unit is byte. "Shared:" indicates memory used for holding words. "Private:" indicates memory used for holding access permissions. These memory never decrease.
+<p>The memory used by TOMOYO Linux can be obtained via /proc/ccs/meminfo . The unit is byte. "Shared:" indicates memory used for holding words. "Private:" indicates memory used for holding access permissions. These memories never decrease.
 "Dynamic:" indicates memory used for temporal purpose such as access permission checks and access logs. This memory decreases when it became unneeded.</p>
 
 <table border="1">
@@ -284,10 +284,10 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>Managers (Programs that can modify policy via /proc/ccs/ interface)</td></tr>
 <tr><td><a href="#system_policy">/proc/ccs/system_policy</a></td><td>/etc/ccs/system_policy.conf</td><td>System policy (Access permissions given to system)</td></tr>
 <tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>Exception policy (Collection of exceptions for domain policy)</td></tr>
-<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>Domain policy (Access permissions gioven to individual domains)</td></tr>
+<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>Domain policy (Access permissions given to individual domains)</td></tr>
 </table>
 
-<p>There are more interfaces for obtaining informations. These intafaces don't have corresponding policy files.</p>
+<p>There are more interfaces for obtaining information. These interfaces don't have corresponding policy files.</p>
 
 <table border="1">
 <tr><td>The kernel's interface</td><td>Meaning</td></tr>
@@ -328,7 +328,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>By default, only processes with UID = 0 and EUID = 0 can modify policy via this interface. But by doing configurations described in <a href="#non_root_policy_update">Allowing policy modification by non root user.</a>, non root user can modify policy via this interface.</p>
 
-<p>Exception is, processes that blong to domains with profiles for learning mode can append access permissions to <a href="#system_policy">/proc/ccs/system_policy</a> and <a href="#domain_policy">/proc/ccs/domain_policy</a> by simply requesting the access.</p>
+<p>Exception is, processes that belong to domains with profiles for learning mode can append access permissions to <a href="#system_policy">/proc/ccs/system_policy</a> and <a href="#domain_policy">/proc/ccs/domain_policy</a> by simply requesting the access.</p>
 
 <h1>4. <a name="Domain_Rules">Domain Rules</a></h1>
 
@@ -529,9 +529,9 @@ For example, /sbin/pidof is a symbolic link to /sbin/killall5 . Since TOMOYO Lin
 
 <h2>4.3 <a name="access_logs">Access Logs</a></h2>
 
-<p>ドメインポリシによって許可されたアクセス要求のログと拒否されたアクセス要求のログを生成します。前者は許可ログと呼ばれ、 /proc/ccs/grant_log から取得することができます。後者は拒否ログと呼ばれ、 /proc/ccs/reject_log から取得することができます。これらのログを取得してファイルとして保存するためのツールとして /usr/lib/ccs/ccs-auditd というプログラムが付属しています。</p>
+<p>TOMOYO Linux generates two types of access logs. One contains access requests that didn't violate domain policy. The other contains access requests that violated domain policy. The former is called grant log and is readable via /proc/ccs/grant_log . The latter is called reject log and is readable via /proc/ccs/reject_log . A utility program /usr/lib/ccs/ccs-auditd is included for reading these logs and saving the logs as files.</p>
 
-<p>以下に例を示します。最初の例はプログラムを実行しようとしたときのログです。</p>
+<p>Some examples are shown below. The first log is generated by execute request.</p>
 
 <table border="1">
 <tr><td>
@@ -541,9 +541,9 @@ allow_execute /bin/cat
 </td></tr>
 </table>
 
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash というドメインに属しているプロセスが /bin/cat というプログラムを実行しようとし、そのときの引数の内容は "cat" "/etc/fstab" 、環境変数の内容は "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" であったということを示しています。また、プロセスＩＤやユーザＩＤなど、プロセスに関する情報も一緒に出力されます。</p>
+<p>This log shows that a process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain attempted to execute /bin/cat , and the arguments were "cat" and "/etc/fstab", environment variables were "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat". Also, process information such as PID, UID are shown.</p>
 
-<p>次の例は、ファイルを読み込みモードでオープンしようとしたときのログです。</p>
+<p>The next log is generated by opening a file for reading.</p>
 
 <table border="1">
 <tr><td>
@@ -553,9 +553,9 @@ allow_read /etc/fstab
 </td></tr>
 </table>
 
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat というドメインに属しているプロセスが /etc/fstab というファイルをオープンしようとしたことを示しています。</p>
+<p>This log shows that a process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat" domain opened /etc/fstab for reading.</p>
 
-<p>次の例は、ドメインが新規作成されたときのログです。</p>
+<p>The next log is generated when a new domain is created.</p>
 
 <table border="1">
 <tr><td>
@@ -565,9 +565,9 @@ use_profile 1
 </td></tr>
 </table>
 
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash /bin/audit-exec-param /bin/cat というドメインが新規作成され、プロファイルとして 1 が割り当てられたことを示しています。 TOMOYO Linux では、ドメインが自動的に新規作成されていきます。自動的に新規作成された場合には、ドメインを新規作成することになったプロセスの属しているドメインに割り当てられていたプロファイル番号が引き継がれます。</p>
+<p>This log shows that a domain named "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash /bin/audit-exec-param /bin/cat" was created and profile 1 was assigned. TOMOYO Linux automatically creates domains as needed. When a domain is automatically created, the profile number of the domain the process that requested program execution belongs to is inherited.</p>
 
-<p>次の例は、<a href="#execute_handler">Judging execute request outside the kernel.</a>するために要求されたのとは異なるプログラムが実行されたときのログです。</p>
+<p>The next log is generated when a program that is different from the program being requested was executed because of <a href="#execute_handler">Judging execute request outside the kernel.</a></p>
 <table border="1">
 <tr><td>
 #2008-04-09 12:52:01# profile=1 mode=learning pid=5110 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=24 envc=0 argv[]={ "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" } envp[]={ }<br>
@@ -576,9 +576,9 @@ execute_handler /bin/audit-exec-param
 </td></tr>
 </table>
 
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash というドメインに属しているプロセスがプログラムを実行しようとしたが、 execute_handler が指定されていたので代わりに /bin/audit-exec-param というプログラムが実行されたこと、 /bin/audit-exec-param に渡された引数の内容は "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" であったということを示しています。 LD_PRELOAD などの環境変数によって  /bin/audit-exec-param の動作が左右されるのを防ぐため、環境変数を引数に移動しています。</p>
+<p>This log shows that a process that belongs to a domain named "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash" attempted to execute a program, but since the execute_handler keyword is specified to the domain, /bin/audit-exec-param was executed, and arguments passed to /bin/audit-exec-param were "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022". To avoid /bin/audit-exec-param affected by environment variables such as LD_PRELOAD, environment variables are moved to arguments.</p>
 
-<p>このように、アクセスログは 3 行で 1 件（ /usr/lib/ccs/ccs-auditd によってファイルに保存されるときに空行が入るので 4 行で 1 件）となっており、これらのログはそのままドメインポリシとして追加可能な形式になっています。アクセス拒否ログから許可したい部分を抽出して、例えば /var/log/tomoyo/diff.txt という名前で保存した後、</p>
+<p>In this way, an access log consists of 3 lines (or 4 lines since /usr/lib/ccs/ccs-auditd inserts an empty line), and they are in the domain policy format and appendable to the domain policy. Pick up portions you want to permit from reject log and save (for example, /var/log/tomoyo/diff.txt) and you can add to domain policy by doing</p>
 
 <table border="1">
 <tr><td>
@@ -586,7 +586,7 @@ execute_handler /bin/audit-exec-param
 </td></tr>
 </table>
 
-<p>という操作を行うことで、ドメインポリシに追加することができます。そのため、「学習モード」を使わなくても、最初から「許容モード」を使って拒否ログを出力させ、拒否ログの内容を編集するというアプローチでもドメインポリシを定義していくことができます。「学習モード」でドメインポリシを作成する場合にはプロセスの状態（アクセスログの先頭行の内容）は加味されませんが、アクセス拒否ログからドメインポリシを生成すると、最初から<a href="#conditional_acl">Using conditional ACL.</a>を行うことができます。例えば、「学習モード」を使わずにログを生成し、</p>
+<p>Therefore, you don't need to use "learning mode" from the beginning. If you wish, you can use "permissive mode" from the beginning and let reject logs generated, then edit reject logs and append to domain policy when developing domain policy. When domain policy is generated by "learning mode", process state (the first line of an access logs) is not taken into account. But when domain policy is generated from reject logs, you can use <a href="#conditional_acl">Using conditional ACL.</a> from the beginning. For example, generate a reject log by not using "learning mode" and append like</p>
 
 <table border="1">
 <tr><td>
@@ -595,7 +595,7 @@ allow_execute /bin/cat if exec.argc=2 exec.argv[0]="cat" exec.argv[1]="/etc/fsta
 </td></tr>
 </table>
 
-<p>としてドメインポリシを追加した場合、「学習モード」で追加される</p>
+<p>then, you can give more precise permission compared to the permission appended by "learning mode"'s log (shown below).</p>
 
 <table border="1">
 <tr><td>
@@ -603,8 +603,6 @@ allow_execute /bin/cat if exec.argc=2 exec.argv[0]="cat" exec.argv[1]="/etc/fsta
 allow_execute /bin/cat
 </td></tr>
 </table>
-
-<p>よりも細かい指定を行うことができるようになります。</p>
 
 <h1>5. <a name="Syntax_Details">Syntax Details</a></h1>
 
