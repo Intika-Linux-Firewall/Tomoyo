@@ -19,7 +19,7 @@ then
  case "$1" in
  kernel-module-*)    ;; # Fedora kernel module package names start with
  		       # kernel-module.
-+ccs-kernel*)
++ccs-kernel*)      is_kernel_package=1 ;;
  kernel*)	   is_kernel_package=1 ;;
  esac
  
@@ -35,7 +35,7 @@ then
  case "$1" in
  kernel-module-*)    ;; # Fedora kernel module package names start with
  		       # kernel-module.
-+ccs-kernel*)
++ccs-kernel*)       is_kernel_package=1 ;;
  kernel*)	    is_kernel_package=1 ;;
  esac
  
@@ -51,7 +51,7 @@ then
  case "$1" in
  kernel-module-*)    ;; # Fedora kernel module package names start with
  		       # kernel-module.
-+ccs-kernel-*)
++ccs-kernel-*)      is_kernel_package=1 ;;
  kernel*)	    is_kernel_package=1 ;;
  esac
  
