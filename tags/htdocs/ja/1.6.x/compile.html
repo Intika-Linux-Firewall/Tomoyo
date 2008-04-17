@@ -52,9 +52,9 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.8-17sarge1">Debian Sarge 用のカーネル 2.6.8-17sarge1</a>
 <li><a href="#2.6.18-18etch1">Debian Etch 用のカーネル 2.6.18-18etch1</a>
 <li><a href="#2.6.22-6.lenny1">Debian Lenny 用のカーネル 2.6.22-6.lenny1</a>
-<li><a href="#2.6.16.54-0.2.5">OpenSUSE 10.1 用のカーネル 2.6.16.54-0.2.5</a>
-<li><a href="#2.6.18.8-0.9">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.9</a>
-<li><a href="#2.6.22.17-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.17-0.1</a>
+<li><a href="#OpenSUSE10.1">OpenSUSE 10.1</a>
+<li><a href="#OpenSUSE10.2">OpenSUSE 10.2</a>
+<li><a href="#OpenSUSE10.3">OpenSUSE 10.3</a>
 <li><a href="#2.6.9-42.21AX">Asianux 2.0 用のカーネル 2.6.9-42.21AX</a>
 <li><a href="#2.6.18-8.16AX">Asianux 3.0 用のカーネル 2.6.18-8.16AX</a>
 <li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
@@ -389,72 +389,44 @@ mkinitrd -o /boot/initrd.img-2.6.22-6.lenny1-ccs 2.6.22-6.lenny1-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.16.54-0.2.5">OpenSUSE 10.1 用のカーネル 2.6.16.54-0.2.5</a></h2>
+<h2><a name="OpenSUSE10.1">OpenSUSE 10.1</a></h2>
 
 <table border="1">
 <tr><td>
-# カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.54-0.2.5.i586.rpm<br>
-rpm -ivh kernel-source-2.6.16.54-0.2.5.i586.rpm<br>
-# ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.16.54-0.2.5/<br>
-# TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
-tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.16.54-0.2.5_SUSE.diff<br>
-# 出力先のディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.16.54-0.2.5-obj/i386/default/<br>
-# TOMOYO Linux 用のオプションを選択する。<br>
-make -s menuconfig<br>
-# 通常通りコンパイルする。<br>
-make -s<br>
-make -s modules modules_install install
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse10.1-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse10.1-2.6.16.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+chmod 755 build-suse10.1-2.6.16.sh<br>
+./build-suse10.1-2.6.16.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.16.54-0.2.5-default_tomoyo_1.6.0.spec</td></tr>
+</table>
+
+<h2><a name="OpenSUSE10.2">OpenSUSE 10.2</a></h2>
+
+<table border="1">
+<tr><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse10.2-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse10.2-2.6.18.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+chmod 755 build-suse10.2-2.6.18.sh<br>
+./build-suse10.2-2.6.18.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.18.8-0.9-default_tomoyo_1.6.0.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.18.8-0.9">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.9</a></h2>
+<h2><a name="OpenSUSE10.3">OpenSUSE 10.3</a></h2>
 
 <table border="1">
 <tr><td>
-# カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.9.i586.rpm<br>
-rpm -ivh kernel-source-2.6.18.8-0.9.i586.rpm<br>
-# ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.18.8-0.9/<br>
-# TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
-tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18.8-0.9_SUSE.diff<br>
-# 出力先のディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.18.8-0.9-obj/i386/default/<br>
-# TOMOYO Linux 用のオプションを選択する。<br>
-make -s menuconfig<br>
-# 通常通りコンパイルする。<br>
-make -s<br>
-make -s modules modules_install install
-</td></tr>
-</table>
-
-<h2><a name="2.6.22.17-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.17-0.1</a></h2>
-
-<table border="1">
-<tr><td>
-# カーネルのソースをダウンロードしてインストールする。<br>
-wget http://ftp.novell.co.jp/pub/suse/opensuse/update/10.3/rpm/i586/kernel-source-2.6.22.17-0.1.i586.rpm<br>
-rpm -ivh kernel-source-2.6.22.17-0.1.i586.rpm<br>
-# ソースのディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.22.17-0.1/<br>
-# TOMOYO Linux パッチをダウンロードして適用する。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
-tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.22.17-0.1_SUSE.diff<br>
-# 出力先のディレクトリへ移動する。<br>
-cd /usr/src/linux-2.6.22.17-0.1-obj/i386/default/<br>
-# TOMOYO Linux 用のオプションを選択する。<br>
-make -s menuconfig<br>
-# 通常通りコンパイルする。<br>
-make -s<br>
-make -s modules modules_install install
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse10.3-2.6.22.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse10.3-2.6.22.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+chmod 755 build-suse10.3-2.6.22.sh<br>
+./build-suse10.3-2.6.22.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.22.17-0.1-default_tomoyo_1.6.0.spec
 </td></tr>
 </table>
 
@@ -588,28 +560,29 @@ ln -sf /boot/System.map-2.6.16-0vl76.33-ccs /boot/System.map
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.24 を使用するものとします。</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.25 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # カーネルモジュールをインストールするディレクトリを作成する。<br>
-mkdir -p /lib/modules/2.6.24-ccs<br>
+mkdir -p /lib/modules/2.6.25-ccs<br>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.24.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.25.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.6.24.tar.bz2<br>
+tar -jxf linux-2.6.25.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.6.24<br>
+cd linux-2.6.25<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
 # 展開する。<br>
 tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
+wget -O patches/ccs-patch-2.6.25.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.25.diff?root=tomoyo'<br>
 # カーネルパッチを適用する。<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.24.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.25.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
