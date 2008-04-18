@@ -608,42 +608,41 @@ allow_execute /bin/cat
 
 <h2><a name="profile">/proc/ccs/profile</a></h2>
 
-<p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシ管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
+<p>TOMOYO Linux can perform several MACs besides MAC for files, but to reduce the load of policy managements, you can disable MACs you think unnecessary.</p>
 
-<p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには setlevel コマンドまたは loadpolicy コマンドを使用します。</p>
+<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To modify profile, use "setlevel" or "loadpolicy" commands.</p>
 
-<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには setprofile コマンドまたは editpolicy コマンドまたは loadpolicy コマンドを使用します。</p>
+<p>Each domain is assigned one profile. To assign profile to domains, use "setprofile" or "editpolicy" or "loadpolicy" commands.</p>
 
-<p>現在ドメインに割り当てられているプロファイル番号は editpolicy コマンドで確認できます。<br>
-現在動作中のプロセスに割り当てられているプロファイル番号は ccstree コマンドで確認できます。<br>
-現在のポリシを savepolicy コマンドで保存した場合、 <a href="#domain_policy_use_profile">use_profile</a> というキーワードに保持されます。</p>
+<p>You can see profiles currently assigned to domains using "editpolicy" command.<br>
+You can see profiles currently assigned to processes using "ccstree" command.<br>
+If you saved current policy using "savepolicy" command, the currently assigned profile number is saved as <a href="#domain_policy_use_profile">use_profile</a> line of domain policy.</p>
 
-<p>現在のプロファイルを読み出しまたは追加するには以下のように操作します。</p>
+<p>To read or modify current profiles, operate like below.</p>
 
-<p>（例）<br>
+<p>(Example)<br>
 cat /proc/ccs/profile<br>
 savepolicy -p<br>
 setlevel 1-MAC_FOR_FILE=learning<br>
 echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
-<p>関連項目：<a href="#policy_file_modifiers">Policy File's Modification</a></p>
+<p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="profile_MAC_FOR_FILE">MAC_FOR_FILE</a></h3>
 
-<p>ファイルに対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding file access requests.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
 <tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
 <tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
-<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.
-ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反したらエラーとします。</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_ARGV0">MAC_FOR_ARGV0</a></h3>
 
-<p>プログラム実行時の argv[0] に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding program invocation mame (a.k.a. argv[0]).</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -655,7 +654,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_ENV">MAC_FOR_ENV</a></h3>
 
-<p>プログラム実行時の環境変数名に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding environment variable names (a.k.a. envp[]).</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -667,7 +666,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_create">MAC_FOR_CAPABILITY::inet_tcp_create</a></h3>
 
-<p>TCP ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding creation of TCP sockets.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -679,7 +678,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_listen">MAC_FOR_CAPABILITY::inet_tcp_listen</a></h3>
 
-<p>TCP ソケットの listen に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding TCP socket's listen operation.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -691,7 +690,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_connect">MAC_FOR_CAPABILITY::inet_tcp_connect</a></h3>
 
-<p>TCP ソケットの connect に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding TCP socket's connect operation.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -703,7 +702,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_inet_udp">MAC_FOR_CAPABILITY::use_inet_udp</a></h3>
 
-<p>UDP ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of UDP sockets.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -715,7 +714,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_inet_ip">MAC_FOR_CAPABILITY::use_inet_ip</a></h3>
 
-<p>RAW ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of RAW sockets.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -727,7 +726,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_route">MAC_FOR_CAPABILITY::use_route</a></h3>
 
-<p>ROUTE ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of ROUTE sockets.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -739,7 +738,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_packet">MAC_FOR_CAPABILITY::use_packet</a></h3>
 
-<p>PACKET ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of PACKET sockets.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -751,7 +750,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_kernel_module">MAC_FOR_CAPABILITY::use_kernel_module</a></h3>
 
-<p>create_module(2) init_module(2) delete_module(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of create_module(2) init_module(2) delete_module(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -763,7 +762,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_fifo">MAC_FOR_CAPABILITY::create_fifo</a></h3>
 
-<p>mknod(2) で FIFO の作成に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding creation of FIFO using mknod(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -775,7 +774,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_block_dev">MAC_FOR_CAPABILITY::create_block_dev</a></h3>
 
-<p>mknod(2) でブロック型デバイスの作成に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding creation of block device file using mknod(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -787,7 +786,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_char_dev">MAC_FOR_CAPABILITY::create_char_dev</a></h3>
 
-<p>mknod(2) でキャラクタ型デバイスの作成に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding creation of character device file using mknod(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -799,7 +798,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_unix_socket">MAC_FOR_CAPABILITY::create_unix_socket</a></h3>
 
-<p>mknod(2) で UNIX ドメインソケットの作成に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding creation of UNIX domain socket using mknod(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -811,7 +810,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_MOUNT">MAC_FOR_CAPABILITY::SYS_MOUNT</a></h3>
 
-<p>mount(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of mount(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -823,7 +822,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UMOUNT">MAC_FOR_CAPABILITY::SYS_UMOUNT</a></h3>
 
-<p>umount(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of umount(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -835,7 +834,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_REBOOT">MAC_FOR_CAPABILITY::SYS_REBOOT</a></h3>
 
-<p>reboot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of reboot(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -847,7 +846,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHROOT">MAC_FOR_CAPABILITY::SYS_CHROOT</a></h3>
 
-<p>chroot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of chroot(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -859,7 +858,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_KILL">MAC_FOR_CAPABILITY::SYS_VHANGUP</a></h3>
 
-<p>0 以外のシグナルで kill(2) tkill(2) tgkill(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of kill(2) tkill(2) tgkill(2) syscall with non 0 signal.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -871,7 +870,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_VHANGUP">MAC_FOR_CAPABILITY::SYS_VHANGUP</a></h3>
 
-<p>vhangup(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of vhangup(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -883,7 +882,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_TIME">MAC_FOR_CAPABILITY::SYS_TIME</a></h3>
 
-<p>stime(2) settimeofday(2) adjtimex(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of stime(2) settimeofday(2) adjtimex(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -895,7 +894,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_NICE">MAC_FOR_CAPABILITY::SYS_NICE</a></h3>
 
-<p>nice(2) setpriority(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of nice(2) setpriority(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -907,7 +906,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_SETHOSTNAME">MAC_FOR_CAPABILITY::SYS_SETHOSTNAME</a></h3>
 
-<p>sethostname(2) setdomainname(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of sethostname(2) setdomainname(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -919,7 +918,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_LINK">MAC_FOR_CAPABILITY::SYS_LINK</a></h3>
 
-<p>link(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of link(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -931,7 +930,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_SYMLINK">MAC_FOR_CAPABILITY::SYS_SYMLINK</a></h3>
 
-<p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of symlink(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -943,7 +942,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_RENAME">MAC_FOR_CAPABILITY::SYS_RENAME</a></h3>
 
-<p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of rename(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -955,7 +954,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UNLINK">MAC_FOR_CAPABILITY::SYS_UNLINK</a></h3>
 
-<p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of unlink(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -967,7 +966,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHMOD">MAC_FOR_CAPABILITY::SYS_CHMOD</a></h3>
 
-<p>chmod(2) fchmod(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of chmod(2) fchmod(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -979,7 +978,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHOWN">MAC_FOR_CAPABILITY::SYS_CHOWN</a></h3>
 
-<p>chown(2) fchown(2) lchown(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of chown(2) fchown(2) lchown(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -991,7 +990,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_IOCTL">MAC_FOR_CAPABILITY::SYS_IOCTL</a></h3>
 
-<p>chown(2) fchown(2) lchown(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of ioctl(2) compat_sys_ioctl(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1003,7 +1002,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD">MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD</a></h3>
 
-<p>kexec_load(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of kexec_load(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1015,7 +1014,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT">MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT</a></h3>
 
-<p>pivot_root(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding use of pivot_root(2) syscall.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1027,7 +1026,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_PTRACE">MAC_FOR_CAPABILITY::SYS_PTRACE</a></h3>
 
-<p>ptrace(2) の使用に対する強制アクセス制御のレベルを指定します。<br>
+<p>Specifies access control level regarding use of ptrace(2) syscall.<br>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1039,7 +1038,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></h3>
 
-<p>ネットワークに対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding network access requests.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1051,7 +1050,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></h3>
 
-<p>シグナルの送信に対する強制アクセス制御のレベルを指定します。</p>
+<p>Specifies access control level regarding signal transmission requests.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1062,18 +1061,18 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 </table>
 
 <h3><a name="profile_DENY_CONCEAL_MOUNT">DENY_CONCEAL_MOUNT</a></h3>
-<p>既存のマウントを隠蔽するようなマウントを禁止します。</p>
+<p>Specifies access control level regarding mount requests that shadow existent mounts.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
 <tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
-<tr><td>permissive</td><td>許容モード。既存のマウントを隠蔽するようなマウント要求に対して警告メッセージを表示しますが、拒否はしません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。既存のマウントを隠蔽するようなマウント要求に対してエラーメッセージを表示し、拒否します。</td></tr>
+<tr><td>permissive</td><td>Permissive mode. Prints warning messages for mount requests that will shadow existent mounts. But don't reject the request.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. Prints error messages for mount requests that will shadow existent mounts. And reject the request.</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_CHROOT">RESTRICT_CHROOT</a></h3>
 
-<p>chroot で移動可能なディレクトリの制限を有効にします。</p>
+<p>Specifies access control level regarding chroot requests.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1085,7 +1084,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_RESTRICT_MOUNT">RESTRICT_MOUNT</a></h3>
 
-<p>mount で指定可能なパラメータの制限を有効にします。</p>
+<p>Specifies access control level regarding mount request's parameters.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1097,18 +1096,18 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_RESTRICT_UNMOUNT">RESTRICT_UNMOUNT</a></h3>
 
-<p>指定されたディレクトリのアンマウントを禁止します。</p>
+<p>Specifies access control level regarding unmount request of specific directories.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
 <tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
-<tr><td>permissive</td><td>許容モード。指定されたディレクトリのアンマウント要求に対して警告メッセージを表示しますが、拒否はしません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。指定されたディレクトリのアンマウント要求に対してエラーメッセージを表示し、拒否します。</td></tr>
+<tr><td>permissive</td><td>Permissive mode. Prints warning messages for unmount requests against directories that are not permitted to be unmounted. But don't reject the request.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. Prints error messages for unmount requests against directories that are not permitted to be unmounted. And reject the request.</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_PIVOT_ROOT">RESTRICT_PIVOT_ROOT</a></h3>
 
-<p>pivot_root で交換可能なディレクトリの制限を有効にします。</p>
+<p>Specifies access control level regarding pivot_root requests.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1120,87 +1119,88 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></h3>
 
-<p>ローカルのポート番号を自動選択させる際に特定のポート番号を選択させないようにするかどうかを指定します。</p>
+<p>Specifies access control level regarding automatic local port selection requests.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
 <tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
-<tr><td>enabled</td><td>有効。ローカルのポート番号を自動選択させる際に、特定のポート番号を選択させないようにします。</td></tr>
+<tr><td>enabled</td><td>Enabled. Forbid specified port number from being selected when automatic local port selection request happens.</td></tr>
 </table>
 
 <h3><a name="profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></h3>
 
-<p>学習モードに於いて自動的に追加されるアクセス許可の上限を指定します。デフォルトは 2048 件です。</p>
+<p>Limits the max number of ACL entries that are automatically appended during learning mode. Default is 2048.</p>
 
 <h3><a name="profile_MAX_GRANT_LOG">MAX_GRANT_LOG</a></h3>
 
-<p>カーネル内に保持する、ポリシによって許可されたアクセス要求のログの件数を指定します。デフォルトは 1024 件です。</p>
+<p>Limits the max number of grant logs that the kernel can hold. Default is 1024.</p>
 
 <h3><a name="profile_MAX_REJECT_LOG">MAX_REJECT_LOG</a></h3>
 
-<p>カーネル内に保持する、ポリシによって許可されなかったアクセス要求のログの件数を指定します。デフォルトは 1024 件です。</p>
+<p>Limits the max number of reject logs that the kernel can hold. Default is 1024.</p>
 
 <h3><a name="profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></h3>
 
-<p>ドメインポリシに対する違反を syslog に表示するかどうかを指定します。</p>
+<p>Specifies whether to print domain policy violation messages or not.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>disabled</td><td>ドメインポリシに対する違反を表示しません。</td></tr>
-<tr><td>enabled</td><td>ドメインポリシに対する違反を表示します。</td></tr>
+<tr><td>disabled</td><td>Disabled. Don't print domain policy violation messages.</td></tr>
+<tr><td>enabled</td><td>Enabled. Print domain policy violation messages.</td></tr>
 </table>
 
 <h3><a name="profile_ALLOW_ENFORCE_GRACE">ALLOW_ENFORCE_GRACE</a></h3>
 
-<p>強制モードに於いてポリシに違反したアクセス要求を対話的に許可できるようにするかどうかを指定します。</p>
+<p>Specifies whether to permit judging access requests which violates policy in enforcing mode interactively.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>disabled</td><td>強制モードでポリシに違反したら直ちに拒否します。</td></tr>
-<tr><td>enabled</td><td>強制モードでポリシに違反しても、対話的な操作により許可することを可能にします。</td></tr>
+<tr><td>disabled</td><td>Reject immediately when an access request violated policy in enforcing mode.</td></tr>
+<tr><td>enabled</td><td>Ask for administrator's decision when an access request violated policy in enforcing mode.</td></tr>
 </table>
 
 <h3><a name="profile_SLEEP_PERIOD">SLEEP_PERIOD</a></h3>
 
-<p>強制モードに於いてポリシ違反が発生した場合にスリープさせるかどうかを指定します。</p>
+<p>Specifies how long should the process that violated policy in enforcing mode sleep for.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>0 ～ 3000</td><td>スリープさせる時間を 0.1 秒単位で指定します。デフォルトは 0 秒です。</td></tr>
+<tr><td>Between 0 to 3000</td><td>Sleep duration in 0.1 seconds. Default is 0.</td></tr>
 </table>
 
 <h2>
 
 <a name="system_policy">/proc/ccs/system_policy</a></h2>
 
-<p>このファイルでは、システム全体として与えるアクセス許可を定義します。</p>
+<p>This file contains permissions that apply to the entire system.</p>
 
-<p>現在のシステムポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
-<p>（例）<br>
+<p>To read or modify current system policy, operate like below.</p>
+<p>(Example)<br>
 cat /proc/ccs/system_policy<br>
 savepolicy -s<br>
 echo 'allow_mount /proc /proc/ proc' | loadpolicy -s<br>
 echo 'delete allow_mount /proc /proc/ proc' | loadpolicy -s</p>
 
-<p>関連項目：<a href="#policy_file_modifiers">Policy File's Modification</a></p>
+<p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="system_policy_allow_mount">allow_mount</a></h3>
-<p>マウント許可を指定するには、 allow_mount というキーワードに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定します。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけません。マウントポイントは正規化されたディレクトリ名でなければいけません。オプションは 16 進数の数値で指定します。</p>
+<p>To grant mount permission, use allow_mount keyword followed by "$devicefile $mountpoint $filesystem $options".<br>
+The $devicefile need to be a canonicalized file if the $filesystem requires device file.<br>
+The $mountpoint must be a canonicalized file.<br>
+The $options is a hexadecimal integer expression.</p>
 
-<p>「 any マウントポイント --remount オプション」と指定すると、「 mount -o remount マウントポイント」が許可されます。</p>
+<p>To grant "mount -o remount $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --remount $options".</p>
 
-<p>「複製元 複製先 --bind オプション」と指定すると、「 mount --bind 複製元 複製先」が許可されます。<br>
-「移動元 移動先 --move オプション」と指定すると、「 mount --move 移動元 移動先」が許可されます。<br>
-複製元／複製先／移動元／移動先は正規化されたディレクトリ名でなければなりません。</p>
+<p>To grant "mount --bind $source_dir $dest_dir" and "mount --move $source_dir $dest_dir" permission, use allow_mount keyword followed by "$source_dir $dest_dir --bind $options" and "$source_dir $dest_dir --move $options" respectively.<br>
+The $source_dir and $dest_dir must be canonicalized directory.</p>
 
-<p>カーネル 2.6.15 以降では、 Shared Subtree という機能が利用できます。<br>
-「 any マウントポイント --make-unbindable オプション」と指定すると、「 mount --make-unbindable マウントポイント」が許可されます。<br>
-「 any マウントポイント --make-private オプション」と指定すると、「 mount --make-private マウントポイント」が許可されます。<br>
-「 any マウントポイント --make-slave オプション」と指定すると、「 mount --make-slave マウントポイント」が許可されます。<br>
-「 any マウントポイント --make-shared オプション」と指定すると、「 mount --make-shared マウントポイント」が許可されます。
-</p>
+<p>Kernel 2.6.15 and later supports "Shared Subtree" functionality.<br>
+To grant "mount --make-unbindable $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --make-unbindable $options".<br>
+To grant "mount --make-private $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --make-private $options".<br>
+To grant "mount --make-slave $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --make-slave $options".<br>
+To grant "mount --make-shared $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --make-shared $options".</p>
 
-<p>（例）<br>
+<p>(Example)<br>
 allow_mount none /dev/pts/ devpts 0x0<br>
 allow_mount /proc /proc/ proc 0x0<br>
 allow_mount usbdevfs /proc/bus/usb/ usbdevfs 0x0<br>
@@ -1210,142 +1210,143 @@ allow_mount /dev/hdc /var/www/ ext2 0xF<br>
 allow_mount any / --remount 0x0</p>
 
 <h3><a name="system_policy_deny_unmount">deny_unmount</a></h3>
-<p>アンマウント禁止を指定するには、 deny_unmount というキーワードに続けて、アンマウントを許可しない正規化されたディレクトリ名を指定します。<br>
-通常、 /sbin/mingetty が使用する /dev/tty? を含む /dev/ ディレクトリと、リモートログインする場合に pty デバイスファイルが作成される /dev/pts/ ディレクトリを指定します。</p>
-<p>/dev が読み込み専用になってしまったり、 /dev/pts がアンマウントされてしまうと、ログインができなくなってしまいます。そのため、 / が読み込み専用のシステムでは、 /dev/ や /dev/pts/ がアンマウントされないようにしなければなりません。</p>
+<p>To reject unmount request, use deny_unmount keyword followed by a canonicalized directory.<br>
+Usually, specify /dev/ directory (that contains /dev/tty? used by /sbin/mingetty) and /dev/pts/ directory (that are used to create pty device files for remote login).</p>
+<p>If /dev/ becomes read-only or /dev/pts/ is unmounted, you can't login to the system. Therefore /dev/ and /dev/pts/ must not be unmounted for systems where / is read-only.</p>
 
-<p>（例）<br>
+<p>(Example)<br>
 deny_unmount /dev/<br>
 deny_unmount /dev/pts/<br>
 deny_unmount /proc/</p>
 
 <h3><a name="system_policy_allow_chroot">allow_chroot</a></h3>
-<p>chroot 許可を指定するには、 allow_chroot というキーワードに続けて、 chroot で移動することを許可したい正規化されたディレクトリ名を指定します。<br>
-通常、 sshd が使用する /var/empty/sshd/ を指定します。 その他に chroot 環境で動かしたいアプリケーションや、 chroot を行うアプリケーション（ vsftpd の場合 /usr/share/empty/ ）が存在する場合は、それらも指定します。</p>
+<p>To grant chroot permission, use allow_chroot keyword followed by a canonicalized directory.<br>
+Usually, grant /var/empty/sshd/ that sshd uses. In addition, if you have applications that runs in the chroot'ed environment or applications that uses chroot (for example, /usr/share/empty/ is used by vsftpd), grant such directories too.</p>
 
-<p>（例）<br>
+<p>(Example)<br>
 allow_chroot /var/empty/sshd/<br>
 allow_chroot /usr/share/empty/<br>
 allow_chroot /var/www/html/<br>
 allow_chroot /</p>
 
 <h3><a name="system_policy_allow_pivot_root">allow_pivot_root</a></h3>
-<p>pivot_root 許可を指定するには、 allow_pivot_root というキーワードに続けて、新しいルートとなる正規化されたディレクトリ名と古いルートディレクトリとなる正規化されたディレクトリ名を指定します。<br>
-通常、このキーワードを使う必要はありません。</p>
+<p>To grant pivot_root permission, use allow_pivot_root keyword followed by the new root's canonicalized directory and the previous root's canonicalized directory.<br>
+Usually, you don't need this keyword.</p>
 
 <h3><a name="system_policy_deny_autobind">deny_autobind</a></h3>
-<p>ローカルポートの自動選択で特定のポート番号が選択させるのを禁止するには、 deny_autobind というキーワードに続けて、ローカルポート番号を指定します。 このキーワードは、特定のポート番号が一時的な用途で割り当てられるのを防ぐのが狙いです。例えば、一部のプロキシサーバはポート 8080 を使用するので、ポート 8080 が一時的な用途のために割り当てられるべきではありません。</p>
+<p>To prevent specific local port from being selected automatically, use deny_autobind keyword followed by local port number.<br>
+This keyword is intended to prevent specific local port from being bound for temporary use. For example, some proxy server uses local port 8080, so port 8080 should not be bound by other programs for temporary use.</p>
 
-<p>（例）<br>
+<p>(Example)<br>
 deny_autobind 1-1023<br>
 deny_autobind 8080</p>
 
 <h2><a name="domain_policy">/proc/ccs/domain_policy</a></h2>
 
-<p>このファイルでは、全てのドメインを定義し、各ドメインに対して与えるアクセス許可を定義します。</p>
+<p>This file contains definition of all domains and permissions that are granted to each domain.</p>
 
-<p>ドメインを定義している行（ &lt;kernel&gt; で始まる行）の次行から次のドメインを定義している行の前行までが、そのドメインに対するアクセス許可です。</p>
+<p>Lines from the next line to a domain definition ( any lines starting with "&lt;kernel&gt;") to the previous line to the next domain definitions are interpreted as access permissions for that domain.</p>
 
-<p>それぞれのアクセス許可について、必要に応じて追加の条件を指定することができます。そのための構文は<a href="#conditional_acl">Using conditional ACL.</a>で説明します。さらに、必要に応じてプロセスの状態を切り替え、プロセスの状態も条件として使うための方法を<a href="#stateful_acl">Using stateful ACL.</a>で説明します。</p>
+<p>You can specify additional conditions as needed. The syntax for specifing additional conditions are described in <a href="#conditional_acl">Using conditional ACL.</a> Also, how to switch process's state as needed and use the process's state for conditions is described in <a href="#stateful_acl">Using stateful ACL.</a></p>
 
-<p>現在のドメインポリシを読み出しまたは追加または削除するには、以下のように操作します。</p>
-<p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されます）<br>
+<p>To read or modify current domain policy, operate like below.</p>
+<p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
 printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
-<p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されません）<br>
+<p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
 printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
-<p>（例）ドメインを選択してアクセス許可を削除<br>
+<p>(Example) Selecting specific domain and removing ACLs.<br>
 printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | loadpolicy -d</p>
-<p>（例）特定のドメインを削除<br>
+<p>(Example) Deleting specific domain.<br>
 printf "delete &lt;kernel&gt; /sbin/init\n" | loadpolicy -d</p>
-<p>（例）ドメインポリシの読み出し<br>
+<p>(Example) Reading current domain policy.<br>
 cat /proc/ccs/domain_policy</p>
 
-<p>関連項目：<a href="#policy_file_modifiers">Policy File's Modification</a></p>
+<p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="domain_policy_allow_execute">allow_execute</a></h3>
 <p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。ワイルドカードで指定しなければ対応できない場合には、プログラム名をグループ化してからアクセス許可を与えてください。</p>
-<p>（例） allow_execute /bin/ls</p>
-<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_aggregator">aggregator</a></p>
+<p>(Example) allow_execute /bin/ls</p>
+<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_aggregator">aggregator</a></p>
 
 <h3><a name="domain_policy_allow_write">allow_write</a></h3>
 <p>指定されたパス名を書き込みモードでオープンすることを許可します。</p>
-<p>（例） allow_write /dev/null</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_write /dev/null</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read">allow_read</a></h3>
 <p>指定されたパス名を読み込みモードでオープンすることを許可します。</p>
-<p>（例） allow_read /proc/meminfo</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_read /proc/meminfo</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read/write">allow_read/write</a></h3>
 <p>指定されたパス名を読み書きモードでオープンすることを許可します。</p>
-<p>（例） allow_read/write /dev/null</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_read/write /dev/null</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_create">allow_create</a></h3>
 <p>指定されたパス名のファイルを新規作成することを許可します。</p>
-<p>（例） allow_create /var/lock/subsys/crond</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_create /var/lock/subsys/crond</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_unlink">allow_unlink</a></h3>
 <p>指定されたパス名を削除することを許可します。</p>
-<p>（例） allow_unlink /var/lock/subsys/crond</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_unlink /var/lock/subsys/crond</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkdir">allow_mkdir</a></h3>
 <p>パス名で指定されたディレクトリを作成することを許可します。</p>
-<p>（例） allow_mkdir /tmp/logwatch.\*/</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_mkdir /tmp/logwatch.\*/</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rmdir">allow_rmdir</a></h3>
 <p>ディレクトリの削除を許可します。</p>
-<p>（例） allow_rmdir /tmp/logwatch.\*/</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_rmdir /tmp/logwatch.\*/</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkfifo">allow_mkfifo</a></h3>
 <p>FIFO の作成を許可します。</p>
-<p>（例） allow_mkfifo /dev/initctl</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_mkfifo /dev/initctl</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mksock">allow_mksock</a></h3>
 <p>UNIX ドメインソケットの作成を許可します。</p>
-<p>（例） allow_mksock /dev/log</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_mksock /dev/log</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkblock">allow_mkblock</a></h3>
 <p>ブロック型デバイスファイルの作成を許可します。</p>
-<p>（例） allow_mkblock /dev/\*</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_mkblock /dev/\*</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkchar">allow_mkchar</a></h3>
 <p>キャラクタ型デバイスファイルの作成を許可します。</p>
-<p>（例） allow_mkchar /dev/\*</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_mkchar /dev/\*</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_truncate">allow_truncate</a></h3>
 <p>ファイルの切り詰めと伸長を許可します。</p>
-<p>（例） allow_truncate /etc/mtab</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_truncate /etc/mtab</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_symlink">allow_symlink</a></h3>
 <p>シンボリックリンクの作成を許可します。</p>
-<p>（例） allow_symlink /dev/cdrom</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_symlink /dev/cdrom</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_link">allow_link</a></h3>
 <p>ハードリンクの作成を許可します。</p>
-<p>（例） allow_link /etc/mtab~\$ /etc/mtab~</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_link /etc/mtab~\$ /etc/mtab~</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rename">allow_rename</a></h3>
 <p>ファイル名の変更を許可します。</p>
-<p>（例） allow_rename /etc/mtab.tmp /etc/mtab</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
+<p>(Example) allow_rename /etc/mtab.tmp /etc/mtab</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rewrite">allow_rewrite</a></h3>
 <p><a href="#exception_policy_deny_rewrite">deny_rewrite</a> によりファイルの内容の上書きが禁止されているパス名が指すファイル内容の上書きを許可します。</p>
-<p>（例） allow_rewrite /var/log/messages</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
+<p>(Example) allow_rewrite /var/log/messages</p>
+<p>See also:  <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
 
 <h3><a name="domain_policy_allow_argv0">allow_argv0</a></h3>
 
@@ -1362,84 +1363,85 @@ cat /proc/ccs/domain_policy</p>
 <p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができます。多くのプログラムは envp[] の内容によって振る舞いを変化させます。</p>
 <p>このキーワードの目的は、実行されるプログラムに渡される環境変数を制限することです。</p>
 
-<p>関連項目： <a href="#exception_policy_allow_env">allow_env</a></p>
+<p>See also:  <a href="#exception_policy_allow_env">allow_env</a></p>
 
 <h3><a name="domain_policy_allow_capability">allow_capability</a></h3>
 
-<p>ケイパビリティのアクセス許可を指定するには、 allow_capability というキーワードに続けて、ケイパビリティを指定します。以下のケイパビリティが指定できます。</p>
+<p>To grant capability permission, use allow_capability directive followed by a capability. The following capabilities are applicable.</p>
 
 <table border="1">
-<tr><td>allow_capability inet_tcp_create</td><td>TCP ソケットの使用を許可</td></tr>
-<tr><td>allow_capability inet_tcp_listen</td><td>TCP ソケットの listen を許可</td></tr>
-<tr><td>allow_capability inet_tcp_connect</td><td>TCP ソケットの connect を許可</td></tr>
-<tr><td>allow_capability use_inet_udp</td><td>UDP ソケットの使用を許可</td></tr>
-<tr><td>allow_capability use_inet_ip</td><td>RAW ソケットの使用を許可</td></tr>
-<tr><td>allow_capability use_route</td><td>ROUTE ソケットの使用を許可</td></tr>
-<tr><td>allow_capability use_packet</td><td>PACKET ソケットの使用を許可</td></tr>
-<tr><td>allow_capability use_kernel_module</td><td>create_module(2) init_module(2) delete_module(2) の使用を許可</td></tr>
-<tr><td>allow_capability create_fifo</td><td>mknod(2) で FIFO の作成を許可</td></tr>
-<tr><td>allow_capability create_block_dev</td><td>mknod(2) でブロック型デバイスの作成を許可</td></tr>
-<tr><td>allow_capability create_char_dev</td><td>mknod(2) でキャラクタ型デバイスの作成を許可</td></tr>
-<tr><td>allow_capability create_unix_socket</td><td>mknod(2) で UNIX ドメインソケットの作成を許可</td></tr>
-<tr><td>allow_capability SYS_MOUNT</td><td>mount(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_UMOUNT</td><td>umount(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_REBOOT</td><td>reboot(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_CHROOT</td><td>chroot(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_KILL</td><td>0 以外のシグナルで kill(2) tkill(2) tgkill(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_VHANGUP</td><td>vhangup(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_TIME</td><td>stime(2) settimeofday(2) adjtimex(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_NICE</td><td>nice(2) setpriority(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_SETHOSTNAME</td><td>sethostname(2) setdomainname(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_LINK</td><td>link(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_SYMLINK</td><td>symlink(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_RENAME</td><td>rename(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_UNLINK</td><td>unlink(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_CHMOD</td><td>chmod(2) fchmod(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_CHOWN</td><td>chown(2) fchown(2) lchown(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_IOCTL</td><td>ioctl(2) compat_sys_ioctl(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_KEXEC_LOAD</td><td>kexec_load(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_PIVOT_ROOT</td><td>pivot_root(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_PTRACE</td><td>ptrace(2) の使用を許可</td></tr>
+<tr><td>allow_capability inet_tcp_create</td><td>Permit creation of TCP sockets.</td></tr>
+<tr><td>allow_capability inet_tcp_listen</td><td>Permit TCP socket's listen operation.</td></tr>
+<tr><td>allow_capability inet_tcp_connect</td><td>Permit TCP socket's connect operation.</td></tr>
+<tr><td>allow_capability use_inet_udp</td><td>Permit use of UDP sockets.</td></tr>
+<tr><td>allow_capability use_inet_ip</td><td>Permit use of RAW sockets.</td></tr>
+<tr><td>allow_capability use_route</td><td>Permit use of ROUTE sockets.</td></tr>
+<tr><td>allow_capability use_packet</td><td>Permit use of PACKET sockets.</td></tr>
+<tr><td>allow_capability use_kernel_module</td><td>Permit use of create_module(2) init_module(2) delete_module(2) syscall.</td></tr>
+<tr><td>allow_capability create_fifo</td><td>Permit creation of FIFO using mknod(2) syscall.</td></tr>
+<tr><td>allow_capability create_block_dev</td><td>Permit creation of block device using mknod(2) syscall.</td></tr>
+<tr><td>allow_capability create_char_dev</td><td>Permit creation of character device using mknod(2) syscall.</td></tr>
+<tr><td>allow_capability create_unix_socket</td><td>Permit creation of UNIX domain sockets using mknod(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_MOUNT</td><td>Permit use of mount(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_UMOUNT</td><td>Permit use of umount(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_REBOOT</td><td>Permit use of reboot(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_CHROOT</td><td>Permit use of chroot(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_KILL</td><td>Permit use of kill(2) tkill(2) tgkill(2) syscall with non 0 signal.</td></tr>
+<tr><td>allow_capability SYS_VHANGUP</td><td>Permit use of vhangup(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_TIME</td><td>Permit use of stime(2) settimeofday(2) adjtimex(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_NICE</td><td>Permit use of nice(2) setpriority(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_SETHOSTNAME</td><td>Permit use of sethostname(2) setdomainname(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_LINK</td><td>Permit use of link(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_SYMLINK</td><td>Permit use of symlink(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_RENAME</td><td>Permit use of rename(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_UNLINK</td><td>Permit use of unlink(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_CHMOD</td><td>Permit use of chmod(2) fchmod(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_CHOWN</td><td>Permit use of chown(2) fchown(2) lchown(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_IOCTL</td><td>Permit use of ioctl(2) compat_sys_ioctl(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_KEXEC_LOAD</td><td>Permit use of kexec_load(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_PIVOT_ROOT</td><td>Permit use of pivot_root(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_PTRACE</td><td>Permit use of ptrace(2) syscall.</td></tr>
 </table>
 
-<p>allow_capability キーワードの目的は、プログラムが呼び出すことができるシステムコールを制限することです。幾つかのシステムコールに対しては他のキーワードやポリシファイルを使用してより詳細な制限が可能になっています。</p>
+<p>The purpose of allow_capability directive is to restrict system calls that a program can call. You can restrict more strictly with other directives and policy files for some system calls.</p>
+
 <ul>
-<li>作成を許可するキャラクタ型デバイスファイルのパス名を <a href="#domain_policy_allow_mkblock">allow_mkblock</a> キーワードを使用して制限することができます。
-<li>作成を許可するブロック型デバイスファイルのパス名を <a href="#domain_policy_allow_mkchar">allow_mkchar</a> キーワードを使用して制限することができます。
-<li>作成を許可する FIFO のパス名を <a href="#domain_policy_allow_mkfifo">allow_mkfifo</a> キーワードを使用して制限することができます。
-<li>作成を許可する UNIX ドメインソケットのパス名を <a href="#domain_policy_allow_mksock">allow_mksock</a> キーワードを使用して制限することができます。
-<li>作成を許可するシンボリックリンクのパス名を <a href="#domain_policy_allow_symlink">allow_symlink</a> キーワードを使用して制限することができます。
-<li>削除を許可するパス名を <a href="#domain_policy_allow_unlink">allow_unlink</a> キーワードを使用して制限することができます。
-<li>ハードリンクを許可する組み合わせを <a href="#domain_policy_allow_link">allow_link</a> キーワードを使用して制限することができます。
-<li>パス名の変更を許可する組み合わせを <a href="#domain_policy_allow_rename">allow_rename</a> キーワードを使用して制限することができます。
-<li>使用を許可する IP アドレスの範囲ととポート番号の範囲を <a href="#domain_policy_allow_network">allow_network</a> キーワードを使用して制限することができます。
-<li>送信可能なシグナルの番号と送信先のドメインを <a href="#domain_policy_allow_signal">allow_signal</a> キーワードを使用して制限することができます。
-<li>マウントを許可するデバイスおよびマウントポイントを <a href="#system_policy_allow_mount">allow_mount</a> キーワードを使用して制限することができます。
-<li>アンマウントを許可しないマウントポイントを <a href="#system_policy_deny_unmount">deny_unmount</a> キーワードを使用して指定することができます。
-<li>chroot で移動できるディレクトリを <a href="#system_policy_allow_chroot">allow_chroot</a> キーワードを使用して制限することができます。
-<li>pivot_root で交換できるディレクトリを <a href="#system_policy_allow_pivot_root">allow_pivot_root</a> キーワードを使用して制限することができます。
+<li>You can restrict creation of block device files using <a href="#domain_policy_allow_mkblock">allow_mkblock</a> keyword.
+<li>You can restrict creation of character device files using <a href="#domain_policy_allow_mkchar">allow_mkchar</a> keyword.
+<li>You can restrict creation of FIFOs using <a href="#domain_policy_allow_mkfifo">allow_mkfifo</a> keyword.
+<li>You can restrict creation of UNIX domain sockets using <a href="#domain_policy_allow_mksock">allow_mksock</a> keyword.
+<li>You can restrict creation of symbolic links using <a href="#domain_policy_allow_symlink">allow_symlink</a> keyword.
+<li>You can restrict deletion of non-directories using <a href="#domain_policy_allow_unlink">allow_unlink</a> keyword.
+<li>You can restrict combination of pathnames that can be hard linked using <a href="#domain_policy_allow_link">allow_link</a> keyword.
+<li>You can restrict combination of pathnames that can be renamed using <a href="#domain_policy_allow_rename">allow_rename</a> keyword.
+<li>You can restrict IP addresses and ports using <a href="#domain_policy_allow_network">allow_network</a> keyword.
+<li>You can restrict signal numbers and target domain using <a href="#domain_policy_allow_signal">allow_signal</a> keyword.
+<li>You can restrict devices and directories for mount operations using <a href="#system_policy_allow_mount">allow_mount</a> keyword.
+<li>You can restrict directories that you don't allow unmount using <a href="#system_policy_deny_unmount">deny_unmount</a> keyword.
+<li>You can restrict directories that can chroot to using <a href="#system_policy_allow_chroot">allow_chroot</a> keyword.
+<li>You can restrict directories that can exchange using <a href="#system_policy_allow_pivot_root">allow_pivot_root</a> keyword.
 </ul>
 
 <h3><a name="domain_policy_allow_network">allow_network</a></h3>
 
-<p>ネットワークのアクセス許可を指定するには、 allow_network というキーワードに続けて、プロトコル（ TCP UDP RAW の何れか）、 IP アドレス、ポート番号（ TCP UDP の場合）またはプロトコル番号（ RAW の場合）を指定します。 IPv4 プロトコルおよび IPv6 プロトコルで使用するローカルポート番号が対象です。</p>
+<p>To grant permission for socket operations, use allow_network directive followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>
 <table border="1">
-<tr><td>キーワード</td><td>許可されるアクセス</td><td>指定例</td></tr>
-<tr><td>allow_network TCP bind</td><td>ローカルの TCP アドレス／ポートの割り当て</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP listen</td><td>ローカルの TCP アドレス／ポートでの待機</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP accept</td><td>リモートの TCP アドレス／ポートからの接続受付および通信</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
-<tr><td>allow_network TCP connect</td><td>リモートの TCP アドレス／ポートへの接続および通信</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
-<tr><td>allow_network UDP bind</td><td>ローカルの UDP アドレス／ポートの割り当て</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
+<tr><td>Keyword</td><td>Permitted operation</td><td>Example</td></tr>
+<tr><td>allow_network TCP bind</td><td>	Bind to local TCP address/port.</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
+<tr><td>allow_network TCP listen</td><td>Listen to local TCP address/port.</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
+<tr><td>allow_network TCP accept</td><td>Accept from and communicate with remote TCP address/port.</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
+<tr><td>allow_network TCP connect</td><td>Connect to and communicate with remote TCP address/port.</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
+<tr><td>allow_network UDP bind</td><td>Bind to local UDP address/port.</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
 
-<tr><td>allow_network UDP connect</td><td>リモートの UDP アドレス／ポートとの通信</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
-<tr><td>allow_network RAW bind</td><td>ローカルの IP アドレス／プロトコルの割り当て</td><td>allow_network RAW bind 127.0.0.1 255</td></tr>
-<tr><td>allow_network RAW connect</td><td>リモートの IP アドレス／プロトコルとの通信</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
+<tr><td>allow_network UDP connect</td><td>Communicate with remote UDP address/port.</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
+<tr><td>allow_network RAW bind</td><td>Bind to local IP address/protocol.</td><td>allow_network RAW bind 127.0.0.1 255</td></tr>
+<tr><td>allow_network RAW connect</td><td>Communicate with remote IP address/protocol.</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
 </table>
-<p>IPv6 で使われる "::" という表記はサポートされていません。 "::1" ではなく "0:0:0:0:0:0:0:1" のように表記する必要があります。</p>
+<p>Use of "::" for IPv6 address representation is not supported. You need to use "0:0:0:0:0:0:0:1" for "::1".</p>
 
-<p>同じＩＰアドレスを繰り返し指定する手間を避けるために、パス名と同様にグループ化を行うことができます。</p>
+<p>To reduce the labor of repeating same IP addresses, you can define groups like pathnames.</p>
 
-<p>関連項目： <a href="#exception_policy_address_group">address_group</a></p>
+<p>See also:  <a href="#exception_policy_address_group">address_group</a></p>
 
 <h3><a name="domain_policy_allow_signal">allow_signal</a></h3>
 
@@ -1456,13 +1458,13 @@ cat /proc/ccs/domain_policy</p>
 
 <p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
 
-<p>関連項目： <a href="#exception_policy_allow_read">allow_read</a></p>
+<p>See also:  <a href="#exception_policy_allow_read">allow_read</a></p>
 
 <h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
 
 <p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_env">allow_env</a> を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
 
-<p>関連項目： <a href="#exception_policy_allow_env">allow_env</a></p>
+<p>See also:  <a href="#exception_policy_allow_env">allow_env</a></p>
 
 <h3><a name="domain_policy_execute_handler">execute_handler</a></h3>
 
@@ -1470,7 +1472,7 @@ cat /proc/ccs/domain_policy</p>
 
 <p>このキーワードが指定されている場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
 
-<p>関連項目： <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
+<p>See also:  <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
 
 <h3><a name="domain_policy_denied_execute_handler">denied_execute_handler</a></h3>
 
@@ -1482,24 +1484,24 @@ cat /proc/ccs/domain_policy</p>
 
 <p>これは、学習モードで動作中にアクセス許可の数が <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a> で指定された値に到達したため、このドメインに対してはアクセス許可を学習しきれなかったことを示しています。チューニングを行うなどしてアクセス許可の数を減らすようにしてください。</p>
 
-<p>関連項目： <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></p>
+<p>See also:  <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></p>
 
 <h2><a name="exception_policy">/proc/ccs/exception_policy</a></h2>
 
-<p>現在の例外ポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
-<p>（例）<br>
+<p>To read or modify current exception policy, operate like below.</p>
+<p>(Example)<br>
 echo 'file_pattern /proc/\$/status' | loadpolicy -e<br>
 echo 'delete file_pattern /proc/\$/status' | loadpolicy -e<br>
 cat /proc/ccs/exception_policy</p>
 
-<p>関連項目： <a href="#policy_file_modifiers">Policy File's Modification</a></p>
+<p>See also:  <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="exception_policy_file_pattern">file_pattern</a></h3>
 
-<p>パス名のパターン化を指示するには、 file_pattern というキーワードに続けて、パス名のパターンを指定します。パス名は正規化されたパス名でなければなりません。このキーワードは実行許可を与える場合とドメイン定義には適用されません。<br>
-例えば、プロセスＩＤを含む正規化されたパス名（ /proc/PID/ ）は、アクセス制御が正しく行われるようにグループ化されなければなりません。</p>
+<p>To declare pathname pattern, use file_pattern directive followed by pathname pattern. The pathname pattern must be a canonicalized Pathname. This directive is not applicable to neither granting execute permissions nor domain definitions.<br>
+For example, canonicalized pathname that contains a process ID (i.e. /proc/PID/ files) needs to be grouped in order to make access control work well.</p>
 
-<p>学習モード（ <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が learning に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習されます。学習モード以外には影響しません。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われる。</p>
+<p>When file access requests arise in learning mode ( profile's <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is set to "learning" ) , the requested pathname is automatically patterned according to patterens specified using this keyword. This keyword does not affect modes other than learning mode. This keyword is used for only reducing the burden of policy tuning which is needed after the lerning mode by making already known pathname patterns as templetes.</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
@@ -1554,26 +1556,26 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>無条件に読み込みを許可するファイルを指定するには、 allow_read というキーワードに続けて、正規化されたファイル名を指定します。このキーワードの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルのように、どのようなプログラムから参照されても構わないというファイルを指定することで、各ドメインで記述しないで済むようにすることです。なお、各ドメインで ignore_global_allow_read という指定をすると、ここで指定された allow_read は無視されます。</p>
 
-<p>関連項目： <a href="#domain_policy_allow_read">allow_read</a> <a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></p>
+<p>See also:  <a href="#domain_policy_allow_read">allow_read</a> <a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></p>
 
 <h3><a name="exception_policy_allow_env">allow_env</a></h3>
 
 <p>無条件に受け取ってよい環境変数名を指定するには、 allow_env というキーワードに続けて、環境変数名を指定します。このキーワードの目的は、 PATH や HOME のように、どのようなプログラムに渡されても構わないような環境変数名を指定することで、各ドメインで記述しないで済むようにすることです。くれぐれも LD_PRELOAD のような危険な環境変数を指定しないでください。なお、各ドメインで ignore_global_allow_env という指定をすると、ここで指定された allow_env は無視されます。</p>
 
-<p>関連項目： <a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a> <a href="#domain_policy_allow_env">allow_env</a></p>
+<p>See also:  <a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a> <a href="#domain_policy_allow_env">allow_env</a></p>
 
 <h3><a name="exception_policy_deny_rewrite">deny_rewrite</a></h3>
 
 <p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、ドメイン用ポリシの中で明示的に <a href="#domain_policy_allow_rewrite">allow_rewrite</a> というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。</p>
 
-<p>関連項目： <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
+<p>See also:  <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
 
 <h3><a name="exception_policy_alias">alias</a></h3>
 
 <p>シンボリックリンクを解決した名前ではなくシンボリックリンクの名前のまま実行させるプログラムを指定するには、 alias というキーワードに続けてシンボリックリンクを解決したパス名とシンボリックリンクを解決する前のパス名を指定します。このキーワードの目的は、実行時の名前によって異なる振る舞いをするプログラムが、ハードリンクではなくシンボリックリンクで参照される場合に、シンボリックリンクの名前でドメインを遷移できるようにすることです。</p>
 <p>例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクであるため、通常は /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。しかし、 alias /sbin/killall5 /sbin/pidof という指定をすることで、 /sbin/pidof を実行すると /sbin/pidof が実行されたものとしてドメインが定義されるようにできます。</p>
 
-<p>関連項目： <a href="#domain_policy_allow_execute">allow_execute</a></p>
+<p>See also:  <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
 <h3><a name="exception_policy_aggregator">aggregator</a></h3>
 
@@ -1581,7 +1583,7 @@ allow_network TCP accept @local-address 1024-65535
 <p>例えば、 /usr/bin/tac と /bin/cat は似ているので、 aggregator /usr/bin/tac /bin/cat という指定をすることで /usr/bin/tac を /bin/cat のドメインで実行することができるようになります。</p>
 <p>例えば、 Fedora Core 3 の /usr/sbin/logrotate は /tmp/logrotate.\?\?\?\?\?\? というパターンのプログラムを作成して実行するが、 TOMOYO Linux では安全上の理由からプログラムの実行許可を与える場合とドメインを定義する場合にパターンを使用することを認めていません。しかし、 aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp という指定をすることで /tmp/logrotate.\?\?\?\?\?\? を /tmp/logrotate.tmp のドメインで実行することができるようになります。</p>
 
-<p>関連項目： <a href="#domain_policy_allow_execute">allow_execute</a></p>
+<p>See also:  <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
 <h3><a name="exception_policy_initialize_domain">initialize_domain</a></h3>
 
@@ -1597,7 +1599,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>このキーワードの目的は、常駐型プログラムや必要に応じてカーネルから起動されるプログラムを、通常とは異なるドメインに遷移させることで、ドメイン遷移を集約することです。</p>
 
-<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></p>
+<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></p>
 
 <h3><a name="exception_policy_no_initialize_domain">no_initialize_domain</a></h3>
 
@@ -1610,7 +1612,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>このキーワードはドメイン遷移を初期化させたくない場合に使用します。</p>
 
-<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_initialize_domain">initialize_domain</a></p>
+<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_initialize_domain">initialize_domain</a></p>
 
 <h3><a name="exception_policy_keep_domain">keep_domain</a></h3>
 
@@ -1627,7 +1629,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>このキーワードの目的は、不要なドメイン遷移の発生を抑制することでドメイン数とメモリ消費を抑えることです。</p>
 
-<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_keep_domain">no_keep_domain</a></p>
+<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_keep_domain">no_keep_domain</a></p>
 
 <h3><a name="exception_policy_no_keep_domain">no_keep_domain</a></h3>
 
@@ -1642,7 +1644,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>このキーワードはドメイン遷移を行わせたい場合に使用します。</p>
 
-<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
+<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
 
 <h2><a name="query">/proc/ccs/query</a></h2>
 
@@ -1663,25 +1665,25 @@ allow_network TCP accept @local-address 1024-65535
 <h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
 
 <p>TOMOYO Linux がポリシを保持するために使用しているカーネルのメモリ情報を取得します。</p>
-<p>（例）<br>
+<p>(Example)<br>
 cat /proc/ccs/meminfo<br></p>
 
 <h2><a name="grant_log">/proc/ccs/grant_log</a></h2>
 
 <p>ドメインポリシに対するアクセス許可ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は MAX_GRANT_LOG 件までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
-<p>（例）<br>
+<p>(Example)<br>
 cat /proc/ccs/grant_log</p>
 
 <h2><a name="reject_log">/proc/ccs/reject_log</a></h2>
 
 <p>ドメインポリシに対するアクセス拒否ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は MAX_REJECT_LOG 件までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
-<p>（例）<br>
+<p>(Example)<br>
 cat /proc/ccs/reject_log</p>
 
 <h2><a name="self_domain">/proc/ccs/self_domain</a></h2>
 
 <p>呼び出し元プロセスが属しているドメインの名前を取得します。</p>
-<p>（例）<br>
+<p>(Example)<br>
 cat /proc/ccs/self_domain</p>
 
 <h2><a name=".process_status">/proc/ccs/.process_status</a></h2>
@@ -1695,7 +1697,7 @@ cat /proc/ccs/self_domain</p>
 <h2><a name="version">/proc/ccs/version</a></h2>
 
 <p>TOMOYO Linux のバージョン番号を取得するためのインタフェースです。</p>
-<p>（例）<br>
+<p>(Example)<br>
 cat /proc/ccs/version</p>
 
 <h1>6. <a name="Advanced_Features">Advanced Features</a></h1>
