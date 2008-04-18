@@ -636,9 +636,8 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <tr><td>値</td><td>内容</td></tr>
 <tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
 <tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。
-ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反したらエラーとします。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_ARGV0">MAC_FOR_ARGV0</a></h3>
@@ -943,7 +942,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_RENAME">MAC_FOR_CAPABILITY::SYS_RENAME</a></h3>
 
-<p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>rename(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
@@ -955,7 +954,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UNLINK">MAC_FOR_CAPABILITY::SYS_UNLINK</a></h3>
 
-<p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>unlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
@@ -991,7 +990,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_IOCTL">MAC_FOR_CAPABILITY::SYS_IOCTL</a></h3>
 
-<p>chown(2) fchown(2) lchown(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
+<p>ioctl(2) compat_sys_ioctl(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
@@ -1142,7 +1141,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></h3>
 
-<p>ドメインポリシに対する違反を syslog に表示するかどうかを指定します。</p>
+<p>ドメインポリシに対する違反を表示するかどうかを指定します。</p>
 
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
@@ -1185,7 +1184,7 @@ echo 'delete allow_mount /proc /proc/ proc' | loadpolicy -s</p>
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
 <h3><a name="system_policy_allow_mount">allow_mount</a></h3>
-<p>マウント許可を指定するには、 allow_mount というキーワードに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定します。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけません。マウントポイントは正規化されたディレクトリ名でなければいけません。オプションは 16 進数の数値で指定します。</p>
+<p>マウント許可を指定するには、 allow_mount というキーワードに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定します。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけません。マウントポイントは正規化されたファイル名でなければいけません。オプションは 16 進数の数値で指定します。</p>
 
 <p>「 any マウントポイント --remount オプション」と指定すると、「 mount -o remount マウントポイント」が許可されます。</p>
 
@@ -1499,7 +1498,7 @@ cat /proc/ccs/exception_policy</p>
 <p>パス名のパターン化を指示するには、 file_pattern というキーワードに続けて、パス名のパターンを指定します。パス名は正規化されたパス名でなければなりません。このキーワードは実行許可を与える場合とドメイン定義には適用されません。<br>
 例えば、プロセスＩＤを含む正規化されたパス名（ /proc/PID/ ）は、アクセス制御が正しく行われるようにグループ化されなければなりません。</p>
 
-<p>学習モード（ <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が learning に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習されます。学習モード以外には影響しません。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われる。</p>
+<p>学習モード（ <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が learning に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習されます。学習モード以外には影響しません。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われます。</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
