@@ -238,7 +238,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = security_path_link(&old_nd.path, nd.path.mnt, new_dentry);
++	error = security_path_link(&old_nd.path, &nd.path, new_dentry);
 +	if (error)
 +		goto out_drop_write;
  	error = vfs_link(old_nd.path.dentry, nd.path.dentry->d_inode, new_dentry);
@@ -308,7 +308,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *	Check permission before creating a new hard link to a file.
 + *	@old_path contains the path structure for an existing link
 + *	to the file.
-+ *	@new_mnt contains the vfsmount structure of the parent directory of
++ *	@new_dir contains the path structure of the parent directory of
 + *	the new link.
 + *	@new_dentry contains the dentry structure for the new link.
 + *	Return 0 if permission is granted.
@@ -421,7 +421,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			      unsigned int time_attrs, struct file *filp);
 +	int (*path_symlink) (struct path *dir, struct dentry *dentry,
 +			     const char *old_name);
-+	int (*path_link) (struct path *old_path, struct vfsmount *new_mnt,
++	int (*path_link) (struct path *old_path, struct path *new_dir,
 +			  struct dentry *new_dentry);
 +	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
 +			    struct path *new_dir, struct dentry *new_dentry);
@@ -442,7 +442,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			   unsigned int time_attrs, struct file *filp);
 +int security_path_symlink(struct path *dir, struct dentry *dentry,
 +			  const char *old_name);
-+int security_path_link(struct path *old_path, struct vfsmount *new_mnt,
++int security_path_link(struct path *old_path, struct path *new_dir,
 +		       struct dentry *new_dentry);
 +int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
 +			 struct path *new_dir, struct dentry *new_dentry);
@@ -490,7 +490,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +static inline int security_path_link(struct path *old_path,
-+				     struct vfsmount *new_mnt,
++				     struct path *new_dir,
 +				     struct dentry *new_dentry)
 +{
 +	return 0;
@@ -540,7 +540,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
-+static int dummy_path_link(struct path *old_path, struct vfsmount *new_mnt,
++static int dummy_path_link(struct path *old_path, struct path *new_dir,
 +			   struct dentry *new_dentry)
 +{
 +	return 0;
@@ -609,10 +609,10 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return security_ops->path_symlink(path, dentry, old_name);
 +}
 +
-+int security_path_link(struct path *old_path, struct vfsmount *new_mnt,
++int security_path_link(struct path *old_path, struct path *new_dir,
 +		       struct dentry *new_dentry)
 +{
-+	return security_ops->path_link(old_path, new_mnt, new_dentry);
++	return security_ops->path_link(old_path, new_dir, new_dentry);
 +}
 +
 +int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
