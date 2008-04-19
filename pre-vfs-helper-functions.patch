@@ -5,37 +5,33 @@ without passing "struct vfsmount" to VFS helper functions.
 
 Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- fs/namei.c               |  145 ++++++++++++++++++++++++++++++++---------
+ fs/namei.c               |  129 ++++++++++++++++++++++++++++++++-----
  fs/open.c                |   11 ++-
  include/linux/fs.h       |    8 ++
  include/linux/security.h |  163 ++++++++++++++++++++++++++++++++++++++++++++++-
  net/unix/af_unix.c       |    6 +
  security/dummy.c         |   58 ++++++++++++++++
  security/security.c      |   52 ++++++++++++++
- 7 files changed, 405 insertions(+), 38 deletions(-)
+ 7 files changed, 406 insertions(+), 21 deletions(-)
 
---- linux-2.6.25-rc8-mm1.orig/fs/namei.c
-+++ linux-2.6.25-rc8-mm1/fs/namei.c
-@@ -2021,18 +2021,28 @@ fail:
+--- linux-2.6.25-mm1.orig/fs/namei.c
++++ linux-2.6.25-mm1/fs/namei.c
+@@ -2021,7 +2021,12 @@ fail:
  }
  EXPORT_SYMBOL_GPL(lookup_create);
  
 -int vfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
 +/*
-+ * These pre_vfs_*() functions are separated from vfs_*() functions
-+ * for LSM's security_path_*() functions so that they can do DAC checks
-+ * before MAC checks.
++ * These pre_vfs_*() functions are separated from vfs_*() functions so that
++ * LSM's security_path_*() functions can do DAC checks before MAC checks
++ * without duplicating may_create()/may_delete() functions.
 + */
 +int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
  {
  	int error = may_create(dir, dentry, NULL);
--
- 	if (error)
- 		return error;
--
- 	if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD))
- 		return -EPERM;
--
+ 
+@@ -2033,6 +2038,14 @@ int vfs_mknod(struct inode *dir, struct 
+ 
  	if (!dir->i_op || !dir->i_op->mknod)
  		return -EPERM;
 +	return 0;
@@ -49,7 +45,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	error = devcgroup_inode_mknod(mode, dev);
  	if (error)
-@@ -2101,10 +2111,20 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2101,10 +2114,20 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -70,7 +66,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
-@@ -2125,15 +2145,21 @@ asmlinkage long sys_mknod(const char __u
+@@ -2125,7 +2148,7 @@ asmlinkage long sys_mknod(const char __u
  	return sys_mknodat(AT_FDCWD, filename, mode, dev);
  }
  
@@ -78,10 +74,9 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
  {
  	int error = may_create(dir, dentry, NULL);
--
- 	if (error)
- 		return error;
--
+ 
+@@ -2134,6 +2157,14 @@ int vfs_mkdir(struct inode *dir, struct 
+ 
  	if (!dir->i_op || !dir->i_op->mkdir)
  		return -EPERM;
 +	return 0;
@@ -95,7 +90,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	mode &= (S_IRWXUGO|S_ISVTX);
  	error = security_inode_mkdir(dir, dentry, mode);
-@@ -2172,7 +2198,10 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2172,7 +2203,10 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -107,7 +102,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2217,15 +2246,21 @@ void dentry_unhash(struct dentry *dentry
+@@ -2217,7 +2251,7 @@ void dentry_unhash(struct dentry *dentry
  	spin_unlock(&dcache_lock);
  }
  
@@ -115,10 +110,9 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
  {
  	int error = may_delete(dir, dentry, 1);
--
- 	if (error)
- 		return error;
--
+ 
+@@ -2226,6 +2260,14 @@ int vfs_rmdir(struct inode *dir, struct 
+ 
  	if (!dir->i_op || !dir->i_op->rmdir)
  		return -EPERM;
 +	return 0;
@@ -132,7 +126,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	DQUOT_INIT(dir);
  
-@@ -2284,7 +2319,10 @@ static long do_rmdir(int dfd, const char
+@@ -2284,7 +2326,10 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -144,7 +138,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  exit3:
  	dput(dentry);
-@@ -2302,15 +2340,21 @@ asmlinkage long sys_rmdir(const char __u
+@@ -2302,7 +2347,7 @@ asmlinkage long sys_rmdir(const char __u
  	return do_rmdir(AT_FDCWD, pathname);
  }
  
@@ -152,10 +146,9 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
  {
  	int error = may_delete(dir, dentry, 0);
--
- 	if (error)
- 		return error;
--
+ 
+@@ -2311,6 +2356,14 @@ int vfs_unlink(struct inode *dir, struct
+ 
  	if (!dir->i_op || !dir->i_op->unlink)
  		return -EPERM;
 +	return 0;
@@ -169,7 +162,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	DQUOT_INIT(dir);
  
-@@ -2370,7 +2414,10 @@ static long do_unlinkat(int dfd, const c
+@@ -2370,7 +2423,10 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -181,7 +174,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		mnt_drop_write(nd.path.mnt);
  	exit2:
  		dput(dentry);
-@@ -2406,15 +2453,22 @@ asmlinkage long sys_unlink(const char __
+@@ -2406,7 +2462,7 @@ asmlinkage long sys_unlink(const char __
  	return do_unlinkat(AT_FDCWD, pathname);
  }
  
@@ -189,10 +182,9 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
  {
  	int error = may_create(dir, dentry, NULL);
--
- 	if (error)
- 		return error;
--
+ 
+@@ -2415,6 +2471,15 @@ int vfs_symlink(struct inode *dir, struc
+ 
  	if (!dir->i_op || !dir->i_op->symlink)
  		return -EPERM;
 +	return 0;
@@ -207,7 +199,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	error = security_inode_symlink(dir, dentry, oldname);
  	if (error)
-@@ -2455,7 +2509,11 @@ asmlinkage long sys_symlinkat(const char
+@@ -2455,7 +2520,11 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -220,7 +212,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2474,21 +2532,18 @@ asmlinkage long sys_symlink(const char _
+@@ -2474,7 +2543,8 @@ asmlinkage long sys_symlink(const char _
  	return sys_symlinkat(oldname, AT_FDCWD, newname);
  }
  
@@ -230,21 +222,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	struct inode *inode = old_dentry->d_inode;
  	int error;
--
- 	if (!inode)
- 		return -ENOENT;
--
- 	error = may_create(dir, new_dentry, NULL);
- 	if (error)
- 		return error;
--
- 	if (dir->i_sb != inode->i_sb)
- 		return -EXDEV;
--
- 	/*
- 	 * A link to an append-only or immutable file cannot be created.
- 	 */
-@@ -2498,6 +2553,15 @@ int vfs_link(struct dentry *old_dentry, 
+@@ -2498,6 +2568,15 @@ int vfs_link(struct dentry *old_dentry, 
  		return -EPERM;
  	if (S_ISDIR(old_dentry->d_inode->i_mode))
  		return -EPERM;
@@ -260,7 +238,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	error = security_inode_link(old_dentry, dir, new_dentry);
  	if (error)
-@@ -2555,7 +2619,11 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2555,7 +2634,11 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -273,7 +251,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(new_dentry);
-@@ -2679,20 +2747,16 @@ static int vfs_rename_other(struct inode
+@@ -2679,16 +2762,15 @@ static int vfs_rename_other(struct inode
  	return error;
  }
  
@@ -285,18 +263,15 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int error;
  	int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
 -	const char *old_name;
--
+ 
  	if (old_dentry->d_inode == new_dentry->d_inode)
   		return 0;
 - 
++
  	error = may_delete(old_dir, old_dentry, is_dir);
  	if (error)
  		return error;
--
- 	if (!new_dentry->d_inode)
- 		error = may_create(new_dir, new_dentry, NULL);
- 	else
-@@ -2702,6 +2766,17 @@ int vfs_rename(struct inode *old_dir, st
+@@ -2702,6 +2784,17 @@ int vfs_rename(struct inode *old_dir, st
  
  	if (!old_dir->i_op || !old_dir->i_op->rename)
  		return -EPERM;
@@ -314,7 +289,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	DQUOT_INIT(old_dir);
  	DQUOT_INIT(new_dir);
-@@ -2786,7 +2861,11 @@ static int do_rename(int olddfd, const c
+@@ -2786,7 +2879,11 @@ static int do_rename(int olddfd, const c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -327,8 +302,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				   new_dir->d_inode, new_dentry);
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
---- linux-2.6.25-rc8-mm1.orig/include/linux/security.h
-+++ linux-2.6.25-rc8-mm1/include/linux/security.h
+--- linux-2.6.25-mm1.orig/include/linux/security.h
++++ linux-2.6.25-mm1/include/linux/security.h
 @@ -349,17 +349,40 @@ static inline void security_free_mnt_opt
   *	@dir contains the inode structure of the parent directory of the new link.
   *	@new_dentry contains the dentry structure for the new link.
@@ -571,8 +546,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline int security_inode_create (struct inode *dir,
  					 struct dentry *dentry,
  					 int mode)
---- linux-2.6.25-rc8-mm1.orig/security/dummy.c
-+++ linux-2.6.25-rc8-mm1/security/dummy.c
+--- linux-2.6.25-mm1.orig/security/dummy.c
++++ linux-2.6.25-mm1/security/dummy.c
 @@ -270,6 +270,56 @@ static int dummy_sb_parse_opts_str(char 
  	return 0;
  }
@@ -630,7 +605,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static int dummy_inode_alloc_security (struct inode *inode)
  {
  	return 0;
-@@ -1077,6 +1127,14 @@ void security_fixup_ops (struct security
+@@ -1079,6 +1129,14 @@ void security_fixup_ops (struct security
  	set_to_dummy_if_null(ops, sb_set_mnt_opts);
  	set_to_dummy_if_null(ops, sb_clone_mnt_opts);
  	set_to_dummy_if_null(ops, sb_parse_opts_str);
@@ -645,8 +620,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	set_to_dummy_if_null(ops, inode_alloc_security);
  	set_to_dummy_if_null(ops, inode_free_security);
  	set_to_dummy_if_null(ops, inode_init_security);
---- linux-2.6.25-rc8-mm1.orig/security/security.c
-+++ linux-2.6.25-rc8-mm1/security/security.c
+--- linux-2.6.25-mm1.orig/security/security.c
++++ linux-2.6.25-mm1/security/security.c
 @@ -388,6 +388,58 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
@@ -706,8 +681,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_inode_create(struct inode *dir, struct dentry *dentry, int mode)
  {
  	if (unlikely(IS_PRIVATE(dir)))
---- linux-2.6.25-rc8-mm1.orig/net/unix/af_unix.c
-+++ linux-2.6.25-rc8-mm1/net/unix/af_unix.c
+--- linux-2.6.25-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.25-mm1/net/unix/af_unix.c
 @@ -822,7 +822,11 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
@@ -721,8 +696,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		mnt_drop_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.25-rc8-mm1.orig/include/linux/fs.h
-+++ linux-2.6.25-rc8-mm1/include/linux/fs.h
+--- linux-2.6.25-mm1.orig/include/linux/fs.h
++++ linux-2.6.25-mm1/include/linux/fs.h
 @@ -1124,12 +1124,20 @@ extern void unlock_super(struct super_bl
   */
  extern int vfs_permission(struct nameidata *, int);
@@ -744,8 +719,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern int vfs_rename(struct inode *, struct dentry *, struct inode *, struct dentry *);
  
  /*
---- linux-2.6.25-rc8-mm1.orig/fs/open.c
-+++ linux-2.6.25-rc8-mm1/fs/open.c
+--- linux-2.6.25-mm1.orig/fs/open.c
++++ linux-2.6.25-mm1/fs/open.c
 @@ -267,8 +267,10 @@ static long do_sys_truncate(const char _
  	error = break_lease(inode, FMODE_WRITE);
  	if (error)
