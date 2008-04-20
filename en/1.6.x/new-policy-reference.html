@@ -1264,110 +1264,113 @@ cat /proc/ccs/domain_policy</p>
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="domain_policy_allow_execute">allow_execute</a></h3>
-<p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。ワイルドカードで指定しなければ対応できない場合には、プログラム名をグループ化してからアクセス許可を与えてください。</p>
+<p>This keyword grants execution of the specified pathname. No wildcards are permitted for the pathname. If you have to use wildcards, use <a href="#exception_policy_path_group">path_group</a> keyword before granting execute permission using this keyword.</p>
 <p>(Example) allow_execute /bin/ls</p>
-<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_aggregator">aggregator</a></p>
+<p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_aggregator">aggregator</a></p>
 
 <h3><a name="domain_policy_allow_write">allow_write</a></h3>
-<p>指定されたパス名を書き込みモードでオープンすることを許可します。</p>
+<p>This keyword grants the specified pathname to be opened for writing.</p>
 <p>(Example) allow_write /dev/null</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read">allow_read</a></h3>
-<p>指定されたパス名を読み込みモードでオープンすることを許可します。</p>
+<p>This keyword grants the specified pathname to be opened for reading.</p>
 <p>(Example) allow_read /proc/meminfo</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read/write">allow_read/write</a></h3>
-<p>指定されたパス名を読み書きモードでオープンすることを許可します。</p>
+<p>This keyword grants the specified pathname to be opened for reading and writing.</p>
 <p>(Example) allow_read/write /dev/null</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_create">allow_create</a></h3>
-<p>指定されたパス名のファイルを新規作成することを許可します。</p>
+<p>This keyword grants the specified pathname to be created.</p>
 <p>(Example) allow_create /var/lock/subsys/crond</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_unlink">allow_unlink</a></h3>
-<p>指定されたパス名を削除することを許可します。</p>
+<p>This keyword grants the specified pathname to be deleted.</p>
 <p>(Example) allow_unlink /var/lock/subsys/crond</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkdir">allow_mkdir</a></h3>
-<p>パス名で指定されたディレクトリを作成することを許可します。</p>
+<p>This keyword grants the specified pathname to be created. The pathname must be a directory.</p>
 <p>(Example) allow_mkdir /tmp/logwatch.\*/</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rmdir">allow_rmdir</a></h3>
-<p>ディレクトリの削除を許可します。</p>
+<p>This keyword grants the specified pathname to be deleted. The pathname must be a directory.</p>
 <p>(Example) allow_rmdir /tmp/logwatch.\*/</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkfifo">allow_mkfifo</a></h3>
-<p>FIFO の作成を許可します。</p>
+<p>This keyword grants creation of FIFO by the specified pathname.</p>
 <p>(Example) allow_mkfifo /dev/initctl</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mksock">allow_mksock</a></h3>
-<p>UNIX ドメインソケットの作成を許可します。</p>
+<p>This keyword grants creation of UNIX domain socket by the specified pathname.</p>
 <p>(Example) allow_mksock /dev/log</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkblock">allow_mkblock</a></h3>
-<p>ブロック型デバイスファイルの作成を許可します。</p>
+<p>This keyword grants creation of block device file by the specified pathname.</p>
 <p>(Example) allow_mkblock /dev/\*</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkchar">allow_mkchar</a></h3>
-<p>キャラクタ型デバイスファイルの作成を許可します。</p>
+<p>This keyword grants creation of character device file by the specified pathname.</p>
 <p>(Example) allow_mkchar /dev/\*</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_truncate">allow_truncate</a></h3>
-<p>ファイルの切り詰めと伸長を許可します。</p>
+<p>This keyword grants the specified pathname to be truncated or extended.</p>
 <p>(Example) allow_truncate /etc/mtab</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_symlink">allow_symlink</a></h3>
-<p>シンボリックリンクの作成を許可します。</p>
+<p>This keyword grants creation of symbolic link by the specified pathname.</p>
 <p>(Example) allow_symlink /dev/cdrom</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_link">allow_link</a></h3>
-<p>ハードリンクの作成を許可します。</p>
+<p>This keyword grants creation of hard link by the specified pathnames.</p>
 <p>(Example) allow_link /etc/mtab~\$ /etc/mtab~</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rename">allow_rename</a></h3>
-<p>ファイル名の変更を許可します。</p>
+<p>This keyword grants renaming of the specified pathnames.</p>
 <p>(Example) allow_rename /etc/mtab.tmp /etc/mtab</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rewrite">allow_rewrite</a></h3>
-<p><a href="#exception_policy_deny_rewrite">deny_rewrite</a> によりファイルの内容の上書きが禁止されているパス名が指すファイル内容の上書きを許可します。</p>
+<p>This keyword grants the specified pathname to be rewritten when the pathname is specified by <a href="#exception_policy_deny_rewrite">deny_rewrite</a> keyword.</p>
 <p>(Example) allow_rewrite /var/log/messages</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
 
 <h3><a name="domain_policy_allow_argv0">allow_argv0</a></h3>
 
-<p>argv[0] の組み合わせを制限するには、 allow_argv0 というキーワードに続けて、絶対パス名と「 argv[0] の最後の / より後ろの部分」を指定します。</p>
+<p>To restrict the contents of argv[0], use allow_argv0 keyword followed by "the pathname of program" and "the basename part of argv[0]".</p>
 
-<p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができます。いくつかのプログラム（例えば busybox ）は argv[0] の内容によって振る舞いを変化させます。
-プログラムへのシンボリックリンクを経由してプログラムを実行する場合、 TOMOYO Linux のドメイン遷移は filename が指すパス名を正規化した内容に基づいて行われるのに対し、振る舞いは argv[0] （通常は filename が指すパス名と同じ内容）に基づいて行われてしまいます。例えば、 /bin/ls と /bin/cat が busybox へのハードリンクとして提供されている環境において、 /tmp/cat という /bin/ls へのシンボリックリンクを作成して /tmp/cat を実行することにより、 /bin/ls のためのドメインで cat として振舞うことができてしまうという抜け穴になります。</p>
-<p>このキーワードの目的は、 filename と argv[0] の内容の組み合わせを制限することでそのような抜け穴を塞ぐことです。</p>
+<p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[]. Some programs (e.g. busybox) behave differently depending on the basename of argv[0].
+
+When invoking a program via a symbolic link, the domain transition of TOMOYO Linux is done based on the Canonicalized Pathname of filename while the behavior of the program is determined based on argv[0] (usually same as filename).
+For example, in a system that provides /bin/ls and /bin/cat as hard links of busybox, it becomes a loophole that allows
+programs to behave as cat in the domain of /bin/ls by creating a symbolic link named /tmp/cat that points to /bin/ls and executing /tmp/cat .</p>
+<p>The purpose of this keyword is to restrict the combinations of filename and argv[0] so that such loopholes won't occur.</p>
 
 <h3><a name="domain_policy_allow_env">allow_env</a></h3>
 
-<p>環境変数名を制限するには、 allow_env というキーワードに続けて、「環境変数名」を指定します。</p>
+<p>To restrict the name of environment variables, use allow_env keyword followed by "the name of environment variable".</p>
 
-<p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができます。多くのプログラムは envp[] の内容によって振る舞いを変化させます。</p>
-<p>このキーワードの目的は、実行されるプログラムに渡される環境変数を制限することです。</p>
+<p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[]. Many programs behave differently depending on envp[].</p>
+<p>The purpose of this keyword is to restrict the environment variables passed to executed programs.</p>
 
 <p>See also:  <a href="#exception_policy_allow_env">allow_env</a></p>
 
 <h3><a name="domain_policy_allow_capability">allow_capability</a></h3>
 
-<p>To grant capability permission, use allow_capability directive followed by a capability. The following capabilities are applicable.</p>
+<p>To grant capability permission, use allow_capability keyword followed by a capability. The following capabilities are applicable.</p>
 
 <table border="1">
 <tr><td>allow_capability inet_tcp_create</td><td>Permit creation of TCP sockets.</td></tr>
@@ -1403,7 +1406,7 @@ cat /proc/ccs/domain_policy</p>
 <tr><td>allow_capability SYS_PTRACE</td><td>Permit use of ptrace(2) syscall.</td></tr>
 </table>
 
-<p>The purpose of allow_capability directive is to restrict system calls that a program can call. You can restrict more strictly with other directives and policy files for some system calls.</p>
+<p>The purpose of allow_capability keyword is to restrict system calls that a program can call. You can restrict more strictly with other keyword and policy files for some system calls.</p>
 
 <ul>
 <li>You can restrict creation of block device files using <a href="#domain_policy_allow_mkblock">allow_mkblock</a> keyword.
@@ -1424,7 +1427,7 @@ cat /proc/ccs/domain_policy</p>
 
 <h3><a name="domain_policy_allow_network">allow_network</a></h3>
 
-<p>To grant permission for socket operations, use allow_network directive followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>
+<p>To grant permission for socket operations, use allow_network keyword followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>
 <table border="1">
 <tr><td>Keyword</td><td>Permitted operation</td><td>Example</td></tr>
 <tr><td>allow_network TCP bind</td><td>	Bind to local TCP address/port.</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
@@ -1445,44 +1448,44 @@ cat /proc/ccs/domain_policy</p>
 
 <h3><a name="domain_policy_allow_signal">allow_signal</a></h3>
 
-<p>シグナルのアクセス許可を指定するには、 allow_signal というキーワードに続けて、シグナルの番号および操作対象ドメインを指定します。<br>
-　例外が 2 つ存在します。シグナル番号が 0 の場合は常に許可されます。また、自分の属するドメインへのシグナルの場合には常に許可されます。<br>
-　その他の場合、このファイルに指定されたシグナル番号とドメイン名で始まる場合のみそのシグナルを送信できます。<br>
-　操作対象ドメインとして &lt;kernel&gt; を指定すると、全てのドメインに指定された番号のシグナルを送信できます。</p>
+<p>To grant permissions for signals, use allow_signal keyword followed by signal number and target domain.<br>
+There are two exceptions. If signal number is 0, it is always granted. If the target domain and the source domain are the same, it is always granted.</p>
+<p>In other cases, signals are granted only when the signal number matches and the target domain starts with the target domain declared with this keyword.</p>
+<p>If only &lt;kernel&gt; is declared as a target domain, the source domain can send signals to any domain with that signal number.</p>
 
 <h3><a name="domain_policy_use_profile">use_profile</a></h3>
 
-<p>これは、このドメインに対して割り当てられているプロファイル番号を示しています。プロファイル番号は 0 ～ 255 の値をとります。</p>
+<p>This keyword indicates the profile number currently assigned to this domain. The profile number is an integer between 0 and 255.</p>
 
 <h3><a name="domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></h3>
 
-<p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
+<p>This keyword ignores pathnames specified by <a href="#exception_policy_allow_read">allow_read</a> keyword in exception policy. You can use this keyword for domains you want to ignore globally readable files.</p>
 
 <p>See also:  <a href="#exception_policy_allow_read">allow_read</a></p>
 
 <h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
 
-<p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_env">allow_env</a> を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
+<p>This keyword ignores environment variables names specified by <a href="#exception_policy_allow_env">allow_env</a> keyword in exception policy. You can use this keyword for domains you want to ignore globally acceptable environment variable names.</p>
 
 <p>See also:  <a href="#exception_policy_allow_env">allow_env</a></p>
 
 <h3><a name="domain_policy_execute_handler">execute_handler</a></h3>
 
-<p>これは、このドメインに対しては常にこのキーワードで指定されたプログラムだけを実行することを示しています。特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
+<p>This domain executes only one program specified by this keyword. You can use this keyword for domains you want to validate parameters before executing the requested program.</p>
 
-<p>このキーワードが指定されている場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
+<p>If this keyword is specified, only one program specified by this keyword regardless of the mode specified by <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>. Thus, if the pathname specified by this program cannot be executed, no programs can be executed from this domain.</p>
 
 <p>See also:  <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
 
 <h3><a name="domain_policy_denied_execute_handler">denied_execute_handler</a></h3>
 
-<p>これは、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
+<p>This domain executes this program only when execute request was rejected and the mode of <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is enforcing. If this keyword is not specified and the mode of <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is enforcing, execute request is rejected.</p>
 
-<p>ただし、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
+<p>Exception is, if the <a href="#domain_policy_execute_handler">execute_handler</a> keyword is specified, denied_execute_handler keyword is ignored.</p>
 
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
-<p>これは、学習モードで動作中にアクセス許可の数が <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a> で指定された値に到達したため、このドメインに対してはアクセス許可を学習しきれなかったことを示しています。チューニングを行うなどしてアクセス許可の数を減らすようにしてください。</p>
+<p>This keyword indicates that this domain has failed to append entry in learning mode since the number of entries reached to the limit specified by <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a> keyword. You need to reduce the number of entries for this domain by tuning policy.</p>
 
 <p>See also:  <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></p>
 
@@ -1498,15 +1501,14 @@ cat /proc/ccs/exception_policy</p>
 
 <h3><a name="exception_policy_file_pattern">file_pattern</a></h3>
 
-<p>To declare pathname pattern, use file_pattern directive followed by pathname pattern. The pathname pattern must be a canonicalized Pathname. This directive is not applicable to neither granting execute permissions nor domain definitions.<br>
+<p>To declare pathname pattern, use file_pattern keyword followed by pathname pattern. The pathname pattern must be a canonicalized Pathname. This keyword is not applicable to neither granting execute permissions nor domain definitions.<br>
 For example, canonicalized pathname that contains a process ID (i.e. /proc/PID/ files) needs to be grouped in order to make access control work well.</p>
 
 <p>When file access requests arise in learning mode ( profile's <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is set to "learning" ) , the requested pathname is automatically patterned according to patterens specified using this keyword. This keyword does not affect modes other than learning mode. This keyword is used for only reducing the burden of policy tuning which is needed after the lerning mode by making already known pathname patterns as templetes.</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
-<p>パス名のグループを定義するには、 path_group というキーワードに続けて、グループ名とパス名のパターンを指定します。<br>
-　例えば、ホームディレクトリ以下の全ファイルをまとめたい場合、</p>
+<p>To declare pathname group, use path_group keyword followed by name of the group and pathname pattern. For example, if you want to group all files under home directory, you can define</p>
 
 <table border="1">
 <tr><td>
@@ -1519,7 +1521,7 @@ path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
 </td></tr>
 </table>
 
-<p>のように定義しておくことで、ドメインポリシのファイルに対するアクセス許可を指定する際に</p>
+<p>in the exception policy and use like</p>
 
 <table border="1">
 <tr><td>
@@ -1527,12 +1529,11 @@ allow_read @HOME-DIR-FILE
 </td></tr>
 </table>
 
-<p>のように指定できます。</p>
+<p>to grant file access permission.</p>
 
 <h3><a name="exception_policy_address_group">address_group</a></h3>
 
-<p>アドレスのグループを定義するには、 address_group というキーワードに続けて、グループ名と IP アドレスのパターンを指定します。<br>
-　例えば、ローカルアドレスをまとめたい場合、</p>
+<p>To declare address group, use address_group keyword followed by name of the group and IP address pattern. For example, if you want to group all local addresses, you can define</p>
 
 <table border="1">
 <tr><td>
@@ -1542,7 +1543,7 @@ address_group local-address 192.168.0.0-192.168.255.255
 </td></tr>
 </table>
 
-<p>のように定義しておくことで、ドメインポリシのネットワークに対するアクセス許可を指定する際に</p>
+<p>in the exception policy and use like</p>
 
 <table border="1">
 <tr><td>
@@ -1550,153 +1551,157 @@ allow_network TCP accept @local-address 1024-65535
 </td></tr>
 </table>
 
-<p>のように指定できます。</p>
+<p>to grant network access permission.</p>
 
 <h3><a name="exception_policy_allow_read">allow_read</a></h3>
 
-<p>無条件に読み込みを許可するファイルを指定するには、 allow_read というキーワードに続けて、正規化されたファイル名を指定します。このキーワードの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルのように、どのようなプログラムから参照されても構わないというファイルを指定することで、各ドメインで記述しないで済むようにすることです。なお、各ドメインで ignore_global_allow_read という指定をすると、ここで指定された allow_read は無視されます。</p>
+<p>To grant unconditionally readable permissions, use allow_read keyword followed by canonicalized file. This keyword is intended to reduce size of domain policy by granting read access to library files such as GLIBC and locale files. Exception is, if ignore_global_allow_read keyword is given to a domain, entries specified by this keyword are ignored.</p>
 
 <p>See also:  <a href="#domain_policy_allow_read">allow_read</a> <a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></p>
 
 <h3><a name="exception_policy_allow_env">allow_env</a></h3>
 
-<p>無条件に受け取ってよい環境変数名を指定するには、 allow_env というキーワードに続けて、環境変数名を指定します。このキーワードの目的は、 PATH や HOME のように、どのようなプログラムに渡されても構わないような環境変数名を指定することで、各ドメインで記述しないで済むようにすることです。くれぐれも LD_PRELOAD のような危険な環境変数を指定しないでください。なお、各ドメインで ignore_global_allow_env という指定をすると、ここで指定された allow_env は無視されます。</p>
+<p>To grant unconditionally acceptable environment variables' names, use allow_env keyword followed by the name of environment variables. This keyword is intended to reduce memory usage for commonly granted environment variables (e.g. PATH and HOME). You should not grant dangerous environment variables like LD_PRELOAD . Exception is, if ignore_global_allow_env keyword is given to a domain, entries specified by this keyword are ignored.</p>
 
 <p>See also:  <a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a> <a href="#domain_policy_allow_env">allow_env</a></p>
 
 <h3><a name="exception_policy_deny_rewrite">deny_rewrite</a></h3>
 
-<p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、ドメイン用ポリシの中で明示的に <a href="#domain_policy_allow_rewrite">allow_rewrite</a> というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。</p>
+<p>To deny overwriting already written contents of file (such as log files) by default, use deny_rewrite keyword followed by pathname pattern. Files whose pathname match the patterns are not permitted to open for writing without append mode or truncate unless the pathnames are explicitly granted using <a href="#domain_policy_allow_rewrite">allow_rewrite</a> keyword in domain policy.</p>
 
 <p>See also:  <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
 
 <h3><a name="exception_policy_alias">alias</a></h3>
 
-<p>シンボリックリンクを解決した名前ではなくシンボリックリンクの名前のまま実行させるプログラムを指定するには、 alias というキーワードに続けてシンボリックリンクを解決したパス名とシンボリックリンクを解決する前のパス名を指定します。このキーワードの目的は、実行時の名前によって異なる振る舞いをするプログラムが、ハードリンクではなくシンボリックリンクで参照される場合に、シンボリックリンクの名前でドメインを遷移できるようにすることです。</p>
-<p>例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクであるため、通常は /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。しかし、 alias /sbin/killall5 /sbin/pidof という指定をすることで、 /sbin/pidof を実行すると /sbin/pidof が実行されたものとしてドメインが定義されるようにできます。</p>
+<p>To allow executing programs using the name of symbolic links, use alias keyword followed by dereferenced pathname and reference pathname. This keyword is intended to allow programs that behave differently depending on the name of invocation and that referenced using symbolic links instead of hard links transit domain using the symbolic link's name.</p>
+<p>For example, /sbin/pidof is a symbolic link to /sbin/killall5 . In normal case, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed. By specifying "alias /sbin/killall5 /sbin/pidof", you can run /sbin/pidof in the domain for /sbin/pidof .</p>
 
 <p>See also:  <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
 <h3><a name="exception_policy_aggregator">aggregator</a></h3>
 
-<p>複数のプログラムを単一のプログラム名で扱うには、 aggregator というキーワードに続けて集約前のプログラム名と集約後のプログラム名を指定します。このキーワードの目的は、同様のプログラムを集約することです。</p>
-<p>例えば、 /usr/bin/tac と /bin/cat は似ているので、 aggregator /usr/bin/tac /bin/cat という指定をすることで /usr/bin/tac を /bin/cat のドメインで実行することができるようになります。</p>
-<p>例えば、 Fedora Core 3 の /usr/sbin/logrotate は /tmp/logrotate.\?\?\?\?\?\? というパターンのプログラムを作成して実行するが、 TOMOYO Linux では安全上の理由からプログラムの実行許可を与える場合とドメインを定義する場合にパターンを使用することを認めていません。しかし、 aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp という指定をすることで /tmp/logrotate.\?\?\?\?\?\? を /tmp/logrotate.tmp のドメインで実行することができるようになります。</p>
+<p>To deal multiple programs as a single program, use aggregator keyword followed by name of original program and aggregated program. This keyword is intended to aggregate similar programs.</p>
+<p>For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
+<p>For example, /usr/sbin/logrotate for Fedora Core 3 generates programs like /tmp/logrotate.\?\?\?\?\?\? and run them, but TOMOYO Linux doesn't allow using patterns for granting execute permission and defining domains. By specifying "aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp", you can run /tmp/logrotate.\?\?\?\?\?\? as if /tmp/logrotate.tmp is running.</p>
 
 <p>See also:  <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
 <h3><a name="exception_policy_initialize_domain">initialize_domain</a></h3>
 
-<p>特定のプログラムが実行された場合にドメイン遷移を初期化させるには、 initialize_domain というキーワードを使用します。</p>
+<p>To initialize domain transition when specific program is executed, use initialize_domain directive.</p>
 
 <ul>
-<li>initialize_domain プログラム名 from ドメイン名
-<li>initialize_domain プログラム名 from ドメイン名の最後のプログラム名
-<li>initialize_domain プログラム名
+<li>initialize_domain "program" from "domain"
+<li>initialize_domain "program" from "the last program part of domain"
+<li>initialize_domain "program"
 </ul>
 
-<p> from 以降が指定されていない場合は任意のドメインから実行された場合に適用されます。ドメイン名が &lt;kernel&gt; で始まらない場合は、ドメイン名の最後のプログラム名が一致する全てのドメインに適用されます。</p>
+<p>If the part "from" and after is not given, the entry is applied to all domain. If the "domain" doesn't start with "&lt;kernel&gt;", the entry is applied to all domain whose domainname ends with "the last program part of domain".</p>
 
-<p>このキーワードの目的は、常駐型プログラムや必要に応じてカーネルから起動されるプログラムを、通常とは異なるドメインに遷移させることで、ドメイン遷移を集約することです。</p>
+<p>This directive is intended to aggregate domain transitions for daemon program and program that are invoked by the kernel on demand, by transiting to different domain.</p>
 
-<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></p>
+<p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></p>
 
 <h3><a name="exception_policy_no_initialize_domain">no_initialize_domain</a></h3>
 
-<p>initialize_domain の効力を打ち消すには、 no_initialize_domain というキーワードを指定します。</p>
+<p>To deny the effect of "initialize_domain" directive, use "no_initialize_domain" directive.</p>
+
 <ul>
-<li>no_initialize_domain プログラム名 from ドメイン名
-<li>no_initialize_domain プログラム名 from ドメイン名の最後のプログラム名
-<li>no_initialize_domain プログラム名
+<li>no_initialize_domain "program" from "domain"
+<li>no_initialize_domain "program" from "the last program part of domain"
+<li>no_initialize_domain "program"
 </ul>
 
-<p>このキーワードはドメイン遷移を初期化させたくない場合に使用します。</p>
+<p>Use this directive when you don't want to initialize domain transition.</p>
 
-<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_initialize_domain">initialize_domain</a></p>
+<p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_initialize_domain">initialize_domain</a></p>
 
 <h3><a name="exception_policy_keep_domain">keep_domain</a></h3>
 
-<p>特定のドメインからプログラムが実行されてもドメイン遷移を行わないようにするには、 keep_domain というキーワードを使用します。</p>
+<p>To prevent domain transition when program is executed from specific domain, use keep_domain directive.</p>
 
 <ul>
-<li>keep_domain プログラム名 from ドメイン名
-<li>keep_domain プログラム名 from ドメイン名の最後のプログラム名
-<li>keep_domain ドメイン名
-<li>keep_domain ドメイン名の最後のプログラム名
+<li>keep_domain "program" from "domain"
+<li>keep_domain "program" from "the last program part of domain"
+<li>keep_domain "domain"
+<li>keep_domain "the last program part of domain"
 </ul>
 
-<p> from 以前が指定されていない場合は任意のプログラムが実行された場合に適用されます。ドメイン名が &lt;kernel&gt; で始まらない場合は、ドメイン名の最後のプログラム名が一致する全てのドメインに適用されます。</p>
+<p>If the part "from" and before is not given, this entry is applied to all program. If the "domain" doesn't start with "&lt;kernel&gt;", the entry is applied to all domain whose domainname ends with "the last program part of domain".</p>
 
-<p>このキーワードの目的は、不要なドメイン遷移の発生を抑制することでドメイン数とメモリ消費を抑えることです。</p>
+<p>This directive is intended to reduce total number of domains and memory usage by suppressing unneeded domain transitions.</p>
 
-<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_keep_domain">no_keep_domain</a></p>
+<p>To declare domain keepers, use keep_domain directive followed by domain definition. </p>
+<p>Any process that belongs to any domain declared with this directive, the process stays at the same domain unless any program registered with initialize_domain directive is executed.</p>
+
+<p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_no_keep_domain">no_keep_domain</a></p>
 
 <h3><a name="exception_policy_no_keep_domain">no_keep_domain</a></h3>
 
-<p>keep_domain の効力を打ち消すには、 no_keep_domain というキーワードを指定します。</p>
+<p>To deny the effect of "keep_domain" directive, use "no_keep_domain" directive.</p>
 
 <ul>
-<li>no_keep_domain プログラム名 from ドメイン名
-<li>no_keep_domain プログラム名 from ドメイン名の最後のプログラム名
-<li>no_keep_domain ドメイン名
-<li>no_keep_domain ドメイン名の最後のプログラム名
+<li>no_keep_domain "program" from "domain"
+<li>no_keep_domain "program" from "the last program part of domain"
+<li>no_keep_domain "domain"
+<li>no_keep_domain "the last program part of domain"
 </ul>
 
-<p>このキーワードはドメイン遷移を行わせたい場合に使用します。</p>
+<p>Use this directive when you want to escape from a domain that is kept by "keep_domain" directive.</p>
 
-<p>See also: <a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
+<p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
 
 <h2><a name="query">/proc/ccs/query</a></h2>
 
-<p>強制モードで動作中にポリシ違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用します。 ALLOW_ENFORCE_GRACE=enabled に設定されているプロファイルが割り当てられているドメインに対して強制モードでポリシ違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できます。</p>
+<p>This file is used to manually grant or reject individual access requests when the policy violation occurs in enforcing mode. If a policy violation occur in a process whose domain is assigned a profile for enforcing mode and "ALLOW_ENFORCE_GRACE=enabled", the administrator can judge interactively using "ccs-queryd" command.</p>
 
 <h2><a name="manager">/proc/ccs/manager</a></h2>
 
-<p>ポリシの読み書きを行えるプログラムまたはドメインの一覧を取得または追加します。</p>
+<p>This file is used to read or append the list of programs or domains that can write to /proc/ccs/ interface.</p>
 
 <h3><a name="manager_manage_by_non_root">manage_by_non_root</a></h3>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合に使用します。</p>
+<p>By default, only processes with both UID = 0 and EUID = 0 can modify policy via /proc/ccs/ interface. You can use this keyword to allow policy modification by non root user.</p>
 
 <h2><a name=".domain_status">/proc/ccs/.domain_status</a></h2>
 
-<p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
+<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "setprofile" command can do line-oriented processing easily.</p>
 
 <h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
 
-<p>TOMOYO Linux がポリシを保持するために使用しているカーネルのメモリ情報を取得します。</p>
+<p>This file is to show the total RAM used to keep policy in the kernel by TOMOYO Linux.</p>
 <p>(Example)<br>
 cat /proc/ccs/meminfo<br></p>
 
 <h2><a name="grant_log">/proc/ccs/grant_log</a></h2>
 
-<p>ドメインポリシに対するアクセス許可ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は MAX_GRANT_LOG 件までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
+<p>This file holds the granted log. The reader process returns immediately if no granted logs exists. To wait until a granted log is generated, use select(2) for readability. The max number of logs that the kernel can hold is limited to MAX_GRANT_LOG, so read out timely.</p>
 <p>(Example)<br>
 cat /proc/ccs/grant_log</p>
 
 <h2><a name="reject_log">/proc/ccs/reject_log</a></h2>
 
-<p>ドメインポリシに対するアクセス拒否ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は MAX_REJECT_LOG 件までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
+<p>This file holds the rejected log. The reader process returns immediately if no violation logs exists. To wait until a violation log is generated, use select(2) for readability. The max number of logs that the kernel can hold is limited to MAX_REJECT_LOG, so read out timely.</p>
 <p>(Example)<br>
 cat /proc/ccs/reject_log</p>
 
 <h2><a name="self_domain">/proc/ccs/self_domain</a></h2>
 
-<p>呼び出し元プロセスが属しているドメインの名前を取得します。</p>
+<p>This file is to show the name of domain the caller process belongs to.</p>
 <p>(Example)<br>
 cat /proc/ccs/self_domain</p>
 
 <h2><a name=".process_status">/proc/ccs/.process_status</a></h2>
 
-<p>ccstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシマネージャとして登録されていないプログラムでも書き込みを行える。</p>
+<p>This file is used by "ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by programs that aren't registered as policy manager.</p>
 
 <h2><a name=".updates_counter">/proc/ccs/.updates_counter</a></h2>
 
-<p>ポリシの変更を検出するためのカウンタです。参照されるたびに 0 にリセットされます。ポリシの更新を監視するプログラムのためのインタフェースです。</p>
+<p>This file is a counter used by policy update monitor programs so that they can easily find that the policies may have changed since last check. The counter values are reset to 0 whenever it is referred.</p>
 
 <h2><a name="version">/proc/ccs/version</a></h2>
 
-<p>TOMOYO Linux のバージョン番号を取得するためのインタフェースです。</p>
+<p>This file is used for getting TOMOYO Linux's version.</p>
 <p>(Example)<br>
 cat /proc/ccs/version</p>
 
@@ -1704,7 +1709,7 @@ cat /proc/ccs/version</p>
 
 <h2>6.1 <a name="non_root_policy_update">Allowing policy modification by non root user.</a></h2>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合には</p>
+<p>By default, only processes with both UID = 0 and EUID = 0 can modify policy via /proc/ccs/ interface. But if you want to permit policy modification via /proc/ccs/ interface by non root user, you can write this keyword like</p>
 
 <table border="1">
 <tr><td>
@@ -1712,7 +1717,7 @@ cat /proc/ccs/version</p>
 </td></tr>
 </table>
 
-<p>のように manage_by_non_root というキーワードを書き込むことで、ユーザＩＤと実効ユーザＩＤのチェックを無効にすることができます。また、再びユーザＩＤと実効ユーザＩＤのチェックを有効にするには、</p>
+<p>to disable UID and EUID checks. Also, you can write this keyword like</p>
 
 <table border="1">
 <tr><td>
@@ -1720,8 +1725,8 @@ cat /proc/ccs/version</p>
 </td></tr>
 </table>
 
-<p>のように delete manage_by_non_root というキーワードを書き込んでください。 /proc/ccs/ 以下のエントリの所有者は root なので、非 root ユーザによるアクセスを認めるためには必要に応じて chown/chmod を実行してください。<br>
-起動時に自動的にこの処理が行われるようにするために、 /sbin/ccs-init は /etc/ccs/ccs-post-init というプログラムが存在する場合には /etc/ccs/ccs-post-init も実行するようになっています。よって、例えば demo ユーザが /proc/ccs/ インタフェースへの読み書きができるように設定したい場合は、</p>
+<p>to enable UID and EUID checks again. Use chown/chmod as needed since the owner of /proc/ccs/ interface is root.<br>
+To be able to do this steps, /sbin/ccs-init also executes /etc/ccs/ccs-post-init if /etc/ccs/ccs-post-init is executable. Therefore, to allow access to /proc/ccs/ interface by user demo, create /etc/ccs/ccs-post-init with</p>
 
 <table border="1">
 <tr><td>
@@ -1731,7 +1736,7 @@ chown -R demo /proc/ccs/
 </td></tr>
 </table>
 
-<p>という内容で /etc/ccs/ccs-post-init を作成し、</p>
+<p>and initialize like</p>
 
 <table border="1">
 <tr><td>
@@ -1741,24 +1746,24 @@ chown -R demo /proc/ccs/
 </td></tr>
 </table>
 
-<p>を実行することで demo ユーザがポリシのあるディレクトリへのアクセスとポリシを編集するためのプログラムを実行できるようになります。</p>
+<p>Then, user demo will be able to access policy directories and policy editors.</p>
 
 <h2>6.2 <a name="conditional_acl">Using conditional ACL.</a></h2>
 
-<p>アクセス許可にユーザＩＤ等に基づいた条件を付加することができます。条件は個々のアクセス許可の末尾に " if " 句を追加する形で指定します。</p>
+<p>You can add conditions (e.g. UID and GID) as needed. The condition clause are appended to the tail of each permission using "if" directive.</p>
 
 <table border="1">
-<tr><td>指定例</td><td>Meaning</td></tr>
-<tr><td>allow_read /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
-<tr><td>allow_read /etc/passwd if task.uid=0</td><td>プロセスのユーザＩＤが 0 の場合に限り、 /etc/passwd の参照を許可</td></tr>
-<tr><td>allow_read /etc/passwd if task.uid!=0</td><td>プロセスのユーザＩＤが 0 ではない場合に限り、 /etc/passwd の参照を許可</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1</td><td>TCP プロトコルで 10.0.0.1 への接続を許可</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 if task.uid=100</td><td>プロセスのユーザＩＤが 100 の場合に限り、 TCP プロトコルで 10.0.0.1 への接続を許可</td></tr>
-<tr><td>allow_capability SYS_KILL</td><td>kill(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>親プロセスが /sbin/init であり、かつ、プロセスのユーザＩＤと実効ユーザＩＤが 0 の場合に限り、 kill(2) の使用を許可</td></tr>
+<tr><td>Example</td><td>Meaning</td></tr>
+<tr><td>allow_read /etc/passwd</td><td>Allow opening /etc/passwd for reading.</td></tr>
+<tr><td>allow_read /etc/passwd if task.uid=0</td><td>Allow opening /etc/passwd for reading only if the process's UID is 0.</td></tr>
+<tr><td>allow_read /etc/passwd if task.uid!=0</td><td>Allow opening /etc/passwd for reading only if the process's UID is not 0.</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1</td><td>Allow connecting TCP socket to 10.0.0.1 .</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 if task.uid=100</td><td>Allow connecting TCP socket to 10.0.0.1 only if the process's UID is 100.</td></tr>
+<tr><td>allow_capability SYS_KILL</td><td>Allow using kill(2) syscall.</td></tr>
+<tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>Allow using kill(2) syscall only if the parent process is /sbin/init and the process's UID is 0 and the process's EUID is 0.</td></tr>
 </table>
 
-<p>以下の変数を指定できます。</p>
+<p>The following variables are available.</p>
 
 <table border="1">
 <tr><td>Variable</td><td>Meaning</td></tr>
@@ -1808,7 +1813,7 @@ chown -R demo /proc/ccs/
 <h2>6.3 <a name="stateful_acl">Using stateful ACL.</a></h2>
 
 <p>Since TOMOYO Linux doesn't require modification of userland applications, it is impossible to change the range of accessible resources without domain transition.
-But there are cases you wish to change the range of accessible resources without domain transition. For example, you might wish to change the range of accessible resources depending on the client's IP address. To support such cases, you can assign state variables to each processes and you can use the state variables in<a href="#conditional_acl">Using conditional ACL.</a></p>
+But there are cases you wish to change the range of accessible resources without domain transition. For example, you might wish to change the range of accessible resources depending on the client's IP address. To support such cases, you can assign state variables to each processes and you can use the state variables in <a href="#conditional_acl">Using conditional ACL.</a></p>
 
 <table border="1">
 <tr><td>Variable</td><td>Meaning</td></tr>
