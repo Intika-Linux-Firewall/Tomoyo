@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0   2008/04/01
+ * Version: 1.6.0   2008/04/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -57,13 +57,11 @@ typedef _Bool bool;
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-static inline void *kzalloc(size_t size, int flags)
-{
-	void *p = kmalloc(size, flags);
-	if (p)
-		memset(p, 0, size);
-	return p;
-}
+#define kzalloc(size, flags) ({						\
+			void *ret = kmalloc((size), (flags));		\
+			if (ret)					\
+				memset(ret, 0, (size));			\
+			ret; })
 #endif
 
 #ifndef list_for_each_entry_safe
@@ -644,7 +642,7 @@ static int syaoran_initialize(struct super_block *sb, void *data)
 	static bool first = true;
 	if (first) {
 		first = false;
-		printk(KERN_INFO "SYAORAN: 1.6.0   2008/04/01\n");
+		printk(KERN_INFO "SYAORAN: 1.6.0+   2008/04/20\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);

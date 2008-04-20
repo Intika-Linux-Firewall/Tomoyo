@@ -1376,3 +1376,11 @@ Fix 2008/04/14
       CentOS 4.6's 2.6.9 kernel backported kzalloc() from 2.6.14 ,
       resulting compilation error at kzalloc().
       I modified prototype of kzalloc().
+
+Fix 2008/04/20
+
+    @ Fix "Compilation failures" with kernels before 2.4.30/2.6.11 .
+
+      Turbolinux 10 Server's 2.6.8 kernel backported kzalloc() as an inlined
+      function, resulting compilation error at kzalloc().
+      I converted kzalloc() from an inlined function into a macro.
