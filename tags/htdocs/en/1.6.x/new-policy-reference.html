@@ -1843,36 +1843,37 @@ But there are cases you wish to change the range of accessible resources without
 
 <h2>6.4 <a name="sleep_penalty">Sleep penalty for policy violation.</a></h2>
 
-<p>強制モードでポリシ違反が発生した場合に、ポリシ違反の原因となったプロセスを一定時間スリープ状態にさせることができます。</p>
+<p>You can make the process which violated policy in enforcing mode sleep for specified period.</p>
 
 <table border="1">
-<tr><td>/proc/ccs/profile での指定例</td><td>Meaning</td></tr>
-<tr><td>3-SLEEP_PERIOD=1</td><td>プロファイル 3 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 0.1 秒間スリープさせます。</td></tr>
-<tr><td>4-SLEEP_PERIOD=10</td><td>プロファイル 4 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 1 秒間スリープさせます。</td></tr>
+<tr><td>Example of /proc/ccs/profile</td><td>Meaning</td></tr>
+<tr><td>3-SLEEP_PERIOD=1</td><td>Make the process which violated policy in enforcing mode and which belongs to a domain with profile 3 speep for 0.1 second.</td></tr>
+<tr><td>4-SLEEP_PERIOD=10</td><td>Make the process which violated policy in enforcing mode and which belongs to a domain with profile 4 speep for 1 second.</td></tr>
 </table>
 
-<p>この機能は、無限ループの中でポリシ違反が発生した場合に、ＣＰＵ使用率が 100% になってしまうのを回避するための安全装置です。通常は 0.1 秒間スリープさせるだけで充分です。</p>
+<p>This feature is a safeguard to avoid that the CPU usage remains 100% when policy violation occurs in an infinite loop. Usually, making processes sleep for 0.1 second is enough.</p>
 
-<p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシ違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
+<p>This feature is not applied against network's receive operation so that attackers cannot make services sleep for long time (in other words, delay your system's response) by intentionally sending TCP connection requests and UDP packets from unwanted sources.</p>
 
 <h2>6.5 <a name="execute_handler">Judging execute request outside the kernel.</a></h2>
 
-<p>TOMOYO Linux では、原則としてポリシに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">Using conditional ACL.</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">Using conditional ACL.</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
+<p>Basically, TOMOYO Linux controls whether to execute a program or not according to the domain policy. You can check parameters using exec.argv and exec.envp described in <a href="#conditional_acl">Using conditional ACL.</a> But this approach support only simple pattern matching and you need to specify what programs are permitted to be executed beforehand.</p>
 
-<p>そこで、 TOMOYO Linux 1.6.0 では <a href="#domain_policy_execute_handler">execute_handler</a> という仕組みが導入されました。この仕組みは、プログラムの実行可否をカーネルが判断するのではなく、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムが判断し、プログラムの実行を許可すべきと判断した場合には実際にプログラムを実行するという動作をします。</p>
+<p>Therefore, TOMOYO Linux 1.6.0 introduced a mechanism named <a href="#domain_policy_execute_handler">execute_handler</a>. If this mechanism is used, the kernel no longer controls whether to execute a requested program or not, and the kernel merely executes the program specified by <a href="#domain_policy_execute_handler">execute_handler</a>, and the program specified by <a href="#domain_policy_execute_handler">execute_handler</a> determines whether to execute the requested program or not, and the program specified by <a href="#domain_policy_execute_handler">execute_handler</a> executes the requested program only if the program specified by <a href="#domain_policy_execute_handler">execute_handler</a> considers it is appropriate.</p>
 
-<p>Linux に於いては、プログラムを実行するという動作は、プログラムの実行を要求したプロセスを上書きするという動作であり、プログラムの実行に成功した場合にはプログラムの実行を要求したプロセスに制御が戻ることはありません。つまり、要求されたプログラムの実行に失敗した場合にしか、プログラムの実行を要求したプロセスに対して、要求されたプログラムが実行されなかったことが通知されません。<br>
-例えば、プログラムＡとして動作しているプロセスがプログラムＢの実行を要求する場合を考えてみます。<br>
-プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、カーネルが「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」をポリシを照合することで判断し、適切であると判断された場合には「プログラムＡとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＡとして動作しているプロセスにプログラムＢの実行が認められていないことを通知」します。</p>
+<p>In Linux, the behavior "execute a program" means "overwrite the process which requested to execute a program with the requested program's image" and "the process which requested to execute a program cannot regain control if the execute request was succeeded". Therefore, the process which requested to execute a program can receive a notification only when the execute request was failed.<br>
+For example, let's consider a situation where a process running as program-A attempts to execute program-B.<br>
+When the process running as program-A requests the execution of program-B, the kernel checks the domain policy for "whether it is appropriate to execute program-B from a process running as program-A or not" and the kernel overwrites the process running as program-A with program-B if the kernel considers it is appropriate, and the kernel doesn't overwrite the process running as program-A with program-B and notifies the process running as program-A that exeution of program-B is not permitted if the kernel considers it is not appropriate.</p>
 
-<p><a href="#domain_policy_execute_handler">execute_handler</a> を指定した場合、 execute_handler として指定されたプログラムＣがこの動作に介在します。<br>
-プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、プログラムＣに「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」を判断してもらうために「プログラムＡとして動作しているプロセスをプログラムＣで上書き」します。プログラムＣとして動作するようになったプロセスが「プログラムＡとして動作していたプロセスからプログラムＢを実行することは適切であるかどうか」を判断し、適切であると判断した場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書きせずに終了」します。</p>
+<p>When <a href="#domain_policy_execute_handler">execute_handler</a> is specified, a different program program-C specifyed as execute_handler madiates this behavior.<br>
+When the process running as program-A requests the execution of program-B, the kernel overwrites the process running as program-A with program-C to let the program-C judge whether it is appropriate to execute program-B from a process running as program-A or not.
+The process now running as program-C determines whether it is appropriate to execute program-B from a process running as program-A or not, and the process now running as program-C requests the execution of program-B (and the kernel will overwrite the process now running as program-C with program-B) if the process now running as program-C considers it is appropriate, and the process now running as program-C terminates without executing program-B if the process now running as program-C considers it is not appropriate.</p>
 
-<p>このように、プログラムＢの実行を要求したプログラムＡとして動作していたプロセスがに対して、プログラムＢの実行に失敗したことを通知する手段を放棄することになるため、プログラムＢの実行を要求したプログラムＡとして動作していたプロセスが、プログラムＢが実行されなかったという通知を受けることができなくなるという副作用が発生します。<br>
-しかし、たとえ <a href="#domain_policy_execute_handler">execute_handler</a> を指定していない場合であっても、「共有ライブラリの読み込みができなかった」「 KILL シグナルを受信した」「メモリ不足になり OOM killer によって強制終了させられた」など、様々な要因によって「実行には成功したが期待された動作を始める前に終了してしまった」という状況が起こりえます。つまり、「プログラムの実行が失敗しなかった」ということと「要求されたプログラムが期待した動作を始めた」ということの間には、不確定要素が存在します。<br>
-そう考えると、「プログラムの実行に失敗したという通知が無い限りプログラムは期待された動作を始める」という保証は最初から存在しないわけなので、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムＣが、プログラムＢの実行に失敗したことをプログラムＢの実行を要求したプログラムＡとして動作していたプロセスに通知できなかったという結果になったとしても、容認できる範囲であると言えると思います。</p>
+<p>As stated above, this mechanism has a side effect that it becomes impossible to notify the process running as program-A that the requested program (i.e. program-B) was not executed since program-C abandons a mean to notify the process running as program-A that the execute request of program-B was not accepted.<br>
+But, even if <a href="#domain_policy_execute_handler">execute_handler</a> is not specified, there are various factors that cause "the execute request was accepted but the program terminated before starting the expected behavior" such as "the process was unable to read shared libraries", "the process received KILL signal", "the system became out of memory and the process was killed by OOM killer". In other words, there are uncertainties between "the execute request did not fail" and "the executed program starts the expected behavior".<br>
+Viewing in this light, there is no guarantee that "the program starts expected behavior unless the process receives a notification that the execution of the program failed" from the beginning. And, it is possible to say that it is an acceptable result that the program-C specified by <a href="#domain_policy_execute_handler">execute_handler</a> failed to notify the process previously running as program-A that the execution of program-B failed.</p>
 
-<p>TOMOYO Linux は、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、正常な動作をしている限り、ポリシで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求をとりあえず受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、 <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
+<p>TOMOYO Linux's assumes that the administrator knows what programs needs to be executed from what programs beforehand and permits execution of minimal programs. Thus, assuming that unexpected execute request which are not permitted by policy won't occur as long as the system is running properly, it is OK to accept all execute requests. If an execute request that should not be accepted occurs, you can take different actions such as terminating the process instead of rejecting the request by using <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> mechanism. So, you don't have to let the kernel judge whether to execute the program or not alone.</p>
 
 <p>そこで、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
 <p>カーネルの内部では利用可能なライブラリが少ない上に連続したメモリ領域の割り当てが失敗する可能性が高くなりますが、
@@ -1880,30 +1881,30 @@ But there are cases you wish to change the range of accessible resources without
 
 <p>この方式の副作用は、プログラムの実行を拒否すべきと判断した場合に、プログラムの実行を要求したプロセスに通知する方法が無い点です。しかし、自由にカスタマイズできるので、 ssh 等を用いて遠隔地のマシンに問い合わせをしながらしながら判断することも可能です。</p>
 
-<p>この機能を使うには、以下のように指定します。</p>
+<p>To use this feature, specify like below.</p>
 
 <table border="1">
-<tr><td>/proc/ccs/domain_policy の例</td><td>Meaning</td></tr>
-<tr><td>execute_handler /usr/sbin/check-and-exec</td><td>このドメインに属しているプロセスがプログラムの実行を要求した場合、要求されたプログラムを実行する代わりに /usr/sbin/check-and-exec を実行します。 /usr/sbin/check-and-exec はパラメータをチェックし、妥当と判断した場合には要求されたプログラムを実行します。</td></tr>
+<tr><td>Example of /proc/ccs/domain_policy</td><td>Meaning</td></tr>
+<tr><td>execute_handler /usr/sbin/check-and-exec</td><td>Whenever a process which belongs to this domain requests execution of a program, execute /usr/sbin/check-and-exec instead for the requested program. /usr/sbin/check-and-exec checks parameters and executes the requested program if /usr/sbin/check-and-exec considers it is appropriate to execute.</td></tr>
 </table>
 
-<p>execute_handler で指定されたプログラムは、以下のパラメータを受け取ります。<a href="#access_logs">Access Logs</a>で説明した、 allow_execute のログと比較してみてください。</p>
+<p>The program specified by execute_handler keyword receives the following parameters. Compare with allow_execute log described in <a href="#access_logs">Access Logs</a>.</p>
 
 <ul>
-<li>argv[0] には、 execute_handler で指定されたプログラムのパス名が入っています。</li>
-<li>argv[1] には、プログラムの実行を要求したプロセスのドメイン名が入っています。</li>
-<li>argv[2] には、プログラムの実行を要求したプロセスのパス名が入っています。</li>
-<li>argv[3] には、プログラムの実行を要求したプロセスの情報が入っています。</li>
-<li>argv[4] には、実行が要求されたプログラムのパス名が入っています。</li>
-<li>argv[5] には、プログラム実行要求時の引数の数が入っています。</li>
-<li>argv[6] には、プログラム実行要求時の環境変数の数が入っています。</li>
-<li>argv[7] から argv[6 + argc] には、呼び出し元プロセスが渡した argv[] の内容が入っています。</li>
-<li>argv[7 + argc] から argv [6 + argc + envc] には、呼び出し元プロセスが渡した envp[] の内容が入っています。</li>
-<li>環境変数 envp[] は全てクリアされます。</li>
-<li>標準入出力などは呼び出し元プロセスのものを引き継ぎます。</li>
+<li>argv[0] contains the pathname of the program specified by execute_handler keyword.</li>
+<li>argv[1] contains the name of the domain which the process which issued an execute request belongs to.</li>
+<li>argv[2] contains the name of the program which the process which issued an execute request.</li>
+<li>argv[3] contains informations of the process which the process which issued an execute request.</li>
+<li>argv[4] contains the name of the program which was requested by the process.</li>
+<li>argv[5] contains the number of arguments.</li>
+<li>argv[6] contains the number of environment variables.</li>
+<li>From argv[7] to argv[6 + argc] contains the arguments.</li>
+<li>From argv[7 + argc] to argv [6 + argc + envc] contains the environment variables.</li>
+<li>All environment variables are cleared for safety.</li>
+<li>Other resources such as standart input/output are inherited.</li>
 </ul>
 
-<p>この機能を使用する際には、以下の点に注意してください。</p>
+<p>Be careful with the following notes when you use this feature.</p>
 
 <ul>
 <li>execute_handler で指定されたプログラムに対して実行許可（ <a href="#domain_policy_allow_execute">allow_execute</a> ）を与える必要はありませんし、与えるべきではありません。</li>
@@ -1939,14 +1940,14 @@ But there are cases you wish to change the range of accessible resources without
 
 <p>例えば、攻撃者の接続元ＩＰアドレスを割り出して、ファイアウォールの設定を変更することができます。</p>
 
-<p>この機能を使うには、以下のように指定します。</p>
+<p>To use this feature, specify like below.</p>
 
 <table border="1">
-<tr><td>/proc/ccs/profile の例</td><td>/proc/ccs/domain_policy の例</td><td>Meaning</td></tr>
-<tr><td>3-MAC_FOR_FILE=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
+<tr><td>Example of /proc/ccs/profile</td><td>Example of /proc/ccs/domain_policy</td><td>Meaning</td></tr>
+<tr><td>3-MAC_FOR_FILE=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>If a process which belongs to a domain with profile 3 requested execution of a program which is not permitted by the domain policy, execute /bin/true instead of rejecting the execute request.</td></tr>
 </table>
 
-<p>この機能を使用する際の注意事項は<a href="#execute_handler">Judging execute request outside the kernel.</a>と同じです。</p>
+<p>Notes on this feature is the same as <a href="#execute_handler">Judging execute request outside the kernel.</a></p>
 
 <hr>
 <p><a href="index.html#manual">Return to index</a></p>
