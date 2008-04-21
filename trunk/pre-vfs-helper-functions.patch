@@ -5,18 +5,28 @@ without passing "struct vfsmount" to VFS helper functions.
 
 Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- fs/namei.c               |  115 ++++++++++++++++++++++++++++++++++++----
+ fs/namei.c               |  118 +++++++++++++++++++++++++++++++++---
  fs/open.c                |    7 ++
  include/linux/fs.h       |    8 ++
- include/linux/security.h |  135 +++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/security.h |  151 +++++++++++++++++++++++++++++++++++++++++++++++
  net/unix/af_unix.c       |    4 +
- security/dummy.c         |   53 ++++++++++++++++++
- security/security.c      |   46 ++++++++++++++++
- 7 files changed, 358 insertions(+), 10 deletions(-)
+ security/dummy.c         |   60 ++++++++++++++++++
+ security/security.c      |   53 ++++++++++++++++
+ 7 files changed, 391 insertions(+), 10 deletions(-)
 
 --- linux-2.6.25-mm1.orig/fs/namei.c
 +++ linux-2.6.25-mm1/fs/namei.c
-@@ -2021,7 +2021,12 @@ fail:
+@@ -1595,6 +1595,9 @@ int vfs_create(struct inode *dir, struct
+ 	error = security_inode_create(dir, dentry, mode);
+ 	if (error)
+ 		return error;
++	error = security_path_create(dir, dentry, mode, nd);
++	if (error)
++		return error;
+ 	DQUOT_INIT(dir);
+ 	error = dir->i_op->create(dir, dentry, mode, nd);
+ 	if (!error)
+@@ -2021,7 +2024,12 @@ fail:
  }
  EXPORT_SYMBOL_GPL(lookup_create);
  
@@ -30,7 +40,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	int error = may_create(dir, dentry, NULL);
  
-@@ -2033,6 +2038,14 @@ int vfs_mknod(struct inode *dir, struct 
+@@ -2033,6 +2041,14 @@ int vfs_mknod(struct inode *dir, struct 
  
  	if (!dir->i_op || !dir->i_op->mknod)
  		return -EPERM;
@@ -45,7 +55,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	error = devcgroup_inode_mknod(mode, dev);
  	if (error)
-@@ -2096,6 +2109,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2096,6 +2112,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -55,7 +65,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2108,6 +2124,7 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2108,6 +2127,7 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
@@ -63,7 +73,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2125,7 +2142,7 @@ asmlinkage long sys_mknod(const char __u
+@@ -2125,7 +2145,7 @@ asmlinkage long sys_mknod(const char __u
  	return sys_mknodat(AT_FDCWD, filename, mode, dev);
  }
  
@@ -72,7 +82,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	int error = may_create(dir, dentry, NULL);
  
-@@ -2134,6 +2151,14 @@ int vfs_mkdir(struct inode *dir, struct 
+@@ -2134,6 +2154,14 @@ int vfs_mkdir(struct inode *dir, struct 
  
  	if (!dir->i_op || !dir->i_op->mkdir)
  		return -EPERM;
@@ -87,7 +97,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	mode &= (S_IRWXUGO|S_ISVTX);
  	error = security_inode_mkdir(dir, dentry, mode);
-@@ -2172,7 +2197,11 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2172,7 +2200,11 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -99,7 +109,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2217,7 +2246,7 @@ void dentry_unhash(struct dentry *dentry
+@@ -2217,7 +2249,7 @@ void dentry_unhash(struct dentry *dentry
  	spin_unlock(&dcache_lock);
  }
  
@@ -108,7 +118,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	int error = may_delete(dir, dentry, 1);
  
-@@ -2226,6 +2255,14 @@ int vfs_rmdir(struct inode *dir, struct 
+@@ -2226,6 +2258,14 @@ int vfs_rmdir(struct inode *dir, struct 
  
  	if (!dir->i_op || !dir->i_op->rmdir)
  		return -EPERM;
@@ -123,7 +133,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	DQUOT_INIT(dir);
  
-@@ -2284,7 +2321,11 @@ static long do_rmdir(int dfd, const char
+@@ -2284,7 +2324,11 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -135,7 +145,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  exit3:
  	dput(dentry);
-@@ -2302,7 +2343,7 @@ asmlinkage long sys_rmdir(const char __u
+@@ -2302,7 +2346,7 @@ asmlinkage long sys_rmdir(const char __u
  	return do_rmdir(AT_FDCWD, pathname);
  }
  
@@ -144,7 +154,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	int error = may_delete(dir, dentry, 0);
  
-@@ -2311,6 +2352,14 @@ int vfs_unlink(struct inode *dir, struct
+@@ -2311,6 +2355,14 @@ int vfs_unlink(struct inode *dir, struct
  
  	if (!dir->i_op || !dir->i_op->unlink)
  		return -EPERM;
@@ -159,7 +169,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	DQUOT_INIT(dir);
  
-@@ -2370,7 +2419,11 @@ static long do_unlinkat(int dfd, const c
+@@ -2370,7 +2422,11 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -171,7 +181,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		mnt_drop_write(nd.path.mnt);
  	exit2:
  		dput(dentry);
-@@ -2406,7 +2459,7 @@ asmlinkage long sys_unlink(const char __
+@@ -2406,7 +2462,7 @@ asmlinkage long sys_unlink(const char __
  	return do_unlinkat(AT_FDCWD, pathname);
  }
  
@@ -180,7 +190,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	int error = may_create(dir, dentry, NULL);
  
-@@ -2415,6 +2468,15 @@ int vfs_symlink(struct inode *dir, struc
+@@ -2415,6 +2471,15 @@ int vfs_symlink(struct inode *dir, struc
  
  	if (!dir->i_op || !dir->i_op->symlink)
  		return -EPERM;
@@ -196,7 +206,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	error = security_inode_symlink(dir, dentry, oldname);
  	if (error)
-@@ -2455,7 +2517,11 @@ asmlinkage long sys_symlinkat(const char
+@@ -2455,7 +2520,11 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -208,7 +218,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2474,7 +2540,8 @@ asmlinkage long sys_symlink(const char _
+@@ -2474,7 +2543,8 @@ asmlinkage long sys_symlink(const char _
  	return sys_symlinkat(oldname, AT_FDCWD, newname);
  }
  
@@ -218,7 +228,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	struct inode *inode = old_dentry->d_inode;
  	int error;
-@@ -2498,6 +2565,15 @@ int vfs_link(struct dentry *old_dentry, 
+@@ -2498,6 +2568,15 @@ int vfs_link(struct dentry *old_dentry, 
  		return -EPERM;
  	if (S_ISDIR(old_dentry->d_inode->i_mode))
  		return -EPERM;
@@ -234,7 +244,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	error = security_inode_link(old_dentry, dir, new_dentry);
  	if (error)
-@@ -2555,7 +2631,11 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2555,7 +2634,11 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -246,7 +256,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(new_dentry);
-@@ -2679,16 +2759,15 @@ static int vfs_rename_other(struct inode
+@@ -2679,16 +2762,15 @@ static int vfs_rename_other(struct inode
  	return error;
  }
  
@@ -266,7 +276,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	error = may_delete(old_dir, old_dentry, is_dir);
  	if (error)
  		return error;
-@@ -2702,6 +2781,17 @@ int vfs_rename(struct inode *old_dir, st
+@@ -2702,6 +2784,17 @@ int vfs_rename(struct inode *old_dir, st
  
  	if (!old_dir->i_op || !old_dir->i_op->rename)
  		return -EPERM;
@@ -284,7 +294,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	DQUOT_INIT(old_dir);
  	DQUOT_INIT(new_dir);
-@@ -2786,8 +2876,13 @@ static int do_rename(int olddfd, const c
+@@ -2786,8 +2879,13 @@ static int do_rename(int olddfd, const c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -300,7 +310,20 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	dput(new_dentry);
 --- linux-2.6.25-mm1.orig/include/linux/security.h
 +++ linux-2.6.25-mm1/include/linux/security.h
-@@ -349,17 +349,37 @@ static inline void security_free_mnt_opt
+@@ -343,23 +343,50 @@ static inline void security_free_mnt_opt
+  *	@dentry contains the dentry structure for the file to be created.
+  *	@mode contains the file mode of the file to be created.
+  *	Return 0 if permission is granted.
++ * @path_create:
++ *	Check permission to create a regular file.
++ *	@dir contains inode structure of the parent of the new file.
++ *	@dentry contains the dentry structure for the file to be created.
++ *	@mode contains the file mode of the file to be created.
++ *	@nd contains the nameidata structure (may be NULL).
++ *	Return 0 if permission is granted.
+  * @inode_link:
+  *	Check permission before creating a new hard link to a file.
+  *	@old_dentry contains the dentry structure for an existing link to the file.
   *	@dir contains the inode structure of the parent directory of the new link.
   *	@new_dentry contains the dentry structure for the new link.
   *	Return 0 if permission is granted.
@@ -338,7 +361,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @inode_mkdir:
   *	Check permissions to create a new directory in the existing directory
   *	associated with inode strcture @dir. 
-@@ -367,11 +387,25 @@ static inline void security_free_mnt_opt
+@@ -367,11 +394,25 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure of new directory.
   *	@mode contains the mode of new directory.
   *	Return 0 if permission is granted.
@@ -364,7 +387,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @inode_mknod:
   *	Check permissions when creating a special file (or a socket or a fifo
   *	file created via the mknod system call).  Note that if mknod operation
-@@ -382,6 +416,15 @@ static inline void security_free_mnt_opt
+@@ -382,6 +423,15 @@ static inline void security_free_mnt_opt
   *	@mode contains the mode of the new file.
   *	@dev contains the device number.
   *	Return 0 if permission is granted.
@@ -380,7 +403,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @inode_rename:
   *	Check for permission to rename a file or directory.
   *	@old_dir contains the inode structure for parent of the old link.
-@@ -389,6 +432,13 @@ static inline void security_free_mnt_opt
+@@ -389,6 +439,13 @@ static inline void security_free_mnt_opt
   *	@new_dir contains the inode structure for parent of the new link.
   *	@new_dentry contains the dentry structure of the new link.
   *	Return 0 if permission is granted.
@@ -394,7 +417,7 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @inode_readlink:
   *	Check the permission to read the symbolic link.
   *	@dentry contains the dentry structure for the file link.
-@@ -417,6 +467,13 @@ static inline void security_free_mnt_opt
+@@ -417,6 +474,13 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure for the file.
   *	@attr is the iattr structure containing the new file attributes.
   *	Return 0 if permission is granted.
@@ -408,10 +431,12 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @inode_getattr:
   *	Check permission before obtaining file attributes.
   *	@mnt is the vfsmount where the dentry was looked up
-@@ -1351,6 +1408,20 @@ struct security_operations {
+@@ -1351,6 +1415,22 @@ struct security_operations {
  				   struct super_block *newsb);
  	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
  
++	int (*path_create) (struct inode *dir, struct dentry *dentry, int mode,
++			    struct nameidata *nd);
 +	int (*path_unlink) (struct path *dir, struct dentry *dentry);
 +	int (*path_mkdir) (struct path *dir, struct dentry *dentry, int mode);
 +	int (*path_rmdir) (struct path *dir, struct dentry *dentry);
@@ -429,10 +454,12 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int (*inode_alloc_security) (struct inode *inode);	
  	void (*inode_free_security) (struct inode *inode);
  	int (*inode_init_security) (struct inode *inode, struct inode *dir,
-@@ -1625,6 +1696,20 @@ void security_sb_clone_mnt_opts(const st
+@@ -1625,6 +1705,22 @@ void security_sb_clone_mnt_opts(const st
  				struct super_block *newsb);
  int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts);
  
++int security_path_create(struct inode *dir, struct dentry *dentry, int mode,
++			 struct nameidata *nd);
 +int security_path_unlink(struct path *dir, struct dentry *dentry);
 +int security_path_mkdir(struct path *dir, struct dentry *dentry, int mode);
 +int security_path_rmdir(struct path *dir, struct dentry *dentry);
@@ -450,10 +477,15 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_inode_alloc(struct inode *inode);
  void security_inode_free(struct inode *inode);
  int security_inode_init_security(struct inode *inode, struct inode *dir,
-@@ -1950,6 +2035,56 @@ static inline int security_sb_parse_opts
+@@ -1950,6 +2046,61 @@ static inline int security_sb_parse_opts
  	return 0;
  }
  
++static inline int security_path_create(struct inode *dir, struct dentry *dentry,
++				       int mode, struct nameidata *nd)
++{
++	return 0;
++}
 +static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
 +{
 +	return 0;
@@ -509,10 +541,16 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
 --- linux-2.6.25-mm1.orig/security/dummy.c
 +++ linux-2.6.25-mm1/security/dummy.c
-@@ -270,6 +270,51 @@ static int dummy_sb_parse_opts_str(char 
+@@ -270,6 +270,57 @@ static int dummy_sb_parse_opts_str(char 
  	return 0;
  }
  
++static int dummy_path_create(struct inode *inode, struct dentry *dentry,
++			     int mask, struct nameidata *nd)
++{
++	return 0;
++}
++
 +static int dummy_path_mknod(struct path *dir, struct dentry *dentry, int mode,
 +			    unsigned int dev)
 +{
@@ -561,10 +599,11 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static int dummy_inode_alloc_security (struct inode *inode)
  {
  	return 0;
-@@ -1079,6 +1124,14 @@ void security_fixup_ops (struct security
+@@ -1079,6 +1130,15 @@ void security_fixup_ops (struct security
  	set_to_dummy_if_null(ops, sb_set_mnt_opts);
  	set_to_dummy_if_null(ops, sb_clone_mnt_opts);
  	set_to_dummy_if_null(ops, sb_parse_opts_str);
++	set_to_dummy_if_null(ops, path_create);
 +	set_to_dummy_if_null(ops, path_mknod);
 +	set_to_dummy_if_null(ops, path_mkdir);
 +	set_to_dummy_if_null(ops, path_rmdir);
@@ -578,10 +617,17 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	set_to_dummy_if_null(ops, inode_init_security);
 --- linux-2.6.25-mm1.orig/security/security.c
 +++ linux-2.6.25-mm1/security/security.c
-@@ -388,6 +388,52 @@ int security_inode_init_security(struct 
+@@ -388,6 +388,59 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
  
++int security_path_create(struct inode *dir, struct dentry *dentry, int mode,
++			 struct nameidata *nd)
++{
++	if (unlikely(IS_PRIVATE(dir)))
++		return 0;
++	return security_ops->path_create(dir, dentry, mode, nd);
++}
 +int security_path_mknod(struct path *path, struct dentry *dentry, int mode,
 +			unsigned int dev)
 +{
