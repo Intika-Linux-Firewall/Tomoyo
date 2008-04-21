@@ -1384,3 +1384,15 @@ Fix 2008/04/20
       Turbolinux 10 Server's 2.6.8 kernel backported kzalloc() as an inlined
       function, resulting compilation error at kzalloc().
       I converted kzalloc() from an inlined function into a macro.
+
+Fix 2008/04/21
+
+    @ Add workaround for gcc 3.2.2's inline bug.
+
+      RedHat Linux 9's gcc 3.2.2 generated a bad code
+         if ((var_of_u8 & 0x000000BF) & 0x80000000) { }
+      where the expected code is
+         if ((var_of_u8 & 0xBF) & 0x80) { }
+      when embedding ccs_acl_type2() into print_entry(),
+      resulting runtime BUG().
+      I added the expected code explicitly as a workaround.
