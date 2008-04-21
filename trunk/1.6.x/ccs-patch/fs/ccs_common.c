@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.0   2008/04/20
+ * Version: 1.6.0   2008/04/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1875,6 +1875,9 @@ static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
 		const char *keyword = KEYWORD_DENIED_EXECUTE_HANDLER;
 		return print_execute_handler_record(head, keyword, acl);
 	}
+	/* Workaround for gcc 3.2.2's inline bug. */
+	if (acl_type & ACL_DELETED)
+		return true;
 	BUG(); /* This must not happen. */
 	return false;
 }
@@ -2345,7 +2348,7 @@ void ccs_load_policy(const char *filename)
 	printk(KERN_INFO "SAKURA: 1.6.0+   2008/04/20\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.0+   2008/04/20\n");
+	printk(KERN_INFO "TOMOYO: 1.6.0+   2008/04/21\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
