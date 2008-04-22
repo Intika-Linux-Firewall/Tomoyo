@@ -15,12 +15,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  557 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 557 insertions(+)
+ security/tomoyo/realpath.c |  663 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 663 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-mm1/security/tomoyo/realpath.c
-@@ -0,0 +1,557 @@
++++ mm/security/tomoyo/realpath.c
+@@ -0,0 +1,663 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -44,6 +44,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <linux/mount.h>
 +#include "realpath.h"
 +#include <linux/proc_fs.h>
++#include <linux/sysctl.h>
 +#include "ccs_common.h"
 +
 +/**
@@ -577,4 +578,109 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	} else {
 +		printk(KERN_WARNING "BUG: ccs_free() with invalid pointer.\n");
 +	}
++}
++
++static int ccs_print_ascii(const char *sp, const char *cp,
++			   int *buflen0, char **end0)
++{
++	int buflen = *buflen0;
++	char *end = *end0;
++
++	while (sp <= cp) {
++		unsigned char c;
++
++		c = *(unsigned char *) cp;
++		if (c == '\\') {
++			buflen -= 2;
++			if (buflen < 0)
++				goto out;
++			*--end = '\\';
++			*--end = '\\';
++		} else if (c > ' ' && c < 127) {
++			if (--buflen < 0)
++				goto out;
++			*--end = (char) c;
++		} else {
++			buflen -= 4;
++			if (buflen < 0)
++				goto out;
++			*--end = (c & 7) + '0';
++			*--end = ((c >> 3) & 7) + '0';
++			*--end = (c >> 6) + '0';
++			*--end = '\\';
++		}
++		cp--;
++	}
++
++	*buflen0 = buflen;
++	*end0 = end;
++
++	return 0;
++ out:
++	return -ENOMEM;
++}
++
++
++/* ccs_get_absolute_path() for "struct ctl_table". */
++static int ccs_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
++{
++	char *end = buffer + buflen;
++
++	if (buflen < 256)
++		goto out;
++
++	*--end = '\0';
++	buflen--;
++
++	buflen -= 9; /* for "/proc/sys" prefix */
++
++	while (table) {
++		char buf[32];
++		const char *sp = table->procname;
++		const char *cp;
++
++		if (!sp) {
++			memset(buf, 0, sizeof(buf));
++			snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
++			sp = buf;
++		}
++		cp = strchr(sp, '\0') - 1;
++
++		if (ccs_print_ascii(sp, cp, &buflen, &end))
++			goto out;
++
++		if (--buflen < 0)
++			goto out;
++
++		*--end = '/';
++		table = table->parent;
++	}
++
++	/* Move the pathname to the top of the buffer. */
++	memmove(buffer, "/proc/sys", 9);
++	memmove(buffer + 9, end, strlen(end) + 1);
++	return 0;
++out: ;
++	return -ENOMEM;
++}
++
++/**
++ * sysctlpath_from_table - return the realpath of a ctl_table.
++ * @table: pointer to "struct ctl_table".
++ *
++ * Returns realpath(3) of the @table on success.
++ * Returns NULL on failure.
++ *
++ * This function uses ccs_alloc(), so caller must call ccs_free()
++ * if this function didn't return NULL.
++ */
++char *sysctlpath_from_table(struct ctl_table *table)
++{
++	char *buf = ccs_alloc(CCS_MAX_PATHNAME_LEN);
++
++	if (buf && ccs_sysctl_path(table, buf, CCS_MAX_PATHNAME_LEN - 1) == 0)
++		return buf;
++
++	ccs_free(buf);
++	return NULL;
 +}

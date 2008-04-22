@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/ccs_common.c | 2144 +++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 2144 insertions(+)
+ security/tomoyo/ccs_common.c | 2130 +++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 2130 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-mm1/security/tomoyo/ccs_common.c
-@@ -0,0 +1,2144 @@
++++ mm/security/tomoyo/ccs_common.c
+@@ -0,0 +1,2130 @@
 +/*
 + * security/tomoyo/ccs_common.c
 + *
@@ -35,7 +35,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <linux/mount.h>
 +#include "realpath.h"
 +#include "ccs_common.h"
-+#include "ccs_proc.h"
 +#include "tomoyo.h"
 +
 +/* Set default specified by the kernel config. */
@@ -780,7 +779,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +unsigned int ccs_check_flags_no_sleep_check(const u8 index)
 +{
-+	const u8 profile = current->domain_info->profile;
++	const u8 profile = CCS_SECURITY->domain->profile;
 +	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
 +#if MAX_PROFILES != 256
 +		&& profile < MAX_PROFILES
@@ -862,41 +861,41 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			acl1 = container_of(ptr, struct single_path_acl_record,
 +					    head);
 +			perm = acl1->perm;
-+			if (perm & (1 << TYPE_EXECUTE_ACL))
++			if (perm & (1 << CCS_TYPE_EXECUTE_ACL))
 +				count++;
 +			if (perm &
-+			    ((1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL)))
++			    ((1 << CCS_TYPE_READ_ACL) | (1 << CCS_TYPE_WRITE_ACL)))
 +				count++;
-+			if (perm & (1 << TYPE_CREATE_ACL))
++			if (perm & (1 << CCS_TYPE_CREATE_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_UNLINK_ACL))
++			if (perm & (1 << CCS_TYPE_UNLINK_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_MKDIR_ACL))
++			if (perm & (1 << CCS_TYPE_MKDIR_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_RMDIR_ACL))
++			if (perm & (1 << CCS_TYPE_RMDIR_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_MKFIFO_ACL))
++			if (perm & (1 << CCS_TYPE_MKFIFO_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_MKSOCK_ACL))
++			if (perm & (1 << CCS_TYPE_MKSOCK_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_MKBLOCK_ACL))
++			if (perm & (1 << CCS_TYPE_MKBLOCK_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_MKCHAR_ACL))
++			if (perm & (1 << CCS_TYPE_MKCHAR_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_TRUNCATE_ACL))
++			if (perm & (1 << CCS_TYPE_TRUNCATE_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_SYMLINK_ACL))
++			if (perm & (1 << CCS_TYPE_SYMLINK_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_REWRITE_ACL))
++			if (perm & (1 << CCS_TYPE_REWRITE_ACL))
 +				count++;
 +			break;
 +		case TYPE_DOUBLE_PATH_ACL:
 +			acl2 = container_of(ptr, struct double_path_acl_record,
 +					    head);
 +			perm = acl2->perm;
-+			if (perm & (1 << TYPE_LINK_ACL))
++			if (perm & (1 << CCS_TYPE_LINK_ACL))
 +				count++;
-+			if (perm & (1 << TYPE_RENAME_ACL))
++			if (perm & (1 << CCS_TYPE_RENAME_ACL))
 +				count++;
 +			break;
 +		}
@@ -1183,7 +1182,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct policy_manager_entry *ptr;
 +	const char *exe;
 +	const struct task_struct *task = current;
-+	const struct path_info *domainname = task->domain_info->domainname;
++	const struct path_info *domainname = CCS_SECURITY->domain->domainname;
 +	bool found = false;
 +	if (!sbin_init_started)
 +		return true;
@@ -1553,7 +1552,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
 +		if (p)
-+			domain = p->domain_info;
++			domain = ((struct ccs_security *) (p->security))->domain;
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (domain)
@@ -1882,12 +1881,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	if (!head->read_eof) {
 +		/*
-+		 * current->domain_info->domainname != NULL
++		 * CCS_SECURITY->domain->domainname != NULL
 +		 * because every process belongs to a domain and
 +		 * the domain's name cannot be NULL.
 +		 */
 +		ccs_io_printf(head, "%s",
-+			      current->domain_info->domainname->name);
++			      CCS_SECURITY->domain->domainname->name);
 +		head->read_eof = true;
 +	}
 +	return 0;
@@ -2105,19 +2104,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +int ccs_close_control(struct file *file)
 +{
 +	struct ccs_io_buffer *head = file->private_data;
-+	/*
-+	 * If the file is /proc/ccs/meminfo , regard policy loading by
-+	 * the policy loader executed from ccs_load_policy() has finished.
-+	 * This hack is needed because 2.4 kernel's call_usermodehelper()
-+	 * returns before the executed program terminates in some situations.
-+	 * Thus, I'm using the close() request of /proc/ccs/meminfo as
-+	 * the trigger rather than complicating the code to wait for
-+	 * termination of the policy loader.
-+	 * So, the policy loader must open and close /proc/ccs/meminfo
-+	 * when loading policy has finished.
-+	 */
-+	else if (head->read == read_memory_counter)
-+		profile_loaded = true;
 +	/* Release memory used for policy I/O. */
 +	ccs_free(head->read_buf);
 +	head->read_buf = NULL;
