@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.h |   80 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 80 insertions(+)
+ security/tomoyo/tomoyo.h |  103 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 103 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,80 @@
++++ mm/security/tomoyo/tomoyo.h
+@@ -0,0 +1,103 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -34,6 +34,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +struct pt_regs;
 +struct ccs_page_buffer;
 +
++char *sysctlpath_from_table(struct ctl_table *table);
 +int ccs_check_file_perm(const char *filename, const u8 perm,
 +			const char *operation);
 +int ccs_check_exec_perm(const struct path_info *filename,
@@ -50,8 +51,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			 struct dentry *dentry2,
 +			 struct vfsmount *mnt2);
 +int ccs_check_rewrite_permission(struct file *filp);
++int ccs_find_next_domain(struct linux_binprm *bprm,
++			 struct domain_info **next_domain);
 +
-+#define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
++#define CCS_CHECK_READ_FOR_OPEN_EXEC 1
 +
 +/* Index numbers for Access Controls. */
 +
@@ -69,26 +72,46 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * automatically cleared if TYPE_READ_WRITE_ACL is cleared.
 + */
 +
-+#define TYPE_READ_WRITE_ACL        0
-+#define TYPE_EXECUTE_ACL           1
-+#define TYPE_READ_ACL              2
-+#define TYPE_WRITE_ACL             3
-+#define TYPE_CREATE_ACL            4
-+#define TYPE_UNLINK_ACL            5
-+#define TYPE_MKDIR_ACL             6
-+#define TYPE_RMDIR_ACL             7
-+#define TYPE_MKFIFO_ACL            8
-+#define TYPE_MKSOCK_ACL            9
-+#define TYPE_MKBLOCK_ACL          10
-+#define TYPE_MKCHAR_ACL           11
-+#define TYPE_TRUNCATE_ACL         12
-+#define TYPE_SYMLINK_ACL          13
-+#define TYPE_REWRITE_ACL          14
++#define CCS_TYPE_READ_WRITE_ACL        0
++#define CCS_TYPE_EXECUTE_ACL           1
++#define CCS_TYPE_READ_ACL              2
++#define CCS_TYPE_WRITE_ACL             3
++#define CCS_TYPE_CREATE_ACL            4
++#define CCS_TYPE_UNLINK_ACL            5
++#define CCS_TYPE_MKDIR_ACL             6
++#define CCS_TYPE_RMDIR_ACL             7
++#define CCS_TYPE_MKFIFO_ACL            8
++#define CCS_TYPE_MKSOCK_ACL            9
++#define CCS_TYPE_MKBLOCK_ACL          10
++#define CCS_TYPE_MKCHAR_ACL           11
++#define CCS_TYPE_TRUNCATE_ACL         12
++#define CCS_TYPE_SYMLINK_ACL          13
++#define CCS_TYPE_REWRITE_ACL          14
 +#define MAX_SINGLE_PATH_OPERATION 15
 +
-+#define TYPE_LINK_ACL             0
-+#define TYPE_RENAME_ACL           1
++#define CCS_TYPE_LINK_ACL             0
++#define CCS_TYPE_RENAME_ACL           1
 +#define MAX_DOUBLE_PATH_OPERATION 2
 +
++struct ccs_security {
++	struct domain_info *domain;
++	struct domain_info *prev_domain;
++	u32 flags;
++};
++
++#define CCS_SECURITY ((struct ccs_security *) current->security)
++
++#define CCS_DOMAINPOLICY          0
++#define CCS_EXCEPTIONPOLICY       1
++#define CCS_DOMAIN_STATUS         2
++#define CCS_PROCESS_STATUS        3
++#define CCS_MEMINFO               4
++#define CCS_SELFDOMAIN            5
++#define CCS_VERSION               6
++#define CCS_PROFILE               7
++#define CCS_MANAGER               8
++#define CCS_UPDATESCOUNTER        9
++
++extern struct domain_info KERNEL_DOMAIN;
 +
 +#endif

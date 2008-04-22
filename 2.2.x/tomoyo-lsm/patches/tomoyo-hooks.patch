@@ -3,82 +3,94 @@ Subject: LSM adapter functions.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/tomoyo.c |  245 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 245 insertions(+)
+ security/tomoyo/tomoyo.c |  290 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 290 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,245 @@
++++ mm/security/tomoyo/tomoyo.c
+@@ -0,0 +1,290 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
 + * LSM hooks for TOMOYO Linux.
 + */
 +
++#include <linux/string.h>
++#include <linux/mm.h>
++#include <linux/utime.h>
++#include <linux/file.h>
++#include <linux/smp_lock.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/slab.h>
++#include <linux/poll.h>
++#include <asm/uaccess.h>
++#include <stdarg.h>
++#include <linux/delay.h>
++#include <linux/security.h>
++#include "ccs_common.h"
 +#include "tomoyo.h"
 +#include "realpath.h"
 +
-+LIST_HEAD(domain_list);
++static struct kmem_cache *ccs_cachep;
 +
-+static struct kmem_cache *tmy_cachep;
-+
-+static int tmy_task_alloc_security(struct task_struct *p)
++static int ccs_task_alloc_security(struct task_struct *p)
 +{
-+	struct tmy_security *ptr = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
++	struct ccs_security *ptr = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
 +
 +	if (!ptr)
 +		return -ENOMEM;
-+	memcpy(ptr, TMY_SECURITY, sizeof(*ptr));
++	memcpy(ptr, CCS_SECURITY, sizeof(*ptr));
 +	p->security = ptr;
 +	return 0;
 +}
 +
-+static void tmy_task_free_security(struct task_struct *p)
++static void ccs_task_free_security(struct task_struct *p)
 +{
-+	kmem_cache_free(tmy_cachep, p->security);
++	kmem_cache_free(ccs_cachep, p->security);
 +}
 +
-+static int tmy_bprm_alloc_security(struct linux_binprm *bprm)
++static int ccs_bprm_alloc_security(struct linux_binprm *bprm)
 +{
-+	TMY_SECURITY->prev_domain = TMY_SECURITY->domain;
++	CCS_SECURITY->prev_domain = CCS_SECURITY->domain;
 +	return 0;
 +}
 +
-+static int tmy_bprm_check_security(struct linux_binprm *bprm)
++static int ccs_bprm_check_security(struct linux_binprm *bprm)
 +{
 +	struct domain_info *next_domain = NULL;
 +	int retval = 0;
 +
-+	tmy_load_policy(bprm->filename);
++	ccs_load_policy(bprm->filename);
 +
 +	/*
-+	 * TMY_CHECK_READ_FOR_OPEN_EXEC bit indicates whether this function is
++	 * CCS_CHECK_READ_FOR_OPEN_EXEC bit indicates whether this function is
 +	 * called by do_execve() or not.
 +	 * If called by do_execve(), I do domain transition.
 +	 */
-+	if ((TMY_SECURITY->flags & TMY_CHECK_READ_FOR_OPEN_EXEC))
++	if ((CCS_SECURITY->flags & CCS_CHECK_READ_FOR_OPEN_EXEC))
 +		goto out;
-+	retval = tmy_find_next_domain(bprm, &next_domain);
++	retval = ccs_find_next_domain(bprm, &next_domain);
 +	if (retval)
 +		goto out;
-+	TMY_SECURITY->domain = next_domain;
-+	TMY_SECURITY->flags |= TMY_CHECK_READ_FOR_OPEN_EXEC;
++	CCS_SECURITY->domain = next_domain;
++	CCS_SECURITY->flags |= CCS_CHECK_READ_FOR_OPEN_EXEC;
 + out:
 +	return retval;
 +}
 +
-+static void tmy_bprm_post_apply_creds(struct linux_binprm *bprm)
++static void ccs_bprm_post_apply_creds(struct linux_binprm *bprm)
 +{
-+	TMY_SECURITY->prev_domain = TMY_SECURITY->domain;
++	CCS_SECURITY->prev_domain = CCS_SECURITY->domain;
 +}
 +
-+static void tmy_bprm_free_security(struct linux_binprm *bprm)
++static void ccs_bprm_free_security(struct linux_binprm *bprm)
 +{
-+	TMY_SECURITY->domain = TMY_SECURITY->prev_domain;
-+	TMY_SECURITY->flags &= ~TMY_CHECK_READ_FOR_OPEN_EXEC;
++	CCS_SECURITY->domain = CCS_SECURITY->prev_domain;
++	CCS_SECURITY->flags &= ~CCS_CHECK_READ_FOR_OPEN_EXEC;
 +}
 +
-+static int tmy_sysctl(struct ctl_table *table, int op)
++static int ccs_sysctl(struct ctl_table *table, int op)
 +{
 +	int error;
 +	char *name;
@@ -90,13 +102,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!name)
 +		return -ENOMEM;
 +
-+	error = tmy_file_perm(name, op & 6, "sysctl");
-+	tmy_free(name);
++	error = ccs_check_file_perm(name, op & 6, "sysctl");
++	ccs_free(name);
 +
 +	return error;
 +}
 +
-+static int tmy_inode_permission(struct inode *inode, int mask,
++static int ccs_inode_permission(struct inode *inode, int mask,
 +				struct nameidata *nd)
 +{
 +	int flag = 0;
@@ -114,7 +126,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	 * interpreter's read permission.
 +	 */
 +	if ((mask == MAY_EXEC) &&
-+	    (TMY_SECURITY->flags & TMY_CHECK_READ_FOR_OPEN_EXEC))
++	    (CCS_SECURITY->flags & CCS_CHECK_READ_FOR_OPEN_EXEC))
 +		mask = MAY_READ;
 +	if ((mask == MAY_EXEC) || (mask == 0))
 +		return 0;
@@ -130,127 +142,160 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			flag |= O_APPEND;
 +	}
 +
-+	return tmy_open_perm(nd->path.dentry, nd->path.mnt, flag);
++	return ccs_check_open_permission(nd->path.dentry, nd->path.mnt, flag);
 +}
 +
-+static int tmy_path_truncate(struct path *path, loff_t length,
++static int ccs_path_truncate(struct path *path, loff_t length,
 +			     unsigned int time_attrs, struct file *filp)
 +{
-+	return ccs_check_1path_perm(TMY_TYPE_TRUNCATE_ACL, dentry,
-+				    path->vfsmnt);
++	return ccs_check_1path_perm(CCS_TYPE_TRUNCATE_ACL, path->dentry,
++				    path->mnt);
 +}
 +
-+static int tmy_path_create(struct inode *dir, struct dentry *dentry, int mode,
++static int ccs_path_create(struct inode *dir, struct dentry *dentry, int mode,
 +			   struct nameidata *nd)
 +{
-+	if (!nd || !nd->vfsmnt)
++	if (!nd || !nd->path.mnt)
 +		return 0;
-+	return ccs_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry, nd->vfsmnt);
++	return ccs_check_1path_perm(CCS_TYPE_CREATE_ACL, dentry, nd->path.mnt);
 +}
 +
-+static int tmy_path_unlink(struct path *dir, struct dentry *dentry)
++static int ccs_path_unlink(struct path *dir, struct dentry *dentry)
 +{
-+	return ccs_check_1path_perm(TMY_TYPE_UNLINK_ACL, dentry, dir->vfsmnt);
++	const int err = pre_vfs_unlink(dir->dentry->d_inode, dentry);
++	if (err)
++		return err;
++	return ccs_check_1path_perm(CCS_TYPE_UNLINK_ACL, dentry, dir->mnt);
 +}
 +
-+static int tmy_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
++static int ccs_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
 +{
-+	return ccs_check_1path_perm(TMY_TYPE_MKDIR_ACL, dentry, dir->vfsmnt);
++	const int err = pre_vfs_mkdir(dir->dentry->d_inode, dentry);
++	if (err)
++		return err;
++	return ccs_check_1path_perm(CCS_TYPE_MKDIR_ACL, dentry, dir->mnt);
 +}
 +
-+static int tmy_path_rmdir(struct path *dir, struct dentry *dentry)
++static int ccs_path_rmdir(struct path *dir, struct dentry *dentry)
 +{
-+	return ccs_check_1path_perm(TMY_TYPE_RMDIR_ACL, dentry, dir->vfsmnt);
++	const int err = pre_vfs_rmdir(dir->dentry->d_inode, dentry);
++	if (err)
++		return err;
++	return ccs_check_1path_perm(CCS_TYPE_RMDIR_ACL, dentry, dir->mnt);
 +}
 +
-+static int tmy_path_symlink(struct path *dir, struct dentry *dentry,
++static int ccs_path_symlink(struct path *dir, struct dentry *dentry,
 +			    const char *old_name)
 +{
-+	return ccs_check_1path_perm(TMY_TYPE_SYMLINK_ACL, dentry, dir->vfsmnt);
++	const int err = pre_vfs_symlink(dir->dentry->d_inode, dentry);
++	if (err)
++		return err;
++	return ccs_check_1path_perm(CCS_TYPE_SYMLINK_ACL, dentry, dir->mnt);
 +}
 +
-+static int tmy_path_mknod(struct path *dir, struct dentry *dentry, int mode,
++static int ccs_path_mknod(struct path *dir, struct dentry *dentry, int mode,
 +			  unsigned int dev)
 +{
-+	struct vfsmount *mnt = dir->vfsmnt;
++	struct vfsmount *mnt = dir->mnt;
++	int err = 0;
++	switch (mode & S_IFMT) {
++	case S_IFCHR:
++	case S_IFBLK:
++	case S_IFIFO:
++	case S_IFSOCK:
++		break;
++	default:
++		return 0;
++	}
++	err = pre_vfs_mknod(dir->dentry->d_inode, dentry, mode);
++	if (err)
++		return err;
 +	if (S_ISCHR(mode))
-+		return ccs_check_1path_perm(TMY_TYPE_MKCHAR_ACL, dentry, mnt);
++		return ccs_check_1path_perm(CCS_TYPE_MKCHAR_ACL, dentry, mnt);
 +	if (S_ISBLK(mode))
-+		return ccs_check_1path_perm(TMY_TYPE_MKBLOCK_ACL, dentry, mnt);
++		return ccs_check_1path_perm(CCS_TYPE_MKBLOCK_ACL, dentry, mnt);
 +	if (S_ISFIFO(mode))
-+		return ccs_check_1path_perm(TMY_TYPE_MKFIFO_ACL, dentry, mnt);
++		return ccs_check_1path_perm(CCS_TYPE_MKFIFO_ACL, dentry, mnt);
 +	if (S_ISSOCK(mode))
-+		return ccs_check_1path_perm(TMY_TYPE_MKSOCK_ACL, dentry, mnt);
++		return ccs_check_1path_perm(CCS_TYPE_MKSOCK_ACL, dentry, mnt);
 +	return 0;
 +}
 +
-+static int tmy_path_link(struct path *old_path, struct path *new_dir,
++static int ccs_path_link(struct path *old_path, struct path *new_dir,
 +			 struct dentry *new_dentry)
 +{
-+	return ccs_check_2path_perm(TMY_TYPE_LINK_ACL,
-+				    old_dentry, old_path->vfsmnt,
-+				    new_dentry, new_dir->vfsmnt);
++	const int err = pre_vfs_link(old_path->dentry, new_dir->dentry->d_inode,
++				     new_dentry);
++	if (err)
++		return err;
++	return ccs_check_2path_perm(CCS_TYPE_LINK_ACL,
++				    old_path->dentry, old_path->mnt,
++				    new_dentry, new_dir->mnt);
 +}
 +
-+static int tmy_path_rename(struct path *old_dir, struct dentry *old_dentry,
++static int ccs_path_rename(struct path *old_dir, struct dentry *old_dentry,
 +			   struct path *new_dir, struct dentry *new_dentry)
 +{
-+	return ccs_check_2path_perm(TMY_TYPE_RENAME_ACL,
-+				    old_dentry, old_dir->vfsmnt,
-+				    new_dentry, new_dir->vfsmnt);
++	const int err = pre_vfs_rename(old_dir->dentry->d_inode, old_dentry,
++				       new_dir->dentry->d_inode, new_dentry);
++	if (err)
++		return err;
++	return ccs_check_2path_perm(CCS_TYPE_RENAME_ACL,
++				    old_dir->dentry, old_dir->mnt,
++				    new_dentry, new_dir->mnt);
 +}
 +
-+static int tmy_file_fcntl(struct file *file, unsigned int cmd,
++static int ccs_file_fcntl(struct file *file, unsigned int cmd,
 +			  unsigned long arg)
 +{
 +	if (!((arg ^ file->f_flags) & O_APPEND))
-+		return tmy_rewrite_perm(file);
++		return ccs_check_rewrite_permission(file);
 +	return 0;
 +}
 +
 +static struct security_operations tomoyo_security_ops = {
-+	.task_alloc_security       = tmy_task_alloc_security,
-+	.task_free_security        = tmy_task_free_security,
-+	.bprm_alloc_security       = tmy_bprm_alloc_security,
-+	.bprm_check_security       = tmy_bprm_check_security,
-+	.bprm_post_apply_creds     = tmy_bprm_post_apply_creds,
-+	.bprm_free_security        = tmy_bprm_free_security,
-+	.sysctl                    = tmy_sysctl,
-+	.inode_permission          = tmy_inode_permission,
-+	.path_truncate             = tmy_path_truncate,
-+	.path_create               = tmy_path_create,
-+	.path_unlink               = tmy_path_unlink,
-+	.path_mkdir                = tmy_path_mkdir,
-+	.path_rmdir                = tmy_path_rmdir,
-+	.path_symlink              = tmy_path_symlink,
-+	.path_mknod                = tmy_path_mknod,
-+	.path_link                 = tmy_path_link,
-+	.path_rename               = tmy_path_rename,
-+	.file_fcntl                = tmy_file_fcntl,
++	.task_alloc_security       = ccs_task_alloc_security,
++	.task_free_security        = ccs_task_free_security,
++	.bprm_alloc_security       = ccs_bprm_alloc_security,
++	.bprm_check_security       = ccs_bprm_check_security,
++	.bprm_post_apply_creds     = ccs_bprm_post_apply_creds,
++	.bprm_free_security        = ccs_bprm_free_security,
++	.sysctl                    = ccs_sysctl,
++	.inode_permission          = ccs_inode_permission,
++	.path_truncate             = ccs_path_truncate,
++	.path_create               = ccs_path_create,
++	.path_unlink               = ccs_path_unlink,
++	.path_mkdir                = ccs_path_mkdir,
++	.path_rmdir                = ccs_path_rmdir,
++	.path_symlink              = ccs_path_symlink,
++	.path_mknod                = ccs_path_mknod,
++	.path_link                 = ccs_path_link,
++	.path_rename               = ccs_path_rename,
++	.file_fcntl                = ccs_file_fcntl,
 +};
 +
-+static int __init tmy_init(void)
++static int __init ccs_init(void)
 +{
-+	struct tmy_security *tmy_security;
++	struct ccs_security *ccs_security;
 +	/* register ourselves with the security framework */
 +	if (register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
 +
-+	INIT_LIST_HEAD(&KERNEL_DOMAIN.list);
-+	INIT_LIST_HEAD(&KERNEL_DOMAIN.acl_info_list);
-+	KERNEL_DOMAIN.domainname = tmy_save_name(TMY_ROOT_NAME);
-+	list_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
-+	tmy_cachep = kmem_cache_create("tomoyo_security",
-+				       sizeof(struct tmy_security),
++	INIT_LIST1_HEAD(&KERNEL_DOMAIN.list);
++	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
++	KERNEL_DOMAIN.domainname = ccs_save_name(ROOT_NAME);
++	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
++	ccs_cachep = kmem_cache_create("tomoyo_security",
++				       sizeof(struct ccs_security),
 +				       0, SLAB_PANIC, NULL);
-+	tmy_security = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
-+	BUG_ON(!tmy_security);
-+	memset(tmy_security, 0, sizeof(*tmy_security));
-+	tmy_security->domain = &KERNEL_DOMAIN;
-+	init_task.security = tmy_security;
++	ccs_security = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
++	BUG_ON(!ccs_security);
++	memset(ccs_security, 0, sizeof(*ccs_security));
++	ccs_security->domain = &KERNEL_DOMAIN;
++	init_task.security = ccs_security;
 +	return 0;
 +}
 +
-+security_initcall(tmy_init);
++security_initcall(ccs_init);

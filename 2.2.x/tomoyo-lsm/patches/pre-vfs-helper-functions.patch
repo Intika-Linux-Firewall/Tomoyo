@@ -14,8 +14,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/security.c      |   53 ++++++++++++++++
  7 files changed, 391 insertions(+), 10 deletions(-)
 
---- linux-2.6.25-mm1.orig/fs/namei.c
-+++ linux-2.6.25-mm1/fs/namei.c
+--- mm.orig/fs/namei.c
++++ mm/fs/namei.c
 @@ -1595,6 +1595,9 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
@@ -308,8 +308,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
  	dput(new_dentry);
---- linux-2.6.25-mm1.orig/include/linux/security.h
-+++ linux-2.6.25-mm1/include/linux/security.h
+--- mm.orig/include/linux/security.h
++++ mm/include/linux/security.h
 @@ -343,23 +343,50 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure for the file to be created.
   *	@mode contains the file mode of the file to be created.
@@ -539,8 +539,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline int security_inode_alloc (struct inode *inode)
  {
  	return 0;
---- linux-2.6.25-mm1.orig/security/dummy.c
-+++ linux-2.6.25-mm1/security/dummy.c
+--- mm.orig/security/dummy.c
++++ mm/security/dummy.c
 @@ -270,6 +270,57 @@ static int dummy_sb_parse_opts_str(char 
  	return 0;
  }
@@ -615,8 +615,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	set_to_dummy_if_null(ops, inode_alloc_security);
  	set_to_dummy_if_null(ops, inode_free_security);
  	set_to_dummy_if_null(ops, inode_init_security);
---- linux-2.6.25-mm1.orig/security/security.c
-+++ linux-2.6.25-mm1/security/security.c
+--- mm.orig/security/security.c
++++ mm/security/security.c
 @@ -388,6 +388,59 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
@@ -677,8 +677,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_inode_create(struct inode *dir, struct dentry *dentry, int mode)
  {
  	if (unlikely(IS_PRIVATE(dir)))
---- linux-2.6.25-mm1.orig/net/unix/af_unix.c
-+++ linux-2.6.25-mm1/net/unix/af_unix.c
+--- mm.orig/net/unix/af_unix.c
++++ mm/net/unix/af_unix.c
 @@ -822,7 +822,11 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
@@ -691,8 +691,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		mnt_drop_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.25-mm1.orig/include/linux/fs.h
-+++ linux-2.6.25-mm1/include/linux/fs.h
+--- mm.orig/include/linux/fs.h
++++ mm/include/linux/fs.h
 @@ -1124,12 +1124,20 @@ extern void unlock_super(struct super_bl
   */
  extern int vfs_permission(struct nameidata *, int);
@@ -714,8 +714,8 @@ Signed-off-by:   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern int vfs_rename(struct inode *, struct dentry *, struct inode *, struct dentry *);
  
  /*
---- linux-2.6.25-mm1.orig/fs/open.c
-+++ linux-2.6.25-mm1/fs/open.c
+--- mm.orig/fs/open.c
++++ mm/fs/open.c
 @@ -268,6 +268,9 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
