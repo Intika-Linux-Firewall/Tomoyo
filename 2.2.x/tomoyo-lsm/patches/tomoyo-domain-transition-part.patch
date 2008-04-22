@@ -12,26 +12,26 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- fs/tomoyo_domain.c | 1652 +++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1652 insertions(+)
+ security/tomoyo/tomoyo_domain.c | 1530 ++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 1530 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-rc8-mm1/fs/tomoyo_domain.c
-@@ -0,0 +1,1652 @@
++++ linux-2.6.25-mm1/security/tomoyo/tomoyo_domain.c
+@@ -0,0 +1,1530 @@
 +/*
-+ * fs/tomoyo_domain.c
++ * security/tomoyo/tomoyo_domain.c
 + *
 + * Implementation of the Domain-Based Mandatory Access Control.
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 1.6.0   2008/04/01
++ * Version: 2.2.0-pre   2008/04/22
 + *
 + */
 +
-+#include <linux/ccs_common.h>
-+#include <linux/tomoyo.h>
-+#include <linux/realpath.h>
++#include "ccs_common.h"
++#include "tomoyo.h"
++#include "realpath.h"
 +#include <linux/highmem.h>
 +#include <linux/binfmts.h>
 +#include <linux/namei.h>
@@ -71,14 +71,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	bool is_deleted;
 +	bool is_not;       /* True if this entry is "no_keep_domain".        */
 +	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
-+};
-+
-+/* Structure for "aggregator" keyword. */
-+struct aggregator_entry {
-+	struct list1_head list;
-+	const struct path_info *original_name;
-+	const struct path_info *aggregated_name;
-+	bool is_deleted;
 +};
 +
 +/* Structure for "alias" keyword. */
@@ -637,103 +629,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return update_alias_entry(data, cp, is_delete);
 +}
 +
-+/* The list for "struct aggregator_entry". */
-+static LIST1_HEAD(aggregator_list);
-+
-+/**
-+ * update_aggregator_entry - Update "struct aggregator_entry" list.
-+ *
-+ * @original_name:   The original program's name.
-+ * @aggregated_name: The aggregated program's name.
-+ * @is_delete:       True if it is a delete request.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int update_aggregator_entry(const char *original_name,
-+				   const char *aggregated_name,
-+				   const bool is_delete)
-+{
-+	struct aggregator_entry *new_entry;
-+	struct aggregator_entry *ptr;
-+	static DEFINE_MUTEX(lock);
-+	const struct path_info *saved_original_name;
-+	const struct path_info *saved_aggregated_name;
-+	int error = -ENOMEM;
-+	if (!ccs_is_correct_path(original_name, 1, 0, -1, __func__) ||
-+	    !ccs_is_correct_path(aggregated_name, 1, -1, -1, __func__))
-+		return -EINVAL;
-+	saved_original_name = ccs_save_name(original_name);
-+	saved_aggregated_name = ccs_save_name(aggregated_name);
-+	if (!saved_original_name || !saved_aggregated_name)
-+		return -ENOMEM;
-+	mutex_lock(&lock);
-+	list1_for_each_entry(ptr, &aggregator_list, list) {
-+		if (ptr->original_name != saved_original_name ||
-+		    ptr->aggregated_name != saved_aggregated_name)
-+			continue;
-+		ptr->is_deleted = is_delete;
-+		error = 0;
-+		goto out;
-+	}
-+	if (is_delete) {
-+		error = -ENOENT;
-+		goto out;
-+	}
-+	new_entry = ccs_alloc_element(sizeof(*new_entry));
-+	if (!new_entry)
-+		goto out;
-+	new_entry->original_name = saved_original_name;
-+	new_entry->aggregated_name = saved_aggregated_name;
-+	list1_add_tail_mb(&new_entry->list, &aggregator_list);
-+	error = 0;
-+ out:
-+	mutex_unlock(&lock);
-+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
-+	return error;
-+}
-+
-+/**
-+ * ccs_read_aggregator_policy - Read "struct aggregator_entry" list.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
-+{
-+	struct list1_head *pos;
-+	list1_for_each_cookie(pos, head->read_var2, &aggregator_list) {
-+		struct aggregator_entry *ptr;
-+		ptr = list1_entry(pos, struct aggregator_entry, list);
-+		if (ptr->is_deleted)
-+			continue;
-+		if (!ccs_io_printf(head, KEYWORD_AGGREGATOR "%s %s\n",
-+				   ptr->original_name->name,
-+				   ptr->aggregated_name->name))
-+			goto out;
-+	}
-+	return true;
-+ out:
-+	return false;
-+}
-+
-+/**
-+ * ccs_write_aggregator_policy - Write "struct aggregator_entry" list.
-+ *
-+ * @data:      String to parse.
-+ * @is_delete: True if it is a delete request.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+int ccs_write_aggregator_policy(char *data, const bool is_delete)
-+{
-+	char *cp = strchr(data, ' ');
-+	if (!cp)
-+		return -EINVAL;
-+	*cp++ = '\0';
-+	return update_aggregator_entry(data, cp, is_delete);
-+}
-+
 +/* Domain create/delete/undelete handler. */
 +
 +/* #define DEBUG_DOMAIN_UNDELETE */
@@ -1107,22 +1002,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +	}
 +
-+	/* Check 'aggregator' directive. */
-+	{
-+		struct aggregator_entry *ptr;
-+		/* Is this program allowed to be aggregated? */
-+		list1_for_each_entry(ptr, &aggregator_list, list) {
-+			if (ptr->is_deleted ||
-+			    !ccs_path_matches_pattern(&r, ptr->original_name))
-+				continue;
-+			memset(real_program_name, 0, CCS_MAX_PATHNAME_LEN);
-+			strncpy(real_program_name, ptr->aggregated_name->name,
-+				CCS_MAX_PATHNAME_LEN - 1);
-+			ccs_fill_path_info(&r);
-+			break;
-+		}
-+	}
-+
 +	/* Check execute permission. */
 +	retval = ccs_check_exec_perm(&r, bprm, tmp);
 +	if (retval < 0)
@@ -1154,9 +1033,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	domain = ccs_find_domain(new_domain_name);
 +	if (domain)
 +		goto done;
-+	if (is_enforce && ccs_check_supervisor("#Need to create domain\n%s\n",
-+					       new_domain_name))
-+			goto done;
++	if (is_enforce)
++		goto done;
 +	domain = ccs_find_or_assign_new_domain(new_domain_name,
 +					       old_domain->profile);
 +	if (domain)

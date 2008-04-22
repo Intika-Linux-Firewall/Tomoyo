@@ -1,0 +1,40 @@
+---
+ security/Kconfig         |    1 +
+ security/Makefile        |    1 +
+ security/tomoyo/Kconfig  |    6 ++++++
+ security/tomoyo/Makefile |    1 +
+ 4 files changed, 9 insertions(+)
+
+--- linux-2.6.25-mm1.orig/security/Kconfig
++++ linux-2.6.25-mm1/security/Kconfig
+@@ -124,6 +124,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
+ 
+ source security/selinux/Kconfig
+ source security/smack/Kconfig
++source security/tomoyo/Kconfig
+ 
+ endmenu
+ 
+--- linux-2.6.25-mm1.orig/security/Makefile
++++ linux-2.6.25-mm1/security/Makefile
+@@ -5,6 +5,7 @@
+ obj-$(CONFIG_KEYS)			+= keys/
+ subdir-$(CONFIG_SECURITY_SELINUX)	+= selinux
+ subdir-$(CONFIG_SECURITY_SMACK)		+= smack
++subdir-$(CONFIG_SECURITY_TOMOYO)        += tomoyo
+ 
+ # if we don't select a security model, use the default capabilities
+ ifneq ($(CONFIG_SECURITY),y)
+--- /dev/null
++++ linux-2.6.25-mm1/security/tomoyo/Kconfig
+@@ -0,0 +1,6 @@
++config SECURITY_TOMOYO
++	bool "TOMOYO Linux Support"
++	depends on SECURITY
++	default y
++	help
++	  TOMOYO Linux
+--- /dev/null
++++ linux-2.6.25-mm1/security/tomoyo/Makefile
+@@ -0,0 +1 @@
++obj-y = ccs_common.o realpath.o tomoyo.o tomoyo_domain.o tomoyo_file.o

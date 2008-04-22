@@ -6,26 +6,26 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- fs/tomoyo_file.c | 1561 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1561 insertions(+)
+ security/tomoyo/tomoyo_file.c | 1361 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 1361 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-rc8-mm1/fs/tomoyo_file.c
-@@ -0,0 +1,1561 @@
++++ linux-2.6.25-mm1/security/tomoyo/tomoyo_file.c
+@@ -0,0 +1,1361 @@
 +/*
-+ * fs/tomoyo_file.c
++ * security/tomoyo/tomoyo_file.c
 + *
 + * Implementation of the Domain-Based Mandatory Access Control.
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 1.6.0   2008/04/01
++ * Version: 2.2.0-pre   2008/04/22
 + *
 + */
 +
-+#include <linux/ccs_common.h>
-+#include <linux/tomoyo.h>
-+#include <linux/realpath.h>
++#include "ccs_common.h"
++#include "tomoyo.h"
++#include "realpath.h"
 +#include <linux/binfmts.h>
 +#define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 +
@@ -148,48 +148,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int update_double_path_acl(const u8 type, const char *filename1,
 +				  const char *filename2,
 +				  struct domain_info * const domain,
-+				  const struct condition_list *condition,
 +				  const bool is_delete);
 +static int update_single_path_acl(const u8 type, const char *filename,
 +				  struct domain_info * const domain,
-+				  const struct condition_list *condition,
 +				  const bool is_delete);
-+
-+/**
-+ * audit_file_log - Audit file related request log.
-+ *
-+ * @operation:  The name of operation.
-+ * @filename1:  First pathname.
-+ * @filename2:  Second pathname. May be NULL.
-+ * @is_granted: True if this is a granted log.
-+ * @profile:    Profile number used.
-+ * @mode:       Access control mode used.
-+ * @bprm:       Pointer to "struct linux_binprm". May be NULL.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int audit_file_log(const char *operation,
-+			  const struct path_info *filename1,
-+			  const struct path_info *filename2,
-+			  const bool is_granted, const u8 profile,
-+			  const u8 mode, struct linux_binprm *bprm)
-+{
-+	char *buf;
-+	int len;
-+	int len2;
-+	if (ccs_can_save_audit_log(is_granted) < 0)
-+		return -ENOMEM;
-+	len = strlen(operation) + filename1->total_len + 16;
-+	if (filename2)
-+		len += filename2->total_len;
-+	buf = ccs_init_audit_log(&len, profile, mode, bprm);
-+	if (!buf)
-+		return -ENOMEM;
-+	len2 = strlen(buf);
-+	snprintf(buf + len2, len - len2 - 1, "allow_%s %s %s\n",
-+		 operation, filename1->name, filename2 ? filename2->name : "");
-+	return ccs_write_audit_log(buf, is_granted);
-+}
 +
 +/* The list for "struct globally_readable_file_entry". */
 +static LIST1_HEAD(globally_readable_list);
@@ -695,7 +657,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @filename:  Filename.
 + * @perm:      Permission (between 1 to 7).
 + * @domain:    Pointer to "struct domain_info".
-+ * @condition: Pointer to "struct condition_list". May be NULL.
 + * @is_delete: True if it is a delete request.
 + *
 + * Returns 0 on success, negative value otherwise.
@@ -707,7 +668,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int update_file_acl(const char *filename, u8 perm,
 +			   struct domain_info * const domain,
-+			   const struct condition_list *condition,
 +			   const bool is_delete)
 +{
 +	if (perm > 7 || !perm) {
@@ -723,13 +683,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	if (perm & 4)
 +		update_single_path_acl(TYPE_READ_ACL, filename, domain,
-+				       condition, is_delete);
++				       is_delete);
 +	if (perm & 2)
 +		update_single_path_acl(TYPE_WRITE_ACL, filename, domain,
-+				       condition, is_delete);
++				       is_delete);
 +	if (perm & 1)
 +		update_single_path_acl(TYPE_EXECUTE_ACL, filename, domain,
-+				       condition, is_delete);
++				       is_delete);
 +	return 0;
 +}
 +
@@ -738,14 +698,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @filename:        Filename to check.
 + * @perm:            Permission.
-+ * @obj:             Pointer to "struct obj_info".
 + * @may_use_pattern: True if patterned ACL is permitted.
 + *
 + * Returns 0 on success, -EPERM otherwise.
 + */
 +static int check_single_path_acl2(const struct path_info *filename,
-+				  const u16 perm, struct obj_info *obj,
-+				  const bool may_use_pattern)
++				  const u16 perm, const bool may_use_pattern)
 +{
 +	const struct domain_info *domain = current->domain_info;
 +	struct acl_info *ptr;
@@ -754,7 +712,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct single_path_acl_record, head);
-+		if (!(acl->perm & perm) || !ccs_check_condition(ptr, obj))
++		if (!(acl->perm & perm))
 +			continue;
 +		if (acl->u_is_group) {
 +			if (!path_matches_group(filename, acl->u.group,
@@ -767,7 +725,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		} else {
 +			continue;
 +		}
-+		ccs_update_condition(ptr);
 +		return 0;
 +	}
 +	return -EPERM;
@@ -778,12 +735,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @filename:  Filename to check.
 + * @operation: Mode ("read" or "write" or "read/write" or "execute").
-+ * @obj:       Pointer to "struct obj_info".
 + *
 + * Returns 0 on success, -EPERM otherwise.
 + */
-+static int check_file_acl(const struct path_info *filename, const u8 operation,
-+			  struct obj_info *obj)
++static int check_file_acl(const struct path_info *filename, const u8 operation)
 +{
 +	u16 perm = 0;
 +	if (!ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE))
@@ -798,7 +753,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		perm = 1 << TYPE_EXECUTE_ACL;
 +	else
 +		BUG();
-+	return check_single_path_acl2(filename, perm, obj, operation != 1);
++	return check_single_path_acl2(filename, perm, operation != 1);
 +}
 +
 +/**
@@ -807,15 +762,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @filename:  Filename to check.
 + * @perm:      Mode ("read" or "write" or "read/write" or "execute").
 + * @operation: Operation name passed used for verbose mode.
-+ * @obj:       Pointer to "struct obj_info". May be NULL.
-+ * @profile:   Profile number passed to audit logs.
 + * @mode:      Access control mode.
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int check_file_perm2(const struct path_info *filename, const u8 perm,
-+			    const char *operation, struct obj_info *obj,
-+			    const u8 profile, const u8 mode)
++			    const char *operation, const u8 mode)
 +{
 +	struct domain_info * const domain = current->domain_info;
 +	const bool is_enforce = (mode == 3);
@@ -823,7 +775,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int error = 0;
 +	if (!filename)
 +		return 0;
-+	error = check_file_acl(filename, perm, obj);
++	error = check_file_acl(filename, perm);
 +	if (error && perm == 4 &&
 +	    (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0 &&
 +	    is_globally_readable_file(filename))
@@ -838,8 +790,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		msg = ccs_sp2keyword(TYPE_EXECUTE_ACL);
 +	else
 +		BUG();
-+	audit_file_log(msg, filename, NULL, !error, profile, mode,
-+		       obj ? obj->bprm : NULL);
 +	if (!error)
 +		return 0;
 +	if (ccs_verbose_mode())
@@ -847,89 +797,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
 +		       filename->name, ccs_get_last_name(domain));
 +	if (is_enforce)
-+		return ccs_check_supervisor("%s\nallow_%s %s\n",
-+					    domain->domainname->name,
-+					    msg, filename->name);
++		return error;
 +	if (mode == 1 && ccs_check_domain_quota(domain)) {
 +		/* Don't use patterns for execute permission. */
 +		const struct path_info *patterned_file = (perm != 1) ?
 +			get_file_pattern(filename) : filename;
 +		update_file_acl(patterned_file->name, perm,
-+				domain, NULL, false);
++				domain, false);
 +	}
 +	return 0;
-+}
-+
-+/**
-+ * update_execute_handler - Update "struct execute_handler_record" list.
-+ *
-+ * @type:      Type of execute handler.
-+ * @filename:  Pathname to the execute handler.
-+ * @domain:    Pointer to "struct domain_info".
-+ * @is_delete: True if it is a delete request.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int update_execute_handler(const u8 type, const char *filename,
-+				  struct domain_info * const domain,
-+				  const bool is_delete)
-+{
-+	const struct path_info *saved_filename;
-+	struct acl_info *ptr;
-+	struct execute_handler_record *acl;
-+	int error = -ENOMEM;
-+	if (!domain)
-+		return -EINVAL;
-+	if (!ccs_is_correct_path(filename, 1, -1, -1, __func__))
-+		return -EINVAL;
-+	saved_filename = ccs_save_name(filename);
-+	if (!saved_filename)
-+		return -ENOMEM;
-+	mutex_lock(&domain_acl_lock);
-+	if (is_delete)
-+		goto delete;
-+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		if (ccs_acl_type1(ptr) != type)
-+			continue;
-+		/* Condition not supported. */
-+		acl = container_of(ptr, struct execute_handler_record, head);
-+		if (acl->handler != saved_filename)
-+			continue;
-+		/* Only one entry can exist in a domain. */
-+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+			if (ptr->type == type)
-+				ptr->type |= ACL_DELETED;
-+		}
-+		error = ccs_add_domain_acl(NULL, &acl->head);
-+		goto out;
-+	}
-+	/* Not found. Append it to the tail. */
-+	acl = ccs_alloc_acl_element(type, NULL);
-+	if (!acl)
-+		goto out;
-+	acl->handler = saved_filename;
-+	/* Only one entry can exist in a domain. */
-+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		if (ptr->type == type)
-+			ptr->type |= ACL_DELETED;
-+	}
-+	error = ccs_add_domain_acl(domain, &acl->head);
-+	goto out;
-+ delete:
-+	error = -ENOENT;
-+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+		if (ccs_acl_type2(ptr) != type)
-+			continue;
-+		/* Condition not supported. */
-+		acl = container_of(ptr, struct execute_handler_record, head);
-+		if (acl->handler != saved_filename)
-+			continue;
-+		error = ccs_del_domain_acl(ptr);
-+		break;
-+	}
-+ out:
-+	mutex_unlock(&domain_acl_lock);
-+	return error;
 +}
 +
 +/**
@@ -937,13 +813,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @data:      String to parse.
 + * @domain:    Pointer to "struct domain_info".
-+ * @condition: Pointer to "struct condition_list". May be NULL.
 + * @is_delete: True if it is a delete request.
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +int ccs_write_file_policy(char *data, struct domain_info *domain,
-+			  const struct condition_list *condition,
 +			  const bool is_delete)
 +{
 +	char *filename = strchr(data, ' ');
@@ -954,25 +828,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return -EINVAL;
 +	*filename++ = '\0';
 +	if (sscanf(data, "%u", &perm) == 1)
-+		return update_file_acl(filename, (u8) perm, domain, condition,
-+				       is_delete);
-+	if (strncmp(data, "allow_", 6)) {
-+		u8 type;
-+		if (!strcmp(data, KEYWORD_EXECUTE_HANDLER))
-+			type = TYPE_EXECUTE_HANDLER;
-+		else if (!strcmp(data, KEYWORD_DENIED_EXECUTE_HANDLER))
-+			type = TYPE_DENIED_EXECUTE_HANDLER;
-+		else
-+			goto out;
-+		return update_execute_handler(type, filename,
-+					      domain, is_delete);
-+	}
++		return update_file_acl(filename, (u8) perm, domain, is_delete);
++	if (strncmp(data, "allow_", 6))
++		goto out;
 +	data += 6;
 +	for (type = 0; type < MAX_SINGLE_PATH_OPERATION; type++) {
 +		if (strcmp(data, sp_keyword[type]))
 +			continue;
-+		return update_single_path_acl(type, filename, domain, condition,
-+					      is_delete);
++		return update_single_path_acl(type, filename, domain, is_delete);
 +	}
 +	filename2 = strchr(filename, ' ');
 +	if (!filename2)
@@ -982,7 +845,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (strcmp(data, dp_keyword[type]))
 +			continue;
 +		return update_double_path_acl(type, filename, filename2, domain,
-+					      condition, is_delete);
++					      is_delete);
 +	}
 + out:
 +	return -EINVAL;
@@ -994,14 +857,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @type:      Type of operation.
 + * @filename:  Filename.
 + * @domain:    Pointer to "struct domain_info".
-+ * @condition: Pointer to "struct condition_list". May be NULL.
 + * @is_delete: True if it is a delete request.
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int update_single_path_acl(const u8 type, const char *filename,
 +				  struct domain_info * const domain,
-+				  const struct condition_list *condition,
 +				  const bool is_delete)
 +{
 +	static const u16 rw_mask = (1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL);
@@ -1034,8 +895,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (ccs_acl_type1(ptr) != TYPE_SINGLE_PATH_ACL)
 +			continue;
-+		if (ccs_get_condition_part(ptr) != condition)
-+			continue;
 +		acl = container_of(ptr, struct single_path_acl_record, head);
 +		if (acl->u.filename != saved_filename)
 +			continue;
@@ -1051,7 +910,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	}
 +	/* Not found. Append it to the tail. */
-+	acl = ccs_alloc_acl_element(TYPE_SINGLE_PATH_ACL, condition);
++	acl = ccs_alloc_acl_element(TYPE_SINGLE_PATH_ACL);
 +	if (!acl)
 +		goto out;
 +	acl->perm = perm;
@@ -1063,8 +922,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = -ENOENT;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
-+			continue;
-+		if (ccs_get_condition_part(ptr) != condition)
 +			continue;
 +		acl = container_of(ptr, struct single_path_acl_record, head);
 +		if (acl->u.filename != saved_filename)
@@ -1089,7 +946,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @filename1: First filename.
 + * @filename2: Second filename.
 + * @domain:    Pointer to "struct domain_info".
-+ * @condition: Pointer to "struct condition_list". May be NULL.
 + * @is_delete: True if it is a delete request.
 + *
 + * Returns 0 on success, negative value otherwise.
@@ -1097,7 +953,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int update_double_path_acl(const u8 type, const char *filename1,
 +				  const char *filename2,
 +				  struct domain_info * const domain,
-+				  const struct condition_list *condition,
 +				  const bool is_delete)
 +{
 +	const struct path_info *saved_filename1;
@@ -1143,8 +998,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (ccs_acl_type1(ptr) != TYPE_DOUBLE_PATH_ACL)
 +			continue;
-+		if (ccs_get_condition_part(ptr) != condition)
-+			continue;
 +		acl = container_of(ptr, struct double_path_acl_record, head);
 +		if (acl->u1.filename1 != saved_filename1 ||
 +		    acl->u2.filename2 != saved_filename2)
@@ -1157,7 +1010,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	}
 +	/* Not found. Append it to the tail. */
-+	acl = ccs_alloc_acl_element(TYPE_DOUBLE_PATH_ACL, condition);
++	acl = ccs_alloc_acl_element(TYPE_DOUBLE_PATH_ACL);
 +	if (!acl)
 +		goto out;
 +	acl->perm = perm;
@@ -1171,8 +1024,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = -ENOENT;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
-+			continue;
-+		if (ccs_get_condition_part(ptr) != condition)
 +			continue;
 +		acl = container_of(ptr, struct double_path_acl_record, head);
 +		if (acl->u1.filename1 != saved_filename1 ||
@@ -1192,17 +1043,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @type:     Type of operation.
 + * @filename: Filename to check.
-+ * @obj:      Pointer to "struct obj_info".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int check_single_path_acl(const u8 type,
-+				 const struct path_info *filename,
-+				 struct obj_info *obj)
++				 const struct path_info *filename)
 +{
 +	if (!ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE))
 +		return 0;
-+	return check_single_path_acl2(filename, 1 << type, obj, 1);
++	return check_single_path_acl2(filename, 1 << type, 1);
 +}
 +
 +/**
@@ -1211,14 +1060,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @type:      Type of operation.
 + * @filename1: First filename to check.
 + * @filename2: Second filename to check.
-+ * @obj:       Pointer to "struct obj_info".
 + *
 + * Returns 0 on success, -EPERM otherwise.
 + */
 +static int check_double_path_acl(const u8 type,
 +				 const struct path_info *filename1,
-+				 const struct path_info *filename2,
-+				 struct obj_info *obj)
++				 const struct path_info *filename2)
 +{
 +	const struct domain_info *domain = current->domain_info;
 +	struct acl_info *ptr;
@@ -1230,7 +1077,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct double_path_acl_record, head);
-+		if (!(acl->perm & perm) || !ccs_check_condition(ptr, obj))
++		if (!(acl->perm & perm))
 +			continue;
 +		if (acl->u1_is_group) {
 +			if (!path_matches_group(filename1, acl->u1.group1,
@@ -1250,7 +1097,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +						      acl->u2.filename2))
 +				continue;
 +		}
-+		ccs_update_condition(ptr);
 +		return 0;
 +	}
 +	return -EPERM;
@@ -1261,16 +1107,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @operation: Type of operation.
 + * @filename:  Filename to check.
-+ * @obj:       Pointer to "struct obj_info".
-+ * @profile:   Profile number passed to audit logs.
 + * @mode:      Access control mode.
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int check_single_path_permission2(u8 operation,
 +					 const struct path_info *filename,
-+					 struct obj_info *obj,
-+					 const u8 profile, const u8 mode)
++					 const u8 mode)
 +{
 +	const char *msg;
 +	int error;
@@ -1279,23 +1122,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!mode)
 +		return 0;
 + next:
-+	error = check_single_path_acl(operation, filename, obj);
++	error = check_single_path_acl(operation, filename);
 +	msg = ccs_sp2keyword(operation);
-+	audit_file_log(msg, filename, NULL, !error, profile, mode, NULL);
 +	if (!error)
 +		goto ok;
 +	if (ccs_verbose_mode())
 +		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
 +		       ccs_get_msg(is_enforce), msg, filename->name,
 +		       ccs_get_last_name(domain));
-+	if (is_enforce)
-+		error = ccs_check_supervisor("%s\nallow_%s %s\n",
-+					     domain->domainname->name,
-+					     msg, filename->name);
 +	if (mode == 1 && ccs_check_domain_quota(domain))
 +		update_single_path_acl(operation,
 +				       get_file_pattern(filename)->name,
-+				       domain, NULL, false);
++				       domain, false);
 +	if (!is_enforce)
 +		error = 0;
 + ok:
@@ -1325,13 +1163,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			const char *operation)
 +{
 +	struct path_info name;
-+	const u8 profile = current->domain_info->profile;
 +	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 +	if (!mode)
 +		return 0;
 +	name.name = filename;
 +	ccs_fill_path_info(&name);
-+	return check_file_perm2(&name, perm, operation, NULL, profile, mode);
++	return check_file_perm2(&name, perm, operation, mode);
 +}
 +
 +/**
@@ -1346,17 +1183,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +int ccs_check_exec_perm(const struct path_info *filename,
 +			struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 +{
-+	struct obj_info obj;
-+	const u8 profile = current->domain_info->profile;
 +	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 +	if (!mode)
 +		return 0;
-+	memset(&obj, 0, sizeof(obj));
-+	obj.path1_dentry = bprm->file->f_dentry;
-+	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
-+	obj.bprm = bprm;
-+	obj.tmp = tmp;
-+	return check_file_perm2(filename, 1, "do_execve", &obj, profile, mode);
++	return check_file_perm2(filename, 1, "do_execve", mode);
 +}
 +
 +/**
@@ -1371,11 +1201,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 +			      const int flag)
 +{
-+	struct obj_info obj;
 +	const u8 acc_mode = ACC_MODE(flag);
 +	int error = -ENOMEM;
 +	struct path_info *buf;
-+	const u8 profile = current->domain_info->profile;
 +	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	if (!mode)
@@ -1391,9 +1219,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	buf = ccs_get_path(dentry, mnt);
 +	if (!buf)
 +		goto out;
-+	memset(&obj, 0, sizeof(obj));
-+	obj.path1_dentry = dentry;
-+	obj.path1_vfsmnt = mnt;
 +	error = 0;
 +	/*
 +	 * If the filename is specified by "deny_rewrite" keyword,
@@ -1404,15 +1229,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	    ((flag & O_TRUNC) || !(flag & O_APPEND))) {
 +		if (is_no_rewrite_file(buf))
 +			error = check_single_path_permission2(TYPE_REWRITE_ACL,
-+							      buf, &obj,
-+							      profile, mode);
++							      buf,
++							      mode);
 +	}
 +	if (!error)
-+		error = check_file_perm2(buf, acc_mode, "open", &obj, profile,
-+					 mode);
++		error = check_file_perm2(buf, acc_mode, "open", mode);
 +	if (!error && (flag & O_TRUNC))
 +		error = check_single_path_permission2(TYPE_TRUNCATE_ACL, buf,
-+						      &obj, profile, mode);
++						      mode);
 + out:
 +	ccs_free(buf);
 +	if (!is_enforce)
@@ -1432,10 +1256,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 +			 struct vfsmount *mnt)
 +{
-+	struct obj_info obj;
 +	int error = -ENOMEM;
 +	struct path_info *buf;
-+	const u8 profile = current->domain_info->profile;
 +	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	if (!mode)
@@ -1452,11 +1274,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			ccs_fill_path_info(buf);
 +		}
 +	}
-+	memset(&obj, 0, sizeof(obj));
-+	obj.path1_dentry = dentry;
-+	obj.path1_vfsmnt = mnt;
-+	error = check_single_path_permission2(operation, buf, &obj, profile,
-+					      mode);
++	error = check_single_path_permission2(operation, buf, mode);
 + out:
 +	ccs_free(buf);
 +	if (!is_enforce)
@@ -1474,9 +1292,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +int ccs_check_rewrite_permission(struct file *filp)
 +{
-+	struct obj_info obj;
 +	int error = -ENOMEM;
-+	const u8 profile = current->domain_info->profile;
 +	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	struct path_info *buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
@@ -1486,11 +1302,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = 0;
 +		goto out;
 +	}
-+	memset(&obj, 0, sizeof(obj));
-+	obj.path1_dentry = filp->f_dentry;
-+	obj.path1_vfsmnt = filp->f_vfsmnt;
-+	error = check_single_path_permission2(TYPE_REWRITE_ACL, buf, &obj,
-+					      profile, mode);
++	error = check_single_path_permission2(TYPE_REWRITE_ACL, buf, mode);
 + out:
 +	ccs_free(buf);
 +	if (!is_enforce)
@@ -1518,11 +1330,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int error = -ENOMEM;
 +	struct path_info *buf1, *buf2;
 +	struct domain_info * const domain = current->domain_info;
-+	const u8 profile = current->domain_info->profile;
 +	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	const char *msg;
-+	struct obj_info obj;
 +	if (!mode)
 +		return 0;
 +	buf1 = ccs_get_path(dentry1, mnt1);
@@ -1543,29 +1353,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			}
 +		}
 +	}
-+	memset(&obj, 0, sizeof(obj));
-+	obj.path1_dentry = dentry1;
-+	obj.path1_vfsmnt = mnt1;
-+	obj.path2_dentry = dentry2;
-+	obj.path2_vfsmnt = mnt2;
-+	error = check_double_path_acl(operation, buf1, buf2, &obj);
++	error = check_double_path_acl(operation, buf1, buf2);
 +	msg = ccs_dp2keyword(operation);
-+	audit_file_log(msg, buf1, buf2, !error, profile, mode, NULL);
 +	if (!error)
 +		goto out;
 +	if (ccs_verbose_mode())
 +		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
 +		       "denied for %s\n", ccs_get_msg(is_enforce),
 +		       msg, buf1->name, buf2->name, ccs_get_last_name(domain));
-+	if (is_enforce)
-+		error = ccs_check_supervisor("%s\nallow_%s %s %s\n",
-+					     domain->domainname->name,
-+					     msg, buf1->name, buf2->name);
-+	else if (mode == 1 && ccs_check_domain_quota(domain))
++	if (mode == 1 && ccs_check_domain_quota(domain))
 +		update_double_path_acl(operation,
 +				       get_file_pattern(buf1)->name,
 +				       get_file_pattern(buf2)->name,
-+				       domain, NULL, false);
++				       domain, false);
 + out:
 +	ccs_free(buf1);
 +	ccs_free(buf2);
