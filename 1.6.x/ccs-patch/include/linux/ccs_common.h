@@ -742,7 +742,7 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						  const u8 profile);
 /* Undelete a domain. */
 struct domain_info *ccs_undelete_domain(const char *domainname);
-/* Write a grant log. */
+/* Check mode for specified capability. */
 u8 ccs_check_capability_flags(const u8 index);
 /* Check mode for specified functionality. */
 unsigned int ccs_check_flags(const u8 index);
