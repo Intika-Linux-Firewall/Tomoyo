@@ -15,20 +15,20 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- fs/realpath.c |  557 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 557 insertions(+)
+ security/tomoyo/realpath.c |  557 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 557 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-rc8-mm1/fs/realpath.c
++++ linux-2.6.25-mm1/security/tomoyo/realpath.c
 @@ -0,0 +1,557 @@
 +/*
-+ * fs/realpath.c
++ * security/tomoyo/realpath.c
 + *
-+ * Get the canonicalized absolute pathnames. The basis for SAKURA and TOMOYO.
++ * Get the canonicalized absolute pathnames. The basis for TOMOYO.
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 1.6.0   2008/04/01
++ * Version: 2.2.0-pre   2008/04/22
 + *
 + */
 +#include <linux/string.h>
@@ -42,9 +42,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <asm/atomic.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
-+#include <linux/realpath.h>
++#include "realpath.h"
 +#include <linux/proc_fs.h>
-+#include <linux/ccs_common.h>
++#include "ccs_common.h"
 +
 +/**
 + * get_absolute_path - Get the path of a dentry but ignores chroot'ed root.

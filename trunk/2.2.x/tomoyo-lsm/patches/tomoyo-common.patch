@@ -6,20 +6,20 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- fs/ccs_common.c | 3061 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 3061 insertions(+)
+ security/tomoyo/ccs_common.c | 2144 +++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 2144 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-rc8-mm1/fs/ccs_common.c
-@@ -0,0 +1,3061 @@
++++ linux-2.6.25-mm1/security/tomoyo/ccs_common.c
+@@ -0,0 +1,2144 @@
 +/*
-+ * fs/ccs_common.c
++ * security/tomoyo/ccs_common.c
 + *
-+ * Common functions for SAKURA and TOMOYO.
++ * Common functions for TOMOYO.
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 1.6.0   2008/04/01
++ * Version: 2.2.0-pre   2008/04/22
 + *
 + */
 +
@@ -33,21 +33,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <stdarg.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
-+#include <linux/realpath.h>
-+#include <linux/ccs_common.h>
-+#include <linux/ccs_proc.h>
-+#include <linux/tomoyo.h>
++#include "realpath.h"
++#include "ccs_common.h"
++#include "ccs_proc.h"
++#include "tomoyo.h"
 +
 +/* Set default specified by the kernel config. */
-+#define MAX_ACCEPT_ENTRY (CONFIG_TOMOYO_MAX_ACCEPT_ENTRY)
-+#define MAX_GRANT_LOG    (CONFIG_TOMOYO_MAX_GRANT_LOG)
-+#define MAX_REJECT_LOG   (CONFIG_TOMOYO_MAX_REJECT_LOG)
++#define MAX_ACCEPT_ENTRY 2048
 +
 +/* Has /sbin/init started? */
 +bool sbin_init_started = false;
-+
-+/* Log level for SAKURA's printk(). */
-+const char *ccs_log_level = KERN_DEBUG;
 +
 +/* String table for functionality that takes 4 modes. */
 +static const char *mode_4[4] = {
@@ -65,72 +60,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const unsigned int max_value;
 +} ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
 +	[CCS_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
-+	[CCS_TOMOYO_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
-+	[CCS_TOMOYO_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
-+	[CCS_TOMOYO_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
-+	[CCS_TOMOYO_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
-+	[CCS_SAKURA_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
-+	[CCS_SAKURA_RESTRICT_CHROOT]     = { "RESTRICT_CHROOT",     0, 3 },
-+	[CCS_SAKURA_RESTRICT_MOUNT]      = { "RESTRICT_MOUNT",      0, 3 },
-+	[CCS_SAKURA_RESTRICT_UNMOUNT]    = { "RESTRICT_UNMOUNT",    0, 3 },
-+	[CCS_SAKURA_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
-+	[CCS_SAKURA_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 +	[CCS_TOMOYO_MAX_ACCEPT_ENTRY]
 +	= { "MAX_ACCEPT_ENTRY",    MAX_ACCEPT_ENTRY, INT_MAX },
-+	[CCS_TOMOYO_MAX_GRANT_LOG]
-+	= { "MAX_GRANT_LOG",       MAX_GRANT_LOG, INT_MAX },
-+	[CCS_TOMOYO_MAX_REJECT_LOG]
-+	= { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
 +	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
-+	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
-+	[CCS_SLEEP_PERIOD]
-+	= { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
 +};
-+
-+#ifdef CONFIG_TOMOYO
-+/* Capability name used by domain policy. */
-+const char *capability_control_keyword[TOMOYO_MAX_CAPABILITY_INDEX] = {
-+	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
-+	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
-+	[TOMOYO_INET_STREAM_SOCKET_CONNECT] = "inet_tcp_connect",
-+	[TOMOYO_USE_INET_DGRAM_SOCKET]      = "use_inet_udp",
-+	[TOMOYO_USE_INET_RAW_SOCKET]        = "use_inet_ip",
-+	[TOMOYO_USE_ROUTE_SOCKET]           = "use_route",
-+	[TOMOYO_USE_PACKET_SOCKET]          = "use_packet",
-+	[TOMOYO_SYS_MOUNT]                  = "SYS_MOUNT",
-+	[TOMOYO_SYS_UMOUNT]                 = "SYS_UMOUNT",
-+	[TOMOYO_SYS_REBOOT]                 = "SYS_REBOOT",
-+	[TOMOYO_SYS_CHROOT]                 = "SYS_CHROOT",
-+	[TOMOYO_SYS_KILL]                   = "SYS_KILL",
-+	[TOMOYO_SYS_VHANGUP]                = "SYS_VHANGUP",
-+	[TOMOYO_SYS_SETTIME]                = "SYS_TIME",
-+	[TOMOYO_SYS_NICE]                   = "SYS_NICE",
-+	[TOMOYO_SYS_SETHOSTNAME]            = "SYS_SETHOSTNAME",
-+	[TOMOYO_USE_KERNEL_MODULE]          = "use_kernel_module",
-+	[TOMOYO_CREATE_FIFO]                = "create_fifo",
-+	[TOMOYO_CREATE_BLOCK_DEV]           = "create_block_dev",
-+	[TOMOYO_CREATE_CHAR_DEV]            = "create_char_dev",
-+	[TOMOYO_CREATE_UNIX_SOCKET]         = "create_unix_socket",
-+	[TOMOYO_SYS_LINK]                   = "SYS_LINK",
-+	[TOMOYO_SYS_SYMLINK]                = "SYS_SYMLINK",
-+	[TOMOYO_SYS_RENAME]                 = "SYS_RENAME",
-+	[TOMOYO_SYS_UNLINK]                 = "SYS_UNLINK",
-+	[TOMOYO_SYS_CHMOD]                  = "SYS_CHMOD",
-+	[TOMOYO_SYS_CHOWN]                  = "SYS_CHOWN",
-+	[TOMOYO_SYS_IOCTL]                  = "SYS_IOCTL",
-+	[TOMOYO_SYS_KEXEC_LOAD]             = "SYS_KEXEC_LOAD",
-+	[TOMOYO_SYS_PIVOT_ROOT]             = "SYS_PIVOT_ROOT",
-+	[TOMOYO_SYS_PTRACE]                 = "SYS_PTRACE",
-+};
-+#endif
 +
 +/* Profile table. Memory is allocated as needed. */
 +static struct profile {
 +	unsigned int value[CCS_MAX_CONTROL_INDEX];
 +	const struct path_info *comment;
-+#ifdef CONFIG_TOMOYO
-+	unsigned char capability_value[TOMOYO_MAX_CAPABILITY_INDEX];
-+#endif
 +} *profile_ptr[MAX_PROFILES];
 +
 +/* Permit policy management by non-root user? */
@@ -889,41 +827,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return sleep_check() ? ccs_check_flags_no_sleep_check(index) : 0;
 +}
 +
-+#ifdef CONFIG_TOMOYO
-+/**
-+ * ccs_check_capability_flags - Check mode for specified capability.
-+ *
-+ * @index: The capability to check mode.
-+ *
-+ * Returns the mode of specified capability.
-+ */
-+u8 ccs_check_capability_flags(const u8 index)
-+{
-+	const u8 profile = current->domain_info->profile;
-+	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
-+#if MAX_PROFILES != 256
-+		&& profile < MAX_PROFILES
-+#endif
-+		&& sleep_check()
-+		&& profile_ptr[profile] ?
-+		profile_ptr[profile]->capability_value[index] : 0;
-+}
-+
-+/**
-+ * ccs_cap2keyword - Convert capability operation to capability name.
-+ *
-+ * @operation: The capability index.
-+ *
-+ * Returns the name of the specified capability's name.
-+ */
-+const char *ccs_cap2keyword(const u8 operation)
-+{
-+	return operation < TOMOYO_MAX_CAPABILITY_INDEX
-+		? capability_control_keyword[operation] : NULL;
-+}
-+
-+#endif
-+
 +/**
 + * ccs_verbose_mode - Check whether TOMOYO is verbose mode.
 + *
@@ -996,11 +899,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			if (perm & (1 << TYPE_RENAME_ACL))
 +				count++;
 +			break;
-+		case TYPE_EXECUTE_HANDLER:
-+		case TYPE_DENIED_EXECUTE_HANDLER:
-+			break;
-+		default:
-+			count++;
 +		}
 +	}
 +	if (count < ccs_check_flags(CCS_TOMOYO_MAX_ACCEPT_ENTRY))
@@ -1037,10 +935,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
 +				ptr->value[i]
 +					= ccs_control_array[i].current_value;
-+			/*
-+			 * Needn't to initialize "ptr->capability_value"
-+			 * because they are always 0.
-+			 */
 +			mb(); /* Avoid out-of-order execution. */
 +			profile_ptr[profile] = ptr;
 +		}
@@ -1082,29 +976,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		profile->comment = ccs_save_name(cp + 1);
 +		return 0;
 +	}
-+#ifdef CONFIG_TOMOYO
-+	if (str_starts(&data, KEYWORD_MAC_FOR_CAPABILITY)) {
-+		if (sscanf(cp + 1, "%u", &value) != 1) {
-+			for (i = 0; i < 4; i++) {
-+				if (strcmp(cp + 1, mode_4[i]))
-+					continue;
-+				value = i;
-+				break;
-+			}
-+			if (i == 4)
-+				return -EINVAL;
-+		}
-+		if (value > 3)
-+			value = 3;
-+		for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) {
-+			if (strcmp(data, capability_control_keyword[i]))
-+				continue;
-+			profile->capability_value[i] = value;
-+			return 0;
-+		}
-+		return -EINVAL;
-+	}
-+#endif
 +	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
 +		if (strcmp(data, ccs_control_array[i].keyword))
 +			continue;
@@ -1112,9 +983,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			int j;
 +			const char **modes;
 +			switch (i) {
-+			case CCS_SAKURA_RESTRICT_AUTOBIND:
 +			case CCS_TOMOYO_VERBOSE:
-+			case CCS_ALLOW_ENFORCE_GRACE:
 +				modes = mode_2;
 +				break;
 +			default:
@@ -1132,12 +1001,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		} else if (value > ccs_control_array[i].max_value) {
 +			value = ccs_control_array[i].max_value;
 +		}
-+		switch (i) {
-+		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
-+		case CCS_SAKURA_RESTRICT_UNMOUNT:
-+			if (value == 1)
-+				value = 2; /* learning mode is not supported. */
-+		}
 +		profile->value[i] = value;
 +		return 0;
 +	}
@@ -1154,7 +1017,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int read_profile(struct ccs_io_buffer *head)
 +{
 +	static const int total
-+		= CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX + 1;
++		= CCS_MAX_CONTROL_INDEX + 1;
 +	int step;
 +	if (head->read_eof)
 +		return 0;
@@ -1165,30 +1028,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		head->read_step = step;
 +		if (!profile)
 +			continue;
-+#if !defined(CONFIG_SAKURA) || !defined(CONFIG_TOMOYO)
-+		switch (type) {
-+#ifndef CONFIG_SAKURA
-+		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
-+		case CCS_SAKURA_RESTRICT_CHROOT:
-+		case CCS_SAKURA_RESTRICT_MOUNT:
-+		case CCS_SAKURA_RESTRICT_UNMOUNT:
-+		case CCS_SAKURA_RESTRICT_PIVOT_ROOT:
-+		case CCS_SAKURA_RESTRICT_AUTOBIND:
-+#endif
-+#ifndef CONFIG_TOMOYO
-+		case CCS_TOMOYO_MAC_FOR_FILE:
-+		case CCS_TOMOYO_MAC_FOR_ARGV0:
-+		case CCS_TOMOYO_MAC_FOR_ENV:
-+		case CCS_TOMOYO_MAC_FOR_NETWORK:
-+		case CCS_TOMOYO_MAC_FOR_SIGNAL:
-+		case CCS_TOMOYO_MAX_ACCEPT_ENTRY:
-+		case CCS_TOMOYO_MAX_GRANT_LOG:
-+		case CCS_TOMOYO_MAX_REJECT_LOG:
-+		case CCS_TOMOYO_VERBOSE:
-+#endif
-+			continue;
-+		}
-+#endif
 +		if (!type) { /* Print profile' comment tag. */
 +			if (!ccs_io_printf(head, "%u-COMMENT=%s\n",
 +					   index, profile->comment ?
@@ -1198,16 +1037,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +		type--;
 +		if (type >= CCS_MAX_CONTROL_INDEX) {
-+#ifdef CONFIG_TOMOYO
-+			const int i = type - CCS_MAX_CONTROL_INDEX;
-+			const u8 value = profile->capability_value[i];
-+			if (!ccs_io_printf(head,
-+					   "%u-" KEYWORD_MAC_FOR_CAPABILITY
-+					   "%s=%s\n", index,
-+					   capability_control_keyword[i],
-+					   mode_4[value]))
-+				break;
-+#endif
 +		} else {
 +			const unsigned int value = profile->value[type];
 +			const char **modes = NULL;
@@ -1391,30 +1220,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#ifdef CONFIG_TOMOYO
 +
 +/**
-+ * ccs_find_condition_part - Find condition part from the statement.
-+ *
-+ * @data: String to parse.
-+ *
-+ * Returns pointer to the condition part if it was found in the statement,
-+ * NULL otherwise.
-+ */
-+static char *ccs_find_condition_part(char *data)
-+{
-+	char *cp = strstr(data, " if ");
-+	if (cp) {
-+		char *cp2;
-+		while ((cp2 = strstr(cp + 3, " if ")) != NULL)
-+			cp = cp2;
-+		*cp++ = '\0';
-+	} else {
-+		cp = strstr(data, " ; set ");
-+		if (cp)
-+			*cp++ = '\0';
-+	}
-+	return cp;
-+}
-+
-+/**
 + * write_domain_policy - Write domain policy.
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
@@ -1429,7 +1234,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	bool is_select = false;
 +	bool is_undelete = false;
 +	unsigned int profile;
-+	const struct condition_list *cond = NULL;
 +	char *cp;
 +	if (str_starts(&data, KEYWORD_DELETE))
 +		is_delete = true;
@@ -1465,30 +1269,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				    DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
 +		return 0;
 +	}
-+	if (!strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_ENV)) {
-+		ccs_set_domain_flag(domain, is_delete,
-+				    DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV);
-+		return 0;
-+	}
-+	cp = ccs_find_condition_part(data);
-+	if (cp) {
-+		cond = ccs_find_or_assign_new_condition(cp);
-+		if (!cond)
-+			return -EINVAL;
-+	}
-+	if (str_starts(&data, KEYWORD_ALLOW_CAPABILITY))
-+		return ccs_write_capability_policy(data, domain, cond,
-+						   is_delete);
-+	else if (str_starts(&data, KEYWORD_ALLOW_NETWORK))
-+		return ccs_write_network_policy(data, domain, cond, is_delete);
-+	else if (str_starts(&data, KEYWORD_ALLOW_SIGNAL))
-+		return ccs_write_signal_policy(data, domain, cond, is_delete);
-+	else if (str_starts(&data, KEYWORD_ALLOW_ARGV0))
-+		return ccs_write_argv0_policy(data, domain, cond, is_delete);
-+	else if (str_starts(&data, KEYWORD_ALLOW_ENV))
-+		return ccs_write_env_policy(data, domain, cond, is_delete);
-+	else
-+		return ccs_write_file_policy(data, domain, cond, is_delete);
++	return ccs_write_file_policy(data, domain, is_delete);
 +}
 +
 +/**
@@ -1496,13 +1277,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + * @ptr:  Pointer to "struct single_path_acl_record".
-+ * @cond: Pointer to "struct condition_list". May be NULL.
 + *
 + * Returns true on success, false otherwise.
 + */
 +static bool print_single_path_acl(struct ccs_io_buffer *head,
-+				  struct single_path_acl_record *ptr,
-+				  const struct condition_list *cond)
++				  struct single_path_acl_record *ptr)
 +{
 +	int pos;
 +	u8 bit;
@@ -1526,8 +1305,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		msg = ccs_sp2keyword(bit);
 +		pos = head->read_avail;
 +		if (!ccs_io_printf(head, "allow_%s %s%s", msg,
-+				   atmark, filename) ||
-+		    !ccs_print_condition(head, cond))
++				   atmark, filename))
 +			goto out;
 +	}
 +	head->read_bit = 0;
@@ -1543,13 +1321,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @head: Pointer to "struct ccs_io_buffer".
 + * @ptr:  Pointer to "struct double_path_acl_record".
-+ * @cond: Pointer to "struct condition_list". May be NULL.
 + *
 + * Returns true on success, false otherwise.
 + */
 +static bool print_double_path_acl(struct ccs_io_buffer *head,
-+				  struct double_path_acl_record *ptr,
-+				  const struct condition_list *cond)
++				  struct double_path_acl_record *ptr)
 +{
 +	int pos;
 +	const char *atmark1 = "";
@@ -1577,8 +1353,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		msg = ccs_dp2keyword(bit);
 +		pos = head->read_avail;
 +		if (!ccs_io_printf(head, "allow_%s %s%s %s%s", msg,
-+				   atmark1, filename1, atmark2, filename2) ||
-+		    !ccs_print_condition(head, cond))
++				   atmark1, filename1, atmark2, filename2))
 +			goto out;
 +	}
 +	head->read_bit = 0;
@@ -1587,227 +1362,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	head->read_bit = bit;
 +	head->read_avail = pos;
 +	return false;
-+}
-+
-+/**
-+ * print_argv0_acl - Print an argv[0] ACL entry.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct argv0_acl_record".
-+ * @cond: Pointer to "struct condition_list". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_argv0_acl(struct ccs_io_buffer *head,
-+			    struct argv0_acl_record *ptr,
-+			    const struct condition_list *cond)
-+{
-+	int pos = head->read_avail;
-+	if (!ccs_io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
-+			   ptr->filename->name, ptr->argv0->name))
-+		goto out;
-+	if (!ccs_print_condition(head, cond))
-+		goto out;
-+	return true;
-+ out:
-+	head->read_avail = pos;
-+	return false;
-+}
-+
-+/**
-+ * print_env_acl - Print an evironment variable name's ACL entry.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct env_acl_record".
-+ * @cond: Pointer to "struct condition_list". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_env_acl(struct ccs_io_buffer *head,
-+			  struct env_acl_record *ptr,
-+			  const struct condition_list *cond)
-+{
-+	int pos = head->read_avail;
-+	if (!ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name))
-+		goto out;
-+	if (!ccs_print_condition(head, cond))
-+		goto out;
-+	return true;
-+ out:
-+	head->read_avail = pos;
-+	return false;
-+}
-+
-+/**
-+ * print_capability_acl - Print a capability ACL entry.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct capability_acl_record".
-+ * @cond: Pointer to "struct condition_list". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_capability_acl(struct ccs_io_buffer *head,
-+				 struct capability_acl_record *ptr,
-+				 const struct condition_list *cond)
-+{
-+	int pos = head->read_avail;
-+	if (!ccs_io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s",
-+			   ccs_cap2keyword(ptr->operation)))
-+		goto out;
-+	if (!ccs_print_condition(head, cond))
-+		goto out;
-+	return true;
-+ out:
-+	head->read_avail = pos;
-+	return false;
-+}
-+
-+/**
-+ * print_ipv4_entry - Print IPv4 address of a network ACL entry.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct ip_network_acl_record".
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_ipv4_entry(struct ccs_io_buffer *head,
-+			     struct ip_network_acl_record *ptr)
-+{
-+	const u32 min_address = ptr->u.ipv4.min;
-+	const u32 max_address = ptr->u.ipv4.max;
-+	if (!ccs_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
-+		return false;
-+	if (min_address != max_address
-+	    && !ccs_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
-+		return false;
-+	return true;
-+}
-+
-+/**
-+ * print_ipv6_entry - Print IPv6 address of a network ACL entry.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct ip_network_acl_record".
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_ipv6_entry(struct ccs_io_buffer *head,
-+			     struct ip_network_acl_record *ptr)
-+{
-+	char buf[64];
-+	const struct in6_addr *min_address = ptr->u.ipv6.min;
-+	const struct in6_addr *max_address = ptr->u.ipv6.max;
-+	ccs_print_ipv6(buf, sizeof(buf), min_address);
-+	if (!ccs_io_printf(head, "%s", buf))
-+		return false;
-+	if (min_address != max_address) {
-+		ccs_print_ipv6(buf, sizeof(buf), max_address);
-+		if (!ccs_io_printf(head, "-%s", buf))
-+			return false;
-+	}
-+	return true;
-+}
-+
-+/**
-+ * print_port_entry - Print port number of a network ACL entry.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct ip_network_acl_record".
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_port_entry(struct ccs_io_buffer *head,
-+			     struct ip_network_acl_record *ptr)
-+{
-+	const u16 min_port = ptr->min_port, max_port = ptr->max_port;
-+	if (!ccs_io_printf(head, " %u", min_port))
-+		return false;
-+	if (min_port != max_port && !ccs_io_printf(head, "-%u", max_port))
-+		return false;
-+	return true;
-+}
-+
-+/**
-+ * print_network_acl - Print a network ACL entry.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct ip_network_acl_record".
-+ * @cond: Pointer to "struct condition_list". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_network_acl(struct ccs_io_buffer *head,
-+			      struct ip_network_acl_record *ptr,
-+			      const struct condition_list *cond)
-+{
-+	int pos = head->read_avail;
-+	if (!ccs_io_printf(head, KEYWORD_ALLOW_NETWORK "%s ",
-+			   ccs_net2keyword(ptr->operation_type)))
-+		goto out;
-+	switch (ptr->record_type) {
-+	case IP_RECORD_TYPE_ADDRESS_GROUP:
-+		if (!ccs_io_printf(head, "@%s", ptr->u.group->group_name->name))
-+			goto out;
-+		break;
-+	case IP_RECORD_TYPE_IPv4:
-+		if (!print_ipv4_entry(head, ptr))
-+			goto out;
-+		break;
-+	case IP_RECORD_TYPE_IPv6:
-+		if (!print_ipv6_entry(head, ptr))
-+			goto out;
-+		break;
-+	}
-+	if (!print_port_entry(head, ptr))
-+		goto out;
-+	if (!ccs_print_condition(head, cond))
-+		goto out;
-+	return true;
-+ out:
-+	head->read_avail = pos;
-+	return false;
-+}
-+
-+/**
-+ * print_signal_acl - Print a signal ACL entry.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct signale_acl_record".
-+ * @cond: Pointer to "struct condition_list". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_signal_acl(struct ccs_io_buffer *head,
-+			     struct signal_acl_record *ptr,
-+			     const struct condition_list *cond)
-+{
-+	int pos = head->read_avail;
-+	if (!ccs_io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s",
-+			   ptr->sig, ptr->domainname->name))
-+		goto out;
-+	if (!ccs_print_condition(head, cond))
-+		goto out;
-+	return true;
-+ out:
-+	head->read_avail = pos;
-+	return false;
-+}
-+
-+/**
-+ * print_execute_handler_record - Print an execute handler ACL entry.
-+ *
-+ * @head:    Pointer to "struct ccs_io_buffer".
-+ * @keyword: Name of the keyword.
-+ * @ptr:     Pointer to "struct execute_handler_record".
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool print_execute_handler_record(struct ccs_io_buffer *head,
-+					 const char *keyword,
-+					 struct execute_handler_record *ptr)
-+{
-+	return ccs_io_printf(head, "%s %s\n", keyword, ptr->handler->name);
 +}
 +
 +/**
@@ -1820,7 +1374,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
 +{
-+	const struct condition_list *cond = ccs_get_condition_part(ptr);
 +	const u8 acl_type = ccs_acl_type2(ptr);
 +	if (acl_type & ACL_DELETED)
 +		return true;
@@ -1828,52 +1381,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		struct single_path_acl_record *acl
 +			= container_of(ptr, struct single_path_acl_record,
 +				       head);
-+		return print_single_path_acl(head, acl, cond);
++		return print_single_path_acl(head, acl);
 +	}
 +	if (acl_type == TYPE_DOUBLE_PATH_ACL) {
 +		struct double_path_acl_record *acl
 +			= container_of(ptr, struct double_path_acl_record,
 +				       head);
-+		return print_double_path_acl(head, acl, cond);
-+	}
-+	if (acl_type == TYPE_ARGV0_ACL) {
-+		struct argv0_acl_record *acl
-+			= container_of(ptr, struct argv0_acl_record, head);
-+		return print_argv0_acl(head, acl, cond);
-+	}
-+	if (acl_type == TYPE_ENV_ACL) {
-+		struct env_acl_record *acl
-+			= container_of(ptr, struct env_acl_record, head);
-+		return print_env_acl(head, acl, cond);
-+	}
-+	if (acl_type == TYPE_CAPABILITY_ACL) {
-+		struct capability_acl_record *acl
-+			= container_of(ptr, struct capability_acl_record, head);
-+		return print_capability_acl(head, acl, cond);
-+	}
-+	if (acl_type == TYPE_IP_NETWORK_ACL) {
-+		struct ip_network_acl_record *acl
-+			= container_of(ptr, struct ip_network_acl_record, head);
-+		return print_network_acl(head, acl, cond);
-+	}
-+	if (acl_type == TYPE_SIGNAL_ACL) {
-+		struct signal_acl_record *acl
-+			= container_of(ptr, struct signal_acl_record, head);
-+		return print_signal_acl(head, acl, cond);
-+	}
-+	if (acl_type == TYPE_EXECUTE_HANDLER) {
-+		struct execute_handler_record *acl
-+			= container_of(ptr, struct execute_handler_record,
-+				       head);
-+		const char *keyword = KEYWORD_EXECUTE_HANDLER;
-+		return print_execute_handler_record(head, keyword, acl);
-+	}
-+	if (acl_type == TYPE_DENIED_EXECUTE_HANDLER) {
-+		struct execute_handler_record *acl
-+			= container_of(ptr, struct execute_handler_record,
-+				       head);
-+		const char *keyword = KEYWORD_DENIED_EXECUTE_HANDLER;
-+		return print_execute_handler_record(head, keyword, acl);
++		return print_double_path_acl(head, acl);
 +	}
 +	BUG(); /* This must not happen. */
 +	return false;
@@ -2075,20 +1589,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +							   is_delete);
 +	if (str_starts(&data, KEYWORD_ALIAS))
 +		return ccs_write_alias_policy(data, is_delete);
-+	if (str_starts(&data, KEYWORD_AGGREGATOR))
-+		return ccs_write_aggregator_policy(data, is_delete);
 +	if (str_starts(&data, KEYWORD_ALLOW_READ))
 +		return ccs_write_globally_readable_policy(data, is_delete);
-+	if (str_starts(&data, KEYWORD_ALLOW_ENV))
-+		return ccs_write_globally_usable_env_policy(data, is_delete);
 +	if (str_starts(&data, KEYWORD_FILE_PATTERN))
 +		return ccs_write_pattern_policy(data, is_delete);
-+	if (str_starts(&data, KEYWORD_PATH_GROUP))
-+		return ccs_write_path_group_policy(data, is_delete);
 +	if (str_starts(&data, KEYWORD_DENY_REWRITE))
 +		return ccs_write_no_rewrite_policy(data, is_delete);
-+	if (str_starts(&data, KEYWORD_ADDRESS_GROUP))
-+		return ccs_write_address_group_policy(data, is_delete);
 +	return -EINVAL;
 +}
 +
@@ -2154,82 +1660,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			head->read_step = 10;
 +		case 10:
 +			if (!ccs_read_address_group_policy(head))
-+				break;
-+			head->read_eof = true;
-+			break;
-+		default:
-+			return -EINVAL;
-+		}
-+	}
-+	return 0;
-+}
-+
-+#endif
-+
-+#ifdef CONFIG_SAKURA
-+
-+/**
-+ * write_system_policy - Write system policy.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int write_system_policy(struct ccs_io_buffer *head)
-+{
-+	char *data = head->write_buf;
-+	bool is_delete = false;
-+	if (str_starts(&data, KEYWORD_DELETE))
-+		is_delete = true;
-+	if (str_starts(&data, KEYWORD_ALLOW_MOUNT))
-+		return ccs_write_mount_policy(data, is_delete);
-+	if (str_starts(&data, KEYWORD_DENY_UNMOUNT))
-+		return ccs_write_no_umount_policy(data, is_delete);
-+	if (str_starts(&data, KEYWORD_ALLOW_CHROOT))
-+		return ccs_write_chroot_policy(data, is_delete);
-+	if (str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
-+		return ccs_write_pivot_root_policy(data, is_delete);
-+	if (str_starts(&data, KEYWORD_DENY_AUTOBIND))
-+		return ccs_write_reserved_port_policy(data, is_delete);
-+	return -EINVAL;
-+}
-+
-+/**
-+ * read_system_policy - Read system policy.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ *
-+ * Returns 0 on success, -EINVAL otherwise.
-+ */
-+static int read_system_policy(struct ccs_io_buffer *head)
-+{
-+	if (!head->read_eof) {
-+		switch (head->read_step) {
-+		case 0:
-+			head->read_var2 = NULL;
-+			head->read_step = 1;
-+		case 1:
-+			if (!ccs_read_mount_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 2;
-+		case 2:
-+			if (!ccs_read_no_umount_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 3;
-+		case 3:
-+			if (!ccs_read_chroot_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 4;
-+		case 4:
-+			if (!ccs_read_pivot_root_policy(head))
-+				break;
-+			head->read_var2 = NULL;
-+			head->read_step = 5;
-+		case 5:
-+			if (!ccs_read_reserved_port_policy(head))
 +				break;
 +			head->read_eof = true;
 +			break;
@@ -2333,12 +1763,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			schedule_timeout(HZ / 10);
 +		}
 +	}
-+#ifdef CONFIG_SAKURA
-+	printk(KERN_INFO "SAKURA: 1.6.0   2008/04/01\n");
-+#endif
-+#ifdef CONFIG_TOMOYO
-+	printk(KERN_INFO "TOMOYO: 1.6.0   2008/04/01\n");
-+#endif
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/04/22\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
 +	ccs_log_level = KERN_WARNING;
@@ -2352,256 +1777,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			      profile, domain->domainname->name);
 +		}
 +	}
-+}
-+
-+/* Wait queue for query_list. */
-+static DECLARE_WAIT_QUEUE_HEAD(query_wait);
-+
-+/* Lock for manipurating query_list. */
-+static DEFINE_SPINLOCK(query_lock);
-+
-+/* Structure for query. */
-+struct query_entry {
-+	struct list_head list;
-+	char *query;
-+	int query_len;
-+	unsigned int serial;
-+	int timer;
-+	int answer;
-+};
-+
-+/* The list for "struct query_entry". */
-+static LIST_HEAD(query_list);
-+
-+/* Number of "struct file" referring /proc/ccs/query interface. */
-+static atomic_t queryd_watcher = ATOMIC_INIT(0);
-+
-+/**
-+ * ccs_check_supervisor - Ask for the supervisor's decision.
-+ *
-+ * @fmt: The printf()'s format string, followed by parameters.
-+ *
-+ * Returns 0 if the supervisor decided to permit the access request which
-+ * violated the policy in enforcing mode, -EPERM otherwise.
-+ */
-+int ccs_check_supervisor(const char *fmt, ...)
-+{
-+	va_list args;
-+	int error = -EPERM;
-+	int pos;
-+	int len;
-+	static unsigned int serial;
-+	struct query_entry *query_entry;
-+	if (!ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE)
-+	    || !atomic_read(&queryd_watcher)) {
-+		int i;
-+		if (current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
-+			return -EPERM;
-+		for (i = 0; i < ccs_check_flags(CCS_SLEEP_PERIOD); i++) {
-+			set_current_state(TASK_INTERRUPTIBLE);
-+			schedule_timeout(HZ / 10);
-+		}
-+		return -EPERM;
-+	}
-+	va_start(args, fmt);
-+	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
-+	va_end(args);
-+	query_entry = ccs_alloc(sizeof(*query_entry));
-+	if (!query_entry)
-+		goto out;
-+	query_entry->query = ccs_alloc(len);
-+	if (!query_entry->query)
-+		goto out;
-+	INIT_LIST_HEAD(&query_entry->list);
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&query_lock);
-+	query_entry->serial = serial++;
-+	spin_unlock(&query_lock);
-+	/***** CRITICAL SECTION END *****/
-+	pos = snprintf(query_entry->query, len - 1, "Q%u\n",
-+		       query_entry->serial);
-+	va_start(args, fmt);
-+	vsnprintf(query_entry->query + pos, len - 1 - pos, fmt, args);
-+	query_entry->query_len = strlen(query_entry->query) + 1;
-+	va_end(args);
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&query_lock);
-+	list_add_tail(&query_entry->list, &query_list);
-+	spin_unlock(&query_lock);
-+	/***** CRITICAL SECTION END *****/
-+	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
-+	/* Give 10 seconds for supervisor's opinion. */
-+	for (query_entry->timer = 0; atomic_read(&queryd_watcher)
-+		     && ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE)
-+		     && query_entry->timer < 100; query_entry->timer++) {
-+		wake_up(&query_wait);
-+		set_current_state(TASK_INTERRUPTIBLE);
-+		schedule_timeout(HZ / 10);
-+		if (query_entry->answer)
-+			break;
-+	}
-+	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&query_lock);
-+	list_del(&query_entry->list);
-+	spin_unlock(&query_lock);
-+	/***** CRITICAL SECTION END *****/
-+	switch (query_entry->answer) {
-+	case 1:
-+		/* Granted by administrator. */
-+		error = 0;
-+		break;
-+	case 0:
-+		/* Timed out. */
-+		break;
-+	default:
-+		/* Rejected by administrator. */
-+		break;
-+	}
-+ out:
-+	if (query_entry)
-+		ccs_free(query_entry->query);
-+	ccs_free(query_entry);
-+	return error;
-+}
-+
-+/**
-+ * poll_query - poll() for /proc/ccs/query.
-+ *
-+ * @file: Pointer to "struct file".
-+ * @wait: Pointer to "poll_table".
-+ *
-+ * Returns POLLIN | POLLRDNORM when ready to read, 0 otherwise.
-+ *
-+ * Waits for access requests which violated policy in enforcing mode.
-+ */
-+static int poll_query(struct file *file, poll_table *wait)
-+{
-+	bool found;
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&query_lock);
-+	found = !list_empty(&query_list);
-+	spin_unlock(&query_lock);
-+	/***** CRITICAL SECTION END *****/
-+	if (found)
-+		return POLLIN | POLLRDNORM;
-+	poll_wait(file, &query_wait, wait);
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&query_lock);
-+	found = !list_empty(&query_list);
-+	spin_unlock(&query_lock);
-+	/***** CRITICAL SECTION END *****/
-+	if (found)
-+		return POLLIN | POLLRDNORM;
-+	return 0;
-+}
-+
-+/**
-+ * read_query - Read access requests which violated policy in enforcing mode.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ *
-+ * Returns 0.
-+ */
-+static int read_query(struct ccs_io_buffer *head)
-+{
-+	struct list_head *tmp;
-+	int pos = 0;
-+	int len = 0;
-+	char *buf;
-+	if (head->read_avail)
-+		return 0;
-+	if (head->read_buf) {
-+		ccs_free(head->read_buf);
-+		head->read_buf = NULL;
-+		head->readbuf_size = 0;
-+	}
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&query_lock);
-+	list_for_each(tmp, &query_list) {
-+		struct query_entry *ptr
-+			= list_entry(tmp, struct query_entry, list);
-+		if (pos++ != head->read_step)
-+			continue;
-+		len = ptr->query_len;
-+		break;
-+	}
-+	spin_unlock(&query_lock);
-+	/***** CRITICAL SECTION END *****/
-+	if (!len) {
-+		head->read_step = 0;
-+		return 0;
-+	}
-+	buf = ccs_alloc(len);
-+	if (buf) {
-+		pos = 0;
-+		/***** CRITICAL SECTION START *****/
-+		spin_lock(&query_lock);
-+		list_for_each(tmp, &query_list) {
-+			struct query_entry *ptr
-+				= list_entry(tmp, struct query_entry, list);
-+			if (pos++ != head->read_step)
-+				continue;
-+			/*
-+			 * Some query can be skipped because query_list
-+			 * can change, but I don't care.
-+			 */
-+			if (len == ptr->query_len)
-+				memmove(buf, ptr->query, len);
-+			break;
-+		}
-+		spin_unlock(&query_lock);
-+		/***** CRITICAL SECTION END *****/
-+		if (buf[0]) {
-+			head->read_avail = len;
-+			head->readbuf_size = head->read_avail;
-+			head->read_buf = buf;
-+			head->read_step++;
-+		} else {
-+			ccs_free(buf);
-+		}
-+	}
-+	return 0;
-+}
-+
-+/**
-+ * write_answer - Write the supervisor's decision.
-+ *
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ *
-+ * Returns 0 on success, -EINVAL otherwise.
-+ */
-+static int write_answer(struct ccs_io_buffer *head)
-+{
-+	char *data = head->write_buf;
-+	struct list_head *tmp;
-+	unsigned int serial;
-+	unsigned int answer;
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&query_lock);
-+	list_for_each(tmp, &query_list) {
-+		struct query_entry *ptr
-+			= list_entry(tmp, struct query_entry, list);
-+		ptr->timer = 0;
-+	}
-+	spin_unlock(&query_lock);
-+	/***** CRITICAL SECTION END *****/
-+	if (sscanf(data, "A%u=%u", &serial, &answer) != 2)
-+		return -EINVAL;
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&query_lock);
-+	list_for_each(tmp, &query_list) {
-+		struct query_entry *ptr
-+			= list_entry(tmp, struct query_entry, list);
-+		if (ptr->serial != serial)
-+			continue;
-+		if (!ptr->answer)
-+			ptr->answer = answer;
-+		break;
-+	}
-+	spin_unlock(&query_lock);
-+	/***** CRITICAL SECTION END *****/
-+	return 0;
 +}
 +
 +/* Policy updates counter. */
@@ -2645,22 +1820,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		spin_unlock(&updates_counter_lock);
 +		/***** CRITICAL SECTION END *****/
 +		ccs_io_printf(head,
-+			      "/proc/ccs/system_policy:    %10u\n"
-+			      "/proc/ccs/domain_policy:    %10u\n"
-+			      "/proc/ccs/exception_policy: %10u\n"
-+			      "/proc/ccs/profile:          %10u\n"
-+			      "/proc/ccs/query:            %10u\n"
-+			      "/proc/ccs/manager:          %10u\n"
-+			      "/proc/ccs/grant_log:        %10u\n"
-+			      "/proc/ccs/reject_log:       %10u\n",
-+			      counter[CCS_UPDATES_COUNTER_SYSTEM_POLICY],
++			      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
++			      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
++			      "/sys/kernel/security/tomoyo/profile:          %10u\n"
++			      "/sys/kernel/security/tomoyo/manager:          %10u\n",
 +			      counter[CCS_UPDATES_COUNTER_DOMAIN_POLICY],
 +			      counter[CCS_UPDATES_COUNTER_EXCEPTION_POLICY],
 +			      counter[CCS_UPDATES_COUNTER_PROFILE],
-+			      counter[CCS_UPDATES_COUNTER_QUERY],
-+			      counter[CCS_UPDATES_COUNTER_MANAGER],
-+			      counter[CCS_UPDATES_COUNTER_GRANT_LOG],
-+			      counter[CCS_UPDATES_COUNTER_REJECT_LOG]);
++			      counter[CCS_UPDATES_COUNTER_MANAGER]);
 +		head->read_eof = true;
 +	}
 +	return 0;
@@ -2676,7 +1843,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int read_version(struct ccs_io_buffer *head)
 +{
 +	if (!head->read_eof) {
-+		ccs_io_printf(head, "1.6.0");
++		ccs_io_printf(head, "2.2.0-pre");
 +		head->read_eof = true;
 +	}
 +	return 0;
@@ -2742,12 +1909,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	mutex_init(&head->read_sem);
 +	mutex_init(&head->write_sem);
 +	switch (type) {
-+#ifdef CONFIG_SAKURA
-+	case CCS_SYSTEMPOLICY: /* /proc/ccs/system_policy */
-+		head->write = write_system_policy;
-+		head->read = read_system_policy;
-+		break;
-+#endif
 +#ifdef CONFIG_TOMOYO
 +	case CCS_DOMAINPOLICY: /* /proc/ccs/domain_policy */
 +		head->write = write_domain_policy;
@@ -2756,14 +1917,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	case CCS_EXCEPTIONPOLICY: /* /proc/ccs/exception_policy */
 +		head->write = write_exception_policy;
 +		head->read = read_exception_policy;
-+		break;
-+	case CCS_GRANTLOG: /* /proc/ccs/grant_log */
-+		head->poll = ccs_poll_grant_log;
-+		head->read = ccs_read_grant_log;
-+		break;
-+	case CCS_REJECTLOG: /* /proc/ccs/reject_log */
-+		head->poll = ccs_poll_reject_log;
-+		head->read = ccs_read_reject_log;
 +		break;
 +#endif
 +	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
@@ -2789,11 +1942,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		head->write = write_profile;
 +		head->read = read_profile;
 +		break;
-+	case CCS_QUERY: /* /proc/ccs/query */
-+		head->poll = poll_query;
-+		head->write = write_answer;
-+		head->read = read_query;
-+		break;
 +	case CCS_MANAGER: /* /proc/ccs/manager */
 +		head->write = write_manager_policy;
 +		head->read = read_manager_policy;
@@ -2806,8 +1954,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * Don't allocate buffer for reading if the file is one of
 +	 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
 +	 */
-+	if (type != CCS_GRANTLOG && type != CCS_REJECTLOG
-+	    && type != CCS_QUERY) {
++	if (head->read) {
 +		if (!head->readbuf_size)
 +			head->readbuf_size = 4096 * 2;
 +		head->read_buf = ccs_alloc(head->readbuf_size);
@@ -2833,13 +1980,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 */
 +	if (type == CCS_SELFDOMAIN)
 +		ccs_read_control(file, NULL, 0);
-+	/*
-+	 * If the file is /proc/ccs/query , increment the monitor count.
-+	 * The monitor count is used by ccs_check_supervisor() to see if
-+	 * there is some process monitoring /proc/ccs/query.
-+	 */
-+	else if (head->write == write_answer)
-+		atomic_inc(&queryd_watcher);
 +	return 0;
 +}
 +
@@ -2966,11 +2106,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct ccs_io_buffer *head = file->private_data;
 +	/*
-+	 * If the file is /proc/ccs/query , decrement the monitor count.
-+	 */
-+	if (head->write == write_answer)
-+		atomic_dec(&queryd_watcher);
-+	/*
 +	 * If the file is /proc/ccs/meminfo , regard policy loading by
 +	 * the policy loader executed from ccs_load_policy() has finished.
 +	 * This hack is needed because 2.4 kernel's call_usermodehelper()
@@ -2998,12 +2133,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * ccs_alloc_acl_element - Allocate permanent memory for ACL entry.
 + *
 + * @acl_type:  Type of ACL entry.
-+ * @condition: Pointer to condition part of the ACL entry. May be NULL.
 + *
 + * Returns pointer to the ACL entry on success, NULL otherwise.
 + */
-+void *ccs_alloc_acl_element(const u8 acl_type,
-+			    const struct condition_list *condition)
++void *ccs_alloc_acl_element(const u8 acl_type)
 +{
 +	int len;
 +	struct acl_info *ptr;
@@ -3014,62 +2147,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	case TYPE_DOUBLE_PATH_ACL:
 +		len = sizeof(struct double_path_acl_record);
 +		break;
-+	case TYPE_ARGV0_ACL:
-+		len = sizeof(struct argv0_acl_record);
-+		break;
-+	case TYPE_ENV_ACL:
-+		len = sizeof(struct env_acl_record);
-+		break;
-+	case TYPE_CAPABILITY_ACL:
-+		len = sizeof(struct capability_acl_record);
-+		break;
-+	case TYPE_IP_NETWORK_ACL:
-+		len = sizeof(struct ip_network_acl_record);
-+		break;
-+	case TYPE_SIGNAL_ACL:
-+		len = sizeof(struct signal_acl_record);
-+		break;
-+	case TYPE_EXECUTE_HANDLER:
-+	case TYPE_DENIED_EXECUTE_HANDLER:
-+		len = sizeof(struct execute_handler_record);
-+		break;
 +	default:
 +		return NULL;
 +	}
-+	/*
-+	 * If the ACL doesn't have condition part, reduce memory usage
-+	 * by eliminating sizeof(struct condition_list *).
-+	 */
-+	if (!condition)
-+		len -= sizeof(ptr->access_me_via_ccs_get_condition_part);
 +	ptr = ccs_alloc_element(len);
 +	if (!ptr)
 +		return NULL;
-+	if (condition) {
-+		ptr->access_me_via_ccs_get_condition_part = condition;
-+		ptr->type = acl_type | ACL_WITH_CONDITION;
-+		return ptr;
-+	}
-+	/*
-+	 * Substract sizeof(struct condition_list *) because I eliminated
-+	 * sizeof(struct condition_list *) from "struct acl_info"
-+	 * but I must return the start address of "struct acl_info".
-+	 */
-+	ptr = (void *) (((u8 *) ptr)
-+			- sizeof(ptr->access_me_via_ccs_get_condition_part));
 +	ptr->type = acl_type;
 +	return ptr;
-+}
-+
-+/**
-+ * ccs_get_condition_part - Get condition part of the given ACL entry.
-+ *
-+ * @acl: Pointer to "struct acl_info". Pointer to an ACL entry.
-+ *
-+ * Returns pointer to the condition part if the ACL has it, NULL otherwise.
-+ */
-+const struct condition_list *ccs_get_condition_part(const struct acl_info *acl)
-+{
-+	return (acl->type & ACL_WITH_CONDITION) ?
-+		acl->access_me_via_ccs_get_condition_part : NULL;
 +}
