@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="ja-JP">
+<html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>Policy Specifications of TOMOYO Linux</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
@@ -1247,7 +1247,7 @@ deny_autobind 8080</p>
 
 <p>Lines from the next line to a domain definition ( any lines starting with "&lt;kernel&gt;") to the previous line to the next domain definitions are interpreted as access permissions for that domain.</p>
 
-<p>You can specify additional conditions as needed. The syntax for specifing additional conditions are described in <a href="#conditional_acl">Using conditional ACL.</a> Also, how to switch process's state as needed and use the process's state for conditions is described in <a href="#stateful_acl">Using stateful ACL.</a></p>
+<p>You can specify additional conditions as needed. The syntax for specifying additional conditions are described in <a href="#conditional_acl">Using conditional ACL.</a> Also, how to switch process's state as needed and use the process's state for conditions is described in <a href="#stateful_acl">Using stateful ACL.</a></p>
 
 <p>To read or modify current domain policy, operate like below.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
@@ -1364,7 +1364,7 @@ programs to behave as cat in the domain of /bin/ls by creating a symbolic link n
 <p>To restrict the name of environment variables, use allow_env keyword followed by "the name of environment variable".</p>
 
 <p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[]. Many programs behave differently depending on envp[].</p>
-<p>The purpose of this keyword is to restrict the environment variables passed to executed programs.</p>
+<p>The purpose of this keyword is to restrict the environment variables passed to an executed programs.</p>
 
 <p>See also:  <a href="#exception_policy_allow_env">allow_env</a></p>
 
@@ -1504,7 +1504,7 @@ cat /proc/ccs/exception_policy</p>
 <p>To declare pathname pattern, use file_pattern keyword followed by pathname pattern. The pathname pattern must be a canonicalized Pathname. This keyword is not applicable to neither granting execute permissions nor domain definitions.<br>
 For example, canonicalized pathname that contains a process ID (i.e. /proc/PID/ files) needs to be grouped in order to make access control work well.</p>
 
-<p>When file access requests arise in learning mode ( profile's <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is set to "learning" ) , the requested pathname is automatically patterned according to patterens specified using this keyword. This keyword does not affect modes other than learning mode. This keyword is used for only reducing the burden of policy tuning which is needed after the lerning mode by making already known pathname patterns as templetes.</p>
+<p>When file access requests arise in learning mode ( profile's <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is set to "learning" ) , the requested pathname is automatically patterned according to patterns specified using this keyword. This keyword does not affect modes other than learning mode. This keyword is used for only reducing the burden of policy tuning which is needed after the learning mode by making already known pathname patterns as templates.</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
@@ -1808,7 +1808,7 @@ chown -R demo /proc/ccs/
 
 <p>"path1" is not supported when accessing via "sysctl" (i.e. accessing files under /proc/sys/ directories using "sysctl" instead for "open").</p>
 
-<p>"exec" is available only for operation taht executes a program (i.e. <a href="#domain_policy_allow_execute">allow_execute</a> keyword).</p>
+<p>"exec" is available only for operation that executes a program (i.e. <a href="#domain_policy_allow_execute">allow_execute</a> keyword).</p>
 
 <h2>6.3 <a name="stateful_acl">Using stateful ACL.</a></h2>
 
@@ -1847,8 +1847,8 @@ But there are cases you wish to change the range of accessible resources without
 
 <table border="1">
 <tr><td>Example of /proc/ccs/profile</td><td>Meaning</td></tr>
-<tr><td>3-SLEEP_PERIOD=1</td><td>Make the process which violated policy in enforcing mode and which belongs to a domain with profile 3 speep for 0.1 second.</td></tr>
-<tr><td>4-SLEEP_PERIOD=10</td><td>Make the process which violated policy in enforcing mode and which belongs to a domain with profile 4 speep for 1 second.</td></tr>
+<tr><td>3-SLEEP_PERIOD=1</td><td>Make the process which violated policy in enforcing mode and which belongs to a domain with profile 3 sleep for 0.1 second.</td></tr>
+<tr><td>4-SLEEP_PERIOD=10</td><td>Make the process which violated policy in enforcing mode and which belongs to a domain with profile 4 sleep for 1 second.</td></tr>
 </table>
 
 <p>This feature is a safeguard to avoid that the CPU usage remains 100% when policy violation occurs in an infinite loop. Usually, making processes sleep for 0.1 second is enough.</p>
@@ -1863,9 +1863,9 @@ But there are cases you wish to change the range of accessible resources without
 
 <p>In Linux, the behavior "execute a program" means "overwrite the process which requested to execute a program with the requested program's image" and "the process which requested to execute a program cannot regain control if the execute request was succeeded". Therefore, the process which requested to execute a program can receive a notification only when the execute request was failed.<br>
 For example, let's consider a situation where a process running as program-A attempts to execute program-B.<br>
-When the process running as program-A requests the execution of program-B, the kernel checks the domain policy for "whether it is appropriate to execute program-B from a process running as program-A or not" and the kernel overwrites the process running as program-A with program-B if the kernel considers it is appropriate, and the kernel doesn't overwrite the process running as program-A with program-B and notifies the process running as program-A that exeution of program-B is not permitted if the kernel considers it is not appropriate.</p>
+When the process running as program-A requests the execution of program-B, the kernel checks the domain policy for "whether it is appropriate to execute program-B from a process running as program-A or not" and the kernel overwrites the process running as program-A with program-B if the kernel considers it is appropriate, and the kernel doesn't overwrite the process running as program-A with program-B and notifies the process running as program-A that execution of program-B is not permitted if the kernel considers it is not appropriate.</p>
 
-<p>When <a href="#domain_policy_execute_handler">execute_handler</a> is specified, a different program program-C specifyed as execute_handler madiates this behavior.<br>
+<p>When <a href="#domain_policy_execute_handler">execute_handler</a> is specified, a different program program-C specified as execute_handler mediates this behavior.<br>
 When the process running as program-A requests the execution of program-B, the kernel overwrites the process running as program-A with program-C to let the program-C judge whether it is appropriate to execute program-B from a process running as program-A or not.
 The process now running as program-C determines whether it is appropriate to execute program-B from a process running as program-A or not, and the process now running as program-C requests the execution of program-B (and the kernel will overwrite the process now running as program-C with program-B) if the process now running as program-C considers it is appropriate, and the process now running as program-C terminates without executing program-B if the process now running as program-C considers it is not appropriate.</p>
 
@@ -1875,11 +1875,10 @@ Viewing in this light, there is no guarantee that "the program starts expected b
 
 <p>TOMOYO Linux's assumes that the administrator knows what programs needs to be executed from what programs beforehand and permits execution of minimal programs. Thus, assuming that unexpected execute request which are not permitted by policy won't occur as long as the system is running properly, it is OK to accept all execute requests. If an execute request that should not be accepted occurs, you can take different actions such as terminating the process instead of rejecting the request by using <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> mechanism. So, you don't have to let the kernel judge whether to execute the program or not alone.</p>
 
-<p>そこで、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
-<p>カーネルの内部では利用可能なライブラリが少ない上に連続したメモリ領域の割り当てが失敗する可能性が高くなりますが、
-カーネルの外部であれば豊富なライブラリを使ってメモリ割り当ての限界を心配せずに詳細なチェックが可能になります。そこで、 <a href="#domain_policy_execute_handler">execute_handler</a> で指定したプログラムにプログラム実行時のパラメータをチェックしてもらい、適切であればプログラムを実行してもらうようにすることができます。</p>
+<p>Thus, you can let external userland program judge whether to execute the requested program or not occurred from a domain by specifying <a href="#domain_policy_execute_handler">execute_handler</a> keyword to the domain.</p>
+<p>If you try to judge inside the kernel, there are few library functions available and it is more likely to fail when allocating contiguous memory area. But if you try to judge outside the kernel, there are many library functions available and it is less likely to fail when allocating contiguous memory area, and you can do more detailed checking. So, you can let external userland program specified by <a href="#domain_policy_execute_handler">execute_handler</a> keyword examine parameters and let the program execute the requested program only if parameters are appropriate.</p>
 
-<p>この方式の副作用は、プログラムの実行を拒否すべきと判断した場合に、プログラムの実行を要求したプロセスに通知する方法が無い点です。しかし、自由にカスタマイズできるので、 ssh 等を用いて遠隔地のマシンに問い合わせをしながらしながら判断することも可能です。</p>
+<p>The side effect of this approach is that there is no mean to notify the process that the execute request was not accepted when it is not appropriate to execute the requested program. But since you can freely customize the program for <a href="#domain_policy_execute_handler">execute_handler</a> keyword, you can even  judge using ssh to ask remotely.</p>
 
 <p>To use this feature, specify like below.</p>
 
@@ -1901,44 +1900,48 @@ Viewing in this light, there is no guarantee that "the program starts expected b
 <li>From argv[7] to argv[6 + argc] contains the arguments.</li>
 <li>From argv[7 + argc] to argv [6 + argc + envc] contains the environment variables.</li>
 <li>All environment variables are cleared for safety.</li>
-<li>Other resources such as standart input/output are inherited.</li>
+<li>Other resources such as standard input/output are inherited.</li>
 </ul>
 
 <p>Be careful with the following notes when you use this feature.</p>
 
 <ul>
-<li>execute_handler で指定されたプログラムに対して実行許可（ <a href="#domain_policy_allow_execute">allow_execute</a> ）を与える必要はありませんし、与えるべきではありません。</li>
-<li>プロセスが chroot 内部の環境で動作している場合、 execute_handler で指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスが chroot 内部の環境で動作している場合に、 chroot 外部の環境にあるプログラムを実行できてしまうと危険なので、 execute_handler で指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
-<li>execute_handler で指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば &lt;kernel&gt; 直下に execute_handler で指定されたプログラム用のドメインを作成して、そのプログラムを <a href="#exception_policy_initialize_domain">initialize_domain</a> キーワードで指定するなどの準備をしてください。</li>
-<li>execute_handler で指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、 execute_handler で指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
+<li>You need not to and should not give execute permission (<a href="#domain_policy_allow_execute">allow_execute</a> keyword) to the program specified by execute_handler keyword.</li>
+<li>This mechanism can't work if a process cannot access the program specified by execute_handler keyword because the process is running inside a chroot environment. Since it is dangerous to allow execution of programs outside the chroot environment, the program specified by execute_handler keyword is searched from the current process's / directory rather than the current process's namespace's / directory.</li>
+<li>This mechanism can't work if the domain for the program specified for execute_handler keyword doesn't exist. So, you need to prepare domains by (for example) creating a domain for the program specified by execute_handler keyword just under the &lt;kernel&gt; and mark the program specified by execute_handler keyword using <a href="#exception_policy_initialize_domain">initialize_domain</a> keyword.</li>
+<li>The program specified by execute_handler keyword is invoked with all environment variables cleared so that the program won't be affected by some dangerous environment variables (e.g. LD_PRELOAD). This means that even environment variable PATH is not set, so please be careful when executing external programs. Also, I recommend you to assign profile for enforcing mode against the domain for the program specified by execute_handler keyword.</li>
 </ul>
 
-<p>ccs-tools のソースパッケージには、 audit-exec-param.c というサンプルプログラムが入っています。ご自由に改造してお使いください。</p>
-<p>この機能は、機構を提供しているだけです。この機構を活用できるかどうかはあなた次第です。</p>
+<p>A source code named audit-exec-param.c is included as a sample program of how to use this mechanism in the ccs-tools source package. You can customize freely.</p>
+<p>This mechanism is just providing a hook. How to utilize this hook is up to you.</p>
 
 <h2>6.6 <a name="denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></h2>
 
-<p>TOMOYO Linux では、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、不要なプログラムの実行を拒否するという振る舞いだけでなく、それ以外の振る舞いを行うこともできます。</p>
+<p>TOMOYO Linux's approach is "know what programs needs to be executed from what programs beforehand and create policy that permits execution of minimal programs". Thus, you can not only reject unnecessary execution requests but also do different behavior.</p>
 
-<p>強制モードに於いて allow_execute 構文により許可されていないプログラムの実行が要求された場合、デフォルトではプログラムの実行を拒否します。しかし、あるプログラムからどのプログラムの実行を許可する必要があるかを把握済みであるという前提があれば、プロセスが正常な動作をしている限りに於いて許可されていないプログラムの実行が要求されることは無いので、許可されていないプログラムの実行が要求されたということはプロセスが正常な動作をしていない（つまり、プロセスにとっては制御を失った状態である）とみなすことができます。</p>
+<p>By default, if an execute request of a program which is not permitted by allow_execute keyword occurs in enforcing mode, the kernel rejects the execute request.
+But assuming that you know what programs needs to be executed from what programs beforehand, an execute request of a program which is not permitted by allow_execute keyword will not occur as long as the process is keeping control, and you can regard that the process is not keeping control (in other words, the process already lost control) if such request occurs.</p>
 
-<p>攻撃者はバッファオーバーフローなどのセキュリティホールを攻撃することでプロセスの制御を奪い、シェルなどのコマンドの実行を要求してきます。もし、そのプロセスからシェルの実行を許可する必要が無い（すなわち allow_execute /bin/bash のようなアクセス許可を与える必要が無い）のであれば、シェルの実行が要求された時点で既にプロセスにとっては制御を失っていると考えることができます。</p>
+<p>Attackers steal control of a process by attacking security holes such as buffer overflow and attempt to execute commands such as shells.
+If the process does not need to execute the shell (in other words, you needn't to give permission like "allow_execute /bin/bash"), it is considered that the process has already lost control at the moment of the execution request of shells.</p>
 
-<p>通常、許可されていないプログラムの実行が要求された場合は、その要求を拒否するだけです。しかし、制御を失っているプロセスから要求されたプログラムの実行要求を拒否したところで、そのプロセスの制御が取り戻される（つまり、正常な動作をするようになる）とは考えられません。しかし、プログラムを実行するということは、現在動作中のプロセスを新しいプログラムに置き換えることで、制御を新しいプログラムに譲渡することを意味します。つまり、あるプロセスがバッファオーバーフローなどにより制御を失っていたとしても、プログラムを実行することにより、そのプロセスの制御が取り戻されるわけです。</p>
+<p>Normally, when execution of a program which is not permitted by the policy is requested, the kernel merely reject the request. But it is unlikely that the process gets back control (in other words, the process resumes proper operations) by just rejecting the request if the request is issued by the process that has lost control.<br>
+In Linux, "execute a program" means that the current process is overwritten by the requested program and transfer control to the requested program. This means that a process gets back control by overwriting the process with different program even if the process has lost control because of buffer overflow.</p>
 
-<p>攻撃者の手によって制御を失ったプロセスからプログラムが実行された後の制御は、どのプログラムが実行されたかによって決まります。シェルが実行された場合には、シェルはユーザが要求したとおりに処理を実行してしまうため、プログラムの実行を要求したプロセスの所有者である攻撃者の手に委ねられてしまうわけです。しかし、何もせずに終了するようなプログラム（例えば /bin/true ）が実行された場合には、プロセスの制御が攻撃者の手に委ねられてしまうことはありません。</p>
+<p>The control of a process which has once lost control by the attacker and is overwritten by a program requested by the attacker depends on the program used for overwriting. If a program like shells is executed, the control remains on the attacker's side (in other words, the owner of the process) because shells accept whatever the user requested. But if a program which terminates silently (e.g. /bin/true) is executed, the control will not remains on the attacker's side because the process owned by the attacker will terminate immediately.</p>
 
-<p>このように、攻撃者の手によって本来許可する必要の無いプログラムの実行が要求されるという出来事は、見方を変えると、攻撃者自身が制御を取り戻すためのチャンスを与えてくれていると考えることができます。そこで、 TOMOYO Linux では、許可されていないプログラムの実行が要求された場合、その要求を拒否する代わりに他のプログラムを実行するための機構を提供しています。この機構を用いて何をするかはシステム管理者の自由です。</p>
+<p>As described above, an event that "an execute request of an unnecessary program is issued by an attacker" depending on how you look at it. You can consider that "the attacker is giving the system a chance to get back control on the system's side".<br>
+Thus, TOMOYO Linux provides a mechanism that executes different program instead of merely rejecting the request when an execute request of a program which is not permitted by policy occurs. How to utilize this mechanism is up to you.</p>
 
-<p>例えば、シェルの実行要求を /bin/true の実行要求に差し替えてしまうことで、そのプロセスを直ちに強制終了させることができます。</p>
+<p>For example, you can replace the execute request of a program which is not permitted by the policy with /bin/true so that the process which requested the execution of a program which is not permitted by the policy will terminate immediately.</p>
 
-<p>例えば、シェルの実行要求をハニーポットクライアントプログラムの実行要求に差し替えてしまうことで、攻撃者がどのようなリクエストを行うかを観察することができます。</p>
+<p>For example, you can replace the execute request of shells with a honey pot client's program and observe what requests the attacker issues.</p>
 
-<p>例えば、そのログインセッションを強制終了させることができます。</p>
+<p>For example, you can forcibly terminate the login session.</p>
 
-<p>例えば、要求されたコマンドがどのパッケージに含まれているかを教えてくれる Ubuntu の command-not-found パッケージのように、「 You are not permitted to execute this program. 」のような警告を表示することができます。</p>
+<p>For example, you can show warning message like "You are not permitted to execute this program." which is similar to Ubuntu's command-not-found package (which tells the user in what package the requested command is included).</p>
 
-<p>例えば、攻撃者の接続元ＩＰアドレスを割り出して、ファイアウォールの設定を変更することができます。</p>
+<p>For example, you can change a firewall's configuration if you succeeded to derive the IP address of the attacker.</p>
 
 <p>To use this feature, specify like below.</p>
 
