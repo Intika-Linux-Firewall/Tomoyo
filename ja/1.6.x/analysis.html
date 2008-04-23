@@ -18,7 +18,120 @@
 
 <h2>TOMOYO Linux カーネルのインストール</h2>
 
-<p>バイナリパッケージはまだ提供されていません。<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照しながらカーネルをコンパイルする必要があります。</p>
+<p>TOMOYO Linux では、いくつかのコンパイル済みのカーネルをパッケージにして提供しています。コンパイル済みのカーネルを利用する場合は、以下のファイルをダウンロードしてインストールしてください。</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.4.20-46.9.legacy_tomoyo_1.6.0.i586.rpm
+</td></tr><tr><td>
+Fedora Core 3</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.6.12-2.3.legacy_FC3_tomoyo_1.6.0.i586.rpm
+</td></tr><tr><td>
+Fedora Core 4</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.6.17-1.2142_FC4_tomoyo_1.6.0.i686.rpm
+</td></tr><tr><td>
+Fedora Core 5</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.20-1.2320.fc5_tomoyo_1.6.0.i586.rpm
+</td></tr><tr><td>
+Fedora Core 6</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.22.14-72_tomoyo_1.6.0.fc6.i586.rpm
+</td></tr><tr><td>
+Fedora 7</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.23.15-80_tomoyo_1.6.0.fc7.i586.rpm
+</td></tr><tr><td>
+Fedora 8</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.24.4-64_tomoyo_1.6.0.fc8.i586.rpm
+</td></tr><tr><td>
+CentOS 4.6</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.6.9-67.0.7.EL_tomoyo_1.6.0.i586.rpm
+</td></tr><tr><td>
+CentOS 5.1</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.18-53.1.14.el5_tomoyo_1.6.0.i686.rpm
+</td></tr><tr><td>
+Debian Sarge</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-image-2.4.27-4-686-smp-ccs1.6.0_2.4.27-10sarge7_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-pcmcia-modules-2.4.27-4-686-smp-ccs1.6.0_2.4.27-10sarge7_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-image-2.6.8-4-686-smp-ccs1.6.0_2.6.8-17sarge1_i386.deb
+</td></tr><tr><td>
+Debian Etch</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.18-18etch1-ccs-i586_1.6.0_i386.deb
+<!--
+</td></tr><tr><td>
+Debian Lenny</td><td>
+Add these entries to /etc/apt/sources.list :<br>
+deb http://www.mithril-linux.org/~henrich/debian/package/ ./<br>
+deb-src http://www.mithril-linux.org/~henrich/debian/package/ ./<br>
+And, run:<br>
+apt-get update<br>
+apt-get install linux-image-2.6.22ccs.1.6.0
+-->
+</td></tr><tr><td>
+OpenSUSE 10.1</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-default-2.6.16.54-0.2.5_tomoyo_1.6.0.i586.rpm
+</td></tr><tr><td>
+OpenSUSE 10.2</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-default-2.6.18.8-0.9_tomoyo_1.6.0.i586.rpm
+</td></tr><tr><td>
+OpenSUSE 10.3</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-default-2.6.22.17-0.1_tomoyo_1.6.0.i586.rpm
+</td></tr><tr><td>
+Asianux 2.0</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.6.9-42.21AX_tomoyo_1.6.0.i686.rpm
+</td></tr><tr><td>
+Asianux 3.0</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.18-8.16AX_tomoyo_1.6.0.i686.rpm
+</td></tr><tr><td>
+Ubuntu 6.06</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.15-51-686-ccs1.6.0_2.6.15-51.66_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-restricted-modules-2.6.15-51-686-ccs1.6.0_2.6.15.12-51.2_i386.deb
+</td></tr><tr><td>
+Ubuntu 6.10</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.17-12-generic-ccs1.6.0_2.6.17.1-12.44_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-restricted-modules-2.6.17-12-generic-ccs1.6.0_2.6.17.9-12.4_i386.deb
+</td></tr><tr><td>
+Ubuntu 7.04</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.20-16-generic-ccs1.6.0_2.6.20-16.35_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-restricted-modules-2.6.20-16-generic-ccs1.6.0_2.6.20.6-16.30_i386.deb
+</td></tr><tr><td>
+Ubuntu 7.10</td><td>
+<!--
+Add these entries to /etc/apt/sources.list :<br>
+deb http://archive.ubuntulinux.jp/ubuntu-ja gutsy-experimental/<br>
+deb-src http://archive.ubuntulinux.jp/ubuntu-ja gutsy-experimental/<br>
+And, run:<br>
+apt-get update<br>
+apt-get install tomoyo-linux
+-->
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.22-14-ccs1.6.0_2.6.22-14.52_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-ubuntu-modules-2.6.22-14-ccs1.6.0_2.6.22-14.37_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-headers-2.6.22-14-ccs1.6.0_2.6.22-14.52_i386.deb
+</td></tr><tr><td>
+Ubuntu 8.04</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.24-16-ccs1.6.0_2.6.24-16.30_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-ubuntu-modules-2.6.24-16-ccs1.6.0_2.6.24-16.23_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-headers-2.6.24-16-ccs1.6.0_2.6.24-16.30_i386.deb<br>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-headers-lum-2.6.24-16-ccs1.6.0_2.6.24-16.23_i386.deb
+</td></tr><tr><td>
+Vine Linux 4.2</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.16-0vl76.33_tomoyo_1.6.0.i586.rpm
+</td></tr>
+</table>
+
+<p>アーキテクチャが異なる場合やカスタマイズしたい場合には、カーネルをコンパイルする必要があります。カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
+
+<p>SELinux をサポートするディストリビューションでは、 SELinux が無効になっていないとインストール時にエラーが発生する場合があります。インストール時に以下のようなエラーメッセージが表示される場合は、 SELinux を無効にしてからインストールしてください。 /etc/selinux/config の SELINUX= の行を SELINUX=disabled に書き換えてからシステムを再起動するか、あるいは、カーネル起動時のコマンドラインに selinux=0 というオプションを渡すことで SELinux を無効にできます。</p>
+
+<table border="1">
+<tr><td>
+[root@localhost ~]# rpm -ihv kernel-2.6.9-67.0.7.EL_tomoyo_1.6.0.i586.rpm<br>
+Preparing...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;########################################### [100%]<br>
+Error: %pre(kernel-2.6.9-67.0.7.EL_tomoyo_1.6.0.i586) scriptlet failed, exit status 255<br>
+Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.9-67.0.7.EL_tomoyo_1.6.0
+</td></tr>
+</table>
+
+<p>なお、 TOMOYO Linux 自身は SELinux と同時に使用することができます。以下の操作では SELinux を有効にした状態でも構いません。</p>
 
 <h2>TOMOYO Linux ツールのインストール</h2>
 
