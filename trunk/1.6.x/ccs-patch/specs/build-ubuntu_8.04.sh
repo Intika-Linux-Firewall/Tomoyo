@@ -46,8 +46,7 @@ cd linux-ubuntu-modules-2.6.24-2.6.24 || die "Can't chdir to linux-ubuntu-module
 awk ' BEGIN { flag = 0; print ""; } { if ($1 == "Package:" ) { if (index($0, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub | sed -e 's:-generic:-ccs:' > debian/control.stub.ccs || die "Can't create file."
 cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."
 debian/rules debian/control || die "Can't run control."
-
 sed -i -e 's:virtual:virtual ccs:' debian/rules.d/i386.mk || die "Can't edit file."
-
 debian/rules binary-indep binary-arch || die "Failed to build kernel package."
+
 exit 0

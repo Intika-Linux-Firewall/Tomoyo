@@ -3,31 +3,38 @@
 # This is kernel build script for debian sarge's 2.4.27 kernel.
 #
 
+die () {
+    echo $1
+    exit 1
+}
+
 # Install kernel source packages.
-cd /usr/src/
-apt-get install fakeroot build-essential
-apt-get install kernel-source-2.4.27
-apt-get install kernel-patch-debian-2.4.27
-apt-get build-dep kernel-image-2.4.27-4-686-smp
-apt-get source kernel-image-2.4.27-4-686-smp
+cd /usr/src/ || die "Can't chdir to /usr/src/ ."
+apt-get install fakeroot build-essential || die "Can't install packages."
+apt-get install kernel-source-2.4.27 || die "Can't install packages."
+apt-get install kernel-patch-debian-2.4.27 || die "Can't install packages."
+apt-get build-dep kernel-image-2.4.27-4-686-smp || die "Can't install packages."
+apt-get source kernel-image-2.4.27-4-686-smp || die "Can't install kernel source."
 
 # Download TOMOYO Linux patches.
-cd kernel-image-2.4.27-i386-2.4.27/
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz
+cd kernel-image-2.4.27-i386-2.4.27/ || die "Can't chdir to kernel-image-2.4.27-i386-2.4.27/ ."
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz || die "Can't download patch."
 
 # Apply patches and create kernel config.
-tar -zxf ccs-patch-1.6.0-20080401.tar.gz ./config.ccs
-cat config/686-smp config.ccs > config/686-smp-ccs
-debian/rules flavours=686-smp-ccs
-cd build-686-smp-ccs/
-tar -zxf ../ccs-patch-1.6.0-20080401.tar.gz
-cp -p Makefile Makefile.tmp
-patch -p1 < patches/ccs-patch-2.4.27-10sarge7.diff
-mv -f Makefile.tmp Makefile
-awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686-smp") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control | sed -e 's:-686-smp:-686-smp-ccs:g' > debian/control.tmp
-cat debian/control.tmp >> debian/control
-cd ..
+tar -zxf ccs-patch-1.6.0-20080401.tar.gz ./config.ccs || die "Can't extract patch."
+cat config/686-smp config.ccs > config/686-smp-ccs || die "Can't create config."
+debian/rules flavours=686-smp-ccs || die "Can't run rules."
+cd build-686-smp-ccs/ || die "Can't chdir to build-686-smp-ccs/ ."
+tar -zxf ../ccs-patch-1.6.0-20080401.tar.gz || die "Can't extract patch."
+cp -p Makefile Makefile.tmp || die "Can't create backup."
+patch -p1 < patches/ccs-patch-2.4.27-10sarge7.diff || die "Can't apply patch."
+mv -f Makefile.tmp Makefile || die "Can't restore."
+awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686-smp") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control | sed -e 's:-686-smp:-686-smp-ccs:g' > debian/control.tmp || die "Can't create file."
+cat debian/control.tmp >> debian/control || die "Can't edit file."
+cd .. || die "Can't chdir to ../ ."
 
 # Start compilation.
-export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo`
-debian/rules binary-arch flavours=686-smp-ccs
+export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
+debian/rules binary-arch flavours=686-smp-ccs || die "Failed to build kernel package."
+
+exit 0
