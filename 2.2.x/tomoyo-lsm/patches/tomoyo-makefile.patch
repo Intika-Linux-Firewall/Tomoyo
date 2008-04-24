@@ -1,12 +1,12 @@
 ---
  security/Kconfig         |    1 +
- security/Makefile        |    1 +
+ security/Makefile        |    2 ++
  security/tomoyo/Kconfig  |    6 ++++++
  security/tomoyo/Makefile |    1 +
- 4 files changed, 9 insertions(+)
+ 4 files changed, 10 insertions(+)
 
---- mm.orig/security/Kconfig
-+++ mm/security/Kconfig
+--- tomoyo.orig/security/Kconfig	2008-04-24 19:58:03.000000000 +0900
++++ tomoyo/security/Kconfig	2008-04-24 19:58:22.000000000 +0900
 @@ -124,6 +124,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
  
  source security/selinux/Kconfig
@@ -15,8 +15,8 @@
  
  endmenu
  
---- mm.orig/security/Makefile
-+++ mm/security/Makefile
+--- tomoyo.orig/security/Makefile	2008-04-24 19:58:03.000000000 +0900
++++ tomoyo/security/Makefile	2008-04-24 20:00:56.000000000 +0900
 @@ -5,6 +5,7 @@
  obj-$(CONFIG_KEYS)			+= keys/
  subdir-$(CONFIG_SECURITY_SELINUX)	+= selinux
@@ -25,8 +25,16 @@
  
  # if we don't select a security model, use the default capabilities
  ifneq ($(CONFIG_SECURITY),y)
---- /dev/null
-+++ mm/security/tomoyo/Kconfig
+@@ -16,6 +17,7 @@ obj-$(CONFIG_SECURITY)			+= security.o d
+ # Must precede capability.o in order to stack properly.
+ obj-$(CONFIG_SECURITY_SELINUX)		+= selinux/built-in.o
+ obj-$(CONFIG_SECURITY_SMACK)		+= commoncap.o smack/built-in.o
++obj-$(CONFIG_SECURITY_TOMOYO)		+= tomoyo/built-in.o
+ obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
+ obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
+ obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ tomoyo/security/tomoyo/Kconfig	2008-04-24 19:58:22.000000000 +0900
 @@ -0,0 +1,6 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux Support"
@@ -34,7 +42,7 @@
 +	default y
 +	help
 +	  TOMOYO Linux
---- /dev/null
-+++ mm/security/tomoyo/Makefile
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ tomoyo/security/tomoyo/Makefile	2008-04-24 19:58:22.000000000 +0900
 @@ -0,0 +1 @@
 +obj-y = ccs_common.o realpath.o tomoyo.o tomoyo_domain.o tomoyo_file.o
