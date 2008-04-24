@@ -135,11 +135,88 @@ Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.
 
 <h2>TOMOYO Linux ツールのインストール</h2>
 
-<p>バイナリパッケージはまだ提供されていません。以下の手順でツールをコンパイルする必要があります。</p>
+<p>TOMOYO Linux では、いくつかのコンパイル済みのツールを提供しています。コンパイル済みのツールを利用する場合は、以下のファイルをダウンロードしてインストールしてください。</p>
 
 <table border="1">
 <tr><td>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.0-20080401.tar.gz<br>
+RedHat Linux 9</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.RHL9.i386.rpm
+</td></tr><tr><td>
+Fedora Core 3</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.FC3.i386.rpm
+</td></tr><tr><td>
+Fedora Core 4</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.FC4.i386.rpm
+</td></tr><tr><td>
+Fedora Core 5</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.FC5.i386.rpm
+</td></tr><tr><td>
+Fedora Core 6</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.FC6.i386.rpm
+</td></tr><tr><td>
+Fedora 7</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.F7.i386.rpm
+</td></tr><tr><td>
+Fedora 8</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.F8.i386.rpm
+</td></tr><tr><td>
+CentOS 4.6</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.CentOS4.6.i386.rpm
+</td></tr><tr><td>
+CentOS 5.1</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.CentOS5.1.i386.rpm
+</td></tr><tr><td>
+Debian Sarge</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Sarge_i386.deb
+</td></tr><tr><td>
+Debian Etch</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Etch_i386.deb
+<!--
+</td></tr><tr><td>
+Debian Lenny</td><td>
+apt-get install tomoyo-ccstools
+-->
+</td></tr><tr><td>
+OpenSUSE 10.1</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.SUSE10.1.i586.rpm
+</td></tr><tr><td>
+OpenSUSE 10.2</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.SUSE10.2.i586.rpm
+</td></tr><tr><td>
+OpenSUSE 10.3</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.SUSE10.3.i586.rpm
+</td></tr><tr><td>
+Asianux 2.0</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.AX2.i386.rpm
+</td></tr><tr><td>
+Asianux 3.0</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.AX3.i386.rpm
+</td></tr><tr><td>
+Ubuntu 6.06</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Ubuntu6.06_i386.deb</td></tr><tr><td>
+Ubuntu 6.10</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Ubuntu6.10_i386.deb</td></tr><tr><td>
+Ubuntu 7.04</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Ubuntu7.04_i386.deb</td></tr><tr><td>
+Ubuntu 7.10</td><td>
+<!--
+apt-get install tomoyo-ccstools
+-->
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Ubuntu7.10_i386.deb</td></tr><tr><td>
+Ubuntu 8.04</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Ubuntu8.04_i386.deb</td></tr><tr><td>
+Vine Linux 4.2</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.Vine4.2.i386.rpm
+</td></tr><tr><td>
+Others (Source Package)</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.0-20080401.tar.gz
+</td></tr>
+</table>
+
+<p>ソースパッケージをダウンロードした場合は以下のコマンドを実行してください。</p>
+
+<table border="1">
+<tr><td>
 tar -zxf ccs-tools-1.6.0-20080401.tar.gz<br>
 make -C ccstools/ install
 </td></tr>
