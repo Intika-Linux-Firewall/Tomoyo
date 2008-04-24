@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/ccs_common.c | 2130 +++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 2130 insertions(+)
+ security/tomoyo/ccs_common.c | 2125 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2125 insertions(+)
 
---- /dev/null
-+++ mm/security/tomoyo/ccs_common.c
-@@ -0,0 +1,2130 @@
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ tomoyo/security/tomoyo/ccs_common.c	2008-04-24 20:00:38.000000000 +0900
+@@ -0,0 +1,2125 @@
 +/*
 + * security/tomoyo/ccs_common.c
 + *
@@ -1757,15 +1757,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
 +		envp[2] = NULL;
 +		call_usermodehelper(argv[0], argv, envp, 1);
-+		while (!profile_loaded) {
-+			set_current_state(TASK_INTERRUPTIBLE);
-+			schedule_timeout(HZ / 10);
-+		}
 +	}
 +	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/04/22\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
-+	ccs_log_level = KERN_WARNING;
 +	{ /* Check all profiles currently assigned to domains are defined. */
 +		struct domain_info *domain;
 +		list1_for_each_entry(domain, &domain_list, list) {
