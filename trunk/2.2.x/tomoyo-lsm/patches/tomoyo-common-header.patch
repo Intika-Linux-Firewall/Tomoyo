@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/ccs_common.h |  457 +++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 457 insertions(+)
+ security/tomoyo/ccs_common.h |  440 +++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 440 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/ccs_common.h
-@@ -0,0 +1,457 @@
+@@ -0,0 +1,440 @@
 +/*
 + * security/tomoyo/ccs_common.h
 + *
@@ -19,7 +19,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/22
++ * Version: 2.2.0-pre   2008/04/25
 + *
 + */
 +
@@ -94,7 +94,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +#define list1_for_each_entry(pos, head, member)				\
 +	for (pos = list1_entry((head)->next, typeof(*pos), member);	\
-+	     prefetch(pos->member.next), &pos->member != (head);        \
++	     /*prefetch(pos->member.next), */ &pos->member != (head);        \
 +	     pos = list1_entry(pos->member.next, typeof(*pos), member))
 +
 +/**
@@ -278,10 +278,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Index numbers for Access Controls. */
 +#define CCS_TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
 +#define CCS_TOMOYO_MAX_ACCEPT_ENTRY              1
-+#define CCS_TOMOYO_MAX_GRANT_LOG                 2
-+#define CCS_TOMOYO_MAX_REJECT_LOG                3
-+#define CCS_TOMOYO_VERBOSE                       4
-+#define CCS_MAX_CONTROL_INDEX                    5
++#define CCS_TOMOYO_VERBOSE                       2
++#define CCS_MAX_CONTROL_INDEX                    3
 +
 +/* Index numbers for updates counter. */
 +#define CCS_UPDATES_COUNTER_DOMAIN_POLICY    0
@@ -294,7 +292,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +struct ccs_io_buffer {
 +	int (*read) (struct ccs_io_buffer *);
 +	int (*write) (struct ccs_io_buffer *);
-+	int (*poll) (struct file *file, poll_table *wait);
 +	/* Exclusive lock for read_buf.         */
 +	struct mutex read_sem;
 +	/* Exclusive lock for write_buf.        */
@@ -357,6 +354,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
 +/* Read "deny_rewrite" entry in exception policy. */
 +bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
++/* Read "path_group" entry in exception policy. */
++bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
 +/* Write domain policy violation warning message to console? */
 +bool ccs_verbose_mode(void);
 +/* Convert double path operation to operation name. */
@@ -371,23 +370,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +const char *ccs_sp2keyword(const u8 operation);
 +/* Add an ACL entry to domain's ACL list. */
 +int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
-+/* Close /proc/ccs/ interface. */
-+int ccs_close_control(struct file *file);
 +/* Delete an ACL entry from domain's ACL list. */
 +int ccs_del_domain_acl(struct acl_info *acl);
 +/* Delete a domain. */
 +int ccs_delete_domain(char *data);
-+/* Open operation for /proc/ccs/ interface. */
-+int ccs_open_control(const u8 type, struct file *file);
-+/* Poll operation for /proc/ccs/ interface. */
-+int ccs_poll_control(struct file *file, poll_table *wait);
-+/* Check whether there is a grant log. */
-+int ccs_poll_grant_log(struct file *file, poll_table *wait);
-+/* Check whether there is a reject log. */
-+int ccs_poll_reject_log(struct file *file, poll_table *wait);
-+/* Read operation for /proc/ccs/ interface. */
-+int ccs_read_control(struct file *file, char __user *buffer,
-+		     const int buffer_len);
 +/* Create "alias" entry in exception policy. */
 +int ccs_write_alias_policy(char *data, const bool is_delete);
 +/*
@@ -414,9 +400,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
 +/* Create "file_pattern" entry in exception policy. */
 +int ccs_write_pattern_policy(char *data, const bool is_delete);
-+/* Write operation for /proc/ccs/ interface. */
-+int ccs_write_control(struct file *file, const char __user *buffer,
-+		      const int buffer_len);
 +/* Find a domain by the given name. */
 +struct domain_info *ccs_find_domain(const char *domainname);
 +/* Find or create a domain by the given name. */

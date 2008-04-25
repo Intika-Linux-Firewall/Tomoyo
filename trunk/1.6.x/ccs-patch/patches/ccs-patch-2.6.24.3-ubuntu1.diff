@@ -1645,7 +1645,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-source-2.6.24.3.orig/include/linux/syaoran.h
 +++ linux-source-2.6.24.3/include/linux/syaoran.h
-@@ -163,7 +163,7 @@ static int fs_mkdir(const char *pathname
+@@ -161,7 +161,7 @@ static int fs_mkdir(const char *pathname
  	struct dentry *dentry = lookup_create2(pathname, base, 1);
  	int error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -1654,7 +1654,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		if (!error) {
  			lock_kernel();
  			dentry->d_inode->i_uid = user;
-@@ -199,7 +199,7 @@ static int fs_mknod(const char *filename
+@@ -197,7 +197,7 @@ static int fs_mknod(const char *filename
  	dentry = lookup_create2(filename, base, 0);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -1663,7 +1663,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		if (!error) {
  			lock_kernel();
  			dentry->d_inode->i_uid = user;
-@@ -224,7 +224,8 @@ static int fs_symlink(const char *pathna
+@@ -222,7 +222,8 @@ static int fs_symlink(const char *pathna
  	int error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
