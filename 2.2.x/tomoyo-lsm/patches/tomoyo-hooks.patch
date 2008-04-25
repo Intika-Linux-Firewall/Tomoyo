@@ -3,12 +3,12 @@ Subject: LSM adapter functions.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/tomoyo.c |  290 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 290 insertions(+)
+ security/tomoyo/tomoyo.c |  285 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 285 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo.c
-@@ -0,0 +1,290 @@
+@@ -0,0 +1,285 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -282,11 +282,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		panic("Failure registering TOMOYO Linux");
 +
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
-+
-+	INIT_LIST1_HEAD(&KERNEL_DOMAIN.list);
-+	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
-+	KERNEL_DOMAIN.domainname = ccs_save_name(ROOT_NAME);
-+	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
 +	ccs_cachep = kmem_cache_create("tomoyo_security",
 +				       sizeof(struct ccs_security),
 +				       0, SLAB_PANIC, NULL);

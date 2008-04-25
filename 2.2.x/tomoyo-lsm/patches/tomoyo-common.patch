@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/ccs_common.c | 2125 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2125 insertions(+)
+ security/tomoyo/ccs_common.c | 2212 +++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 2212 insertions(+)
 
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ tomoyo/security/tomoyo/ccs_common.c	2008-04-24 20:00:38.000000000 +0900
-@@ -0,0 +1,2125 @@
+--- /dev/null
++++ mm/security/tomoyo/ccs_common.c
+@@ -0,0 +1,2212 @@
 +/*
 + * security/tomoyo/ccs_common.c
 + *
@@ -75,7 +75,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +/* Utility functions. */
 +
-+#ifdef CONFIG_TOMOYO
++/* Open operation for /proc/ccs/ interface. */
++static int ccs_open_control(const u8 type, struct file *file);
++/* Close /proc/ccs/ interface. */
++static int ccs_close_control(struct file *file);
++/* Read operation for /proc/ccs/ interface. */
++static int ccs_read_control(struct file *file, char __user *buffer,
++			    const int buffer_len);
++/* Write operation for /proc/ccs/ interface. */
++static int ccs_write_control(struct file *file, const char __user *buffer,
++			     const int buffer_len);
++
 +/**
 + * tomoyo_quiet_setup - Set TOMOYO_VERBOSE=0 by default.
 + *
@@ -90,7 +100,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +__setup("TOMOYO_QUIET", tomoyo_quiet_setup);
-+#endif
 +
 +/**
 + * is_byte_range - Check whether the string isa \ooo style octal value.
@@ -1216,8 +1225,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return found;
 +}
 +
-+#ifdef CONFIG_TOMOYO
-+
 +/**
 + * write_domain_policy - Write domain policy.
 + *
@@ -1233,7 +1240,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	bool is_select = false;
 +	bool is_undelete = false;
 +	unsigned int profile;
-+	char *cp;
 +	if (str_starts(&data, KEYWORD_DELETE))
 +		is_delete = true;
 +	else if (str_starts(&data, KEYWORD_SELECT))
@@ -1298,8 +1304,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!(perm & (1 << bit)))
 +			continue;
 +		/* Print "read/write" instead of "read" and "write". */
-+		if ((bit == TYPE_READ_ACL || bit == TYPE_WRITE_ACL)
-+		    && (perm & (1 << TYPE_READ_WRITE_ACL)))
++		if ((bit == CCS_TYPE_READ_ACL || bit == CCS_TYPE_WRITE_ACL)
++		    && (perm & (1 << CCS_TYPE_READ_WRITE_ACL)))
 +			continue;
 +		msg = ccs_sp2keyword(bit);
 +		pos = head->read_avail;
@@ -1411,7 +1417,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		struct domain_info *domain;
 +		const char *quota_exceeded = "";
 +		const char *ignore_global_allow_read = "";
-+		const char *ignore_global_allow_env = "";
 +		domain = list1_entry(dpos, struct domain_info, list);
 +		if (head->read_step != 1)
 +			goto acl_loop;
@@ -1423,14 +1428,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ)
 +			ignore_global_allow_read
 +				= KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
-+		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV)
-+			ignore_global_allow_env
-+				= KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
 +		if (!ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
-+				   "%s%s%s\n", domain->domainname->name,
++				   "%s%s\n", domain->domainname->name,
 +				   domain->profile, quota_exceeded,
-+				   ignore_global_allow_read,
-+				   ignore_global_allow_env))
++				   ignore_global_allow_read))
 +			return 0;
 +		head->read_step = 2;
 + acl_loop:
@@ -1453,8 +1454,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	head->read_eof = true;
 +	return 0;
 +}
-+
-+#endif
 +
 +/**
 + * write_domain_profile - Assign profile for specified domain.
@@ -1563,8 +1562,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+#ifdef CONFIG_TOMOYO
-+
 +/**
 + * write_exception_policy - Write exception policy.
 + *
@@ -1622,8 +1619,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			head->read_var2 = NULL;
 +			head->read_step = 3;
 +		case 3:
-+			if (!ccs_read_globally_usable_env_policy(head))
-+				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 4;
 +		case 4:
@@ -1637,8 +1632,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			head->read_var2 = NULL;
 +			head->read_step = 6;
 +		case 6:
-+			if (!ccs_read_aggregator_policy(head))
-+				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 7;
 +		case 7:
@@ -1658,8 +1651,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			head->read_var2 = NULL;
 +			head->read_step = 10;
 +		case 10:
-+			if (!ccs_read_address_group_policy(head))
-+				break;
 +			head->read_eof = true;
 +			break;
 +		default:
@@ -1668,8 +1659,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	return 0;
 +}
-+
-+#endif
 +
 +/* Profile loaded by policy loader? */
 +static bool profile_loaded = false;
@@ -1895,7 +1884,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Associates policy handler and returns 0 on success, -ENOMEM otherwise.
 + */
-+int ccs_open_control(const u8 type, struct file *file)
++static int ccs_open_control(const u8 type, struct file *file)
 +{
 +	struct ccs_io_buffer *head = ccs_alloc(sizeof(*head));
 +	if (!head)
@@ -1903,7 +1892,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	mutex_init(&head->read_sem);
 +	mutex_init(&head->write_sem);
 +	switch (type) {
-+#ifdef CONFIG_TOMOYO
 +	case CCS_DOMAINPOLICY: /* /proc/ccs/domain_policy */
 +		head->write = write_domain_policy;
 +		head->read = read_domain_policy;
@@ -1912,7 +1900,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		head->write = write_exception_policy;
 +		head->read = read_exception_policy;
 +		break;
-+#endif
 +	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
 +		head->read = read_self_domain;
 +		break;
@@ -1978,25 +1965,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_poll_control - poll() for /proc/ccs/ interface.
-+ *
-+ * @file: Pointer to "struct file".
-+ * @wait: Pointer to "poll_table".
-+ *
-+ * Waits for read readiness.
-+ * /proc/ccs/query is handled by /usr/lib/ccs/ccs-queryd and
-+ * /proc/ccs/grant_log and /proc/ccs/reject_log are handled by
-+ * /usr/lib/ccs/ccs-auditd.
-+ */
-+int ccs_poll_control(struct file *file, poll_table *wait)
-+{
-+	struct ccs_io_buffer *head = file->private_data;
-+	if (!head->poll)
-+		return -ENOSYS;
-+	return head->poll(file, wait);
-+}
-+
-+/**
 + * ccs_read_control - read() for /proc/ccs/ interface.
 + *
 + * @file:       Pointer to "struct file".
@@ -2005,8 +1973,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns bytes read on success, negative value otherwise.
 + */
-+int ccs_read_control(struct file *file, char __user *buffer,
-+		     const int buffer_len)
++static int ccs_read_control(struct file *file, char __user *buffer,
++			    const int buffer_len)
 +{
 +	int len = 0;
 +	struct ccs_io_buffer *head = file->private_data;
@@ -2049,8 +2017,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns @buffer_len on success, negative value otherwise.
 + */
-+int ccs_write_control(struct file *file, const char __user *buffer,
-+		      const int buffer_len)
++static int ccs_write_control(struct file *file, const char __user *buffer,
++			     const int buffer_len)
 +{
 +	struct ccs_io_buffer *head = file->private_data;
 +	int error = buffer_len;
@@ -2096,7 +2064,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Releases memory and returns 0.
 + */
-+int ccs_close_control(struct file *file)
++static int ccs_close_control(struct file *file)
 +{
 +	struct ccs_io_buffer *head = file->private_data;
 +	/* Release memory used for policy I/O. */
@@ -2137,3 +2105,122 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	ptr->type = acl_type;
 +	return ptr;
 +}
++
++
++//#include <linux/types.h>
++//#include <linux/kernel.h>
++//#include <linux/io.h>
++#include <linux/proc_fs.h>
++//#include <linux/module.h>
++//#include "ccs_proc.h"
++//#include "ccs_common.h"
++
++/**
++ * ccs_open - open() for /proc/ccs/ interface.
++ *
++ * @inode: Pointer to "struct inode".
++ * @file:  Pointer to "struct file".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int ccs_open(struct inode *inode, struct file *file)
++{
++	return ccs_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
++				file);
++}
++
++/**
++ * ccs_release - close() for /proc/ccs/ interface.
++ *
++ * @inode: Pointer to "struct inode".
++ * @file:  Pointer to "struct file".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int ccs_release(struct inode *inode, struct file *file)
++{
++	return ccs_close_control(file);
++}
++
++/**
++ * ccs_read - read() for /proc/ccs/ interface.
++ *
++ * @file:  Pointer to "struct file".
++ * @buf:   Pointer to buffer.
++ * @count: Size of @buf.
++ * @ppos:  Unused.
++ *
++ * Returns bytes read on success, negative value otherwise.
++ */
++static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
++			loff_t *ppos)
++{
++	return ccs_read_control(file, buf, count);
++}
++
++/**
++ * ccs_write - write() for /proc/ccs/ interface.
++ *
++ * @file:  Pointer to "struct file".
++ * @buf:   Pointer to buffer.
++ * @count: Size of @buf.
++ * @ppos:  Unused.
++ *
++ * Returns @count on success, negative value otherwise.
++ */
++static ssize_t ccs_write(struct file *file, const char __user *buf,
++			 size_t count, loff_t *ppos)
++{
++	return ccs_write_control(file, buf, count);
++}
++
++/* Operations for /proc/ccs/interface. */
++static struct file_operations ccs_operations = {
++	.open    = ccs_open,
++	.release = ccs_release,
++	.read    = ccs_read,
++	.write   = ccs_write,
++};
++
++/**
++ * create_entry - Create interface files under /proc/ccs/ directory.
++ *
++ * @name:   The name of the interface file.
++ * @mode:   The permission of the interface file.
++ * @parent: The parent directory.
++ * @key:    Type of interface.
++ *
++ * Returns nothing.
++ */
++static void __init create_entry(const char *name, const mode_t mode,
++				struct proc_dir_entry *parent, const u8 key)
++{
++	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
++	if (entry) {
++		entry->proc_fops = &ccs_operations;
++		entry->data = ((u8 *) NULL) + key;
++	}
++}
++
++/**
++ * ccs_proc_init - Initialize /proc/ccs/ interface.
++ *
++ * Returns 0.
++ */
++static int __init ccs_proc_init(void)
++{
++	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
++	create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
++	create_entry("exception_policy", 0600, ccs_dir, CCS_EXCEPTIONPOLICY);
++	create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
++	create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
++	create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
++	create_entry("meminfo",          0400, ccs_dir, CCS_MEMINFO);
++	create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
++	create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
++	create_entry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
++	create_entry("version",          0400, ccs_dir, CCS_VERSION);
++	return 0;
++}
++
++security_initcall(ccs_proc_init);
