@@ -1158,6 +1158,8 @@ static int find_next_domain(struct linux_binprm *bprm,
 		       new_domain_name);
 		if (is_enforce)
 			retval = -EPERM;
+		else
+			retval = -ENOMEM;
 	} else {
 		retval = 0;
 	}
