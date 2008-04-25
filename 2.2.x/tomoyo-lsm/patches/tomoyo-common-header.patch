@@ -94,7 +94,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +#define list1_for_each_entry(pos, head, member)				\
 +	for (pos = list1_entry((head)->next, typeof(*pos), member);	\
-+	     /*prefetch(pos->member.next), */ &pos->member != (head);        \
++	     prefetch(pos->member.next), &pos->member != (head);        \
 +	     pos = list1_entry(pos->member.next, typeof(*pos), member))
 +
 +/**

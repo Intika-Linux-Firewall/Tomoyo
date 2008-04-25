@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo_domain.c |  853 ++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 853 insertions(+)
+ security/tomoyo/tomoyo_domain.c |  856 ++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 856 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo_domain.c
-@@ -0,0 +1,853 @@
+@@ -0,0 +1,856 @@
 +/*
 + * security/tomoyo/tomoyo_domain.c
 + *
@@ -25,7 +25,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/22
++ * Version: 2.2.0-pre   2008/04/25
 + *
 + */
 +
@@ -757,7 +757,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * This function assumes that the size of buffer returned by
 +	 * ccs_realpath() = CCS_MAX_PATHNAME_LEN.
 +	 */
-+	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(tmp));
++	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(*tmp));
 +	struct domain_info *old_domain = CCS_SECURITY->domain;
 +	struct domain_info *domain = NULL;
 +	const char *old_domain_name = old_domain->domainname->name;
@@ -767,10 +767,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	char *symlink_program_name = NULL;
 +	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
-+	int retval;
++	int retval = -ENOMEM;
 +	struct path_info r; /* real name */
 +	struct path_info s; /* symlink name */
 +	struct path_info l; /* last name */
++
++	if (!tmp)
++		goto out;
 +
 +	{
 +		/*
