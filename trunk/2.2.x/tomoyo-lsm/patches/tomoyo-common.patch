@@ -1309,7 +1309,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			continue;
 +		msg = ccs_sp2keyword(bit);
 +		pos = head->read_avail;
-+		if (!ccs_io_printf(head, "allow_%s %s%s", msg,
++		if (!ccs_io_printf(head, "allow_%s %s%s\n", msg,
 +				   atmark, filename))
 +			goto out;
 +	}
@@ -1357,7 +1357,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			continue;
 +		msg = ccs_dp2keyword(bit);
 +		pos = head->read_avail;
-+		if (!ccs_io_printf(head, "allow_%s %s%s %s%s", msg,
++		if (!ccs_io_printf(head, "allow_%s %s%s %s%s\n", msg,
 +				   atmark1, filename1, atmark2, filename2))
 +			goto out;
 +	}
