@@ -19,7 +19,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/22
++ * Version: 2.2.0-pre   2008/04/25
 + *
 + */
 +
@@ -33,6 +33,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <stdarg.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
++#include <linux/security.h>
 +#include "realpath.h"
 +#include "ccs_common.h"
 +#include "tomoyo.h"
@@ -75,14 +76,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +/* Utility functions. */
 +
-+/* Open operation for /proc/ccs/ interface. */
++/* Open operation for /sys/kernel/security/tomoyo/ interface. */
 +static int ccs_open_control(const u8 type, struct file *file);
-+/* Close /proc/ccs/ interface. */
++/* Close /sys/kernel/security/tomoyo/ interface. */
 +static int ccs_close_control(struct file *file);
-+/* Read operation for /proc/ccs/ interface. */
++/* Read operation for /sys/kernel/security/tomoyo/ interface. */
 +static int ccs_read_control(struct file *file, char __user *buffer,
 +			    const int buffer_len);
-+/* Write operation for /proc/ccs/ interface. */
++/* Write operation for /sys/kernel/security/tomoyo/ interface. */
 +static int ccs_write_control(struct file *file, const char __user *buffer,
 +			     const int buffer_len);
 +
@@ -1184,7 +1185,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * is_policy_manager - Check whether the current process is a policy manager.
 + *
 + * Returns true if the current process is permitted to modify policy
-+ * via /proc/ccs/ interface.
++ * via /sys/kernel/security/tomoyo/ interface.
 + */
 +static bool is_policy_manager(void)
 +{
@@ -1494,7 +1495,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * This is equivalent to doing
 + *
-+ *     grep -A 1 '^<kernel>' /proc/ccs/domain_policy |
++ *     grep -A 1 '^<kernel>' /sys/kernel/security/tomoyo/domain_policy |
 + *     awk ' { if ( domainname == "" ) { if ( $1 == "<kernel>" )
 + *     domainname = $0; } else if ( $1 == "use_profile" ) {
 + *     print $2 " " domainname; domainname = ""; } } ; '
@@ -1663,7 +1664,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Profile loaded by policy loader? */
 +static bool profile_loaded = false;
 +
-+/* Path to the policy loader. The default is /sbin/ccs-init. */
++/* Path to the policy loader. The default is /sbin/tomoyo-init. */
 +static const char *ccs_loader;
 +
 +/**
@@ -1682,9 +1683,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +__setup("CCS_loader=", loader_setup);
 +
 +/**
-+ * policy_loader_exists - Check whether /sbin/ccs-init exists.
++ * policy_loader_exists - Check whether /sbin/tomoyo-init exists.
 + *
-+ * Returns true if /sbin/ccs-init exists, false otherwise.
++ * Returns true if /sbin/tomoyo-init exists, false otherwise.
 + */
 +static bool policy_loader_exists(void)
 +{
@@ -1697,7 +1698,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 */
 +	struct nameidata nd;
 +	if (!ccs_loader)
-+		ccs_loader = "/sbin/ccs-init";
++		ccs_loader = "/sbin/tomoyo-init";
 +	if (path_lookup(ccs_loader, LOOKUP_FOLLOW, &nd)) {
 +		printk(KERN_INFO "Not activating Mandatory Access Control now "
 +		       "since %s doesn't exist.\n", ccs_loader);
@@ -1713,10 +1714,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @filename: The program about to start.
 + *
 + * This function checks whether @filename is /sbin/init , and if so
-+ * invoke /sbin/ccs-init and wait for the termination of /sbin/ccs-init
++ * invoke /sbin/tomoyo-init and wait for the termination of /sbin/tomoyo-init
 + * and then continues invocation of /sbin/init.
-+ * /sbin/ccs-init reads policy files in /etc/ccs/ directory and
-+ * writes to /proc/ccs/ interfaces.
++ * /sbin/tomoyo-init reads policy files in /etc/ccs/ directory and
++ * writes to /sys/kernel/security/tomoyo/ interfaces.
 + *
 + * Returns nothing.
 + */
@@ -1747,7 +1748,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		envp[2] = NULL;
 +		call_usermodehelper(argv[0], argv, envp, 1);
 +	}
-+	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/04/22\n");
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/04/25\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -1877,7 +1878,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_open_control - open() for /proc/ccs/ interface.
++ * ccs_open_control - open() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @type: Type of interface.
 + * @file: Pointer to "struct file".
@@ -1892,48 +1893,48 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	mutex_init(&head->read_sem);
 +	mutex_init(&head->write_sem);
 +	switch (type) {
-+	case CCS_DOMAINPOLICY: /* /proc/ccs/domain_policy */
++	case CCS_DOMAINPOLICY: /* /sys/kernel/security/tomoyo/domain_policy */
 +		head->write = write_domain_policy;
 +		head->read = read_domain_policy;
 +		break;
-+	case CCS_EXCEPTIONPOLICY: /* /proc/ccs/exception_policy */
++	case CCS_EXCEPTIONPOLICY: /* /sys/kernel/security/tomoyo/exception_policy */
 +		head->write = write_exception_policy;
 +		head->read = read_exception_policy;
 +		break;
-+	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
++	case CCS_SELFDOMAIN: /* /sys/kernel/security/tomoyo/self_domain */
 +		head->read = read_self_domain;
 +		break;
-+	case CCS_DOMAIN_STATUS: /* /proc/ccs/.domain_status */
++	case CCS_DOMAIN_STATUS: /* /sys/kernel/security/tomoyo/.domain_status */
 +		head->write = write_domain_profile;
 +		head->read = read_domain_profile;
 +		break;
-+	case CCS_PROCESS_STATUS: /* /proc/ccs/.process_status */
++	case CCS_PROCESS_STATUS: /* /sys/kernel/security/tomoyo/.process_status */
 +		head->write = write_pid;
 +		head->read = read_pid;
 +		break;
-+	case CCS_VERSION: /* /proc/ccs/version */
++	case CCS_VERSION: /* /sys/kernel/security/tomoyo/version */
 +		head->read = read_version;
 +		head->readbuf_size = 128;
 +		break;
-+	case CCS_MEMINFO: /* /proc/ccs/meminfo */
++	case CCS_MEMINFO: /* /sys/kernel/security/tomoyo/meminfo */
 +		head->read = read_memory_counter;
 +		head->readbuf_size = 128;
 +		break;
-+	case CCS_PROFILE: /* /proc/ccs/profile */
++	case CCS_PROFILE: /* /sys/kernel/security/tomoyo/profile */
 +		head->write = write_profile;
 +		head->read = read_profile;
 +		break;
-+	case CCS_MANAGER: /* /proc/ccs/manager */
++	case CCS_MANAGER: /* /sys/kernel/security/tomoyo/manager */
 +		head->write = write_manager_policy;
 +		head->read = read_manager_policy;
 +		break;
-+	case CCS_UPDATESCOUNTER: /* /proc/ccs/.updates_counter */
++	case CCS_UPDATESCOUNTER: /* /sys/kernel/security/tomoyo/.updates_counter */
 +		head->read = read_updates_counter;
 +		break;
 +	}
 +	/*
 +	 * Don't allocate buffer for reading if the file is one of
-+	 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
++	 * /sys/kernel/security/tomoyo/grant_log , /sys/kernel/security/tomoyo/reject_log , /sys/kernel/security/tomoyo/query.
 +	 */
 +	if (head->read) {
 +		if (!head->readbuf_size)
@@ -1955,8 +1956,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	file->private_data = head;
 +	/*
-+	 * Call the handler now if the file is /proc/ccs/self_domain
-+	 * so that the user can use "cat < /proc/ccs/self_domain" to
++	 * Call the handler now if the file is /sys/kernel/security/tomoyo/self_domain
++	 * so that the user can use "cat < /sys/kernel/security/tomoyo/self_domain" to
 +	 * know the current process's domainname.
 +	 */
 +	if (type == CCS_SELFDOMAIN)
@@ -1965,7 +1966,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_read_control - read() for /proc/ccs/ interface.
++ * ccs_read_control - read() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file:       Pointer to "struct file".
 + * @buffer:     Poiner to buffer to write to.
@@ -2009,7 +2010,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_write_control - write() for /proc/ccs/ interface.
++ * ccs_write_control - write() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file:       Pointer to "struct file".
 + * @buffer:     Pointer to buffer to read from.
@@ -2058,7 +2059,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_close_control - close() for /proc/ccs/ interface.
++ * ccs_close_control - close() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file: Pointer to "struct file".
 + *
@@ -2110,13 +2111,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +//#include <linux/types.h>
 +//#include <linux/kernel.h>
 +//#include <linux/io.h>
-+#include <linux/proc_fs.h>
++//#include <linux/proc_fs.h>
 +//#include <linux/module.h>
 +//#include "ccs_proc.h"
 +//#include "ccs_common.h"
 +
 +/**
-+ * ccs_open - open() for /proc/ccs/ interface.
++ * ccs_open - open() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @inode: Pointer to "struct inode".
 + * @file:  Pointer to "struct file".
@@ -2125,12 +2126,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int ccs_open(struct inode *inode, struct file *file)
 +{
-+	return ccs_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
-+				file);
++	return ccs_open_control(((u8 *) file->f_dentry->d_inode->i_private)
++				- ((u8 *) NULL), file);
 +}
 +
 +/**
-+ * ccs_release - close() for /proc/ccs/ interface.
++ * ccs_release - close() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @inode: Pointer to "struct inode".
 + * @file:  Pointer to "struct file".
@@ -2143,7 +2144,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_read - read() for /proc/ccs/ interface.
++ * ccs_read - read() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file:  Pointer to "struct file".
 + * @buf:   Pointer to buffer.
@@ -2159,7 +2160,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_write - write() for /proc/ccs/ interface.
++ * ccs_write - write() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file:  Pointer to "struct file".
 + * @buf:   Pointer to buffer.
@@ -2174,7 +2175,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return ccs_write_control(file, buf, count);
 +}
 +
-+/* Operations for /proc/ccs/interface. */
++/* Operations for /sys/kernel/security/tomoyo/interface. */
 +static struct file_operations ccs_operations = {
 +	.open    = ccs_open,
 +	.release = ccs_release,
@@ -2183,7 +2184,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +};
 +
 +/**
-+ * create_entry - Create interface files under /proc/ccs/ directory.
++ * create_entry - Create interface files under /sys/kernel/security/tomoyo/ directory.
 + *
 + * @name:   The name of the interface file.
 + * @mode:   The permission of the interface file.
@@ -2193,23 +2194,21 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns nothing.
 + */
 +static void __init create_entry(const char *name, const mode_t mode,
-+				struct proc_dir_entry *parent, const u8 key)
++				struct dentry *parent, const u8 key)
 +{
-+	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
-+	if (entry) {
-+		entry->proc_fops = &ccs_operations;
-+		entry->data = ((u8 *) NULL) + key;
-+	}
++	securityfs_create_file(name, mode, parent, ((u8 *) NULL) + key,
++			       &ccs_operations);
 +}
 +
 +/**
-+ * ccs_proc_init - Initialize /proc/ccs/ interface.
++ * ccs_initerface_init - Initialize /sys/kernel/security/tomoyo/ interface.
 + *
 + * Returns 0.
 + */
-+static int __init ccs_proc_init(void)
++static int __init ccs_initerface_init(void)
 +{
-+	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
++	struct dentry *ccs_dir;
++	ccs_dir = securityfs_create_dir("tomoyo", NULL);
 +	create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
 +	create_entry("exception_policy", 0600, ccs_dir, CCS_EXCEPTIONPOLICY);
 +	create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
@@ -2223,4 +2222,5 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+security_initcall(ccs_proc_init);
++/* security_initcall(ccs_initerface_init); */
++postcore_initcall(ccs_initerface_init);
