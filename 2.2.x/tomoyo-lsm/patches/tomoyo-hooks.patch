@@ -138,7 +138,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			flag |= O_RDONLY + 1;
 +		if (mask & MAY_WRITE)
 +			flag |= O_WRONLY + 1;
-+		if ((mask & MAY_APPEND))
++		if (mask & MAY_APPEND)
 +			flag |= O_APPEND;
 +	}
 +
@@ -248,7 +248,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int ccs_file_fcntl(struct file *file, unsigned int cmd,
 +			  unsigned long arg)
 +{
-+	if (!((arg ^ file->f_flags) & O_APPEND))
++	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
 +		return ccs_check_rewrite_permission(file);
 +	return 0;
 +}
