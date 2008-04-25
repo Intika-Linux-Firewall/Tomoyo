@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo_domain.c |  856 ++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 856 insertions(+)
+ security/tomoyo/tomoyo_domain.c |  858 ++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 858 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo_domain.c
-@@ -0,0 +1,856 @@
+@@ -0,0 +1,858 @@
 +/*
 + * security/tomoyo/tomoyo_domain.c
 + *
@@ -864,6 +864,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		       new_domain_name);
 +		if (is_enforce)
 +			retval = -EPERM;
++		else
++			retval = -ENOMEM;
 +	} else {
 +		retval = 0;
 +	}

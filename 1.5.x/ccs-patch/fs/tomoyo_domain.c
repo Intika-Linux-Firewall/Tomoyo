@@ -714,7 +714,7 @@ static int FindNextDomain(struct linux_binprm *bprm, struct domain_info **next_d
 	/* Check execute permission. */
 	if ((retval = CheckExecPerm(&r, filp)) < 0) goto out;
 
-	/* Allocate memory for calcurating domain name. */
+	/* Allocate memory for calculating domain name. */
 	retval = -ENOMEM;
 	if ((new_domain_name = ccs_alloc(CCS_MAX_PATHNAME_LEN + 16)) == NULL) goto out;
 
