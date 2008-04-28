@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1362 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1362 insertions(+)
+ security/tomoyo/file.c | 1131 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1131 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/file.c
-@@ -0,0 +1,1362 @@
+@@ -0,0 +1,1131 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -26,7 +26,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include "common.h"
 +#include "tomoyo.h"
 +#include "realpath.h"
-+#include <linux/binfmts.h>
 +#define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 +
 +/* Structure for "allow_read" keyword. */
@@ -250,183 +249,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!tmy_io_printf(head, KEYWORD_ALLOW_READ "%s\n",
 +				   ptr->filename->name))
 +			goto out;
-+	}
-+	return true;
-+out:
-+	return false;
-+}
-+
-+/* The list for "struct path_group_entry". */
-+static LIST1_HEAD(path_group_list);
-+
-+/**
-+ * update_path_group_entry - Update "struct path_group_entry" list.
-+ *
-+ * @group_name:  The name of pathname group.
-+ * @member_name: The name of group's member.
-+ * @is_delete:   True if it is a delete request.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int update_path_group_entry(const char *group_name,
-+				   const char *member_name,
-+				   const bool is_delete)
-+{
-+	static DEFINE_MUTEX(lock);
-+	struct path_group_entry *new_group;
-+	struct path_group_entry *group;
-+	struct path_group_member *new_member;
-+	struct path_group_member *member;
-+	const struct path_info *saved_group_name;
-+	const struct path_info *saved_member_name;
-+	int error = -ENOMEM;
-+	bool found = false;
-+	if (!tmy_is_correct_path(group_name, 0, 0, 0, __func__) ||
-+	    !group_name[0] ||
-+	    !tmy_is_correct_path(member_name, 0, 0, 0, __func__) ||
-+	    !member_name[0])
-+		return -EINVAL;
-+	saved_group_name = tmy_save_name(group_name);
-+	saved_member_name = tmy_save_name(member_name);
-+	if (!saved_group_name || !saved_member_name)
-+		return -ENOMEM;
-+	mutex_lock(&lock);
-+	list1_for_each_entry(group, &path_group_list, list) {
-+		if (saved_group_name != group->group_name)
-+			continue;
-+		list1_for_each_entry(member, &group->path_group_member_list,
-+				     list) {
-+			if (member->member_name != saved_member_name)
-+				continue;
-+			member->is_deleted = is_delete;
-+			error = 0;
-+			goto out;
-+		}
-+		found = true;
-+		break;
-+	}
-+	if (is_delete) {
-+		error = -ENOENT;
-+		goto out;
-+	}
-+	if (!found) {
-+		new_group = tmy_alloc_element(sizeof(*new_group));
-+		if (!new_group)
-+			goto out;
-+		INIT_LIST1_HEAD(&new_group->path_group_member_list);
-+		new_group->group_name = saved_group_name;
-+		list1_add_tail_mb(&new_group->list, &path_group_list);
-+		group = new_group;
-+	}
-+	new_member = tmy_alloc_element(sizeof(*new_member));
-+	if (!new_member)
-+		goto out;
-+	new_member->member_name = saved_member_name;
-+	list1_add_tail_mb(&new_member->list, &group->path_group_member_list);
-+	error = 0;
-+out:
-+	mutex_unlock(&lock);
-+	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
-+	return error;
-+}
-+
-+/**
-+ * tmy_write_path_group_policy - Write "struct path_group_entry" list.
-+ *
-+ * @data:      String to parse.
-+ * @is_delete: True if it is a delete request.
-+ *
-+ * Returns 0 on success, nagative value otherwise.
-+ */
-+int tmy_write_path_group_policy(char *data, const bool is_delete)
-+{
-+	char *cp = strchr(data, ' ');
-+	if (!cp)
-+		return -EINVAL;
-+	*cp++ = '\0';
-+	return update_path_group_entry(data, cp, is_delete);
-+}
-+
-+/**
-+ * find_or_assign_new_path_group - Create pathname group.
-+ *
-+ * @group_name: The name of pathname group.
-+ *
-+ * Returns pointer to "struct path_group_entry" if found, NULL otherwise.
-+ */
-+static struct path_group_entry *
-+find_or_assign_new_path_group(const char *group_name)
-+{
-+	u8 i;
-+	struct path_group_entry *group;
-+	for (i = 0; i <= 1; i++) {
-+		list1_for_each_entry(group, &path_group_list, list) {
-+			if (!strcmp(group_name, group->group_name->name))
-+				return group;
-+		}
-+		if (!i) {
-+			update_path_group_entry(group_name, "/", false);
-+			update_path_group_entry(group_name, "/", true);
-+		}
-+	}
-+	return NULL;
-+}
-+
-+/**
-+ * path_matches_group - Check whether the given pathname matches members of the given pathname group.
-+ *
-+ * @pathname:        The name of pathname.
-+ * @group:           Pointer to "struct path_group_entry".
-+ * @may_use_pattern: True if wild card is permitted.
-+ *
-+ * Returns true if @pathname matches pathnames in @group, false otherwise.
-+ */
-+static bool path_matches_group(const struct path_info *pathname,
-+			       const struct path_group_entry *group,
-+			       const bool may_use_pattern)
-+{
-+	struct path_group_member *member;
-+	list1_for_each_entry(member, &group->path_group_member_list, list) {
-+		if (member->is_deleted)
-+			continue;
-+		if (!member->member_name->is_patterned) {
-+			if (!tmy_pathcmp(pathname, member->member_name))
-+				return true;
-+		} else if (may_use_pattern) {
-+			if (tmy_path_matches_pattern(pathname,
-+						     member->member_name))
-+				return true;
-+		}
-+	}
-+	return false;
-+}
-+
-+/**
-+ * tmy_read_path_group_policy - Read "struct path_group_entry" list.
-+ *
-+ * @head: Pointer to "struct tmy_io_buffer".
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+bool tmy_read_path_group_policy(struct tmy_io_buffer *head)
-+{
-+	struct list1_head *gpos;
-+	struct list1_head *mpos;
-+	list1_for_each_cookie(gpos, head->read_var1, &path_group_list) {
-+		struct path_group_entry *group;
-+		group = list1_entry(gpos, struct path_group_entry, list);
-+		list1_for_each_cookie(mpos, head->read_var2,
-+				      &group->path_group_member_list) {
-+			struct path_group_member *member;
-+			member = list1_entry(mpos, struct path_group_member,
-+					     list);
-+			if (member->is_deleted)
-+				continue;
-+			if (!tmy_io_printf(head, KEYWORD_PATH_GROUP "%s %s\n",
-+					   group->group_name->name,
-+					   member->member_name->name))
-+				goto out;
-+		}
 +	}
 +	return true;
 +out:
@@ -714,13 +536,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		acl = container_of(ptr, struct single_path_acl_record, head);
 +		if (!(acl->perm & perm))
 +			continue;
-+		if (acl->u_is_group) {
-+			if (!path_matches_group(filename, acl->u.group,
-+						may_use_pattern))
-+				continue;
-+		} else if (may_use_pattern || !acl->u.filename->is_patterned) {
++		if (may_use_pattern || !acl->filename->is_patterned) {
 +			if (!tmy_path_matches_pattern(filename,
-+						      acl->u.filename))
++						      acl->filename))
 +				continue;
 +		} else {
 +			continue;
@@ -872,23 +690,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct acl_info *ptr;
 +	struct single_path_acl_record *acl;
 +	int error = -ENOMEM;
-+	bool is_group = false;
 +	const u16 perm = 1 << type;
 +	if (!domain)
 +		return -EINVAL;
 +	if (!tmy_is_correct_path(filename, 0, 0, 0, __func__))
 +		return -EINVAL;
-+	if (filename[0] == '@') {
-+		/*
-+		 * This cast is OK because I don't dereference
-+		 * in this function.
-+		 */
-+		saved_filename = (struct path_info *)
-+			find_or_assign_new_path_group(filename + 1);
-+		is_group = true;
-+	} else {
-+		saved_filename = tmy_save_name(filename);
-+	}
++	saved_filename = tmy_save_name(filename);
 +	if (!saved_filename)
 +		return -ENOMEM;
 +	mutex_lock(&domain_acl_lock);
@@ -898,7 +705,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (tmy_acl_type1(ptr) != TYPE_SINGLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct single_path_acl_record, head);
-+		if (acl->u.filename != saved_filename)
++		if (acl->filename != saved_filename)
 +			continue;
 +		/* Special case. Clear all bits if marked as deleted. */
 +		if (ptr->type & ACL_DELETED)
@@ -916,8 +723,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!acl)
 +		goto out;
 +	acl->perm = perm;
-+	acl->u_is_group = is_group;
-+	acl->u.filename = saved_filename;
++	acl->filename = saved_filename;
 +	error = tmy_add_domain_acl(domain, &acl->head);
 +	goto out;
 +delete:
@@ -926,7 +732,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (tmy_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct single_path_acl_record, head);
-+		if (acl->u.filename != saved_filename)
++		if (acl->filename != saved_filename)
 +			continue;
 +		acl->perm &= ~perm;
 +		if ((acl->perm & rw_mask) != rw_mask)
@@ -962,36 +768,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct acl_info *ptr;
 +	struct double_path_acl_record *acl;
 +	int error = -ENOMEM;
-+	bool is_group1 = false;
-+	bool is_group2 = false;
 +	const u8 perm = 1 << type;
 +	if (!domain)
 +		return -EINVAL;
 +	if (!tmy_is_correct_path(filename1, 0, 0, 0, __func__) ||
 +	    !tmy_is_correct_path(filename2, 0, 0, 0, __func__))
 +		return -EINVAL;
-+	if (filename1[0] == '@') {
-+		/*
-+		 * This cast is OK because I don't dereference
-+		 * in this function.
-+		 */
-+		saved_filename1 = (struct path_info *)
-+			find_or_assign_new_path_group(filename1 + 1);
-+		is_group1 = true;
-+	} else {
-+		saved_filename1 = tmy_save_name(filename1);
-+	}
-+	if (filename2[0] == '@') {
-+		/*
-+		 * This cast is OK because I don't dereference
-+		 * in this function.
-+		 */
-+		saved_filename2 = (struct path_info *)
-+			find_or_assign_new_path_group(filename2 + 1);
-+		is_group2 = true;
-+	} else {
-+		saved_filename2 = tmy_save_name(filename2);
-+	}
++	saved_filename1 = tmy_save_name(filename1);
++	saved_filename2 = tmy_save_name(filename2);
 +	if (!saved_filename1 || !saved_filename2)
 +		return -ENOMEM;
 +	mutex_lock(&domain_acl_lock);
@@ -1001,8 +785,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (tmy_acl_type1(ptr) != TYPE_DOUBLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct double_path_acl_record, head);
-+		if (acl->u1.filename1 != saved_filename1 ||
-+		    acl->u2.filename2 != saved_filename2)
++		if (acl->filename1 != saved_filename1 ||
++		    acl->filename2 != saved_filename2)
 +			continue;
 +		/* Special case. Clear all bits if marked as deleted. */
 +		if (ptr->type & ACL_DELETED)
@@ -1016,10 +800,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!acl)
 +		goto out;
 +	acl->perm = perm;
-+	acl->u1_is_group = is_group1;
-+	acl->u2_is_group = is_group2;
-+	acl->u1.filename1 = saved_filename1;
-+	acl->u2.filename2 = saved_filename2;
++	acl->filename1 = saved_filename1;
++	acl->filename2 = saved_filename2;
 +	error = tmy_add_domain_acl(domain, &acl->head);
 +	goto out;
 +delete:
@@ -1028,8 +810,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (tmy_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct double_path_acl_record, head);
-+		if (acl->u1.filename1 != saved_filename1 ||
-+		    acl->u2.filename2 != saved_filename2)
++		if (acl->filename1 != saved_filename1 ||
++		    acl->filename2 != saved_filename2)
 +			continue;
 +		acl->perm &= ~perm;
 +		error = tmy_del_domain_acl(acl->perm ? NULL : ptr);
@@ -1081,24 +863,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		acl = container_of(ptr, struct double_path_acl_record, head);
 +		if (!(acl->perm & perm))
 +			continue;
-+		if (acl->u1_is_group) {
-+			if (!path_matches_group(filename1, acl->u1.group1,
-+						true))
-+				continue;
-+		} else {
-+			if (!tmy_path_matches_pattern(filename1,
-+						      acl->u1.filename1))
-+				continue;
-+		}
-+		if (acl->u2_is_group) {
-+			if (!path_matches_group(filename2,
-+						acl->u2.group2, true))
-+				continue;
-+		} else {
-+			if (!tmy_path_matches_pattern(filename2,
-+						      acl->u2.filename2))
-+				continue;
-+		}
++		if (!tmy_path_matches_pattern(filename1,
++					      acl->filename1))
++			continue;
++		if (!tmy_path_matches_pattern(filename2,
++					      acl->filename2))
++			continue;
 +		return 0;
 +	}
 +	return -EPERM;
@@ -1177,13 +947,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * tmy_check_exec_perm - Check permission for "execute".
 + *
 + * @filename: Check permission for "execute".
-+ * @bprm:     Pointer to "struct linux_binprm".
 + * @tmp:      Buffer for temporal use.
 + *
 + * Returns 0 on success, negativevalue otherwise.
 + */
 +int tmy_check_exec_perm(const struct path_info *filename,
-+			struct linux_binprm *bprm, struct tmy_page_buffer *tmp)
++			struct tmy_page_buffer *tmp)
 +{
 +	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
 +	if (!mode)

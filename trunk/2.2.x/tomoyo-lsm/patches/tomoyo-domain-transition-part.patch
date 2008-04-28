@@ -6,7 +6,7 @@ Every process belongs to a domain in TOMOYO Linux.
 Domain transition occurs when execve(2) is called
 and the domain is expressed as 'process invocation history',
 such as '<kernel> /sbin/init /etc/init.d/rc'.
-Domain information is stored in task_struct->domain_info field.
+Domain information is stored in task_struct->security field.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
@@ -826,7 +826,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +
 +	/* Check execute permission. */
-+	retval = tmy_check_exec_perm(&r, bprm, tmp);
++	retval = tmy_check_exec_perm(&r, tmp);
 +	if (retval < 0)
 +		goto out;
 +
