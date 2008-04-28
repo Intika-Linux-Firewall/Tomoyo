@@ -6,14 +6,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo_file.c | 1361 ++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/file.c | 1361 +++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 1361 insertions(+)
 
 --- /dev/null
-+++ mm/security/tomoyo/tomoyo_file.c
++++ mm/security/tomoyo/file.c
 @@ -0,0 +1,1361 @@
 +/*
-+ * security/tomoyo/tomoyo_file.c
++ * security/tomoyo/file.c
 + *
 + * Implementation of the Domain-Based Mandatory Access Control.
 + *
@@ -23,7 +23,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + */
 +
-+#include "ccs_common.h"
++#include "common.h"
 +#include "tomoyo.h"
 +#include "realpath.h"
 +#include <linux/binfmts.h>
