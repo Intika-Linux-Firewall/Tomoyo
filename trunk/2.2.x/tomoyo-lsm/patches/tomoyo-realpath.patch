@@ -182,7 +182,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/* Move the pathname to the top of the buffer. */
 +	memmove(start, end, strlen(end) + 1);
 +	return 0;
-+ out:
++out:
 +	return -ENOMEM;
 +	/***** CRITICAL SECTION END *****/
 +}
@@ -443,7 +443,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	list_add(&fmb->list, &fmb_list);
 +	fmb->ptr = cp;
 +	fmb->len = PAGE_SIZE;
-+ ready:
++ready:
 +	ptr = tmy_alloc_element(sizeof(*ptr));
 +	if (!ptr)
 +		goto out;
@@ -457,7 +457,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		list_del(&fmb->list);
 +		kfree(fmb);
 +	}
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	return ptr ? &ptr->entry : NULL;
 +}
@@ -542,7 +542,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	dynamic_memory_size += new_entry->size;
 +	spin_unlock(&cache_list_lock);
 +	/***** CRITICAL SECTION END *****/
-+ out:
++out:
 +	return ret;
 +}
 +
@@ -617,7 +617,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	*end0 = end;
 +
 +	return 0;
-+ out:
++out:
 +	return -ENOMEM;
 +}
 +

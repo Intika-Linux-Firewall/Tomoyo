@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2212 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2220 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  440 +++++++++
- 2 files changed, 2652 insertions(+)
+ 2 files changed, 2660 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/common.c
-@@ -0,0 +1,2212 @@
+@@ -0,0 +1,2220 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -43,7 +43,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define MAX_ACCEPT_ENTRY 2048
 +
 +/* Has /sbin/init started? */
-+bool sbin_init_started = false;
++bool sbin_init_started;
 +
 +/* String table for functionality that takes 4 modes. */
 +static const char *mode_4[4] = {
@@ -73,7 +73,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +} *profile_ptr[MAX_PROFILES];
 +
 +/* Permit policy management by non-root user? */
-+static bool manage_by_non_root = false;
++static bool manage_by_non_root;
 +
 +/* Utility functions. */
 +
@@ -305,7 +305,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			goto out;
 +	}
 +	return true;
-+ out:
++out:
 +	printk(KERN_DEBUG "%s: Invalid pathname '%s'\n", function,
 +	       original_filename);
 +	return false;
@@ -364,7 +364,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +	} while (*domainname);
 +	return true;
-+ out:
++out:
 +	printk(KERN_DEBUG "%s: Invalid domainname '%s'\n", function,
 +	       org_domainname);
 +	return false;
@@ -875,7 +875,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			if (perm & (1 << TMY_TYPE_EXECUTE_ACL))
 +				count++;
 +			if (perm &
-+			    ((1 << TMY_TYPE_READ_ACL) | (1 << TMY_TYPE_WRITE_ACL)))
++			    ((1 << TMY_TYPE_READ_ACL) |
++			     (1 << TMY_TYPE_WRITE_ACL)))
 +				count++;
 +			if (perm & (1 << TMY_TYPE_CREATE_ACL))
 +				count++;
@@ -949,7 +950,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			profile_ptr[profile] = ptr;
 +		}
 +	}
-+ ok:
++ok:
 +	mutex_unlock(&profile_lock);
 +	return ptr;
 +}
@@ -1133,7 +1134,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->is_domain = is_domain;
 +	list1_add_tail_mb(&new_entry->list, &policy_manager_list);
 +	error = 0;
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	if (!error)
 +		tmy_update_counter(TMY_UPDATES_COUNTER_MANAGER);
@@ -1317,7 +1318,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	head->read_bit = 0;
 +	return true;
-+ out:
++out:
 +	head->read_bit = bit;
 +	head->read_avail = pos;
 +	return false;
@@ -1365,7 +1366,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	head->read_bit = 0;
 +	return true;
-+ out:
++out:
 +	head->read_bit = bit;
 +	head->read_avail = pos;
 +	return false;
@@ -1436,7 +1437,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				   ignore_global_allow_read))
 +			return 0;
 +		head->read_step = 2;
-+ acl_loop:
++acl_loop:
 +		if (head->read_step == 3)
 +			goto tail_mark;
 +		/* Print ACL entries in the domain. */
@@ -1448,7 +1449,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				return 0;
 +		}
 +		head->read_step = 3;
-+ tail_mark:
++tail_mark:
 +		if (!tmy_io_printf(head, "\n"))
 +			return 0;
 +		head->read_step = 1;
@@ -1553,7 +1554,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
 +		if (p)
-+			domain = ((struct tmy_security *) (p->security))->domain;
++			domain =
++				((struct tmy_security *) (p->security))->domain;
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (domain)
@@ -1663,7 +1665,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/* Profile loaded by policy loader? */
-+static bool profile_loaded = false;
++static bool profile_loaded;
 +
 +/* Path to the policy loader. The default is /sbin/tomoyo-init. */
 +static const char *tmy_loader;
@@ -1730,7 +1732,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * Check filename is /sbin/init or /sbin/tomoyo-start.
 +	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init can't
 +	 * be passed.
-+	 * You can create /sbin/tomoyo-start by "ln -s /bin/true /sbin/tomoyo-start".
++	 * You can create /sbin/tomoyo-start by
++	 * "ln -s /bin/true /sbin/tomoyo-start".
 +	 */
 +	if (strcmp(filename, "/sbin/init") &&
 +	    strcmp(filename, "/sbin/tomoyo-start"))
@@ -1796,25 +1799,25 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int read_updates_counter(struct tmy_io_buffer *head)
 +{
-+	if (!head->read_eof) {
-+		unsigned int counter[MAX_TMY_UPDATES_COUNTER];
-+		/***** CRITICAL SECTION START *****/
-+		spin_lock(&updates_counter_lock);
-+		memmove(counter, updates_counter, sizeof(updates_counter));
-+		memset(updates_counter, 0, sizeof(updates_counter));
-+		spin_unlock(&updates_counter_lock);
-+		/***** CRITICAL SECTION END *****/
-+		tmy_io_printf(head,
-+			      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
-+			      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
-+			      "/sys/kernel/security/tomoyo/profile:          %10u\n"
-+			      "/sys/kernel/security/tomoyo/manager:          %10u\n",
-+			      counter[TMY_UPDATES_COUNTER_DOMAIN_POLICY],
-+			      counter[TMY_UPDATES_COUNTER_EXCEPTION_POLICY],
-+			      counter[TMY_UPDATES_COUNTER_PROFILE],
-+			      counter[TMY_UPDATES_COUNTER_MANAGER]);
-+		head->read_eof = true;
-+	}
++	unsigned int counter[MAX_TMY_UPDATES_COUNTER];
++	if (head->read_eof)
++		return 0;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&updates_counter_lock);
++	memmove(counter, updates_counter, sizeof(updates_counter));
++	memset(updates_counter, 0, sizeof(updates_counter));
++	spin_unlock(&updates_counter_lock);
++	/***** CRITICAL SECTION END *****/
++	tmy_io_printf(head,
++		      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
++		      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
++		      "/sys/kernel/security/tomoyo/profile:          %10u\n"
++		      "/sys/kernel/security/tomoyo/manager:          %10u\n",
++		      counter[TMY_UPDATES_COUNTER_DOMAIN_POLICY],
++		      counter[TMY_UPDATES_COUNTER_EXCEPTION_POLICY],
++		      counter[TMY_UPDATES_COUNTER_PROFILE],
++		      counter[TMY_UPDATES_COUNTER_MANAGER]);
++	head->read_eof = true;
 +	return 0;
 +}
 +
@@ -1894,48 +1897,60 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	mutex_init(&head->read_sem);
 +	mutex_init(&head->write_sem);
 +	switch (type) {
-+	case TMY_DOMAINPOLICY: /* /sys/kernel/security/tomoyo/domain_policy */
++	case TMY_DOMAINPOLICY:
++		/* /sys/kernel/security/tomoyo/domain_policy */
 +		head->write = write_domain_policy;
 +		head->read = read_domain_policy;
 +		break;
-+	case TMY_EXCEPTIONPOLICY: /* /sys/kernel/security/tomoyo/exception_policy */
++	case TMY_EXCEPTIONPOLICY:
++		/* /sys/kernel/security/tomoyo/exception_policy */
 +		head->write = write_exception_policy;
 +		head->read = read_exception_policy;
 +		break;
-+	case TMY_SELFDOMAIN: /* /sys/kernel/security/tomoyo/self_domain */
++	case TMY_SELFDOMAIN:
++		/* /sys/kernel/security/tomoyo/self_domain */
 +		head->read = read_self_domain;
 +		break;
-+	case TMY_DOMAIN_STATUS: /* /sys/kernel/security/tomoyo/.domain_status */
++	case TMY_DOMAIN_STATUS:
++		/* /sys/kernel/security/tomoyo/.domain_status */
 +		head->write = write_domain_profile;
 +		head->read = read_domain_profile;
 +		break;
-+	case TMY_PROCESS_STATUS: /* /sys/kernel/security/tomoyo/.process_status */
++	case TMY_PROCESS_STATUS:
++		/* /sys/kernel/security/tomoyo/.process_status */
 +		head->write = write_pid;
 +		head->read = read_pid;
 +		break;
-+	case TMY_VERSION: /* /sys/kernel/security/tomoyo/version */
++	case TMY_VERSION:
++		/* /sys/kernel/security/tomoyo/version */
 +		head->read = read_version;
 +		head->readbuf_size = 128;
 +		break;
-+	case TMY_MEMINFO: /* /sys/kernel/security/tomoyo/meminfo */
++	case TMY_MEMINFO:
++		/* /sys/kernel/security/tomoyo/meminfo */
 +		head->read = read_memory_counter;
 +		head->readbuf_size = 128;
 +		break;
-+	case TMY_PROFILE: /* /sys/kernel/security/tomoyo/profile */
++	case TMY_PROFILE:
++		/* /sys/kernel/security/tomoyo/profile */
 +		head->write = write_profile;
 +		head->read = read_profile;
 +		break;
-+	case TMY_MANAGER: /* /sys/kernel/security/tomoyo/manager */
++	case TMY_MANAGER:
++		/* /sys/kernel/security/tomoyo/manager */
 +		head->write = write_manager_policy;
 +		head->read = read_manager_policy;
 +		break;
-+	case TMY_UPDATESCOUNTER: /* /sys/kernel/security/tomoyo/.updates_counter */
++	case TMY_UPDATESCOUNTER:
++		/* /sys/kernel/security/tomoyo/.updates_counter */
 +		head->read = read_updates_counter;
 +		break;
 +	}
 +	/*
 +	 * Don't allocate buffer for reading if the file is one of
-+	 * /sys/kernel/security/tomoyo/grant_log , /sys/kernel/security/tomoyo/reject_log , /sys/kernel/security/tomoyo/query.
++	 * /sys/kernel/security/tomoyo/grant_log ,
++	 * /sys/kernel/security/tomoyo/reject_log ,
++	 * /sys/kernel/security/tomoyo/query.
 +	 */
 +	if (head->read) {
 +		if (!head->readbuf_size)
@@ -1957,9 +1972,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	file->private_data = head;
 +	/*
-+	 * Call the handler now if the file is /sys/kernel/security/tomoyo/self_domain
-+	 * so that the user can use "cat < /sys/kernel/security/tomoyo/self_domain" to
-+	 * know the current process's domainname.
++	 * Call the handler now if the file is
++	 * /sys/kernel/security/tomoyo/self_domain
++	 * so that the user can use
++	 * cat < /sys/kernel/security/tomoyo/self_domain"
++	 * to know the current process's domainname.
 +	 */
 +	if (type == TMY_SELFDOMAIN)
 +		tmy_read_control(file, NULL, 0);
@@ -2005,7 +2022,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	head->read_avail -= len;
 +	memmove(cp, cp + len, head->read_avail);
-+ out:
++out:
 +	mutex_unlock(&head->read_sem);
 +	return len;
 +}
@@ -2107,15 +2124,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	ptr->type = acl_type;
 +	return ptr;
 +}
-+
-+
-+//#include <linux/types.h>
-+//#include <linux/kernel.h>
-+//#include <linux/io.h>
-+//#include <linux/proc_fs.h>
-+//#include <linux/module.h>
-+//#include "tmy_proc.h"
-+//#include "common.h"
 +
 +/**
 + * tmy_open - open() for /sys/kernel/security/tomoyo/ interface.
