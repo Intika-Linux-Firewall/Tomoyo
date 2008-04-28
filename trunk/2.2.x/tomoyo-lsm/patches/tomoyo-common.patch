@@ -59,16 +59,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const char *keyword;
 +	unsigned int current_value;
 +	const unsigned int max_value;
-+} ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
-+	[CCS_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
-+	[CCS_TOMOYO_MAX_ACCEPT_ENTRY]
++} tmy_control_array[TMY_MAX_CONTROL_INDEX] = {
++	[TMY_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
++	[TMY_TOMOYO_MAX_ACCEPT_ENTRY]
 +	= { "MAX_ACCEPT_ENTRY",    MAX_ACCEPT_ENTRY, INT_MAX },
-+	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
++	[TMY_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
 +};
 +
 +/* Profile table. Memory is allocated as needed. */
 +static struct profile {
-+	unsigned int value[CCS_MAX_CONTROL_INDEX];
++	unsigned int value[TMY_MAX_CONTROL_INDEX];
 +	const struct path_info *comment;
 +} *profile_ptr[MAX_PROFILES];
 +
@@ -78,14 +78,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Utility functions. */
 +
 +/* Open operation for /sys/kernel/security/tomoyo/ interface. */
-+static int ccs_open_control(const u8 type, struct file *file);
++static int tmy_open_control(const u8 type, struct file *file);
 +/* Close /sys/kernel/security/tomoyo/ interface. */
-+static int ccs_close_control(struct file *file);
++static int tmy_close_control(struct file *file);
 +/* Read operation for /sys/kernel/security/tomoyo/ interface. */
-+static int ccs_read_control(struct file *file, char __user *buffer,
++static int tmy_read_control(struct file *file, char __user *buffer,
 +			    const int buffer_len);
 +/* Write operation for /sys/kernel/security/tomoyo/ interface. */
-+static int ccs_write_control(struct file *file, const char __user *buffer,
++static int tmy_write_control(struct file *file, const char __user *buffer,
 +			     const int buffer_len);
 +
 +/**
@@ -97,7 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int __init tomoyo_quiet_setup(char *str)
 +{
-+	ccs_control_array[CCS_TOMOYO_VERBOSE].current_value = 0;
++	tmy_control_array[TMY_TOMOYO_VERBOSE].current_value = 0;
 +	return 0;
 +}
 +
@@ -221,7 +221,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_is_correct_path - Validate a pathname.
++ * tmy_is_correct_path - Validate a pathname.
 + * @filename:     The pathname to check.
 + * @start_type:   Should the pathname start with '/'?
 + *                1 = must / -1 = must not / 0 = don't care
@@ -234,7 +234,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Check whether the given filename follows the naming rules.
 + * Returns true if @filename follows the naming rules, false otherwise.
 + */
-+bool ccs_is_correct_path(const char *filename, const s8 start_type,
++bool tmy_is_correct_path(const char *filename, const s8 start_type,
 +			 const s8 pattern_type, const s8 end_type,
 +			 const char *function)
 +{
@@ -312,13 +312,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_is_correct_domain - Check whether the given domainname follows the naming rules.
++ * tmy_is_correct_domain - Check whether the given domainname follows the naming rules.
 + * @domainname:   The domainname to check.
 + * @function:     The name of function calling me.
 + *
 + * Returns true if @domainname follows the naming rules, false otherwise.
 + */
-+bool ccs_is_correct_domain(const unsigned char *domainname,
++bool tmy_is_correct_domain(const unsigned char *domainname,
 +			   const char *function)
 +{
 +	unsigned char c;
@@ -371,33 +371,33 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_is_domain_def - Check whether the given token can be a domainname.
++ * tmy_is_domain_def - Check whether the given token can be a domainname.
 + *
 + * @buffer: The token to check.
 + *
 + * Returns true if @buffer possibly be a domainname, false otherwise.
 + */
-+bool ccs_is_domain_def(const unsigned char *buffer)
++bool tmy_is_domain_def(const unsigned char *buffer)
 +{
 +	return !strncmp(buffer, ROOT_NAME, ROOT_NAME_LEN);
 +}
 +
 +/**
-+ * ccs_find_domain - Find a domain by the given name.
++ * tmy_find_domain - Find a domain by the given name.
 + *
 + * @domainname: The domainname to find.
 + *
 + * Returns pointer to "struct domain_info" if found, NULL otherwise.
 + */
-+struct domain_info *ccs_find_domain(const char *domainname)
++struct domain_info *tmy_find_domain(const char *domainname)
 +{
 +	struct domain_info *domain;
 +	struct path_info name;
 +	name.name = domainname;
-+	ccs_fill_path_info(&name);
++	tmy_fill_path_info(&name);
 +	list1_for_each_entry(domain, &domain_list, list) {
 +		if (!domain->is_deleted &&
-+		    !ccs_pathcmp(&name, domain->domainname))
++		    !tmy_pathcmp(&name, domain->domainname))
 +			return domain;
 +	}
 +	return NULL;
@@ -471,13 +471,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_fill_path_info - Fill in "struct path_info" members.
++ * tmy_fill_path_info - Fill in "struct path_info" members.
 + *
 + * @ptr: Pointer to "struct path_info" to fill in.
 + *
 + * The caller sets "struct path_info"->name.
 + */
-+void ccs_fill_path_info(struct path_info *ptr)
++void tmy_fill_path_info(struct path_info *ptr)
 +{
 +	const char *name = ptr->name;
 +	const int len = strlen(name);
@@ -647,7 +647,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_path_matches_pattern - Check whether the given filename matches the given pattern.
++ * tmy_path_matches_pattern - Check whether the given filename matches the given pattern.
 + * @filename: The filename to check.
 + * @pattern:  The pattern to compare.
 + *
@@ -667,7 +667,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *   \a     1 alphabet character.
 + *   \-     Subtraction operator.
 + */
-+bool ccs_path_matches_pattern(const struct path_info *filename,
++bool tmy_path_matches_pattern(const struct path_info *filename,
 +			      const struct path_info *pattern)
 +{
 +	/*
@@ -679,7 +679,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const int len = pattern->const_len;
 +	/* If @pattern doesn't contain pattern, I can use strcmp(). */
 +	if (!pattern->is_patterned)
-+		return !ccs_pathcmp(filename, pattern);
++		return !tmy_pathcmp(filename, pattern);
 +	/* Dont compare if the number of '/' differs. */
 +	if (filename->depth != pattern->depth)
 +		return false;
@@ -713,16 +713,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_io_printf - Transactional printf() to "struct ccs_io_buffer" structure.
++ * tmy_io_printf - Transactional printf() to "struct tmy_io_buffer" structure.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + * @fmt:  The printf()'s format string, followed by parameters.
 + *
 + * Returns true on success, false otherwise.
 + *
-+ * The snprintf() will truncate, but ccs_io_printf() won't.
++ * The snprintf() will truncate, but tmy_io_printf() won't.
 + */
-+bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
++bool tmy_io_printf(struct tmy_io_buffer *head, const char *fmt, ...)
 +{
 +	va_list args;
 +	int len;
@@ -740,14 +740,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_get_exe - Get ccs_realpath() of current process.
++ * tmy_get_exe - Get tmy_realpath() of current process.
 + *
-+ * Returns the ccs_realpath() of current process on success, NULL otherwise.
++ * Returns the tmy_realpath() of current process on success, NULL otherwise.
 + *
-+ * This function uses ccs_alloc(), so the caller must ccs_free()
++ * This function uses tmy_alloc(), so the caller must tmy_free()
 + * if this function didn't return NULL.
 + */
-+const char *ccs_get_exe(void)
++const char *tmy_get_exe(void)
 +{
 +	struct mm_struct *mm = current->mm;
 +	struct vm_area_struct *vma;
@@ -757,7 +757,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	down_read(&mm->mmap_sem);
 +	for (vma = mm->mmap; vma; vma = vma->vm_next) {
 +		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-+			cp = ccs_realpath_from_dentry(vma->vm_file->f_dentry,
++			cp = tmy_realpath_from_dentry(vma->vm_file->f_dentry,
 +						      vma->vm_file->f_vfsmnt);
 +			break;
 +		}
@@ -767,13 +767,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_get_msg - Get warning message.
++ * tmy_get_msg - Get warning message.
 + *
 + * @is_enforce: Is it enforcing mode?
 + *
 + * Returns "ERROR" or "WARNING".
 + */
-+const char *ccs_get_msg(const bool is_enforce)
++const char *tmy_get_msg(const bool is_enforce)
 +{
 +	if (is_enforce)
 +		return "ERROR";
@@ -782,16 +782,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_check_flags_no_sleep_check - Check mode for specified functionality.
++ * tmy_check_flags_no_sleep_check - Check mode for specified functionality.
 + *
 + * @index: The functionality to check mode.
 + *
 + * Returns the mode of specified functionality.
 + */
-+unsigned int ccs_check_flags_no_sleep_check(const u8 index)
++unsigned int tmy_check_flags_no_sleep_check(const u8 index)
 +{
-+	const u8 profile = CCS_SECURITY->domain->profile;
-+	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
++	const u8 profile = TMY_SECURITY->domain->profile;
++	return sbin_init_started && index < TMY_MAX_CONTROL_INDEX
 +#if MAX_PROFILES != 256
 +		&& profile < MAX_PROFILES
 +#endif
@@ -807,7 +807,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * TOMOYO Linux supports interactive enforcement that lets processes
 + * wait for the administrator's decision.
-+ * All hooks but the one for ccs_may_autobind() are inserted where
++ * All hooks but the one for tmy_may_autobind() are inserted where
 + * it is permitted to do operations that may sleep.
 + * Thus, this warning should not happen.
 + */
@@ -826,36 +826,36 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_check_flags - Check mode for specified functionality.
++ * tmy_check_flags - Check mode for specified functionality.
 + *
 + * @index: The functionality to check mode.
 + *
 + * Returns the mode of specified functionality.
 + */
-+unsigned int ccs_check_flags(const u8 index)
++unsigned int tmy_check_flags(const u8 index)
 +{
-+	return sleep_check() ? ccs_check_flags_no_sleep_check(index) : 0;
++	return sleep_check() ? tmy_check_flags_no_sleep_check(index) : 0;
 +}
 +
 +/**
-+ * ccs_verbose_mode - Check whether TOMOYO is verbose mode.
++ * tmy_verbose_mode - Check whether TOMOYO is verbose mode.
 + *
 + * Returns true if domain policy violation warning should be printed to
 + * console.
 + */
-+bool ccs_verbose_mode(void)
++bool tmy_verbose_mode(void)
 +{
-+	return ccs_check_flags(CCS_TOMOYO_VERBOSE) != 0;
++	return tmy_check_flags(TMY_TOMOYO_VERBOSE) != 0;
 +}
 +
 +/**
-+ * ccs_check_domain_quota - Check for domain's quota.
++ * tmy_check_domain_quota - Check for domain's quota.
 + *
 + * @domain: Pointer to "struct domain_info".
 + *
 + * Returns true if the domain is not exceeded quota, false otherwise.
 + */
-+bool ccs_check_domain_quota(struct domain_info * const domain)
++bool tmy_check_domain_quota(struct domain_info * const domain)
 +{
 +	unsigned int count = 0;
 +	struct acl_info *ptr;
@@ -864,7 +864,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (ptr->type & ACL_DELETED)
 +			continue;
-+		switch (ccs_acl_type2(ptr)) {
++		switch (tmy_acl_type2(ptr)) {
 +			struct single_path_acl_record *acl1;
 +			struct double_path_acl_record *acl2;
 +			u16 perm;
@@ -872,46 +872,46 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			acl1 = container_of(ptr, struct single_path_acl_record,
 +					    head);
 +			perm = acl1->perm;
-+			if (perm & (1 << CCS_TYPE_EXECUTE_ACL))
++			if (perm & (1 << TMY_TYPE_EXECUTE_ACL))
 +				count++;
 +			if (perm &
-+			    ((1 << CCS_TYPE_READ_ACL) | (1 << CCS_TYPE_WRITE_ACL)))
++			    ((1 << TMY_TYPE_READ_ACL) | (1 << TMY_TYPE_WRITE_ACL)))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_CREATE_ACL))
++			if (perm & (1 << TMY_TYPE_CREATE_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_UNLINK_ACL))
++			if (perm & (1 << TMY_TYPE_UNLINK_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_MKDIR_ACL))
++			if (perm & (1 << TMY_TYPE_MKDIR_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_RMDIR_ACL))
++			if (perm & (1 << TMY_TYPE_RMDIR_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_MKFIFO_ACL))
++			if (perm & (1 << TMY_TYPE_MKFIFO_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_MKSOCK_ACL))
++			if (perm & (1 << TMY_TYPE_MKSOCK_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_MKBLOCK_ACL))
++			if (perm & (1 << TMY_TYPE_MKBLOCK_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_MKCHAR_ACL))
++			if (perm & (1 << TMY_TYPE_MKCHAR_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_TRUNCATE_ACL))
++			if (perm & (1 << TMY_TYPE_TRUNCATE_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_SYMLINK_ACL))
++			if (perm & (1 << TMY_TYPE_SYMLINK_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_REWRITE_ACL))
++			if (perm & (1 << TMY_TYPE_REWRITE_ACL))
 +				count++;
 +			break;
 +		case TYPE_DOUBLE_PATH_ACL:
 +			acl2 = container_of(ptr, struct double_path_acl_record,
 +					    head);
 +			perm = acl2->perm;
-+			if (perm & (1 << CCS_TYPE_LINK_ACL))
++			if (perm & (1 << TMY_TYPE_LINK_ACL))
 +				count++;
-+			if (perm & (1 << CCS_TYPE_RENAME_ACL))
++			if (perm & (1 << TMY_TYPE_RENAME_ACL))
 +				count++;
 +			break;
 +		}
 +	}
-+	if (count < ccs_check_flags(CCS_TOMOYO_MAX_ACCEPT_ENTRY))
++	if (count < tmy_check_flags(TMY_TOMOYO_MAX_ACCEPT_ENTRY))
 +		return true;
 +	if (!domain->quota_warned) {
 +		domain->quota_warned = true;
@@ -923,13 +923,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_find_or_assign_new_profile - Create a new profile.
++ * tmy_find_or_assign_new_profile - Create a new profile.
 + *
 + * @profile: Profile number to create.
 + *
 + * Returns pointer to "struct profile" on success, NULL otherwise.
 + */
-+static struct profile *ccs_find_or_assign_new_profile(const unsigned int
++static struct profile *tmy_find_or_assign_new_profile(const unsigned int
 +						      profile)
 +{
 +	static DEFINE_MUTEX(profile_lock);
@@ -939,12 +939,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		ptr = profile_ptr[profile];
 +		if (ptr)
 +			goto ok;
-+		ptr = ccs_alloc_element(sizeof(*ptr));
++		ptr = tmy_alloc_element(sizeof(*ptr));
 +		if (ptr) {
 +			int i;
-+			for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
++			for (i = 0; i < TMY_MAX_CONTROL_INDEX; i++)
 +				ptr->value[i]
-+					= ccs_control_array[i].current_value;
++					= tmy_control_array[i].current_value;
 +			mb(); /* Avoid out-of-order execution. */
 +			profile_ptr[profile] = ptr;
 +		}
@@ -957,11 +957,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * write_profile - Write profile table.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer"
++ * @head: Pointer to "struct tmy_io_buffer"
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int write_profile(struct ccs_io_buffer *head)
++static int write_profile(struct tmy_io_buffer *head)
 +{
 +	char *data = head->write_buf;
 +	unsigned int i;
@@ -974,26 +974,26 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			return -EINVAL;
 +		data = cp + 1;
 +	}
-+	profile = ccs_find_or_assign_new_profile(i);
++	profile = tmy_find_or_assign_new_profile(i);
 +	if (!profile)
 +		return -EINVAL;
 +	cp = strchr(data, '=');
 +	if (!cp)
 +		return -EINVAL;
 +	*cp = '\0';
-+	ccs_update_counter(CCS_UPDATES_COUNTER_PROFILE);
++	tmy_update_counter(TMY_UPDATES_COUNTER_PROFILE);
 +	if (!strcmp(data, "COMMENT")) {
-+		profile->comment = ccs_save_name(cp + 1);
++		profile->comment = tmy_save_name(cp + 1);
 +		return 0;
 +	}
-+	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
-+		if (strcmp(data, ccs_control_array[i].keyword))
++	for (i = 0; i < TMY_MAX_CONTROL_INDEX; i++) {
++		if (strcmp(data, tmy_control_array[i].keyword))
 +			continue;
 +		if (sscanf(cp + 1, "%u", &value) != 1) {
 +			int j;
 +			const char **modes;
 +			switch (i) {
-+			case CCS_TOMOYO_VERBOSE:
++			case TMY_TOMOYO_VERBOSE:
 +				modes = mode_2;
 +				break;
 +			default:
@@ -1008,8 +1008,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			}
 +			if (j == 4)
 +				return -EINVAL;
-+		} else if (value > ccs_control_array[i].max_value) {
-+			value = ccs_control_array[i].max_value;
++		} else if (value > tmy_control_array[i].max_value) {
++			value = tmy_control_array[i].max_value;
 +		}
 +		profile->value[i] = value;
 +		return 0;
@@ -1020,14 +1020,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * read_profile - Read profile table.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer"
++ * @head: Pointer to "struct tmy_io_buffer"
 + *
 + * Returns 0.
 + */
-+static int read_profile(struct ccs_io_buffer *head)
++static int read_profile(struct tmy_io_buffer *head)
 +{
 +	static const int total
-+		= CCS_MAX_CONTROL_INDEX + 1;
++		= TMY_MAX_CONTROL_INDEX + 1;
 +	int step;
 +	if (head->read_eof)
 +		return 0;
@@ -1039,19 +1039,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!profile)
 +			continue;
 +		if (!type) { /* Print profile' comment tag. */
-+			if (!ccs_io_printf(head, "%u-COMMENT=%s\n",
++			if (!tmy_io_printf(head, "%u-COMMENT=%s\n",
 +					   index, profile->comment ?
 +					   profile->comment->name : ""))
 +				break;
 +			continue;
 +		}
 +		type--;
-+		if (type >= CCS_MAX_CONTROL_INDEX) {
++		if (type >= TMY_MAX_CONTROL_INDEX) {
 +		} else {
 +			const unsigned int value = profile->value[type];
 +			const char **modes = NULL;
-+			const char *keyword = ccs_control_array[type].keyword;
-+			switch (ccs_control_array[type].max_value) {
++			const char *keyword = tmy_control_array[type].keyword;
++			switch (tmy_control_array[type].max_value) {
 +			case 3:
 +				modes = mode_4;
 +				break;
@@ -1060,11 +1060,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				break;
 +			}
 +			if (modes) {
-+				if (!ccs_io_printf(head, "%u-%s=%s\n", index,
++				if (!tmy_io_printf(head, "%u-%s=%s\n", index,
 +						   keyword, modes[value]))
 +					break;
 +			} else {
-+				if (!ccs_io_printf(head, "%u-%s=%u\n", index,
++				if (!tmy_io_printf(head, "%u-%s=%u\n", index,
 +						   keyword, value))
 +					break;
 +			}
@@ -1103,15 +1103,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *saved_manager;
 +	int error = -ENOMEM;
 +	bool is_domain = false;
-+	if (ccs_is_domain_def(manager)) {
-+		if (!ccs_is_correct_domain(manager, __func__))
++	if (tmy_is_domain_def(manager)) {
++		if (!tmy_is_correct_domain(manager, __func__))
 +			return -EINVAL;
 +		is_domain = true;
 +	} else {
-+		if (!ccs_is_correct_path(manager, 1, -1, -1, __func__))
++		if (!tmy_is_correct_path(manager, 1, -1, -1, __func__))
 +			return -EINVAL;
 +	}
-+	saved_manager = ccs_save_name(manager);
++	saved_manager = tmy_save_name(manager);
 +	if (!saved_manager)
 +		return -ENOMEM;
 +	mutex_lock(&lock);
@@ -1126,7 +1126,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = -ENOENT;
 +		goto out;
 +	}
-+	new_entry = ccs_alloc_element(sizeof(*new_entry));
++	new_entry = tmy_alloc_element(sizeof(*new_entry));
 +	if (!new_entry)
 +		goto out;
 +	new_entry->manager = saved_manager;
@@ -1136,18 +1136,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + out:
 +	mutex_unlock(&lock);
 +	if (!error)
-+		ccs_update_counter(CCS_UPDATES_COUNTER_MANAGER);
++		tmy_update_counter(TMY_UPDATES_COUNTER_MANAGER);
 +	return error;
 +}
 +
 +/**
 + * write_manager_policy - Write manager policy.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer"
++ * @head: Pointer to "struct tmy_io_buffer"
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int write_manager_policy(struct ccs_io_buffer *head)
++static int write_manager_policy(struct tmy_io_buffer *head)
 +{
 +	char *data = head->write_buf;
 +	bool is_delete = str_starts(&data, KEYWORD_DELETE);
@@ -1161,11 +1161,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * read_manager_policy - Read manager policy.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer"
++ * @head: Pointer to "struct tmy_io_buffer"
 + *
 + * Returns 0.
 + */
-+static int read_manager_policy(struct ccs_io_buffer *head)
++static int read_manager_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
 +	if (head->read_eof)
@@ -1175,7 +1175,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		ptr = list1_entry(pos, struct policy_manager_entry, list);
 +		if (ptr->is_deleted)
 +			continue;
-+		if (!ccs_io_printf(head, "%s\n", ptr->manager->name))
++		if (!tmy_io_printf(head, "%s\n", ptr->manager->name))
 +			return 0;
 +	}
 +	head->read_eof = true;
@@ -1193,7 +1193,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct policy_manager_entry *ptr;
 +	const char *exe;
 +	const struct task_struct *task = current;
-+	const struct path_info *domainname = CCS_SECURITY->domain->domainname;
++	const struct path_info *domainname = TMY_SECURITY->domain->domainname;
 +	bool found = false;
 +	if (!sbin_init_started)
 +		return true;
@@ -1201,10 +1201,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return false;
 +	list1_for_each_entry(ptr, &policy_manager_list, list) {
 +		if (!ptr->is_deleted && ptr->is_domain
-+		    && !ccs_pathcmp(domainname, ptr->manager))
++		    && !tmy_pathcmp(domainname, ptr->manager))
 +			return true;
 +	}
-+	exe = ccs_get_exe();
++	exe = tmy_get_exe();
 +	if (!exe)
 +		return false;
 +	list1_for_each_entry(ptr, &policy_manager_list, list) {
@@ -1223,18 +1223,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			last_pid = pid;
 +		}
 +	}
-+	ccs_free(exe);
++	tmy_free(exe);
 +	return found;
 +}
 +
 +/**
 + * write_domain_policy - Write domain policy.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int write_domain_policy(struct ccs_io_buffer *head)
++static int write_domain_policy(struct tmy_io_buffer *head)
 +{
 +	char *data = head->write_buf;
 +	struct domain_info *domain = head->write_var1;
@@ -1248,18 +1248,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		is_select = true;
 +	else if (str_starts(&data, KEYWORD_UNDELETE))
 +		is_undelete = true;
-+	if (ccs_is_domain_def(data)) {
++	if (tmy_is_domain_def(data)) {
 +		domain = NULL;
 +		if (is_delete)
-+			ccs_delete_domain(data);
++			tmy_delete_domain(data);
 +		else if (is_select)
-+			domain = ccs_find_domain(data);
++			domain = tmy_find_domain(data);
 +		else if (is_undelete)
-+			domain = ccs_undelete_domain(data);
++			domain = tmy_undelete_domain(data);
 +		else
-+			domain = ccs_find_or_assign_new_domain(data, 0);
++			domain = tmy_find_or_assign_new_domain(data, 0);
 +		head->write_var1 = domain;
-+		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
++		tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
 +		return 0;
 +	}
 +	if (!domain)
@@ -1272,22 +1272,22 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	}
 +	if (!strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
-+		ccs_set_domain_flag(domain, is_delete,
++		tmy_set_domain_flag(domain, is_delete,
 +				    DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
 +		return 0;
 +	}
-+	return ccs_write_file_policy(data, domain, is_delete);
++	return tmy_write_file_policy(data, domain, is_delete);
 +}
 +
 +/**
 + * print_single_path_acl - Print a single path ACL entry.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + * @ptr:  Pointer to "struct single_path_acl_record".
 + *
 + * Returns true on success, false otherwise.
 + */
-+static bool print_single_path_acl(struct ccs_io_buffer *head,
++static bool print_single_path_acl(struct tmy_io_buffer *head,
 +				  struct single_path_acl_record *ptr)
 +{
 +	int pos;
@@ -1306,12 +1306,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!(perm & (1 << bit)))
 +			continue;
 +		/* Print "read/write" instead of "read" and "write". */
-+		if ((bit == CCS_TYPE_READ_ACL || bit == CCS_TYPE_WRITE_ACL)
-+		    && (perm & (1 << CCS_TYPE_READ_WRITE_ACL)))
++		if ((bit == TMY_TYPE_READ_ACL || bit == TMY_TYPE_WRITE_ACL)
++		    && (perm & (1 << TMY_TYPE_READ_WRITE_ACL)))
 +			continue;
-+		msg = ccs_sp2keyword(bit);
++		msg = tmy_sp2keyword(bit);
 +		pos = head->read_avail;
-+		if (!ccs_io_printf(head, "allow_%s %s%s\n", msg,
++		if (!tmy_io_printf(head, "allow_%s %s%s\n", msg,
 +				   atmark, filename))
 +			goto out;
 +	}
@@ -1326,12 +1326,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * print_double_path_acl - Print a double path ACL entry.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + * @ptr:  Pointer to "struct double_path_acl_record".
 + *
 + * Returns true on success, false otherwise.
 + */
-+static bool print_double_path_acl(struct ccs_io_buffer *head,
++static bool print_double_path_acl(struct tmy_io_buffer *head,
 +				  struct double_path_acl_record *ptr)
 +{
 +	int pos;
@@ -1357,9 +1357,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		const char *msg;
 +		if (!(perm & (1 << bit)))
 +			continue;
-+		msg = ccs_dp2keyword(bit);
++		msg = tmy_dp2keyword(bit);
 +		pos = head->read_avail;
-+		if (!ccs_io_printf(head, "allow_%s %s%s %s%s\n", msg,
++		if (!tmy_io_printf(head, "allow_%s %s%s %s%s\n", msg,
 +				   atmark1, filename1, atmark2, filename2))
 +			goto out;
 +	}
@@ -1374,14 +1374,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * print_entry - Print an ACL entry.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + * @ptr:  Pointer to an ACL entry.
 + *
 + * Returns true on success, false otherwise.
 + */
-+static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
++static bool print_entry(struct tmy_io_buffer *head, struct acl_info *ptr)
 +{
-+	const u8 acl_type = ccs_acl_type2(ptr);
++	const u8 acl_type = tmy_acl_type2(ptr);
 +	if (acl_type & ACL_DELETED)
 +		return true;
 +	if (acl_type == TYPE_SINGLE_PATH_ACL) {
@@ -1403,11 +1403,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * read_domain_policy - Read domain policy.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns 0.
 + */
-+static int read_domain_policy(struct ccs_io_buffer *head)
++static int read_domain_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *dpos;
 +	struct list1_head *apos;
@@ -1430,7 +1430,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ)
 +			ignore_global_allow_read
 +				= KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
-+		if (!ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
++		if (!tmy_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
 +				   "%s%s\n", domain->domainname->name,
 +				   domain->profile, quota_exceeded,
 +				   ignore_global_allow_read))
@@ -1449,7 +1449,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +		head->read_step = 3;
 + tail_mark:
-+		if (!ccs_io_printf(head, "\n"))
++		if (!tmy_io_printf(head, "\n"))
 +			return 0;
 +		head->read_step = 1;
 +	}
@@ -1460,7 +1460,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * write_domain_profile - Assign profile for specified domain.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns 0 on success, -EINVAL otherwise.
 + *
@@ -1469,7 +1469,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *     ( echo "select " $domainname; echo "use_profile " $profile ) |
 + *     /usr/lib/ccs/loadpolicy -d
 + */
-+static int write_domain_profile(struct ccs_io_buffer *head)
++static int write_domain_profile(struct tmy_io_buffer *head)
 +{
 +	char *data = head->write_buf;
 +	char *cp = strchr(data, ' ');
@@ -1478,19 +1478,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!cp)
 +		return -EINVAL;
 +	*cp = '\0';
-+	domain = ccs_find_domain(cp + 1);
++	domain = tmy_find_domain(cp + 1);
 +	profile = simple_strtoul(data, NULL, 10);
 +	if (domain && profile < MAX_PROFILES
 +	    && (profile_ptr[profile] || !sbin_init_started))
 +		domain->profile = (u8) profile;
-+	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
++	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
 +	return 0;
 +}
 +
 +/**
 + * read_domain_profile - Read only domainname and profile.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns list of profile number and domainname pairs.
 + *
@@ -1501,7 +1501,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *     domainname = $0; } else if ( $1 == "use_profile" ) {
 + *     print $2 " " domainname; domainname = ""; } } ; '
 + */
-+static int read_domain_profile(struct ccs_io_buffer *head)
++static int read_domain_profile(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
 +	if (head->read_eof)
@@ -1511,7 +1511,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		domain = list1_entry(pos, struct domain_info, list);
 +		if (domain->is_deleted)
 +			continue;
-+		if (!ccs_io_printf(head, "%u %s\n", domain->profile,
++		if (!tmy_io_printf(head, "%u %s\n", domain->profile,
 +				   domain->domainname->name))
 +			return 0;
 +	}
@@ -1522,11 +1522,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * write_pid: Specify PID to obtain domainname.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns 0.
 + */
-+static int write_pid(struct ccs_io_buffer *head)
++static int write_pid(struct tmy_io_buffer *head)
 +{
 +	head->read_step = (int) simple_strtoul(head->write_buf, NULL, 10);
 +	head->read_eof = false;
@@ -1536,14 +1536,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * read_pid - Get domainname of the specified PID.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns the domainname which the specified PID is in on success,
 + * empty string otherwise.
 + * The PID is specified by write_pid() so that the user can obtain
 + * using read()/write() interface rather than sysctl() interface.
 + */
-+static int read_pid(struct ccs_io_buffer *head)
++static int read_pid(struct tmy_io_buffer *head)
 +{
 +	if (head->read_avail == 0 && !head->read_eof) {
 +		const int pid = head->read_step;
@@ -1553,11 +1553,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
 +		if (p)
-+			domain = ((struct ccs_security *) (p->security))->domain;
++			domain = ((struct tmy_security *) (p->security))->domain;
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (domain)
-+			ccs_io_printf(head, "%d %u %s", pid, domain->profile,
++			tmy_io_printf(head, "%d %u %s", pid, domain->profile,
 +				      domain->domainname->name);
 +		head->read_eof = true;
 +	}
@@ -1567,43 +1567,43 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * write_exception_policy - Write exception policy.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int write_exception_policy(struct ccs_io_buffer *head)
++static int write_exception_policy(struct tmy_io_buffer *head)
 +{
 +	char *data = head->write_buf;
 +	bool is_delete = str_starts(&data, KEYWORD_DELETE);
 +	if (str_starts(&data, KEYWORD_KEEP_DOMAIN))
-+		return ccs_write_domain_keeper_policy(data, false, is_delete);
++		return tmy_write_domain_keeper_policy(data, false, is_delete);
 +	if (str_starts(&data, KEYWORD_NO_KEEP_DOMAIN))
-+		return ccs_write_domain_keeper_policy(data, true, is_delete);
++		return tmy_write_domain_keeper_policy(data, true, is_delete);
 +	if (str_starts(&data, KEYWORD_INITIALIZE_DOMAIN))
-+		return ccs_write_domain_initializer_policy(data, false,
++		return tmy_write_domain_initializer_policy(data, false,
 +							   is_delete);
 +	if (str_starts(&data, KEYWORD_NO_INITIALIZE_DOMAIN))
-+		return ccs_write_domain_initializer_policy(data, true,
++		return tmy_write_domain_initializer_policy(data, true,
 +							   is_delete);
 +	if (str_starts(&data, KEYWORD_ALIAS))
-+		return ccs_write_alias_policy(data, is_delete);
++		return tmy_write_alias_policy(data, is_delete);
 +	if (str_starts(&data, KEYWORD_ALLOW_READ))
-+		return ccs_write_globally_readable_policy(data, is_delete);
++		return tmy_write_globally_readable_policy(data, is_delete);
 +	if (str_starts(&data, KEYWORD_FILE_PATTERN))
-+		return ccs_write_pattern_policy(data, is_delete);
++		return tmy_write_pattern_policy(data, is_delete);
 +	if (str_starts(&data, KEYWORD_DENY_REWRITE))
-+		return ccs_write_no_rewrite_policy(data, is_delete);
++		return tmy_write_no_rewrite_policy(data, is_delete);
 +	return -EINVAL;
 +}
 +
 +/**
 + * read_exception_policy - Read exception policy.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns 0 on success, -EINVAL otherwise.
 + */
-+static int read_exception_policy(struct ccs_io_buffer *head)
++static int read_exception_policy(struct tmy_io_buffer *head)
 +{
 +	if (!head->read_eof) {
 +		switch (head->read_step) {
@@ -1611,12 +1611,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			head->read_var2 = NULL;
 +			head->read_step = 1;
 +		case 1:
-+			if (!ccs_read_domain_keeper_policy(head))
++			if (!tmy_read_domain_keeper_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 2;
 +		case 2:
-+			if (!ccs_read_globally_readable_policy(head))
++			if (!tmy_read_globally_readable_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 3;
@@ -1624,12 +1624,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			head->read_var2 = NULL;
 +			head->read_step = 4;
 +		case 4:
-+			if (!ccs_read_domain_initializer_policy(head))
++			if (!tmy_read_domain_initializer_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 5;
 +		case 5:
-+			if (!ccs_read_alias_policy(head))
++			if (!tmy_read_alias_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 6;
@@ -1637,17 +1637,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			head->read_var2 = NULL;
 +			head->read_step = 7;
 +		case 7:
-+			if (!ccs_read_file_pattern(head))
++			if (!tmy_read_file_pattern(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 8;
 +		case 8:
-+			if (!ccs_read_no_rewrite_policy(head))
++			if (!tmy_read_no_rewrite_policy(head))
 +				break;
 +			head->read_var2 = NULL;
 +			head->read_step = 9;
 +		case 9:
-+			if (!ccs_read_path_group_policy(head))
++			if (!tmy_read_path_group_policy(head))
 +				break;
 +			head->read_var1 = NULL;
 +			head->read_var2 = NULL;
@@ -1666,7 +1666,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static bool profile_loaded = false;
 +
 +/* Path to the policy loader. The default is /sbin/tomoyo-init. */
-+static const char *ccs_loader;
++static const char *tmy_loader;
 +
 +/**
 + * loader_setup - Specify the policy loader to use.
@@ -1677,11 +1677,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int __init loader_setup(char *str)
 +{
-+	ccs_loader = str;
++	tmy_loader = str;
 +	return 0;
 +}
 +
-+__setup("CCS_loader=", loader_setup);
++__setup("TMY_loader=", loader_setup);
 +
 +/**
 + * policy_loader_exists - Check whether /sbin/tomoyo-init exists.
@@ -1691,18 +1691,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static bool policy_loader_exists(void)
 +{
 +	/*
-+	 * Don't activate MAC if the path given by 'CCS_loader=' option doesn't
++	 * Don't activate MAC if the path given by 'TMY_loader=' option doesn't
 +	 * exist. If the initrd includes /sbin/init but real-root-dev has not
 +	 * mounted on / yet, activating MAC will block the system since
 +	 * policies are not loaded yet.
 +	 * Thus, let do_execve() call this function everytime.
 +	 */
 +	struct nameidata nd;
-+	if (!ccs_loader)
-+		ccs_loader = "/sbin/tomoyo-init";
-+	if (path_lookup(ccs_loader, LOOKUP_FOLLOW, &nd)) {
++	if (!tmy_loader)
++		tmy_loader = "/sbin/tomoyo-init";
++	if (path_lookup(tmy_loader, LOOKUP_FOLLOW, &nd)) {
 +		printk(KERN_INFO "Not activating Mandatory Access Control now "
-+		       "since %s doesn't exist.\n", ccs_loader);
++		       "since %s doesn't exist.\n", tmy_loader);
 +		return false;
 +	}
 +	path_put(&nd.path);
@@ -1710,30 +1710,30 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_load_policy - Run external policy loader to load policy.
++ * tmy_load_policy - Run external policy loader to load policy.
 + *
 + * @filename: The program about to start.
 + *
 + * This function checks whether @filename is /sbin/init , and if so
 + * invoke /sbin/tomoyo-init and wait for the termination of /sbin/tomoyo-init
 + * and then continues invocation of /sbin/init.
-+ * /sbin/tomoyo-init reads policy files in /etc/ccs/ directory and
++ * /sbin/tomoyo-init reads policy files in /etc/tomoyo/ directory and
 + * writes to /sys/kernel/security/tomoyo/ interfaces.
 + *
 + * Returns nothing.
 + */
-+void ccs_load_policy(const char *filename)
++void tmy_load_policy(const char *filename)
 +{
 +	if (sbin_init_started)
 +		return;
 +	/*
-+	 * Check filename is /sbin/init or /sbin/ccs-start.
-+	 * /sbin/ccs-start is a dummy filename in case where /sbin/init can't
++	 * Check filename is /sbin/init or /sbin/tomoyo-start.
++	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init can't
 +	 * be passed.
-+	 * You can create /sbin/ccs-start by "ln -s /bin/true /sbin/ccs-start".
++	 * You can create /sbin/tomoyo-start by "ln -s /bin/true /sbin/tomoyo-start".
 +	 */
 +	if (strcmp(filename, "/sbin/init") &&
-+	    strcmp(filename, "/sbin/ccs-start"))
++	    strcmp(filename, "/sbin/tomoyo-start"))
 +		return;
 +	if (!policy_loader_exists())
 +		return;
@@ -1741,8 +1741,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		char *argv[2];
 +		char *envp[3];
 +		printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
-+		       ccs_loader);
-+		argv[0] = (char *) ccs_loader;
++		       tmy_loader);
++		argv[0] = (char *) tmy_loader;
 +		argv[1] = NULL;
 +		envp[0] = "HOME=/";
 +		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
@@ -1765,23 +1765,23 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/* Policy updates counter. */
-+static unsigned int updates_counter[MAX_CCS_UPDATES_COUNTER];
++static unsigned int updates_counter[MAX_TMY_UPDATES_COUNTER];
 +
 +/* Policy updates counter lock. */
 +static DEFINE_SPINLOCK(updates_counter_lock);
 +
 +/**
-+ * ccs_update_counter - Increment policy change counter.
++ * tmy_update_counter - Increment policy change counter.
 + *
 + * @index: Type of policy.
 + *
 + * Returns nothing.
 + */
-+void ccs_update_counter(const unsigned char index)
++void tmy_update_counter(const unsigned char index)
 +{
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&updates_counter_lock);
-+	if (index < MAX_CCS_UPDATES_COUNTER)
++	if (index < MAX_TMY_UPDATES_COUNTER)
 +		updates_counter[index]++;
 +	spin_unlock(&updates_counter_lock);
 +	/***** CRITICAL SECTION END *****/
@@ -1790,29 +1790,29 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * read_updates_counter - Check for policy change counter.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns how many times policy has changed since the previous check.
 + */
-+static int read_updates_counter(struct ccs_io_buffer *head)
++static int read_updates_counter(struct tmy_io_buffer *head)
 +{
 +	if (!head->read_eof) {
-+		unsigned int counter[MAX_CCS_UPDATES_COUNTER];
++		unsigned int counter[MAX_TMY_UPDATES_COUNTER];
 +		/***** CRITICAL SECTION START *****/
 +		spin_lock(&updates_counter_lock);
 +		memmove(counter, updates_counter, sizeof(updates_counter));
 +		memset(updates_counter, 0, sizeof(updates_counter));
 +		spin_unlock(&updates_counter_lock);
 +		/***** CRITICAL SECTION END *****/
-+		ccs_io_printf(head,
++		tmy_io_printf(head,
 +			      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
 +			      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
 +			      "/sys/kernel/security/tomoyo/profile:          %10u\n"
 +			      "/sys/kernel/security/tomoyo/manager:          %10u\n",
-+			      counter[CCS_UPDATES_COUNTER_DOMAIN_POLICY],
-+			      counter[CCS_UPDATES_COUNTER_EXCEPTION_POLICY],
-+			      counter[CCS_UPDATES_COUNTER_PROFILE],
-+			      counter[CCS_UPDATES_COUNTER_MANAGER]);
++			      counter[TMY_UPDATES_COUNTER_DOMAIN_POLICY],
++			      counter[TMY_UPDATES_COUNTER_EXCEPTION_POLICY],
++			      counter[TMY_UPDATES_COUNTER_PROFILE],
++			      counter[TMY_UPDATES_COUNTER_MANAGER]);
 +		head->read_eof = true;
 +	}
 +	return 0;
@@ -1821,14 +1821,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * read_version: Get version.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns version information.
 + */
-+static int read_version(struct ccs_io_buffer *head)
++static int read_version(struct tmy_io_buffer *head)
 +{
 +	if (!head->read_eof) {
-+		ccs_io_printf(head, "2.2.0-pre");
++		tmy_io_printf(head, "2.2.0-pre");
 +		head->read_eof = true;
 +	}
 +	return 0;
@@ -1837,17 +1837,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * read_memory_counter - Check for memory usage.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns memory usage.
 + */
-+static int read_memory_counter(struct ccs_io_buffer *head)
++static int read_memory_counter(struct tmy_io_buffer *head)
 +{
 +	if (!head->read_eof) {
-+		const int shared = ccs_get_memory_used_for_save_name();
-+		const int private = ccs_get_memory_used_for_elements();
-+		const int dynamic = ccs_get_memory_used_for_dynamic();
-+		ccs_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
++		const int shared = tmy_get_memory_used_for_save_name();
++		const int private = tmy_get_memory_used_for_elements();
++		const int dynamic = tmy_get_memory_used_for_dynamic();
++		tmy_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
 +			      "Dynamic: %10u\nTotal:   %10u\n",
 +			      shared, private, dynamic,
 +			      shared + private + dynamic);
@@ -1859,77 +1859,77 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * read_self_domain - Get the current process's domainname.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns the current process's domainname.
 + */
-+static int read_self_domain(struct ccs_io_buffer *head)
++static int read_self_domain(struct tmy_io_buffer *head)
 +{
 +	if (!head->read_eof) {
 +		/*
-+		 * CCS_SECURITY->domain->domainname != NULL
++		 * TMY_SECURITY->domain->domainname != NULL
 +		 * because every process belongs to a domain and
 +		 * the domain's name cannot be NULL.
 +		 */
-+		ccs_io_printf(head, "%s",
-+			      CCS_SECURITY->domain->domainname->name);
++		tmy_io_printf(head, "%s",
++			      TMY_SECURITY->domain->domainname->name);
 +		head->read_eof = true;
 +	}
 +	return 0;
 +}
 +
 +/**
-+ * ccs_open_control - open() for /sys/kernel/security/tomoyo/ interface.
++ * tmy_open_control - open() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @type: Type of interface.
 + * @file: Pointer to "struct file".
 + *
 + * Associates policy handler and returns 0 on success, -ENOMEM otherwise.
 + */
-+static int ccs_open_control(const u8 type, struct file *file)
++static int tmy_open_control(const u8 type, struct file *file)
 +{
-+	struct ccs_io_buffer *head = ccs_alloc(sizeof(*head));
++	struct tmy_io_buffer *head = tmy_alloc(sizeof(*head));
 +	if (!head)
 +		return -ENOMEM;
 +	mutex_init(&head->read_sem);
 +	mutex_init(&head->write_sem);
 +	switch (type) {
-+	case CCS_DOMAINPOLICY: /* /sys/kernel/security/tomoyo/domain_policy */
++	case TMY_DOMAINPOLICY: /* /sys/kernel/security/tomoyo/domain_policy */
 +		head->write = write_domain_policy;
 +		head->read = read_domain_policy;
 +		break;
-+	case CCS_EXCEPTIONPOLICY: /* /sys/kernel/security/tomoyo/exception_policy */
++	case TMY_EXCEPTIONPOLICY: /* /sys/kernel/security/tomoyo/exception_policy */
 +		head->write = write_exception_policy;
 +		head->read = read_exception_policy;
 +		break;
-+	case CCS_SELFDOMAIN: /* /sys/kernel/security/tomoyo/self_domain */
++	case TMY_SELFDOMAIN: /* /sys/kernel/security/tomoyo/self_domain */
 +		head->read = read_self_domain;
 +		break;
-+	case CCS_DOMAIN_STATUS: /* /sys/kernel/security/tomoyo/.domain_status */
++	case TMY_DOMAIN_STATUS: /* /sys/kernel/security/tomoyo/.domain_status */
 +		head->write = write_domain_profile;
 +		head->read = read_domain_profile;
 +		break;
-+	case CCS_PROCESS_STATUS: /* /sys/kernel/security/tomoyo/.process_status */
++	case TMY_PROCESS_STATUS: /* /sys/kernel/security/tomoyo/.process_status */
 +		head->write = write_pid;
 +		head->read = read_pid;
 +		break;
-+	case CCS_VERSION: /* /sys/kernel/security/tomoyo/version */
++	case TMY_VERSION: /* /sys/kernel/security/tomoyo/version */
 +		head->read = read_version;
 +		head->readbuf_size = 128;
 +		break;
-+	case CCS_MEMINFO: /* /sys/kernel/security/tomoyo/meminfo */
++	case TMY_MEMINFO: /* /sys/kernel/security/tomoyo/meminfo */
 +		head->read = read_memory_counter;
 +		head->readbuf_size = 128;
 +		break;
-+	case CCS_PROFILE: /* /sys/kernel/security/tomoyo/profile */
++	case TMY_PROFILE: /* /sys/kernel/security/tomoyo/profile */
 +		head->write = write_profile;
 +		head->read = read_profile;
 +		break;
-+	case CCS_MANAGER: /* /sys/kernel/security/tomoyo/manager */
++	case TMY_MANAGER: /* /sys/kernel/security/tomoyo/manager */
 +		head->write = write_manager_policy;
 +		head->read = read_manager_policy;
 +		break;
-+	case CCS_UPDATESCOUNTER: /* /sys/kernel/security/tomoyo/.updates_counter */
++	case TMY_UPDATESCOUNTER: /* /sys/kernel/security/tomoyo/.updates_counter */
 +		head->read = read_updates_counter;
 +		break;
 +	}
@@ -1940,18 +1940,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (head->read) {
 +		if (!head->readbuf_size)
 +			head->readbuf_size = 4096 * 2;
-+		head->read_buf = ccs_alloc(head->readbuf_size);
++		head->read_buf = tmy_alloc(head->readbuf_size);
 +		if (!head->read_buf) {
-+			ccs_free(head);
++			tmy_free(head);
 +			return -ENOMEM;
 +		}
 +	}
 +	if (head->write) {
 +		head->writebuf_size = 4096 * 2;
-+		head->write_buf = ccs_alloc(head->writebuf_size);
++		head->write_buf = tmy_alloc(head->writebuf_size);
 +		if (!head->write_buf) {
-+			ccs_free(head->read_buf);
-+			ccs_free(head);
++			tmy_free(head->read_buf);
++			tmy_free(head);
 +			return -ENOMEM;
 +		}
 +	}
@@ -1961,13 +1961,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * so that the user can use "cat < /sys/kernel/security/tomoyo/self_domain" to
 +	 * know the current process's domainname.
 +	 */
-+	if (type == CCS_SELFDOMAIN)
-+		ccs_read_control(file, NULL, 0);
++	if (type == TMY_SELFDOMAIN)
++		tmy_read_control(file, NULL, 0);
 +	return 0;
 +}
 +
 +/**
-+ * ccs_read_control - read() for /sys/kernel/security/tomoyo/ interface.
++ * tmy_read_control - read() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file:       Pointer to "struct file".
 + * @buffer:     Poiner to buffer to write to.
@@ -1975,11 +1975,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns bytes read on success, negative value otherwise.
 + */
-+static int ccs_read_control(struct file *file, char __user *buffer,
++static int tmy_read_control(struct file *file, char __user *buffer,
 +			    const int buffer_len)
 +{
 +	int len = 0;
-+	struct ccs_io_buffer *head = file->private_data;
++	struct tmy_io_buffer *head = file->private_data;
 +	char *cp;
 +	if (!head->read)
 +		return -ENOSYS;
@@ -2011,7 +2011,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_write_control - write() for /sys/kernel/security/tomoyo/ interface.
++ * tmy_write_control - write() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file:       Pointer to "struct file".
 + * @buffer:     Pointer to buffer to read from.
@@ -2019,10 +2019,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns @buffer_len on success, negative value otherwise.
 + */
-+static int ccs_write_control(struct file *file, const char __user *buffer,
++static int tmy_write_control(struct file *file, const char __user *buffer,
 +			     const int buffer_len)
 +{
-+	struct ccs_io_buffer *head = file->private_data;
++	struct tmy_io_buffer *head = file->private_data;
 +	int error = buffer_len;
 +	int avail_len = buffer_len;
 +	char *cp0 = head->write_buf;
@@ -2060,34 +2060,34 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_close_control - close() for /sys/kernel/security/tomoyo/ interface.
++ * tmy_close_control - close() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file: Pointer to "struct file".
 + *
 + * Releases memory and returns 0.
 + */
-+static int ccs_close_control(struct file *file)
++static int tmy_close_control(struct file *file)
 +{
-+	struct ccs_io_buffer *head = file->private_data;
++	struct tmy_io_buffer *head = file->private_data;
 +	/* Release memory used for policy I/O. */
-+	ccs_free(head->read_buf);
++	tmy_free(head->read_buf);
 +	head->read_buf = NULL;
-+	ccs_free(head->write_buf);
++	tmy_free(head->write_buf);
 +	head->write_buf = NULL;
-+	ccs_free(head);
++	tmy_free(head);
 +	head = NULL;
 +	file->private_data = NULL;
 +	return 0;
 +}
 +
 +/**
-+ * ccs_alloc_acl_element - Allocate permanent memory for ACL entry.
++ * tmy_alloc_acl_element - Allocate permanent memory for ACL entry.
 + *
 + * @acl_type:  Type of ACL entry.
 + *
 + * Returns pointer to the ACL entry on success, NULL otherwise.
 + */
-+void *ccs_alloc_acl_element(const u8 acl_type)
++void *tmy_alloc_acl_element(const u8 acl_type)
 +{
 +	int len;
 +	struct acl_info *ptr;
@@ -2101,7 +2101,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	default:
 +		return NULL;
 +	}
-+	ptr = ccs_alloc_element(len);
++	ptr = tmy_alloc_element(len);
 +	if (!ptr)
 +		return NULL;
 +	ptr->type = acl_type;
@@ -2114,38 +2114,38 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +//#include <linux/io.h>
 +//#include <linux/proc_fs.h>
 +//#include <linux/module.h>
-+//#include "ccs_proc.h"
++//#include "tmy_proc.h"
 +//#include "common.h"
 +
 +/**
-+ * ccs_open - open() for /sys/kernel/security/tomoyo/ interface.
++ * tmy_open - open() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @inode: Pointer to "struct inode".
 + * @file:  Pointer to "struct file".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int ccs_open(struct inode *inode, struct file *file)
++static int tmy_open(struct inode *inode, struct file *file)
 +{
-+	return ccs_open_control(((u8 *) file->f_dentry->d_inode->i_private)
++	return tmy_open_control(((u8 *) file->f_dentry->d_inode->i_private)
 +				- ((u8 *) NULL), file);
 +}
 +
 +/**
-+ * ccs_release - close() for /sys/kernel/security/tomoyo/ interface.
++ * tmy_release - close() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @inode: Pointer to "struct inode".
 + * @file:  Pointer to "struct file".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int ccs_release(struct inode *inode, struct file *file)
++static int tmy_release(struct inode *inode, struct file *file)
 +{
-+	return ccs_close_control(file);
++	return tmy_close_control(file);
 +}
 +
 +/**
-+ * ccs_read - read() for /sys/kernel/security/tomoyo/ interface.
++ * tmy_read - read() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file:  Pointer to "struct file".
 + * @buf:   Pointer to buffer.
@@ -2154,14 +2154,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns bytes read on success, negative value otherwise.
 + */
-+static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
++static ssize_t tmy_read(struct file *file, char __user *buf, size_t count,
 +			loff_t *ppos)
 +{
-+	return ccs_read_control(file, buf, count);
++	return tmy_read_control(file, buf, count);
 +}
 +
 +/**
-+ * ccs_write - write() for /sys/kernel/security/tomoyo/ interface.
++ * tmy_write - write() for /sys/kernel/security/tomoyo/ interface.
 + *
 + * @file:  Pointer to "struct file".
 + * @buf:   Pointer to buffer.
@@ -2170,18 +2170,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns @count on success, negative value otherwise.
 + */
-+static ssize_t ccs_write(struct file *file, const char __user *buf,
++static ssize_t tmy_write(struct file *file, const char __user *buf,
 +			 size_t count, loff_t *ppos)
 +{
-+	return ccs_write_control(file, buf, count);
++	return tmy_write_control(file, buf, count);
 +}
 +
 +/* Operations for /sys/kernel/security/tomoyo/interface. */
-+static struct file_operations ccs_operations = {
-+	.open    = ccs_open,
-+	.release = ccs_release,
-+	.read    = ccs_read,
-+	.write   = ccs_write,
++static struct file_operations tmy_operations = {
++	.open    = tmy_open,
++	.release = tmy_release,
++	.read    = tmy_read,
++	.write   = tmy_write,
 +};
 +
 +/**
@@ -2198,33 +2198,33 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				struct dentry *parent, const u8 key)
 +{
 +	securityfs_create_file(name, mode, parent, ((u8 *) NULL) + key,
-+			       &ccs_operations);
++			       &tmy_operations);
 +}
 +
 +/**
-+ * ccs_initerface_init - Initialize /sys/kernel/security/tomoyo/ interface.
++ * tmy_initerface_init - Initialize /sys/kernel/security/tomoyo/ interface.
 + *
 + * Returns 0.
 + */
-+static int __init ccs_initerface_init(void)
++static int __init tmy_initerface_init(void)
 +{
-+	struct dentry *ccs_dir;
-+	ccs_dir = securityfs_create_dir("tomoyo", NULL);
-+	create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
-+	create_entry("exception_policy", 0600, ccs_dir, CCS_EXCEPTIONPOLICY);
-+	create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
-+	create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
-+	create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
-+	create_entry("meminfo",          0400, ccs_dir, CCS_MEMINFO);
-+	create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
-+	create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
-+	create_entry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
-+	create_entry("version",          0400, ccs_dir, CCS_VERSION);
++	struct dentry *tmy_dir;
++	tmy_dir = securityfs_create_dir("tomoyo", NULL);
++	create_entry("domain_policy",    0600, tmy_dir, TMY_DOMAINPOLICY);
++	create_entry("exception_policy", 0600, tmy_dir, TMY_EXCEPTIONPOLICY);
++	create_entry("self_domain",      0400, tmy_dir, TMY_SELFDOMAIN);
++	create_entry(".domain_status",   0600, tmy_dir, TMY_DOMAIN_STATUS);
++	create_entry(".process_status",  0600, tmy_dir, TMY_PROCESS_STATUS);
++	create_entry("meminfo",          0400, tmy_dir, TMY_MEMINFO);
++	create_entry("profile",          0600, tmy_dir, TMY_PROFILE);
++	create_entry("manager",          0600, tmy_dir, TMY_MANAGER);
++	create_entry(".updates_counter", 0400, tmy_dir, TMY_UPDATESCOUNTER);
++	create_entry("version",          0400, tmy_dir, TMY_VERSION);
 +	return 0;
 +}
 +
-+/* security_initcall(ccs_initerface_init); */
-+postcore_initcall(ccs_initerface_init);
++/* security_initcall(tmy_initerface_init); */
++postcore_initcall(tmy_initerface_init);
 --- /dev/null
 +++ mm/security/tomoyo/common.h
 @@ -0,0 +1,440 @@
@@ -2239,8 +2239,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + */
 +
-+#ifndef _LINUX_CCS_COMMON_H
-+#define _LINUX_CCS_COMMON_H
++#ifndef _LINUX_TMY_COMMON_H
++#define _LINUX_TMY_COMMON_H
 +
 +#include <linux/string.h>
 +#include <linux/mm.h>
@@ -2349,13 +2349,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/* Temporary buffer for holding pathnames. */
-+struct ccs_page_buffer {
++struct tmy_page_buffer {
 +	char buffer[4096];
 +};
 +
 +/* Structure for attribute checks in addition to pathname checks. */
 +struct obj_info {
-+	struct ccs_page_buffer *tmp;
++	struct tmy_page_buffer *tmp;
 +};
 +
 +/* Structure for holding a token. */
@@ -2376,7 +2376,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Non printable characters in a token is represented in \ooo style
 + * octal string. Thus, \ itself is represented as \\.
 + */
-+#define CCS_MAX_PATHNAME_LEN 4000
++#define TMY_MAX_PATHNAME_LEN 4000
 +
 +/* Structure for "path_group" directive. */
 +struct path_group_member {
@@ -2394,10 +2394,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +/* Structure for holding requested pathname. */
 +struct path_info_with_data {
-+	/* Keep "head" first, for this pointer is passed to ccs_free(). */
++	/* Keep "head" first, for this pointer is passed to tmy_free(). */
 +	struct path_info head;
 +	char bariier1[16]; /* Safeguard for overrun. */
-+	char body[CCS_MAX_PATHNAME_LEN];
++	char body[TMY_MAX_PATHNAME_LEN];
 +	char barrier2[16]; /* Safeguard for overrun. */
 +};
 +
@@ -2424,7 +2424,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	u8 profile;        /* Profile number to use. */
 +	u8 is_deleted;     /* Delete flag.           */
 +	bool quota_warned; /* Quota warnning flag.   */
-+	/* DOMAIN_FLAGS_IGNORE_*. Use ccs_set_domain_flag() to modify. */
++	/* DOMAIN_FLAGS_IGNORE_*. Use tmy_set_domain_flag() to modify. */
 +	u8 flags;
 +};
 +
@@ -2492,22 +2492,22 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
 +
 +/* Index numbers for Access Controls. */
-+#define CCS_TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
-+#define CCS_TOMOYO_MAX_ACCEPT_ENTRY              1
-+#define CCS_TOMOYO_VERBOSE                       2
-+#define CCS_MAX_CONTROL_INDEX                    3
++#define TMY_TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
++#define TMY_TOMOYO_MAX_ACCEPT_ENTRY              1
++#define TMY_TOMOYO_VERBOSE                       2
++#define TMY_MAX_CONTROL_INDEX                    3
 +
 +/* Index numbers for updates counter. */
-+#define CCS_UPDATES_COUNTER_DOMAIN_POLICY    0
-+#define CCS_UPDATES_COUNTER_EXCEPTION_POLICY 1
-+#define CCS_UPDATES_COUNTER_PROFILE          2
-+#define CCS_UPDATES_COUNTER_MANAGER          3
-+#define MAX_CCS_UPDATES_COUNTER              4
++#define TMY_UPDATES_COUNTER_DOMAIN_POLICY    0
++#define TMY_UPDATES_COUNTER_EXCEPTION_POLICY 1
++#define TMY_UPDATES_COUNTER_PROFILE          2
++#define TMY_UPDATES_COUNTER_MANAGER          3
++#define MAX_TMY_UPDATES_COUNTER              4
 +
 +/* Structure for reading/writing policy via securityfs interfaces. */
-+struct ccs_io_buffer {
-+	int (*read) (struct ccs_io_buffer *);
-+	int (*write) (struct ccs_io_buffer *);
++struct tmy_io_buffer {
++	int (*read) (struct tmy_io_buffer *);
++	int (*write) (struct tmy_io_buffer *);
 +	/* Exclusive lock for read_buf.         */
 +	struct mutex read_sem;
 +	/* Exclusive lock for write_buf.        */
@@ -2539,67 +2539,67 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +};
 +
 +/* Check whether the domain has too many ACL entries to hold. */
-+bool ccs_check_domain_quota(struct domain_info * const domain);
++bool tmy_check_domain_quota(struct domain_info * const domain);
 +/* Transactional sprintf() for policy dump. */
-+bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
++bool tmy_io_printf(struct tmy_io_buffer *head, const char *fmt, ...)
 +	__attribute__ ((format(printf, 2, 3)));
 +/* Check whether the domainname is correct. */
-+bool ccs_is_correct_domain(const unsigned char *domainname,
++bool tmy_is_correct_domain(const unsigned char *domainname,
 +			   const char *function);
 +/* Check whether the token is correct. */
-+bool ccs_is_correct_path(const char *filename, const s8 start_type,
++bool tmy_is_correct_path(const char *filename, const s8 start_type,
 +			 const s8 pattern_type, const s8 end_type,
 +			 const char *function);
 +/* Check whether the token can be a domainname. */
-+bool ccs_is_domain_def(const unsigned char *buffer);
++bool tmy_is_domain_def(const unsigned char *buffer);
 +/* Check whether the given filename matches the given pattern. */
-+bool ccs_path_matches_pattern(const struct path_info *filename,
++bool tmy_path_matches_pattern(const struct path_info *filename,
 +			      const struct path_info *pattern);
 +/* Read "alias" entry in exception policy. */
-+bool ccs_read_alias_policy(struct ccs_io_buffer *head);
++bool tmy_read_alias_policy(struct tmy_io_buffer *head);
 +/*
 + * Read "initialize_domain" and "no_initialize_domain" entry
 + * in exception policy.
 + */
-+bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
++bool tmy_read_domain_initializer_policy(struct tmy_io_buffer *head);
 +/* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
-+bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head);
++bool tmy_read_domain_keeper_policy(struct tmy_io_buffer *head);
 +/* Read "file_pattern" entry in exception policy. */
-+bool ccs_read_file_pattern(struct ccs_io_buffer *head);
++bool tmy_read_file_pattern(struct tmy_io_buffer *head);
 +/* Read "allow_read" entry in exception policy. */
-+bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
++bool tmy_read_globally_readable_policy(struct tmy_io_buffer *head);
 +/* Read "deny_rewrite" entry in exception policy. */
-+bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
++bool tmy_read_no_rewrite_policy(struct tmy_io_buffer *head);
 +/* Read "path_group" entry in exception policy. */
-+bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
++bool tmy_read_path_group_policy(struct tmy_io_buffer *head);
 +/* Write domain policy violation warning message to console? */
-+bool ccs_verbose_mode(void);
++bool tmy_verbose_mode(void);
 +/* Convert double path operation to operation name. */
-+const char *ccs_dp2keyword(const u8 operation);
++const char *tmy_dp2keyword(const u8 operation);
 +/* Get the pathname of current process. */
-+const char *ccs_get_exe(void);
++const char *tmy_get_exe(void);
 +/* Get the last component of the given domainname. */
-+const char *ccs_get_last_name(const struct domain_info *domain);
++const char *tmy_get_last_name(const struct domain_info *domain);
 +/* Get warning message. */
-+const char *ccs_get_msg(const bool is_enforce);
++const char *tmy_get_msg(const bool is_enforce);
 +/* Convert single path operation to operation name. */
-+const char *ccs_sp2keyword(const u8 operation);
++const char *tmy_sp2keyword(const u8 operation);
 +/* Add an ACL entry to domain's ACL list. */
-+int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
++int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
 +/* Delete an ACL entry from domain's ACL list. */
-+int ccs_del_domain_acl(struct acl_info *acl);
++int tmy_del_domain_acl(struct acl_info *acl);
 +/* Delete a domain. */
-+int ccs_delete_domain(char *data);
++int tmy_delete_domain(char *data);
 +/* Create "alias" entry in exception policy. */
-+int ccs_write_alias_policy(char *data, const bool is_delete);
++int tmy_write_alias_policy(char *data, const bool is_delete);
 +/*
 + * Create "initialize_domain" and "no_initialize_domain" entry
 + * in exception policy.
 + */
-+int ccs_write_domain_initializer_policy(char *data, const bool is_not,
++int tmy_write_domain_initializer_policy(char *data, const bool is_not,
 +					const bool is_delete);
 +/* Create "keep_domain" and "no_keep_domain" entry in exception policy. */
-+int ccs_write_domain_keeper_policy(char *data, const bool is_not,
++int tmy_write_domain_keeper_policy(char *data, const bool is_not,
 +				   const bool is_delete);
 +/*
 + * Create "allow_read/write", "allow_execute", "allow_read", "allow_write",
@@ -2608,50 +2608,50 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_rename" and
 + * "allow_link" entry in domain policy.
 + */
-+int ccs_write_file_policy(char *data, struct domain_info *domain,
++int tmy_write_file_policy(char *data, struct domain_info *domain,
 +			  const bool is_delete);
 +/* Create "allow_read" entry in exception policy. */
-+int ccs_write_globally_readable_policy(char *data, const bool is_delete);
++int tmy_write_globally_readable_policy(char *data, const bool is_delete);
 +/* Create "deny_rewrite" entry in exception policy. */
-+int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
++int tmy_write_no_rewrite_policy(char *data, const bool is_delete);
 +/* Create "file_pattern" entry in exception policy. */
-+int ccs_write_pattern_policy(char *data, const bool is_delete);
++int tmy_write_pattern_policy(char *data, const bool is_delete);
 +/* Find a domain by the given name. */
-+struct domain_info *ccs_find_domain(const char *domainname);
++struct domain_info *tmy_find_domain(const char *domainname);
 +/* Find or create a domain by the given name. */
-+struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
++struct domain_info *tmy_find_or_assign_new_domain(const char *domainname,
 +						  const u8 profile);
 +/* Undelete a domain. */
-+struct domain_info *ccs_undelete_domain(const char *domainname);
++struct domain_info *tmy_undelete_domain(const char *domainname);
 +/* Check mode for specified functionality. */
-+unsigned int ccs_check_flags(const u8 index);
++unsigned int tmy_check_flags(const u8 index);
 +/* Allocate memory for structures. */
-+void *ccs_alloc_acl_element(const u8 acl_type);
++void *tmy_alloc_acl_element(const u8 acl_type);
 +/* Fill in "struct path_info" members. */
-+void ccs_fill_path_info(struct path_info *ptr);
++void tmy_fill_path_info(struct path_info *ptr);
 +/* Run policy loader when /sbin/init starts. */
-+void ccs_load_policy(const char *filename);
++void tmy_load_policy(const char *filename);
 +/* Change "struct domain_info"->flags. */
-+void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
++void tmy_set_domain_flag(struct domain_info *domain, const bool is_delete,
 +			 const u8 flags);
 +/* Update the policy change counter. */
-+void ccs_update_counter(const unsigned char index);
++void tmy_update_counter(const unsigned char index);
 +
 +/* strcmp() for "struct path_info" structure. */
-+static inline bool ccs_pathcmp(const struct path_info *a,
++static inline bool tmy_pathcmp(const struct path_info *a,
 +			       const struct path_info *b)
 +{
 +	return a->hash != b->hash || strcmp(a->name, b->name);
 +}
 +
 +/* Get type of an ACL entry. */
-+static inline u8 ccs_acl_type1(struct acl_info *ptr)
++static inline u8 tmy_acl_type1(struct acl_info *ptr)
 +{
 +	return (ptr->type & ~ACL_DELETED);
 +}
 +
 +/* Get type of an ACL entry. */
-+static inline u8 ccs_acl_type2(struct acl_info *ptr)
++static inline u8 tmy_acl_type2(struct acl_info *ptr)
 +{
 +	return (ptr->type);
 +}
@@ -2661,7 +2661,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Has /sbin/init started? */
 +extern bool sbin_init_started;
 +/* Log level for printk(). */
-+extern const char *ccs_log_level;
++extern const char *tmy_log_level;
 +/* The kernel's domain. */
 +extern struct domain_info KERNEL_DOMAIN;
 +/* Exclusive lock for updating domain policy. */

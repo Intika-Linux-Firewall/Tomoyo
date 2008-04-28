@@ -188,7 +188,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_realpath_from_dentry2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
++ * tmy_realpath_from_dentry2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
 + *
 + * @dentry:      Pointer to "struct dentry".
 + * @mnt:         Pointer to "struct vfsmount".
@@ -197,7 +197,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
++int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 +			      char *newname, int newname_len)
 +{
 +	int error;
@@ -217,12 +217,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	dput(d_dentry);
 +	mntput(d_mnt);
 +	if (error)
-+		printk(KERN_WARNING "ccs_realpath: Pathname too long.\n");
++		printk(KERN_WARNING "tmy_realpath: Pathname too long.\n");
 +	return error;
 +}
 +
 +/**
-+ * ccs_realpath_from_dentry - Returns realpath(3) of the given pathname but ignores chroot'ed root.
++ * tmy_realpath_from_dentry - Returns realpath(3) of the given pathname but ignores chroot'ed root.
 + *
 + * @dentry: Pointer to "struct dentry".
 + * @mnt:    Pointer to "struct vfsmount".
@@ -230,31 +230,31 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns the realpath of the given @dentry and @mnt on success,
 + * NULL otherwise.
 + *
-+ * These functions use ccs_alloc(), so caller must ccs_free()
++ * These functions use tmy_alloc(), so caller must tmy_free()
 + * if these functions didn't return NULL.
 + */
-+char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
++char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
 +{
-+	char *buf = ccs_alloc(sizeof(struct ccs_page_buffer));
-+	if (buf && ccs_realpath_from_dentry2(dentry, mnt, buf,
-+					     CCS_MAX_PATHNAME_LEN - 1) == 0)
++	char *buf = tmy_alloc(sizeof(struct tmy_page_buffer));
++	if (buf && tmy_realpath_from_dentry2(dentry, mnt, buf,
++					     TMY_MAX_PATHNAME_LEN - 1) == 0)
 +		return buf;
-+	ccs_free(buf);
++	tmy_free(buf);
 +	return NULL;
 +}
 +
 +/**
-+ * ccs_realpath - Get realpath of a pathname.
++ * tmy_realpath - Get realpath of a pathname.
 + *
 + * @pathname: The pathname to solve.
 + *
 + * Returns the realpath of @pathname on success, NULL otherwise.
 + */
-+char *ccs_realpath(const char *pathname)
++char *tmy_realpath(const char *pathname)
 +{
 +	struct nameidata nd;
 +	if (pathname && path_lookup(pathname, LOOKUP_FOLLOW, &nd) == 0) {
-+		char *buf = ccs_realpath_from_dentry(nd.path.dentry,
++		char *buf = tmy_realpath_from_dentry(nd.path.dentry,
 +						     nd.path.mnt);
 +		path_put(&nd.path);
 +		return buf;
@@ -263,17 +263,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_realpath_nofollow - Get realpath of a pathname.
++ * tmy_realpath_nofollow - Get realpath of a pathname.
 + *
 + * @pathname: The pathname to solve.
 + *
 + * Returns the realpath of @pathname on success, NULL otherwise.
 + */
-+char *ccs_realpath_nofollow(const char *pathname)
++char *tmy_realpath_nofollow(const char *pathname)
 +{
 +	struct nameidata nd;
 +	if (pathname && path_lookup(pathname, 0, &nd) == 0) {
-+		char *buf = ccs_realpath_from_dentry(nd.path.dentry,
++		char *buf = tmy_realpath_from_dentry(nd.path.dentry,
 +						     nd.path.mnt);
 +		path_put(&nd.path);
 +		return buf;
@@ -304,17 +304,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static unsigned int allocated_memory_for_elements;
 +
 +/**
-+ * ccs_get_memory_used_for_elements - Get memory used for keeping ACL structures.
++ * tmy_get_memory_used_for_elements - Get memory used for keeping ACL structures.
 + *
 + * Returns memory used for keeping ACL structures.
 + */
-+unsigned int ccs_get_memory_used_for_elements(void)
++unsigned int tmy_get_memory_used_for_elements(void)
 +{
 +	return allocated_memory_for_elements;
 +}
 +
 +/**
-+ * ccs_alloc_element - Allocate permanent memory for structures.
++ * tmy_alloc_element - Allocate permanent memory for structures.
 + *
 + * @size: Size in bytes.
 + *
@@ -322,7 +322,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * The RAM is chunked, so NEVER try to kfree() the returned pointer.
 + */
-+void *ccs_alloc_element(const unsigned int size)
++void *tmy_alloc_element(const unsigned int size)
 +{
 +	static DEFINE_MUTEX(lock);
 +	static char *buf;
@@ -336,7 +336,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
 +		if (!ptr) {
 +			printk(KERN_WARNING "ERROR: Out of memory "
-+			       "for ccs_alloc_element().\n");
++			       "for tmy_alloc_element().\n");
 +			if (!sbin_init_started)
 +				panic("MAC Initialization failed.\n");
 +		} else {
@@ -364,11 +364,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static unsigned int allocated_memory_for_savename;
 +
 +/**
-+ * ccs_get_memory_used_for_save_name - Get memory used for keeping string data.
++ * tmy_get_memory_used_for_save_name - Get memory used for keeping string data.
 + *
 + * Returns memory used for keeping string data.
 + */
-+unsigned int ccs_get_memory_used_for_save_name(void)
++unsigned int tmy_get_memory_used_for_save_name(void)
 +{
 +	return allocated_memory_for_savename;
 +}
@@ -392,7 +392,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static struct list1_head name_list[MAX_HASH];
 +
 +/**
-+ * ccs_save_name - Allocate permanent memory for string data.
++ * tmy_save_name - Allocate permanent memory for string data.
 + *
 + * @name: The string to store into the permernent memory.
 + *
@@ -400,7 +400,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * The RAM is shared, so NEVER try to modify or kfree() the returned name.
 + */
-+const struct path_info *ccs_save_name(const char *name)
++const struct path_info *tmy_save_name(const char *name)
 +{
 +	static LIST_HEAD(fmb_list);
 +	static DEFINE_MUTEX(lock);
@@ -412,9 +412,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!name)
 +		return NULL;
 +	len = strlen(name) + 1;
-+	if (len > CCS_MAX_PATHNAME_LEN) {
++	if (len > TMY_MAX_PATHNAME_LEN) {
 +		printk(KERN_WARNING "ERROR: Name too long "
-+		       "for ccs_save_name().\n");
++		       "for tmy_save_name().\n");
 +		return NULL;
 +	}
 +	hash = full_name_hash((const unsigned char *) name, len - 1);
@@ -433,7 +433,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		kfree(cp);
 +		kfree(fmb);
 +		printk(KERN_WARNING "ERROR: Out of memory "
-+		       "for ccs_save_name().\n");
++		       "for tmy_save_name().\n");
 +		if (!sbin_init_started)
 +			panic("MAC Initialization failed.\n");
 +		ptr = NULL;
@@ -444,12 +444,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	fmb->ptr = cp;
 +	fmb->len = PAGE_SIZE;
 + ready:
-+	ptr = ccs_alloc_element(sizeof(*ptr));
++	ptr = tmy_alloc_element(sizeof(*ptr));
 +	if (!ptr)
 +		goto out;
 +	ptr->entry.name = fmb->ptr;
 +	memmove(fmb->ptr, name, len);
-+	ccs_fill_path_info(&ptr->entry);
++	tmy_fill_path_info(&ptr->entry);
 +	fmb->ptr += len;
 +	fmb->len -= len;
 +	list1_add_tail_mb(&ptr->list, &name_list[hash % MAX_HASH]);
@@ -469,33 +469,33 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int size;
 +};
 +
-+static struct kmem_cache *ccs_cachep;
++static struct kmem_cache *tmy_cachep;
 +
 +/**
-+ * ccs_realpath_init - Initialize realpath related code.
++ * tmy_realpath_init - Initialize realpath related code.
 + *
 + * Returns 0.
 + */
-+static int __init ccs_realpath_init(void)
++static int __init tmy_realpath_init(void)
 +{
 +	int i;
-+	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
++	if (TMY_MAX_PATHNAME_LEN > PAGE_SIZE)
 +		panic("Bad size.");
-+	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry),
++	tmy_cachep = kmem_cache_create("tmy_cache", sizeof(struct cache_entry),
 +				       0, 0, NULL);
-+	if (!ccs_cachep)
++	if (!tmy_cachep)
 +		panic("Can't create cache.\n");
 +	for (i = 0; i < MAX_HASH; i++)
 +		INIT_LIST1_HEAD(&name_list[i]);
 +	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
-+	KERNEL_DOMAIN.domainname = ccs_save_name(ROOT_NAME);
++	KERNEL_DOMAIN.domainname = tmy_save_name(ROOT_NAME);
 +	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
-+	if (ccs_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
++	if (tmy_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
 +		panic("Can't register KERNEL_DOMAIN");
 +	return 0;
 +}
 +
-+security_initcall(ccs_realpath_init);
++security_initcall(tmy_realpath_init);
 +
 +/* The list for "struct cache_entry". */
 +static LIST_HEAD(cache_list);
@@ -505,29 +505,29 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static unsigned int dynamic_memory_size;
 +
 +/**
-+ * ccs_get_memory_used_for_dynamic - Get memory used for temporal purpose.
++ * tmy_get_memory_used_for_dynamic - Get memory used for temporal purpose.
 + *
 + * Returns memory used for temporal purpose.
 + */
-+unsigned int ccs_get_memory_used_for_dynamic(void)
++unsigned int tmy_get_memory_used_for_dynamic(void)
 +{
 +	return dynamic_memory_size;
 +}
 +
 +/**
-+ * ccs_alloc - Allocate memory for temporal purpose.
++ * tmy_alloc - Allocate memory for temporal purpose.
 + *
 + * @size: Size in bytes.
 + *
 + * Returns pointer to allocated memory on success, NULL otherwise.
 + */
-+void *ccs_alloc(const size_t size)
++void *tmy_alloc(const size_t size)
 +{
 +	struct cache_entry *new_entry;
 +	void *ret = kzalloc(size, GFP_KERNEL);
 +	if (!ret)
 +		goto out;
-+	new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
++	new_entry = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
 +	if (!new_entry) {
 +		kfree(ret);
 +		ret = NULL;
@@ -547,13 +547,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_free - Release memory allocated by ccs_alloc().
++ * tmy_free - Release memory allocated by tmy_alloc().
 + *
-+ * @p: Pointer returned by ccs_alloc(). May be NULL.
++ * @p: Pointer returned by tmy_alloc(). May be NULL.
 + *
 + * Returns nothing.
 + */
-+void ccs_free(const void *p)
++void tmy_free(const void *p)
 +{
 +	struct list_head *v;
 +	struct cache_entry *entry = NULL;
@@ -575,13 +575,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/***** CRITICAL SECTION END *****/
 +	if (entry) {
 +		kfree(p);
-+		kmem_cache_free(ccs_cachep, entry);
++		kmem_cache_free(tmy_cachep, entry);
 +	} else {
-+		printk(KERN_WARNING "BUG: ccs_free() with invalid pointer.\n");
++		printk(KERN_WARNING "BUG: tmy_free() with invalid pointer.\n");
 +	}
 +}
 +
-+static int ccs_print_ascii(const char *sp, const char *cp,
++static int tmy_print_ascii(const char *sp, const char *cp,
 +			   int *buflen0, char **end0)
 +{
 +	int buflen = *buflen0;
@@ -622,8 +622,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +
-+/* ccs_get_absolute_path() for "struct ctl_table". */
-+static int ccs_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
++/* tmy_get_absolute_path() for "struct ctl_table". */
++static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
 +{
 +	char *end = buffer + buflen;
 +
@@ -647,7 +647,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +		cp = strchr(sp, '\0') - 1;
 +
-+		if (ccs_print_ascii(sp, cp, &buflen, &end))
++		if (tmy_print_ascii(sp, cp, &buflen, &end))
 +			goto out;
 +
 +		if (--buflen < 0)
@@ -672,17 +672,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns realpath(3) of the @table on success.
 + * Returns NULL on failure.
 + *
-+ * This function uses ccs_alloc(), so caller must call ccs_free()
++ * This function uses tmy_alloc(), so caller must call tmy_free()
 + * if this function didn't return NULL.
 + */
 +char *sysctlpath_from_table(struct ctl_table *table)
 +{
-+	char *buf = ccs_alloc(CCS_MAX_PATHNAME_LEN);
++	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
 +
-+	if (buf && ccs_sysctl_path(table, buf, CCS_MAX_PATHNAME_LEN - 1) == 0)
++	if (buf && tmy_sysctl_path(table, buf, TMY_MAX_PATHNAME_LEN - 1) == 0)
 +		return buf;
 +
-+	ccs_free(buf);
++	tmy_free(buf);
 +	return NULL;
 +}
 --- /dev/null
@@ -708,45 +708,45 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +struct path_info;
 +
 +/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
-+int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
++int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 +			      char *newname, int newname_len);
 +
 +/*
 + * Returns realpath(3) of the given pathname but ignores chroot'ed root.
-+ * These functions use ccs_alloc(), so caller must ccs_free()
++ * These functions use tmy_alloc(), so caller must tmy_free()
 + * if these functions didn't return NULL.
 + */
-+char *ccs_realpath(const char *pathname);
-+/* Same with ccs_realpath() except that it doesn't follow the final symlink. */
-+char *ccs_realpath_nofollow(const char *pathname);
-+/* Same with ccs_realpath() except that the pathname is already solved. */
-+char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
++char *tmy_realpath(const char *pathname);
++/* Same with tmy_realpath() except that it doesn't follow the final symlink. */
++char *tmy_realpath_nofollow(const char *pathname);
++/* Same with tmy_realpath() except that the pathname is already solved. */
++char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
 +
 +/*
 + * Allocate memory for ACL entry.
 + * The RAM is chunked, so NEVER try to kfree() the returned pointer.
 + */
-+void *ccs_alloc_element(const unsigned int size);
++void *tmy_alloc_element(const unsigned int size);
 +
-+/* Get used RAM size for ccs_alloc_elements(). */
-+unsigned int ccs_get_memory_used_for_elements(void);
++/* Get used RAM size for tmy_alloc_elements(). */
++unsigned int tmy_get_memory_used_for_elements(void);
 +
 +/*
 + * Keep the given name on the RAM.
 + * The RAM is shared, so NEVER try to modify or kfree() the returned name.
 + */
-+const struct path_info *ccs_save_name(const char *name);
++const struct path_info *tmy_save_name(const char *name);
 +
-+/* Get used RAM size for ccs_save_name(). */
-+unsigned int ccs_get_memory_used_for_save_name(void);
++/* Get used RAM size for tmy_save_name(). */
++unsigned int tmy_get_memory_used_for_save_name(void);
 +
 +/* Allocate memory for temporary use (e.g. permission checks). */
-+void *ccs_alloc(const size_t size);
++void *tmy_alloc(const size_t size);
 +
-+/* Get used RAM size for ccs_alloc(). */
-+unsigned int ccs_get_memory_used_for_dynamic(void);
++/* Get used RAM size for tmy_alloc(). */
++unsigned int tmy_get_memory_used_for_dynamic(void);
 +
-+/* Free memory allocated by ccs_alloc(). */
-+void ccs_free(const void *p);
++/* Free memory allocated by tmy_alloc(). */
++void tmy_free(const void *p);
 +
 +#endif
