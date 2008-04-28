@@ -22,7 +22,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/ioctl.c                      |    7 ++
  fs/namei.c                      |  112 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   49 +++++++++++++++++
- fs/open.c                       |   26 +++++++++
+ fs/open.c                       |   28 ++++++++++
  fs/proc/Makefile                |    3 +
  fs/proc/proc_misc.c             |    5 +
  include/linux/init_task.h       |    4 +
@@ -34,18 +34,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/ptrace.c                 |    9 +++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
- kernel/sys.c                    |   19 ++++++
+ kernel/sys.c                    |   21 +++++++
  kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++++++++
  kernel/time.c                   |   11 +++
  kernel/time/ntp.c               |    7 ++
  net/core/datagram.c             |   11 +++
  net/ipv4/inet_connection_sock.c |    7 ++
  net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |   11 +++
+ net/ipv4/udp.c                  |   10 +++
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 43 files changed, 663 insertions(+), 3 deletions(-)
+ 43 files changed, 666 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24.orig/Makefile
 +++ linux-2.6.24/Makefile
@@ -572,8 +572,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (new_dentry == trap)
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode,
-+			       new_dentry);
++	error = pre_vfs_rename(old_dir->d_inode, old_dentry,
++			       new_dir->d_inode, new_dentry);
 +	if (error)
 +		goto exit5;
 +	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt,
@@ -724,29 +724,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -268,6 +274,10 @@ static long do_sys_truncate(const char _
+@@ -268,6 +274,11 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
 +	/***** TOMOYO Linux start. *****/
 +	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt);
-+	if (!error)
++	if (error)
++		goto put_write_and_out;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -322,6 +332,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -322,6 +333,11 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
 +	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
-+	if (!error)
++	if (error)
++		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -544,6 +558,14 @@ asmlinkage long sys_chroot(const char __
+@@ -544,6 +560,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -761,7 +763,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1161,6 +1183,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1161,6 +1185,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -789,7 +791,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.24 2008/04/22\n");
++	printk(KERN_INFO "Hook version: 2.6.24 2008/04/28\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1036,18 +1038,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -140,6 +143,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -140,6 +143,12 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE))
-+		return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) {
++		error = -EPERM;
++		goto out;
++	}
 +	/***** TOMOYO Linux end. *****/
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -376,6 +383,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -376,6 +385,10 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -1058,7 +1062,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1362,6 +1373,10 @@ asmlinkage long sys_sethostname(char __u
+@@ -1362,6 +1375,10 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1069,7 +1073,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1407,6 +1422,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1407,6 +1424,10 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1346,18 +1350,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			int size = 0;
 +			/***** SAKURA Linux start. *****/
 +			if (ccs_may_autobind(rover))
-+				continue;
++				goto next;
 +			/***** SAKURA Linux end. *****/
  
  			head = &udptable[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(head))
-@@ -182,6 +189,10 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -182,6 +189,9 @@ int __udp_lib_get_port(struct sock *sk, 
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
-+				continue;
++			if (!ccs_may_autobind(rover))
 +			/***** SAKURA Linux end. *****/
  			if (! __udp_lib_lport_inuse(rover, udptable))
  				goto gotit;
