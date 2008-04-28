@@ -22,7 +22,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  fs/ioctl.c                      |    7 ++
  fs/namei.c                      |  112 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   49 +++++++++++++++++
- fs/open.c                       |   27 +++++++++
+ fs/open.c                       |   28 ++++++++++
  fs/proc/Makefile                |    3 +
  fs/proc/proc_misc.c             |    5 +
  include/linux/init_task.h       |    4 +
@@ -35,18 +35,18 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  kernel/ptrace.c                 |    9 +++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
- kernel/sys.c                    |   19 ++++++
+ kernel/sys.c                    |   21 +++++++
  kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++++++++
  kernel/time.c                   |   11 +++
  kernel/time/ntp.c               |    7 ++
  net/core/datagram.c             |   11 +++
  net/ipv4/inet_connection_sock.c |    7 ++
  net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |   11 +++
+ net/ipv4/udp.c                  |   10 +++
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 44 files changed, 668 insertions(+), 6 deletions(-)
+ 44 files changed, 670 insertions(+), 6 deletions(-)
 
 --- linux-source-2.6.24.3.orig/Makefile
 +++ linux-source-2.6.24.3/Makefile
@@ -726,18 +726,19 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -267,6 +273,10 @@ static long do_sys_truncate(const char _
+@@ -267,6 +273,11 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
 +	/***** TOMOYO Linux start. *****/
 +	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt);
-+	if (!error)
++	if (error)
++		goto put_write_and_out;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -321,6 +331,11 @@ static long do_sys_ftruncate(unsigned in
+@@ -321,6 +332,11 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -749,7 +750,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, file->f_path.mnt, length,
-@@ -542,6 +557,14 @@ asmlinkage long sys_chroot(const char __
+@@ -542,6 +558,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -764,7 +765,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1162,6 +1185,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1162,6 +1186,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -792,7 +793,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.24.3 2008/04/23\n");
++	printk(KERN_INFO "Hook version: 2.6.24.3 2008/04/28\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1039,18 +1040,20 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -140,6 +143,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -140,6 +143,12 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE))
-+		return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) {
++		error = -EPERM;
++		goto out;
++	}
 +	/***** TOMOYO Linux end. *****/
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -376,6 +383,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -376,6 +385,10 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -1061,7 +1064,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1362,6 +1373,10 @@ asmlinkage long sys_sethostname(char __u
+@@ -1362,6 +1375,10 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1072,7 +1075,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1407,6 +1422,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1407,6 +1424,10 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1349,18 +1352,17 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			int size = 0;
 +			/***** SAKURA Linux start. *****/
 +			if (ccs_may_autobind(rover))
-+				continue;
++				goto next;
 +			/***** SAKURA Linux end. *****/
  
  			head = &udptable[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(head))
-@@ -182,6 +189,10 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -182,6 +189,9 @@ int __udp_lib_get_port(struct sock *sk, 
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
-+				continue;
++			if (!ccs_may_autobind(rover))
 +			/***** SAKURA Linux end. *****/
  			if (! __udp_lib_lport_inuse(rover, udptable))
  				goto gotit;
