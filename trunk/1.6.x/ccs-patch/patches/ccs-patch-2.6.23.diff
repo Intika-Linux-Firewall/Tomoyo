@@ -24,7 +24,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/ioctl.c                      |    7 ++
  fs/namei.c                      |  112 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   49 +++++++++++++++++
- fs/open.c                       |   26 +++++++++
+ fs/open.c                       |   28 ++++++++++
  fs/proc/Makefile                |    3 +
  fs/proc/proc_misc.c             |    5 +
  include/linux/init_task.h       |    4 +
@@ -36,8 +36,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/ptrace.c                 |    9 +++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
- kernel/sys.c                    |   19 ++++++
- kernel/sysctl.c                 |   94 +++++++++++++++++++++++++++++++++
+ kernel/sys.c                    |   21 +++++++
+ kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++++++++
  kernel/time.c                   |   11 +++
  kernel/time/ntp.c               |    7 ++
  net/core/datagram.c             |   11 +++
@@ -45,9 +45,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv4/inet_hashtables.c      |    7 ++
  net/ipv4/udp.c                  |   11 +++
  net/ipv6/inet6_hashtables.c     |    7 ++
- net/socket.c                    |   40 ++++++++++++++
+ net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 45 files changed, 679 insertions(+), 3 deletions(-)
+ 45 files changed, 685 insertions(+), 3 deletions(-)
 
 --- linux-2.6.23.orig/Makefile
 +++ linux-2.6.23/Makefile
@@ -624,8 +624,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (new_dentry == trap)
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode,
-+			       new_dentry);
++	error = pre_vfs_rename(old_dir->d_inode, old_dentry,
++			       new_dir->d_inode, new_dentry);
 +	if (error)
 +		goto exit5;
 +	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt,
@@ -776,29 +776,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -268,6 +274,10 @@ static long do_sys_truncate(const char _
+@@ -268,6 +274,11 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
 +	/***** TOMOYO Linux start. *****/
 +	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt);
-+	if (!error)
++	if (error)
++		goto put_write_and_out;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -322,6 +332,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -322,6 +333,11 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
 +	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
-+	if (!error)
++	if (error)
++		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -544,6 +558,14 @@ asmlinkage long sys_chroot(const char __
+@@ -544,6 +560,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -813,7 +815,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1156,6 +1178,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1156,6 +1180,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -841,7 +843,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.23 2008/04/22\n");
++	printk(KERN_INFO "Hook version: 2.6.23 2008/04/28\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1088,18 +1090,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -672,6 +675,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -672,6 +675,12 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE))
-+		return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) {
++		error = -EPERM;
++		goto out;
++	}
 +	/***** TOMOYO Linux end. *****/
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -908,6 +915,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -908,6 +917,10 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -1110,7 +1114,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1883,6 +1894,10 @@ asmlinkage long sys_sethostname(char __u
+@@ -1883,6 +1896,10 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1121,7 +1125,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1928,6 +1943,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1928,6 +1945,10 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1238,12 +1242,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1332,6 +1422,10 @@ int do_sysctl(int __user *name, int nlen
+@@ -1332,6 +1422,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
 +		/***** TOMOYO Linux start. *****/
-+		error = try_parse_table(name, nlen, oldval, newval, head->ctl_table);
++		error = try_parse_table(name, nlen, oldval, newval,
++					head->ctl_table);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = parse_table(name, nlen, oldval, oldlenp, 
@@ -1450,19 +1455,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -552,6 +557,11 @@ static inline int __sock_sendmsg(struct 
+@@ -552,6 +557,12 @@ static inline int __sock_sendmsg(struct 
  	err = security_socket_sendmsg(sock, msg, size);
  	if (err)
  		return err;
 +	/***** TOMOYO Linux start. *****/
-+	if (ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
-+					  msg->msg_name, msg->msg_namelen))
++	if (ccs_socket_sendmsg_permission(sock,
++					  (struct sockaddr *) msg->msg_name,
++					  msg->msg_namelen))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
-@@ -1101,6 +1111,12 @@ static int __sock_create(int family, int
+@@ -1101,6 +1112,12 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1475,7 +1481,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1329,6 +1345,13 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1329,6 +1346,13 @@ asmlinkage long sys_bind(int fd, struct 
  			err = security_socket_bind(sock,
  						   (struct sockaddr *)address,
  						   addrlen);
@@ -1489,7 +1495,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (!err)
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
-@@ -1358,6 +1381,10 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1358,6 +1382,10 @@ asmlinkage long sys_listen(int fd, int b
  			backlog = sysctl_somaxconn;
  
  		err = security_socket_listen(sock, backlog);
@@ -1500,7 +1506,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1422,6 +1449,13 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1422,6 +1450,13 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1514,7 +1520,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1486,6 +1520,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1486,6 +1521,12 @@ asmlinkage long sys_connect(int fd, stru
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;

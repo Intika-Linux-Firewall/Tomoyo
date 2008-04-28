@@ -24,7 +24,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/ioctl.c                      |    7 ++
  fs/namei.c                      |  112 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   49 +++++++++++++++++
- fs/open.c                       |   26 +++++++++
+ fs/open.c                       |   27 +++++++++
  fs/proc/Makefile                |    3 +
  fs/proc/proc_misc.c             |    5 +
  include/linux/init_task.h       |    4 +
@@ -36,7 +36,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/ptrace.c                 |    9 +++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
- kernel/sys.c                    |   19 ++++++
+ kernel/sys.c                    |   21 +++++++
  kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++++++++
  kernel/time.c                   |   11 +++
  kernel/time/ntp.c               |    7 ++
@@ -47,7 +47,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 45 files changed, 681 insertions(+), 3 deletions(-)
+ 45 files changed, 684 insertions(+), 3 deletions(-)
 
 --- linux-2.6.22.orig/Makefile
 +++ linux-2.6.22/Makefile
@@ -624,8 +624,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (new_dentry == trap)
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode,
-+			       new_dentry);
++	error = pre_vfs_rename(old_dir->d_inode, old_dentry,
++			       new_dir->d_inode, new_dentry);
 +	if (error)
 +		goto exit5;
 +	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt,
@@ -787,18 +787,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -319,6 +329,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -319,6 +329,11 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
 +	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
-+	if (!error)
++	if (error)
++		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -483,6 +497,14 @@ asmlinkage long sys_chroot(const char __
+@@ -483,6 +498,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -813,7 +814,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1087,6 +1109,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1087,6 +1110,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -841,7 +842,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.22 2008/04/22\n");
++	printk(KERN_INFO "Hook version: 2.6.22 2008/04/28\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1088,18 +1089,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -662,6 +665,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -662,6 +665,12 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE))
-+		return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) {
++		error = -EPERM;
++		goto out;
++	}
 +	/***** TOMOYO Linux end. *****/
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -892,6 +899,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -892,6 +901,10 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -1110,7 +1113,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1868,6 +1879,10 @@ asmlinkage long sys_sethostname(char __u
+@@ -1868,6 +1881,10 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1121,7 +1124,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1913,6 +1928,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1913,6 +1930,10 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
