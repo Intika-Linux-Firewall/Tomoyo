@@ -6,15 +6,15 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/ccs_common.c | 2212 +++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/ccs_common.h |  440 ++++++++
+ security/tomoyo/common.c | 2212 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |  440 +++++++++
  2 files changed, 2652 insertions(+)
 
 --- /dev/null
-+++ mm/security/tomoyo/ccs_common.c
++++ mm/security/tomoyo/common.c
 @@ -0,0 +1,2212 @@
 +/*
-+ * security/tomoyo/ccs_common.c
++ * security/tomoyo/common.c
 + *
 + * Common functions for TOMOYO.
 + *
@@ -36,7 +36,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <linux/mount.h>
 +#include <linux/security.h>
 +#include "realpath.h"
-+#include "ccs_common.h"
++#include "common.h"
 +#include "tomoyo.h"
 +
 +/* Set default specified by the kernel config. */
@@ -2115,7 +2115,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +//#include <linux/proc_fs.h>
 +//#include <linux/module.h>
 +//#include "ccs_proc.h"
-+//#include "ccs_common.h"
++//#include "common.h"
 +
 +/**
 + * ccs_open - open() for /sys/kernel/security/tomoyo/ interface.
@@ -2226,10 +2226,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* security_initcall(ccs_initerface_init); */
 +postcore_initcall(ccs_initerface_init);
 --- /dev/null
-+++ mm/security/tomoyo/ccs_common.h
++++ mm/security/tomoyo/common.h
 @@ -0,0 +1,440 @@
 +/*
-+ * security/tomoyo/ccs_common.h
++ * security/tomoyo/common.h
 + *
 + * Common functions for TOMOYO.
 + *
