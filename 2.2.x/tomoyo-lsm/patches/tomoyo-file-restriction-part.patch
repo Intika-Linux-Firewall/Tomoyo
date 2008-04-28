@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1361 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1361 insertions(+)
+ security/tomoyo/file.c | 1362 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1362 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/file.c
-@@ -0,0 +1,1361 @@
+@@ -0,0 +1,1362 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -195,7 +195,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->filename = saved_filename;
 +	list1_add_tail_mb(&new_entry->list, &globally_readable_list);
 +	error = 0;
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
@@ -252,7 +252,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			goto out;
 +	}
 +	return true;
-+ out:
++out:
 +	return false;
 +}
 +
@@ -324,7 +324,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_member->member_name = saved_member_name;
 +	list1_add_tail_mb(&new_member->list, &group->path_group_member_list);
 +	error = 0;
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
@@ -429,7 +429,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +	}
 +	return true;
-+ out:
++out:
 +	return false;
 +}
 +
@@ -474,7 +474,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->pattern = saved_pattern;
 +	list1_add_tail_mb(&new_entry->list, &pattern_list);
 +	error = 0;
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
@@ -543,7 +543,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			goto out;
 +	}
 +	return true;
-+ out:
++out:
 +	return false;
 +}
 +
@@ -587,7 +587,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->pattern = saved_pattern;
 +	list1_add_tail_mb(&new_entry->list, &no_rewrite_list);
 +	error = 0;
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
@@ -647,7 +647,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			goto out;
 +	}
 +	return true;
-+ out:
++out:
 +	return false;
 +}
 +
@@ -835,7 +835,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	for (type = 0; type < MAX_SINGLE_PATH_OPERATION; type++) {
 +		if (strcmp(data, sp_keyword[type]))
 +			continue;
-+		return update_single_path_acl(type, filename, domain, is_delete);
++		return update_single_path_acl(type, filename,
++					      domain, is_delete);
 +	}
 +	filename2 = strchr(filename, ' ');
 +	if (!filename2)
@@ -847,7 +848,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return update_double_path_acl(type, filename, filename2, domain,
 +					      is_delete);
 +	}
-+ out:
++out:
 +	return -EINVAL;
 +}
 +
@@ -865,7 +866,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				  struct domain_info * const domain,
 +				  const bool is_delete)
 +{
-+	static const u16 rw_mask = (1 << TMY_TYPE_READ_ACL) | (1 << TMY_TYPE_WRITE_ACL);
++	static const u16 rw_mask =
++		(1 << TMY_TYPE_READ_ACL) | (1 << TMY_TYPE_WRITE_ACL);
 +	const struct path_info *saved_filename;
 +	struct acl_info *ptr;
 +	struct single_path_acl_record *acl;
@@ -918,7 +920,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	acl->u.filename = saved_filename;
 +	error = tmy_add_domain_acl(domain, &acl->head);
 +	goto out;
-+ delete:
++delete:
 +	error = -ENOENT;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (tmy_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
@@ -934,7 +936,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = tmy_del_domain_acl(acl->perm ? NULL : ptr);
 +		break;
 +	}
-+ out:
++out:
 +	mutex_unlock(&domain_acl_lock);
 +	return error;
 +}
@@ -1020,7 +1022,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	acl->u2.filename2 = saved_filename2;
 +	error = tmy_add_domain_acl(domain, &acl->head);
 +	goto out;
-+ delete:
++delete:
 +	error = -ENOENT;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (tmy_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
@@ -1033,7 +1035,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = tmy_del_domain_acl(acl->perm ? NULL : ptr);
 +		break;
 +	}
-+ out:
++out:
 +	mutex_unlock(&domain_acl_lock);
 +	return error;
 +}
@@ -1121,7 +1123,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const bool is_enforce = (mode == 3);
 +	if (!mode)
 +		return 0;
-+ next:
++next:
 +	error = check_single_path_acl(operation, filename);
 +	msg = tmy_sp2keyword(operation);
 +	if (!error)
@@ -1136,7 +1138,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				       domain, false);
 +	if (!is_enforce)
 +		error = 0;
-+ ok:
++ok:
 +	/*
 +	 * Since "allow_truncate" doesn't imply "allow_rewrite" permission,
 +	 * we need to check "allow_rewrite" permission if the filename is
@@ -1226,18 +1228,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * opened for append mode or the filename is truncated at open time.
 +	 */
 +	if ((acc_mode & MAY_WRITE) &&
-+	    ((flag & O_TRUNC) || !(flag & O_APPEND))) {
-+		if (is_no_rewrite_file(buf))
-+			error = check_single_path_permission2(TMY_TYPE_REWRITE_ACL,
-+							      buf,
-+							      mode);
++	    ((flag & O_TRUNC) || !(flag & O_APPEND)) &&
++	    (is_no_rewrite_file(buf))) {
++		error = check_single_path_permission2(TMY_TYPE_REWRITE_ACL,
++						      buf, mode);
 +	}
 +	if (!error)
 +		error = check_file_perm2(buf, acc_mode, "open", mode);
 +	if (!error && (flag & O_TRUNC))
-+		error = check_single_path_permission2(TMY_TYPE_TRUNCATE_ACL, buf,
-+						      mode);
-+ out:
++		error = check_single_path_permission2(TMY_TYPE_TRUNCATE_ACL,
++						      buf, mode);
++out:
 +	tmy_free(buf);
 +	if (!is_enforce)
 +		error = 0;
@@ -1275,7 +1276,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +	}
 +	error = check_single_path_permission2(operation, buf, mode);
-+ out:
++out:
 +	tmy_free(buf);
 +	if (!is_enforce)
 +		error = 0;
@@ -1303,7 +1304,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	}
 +	error = check_single_path_permission2(TMY_TYPE_REWRITE_ACL, buf, mode);
-+ out:
++out:
 +	tmy_free(buf);
 +	if (!is_enforce)
 +		error = 0;
@@ -1322,10 +1323,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tmy_check_2path_perm(const u8 operation,
-+				     struct dentry *dentry1,
-+				     struct vfsmount *mnt1,
-+				     struct dentry *dentry2,
-+				     struct vfsmount *mnt2)
++			 struct dentry *dentry1,
++			 struct vfsmount *mnt1,
++			 struct dentry *dentry2,
++			 struct vfsmount *mnt2)
 +{
 +	int error = -ENOMEM;
 +	struct path_info *buf1, *buf2;
@@ -1366,7 +1367,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				       get_file_pattern(buf1)->name,
 +				       get_file_pattern(buf2)->name,
 +				       domain, false);
-+ out:
++out:
 +	tmy_free(buf1);
 +	tmy_free(buf2);
 +	if (!is_enforce)

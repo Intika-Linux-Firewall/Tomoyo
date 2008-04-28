@@ -3,13 +3,13 @@ Subject: LSM adapter functions.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/tomoyo.c |  283 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  284 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  103 +++++++++++++++++
- 2 files changed, 386 insertions(+)
+ 2 files changed, 387 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo.c
-@@ -0,0 +1,283 @@
+@@ -0,0 +1,284 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -25,7 +25,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include <linux/init.h>
 +#include <linux/slab.h>
 +#include <linux/poll.h>
-+#include <asm/uaccess.h>
++#include <linux/uaccess.h>
 +#include <stdarg.h>
 +#include <linux/delay.h>
 +#include <linux/security.h>
@@ -76,7 +76,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto out;
 +	TMY_SECURITY->domain = next_domain;
 +	TMY_SECURITY->flags |= TMY_CHECK_READ_FOR_OPEN_EXEC;
-+ out:
++out:
 +	return retval;
 +}
 +
@@ -135,7 +135,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if ((mask == MAY_EXEC) || (mask == 0))
 +		return 0;
 +
-+	return tmy_check_open_permission(nd->path.dentry, nd->path.mnt, O_RDONLY + 1);
++	return tmy_check_open_permission(nd->path.dentry, nd->path.mnt,
++					 O_RDONLY + 1);
 +}
 +
 +static int tmy_path_open(struct dentry *dentry, struct vfsmount *mnt, int flags)

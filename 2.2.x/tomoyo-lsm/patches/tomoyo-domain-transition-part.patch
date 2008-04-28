@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  858 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 858 insertions(+)
+ security/tomoyo/domain.c |  859 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 859 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/domain.c
-@@ -0,0 +1,858 @@
+@@ -0,0 +1,859 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -210,7 +210,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->is_last_name = is_last_name;
 +	list1_add_tail_mb(&new_entry->list, &domain_initializer_list);
 +	error = 0;
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
@@ -242,10 +242,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!tmy_io_printf(head,
 +				   "%s" KEYWORD_INITIALIZE_DOMAIN "%s%s%s\n",
 +				   no, ptr->program->name, from, domain))
-+				goto out;
++			goto out;
 +	}
 +	return true;
-+ out:
++out:
 +	return false;
 +}
 +
@@ -369,7 +369,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->is_last_name = is_last_name;
 +	list1_add_tail_mb(&new_entry->list, &domain_keeper_list);
 +	error = 0;
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
@@ -421,10 +421,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!tmy_io_printf(head,
 +				   "%s" KEYWORD_KEEP_DOMAIN "%s%s%s\n", no,
 +				   program, from, ptr->domainname->name))
-+				goto out;
++			goto out;
 +	}
 +	return true;
-+ out:
++out:
 +	return false;
 +}
 +
@@ -512,7 +512,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->aliased_name = saved_aliased_name;
 +	list1_add_tail_mb(&new_entry->list, &alias_list);
 +	error = 0;
-+ out:
++out:
 +	mutex_unlock(&lock);
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
@@ -539,7 +539,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			goto out;
 +	}
 +	return true;
-+ out:
++out:
 +	return false;
 +}
 +
@@ -702,7 +702,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
 +		for_each_process(p) {
-+			if (((struct tmy_security *) (p->security))->domain != domain)
++			if (((struct tmy_security *) (p->security))->domain
++			    != domain)
 +				continue;
 +			flag = true;
 +			break;
@@ -737,7 +738,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		domain->profile = profile;
 +		list1_add_tail_mb(&domain->list, &domain_list);
 +	}
-+ out:
++out:
 +	mutex_unlock(&new_domain_assign_lock);
 +	return domain;
 +}
@@ -858,7 +859,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto done;
 +	domain = tmy_find_or_assign_new_domain(new_domain_name,
 +					       old_domain->profile);
-+ done:
++done:
 +	if (!domain) {
 +		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
 +		       new_domain_name);
@@ -869,7 +870,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	} else {
 +		retval = 0;
 +	}
-+ out:
++out:
 +	tmy_free(real_program_name);
 +	tmy_free(symlink_program_name);
 +	*next_domain = domain ? domain : old_domain;
