@@ -58,7 +58,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *program;
 +	bool is_deleted;
 +	bool is_not;       /* True if this entry is "no_initialize_domain".  */
-+	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
++	bool is_last_name; /* True if the domainname is tmy_get_last_name(). */
 +};
 +
 +/* Structure for "keep_domain" and "no_keep_domain" keyword. */
@@ -68,7 +68,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *program;       /* This may be NULL */
 +	bool is_deleted;
 +	bool is_not;       /* True if this entry is "no_keep_domain".        */
-+	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
++	bool is_last_name; /* True if the domainname is tmy_get_last_name(). */
 +};
 +
 +/* Structure for "alias" keyword. */
@@ -80,7 +80,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +};
 +
 +/**
-+ * ccs_set_domain_flag - Set or clear domain's attribute flags.
++ * tmy_set_domain_flag - Set or clear domain's attribute flags.
 + *
 + * @domain:    Pointer to "struct domain_info".
 + * @is_delete: True if it is a delete request.
@@ -88,7 +88,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns nothing.
 + */
-+void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
++void tmy_set_domain_flag(struct domain_info *domain, const bool is_delete,
 +			 const u8 flags)
 +{
 +	mutex_lock(&new_domain_assign_lock);
@@ -100,13 +100,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_get_last_name - Get last component of a domainname.
++ * tmy_get_last_name - Get last component of a domainname.
 + *
 + * @domain: Pointer to "struct domain_info".
 + *
 + * Returns the last component of the domainname.
 + */
-+const char *ccs_get_last_name(const struct domain_info *domain)
++const char *tmy_get_last_name(const struct domain_info *domain)
 +{
 +	const char *cp0 = domain->domainname->name, *cp1 = strrchr(cp0, ' ');
 +	if (cp1)
@@ -115,35 +115,35 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_add_domain_acl - Add the given ACL to the given domain.
++ * tmy_add_domain_acl - Add the given ACL to the given domain.
 + *
 + * @domain: Pointer to "struct domain_info". May be NULL.
 + * @acl:    Pointer to "struct acl_info".
 + *
 + * Returns 0.
 + */
-+int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
++int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
 +{
 +	if (domain)
 +		list1_add_tail_mb(&acl->list, &domain->acl_info_list);
 +	else
 +		acl->type &= ~ACL_DELETED;
-+	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
++	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
 +	return 0;
 +}
 +
 +/**
-+ * ccs_del_domain_acl - Delete the given ACL from the domain.
++ * tmy_del_domain_acl - Delete the given ACL from the domain.
 + *
 + * @acl: Pointer to "struct acl_info". May be NULL.
 + *
 + * Returns 0.
 + */
-+int ccs_del_domain_acl(struct acl_info *acl)
++int tmy_del_domain_acl(struct acl_info *acl)
 +{
 +	if (acl)
 +		acl->type |= ACL_DELETED;
-+	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
++	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
 +	return 0;
 +}
 +
@@ -172,19 +172,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *saved_domainname = NULL;
 +	int error = -ENOMEM;
 +	bool is_last_name = false;
-+	if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
++	if (!tmy_is_correct_path(program, 1, -1, -1, __func__))
 +		return -EINVAL; /* No patterns allowed. */
 +	if (domainname) {
-+		if (!ccs_is_domain_def(domainname) &&
-+		    ccs_is_correct_path(domainname, 1, -1, -1, __func__))
++		if (!tmy_is_domain_def(domainname) &&
++		    tmy_is_correct_path(domainname, 1, -1, -1, __func__))
 +			is_last_name = true;
-+		else if (!ccs_is_correct_domain(domainname, __func__))
++		else if (!tmy_is_correct_domain(domainname, __func__))
 +			return -EINVAL;
-+		saved_domainname = ccs_save_name(domainname);
++		saved_domainname = tmy_save_name(domainname);
 +		if (!saved_domainname)
 +			return -ENOMEM;
 +	}
-+	saved_program = ccs_save_name(program);
++	saved_program = tmy_save_name(program);
 +	if (!saved_program)
 +		return -ENOMEM;
 +	mutex_lock(&lock);
@@ -201,7 +201,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = -ENOENT;
 +		goto out;
 +	}
-+	new_entry = ccs_alloc_element(sizeof(*new_entry));
++	new_entry = tmy_alloc_element(sizeof(*new_entry));
 +	if (!new_entry)
 +		goto out;
 +	new_entry->domainname = saved_domainname;
@@ -212,18 +212,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 + out:
 +	mutex_unlock(&lock);
-+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
++	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
 +
 +/**
-+ * ccs_read_domain_initializer_policy - Read "struct domain_initializer_entry" list.
++ * tmy_read_domain_initializer_policy - Read "struct domain_initializer_entry" list.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns true on success, false otherwise.
 + */
-+bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
++bool tmy_read_domain_initializer_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
 +	list1_for_each_cookie(pos, head->read_var2, &domain_initializer_list) {
@@ -239,7 +239,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			from = " from ";
 +			domain = ptr->domainname->name;
 +		}
-+		if (!ccs_io_printf(head,
++		if (!tmy_io_printf(head,
 +				   "%s" KEYWORD_INITIALIZE_DOMAIN "%s%s%s\n",
 +				   no, ptr->program->name, from, domain))
 +				goto out;
@@ -250,7 +250,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_write_domain_initializer_policy - Write "struct domain_initializer_entry" list.
++ * tmy_write_domain_initializer_policy - Write "struct domain_initializer_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_not:    True if it is "no_initialize_domain" entry.
@@ -258,7 +258,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+int ccs_write_domain_initializer_policy(char *data, const bool is_not,
++int tmy_write_domain_initializer_policy(char *data, const bool is_not,
 +					const bool is_delete)
 +{
 +	char *cp = strstr(data, " from ");
@@ -294,11 +294,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				if (ptr->domainname != domainname)
 +					continue;
 +			} else {
-+				if (ccs_pathcmp(ptr->domainname, last_name))
++				if (tmy_pathcmp(ptr->domainname, last_name))
 +					continue;
 +			}
 +		}
-+		if (ccs_pathcmp(ptr->program, program))
++		if (tmy_pathcmp(ptr->program, program))
 +			continue;
 +		if (ptr->is_not)
 +			return false;
@@ -331,19 +331,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_MUTEX(lock);
 +	int error = -ENOMEM;
 +	bool is_last_name = false;
-+	if (!ccs_is_domain_def(domainname) &&
-+	    ccs_is_correct_path(domainname, 1, -1, -1, __func__))
++	if (!tmy_is_domain_def(domainname) &&
++	    tmy_is_correct_path(domainname, 1, -1, -1, __func__))
 +		is_last_name = true;
-+	else if (!ccs_is_correct_domain(domainname, __func__))
++	else if (!tmy_is_correct_domain(domainname, __func__))
 +		return -EINVAL;
 +	if (program) {
-+		if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
++		if (!tmy_is_correct_path(program, 1, -1, -1, __func__))
 +			return -EINVAL;
-+		saved_program = ccs_save_name(program);
++		saved_program = tmy_save_name(program);
 +		if (!saved_program)
 +			return -ENOMEM;
 +	}
-+	saved_domainname = ccs_save_name(domainname);
++	saved_domainname = tmy_save_name(domainname);
 +	if (!saved_domainname)
 +		return -ENOMEM;
 +	mutex_lock(&lock);
@@ -360,7 +360,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = -ENOENT;
 +		goto out;
 +	}
-+	new_entry = ccs_alloc_element(sizeof(*new_entry));
++	new_entry = tmy_alloc_element(sizeof(*new_entry));
 +	if (!new_entry)
 +		goto out;
 +	new_entry->domainname = saved_domainname;
@@ -371,19 +371,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 + out:
 +	mutex_unlock(&lock);
-+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
++	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
 +
 +/**
-+ * ccs_write_domain_keeper_policy - Write "struct domain_keeper_entry" list.
++ * tmy_write_domain_keeper_policy - Write "struct domain_keeper_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_not:    True if it is "no_keep_domain" entry.
 + * @is_delete: True if it is a delete request.
 + *
 + */
-+int ccs_write_domain_keeper_policy(char *data, const bool is_not,
++int tmy_write_domain_keeper_policy(char *data, const bool is_not,
 +				   const bool is_delete)
 +{
 +	char *cp = strstr(data, " from ");
@@ -396,13 +396,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_read_domain_keeper_policy - Read "struct domain_keeper_entry" list.
++ * tmy_read_domain_keeper_policy - Read "struct domain_keeper_entry" list.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns true on success, false otherwise.
 + */
-+bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
++bool tmy_read_domain_keeper_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
 +	list1_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
@@ -418,7 +418,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			from = " from ";
 +			program = ptr->program->name;
 +		}
-+		if (!ccs_io_printf(head,
++		if (!tmy_io_printf(head,
 +				   "%s" KEYWORD_KEEP_DOMAIN "%s%s%s\n", no,
 +				   program, from, ptr->domainname->name))
 +				goto out;
@@ -451,10 +451,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			if (ptr->domainname != domainname)
 +				continue;
 +		} else {
-+			if (ccs_pathcmp(ptr->domainname, last_name))
++			if (tmy_pathcmp(ptr->domainname, last_name))
 +				continue;
 +		}
-+		if (ptr->program && ccs_pathcmp(ptr->program, program))
++		if (ptr->program && tmy_pathcmp(ptr->program, program))
 +			continue;
 +		if (ptr->is_not)
 +			return false;
@@ -485,11 +485,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *saved_original_name;
 +	const struct path_info *saved_aliased_name;
 +	int error = -ENOMEM;
-+	if (!ccs_is_correct_path(original_name, 1, -1, -1, __func__) ||
-+	    !ccs_is_correct_path(aliased_name, 1, -1, -1, __func__))
++	if (!tmy_is_correct_path(original_name, 1, -1, -1, __func__) ||
++	    !tmy_is_correct_path(aliased_name, 1, -1, -1, __func__))
 +		return -EINVAL; /* No patterns allowed. */
-+	saved_original_name = ccs_save_name(original_name);
-+	saved_aliased_name = ccs_save_name(aliased_name);
++	saved_original_name = tmy_save_name(original_name);
++	saved_aliased_name = tmy_save_name(aliased_name);
 +	if (!saved_original_name || !saved_aliased_name)
 +		return -ENOMEM;
 +	mutex_lock(&lock);
@@ -505,7 +505,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = -ENOENT;
 +		goto out;
 +	}
-+	new_entry = ccs_alloc_element(sizeof(*new_entry));
++	new_entry = tmy_alloc_element(sizeof(*new_entry));
 +	if (!new_entry)
 +		goto out;
 +	new_entry->original_name = saved_original_name;
@@ -514,18 +514,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 + out:
 +	mutex_unlock(&lock);
-+	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
++	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
 +
 +/**
-+ * ccs_read_alias_policy - Read "struct alias_entry" list.
++ * tmy_read_alias_policy - Read "struct alias_entry" list.
 + *
-+ * @head: Pointer to "struct ccs_io_buffer".
++ * @head: Pointer to "struct tmy_io_buffer".
 + *
 + * Returns true on success, false otherwise.
 + */
-+bool ccs_read_alias_policy(struct ccs_io_buffer *head)
++bool tmy_read_alias_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
 +	list1_for_each_cookie(pos, head->read_var2, &alias_list) {
@@ -533,7 +533,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		ptr = list1_entry(pos, struct alias_entry, list);
 +		if (ptr->is_deleted)
 +			continue;
-+		if (!ccs_io_printf(head, KEYWORD_ALIAS "%s %s\n",
++		if (!tmy_io_printf(head, KEYWORD_ALIAS "%s %s\n",
 +				   ptr->original_name->name,
 +				   ptr->aliased_name->name))
 +			goto out;
@@ -544,14 +544,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_write_alias_policy - Write "struct alias_entry" list.
++ * tmy_write_alias_policy - Write "struct alias_entry" list.
 + *
 + * @data:      String to parse.
 + * @is_delete: True if it is a delete request.
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+int ccs_write_alias_policy(char *data, const bool is_delete)
++int tmy_write_alias_policy(char *data, const bool is_delete)
 +{
 +	char *cp = strchr(data, ' ');
 +	if (!cp)
@@ -565,23 +565,23 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* #define DEBUG_DOMAIN_UNDELETE */
 +
 +/**
-+ * ccs_delete_domain - Delete a domain.
++ * tmy_delete_domain - Delete a domain.
 + *
 + * @domainname: The name of domain.
 + *
 + * Returns 0.
 + */
-+int ccs_delete_domain(char *domainname)
++int tmy_delete_domain(char *domainname)
 +{
 +	struct domain_info *domain;
 +	struct path_info name;
 +	name.name = domainname;
-+	ccs_fill_path_info(&name);
++	tmy_fill_path_info(&name);
 +	mutex_lock(&new_domain_assign_lock);
 +#ifdef DEBUG_DOMAIN_UNDELETE
-+	printk(KERN_DEBUG "ccs_delete_domain %s\n", domainname);
++	printk(KERN_DEBUG "tmy_delete_domain %s\n", domainname);
 +	list1_for_each_entry(domain, &domain_list, list) {
-+		if (ccs_pathcmp(domain->domainname, &name))
++		if (tmy_pathcmp(domain->domainname, &name))
 +			continue;
 +		printk(KERN_DEBUG "List: %p %u\n", domain, domain->is_deleted);
 +	}
@@ -593,12 +593,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (domain == &KERNEL_DOMAIN)
 +			continue;
 +		if (domain->is_deleted ||
-+		    ccs_pathcmp(domain->domainname, &name))
++		    tmy_pathcmp(domain->domainname, &name))
 +			continue;
 +		/* Mark already deleted domains as non undeletable. */
 +		list1_for_each_entry(domain2, &domain_list, list) {
 +			if (!domain2->is_deleted ||
-+			    ccs_pathcmp(domain2->domainname, &name))
++			    tmy_pathcmp(domain2->domainname, &name))
 +				continue;
 +#ifdef DEBUG_DOMAIN_UNDELETE
 +			if (domain2->is_deleted != 255)
@@ -620,30 +620,30 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_undelete_domain - Undelete a domain.
++ * tmy_undelete_domain - Undelete a domain.
 + *
 + * @domainname: The name of domain.
 + *
 + * Returns pointer to "struct domain_info" on success, NULL otherwise.
 + */
-+struct domain_info *ccs_undelete_domain(const char *domainname)
++struct domain_info *tmy_undelete_domain(const char *domainname)
 +{
 +	struct domain_info *domain;
 +	struct domain_info *candidate_domain = NULL;
 +	struct path_info name;
 +	name.name = domainname;
-+	ccs_fill_path_info(&name);
++	tmy_fill_path_info(&name);
 +	mutex_lock(&new_domain_assign_lock);
 +#ifdef DEBUG_DOMAIN_UNDELETE
-+	printk(KERN_DEBUG "ccs_undelete_domain %s\n", domainname);
++	printk(KERN_DEBUG "tmy_undelete_domain %s\n", domainname);
 +	list1_for_each_entry(domain, &domain_list, list) {
-+		if (ccs_pathcmp(domain->domainname, &name))
++		if (tmy_pathcmp(domain->domainname, &name))
 +			continue;
 +		printk(KERN_DEBUG "List: %p %u\n", domain, domain->is_deleted);
 +	}
 +#endif
 +	list1_for_each_entry(domain, &domain_list, list) {
-+		if (ccs_pathcmp(&name, domain->domainname))
++		if (tmy_pathcmp(&name, domain->domainname))
 +			continue;
 +		if (!domain->is_deleted) {
 +			/* This domain is active. I can't undelete. */
@@ -669,25 +669,25 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_find_or_assign_new_domain - Create a domain.
++ * tmy_find_or_assign_new_domain - Create a domain.
 + *
 + * @domainname: The name of domain.
 + * @profile:    Profile number to assign if the domain was newly created.
 + *
 + * Returns pointer to "struct domain_info" on success, NULL otherwise.
 + */
-+struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
++struct domain_info *tmy_find_or_assign_new_domain(const char *domainname,
 +						  const u8 profile)
 +{
 +	struct domain_info *domain = NULL;
 +	const struct path_info *saved_domainname;
 +	mutex_lock(&new_domain_assign_lock);
-+	domain = ccs_find_domain(domainname);
++	domain = tmy_find_domain(domainname);
 +	if (domain)
 +		goto out;
-+	if (!ccs_is_correct_domain(domainname, __func__))
++	if (!tmy_is_correct_domain(domainname, __func__))
 +		goto out;
-+	saved_domainname = ccs_save_name(domainname);
++	saved_domainname = tmy_save_name(domainname);
 +	if (!saved_domainname)
 +		goto out;
 +	/* Can I reuse memory of deleted domain? */
@@ -702,7 +702,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
 +		for_each_process(p) {
-+			if (((struct ccs_security *) (p->security))->domain != domain)
++			if (((struct tmy_security *) (p->security))->domain != domain)
 +				continue;
 +			flag = true;
 +			break;
@@ -719,7 +719,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			ptr->type |= ACL_DELETED;
 +		}
 +		/*
-+		 * Don't use ccs_set_domain_flag() because
++		 * Don't use tmy_set_domain_flag() because
 +		 * new_domain_assign_lock is held.
 +		 */
 +		domain->flags = 0;
@@ -730,7 +730,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	}
 +	/* No memory reusable. Create using new memory. */
-+	domain = ccs_alloc_element(sizeof(*domain));
++	domain = tmy_alloc_element(sizeof(*domain));
 +	if (domain) {
 +		INIT_LIST1_HEAD(&domain->acl_info_list);
 +		domain->domainname = saved_domainname;
@@ -743,29 +743,29 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * ccs_find_next_domain - Find a domain.
++ * tmy_find_next_domain - Find a domain.
 + *
 + * @bprm:           Pointer to "struct linux_binprm".
 + * @next_domain:    Pointer to pointer to "struct domain_info".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+int ccs_find_next_domain(struct linux_binprm *bprm,
++int tmy_find_next_domain(struct linux_binprm *bprm,
 +			 struct domain_info **next_domain)
 +{
 +	/*
 +	 * This function assumes that the size of buffer returned by
-+	 * ccs_realpath() = CCS_MAX_PATHNAME_LEN.
++	 * tmy_realpath() = TMY_MAX_PATHNAME_LEN.
 +	 */
-+	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(*tmp));
-+	struct domain_info *old_domain = CCS_SECURITY->domain;
++	struct tmy_page_buffer *tmp = tmy_alloc(sizeof(*tmp));
++	struct domain_info *old_domain = TMY_SECURITY->domain;
 +	struct domain_info *domain = NULL;
 +	const char *old_domain_name = old_domain->domainname->name;
 +	const char *original_name = bprm->filename;
 +	char *new_domain_name = NULL;
 +	char *real_program_name = NULL;
 +	char *symlink_program_name = NULL;
-+	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	int retval = -ENOMEM;
 +	struct path_info r; /* real name */
@@ -790,49 +790,49 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +	}
 +
-+	/* Get ccs_realpath of program. */
-+	retval = -ENOENT; /* I hope ccs_realpath() won't fail with -ENOMEM. */
-+	real_program_name = ccs_realpath(original_name);
++	/* Get tmy_realpath of program. */
++	retval = -ENOENT; /* I hope tmy_realpath() won't fail with -ENOMEM. */
++	real_program_name = tmy_realpath(original_name);
 +	if (!real_program_name)
 +		goto out;
-+	/* Get ccs_realpath of symbolic link. */
-+	symlink_program_name = ccs_realpath_nofollow(original_name);
++	/* Get tmy_realpath of symbolic link. */
++	symlink_program_name = tmy_realpath_nofollow(original_name);
 +	if (!symlink_program_name)
 +		goto out;
 +
 +	r.name = real_program_name;
-+	ccs_fill_path_info(&r);
++	tmy_fill_path_info(&r);
 +	s.name = symlink_program_name;
-+	ccs_fill_path_info(&s);
-+	l.name = ccs_get_last_name(old_domain);
-+	ccs_fill_path_info(&l);
++	tmy_fill_path_info(&s);
++	l.name = tmy_get_last_name(old_domain);
++	tmy_fill_path_info(&l);
 +
 +	/* Check 'alias' directive. */
-+	if (ccs_pathcmp(&r, &s)) {
++	if (tmy_pathcmp(&r, &s)) {
 +		struct alias_entry *ptr;
 +		/* Is this program allowed to be called via symbolic links? */
 +		list1_for_each_entry(ptr, &alias_list, list) {
 +			if (ptr->is_deleted ||
-+			    ccs_pathcmp(&r, ptr->original_name) ||
-+			    ccs_pathcmp(&s, ptr->aliased_name))
++			    tmy_pathcmp(&r, ptr->original_name) ||
++			    tmy_pathcmp(&s, ptr->aliased_name))
 +				continue;
-+			memset(real_program_name, 0, CCS_MAX_PATHNAME_LEN);
++			memset(real_program_name, 0, TMY_MAX_PATHNAME_LEN);
 +			strncpy(real_program_name, ptr->aliased_name->name,
-+				CCS_MAX_PATHNAME_LEN - 1);
-+			ccs_fill_path_info(&r);
++				TMY_MAX_PATHNAME_LEN - 1);
++			tmy_fill_path_info(&r);
 +			break;
 +		}
 +	}
 +
 +	/* Check execute permission. */
-+	retval = ccs_check_exec_perm(&r, bprm, tmp);
++	retval = tmy_check_exec_perm(&r, bprm, tmp);
 +	if (retval < 0)
 +		goto out;
 +
 +	new_domain_name = tmp->buffer;
 +	if (is_domain_initializer(old_domain->domainname, &r, &l)) {
 +		/* Transit to the child of KERNEL_DOMAIN domain. */
-+		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
++		snprintf(new_domain_name, TMY_MAX_PATHNAME_LEN + 1,
 +			 ROOT_NAME " " "%s", real_program_name);
 +	} else if (old_domain == &KERNEL_DOMAIN && !sbin_init_started) {
 +		/*
@@ -846,17 +846,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		domain = old_domain;
 +	} else {
 +		/* Normal domain transition. */
-+		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
++		snprintf(new_domain_name, TMY_MAX_PATHNAME_LEN + 1,
 +			 "%s %s", old_domain_name, real_program_name);
 +	}
-+	if (domain || strlen(new_domain_name) >= CCS_MAX_PATHNAME_LEN)
++	if (domain || strlen(new_domain_name) >= TMY_MAX_PATHNAME_LEN)
 +		goto done;
-+	domain = ccs_find_domain(new_domain_name);
++	domain = tmy_find_domain(new_domain_name);
 +	if (domain)
 +		goto done;
 +	if (is_enforce)
 +		goto done;
-+	domain = ccs_find_or_assign_new_domain(new_domain_name,
++	domain = tmy_find_or_assign_new_domain(new_domain_name,
 +					       old_domain->profile);
 + done:
 +	if (!domain) {
@@ -870,9 +870,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		retval = 0;
 +	}
 + out:
-+	ccs_free(real_program_name);
-+	ccs_free(symlink_program_name);
++	tmy_free(real_program_name);
++	tmy_free(symlink_program_name);
 +	*next_domain = domain ? domain : old_domain;
-+	ccs_free(tmp);
++	tmy_free(tmp);
 +	return retval;
 +}
