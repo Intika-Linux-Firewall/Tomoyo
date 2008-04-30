@@ -4,9 +4,9 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  284 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  286 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  102 ++++++++++++++++
- 2 files changed, 386 insertions(+)
+ 2 files changed, 388 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo.h
@@ -115,7 +115,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo.c
-@@ -0,0 +1,284 @@
+@@ -0,0 +1,286 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -222,6 +222,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	if (!nd || !nd->path.dentry || !nd->path.mnt)
 +		return 0;
++
 +	/*
 +	 * If called by other than do_execve(), I check for read permission of
 +	 * interpreter.
@@ -230,17 +231,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * TOMOYO Linux checks for program's execute permission and
 +	 * interpreter's read permission.
 +	 */
-+	if (mask == (MAY_READ | MAY_EXEC))
-+		;
-+	else if ((mask == MAY_EXEC) &&
-+		 (TMY_SECURITY->flags & TMY_CHECK_READ_FOR_OPEN_EXEC))
-+		;
-+	else
++	if ((mask != MAY_EXEC) ||
++	    !(TMY_SECURITY->flags & TMY_CHECK_READ_FOR_OPEN_EXEC))
 +		return 0;
 +
-+	if ((mask == MAY_EXEC) || (mask == 0))
-+		return 0;
-+
++	/* called from open_exec() other than do_execve() */;
 +	return tmy_check_open_permission(nd->path.dentry, nd->path.mnt,
 +					 O_RDONLY + 1);
 +}
@@ -350,6 +345,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				    new_dentry, new_dir->mnt);
 +}
 +
++static int tmy_path_uselib(struct nameidata *nd)
++{
++	return tmy_check_open_permission(nd->path.dentry, nd->path.mnt,
++					 O_RDONLY + 1);
++}
++
 +static int tmy_file_fcntl(struct file *file, unsigned int cmd,
 +			  unsigned long arg)
 +{
@@ -377,6 +378,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.path_link                 = tmy_path_link,
 +	.path_rename               = tmy_path_rename,
 +	.path_open                 = tmy_path_open,
++	.path_uselib               = tmy_path_uselib,
 +	.file_fcntl                = tmy_file_fcntl,
 +};
 +
