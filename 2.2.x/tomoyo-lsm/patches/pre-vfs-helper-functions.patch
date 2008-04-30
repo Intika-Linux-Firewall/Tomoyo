@@ -7,14 +7,14 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- fs/namei.c               |  132 ++++++++++++++++++++++++++++++++++---
+ fs/namei.c               |  132 ++++++++++++++++++++++++++++++++--
  fs/open.c                |    7 +
  include/linux/fs.h       |    8 ++
- include/linux/security.h |  167 +++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/security.h |  178 +++++++++++++++++++++++++++++++++++++++++++++++
  net/unix/af_unix.c       |    4 +
- security/dummy.c         |   67 ++++++++++++++++++
- security/security.c      |   58 ++++++++++++++++
- 7 files changed, 433 insertions(+), 10 deletions(-)
+ security/dummy.c         |   73 +++++++++++++++++++
+ security/security.c      |   63 ++++++++++++++++
+ 7 files changed, 455 insertions(+), 10 deletions(-)
 
 --- mm.orig/fs/namei.c
 +++ mm/fs/namei.c
@@ -506,7 +506,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @inode_setattr:
   *	Check permission before setting file attributes.  Note that the kernel
   *	call to notify_change is performed from several locations, whenever
-@@ -417,6 +480,13 @@ static inline void security_free_mnt_opt
+@@ -417,6 +480,17 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure for the file.
   *	@attr is the iattr structure containing the new file attributes.
   *	Return 0 if permission is granted.
@@ -517,10 +517,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *	@time_attrs is the flags passed to do_truncate().
 + *	@filp is the file structure (may be NULL).
 + *	Return 0 if permission is granted.
++ * @path_uselib:
++ *      Check permission before using a library.
++ *      @nd contains the nameidata.
++ *      Return 0 if permission is granted.
   * @inode_getattr:
   *	Check permission before obtaining file attributes.
   *	@mnt is the vfsmount where the dentry was looked up
-@@ -1351,6 +1421,24 @@ struct security_operations {
+@@ -1351,6 +1425,25 @@ struct security_operations {
  				   struct super_block *newsb);
  	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
  
@@ -533,6 +537,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			   unsigned int dev);
 +	int (*path_truncate) (struct path *path, loff_t length,
 +			      unsigned int time_attrs, struct file *filp);
++	int (*path_uselib) (struct nameidata *nd);
 +	int (*path_symlink) (struct path *dir, struct dentry *dentry,
 +			     const char *old_name);
 +	int (*path_link) (struct path *old_path, struct path *new_dir,
@@ -545,7 +550,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	int (*inode_alloc_security) (struct inode *inode);	
  	void (*inode_free_security) (struct inode *inode);
  	int (*inode_init_security) (struct inode *inode, struct inode *dir,
-@@ -1625,6 +1713,23 @@ void security_sb_clone_mnt_opts(const st
+@@ -1625,6 +1718,24 @@ void security_sb_clone_mnt_opts(const st
  				struct super_block *newsb);
  int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts);
  
@@ -558,6 +563,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			unsigned int dev);
 +int security_path_truncate(struct path *path, loff_t length,
 +			   unsigned int time_attrs, struct file *filp);
++int security_path_uselib(struct nameidata *nd);
 +int security_path_symlink(struct path *dir, struct dentry *dentry,
 +			  const char *old_name);
 +int security_path_link(struct path *old_path, struct path *new_dir,
@@ -569,7 +575,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  int security_inode_alloc(struct inode *inode);
  void security_inode_free(struct inode *inode);
  int security_inode_init_security(struct inode *inode, struct inode *dir,
-@@ -1950,6 +2055,68 @@ static inline int security_sb_parse_opts
+@@ -1950,6 +2061,73 @@ static inline int security_sb_parse_opts
  	return 0;
  }
  
@@ -603,6 +609,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static inline int security_path_truncate(struct path *path, loff_t length,
 +					 unsigned int time_attrs,
 +					 struct file *filp)
++{
++	return 0;
++}
++
++static inline int security_path_uselib(struct nameidata *nd)
 +{
 +	return 0;
 +}
@@ -654,7 +665,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  			goto out_mknod_dput;
 --- mm.orig/security/dummy.c
 +++ mm/security/dummy.c
-@@ -270,6 +270,63 @@ static int dummy_sb_parse_opts_str(char 
+@@ -270,6 +270,68 @@ static int dummy_sb_parse_opts_str(char 
  	return 0;
  }
  
@@ -715,10 +726,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
++static int dummy_path_uselib(struct nameidata *nd)
++{
++	return 0;
++}
++
  static int dummy_inode_alloc_security (struct inode *inode)
  {
  	return 0;
-@@ -1079,6 +1136,16 @@ void security_fixup_ops (struct security
+@@ -1079,6 +1141,17 @@ void security_fixup_ops (struct security
  	set_to_dummy_if_null(ops, sb_set_mnt_opts);
  	set_to_dummy_if_null(ops, sb_clone_mnt_opts);
  	set_to_dummy_if_null(ops, sb_parse_opts_str);
@@ -732,12 +748,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	set_to_dummy_if_null(ops, path_rename);
 +	set_to_dummy_if_null(ops, path_open);
 +	set_to_dummy_if_null(ops, path_truncate);
++	set_to_dummy_if_null(ops, path_uselib);
  	set_to_dummy_if_null(ops, inode_alloc_security);
  	set_to_dummy_if_null(ops, inode_free_security);
  	set_to_dummy_if_null(ops, inode_init_security);
 --- mm.orig/security/security.c
 +++ mm/security/security.c
-@@ -388,6 +388,64 @@ int security_inode_init_security(struct 
+@@ -388,6 +388,69 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
  
@@ -797,6 +814,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			   unsigned int time_attrs, struct file *filp)
 +{
 +	return security_ops->path_truncate(path, length, time_attrs, filp);
++}
++
++int security_path_uselib(struct nameidata *nd)
++{
++	return security_ops->path_uselib(nd);
 +}
 +
  int security_inode_create(struct inode *dir, struct dentry *dentry, int mode)
