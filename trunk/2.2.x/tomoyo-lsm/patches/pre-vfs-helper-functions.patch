@@ -7,17 +7,37 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- fs/namei.c               |  132 ++++++++++++++++++++++++++++++++--
+ fs/exec.c                |   10 ++
+ fs/namei.c               |  129 +++++++++++++++++++++++++++++++---
  fs/open.c                |    7 +
  include/linux/fs.h       |    8 ++
  include/linux/security.h |  178 +++++++++++++++++++++++++++++++++++++++++++++++
  net/unix/af_unix.c       |    4 +
  security/dummy.c         |   73 +++++++++++++++++++
  security/security.c      |   63 ++++++++++++++++
- 7 files changed, 455 insertions(+), 10 deletions(-)
+ 8 files changed, 462 insertions(+), 10 deletions(-)
 
---- mm.orig/fs/namei.c
-+++ mm/fs/namei.c
+--- linux-2.6.25-mm1.orig/fs/exec.c
++++ linux-2.6.25-mm1/fs/exec.c
+@@ -119,6 +119,16 @@ asmlinkage long sys_uselib(const char __
+ 	if (error)
+ 		goto exit;
+ 
++	/*
++	 * sys_access() with both R_OK and X_OK flags makes LSM's
++	 * security_inode_permission() unable to tell whether the request is
++	 * "just checking for permissions" or "actually loading a shared
++	 * library".
++	 */
++	error = security_path_uselib(&nd);
++	if (error)
++		goto exit;
++
+ 	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
+ 	error = PTR_ERR(file);
+ 	if (IS_ERR(file))
+--- linux-2.6.25-mm1.orig/fs/namei.c
++++ linux-2.6.25-mm1/fs/namei.c
 @@ -1595,6 +1595,9 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
@@ -36,7 +56,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * can't know that the file is going to be truncated when
 +	 * open(filename, O_WRONLY | O_TRUNC | O_APPEND) is used.
 +	 * So, this hook checks O_APPEND and O_TRUNC flags as well
-+	 * as MAY_READ and MAY_WRITE .
++	 * as MAY_READ and MAY_WRITE flags.
 +	 */
 +	error = security_path_open(nd->path.dentry, nd->path.mnt, flag);
 +	if (error)
@@ -46,17 +66,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	 * Ensure there are no outstanding leases on the file.
  	 */
  	error = break_lease(inode, flag);
-@@ -1661,6 +1675,9 @@ int may_open(struct nameidata *nd, int a
- 		if (error)
- 			return error;
- 
-+		if (error)
-+			return error;
-+
- 		/*
- 		 * Refuse to truncate files with mandatory locks held on them.
- 		 */
-@@ -2021,7 +2038,12 @@ fail:
+@@ -2021,7 +2035,12 @@ fail:
  }
  EXPORT_SYMBOL_GPL(lookup_create);
  
@@ -70,7 +80,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	int error = may_create(dir, dentry, NULL);
  
-@@ -2033,6 +2055,14 @@ int vfs_mknod(struct inode *dir, struct 
+@@ -2033,6 +2052,14 @@ int vfs_mknod(struct inode *dir, struct 
  
  	if (!dir->i_op || !dir->i_op->mknod)
  		return -EPERM;
@@ -85,7 +95,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	error = devcgroup_inode_mknod(mode, dev);
  	if (error)
-@@ -2096,6 +2126,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2096,6 +2123,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -95,7 +105,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2108,6 +2141,7 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2108,6 +2138,7 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
@@ -103,7 +113,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2125,7 +2159,7 @@ asmlinkage long sys_mknod(const char __u
+@@ -2125,7 +2156,7 @@ asmlinkage long sys_mknod(const char __u
  	return sys_mknodat(AT_FDCWD, filename, mode, dev);
  }
  
@@ -112,7 +122,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	int error = may_create(dir, dentry, NULL);
  
-@@ -2134,6 +2168,14 @@ int vfs_mkdir(struct inode *dir, struct 
+@@ -2134,6 +2165,14 @@ int vfs_mkdir(struct inode *dir, struct 
  
  	if (!dir->i_op || !dir->i_op->mkdir)
  		return -EPERM;
@@ -127,7 +137,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	mode &= (S_IRWXUGO|S_ISVTX);
  	error = security_inode_mkdir(dir, dentry, mode);
-@@ -2172,7 +2214,11 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2172,7 +2211,11 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -139,7 +149,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2217,7 +2263,7 @@ void dentry_unhash(struct dentry *dentry
+@@ -2217,7 +2260,7 @@ void dentry_unhash(struct dentry *dentry
  	spin_unlock(&dcache_lock);
  }
  
@@ -148,7 +158,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	int error = may_delete(dir, dentry, 1);
  
-@@ -2226,6 +2272,14 @@ int vfs_rmdir(struct inode *dir, struct 
+@@ -2226,6 +2269,14 @@ int vfs_rmdir(struct inode *dir, struct 
  
  	if (!dir->i_op || !dir->i_op->rmdir)
  		return -EPERM;
@@ -163,7 +173,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	DQUOT_INIT(dir);
  
-@@ -2284,7 +2338,11 @@ static long do_rmdir(int dfd, const char
+@@ -2284,7 +2335,11 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -175,7 +185,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  exit3:
  	dput(dentry);
-@@ -2302,7 +2360,7 @@ asmlinkage long sys_rmdir(const char __u
+@@ -2302,7 +2357,7 @@ asmlinkage long sys_rmdir(const char __u
  	return do_rmdir(AT_FDCWD, pathname);
  }
  
@@ -184,7 +194,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	int error = may_delete(dir, dentry, 0);
  
-@@ -2311,6 +2369,14 @@ int vfs_unlink(struct inode *dir, struct
+@@ -2311,6 +2366,14 @@ int vfs_unlink(struct inode *dir, struct
  
  	if (!dir->i_op || !dir->i_op->unlink)
  		return -EPERM;
@@ -199,7 +209,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	DQUOT_INIT(dir);
  
-@@ -2370,7 +2436,11 @@ static long do_unlinkat(int dfd, const c
+@@ -2370,7 +2433,11 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -211,7 +221,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		mnt_drop_write(nd.path.mnt);
  	exit2:
  		dput(dentry);
-@@ -2406,7 +2476,7 @@ asmlinkage long sys_unlink(const char __
+@@ -2406,7 +2473,7 @@ asmlinkage long sys_unlink(const char __
  	return do_unlinkat(AT_FDCWD, pathname);
  }
  
@@ -220,7 +230,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	int error = may_create(dir, dentry, NULL);
  
-@@ -2415,6 +2485,15 @@ int vfs_symlink(struct inode *dir, struc
+@@ -2415,6 +2482,15 @@ int vfs_symlink(struct inode *dir, struc
  
  	if (!dir->i_op || !dir->i_op->symlink)
  		return -EPERM;
@@ -236,7 +246,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	error = security_inode_symlink(dir, dentry, oldname);
  	if (error)
-@@ -2455,7 +2534,11 @@ asmlinkage long sys_symlinkat(const char
+@@ -2455,7 +2531,11 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -248,7 +258,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2474,7 +2557,8 @@ asmlinkage long sys_symlink(const char _
+@@ -2474,7 +2554,8 @@ asmlinkage long sys_symlink(const char _
  	return sys_symlinkat(oldname, AT_FDCWD, newname);
  }
  
@@ -258,7 +268,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	struct inode *inode = old_dentry->d_inode;
  	int error;
-@@ -2498,6 +2582,15 @@ int vfs_link(struct dentry *old_dentry, 
+@@ -2498,6 +2579,15 @@ int vfs_link(struct dentry *old_dentry, 
  		return -EPERM;
  	if (S_ISDIR(old_dentry->d_inode->i_mode))
  		return -EPERM;
@@ -274,7 +284,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	error = security_inode_link(old_dentry, dir, new_dentry);
  	if (error)
-@@ -2555,7 +2648,11 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2555,7 +2645,11 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -286,7 +296,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(new_dentry);
-@@ -2679,16 +2776,15 @@ static int vfs_rename_other(struct inode
+@@ -2679,16 +2773,15 @@ static int vfs_rename_other(struct inode
  	return error;
  }
  
@@ -306,7 +316,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	error = may_delete(old_dir, old_dentry, is_dir);
  	if (error)
  		return error;
-@@ -2702,6 +2798,17 @@ int vfs_rename(struct inode *old_dir, st
+@@ -2702,6 +2795,17 @@ int vfs_rename(struct inode *old_dir, st
  
  	if (!old_dir->i_op || !old_dir->i_op->rename)
  		return -EPERM;
@@ -324,7 +334,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	DQUOT_INIT(old_dir);
  	DQUOT_INIT(new_dir);
-@@ -2786,8 +2893,13 @@ static int do_rename(int olddfd, const c
+@@ -2786,8 +2890,13 @@ static int do_rename(int olddfd, const c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -338,8 +348,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
  	dput(new_dentry);
---- mm.orig/fs/open.c
-+++ mm/fs/open.c
+--- linux-2.6.25-mm1.orig/fs/open.c
++++ linux-2.6.25-mm1/fs/open.c
 @@ -268,6 +268,9 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
@@ -361,8 +371,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
---- mm.orig/include/linux/fs.h
-+++ mm/include/linux/fs.h
+--- linux-2.6.25-mm1.orig/include/linux/fs.h
++++ linux-2.6.25-mm1/include/linux/fs.h
 @@ -1124,12 +1124,20 @@ extern void unlock_super(struct super_bl
   */
  extern int vfs_permission(struct nameidata *, int);
@@ -384,8 +394,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  extern int vfs_rename(struct inode *, struct dentry *, struct inode *, struct dentry *);
  
  /*
---- mm.orig/include/linux/security.h
-+++ mm/include/linux/security.h
+--- linux-2.6.25-mm1.orig/include/linux/security.h
++++ linux-2.6.25-mm1/include/linux/security.h
 @@ -343,23 +343,50 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure for the file to be created.
   *	@mode contains the file mode of the file to be created.
@@ -649,8 +659,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static inline int security_inode_alloc (struct inode *inode)
  {
  	return 0;
---- mm.orig/net/unix/af_unix.c
-+++ mm/net/unix/af_unix.c
+--- linux-2.6.25-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.25-mm1/net/unix/af_unix.c
 @@ -822,7 +822,11 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
@@ -663,8 +673,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		mnt_drop_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
---- mm.orig/security/dummy.c
-+++ mm/security/dummy.c
+--- linux-2.6.25-mm1.orig/security/dummy.c
++++ linux-2.6.25-mm1/security/dummy.c
 @@ -270,6 +270,68 @@ static int dummy_sb_parse_opts_str(char 
  	return 0;
  }
@@ -752,8 +762,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	set_to_dummy_if_null(ops, inode_alloc_security);
  	set_to_dummy_if_null(ops, inode_free_security);
  	set_to_dummy_if_null(ops, inode_init_security);
---- mm.orig/security/security.c
-+++ mm/security/security.c
+--- linux-2.6.25-mm1.orig/security/security.c
++++ linux-2.6.25-mm1/security/security.c
 @@ -388,6 +388,69 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
