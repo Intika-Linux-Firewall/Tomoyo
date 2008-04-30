@@ -4,9 +4,9 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  286 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  102 ++++++++++++++++
- 2 files changed, 388 insertions(+)
+ security/tomoyo/tomoyo.c |  279 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  102 +++++++++++++++++
+ 2 files changed, 381 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo.h
@@ -18,7 +18,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/25
++ * Version: 2.2.0-pre   2008/04/30
 + *
 + */
 +
@@ -115,25 +115,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo.c
-@@ -0,0 +1,286 @@
+@@ -0,0 +1,279 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
 + * LSM hooks for TOMOYO Linux.
 + */
 +
-+#include <linux/string.h>
-+#include <linux/mm.h>
-+#include <linux/utime.h>
-+#include <linux/file.h>
-+#include <linux/smp_lock.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/slab.h>
-+#include <linux/poll.h>
-+#include <linux/uaccess.h>
-+#include <stdarg.h>
-+#include <linux/delay.h>
 +#include <linux/security.h>
 +#include "common.h"
 +#include "tomoyo.h"
@@ -360,6 +348,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +static struct security_operations tomoyo_security_ops = {
++	.name                      = "tomoyo",
++
 +	.task_alloc_security       = tmy_task_alloc_security,
 +	.task_free_security        = tmy_task_free_security,
 +	.bprm_alloc_security       = tmy_bprm_alloc_security,
@@ -385,6 +375,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int __init tmy_init(void)
 +{
 +	struct tmy_security *tmy_security;
++	if (!security_module_enable(&tomoyo_security_ops))
++		return 0;
++
 +	/* register ourselves with the security framework */
 +	if (register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");

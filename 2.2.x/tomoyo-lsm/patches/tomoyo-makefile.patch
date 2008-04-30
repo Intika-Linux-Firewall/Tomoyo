@@ -5,9 +5,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/Kconfig         |    1 +
  security/Makefile        |    2 ++
- security/tomoyo/Kconfig  |    6 ++++++
+ security/tomoyo/Kconfig  |    9 +++++++++
  security/tomoyo/Makefile |    1 +
- 4 files changed, 10 insertions(+)
+ 4 files changed, 13 insertions(+)
 
 --- mm.orig/security/Kconfig
 +++ mm/security/Kconfig
@@ -39,13 +39,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
 --- /dev/null
 +++ mm/security/tomoyo/Kconfig
-@@ -0,0 +1,6 @@
+@@ -0,0 +1,9 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux Support"
 +	depends on SECURITY
-+	default y
++	default n
 +	help
-+	  TOMOYO Linux
++	  This selects TOMOYO Linux, pathname-based access control.
++	  Required userspace tools and further information may be
++          found at <http://tomoyo.sourceforge.jp/>.
++	  If you are unsure how to answer this question, answer N.
 --- /dev/null
 +++ mm/security/tomoyo/Makefile
 @@ -0,0 +1 @@
