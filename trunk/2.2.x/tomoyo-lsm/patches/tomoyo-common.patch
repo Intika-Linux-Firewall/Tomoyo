@@ -6,57 +6,19 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2158 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  404 ++++++++
- 2 files changed, 2562 insertions(+)
+ include/linux/list.h     |   78 +
+ security/tomoyo/common.c | 2157 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |  318 ++++++
+ 3 files changed, 2553 insertions(+)
 
---- /dev/null
-+++ mm/security/tomoyo/common.h
-@@ -0,0 +1,404 @@
-+/*
-+ * security/tomoyo/common.h
-+ *
-+ * Common functions for TOMOYO.
-+ *
-+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
-+ *
-+ * Version: 2.2.0-pre   2008/04/25
-+ *
-+ */
-+
-+#ifndef _LINUX_TMY_COMMON_H
-+#define _LINUX_TMY_COMMON_H
-+
-+#include <linux/string.h>
-+#include <linux/mm.h>
-+#include <linux/utime.h>
-+#include <linux/file.h>
-+#include <linux/smp_lock.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/slab.h>
-+#include <linux/poll.h>
-+#include <linux/uaccess.h>
-+#include <stdarg.h>
-+#include <linux/delay.h>
-+#include <linux/hardirq.h>
-+
-+struct dentry;
-+struct vfsmount;
-+
-+#define false 0
-+#define true 1
-+
+--- mm.orig/include/linux/list.h
++++ mm/include/linux/list.h
+@@ -614,4 +614,82 @@ static inline void hlist_add_after(struc
+ 		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
+ 	     pos = n)
+ 
 +/*
 + * Singly linked list.
-+ *
-+ * This list holds ACL entries used for access control.
-+ * Since TOMOYO Linux performs string pattern matching which takes long time,
-+ * I don't want to take any locks which disable preemption.
-+ * Threfore, I use singly linked list that cannot delete an element
-+ * but can make the code read-lock free.
-+ * This is OK because ACL entries in this list are seldom deleted.
-+ * You don't append garbage ACL entries without reasons, do you?
 + */
 +struct list1_head {
 +	struct list1_head *next;
@@ -79,7 +41,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define list1_entry(ptr, type, member) container_of(ptr, type, member)
 +
 +/**
-+ * list1_for_each        -       iterate over a list
++ * list1_for_each - iterate over a list
 + * @pos:        the &struct list1_head to use as a loop cursor.
 + * @head:       the head for your list.
 + */
@@ -88,7 +50,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	     pos = pos->next)
 +
 +/**
-+ * list1_for_each_entry  -       iterate over list of given type
++ * list1_for_each_entry - iterate over list of given type
 + * @pos:        the type * to use as a loop cursor.
 + * @head:       the head for your list.
 + * @member:     the name of the list1_struct within the struct.
@@ -132,6 +94,44 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		pos = pos->next;
 +	pos->next = new;
 +}
++
+ #endif
+--- /dev/null
++++ mm/security/tomoyo/common.h
+@@ -0,0 +1,318 @@
++/*
++ * security/tomoyo/common.h
++ *
++ * Common functions for TOMOYO.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 2.2.0-pre   2008/04/25
++ *
++ */
++
++#ifndef _LINUX_TMY_COMMON_H
++#define _LINUX_TMY_COMMON_H
++
++#include <linux/string.h>
++#include <linux/mm.h>
++#include <linux/utime.h>
++#include <linux/file.h>
++#include <linux/smp_lock.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/slab.h>
++#include <linux/poll.h>
++#include <linux/uaccess.h>
++#include <stdarg.h>
++#include <linux/delay.h>
++#include <linux/hardirq.h>
++
++struct dentry;
++struct vfsmount;
++
++#define false 0
++#define true 1
 +
 +/* Temporary buffer for holding pathnames. */
 +struct tmy_page_buffer {
@@ -419,7 +419,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 --- /dev/null
 +++ mm/security/tomoyo/common.c
-@@ -0,0 +1,2158 @@
+@@ -0,0 +1,2157 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -2576,5 +2576,4 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+/* security_initcall(tmy_initerface_init); */
-+postcore_initcall(tmy_initerface_init);
++fs_initcall(tmy_initerface_init);
