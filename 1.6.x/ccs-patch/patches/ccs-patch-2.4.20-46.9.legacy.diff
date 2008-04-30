@@ -2,55 +2,55 @@ This is TOMOYO Linux patch for RedHat Linux 9.
 
 Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/updates/i386/kernel-source-2.4.20-46.9.legacy.i386.rpm
 ---
- Documentation/Configure.help |   89 ++++++++++++++++++++++++++++++++++++++++
+ Documentation/Configure.help |   89 ++++++++++++++++++++++++++++++
  Makefile                     |    2 
- arch/alpha/kernel/ptrace.c   |    8 +++
- arch/arm/kernel/ptrace.c     |    8 +++
- arch/cris/kernel/ptrace.c    |    8 +++
- arch/i386/kernel/ptrace.c    |    8 +++
- arch/ia64/ia32/sys_ia32.c    |    8 +++
- arch/ia64/kernel/ptrace.c    |    8 +++
- arch/m68k/kernel/ptrace.c    |    8 +++
- arch/mips/kernel/ptrace.c    |    8 +++
- arch/mips64/kernel/ptrace.c  |   13 +++++
- arch/parisc/kernel/ptrace.c  |    8 +++
- arch/ppc/kernel/ptrace.c     |    8 +++
- arch/ppc64/kernel/ptrace.c   |    8 +++
- arch/ppc64/kernel/ptrace32.c |    8 +++
- arch/s390/kernel/ptrace.c    |    8 +++
- arch/s390x/kernel/ptrace.c   |    8 +++
- arch/sh/kernel/ptrace.c      |    8 +++
- arch/sparc/kernel/ptrace.c   |   11 ++++
- arch/sparc64/kernel/ptrace.c |   11 ++++
- arch/x86_64/ia32/ptrace32.c  |    8 +++
- arch/x86_64/kernel/ptrace.c  |    8 +++
+ arch/alpha/kernel/ptrace.c   |    9 +++
+ arch/arm/kernel/ptrace.c     |    9 +++
+ arch/cris/kernel/ptrace.c    |    9 +++
+ arch/i386/kernel/ptrace.c    |    9 +++
+ arch/ia64/ia32/sys_ia32.c    |    9 +++
+ arch/ia64/kernel/ptrace.c    |    9 +++
+ arch/m68k/kernel/ptrace.c    |    9 +++
+ arch/mips/kernel/ptrace.c    |    9 +++
+ arch/mips64/kernel/ptrace.c  |   15 +++++
+ arch/parisc/kernel/ptrace.c  |    9 +++
+ arch/ppc/kernel/ptrace.c     |    9 +++
+ arch/ppc64/kernel/ptrace.c   |    9 +++
+ arch/ppc64/kernel/ptrace32.c |    9 +++
+ arch/s390/kernel/ptrace.c    |    9 +++
+ arch/s390x/kernel/ptrace.c   |    9 +++
+ arch/sh/kernel/ptrace.c      |    9 +++
+ arch/sparc/kernel/ptrace.c   |   11 +++
+ arch/sparc64/kernel/ptrace.c |   11 +++
+ arch/x86_64/ia32/ptrace32.c  |    9 +++
+ arch/x86_64/kernel/ptrace.c  |    9 +++
  fs/Config.in                 |    3 +
  fs/Makefile                  |    2 
- fs/attr.c                    |    7 +++
- fs/exec.c                    |   15 ++++++
- fs/fcntl.c                   |    7 +++
- fs/ioctl.c                   |    6 ++
- fs/namei.c                   |   66 +++++++++++++++++++++++++++++
- fs/namespace.c               |   48 +++++++++++++++++++++
- fs/open.c                    |   24 ++++++++++
+ fs/attr.c                    |   10 +++
+ fs/exec.c                    |   21 ++++++-
+ fs/fcntl.c                   |    8 ++
+ fs/ioctl.c                   |    9 +++
+ fs/namei.c                   |  127 +++++++++++++++++++++++++++++++++++++++++++
+ fs/namespace.c               |   58 +++++++++++++++++++
+ fs/open.c                    |   30 ++++++++++
  fs/proc/Makefile             |    4 +
- fs/proc/proc_misc.c          |    5 ++
- include/linux/sched.h        |   13 +++++
- kernel/kmod.c                |    5 ++
- kernel/module.c              |   12 +++++
- kernel/sched.c               |    6 ++
- kernel/signal.c              |   11 ++++
- kernel/sys.c                 |   18 ++++++++
- kernel/sysctl.c              |   95 ++++++++++++++++++++++++++++++++++++++++++-
- kernel/time.c                |   12 +++++
- net/core/datagram.c          |    8 +++
- net/ipv4/tcp_ipv4.c          |    9 ++++
- net/ipv4/udp.c               |    9 ++++
- net/ipv6/tcp_ipv6.c          |    6 ++
- net/ipv6/udp.c               |    9 ++++
- net/socket.c                 |   27 +++++++++++-
- net/unix/af_unix.c           |   10 ++++
- 48 files changed, 692 insertions(+), 7 deletions(-)
+ fs/proc/proc_misc.c          |    5 +
+ include/linux/sched.h        |   13 ++++
+ kernel/kmod.c                |    5 +
+ kernel/module.c              |   15 +++++
+ kernel/sched.c               |    7 ++
+ kernel/signal.c              |   15 +++++
+ kernel/sys.c                 |   25 ++++++++
+ kernel/sysctl.c              |  113 +++++++++++++++++++++++++++++++++++++-
+ kernel/time.c                |   15 +++++
+ net/core/datagram.c          |   10 +++
+ net/ipv4/tcp_ipv4.c          |   11 +++
+ net/ipv4/udp.c               |   11 +++
+ net/ipv6/tcp_ipv6.c          |    7 ++
+ net/ipv6/udp.c               |   11 +++
+ net/socket.c                 |   40 ++++++++++++-
+ net/unix/af_unix.c           |   15 +++++
+ 48 files changed, 864 insertions(+), 7 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -173,13 +173,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #include "proto.h"
  
-@@ -249,6 +252,11 @@ sys_ptrace(long request, long pid, long 
+@@ -249,6 +252,12 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -197,13 +198,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #include "ptrace.h"
  
-@@ -576,6 +579,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -576,6 +579,12 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -221,13 +223,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -108,6 +111,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -108,6 +111,12 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -245,13 +248,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -233,6 +236,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -233,6 +236,12 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	int i, ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -269,13 +273,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Bits in the PSR that we allow ptrace() to change:
-@@ -1153,6 +1156,11 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1153,6 +1156,12 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -293,13 +298,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +107,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +107,12 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -317,13 +323,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -43,6 +46,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -43,6 +46,12 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	int ret;
  	extern void save_fp(struct task_struct *);
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -341,25 +348,27 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -48,6 +51,11 @@ asmlinkage int sys32_ptrace(int request,
+@@ -48,6 +51,12 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	ret = -EPERM;
-@@ -314,6 +322,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -314,6 +323,12 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -377,13 +386,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /* These are used in entry.S, syscall_restore_rfi.  We need to record the
   * current stepping mode somewhere other than in PSW, because there is no
-@@ -94,6 +97,11 @@ long sys_ptrace(long request, pid_t pid,
+@@ -94,6 +97,12 @@ long sys_ptrace(long request, pid_t pid,
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
  #endif
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -401,13 +411,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -161,6 +164,11 @@ int sys_ptrace(long request, long pid, l
+@@ -161,6 +164,12 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -425,13 +436,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -98,6 +101,11 @@ int sys_ptrace(long request, long pid, l
+@@ -98,6 +101,12 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -449,13 +461,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  
  void FixPerRegisters(struct task_struct *task)
-@@ -221,6 +224,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -221,6 +224,12 @@ asmlinkage int sys_ptrace(long request, 
  	unsigned long tmp;
  	int copied;
  	ptrace_area   parea; 
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -473,13 +486,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  
  void FixPerRegisters(struct task_struct *task)
-@@ -431,6 +434,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -431,6 +434,12 @@ asmlinkage int sys_ptrace(long request, 
  #define sizeof_parent_long 8
  #define dataptr (u8 *)&data
  #endif
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
@@ -497,13 +511,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -162,6 +165,11 @@ asmlinkage int sys_ptrace(long request, 
+@@ -162,6 +165,12 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child, *tsk = current;
  	struct user * dummy = NULL;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -575,13 +590,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -175,6 +178,11 @@ asmlinkage long sys_ptrace(long request,
+@@ -175,6 +178,12 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -618,13 +634,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /* Taken over from the old code... */
  
-@@ -127,6 +130,10 @@ int notify_change(struct dentry * dentry
+@@ -127,6 +130,13 @@ int notify_change(struct dentry * dentry
  		attr->ia_atime = now;
  	if (!(ia_valid & ATTR_MTIME_SET))
  		attr->ia_mtime = now;
 +	/***** TOMOYO Linux start. *****/
-+	if ((ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD)) return -EPERM;
-+	if ((ia_valid & (ATTR_UID | ATTR_GID)) && !ccs_capable(TOMOYO_SYS_CHOWN)) return -EPERM;
++	if ((ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD))
++		return -EPERM;
++	if ((ia_valid & (ATTR_UID | ATTR_GID)) &&
++	    !ccs_capable(TOMOYO_SYS_CHOWN))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -642,34 +661,40 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  int core_uses_pid;
  char core_pattern[65] = "core";
  /* The maximal length of core_pattern is also specified in sysctl.c */ 
-@@ -127,6 +131,11 @@ asmlinkage long sys_uselib(const char * 
+@@ -127,6 +131,13 @@ asmlinkage long sys_uselib(const char * 
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
-+	if (error) goto exit;
++	/* 01 means "read". */
++	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	if (error)
++		goto exit;
 +	/***** TOMOYO Linux end. *****/
 +
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -400,6 +409,9 @@ struct file *open_exec(const char *name)
+@@ -400,6 +411,13 @@ struct file *open_exec(const char *name)
  			int err = permission(inode, MAY_EXEC);
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC)) err = ccs_check_open_permission(nd.dentry, nd.mnt, 01); /* 01 means "read". */
++			if (!err && (current->tomoyo_flags &
++				     TOMOYO_CHECK_READ_FOR_OPEN_EXEC))
++				/* 01 means "read". */
++				err = ccs_check_open_permission(nd.dentry,
++								nd.mnt, 01);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1076,7 +1088,8 @@ int do_execve(char * filename, char ** a
+@@ -1076,7 +1094,8 @@ int do_execve(char * filename, char ** a
  	if (retval < 0) 
  		goto out; 
  
 -	retval = search_binary_handler(&bprm,regs);
-+	retval = search_binary_handler_with_transition(&bprm,regs);
++	retval = search_binary_handler_with_transition(&bprm, regs);
 +
  	if (retval >= 0)
  		/* execve success */
@@ -686,12 +711,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  extern int sock_fcntl (struct file *, unsigned int cmd, unsigned long arg);
  extern int fcntl_setlease(unsigned int fd, struct file *filp, long arg);
-@@ -213,6 +216,10 @@ static int setfl(int fd, struct file * f
+@@ -213,6 +216,11 @@ static int setfl(int fd, struct file * f
  	if (!(arg & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp)) return -EPERM;
++	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +
  	/* Did FASYNC state change? */
@@ -709,12 +735,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
  {
-@@ -112,6 +115,9 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -112,6 +115,12 @@ asmlinkage long sys_ioctl(unsigned int f
  				error = -ENOTTY;
  			break;
  		default:
 +			/***** TOMOYO Linux start. *****/
-+			if (!ccs_capable(TOMOYO_SYS_IOCTL)) { error = -EPERM; break; }
++			if (!ccs_capable(TOMOYO_SYS_IOCTL)) {
++				error = -EPERM;
++				break;
++			}
 +			/***** TOMOYO Linux end. *****/
  			error = -ENOTTY;
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
@@ -743,161 +772,222 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  /*
   *	open_namei()
   *
-@@ -1060,6 +1068,9 @@ do_last:
+@@ -1060,6 +1068,13 @@ do_last:
  
  	/* Negative dentry, just create the file */
  	if (!dentry->d_inode) {
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_create(dir->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry, nd->mnt)) == 0)
++		error = pre_vfs_create(dir->d_inode, dentry);
++		if (!error)
++			error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry,
++						     nd->mnt);
++		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_create(dir->d_inode, dentry,
  				   mode & ~current->fs->umask);
  		up(&dir->d_inode->i_sem);
-@@ -1146,6 +1157,11 @@ ok:
+@@ -1146,6 +1161,13 @@ ok:
  			goto exit;
  	}
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_open_permission(dentry, nd->mnt, flag); /* includes O_APPEND and O_TRUNC checks */
-+	if (error) goto exit;
++	/* includes O_APPEND and O_TRUNC checks */
++	error = ccs_check_open_permission(dentry, nd->mnt, flag);
++	if (error)
++		goto exit;
 +	/***** TOMOYO Linux end. *****/
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1282,6 +1298,13 @@ asmlinkage long sys_mknod(const char * f
+@@ -1282,6 +1304,17 @@ asmlinkage long sys_mknod(const char * f
  
  	if (S_ISDIR(mode))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && !ccs_capable(TOMOYO_CREATE_CHAR_DEV)) return -EPERM;
-+	if (S_ISBLK(mode) && !ccs_capable(TOMOYO_CREATE_BLOCK_DEV)) return -EPERM;
-+	if (S_ISFIFO(mode) && !ccs_capable(TOMOYO_CREATE_FIFO)) return -EPERM;
-+	if (S_ISSOCK(mode) && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET)) return -EPERM;
++	if (S_ISCHR(mode) && !ccs_capable(TOMOYO_CREATE_CHAR_DEV))
++		return -EPERM;
++	if (S_ISBLK(mode) && !ccs_capable(TOMOYO_CREATE_BLOCK_DEV))
++		return -EPERM;
++	if (S_ISFIFO(mode) && !ccs_capable(TOMOYO_CREATE_FIFO))
++		return -EPERM;
++	if (S_ISSOCK(mode) && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1296,9 +1319,19 @@ asmlinkage long sys_mknod(const char * f
+@@ -1296,9 +1329,33 @@ asmlinkage long sys_mknod(const char * f
  	if (!IS_ERR(dentry)) {
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_create(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry, nd.mnt)) == 0)
++			error = pre_vfs_create(nd.dentry->d_inode, dentry);
++			if (error)
++				break;
++			error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry,
++						     nd.mnt);
++			if (error)
++				break;
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_create(nd.dentry->d_inode,dentry,mode);
  			break;
  		case S_IFCHR: case S_IFBLK: case S_IFIFO: case S_IFSOCK:
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mknod(nd.dentry->d_inode, dentry)) == 0 &&
-+				(error = ccs_check_1path_perm(S_ISCHR(mode) ? TYPE_MKCHAR_ACL :
-+													S_ISBLK(mode) ? TYPE_MKBLOCK_ACL :
-+													S_ISFIFO(mode) ? TYPE_MKFIFO_ACL :
-+													TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++			error = pre_vfs_mknod(nd.dentry->d_inode, dentry);
++			if (error)
++				break;
++			error = ccs_check_1path_perm(S_ISCHR(mode) ?
++						     TYPE_MKCHAR_ACL :
++						     S_ISBLK(mode) ?
++						     TYPE_MKBLOCK_ACL :
++						     S_ISFIFO(mode) ?
++						     TYPE_MKFIFO_ACL :
++						     TYPE_MKSOCK_ACL,
++						     dentry, nd.mnt);
++			if (error)
++				break;
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,dev);
  			break;
  		case S_IFDIR:
-@@ -1360,6 +1393,9 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1360,6 +1417,13 @@ asmlinkage long sys_mkdir(const char * p
  		dentry = lookup_create(&nd, 1);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
++			error = pre_vfs_mkdir(nd.dentry->d_inode, dentry);
++			if (!error)
++				error = ccs_check_1path_perm(TYPE_MKDIR_ACL,
++							     dentry, nd.mnt);
++			if (!error)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mkdir(nd.dentry->d_inode, dentry,
  					  mode & ~current->fs->umask);
  			dput(dentry);
-@@ -1469,6 +1505,9 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1469,6 +1533,13 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
++		error = pre_vfs_rmdir(nd.dentry->d_inode, dentry);
++		if (!error)
++			error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry,
++						     nd.mnt);
++		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1513,6 +1552,9 @@ asmlinkage long sys_unlink(const char * 
+@@ -1513,6 +1584,10 @@ asmlinkage long sys_unlink(const char * 
  	char * name;
  	struct dentry *dentry;
  	struct nameidata nd;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_UNLINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_UNLINK))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -1531,6 +1573,9 @@ asmlinkage long sys_unlink(const char * 
+@@ -1531,6 +1606,14 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
++		error = pre_vfs_unlink(nd.dentry->d_inode, dentry);
++		if (error)
++			goto exit2;
++		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, nd.mnt);
++		if (error)
++			goto exit2;
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1579,6 +1624,9 @@ asmlinkage long sys_symlink(const char *
+@@ -1579,6 +1662,10 @@ asmlinkage long sys_symlink(const char *
  	int error = 0;
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SYMLINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SYMLINK))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -1595,6 +1643,9 @@ asmlinkage long sys_symlink(const char *
+@@ -1595,6 +1682,13 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
++			error = pre_vfs_symlink(nd.dentry->d_inode, dentry);
++			if (!error)
++				error = ccs_check_1path_perm(TYPE_SYMLINK_ACL,
++							     dentry, nd.mnt);
++			if (!error)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1660,6 +1711,9 @@ asmlinkage long sys_link(const char * ol
+@@ -1660,6 +1754,10 @@ asmlinkage long sys_link(const char * ol
  {
  	int error;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_LINK)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_LINK))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	to = getname(newname);
  	error = PTR_ERR(to);
-@@ -1679,6 +1733,9 @@ asmlinkage long sys_link(const char * ol
+@@ -1679,6 +1777,17 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
 +			/***** TOMOYO Linux start. *****/
-+			if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = ccs_check_2path_perm(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
++			error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode,
++					     new_dentry);
++			if (!error)
++				error = ccs_check_2path_perm(TYPE_LINK_ACL,
++							     old_nd.dentry,
++							     old_nd.mnt,
++							     new_dentry,
++							     nd.mnt);
++			if (!error)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1909,6 +1966,12 @@ static inline int do_rename(const char *
+@@ -1909,6 +2018,20 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = pre_vfs_rename(old_dir->d_inode, old_dentry, new_dir->d_inode, new_dentry)) < 0 ||
-+		(error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt, new_dentry, newnd.mnt)) < 0) {
-+		dput(new_dentry); goto exit4;
++	error = pre_vfs_rename(old_dir->d_inode, old_dentry,
++			       new_dir->d_inode, new_dentry);
++	if (error) {
++		dput(new_dentry);
++		goto exit4;
++	}
++	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt,
++				     new_dentry, newnd.mnt);
++	if (error) {
++		dput(new_dentry);
++		goto exit4;
 +	}
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	error = vfs_rename(old_dir->d_inode, old_dentry,
-@@ -1933,6 +1996,9 @@ asmlinkage long sys_rename(const char * 
+@@ -1933,6 +2056,10 @@ asmlinkage long sys_rename(const char * 
  	int error;
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_RENAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_RENAME))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	from = getname(oldname);
@@ -918,38 +1008,41 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  struct vfsmount *do_kern_mount(const char *type, int flags, char *name, void *data);
  int do_remount_sb(struct super_block *sb, int flags, void * data);
  void kill_super(struct super_block *sb);
-@@ -287,6 +294,9 @@ static int do_umount(struct vfsmount *mn
+@@ -287,6 +294,10 @@ static int do_umount(struct vfsmount *mn
  {
  	struct super_block * sb = mnt->mnt_sb;
  	int retval = 0;
 +	/***** SAKURA Linux start. *****/
-+	if (ccs_may_umount(mnt) < 0) return -EPERM;
++	if (ccs_may_umount(mnt))
++		return -EPERM;
 +	/***** SAKURA Linux end. *****/
  
  	/*
  	 * If we may have to abort operations to get out of this
-@@ -362,6 +372,9 @@ asmlinkage long sys_umount(char * name, 
+@@ -362,6 +373,10 @@ asmlinkage long sys_umount(char * name, 
  {
  	struct nameidata nd;
  	int retval;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_UMOUNT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_UMOUNT))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	retval = __user_walk(name, LOOKUP_POSITIVE|LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -497,6 +510,10 @@ static int do_loopback(struct nameidata 
+@@ -497,6 +512,11 @@ static int do_loopback(struct nameidata 
  	down_write(&current->namespace->sem);
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
 +		/***** SAKURA Linux start. *****/
 +		err = -EPERM;
-+		if (ccs_may_mount(nd) < 0) goto out;
++		if (ccs_may_mount(nd))
++			goto out;
 +		/***** SAKURA Linux end. *****/
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -513,7 +530,9 @@ static int do_loopback(struct nameidata 
+@@ -513,7 +533,9 @@ static int do_loopback(struct nameidata 
  		} else
  			mntput(mnt);
  	}
@@ -960,55 +1053,62 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -567,6 +586,11 @@ static int do_move_mount(struct nameidat
+@@ -567,6 +589,12 @@ static int do_move_mount(struct nameidat
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
  
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (ccs_may_umount(old_nd.mnt) < 0 || ccs_may_mount(nd) < 0) goto out;
++	if (ccs_may_umount(old_nd.mnt) || ccs_may_mount(nd))
++		goto out;
 +	/***** SAKURA Linux end. *****/
 +
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_zombie);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -638,6 +662,11 @@ static int do_add_mount(struct nameidata
+@@ -638,6 +666,12 @@ static int do_add_mount(struct nameidata
  	if (nd->mnt->mnt_sb == mnt->mnt_sb && nd->mnt->mnt_root == nd->dentry)
  		goto unlock;
  
 +	/***** SAKURA Linux start. *****/
 +	err = -EPERM;
-+	if (ccs_may_mount(nd) < 0) goto unlock;
++	if (ccs_may_mount(nd))
++		goto unlock;
 +	/***** SAKURA Linux end. *****/
 +
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -712,6 +741,13 @@ long do_mount(char * dev_name, char * di
+@@ -712,6 +746,17 @@ long do_mount(char * dev_name, char * di
  	if (dev_name && !memchr(dev_name, 0, PAGE_SIZE))
  		return -EINVAL;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_MOUNT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_MOUNT))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if ((retval = ccs_check_mount_permission(dev_name, dir_name, type_page, &flags)) < 0) return retval;
++	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
++					    &flags);
++	if (retval)
++		return retval;
 +	/***** SAKURA Linux end. *****/
 +
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -905,6 +941,9 @@ asmlinkage long sys_pivot_root(const cha
+@@ -905,6 +950,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PIVOT_ROOT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PIVOT_ROOT))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  
-@@ -919,6 +958,13 @@ asmlinkage long sys_pivot_root(const cha
+@@ -919,6 +968,13 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
@@ -1038,47 +1138,53 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  int vfs_statfs(struct super_block *sb, struct statfs *buf)
  {
  	int retval = -ENODEV;
-@@ -160,6 +167,10 @@ static inline long do_sys_truncate(const
+@@ -160,6 +167,11 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
++	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt);
++	if (!error)
 +	/***** TOMOYO Linux end. *****/
 +
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -213,6 +224,10 @@ static inline long do_sys_ftruncate(unsi
+@@ -213,6 +225,12 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
-+	if ((error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt)) == 0)
++	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
++	if (error)
++		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
 +
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -449,6 +464,12 @@ asmlinkage long sys_chroot(const char * 
+@@ -449,6 +467,14 @@ asmlinkage long sys_chroot(const char * 
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_CHROOT)) goto dput_and_out;
++	if (!ccs_capable(TOMOYO_SYS_CHROOT))
++		goto dput_and_out;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
-+	if (ccs_check_chroot_permission(&nd)) goto dput_and_out;
++	if (ccs_check_chroot_permission(&nd))
++		goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -882,6 +903,9 @@ out_unlock:
+@@ -882,6 +908,10 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_VHANGUP)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_VHANGUP))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->tty);
@@ -1102,7 +1208,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2008/04/07\n");
++	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2008/04/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1137,7 +1243,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
      journal_info:	NULL,						\
 +	/***** TOMOYO Linux start. *****/ \
 +	domain_info: &KERNEL_DOMAIN,      \
-+	tomoyo_flags: 0,                  \
++	tomoyo_flags: 0                   \
 +	/***** TOMOYO Linux end. *****/   \
  }
  
@@ -1168,32 +1274,35 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Originally by Anonymous (as far as I know...)
-@@ -298,6 +301,9 @@ sys_create_module(const char *name_user,
+@@ -298,6 +301,10 @@ sys_create_module(const char *name_user,
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if ((namelen = get_mod_name(name_user, &name)) < 0) {
  		error = namelen;
-@@ -353,6 +359,9 @@ sys_init_module(const char *name_user, s
+@@ -353,6 +360,10 @@ sys_init_module(const char *name_user, s
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if ((namelen = get_mod_name(name_user, &name)) < 0) {
  		error = namelen;
-@@ -604,6 +613,9 @@ sys_delete_module(const char *name_user)
+@@ -604,6 +615,10 @@ sys_delete_module(const char *name_user)
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -1210,12 +1319,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Convert user-nice values [ -20 ... 0 ... 19 ]
-@@ -1311,6 +1314,9 @@ out_unlock:
+@@ -1311,6 +1314,10 @@ out_unlock:
  asmlinkage long sys_nice(int increment)
  {
  	long nice;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	/*
@@ -1232,24 +1342,28 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * SLAB caches for signal bits.
-@@ -1812,6 +1815,10 @@ asmlinkage long
+@@ -1812,6 +1815,12 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL))
++		return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -1835,6 +1842,10 @@ sys_tkill(int pid, int sig)
+@@ -1835,6 +1844,12 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && !ccs_capable(TOMOYO_SYS_KILL)) return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid) < 0) return -EPERM;
++	if (sig && !ccs_capable(TOMOYO_SYS_KILL))
++		return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	info.si_signo = sig;
@@ -1266,52 +1380,59 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -232,6 +235,9 @@ asmlinkage long sys_setpriority(int whic
+@@ -232,6 +235,12 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > 2 || which < 0)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE)) {
++		error = -EPERM;
++		goto out;
++	}
 +	/***** TOMOYO Linux end. *****/
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -292,6 +298,9 @@ asmlinkage long sys_getpriority(int whic
+@@ -292,6 +301,10 @@ asmlinkage long sys_getpriority(int whic
  
  	if (which > 2 || which < 0)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_NICE))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	read_lock(&tasklist_lock);
  	switch (which) {
-@@ -360,6 +369,9 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -360,6 +373,10 @@ asmlinkage long sys_reboot(int magic1, i
  	    (magic2 != LINUX_REBOOT_MAGIC2 && magic2 != LINUX_REBOOT_MAGIC2A &&
  			magic2 != LINUX_REBOOT_MAGIC2B))
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_REBOOT)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_REBOOT))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	switch (cmd) {
-@@ -1130,6 +1142,9 @@ asmlinkage long sys_sethostname(char *na
+@@ -1130,6 +1147,10 @@ asmlinkage long sys_sethostname(char *na
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(system_utsname.nodename, name, len)) {
-@@ -1169,6 +1184,9 @@ asmlinkage long sys_setdomainname(char *
+@@ -1169,6 +1190,10 @@ asmlinkage long sys_setdomainname(char *
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
  	down_write(&uts_sem);
@@ -1328,24 +1449,28 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #ifdef CONFIG_ROOT_NFS
  #include <linux/nfs_fs.h>
-@@ -386,6 +389,87 @@ void __init sysctl_init(void)
+@@ -386,6 +389,100 @@ void __init sysctl_init(void)
  #endif
  }
  
 +/***** TOMOYO Linux start. *****/
-+static int try_parse_table(int __user *name, int nlen, void __user *oldval, void __user *newval, ctl_table *table)
++static int try_parse_table(int __user *name, int nlen, void __user *oldval,
++			   void __user *newval, ctl_table *table)
 +{
 +	int n;
 +	int error = -ENOMEM;
 +	int op = 0;
 +	char *buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
-+	if (oldval) op |= 004;
-+	if (newval) op |= 002;
++	if (oldval)
++		op |= 004;
++	if (newval)
++		op |= 002;
 +	if (!op) { /* Neither read nor write */
 +		error = 0;
 +		goto out;
 +	}
-+	if (!buffer) goto out;
++	if (!buffer)
++		goto out;
 +	memset(buffer, 0, PAGE_SIZE);
 +	snprintf(buffer, PAGE_SIZE - 1, "/proc/sys");
 + repeat:
@@ -1363,35 +1488,44 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
 +			const char *cp = table->procname;
 +			error = -ENOMEM;
 +			if (cp) {
-+				if (pos + 1 >= PAGE_SIZE - 1) goto out;
++				if (pos + 1 >= PAGE_SIZE - 1)
++					goto out;
 +				buffer[pos++] = '/';
 +				while (*cp) {
-+					const unsigned char c = * (const unsigned char *) cp;
++					const unsigned char c
++						= *(const unsigned char *) cp;
 +					if (c == '\\') {
-+						if (pos + 2 >= PAGE_SIZE - 1) goto out;
++						if (pos + 2 >= PAGE_SIZE - 1)
++							goto out;
 +						buffer[pos++] = '\\';
 +						buffer[pos++] = '\\';
 +					} else if (c > ' ' && c < 127) {
-+						if (pos + 1 >= PAGE_SIZE - 1) goto out;
++						if (pos + 1 >= PAGE_SIZE - 1)
++							goto out;
 +						buffer[pos++] = c;
 +					} else {
-+						if (pos + 4 >= PAGE_SIZE - 1) goto out;
++						if (pos + 4 >= PAGE_SIZE - 1)
++							goto out;
 +						buffer[pos++] = '\\';
 +						buffer[pos++] = (c >> 6) + '0';
-+						buffer[pos++] = ((c >> 3) & 7) + '0';
++						buffer[pos++] = ((c >> 3) & 7)
++							+ '0';
 +						buffer[pos++] = (c & 7) + '0';
 +					}
 +					cp++;
 +				}
 +			} else {
 +				/* Assume nobody assigns "=\$=" for procname. */
-+				snprintf(buffer + pos, PAGE_SIZE - pos - 1, "/=%d=", table->ctl_name);
-+				if (memchr(buffer, '\0', PAGE_SIZE - 2) == NULL) goto out;
++				snprintf(buffer + pos, PAGE_SIZE - pos - 1,
++					 "/=%d=", table->ctl_name);
++				if (!memchr(buffer, '\0', PAGE_SIZE - 2))
++					goto out;
 +			}
 +			if (table->child) {
 +				if (table->strategy) {
 +					/* printk("sysctl='%s'\n", buffer); */
-+					if (ccs_check_file_perm(buffer, op, "sysctl")) {
++					if (ccs_check_file_perm(buffer, op,
++								"sysctl")) {
 +						error = -EPERM;
 +						goto out;
 +					}
@@ -1416,30 +1550,35 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  int do_sysctl(int *name, int nlen, void *oldval, size_t *oldlenp,
  	       void *newval, size_t newlen)
  {
-@@ -411,6 +495,9 @@ int do_sysctl(int *name, int nlen, void 
+@@ -411,6 +508,11 @@ int do_sysctl(int *name, int nlen, void 
  
  		spin_unlock(&sysctl_lock);
  
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = try_parse_table(name, nlen, oldval, newval, head->ctl_table)) == 0)
++		error = try_parse_table(name, nlen, oldval, newval,
++					head->ctl_table);
++		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = parse_table(name, nlen, oldval, oldlenp,
  					newval, newlen, head->ctl_table,
  					&context);
-@@ -480,6 +567,12 @@ repeat:
+@@ -480,6 +582,15 @@ repeat:
  				if (ctl_perm(table, 001))
  					return -EPERM;
  				if (table->strategy) {
 +					/***** TOMOYO Linux start. *****/
 +					int op = 0;
-+					if (oldval) op |= 004;
-+					if (newval) op |= 002;
-+					if (ctl_perm(table, op)) return -EPERM;
++					if (oldval)
++						op |= 004;
++					if (newval)
++						op |= 002;
++					if (ctl_perm(table, op))
++						return -EPERM;
 +					/***** TOMOYO Linux end. *****/
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
-@@ -1420,7 +1513,7 @@ int sysctl_string(ctl_table *table, int 
+@@ -1420,7 +1531,7 @@ int sysctl_string(ctl_table *table, int 
  			len--;
  		((char *) table->data)[len] = 0;
  	}
@@ -1460,32 +1599,35 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /* 
   * The timezone where the local system is located.  Used as a default by some
-@@ -77,6 +80,9 @@ asmlinkage long sys_stime(int * tptr)
+@@ -77,6 +80,10 @@ asmlinkage long sys_stime(int * tptr)
  
  	if (!capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (get_user(value, tptr))
  		return -EFAULT;
  	write_lock_irq(&xtime_lock);
-@@ -151,6 +157,9 @@ int do_sys_settimeofday(struct timeval *
+@@ -151,6 +158,10 @@ int do_sys_settimeofday(struct timeval *
  
  	if (!capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_SETTIME))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  		
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
-@@ -217,6 +226,9 @@ int do_adjtimex(struct timex *txc)
+@@ -217,6 +228,10 @@ int do_adjtimex(struct timex *txc)
  	/* In order to modify anything, you gotta be super-user! */
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (txc->modes && !ccs_capable(TOMOYO_SYS_SETTIME)) return -EPERM;
++	if (txc->modes && !ccs_capable(TOMOYO_SYS_SETTIME))
++		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  		
  	/* Now we validate the data before disabling interrupts */
@@ -1503,12 +1645,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -164,6 +168,10 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -164,6 +168,12 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->receive_queue);
  
 +		/***** TOMOYO Linux start. *****/
-+		if ((error = ccs_socket_recv_datagram_permission(sk, skb, flags)) < 0) goto no_packet;
++		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
++		if (error)
++			goto no_packet;
 +		/***** TOMOYO Linux end. *****/
 +
  		if (skb)
@@ -1526,22 +1670,24 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  extern int sysctl_ip_dynaddr;
  extern int sysctl_ip_default_ttl;
-@@ -226,6 +229,9 @@ static int tcp_v4_get_port(struct sock *
+@@ -226,6 +229,10 @@ static int tcp_v4_get_port(struct sock *
  				rover = low;
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover) < 0) goto next;
++			if (ccs_may_autobind(rover))
++				goto next;
 +			/***** SAKURA Linux end. *****/
  			for (tb = head->chain; tb; tb = tb->next)
  				if (tb->port == rover)
  					goto next;
-@@ -686,6 +692,9 @@ static int tcp_v4_hash_connect(struct so
+@@ -686,6 +693,10 @@ static int tcp_v4_hash_connect(struct so
  				rover = low;
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);		
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover) < 0) goto next_port;
++			if (ccs_may_autobind(rover))
++				goto next_port;
 +			/***** SAKURA Linux end. *****/
  
  			/* Does not bother with rcv_saddr checks,
@@ -1558,22 +1704,24 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -131,6 +134,9 @@ static int udp_v4_get_port(struct sock *
+@@ -131,6 +134,10 @@ static int udp_v4_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result) < 0) continue;
++				if (ccs_may_autobind(result))
++					continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
  			}
  			size = 0;
-@@ -148,6 +154,9 @@ static int udp_v4_get_port(struct sock *
+@@ -148,6 +155,10 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result) < 0) continue;
++			if (ccs_may_autobind(result))
++				continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))
  				break;
@@ -1590,12 +1738,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  static void	tcp_v6_send_reset(struct sk_buff *skb);
  static void	tcp_v6_or_send_ack(struct sk_buff *skb, struct open_request *req);
-@@ -110,6 +113,9 @@ static int tcp_v6_get_port(struct sock *
+@@ -110,6 +113,10 @@ static int tcp_v6_get_port(struct sock *
  				rover = low;
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover) < 0) goto next;
++			if (ccs_may_autobind(rover))
++				goto next;
 +			/***** SAKURA Linux end. *****/
  			for (tb = head->chain; tb; tb = tb->next)
  				if (tb->port == rover)
@@ -1612,22 +1761,24 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  struct udp_mib udp_stats_in6[NR_CPUS*2];
  
-@@ -77,6 +80,9 @@ static int udp_v6_get_port(struct sock *
+@@ -77,6 +80,10 @@ static int udp_v6_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result) < 0) continue;
++				if (ccs_may_autobind(result))
++					continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
  			}
  			size = 0;
-@@ -94,6 +100,9 @@ static int udp_v6_get_port(struct sock *
+@@ -94,6 +101,10 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result) < 0) continue;
++			if (ccs_may_autobind(result))
++				continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))
  				break;
@@ -1645,54 +1796,64 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_read(struct file *file, char *buf,
-@@ -513,7 +517,9 @@ int sock_sendmsg(struct socket *sock, st
+@@ -513,7 +517,12 @@ int sock_sendmsg(struct socket *sock, st
  {
  	int err;
  	struct scm_cookie scm;
 -
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *) msg->msg_name, msg->msg_namelen)) == 0)
++	err = ccs_socket_sendmsg_permission(sock,
++					    (struct sockaddr *) msg->msg_name,
++					    msg->msg_namelen);
++	if (!err)
 +	/***** TOMOYO Linux end. *****/
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
-@@ -861,7 +867,9 @@ int sock_create(int family, int type, in
+@@ -861,7 +870,11 @@ int sock_create(int family, int type, in
  		}
  		family = PF_PACKET;
  	}
 -		
 +	/***** TOMOYO Linux start. *****/
-+	if ((i = ccs_socket_create_permission(family, type, protocol)) < 0) return i;
++	i = ccs_socket_create_permission(family, type, protocol);
++	if (i)
++		return i;
 +	/***** TOMOYO Linux end. *****/
  #if defined(CONFIG_KMOD) && defined(CONFIG_NET)
  	/* Attempt to load a protocol module if the find failed. 
  	 * 
-@@ -1017,6 +1025,9 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1017,6 +1030,12 @@ asmlinkage long sys_bind(int fd, struct 
  	if((sock = sockfd_lookup(fd,&err))!=NULL)
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0)
 +			/***** TOMOYO Linux start. *****/
-+			if ((err = ccs_socket_bind_permission(sock, (struct sockaddr *) address, addrlen)) == 0)
++			err = ccs_socket_bind_permission(sock,
++							 (struct sockaddr *)
++							 address, addrlen);
++		if (!err)
 +			/***** TOMOYO Linux end. *****/
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		sockfd_put(sock);
  	}			
-@@ -1038,6 +1049,9 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1038,6 +1057,10 @@ asmlinkage long sys_listen(int fd, int b
  	if ((sock = sockfd_lookup(fd, &err)) != NULL) {
  		if ((unsigned) backlog > SOMAXCONN)
  			backlog = SOMAXCONN;
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = ccs_socket_listen_permission(sock)) == 0)
++		err = ccs_socket_listen_permission(sock);
++		if (!err)
 +		/***** TOMOYO Linux end. *****/
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1078,6 +1092,12 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1078,6 +1101,13 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (ccs_socket_accept_permission(newsock, (struct sockaddr *) address)) {
++	if (ccs_socket_accept_permission(newsock,
++					 (struct sockaddr *) address)) {
 +		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
 +		goto out_release;
 +	}
@@ -1700,12 +1861,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1128,6 +1148,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1128,6 +1158,12 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, address);
  	if (err < 0)
  		goto out_put;
 +	/***** TOMOYO Linux start. *****/
-+	if ((err = ccs_socket_connect_permission(sock, (struct sockaddr *) address, addrlen)) == 0)
++	err = ccs_socket_connect_permission(sock, (struct sockaddr *) address,
++					    addrlen);
++	if (err)
++		goto out_put;
 +	/***** TOMOYO Linux end. *****/
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
@@ -1722,23 +1886,28 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  int sysctl_unix_max_dgram_qlen = 10;
  
-@@ -661,6 +664,10 @@ static int unix_bind(struct socket *sock
+@@ -661,6 +664,11 @@ static int unix_bind(struct socket *sock
  		err = unix_autobind(sock);
  		goto out;
  	}
 +	/***** TOMOYO Linux start. *****/
 +	err = -EPERM;
-+	if (sunaddr->sun_path[0] && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET)) goto out;
++	if (sunaddr->sun_path[0] && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET))
++		goto out;
 +	/***** TOMOYO Linux end. *****/
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -725,6 +732,9 @@ static int unix_bind(struct socket *sock
+@@ -725,6 +733,13 @@ static int unix_bind(struct socket *sock
  		 * All right, let's create it.
  		 */
  		mode = S_IFSOCK | (sock->inode->i_mode & ~current->fs->umask);
 +		/***** TOMOYO Linux start. *****/
-+		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry)) == 0 && (err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
++		err = pre_vfs_mknod(nd.dentry->d_inode, dentry);
++		if (!err)
++			err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry,
++						   nd.mnt);
++		if (!err)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
@@ -1755,13 +1924,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #define DEBUG	0
  
-@@ -3065,6 +3068,11 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -3065,6 +3068,12 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1779,13 +1949,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -87,6 +90,11 @@ int sys32_ptrace(long request, long pid,
+@@ -87,6 +90,12 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  
@@ -1803,13 +1974,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #define R32(l,q) \
  	case offsetof(struct user32, regs.l): stack[offsetof(struct pt_regs, q)/8] = val; break
-@@ -199,6 +202,11 @@ asmlinkage long sys32_ptrace(long reques
+@@ -199,6 +202,12 @@ asmlinkage long sys32_ptrace(long reques
  	struct pt_regs *childregs; 
  	int ret;
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) return -EPERM;
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
  

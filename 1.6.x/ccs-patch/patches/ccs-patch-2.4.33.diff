@@ -33,7 +33,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/ioctl.c                   |    9 +++
  fs/namei.c                   |  127 +++++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   58 +++++++++++++++++++
- fs/open.c                    |   28 +++++++++
+ fs/open.c                    |   29 +++++++++
  fs/proc/Makefile             |    4 +
  fs/proc/proc_misc.c          |    5 +
  include/linux/sched.h        |   13 ++++
@@ -51,7 +51,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |   11 +++
  net/socket.c                 |   40 ++++++++++++-
  net/unix/af_unix.c           |   15 +++++
- 49 files changed, 865 insertions(+), 7 deletions(-)
+ 49 files changed, 866 insertions(+), 7 deletions(-)
 
 --- linux-2.4.33.orig/Documentation/Configure.help
 +++ linux-2.4.33/Documentation/Configure.help
@@ -1176,18 +1176,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -215,6 +227,10 @@ static inline long do_sys_ftruncate(unsi
+@@ -215,6 +227,11 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
 +	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
-+	if (!error)
++	if (error)
++		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -464,6 +480,14 @@ asmlinkage long sys_chroot(const char * 
+@@ -464,6 +481,14 @@ asmlinkage long sys_chroot(const char * 
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -1202,7 +1203,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -895,6 +919,10 @@ out_unlock:
+@@ -895,6 +920,10 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1232,7 +1233,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.33 2008/04/28\n");
++	printk(KERN_INFO "Hook version: 2.4.33 2008/04/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
