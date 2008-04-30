@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  859 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 859 insertions(+)
+ security/tomoyo/domain.c |  856 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 856 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/domain.c
-@@ -0,0 +1,859 @@
+@@ -0,0 +1,856 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -25,17 +25,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/25
++ * Version: 2.2.0-pre   2008/04/30
 + *
 + */
 +
 +#include "common.h"
 +#include "tomoyo.h"
 +#include "realpath.h"
-+#include <linux/highmem.h>
 +#include <linux/binfmts.h>
-+#include <linux/namei.h>
-+#include <linux/mount.h>
 +
 +/* Variables definitions.*/
 +

@@ -15,9 +15,9 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  663 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.c |  655 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.h |   62 ++++
- 2 files changed, 725 insertions(+)
+ 2 files changed, 717 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/realpath.h
@@ -29,7 +29,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/25
++ * Version: 2.2.0-pre   2008/04/30
 + *
 + */
 +
@@ -86,7 +86,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 --- /dev/null
 +++ mm/security/tomoyo/realpath.c
-@@ -0,0 +1,663 @@
+@@ -0,0 +1,655 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -94,24 +94,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/25
++ * Version: 2.2.0-pre   2008/04/30
 + *
 + */
-+#include <linux/string.h>
-+#include <linux/mm.h>
-+#include <linux/utime.h>
-+#include <linux/file.h>
-+#include <linux/smp_lock.h>
-+#include <linux/module.h>
-+#include <linux/slab.h>
-+#include <linux/uaccess.h>
-+#include <asm/atomic.h>
-+#include <linux/namei.h>
++
++#include <linux/types.h>
 +#include <linux/mount.h>
-+#include "realpath.h"
-+#include <linux/proc_fs.h>
++#include <linux/magic.h>
 +#include <linux/sysctl.h>
 +#include "common.h"
++#include "realpath.h"
 +
 +/**
 + * get_absolute_path - Get the path of a dentry but ignores chroot'ed root.

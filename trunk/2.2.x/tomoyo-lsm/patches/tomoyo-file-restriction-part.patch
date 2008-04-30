@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1131 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1131 insertions(+)
+ security/tomoyo/file.c | 1130 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1130 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/file.c
-@@ -0,0 +1,1131 @@
+@@ -0,0 +1,1130 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -19,7 +19,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/25
++ * Version: 2.2.0-pre   2008/04/30
 + *
 + */
 +
@@ -1051,7 +1051,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = 0;
 +	return error;
 +}
-+EXPORT_SYMBOL(tmy_check_1path_perm); /* for net/unix/af_unix.c  */
 +
 +/**
 + * tmy_check_rewrite_permission - Check permission for "rewrite".
