@@ -1,0 +1,264 @@
+ fs/ccs_common.c          |   29 +------------
+ fs/proc/ccs_proc.c       |    2 
+ fs/realpath.c            |  101 ++++++++++++++++++++++++++++++++---------------
+ include/linux/realpath.h |   16 +++----
+ 4 files changed, 81 insertions(+), 67 deletions(-)
+
+Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 1164)
++++ trunk/1.6.x/ccs-patch/include/linux/realpath.h	(working copy)
+@@ -19,6 +19,7 @@
+ struct vfsmount;
+ struct condition_list;
+ struct path_info;
++struct ccs_io_buffer;
+ 
+ /* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
+ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
+@@ -41,25 +42,22 @@
+  */
+ void *ccs_alloc_element(const unsigned int size);
+ 
+-/* Get used RAM size for ccs_alloc_elements(). */
+-unsigned int ccs_get_memory_used_for_elements(void);
+-
+ /*
+  * Keep the given name on the RAM.
+  * The RAM is shared, so NEVER try to modify or kfree() the returned name.
+  */
+ const struct path_info *ccs_save_name(const char *name);
+ 
+-/* Get used RAM size for ccs_save_name(). */
+-unsigned int ccs_get_memory_used_for_save_name(void);
+-
+ /* Allocate memory for temporary use (e.g. permission checks). */
+ void *ccs_alloc(const size_t size);
+ 
+-/* Get used RAM size for ccs_alloc(). */
+-unsigned int ccs_get_memory_used_for_dynamic(void);
+-
+ /* Free memory allocated by ccs_alloc(). */
+ void ccs_free(const void *p);
+ 
++/* Check for memory usage. */
++int ccs_read_memory_counter(struct ccs_io_buffer *head);
++
++/* Set memory quota. */
++int ccs_write_memory_quota(struct ccs_io_buffer *head);
++
+ #endif
+Index: trunk/1.6.x/ccs-patch/fs/realpath.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 1164)
++++ trunk/1.6.x/ccs-patch/fs/realpath.c	(working copy)
+@@ -308,18 +308,9 @@
+ }
+ 
+ static unsigned int allocated_memory_for_elements;
++static unsigned int quota_for_elements;
+ 
+ /**
+- * ccs_get_memory_used_for_elements - Get memory used for keeping ACL structures.
+- *
+- * Returns memory used for keeping ACL structures.
+- */
+-unsigned int ccs_get_memory_used_for_elements(void)
+-{
+-	return allocated_memory_for_elements;
+-}
+-
+-/**
+  * ccs_alloc_element - Allocate permanent memory for structures.
+  *
+  * @size: Size in bytes.
+@@ -339,7 +330,9 @@
+ 		return NULL;
+ 	mutex_lock(&lock);
+ 	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
+-		ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
++		if (!quota_for_elements || allocated_memory_for_elements
++		    + PAGE_SIZE <= quota_for_elements)
++			ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
+ 		if (!ptr) {
+ 			printk(KERN_WARNING "ERROR: Out of memory "
+ 			       "for ccs_alloc_element().\n");
+@@ -368,17 +361,8 @@
+ }
+ 
+ static unsigned int allocated_memory_for_savename;
++static unsigned int quota_for_savename;
+ 
+-/**
+- * ccs_get_memory_used_for_save_name - Get memory used for keeping string data.
+- *
+- * Returns memory used for keeping string data.
+- */
+-unsigned int ccs_get_memory_used_for_save_name(void)
+-{
+-	return allocated_memory_for_savename;
+-}
+-
+ #define MAX_HASH 256
+ 
+ /* Structure for string data. */
+@@ -433,7 +417,11 @@
+ 		if (len <= fmb->len)
+ 			goto ready;
+ 	}
+-	cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
++	if (!quota_for_savename || allocated_memory_for_savename + PAGE_SIZE
++	    <= quota_for_savename)
++		cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
++	else
++		cp = NULL;
+ 	fmb = kzalloc(sizeof(*fmb), GFP_KERNEL);
+ 	if (!cp || !fmb) {
+ 		kfree(cp);
+@@ -523,16 +511,6 @@
+ 
+ static unsigned int dynamic_memory_size;
+ 
+-/**
+- * ccs_get_memory_used_for_dynamic - Get memory used for temporal purpose.
+- *
+- * Returns memory used for temporal purpose.
+- */
+-unsigned int ccs_get_memory_used_for_dynamic(void)
+-{
+-	return dynamic_memory_size;
+-}
+-
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+ /**
+  * round2 - Rounded up to power-of-two value.
+@@ -624,3 +602,62 @@
+ 		printk(KERN_WARNING "BUG: ccs_free() with invalid pointer.\n");
+ 	}
+ }
++
++/**
++ * ccs_read_memory_counter - Check for memory usage.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns memory usage.
++ */
++int ccs_read_memory_counter(struct ccs_io_buffer *head)
++{
++	if (!head->read_eof) {
++		const unsigned int shared = allocated_memory_for_savename;
++		const unsigned int private = allocated_memory_for_elements;
++		const unsigned int dynamic = dynamic_memory_size;
++		char buffer[64];
++		memset(buffer, 0, sizeof(buffer));
++		if (quota_for_savename)
++			snprintf(buffer, sizeof(buffer) - 1,
++				 "   (Quota: %10u)", quota_for_savename);
++		else
++			buffer[0] = '\0';
++		ccs_io_printf(head, "Shared:  %10u%s\n", shared, buffer);
++		if (quota_for_elements)
++			snprintf(buffer, sizeof(buffer) - 1,
++				 "   (Quota: %10u)", quota_for_elements);
++		else
++			buffer[0] = '\0';
++		ccs_io_printf(head, "Private: %10u%s\n", private, buffer);
++		ccs_io_printf(head, "Dynamic: %10u\n", dynamic);
++		if (quota_for_savename || quota_for_elements)
++			snprintf(buffer, sizeof(buffer) - 1,
++				 "   (Quota: %10u)",
++				 quota_for_savename + quota_for_elements);
++		else
++			buffer[0] = '\0';
++		ccs_io_printf(head, "Total:   %10u%s\n",
++			      shared + private + dynamic, buffer);
++		head->read_eof = true;
++	}
++	return 0;
++}
++
++/**
++ * ccs_write_memory_quota - Set memory quota.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns 0.
++ */
++int ccs_write_memory_quota(struct ccs_io_buffer *head)
++{
++	char *data = head->write_buf;
++	unsigned int size;
++	if (sscanf(data, "Shared: %u", &size) == 1)
++		quota_for_savename = size;
++	else if (sscanf(data, "Private: %u", &size) == 1)
++		quota_for_elements = size;
++	return 0;
++}
+Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1164)
++++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
+@@ -2694,28 +2694,6 @@
+ }
+ 
+ /**
+- * read_memory_counter - Check for memory usage.
+- *
+- * @head: Pointer to "struct ccs_io_buffer".
+- *
+- * Returns memory usage.
+- */
+-static int read_memory_counter(struct ccs_io_buffer *head)
+-{
+-	if (!head->read_eof) {
+-		const int shared = ccs_get_memory_used_for_save_name();
+-		const int private = ccs_get_memory_used_for_elements();
+-		const int dynamic = ccs_get_memory_used_for_dynamic();
+-		ccs_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
+-			      "Dynamic: %10u\nTotal:   %10u\n",
+-			      shared, private, dynamic,
+-			      shared + private + dynamic);
+-		head->read_eof = true;
+-	}
+-	return 0;
+-}
+-
+-/**
+  * read_self_domain - Get the current process's domainname.
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+@@ -2793,8 +2771,9 @@
+ 		head->readbuf_size = 128;
+ 		break;
+ 	case CCS_MEMINFO: /* /proc/ccs/meminfo */
+-		head->read = read_memory_counter;
+-		head->readbuf_size = 128;
++		head->write = ccs_write_memory_quota;
++		head->read = ccs_read_memory_counter;
++		head->readbuf_size = 512;
+ 		break;
+ 	case CCS_PROFILE: /* /proc/ccs/profile */
+ 		head->write = write_profile;
+@@ -2992,7 +2971,7 @@
+ 	 * So, the policy loader must open and close /proc/ccs/meminfo
+ 	 * when loading policy has finished.
+ 	 */
+-	else if (head->read == read_memory_counter)
++	else if (head->read == ccs_read_memory_counter)
+ 		profile_loaded = true;
+ 	/* Release memory used for policy I/O. */
+ 	ccs_free(head->read_buf);
+Index: trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(revision 1164)
++++ trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(working copy)
+@@ -218,7 +218,7 @@
+ 	create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
+ 	create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
+ 	create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
+-	create_entry("meminfo",          0400, ccs_dir, CCS_MEMINFO);
++	create_entry("meminfo",          0600, ccs_dir, CCS_MEMINFO);
+ 	create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
+ 	create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
+ 	create_entry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
