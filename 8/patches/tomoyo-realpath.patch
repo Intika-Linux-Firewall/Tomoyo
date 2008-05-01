@@ -1,0 +1,744 @@
+Subject: Memory and pathname management functions.
+
+TOMOYO Linux performs pathname based access control.
+To remove factors that make pathname based access control difficult
+(e.g. symbolic links, "..", "//" etc.), TOMOYO Linux derives realpath
+of requested pathname from "struct dentry" and "struct vfsmount".
+
+The maximum length of string data is limited to 4000 including trailing '\0'.
+Since TOMOYO Linux uses '\ooo' style representation for non ASCII printable
+characters, may be TOMOYO Linux should be able to support 16336 (which means
+(NAME_MAX * (PATH_MAX / (NAME_MAX + 1)) * 4 + (PATH_MAX / (NAME_MAX + 1)))
+including trailing '\0'), but I think 4000 is enough for practical use.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
+---
+ security/tomoyo/realpath.c |  655 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.h |   62 ++++
+ 2 files changed, 717 insertions(+)
+
+--- /dev/null
++++ mm/security/tomoyo/realpath.h
+@@ -0,0 +1,62 @@
++/*
++ * security/tomoyo/realpath.h
++ *
++ * Get the canonicalized absolute pathnames. The basis for TOMOYO.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 2.2.0-pre   2008/04/30
++ *
++ */
++
++#ifndef _LINUX_REALPATH_H
++#define _LINUX_REALPATH_H
++
++struct dentry;
++struct vfsmount;
++struct condition_list;
++struct path_info;
++
++/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
++int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
++			      char *newname, int newname_len);
++
++/*
++ * Returns realpath(3) of the given pathname but ignores chroot'ed root.
++ * These functions use tmy_alloc(), so caller must tmy_free()
++ * if these functions didn't return NULL.
++ */
++char *tmy_realpath(const char *pathname);
++/* Same with tmy_realpath() except that it doesn't follow the final symlink. */
++char *tmy_realpath_nofollow(const char *pathname);
++/* Same with tmy_realpath() except that the pathname is already solved. */
++char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
++
++/*
++ * Allocate memory for ACL entry.
++ * The RAM is chunked, so NEVER try to kfree() the returned pointer.
++ */
++void *tmy_alloc_element(const unsigned int size);
++
++/* Get used RAM size for tmy_alloc_elements(). */
++unsigned int tmy_get_memory_used_for_elements(void);
++
++/*
++ * Keep the given name on the RAM.
++ * The RAM is shared, so NEVER try to modify or kfree() the returned name.
++ */
++const struct path_info *tmy_save_name(const char *name);
++
++/* Get used RAM size for tmy_save_name(). */
++unsigned int tmy_get_memory_used_for_save_name(void);
++
++/* Allocate memory for temporary use (e.g. permission checks). */
++void *tmy_alloc(const size_t size);
++
++/* Get used RAM size for tmy_alloc(). */
++unsigned int tmy_get_memory_used_for_dynamic(void);
++
++/* Free memory allocated by tmy_alloc(). */
++void tmy_free(const void *p);
++
++#endif
+--- /dev/null
++++ mm/security/tomoyo/realpath.c
+@@ -0,0 +1,655 @@
++/*
++ * security/tomoyo/realpath.c
++ *
++ * Get the canonicalized absolute pathnames. The basis for TOMOYO.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 2.2.0-pre   2008/04/30
++ *
++ */
++
++#include <linux/types.h>
++#include <linux/mount.h>
++#include <linux/magic.h>
++#include <linux/sysctl.h>
++#include "common.h"
++#include "realpath.h"
++
++/**
++ * get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
++ *
++ * @dentry: Pointer to "struct dentry".
++ * @vfsmnt: Pointer to "struct vfsmount".
++ * @buffer: Pointer to buffer to return value in.
++ * @buflen: Sizeof @buffer.
++ *
++ * Returns 0 on success, -ENOMEM otherwise.
++ *
++ * Caller holds the dcache_lock and vfsmount_lock.
++ * Based on __d_path() in fs/dcache.c
++ *
++ * If dentry is a directory, trailing '/' is appended.
++ * Characters out of 0x20 < c < 0x7F range are converted to
++ * \ooo style octal string.
++ * Character \ is converted to \\ string.
++ */
++static int get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
++			     char *buffer, int buflen)
++{
++	/***** CRITICAL SECTION START *****/
++	char *start = buffer;
++	char *end = buffer + buflen;
++	bool is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
++
++	if (buflen < 256)
++		goto out;
++
++	*--end = '\0';
++	buflen--;
++
++	for (;;) {
++		struct dentry *parent;
++
++		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
++			/* Global root? */
++			if (vfsmnt->mnt_parent == vfsmnt)
++				break;
++			dentry = vfsmnt->mnt_mountpoint;
++			vfsmnt = vfsmnt->mnt_parent;
++			continue;
++		}
++		if (is_dir) {
++			is_dir = false;
++			*--end = '/';
++			buflen--;
++		}
++		parent = dentry->d_parent;
++		{
++			const char *sp = dentry->d_name.name;
++			const char *cp = sp + dentry->d_name.len - 1;
++			unsigned char c;
++
++			/*
++			 * Exception: Use /proc/self/ rather than
++			 * /proc/\$/ for current process.
++			 */
++			if (IS_ROOT(parent) && *sp > '0' && *sp <= '9' &&
++			    parent->d_sb &&
++			    parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
++				char *ep;
++				const pid_t pid
++					= (pid_t) simple_strtoul(sp, &ep, 10);
++				if (!*ep && pid == current->tgid) {
++					sp = "self";
++					cp = sp + 3;
++				}
++			}
++
++			while (sp <= cp) {
++				c = *(unsigned char *) cp;
++				if (c == '\\') {
++					buflen -= 2;
++					if (buflen < 0)
++						goto out;
++					*--end = '\\';
++					*--end = '\\';
++				} else if (c > ' ' && c < 127) {
++					if (--buflen < 0)
++						goto out;
++					*--end = (char) c;
++				} else {
++					buflen -= 4;
++					if (buflen < 0)
++						goto out;
++					*--end = (c & 7) + '0';
++					*--end = ((c >> 3) & 7) + '0';
++					*--end = (c >> 6) + '0';
++					*--end = '\\';
++				}
++				cp--;
++			}
++			if (--buflen < 0)
++				goto out;
++			*--end = '/';
++		}
++		dentry = parent;
++	}
++	if (*end == '/') {
++		buflen++;
++		end++;
++	}
++	{
++		const char *sp = dentry->d_name.name;
++		const char *cp = sp + dentry->d_name.len - 1;
++		unsigned char c;
++		while (sp <= cp) {
++			c = *(unsigned char *) cp;
++			if (c == '\\') {
++				buflen -= 2;
++				if (buflen < 0)
++					goto out;
++				*--end = '\\';
++				*--end = '\\';
++			} else if (c > ' ' && c < 127) {
++				if (--buflen < 0)
++					goto out;
++				*--end = (char) c;
++			} else {
++				buflen -= 4;
++				if (buflen < 0)
++					goto out;
++				*--end = (c & 7) + '0';
++				*--end = ((c >> 3) & 7) + '0';
++				*--end = (c >> 6) + '0';
++				*--end = '\\';
++			}
++			cp--;
++		}
++	}
++	/* Move the pathname to the top of the buffer. */
++	memmove(start, end, strlen(end) + 1);
++	return 0;
++out:
++	return -ENOMEM;
++	/***** CRITICAL SECTION END *****/
++}
++
++/**
++ * tmy_realpath_from_dentry2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
++ *
++ * @dentry:      Pointer to "struct dentry".
++ * @mnt:         Pointer to "struct vfsmount".
++ * @newname:     Pointer to buffer to return value in.
++ * @newname_len: Size of @newname.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
++			      char *newname, int newname_len)
++{
++	int error;
++	struct dentry *d_dentry;
++	struct vfsmount *d_mnt;
++	if (!dentry || !mnt || !newname || newname_len <= 0)
++		return -EINVAL;
++	d_dentry = dget(dentry);
++	d_mnt = mntget(mnt);
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&dcache_lock);
++	spin_lock(&vfsmount_lock);
++	error = get_absolute_path(d_dentry, d_mnt, newname, newname_len);
++	spin_unlock(&vfsmount_lock);
++	spin_unlock(&dcache_lock);
++	/***** CRITICAL SECTION END *****/
++	dput(d_dentry);
++	mntput(d_mnt);
++	if (error)
++		printk(KERN_WARNING "tmy_realpath: Pathname too long.\n");
++	return error;
++}
++
++/**
++ * tmy_realpath_from_dentry - Returns realpath(3) of the given pathname but ignores chroot'ed root.
++ *
++ * @dentry: Pointer to "struct dentry".
++ * @mnt:    Pointer to "struct vfsmount".
++ *
++ * Returns the realpath of the given @dentry and @mnt on success,
++ * NULL otherwise.
++ *
++ * These functions use tmy_alloc(), so caller must tmy_free()
++ * if these functions didn't return NULL.
++ */
++char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
++{
++	char *buf = tmy_alloc(sizeof(struct tmy_page_buffer));
++	if (buf && tmy_realpath_from_dentry2(dentry, mnt, buf,
++					     TMY_MAX_PATHNAME_LEN - 1) == 0)
++		return buf;
++	tmy_free(buf);
++	return NULL;
++}
++
++/**
++ * tmy_realpath - Get realpath of a pathname.
++ *
++ * @pathname: The pathname to solve.
++ *
++ * Returns the realpath of @pathname on success, NULL otherwise.
++ */
++char *tmy_realpath(const char *pathname)
++{
++	struct nameidata nd;
++	if (pathname && path_lookup(pathname, LOOKUP_FOLLOW, &nd) == 0) {
++		char *buf = tmy_realpath_from_dentry(nd.path.dentry,
++						     nd.path.mnt);
++		path_put(&nd.path);
++		return buf;
++	}
++	return NULL;
++}
++
++/**
++ * tmy_realpath_nofollow - Get realpath of a pathname.
++ *
++ * @pathname: The pathname to solve.
++ *
++ * Returns the realpath of @pathname on success, NULL otherwise.
++ */
++char *tmy_realpath_nofollow(const char *pathname)
++{
++	struct nameidata nd;
++	if (pathname && path_lookup(pathname, 0, &nd) == 0) {
++		char *buf = tmy_realpath_from_dentry(nd.path.dentry,
++						     nd.path.mnt);
++		path_put(&nd.path);
++		return buf;
++	}
++	return NULL;
++}
++
++/**
++ * round_up - Round up an integer so that the returned pointers are appropriately aligned.
++ *
++ * @size: Size in bytes.
++ *
++ * Returns rounded value of @size.
++ *
++ * FIXME: Are there more requirements that is needed for assigning value
++ * atomically?
++ */
++static inline unsigned int round_up(const unsigned int size)
++{
++	if (sizeof(void *) >= sizeof(long))
++		return ((size + sizeof(void *) - 1)
++			/ sizeof(void *)) * sizeof(void *);
++	else
++		return ((size + sizeof(long) - 1)
++			/ sizeof(long)) * sizeof(long);
++}
++
++static unsigned int allocated_memory_for_elements;
++
++/**
++ * tmy_get_memory_used_for_elements - Get memory used for keeping ACL structures.
++ *
++ * Returns memory used for keeping ACL structures.
++ */
++unsigned int tmy_get_memory_used_for_elements(void)
++{
++	return allocated_memory_for_elements;
++}
++
++/**
++ * tmy_alloc_element - Allocate permanent memory for structures.
++ *
++ * @size: Size in bytes.
++ *
++ * Returns pointer to allocated memory on success, NULL otherwise.
++ *
++ * The RAM is chunked, so NEVER try to kfree() the returned pointer.
++ */
++void *tmy_alloc_element(const unsigned int size)
++{
++	static DEFINE_MUTEX(lock);
++	static char *buf;
++	static unsigned int buf_used_len = PAGE_SIZE;
++	char *ptr = NULL;
++	const unsigned int word_aligned_size = round_up(size);
++	if (word_aligned_size > PAGE_SIZE)
++		return NULL;
++	mutex_lock(&lock);
++	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
++		ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
++		if (!ptr) {
++			printk(KERN_WARNING "ERROR: Out of memory "
++			       "for tmy_alloc_element().\n");
++			if (!sbin_init_started)
++				panic("MAC Initialization failed.\n");
++		} else {
++			buf = ptr;
++			allocated_memory_for_elements += PAGE_SIZE;
++			buf_used_len = word_aligned_size;
++			ptr = buf;
++		}
++	} else if (word_aligned_size) {
++		int i;
++		ptr = buf + buf_used_len;
++		buf_used_len += word_aligned_size;
++		for (i = 0; i < word_aligned_size; i++) {
++			if (!ptr[i])
++				continue;
++			printk(KERN_ERR "WARNING: Reserved memory was tainted! "
++			       "The system might go wrong.\n");
++			ptr[i] = '\0';
++		}
++	}
++	mutex_unlock(&lock);
++	return ptr;
++}
++
++static unsigned int allocated_memory_for_savename;
++
++/**
++ * tmy_get_memory_used_for_save_name - Get memory used for keeping string data.
++ *
++ * Returns memory used for keeping string data.
++ */
++unsigned int tmy_get_memory_used_for_save_name(void)
++{
++	return allocated_memory_for_savename;
++}
++
++#define MAX_HASH 256
++
++/* Structure for string data. */
++struct name_entry {
++	struct list1_head list;
++	struct path_info entry;
++};
++
++/* Structure for available memory region. */
++struct free_memory_block_list {
++	struct list_head list;
++	char *ptr;             /* Pointer to a free area. */
++	int len;               /* Length of the area.     */
++};
++
++/* The list for "struct name_entry". */
++static struct list1_head name_list[MAX_HASH];
++
++/**
++ * tmy_save_name - Allocate permanent memory for string data.
++ *
++ * @name: The string to store into the permernent memory.
++ *
++ * Returns pointer to "struct path_info" on success, NULL otherwise.
++ *
++ * The RAM is shared, so NEVER try to modify or kfree() the returned name.
++ */
++const struct path_info *tmy_save_name(const char *name)
++{
++	static LIST_HEAD(fmb_list);
++	static DEFINE_MUTEX(lock);
++	struct name_entry *ptr;
++	unsigned int hash;
++	struct free_memory_block_list *fmb;
++	int len;
++	char *cp;
++	if (!name)
++		return NULL;
++	len = strlen(name) + 1;
++	if (len > TMY_MAX_PATHNAME_LEN) {
++		printk(KERN_WARNING "ERROR: Name too long "
++		       "for tmy_save_name().\n");
++		return NULL;
++	}
++	hash = full_name_hash((const unsigned char *) name, len - 1);
++	mutex_lock(&lock);
++	list1_for_each_entry(ptr, &name_list[hash % MAX_HASH], list) {
++		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
++			goto out;
++	}
++	list_for_each_entry(fmb, &fmb_list, list) {
++		if (len <= fmb->len)
++			goto ready;
++	}
++	cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
++	fmb = kzalloc(sizeof(*fmb), GFP_KERNEL);
++	if (!cp || !fmb) {
++		kfree(cp);
++		kfree(fmb);
++		printk(KERN_WARNING "ERROR: Out of memory "
++		       "for tmy_save_name().\n");
++		if (!sbin_init_started)
++			panic("MAC Initialization failed.\n");
++		ptr = NULL;
++		goto out;
++	}
++	allocated_memory_for_savename += PAGE_SIZE;
++	list_add(&fmb->list, &fmb_list);
++	fmb->ptr = cp;
++	fmb->len = PAGE_SIZE;
++ready:
++	ptr = tmy_alloc_element(sizeof(*ptr));
++	if (!ptr)
++		goto out;
++	ptr->entry.name = fmb->ptr;
++	memmove(fmb->ptr, name, len);
++	tmy_fill_path_info(&ptr->entry);
++	fmb->ptr += len;
++	fmb->len -= len;
++	list1_add_tail_mb(&ptr->list, &name_list[hash % MAX_HASH]);
++	if (fmb->len == 0) {
++		list_del(&fmb->list);
++		kfree(fmb);
++	}
++out:
++	mutex_unlock(&lock);
++	return ptr ? &ptr->entry : NULL;
++}
++
++/* Structure for temporarily allocated memory. */
++struct cache_entry {
++	struct list_head list;
++	void *ptr;
++	int size;
++};
++
++static struct kmem_cache *tmy_cachep;
++
++/**
++ * tmy_realpath_init - Initialize realpath related code.
++ *
++ * Returns 0.
++ */
++static int __init tmy_realpath_init(void)
++{
++	int i;
++	if (TMY_MAX_PATHNAME_LEN > PAGE_SIZE)
++		panic("Bad size.");
++	tmy_cachep = kmem_cache_create("tmy_cache", sizeof(struct cache_entry),
++				       0, 0, NULL);
++	if (!tmy_cachep)
++		panic("Can't create cache.\n");
++	for (i = 0; i < MAX_HASH; i++)
++		INIT_LIST1_HEAD(&name_list[i]);
++	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
++	KERNEL_DOMAIN.domainname = tmy_save_name(ROOT_NAME);
++	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
++	if (tmy_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
++		panic("Can't register KERNEL_DOMAIN");
++	return 0;
++}
++
++security_initcall(tmy_realpath_init);
++
++/* The list for "struct cache_entry". */
++static LIST_HEAD(cache_list);
++
++static DEFINE_SPINLOCK(cache_list_lock);
++
++static unsigned int dynamic_memory_size;
++
++/**
++ * tmy_get_memory_used_for_dynamic - Get memory used for temporal purpose.
++ *
++ * Returns memory used for temporal purpose.
++ */
++unsigned int tmy_get_memory_used_for_dynamic(void)
++{
++	return dynamic_memory_size;
++}
++
++/**
++ * tmy_alloc - Allocate memory for temporal purpose.
++ *
++ * @size: Size in bytes.
++ *
++ * Returns pointer to allocated memory on success, NULL otherwise.
++ */
++void *tmy_alloc(const size_t size)
++{
++	struct cache_entry *new_entry;
++	void *ret = kzalloc(size, GFP_KERNEL);
++	if (!ret)
++		goto out;
++	new_entry = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
++	if (!new_entry) {
++		kfree(ret);
++		ret = NULL;
++		goto out;
++	}
++	INIT_LIST_HEAD(&new_entry->list);
++	new_entry->ptr = ret;
++	new_entry->size = ksize(ret);
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&cache_list_lock);
++	list_add_tail(&new_entry->list, &cache_list);
++	dynamic_memory_size += new_entry->size;
++	spin_unlock(&cache_list_lock);
++	/***** CRITICAL SECTION END *****/
++out:
++	return ret;
++}
++
++/**
++ * tmy_free - Release memory allocated by tmy_alloc().
++ *
++ * @p: Pointer returned by tmy_alloc(). May be NULL.
++ *
++ * Returns nothing.
++ */
++void tmy_free(const void *p)
++{
++	struct list_head *v;
++	struct cache_entry *entry = NULL;
++	if (!p)
++		return;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&cache_list_lock);
++	list_for_each(v, &cache_list) {
++		entry = list_entry(v, struct cache_entry, list);
++		if (entry->ptr != p) {
++			entry = NULL;
++			continue;
++		}
++		list_del(&entry->list);
++		dynamic_memory_size -= entry->size;
++		break;
++	}
++	spin_unlock(&cache_list_lock);
++	/***** CRITICAL SECTION END *****/
++	if (entry) {
++		kfree(p);
++		kmem_cache_free(tmy_cachep, entry);
++	} else {
++		printk(KERN_WARNING "BUG: tmy_free() with invalid pointer.\n");
++	}
++}
++
++static int tmy_print_ascii(const char *sp, const char *cp,
++			   int *buflen0, char **end0)
++{
++	int buflen = *buflen0;
++	char *end = *end0;
++
++	while (sp <= cp) {
++		unsigned char c;
++
++		c = *(unsigned char *) cp;
++		if (c == '\\') {
++			buflen -= 2;
++			if (buflen < 0)
++				goto out;
++			*--end = '\\';
++			*--end = '\\';
++		} else if (c > ' ' && c < 127) {
++			if (--buflen < 0)
++				goto out;
++			*--end = (char) c;
++		} else {
++			buflen -= 4;
++			if (buflen < 0)
++				goto out;
++			*--end = (c & 7) + '0';
++			*--end = ((c >> 3) & 7) + '0';
++			*--end = (c >> 6) + '0';
++			*--end = '\\';
++		}
++		cp--;
++	}
++
++	*buflen0 = buflen;
++	*end0 = end;
++
++	return 0;
++out:
++	return -ENOMEM;
++}
++
++
++/* tmy_get_absolute_path() for "struct ctl_table". */
++static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
++{
++	char *end = buffer + buflen;
++
++	if (buflen < 256)
++		goto out;
++
++	*--end = '\0';
++	buflen--;
++
++	buflen -= 9; /* for "/proc/sys" prefix */
++
++	while (table) {
++		char buf[32];
++		const char *sp = table->procname;
++		const char *cp;
++
++		if (!sp) {
++			memset(buf, 0, sizeof(buf));
++			snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
++			sp = buf;
++		}
++		cp = strchr(sp, '\0') - 1;
++
++		if (tmy_print_ascii(sp, cp, &buflen, &end))
++			goto out;
++
++		if (--buflen < 0)
++			goto out;
++
++		*--end = '/';
++		table = table->parent;
++	}
++
++	/* Move the pathname to the top of the buffer. */
++	memmove(buffer, "/proc/sys", 9);
++	memmove(buffer + 9, end, strlen(end) + 1);
++	return 0;
++out: ;
++	return -ENOMEM;
++}
++
++/**
++ * sysctlpath_from_table - return the realpath of a ctl_table.
++ * @table: pointer to "struct ctl_table".
++ *
++ * Returns realpath(3) of the @table on success.
++ * Returns NULL on failure.
++ *
++ * This function uses tmy_alloc(), so caller must call tmy_free()
++ * if this function didn't return NULL.
++ */
++char *sysctlpath_from_table(struct ctl_table *table)
++{
++	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
++
++	if (buf && tmy_sysctl_path(table, buf, TMY_MAX_PATHNAME_LEN - 1) == 0)
++		return buf;
++
++	tmy_free(buf);
++	return NULL;
++}
