@@ -219,14 +219,15 @@ cd linux-source-2.6.18/<br>
 # TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz<br>
 tar -zxf ccs-patch-1.6.0-20080401.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-18etch1.diff<br>
+wget -O patches/ccs-patch-2.6.18-18etch3.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18-18etch3.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.18-18etch3.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
 # initrd を作成する。<br>
-mkinitrd -o /boot/initrd.img-2.6.18-18etch1-ccs 2.6.18-18etch1-ccs
+mkinitrd -o /boot/initrd.img-2.6.18-18etch3-ccs 2.6.18-18etch3-ccs
 </td></tr>
 </table>
 
