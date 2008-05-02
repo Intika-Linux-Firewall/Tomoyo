@@ -4,9 +4,9 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  398 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  102 ++++++++++++
- 2 files changed, 500 insertions(+)
+ security/tomoyo/tomoyo.c |  416 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  102 +++++++++++
+ 2 files changed, 518 insertions(+)
 
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo.h
@@ -115,7 +115,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 --- /dev/null
 +++ mm/security/tomoyo/tomoyo.c
-@@ -0,0 +1,398 @@
+@@ -0,0 +1,416 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -240,12 +240,30 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				    path->mnt);
 +}
 +
-+static int tmy_inode_create(struct inode *dir, struct dentry *dentry,
-+			    struct vfsmount *mnt, int mode)
++static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry,
++				 struct nameidata *nd)
 +{
-+	if (!mnt)
++	int error = may_create(dir, dentry, nd);
++
++	if (error)
++		return error;
++
++	if (!dir->i_op || !dir->i_op->create)
++		return -EACCES;	/* shouldn't it be ENOSYS? */
++	return 0;
++}
++
++static int tmy_path_create(struct path *dir, struct dentry *dentry, int mode,
++			   struct nameidata *nd)
++{
++	int error;
++
++	if (!nd || !nd->path.mnt)
 +		return 0;
-+	return tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry, mnt);
++	error = pre_vfs_create(dir->dentry->d_inode, dentry, nd);
++	if (error)
++		return error;
++	return tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry, nd->path.mnt);
 +}
 +
 +static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
@@ -478,7 +496,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.sysctl                    = tmy_sysctl,
 +	.inode_permission          = tmy_inode_permission,
 +	.path_truncate             = tmy_path_truncate,
-+	.inode_create              = tmy_inode_create,
++	.path_create               = tmy_path_create,
 +	.path_unlink               = tmy_path_unlink,
 +	.path_mkdir                = tmy_path_mkdir,
 +	.path_rmdir                = tmy_path_rmdir,
