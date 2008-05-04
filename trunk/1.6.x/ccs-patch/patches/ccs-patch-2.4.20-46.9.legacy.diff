@@ -32,7 +32,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  fs/ioctl.c                   |    9 +++
  fs/namei.c                   |  127 +++++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   58 +++++++++++++++++++
- fs/open.c                    |   30 ++++++++++
+ fs/open.c                    |   29 +++++++++
  fs/proc/Makefile             |    4 +
  fs/proc/proc_misc.c          |    5 +
  include/linux/sched.h        |   13 ++++
@@ -50,7 +50,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |   11 +++
  net/socket.c                 |   40 ++++++++++++-
  net/unix/af_unix.c           |   15 +++++
- 48 files changed, 864 insertions(+), 7 deletions(-)
+ 48 files changed, 863 insertions(+), 7 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -1150,7 +1150,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -213,6 +225,12 @@ static inline long do_sys_ftruncate(unsi
+@@ -213,6 +225,11 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -1159,11 +1159,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
 +	if (error)
 +		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
-+
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -449,6 +467,14 @@ asmlinkage long sys_chroot(const char * 
+@@ -449,6 +466,14 @@ asmlinkage long sys_chroot(const char * 
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -1178,7 +1177,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -882,6 +908,10 @@ out_unlock:
+@@ -882,6 +907,10 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {

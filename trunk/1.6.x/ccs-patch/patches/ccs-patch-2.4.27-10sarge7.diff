@@ -33,7 +33,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  fs/ioctl.c                   |    9 +++
  fs/namei.c                   |  127 +++++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   58 +++++++++++++++++++
- fs/open.c                    |   28 +++++++++
+ fs/open.c                    |   29 +++++++++
  fs/proc/Makefile             |    4 +
  fs/proc/proc_misc.c          |    5 +
  include/linux/sched.h        |   13 ++++
@@ -51,7 +51,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  net/ipv6/udp.c               |   11 +++
  net/socket.c                 |   40 ++++++++++++-
  net/unix/af_unix.c           |   15 +++++
- 49 files changed, 865 insertions(+), 7 deletions(-)
+ 49 files changed, 866 insertions(+), 7 deletions(-)
 
 --- kernel-source-2.4.27-10sarge7.orig/Documentation/Configure.help
 +++ kernel-source-2.4.27-10sarge7/Documentation/Configure.help
@@ -697,7 +697,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  int vfs_statfs(struct super_block *sb, struct statfs *buf)
  {
  	int retval = -ENODEV;
-@@ -162,6 +169,10 @@ static inline long do_sys_truncate(const
+@@ -162,6 +169,11 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -705,10 +705,11 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
 +	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
++
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -215,6 +226,11 @@ static inline long do_sys_ftruncate(unsi
+@@ -215,6 +227,11 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -720,7 +721,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -464,6 +480,14 @@ asmlinkage long sys_chroot(const char * 
+@@ -464,6 +481,14 @@ asmlinkage long sys_chroot(const char * 
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -735,7 +736,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -895,6 +919,10 @@ out_unlock:
+@@ -895,6 +920,10 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
