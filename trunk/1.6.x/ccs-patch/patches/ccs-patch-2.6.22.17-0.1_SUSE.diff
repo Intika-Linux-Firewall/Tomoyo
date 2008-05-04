@@ -756,8 +756,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	if (!IS_ERR(dentry)) {
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 -		error = vfs_symlink(base->d_inode, dentry, oldname, S_IALLUGO);
-+		error = vfs_symlink(base->d_inode, dentry, NULL,
-+				    oldname, S_IALLUGO);
++		error = vfs_symlink(base->d_inode, dentry, NULL, oldname,
++				    S_IALLUGO);
  #else
  		error = vfs_symlink(base->d_inode, dentry, oldname);
  #endif
