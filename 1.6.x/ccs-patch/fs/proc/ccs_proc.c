@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1-rc   2008/04/24
+ * Version: 1.6.1-rc   2008/05/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -218,7 +218,7 @@ static int __init ccs_proc_init(void)
 	create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
 	create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
 	create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
-	create_entry("meminfo",          0400, ccs_dir, CCS_MEMINFO);
+	create_entry("meminfo",          0600, ccs_dir, CCS_MEMINFO);
 	create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
 	create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
 	create_entry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);

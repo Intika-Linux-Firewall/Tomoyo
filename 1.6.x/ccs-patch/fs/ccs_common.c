@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1-rc   2008/04/24
+ * Version: 1.6.1-rc   2008/05/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -89,7 +89,7 @@ static struct {
 
 #ifdef CONFIG_TOMOYO
 /* Capability name used by domain policy. */
-const char *capability_control_keyword[TOMOYO_MAX_CAPABILITY_INDEX] = {
+static const char *capability_control_keyword[TOMOYO_MAX_CAPABILITY_INDEX] = {
 	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
 	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
 	[TOMOYO_INET_STREAM_SOCKET_CONNECT] = "inet_tcp_connect",
@@ -1900,6 +1900,7 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 	list1_for_each_cookie(dpos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
 		const char *quota_exceeded = "";
+		const char *transition_failed = "";
 		const char *ignore_global_allow_read = "";
 		const char *ignore_global_allow_env = "";
 		domain = list1_entry(dpos, struct domain_info, list);
@@ -1910,6 +1911,8 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 		/* Print domainname and flags. */
 		if (domain->quota_warned)
 			quota_exceeded = "quota_exceeded\n";
+		if (domain->flags & DOMAIN_FLAGS_TRANSITION_FAILED)
+			transition_failed = "transition_failed\n";
 		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ)
 			ignore_global_allow_read
 				= KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
@@ -1917,8 +1920,9 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 			ignore_global_allow_env
 				= KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
 		if (!ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
-				   "%s%s%s\n", domain->domainname->name,
+				   "%s%s%s%s\n", domain->domainname->name,
 				   domain->profile, quota_exceeded,
+				   transition_failed,
 				   ignore_global_allow_read,
 				   ignore_global_allow_env))
 			return 0;
@@ -2345,10 +2349,10 @@ void ccs_load_policy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.1-rc   2008/04/24\n");
+	printk(KERN_INFO "SAKURA: 1.6.1-rc   2008/05/06\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.1-rc   2008/04/24\n");
+	printk(KERN_INFO "TOMOYO: 1.6.1-rc   2008/05/06\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2694,28 +2698,6 @@ static int read_version(struct ccs_io_buffer *head)
 }
 
 /**
- * read_memory_counter - Check for memory usage.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns memory usage.
- */
-static int read_memory_counter(struct ccs_io_buffer *head)
-{
-	if (!head->read_eof) {
-		const int shared = ccs_get_memory_used_for_save_name();
-		const int private = ccs_get_memory_used_for_elements();
-		const int dynamic = ccs_get_memory_used_for_dynamic();
-		ccs_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
-			      "Dynamic: %10u\nTotal:   %10u\n",
-			      shared, private, dynamic,
-			      shared + private + dynamic);
-		head->read_eof = true;
-	}
-	return 0;
-}
-
-/**
  * read_self_domain - Get the current process's domainname.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -2793,8 +2775,9 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->readbuf_size = 128;
 		break;
 	case CCS_MEMINFO: /* /proc/ccs/meminfo */
-		head->read = read_memory_counter;
-		head->readbuf_size = 128;
+		head->write = ccs_write_memory_quota;
+		head->read = ccs_read_memory_counter;
+		head->readbuf_size = 512;
 		break;
 	case CCS_PROFILE: /* /proc/ccs/profile */
 		head->write = write_profile;
@@ -2992,7 +2975,7 @@ int ccs_close_control(struct file *file)
 	 * So, the policy loader must open and close /proc/ccs/meminfo
 	 * when loading policy has finished.
 	 */
-	else if (head->read == read_memory_counter)
+	else if (head->read == ccs_read_memory_counter)
 		profile_loaded = true;
 	/* Release memory used for policy I/O. */
 	ccs_free(head->read_buf);

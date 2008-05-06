@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1-rc   2008/04/24
+ * Version: 1.6.1-rc   2008/05/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -308,16 +308,7 @@ static inline unsigned int round_up(const unsigned int size)
 }
 
 static unsigned int allocated_memory_for_elements;
-
-/**
- * ccs_get_memory_used_for_elements - Get memory used for keeping ACL structures.
- *
- * Returns memory used for keeping ACL structures.
- */
-unsigned int ccs_get_memory_used_for_elements(void)
-{
-	return allocated_memory_for_elements;
-}
+static unsigned int quota_for_elements;
 
 /**
  * ccs_alloc_element - Allocate permanent memory for structures.
@@ -339,7 +330,9 @@ void *ccs_alloc_element(const unsigned int size)
 		return NULL;
 	mutex_lock(&lock);
 	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
-		ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
+		if (!quota_for_elements || allocated_memory_for_elements
+		    + PAGE_SIZE <= quota_for_elements)
+			ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
 		if (!ptr) {
 			printk(KERN_WARNING "ERROR: Out of memory "
 			       "for ccs_alloc_element().\n");
@@ -368,16 +361,7 @@ void *ccs_alloc_element(const unsigned int size)
 }
 
 static unsigned int allocated_memory_for_savename;
-
-/**
- * ccs_get_memory_used_for_save_name - Get memory used for keeping string data.
- *
- * Returns memory used for keeping string data.
- */
-unsigned int ccs_get_memory_used_for_save_name(void)
-{
-	return allocated_memory_for_savename;
-}
+static unsigned int quota_for_savename;
 
 #define MAX_HASH 256
 
@@ -433,7 +417,11 @@ const struct path_info *ccs_save_name(const char *name)
 		if (len <= fmb->len)
 			goto ready;
 	}
-	cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
+	if (!quota_for_savename || allocated_memory_for_savename + PAGE_SIZE
+	    <= quota_for_savename)
+		cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
+	else
+		cp = NULL;
 	fmb = kzalloc(sizeof(*fmb), GFP_KERNEL);
 	if (!cp || !fmb) {
 		kfree(cp);
@@ -522,16 +510,6 @@ static LIST_HEAD(cache_list);
 static DEFINE_SPINLOCK(cache_list_lock);
 
 static unsigned int dynamic_memory_size;
-
-/**
- * ccs_get_memory_used_for_dynamic - Get memory used for temporal purpose.
- *
- * Returns memory used for temporal purpose.
- */
-unsigned int ccs_get_memory_used_for_dynamic(void)
-{
-	return dynamic_memory_size;
-}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 /**
@@ -623,4 +601,57 @@ void ccs_free(const void *p)
 	} else {
 		printk(KERN_WARNING "BUG: ccs_free() with invalid pointer.\n");
 	}
+}
+
+/**
+ * ccs_read_memory_counter - Check for memory usage.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns memory usage.
+ */
+int ccs_read_memory_counter(struct ccs_io_buffer *head)
+{
+	if (!head->read_eof) {
+		const unsigned int shared = allocated_memory_for_savename;
+		const unsigned int private = allocated_memory_for_elements;
+		const unsigned int dynamic = dynamic_memory_size;
+		char buffer[64];
+		memset(buffer, 0, sizeof(buffer));
+		if (quota_for_savename)
+			snprintf(buffer, sizeof(buffer) - 1,
+				 "   (Quota: %10u)", quota_for_savename);
+		else
+			buffer[0] = '\0';
+		ccs_io_printf(head, "Shared:  %10u%s\n", shared, buffer);
+		if (quota_for_elements)
+			snprintf(buffer, sizeof(buffer) - 1,
+				 "   (Quota: %10u)", quota_for_elements);
+		else
+			buffer[0] = '\0';
+		ccs_io_printf(head, "Private: %10u%s\n", private, buffer);
+		ccs_io_printf(head, "Dynamic: %10u\n", dynamic);
+		ccs_io_printf(head, "Total:   %10u\n",
+			      shared + private + dynamic);
+		head->read_eof = true;
+	}
+	return 0;
+}
+
+/**
+ * ccs_write_memory_quota - Set memory quota.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns 0.
+ */
+int ccs_write_memory_quota(struct ccs_io_buffer *head)
+{
+	char *data = head->write_buf;
+	unsigned int size;
+	if (sscanf(data, "Shared: %u", &size) == 1)
+		quota_for_savename = size;
+	else if (sscanf(data, "Private: %u", &size) == 1)
+		quota_for_elements = size;
+	return 0;
 }

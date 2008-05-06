@@ -1397,12 +1397,34 @@ Fix 2008/04/21
       resulting runtime BUG().
       I added the expected code explicitly as a workaround.
 
-Fix 2008/04/25
+Fix 2008/05/06
 
-    @ Return -ENOMEM when find_next_domain() failed to create a new domain.
+    @ Add memory quota.
 
       1.5.x returns -ENOMEM when FindNextDomain() failed to create a new
-      domain, but I forgot to return -ENOMEM when find_next_domain()
-      failed to create a new domain.
+      domain, but I forgot to return -ENOMEM when find_next_domain() failed to
+      create a new domain.
 
-Version 1.6.1 2008/??/??   Environment dependent bug fix release.
+      A domain is automatically created by find_next_domain() only if
+      the domain for the requested program doesn't exist.
+      This behavior is for the administrator's convenience.
+      The administrator needn't to know how many domains are needed for running
+      the whole programs in the system beforehand when developing the policy.
+      But the administrator does not want the kernel to reject execution of the
+      requested program when developing the policy.
+
+      So, I think it is better to grant execution of programs even if
+      find_next_domain() failed to create a new domain than reject execution.
+      Thus, I decided not to return -ENOMEM when find_next_domain() failed to
+      create a new domain. This exception breaks the domain transition rules,
+      so I print "transition_failed" warning in /proc/ccs/domain_policy
+      when this exception happened.
+
+      Also, to prevent the system from being halted by unexpectedly allocating
+      all kernel memory for the policy, I added memory quota.
+      This quota is configurable via /proc/ccs/meminfo like
+
+        echo Shared:  1048576 > /proc/ccs/meminfo
+        echo Private: 1048576 > /proc/ccs/meminfo
+
+Version 1.6.1 2008/05/??   Bug fix release.

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1-rc   2008/04/24
+ * Version: 1.6.1-rc   2008/05/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -19,6 +19,7 @@ struct dentry;
 struct vfsmount;
 struct condition_list;
 struct path_info;
+struct ccs_io_buffer;
 
 /* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
 int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
@@ -41,25 +42,22 @@ char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
  */
 void *ccs_alloc_element(const unsigned int size);
 
-/* Get used RAM size for ccs_alloc_elements(). */
-unsigned int ccs_get_memory_used_for_elements(void);
-
 /*
  * Keep the given name on the RAM.
  * The RAM is shared, so NEVER try to modify or kfree() the returned name.
  */
 const struct path_info *ccs_save_name(const char *name);
 
-/* Get used RAM size for ccs_save_name(). */
-unsigned int ccs_get_memory_used_for_save_name(void);
-
 /* Allocate memory for temporary use (e.g. permission checks). */
 void *ccs_alloc(const size_t size);
 
-/* Get used RAM size for ccs_alloc(). */
-unsigned int ccs_get_memory_used_for_dynamic(void);
-
 /* Free memory allocated by ccs_alloc(). */
 void ccs_free(const void *p);
+
+/* Check for memory usage. */
+int ccs_read_memory_counter(struct ccs_io_buffer *head);
+
+/* Set memory quota. */
+int ccs_write_memory_quota(struct ccs_io_buffer *head);
 
 #endif
