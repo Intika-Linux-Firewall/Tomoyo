@@ -47,23 +47,23 @@
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.18-18etch1-ccs-i586_1.6.0_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.18-6-686-ccs1.6.0-i686_2.6.18.dfsg.1-18etch3_i386.deb</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">dpkg --install linux-image-2.6.18-18etch1-ccs-i586_1.6.0_i386.deb</span>
+# <span class="user">dpkg --install linux-image-2.6.18-6-686-ccs1.6.0-i686_2.6.18.dfsg.1-18etch3_i386.deb</span>
+# <span class="user">update-grub</span>
 </pre>
 
 <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 
 <pre>
-title       Debian GNU/Linux, kernel 2.6.18-18etch1-ccs
+title       Debian GNU/Linux, kernel 2.6.18-6-686-ccs
 root        (hd0,0)
-kernel      /boot/vmlinuz-2.6.18-18etch1-ccs root=/dev/sda1 ro noapic nolapic
-initrd      /boot/initrd.img-2.6.18-18etch1-ccs
-savedefault
+kernel      /boot/vmlinuz-2.6.18-6-686-ccs root=/dev/sda1 ro
+initrd      /boot/initrd.img-2.6.18-6-686-ccs
 </pre>
 
 <p>今後カーネルの選択を行いやすくするために、 /boot/grub/menu.lstの"timeout="の行をコメントアウトしておきます。</p>
@@ -116,17 +116,17 @@ bashを使っている場合には以下のようにします。</p>
 
 <pre>
 0-COMMENT=-----DISABLED_MODE-----
-0-MAC_FOR_FILE=0
-0-TOMOYO_VERBOSE=0
+0-MAC_FOR_FILE=disabled
+0-TOMOYO_VERBOSE=disabled
 1-COMMENT=-----LEARNING_MODE-----
-1-MAC_FOR_FILE=1
-1-TOMOYO_VERBOSE=0
+1-MAC_FOR_FILE=learning
+1-TOMOYO_VERBOSE=disabled
 2-COMMENT=-----PERMISSIVE_MODE-----
-2-MAC_FOF_FILE=2
-2-TOMOYO_VERBOSE=1
+2-MAC_FOF_FILE=permissive
+2-TOMOYO_VERBOSE=enabled
 3-COMMENT=-----ENFORCE_MODE-----
-3-MAC_FOR_FILE=3
-3-TOMOYO_VERBOSE=1
+3-MAC_FOR_FILE=enforcing
+3-TOMOYO_VERBOSE=enabled
 </pre>
 
 <p>profile.confの1行は以下のような構文になっています。</p>
@@ -141,10 +141,10 @@ bashを使っている場合には以下のようにします。</p>
 <p>設定項目COMMENTは、プロファイルを区別しやすくするためのコメントで、TOMOYO Linuxの機能には影響を与えません。</p>
 
 <p>設定項目MAC_FOR_FILEは「ファイルに対するアクセス制御」を表しており、
-制御モードが0なら無効、1なら学習、2なら確認（アクセス拒否ログを出力するが実際には拒否しない）、3なら強制、という設定が行えます。</p>
+制御モードがdisabledなら無効、learningなら学習、permissiveなら確認（アクセス拒否ログを出力するが実際には拒否しない）、enforcingなら強制、という設定が行えます。</p>
 
 <p>設定項目TOMOYO_VERBOSEは「アクセス拒否の情報をコンソールに出力するかどうか」を表しており、
-制御モードが0なら出力なし、1なら出力ありになります。</p>
+制御モードがdisabledなら出力なし、enabledなら出力ありになります。</p>
 
 <p>上記設定では、プロファイル番号が0～3の4つのプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
 
@@ -176,16 +176,21 @@ bashを使っている場合には以下のようにします。</p>
 
 <h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf には以下の7種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf には以下の12種類の例外が指定されています。</p>
 
 <ol>
-<li>/proc/PID のように同様のパス名をパターン化する際のパターン名</li>
+<li>パス名のパターン</li>
+<li>パス名のグループ</li>
+<li>IPアドレスのグループ</li>
 <li>すべてのプログラムに対して参照することを許可するパス名</li>
-<li>デーモンとして動作させるプログラムのパス名</li>
-<li>ドメイン遷移を行わないドメイン</li>
-<li>追記を許可して書き換えを禁止するファイルのパス名</li>
-<li>1つに集約して扱うプログラムのパス名</li>
+<li>すべてのプログラムに対して渡すことを許可する環境変数名</li>
+<li>デフォルトで上書きを禁止するパス名</li>
 <li>シンボリックリンクの名前で実行するプログラムのパス名</li>
+<li>1つに集約して扱うプログラムのパス名</li>
+<li>ドメイン遷移を初期化させるプログラム</li>
+<li>ドメイン遷移を初期化させないプログラム</li>
+<li>ドメイン遷移を行わないプログラム</li>
+<li>ドメイン遷移を行わせるプログラム</li>
 </ol>
 
 <h2><a name="l5">監査ログの取得準備</a></h2>
@@ -317,7 +322,7 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
 <blockquote>
 <p>&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
 <ul>
-<li>/etc/passwdへの読み込みアクセスを許可する（青下線）</li>
+<li>/etc/passwdを読み込みモードでオープンできる（青下線）</li>
 </ul>
 </blockquote>
 
@@ -371,23 +376,23 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
 
 <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 
-<pre>
-#2007-09-23 15:22:24# pid=2229 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash
-1 /usr/bin/tail
-
-#2007-09-23 15:22:24# pid=2229 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash
-4 /usr/bin/tail
-
-#2007-09-23 15:22:33# pid=2230 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
-4 /etc/shadow
-
-#2007-09-23 15:22:38# pid=2232 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh
-1 /bin/date
-</pre>
+<blockquote>
+#2008-05-06 09:18:28# profile=3 mode=enforcing pid=2311 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=14 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tail" }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_execute /usr/bin/tail<br>
+<br>
+#2008-05-06 09:18:28# profile=3 mode=enforcing pid=2311 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_read /usr/bin/tail<br>
+<br>
+#2008-05-06 09:18:39# profile=3 mode=enforcing pid=2312 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
+allow_read /etc/shadow<br>
+<br>
+#2008-05-06 09:18:48# profile=3 mode=enforcing pid=2314 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=20 argv[]={ "date" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i486-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i486" "GROUP=root" "HOST=tomoyo" }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh<br>
+allow_execute /bin/date
+</blockquote>
 
 <p>このようにTOMOYO Linuxのファイルに対するアクセス制御を用いれば、</p>
 
