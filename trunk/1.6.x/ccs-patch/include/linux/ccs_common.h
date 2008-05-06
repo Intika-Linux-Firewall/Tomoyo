@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1-rc   2008/04/24
+ * Version: 1.6.1-rc   2008/05/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -298,7 +298,7 @@ struct domain_info {
 	u8 profile;        /* Profile number to use. */
 	u8 is_deleted;     /* Delete flag.           */
 	bool quota_warned; /* Quota warnning flag.   */
-	/* DOMAIN_FLAGS_IGNORE_*. Use ccs_set_domain_flag() to modify. */
+	/* DOMAIN_FLAGS_*. Use ccs_set_domain_flag() to modify. */
 	u8 flags;
 };
 
@@ -309,6 +309,13 @@ struct domain_info {
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
 /* Ignore "allow_env" directive in exception policy.  */
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2
+/*
+ * This domain was unable to create a new domain at ccs_find_next_domain()
+ * because the name of the domain to be created was too long or
+ * it could not allocate memory.
+ * More than one process continued execve() without domain transition.
+ */
+#define DOMAIN_FLAGS_TRANSITION_FAILED        4
 
 /*
  * Structure for "execute_handler" and "denied_execute_handler" directive.
