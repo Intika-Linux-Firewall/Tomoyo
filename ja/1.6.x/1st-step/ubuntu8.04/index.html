@@ -3,13 +3,13 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux 導入手順書 （Ubuntu 6.10版）</title>
+<title>TOMOYO Linux 導入手順書 （Ubuntu 8.04版）</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
-<p style="text-align:right;"><a href="../../../../en/1.6.x/1st-step/ubuntu6.10/index.html">English Page</a></p>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （Ubuntu 6.10版）</h1>
+<p style="text-align:right;"><a href="../../../../en/1.6.x/1st-step/ubuntu8.04/index.html">English Page</a></p>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （Ubuntu 8.04版）</h1>
 
 <ul>
 <li><a href="#l1">概要</a></li>
@@ -28,7 +28,7 @@
 
 <h2><a name="l1">概要</a></h2>
 
-<p>以下では、Ubuntu 6.10にTOMOYO Linux 1.6.0を導入する手順を解説します。
+<p>以下では、Ubuntu 8.04にTOMOYO Linux 1.6.0を導入する手順を解説します。
 この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -42,37 +42,34 @@
 <h2><a name="l2">カーネルのインストール</a></h2>
 
 <p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
-しかしUbuntu 6.10の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
+しかしUbuntu 8.04の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
 
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.17-12-generic-ccs1.6.0_2.6.17.1-12.44_i386.deb</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-restricted-modules-2.6.17-12-generic-ccs1.6.0_2.6.17.9-12.4_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-image-2.6.24-16-ccs1.6.0_2.6.24-16.30_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-ubuntu-modules-2.6.24-16-ccs1.6.0_2.6.24-16.23_i386.deb</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">dpkg --install linux-image-2.6.17-12-generic-ccs1.6.0_2.6.17.1-12.44_i386.deb linux-restricted-modules-2.6.17-12-generic-ccs1.6.0_2.6.17.9-12.4_i386.deb</span>
+# <span class="user">dpkg --install linux-image-2.6.24-16-ccs1.6.0_2.6.24-16.30_i386.deb linux-ubuntu-modules-2.6.24-16-ccs1.6.0_2.6.24-16.23_i386.deb</span>
 </pre>
 
 <p>インストールに成功すれば/boot/grub/menu.lstに以下の記述が追加されているはずです。</p>
 
 <pre>
-title           Ubuntu, kernel 2.6.17-12-generic-ccs
+title           Ubuntu 8.04, kernel 2.6.24-16-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.17-12-generic-ccs root=/dev/sda1 ro quiet splash locale=ja_JP
-initrd          /boot/initrd.img-2.6.17-12-generic-ccs
-quiet
-savedefault
-boot
+kernel          /boot/vmlinuz-2.6.24-16-ccs root=/dev/sda1 ro quiet splash
+initrd          /boot/initrd.img-2.6.24-16-ccs
 </pre>
 
 <p>今後カーネルの選択を行いやすくするために、 /boot/grub/menu.lstの"timeout="の行をコメントアウトしておきます。</p>
 
 <pre>
-<span class="user">#</span>timeout=5
+<span class="user">#</span>timeout=3
 </pre>
 
 <p>/sbin/ccs-init のプロンプトやコンソールログイン画面を表示できるようにするために、カーネルのコマンドラインから splash オプションを削除してください。</p>
@@ -85,8 +82,8 @@ boot
 <p>バイナリパッケージが用意されていますので、それを利用します。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Ubuntu6.10_i386.deb</span>
-# <span class="user">dpkg -i ccs-tools_1.6.0-1_Ubuntu6.10_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Ubuntu8.04_i386.deb</span>
+# <span class="user">dpkg -i ccs-tools_1.6.0-1_Ubuntu8.04_i386.deb</span>
 </pre>
 
 <p>ツールは /usr/lib/ccs ディレクトリにされます。</p>
@@ -115,17 +112,17 @@ boot
 
 <pre>
 0-COMMENT=-----DISABLED_MODE-----
-0-MAC_FOR_FILE=0
-0-TOMOYO_VERBOSE=0
+0-MAC_FOR_FILE=disabled
+0-TOMOYO_VERBOSE=disabled
 1-COMMENT=-----LEARNING_MODE-----
-1-MAC_FOR_FILE=1
-1-TOMOYO_VERBOSE=0
+1-MAC_FOR_FILE=learning
+1-TOMOYO_VERBOSE=disabled
 2-COMMENT=-----PERMISSIVE_MODE-----
-2-MAC_FOF_FILE=2
-2-TOMOYO_VERBOSE=1
+2-MAC_FOF_FILE=permissive
+2-TOMOYO_VERBOSE=enabled
 3-COMMENT=-----ENFORCE_MODE-----
-3-MAC_FOR_FILE=3
-3-TOMOYO_VERBOSE=1
+3-MAC_FOR_FILE=enforcing
+3-TOMOYO_VERBOSE=enabled
 </pre>
 
 <p>profile.confの1行は以下のような構文になっています。</p>
@@ -140,10 +137,10 @@ boot
 <p>設定項目COMMENTは、プロファイルを区別しやすくするためのコメントで、TOMOYO Linuxの機能には影響を与えません。</p>
 
 <p>設定項目MAC_FOR_FILEは「ファイルに対するアクセス制御」を表しており、
-制御モードが0なら無効、1なら学習、2なら確認（アクセス拒否ログを出力するが実際には拒否しない）、3なら強制、という設定が行えます。</p>
+制御モードがdisabledなら無効、learningなら学習、permissiveなら確認（アクセス拒否ログを出力するが実際には拒否しない）、enforcingなら強制、という設定が行えます。</p>
 
 <p>設定項目TOMOYO_VERBOSEは「アクセス拒否の情報をコンソールに出力するかどうか」を表しており、
-制御モードが0なら出力なし、1なら出力ありになります。</p>
+制御モードがdisabledなら出力なし、enabledなら出力ありになります。</p>
 
 <p>上記設定では、プロファイル番号が0～3の4つのプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
 
@@ -175,16 +172,21 @@ boot
 
 <h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf には以下の7種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf には以下の12種類の例外が指定されています。</p>
 
 <ol>
-<li>/proc/PID のように同様のパス名をパターン化する際のパターン名</li>
+<li>パス名のパターン</li>
+<li>パス名のグループ</li>
+<li>IPアドレスのグループ</li>
 <li>すべてのプログラムに対して参照することを許可するパス名</li>
-<li>デーモンとして動作させるプログラムのパス名</li>
-<li>ドメイン遷移を行わないドメイン</li>
-<li>追記を許可して書き換えを禁止するファイルのパス名</li>
-<li>1つに集約して扱うプログラムのパス名</li>
+<li>すべてのプログラムに対して渡すことを許可する環境変数名</li>
+<li>デフォルトで上書きを禁止するパス名</li>
 <li>シンボリックリンクの名前で実行するプログラムのパス名</li>
+<li>1つに集約して扱うプログラムのパス名</li>
+<li>ドメイン遷移を初期化させるプログラム</li>
+<li>ドメイン遷移を初期化させないプログラム</li>
+<li>ドメイン遷移を行わないプログラム</li>
+<li>ドメイン遷移を行わせるプログラム</li>
 </ol>
 
 <h2><a name="l5">監査ログの取得準備</a></h2>
@@ -318,7 +320,7 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
 <blockquote>
 <p>&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
 <ul>
-<li>/etc/passwdへの読み込みアクセスを許可する（青下線）</li>
+<li>/etc/passwdを読み込みモードでオープンできる（青下線）</li>
 </ul>
 </blockquote>
 
@@ -372,23 +374,23 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
 
 <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 
-<pre>
-#2007-09-25 14:16:14# pid=3443 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash
-1 /usr/bin/tail
-
-#2007-09-25 14:16:14# pid=3443 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash
-4 /usr/bin/tail
-
-#2007-09-25 14:16:22# pid=3444 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
-4 /etc/shadow
-
-#2007-09-25 14:16:28# pid=3446 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/sh
-1 /bin/date
-</pre>
+<blockquote>
+#2008-05-06 12:34:31# profile=3 mode=enforcing pid=4121 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=15 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.svgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/root" "LANG=en_US.UTF-8" "SHLVL=1" "HOME=/root" "LOGNAME=root" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "_=/usr/bin/tail" }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_execute /usr/bin/tail<br>
+<br>
+#2008-05-06 12:34:31# profile=3 mode=enforcing pid=4121 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_read /usr/bin/tail<br>
+<br>
+#2008-05-06 12:34:38# profile=3 mode=enforcing pid=4122 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
+allow_read /etc/shadow<br>
+<br>
+#2008-05-06 12:34:45# profile=3 mode=enforcing pid=4124 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=15 argv[]={ "date" } envp[]={ "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "USER=root" "MAIL=/var/mail/root" "SHLVL=1" "HOME=/root" "HUSHLOGIN=FALSE" "LOGNAME=root" "_=/bin/sh" "TERM=linux" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "LANG=en_US.UTF-8" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.svgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:" "SHELL=/bin/bash" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "PWD=/root" }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/sh<br>
+allow_execute /bin/date
+</blockquote>
 
 <p>このようにTOMOYO Linuxのファイルに対するアクセス制御を用いれば、</p>
 
@@ -404,7 +406,7 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
 <hr>
 <address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
 <a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
-Last modified: $Date$<br>
+Last modified: $Date: 2008-04-01 10:40:33 +0900 (轣ｫ, 01  4譛� 2008) $<br>
 <!--#include virtual="/cgi-bin/counter.pl" -->
 </address>
 
