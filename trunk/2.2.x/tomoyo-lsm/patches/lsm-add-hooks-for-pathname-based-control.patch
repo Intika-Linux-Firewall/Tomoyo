@@ -7,56 +7,28 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- fs/exec.c                |   10 ++
- fs/namei.c               |   49 ++++++++++++
- fs/open.c                |    7 +
- include/linux/security.h |  179 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/namei.c               |   41 ++++++++++++
+ fs/open.c                |    7 ++
+ include/linux/security.h |  152 +++++++++++++++++++++++++++++++++++++++++++++++
  net/unix/af_unix.c       |    4 +
- security/dummy.c         |   73 +++++++++++++++++++
- security/security.c      |   64 ++++++++++++++++
- 7 files changed, 386 insertions(+)
+ security/dummy.c         |   60 ++++++++++++++++++
+ security/security.c      |   54 ++++++++++++++++
+ 6 files changed, 318 insertions(+)
 
---- mm.orig/fs/exec.c
-+++ mm/fs/exec.c
-@@ -119,6 +119,16 @@ asmlinkage long sys_uselib(const char __
- 	if (error)
- 		goto exit;
+--- linux-2.6.25-mm1.orig/fs/namei.c
++++ linux-2.6.25-mm1/fs/namei.c
+@@ -1665,6 +1665,10 @@ int may_open(struct nameidata *nd, int a
+ 		 * Refuse to truncate files with mandatory locks held on them.
+ 		 */
+ 		error = locks_verify_locked(inode);
++		if (!error)
++			error = security_path_truncate(&nd->path, 0,
++					       ATTR_MTIME|ATTR_CTIME|ATTR_OPEN,
++						       NULL);
+ 		if (!error) {
+ 			DQUOT_INIT(inode);
  
-+	/*
-+	 * sys_access() with both R_OK and X_OK flags makes LSM's
-+	 * security_inode_permission() unable to tell whether the request is
-+	 * "just checking for permissions" or "actually loading a shared
-+	 * library".
-+	 */
-+	error = security_path_uselib(&nd);
-+	if (error)
-+		goto exit;
-+
- 	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
- 	error = PTR_ERR(file);
- 	if (IS_ERR(file))
---- mm.orig/fs/namei.c
-+++ mm/fs/namei.c
-@@ -1650,6 +1650,18 @@ int may_open(struct nameidata *nd, int a
- 			return -EPERM;
- 
- 	/*
-+	 * The MAY_READ/MAY_WRITE flags are not passed to
-+	 * security_inode_permission() if may_open() is called from
-+	 * __open_namei_create().
-+	 * This hook allows LSM module to check all of
-+	 * MAY_READ/MAY_WRITE/O_APPEND/O_TRUNC flags regardless
-+	 * of the create path.
-+	 */
-+	error = security_path_open(nd->path.dentry, nd->path.mnt, flag);
-+	if (error)
-+		return error;
-+
-+	/*
- 	 * Ensure there are no outstanding leases on the file.
- 	 */
- 	error = break_lease(inode, flag);
-@@ -1695,7 +1707,11 @@ static int __open_namei_create(struct na
+@@ -1695,7 +1699,11 @@ static int __open_namei_create(struct na
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -68,7 +40,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->path.dentry);
  	nd->path.dentry = path->dentry;
-@@ -2096,8 +2112,15 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2096,8 +2104,15 @@ asmlinkage long sys_mknodat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -84,7 +56,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
-@@ -2108,6 +2131,7 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2108,6 +2123,7 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
@@ -92,7 +64,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2172,7 +2196,11 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2172,7 +2188,11 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -104,7 +76,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2284,7 +2312,11 @@ static long do_rmdir(int dfd, const char
+@@ -2284,7 +2304,11 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -116,7 +88,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  exit3:
  	dput(dentry);
-@@ -2370,7 +2402,11 @@ static long do_unlinkat(int dfd, const c
+@@ -2370,7 +2394,11 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -128,7 +100,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		mnt_drop_write(nd.path.mnt);
  	exit2:
  		dput(dentry);
-@@ -2455,7 +2491,11 @@ asmlinkage long sys_symlinkat(const char
+@@ -2455,7 +2483,11 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -140,7 +112,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2555,7 +2595,11 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2555,7 +2587,11 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -152,7 +124,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(new_dentry);
-@@ -2786,8 +2830,13 @@ static int do_rename(int olddfd, const c
+@@ -2786,8 +2822,13 @@ static int do_rename(int olddfd, const c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -166,8 +138,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
  	dput(new_dentry);
---- mm.orig/fs/open.c
-+++ mm/fs/open.c
+--- linux-2.6.25-mm1.orig/fs/open.c
++++ linux-2.6.25-mm1/fs/open.c
 @@ -268,6 +268,9 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
@@ -189,8 +161,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
---- mm.orig/include/linux/security.h
-+++ mm/include/linux/security.h
+--- linux-2.6.25-mm1.orig/include/linux/security.h
++++ linux-2.6.25-mm1/include/linux/security.h
 @@ -343,23 +343,50 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure for the file to be created.
   *	@mode contains the file mode of the file to be created.
@@ -298,20 +270,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @inode_readlink:
   *	Check the permission to read the symbolic link.
   *	@dentry contains the dentry structure for the file link.
-@@ -409,6 +466,12 @@ static inline void security_free_mnt_opt
-  *	@mask contains the permission mask.
-  *     @nd contains the nameidata (may be NULL).
-  *	Return 0 if permission is granted.
-+ * @path_open:
-+ *	Check permission to open a file.
-+ *	@dentry contains the dentry structure for the file to be opened.
-+ *	@mnt contains the vfsmount structure for the file to be opened.
-+ *	@flags contains the open flags.
-+ *	Return 0 if permission is granted.
-  * @inode_setattr:
-  *	Check permission before setting file attributes.  Note that the kernel
-  *	call to notify_change is performed from several locations, whenever
-@@ -417,6 +480,17 @@ static inline void security_free_mnt_opt
+@@ -417,6 +474,13 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure for the file.
   *	@attr is the iattr structure containing the new file attributes.
   *	Return 0 if permission is granted.
@@ -322,14 +281,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *	@time_attrs is the flags passed to do_truncate().
 + *	@filp is the file structure (may be NULL).
 + *	Return 0 if permission is granted.
-+ * @path_uselib:
-+ *      Check permission before using a library.
-+ *      @nd contains the nameidata.
-+ *      Return 0 if permission is granted.
   * @inode_getattr:
   *	Check permission before obtaining file attributes.
   *	@mnt is the vfsmount where the dentry was looked up
-@@ -1351,6 +1425,25 @@ struct security_operations {
+@@ -1351,6 +1415,22 @@ struct security_operations {
  				   struct super_block *newsb);
  	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
  
@@ -342,20 +297,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			   unsigned int dev);
 +	int (*path_truncate) (struct path *path, loff_t length,
 +			      unsigned int time_attrs, struct file *filp);
-+	int (*path_uselib) (struct nameidata *nd);
 +	int (*path_symlink) (struct path *dir, struct dentry *dentry,
 +			     const char *old_name);
 +	int (*path_link) (struct path *old_path, struct path *new_dir,
 +			  struct dentry *new_dentry);
 +	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
 +			    struct path *new_dir, struct dentry *new_dentry);
-+	int (*path_open) (struct dentry *dentry, struct vfsmount *mnt,
-+			  int flags);
 +
  	int (*inode_alloc_security) (struct inode *inode);	
  	void (*inode_free_security) (struct inode *inode);
  	int (*inode_init_security) (struct inode *inode, struct inode *dir,
-@@ -1625,6 +1718,24 @@ void security_sb_clone_mnt_opts(const st
+@@ -1625,6 +1705,22 @@ void security_sb_clone_mnt_opts(const st
  				struct super_block *newsb);
  int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts);
  
@@ -368,19 +320,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			unsigned int dev);
 +int security_path_truncate(struct path *path, loff_t length,
 +			   unsigned int time_attrs, struct file *filp);
-+int security_path_uselib(struct nameidata *nd);
 +int security_path_symlink(struct path *dir, struct dentry *dentry,
 +			  const char *old_name);
 +int security_path_link(struct path *old_path, struct path *new_dir,
 +		       struct dentry *new_dentry);
 +int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
 +			 struct path *new_dir, struct dentry *new_dentry);
-+int security_path_open(struct dentry *dentry, struct vfsmount *mnt, int flags);
 +
  int security_inode_alloc(struct inode *inode);
  void security_inode_free(struct inode *inode);
  int security_inode_init_security(struct inode *inode, struct inode *dir,
-@@ -1950,6 +2061,74 @@ static inline int security_sb_parse_opts
+@@ -1950,6 +2046,62 @@ static inline int security_sb_parse_opts
  	return 0;
  }
  
@@ -419,11 +369,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+static inline int security_path_uselib(struct nameidata *nd)
-+{
-+	return 0;
-+}
-+
 +static inline int security_path_symlink(struct path *dir, struct dentry *dentry,
 +					const char *old_name)
 +{
@@ -445,18 +390,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+static inline int security_path_open(struct dentry *dentry,
-+				     struct vfsmount *mnt,
-+				     int flags)
-+{
-+	return 0;
-+}
-+
  static inline int security_inode_alloc (struct inode *inode)
  {
  	return 0;
---- mm.orig/net/unix/af_unix.c
-+++ mm/net/unix/af_unix.c
+--- linux-2.6.25-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.25-mm1/net/unix/af_unix.c
 @@ -822,7 +822,11 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
@@ -469,9 +407,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		mnt_drop_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
---- mm.orig/security/dummy.c
-+++ mm/security/dummy.c
-@@ -270,6 +270,68 @@ static int dummy_sb_parse_opts_str(char 
+--- linux-2.6.25-mm1.orig/security/dummy.c
++++ linux-2.6.25-mm1/security/dummy.c
+@@ -270,6 +270,57 @@ static int dummy_sb_parse_opts_str(char 
  	return 0;
  }
  
@@ -520,19 +458,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+static int dummy_path_open(struct dentry *dentry, struct vfsmount *mnt,
-+			   int flags)
-+{
-+	return 0;
-+}
-+
 +static int dummy_path_truncate(struct path *path, loff_t length,
 +			       unsigned int time_attrs, struct file *filp)
-+{
-+	return 0;
-+}
-+
-+static int dummy_path_uselib(struct nameidata *nd)
 +{
 +	return 0;
 +}
@@ -540,7 +467,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static int dummy_inode_alloc_security (struct inode *inode)
  {
  	return 0;
-@@ -1079,6 +1141,17 @@ void security_fixup_ops (struct security
+@@ -1079,6 +1130,15 @@ void security_fixup_ops (struct security
  	set_to_dummy_if_null(ops, sb_set_mnt_opts);
  	set_to_dummy_if_null(ops, sb_clone_mnt_opts);
  	set_to_dummy_if_null(ops, sb_parse_opts_str);
@@ -552,15 +479,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	set_to_dummy_if_null(ops, path_symlink);
 +	set_to_dummy_if_null(ops, path_link);
 +	set_to_dummy_if_null(ops, path_rename);
-+	set_to_dummy_if_null(ops, path_open);
 +	set_to_dummy_if_null(ops, path_truncate);
-+	set_to_dummy_if_null(ops, path_uselib);
  	set_to_dummy_if_null(ops, inode_alloc_security);
  	set_to_dummy_if_null(ops, inode_free_security);
  	set_to_dummy_if_null(ops, inode_init_security);
---- mm.orig/security/security.c
-+++ mm/security/security.c
-@@ -388,6 +388,70 @@ int security_inode_init_security(struct 
+--- linux-2.6.25-mm1.orig/security/security.c
++++ linux-2.6.25-mm1/security/security.c
+@@ -388,6 +388,60 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
  
@@ -612,20 +537,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +					 new_dentry);
 +}
 +
-+int security_path_open(struct dentry *dentry, struct vfsmount *mnt, int flags)
-+{
-+	return security_ops->path_open(dentry, mnt, flags);
-+}
-+
 +int security_path_truncate(struct path *path, loff_t length,
 +			   unsigned int time_attrs, struct file *filp)
 +{
 +	return security_ops->path_truncate(path, length, time_attrs, filp);
-+}
-+
-+int security_path_uselib(struct nameidata *nd)
-+{
-+	return security_ops->path_uselib(nd);
 +}
 +
  int security_inode_create(struct inode *dir, struct dentry *dentry, int mode)

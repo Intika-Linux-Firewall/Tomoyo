@@ -4,12 +4,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  416 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  102 +++++++++++
- 2 files changed, 518 insertions(+)
+ security/tomoyo/tomoyo.c |  388 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  102 ++++++++++++
+ 2 files changed, 490 insertions(+)
 
 --- /dev/null
-+++ mm/security/tomoyo/tomoyo.h
++++ linux-2.6.25-mm1/security/tomoyo/tomoyo.h
 @@ -0,0 +1,102 @@
 +/*
 + * security/tomoyo/tomoyo.h
@@ -114,8 +114,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +#endif
 --- /dev/null
-+++ mm/security/tomoyo/tomoyo.c
-@@ -0,0 +1,416 @@
++++ linux-2.6.25-mm1/security/tomoyo/tomoyo.c
+@@ -0,0 +1,388 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -201,36 +201,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	tmy_free(name);
 +
 +	return error;
-+}
-+
-+static int tmy_inode_permission(struct inode *inode, int mask,
-+				struct nameidata *nd)
-+{
-+	if (S_ISDIR(inode->i_mode)) /* ignore because inode is directory */
-+		return 0;
-+	if (!nd || !nd->path.dentry || !nd->path.mnt)
-+		return 0;
-+
-+	/*
-+	 * If called by other than do_execve(), I check for read permission of
-+	 * interpreter.
-+	 * Unlike DAC, I don't check for read permission of pathname passed to
-+	 * do_execve().
-+	 * TOMOYO Linux checks for program's execute permission and
-+	 * interpreter's read permission.
-+	 */
-+	if ((mask != MAY_EXEC) ||
-+	    !(TMY_SECURITY->flags & TMY_CHECK_READ_FOR_OPEN_EXEC))
-+		return 0;
-+
-+	/* called from open_exec() other than do_execve() */;
-+	return tmy_check_open_permission(nd->path.dentry, nd->path.mnt,
-+					 O_RDONLY + 1);
-+}
-+
-+static int tmy_path_open(struct dentry *dentry, struct vfsmount *mnt, int flags)
-+{
-+	return tmy_check_open_permission(dentry, mnt, flags);
 +}
 +
 +static int tmy_path_truncate(struct path *path, loff_t length,
@@ -470,18 +440,21 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				    new_dentry, new_dir->mnt);
 +}
 +
-+static int tmy_path_uselib(struct nameidata *nd)
-+{
-+	return tmy_check_open_permission(nd->path.dentry, nd->path.mnt,
-+					 O_RDONLY + 1);
-+}
-+
 +static int tmy_file_fcntl(struct file *file, unsigned int cmd,
 +			  unsigned long arg)
 +{
 +	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
 +		return tmy_check_rewrite_permission(file);
 +	return 0;
++}
++
++static int tmy_dentry_open(struct file *f)
++{
++	int flags = f->f_flags;
++	if ((flags + 1) & O_ACCMODE)
++		flags++;
++	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt,
++					 flags | (f->f_flags & (O_APPEND | O_TRUNC)));
 +}
 +
 +static struct security_operations tomoyo_security_ops = {
@@ -494,7 +467,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.bprm_post_apply_creds     = tmy_bprm_post_apply_creds,
 +	.bprm_free_security        = tmy_bprm_free_security,
 +	.sysctl                    = tmy_sysctl,
-+	.inode_permission          = tmy_inode_permission,
++	.file_fcntl                = tmy_file_fcntl,
++	.dentry_open               = tmy_dentry_open,
++
 +	.path_truncate             = tmy_path_truncate,
 +	.path_create               = tmy_path_create,
 +	.path_unlink               = tmy_path_unlink,
@@ -504,9 +479,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.path_mknod                = tmy_path_mknod,
 +	.path_link                 = tmy_path_link,
 +	.path_rename               = tmy_path_rename,
-+	.path_open                 = tmy_path_open,
-+	.path_uselib               = tmy_path_uselib,
-+	.file_fcntl                = tmy_file_fcntl,
 +};
 +
 +static int __init tmy_init(void)

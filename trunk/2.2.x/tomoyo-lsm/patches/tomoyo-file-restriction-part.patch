@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1130 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1130 insertions(+)
+ security/tomoyo/file.c | 1131 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1131 insertions(+)
 
 --- /dev/null
-+++ mm/security/tomoyo/file.c
-@@ -0,0 +1,1130 @@
++++ linux-2.6.25-mm1/security/tomoyo/file.c
+@@ -0,0 +1,1131 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -535,7 +535,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			continue;
 +		acl = container_of(ptr, struct single_path_acl_record, head);
 +		if (!(acl->perm & perm))
-+			continue;
++			if (!((acl->perm & (1 << TMY_TYPE_EXECUTE_ACL)) && (perm == (1 << TMY_TYPE_READ_ACL))))
++				continue;
 +		if (may_use_pattern || !acl->filename->is_patterned) {
 +			if (!tmy_path_matches_pattern(filename,
 +						      acl->filename))
