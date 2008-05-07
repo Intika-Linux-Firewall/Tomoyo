@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  388 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  102 ++++++++++++
- 2 files changed, 490 insertions(+)
+ security/tomoyo/tomoyo.c |  360 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |   94 ++++++++++++
+ 2 files changed, 454 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,94 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -52,8 +52,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +int tmy_find_next_domain(struct linux_binprm *bprm,
 +			 struct domain_info **next_domain);
 +
-+#define TMY_CHECK_READ_FOR_OPEN_EXEC 1
-+
 +/* Index numbers for Access Controls. */
 +
 +#define TYPE_SINGLE_PATH_ACL                 0
@@ -91,13 +89,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TMY_TYPE_RENAME_ACL           1
 +#define MAX_DOUBLE_PATH_OPERATION 2
 +
-+struct tmy_security {
-+	struct domain_info *domain;
-+	struct domain_info *prev_domain;
-+	u32 flags;
-+};
-+
-+#define TMY_SECURITY ((struct tmy_security *) current->security)
++#define TMY_SECURITY ((struct domain_info *) current->security)
 +
 +#define TMY_DOMAINPOLICY          0
 +#define TMY_EXCEPTIONPOLICY       1
@@ -115,7 +107,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,388 @@
+@@ -0,0 +1,360 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -127,27 +119,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include "tomoyo.h"
 +#include "realpath.h"
 +
-+static struct kmem_cache *tmy_cachep;
-+
 +static int tmy_task_alloc_security(struct task_struct *p)
 +{
-+	struct tmy_security *ptr = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
-+
-+	if (!ptr)
-+		return -ENOMEM;
-+	memcpy(ptr, TMY_SECURITY, sizeof(*ptr));
-+	p->security = ptr;
-+	return 0;
-+}
-+
-+static void tmy_task_free_security(struct task_struct *p)
-+{
-+	kmem_cache_free(tmy_cachep, p->security);
-+}
-+
-+static int tmy_bprm_alloc_security(struct linux_binprm *bprm)
-+{
-+	TMY_SECURITY->prev_domain = TMY_SECURITY->domain;
++	p->security = current->security;
 +	return 0;
 +}
 +
@@ -155,34 +129,34 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct domain_info *next_domain = NULL;
 +	int retval = 0;
-+
-+	tmy_load_policy(bprm->filename);
-+
 +	/*
-+	 * TMY_CHECK_READ_FOR_OPEN_EXEC bit indicates whether this function is
-+	 * called by do_execve() or not.
-+	 * If called by do_execve(), I do domain transition.
++	 * If called by do_execve() (i.e. bprm->security == NULL),
++	 * I do execute permission check and domain transition.
 +	 */
-+	if ((TMY_SECURITY->flags & TMY_CHECK_READ_FOR_OPEN_EXEC))
++	if (bprm->security)
 +		goto out;
++	tmy_load_policy(bprm->filename);
 +	retval = tmy_find_next_domain(bprm, &next_domain);
 +	if (retval)
 +		goto out;
-+	TMY_SECURITY->domain = next_domain;
-+	TMY_SECURITY->flags |= TMY_CHECK_READ_FOR_OPEN_EXEC;
++	/* Remember previous domain in case do_execve() failed. */
++	bprm->security = current->security;
++	current->security = next_domain;
 +out:
 +	return retval;
 +}
 +
 +static void tmy_bprm_post_apply_creds(struct linux_binprm *bprm)
 +{
-+	TMY_SECURITY->prev_domain = TMY_SECURITY->domain;
++	/* No need to rollback because do_execve() succeeded. */
++	bprm->security = NULL;
 +}
 +
 +static void tmy_bprm_free_security(struct linux_binprm *bprm)
 +{
-+	TMY_SECURITY->domain = TMY_SECURITY->prev_domain;
-+	TMY_SECURITY->flags &= ~TMY_CHECK_READ_FOR_OPEN_EXEC;
++	/* Rollback if do_execve() failed. */
++	if (bprm->security)
++		current->security = bprm->security;
 +}
 +
 +static int tmy_sysctl(struct ctl_table *table, int op)
@@ -453,16 +427,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int flags = f->f_flags;
 +	if ((flags + 1) & O_ACCMODE)
 +		flags++;
-+	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt,
-+					 flags | (f->f_flags & (O_APPEND | O_TRUNC)));
++	flags |= f->f_flags & (O_APPEND | O_TRUNC);
++	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
 +}
 +
 +static struct security_operations tomoyo_security_ops = {
 +	.name                      = "tomoyo",
 +
 +	.task_alloc_security       = tmy_task_alloc_security,
-+	.task_free_security        = tmy_task_free_security,
-+	.bprm_alloc_security       = tmy_bprm_alloc_security,
 +	.bprm_check_security       = tmy_bprm_check_security,
 +	.bprm_post_apply_creds     = tmy_bprm_post_apply_creds,
 +	.bprm_free_security        = tmy_bprm_free_security,
@@ -483,7 +455,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int __init tmy_init(void)
 +{
-+	struct tmy_security *tmy_security;
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
 +
@@ -492,14 +463,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		panic("Failure registering TOMOYO Linux");
 +
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
-+	tmy_cachep = kmem_cache_create("tomoyo_security",
-+				       sizeof(struct tmy_security),
-+				       0, SLAB_PANIC, NULL);
-+	tmy_security = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
-+	BUG_ON(!tmy_security);
-+	memset(tmy_security, 0, sizeof(*tmy_security));
-+	tmy_security->domain = &KERNEL_DOMAIN;
-+	init_task.security = tmy_security;
++	init_task.security = &KERNEL_DOMAIN;
 +	return 0;
 +}
 +

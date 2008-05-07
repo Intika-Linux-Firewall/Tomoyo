@@ -7,9 +7,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  include/linux/list.h     |   78 +
- security/tomoyo/common.c | 2149 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2147 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  311 ++++++
- 3 files changed, 2538 insertions(+)
+ 3 files changed, 2536 insertions(+)
 
 --- linux-2.6.25-mm1.orig/include/linux/list.h
 +++ linux-2.6.25-mm1/include/linux/list.h
@@ -412,7 +412,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2149 @@
+@@ -0,0 +1,2147 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1167,7 +1167,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static unsigned int tmy_check_flags_no_sleep_check(const u8 index)
 +{
-+	const u8 profile = TMY_SECURITY->domain->profile;
++	const u8 profile = TMY_SECURITY->profile;
 +	return sbin_init_started && index < TMY_MAX_CONTROL_INDEX
 +#if MAX_PROFILES != 256
 +		&& profile < MAX_PROFILES
@@ -1571,7 +1571,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct policy_manager_entry *ptr;
 +	const char *exe;
 +	const struct task_struct *task = current;
-+	const struct path_info *domainname = TMY_SECURITY->domain->domainname;
++	const struct path_info *domainname = TMY_SECURITY->domainname;
 +	bool found = false;
 +	if (!sbin_init_started)
 +		return true;
@@ -1916,8 +1916,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
 +		if (p)
-+			domain =
-+				((struct tmy_security *) (p->security))->domain;
++			domain = (struct domain_info *) p->security;
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (domain)
@@ -2206,12 +2205,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	if (!head->read_eof) {
 +		/*
-+		 * TMY_SECURITY->domain->domainname != NULL
++		 * TMY_SECURITY->domainname != NULL
 +		 * because every process belongs to a domain and
 +		 * the domain's name cannot be NULL.
 +		 */
-+		tmy_io_printf(head, "%s",
-+			      TMY_SECURITY->domain->domainname->name);
++		tmy_io_printf(head, "%s", TMY_SECURITY->domainname->name);
 +		head->read_eof = true;
 +	}
 +	return 0;
