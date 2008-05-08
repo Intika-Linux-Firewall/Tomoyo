@@ -59,6 +59,285 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  NAME=Crazed Snow-Weasel
  
  ifdef UBUNTUBUILD
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/alpha/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/arch/alpha/kernel/ptrace.c
+@@ -20,6 +20,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/fpu.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "proto.h"
+ 
+@@ -268,6 +271,12 @@ do_sys_ptrace(long request, long pid, lo
+ 	unsigned long tmp;
+ 	size_t copied;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-source-2.6.17.14-ubuntu1/arch/ia64/ia32/sys_ia32.c
+@@ -57,6 +57,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1742,6 +1745,12 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/ia64/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/arch/ia64/kernel/ptrace.c
+@@ -29,6 +29,9 @@
+ #ifdef CONFIG_PERFMON
+ #include <asm/perfmon.h>
+ #endif
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "entry.h"
+ 
+@@ -1418,6 +1421,12 @@ sys_ptrace (long request, pid_t pid, uns
+ 	struct task_struct *child;
+ 	struct switch_stack *sw;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/m32r/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/arch/m32r/kernel/ptrace.c
+@@ -33,6 +33,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * This routine will get a word off of the process kernel stack.
+@@ -743,6 +746,12 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/mips/kernel/ptrace32.c
++++ linux-source-2.6.17.14-ubuntu1/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs (struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs (struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-source-2.6.17.14-ubuntu1/arch/powerpc/kernel/ptrace32.c
+@@ -33,6 +33,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ptrace-common.h"
+ 
+@@ -46,6 +49,12 @@ long compat_sys_ptrace(int request, int 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/s390/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/arch/s390/kernel/ptrace.c
+@@ -41,6 +41,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #ifdef CONFIG_COMPAT
+ #include "compat_ptrace.h"
+@@ -711,6 +714,12 @@ sys_ptrace(long request, long pid, long 
+ 	struct task_struct *child;
+ 	int ret;
+ 
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+ 		 ret = ptrace_traceme();
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/sh64/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/arch/sh64/kernel/ptrace.c
+@@ -36,6 +36,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -272,6 +275,12 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/sparc/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/arch/sparc/kernel/ptrace.c
+@@ -23,6 +23,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define MAGIC_CONSTANT 0x80000000
+ 
+@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ #ifdef DEBUG_PTRACE
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/sparc64/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/arch/sparc64/kernel/ptrace.c
+@@ -32,6 +32,9 @@
+ #include <asm/spitfire.h>
+ #include <asm/page.h>
+ #include <asm/cpudata.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* Returning from ptrace is a bit tricky because the syscall return
+  * low level code assumes any value returned which is negative and
+@@ -176,6 +179,14 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	if (test_thread_flag(TIF_32BIT)) {
+ 		addr &= 0xffffffffUL;
+--- linux-source-2.6.17.14-ubuntu1.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-source-2.6.17.14-ubuntu1/arch/x86_64/ia32/ptrace32.c
+@@ -27,6 +27,9 @@
+ #include <asm/debugreg.h>
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Determines which flags the user has access to [1 = access, 0 = no access].
+@@ -206,6 +209,12 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	default:
 --- linux-source-2.6.17.14-ubuntu1.orig/fs/Kconfig
 +++ linux-source-2.6.17.14-ubuntu1/fs/Kconfig
 @@ -1904,6 +1904,7 @@ endmenu
@@ -822,6 +1101,31 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
+--- linux-source-2.6.17.14-ubuntu1.orig/kernel/ptrace.c
++++ linux-source-2.6.17.14-ubuntu1/kernel/ptrace.c
+@@ -21,6 +21,9 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * ptrace a task: make the debugger its new parent and
+@@ -494,6 +497,12 @@ asmlinkage long sys_ptrace(long request,
+ 	/*
+ 	 * This lock_kernel fixes a subtle race with suid exec
+ 	 */
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+ 		ret = ptrace_traceme();
 --- linux-source-2.6.17.14-ubuntu1.orig/kernel/sched.c
 +++ linux-source-2.6.17.14-ubuntu1/kernel/sched.c
 @@ -53,6 +53,9 @@
@@ -1445,307 +1749,3 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-source-2.6.17.14-ubuntu1.orig/arch/alpha/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/alpha/kernel/ptrace.c
-@@ -20,6 +20,9 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/fpu.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "proto.h"
- 
-@@ -268,6 +271,12 @@ do_sys_ptrace(long request, long pid, lo
- 	unsigned long tmp;
- 	size_t copied;
- 	long ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-source-2.6.17.14-ubuntu1.orig/arch/ia64/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/ia64/kernel/ptrace.c
-@@ -29,6 +29,9 @@
- #ifdef CONFIG_PERFMON
- #include <asm/perfmon.h>
- #endif
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "entry.h"
- 
-@@ -1418,6 +1421,12 @@ sys_ptrace (long request, pid_t pid, uns
- 	struct task_struct *child;
- 	struct switch_stack *sw;
- 	long ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	ret = -EPERM;
---- linux-source-2.6.17.14-ubuntu1.orig/arch/m32r/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/m32r/kernel/ptrace.c
-@@ -33,6 +33,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * This routine will get a word off of the process kernel stack.
-@@ -743,6 +746,12 @@ asmlinkage long sys_ptrace(long request,
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.17.14-ubuntu1.orig/arch/s390/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/s390/kernel/ptrace.c
-@@ -41,6 +41,9 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #ifdef CONFIG_COMPAT
- #include "compat_ptrace.h"
-@@ -711,6 +714,12 @@ sys_ptrace(long request, long pid, long 
- 	struct task_struct *child;
- 	int ret;
- 
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		 ret = ptrace_traceme();
---- linux-source-2.6.17.14-ubuntu1.orig/arch/sparc/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/sparc/kernel/ptrace.c
-@@ -23,6 +23,9 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/uaccess.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #define MAGIC_CONSTANT 0x80000000
- 
-@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
- 	unsigned long addr2 = regs->u_regs[UREG_I4];
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
-+		pt_error_return(regs, EPERM);
-+		return;
-+	}
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- #ifdef DEBUG_PTRACE
---- linux-source-2.6.17.14-ubuntu1.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/sparc64/kernel/ptrace.c
-@@ -32,6 +32,9 @@
- #include <asm/spitfire.h>
- #include <asm/page.h>
- #include <asm/cpudata.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* Returning from ptrace is a bit tricky because the syscall return
-  * low level code assumes any value returned which is negative and
-@@ -176,6 +179,14 @@ asmlinkage void do_ptrace(struct pt_regs
- 	unsigned long addr2 = regs->u_regs[UREG_I4];
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
-+		pt_error_return(regs, EPERM);
-+		return;
-+	}
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	if (test_thread_flag(TIF_32BIT)) {
- 		addr &= 0xffffffffUL;
---- linux-source-2.6.17.14-ubuntu1.orig/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/kernel/ptrace.c
-@@ -21,6 +21,9 @@
- 
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * ptrace a task: make the debugger its new parent and
-@@ -494,6 +497,12 @@ asmlinkage long sys_ptrace(long request,
- 	/*
- 	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
---- linux-source-2.6.17.14-ubuntu1.orig/arch/sh64/kernel/ptrace.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/sh64/kernel/ptrace.c
-@@ -36,6 +36,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -272,6 +275,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
---- linux-source-2.6.17.14-ubuntu1.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/x86_64/ia32/ptrace32.c
-@@ -27,6 +27,9 @@
- #include <asm/debugreg.h>
- #include <asm/i387.h>
- #include <asm/fpu32.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * Determines which flags the user has access to [1 = access, 0 = no access].
-@@ -206,6 +209,12 @@ asmlinkage long sys32_ptrace(long reques
- 	void __user *datap = compat_ptr(data);
- 	int ret;
- 	__u32 val;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	switch (request) { 
- 	default:
---- linux-source-2.6.17.14-ubuntu1.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/ia64/ia32/sys_ia32.c
-@@ -57,6 +57,9 @@
- #include <asm/types.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "ia32priv.h"
- 
-@@ -1742,6 +1745,12 @@ sys32_ptrace (int request, pid_t pid, un
- 	struct task_struct *child;
- 	unsigned int value, tmp;
- 	long i, ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.17.14-ubuntu1.orig/arch/mips/kernel/ptrace32.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/mips/kernel/ptrace32.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/bootinfo.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- int ptrace_getregs (struct task_struct *child, __s64 __user *data);
- int ptrace_setregs (struct task_struct *child, __s64 __user *data);
-@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- #if 0
- 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-source-2.6.17.14-ubuntu1.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-source-2.6.17.14-ubuntu1/arch/powerpc/kernel/ptrace32.c
-@@ -33,6 +33,9 @@
- #include <asm/page.h>
- #include <asm/pgtable.h>
- #include <asm/system.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "ptrace-common.h"
- 
-@@ -46,6 +49,12 @@ long compat_sys_ptrace(int request, int 
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {

@@ -262,6 +262,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
+--- linux-2.4.33.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.4.33/arch/ia64/ia32/sys_ia32.c
+@@ -57,6 +57,9 @@
+ #include <net/scm.h>
+ #include <net/sock.h>
+ #include <asm/ia32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define DEBUG	0
+ 
+@@ -3131,6 +3134,12 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
 --- linux-2.4.33.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.4.33/arch/ia64/kernel/ptrace.c
 @@ -27,6 +27,9 @@
@@ -450,6 +475,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
+--- linux-2.4.33.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.4.33/arch/ppc64/kernel/ptrace32.c
+@@ -30,6 +30,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #ifdef CONFIG_ALTIVEC
+ /*
+@@ -121,6 +124,12 @@ int sys32_ptrace(long request, long pid,
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
 --- linux-2.4.33.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.4.33/arch/s390/kernel/ptrace.c
 @@ -37,6 +37,9 @@
@@ -604,6 +654,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	if (current->thread.flags & SPARC_FLAG_32BIT) {
  		addr &= 0xffffffffUL;
+--- linux-2.4.33.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.4.33/arch/x86_64/ia32/ptrace32.c
+@@ -24,6 +24,9 @@
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
+ #include <linux/mm.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* determines which flags the user has access to. */
+ /* 1 = access 0 = no access */
+@@ -203,6 +206,12 @@ asmlinkage long sys32_ptrace(long reques
+ 	struct pt_regs *childregs; 
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	case PTRACE_TRACEME:
 --- linux-2.4.33.orig/arch/x86_64/kernel/ptrace.c
 +++ linux-2.4.33/arch/x86_64/kernel/ptrace.c
 @@ -22,6 +22,9 @@
@@ -1924,78 +1999,3 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.4.33.orig/arch/ppc64/kernel/ptrace32.c
-+++ linux-2.4.33/arch/ppc64/kernel/ptrace32.c
-@@ -30,6 +30,9 @@
- #include <asm/page.h>
- #include <asm/pgtable.h>
- #include <asm/system.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #ifdef CONFIG_ALTIVEC
- /*
-@@ -121,6 +124,12 @@ int sys32_ptrace(long request, long pid,
- {
- 	struct task_struct *child;
- 	int ret = -EPERM;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-2.4.33.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.4.33/arch/x86_64/ia32/ptrace32.c
-@@ -24,6 +24,9 @@
- #include <asm/i387.h>
- #include <asm/fpu32.h>
- #include <linux/mm.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* determines which flags the user has access to. */
- /* 1 = access 0 = no access */
-@@ -203,6 +206,12 @@ asmlinkage long sys32_ptrace(long reques
- 	struct pt_regs *childregs; 
- 	int ret;
- 	__u32 val;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	switch (request) { 
- 	case PTRACE_TRACEME:
---- linux-2.4.33.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.4.33/arch/ia64/ia32/sys_ia32.c
-@@ -57,6 +57,9 @@
- #include <net/scm.h>
- #include <net/sock.h>
- #include <asm/ia32.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #define DEBUG	0
- 
-@@ -3131,6 +3134,12 @@ sys32_ptrace (int request, pid_t pid, un
- 	struct task_struct *child;
- 	unsigned int value, tmp;
- 	long i, ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
