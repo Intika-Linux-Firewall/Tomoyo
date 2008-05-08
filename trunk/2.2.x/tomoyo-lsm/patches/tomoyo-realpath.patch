@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  655 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.h |   62 ++++
- 2 files changed, 717 insertions(+)
+ security/tomoyo/realpath.c |  686 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.h |   60 +++
+ 2 files changed, 746 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/realpath.h
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,60 @@
 +/*
 + * security/tomoyo/realpath.h
 + *
@@ -29,7 +29,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/30
++ * Version: 2.2.0-pre   2008/05/07
 + *
 + */
 +
@@ -40,6 +40,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +struct vfsmount;
 +struct condition_list;
 +struct path_info;
++struct tmy_io_buffer;
 +
 +/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
 +int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
@@ -62,31 +63,28 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +void *tmy_alloc_element(const unsigned int size);
 +
-+/* Get used RAM size for tmy_alloc_elements(). */
-+unsigned int tmy_get_memory_used_for_elements(void);
-+
 +/*
 + * Keep the given name on the RAM.
 + * The RAM is shared, so NEVER try to modify or kfree() the returned name.
 + */
 +const struct path_info *tmy_save_name(const char *name);
 +
-+/* Get used RAM size for tmy_save_name(). */
-+unsigned int tmy_get_memory_used_for_save_name(void);
-+
 +/* Allocate memory for temporary use (e.g. permission checks). */
 +void *tmy_alloc(const size_t size);
-+
-+/* Get used RAM size for tmy_alloc(). */
-+unsigned int tmy_get_memory_used_for_dynamic(void);
 +
 +/* Free memory allocated by tmy_alloc(). */
 +void tmy_free(const void *p);
 +
++/* Check for memory usage. */
++int tmy_read_memory_counter(struct tmy_io_buffer *head);
++
++/* Set memory quota. */
++int tmy_write_memory_quota(struct tmy_io_buffer *head);
++
 +#endif
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/realpath.c
-@@ -0,0 +1,655 @@
+@@ -0,0 +1,686 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -94,7 +92,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/30
++ * Version: 2.2.0-pre   2008/05/07
 + *
 + */
 +
@@ -359,16 +357,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +static unsigned int allocated_memory_for_elements;
-+
-+/**
-+ * tmy_get_memory_used_for_elements - Get memory used for keeping ACL structures.
-+ *
-+ * Returns memory used for keeping ACL structures.
-+ */
-+unsigned int tmy_get_memory_used_for_elements(void)
-+{
-+	return allocated_memory_for_elements;
-+}
++static unsigned int quota_for_elements;
 +
 +/**
 + * tmy_alloc_element - Allocate permanent memory for structures.
@@ -390,7 +379,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return NULL;
 +	mutex_lock(&lock);
 +	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
-+		ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
++		if (!quota_for_elements || allocated_memory_for_elements
++		    + PAGE_SIZE <= quota_for_elements)
++			ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
 +		if (!ptr) {
 +			printk(KERN_WARNING "ERROR: Out of memory "
 +			       "for tmy_alloc_element().\n");
@@ -419,16 +410,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +static unsigned int allocated_memory_for_savename;
-+
-+/**
-+ * tmy_get_memory_used_for_save_name - Get memory used for keeping string data.
-+ *
-+ * Returns memory used for keeping string data.
-+ */
-+unsigned int tmy_get_memory_used_for_save_name(void)
-+{
-+	return allocated_memory_for_savename;
-+}
++static unsigned int quota_for_savename;
 +
 +#define MAX_HASH 256
 +
@@ -484,7 +466,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (len <= fmb->len)
 +			goto ready;
 +	}
-+	cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
++	if (!quota_for_savename || allocated_memory_for_savename + PAGE_SIZE
++	    <= quota_for_savename)
++		cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
++	else
++		cp = NULL;
 +	fmb = kzalloc(sizeof(*fmb), GFP_KERNEL);
 +	if (!cp || !fmb) {
 +		kfree(cp);
@@ -560,16 +546,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static DEFINE_SPINLOCK(cache_list_lock);
 +
 +static unsigned int dynamic_memory_size;
-+
-+/**
-+ * tmy_get_memory_used_for_dynamic - Get memory used for temporal purpose.
-+ *
-+ * Returns memory used for temporal purpose.
-+ */
-+unsigned int tmy_get_memory_used_for_dynamic(void)
-+{
-+	return dynamic_memory_size;
-+}
 +
 +/**
 + * tmy_alloc - Allocate memory for temporal purpose.
@@ -741,4 +717,57 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	tmy_free(buf);
 +	return NULL;
++}
++
++/**
++ * tmy_read_memory_counter - Check for memory usage.
++ *
++ * @head: Pointer to "struct tmy_io_buffer".
++ *
++ * Returns memory usage.
++ */
++int tmy_read_memory_counter(struct tmy_io_buffer *head)
++{
++	if (!head->read_eof) {
++		const unsigned int shared = allocated_memory_for_savename;
++		const unsigned int private = allocated_memory_for_elements;
++		const unsigned int dynamic = dynamic_memory_size;
++		char buffer[64];
++		memset(buffer, 0, sizeof(buffer));
++		if (quota_for_savename)
++			snprintf(buffer, sizeof(buffer) - 1,
++				 "   (Quota: %10u)", quota_for_savename);
++		else
++			buffer[0] = '\0';
++		tmy_io_printf(head, "Shared:  %10u%s\n", shared, buffer);
++		if (quota_for_elements)
++			snprintf(buffer, sizeof(buffer) - 1,
++				 "   (Quota: %10u)", quota_for_elements);
++		else
++			buffer[0] = '\0';
++		tmy_io_printf(head, "Private: %10u%s\n", private, buffer);
++		tmy_io_printf(head, "Dynamic: %10u\n", dynamic);
++		tmy_io_printf(head, "Total:   %10u\n",
++			      shared + private + dynamic);
++		head->read_eof = true;
++	}
++	return 0;
++}
++
++/**
++ * tmy_write_memory_quota - Set memory quota.
++ *
++ * @head: Pointer to "struct tmy_io_buffer".
++ *
++ * Returns 0.
++ */
++int tmy_write_memory_quota(struct tmy_io_buffer *head)
++{
++	char *data = head->write_buf;
++	unsigned int size;
++	if (sscanf(data, "Shared: %u", &size) == 1)
++		quota_for_savename = size;
++	else if (sscanf(data, "Private: %u", &size) == 1)
++		quota_for_elements = size;
++	return 0;
 +}
