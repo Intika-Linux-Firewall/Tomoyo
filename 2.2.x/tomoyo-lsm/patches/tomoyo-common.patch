@@ -7,9 +7,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  include/linux/list.h     |   78 +
- security/tomoyo/common.c | 2147 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  311 ++++++
- 3 files changed, 2536 insertions(+)
+ security/tomoyo/common.c | 2129 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |  318 +++++++
+ 3 files changed, 2525 insertions(+)
 
 --- linux-2.6.25-mm1.orig/include/linux/list.h
 +++ linux-2.6.25-mm1/include/linux/list.h
@@ -98,7 +98,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #endif
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/common.h
-@@ -0,0 +1,311 @@
+@@ -0,0 +1,318 @@
 +/*
 + * security/tomoyo/common.h
 + *
@@ -106,7 +106,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/30
++ * Version: 2.2.0-pre   2008/05/07
 + *
 + */
 +
@@ -188,7 +188,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	u8 profile;        /* Profile number to use. */
 +	u8 is_deleted;     /* Delete flag.           */
 +	bool quota_warned; /* Quota warnning flag.   */
-+	/* DOMAIN_FLAGS_IGNORE_*. Use tmy_set_domain_flag() to modify. */
++	/* DOMAIN_FLAGS_*. Use tmy_set_domain_flag() to modify. */
 +	u8 flags;
 +};
 +
@@ -197,6 +197,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +/* Ignore "allow_read" directive in exception policy. */
 +#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
++/*
++ * This domain was unable to create a new domain at tmy_find_next_domain()
++ * because the name of the domain to be created was too long or
++ * it could not allocate memory.
++ * More than one process continued execve() without domain transition.
++ */
++#define DOMAIN_FLAGS_TRANSITION_FAILED        2
 +
 +/*
 + * Structure for "allow_read/write", "allow_execute", "allow_read",
@@ -412,7 +419,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2147 @@
+@@ -0,0 +1,2129 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1781,6 +1788,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	list1_for_each_cookie(dpos, head->read_var1, &domain_list) {
 +		struct domain_info *domain;
 +		const char *quota_exceeded = "";
++		const char *transition_failed = "";
 +		const char *ignore_global_allow_read = "";
 +		domain = list1_entry(dpos, struct domain_info, list);
 +		if (head->read_step != 1)
@@ -1790,13 +1798,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		/* Print domainname and flags. */
 +		if (domain->quota_warned)
 +			quota_exceeded = "quota_exceeded\n";
++		if (domain->flags & DOMAIN_FLAGS_TRANSITION_FAILED)
++			transition_failed = "transition_failed\n";
 +		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ)
 +			ignore_global_allow_read
 +				= KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
 +		if (!tmy_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
-+				   "%s%s\n", domain->domainname->name,
++				   "%s%s%s\n", domain->domainname->name,
 +				   domain->profile, quota_exceeded,
-+				   ignore_global_allow_read))
++				   transition_failed, ignore_global_allow_read))
 +			return 0;
 +		head->read_step = 2;
 +acl_loop:
@@ -2173,28 +2183,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * read_memory_counter - Check for memory usage.
-+ *
-+ * @head: Pointer to "struct tmy_io_buffer".
-+ *
-+ * Returns memory usage.
-+ */
-+static int read_memory_counter(struct tmy_io_buffer *head)
-+{
-+	if (!head->read_eof) {
-+		const int shared = tmy_get_memory_used_for_save_name();
-+		const int private = tmy_get_memory_used_for_elements();
-+		const int dynamic = tmy_get_memory_used_for_dynamic();
-+		tmy_io_printf(head, "Shared:  %10u\nPrivate: %10u\n"
-+			      "Dynamic: %10u\nTotal:   %10u\n",
-+			      shared, private, dynamic,
-+			      shared + private + dynamic);
-+		head->read_eof = true;
-+	}
-+	return 0;
-+}
-+
-+/**
 + * read_self_domain - Get the current process's domainname.
 + *
 + * @head: Pointer to "struct tmy_io_buffer".
@@ -2262,8 +2250,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	case TMY_MEMINFO:
 +		/* /sys/kernel/security/tomoyo/meminfo */
-+		head->read = read_memory_counter;
-+		head->readbuf_size = 128;
++		head->write = tmy_write_memory_quota;
++		head->read = tmy_read_memory_counter;
++		head->readbuf_size = 512;
 +		break;
 +	case TMY_PROFILE:
 +		/* /sys/kernel/security/tomoyo/profile */
@@ -2551,7 +2540,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	create_entry("self_domain",      0400, tmy_dir, TMY_SELFDOMAIN);
 +	create_entry(".domain_status",   0600, tmy_dir, TMY_DOMAIN_STATUS);
 +	create_entry(".process_status",  0600, tmy_dir, TMY_PROCESS_STATUS);
-+	create_entry("meminfo",          0400, tmy_dir, TMY_MEMINFO);
++	create_entry("meminfo",          0600, tmy_dir, TMY_MEMINFO);
 +	create_entry("profile",          0600, tmy_dir, TMY_PROFILE);
 +	create_entry("manager",          0600, tmy_dir, TMY_MANAGER);
 +	create_entry(".updates_counter", 0400, tmy_dir, TMY_UPDATESCOUNTER);

@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  855 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 855 insertions(+)
+ security/tomoyo/domain.c |  854 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 854 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/domain.c
-@@ -0,0 +1,855 @@
+@@ -0,0 +1,854 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -25,7 +25,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/30
++ * Version: 2.2.0-pre   2008/05/07
 + *
 + */
 +
@@ -856,16 +856,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	domain = tmy_find_or_assign_new_domain(new_domain_name,
 +					       old_domain->profile);
 +done:
-+	if (!domain) {
-+		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
-+		       new_domain_name);
-+		if (is_enforce)
-+			retval = -EPERM;
-+		else
-+			retval = -ENOMEM;
-+	} else {
-+		retval = 0;
-+	}
++	if (domain)
++		goto out;
++	printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
++	       new_domain_name);
++	if (is_enforce)
++		retval = -EPERM;
++	else
++		tmy_set_domain_flag(old_domain, false,
++				    DOMAIN_FLAGS_TRANSITION_FAILED);
 +out:
 +	tmy_free(real_program_name);
 +	tmy_free(symlink_program_name);

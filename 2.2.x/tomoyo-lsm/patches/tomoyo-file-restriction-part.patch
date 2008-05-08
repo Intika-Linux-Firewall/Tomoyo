@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1131 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1131 insertions(+)
+ security/tomoyo/file.c | 1133 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1133 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.25-mm1/security/tomoyo/file.c
-@@ -0,0 +1,1131 @@
+@@ -0,0 +1,1133 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -19,7 +19,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/04/30
++ * Version: 2.2.0-pre   2008/05/07
 + *
 + */
 +
@@ -535,7 +535,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			continue;
 +		acl = container_of(ptr, struct single_path_acl_record, head);
 +		if (!(acl->perm & perm))
-+			if (!((acl->perm & (1 << TMY_TYPE_EXECUTE_ACL)) && (perm == (1 << TMY_TYPE_READ_ACL))))
++			/* Temporal workaround for "allow_execute" keyword. */
++			if (perm != (1 << TMY_TYPE_READ_ACL) ||
++			    !(acl->perm & (1 << TMY_TYPE_EXECUTE_ACL)))
 +				continue;
 +		if (may_use_pattern || !acl->filename->is_patterned) {
 +			if (!tmy_path_matches_pattern(filename,
