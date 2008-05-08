@@ -150,6 +150,56 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	ret = -EPERM;
+--- linux-2.6.13.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ linux-2.6.13/arch/cris/arch-v10/kernel/ptrace.c
+@@ -18,6 +18,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* 
+  * Determines which bits in DCCR the user has access to.
+@@ -82,6 +85,12 @@ sys_ptrace(long request, long pid, long 
+ 	struct task_struct *child;
+ 	int ret;
+ 	unsigned long __user *datap = (unsigned long __user *)data;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.13.orig/arch/cris/arch-v32/kernel/ptrace.c
++++ linux-2.6.13/arch/cris/arch-v32/kernel/ptrace.c
+@@ -19,6 +19,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/arch/hwregs/supp_reg.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Determines which bits in CCS the user has access to.
+@@ -105,6 +108,12 @@ sys_ptrace(long request, long pid, long 
+ 	struct task_struct *child;
+ 	int ret;
+ 	unsigned long __user *datap = (unsigned long __user *)data;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
 --- linux-2.6.13.orig/arch/frv/kernel/ptrace.c
 +++ linux-2.6.13/arch/frv/kernel/ptrace.c
 @@ -28,6 +28,9 @@
@@ -225,6 +275,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	ret = -EPERM;
+--- linux-2.6.13.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.13/arch/ia64/ia32/sys_ia32.c
+@@ -56,6 +56,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1757,6 +1760,12 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
 --- linux-2.6.13.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.13/arch/ia64/kernel/ptrace.c
 @@ -29,6 +29,9 @@
@@ -350,6 +425,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.13.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.13/arch/mips/kernel/ptrace32.c
+@@ -34,6 +34,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Tracing a 32-bit process with a 64-bit strace and vice versa will not
+@@ -43,6 +46,12 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.13.orig/arch/parisc/kernel/ptrace.c
 +++ linux-2.6.13/arch/parisc/kernel/ptrace.c
 @@ -24,6 +24,9 @@
@@ -413,6 +513,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   * does not yet catch signals sent when the child dies.
 @@ -56,6 +59,12 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.13.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.6.13/arch/ppc64/kernel/ptrace32.c
+@@ -33,6 +33,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/ptrace-common.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -43,6 +46,12 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
  	int ret = -EPERM;
@@ -604,6 +729,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  
+--- linux-2.6.13.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.13/arch/x86_64/ia32/ptrace32.c
+@@ -27,6 +27,9 @@
+ #include <asm/debugreg.h>
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* determines which flags the user has access to. */
+ /* 1 = access 0 = no access */
+@@ -233,6 +236,12 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	default:
 --- linux-2.6.13.orig/arch/x86_64/kernel/ptrace.c
 +++ linux-2.6.13/arch/x86_64/kernel/ptrace.c
 @@ -30,6 +30,9 @@
@@ -2064,153 +2214,3 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.13.orig/arch/cris/arch-v10/kernel/ptrace.c
-+++ linux-2.6.13/arch/cris/arch-v10/kernel/ptrace.c
-@@ -18,6 +18,9 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/processor.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* 
-  * Determines which bits in DCCR the user has access to.
-@@ -82,6 +85,12 @@ sys_ptrace(long request, long pid, long 
- 	struct task_struct *child;
- 	int ret;
- 	unsigned long __user *datap = (unsigned long __user *)data;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	ret = -EPERM;
---- linux-2.6.13.orig/arch/cris/arch-v32/kernel/ptrace.c
-+++ linux-2.6.13/arch/cris/arch-v32/kernel/ptrace.c
-@@ -19,6 +19,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/arch/hwregs/supp_reg.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * Determines which bits in CCS the user has access to.
-@@ -105,6 +108,12 @@ sys_ptrace(long request, long pid, long 
- 	struct task_struct *child;
- 	int ret;
- 	unsigned long __user *datap = (unsigned long __user *)data;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	ret = -EPERM;
---- linux-2.6.13.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.13/arch/x86_64/ia32/ptrace32.c
-@@ -27,6 +27,9 @@
- #include <asm/debugreg.h>
- #include <asm/i387.h>
- #include <asm/fpu32.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* determines which flags the user has access to. */
- /* 1 = access 0 = no access */
-@@ -233,6 +236,12 @@ asmlinkage long sys32_ptrace(long reques
- 	void __user *datap = compat_ptr(data);
- 	int ret;
- 	__u32 val;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	switch (request) { 
- 	default:
---- linux-2.6.13.orig/arch/ppc64/kernel/ptrace32.c
-+++ linux-2.6.13/arch/ppc64/kernel/ptrace32.c
-@@ -33,6 +33,9 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/ptrace-common.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * does not yet catch signals sent when the child dies.
-@@ -43,6 +46,12 @@ int sys32_ptrace(long request, long pid,
- {
- 	struct task_struct *child;
- 	int ret = -EPERM;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-2.6.13.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.13/arch/ia64/ia32/sys_ia32.c
-@@ -56,6 +56,9 @@
- #include <asm/types.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "ia32priv.h"
- 
-@@ -1757,6 +1760,12 @@ sys32_ptrace (int request, pid_t pid, un
- 	struct task_struct *child;
- 	unsigned int value, tmp;
- 	long i, ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-2.6.13.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.13/arch/mips/kernel/ptrace32.c
-@@ -34,6 +34,9 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/bootinfo.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * Tracing a 32-bit process with a 64-bit strace and vice versa will not
-@@ -43,6 +46,12 @@ asmlinkage int sys32_ptrace(int request,
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- #if 0
- 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",

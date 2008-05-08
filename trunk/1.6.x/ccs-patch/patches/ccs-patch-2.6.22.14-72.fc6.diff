@@ -55,6 +55,158 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  NAME = Holy Dancing Manatees, Batman!
  
  # *DOCUMENTATION*
+--- linux-2.6.22.14-72.fc6.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.22.14-72.fc6/arch/alpha/kernel/ptrace.c
+@@ -20,6 +20,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/fpu.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "proto.h"
+ 
+@@ -268,6 +271,12 @@ do_sys_ptrace(long request, long pid, lo
+ 	unsigned long tmp;
+ 	size_t copied;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
+--- linux-2.6.22.14-72.fc6.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.22.14-72.fc6/arch/ia64/ia32/sys_ia32.c
+@@ -57,6 +57,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1741,6 +1744,12 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.22.14-72.fc6.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.22.14-72.fc6/arch/m32r/kernel/ptrace.c
+@@ -32,6 +32,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * This routine will get a word off of the process kernel stack.
+@@ -742,6 +745,12 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.22.14-72.fc6.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.22.14-72.fc6/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs (struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs (struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.22.14-72.fc6.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.22.14-72.fc6/arch/sh64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -271,6 +274,12 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {
+--- linux-2.6.22.14-72.fc6.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.22.14-72.fc6/arch/sparc/kernel/ptrace.c
+@@ -23,6 +23,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define MAGIC_CONSTANT 0x80000000
+ 
+@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ #ifdef DEBUG_PTRACE
 --- linux-2.6.22.14-72.fc6.orig/fs/Kconfig
 +++ linux-2.6.22.14-72.fc6/fs/Kconfig
 @@ -2135,5 +2135,7 @@ endif
@@ -819,6 +971,44 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
+--- linux-2.6.22.14-72.fc6.orig/kernel/ptrace.c
++++ linux-2.6.22.14-72.fc6/kernel/ptrace.c
+@@ -26,6 +26,9 @@
+ #include <asm/tracehook.h>
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #ifdef CONFIG_DEBUG_PREEMPT
+ #define NO_LOCKS	WARN_ON(preempt_count() != 0)
+@@ -997,6 +1000,12 @@ asmlinkage long sys_ptrace(long request,
+ 	struct utrace_attached_engine *engine = NULL;
+ 	struct ptrace_state *state = NULL;
+ 	long ret, val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	pr_debug("%d sys_ptrace(%ld, %ld, %lx, %lx)\n",
+ 		 current->pid, request, pid, addr, data);
+@@ -1084,6 +1093,12 @@ asmlinkage long compat_sys_ptrace(compat
+ 	struct utrace_attached_engine *engine;
+ 	struct ptrace_state *state;
+ 	compat_long_t ret, val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
+ 		 current->pid, request, pid, addr, cdata);
 --- linux-2.6.22.14-72.fc6.orig/kernel/sched.c
 +++ linux-2.6.22.14-72.fc6/kernel/sched.c
 @@ -63,6 +63,9 @@
@@ -1386,193 +1576,3 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.22.14-72.fc6.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/alpha/kernel/ptrace.c
-@@ -20,6 +20,9 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/fpu.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "proto.h"
- 
-@@ -268,6 +271,12 @@ do_sys_ptrace(long request, long pid, lo
- 	unsigned long tmp;
- 	size_t copied;
- 	long ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.22.14-72.fc6.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/m32r/kernel/ptrace.c
-@@ -32,6 +32,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * This routine will get a word off of the process kernel stack.
-@@ -742,6 +745,12 @@ asmlinkage long sys_ptrace(long request,
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-2.6.22.14-72.fc6.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/sparc/kernel/ptrace.c
-@@ -23,6 +23,9 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/uaccess.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #define MAGIC_CONSTANT 0x80000000
- 
-@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
- 	unsigned long addr2 = regs->u_regs[UREG_I4];
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
-+		pt_error_return(regs, EPERM);
-+		return;
-+	}
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- #ifdef DEBUG_PTRACE
---- linux-2.6.22.14-72.fc6.orig/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/kernel/ptrace.c
-@@ -26,6 +26,9 @@
- #include <asm/tracehook.h>
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #ifdef CONFIG_DEBUG_PREEMPT
- #define NO_LOCKS	WARN_ON(preempt_count() != 0)
-@@ -997,6 +1000,12 @@ asmlinkage long sys_ptrace(long request,
- 	struct utrace_attached_engine *engine = NULL;
- 	struct ptrace_state *state = NULL;
- 	long ret, val;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	pr_debug("%d sys_ptrace(%ld, %ld, %lx, %lx)\n",
- 		 current->pid, request, pid, addr, data);
-@@ -1084,6 +1093,12 @@ asmlinkage long compat_sys_ptrace(compat
- 	struct utrace_attached_engine *engine;
- 	struct ptrace_state *state;
- 	compat_long_t ret, val;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
- 		 current->pid, request, pid, addr, cdata);
---- linux-2.6.22.14-72.fc6.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.22.14-72.fc6/arch/ia64/ia32/sys_ia32.c
-@@ -57,6 +57,9 @@
- #include <asm/types.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "ia32priv.h"
- 
-@@ -1741,6 +1744,12 @@ sys32_ptrace (int request, pid_t pid, un
- 	struct task_struct *child;
- 	unsigned int value, tmp;
- 	long i, ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-2.6.22.14-72.fc6.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.22.14-72.fc6/arch/mips/kernel/ptrace32.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/bootinfo.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- int ptrace_getregs (struct task_struct *child, __s64 __user *data);
- int ptrace_setregs (struct task_struct *child, __s64 __user *data);
-@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- #if 0
- 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.22.14-72.fc6.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/sh64/kernel/ptrace.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -271,6 +274,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {

@@ -58,6 +58,31 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  NAME = Arr Matey! A Hairy Bilge Rat!
  
  # *DOCUMENTATION*
+--- linux-source-2.6.24-4.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-source-2.6.24-4/arch/ia64/ia32/sys_ia32.c
+@@ -55,6 +55,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1758,6 +1761,12 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
 --- linux-source-2.6.24-4.orig/arch/ia64/kernel/ptrace.c
 +++ linux-source-2.6.24-4/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
@@ -83,6 +108,56 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	lock_kernel();
  	ret = -EPERM;
+--- linux-source-2.6.24-4.orig/arch/mips/kernel/ptrace32.c
++++ linux-source-2.6.24-4/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs(struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs(struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-source-2.6.24-4.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-source-2.6.24-4/arch/powerpc/kernel/ptrace32.c
+@@ -32,6 +32,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -89,6 +92,12 @@ long compat_sys_ptrace(int request, int 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
 --- linux-source-2.6.24-4.orig/arch/s390/kernel/ptrace.c
 +++ linux-source-2.6.24-4/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
@@ -108,6 +183,31 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
+--- linux-source-2.6.24-4.orig/arch/sh64/kernel/ptrace.c
++++ linux-source-2.6.24-4/arch/sh64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -256,6 +259,12 @@ asmlinkage int sh64_ptrace(long request,
+ 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+ #define WPC_DBRMODE 0x0d104008
+ 	static int first_call = 1;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (first_call) {
 --- linux-source-2.6.24-4.orig/arch/sparc/kernel/ptrace.c
 +++ linux-source-2.6.24-4/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
@@ -162,6 +262,31 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
+--- linux-source-2.6.24-4.orig/arch/x86/ia32/ptrace32.c
++++ linux-source-2.6.24-4/arch/x86/ia32/ptrace32.c
+@@ -27,6 +27,9 @@
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
+ #include <asm/ia32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Determines which flags the user has access to [1 = access, 0 = no access].
+@@ -235,6 +238,12 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	switch (request) { 
+ 	case PTRACE_TRACEME:
 --- linux-source-2.6.24-4.orig/fs/Kconfig
 +++ linux-source-2.6.24-4/fs/Kconfig
 @@ -2129,5 +2129,7 @@ endif
@@ -1518,128 +1643,3 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-source-2.6.24-4.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-source-2.6.24-4/arch/powerpc/kernel/ptrace32.c
-@@ -32,6 +32,9 @@
- #include <asm/page.h>
- #include <asm/pgtable.h>
- #include <asm/system.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * does not yet catch signals sent when the child dies.
-@@ -89,6 +92,12 @@ long compat_sys_ptrace(int request, int 
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.24-4.orig/arch/sh64/kernel/ptrace.c
-+++ linux-source-2.6.24-4/arch/sh64/kernel/ptrace.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -256,6 +259,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
---- linux-source-2.6.24-4.orig/arch/x86/ia32/ptrace32.c
-+++ linux-source-2.6.24-4/arch/x86/ia32/ptrace32.c
-@@ -27,6 +27,9 @@
- #include <asm/i387.h>
- #include <asm/fpu32.h>
- #include <asm/ia32.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * Determines which flags the user has access to [1 = access, 0 = no access].
-@@ -235,6 +238,12 @@ asmlinkage long sys32_ptrace(long reques
- 	void __user *datap = compat_ptr(data);
- 	int ret;
- 	__u32 val;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	switch (request) { 
- 	case PTRACE_TRACEME:
---- linux-source-2.6.24-4.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-source-2.6.24-4/arch/ia64/ia32/sys_ia32.c
-@@ -55,6 +55,9 @@
- #include <asm/types.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- #include "ia32priv.h"
- 
-@@ -1758,6 +1761,12 @@ sys32_ptrace (int request, pid_t pid, un
- 	struct task_struct *child;
- 	unsigned int value, tmp;
- 	long i, ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.24-4.orig/arch/mips/kernel/ptrace32.c
-+++ linux-source-2.6.24-4/arch/mips/kernel/ptrace32.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/bootinfo.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- int ptrace_getregs(struct task_struct *child, __s64 __user *data);
- int ptrace_setregs(struct task_struct *child, __s64 __user *data);
-@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
- {
- 	struct task_struct *child;
- 	int ret;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- #if 0
- 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
