@@ -19,7 +19,7 @@ rpm -ivh kernel-2.6.9-42.21AX.src.rpm || die "Can't install source package."
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."

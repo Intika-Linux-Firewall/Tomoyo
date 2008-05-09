@@ -18,7 +18,7 @@ apt-get source linux-restricted-modules-2.6.15-51-686 || die "Can't install kern
 
 # Download TOMOYO Linux patches.
 cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
-wget http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 
 # Apply patches and create kernel config.
 tar -zxf ccs-patch-1.5.4-20080510.tar.gz || die "Can't extract patch."
