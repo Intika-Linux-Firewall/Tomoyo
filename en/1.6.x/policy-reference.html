@@ -28,11 +28,12 @@
 <h2>5. <a href="#Syntax_Details">Syntax Details</a></h2>
 <h2>6. <a href="#Advanced_Features">Advanced Features</a></h2>
 <p>6.1 <a href="#non_root_policy_update">Allowing policy modification by non root user.</a></p>
-<p>6.2 <a href="#conditional_acl">Using conditional ACL.</a></p>
-<p>6.3 <a href="#stateful_acl">Using stateful ACL.</a></p>
-<p>6.4 <a href="#sleep_penalty">Sleep penalty for policy violation.</a></p>
-<p>6.5 <a href="#execute_handler">Judging execute request outside the kernel.</a></p>
-<p>6.6 <a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></p>
+<p>6.2 <a href="#memory_quota">Enabling quota for memory used for holding policy.</a></p>
+<p>6.3 <a href="#conditional_acl">Using conditional ACL.</a></p>
+<p>6.4 <a href="#stateful_acl">Using stateful ACL.</a></p>
+<p>6.5 <a href="#sleep_penalty">Sleep penalty for policy violation.</a></p>
+<p>6.6 <a href="#execute_handler">Judging execute request outside the kernel.</a></p>
+<p>6.7 <a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></p>
 <hr>
 
 <h1>1. <a name="Keyword_Index">Keywords Index</a></h1>
@@ -148,6 +149,7 @@
 <li><a href="#domain_policy_execute_handler">execute_handler</a></li>
 <li><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
+<li><a href="#domain_policy_transition_failed">transition_failed</a></li>
 </ul>
 
 <p>Used by /proc/ccs/manager and /etc/ccs/manager.conf</p>
@@ -1489,6 +1491,12 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <p>See also:  <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></p>
 
+<h3><a name="domain_policy_transition_failed">transition_failed</a></h3>
+
+<p>This keyword indicates that this domain has failed to create a new domain since "the name of the domain to be created was too long" or "the kernel was unable to allocate memory" but processed the execute request without domain transition to avoid rejecting the execute request. You need to consider "suppressing domain transitions" or "increasing memory quota" if you are planning to assign a profile with <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>=enforcing to this domain.
+
+<p>See also:  <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">Enabling quota for memory used for holding policy.</a></p>
+
 <h2><a name="exception_policy">/proc/ccs/exception_policy</a></h2>
 
 <p>To read or modify current exception policy, operate like below.</p>
@@ -1748,7 +1756,22 @@ chown -R demo /proc/ccs/
 
 <p>Then, user demo will be able to access policy directories and policy editors.</p>
 
-<h2>6.2 <a name="conditional_acl">Using conditional ACL.</a></h2>
+<h2>6.2 <a name="memory_quota">Enabling quota for memory used for holding policy.</a></h2>
+
+<p>TOMOYO Linux 1.6.1 introduced memory quota for limiting maximum memory allocated for holding TOMOYO Linux's policy.</p>
+
+<p>You can set memory quota by writing to /proc/ccs/meminfo like</p>
+
+<table border="1">
+<tr><td>
+echo Shared: 2097152 &gt; /proc/ccs/meminfo<br>
+echo Private: 2097152 &gt; /proc/ccs/meminfo
+</td></tr>
+</table>
+
+<p>from /etc/ccs/ccs-post-init .</p>
+
+<h2>6.3 <a name="conditional_acl">Using conditional ACL.</a></h2>
 
 <p>You can add conditions (e.g. UID and GID) as needed. The condition clause are appended to the tail of each permission using "if" directive.</p>
 
@@ -1810,7 +1833,7 @@ chown -R demo /proc/ccs/
 
 <p>"exec" is available only for operation that executes a program (i.e. <a href="#domain_policy_allow_execute">allow_execute</a> keyword).</p>
 
-<h2>6.3 <a name="stateful_acl">Using stateful ACL.</a></h2>
+<h2>6.4 <a name="stateful_acl">Using stateful ACL.</a></h2>
 
 <p>Since TOMOYO Linux doesn't require modification of userland applications, it is impossible to change the range of accessible resources without domain transition.
 But there are cases you wish to change the range of accessible resources without domain transition. For example, you might wish to change the range of accessible resources depending on the client's IP address. To support such cases, you can assign state variables to each processes and you can use the state variables in <a href="#conditional_acl">Using conditional ACL.</a></p>
@@ -1841,7 +1864,7 @@ But there are cases you wish to change the range of accessible resources without
 <li>If an IP address is included in both @TRUSTED_HOSTS and @UNTRUSTED_HOSTS, the permission which matched first is used. So, be careful with using order dependent policy.</li>
 </ul>
 
-<h2>6.4 <a name="sleep_penalty">Sleep penalty for policy violation.</a></h2>
+<h2>6.5 <a name="sleep_penalty">Sleep penalty for policy violation.</a></h2>
 
 <p>You can make the process which violated policy in enforcing mode sleep for specified period.</p>
 
@@ -1855,7 +1878,7 @@ But there are cases you wish to change the range of accessible resources without
 
 <p>This feature is not applied against network's receive operation so that attackers cannot make services sleep for long time (in other words, delay your system's response) by intentionally sending TCP connection requests and UDP packets from unwanted sources.</p>
 
-<h2>6.5 <a name="execute_handler">Judging execute request outside the kernel.</a></h2>
+<h2>6.6 <a name="execute_handler">Judging execute request outside the kernel.</a></h2>
 
 <p>Basically, TOMOYO Linux controls whether to execute a program or not according to the domain policy. You can check parameters using exec.argv and exec.envp described in <a href="#conditional_acl">Using conditional ACL.</a> But this approach support only simple pattern matching and you need to specify what programs are permitted to be executed beforehand.</p>
 
@@ -1915,7 +1938,7 @@ Viewing in this light, there is no guarantee that "the program starts expected b
 <p>A source code named audit-exec-param.c is included as a sample program of how to use this mechanism in the ccs-tools source package. You can customize freely.</p>
 <p>This mechanism is just providing a hook. How to utilize this hook is up to you.</p>
 
-<h2>6.6 <a name="denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></h2>
+<h2>6.7 <a name="denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></h2>
 
 <p>TOMOYO Linux's approach is "know what programs needs to be executed from what programs beforehand and create policy that permits execution of minimal programs". Thus, you can not only reject unnecessary execution requests but also do different behavior.</p>
 

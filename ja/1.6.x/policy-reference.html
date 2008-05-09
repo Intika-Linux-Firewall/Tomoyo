@@ -28,11 +28,12 @@
 <h2>5. <a href="#Syntax_Details">キーワード詳細</a></h2>
 <h2>6. <a href="#Advanced_Features">便利な機能</a></h2>
 <p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></p>
-<p>6.2 <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
-<p>6.3 <a href="#stateful_acl">ステートフルなアクセス許可の指定</a></p>
-<p>6.4 <a href="#sleep_penalty">ポリシ違反時のペナルティ指定</a></p>
-<p>6.5 <a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
-<p>6.6 <a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
+<p>6.2 <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
+<p>6.3 <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
+<p>6.4 <a href="#stateful_acl">ステートフルなアクセス許可の指定</a></p>
+<p>6.5 <a href="#sleep_penalty">ポリシ違反時のペナルティ指定</a></p>
+<p>6.6 <a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
+<p>6.7 <a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
 <hr>
 
 <h1>1. <a name="Keyword_Index">キーワード一覧</a></h1>
@@ -148,6 +149,7 @@
 <li><a href="#domain_policy_execute_handler">execute_handler</a></li>
 <li><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
+<li><a href="#domain_policy_transition_failed">transition_failed</a></li>
 </ul>
 
 <p>/proc/ccs/manager および /etc/ccs/manager.conf で使われるもの</p>
@@ -1483,6 +1485,12 @@ cat /proc/ccs/domain_policy</p>
 
 <p>関連項目： <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></p>
 
+<h3><a name="domain_policy_transition_failed">transition_failed</a></h3>
+
+<p>これは、プログラムの実行時にドメインを新規作成しようと試みたが、「新規作成されるドメインのドメイン名が長すぎる」または「カーネルがメモリを割り当てることができなかった」という理由により、ドメイン遷移を行わないままプログラムの実行を許可したことを示しています。このドメインに対して <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
+
+<p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
+
 <h2><a name="exception_policy">/proc/ccs/exception_policy</a></h2>
 
 <p>現在の例外ポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
@@ -1740,7 +1748,20 @@ chown -R demo /proc/ccs/
 
 <p>を実行することで demo ユーザがポリシのあるディレクトリへのアクセスとポリシを編集するためのプログラムを実行できるようになります。</p>
 
-<h2>6.2 <a name="conditional_acl">条件付きアクセス許可の指定</a></h2>
+<h2>6.2 <a name="memory_quota">ポリシに割り当てられるメモリ量を制限</a></h2>
+
+<p>TOMOYO Linux 1.6.1 ではポリシを保持しておくために割り当てられるメモリの量を制限できるようにするためにメモリクォータが導入されました。</p>
+
+<p>/etc/ccs/ccs-post-init から以下のように /proc/ccs/meminfo に書き込みを行うことで設定できます。</p>
+
+<table border="1">
+<tr><td>
+echo Shared: 2097152 &gt; /proc/ccs/meminfo<br>
+echo Private: 2097152 &gt; /proc/ccs/meminfo
+</td></tr>
+</table>
+
+<h2>6.3 <a name="conditional_acl">条件付きアクセス許可の指定</a></h2>
 
 <p>アクセス許可にユーザＩＤ等に基づいた条件を付加することができます。条件は個々のアクセス許可の末尾に " if " 句を追加する形で指定します。</p>
 
@@ -1803,7 +1824,7 @@ chown -R demo /proc/ccs/
 
 <p>exec はプログラム実行時（つまり <a href="#domain_policy_allow_execute">allow_execute</a> ）に限り指定できます。</p>
 
-<h2>6.3 <a name="stateful_acl">ステートフルなアクセス許可の指定</a></h2>
+<h2>6.4 <a name="stateful_acl">ステートフルなアクセス許可の指定</a></h2>
 
 <p>TOMOYO Linux はユーザランドアプリケーションの修正を行わないため、プログラムの実行を伴わずにアクセス可能な資源の範囲を変更することはできません。しかし、例えば接続元クライアントのＩＰアドレスによってアクセスの可否を切り替えたいという場合があります。そのような場合に対応するため、プロセス毎に状態変数を割り当てることができ、条件付きアクセス許可の指定で使えるようになっています。</p>
 
@@ -1833,7 +1854,7 @@ chown -R demo /proc/ccs/
 <li>上記の @TRUSTED_HOSTS と @UNTRUSTED_HOSTS の両方に含まれていた場合、先に一致したほうの状態変数が使われてしまいます。そのため、順番に依存するアクセス許可を定義しないように注意してください。</li>
 </ul>
 
-<h2>6.4 <a name="sleep_penalty">ポリシ違反時のペナルティ指定</a></h2>
+<h2>6.5 <a name="sleep_penalty">ポリシ違反時のペナルティ指定</a></h2>
 
 <p>強制モードでポリシ違反が発生した場合に、ポリシ違反の原因となったプロセスを一定時間スリープ状態にさせることができます。</p>
 
@@ -1847,7 +1868,7 @@ chown -R demo /proc/ccs/
 
 <p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシ違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
 
-<h2>6.5 <a name="execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h2>
+<h2>6.6 <a name="execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h2>
 
 <p>TOMOYO Linux では、原則としてポリシに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">条件付きアクセス許可の指定</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
 
@@ -1907,7 +1928,7 @@ chown -R demo /proc/ccs/
 <p>ccs-tools のソースパッケージには、 audit-exec-param.c というサンプルプログラムが入っています。ご自由に改造してお使いください。</p>
 <p>この機能は、機構を提供しているだけです。この機構を活用できるかどうかはあなた次第です。</p>
 
-<h2>6.6 <a name="denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></h2>
+<h2>6.7 <a name="denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></h2>
 
 <p>TOMOYO Linux では、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、不要なプログラムの実行を拒否するという振る舞いだけでなく、それ以外の振る舞いを行うこともできます。</p>
 
