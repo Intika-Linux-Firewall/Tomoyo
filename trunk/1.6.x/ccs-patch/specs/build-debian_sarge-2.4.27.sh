@@ -18,14 +18,14 @@ apt-get source kernel-image-2.4.27-4-686-smp || die "Can't install kernel source
 
 # Download TOMOYO Linux patches.
 cd kernel-image-2.4.27-i386-2.4.27/ || die "Can't chdir to kernel-image-2.4.27-i386-2.4.27/ ."
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz || die "Can't download patch."
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
 
 # Apply patches and create kernel config.
-tar -zxf ccs-patch-1.6.0-20080401.tar.gz ./config.ccs || die "Can't extract patch."
+tar -zxf ccs-patch-1.6.1-20080510.tar.gz ./config.ccs || die "Can't extract patch."
 cat config/686-smp config.ccs > config/686-smp-ccs || die "Can't create config."
 debian/rules flavours=686-smp-ccs || die "Can't run rules."
 cd build-686-smp-ccs/ || die "Can't chdir to build-686-smp-ccs/ ."
-tar -zxf ../ccs-patch-1.6.0-20080401.tar.gz || die "Can't extract patch."
+tar -zxf ../ccs-patch-1.6.1-20080510.tar.gz || die "Can't extract patch."
 cp -p Makefile Makefile.tmp || die "Can't create backup."
 patch -p1 < patches/ccs-patch-2.4.27-10sarge7.diff || die "Can't apply patch."
 mv -f Makefile.tmp Makefile || die "Can't restore."

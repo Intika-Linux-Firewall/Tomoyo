@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.16-0vl76.33.src.rpm || die "Can't install source package."
 
 cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.0-20080401.tar.gz ]
+if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 0vl76.33
-+%define release 0vl76.33_tomoyo_1.6.0
++%define release 0vl76.33_tomoyo_1.6.1
  
  %define make_target bzImage
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.1-20080510.tar.gz
 +sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -0vl76.33custom/" -- Makefile
 +patch -sp1 < patches/ccs-patch-2.6.16-0vl76.33.diff
 +
@@ -78,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
  	echo "# $Arch" > configs/$i
  	cat .config >> configs/$i 
 EOF
-mv kernel-2.6-vl.spec kernel-2.6.16-0vl76.33_tomoyo_1.6.0.spec || die "Can't rename spec file."
+mv kernel-2.6-vl.spec kernel-2.6.16-0vl76.33_tomoyo_1.6.1.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.16-0vl76.33_tomoyo_1.6.0.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.16-0vl76.33_tomoyo_1.6.0.spec"
+echo "Edit /tmp/kernel-2.6.16-0vl76.33_tomoyo_1.6.1.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.16-0vl76.33_tomoyo_1.6.1.spec"
 echo "to build kernel rpm packages."
 exit 0

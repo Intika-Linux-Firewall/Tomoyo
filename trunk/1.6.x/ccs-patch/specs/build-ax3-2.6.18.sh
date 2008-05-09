@@ -17,14 +17,9 @@ fi
 rpm -ivh kernel-2.6.18-8.16AX.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.0-20080401.tar.gz ]
+if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.18-8.16AX.diff ]
-then
-    wget -O ccs-patch-2.6.18-8.16AX.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18-8.16AX.diff?root=tomoyo' || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -37,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 8.16%{?dist}
-+%define release 8.16%{?dist}_tomoyo_1.6.0
++%define release 8.16%{?dist}_tomoyo_1.6.1
  %define signmodules 0
  %define xen_hv_cset 11772
  %define make_target bzImage
@@ -65,9 +60,9 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.1-20080510.tar.gz
 +sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.16AX/" -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.18-8.16AX.diff
++patch -sp1 < patches/ccs-patch-2.6.18-8.16AX.diff
 +
  cp %{SOURCE10} Documentation/
  
@@ -83,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch nonint_oldconfig > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel-2.6.spec kernel-2.6.18-8.16AX_tomoyo_1.6.0.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.18-8.16AX_tomoyo_1.6.1.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.18-8.16AX_tomoyo_1.6.0.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.18-8.16AX_tomoyo_1.6.0.spec"
+echo "Edit /tmp/kernel-2.6.18-8.16AX_tomoyo_1.6.1.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.18-8.16AX_tomoyo_1.6.1.spec"
 echo "to build kernel rpm packages."
 exit 0
