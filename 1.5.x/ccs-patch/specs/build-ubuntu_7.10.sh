@@ -22,7 +22,7 @@ apt-get source linux-ubuntu-modules-2.6.22-14-generic || die "Can't install kern
 
 # Download TOMOYO Linux patches.
 cd linux-source-2.6.22-2.6.22/ || die "Can't chdir to linux-2.6.22-2.6.22/ ."
-wget http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 tar -zxf ccs-patch-1.5.4-20080510.tar.gz || die "Can't extract patch."
 
 # Copy patches and create kernel config.
