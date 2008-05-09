@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.9-42.21AX.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
+if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
 -%define release 42.21AX%{axbsys}
-+%define release 42.21AX%{axbsys}_tomoyo_1.6.1
++%define release 42.21AX%{axbsys}_tomoyo_1.5.4
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.1-20080510.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
 +sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.21AX/" -- Makefile
 +patch -sp1 < patches/ccs-patch-2.6.9-42.21AX.diff
 +
@@ -78,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
  	cp .config configs/$i 
  done
 EOF
-mv kernel-2.6.spec kernel-2.6.9-42.21AX_tomoyo_1.6.1.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.9-42.21AX_tomoyo_1.5.4.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.9-42.21AX_tomoyo_1.6.1.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.9-42.21AX_tomoyo_1.6.1.spec"
+echo "Edit /tmp/kernel-2.6.9-42.21AX_tomoyo_1.5.4.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.9-42.21AX_tomoyo_1.5.4.spec"
 echo "to build kernel rpm packages."
 exit 0
