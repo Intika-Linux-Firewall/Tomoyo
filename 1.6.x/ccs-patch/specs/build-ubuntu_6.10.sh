@@ -21,10 +21,10 @@ apt-get source linux-restricted-modules-2.6.17-12-generic || die "Can't install 
 
 # Download TOMOYO Linux patches.
 cd linux-source-2.6.17-2.6.17.1/ || die "Can't chdir to linux-2.6.17-2.6.17.1/ ."
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz || die "Can't download patch."
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
 
 # Apply patches and create kernel config.
-tar -zxf ccs-patch-1.6.0-20080401.tar.gz || die "Can't extract patch."
+tar -zxf ccs-patch-1.6.1-20080510.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.17.14-ubuntu1.diff || die "Can't apply patch."
 cat debian/config/i386/config.generic config.ccs > debian/config/i386/config.generic-ccs || die "Can't create config."
 cat debian/config/vars.generic > debian/config/i386/vars.generic-ccs || die "Can't create file."

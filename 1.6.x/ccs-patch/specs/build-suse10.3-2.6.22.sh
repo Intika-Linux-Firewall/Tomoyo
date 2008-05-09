@@ -67,16 +67,16 @@ fi
 rpm -ivh kernel-source-2.6.22.17-0.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.0-20080401.tar.gz ]
+if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.0-20080401.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec	2008-02-11 11:04:16.000000000 +0900
-+++ kernel-default_tomoyo_1.6.0.spec	2008-04-01 11:31:06.000000000 +0900
++++ kernel-default_tomoyo_1.6.1.spec	2008-04-01 11:31:06.000000000 +0900
 @@ -10,7 +10,7 @@
  
  # norootforbuild
@@ -91,7 +91,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  Version:        2.6.22.17
 -Release: 0.1
-+Release: 0.1_tomoyo_1.6.0
++Release: 0.1_tomoyo_1.6.1
  License:        GPL v2 or later
  Group:          System/Kernel
  AutoReqProv:    on
@@ -109,7 +109,7 @@ patch << "EOF" || die "Can't patch spec file."
  source .rpm-defs
  cd linux-2.6.22
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.0-20080401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.1-20080510.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.22.17-0.1_SUSE.diff
 +sed -i -e 's:-ccs::' -- Makefile
 +cat config.ccs >> .config
@@ -117,11 +117,11 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-mv kernel-default.spec kernel-2.6.22.17-0.1-default_tomoyo_1.6.0.spec || die "Can't rename spec file."
+mv kernel-default.spec kernel-2.6.22.17-0.1-default_tomoyo_1.6.1.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.22.17-0.1-default_tomoyo_1.6.0.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.22.17-0.1-default_tomoyo_1.6.0.spec"
+echo "Edit /tmp/kernel-2.6.22.17-0.1-default_tomoyo_1.6.1.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.22.17-0.1-default_tomoyo_1.6.1.spec"
 echo "to build kernel rpm packages."
 exit 0
