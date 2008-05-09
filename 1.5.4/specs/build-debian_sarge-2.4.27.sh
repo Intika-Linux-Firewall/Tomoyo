@@ -18,7 +18,7 @@ apt-get source kernel-image-2.4.27-4-686-smp || die "Can't install kernel source
 
 # Download TOMOYO Linux patches.
 cd kernel-image-2.4.27-i386-2.4.27/ || die "Can't chdir to kernel-image-2.4.27-i386-2.4.27/ ."
-wget http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 
 # Apply patches and create kernel config.
 tar -zxf ccs-patch-1.5.4-20080510.tar.gz ./config.ccs || die "Can't extract patch."
