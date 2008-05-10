@@ -28,7 +28,7 @@
 
 <h2><a name="l1">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.6.0 on CentOS 5.1 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.6.1 on CentOS 5.1 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 
 <ol>
@@ -61,22 +61,22 @@ But regarding CentOS 5.1, a binary kernel package is and this page uses it.</p>
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.18-53.1.14.el5_tomoyo_1.6.0.i686.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.18-53.1.19.el5_tomoyo_1.6.1.i686.rpm</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.18-53.1.14.el5_tomoyo_1.6.0.i686.rpm</span>
+# <span class="user">rpm --install kernel-2.6.18-53.1.19.el5_tomoyo_1.6.1.i686.rpm</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/grub.conf if installation finishes successfully.</p>
 
 <pre>
-title CentOS (2.6.18-53.1.14.el5_tomoyo_1.6.0)
+title CentOS (2.6.18-53.1.19.el5_tomoyo_1.6.1)
     root (hd0,0)
-    kernel /vmlinuz-2.6.18-53.1.14.el5_tomoyo_1.6.0 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.18-53.1.14.el5_tomoyo_1.6.0.img
+    kernel /vmlinuz-2.6.18-53.1.19.el5_tomoyo_1.6.1 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.18-53.1.19.el5_tomoyo_1.6.1.img
 </pre>
 
 <p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
@@ -97,8 +97,8 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 <p>A binary tools package is provided and this page uses it.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.CentOS5.1.i386.rpm</span>
-# <span class="user">rpm -ivh ccs-tools-1.6.0-1.CentOS5.1.i386.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.1-1.CentOS5.1.i386.rpm</span>
+# <span class="user">rpm -ivh ccs-tools-1.6.1-1.CentOS5.1.i386.rpm</span>
 </pre>
 
 <p>Add /usr/lib/ccs (the location of TOMOYO Linux tools) to the environment variable PATH.
