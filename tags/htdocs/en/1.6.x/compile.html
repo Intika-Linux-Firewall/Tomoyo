@@ -46,7 +46,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#2.6.22.14-72.fc6">Kernel 2.6.22.14-72.fc6 for Fedora Core 6</a>
 <li><a href="#2.6.23.15-80.fc7">Kernel 2.6.23.15-80.fc7 for Fedora 7</a>
 <li><a href="#2.6.24.5-85.fc8">Kernel 2.6.24.5-85.fc8 for Fedora 8</a>
-<li><a href="#2.6.9-67.0.7.EL">Kernel 2.6.9-67.0.7.EL for CentOS 4.6</a>
+<li><a href="#2.6.9-67.0.15.EL">Kernel 2.6.9-67.0.15.EL for CentOS 4.6</a>
 <li><a href="#2.6.18-53.1.19.el5">Kernel 2.6.18-53.1.19.el5 for CentOS 5.1</a>
 <li><a href="#2.4.27-10sarge7">Kernel 2.4.27-10sarge7 for Debian Sarge</a>
 <li><a href="#2.6.8-17sarge1">Kernel 2.6.8-17sarge1 for Debian Sarge</a>
@@ -245,24 +245,25 @@ make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-67.0.7.EL">Kernel 2.6.9-67.0.7.EL for CentOS 4.6</a></h2>
+<h2><a name="2.6.9-67.0.15.EL">Kernel 2.6.9-67.0.15.EL for CentOS 4.6</a></h2>
 
 <table border="1">
 <tr><td>
 # Download and install kernel source.<br>
-wget http://mirrors.kernel.org/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.7.EL.src.rpm<br>
-rpm -ivh kernel-2.6.9-67.0.7.EL.src.rpm<br>
+wget http://mirrors.kernel.org/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.15.EL.src.rpm<br>
+rpm -ivh kernel-2.6.9-67.0.15.EL.src.rpm<br>
 # Prepare for compilation.<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-67.0.7.EL<br>
+mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-67.0.15.EL<br>
 # Move to the source directory.<br>
-cd /usr/src/linux-2.6.9-67.0.7.EL/<br>
+cd /usr/src/linux-2.6.9-67.0.15.EL/<br>
 # Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -67.0.7.EL/' Makefile<br>
+sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -67.0.15.EL/' Makefile<br>
 # Download and apply TOMOYO Linux patch.<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz<br>
 tar -zxf ccs-patch-1.6.1-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.9-67.0.7.EL.diff<br>
+wget -O patches/ccs-patch-2.6.9-67.0.15.EL.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.9-67.0.15.EL.diff?root=tomoyo'<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.9-67.0.15.EL.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
