@@ -13,7 +13,7 @@ detect_arch
 
 CCS_TGP="ccs-patch-1.6.1-20080510"
 CCS_TGP_SRC="mirror://sourceforge.jp/tomoyo/30297/${CCS_TGP}.tar.gz "
-CCS_PATCH_VER="2.6.23-r9"
+CCS_PATCH_VER="2.6.23-gentoo-r9"
 
 DESCRIPTION="TOMOYO Linux sources for the ${KV_MAJOR}.${KV_MINOR} kernel tree"
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI} ${CCS_TGP_SRC} ${CCS_LSM_TGP_SRC}"
