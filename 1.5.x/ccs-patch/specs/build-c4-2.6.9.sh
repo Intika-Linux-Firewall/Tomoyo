@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-67.0.7.EL.src.rpm ]
+if [ ! -r kernel-2.6.9-67.0.15.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.7.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.15.EL.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-67.0.7.EL.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-67.0.15.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
@@ -22,17 +22,22 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.9-67.0.15.EL.diff ]
+then
+    wget -O ccs-patch-2.6.9-67.0.15.EL.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-67.0.15.EL.diff?root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-03-15 18:48:40.000000000 +0900
-+++ kernel-2.6.spec	2008-04-16 13:19:28.000000000 +0900
+--- kernel-2.6.spec	2008-05-08 23:11:38.000000000 +0900
++++ kernel-2.6.spec	2008-05-11 13:16:28.000000000 +0900
 @@ -30,7 +30,7 @@
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 67.0.7.EL
-+%define release 67.0.7.EL_tomoyo_1.5.4
+-%define release 67.0.15.EL
++%define release 67.0.15.EL_tomoyo_1.5.4
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -55,19 +60,19 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -3749,6 +3752,11 @@
+@@ -3785,6 +3788,11 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.7.EL/" -- Makefile
-+patch -sp1 < patches/ccs-patch-2.6.9-67.0.7.EL.diff
++sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.15.EL/" -- Makefile
++patch -sp1 < %_sourcedir/ccs-patch-2.6.9-67.0.15.EL.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -3760,6 +3768,9 @@
+@@ -3796,6 +3804,9 @@
  for i in *.config 
  do 
  	mv $i .config 
@@ -78,11 +83,11 @@ patch << "EOF" || die "Can't patch spec file."
  	cp .config configs/$i 
  done
 EOF
-mv kernel-2.6.spec kernel-2.6.9-67.0.7.EL_tomoyo_1.5.4.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.9-67.0.15.EL_tomoyo_1.5.4.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.9-67.0.7.EL_tomoyo_1.5.4.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.9-67.0.7.EL_tomoyo_1.5.4.spec"
+echo "Edit /tmp/kernel-2.6.9-67.0.15.EL_tomoyo_1.5.4.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.9-67.0.15.EL_tomoyo_1.5.4.spec"
 echo "to build kernel rpm packages."
 exit 0
