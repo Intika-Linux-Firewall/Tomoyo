@@ -269,7 +269,7 @@ TOMOYO Linux&gt;
 <p>The /sbin/getty is a program that invokes login shell. Thus, by assigning profiles 1 to /sbin/getty and programs invoked by /sbin/getty, you can let the TOMOYO Linux kernel remember operations after login. Changing profiles takes effect immediately. Now, this session is already in the learning mode.</p>
 <p>You have to quote "&lt;kernel&gt; /sbin/getty" appropriately, or you may lose the contents of /sbin/getty because "&lt;" and "&gt;" are interpreted as redirection command.</p>
 <p>Let the kernel remember the 4 operations listed above. All you need to do is do these operations as usual.</p>
-<p><img alt="Using learning mode" title="Using learning mode" width="720" height="400" src="ope_accept.png"></p>
+<p><img alt="Using learning mode" title="Using learning mode" width="720" height="400" src="ope_learning.png"></p>
 <p>You can operate as if the usual Linux, but the TOMOYO Linux kernel is monitoring accesses and generating policies and storing on the memory in the background.</p>
 
 <h3><a name="l16">Editing generated policies</a></h3>
@@ -317,7 +317,7 @@ Press 'Enter' at the line of head command, and you will see the following window
 <li>Invoking "tcsh"</li>
 <li>Running "date" command (denied)</li>
 </ol>
-<p><img alt="Enforcing MAC" title="Enforcing MAC" width="720" height="400" src="ope_enforce.png"></p>
+<p><img alt="Enforcing MAC" title="Enforcing MAC" width="720" height="400" src="ope_enforcing.png"></p>
 <p>Operations with red colored underline in the picture are performed normally because they are operations performed in the learning mode. Operations with blue colored underline are denied.</p>
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 <pre>
