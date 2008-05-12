@@ -28,7 +28,7 @@
 
 <h2><a name="l1">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.6.0 on Debian Sarge systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.6.1 on Debian Sarge systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 
 <ol>
@@ -45,13 +45,13 @@ But regarding Debian Sarge, a binary kernel package is and this page uses it.</p
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-image-2.6.8-4-686-smp-ccs1.6.0_2.6.8-17sarge1_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-image-2.6.8-4-686-smp-ccs1.6.1_2.6.8-17sarge1_i386.deb</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">dpkg -i kernel-image-2.6.8-4-686-smp-ccs1.6.0_2.6.8-17sarge1_i386.deb</span>
+# <span class="user">dpkg -i kernel-image-2.6.8-4-686-smp-ccs1.6.1_2.6.8-17sarge1_i386.deb</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
@@ -79,8 +79,8 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 <p>A binary tools package is provided and this page uses it.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.0-1_Sarge_i386.deb</span>
-# <span class="user">dpkg -i ccs-tools_1.6.0-1_Sarge_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.1-1_Sarge_i386.deb</span>
+# <span class="user">dpkg -i ccs-tools_1.6.1-1_Sarge_i386.deb</span>
 </pre>
 
 <p>Add /usr/sbin (the location of TOMOYO Linux tools) to the environment variable PATH.
@@ -133,13 +133,13 @@ All profiles are stored in a single file /etc/ccs/profile.conf and you can switc
 $profile_number-$topic_name=$control_mode
 </pre>
 
-<p>The leading integer ($profile_number) is the name of profile, the followed word before = ($topic_name) is the name of functionalities and the trailing value after = ($control_mode) is the control mode.</p>
+<p>The leading integer ($profile_number) is the name of profile, the followed word before = ($topic_name) is the name of functionalities and the trailing word after = ($control_mode) is the control mode.</p>
 
 <p>The $topic_name = COMMENT is just for administrators.</p>
 
 <p>The $topic_name = MAC_FOR_FILE means "MAC for file accesses".</p>
 
-<p>The $topic_name = TOMOYO_VERBOSE means whether policy violation messages are printed to console or not, and prints if $control_mode = 1 and doesn't print if $control_mode = 0.</p>
+<p>The $topic_name = TOMOYO_VERBOSE means whether policy violation messages are printed to console or not, and prints if $control_mode = enabled and doesn't print if $control_mode = disabled.</p>
 
 <p>The above example has 4 profiles (from 0 to 3), and the purpose of them are shown below.</p>
 
@@ -354,23 +354,23 @@ Operations with blue colored underline are denied.</p>
 
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 
-<pre>
-#2007-09-23 14:59:03# pid=1576 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash
-1 /usr/bin/tail
-
-#2007-09-23 14:59:03# pid=1576 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash
-4 /usr/bin/tail
-
-#2007-09-23 14:59:10# pid=1577 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
-4 /etc/shadow
-
-#2007-09-23 14:59:13# pid=1579 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/tcsh
-1 /bin/date
-</pre>
+<blockquote>
+#2008-05-12 15:46:16# profile=3 mode=enforcing pid=1855 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=15 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HZ=100" "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "_=/usr/bin/tail" }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_execute /usr/bin/tail<br>
+<br>
+#2008-05-12 15:46:16# profile=3 mode=enforcing pid=1855 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_read /usr/bin/tail<br>
+<br>
+#2008-05-12 15:46:24# profile=3 mode=enforcing pid=1858 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
+allow_read /etc/shadow<br>
+<br>
+#2008-05-12 15:46:32# profile=3 mode=enforcing pid=1860 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=21 argv[]={ "date" } envp[]={ "HZ=100" "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/sbin:/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs:/root/bin:/root/ccstools/" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/tcsh<br>
+allow_execute /bin/date
+</blockquote>
 
 <p>As you have seen above, by using TOMOYO Linux's MAC for file accesses functionality, you can monitor</p>
 
