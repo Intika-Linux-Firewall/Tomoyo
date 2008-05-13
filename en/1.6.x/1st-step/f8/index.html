@@ -28,7 +28,7 @@
 
 <h2><a name="l1">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.6.0 on Fedora 8 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.6.1 on Fedora 8 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 
 <ol>
@@ -61,22 +61,22 @@ But regarding Fedora 8, a binary kernel package is and this page uses it.</p>
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.24.5-85_tomoyo_1.6.0.fc8.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.24.5-85_tomoyo_1.6.1.fc8.i586.rpm</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.24.5-85_tomoyo_1.6.0.fc8.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.24.5-85_tomoyo_1.6.1.fc8.i586.rpm</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/grub.conf if installation finishes successfully.</p>
 
 <pre>
-title Fedora (2.6.24.5-85_tomoyo_1.6.0.fc8)
+title Fedora (2.6.24.5-85_tomoyo_1.6.1.fc8)
         root (hd0,0)
-        kernel /boot/vmlinuz-2.6.24.5-85_tomoyo_1.6.0.fc8 ro root=LABEL=/
-        initrd /boot/initrd-2.6.24.5-85_tomoyo_1.6.0.fc8.img
+        kernel /boot/vmlinuz-2.6.24.5-85_tomoyo_1.6.1.fc8 ro root=LABEL=/
+        initrd /boot/initrd-2.6.24.5-85_tomoyo_1.6.1.fc8.img
 </pre>
 
 <p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
@@ -97,8 +97,8 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 <p>A binary tools package is provided and this page uses it.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.F8.i386.rpm</span>
-# <span class="user">rpm -ivh ccs-tools-1.6.0-1.F8.i386.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.1-1.F8.i386.rpm</span>
+# <span class="user">rpm -ivh ccs-tools-1.6.1-1.F8.i386.rpm</span>
 </pre>
 
 <p>Add /usr/sbin (the location of TOMOYO Linux tools) to the environment variable PATH.
