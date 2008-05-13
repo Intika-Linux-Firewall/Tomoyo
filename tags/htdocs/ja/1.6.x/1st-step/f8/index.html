@@ -28,7 +28,7 @@
 
 <h2><a name="l1">概要</a></h2>
 
-<p>以下では、Fedora 8にTOMOYO Linux 1.6.0を導入する手順を解説します。
+<p>以下では、Fedora 8にTOMOYO Linux 1.6.1を導入する手順を解説します。
 この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -63,22 +63,22 @@ Disabled
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.24.5-85_tomoyo_1.6.0.fc8.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.24.5-85_tomoyo_1.6.1.fc8.i586.rpm</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.24.5-85_tomoyo_1.6.0.fc8.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.24.5-85_tomoyo_1.6.1.fc8.i586.rpm</span>
 </pre>
 
 <p>この際特にメッセージは表示されませんが、インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
-title Fedora (2.6.24.5-85_tomoyo_1.6.0.fc8)
+title Fedora (2.6.24.5-85_tomoyo_1.6.1.fc8)
         root (hd0,0)
-        kernel /boot/vmlinuz-2.6.24.5-85_tomoyo_1.6.0.fc8 ro root=LABEL=/
-        initrd /boot/initrd-2.6.24.5-85_tomoyo_1.6.0.fc8.img
+        kernel /boot/vmlinuz-2.6.24.5-85_tomoyo_1.6.1.fc8 ro root=LABEL=/
+        initrd /boot/initrd-2.6.24.5-85_tomoyo_1.6.1.fc8.img
 </pre>
 
 <p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
@@ -99,8 +99,8 @@ title Fedora (2.6.24.5-85_tomoyo_1.6.0.fc8)
 <p>バイナリパッケージが用意されていますので、それを利用します。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.0-1.F8.i386.rpm</span>
-# <span class="user">rpm -ivh ccs-tools-1.6.0-1.F8.i386.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.1-1.F8.i386.rpm</span>
+# <span class="user">rpm -ivh ccs-tools-1.6.1-1.F8.i386.rpm</span>
 </pre>
 
 <p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
