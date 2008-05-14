@@ -20,70 +20,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  2 files changed, 746 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.25-mm1/security/tomoyo/realpath.h
-@@ -0,0 +1,60 @@
-+/*
-+ * security/tomoyo/realpath.h
-+ *
-+ * Get the canonicalized absolute pathnames. The basis for TOMOYO.
-+ *
-+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
-+ *
-+ * Version: 2.2.0-pre   2008/05/07
-+ *
-+ */
-+
-+#ifndef _LINUX_REALPATH_H
-+#define _LINUX_REALPATH_H
-+
-+struct dentry;
-+struct vfsmount;
-+struct condition_list;
-+struct path_info;
-+struct tmy_io_buffer;
-+
-+/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
-+int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
-+			      char *newname, int newname_len);
-+
-+/*
-+ * Returns realpath(3) of the given pathname but ignores chroot'ed root.
-+ * These functions use tmy_alloc(), so caller must tmy_free()
-+ * if these functions didn't return NULL.
-+ */
-+char *tmy_realpath(const char *pathname);
-+/* Same with tmy_realpath() except that it doesn't follow the final symlink. */
-+char *tmy_realpath_nofollow(const char *pathname);
-+/* Same with tmy_realpath() except that the pathname is already solved. */
-+char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
-+
-+/*
-+ * Allocate memory for ACL entry.
-+ * The RAM is chunked, so NEVER try to kfree() the returned pointer.
-+ */
-+void *tmy_alloc_element(const unsigned int size);
-+
-+/*
-+ * Keep the given name on the RAM.
-+ * The RAM is shared, so NEVER try to modify or kfree() the returned name.
-+ */
-+const struct path_info *tmy_save_name(const char *name);
-+
-+/* Allocate memory for temporary use (e.g. permission checks). */
-+void *tmy_alloc(const size_t size);
-+
-+/* Free memory allocated by tmy_alloc(). */
-+void tmy_free(const void *p);
-+
-+/* Check for memory usage. */
-+int tmy_read_memory_counter(struct tmy_io_buffer *head);
-+
-+/* Set memory quota. */
-+int tmy_write_memory_quota(struct tmy_io_buffer *head);
-+
-+#endif
---- /dev/null
-+++ linux-2.6.25-mm1/security/tomoyo/realpath.c
++++ linux-2.6.26-rc2-mm1/security/tomoyo/realpath.c
 @@ -0,0 +1,686 @@
 +/*
 + * security/tomoyo/realpath.c
@@ -771,3 +708,66 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		quota_for_elements = size;
 +	return 0;
 +}
+--- /dev/null
++++ linux-2.6.26-rc2-mm1/security/tomoyo/realpath.h
+@@ -0,0 +1,60 @@
++/*
++ * security/tomoyo/realpath.h
++ *
++ * Get the canonicalized absolute pathnames. The basis for TOMOYO.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 2.2.0-pre   2008/05/07
++ *
++ */
++
++#ifndef _LINUX_REALPATH_H
++#define _LINUX_REALPATH_H
++
++struct dentry;
++struct vfsmount;
++struct condition_list;
++struct path_info;
++struct tmy_io_buffer;
++
++/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
++int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
++			      char *newname, int newname_len);
++
++/*
++ * Returns realpath(3) of the given pathname but ignores chroot'ed root.
++ * These functions use tmy_alloc(), so caller must tmy_free()
++ * if these functions didn't return NULL.
++ */
++char *tmy_realpath(const char *pathname);
++/* Same with tmy_realpath() except that it doesn't follow the final symlink. */
++char *tmy_realpath_nofollow(const char *pathname);
++/* Same with tmy_realpath() except that the pathname is already solved. */
++char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
++
++/*
++ * Allocate memory for ACL entry.
++ * The RAM is chunked, so NEVER try to kfree() the returned pointer.
++ */
++void *tmy_alloc_element(const unsigned int size);
++
++/*
++ * Keep the given name on the RAM.
++ * The RAM is shared, so NEVER try to modify or kfree() the returned name.
++ */
++const struct path_info *tmy_save_name(const char *name);
++
++/* Allocate memory for temporary use (e.g. permission checks). */
++void *tmy_alloc(const size_t size);
++
++/* Free memory allocated by tmy_alloc(). */
++void tmy_free(const void *p);
++
++/* Check for memory usage. */
++int tmy_read_memory_counter(struct tmy_io_buffer *head);
++
++/* Set memory quota. */
++int tmy_write_memory_quota(struct tmy_io_buffer *head);
++
++#endif
