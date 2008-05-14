@@ -11,11 +11,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.h |  318 +++++++
  3 files changed, 2525 insertions(+)
 
---- linux-2.6.25-mm1.orig/include/linux/list.h
-+++ linux-2.6.25-mm1/include/linux/list.h
-@@ -614,4 +614,82 @@ static inline void hlist_add_after(struc
+--- linux-2.6.26-rc2-mm1.orig/include/linux/list.h
++++ linux-2.6.26-rc2-mm1/include/linux/list.h
+@@ -977,4 +977,82 @@ static inline void hlist_add_after_rcu(s
  		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
- 	     pos = n)
+ 	     pos = rcu_dereference(pos->next))
  
 +/*
 + * Singly linked list.
@@ -97,328 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
  #endif
 --- /dev/null
-+++ linux-2.6.25-mm1/security/tomoyo/common.h
-@@ -0,0 +1,318 @@
-+/*
-+ * security/tomoyo/common.h
-+ *
-+ * Common functions for TOMOYO.
-+ *
-+ * Copyright (C) 2005-2008  NTT DATA CORPORATION
-+ *
-+ * Version: 2.2.0-pre   2008/05/07
-+ *
-+ */
-+
-+#ifndef _LINUX_TMY_COMMON_H
-+#define _LINUX_TMY_COMMON_H
-+
-+#include <linux/string.h>
-+#include <linux/mm.h>
-+#include <linux/file.h>
-+#include <linux/kmod.h>
-+#include <linux/fs.h>
-+#include <linux/sched.h>
-+
-+struct dentry;
-+struct vfsmount;
-+
-+#define false 0
-+#define true 1
-+
-+/* Temporary buffer for holding pathnames. */
-+struct tmy_page_buffer {
-+	char buffer[4096];
-+};
-+
-+/* Structure for attribute checks in addition to pathname checks. */
-+struct obj_info {
-+	struct tmy_page_buffer *tmp;
-+};
-+
-+/* Structure for holding a token. */
-+struct path_info {
-+	const char *name;
-+	u32 hash;          /* = full_name_hash(name, strlen(name)) */
-+	u16 total_len;     /* = strlen(name)                       */
-+	u16 const_len;     /* = const_part_length(name)            */
-+	bool is_dir;       /* = strendswith(name, "/")             */
-+	bool is_patterned; /* = path_contains_pattern(name)        */
-+	u16 depth;         /* = path_depth(name)                   */
-+};
-+
-+/*
-+ * This is the max length of a token.
-+ *
-+ * A token consists of only ASCII printable characters.
-+ * Non printable characters in a token is represented in \ooo style
-+ * octal string. Thus, \ itself is represented as \\.
-+ */
-+#define TMY_MAX_PATHNAME_LEN 4000
-+
-+/* Structure for holding requested pathname. */
-+struct path_info_with_data {
-+	/* Keep "head" first, for this pointer is passed to tmy_free(). */
-+	struct path_info head;
-+	char bariier1[16]; /* Safeguard for overrun. */
-+	char body[TMY_MAX_PATHNAME_LEN];
-+	char barrier2[16]; /* Safeguard for overrun. */
-+};
-+
-+/* Common header for holding ACL entries. */
-+struct acl_info {
-+	struct list1_head list;
-+	/*
-+	 * Type of this ACL entry.
-+	 *
-+	 * MSB is is_deleted flag.
-+	 */
-+	u8 type;
-+} __attribute__((__packed__));
-+
-+/* This ACL entry is deleted.           */
-+#define ACL_DELETED        0x80
-+
-+/* Structure for domain information. */
-+struct domain_info {
-+	struct list1_head list;
-+	struct list1_head acl_info_list;
-+	/* Name of this domain. Never NULL.          */
-+	const struct path_info *domainname;
-+	u8 profile;        /* Profile number to use. */
-+	u8 is_deleted;     /* Delete flag.           */
-+	bool quota_warned; /* Quota warnning flag.   */
-+	/* DOMAIN_FLAGS_*. Use tmy_set_domain_flag() to modify. */
-+	u8 flags;
-+};
-+
-+/* Profile number is an integer between 0 and 255. */
-+#define MAX_PROFILES 256
-+
-+/* Ignore "allow_read" directive in exception policy. */
-+#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
-+/*
-+ * This domain was unable to create a new domain at tmy_find_next_domain()
-+ * because the name of the domain to be created was too long or
-+ * it could not allocate memory.
-+ * More than one process continued execve() without domain transition.
-+ */
-+#define DOMAIN_FLAGS_TRANSITION_FAILED        2
-+
-+/*
-+ * Structure for "allow_read/write", "allow_execute", "allow_read",
-+ * "allow_write", "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
-+ * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
-+ * "allow_truncate", "allow_symlink" and "allow_rewrite" directive.
-+ */
-+struct single_path_acl_record {
-+	struct acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
-+	u16 perm;
-+	/* Pointer to single pathname. */
-+	const struct path_info *filename;
-+};
-+
-+/* Structure for "allow_rename" and "allow_link" directive. */
-+struct double_path_acl_record {
-+	struct acl_info head; /* type = TYPE_DOUBLE_PATH_ACL */
-+	u8 perm;
-+	/* Pointer to single pathname. */
-+	const struct path_info *filename1;
-+	/* Pointer to single pathname. */
-+	const struct path_info *filename2;
-+};
-+
-+/* Keywords for ACLs. */
-+#define KEYWORD_ALIAS                     "alias "
-+#define KEYWORD_ALLOW_READ                "allow_read "
-+#define KEYWORD_DELETE                    "delete "
-+#define KEYWORD_DENY_REWRITE              "deny_rewrite "
-+#define KEYWORD_FILE_PATTERN              "file_pattern "
-+#define KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
-+#define KEYWORD_KEEP_DOMAIN               "keep_domain "
-+#define KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
-+#define KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
-+#define KEYWORD_SELECT                    "select "
-+#define KEYWORD_UNDELETE                  "undelete "
-+#define KEYWORD_USE_PROFILE               "use_profile "
-+#define KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
-+/* A domain definition starts with <kernel>. */
-+#define ROOT_NAME                         "<kernel>"
-+#define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
-+
-+/* Index numbers for Access Controls. */
-+#define TMY_TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
-+#define TMY_TOMOYO_MAX_ACCEPT_ENTRY              1
-+#define TMY_TOMOYO_VERBOSE                       2
-+#define TMY_MAX_CONTROL_INDEX                    3
-+
-+/* Index numbers for updates counter. */
-+#define TMY_UPDATES_COUNTER_DOMAIN_POLICY    0
-+#define TMY_UPDATES_COUNTER_EXCEPTION_POLICY 1
-+#define TMY_UPDATES_COUNTER_PROFILE          2
-+#define TMY_UPDATES_COUNTER_MANAGER          3
-+#define MAX_TMY_UPDATES_COUNTER              4
-+
-+/* Structure for reading/writing policy via securityfs interfaces. */
-+struct tmy_io_buffer {
-+	int (*read) (struct tmy_io_buffer *);
-+	int (*write) (struct tmy_io_buffer *);
-+	/* Exclusive lock for read_buf.         */
-+	struct mutex read_sem;
-+	/* Exclusive lock for write_buf.        */
-+	struct mutex write_sem;
-+	/* The position currently reading from. */
-+	struct list1_head *read_var1;
-+	/* Extra variables for reading.         */
-+	struct list1_head *read_var2;
-+	/* The position currently writing to.   */
-+	struct domain_info *write_var1;
-+	/* The step for reading.                */
-+	int read_step;
-+	/* Buffer for reading.                  */
-+	char *read_buf;
-+	/* EOF flag for reading.                */
-+	bool read_eof;
-+	/* Extra variable for reading.          */
-+	u8 read_bit;
-+	/* Bytes available for reading.         */
-+	int read_avail;
-+	/* Size of read buffer.                 */
-+	int readbuf_size;
-+	/* Buffer for writing.                  */
-+	char *write_buf;
-+	/* Bytes available for writing.         */
-+	int write_avail;
-+	/* Size of write buffer.                */
-+	int writebuf_size;
-+};
-+
-+/* Check whether the domain has too many ACL entries to hold. */
-+bool tmy_check_domain_quota(struct domain_info * const domain);
-+/* Transactional sprintf() for policy dump. */
-+bool tmy_io_printf(struct tmy_io_buffer *head, const char *fmt, ...)
-+	__attribute__ ((format(printf, 2, 3)));
-+/* Check whether the domainname is correct. */
-+bool tmy_is_correct_domain(const unsigned char *domainname,
-+			   const char *function);
-+/* Check whether the token is correct. */
-+bool tmy_is_correct_path(const char *filename, const s8 start_type,
-+			 const s8 pattern_type, const s8 end_type,
-+			 const char *function);
-+/* Check whether the token can be a domainname. */
-+bool tmy_is_domain_def(const unsigned char *buffer);
-+/* Check whether the given filename matches the given pattern. */
-+bool tmy_path_matches_pattern(const struct path_info *filename,
-+			      const struct path_info *pattern);
-+/* Read "alias" entry in exception policy. */
-+bool tmy_read_alias_policy(struct tmy_io_buffer *head);
-+/*
-+ * Read "initialize_domain" and "no_initialize_domain" entry
-+ * in exception policy.
-+ */
-+bool tmy_read_domain_initializer_policy(struct tmy_io_buffer *head);
-+/* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
-+bool tmy_read_domain_keeper_policy(struct tmy_io_buffer *head);
-+/* Read "file_pattern" entry in exception policy. */
-+bool tmy_read_file_pattern(struct tmy_io_buffer *head);
-+/* Read "allow_read" entry in exception policy. */
-+bool tmy_read_globally_readable_policy(struct tmy_io_buffer *head);
-+/* Read "deny_rewrite" entry in exception policy. */
-+bool tmy_read_no_rewrite_policy(struct tmy_io_buffer *head);
-+/* Write domain policy violation warning message to console? */
-+bool tmy_verbose_mode(void);
-+/* Convert double path operation to operation name. */
-+const char *tmy_dp2keyword(const u8 operation);
-+/* Get the last component of the given domainname. */
-+const char *tmy_get_last_name(const struct domain_info *domain);
-+/* Get warning message. */
-+const char *tmy_get_msg(const bool is_enforce);
-+/* Convert single path operation to operation name. */
-+const char *tmy_sp2keyword(const u8 operation);
-+/* Add an ACL entry to domain's ACL list. */
-+int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
-+/* Delete an ACL entry from domain's ACL list. */
-+int tmy_del_domain_acl(struct acl_info *acl);
-+/* Delete a domain. */
-+int tmy_delete_domain(char *data);
-+/* Create "alias" entry in exception policy. */
-+int tmy_write_alias_policy(char *data, const bool is_delete);
-+/*
-+ * Create "initialize_domain" and "no_initialize_domain" entry
-+ * in exception policy.
-+ */
-+int tmy_write_domain_initializer_policy(char *data, const bool is_not,
-+					const bool is_delete);
-+/* Create "keep_domain" and "no_keep_domain" entry in exception policy. */
-+int tmy_write_domain_keeper_policy(char *data, const bool is_not,
-+				   const bool is_delete);
-+/*
-+ * Create "allow_read/write", "allow_execute", "allow_read", "allow_write",
-+ * "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
-+ * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
-+ * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_rename" and
-+ * "allow_link" entry in domain policy.
-+ */
-+int tmy_write_file_policy(char *data, struct domain_info *domain,
-+			  const bool is_delete);
-+/* Create "allow_read" entry in exception policy. */
-+int tmy_write_globally_readable_policy(char *data, const bool is_delete);
-+/* Create "deny_rewrite" entry in exception policy. */
-+int tmy_write_no_rewrite_policy(char *data, const bool is_delete);
-+/* Create "file_pattern" entry in exception policy. */
-+int tmy_write_pattern_policy(char *data, const bool is_delete);
-+/* Find a domain by the given name. */
-+struct domain_info *tmy_find_domain(const char *domainname);
-+/* Find or create a domain by the given name. */
-+struct domain_info *tmy_find_or_assign_new_domain(const char *domainname,
-+						  const u8 profile);
-+/* Undelete a domain. */
-+struct domain_info *tmy_undelete_domain(const char *domainname);
-+/* Check mode for specified functionality. */
-+unsigned int tmy_check_flags(const u8 index);
-+/* Allocate memory for structures. */
-+void *tmy_alloc_acl_element(const u8 acl_type);
-+/* Fill in "struct path_info" members. */
-+void tmy_fill_path_info(struct path_info *ptr);
-+/* Run policy loader when /sbin/init starts. */
-+void tmy_load_policy(const char *filename);
-+/* Change "struct domain_info"->flags. */
-+void tmy_set_domain_flag(struct domain_info *domain, const bool is_delete,
-+			 const u8 flags);
-+/* Update the policy change counter. */
-+void tmy_update_counter(const unsigned char index);
-+
-+/* strcmp() for "struct path_info" structure. */
-+static inline bool tmy_pathcmp(const struct path_info *a,
-+			       const struct path_info *b)
-+{
-+	return a->hash != b->hash || strcmp(a->name, b->name);
-+}
-+
-+/* Get type of an ACL entry. */
-+static inline u8 tmy_acl_type1(struct acl_info *ptr)
-+{
-+	return (ptr->type & ~ACL_DELETED);
-+}
-+
-+/* Get type of an ACL entry. */
-+static inline u8 tmy_acl_type2(struct acl_info *ptr)
-+{
-+	return (ptr->type);
-+}
-+
-+/* A linked list of domains. */
-+extern struct list1_head domain_list;
-+/* Has /sbin/init started? */
-+extern bool sbin_init_started;
-+/* The kernel's domain. */
-+extern struct domain_info KERNEL_DOMAIN;
-+/* Exclusive lock for updating domain policy. */
-+extern struct mutex domain_acl_lock;
-+
-+#endif
---- /dev/null
-+++ linux-2.6.25-mm1/security/tomoyo/common.c
++++ linux-2.6.26-rc2-mm1/security/tomoyo/common.c
 @@ -0,0 +1,2129 @@
 +/*
 + * security/tomoyo/common.c
@@ -2549,3 +2228,324 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +fs_initcall(tmy_initerface_init);
+--- /dev/null
++++ linux-2.6.26-rc2-mm1/security/tomoyo/common.h
+@@ -0,0 +1,318 @@
++/*
++ * security/tomoyo/common.h
++ *
++ * Common functions for TOMOYO.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 2.2.0-pre   2008/05/07
++ *
++ */
++
++#ifndef _LINUX_TMY_COMMON_H
++#define _LINUX_TMY_COMMON_H
++
++#include <linux/string.h>
++#include <linux/mm.h>
++#include <linux/file.h>
++#include <linux/kmod.h>
++#include <linux/fs.h>
++#include <linux/sched.h>
++
++struct dentry;
++struct vfsmount;
++
++#define false 0
++#define true 1
++
++/* Temporary buffer for holding pathnames. */
++struct tmy_page_buffer {
++	char buffer[4096];
++};
++
++/* Structure for attribute checks in addition to pathname checks. */
++struct obj_info {
++	struct tmy_page_buffer *tmp;
++};
++
++/* Structure for holding a token. */
++struct path_info {
++	const char *name;
++	u32 hash;          /* = full_name_hash(name, strlen(name)) */
++	u16 total_len;     /* = strlen(name)                       */
++	u16 const_len;     /* = const_part_length(name)            */
++	bool is_dir;       /* = strendswith(name, "/")             */
++	bool is_patterned; /* = path_contains_pattern(name)        */
++	u16 depth;         /* = path_depth(name)                   */
++};
++
++/*
++ * This is the max length of a token.
++ *
++ * A token consists of only ASCII printable characters.
++ * Non printable characters in a token is represented in \ooo style
++ * octal string. Thus, \ itself is represented as \\.
++ */
++#define TMY_MAX_PATHNAME_LEN 4000
++
++/* Structure for holding requested pathname. */
++struct path_info_with_data {
++	/* Keep "head" first, for this pointer is passed to tmy_free(). */
++	struct path_info head;
++	char bariier1[16]; /* Safeguard for overrun. */
++	char body[TMY_MAX_PATHNAME_LEN];
++	char barrier2[16]; /* Safeguard for overrun. */
++};
++
++/* Common header for holding ACL entries. */
++struct acl_info {
++	struct list1_head list;
++	/*
++	 * Type of this ACL entry.
++	 *
++	 * MSB is is_deleted flag.
++	 */
++	u8 type;
++} __attribute__((__packed__));
++
++/* This ACL entry is deleted.           */
++#define ACL_DELETED        0x80
++
++/* Structure for domain information. */
++struct domain_info {
++	struct list1_head list;
++	struct list1_head acl_info_list;
++	/* Name of this domain. Never NULL.          */
++	const struct path_info *domainname;
++	u8 profile;        /* Profile number to use. */
++	u8 is_deleted;     /* Delete flag.           */
++	bool quota_warned; /* Quota warnning flag.   */
++	/* DOMAIN_FLAGS_*. Use tmy_set_domain_flag() to modify. */
++	u8 flags;
++};
++
++/* Profile number is an integer between 0 and 255. */
++#define MAX_PROFILES 256
++
++/* Ignore "allow_read" directive in exception policy. */
++#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
++/*
++ * This domain was unable to create a new domain at tmy_find_next_domain()
++ * because the name of the domain to be created was too long or
++ * it could not allocate memory.
++ * More than one process continued execve() without domain transition.
++ */
++#define DOMAIN_FLAGS_TRANSITION_FAILED        2
++
++/*
++ * Structure for "allow_read/write", "allow_execute", "allow_read",
++ * "allow_write", "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
++ * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
++ * "allow_truncate", "allow_symlink" and "allow_rewrite" directive.
++ */
++struct single_path_acl_record {
++	struct acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
++	u16 perm;
++	/* Pointer to single pathname. */
++	const struct path_info *filename;
++};
++
++/* Structure for "allow_rename" and "allow_link" directive. */
++struct double_path_acl_record {
++	struct acl_info head; /* type = TYPE_DOUBLE_PATH_ACL */
++	u8 perm;
++	/* Pointer to single pathname. */
++	const struct path_info *filename1;
++	/* Pointer to single pathname. */
++	const struct path_info *filename2;
++};
++
++/* Keywords for ACLs. */
++#define KEYWORD_ALIAS                     "alias "
++#define KEYWORD_ALLOW_READ                "allow_read "
++#define KEYWORD_DELETE                    "delete "
++#define KEYWORD_DENY_REWRITE              "deny_rewrite "
++#define KEYWORD_FILE_PATTERN              "file_pattern "
++#define KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
++#define KEYWORD_KEEP_DOMAIN               "keep_domain "
++#define KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
++#define KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
++#define KEYWORD_SELECT                    "select "
++#define KEYWORD_UNDELETE                  "undelete "
++#define KEYWORD_USE_PROFILE               "use_profile "
++#define KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
++/* A domain definition starts with <kernel>. */
++#define ROOT_NAME                         "<kernel>"
++#define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
++
++/* Index numbers for Access Controls. */
++#define TMY_TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
++#define TMY_TOMOYO_MAX_ACCEPT_ENTRY              1
++#define TMY_TOMOYO_VERBOSE                       2
++#define TMY_MAX_CONTROL_INDEX                    3
++
++/* Index numbers for updates counter. */
++#define TMY_UPDATES_COUNTER_DOMAIN_POLICY    0
++#define TMY_UPDATES_COUNTER_EXCEPTION_POLICY 1
++#define TMY_UPDATES_COUNTER_PROFILE          2
++#define TMY_UPDATES_COUNTER_MANAGER          3
++#define MAX_TMY_UPDATES_COUNTER              4
++
++/* Structure for reading/writing policy via securityfs interfaces. */
++struct tmy_io_buffer {
++	int (*read) (struct tmy_io_buffer *);
++	int (*write) (struct tmy_io_buffer *);
++	/* Exclusive lock for read_buf.         */
++	struct mutex read_sem;
++	/* Exclusive lock for write_buf.        */
++	struct mutex write_sem;
++	/* The position currently reading from. */
++	struct list1_head *read_var1;
++	/* Extra variables for reading.         */
++	struct list1_head *read_var2;
++	/* The position currently writing to.   */
++	struct domain_info *write_var1;
++	/* The step for reading.                */
++	int read_step;
++	/* Buffer for reading.                  */
++	char *read_buf;
++	/* EOF flag for reading.                */
++	bool read_eof;
++	/* Extra variable for reading.          */
++	u8 read_bit;
++	/* Bytes available for reading.         */
++	int read_avail;
++	/* Size of read buffer.                 */
++	int readbuf_size;
++	/* Buffer for writing.                  */
++	char *write_buf;
++	/* Bytes available for writing.         */
++	int write_avail;
++	/* Size of write buffer.                */
++	int writebuf_size;
++};
++
++/* Check whether the domain has too many ACL entries to hold. */
++bool tmy_check_domain_quota(struct domain_info * const domain);
++/* Transactional sprintf() for policy dump. */
++bool tmy_io_printf(struct tmy_io_buffer *head, const char *fmt, ...)
++	__attribute__ ((format(printf, 2, 3)));
++/* Check whether the domainname is correct. */
++bool tmy_is_correct_domain(const unsigned char *domainname,
++			   const char *function);
++/* Check whether the token is correct. */
++bool tmy_is_correct_path(const char *filename, const s8 start_type,
++			 const s8 pattern_type, const s8 end_type,
++			 const char *function);
++/* Check whether the token can be a domainname. */
++bool tmy_is_domain_def(const unsigned char *buffer);
++/* Check whether the given filename matches the given pattern. */
++bool tmy_path_matches_pattern(const struct path_info *filename,
++			      const struct path_info *pattern);
++/* Read "alias" entry in exception policy. */
++bool tmy_read_alias_policy(struct tmy_io_buffer *head);
++/*
++ * Read "initialize_domain" and "no_initialize_domain" entry
++ * in exception policy.
++ */
++bool tmy_read_domain_initializer_policy(struct tmy_io_buffer *head);
++/* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
++bool tmy_read_domain_keeper_policy(struct tmy_io_buffer *head);
++/* Read "file_pattern" entry in exception policy. */
++bool tmy_read_file_pattern(struct tmy_io_buffer *head);
++/* Read "allow_read" entry in exception policy. */
++bool tmy_read_globally_readable_policy(struct tmy_io_buffer *head);
++/* Read "deny_rewrite" entry in exception policy. */
++bool tmy_read_no_rewrite_policy(struct tmy_io_buffer *head);
++/* Write domain policy violation warning message to console? */
++bool tmy_verbose_mode(void);
++/* Convert double path operation to operation name. */
++const char *tmy_dp2keyword(const u8 operation);
++/* Get the last component of the given domainname. */
++const char *tmy_get_last_name(const struct domain_info *domain);
++/* Get warning message. */
++const char *tmy_get_msg(const bool is_enforce);
++/* Convert single path operation to operation name. */
++const char *tmy_sp2keyword(const u8 operation);
++/* Add an ACL entry to domain's ACL list. */
++int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
++/* Delete an ACL entry from domain's ACL list. */
++int tmy_del_domain_acl(struct acl_info *acl);
++/* Delete a domain. */
++int tmy_delete_domain(char *data);
++/* Create "alias" entry in exception policy. */
++int tmy_write_alias_policy(char *data, const bool is_delete);
++/*
++ * Create "initialize_domain" and "no_initialize_domain" entry
++ * in exception policy.
++ */
++int tmy_write_domain_initializer_policy(char *data, const bool is_not,
++					const bool is_delete);
++/* Create "keep_domain" and "no_keep_domain" entry in exception policy. */
++int tmy_write_domain_keeper_policy(char *data, const bool is_not,
++				   const bool is_delete);
++/*
++ * Create "allow_read/write", "allow_execute", "allow_read", "allow_write",
++ * "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
++ * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
++ * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_rename" and
++ * "allow_link" entry in domain policy.
++ */
++int tmy_write_file_policy(char *data, struct domain_info *domain,
++			  const bool is_delete);
++/* Create "allow_read" entry in exception policy. */
++int tmy_write_globally_readable_policy(char *data, const bool is_delete);
++/* Create "deny_rewrite" entry in exception policy. */
++int tmy_write_no_rewrite_policy(char *data, const bool is_delete);
++/* Create "file_pattern" entry in exception policy. */
++int tmy_write_pattern_policy(char *data, const bool is_delete);
++/* Find a domain by the given name. */
++struct domain_info *tmy_find_domain(const char *domainname);
++/* Find or create a domain by the given name. */
++struct domain_info *tmy_find_or_assign_new_domain(const char *domainname,
++						  const u8 profile);
++/* Undelete a domain. */
++struct domain_info *tmy_undelete_domain(const char *domainname);
++/* Check mode for specified functionality. */
++unsigned int tmy_check_flags(const u8 index);
++/* Allocate memory for structures. */
++void *tmy_alloc_acl_element(const u8 acl_type);
++/* Fill in "struct path_info" members. */
++void tmy_fill_path_info(struct path_info *ptr);
++/* Run policy loader when /sbin/init starts. */
++void tmy_load_policy(const char *filename);
++/* Change "struct domain_info"->flags. */
++void tmy_set_domain_flag(struct domain_info *domain, const bool is_delete,
++			 const u8 flags);
++/* Update the policy change counter. */
++void tmy_update_counter(const unsigned char index);
++
++/* strcmp() for "struct path_info" structure. */
++static inline bool tmy_pathcmp(const struct path_info *a,
++			       const struct path_info *b)
++{
++	return a->hash != b->hash || strcmp(a->name, b->name);
++}
++
++/* Get type of an ACL entry. */
++static inline u8 tmy_acl_type1(struct acl_info *ptr)
++{
++	return (ptr->type & ~ACL_DELETED);
++}
++
++/* Get type of an ACL entry. */
++static inline u8 tmy_acl_type2(struct acl_info *ptr)
++{
++	return (ptr->type);
++}
++
++/* A linked list of domains. */
++extern struct list1_head domain_list;
++/* Has /sbin/init started? */
++extern bool sbin_init_started;
++/* The kernel's domain. */
++extern struct domain_info KERNEL_DOMAIN;
++/* Exclusive lock for updating domain policy. */
++extern struct mutex domain_acl_lock;
++
++#endif
