@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.23.15-80.fc7.src.rpm ]
+if [ ! -r kernel-2.6.23.17-88.fc7.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/7/SRPMS/kernel-2.6.23.15-80.fc7.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/7/SRPMS/kernel-2.6.23.17-88.fc7.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.23.15-80.fc7.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.23.17-88.fc7.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
@@ -22,11 +22,16 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.23.17-88.fc7.diff ]
+then
+    wget -O ccs-patch-2.6.23.17-88.fc7.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.23.17-88.fc7.diff?root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-02-11 06:12:23.000000000 +0900
-+++ kernel-2.6.spec	2008-04-16 11:35:00.000000000 +0900
+--- kernel-2.6.spec	2008-05-15 12:30:44.000000000 +0900
++++ kernel-2.6.spec	2008-05-18 09:27:33.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -57,19 +62,19 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -1421,6 +1426,11 @@
+@@ -1430,6 +1435,11 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.1-20080510.tar.gz
-+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .15-80.fc7:' -- Makefile
-+patch -sp1 < patches/ccs-patch-2.6.23.15-80.fc7.diff
++sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .17-88.fc7:' -- Makefile
++patch -sp1 < %_sourcedir/ccs-patch-2.6.23.17-88.fc7.diff
 +
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -1441,6 +1451,9 @@
+@@ -1450,6 +1460,9 @@
  for i in *.config
  do
    mv $i .config
@@ -80,11 +85,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch %{oldconfig_target} > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel-2.6.spec kernel-2.6.23.15-80.fc7_tomoyo_1.6.1.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.23.17-88.fc7_tomoyo_1.6.1.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.23.15-80.fc7_tomoyo_1.6.1.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.23.15-80.fc7_tomoyo_1.6.1.spec"
+echo "Edit /tmp/kernel-2.6.23.17-88.fc7_tomoyo_1.6.1.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.23.17-88.fc7_tomoyo_1.6.1.spec"
 echo "to build kernel rpm packages."
 exit 0
