@@ -9,6 +9,7 @@ die () {
 }
 
 # Install kernel source packages.
+curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x19A42D19 ' | gpg --import || die "Can't import PGP key."
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install fakeroot build-essential || die "Can't install packages."
 apt-get build-dep linux-image-2.6.18-6-686 || die "Can't install packages."

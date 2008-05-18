@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 8's 2.6.24 kernel.
+# This is a kernel build script for Fedora 9's 2.6.25 kernel.
 #
 
 die () {
@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.24.7-92.fc8.src.rpm ]
+if [ ! -r kernel-2.6.25-14.fc9.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS/kernel-2.6.24.7-92.fc8.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/releases/9/Fedora/source/SRPMS/kernel-2.6.25-14.fc9.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.24.7-92.fc8.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.25-14.fc9.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
@@ -22,16 +22,16 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.24.7-92.fc8.diff ]
+if [ ! -r ccs-patch-2.6.25-14.fc9.diff ]
 then
-    wget -O ccs-patch-2.6.24.7-92.fc8.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.24.7-92.fc8.diff?root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.25-14.fc9.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.25-14.fc9.diff?root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-05-08 04:54:37.000000000 +0900
-+++ kernel.spec	2008-05-16 09:15:17.000000000 +0900
+--- kernel.spec	2008-05-01 18:39:44.000000000 +0900
++++ kernel.spec	2008-05-15 14:11:44.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -41,7 +41,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  # fedora_build defines which build revision of this kernel version we're
  # building. Rather than incrementing forever, as with the prior versioning
-@@ -389,6 +389,11 @@
+@@ -384,6 +384,11 @@
  # to versions below the minimum
  #
  
@@ -53,7 +53,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -442,7 +447,7 @@
+@@ -440,7 +445,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -62,8 +62,8 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -838,7 +843,7 @@
- Provides: kernel-devel = %{rpmversion}-%{release}%{?1}\
+@@ -757,7 +762,7 @@
+ Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
 -%description -n kernel%{?variant}%{?1:-%{1}}-devel\
@@ -71,19 +71,19 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1428,6 +1433,11 @@
+@@ -1218,6 +1223,11 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .7-92.fc8:' -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.24.7-92.fc8.diff
++sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = -14.fc9:' -- Makefile
++patch -sp1 < %_sourcedir/ccs-patch-2.6.25-14.fc9.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1453,6 +1463,9 @@
+@@ -1246,6 +1256,9 @@
  for i in *.config
  do
    mv $i .config
@@ -94,11 +94,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch %{oldconfig_target} > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel.spec kernel-2.6.24.7-92.fc8_tomoyo_1.5.4.spec || die "Can't rename spec file."
+mv kernel.spec kernel-2.6.25-14.fc9_tomoyo_1.5.4.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.24.7-92.fc8_tomoyo_1.5.4.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.24.7-92.fc8_tomoyo_1.5.4.spec"
+echo "Edit /tmp/kernel-2.6.25-14.fc9_tomoyo_1.5.4.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.25-14.fc9_tomoyo_1.5.4.spec"
 echo "to build kernel rpm packages."
 exit 0
