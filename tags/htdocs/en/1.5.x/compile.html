@@ -7,12 +7,11 @@
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p>Info: Version <a href="../1.6.x/">1.6.x</a> is available.</p>
 <p style="text-align:right;"><a href="../../ja/1.5.x/compile.html">Japanese Page</a></p>
 <h1>TOMOYO Linux kernel compilation</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<p>TOMOYO Linux provides some binary kernel packages, but if the CPU architecture differs or you want to customize the kernel configuration, you need to compile kernel. To compile kernel, the following packages are needed.</p>
+<p>To compile kernel, the following packages are needed.</p>
 
 <ul>
 <li>gcc</li>
@@ -40,548 +39,330 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <p>Choose the version you want to use from the following list.</p>
 
 <ul>
-<li><a href="#2.4.20-46.9.legacy">Kernel 2.4.20-46.9.legacy for RedHat Linux 9</a>
-<li><a href="#2.6.12-2.3.legacy_FC3">Kernel 2.6.12-2.3.legacy_FC3 for Fedora Core 3</a>
-<li><a href="#2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a>
-<li><a href="#2.6.20-1.2320.fc5">Kernel 2.6.20-1.2320.fc5 for Fedora Core 5</a>
-<li><a href="#2.6.22.14-72.fc6">Kernel 2.6.22.14-72.fc6 for Fedora Core 6</a>
-<li><a href="#2.6.23.15-80.fc7">Kernel 2.6.23.15-80.fc7 for Fedora 7</a>
-<li><a href="#2.6.24.5-85.fc8">Kernel 2.6.24.5-85.fc8 for Fedora 8</a>
-<li><a href="#2.6.9-67.0.15.EL">Kernel 2.6.9-67.0.15.EL for CentOS 4.6</a>
-<li><a href="#2.6.18-53.1.19.el5">Kernel 2.6.18-53.1.19.el5 for CentOS 5.1</a>
-<li><a href="#2.4.27-10sarge7">Kernel 2.4.27-10sarge7 for Debian Sarge</a>
-<li><a href="#2.6.8-17sarge1">Kernel 2.6.8-17sarge1 for Debian Sarge</a>
-<li><a href="#2.6.18-18etch3">Kernel 2.6.18-18etch3 for Debian Etch</a>
-<li><a href="#2.6.22-6.lenny1">Kernel 2.6.22-6.lenny1 for Debian Lenny</a>
-<li><a href="#2.6.16.54-0.2.5">Kernel 2.6.16.54-0.2.5 for OpenSUSE 10.1</a>
-<li><a href="#2.6.18.8-0.9">Kernel 2.6.18.8-0.9 for OpenSUSE 10.2</a>
-<li><a href="#2.6.22.17-0.1">Kernel 2.6.22.17-0.1 for OpenSUSE 10.3</a>
-<li><a href="#2.6.9-42.21AX">Kernel 2.6.9-42.21AX for Asianux 2.0</a>
-<li><a href="#2.6.18-8.16AX">Kernel 2.6.18-8.16AX for Asianux 3.0</a>
-<li><a href="#2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a>
-<li><a href="#2.6.20.3-ubuntu1">Kernel 2.6.20.3-ubuntu1 for Ubuntu 7.04</a>
-<li><a href="#2.6.16-0vl76.33">Kernel 2.6.16-0vl76.33 for VineLinux 4.2</a>
+<li><a href="#RedHatLinux9">RedHat Linux 9</a>
+<li><a href="#FedoraCore3">Fedora Core 3</a>
+<li><a href="#FedoraCore4">Fedora Core 4</a>
+<li><a href="#FedoraCore5">Fedora Core 5</a>
+<li><a href="#FedoraCore6">Fedora Core 6</a>
+<li><a href="#Fedora7">Fedora 7</a>
+<li><a href="#Fedora8">Fedora 8</a>
+<li><a href="#Fedora9">Fedora 9</a>
+<li><a href="#CentOS4.6">CentOS 4.6</a>
+<li><a href="#CentOS5.1">CentOS 5.1</a>
+<li><a href="#Sarge-2.4">Debian Sarge (2.4.27)</a>
+<li><a href="#Sarge-2.6">Debian Sarge (2.6.8)</a>
+<li><a href="#Etch">Debian Etch</a>
+<li><a href="#Lenny">Debian Lenny</a>
+<li><a href="#OpenSUSE10.1">OpenSUSE 10.1</a>
+<li><a href="#OpenSUSE10.2">OpenSUSE 10.2</a>
+<li><a href="#OpenSUSE10.3">OpenSUSE 10.3</a>
+<li><a href="#Asianux2">Asianux 2.0</a>
+<li><a href="#Asianux3">Asianux 3.0</a>
+<li><a href="#Ubuntu6.06">Ubuntu 6.06</a>
+<li><a href="#Ubuntu6.10">Ubuntu 6.10</a>
+<li><a href="#Ubuntu7.04">Ubuntu 7.04</a>
+<li><a href="#Ubuntu7.10">Ubuntu 7.10</a>
+<li><a href="#Ubuntu8.04">Ubuntu 8.04</a>
+<li><a href="#VineLinux4.2">VineLinux 4.2</a>
 <li><a href="#2.6-vanilla">Vanilla 2.6 kernels</a>
 <li><a href="#2.4-vanilla">Vanilla 2.4 kernels</a>
 </ul>
 
 <hr>
 
-<h2><a name="2.4.20-46.9.legacy">Kernel 2.4.20-46.9.legacy for RedHat Linux 9</a></h2>
+<h2><a name="RedHatLinux9">RedHat Linux 9</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/updates/i386/kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
-rpm -ivh kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.4.20-46.9.legacy/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.4.20-46.9.legacy.diff<br>
-# Remove all temporary files but configuration file.<br>
-mv .config config<br>
-make -s distclean<br>
-mv config .config<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s dep modules modules_install install
+# Download build script.<br>
+wget -O build-rhl9-2.4.20.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-rhl9-2.4.20.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-rhl9-2.4.20.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i386 /tmp/kernel-2.4.20-46.9.legacy_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.12-2.3.legacy_FC3">Kernel 2.6.12-2.3.legacy_FC3 for Fedora Core 3</a></h2>
+<h2><a name="FedoraCore3">Fedora Core 3</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/updates/SRPMS/kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
-rpm -ivh kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.12/linux-2.6.12/ /usr/src/linux-2.6.12-2.3.legacy_FC3<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.12-2.3.legacy_FC3/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -2.3.legacy_FC3/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.12-2.3.legacy_FC3.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-fc3-2.6.12.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-fc3-2.6.12.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-fc3-2.6.12.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.17-1.2142_FC4">Kernel 2.6.17-1.2142_FC4 for Fedora Core 4</a></h2>
+<h2><a name="FedoraCore4">Fedora Core 4</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/4/SRPMS/kernel-2.6.17-1.2142_FC4.src.rpm<br>
-rpm -ivh kernel-2.6.17-1.2142_FC4.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.17/linux-2.6.17/ /usr/src/linux-2.6.17-1.2142_FC4<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.17-1.2142_FC4/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2142_FC4/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.17-1.2142_FC4.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-fc4-2.6.17.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-fc4-2.6.17.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-fc4-2.6.17.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.17-1.2142_FC4_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.20-1.2320.fc5">Kernel 2.6.20-1.2320.fc5 for Fedora Core 5</a></h2>
+<h2><a name="FedoraCore5">Fedora Core 5</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/5/SRPMS/kernel-2.6.20-1.2320.fc5.src.rpm<br>
-rpm -ivh kernel-2.6.20-1.2320.fc5.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.20/linux-2.6.20.i586/ /usr/src/linux-2.6.20-1.2320.fc5<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.20-1.2320.fc5/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2320.fc5/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.20-1.2320.fc5.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-fc5-2.6.20.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-fc5-2.6.20.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-fc5-2.6.20.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.20-1.2320.fc5_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.14-72.fc6">Kernel 2.6.22.14-72.fc6 for Fedora Core 6</a></h2>
+<h2><a name="FedoraCore6">Fedora Core 6</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.22.14-72.fc6.src.rpm<br>
-rpm -ivh kernel-2.6.22.14-72.fc6.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.14-72.fc6<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.22.14-72.fc6/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .14-72.fc6/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.22.14-72.fc6.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-fc6-2.6.22.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-fc6-2.6.22.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-fc6-2.6.22.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.22.14-72.fc6_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.23.15-80.fc7">Kernel 2.6.23.15-80.fc7 for Fedora 7</a></h2>
+<h2><a name="Fedora7">Fedora 7</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/updates/7/SRPMS/kernel-2.6.23.15-80.fc7.src.rpm<br>
-rpm -ivh kernel-2.6.23.15-80.fc7.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.15-80.fc7<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.23.15-80.fc7/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .15-80.fc7/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.23.15-80.fc7.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-f7-2.6.23.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-f7-2.6.23.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f7-2.6.23.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.23.17-88.fc7_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.24.5-85.fc8">Kernel 2.6.24.5-85.fc8 for Fedora 8</a></h2>
+<h2><a name="Fedora8">Fedora 8</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://download.fedora.redhat.com/pub/fedora/linux/updates/8/SRPMS/kernel-2.6.24.5-85.fc8.src.rpm<br>
-rpm -ivh kernel-2.6.24.5-85.fc8.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.24/linux-2.6.24.i586/ /usr/src/linux-2.6.24.5-85.fc8<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.24.5-85.fc8/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .5-85.fc8/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.24.5-85.fc8.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-f8-2.6.24.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-f8-2.6.24.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f8-2.6.24.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.24.7-92.fc8_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-67.0.15.EL">Kernel 2.6.9-67.0.15.EL for CentOS 4.6</a></h2>
+<h2><a name="Fedora9">Fedora 9</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://mirrors.kernel.org/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.15.EL.src.rpm<br>
-rpm -ivh kernel-2.6.9-67.0.15.EL.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-67.0.15.EL<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.9-67.0.15.EL/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -67.0.15.EL/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-wget -O patches/ccs-patch-2.6.9-67.0.15.EL.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-67.0.15.EL.diff?root=tomoyo'<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.9-67.0.15.EL.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-f9-2.6.25.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-f9-2.6.25.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f9-2.6.25.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.25-14.fc9_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-53.1.19.el5">Kernel 2.6.18-53.1.19.el5 for CentOS 5.1</a></h2>
+<h2><a name="CentOS4.6">CentOS 4.6</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://mirrors.kernel.org/centos/5.1/updates/SRPMS/kernel-2.6.18-53.1.19.el5.src.rpm<br>
-rpm -ivh kernel-2.6.18-53.1.19.el5.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i686 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
-mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i686/ /usr/src/linux-2.6.18-53.1.19.el5<br>
-# Move to the source directory.<br>
-cd /usr/src/2.6.18-53.1.19.el5/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -53.1.19.el5/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-53.1.19.el5.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-c4-2.6.9.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-c4-2.6.9.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-c4-2.6.9.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.9-67.0.15.EL_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.4.27-10sarge7">Kernel 2.4.27-10sarge7 for Debian Sarge</a></h2>
+<h2><a name="CentOS5.1">CentOS 5.1</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-apt-get install kernel-source-2.4.27<br>
-tar -jxf /usr/src/kernel-source-2.4.27.tar.bz2<br>
-# Move to the source directory.<br>
-cd kernel-source-2.4.27/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.4.27-10sarge7.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s dep install modules modules_install<br>
-# Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.4.27-10sarge7-ccs 2.4.27-10sarge7-ccs
+# Download build script.<br>
+wget -O build-c5-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-c5-2.6.18.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-c5-2.6.18.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i686 --without kabichk /tmp/kernel-2.6.18-53.1.19.el5_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.8-17sarge1">Kernel 2.6.8-17sarge1 for Debian Sarge</a></h2>
+<h2><a name="Sarge-2.4">Debian Sarge (2.4.27)</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-apt-get install kernel-source-2.6.8<br>
-tar -jxf /usr/src/kernel-source-2.6.8.tar.bz2<br>
-# Move to the source directory.<br>
-cd kernel-source-2.6.8/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.8-17sarge1.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s install modules modules_install<br>
-# Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.8-17sarge1-ccs 2.6.8-17sarge1-ccs
+# Download build script.<br>
+wget -O build-debian_sarge-2.4.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-debian_sarge-2.4.27.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-debian_sarge-2.4.27.sh<br>
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-18etch3">Kernel 2.6.18-18etch3 for Debian Etch</a></h2>
+<h2><a name="Sarge-2.6">Debian Sarge (2.6.8)</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-apt-get install linux-source-2.6.18<br>
-tar -jxf /usr/src/linux-source-2.6.18.tar.bz2<br>
-# Move to the source directory.<br>
-cd linux-source-2.6.18/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-18etch3.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s install modules modules_install<br>
-# Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.18-18etch3-ccs 2.6.18-18etch3-ccs
+# Download build script.<br>
+wget -O build-debian_sarge-2.6.8.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-debian_sarge-2.6.8.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-debian_sarge-2.6.8.sh<br>
 </td></tr>
 </table>
 
-<h2><a name="2.6.22-6.lenny1">Kernel 2.6.22-6.lenny1 for Debian Lenny</a></h2>
+<h2><a name="Etch">Debian Etch</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-apt-get install linux-source-2.6.22<br>
-tar -jxf /usr/src/linux-source-2.6.22.tar.bz2<br>
-# Move to the source directory.<br>
-cd linux-source-2.6.22/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.22-6.lenny1.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s install modules modules_install<br>
-# Create initrd.<br>
-mkinitrd -o /boot/initrd.img-2.6.22-6.lenny1-ccs 2.6.22-6.lenny1-ccs
+# Download build script.<br>
+wget -O build-debian_etch.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-debian_etch.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-debian_etch.sh<br>
 </td></tr>
 </table>
 
-<h2><a name="2.6.16.54-0.2.5">Kernel 2.6.16.54-0.2.5 for OpenSUSE 10.1</a></h2>
+<h2><a name="OpenSUSE10.1">OpenSUSE 10.1</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.54-0.2.5.i586.rpm<br>
-rpm -ivh kernel-source-2.6.16.54-0.2.5.i586.rpm<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.16.54-0.2.5/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.16.54-0.2.5_SUSE.diff<br>
-# Move to the output directory.<br>
-cd /usr/src/linux-2.6.16.54-0.2.5-obj/i386/default/<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-suse10.1-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-suse10.1-2.6.16.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-suse10.1-2.6.16.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.16.54-0.2.5-default_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.18.8-0.9">Kernel 2.6.18.8-0.9 for OpenSUSE 10.2</a></h2>
+<h2><a name="OpenSUSE10.2">OpenSUSE 10.2</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.9.i586.rpm<br>
-rpm -ivh kernel-source-2.6.18.8-0.9.i586.rpm<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.18.8-0.9/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18.8-0.9_SUSE.diff<br>
-# Move to the output directory.<br>
-cd /usr/src/linux-2.6.18.8-0.9-obj/i386/default/<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-suse10.2-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-suse10.2-2.6.18.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-suse10.2-2.6.18.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.18.8-0.9-default_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.17-0.1">Kernel 2.6.22.17-0.1 for OpenSUSE 10.3</a></h2>
+<h2><a name="OpenSUSE10.3">OpenSUSE 10.3</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://ftp.novell.co.jp/pub/suse/opensuse/update/10.3/rpm/i586/kernel-source-2.6.22.17-0.1.i586.rpm<br>
-rpm -ivh kernel-source-2.6.22.17-0.1.i586.rpm<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.22.17-0.1/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.22.17-0.1_SUSE.diff<br>
-# Move to the output directory.<br>
-cd /usr/src/linux-2.6.22.17-0.1-obj/i386/default/<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-suse10.3-2.6.22.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-suse10.3-2.6.22.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-suse10.3-2.6.22.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.22.17-0.1-default_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-42.21AX">Kernel 2.6.9-42.21AX for Asianux 2.0</a></h2>
+<h2><a name="Asianux2">Asianux 2.0</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.21AX.src.rpm<br>
-rpm -ivh kernel-2.6.9-42.21AX.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
-mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.21AX<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.9-42.21AX/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.21AX/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.9-42.21AX.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-ax2-2.6.9.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-ax2-2.6.9.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ax2-2.6.9.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i686 /tmp/kernel-2.6.9-42.21AX_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-8.16AX">Kernel 2.6.18-8.16AX for Asianux 3.0</a></h2>
+<h2><a name="Asianux3">Asianux 3.0</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.16AX.src.rpm<br>
-rpm -ivh kernel-2.6.18-8.16AX.src.rpm<br>
-# Prepare for compilation.<br>
-rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
-mv /usr/src/asianux/BUILD/kernel-2.6.18/linux-2.6.18/ /usr/src/linux-2.6.18-8.16AX<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.18-8.16AX/<br>
-# Modify version number.<br>
-sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.16AX/' Makefile<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.18-8.16AX.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install
+# Download build script.<br>
+wget -O build-ax3-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-ax3-2.6.18.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ax3-2.6.18.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i686 /tmp/kernel-2.6.18-8.16AX_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
-<h2><a name="2.6.17.14-ubuntu1">Kernel 2.6.17.14-ubuntu1 for Ubuntu 6.10</a></h2>
+<h2><a name="Ubuntu6.06">Ubuntu 6.06</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-apt-get install linux-source-2.6.17<br>
-tar -jxf /usr/src/linux-source-2.6.17.tar.bz2<br>
-# Move to the source directory.<br>
-cd linux-source-2.6.17/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.17.14-ubuntu1.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s install modules modules_install<br>
-# Create initramfs.<br>
-mkinitramfs -o /boot/initrd.img-2.6.17.14-ubuntu1-ccs 2.6.17.14-ubuntu1-ccs
+# Download build script.<br>
+wget -O build-ubuntu_6.06.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-ubuntu_6.06.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_6.06.sh<br>
 </td></tr>
 </table>
 
-<h2><a name="2.6.20.3-ubuntu1">Kernel 2.6.20.3-ubuntu1 for Ubuntu 7.04</a></h2>
+<h2><a name="Ubuntu6.10">Ubuntu 6.10</a></h2>
 
 <table border="1">
 <tr><td>
-# Download and install kernel source.<br>
-apt-get install linux-source-2.6.20<br>
-tar -jxf /usr/src/linux-source-2.6.20.tar.bz2<br>
-# Move to the source directory.<br>
-cd linux-source-2.6.20/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.20.3-ubuntu1.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s install modules modules_install<br>
-# Create initramfs.<br>
-mkinitramfs -o /boot/initrd.img-2.6.20.3-ubuntu1-ccs 2.6.20.3-ubuntu1-ccs
+# Download build script.<br>
+wget -O build-ubuntu_6.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-ubuntu_6.10.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_6.10.sh<br>
 </td></tr>
 </table>
 
-<h2><a name="2.6.16-0vl76.33">Kernel 2.6.16-0vl76.33 for VineLinux 4.2</a></h2>
+<h2><a name="Ubuntu7.04">Ubuntu 7.04</a></h2>
 
 <table border="1">
 <tr><td>
-# Create a symlink to avoid errors upon "make install".<br>
-ln -s /bin/true /sbin/lilo<br>
-# Download and install kernel source.<br>
-apt-get install kernel-source<br>
-# Move to the source directory.<br>
-cd /usr/src/linux-2.6.16/<br>
-# Download and apply TOMOYO Linux patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.16-0vl76.33.diff<br>
-# Enable options for TOMOYO Linux.<br>
-make -s menuconfig<br>
-# Compile as usual.<br>
-make -s<br>
-make -s modules modules_install install<br>
-# Create initrd.<br>
-mkinitrd /boot/initrd.img-2.6.16-0vl76.33-ccs 2.6.16-0vl76.33-ccs<br>
-# Update symlinks.<br>
-ln -sf /boot/vmlinuz-2.6.16-0vl76.33-ccs /boot/vmlinuz<br>
-ln -sf /boot/initrd.img-2.6.16-0vl76.33-ccs /boot/initrd.img<br>
-ln -sf /boot/System.map-2.6.16-0vl76.33-ccs /boot/System.map
+# Download build script.<br>
+wget -O build-ubuntu_7.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-ubuntu_7.04.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_7.04.sh<br>
+</td></tr>
+</table>
+
+<h2><a name="Ubuntu7.10">Ubuntu 7.10</a></h2>
+
+<table border="1">
+<tr><td>
+# Download build script.<br>
+wget -O build-ubuntu_7.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-ubuntu_7.10.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_7.10.sh<br>
+</td></tr>
+</table>
+
+<h2><a name="Ubuntu8.04">Ubuntu 8.04</a></h2>
+
+<table border="1">
+<tr><td>
+# Download build script.<br>
+wget -O build-ubuntu_8.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-ubuntu_8.04.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_8.04.sh<br>
+</td></tr>
+</table>
+
+<h2><a name="VineLinux4.2">VineLinux 4.2</a></h2>
+
+<table border="1">
+<tr><td>
+# Download build script.<br>
+wget -O build-vl4.2-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/specs/build-vl4.2-2.6.16.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-vl4.2-2.6.16.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/kernel-2.6.16-0vl76.33_tomoyo_1.5.4.spec
 </td></tr>
 </table>
 
