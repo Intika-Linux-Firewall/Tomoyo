@@ -28,7 +28,7 @@
 
 <h2><a name="l1">概要</a></h2>
 
-<p>以下では、Fedora Core 6にTOMOYO Linux 1.5.3を導入する手順を解説します。
+<p>以下では、Fedora Core 6にTOMOYO Linux 1.5.4を導入する手順を解説します。
 この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -63,22 +63,22 @@ Disabled
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.22.14-72.fc6_tomoyo_1.5.3.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/kernel-2.6.22.14-72_tomoyo_1.5.4.fc6.i586.rpm</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.22.14-72.fc6_tomoyo_1.5.3.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.22.14-72_tomoyo_1.5.4.fc6.i586.rpm</span>
 </pre>
 
 <p>この際特にメッセージは表示されませんが、インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
-title Fedora Core (2.6.22.14-72.fc6_tomoyo_1.5.3)
+title Fedora Core (2.6.22.14-72_tomoyo_1.5.4.fc6)
     root (hd0,0)
-    kernel /vmlinuz-2.6.22.14-72.fc6_tomoyo_1.5.3 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.22.14-72.fc6_tomoyo_1.5.3.img
+    kernel /vmlinuz-2.6.22.14-72_tomoyo_1.5.4.fc6 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.22.14-72_tomoyo_1.5.4.fc6.img
 </pre>
 
 <p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
@@ -99,8 +99,8 @@ title Fedora Core (2.6.22.14-72.fc6_tomoyo_1.5.3)
 <p>バイナリパッケージが用意されていますので、それを利用します。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.3-1.FC6.i386.rpm</span>
-# <span class="user">rpm -ivh ccs-tools-1.5.3-1.FC6.i386.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/27437/ccs-tools-1.5.4-1.FC6.i386.rpm</span>
+# <span class="user">rpm -ivh ccs-tools-1.5.4-1.FC6.i386.rpm</span>
 </pre>
 
 <p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
