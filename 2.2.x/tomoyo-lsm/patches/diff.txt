@@ -1,0 +1,892 @@
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-makefile.patch
+===================================================================
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-makefile.patch	(revision 1242)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-makefile.patch	(working copy)
+@@ -9,8 +9,8 @@
+  security/tomoyo/Makefile |    1 +
+  4 files changed, 13 insertions(+)
+ 
+---- linux-2.6.26-rc2-mm1.orig/security/Kconfig
+-+++ linux-2.6.26-rc2-mm1/security/Kconfig
++--- vfs.orig/security/Kconfig
+++++ vfs/security/Kconfig
+ @@ -126,6 +126,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
+  
+  source security/selinux/Kconfig
+@@ -19,8 +19,8 @@
+  
+  endmenu
+  
+---- linux-2.6.26-rc2-mm1.orig/security/Makefile
+-+++ linux-2.6.26-rc2-mm1/security/Makefile
++--- vfs.orig/security/Makefile
+++++ vfs/security/Makefile
+ @@ -5,6 +5,7 @@
+  obj-$(CONFIG_KEYS)			+= keys/
+  subdir-$(CONFIG_SECURITY_SELINUX)	+= selinux
+@@ -38,7 +38,7 @@
+  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
+  obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/Kconfig
+++++ vfs/security/tomoyo/Kconfig
+ @@ -0,0 +1,9 @@
+ +config SECURITY_TOMOYO
+ +	bool "TOMOYO Linux Support"
+@@ -50,6 +50,6 @@
+ +          found at <http://tomoyo.sourceforge.jp/>.
+ +	  If you are unsure how to answer this question, answer N.
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/Makefile
+++++ vfs/security/tomoyo/Makefile
+ @@ -0,0 +1 @@
+ +obj-y = common.o realpath.o tomoyo.o domain.o file.o
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-realpath.patch
+===================================================================
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-realpath.patch	(revision 1242)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-realpath.patch	(working copy)
+@@ -20,7 +20,7 @@
+  2 files changed, 746 insertions(+)
+ 
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/realpath.c
+++++ vfs/security/tomoyo/realpath.c
+ @@ -0,0 +1,686 @@
+ +/*
+ + * security/tomoyo/realpath.c
+@@ -709,7 +709,7 @@
+ +	return 0;
+ +}
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/realpath.h
+++++ vfs/security/tomoyo/realpath.h
+ @@ -0,0 +1,60 @@
+ +/*
+ + * security/tomoyo/realpath.h
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-domain-transition-part.patch
+===================================================================
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-domain-transition-part.patch	(revision 1242)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-domain-transition-part.patch	(working copy)
+@@ -16,7 +16,7 @@
+  1 file changed, 854 insertions(+)
+ 
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/domain.c
+++++ vfs/security/tomoyo/domain.c
+ @@ -0,0 +1,854 @@
+ +/*
+ + * security/tomoyo/domain.c
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-hooks.patch
+===================================================================
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-hooks.patch	(revision 1242)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-hooks.patch	(working copy)
+@@ -4,13 +4,13 @@
+ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
+ ---
+- security/tomoyo/tomoyo.c |  360 +++++++++++++++++++++++++++++++++++++++++++++++
+- security/tomoyo/tomoyo.h |   94 ++++++++++++
+- 2 files changed, 454 insertions(+)
++ security/tomoyo/tomoyo.c |  372 +++++++++++++++++++++++++++++++++++++++++++++++
++ security/tomoyo/tomoyo.h |   94 +++++++++++
++ 2 files changed, 466 insertions(+)
+ 
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/tomoyo.c
+-@@ -0,0 +1,360 @@
+++++ vfs/security/tomoyo/tomoyo.c
++@@ -0,0 +1,372 @@
+ +/*
+ + * security/tomoyo/tomoyo.c
+ + *
+@@ -87,10 +87,11 @@
+ +				    path->mnt);
+ +}
+ +
+-+static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry,
+-+				 struct nameidata *nd)
+++static inline int pre_vfs_create(struct dentry *dir_dentry,
+++				 struct dentry *dentry)
+ +{
+-+	int error = may_create(dir, dentry, nd);
+++	struct inode *dir = dir_dentry->d_inode;
+++	int error = may_create(dir_dentry, dentry);
+ +
+ +	if (error)
+ +		return error;
+@@ -107,15 +108,17 @@
+ +
+ +	if (!nd || !nd->path.mnt)
+ +		return 0;
+-+	error = pre_vfs_create(dir->dentry->d_inode, dentry, nd);
+++	error = pre_vfs_create(dir->dentry, dentry);
+ +	if (error)
+ +		return error;
+ +	return tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry, nd->path.mnt);
+ +}
+ +
+-+static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+++static inline int pre_vfs_unlink(struct dentry *dir_dentry,
+++				 struct dentry *dentry)
+ +{
+-+	int error = may_delete(dir, dentry, 0);
+++	struct inode *dir = dir_dentry->d_inode;
+++	int error = may_delete(dir_dentry, dentry, 0);
+ +
+ +	if (error)
+ +		return error;
+@@ -127,15 +130,17 @@
+ +
+ +static int tmy_path_unlink(struct path *dir, struct dentry *dentry)
+ +{
+-+	const int err = pre_vfs_unlink(dir->dentry->d_inode, dentry);
+++	const int err = pre_vfs_unlink(dir->dentry, dentry);
+ +	if (err)
+ +		return err;
+ +	return tmy_check_1path_perm(TMY_TYPE_UNLINK_ACL, dentry, dir->mnt);
+ +}
+ +
+-+static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+++static inline int pre_vfs_mkdir(struct dentry *dir_dentry,
+++				struct dentry *dentry)
+ +{
+-+	int error = may_create(dir, dentry, NULL);
+++	struct inode *dir = dir_dentry->d_inode;
+++	int error = may_create(dir_dentry, dentry);
+ +
+ +	if (error)
+ +		return error;
+@@ -147,15 +152,17 @@
+ +
+ +static int tmy_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
+ +{
+-+	const int err = pre_vfs_mkdir(dir->dentry->d_inode, dentry);
+++	const int err = pre_vfs_mkdir(dir->dentry, dentry);
+ +	if (err)
+ +		return err;
+ +	return tmy_check_1path_perm(TMY_TYPE_MKDIR_ACL, dentry, dir->mnt);
+ +}
+ +
+-+static inline int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+++static inline int pre_vfs_rmdir(struct dentry *dir_dentry,
+++				struct dentry *dentry)
+ +{
+-+	int error = may_delete(dir, dentry, 1);
+++	struct inode *dir = dir_dentry->d_inode;
+++	int error = may_delete(dir_dentry, dentry, 1);
+ +
+ +	if (error)
+ +		return error;
+@@ -167,15 +174,17 @@
+ +
+ +static int tmy_path_rmdir(struct path *dir, struct dentry *dentry)
+ +{
+-+	const int err = pre_vfs_rmdir(dir->dentry->d_inode, dentry);
+++	const int err = pre_vfs_rmdir(dir->dentry, dentry);
+ +	if (err)
+ +		return err;
+ +	return tmy_check_1path_perm(TMY_TYPE_RMDIR_ACL, dentry, dir->mnt);
+ +}
+ +
+-+static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+++static inline int pre_vfs_symlink(struct dentry *dir_dentry,
+++				  struct dentry *dentry)
+ +{
+-+	int error = may_create(dir, dentry, NULL);
+++	struct inode *dir = dir_dentry->d_inode;
+++	int error = may_create(dir_dentry, dentry);
+ +
+ +	if (error)
+ +		return error;
+@@ -188,16 +197,17 @@
+ +static int tmy_path_symlink(struct path *dir, struct dentry *dentry,
+ +			    const char *old_name)
+ +{
+-+	const int err = pre_vfs_symlink(dir->dentry->d_inode, dentry);
+++	const int err = pre_vfs_symlink(dir->dentry, dentry);
+ +	if (err)
+ +		return err;
+ +	return tmy_check_1path_perm(TMY_TYPE_SYMLINK_ACL, dentry, dir->mnt);
+ +}
+ +
+-+static inline int pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
+-+				int mode)
+++static inline int pre_vfs_mknod(struct dentry *dir_dentry,
+++				struct dentry *dentry, int mode)
+ +{
+-+	int error = may_create(dir, dentry, NULL);
+++	struct inode *dir = dir_dentry->d_inode;
+++	int error = may_create(dir_dentry, dentry);
+ +
+ +	if (error)
+ +		return error;
+@@ -224,7 +234,7 @@
+ +	default:
+ +		return 0;
+ +	}
+-+	err = pre_vfs_mknod(dir->dentry->d_inode, dentry, mode);
+++	err = pre_vfs_mknod(dir->dentry, dentry, mode);
+ +	if (err)
+ +		return err;
+ +	if (S_ISCHR(mode))
+@@ -238,16 +248,18 @@
+ +	return 0;
+ +}
+ +
+-+static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+++static inline int pre_vfs_link(struct dentry *old_dentry,
+++			       struct dentry *new_dir_dentry,
+ +			       struct dentry *new_dentry)
+ +{
+++	struct inode *dir = new_dir_dentry->d_inode;
+ +	struct inode *inode = old_dentry->d_inode;
+ +	int error;
+ +
+ +	if (!inode)
+ +		return -ENOENT;
+ +
+-+	error = may_create(dir, new_dentry, NULL);
+++	error = may_create(new_dir_dentry, new_dentry);
+ +	if (error)
+ +		return error;
+ +
+@@ -261,55 +273,55 @@
+ +		return -EPERM;
+ +	if (!dir->i_op || !dir->i_op->link)
+ +		return -EPERM;
+-+	if (S_ISDIR(old_dentry->d_inode->i_mode))
+++	if (S_ISDIR(inode->i_mode))
+ +		return -EPERM;
+ +	return 0;
+ +}
+ +
+-+static inline int pre_vfs_rename(struct inode *old_dir,
+++static int tmy_path_link(struct dentry *old_dentry, struct path *new_dir,
+++			 struct dentry *new_dentry)
+++{
+++	const int err = pre_vfs_link(old_dentry, new_dir->dentry, new_dentry);
+++	if (err)
+++		return err;
+++	return tmy_check_2path_perm(TMY_TYPE_LINK_ACL,
+++				    old_dentry, new_dir->mnt,
+++				    new_dentry, new_dir->mnt);
+++}
+++
+++static inline int pre_vfs_rename(struct dentry *old_dir_dentry,
+ +				 struct dentry *old_dentry,
+-+				 struct inode *new_dir,
+++				 struct dentry *new_dir_dentry,
+ +				 struct dentry *new_dentry)
+ +{
+ +	int error;
+++	struct inode *dir = old_dir_dentry->d_inode;
+ +	int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
+ +
+ +	if (old_dentry->d_inode == new_dentry->d_inode)
+ +		return 0;
+ +
+-+	error = may_delete(old_dir, old_dentry, is_dir);
+++	error = may_delete(old_dir_dentry, old_dentry, is_dir);
+ +	if (error)
+ +		return error;
+ +
+ +	if (!new_dentry->d_inode)
+-+		error = may_create(new_dir, new_dentry, NULL);
+++		error = may_create(new_dir_dentry, new_dentry);
+ +	else
+-+		error = may_delete(new_dir, new_dentry, is_dir);
+++		error = may_delete(new_dir_dentry, new_dentry, is_dir);
+ +	if (error)
+ +		return error;
+ +
+-+	if (!old_dir->i_op || !old_dir->i_op->rename)
+++	if (!dir->i_op || !dir->i_op->rename)
+ +		return -EPERM;
+ +	return 0;
+ +}
+ +
+-+static int tmy_path_link(struct path *old_path, struct path *new_dir,
+-+			 struct dentry *new_dentry)
+-+{
+-+	const int err = pre_vfs_link(old_path->dentry, new_dir->dentry->d_inode,
+-+				     new_dentry);
+-+	if (err)
+-+		return err;
+-+	return tmy_check_2path_perm(TMY_TYPE_LINK_ACL,
+-+				    old_path->dentry, old_path->mnt,
+-+				    new_dentry, new_dir->mnt);
+-+}
+-+
+ +static int tmy_path_rename(struct path *old_dir, struct dentry *old_dentry,
+ +			   struct path *new_dir, struct dentry *new_dentry)
+ +{
+-+	const int err = pre_vfs_rename(old_dir->dentry->d_inode, old_dentry,
+-+				       new_dir->dentry->d_inode, new_dentry);
+++	const int err = pre_vfs_rename(old_dir->dentry, old_dentry,
+++				       new_dir->dentry, new_dentry);
+ +	if (err)
+ +		return err;
+ +	return tmy_check_2path_perm(TMY_TYPE_RENAME_ACL,
+@@ -372,7 +384,7 @@
+ +
+ +security_initcall(tmy_init);
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/tomoyo.h
+++++ vfs/security/tomoyo/tomoyo.h
+ @@ -0,0 +1,94 @@
+ +/*
+ + * security/tomoyo/tomoyo.h
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-file-restriction-part.patch
+===================================================================
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-file-restriction-part.patch	(revision 1242)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-file-restriction-part.patch	(working copy)
+@@ -10,7 +10,7 @@
+  1 file changed, 1133 insertions(+)
+ 
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/file.c
+++++ vfs/security/tomoyo/file.c
+ @@ -0,0 +1,1133 @@
+ +/*
+ + * security/tomoyo/file.c
+Index: trunk/2.2.x/tomoyo-lsm/patches/lsm-add-hooks-for-pathname-based-control.patch
+===================================================================
+--- trunk/2.2.x/tomoyo-lsm/patches/lsm-add-hooks-for-pathname-based-control.patch	(revision 1242)
++++ trunk/2.2.x/tomoyo-lsm/patches/lsm-add-hooks-for-pathname-based-control.patch	(working copy)
+@@ -7,17 +7,34 @@
+ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
+ ---
+- fs/namei.c               |   41 ++++++++++++
++ fs/namei.c               |   85 ++++++++++++++++----------
+  fs/open.c                |    7 ++
+  include/linux/security.h |  152 +++++++++++++++++++++++++++++++++++++++++++++++
+- net/unix/af_unix.c       |    4 +
+  security/dummy.c         |   60 ++++++++++++++++++
+  security/security.c      |   54 ++++++++++++++++
+- 6 files changed, 318 insertions(+)
++ 5 files changed, 326 insertions(+), 32 deletions(-)
+ 
+---- linux-2.6.26-rc2-mm1.orig/fs/namei.c
+-+++ linux-2.6.26-rc2-mm1/fs/namei.c
+-@@ -1663,6 +1663,10 @@ int may_open(struct nameidata *nd, int a
++--- vfs.orig/fs/namei.c
+++++ vfs/fs/namei.c
++@@ -1612,11 +1612,13 @@ int path_create(struct path *dir_path, s
++ {
++ 	int error = mnt_want_write(dir_path->mnt);
++ 
++-	if (!error) {
+++	if (error)
+++		goto out;
+++	error = security_path_create(dir_path, dentry, mode, nd);
+++	if (!error)
++ 		error = vfs_create(dir_path->dentry, dentry, mode, nd);
++-		mnt_drop_write(dir_path->mnt);
++-	}
++-
+++	mnt_drop_write(dir_path->mnt);
+++ out:
++ 	return error;
++ }
++ EXPORT_SYMBOL(path_create);
++@@ -1686,6 +1688,10 @@ int may_open(struct nameidata *nd, int a
+  		 * Refuse to truncate files with mandatory locks held on them.
+  		 */
+  		error = locks_verify_locked(inode);
+@@ -28,119 +45,148 @@
+  		if (!error) {
+  			DQUOT_INIT(inode);
+  
+-@@ -1693,7 +1697,11 @@ static int __open_namei_create(struct na
++@@ -2077,11 +2083,13 @@ int path_mknod(struct path *dir_path, st
++ {
++ 	int error = mnt_want_write(dir_path->mnt);
+  
+- 	if (!IS_POSIXACL(dir->d_inode))
+- 		mode &= ~current->fs->umask;
+-+	error = security_path_create(&nd->path, path->dentry, mode, nd);
++-	if (!error) {
+ +	if (error)
+-+		goto out_unlock;
+- 	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
+-+out_unlock:
+- 	mutex_unlock(&dir->d_inode->i_mutex);
+- 	dput(nd->path.dentry);
+- 	nd->path.dentry = path->dentry;
+-@@ -2094,8 +2102,15 @@ asmlinkage long sys_mknodat(int dfd, con
+- 	error = mnt_want_write(nd.path.mnt);
+- 	if (error)
+- 		goto out_dput;
+-+	error = security_path_mknod(&nd.path, dentry, mode, dev);
+++		goto out;
+++	error = security_path_mknod(dir_path, dentry, mode, dev);
+++	if (!error)
++ 		error = vfs_mknod(dir_path->dentry, dentry, mode, dev);
++-		mnt_drop_write(dir_path->mnt);
++-	}
++-
+++	mnt_drop_write(dir_path->mnt);
+++ out:
++ 	return error;
++ }
++ EXPORT_SYMBOL(path_mknod);
++@@ -2168,11 +2176,13 @@ int path_mkdir(struct path *dir_path, st
++ {
++ 	int error = mnt_want_write(dir_path->mnt);
++ 
++-	if (!error) {
+ +	if (error)
+-+		goto out_drop_write;
+- 	switch (mode & S_IFMT) {
+- 		case 0: case S_IFREG:
+-+			error = security_path_create(&nd.path, dentry, mode,
+-+						     &nd);
+-+			if (error)
+-+				break;
+- 			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
+- 			break;
+- 		case S_IFCHR: case S_IFBLK:
+-@@ -2106,6 +2121,7 @@ asmlinkage long sys_mknodat(int dfd, con
+- 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
+- 			break;
+- 	}
+-+out_drop_write:
+- 	mnt_drop_write(nd.path.mnt);
+- out_dput:
+- 	dput(dentry);
+-@@ -2170,7 +2186,11 @@ asmlinkage long sys_mkdirat(int dfd, con
+- 	error = mnt_want_write(nd.path.mnt);
+- 	if (error)
+- 		goto out_dput;
+-+	error = security_path_mkdir(&nd.path, dentry, mode);
+++		goto out;
+++	error = security_path_mkdir(dir_path, dentry, mode);
+++	if (!error)
++ 		error = vfs_mkdir(dir_path->dentry, dentry, mode);
++-		mnt_drop_write(dir_path->mnt);
++-	}
++-
+++	mnt_drop_write(dir_path->mnt);
+++ out:
++ 	return error;
++ }
++ EXPORT_SYMBOL(path_mkdir);
++@@ -2280,11 +2290,13 @@ int path_rmdir(struct path *dir_path, st
++ {
++ 	int error = mnt_want_write(dir_path->mnt);
++ 
++-	if (!error) {
+ +	if (error)
+-+		goto out_drop_write;
+- 	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
+-+out_drop_write:
+- 	mnt_drop_write(nd.path.mnt);
+- out_dput:
+- 	dput(dentry);
+-@@ -2282,7 +2302,11 @@ static long do_rmdir(int dfd, const char
+- 	error = mnt_want_write(nd.path.mnt);
+- 	if (error)
+- 		goto exit3;
+-+	error = security_path_rmdir(&nd.path, dentry);
+++		goto out;
+++	error = security_path_rmdir(dir_path, dentry);
+++	if (!error)
++ 		error = vfs_rmdir(dir_path->dentry, dentry);
++-		mnt_drop_write(dir_path->mnt);
++-	}
++-
+++	mnt_drop_write(dir_path->mnt);
+++ out:
++ 	return error;
++ }
++ EXPORT_SYMBOL(path_rmdir);
++@@ -2372,11 +2384,13 @@ int path_unlink(struct path *dir_path, s
++ {
++ 	int error = mnt_want_write(dir_path->mnt);
++ 
++-	if (!error) {
+ +	if (error)
+-+		goto exit4;
+- 	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
+-+exit4:
+- 	mnt_drop_write(nd.path.mnt);
+- exit3:
+- 	dput(dentry);
+-@@ -2368,7 +2392,11 @@ static long do_unlinkat(int dfd, const c
+- 		error = mnt_want_write(nd.path.mnt);
+- 		if (error)
+- 			goto exit2;
+-+		error = security_path_unlink(&nd.path, dentry);
+-+		if (error)
+-+			goto exit3;
+- 		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
+-+exit3:
+- 		mnt_drop_write(nd.path.mnt);
+- 	exit2:
+- 		dput(dentry);
+-@@ -2453,7 +2481,11 @@ asmlinkage long sys_symlinkat(const char
+- 	error = mnt_want_write(nd.path.mnt);
+- 	if (error)
+- 		goto out_dput;
+-+	error = security_path_symlink(&nd.path, dentry, from);
+++		goto out;
+++	error = security_path_unlink(dir_path, dentry);
+++	if (!error)
++ 		error = vfs_unlink(dir_path->dentry, dentry);
++-		mnt_drop_write(dir_path->mnt);
++-	}
++-
+++	mnt_drop_write(dir_path->mnt);
+++ out:
++ 	return error;
++ }
++ EXPORT_SYMBOL(path_unlink);
++@@ -2478,11 +2492,13 @@ int path_symlink(struct path *dir_path, 
++ {
++ 	int error = mnt_want_write(dir_path->mnt);
++ 
++-	if (!error) {
+ +	if (error)
+-+		goto out_drop_write;
+- 	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from, S_IALLUGO);
+-+out_drop_write:
+- 	mnt_drop_write(nd.path.mnt);
+- out_dput:
+- 	dput(dentry);
+-@@ -2553,7 +2585,11 @@ asmlinkage long sys_linkat(int olddfd, c
+- 	error = mnt_want_write(nd.path.mnt);
+- 	if (error)
+- 		goto out_dput;
+-+	error = security_path_link(&old_nd.path, &nd.path, new_dentry);
+++		goto out;
+++	error = security_path_symlink(dir_path, dentry, oldname);
+++	if (!error)
++ 		error = vfs_symlink(dir_path->dentry, dentry, oldname);
++-		mnt_drop_write(dir_path->mnt);
++-	}
++-
+++	mnt_drop_write(dir_path->mnt);
+++ out:
++ 	return error;
++ }
++ EXPORT_SYMBOL(path_symlink);
++@@ -2574,11 +2590,13 @@ int path_link(struct dentry *old_dentry,
++ {
++ 	int error = mnt_want_write(dir_path->mnt);
++ 
++-	if (!error) {
+ +	if (error)
+-+		goto out_drop_write;
+- 	error = vfs_link(old_nd.path.dentry, nd.path.dentry->d_inode, new_dentry);
+-+out_drop_write:
+- 	mnt_drop_write(nd.path.mnt);
+- out_dput:
+- 	dput(new_dentry);
+-@@ -2784,8 +2820,13 @@ static int do_rename(int olddfd, const c
+- 	error = mnt_want_write(oldnd.path.mnt);
+- 	if (error)
+- 		goto exit5;
+-+	error = security_path_rename(&oldnd.path, old_dentry,
+-+				     &newnd.path, new_dentry);
+++		goto out;
+++	error = security_path_link(old_dentry, dir_path, new_dentry);
+++	if (!error)
++ 		error = vfs_link(old_dentry, dir_path->dentry, new_dentry);
++-		mnt_drop_write(dir_path->mnt);
++-	}
++-
+++	mnt_drop_write(dir_path->mnt);
+++ out:
++ 	return error;
++ }
++ EXPORT_SYMBOL(path_link);
++@@ -2799,12 +2817,15 @@ int path_rename(struct path *old_dir_pat
++ 	BUG_ON(mnt != new_dir_path->mnt);
++ 
++ 	error = mnt_want_write(mnt);
++-	if (!error) {
+ +	if (error)
+-+		goto exit6;
+- 	error = vfs_rename(old_dir->d_inode, old_dentry,
+- 				   new_dir->d_inode, new_dentry);
+-+exit6:
+- 	mnt_drop_write(oldnd.path.mnt);
+- exit5:
+- 	dput(new_dentry);
+---- linux-2.6.26-rc2-mm1.orig/fs/open.c
+-+++ linux-2.6.26-rc2-mm1/fs/open.c
+-@@ -269,6 +269,9 @@ static long do_sys_truncate(const char _
+++		goto out;
+++	error = security_path_rename(old_dir_path, old_dentry,
+++				     new_dir_path, new_dentry);
+++	if (!error)
++ 		error = vfs_rename(old_dir_path->dentry, old_dentry,
++ 				   new_dir_path->dentry, new_dentry);
++-		mnt_drop_write(mnt);
++-	}
++-
+++	mnt_drop_write(mnt);
+++ out:
++ 	return error;
++ }
++ EXPORT_SYMBOL(path_rename);
++--- vfs.orig/fs/open.c
+++++ vfs/fs/open.c
++@@ -236,6 +236,10 @@ int do_truncate(struct dentry *dentry, l
++  */
++ int file_truncate(struct file *filp, loff_t length, unsigned int time_attrs)
++ {
+++	int error = security_path_truncate(&filp->f_path, length, time_attrs,
+++					   filp);
+++	if (error)
+++		return error;
++ 	return do_truncate(filp->f_path.dentry, length, time_attrs, filp);
++ }
++ 
++@@ -287,6 +291,9 @@ static long do_sys_truncate(const char _
+  	if (error)
+  		goto put_write_and_out;
+  
+@@ -150,19 +196,8 @@
+  	error = locks_verify_truncate(inode, NULL, length);
+  	if (!error) {
+  		DQUOT_INIT(inode);
+-@@ -325,6 +328,10 @@ static long do_sys_ftruncate(unsigned in
+- 	if (IS_APPEND(inode))
+- 		goto out_putf;
+- 
+-+	error = security_path_truncate(&file->f_path, length,
+-+				       ATTR_MTIME|ATTR_CTIME, file);
+-+	if (error)
+-+		goto out_putf;
+- 	error = locks_verify_truncate(inode, file, length);
+- 	if (!error)
+- 		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
+---- linux-2.6.26-rc2-mm1.orig/include/linux/security.h
+-+++ linux-2.6.26-rc2-mm1/include/linux/security.h
++--- vfs.orig/include/linux/security.h
+++++ vfs/include/linux/security.h
+ @@ -343,23 +343,50 @@ static inline void security_free_mnt_opt
+   *	@dentry contains the dentry structure for the file to be created.
+   *	@mode contains the file mode of the file to be created.
+@@ -182,7 +217,7 @@
+   *	Return 0 if permission is granted.
+ + * @path_link:
+ + *	Check permission before creating a new hard link to a file.
+-+ *	@old_path contains the path structure for an existing link
+++ *	@old_dentry contains the dentry structure for an existing link
+ + *	to the file.
+ + *	@new_dir contains the path structure of the parent directory of
+ + *	the new link.
+@@ -270,7 +305,7 @@
+   * @inode_readlink:
+   *	Check the permission to read the symbolic link.
+   *	@dentry contains the dentry structure for the file link.
+-@@ -417,6 +474,13 @@ static inline void security_free_mnt_opt
++@@ -416,6 +473,13 @@ static inline void security_free_mnt_opt
+   *	@dentry contains the dentry structure for the file.
+   *	@attr is the iattr structure containing the new file attributes.
+   *	Return 0 if permission is granted.
+@@ -284,7 +319,7 @@
+   * @inode_getattr:
+   *	Check permission before obtaining file attributes.
+   *	@mnt is the vfsmount where the dentry was looked up
+-@@ -1351,6 +1415,22 @@ struct security_operations {
++@@ -1350,6 +1414,22 @@ struct security_operations {
+  				   struct super_block *newsb);
+  	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
+  
+@@ -299,7 +334,7 @@
+ +			      unsigned int time_attrs, struct file *filp);
+ +	int (*path_symlink) (struct path *dir, struct dentry *dentry,
+ +			     const char *old_name);
+-+	int (*path_link) (struct path *old_path, struct path *new_dir,
+++	int (*path_link) (struct dentry *old_dentry, struct path *new_dir,
+ +			  struct dentry *new_dentry);
+ +	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
+ +			    struct path *new_dir, struct dentry *new_dentry);
+@@ -307,7 +342,7 @@
+  	int (*inode_alloc_security) (struct inode *inode);
+  	void (*inode_free_security) (struct inode *inode);
+  	int (*inode_init_security) (struct inode *inode, struct inode *dir,
+-@@ -1624,6 +1704,22 @@ void security_sb_clone_mnt_opts(const st
++@@ -1623,6 +1703,22 @@ void security_sb_clone_mnt_opts(const st
+  				struct super_block *newsb);
+  int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts);
+  
+@@ -322,7 +357,7 @@
+ +			   unsigned int time_attrs, struct file *filp);
+ +int security_path_symlink(struct path *dir, struct dentry *dentry,
+ +			  const char *old_name);
+-+int security_path_link(struct path *old_path, struct path *new_dir,
+++int security_path_link(struct dentry *old_dentry, struct path *new_dir,
+ +		       struct dentry *new_dentry);
+ +int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
+ +			 struct path *new_dir, struct dentry *new_dentry);
+@@ -330,7 +365,7 @@
+  int security_inode_alloc(struct inode *inode);
+  void security_inode_free(struct inode *inode);
+  int security_inode_init_security(struct inode *inode, struct inode *dir,
+-@@ -1949,6 +2045,62 @@ static inline int security_sb_parse_opts
++@@ -1948,6 +2044,62 @@ static inline int security_sb_parse_opts
+  	return 0;
+  }
+  
+@@ -375,7 +410,7 @@
+ +	return 0;
+ +}
+ +
+-+static inline int security_path_link(struct path *old_path,
+++static inline int security_path_link(struct dentry *old_dentry,
+ +				     struct path *new_dir,
+ +				     struct dentry *new_dentry)
+ +{
+@@ -393,22 +428,8 @@
+  static inline int security_inode_alloc(struct inode *inode)
+  {
+  	return 0;
+---- linux-2.6.26-rc2-mm1.orig/net/unix/af_unix.c
+-+++ linux-2.6.26-rc2-mm1/net/unix/af_unix.c
+-@@ -822,7 +822,11 @@ static int unix_bind(struct socket *sock
+- 		err = mnt_want_write(nd.path.mnt);
+- 		if (err)
+- 			goto out_mknod_dput;
+-+		err = security_path_mknod(&nd.path, dentry, mode, 0);
+-+		if (err)
+-+			goto out_drop_write;
+- 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
+-+out_drop_write:
+- 		mnt_drop_write(nd.path.mnt);
+- 		if (err)
+- 			goto out_mknod_dput;
+---- linux-2.6.26-rc2-mm1.orig/security/dummy.c
+-+++ linux-2.6.26-rc2-mm1/security/dummy.c
++--- vfs.orig/security/dummy.c
+++++ vfs/security/dummy.c
+ @@ -270,6 +270,57 @@ static int dummy_sb_parse_opts_str(char 
+  	return 0;
+  }
+@@ -446,7 +467,7 @@
+ +	return 0;
+ +}
+ +
+-+static int dummy_path_link(struct path *old_path, struct path *new_dir,
+++static int dummy_path_link(struct dentry *old_dentry, struct path *new_dir,
+ +			   struct dentry *new_dentry)
+ +{
+ +	return 0;
+@@ -483,8 +504,8 @@
+  	set_to_dummy_if_null(ops, inode_alloc_security);
+  	set_to_dummy_if_null(ops, inode_free_security);
+  	set_to_dummy_if_null(ops, inode_init_security);
+---- linux-2.6.26-rc2-mm1.orig/security/security.c
+-+++ linux-2.6.26-rc2-mm1/security/security.c
++--- vfs.orig/security/security.c
+++++ vfs/security/security.c
+ @@ -388,6 +388,60 @@ int security_inode_init_security(struct 
+  }
+  EXPORT_SYMBOL(security_inode_init_security);
+@@ -524,10 +545,10 @@
+ +	return security_ops->path_symlink(path, dentry, old_name);
+ +}
+ +
+-+int security_path_link(struct path *old_path, struct path *new_dir,
+++int security_path_link(struct dentry *old_dentry, struct path *new_dir,
+ +		       struct dentry *new_dentry)
+ +{
+-+	return security_ops->path_link(old_path, new_dir, new_dentry);
+++	return security_ops->path_link(old_dentry, new_dir, new_dentry);
+ +}
+ +
+ +int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-common.patch
+===================================================================
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-common.patch	(revision 1242)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-common.patch	(working copy)
+@@ -11,9 +11,9 @@
+  security/tomoyo/common.h |  318 +++++++
+  3 files changed, 2525 insertions(+)
+ 
+---- linux-2.6.26-rc2-mm1.orig/include/linux/list.h
+-+++ linux-2.6.26-rc2-mm1/include/linux/list.h
+-@@ -977,4 +977,82 @@ static inline void hlist_add_after_rcu(s
++--- vfs.orig/include/linux/list.h
+++++ vfs/include/linux/list.h
++@@ -981,4 +981,82 @@ static inline void hlist_add_after_rcu(s
+  		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
+  	     pos = rcu_dereference(pos->next))
+  
+@@ -97,7 +97,7 @@
+ +
+  #endif
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/common.c
+++++ vfs/security/tomoyo/common.c
+ @@ -0,0 +1,2129 @@
+ +/*
+ + * security/tomoyo/common.c
+@@ -2229,7 +2229,7 @@
+ +
+ +fs_initcall(tmy_initerface_init);
+ --- /dev/null
+-+++ linux-2.6.26-rc2-mm1/security/tomoyo/common.h
+++++ vfs/security/tomoyo/common.h
+ @@ -0,0 +1,318 @@
+ +/*
+ + * security/tomoyo/common.h
+Index: trunk/2.2.x/tomoyo-lsm/patches/vfs-remove-static-from-may_create-and-may_delete.patch
+===================================================================
+--- trunk/2.2.x/tomoyo-lsm/patches/vfs-remove-static-from-may_create-and-may_delete.patch	(revision 1242)
++++ trunk/2.2.x/tomoyo-lsm/patches/vfs-remove-static-from-may_create-and-may_delete.patch	(working copy)
+@@ -10,35 +10,35 @@
+  include/linux/fs.h |    2 ++
+  2 files changed, 4 insertions(+), 3 deletions(-)
+ 
+---- linux-2.6.26-rc2-mm1.orig/fs/namei.c
+-+++ linux-2.6.26-rc2-mm1/fs/namei.c
+-@@ -1469,7 +1469,7 @@ static inline int check_sticky(struct in
++--- vfs.orig/fs/namei.c
+++++ vfs/fs/namei.c
++@@ -1474,8 +1474,7 @@ static inline int check_sticky(struct in
+   * 10. We don't allow removal of NFS sillyrenamed files; it's handled by
+   *     nfs_async_unlink().
+   */
+--static int may_delete(struct inode *dir,struct dentry *victim,int isdir)
+-+int may_delete(struct inode *dir, struct dentry *victim, int isdir)
++-static int may_delete(struct dentry *dir_dentry, struct dentry *victim,
++-		      int isdir)
+++int may_delete(struct dentry *dir_dentry, struct dentry *victim, int isdir)
+  {
++ 	struct inode *dir = dir_dentry->d_inode;
+  	int error;
+- 
+-@@ -1509,8 +1509,7 @@ static int may_delete(struct inode *dir,
++@@ -1516,7 +1515,7 @@ static int may_delete(struct dentry *dir
+   *  3. We should have write and exec permissions on dir
+   *  4. We can't do it if dir is immutable (done in permission())
+   */
+--static inline int may_create(struct inode *dir, struct dentry *child,
+--			     struct nameidata *nd)
+-+int may_create(struct inode *dir, struct dentry *child, struct nameidata *nd)
++-static inline int may_create(struct dentry *dir_dentry, struct dentry *child)
+++int may_create(struct dentry *dir_dentry, struct dentry *child)
+  {
+  	if (child->d_inode)
+  		return -EEXIST;
+---- linux-2.6.26-rc2-mm1.orig/include/linux/fs.h
+-+++ linux-2.6.26-rc2-mm1/include/linux/fs.h
+-@@ -1792,6 +1792,8 @@ extern void free_write_pipe(struct file 
++--- vfs.orig/include/linux/fs.h
+++++ vfs/include/linux/fs.h
++@@ -1791,6 +1791,8 @@ extern void free_write_pipe(struct file 
+  extern struct file *do_filp_open(int dfd, const char *pathname,
+  		int open_flag, int mode);
+  extern int may_open(struct nameidata *, int, int);
+-+extern int may_create(struct inode *, struct dentry *, struct nameidata *);
+-+extern int may_delete(struct inode *, struct dentry *, int);
+++extern int may_create(struct dentry *, struct dentry *);
+++extern int may_delete(struct dentry *, struct dentry *, int);
+  
+  extern int kernel_read(struct file *, unsigned long, char *, unsigned long);
+  extern struct file * open_exec(const char *);
