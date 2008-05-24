@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  360 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |   94 ++++++++++++
- 2 files changed, 454 insertions(+)
+ security/tomoyo/tomoyo.c |  372 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |   94 +++++++++++
+ 2 files changed, 466 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.26-rc2-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,360 @@
++++ vfs/security/tomoyo/tomoyo.c
+@@ -0,0 +1,372 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -87,10 +87,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				    path->mnt);
 +}
 +
-+static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry,
-+				 struct nameidata *nd)
++static inline int pre_vfs_create(struct dentry *dir_dentry,
++				 struct dentry *dentry)
 +{
-+	int error = may_create(dir, dentry, nd);
++	struct inode *dir = dir_dentry->d_inode;
++	int error = may_create(dir_dentry, dentry);
 +
 +	if (error)
 +		return error;
@@ -107,15 +108,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	if (!nd || !nd->path.mnt)
 +		return 0;
-+	error = pre_vfs_create(dir->dentry->d_inode, dentry, nd);
++	error = pre_vfs_create(dir->dentry, dentry);
 +	if (error)
 +		return error;
 +	return tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry, nd->path.mnt);
 +}
 +
-+static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
++static inline int pre_vfs_unlink(struct dentry *dir_dentry,
++				 struct dentry *dentry)
 +{
-+	int error = may_delete(dir, dentry, 0);
++	struct inode *dir = dir_dentry->d_inode;
++	int error = may_delete(dir_dentry, dentry, 0);
 +
 +	if (error)
 +		return error;
@@ -127,15 +130,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int tmy_path_unlink(struct path *dir, struct dentry *dentry)
 +{
-+	const int err = pre_vfs_unlink(dir->dentry->d_inode, dentry);
++	const int err = pre_vfs_unlink(dir->dentry, dentry);
 +	if (err)
 +		return err;
 +	return tmy_check_1path_perm(TMY_TYPE_UNLINK_ACL, dentry, dir->mnt);
 +}
 +
-+static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
++static inline int pre_vfs_mkdir(struct dentry *dir_dentry,
++				struct dentry *dentry)
 +{
-+	int error = may_create(dir, dentry, NULL);
++	struct inode *dir = dir_dentry->d_inode;
++	int error = may_create(dir_dentry, dentry);
 +
 +	if (error)
 +		return error;
@@ -147,15 +152,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int tmy_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
 +{
-+	const int err = pre_vfs_mkdir(dir->dentry->d_inode, dentry);
++	const int err = pre_vfs_mkdir(dir->dentry, dentry);
 +	if (err)
 +		return err;
 +	return tmy_check_1path_perm(TMY_TYPE_MKDIR_ACL, dentry, dir->mnt);
 +}
 +
-+static inline int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
++static inline int pre_vfs_rmdir(struct dentry *dir_dentry,
++				struct dentry *dentry)
 +{
-+	int error = may_delete(dir, dentry, 1);
++	struct inode *dir = dir_dentry->d_inode;
++	int error = may_delete(dir_dentry, dentry, 1);
 +
 +	if (error)
 +		return error;
@@ -167,15 +174,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int tmy_path_rmdir(struct path *dir, struct dentry *dentry)
 +{
-+	const int err = pre_vfs_rmdir(dir->dentry->d_inode, dentry);
++	const int err = pre_vfs_rmdir(dir->dentry, dentry);
 +	if (err)
 +		return err;
 +	return tmy_check_1path_perm(TMY_TYPE_RMDIR_ACL, dentry, dir->mnt);
 +}
 +
-+static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
++static inline int pre_vfs_symlink(struct dentry *dir_dentry,
++				  struct dentry *dentry)
 +{
-+	int error = may_create(dir, dentry, NULL);
++	struct inode *dir = dir_dentry->d_inode;
++	int error = may_create(dir_dentry, dentry);
 +
 +	if (error)
 +		return error;
@@ -188,16 +197,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int tmy_path_symlink(struct path *dir, struct dentry *dentry,
 +			    const char *old_name)
 +{
-+	const int err = pre_vfs_symlink(dir->dentry->d_inode, dentry);
++	const int err = pre_vfs_symlink(dir->dentry, dentry);
 +	if (err)
 +		return err;
 +	return tmy_check_1path_perm(TMY_TYPE_SYMLINK_ACL, dentry, dir->mnt);
 +}
 +
-+static inline int pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
-+				int mode)
++static inline int pre_vfs_mknod(struct dentry *dir_dentry,
++				struct dentry *dentry, int mode)
 +{
-+	int error = may_create(dir, dentry, NULL);
++	struct inode *dir = dir_dentry->d_inode;
++	int error = may_create(dir_dentry, dentry);
 +
 +	if (error)
 +		return error;
@@ -224,7 +234,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	default:
 +		return 0;
 +	}
-+	err = pre_vfs_mknod(dir->dentry->d_inode, dentry, mode);
++	err = pre_vfs_mknod(dir->dentry, dentry, mode);
 +	if (err)
 +		return err;
 +	if (S_ISCHR(mode))
@@ -238,16 +248,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
++static inline int pre_vfs_link(struct dentry *old_dentry,
++			       struct dentry *new_dir_dentry,
 +			       struct dentry *new_dentry)
 +{
++	struct inode *dir = new_dir_dentry->d_inode;
 +	struct inode *inode = old_dentry->d_inode;
 +	int error;
 +
 +	if (!inode)
 +		return -ENOENT;
 +
-+	error = may_create(dir, new_dentry, NULL);
++	error = may_create(new_dir_dentry, new_dentry);
 +	if (error)
 +		return error;
 +
@@ -261,55 +273,55 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return -EPERM;
 +	if (!dir->i_op || !dir->i_op->link)
 +		return -EPERM;
-+	if (S_ISDIR(old_dentry->d_inode->i_mode))
++	if (S_ISDIR(inode->i_mode))
 +		return -EPERM;
 +	return 0;
 +}
 +
-+static inline int pre_vfs_rename(struct inode *old_dir,
++static int tmy_path_link(struct dentry *old_dentry, struct path *new_dir,
++			 struct dentry *new_dentry)
++{
++	const int err = pre_vfs_link(old_dentry, new_dir->dentry, new_dentry);
++	if (err)
++		return err;
++	return tmy_check_2path_perm(TMY_TYPE_LINK_ACL,
++				    old_dentry, new_dir->mnt,
++				    new_dentry, new_dir->mnt);
++}
++
++static inline int pre_vfs_rename(struct dentry *old_dir_dentry,
 +				 struct dentry *old_dentry,
-+				 struct inode *new_dir,
++				 struct dentry *new_dir_dentry,
 +				 struct dentry *new_dentry)
 +{
 +	int error;
++	struct inode *dir = old_dir_dentry->d_inode;
 +	int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
 +
 +	if (old_dentry->d_inode == new_dentry->d_inode)
 +		return 0;
 +
-+	error = may_delete(old_dir, old_dentry, is_dir);
++	error = may_delete(old_dir_dentry, old_dentry, is_dir);
 +	if (error)
 +		return error;
 +
 +	if (!new_dentry->d_inode)
-+		error = may_create(new_dir, new_dentry, NULL);
++		error = may_create(new_dir_dentry, new_dentry);
 +	else
-+		error = may_delete(new_dir, new_dentry, is_dir);
++		error = may_delete(new_dir_dentry, new_dentry, is_dir);
 +	if (error)
 +		return error;
 +
-+	if (!old_dir->i_op || !old_dir->i_op->rename)
++	if (!dir->i_op || !dir->i_op->rename)
 +		return -EPERM;
 +	return 0;
-+}
-+
-+static int tmy_path_link(struct path *old_path, struct path *new_dir,
-+			 struct dentry *new_dentry)
-+{
-+	const int err = pre_vfs_link(old_path->dentry, new_dir->dentry->d_inode,
-+				     new_dentry);
-+	if (err)
-+		return err;
-+	return tmy_check_2path_perm(TMY_TYPE_LINK_ACL,
-+				    old_path->dentry, old_path->mnt,
-+				    new_dentry, new_dir->mnt);
 +}
 +
 +static int tmy_path_rename(struct path *old_dir, struct dentry *old_dentry,
 +			   struct path *new_dir, struct dentry *new_dentry)
 +{
-+	const int err = pre_vfs_rename(old_dir->dentry->d_inode, old_dentry,
-+				       new_dir->dentry->d_inode, new_dentry);
++	const int err = pre_vfs_rename(old_dir->dentry, old_dentry,
++				       new_dir->dentry, new_dentry);
 +	if (err)
 +		return err;
 +	return tmy_check_2path_perm(TMY_TYPE_RENAME_ACL,
@@ -372,7 +384,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +security_initcall(tmy_init);
 --- /dev/null
-+++ linux-2.6.26-rc2-mm1/security/tomoyo/tomoyo.h
++++ vfs/security/tomoyo/tomoyo.h
 @@ -0,0 +1,94 @@
 +/*
 + * security/tomoyo/tomoyo.h

@@ -11,9 +11,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.h |  318 +++++++
  3 files changed, 2525 insertions(+)
 
---- linux-2.6.26-rc2-mm1.orig/include/linux/list.h
-+++ linux-2.6.26-rc2-mm1/include/linux/list.h
-@@ -977,4 +977,82 @@ static inline void hlist_add_after_rcu(s
+--- vfs.orig/include/linux/list.h
++++ vfs/include/linux/list.h
+@@ -981,4 +981,82 @@ static inline void hlist_add_after_rcu(s
  		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
  	     pos = rcu_dereference(pos->next))
  
@@ -97,7 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
  #endif
 --- /dev/null
-+++ linux-2.6.26-rc2-mm1/security/tomoyo/common.c
++++ vfs/security/tomoyo/common.c
 @@ -0,0 +1,2129 @@
 +/*
 + * security/tomoyo/common.c
@@ -2229,7 +2229,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
-+++ linux-2.6.26-rc2-mm1/security/tomoyo/common.h
++++ vfs/security/tomoyo/common.h
 @@ -0,0 +1,318 @@
 +/*
 + * security/tomoyo/common.h

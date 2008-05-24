@@ -9,8 +9,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/Makefile |    1 +
  4 files changed, 13 insertions(+)
 
---- linux-2.6.26-rc2-mm1.orig/security/Kconfig
-+++ linux-2.6.26-rc2-mm1/security/Kconfig
+--- vfs.orig/security/Kconfig
++++ vfs/security/Kconfig
 @@ -126,6 +126,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
  
  source security/selinux/Kconfig
@@ -19,8 +19,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  endmenu
  
---- linux-2.6.26-rc2-mm1.orig/security/Makefile
-+++ linux-2.6.26-rc2-mm1/security/Makefile
+--- vfs.orig/security/Makefile
++++ vfs/security/Makefile
 @@ -5,6 +5,7 @@
  obj-$(CONFIG_KEYS)			+= keys/
  subdir-$(CONFIG_SECURITY_SELINUX)	+= selinux
@@ -38,7 +38,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
  obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
 --- /dev/null
-+++ linux-2.6.26-rc2-mm1/security/tomoyo/Kconfig
++++ vfs/security/tomoyo/Kconfig
 @@ -0,0 +1,9 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux Support"
@@ -50,6 +50,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +          found at <http://tomoyo.sourceforge.jp/>.
 +	  If you are unsure how to answer this question, answer N.
 --- /dev/null
-+++ linux-2.6.26-rc2-mm1/security/tomoyo/Makefile
++++ vfs/security/tomoyo/Makefile
 @@ -0,0 +1 @@
 +obj-y = common.o realpath.o tomoyo.o domain.o file.o
