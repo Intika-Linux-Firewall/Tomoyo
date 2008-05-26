@@ -10,6 +10,7 @@ die () {
 
 # Install kernel source packages.
 curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x8BF9EFE6 ' | gpg --import || die "Can't import PGP key."
+curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x76682A37 ' | gpg --import || die "Can't import PGP key."
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
 apt-get build-dep linux-image-2.6.24-16-generic || die "Can't install packages."
@@ -17,6 +18,8 @@ apt-get source linux-image-2.6.24-16-generic || die "Can't install kernel source
 apt-get install linux-headers-2.6.24-16 || die "Can't install packages."
 apt-get build-dep linux-ubuntu-modules-2.6.24-16-generic || die "Can't install packages."
 apt-get source linux-ubuntu-modules-2.6.24-16-generic || die "Can't install kernel source."
+apt-get build-dep linux-restricted-modules-2.6.24-16-generic || die "Can't install packages."
+apt-get source linux-restricted-modules-2.6.24-16-generic || die "Can't install kernel source."
 
 # Download TOMOYO Linux patches.
 cd linux-2.6.24/ || die "Can't chdir to linux-2.6.24/ ."
@@ -48,5 +51,13 @@ cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."
 debian/rules debian/control || die "Can't run control."
 sed -i -e 's:virtual:virtual ccs:' debian/rules.d/i386.mk || die "Can't edit file."
 debian/rules binary-indep binary-arch || die "Failed to build kernel package."
+cd .. || die "Can't chdir to ../ ."
+
+cd linux-restricted-modules-2.6.24-2.6.24.12/ || die "Can't chdir to linux-restricted-modules-2.6.24-2.6.24.12/ ."
+awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
+cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."
+sed -i -e 's/,generic/,ccs generic/' debian/rules || die "Can't edit file."
+debian/rules debian/control || die "Can't run control."
+debian/rules binary || die "Failed to build kernel package."
 
 exit 0
