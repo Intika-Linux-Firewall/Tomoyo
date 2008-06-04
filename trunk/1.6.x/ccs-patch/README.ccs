@@ -1428,3 +1428,20 @@ Fix 2008/05/06
         echo Private: 1048576 > /proc/ccs/meminfo
 
 Version 1.6.1 2008/05/10   Bug fix release.
+
+Fix 2008/06/04
+
+    @ Check open mode of /proc/ccs/ interface.
+
+      It turned out that I can avoid allocating memory for reading if
+      FMODE_READ is not set and memory for writing if FMODE_WRITE is not set.
+
+    @ Wait for completion of /sbin/ccs-init .
+
+      Since 2.4 kernel's call_usermodehelper() can't wait for termination of
+      the executed program, I was using the close() request of
+      /proc/ccs/meminfo to indicate that loading policy has finished.
+      But since /proc/ccs/meminfo could be accessed for setting memory quota
+      by /etc/ccs/ccs-post-init , I stopped using the close() request.
+      The policy loader no longer need to access /proc/ccs/meminfo to notify
+      the kernel that loading policy has finished.
