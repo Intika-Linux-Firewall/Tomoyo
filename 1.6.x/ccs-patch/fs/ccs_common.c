@@ -12,6 +12,10 @@
  *
  */
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#define __KERNEL_SYSCALLS__
+#endif
 #include <linux/string.h>
 #include <linux/mm.h>
 #include <linux/utime.h>
@@ -20,7 +24,6 @@
 #include <linux/slab.h>
 #include <asm/uaccess.h>
 #include <stdarg.h>
-#include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
@@ -32,6 +35,9 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/ccs_common.h>
 #include <linux/ccs_proc.h>
 #include <linux/tomoyo.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#include <linux/unistd.h>
+#endif
 
 /* To support PID namespace. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
@@ -2249,9 +2255,6 @@ static int read_system_policy(struct ccs_io_buffer *head)
 
 #endif
 
-/* Profile loaded by policy loader? */
-static bool profile_loaded = false;
-
 /* Path to the policy loader. The default is /sbin/ccs-init. */
 static const char *ccs_loader;
 
@@ -2300,6 +2303,29 @@ static bool policy_loader_exists(void)
 	return true;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+/**
+ * run_ccs_loader - Start /sbin/ccs-init .
+ *
+ * @unused: Not used.
+ *
+ * Returns PID of /sbin/ccs-init on success, negative value otherwise.
+ */
+static int run_ccs_loader(void *unused)
+{
+	char *argv[2];
+	char *envp[3];
+	printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
+	       ccs_loader);
+	argv[0] = (char *) ccs_loader;
+	argv[1] = NULL;
+	envp[0] = "HOME=/";
+	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
+	envp[2] = NULL;
+	return exec_usermodehelper(argv[0], argv, envp);
+}
+#endif
+
 /**
  * ccs_load_policy - Run external policy loader to load policy.
  *
@@ -2328,7 +2354,8 @@ void ccs_load_policy(const char *filename)
 		return;
 	if (!policy_loader_exists())
 		return;
-	if (!profile_loaded) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	{
 		char *argv[2];
 		char *envp[3];
 		printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
@@ -2338,16 +2365,28 @@ void ccs_load_policy(const char *filename)
 		envp[0] = "HOME=/";
 		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
 		envp[2] = NULL;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 		call_usermodehelper(argv[0], argv, envp, 1);
-#else
-		call_usermodehelper(argv[0], argv, envp);
-#endif
-		while (!profile_loaded) {
-			set_current_state(TASK_INTERRUPTIBLE);
-			schedule_timeout(HZ / 10);
-		}
 	}
+#else
+	{
+		/* Copied from kernel/kmod.c */
+		struct task_struct *task = current;
+		pid_t pid = kernel_thread(run_ccs_loader, NULL, 0);
+		sigset_t tmpsig;
+		spin_lock_irq(&task->sigmask_lock);
+		tmpsig = task->blocked;
+		siginitsetinv(&task->blocked,
+			      sigmask(SIGKILL) | sigmask(SIGSTOP));
+		recalc_sigpending(task);
+		spin_unlock_irq(&task->sigmask_lock);
+		if (pid >= 0)
+			waitpid(pid, NULL, __WCLONE);
+		spin_lock_irq(&task->sigmask_lock);
+		task->blocked = tmpsig;
+		recalc_sigpending(task);
+		spin_unlock_irq(&task->sigmask_lock);
+	}
+#endif
 #ifdef CONFIG_SAKURA
 	printk(KERN_INFO "SAKURA: 1.6.1   2008/06/04\n");
 #endif
@@ -2977,19 +3016,6 @@ int ccs_close_control(struct file *file)
 	 */
 	if (head->write == write_answer || head->read == read_query)
 		atomic_dec(&queryd_watcher);
-	/*
-	 * If the file is /proc/ccs/meminfo , regard policy loading by
-	 * the policy loader executed from ccs_load_policy() has finished.
-	 * This hack is needed because 2.4 kernel's call_usermodehelper()
-	 * can't wait for termination of the executed program.
-	 * Thus, I'm using the close() request of /proc/ccs/meminfo as
-	 * the trigger rather than complicating the code to wait for
-	 * termination of the policy loader.
-	 * So, the policy loader must open /proc/ccs/meminfo for reading and
-	 * close when loading policy has finished.
-	 */
-	else if (head->read == ccs_read_memory_counter)
-		profile_loaded = true;
 	/* Release memory used for policy I/O. */
 	ccs_free(head->read_buf);
 	head->read_buf = NULL;
