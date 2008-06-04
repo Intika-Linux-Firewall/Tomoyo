@@ -7,9 +7,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  include/linux/list.h     |   78 +
- security/tomoyo/common.c | 2129 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  318 +++++++
- 3 files changed, 2525 insertions(+)
+ security/tomoyo/common.c | 2141 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |  318 ++++++
+ 3 files changed, 2537 insertions(+)
 
 --- vfs.orig/include/linux/list.h
 +++ vfs/include/linux/list.h
@@ -98,7 +98,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #endif
 --- /dev/null
 +++ vfs/security/tomoyo/common.c
-@@ -0,0 +1,2129 @@
+@@ -0,0 +1,2141 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -106,7 +106,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/05/07
++ * Version: 2.2.0-pre   2008/06/04
 + *
 + */
 +
@@ -1776,7 +1776,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	envp[2] = NULL;
 +	call_usermodehelper(argv[0], argv, envp, 1);
 +
-+	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/05/07\n");
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/06/04\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -1948,7 +1948,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		head->read = read_updates_counter;
 +		break;
 +	}
-+	if (head->read) {
++	if (!(file->f_mode & FMODE_READ)) {
++		/*
++		 * No need to allocate read_buf since it is not opened
++		 * for reading.
++		 */
++		head->read = NULL;
++	} else {
 +		if (!head->readbuf_size)
 +			head->readbuf_size = 4096 * 2;
 +		head->read_buf = tmy_alloc(head->readbuf_size);
@@ -1957,7 +1963,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			return -ENOMEM;
 +		}
 +	}
-+	if (head->write) {
++	if (!(file->f_mode & FMODE_WRITE)) {
++		/*
++		 * No need to allocate write_buf since it is not opened
++		 * for writing.
++		 */
++		head->write = NULL;
++	} else if (head->write) {
 +		head->writebuf_size = 4096 * 2;
 +		head->write_buf = tmy_alloc(head->writebuf_size);
 +		if (!head->write_buf) {

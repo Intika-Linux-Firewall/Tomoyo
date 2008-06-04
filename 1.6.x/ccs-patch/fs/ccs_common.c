@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1   2008/05/10
+ * Version: 1.6.1   2008/06/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -2349,10 +2349,10 @@ void ccs_load_policy(const char *filename)
 		}
 	}
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.1   2008/05/10\n");
+	printk(KERN_INFO "SAKURA: 1.6.1   2008/06/04\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.1   2008/05/10\n");
+	printk(KERN_INFO "TOMOYO: 1.6.1   2008/06/04\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2796,12 +2796,19 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->read = read_updates_counter;
 		break;
 	}
-	/*
-	 * Don't allocate buffer for reading if the file is one of
-	 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
-	 */
-	if (type != CCS_GRANTLOG && type != CCS_REJECTLOG
-	    && type != CCS_QUERY) {
+	if (!(file->f_mode & FMODE_READ)) {
+		/*
+		 * No need to allocate read_buf since it is not opened
+		 * for reading.
+		 */
+		head->read = NULL;
+		head->poll = NULL;
+	} else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG
+		   && type != CCS_QUERY) {
+		/*
+		 * Don't allocate buffer for reading if the file is one of
+		 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
+		 */
 		if (!head->readbuf_size)
 			head->readbuf_size = 4096 * 2;
 		head->read_buf = ccs_alloc(head->readbuf_size);
@@ -2810,7 +2817,13 @@ int ccs_open_control(const u8 type, struct file *file)
 			return -ENOMEM;
 		}
 	}
-	if (head->write) {
+	if (!(file->f_mode & FMODE_WRITE)) {
+		/*
+		 * No need to allocate write_buf since it is not opened
+		 * for writing.
+		 */
+		head->write = NULL;
+	} else if (head->write) {
 		head->writebuf_size = 4096 * 2;
 		head->write_buf = ccs_alloc(head->writebuf_size);
 		if (!head->write_buf) {
@@ -2832,7 +2845,7 @@ int ccs_open_control(const u8 type, struct file *file)
 	 * The monitor count is used by ccs_check_supervisor() to see if
 	 * there is some process monitoring /proc/ccs/query.
 	 */
-	else if (head->write == write_answer)
+	else if (head->write == write_answer || head->read == read_query)
 		atomic_inc(&queryd_watcher);
 	return 0;
 }
@@ -2962,18 +2975,18 @@ int ccs_close_control(struct file *file)
 	/*
 	 * If the file is /proc/ccs/query , decrement the monitor count.
 	 */
-	if (head->write == write_answer)
+	if (head->write == write_answer || head->read == read_query)
 		atomic_dec(&queryd_watcher);
 	/*
 	 * If the file is /proc/ccs/meminfo , regard policy loading by
 	 * the policy loader executed from ccs_load_policy() has finished.
 	 * This hack is needed because 2.4 kernel's call_usermodehelper()
-	 * returns before the executed program terminates in some situations.
+	 * can't wait for termination of the executed program.
 	 * Thus, I'm using the close() request of /proc/ccs/meminfo as
 	 * the trigger rather than complicating the code to wait for
 	 * termination of the policy loader.
-	 * So, the policy loader must open and close /proc/ccs/meminfo
-	 * when loading policy has finished.
+	 * So, the policy loader must open /proc/ccs/meminfo for reading and
+	 * close when loading policy has finished.
 	 */
 	else if (head->read == ccs_read_memory_counter)
 		profile_loaded = true;
