@@ -13,13 +13,13 @@ curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x8BF9EFE6 ' | gpg --import 
 curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x76682A37 ' | gpg --import || die "Can't import PGP key."
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-2.6.24-17-generic || die "Can't install packages."
-apt-get source linux-image-2.6.24-17-generic || die "Can't install kernel source."
-apt-get install linux-headers-2.6.24-17 || die "Can't install packages."
-apt-get build-dep linux-ubuntu-modules-2.6.24-17-generic || die "Can't install packages."
-apt-get source linux-ubuntu-modules-2.6.24-17-generic || die "Can't install kernel source."
-apt-get build-dep linux-restricted-modules-2.6.24-17-generic || die "Can't install packages."
-apt-get source linux-restricted-modules-2.6.24-17-generic || die "Can't install kernel source."
+apt-get build-dep linux-image-2.6.24-18-generic || die "Can't install packages."
+apt-get source linux-image-2.6.24-18-generic || die "Can't install kernel source."
+apt-get install linux-headers-2.6.24-18 || die "Can't install packages."
+apt-get build-dep linux-ubuntu-modules-2.6.24-18-generic || die "Can't install packages."
+apt-get source linux-ubuntu-modules-2.6.24-18-generic || die "Can't install kernel source."
+apt-get build-dep linux-restricted-modules-2.6.24-18-generic || die "Can't install packages."
+apt-get source linux-restricted-modules-2.6.24-18-generic || die "Can't install kernel source."
 
 # Download TOMOYO Linux patches.
 cd linux-2.6.24/ || die "Can't chdir to linux-2.6.24/ ."
@@ -44,7 +44,7 @@ debian/rules custom-binary-ccs || die "Failed to build kernel package."
 cd .. || die "Can't chdir to ../ ."
 
 # Install header package for compiling additional modules.
-dpkg -i linux-headers-2.6.24-17-ccs_2.6.24-17.*_i386.deb || die "Can't install packages."
+dpkg -i linux-headers-2.6.24-18-ccs_2.6.24-18.*_i386.deb || die "Can't install packages."
 cd linux-ubuntu-modules-2.6.24-2.6.24 || die "Can't chdir to linux-ubuntu-modules-2.6.24-2.6.24 ."
 awk ' BEGIN { flag = 0; print ""; } { if ($1 == "Package:" ) { if (index($0, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub | sed -e 's:-generic:-ccs:' > debian/control.stub.ccs || die "Can't create file."
 cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."
@@ -53,7 +53,7 @@ sed -i -e 's:virtual:virtual ccs:' debian/rules.d/i386.mk || die "Can't edit fil
 debian/rules binary-indep binary-arch || die "Failed to build kernel package."
 cd .. || die "Can't chdir to ../ ."
 
-cd linux-restricted-modules-2.6.24-2.6.24.12/ || die "Can't chdir to linux-restricted-modules-2.6.24-2.6.24.12/ ."
+cd linux-restricted-modules-2.6.24-2.6.24.13/ || die "Can't chdir to linux-restricted-modules-2.6.24-2.6.24.13/ ."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
 cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."
 sed -i -e 's/,generic/,ccs generic/' debian/rules || die "Can't edit file."
