@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1   2008/05/10
+ * Version: 1.6.1   2008/06/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -139,7 +139,8 @@ int ccs_check_pivot_root_permission(struct nameidata *old_nd,
 		       ccs_get_msg(is_enforce), new_root, old_root,
 		       current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor("# %s is requesting\n"
+			error = ccs_check_supervisor(NULL,
+						     "# %s is requesting\n"
 						     "pivot_root %s %s\n",
 						     exename, new_root,
 						     old_root);

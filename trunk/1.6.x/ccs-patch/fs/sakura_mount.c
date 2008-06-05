@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1   2008/05/10
+ * Version: 1.6.1   2008/06/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -254,7 +254,8 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor("# %s is requesting\n"
+			error = ccs_check_supervisor(NULL,
+						     "# %s is requesting\n"
 						     "mount -o remount %s "
 						     "0x%lX\n", exename,
 						     realname2 ? realname2
@@ -268,7 +269,8 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor("# %s is requesting\n"
+			error = ccs_check_supervisor(NULL,
+						     "# %s is requesting\n"
 						     "mount %s %s %s 0x%lX\n",
 						     exename, type,
 						     realname1 ? realname1 :
@@ -285,7 +287,8 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor("# %s is requesting\n"
+			error = ccs_check_supervisor(NULL,
+						     "# %s is requesting\n"
 						     "mount %s %s 0x%lX",
 						     exename, type,
 						     realname2 ? realname2 :
@@ -298,7 +301,8 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor("# %s is requesting\n"
+			error = ccs_check_supervisor(NULL,
+						     "# %s is requesting\n"
 						     "mount -t %s %s %s "
 						     "0x%lX\n", exename, type,
 						     realname1 ? realname1 :

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1   2008/05/10
+ * Version: 1.6.1   2008/06/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1144,7 +1144,8 @@ static int find_next_domain(struct linux_binprm *bprm,
 	domain = ccs_find_domain(new_domain_name);
 	if (domain)
 		goto done;
-	if (is_enforce && ccs_check_supervisor("#Need to create domain\n%s\n",
+	if (is_enforce && ccs_check_supervisor(NULL,
+					       "# wants to create domain\n%s\n",
 					       new_domain_name))
 			goto done;
 	domain = ccs_find_or_assign_new_domain(new_domain_name,

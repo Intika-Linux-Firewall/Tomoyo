@@ -1454,3 +1454,10 @@ Fix 2008/06/05
       Since fs/realpath.c didn't notice the change, the realpath of pipes
       appeared as "pipe:" rather than "pipe:[\$]" when they are opened via
       /proc/PID/fd/ directory.
+
+    @ Add process's information into /proc/ccs/query .
+
+      While /proc/ccs/grant_log and /proc/ccs/reject_log contain process's
+      information, /proc/ccs/query doesn't contain it.
+      To be able to utilize ccs-queryd and ccs-notifyd more, I added it into
+      /proc/ccs/query .
