@@ -1445,3 +1445,12 @@ Fix 2008/06/04
       by /etc/ccs/ccs-post-init , I stopped using the close() request.
       The policy loader no longer need to access /proc/ccs/meminfo to notify
       the kernel that loading policy has finished.
+
+Fix 2008/06/05
+
+    @ Fix realpath for pipes and sockets.
+
+      Kernel 2.6.22 and later use different method for calculating d_path().
+      Since fs/realpath.c didn't notice the change, the realpath of pipes
+      appeared as "pipe:" rather than "pipe:[\$]" when they are opened via
+      /proc/PID/fd/ directory.
