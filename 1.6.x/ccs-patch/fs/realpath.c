@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1   2008/05/10
+ * Version: 1.6.1   2008/06/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -194,8 +194,47 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 	int error;
 	struct dentry *d_dentry;
 	struct vfsmount *d_mnt;
-	if (!dentry || !mnt || !newname || newname_len <= 0)
+	if (!dentry || !mnt || !newname || newname_len <= 2048)
 		return -EINVAL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
+	if (dentry->d_op && dentry->d_op->d_dname) {
+		/* For "socket:[\$]" and "pipe:[\$]". */
+		static const int offset = 1536;
+		char *dp = newname;
+		char *sp = dentry->d_op->d_dname(dentry, newname + offset,
+						 newname_len - offset);
+		if (IS_ERR(sp)) {
+			error = PTR_ERR(sp);
+			goto out;
+		}
+		error = -ENOMEM;
+		newname += offset;
+		while (1) {
+			const unsigned char c = *(unsigned char *) sp++;
+			if (c == '\\') {
+				if (dp + 2 >= newname)
+					break;
+				*dp++ = '\\';
+				*dp++ = '\\';
+			} else if (c > ' ' && c < 127) {
+				if (dp + 1 >= newname)
+					break;
+				*dp++ = (char) c;
+			} else if (c) {
+				if (dp + 4 >= newname)
+					break;
+				*dp++ = '\\';
+				*dp++ = (c >> 6) + '0';
+				*dp++ = ((c >> 3) & 7) + '0';
+				*dp++ = (c & 7) + '0';
+			} else {
+				*dp = '\0';
+				return 0;
+			}
+		}
+		goto out;
+	}
+#endif
 	d_dentry = dget(dentry);
 	d_mnt = mntget(mnt);
 	/***** CRITICAL SECTION START *****/
@@ -211,6 +250,7 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 	/***** CRITICAL SECTION END *****/
 	dput(d_dentry);
 	mntput(d_mnt);
+ out:
 	if (error)
 		printk(KERN_WARNING "ccs_realpath: Pathname too long.\n");
 	return error;

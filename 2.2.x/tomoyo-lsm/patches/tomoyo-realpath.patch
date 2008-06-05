@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  686 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.c |  724 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.h |   60 +++
- 2 files changed, 746 insertions(+)
+ 2 files changed, 784 insertions(+)
 
 --- /dev/null
 +++ vfs/security/tomoyo/realpath.c
-@@ -0,0 +1,686 @@
+@@ -0,0 +1,724 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -29,7 +29,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/05/07
++ * Version: 2.2.0-pre   2008/06/05
 + *
 + */
 +
@@ -195,8 +195,45 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int error;
 +	struct dentry *d_dentry;
 +	struct vfsmount *d_mnt;
-+	if (!dentry || !mnt || !newname || newname_len <= 0)
++	if (!dentry || !mnt || !newname || newname_len <= 2048)
 +		return -EINVAL;
++	if (dentry->d_op && dentry->d_op->d_dname) {
++		/* For "socket:[\$]" and "pipe:[\$]". */
++		static const int offset = 1536;
++		char *dp = newname;
++		char *sp = dentry->d_op->d_dname(dentry, newname + offset,
++						 newname_len - offset);
++		if (IS_ERR(sp)) {
++			error = PTR_ERR(sp);
++			goto out;
++		}
++		error = -ENOMEM;
++		newname += offset;
++		while (1) {
++			const unsigned char c = *(unsigned char *) sp++;
++			if (c == '\\') {
++				if (dp + 2 >= newname)
++					break;
++				*dp++ = '\\';
++				*dp++ = '\\';
++			} else if (c > ' ' && c < 127) {
++				if (dp + 1 >= newname)
++					break;
++				*dp++ = (char) c;
++			} else if (c) {
++				if (dp + 4 >= newname)
++					break;
++				*dp++ = '\\';
++				*dp++ = (c >> 6) + '0';
++				*dp++ = ((c >> 3) & 7) + '0';
++				*dp++ = (c & 7) + '0';
++			} else {
++				*dp = '\0';
++				return 0;
++			}
++		}
++		goto out;
++	}
 +	d_dentry = dget(dentry);
 +	d_mnt = mntget(mnt);
 +	/***** CRITICAL SECTION START *****/
@@ -208,6 +245,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/***** CRITICAL SECTION END *****/
 +	dput(d_dentry);
 +	mntput(d_mnt);
++ out:
 +	if (error)
 +		printk(KERN_WARNING "tmy_realpath: Pathname too long.\n");
 +	return error;
