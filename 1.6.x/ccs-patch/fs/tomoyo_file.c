@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.1   2008/05/10
+ * Version: 1.6.1   2008/06/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -836,8 +836,8 @@ static int check_file_perm2(const struct path_info *filename, const u8 perm,
 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
 		       filename->name, ccs_get_last_name(domain));
 	if (is_enforce)
-		return ccs_check_supervisor("%s\nallow_%s %s\n",
-					    domain->domainname->name,
+		return ccs_check_supervisor(obj ? obj->bprm : NULL,
+					    "allow_%s %s\n",
 					    msg, filename->name);
 	if (mode == 1 && ccs_check_domain_quota(domain)) {
 		/* Don't use patterns for execute permission. */
@@ -1278,8 +1278,7 @@ static int check_single_path_permission2(u8 operation,
 		       ccs_get_msg(is_enforce), msg, filename->name,
 		       ccs_get_last_name(domain));
 	if (is_enforce)
-		error = ccs_check_supervisor("%s\nallow_%s %s\n",
-					     domain->domainname->name,
+		error = ccs_check_supervisor(NULL, "allow_%s %s\n",
 					     msg, filename->name);
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_single_path_acl(operation,
@@ -1547,8 +1546,7 @@ int ccs_check_2path_perm(const u8 operation,
 		       "denied for %s\n", ccs_get_msg(is_enforce),
 		       msg, buf1->name, buf2->name, ccs_get_last_name(domain));
 	if (is_enforce)
-		error = ccs_check_supervisor("%s\nallow_%s %s %s\n",
-					     domain->domainname->name,
+		error = ccs_check_supervisor(NULL, "allow_%s %s %s\n",
 					     msg, buf1->name, buf2->name);
 	else if (mode == 1 && ccs_check_domain_quota(domain))
 		update_double_path_acl(operation,

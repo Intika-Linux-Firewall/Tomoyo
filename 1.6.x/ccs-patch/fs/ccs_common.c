@@ -45,9 +45,15 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
 
 /* Set default specified by the kernel config. */
+#ifdef CONFIG_TOMOYO
 #define MAX_ACCEPT_ENTRY (CONFIG_TOMOYO_MAX_ACCEPT_ENTRY)
 #define MAX_GRANT_LOG    (CONFIG_TOMOYO_MAX_GRANT_LOG)
 #define MAX_REJECT_LOG   (CONFIG_TOMOYO_MAX_REJECT_LOG)
+#else
+#define MAX_ACCEPT_ENTRY 0
+#define MAX_GRANT_LOG    0
+#define MAX_REJECT_LOG   0
+#endif
 
 /* Has /sbin/init started? */
 bool sbin_init_started = false;
@@ -2433,19 +2439,21 @@ static atomic_t queryd_watcher = ATOMIC_INIT(0);
 /**
  * ccs_check_supervisor - Ask for the supervisor's decision.
  *
- * @fmt: The printf()'s format string, followed by parameters.
+ * @bprm: Pointer to "struct linux_binprm". May be NULL.
+ * @fmt:  The printf()'s format string, followed by parameters.
  *
  * Returns 0 if the supervisor decided to permit the access request which
  * violated the policy in enforcing mode, -EPERM otherwise.
  */
-int ccs_check_supervisor(const char *fmt, ...)
+int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
 {
 	va_list args;
 	int error = -EPERM;
 	int pos;
 	int len;
 	static unsigned int serial;
-	struct query_entry *query_entry;
+	struct query_entry *query_entry = NULL;
+	char *header;
 	if (!ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE)
 	    || !atomic_read(&queryd_watcher)) {
 		int i;
@@ -2460,6 +2468,14 @@ int ccs_check_supervisor(const char *fmt, ...)
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);
+#ifdef CONFIG_TOMOYO
+	header = ccs_init_audit_log(&len, current->domain_info->profile,
+				    3, bprm);
+#else
+	header = ccs_alloc(1);
+#endif
+	if (!header)
+		goto out;
 	query_entry = ccs_alloc(sizeof(*query_entry));
 	if (!query_entry)
 		goto out;
@@ -2472,8 +2488,10 @@ int ccs_check_supervisor(const char *fmt, ...)
 	query_entry->serial = serial++;
 	spin_unlock(&query_lock);
 	/***** CRITICAL SECTION END *****/
-	pos = snprintf(query_entry->query, len - 1, "Q%u\n",
-		       query_entry->serial);
+	pos = snprintf(query_entry->query, len - 1, "Q%u\n%s",
+		       query_entry->serial, header);
+	ccs_free(header);
+	header = NULL;
 	va_start(args, fmt);
 	vsnprintf(query_entry->query + pos, len - 1 - pos, fmt, args);
 	query_entry->query_len = strlen(query_entry->query) + 1;
@@ -2516,6 +2534,7 @@ int ccs_check_supervisor(const char *fmt, ...)
 	if (query_entry)
 		ccs_free(query_entry->query);
 	ccs_free(query_entry);
+	ccs_free(header);
 	return error;
 }
 
