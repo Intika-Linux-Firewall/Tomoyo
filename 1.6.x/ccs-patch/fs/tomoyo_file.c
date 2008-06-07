@@ -314,6 +314,10 @@ static int update_path_group_entry(const char *group_name,
 	    !member_name[0])
 		return -EINVAL;
 	saved_group_name = ccs_save_name(group_name);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
+	if (!strcmp(member_name, "pipe:"))
+		member_name = "pipe:[\\$]";
+#endif
 	saved_member_name = ccs_save_name(member_name);
 	if (!saved_group_name || !saved_member_name)
 		return -ENOMEM;
@@ -1013,6 +1017,10 @@ static int update_single_path_acl(const u8 type, const char *filename,
 			find_or_assign_new_path_group(filename + 1);
 		is_group = true;
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
+		if (!strcmp(filename, "pipe:"))
+			filename = "pipe:[\\$]";
+#endif
 		saved_filename = ccs_save_name(filename);
 	}
 	if (!saved_filename)
