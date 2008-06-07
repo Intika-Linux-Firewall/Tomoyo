@@ -77,7 +77,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .7-92.fc8:' -- Makefile
++sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .4-10.fc8:' -- Makefile
 +patch -sp1 < %_sourcedir/ccs-patch-2.6.25.4-10.fc8.diff
 +
  %endif
