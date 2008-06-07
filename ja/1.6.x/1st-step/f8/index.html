@@ -63,22 +63,22 @@ Disabled
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.24.7-92_tomoyo_1.6.1.fc8.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.25.4-10_tomoyo_1.6.1.fc8.i586.rpm</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.24.7-92_tomoyo_1.6.1.fc8.i586.rpm</span>
+# <span class="user">rpm --install kernel-2.6.25.4-10_tomoyo_1.6.1.fc8.i586.rpm</span>
 </pre>
 
 <p>この際特にメッセージは表示されませんが、インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
-title Fedora (2.6.24.7-92_tomoyo_1.6.1.fc8)
+title Fedora (2.6.25.4-10_tomoyo_1.6.1.fc8)
         root (hd0,0)
-        kernel /boot/vmlinuz-2.6.24.7-92_tomoyo_1.6.1.fc8 ro root=LABEL=/
-        initrd /boot/initrd-2.6.24.7-92_tomoyo_1.6.1.fc8.img
+        kernel /boot/vmlinuz-2.6.25.4-10_tomoyo_1.6.1.fc8 ro root=LABEL=/
+        initrd /boot/initrd-2.6.25.4-10_tomoyo_1.6.1.fc8.img
 </pre>
 
 <p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
