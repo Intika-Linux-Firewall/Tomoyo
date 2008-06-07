@@ -31,21 +31,21 @@
 
 <p>ƒEƒBƒ“ƒhƒE‚ð‚R‚ÂŠJ‚«‚Ü‚·BˆÈŒãA‚±‚ê‚ç‚ÌƒEƒBƒ“ƒhƒE‚ð‚»‚ê‚¼‚ê Window-1 Window-2 Window-3 ‚Æ•\‹L‚µ‚Ü‚·B</p>
 
-<p>‚Ü‚¸A Window-1 ‚ÉØ‚è‘Ö‚¦‚Ü‚·B‚»‚µ‚ÄA‘Î˜b“I‚É‹–‰Â‚µ‚½‚¢ƒvƒƒtƒ@ƒCƒ‹‚Ì ALLOW_ENFORCE_GRACE ‚ð 1 ‚É•ÏX‚µ‚Ü‚·B—á‚¦‚ÎAƒvƒƒtƒ@ƒCƒ‹”Ô† 3 ‚É‚Â‚¢‚ÄÝ’è‚µ‚½‚¢ê‡‚ÍˆÈ‰º‚Ì‚æ‚¤‚É‚È‚è‚Ü‚·B</p>
+<p>‚Ü‚¸A Window-1 ‚ÉØ‚è‘Ö‚¦‚Ü‚·B‚»‚µ‚ÄA‘Î˜b“I‚É‹–‰Â‚µ‚½‚¢ƒvƒƒtƒ@ƒCƒ‹‚Ì ALLOW_ENFORCE_GRACE ‚ð enabled ‚É•ÏX‚µ‚Ü‚·B—á‚¦‚ÎAƒvƒƒtƒ@ƒCƒ‹”Ô† 3 ‚É‚Â‚¢‚ÄÝ’è‚µ‚½‚¢ê‡‚ÍˆÈ‰º‚Ì‚æ‚¤‚É‚È‚è‚Ü‚·B</p>
 
 <table border="1">
 <tr><td>
-setlevel 3-ALLOW_ENFORCE_GRACE=1
+/usr/sbin/ccs-setlevel 3-ALLOW_ENFORCE_GRACE=enabled
 </td></tr>
 </table>
 
-<p>ƒvƒƒtƒ@ƒCƒ‹‚Ì“à—e‚ð setlevel ƒRƒ}ƒ“ƒh‚Å•ÏX‚·‚é‚Ì‚Å‚Í‚È‚­A ALLOW_ENFORCE_GRACE ‚ÌÝ’è‚¾‚¯‚ªˆÙ‚È‚é‹­§ƒ‚[ƒh—p‚Ìƒvƒƒtƒ@ƒCƒ‹‚ð setprofile ƒRƒ}ƒ“ƒh‚ÅƒhƒƒCƒ“‚ÉŠ„‚è“–‚Ä‚Ä‚à\‚¢‚Ü‚¹‚ñB</p>
+<p>ƒvƒƒtƒ@ƒCƒ‹‚Ì“à—e‚ð /usr/sbin/ccs-setlevel ƒRƒ}ƒ“ƒh‚Å•ÏX‚·‚é‚Ì‚Å‚Í‚È‚­A ALLOW_ENFORCE_GRACE ‚ÌÝ’è‚¾‚¯‚ªˆÙ‚È‚é‹­§ƒ‚[ƒh—p‚Ìƒvƒƒtƒ@ƒCƒ‹‚ð /usr/sbin/ccs-setprofile ƒRƒ}ƒ“ƒh‚ÅƒhƒƒCƒ“‚ÉŠ„‚è“–‚Ä‚Ä‚à\‚¢‚Ü‚¹‚ñB</p>
 
 <p>ŽŸ‚ÉAˆÈ‰º‚ÌƒRƒ}ƒ“ƒh‚ð‹N“®‚µ‚Ä‚­‚¾‚³‚¢B</p>
 
 <table border="1">
 <tr><td>
-ccs-queryd
+/usr/sbin/ccs-queryd
 </td></tr>
 </table>
 
@@ -53,17 +53,17 @@ ccs-queryd
 
 <p>–³ðŒ‚ÉƒAƒNƒZƒX—v‹‚ð‹–‰Â‚µ‚È‚¢‚æ‚¤‚É‚µ‚Ä‚­‚¾‚³‚¢Bƒ|ƒŠƒV[ˆá”½‚ÌŒ´ˆö‚ªƒpƒbƒP[ƒW‚ÌƒAƒbƒvƒf[ƒg‚É‚æ‚é‚à‚Ì‚Æ‚ÍŒÀ‚ç‚¸AN“üŽÒ‚ÌUŒ‚‚É‚æ‚é‚à‚Ì‚Å‚ ‚é‰Â”\«‚ª‚ ‚é‚©‚ç‚Å‚·B‚à‚µAN“üŽÒ‚ÌUŒ‚‚É‚æ‚Á‚Ä”­¶‚µ‚½ƒAƒNƒZƒX—v‹‚É‘Î‚µ‚ÄƒAƒNƒZƒX‚ð‹–‰Â‚µ‚Ä‚µ‚Ü‚Á‚½ê‡AN“ü‚³‚ê‚Ä‚µ‚Ü‚¢‚Ü‚·B</p>
 
-<p>ALLOW_ENFORCE_GRACE ‚ª 0 ‚ÉÝ’è‚³‚ê‚Ä‚¢‚é‚Ü‚½‚Í ccs-queryd ‚ª“®ì‚µ‚Ä‚¢‚È‚¢ê‡Aƒ|ƒŠƒV[ˆá”½‚ª”­¶‚·‚é‚Æ‚»‚ÌƒAƒNƒZƒX—v‹‚Í’¼‚¿‚É‹‘”Û‚³‚ê‚Ü‚·B ALLOW_ENFORCE_GRACE ‚ª 1 ‚ÉÝ’è‚³‚ê‚Ä‚¢‚Ä‚³‚ç‚É ccs-queryd ‚ª“®ì‚µ‚Ä‚¢‚éê‡Aƒ|ƒŠƒV[ˆá”½‚ª”­¶‚µ‚Ä‚àŠÇ—ŽÒ‚ª‰ž“š‚·‚é‚Ü‚Å‚»‚ÌƒAƒNƒZƒX—v‹‚Í•Û—¯ó‘Ô‚Æ‚È‚è‚Ü‚·B‚»‚Ì‚½‚ßA ccs-queryd ‚ð“®ì‚³‚¹‚½‚Ü‚ÜƒƒOƒAƒEƒg‚µ‚È‚¢‚Å‚­‚¾‚³‚¢B</p>
+<p>ALLOW_ENFORCE_GRACE ‚ª disabled ‚ÉÝ’è‚³‚ê‚Ä‚¢‚é‚Ü‚½‚Í ccs-queryd ‚ª“®ì‚µ‚Ä‚¢‚È‚¢ê‡Aƒ|ƒŠƒV[ˆá”½‚ª”­¶‚·‚é‚Æ‚»‚ÌƒAƒNƒZƒX—v‹‚Í’¼‚¿‚É‹‘”Û‚³‚ê‚Ü‚·B ALLOW_ENFORCE_GRACE ‚ª enabled ‚ÉÝ’è‚³‚ê‚Ä‚¢‚Ä‚³‚ç‚É ccs-queryd ‚ª“®ì‚µ‚Ä‚¢‚éê‡Aƒ|ƒŠƒV[ˆá”½‚ª”­¶‚µ‚Ä‚àŠÇ—ŽÒ‚ª‰ž“š‚·‚é‚Ü‚Å‚»‚ÌƒAƒNƒZƒX—v‹‚Í•Û—¯ó‘Ô‚Æ‚È‚è‚Ü‚·B‚»‚Ì‚½‚ßA ccs-queryd ‚ð“®ì‚³‚¹‚½‚Ü‚ÜƒƒOƒAƒEƒg‚µ‚È‚¢‚Å‚­‚¾‚³‚¢B</p>
 
 <p>ŽŸ‚ÉA Window-2 ‚ÅˆÈ‰º‚ÌƒRƒ}ƒ“ƒh‚ð‹N“®‚µ‚Ä‚­‚¾‚³‚¢B</p>
 
 <table border="1">
 <tr><td>
-ld-watch
+/usr/sbin/ccs-ld-watch
 </td></tr>
 </table>
 
-<p>ld-watch ‚ÍA /etc/ld.so.cache ‚É“o˜^‚³‚ê‚Ä‚¢‚é‹¤—Lƒ‰ƒCƒuƒ‰ƒŠƒtƒ@ƒCƒ‹‚Ìî•ñ‚ª•ÏX‚³‚ê‚½ê‡‚ÉA‹¤—Lƒ‰ƒCƒuƒ‰ƒŠ‚ðŽ©“®“I‚É allow_read ƒfƒBƒŒƒNƒeƒBƒu‚ðŽg—p‚µ‚Ä—áŠOƒ|ƒŠƒV[‚É’Ç‰Á‚µ‚Ü‚·B‚±‚ê‚É‚æ‚èA•s“Á’è‘½”‚ÌƒvƒƒOƒ‰ƒ€‚©‚çƒAƒNƒZƒX‚³‚ê‚éƒ‰ƒCƒuƒ‰ƒŠƒtƒ@ƒCƒ‹‚ÌƒpƒX–¼‚ª•Ï‰»‚µ‚½ê‡‚ÉAƒ‰ƒCƒuƒ‰ƒŠƒtƒ@ƒCƒ‹‚ð“Ç‚Ýž‚ß‚È‚¢‚±‚Æ‚ªŒ´ˆö‚ÅƒvƒƒOƒ‰ƒ€‚ª“®ì‚µ‚È‚­‚È‚éó‹µ‚ð‰ñ”ð‚·‚é‚±‚Æ‚ª‚Å‚«‚Ü‚·B</p>
+<p>ccs-ld-watch ‚ÍA /etc/ld.so.cache ‚É“o˜^‚³‚ê‚Ä‚¢‚é‹¤—Lƒ‰ƒCƒuƒ‰ƒŠƒtƒ@ƒCƒ‹‚Ìî•ñ‚ª•ÏX‚³‚ê‚½ê‡‚ÉA‹¤—Lƒ‰ƒCƒuƒ‰ƒŠ‚ðŽ©“®“I‚É allow_read ƒfƒBƒŒƒNƒeƒBƒu‚ðŽg—p‚µ‚Ä—áŠOƒ|ƒŠƒV[‚É’Ç‰Á‚µ‚Ü‚·B‚±‚ê‚É‚æ‚èA•s“Á’è‘½”‚ÌƒvƒƒOƒ‰ƒ€‚©‚çƒAƒNƒZƒX‚³‚ê‚éƒ‰ƒCƒuƒ‰ƒŠƒtƒ@ƒCƒ‹‚ÌƒpƒX–¼‚ª•Ï‰»‚µ‚½ê‡‚ÉAƒ‰ƒCƒuƒ‰ƒŠƒtƒ@ƒCƒ‹‚ð“Ç‚Ýž‚ß‚È‚¢‚±‚Æ‚ªŒ´ˆö‚ÅƒvƒƒOƒ‰ƒ€‚ª“®ì‚µ‚È‚­‚È‚éó‹µ‚ð‰ñ”ð‚·‚é‚±‚Æ‚ª‚Å‚«‚Ü‚·B</p>
 
 <p>ŽŸ‚ÉA Window-3 ‚ÉØ‚è‘Ö‚¦‚ÄAƒpƒbƒP[ƒW‚ÌƒAƒbƒvƒf[ƒg‚ðs‚¤‚½‚ß‚ÌƒRƒ}ƒ“ƒh‚ðŽÀs‚µ‚Ü‚·B</p>
 
@@ -77,7 +77,7 @@ ld-watch
 
 <table border="1">
 <tr><td>
-savepolicy
+/usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
 
@@ -85,7 +85,7 @@ savepolicy
 
 <table border="1">
 <tr><td>
-findtemp &lt; /etc/ccs/exception_policy.conf
+/usr/sbin/ccs-findtemp &lt; /etc/ccs/exception_policy.conf
 </td></tr>
 </table>
 
@@ -93,7 +93,7 @@ findtemp &lt; /etc/ccs/exception_policy.conf
 
 <table border="1">
 <tr><td>
-loadpolicy ef
+/usr/sbin/ccs-loadpolicy ef
 </td></tr>
 </table>
 
@@ -101,7 +101,7 @@ loadpolicy ef
 
 <table border="1">
 <tr><td>
-findtemp &lt; /etc/ccs/domain_policy.conf
+/usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.conf
 </td></tr>
 </table>
 
@@ -114,7 +114,7 @@ Fedora Core 4 ‚ðƒCƒ“ƒXƒg[ƒ‹‚µ‚½’¼Œã‚Ì logwatch ‚Í /etc/log.d/ ƒfƒBƒŒƒNƒgƒŠ‚ÉÝ’
 
 <table border="1">
 <tr><td>
-loadpolicy df
+/usr/sbin/ccs-loadpolicy df
 </td></tr>
 </table>
 
@@ -124,17 +124,17 @@ loadpolicy df
 
 <table border="1">
 <tr><td>
-savepolicy
+/usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
 
 <p>‚»‚µ‚ÄA Window-1 ‚Å“®ì’†‚Ì ccs-queryd ‚ð Ctrl-C ‚ÅI—¹‚³‚¹‚Ä‚­‚¾‚³‚¢B</p>
 
-<p>ÅŒã‚ÉAƒvƒƒtƒ@ƒCƒ‹‚Ì ALLOW_ENFORCE_GRACE ‚ð 0 ‚É–ß‚µ‚Ü‚·B—á‚¦‚ÎAƒvƒƒtƒ@ƒCƒ‹”Ô† 3 ‚É‚Â‚¢‚ÄÝ’è‚µ‚½ê‡‚ÍˆÈ‰º‚Ì‚æ‚¤‚É‚È‚è‚Ü‚·B</p>
+<p>ÅŒã‚ÉAƒvƒƒtƒ@ƒCƒ‹‚Ì ALLOW_ENFORCE_GRACE ‚ð disabled ‚É–ß‚µ‚Ü‚·B—á‚¦‚ÎAƒvƒƒtƒ@ƒCƒ‹”Ô† 3 ‚É‚Â‚¢‚ÄÝ’è‚µ‚½ê‡‚ÍˆÈ‰º‚Ì‚æ‚¤‚É‚È‚è‚Ü‚·B</p>
 
 <table border="1">
 <tr><td>
-setlevel 3-ALLOW_ENFORCE_GRACE=0
+/usr/sbin/ccs-setlevel 3-ALLOW_ENFORCE_GRACE=disabled
 </td></tr>
 </table>
 
