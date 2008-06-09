@@ -8,6 +8,14 @@ die () {
     exit 1
 }
 
+# Download TOMOYO Linux patches.
+mkdir -p /usr/src/rpm/SOURCES/
+cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
+then
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
+fi
+
 # Install kernel source packages.
 curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x17063E6D ' | gpg --import || die "Can't import PGP key."
 curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x63549F8E ' | gpg --import || die "Can't import PGP key."
@@ -18,12 +26,9 @@ apt-get source linux-image-2.6.20-16-generic || die "Can't install packages."
 apt-get build-dep linux-restricted-modules-2.6.20-16-generic || die "Can't install packages."
 apt-get source linux-restricted-modules-2.6.20-16-generic || die "Can't install packages."
 
-# Download TOMOYO Linux patches.
-cd linux-source-2.6.20-2.6.20/ || die "Can't chdir to linux-2.6.20-2.6.20/ ."
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
-
 # Apply patches and create kernel config.
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz || die "Can't extract patch."
+cd linux-source-2.6.20-2.6.20/ || die "Can't chdir to linux-2.6.20-2.6.20/ ."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.5.4-20080510.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.20.3-ubuntu1.diff || die "Can't apply patch."
 cat debian/config/i386/config.generic config.ccs > debian/config/i386/config.generic-ccs || die "Can't create config."
 cat debian/config/vars.generic > debian/config/i386/vars.generic-ccs || die "Can't create file."

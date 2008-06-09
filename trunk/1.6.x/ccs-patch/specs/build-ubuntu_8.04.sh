@@ -8,25 +8,30 @@ die () {
     exit 1
 }
 
+# Download TOMOYO Linux patches.
+mkdir -p /usr/src/rpm/SOURCES/
+cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
+then
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
+fi
+
 # Install kernel source packages.
 curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x8BF9EFE6 ' | gpg --import || die "Can't import PGP key."
 curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x76682A37 ' | gpg --import || die "Can't import PGP key."
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-2.6.24-18-generic || die "Can't install packages."
-apt-get source linux-image-2.6.24-18-generic || die "Can't install kernel source."
-apt-get install linux-headers-2.6.24-18 || die "Can't install packages."
-apt-get build-dep linux-ubuntu-modules-2.6.24-18-generic || die "Can't install packages."
-apt-get source linux-ubuntu-modules-2.6.24-18-generic || die "Can't install kernel source."
-apt-get build-dep linux-restricted-modules-2.6.24-18-generic || die "Can't install packages."
-apt-get source linux-restricted-modules-2.6.24-18-generic || die "Can't install kernel source."
-
-# Download TOMOYO Linux patches.
-cd linux-2.6.24/ || die "Can't chdir to linux-2.6.24/ ."
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
-tar -zxf ccs-patch-1.6.1-20080510.tar.gz || die "Can't extract patch."
+apt-get build-dep linux-image-2.6.24-19-generic || die "Can't install packages."
+apt-get source linux-image-2.6.24-19-generic || die "Can't install kernel source."
+apt-get install linux-headers-2.6.24-19 || die "Can't install packages."
+apt-get build-dep linux-ubuntu-modules-2.6.24-19-generic || die "Can't install packages."
+apt-get source linux-ubuntu-modules-2.6.24-19-generic || die "Can't install kernel source."
+apt-get build-dep linux-restricted-modules-2.6.24-19-generic || die "Can't install packages."
+apt-get source linux-restricted-modules-2.6.24-19-generic || die "Can't install kernel source."
 
 # Copy patches and create kernel config.
+cd linux-2.6.24/ || die "Can't chdir to linux-2.6.24/ ."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.1-20080510.tar.gz || die "Can't extract patch."
 mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-custom.d/ccs/patchset ."
 cp -p patches/ccs-patch-2.6.24.3-ubuntu1.diff debian/binary-custom.d/ccs/patchset/ubuntu-8.04.patch || die "Can't copy patch."
 cd debian/binary-custom.d/ccs/ || die "Can't chdir to debian/binary-custom.d/ccs/ ."
@@ -44,7 +49,7 @@ debian/rules custom-binary-ccs || die "Failed to build kernel package."
 cd .. || die "Can't chdir to ../ ."
 
 # Install header package for compiling additional modules.
-dpkg -i linux-headers-2.6.24-18-ccs_2.6.24-18.*_i386.deb || die "Can't install packages."
+dpkg -i linux-headers-2.6.24-19-ccs_2.6.24-19.*_i386.deb || die "Can't install packages."
 cd linux-ubuntu-modules-2.6.24-2.6.24 || die "Can't chdir to linux-ubuntu-modules-2.6.24-2.6.24 ."
 awk ' BEGIN { flag = 0; print ""; } { if ($1 == "Package:" ) { if (index($0, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub | sed -e 's:-generic:-ccs:' > debian/control.stub.ccs || die "Can't create file."
 cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."
