@@ -2454,8 +2454,7 @@ int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
 	static unsigned int serial;
 	struct query_entry *query_entry = NULL;
 	char *header;
-	if (!ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE)
-	    || !atomic_read(&queryd_watcher)) {
+	if (!atomic_read(&queryd_watcher)) {
 		int i;
 		if (current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			return -EPERM;
@@ -2650,6 +2649,8 @@ static int write_answer(struct ccs_io_buffer *head)
 	struct list_head *tmp;
 	unsigned int serial;
 	unsigned int answer;
+	if (!ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE))
+		return -EPERM;
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&query_lock);
 	list_for_each(tmp, &query_list) {

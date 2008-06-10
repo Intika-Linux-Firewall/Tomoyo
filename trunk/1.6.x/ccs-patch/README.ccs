@@ -1468,3 +1468,8 @@ Fix 2008/06/10
 
       To allow users specify locale specific files to globally readable files,
       I relaxed checking in update_globally_readable_entry().
+
+    @ Move ALLOW_ENFORCE_GRACE=enabled checking to write_answer().
+
+      To allow users use ccs-notifyd without turning ALLOW_ENFORCE_GRACE on,
+      I moved it from ccs_check_supervisor() to write_answer().
