@@ -2503,7 +2503,6 @@ int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
 	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
 	/* Give 10 seconds for supervisor's opinion. */
 	for (query_entry->timer = 0; atomic_read(&queryd_watcher)
-		     && ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE)
 		     && query_entry->timer < 100; query_entry->timer++) {
 		wake_up(&query_wait);
 		set_current_state(TASK_INTERRUPTIBLE);
