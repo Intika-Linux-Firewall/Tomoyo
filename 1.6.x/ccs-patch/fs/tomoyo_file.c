@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.2-pre   2008/06/07
+ * Version: 1.6.2-pre   2008/06/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -199,8 +199,8 @@ static int update_globally_readable_entry(const char *filename,
 	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_filename;
 	int error = -ENOMEM;
-	if (!ccs_is_correct_path(filename, 1, -1, -1, __func__))
-		return -EINVAL; /* No patterns allowed. */
+	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__))
+		return -EINVAL;
 	saved_filename = ccs_save_name(filename);
 	if (!saved_filename)
 		return -ENOMEM;
@@ -239,7 +239,8 @@ static bool is_globally_readable_file(const struct path_info *filename)
 {
 	struct globally_readable_file_entry *ptr;
 	list1_for_each_entry(ptr, &globally_readable_list, list) {
-		if (!ptr->is_deleted && !ccs_pathcmp(filename, ptr->filename))
+		if (!ptr->is_deleted &&
+		    ccs_path_matches_pattern(filename, ptr->filename))
 			return true;
 	}
 	return false;
