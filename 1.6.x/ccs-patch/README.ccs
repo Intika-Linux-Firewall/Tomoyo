@@ -1473,3 +1473,22 @@ Fix 2008/06/10
 
       To allow users use ccs-notifyd without turning ALLOW_ENFORCE_GRACE on,
       I moved it from ccs_check_supervisor() to write_answer().
+
+Fix 2008/06/11
+
+    @ Remove ALLOW_ENFORCE_GRACE parameter.
+
+      Since unexpected requests caused by doing software updates can happen
+      in all profiles, the users likely have to write
+      ALLOW_ENFORCE_GRACE=enabled to all profiles. And it makes meaningless to
+      allow users to selectively enable specific profile's ALLOW_ENFORCE_GRACE
+      parameter. So, I removed ALLOW_ENFORCE_GRACE parameter.
+      Now, the system behaves as if ALLOW_ENFORCE_GRACE=enabled is specified.
+      The behavior of "delayed enforcing" mode is defined in the following
+      order.
+
+      (1) The requests are rejected immediately if nobody is opening
+          /proc/ccs/query interface.
+      (2) The requests will be rejected in 10 seconds if somebody other than
+          ccs-queryd (such as less(1)) is opening /proc/ccs/query interface,
+          for such process doesn't write dummy decisions.
