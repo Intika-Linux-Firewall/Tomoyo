@@ -24,6 +24,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 ++
  include/linux/syaoran.h         |    7 +-
+ include/linux/tomoyo_vfs.h      |   10 +--
  kernel/compat.c                 |    7 ++
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
@@ -41,7 +42,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 ++++
- 39 files changed, 640 insertions(+), 6 deletions(-)
+ 40 files changed, 645 insertions(+), 11 deletions(-)
 
 --- linux-2.6.25.5-1.1.orig/Makefile
 +++ linux-2.6.25.5-1.1/Makefile
@@ -891,6 +892,53 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  #else
  		error = vfs_symlink(base->d_inode, dentry, oldname);
  #endif
+--- linux-2.6.25.5-1.1.orig/include/linux/tomoyo_vfs.h
++++ linux-2.6.25.5-1.1/include/linux/tomoyo_vfs.h
+@@ -263,7 +263,7 @@ static inline int pre_vfs_rename(struct 
+  */
+ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
+ {
+-	int error = may_create(dir, dentry, NULL);
++	int error = may_create(dir, dentry, NULL, 0);
+ 	if (error)
+ 		return error;
+ 	if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD))
+@@ -277,7 +277,7 @@ EXPORT_SYMBOL(pre_vfs_mknod);
+ /* Permission checks before security_inode_mkdir() is called. */
+ static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+ {
+-	int error = may_create(dir, dentry, NULL);
++	int error = may_create(dir, dentry, NULL, 1);
+ 	if (error)
+ 		return error;
+ 	if (!dir->i_op || !dir->i_op->mkdir)
+@@ -315,7 +315,7 @@ static inline int pre_vfs_link(struct de
+ 	int error;
+ 	if (!inode)
+ 		return -ENOENT;
+-	error = may_create(dir, new_dentry, NULL);
++	error = may_create(dir, new_dentry, NULL, 0);
+ 	if (error)
+ 		return error;
+ 	if (dir->i_sb != inode->i_sb)
+@@ -332,7 +332,7 @@ static inline int pre_vfs_link(struct de
+ /* Permission checks before security_inode_symlink() is called. */
+ static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+ {
+-	int error = may_create(dir, dentry, NULL);
++	int error = may_create(dir, dentry, NULL, 0);
+ 	if (error)
+ 		return error;
+ 	if (!dir->i_op || !dir->i_op->symlink)
+@@ -354,7 +354,7 @@ static inline int pre_vfs_rename(struct 
+ 	if (error)
+ 		return error;
+ 	if (!new_dentry->d_inode)
+-		error = may_create(new_dir, new_dentry, NULL);
++		error = may_create(new_dir, new_dentry, NULL, is_dir);
+ 	else
+ 		error = may_delete(new_dir, new_dentry, is_dir);
+ 	if (error)
 --- linux-2.6.25.5-1.1.orig/kernel/compat.c
 +++ linux-2.6.25.5-1.1/kernel/compat.c
 @@ -25,6 +25,9 @@
