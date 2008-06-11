@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.2-pre   2008/06/10
+ * Version: 1.6.2-pre   2008/06/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -94,7 +94,6 @@ static struct {
 	[CCS_TOMOYO_MAX_REJECT_LOG]
 	= { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
 	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
-	[CCS_ALLOW_ENFORCE_GRACE]        = { "ALLOW_ENFORCE_GRACE", 0, 1 },
 	[CCS_SLEEP_PERIOD]
 	= { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
 };
@@ -1126,7 +1125,6 @@ static int write_profile(struct ccs_io_buffer *head)
 			switch (i) {
 			case CCS_SAKURA_RESTRICT_AUTOBIND:
 			case CCS_TOMOYO_VERBOSE:
-			case CCS_ALLOW_ENFORCE_GRACE:
 				modes = mode_2;
 				break;
 			default:
@@ -2394,10 +2392,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.2-pre   2008/06/10\n");
+	printk(KERN_INFO "SAKURA: 1.6.2-pre   2008/06/11\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.2-pre   2008/06/10\n");
+	printk(KERN_INFO "TOMOYO: 1.6.2-pre   2008/06/11\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2648,8 +2646,6 @@ static int write_answer(struct ccs_io_buffer *head)
 	struct list_head *tmp;
 	unsigned int serial;
 	unsigned int answer;
-	if (!ccs_check_flags(CCS_ALLOW_ENFORCE_GRACE))
-		return -EPERM;
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&query_lock);
 	list_for_each(tmp, &query_list) {

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.2-pre   2008/06/07
+ * Version: 1.6.2-pre   2008/06/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -509,9 +509,8 @@ struct ip_network_acl_record {
 #define CCS_TOMOYO_MAX_GRANT_LOG                12
 #define CCS_TOMOYO_MAX_REJECT_LOG               13
 #define CCS_TOMOYO_VERBOSE                      14
-#define CCS_ALLOW_ENFORCE_GRACE                 15
-#define CCS_SLEEP_PERIOD                        16  /* profile.conf       */
-#define CCS_MAX_CONTROL_INDEX                   17
+#define CCS_SLEEP_PERIOD                        15  /* profile.conf       */
+#define CCS_MAX_CONTROL_INDEX                   16
 
 /* Index numbers for updates counter. */
 #define CCS_UPDATES_COUNTER_SYSTEM_POLICY    0
