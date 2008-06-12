@@ -180,7 +180,7 @@ static inline int ccs_check_signal_acl(const int sig, const int pid)
 }
 static inline _Bool ccs_capable(const u8 operation)
 {
-	return true;
+	return 1;
 }
 
 #endif
