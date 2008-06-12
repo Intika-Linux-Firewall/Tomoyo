@@ -41,22 +41,6 @@
 
 <h2><a name="l2">カーネルのインストール</a></h2>
 
-<p>Fedora Coreは、インストール時のデフォルトでSELinuxが有効になっています。
-本来TOMOYO LinuxとSELinuxは共存が可能ですが、混乱を避けるためにSELinuxを無効にしておくことを推奨します。</p>
-
-<p>SELinuxを無効にするには、/etc/selinux/configファイルのSELINUX=の行を以下のように変更します。</p>
-
-<pre>
-SELINUX=<span class="user">disabled</span>
-</pre>
-
-<p>変更が終わったらLinuxを再起動して、getenforceコマンドでSELinuxが無効になっているかを確かめてください。</p>
-
-<pre>
-# <span class="user">getenforce</span>
-Disabled
-</pre>
-
 <p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
 しかしFedora Core 6の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
 
