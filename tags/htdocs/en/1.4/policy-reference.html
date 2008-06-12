@@ -739,8 +739,8 @@ You can restrict more strictly with other directives and policy files for some s
 <tr><td>4 /etc/passwd</td><td>Allow reading /etc/passwd .</td></tr>
 <tr><td>4 /etc/passwd if task.uid=0</td><td>Allow reading /etc/passwd if the process's UID is 0.</td></tr>
 <tr><td>4 /etc/passwd if task.uid!=0</td><td>Allow reading /etc/passwd if the process's UID is not 0.</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1</td><td>Connect to 10.0.0.1 using TCP.</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 if task.uid=100</td><td>Connect to 10.0.0.1 using TCP if the process's UID is 100.</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 80</td><td>Connect to 10.0.0.1 port 80 using TCP.</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 80 if task.uid=100</td><td>Connect to 10.0.0.1 port 80 using TCP if the process's UID is 100.</td></tr>
 <tr><td>allow_capability SYS_KILL</td><td>Allow calling kill(2).</td></tr>
 <tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>Allow calling kill(2) if the process is the child of /sbin/init and the process's UID is 0 and the process's EUID is 0.</td></tr>
 </table>
