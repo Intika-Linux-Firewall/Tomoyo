@@ -39,22 +39,6 @@
 
 <h2><a name="l2">Installing TOMOYO Linux kernel</a></h2>
 
-<p>Regarding CentOS, SELinux is enabled by default.
-TOMOYO Linux itself can coexist with SELinux. But to make troubleshooting easy, we recommend you to disable SELinux.</p>
-
-<p>To disable SELinux, change "SELINUX=" of /etc/selinux/config as follows.</p>
-
-<pre>
-SELINUX=<span class="user">disabled</span>
-</pre>
-
-<p>Reboot the system and run "getenforce" command to make sure SELinux is desabled.</p>
-
-<pre>
-# <span class="user">getenforce</span>
-Disabled
-</pre>
-
 <p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile.
 But regarding CentOS 5.1, a binary kernel package is and this page uses it.</p>
 
