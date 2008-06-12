@@ -1769,8 +1769,8 @@ chown -R demo /proc/ccs/
 <tr><td>allow_read /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
 <tr><td>allow_read /etc/passwd if task.uid=0</td><td>プロセスのユーザＩＤが 0 の場合に限り、 /etc/passwd の参照を許可</td></tr>
 <tr><td>allow_read /etc/passwd if task.uid!=0</td><td>プロセスのユーザＩＤが 0 ではない場合に限り、 /etc/passwd の参照を許可</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1</td><td>TCP プロトコルで 10.0.0.1 への接続を許可</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 if task.uid=100</td><td>プロセスのユーザＩＤが 100 の場合に限り、 TCP プロトコルで 10.0.0.1 への接続を許可</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 80</td><td>TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 80 if task.uid=100</td><td>プロセスのユーザＩＤが 100 の場合に限り、 TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
 <tr><td>allow_capability SYS_KILL</td><td>kill(2) の使用を許可</td></tr>
 <tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>親プロセスが /sbin/init であり、かつ、プロセスのユーザＩＤと実効ユーザＩＤが 0 の場合に限り、 kill(2) の使用を許可</td></tr>
 </table>
