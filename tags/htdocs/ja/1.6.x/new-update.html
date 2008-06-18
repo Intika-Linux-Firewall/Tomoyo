@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linuxメンテナンス手順</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="../../en/1.6.x/update.html">English Page</a></p>
+<h1>TOMOYO Linuxメンテナンス手順</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>パッケージのアップデートについて</h1>
+
+<p>システムの振る舞いをポリシーにより制限しているため、パッケージのアップデートに伴いポリシーの更新が必要になる場合があります。</p>
+
+<p>以下のいずれかの場合に、ポリシーの更新が必要になります。</p>
+
+<ul>
+<li>ファイルのパス名が変化した場合
+<li>ファイルの依存関係が変化した場合
+<li>必要なアクセス許可が増えた場合
+</ul>
+
+<p>学習モードを使ってポリシーを最初から再取得するのが理想です。しかし、現実には、一度強制モードでの運用を開始したシステムを強制モード以外に変更することは困難です。ドメイン単位で強制モードにするかどうかを指定できますが、強制モードではないドメインに属しているアプリケーションの制御を奪われたら意味がありません。例えば、 http サーバのアクセス許可を再取得するために http サーバだけを学習モードにするだけでも、システム全体が無防備になってしまうわけです。そのため、 TOMOYO Linux では、強制モードのまま、パッケージのアップデートとポリシーの修正を行います。</p>
+
+<p>TOMOYO Linux には、強制モードのままポリシーの修正を行うためのツールが付属しています。これらのツールを使うことで、軽微な変更ならば、ポリシーを最初から再取得することなくシステムの運用を継続できます。ただし、これらのツールは、全てのケースに対応できるとは限らず、最適なポリシーであることを保証するものではありません。</p>
+
+<h1>手順</h1>
+
+<p>まず、コンソールまたはターミナルを開いて、以下のコマンドを起動してください。</p>
+
+<table border="1">
+<tr><td>
+/usr/sbin/ccs-queryd
+</td></tr>
+</table>
+
+<p>ccs-queryd は、 /etc/ld.so.cache に登録されている共有ライブラリファイルの情報が変更された場合に、共有ライブラリのパス名を「無条件に読み込み可能なファイル」として例外ポリシーに追加するかどうかを尋ねてきます。以下の例は、 /lib/libnss_hesiod-2.5.so というパス名が作成されて /etc/ld.so.cache に登録されたので例外ポリシーに追加するかどうか尋ねています。</p>
+
+<table border="1">
+<tr><td>
+The pathname /lib/libnss_hesiod-2.5.so was created. Append to globally readable file? ('Y'es/'N'o):
+</td></tr>
+</table>
+
+<p>また、「無条件に読み込み可能なファイル」として例外ポリシーに登録されているパス名が消滅した場合、例外ポリシーから削除するかどうかを尋ねてきます。以下の例は、/lib/libnss_hesiod-2.4.so というパス名が消滅したのでポリシーから削除するかどうか尋ねています。</p>
+
+<table border="1">
+<tr><td>
+The pathname /lib/libnss_hesiod-2.4.so was deleted. Delete from globally readable file? ('Y'es/'N'o):
+</td></tr>
+</table>
+
+<p>この状態で、パッケージのアップデートを行うためのコマンドを実行します。</p>
+
+<p>yum を使用している環境ならば yum update を、 apt を使用している環境ならば apt-get update および apt-get upgrade を実行します。</p>
+
+<p>パッケージをアップデート中に、デーモンの再起動などでポリシー違反が発生するかもしれません。ポリシー違反が発生した場合、 ccs-queryd に以下のようなプロンプトが表示されます。</p>
+
+<table border="1">
+<tr><td>
+#2008-06-18 20:54:37# profile=3 mode=enforcing pid=2546 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat<br>
+allow_read /etc/fstab<br>
+Allow? ('Y'es/Yes and 'A'ppend to policy/'N'o):
+</td></tr>
+</table>
+
+<p>上記の例は、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat というドメインに属しているプロセスが /etc/fstab を読み込みモードでオープンしようとしたが、ポリシーによって拒否されたので、あなたの判断を仰いでいることを示しています。
+アクセス要求の妥当性を判断して、アクセスを許可するか否か、ドメイン用ポリシーに追加するか否かを指定してください。 Y を押すと許可、 N を押すと拒否されます。また、 A を押すと編集した上でドメイン用ポリシーに追加することができます。</p>
+
+<p>無条件にアクセス要求を許可しないようにしてください。ポリシー違反の原因がパッケージのアップデートによるものとは限らず、侵入者の攻撃によるものである可能性があるからです。
+もし、侵入者の攻撃によって発生したアクセス要求に対してアクセスを許可してしまった場合、侵入されてしまいます。</p>
+
+<p>ccs-queryd が動作している場合、ポリシーによって拒否されたアクセス要求は、あなたが応答するまで保留状態となります。そのため、 ccs-queryd を動作させたままログアウトしないでください。</p>
+
+<p>次に、強制アクセス制御の対象となっているプログラムの動作を確認するために、一通りの操作を試してください。もし、アクセス許可の不足が検出された場合は ccs-queryd に表示されますので、 ccs-queryd の監視を忘れないようにしてください。</p>
+
+<p>なお、 ccs-queryd はメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずにポリシーを保存してください。</p>
+
+<table border="1">
+<tr><td>
+/usr/sbin/ccs-savepolicy
+</td></tr>
+</table>
+
+<p>以上でパッケージの更新作業は完了です。 ccs-queryd を実行していたコンソールまたはターミナルを閉じてください。</p>
+
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
