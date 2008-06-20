@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.22.17-0.1.src.rpm ]
+if [ ! -r kernel-source-2.6.22.18-0.2.src.rpm ]
 then
-    wget http://download.opensuse.org/update/10.3/rpm/src/kernel-source-2.6.22.17-0.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/10.3/rpm/src/kernel-source-2.6.22.18-0.2.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.22.17-0.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.22.18-0.2.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
@@ -72,30 +72,30 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.22.18-0.2_SUSE.diff ]
+then
+    wget -O ccs-patch-2.6.22.18-0.2_SUSE.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22.18-0.2_SUSE.diff?root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-02-11 11:04:16.000000000 +0900
-+++ kernel-default_tomoyo_1.5.4.spec	2008-04-01 11:31:06.000000000 +0900
-@@ -10,7 +10,7 @@
- 
- # norootforbuild
+--- kernel-default.spec	2008-06-10 00:07:47.000000000 +0900
++++ kernel-default.spec	2008-06-20 09:39:20.000000000 +0900
+@@ -37,10 +37,10 @@
+ %define build_vanilla 1
+ %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
- Url:            http://www.kernel.org/
- %if 0%{?opensuse_bs}
- # Strip off the build number ("y") from the "x.y" release number
-@@ -39,7 +39,7 @@
- %endif
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
- Version:        2.6.22.17
--Release: 0.1
-+Release: 0.1_tomoyo_1.5.4
+ Version:        2.6.22.18
+-Release: 0.2
++Release: 0.2_tomoyo_1.5.4
  License:        GPL v2 or later
  Group:          System/Kernel
  AutoReqProv:    on
-@@ -187,7 +187,7 @@
+@@ -191,7 +191,7 @@
  %define tolerate_unknown_new_config_options 0
  # kABI change tolerance (default in maintenance should be 4, 6, 8 or 15,
  # 31 is the maximum; see scripts/kabi-checks)
@@ -104,24 +104,24 @@ patch << "EOF" || die "Can't patch spec file."
  
  %description
  The standard kernel for both uniprocessor and multiprocessor systems.
-@@ -277,6 +277,11 @@
+@@ -281,6 +281,11 @@
  %build
  source .rpm-defs
  cd linux-2.6.22
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.22.17-0.1_SUSE.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.22.18-0.2_SUSE.diff
 +sed -i -e 's:-ccs::' -- Makefile
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-mv kernel-default.spec kernel-2.6.22.17-0.1-default_tomoyo_1.5.4.spec || die "Can't rename spec file."
+mv kernel-default.spec kernel-2.6.22.18-0.2-default_tomoyo_1.5.4.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.22.17-0.1-default_tomoyo_1.5.4.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.22.17-0.1-default_tomoyo_1.5.4.spec"
+echo "Edit /tmp/kernel-2.6.22.18-0.2-default_tomoyo_1.5.4.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.22.18-0.2-default_tomoyo_1.5.4.spec"
 echo "to build kernel rpm packages."
 exit 0

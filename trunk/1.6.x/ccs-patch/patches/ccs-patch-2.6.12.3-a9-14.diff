@@ -1,66 +1,79 @@
-This is TOMOYO Linux patch for openSUSE 10.2.
+This is TOMOYO Linux patch for Armadillo-9.
 
-Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.9.i586.rpm
+Source code for this patch is http://download.atmark-techno.com/armadillo-9/source/linux-2.6.12.3-a9-14.tar.gz
 ---
- Makefile                        |    2 
- arch/alpha/kernel/ptrace.c      |    9 +++
- arch/ia64/ia32/sys_ia32.c       |    9 +++
- arch/ia64/kernel/ptrace.c       |    9 +++
- arch/m32r/kernel/ptrace.c       |    9 +++
- arch/mips/kernel/ptrace32.c     |    9 +++
- arch/powerpc/kernel/ptrace32.c  |    9 +++
- arch/s390/kernel/ptrace.c       |    9 +++
- arch/sh64/kernel/ptrace.c       |    9 +++
- arch/sparc/kernel/ptrace.c      |   11 +++
- arch/sparc64/kernel/ptrace.c    |   11 +++
- arch/x86_64/ia32/ptrace32.c     |    9 +++
- fs/Kconfig                      |    2 
- fs/Makefile                     |    2 
- fs/attr.c                       |   19 ++++++
- fs/compat.c                     |   11 +++
- fs/exec.c                       |   21 ++++++-
- fs/fcntl.c                      |    9 +++
- fs/ioctl.c                      |    7 ++
- fs/namei.c                      |  118 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   50 ++++++++++++++++
- fs/open.c                       |   27 +++++++++
- fs/proc/Makefile                |    3 +
- fs/proc/proc_misc.c             |    5 +
- include/linux/init_task.h       |    4 +
- include/linux/sched.h           |    9 +++
- kernel/compat.c                 |    7 ++
- kernel/kexec.c                  |    7 ++
- kernel/kmod.c                   |    5 +
- kernel/module.c                 |   13 +++-
- kernel/ptrace.c                 |    9 +++
- kernel/sched.c                  |    7 ++
- kernel/signal.c                 |   21 +++++++
- kernel/sys.c                    |   21 +++++++
- kernel/sysctl.c                 |  111 +++++++++++++++++++++++++++++++++++++
- kernel/time.c                   |   15 +++++
- net/core/datagram.c             |   11 +++
- net/ipv4/inet_connection_sock.c |    7 ++
- net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |   11 +++
- net/ipv6/inet6_hashtables.c     |    9 ++-
- net/ipv6/udp.c                  |   11 +++
- net/socket.c                    |   43 +++++++++++++-
- net/unix/af_unix.c              |   15 +++++
- 44 files changed, 713 insertions(+), 9 deletions(-)
+ Makefile                           |    2 
+ arch/alpha/kernel/ptrace.c         |    9 ++
+ arch/arm/kernel/ptrace.c           |    9 ++
+ arch/arm26/kernel/ptrace.c         |    9 ++
+ arch/cris/arch-v10/kernel/ptrace.c |    9 ++
+ arch/frv/kernel/ptrace.c           |    9 ++
+ arch/h8300/kernel/ptrace.c         |    9 ++
+ arch/i386/kernel/ptrace.c          |    9 ++
+ arch/ia64/ia32/sys_ia32.c          |    9 ++
+ arch/ia64/kernel/ptrace.c          |    9 ++
+ arch/m32r/kernel/ptrace.c          |    9 ++
+ arch/m68k/kernel/ptrace.c          |    9 ++
+ arch/m68knommu/kernel/ptrace.c     |    9 ++
+ arch/mips/kernel/ptrace.c          |    9 ++
+ arch/mips/kernel/ptrace32.c        |    9 ++
+ arch/parisc/kernel/ptrace.c        |    9 ++
+ arch/ppc/kernel/ptrace.c           |    9 ++
+ arch/ppc64/kernel/ptrace.c         |    9 ++
+ arch/ppc64/kernel/ptrace32.c       |    9 ++
+ arch/s390/kernel/ptrace.c          |    9 ++
+ arch/sh/kernel/ptrace.c            |    9 ++
+ arch/sh64/kernel/ptrace.c          |    9 ++
+ arch/sparc/kernel/ptrace.c         |   11 +++
+ arch/sparc64/kernel/ptrace.c       |   11 +++
+ arch/um/kernel/ptrace.c            |    9 ++
+ arch/v850/kernel/ptrace.c          |    9 ++
+ arch/x86_64/ia32/ptrace32.c        |    9 ++
+ arch/x86_64/kernel/ptrace.c        |    9 ++
+ fs/Kconfig                         |    2 
+ fs/Makefile                        |    2 
+ fs/attr.c                          |   19 +++++
+ fs/compat.c                        |   11 +++
+ fs/exec.c                          |   21 ++++++
+ fs/fcntl.c                         |    8 ++
+ fs/ioctl.c                         |    7 ++
+ fs/namei.c                         |  118 +++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                     |   54 ++++++++++++++++
+ fs/open.c                          |   28 ++++++++
+ fs/proc/Makefile                   |    3 
+ fs/proc/proc_misc.c                |    5 +
+ include/linux/init_task.h          |    4 +
+ include/linux/sched.h              |    9 ++
+ kernel/compat.c                    |    7 ++
+ kernel/kmod.c                      |    5 +
+ kernel/module.c                    |   13 +++-
+ kernel/sched.c                     |    7 ++
+ kernel/signal.c                    |   22 ++++++
+ kernel/sys.c                       |   21 ++++++
+ kernel/sysctl.c                    |  116 +++++++++++++++++++++++++++++++++++-
+ kernel/time.c                      |   15 ++++
+ net/core/datagram.c                |   10 +++
+ net/ipv4/tcp_ipv4.c                |   11 +++
+ net/ipv4/udp.c                     |   11 +++
+ net/ipv6/tcp_ipv6.c                |   11 +++
+ net/ipv6/udp.c                     |   11 +++
+ net/socket.c                       |   43 ++++++++++++-
+ net/unix/af_unix.c                 |   15 ++++
+ 57 files changed, 846 insertions(+), 12 deletions(-)
 
---- linux-2.6.18.8-0.9.orig/Makefile
-+++ linux-2.6.18.8-0.9/Makefile
+--- linux-2.6.12.3-a9-14.orig/Makefile
++++ linux-2.6.12.3-a9-14/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
- SUBLEVEL = 18
--EXTRAVERSION = .8
-+EXTRAVERSION = .8-ccs
- NAME=Avast! A bilge rat!
+ SUBLEVEL = 12
+-EXTRAVERSION = .3-a9-14
++EXTRAVERSION = .3-a9-14-ccs
+ NAME=Woozy Numbat
  
  # *DOCUMENTATION*
---- linux-2.6.18.8-0.9.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.18.8-0.9/arch/alpha/kernel/ptrace.c
+--- linux-2.6.12.3-a9-14.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -71,7 +84,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  #include "proto.h"
  
-@@ -268,6 +271,12 @@ do_sys_ptrace(long request, long pid, lo
+@@ -261,6 +264,12 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
@@ -84,8 +97,158 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.18.8-0.9.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.18.8-0.9/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.12.3-a9-14.orig/arch/arm/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/arm/kernel/ptrace.c
+@@ -25,6 +25,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/traps.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ptrace.h"
+ 
+@@ -786,6 +789,12 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/arm26/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/arm26/kernel/ptrace.c
+@@ -24,6 +24,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ //#include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ptrace.h"
+ 
+@@ -669,6 +672,12 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/cris/arch-v10/kernel/ptrace.c
+@@ -17,6 +17,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* 
+  * Determines which bits in DCCR the user has access to.
+@@ -81,6 +84,12 @@ sys_ptrace(long request, long pid, long 
+ 	struct task_struct *child;
+ 	int ret;
+ 	unsigned long __user *datap = (unsigned long __user *)data;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/frv/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/frv/kernel/ptrace.c
+@@ -28,6 +28,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -112,6 +115,12 @@ asmlinkage int sys_ptrace(long request, 
+ 	unsigned long tmp;
+ 	int ret;
+ 
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 	lock_kernel();
+ 	ret = -EPERM;
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.12.3-a9-14.orig/arch/h8300/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/h8300/kernel/ptrace.c
+@@ -32,6 +32,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/signal.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* cpu depend functions */
+ extern long h8300_get_reg(struct task_struct *task, int regno);
+@@ -61,6 +64,12 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/i386/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/i386/kernel/ptrace.c
+@@ -26,6 +26,9 @@
+ #include <asm/debugreg.h>
+ #include <asm/ldt.h>
+ #include <asm/desc.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -358,6 +361,12 @@ asmlinkage int sys_ptrace(long request, 
+ 	struct user * dummy = NULL;
+ 	int i, ret;
+ 	unsigned long __user *datap = (unsigned long __user *)data;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.12.3-a9-14/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -96,7 +259,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  #include "ia32priv.h"
  
-@@ -1741,6 +1744,12 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -1757,6 +1760,12 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
@@ -109,9 +272,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18.8-0.9.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.18.8-0.9/arch/ia64/kernel/ptrace.c
-@@ -28,6 +28,9 @@
+--- linux-2.6.12.3-a9-14.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/ia64/kernel/ptrace.c
+@@ -29,6 +29,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
  #endif
@@ -121,7 +284,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  #include "entry.h"
  
-@@ -1417,6 +1420,12 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1404,6 +1407,12 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
@@ -134,9 +297,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.18.8-0.9.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.18.8-0.9/arch/m32r/kernel/ptrace.c
-@@ -32,6 +32,9 @@
+--- linux-2.6.12.3-a9-14.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/m32r/kernel/ptrace.c
+@@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/mmu_context.h>
@@ -145,8 +308,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +/***** TOMOYO Linux end. *****/
  
  /*
-  * This routine will get a word off of the process kernel stack.
-@@ -742,6 +745,12 @@ asmlinkage long sys_ptrace(long request,
+  * Get the address of the live pt_regs for the specified task.
+@@ -760,6 +763,12 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
@@ -158,10 +321,60 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-2.6.18.8-0.9.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.18.8-0.9/arch/mips/kernel/ptrace32.c
-@@ -35,6 +35,9 @@
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/m68k/kernel/ptrace.c
+@@ -26,6 +26,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -121,6 +124,12 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/m68knommu/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/m68knommu/kernel/ptrace.c
+@@ -26,6 +26,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -105,6 +108,12 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/mips/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/mips/kernel/ptrace.c
+@@ -36,6 +36,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
  #include <asm/bootinfo.h>
@@ -169,9 +382,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- int ptrace_getregs (struct task_struct *child, __s64 __user *data);
- int ptrace_setregs (struct task_struct *child, __s64 __user *data);
-@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
+ /*
+  * Called by kernel/ptrace.c when detaching..
+@@ -51,6 +54,12 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
@@ -184,8 +397,58 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18.8-0.9.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-2.6.18.8-0.9/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.12.3-a9-14.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.12.3-a9-14/arch/mips/kernel/ptrace32.c
+@@ -34,6 +34,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Tracing a 32-bit process with a 64-bit strace and vice versa will not
+@@ -43,6 +46,12 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.12.3-a9-14.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/parisc/kernel/ptrace.c
+@@ -24,6 +24,9 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/offsets.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* PSW bits we allow the debugger to modify */
+ #define USER_PSW_BITS	(PSW_N | PSW_V | PSW_CB)
+@@ -85,6 +88,12 @@ long sys_ptrace(long request, pid_t pid,
+ #ifdef DEBUG_PTRACE
+ 	long oaddr=addr, odata=data;
+ #endif
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/ppc/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -194,9 +457,84 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- #include "ptrace-common.h"
+ /*
+  * Set of msr bits that gdb can change on behalf of a process.
+@@ -241,6 +244,12 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
  
-@@ -45,6 +48,12 @@ long compat_sys_ptrace(int request, int 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.12.3-a9-14.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/ppc64/kernel/ptrace.c
+@@ -35,6 +35,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/ptrace-common.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -56,6 +59,12 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.12.3-a9-14.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.6.12.3-a9-14/arch/ppc64/kernel/ptrace32.c
+@@ -33,6 +33,9 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/ptrace-common.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -43,6 +46,12 @@ int sys32_ptrace(long request, long pid,
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.12.3-a9-14.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/s390/kernel/ptrace.c
+@@ -41,6 +41,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #ifdef CONFIG_S390_SUPPORT
+ #include "compat_ptrace.h"
+@@ -710,6 +713,12 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	int ret;
@@ -208,34 +546,34 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
---- linux-2.6.18.8-0.9.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.18.8-0.9/arch/s390/kernel/ptrace.c
-@@ -41,6 +41,9 @@
+ 
+--- linux-2.6.12.3-a9-14.orig/arch/sh/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/sh/kernel/ptrace.c
+@@ -28,6 +28,9 @@
  #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- #ifdef CONFIG_COMPAT
- #include "compat_ptrace.h"
-@@ -711,6 +714,12 @@ sys_ptrace(long request, long pid, long 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -85,6 +88,12 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
+ 	struct user * dummy = NULL;
  	int ret;
- 
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
+ 
  	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		 ret = ptrace_traceme();
---- linux-2.6.18.8-0.9.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.18.8-0.9/arch/sh64/kernel/ptrace.c
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/sh64/kernel/ptrace.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -246,10 +584,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -271,6 +274,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
+@@ -128,6 +131,12 @@ asmlinkage int sys_ptrace(long request, 
  #define WPC_DBRMODE 0x0d104008
  	static int first_call = 1;
+ 	int ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
@@ -258,9 +596,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
- 	if (first_call) {
---- linux-2.6.18.8-0.9.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.18.8-0.9/arch/sparc/kernel/ptrace.c
+ 
+--- linux-2.6.12.3-a9-14.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -286,19 +624,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18.8-0.9.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.18.8-0.9/arch/sparc64/kernel/ptrace.c
-@@ -32,6 +32,9 @@
+--- linux-2.6.12.3-a9-14.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/sparc64/kernel/ptrace.c
+@@ -28,6 +28,9 @@
+ #include <asm/psrcompat.h>
+ #include <asm/visasm.h>
  #include <asm/spitfire.h>
- #include <asm/page.h>
- #include <asm/cpudata.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
-@@ -176,6 +179,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -162,6 +165,14 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
@@ -313,19 +651,69 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.18.8-0.9.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.18.8-0.9/arch/x86_64/ia32/ptrace32.c
-@@ -26,6 +26,9 @@
- #include <asm/i387.h>
- #include <asm/fpu32.h>
- #include <asm/ia32.h>
+--- linux-2.6.12.3-a9-14.orig/arch/um/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/um/kernel/ptrace.c
+@@ -18,6 +18,9 @@
+ #include "kern_util.h"
+ #include "skas_ptrace.h"
+ #include "sysdep/ptrace.h"
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- /*
-  * Determines which flags the user has access to [1 = access, 0 = no access].
-@@ -230,6 +233,12 @@ asmlinkage long sys32_ptrace(long reques
+ static inline void set_singlestepping(struct task_struct *child, int on)
+ {
+@@ -47,6 +50,12 @@ long sys_ptrace(long request, long pid, 
+ {
+ 	struct task_struct *child;
+ 	int i, ret;
++/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.12.3-a9-14.orig/arch/v850/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/v850/kernel/ptrace.c
+@@ -29,6 +29,9 @@
+ #include <asm/ptrace.h>
+ #include <asm/processor.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* Returns the address where the register at REG_OFFS in P is stashed away.  */
+ static v850_reg_t *reg_save_addr (unsigned reg_offs, struct task_struct *t)
+@@ -117,6 +120,12 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int rval;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 
+--- linux-2.6.12.3-a9-14.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.12.3-a9-14/arch/x86_64/ia32/ptrace32.c
+@@ -27,6 +27,9 @@
+ #include <asm/debugreg.h>
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* determines which flags the user has access to. */
+ /* 1 = access 0 = no access */
+@@ -233,6 +236,12 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
@@ -337,10 +725,35 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +	/***** TOMOYO Linux end. *****/
  
  	switch (request) { 
- 	case PTRACE_TRACEME:
---- linux-2.6.18.8-0.9.orig/fs/Kconfig
-+++ linux-2.6.18.8-0.9/fs/Kconfig
-@@ -1961,5 +1961,7 @@ endmenu
+ 	default:
+--- linux-2.6.12.3-a9-14.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.6.12.3-a9-14/arch/x86_64/kernel/ptrace.c
+@@ -30,6 +30,9 @@
+ #include <asm/desc.h>
+ #include <asm/proto.h>
+ #include <asm/ia32.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -318,6 +321,12 @@ asmlinkage long sys_ptrace(long request,
+ 	struct task_struct *child;
+ 	long i, ret;
+ 	unsigned ui;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
+ 	/* This lock_kernel fixes a subtle race with suid exec */
+ 	lock_kernel();
+--- linux-2.6.12.3-a9-14.orig/fs/Kconfig
++++ linux-2.6.12.3-a9-14/fs/Kconfig
+@@ -1725,5 +1725,7 @@ endmenu
  
  source "fs/nls/Kconfig"
  
@@ -348,27 +761,27 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +
  endmenu
  
---- linux-2.6.18.8-0.9.orig/fs/Makefile
-+++ linux-2.6.18.8-0.9/fs/Makefile
-@@ -107,3 +107,5 @@ obj-$(CONFIG_HOSTFS)		+= hostfs/
+--- linux-2.6.12.3-a9-14.orig/fs/Makefile
++++ linux-2.6.12.3-a9-14/fs/Makefile
+@@ -95,3 +95,5 @@ obj-$(CONFIG_BEFS_FS)		+= befs/
+ obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
- obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.18.8-0.9.orig/fs/attr.c
-+++ linux-2.6.18.8-0.9/fs/attr.c
+--- linux-2.6.12.3-a9-14.orig/fs/attr.c
++++ linux-2.6.12.3-a9-14/fs/attr.c
 @@ -15,6 +15,9 @@
- #include <linux/fcntl.h>
  #include <linux/quotaops.h>
  #include <linux/security.h>
+ #include <linux/time.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  /* Taken over from the old code... */
  
-@@ -145,12 +148,28 @@ int notify_change(struct dentry * dentry
+@@ -179,12 +182,28 @@ int notify_change(struct dentry * dentry
  
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, attr);
@@ -397,9 +810,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.18.8-0.9.orig/fs/compat.c
-+++ linux-2.6.18.8-0.9/fs/compat.c
-@@ -52,6 +52,9 @@
+--- linux-2.6.12.3-a9-14.orig/fs/compat.c
++++ linux-2.6.12.3-a9-14/fs/compat.c
+@@ -50,6 +50,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -407,9 +820,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- extern void sigset_from_compat(sigset_t *set, compat_sigset_t *compat);
- 
-@@ -421,6 +424,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+ /*
+  * Not all architectures have sys_utime, so implement this in terms
+@@ -466,6 +469,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -422,7 +835,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
-@@ -1567,7 +1576,7 @@ int compat_do_execve(char * filename,
+@@ -1557,7 +1566,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -431,9 +844,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.18.8-0.9.orig/fs/exec.c
-+++ linux-2.6.18.8-0.9/fs/exec.c
-@@ -57,6 +57,10 @@
+--- linux-2.6.12.3-a9-14.orig/fs/exec.c
++++ linux-2.6.12.3-a9-14/fs/exec.c
+@@ -56,6 +56,10 @@
  #include <linux/kmod.h>
  #endif
  
@@ -443,8 +856,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +
  int core_uses_pid;
  char core_pattern[65] = "core";
- int suid_dumpable = 0;
-@@ -139,6 +143,13 @@ asmlinkage long sys_uselib(const char __
+ /* The maximal length of core_pattern is also specified in sysctl.c */
+@@ -136,6 +140,13 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
@@ -455,13 +868,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
 +
- 	file = nameidata_to_filp(&nd, O_RDONLY);
+ 	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -486,6 +497,13 @@ struct file *open_exec(const char *name)
- 		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
- 		    S_ISREG(inode->i_mode)) {
- 			int err = vfs_permission(&nd, MAY_EXEC);
+@@ -504,6 +515,13 @@ struct file *open_exec(const char *name)
+ 			int err = permission(inode, MAY_EXEC, &nd);
+ 			if (!err && !(inode->i_mode & 0111))
+ 				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
 +			if (!err && (current->tomoyo_flags &
 +				     TOMOYO_CHECK_READ_FOR_OPEN_EXEC))
@@ -471,8 +884,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
- 				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1193,7 +1211,8 @@ int do_execve(char * filename,
+ 				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
+@@ -1191,7 +1209,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -482,9 +895,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.18.8-0.9.orig/fs/fcntl.c
-+++ linux-2.6.18.8-0.9/fs/fcntl.c
-@@ -22,6 +22,9 @@
+--- linux-2.6.12.3-a9-14.orig/fs/fcntl.c
++++ linux-2.6.12.3-a9-14/fs/fcntl.c
+@@ -20,6 +20,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
  #include <asm/uaccess.h>
@@ -494,21 +907,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  void fastcall set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -214,6 +217,12 @@ static int setfl(int fd, struct file * f
- 	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
+@@ -193,6 +196,11 @@ static int setfl(int fd, struct file * f
+ 	if (!(arg & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (((arg ^ filp->f_flags) & O_APPEND) &&
-+	    ccs_check_rewrite_permission(filp))
++	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.18.8-0.9.orig/fs/ioctl.c
-+++ linux-2.6.18.8-0.9/fs/ioctl.c
+--- linux-2.6.12.3-a9-14.orig/fs/ioctl.c
++++ linux-2.6.12.3-a9-14/fs/ioctl.c
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -530,9 +942,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.18.8-0.9.orig/fs/namei.c
-+++ linux-2.6.18.8-0.9/fs/namei.c
-@@ -37,6 +37,10 @@
+--- linux-2.6.12.3-a9-14.orig/fs/namei.c
++++ linux-2.6.12.3-a9-14/fs/namei.c
+@@ -33,6 +33,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
@@ -543,7 +955,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1481,6 +1485,13 @@ int vfs_create(struct inode *dir, struct
+@@ -1311,6 +1315,13 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -556,8 +968,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +	/***** TOMOYO Linux end. *****/
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
- 	if (!error)
-@@ -1536,6 +1547,13 @@ int may_open(struct nameidata *nd, int a
+ 	if (!error) {
+@@ -1368,6 +1379,13 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -571,7 +983,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1567,6 +1585,9 @@ int may_open(struct nameidata *nd, int a
+@@ -1399,6 +1417,9 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -581,7 +993,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  /*
   *	open_namei()
   *
-@@ -1835,6 +1856,16 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1638,6 +1659,16 @@ asmlinkage long sys_mknod(const char __u
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -598,7 +1010,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1853,10 +1884,32 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1656,10 +1687,32 @@ asmlinkage long sys_mknod(const char __u
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -631,7 +1043,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1921,6 +1974,13 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1721,6 +1774,13 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -645,8 +1057,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2029,6 +2089,13 @@ static long do_rmdir(int dfd, const char
- 	dentry = lookup_hash(&nd);
+@@ -1825,6 +1885,13 @@ asmlinkage long sys_rmdir(const char __u
+ 	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
 +		/***** TOMOYO Linux start. *****/
@@ -659,7 +1071,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2088,6 +2155,10 @@ static long do_unlinkat(int dfd, const c
+@@ -1879,6 +1946,10 @@ asmlinkage long sys_unlink(const char __
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -670,7 +1082,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -2109,6 +2180,14 @@ static long do_unlinkat(int dfd, const c
+@@ -1900,6 +1971,14 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -685,7 +1097,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2171,6 +2250,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -1947,6 +2026,10 @@ asmlinkage long sys_symlink(const char _
  	int error = 0;
  	char * from;
  	char * to;
@@ -696,7 +1108,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -2187,6 +2270,13 @@ asmlinkage long sys_symlinkat(const char
+@@ -1963,6 +2046,13 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -710,7 +1122,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2259,6 +2349,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2030,6 +2120,10 @@ asmlinkage long sys_link(const char __us
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -719,9 +1131,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
- 	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
- 		return -EINVAL;
-@@ -2281,6 +2375,15 @@ asmlinkage long sys_linkat(int olddfd, c
+ 	to = getname(newname);
+ 	if (IS_ERR(to))
+@@ -2047,6 +2141,15 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -737,7 +1149,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2507,6 +2610,17 @@ static int do_rename(int olddfd, const c
+@@ -2269,6 +2372,17 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -755,7 +1167,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2529,6 +2643,10 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2290,6 +2404,10 @@ asmlinkage long sys_rename(const char __
  	int error;
  	char * from;
  	char * to;
@@ -766,12 +1178,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.18.8-0.9.orig/fs/namespace.c
-+++ linux-2.6.18.8-0.9/fs/namespace.c
-@@ -25,6 +25,12 @@
+--- linux-2.6.12.3-a9-14.orig/fs/namespace.c
++++ linux-2.6.12.3-a9-14/fs/namespace.c
+@@ -24,6 +24,12 @@
+ #include <linux/mount.h>
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
- #include "pnode.h"
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
@@ -781,7 +1193,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  extern int __init init_rootfs(void);
  
-@@ -554,6 +560,11 @@ static int do_umount(struct vfsmount *mn
+@@ -373,6 +379,11 @@ static int do_umount(struct vfsmount *mn
  	if (retval)
  		return retval;
  
@@ -793,7 +1205,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -642,6 +653,10 @@ asmlinkage long sys_umount(char __user *
+@@ -469,6 +480,10 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -804,19 +1216,30 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -926,6 +941,11 @@ static int do_loopback(struct nameidata 
- 
- 	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
- 		goto out;
+@@ -634,6 +649,11 @@ static int do_loopback(struct nameidata 
+ 	down_write(&current->namespace->sem);
+ 	err = -EINVAL;
+ 	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
++		/***** SAKURA Linux start. *****/
++		err = -EPERM;
++		if (ccs_may_mount(nd))
++			goto out;
++		/***** SAKURA Linux end. *****/
+ 		err = -ENOMEM;
+ 		if (recurse)
+ 			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
+@@ -655,7 +675,9 @@ static int do_loopback(struct nameidata 
+ 		} else
+ 			mntput(mnt);
+ 	}
+-
 +	/***** SAKURA Linux start. *****/
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto out;
++ out:
 +	/***** SAKURA Linux end. *****/
- 
- 	err = -ENOMEM;
- 	if (recurse)
-@@ -1010,7 +1030,11 @@ static int do_move_mount(struct nameidat
+ 	up_write(&current->namespace->sem);
+ 	path_release(&old_nd);
+ 	return err;
+@@ -711,7 +733,11 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -827,9 +1250,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +		goto out;
 +	/***** SAKURA Linux end. *****/
  	err = -ENOENT;
- 	mutex_lock(&nd->dentry->d_inode->i_mutex);
+ 	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1112,6 +1136,11 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -805,6 +831,11 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -840,8 +1263,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +	/***** SAKURA Linux end. *****/
  
  	newmnt->mnt_flags = mnt_flags;
- 	if ((err = graft_tree(newmnt, nd)))
-@@ -1403,6 +1432,17 @@ long do_mount(char *dev_name, char *dir_
+ 	err = graft_tree(newmnt, nd);
+@@ -1026,6 +1057,17 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -859,7 +1282,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1692,6 +1732,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1284,6 +1326,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -870,7 +1293,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  
-@@ -1708,6 +1752,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1299,6 +1345,10 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -881,22 +1304,23 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.18.8-0.9.orig/fs/open.c
-+++ linux-2.6.18.8-0.9/fs/open.c
-@@ -30,6 +30,12 @@
- #include <linux/audit.h>
+--- linux-2.6.12.3-a9-14.orig/fs/open.c
++++ linux-2.6.12.3-a9-14/fs/open.c
+@@ -26,6 +26,13 @@
  
  #include <asm/unistd.h>
+ 
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
- 
- int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
++
+ int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
  {
-@@ -267,6 +273,10 @@ static long do_sys_truncate(const char _
+ 	int retval = -ENODEV;
+@@ -257,6 +264,10 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -907,7 +1331,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -320,6 +330,11 @@ static long do_sys_ftruncate(unsigned in
+@@ -310,6 +321,11 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -918,8 +1342,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
- 		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -608,6 +623,14 @@ asmlinkage long sys_chroot(const char __
+ 		error = do_truncate(dentry, length);
+@@ -582,6 +598,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -934,7 +1358,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1199,6 +1222,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1041,6 +1065,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -945,33 +1369,33 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18.8-0.9.orig/fs/proc/Makefile
-+++ linux-2.6.18.8-0.9/fs/proc/Makefile
-@@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
+--- linux-2.6.12.3-a9-14.orig/fs/proc/Makefile
++++ linux-2.6.12.3-a9-14/fs/proc/Makefile
+@@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
+ 
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
- proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.18.8-0.9.orig/fs/proc/proc_misc.c
-+++ linux-2.6.18.8-0.9/fs/proc/proc_misc.c
-@@ -835,4 +835,9 @@ void __init proc_misc_init(void)
- 	if (entry)
- 		entry->proc_fops = &proc_sysrq_trigger_operations;
+--- linux-2.6.12.3-a9-14.orig/fs/proc/proc_misc.c
++++ linux-2.6.12.3-a9-14/fs/proc/proc_misc.c
+@@ -617,4 +617,9 @@ void __init proc_misc_init(void)
+ 			entry->proc_fops = &ppc_htab_operations;
+ 	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18.8-0.9_SUSE 2008/05/03\n");
++	printk(KERN_INFO "Hook version: 2.6.12.3-a9-14 2008/06/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.18.8-0.9.orig/include/linux/init_task.h
-+++ linux-2.6.18.8-0.9/include/linux/init_task.h
-@@ -128,6 +128,10 @@ extern struct group_info init_groups;
- 	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
- 	INIT_TRACE_IRQFLAGS						\
- 	INIT_LOCKDEP							\
+--- linux-2.6.12.3-a9-14.orig/include/linux/init_task.h
++++ linux-2.6.12.3-a9-14/include/linux/init_task.h
+@@ -111,6 +111,10 @@ extern struct group_info init_groups;
+ 	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
+ 	.journal_info	= NULL,						\
+ 	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
 +	/***** TOMOYO Linux start. *****/        \
 +	.domain_info = &KERNEL_DOMAIN,           \
 +	.tomoyo_flags = 0,                       \
@@ -979,11 +1403,11 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  }
  
  
---- linux-2.6.18.8-0.9.orig/include/linux/sched.h
-+++ linux-2.6.18.8-0.9/include/linux/sched.h
-@@ -25,6 +25,11 @@
- #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
- #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
+--- linux-2.6.12.3-a9-14.orig/include/linux/sched.h
++++ linux-2.6.12.3-a9-14/include/linux/sched.h
+@@ -37,6 +37,11 @@
+ 
+ struct exec_domain;
  
 +/***** TOMOYO Linux start. *****/
 +struct domain_info;
@@ -991,11 +1415,11 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +/***** TOMOYO Linux end. *****/
 +
  /*
-  * Scheduling policies
+  * cloning flags:
   */
-@@ -996,6 +1001,10 @@ struct task_struct {
- #ifdef	CONFIG_TASK_DELAY_ACCT
- 	struct task_delay_info *delays;
+@@ -740,6 +745,10 @@ struct task_struct {
+ 	nodemask_t mems_allowed;
+ 	int cpuset_mems_generation;
  #endif
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
@@ -1004,19 +1428,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18.8-0.9.orig/kernel/compat.c
-+++ linux-2.6.18.8-0.9/kernel/compat.c
+--- linux-2.6.12.3-a9-14.orig/kernel/compat.c
++++ linux-2.6.12.3-a9-14/kernel/compat.c
 @@ -24,6 +24,9 @@
- #include <linux/migrate.h>
  
  #include <asm/uaccess.h>
+ #include <asm/bug.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
  {
-@@ -836,6 +839,10 @@ asmlinkage long compat_sys_stime(compat_
+@@ -852,6 +855,10 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -1027,32 +1451,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.18.8-0.9.orig/kernel/kexec.c
-+++ linux-2.6.18.8-0.9/kernel/kexec.c
-@@ -26,6 +26,9 @@
- #include <asm/io.h>
- #include <asm/system.h>
- #include <asm/semaphore.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* Per cpu memory for storing cpu states in case of system crash. */
- note_buf_t* crash_notes;
-@@ -922,6 +925,10 @@ asmlinkage long sys_kexec_load(unsigned 
- 	/* We only trust the superuser with rebooting the system. */
- 	if (!capable(CAP_SYS_BOOT))
- 		return -EPERM;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_KEXEC_LOAD))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	/*
- 	 * Verify we have a legal set of flags
---- linux-2.6.18.8-0.9.orig/kernel/kmod.c
-+++ linux-2.6.18.8-0.9/kernel/kmod.c
-@@ -148,6 +148,11 @@ static int ____call_usermodehelper(void 
+--- linux-2.6.12.3-a9-14.orig/kernel/kmod.c
++++ linux-2.6.12.3-a9-14/kernel/kmod.c
+@@ -143,6 +143,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
  
@@ -1064,19 +1465,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- linux-2.6.18.8-0.9.orig/kernel/module.c
-+++ linux-2.6.18.8-0.9/kernel/module.c
-@@ -44,6 +44,9 @@
+--- linux-2.6.12.3-a9-14.orig/kernel/module.c
++++ linux-2.6.12.3-a9-14/kernel/module.c
+@@ -38,6 +38,9 @@
+ #include <asm/uaccess.h>
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
- #include <linux/license.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  #if 0
  #define DEBUGP printk
-@@ -666,7 +669,10 @@ sys_delete_module(const char __user *nam
+@@ -531,7 +534,10 @@ sys_delete_module(const char __user *nam
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -1088,7 +1489,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
  	name[MODULE_NAME_LEN-1] = '\0';
-@@ -1926,7 +1932,10 @@ sys_init_module(void __user *umod,
+@@ -1764,7 +1770,10 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -1098,36 +1499,11 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	/* Only one module load at a time, please */
- 	if (mutex_lock_interruptible(&module_mutex) != 0)
+ 	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.18.8-0.9.orig/kernel/ptrace.c
-+++ linux-2.6.18.8-0.9/kernel/ptrace.c
-@@ -21,6 +21,9 @@
- 
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /*
-  * ptrace a task: make the debugger its new parent and
-@@ -509,6 +512,12 @@ asmlinkage long sys_ptrace(long request,
- 	/*
- 	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
---- linux-2.6.18.8-0.9.orig/kernel/sched.c
-+++ linux-2.6.18.8-0.9/kernel/sched.c
-@@ -55,6 +55,9 @@
+--- linux-2.6.12.3-a9-14.orig/kernel/sched.c
++++ linux-2.6.12.3-a9-14/kernel/sched.c
+@@ -50,6 +50,9 @@
  #include <asm/tlb.h>
  
  #include <asm/unistd.h>
@@ -1137,10 +1513,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  /*
   * Convert user-nice values [ -20 ... 0 ... 19 ]
-@@ -4004,6 +4007,10 @@ int can_nice(const struct task_struct *p
- asmlinkage long sys_nice(int increment)
+@@ -3250,6 +3253,10 @@ asmlinkage long sys_nice(int increment)
  {
- 	long nice, retval;
+ 	int retval;
+ 	long nice;
 +	/***** TOMOYO Linux start. *****/
 +	if (!ccs_capable(TOMOYO_SYS_NICE))
 +		return -EPERM;
@@ -1148,19 +1524,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.18.8-0.9.orig/kernel/signal.c
-+++ linux-2.6.18.8-0.9/kernel/signal.c
+--- linux-2.6.12.3-a9-14.orig/kernel/signal.c
++++ linux-2.6.12.3-a9-14/kernel/signal.c
 @@ -28,6 +28,9 @@
+ #include <asm/uaccess.h>
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
- #include "audit.h"	/* audit_signal_info() */
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  /*
   * SLAB caches for signal bits.
-@@ -2183,6 +2186,12 @@ asmlinkage long
+@@ -2255,6 +2258,12 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -1173,35 +1549,36 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2241,6 +2250,12 @@ asmlinkage long sys_tgkill(int tgid, int
- 	/* This is only valid for single tasks */
+@@ -2285,6 +2294,13 @@ asmlinkage long sys_tgkill(int tgid, int
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
+ 
 +	/***** TOMOYO Linux start. *****/
 +	if (sig && !ccs_capable(TOMOYO_SYS_KILL))
 +		return -EPERM;
 +	if (sig && ccs_check_signal_acl(sig, pid))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
- 
- 	return do_tkill(tgid, pid, sig);
- }
-@@ -2254,6 +2269,12 @@ sys_tkill(int pid, int sig)
- 	/* This is only valid for single tasks */
++
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+ 	info.si_code = SI_TKILL;
+@@ -2325,6 +2341,12 @@ sys_tkill(int pid, int sig)
  	if (pid <= 0)
  		return -EINVAL;
+ 
 +	/***** TOMOYO Linux start. *****/
 +	if (sig && !ccs_capable(TOMOYO_SYS_KILL))
 +		return -EPERM;
 +	if (sig && ccs_check_signal_acl(sig, pid))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
- 
- 	return do_tkill(0, pid, sig);
- }
---- linux-2.6.18.8-0.9.orig/kernel/sys.c
-+++ linux-2.6.18.8-0.9/kernel/sys.c
-@@ -36,6 +36,9 @@
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+ 	info.si_code = SI_TKILL;
+--- linux-2.6.12.3-a9-14.orig/kernel/sys.c
++++ linux-2.6.12.3-a9-14/kernel/sys.c
+@@ -33,6 +33,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
  #include <asm/unistd.h>
@@ -1211,7 +1588,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -467,6 +470,12 @@ asmlinkage long sys_setpriority(int whic
+@@ -252,6 +255,12 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > 2 || which < 0)
  		goto out;
@@ -1224,7 +1601,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -693,6 +702,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -383,6 +392,10 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -1233,9 +1610,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
- 	/* Instead of trying to make the power_off code look like
- 	 * halt when pm_power_off is not set do it the easy way.
-@@ -1690,6 +1703,10 @@ asmlinkage long sys_sethostname(char __u
+ 	lock_kernel();
+ 	switch (cmd) {
+@@ -1385,6 +1398,10 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1246,7 +1623,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1735,6 +1752,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1430,6 +1447,10 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1257,9 +1634,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.18.8-0.9.orig/kernel/sysctl.c
-+++ linux-2.6.18.8-0.9/kernel/sysctl.c
-@@ -48,6 +48,9 @@
+--- linux-2.6.12.3-a9-14.orig/kernel/sysctl.c
++++ linux-2.6.12.3-a9-14/kernel/sysctl.c
+@@ -44,6 +44,9 @@
  
  #include <asm/uaccess.h>
  #include <asm/processor.h>
@@ -1267,9 +1644,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
- extern int proc_nr_files(ctl_table *table, int write, struct file *filp,
-                      void __user *buffer, size_t *lenp, loff_t *ppos);
-@@ -1178,6 +1181,100 @@ void __init sysctl_init(void)
+ #ifdef CONFIG_ROOT_NFS
+ #include <linux/nfs_fs.h>
+@@ -971,6 +974,100 @@ void __init sysctl_init(void)
  #endif
  }
  
@@ -1370,19 +1747,22 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1203,6 +1300,11 @@ int do_sysctl(int __user *name, int nlen
- 
- 		spin_unlock(&sysctl_lock);
- 
+@@ -988,7 +1085,13 @@ int do_sysctl(int __user *name, int nlen
+ 		struct ctl_table_header *head =
+ 			list_entry(tmp, struct ctl_table_header, ctl_entry);
+ 		void *context = NULL;
+-		int error = parse_table(name, nlen, oldval, oldlenp, 
++		int error;
 +		/***** TOMOYO Linux start. *****/
 +		error = try_parse_table(name, nlen, oldval, newval,
 +					head->ctl_table);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
- 		error = parse_table(name, nlen, oldval, oldlenp, 
++		error = parse_table(name, nlen, oldval, oldlenp,
  					newval, newlen, head->ctl_table,
  					&context);
-@@ -1275,6 +1377,15 @@ repeat:
+ 		if (context)
+@@ -1058,6 +1161,15 @@ repeat:
  				if (ctl_perm(table, 001))
  					return -EPERM;
  				if (table->strategy) {
@@ -1398,9 +1778,18 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.18.8-0.9.orig/kernel/time.c
-+++ linux-2.6.18.8-0.9/kernel/time.c
-@@ -39,6 +39,9 @@
+@@ -2116,7 +2228,7 @@ int sysctl_string(ctl_table *table, int 
+ 			len--;
+ 		((char *) table->data)[len] = 0;
+ 	}
+-	return 0;
++	return 1;
+ }
+ 
+ /*
+--- linux-2.6.12.3-a9-14.orig/kernel/time.c
++++ linux-2.6.12.3-a9-14/kernel/time.c
+@@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1410,7 +1799,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  /* 
   * The timezone where the local system is located.  Used as a default by some
-@@ -91,6 +94,10 @@ asmlinkage long sys_stime(time_t __user 
+@@ -90,6 +93,10 @@ asmlinkage long sys_stime(time_t __user 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -1421,7 +1810,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -161,6 +168,10 @@ int do_sys_settimeofday(struct timespec 
+@@ -157,6 +164,10 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -1432,7 +1821,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
-@@ -221,6 +232,10 @@ int do_adjtimex(struct timex *txc)
+@@ -235,6 +246,10 @@ int do_adjtimex(struct timex *txc)
  	/* In order to modify anything, you gotta be super-user! */
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
@@ -1443,21 +1832,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18.8-0.9.orig/net/core/datagram.c
-+++ linux-2.6.18.8-0.9/net/core/datagram.c
-@@ -56,6 +56,11 @@
+--- linux-2.6.12.3-a9-14.orig/net/core/datagram.c
++++ linux-2.6.12.3-a9-14/net/core/datagram.c
+@@ -54,6 +54,10 @@
  #include <net/sock.h>
- #include <net/tcp_states.h>
+ #include <net/checksum.h>
  
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +#include <linux/tomoyo_socket.h>
 +/***** TOMOYO Linux end. *****/
-+
+ 
  /*
   *	Is a socket 'connection oriented' ?
-  */
-@@ -178,6 +183,12 @@ struct sk_buff *skb_recv_datagram(struct
+@@ -177,6 +181,12 @@ struct sk_buff *skb_recv_datagram(struct
  		} else
  			skb = skb_dequeue(&sk->sk_receive_queue);
  
@@ -1470,42 +1858,30 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		if (skb)
  			return skb;
  
---- linux-2.6.18.8-0.9.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.18.8-0.9/net/ipv4/inet_connection_sock.c
-@@ -23,6 +23,9 @@
- #include <net/route.h>
- #include <net/tcp_states.h>
- #include <net/xfrm.h>
+--- linux-2.6.12.3-a9-14.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.6.12.3-a9-14/net/ipv4/tcp_ipv4.c
+@@ -74,6 +74,9 @@
+ #include <linux/stddef.h>
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
  
- #ifdef INET_CSK_DEBUG
- const char inet_csk_timer_bug_msg[] = "inet_csk BUG: unknown timer value\n";
-@@ -87,6 +90,10 @@ int inet_csk_get_port(struct inet_hashin
- 		do {
- 			head = &hashinfo->bhash[inet_bhashfn(rover, hashinfo->bhash_size)];
+ extern int sysctl_ip_dynaddr;
+ int sysctl_tcp_tw_reuse;
+@@ -232,6 +235,10 @@ static int tcp_v4_get_port(struct sock *
+ 				rover = low;
+ 			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
 +			if (ccs_may_autobind(rover))
 +				goto next;
 +			/***** SAKURA Linux end. *****/
- 			inet_bind_bucket_for_each(tb, node, &head->chain)
+ 			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.18.8-0.9.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.18.8-0.9/net/ipv4/inet_hashtables.c
-@@ -22,6 +22,9 @@
- #include <net/inet_connection_sock.h>
- #include <net/inet_hashtables.h>
- #include <net/ip.h>
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
- 
- /*
-  * Allocate and initialize a new local port bind bucket.
-@@ -263,6 +266,10 @@ int inet_hash_connect(struct inet_timewa
+@@ -671,6 +678,10 @@ static inline int tcp_v4_hash_connect(st
   		local_bh_disable();
  		for (i = 1; i <= range; i++) {
  			port = low + (i + offset) % range;
@@ -1513,12 +1889,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +			if (ccs_may_autobind(port))
 +				continue;
 +			/***** SAKURA Linux end. *****/
-  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
+  			head = &tcp_bhash[tcp_bhashfn(port)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18.8-0.9.orig/net/ipv4/udp.c
-+++ linux-2.6.18.8-0.9/net/ipv4/udp.c
-@@ -108,6 +108,9 @@
+--- linux-2.6.12.3-a9-14.orig/net/ipv4/udp.c
++++ linux-2.6.12.3-a9-14/net/ipv4/udp.c
+@@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1528,7 +1904,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -146,6 +149,10 @@ static int udp_v4_get_port(struct sock *
+@@ -145,6 +148,10 @@ static int udp_v4_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1539,7 +1915,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  				goto gotit;
  			}
  			size = 0;
-@@ -162,6 +169,10 @@ static int udp_v4_get_port(struct sock *
+@@ -161,6 +168,10 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1550,41 +1926,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.18.8-0.9.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.18.8-0.9/net/ipv6/inet6_hashtables.c
-@@ -21,6 +21,9 @@
- #include <net/inet_hashtables.h>
- #include <net/inet6_hashtables.h>
- #include <net/ip.h>
-+/***** SAKURA Linux start. *****/
-+#include <linux/sakura.h>
-+/***** SAKURA Linux end. *****/
- 
- void __inet6_hash(struct inet_hashinfo *hashinfo,
- 				struct sock *sk)
-@@ -172,7 +175,7 @@ static int __inet6_check_established(str
- 	const struct in6_addr *saddr = &np->daddr;
- 	const int dif = sk->sk_bound_dev_if;
- 	const u32 ports = INET_COMBINED_PORTS(inet->dport, lport);
--	const unsigned int hash = inet6_ehashfn(daddr, inet->num, saddr,
-+	const unsigned int hash = inet6_ehashfn(daddr, lport, saddr,
- 						inet->dport);
- 	struct inet_ehash_bucket *head = inet_ehash_bucket(hinfo, hash);
- 	struct sock *sk2;
-@@ -266,6 +269,10 @@ int inet6_hash_connect(struct inet_timew
-  		local_bh_disable();
- 		for (i = 1; i <= range; i++) {
- 			port = low + (i + offset) % range;
-+			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(port))
-+				continue;
-+			/***** SAKURA Linux end. *****/
-  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
-  			spin_lock(&head->lock);
- 
---- linux-2.6.18.8-0.9.orig/net/ipv6/udp.c
-+++ linux-2.6.18.8-0.9/net/ipv6/udp.c
-@@ -58,6 +58,9 @@
+--- linux-2.6.12.3-a9-14.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.6.12.3-a9-14/net/ipv6/tcp_ipv6.c
+@@ -63,6 +63,9 @@
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -1592,9 +1936,43 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
  
- DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
+ static void	tcp_v6_send_reset(struct sk_buff *skb);
+ static void	tcp_v6_or_send_ack(struct sk_buff *skb, struct open_request *req);
+@@ -148,6 +151,10 @@ static int tcp_v6_get_port(struct sock *
+ 				rover = low;
+ 			head = &tcp_bhash[tcp_bhashfn(rover)];
+ 			spin_lock(&head->lock);
++			/***** SAKURA Linux start. *****/
++			if (ccs_may_autobind(rover))
++				goto next;
++			/***** SAKURA Linux end. *****/
+ 			tb_for_each(tb, node, &head->chain)
+ 				if (tb->port == rover)
+ 					goto next;
+@@ -551,6 +558,10 @@ static int tcp_v6_hash_connect(struct so
+  		local_bh_disable();
+ 		for (i = 1; i <= range; i++) {
+ 			port = low + (i + offset) % range;
++			/***** SAKURA Linux start. *****/
++			if (ccs_may_autobind(port))
++				continue;
++			/***** SAKURA Linux end. *****/
+  			head = &tcp_bhash[tcp_bhashfn(port)];
+  			spin_lock(&head->lock);
  
-@@ -88,6 +91,10 @@ static int udp_v6_get_port(struct sock *
+--- linux-2.6.12.3-a9-14.orig/net/ipv6/udp.c
++++ linux-2.6.12.3-a9-14/net/ipv6/udp.c
+@@ -57,6 +57,9 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++/***** SAKURA Linux start. *****/
++#include <linux/sakura.h>
++/***** SAKURA Linux end. *****/
+ 
+ DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
+ 
+@@ -87,6 +90,10 @@ static int udp_v6_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1605,7 +1983,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  				goto gotit;
  			}
  			size = 0;
-@@ -104,6 +111,10 @@ static int udp_v6_get_port(struct sock *
+@@ -103,6 +110,10 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1616,8 +1994,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.18.8-0.9.orig/net/socket.c
-+++ linux-2.6.18.8-0.9/net/socket.c
+--- linux-2.6.12.3-a9-14.orig/net/socket.c
++++ linux-2.6.12.3-a9-14/net/socket.c
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1630,7 +2008,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -592,7 +597,12 @@ static inline int __sock_sendmsg(struct 
+@@ -540,7 +545,12 @@ static inline int __sock_sendmsg(struct 
  	err = security_socket_sendmsg(sock, msg, size);
  	if (err)
  		return err;
@@ -1644,7 +2022,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -1148,6 +1158,12 @@ static int __sock_create(int family, int
+@@ -1093,6 +1103,12 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1657,46 +2035,46 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1342,6 +1358,13 @@ asmlinkage long sys_bind(int fd, struct 
- 	{
- 		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
- 			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
+@@ -1287,6 +1303,12 @@ asmlinkage long sys_bind(int fd, struct 
+ 				sockfd_put(sock);
+ 				return err;
+ 			}
 +			/***** TOMOYO Linux start. *****/
-+			if (!err)
-+				err = ccs_socket_bind_permission(sock,
++			err = ccs_socket_bind_permission(sock,
 +							 (struct sockaddr *)
-+								 address,
-+								 addrlen);
++							 address, addrlen);
++			if (!err)
 +			/***** TOMOYO Linux end. *****/
- 			if (!err)
- 				err = sock->ops->bind(sock,
- 					(struct sockaddr *)address, addrlen);
-@@ -1370,6 +1393,10 @@ asmlinkage long sys_listen(int fd, int b
- 			backlog = sysctl_somaxconn;
- 
- 		err = security_socket_listen(sock, backlog);
+ 			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
+ 		}
+ 		sockfd_put(sock);
+@@ -1317,7 +1339,10 @@ asmlinkage long sys_listen(int fd, int b
+ 			sockfd_put(sock);
+ 			return err;
+ 		}
+-
 +		/***** TOMOYO Linux start. *****/
++		err = ccs_socket_listen_permission(sock);
 +		if (!err)
-+			err = ccs_socket_listen_permission(sock);
 +		/***** TOMOYO Linux end. *****/
- 		if (!err)
- 			err = sock->ops->listen(sock, backlog);
- 
-@@ -1434,6 +1461,13 @@ asmlinkage long sys_accept(int fd, struc
+ 		err=sock->ops->listen(sock, backlog);
+ 		sockfd_put(sock);
+ 	}
+@@ -1368,6 +1393,13 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
- 		goto out_fd;
+ 		goto out_release;
  
 +	/***** TOMOYO Linux start. *****/
 +	if (ccs_socket_accept_permission(newsock,
 +					 (struct sockaddr *) address)) {
 +		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
-+		goto out_fd;
++		goto out_release;
 +	}
 +	/***** TOMOYO Linux end. *****/
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1490,7 +1524,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1423,7 +1455,12 @@ asmlinkage long sys_connect(int fd, stru
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;
@@ -1710,9 +2088,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.18.8-0.9.orig/net/unix/af_unix.c
-+++ linux-2.6.18.8-0.9/net/unix/af_unix.c
-@@ -116,6 +116,9 @@
+--- linux-2.6.12.3-a9-14.orig/net/unix/af_unix.c
++++ linux-2.6.12.3-a9-14/net/unix/af_unix.c
+@@ -117,6 +117,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
  #include <linux/security.h>
@@ -1722,7 +2100,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  int sysctl_unix_max_dgram_qlen = 10;
  
-@@ -764,6 +767,11 @@ static int unix_bind(struct socket *sock
+@@ -738,6 +741,11 @@ static int unix_bind(struct socket *sock
  		err = unix_autobind(sock);
  		goto out;
  	}
@@ -1734,7 +2112,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -807,6 +815,13 @@ static int unix_bind(struct socket *sock
+@@ -781,6 +789,13 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);

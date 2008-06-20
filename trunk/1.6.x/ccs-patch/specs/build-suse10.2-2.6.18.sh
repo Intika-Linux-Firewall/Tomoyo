@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.18.8-0.9.src.rpm ]
+if [ ! -r kernel-source-2.6.18.8-0.10.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/src/kernel-source-2.6.18.8-0.9.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/src/kernel-source-2.6.18.8-0.10.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.18.8-0.9.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.18.8-0.10.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
@@ -72,46 +72,49 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.18.8-0.10_SUSE.diff ]
+then
+    wget -O ccs-patch-2.6.18.8-0.10_SUSE.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18.8-0.10_SUSE.diff?root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-02-11 10:35:20.000000000 +0900
-+++ kernel-default.spec	2008-04-01 11:31:06.000000000 +0900
-@@ -10,7 +10,7 @@
- 
- # norootforbuild
+--- kernel-default.spec	2008-06-09 08:29:42.000000000 +0900
++++ kernel-default.spec	2008-06-20 09:23:49.000000000 +0900
+@@ -23,13 +23,13 @@
+ %define build_um  %([ default != um ] ; echo $?)
+ %define build_vanilla  %([ default != vanilla ] ; echo $?)
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
- Url:            http://www.kernel.org/
- %if 0%{?opensuse_bs}
- # Strip off the build number ("y") from the "x.y" release number
-@@ -28,7 +28,7 @@
+ %ifarch ia64
+ # arch/ia64/scripts/unwcheck.py
  BuildRequires:  python
  %endif
  Version:        2.6.18.8
--Release: 0.9
-+Release: 0.9_tomoyo_1.6.1
+-Release: 0.10
++Release: 0.10_tomoyo_1.6.1
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  License:        GPL v2 or later
  Group:          System/Kernel
-@@ -234,6 +234,10 @@
+@@ -235,6 +235,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.18
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.1-20080510.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.18.8-0.9_SUSE.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.18.8-0.10_SUSE.diff
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-mv kernel-default.spec kernel-2.6.18.8-0.9-default_tomoyo_1.6.1.spec || die "Can't rename spec file."
+mv kernel-default.spec kernel-2.6.18.8-0.10-default_tomoyo_1.6.1.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.18.8-0.9-default_tomoyo_1.6.1.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.18.8-0.9-default_tomoyo_1.6.1.spec"
+echo "Edit /tmp/kernel-2.6.18.8-0.10-default_tomoyo_1.6.1.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.18.8-0.10-default_tomoyo_1.6.1.spec"
 echo "to build kernel rpm packages."
 exit 0
