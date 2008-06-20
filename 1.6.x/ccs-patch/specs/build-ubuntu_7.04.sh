@@ -8,6 +8,8 @@ die () {
     exit 1
 }
 
+VERSION=`uname -r | cut -d - -f 1,2`
+
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
@@ -21,10 +23,10 @@ curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x17063E6D ' | gpg --import 
 curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x63549F8E ' | gpg --import || die "Can't import PGP key."
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-2.6.20-16-generic || die "Can't install packages."
-apt-get source linux-image-2.6.20-16-generic || die "Can't install packages."
-apt-get build-dep linux-restricted-modules-2.6.20-16-generic || die "Can't install packages."
-apt-get source linux-restricted-modules-2.6.20-16-generic || die "Can't install packages."
+apt-get build-dep linux-image-${VERSION}-generic || die "Can't install packages."
+apt-get source linux-image-${VERSION}-generic || die "Can't install packages."
+apt-get build-dep linux-restricted-modules-${VERSION}-generic || die "Can't install packages."
+apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install packages."
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.20-2.6.20/ || die "Can't chdir to linux-2.6.20-2.6.20/ ."
@@ -40,7 +42,7 @@ export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't expo
 debian/rules binary-debs flavours=generic-ccs || die "Failed to build kernel package."
 
 # Install header package for compiling additional modules.
-dpkg -i debian/build/linux-headers-2.6.20-16*.deb || die "Can't install packages."
+dpkg -i debian/build/linux-headers-${VERSION}*.deb || die "Can't install packages."
 cd /usr/src/linux-restricted-modules-2.6.20-2.6.20.6/ || die "Can't chdir to /usr/src/linux-restricted-modules-2.6.20-2.6.20.6/ ."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-generic-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
 cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."
