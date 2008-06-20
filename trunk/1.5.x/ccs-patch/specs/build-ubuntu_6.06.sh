@@ -8,6 +8,8 @@ die () {
     exit 1
 }
 
+VERSION=`uname -r | cut -d - -f 1,2`
+
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
@@ -19,10 +21,10 @@ fi
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-2.6.15-51-686 || die "Can't install packages."
-apt-get source linux-image-2.6.15-51-686 || die "Can't install kernel source."
-apt-get build-dep linux-restricted-modules-2.6.15-51-686 || die "Can't install packages."
-apt-get source linux-restricted-modules-2.6.15-51-686 || die "Can't install kernel source."
+apt-get build-dep linux-image-${VERSION}-686 || die "Can't install packages."
+apt-get source linux-image-${VERSION}-686 || die "Can't install kernel source."
+apt-get build-dep linux-restricted-modules-${VERSION}-686 || die "Can't install packages."
+apt-get source linux-restricted-modules-${VERSION}-686 || die "Can't install kernel source."
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
@@ -40,8 +42,8 @@ export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't expo
 debian/rules binary-debs flavours=686-ccs || die "Failed to build kernel package."
 
 # Install header package for compiling additional modules.
-dpkg -i debian/build/linux-headers-2.6.15-51*.deb || die "Can't install packages."
-ln -sf asm-i386 /usr/src/linux-headers-2.6.15-51-686-ccs/include/asm || die "Can't create symlink."
+dpkg -i debian/build/linux-headers-${VERSION}*.deb || die "Can't install packages."
+ln -sf asm-i386 /usr/src/linux-headers-${VERSION}-686-ccs/include/asm || die "Can't create symlink."
 cd /usr/src/linux-restricted-modules-2.6.15-2.6.15.12/ || die "Can't chdir to /usr/src/linux-restricted-modules-2.6.15-2.6.15.12/ ."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-686:-686-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
 cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."

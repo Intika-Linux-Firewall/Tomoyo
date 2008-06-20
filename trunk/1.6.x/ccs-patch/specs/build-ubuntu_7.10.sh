@@ -8,6 +8,8 @@ die () {
     exit 1
 }
 
+VERSION=`uname -r | cut -d - -f 1,2`
+
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
@@ -23,13 +25,13 @@ curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x174BF01A ' | gpg --import 
 curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x0A0AC927 ' | gpg --import || die "Can't import PGP key."
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-2.6.22-14-generic || die "Can't install packages."
-apt-get source linux-image-2.6.22-14-generic || die "Can't install kernel source."
-apt-get install linux-headers-2.6.22-14 || die "Can't install packages."
-apt-get build-dep linux-ubuntu-modules-2.6.22-14-generic || die "Can't install packages."
-apt-get source linux-ubuntu-modules-2.6.22-14-generic || die "Can't install kernel source."
-apt-get build-dep linux-restricted-modules-2.6.22-14-generic || die "Can't install packages."
-apt-get source linux-restricted-modules-2.6.22-14-generic || die "Can't install kernel source."
+apt-get build-dep linux-image-${VERSION}-generic || die "Can't install packages."
+apt-get source linux-image-${VERSION}-generic || die "Can't install kernel source."
+apt-get install linux-headers-${VERSION} || die "Can't install packages."
+apt-get build-dep linux-ubuntu-modules-${VERSION}-generic || die "Can't install packages."
+apt-get source linux-ubuntu-modules-${VERSION}-generic || die "Can't install kernel source."
+apt-get build-dep linux-restricted-modules-${VERSION}-generic || die "Can't install packages."
+apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install kernel source."
 
 # Copy patches and create kernel config.
 cd linux-source-2.6.22-2.6.22/ || die "Can't chdir to linux-2.6.22-2.6.22/ ."
@@ -51,7 +53,7 @@ debian/rules custom-binary-ccs || die "Failed to build kernel package."
 cd .. || die "Can't chdir to ../ ."
 
 # Install header package for compiling additional modules.
-dpkg -i linux-headers-2.6.22-14-ccs_2.6.22-14.*_i386.deb || die "Can't install packages."
+dpkg -i linux-headers-${VERSION}-ccs_${VERSION}.*_i386.deb || die "Can't install packages."
 cd linux-ubuntu-modules-2.6.22-2.6.22 || die "Can't chdir to linux-ubuntu-modules-2.6.22-2.6.22 ."
 awk ' BEGIN { flag = 0; print ""; } { if ($1 == "Package:" ) { if (index($0, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub | sed -e 's:-generic:-ccs:' > debian/control.stub.ccs || die "Can't create file."
 cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."
