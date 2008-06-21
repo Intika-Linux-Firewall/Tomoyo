@@ -62,7 +62,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-source-2.6.25.5-1.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.0/rpm/src/kernel-source-2.6.25.5-1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/distribution/11.0/repo/src-oss/suse/src/kernel-source-2.6.25.5-1.1.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-source-2.6.25.5-1.1.src.rpm || die "Can't install source package."
 
