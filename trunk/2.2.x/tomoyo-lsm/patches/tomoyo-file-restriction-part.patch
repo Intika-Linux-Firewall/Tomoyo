@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1133 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1133 insertions(+)
+ security/tomoyo/file.c | 1134 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1134 insertions(+)
 
 --- /dev/null
 +++ vfs/security/tomoyo/file.c
-@@ -0,0 +1,1133 @@
+@@ -0,0 +1,1134 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -19,7 +19,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/05/07
++ * Version: 2.2.0-pre   2008/06/21
 + *
 + */
 +
@@ -171,8 +171,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_MUTEX(lock);
 +	const struct path_info *saved_filename;
 +	int error = -ENOMEM;
-+	if (!tmy_is_correct_path(filename, 1, -1, -1, __func__))
-+		return -EINVAL; /* No patterns allowed. */
++	if (!tmy_is_correct_path(filename, 1, 0, -1, __func__))
++		return -EINVAL;
 +	saved_filename = tmy_save_name(filename);
 +	if (!saved_filename)
 +		return -ENOMEM;
@@ -211,7 +211,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct globally_readable_file_entry *ptr;
 +	list1_for_each_entry(ptr, &globally_readable_list, list) {
-+		if (!ptr->is_deleted && !tmy_pathcmp(filename, ptr->filename))
++		if (!ptr->is_deleted &&
++		    tmy_path_matches_pattern(filename, ptr->filename))
 +			return true;
 +	}
 +	return false;
