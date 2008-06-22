@@ -1380,7 +1380,7 @@ static int get_root_depth(void)
  * try_alt_exec - Try to start execute handler.
  *
  * @bprm:        Pointer to "struct linux_binprm".
- * @filename:    The name of requested program.
+ * @handler:     Pointer to the name of execute handler.
  * @eh_path:     Pointer to pointer to the name of execute handler.
  * @next_domain: Pointer to pointer to "struct domain_info".
  * @tmp:         Buffer for temporal use.
@@ -1388,7 +1388,7 @@ static int get_root_depth(void)
  * Returns 0 on success, negative value otherwise.
  */
 static int try_alt_exec(struct linux_binprm *bprm,
-			const struct path_info *filename, char **eh_path,
+			const struct path_info *handler, char **eh_path,
 			struct domain_info **next_domain,
 			struct ccs_page_buffer *tmp)
 {
@@ -1439,7 +1439,7 @@ static int try_alt_exec(struct linux_binprm *bprm,
 	*eh_path = execute_handler;
 	if (!execute_handler)
 		return -ENOMEM;
-	strncpy(execute_handler, filename->name,
+	strncpy(execute_handler, handler->name,
 		sizeof(struct ccs_page_buffer) - 1);
 	unescape(execute_handler);
 
@@ -1565,7 +1565,7 @@ static int try_alt_exec(struct linux_binprm *bprm,
 	if (retval < 0)
 		goto out;
 	task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = find_next_domain(bprm, next_domain, filename, tmp);
+	retval = find_next_domain(bprm, next_domain, handler, tmp);
 	task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
  out:
 	return retval;
@@ -1631,7 +1631,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 		retval = try_alt_exec(bprm, handler, &eh_path, &next_domain,
 				      tmp);
 		if (!retval)
-			audit_execute_handler_log(true, eh_path, bprm);
+			audit_execute_handler_log(true, handler->name, bprm);
 		goto ok;
 	}
 	retval = find_next_domain(bprm, &next_domain, NULL, tmp);
@@ -1642,7 +1642,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 		retval = try_alt_exec(bprm, handler, &eh_path, &next_domain,
 				      tmp);
 		if (!retval)
-			audit_execute_handler_log(false, eh_path, bprm);
+			audit_execute_handler_log(false, handler->name, bprm);
 	}
  ok:
 	if (retval)
