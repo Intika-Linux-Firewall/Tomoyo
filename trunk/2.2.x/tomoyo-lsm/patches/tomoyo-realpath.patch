@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  724 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.c |  723 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.h |   60 +++
- 2 files changed, 784 insertions(+)
+ 2 files changed, 783 insertions(+)
 
 --- /dev/null
 +++ vfs/security/tomoyo/realpath.c
-@@ -0,0 +1,724 @@
+@@ -0,0 +1,723 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -29,7 +29,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/06/05
++ * Version: 2.2.0-pre   2008/06/22
 + *
 + */
 +
@@ -101,10 +101,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			if (IS_ROOT(parent) && *sp > '0' && *sp <= '9' &&
 +			    parent->d_sb &&
 +			    parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
-+				char *ep;
-+				const pid_t pid
-+					= (pid_t) simple_strtoul(sp, &ep, 10);
-+				if (!*ep && pid == current->tgid) {
++				unsigned long pid;
++				if (!strict_strtoul(sp, 10, &pid) &&
++				    (pid_t) pid == current->tgid) {
 +					sp = "self";
 +					cp = sp + 3;
 +				}
@@ -756,7 +755,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/05/07
++ * Version: 2.2.0-pre   2008/06/22
 + *
 + */
 +
