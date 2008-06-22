@@ -1493,4 +1493,12 @@ Fix 2008/06/11
           ccs-queryd (such as less(1)) is opening /proc/ccs/query interface,
           for such process doesn't write dummy decisions.
 
+Fix 2008/06/22
+
+    @ Pass escaped pathname to audit_execute_handler_log().
+
+      I was passing unescaped pathname to audit_execute_handler_log()
+      which causes /proc/ccs/grant_log contain whitespace characters
+      if execute handler's pathname contains whitespace characters.
+
 Version 1.6.2 2008/??/??   Usability enhancement release.
