@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.2-rc   2008/06/12
+ * Version: 1.6.2-rc   2008/06/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1381,14 +1381,14 @@ static int get_root_depth(void)
  *
  * @bprm:        Pointer to "struct linux_binprm".
  * @filename:    The name of requested program.
- * @work:        Pointer to pointer to the name of execute handler.
+ * @eh_path:     Pointer to pointer to the name of execute handler.
  * @next_domain: Pointer to pointer to "struct domain_info".
  * @tmp:         Buffer for temporal use.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int try_alt_exec(struct linux_binprm *bprm,
-			const struct path_info *filename, char **work,
+			const struct path_info *filename, char **eh_path,
 			struct domain_info **next_domain,
 			struct ccs_page_buffer *tmp)
 {
@@ -1436,7 +1436,7 @@ static int try_alt_exec(struct linux_binprm *bprm,
 	char *buffer = tmp->buffer;
 	/* Allocate memory for execute handler's pathname. */
 	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer));
-	*work = execute_handler;
+	*eh_path = execute_handler;
 	if (!execute_handler)
 		return -ENOMEM;
 	strncpy(execute_handler, filename->name,
@@ -1617,36 +1617,38 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 	const struct path_info *handler;
 	int retval;
 	/*
-	 * "work" holds path to program.
+	 * "eh_path" holds path to execute handler program.
 	 * Thus, keep valid until search_binary_handler() finishes.
 	 */
-	char *work = NULL;
-	struct ccs_page_buffer *buf = ccs_alloc(sizeof(struct ccs_page_buffer));
+	char *eh_path = NULL;
+	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(struct ccs_page_buffer));
 	ccs_load_policy(bprm->filename);
-	if (!buf)
+	if (!tmp)
 		return -ENOMEM;
 	/* printk(KERN_DEBUG "rootdepth=%d\n", get_root_depth()); */
 	handler = find_execute_handler(TYPE_EXECUTE_HANDLER);
 	if (handler) {
-		retval = try_alt_exec(bprm, handler, &work, &next_domain, buf);
+		retval = try_alt_exec(bprm, handler, &eh_path, &next_domain,
+				      tmp);
 		if (!retval)
-			audit_execute_handler_log(true, work, bprm);
+			audit_execute_handler_log(true, eh_path, bprm);
 		goto ok;
 	}
-	retval = find_next_domain(bprm, &next_domain, NULL, buf);
+	retval = find_next_domain(bprm, &next_domain, NULL, tmp);
 	if (retval != -EPERM)
 		goto ok;
 	handler = find_execute_handler(TYPE_DENIED_EXECUTE_HANDLER);
 	if (handler) {
-		retval = try_alt_exec(bprm, handler, &work, &next_domain, buf);
+		retval = try_alt_exec(bprm, handler, &eh_path, &next_domain,
+				      tmp);
 		if (!retval)
-			audit_execute_handler_log(false, work, bprm);
+			audit_execute_handler_log(false, eh_path, bprm);
 	}
  ok:
 	if (retval)
 		goto out;
 	task->domain_info = next_domain;
-	retval = check_environ(bprm, buf);
+	retval = check_environ(bprm, tmp);
 	if (retval)
 		goto out;
 	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
@@ -1662,8 +1664,8 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 	/* Mark the current process as normal process. */
 	else
 		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
-	ccs_free(work);
-	ccs_free(buf);
+	ccs_free(eh_path);
+	ccs_free(tmp);
 	return retval;
 }
 
