@@ -119,7 +119,8 @@ int ccs_may_umount(struct vfsmount *mnt)
 						     "unmount %s\n",
 						     exename, dir0);
 		ccs_free(exename);
-	}
+	} else
+		error = 0;
 	ccs_free(dir0);
  out:
 	if (!is_enforce)
