@@ -1496,4 +1496,12 @@ Fix 2008/06/22
       which causes /proc/ccs/grant_log contain whitespace characters
       if execute handler's pathname contains whitespace characters.
 
+Fix 2008/06/25
+
+    @ Return 0 when ccs_may_umount() succeeds.
+
+      I forgot to clear error value in ccs_may_umount() when the requested
+      directory didn't match "deny_unmount" keyword. As a result, any umount()
+      request with RESTRICT_UNMOUNT=enforcing returned -EPERM error.
+
 Version 1.6.2 2008/06/25   Usability enhancement release.
