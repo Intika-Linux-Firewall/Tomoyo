@@ -25,6 +25,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 +++
  include/linux/syaoran.h         |    2 
+ include/linux/tomoyo_socket.h   |    2 
  kernel/compat.c                 |    7 ++
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
@@ -43,7 +44,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 41 files changed, 673 insertions(+), 10 deletions(-)
+ 42 files changed, 674 insertions(+), 11 deletions(-)
 
 --- linux-2.6.18-92.1.1.el5.orig/Makefile
 +++ linux-2.6.18-92.1.1.el5/Makefile
@@ -896,6 +897,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  #endif
  			inode->i_blocks = 0;
  			inode->i_mapping->a_ops = &syaoran_aops;
+--- linux-2.6.18-92.1.1.el5.orig/include/linux/tomoyo_socket.h
++++ linux-2.6.18-92.1.1.el5/include/linux/tomoyo_socket.h
+@@ -302,7 +302,7 @@ static inline int ccs_socket_sendmsg_per
+ 	return error;
+ }
+ 
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22) && 0
+ 
+ static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
+ {
 --- linux-2.6.18-92.1.1.el5.orig/kernel/compat.c
 +++ linux-2.6.18-92.1.1.el5/kernel/compat.c
 @@ -24,6 +24,9 @@

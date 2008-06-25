@@ -53,7 +53,7 @@
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-typedef _Bool bool;
+#define bool _Bool
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)

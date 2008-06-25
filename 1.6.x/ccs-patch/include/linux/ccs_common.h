@@ -58,9 +58,8 @@ extern asmlinkage long sys_getppid(void);
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-typedef _Bool bool;
+#define bool _Bool
 #endif
-
 
 #ifndef KERN_CONT
 #define KERN_CONT ""
