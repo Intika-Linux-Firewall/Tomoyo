@@ -73,9 +73,9 @@ fi
 rpm -ivh kernel-source-2.6.16.54-0.2.5.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
+if [ ! -r ccs-patch-1.6.2-20080625.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -97,7 +97,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  Version:        2.6.16.54
 -Release: 0.2.5
-+Release: 0.2.5_tomoyo_1.6.1
++Release: 0.2.5_tomoyo_1.6.2
  Summary:        The Standard Kernel
  License:        GPL v2 or later
  Group:          System/Kernel
@@ -115,18 +115,18 @@ patch << "EOF" || die "Can't patch spec file."
  source .rpm-defs
  cd linux-2.6.16
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.1-20080510.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.2-20080625.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.16.54-0.2.5_SUSE.diff
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-mv kernel-default.spec kernel-2.6.16.54-0.2.5-default_tomoyo_1.6.1.spec || die "Can't rename spec file."
+mv kernel-default.spec kernel-2.6.16.54-0.2.5-default_tomoyo_1.6.2.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.16.54-0.2.5-default_tomoyo_1.6.1.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.16.54-0.2.5-default_tomoyo_1.6.1.spec"
+echo "Edit /tmp/kernel-2.6.16.54-0.2.5-default_tomoyo_1.6.2.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.16.54-0.2.5-default_tomoyo_1.6.2.spec"
 echo "to build kernel rpm packages."
 exit 0

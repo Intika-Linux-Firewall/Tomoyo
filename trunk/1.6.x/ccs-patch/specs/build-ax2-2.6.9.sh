@@ -17,27 +17,22 @@ fi
 rpm -ivh kernel-2.6.9-42.22AX.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.1-20080510.tar.gz ]
+if [ ! -r ccs-patch-1.6.2-20080625.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.1-20080510.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.9-42.22AX.diff ]
-then
-    wget -O ccs-patch-2.6.9-42.22AX.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-42.22AX.diff?root=tomoyo' || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-2.6.spec	2008-05-26 15:23:44.000000000 +0900
-+++ kernel-2.6..spec	2008-05-31 05:23:29.000000000 +0900
++++ kernel-2.6.spec	2008-05-31 05:23:29.000000000 +0900
 @@ -29,7 +29,7 @@
  # adding some text to the end of the version number.
  #
  %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
 -%define release 42.22AX%{axbsys}
-+%define release 42.22AX%{axbsys}_tomoyo_1.6.1
++%define release 42.22AX%{axbsys}_tomoyo_1.6.2
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -65,9 +60,9 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.1-20080510.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.2-20080625.tar.gz
 +sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.22AX/" -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.9-42.22AX.diff
++patch -sp1 < patches/ccs-patch-2.6.9-42.22AX.diff
 +
  cp %{SOURCE10} Documentation/
  
@@ -83,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
  	cp .config configs/$i 
  done
 EOF
-mv kernel-2.6.spec kernel-2.6.9-42.22AX_tomoyo_1.6.1.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.9-42.22AX_tomoyo_1.6.2.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.9-42.22AX_tomoyo_1.6.1.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.9-42.22AX_tomoyo_1.6.1.spec"
+echo "Edit /tmp/kernel-2.6.9-42.22AX_tomoyo_1.6.2.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.9-42.22AX_tomoyo_1.6.2.spec"
 echo "to build kernel rpm packages."
 exit 0
