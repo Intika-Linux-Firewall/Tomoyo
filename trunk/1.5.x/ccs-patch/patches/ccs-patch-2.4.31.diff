@@ -1308,7 +1308,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.31 2008/04/30\n");
++	printk(KERN_INFO "Hook version: 2.4.31 2008/06/25\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1867,7 +1867,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		}
  		result = best;
 -		for(;; result += UDP_HTABLE_SIZE) {
-+		for(i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++,
++		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++,
 +			    result += UDP_HTABLE_SIZE) {
  			if (result > sysctl_local_port_range[1])
  				result = sysctl_local_port_range[0]
