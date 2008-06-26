@@ -18,65 +18,7 @@
 
 <h2>TOMOYO Linux カーネルのインストール</h2>
 
-<p>TOMOYO Linux では、いくつかのコンパイル済みのカーネルをパッケージにして提供しています。コンパイル済みのカーネルを利用する場合は、以下のファイルをダウンロードしてインストールしてください。</p>
-
-<table border="1">
-<tr><td>
-RedHat Linux 9 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.4.20-46.9.legacy_tomoyo_1.4.2.i386.rpm
-</td></tr><tr><td>
-Fedora Core 3 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.4.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 4 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.17-1.2142_FC4_tomoyo_1.4.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 5 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.20-1.2320.fc5_tomoyo_1.4.2.i586.rpm
-</td></tr><tr><td>
-Fedora Core 6 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.22.2-42.fc6_tomoyo_1.4.2.i586.rpm
-</td></tr><tr><td>
-Fedora 7 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.22.4-65.fc7_tomoyo_1.4.2.i586.rpm
-</td></tr><tr><td>
-CentOS 4.5 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.9-55.0.2.EL_tomoyo_1.4.2.i586.rpm
-</td></tr><tr><td>
-CentOS 5 （80686以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.18-8.1.8.el5_tomoyo_1.4.2.i686.rpm
-</td></tr><tr><td>
-Debian Sarge （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-image-2.4.27-10sarge5-ccs-i586_1.4.2_i386.deb<br>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-image-2.6.8-16sarge7-ccs-i586_1.4.2_i386.deb
-</td></tr><tr><td>
-Debian Etch （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/linux-image-2.6.18-13etch1-ccs-i586_1.4.2_i386.deb
-</td></tr><tr><td>
-Debian sid （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/linux-image-2.6.21-ccs-i586_1.4.2_i386.deb
-</td></tr><tr><td>
-OpenSUSE 10.2 （80586以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-default-2.6.18.8-0.5_tomoyo_1.4.2.i586.rpm
-</td></tr><tr><td>
-Asianux 2.0 （80686以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.9-42.15AX_tomoyo_1.4.2.i686.rpm
-</td></tr><tr><td>
-Ubuntu 6.10 (80586以降用)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/linux-image-2.6.17.14-ubuntu1-tomoyo1.4.2-i586_2.6.17.1-11.38_i386.deb
-</td></tr><tr><td>
-Ubuntu 7.04 (80586以降用)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/linux-image-2.6.20.3-ubuntu1-tomoyo1.4.2-i586_2.6.20-16.29_i386.deb
-</td></tr><tr><td>
-Vine Linux 4.1 (80586以降用)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-2.6.16-0vl76.3_tomoyo_1.4.2.i586.rpm
-</td></tr><tr><td>
-Nature's Linux 1.5.1 (Pentium III以降用)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/kernel-image-2.6.18.8p1up-tomoyo1.4.2_nlug1_i386.deb
-</td></tr>
-</table>
-
-<p>アーキテクチャが異なる場合やカスタマイズしたい場合には、カーネルをコンパイルする必要があります。カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
+<p>カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
 
 <p>SELinux をサポートするディストリビューションでは、 SELinux が無効になっていないとインストール時にエラーが発生する場合があります。インストール時に以下のようなエラーメッセージが表示される場合は、 SELinux を無効にしてからインストールしてください。 /etc/selinux/config の SELINUX= の行を SELINUX=disabled に書き換えてからシステムを再起動するか、あるいは、カーネル起動時のコマンドラインに selinux=0 というオプションを渡すことで SELinux を無効にできます。</p>
 
@@ -144,72 +86,7 @@ boot
 
 <h2>TOMOYO Linux ツールのインストール</h2>
 
-<p>TOMOYO Linux では、いくつかのコンパイル済みのツールを提供しています。コンパイル済みのツールを利用する場合は、以下のファイルをダウンロードして /root/ ディレクトリの下に展開してください。</p>
-
-<table border="1">
-<tr><td>
-RedHat Linux 9 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-RHL9.tar.gz
-</td></tr><tr><td>
-Fedora Core 3 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-FC3.tar.gz
-</td></tr><tr><td>
-Fedora Core 4 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-FC4.tar.gz
-</td></tr><tr><td>
-Fedora Core 5 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-FC5.tar.gz
-</td></tr><tr><td>
-Fedora Core 6 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-FC6.tar.gz
-</td></tr><tr><td>
-Fedora 7 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-F7.tar.gz
-</td></tr><tr><td>
-CentOS 4.5 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-CentOS4.5.tar.gz
-</td></tr><tr><td>
-CentOS 5 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-CentOS5.tar.gz
-</td></tr><tr><td>
-Debian Sarge （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-Sarge.tar.gz
-</td></tr><tr><td>
-Debian Etch （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-Etch.tar.gz
-</td></tr><tr><td>
-OpenSUSE 10.1 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-SUSE10.1.tar.gz
-</td></tr><tr><td>
-OpenSUSE 10.2 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-SUSE10.2.tar.gz
-</td></tr><tr><td>
-Asianux 2.0 （80386以降用）</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-AX2.tar.gz
-</td></tr><tr><td>
-Ubuntu 6.10 (80386以降用)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-Ubuntu6.10.tar.gz
-</td></tr><tr><td>
-Ubuntu 7.04 (80386以降用)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-Ubuntu7.04.tar.gz
-</td></tr><tr><td>
-Vine Linux 4.1 (80386以降用)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools-1.4.2-i386-Vine4.1.tar.gz
-</td></tr><tr><td>
-Nature's Linux 1.5.1 (80386以降用)</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/25544/ccs-tools_1.4.2-nlug1_i386.deb
-</td></tr>
-</table>
-
-<p>展開された .init （ポリシーローダー）を / へ移動してください。</p>
-
-<table border="1">
-<tr><td>
-mv ccstools/.init /
-</td></tr>
-</table>
-
-<p>アーキテクチャが異なる場合には、ツールをコンパイルする必要があります。ツールをコンパイルするには、以下のコマンドを実行してください。</p>
+<p>ツールをコンパイルするには、以下のコマンドを実行してください。</p>
 
 <table border="1">
 <tr><td>
