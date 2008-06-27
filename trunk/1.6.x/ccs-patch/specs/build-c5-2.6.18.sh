@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-92.1.1.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-92.1.6.el5.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS/kernel-2.6.18-92.1.1.el5.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS/kernel-2.6.18-92.1.6.el5.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.18-92.1.1.el5.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.18-92.1.6.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.2-20080625.tar.gz ]
@@ -22,11 +22,16 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.18-92.1.6.el5.diff ]
+then
+    wget -O ccs-patch-2.6.18-92.1.6.el5.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18-92.1.6.el5.diff?root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-06-22 02:39:36.000000000 +0900
-+++ kernel-2.6.spec	2008-06-25 16:19:15.000000000 +0900
+--- kernel-2.6.spec	2008-06-26 02:00:24.000000000 +0900
++++ kernel-2.6.spec	2008-06-27 09:13:36.000000000 +0900
 @@ -66,7 +66,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -55,19 +60,19 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -4682,6 +4685,11 @@
+@@ -4692,6 +4695,11 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.2-20080625.tar.gz
-+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -92.1.1.el5/" -- Makefile
-+patch -sp1 < patches/ccs-patch-2.6.18-92.1.1.el5.diff
++sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -92.1.6.el5/" -- Makefile
++patch -sp1 < %_sourcedir/ccs-patch-2.6.18-92.1.6.el5.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -4741,6 +4749,9 @@
+@@ -4751,6 +4759,9 @@
  for i in *.config
  do
    mv $i .config
@@ -78,11 +83,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch nonint_oldconfig > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel-2.6.spec kernel-2.6.18-92.1.1.el5_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.18-92.1.6.el5_tomoyo_1.6.2.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.18-92.1.1.el5_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb --without kabichk /tmp/kernel-2.6.18-92.1.1.el5_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.6.18-92.1.6.el5_tomoyo_1.6.2.spec if needed, and run"
+echo "rpmbuild -bb --without kabichk /tmp/kernel-2.6.18-92.1.6.el5_tomoyo_1.6.2.spec"
 echo "to build kernel rpm packages."
 exit 0
