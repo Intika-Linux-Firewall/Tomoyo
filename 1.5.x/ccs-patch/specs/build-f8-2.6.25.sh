@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.25.4-10.fc8.src.rpm ]
+if [ ! -r kernel-2.6.25.6-27.fc8.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS/kernel-2.6.25.4-10.fc8.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS/kernel-2.6.25.6-27.fc8.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.25.4-10.fc8.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.25.6-27.fc8.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
@@ -22,16 +22,16 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.25.4-10.fc8.diff ]
+if [ ! -r ccs-patch-2.6.25.6-27.fc8.diff ]
 then
-    wget -O ccs-patch-2.6.25.4-10.fc8.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.25.4-10.fc8.diff?root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.25.6-27.fc8.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.25.6-27.fc8.diff?root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-05-23 11:21:37.000000000 +0900
-+++ kernel.spec	2008-06-07 17:21:38.000000000 +0900
+--- kernel.spec	2008-06-13 23:04:07.000000000 +0900
++++ kernel.spec	2008-06-25 17:17:53.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -62,7 +62,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -751,7 +756,7 @@
+@@ -753,7 +758,7 @@
  Provides: kernel-devel = %{rpmversion}-%{release}%{?1}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -71,19 +71,19 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1228,6 +1233,11 @@
+@@ -1231,6 +1236,11 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .4-10.fc8:' -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.25.4-10.fc8.diff
++sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .6-27.fc8:' -- Makefile
++patch -sp1 < %_sourcedir/ccs-patch-2.6.25.6-27.fc8.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1253,6 +1263,9 @@
+@@ -1256,6 +1266,9 @@
  for i in *.config
  do
    mv $i .config
@@ -94,11 +94,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch %{oldconfig_target} > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel.spec kernel-2.6.25.4-10.fc8_tomoyo_1.5.4.spec || die "Can't rename spec file."
+mv kernel.spec kernel-2.6.25.6-27.fc8_tomoyo_1.5.4.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.25.4-10.fc8_tomoyo_1.5.4.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.25.4-10.fc8_tomoyo_1.5.4.spec"
+echo "Edit /tmp/kernel-2.6.25.6-27.fc8_tomoyo_1.5.4.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.25.6-27.fc8_tomoyo_1.5.4.spec"
 echo "to build kernel rpm packages."
 exit 0
