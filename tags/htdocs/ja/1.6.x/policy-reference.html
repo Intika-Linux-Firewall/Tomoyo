@@ -1153,7 +1153,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_ALLOW_ENFORCE_GRACE">ALLOW_ENFORCE_GRACE</a></h3>
 
-<p>強制モードに於いてポリシに違反したアクセス要求を対話的に許可できるようにするかどうかを指定します。</p>
+<p>強制モードに於いてポリシに違反したアクセス要求を対話的に許可できるようにするかどうかを指定します。この項目は TOMOYO Linux 1.6.2 で廃止されました。</p>
 
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
@@ -1654,6 +1654,8 @@ allow_network TCP accept @local-address 1024-65535
 <h2><a name="query">/proc/ccs/query</a></h2>
 
 <p>強制モードで動作中にポリシ違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用します。 ALLOW_ENFORCE_GRACE=enabled に設定されているプロファイルが割り当てられているドメインに対して強制モードでポリシ違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できます。</p>
+
+<p>TOMOYO Linux 1.6.2 では ALLOW_ENFORCE_GRACE が廃止されました。よって、 TOMOYO Linux 1.6.2 以降をお使いの場合、 ccs-queryd を実行するだけで対話的に諾否を指定できます。</p>
 
 <h2><a name="manager">/proc/ccs/manager</a></h2>
 
