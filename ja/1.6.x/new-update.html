@@ -27,6 +27,14 @@
 
 <p>TOMOYO Linux には、強制モードのままポリシーの修正を行うためのツールが付属しています。これらのツールを使うことで、軽微な変更ならば、ポリシーを最初から再取得することなくシステムの運用を継続できます。ただし、これらのツールは、全てのケースに対応できるとは限らず、最適なポリシーであることを保証するものではありません。</p>
 
+<p>このページで説明している手順は、 TOMOYO Linux 1.6.2 以降のものです。 TOMOYO Linux 1.6.2 未満での手順については、<a href="old-update.html">こちら</a>を参照してください。</p>
+
+<h1>デモ</h1>
+
+<p>アップデート手順を解説した <a href="http://tomoyo.sourceforge.jp/data/update_demo.avi" target="_blank">デモムービー</a>があります。</p>
+
+<p>このムービーを観るには VMware 用のコーデックが必要です。 Windows 環境の場合、 <a href="http://www.vmware.com/download/eula/moviedecoder_v55.html">こちら</a>からダウンロードできます。</p>
+
 <h1>手順</h1>
 
 <p>まず、コンソールまたはターミナルを開いて、以下のコマンドを起動してください。</p>
@@ -37,19 +45,19 @@
 </td></tr>
 </table>
 
-<p>ccs-queryd は、 /etc/ld.so.cache に登録されている共有ライブラリファイルの情報が変更された場合に、共有ライブラリのパス名を「無条件に読み込み可能なファイル」として例外ポリシーに追加するかどうかを尋ねてきます。以下の例は、 /lib/libnss_hesiod-2.5.so というパス名が作成されて /etc/ld.so.cache に登録されたので例外ポリシーに追加するかどうか尋ねています。</p>
+<p>ccs-queryd は、 /etc/ld.so.cache に登録されている共有ライブラリファイルの情報が変更された場合に、共有ライブラリのパス名を「無条件に読み込み可能なファイル」として例外ポリシーに追加します。以下の例は、 /lib/libnss_hesiod-2.5.so というパス名が作成されて /etc/ld.so.cache に登録されたので例外ポリシーに追加したことを示していますす。</p>
 
 <table border="1">
 <tr><td>
-The pathname /lib/libnss_hesiod-2.5.so was created. Append to globally readable file? ('Y'es/'N'o):
+The pathname /lib/libnss_hesiod-2.5.so was created. Appended to globally readable file.
 </td></tr>
 </table>
 
-<p>また、「無条件に読み込み可能なファイル」として例外ポリシーに登録されているパス名が消滅した場合、例外ポリシーから削除するかどうかを尋ねてきます。以下の例は、/lib/libnss_hesiod-2.4.so というパス名が消滅したのでポリシーから削除するかどうか尋ねています。</p>
+<p>また、「無条件に読み込み可能なファイル」として例外ポリシーに登録されているパス名が消滅した場合、例外ポリシーから削除します。以下の例は、/lib/libnss_hesiod-2.4.so というパス名が消滅したのでポリシーから削除したことを示しています。</p>
 
 <table border="1">
 <tr><td>
-The pathname /lib/libnss_hesiod-2.4.so was deleted. Delete from globally readable file? ('Y'es/'N'o):
+The pathname /lib/libnss_hesiod-2.4.so was deleted. Deleted from globally readable file.
 </td></tr>
 </table>
 
@@ -78,7 +86,7 @@ Allow? ('Y'es/Yes and 'A'ppend to policy/'N'o):
 
 <p>次に、強制アクセス制御の対象となっているプログラムの動作を確認するために、一通りの操作を試してください。もし、アクセス許可の不足が検出された場合は ccs-queryd に表示されますので、 ccs-queryd の監視を忘れないようにしてください。</p>
 
-<p>なお、 ccs-queryd はメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずにポリシーを保存してください。</p>
+<p>なお、 ccs-queryd はメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずに ccs-savepolicy を実行してポリシーを保存してください。</p>
 
 <table border="1">
 <tr><td>
