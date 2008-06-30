@@ -1153,7 +1153,7 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
 <h3><a name="profile_ALLOW_ENFORCE_GRACE">ALLOW_ENFORCE_GRACE</a></h3>
 
-<p>Specifies whether to permit judging access requests which violates policy in enforcing mode interactively.</p>
+<p>Specifies whether to permit judging access requests which violates policy in enforcing mode interactively. This item was removed in TOMOYO Linux 1.6.2 .</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1662,6 +1662,8 @@ allow_network TCP accept @local-address 1024-65535
 <h2><a name="query">/proc/ccs/query</a></h2>
 
 <p>This file is used to manually grant or reject individual access requests when the policy violation occurs in enforcing mode. If a policy violation occur in a process whose domain is assigned a profile for enforcing mode and "ALLOW_ENFORCE_GRACE=enabled", the administrator can judge interactively using "ccs-queryd" command.</p>
+
+<p>The ALLOW_ENFORCE_GRACE was removed in TOMOYO Linux 1.6.2 . If you are using TOMOYO Linux 1.6.2 and later, you just need to run "ccs-queryd" command to judge interactively.</p>
 
 <h2><a name="manager">/proc/ccs/manager</a></h2>
 
