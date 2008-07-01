@@ -1505,3 +1505,11 @@ Fix 2008/06/25
       request with RESTRICT_UNMOUNT=enforcing returned -EPERM error.
 
 Version 1.6.2 2008/06/25   Usability enhancement release.
+
+Fix 2008/07/01
+
+    @ Fix "Compilation failure" with 2.4.20 kernel.
+
+      RedHat Linux 9's 2.4.20 kernel backported O(1) scheduler patch,
+      resulting compilation error at ccs_load_policy().
+      I added defined(TASK_DEAD) check.

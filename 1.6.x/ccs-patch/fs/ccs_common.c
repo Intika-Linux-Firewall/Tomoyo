@@ -2371,6 +2371,25 @@ void ccs_load_policy(const char *filename)
 		envp[2] = NULL;
 		call_usermodehelper(argv[0], argv, envp, 1);
 	}
+#elif defined(TASK_DEAD)
+	{
+		/* Copied from kernel/kmod.c */
+		struct task_struct *task = current;
+		pid_t pid = kernel_thread(run_ccs_loader, NULL, 0);
+		sigset_t tmpsig;
+		spin_lock_irq(&task->sighand->siglock);
+		tmpsig = task->blocked;
+		siginitsetinv(&task->blocked,
+			      sigmask(SIGKILL) | sigmask(SIGSTOP));
+		recalc_sigpending();
+		spin_unlock_irq(&current->sighand->siglock);
+		if (pid >= 0)
+			waitpid(pid, NULL, __WCLONE);
+		spin_lock_irq(&task->sighand->siglock);
+		task->blocked = tmpsig;
+		recalc_sigpending();
+		spin_unlock_irq(&task->sighand->siglock);
+	}
 #else
 	{
 		/* Copied from kernel/kmod.c */
