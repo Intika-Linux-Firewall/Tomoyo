@@ -22,6 +22,11 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.4.20-46.9.legacy.diff ]
+then
+    wget -O ccs-patch-2.4.20-46.9.legacy.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.4.20-46.9.legacy.diff?root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.4.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
@@ -52,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.2-20080625.tar.gz
 +sed -i -e "s/^SUBLEVEL.*/SUBLEVEL = 20/" -e "s/^EXTRAVERSION.*/EXTRAVERSION = -46.9.legacycustom/" -- Makefile
-+patch -sp1 < patches/ccs-patch-2.4.20-46.9.legacy.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.4.20-46.9.legacy.diff
 +
  cp %{SOURCE10} Documentation/
  chmod +x arch/sparc*/kernel/check_asm.sh
