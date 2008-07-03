@@ -5,13 +5,17 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4   2008/05/10
+ * Version: 1.5.5-pre   2008/07/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
  *
  */
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#define __KERNEL_SYSCALLS__
+#endif
 #include <linux/string.h>
 #include <linux/mm.h>
 #include <linux/utime.h>
@@ -20,7 +24,6 @@
 #include <linux/slab.h>
 #include <asm/uaccess.h>
 #include <stdarg.h>
-#include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
@@ -32,6 +35,9 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/ccs_common.h>
 #include <linux/ccs_proc.h>
 #include <linux/tomoyo.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#include <linux/unistd.h>
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 #define find_task_by_pid find_task_by_vpid
 #endif
@@ -1144,8 +1150,6 @@ static int ReadSystemPolicy(struct io_buffer *head)
 
 /*************************  POLICY LOADER  *************************/
 
-static int profile_loaded = 0;
-
 static const char *ccs_loader = NULL;
 
 static int __init CCS_loader_Setup(char *str)
@@ -1155,6 +1159,22 @@ static int __init CCS_loader_Setup(char *str)
 }
 
 __setup("CCS_loader=", CCS_loader_Setup);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+static int run_ccs_loader(void *unused)
+{
+	char *argv[2];
+	char *envp[3];
+	printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
+	       ccs_loader);
+	argv[0] = (char *) ccs_loader;
+	argv[1] = NULL;
+	envp[0] = "HOME=/";
+	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
+	envp[2] = NULL;
+	return exec_usermodehelper(argv[0], argv, envp);
+}
+#endif
 
 void CCS_LoadPolicy(const char *filename)
 {
@@ -1185,7 +1205,8 @@ void CCS_LoadPolicy(const char *filename)
 		path_release(&nd);
 #endif
 	}
-	if (!profile_loaded) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	{
 		char *argv[2], *envp[3];
 		printk("Calling %s to load policy. Please wait.\n", ccs_loader);
 		argv[0] = (char *) ccs_loader;
@@ -1193,23 +1214,53 @@ void CCS_LoadPolicy(const char *filename)
 		envp[0] = "HOME=/";
 		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
 		envp[2] = NULL;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 		call_usermodehelper(argv[0], argv, envp, 1);
-#else
-		call_usermodehelper(argv[0], argv, envp);
-#endif
-		while (!profile_loaded) {
-			set_current_state(TASK_INTERRUPTIBLE);
-			schedule_timeout(HZ / 10);
-		}
 	}
+#elif defined(TASK_DEAD)
+	{
+		/* Copied from kernel/kmod.c */
+		struct task_struct *task = current;
+		pid_t pid = kernel_thread(run_ccs_loader, NULL, 0);
+		sigset_t tmpsig;
+		spin_lock_irq(&task->sighand->siglock);
+		tmpsig = task->blocked;
+		siginitsetinv(&task->blocked,
+			      sigmask(SIGKILL) | sigmask(SIGSTOP));
+		recalc_sigpending();
+		spin_unlock_irq(&current->sighand->siglock);
+		if (pid >= 0)
+			waitpid(pid, NULL, __WCLONE);
+		spin_lock_irq(&task->sighand->siglock);
+		task->blocked = tmpsig;
+		recalc_sigpending();
+		spin_unlock_irq(&task->sighand->siglock);
+	}
+#else
+	{
+		/* Copied from kernel/kmod.c */
+		struct task_struct *task = current;
+		pid_t pid = kernel_thread(run_ccs_loader, NULL, 0);
+		sigset_t tmpsig;
+		spin_lock_irq(&task->sigmask_lock);
+		tmpsig = task->blocked;
+		siginitsetinv(&task->blocked,
+			      sigmask(SIGKILL) | sigmask(SIGSTOP));
+		recalc_sigpending(task);
+		spin_unlock_irq(&task->sigmask_lock);
+		if (pid >= 0)
+			waitpid(pid, NULL, __WCLONE);
+		spin_lock_irq(&task->sigmask_lock);
+		task->blocked = tmpsig;
+		recalc_sigpending(task);
+		spin_unlock_irq(&task->sigmask_lock);
+	}
+#endif
 #ifdef CONFIG_SAKURA
-	printk("SAKURA: 1.5.4   2008/05/10\n");
+	printk("SAKURA: 1.5.5-pre   2008/07/03\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk("TOMOYO: 1.5.4   2008/05/10\n");
+	printk("TOMOYO: 1.5.5-pre   2008/07/03\n");
 #endif
-	//if (!profile_loaded) panic("No profiles loaded. Run policy loader using 'init=' option.\n");
 	printk("Mandatory Access Control activated.\n");
 	sbin_init_started = 1;
 	ccs_log_level = KERN_WARNING;
@@ -1539,14 +1590,31 @@ int CCS_OpenControl(const int type, struct file *file)
 		head->read = ReadUpdatesCounter;
 		break;
 	}
-	if (type != CCS_GRANTLOG && type != CCS_REJECTLOG && type != CCS_QUERY) {
+	if (!(file->f_mode & FMODE_READ)) {
+		/*
+		 * No need to allocate read_buf since it is not opened
+		 * for reading.
+		 */
+		head->read = NULL;
+		head->poll = NULL;
+	} else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG && type != CCS_QUERY) {
+		/*
+		 * Don't allocate buffer for reading if the file is one of
+		 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
+		 */
 		if (!head->readbuf_size) head->readbuf_size = PAGE_SIZE * 2;
 		if ((head->read_buf = ccs_alloc(head->readbuf_size)) == NULL) {
 			ccs_free(head);
 			return -ENOMEM;
 		}
 	}
-	if (head->write) {
+	if (!(file->f_mode & FMODE_WRITE)) {
+		/*
+		 * No need to allocate write_buf since it is not opened
+		 * for writing.
+		 */
+		head->write = NULL;
+	} else if (head->write) {
 		head->writebuf_size = PAGE_SIZE * 2;
 		if ((head->write_buf = ccs_alloc(head->writebuf_size)) == NULL) {
 			ccs_free(head->read_buf);
@@ -1556,7 +1624,7 @@ int CCS_OpenControl(const int type, struct file *file)
 	}
 	file->private_data = head;
 	if (type == CCS_SELFDOMAIN) CCS_ReadControl(file, NULL, 0);
-	else if (head->write == WriteAnswer) atomic_inc(&queryd_watcher);
+	else if (head->write == WriteAnswer || head->read == ReadQuery) atomic_inc(&queryd_watcher);
 	return 0;
 }
 
@@ -1631,8 +1699,7 @@ int CCS_WriteControl(struct file *file, const char __user *buffer, const int buf
 int CCS_CloseControl(struct file *file)
 {
 	struct io_buffer *head = file->private_data;
-	if (head->write == WriteAnswer) atomic_dec(&queryd_watcher);
-	else if (head->read == ReadMemoryCounter) profile_loaded = 1;
+	if (head->write == WriteAnswer || head->read == ReadQuery) atomic_dec(&queryd_watcher);
 	ccs_free(head->read_buf); head->read_buf = NULL;
 	ccs_free(head->write_buf); head->write_buf = NULL;
 	ccs_free(head); head = NULL;

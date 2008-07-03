@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4   2008/05/10
+ * Version: 1.5.5-pre   2008/07/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -106,7 +106,6 @@ static struct path_info *GetPath(struct dentry *dentry, struct vfsmount *mnt)
 			return &buf->head;
 		}
 		ccs_free(buf); buf = NULL;
-		printk("realpath_from_dentry = %d\n", error);
 	}
 	return NULL;
 }
@@ -216,6 +215,10 @@ static int AddGroupEntry(const char *group_name, const char *member_name, const 
 	int error = -ENOMEM;
 	if (!IsCorrectPath(group_name, 0, 0, 0, __FUNCTION__) || !group_name[0] ||
 		!IsCorrectPath(member_name, 0, 0, 0, __FUNCTION__) || !member_name[0]) return -EINVAL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
+	if (!strcmp(member_name, "pipe:"))
+		member_name = "pipe:[\\$]";
+#endif
 	if ((saved_group_name = SaveName(group_name)) == NULL ||
 		(saved_member_name = SaveName(member_name)) == NULL) return -ENOMEM;
 	down(&lock);
@@ -479,6 +482,10 @@ static int AddFileACL(const char *filename, u8 perm, struct domain_info * const 
 		if (strendswith(filename, "/")) {
 			return 0; /* Valid permissions for directory are only 'allow_mkdir' and 'allow_rmdir'. */
 		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
+		if (!strcmp(filename, "pipe:"))
+			filename = "pipe:[\\$]";
+#endif
 		if ((saved_filename = SaveName(filename)) == NULL) return -ENOMEM;
 		if (!is_delete && perm == 4 && IsGloballyReadableFile(saved_filename)) {
 			return 0;   /* Don't add if the file is globally readable files. */
