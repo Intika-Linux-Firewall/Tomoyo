@@ -1114,3 +1114,26 @@ Fix 2008/04/14
       automatically called via __initcall()/core_initcall().
 
 Version 1.5.4 2008/05/10   Minor update release.
+
+Fix 2008/07/03
+
+    @ Check open mode of /proc/ccs/ interface.
+
+      It turned out that I can avoid allocating memory for reading if
+      FMODE_READ is not set and memory for writing if FMODE_WRITE is not set.
+
+    @ Wait for completion of /sbin/ccs-init .
+
+      Since 2.4 kernel's call_usermodehelper() can't wait for termination of
+      the executed program, I was using the close() request of
+      /proc/ccs/meminfo to indicate that loading policy has finished.
+      To sync with 1.6.2, I stopped using the close() request.
+      The policy loader no longer need to access /proc/ccs/meminfo to notify
+      the kernel that loading policy has finished.
+
+    @ Fix realpath for pipes and sockets.
+
+      Kernel 2.6.22 and later use different method for calculating d_path().
+      Since fs/realpath.c didn't notice the change, the realpath of pipes
+      appeared as "pipe:" rather than "pipe:[\$]" when they are opened via
+      /proc/PID/fd/ directory.
