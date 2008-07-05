@@ -18,7 +18,7 @@ CCS_PATCH_VER="2.6.23-gentoo-r9"
 DESCRIPTION="TOMOYO Linux sources for the ${KV_MAJOR}.${KV_MINOR} kernel tree"
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI} ${CCS_TGP_SRC} ${CCS_LSM_TGP_SRC}"
 KEYWORDS="~x86 ~arm ~sh ~ppc ~ia64 ~hppa ~amd64"
-RDEPEND="sys-apps/ccs-tools"
+RDEPEND="sys-apps/ccs-tools-1.6.1-20080510"
 
 K_EXTRAEINFO="Before booting with TOMOYO enabled kernel, you need to
 run this command to initialize TOMOYO policies:
