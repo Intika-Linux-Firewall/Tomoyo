@@ -27,8 +27,8 @@ src_unpack() {
 
 	cd "${S}"
 	sed -i \
-		-e "/^INSTALLDIR/cINSTALLDIR = ${D}" \
-		-e "/^CFLAGS/D" \
+		-e "/^INSTALLDIR /cINSTALLDIR = ${D}" \
+		-e "/^CFLAGS=/D" \
 		Makefile || die
 }
 
@@ -40,7 +40,7 @@ src_compile() {
 
 src_install() {
 	diropts -m 700 -o root -g root
-	dodir /usr/lib/ccs /usr/lib/ccs/misc
+	dodir /usr/lib/ccs /usr/lib/ccs/misc /usr/lib/ccs/conf
 
 	exeinto /usr/lib/ccs/
 	exeopts -o root -g root
@@ -59,7 +59,11 @@ src_install() {
 
 	insinto /usr/lib/ccs/
 	insopts -m 644 -o root -g root
-	doins ccstools.conf README.ccs COPYING.ccs
+	doins README.ccs COPYING.ccs
+
+	insinto /usr/lib/ccs/conf
+	doins ccstools.conf
+	dosym /usr/lib/ccs/conf/ccstools.conf /usr/lib/ccs/ccstools.conf
 
 	into /
 	insopts -m 700 -o root -g root
@@ -67,5 +71,6 @@ src_install() {
 
 	doman man/man8/*
 
+	insopts -m 644 -o root -g root
 	doenvd "${FILESDIR}/50ccs-tools"
 }
