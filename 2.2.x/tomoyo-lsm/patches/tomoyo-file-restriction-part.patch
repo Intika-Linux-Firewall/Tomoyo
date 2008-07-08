@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1134 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1134 insertions(+)
+ security/tomoyo/file.c | 1137 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1137 insertions(+)
 
 --- /dev/null
 +++ vfs/security/tomoyo/file.c
-@@ -0,0 +1,1134 @@
+@@ -0,0 +1,1137 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -19,7 +19,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/06/22
++ * Version: 2.2.0-pre   2008/07/08
 + *
 + */
 +
@@ -981,7 +981,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct path_info *buf;
 +	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
-+	if (!mode)
++	if (!mode || !mnt)
 +		return 0;
 +	if (acc_mode == 0)
 +		return 0;
@@ -1034,7 +1034,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct path_info *buf;
 +	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
-+	if (!mode)
++	if (!mode || !mnt)
 +		return 0;
 +	buf = tmy_get_path(dentry, mnt);
 +	if (!buf)
@@ -1068,7 +1068,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int error = -ENOMEM;
 +	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
-+	struct path_info *buf = tmy_get_path(filp->f_dentry, filp->f_vfsmnt);
++	struct path_info *buf;
++	if (!mode || !filp->f_vfsmnt)
++		return 0;
++	buf = tmy_get_path(filp->f_dentry, filp->f_vfsmnt);
 +	if (!buf)
 +		goto out;
 +	if (!is_no_rewrite_file(buf)) {
@@ -1106,7 +1109,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	const char *msg;
-+	if (!mode)
++	if (!mode || !mnt1 || !mnt2)
 +		return 0;
 +	buf1 = tmy_get_path(dentry1, mnt1);
 +	buf2 = tmy_get_path(dentry2, mnt2);
