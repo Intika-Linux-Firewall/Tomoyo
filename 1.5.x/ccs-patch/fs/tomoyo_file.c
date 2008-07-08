@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.5-pre   2008/07/03
+ * Version: 1.5.5-pre   2008/07/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -827,7 +827,7 @@ int CheckOpenPermission(struct dentry *dentry, struct vfsmount *mnt, const int f
 	int error = -ENOMEM;
 	struct path_info *buf;
 	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
+	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE) || !mnt) return 0;
 	if (acc_mode == 0) return 0;
 	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
 		/* I don't check directories here because mkdir() and rmdir() don't call me. */
@@ -860,7 +860,7 @@ int CheckSingleWritePermission(const unsigned int operation, struct dentry *dent
 	int error = -ENOMEM;
 	struct path_info *buf;
 	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
+	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE) || !mnt) return 0;
 	buf = GetPath(dentry, mnt);
 	if (buf) {
 		struct obj_info obj;
@@ -887,7 +887,9 @@ int CheckReWritePermission(struct file *filp)
 {
 	int error = -ENOMEM;
 	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-	struct path_info *buf = GetPath(filp->f_dentry, filp->f_vfsmnt);
+	struct path_info *buf;
+	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE) || !filp->f_vfsmnt) return 0;
+	buf = GetPath(filp->f_dentry, filp->f_vfsmnt);
 	if (buf) {
 		if (IsNoRewriteFile(buf)) {
 			struct obj_info obj;
@@ -910,7 +912,7 @@ int CheckDoubleWritePermission(const unsigned int operation, struct dentry *dent
 	struct path_info *buf1, *buf2;
 	struct domain_info * const domain = current->domain_info;
 	const int is_enforce = CheckCCSEnforce(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE)) return 0;
+	if (!CheckCCSFlags(CCS_TOMOYO_MAC_FOR_FILE) || !mnt1 || !mnt2) return 0;
 	buf1 = GetPath(dentry1, mnt1);
 	buf2 = GetPath(dentry2, mnt2);
 	if (buf1 && buf2) {

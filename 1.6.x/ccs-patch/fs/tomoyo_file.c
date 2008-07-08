@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.2   2008/06/25
+ * Version: 1.6.3-pre   2008/07/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1375,7 +1375,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	const u8 profile = current->domain_info->profile;
 	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 	const bool is_enforce = (mode == 3);
-	if (!mode)
+	if (!mode || !mnt)
 		return 0;
 	if (acc_mode == 0)
 		return 0;
@@ -1435,7 +1435,7 @@ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	const u8 profile = current->domain_info->profile;
 	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 	const bool is_enforce = (mode == 3);
-	if (!mode)
+	if (!mode || !mnt)
 		return 0;
 	buf = ccs_get_path(dentry, mnt);
 	if (!buf)
@@ -1476,7 +1476,10 @@ int ccs_check_rewrite_permission(struct file *filp)
 	const u8 profile = current->domain_info->profile;
 	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 	const bool is_enforce = (mode == 3);
-	struct path_info *buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
+	struct path_info *buf;
+	if (!mode || !filp->f_vfsmnt)
+		return 0;
+	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
 	if (!buf)
 		goto out;
 	if (!is_no_rewrite_file(buf)) {
@@ -1520,7 +1523,7 @@ int ccs_check_2path_perm(const u8 operation,
 	const bool is_enforce = (mode == 3);
 	const char *msg;
 	struct obj_info obj;
-	if (!mode)
+	if (!mode || !mnt1 || !mnt2)
 		return 0;
 	buf1 = ccs_get_path(dentry1, mnt1);
 	buf2 = ccs_get_path(dentry2, mnt2);

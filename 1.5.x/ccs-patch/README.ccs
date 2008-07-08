@@ -1137,3 +1137,11 @@ Fix 2008/07/03
       Since fs/realpath.c didn't notice the change, the realpath of pipes
       appeared as "pipe:" rather than "pipe:[\$]" when they are opened via
       /proc/PID/fd/ directory.
+
+Fix 2008/07/08
+
+    @ Don't check permissions if vfsmount is NULL.
+
+      Some filesystems (e.g. unionfs) pass NULL vfsmount.
+      I changed fs/tomoyo_file.c not to try to calculate pathnames
+      if vfsmount is NULL.
