@@ -1513,3 +1513,11 @@ Fix 2008/07/01
       RedHat Linux 9's 2.4.20 kernel backported O(1) scheduler patch,
       resulting compilation error at ccs_load_policy().
       I added defined(TASK_DEAD) check.
+
+Fix 2008/07/08
+
+    @ Don't check permissions if vfsmount is NULL.
+
+      Some filesystems (e.g. unionfs) pass NULL vfsmount.
+      I changed fs/tomoyo_file.c not to try to calculate pathnames
+      if vfsmount is NULL.
