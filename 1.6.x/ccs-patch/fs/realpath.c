@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.2   2008/06/25
+ * Version: 1.6.3-pre   2008/07/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -191,11 +191,11 @@ static int get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
 int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 			      char *newname, int newname_len)
 {
-	int error;
+	int error = -EINVAL;
 	struct dentry *d_dentry;
 	struct vfsmount *d_mnt;
-	if (!dentry || !mnt || !newname || newname_len <= 2048)
-		return -EINVAL;
+	if (!dentry || !newname || newname_len <= 2048)
+		goto out;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 	if (dentry->d_op && dentry->d_op->d_dname) {
 		/* For "socket:[\$]" and "pipe:[\$]". */
@@ -235,6 +235,8 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 		goto out;
 	}
 #endif
+	if (!mnt)
+		goto out;
 	d_dentry = dget(dentry);
 	d_mnt = mntget(mnt);
 	/***** CRITICAL SECTION START *****/
@@ -250,11 +252,10 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 	/***** CRITICAL SECTION END *****/
 	dput(d_dentry);
 	mntput(d_mnt);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
  out:
-#endif
 	if (error)
-		printk(KERN_WARNING "ccs_realpath: Pathname too long.\n");
+		printk(KERN_WARNING "ccs_realpath: Pathname too long. (%d)\n",
+		       error);
 	return error;
 }
 
