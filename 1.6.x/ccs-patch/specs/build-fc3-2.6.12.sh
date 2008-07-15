@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  #define rhbsys  %([ -r /etc/beehive-root -o -n "%{?__beehive_build}" ] && echo || echo .`whoami`)
  #define release %(R="$Revision: 1.1381 $"; RR="${R##: }"; echo ${RR%%?})_FC3%{rhbsys}
 -%define release 2.3.legacy_FC3
-+%define release 2.3.legacy_FC3_tomoyo_1.6.2
++%define release 2.3.legacy_FC3_tomoyo_1.6.3
  %define signmodules 0
  %define make_target bzImage
  
@@ -78,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
  	make ARCH=$Arch nonint_oldconfig > /dev/null
  	echo "# $Arch" > configs/$i
 EOF
-mv kernel-2.6.spec kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.6.3.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.6.3.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.12-2.3.legacy_FC3_tomoyo_1.6.3.spec"
 echo "to build kernel rpm packages."
 exit 0

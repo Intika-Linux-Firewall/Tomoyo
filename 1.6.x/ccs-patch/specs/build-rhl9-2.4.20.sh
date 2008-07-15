@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 46.9.legacy
-+%define release 46.9.legacy_tomoyo_1.6.2
++%define release 46.9.legacy_tomoyo_1.6.3
  %define sublevel 20
  %define kversion 2.4.%{sublevel}
  # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
@@ -67,11 +67,11 @@ patch << "EOF" || die "Can't patch spec file."
      perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -%{release}$2/" Makefile
  %ifarch sparc sparc64     
 EOF
-mv kernel-2.4.spec kernel-2.4.20-46.9.legacy_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel-2.4.spec kernel-2.4.20-46.9.legacy_tomoyo_1.6.3.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.4.20-46.9.legacy_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.4.20-46.9.legacy_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.4.20-46.9.legacy_tomoyo_1.6.3.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.4.20-46.9.legacy_tomoyo_1.6.3.spec"
 echo "to build kernel rpm packages."
 exit 0
