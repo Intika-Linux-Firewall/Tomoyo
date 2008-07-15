@@ -1986,35 +1986,3 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-
-This patch is for http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz
-
-Index: ccs-patch/fs/ccs_common.c
-===================================================================
---- ccs-patch/fs/ccs_common.c	(revision 1346)
-+++ ccs-patch/fs/ccs_common.c	(working copy)
-@@ -2377,18 +2377,18 @@
- 		struct task_struct *task = current;
- 		pid_t pid = kernel_thread(run_ccs_loader, NULL, 0);
- 		sigset_t tmpsig;
--		spin_lock_irq(&task->sigmask_lock);
-+		spin_lock_irq(&task->sighand->siglock);
- 		tmpsig = task->blocked;
- 		siginitsetinv(&task->blocked,
- 			      sigmask(SIGKILL) | sigmask(SIGSTOP));
--		recalc_sigpending(task);
--		spin_unlock_irq(&task->sigmask_lock);
-+		recalc_sigpending();
-+		spin_unlock_irq(&current->sighand->siglock);
- 		if (pid >= 0)
- 			waitpid(pid, NULL, __WCLONE);
--		spin_lock_irq(&task->sigmask_lock);
-+		spin_lock_irq(&task->sighand->siglock);
- 		task->blocked = tmpsig;
--		recalc_sigpending(task);
--		spin_unlock_irq(&task->sigmask_lock);
-+		recalc_sigpending();
-+		spin_unlock_irq(&task->sighand->siglock);
- 	}
- #endif
- #ifdef CONFIG_SAKURA

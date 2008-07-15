@@ -16,9 +16,9 @@ wget -O - 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x0A0AC927' 'http://pgp
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.2-20080625.tar.gz ]
+if [ ! -r ccs-patch-1.6.3-20080715.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -34,7 +34,7 @@ apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install
 
 # Copy patches and create kernel config.
 cd linux-source-2.6.22-2.6.22/ || die "Can't chdir to linux-2.6.22-2.6.22/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.2-20080625.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.3-20080715.tar.gz || die "Can't extract patch."
 mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-custom.d/ccs/patchset ."
 cp -p patches/ccs-patch-2.6.22.9-ubuntu1.diff debian/binary-custom.d/ccs/patchset/ubuntu-7.10.patch || die "Can't copy patch."
 cd debian/binary-custom.d/ccs/ || die "Can't chdir to debian/binary-custom.d/ccs/ ."
