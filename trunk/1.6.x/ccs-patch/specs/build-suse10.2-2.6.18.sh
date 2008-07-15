@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  Version:        2.6.18.8
 -Release: 0.10
-+Release: 0.10_tomoyo_1.6.2
++Release: 0.10_tomoyo_1.6.3
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  License:        GPL v2 or later
  Group:          System/Kernel
@@ -105,11 +105,11 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-mv kernel-default.spec kernel-2.6.18.8-0.10-default_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel-default.spec kernel-2.6.18.8-0.10-default_tomoyo_1.6.3.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.18.8-0.10-default_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.18.8-0.10-default_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.6.18.8-0.10-default_tomoyo_1.6.3.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.18.8-0.10-default_tomoyo_1.6.3.spec"
 echo "to build kernel rpm packages."
 exit 0

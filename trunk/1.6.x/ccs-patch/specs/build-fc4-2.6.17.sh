@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4
-+%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.6.2
++%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.6.3
  %define signmodules 0
  %define make_target bzImage
  %define kernel_image x86
@@ -78,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch nonint_oldconfig > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel-2.6.spec kernel-2.6.17-1.2142_FC4_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.17-1.2142_FC4_tomoyo_1.6.3.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.17-1.2142_FC4_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.17-1.2142_FC4_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.6.17-1.2142_FC4_tomoyo_1.6.3.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.17-1.2142_FC4_tomoyo_1.6.3.spec"
 echo "to build kernel rpm packages."
 exit 0

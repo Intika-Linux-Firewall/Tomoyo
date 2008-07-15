@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -#% define buildid .local
-+%define buildid _tomoyo_1.6.2
++%define buildid _tomoyo_1.6.3
  
  # fedora_build defines which build revision of this kernel version we're
  # building. Rather than incrementing forever, as with the prior versioning
@@ -89,11 +89,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch %{oldconfig_target} > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel.spec kernel-2.6.25.9-76.fc9_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel.spec kernel-2.6.25.9-76.fc9_tomoyo_1.6.3.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.25.9-76.fc9_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.25.9-76.fc9_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.6.25.9-76.fc9_tomoyo_1.6.3.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.25.9-76.fc9_tomoyo_1.6.3.spec"
 echo "to build kernel rpm packages."
 exit 0

@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
 -%define release 42.23AX%{axbsys}
-+%define release 42.23AX%{axbsys}_tomoyo_1.6.2
++%define release 42.23AX%{axbsys}_tomoyo_1.6.3
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -78,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
  	cp .config configs/$i 
  done
 EOF
-mv kernel-2.6.spec kernel-2.6.9-42.23AX_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.9-42.23AX_tomoyo_1.6.3.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.9-42.23AX_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.9-42.23AX_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.6.9-42.23AX_tomoyo_1.6.3.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.9-42.23AX_tomoyo_1.6.3.spec"
 echo "to build kernel rpm packages."
 exit 0

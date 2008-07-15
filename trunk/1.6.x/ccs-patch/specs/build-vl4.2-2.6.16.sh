@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 76.37%{_dist_release}
-+%define release 76.37%{_dist_release}_tomoyo_1.6.2
++%define release 76.37%{_dist_release}_tomoyo_1.6.3
  
  %define make_target bzImage
  
@@ -78,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
  	echo "# $Arch" > configs/$i
  	cat .config >> configs/$i 
 EOF
-mv kernel-2.6-vl.spec kernel-2.6.16-76.37vl4_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel-2.6-vl.spec kernel-2.6.16-76.37vl4_tomoyo_1.6.3.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.16-76.37vl4_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.16-76.37vl4_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.6.16-76.37vl4_tomoyo_1.6.3.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.16-76.37vl4_tomoyo_1.6.3.spec"
 echo "to build kernel rpm packages."
 exit 0

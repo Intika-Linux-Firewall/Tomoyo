@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 8.16%{?dist}
-+%define release 8.16%{?dist}_tomoyo_1.6.2
++%define release 8.16%{?dist}_tomoyo_1.6.3
  %define signmodules 0
  %define xen_hv_cset 11772
  %define make_target bzImage
@@ -78,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch nonint_oldconfig > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel-2.6.spec kernel-2.6.18-8.16AX_tomoyo_1.6.2.spec || die "Can't rename spec file."
+mv kernel-2.6.spec kernel-2.6.18-8.16AX_tomoyo_1.6.3.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.18-8.16AX_tomoyo_1.6.2.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.18-8.16AX_tomoyo_1.6.2.spec"
+echo "Edit /tmp/kernel-2.6.18-8.16AX_tomoyo_1.6.3.spec if needed, and run"
+echo "rpmbuild -bb /tmp/kernel-2.6.18-8.16AX_tomoyo_1.6.3.spec"
 echo "to build kernel rpm packages."
 exit 0
