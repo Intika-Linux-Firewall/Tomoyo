@@ -28,7 +28,7 @@
 
 <h2><a name="l1">概要</a></h2>
 
-<p>以下では、CentOS 5.2にTOMOYO Linux 1.6.2を導入する手順を解説します。
+<p>以下では、CentOS 5.2にTOMOYO Linux 1.6.3を導入する手順を解説します。
 この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -47,22 +47,22 @@
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.18-92.1.6.el5_tomoyo_1.6.2.i686.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.18-92.1.6.el5_tomoyo_1.6.3.i686.rpm</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.18-92.1.6.el5_tomoyo_1.6.2.i686.rpm</span>
+# <span class="user">rpm --install kernel-2.6.18-92.1.6.el5_tomoyo_1.6.3.i686.rpm</span>
 </pre>
 
 <p>この際特にメッセージは表示されませんが、インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
-title CentOS (2.6.18-92.1.6.el5_tomoyo_1.6.2)
+title CentOS (2.6.18-92.1.6.el5_tomoyo_1.6.3)
     root (hd0,0)
-    kernel /vmlinuz-2.6.18-92.1.6.el5_tomoyo_1.6.2 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.18-92.1.6.el5_tomoyo_1.6.2.img
+    kernel /vmlinuz-2.6.18-92.1.6.el5_tomoyo_1.6.3 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.18-92.1.6.el5_tomoyo_1.6.3.img
 </pre>
 
 <p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
