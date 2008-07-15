@@ -11,9 +11,9 @@ die () {
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.2-20080625.tar.gz ]
+if [ ! -r ccs-patch-1.6.3-20080715.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz || die "Can't download patch."
 fi
 
 # Get workaround patch for gcc-4.3's compilation error.
@@ -32,7 +32,7 @@ apt-get source linux-image-2.6.24-1-686 || die "Can't install kernel source."
 # Apply patches and create kernel config.
 cd linux-2.6-2.6.24 || die "Can't chdir to linux-2.6-2.6.24/ ."
 patch -p1 < /usr/src/rpm/SOURCES/linux-2.6-compile-fix-gcc-43.patch || die "Can't apply patch."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.2-20080625.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.3-20080715.tar.gz || die "Can't extract patch."
 cp -p Makefile Makefile.tmp || die "Can't create backup."
 patch -p1 < patches/ccs-patch-2.6.24-4lenny.diff || die "Can't apply patch."
 mv -f Makefile.tmp Makefile || die "Can't restore."
