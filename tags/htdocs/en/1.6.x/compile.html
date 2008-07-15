@@ -410,11 +410,10 @@ cd linux-2.6.26<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz<br>
 # Extract.<br>
-tar -zxf ccs-patch-1.6.2-20080625.tar.gz<br>
+tar -zxf ccs-patch-1.6.3-20080715.tar.gz<br>
 # Apply the kernel patch.<br>
-wget -O patches/ccs-patch-2.6.26.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.26.diff?root=tomoyo'<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.26.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
@@ -443,9 +442,9 @@ cd linux-2.4.36<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.2-20080625.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz<br>
 # Extract.<br>
-tar -zxf ccs-patch-1.6.2-20080625.tar.gz<br>
+tar -zxf ccs-patch-1.6.3-20080715.tar.gz<br>
 # Apply the kernel patch.<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.36.diff<br>
 # Enable options for TOMOYO Linux.<br>
