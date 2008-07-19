@@ -11,8 +11,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.h |  318 ++++++
  3 files changed, 2541 insertions(+)
 
---- vfs.orig/include/linux/list.h
-+++ vfs/include/linux/list.h
+--- vfs-2.6.orig/include/linux/list.h
++++ vfs-2.6/include/linux/list.h
 @@ -981,4 +981,82 @@ static inline void hlist_add_after_rcu(s
  		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
  	     pos = rcu_dereference(pos->next))
@@ -97,7 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
  #endif
 --- /dev/null
-+++ vfs/security/tomoyo/common.c
++++ vfs-2.6/security/tomoyo/common.c
 @@ -0,0 +1,2145 @@
 +/*
 + * security/tomoyo/common.c
@@ -2245,7 +2245,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
-+++ vfs/security/tomoyo/common.h
++++ vfs-2.6/security/tomoyo/common.h
 @@ -0,0 +1,318 @@
 +/*
 + * security/tomoyo/common.h
