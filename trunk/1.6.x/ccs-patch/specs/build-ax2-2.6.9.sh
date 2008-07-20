@@ -78,11 +78,11 @@ patch << "EOF" || die "Can't patch spec file."
  	cp .config configs/$i 
  done
 EOF
-mv kernel-2.6.spec kernel-2.6.9-42.23AX_tomoyo_1.6.3.spec || die "Can't rename spec file."
+mv kernel-2.6.spec ccs-kernel.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.9-42.23AX_tomoyo_1.6.3.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.9-42.23AX_tomoyo_1.6.3.spec"
+echo "Edit /tmp/ccs-kernel.spec if needed, and run"
+echo "rpmbuild -bb /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 exit 0

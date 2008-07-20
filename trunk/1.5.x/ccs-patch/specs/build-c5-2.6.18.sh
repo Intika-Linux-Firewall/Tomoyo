@@ -83,11 +83,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch nonint_oldconfig > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel-2.6.spec kernel-2.6.18-92.1.6.el5_tomoyo_1.5.4.spec || die "Can't rename spec file."
+mv kernel-2.6.spec ccs-kernel.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.18-92.1.6.el5_tomoyo_1.5.4.spec if needed, and run"
-echo "rpmbuild -bb --without kabichk /tmp/kernel-2.6.18-92.1.6.el5_tomoyo_1.5.4.spec"
+echo "Edit /tmp/ccs-kernel.spec if needed, and run"
+echo "rpmbuild -bb --without kabichk /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 exit 0
