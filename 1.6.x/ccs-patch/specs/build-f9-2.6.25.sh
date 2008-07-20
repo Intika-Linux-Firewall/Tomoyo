@@ -94,11 +94,11 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch %{oldconfig_target} > /dev/null
    echo "# $Arch" > configs/$i
 EOF
-mv kernel.spec kernel-2.6.25.10-86.fc9_tomoyo_1.6.3.spec || die "Can't rename spec file."
+mv kernel.spec ccs-kernel.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.25.10-86.fc9_tomoyo_1.6.3.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.25.10-86.fc9_tomoyo_1.6.3.spec"
+echo "Edit /tmp/ccs-kernel.spec if needed, and run"
+echo "rpmbuild -bb /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 exit 0

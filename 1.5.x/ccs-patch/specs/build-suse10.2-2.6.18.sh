@@ -110,11 +110,11 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-mv kernel-default.spec kernel-2.6.18.8-0.10-default_tomoyo_1.5.4.spec || die "Can't rename spec file."
+mv kernel-default.spec ccs-kernel.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.6.18.8-0.10-default_tomoyo_1.5.4.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.6.18.8-0.10-default_tomoyo_1.5.4.spec"
+echo "Edit /tmp/ccs-kernel.spec if needed, and run"
+echo "rpmbuild -bb /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 exit 0

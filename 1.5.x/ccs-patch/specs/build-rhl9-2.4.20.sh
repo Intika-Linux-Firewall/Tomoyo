@@ -67,11 +67,11 @@ patch << "EOF" || die "Can't patch spec file."
      perl -p -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -%{release}$2/" Makefile
  %ifarch sparc sparc64     
 EOF
-mv kernel-2.4.spec kernel-2.4.20-46.9.legacy_tomoyo_1.5.4.spec || die "Can't rename spec file."
+mv kernel-2.4.spec ccs-kernel.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
-echo "Edit /tmp/kernel-2.4.20-46.9.legacy_tomoyo_1.5.4.spec if needed, and run"
-echo "rpmbuild -bb /tmp/kernel-2.4.20-46.9.legacy_tomoyo_1.5.4.spec"
+echo "Edit /tmp/ccs-kernel.spec if needed, and run"
+echo "rpmbuild -bb /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 exit 0
