@@ -1,0 +1,37 @@
+--- fs/tomoyo_network.c~	2008-07-20 00:14:26.000000000 +0900
++++ fs/tomoyo_network.c	2008-07-20 17:47:09.000000000 +0900
+@@ -61,18 +61,18 @@
+  *
+  * The RAM is shared, so NEVER try to modify or kfree() the returned address.
+  */
++#define SAVE_IPV6_ADDRESS_BLOCK_SIZE 16
+ static const struct in6_addr *save_ipv6_address(const struct in6_addr *addr)
+ {
+-	static const u8 block_size = 16;
+ 	struct addr_list {
+-		struct in6_addr addr[block_size];
++		struct in6_addr addr[SAVE_IPV6_ADDRESS_BLOCK_SIZE];
+ 		struct list1_head list;
+ 		u32 in_use_count;
+ 	};
+ 	static LIST1_HEAD(address_list);
+ 	struct addr_list *ptr;
+ 	static DEFINE_MUTEX(lock);
+-	u8 i = block_size;
++	u8 i = SAVE_IPV6_ADDRESS_BLOCK_SIZE;
+ 	if (!addr)
+ 		return NULL;
+ 	mutex_lock(&lock);
+@@ -81,10 +81,10 @@
+ 			if (!memcmp(&ptr->addr[i], addr, sizeof(*addr)))
+ 				goto ok;
+ 		}
+-		if (i < block_size)
++		if (i < SAVE_IPV6_ADDRESS_BLOCK_SIZE)
+ 			break;
+ 	}
+-	if (i == block_size) {
++	if (i == SAVE_IPV6_ADDRESS_BLOCK_SIZE) {
+ 		ptr = ccs_alloc_element(sizeof(*ptr));
+ 		if (!ptr)
+ 			goto ok;
