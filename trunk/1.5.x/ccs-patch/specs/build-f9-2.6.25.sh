@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.25.9-76.fc9.src.rpm ]
+if [ ! -r kernel-2.6.25.10-86.fc9.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS/kernel-2.6.25.9-76.fc9.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS/kernel-2.6.25.10-86.fc9.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.25.9-76.fc9.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.25.10-86.fc9.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
