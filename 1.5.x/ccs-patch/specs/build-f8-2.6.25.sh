@@ -22,16 +22,16 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.25.9-40.fc8.diff ]
+if [ ! -r ccs-patch-2.6.25.10-47.fc8.diff ]
 then
-    wget -O ccs-patch-2.6.25.9-40.fc8.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.25.9-40.fc8.diff?root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.25.10-47.fc8.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.25.10-47.fc8.diff?root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-06-28 04:43:50.000000000 +0900
-+++ kernel.spec	2008-07-04 09:08:28.000000000 +0900
+--- kernel.spec	2008-07-08 06:46:02.000000000 +0900
++++ kernel.spec	2008-07-16 20:57:36.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -62,7 +62,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -756,7 +761,7 @@
+@@ -757,7 +762,7 @@
  Provides: kernel-devel = %{rpmversion}-%{release}%{?1}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -71,19 +71,19 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1232,6 +1237,11 @@
+@@ -1235,6 +1240,11 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .9-40.fc8:' -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.25.9-40.fc8.diff
++sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .10-47.fc8:' -- Makefile
++patch -sp1 < %_sourcedir/ccs-patch-2.6.25.10-47.fc8.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1257,6 +1267,9 @@
+@@ -1260,6 +1270,9 @@
  for i in *.config
  do
    mv $i .config
