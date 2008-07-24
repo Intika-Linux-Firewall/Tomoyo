@@ -37,6 +37,7 @@ cat debian/config/i386/config.generic config.ccs > debian/config/i386/config.gen
 cat debian/config/vars.generic > debian/config/i386/vars.generic-ccs || die "Can't create file."
 chmod +x debian/post-install || die "Can't chmod post-install ."
 chmod -R +x debian/bin/ || die "Can't chmod debian/bin/ ."
+[ -d debian/abi/2.6.20-17.37 ] || ln -s 2.6.20-17.36/ debian/abi/2.6.20-17.37
 
 # Start compilation.
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
