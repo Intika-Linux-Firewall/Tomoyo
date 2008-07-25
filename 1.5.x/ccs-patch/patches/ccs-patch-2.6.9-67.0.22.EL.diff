@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for CentOS 4.6.
 
-Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.20.EL.src.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.22.EL.src.rpm
 ---
  Makefile                           |    2 
  arch/alpha/kernel/ptrace.c         |    9 ++
@@ -60,19 +60,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  net/unix/af_unix.c                 |   15 ++++
  56 files changed, 838 insertions(+), 12 deletions(-)
 
---- linux-2.6.9-67.0.20.EL.orig/Makefile
-+++ linux-2.6.9-67.0.20.EL/Makefile
+--- linux-2.6.9-67.0.22.EL.orig/Makefile
++++ linux-2.6.9-67.0.22.EL/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 9
--EXTRAVERSION = -67.0.20.EL
-+EXTRAVERSION = -67.0.20.EL-ccs
+-EXTRAVERSION = -67.0.22.EL
++EXTRAVERSION = -67.0.22.EL-ccs
  RHEL_VERSION = 4
  RHEL_UPDATE = 6
  NAME=AC 1
---- linux-2.6.9-67.0.20.EL.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/alpha/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/alpha/kernel/ptrace.c
 @@ -19,6 +19,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -96,8 +96,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.9-67.0.20.EL.orig/arch/arm/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/arm/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/arm/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/arm/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -121,8 +121,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/arm26/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/arm26/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/arm26/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/arm26/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -146,8 +146,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/cris/arch-v10/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/cris/arch-v10/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/cris/arch-v10/kernel/ptrace.c
 @@ -16,6 +16,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -171,8 +171,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/h8300/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/h8300/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/h8300/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/h8300/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -196,8 +196,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/i386/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/i386/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/i386/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/i386/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  #include <asm/debugreg.h>
  #include <asm/ldt.h>
@@ -221,8 +221,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.9-67.0.20.EL/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.9-67.0.22.EL/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -246,8 +246,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-67.0.20.EL.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/ia64/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/ia64/kernel/ptrace.c
 @@ -29,6 +29,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -271,8 +271,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/m32r/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -296,8 +296,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/m68k/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/m68k/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/m68k/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -321,8 +321,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/m68knommu/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/m68knommu/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/m68knommu/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/m68knommu/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -346,8 +346,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/mips/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/mips/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/mips/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/mips/kernel/ptrace.c
 @@ -34,6 +34,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -371,8 +371,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.9-67.0.20.EL.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.9-67.0.20.EL/arch/mips/kernel/ptrace32.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.9-67.0.22.EL/arch/mips/kernel/ptrace32.c
 @@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -396,8 +396,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.9-67.0.20.EL.orig/arch/parisc/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/parisc/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/parisc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -421,8 +421,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/ppc/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/ppc/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/ppc/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -446,8 +446,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-67.0.20.EL.orig/arch/ppc64/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/ppc64/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/ppc64/kernel/ptrace.c
 @@ -33,6 +33,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -471,8 +471,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-67.0.20.EL.orig/arch/ppc64/kernel/ptrace32.c
-+++ linux-2.6.9-67.0.20.EL/arch/ppc64/kernel/ptrace32.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.6.9-67.0.22.EL/arch/ppc64/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -496,8 +496,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-67.0.20.EL.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/s390/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/s390/kernel/ptrace.c
 @@ -39,6 +39,9 @@
  #include <asm/pgalloc.h>
  #include <asm/system.h>
@@ -521,8 +521,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  
---- linux-2.6.9-67.0.20.EL.orig/arch/sh/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/sh/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/sh/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/sh/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -546,8 +546,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/sh64/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/sh64/kernel/ptrace.c
 @@ -34,6 +34,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -571,8 +571,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/sparc/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/sparc/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -598,8 +598,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.9-67.0.20.EL.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/sparc64/kernel/ptrace.c
 @@ -27,6 +27,9 @@
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
@@ -625,8 +625,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.9-67.0.20.EL.orig/arch/um/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/um/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/um/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/um/kernel/ptrace.c
 @@ -16,6 +16,9 @@
  #include "asm/uaccess.h"
  #include "kern_util.h"
@@ -650,8 +650,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-67.0.20.EL.orig/arch/v850/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/v850/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/v850/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/v850/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/ptrace.h>
  #include <asm/processor.h>
@@ -675,8 +675,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  
---- linux-2.6.9-67.0.20.EL.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.9-67.0.20.EL/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.9-67.0.22.EL/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/debugreg.h>
  #include <asm/i387.h>
@@ -700,8 +700,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	switch (request) { 
  	default:
---- linux-2.6.9-67.0.20.EL.orig/arch/x86_64/kernel/ptrace.c
-+++ linux-2.6.9-67.0.20.EL/arch/x86_64/kernel/ptrace.c
+--- linux-2.6.9-67.0.22.EL.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.6.9-67.0.22.EL/arch/x86_64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/desc.h>
  #include <asm/proto.h>
@@ -725,8 +725,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.6.9-67.0.20.EL.orig/fs/Kconfig
-+++ linux-2.6.9-67.0.20.EL/fs/Kconfig
+--- linux-2.6.9-67.0.22.EL.orig/fs/Kconfig
++++ linux-2.6.9-67.0.22.EL/fs/Kconfig
 @@ -1857,5 +1857,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -735,15 +735,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
 +
  endmenu
  
---- linux-2.6.9-67.0.20.EL.orig/fs/Makefile
-+++ linux-2.6.9-67.0.20.EL/fs/Makefile
+--- linux-2.6.9-67.0.22.EL.orig/fs/Makefile
++++ linux-2.6.9-67.0.22.EL/fs/Makefile
 @@ -96,3 +96,4 @@ obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_RELAYFS_FS)	+= relayfs/
  
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.9-67.0.20.EL.orig/fs/attr.c
-+++ linux-2.6.9-67.0.20.EL/fs/attr.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/attr.c
++++ linux-2.6.9-67.0.22.EL/fs/attr.c
 @@ -16,6 +16,9 @@
  #include <linux/security.h>
  #include <linux/time.h>
@@ -783,8 +783,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.9-67.0.20.EL.orig/fs/compat.c
-+++ linux-2.6.9-67.0.20.EL/fs/compat.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/compat.c
++++ linux-2.6.9-67.0.22.EL/fs/compat.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -830,8 +830,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.9-67.0.20.EL.orig/fs/exec.c
-+++ linux-2.6.9-67.0.20.EL/fs/exec.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/exec.c
++++ linux-2.6.9-67.0.22.EL/fs/exec.c
 @@ -56,6 +56,10 @@
  #include <linux/kmod.h>
  #endif
@@ -894,8 +894,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.9-67.0.20.EL.orig/fs/fcntl.c
-+++ linux-2.6.9-67.0.20.EL/fs/fcntl.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/fcntl.c
++++ linux-2.6.9-67.0.22.EL/fs/fcntl.c
 @@ -18,6 +18,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -918,8 +918,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.9-67.0.20.EL.orig/fs/ioctl.c
-+++ linux-2.6.9-67.0.20.EL/fs/ioctl.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/ioctl.c
++++ linux-2.6.9-67.0.22.EL/fs/ioctl.c
 @@ -14,6 +14,9 @@
  
  #include <asm/uaccess.h>
@@ -941,8 +941,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	error = security_file_ioctl(filp, cmd, arg);
  	if (error) {
---- linux-2.6.9-67.0.20.EL.orig/fs/namei.c
-+++ linux-2.6.9-67.0.20.EL/fs/namei.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/namei.c
++++ linux-2.6.9-67.0.22.EL/fs/namei.c
 @@ -32,6 +32,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -1177,8 +1177,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.9-67.0.20.EL.orig/fs/namespace.c
-+++ linux-2.6.9-67.0.20.EL/fs/namespace.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/namespace.c
++++ linux-2.6.9-67.0.22.EL/fs/namespace.c
 @@ -23,6 +23,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -1302,8 +1302,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.9-67.0.20.EL.orig/fs/open.c
-+++ linux-2.6.9-67.0.20.EL/fs/open.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/open.c
++++ linux-2.6.9-67.0.22.EL/fs/open.c
 @@ -26,6 +26,13 @@
  
  #include <asm/unistd.h>
@@ -1367,8 +1367,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.9-67.0.20.EL.orig/fs/proc/Makefile
-+++ linux-2.6.9-67.0.20.EL/fs/proc/Makefile
+--- linux-2.6.9-67.0.22.EL.orig/fs/proc/Makefile
++++ linux-2.6.9-67.0.22.EL/fs/proc/Makefile
 @@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
  
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
@@ -1376,20 +1376,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.9-67.0.20.EL.orig/fs/proc/proc_misc.c
-+++ linux-2.6.9-67.0.20.EL/fs/proc/proc_misc.c
+--- linux-2.6.9-67.0.22.EL.orig/fs/proc/proc_misc.c
++++ linux-2.6.9-67.0.22.EL/fs/proc/proc_misc.c
 @@ -704,4 +704,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-67.0.20.EL 2008/06/28\n");
++	printk(KERN_INFO "Hook version: 2.6.9-67.0.22.EL 2008/07/25\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.9-67.0.20.EL.orig/include/linux/init_task.h
-+++ linux-2.6.9-67.0.20.EL/include/linux/init_task.h
+--- linux-2.6.9-67.0.22.EL.orig/include/linux/init_task.h
++++ linux-2.6.9-67.0.22.EL/include/linux/init_task.h
 @@ -112,6 +112,10 @@ extern struct group_info init_groups;
  	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
@@ -1401,8 +1401,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  }
  
  
---- linux-2.6.9-67.0.20.EL.orig/include/linux/sched.h
-+++ linux-2.6.9-67.0.20.EL/include/linux/sched.h
+--- linux-2.6.9-67.0.22.EL.orig/include/linux/sched.h
++++ linux-2.6.9-67.0.22.EL/include/linux/sched.h
 @@ -35,6 +35,11 @@ extern int exec_shield;
  extern int exec_shield_randomize;
  extern int print_fatal_signals;
@@ -1426,8 +1426,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.9-67.0.20.EL.orig/kernel/compat.c
-+++ linux-2.6.9-67.0.20.EL/kernel/compat.c
+--- linux-2.6.9-67.0.22.EL.orig/kernel/compat.c
++++ linux-2.6.9-67.0.22.EL/kernel/compat.c
 @@ -23,6 +23,9 @@
  #include <linux/security.h>
  
@@ -1449,8 +1449,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	tv.tv_nsec = 0;
  
---- linux-2.6.9-67.0.20.EL.orig/kernel/kmod.c
-+++ linux-2.6.9-67.0.20.EL/kernel/kmod.c
+--- linux-2.6.9-67.0.22.EL.orig/kernel/kmod.c
++++ linux-2.6.9-67.0.22.EL/kernel/kmod.c
 @@ -169,6 +169,11 @@ static int ____exec_usermodehelper(char 
  
  	key_put(old_session);
@@ -1463,8 +1463,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
---- linux-2.6.9-67.0.20.EL.orig/kernel/module.c
-+++ linux-2.6.9-67.0.20.EL/kernel/module.c
+--- linux-2.6.9-67.0.22.EL.orig/kernel/module.c
++++ linux-2.6.9-67.0.22.EL/kernel/module.c
 @@ -38,6 +38,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -1499,8 +1499,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.9-67.0.20.EL.orig/kernel/sched.c
-+++ linux-2.6.9-67.0.20.EL/kernel/sched.c
+--- linux-2.6.9-67.0.22.EL.orig/kernel/sched.c
++++ linux-2.6.9-67.0.22.EL/kernel/sched.c
 @@ -48,6 +48,9 @@
  #include <asm/tlb.h>
  
@@ -1522,8 +1522,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.9-67.0.20.EL.orig/kernel/signal.c
-+++ linux-2.6.9-67.0.20.EL/kernel/signal.c
+--- linux-2.6.9-67.0.22.EL.orig/kernel/signal.c
++++ linux-2.6.9-67.0.22.EL/kernel/signal.c
 @@ -26,6 +26,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1574,8 +1574,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	info.si_signo = sig;
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
---- linux-2.6.9-67.0.20.EL.orig/kernel/sys.c
-+++ linux-2.6.9-67.0.20.EL/kernel/sys.c
+--- linux-2.6.9-67.0.22.EL.orig/kernel/sys.c
++++ linux-2.6.9-67.0.22.EL/kernel/sys.c
 @@ -30,6 +30,9 @@
  #include <asm/io.h>
  #include <asm/unistd.h>
@@ -1610,7 +1610,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	lock_kernel();
  	switch (cmd) {
-@@ -1456,6 +1469,10 @@ asmlinkage long sys_sethostname(char __u
+@@ -1461,6 +1474,10 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1621,7 +1621,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1501,6 +1518,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1506,6 +1523,10 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1632,8 +1632,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.9-67.0.20.EL.orig/kernel/sysctl.c
-+++ linux-2.6.9-67.0.20.EL/kernel/sysctl.c
+--- linux-2.6.9-67.0.22.EL.orig/kernel/sysctl.c
++++ linux-2.6.9-67.0.22.EL/kernel/sysctl.c
 @@ -43,6 +43,9 @@
  
  #include <asm/uaccess.h>
@@ -1782,8 +1782,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  }
  
  /*
---- linux-2.6.9-67.0.20.EL.orig/kernel/time.c
-+++ linux-2.6.9-67.0.20.EL/kernel/time.c
+--- linux-2.6.9-67.0.22.EL.orig/kernel/time.c
++++ linux-2.6.9-67.0.22.EL/kernel/time.c
 @@ -34,6 +34,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1827,8 +1827,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.9-67.0.20.EL.orig/net/core/datagram.c
-+++ linux-2.6.9-67.0.20.EL/net/core/datagram.c
+--- linux-2.6.9-67.0.22.EL.orig/net/core/datagram.c
++++ linux-2.6.9-67.0.22.EL/net/core/datagram.c
 @@ -54,6 +54,10 @@
  #include <net/sock.h>
  #include <net/checksum.h>
@@ -1853,8 +1853,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  		if (skb)
  			return skb;
  
---- linux-2.6.9-67.0.20.EL.orig/net/ipv4/tcp_ipv4.c
-+++ linux-2.6.9-67.0.20.EL/net/ipv4/tcp_ipv4.c
+--- linux-2.6.9-67.0.22.EL.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.6.9-67.0.22.EL/net/ipv4/tcp_ipv4.c
 @@ -74,6 +74,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -1887,8 +1887,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  
   			/* Does not bother with rcv_saddr checks,
   			 * because the established check is already
---- linux-2.6.9-67.0.20.EL.orig/net/ipv4/udp.c
-+++ linux-2.6.9-67.0.20.EL/net/ipv4/udp.c
+--- linux-2.6.9-67.0.22.EL.orig/net/ipv4/udp.c
++++ linux-2.6.9-67.0.22.EL/net/ipv4/udp.c
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1921,8 +1921,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.9-67.0.20.EL.orig/net/ipv6/tcp_ipv6.c
-+++ linux-2.6.9-67.0.20.EL/net/ipv6/tcp_ipv6.c
+--- linux-2.6.9-67.0.22.EL.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.6.9-67.0.22.EL/net/ipv6/tcp_ipv6.c
 @@ -63,6 +63,9 @@
  
  #include <linux/proc_fs.h>
@@ -1944,8 +1944,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.9-67.0.20.EL.orig/net/ipv6/udp.c
-+++ linux-2.6.9-67.0.20.EL/net/ipv6/udp.c
+--- linux-2.6.9-67.0.22.EL.orig/net/ipv6/udp.c
++++ linux-2.6.9-67.0.22.EL/net/ipv6/udp.c
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1978,8 +1978,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.9-67.0.20.EL.orig/net/socket.c
-+++ linux-2.6.9-67.0.20.EL/net/socket.c
+--- linux-2.6.9-67.0.22.EL.orig/net/socket.c
++++ linux-2.6.9-67.0.22.EL/net/socket.c
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -2072,8 +2072,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.9-67.0.20.EL.orig/net/unix/af_unix.c
-+++ linux-2.6.9-67.0.20.EL/net/unix/af_unix.c
+--- linux-2.6.9-67.0.22.EL.orig/net/unix/af_unix.c
++++ linux-2.6.9-67.0.22.EL/net/unix/af_unix.c
 @@ -118,6 +118,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
