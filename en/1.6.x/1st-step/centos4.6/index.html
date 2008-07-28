@@ -42,16 +42,16 @@
 <p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile.
 But regarding CentOS 4.6, a binary kernel package is and this page uses it.</p>
 
-<p>First, download the binary kernel package.</p>
+<p>First, specify the repository to use.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.6.9-67.0.22.EL_tomoyo_1.6.3.i586.rpm</span>
+# <span class="user">curl http://tomoyo.sourceforge.jp/repos/CentOS4/ccs.repo &gt; /etc/yum.repos.d/ccs.repo</span>
 </pre>
 
-<p>Next, install the downloaded package.</p>
+<p>Next, download the package and install it.</p>
 
 <pre>
-# <span class="user">rpm --install kernel-smp-2.6.9-67.0.22.EL_tomoyo_1.6.3.i586.rpm</span>
+# <span class="user">yum install ccs-kernel-smp</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/grub.conf if installation finishes successfully.</p>
@@ -81,8 +81,7 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 <p>A binary tools package is provided and this page uses it.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.CentOS4.6.i386.rpm</span>
-# <span class="user">rpm -ivh ccs-tools-1.6.3-1.CentOS4.6.i386.rpm</span>
+# <span class="user">yum install ccs-tools</span>
 </pre>
 
 <p>Add /usr/sbin (the location of TOMOYO Linux tools) to the environment variable PATH.

@@ -16,40 +16,61 @@ You can use TOMOYO Linux to find how programs access files or what program is cr
 
 <h1>Preparation</h1>
 
-<p>TOMOYO Linux provides some binary kernel packages. If you want to use binary kernel packages, download and install.</p>
+<p>TOMOYO Linux provides some binary kernel packages for x86 architecture. If you want to use repository, do the following operation.</p>
 
 <table border="1">
 <tr><td>
 RedHat Linux 9</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.4.20-46.9.legacy_tomoyo_1.6.3.i586.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/RedHatLinux9/ccs.repo &gt;&gt; /etc/yum.conf<br>
+&nbsp;yum install ccs-kernel-smp ccs-tools
 </td></tr><tr><td>
 Fedora Core 3</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.6.12-2.3.legacy_FC3_tomoyo_1.6.3.i586.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/FedoraCore3/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel-smp ccs-tools
 </td></tr><tr><td>
 Fedora Core 4</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.6.17-1.2142_FC4_tomoyo_1.6.3.i686.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/FedoraCore4/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel-smp ccs-tools
 </td></tr><tr><td>
 Fedora Core 5</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.20-1.2320.fc5_tomoyo_1.6.3.i586.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/FedoraCore5/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel-smp ccs-tools
 </td></tr><tr><td>
 Fedora Core 6</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.22.14-72_tomoyo_1.6.3.fc6.i586.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/FedoraCore6/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
 Fedora 7</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.23.17-88_tomoyo_1.6.3.fc7.i586.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/Fedora7/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
 Fedora 8</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.25.11-60_tomoyo_1.6.3.fc8.i586.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/Fedora8/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
 Fedora 9</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.25.11-97_tomoyo_1.6.3.fc9.i586.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/Fedora9/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
 CentOS 4.6</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-smp-2.6.9-67.0.22.EL_tomoyo_1.6.3.i586.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/CentOS4/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel-smp ccs-tools
 </td></tr><tr><td>
 CentOS 5.2</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.18-92.1.6.el5_tomoyo_1.6.3.i686.rpm
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/CentOS5/ccs.repo &gt; /etc/yum.repos.d/ccs.repo<br>
+&nbsp;yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
+Vine Linux 4.2</td><td>
+&nbsp;echo "repomd http://tomoyo.sourceforge.jp/ repos/VineLinux4/" &gt;&gt; /etc/apt/sources.list<br>
+&nbsp;apt-get update<br>
+&nbsp;apt-get install ccs-kernel ccs-tools
+</td></tr>
+</table>
+
+<p>If you don't want to use repository, download the following files and install them.</p>
+
+<table border="1">
+<tr><td>
 Debian Sarge</td><td>
 http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-image-2.4.27-4-686-smp-ccs1.6.3_2.4.27-10sarge7_i386.deb
 <br>
@@ -115,63 +136,17 @@ http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-restricted-modules-2.6.24-19-cc
 http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-headers-2.6.24-19-ccs1.6.3_2.6.24-19.36_i386.deb
 <br>
 http://osdn.dl.sourceforge.jp/tomoyo/30299/linux-headers-lum-2.6.24-19-ccs1.6.3_2.6.24-19.28_i386.deb
-</td></tr><tr><td>
-Vine Linux 4.2</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.16-76.37vl4_tomoyo_1.6.3.i686.rpm
 </td></tr>
 </table>
 
 <p>If the CPU architecture differs or you want to customize kernel configuration, you need to compile kernel. To compile kernel, see <a href="compile.html">TOMOYO Linux kernel compilation</a>.</p>
 
-<p>If you are using distributions that support SELinux, you might encounter errors while installing packages if SELinux is not disabled. If you see error messages shown below while installing packages, retry after you disable SELinux. You can disable SELinux by either "changing SELINUX=disabled in /etc/selinux/config and reboot" or "adding selinux=0 to the kernel's boot paramaters".</p>
-
-<table border="1">
-<tr><td>
-[root@localhost ~]# rpm -ihv kernel-smp-2.6.9-67.0.22.EL_tomoyo_1.6.3.i586.rpm<br>
-Preparing...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;########################################### [100%]<br>
-Error: %pre(kernel-2.6.9-67.0.22.EL_tomoyo_1.6.3.i586) scriptlet failed, exit status 255<br>
-Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.9-67.0.22.EL_tomoyo_1.6.3
-</td></tr>
-</table>
-
-<p>TOMOYO Linux itself can coexist with SELinux. You may continue with SELinux enabled if you want.</p>
-
 <h2>Install TOMOYO Linux tools</h2>
 
-<p>TOMOYO Linux provides some pre-compiled tools. If you want to use pre-compiled tools, download and extract.</p>
+<p>TOMOYO Linux provides some pre-compiled tools. If you don't want to use repository, download the following files and install them.</p>
 
 <table border="1">
 <tr><td>
-RedHat Linux 9</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.RHL9.i386.rpm
-</td></tr><tr><td>
-Fedora Core 3</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.FC3.i386.rpm
-</td></tr><tr><td>
-Fedora Core 4</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.FC4.i386.rpm
-</td></tr><tr><td>
-Fedora Core 5</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.FC5.i386.rpm
-</td></tr><tr><td>
-Fedora Core 6</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.FC6.i386.rpm
-</td></tr><tr><td>
-Fedora 7</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.F7.i386.rpm
-</td></tr><tr><td>
-Fedora 8</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.F8.i386.rpm
-</td></tr><tr><td>
-Fedora 9</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.F9.i386.rpm
-</td></tr><tr><td>
-CentOS 4.6</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.CentOS4.6.i386.rpm
-</td></tr><tr><td>
-CentOS 5.2</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.CentOS5.2.i386.rpm
-</td></tr><tr><td>
 Debian Sarge</td><td>
 http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.3-1_Sarge_i386.deb
 </td></tr><tr><td>
@@ -213,9 +188,6 @@ http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.3-1_Ubuntu7.10_i386.deb
 </td></tr><tr><td>
 Ubuntu 8.04</td><td>
 http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools_1.6.3-1_Ubuntu8.04_i386.deb
-</td></tr><tr><td>
-Vine Linux 4.2</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.Vine4.2.i386.rpm
 </td></tr><tr><td>
 Others (Source Package)</td><td>
 http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.3-20080715.tar.gz

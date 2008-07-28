@@ -44,19 +44,19 @@
 <p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
 しかしCentOS 5.2の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
 
-<p>まずはパッケージをダウンロードします。</p>
+<p>まずはレポジトリを指定します。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/kernel-2.6.18-92.1.6.el5_tomoyo_1.6.3.i686.rpm</span>
+# <span class="user">curl http://tomoyo.sourceforge.jp/repos/CentOS5/ccs.repo &gt; /etc/yum.repos.d/ccs.repo</span>
 </pre>
 
-<p>次に、ダウンロードしてきたパッケージをインストールします。</p>
+<p>次に、パッケージをダウンロードしてインストールします。</p>
 
 <pre>
-# <span class="user">rpm --install kernel-2.6.18-92.1.6.el5_tomoyo_1.6.3.i686.rpm</span>
+# <span class="user">yum install ccs-kernel</span>
 </pre>
 
-<p>この際特にメッセージは表示されませんが、インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
+<p>インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
 title CentOS (2.6.18-92.1.6.el5_tomoyo_1.6.3)
@@ -83,8 +83,7 @@ title CentOS (2.6.18-92.1.6.el5_tomoyo_1.6.3)
 <p>バイナリパッケージが用意されていますので、それを利用します。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/30299/ccs-tools-1.6.3-1.CentOS5.2.i386.rpm</span>
-# <span class="user">rpm -ivh ccs-tools-1.6.3-1.CentOS5.2.i386.rpm</span>
+# <span class="user">yum install ccs-tools</span>
 </pre>
 
 <p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
