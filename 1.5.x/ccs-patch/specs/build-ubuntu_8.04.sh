@@ -11,7 +11,10 @@ die () {
 VERSION=`uname -r | cut -d - -f 1,2`
 
 apt-get -y install wget
-wget -O - 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x0A0AC927' 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x17063E6D' 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x174BF01A' 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x191FCD8A' 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x60E80B5B' 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x63549F8E' 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x76682A37' 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x8BF9EFE6' | gpg --import || die "Can't import PGP key."
+for key in 0A0AC927 17063E6D 174BF01A 191FCD8A 60E80B5B 63549F8E 76682A37 8BF9EFE6
+do
+  gpg --list-keys $key 2> /dev/null > /dev/null || wget -O - 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x'$key | gpg --import || die "Can't import PGP key."
+done
 
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
