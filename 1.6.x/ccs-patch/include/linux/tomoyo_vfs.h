@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3   2008/07/15
+ * Version: 1.6.3+   2008/07/30
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -361,8 +361,13 @@ static inline int pre_vfs_rename(struct inode *old_dir,
 		return error;
 	if (!old_dir->i_op || !old_dir->i_op->rename)
 		return -EPERM;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 	if (is_dir && new_dir != old_dir)
 		error = permission(old_dentry->d_inode, MAY_WRITE, NULL);
+#else
+	if (is_dir && new_dir != old_dir)
+		error = inode_permission(old_dentry->d_inode, MAY_WRITE);
+#endif
 	return error;
 }
 
