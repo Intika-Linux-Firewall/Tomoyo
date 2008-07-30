@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4   2008/05/10
+ * Version: 1.5.5-pre   2008/07/30
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -71,15 +71,22 @@ static int AddChrootACL(const char *dir, const int is_delete)
 	return error;
 }
 
-int CheckChRootPermission(struct nameidata *nd)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#define PATH_or_NAMEIDATA path
+#else
+#define PATH_or_NAMEIDATA nameidata
+#endif
+int CheckChRootPermission(struct PATH_or_NAMEIDATA *path)
 {
 	int error = -EPERM;
 	char *root_name;
 	if (!CheckCCSFlags(CCS_SAKURA_RESTRICT_CHROOT)) return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	root_name = realpath_from_dentry(nd->path.dentry, nd->path.mnt);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	root_name = realpath_from_dentry(path->dentry, path->mnt);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	root_name = realpath_from_dentry(path->path.dentry, path->path.mnt);
 #else
-	root_name = realpath_from_dentry(nd->dentry, nd->mnt);
+	root_name = realpath_from_dentry(path->dentry, path->mnt);
 #endif
 	if (root_name) {
 		struct path_info dir;

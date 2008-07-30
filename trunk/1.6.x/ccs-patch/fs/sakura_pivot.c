@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3   2008/07/15
+ * Version: 1.6.3+   2008/07/30
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -85,30 +85,40 @@ static int update_pivot_root_acl(const char *old_root, const char *new_root,
 	return error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#define PATH_or_NAMEIDATA path
+#else
+#define PATH_or_NAMEIDATA nameidata
+#endif
 /**
  * ccs_check_pivot_root_permission - Check permission for pivot_root().
  *
- * @old_nd: Pointer to "struct nameidata".
- * @new_nd: Pointer to "struct nameidata".
+ * @old_path: Pointer to "struct path" (for 2.6.27 and later).
+ *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @new_path: Pointer to "struct path" (for 2.6.27 and later).
+ *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_pivot_root_permission(struct nameidata *old_nd,
-				    struct nameidata *new_nd)
+int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
+				    struct PATH_or_NAMEIDATA *new_path)
 {
 	int error = -EPERM;
 	char *old_root, *new_root;
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
 	if (!mode)
 		return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	old_root = ccs_realpath_from_dentry(old_nd->path.dentry,
-					    old_nd->path.mnt);
-	new_root = ccs_realpath_from_dentry(new_nd->path.dentry,
-					    new_nd->path.mnt);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	old_root = ccs_realpath_from_dentry(old_path->dentry, old_path->mnt);
+	new_root = ccs_realpath_from_dentry(new_path->dentry, new_path->mnt);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	old_root = ccs_realpath_from_dentry(old_path->path.dentry,
+					    old_path->path.mnt);
+	new_root = ccs_realpath_from_dentry(new_path->path.dentry,
+					    new_path->path.mnt);
 #else
-	old_root = ccs_realpath_from_dentry(old_nd->dentry, old_nd->mnt);
-	new_root = ccs_realpath_from_dentry(new_nd->dentry, new_nd->mnt);
+	old_root = ccs_realpath_from_dentry(old_path->dentry, old_path->mnt);
+	new_root = ccs_realpath_from_dentry(new_path->dentry, new_path->mnt);
 #endif
 	if (old_root && new_root) {
 		struct path_info old_root_dir, new_root_dir;
