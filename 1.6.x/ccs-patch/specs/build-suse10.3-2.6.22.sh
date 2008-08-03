@@ -76,7 +76,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec	2008-06-10 00:07:47.000000000 +0900
-+++ kernel-default.spec	2008-06-20 09:39:20.000000000 +0900
++++ kernel-default.spec	2008-08-03 17:40:09.000000000 +0900
 @@ -37,10 +37,10 @@
  %define build_vanilla 1
  %endif
@@ -90,6 +90,61 @@ patch << "EOF" || die "Can't patch spec file."
  License:        GPL v2 or later
  Group:          System/Kernel
  AutoReqProv:    on
+@@ -85,8 +85,8 @@
+ Requires:       xen >= xen-3.0.2_09697
+ #!BuildIgnore:  xen
+ %endif
+-Provides:       kernel-default-nongpl
+-Obsoletes:      kernel-default-nongpl
++#Provides:       kernel-default-nongpl
++#Obsoletes:      kernel-default-nongpl
+ Conflicts:      apparmor-profiles <= 2.0.1
+ Conflicts:      apparmor-parser <= 2.0.1
+ Conflicts:      sysfsutils < 2.0
+@@ -97,32 +97,32 @@
+ #Conflicts:    kernel
+ %else
+ %if ! %build_xen
+-Provides:       kernel = 2.6.22.18-%source_rel
++#Provides:       kernel = 2.6.22.18-%source_rel
+ %endif
+ %endif
+ %ifarch alpha
+ %else
+ %ifarch %ix86
+-Provides:       k_athlon k_debug k_deflt k_deflt_22 k_deflt_24 k_eide k_laptop k_orig k_pentiu k_pos_ibm k_psmp k_smp k_smp_22 k_smp_24 smp kernel-smp
+-Obsoletes:      k_athlon k_debug k_deflt k_deflt_22 k_deflt_24 k_eide k_laptop k_orig k_pentiu k_pos_ibm k_psmp k_smp k_smp_22 k_smp_24 smp kernel-smp
++#Provides:       k_athlon k_debug k_deflt k_deflt_22 k_deflt_24 k_eide k_laptop k_orig k_pentiu k_pos_ibm k_psmp k_smp k_smp_22 k_smp_24 smp kernel-smp
++#Obsoletes:      k_athlon k_debug k_deflt k_deflt_22 k_deflt_24 k_eide k_laptop k_orig k_pentiu k_pos_ibm k_psmp k_smp k_smp_22 k_smp_24 smp kernel-smp
+ %else
+ %ifarch ia64
+-Provides:       k_debug k_deflt k_itanium2 k_itanium2-smp k_smp kernel-sn2
+-Obsoletes:      k_debug k_deflt k_itanium2 k_itanium2-smp k_smp kernel-sn2
++#Provides:       k_debug k_deflt k_itanium2 k_itanium2-smp k_smp kernel-sn2
++#Obsoletes:      k_debug k_deflt k_itanium2 k_itanium2-smp k_smp kernel-sn2
+ %else
+ %ifarch ppc
+-Provides:       k_chrp k_chrps k_deflt k_pmac k_pmacs k_prep k_preps
+-Obsoletes:      k_chrp k_chrps k_deflt k_pmac k_pmacs k_prep k_preps
++#Provides:       k_chrp k_chrps k_deflt k_pmac k_pmacs k_prep k_preps
++#Obsoletes:      k_chrp k_chrps k_deflt k_pmac k_pmacs k_prep k_preps
+ %else
+ %ifarch ppc64
+ %else
+ %ifarch s390x
+-Provides:       kernel-64bit k_deflt
+-Obsoletes:      kernel-64bit k_deflt
++#Provides:       kernel-64bit k_deflt
++#Obsoletes:      kernel-64bit k_deflt
+ %else
+ %ifarch x86_64
+-Provides:       k_deflt k_numa k_smp smp kernel-smp
+-Obsoletes:      k_deflt k_numa k_smp smp kernel-smp
++#Provides:       k_deflt k_numa k_smp smp kernel-smp
++#Obsoletes:      k_deflt k_numa k_smp smp kernel-smp
+ %endif
+ %endif
+ %endif
 @@ -191,7 +191,7 @@
  %define tolerate_unknown_new_config_options 0
  # kABI change tolerance (default in maintenance should be 4, 6, 8 or 15,
