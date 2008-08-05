@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3   2008/07/15
+ * Version: 1.6.3+   2008/08/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -73,7 +73,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 			if (cp == last_start)
 				*cp++ = '"';
 			if (cp >= buffer + buffer_len - 32) {
-				/* Preserve some room for "..." string. */
+				/* Reserve some room for "..." string. */
 				truncated = true;
 			} else if (c == '\\') {
 				*cp++ = '\\';
