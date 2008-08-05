@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3   2008/07/15
+ * Version: 1.6.3+   2008/08/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -122,7 +122,7 @@ static struct path_info *ccs_get_path(struct dentry *dentry,
 	struct path_info_with_data *buf = ccs_alloc(sizeof(*buf));
 	if (!buf)
 		return NULL;
-	/* Preserve one byte for appending "/". */
+	/* Reserve one byte for appending "/". */
 	error = ccs_realpath_from_dentry2(dentry, mnt, buf->body,
 					  sizeof(buf->body) - 2);
 	if (!error) {
@@ -1444,7 +1444,7 @@ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	case TYPE_MKDIR_ACL:
 	case TYPE_RMDIR_ACL:
 		if (!buf->is_dir) {
-			/* ccs_get_path() preserves space for appending "/." */
+			/* ccs_get_path() reserves space for appending "/." */
 			strcat((char *) buf->name, "/");
 			ccs_fill_path_info(buf);
 		}
@@ -1532,7 +1532,7 @@ int ccs_check_2path_perm(const u8 operation,
 	if (operation == TYPE_RENAME_ACL) {
 		/* TYPE_LINK_ACL can't reach here for directory. */
 		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
-			/* ccs_get_path() preserves space for appending "/." */
+			/* ccs_get_path() reserves space for appending "/." */
 			if (!buf1->is_dir) {
 				strcat((char *) buf1->name, "/");
 				ccs_fill_path_info(buf1);

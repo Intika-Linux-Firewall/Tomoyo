@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3   2008/07/15
+ * Version: 1.6.3+   2008/08/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -260,7 +260,7 @@ struct address_group_entry {
 struct path_info_with_data {
 	/* Keep "head" first, for this pointer is passed to ccs_free(). */
 	struct path_info head;
-	char bariier1[16]; /* Safeguard for overrun. */
+	char barrier1[16]; /* Safeguard for overrun. */
 	char body[CCS_MAX_PATHNAME_LEN];
 	char barrier2[16]; /* Safeguard for overrun. */
 };
