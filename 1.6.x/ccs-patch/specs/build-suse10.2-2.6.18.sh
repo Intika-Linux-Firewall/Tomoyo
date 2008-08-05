@@ -105,7 +105,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-mv kernel-default.spec ccs-kernel.spec || die "Can't rename spec file."
+sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
 echo ""
 echo ""
 echo ""
