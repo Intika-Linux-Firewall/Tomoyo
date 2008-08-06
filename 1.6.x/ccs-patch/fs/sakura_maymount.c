@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3   2008/07/15
+ * Version: 1.6.3+   2008/08/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -25,27 +25,38 @@
 #include <linux/namei.h>
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#define PATH_or_NAMEIDATA path
+#else
+#define PATH_or_NAMEIDATA nameidata
+#endif
+
 /**
  * check_conceal_mount - Check whether this mount request shadows existing mounts.
  *
- * @nd:     Pointer to "struct nameidata".
+ * @path:   Pointer to "struct path" (for 2.6.27 and later).
+ *          Pointer to "struct nameidata" (for 2.6.26 and earlier).
  * @vfsmnt: Pointer to "struct vfsmount".
  * @dentry: Pointer to "struct dentry".
  *
  * Returns true if @vfsmnt is parent directory compared to @nd, false otherwise.
  */
-static bool check_conceal_mount(struct nameidata *nd, struct vfsmount *vfsmnt,
-				struct dentry *dentry)
+static bool check_conceal_mount(struct PATH_or_NAMEIDATA *path,
+				struct vfsmount *vfsmnt, struct dentry *dentry)
 {
 	/***** CRITICAL SECTION START *****/
 	while (1) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-		if (nd->path.mnt->mnt_root == vfsmnt->mnt_root &&
-		    nd->path.dentry == dentry)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+		if (path->mnt->mnt_root == vfsmnt->mnt_root &&
+		    path->dentry == dentry)
+			return true;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		if (path->path.mnt->mnt_root == vfsmnt->mnt_root &&
+		    path->path.dentry == dentry)
 			return true;
 #else
-		if (nd->mnt->mnt_root == vfsmnt->mnt_root &&
-		    nd->dentry == dentry)
+		if (path->mnt->mnt_root == vfsmnt->mnt_root &&
+		    path->dentry == dentry)
 			return true;
 #endif
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
@@ -64,21 +75,24 @@ static bool check_conceal_mount(struct nameidata *nd, struct vfsmount *vfsmnt,
 /**
  * print_error - Print error message.
  *
- * @nd:   Pointer to "struct nameidata".
+ * @path: Pointer to "struct path" (for 2.6.27 and later).
+ *        Pointer to "struct nameidata" (for 2.6.26 and earlier).
  * @mode: Access control mode.
  *
  * Returns 0 if @mode is not enforcing or permitted by the administrator's
  * decision, negative value otherwise.
  */
-static int print_error(struct nameidata *nd, const u8 mode)
+static int print_error(struct PATH_or_NAMEIDATA *path, const u8 mode)
 {
 	int error;
 	const bool is_enforce = (mode == 3);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	const char *dir = ccs_realpath_from_dentry(nd->path.dentry,
-						   nd->path.mnt);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	const char *dir = ccs_realpath_from_dentry(path->dentry, path->mnt);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	const char *dir = ccs_realpath_from_dentry(path->path.dentry,
+						   path->path.mnt);
 #else
-	const char *dir = ccs_realpath_from_dentry(nd->dentry, nd->mnt);
+	const char *dir = ccs_realpath_from_dentry(path->dentry, path->mnt);
 #endif
 	const char *exename = ccs_get_exe();
 	printk(KERN_WARNING "SAKURA-%s: mount %s (pid=%d:exe=%s): "
@@ -102,7 +116,7 @@ static int print_error(struct nameidata *nd, const u8 mode)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_may_mount(struct nameidata *nd)
+int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 {
 	struct list_head *p;
 	bool flag = false;
@@ -128,7 +142,7 @@ int ccs_may_mount(struct nameidata *nd)
 		spin_lock(&vfsmount_lock);
 #endif
 		if (IS_ROOT(dentry) || !d_unhashed(dentry))
-			flag = check_conceal_mount(nd, vfsmnt, dentry);
+			flag = check_conceal_mount(path, vfsmnt, dentry);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 		spin_unlock(&vfsmount_lock);
 #endif
@@ -138,6 +152,6 @@ int ccs_may_mount(struct nameidata *nd)
 			break;
 	}
 	if (flag)
-		return print_error(nd, mode);
+		return print_error(path, mode);
 	return 0;
 }

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3+   2008/07/30
+ * Version: 1.6.3+   2008/08/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -57,7 +57,11 @@ int ccs_check_pivot_root_permission(struct nameidata *old_nd,
 #endif
 
 /* Check whether the given mount operation hides an mounted partition. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+int ccs_may_mount(struct path *path);
+#else
 int ccs_may_mount(struct nameidata *nd);
+#endif
 
 /* Check whether the given mountpoint is allowed to umount. */
 int ccs_may_umount(struct vfsmount *mnt);
@@ -97,10 +101,17 @@ static inline int ccs_check_pivot_root_permission(struct nameidata *old_nd,
 	return 0;
 }
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+static inline int ccs_may_mount(struct path *path)
+{
+	return 0;
+}
+#else
 static inline int ccs_may_mount(struct nameidata *nd)
 {
 	return 0;
 }
+#endif
 static inline int ccs_may_umount(struct vfsmount *mnt)
 {
 	return 0;
