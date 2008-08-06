@@ -47,8 +47,9 @@
 <p>まずはレポジトリを指定します。</p>
 
 <pre>
-# <span class="user">rpm --import 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'</span>
-# <span class="user">curl http://tomoyo.sourceforge.jp/repos/CentOS4/ccs.repo &gt; /etc/yum.repos.d/ccs.repo</span>
+# <span class="user">wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'</span>
+# <span class="user">rpm --import /tmp/key</span>
+# <span class="user">wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/CentOS4/ccs.repo</span>
 </pre>
 
 <p>次に、パッケージをダウンロードしてインストールします。</p>

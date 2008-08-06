@@ -45,8 +45,9 @@ But regarding CentOS 5.2, a binary kernel package is and this page uses it.</p>
 <p>First, specify the repository to use.</p>
 
 <pre>
-# <span class="user">rpm --import 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'</span>
-# <span class="user">curl http://tomoyo.sourceforge.jp/repos/CentOS5/ccs.repo &gt; /etc/yum.repos.d/ccs.repo</span>
+# <span class="user">wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'</span>
+# <span class="user">rpm --import /tmp/key</span>
+# <span class="user">wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/CentOS5/ccs.repo</span>
 </pre>
 
 <p>Next, download the package and install it.</p>
