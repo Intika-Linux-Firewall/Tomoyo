@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4   2008/05/10
+ * Version: 1.5.5-pre   2008/08/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -263,7 +263,11 @@ static inline int pre_vfs_rename(struct inode *old_dir,
  */
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 	int error = may_create(dir, dentry, NULL);
+#else
+	int error = may_create(dir, dentry);
+#endif
 	if (error)
 		return error;
 	if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD))
@@ -277,7 +281,11 @@ EXPORT_SYMBOL(pre_vfs_mknod);
 /* Permission checks before security_inode_mkdir() is called. */
 static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 	int error = may_create(dir, dentry, NULL);
+#else
+	int error = may_create(dir, dentry);
+#endif
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->mkdir)
@@ -315,7 +323,11 @@ static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 	int error;
 	if (!inode)
 		return -ENOENT;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 	error = may_create(dir, new_dentry, NULL);
+#else
+	error = may_create(dir, new_dentry);
+#endif
 	if (error)
 		return error;
 	if (dir->i_sb != inode->i_sb)
@@ -332,7 +344,11 @@ static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 /* Permission checks before security_inode_symlink() is called. */
 static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 	int error = may_create(dir, dentry, NULL);
+#else
+	int error = may_create(dir, dentry);
+#endif
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->symlink)
@@ -353,16 +369,28 @@ static inline int pre_vfs_rename(struct inode *old_dir,
 	error = may_delete(old_dir, old_dentry, is_dir);
 	if (error)
 		return error;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 	if (!new_dentry->d_inode)
 		error = may_create(new_dir, new_dentry, NULL);
 	else
 		error = may_delete(new_dir, new_dentry, is_dir);
+#else
+	if (!new_dentry->d_inode)
+		error = may_create(new_dir, new_dentry);
+	else
+		error = may_delete(new_dir, new_dentry, is_dir);
+#endif
 	if (error)
 		return error;
 	if (!old_dir->i_op || !old_dir->i_op->rename)
 		return -EPERM;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 	if (is_dir && new_dir != old_dir)
 		error = permission(old_dentry->d_inode, MAY_WRITE, NULL);
+#else
+	if (is_dir && new_dir != old_dir)
+		error = inode_permission(old_dentry->d_inode, MAY_WRITE);
+#endif
 	return error;
 }
 

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.5-pre   2008/07/30
+ * Version: 1.5.5-pre   2008/08/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -162,9 +162,7 @@ static int fs_symlink(const char *pathname, struct dentry *base, char *oldname, 
 	struct dentry *dentry = lookup_create2(pathname, base, 0);
 	int error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-		error = vfs_symlink(base->d_inode, dentry, oldname);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 		error = vfs_symlink(base->d_inode, dentry, oldname, S_IALLUGO);
 #else
 		error = vfs_symlink(base->d_inode, dentry, oldname);

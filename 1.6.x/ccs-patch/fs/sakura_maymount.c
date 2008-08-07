@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3+   2008/08/06
+ * Version: 1.6.3+   2008/08/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -46,11 +46,7 @@ static bool check_conceal_mount(struct PATH_or_NAMEIDATA *path,
 {
 	/***** CRITICAL SECTION START *****/
 	while (1) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-		if (path->mnt->mnt_root == vfsmnt->mnt_root &&
-		    path->dentry == dentry)
-			return true;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 		if (path->path.mnt->mnt_root == vfsmnt->mnt_root &&
 		    path->path.dentry == dentry)
 			return true;
@@ -86,9 +82,7 @@ static int print_error(struct PATH_or_NAMEIDATA *path, const u8 mode)
 {
 	int error;
 	const bool is_enforce = (mode == 3);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-	const char *dir = ccs_realpath_from_dentry(path->dentry, path->mnt);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 	const char *dir = ccs_realpath_from_dentry(path->path.dentry,
 						   path->path.mnt);
 #else

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.5-pre   2008/07/30
+ * Version: 1.5.5-pre   2008/08/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -54,7 +54,11 @@ int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd)
 #endif
 
 /* Check whether the given mount operation hides an mounted partition. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+int SAKURA_MayMount(struct path *path);
+#else
 int SAKURA_MayMount(struct nameidata *nd);
+#endif
 
 /* Check whether the given mountpoint is allowed to umount. */
 int SAKURA_MayUmount(struct vfsmount *mnt);
@@ -75,7 +79,11 @@ static inline int CheckPivotRootPermission(struct path *old_path, struct path *n
 #else
 static inline int CheckPivotRootPermission(struct nameidata *old_nd, struct nameidata *new_nd) { return 0; }
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+static inline int SAKURA_MayMount(struct path *path) { return 0; }
+#else
 static inline int SAKURA_MayMount(struct nameidata *nd) { return 0; }
+#endif
 static inline int SAKURA_MayUmount(struct vfsmount *mnt) { return 0; }
 static inline int SAKURA_MayAutobind(const u16 port) { return 0; }
 
