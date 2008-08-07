@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for CentOS 5.2.
 
-Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS/kernel-2.6.18-92.1.6.el5.src.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS/kernel-2.6.18-92.1.10.el5.src.rpm
 ---
  Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    9 +++
@@ -39,26 +39,26 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  net/core/datagram.c             |   11 +++
  net/ipv4/inet_connection_sock.c |    7 ++
  net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |   11 +++
+ net/ipv4/udp.c                  |   10 +++
  net/ipv6/inet6_hashtables.c     |    7 ++
- net/ipv6/udp.c                  |   11 +++
+ net/ipv6/udp.c                  |   10 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 42 files changed, 674 insertions(+), 11 deletions(-)
+ 42 files changed, 672 insertions(+), 11 deletions(-)
 
---- linux-2.6.18-92.1.6.el5.orig/Makefile
-+++ linux-2.6.18-92.1.6.el5/Makefile
+--- linux-2.6.18-92.1.10.el5.orig/Makefile
++++ linux-2.6.18-92.1.10.el5/Makefile
 @@ -1,7 +1,7 @@
  VERSION = 2
  PATCHLEVEL = 6
  SUBLEVEL = 18
--EXTRAVERSION = -92.1.6.el5
-+EXTRAVERSION = -92.1.6.el5-ccs
+-EXTRAVERSION = -92.1.10.el5
++EXTRAVERSION = -92.1.10.el5-ccs
  RHEL_MAJOR = 5
  RHEL_MINOR = 2
  NAME=Avast! A bilge rat!
---- linux-2.6.18-92.1.6.el5.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.18-92.1.6.el5/arch/alpha/kernel/ptrace.c
+--- linux-2.6.18-92.1.10.el5.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.18-92.1.10.el5/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -82,8 +82,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.18-92.1.6.el5.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.18-92.1.6.el5/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.18-92.1.10.el5.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.18-92.1.10.el5/arch/ia64/ia32/sys_ia32.c
 @@ -58,6 +58,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -107,8 +107,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-92.1.6.el5.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.18-92.1.6.el5/arch/m32r/kernel/ptrace.c
+--- linux-2.6.18-92.1.10.el5.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.18-92.1.10.el5/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -132,8 +132,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-92.1.6.el5.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.18-92.1.6.el5/arch/mips/kernel/ptrace32.c
+--- linux-2.6.18-92.1.10.el5.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.18-92.1.10.el5/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -157,8 +157,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18-92.1.6.el5.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.18-92.1.6.el5/arch/sh64/kernel/ptrace.c
+--- linux-2.6.18-92.1.10.el5.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.18-92.1.10.el5/arch/sh64/kernel/ptrace.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -182,8 +182,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	lock_kernel();
  	if (first_call) {
---- linux-2.6.18-92.1.6.el5.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.18-92.1.6.el5/arch/sparc/kernel/ptrace.c
+--- linux-2.6.18-92.1.10.el5.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.18-92.1.10.el5/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -209,8 +209,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18-92.1.6.el5.orig/fs/Kconfig
-+++ linux-2.6.18-92.1.6.el5/fs/Kconfig
+--- linux-2.6.18-92.1.10.el5.orig/fs/Kconfig
++++ linux-2.6.18-92.1.10.el5/fs/Kconfig
 @@ -2061,5 +2061,7 @@ endmenu
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -219,16 +219,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
 +
  endmenu
  
---- linux-2.6.18-92.1.6.el5.orig/fs/Makefile
-+++ linux-2.6.18-92.1.6.el5/fs/Makefile
+--- linux-2.6.18-92.1.10.el5.orig/fs/Makefile
++++ linux-2.6.18-92.1.10.el5/fs/Makefile
 @@ -109,3 +109,5 @@ obj-$(CONFIG_CACHEFILES)	+= cachefiles/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.18-92.1.6.el5.orig/fs/attr.c
-+++ linux-2.6.18-92.1.6.el5/fs/attr.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/attr.c
++++ linux-2.6.18-92.1.10.el5/fs/attr.c
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -268,8 +268,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.18-92.1.6.el5.orig/fs/compat.c
-+++ linux-2.6.18-92.1.6.el5/fs/compat.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/compat.c
++++ linux-2.6.18-92.1.10.el5/fs/compat.c
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -302,8 +302,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.18-92.1.6.el5.orig/fs/exec.c
-+++ linux-2.6.18-92.1.6.el5/fs/exec.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/exec.c
++++ linux-2.6.18-92.1.10.el5/fs/exec.c
 @@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
@@ -353,8 +353,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.18-92.1.6.el5.orig/fs/fcntl.c
-+++ linux-2.6.18-92.1.6.el5/fs/fcntl.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/fcntl.c
++++ linux-2.6.18-92.1.10.el5/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -378,8 +378,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.18-92.1.6.el5.orig/fs/ioctl.c
-+++ linux-2.6.18-92.1.6.el5/fs/ioctl.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/ioctl.c
++++ linux-2.6.18-92.1.10.el5/fs/ioctl.c
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -401,8 +401,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.18-92.1.6.el5.orig/fs/namei.c
-+++ linux-2.6.18-92.1.6.el5/fs/namei.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/namei.c
++++ linux-2.6.18-92.1.10.el5/fs/namei.c
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -637,8 +637,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.18-92.1.6.el5.orig/fs/namespace.c
-+++ linux-2.6.18-92.1.6.el5/fs/namespace.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/namespace.c
++++ linux-2.6.18-92.1.10.el5/fs/namespace.c
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -752,8 +752,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.18-92.1.6.el5.orig/fs/open.c
-+++ linux-2.6.18-92.1.6.el5/fs/open.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/open.c
++++ linux-2.6.18-92.1.10.el5/fs/open.c
 @@ -30,6 +30,12 @@
  #include <linux/audit.h>
  
@@ -816,8 +816,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18-92.1.6.el5.orig/fs/proc/Makefile
-+++ linux-2.6.18-92.1.6.el5/fs/proc/Makefile
+--- linux-2.6.18-92.1.10.el5.orig/fs/proc/Makefile
++++ linux-2.6.18-92.1.10.el5/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -825,20 +825,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.18-92.1.6.el5.orig/fs/proc/proc_misc.c
-+++ linux-2.6.18-92.1.6.el5/fs/proc/proc_misc.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/proc/proc_misc.c
++++ linux-2.6.18-92.1.10.el5/fs/proc/proc_misc.c
 @@ -723,4 +723,9 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-92.1.6.el5 2008/06/27\n");
++	printk(KERN_INFO "Hook version: 2.6.18-92.1.10.el5 2008/08/07\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.18-92.1.6.el5.orig/fs/syaoran_2.6.c
-+++ linux-2.6.18-92.1.6.el5/fs/syaoran_2.6.c
+--- linux-2.6.18-92.1.10.el5.orig/fs/syaoran_2.6.c
++++ linux-2.6.18-92.1.10.el5/fs/syaoran_2.6.c
 @@ -84,7 +84,7 @@ static struct inode *syaoran_get_inode(s
  		inode->i_uid = current->fsuid;
  		inode->i_gid = current->fsgid;
@@ -848,8 +848,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  #endif
  		inode->i_blocks = 0;
  		inode->i_mapping->a_ops = &syaoran_aops;
---- linux-2.6.18-92.1.6.el5.orig/include/linux/init_task.h
-+++ linux-2.6.18-92.1.6.el5/include/linux/init_task.h
+--- linux-2.6.18-92.1.10.el5.orig/include/linux/init_task.h
++++ linux-2.6.18-92.1.10.el5/include/linux/init_task.h
 @@ -125,6 +125,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -861,8 +861,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  }
  
  
---- linux-2.6.18-92.1.6.el5.orig/include/linux/sched.h
-+++ linux-2.6.18-92.1.6.el5/include/linux/sched.h
+--- linux-2.6.18-92.1.10.el5.orig/include/linux/sched.h
++++ linux-2.6.18-92.1.10.el5/include/linux/sched.h
 @@ -25,6 +25,11 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -886,8 +886,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18-92.1.6.el5.orig/include/linux/syaoran.h
-+++ linux-2.6.18-92.1.6.el5/include/linux/syaoran.h
+--- linux-2.6.18-92.1.10.el5.orig/include/linux/syaoran.h
++++ linux-2.6.18-92.1.10.el5/include/linux/syaoran.h
 @@ -1064,7 +1064,7 @@ static int syaoran_create_tracelog(struc
  			inode->i_uid = 0;
  			inode->i_gid = 0;
@@ -897,8 +897,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  #endif
  			inode->i_blocks = 0;
  			inode->i_mapping->a_ops = &syaoran_aops;
---- linux-2.6.18-92.1.6.el5.orig/include/linux/tomoyo_socket.h
-+++ linux-2.6.18-92.1.6.el5/include/linux/tomoyo_socket.h
+--- linux-2.6.18-92.1.10.el5.orig/include/linux/tomoyo_socket.h
++++ linux-2.6.18-92.1.10.el5/include/linux/tomoyo_socket.h
 @@ -302,7 +302,7 @@ static inline int ccs_socket_sendmsg_per
  	return error;
  }
@@ -908,8 +908,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
  {
---- linux-2.6.18-92.1.6.el5.orig/kernel/compat.c
-+++ linux-2.6.18-92.1.6.el5/kernel/compat.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/compat.c
++++ linux-2.6.18-92.1.10.el5/kernel/compat.c
 @@ -24,6 +24,9 @@
  #include <linux/migrate.h>
  
@@ -931,8 +931,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.18-92.1.6.el5.orig/kernel/kexec.c
-+++ linux-2.6.18-92.1.6.el5/kernel/kexec.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/kexec.c
++++ linux-2.6.18-92.1.10.el5/kernel/kexec.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/semaphore.h>
@@ -954,8 +954,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.18-92.1.6.el5.orig/kernel/kmod.c
-+++ linux-2.6.18-92.1.6.el5/kernel/kmod.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/kmod.c
++++ linux-2.6.18-92.1.10.el5/kernel/kmod.c
 @@ -145,6 +145,11 @@ __exec_usermodehelper(char *path, char *
  
  	key_put(old_session);
@@ -968,8 +968,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
---- linux-2.6.18-92.1.6.el5.orig/kernel/module.c
-+++ linux-2.6.18-92.1.6.el5/kernel/module.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/module.c
++++ linux-2.6.18-92.1.10.el5/kernel/module.c
 @@ -45,6 +45,9 @@
  #include <asm/cacheflush.h>
  #include <linux/license.h>
@@ -1004,8 +1004,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.18-92.1.6.el5.orig/kernel/ptrace.c
-+++ linux-2.6.18-92.1.6.el5/kernel/ptrace.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/ptrace.c
++++ linux-2.6.18-92.1.10.el5/kernel/ptrace.c
 @@ -26,6 +26,9 @@
  #include <asm/tracehook.h>
  #include <asm/pgtable.h>
@@ -1042,8 +1042,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
  		 current->pid, request, pid, addr, cdata);
---- linux-2.6.18-92.1.6.el5.orig/kernel/sched.c
-+++ linux-2.6.18-92.1.6.el5/kernel/sched.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/sched.c
++++ linux-2.6.18-92.1.10.el5/kernel/sched.c
 @@ -55,6 +55,9 @@
  #include <asm/tlb.h>
  
@@ -1065,8 +1065,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.18-92.1.6.el5.orig/kernel/signal.c
-+++ linux-2.6.18-92.1.6.el5/kernel/signal.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/signal.c
++++ linux-2.6.18-92.1.10.el5/kernel/signal.c
 @@ -28,6 +28,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -1077,7 +1077,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  /*
   * SLAB caches for signal bits.
-@@ -1985,6 +1988,12 @@ asmlinkage long
+@@ -1991,6 +1994,12 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -1090,7 +1090,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2043,6 +2052,12 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2049,6 +2058,12 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -1103,7 +1103,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2056,6 +2071,12 @@ sys_tkill(int pid, int sig)
+@@ -2062,6 +2077,12 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -1116,8 +1116,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.18-92.1.6.el5.orig/kernel/sys.c
-+++ linux-2.6.18-92.1.6.el5/kernel/sys.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/sys.c
++++ linux-2.6.18-92.1.10.el5/kernel/sys.c
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1174,8 +1174,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.18-92.1.6.el5.orig/kernel/sysctl.c
-+++ linux-2.6.18-92.1.6.el5/kernel/sysctl.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/sysctl.c
++++ linux-2.6.18-92.1.10.el5/kernel/sysctl.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -1315,8 +1315,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.18-92.1.6.el5.orig/kernel/time.c
-+++ linux-2.6.18-92.1.6.el5/kernel/time.c
+--- linux-2.6.18-92.1.10.el5.orig/kernel/time.c
++++ linux-2.6.18-92.1.10.el5/kernel/time.c
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -1360,8 +1360,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18-92.1.6.el5.orig/net/core/datagram.c
-+++ linux-2.6.18-92.1.6.el5/net/core/datagram.c
+--- linux-2.6.18-92.1.10.el5.orig/net/core/datagram.c
++++ linux-2.6.18-92.1.10.el5/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1387,8 +1387,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  		if (skb)
  			return skb;
  
---- linux-2.6.18-92.1.6.el5.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.18-92.1.6.el5/net/ipv4/inet_connection_sock.c
+--- linux-2.6.18-92.1.10.el5.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.18-92.1.10.el5/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1410,8 +1410,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.18-92.1.6.el5.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.18-92.1.6.el5/net/ipv4/inet_hashtables.c
+--- linux-2.6.18-92.1.10.el5.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.18-92.1.10.el5/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1433,8 +1433,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18-92.1.6.el5.orig/net/ipv4/udp.c
-+++ linux-2.6.18-92.1.6.el5/net/ipv4/udp.c
+--- linux-2.6.18-92.1.10.el5.orig/net/ipv4/udp.c
++++ linux-2.6.18-92.1.10.el5/net/ipv4/udp.c
 @@ -109,6 +109,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1445,30 +1445,29 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -159,6 +162,10 @@ static int udp_v4_get_port(struct sock *
- 				if (result > high)
- 					result = low + ((result - low) &
- 						 (UDP_HTABLE_SIZE - 1));
-+				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result))
-+					continue;
-+				/***** SAKURA Linux end. *****/
- 				goto gotit;
- 			}
- 			size = 0;
-@@ -174,6 +181,10 @@ static int udp_v4_get_port(struct sock *
- 			if (result > high)
- 				result = low + ((result - low) &
- 					   (UDP_HTABLE_SIZE - 1));
+@@ -151,6 +154,10 @@ static int udp_v4_get_port(struct sock *
+ 		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
+ 			struct hlist_head *list;
+ 			int size = 0;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result))
-+				continue;
++			if (ccs_may_autobind(rover))
++				goto next;
 +			/***** SAKURA Linux end. *****/
- 			if (!udp_lport_inuse(result))
- 				break;
- 		}
---- linux-2.6.18-92.1.6.el5.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.18-92.1.6.el5/net/ipv6/inet6_hashtables.c
+ 
+ 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
+ 			if (hlist_empty(list))
+@@ -170,6 +177,9 @@ static int udp_v4_get_port(struct sock *
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
++			/***** SAKURA Linux start. *****/
++			if (!ccs_may_autobind(rover))
++			/***** SAKURA Linux end. *****/
+ 			if (!udp_lport_inuse(rover))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+--- linux-2.6.18-92.1.10.el5.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.18-92.1.10.el5/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1490,8 +1489,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18-92.1.6.el5.orig/net/ipv6/udp.c
-+++ linux-2.6.18-92.1.6.el5/net/ipv6/udp.c
+--- linux-2.6.18-92.1.10.el5.orig/net/ipv6/udp.c
++++ linux-2.6.18-92.1.10.el5/net/ipv6/udp.c
 @@ -58,6 +58,9 @@
  
  #include <linux/proc_fs.h>
@@ -1502,30 +1501,29 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
  
-@@ -87,6 +90,10 @@ static int udp_v6_get_port(struct sock *
- 				if (result > high)
- 					result = low + ((result - low) &
- 						 (UDP_HTABLE_SIZE - 1));
-+				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result))
-+					continue;
-+				/***** SAKURA Linux end. *****/
- 				goto gotit;
- 			}
- 			size = 0;
-@@ -102,6 +109,10 @@ static int udp_v6_get_port(struct sock *
- 			if (result > high)
- 				result = low + ((result - low) &
- 					   (UDP_HTABLE_SIZE - 1));
+@@ -84,6 +87,10 @@ static int udp_v6_get_port(struct sock *
+ 		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
+ 			int size = 0;
+ 			struct hlist_head *list;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result))
-+				continue;
++			if (ccs_may_autobind(rover))
++				goto next;
 +			/***** SAKURA Linux end. *****/
- 			if (!udp_lport_inuse(result))
- 				break;
- 		}
---- linux-2.6.18-92.1.6.el5.orig/net/socket.c
-+++ linux-2.6.18-92.1.6.el5/net/socket.c
+ 
+ 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
+ 			if (hlist_empty(list))
+@@ -103,6 +110,9 @@ static int udp_v6_get_port(struct sock *
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
++			/***** SAKURA Linux start. *****/
++			if (!ccs_may_autobind(rover))
++			/***** SAKURA Linux end. *****/
+ 			if (!udp_lport_inuse(rover))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+--- linux-2.6.18-92.1.10.el5.orig/net/socket.c
++++ linux-2.6.18-92.1.10.el5/net/socket.c
 @@ -95,6 +95,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1618,8 +1616,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.18-92.1.6.el5.orig/net/unix/af_unix.c
-+++ linux-2.6.18-92.1.6.el5/net/unix/af_unix.c
+--- linux-2.6.18-92.1.10.el5.orig/net/unix/af_unix.c
++++ linux-2.6.18-92.1.10.el5/net/unix/af_unix.c
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
