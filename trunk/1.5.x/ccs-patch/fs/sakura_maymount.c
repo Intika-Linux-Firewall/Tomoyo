@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4   2008/05/10
+ * Version: 1.5.5-pre   2008/08/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -26,9 +26,15 @@
 #include <linux/namei.h>
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#define PATH_or_NAMEIDATA path
+#else
+#define PATH_or_NAMEIDATA nameidata
+#endif
+
 /*************************  CONCEAL MOUNT PROTECTOR  *************************/
 
-int SAKURA_MayMount(struct nameidata *nd)
+int SAKURA_MayMount(struct PATH_or_NAMEIDATA *path)
 {
 	int flag = 0;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
@@ -47,13 +53,13 @@ int SAKURA_MayMount(struct nameidata *nd)
 			spin_lock(&dcache_lock);
 			if (IS_ROOT(dentry) || !d_unhashed(dentry)) {
 				while (1) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-					if (nd->path.mnt->mnt_root == vfsmnt->mnt_root && nd->path.dentry == dentry) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
+					if (path->path.mnt->mnt_root == vfsmnt->mnt_root && path->path.dentry == dentry) {
 						flag = 1;
 						break;
 					}
 #else
-					if (nd->mnt->mnt_root == vfsmnt->mnt_root && nd->dentry == dentry) {
+					if (path->mnt->mnt_root == vfsmnt->mnt_root && path->dentry == dentry) {
 						flag = 1;
 						break;
 					}
@@ -85,10 +91,10 @@ int SAKURA_MayMount(struct nameidata *nd)
 	if (flag) {
 		int error = -EPERM;
 		const int is_enforce = CheckCCSEnforce(CCS_SAKURA_DENY_CONCEAL_MOUNT);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-		const char *dir = realpath_from_dentry(nd->path.dentry, nd->path.mnt);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
+		const char *dir = realpath_from_dentry(path->path.dentry, path->path.mnt);
 #else
-		const char *dir = realpath_from_dentry(nd->dentry, nd->mnt);
+		const char *dir = realpath_from_dentry(path->dentry, path->mnt);
 #endif
 		if (dir) {
 			const char *exename = GetEXE();

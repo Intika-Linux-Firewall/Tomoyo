@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3+   2008/07/30
+ * Version: 1.6.3+   2008/08/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -108,10 +108,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
 	if (!mode)
 		return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-	old_root = ccs_realpath_from_dentry(old_path->dentry, old_path->mnt);
-	new_root = ccs_realpath_from_dentry(new_path->dentry, new_path->mnt);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26) 
 	old_root = ccs_realpath_from_dentry(old_path->path.dentry,
 					    old_path->path.mnt);
 	new_root = ccs_realpath_from_dentry(new_path->path.dentry,
