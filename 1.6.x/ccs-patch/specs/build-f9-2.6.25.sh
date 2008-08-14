@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.25.11-97.fc9.src.rpm ]
+if [ ! -r kernel-2.6.25.14-108.fc9.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS/kernel-2.6.25.11-97.fc9.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS/kernel-2.6.25.14-108.fc9.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.25.11-97.fc9.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.25.14-108.fc9.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.3-20080715.tar.gz ]
@@ -22,16 +22,16 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.25.11-97.fc9.diff ]
+if [ ! -r ccs-patch-2.6.25.14-108.fc9.diff ]
 then
-    wget -O ccs-patch-2.6.25.11-97.fc9.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.25.11-97.fc9.diff?root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.25.14-108.fc9.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.25.14-108.fc9.diff?root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-07-21 12:59:06.000000000 +0900
-+++ kernel.spec	2008-07-27 08:24:21.000000000 +0900
+--- kernel.spec	2008-08-05 02:21:32.000000000 +0900
++++ kernel.spec	2008-08-14 01:44:07.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -62,7 +62,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -791,7 +796,7 @@
+@@ -786,7 +791,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -71,19 +71,19 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1304,6 +1309,11 @@
+@@ -1292,6 +1297,11 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.3-20080715.tar.gz
-+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .11-97.fc9:' -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.25.11-97.fc9.diff
++sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .14-108.fc9:' -- Makefile
++patch -sp1 < %_sourcedir/ccs-patch-2.6.25.14-108.fc9.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1332,6 +1342,9 @@
+@@ -1320,6 +1330,9 @@
  for i in *.config
  do
    mv $i .config
