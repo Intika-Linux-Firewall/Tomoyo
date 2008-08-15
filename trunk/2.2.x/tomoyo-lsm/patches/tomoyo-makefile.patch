@@ -9,9 +9,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/Makefile |    1 +
  4 files changed, 13 insertions(+)
 
---- vfs-2.6.orig/security/Kconfig
-+++ vfs-2.6/security/Kconfig
-@@ -126,6 +126,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
+--- linux-2.6.27-rc3.orig/security/Kconfig
++++ linux-2.6.27-rc3/security/Kconfig
+@@ -117,6 +117,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
  
  source security/selinux/Kconfig
  source security/smack/Kconfig
@@ -19,26 +19,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  endmenu
  
---- vfs-2.6.orig/security/Makefile
-+++ vfs-2.6/security/Makefile
+--- linux-2.6.27-rc3.orig/security/Makefile
++++ linux-2.6.27-rc3/security/Makefile
 @@ -5,6 +5,7 @@
  obj-$(CONFIG_KEYS)			+= keys/
  subdir-$(CONFIG_SECURITY_SELINUX)	+= selinux
  subdir-$(CONFIG_SECURITY_SMACK)		+= smack
 +subdir-$(CONFIG_SECURITY_TOMOYO)        += tomoyo
  
- # if we don't select a security model, use the default capabilities
- ifneq ($(CONFIG_SECURITY),y)
-@@ -16,6 +17,7 @@ obj-$(CONFIG_SECURITY)			+= security.o d
- # Must precede capability.o in order to stack properly.
- obj-$(CONFIG_SECURITY_SELINUX)		+= selinux/built-in.o
- obj-$(CONFIG_SECURITY_SMACK)		+= commoncap.o smack/built-in.o
-+obj-$(CONFIG_SECURITY_TOMOYO)		+= tomoyo/built-in.o
- obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
- obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
+ # always enable default capabilities
+ obj-y		+= commoncap.o
+@@ -16,3 +17,4 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
+ obj-$(CONFIG_SECURITY_SMACK)		+= smack/built-in.o
+ obj-$(CONFIG_SECURITY_ROOTPLUG)		+= root_plug.o
  obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
++obj-$(CONFIG_SECURITY_TOMOYO)		+= tomoyo/built-in.o
 --- /dev/null
-+++ vfs-2.6/security/tomoyo/Kconfig
++++ linux-2.6.27-rc3/security/tomoyo/Kconfig
 @@ -0,0 +1,9 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux Support"
@@ -50,6 +47,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +          found at <http://tomoyo.sourceforge.jp/>.
 +	  If you are unsure how to answer this question, answer N.
 --- /dev/null
-+++ vfs-2.6/security/tomoyo/Makefile
++++ linux-2.6.27-rc3/security/tomoyo/Makefile
 @@ -0,0 +1 @@
 +obj-y = common.o realpath.o tomoyo.o domain.o file.o

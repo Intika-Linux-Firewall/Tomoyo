@@ -8,14 +8,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  include/linux/list.h     |   78 +
  security/tomoyo/common.c | 2145 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  318 ++++++
- 3 files changed, 2541 insertions(+)
+ security/tomoyo/common.h |  319 ++++++
+ 3 files changed, 2542 insertions(+)
 
---- vfs-2.6.orig/include/linux/list.h
-+++ vfs-2.6/include/linux/list.h
-@@ -981,4 +981,82 @@ static inline void hlist_add_after_rcu(s
+--- linux-2.6.27-rc3.orig/include/linux/list.h
++++ linux-2.6.27-rc3/include/linux/list.h
+@@ -679,4 +679,82 @@ static inline void hlist_add_after(struc
  		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
- 	     pos = rcu_dereference(pos->next))
+ 	     pos = n)
  
 +/*
 + * Singly linked list.
@@ -97,7 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
  #endif
 --- /dev/null
-+++ vfs-2.6/security/tomoyo/common.c
++++ linux-2.6.27-rc3/security/tomoyo/common.c
 @@ -0,0 +1,2145 @@
 +/*
 + * security/tomoyo/common.c
@@ -106,7 +106,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/07/08
++ * Version: 2.2.0-pre   2008/08/15
 + *
 + */
 +
@@ -1780,7 +1780,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	envp[2] = NULL;
 +	call_usermodehelper(argv[0], argv, envp, 1);
 +
-+	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/07/08\n");
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/08/15\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -2245,8 +2245,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
-+++ vfs-2.6/security/tomoyo/common.h
-@@ -0,0 +1,318 @@
++++ linux-2.6.27-rc3/security/tomoyo/common.h
+@@ -0,0 +1,319 @@
 +/*
 + * security/tomoyo/common.h
 + *
@@ -2254,7 +2254,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/06/22
++ * Version: 2.2.0-pre   2008/08/15
 + *
 + */
 +
@@ -2267,6 +2267,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <linux/kmod.h>
 +#include <linux/fs.h>
 +#include <linux/sched.h>
++#include <linux/namei.h>
 +
 +struct dentry;
 +struct vfsmount;

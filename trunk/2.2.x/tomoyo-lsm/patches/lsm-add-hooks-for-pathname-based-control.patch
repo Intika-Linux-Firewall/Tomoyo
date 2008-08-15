@@ -11,13 +11,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  fs/open.c                |    5 +
  include/linux/security.h |  135 +++++++++++++++++++++++++++++++++++++++++++++++
  net/unix/af_unix.c       |    4 +
- security/dummy.c         |   53 ++++++++++++++++++
+ security/capability.c    |   53 ++++++++++++++++++
  security/security.c      |   63 +++++++++++++++++++++
  6 files changed, 297 insertions(+)
 
---- vfs-2.6.orig/fs/namei.c
-+++ vfs-2.6/fs/namei.c
-@@ -1593,6 +1593,10 @@ int may_open(struct nameidata *nd, int a
+--- linux-2.6.27-rc3.orig/fs/namei.c
++++ linux-2.6.27-rc3/fs/namei.c
+@@ -1585,6 +1585,10 @@ int may_open(struct nameidata *nd, int a
  		 * Refuse to truncate files with mandatory locks held on them.
  		 */
  		error = locks_verify_locked(inode);
@@ -28,7 +28,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (!error) {
  			DQUOT_INIT(inode);
  
-@@ -1623,7 +1627,11 @@ static int __open_namei_create(struct na
+@@ -1615,7 +1619,11 @@ static int __open_namei_create(struct na
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -40,7 +40,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->path.dentry);
  	nd->path.dentry = path->dentry;
-@@ -2028,6 +2036,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2018,6 +2026,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -50,7 +50,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2040,6 +2051,7 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2030,6 +2041,7 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
@@ -58,7 +58,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2104,7 +2116,11 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2089,7 +2101,11 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -70,7 +70,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2216,7 +2232,11 @@ static long do_rmdir(int dfd, const char
+@@ -2196,7 +2212,11 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -82,7 +82,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  exit3:
  	dput(dentry);
-@@ -2302,7 +2322,11 @@ static long do_unlinkat(int dfd, const c
+@@ -2278,7 +2298,11 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -94,7 +94,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		mnt_drop_write(nd.path.mnt);
  	exit2:
  		dput(dentry);
-@@ -2387,7 +2411,11 @@ asmlinkage long sys_symlinkat(const char
+@@ -2359,7 +2383,11 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -106,19 +106,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2487,7 +2515,11 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2456,7 +2484,11 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = security_path_link(old_nd.path.dentry, &nd.path, new_dentry);
++	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
 +	if (error)
 +		goto out_drop_write;
- 	error = vfs_link(old_nd.path.dentry, nd.path.dentry->d_inode, new_dentry);
+ 	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
 +out_drop_write:
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(new_dentry);
-@@ -2718,8 +2750,13 @@ static int do_rename(int olddfd, const c
+@@ -2688,8 +2720,13 @@ asmlinkage long sys_renameat(int olddfd,
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -132,18 +132,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
  	dput(new_dentry);
---- vfs-2.6.orig/fs/open.c
-+++ vfs-2.6/fs/open.c
-@@ -271,6 +271,8 @@ static long do_sys_truncate(const char _
+--- linux-2.6.27-rc3.orig/fs/open.c
++++ linux-2.6.27-rc3/fs/open.c
+@@ -272,6 +272,8 @@ static long do_sys_truncate(const char _
  		goto put_write_and_out;
  
  	error = locks_verify_truncate(inode, NULL, length);
 +	if (!error)
-+		error = security_path_truncate(&nd.path, length, 0, NULL);
++		error = security_path_truncate(&path, length, 0, NULL);
  	if (!error) {
  		DQUOT_INIT(inode);
- 		error = do_truncate(nd.path.dentry, length, 0, NULL);
-@@ -328,6 +330,9 @@ static long do_sys_ftruncate(unsigned in
+ 		error = do_truncate(path.dentry, length, 0, NULL);
+@@ -329,6 +331,9 @@ static long do_sys_ftruncate(unsigned in
  
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
@@ -153,9 +153,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
---- vfs-2.6.orig/include/linux/security.h
-+++ vfs-2.6/include/linux/security.h
-@@ -349,17 +349,37 @@ static inline void security_free_mnt_opt
+--- linux-2.6.27-rc3.orig/include/linux/security.h
++++ linux-2.6.27-rc3/include/linux/security.h
+@@ -345,17 +345,37 @@ static inline void security_free_mnt_opt
   *	@dir contains the inode structure of the parent directory of the new link.
   *	@new_dentry contains the dentry structure for the new link.
   *	Return 0 if permission is granted.
@@ -193,7 +193,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @inode_mkdir:
   *	Check permissions to create a new directory in the existing directory
   *	associated with inode strcture @dir.
-@@ -367,11 +387,25 @@ static inline void security_free_mnt_opt
+@@ -363,11 +383,25 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure of new directory.
   *	@mode contains the mode of new directory.
   *	Return 0 if permission is granted.
@@ -219,7 +219,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @inode_mknod:
   *	Check permissions when creating a special file (or a socket or a fifo
   *	file created via the mknod system call).  Note that if mknod operation
-@@ -382,6 +416,15 @@ static inline void security_free_mnt_opt
+@@ -378,6 +412,15 @@ static inline void security_free_mnt_opt
   *	@mode contains the mode of the new file.
   *	@dev contains the device number.
   *	Return 0 if permission is granted.
@@ -235,7 +235,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @inode_rename:
   *	Check for permission to rename a file or directory.
   *	@old_dir contains the inode structure for parent of the old link.
-@@ -389,6 +432,13 @@ static inline void security_free_mnt_opt
+@@ -385,6 +428,13 @@ static inline void security_free_mnt_opt
   *	@new_dir contains the inode structure for parent of the new link.
   *	@new_dentry contains the dentry structure of the new link.
   *	Return 0 if permission is granted.
@@ -249,7 +249,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @inode_readlink:
   *	Check the permission to read the symbolic link.
   *	@dentry contains the dentry structure for the file link.
-@@ -417,6 +467,13 @@ static inline void security_free_mnt_opt
+@@ -413,6 +463,13 @@ static inline void security_free_mnt_opt
   *	@dentry contains the dentry structure for the file.
   *	@attr is the iattr structure containing the new file attributes.
   *	Return 0 if permission is granted.
@@ -263,7 +263,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @inode_getattr:
   *	Check permission before obtaining file attributes.
   *	@mnt is the vfsmount where the dentry was looked up
-@@ -1351,6 +1408,20 @@ struct security_operations {
+@@ -1343,6 +1400,20 @@ struct security_operations {
  				   struct super_block *newsb);
  	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
  
@@ -284,7 +284,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	int (*inode_alloc_security) (struct inode *inode);
  	void (*inode_free_security) (struct inode *inode);
  	int (*inode_init_security) (struct inode *inode, struct inode *dir,
-@@ -1624,6 +1695,20 @@ void security_sb_clone_mnt_opts(const st
+@@ -1611,6 +1682,20 @@ void security_sb_clone_mnt_opts(const st
  				struct super_block *newsb);
  int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts);
  
@@ -305,7 +305,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  int security_inode_alloc(struct inode *inode);
  void security_inode_free(struct inode *inode);
  int security_inode_init_security(struct inode *inode, struct inode *dir,
-@@ -1949,6 +2034,56 @@ static inline int security_sb_parse_opts
+@@ -1938,6 +2023,56 @@ static inline int security_sb_parse_opts
  	return 0;
  }
  
@@ -362,9 +362,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static inline int security_inode_alloc(struct inode *inode)
  {
  	return 0;
---- vfs-2.6.orig/net/unix/af_unix.c
-+++ vfs-2.6/net/unix/af_unix.c
-@@ -829,7 +829,11 @@ static int unix_bind(struct socket *sock
+--- linux-2.6.27-rc3.orig/net/unix/af_unix.c
++++ linux-2.6.27-rc3/net/unix/af_unix.c
+@@ -827,7 +827,11 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
@@ -376,78 +376,78 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		mnt_drop_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
---- vfs-2.6.orig/security/dummy.c
-+++ vfs-2.6/security/dummy.c
-@@ -272,6 +272,51 @@ static int dummy_sb_parse_opts_str(char 
- 	return 0;
+--- linux-2.6.27-rc3.orig/security/capability.c
++++ linux-2.6.27-rc3/security/capability.c
+@@ -268,6 +268,51 @@ static void cap_inode_getsecid(const str
+ 	*secid = 0;
  }
  
-+static int dummy_path_mknod(struct path *dir, struct dentry *dentry, int mode,
-+			    unsigned int dev)
++static int cap_path_mknod(struct path *dir, struct dentry *dentry, int mode,
++			  unsigned int dev)
 +{
 +	return 0;
 +}
 +
-+static int dummy_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
++static int cap_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
 +{
 +	return 0;
 +}
 +
-+static int dummy_path_rmdir(struct path *dir, struct dentry *dentry)
++static int cap_path_rmdir(struct path *dir, struct dentry *dentry)
 +{
 +	return 0;
 +}
 +
-+static int dummy_path_unlink(struct path *dir, struct dentry *dentry)
++static int cap_path_unlink(struct path *dir, struct dentry *dentry)
 +{
 +	return 0;
 +}
 +
-+static int dummy_path_symlink(struct path *dir, struct dentry *dentry,
-+			      const char *old_name)
++static int cap_path_symlink(struct path *dir, struct dentry *dentry,
++			    const char *old_name)
 +{
 +	return 0;
 +}
 +
-+static int dummy_path_link(struct dentry *old_dentry, struct path *new_dir,
-+			   struct dentry *new_dentry)
++static int cap_path_link(struct dentry *old_dentry, struct path *new_dir,
++			 struct dentry *new_dentry)
 +{
 +	return 0;
 +}
 +
-+static int dummy_path_rename(struct path *old_path, struct dentry *old_dentry,
-+			     struct path *new_path, struct dentry *new_dentry)
++static int cap_path_rename(struct path *old_path, struct dentry *old_dentry,
++			   struct path *new_path, struct dentry *new_dentry)
 +{
 +	return 0;
 +}
 +
-+static int dummy_path_truncate(struct path *path, loff_t length,
-+			       unsigned int time_attrs, struct file *filp)
++static int cap_path_truncate(struct path *path, loff_t length,
++			     unsigned int time_attrs, struct file *filp)
 +{
 +	return 0;
 +}
 +
- static int dummy_inode_alloc_security (struct inode *inode)
+ static int cap_file_permission(struct file *file, int mask)
  {
  	return 0;
-@@ -1101,6 +1146,14 @@ void security_fixup_ops (struct security
- 	set_to_dummy_if_null(ops, sb_set_mnt_opts);
- 	set_to_dummy_if_null(ops, sb_clone_mnt_opts);
- 	set_to_dummy_if_null(ops, sb_parse_opts_str);
-+	set_to_dummy_if_null(ops, path_mknod);
-+	set_to_dummy_if_null(ops, path_mkdir);
-+	set_to_dummy_if_null(ops, path_rmdir);
-+	set_to_dummy_if_null(ops, path_unlink);
-+	set_to_dummy_if_null(ops, path_symlink);
-+	set_to_dummy_if_null(ops, path_link);
-+	set_to_dummy_if_null(ops, path_rename);
-+	set_to_dummy_if_null(ops, path_truncate);
- 	set_to_dummy_if_null(ops, inode_alloc_security);
- 	set_to_dummy_if_null(ops, inode_free_security);
- 	set_to_dummy_if_null(ops, inode_init_security);
---- vfs-2.6.orig/security/security.c
-+++ vfs-2.6/security/security.c
-@@ -388,6 +388,69 @@ int security_inode_init_security(struct 
+@@ -876,6 +921,14 @@ void security_fixup_ops(struct security_
+ 	set_to_cap_if_null(ops, inode_setsecurity);
+ 	set_to_cap_if_null(ops, inode_listsecurity);
+ 	set_to_cap_if_null(ops, inode_getsecid);
++	set_to_cap_if_null(ops, path_mknod);
++	set_to_cap_if_null(ops, path_mkdir);
++	set_to_cap_if_null(ops, path_rmdir);
++	set_to_cap_if_null(ops, path_unlink);
++	set_to_cap_if_null(ops, path_symlink);
++	set_to_cap_if_null(ops, path_link);
++	set_to_cap_if_null(ops, path_rename);
++	set_to_cap_if_null(ops, path_truncate);
+ 	set_to_cap_if_null(ops, file_permission);
+ 	set_to_cap_if_null(ops, file_alloc_security);
+ 	set_to_cap_if_null(ops, file_free_security);
+--- linux-2.6.27-rc3.orig/security/security.c
++++ linux-2.6.27-rc3/security/security.c
+@@ -354,6 +354,69 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
  
