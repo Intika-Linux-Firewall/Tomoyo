@@ -21,6 +21,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  fs/proc/proc_misc.c             |    5 +
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 +++
+ include/linux/syaoran.h         |    7 +-
  kernel/compat.c                 |    7 ++
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
@@ -38,7 +39,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 36 files changed, 616 insertions(+), 3 deletions(-)
+ 37 files changed, 620 insertions(+), 6 deletions(-)
 
 --- linux-2.6.26.orig/Makefile
 +++ linux-2.6.26/Makefile
@@ -806,6 +807,36 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  };
  
  /*
+--- linux-2.6.26.orig/include/linux/syaoran.h
++++ linux-2.6.26/include/linux/syaoran.h
+@@ -161,7 +161,7 @@ static int fs_mkdir(const char *pathname
+ 	struct dentry *dentry = lookup_create2(pathname, base, 1);
+ 	int error = PTR_ERR(dentry);
+ 	if (!IS_ERR(dentry)) {
+-		error = vfs_mkdir(base->d_inode, dentry, mode);
++		error = vfs_mkdir(base->d_inode, dentry, NULL, mode);
+ 		if (!error) {
+ 			lock_kernel();
+ 			dentry->d_inode->i_uid = user;
+@@ -197,7 +197,7 @@ static int fs_mknod(const char *filename
+ 	dentry = lookup_create2(filename, base, 0);
+ 	error = PTR_ERR(dentry);
+ 	if (!IS_ERR(dentry)) {
+-		error = vfs_mknod(base->d_inode, dentry, mode, dev);
++		error = vfs_mknod(base->d_inode, dentry, NULL, mode, dev);
+ 		if (!error) {
+ 			lock_kernel();
+ 			dentry->d_inode->i_uid = user;
+@@ -222,7 +222,8 @@ static int fs_symlink(const char *pathna
+ 	int error = PTR_ERR(dentry);
+ 	if (!IS_ERR(dentry)) {
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+-		error = vfs_symlink(base->d_inode, dentry, oldname, S_IALLUGO);
++		error = vfs_symlink(base->d_inode, dentry, NULL, oldname,
++				    S_IALLUGO);
+ #else
+ 		error = vfs_symlink(base->d_inode, dentry, oldname);
+ #endif
 --- linux-2.6.26.orig/kernel/compat.c
 +++ linux-2.6.26/kernel/compat.c
 @@ -25,6 +25,9 @@
