@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3+   2008/08/07
+ * Version: 1.6.3+   2008/08/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -46,6 +46,12 @@
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define s_fs_info u.generic_sbp
+#else
+#include <linux/audit.h>
+#ifdef AUDIT_APPARMOR_AUDIT
+/* AppArmor patch adds "struct vfsmount" to VFS helper functions. */
+#define HAVE_VFSMOUNT_IN_VFS_HELPER
+#endif
 #endif
 
 #ifndef DEFINE_SPINLOCK
@@ -161,7 +167,11 @@ static int fs_mkdir(const char *pathname, struct dentry *base, int mode,
 	struct dentry *dentry = lookup_create2(pathname, base, 1);
 	int error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
+#ifdef HAVE_VFSMOUNT_IN_VFS_HELPER
+		error = vfs_mkdir(base->d_inode, dentry, NULL, mode);
+#else
 		error = vfs_mkdir(base->d_inode, dentry, mode);
+#endif
 		if (!error) {
 			lock_kernel();
 			dentry->d_inode->i_uid = user;
@@ -197,7 +207,11 @@ static int fs_mknod(const char *filename, struct dentry *base, int mode,
 	dentry = lookup_create2(filename, base, 0);
 	error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
+#ifdef HAVE_VFSMOUNT_IN_VFS_HELPER
+		error = vfs_mknod(base->d_inode, dentry, NULL, mode, dev);
+#else
 		error = vfs_mknod(base->d_inode, dentry, mode, dev);
+#endif
 		if (!error) {
 			lock_kernel();
 			dentry->d_inode->i_uid = user;
@@ -222,9 +236,18 @@ static int fs_symlink(const char *pathname, struct dentry *base, char *oldname,
 	int error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
+#ifdef HAVE_VFSMOUNT_IN_VFS_HELPER
+		error = vfs_symlink(base->d_inode, dentry, NULL, oldname,
+				    S_IALLUGO);
+#else
 		error = vfs_symlink(base->d_inode, dentry, oldname, S_IALLUGO);
+#endif
+#else
+#ifdef HAVE_VFSMOUNT_IN_VFS_HELPER
+		error = vfs_symlink(base->d_inode, dentry, NULL, oldname);
 #else
 		error = vfs_symlink(base->d_inode, dentry, oldname);
+#endif
 #endif
 		if (!error) {
 			lock_kernel();
