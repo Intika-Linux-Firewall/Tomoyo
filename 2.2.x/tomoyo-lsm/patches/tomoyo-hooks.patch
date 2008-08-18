@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  271 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  102 +++++++++++++++++
- 2 files changed, 373 insertions(+)
+ security/tomoyo/tomoyo.c |  304 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  102 +++++++++++++++
+ 2 files changed, 406 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc3/security/tomoyo/tomoyo.c
-@@ -0,0 +1,271 @@
+@@ -0,0 +1,304 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -84,8 +84,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int tmy_inode_setattr(struct dentry *dentry, struct iattr *attr)
 +{
-+	if (attr->ia_valid & ATTR_SIZE)
-+		return tmy_check_1path_perm(TMY_TYPE_TRUNCATE_ACL, dentry);
++	if (attr->ia_valid & ATTR_SIZE) {
++		int error;
++		const char *prev = current->current_vfsmount_path;
++		if ((attr->ia_valid & ATTR_FILE) && attr->ia_file)
++			current->current_vfsmount_path = attr->ia_file->f_security;
++		error = tmy_check_1path_perm(TMY_TYPE_TRUNCATE_ACL, dentry);
++		current->current_vfsmount_path = prev;
++		return error;
++	}
 +	return 0;
 +}
 +
@@ -147,6 +154,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	return tmy_check_2path_perm(TMY_TYPE_RENAME_ACL, old_dentry,
 +				    new_dentry);
++}
++
++static void tmy_file_free_security(struct file *file)
++{
++	kfree(file->f_security);
 +}
 +
 +#else
@@ -232,6 +244,26 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if ((flags + 1) & O_ACCMODE)
 +		flags++;
 +	flags |= f->f_flags & (O_APPEND | O_TRUNC);
++
++#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
++	if (f->f_path.mnt) {
++		struct path path = { f->f_path.mnt, f->f_path.mnt->mnt_root };
++		char *page = kmalloc(PAGE_SIZE, GFP_KERNEL);
++		char *ret;
++		if (!page)
++			return -ENOMEM;
++		ret = d_path(&path, page, PAGE_SIZE);
++		if (IS_ERR(ret)) {
++			kfree(page);
++			return -ENOMEM;
++		}
++		ret = kstrdup(ret, GFP_KERNEL);
++		kfree(page);
++		if (!ret)
++			return -ENOMEM;
++		f->f_security = ret;
++	}
++#endif
 +	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
 +}
 +
@@ -255,6 +287,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.inode_mknod               = tmy_inode_mknod,
 +	.inode_link                = tmy_inode_link,
 +	.inode_rename              = tmy_inode_rename,
++	.file_free_security        = tmy_file_free_security,
 +#else
 +	.path_truncate             = tmy_path_truncate,
 +	.path_unlink               = tmy_path_unlink,
