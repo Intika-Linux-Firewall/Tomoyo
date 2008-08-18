@@ -1087,7 +1087,9 @@ static int syaoran_create_tracelog(struct super_block *sb, const char *filename)
 			inode->i_uid = 0;
 			inode->i_gid = 0;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+#if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
 			inode->i_blksize = PAGE_CACHE_SIZE;
+#endif
 #endif
 			inode->i_blocks = 0;
 			inode->i_mapping->a_ops = &syaoran_aops;
