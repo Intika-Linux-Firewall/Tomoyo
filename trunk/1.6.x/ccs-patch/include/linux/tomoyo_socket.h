@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3   2008/07/15
+ * Version: 1.6.3+   2008/08/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -304,20 +304,9 @@ static inline int ccs_socket_sendmsg_permission(struct socket *sock,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
 
-static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
-{
-	return skb->nh.iph;
-}
-
-static inline struct udphdr *udp_hdr(const struct sk_buff *skb)
-{
-	return skb->h.uh;
-}
-
-static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
-{
-	return skb->nh.ipv6h;
-}
+#define ip_hdr(skb) ((skb)->nh.iph)
+#define udp_hdr(skb) ((skb)->h.uh)
+#define ipv6_hdr(skb) ((skb)->nh.ipv6h)
 
 #endif
 
