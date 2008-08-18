@@ -5,7 +5,7 @@
  *
  * Portions Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.4   2008/05/10
+ * Version: 1.5.5-pre   2008/08/18
  *
  * This file is applicable to 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -82,7 +82,9 @@ static struct inode *syaoran_get_inode(struct super_block *sb, int mode, dev_t d
 		inode->i_uid = current->fsuid;
 		inode->i_gid = current->fsgid;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+#if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
 		inode->i_blksize = PAGE_CACHE_SIZE;
+#endif
 #endif
 		inode->i_blocks = 0;
 		inode->i_mapping->a_ops = &syaoran_aops;
