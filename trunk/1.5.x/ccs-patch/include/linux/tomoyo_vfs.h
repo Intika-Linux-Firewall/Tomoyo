@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.5-pre   2008/08/07
+ * Version: 1.5.5-pre   2008/08/18
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -255,6 +255,11 @@ static inline int pre_vfs_rename(struct inode *old_dir,
 
 #else
 
+/* SuSE 11.0 adds is_dir for may_create(). */
+#ifdef MS_WITHAPPEND
+#define HAVE_IS_DIR_FOR_MAY_CREATE
+#endif
+
 /*
  * Permission checks before security_inode_mknod() is called.
  *
@@ -264,7 +269,11 @@ static inline int pre_vfs_rename(struct inode *old_dir,
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	int error = may_create(dir, dentry, NULL, 0);
+#else
 	int error = may_create(dir, dentry, NULL);
+#endif
 #else
 	int error = may_create(dir, dentry);
 #endif
@@ -282,7 +291,11 @@ EXPORT_SYMBOL(pre_vfs_mknod);
 static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	int error = may_create(dir, dentry, NULL, 1);
+#else
 	int error = may_create(dir, dentry, NULL);
+#endif
 #else
 	int error = may_create(dir, dentry);
 #endif
@@ -324,7 +337,11 @@ static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 	if (!inode)
 		return -ENOENT;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	error = may_create(dir, new_dentry, NULL, 0);
+#else
 	error = may_create(dir, new_dentry, NULL);
+#endif
 #else
 	error = may_create(dir, new_dentry);
 #endif
@@ -345,7 +362,11 @@ static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	int error = may_create(dir, dentry, NULL, 0);
+#else
 	int error = may_create(dir, dentry, NULL);
+#endif
 #else
 	int error = may_create(dir, dentry);
 #endif
@@ -370,10 +391,17 @@ static inline int pre_vfs_rename(struct inode *old_dir,
 	if (error)
 		return error;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	if (!new_dentry->d_inode)
+		error = may_create(new_dir, new_dentry, NULL, is_dir);
+	else
+		error = may_delete(new_dir, new_dentry, is_dir);
+#else
 	if (!new_dentry->d_inode)
 		error = may_create(new_dir, new_dentry, NULL);
 	else
 		error = may_delete(new_dir, new_dentry, is_dir);
+#endif
 #else
 	if (!new_dentry->d_inode)
 		error = may_create(new_dir, new_dentry);
