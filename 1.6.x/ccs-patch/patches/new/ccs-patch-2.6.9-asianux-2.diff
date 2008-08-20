@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Asianux 2.0.
 
 Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.24AX.src.rpm
 ---
- Makefile                           |    2 
  arch/alpha/kernel/ptrace.c         |    9 ++
  arch/arm/kernel/ptrace.c           |    9 ++
  arch/arm26/kernel/ptrace.c         |    9 ++
@@ -57,19 +56,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/ipv6/udp.c                     |   11 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 55 files changed, 833 insertions(+), 13 deletions(-)
+ 54 files changed, 832 insertions(+), 12 deletions(-)
 
---- linux-2.6.9-42.24AX.orig/Makefile
-+++ linux-2.6.9-42.24AX/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 9
--EXTRAVERSION = -42.24AX
-+EXTRAVERSION = -42.24AX-ccs
- NAME=AC 1
- 
- # *DOCUMENTATION*
 --- linux-2.6.9-42.24AX.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-42.24AX/arch/alpha/kernel/ptrace.c
 @@ -19,6 +19,9 @@
@@ -1385,7 +1373,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-42.24AX 2008/07/30\n");
++	printk(KERN_INFO "Hook version: 2.6.9-42.24AX 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

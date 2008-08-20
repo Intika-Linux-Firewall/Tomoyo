@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Ubuntu 8.04.
 
 Source code for this patch is "apt-get install linux-source-2.6.24"
 ---
- Makefile                        |    2 
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/ia64/kernel/ptrace.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
@@ -45,19 +44,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 43 files changed, 666 insertions(+), 3 deletions(-)
+ 42 files changed, 665 insertions(+), 2 deletions(-)
 
---- linux-source-2.6.24.3.orig/Makefile
-+++ linux-source-2.6.24.3/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 24
--EXTRAVERSION = .3
-+EXTRAVERSION = .3-ccs
- NAME = Err Metey! A Heury Beelge-a Ret!
- 
- # *DOCUMENTATION*
 --- linux-source-2.6.24.3.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-source-2.6.24.3/arch/ia64/ia32/sys_ia32.c
 @@ -55,6 +55,9 @@
@@ -917,7 +905,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.24.3 2008/04/28\n");
++	printk(KERN_INFO "Hook version: 2.6.24.3 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -948,7 +936,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  /*
   * Scheduling policies
   */
-@@ -1183,6 +1188,10 @@ struct task_struct {
+@@ -1187,6 +1192,10 @@ struct task_struct {
  	int latency_record_count;
  	struct latency_record latency_record[LT_SAVECOUNT];
  #endif

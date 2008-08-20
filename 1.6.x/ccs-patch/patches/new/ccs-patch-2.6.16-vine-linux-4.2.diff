@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for VineLinux 4.2.
 
 Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPMS/kernel-2.6.16-76.37vl4.src.rpm
 ---
- Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    9 +++
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/ia64/kernel/ptrace.c       |    9 +++
@@ -46,19 +45,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 44 files changed, 713 insertions(+), 11 deletions(-)
+ 43 files changed, 712 insertions(+), 10 deletions(-)
 
---- linux-2.6.16-76.37vl4.orig/Makefile
-+++ linux-2.6.16-76.37vl4/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 16
--EXTRAVERSION = -76.37vl4custom
-+EXTRAVERSION = -76.37vl4-ccs
- NAME=Stable Penguin
- 
- # *DOCUMENTATION*
 --- linux-2.6.16-76.37vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.37vl4/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
@@ -964,7 +952,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.16-76.37vl4 2008/06/26\n");
++	printk(KERN_INFO "Hook version: 2.6.16-76.37vl4 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

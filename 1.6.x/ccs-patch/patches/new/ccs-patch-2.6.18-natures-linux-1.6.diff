@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Nature's Linux 1.6 .
 
 Source code for this patch is http://packages.n-linux.com/release/deb/kernel-source-2.6.18.8p4_nl1_all.deb
 ---
- Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    9 +++
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/ia64/kernel/ptrace.c       |    9 +++
@@ -46,19 +45,8 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 44 files changed, 713 insertions(+), 8 deletions(-)
+ 43 files changed, 712 insertions(+), 7 deletions(-)
 
---- kernel-source-2.6.18.8p4.orig/Makefile
-+++ kernel-source-2.6.18.8p4/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 18
--EXTRAVERSION = .8p4
-+EXTRAVERSION = .8p4-ccs
- NAME=Avast! A bilge rat!
- 
- # *DOCUMENTATION*
 --- kernel-source-2.6.18.8p4.orig/arch/alpha/kernel/ptrace.c
 +++ kernel-source-2.6.18.8p4/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
@@ -962,7 +950,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18.8p4 2008/05/19\n");
++	printk(KERN_INFO "Hook version: 2.6.18.8p4 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

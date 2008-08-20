@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for openSUSE 10.1.
 
 Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.1/rpm/src/kernel-source-2.6.16.54-0.2.5.src.rpm
 ---
- Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    9 +++
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/ia64/kernel/ptrace.c       |    9 +++
@@ -46,19 +45,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.1/rp
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 44 files changed, 712 insertions(+), 10 deletions(-)
+ 43 files changed, 711 insertions(+), 9 deletions(-)
 
---- linux-2.6.16.54-0.2.5.orig/Makefile
-+++ linux-2.6.16.54-0.2.5/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 16
--EXTRAVERSION = .54
-+EXTRAVERSION = .54-ccs
- NAME=Stable Penguin
- 
- # *DOCUMENTATION*
 --- linux-2.6.16.54-0.2.5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16.54-0.2.5/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
@@ -964,7 +952,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.1/rp
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.16.54-0.2.5_SUSE 2008/05/03\n");
++	printk(KERN_INFO "Hook version: 2.6.16.54-0.2.5_SUSE 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

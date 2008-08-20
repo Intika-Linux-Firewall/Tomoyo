@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Ubuntu 6.10.
 
 Source code for this patch is "apt-get install linux-source-2.6.17"
 ---
- Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    9 +++
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/ia64/kernel/ptrace.c       |    9 +++
@@ -46,19 +45,8 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 44 files changed, 712 insertions(+), 10 deletions(-)
+ 43 files changed, 711 insertions(+), 9 deletions(-)
 
---- linux-source-2.6.17.14-ubuntu1.orig/Makefile
-+++ linux-source-2.6.17.14-ubuntu1/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 17
--EXTRAVERSION = .14-ubuntu1
-+EXTRAVERSION = .14-ubuntu1-ccs
- NAME=Crazed Snow-Weasel
- 
- ifdef UBUNTUBUILD
 --- linux-source-2.6.17.14-ubuntu1.orig/arch/alpha/kernel/ptrace.c
 +++ linux-source-2.6.17.14-ubuntu1/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
@@ -963,7 +951,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.17.14-ubuntu1 2008/05/03\n");
++	printk(KERN_INFO "Hook version: 2.6.17.14-ubuntu1 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

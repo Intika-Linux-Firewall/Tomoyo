@@ -3,7 +3,6 @@ This is TOMOYO Linux patch for Debian Sarge.
 Source code for this patch is "apt-get install kernel-source-2.4.27"
 ---
  Documentation/Configure.help |   89 ++++++++++++++++++++++++++++++
- Makefile                     |    2 
  arch/alpha/kernel/ptrace.c   |    9 +++
  arch/arm/kernel/ptrace.c     |    9 +++
  arch/cris/kernel/ptrace.c    |    9 +++
@@ -51,7 +50,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  net/ipv6/udp.c               |   11 +++
  net/socket.c                 |   40 ++++++++++++-
  net/unix/af_unix.c           |   15 +++++
- 49 files changed, 866 insertions(+), 7 deletions(-)
+ 48 files changed, 865 insertions(+), 6 deletions(-)
 
 --- kernel-source-2.4.27-10sarge7.orig/Documentation/Configure.help
 +++ kernel-source-2.4.27-10sarge7/Documentation/Configure.help
@@ -151,17 +150,6 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  #
  # A couple of things I keep forgetting:
  #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
---- kernel-source-2.4.27-10sarge7.orig/Makefile
-+++ kernel-source-2.4.27-10sarge7/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 4
- SUBLEVEL = 27
--EXTRAVERSION =
-+EXTRAVERSION = -10sarge7-ccs
- 
- KERNELRELEASE=$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
- 
 --- kernel-source-2.4.27-10sarge7.orig/arch/alpha/kernel/ptrace.c
 +++ kernel-source-2.4.27-10sarge7/arch/alpha/kernel/ptrace.c
 @@ -18,6 +18,9 @@
@@ -1308,7 +1296,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.27-10sarge7 2008/04/30\n");
++	printk(KERN_INFO "Hook version: 2.4.27-10sarge7 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

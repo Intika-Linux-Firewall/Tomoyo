@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Fedora Core 3.
 
 Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/updates/SRPMS/kernel-2.6.12-2.3.legacy_FC3.src.rpm
 ---
- Makefile                           |    2 
  arch/alpha/kernel/ptrace.c         |    9 ++
  arch/arm/kernel/ptrace.c           |    9 ++
  arch/arm26/kernel/ptrace.c         |    9 ++
@@ -59,19 +58,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  net/ipv6/udp.c                     |   11 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 57 files changed, 844 insertions(+), 11 deletions(-)
+ 56 files changed, 843 insertions(+), 10 deletions(-)
 
---- linux-2.6.12-2.3.legacy_FC3.orig/Makefile
-+++ linux-2.6.12-2.3.legacy_FC3/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 12
--EXTRAVERSION = -2.3.legacy_FC3
-+EXTRAVERSION = -2.3.legacy_FC3-ccs
- NAME=Woozy Numbat
- 
- # *DOCUMENTATION*
 --- linux-2.6.12-2.3.legacy_FC3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12-2.3.legacy_FC3/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
@@ -1386,7 +1374,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.12-2.3.legacy_FC3 2008/05/03\n");
++	printk(KERN_INFO "Hook version: 2.6.12-2.3.legacy_FC3 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
