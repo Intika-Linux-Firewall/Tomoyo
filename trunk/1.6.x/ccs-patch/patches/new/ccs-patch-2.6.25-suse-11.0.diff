@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for openSUSE 11.0.
 
 Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/kernel-source-2.6.25.11-0.1.i586.rpm
 ---
- Makefile                        |    2 
  arch/ia64/ia32/sys_ia32.c       |    9 ++
  arch/mips/kernel/ptrace32.c     |    9 ++
  arch/s390/kernel/ptrace.c       |    9 ++
@@ -40,19 +39,8 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 ++++
- 38 files changed, 636 insertions(+), 3 deletions(-)
+ 37 files changed, 635 insertions(+), 2 deletions(-)
 
---- linux-2.6.25.11-0.1.orig/Makefile
-+++ linux-2.6.25.11-0.1/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 25
--EXTRAVERSION = .11
-+EXTRAVERSION = .11-ccs
- NAME = Funky Weasel is Jiggy wit it
- 
- # *DOCUMENTATION*
 --- linux-2.6.25.11-0.1.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.11-0.1/arch/ia64/ia32/sys_ia32.c
 @@ -50,6 +50,9 @@
@@ -818,7 +806,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.25.11-0.1 2008/07/23\n");
++	printk(KERN_INFO "Hook version: 2.6.25.11-0.1 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

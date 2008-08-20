@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for CentOS 4.6.
 
 Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.22.EL.src.rpm
 ---
- Makefile                           |    2 
  arch/alpha/kernel/ptrace.c         |    9 ++
  arch/arm/kernel/ptrace.c           |    9 ++
  arch/arm26/kernel/ptrace.c         |    9 ++
@@ -58,19 +57,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  net/ipv6/udp.c                     |   11 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 56 files changed, 838 insertions(+), 12 deletions(-)
+ 55 files changed, 837 insertions(+), 11 deletions(-)
 
---- linux-2.6.9-67.0.22.EL.orig/Makefile
-+++ linux-2.6.9-67.0.22.EL/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 9
--EXTRAVERSION = -67.0.22.EL
-+EXTRAVERSION = -67.0.22.EL-ccs
- RHEL_VERSION = 4
- RHEL_UPDATE = 6
- NAME=AC 1
 --- linux-2.6.9-67.0.22.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-67.0.22.EL/arch/alpha/kernel/ptrace.c
 @@ -19,6 +19,9 @@
@@ -1384,7 +1372,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-67.0.22.EL 2008/07/25\n");
++	printk(KERN_INFO "Hook version: 2.6.9-67.0.22.EL 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

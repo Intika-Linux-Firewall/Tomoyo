@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Ubuntu 8.10.
 
 Source code for this patch is "apt-get install linux-source-2.6.26"
 ---
- Makefile                        |    2 
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
  arch/sh/kernel/ptrace_64.c      |    9 +++
@@ -38,19 +37,8 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 36 files changed, 616 insertions(+), 3 deletions(-)
+ 35 files changed, 615 insertions(+), 2 deletions(-)
 
---- linux-2.6.26.orig/Makefile
-+++ linux-2.6.26/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 26
--EXTRAVERSION = .2
-+EXTRAVERSION = .2-ccs
- NAME = Rotary Wombat
- 
- # *DOCUMENTATION*
 --- linux-2.6.26.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.26/arch/ia64/ia32/sys_ia32.c
 @@ -51,6 +51,9 @@
@@ -764,7 +752,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.26.2 2008/08/16\n");
++	printk(KERN_INFO "Hook version: 2.6.26.2 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

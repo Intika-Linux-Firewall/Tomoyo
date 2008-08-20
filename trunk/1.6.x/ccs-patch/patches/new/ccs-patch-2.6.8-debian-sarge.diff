@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Debian Sarge.
 
 Source code for this patch is "apt-get install kernel-source-2.6.8"
 ---
- Makefile                           |    2 
  arch/alpha/kernel/ptrace.c         |    9 ++
  arch/arm/kernel/ptrace.c           |    9 ++
  arch/arm26/kernel/ptrace.c         |    9 ++
@@ -56,19 +55,8 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  net/ipv6/udp.c                     |   11 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 54 files changed, 815 insertions(+), 11 deletions(-)
+ 53 files changed, 814 insertions(+), 10 deletions(-)
 
---- kernel-source-2.6.8-17sarge1.orig/Makefile
-+++ kernel-source-2.6.8-17sarge1/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 8
--EXTRAVERSION =
-+EXTRAVERSION = -17sarge1-ccs
- NAME=Zonked Quokka
- 
- # *DOCUMENTATION*
 --- kernel-source-2.6.8-17sarge1.orig/arch/alpha/kernel/ptrace.c
 +++ kernel-source-2.6.8-17sarge1/arch/alpha/kernel/ptrace.c
 @@ -19,6 +19,9 @@
@@ -1333,7 +1321,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.8-17sarge1 2008/04/30\n");
++	printk(KERN_INFO "Hook version: 2.6.8-17sarge1 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

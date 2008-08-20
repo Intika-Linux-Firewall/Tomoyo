@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for openSUSE 10.3.
 
 Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/kernel-source-2.6.22.18-0.2.i586.rpm
 ---
- Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    9 +++
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/ia64/kernel/ptrace.c       |    9 +++
@@ -47,19 +46,8 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 45 files changed, 684 insertions(+), 3 deletions(-)
+ 44 files changed, 683 insertions(+), 2 deletions(-)
 
---- linux-2.6.22.18-0.2.orig/Makefile
-+++ linux-2.6.22.18-0.2/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 22
--EXTRAVERSION = .18
-+EXTRAVERSION = .18-ccs
- NAME = Holy Dancing Manatees, Batman!
- 
- # *DOCUMENTATION*
 --- linux-2.6.22.18-0.2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.22.18-0.2/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
@@ -967,7 +955,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.22.18-0.2_SUSE 2008/06/20\n");
++	printk(KERN_INFO "Hook version: 2.6.22.18-0.2_SUSE 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

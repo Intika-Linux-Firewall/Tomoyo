@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Armadillo-9.
 
 Source code for this patch is http://download.atmark-techno.com/armadillo-9/source/linux-2.6.12.3-a9-14.tar.gz
 ---
- Makefile                           |    2 
  arch/alpha/kernel/ptrace.c         |    9 ++
  arch/arm/kernel/ptrace.c           |    9 ++
  arch/arm26/kernel/ptrace.c         |    9 ++
@@ -59,19 +58,8 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                     |   11 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 57 files changed, 846 insertions(+), 12 deletions(-)
+ 56 files changed, 845 insertions(+), 11 deletions(-)
 
---- linux-2.6.12.3-a9-14.orig/Makefile
-+++ linux-2.6.12.3-a9-14/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 12
--EXTRAVERSION = .3-a9-14
-+EXTRAVERSION = .3-a9-14-ccs
- NAME=Woozy Numbat
- 
- # *DOCUMENTATION*
 --- linux-2.6.12.3-a9-14.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-14/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
@@ -1386,7 +1374,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.12.3-a9-14 2008/06/20\n");
++	printk(KERN_INFO "Hook version: 2.6.12.3-a9-14 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
