@@ -1145,3 +1145,16 @@ Fix 2008/07/08
       Some filesystems (e.g. unionfs) pass NULL vfsmount.
       I changed fs/tomoyo_file.c not to try to calculate pathnames
       if vfsmount is NULL.
+
+Fix 2008/08/21
+
+    @ Change prototypes of some functions.
+
+      To support 2.6.27 kernels, I replaced "struct nameidata" with
+      "struct path" for some functions.
+
+    @ Detect distributor specific patches automatically.
+
+      Since kernels with AppArmor patch applied is increasing,
+      I introduced a mechanism which determines whether specific patches
+      are applied or not, based on "#define" directives in the patches.
