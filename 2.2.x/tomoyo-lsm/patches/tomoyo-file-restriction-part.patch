@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1328 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1328 insertions(+)
+ security/tomoyo/file.c | 1331 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1331 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc3/security/tomoyo/file.c
-@@ -0,0 +1,1328 @@
+@@ -0,0 +1,1331 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -146,6 +146,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	dp = buf->body;
 +	ep = dp + sizeof(buf->body) - 4;
 +	sp = current->current_vfsmount_path;
++	if (*sp == '/' && *(sp + 1) == '\0')
++		goto root_mnt;
 +	while ((c = *sp++) != '\0') {
 +		if (c == '\\') {
 +			if (dp >= ep - 2)
@@ -165,6 +167,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			*dp++ = (c & 7) + '0';
 +		}
 +	}
++root_mnt:
 +	sp = rest_path;
 +	while ((c = *sp++) != '\0') {
 +		if (c == '\\') {
