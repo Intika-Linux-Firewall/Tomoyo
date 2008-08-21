@@ -1523,3 +1523,23 @@ Fix 2008/07/08
       if vfsmount is NULL.
 
 Version 1.6.3 2008/07/15   Bug fix release.
+
+Fix 2008/08/21
+
+    @ Add workaround for gcc 4.3's bug.
+
+      In some environments, fs/tomoyo_network.c could not be compiled
+      because of gcc 4.3's bug.
+      I modified save_ipv6_address() to use "integer literal" value
+      instead for "static const u8" variable.
+
+    @ Change prototypes of some functions.
+
+      To support 2.6.27 kernels, I replaced "struct nameidata" with
+      "struct path" for some functions.
+
+    @ Detect distributor specific patches automatically.
+
+      Since kernels with AppArmor patch applied is increasing,
+      I introduced a mechanism which determines whether specific patches
+      are applied or not, based on "#define" directives in the patches.
