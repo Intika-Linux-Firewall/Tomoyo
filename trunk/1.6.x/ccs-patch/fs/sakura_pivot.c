@@ -108,7 +108,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
 	if (!mode)
 		return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26) 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 	old_root = ccs_realpath_from_dentry(old_path->path.dentry,
 					    old_path->path.mnt);
 	new_root = ccs_realpath_from_dentry(new_path->path.dentry,
