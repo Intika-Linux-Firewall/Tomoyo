@@ -189,7 +189,7 @@ static bool is_byte_range(const char *str)
  */
 static bool is_decimal(const char c)
 {
-	return (c >= '0' && c <= '9');
+	return c >= '0' && c <= '9';
 }
 
 /**
@@ -201,9 +201,9 @@ static bool is_decimal(const char c)
  */
 static bool is_hexadecimal(const char c)
 {
-	return ((c >= '0' && c <= '9') ||
+	return (c >= '0' && c <= '9') ||
 		(c >= 'A' && c <= 'F') ||
-		(c >= 'a' && c <= 'f'));
+		(c >= 'a' && c <= 'f');
 }
 
 /**
@@ -215,7 +215,7 @@ static bool is_hexadecimal(const char c)
  */
 static bool is_alphabet_char(const char c)
 {
-	return ((c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
+	return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 }
 
 /**
@@ -670,7 +670,7 @@ static bool file_matches_to_pattern2(const char *filename,
 	while (*pattern == '\\' &&
 	       (*(pattern + 1) == '*' || *(pattern + 1) == '@'))
 		pattern += 2;
-	return (filename == filename_end && pattern == pattern_end);
+	return filename == filename_end && pattern == pattern_end;
 }
 
 /**
@@ -772,7 +772,7 @@ bool ccs_path_matches_pattern(const struct path_info *filename,
 	while (*p == '\\' &&
 	       (*(p + 1) == '*' || *(p + 1) == '@'))
 		p += 2;
-	return (!*f && !*p);
+	return !*f && !*p;
 }
 
 /**

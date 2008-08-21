@@ -125,7 +125,7 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_CHROOT);
 	if (!mode)
 		return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26) 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 	root_name = ccs_realpath_from_dentry(path->path.dentry, path->path.mnt);
 #else
 	root_name = ccs_realpath_from_dentry(path->dentry, path->mnt);

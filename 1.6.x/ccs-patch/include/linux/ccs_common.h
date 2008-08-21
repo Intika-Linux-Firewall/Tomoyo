@@ -781,13 +781,13 @@ static inline bool ccs_pathcmp(const struct path_info *a,
 /* Get type of an ACL entry. */
 static inline u8 ccs_acl_type1(struct acl_info *ptr)
 {
-	return (ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION));
+	return ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION);
 }
 
 /* Get type of an ACL entry. */
 static inline u8 ccs_acl_type2(struct acl_info *ptr)
 {
-	return (ptr->type & ~ACL_WITH_CONDITION);
+	return ptr->type & ~ACL_WITH_CONDITION;
 }
 
 /* A linked list of domains. */
