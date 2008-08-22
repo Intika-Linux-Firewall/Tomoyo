@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.5-pre   2008/08/21
+ * Version: 1.5.5-pre   2008/08/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -396,4 +396,45 @@ static inline int pathcmp(const struct path_info *a, const struct path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
+
+#include <linux/dcache.h>
+extern spinlock_t vfsmount_lock;
+
+#ifdef D_PATH_DISCONNECT
+
+static inline void ccs_realpath_lock(void)
+{
+	spin_lock(&vfsmount_lock);
+	spin_lock(&dcache_lock);
+}
+static inline void ccs_realpath_unlock(void)
+{
+	spin_unlock(&dcache_lock);
+	spin_unlock(&vfsmount_lock);
+}
+
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+
+static inline void ccs_realpath_lock(void)
+{
+	spin_lock(&dcache_lock);
+	spin_lock(&vfsmount_lock);
+}
+static inline void ccs_realpath_unlock(void)
+{
+	spin_unlock(&vfsmount_lock);
+	spin_unlock(&dcache_lock);
+}
+
+#else
+
+static inline void ccs_realpath_lock(void)
+{
+	spin_lock(&dcache_lock);
+}
+static inline void ccs_realpath_unlock(void)
+{
+	spin_unlock(&dcache_lock);
+}
+
 #endif

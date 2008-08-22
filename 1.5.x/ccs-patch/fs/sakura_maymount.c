@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.5-pre   2008/08/21
+ * Version: 1.5.5-pre   2008/08/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -50,7 +50,7 @@ int SAKURA_MayMount(struct PATH_or_NAMEIDATA *path)
 		list_for_each(p, &namespace->list) {
 			struct vfsmount *vfsmnt = list_entry(p, struct vfsmount, mnt_list);
 			struct dentry *dentry = vfsmnt->mnt_root;
-			spin_lock(&dcache_lock);
+			ccs_realpath_lock();
 			if (IS_ROOT(dentry) || !d_unhashed(dentry)) {
 				while (1) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
@@ -65,26 +65,17 @@ int SAKURA_MayMount(struct PATH_or_NAMEIDATA *path)
 					}
 #endif
 					if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-						spin_lock(&vfsmount_lock);
-#endif
 						if (vfsmnt->mnt_parent == vfsmnt) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-							spin_unlock(&vfsmount_lock);
-#endif
 							break;
 						}
 						dentry = vfsmnt->mnt_mountpoint;
 						vfsmnt = vfsmnt->mnt_parent;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-						spin_unlock(&vfsmount_lock);
-#endif
 						continue;
 					}
 					dentry = dentry->d_parent;
 				}
 			}
-			spin_unlock(&dcache_lock);
+			ccs_realpath_unlock();
 			if (flag) break;
 		}
 	}
