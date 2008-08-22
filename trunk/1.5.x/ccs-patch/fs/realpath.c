@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.5-pre   2008/08/21
+ * Version: 1.5.5-pre   2008/08/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -43,7 +43,7 @@ extern int sbin_init_started;
  * @buffer: buffer to return value in
  * @buflen: buffer length
  *
- * Caller holds the dcache_lock.
+ * Caller holds the dcache_lock and vfsmount_lock.
  * Based on __d_path() in fs/dcache.c
  *
  * If dentry is a directory, trailing '/' is appended.
@@ -66,20 +66,11 @@ static int GetAbsolutePath(struct dentry *dentry, struct vfsmount *vfsmnt, char 
 
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
 			/* Global root? */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-			spin_lock(&vfsmount_lock);
-#endif
 			if (vfsmnt->mnt_parent == vfsmnt) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-				spin_unlock(&vfsmount_lock);
-#endif
 				break;
 			}
 			dentry = vfsmnt->mnt_mountpoint;
 			vfsmnt = vfsmnt->mnt_parent;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-			spin_unlock(&vfsmount_lock);
-#endif
 			continue;
 		}
 		if (is_dir) {
@@ -209,9 +200,9 @@ int realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt, char *new
 	d_dentry = dget(dentry);
 	d_mnt = mntget(mnt);
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&dcache_lock);
+	ccs_realpath_lock();
 	error = GetAbsolutePath(d_dentry, d_mnt, newname, newname_len);
-	spin_unlock(&dcache_lock);
+	ccs_realpath_unlock();
 	/***** CRITICAL SECTION END *****/
 	dput(d_dentry);
 	mntput(d_mnt);

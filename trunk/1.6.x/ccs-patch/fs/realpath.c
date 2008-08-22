@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3+   2008/08/21
+ * Version: 1.6.3+   2008/08/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -240,15 +240,9 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 	d_dentry = dget(dentry);
 	d_mnt = mntget(mnt);
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&dcache_lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-	spin_lock(&vfsmount_lock);
-#endif
+	ccs_realpath_lock();
 	error = get_absolute_path(d_dentry, d_mnt, newname, newname_len);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-	spin_unlock(&vfsmount_lock);
-#endif
-	spin_unlock(&dcache_lock);
+	ccs_realpath_unlock();
 	/***** CRITICAL SECTION END *****/
 	dput(d_dentry);
 	mntput(d_mnt);

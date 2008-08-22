@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.3+   2008/08/21
+ * Version: 1.6.3+   2008/08/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -131,16 +131,10 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 						     mnt_list);
 		struct dentry *dentry = vfsmnt->mnt_root;
 		/***** CRITICAL SECTION START *****/
-		spin_lock(&dcache_lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-		spin_lock(&vfsmount_lock);
-#endif
+		ccs_realpath_lock();
 		if (IS_ROOT(dentry) || !d_unhashed(dentry))
 			flag = check_conceal_mount(path, vfsmnt, dentry);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-		spin_unlock(&vfsmount_lock);
-#endif
-		spin_unlock(&dcache_lock);
+		ccs_realpath_unlock();
 		/***** CRITICAL SECTION END *****/
 		if (flag)
 			break;
