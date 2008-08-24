@@ -255,7 +255,7 @@ static inline int pre_vfs_rename(struct inode *old_dir,
 
 #else
 
-/* SuSE 11.0 adds is_dir for may_create(). */
+/* SUSE 11.0 adds is_dir for may_create(). */
 #ifdef MS_WITHAPPEND
 #define HAVE_IS_DIR_FOR_MAY_CREATE
 #endif
