@@ -358,6 +358,12 @@ reboot
 <td>enabled</td>
 <td>-</td>
 </tr>
+<tr>
+<td>SLEEP_PERIOD</td>
+<td>Specifies how long should the process that violated policy in enforcing mode sleep for, in 0.1 seconds.</td>
+<td>0</td>
+<td>-</td>
+</tr>
 </table>
 <p>You can give the following values for RESTRICT_AUTOBIND</p>
 <table border="1">
@@ -374,7 +380,7 @@ reboot
 <td>On</td>
 </tr>
 </table>
-<p>You can give any integer greater or equals to 0 for MAX_ACCEPT_ENTRY, MAX_GRANT_LOG and MAX_REJECT_LOG</p>
+<p>You can give any integer greater or equals to 0 for MAX_ACCEPT_ENTRY, MAX_GRANT_LOG, MAX_REJECT_LOG and SLEEP_PERIOD.</p>
 <p>You can give the following values for TOMOYO_VERBOSE</p>
 <table border="1">
 <tr>
@@ -560,8 +566,8 @@ But if you can't boot by some reason (for example, you assigned profiles for "en
 
 <h2>Changes for Audit Logs</h2>
 
-<p>TOMOYO Linux can record "access granted logs" (access requests that didn't violate domain policy) and "access rejected logs" (access requests that violated domain policy).</p>
-The logs are in the form of domain policy so that the logs can be directly appended to domain policy. Add the "access rejected logs" to domain policy if you consider you should allow the access.
+<p>TOMOYO Linux can record "access granted logs" (access requests that didn't violate domain policy) and "access rejected logs" (access requests that violated domain policy).<br>
+The logs are in the form of domain policy so that the logs can be directly appended to domain policy. Add the "access rejected logs" to domain policy if you consider you should allow the access.</p>
 
 <p>You can use a daemon program that reads from /proc/ccs/grant_log and /proc/ccs/reject_log and writes to files. Run in the following way from (for example) /etc/rc.local .</p>
 
@@ -604,6 +610,20 @@ mkdir -p /var/log/tomoyo
 </table>
 
 <p>If you don't want neither "access granted logs" nor "access rejected logs", you needn't to run "ccs-auditd" and you can give MAX_GRANT_LOG=0 and MAX_REJECT_LOG=0 for profiles to save memory and improve performance.</p>
+
+<h2>Changes for Policy Violation notification</h2>
+
+<p>TOMOYO Linux can report the occurrence of policy violation in enforcing mode, if you have set up a mean to notify (e.g. mail).</p>
+
+<p>You can use cron daemon for notifying. For example, to notify root@example.com via mail, once per an hour, add</p>
+
+<table border="1">
+<tr><td>
+00 * * * * root /usr/lib/ccs/misc/ccs-notifyd 0 'mail root@example.com'
+</td></tr>
+</table>
+
+<p>to /etc/crontab .</p>
 
 <h2>Creating exception policy</h2>
 
