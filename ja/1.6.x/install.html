@@ -222,25 +222,6 @@ make -C ccstools/ install
 </td></tr>
 </table>
 
-<h2>TOMOYO Linux ツール検索パスの設定</h2>
-
-<p>TOMOYO Linux ツールを保存してある場所を環境変数 PATH に追加しておきます。</p>
-<p>bash を使っている場合は ~/.bashrc に以下の行を追加します。</p>
-
-<table border="1">
-<tr><td>
-export PATH=$PATH:/usr/lib/ccs
-</td></tr>
-</table>
-
-<p>tcsh を使っている場合は ~/.tcshrc に以下の行を追加します。</p>
-
-<table border="1">
-<tr><td>
-setenv PATH "$PATH:/usr/lib/ccs"
-</td></tr>
-</table>
-
 <h2>ポリシーの作成</h2>
 
 <p>以下のコマンドを実行してください。</p>
@@ -289,73 +270,73 @@ reboot
 <tr>
 <td>MAC_FOR_FILE</td>
 <td>ファイルに対する強制アクセス制御を有効にする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>MAC_FOR_ARGV0</td>
 <td>プログラム実行時の argv[0] のチェックを有効にする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>MAC_FOR_ENV</td>
 <td>プログラム実行時の環境変数名のチェックを有効にする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>MAC_FOR_CAPABILITY::</td>
 <td>ケイパビリティに対する強制アクセス制御を有効にする。３１種類ある機能別に有効・無効を指定できる。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>MAC_FOR_NETWORK</td>
 <td>ネットワークに対する強制アクセス制御を有効にする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>MAC_FOR_SIGNAL</td>
 <td>シグナルの送信に対する強制アクセス制御を有効にする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>DENY_CONCEAL_MOUNT</td>
 <td>既存のマウントを隠蔽するようなマウントを禁止する。</td>
-<td>0</td>
+<td>disabled</td>
 <td>×</td>
 </tr>
 <tr>
 <td>RESTRICT_CHROOT</td>
 <td>chroot で移動可能なディレクトリの制限を有効にする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>RESTRICT_MOUNT</td>
 <td>mount で指定可能なパラメータの制限を有効にする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>RESTRICT_UNMOUNT</td>
 <td>指定されたディレクトリのアンマウントを禁止する。</td>
-<td>0</td>
+<td>disabled</td>
 <td>×</td>
 </tr>
 <tr>
 <td>RESTRICT_PIVOT_ROOT</td>
 <td>pivot_root で交換可能なディレクトリの制限を有効にする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>○</td>
 </tr>
 <tr>
 <td>RESTRICT_AUTOBIND</td>
 <td>ローカルのポート番号を自動選択させる際に、特定のポート番号を選択させないようにする。</td>
-<td>0</td>
+<td>disabled</td>
 <td>×</td>
 </tr>
 <tr>
@@ -379,13 +360,7 @@ reboot
 <tr>
 <td>TOMOYO_VERBOSE</td>
 <td>ドメイン別ポリシーに対する違反を syslog に表示する。</td>
-<td>1</td>
-<td>－</td>
-</tr>
-<tr>
-<td>ALLOW_ENFORCE_GRACE</td>
-<td>ポリシーに違反するアクセス要求を対話的に許可することを可能にする。</td>
-<td>0</td>
+<td>enabled</td>
 <td>－</td>
 </tr>
 </table>
@@ -396,11 +371,11 @@ reboot
 <td>内容</td>
 </tr>
 <tr>
-<td>0</td>
+<td>disabled</td>
 <td>無効。通常のカーネルと同様に動作する。</td>
 </tr>
 <tr>
-<td>1</td>
+<td>enabled</td>
 <td>有効。</td>
 </tr>
 </table>
@@ -412,27 +387,12 @@ reboot
 <td>内容</td>
 </tr>
 <tr>
-<td>0</td>
+<td>disabled</td>
 <td>ドメイン別ポリシーに対する違反を表示しない。</td>
 </tr>
 <tr>
-<td>1</td>
+<td>enabled</td>
 <td>ドメイン別ポリシーに対する違反を表示する。</td>
-</tr>
-</table>
-<p>ALLOW_ENFORCE_GRACE については以下の値を指定できます。</p>
-<table border="1">
-<tr>
-<td>値</td>
-<td>内容</td>
-</tr>
-<tr>
-<td>0</td>
-<td>強制モードでポリシーに違反したら直ちに拒否する。</td>
-</tr>
-<tr>
-<td>1</td>
-<td>強制モードでポリシーに違反しても、対話的な操作により許可することを可能にする。</td>
 </tr>
 </table>
 <p>上記以外については以下の値を指定できます。</p>
@@ -442,19 +402,19 @@ reboot
 <td>内容</td>
 </tr>
 <tr>
-<td>0</td>
+<td>disabled</td>
 <td>無効。通常のカーネルと同様に動作する。</td>
 </tr>
 <tr>
-<td>1</td>
+<td>learning</td>
 <td>学習モード。ポリシーに違反しても警告をエラーにせず、ポリシーへの自動追加を行う。</td>
 </tr>
 <tr>
-<td>2</td>
+<td>permissive</td>
 <td>許容モード。ポリシーに違反してもエラーにせず、ポリシーへの自動追加も行わない。</td>
 </tr>
 <tr>
-<td>3</td>
+<td>enforcing</td>
 <td>強制モード。ポリシーに違反したらエラーとする。</td>
 </tr>
 </table>
@@ -467,22 +427,15 @@ reboot
 <tr><td>
 0-COMMENT=----- All Disabled -----<br>
 1-COMMENT=----- FILE and NETWORK with Learning Mode -----<br>
-1-MAC_FOR_FILE=1<br>
-1-MAC_FOR_NETWORK=1<br>
+1-MAC_FOR_FILE=learning<br>
+1-MAC_FOR_NETWORK=learning<br>
 2-COMMENT=----- FILE and NETWORK with Permissive Mode -----<br>
-2-MAC_FOR_FILE=2<br>
-2-MAC_FOR_NETWORK=2<br>
+2-MAC_FOR_FILE=permissive<br>
+2-MAC_FOR_NETWORK=permissive<br>
 3-COMMENT=----- FILE and NETWORK with Enforce Mode -----<br>
-3-MAC_FOR_FILE=3<br>
-3-MAC_FOR_NETWORK=3<br>
+3-MAC_FOR_FILE=enforcing<br>
+3-MAC_FOR_NETWORK=enforcing<br>
 3-MAX_GRANT_LOG=0<br>
-3-ALLOW_ENFORCE_GRACE=0<br>
-4-COMMENT=----- FILE and NETWORK with Delayed Enforce Mode -----<br>
-4-MAC_FOR_FILE=3<br>
-4-MAC_FOR_NETWORK=3<br>
-4-MAX_GRANT_LOG=0<br>
-4-MAX_REJECT_LOG=0<br>
-4-ALLOW_ENFORCE_GRACE=1
 </td></tr>
 </table>
 
@@ -490,15 +443,14 @@ reboot
 プロファイル番号 0 をアクセス制御を行わないプロファイル、<br>
 プロファイル番号 1 を学習モードで動作させるためのプロファイル、<br>
 プロファイル番号 2 を確認モードで動作させるためのプロファイル、<br>
-プロファイル番号 3 を強制モードで動作させるためのプロファイル、<br>
-プロファイル番号 4 をポリシー違反を対話的に許容できる強制モードで動作させるためのプロファイル<br>
+プロファイル番号 3 を強制モードで動作させるためのプロファイル<br>
 として使用します。</p>
 
-<p>TOMOYO Linux ではプロファイル番号を切り替えることでドメインを単位としてアクセス制御の方法を指定できるので、一度プロファイルを作成したら、プロファイルを編集する必要はありません。もし、プロファイルを追加したい等の理由で /etc/ccs/profile.conf を編集した場合は以下のように setlevel コマンドを実行してください。</p>
+<p>TOMOYO Linux ではプロファイル番号を切り替えることでドメインを単位としてアクセス制御の方法を指定できるので、一度プロファイルを作成したら、プロファイルを編集する必要はありません。もし、プロファイルを追加したい等の理由で /etc/ccs/profile.conf を編集した場合は以下のように ccs-loadpolicy コマンドを実行してください。</p>
 
 <table border="1">
 <tr><td>
-xargs -0 setlevel &lt; /etc/ccs/profile.conf
+/usr/sbin/ccs-loadpolicy p
 </td></tr>
 </table>
 
@@ -512,11 +464,11 @@ cat /proc/ccs/profile
 
 <h2>プロファイルの割り当て方</h2>
 
-<p>ドメインにプロファイルを割り当てるには setprofile というコマンドを使用します。例えば</p>
+<p>ドメインにプロファイルを割り当てるには ccs-setprofile というコマンドを使用します。例えば</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 0 '&lt;kernel&gt;'
+/usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt;'
 </td></tr>
 </table>
 
@@ -524,7 +476,7 @@ setprofile -r 0 '&lt;kernel&gt;'
 
 <table border="1">
 <tr><td>
-setprofile -r 1 '&lt;kernel&gt; /sbin/init'
+/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/init'
 </td></tr>
 </table>
 
@@ -532,7 +484,7 @@ setprofile -r 1 '&lt;kernel&gt; /sbin/init'
 
 <table border="1">
 <tr><td>
-setprofile 2 '&lt;kernel&gt; /sbin/init'
+/usr/sbin/ccs-setprofile 2 '&lt;kernel&gt; /sbin/init'
 </td></tr>
 </table>
 
@@ -545,17 +497,17 @@ cat /proc/ccs/.domain_status
 </td></tr>
 </table>
 
-<p>ドメイン単位でプロファイルを割り当てることでアクセス制御モードを変更できるので、起動時にアクセス制御モードを一斉に切り替えする必要は基本的にありません。もし、不適切なプロファイルを割り当ててしまった等の理由によりシステムが起動できなくなってしまった場合には、 /sbin/init のプロンプトで disable と入力してから Enter を押すことで、アクセス制御を無効にした状態で起動することができます。</p>
+<p>ドメイン単位でプロファイルを割り当てることでアクセス制御モードを変更できるので、起動時にアクセス制御モードを一斉に切り替えする必要は基本的にありません。もし、不適切なプロファイルを割り当ててしまった等の理由によりシステムが起動できなくなってしまった場合には、カーネル起動時のコマンドラインパラメータに CCS=disabled と指定して起動することで、アクセス制御を無効にした状態で起動することができます。</p>
 
-<p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを確認するには ccstree というコマンドを使用します。</p>
+<p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを確認するには ccs-ccstree というコマンドを使用します。</p>
 
 <table border="1">
 <tr><td>
-ccstree
+/usr/sbin/ccs-ccstree
 </td></tr>
 </table>
 
-<p>ccstree コマンドを実行すると以下のようにプロファイル番号、プロセス名、プロセスＩＤ、ドメイン名の順番で pstree のように出力されます。</p>
+<p>ccs-ccstree コマンドを実行すると以下のようにプロファイル番号、プロセス名、プロセスＩＤ、ドメイン名の順番で pstree のように出力されます。</p>
 
 <table border="1">
 <tr><td>
@@ -578,7 +530,7 @@ ccstree
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3307)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3393)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;tcsh&nbsp;(3434)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh<br>
-&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/usr/lib/ccs/ccstree<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccs-ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/usr/sbin/ccs-ccstree<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;xinetd&nbsp;(3321)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/xinetd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.rquotad&nbsp;(3342)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.rquotad<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.mountd&nbsp;(3361)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.mountd<br>
@@ -593,7 +545,7 @@ ccstree
 </td></tr>
 </table>
 
-<p>ccstree に -a オプションを指定すると TOMOYO のアクセス制御の対象外であるカーネルプロセスの情報も表示されます。</p>
+<p>ccs-ccstree に -a オプションを指定すると TOMOYO のアクセス制御の対象外であるカーネルプロセスの情報も表示されます。</p>
 
 <h2>アクセスログ取得の準備</h2>
 
@@ -603,7 +555,7 @@ ccstree
 
 <table border="1">
 <tr><td>
-/usr/lib/ccs/ccs-auditd アクセス許可ログの保存場所 アクセス拒否ログの保存場所
+/usr/sbin/ccs-auditd アクセス許可ログの保存場所 アクセス拒否ログの保存場所
 </td></tr>
 </table>
 
@@ -613,7 +565,7 @@ ccstree
 
 <table border="1">
 <tr><td>
-/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
+/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
@@ -683,7 +635,7 @@ mkdir -p /var/log/tomoyo
 
 <h3>(3) 無条件に読み込みを許可するファイル</h3>
 
-<p> allow_read というキーワードを使用して、全てのプログラムへの読み込みアクセスを許可するファイルのパス名を登録します。パターンは使用できません。読み込みモードで要求されたパス名が allow_read というキーワードを使用して登録されたパス名と一致した場合、その場で読み込みアクセスが許可されます。<br>
+<p> allow_read というキーワードを使用して、全てのプログラムへの読み込みアクセスを許可するファイルのパス名を登録します。パターンも使用できます。読み込みモードで要求されたパス名が allow_read というキーワードを使用して登録されたパス名と一致した場合、その場で読み込みアクセスが許可されます。<br>
 目安としては以下のものが挙げられます。</p>
 
 <ul>
@@ -804,11 +756,11 @@ allow_read /etc/fstab
 <p>例えば、 /usr/sbin/httpd を保護したい場合、まずは /usr/sbin/httpd が動作するためのドメインを作成します。
 /usr/sbin/httpd が initialize_domain に指定されていれば、  /usr/sbin/httpd を起動することにより &lt;kernel&gt; /usr/sbin/httpd というドメインが作成されます。指定されていなければ、起動元のドメインの子ドメイン（例えば &lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash から起動された場合は &lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd）というドメイン）が作成されます。この手順書では initialize_domain に指定されている場合で説明します。</p>
 
-<p>現在のプロセス（通常はシェル）が属しているドメインに、以下のように setprofile コマンドを使ってアクセス制御を行わないプロファイル（この手順書では 0 ）を割り当てます。</p>
+<p>現在のプロセス（通常はシェル）が属しているドメインに、以下のように ccs-setprofile コマンドを使ってアクセス制御を行わないプロファイル（この手順書では 0 ）を割り当てます。</p>
 
 <table border="1">
 <tr><td>
-xargs -0 setprofile 0 &lt; /proc/ccs/self_domain
+xargs -0 /usr/sbin/ccs-setprofile 0 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
@@ -834,11 +786,11 @@ less /proc/ccs/.domain_status
 
 <h3>(2) アクセス許可の学習</h3>
 
-<p>ドメインが作成されたことを確認したら、以下のように setprofile コマンドを使って学習モードで動作するプロファイル（この手順書では 1 ）を割り当てます。</p>
+<p>ドメインが作成されたことを確認したら、以下のように ccs-setprofile コマンドを使って学習モードで動作するプロファイル（この手順書では 1 ）を割り当てます。</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
@@ -850,47 +802,47 @@ service httpd restart
 </td></tr>
 </table>
 
-<p>プロファイルで 1-TOMOYO-VERBOSE=1 （デフォルト）に設定されていると、ポリシーに違反したことを示す TOMOYO-WARNING: というメッセージがコンソールに表示されます。学習モードの場合は TOMOYO-WARNING: メッセージが表示された後に、必要なアクセス許可が自動的にポリシーに追加されるので、同じ操作をしても TOMOYO-WARNING: メッセージは１回しか表示されません。</p>
+<p>プロファイルで 1-TOMOYO-VERBOSE=enabled （デフォルト）に設定されていると、ポリシーに違反したことを示す TOMOYO-WARNING: というメッセージがコンソールに表示されます。学習モードの場合は TOMOYO-WARNING: メッセージが表示された後に、必要なアクセス許可が自動的にポリシーに追加されるので、同じ操作をしても TOMOYO-WARNING: メッセージは１回しか表示されません。</p>
 
 <p>許可したい操作を行っても TOMOYO-WARNING: というメッセージが表示されないようであれば、次のステップへ進みます。</p>
 
 <h3>(3) アクセス許可の確認</h3>
 
-<p>必要なアクセス許可が学習されたと判断したら、以下のように setprofile コマンドを使って確認モードで動作するプロファイル（この手順書では 2 ）を割り当てます。</p>
+<p>必要なアクセス許可が学習されたと判断したら、以下のように ccs-setprofile コマンドを使って確認モードで動作するプロファイル（この手順書では 2 ）を割り当てます。</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
 <p>この状態で /usr/sbin/httpd を動作させ、必要なアクセス許可が学習されているかどうかを確認します。</p>
 
-<p>プロファイルで 2-TOMOYO-VERBOSE=1 （デフォルト）に設定されていると、ポリシーに違反したことを示す TOMOYO-WARNING: というメッセージがコンソールに表示されます。確認モードの場合は TOMOYO-WARNING: メッセージが表示されても、必要なアクセス許可が自動的にポリシーに追加されることはないので、同じ操作をすると TOMOYO-WARNING: メッセージは再度表示されます。</p>
+<p>プロファイルで 2-TOMOYO-VERBOSE=enabled （デフォルト）に設定されていると、ポリシーに違反したことを示す TOMOYO-WARNING: というメッセージがコンソールに表示されます。確認モードの場合は TOMOYO-WARNING: メッセージが表示されても、必要なアクセス許可が自動的にポリシーに追加されることはないので、同じ操作をすると TOMOYO-WARNING: メッセージは再度表示されます。</p>
 
 <p>許可したい操作を行っても TOMOYO-WARNING: というメッセージが表示されないようであれば、次のステップへ進みます。</p>
 
 <h3>(4) アクセス制御の実施</h3>
 
-<p>必要なアクセス許可が与えられていると判断したら、以下のように setprofile コマンドを使って強制モードで動作するプロファイル（この手順書では 3 ）を割り当てます。</p>
+<p>必要なアクセス許可が与えられていると判断したら、以下のように ccs-setprofile コマンドを使って強制モードで動作するプロファイル（この手順書では 3 ）を割り当てます。</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
 <p>以上で、 /usr/sbin/httpd に対して強制アクセス制御が適用された状態になります。</p>
 
-<p>プロファイルで 3-TOMOYO-VERBOSE=1 （デフォルト）に設定されていると、ポリシーに違反した場合に TOMOYO-ERROR: というメッセージがコンソールに表示されてアクセスが拒否されます。ポリシー違反の内容は、 /proc/ccs/reject_log にも蓄えられます。</p>
+<p>プロファイルで 3-TOMOYO-VERBOSE=enabled （デフォルト）に設定されていると、ポリシーに違反した場合に TOMOYO-ERROR: というメッセージがコンソールに表示されてアクセスが拒否されます。ポリシー違反の内容は、 /proc/ccs/reject_log にも蓄えられます。</p>
 
 <h2>確認モードを利用して一括してポリシーを生成する方法</h2>
 
-<p>TOMOYO Linux では、アクセスログ拒否ログからドメインポリシーを生成することができます。以下のように setprofile コマンドを使ってポリシー違反を確認モードで動作するプロファイル（この手順書では 2 ）を割り当てます。</p>
+<p>TOMOYO Linux では、アクセスログ拒否ログからドメインポリシーを生成することができます。以下のように ccs-setprofile コマンドを使ってポリシー違反を確認モードで動作するプロファイル（この手順書では 2 ）を割り当てます。</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
 </td></tr>
 </table>
 
@@ -899,7 +851,7 @@ setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
 
 <table border="1">
 <tr><td>
-sortpolicy &lt; /var/log/tomoyo/reject_log.conf
+/usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/reject_log.conf
 </td></tr>
 </table>
 
@@ -907,7 +859,7 @@ sortpolicy &lt; /var/log/tomoyo/reject_log.conf
 
 <table border="1">
 <tr><td>
-loadpolicy d
+/usr/sbin/ccs-loadpolicy d
 </td></tr>
 </table>
 
@@ -950,7 +902,7 @@ allow_read /etc/passwd<br>
 <p>内容をドメイン単位で並び替えます。</p>
 <table border="1">
 <tr><td>
-[root@sakura tomoyo]# sortpolicy &lt; /var/log/tomoyo/reject_log.tmp<br>
+[root@sakura tomoyo]# /usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/reject_log.tmp<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
 <br>
 allow_execute /usr/bin/whoami<br>
@@ -974,7 +926,7 @@ allow_read /etc/passwd<br>
 <p>タイムスタンプが邪魔なので  # で始まる行を除外してから、内容をドメイン単位で並び替えます。</p>
 <table border="1">
 <tr><td>
-[root@sakura tomoyo]# grep -v '^#' /var/log/tomoyo/reject_log.tmp | sortpolicy &gt; /var/log/tomoyo/diff.tmp<br>
+[root@sakura tomoyo]# grep -v '^#' /var/log/tomoyo/reject_log.tmp | /usr/sbin/ccs-sortpolicy &gt; /var/log/tomoyo/diff.tmp<br>
 </td></tr>
 </table>
 <p>内容を確認します。これはドメインポリシーとしてそのまま追加可能な形式になっています。</p>
@@ -1000,53 +952,39 @@ allow_read /etc/passwd<br>
 
 <h2>強制モードを利用して対話的にポリシーを生成する方法</h2>
 
-<p>TOMOYO Linux では、強制モードのままポリシーの修正を行うことができます。以下のように setprofile コマンドを使ってポリシー違反を対話的に許容できる強制モードで動作するプロファイル（この手順書では 4 ）を割り当てます。</p>
+<p>TOMOYO Linux では、強制モードのままポリシーの修正を行うことができます。以下のように ccs-queryd コマンドを使ってポリシー違反を対話的に許容できます。 ccs-queryd は、ポリシー違反の発生を検知して、アクセス要求の内容を表示します。管理者は、そのアクセス要求の妥当性を判断して、アクセスを許可するか否か、ドメインポリシーに追加するか否かを指定することができます。</p>
 
 <table border="1">
 <tr><td>
-setprofile -r 4 '&lt;kernel&gt; /usr/sbin/httpd'
+/usr/sbin/ccs-queryd
 </td></tr>
 </table>
 
-<p>次に、 ccs-queryd を起動します。 ccs-queryd は、ポリシー違反の発生を検知して、アクセス要求の内容を表示します。管理者は、そのアクセス要求の妥当性を判断して、アクセスを許可するか否か、ドメインポリシーに追加するか否かを指定することができます。</p>
+<p>ccs-queryd が動作している場合、ポリシー違反が発生しても管理者が応答するまでそのアクセス要求は保留状態となります。それ以外の場合は、ポリシー違反が発生するとそのアクセス要求は直ちに拒否されます。</p>
 
-<table border="1">
-<tr><td>
-ccs-queryd
-</td></tr>
-</table>
+<p>保留状態のまま永遠に停止してしまうことを避けるために、 ccs-queryd が動作している状態のままログアウト（例えば screen(1) プログラムの中で ccs-queryd を動作させたままデタッチ）しないでください。</p>
 
-<p>「プロファイルで ALLOW_ENFORCE_GRACE=1 が設定されている」かつ「 ccs-queryd が動作している」場合、ポリシー違反が発生しても管理者が応答するまでそのアクセス要求は保留状態となります。それ以外の場合は、ポリシー違反が発生するとそのアクセス要求は直ちに拒否されます。</p>
-
-<p>保留状態のまま永遠に停止してしまうことを避けるために、「プロファイルで ALLOW_ENFORCE_GRACE=1 が設定されている」かつ「 ccs-queryd が動作している」状態のままログアウト（例えば screen(1) プログラムの中で ccs-queryd を動作させたままデタッチ）しないでください。</p>
-
-<p>ccs-queryd を終了させるには  Ctrl-C を押してください。 ccs-queryd を終了させてから、以下のように setprofile コマンドを使って強制モードで動作するプロファイル（この手順書では 3 ）に戻してください。</p>
-
-<table border="1">
-<tr><td>
-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
-</td></tr>
-</table>
+<p>ccs-queryd を終了させるには  Ctrl-C を押してください。</p>
 
 <h2>ポリシーの保存方法</h2>
 
-<p>カーネル内部に保持されているポリシーをディスクに保存するには、以下のように savepolicy コマンドを使います。</p>
+<p>カーネル内部に保持されているポリシーをディスクに保存するには、以下のように ccs-savepolicy コマンドを使います。</p>
 
 <table border="1">
 <tr><td>
-savepolicy
+/usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
 
-<p>savepolicy を実行することで、 /etc/ccs/ ディレクトリに system_policy.conf exception_policy.conf domain_policy.conf の３つのファイルが作成されます。実際にはこれらのファイルは、ファイルの作成日時をファイル名に含んだテキストファイルへのシンボリックリンクになっています。</p>
+<p>ccs-savepolicy を実行することで、 /etc/ccs/ ディレクトリに system_policy.conf exception_policy.conf domain_policy.conf の３つのファイルが作成されます。実際にはこれらのファイルは、ファイルの作成日時をファイル名に含んだテキストファイルへのシンボリックリンクになっています。</p>
 
 <h2>ポリシーの読み込み方法</h2>
 
-<p>/etc/ccs/ ディレクトリに保存されているポリシーをカーネル内部に読み込むには、以下のように loadpolicy コマンドを使います。</p>
+<p>/etc/ccs/ ディレクトリに保存されているポリシーをカーネル内部に読み込むには、以下のように ccs-loadpolicy コマンドを使います。</p>
 
 <table border="1">
 <tr><td>
-loadpolicy af
+/usr/sbin/ccs-loadpolicy af
 </td></tr>
 </table>
 
@@ -1054,19 +992,19 @@ loadpolicy af
 
 <h2>ポリシーの編集方法</h2>
 
-<p>カーネル内部に保持されているポリシーを編集するには、以下のように editpolicy コマンドを使います。ポリシーエディタの使い方については、<a href="tool-editpolicy.html">ポリシーエディタの使い方</a>を参照してください。</p>
+<p>カーネル内部に保持されているポリシーを編集するには、以下のように ccs-editpolicy コマンドを使います。ポリシーエディタの使い方については、<a href="tool-editpolicy.html">ポリシーエディタの使い方</a>を参照してください。</p>
 
 <table border="1">
 <tr><td>
-editpolicy
+/usr/sbin/ccs-editpolicy
 </td></tr>
 </table>
 
-<p>ディスク上に保存されているポリシーファイルを編集するには、以下のように editpolicy_offline コマンドを使います。 editpolicy_offline コマンドは通常のカーネルで動作している場合でも利用できます。</p>
+<p>ディスク上に保存されているポリシーファイルを編集するには、以下のように ccs-editpolicy_offline コマンドを使います。 ccs-editpolicy_offline コマンドは通常のカーネルで動作している場合でも利用できます。</p>
 
 <table border="1">
 <tr><td>
-editpolicy_offline
+/usr/sbin/ccs-editpolicy_offline
 </td></tr>
 </table>
 
@@ -1133,10 +1071,10 @@ allow_write /var/log/samba/\*.log
 </td></tr>
 </table>
 
-<p>与えられたパターンと一致するディスク上のパス名を一覧表示する pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
+<p>与えられたパターンと一致するディスク上のパス名を一覧表示する ccs-pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# pathmatch '/var/log/samba/\*.log'<br>
+[root@sakura ~]# /usr/sbin/ccs-pathmatch '/var/log/samba/\*.log'<br>
 /var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
 </td></tr>
 </table>
@@ -1146,13 +1084,13 @@ allow_write /var/log/samba/\*.log
 <p>カーネルに存在するドメインポリシーをディスクに保存します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# savepolicy d<br>
+[root@sakura ~]# /usr/sbin/ccs-savepolicy d<br>
 </td></tr>
 </table>
 <p>テンポラリファイルの可能性があるパス名を抽出します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.conf<br>
+[root@sakura ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.conf<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /etc/mtab~2302<br>
@@ -1178,7 +1116,7 @@ allow_write /var/log/samba/\*.log
 <p>テンポラリファイルにアクセスしているドメインを探します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# domainmatch /etc/mtab~2302<br>
+[root@sakura ~]# /usr/sbin/ccs-domainmatch /etc/mtab~2302<br>
 &lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
 allow_create /etc/mtab~2302<br>
 allow_write /etc/mtab~2302<br>
@@ -1194,7 +1132,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>カーネルに存在する例外ポリシーをディスクに保存します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# savepolicy e<br>
+[root@sakura ~]# /usr/sbin/ccs-savepolicy e<br>
 </td></tr>
 </table>
 <p>必要に応じてディスク上の例外ポリシーにパターンを追加します。</p>
@@ -1207,19 +1145,19 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>ディスク上の例外ポリシーをカーネルに読み込みます。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# loadpolicy ef<br>
+[root@sakura ~]# /usr/sbin/ccs-loadpolicy ef<br>
 </td></tr>
 </table>
 <p>/etc/mtab~\$ および /tmp/sh-thd-\$ に一致するパス名のパターン化を行います。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
+[root@sakura ~]# /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
 </td></tr>
 </table>
 <p>パターン化されたことを確認します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# findtemp &lt; /etc/ccs/domain_policy.tmp<br>
+[root@sakura ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.tmp<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /halt<br>
@@ -1337,13 +1275,13 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>ディスク上のドメインポリシーをカーネルに読み込みます。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# loadpolicy df<br>
+[root@sakura ~]# /usr/sbin/ccs-loadpolicy df<br>
 </td></tr>
 </table>
 <p>カーネルに読み込まれているドメインポリシーが更新されていることを確認します。</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# findtemp &lt; /proc/ccs/domain_policy<br>
+[root@sakura ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /halt<br>

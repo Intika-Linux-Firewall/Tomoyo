@@ -265,73 +265,73 @@ reboot
 <tr>
 <td>MAC_FOR_FILE</td>
 <td>Enable Mandatory Access Control(MAC) for files.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>MAC_FOR_ARGV0</td>
 <td>Enable MAC for argv[0] checks.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>MAC_FOR_ENV</td>
 <td>Enable MAC for environment variables' names.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>MAC_FOR_CAPABILITY::</td>
 <td>Enable MAC for capabilities. There are 31 types of capabilities and you can enable/disable selectively.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>MAC_FOR_NETWORK</td>
 <td>Enable MAC for network addresses and ports.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>MAC_FOR_SIGNAL</td>
 <td>Enable MAC for signal.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>DENY_CONCEAL_MOUNT</td>
 <td>Forbid mount requests that hides an existing mount.</td>
-<td>0</td>
+<td>disabled</td>
 <td>No</td>
 </tr>
 <tr>
 <td>RESTRICT_CHROOT</td>
 <td>Enable restrictions for chroot directories.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>RESTRICT_MOUNT</td>
 <td>Enable restrictions for mount parameters.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>RESTRICT_UNMOUNT</td>
 <td>Forbid unmount requests for specified directories.</td>
-<td>0</td>
+<td>disabled</td>
 <td>No</td>
 </tr>
 <tr>
 <td>RESTRICT_PIVOT_ROOT</td>
 <td>Enable restrictions for pivot_root directories.</td>
-<td>0</td>
+<td>disabled</td>
 <td>Yes</td>
 </tr>
 <tr>
 <td>RESTRICT_AUTOBIND</td>
 <td>Forbid selecting specific local port number when automatic local port binding happens.</td>
-<td>0</td>
+<td>disabled</td>
 <td>No</td>
 </tr>
 <tr>
@@ -355,13 +355,7 @@ reboot
 <tr>
 <td>TOMOYO_VERBOSE</td>
 <td>Dump domain policy violation messages to syslog.</td>
-<td>1</td>
-<td>-</td>
-</tr>
-<tr>
-<td>ALLOW_ENFORCE_GRACE</td>
-<td>Allow interactively permitting access requests that violated policy according to the administrator's decision.</td>
-<td>0</td>
+<td>enabled</td>
 <td>-</td>
 </tr>
 </table>
@@ -453,12 +447,6 @@ reboot
 3-MAC_FOR_NETWORK=enforcing<br>
 3-MAX_GRANT_LOG=0<br>
 3-ALLOW_ENFORCE_GRACE=disabled<br>
-4-COMMENT=----- FILE and NETWORK with Delayed enforcing mode -----<br>
-4-MAC_FOR_FILE=enforcing<br>
-4-MAC_FOR_NETWORK=enforcing<br>
-4-MAX_GRANT_LOG=0<br>
-4-MAX_REJECT_LOG=0<br>
-4-ALLOW_ENFORCE_GRACE=enabled
 </td></tr>
 </table>
 
@@ -466,8 +454,7 @@ reboot
 profile 0 is for "disabled",<br>
 profile 1 is for "learning mode",<br>
 profile 2 is for "permissive mode",<br>
-profile 3 is for "enforcing mode",<br>
-profile 4 is for "delayed enforcing mode" (same as "enforcing mode" except that it allows administrators handle access requests that violated policy manually).</p>
+profile 3 is for "enforcing mode".</p>
 
 <p>You won't need to edit profiles after you once create them because you can control how to apply MAC on per-a-domain basis by changing profiles of domains. But if you edited /etc/ccs/profile.conf by some reason (for example, you want to add profiles), run the following command.</p>
 
@@ -554,7 +541,7 @@ But if you can't boot by some reason (for example, you assigned profiles for "en
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3307)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;sshd&nbsp;(3393)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;tcsh&nbsp;(3434)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh<br>
-&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/usr/lib/ccs/ccstree<br>
+&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+-&nbsp;ccs-ccstree&nbsp;(3477)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/sshd&nbsp;/bin/tcsh&nbsp;/usr/sbin/ccs-ccstree<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;xinetd&nbsp;(3321)&nbsp;&lt;kernel&gt;&nbsp;/usr/sbin/xinetd<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.rquotad&nbsp;(3342)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.rquotad<br>
 &nbsp;&nbsp;0&nbsp;&nbsp;+-&nbsp;rpc.mountd&nbsp;(3361)&nbsp;&lt;kernel&gt;&nbsp;/etc/rc.d/init.d/nfs&nbsp;/sbin/initlog&nbsp;/usr/sbin/rpc.mountd<br>
@@ -569,7 +556,7 @@ But if you can't boot by some reason (for example, you assigned profiles for "en
 </td></tr>
 </table>
 
-<p>If you give -a option to ccstree, you can also see kernel processes that are out of TOMOYO Linux's MAC scope.</p>
+<p>If you give -a option to ccs-ccstree, you can also see kernel processes that are out of TOMOYO Linux's MAC scope.</p>
 
 <h2>Changes for Audit Logs</h2>
 
@@ -666,7 +653,7 @@ The following is the guideline.</p>
 
 <h3>(4) Unconditionally readable files</h3>
 
-<p>Register files that are allowed to be read by all programs using the "allow_read" directive. No patterns are allowed. When a file open request for reading is issued and the requested pathname matches a pathname registered with "allow_read" directive, the open request for read access is granted even if the pathname is not explicitly permitted by the domain policy.<br>
+<p>Register files that are allowed to be read by all programs using the "allow_read" directive. Patterns are allowed. When a file open request for reading is issued and the requested pathname matches a pathname registered with "allow_read" directive, the open request for read access is granted even if the pathname is not explicitly permitted by the domain policy.<br>
 The following is the guideline.</p>
 
 <ul>
@@ -990,15 +977,7 @@ allow_read /etc/passwd<br>
 
 <h2>Creating policy interactively using "enforcing mode"</h2>
 
-<p>TOMOYO Linux allows administrators modify policies when the system is running in "enforcing mode". If you want to do so, assign a profile that perform MAC in "delayed enforcing mode" (in this manual, profile 4) to the domain.</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 4 '&lt;kernel&gt; /usr/sbin/httpd'
-</td></tr>
-</table>
-
-<p>Next, start "ccs-queryd" command. The "ccs-queryd" command detects the policy violations and shows ACLs needed for allowing the requests. You can judge and append these ACLs to domain policy manually.</p>
+<p>TOMOYO Linux allows administrators modify policies when the system is running in "enforcing mode". If you want to do so, start "ccs-queryd" command. The "ccs-queryd" command detects the policy violations and shows ACLs needed for allowing the requests. You can judge and append these ACLs to domain policy manually.</p>
 
 <table border="1">
 <tr><td>
@@ -1006,17 +985,11 @@ allow_read /etc/passwd<br>
 </td></tr>
 </table>
 
-<p>If the profile is configured with "ALLOW_ENFORCE_GRACE=enabled" and "ccs-queryd" is running, the access requests that violated policy are kept pending. Otherwise, the access requests that violated policy are rejected immediately.</p>
+<p>If "ccs-queryd" is running, the access requests that violated policy are kept pending. Otherwise, the access requests that violated policy are rejected immediately.</p>
 
-<p>To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) if the profile is configured with "ALLOW_ENFORCE_GRACE=enabled" and "ccs-queryd" is running.</p>
+<p>To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) if "ccs-queryd" is running.</p>
 
-<p>To terminate "ccs-queryd", use Ctrl-C. After you terminate "ccs-queryd", assign a profile that performs MAC in "enforcing mode" (in this manual, profile 3) using "ccs-setprofile" command.</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
-</td></tr>
-</table>
+<p>To terminate "ccs-queryd", use Ctrl-C. </p>
 
 <h2>Saving Policy</h2>
 
