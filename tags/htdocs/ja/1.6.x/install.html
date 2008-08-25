@@ -363,6 +363,12 @@ reboot
 <td>enabled</td>
 <td>－</td>
 </tr>
+<tr>
+<td>SLEEP_PERIOD</td>
+<td>強制モードでポリシー違反が発生した場合に、ポリシー違反を生じさせたプロセスをスリープ状態にしておく時間を 0.1 秒単位で指定する。</td>
+<td>0</td>
+<td>－</td>
+</tr>
 </table>
 <p>RESTRICT_AUTOBIND については以下の値を指定できます。</p>
 <table border="1">
@@ -379,7 +385,7 @@ reboot
 <td>有効。</td>
 </tr>
 </table>
-<p>MAX_ACCEPT_ENTRY および MAX_GRANT_LOG および MAX_REJECT_LOG については 0 以上の任意の整数を指定できます。</p>
+<p>MAX_ACCEPT_ENTRY および MAX_GRANT_LOG および MAX_REJECT_LOG および SLEEP_PERIOD については 0 以上の任意の整数を指定できます。</p>
 <p>TOMOYO_VERBOSE については以下の値を指定できます。</p>
 <table border="1">
 <tr>
@@ -592,6 +598,18 @@ mkdir -p /var/log/tomoyo
 </table>
 
 <p>アクセス許可ログ・アクセス拒否ログのどちらも保存しない場合には ccs-auditd を実行する必要はありません。また、プロファイルで MAX_GRANT_LOG=0 および MAX_REJECT_LOG=0 を指定しておくことで、消費メモリの節約と応答速度の向上が期待できます。</p>
+
+<h2>ポリシー違反通知の準備</h2>
+
+<p>TOMOYO Linux は、強制モードに於いてポリシー違反が発生した場合に、即時にそれを通知することができます。ただし、例えばメールのような、通知するための手段を予め設定しておく必要があります。</p>
+
+<p>通知するために、 cron デーモンを利用することができます。例えば、１時間に１回まで、メールで root@example.com に通知したい場合、 /etc/crontab に以下のような内容を指定してください。</p>
+
+<table border="1">
+<tr><td>
+00 * * * * root /usr/lib/ccs/misc/ccs-notifyd 0 'mail root@example.com'
+</td></tr>
+</table>
 
 <h2>例外ポリシーの作成</h2>
 
