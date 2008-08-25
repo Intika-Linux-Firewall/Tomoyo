@@ -584,7 +584,7 @@ execute_handler /bin/audit-exec-param
 
 <table border="1">
 <tr><td>
-# /usr/lib/ccs/loadpolicy -d &lt; /var/log/tomoyo/diff.txt
+# /usr/sbin/ccs-loadpolicy -d &lt; /var/log/tomoyo/diff.txt
 </td></tr>
 </table>
 
@@ -1723,7 +1723,7 @@ cat /proc/ccs/version</p>
 
 <table border="1">
 <tr><td>
-# echo manage_by_non_root | /usr/lib/ccs/loadpolicy -m
+# echo manage_by_non_root | /usr/sbin/ccs-loadpolicy -m
 </td></tr>
 </table>
 
@@ -1731,7 +1731,7 @@ cat /proc/ccs/version</p>
 
 <table border="1">
 <tr><td>
-# echo delete manage_by_non_root | /usr/lib/ccs/loadpolicy -m
+# echo delete manage_by_non_root | /usr/sbin/ccs-loadpolicy -m
 </td></tr>
 </table>
 
@@ -1766,7 +1766,8 @@ chown -R demo /proc/ccs/
 
 <table border="1">
 <tr><td>
-( echo Shared: 2097152 ; echo Private: 2097152 ) &gt;/proc/ccs/meminfo
+echo Shared: 2097152 &gt; /proc/ccs/meminfo<br>
+echo Private: 2097152 &gt; /proc/ccs/meminfo
 </td></tr>
 </table>
 
