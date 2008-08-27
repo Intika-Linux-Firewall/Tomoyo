@@ -52,7 +52,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/sched.c                     |    7 ++
  kernel/signal.c                    |   22 ++++++
  kernel/sys.c                       |   21 ++++++
- kernel/sysctl.c                    |  113 +++++++++++++++++++++++++++++++++++
+ kernel/sysctl.c                    |  111 ++++++++++++++++++++++++++++++++++
  kernel/time.c                      |   15 ++++
  net/core/datagram.c                |   11 +++
  net/ipv4/inet_connection_sock.c    |    7 ++
@@ -62,7 +62,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/udp.c                     |   11 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 60 files changed, 872 insertions(+), 10 deletions(-)
+ 60 files changed, 871 insertions(+), 9 deletions(-)
 
 --- linux-2.6.14.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.14.7/arch/alpha/kernel/ptrace.c
@@ -1840,15 +1840,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
-@@ -2265,7 +2376,7 @@ int sysctl_intvec(ctl_table *table, int 
- 				return -EINVAL;
- 		}
- 	}
--	return 0;
-+	return 1;
- }
- 
- /* Strategy function to convert jiffies to seconds */ 
 --- linux-2.6.14.7.orig/kernel/time.c
 +++ linux-2.6.14.7/kernel/time.c
 @@ -38,6 +38,9 @@
