@@ -1,8 +1,7 @@
-This is TOMOYO Linux patch for kernel 2.6.23.
+This is TOMOYO Linux patch for kernel 2.6.23.17.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.17.tar.bz2
 ---
- Makefile                        |    2 
  arch/alpha/kernel/ptrace.c      |    9 +++
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/ia64/kernel/ptrace.c       |    9 +++
@@ -47,21 +46,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 45 files changed, 685 insertions(+), 3 deletions(-)
+ 44 files changed, 684 insertions(+), 2 deletions(-)
 
---- linux-2.6.23.orig/Makefile
-+++ linux-2.6.23/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 23
--EXTRAVERSION =
-+EXTRAVERSION = -ccs
- NAME = Arr Matey! A Hairy Bilge Rat!
- 
- # *DOCUMENTATION*
---- linux-2.6.23.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.23/arch/alpha/kernel/ptrace.c
+--- linux-2.6.23.17.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.23.17/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -85,8 +73,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.23.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.23/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.23.17.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.23.17/arch/ia64/ia32/sys_ia32.c
 @@ -55,6 +55,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -110,8 +98,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.23.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.23/arch/ia64/kernel/ptrace.c
+--- linux-2.6.23.17.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.23.17/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -135,8 +123,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.23.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.23/arch/m32r/kernel/ptrace.c
+--- linux-2.6.23.17.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.23.17/arch/m32r/kernel/ptrace.c
 @@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -160,8 +148,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.23.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.23/arch/mips/kernel/ptrace32.c
+--- linux-2.6.23.17.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.23.17/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -185,8 +173,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.23.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-2.6.23/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.23.17.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.23.17/arch/powerpc/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -210,8 +198,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.23.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.23/arch/s390/kernel/ptrace.c
+--- linux-2.6.23.17.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.23.17/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -235,8 +223,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-2.6.23.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.23/arch/sh64/kernel/ptrace.c
+--- linux-2.6.23.17.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.23.17/arch/sh64/kernel/ptrace.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -260,8 +248,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	if (first_call) {
---- linux-2.6.23.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.23/arch/sparc/kernel/ptrace.c
+--- linux-2.6.23.17.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.23.17/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -287,8 +275,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.23.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.23/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.23.17.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.23.17/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -314,8 +302,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.23.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.23/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.23.17.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.23.17/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -339,8 +327,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-2.6.23.orig/fs/Kconfig
-+++ linux-2.6.23/fs/Kconfig
+--- linux-2.6.23.17.orig/fs/Kconfig
++++ linux-2.6.23.17/fs/Kconfig
 @@ -2068,5 +2068,7 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -349,16 +337,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
  endmenu
  
---- linux-2.6.23.orig/fs/Makefile
-+++ linux-2.6.23/fs/Makefile
+--- linux-2.6.23.17.orig/fs/Makefile
++++ linux-2.6.23.17/fs/Makefile
 @@ -118,3 +118,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.23.orig/fs/attr.c
-+++ linux-2.6.23/fs/attr.c
+--- linux-2.6.23.17.orig/fs/attr.c
++++ linux-2.6.23.17/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -398,8 +386,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.23.orig/fs/compat.c
-+++ linux-2.6.23/fs/compat.c
+--- linux-2.6.23.17.orig/fs/compat.c
++++ linux-2.6.23.17/fs/compat.c
 @@ -55,6 +55,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -419,8 +407,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.23.orig/fs/compat_ioctl.c
-+++ linux-2.6.23/fs/compat_ioctl.c
+--- linux-2.6.23.17.orig/fs/compat_ioctl.c
++++ linux-2.6.23.17/fs/compat_ioctl.c
 @@ -114,6 +114,9 @@
  #include <linux/dvb/frontend.h>
  #include <linux/dvb/video.h>
@@ -444,8 +432,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.23.orig/fs/exec.c
-+++ linux-2.6.23/fs/exec.c
+--- linux-2.6.23.17.orig/fs/exec.c
++++ linux-2.6.23.17/fs/exec.c
 @@ -59,6 +59,10 @@
  #include <linux/kmod.h>
  #endif
@@ -494,8 +482,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
---- linux-2.6.23.orig/fs/fcntl.c
-+++ linux-2.6.23/fs/fcntl.c
+--- linux-2.6.23.17.orig/fs/fcntl.c
++++ linux-2.6.23.17/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -519,8 +507,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.23.orig/fs/ioctl.c
-+++ linux-2.6.23/fs/ioctl.c
+--- linux-2.6.23.17.orig/fs/ioctl.c
++++ linux-2.6.23.17/fs/ioctl.c
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -542,8 +530,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.23.orig/fs/namei.c
-+++ linux-2.6.23/fs/namei.c
+--- linux-2.6.23.17.orig/fs/namei.c
++++ linux-2.6.23.17/fs/namei.c
 @@ -36,6 +36,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -772,8 +760,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.23.orig/fs/namespace.c
-+++ linux-2.6.23/fs/namespace.c
+--- linux-2.6.23.17.orig/fs/namespace.c
++++ linux-2.6.23.17/fs/namespace.c
 @@ -29,6 +29,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -886,8 +874,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.23.orig/fs/open.c
-+++ linux-2.6.23/fs/open.c
+--- linux-2.6.23.17.orig/fs/open.c
++++ linux-2.6.23.17/fs/open.c
 @@ -27,6 +27,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -951,8 +939,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.23.orig/fs/proc/Makefile
-+++ linux-2.6.23/fs/proc/Makefile
+--- linux-2.6.23.17.orig/fs/proc/Makefile
++++ linux-2.6.23.17/fs/proc/Makefile
 @@ -15,3 +15,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -960,20 +948,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.23.orig/fs/proc/proc_misc.c
-+++ linux-2.6.23/fs/proc/proc_misc.c
+--- linux-2.6.23.17.orig/fs/proc/proc_misc.c
++++ linux-2.6.23.17/fs/proc/proc_misc.c
 @@ -748,4 +748,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.23 2008/04/28\n");
++	printk(KERN_INFO "Hook version: 2.6.23.17 2008/08/27\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.23.orig/include/linux/init_task.h
-+++ linux-2.6.23/include/linux/init_task.h
+--- linux-2.6.23.17.orig/include/linux/init_task.h
++++ linux-2.6.23.17/include/linux/init_task.h
 @@ -171,6 +171,10 @@ extern struct group_info init_groups;
  	},								\
  	INIT_TRACE_IRQFLAGS						\
@@ -985,8 +973,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  
---- linux-2.6.23.orig/include/linux/sched.h
-+++ linux-2.6.23/include/linux/sched.h
+--- linux-2.6.23.17.orig/include/linux/sched.h
++++ linux-2.6.23.17/include/linux/sched.h
 @@ -28,6 +28,11 @@
  #define CLONE_NEWIPC		0x08000000	/* New ipcs */
  #define CLONE_NEWUSER		0x10000000	/* New user namespace */
@@ -999,7 +987,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   * Scheduling policies
   */
-@@ -1195,6 +1200,10 @@ struct task_struct {
+@@ -1196,6 +1201,10 @@ struct task_struct {
  #ifdef CONFIG_FAULT_INJECTION
  	int make_it_fail;
  #endif
@@ -1010,8 +998,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  };
  
  /*
---- linux-2.6.23.orig/kernel/compat.c
-+++ linux-2.6.23/kernel/compat.c
+--- linux-2.6.23.17.orig/kernel/compat.c
++++ linux-2.6.23.17/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -1033,8 +1021,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.23.orig/kernel/kexec.c
-+++ linux-2.6.23/kernel/kexec.c
+--- linux-2.6.23.17.orig/kernel/kexec.c
++++ linux-2.6.23.17/kernel/kexec.c
 @@ -28,6 +28,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -1056,8 +1044,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.23.orig/kernel/kmod.c
-+++ linux-2.6.23/kernel/kmod.c
+--- linux-2.6.23.17.orig/kernel/kmod.c
++++ linux-2.6.23.17/kernel/kmod.c
 @@ -173,6 +173,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -1070,8 +1058,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
---- linux-2.6.23.orig/kernel/module.c
-+++ linux-2.6.23/kernel/module.c
+--- linux-2.6.23.17.orig/kernel/module.c
++++ linux-2.6.23.17/kernel/module.c
 @@ -45,6 +45,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -1104,8 +1092,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.23.orig/kernel/ptrace.c
-+++ linux-2.6.23/kernel/ptrace.c
+--- linux-2.6.23.17.orig/kernel/ptrace.c
++++ linux-2.6.23.17/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  
  #include <asm/pgtable.h>
@@ -1129,8 +1117,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.23.orig/kernel/sched.c
-+++ linux-2.6.23/kernel/sched.c
+--- linux-2.6.23.17.orig/kernel/sched.c
++++ linux-2.6.23.17/kernel/sched.c
 @@ -63,6 +63,9 @@
  #include <linux/unistd.h>
  
@@ -1152,8 +1140,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.23.orig/kernel/signal.c
-+++ linux-2.6.23/kernel/signal.c
+--- linux-2.6.23.17.orig/kernel/signal.c
++++ linux-2.6.23.17/kernel/signal.c
 @@ -32,6 +32,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -1203,8 +1191,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.23.orig/kernel/sys.c
-+++ linux-2.6.23/kernel/sys.c
+--- linux-2.6.23.17.orig/kernel/sys.c
++++ linux-2.6.23.17/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1261,8 +1249,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.23.orig/kernel/sysctl.c
-+++ linux-2.6.23/kernel/sysctl.c
+--- linux-2.6.23.17.orig/kernel/sysctl.c
++++ linux-2.6.23.17/kernel/sysctl.c
 @@ -49,6 +49,9 @@
  
  #include <asm/uaccess.h>
@@ -1379,8 +1367,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
---- linux-2.6.23.orig/kernel/time.c
-+++ linux-2.6.23/kernel/time.c
+--- linux-2.6.23.17.orig/kernel/time.c
++++ linux-2.6.23.17/kernel/time.c
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -1413,8 +1401,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.23.orig/kernel/time/ntp.c
-+++ linux-2.6.23/kernel/time/ntp.c
+--- linux-2.6.23.17.orig/kernel/time/ntp.c
++++ linux-2.6.23.17/kernel/time/ntp.c
 @@ -17,6 +17,9 @@
  #include <linux/capability.h>
  #include <asm/div64.h>
@@ -1436,8 +1424,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.23.orig/net/core/datagram.c
-+++ linux-2.6.23/net/core/datagram.c
+--- linux-2.6.23.17.orig/net/core/datagram.c
++++ linux-2.6.23.17/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1463,8 +1451,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (skb)
  			return skb;
  
---- linux-2.6.23.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.23/net/ipv4/inet_connection_sock.c
+--- linux-2.6.23.17.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.23.17/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1486,8 +1474,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.23.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.23/net/ipv4/inet_hashtables.c
+--- linux-2.6.23.17.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.23.17/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1509,8 +1497,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.23.orig/net/ipv4/udp.c
-+++ linux-2.6.23/net/ipv4/udp.c
+--- linux-2.6.23.17.orig/net/ipv4/udp.c
++++ linux-2.6.23.17/net/ipv4/udp.c
 @@ -103,6 +103,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1543,8 +1531,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
---- linux-2.6.23.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.23/net/ipv6/inet6_hashtables.c
+--- linux-2.6.23.17.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.23.17/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1566,8 +1554,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.23.orig/net/socket.c
-+++ linux-2.6.23/net/socket.c
+--- linux-2.6.23.17.orig/net/socket.c
++++ linux-2.6.23.17/net/socket.c
 @@ -93,6 +93,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1606,7 +1594,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1329,6 +1346,13 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1332,6 +1349,13 @@ asmlinkage long sys_bind(int fd, struct 
  			err = security_socket_bind(sock,
  						   (struct sockaddr *)address,
  						   addrlen);
@@ -1620,7 +1608,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (!err)
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
-@@ -1358,6 +1382,10 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1361,6 +1385,10 @@ asmlinkage long sys_listen(int fd, int b
  			backlog = sysctl_somaxconn;
  
  		err = security_socket_listen(sock, backlog);
@@ -1631,7 +1619,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1422,6 +1450,13 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1425,6 +1453,13 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1645,7 +1633,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1486,6 +1521,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1489,6 +1524,12 @@ asmlinkage long sys_connect(int fd, stru
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;
@@ -1658,8 +1646,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
  				 sock->file->f_flags);
---- linux-2.6.23.orig/net/unix/af_unix.c
-+++ linux-2.6.23/net/unix/af_unix.c
+--- linux-2.6.23.17.orig/net/unix/af_unix.c
++++ linux-2.6.23.17/net/unix/af_unix.c
 @@ -115,6 +115,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>

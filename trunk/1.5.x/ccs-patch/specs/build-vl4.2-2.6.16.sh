@@ -22,9 +22,9 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.16-76.37vl4.diff ]
+if [ ! -r ccs-patch-2.6.16-vine-linux-4.2.diff ]
 then
-    wget -O ccs-patch-2.6.16-76.37vl4.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.16-76.37vl4.diff?root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.16-vine-linux-4.2.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.16-vine-linux-4.2.diff?root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
 +sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -76.37vl4custom/" -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.16-76.37vl4.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.16-vine-linux-4.2.diff
 +
  cp %{SOURCE10} Documentation/
  
