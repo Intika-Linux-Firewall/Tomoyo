@@ -72,9 +72,9 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.22.18-0.2_SUSE.diff ]
+if [ ! -r ccs-patch-2.6.22-suse-10.3.diff ]
 then
-    wget -O ccs-patch-2.6.22.18-0.2_SUSE.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22.18-0.2_SUSE.diff?root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.22-suse-10.3.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.22-suse-10.3.diff?root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -110,7 +110,7 @@ patch << "EOF" || die "Can't patch spec file."
  cd linux-2.6.22
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.22.18-0.2_SUSE.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.22-suse-10.3.diff
 +sed -i -e 's:-ccs::' -- Makefile
 +cat config.ccs >> .config
  cp .config .config.orig

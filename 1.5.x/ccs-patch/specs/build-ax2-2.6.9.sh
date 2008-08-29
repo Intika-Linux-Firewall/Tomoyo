@@ -22,9 +22,9 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.9-42.24AX.diff ]
+if [ ! -r ccs-patch-2.6.9-asianux-2.diff ]
 then
-    wget -O ccs-patch-2.6.9-42.24AX.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-42.24AX.diff?root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.9-asianux-2.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-asianux-2.diff?root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
 +sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -42.24AX/" -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.9-42.24AX.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.9-asianux-2.diff
 +
  cp %{SOURCE10} Documentation/
  

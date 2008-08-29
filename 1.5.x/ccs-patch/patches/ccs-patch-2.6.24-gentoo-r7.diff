@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Gentoo Linux.
 
 Source code for this patch is "emerge gentoo-sources"
 ---
- Makefile                        |    2 
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/ia64/kernel/ptrace.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
@@ -45,19 +44,8 @@ Source code for this patch is "emerge gentoo-sources"
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 43 files changed, 666 insertions(+), 3 deletions(-)
+ 42 files changed, 665 insertions(+), 2 deletions(-)
 
---- linux-2.6.24-gentoo-r7.orig/Makefile
-+++ linux-2.6.24-gentoo-r7/Makefile
-@@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 24
--EXTRAVERSION = -gentoo-r7
-+EXTRAVERSION = -gentoo-r7-ccs
- NAME = Arr Matey! A Hairy Bilge Rat!
- 
- # *DOCUMENTATION*
 --- linux-2.6.24-gentoo-r7.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-gentoo-r7/arch/ia64/ia32/sys_ia32.c
 @@ -55,6 +55,9 @@
@@ -916,7 +904,7 @@ Source code for this patch is "emerge gentoo-sources"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.24-gentoo-r7 2008/05/08\n");
++	printk(KERN_INFO "Hook version: 2.6.24-gentoo-r7 2008/08/20\n");
 +#endif
 +	/***** CCS end. *****/
  }

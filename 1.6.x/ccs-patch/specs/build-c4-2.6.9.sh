@@ -22,9 +22,9 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.9-67.0.22.EL.diff ]
+if [ ! -r ccs-patch-2.6.9-centos-4.6.diff ]
 then
-    wget -O ccs-patch-2.6.9-67.0.22.EL.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.9-67.0.22.EL.diff?root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.9-centos-4.6.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.9-centos-4.6.diff?root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.3-20080715.tar.gz
 +sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.22.EL/" -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.9-67.0.22.EL.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.9-centos-4.6.diff
 +
  cp %{SOURCE10} Documentation/
  

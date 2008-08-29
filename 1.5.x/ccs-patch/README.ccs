@@ -1158,3 +1158,15 @@ Fix 2008/08/21
       Since kernels with AppArmor patch applied is increasing,
       I introduced a mechanism which determines whether specific patches
       are applied or not, based on "#define" directives in the patches.
+
+Fix 2008/08/29
+
+    @ Remove "-ccs" suffix from Makefile's EXTRAVERSION.
+
+      To reduce conflicts on Makefile's EXTRAVERSION,
+      I removed "-ccs" suffix from ccs-patch-2.\*.diff .
+      Those who build kernels without using specs/build-\*.sh ,
+      please edit EXTRAVERSION tag manually so that original kernels
+      will not be overwritten by TOMOYO Linux kernels.
+
+Version 1.5.5 2008/09/??   Bug fix release.
