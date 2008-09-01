@@ -108,19 +108,19 @@ If you are using bash, run the following commands.</p>
 <p>Since TOMOYO Linux has much functionality, you can selectively enable/disable them using "profiles".
 All profiles are stored in a single file /etc/ccs/profile.conf and you can switch profiles assigned to domains.</p>
 
-<p>Since this page explains only MAC for files, the contents of /etc/ccs/profile.conf will contain the following entries.</p>
+<p>Since this page explains only MAC for files, /etc/ccs/profile.conf will contain the following entries.</p>
 
 <pre>
-0-COMMENT=-----DISABLED_MODE-----
+0-COMMENT=-----Disabled Mode-----
 0-MAC_FOR_FILE=0
 0-TOMOYO_VERBOSE=0
-1-COMMENT=-----LEARNING_MODE-----
+1-COMMENT=-----Learning Mode-----
 1-MAC_FOR_FILE=1
 1-TOMOYO_VERBOSE=0
-2-COMMENT=-----PERMISSIVE_MODE-----
+2-COMMENT=-----Permissive Mode-----
 2-MAC_FOF_FILE=2
 2-TOMOYO_VERBOSE=1
-3-COMMENT=-----ENFORCE_MODE-----
+3-COMMENT=-----Enforcing Mode-----
 3-MAC_FOR_FILE=3
 3-TOMOYO_VERBOSE=1
 </pre>
@@ -311,7 +311,7 @@ Each process belongs to single domain, and access permissions are granted to dom
 
 <p>The granularity of permissions is standard read/write/execute plus detailed write permission such as create, unlink, rename.</p>
 
-<p>Policies are kept on the memory and if they will be lost if you shutdown the system. To save policies currently on the memory onto disk, run the following command.</p>
+<p>Policies are kept on the memory and they will be lost if you shutdown the system. To save policies currently on the memory onto disk, run the following command.</p>
 
 <pre>
 # <span class="user">savepolicy</span>
