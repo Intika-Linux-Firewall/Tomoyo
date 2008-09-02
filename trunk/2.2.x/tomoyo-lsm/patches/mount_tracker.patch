@@ -34,9 +34,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  kernel/fork.c             |    8 ++++++++
  5 files changed, 82 insertions(+)
 
---- linux-2.6.27-rc3.orig/fs/Kconfig
-+++ linux-2.6.27-rc3/fs/Kconfig
-@@ -2094,4 +2094,22 @@ endif
+--- linux-2.6.27-rc5.orig/fs/Kconfig
++++ linux-2.6.27-rc5/fs/Kconfig
+@@ -2093,4 +2093,22 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
  
@@ -59,8 +59,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	  "struct vfsmount" parameter to vfs_* functions.
 +
  endmenu
---- linux-2.6.27-rc3.orig/fs/namespace.c
-+++ linux-2.6.27-rc3/fs/namespace.c
+--- linux-2.6.27-rc5.orig/fs/namespace.c
++++ linux-2.6.27-rc5/fs/namespace.c
 @@ -231,6 +231,41 @@ static inline void use_cpu_writer_for_mo
  	cpu_writer->mnt = mnt;
  }
@@ -135,8 +135,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  EXPORT_SYMBOL_GPL(mnt_drop_write);
  
---- linux-2.6.27-rc3.orig/include/linux/init_task.h
-+++ linux-2.6.27-rc3/include/linux/init_task.h
+--- linux-2.6.27-rc5.orig/include/linux/init_task.h
++++ linux-2.6.27-rc5/include/linux/init_task.h
 @@ -113,6 +113,12 @@ extern struct group_info init_groups;
  # define CAP_INIT_BSET  CAP_INIT_EFF_SET
  #endif
@@ -158,9 +158,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  
---- linux-2.6.27-rc3.orig/include/linux/sched.h
-+++ linux-2.6.27-rc3/include/linux/sched.h
-@@ -1300,6 +1300,9 @@ struct task_struct {
+--- linux-2.6.27-rc5.orig/include/linux/sched.h
++++ linux-2.6.27-rc5/include/linux/sched.h
+@@ -1301,6 +1301,9 @@ struct task_struct {
  	int latency_record_count;
  	struct latency_record latency_record[LT_SAVECOUNT];
  #endif
@@ -170,8 +170,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /*
---- linux-2.6.27-rc3.orig/kernel/fork.c
-+++ linux-2.6.27-rc3/kernel/fork.c
+--- linux-2.6.27-rc5.orig/kernel/fork.c
++++ linux-2.6.27-rc5/kernel/fork.c
 @@ -1051,6 +1051,14 @@ static struct task_struct *copy_process(
  	p->blocked_on = NULL; /* not blocked yet */
  #endif
