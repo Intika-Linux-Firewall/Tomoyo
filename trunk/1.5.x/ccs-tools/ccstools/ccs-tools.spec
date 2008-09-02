@@ -41,7 +41,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(4755,root,root) /usr/lib/ccs/misc/proxy
 
 %changelog
-* Wed Sep 3 2008 1.5.5-1
+* Wed Sep 03 2008 1.5.5-1
 - Minor update release.
 
 * Sat May 10 2008 1.5.4-1
