@@ -11,9 +11,9 @@ die () {
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.3-20080715.tar.gz ]
+if [ ! -r ccs-patch-1.6.4-20080903.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.4-20080903.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -26,14 +26,12 @@ apt-get source kernel-image-2.6.8-4-686-smp || die "Can't install kernel source.
 
 # Apply patches and create kernel config.
 cd kernel-image-2.6.8-i386-2.6.8/ || die "Can't chdir to kernel-image-2.6.8-i386-2.6.8/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.3-20080715.tar.gz ./config.ccs || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.4-20080903.tar.gz ./config.ccs || die "Can't extract patch."
 cat config/686-smp config.ccs > config/686-smp-ccs || die "Can't create config."
 debian/rules flavours=686-smp-ccs || die "Can't run rules."
 cd build-686-smp-ccs/ || die "Can't chdir to build-686-smp-ccs/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.3-20080715.tar.gz || die "Can't extract patch."
-cp -p Makefile Makefile.tmp || die "Can't create backup."
-patch -p1 < patches/ccs-patch-2.6.8-17sarge1.diff || die "Can't apply patch."
-mv -f Makefile.tmp Makefile || die "Can't restore."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.4-20080903.tar.gz || die "Can't extract patch."
+patch -p1 < patches/ccs-patch-2.6.8-debian-sarge.diff || die "Can't apply patch."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686-smp") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control | sed -e 's:-686-smp:-686-smp-ccs:g' > debian/control.tmp || die "Can't create file."
 cat debian/control.tmp >> debian/control || die "Can't edit file."
 cd .. || die "Can't chdir to ../ ."

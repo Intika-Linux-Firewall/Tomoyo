@@ -67,9 +67,9 @@ fi
 rpm -ivh kernel-source-2.6.22.18-0.2.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.3-20080715.tar.gz ]
+if [ ! -r ccs-patch-1.6.4-20080903.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.4-20080903.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  Version:        2.6.22.18
 -Release: 0.2
-+Release: 0.2_tomoyo_1.6.3
++Release: 0.2_tomoyo_1.6.4
  License:        GPL v2 or later
  Group:          System/Kernel
  AutoReqProv:    on
@@ -104,9 +104,9 @@ patch << "EOF" || die "Can't patch spec file."
  source .rpm-defs
  cd linux-2.6.22
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.3-20080715.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.22.18-0.2_SUSE.diff
-+sed -i -e 's:-ccs::' -- Makefile
++tar -zxf %_sourcedir/ccs-patch-1.6.4-20080903.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.22-suse-10.3.diff
++# sed -i -e 's:-ccs::' -- Makefile
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}

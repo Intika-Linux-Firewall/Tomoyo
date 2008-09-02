@@ -17,14 +17,9 @@ fi
 rpm -ivh kernel-2.6.25.14-108.fc9.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
+if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.25-fedora-9.diff ]
-then
-    wget -O ccs-patch-2.6.25-fedora-9.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.25-fedora-9.diff?root=tomoyo' || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20080903.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -37,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -#% define buildid .local
-+%define buildid _tomoyo_1.5.4
++%define buildid _tomoyo_1.5.5
  
  # fedora_build defines which build revision of this kernel version we're
  # building. Rather than incrementing forever, as with the prior versioning
@@ -76,9 +71,9 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .14-108.fc9:' -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.25-fedora-9.diff
++tar -zxf %_sourcedir/ccs-patch-1.5.5-20080903.tar.gz
++# sed -i -e 's:EXTRAVERSION =.*:EXTRAVERSION = .14-108.fc9:' -- Makefile
++patch -sp1 < patches/ccs-patch-2.6.25-fedora-9.diff
 +
  %endif
  

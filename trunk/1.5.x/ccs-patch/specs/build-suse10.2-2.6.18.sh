@@ -67,14 +67,9 @@ fi
 rpm -ivh kernel-source-2.6.18.8-0.10.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.5.4-20080510.tar.gz ]
+if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.18-suse-10.2.diff ]
-then
-    wget -O ccs-patch-2.6.18-suse-10.2.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.18-suse-10.2.diff?root=tomoyo' || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20080903.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -94,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  Version:        2.6.18.8
 -Release: 0.10
-+Release: 0.10_tomoyo_1.5.4
++Release: 0.10_tomoyo_1.5.5
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  License:        GPL v2 or later
  Group:          System/Kernel
@@ -103,14 +98,14 @@ patch << "EOF" || die "Can't patch spec file."
  source .rpm-defs
  cd linux-2.6.18
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.5.4-20080510.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.18-suse-10.2.diff
++tar -zxf %_sourcedir/ccs-patch-1.5.5-20080903.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.18-suse-10.2.diff
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-mv kernel-default.spec ccs-kernel.spec || die "Can't rename spec file."
+sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
 echo ""
 echo ""
 echo ""

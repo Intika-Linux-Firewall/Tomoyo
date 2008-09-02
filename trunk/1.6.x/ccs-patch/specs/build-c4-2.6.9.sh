@@ -17,14 +17,9 @@ fi
 rpm -ivh kernel-2.6.9-67.0.22.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.3-20080715.tar.gz ]
+if [ ! -r ccs-patch-1.6.4-20080903.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.9-centos-4.6.diff ]
-then
-    wget -O ccs-patch-2.6.9-centos-4.6.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.9-centos-4.6.diff?root=tomoyo' || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.4-20080903.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -37,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 67.0.22.EL
-+%define release 67.0.22.EL_tomoyo_1.6.3
++%define release 67.0.22.EL_tomoyo_1.6.4
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -65,9 +60,9 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.3-20080715.tar.gz
-+sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.22.EL/" -- Makefile
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.9-centos-4.6.diff
++tar -zxf %_sourcedir/ccs-patch-1.6.4-20080903.tar.gz
++# sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.22.EL/" -- Makefile
++patch -sp1 < patches/ccs-patch-2.6.9-centos-4.6.diff
 +
  cp %{SOURCE10} Documentation/
  

@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.4.20-46.9.legacy.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.3-20080715.tar.gz ]
+if [ ! -r ccs-patch-1.6.4-20080903.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.3-20080715.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.4-20080903.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 46.9.legacy
-+%define release 46.9.legacy_tomoyo_1.6.3
++%define release 46.9.legacy_tomoyo_1.6.4
  %define sublevel 20
  %define kversion 2.4.%{sublevel}
  # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
@@ -50,9 +50,9 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.3-20080715.tar.gz
-+sed -i -e "s/^SUBLEVEL.*/SUBLEVEL = 20/" -e "s/^EXTRAVERSION.*/EXTRAVERSION = -46.9.legacycustom/" -- Makefile
-+patch -sp1 < patches/ccs-patch-2.4.20-46.9.legacy.diff
++tar -zxf %_sourcedir/ccs-patch-1.6.4-20080903.tar.gz
++# sed -i -e "s/^SUBLEVEL.*/SUBLEVEL = 20/" -e "s/^EXTRAVERSION.*/EXTRAVERSION = -46.9.legacycustom/" -- Makefile
++patch -sp1 < patches/ccs-patch-2.4.20-redhat-linux-9.diff
 +
  cp %{SOURCE10} Documentation/
  chmod +x arch/sparc*/kernel/check_asm.sh
