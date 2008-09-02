@@ -354,7 +354,7 @@ Operations with blue colored underline are denied.</p>
 
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 
-<blockquote>
+<blockquote><p>
 #2008-05-12 15:46:16# profile=3 mode=enforcing pid=1855 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=15 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HZ=100" "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "_=/usr/bin/tail" }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
 allow_execute /usr/bin/tail<br>
@@ -370,7 +370,7 @@ allow_read /etc/shadow<br>
 #2008-05-12 15:46:32# profile=3 mode=enforcing pid=1860 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=21 argv[]={ "date" } envp[]={ "HZ=100" "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/sbin:/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs:/root/bin:/root/ccstools/" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/tcsh<br>
 allow_execute /bin/date
-</blockquote>
+</p></blockquote>
 
 <p>As you have seen above, by using TOMOYO Linux's MAC for file accesses functionality, you can monitor</p>
 
