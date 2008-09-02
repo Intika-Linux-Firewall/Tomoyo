@@ -193,11 +193,11 @@ To start a Konsole window, select "Menu" =&gt; "Tools" =&gt; "Konsole" menu.</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-9.png"></p>
 
-<p>Move the cursor to the line containing "/usr/bin/head" (in this screen, line number 98) and press "Enter" key. You will see a line containing "allow_read /etc/passwd". This entry was automatically appended by TOMOYO Linux's learning mode.<p>
+<p>Move the cursor to the line containing "/usr/bin/head" (in this screen, line number 98) and press "Enter" key. You will see a line containing "allow_read /etc/passwd". This entry was automatically appended by TOMOYO Linux's learning mode.</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-10.png"></p>
 
-<p>Press "Enter" key to return. Let's see what entries are automatically appended for the line "/bin/sh" and "/usr/bin/tail".<p>
+<p>Press "Enter" key to return. Let's see what entries are automatically appended for the line "/bin/sh" and "/usr/bin/tail".</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-11.png"></p>
 
@@ -228,7 +228,7 @@ To start a Konsole window, select "Menu" =&gt; "Tools" =&gt; "Konsole" menu.</p>
 
 <p>You will find some entries which has "mode=enforcing".</p>
 
-<blockquote>
+<blockquote><p>
 #2008-08-29 17:05:56# profile=3 mode=enforcing pid=5715 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /etc/X11/xdm/Xsession /etc/X11/Xsession /bin/sh /usr/bin/startkde /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /usr/bin/head<br>
 allow_read /etc/hosts <br>
@@ -248,7 +248,7 @@ allow_execute /bin/date <br>
 #2008-08-29 17:06:20# profile=3 mode=enforcing pid=5719 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /etc/X11/xdm/Xsession /etc/X11/Xsession /bin/sh /usr/bin/startkde /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /bin/sh<br>
 allow_read /bin/date 
-</blockquote>
+</p></blockquote>
 
 <p>Policies which you browsed using "ccs-editpolicy" are kept on memory only. So, they will be lost if you shutdown the system. To save policies currently on memory onto disk, run the following command.</p>
 
@@ -296,7 +296,7 @@ chown -R demo:demo /proc/ccs/
 <p>A manual for /usr/sbin/ccs-editpolicy is available at <a href="../../tool-editpolicy.html">How to use Policy Editor</a>.</p>
 
 <hr>
-<address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
+<address><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
 <a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
 Last modified: $Date$<br>
 <!--#include virtual="/cgi-bin/counter.pl" -->

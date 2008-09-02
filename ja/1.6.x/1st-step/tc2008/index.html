@@ -157,66 +157,73 @@
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-2.png"></p>
 
-<p>矢印キーを使ってスクロールすることができます。 /usr/sbin/ccs-editpolicy というパス名を含んだ行を見つけることができるはずです。</p>
+<p>/usr/sbin/ccs-editpolicy というパス名を含んだ行を見つけることができるはずです。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-3.png"></p>
+
+<p>矢印キーを使ってスクロールすることができます。カーソルを /usr/bin/kdeinit と /bin/su の間にある /bin/bash の行（この画像では７８行目）に移動させてください。</p>
+
+<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-4.png"></p>
+
+<p>「Space」キーを押してください。すると、カーソルのある行の先頭に「&amp;」というマークが表示されるはずです。</p>
+
+<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-5.png"></p>
+
+<p>「s」キーを押してから「1」と入力し、「Enter」キーを押してください。「1」というのはプロファイル 1 のことを表しており、プロファイル 1 は<a href="#l3">ポリシーの初期設定</a>において学習モード用として定義されています。</p>
+
+<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-6.png"></p>
+
+<p>行頭の数字が「1」になりました。これは、学習モード用のプロファイル 1 が割り当てられていることを示しています。</p>
+
+<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-7.png"></p>
 
 <p>いくつかの操作をしてみるために、一般ユーザ用のコンソールを開いてください。<br>
 一般ユーザ用のコンソールを開くには、「START」→「システム」→「端末コンソール」の順番にメニューを選択してください。</p>
 
 <p><img alt="Opening Konsole" title="Opening Konsole" width="800" height="600" src="konsole-1.png"></p>
 
-<p>ポリシーエディタの画面に切り替えて、今度は一般ユーザ用のコンソールを探してみましょう。「r」キーを押して最新の情報に更新してから、「f」キーを押してから「start_kdeinit」と入力し、最後に「Enter」キーを押してください。すると、 /usr/bin/kdeinit というパス名を含んだ行を見つけることができるはずです。</p>
+<p>一般ユーザ用のコンソールと管理者用コンソールとの違いは、一般ユーザ用のコンソールの中から /bin/su コマンドを実行して root ユーザのパスワードを入力したかどうかです。<br>
+<a href="#l2">TOMOYO Linux 用ツールのインストール</a>において「パスワード:」というプロンプトが表示されていますが、これは一般ユーザ用のコンソールを開いた直後に自動的に実行された /bin/su コマンドが表示しているものです。</p>
 
-<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-4.png"></p>
-
-<p>矢印キーを使ってカーソルを /usr/bin/kdeinit というパス名を含んだ行の下へ移動させてから、「Space」キーを押してください。すると、カーソルのある行の先頭に「&amp;」というマークが表示されるはずです。</p>
-
-<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-5.png"></p>
-
-<p>この操作を /bin/bash というパス名を含む行の下にある全部の行に対して繰り返してください。ただし、 /bin/su というパス名を含む行の下はポリシーエディタを実行している管理者用のコンソールなので、不意に動かなくなってしまうのを避けるために今回は除外してください。よって、この画面では、７８行目から８１行目と９６行目から９８行目に対して適用します。</p>
-
-<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-6.png"></p>
-
-<p>「s」キーを押してから「1」と入力し、「Enter」キーを押してください。「1」というのはプロファイル 1 のことを表しており、プロファイル 1 は<a href="#l3">ポリシーの初期設定</a>において学習モード用として定義されています。</p>
-
-<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-7.png"></p>
-
-<p>これで、一般ユーザ用のコンソールは学習モードになりました。</p>
+<p>ポリシーエディタの画面に切り替えて、「r」キーを押して最新の情報に更新してください。すると、行頭に「1」が付いた行がいくつか追加されているはずです。この画面では、「/bin/grep」「/bin/id」「/bin/stty」「/usr/bin/pidof」「/usr/bin/tty」「/usr/bin/wc」という６行が追加されています。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-8.png"></p>
 
-<p>一般ユーザ用のコンソールに切り替えて、何か操作をしてみましょう。</p>
+<p>一般ユーザ用のコンソール画面に切り替えて、いくつか操作をしてみてください。</p>
 
 <p><img alt="Using Konsole" title="Using Konsole" width="800" height="600" src="konsole-2.png"></p>
 
-<h2><a name="l5">学習結果の確認</a></h2>
-
-<p>ポリシーエディタの画面に切り替え、一般ユーザ用のコンソールを探してみましょう。「r」キーを押して最新の情報に更新してから、「f」キーを押して「start_kdeinit」と入力し「Enter」キーを押してください。先ほど実行した「/bin/date」「/usr/bin/head」「/bin/sh」「/usr/bin/tail」が追加されていることを確認できるはずです。</p>
+<p>ポリシーエディタの画面に切り替えて、「r」キーを押して最新の情報に更新してください。すると、一般ユーザ用のコンソール画面で実行したプログラムが追加されているはずです。この画面では、「/bin/date」（７９行目）「/bin/sh」「/bin/grep」「/bin/id」「/bin/stty」「/usr/bin/pidof」「/usr/bin/tail」「/usr/bin/tty」「/usr/bin/wc」（８２～８９行目）「/usr/bin/head」（１０５行目）というのが追加されています。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-9.png"></p>
 
-<p>カーソルを「 /usr/bin/head 」の行（この画面では隠れてしまっていますが１０５行目）に移動させてから「Enter」キーを押してください。「allow_read /etc/passwd」というエントリを確認することができるはずです。このエントリは、 TOMOYO Linux の学習モードにより自動的に追加されたものです。<p>
-
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-10.png"></p>
 
-<p>「Enter」キーを押して元に戻ってください。同様に「/bin/sh」や「/usr/bin/tail」に対してどのようなエントリが追加されたかを見てみましょう。<p>
+<h2><a name="l5">学習結果の確認</a></h2>
+
+<p>カーソルを「 /usr/bin/head 」の行（１０５行目）に移動させてから「Enter」キーを押してください。「allow_read /etc/passwd」というエントリを確認することができるはずです。このエントリは、 TOMOYO Linux の学習モードにより自動的に追加されたものです。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-11.png"></p>
 
+<p>「Enter」キーを押して元に戻ってください。同様に「/bin/sh」（８２行目）や「/usr/bin/tail」（８７行目）に対してどのようなエントリが追加されたかを見てみましょう。</p>
+
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-12.png"></p>
+
+<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-13.png"></p>
 
 <p>既にお気づきかもしれませんが、 allow_read とは指定されたパス名を読み込みモードでオープンしたこと、 allow_read/write とは指定されたパス名を読み書きモードでオープンしたこと、 allow_execute とは指定されたパス名をプログラムとして実行したことを表しています。</p>
 
 <h2><a name="l6">強制モードへの切り替え</a></h2>
 
-<p>それでは、強制モードへ切り替えてみましょう。プロファイル 3 は<a href="#l3">ポリシーの初期設定</a>において強制モード用として定義されています。プロファイル 3 を現在プロファイル 1 が割り当てられている行に適用してみましょう。この画面では、７８行目から９０行目および１０５行目から１０８行目です。</p>
+<p>それでは、強制モードへ切り替えてみましょう。プロファイル 3 は<a href="#l3">ポリシーの初期設定</a>において強制モード用として定義されています。プロファイル 3 を現在プロファイル 1 が割り当てられている行に適用してみましょう。</p>
 
-<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-13.png"></p>
+<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-14.png"></p>
 
 <p>選択された行には、プロファイル 3 が割り当てられました。</p>
 
-<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-14.png"></p>
+<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-15.png"></p>
+
+<p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-16.png"></p>
 
 <p>一般ユーザ用のコンソールに切り替えて、いくつか操作をしてみましょう。</p>
 
@@ -230,51 +237,51 @@
 
 <p>以下のように mode=enforcing という行を含んだログを見つけることができるはずです。</p>
 
-<blockquote>
-#2008-09-01 16:27:22# profile=3 mode=enforcing pid=4027 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+<blockquote><p>
+#2008-09-02 09:59:37# profile=3 mode=enforcing pid=4274 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /usr/bin/head<br>
 allow_read /etc/hosts <br>
 <br>
-#2008-09-01 16:27:22# profile=3 mode=enforcing pid=4027 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+#2008-09-02 09:59:37# profile=3 mode=enforcing pid=4274 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /usr/bin/head<br>
 allow_read /usr/lib/gconv/EUC-JP.so <br>
 <br>
-#2008-09-01 16:27:22# profile=3 mode=enforcing pid=4027 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+#2008-09-02 09:59:37# profile=3 mode=enforcing pid=4274 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /usr/bin/head<br>
 allow_read /usr/lib/gconv/EUC-JP.so <br>
 <br>
-#2008-09-01 16:27:22# profile=3 mode=enforcing pid=4027 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+#2008-09-02 09:59:37# profile=3 mode=enforcing pid=4274 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /usr/bin/head<br>
 allow_read /usr/lib/gconv/EUC-JP.so <br>
 <br>
-#2008-09-01 16:27:22# profile=3 mode=enforcing pid=4027 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+#2008-09-02 09:59:37# profile=3 mode=enforcing pid=4274 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /usr/bin/head<br>
 allow_read /usr/lib/gconv/EUC-JP.so <br>
 <br>
-#2008-09-01 16:27:36# profile=3 mode=enforcing pid=4029 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 argc=4 envc=46 argv[]={ "tail" "-n" "3" "/etc/passwd" } envp[]={ "KDE_MULTIHEAD=false" "HOSTNAME=localhost" "DM_CONTROL=/var/run/xdmctl" "GPG_AGENT_INFO=/tmp/gpg-ivPJMk/S.gpg-agent:3739:1" "TERM=xterm" "SHELL=/bin/bash" "LC_SOURCED=1" "HISTSIZE=1000" "XDM_MANAGED=/var/run/xdmctl/xdmctl-:0,maysd,mayfn,fn,rsvd,method=classic" "XDG_SESSION_COOKIE=457cc6821c6dec43887b31ce48bb8c33-1220253081.972016-826547897" "GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/kumaneko/.gtkrc-2.0:/home/kumaneko/.kde/share/config/gtkrc-2.0" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/kumaneko/.gtkrc:/home/kumaneko/.kde/share/config/gtkrc" "GS_LIB=/home/kumaneko/.fonts" "WINDOWID=50331655" "QTDIR=/usr/lib/qt3" "KDE_FULL_SESSION=true" "USER=kumaneko" "COMPOSITING_WM_START=no" "ENV=/home/kumaneko/.bashrc" "SESSION_MANAGER=local/localhost:/tmp/.ICE-unix/3768" "USERNAME=" "KONSOLE_DCOP=DCOPRef(konsole-4009,konsole)" "PATH=/usr/kerberos/bin:/usr/java/jre1.6.0_07/bin:/usr/local/bin:/usr/bin:/bin:/usr/bin:/usr/games" "DESKTOP_SESSION=default" "QT_IM_MODULE=scim" "KONSOLE_DCOP_SESSION=DCOPRef(konsole-4009,session-1)" "PWD=/home/kumaneko" "XMODIFIERS=@im=SCIM" "JAVA_HOME=/usr/java/jre1.6.0_07" "LANG=ja_JP.UTF-8" "KDE_SESSION_UID=500" "UNICODEMAP_JP=cp932,nec-vdc" "HISTCONTROL=ignoredups" "HOME=/home/kumaneko" "SHLVL=3" "XCURSOR_THEME=default" "LESS=-MM" "LOGNAME=kumaneko" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-VJIHegAocV,guid=f227632e78e5521a7470cebe48bb959a" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "DISPLAY=:0.0" "GTK_IM_MODULE=scim" "G_BROKEN_FILENAMES=1" "COLORTERM=" "XAUTHORITY=/home/kumaneko/.Xauthority" "_=/usr/bin/tail" }<br>
+#2008-09-02 09:59:44# profile=3 mode=enforcing pid=4275 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 argc=4 envc=46 argv[]={ "tail" "-n" "3" "/etc/passwd" } envp[]={ "KDE_MULTIHEAD=false" "HOSTNAME=localhost" "DM_CONTROL=/var/run/xdmctl" "GPG_AGENT_INFO=/tmp/gpg-ipJudX/S.gpg-agent:3788:1" "TERM=xterm" "SHELL=/bin/bash" "LC_SOURCED=1" "HISTSIZE=1000" "XDM_MANAGED=/var/run/xdmctl/xdmctl-:0,maysd,mayfn,fn,rsvd,method=classic" "XDG_SESSION_COOKIE=457cc6821c6dec43887b31ce48bb8c33-1220313555.143126-1574269587" "GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/kumaneko/.gtkrc-2.0:/home/kumaneko/.kde/share/config/gtkrc-2.0" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/kumaneko/.gtkrc:/home/kumaneko/.kde/share/config/gtkrc" "GS_LIB=/home/kumaneko/.fonts" "WINDOWID=50331655" "QTDIR=/usr/lib/qt3" "KDE_FULL_SESSION=true" "USER=kumaneko" "COMPOSITING_WM_START=no" "ENV=/home/kumaneko/.bashrc" "SESSION_MANAGER=local/localhost:/tmp/.ICE-unix/3817" "USERNAME=" "KONSOLE_DCOP=DCOPRef(konsole-4253,konsole)" "PATH=/usr/kerberos/bin:/usr/java/jre1.6.0_07/bin:/usr/local/bin:/usr/bin:/bin:/usr/bin:/usr/games" "DESKTOP_SESSION=default" "QT_IM_MODULE=scim" "KONSOLE_DCOP_SESSION=DCOPRef(konsole-4253,session-1)" "PWD=/home/kumaneko" "XMODIFIERS=@im=SCIM" "JAVA_HOME=/usr/java/jre1.6.0_07" "LANG=ja_JP.UTF-8" "KDE_SESSION_UID=500" "UNICODEMAP_JP=cp932,nec-vdc" "HISTCONTROL=ignoredups" "HOME=/home/kumaneko" "SHLVL=3" "XCURSOR_THEME=default" "LESS=-MM" "LOGNAME=kumaneko" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-qab5dkDzi6,guid=600515bdc768600a3bde494248bc81d3" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "DISPLAY=:0.0" "GTK_IM_MODULE=scim" "G_BROKEN_FILENAMES=1" "COLORTERM=" "XAUTHORITY=/home/kumaneko/.Xauthority" "_=/usr/bin/tail" }<br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash<br>
 allow_execute /usr/bin/tail <br>
 <br>
-#2008-09-01 16:27:36# profile=3 mode=enforcing pid=4029 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+#2008-09-02 09:59:44# profile=3 mode=enforcing pid=4275 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash<br>
 allow_read /usr/bin/tail <br>
 <br>
-#2008-09-01 16:27:36# profile=3 mode=enforcing pid=4029 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+#2008-09-02 09:59:44# profile=3 mode=enforcing pid=4275 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash<br>
 allow_read /usr/lib/gconv/EUC-JP.so <br>
 <br>
-#2008-09-01 16:27:57# profile=3 mode=enforcing pid=4046 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=46 argv[]={ "date" } envp[]={ "KDE_MULTIHEAD=false" "DM_CONTROL=/var/run/xdmctl" "HOSTNAME=localhost" "GPG_AGENT_INFO=/tmp/gpg-ivPJMk/S.gpg-agent:3739:1" "SHELL=/bin/bash" "TERM=xterm" "XDG_SESSION_COOKIE=457cc6821c6dec43887b31ce48bb8c33-1220253081.972016-826547897" "XDM_MANAGED=/var/run/xdmctl/xdmctl-:0,maysd,mayfn,fn,rsvd,method=classic" "HISTSIZE=1000" "LC_SOURCED=1" "GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/kumaneko/.gtkrc-2.0:/home/kumaneko/.kde/share/config/gtkrc-2.0" "GS_LIB=/home/kumaneko/.fonts" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/kumaneko/.gtkrc:/home/kumaneko/.kde/share/config/gtkrc" "WINDOWID=50331655" "QTDIR=/usr/lib/qt3" "KDE_FULL_SESSION=true" "USER=kumaneko" "COMPOSITING_WM_START=no" "ENV=/home/kumaneko/.bashrc" "USERNAME=" "SESSION_MANAGER=local/localhost:/tmp/.ICE-unix/3768" "KONSOLE_DCOP=DCOPRef(konsole-4009,konsole)" "DESKTOP_SESSION=default" "PATH=/usr/kerberos/bin:/usr/java/jre1.6.0_07/bin:/usr/local/bin:/usr/bin:/bin:/usr/bin:/usr/games" "QT_IM_MODULE=scim" "PWD=/home/kumaneko" "KONSOLE_DCOP_SESSION=DCOPRef(konsole-4009,session-1)" "JAVA_HOME=/usr/java/jre1.6.0_07" "XMODIFIERS=@im=SCIM" "LANG=ja_JP.UTF-8" "KDE_SESSION_UID=500" "UNICODEMAP_JP=cp932,nec-vdc" "HISTCONTROL=ignoredups" "SHLVL=4" "HOME=/home/kumaneko" "XCURSOR_THEME=default" "LOGNAME=kumaneko" "LESS=-MM" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-VJIHegAocV,guid=f227632e78e5521a7470cebe48bb959a" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "DISPLAY=:0.0" "GTK_IM_MODULE=scim" "G_BROKEN_FILENAMES=1" "XAUTHORITY=/home/kumaneko/.Xauthority" "COLORTERM=" "_=/bin/date" }<br>
+#2008-09-02 09:59:55# profile=3 mode=enforcing pid=4291 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=46 argv[]={ "date" } envp[]={ "KDE_MULTIHEAD=false" "DM_CONTROL=/var/run/xdmctl" "HOSTNAME=localhost" "GPG_AGENT_INFO=/tmp/gpg-ipJudX/S.gpg-agent:3788:1" "SHELL=/bin/bash" "TERM=xterm" "XDG_SESSION_COOKIE=457cc6821c6dec43887b31ce48bb8c33-1220313555.143126-1574269587" "XDM_MANAGED=/var/run/xdmctl/xdmctl-:0,maysd,mayfn,fn,rsvd,method=classic" "HISTSIZE=1000" "LC_SOURCED=1" "GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/kumaneko/.gtkrc-2.0:/home/kumaneko/.kde/share/config/gtkrc-2.0" "GS_LIB=/home/kumaneko/.fonts" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/kumaneko/.gtkrc:/home/kumaneko/.kde/share/config/gtkrc" "WINDOWID=50331655" "QTDIR=/usr/lib/qt3" "KDE_FULL_SESSION=true" "USER=kumaneko" "COMPOSITING_WM_START=no" "ENV=/home/kumaneko/.bashrc" "USERNAME=" "SESSION_MANAGER=local/localhost:/tmp/.ICE-unix/3817" "KONSOLE_DCOP=DCOPRef(konsole-4253,konsole)" "DESKTOP_SESSION=default" "PATH=/usr/kerberos/bin:/usr/java/jre1.6.0_07/bin:/usr/local/bin:/usr/bin:/bin:/usr/bin:/usr/games" "QT_IM_MODULE=scim" "PWD=/home/kumaneko" "KONSOLE_DCOP_SESSION=DCOPRef(konsole-4253,session-1)" "JAVA_HOME=/usr/java/jre1.6.0_07" "XMODIFIERS=@im=SCIM" "LANG=ja_JP.UTF-8" "KDE_SESSION_UID=500" "UNICODEMAP_JP=cp932,nec-vdc" "HISTCONTROL=ignoredups" "SHLVL=4" "HOME=/home/kumaneko" "XCURSOR_THEME=default" "LOGNAME=kumaneko" "LESS=-MM" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-qab5dkDzi6,guid=600515bdc768600a3bde494248bc81d3" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "DISPLAY=:0.0" "GTK_IM_MODULE=scim" "G_BROKEN_FILENAMES=1" "XAUTHORITY=/home/kumaneko/.Xauthority" "COLORTERM=" "_=/bin/date" }<br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /bin/sh<br>
 allow_execute /bin/date <br>
 <br>
-#2008-09-01 16:27:57# profile=3 mode=enforcing pid=4046 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+#2008-09-02 09:59:55# profile=3 mode=enforcing pid=4291 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /bin/sh<br>
 allow_read /bin/date <br>
 <br>
-#2008-09-01 16:27:57# profile=3 mode=enforcing pid=4046 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
+#2008-09-02 09:59:55# profile=3 mode=enforcing pid=4291 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /etc/rc.d/init.d/dm /etc/X11/prefdm /usr/bin/kdm /bin/sh /home/kumaneko/.xsession /usr/bin/startkde /usr/bin/start_kdeinit_wrapper /usr/bin/start_kdeinit /usr/bin/kdeinit /bin/bash /bin/sh<br>
 allow_read /usr/lib/gconv/EUC-JP.so 
-</blockquote>
+</p></blockquote>
 
 <p>ccs-editpolicy を用いて閲覧していたポリシーは、メモリ上にのみ存在しています。そのため、シャットダウンすることにより失われてしまいます。メモリ上に存在しているポリシーをディスク上に保存するためには、以下のコマンドを実行してください。</p>
 
@@ -322,7 +329,7 @@ chown -R demo:demo /proc/ccs/
 <p>ポリシーエディタ /usr/sbin/ccs-editpolicy のマニュアルは <a href="../../tool-editpolicy.html">ポリシーエディタの使い方</a> を参照ください。</p>
 
 <hr>
-<address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
+<address><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
 <a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
 Last modified: $Date$<br>
 <!--#include virtual="/cgi-bin/counter.pl" -->
