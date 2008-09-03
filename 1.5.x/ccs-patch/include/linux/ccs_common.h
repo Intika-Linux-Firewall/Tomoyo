@@ -438,3 +438,5 @@ static inline void ccs_realpath_unlock(void)
 }
 
 #endif
+
+#endif
