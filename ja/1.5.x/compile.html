@@ -382,9 +382,9 @@ cd linux-2.6.26<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20080903.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
+tar -zxf ccs-patch-1.5.5-20080903.tar.gz<br>
 # カーネルパッチを適用する。<br>
 wget -O patches/ccs-patch-2.6.26.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.26.diff?root=tomoyo'<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.26.diff<br>
@@ -413,9 +413,9 @@ cd linux-2.4.36<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.4-20080510.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20080903.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.5.4-20080510.tar.gz<br>
+tar -zxf ccs-patch-1.5.5-20080903.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.36.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
