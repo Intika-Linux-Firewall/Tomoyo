@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.5.3   2008/01/31
+ * Version: 1.5.5+   2008/09/04
  *
  */
 #include "ccstools.h"
@@ -984,7 +984,7 @@ static int parse_ip(const char *address, struct ip_address_entry *entry) {
 	if (i == 8 || i == 16) {
 		for (j = 0; j < 8; j++) {
 			entry->min[j * 2] = (u8) (min[j] >> 8); entry->min[j * 2 + 1] = (u8) min[j]; 
-			entry->min[j * 2] = (u8) (min[j] >> 8); entry->min[j * 2 + 1] = (u8) min[j]; 
+			entry->max[j * 2] = (u8) (max[j] >> 8); entry->max[j * 2 + 1] = (u8) max[j]; 
 		}
 		entry->is_ipv6 = 1;
 		return 0;
