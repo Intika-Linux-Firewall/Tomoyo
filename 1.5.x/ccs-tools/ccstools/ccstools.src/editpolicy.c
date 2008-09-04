@@ -1632,7 +1632,8 @@ static void try_optimize(const int current) {
 		if (index == current) continue;
 		if (generic_acl_list_selected[index]) continue;
 		if (strncmp(cp, directive, directive_len)) continue;
-		memmove(shared_buffer, cp, shared_buffer_len - 1);
+		memcpy(shared_buffer, cp, shared_buffer_len);
+		if (!memchr(shared_buffer, '\0', shared_buffer_len)) continue; /* Line too long. */
 		
 		split_acl(shared_buffer + directive_len, &darg1, &darg2, &darg3);
 	
