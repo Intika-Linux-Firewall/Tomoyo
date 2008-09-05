@@ -36,7 +36,7 @@ apt-get source linux-image-2.6.26-1-686 || die "Can't install kernel source."
 # Apply patches and create kernel config.
 cd linux-2.6-2.6.26 || die "Can't chdir to linux-2.6-2.6.26/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.4-20080903.tar.gz || die "Can't extract patch."
-patch -p1 < /usr/src/rpm/SOURCES/patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
+patch -p1 < /usr/src/rpm/SOURCES/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
 cat /boot/config-2.6.26-1-686 config.ccs > .config || die "Can't create config."
 yes | make -s oldconfig > /dev/null
 
