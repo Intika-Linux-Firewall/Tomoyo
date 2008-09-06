@@ -6,15 +6,15 @@ Index: trunk/1.6.x/ccs-tools/ccstools/tomoyo-init
  
  # Load policy.
  if [ $CHDIR_OK -eq 1 ]; then
-+    [ -r base_manager.conf ] && cat base_manager.conf > $POLICY_DIR/manager
++    [ -r manager.base ] && cat manager.base > $POLICY_DIR/manager
      [ -r manager.conf ] && cat manager.conf > $POLICY_DIR/manager
-+    [ -r base_system_policy.conf -a -w $POLICY_DIR/system_policy ] && cat base_system_policy.conf > $POLICY_DIR/system_policy
++    [ -r system_policy.base -a -w $POLICY_DIR/system_policy ] && cat system_policy.base > $POLICY_DIR/system_policy
      [ -r system_policy.conf -a -w $POLICY_DIR/system_policy ] && cat system_policy.conf > $POLICY_DIR/system_policy
-+    [ -r base_exception_policy.conf -a -w $POLICY_DIR/exception_policy ] && cat base_exception_policy.conf > $POLICY_DIR/exception_policy
++    [ -r exception_policy.base -a -w $POLICY_DIR/exception_policy ] && cat exception_policy.base > $POLICY_DIR/exception_policy
      [ -r exception_policy.conf -a -w $POLICY_DIR/exception_policy ] && cat exception_policy.conf > $POLICY_DIR/exception_policy
-+    [ $TOMOYO_NOLOAD -eq 0 -a -r base_domain_policy.conf -a -w $POLICY_DIR/domain_policy ] && cat base_domain_policy.conf > $POLICY_DIR/domain_policy
++    [ $TOMOYO_NOLOAD -eq 0 -a -r domain_policy.base -a -w $POLICY_DIR/domain_policy ] && cat domain_policy.base > $POLICY_DIR/domain_policy
      [ $TOMOYO_NOLOAD -eq 0 -a -r domain_policy.conf -a -w $POLICY_DIR/domain_policy ] && cat domain_policy.conf > $POLICY_DIR/domain_policy
-+    [ -r base_profile.conf ] && cat base_profile.conf > $POLICY_DIR/profile
++    [ -r profile.base ] && cat profile.base > $POLICY_DIR/profile
      if [ "x$PROFILE" = "xdefault" ]; then
  	[ -r profile.conf ] && cat profile.conf > $POLICY_DIR/profile
      elif [ "x$PROFILE" != "xdisable" ]; then
@@ -26,15 +26,15 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccs-init
  
  # Load policy.
  if [ $CHDIR_OK -eq 1 ]; then
-+    [ -r base_manager.conf ] && cat base_manager.conf > /proc/ccs/manager
++    [ -r manager.base ] && cat manager.base > /proc/ccs/manager
      [ -r manager.conf ] && cat manager.conf > /proc/ccs/manager
-+    [ -r base_system_policy.conf -a -w /proc/ccs/system_policy ] && cat base_system_policy.conf > /proc/ccs/system_policy
++    [ -r system_policy.base -a -w /proc/ccs/system_policy ] && cat system_policy.base > /proc/ccs/system_policy
      [ -r system_policy.conf -a -w /proc/ccs/system_policy ] && cat system_policy.conf > /proc/ccs/system_policy
-+    [ -r base_exception_policy.conf -a -w /proc/ccs/exception_policy ] && cat base_exception_policy.conf > /proc/ccs/exception_policy
++    [ -r exception_policy.base -a -w /proc/ccs/exception_policy ] && cat exception_policy.base > /proc/ccs/exception_policy
      [ -r exception_policy.conf -a -w /proc/ccs/exception_policy ] && cat exception_policy.conf > /proc/ccs/exception_policy
-+    [ $TOMOYO_NOLOAD -eq 0 -a -r base_domain_policy.conf -a -w /proc/ccs/domain_policy ] && cat base_domain_policy.conf > /proc/ccs/domain_policy
++    [ $TOMOYO_NOLOAD -eq 0 -a -r domain_policy.base -a -w /proc/ccs/domain_policy ] && cat domain_policy.base > /proc/ccs/domain_policy
      [ $TOMOYO_NOLOAD -eq 0 -a -r domain_policy.conf -a -w /proc/ccs/domain_policy ] && cat domain_policy.conf > /proc/ccs/domain_policy
-+    [ -r base_profile.conf ] && cat base_profile.conf > /proc/ccs/profile
++    [ -r profile.base ] && cat profile.base > /proc/ccs/profile
      if [ "x$PROFILE" = "xdefault" ]; then
  	[ -r profile.conf ] && cat profile.conf > /proc/ccs/profile
      elif [ "x$PROFILE" != "xdisable" ]; then
