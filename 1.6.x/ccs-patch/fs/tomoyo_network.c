@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -592,6 +592,7 @@ static int check_network_entry(const bool is_ipv6, const u8 operation,
 	char buf[64];
 	if (!mode)
 		return 0;
+retry:
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
@@ -631,9 +632,14 @@ static int check_network_entry(const bool is_ipv6, const u8 operation,
 		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
 		       ccs_get_msg(is_enforce), keyword, buf, port,
 		       ccs_get_last_name(domain));
-	if (is_enforce)
-		return ccs_check_supervisor(NULL, KEYWORD_ALLOW_NETWORK "%s "
-					    "%s %u\n", keyword, buf, port);
+	if (is_enforce) {
+		int error = ccs_check_supervisor(NULL, KEYWORD_ALLOW_NETWORK
+						 "%s %s %u\n", keyword, buf,
+						 port);
+		if (error == 1)
+			goto retry;
+		return error;
+	}
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_network_entry(operation, is_ipv6 ?
 				     IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4,

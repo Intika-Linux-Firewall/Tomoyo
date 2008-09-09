@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -173,6 +173,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		audit_signal_log(sig, dest->domainname, true, profile, mode);
 		return 0;                /* No check for self domain. */
 	}
+retry:
 	dest_pattern = dest->domainname->name;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct signal_acl_record *acl;
@@ -202,9 +203,13 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		printk(KERN_WARNING "TOMOYO-%s: Signal %d "
 		       "to %s denied for %s\n", ccs_get_msg(is_enforce), sig,
 		       ccs_get_last_name(dest), ccs_get_last_name(domain));
-	if (is_enforce)
-		return ccs_check_supervisor(NULL, KEYWORD_ALLOW_SIGNAL
-					    "%d %s\n", sig, dest_pattern);
+	if (is_enforce) {
+		int error = ccs_check_supervisor(NULL, KEYWORD_ALLOW_SIGNAL
+						 "%d %s\n", sig, dest_pattern);
+		if (error == 1)
+			goto retry;
+		return error;
+	}
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_signal_acl(sig, dest_pattern, domain, NULL, false);
 	return 0;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -120,11 +120,13 @@ static int print_error(const char *root_name, const u8 mode)
  */
 int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 {
-	int error = -EPERM;
+	int error;
 	char *root_name;
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_CHROOT);
 	if (!mode)
 		return 0;
+ retry:
+	error = -EPERM;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 	root_name = ccs_realpath_from_dentry(path->path.dentry, path->path.mnt);
 #else
@@ -149,6 +151,8 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 	if (error)
 		error = print_error(root_name, mode);
 	ccs_free(root_name);
+	if (error == 1)
+		goto retry;
 	return error;
 }
 

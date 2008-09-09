@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -2411,10 +2411,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.4   2008/09/03\n");
+	printk(KERN_INFO "SAKURA: 1.6.5-pre   2008/09/09\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.4   2008/09/03\n");
+	printk(KERN_INFO "TOMOYO: 1.6.5-pre   2008/09/09\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2460,7 +2460,9 @@ static atomic_t queryd_watcher = ATOMIC_INIT(0);
  * @fmt:  The printf()'s format string, followed by parameters.
  *
  * Returns 0 if the supervisor decided to permit the access request which
- * violated the policy in enforcing mode, -EPERM otherwise.
+ * violated the policy in enforcing mode, 1 if the supervisor decided to
+ * retry the access request which violated the policy in enforcing mode,
+ * -EPERM otherwise.
  */
 int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
 {
@@ -2534,6 +2536,9 @@ int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
 	spin_unlock(&query_lock);
 	/***** CRITICAL SECTION END *****/
 	switch (query_entry->answer) {
+	case 2: /* Asked to retry by administrator. */
+		error = 1;
+		break;
 	case 1:
 		/* Granted by administrator. */
 		error = 0;

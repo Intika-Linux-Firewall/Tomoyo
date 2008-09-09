@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -331,9 +331,11 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 {
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_MOUNT);
 	const bool is_enforce = (mode == 3);
-	int error = -EPERM;
+	int error;
 	if (!mode)
 		return 0;
+ retry:
+	error = -EPERM;
 	if (!type)
 		type = "<NULL>";
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
@@ -494,6 +496,8 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 	}
 	if (!is_enforce)
 		error = 0;
+	if (error == 1)
+		goto retry;
 	return error;
 }
 

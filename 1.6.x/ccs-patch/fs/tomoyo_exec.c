@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -155,7 +155,7 @@ static int check_argv0_acl(const struct path_info *filename, const char *argv0)
  * @filename: The fullpath of the program.
  * @argv0:    The basename of argv[0].
  *
- * Returns 0 on success, negative value otherwise.
+ * Returns 0 on success, 1 on retry, negative value otherwise.
  */
 int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0)
 {
