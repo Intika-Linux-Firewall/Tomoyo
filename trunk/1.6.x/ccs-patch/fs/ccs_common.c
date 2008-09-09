@@ -2536,7 +2536,7 @@ int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
 	spin_unlock(&query_lock);
 	/***** CRITICAL SECTION END *****/
 	switch (query_entry->answer) {
-	case 2: /* Asked to retry by administrator. */
+	case 3: /* Asked to retry by administrator. */
 		error = 1;
 		break;
 	case 1:
