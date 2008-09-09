@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -170,6 +170,7 @@ bool ccs_capable(const u8 operation)
 	bool found = false;
 	if (!mode)
 		return true;
+ retry:
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
@@ -189,10 +190,14 @@ bool ccs_capable(const u8 operation)
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
 		       ccs_get_msg(is_enforce), cap_operation2name(operation),
 		       ccs_get_last_name(domain));
-	if (is_enforce)
-		return !ccs_check_supervisor(NULL,
-					     KEYWORD_ALLOW_CAPABILITY "%s\n",
-					     ccs_cap2keyword(operation));
+	if (is_enforce) {
+		int error = ccs_check_supervisor(NULL, KEYWORD_ALLOW_CAPABILITY
+						 "%s\n",
+						 ccs_cap2keyword(operation));
+		if (error == 1)
+			goto retry;
+		return !error;
+	}
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_capability_acl(operation, domain, NULL, false);
 	return true;

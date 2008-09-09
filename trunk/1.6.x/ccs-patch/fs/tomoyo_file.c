@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -805,7 +805,7 @@ static int check_file_acl(const struct path_info *filename, const u8 operation,
  * @profile:   Profile number passed to audit logs.
  * @mode:      Access control mode.
  *
- * Returns 0 on success, negative value otherwise.
+ * Returns 0 on success, 1 on retry, negative value otherwise.
  */
 static int check_file_perm2(const struct path_info *filename, const u8 perm,
 			    const char *operation, struct obj_info *obj,
@@ -817,6 +817,7 @@ static int check_file_perm2(const struct path_info *filename, const u8 perm,
 	int error = 0;
 	if (!filename)
 		return 0;
+retry:
 	error = check_file_acl(filename, perm, obj);
 	if (error && perm == 4 &&
 	    (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0 &&
@@ -840,10 +841,14 @@ static int check_file_perm2(const struct path_info *filename, const u8 perm,
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s(%s) %s' denied "
 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
 		       filename->name, ccs_get_last_name(domain));
-	if (is_enforce)
-		return ccs_check_supervisor(obj ? obj->bprm : NULL,
-					    "allow_%s %s\n",
-					    msg, filename->name);
+	if (is_enforce) {
+		int error = ccs_check_supervisor(obj ? obj->bprm : NULL,
+						 "allow_%s %s\n",
+						 msg, filename->name);
+		if (error == 1 && (!obj || !obj->bprm))
+			goto retry;
+		return error;
+	}
 	if (mode == 1 && ccs_check_domain_quota(domain)) {
 		/* Don't use patterns for execute permission. */
 		const struct path_info *patterned_file = (perm != 1) ?
@@ -1286,9 +1291,12 @@ static int check_single_path_permission2(u8 operation,
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
 		       ccs_get_msg(is_enforce), msg, filename->name,
 		       ccs_get_last_name(domain));
-	if (is_enforce)
+	if (is_enforce) {
 		error = ccs_check_supervisor(NULL, "allow_%s %s\n",
 					     msg, filename->name);
+		if (error == 1)
+			goto next;
+	}
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_single_path_acl(operation,
 				       get_file_pattern(filename)->name,
@@ -1338,7 +1346,7 @@ int ccs_check_file_perm(const char *filename, const u8 perm,
  * @bprm:     Pointer to "struct linux_binprm".
  * @tmp:      Buffer for temporal use.
  *
- * Returns 0 on success, negativevalue otherwise.
+ * Returns 0 on success, 1 on retry, negative value otherwise.
  */
 int ccs_check_exec_perm(const struct path_info *filename,
 			struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
@@ -1548,6 +1556,7 @@ int ccs_check_2path_perm(const u8 operation,
 	obj.path1_vfsmnt = mnt1;
 	obj.path2_dentry = dentry2;
 	obj.path2_vfsmnt = mnt2;
+retry:
 	error = check_double_path_acl(operation, buf1, buf2, &obj);
 	msg = ccs_dp2keyword(operation);
 	audit_file_log(msg, buf1, buf2, !error, profile, mode, NULL);
@@ -1557,10 +1566,13 @@ int ccs_check_2path_perm(const u8 operation,
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
 		       "denied for %s\n", ccs_get_msg(is_enforce),
 		       msg, buf1->name, buf2->name, ccs_get_last_name(domain));
-	if (is_enforce)
+	if (is_enforce) {
 		error = ccs_check_supervisor(NULL, "allow_%s %s %s\n",
 					     msg, buf1->name, buf2->name);
-	else if (mode == 1 && ccs_check_domain_quota(domain))
+		if (error == 1)
+			goto retry;
+	}
+	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_double_path_acl(operation,
 				       get_file_pattern(buf1)->name,
 				       get_file_pattern(buf2)->name,

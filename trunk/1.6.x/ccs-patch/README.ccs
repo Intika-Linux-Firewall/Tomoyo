@@ -1555,3 +1555,17 @@ Fix 2008/08/29
       will not be overwritten by TOMOYO Linux kernels.
 
 Version 1.6.4 2008/09/03   Minor update release.
+
+Fix 2008/09/09
+
+    @ Add "try again" response to "delayed enforcing" mode.
+
+      To be able to handle pathname changes caused by software updates,
+      "delayed enforcing" mode was introduced. It allows administrator to
+      grant access requests which are about to be rejected by the kernel.
+
+      To be able to handle pathname changes caused by software updates better,
+      I introduced "try again" response. As "delayed enforcing" mode sleeps
+      a process which violated policy, administrator can update policy while
+      the process is sleeping. This "try again" response allows administrator
+      to restart policy checks from the beginning after updating policy.

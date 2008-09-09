@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1014,6 +1014,7 @@ static int find_next_domain(struct linux_binprm *bprm,
 	struct path_info r; /* real name */
 	struct path_info s; /* symlink name */
 	struct path_info l; /* last name */
+	const u32 tomoyo_flags = current->tomoyo_flags;
 
 	{
 		/*
@@ -1030,12 +1031,16 @@ static int find_next_domain(struct linux_binprm *bprm,
 		}
 	}
 
+ retry:
+	current->tomoyo_flags = tomoyo_flags;
 	/* Get ccs_realpath of program. */
 	retval = -ENOENT; /* I hope ccs_realpath() won't fail with -ENOMEM. */
+	ccs_free(real_program_name);
 	real_program_name = ccs_realpath(original_name);
 	if (!real_program_name)
 		goto out;
 	/* Get ccs_realpath of symbolic link. */
+	ccs_free(symlink_program_name);
 	symlink_program_name = ccs_realpath_nofollow(original_name);
 	if (!symlink_program_name)
 		goto out;
@@ -1092,7 +1097,9 @@ static int find_next_domain(struct linux_binprm *bprm,
 			base_filename++;
 		if (strcmp(base_argv0, base_filename)) {
 			retval = ccs_check_argv0_perm(&r, base_argv0);
-			if (retval)
+			if (retval == 1)
+				goto retry;
+			if (retval < 0)
 				goto out;
 		}
 	}
@@ -1115,6 +1122,8 @@ static int find_next_domain(struct linux_binprm *bprm,
 
 	/* Check execute permission. */
 	retval = ccs_check_exec_perm(&r, bprm, tmp);
+	if (retval == 1)
+		goto retry;
 	if (retval < 0)
 		goto out;
 
@@ -1144,10 +1153,15 @@ static int find_next_domain(struct linux_binprm *bprm,
 	domain = ccs_find_domain(new_domain_name);
 	if (domain)
 		goto done;
-	if (is_enforce && ccs_check_supervisor(NULL,
-					       "# wants to create domain\n%s\n",
-					       new_domain_name))
+	if (is_enforce) {
+		int error = ccs_check_supervisor(NULL,
+						 "# wants to create domain\n"
+						 "%s\n", new_domain_name);
+		if (error == 1)
+			goto retry;
+		if (error < 0)
 			goto done;
+	}
 	domain = ccs_find_or_assign_new_domain(new_domain_name,
 					       old_domain->profile);
 	if (domain)
@@ -1159,9 +1173,11 @@ static int find_next_domain(struct linux_binprm *bprm,
 		       new_domain_name);
 		if (is_enforce)
 			retval = -EPERM;
-		else
+		else {
+			retval = 0;
 			ccs_set_domain_flag(old_domain, false,
 					    DOMAIN_FLAGS_TRANSITION_FAILED);
+		}
 	} else {
 		retval = 0;
 	}
@@ -1639,11 +1655,11 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 			audit_execute_handler_log(false, handler->name, bprm);
 	}
  ok:
-	if (retval)
+	if (retval < 0)
 		goto out;
 	task->domain_info = next_domain;
 	retval = check_environ(bprm, tmp);
-	if (retval)
+	if (retval < 0)
 		goto out;
 	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 	retval = search_binary_handler(bprm, regs);

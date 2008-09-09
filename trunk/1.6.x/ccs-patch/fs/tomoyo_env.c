@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -267,6 +267,7 @@ int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode)
 	const bool is_enforce = (mode == 3);
 	if (!env || !*env)
 		return 0;
+ retry:
 	error = check_env_acl(env);
 	audit_env_log(env, !error, profile, mode);
 	if (!error)
@@ -274,9 +275,13 @@ int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode)
 	if (ccs_verbose_mode())
 		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
 		       ccs_get_msg(is_enforce), env, ccs_get_last_name(domain));
-	if (is_enforce)
-		return ccs_check_supervisor(NULL, KEYWORD_ALLOW_ENV "%s\n",
-					    env);
+	if (is_enforce) {
+		error = ccs_check_supervisor(NULL, KEYWORD_ALLOW_ENV "%s\n",
+					     env);
+		if (error == 1)
+			goto retry;
+		return error;
+	}
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_env_entry(env, domain, NULL, false);
 	return 0;
