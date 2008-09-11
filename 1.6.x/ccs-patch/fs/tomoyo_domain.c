@@ -1635,6 +1635,8 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 	ccs_load_policy(bprm->filename);
 	if (!tmp)
 		return -ENOMEM;
+	/* Clear manager flag. */
+	task->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
 	/* printk(KERN_DEBUG "rootdepth=%d\n", get_root_depth()); */
 	handler = find_execute_handler(TYPE_EXECUTE_HANDLER);
 	if (handler) {
@@ -1693,6 +1695,8 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 					  struct pt_regs *regs)
 {
 #ifdef CONFIG_SAKURA
+	/* Clear manager flag. */
+	current->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
 	ccs_load_policy(bprm->filename);
 #endif
 	return search_binary_handler(bprm, regs);

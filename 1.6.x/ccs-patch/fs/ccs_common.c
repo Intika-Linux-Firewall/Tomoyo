@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/09/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1363,17 +1363,22 @@ static bool is_policy_manager(void)
 {
 	struct policy_manager_entry *ptr;
 	const char *exe;
-	const struct task_struct *task = current;
+	struct task_struct *task = current;
 	const struct path_info *domainname = task->domain_info->domainname;
 	bool found = false;
 	if (!sbin_init_started)
+		return true;
+	if (task->tomoyo_flags & CCS_TASK_IS_POLICY_MANAGER)
 		return true;
 	if (!manage_by_non_root && (task->uid || task->euid))
 		return false;
 	list1_for_each_entry(ptr, &policy_manager_list, list) {
 		if (!ptr->is_deleted && ptr->is_domain
-		    && !ccs_pathcmp(domainname, ptr->manager))
+		    && !ccs_pathcmp(domainname, ptr->manager)) {
+			/* Set manager flag. */
+			task->tomoyo_flags |= CCS_TASK_IS_POLICY_MANAGER;
 			return true;
+		}
 	}
 	exe = ccs_get_exe();
 	if (!exe)
@@ -1382,6 +1387,8 @@ static bool is_policy_manager(void)
 		if (!ptr->is_deleted && !ptr->is_domain
 		    && !strcmp(exe, ptr->manager->name)) {
 			found = true;
+			/* Set manager flag. */
+			task->tomoyo_flags |= CCS_TASK_IS_POLICY_MANAGER;
 			break;
 		}
 	}
