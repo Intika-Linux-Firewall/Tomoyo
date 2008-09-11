@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -196,6 +196,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
 #define TOMOYO_TASK_IS_EXECUTE_HANDLER  4
+#define CCS_TASK_IS_POLICY_MANAGER      8
 
 /* Index numbers for Access Controls. */
 

@@ -1569,3 +1569,24 @@ Fix 2008/09/09
       a process which violated policy, administrator can update policy while
       the process is sleeping. This "try again" response allows administrator
       to restart policy checks from the beginning after updating policy.
+
+Fix 2008/09/11
+
+    @ Remember whether the process is allowed to write to /proc/ccs/ interface.
+
+      Since programs for manipulating policy (e.g. ccs-queryd ) are installed
+      in the form of RPM/DEB packages, these programs lose the original
+      pathnames when they are updated by the package manager. The package
+      manager renames these programs before deleting these programs so that
+      the package manager can rollback the operation.
+      This causes a problem when the programs are listed into /proc/ccs/manager
+      using pathnames, as the programs will no longer be allowed to write to
+      /proc/ccs/ interface while the process of old version of the program is
+      alive.
+
+      To solve this problem, I modified to remember the fact that the process
+      is once allowed to write to /proc/ccs/ interface until the process
+      attempts to execute a different program.
+      This change makes it impossible to revoke permission to write to
+      /proc/ccs/ interface without killing the process, but it will be better
+      than nonfunctioning ccs-queryd program.
