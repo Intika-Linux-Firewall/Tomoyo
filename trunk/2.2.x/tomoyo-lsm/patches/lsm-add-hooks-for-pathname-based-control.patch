@@ -15,8 +15,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/security.c      |   63 +++++++++++++++++++++
  6 files changed, 297 insertions(+)
 
---- linux-2.6.27-rc5.orig/fs/namei.c
-+++ linux-2.6.27-rc5/fs/namei.c
+--- linux-2.6.27-rc6.orig/fs/namei.c
++++ linux-2.6.27-rc6/fs/namei.c
 @@ -1585,6 +1585,10 @@ int may_open(struct nameidata *nd, int a
  		 * Refuse to truncate files with mandatory locks held on them.
  		 */
@@ -132,8 +132,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
  	dput(new_dentry);
---- linux-2.6.27-rc5.orig/fs/open.c
-+++ linux-2.6.27-rc5/fs/open.c
+--- linux-2.6.27-rc6.orig/fs/open.c
++++ linux-2.6.27-rc6/fs/open.c
 @@ -272,6 +272,8 @@ static long do_sys_truncate(const char _
  		goto put_write_and_out;
  
@@ -153,8 +153,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
---- linux-2.6.27-rc5.orig/include/linux/security.h
-+++ linux-2.6.27-rc5/include/linux/security.h
+--- linux-2.6.27-rc6.orig/include/linux/security.h
++++ linux-2.6.27-rc6/include/linux/security.h
 @@ -345,17 +345,37 @@ static inline void security_free_mnt_opt
   *	@dir contains the inode structure of the parent directory of the new link.
   *	@new_dentry contains the dentry structure for the new link.
@@ -362,8 +362,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static inline int security_inode_alloc(struct inode *inode)
  {
  	return 0;
---- linux-2.6.27-rc5.orig/net/unix/af_unix.c
-+++ linux-2.6.27-rc5/net/unix/af_unix.c
+--- linux-2.6.27-rc6.orig/net/unix/af_unix.c
++++ linux-2.6.27-rc6/net/unix/af_unix.c
 @@ -827,7 +827,11 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
@@ -376,8 +376,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		mnt_drop_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.27-rc5.orig/security/capability.c
-+++ linux-2.6.27-rc5/security/capability.c
+--- linux-2.6.27-rc6.orig/security/capability.c
++++ linux-2.6.27-rc6/security/capability.c
 @@ -268,6 +268,51 @@ static void cap_inode_getsecid(const str
  	*secid = 0;
  }
@@ -445,8 +445,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	set_to_cap_if_null(ops, file_permission);
  	set_to_cap_if_null(ops, file_alloc_security);
  	set_to_cap_if_null(ops, file_free_security);
---- linux-2.6.27-rc5.orig/security/security.c
-+++ linux-2.6.27-rc5/security/security.c
+--- linux-2.6.27-rc6.orig/security/security.c
++++ linux-2.6.27-rc6/security/security.c
 @@ -358,6 +358,69 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
