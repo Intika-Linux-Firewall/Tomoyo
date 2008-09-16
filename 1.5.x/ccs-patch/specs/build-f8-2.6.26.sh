@@ -19,7 +19,7 @@ rpm -ivh kernel-2.6.26.3-14.fc8.src.rpm || die "Can't install source package."
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.5.5-20080903.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20080903.tar.gz || die "Can't download patch."
 fi
 
 if [ ! -r ccs-patch-2.6.26-fedora-8.diff ]
