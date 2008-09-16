@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 4.6's 2.6.9 kernel.
+# This is a kernel build script for CentOS 4.7's 2.6.9 kernel.
 #
 
 die () {
@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-67.0.22.EL.src.rpm ]
+if [ ! -r kernel-2.6.9-78.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/4.6/updates/SRPMS/kernel-2.6.9-67.0.22.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/4.7/os/SRPMS/kernel-2.6.9-78.EL.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-67.0.22.EL.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-78.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
@@ -22,21 +22,26 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20080903.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.9-centos-4.7.diff ]
+then
+    wget -O ccs-patch-2.6.9-centos-4.7.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.9-centos-4.7.diff?root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-07-24 05:57:53.000000000 +0900
-+++ kernel-2.6.spec	2008-07-25 09:11:02.000000000 +0900
+--- kernel-2.6.spec	2008-07-25 12:23:23.000000000 +0900
++++ kernel-2.6.spec	2008-09-16 11:28:04.000000000 +0900
 @@ -26,7 +26,7 @@
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 67.0.22.EL
-+%define release 67.0.22.EL_tomoyo_1.5.5
+-%define release 78.EL
++%define release 78.EL_tomoyo_1.5.5
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
-@@ -132,6 +132,9 @@
+@@ -139,6 +139,9 @@
  # to versions below the minimum
  #
  
@@ -46,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -168,7 +171,7 @@
+@@ -175,7 +178,7 @@
  %define __find_provides /usr/lib/rpm/redhat/find-kmod-provides.sh
  %define __find_requires %{nil}
  
@@ -55,19 +60,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -3796,6 +3799,11 @@
+@@ -4560,6 +4563,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.5-20080903.tar.gz
-+# sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -67.0.22.EL/" -- Makefile
-+patch -sp1 < patches/ccs-patch-2.6.9-centos-4.6.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.9-centos-4.7.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -3807,6 +3815,9 @@
+@@ -4571,6 +4578,9 @@
  for i in *.config 
  do 
  	mv $i .config 
