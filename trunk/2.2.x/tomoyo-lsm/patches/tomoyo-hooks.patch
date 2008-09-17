@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  297 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  102 ++++++++++++++++
- 2 files changed, 399 insertions(+)
+ security/tomoyo/tomoyo.c |  187 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |   94 +++++++++++++++++++++++
+ 2 files changed, 281 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc6/security/tomoyo/tomoyo.c
-@@ -0,0 +1,297 @@
+@@ -0,0 +1,187 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -80,102 +80,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return error;
 +}
 +
-+#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
-+
-+static int tmy_inode_setattr(struct dentry *dentry, struct iattr *attr)
-+{
-+	if (!(attr->ia_valid & ATTR_SIZE))
-+		return 0;
-+	if ((attr->ia_valid & ATTR_FILE) && attr->ia_file &&
-+	    attr->ia_file->f_path.mnt) {
-+		int error;
-+		const char *prev = current->current_vfsmount_path;
-+		struct path path = { attr->ia_file->f_path.mnt,
-+				     attr->ia_file->f_path.mnt->mnt_root };
-+		char *page = kmalloc(PAGE_SIZE, GFP_KERNEL);
-+		char *ret;
-+		if (!page)
-+			return -ENOMEM;
-+		ret = d_path(&path, page, PAGE_SIZE);
-+		if (IS_ERR(ret)) {
-+			kfree(page);
-+			return -ENOMEM;
-+		}
-+		ret = kstrdup(ret, GFP_KERNEL);
-+		kfree(page);
-+		if (!ret)
-+			return -ENOMEM;
-+		current->current_vfsmount_path = ret;
-+		error = tmy_check_1path_perm(TMY_TYPE_TRUNCATE_ACL, dentry);
-+		kfree(ret);
-+		current->current_vfsmount_path = prev;
-+		return error;
-+	}
-+	return tmy_check_1path_perm(TMY_TYPE_TRUNCATE_ACL, dentry);
-+}
-+
-+static int tmy_inode_unlink(struct inode *dir, struct dentry *dentry)
-+{
-+	return tmy_check_1path_perm(TMY_TYPE_UNLINK_ACL, dentry);
-+}
-+
-+static int tmy_inode_mkdir(struct inode *dir, struct dentry *dentry, int mode)
-+{
-+	return tmy_check_1path_perm(TMY_TYPE_MKDIR_ACL, dentry);
-+}
-+
-+static int tmy_inode_rmdir(struct inode *dir, struct dentry *dentry)
-+{
-+	return tmy_check_1path_perm(TMY_TYPE_RMDIR_ACL, dentry);
-+}
-+
-+static int tmy_inode_symlink(struct inode *dir, struct dentry *dentry,
-+			     const char *old_name)
-+{
-+	return tmy_check_1path_perm(TMY_TYPE_SYMLINK_ACL, dentry);
-+}
-+
-+static int tmy_inode_create(struct inode *dir, struct dentry *dentry, int mode)
-+{
-+	return tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry);
-+}
-+
-+static int tmy_inode_mknod(struct inode *dir, struct dentry *dentry, int mode,
-+			   unsigned int dev)
-+{
-+	switch (mode & S_IFMT) {
-+	case S_IFREG:
-+	case 0:
-+		return tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry);
-+	case S_IFCHR:
-+		return tmy_check_1path_perm(TMY_TYPE_MKCHAR_ACL, dentry);
-+	case S_IFBLK:
-+		return tmy_check_1path_perm(TMY_TYPE_MKBLOCK_ACL, dentry);
-+	case S_IFIFO:
-+		return tmy_check_1path_perm(TMY_TYPE_MKFIFO_ACL, dentry);
-+	case S_IFSOCK:
-+		return tmy_check_1path_perm(TMY_TYPE_MKSOCK_ACL, dentry);
-+	default:
-+		return 0;
-+	}
-+}
-+
-+static int tmy_inode_link(struct dentry *old_dentry, struct inode *new_dir,
-+			  struct dentry *new_dentry)
-+{
-+	return tmy_check_2path_perm(TMY_TYPE_LINK_ACL, old_dentry,
-+				    new_dentry);
-+}
-+
-+static int tmy_inode_rename(struct inode *old_dir, struct dentry *old_dentry,
-+			    struct inode *new_dir, struct dentry *new_dentry)
-+{
-+	return tmy_check_2path_perm(TMY_TYPE_RENAME_ACL, old_dentry,
-+				    new_dentry);
-+}
-+
-+#else
-+
 +static int tmy_path_truncate(struct path *path, loff_t length,
 +			     unsigned int time_attrs, struct file *filp)
 +{
@@ -241,8 +145,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				    new_dentry, new_dir->mnt);
 +}
 +
-+#endif
-+
 +static int tmy_file_fcntl(struct file *file, unsigned int cmd,
 +			  unsigned long arg)
 +{
@@ -271,17 +173,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.sysctl                    = tmy_sysctl,
 +	.file_fcntl                = tmy_file_fcntl,
 +	.dentry_open               = tmy_dentry_open,
-+#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
-+	.inode_create              = tmy_inode_create,
-+	.inode_setattr             = tmy_inode_setattr,
-+	.inode_unlink              = tmy_inode_unlink,
-+	.inode_mkdir               = tmy_inode_mkdir,
-+	.inode_rmdir               = tmy_inode_rmdir,
-+	.inode_symlink             = tmy_inode_symlink,
-+	.inode_mknod               = tmy_inode_mknod,
-+	.inode_link                = tmy_inode_link,
-+	.inode_rename              = tmy_inode_rename,
-+#else
 +	.path_truncate             = tmy_path_truncate,
 +	.path_unlink               = tmy_path_unlink,
 +	.path_mkdir                = tmy_path_mkdir,
@@ -290,7 +181,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.path_mknod                = tmy_path_mknod,
 +	.path_link                 = tmy_path_link,
 +	.path_rename               = tmy_path_rename,
-+#endif
 +};
 +
 +static int __init tmy_init(void)
@@ -310,7 +200,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc6/security/tomoyo/tomoyo.h
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,94 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -340,13 +230,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			struct tmy_page_buffer *buf);
 +int tmy_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 +			      const int flag);
-+#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
-+int tmy_check_1path_perm(const u8 operation,
-+			 struct dentry *dentry);
-+int tmy_check_2path_perm(const u8 operation,
-+			 struct dentry *dentry1,
-+			 struct dentry *dentry2);
-+#else
 +int tmy_check_1path_perm(const u8 operation,
 +			 struct dentry *dentry,
 +			 struct vfsmount *mnt);
@@ -355,7 +238,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			 struct vfsmount *mnt1,
 +			 struct dentry *dentry2,
 +			 struct vfsmount *mnt2);
-+#endif
 +int tmy_check_rewrite_permission(struct file *filp);
 +int tmy_find_next_domain(struct linux_binprm *bprm,
 +			 struct domain_info **next_domain);
