@@ -9,9 +9,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/Makefile |    1 +
  4 files changed, 13 insertions(+)
 
---- linux-2.6.27-rc6.orig/security/Kconfig
-+++ linux-2.6.27-rc6/security/Kconfig
-@@ -117,6 +117,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
+--- linux-2.6.27-rc6-mm.orig/security/Kconfig
++++ linux-2.6.27-rc6-mm/security/Kconfig
+@@ -125,6 +125,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
  
  source security/selinux/Kconfig
  source security/smack/Kconfig
@@ -19,8 +19,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  endmenu
  
---- linux-2.6.27-rc6.orig/security/Makefile
-+++ linux-2.6.27-rc6/security/Makefile
+--- linux-2.6.27-rc6-mm.orig/security/Makefile
++++ linux-2.6.27-rc6-mm/security/Makefile
 @@ -5,6 +5,7 @@
  obj-$(CONFIG_KEYS)			+= keys/
  subdir-$(CONFIG_SECURITY_SELINUX)	+= selinux
@@ -29,13 +29,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  # always enable default capabilities
  obj-y		+= commoncap.o
-@@ -16,3 +17,4 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
+@@ -17,3 +18,4 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
  obj-$(CONFIG_SECURITY_SMACK)		+= smack/built-in.o
  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= root_plug.o
  obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
 +obj-$(CONFIG_SECURITY_TOMOYO)		+= tomoyo/built-in.o
 --- /dev/null
-+++ linux-2.6.27-rc6/security/tomoyo/Kconfig
++++ linux-2.6.27-rc6-mm/security/tomoyo/Kconfig
 @@ -0,0 +1,9 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux Support"
@@ -47,6 +47,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +          found at <http://tomoyo.sourceforge.jp/>.
 +	  If you are unsure how to answer this question, answer N.
 --- /dev/null
-+++ linux-2.6.27-rc6/security/tomoyo/Makefile
++++ linux-2.6.27-rc6-mm/security/tomoyo/Makefile
 @@ -0,0 +1 @@
 +obj-y = common.o realpath.o tomoyo.o domain.o file.o

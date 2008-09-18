@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1137 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1137 insertions(+)
+ security/tomoyo/file.c | 1331 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1331 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.27-rc6/security/tomoyo/file.c
-@@ -0,0 +1,1137 @@
++++ linux-2.6.27-rc6-mm/security/tomoyo/file.c
+@@ -0,0 +1,1331 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -116,6 +116,91 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	len = strlen(name) - strlen(tail);
 +	return len >= 0 && !strcmp(name + len, tail);
 +}
++
++#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
++
++/**
++ * tmy_get_path0 - Get realpath.
++ *
++ * @dentry: Pointer to "struct dentry".
++ *
++ * Returns pointer to "struct path_info" on success, NULL otherwise.
++ */
++static struct path_info *tmy_get_path0(struct dentry *dentry)
++{
++	char *rest_path;
++	struct path_info_with_data *buf;
++	const char *sp;
++	char *dp;
++	char *ep;
++	unsigned char c;
++	char *page = kmalloc(PAGE_SIZE, GFP_KERNEL);
++	if (!page)
++		goto out;
++	rest_path = dentry_path(dentry, page, PAGE_SIZE);
++	if (IS_ERR(rest_path))
++		goto out_free;
++	buf = tmy_alloc(sizeof(*buf));
++	if (!buf)
++		goto out_free;
++	dp = buf->body;
++	ep = dp + sizeof(buf->body) - 4;
++	sp = current->current_vfsmount_path;
++	if (*sp == '/' && *(sp + 1) == '\0')
++		goto root_mnt;
++	while ((c = *sp++) != '\0') {
++		if (c == '\\') {
++			if (dp >= ep - 2)
++				goto out_free_both;
++			*dp++ = '\\';
++			*dp++ = '\\';
++		} else if (c > 0x20 && c < 0x7F) {
++			if (dp >= ep - 1)
++				goto out_free_both;
++			*dp++ = c;
++		} else {
++			if (dp >= ep - 4)
++				goto out_free_both;
++			*dp++ = '\\';
++			*dp++ = (c >> 6) + '0';
++			*dp++ = ((c >> 3) & 7) + '0';
++			*dp++ = (c & 7) + '0';
++		}
++	}
++root_mnt:
++	sp = rest_path;
++	while ((c = *sp++) != '\0') {
++		if (c == '\\') {
++			if (dp >= ep - 2)
++				goto out_free_both;
++			*dp++ = '\\';
++			*dp++ = '\\';
++		} else if (c > 0x20 && c < 0x7F) {
++			if (dp >= ep - 1)
++				goto out_free_both;
++			*dp++ = c;
++		} else {
++			if (dp >= ep - 4)
++				goto out_free_both;
++			*dp++ = '\\';
++			*dp++ = (c >> 6) + '0';
++			*dp++ = ((c >> 3) & 7) + '0';
++			*dp++ = (c & 7) + '0';
++		}
++	}
++	*dp++ = '\0';
++	kfree(page);
++	buf->head.name = buf->body;
++	tmy_fill_path_info(&buf->head);
++	return &buf->head;
++out_free_both:
++	tmy_free(buf);
++out_free:
++	kfree(page);
++out:
++	return NULL;
++}
++#endif
 +
 +/**
 + * tmy_get_path - Get realpath.
@@ -1018,6 +1103,46 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return error;
 +}
 +
++#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
++
++/**
++ * tmy_check_1path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "mkblock", "mkchar", "truncate" and "symlink".
++ *
++ * @operation: Type of operation.
++ * @dentry:    Pointer to "struct dentry".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tmy_check_1path_perm(const u8 operation, struct dentry *dentry)
++{
++	int error = -ENOMEM;
++	struct path_info *buf;
++	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
++	const bool is_enforce = (mode == 3);
++	if (!mode || !current->current_vfsmount_path)
++		return 0;
++	buf = tmy_get_path0(dentry);
++	if (!buf)
++		goto out;
++	switch (operation) {
++	case TMY_TYPE_MKDIR_ACL:
++	case TMY_TYPE_RMDIR_ACL:
++		if (!buf->is_dir) {
++			/* tmy_get_path0() preserves space for appending "/." */
++			strcat((char *) buf->name, "/");
++			tmy_fill_path_info(buf);
++		}
++	}
++	error = check_single_path_permission2(operation, buf, mode);
++out:
++	tmy_free(buf);
++	if (!is_enforce)
++		error = 0;
++	return error;
++}
++
++#else
++
 +/**
 + * tmy_check_1path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "mkblock", "mkchar", "truncate" and "symlink".
 + *
@@ -1056,6 +1181,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return error;
 +}
 +
++#endif
++
 +/**
 + * tmy_check_rewrite_permission - Check permission for "rewrite".
 + *
@@ -1085,6 +1212,71 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = 0;
 +	return error;
 +}
++
++
++#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
++
++/**
++ * tmy_check_2path_perm - Check permission for "rename" and "link".
++ *
++ * @operation: Type of operation.
++ * @dentry1:   Pointer to "struct dentry".
++ * @dentry2:   Pointer to "struct dentry".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tmy_check_2path_perm(const u8 operation,
++			 struct dentry *dentry1,
++			 struct dentry *dentry2)
++{
++	int error = -ENOMEM;
++	struct path_info *buf1, *buf2;
++	struct domain_info * const domain = TMY_SECURITY;
++	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
++	const bool is_enforce = (mode == 3);
++	const char *msg;
++	if (!mode || !current->current_vfsmount_path)
++		return 0;
++	buf1 = tmy_get_path0(dentry1);
++	buf2 = tmy_get_path0(dentry2);
++	if (!buf1 || !buf2)
++		goto out;
++	if (operation == TMY_TYPE_RENAME_ACL) {
++		/* TYPE_LINK_ACL can't reach here for directory. */
++		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
++			/* tmy_get_path0() preserves space for appending "/." */
++			if (!buf1->is_dir) {
++				strcat((char *) buf1->name, "/");
++				tmy_fill_path_info(buf1);
++			}
++			if (!buf2->is_dir) {
++				strcat((char *) buf2->name, "/");
++				tmy_fill_path_info(buf2);
++			}
++		}
++	}
++	error = check_double_path_acl(operation, buf1, buf2);
++	msg = tmy_dp2keyword(operation);
++	if (!error)
++		goto out;
++	if (tmy_verbose_mode())
++		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
++		       "denied for %s\n", tmy_get_msg(is_enforce),
++		       msg, buf1->name, buf2->name, tmy_get_last_name(domain));
++	if (mode == 1 && tmy_check_domain_quota(domain))
++		update_double_path_acl(operation,
++				       get_file_pattern(buf1)->name,
++				       get_file_pattern(buf2)->name,
++				       domain, false);
++out:
++	tmy_free(buf1);
++	tmy_free(buf2);
++	if (!is_enforce)
++		error = 0;
++	return error;
++}
++
++#else
 +
 +/**
 + * tmy_check_2path_perm - Check permission for "rename" and "link".
@@ -1149,3 +1341,5 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = 0;
 +	return error;
 +}
++
++#endif
