@@ -11,8 +11,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.h |  320 +++++++
  3 files changed, 2543 insertions(+)
 
---- linux-2.6.27-rc6.orig/include/linux/list.h
-+++ linux-2.6.27-rc6/include/linux/list.h
+--- linux-2.6.27-rc6-mm.orig/include/linux/list.h
++++ linux-2.6.27-rc6-mm/include/linux/list.h
 @@ -692,4 +692,82 @@ static inline void hlist_move_list(struc
  		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
  	     pos = n)
@@ -97,7 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
  #endif
 --- /dev/null
-+++ linux-2.6.27-rc6/security/tomoyo/common.c
++++ linux-2.6.27-rc6-mm/security/tomoyo/common.c
 @@ -0,0 +1,2145 @@
 +/*
 + * security/tomoyo/common.c
@@ -1263,7 +1263,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	bool found = false;
 +	if (!sbin_init_started)
 +		return true;
-+	if (!manage_by_non_root && (task->uid || task->euid))
++	if (!manage_by_non_root && (task->cred->uid || task->cred->euid))
 +		return false;
 +	list1_for_each_entry(ptr, &policy_manager_list, list) {
 +		if (!ptr->is_deleted && ptr->is_domain
@@ -1609,7 +1609,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
 +		if (p)
-+			domain = (struct domain_info *) p->security;
++			domain = (struct domain_info *) p->cred->security;
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (domain)
@@ -2245,7 +2245,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
-+++ linux-2.6.27-rc6/security/tomoyo/common.h
++++ linux-2.6.27-rc6-mm/security/tomoyo/common.h
 @@ -0,0 +1,320 @@
 +/*
 + * security/tomoyo/common.h

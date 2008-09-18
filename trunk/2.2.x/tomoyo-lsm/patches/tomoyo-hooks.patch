@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  187 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |   94 +++++++++++++++++++++++
- 2 files changed, 281 insertions(+)
+ security/tomoyo/tomoyo.c |  334 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  122 +++++++++++++++++
+ 2 files changed, 456 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.27-rc6/security/tomoyo/tomoyo.c
-@@ -0,0 +1,187 @@
++++ linux-2.6.27-rc6-mm/security/tomoyo/tomoyo.c
+@@ -0,0 +1,334 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -22,9 +22,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include "tomoyo.h"
 +#include "realpath.h"
 +
-+static int tmy_task_alloc_security(struct task_struct *p)
++static int tmy_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 +{
-+	p->security = current->security;
++	new->security = kzalloc(sizeof(struct tomoyo_security), gfp);
++	if (!new->security)
++		return -ENOMEM;
++	//BUG_ON(((struct tomoyo_security *)old->security)->domain_info);
++	memmove(new->security, old->security, sizeof(struct tomoyo_security));
++	//printk(KERN_INFO "%s\n", __func__);
 +	return 0;
 +}
 +
@@ -32,34 +37,57 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct domain_info *next_domain = NULL;
 +	int retval = 0;
++	//struct cred *new;
++	struct tomoyo_security *p = TMY_CRED(current);
++	//panic("hoge\n");
 +	/*
-+	 * If called by do_execve() (i.e. bprm->security == NULL),
++	 * If called by do_execve() (i.e. bprm->cred->security == NULL),
 +	 * I do execute permission check and domain transition.
 +	 */
-+	if (bprm->security)
++	BUG_ON(!p->domain_info);
++	BUG_ON(!bprm->cred);
++	if (p->next_domain_info)
 +		goto out;
 +	tmy_load_policy(bprm->filename);
++/*  	new = prepare_creds(); */
++/*  	if (!new) */
++/* 		return -ENOMEM; */
 +	retval = tmy_find_next_domain(bprm, &next_domain);
-+	if (retval)
++	if (retval) {
++		//abort_creds(new);
 +		goto out;
-+	/* Remember previous domain in case do_execve() failed. */
-+	bprm->security = current->security;
-+	current->security = next_domain;
++	}
++	/* Remember next_domain for checking interpreter's permission. */
++	p->next_domain_info = next_domain;
++	/* Remember address of cred for clearing next_domain. */
++	p->cred = bprm->cred;
++	memmove(bprm->cred->security, current->cred->security, sizeof(struct tomoyo_security));
++	//printk(KERN_INFO "PIYO: %s %p %p %p\n", __func__, p, p->cred, current->cred);
 +out:
 +	return retval;
 +}
 +
-+static void tmy_bprm_post_apply_creds(struct linux_binprm *bprm)
++static void tmy_bprm_committed_creds(struct linux_binprm *bprm)
 +{
-+	/* No need to rollback because do_execve() succeeded. */
-+	bprm->security = NULL;
++	struct tomoyo_security *p = TMY_CRED(current);
++	/* Apply next_domain_info. */
++	//printk(KERN_INFO "PIYO: %s %p %p %p\n", __func__, p, p->cred, current->cred);
++	BUG_ON(!p->next_domain_info);
++	p->domain_info = p->next_domain_info;
++	p->next_domain_info = NULL;
++	p->cred = NULL;
 +}
 +
-+static void tmy_bprm_free_security(struct linux_binprm *bprm)
++static void tmy_cred_free(struct cred *cred)
 +{
-+	/* Rollback if do_execve() failed. */
-+	if (bprm->security)
-+		current->security = bprm->security;
++	struct tomoyo_security *p = TMY_CRED(current);
++	/* Clear next_domain_info if do_execve() failed. */
++	//printk(KERN_INFO "HOGE: %s\n", __func__);
++	if (p->cred == cred) {
++		printk(KERN_INFO "PIYO: %s\n", __func__);
++		p->next_domain_info = NULL;
++	}
++	kfree(cred->security);
 +}
 +
 +static int tmy_sysctl(struct ctl_table *table, int op)
@@ -79,6 +107,102 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	return error;
 +}
++
++#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
++
++static int tmy_inode_setattr(struct dentry *dentry, struct iattr *attr)
++{
++	if (!(attr->ia_valid & ATTR_SIZE))
++		return 0;
++	if ((attr->ia_valid & ATTR_FILE) && attr->ia_file &&
++	    attr->ia_file->f_path.mnt) {
++		int error;
++		const char *prev = current->current_vfsmount_path;
++		struct path path = { attr->ia_file->f_path.mnt,
++				     attr->ia_file->f_path.mnt->mnt_root };
++		char *page = kmalloc(PAGE_SIZE, GFP_KERNEL);
++		char *ret;
++		if (!page)
++			return -ENOMEM;
++		ret = d_path(&path, page, PAGE_SIZE);
++		if (IS_ERR(ret)) {
++			kfree(page);
++			return -ENOMEM;
++		}
++		ret = kstrdup(ret, GFP_KERNEL);
++		kfree(page);
++		if (!ret)
++			return -ENOMEM;
++		current->current_vfsmount_path = ret;
++		error = tmy_check_1path_perm(TMY_TYPE_TRUNCATE_ACL, dentry);
++		kfree(ret);
++		current->current_vfsmount_path = prev;
++		return error;
++	}
++	return tmy_check_1path_perm(TMY_TYPE_TRUNCATE_ACL, dentry);
++}
++
++static int tmy_inode_unlink(struct inode *dir, struct dentry *dentry)
++{
++	return tmy_check_1path_perm(TMY_TYPE_UNLINK_ACL, dentry);
++}
++
++static int tmy_inode_mkdir(struct inode *dir, struct dentry *dentry, int mode)
++{
++	return tmy_check_1path_perm(TMY_TYPE_MKDIR_ACL, dentry);
++}
++
++static int tmy_inode_rmdir(struct inode *dir, struct dentry *dentry)
++{
++	return tmy_check_1path_perm(TMY_TYPE_RMDIR_ACL, dentry);
++}
++
++static int tmy_inode_symlink(struct inode *dir, struct dentry *dentry,
++			     const char *old_name)
++{
++	return tmy_check_1path_perm(TMY_TYPE_SYMLINK_ACL, dentry);
++}
++
++static int tmy_inode_create(struct inode *dir, struct dentry *dentry, int mode)
++{
++	return tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry);
++}
++
++static int tmy_inode_mknod(struct inode *dir, struct dentry *dentry, int mode,
++			   unsigned int dev)
++{
++	switch (mode & S_IFMT) {
++	case S_IFREG:
++	case 0:
++		return tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry);
++	case S_IFCHR:
++		return tmy_check_1path_perm(TMY_TYPE_MKCHAR_ACL, dentry);
++	case S_IFBLK:
++		return tmy_check_1path_perm(TMY_TYPE_MKBLOCK_ACL, dentry);
++	case S_IFIFO:
++		return tmy_check_1path_perm(TMY_TYPE_MKFIFO_ACL, dentry);
++	case S_IFSOCK:
++		return tmy_check_1path_perm(TMY_TYPE_MKSOCK_ACL, dentry);
++	default:
++		return 0;
++	}
++}
++
++static int tmy_inode_link(struct dentry *old_dentry, struct inode *new_dir,
++			  struct dentry *new_dentry)
++{
++	return tmy_check_2path_perm(TMY_TYPE_LINK_ACL, old_dentry,
++				    new_dentry);
++}
++
++static int tmy_inode_rename(struct inode *old_dir, struct dentry *old_dentry,
++			    struct inode *new_dir, struct dentry *new_dentry)
++{
++	return tmy_check_2path_perm(TMY_TYPE_RENAME_ACL, old_dentry,
++				    new_dentry);
++}
++
++#else
 +
 +static int tmy_path_truncate(struct path *path, loff_t length,
 +			     unsigned int time_attrs, struct file *filp)
@@ -145,6 +269,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				    new_dentry, new_dir->mnt);
 +}
 +
++#endif
++
 +static int tmy_file_fcntl(struct file *file, unsigned int cmd,
 +			  unsigned long arg)
 +{
@@ -153,26 +279,41 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+static int tmy_dentry_open(struct file *f)
++static int tmy_dentry_open(struct file *f, const struct cred *cred)
 +{
 +	int flags = f->f_flags;
 +	if ((flags + 1) & O_ACCMODE)
 +		flags++;
 +	flags |= f->f_flags & (O_APPEND | O_TRUNC);
 +
++	//BUG_ON(current != &init_task);
++	BUG_ON(!current->cred);
++	BUG_ON(!current->cred->security);
++	BUG_ON(!((struct tomoyo_security *)(current->cred->security))->domain_info);
 +	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
 +}
 +
 +static struct security_operations tomoyo_security_ops = {
 +	.name                      = "tomoyo",
 +
-+	.task_alloc_security       = tmy_task_alloc_security,
++ 	.cred_prepare              = tmy_cred_prepare,
 +	.bprm_check_security       = tmy_bprm_check_security,
-+	.bprm_post_apply_creds     = tmy_bprm_post_apply_creds,
-+	.bprm_free_security        = tmy_bprm_free_security,
++	.bprm_committed_creds      = tmy_bprm_committed_creds,
++	.cred_free                 = tmy_cred_free,
 +	.sysctl                    = tmy_sysctl,
 +	.file_fcntl                = tmy_file_fcntl,
 +	.dentry_open               = tmy_dentry_open,
++#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
++	.inode_create              = tmy_inode_create,
++	.inode_setattr             = tmy_inode_setattr,
++	.inode_unlink              = tmy_inode_unlink,
++	.inode_mkdir               = tmy_inode_mkdir,
++	.inode_rmdir               = tmy_inode_rmdir,
++	.inode_symlink             = tmy_inode_symlink,
++	.inode_mknod               = tmy_inode_mknod,
++	.inode_link                = tmy_inode_link,
++	.inode_rename              = tmy_inode_rename,
++#else
 +	.path_truncate             = tmy_path_truncate,
 +	.path_unlink               = tmy_path_unlink,
 +	.path_mkdir                = tmy_path_mkdir,
@@ -181,26 +322,32 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.path_mknod                = tmy_path_mknod,
 +	.path_link                 = tmy_path_link,
 +	.path_rename               = tmy_path_rename,
++#endif
 +};
 +
 +static int __init tmy_init(void)
 +{
++	struct cred *cred = (struct cred *) current->cred;
++	struct tomoyo_security *p;
++	BUG_ON(current != &init_task);
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
 +
++	p = kzalloc(sizeof(*p), GFP_KERNEL);
 +	/* register ourselves with the security framework */
-+	if (register_security(&tomoyo_security_ops))
++	if (!p || register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
-+	init_task.security = &KERNEL_DOMAIN;
++	p->domain_info = &KERNEL_DOMAIN;
++	cred->security = p;
 +	return 0;
 +}
 +
 +security_initcall(tmy_init);
 --- /dev/null
-+++ linux-2.6.27-rc6/security/tomoyo/tomoyo.h
-@@ -0,0 +1,94 @@
++++ linux-2.6.27-rc6-mm/security/tomoyo/tomoyo.h
+@@ -0,0 +1,122 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -230,6 +377,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			struct tmy_page_buffer *buf);
 +int tmy_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 +			      const int flag);
++#if defined(CONFIG_REMEMBER_VFSMOUNT_PATH)
++int tmy_check_1path_perm(const u8 operation,
++			 struct dentry *dentry);
++int tmy_check_2path_perm(const u8 operation,
++			 struct dentry *dentry1,
++			 struct dentry *dentry2);
++#else
 +int tmy_check_1path_perm(const u8 operation,
 +			 struct dentry *dentry,
 +			 struct vfsmount *mnt);
@@ -238,6 +392,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			 struct vfsmount *mnt1,
 +			 struct dentry *dentry2,
 +			 struct vfsmount *mnt2);
++#endif
 +int tmy_check_rewrite_permission(struct file *filp);
 +int tmy_find_next_domain(struct linux_binprm *bprm,
 +			 struct domain_info **next_domain);
@@ -279,7 +434,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TMY_TYPE_RENAME_ACL       1
 +#define MAX_DOUBLE_PATH_OPERATION 2
 +
-+#define TMY_SECURITY ((struct domain_info *) current->security)
++//#define TMY_SECURITY ((struct domain_info *) current->cred->security)
++#define TMY_SECURITY current_domain()
 +
 +#define TMY_DOMAINPOLICY          0
 +#define TMY_EXCEPTIONPOLICY       1
@@ -293,5 +449,24 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TMY_UPDATESCOUNTER        9
 +
 +extern struct domain_info KERNEL_DOMAIN;
++
++struct tomoyo_security {
++	struct domain_info *domain_info;
++	struct domain_info *next_domain_info;
++	void *cred;
++};
++
++#define TMY_CRED(task) ((struct tomoyo_security *)(task)->cred->security)
++
++static inline struct domain_info *current_domain(void)
++{
++	struct tomoyo_security *p;
++	BUG_ON(!current->cred);
++	p = TMY_CRED(current);
++	BUG_ON(!p);
++	BUG_ON(!p->domain_info);
++	BUG_ON(!p->domain_info && p->next_domain_info);
++	return p->next_domain_info ? p->next_domain_info : p->domain_info;
++}
 +
 +#endif

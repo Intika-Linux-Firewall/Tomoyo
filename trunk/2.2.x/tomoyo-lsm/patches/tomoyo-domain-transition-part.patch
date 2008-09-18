@@ -16,7 +16,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  1 file changed, 854 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.27-rc6/security/tomoyo/domain.c
++++ linux-2.6.27-rc6-mm/security/tomoyo/domain.c
 @@ -0,0 +1,854 @@
 +/*
 + * security/tomoyo/domain.c
@@ -699,7 +699,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
 +		for_each_process(p) {
-+			if (p->security != domain)
++			if (((struct tomoyo_security *)p->cred->security)->domain_info != domain)
 +				continue;
 +			flag = true;
 +			break;
