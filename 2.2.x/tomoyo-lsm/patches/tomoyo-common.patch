@@ -7,9 +7,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  include/linux/list.h     |   78 +
- security/tomoyo/common.c | 2145 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2144 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  320 +++++++
- 3 files changed, 2543 insertions(+)
+ 3 files changed, 2542 insertions(+)
 
 --- linux-2.6.27-rc6-mm.orig/include/linux/list.h
 +++ linux-2.6.27-rc6-mm/include/linux/list.h
@@ -98,7 +98,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #endif
 --- /dev/null
 +++ linux-2.6.27-rc6-mm/security/tomoyo/common.c
-@@ -0,0 +1,2145 @@
+@@ -0,0 +1,2144 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -106,7 +106,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/08/18
++ * Version: 2.2.0-pre   2008/09/18
 + *
 + */
 +
@@ -1112,8 +1112,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			continue;
 +		}
 +		type--;
-+		if (type >= TMY_MAX_CONTROL_INDEX) {
-+		} else {
++		if (type < TMY_MAX_CONTROL_INDEX) {
 +			const unsigned int value = profile->value[type];
 +			const char **modes = NULL;
 +			const char *keyword = tmy_control_array[type].keyword;
