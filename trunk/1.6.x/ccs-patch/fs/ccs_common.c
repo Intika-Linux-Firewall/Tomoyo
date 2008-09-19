@@ -1432,6 +1432,54 @@ static char *ccs_find_condition_part(char *data)
 }
 
 /**
+ * is_select_one - Parse select command.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @data: String to parse.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool is_select_one(struct ccs_io_buffer *head, const char *data)
+{
+	unsigned int pid;
+	struct domain_info *domain = NULL;
+	if (sscanf(data, "pid=%u", &pid) == 1) {
+		struct task_struct *p;
+		/***** CRITICAL SECTION START *****/
+		read_lock(&tasklist_lock);
+		p = find_task_by_pid(pid);
+		if (p)
+			domain = p->domain_info;
+		read_unlock(&tasklist_lock);
+		/***** CRITICAL SECTION END *****/
+	} else if (!strncmp(data, "domain=", 7)) {
+		if (ccs_is_domain_def(data + 7))
+			domain = ccs_find_domain(data + 7);
+	} else
+		return false;
+	head->read_avail = 0;
+	ccs_io_printf(head, "# select %s\n", data);
+	head->read_single_domain = true;
+	head->read_eof = !domain;
+	if (domain) {
+		struct domain_info *d;
+		head->read_var1 = NULL;
+		list1_for_each_entry(d, &domain_list, list) {
+			if (d == domain)
+				break;
+			head->read_var1 = &d->list;
+		}
+		head->read_var2 = NULL;
+		head->read_bit = 0;
+		head->read_step = 0;
+		if (domain->is_deleted)
+			ccs_io_printf(head, "# This is a deleted domain.\n");
+	}
+	head->write_var1 = domain;
+	return true;
+}
+
+/**
  * write_domain_policy - Write domain policy.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -1454,38 +1502,8 @@ static int write_domain_policy(struct ccs_io_buffer *head)
 		is_select = true;
 	else if (str_starts(&data, KEYWORD_UNDELETE))
 		is_undelete = true;
-	if (is_select) {
-		/* Read or update specified PID's domain ACL? */
-		unsigned int pid;
-		if (sscanf(data, "%u", &pid) == 1) {
-			struct task_struct *p;
-			struct domain_info *domain = NULL;
-			/***** CRITICAL SECTION START *****/
-			read_lock(&tasklist_lock);
-			p = find_task_by_pid(pid);
-			if (p)
-				domain = p->domain_info;
-			read_unlock(&tasklist_lock);
-			/***** CRITICAL SECTION END *****/
-			head->read_avail = 0;
-			head->read_single_domain = true;
-			head->read_eof = !domain;
-			if (domain) {
-				struct domain_info *d;
-				head->read_var1 = NULL;
-				list1_for_each_entry(d, &domain_list, list) {
-					if (d == domain)
-						break;
-					head->read_var1 = &d->list;
-				}
-				head->read_var2 = NULL;
-				head->read_bit = 0;
-				head->read_step = 0;
-			}
-			head->write_var1 = domain;
-			return 0;
-		}
-	}
+	if (is_select && is_select_one(head, data))
+		return 0;
 	/* Don't allow updating policies by non manager programs. */
 	if (!is_policy_manager())
 		return -EPERM;
@@ -1951,7 +1969,6 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 		head->read_step = 1;
 	list1_for_each_cookie(dpos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
-		const char *domain_status = "";
 		const char *quota_exceeded = "";
 		const char *transition_failed = "";
 		const char *ignore_global_allow_read = "";
@@ -1959,15 +1976,8 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 		domain = list1_entry(dpos, struct domain_info, list);
 		if (head->read_step != 1)
 			goto acl_loop;
-		if (head->read_single_domain) {
-			if (domain->is_deleted)
-				domain_status = "# This is a deleted domain.\n";
-			else
-				domain_status = "#\n";
-		} else {
-			if (domain->is_deleted)
-				continue;
-		}
+		if (domain->is_deleted && !head->read_single_domain)
+			continue;
 		/* Print domainname and flags. */
 		if (domain->quota_warned)
 			quota_exceeded = "quota_exceeded\n";
@@ -1979,10 +1989,10 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV)
 			ignore_global_allow_env
 				= KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
-		if (!ccs_io_printf(head, "%s%s\n" KEYWORD_USE_PROFILE "%u\n"
-				   "%s%s%s%s\n", domain_status,
-				   domain->domainname->name, domain->profile,
-				   quota_exceeded, transition_failed,
+		if (!ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
+				   "%s%s%s%s\n", domain->domainname->name,
+				   domain->profile, quota_exceeded,
+				   transition_failed,
 				   ignore_global_allow_read,
 				   ignore_global_allow_env))
 			return 0;
