@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/11
+ * Version: 1.6.5-pre   2008/09/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1454,6 +1454,41 @@ static int write_domain_policy(struct ccs_io_buffer *head)
 		is_select = true;
 	else if (str_starts(&data, KEYWORD_UNDELETE))
 		is_undelete = true;
+	if (is_select) {
+		/* Read or update specified PID's domain ACL? */
+		unsigned int pid;
+		if (sscanf(data, "%u", &pid) == 1) {
+			struct task_struct *p;
+			struct domain_info *domain = NULL;
+			/***** CRITICAL SECTION START *****/
+			read_lock(&tasklist_lock);
+			p = find_task_by_pid(pid);
+			if (p)
+				domain = p->domain_info;
+			read_unlock(&tasklist_lock);
+			/***** CRITICAL SECTION END *****/
+			head->read_avail = 0;
+			head->read_single_domain = true;
+			head->read_eof = !domain;
+			if (domain) {
+				struct domain_info *d;
+				head->read_var1 = NULL;
+				list1_for_each_entry(d, &domain_list, list) {
+					if (d == domain)
+						break;
+					head->read_var1 = &d->list;
+				}
+				head->read_var2 = NULL;
+				head->read_bit = 0;
+				head->read_step = 0;
+			}
+			head->write_var1 = domain;
+			return 0;
+		}
+	}
+	/* Don't allow updating policies by non manager programs. */
+	if (!is_policy_manager())
+		return -EPERM;
 	if (ccs_is_domain_def(data)) {
 		domain = NULL;
 		if (is_delete)
@@ -1916,6 +1951,7 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 		head->read_step = 1;
 	list1_for_each_cookie(dpos, head->read_var1, &domain_list) {
 		struct domain_info *domain;
+		const char *domain_status = "";
 		const char *quota_exceeded = "";
 		const char *transition_failed = "";
 		const char *ignore_global_allow_read = "";
@@ -1923,8 +1959,15 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 		domain = list1_entry(dpos, struct domain_info, list);
 		if (head->read_step != 1)
 			goto acl_loop;
-		if (domain->is_deleted)
-			continue;
+		if (head->read_single_domain) {
+			if (domain->is_deleted)
+				domain_status = KEYWORD_DELETE;
+			else
+				domain_status = KEYWORD_SELECT;
+		} else {
+			if (domain->is_deleted)
+				continue;
+		}
 		/* Print domainname and flags. */
 		if (domain->quota_warned)
 			quota_exceeded = "quota_exceeded\n";
@@ -1936,10 +1979,10 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV)
 			ignore_global_allow_env
 				= KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
-		if (!ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
-				   "%s%s%s%s\n", domain->domainname->name,
-				   domain->profile, quota_exceeded,
-				   transition_failed,
+		if (!ccs_io_printf(head, "%s%s\n" KEYWORD_USE_PROFILE "%u\n"
+				   "%s%s%s%s\n", domain_status,
+				   domain->domainname->name, domain->profile,
+				   quota_exceeded, transition_failed,
 				   ignore_global_allow_read,
 				   ignore_global_allow_env))
 			return 0;
@@ -1960,6 +2003,8 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 		if (!ccs_io_printf(head, "\n"))
 			return 0;
 		head->read_step = 1;
+		if (head->read_single_domain)
+			break;
 	}
 	head->read_eof = true;
 	return 0;
@@ -2421,7 +2466,7 @@ void ccs_load_policy(const char *filename)
 	printk(KERN_INFO "SAKURA: 1.6.5-pre   2008/09/09\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.5-pre   2008/09/09\n");
+	printk(KERN_INFO "TOMOYO: 1.6.5-pre   2008/09/19\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2817,8 +2862,7 @@ int ccs_open_control(const u8 type, struct file *file)
 	struct ccs_io_buffer *head = ccs_alloc(sizeof(*head));
 	if (!head)
 		return -ENOMEM;
-	mutex_init(&head->read_sem);
-	mutex_init(&head->write_sem);
+	mutex_init(&head->io_sem);
 	switch (type) {
 #ifdef CONFIG_SAKURA
 	case CCS_SYSTEMPOLICY: /* /proc/ccs/system_policy */
@@ -2973,7 +3017,7 @@ int ccs_read_control(struct file *file, char __user *buffer,
 		return -ENOSYS;
 	if (!access_ok(VERIFY_WRITE, buffer, buffer_len))
 		return -EFAULT;
-	if (mutex_lock_interruptible(&head->read_sem))
+	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
 	/* Call the policy handler. */
 	len = head->read(head);
@@ -2994,7 +3038,7 @@ int ccs_read_control(struct file *file, char __user *buffer,
 	head->read_avail -= len;
 	memmove(cp, cp + len, head->read_avail);
  out:
-	mutex_unlock(&head->read_sem);
+	mutex_unlock(&head->io_sem);
 	return len;
 }
 
@@ -3019,9 +3063,10 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 	if (!access_ok(VERIFY_READ, buffer, buffer_len))
 		return -EFAULT;
 	/* Don't allow updating policies by non manager programs. */
-	if (head->write != write_pid && !is_policy_manager())
+	if (head->write != write_pid && head->write != write_domain_policy &&
+	    !is_policy_manager())
 		return -EPERM;
-	if (mutex_lock_interruptible(&head->write_sem))
+	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
 	/* Read a line and dispatch it to the policy handler. */
 	while (avail_len > 0) {
@@ -3043,7 +3088,7 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		normalize_line(cp0);
 		head->write(head);
 	}
-	mutex_unlock(&head->write_sem);
+	mutex_unlock(&head->io_sem);
 	return error;
 }
 
