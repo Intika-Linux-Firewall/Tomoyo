@@ -1590,3 +1590,29 @@ Fix 2008/09/11
       This change makes it impossible to revoke permission to write to
       /proc/ccs/ interface without killing the process, but it will be better
       than nonfunctioning ccs-queryd program.
+
+Fix 2008/09/19
+
+    @ Allow selecting a domain by PID.
+
+      Sometimes we want to know what ACLs are given to specific PID, but
+      finding a domainname for that PID from /proc/ccs/.process_status and
+      reading ACLs from /proc/ccs/domain_policy by the domainname is very slow.
+      Thus, I modified /proc/ccs/domain_policy to allow selecting a domain by
+      PID. For example, to read domain ACL of current process from bash,
+      run as follows.
+
+      # exec 100<>/proc/ccs/domain_policy
+      # echo select $$ >&100
+      # while read -u 100; do echo $REPLY; done
+
+      If a domain is once selected by PID, reading /proc/ccs/domain_policy will
+      print only that domain if that PID exists or print nothing otherwise.
+
+    @ Disallow concurrent /proc/ccs/ access using the same file descriptor.
+
+      Until now, one process can read() from /proc/ccs/ while other process
+      that shares the file descriptor can write() to /proc/ccs/ .
+      But to implement "Allow selecting a domain by PID" feature, I disabled
+      concurrent read()/write() because the feature need to modify read buffer
+      while writing.

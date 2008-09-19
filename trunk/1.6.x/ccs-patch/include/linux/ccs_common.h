@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/09/19
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -527,10 +527,8 @@ struct ccs_io_buffer {
 	int (*read) (struct ccs_io_buffer *);
 	int (*write) (struct ccs_io_buffer *);
 	int (*poll) (struct file *file, poll_table *wait);
-	/* Exclusive lock for read_buf.         */
-	struct mutex read_sem;
-	/* Exclusive lock for write_buf.        */
-	struct mutex write_sem;
+	/* Exclusive lock for this structure.   */
+	struct mutex io_sem;
 	/* The position currently reading from. */
 	struct list1_head *read_var1;
 	/* Extra variables for reading.         */
@@ -543,6 +541,8 @@ struct ccs_io_buffer {
 	char *read_buf;
 	/* EOF flag for reading.                */
 	bool read_eof;
+	/* Read domain ACL of specified PID?    */
+	bool read_single_domain;
 	/* Extra variable for reading.          */
 	u8 read_bit;
 	/* Bytes available for reading.         */
