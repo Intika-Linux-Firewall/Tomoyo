@@ -1961,9 +1961,9 @@ static int read_domain_policy(struct ccs_io_buffer *head)
 			goto acl_loop;
 		if (head->read_single_domain) {
 			if (domain->is_deleted)
-				domain_status = KEYWORD_DELETE;
+				domain_status = "# This is a deleted domain.\n";
 			else
-				domain_status = KEYWORD_SELECT;
+				domain_status = "#\n";
 		} else {
 			if (domain->is_deleted)
 				continue;
