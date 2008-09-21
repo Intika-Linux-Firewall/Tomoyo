@@ -11,8 +11,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.h |  320 +++++++
  3 files changed, 2542 insertions(+)
 
---- linux-2.6.27-rc6-mm.orig/include/linux/list.h
-+++ linux-2.6.27-rc6-mm/include/linux/list.h
+--- linux-2.6.27-rc6-mm1.orig/include/linux/list.h
++++ linux-2.6.27-rc6-mm1/include/linux/list.h
 @@ -692,4 +692,82 @@ static inline void hlist_move_list(struc
  		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
  	     pos = n)
@@ -97,7 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
  #endif
 --- /dev/null
-+++ linux-2.6.27-rc6-mm/security/tomoyo/common.c
++++ linux-2.6.27-rc6-mm1/security/tomoyo/common.c
 @@ -0,0 +1,2144 @@
 +/*
 + * security/tomoyo/common.c
@@ -2244,7 +2244,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
-+++ linux-2.6.27-rc6-mm/security/tomoyo/common.h
++++ linux-2.6.27-rc6-mm1/security/tomoyo/common.h
 @@ -0,0 +1,320 @@
 +/*
 + * security/tomoyo/common.h
