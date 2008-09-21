@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  388 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  112 +++++++++++++
- 2 files changed, 500 insertions(+)
+ security/tomoyo/tomoyo.c |  387 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  125 +++++++++++++++
+ 2 files changed, 512 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,388 @@
+@@ -0,0 +1,387 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -47,7 +47,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tomoyo_security *p = (struct tomoyo_security *)
 +		current->cred->security;
 +	/*
-+	 * If called by do_execve() (i.e. bprm->cred->security == NULL),
++	 * If called by do_execve()
++	 * (i.e. current->cred->security->next_domain_info == NULL),
 +	 * I do execute permission check and domain transition.
 +	 */
 +	BUG_ON(!p->domain_info);
@@ -56,14 +57,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	tmy_load_policy(bprm->filename);
 +	retval = tmy_find_next_domain(bprm, &next_domain);
-+	if (retval) {
-+		/* abort_creds(new); */
++	if (retval)
 +		goto out;
-+	}
 +	/* Remember next_domain for checking interpreter's permission. */
 +	p->next_domain_info = next_domain;
 +	/* Remember address of cred for clearing next_domain. */
-+	p->cred = bprm->cred;
++	p->cred_for_rollback = bprm->cred;
 +	memmove(bprm->cred->security, current->cred->security,
 +		sizeof(struct tomoyo_security));
 +out:
@@ -78,7 +77,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	BUG_ON(!p->next_domain_info);
 +	p->domain_info = p->next_domain_info;
 +	p->next_domain_info = NULL;
-+	p->cred = NULL;
++	p->cred_for_rollback = NULL;
 +}
 +
 +static void tmy_cred_free(struct cred *cred)
@@ -86,7 +85,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tomoyo_security *p = (struct tomoyo_security *)
 +		current->cred->security;
 +	/* Clear next_domain_info if do_execve() failed. */
-+	if (p->cred == cred)
++	if (p->cred_for_rollback == cred)
 +		p->next_domain_info = NULL;
 +	kfree(cred->security);
 +}
@@ -401,7 +400,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,125 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -497,9 +496,22 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +extern struct domain_info KERNEL_DOMAIN;
 +
 +struct tomoyo_security {
++	/*
++	 * Pointer to current domain.
++	 */
 +	struct domain_info *domain_info;
++	/*
++	 * Pointer to next domain when execve() succeeds.
++	 */
 +	struct domain_info *next_domain_info;
-+	void *cred;
++	/*
++	 * Pointer for clearing next_domain_info when execve() fails
++	 *
++	 * If execve() fails, "bprm->cred" is free()d. So, I remember
++	 * address of "bprm->cred" and compare it and the address passed to
++	 * the cred_free(), and if they are equals, I assume execve() failed.
++	 */
++	void *cred_for_rollback;
 +};
 +
 +static inline struct domain_info *current_domain(void)
