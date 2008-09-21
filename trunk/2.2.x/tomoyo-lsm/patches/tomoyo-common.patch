@@ -7,9 +7,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  include/linux/list.h     |   78 +
- security/tomoyo/common.c | 2144 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  320 +++++++
- 3 files changed, 2542 insertions(+)
+ security/tomoyo/common.c | 2200 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |  320 ++++++
+ 3 files changed, 2598 insertions(+)
 
 --- linux-2.6.27-rc6-mm1.orig/include/linux/list.h
 +++ linux-2.6.27-rc6-mm1/include/linux/list.h
@@ -98,7 +98,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #endif
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2144 @@
+@@ -0,0 +1,2200 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -106,7 +106,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/09/18
++ * Version: 2.2.0-pre   2008/09/21
 + *
 + */
 +
@@ -1292,6 +1292,55 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return found;
 +}
 +
++
++/**
++ * is_select_one - Parse select command.
++ *
++ * @head: Pointer to "struct tmy_io_buffer".
++ * @data: String to parse.
++ *
++ * Returns true on success, false otherwise.
++ */
++static bool is_select_one(struct tmy_io_buffer *head, const char *data)
++{
++	unsigned int pid;
++	struct domain_info *domain = NULL;
++	if (sscanf(data, "pid=%u", &pid) == 1) {
++		struct task_struct *p;
++		/***** CRITICAL SECTION START *****/
++		read_lock(&tasklist_lock);
++		p = find_task_by_vpid(pid);
++		if (p)
++			domain = (struct domain_info *) p->cred->security;
++		read_unlock(&tasklist_lock);
++		/***** CRITICAL SECTION END *****/
++	} else if (!strncmp(data, "domain=", 7)) {
++		if (tmy_is_domain_def(data + 7))
++			domain = tmy_find_domain(data + 7);
++	} else
++		return false;
++	head->read_avail = 0;
++	tmy_io_printf(head, "# select %s\n", data);
++	head->read_single_domain = true;
++	head->read_eof = !domain;
++	if (domain) {
++		struct domain_info *d;
++		head->read_var1 = NULL;
++		list1_for_each_entry(d, &domain_list, list) {
++			if (d == domain)
++				break;
++			head->read_var1 = &d->list;
++		}
++		head->read_var2 = NULL;
++		head->read_bit = 0;
++		head->read_step = 0;
++		if (domain->is_deleted)
++			tmy_io_printf(head, "# This is a deleted domain.\n");
++	}
++	head->write_var1 = domain;
++	return true;
++}
++
 +/**
 + * write_domain_policy - Write domain policy.
 + *
@@ -1313,6 +1362,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		is_select = true;
 +	else if (str_starts(&data, KEYWORD_UNDELETE))
 +		is_undelete = true;
++	if (is_select && is_select_one(head, data))
++		return 0;
++	/* Don't allow updating policies by non manager programs. */
++	if (!is_policy_manager())
++		return -EPERM;
 +	if (tmy_is_domain_def(data)) {
 +		domain = NULL;
 +		if (is_delete)
@@ -1473,7 +1527,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		domain = list1_entry(dpos, struct domain_info, list);
 +		if (head->read_step != 1)
 +			goto acl_loop;
-+		if (domain->is_deleted)
++		if (domain->is_deleted && !head->read_single_domain)
 +			continue;
 +		/* Print domainname and flags. */
 +		if (domain->quota_warned)
@@ -1505,6 +1559,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!tmy_io_printf(head, "\n"))
 +			return 0;
 +		head->read_step = 1;
++		if (head->read_single_domain)
++			break;
 +	}
 +	head->read_eof = true;
 +	return 0;
@@ -1779,7 +1835,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	envp[2] = NULL;
 +	call_usermodehelper(argv[0], argv, envp, 1);
 +
-+	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/08/18\n");
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/09/21\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -1898,8 +1954,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tmy_io_buffer *head = tmy_alloc(sizeof(*head));
 +	if (!head)
 +		return -ENOMEM;
-+	mutex_init(&head->read_sem);
-+	mutex_init(&head->write_sem);
++	mutex_init(&head->io_sem);
 +	switch (type) {
 +	case TMY_DOMAINPOLICY:
 +		/* /sys/kernel/security/tomoyo/domain_policy */
@@ -2013,7 +2068,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return -ENOSYS;
 +	if (!access_ok(VERIFY_WRITE, buffer, buffer_len))
 +		return -EFAULT;
-+	if (mutex_lock_interruptible(&head->read_sem))
++	if (mutex_lock_interruptible(&head->io_sem))
 +		return -EINTR;
 +	/* Call the policy handler. */
 +	len = head->read(head);
@@ -2034,7 +2089,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	head->read_avail -= len;
 +	memmove(cp, cp + len, head->read_avail);
 +out:
-+	mutex_unlock(&head->read_sem);
++	mutex_unlock(&head->io_sem);
 +	return len;
 +}
 +
@@ -2059,9 +2114,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!access_ok(VERIFY_READ, buffer, buffer_len))
 +		return -EFAULT;
 +	/* Don't allow updating policies by non manager programs. */
-+	if (head->write != write_pid && !is_policy_manager())
++	if (head->write != write_pid && head->write != write_domain_policy &&
++	    !is_policy_manager())
 +		return -EPERM;
-+	if (mutex_lock_interruptible(&head->write_sem))
++	if (mutex_lock_interruptible(&head->io_sem))
 +		return -EINTR;
 +	/* Read a line and dispatch it to the policy handler. */
 +	while (avail_len > 0) {
@@ -2083,7 +2139,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		normalize_line(cp0);
 +		head->write(head);
 +	}
-+	mutex_unlock(&head->write_sem);
++	mutex_unlock(&head->io_sem);
 +	return error;
 +}
 +
@@ -2253,7 +2309,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/08/18
++ * Version: 2.2.0-pre   2008/09/21
 + *
 + */
 +
@@ -2412,10 +2468,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +struct tmy_io_buffer {
 +	int (*read) (struct tmy_io_buffer *);
 +	int (*write) (struct tmy_io_buffer *);
-+	/* Exclusive lock for read_buf.         */
-+	struct mutex read_sem;
-+	/* Exclusive lock for write_buf.        */
-+	struct mutex write_sem;
++	/* Exclusive lock for this structure.   */
++	struct mutex io_sem;
 +	/* The position currently reading from. */
 +	struct list1_head *read_var1;
 +	/* Extra variables for reading.         */
@@ -2428,6 +2482,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	char *read_buf;
 +	/* EOF flag for reading.                */
 +	bool read_eof;
++	/* Read domain ACL of specified PID?    */
++	bool read_single_domain;
 +	/* Extra variable for reading.          */
 +	u8 read_bit;
 +	/* Bytes available for reading.         */
