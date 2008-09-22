@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  855 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 855 insertions(+)
+ security/tomoyo/domain.c |  857 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 857 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/domain.c
-@@ -0,0 +1,855 @@
+@@ -0,0 +1,857 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -698,6 +698,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		flag = false;
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
++		rcu_read_lock();
 +		for_each_process(p) {
 +			if (((struct tomoyo_security *)p->cred->security)
 +			    ->domain_info != domain)
@@ -705,6 +706,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			flag = true;
 +			break;
 +		}
++		rcu_read_unlock();
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (flag)

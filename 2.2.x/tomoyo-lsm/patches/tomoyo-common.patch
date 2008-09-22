@@ -7,9 +7,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  include/linux/list.h     |   78 +
- security/tomoyo/common.c | 2200 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2206 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  320 ++++++
- 3 files changed, 2598 insertions(+)
+ 3 files changed, 2604 insertions(+)
 
 --- linux-2.6.27-rc6-mm1.orig/include/linux/list.h
 +++ linux-2.6.27-rc6-mm1/include/linux/list.h
@@ -98,7 +98,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #endif
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2200 @@
+@@ -0,0 +1,2206 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1310,8 +1310,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
-+		if (p)
++		if (p) {
++			rcu_read_lock();
 +			domain = (struct domain_info *) p->cred->security;
++			rcu_read_unlock();
++		}
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +	} else if (!strncmp(data, "domain=", 7)) {
@@ -1663,8 +1666,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
-+		if (p)
++		if (p) {
++			rcu_read_lock();
 +			domain = (struct domain_info *) p->cred->security;
++			rcu_read_unlock();
++		}
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (domain)
