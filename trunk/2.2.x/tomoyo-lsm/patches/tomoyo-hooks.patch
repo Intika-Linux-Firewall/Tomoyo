@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  394 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  118 ++++++++++++++
- 2 files changed, 512 insertions(+)
+ security/tomoyo/tomoyo.c |  391 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  123 ++++++++++++++
+ 2 files changed, 514 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,394 @@
++++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
+@@ -0,0 +1,391 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -18,7 +18,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/09/21
++ * Version: 2.2.0-pre   2008/09/22
 + *
 + */
 +
@@ -44,11 +44,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct domain_info *next_domain = NULL;
 +	int retval = 0;
-+	struct tomoyo_security *p = (struct tomoyo_security *)
-+		current->cred->security;
++	struct tomoyo_security *p = tmy_security(current);
 +	/*
 +	 * If called by do_execve()
-+	 * (i.e. current->cred->security->prev_domain_info == NULL),
++	 * (i.e. tomoyoi_security(current)->prev_domain_info == NULL),
 +	 * I do execute permission check and domain transition.
 +	 */
 +	BUG_ON(!p->domain_info);
@@ -64,7 +63,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	p->prev_domain_info = p->domain_info;
 +	/* Transit to next_domain for checking interpreter's permission. */
 +	p->domain_info = next_domain;
-+	memmove(bprm->cred->security, current->cred->security,
++	memmove(bprm->cred->security, tmy_security(current),
 +		sizeof(struct tomoyo_security));
 +out:
 +	return retval;
@@ -72,8 +71,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static void tmy_bprm_committed_creds(struct linux_binprm *bprm)
 +{
-+	struct tomoyo_security *p = (struct tomoyo_security *)
-+		current->cred->security;
++	struct tomoyo_security *p = tmy_security(current);
 +	/* Uninstall trigger for restoring domain_info. */
 +	p->cred_for_rollback = NULL;
 +	p->prev_domain_info = NULL;
@@ -81,8 +79,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static void tmy_cred_free(struct cred *cred)
 +{
-+	struct tomoyo_security *p = (struct tomoyo_security *)
-+		current->cred->security;
++	struct tomoyo_security *p = tmy_security(current);
 +	/* Restore domain_info if do_execve() failed. */
 +	if (p->cred_for_rollback == cred) {
 +		printk(KERN_WARNING "Rollback from '%s' to '%s'\n",
@@ -357,7 +354,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	flags |= f->f_flags & (O_APPEND | O_TRUNC);
 +
 +	BUG_ON(!current->cred);
-+	BUG_ON(!current->cred->security);
++	BUG_ON(!tmy_security(current));
 +	BUG_ON(!tmy_domain(current));
 +	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
 +}
@@ -406,8 +403,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +security_initcall(tmy_init);
 --- /dev/null
-+++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,118 @@
++++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.h
+@@ -0,0 +1,123 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -415,7 +412,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/09/18
++ * Version: 2.2.0-pre   2008/09/22
 + *
 + */
 +
@@ -519,6 +516,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 */
 +	void *cred_for_rollback;
 +};
++
++static inline struct tomoyo_security *tmy_security(struct task_struct *task)
++{
++	return (struct tomoyo_security *) task->cred->security;
++}
 +
 +static inline struct domain_info *tmy_domain(struct task_struct *task)
 +{
