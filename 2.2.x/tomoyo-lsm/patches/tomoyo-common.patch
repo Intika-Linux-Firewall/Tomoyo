@@ -11,9 +11,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.h |  320 ++++++
  3 files changed, 2604 insertions(+)
 
---- linux-2.6.27-rc6-mm1.orig/include/linux/list.h
-+++ linux-2.6.27-rc6-mm1/include/linux/list.h
-@@ -679,4 +679,82 @@ static inline void hlist_add_after(struc
+--- linux-2.6.27-rc7-mm1.orig/include/linux/list.h
++++ linux-2.6.27-rc7-mm1/include/linux/list.h
+@@ -692,4 +692,82 @@ static inline void hlist_move_list(struc
  		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
  	     pos = n)
  
@@ -97,7 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
  #endif
 --- /dev/null
-+++ linux-2.6.27-rc6-mm1/security/tomoyo/common.c
++++ linux-2.6.27-rc7-mm1/security/tomoyo/common.c
 @@ -0,0 +1,2206 @@
 +/*
 + * security/tomoyo/common.c
@@ -106,7 +106,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/09/21
++ * Version: 2.2.0-pre   2008/09/22
 + *
 + */
 +
@@ -1841,7 +1841,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	envp[2] = NULL;
 +	call_usermodehelper(argv[0], argv, envp, 1);
 +
-+	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/09/21\n");
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/09/22\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -2306,7 +2306,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
-+++ linux-2.6.27-rc6-mm1/security/tomoyo/common.h
++++ linux-2.6.27-rc7-mm1/security/tomoyo/common.h
 @@ -0,0 +1,320 @@
 +/*
 + * security/tomoyo/common.h
@@ -2315,7 +2315,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/09/21
++ * Version: 2.2.0-pre   2008/09/22
 + *
 + */
 +
