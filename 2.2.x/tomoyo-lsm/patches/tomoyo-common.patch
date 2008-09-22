@@ -853,7 +853,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static unsigned int tmy_check_flags_no_sleep_check(const u8 index)
 +{
-+	const u8 profile = TMY_SECURITY->profile;
++	const u8 profile = tmy_domain(current)->profile;
 +	return sbin_init_started && index < TMY_MAX_CONTROL_INDEX
 +#if MAX_PROFILES != 256
 +		&& profile < MAX_PROFILES
@@ -1258,7 +1258,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct policy_manager_entry *ptr;
 +	const char *exe;
 +	const struct task_struct *task = current;
-+	const struct path_info *domainname = TMY_SECURITY->domainname;
++	const struct path_info *domainname = tmy_domain(current)->domainname;
 +	bool found = false;
 +	if (!sbin_init_started)
 +		return true;
@@ -1312,7 +1312,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		p = find_task_by_vpid(pid);
 +		if (p) {
 +			rcu_read_lock();
-+			domain = (struct domain_info *) p->cred->security;
++			domain = tmy_domain(p);
 +			rcu_read_unlock();
 +		}
 +		read_unlock(&tasklist_lock);
@@ -1668,7 +1668,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		p = find_task_by_vpid(pid);
 +		if (p) {
 +			rcu_read_lock();
-+			domain = (struct domain_info *) p->cred->security;
++			domain = tmy_domain(p);
 +			rcu_read_unlock();
 +		}
 +		read_unlock(&tasklist_lock);
@@ -1937,11 +1937,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	if (!head->read_eof) {
 +		/*
-+		 * TMY_SECURITY->domainname != NULL
++		 * tmy_domain(current)->domainname != NULL
 +		 * because every process belongs to a domain and
 +		 * the domain's name cannot be NULL.
 +		 */
-+		tmy_io_printf(head, "%s", TMY_SECURITY->domainname->name);
++		tmy_io_printf(head, "%s", tmy_domain(current)->domainname->name);
 +		head->read_eof = true;
 +	}
 +	return 0;

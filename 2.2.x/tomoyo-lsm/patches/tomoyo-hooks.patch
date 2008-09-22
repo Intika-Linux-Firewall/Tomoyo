@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  395 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  116 +++++++++++++
- 2 files changed, 511 insertions(+)
+ security/tomoyo/tomoyo.c |  394 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  118 ++++++++++++++
+ 2 files changed, 512 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,395 @@
+@@ -0,0 +1,394 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -358,8 +358,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	BUG_ON(!current->cred);
 +	BUG_ON(!current->cred->security);
-+	BUG_ON(!((struct tomoyo_security *)(current->cred->security))
-+	       ->domain_info);
++	BUG_ON(!tmy_domain(current));
 +	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
 +}
 +
@@ -408,7 +407,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,118 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -487,9 +486,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TMY_TYPE_RENAME_ACL       1
 +#define MAX_DOUBLE_PATH_OPERATION 2
 +
-+#define TMY_SECURITY ((struct tomoyo_security *) \
-+		      current->cred->security)->domain_info
-+
 +#define TMY_DOMAINPOLICY          0
 +#define TMY_EXCEPTIONPOLICY       1
 +#define TMY_DOMAIN_STATUS         2
@@ -523,5 +519,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 */
 +	void *cred_for_rollback;
 +};
++
++static inline struct domain_info *tmy_domain(struct task_struct *task)
++{
++	return ((struct tomoyo_security *) task->cred->security)->domain_info;
++}
 +
 +#endif
