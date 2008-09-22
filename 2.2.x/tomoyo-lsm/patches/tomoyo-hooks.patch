@@ -5,8 +5,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/tomoyo.c |  395 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  115 +++++++++++++
- 2 files changed, 510 insertions(+)
+ security/tomoyo/tomoyo.h |  116 +++++++++++++
+ 2 files changed, 511 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.c
@@ -408,7 +408,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,116 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -487,7 +487,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TMY_TYPE_RENAME_ACL       1
 +#define MAX_DOUBLE_PATH_OPERATION 2
 +
-+#define TMY_SECURITY ((struct domain_info *) current->cred->security)
++#define TMY_SECURITY ((struct tomoyo_security *) \
++		      current->cred->security)->domain_info
 +
 +#define TMY_DOMAINPOLICY          0
 +#define TMY_EXCEPTIONPOLICY       1
