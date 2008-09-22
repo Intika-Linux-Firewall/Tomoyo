@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  857 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 857 insertions(+)
+ security/tomoyo/domain.c |  856 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 856 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/domain.c
-@@ -0,0 +1,857 @@
+@@ -0,0 +1,856 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -700,8 +700,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		read_lock(&tasklist_lock);
 +		rcu_read_lock();
 +		for_each_process(p) {
-+			if (((struct tomoyo_security *)p->cred->security)
-+			    ->domain_info != domain)
++			if (tmy_domain(p) != domain)
 +				continue;
 +			flag = true;
 +			break;
@@ -758,7 +757,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * tmy_realpath() = TMY_MAX_PATHNAME_LEN.
 +	 */
 +	struct tmy_page_buffer *tmp = tmy_alloc(sizeof(*tmp));
-+	struct domain_info *old_domain = TMY_SECURITY;
++	struct domain_info *old_domain = tmy_domain(current);
 +	struct domain_info *domain = NULL;
 +	const char *old_domain_name = old_domain->domainname->name;
 +	const char *original_name = bprm->filename;
