@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  387 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  125 +++++++++++++++
- 2 files changed, 512 insertions(+)
+ security/tomoyo/tomoyo.c |  395 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  115 +++++++++++++
+ 2 files changed, 510 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,387 @@
+@@ -0,0 +1,395 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -29,14 +29,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <linux/audit.h>
 +#include <linux/device_cgroup.h>
 +
++static struct kmem_cache *tomoyo_security_cachep;
++
 +static int tmy_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 +{
-+	new->security = kzalloc(sizeof(struct tomoyo_security), gfp);
++	new->security = kmem_cache_alloc(tomoyo_security_cachep, gfp);
 +	if (!new->security)
 +		return -ENOMEM;
-+	/* BUG_ON(((struct tomoyo_security *)old->security)->domain_info); */
 +	memmove(new->security, old->security, sizeof(struct tomoyo_security));
-+	/* printk(KERN_INFO "%s\n", __func__); */
 +	return 0;
 +}
 +
@@ -48,21 +48,22 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		current->cred->security;
 +	/*
 +	 * If called by do_execve()
-+	 * (i.e. current->cred->security->next_domain_info == NULL),
++	 * (i.e. current->cred->security->prev_domain_info == NULL),
 +	 * I do execute permission check and domain transition.
 +	 */
 +	BUG_ON(!p->domain_info);
 +	BUG_ON(!bprm->cred);
-+	if (p->next_domain_info)
++	if (p->prev_domain_info)
 +		goto out;
 +	tmy_load_policy(bprm->filename);
 +	retval = tmy_find_next_domain(bprm, &next_domain);
 +	if (retval)
 +		goto out;
-+	/* Remember next_domain for checking interpreter's permission. */
-+	p->next_domain_info = next_domain;
-+	/* Remember address of cred for clearing next_domain. */
++	/* Install trigger for restoring domain_info. */
 +	p->cred_for_rollback = bprm->cred;
++	p->prev_domain_info = p->domain_info;
++	/* Transit to next_domain for checking interpreter's permission. */
++	p->domain_info = next_domain;
 +	memmove(bprm->cred->security, current->cred->security,
 +		sizeof(struct tomoyo_security));
 +out:
@@ -73,21 +74,24 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct tomoyo_security *p = (struct tomoyo_security *)
 +		current->cred->security;
-+	/* Apply next_domain_info. */
-+	BUG_ON(!p->next_domain_info);
-+	p->domain_info = p->next_domain_info;
-+	p->next_domain_info = NULL;
++	/* Uninstall trigger for restoring domain_info. */
 +	p->cred_for_rollback = NULL;
++	p->prev_domain_info = NULL;
 +}
 +
 +static void tmy_cred_free(struct cred *cred)
 +{
 +	struct tomoyo_security *p = (struct tomoyo_security *)
 +		current->cred->security;
-+	/* Clear next_domain_info if do_execve() failed. */
-+	if (p->cred_for_rollback == cred)
-+		p->next_domain_info = NULL;
-+	kfree(cred->security);
++	/* Restore domain_info if do_execve() failed. */
++	if (p->cred_for_rollback == cred) {
++		printk(KERN_WARNING "Rollback from '%s' to '%s'\n",
++		       p->domain_info->domainname->name,
++		       p->prev_domain_info->domainname->name);
++		p->domain_info = p->prev_domain_info;
++		p->prev_domain_info = NULL;
++	}
++	kmem_cache_free(tomoyo_security_cachep, cred->security);
 +}
 +
 +static int tmy_sysctl(struct ctl_table *table, int op)
@@ -385,13 +389,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	BUG_ON(current != &init_task);
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
-+
-+	p = kzalloc(sizeof(*p), GFP_KERNEL);
++	tomoyo_security_cachep
++		= kmem_cache_create("tomoyo_security",
++				    sizeof(struct tomoyo_security),
++				    0, SLAB_PANIC, NULL);
++	p = kmem_cache_alloc(tomoyo_security_cachep, GFP_KERNEL);
 +	/* register ourselves with the security framework */
 +	if (!p || register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
++	memset(p, 0, sizeof(*p));
 +	p->domain_info = &KERNEL_DOMAIN;
 +	cred->security = p;
 +	return 0;
@@ -400,7 +408,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc6-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,115 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -479,8 +487,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TMY_TYPE_RENAME_ACL       1
 +#define MAX_DOUBLE_PATH_OPERATION 2
 +
-+/* #define TMY_SECURITY ((struct domain_info *) current->cred->security) */
-+#define TMY_SECURITY current_domain()
++#define TMY_SECURITY ((struct domain_info *) current->cred->security)
 +
 +#define TMY_DOMAINPOLICY          0
 +#define TMY_EXCEPTIONPOLICY       1
@@ -496,33 +503,24 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +extern struct domain_info KERNEL_DOMAIN;
 +
 +struct tomoyo_security {
-+	/*
-+	 * Pointer to current domain.
-+	 */
++	/* Current domain. */
 +	struct domain_info *domain_info;
 +	/*
-+	 * Pointer to next domain when execve() succeeds.
++	 * Below fields are used for returning to previous domain
++	 * when execve() fails.
 +	 */
-+	struct domain_info *next_domain_info;
++	/* Previous domain. */
++	struct domain_info *prev_domain_info;
 +	/*
-+	 * Pointer for clearing next_domain_info when execve() fails
++	 * Trigger used for restoring domain_info when execve() fails.
 +	 *
-+	 * If execve() fails, "bprm->cred" is free()d. So, I remember
-+	 * address of "bprm->cred" and compare it and the address passed to
-+	 * the cred_free(), and if they are equals, I assume execve() failed.
++	 * If execve() fails, "bprm->cred" is free()d.
++	 * So, I remember address of "bprm->cred".
++	 * When cred_free() is called, I compare address of "bprm->cred" and
++	 * address passed to the cred_free(), and I assume execve() failed
++	 * if these addresses are equals.
 +	 */
 +	void *cred_for_rollback;
 +};
-+
-+static inline struct domain_info *current_domain(void)
-+{
-+	struct tomoyo_security *p;
-+	BUG_ON(!current->cred);
-+	p = (struct tomoyo_security *) current->cred->security;
-+	BUG_ON(!p);
-+	BUG_ON(!p->domain_info);
-+	BUG_ON(!p->domain_info && p->next_domain_info);
-+	return p->next_domain_info ? p->next_domain_info : p->domain_info;
-+}
 +
 +#endif
