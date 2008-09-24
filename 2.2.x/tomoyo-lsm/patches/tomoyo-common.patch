@@ -7,9 +7,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  include/linux/list.h     |   78 +
- security/tomoyo/common.c | 2206 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2207 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  320 ++++++
- 3 files changed, 2604 insertions(+)
+ 3 files changed, 2605 insertions(+)
 
 --- linux-2.6.27-rc7-mm1.orig/include/linux/list.h
 +++ linux-2.6.27-rc7-mm1/include/linux/list.h
@@ -98,7 +98,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #endif
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2206 @@
+@@ -0,0 +1,2207 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1941,7 +1941,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		 * because every process belongs to a domain and
 +		 * the domain's name cannot be NULL.
 +		 */
-+		tmy_io_printf(head, "%s", tmy_domain(current)->domainname->name);
++		tmy_io_printf(head, "%s",
++			      tmy_domain(current)->domainname->name);
 +		head->read_eof = true;
 +	}
 +	return 0;
