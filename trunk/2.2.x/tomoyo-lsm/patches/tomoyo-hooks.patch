@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  415 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  420 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  111 ++++++++++++
- 2 files changed, 526 insertions(+)
+ 2 files changed, 531 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,415 @@
+@@ -0,0 +1,420 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -280,14 +280,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	case S_IFREG:
 +	case 0:
 +		error = tmy_check_1path_perm(TMY_TYPE_CREATE_ACL, dentry, mnt);
++		break;
 +	case S_IFCHR:
 +		error = tmy_check_1path_perm(TMY_TYPE_MKCHAR_ACL, dentry, mnt);
++		break;
 +	case S_IFBLK:
 +		error = tmy_check_1path_perm(TMY_TYPE_MKBLOCK_ACL, dentry, mnt);
++		break;
 +	case S_IFIFO:
 +		error = tmy_check_1path_perm(TMY_TYPE_MKFIFO_ACL, dentry, mnt);
++		break;
 +	case S_IFSOCK:
 +		error = tmy_check_1path_perm(TMY_TYPE_MKSOCK_ACL, dentry, mnt);
++		break;
 +	}
 +	return error;
 +}
