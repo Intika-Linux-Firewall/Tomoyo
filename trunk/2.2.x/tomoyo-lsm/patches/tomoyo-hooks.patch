@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  420 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  413 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  111 ++++++++++++
- 2 files changed, 531 insertions(+)
+ 2 files changed, 524 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,420 @@
+@@ -0,0 +1,413 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -74,8 +74,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * (i.e. tmy_security(current)->prev_domain_info == NULL),
 +	 * I do execute permission check and domain transition.
 +	 */
-+	BUG_ON(!p->domain_info);
-+	BUG_ON(!bprm->cred);
 +	if (p->prev_domain_info)
 +		goto out;
 +	tmy_load_policy(bprm->filename);
@@ -371,11 +369,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		flags++;
 +	flags |= f->f_flags & (O_APPEND | O_TRUNC);
 +
-+	BUG_ON(!current->cred);
-+	BUG_ON(!tmy_security(current));
-+	BUG_ON(!tmy_domain(current));
-+	if (f->f_mode == FMODE_READ &&
-+	    tmy_security(current)->first_open_in_execve) {
++	if (tmy_security(current)->first_open_in_execve) {
 +		/*
 +		 * Don't check read permission here, for execute permission is
 +		 * checked later.
@@ -409,9 +403,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int __init tmy_init(void)
 +{
-+	struct cred *cred = (struct cred *) current->cred;
++	struct cred *cred = (struct cred *) &init_task.cred;
 +	struct tomoyo_security *p;
-+	BUG_ON(current != &init_task);
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
 +	tomoyo_security_cachep
