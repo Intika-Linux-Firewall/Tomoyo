@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  412 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  409 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  111 ++++++++++++
- 2 files changed, 523 insertions(+)
+ 2 files changed, 520 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,412 @@
+@@ -0,0 +1,409 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -55,9 +55,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tomoyo_security *p = tmy_security(current);
 +	/* Restore domain_info if execve() failed. */
 +	if (p->prev_domain_info) {
-+		printk(KERN_WARNING "Rollback from '%s' to '%s'\n",
-+		       p->domain_info->domainname->name,
-+		       p->prev_domain_info->domainname->name);
 +		p->domain_info = p->prev_domain_info;
 +		p->prev_domain_info = NULL;
 +	}
