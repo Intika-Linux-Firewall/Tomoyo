@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  409 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  111 ++++++++++++
- 2 files changed, 520 insertions(+)
+ security/tomoyo/tomoyo.c |  341 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |   97 +++++++++++++
+ 2 files changed, 438 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,409 @@
+@@ -0,0 +1,341 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -29,74 +29,27 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <linux/audit.h>
 +#include <linux/device_cgroup.h>
 +
-+static struct kmem_cache *tomoyo_security_cachep;
-+
 +static int tmy_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 +{
-+	new->security = kmem_cache_alloc(tomoyo_security_cachep, gfp);
-+	if (!new->security)
-+		return -ENOMEM;
-+	memmove(new->security, old->security, sizeof(struct tomoyo_security));
++	new->security = old->security;
 +	return 0;
-+}
-+
-+static void tmy_start_execve(void)
-+{
-+	/*
-+	 * Don't check read permission at next open_exec(), for TOMOYO Linux
-+	 * checks only execute permission. The execute permission is checked
-+	 * later at tmy_find_next_domain().
-+	 */
-+	tmy_security(current)->first_open_in_execve = true;
-+}
-+
-+static void tmy_finish_execve(void)
-+{
-+	struct tomoyo_security *p = tmy_security(current);
-+	/* Restore domain_info if execve() failed. */
-+	if (p->prev_domain_info) {
-+		p->domain_info = p->prev_domain_info;
-+		p->prev_domain_info = NULL;
-+	}
-+	p->first_open_in_execve = false;
 +}
 +
 +static int tmy_bprm_check_security(struct linux_binprm *bprm)
 +{
 +	struct domain_info *next_domain = NULL;
-+	int retval = 0;
-+	struct tomoyo_security *p = tmy_security(current);
++	int retval;
 +	/*
-+	 * If called by do_execve()
-+	 * (i.e. tmy_security(current)->prev_domain_info == NULL),
-+	 * I do execute permission check and domain transition.
++	 * If called by do_execve() (i.e. bprm->sh_bang == 0),
++	 * I do execute permission check.
 +	 */
-+	if (p->prev_domain_info)
-+		goto out;
++	if (bprm->sh_bang)
++		return 0;
 +	tmy_load_policy(bprm->filename);
 +	retval = tmy_find_next_domain(bprm, &next_domain);
-+	if (retval)
-+		goto out;
-+	/* Remember prev_domain_info in case execve() failed. */
-+	p->prev_domain_info = p->domain_info;
-+	/* Transit to next_domain for checking interpreter's permission. */
-+	p->domain_info = next_domain;
-+	memmove(bprm->cred->security, tmy_security(current),
-+		sizeof(struct tomoyo_security));
-+out:
-+	return retval;
-+}
-+
-+static void tmy_bprm_committed_creds(struct linux_binprm *bprm)
-+{
-+	struct tomoyo_security *p = tmy_security(current);
-+	/* Forget prev_domain_info because execve() succeeded. */
-+	p->prev_domain_info = NULL;
-+}
-+
-+static void tmy_cred_free(struct cred *cred)
-+{
-+	kmem_cache_free(tomoyo_security_cachep, cred->security);
++	if (!retval)
++		bprm->cred->security = next_domain;
++ 	return retval;
 +}
 +
 +static int tmy_sysctl(struct ctl_table *table, int op)
@@ -365,15 +318,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if ((flags + 1) & O_ACCMODE)
 +		flags++;
 +	flags |= f->f_flags & (O_APPEND | O_TRUNC);
-+
-+	if (tmy_security(current)->first_open_in_execve) {
-+		/*
-+		 * Don't check read permission here, for execute permission is
-+		 * checked later.
-+		 */
-+		tmy_security(current)->first_open_in_execve = false;
-+		return 0;
-+	}
 +	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
 +}
 +
@@ -381,10 +325,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.name                      = "tomoyo",
 +	.cred_prepare              = tmy_cred_prepare,
 +	.bprm_check_security       = tmy_bprm_check_security,
-+	.bprm_committed_creds      = tmy_bprm_committed_creds,
-+	.cred_free                 = tmy_cred_free,
-+	.start_execve              = tmy_start_execve,
-+	.finish_execve             = tmy_finish_execve,
 +	.sysctl                    = tmy_sysctl,
 +	.file_fcntl                = tmy_file_fcntl,
 +	.dentry_open               = tmy_dentry_open,
@@ -401,28 +341,20 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int __init tmy_init(void)
 +{
 +	struct cred *cred = (struct cred *) current->cred;
-+	struct tomoyo_security *p;
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
-+	tomoyo_security_cachep
-+		= kmem_cache_create("tomoyo_security",
-+				    sizeof(struct tomoyo_security),
-+				    0, SLAB_PANIC, NULL);
-+	p = kmem_cache_alloc(tomoyo_security_cachep, GFP_KERNEL);
 +	/* register ourselves with the security framework */
-+	if (!p || register_security(&tomoyo_security_ops))
++	if (register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
-+	memset(p, 0, sizeof(*p));
-+	p->domain_info = &KERNEL_DOMAIN;
-+	cred->security = p;
++	cred->security = &KERNEL_DOMAIN;
 +	return 0;
 +}
 +
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,97 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -514,23 +446,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +extern struct domain_info KERNEL_DOMAIN;
 +
-+struct tomoyo_security {
-+	/* Current domain. */
-+	struct domain_info *domain_info;
-+	/* Previous domain. */
-+	struct domain_info *prev_domain_info;
-+	/* Is the file not yet opened by open_exec()? */
-+	bool first_open_in_execve;
-+};
-+
-+static inline struct tomoyo_security *tmy_security(struct task_struct *task)
-+{
-+	return (struct tomoyo_security *) task->cred->security;
-+}
-+
 +static inline struct domain_info *tmy_domain(struct task_struct *task)
 +{
-+	return ((struct tomoyo_security *) task->cred->security)->domain_info;
++	return (struct domain_info *) task->cred->security;
 +}
 +
 +#endif
