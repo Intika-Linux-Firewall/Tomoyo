@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  391 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  123 ++++++++++++++
- 2 files changed, 514 insertions(+)
+ security/tomoyo/tomoyo.c |  415 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  111 ++++++++++++
+ 2 files changed, 526 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,391 @@
+@@ -0,0 +1,415 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -40,6 +40,30 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
++static void tmy_start_execve(void)
++{
++	/*
++	 * Don't check read permission at next open_exec(), for TOMOYO Linux
++	 * checks only execute permission. The execute permission is checked
++	 * later at tmy_find_next_domain().
++	 */
++	tmy_security(current)->first_open_in_execve = true;
++}
++
++static void tmy_finish_execve(void)
++{
++	struct tomoyo_security *p = tmy_security(current);
++	/* Restore domain_info if execve() failed. */
++	if (p->prev_domain_info) {
++		printk(KERN_WARNING "Rollback from '%s' to '%s'\n",
++		       p->domain_info->domainname->name,
++		       p->prev_domain_info->domainname->name);
++		p->domain_info = p->prev_domain_info;
++		p->prev_domain_info = NULL;
++	}
++	p->first_open_in_execve = false;
++}
++
 +static int tmy_bprm_check_security(struct linux_binprm *bprm)
 +{
 +	struct domain_info *next_domain = NULL;
@@ -47,7 +71,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tomoyo_security *p = tmy_security(current);
 +	/*
 +	 * If called by do_execve()
-+	 * (i.e. tomoyoi_security(current)->prev_domain_info == NULL),
++	 * (i.e. tmy_security(current)->prev_domain_info == NULL),
 +	 * I do execute permission check and domain transition.
 +	 */
 +	BUG_ON(!p->domain_info);
@@ -58,8 +82,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	retval = tmy_find_next_domain(bprm, &next_domain);
 +	if (retval)
 +		goto out;
-+	/* Install trigger for restoring domain_info. */
-+	p->cred_for_rollback = bprm->cred;
++	/* Remember prev_domain_info in case execve() failed. */
 +	p->prev_domain_info = p->domain_info;
 +	/* Transit to next_domain for checking interpreter's permission. */
 +	p->domain_info = next_domain;
@@ -72,22 +95,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static void tmy_bprm_committed_creds(struct linux_binprm *bprm)
 +{
 +	struct tomoyo_security *p = tmy_security(current);
-+	/* Uninstall trigger for restoring domain_info. */
-+	p->cred_for_rollback = NULL;
++	/* Forget prev_domain_info because execve() succeeded. */
 +	p->prev_domain_info = NULL;
 +}
 +
 +static void tmy_cred_free(struct cred *cred)
 +{
-+	struct tomoyo_security *p = tmy_security(current);
-+	/* Restore domain_info if do_execve() failed. */
-+	if (p->cred_for_rollback == cred) {
-+		printk(KERN_WARNING "Rollback from '%s' to '%s'\n",
-+		       p->domain_info->domainname->name,
-+		       p->prev_domain_info->domainname->name);
-+		p->domain_info = p->prev_domain_info;
-+		p->prev_domain_info = NULL;
-+	}
 +	kmem_cache_free(tomoyo_security_cachep, cred->security);
 +}
 +
@@ -356,6 +369,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	BUG_ON(!current->cred);
 +	BUG_ON(!tmy_security(current));
 +	BUG_ON(!tmy_domain(current));
++	if (f->f_mode == FMODE_READ &&
++	    tmy_security(current)->first_open_in_execve) {
++		/*
++		 * Don't check read permission here, for execute permission is
++		 * checked later.
++		 */
++		tmy_security(current)->first_open_in_execve = false;
++		return 0;
++	}
 +	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
 +}
 +
@@ -365,6 +387,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.bprm_check_security       = tmy_bprm_check_security,
 +	.bprm_committed_creds      = tmy_bprm_committed_creds,
 +	.cred_free                 = tmy_cred_free,
++	.start_execve              = tmy_start_execve,
++	.finish_execve             = tmy_finish_execve,
 +	.sysctl                    = tmy_sysctl,
 +	.file_fcntl                = tmy_file_fcntl,
 +	.dentry_open               = tmy_dentry_open,
@@ -404,7 +428,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,123 @@
+@@ -0,0 +1,111 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -499,22 +523,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +struct tomoyo_security {
 +	/* Current domain. */
 +	struct domain_info *domain_info;
-+	/*
-+	 * Below fields are used for returning to previous domain
-+	 * when execve() fails.
-+	 */
 +	/* Previous domain. */
 +	struct domain_info *prev_domain_info;
-+	/*
-+	 * Trigger used for restoring domain_info when execve() fails.
-+	 *
-+	 * If execve() fails, "bprm->cred" is free()d.
-+	 * So, I remember address of "bprm->cred".
-+	 * When cred_free() is called, I compare address of "bprm->cred" and
-+	 * address passed to the cred_free(), and I assume execve() failed
-+	 * if these addresses are equals.
-+	 */
-+	void *cred_for_rollback;
++	/* Is the file not yet opened by open_exec()? */
++	bool first_open_in_execve;
 +};
 +
 +static inline struct tomoyo_security *tmy_security(struct task_struct *task)
