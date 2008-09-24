@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  413 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  412 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  111 ++++++++++++
- 2 files changed, 524 insertions(+)
+ 2 files changed, 523 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,413 @@
+@@ -0,0 +1,412 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -403,7 +403,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int __init tmy_init(void)
 +{
-+	struct cred *cred = (struct cred *) &init_task.cred;
++	struct cred *cred = (struct cred *) current->cred;
 +	struct tomoyo_security *p;
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
@@ -415,7 +415,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/* register ourselves with the security framework */
 +	if (!p || register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
-+
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
 +	memset(p, 0, sizeof(*p));
 +	p->domain_info = &KERNEL_DOMAIN;
