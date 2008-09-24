@@ -5,9 +5,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/Kconfig         |    1 +
  security/Makefile        |    2 ++
- security/tomoyo/Kconfig  |    9 +++++++++
+ security/tomoyo/Kconfig  |   10 ++++++++++
  security/tomoyo/Makefile |    1 +
- 4 files changed, 13 insertions(+)
+ 4 files changed, 14 insertions(+)
 
 --- linux-2.6.27-rc7-mm1.orig/security/Kconfig
 +++ linux-2.6.27-rc7-mm1/security/Kconfig
@@ -36,10 +36,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +obj-$(CONFIG_SECURITY_TOMOYO)		+= tomoyo/built-in.o
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/Kconfig
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,10 @@
 +config SECURITY_TOMOYO
 +	bool "TOMOYO Linux Support"
 +	depends on SECURITY
++	select SECURITYFS
 +	default n
 +	help
 +	  This selects TOMOYO Linux, pathname-based access control.
