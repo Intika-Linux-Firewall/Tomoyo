@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2207 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2200 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  398 ++++++++
- 2 files changed, 2605 insertions(+)
+ 2 files changed, 2598 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2207 @@
+@@ -0,0 +1,2200 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -767,7 +767,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static unsigned int tmy_check_flags_no_sleep_check(const u8 index)
 +{
-+	const u8 profile = tmy_domain(current)->profile;
++	const u8 profile = tmy_domain()->profile;
 +	return sbin_init_started && index < TMY_MAX_CONTROL_INDEX
 +#if MAX_PROFILES != 256
 +		&& profile < MAX_PROFILES
@@ -1172,7 +1172,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct policy_manager_entry *ptr;
 +	const char *exe;
 +	const struct task_struct *task = current;
-+	const struct path_info *domainname = tmy_domain(current)->domainname;
++	const struct path_info *domainname = tmy_domain()->domainname;
 +	bool found = false;
 +	if (!sbin_init_started)
 +		return true;
@@ -1224,11 +1224,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
-+		if (p) {
-+			rcu_read_lock();
-+			domain = tmy_domain(p);
-+			rcu_read_unlock();
-+		}
++		if (p)
++			domain = tmy_real_domain(p);
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +	} else if (!strncmp(data, "domain=", 7)) {
@@ -1580,11 +1577,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
 +		p = find_task_by_vpid(pid);
-+		if (p) {
-+			rcu_read_lock();
-+			domain = tmy_domain(p);
-+			rcu_read_unlock();
-+		}
++		if (p)
++			domain = tmy_real_domain(p);
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (domain)
@@ -1851,12 +1845,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	if (!head->read_eof) {
 +		/*
-+		 * tmy_domain(current)->domainname != NULL
++		 * tmy_domain()->domainname != NULL
 +		 * because every process belongs to a domain and
 +		 * the domain's name cannot be NULL.
 +		 */
-+		tmy_io_printf(head, "%s",
-+			      tmy_domain(current)->domainname->name);
++		tmy_io_printf(head, "%s", tmy_domain()->domainname->name);
 +		head->read_eof = true;
 +	}
 +	return 0;

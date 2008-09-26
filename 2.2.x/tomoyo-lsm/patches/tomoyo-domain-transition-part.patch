@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  856 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 856 insertions(+)
+ security/tomoyo/domain.c |  854 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 854 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/domain.c
-@@ -0,0 +1,856 @@
+@@ -0,0 +1,854 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -698,14 +698,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		flag = false;
 +		/***** CRITICAL SECTION START *****/
 +		read_lock(&tasklist_lock);
-+		rcu_read_lock();
 +		for_each_process(p) {
-+			if (tmy_domain(p) != domain)
++			if (tmy_real_domain(p) != domain)
 +				continue;
 +			flag = true;
 +			break;
 +		}
-+		rcu_read_unlock();
 +		read_unlock(&tasklist_lock);
 +		/***** CRITICAL SECTION END *****/
 +		if (flag)
@@ -757,7 +755,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * tmy_realpath() = TMY_MAX_PATHNAME_LEN.
 +	 */
 +	struct tmy_page_buffer *tmp = tmy_alloc(sizeof(*tmp));
-+	struct domain_info *old_domain = tmy_domain(current);
++	struct domain_info *old_domain = tmy_domain();
 +	struct domain_info *domain = NULL;
 +	const char *old_domain_name = old_domain->domainname->name;
 +	const char *original_name = bprm->filename;
