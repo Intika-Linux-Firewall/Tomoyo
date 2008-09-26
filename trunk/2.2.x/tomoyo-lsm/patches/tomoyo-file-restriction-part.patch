@@ -528,7 +528,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int check_single_path_acl2(const struct path_info *filename,
 +				  const u16 perm, const bool may_use_pattern)
 +{
-+	const struct domain_info *domain = tmy_domain(current);
++	const struct domain_info *domain = tmy_domain();
 +	struct acl_info *ptr;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct single_path_acl_record *acl;
@@ -588,7 +588,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int check_file_perm2(const struct path_info *filename, const u8 perm,
 +			    const char *operation, const u8 mode)
 +{
-+	struct domain_info * const domain = tmy_domain(current);
++	struct domain_info * const domain = tmy_domain();
 +	const bool is_enforce = (mode == 3);
 +	const char *msg = "<unknown>";
 +	int error = 0;
@@ -852,7 +852,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				 const struct path_info *filename1,
 +				 const struct path_info *filename2)
 +{
-+	const struct domain_info *domain = tmy_domain(current);
++	const struct domain_info *domain = tmy_domain();
 +	struct acl_info *ptr;
 +	const u8 perm = 1 << type;
 +	if (!tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE))
@@ -890,7 +890,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	const char *msg;
 +	int error;
-+	struct domain_info * const domain = tmy_domain(current);
++	struct domain_info * const domain = tmy_domain();
 +	const bool is_enforce = (mode == 3);
 +	if (!mode)
 +		return 0;
@@ -1102,7 +1102,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int error = -ENOMEM;
 +	struct path_info *buf1, *buf2;
-+	struct domain_info * const domain = tmy_domain(current);
++	struct domain_info * const domain = tmy_domain();
 +	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	const char *msg;
