@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  392 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  114 +++++++++++++
- 2 files changed, 506 insertions(+)
+ security/tomoyo/tomoyo.c |  398 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  113 +++++++++++++
+ 2 files changed, 511 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,392 @@
+@@ -0,0 +1,398 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -50,24 +50,49 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static void tmy_bprm_committing_creds(struct linux_binprm *bprm)
 +{
 +	struct tomoyo_security *ts = bprm->cred->security;
-+	ts->proposed_domain = NULL;
++	ts->skip_check_security = false;
 +}
 +
 +static int tmy_bprm_set_creds(struct linux_binprm *bprm)
 +{
 +	struct tomoyo_security *ts = bprm->cred->security;
-+	struct domain_info *proposed_domain = NULL;
++	struct domain_info *next_domain = NULL;
 +	int retval;
 +	if (bprm->cred_prepared)
 +		return 0;
 +	if (!sbin_init_started)
 +		tmy_load_policy(bprm->filename);
-+	retval = tmy_find_next_domain(bprm, &proposed_domain);
++	retval = tmy_find_next_domain(bprm, &next_domain);
 +	if (!retval) {
-+		ts->domain = proposed_domain;
-+		ts->proposed_domain = proposed_domain;
++		ts->domain = next_domain;
++		ts->skip_check_security = true;
 +	}
 +	return retval;
++}
++
++static int tmy_bprm_check_security(struct linux_binprm *bprm)
++{
++	int error;
++	struct tomoyo_security *ts = bprm->cred->security;
++	const struct cred *old_cred;
++	struct cred *override_cred;
++	/* Execute permission was already checked in tmy_bprm_set_creds(). */
++	if (ts->skip_check_security) {
++		ts->skip_check_security = false;
++		return 0;
++	}
++	/* Read permission is checked here using next domain. */
++	override_cred = prepare_creds();
++	if (!override_cred)
++		return -ENOMEM;
++	((struct tomoyo_security *) override_cred->security)->domain
++		= ts->domain;
++	old_cred = override_creds(override_cred);
++	error = tmy_check_open_permission(bprm->file->f_path.dentry,
++					  bprm->file->f_path.mnt, MAY_READ);
++	revert_creds(old_cred);
++	put_cred(override_cred);
++	return error;
 +}
 +
 +static int tmy_sysctl(struct ctl_table *table, int op)
@@ -332,34 +357,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int tmy_dentry_open(struct file *f, const struct cred *cred)
 +{
-+	/*
-+	const struct tomoyo_security *ts = cred->security;
-+	const struct cred *old_cred = NULL;
-+	struct cred *override_cred = NULL;
-+	*/
-+	int error;
 +	int flags = f->f_flags;
 +	if ((flags + 1) & O_ACCMODE)
 +		flags++;
 +	flags |= f->f_flags & (O_APPEND | O_TRUNC);
-+	/*
-+	if (ts->proposed_domain) {
-+		override_cred = prepare_creds();
-+		if (!override_cred)
-+			return -ENOMEM;
-+		((struct tomoyo_security *) override_cred->security)->domain
-+			= ts->proposed_domain;
-+		old_cred = override_creds(override_cred);
-+	}
-+	*/
-+	error = tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
-+	/*
-+	if (ts->proposed_domain) {
-+		revert_creds(old_cred);
-+		put_cred(override_cred);
-+	}
-+	*/
-+	return error;
++	/* Don't check read permission here if called from do_execve(). */
++	if (mutex_is_locked(&current->cred_exec_mutex))
++		return 0;
++	return tmy_check_open_permission(f->f_dentry, f->f_vfsmnt, flags);
 +}
 +
 +static struct security_operations tomoyo_security_ops = {
@@ -367,6 +372,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.cred_prepare              = tmy_cred_prepare,
 +	.cred_free                 = tmy_cred_free,
 +	.bprm_set_creds            = tmy_bprm_set_creds,
++	.bprm_check_security       = tmy_bprm_check_security,
 +	.bprm_committing_creds     = tmy_bprm_committing_creds,
 +	.sysctl                    = tmy_sysctl,
 +	.file_fcntl                = tmy_file_fcntl,
@@ -405,7 +411,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,113 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -499,8 +505,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +struct tomoyo_security {
 +	struct domain_info *domain;
-+	struct domain_info *proposed_domain;
-+	bool in_execve;
++	bool skip_check_security;
 +};
 +
 +static inline struct domain_info *tmy_domain(void)
