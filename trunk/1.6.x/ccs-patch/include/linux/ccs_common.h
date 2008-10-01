@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/19
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -646,8 +646,9 @@ int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
 /* Check whether there is space for audit logs. */
 int ccs_can_save_audit_log(const bool is_granted);
 /* Ask supervisor's opinion. */
-int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
-	__attribute__ ((format(printf, 2, 3)));
+int ccs_check_supervisor(const unsigned short int retries,
+			 struct linux_binprm *bprm, const char *fmt, ...)
+	__attribute__ ((format(printf, 3, 4)));
 /* Close /proc/ccs/ interface. */
 int ccs_close_control(struct file *file);
 /* Delete an ACL entry from domain's ACL list. */

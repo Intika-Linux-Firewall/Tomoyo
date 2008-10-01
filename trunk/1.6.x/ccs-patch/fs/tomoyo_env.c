@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -262,6 +262,7 @@ static int check_env_acl(const char *environ)
  */
 int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode)
 {
+	unsigned short int retries = 0;
 	int error = 0;
 	struct domain_info * const domain = current->domain_info;
 	const bool is_enforce = (mode == 3);
@@ -276,10 +277,13 @@ int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode)
 		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
 		       ccs_get_msg(is_enforce), env, ccs_get_last_name(domain));
 	if (is_enforce) {
-		error = ccs_check_supervisor(NULL, KEYWORD_ALLOW_ENV "%s\n",
+		error = ccs_check_supervisor(retries, NULL,
+					     KEYWORD_ALLOW_ENV "%s\n",
 					     env);
-		if (error == 1)
+		if (error == 1) {
+			retries++;
 			goto retry;
+		}
 		return error;
 	}
 	if (mode == 1 && ccs_check_domain_quota(domain))

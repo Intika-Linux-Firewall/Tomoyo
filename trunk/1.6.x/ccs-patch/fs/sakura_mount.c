@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -236,13 +236,15 @@ static void print_success(const char *dev_name, const char *dir_name,
  * @flags:      Mount options.
  * @is_enforce: True if it is enforcing mode.
  * @error:      Error value.
+ * @retries:    How many retries are made for this request.
  *
  * Returns 0 if permitted by the administrator's decision, negative value
  * otherwise.
  */
 static int print_error(const char *dev_name, const char *dir_name,
 		       const char *type, const unsigned long flags,
-		       const bool is_enforce, int error)
+		       const bool is_enforce, int error,
+		       const unsigned short int retries)
 {
 	const char *realname1 = ccs_realpath(dev_name);
 	const char *realname2 = ccs_realpath(dir_name);
@@ -254,7 +256,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(NULL,
+			error = ccs_check_supervisor(retries, NULL,
 						     "# %s is requesting\n"
 						     "mount -o remount %s "
 						     "0x%lX\n", exename,
@@ -269,7 +271,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(NULL,
+			error = ccs_check_supervisor(retries, NULL,
 						     "# %s is requesting\n"
 						     "mount %s %s %s 0x%lX\n",
 						     exename, type,
@@ -287,7 +289,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(NULL,
+			error = ccs_check_supervisor(retries, NULL,
 						     "# %s is requesting\n"
 						     "mount %s %s 0x%lX",
 						     exename, type,
@@ -301,7 +303,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(NULL,
+			error = ccs_check_supervisor(retries, NULL,
 						     "# %s is requesting\n"
 						     "mount -t %s %s %s "
 						     "0x%lX\n", exename, type,
@@ -329,6 +331,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 				   unsigned long flags)
 {
+	unsigned short int retries = 0;
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_MOUNT);
 	const bool is_enforce = (mode == 3);
 	int error;
@@ -483,7 +486,7 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 		}
 		if (error)
 			error = print_error(dev_name, dir_name, type, flags,
-					    is_enforce, error);
+					    is_enforce, error, retries);
 		if (error && mode == 1)
 			update_mount_acl(need_dev ?
 					 requested_dev_name : dev_name,
@@ -496,8 +499,10 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 	}
 	if (!is_enforce)
 		error = 0;
-	if (error == 1)
+	if (error == 1) {
+		retries++;
 		goto retry;
+	}
 	return error;
 }
 

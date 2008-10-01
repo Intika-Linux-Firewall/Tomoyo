@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -85,6 +85,7 @@ static int update_no_umount_acl(const char *dir, const bool is_delete)
  */
 int ccs_may_umount(struct vfsmount *mnt)
 {
+	unsigned short int retries = 0;
 	int error;
 	const char *dir0;
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_UNMOUNT);
@@ -116,7 +117,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 		       ccs_get_msg(is_enforce), dir0, current->pid,
 		       exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(NULL,
+			error = ccs_check_supervisor(retries, NULL,
 						     "# %s is requesting\n"
 						     "unmount %s\n",
 						     exename, dir0);
@@ -127,8 +128,10 @@ int ccs_may_umount(struct vfsmount *mnt)
  out:
 	if (!is_enforce)
 		error = 0;
-	if (error == 1)
+	if (error == 1) {
+		retries++;
 		goto retry;
+	}
 	return error;
 }
 

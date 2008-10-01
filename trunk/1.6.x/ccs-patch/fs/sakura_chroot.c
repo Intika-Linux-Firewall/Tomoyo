@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -81,11 +81,13 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
  *
  * @root_name: Requested directory name.
  * @mode:      Access control mode.
+ * @retries:   How many retries are made for this request.
  *
  * Returns 0 if @mode is not enforcing mode or permitted by the administrator's
  * decision, negative value otherwise.
  */
-static int print_error(const char *root_name, const u8 mode)
+static int print_error(const char *root_name, const u8 mode,
+		       const unsigned short int retries)
 {
 	int error;
 	const bool is_enforce = (mode == 3);
@@ -94,8 +96,9 @@ static int print_error(const char *root_name, const u8 mode)
 	       "Permission denied.\n", ccs_get_msg(is_enforce),
 	       root_name, current->pid, exename);
 	if (is_enforce)
-		error = ccs_check_supervisor(NULL, "# %s is requesting\n"
-					     "chroot %s\n", exename, root_name);
+		error = ccs_check_supervisor(retries, NULL,
+					     "# %s is requesting\nchroot %s\n",
+					     exename, root_name);
 	else
 		error = 0;
 	if (exename)
@@ -120,6 +123,7 @@ static int print_error(const char *root_name, const u8 mode)
  */
 int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 {
+	unsigned short int retries = 0;
 	int error;
 	char *root_name;
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_CHROOT);
@@ -149,10 +153,12 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 		}
 	}
 	if (error)
-		error = print_error(root_name, mode);
+		error = print_error(root_name, mode, retries);
 	ccs_free(root_name);
-	if (error == 1)
+	if (error == 1) {
+		retries++;
 		goto retry;
+	}
 	return error;
 }
 

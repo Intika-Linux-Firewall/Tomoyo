@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -133,6 +133,7 @@ static int update_signal_acl(const int sig, const char *dest_pattern,
  */
 int ccs_check_signal_acl(const int sig, const int pid)
 {
+	unsigned short int retries = 0;
 	struct domain_info *domain = current->domain_info;
 	struct domain_info *dest = NULL;
 	const char *dest_pattern;
@@ -204,10 +205,13 @@ retry:
 		       "to %s denied for %s\n", ccs_get_msg(is_enforce), sig,
 		       ccs_get_last_name(dest), ccs_get_last_name(domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(NULL, KEYWORD_ALLOW_SIGNAL
+		int error = ccs_check_supervisor(retries, NULL,
+						 KEYWORD_ALLOW_SIGNAL
 						 "%d %s\n", sig, dest_pattern);
-		if (error == 1)
+		if (error == 1) {
+			retries++;
 			goto retry;
+		}
 		return error;
 	}
 	if (mode == 1 && ccs_check_domain_quota(domain))

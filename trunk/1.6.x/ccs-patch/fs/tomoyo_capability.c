@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -162,6 +162,7 @@ static int update_capability_acl(const u8 operation, struct domain_info *domain,
  */
 bool ccs_capable(const u8 operation)
 {
+	unsigned short int retries = 0;
 	struct domain_info * const domain = current->domain_info;
 	struct acl_info *ptr;
 	const u8 profile = current->domain_info->profile;
@@ -191,11 +192,14 @@ bool ccs_capable(const u8 operation)
 		       ccs_get_msg(is_enforce), cap_operation2name(operation),
 		       ccs_get_last_name(domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(NULL, KEYWORD_ALLOW_CAPABILITY
+		int error = ccs_check_supervisor(retries, NULL,
+						 KEYWORD_ALLOW_CAPABILITY
 						 "%s\n",
 						 ccs_cap2keyword(operation));
-		if (error == 1)
+		if (error == 1) {
+			retries++;
 			goto retry;
+		}
 		return !error;
 	}
 	if (mode == 1 && ccs_check_domain_quota(domain))

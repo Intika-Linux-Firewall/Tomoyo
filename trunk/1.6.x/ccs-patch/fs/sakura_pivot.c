@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -103,6 +103,7 @@ static int update_pivot_root_acl(const char *old_root, const char *new_root,
 int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 				    struct PATH_or_NAMEIDATA *new_path)
 {
+	unsigned short int retries = 0; 
 	int error;
 	char *old_root, *new_root;
 	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
@@ -148,7 +149,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 		       ccs_get_msg(is_enforce), new_root, old_root,
 		       current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(NULL,
+			error = ccs_check_supervisor(retries, NULL,
 						     "# %s is requesting\n"
 						     "pivot_root %s %s\n",
 						     exename, new_root,
@@ -162,8 +163,10 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	}
 	ccs_free(old_root);
 	ccs_free(new_root);
-	if (error == 1)
+	if (error == 1) {
+		retries++;
 		goto retry;
+	}
 	return error;
 }
 

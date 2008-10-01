@@ -1616,3 +1616,11 @@ Fix 2008/09/19
       But to implement "Allow selecting a domain by PID" feature, I disabled
       concurrent read()/write() because the feature need to modify read buffer
       while writing.
+
+Fix 2008/10/01
+
+    @ Add retry counter into /proc/ccs/query .
+
+      To be able to handle some of queries from /proc/ccs/query without user's
+      interaction, I added retry counter for avoiding infinite loop caused by
+      "try again" response.

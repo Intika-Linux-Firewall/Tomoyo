@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/19
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -2473,10 +2473,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.5-pre   2008/09/09\n");
+	printk(KERN_INFO "SAKURA: 1.6.5-pre   2008/10/01\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.5-pre   2008/09/19\n");
+	printk(KERN_INFO "TOMOYO: 1.6.5-pre   2008/10/01\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2518,15 +2518,17 @@ static atomic_t queryd_watcher = ATOMIC_INIT(0);
 /**
  * ccs_check_supervisor - Ask for the supervisor's decision.
  *
- * @bprm: Pointer to "struct linux_binprm". May be NULL.
- * @fmt:  The printf()'s format string, followed by parameters.
+ * @retries: How many retries are made for this request.
+ * @bprm:    Pointer to "struct linux_binprm". May be NULL.
+ * @fmt:     The printf()'s format string, followed by parameters.
  *
  * Returns 0 if the supervisor decided to permit the access request which
  * violated the policy in enforcing mode, 1 if the supervisor decided to
  * retry the access request which violated the policy in enforcing mode,
  * -EPERM otherwise.
  */
-int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
+int ccs_check_supervisor(const unsigned short int retries,
+			 struct linux_binprm *bprm, const char *fmt, ...)
 {
 	va_list args;
 	int error = -EPERM;
@@ -2568,8 +2570,8 @@ int ccs_check_supervisor(struct linux_binprm *bprm, const char *fmt, ...)
 	query_entry->serial = serial++;
 	spin_unlock(&query_lock);
 	/***** CRITICAL SECTION END *****/
-	pos = snprintf(query_entry->query, len - 1, "Q%u\n%s",
-		       query_entry->serial, header);
+	pos = snprintf(query_entry->query, len - 1, "Q%u-%hu\n%s",
+		       query_entry->serial, retries, header);
 	ccs_free(header);
 	header = NULL;
 	va_start(args, fmt);
@@ -3073,7 +3075,10 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 	if (!access_ok(VERIFY_READ, buffer, buffer_len))
 		return -EFAULT;
 	/* Don't allow updating policies by non manager programs. */
-	if (head->write != write_pid && head->write != write_domain_policy &&
+	if (head->write != write_pid &&
+#ifdef CONFIG_TOMOYO
+	    head->write != write_domain_policy &&
+#endif
 	    !is_policy_manager())
 		return -EPERM;
 	if (mutex_lock_interruptible(&head->io_sem))
