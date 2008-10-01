@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  384 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  113 +++++++++++++
- 2 files changed, 497 insertions(+)
+ security/tomoyo/tomoyo.c |  357 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  106 +++++++++++++
+ 2 files changed, 463 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,384 @@
+@@ -0,0 +1,357 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -29,57 +29,40 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <linux/audit.h>
 +#include <linux/device_cgroup.h>
 +
-+static struct kmem_cache *tomoyo_security_cachep;
-+
 +static int tmy_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 +{
-+	struct tomoyo_security *ts = kmem_cache_alloc(tomoyo_security_cachep,
-+						      gfp);
-+	if (!ts)
-+		return -ENOMEM;
-+	memmove(ts, old->security, sizeof(*ts));
-+	new->security = ts;
++	new->security = old->security;
 +	return 0;
-+}
-+
-+static void tmy_cred_free(struct cred *cred)
-+{
-+	kmem_cache_free(tomoyo_security_cachep, cred->security);
-+}
-+
-+static void tmy_bprm_committing_creds(struct linux_binprm *bprm)
-+{
-+	struct tomoyo_security *ts = bprm->cred->security;
-+	ts->skip_check_security = false;
 +}
 +
 +static int tmy_bprm_set_creds(struct linux_binprm *bprm)
 +{
-+	struct tomoyo_security *ts = bprm->cred->security;
-+	struct domain_info *next_domain = NULL;
-+	int retval;
 +	if (bprm->cred_prepared)
 +		return 0;
 +	if (!sbin_init_started)
 +		tmy_load_policy(bprm->filename);
-+	retval = tmy_find_next_domain(bprm, &next_domain);
-+	if (!retval) {
-+		ts->domain = next_domain;
-+		ts->skip_check_security = true;
-+	}
-+	return retval;
++	bprm->cred->security = NULL;
++	return 0;
 +}
 +
 +static int tmy_bprm_check_security(struct linux_binprm *bprm)
 +{
-+	struct tomoyo_security *ts = bprm->cred->security;
-+	/* Execute permission was already checked in tmy_bprm_set_creds(). */
-+	if (ts->skip_check_security) {
-+		ts->skip_check_security = false;
-+		return 0;
++	struct domain_info *domain = bprm->cred->security;
++	/*
++	 * Execute permission is checked against pathname passed to do_execve()
++	 * using current domain.
++	 */
++	if (!domain) {
++		struct domain_info *next_domain = NULL;
++		int retval = tmy_find_next_domain(bprm, &next_domain);
++		if (!retval)
++			bprm->cred->security = next_domain;
++		return retval;
 +	}
-+	/* Read permission is checked here using next domain. */
-+	return tmy_check_open_permission(ts->domain, bprm->file->f_path.dentry,
++	/*
++	 * Read permission is checked against interpreters using next domain.
++	 */
++	return tmy_check_open_permission(domain, bprm->file->f_path.dentry,
 +					 bprm->file->f_path.mnt, 1);
 +}
 +
@@ -356,10 +339,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static struct security_operations tomoyo_security_ops = {
 +	.name                      = "tomoyo",
 +	.cred_prepare              = tmy_cred_prepare,
-+	.cred_free                 = tmy_cred_free,
 +	.bprm_set_creds            = tmy_bprm_set_creds,
 +	.bprm_check_security       = tmy_bprm_check_security,
-+	.bprm_committing_creds     = tmy_bprm_committing_creds,
 +	.sysctl                    = tmy_sysctl,
 +	.file_fcntl                = tmy_file_fcntl,
 +	.dentry_open               = tmy_dentry_open,
@@ -375,29 +356,21 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int __init tmy_init(void)
 +{
-+	struct tomoyo_security *p;
 +	struct cred *cred = (struct cred *) current_cred();
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
-+	tomoyo_security_cachep
-+		= kmem_cache_create("tomoyo_security",
-+				    sizeof(struct tomoyo_security),
-+				    0, SLAB_PANIC, NULL);
-+	p = kmem_cache_alloc(tomoyo_security_cachep, GFP_KERNEL);
 +	/* register ourselves with the security framework */
-+	if (!p || register_security(&tomoyo_security_ops))
++	if (register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
-+	memset(p, 0, sizeof(*p));
-+	p->domain = &KERNEL_DOMAIN;
-+	cred->security = p;
++	cred->security = &KERNEL_DOMAIN;
 +	return 0;
 +}
 +
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,113 @@
+@@ -0,0 +1,106 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -489,23 +462,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +extern struct domain_info KERNEL_DOMAIN;
 +
-+struct tomoyo_security {
-+	struct domain_info *domain;
-+	bool skip_check_security;
-+};
-+
 +static inline struct domain_info *tmy_domain(void)
 +{
-+	const struct tomoyo_security *ts = current_cred()->security;
-+	return ts->domain;
++	return current_cred()->security;
 +}
 +
 +static inline struct domain_info *tmy_real_domain(struct task_struct *task)
 +{
 +	/* Caller must hold tasklist_lock. */
 +	const struct cred *cred = get_task_cred(task);
-+	const struct tomoyo_security *ts = cred->security;
-+	struct domain_info *domain = ts->domain;
++	struct domain_info *domain = cred->security;
 +	put_cred(cred);
 +	return domain;
 +}
