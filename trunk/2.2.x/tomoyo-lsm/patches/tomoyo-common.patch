@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2200 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2175 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  398 ++++++++
- 2 files changed, 2598 insertions(+)
+ 2 files changed, 2573 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2200 @@
+@@ -0,0 +1,2175 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -20,7 +20,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/09/24
++ * Version: 2.2.0-pre   2008/10/01
 + *
 + */
 +
@@ -734,8 +734,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	down_read(&mm->mmap_sem);
 +	for (vma = mm->mmap; vma; vma = vma->vm_next) {
 +		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-+			cp = tmy_realpath_from_dentry(vma->vm_file->f_dentry,
-+						      vma->vm_file->f_vfsmnt);
++			struct path *path = &vma->vm_file->f_path;
++			cp = tmy_realpath_from_dentry(path->dentry, path->mnt);
 +			break;
 +		}
 +	}
@@ -759,15 +759,26 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * tmy_check_flags_no_sleep_check - Check mode for specified functionality.
++ * tmy_check_flags - Check mode for specified functionality.
 + *
-+ * @index: The functionality to check mode.
++ * @domain: Pointer to "struct domain_info".
++ * @index:  The functionality to check mode.
 + *
 + * Returns the mode of specified functionality.
 + */
-+static unsigned int tmy_check_flags_no_sleep_check(const u8 index)
++unsigned int tmy_check_flags(const struct domain_info *domain, const u8 index)
 +{
-+	const u8 profile = tmy_domain()->profile;
++	const u8 profile = domain->profile;
++	if (unlikely(in_interrupt())) {
++		static u8 count = 20;
++		if (count) {
++			count--;
++			printk(KERN_ERR "BUG: sleeping function called "
++			       "from invalid context.\n");
++			dump_stack();
++		}
++		return 0;
++	}
 +	return sbin_init_started && index < TMY_MAX_CONTROL_INDEX
 +#if MAX_PROFILES != 256
 +		&& profile < MAX_PROFILES
@@ -777,52 +788,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * sleep_check - Check whether it is permitted to do operations that may sleep.
-+ *
-+ * Returns true if it is permitted to do operations that may sleep,
-+ * false otherwise.
-+ *
-+ * TOMOYO Linux supports interactive enforcement that lets processes
-+ * wait for the administrator's decision.
-+ * All hooks but the one for tmy_may_autobind() are inserted where
-+ * it is permitted to do operations that may sleep.
-+ * Thus, this warning should not happen.
-+ */
-+static bool sleep_check(void)
-+{
-+	static u8 count = 20;
-+	if (likely(!in_interrupt()))
-+		return true;
-+	if (count) {
-+		count--;
-+		printk(KERN_ERR "BUG: sleeping function called "
-+		       "from invalid context.\n");
-+		dump_stack();
-+	}
-+	return false;
-+}
-+
-+/**
-+ * tmy_check_flags - Check mode for specified functionality.
-+ *
-+ * @index: The functionality to check mode.
-+ *
-+ * Returns the mode of specified functionality.
-+ */
-+unsigned int tmy_check_flags(const u8 index)
-+{
-+	return sleep_check() ? tmy_check_flags_no_sleep_check(index) : 0;
-+}
-+
-+/**
 + * tmy_verbose_mode - Check whether TOMOYO is verbose mode.
++ *
++ * @domain: Pointer to "struct domain_info".
 + *
 + * Returns true if domain policy violation warning should be printed to
 + * console.
 + */
-+bool tmy_verbose_mode(void)
++bool tmy_verbose_mode(const struct domain_info *domain)
 +{
-+	return tmy_check_flags(TMY_TOMOYO_VERBOSE) != 0;
++	return tmy_check_flags(domain, TMY_TOMOYO_VERBOSE) != 0;
 +}
 +
 +/**
@@ -889,7 +864,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			break;
 +		}
 +	}
-+	if (count < tmy_check_flags(TMY_TOMOYO_MAX_ACCEPT_ENTRY))
++	if (count < tmy_check_flags(domain, TMY_TOMOYO_MAX_ACCEPT_ENTRY))
 +		return true;
 +	if (!domain->quota_warned) {
 +		domain->quota_warned = true;
@@ -1749,7 +1724,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	envp[2] = NULL;
 +	call_usermodehelper(argv[0], argv, envp, 1);
 +
-+	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/09/24\n");
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/10/01\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -2116,7 +2091,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int tmy_open(struct inode *inode, struct file *file)
 +{
-+	return tmy_open_control(((u8 *) file->f_dentry->d_inode->i_private)
++	return tmy_open_control(((u8 *) file->f_path.dentry->d_inode->i_private)
 +				- ((u8 *) NULL), file);
 +}
 +
@@ -2223,7 +2198,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/09/24
++ * Version: 2.2.0-pre   2008/10/01
 + *
 + */
 +
@@ -2523,7 +2498,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Read "deny_rewrite" entry in exception policy. */
 +bool tmy_read_no_rewrite_policy(struct tmy_io_buffer *head);
 +/* Write domain policy violation warning message to console? */
-+bool tmy_verbose_mode(void);
++bool tmy_verbose_mode(const struct domain_info *domain);
 +/* Convert double path operation to operation name. */
 +const char *tmy_dp2keyword(const u8 operation);
 +/* Get the last component of the given domainname. */
@@ -2572,7 +2547,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Undelete a domain. */
 +struct domain_info *tmy_undelete_domain(const char *domainname);
 +/* Check mode for specified functionality. */
-+unsigned int tmy_check_flags(const u8 index);
++unsigned int tmy_check_flags(const struct domain_info *domain, const u8 index);
 +/* Allocate memory for structures. */
 +void *tmy_alloc_acl_element(const u8 acl_type);
 +/* Fill in "struct path_info" members. */
