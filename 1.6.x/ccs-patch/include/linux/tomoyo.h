@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/11
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -49,7 +49,8 @@ int ccs_check_file_perm(const char *filename, const u8 perm,
 			const char *operation);
 int ccs_check_exec_perm(const struct path_info *filename,
 			struct linux_binprm *bprm,
-			struct ccs_page_buffer *buf);
+			struct ccs_page_buffer *buf,
+			const unsigned short int retries);
 int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			      const int flag);
 int ccs_check_1path_perm(const u8 operation,
@@ -63,7 +64,8 @@ int ccs_check_2path_perm(const u8 operation,
 int ccs_check_rewrite_permission(struct file *filp);
 
 /* Check whether the basename of program and argv0 is allowed to differ. */
-int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0);
+int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0,
+			 const unsigned short int retries);
 
 /* Check whether the given environment is allowed to be received. */
 int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode);
@@ -97,7 +99,8 @@ static inline int ccs_check_file_perm(const char *filename, const u8 perm,
 }
 static inline int ccs_check_exec_perm(const struct path_info *filename,
 				      struct linux_binprm *bprm,
-				      struct ccs_page_buffer *buf)
+				      struct ccs_page_buffer *buf,
+				      const unsigned short int retries)
 {
 	return 0;
 }
@@ -126,7 +129,8 @@ static inline int ccs_check_rewrite_permission(struct file *filp)
 	return 0;
 }
 static inline int ccs_check_argv0_perm(const struct path_info *filename,
-				       const char *argv0)
+				       const char *argv0,
+				       const unsigned short int retries)
 {
 	return 0;
 }

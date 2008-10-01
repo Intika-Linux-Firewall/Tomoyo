@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -154,10 +154,12 @@ static int check_argv0_acl(const struct path_info *filename, const char *argv0)
  *
  * @filename: The fullpath of the program.
  * @argv0:    The basename of argv[0].
+ * @retries:  How many retries are made for this request.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  */
-int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0)
+int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0,
+			 const unsigned short int retries)
 {
 	int error = 0;
 	struct domain_info * const domain = current->domain_info;
@@ -175,7 +177,8 @@ int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0)
 		       ccs_get_msg(is_enforce), filename->name, argv0,
 		       ccs_get_last_name(domain));
 	if (is_enforce)
-		return ccs_check_supervisor(NULL, KEYWORD_ALLOW_ARGV0 "%s %s\n",
+		return ccs_check_supervisor(retries, NULL,
+					    KEYWORD_ALLOW_ARGV0 "%s %s\n",
 					    filename->name, argv0);
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_argv0_entry(filename->name, argv0, domain, NULL, false);

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -804,12 +804,14 @@ static int check_file_acl(const struct path_info *filename, const u8 operation,
  * @obj:       Pointer to "struct obj_info". May be NULL.
  * @profile:   Profile number passed to audit logs.
  * @mode:      Access control mode.
+ * @retries:   How many retries are made for this request.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  */
 static int check_file_perm2(const struct path_info *filename, const u8 perm,
 			    const char *operation, struct obj_info *obj,
-			    const u8 profile, const u8 mode)
+			    const u8 profile, const u8 mode,
+			    unsigned short int retries)
 {
 	struct domain_info * const domain = current->domain_info;
 	const bool is_enforce = (mode == 3);
@@ -842,11 +844,14 @@ retry:
 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
 		       filename->name, ccs_get_last_name(domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(obj ? obj->bprm : NULL,
+		int error = ccs_check_supervisor(retries,
+						 obj ? obj->bprm : NULL,
 						 "allow_%s %s\n",
 						 msg, filename->name);
-		if (error == 1 && (!obj || !obj->bprm))
+		if (error == 1 && (!obj || !obj->bprm)) {
+			retries++;
 			goto retry;
+		}
 		return error;
 	}
 	if (mode == 1 && ccs_check_domain_quota(domain)) {
@@ -1275,6 +1280,7 @@ static int check_single_path_permission2(u8 operation,
 					 struct obj_info *obj,
 					 const u8 profile, const u8 mode)
 {
+	unsigned short int retries = 0;
 	const char *msg;
 	int error;
 	struct domain_info * const domain = current->domain_info;
@@ -1292,10 +1298,12 @@ static int check_single_path_permission2(u8 operation,
 		       ccs_get_msg(is_enforce), msg, filename->name,
 		       ccs_get_last_name(domain));
 	if (is_enforce) {
-		error = ccs_check_supervisor(NULL, "allow_%s %s\n",
+		error = ccs_check_supervisor(retries, NULL, "allow_%s %s\n",
 					     msg, filename->name);
-		if (error == 1)
+		if (error == 1) {
+			retries++;
 			goto next;
+		}
 	}
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_single_path_acl(operation,
@@ -1336,7 +1344,7 @@ int ccs_check_file_perm(const char *filename, const u8 perm,
 		return 0;
 	name.name = filename;
 	ccs_fill_path_info(&name);
-	return check_file_perm2(&name, perm, operation, NULL, profile, mode);
+	return check_file_perm2(&name, perm, operation, NULL, profile, mode, 0);
 }
 
 /**
@@ -1349,7 +1357,8 @@ int ccs_check_file_perm(const char *filename, const u8 perm,
  * Returns 0 on success, 1 on retry, negative value otherwise.
  */
 int ccs_check_exec_perm(const struct path_info *filename,
-			struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
+			struct linux_binprm *bprm, struct ccs_page_buffer *tmp,
+			unsigned short int retries)
 {
 	struct obj_info obj;
 	const u8 profile = current->domain_info->profile;
@@ -1361,7 +1370,8 @@ int ccs_check_exec_perm(const struct path_info *filename,
 	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
 	obj.bprm = bprm;
 	obj.tmp = tmp;
-	return check_file_perm2(filename, 1, "do_execve", &obj, profile, mode);
+	return check_file_perm2(filename, 1, "do_execve", &obj, profile, mode,
+				retries);
 }
 
 /**
@@ -1414,7 +1424,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	}
 	if (!error)
 		error = check_file_perm2(buf, acc_mode, "open", &obj, profile,
-					 mode);
+					 mode, 0);
 	if (!error && (flag & O_TRUNC))
 		error = check_single_path_permission2(TYPE_TRUNCATE_ACL, buf,
 						      &obj, profile, mode);
@@ -1523,6 +1533,7 @@ int ccs_check_2path_perm(const u8 operation,
 				     struct dentry *dentry2,
 				     struct vfsmount *mnt2)
 {
+	unsigned short int retries = 0;
 	int error = -ENOMEM;
 	struct path_info *buf1, *buf2;
 	struct domain_info * const domain = current->domain_info;
@@ -1567,10 +1578,13 @@ retry:
 		       "denied for %s\n", ccs_get_msg(is_enforce),
 		       msg, buf1->name, buf2->name, ccs_get_last_name(domain));
 	if (is_enforce) {
-		error = ccs_check_supervisor(NULL, "allow_%s %s %s\n",
+		error = ccs_check_supervisor(retries, NULL,
+					     "allow_%s %s %s\n",
 					     msg, buf1->name, buf2->name);
-		if (error == 1)
+		if (error == 1) {
+			retries++;
 			goto retry;
+		}
 	}
 	if (mode == 1 && ccs_check_domain_quota(domain))
 		update_double_path_acl(operation,

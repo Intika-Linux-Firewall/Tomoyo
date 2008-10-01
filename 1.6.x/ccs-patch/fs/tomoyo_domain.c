@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/09/09
+ * Version: 1.6.5-pre   2008/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1001,6 +1001,7 @@ static int find_next_domain(struct linux_binprm *bprm,
 	 * This function assumes that the size of buffer returned by
 	 * ccs_realpath() = CCS_MAX_PATHNAME_LEN.
 	 */
+	unsigned short int retries = 0;
 	struct domain_info *old_domain = current->domain_info;
 	struct domain_info *domain = NULL;
 	const char *old_domain_name = old_domain->domainname->name;
@@ -1096,9 +1097,12 @@ static int find_next_domain(struct linux_binprm *bprm,
 		else
 			base_filename++;
 		if (strcmp(base_argv0, base_filename)) {
-			retval = ccs_check_argv0_perm(&r, base_argv0);
-			if (retval == 1)
+			retval = ccs_check_argv0_perm(&r, base_argv0, retries);
+			if (retval == 1) {
+				retries++;
 				goto retry;
+			}
+			retries = 0;
 			if (retval < 0)
 				goto out;
 		}
@@ -1121,9 +1125,12 @@ static int find_next_domain(struct linux_binprm *bprm,
 	}
 
 	/* Check execute permission. */
-	retval = ccs_check_exec_perm(&r, bprm, tmp);
-	if (retval == 1)
+	retval = ccs_check_exec_perm(&r, bprm, tmp, retries);
+	if (retval == 1) {
+		retries++;
 		goto retry;
+	}
+	retries = 0;
 	if (retval < 0)
 		goto out;
 
@@ -1154,11 +1161,14 @@ static int find_next_domain(struct linux_binprm *bprm,
 	if (domain)
 		goto done;
 	if (is_enforce) {
-		int error = ccs_check_supervisor(NULL,
+		int error = ccs_check_supervisor(retries, NULL,
 						 "# wants to create domain\n"
 						 "%s\n", new_domain_name);
-		if (error == 1)
+		if (error == 1) {
+			retries++;
 			goto retry;
+		}
+		retries = 0;
 		if (error < 0)
 			goto done;
 	}
