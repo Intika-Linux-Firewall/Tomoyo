@@ -25,7 +25,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/09/24
++ * Version: 2.2.0-pre   2008/10/01
 + *
 + */
 +
@@ -762,7 +762,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	char *new_domain_name = NULL;
 +	char *real_program_name = NULL;
 +	char *symlink_program_name = NULL;
-+	const u8 mode = tmy_check_flags(TMY_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = tmy_check_flags(old_domain, TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	int retval = -ENOMEM;
 +	struct path_info r; /* real name */
@@ -822,7 +822,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +
 +	/* Check execute permission. */
-+	retval = tmy_check_exec_perm(&r, tmp);
++	retval = tmy_check_exec_perm(old_domain, &r, tmp);
 +	if (retval < 0)
 +		goto out;
 +
