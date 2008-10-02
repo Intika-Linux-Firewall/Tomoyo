@@ -1,0 +1,1495 @@
+Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 1645)
++++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
+@@ -309,7 +309,7 @@
+ /* Ignore "allow_env" directive in exception policy.  */
+ #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2
+ /*
+- * This domain was unable to create a new domain at ccs_find_next_domain()
++ * This domain was unable to create a new domain at find_next_domain()
+  * because the name of the domain to be created was too long or
+  * it could not allocate memory.
+  * More than one process continued execve() without domain transition.
+@@ -617,9 +617,10 @@
+ /* Read "deny_autobind" entry in system policy. */
+ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
+ /* Write domain policy violation warning message to console? */
+-bool ccs_verbose_mode(void);
++bool ccs_verbose_mode(const struct domain_info *domain);
+ /* Allocate buffer for domain policy auditing. */
+-char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
++char *ccs_init_audit_log(int *len, const struct domain_info *domain,
++			 const u8 profile, const u8 mode,
+ 			 struct linux_binprm *bprm);
+ /* Convert capability index to capability name. */
+ const char *ccs_cap2keyword(const u8 operation);
+@@ -635,6 +636,8 @@
+ const char *ccs_net2keyword(const u8 operation);
+ /* Convert single path operation to operation name. */
+ const char *ccs_sp2keyword(const u8 operation);
++/* Fetch next_domain from the list. */
++struct domain_info *ccs_fetch_next_domain(void);
+ /* Create conditional part of an ACL entry. */
+ const struct condition_list *
+ ccs_find_or_assign_new_condition(char * const condition);
+@@ -644,11 +647,13 @@
+ /* Add an ACL entry to domain's ACL list. */
+ int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
+ /* Check whether there is space for audit logs. */
+-int ccs_can_save_audit_log(const bool is_granted);
++int ccs_can_save_audit_log(const struct domain_info *domain,
++			   const bool is_granted);
+ /* Ask supervisor's opinion. */
+-int ccs_check_supervisor(const unsigned short int retries,
++int ccs_check_supervisor(const struct domain_info *domain,
++			 const unsigned short int retries,
+ 			 struct linux_binprm *bprm, const char *fmt, ...)
+-	__attribute__ ((format(printf, 3, 4)));
++	__attribute__ ((format(printf, 4, 5)));
+ /* Close /proc/ccs/ interface. */
+ int ccs_close_control(struct file *file);
+ /* Delete an ACL entry from domain's ACL list. */
+@@ -681,7 +686,8 @@
+ 			   const struct condition_list *condition,
+ 			   const bool is_delete);
+ /* Write an audit log. */
+-int ccs_write_audit_log(char *log, const bool is_granted);
++int ccs_write_audit_log(const struct domain_info *domain, char *log,
++			const bool is_granted);
+ /* Create "allow_capability" entry in domain policy. */
+ int ccs_write_capability_policy(char *data, struct domain_info *domain,
+ 				const struct condition_list *condition,
+@@ -749,11 +755,11 @@
+ /* Undelete a domain. */
+ struct domain_info *ccs_undelete_domain(const char *domainname);
+ /* Check mode for specified capability. */
+-u8 ccs_check_capability_flags(const u8 index);
++u8 ccs_check_capability_flags(const struct domain_info *domain, const u8 index);
+ /* Check mode for specified functionality. */
+-unsigned int ccs_check_flags(const u8 index);
+-/* Same with ccs_check_flags() except that it doesn't check might_sleep(). */
+-unsigned int ccs_check_flags_no_sleep_check(const u8 index);
++unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index);
++/* Check whether it is safe to sleep. */
++bool ccs_can_sleep(void);
+ /* Allocate memory for structures. */
+ void *ccs_alloc_acl_element(const u8 acl_type,
+ 			    const struct condition_list *condition);
+Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 1645)
++++ trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(working copy)
+@@ -42,6 +42,7 @@
+ struct linux_binprm;
+ struct pt_regs;
+ struct ccs_page_buffer;
++struct domain_info;
+ 
+ #if defined(CONFIG_TOMOYO)
+ 
+@@ -68,7 +69,8 @@
+ 			 const unsigned short int retries);
+ 
+ /* Check whether the given environment is allowed to be received. */
+-int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode);
++int ccs_check_env_perm(struct domain_info * const domain, const char *env,
++		       const u8 profile, const u8 mode);
+ 
+ /* Check whether the given IP address and port number are allowed to use. */
+ int ccs_check_network_listen_acl(const _Bool is_ipv6, const u8 *address,
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(working copy)
+@@ -19,6 +19,7 @@
+ /**
+  * audit_env_log - Audit environment variable name log.
+  *
++ * @domain:     Pointer to "struct domain_info".
+  * @env:        The name of environment variable.
+  * @is_granted: True if this is a granted log.
+  * @profile:    Profile number used.
+@@ -26,21 +27,21 @@
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int audit_env_log(const char *env, const bool is_granted,
+-			 const u8 profile, const u8 mode)
++static int audit_env_log(const struct domain_info *domain, const char *env,
++			 const bool is_granted, const u8 profile, const u8 mode)
+ {
+ 	char *buf;
+ 	int len;
+ 	int len2;
+-	if (ccs_can_save_audit_log(is_granted) < 0)
++	if (ccs_can_save_audit_log(domain, is_granted) < 0)
+ 		return -ENOMEM;
+ 	len = strlen(env) + 64;
+-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
++	buf = ccs_init_audit_log(&len, domain, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	len2 = strlen(buf);
+ 	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_ENV "%s\n", env);
+-	return ccs_write_audit_log(buf, is_granted);
++	return ccs_write_audit_log(domain, buf, is_granted);
+ }
+ 
+ /* Structure for "allow_env" keyword. */
+@@ -254,30 +255,33 @@
+ /**
+  * ccs_check_env_perm - Check permission for environment variable's name.
+  *
++ * @domain:  Pointer to "struct domain_info".
+  * @env:     The name of environment variable.
+  * @profile: Profile number.
+  * @mode:    Access control mode.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode)
++int ccs_check_env_perm(struct domain_info * const domain, const char *env,
++		       const u8 profile, const u8 mode)
+ {
+ 	unsigned short int retries = 0;
+ 	int error = 0;
+-	struct domain_info * const domain = current->domain_info;
+ 	const bool is_enforce = (mode == 3);
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!env || !*env)
+ 		return 0;
+  retry:
+ 	error = check_env_acl(env);
+-	audit_env_log(env, !error, profile, mode);
++	audit_env_log(domain, env, !error, profile, mode);
+ 	if (!error)
+ 		return 0;
+-	if (ccs_verbose_mode())
++	if (ccs_verbose_mode(domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
+ 		       ccs_get_msg(is_enforce), env, ccs_get_last_name(domain));
+ 	if (is_enforce) {
+-		error = ccs_check_supervisor(retries, NULL,
++		error = ccs_check_supervisor(domain, retries, NULL,
+ 					     KEYWORD_ALLOW_ENV "%s\n",
+ 					     env);
+ 		if (error == 1) {
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(working copy)
+@@ -38,18 +38,19 @@
+ 			     const bool is_granted,
+ 			     const u8 profile, const u8 mode)
+ {
++	const struct domain_info *domain = current->domain_info;
+ 	char *buf;
+ 	int len = 256;
+ 	int len2;
+-	if (ccs_can_save_audit_log(is_granted) < 0)
++	if (ccs_can_save_audit_log(domain, is_granted) < 0)
+ 		return -ENOMEM;
+-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
++	buf = ccs_init_audit_log(&len, domain, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	len2 = strlen(buf);
+ 	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_NETWORK "%s %s %u\n",
+ 		 operation, address, port);
+-	return ccs_write_audit_log(buf, is_granted);
++	return ccs_write_audit_log(domain, buf, is_granted);
+ }
+ 
+ /**
+@@ -584,13 +585,15 @@
+ 	struct domain_info * const domain = current->domain_info;
+ 	struct acl_info *ptr;
+ 	const char *keyword = ccs_net2keyword(operation);
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_NETWORK);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_NETWORK);
+ 	const bool is_enforce = (mode == 3);
+ 	/* using host byte order to allow u32 comparison than memcmp().*/
+ 	const u32 ip = ntohl(*address);
+ 	bool found = false;
+ 	char buf[64];
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode)
+ 		return 0;
+ retry:
+@@ -629,12 +632,12 @@
+ 	audit_network_log(is_ipv6, keyword, buf, port, found, profile, mode);
+ 	if (found)
+ 		return 0;
+-	if (ccs_verbose_mode())
++	if (ccs_verbose_mode(domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
+ 		       ccs_get_msg(is_enforce), keyword, buf, port,
+ 		       ccs_get_last_name(domain));
+ 	if (is_enforce) {
+-		int error = ccs_check_supervisor(retries, NULL,
++		int error = ccs_check_supervisor(domain, retries, NULL,
+ 						 KEYWORD_ALLOW_NETWORK
+ 						 "%s %s %u\n", keyword, buf,
+ 						 port);
+Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
+@@ -96,7 +96,7 @@
+ 	       "Permission denied.\n", ccs_get_msg(is_enforce),
+ 	       root_name, current->pid, exename);
+ 	if (is_enforce)
+-		error = ccs_check_supervisor(retries, NULL,
++		error = ccs_check_supervisor(NULL, retries, NULL,
+ 					     "# %s is requesting\nchroot %s\n",
+ 					     exename, root_name);
+ 	else
+@@ -126,7 +126,9 @@
+ 	unsigned short int retries = 0;
+ 	int error;
+ 	char *root_name;
+-	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_CHROOT);
++	const u8 mode = ccs_check_flags(NULL, CCS_SAKURA_RESTRICT_CHROOT);
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode)
+ 		return 0;
+  retry:
+Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
+@@ -103,10 +103,12 @@
+ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
+ 				    struct PATH_or_NAMEIDATA *new_path)
+ {
+-	unsigned short int retries = 0; 
++	unsigned short int retries = 0;
+ 	int error;
+ 	char *old_root, *new_root;
+-	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
++	const u8 mode = ccs_check_flags(NULL, CCS_SAKURA_RESTRICT_PIVOT_ROOT);
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode)
+ 		return 0;
+  retry:
+@@ -149,7 +151,7 @@
+ 		       ccs_get_msg(is_enforce), new_root, old_root,
+ 		       current->pid, exename);
+ 		if (is_enforce)
+-			error = ccs_check_supervisor(retries, NULL,
++			error = ccs_check_supervisor(NULL, retries, NULL,
+ 						     "# %s is requesting\n"
+ 						     "pivot_root %s %s\n",
+ 						     exename, new_root,
+Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(working copy)
+@@ -256,7 +256,7 @@
+ 		       realname2 ? realname2 : dir_name,
+ 		       flags, current->pid, exename);
+ 		if (is_enforce)
+-			error = ccs_check_supervisor(retries, NULL,
++			error = ccs_check_supervisor(NULL, retries, NULL,
+ 						     "# %s is requesting\n"
+ 						     "mount -o remount %s "
+ 						     "0x%lX\n", exename,
+@@ -271,7 +271,7 @@
+ 		       realname2 ? realname2 : dir_name,
+ 		       flags, current->pid, exename);
+ 		if (is_enforce)
+-			error = ccs_check_supervisor(retries, NULL,
++			error = ccs_check_supervisor(NULL, retries, NULL,
+ 						     "# %s is requesting\n"
+ 						     "mount %s %s %s 0x%lX\n",
+ 						     exename, type,
+@@ -289,7 +289,7 @@
+ 		       realname2 ? realname2 : dir_name,
+ 		       flags, current->pid, exename);
+ 		if (is_enforce)
+-			error = ccs_check_supervisor(retries, NULL,
++			error = ccs_check_supervisor(NULL, retries, NULL,
+ 						     "# %s is requesting\n"
+ 						     "mount %s %s 0x%lX",
+ 						     exename, type,
+@@ -303,7 +303,7 @@
+ 		       realname2 ? realname2 : dir_name,
+ 		       flags, current->pid, exename);
+ 		if (is_enforce)
+-			error = ccs_check_supervisor(retries, NULL,
++			error = ccs_check_supervisor(NULL, retries, NULL,
+ 						     "# %s is requesting\n"
+ 						     "mount -t %s %s %s "
+ 						     "0x%lX\n", exename, type,
+@@ -332,7 +332,7 @@
+ 				   unsigned long flags)
+ {
+ 	unsigned short int retries = 0;
+-	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_MOUNT);
++	const u8 mode = ccs_check_flags(NULL, CCS_SAKURA_RESTRICT_MOUNT);
+ 	const bool is_enforce = (mode == 3);
+ 	int error;
+ 	if (!mode)
+@@ -521,6 +521,8 @@
+ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
+ 			       const unsigned long *flags)
+ {
++	if (!ccs_can_sleep())
++		return 0;
+ 	return check_mount_permission2(dev_name, dir_name, type, *flags);
+ }
+ 
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
+@@ -158,6 +158,7 @@
+  * ccs_init_audit_log - Allocate buffer for audit logs.
+  *
+  * @len:     Required size.
++ * @domain:  Pointer to "struct domain_info". NULL for current->domain_info.
+  * @profile: Profile number.
+  * @mode:    Access control mode.
+  * @bprm:    Pointer to "struct linux_binprm". May be NULL.
+@@ -166,7 +167,8 @@
+  *
+  * The @len is updated to add the header lines' size on success.
+  */
+-char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
++char *ccs_init_audit_log(int *len, const struct domain_info *domain,
++			 const u8 profile, const u8 mode,
+ 			 struct linux_binprm *bprm)
+ {
+ 	static const char *mode_4[4] = {
+@@ -177,7 +179,10 @@
+ 	struct timeval tv;
+ 	struct task_struct *task = current;
+ 	u32 tomoyo_flags = task->tomoyo_flags;
+-	const char *domainname = current->domain_info->domainname->name;
++	const char *domainname;
++	if (!domain)
++		domain = current->domain_info;
++	domainname = domain->domainname->name;
+ 	do_gettimeofday(&tv);
+ 	*len += strlen(domainname) + 256;
+ 	if (bprm) {
+@@ -205,26 +210,31 @@
+ /**
+  * get_max_grant_log - Get max number of spoolable grant logs.
+  *
++ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
++ *
+  * Returns max number of spoolable grant logs.
+  */
+-static unsigned int get_max_grant_log(void)
++static unsigned int get_max_grant_log(const struct domain_info *domain)
+ {
+-	return ccs_check_flags(CCS_TOMOYO_MAX_GRANT_LOG);
++	return ccs_check_flags(domain, CCS_TOMOYO_MAX_GRANT_LOG);
+ }
+ 
+ /**
+  * get_max_reject_log - Get max number of spoolable reject logs.
+  *
++ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
++ *
+  * Returns max number of spoolable reject logs.
+  */
+-static unsigned int get_max_reject_log(void)
++static unsigned int get_max_reject_log(const struct domain_info *domain)
+ {
+-	return ccs_check_flags(CCS_TOMOYO_MAX_REJECT_LOG);
++	return ccs_check_flags(domain, CCS_TOMOYO_MAX_REJECT_LOG);
+ }
+ 
+ /**
+  * ccs_write_audit_log - Write audit log.
+  *
++ * @domain:     Pointer to "struct domain_info". NULL for current->domain_info.
+  * @buf:        Pointer to audit log.
+  * @is_granted: True if this is a granted log.
+  *
+@@ -232,24 +242,27 @@
+  *
+  * Caller must allocate @buf with ccs_init_audit_log().
+  */
+-int ccs_write_audit_log(char *buf, const bool is_granted)
++int ccs_write_audit_log(const struct domain_info *domain,
++			char *buf, const bool is_granted)
+ {
+ 	struct log_entry *new_entry = ccs_alloc(sizeof(*new_entry));
+ 	if (!new_entry)
+ 		goto out;
++	if (!domain)
++		domain = current->domain_info;
+ 	INIT_LIST_HEAD(&new_entry->list);
+ 	new_entry->log = buf;
+ 	/***** CRITICAL SECTION START *****/
+ 	spin_lock(&audit_log_lock);
+ 	if (is_granted) {
+-		if (grant_log_count < get_max_grant_log()) {
++		if (grant_log_count < get_max_grant_log(domain)) {
+ 			list_add_tail(&new_entry->list, &grant_log);
+ 			grant_log_count++;
+ 			buf = NULL;
+ 			ccs_update_counter(CCS_UPDATES_COUNTER_GRANT_LOG);
+ 		}
+ 	} else {
+-		if (reject_log_count < get_max_reject_log()) {
++		if (reject_log_count < get_max_reject_log(domain)) {
+ 			list_add_tail(&new_entry->list, &reject_log);
+ 			reject_log_count++;
+ 			buf = NULL;
+@@ -273,17 +286,19 @@
+ /**
+  * ccs_can_save_audit_log - Check whether the kernel can save new audit log.
+  *
++ * @domain:     Pointer to "struct domain_info". NULL for current->domain_info.
+  * @is_granted: True if this is a granted log.
+  *
+  * Returns 0 if the kernel can save, -ENOMEM otherwise.
+  */
+-int ccs_can_save_audit_log(const bool is_granted)
++int ccs_can_save_audit_log(const struct domain_info *domain,
++			   const bool is_granted)
+ {
+ 	if (is_granted) {
+-		if (grant_log_count < get_max_grant_log())
++		if (grant_log_count < get_max_grant_log(domain))
+ 			return 0;
+ 	} else {
+-		if (reject_log_count < get_max_reject_log())
++		if (reject_log_count < get_max_reject_log(domain))
+ 			return 0;
+ 	}
+ 	return -ENOMEM;
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
+@@ -160,24 +160,25 @@
+ 				     const char *handler,
+ 				     struct linux_binprm *bprm)
+ {
++	const struct domain_info *domain = current->domain_info;
+ 	char *buf;
+ 	int len;
+ 	int len2;
+ 	u8 profile;
+ 	u8 mode;
+-	if (ccs_can_save_audit_log(true) < 0)
++	if (ccs_can_save_audit_log(domain, true) < 0)
+ 		return -ENOMEM;
+ 	len = strlen(handler) + 32;
+-	profile = current->domain_info->profile;
+-	mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
+-	buf = ccs_init_audit_log(&len, profile, mode, bprm);
++	profile = domain->profile;
++	mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE);
++	buf = ccs_init_audit_log(&len, domain, profile, mode, bprm);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	len2 = strlen(buf);
+ 	snprintf(buf + len2, len - len2 - 1, "%s %s\n",
+ 		 is_default ? KEYWORD_EXECUTE_HANDLER :
+ 		 KEYWORD_DENIED_EXECUTE_HANDLER, handler);
+-	return ccs_write_audit_log(buf, true);
++	return ccs_write_audit_log(domain, buf, true);
+ }
+ 
+ /**
+@@ -192,14 +193,15 @@
+ static int audit_domain_creation_log(const char *domainname, const u8 mode,
+ 				     const u8 profile)
+ {
++	const struct domain_info *domain = current->domain_info;
+ 	char *buf;
+ 	char *cp;
+ 	int len;
+ 	int len2;
+-	if (ccs_can_save_audit_log(false) < 0)
++	if (ccs_can_save_audit_log(domain, false) < 0)
+ 		return -ENOMEM;
+ 	len = strlen(domainname) + 32;
+-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
++	buf = ccs_init_audit_log(&len, domain, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	cp = strchr(buf, '\n');
+@@ -211,7 +213,7 @@
+ 	len2 = strlen(buf);
+ 	snprintf(buf + len2, len - len2 - 1, "%s\nuse_profile %u\n",
+ 		 domainname, profile);
+-	return ccs_write_audit_log(buf, false);
++	return ccs_write_audit_log(domain, buf, false);
+ }
+ 
+ /* The list for "struct domain_initializer_entry". */
+@@ -1009,7 +1011,7 @@
+ 	char *new_domain_name = NULL;
+ 	char *real_program_name = NULL;
+ 	char *symlink_program_name = NULL;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = ccs_check_flags(old_domain, CCS_TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
+ 	int retval;
+ 	struct path_info r; /* real name */
+@@ -1085,7 +1087,8 @@
+ 	}
+ 
+ 	/* Compare basename of real_program_name and argv[0] */
+-	if (bprm->argc > 0 && ccs_check_flags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
++	if (bprm->argc > 0 &&
++	    ccs_check_flags(old_domain, CCS_TOMOYO_MAC_FOR_ARGV0)) {
+ 		char *base_argv0 = tmp->buffer;
+ 		const char *base_filename;
+ 		retval = -ENOMEM;
+@@ -1161,7 +1164,7 @@
+ 	if (domain)
+ 		goto done;
+ 	if (is_enforce) {
+-		int error = ccs_check_supervisor(retries, NULL,
++		int error = ccs_check_supervisor(old_domain, retries, NULL,
+ 						 "# wants to create domain\n"
+ 						 "%s\n", new_domain_name);
+ 		if (error == 1) {
+@@ -1201,15 +1204,17 @@
+ /**
+  * check_environ - Check permission for environment variable names.
+  *
+- * @bprm: Pointer to "struct linux_binprm".
+- * @tmp:  Buffer for temporal use.
++ * @domain: Pointer to "struct domain_info".
++ * @bprm:   Pointer to "struct linux_binprm".
++ * @tmp:    Buffer for temporal use.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int check_environ(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
++static int check_environ(struct domain_info * const domain,
++			 struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
+ {
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_ENV);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_ENV);
+ 	char *arg_ptr = tmp->buffer;
+ 	int arg_len = 0;
+ 	unsigned long pos = bprm->p;
+@@ -1269,7 +1274,8 @@
+ 			}
+ 			if (c)
+ 				continue;
+-			if (ccs_check_env_perm(arg_ptr, profile, mode)) {
++			if (ccs_check_env_perm(domain, arg_ptr, profile,
++					       mode)) {
+ 				error = -EPERM;
+ 				break;
+ 			}
+@@ -1619,7 +1625,85 @@
+ 	return NULL;
+ }
+ 
++/* List of next_domain which is used for checking interpreter's permissions. */
++struct execve_entry {
++	struct list_head list;
++	struct task_struct *task;
++	struct domain_info *next_domain;
++};
++
++static LIST_HEAD(execve_list);
++static DEFINE_SPINLOCK(execve_list_lock);
++
+ /**
++ * ccs_register_next_domain - Remember next_domain.
++ *
++ * @next_domain: Pointer to "struct domain_info".
++ *
++ * Returns 0 on success, -ENOMEM otherwise.
++ */
++static int ccs_register_next_domain(struct domain_info *next_domain)
++{
++	struct execve_entry *ee = kmalloc(sizeof(*ee), GFP_KERNEL);
++	if (!ee)
++		return -ENOMEM;
++	ee->task = current;
++	ee->next_domain = next_domain;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&execve_list_lock);
++	list_add(&ee->list, &execve_list);
++	spin_unlock(&execve_list_lock);
++	/***** CRITICAL SECTION END *****/
++	return 0;
++}
++
++/**
++ * ccs_fetch_next_domain - Fetch next_domain from the list.
++ *
++ * Returns pointer to "struct domain_info" which will be used if execve()
++ * succeeds. This function does not return NULL.
++ */
++struct domain_info *ccs_fetch_next_domain(void)
++{
++	struct task_struct *task = current;
++	struct domain_info *next_domain = task->domain_info;
++	struct execve_entry *p;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&execve_list_lock);
++	list_for_each_entry(p, &execve_list, list) {
++		if (p->task != task)
++			continue;
++		next_domain = p->next_domain;
++		break;
++	}
++	spin_unlock(&execve_list_lock);
++	/***** CRITICAL SECTION END *****/
++	return next_domain;
++}
++
++/**
++ * ccs_unregister_next_domain - Forget next_domain.
++ */
++static void ccs_unregister_next_domain(void)
++{
++	struct task_struct *task = current;
++	struct execve_entry *p;
++	struct execve_entry *ee = NULL;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&execve_list_lock);
++	list_for_each_entry(p, &execve_list, list) {
++		if (p->task != task)
++			continue;
++		list_del(&p->list);
++		ee = p;
++		break;
++	}
++	spin_unlock(&execve_list_lock);
++	/***** CRITICAL SECTION END *****/
++	kfree(ee);
++}
++
++/**
+  * search_binary_handler_with_transition - Perform domain transition.
+  *
+  * @bprm: Pointer to "struct linux_binprm".
+@@ -1633,7 +1717,6 @@
+ {
+ 	struct task_struct *task = current;
+ 	struct domain_info *next_domain = NULL;
+-	struct domain_info *prev_domain = task->domain_info;
+ 	const struct path_info *handler;
+ 	int retval;
+ 	/*
+@@ -1669,23 +1752,28 @@
+  ok:
+ 	if (retval < 0)
+ 		goto out;
+-	task->domain_info = next_domain;
+-	retval = check_environ(bprm, tmp);
++	retval = check_environ(next_domain, bprm, tmp);
+ 	if (retval < 0)
+ 		goto out;
++	retval = ccs_register_next_domain(next_domain);
++	if (retval < 0)
++		goto out;
+ 	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+ 	retval = search_binary_handler(bprm, regs);
+ 	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+  out:
+-	/* Return to previous domain if execution failed. */
+-	if (retval < 0)
+-		task->domain_info = prev_domain;
+-	/* Mark the current process as execute handler. */
+-	else if (handler)
+-		task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
+-	/* Mark the current process as normal process. */
+-	else
+-		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
++	if (retval >= 0) {
++		/* Proceed to next domain if execution suceeded. */
++		task->domain_info = next_domain;
++		mb(); /* Make domain transition visible to other CPUs. */
++		/* Mark the current process as execute handler. */
++		if (handler)
++			task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
++		/* Mark the current process as normal process. */
++		else
++			task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
++	}
++	ccs_unregister_next_domain();
+ 	ccs_free(eh_path);
+ 	ccs_free(tmp);
+ 	return retval;
+Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(working copy)
+@@ -95,7 +95,7 @@
+ 	       "Permission denied.\n", ccs_get_msg(is_enforce), dir,
+ 	       current->pid, exename);
+ 	if (is_enforce)
+-		error = ccs_check_supervisor(retries, NULL,
++		error = ccs_check_supervisor(NULL, retries, NULL,
+ 					     "# %s is requesting\n"
+ 					     "mount on %s\n", exename, dir);
+ 	else
+@@ -117,7 +117,7 @@
+ 	unsigned short int retries = 0;
+ 	struct list_head *p;
+ 	bool flag = false;
+-	const u8 mode = ccs_check_flags(CCS_SAKURA_DENY_CONCEAL_MOUNT);
++	const u8 mode = ccs_check_flags(NULL, CCS_SAKURA_DENY_CONCEAL_MOUNT);
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+ 	struct namespace *namespace = current->namespace;
+ #elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+@@ -125,6 +125,8 @@
+ #else
+ 	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
+ #endif
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode)
+ 		return 0;
+ 	if (!namespace)
+Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
+@@ -845,26 +845,8 @@
+ }
+ 
+ /**
+- * ccs_check_flags_no_sleep_check - Check mode for specified functionality.
++ * ccs_can_sleep - Check whether it is permitted to do operations that may sleep.
+  *
+- * @index: The functionality to check mode.
+- *
+- * Returns the mode of specified functionality.
+- */
+-unsigned int ccs_check_flags_no_sleep_check(const u8 index)
+-{
+-	const u8 profile = current->domain_info->profile;
+-	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
+-#if MAX_PROFILES != 256
+-		&& profile < MAX_PROFILES
+-#endif
+-		&& profile_ptr[profile] ?
+-		profile_ptr[profile]->value[index] : 0;
+-}
+-
+-/**
+- * sleep_check - Check whether it is permitted to do operations that may sleep.
+- *
+  * Returns true if it is permitted to do operations that may sleep,
+  * false otherwise.
+  *
+@@ -874,7 +856,7 @@
+  * it is permitted to do operations that may sleep.
+  * Thus, this warning should not happen.
+  */
+-static bool sleep_check(void)
++bool ccs_can_sleep(void)
+ {
+ 	static u8 count = 20;
+ 	if (likely(!in_interrupt()))
+@@ -891,31 +873,42 @@
+ /**
+  * ccs_check_flags - Check mode for specified functionality.
+  *
+- * @index: The functionality to check mode.
++ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
++ * @index:  The functionality to check mode.
+  *
+  * Returns the mode of specified functionality.
+  */
+-unsigned int ccs_check_flags(const u8 index)
++unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index)
+ {
+-	return sleep_check() ? ccs_check_flags_no_sleep_check(index) : 0;
++	u8 profile;
++	if (!domain)
++		domain = current->domain_info;
++	profile = domain->profile;
++	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
++#if MAX_PROFILES != 256
++		&& profile < MAX_PROFILES
++#endif
++		&& profile_ptr[profile] ?
++		profile_ptr[profile]->value[index] : 0;
+ }
+ 
+ #ifdef CONFIG_TOMOYO
+ /**
+  * ccs_check_capability_flags - Check mode for specified capability.
+  *
+- * @index: The capability to check mode.
++ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
++ * @index:  The capability to check mode.
+  *
+  * Returns the mode of specified capability.
+  */
+-u8 ccs_check_capability_flags(const u8 index)
++u8 ccs_check_capability_flags(const struct domain_info *domain, const u8 index)
+ {
+-	const u8 profile = current->domain_info->profile;
++	const u8 profile = domain ? domain->profile :
++		current->domain_info->profile;
+ 	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
+ #if MAX_PROFILES != 256
+ 		&& profile < MAX_PROFILES
+ #endif
+-		&& sleep_check()
+ 		&& profile_ptr[profile] ?
+ 		profile_ptr[profile]->capability_value[index] : 0;
+ }
+@@ -938,12 +931,14 @@
+ /**
+  * ccs_verbose_mode - Check whether TOMOYO is verbose mode.
+  *
++ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
++ *
+  * Returns true if domain policy violation warning should be printed to
+  * console.
+  */
+-bool ccs_verbose_mode(void)
++bool ccs_verbose_mode(const struct domain_info *domain)
+ {
+-	return ccs_check_flags(CCS_TOMOYO_VERBOSE) != 0;
++	return ccs_check_flags(domain, CCS_TOMOYO_VERBOSE) != 0;
+ }
+ 
+ /**
+@@ -1014,7 +1009,7 @@
+ 			count++;
+ 		}
+ 	}
+-	if (count < ccs_check_flags(CCS_TOMOYO_MAX_ACCEPT_ENTRY))
++	if (count < ccs_check_flags(domain, CCS_TOMOYO_MAX_ACCEPT_ENTRY))
+ 		return true;
+ 	if (!domain->quota_warned) {
+ 		domain->quota_warned = true;
+@@ -2518,6 +2513,7 @@
+ /**
+  * ccs_check_supervisor - Ask for the supervisor's decision.
+  *
++ * @domain:  Pointer to "struct domain_info".
+  * @retries: How many retries are made for this request.
+  * @bprm:    Pointer to "struct linux_binprm". May be NULL.
+  * @fmt:     The printf()'s format string, followed by parameters.
+@@ -2527,7 +2523,8 @@
+  * retry the access request which violated the policy in enforcing mode,
+  * -EPERM otherwise.
+  */
+-int ccs_check_supervisor(const unsigned short int retries,
++int ccs_check_supervisor(const struct domain_info *domain,
++			 const unsigned short int retries,
+ 			 struct linux_binprm *bprm, const char *fmt, ...)
+ {
+ 	va_list args;
+@@ -2537,11 +2534,14 @@
+ 	static unsigned int serial;
+ 	struct query_entry *query_entry = NULL;
+ 	char *header;
++	if (!domain)
++		domain = current->domain_info;
+ 	if (!atomic_read(&queryd_watcher)) {
+ 		int i;
+ 		if (current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
+ 			return -EPERM;
+-		for (i = 0; i < ccs_check_flags(CCS_SLEEP_PERIOD); i++) {
++		for (i = 0; i < ccs_check_flags(domain, CCS_SLEEP_PERIOD);
++		     i++) {
+ 			set_current_state(TASK_INTERRUPTIBLE);
+ 			schedule_timeout(HZ / 10);
+ 		}
+@@ -2551,8 +2551,7 @@
+ 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
+ 	va_end(args);
+ #ifdef CONFIG_TOMOYO
+-	header = ccs_init_audit_log(&len, current->domain_info->profile,
+-				    3, bprm);
++	header = ccs_init_audit_log(&len, domain, domain->profile, 3, bprm);
+ #else
+ 	header = ccs_alloc(1);
+ #endif
+Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(working copy)
+@@ -78,7 +78,7 @@
+ {
+ 	/***** CRITICAL SECTION START *****/
+ 	struct reserved_entry *ptr;
+-	if (!ccs_check_flags_no_sleep_check(CCS_SAKURA_RESTRICT_AUTOBIND))
++	if (!ccs_check_flags(NULL, CCS_SAKURA_RESTRICT_AUTOBIND))
+ 		return 0;
+ 	list1_for_each_entry(ptr, &reservedport_list, list) {
+ 		if (ptr->min_port <= port && port <= ptr->max_port &&
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
+@@ -38,19 +38,20 @@
+ 			    const bool is_granted, const u8 profile,
+ 			    const u8 mode)
+ {
++	const struct domain_info *domain = current->domain_info;
+ 	char *buf;
+ 	int len;
+ 	int len2;
+-	if (ccs_can_save_audit_log(is_granted) < 0)
++	if (ccs_can_save_audit_log(domain, is_granted) < 0)
+ 		return -ENOMEM;
+ 	len = dest_domain->total_len + 64;
+-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
++	buf = ccs_init_audit_log(&len, domain, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	len2 = strlen(buf);
+ 	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_SIGNAL "%d %s\n",
+ 		 signal, dest_domain->name);
+-	return ccs_write_audit_log(buf, is_granted);
++	return ccs_write_audit_log(domain, buf, is_granted);
+ }
+ 
+ /**
+@@ -133,16 +134,18 @@
+  */
+ int ccs_check_signal_acl(const int sig, const int pid)
+ {
++	struct domain_info * const domain = current->domain_info;
+ 	unsigned short int retries = 0;
+-	struct domain_info *domain = current->domain_info;
+ 	struct domain_info *dest = NULL;
+ 	const char *dest_pattern;
+ 	struct acl_info *ptr;
+ 	const u16 hash = sig;
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_SIGNAL);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_SIGNAL);
+ 	const bool is_enforce = (mode == 3);
+ 	bool found = false;
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode)
+ 		return 0;
+ 	if (!sig)
+@@ -200,12 +203,12 @@
+ 	audit_signal_log(sig, dest->domainname, found, profile, mode);
+ 	if (found)
+ 		return 0;
+-	if (ccs_verbose_mode())
++	if (ccs_verbose_mode(domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Signal %d "
+ 		       "to %s denied for %s\n", ccs_get_msg(is_enforce), sig,
+ 		       ccs_get_last_name(dest), ccs_get_last_name(domain));
+ 	if (is_enforce) {
+-		int error = ccs_check_supervisor(retries, NULL,
++		int error = ccs_check_supervisor(domain, retries, NULL,
+ 						 KEYWORD_ALLOW_SIGNAL
+ 						 "%d %s\n", sig, dest_pattern);
+ 		if (error == 1) {
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
+@@ -147,6 +147,7 @@
+ /**
+  * audit_file_log - Audit file related request log.
+  *
++ * @domain:     Pointer to "struct domain_info".
+  * @operation:  The name of operation.
+  * @filename1:  First pathname.
+  * @filename2:  Second pathname. May be NULL.
+@@ -157,7 +158,8 @@
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int audit_file_log(const char *operation,
++static int audit_file_log(const struct domain_info *domain,
++			  const char *operation,
+ 			  const struct path_info *filename1,
+ 			  const struct path_info *filename2,
+ 			  const bool is_granted, const u8 profile,
+@@ -166,18 +168,18 @@
+ 	char *buf;
+ 	int len;
+ 	int len2;
+-	if (ccs_can_save_audit_log(is_granted) < 0)
++	if (ccs_can_save_audit_log(domain, is_granted) < 0)
+ 		return -ENOMEM;
+ 	len = strlen(operation) + filename1->total_len + 16;
+ 	if (filename2)
+ 		len += filename2->total_len;
+-	buf = ccs_init_audit_log(&len, profile, mode, bprm);
++	buf = ccs_init_audit_log(&len, domain, profile, mode, bprm);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	len2 = strlen(buf);
+ 	snprintf(buf + len2, len - len2 - 1, "allow_%s %s %s\n",
+ 		 operation, filename1->name, filename2 ? filename2->name : "");
+-	return ccs_write_audit_log(buf, is_granted);
++	return ccs_write_audit_log(domain, buf, is_granted);
+ }
+ 
+ /* The list for "struct globally_readable_file_entry". */
+@@ -730,6 +732,7 @@
+ /**
+  * check_single_path_acl2 - Check permission for single path operation.
+  *
++ * @domain:          Pointer to "struct domain_info".
+  * @filename:        Filename to check.
+  * @perm:            Permission.
+  * @obj:             Pointer to "struct obj_info".
+@@ -737,11 +740,11 @@
+  *
+  * Returns 0 on success, -EPERM otherwise.
+  */
+-static int check_single_path_acl2(const struct path_info *filename,
++static int check_single_path_acl2(const struct domain_info *domain,
++				  const struct path_info *filename,
+ 				  const u16 perm, struct obj_info *obj,
+ 				  const bool may_use_pattern)
+ {
+-	const struct domain_info *domain = current->domain_info;
+ 	struct acl_info *ptr;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct single_path_acl_record *acl;
+@@ -770,17 +773,20 @@
+ /**
+  * check_file_acl - Check permission for opening files.
+  *
++ * @domain:    Pointer to "struct domain_info".
+  * @filename:  Filename to check.
+  * @operation: Mode ("read" or "write" or "read/write" or "execute").
+  * @obj:       Pointer to "struct obj_info".
+  *
+  * Returns 0 on success, -EPERM otherwise.
+  */
+-static int check_file_acl(const struct path_info *filename, const u8 operation,
++static int check_file_acl(const struct domain_info *domain,
++			  const struct path_info *filename, const u8 operation,
+ 			  struct obj_info *obj)
+ {
+ 	u16 perm = 0;
+-	if (!ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE))
++
++	if (!ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE))
+ 		return 0;
+ 	if (operation == 6)
+ 		perm = 1 << TYPE_READ_WRITE_ACL;
+@@ -792,12 +798,14 @@
+ 		perm = 1 << TYPE_EXECUTE_ACL;
+ 	else
+ 		BUG();
+-	return check_single_path_acl2(filename, perm, obj, operation != 1);
++	return check_single_path_acl2(domain, filename, perm, obj,
++				      operation != 1);
+ }
+ 
+ /**
+  * check_file_perm2 - Check permission for opening files.
+  *
++ * @domain:    Pointer to "strct domain_info".
+  * @filename:  Filename to check.
+  * @perm:      Mode ("read" or "write" or "read/write" or "execute").
+  * @operation: Operation name passed used for verbose mode.
+@@ -808,19 +816,19 @@
+  *
+  * Returns 0 on success, 1 on retry, negative value otherwise.
+  */
+-static int check_file_perm2(const struct path_info *filename, const u8 perm,
++static int check_file_perm2(struct domain_info * const domain,
++			    const struct path_info *filename, const u8 perm,
+ 			    const char *operation, struct obj_info *obj,
+ 			    const u8 profile, const u8 mode,
+ 			    unsigned short int retries)
+ {
+-	struct domain_info * const domain = current->domain_info;
+ 	const bool is_enforce = (mode == 3);
+ 	const char *msg = "<unknown>";
+ 	int error = 0;
+ 	if (!filename)
+ 		return 0;
+ retry:
+-	error = check_file_acl(filename, perm, obj);
++	error = check_file_acl(domain, filename, perm, obj);
+ 	if (error && perm == 4 &&
+ 	    (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0 &&
+ 	    is_globally_readable_file(filename))
+@@ -835,16 +843,16 @@
+ 		msg = ccs_sp2keyword(TYPE_EXECUTE_ACL);
+ 	else
+ 		BUG();
+-	audit_file_log(msg, filename, NULL, !error, profile, mode,
++	audit_file_log(domain, msg, filename, NULL, !error, profile, mode,
+ 		       obj ? obj->bprm : NULL);
+ 	if (!error)
+ 		return 0;
+-	if (ccs_verbose_mode())
++	if (ccs_verbose_mode(domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Access '%s(%s) %s' denied "
+ 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
+ 		       filename->name, ccs_get_last_name(domain));
+ 	if (is_enforce) {
+-		int error = ccs_check_supervisor(retries,
++		int error = ccs_check_supervisor(domain, retries,
+ 						 obj ? obj->bprm : NULL,
+ 						 "allow_%s %s\n",
+ 						 msg, filename->name);
+@@ -1208,9 +1216,10 @@
+ 				 const struct path_info *filename,
+ 				 struct obj_info *obj)
+ {
+-	if (!ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE))
++	const struct domain_info *domain = current->domain_info;
++	if (!ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE))
+ 		return 0;
+-	return check_single_path_acl2(filename, 1 << type, obj, 1);
++	return check_single_path_acl2(domain, filename, 1 << type, obj, 1);
+ }
+ 
+ /**
+@@ -1231,7 +1240,7 @@
+ 	const struct domain_info *domain = current->domain_info;
+ 	struct acl_info *ptr;
+ 	const u8 perm = 1 << type;
+-	if (!ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE))
++	if (!ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE))
+ 		return 0;
+ 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+ 		struct double_path_acl_record *acl;
+@@ -1290,15 +1299,17 @@
+  next:
+ 	error = check_single_path_acl(operation, filename, obj);
+ 	msg = ccs_sp2keyword(operation);
+-	audit_file_log(msg, filename, NULL, !error, profile, mode, NULL);
++	audit_file_log(domain, msg, filename, NULL, !error, profile, mode,
++		       NULL);
+ 	if (!error)
+ 		goto ok;
+-	if (ccs_verbose_mode())
++	if (ccs_verbose_mode(domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
+ 		       ccs_get_msg(is_enforce), msg, filename->name,
+ 		       ccs_get_last_name(domain));
+ 	if (is_enforce) {
+-		error = ccs_check_supervisor(retries, NULL, "allow_%s %s\n",
++		error = ccs_check_supervisor(domain, retries, NULL,
++					     "allow_%s %s\n",
+ 					     msg, filename->name);
+ 		if (error == 1) {
+ 			retries++;
+@@ -1337,14 +1348,18 @@
+ int ccs_check_file_perm(const char *filename, const u8 perm,
+ 			const char *operation)
+ {
++	struct domain_info * const domain = current->domain_info;
+ 	struct path_info name;
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE);
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode)
+ 		return 0;
+ 	name.name = filename;
+ 	ccs_fill_path_info(&name);
+-	return check_file_perm2(&name, perm, operation, NULL, profile, mode, 0);
++	return check_file_perm2(domain, &name, perm, operation, NULL, profile,
++				mode, 0);
+ }
+ 
+ /**
+@@ -1360,9 +1375,12 @@
+ 			struct linux_binprm *bprm, struct ccs_page_buffer *tmp,
+ 			unsigned short int retries)
+ {
++	struct domain_info * const domain = current->domain_info;
+ 	struct obj_info obj;
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE);
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode)
+ 		return 0;
+ 	memset(&obj, 0, sizeof(obj));
+@@ -1370,8 +1388,8 @@
+ 	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
+ 	obj.bprm = bprm;
+ 	obj.tmp = tmp;
+-	return check_file_perm2(filename, 1, "do_execve", &obj, profile, mode,
+-				retries);
++	return check_file_perm2(domain, filename, 1, "do_execve", &obj,
++				profile, mode, retries);
+ }
+ 
+ /**
+@@ -1390,9 +1408,14 @@
+ 	const u8 acc_mode = ACC_MODE(flag);
+ 	int error = -ENOMEM;
+ 	struct path_info *buf;
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
++	struct domain_info * const domain
++		= current->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC ?
++		ccs_fetch_next_domain() : current->domain_info;
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode || !mnt)
+ 		return 0;
+ 	if (acc_mode == 0)
+@@ -1423,8 +1446,8 @@
+ 							      profile, mode);
+ 	}
+ 	if (!error)
+-		error = check_file_perm2(buf, acc_mode, "open", &obj, profile,
+-					 mode, 0);
++		error = check_file_perm2(domain, buf, acc_mode, "open", &obj,
++					 profile, mode, 0);
+ 	if (!error && (flag & O_TRUNC))
+ 		error = check_single_path_permission2(TYPE_TRUNCATE_ACL, buf,
+ 						      &obj, profile, mode);
+@@ -1447,12 +1470,15 @@
+ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
+ 			 struct vfsmount *mnt)
+ {
++	const struct domain_info *domain = current->domain_info;
+ 	struct obj_info obj;
+ 	int error = -ENOMEM;
+ 	struct path_info *buf;
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode || !mnt)
+ 		return 0;
+ 	buf = ccs_get_path(dentry, mnt);
+@@ -1489,12 +1515,15 @@
+  */
+ int ccs_check_rewrite_permission(struct file *filp)
+ {
++	const struct domain_info *domain = current->domain_info;
+ 	struct obj_info obj;
+ 	int error = -ENOMEM;
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
+ 	struct path_info *buf;
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode || !filp->f_vfsmnt)
+ 		return 0;
+ 	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
+@@ -1537,11 +1566,13 @@
+ 	int error = -ENOMEM;
+ 	struct path_info *buf1, *buf2;
+ 	struct domain_info * const domain = current->domain_info;
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
+ 	const char *msg;
+ 	struct obj_info obj;
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode || !mnt1 || !mnt2)
+ 		return 0;
+ 	buf1 = ccs_get_path(dentry1, mnt1);
+@@ -1570,15 +1601,15 @@
+ retry:
+ 	error = check_double_path_acl(operation, buf1, buf2, &obj);
+ 	msg = ccs_dp2keyword(operation);
+-	audit_file_log(msg, buf1, buf2, !error, profile, mode, NULL);
++	audit_file_log(domain, msg, buf1, buf2, !error, profile, mode, NULL);
+ 	if (!error)
+ 		goto out;
+-	if (ccs_verbose_mode())
++	if (ccs_verbose_mode(domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
+ 		       "denied for %s\n", ccs_get_msg(is_enforce),
+ 		       msg, buf1->name, buf2->name, ccs_get_last_name(domain));
+ 	if (is_enforce) {
+-		error = ccs_check_supervisor(retries, NULL,
++		error = ccs_check_supervisor(domain, retries, NULL,
+ 					     "allow_%s %s %s\n",
+ 					     msg, buf1->name, buf2->name);
+ 		if (error == 1) {
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(working copy)
+@@ -81,18 +81,19 @@
+ static int audit_capability_log(const u8 operation, const bool is_granted,
+ 				const u8 profile, const u8 mode)
+ {
++	const struct domain_info *domain = current->domain_info;
+ 	char *buf;
+ 	int len = 64;
+ 	int len2;
+-	if (ccs_can_save_audit_log(is_granted) < 0)
++	if (ccs_can_save_audit_log(domain, is_granted) < 0)
+ 		return -ENOMEM;
+-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
++	buf = ccs_init_audit_log(&len, domain, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	len2 = strlen(buf);
+ 	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_CAPABILITY "%s\n",
+ 		 ccs_cap2keyword(operation));
+-	return ccs_write_audit_log(buf, is_granted);
++	return ccs_write_audit_log(domain, buf, is_granted);
+ }
+ 
+ /**
+@@ -165,10 +166,12 @@
+ 	unsigned short int retries = 0;
+ 	struct domain_info * const domain = current->domain_info;
+ 	struct acl_info *ptr;
+-	const u8 profile = current->domain_info->profile;
+-	const u8 mode = ccs_check_capability_flags(operation);
++	const u8 profile = domain->profile;
++	const u8 mode = ccs_check_capability_flags(domain, operation);
+ 	const bool is_enforce = (mode == 3);
+ 	bool found = false;
++	if (!ccs_can_sleep())
++		return true;
+ 	if (!mode)
+ 		return true;
+  retry:
+@@ -187,12 +190,12 @@
+ 	audit_capability_log(operation, found, profile, mode);
+ 	if (found)
+ 		return true;
+-	if (ccs_verbose_mode())
++	if (ccs_verbose_mode(domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
+ 		       ccs_get_msg(is_enforce), cap_operation2name(operation),
+ 		       ccs_get_last_name(domain));
+ 	if (is_enforce) {
+-		int error = ccs_check_supervisor(retries, NULL,
++		int error = ccs_check_supervisor(domain, retries, NULL,
+ 						 KEYWORD_ALLOW_CAPABILITY
+ 						 "%s\n",
+ 						 ccs_cap2keyword(operation));
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(working copy)
+@@ -31,19 +31,20 @@
+ 			   const bool is_granted, const u8 profile,
+ 			   const u8 mode)
+ {
++	const struct domain_info *domain = current->domain_info;
+ 	char *buf;
+ 	int len;
+ 	int len2;
+-	if (ccs_can_save_audit_log(is_granted) < 0)
++	if (ccs_can_save_audit_log(domain, is_granted) < 0)
+ 		return -ENOMEM;
+ 	len = filename->total_len + strlen(argv0) + 64;
+-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
++	buf = ccs_init_audit_log(&len, domain, profile, mode, NULL);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 	len2 = strlen(buf);
+ 	snprintf(buf + len2, len - len2 - 1,
+ 		 KEYWORD_ALLOW_ARGV0 "%s %s\n", filename->name, argv0);
+-	return ccs_write_audit_log(buf, is_granted);
++	return ccs_write_audit_log(domain, buf, is_granted);
+ }
+ 
+ /**
+@@ -120,14 +121,15 @@
+ /**
+  * check_argv0_acl - Check permission for argv[0].
+  *
++ * @domain:   Pointer to "struct domain_info".
+  * @filename: The fullpath of the program.
+  * @argv0:    The basename of argv[0].
+  *
+  * Returns 0 on success, -EPERM otherwise.
+  */
+-static int check_argv0_acl(const struct path_info *filename, const char *argv0)
++static int check_argv0_acl(const struct domain_info *domain,
++			   const struct path_info *filename, const char *argv0)
+ {
+-	const struct domain_info *domain = current->domain_info;
+ 	int error = -EPERM;
+ 	struct acl_info *ptr;
+ 	struct path_info argv_0;
+@@ -164,20 +166,22 @@
+ 	int error = 0;
+ 	struct domain_info * const domain = current->domain_info;
+ 	const u8 profile = domain->profile;
+-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_ARGV0);
++	const u8 mode = ccs_check_flags(domain, CCS_TOMOYO_MAC_FOR_ARGV0);
+ 	const bool is_enforce = (mode == 3);
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!filename || !argv0 || !*argv0)
+ 		return 0;
+-	error = check_argv0_acl(filename, argv0);
++	error = check_argv0_acl(domain, filename, argv0);
+ 	audit_argv0_log(filename, argv0, !error, profile, mode);
+ 	if (!error)
+ 		return 0;
+-	if (ccs_verbose_mode())
++	if (ccs_verbose_mode(domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Run %s as %s denied for %s\n",
+ 		       ccs_get_msg(is_enforce), filename->name, argv0,
+ 		       ccs_get_last_name(domain));
+ 	if (is_enforce)
+-		return ccs_check_supervisor(retries, NULL,
++		return ccs_check_supervisor(domain, retries, NULL,
+ 					    KEYWORD_ALLOW_ARGV0 "%s %s\n",
+ 					    filename->name, argv0);
+ 	if (mode == 1 && ccs_check_domain_quota(domain))
+Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 1645)
++++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
+@@ -88,11 +88,13 @@
+ 	unsigned short int retries = 0;
+ 	int error;
+ 	const char *dir0;
+-	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_UNMOUNT);
++	const u8 mode = ccs_check_flags(NULL, CCS_SAKURA_RESTRICT_UNMOUNT);
+ 	const bool is_enforce = (mode == 3);
+ 	struct no_umount_entry *ptr;
+ 	struct path_info dir;
+ 	bool found = false;
++	if (!ccs_can_sleep())
++		return 0;
+ 	if (!mode)
+ 		return 0;
+  retry:
+@@ -117,7 +119,7 @@
+ 		       ccs_get_msg(is_enforce), dir0, current->pid,
+ 		       exename);
+ 		if (is_enforce)
+-			error = ccs_check_supervisor(retries, NULL,
++			error = ccs_check_supervisor(NULL, retries, NULL,
+ 						     "# %s is requesting\n"
+ 						     "unmount %s\n",
+ 						     exename, dir0);
