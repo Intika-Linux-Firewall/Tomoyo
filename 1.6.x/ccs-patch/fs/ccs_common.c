@@ -2634,22 +2634,28 @@ int ccs_check_supervisor(const unsigned short int retries,
  */
 static int poll_query(struct file *file, poll_table *wait)
 {
-	bool found;
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
-	found = !list_empty(&query_list);
-	spin_unlock(&query_lock);
-	/***** CRITICAL SECTION END *****/
-	if (found)
-		return POLLIN | POLLRDNORM;
-	poll_wait(file, &query_wait, wait);
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
-	found = !list_empty(&query_list);
-	spin_unlock(&query_lock);
-	/***** CRITICAL SECTION END *****/
-	if (found)
-		return POLLIN | POLLRDNORM;
+	struct list_head *tmp;
+	bool found = false;
+	u8 i;
+	for (i = 0; i < 2; i++) {
+		/***** CRITICAL SECTION START *****/
+		spin_lock(&query_lock);
+		list_for_each(tmp, &query_list) {
+			struct query_entry *ptr
+				= list_entry(tmp, struct query_entry, list);
+			if (ptr->answer)
+				continue;
+			found = true;
+			break;
+		}
+		spin_unlock(&query_lock);
+		/***** CRITICAL SECTION END *****/
+		if (found)
+			return POLLIN | POLLRDNORM;
+		if (i)
+			break;
+		poll_wait(file, &query_wait, wait);
+	}
 	return 0;
 }
 
@@ -2678,6 +2684,8 @@ static int read_query(struct ccs_io_buffer *head)
 	list_for_each(tmp, &query_list) {
 		struct query_entry *ptr
 			= list_entry(tmp, struct query_entry, list);
+		if (ptr->answer)
+			continue;
 		if (pos++ != head->read_step)
 			continue;
 		len = ptr->query_len;
@@ -2690,33 +2698,35 @@ static int read_query(struct ccs_io_buffer *head)
 		return 0;
 	}
 	buf = ccs_alloc(len);
-	if (buf) {
-		pos = 0;
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&query_lock);
-		list_for_each(tmp, &query_list) {
-			struct query_entry *ptr
-				= list_entry(tmp, struct query_entry, list);
-			if (pos++ != head->read_step)
-				continue;
-			/*
-			 * Some query can be skipped because query_list
-			 * can change, but I don't care.
-			 */
-			if (len == ptr->query_len)
-				memmove(buf, ptr->query, len);
-			break;
-		}
-		spin_unlock(&query_lock);
-		/***** CRITICAL SECTION END *****/
-		if (buf[0]) {
-			head->read_avail = len;
-			head->readbuf_size = head->read_avail;
-			head->read_buf = buf;
-			head->read_step++;
-		} else {
-			ccs_free(buf);
-		}
+	if (!buf)
+		return 0;
+	pos = 0;
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&query_lock);
+	list_for_each(tmp, &query_list) {
+		struct query_entry *ptr
+			= list_entry(tmp, struct query_entry, list);
+		if (ptr->answer)
+			continue;
+		if (pos++ != head->read_step)
+			continue;
+		/*
+		 * Some query can be skipped because query_list
+		 * can change, but I don't care.
+		 */
+		if (len == ptr->query_len)
+			memmove(buf, ptr->query, len);
+		break;
+	}
+	spin_unlock(&query_lock);
+	/***** CRITICAL SECTION END *****/
+	if (buf[0]) {
+		head->read_avail = len;
+		head->readbuf_size = head->read_avail;
+		head->read_buf = buf;
+		head->read_step++;
+	} else {
+		ccs_free(buf);
 	}
 	return 0;
 }
