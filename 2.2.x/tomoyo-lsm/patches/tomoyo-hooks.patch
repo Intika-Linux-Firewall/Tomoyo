@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  357 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  106 +++++++++++++
- 2 files changed, 463 insertions(+)
+ security/tomoyo/tomoyo.c |  318 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  106 +++++++++++++++
+ 2 files changed, 424 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,357 @@
+@@ -0,0 +1,318 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -80,165 +80,110 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return error;
 +}
 +
-+/* Copied from fs/namei.c */
-+static inline int may_create(struct inode *dir, struct dentry *child)
-+{
-+	if (child->d_inode)
-+		return -EEXIST;
-+	if (IS_DEADDIR(dir))
-+		return -ENOENT;
-+	return inode_permission(dir, MAY_WRITE | MAY_EXEC);
-+}
-+
-+/* Copied from fs/namei.c */
-+static inline int check_sticky(struct inode *dir, struct inode *inode)
-+{
-+	uid_t fsuid = current_fsuid();
-+
-+	if (!(dir->i_mode & S_ISVTX))
-+		return 0;
-+	if (inode->i_uid == fsuid)
-+		return 0;
-+	if (dir->i_uid == fsuid)
-+		return 0;
-+	return !capable(CAP_FOWNER);
-+}
-+
-+/* Copied from fs/namei.c */
-+static int may_delete(struct inode *dir, struct dentry *victim, int isdir)
-+{
++struct check_result_entry {
++	struct list_head list;
++	struct task_struct *task;
 +	int error;
++};
 +
-+	if (!victim->d_inode)
-+		return -ENOENT;
++static LIST_HEAD(check_result_list);
++static DEFINE_SPINLOCK(check_result_list_lock);
 +
-+	BUG_ON(victim->d_parent->d_inode != dir);
-+	audit_inode_child(victim->d_name.name, victim, dir);
-+
-+	error = inode_permission(dir, MAY_WRITE | MAY_EXEC);
-+	if (error)
-+		return error;
-+	if (IS_APPEND(dir))
-+		return -EPERM;
-+	if (check_sticky(dir, victim->d_inode) || IS_APPEND(victim->d_inode) ||
-+	    IS_IMMUTABLE(victim->d_inode))
-+		return -EPERM;
-+	if (isdir) {
-+		if (!S_ISDIR(victim->d_inode->i_mode))
-+			return -ENOTDIR;
-+		if (IS_ROOT(victim))
-+			return -EBUSY;
-+	} else if (S_ISDIR(victim->d_inode->i_mode))
-+		return -EISDIR;
-+	if (IS_DEADDIR(dir))
-+		return -ENOENT;
-+	if (victim->d_flags & DCACHE_NFSFS_RENAMED)
-+		return -EBUSY;
++static int tmy_save_result(const int error)
++{
++	struct check_result_entry *entry;
++	if (!error)
++		return 0;
++	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++	if (!entry)
++		return -ENOMEM;
++	entry->task = current;
++	entry->error = error;
++	spin_lock(&check_result_list_lock);
++	list_add(&entry->list, &check_result_list);
++	spin_unlock(&check_result_list_lock);
 +	return 0;
++}
++
++static int tmy_load_result(void)
++{
++	struct task_struct *task = current;
++	struct check_result_entry *p;
++	int error = 0;
++	if (list_empty(&check_result_list))
++		return 0;
++	spin_lock(&check_result_list_lock);
++	list_for_each_entry(p, &check_result_list, list) {
++		if (p->task != task)
++			continue;
++		error = p->error;
++		break;
++	}
++	spin_unlock(&check_result_list_lock);
++	return error;
++}
++
++static void tmy_path_clear(void)
++{
++	struct task_struct *task = current;
++	struct check_result_entry *p;
++	struct check_result_entry *entry = NULL;
++	if (list_empty(&check_result_list))
++		return;
++	spin_lock(&check_result_list_lock);
++	list_for_each_entry(p, &check_result_list, list) {
++		if (p->task != task)
++			continue;
++		list_del(&p->list);
++		entry = p;
++		break;
++	}
++	spin_unlock(&check_result_list_lock);
++	kfree(entry);
 +}
 +
 +static int tmy_path_truncate(struct path *path, loff_t length,
 +			     unsigned int time_attrs, struct file *filp)
 +{
-+	struct dentry *dentry = path->dentry;
-+	int error;
-+	mutex_lock(&dentry->d_inode->i_mutex);
-+	error = tmy_check_1path_perm(tmy_domain(), TMY_TYPE_TRUNCATE_ACL,
-+				     path->dentry, path->mnt);
-+	mutex_unlock(&dentry->d_inode->i_mutex);
-+	return error;
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_TRUNCATE_ACL,
++						    path->dentry, path->mnt));
 +}
 +
 +static int tmy_path_unlink(struct path *parent, struct dentry *dentry)
 +{
-+	struct inode *dir = parent->dentry->d_inode;
-+	int error = may_delete(dir, dentry, 0);
-+	if (error)
-+		return error;
-+	if (!dir->i_op || !dir->i_op->unlink)
-+		return -EPERM;
-+	mutex_lock(&dentry->d_inode->i_mutex);
-+	error = tmy_check_1path_perm(tmy_domain(), TMY_TYPE_UNLINK_ACL, dentry,
-+				     parent->mnt);
-+	mutex_unlock(&dentry->d_inode->i_mutex);
-+	return error;
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_UNLINK_ACL,
++						    dentry, parent->mnt));
 +}
 +
 +static int tmy_path_mkdir(struct path *parent, struct dentry *dentry, int mode)
 +{
-+	struct inode *dir = parent->dentry->d_inode;
-+	int error = may_create(dir, dentry);
-+	if (error)
-+		return error;
-+	if (!dir->i_op || !dir->i_op->mkdir)
-+		return -EPERM;
-+	return tmy_check_1path_perm(tmy_domain(), TMY_TYPE_MKDIR_ACL, dentry,
-+				    parent->mnt);
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_MKDIR_ACL,
++						    dentry, parent->mnt));
 +}
 +
 +static int tmy_path_rmdir(struct path *parent, struct dentry *dentry)
 +{
-+	struct inode *dir = parent->dentry->d_inode;
-+	int error = may_delete(dir, dentry, 1);
-+	if (error)
-+		return error;
-+	if (!dir->i_op || !dir->i_op->rmdir)
-+		return -EPERM;
-+	mutex_lock(&dentry->d_inode->i_mutex);
-+	error = tmy_check_1path_perm(tmy_domain(), TMY_TYPE_RMDIR_ACL, dentry,
-+				     parent->mnt);
-+	mutex_unlock(&dentry->d_inode->i_mutex);
-+	return error;
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_RMDIR_ACL,
++						    dentry, parent->mnt));
 +}
 +
 +static int tmy_path_symlink(struct path *parent, struct dentry *dentry,
 +			    const char *old_name)
 +{
-+	struct inode *dir = parent->dentry->d_inode;
-+	int error = may_create(dir, dentry);
-+	if (error)
-+		return error;
-+	if (!dir->i_op || !dir->i_op->symlink)
-+		return -EPERM;
-+	return tmy_check_1path_perm(tmy_domain(), TMY_TYPE_SYMLINK_ACL, dentry,
-+				    parent->mnt);
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_SYMLINK_ACL,
++						    dentry, parent->mnt));
 +}
 +
 +static int tmy_path_mknod(struct path *parent, struct dentry *dentry, int mode,
 +			  unsigned int dev)
 +{
 +	struct vfsmount *mnt = parent->mnt;
-+	struct inode *dir = parent->dentry->d_inode;
-+	int error = 0;
 +	int type = TMY_TYPE_CREATE_ACL;
-+
-+	switch (mode & S_IFMT) {
-+	case S_IFREG:
-+	case 0:
-+		error = may_create(dir, dentry);
-+		if (error)
-+			return error;
-+		if (!dir->i_op || !dir->i_op->create)
-+			return -EACCES; /* shouldn't it be ENOSYS? */
-+		break;
-+	case S_IFCHR:
-+	case S_IFBLK:
-+	case S_IFIFO:
-+	case S_IFSOCK:
-+		error = may_create(dir, dentry);
-+		if (error)
-+			return error;
-+		if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD))
-+			return -EPERM;
-+		if (!dir->i_op || !dir->i_op->mknod)
-+			return -EPERM;
-+		error = devcgroup_inode_mknod(mode, dev);
-+		if (error)
-+			return error;
-+		break;
-+	default:
-+		return 0;
-+	}
 +	switch (mode & S_IFMT) {
 +	case S_IFCHR:
 +		type = TMY_TYPE_MKCHAR_ACL;
@@ -253,66 +198,73 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		type = TMY_TYPE_MKSOCK_ACL;
 +		break;
 +	}
-+	return tmy_check_1path_perm(tmy_domain(), type, dentry, mnt);
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    type, dentry, mnt));
 +}
 +
 +static int tmy_path_link(struct dentry *old_dentry, struct path *new_dir,
 +			 struct dentry *new_dentry)
 +{
-+	struct inode *dir = new_dir->dentry->d_inode;
-+
-+	struct inode *inode = old_dentry->d_inode;
-+	int error;
-+	if (!inode)
-+		return -ENOENT;
-+	error = may_create(dir, new_dentry);
-+	if (error)
-+		return error;
-+	if (dir->i_sb != inode->i_sb)
-+		return -EXDEV;
-+	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
-+		return -EPERM;
-+	if (!dir->i_op || !dir->i_op->link)
-+		return -EPERM;
-+	if (S_ISDIR(inode->i_mode))
-+		return -EPERM;
-+
-+	return tmy_check_2path_perm(tmy_domain(), TMY_TYPE_LINK_ACL,
-+				    old_dentry, new_dir->mnt,
-+				    new_dentry, new_dir->mnt);
++	return tmy_save_result(tmy_check_2path_perm(tmy_domain(),
++						    TMY_TYPE_LINK_ACL,
++						    old_dentry, new_dir->mnt,
++						    new_dentry, new_dir->mnt));
 +}
 +
 +static int tmy_path_rename(struct path *old_parent, struct dentry *old_dentry,
 +			   struct path *new_parent, struct dentry *new_dentry)
 +{
-+	struct inode *old_dir = old_parent->dentry->d_inode;
-+	struct inode *new_dir = new_parent->dentry->d_inode;
++	return tmy_save_result(tmy_check_2path_perm(tmy_domain(),
++						    TMY_TYPE_RENAME_ACL,
++						    old_dentry,
++						    old_parent->mnt,
++						    new_dentry,
++						    new_parent->mnt));
++}
 +
-+	int error;
-+	int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
-+	if (old_dentry->d_inode == new_dentry->d_inode)
-+		return 0;
-+	error = may_delete(old_dir, old_dentry, is_dir);
-+	if (error)
-+		return error;
-+	if (!new_dentry->d_inode)
-+		error = may_create(new_dir, new_dentry);
-+	else
-+		error = may_delete(new_dir, new_dentry, is_dir);
-+	if (error)
-+		return error;
-+	if (!old_dir->i_op || !old_dir->i_op->rename)
-+		return -EPERM;
++static int tmy_inode_link(struct dentry *old_dentry, struct inode *inode,
++			  struct dentry *new_dentry)
++{
++	return tmy_load_result();
++}
 +
-+	if (is_dir && new_dir != old_dir) {
-+		error = inode_permission(old_dentry->d_inode, MAY_WRITE);
-+		if (error)
-+			return error;
-+	}
++static int tmy_inode_unlink(struct inode *inode, struct dentry *dentry)
++{
++	return tmy_load_result();
++}
 +
-+	return tmy_check_2path_perm(tmy_domain(), TMY_TYPE_RENAME_ACL,
-+				    old_dentry, old_parent->mnt,
-+				    new_dentry, new_parent->mnt);
++static int tmy_inode_symlink(struct inode *inode, struct dentry *dentry,
++			     const char *name)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_mkdir(struct inode *inode, struct dentry *dentry,
++			   int mask)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_rmdir(struct inode *inode, struct dentry *dentry)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_mknod(struct inode *inode, struct dentry *dentry,
++			   int mode, dev_t dev)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
++			    struct inode *new_inode, struct dentry *new_dentry)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_setattr(struct dentry *dentry, struct iattr *iattr)
++{
++	return tmy_load_result();
 +}
 +
 +static int tmy_file_fcntl(struct file *file, unsigned int cmd,
@@ -330,7 +282,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		flags++;
 +	flags |= f->f_flags & (O_APPEND | O_TRUNC);
 +	/* Don't check read permission here if called from do_execve(). */
-+	if (mutex_is_locked(&current->cred_exec_mutex))
++	if (current->in_execve)
 +		return 0;
 +	return tmy_check_open_permission(tmy_domain(), f->f_path.dentry,
 +					 f->f_path.mnt, flags);
@@ -352,6 +304,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.path_mknod                = tmy_path_mknod,
 +	.path_link                 = tmy_path_link,
 +	.path_rename               = tmy_path_rename,
++	.inode_setattr             = tmy_inode_setattr,
++	.inode_unlink              = tmy_inode_unlink,
++	.inode_mkdir               = tmy_inode_mkdir,
++	.inode_rmdir               = tmy_inode_rmdir,
++	.inode_symlink             = tmy_inode_symlink,
++	.inode_mknod               = tmy_inode_mknod,
++	.inode_link                = tmy_inode_link,
++	.inode_rename              = tmy_inode_rename,
++	/* .path_clear                = tmy_path_clear, */
 +};
 +
 +static int __init tmy_init(void)
