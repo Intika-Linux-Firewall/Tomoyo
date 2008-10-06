@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  313 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  319 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  106 +++++++++++++++
- 2 files changed, 419 insertions(+)
+ 2 files changed, 425 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,313 @@
+@@ -0,0 +1,319 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -245,6 +245,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return tmy_load_result();
 +}
 +
++static int tmy_inode_create(struct inode *dir, struct dentry *dentry, int mode)
++{
++	return tmy_load_result();
++}
++
 +static int tmy_inode_mknod(struct inode *inode, struct dentry *dentry,
 +			   int mode, dev_t dev)
 +{
@@ -299,6 +304,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.path_mknod                = tmy_path_mknod,
 +	.path_link                 = tmy_path_link,
 +	.path_rename               = tmy_path_rename,
++	.inode_create              = tmy_inode_create,
 +	.inode_setattr             = tmy_inode_setattr,
 +	.inode_unlink              = tmy_inode_unlink,
 +	.inode_mkdir               = tmy_inode_mkdir,
