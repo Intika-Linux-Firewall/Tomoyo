@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  318 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  313 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  106 +++++++++++++++
- 2 files changed, 424 insertions(+)
+ 2 files changed, 419 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.27-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,313 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -89,6 +89,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static LIST_HEAD(check_result_list);
 +static DEFINE_SPINLOCK(check_result_list_lock);
 +
++/* Remember error code for security_inode_*(). */
 +static int tmy_save_result(const int error)
 +{
 +	struct check_result_entry *entry;
@@ -105,31 +106,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
++/* Fetch error code from security_inode_*(). */
 +static int tmy_load_result(void)
-+{
-+	struct task_struct *task = current;
-+	struct check_result_entry *p;
-+	int error = 0;
-+	if (list_empty(&check_result_list))
-+		return 0;
-+	spin_lock(&check_result_list_lock);
-+	list_for_each_entry(p, &check_result_list, list) {
-+		if (p->task != task)
-+			continue;
-+		error = p->error;
-+		break;
-+	}
-+	spin_unlock(&check_result_list_lock);
-+	return error;
-+}
-+
-+static void tmy_path_clear(void)
 +{
 +	struct task_struct *task = current;
 +	struct check_result_entry *p;
 +	struct check_result_entry *entry = NULL;
 +	if (list_empty(&check_result_list))
-+		return;
++		return 0;
 +	spin_lock(&check_result_list_lock);
 +	list_for_each_entry(p, &check_result_list, list) {
 +		if (p->task != task)
@@ -139,7 +123,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +	spin_unlock(&check_result_list_lock);
-+	kfree(entry);
++	if (entry) {
++		int error = entry->error;
++		kfree(entry);
++		return error;
++	}
++	return 0;
++}
++
++/* Clear error code if security_inode_*() was not called. */
++static void tmy_path_clear(void)
++{
++	tmy_load_result();
 +}
 +
 +static int tmy_path_truncate(struct path *path, loff_t length,
