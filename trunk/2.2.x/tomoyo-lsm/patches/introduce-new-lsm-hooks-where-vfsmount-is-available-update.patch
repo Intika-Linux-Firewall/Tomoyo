@@ -1,0 +1,385 @@
+From: Kentaro Takeda <takedakn@nttdata.co.jp>
+
+James Morris wrote:
+> I don't see any technical errors in this patch.
+Thanks for your review.
+
+> If it is going to be merged, please make a new config option for
+> path-based hooks (similar to that for the network hooks), so they can be
+> compiled out.
+I see, here it is.
+
+Cc: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Cc: Toshiharu Harada <haradats@nttdata.co.jp>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Crispin Cowan <crispin@crispincowan.com>
+Cc: Stephen Smalley <sds@tycho.nsa.gov>
+Cc: Casey Schaufler <casey@schaufler-ca.com>
+Cc: James Morris <jmorris@namei.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/namei.c               |    9 ++
+ include/linux/security.h |  144 ++++++++++++++++++++++++++---------------------
+ net/unix/af_unix.c       |    1 
+ security/Kconfig         |    9 ++
+ security/capability.c    |   10 +++
+ security/security.c      |    9 ++
+ 6 files changed, 118 insertions(+), 64 deletions(-)
+
+--- linux-2.6.27-rc7-mm1.orig/include/linux/security.h
++++ linux-2.6.27-rc7-mm1/include/linux/security.h
+@@ -523,6 +523,12 @@ static inline void security_free_mnt_opt
+  *	@inode contains a pointer to the inode.
+  *	@secid contains a pointer to the location where result will be saved.
+  *	In case of failure, @secid will be set to zero.
++ * @path_clear:
++ *	Clear error code stored by security_path_*() in case
++ *      security_inode_*() was not called when DAC returned an error.
++ *      This hook allows LSM modules which use security_path_*() defer
++ *      returning LSM's error code till security_inode_*() is called so that
++ *      DAC's error (if any) is returned to the caller instead of LSM's error.
+  *
+  * Security hooks for file operations
+  *
+@@ -1384,6 +1390,7 @@ struct security_operations {
+ 				   struct super_block *newsb);
+ 	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
+ 
++#ifdef CONFIG_SECURITY_PATH
+ 	int (*path_unlink) (struct path *dir, struct dentry *dentry);
+ 	int (*path_mkdir) (struct path *dir, struct dentry *dentry, int mode);
+ 	int (*path_rmdir) (struct path *dir, struct dentry *dentry);
+@@ -1397,6 +1404,8 @@ struct security_operations {
+ 			  struct dentry *new_dentry);
+ 	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
+ 			    struct path *new_dir, struct dentry *new_dentry);
++	void (*path_clear) (void);
++#endif
+ 
+ 	int (*inode_alloc_security) (struct inode *inode);
+ 	void (*inode_free_security) (struct inode *inode);
+@@ -1658,20 +1667,6 @@ void security_sb_clone_mnt_opts(const st
+ 				struct super_block *newsb);
+ int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts);
+ 
+-int security_path_unlink(struct path *dir, struct dentry *dentry);
+-int security_path_mkdir(struct path *dir, struct dentry *dentry, int mode);
+-int security_path_rmdir(struct path *dir, struct dentry *dentry);
+-int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
+-			unsigned int dev);
+-int security_path_truncate(struct path *path, loff_t length,
+-			   unsigned int time_attrs, struct file *filp);
+-int security_path_symlink(struct path *dir, struct dentry *dentry,
+-			  const char *old_name);
+-int security_path_link(struct dentry *old_dentry, struct path *new_dir,
+-		       struct dentry *new_dentry);
+-int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
+-			 struct path *new_dir, struct dentry *new_dentry);
+-
+ int security_inode_alloc(struct inode *inode);
+ void security_inode_free(struct inode *inode);
+ int security_inode_init_security(struct inode *inode, struct inode *dir,
+@@ -1988,56 +1983,6 @@ static inline int security_sb_parse_opts
+ 	return 0;
+ }
+ 
+-static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
+-{
+-	return 0;
+-}
+-
+-static inline int security_path_mkdir(struct path *dir, struct dentry *dentry,
+-				      int mode)
+-{
+-	return 0;
+-}
+-
+-static inline int security_path_rmdir(struct path *dir, struct dentry *dentry)
+-{
+-	return 0;
+-}
+-
+-static inline int security_path_mknod(struct path *dir, struct dentry *dentry,
+-				      int mode, unsigned int dev)
+-{
+-	return 0;
+-}
+-
+-static inline int security_path_truncate(struct path *path, loff_t length,
+-					 unsigned int time_attrs,
+-					 struct file *filp)
+-{
+-	return 0;
+-}
+-
+-static inline int security_path_symlink(struct path *dir, struct dentry *dentry,
+-					const char *old_name)
+-{
+-	return 0;
+-}
+-
+-static inline int security_path_link(struct dentry *old_dentry,
+-				     struct path *new_dir,
+-				     struct dentry *new_dentry)
+-{
+-	return 0;
+-}
+-
+-static inline int security_path_rename(struct path *old_dir,
+-				       struct dentry *old_dentry,
+-				       struct path *new_dir,
+-				       struct dentry *new_dentry)
+-{
+-	return 0;
+-}
+-
+ static inline int security_inode_alloc(struct inode *inode)
+ {
+ 	return 0;
+@@ -2820,6 +2765,77 @@ static inline void security_skb_classify
+ 
+ #endif	/* CONFIG_SECURITY_NETWORK_XFRM */
+ 
++#ifdef CONFIG_SECURITY_PATH
++int security_path_unlink(struct path *dir, struct dentry *dentry);
++int security_path_mkdir(struct path *dir, struct dentry *dentry, int mode);
++int security_path_rmdir(struct path *dir, struct dentry *dentry);
++int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
++			unsigned int dev);
++int security_path_truncate(struct path *path, loff_t length,
++			   unsigned int time_attrs, struct file *filp);
++int security_path_symlink(struct path *dir, struct dentry *dentry,
++			  const char *old_name);
++int security_path_link(struct dentry *old_dentry, struct path *new_dir,
++		       struct dentry *new_dentry);
++int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
++			 struct path *new_dir, struct dentry *new_dentry);
++void security_path_clear(void);
++#else	/* CONFIG_SECURITY_PATH */
++static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
++{
++	return 0;
++}
++
++static inline int security_path_mkdir(struct path *dir, struct dentry *dentry,
++				      int mode)
++{
++	return 0;
++}
++
++static inline int security_path_rmdir(struct path *dir, struct dentry *dentry)
++{
++	return 0;
++}
++
++static inline int security_path_mknod(struct path *dir, struct dentry *dentry,
++				      int mode, unsigned int dev)
++{
++	return 0;
++}
++
++static inline int security_path_truncate(struct path *path, loff_t length,
++					 unsigned int time_attrs,
++					 struct file *filp)
++{
++	return 0;
++}
++
++static inline int security_path_symlink(struct path *dir, struct dentry *dentry,
++					const char *old_name)
++{
++	return 0;
++}
++
++static inline int security_path_link(struct dentry *old_dentry,
++				     struct path *new_dir,
++				     struct dentry *new_dentry)
++{
++	return 0;
++}
++
++static inline int security_path_rename(struct path *old_dir,
++				       struct dentry *old_dentry,
++				       struct path *new_dir,
++				       struct dentry *new_dentry)
++{
++	return 0;
++}
++
++static inline void security_path_clear(void)
++{
++}
++#endif	/* CONFIG_SECURITY_PATH */
++
+ #ifdef CONFIG_KEYS
+ #ifdef CONFIG_SECURITY
+ 
+--- linux-2.6.27-rc7-mm1.orig/security/Kconfig
++++ linux-2.6.27-rc7-mm1/security/Kconfig
+@@ -81,6 +81,15 @@ config SECURITY_NETWORK_XFRM
+ 	  IPSec.
+ 	  If you are unsure how to answer this question, answer N.
+ 
++config SECURITY_PATH
++	bool "Security hooks for pathname based access control"
++	depends on SECURITY
++	help
++	  This enables the security hooks for pathname based access control.
++	  If enabled, a security module can use these hooks to
++	  implement pathname based access controls.
++	  If you are unsure how to answer this question, answer N.
++
+ config SECURITY_FILE_CAPABILITIES
+ 	bool "File POSIX Capabilities"
+ 	default n
+--- linux-2.6.27-rc7-mm1.orig/security/capability.c
++++ linux-2.6.27-rc7-mm1/security/capability.c
+@@ -263,6 +263,7 @@ static void cap_inode_getsecid(const str
+ 	*secid = 0;
+ }
+ 
++#ifdef CONFIG_SECURITY_PATH
+ static int cap_path_mknod(struct path *dir, struct dentry *dentry, int mode,
+ 			  unsigned int dev)
+ {
+@@ -308,6 +309,12 @@ static int cap_path_truncate(struct path
+ 	return 0;
+ }
+ 
++static void cap_path_clear(void)
++{
++}
++
++#endif
++
+ static int cap_file_permission(struct file *file, int mask)
+ {
+ 	return 0;
+@@ -928,6 +935,7 @@ void security_fixup_ops(struct security_
+ 	set_to_cap_if_null(ops, inode_setsecurity);
+ 	set_to_cap_if_null(ops, inode_listsecurity);
+ 	set_to_cap_if_null(ops, inode_getsecid);
++#ifdef CONFIG_SECURITY_PATH
+ 	set_to_cap_if_null(ops, path_mknod);
+ 	set_to_cap_if_null(ops, path_mkdir);
+ 	set_to_cap_if_null(ops, path_rmdir);
+@@ -936,6 +944,8 @@ void security_fixup_ops(struct security_
+ 	set_to_cap_if_null(ops, path_link);
+ 	set_to_cap_if_null(ops, path_rename);
+ 	set_to_cap_if_null(ops, path_truncate);
++	set_to_cap_if_null(ops, path_clear);
++#endif
+ 	set_to_cap_if_null(ops, file_permission);
+ 	set_to_cap_if_null(ops, file_alloc_security);
+ 	set_to_cap_if_null(ops, file_free_security);
+--- linux-2.6.27-rc7-mm1.orig/security/security.c
++++ linux-2.6.27-rc7-mm1/security/security.c
+@@ -341,6 +341,7 @@ int security_inode_init_security(struct 
+ }
+ EXPORT_SYMBOL(security_inode_init_security);
+ 
++#ifdef CONFIG_SECURITY_PATH
+ int security_path_mknod(struct path *path, struct dentry *dentry, int mode,
+ 			unsigned int dev)
+ {
+@@ -405,6 +406,14 @@ int security_path_truncate(struct path *
+ 	return security_ops->path_truncate(path, length, time_attrs, filp);
+ }
+ 
++void security_path_clear(void)
++{
++	return security_ops->path_clear();
++}
++EXPORT_SYMBOL(security_path_clear);
++
++#endif
++
+ int security_inode_create(struct inode *dir, struct dentry *dentry, int mode)
+ {
+ 	if (unlikely(IS_PRIVATE(dir)))
+--- linux-2.6.27-rc7-mm1.orig/fs/namei.c
++++ linux-2.6.27-rc7-mm1/fs/namei.c
+@@ -1581,6 +1581,7 @@ int may_open(struct nameidata *nd, int a
+ 			error = do_truncate(dentry, 0,
+ 					    ATTR_MTIME|ATTR_CTIME|ATTR_OPEN,
+ 					    NULL);
++			security_path_clear();
+ 		}
+ 		put_write_access(inode);
+ 		if (error)
+@@ -1609,6 +1610,7 @@ static int __open_namei_create(struct na
+ 	if (error)
+ 		goto out_unlock;
+ 	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
++	security_path_clear();
+ out_unlock:
+ 	mutex_unlock(&dir->d_inode->i_mutex);
+ 	dput(nd->path.dentry);
+@@ -2037,6 +2039,7 @@ asmlinkage long sys_mknodat(int dfd, con
+ 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
+ 			break;
+ 	}
++	security_path_clear();
+ out_drop_write:
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2101,6 +2104,7 @@ asmlinkage long sys_mkdirat(int dfd, con
+ 	if (error)
+ 		goto out_drop_write;
+ 	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
++	security_path_clear();
+ out_drop_write:
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2212,6 +2216,7 @@ static long do_rmdir(int dfd, const char
+ 	if (error)
+ 		goto exit4;
+ 	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
++	security_path_clear();
+ exit4:
+ 	mnt_drop_write(nd.path.mnt);
+ exit3:
+@@ -2298,6 +2303,7 @@ static long do_unlinkat(int dfd, const c
+ 		if (error)
+ 			goto exit3;
+ 		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
++		security_path_clear();
+ exit3:
+ 		mnt_drop_write(nd.path.mnt);
+ 	exit2:
+@@ -2383,6 +2389,7 @@ asmlinkage long sys_symlinkat(const char
+ 	if (error)
+ 		goto out_drop_write;
+ 	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
++	security_path_clear();
+ out_drop_write:
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2484,6 +2491,7 @@ asmlinkage long sys_linkat(int olddfd, c
+ 	if (error)
+ 		goto out_drop_write;
+ 	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
++	security_path_clear();
+ out_drop_write:
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2720,6 +2728,7 @@ asmlinkage long sys_renameat(int olddfd,
+ 		goto exit6;
+ 	error = vfs_rename(old_dir->d_inode, old_dentry,
+ 				   new_dir->d_inode, new_dentry);
++	security_path_clear();
+ exit6:
+ 	mnt_drop_write(oldnd.path.mnt);
+ exit5:
+--- linux-2.6.27-rc7-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.27-rc7-mm1/net/unix/af_unix.c
+@@ -832,6 +832,7 @@ static int unix_bind(struct socket *sock
+ 		if (err)
+ 			goto out_mknod_drop_write;
+ 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
++		security_path_clear();
+ out_mknod_drop_write:
+ 		mnt_drop_write(nd.path.mnt);
+ 		if (err)
