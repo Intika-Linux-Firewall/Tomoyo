@@ -1,4 +1,4 @@
-Subject: vfs: introduce new LSM hooks where vfsmount is available.
+From: Kentaro Takeda <takedakn@nttdata.co.jp>
 
 ----- What is this patch for? -----
 
@@ -89,7 +89,6 @@ Here are the list of approaches and the reasons of denial.
  VFS helper functions is the most straightforward approach. This approach has
  less impact to existing LSM module and no impact to VFS helper functions.
 
-
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
@@ -98,21 +97,22 @@ Cc: Christoph Hellwig <hch@lst.de>
 Cc: Crispin Cowan <crispin@crispincowan.com>
 Cc: Stephen Smalley <sds@tycho.nsa.gov>
 Cc: Casey Schaufler <casey@schaufler-ca.com>
+Cc: James Morris <jmorris@namei.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
------
+---
 
- fs/namei.c               |   37 ++++++++++++
+ fs/namei.c               |   46 ++++++++++++++
  fs/open.c                |    5 +
- include/linux/security.h |  139 +++++++++++++++++++++++++++++++++++++++++++++++
- net/unix/af_unix.c       |    4 +
- security/Kconfig         |    9 +++
- security/capability.c    |   57 +++++++++++++++++++
- security/security.c      |   66 ++++++++++++++++++++++
- 7 files changed, 317 insertions(+)
+ include/linux/security.h |  151 +++++++++++++++++++++++++++++++++++++++++++++++
+ net/unix/af_unix.c       |    5 +
+ security/Kconfig         |    9 ++
+ security/capability.c    |   63 +++++++++++++++++++
+ security/security.c      |   73 ++++++++++++++++++++++
+ 7 files changed, 352 insertions(+)
 
---- linux-2.6.27-rc7-mm1.orig/fs/namei.c
-+++ linux-2.6.27-rc7-mm1/fs/namei.c
-@@ -1571,6 +1571,10 @@ int may_open(struct nameidata *nd, int a
+--- linux-next.orig/fs/namei.c
++++ linux-next/fs/namei.c
+@@ -1571,12 +1571,17 @@ int may_open(struct nameidata *nd, int a
  		 * Refuse to truncate files with mandatory locks held on them.
  		 */
  		error = locks_verify_locked(inode);
@@ -123,7 +123,14 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  		if (!error) {
  			DQUOT_INIT(inode);
  
-@@ -1601,7 +1605,11 @@ static int __open_namei_create(struct na
+ 			error = do_truncate(dentry, 0,
+ 					    ATTR_MTIME|ATTR_CTIME|ATTR_OPEN,
+ 					    NULL);
++			security_path_clear();
+ 		}
+ 		put_write_access(inode);
+ 		if (error)
+@@ -1601,7 +1606,12 @@ static int __open_namei_create(struct na
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -131,11 +138,12 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +	if (error)
 +		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
++	security_path_clear();
 +out_unlock:
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->path.dentry);
  	nd->path.dentry = path->dentry;
-@@ -2014,6 +2022,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2014,6 +2024,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -145,15 +153,16 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2026,6 +2037,7 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2026,6 +2039,8 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
++	security_path_clear();
 +out_drop_write:
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2085,7 +2097,11 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2085,7 +2100,12 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -161,11 +170,12 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +	if (error)
 +		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
++	security_path_clear();
 +out_drop_write:
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2192,7 +2208,11 @@ static long do_rmdir(int dfd, const char
+@@ -2192,7 +2212,12 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -173,11 +183,12 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +	if (error)
 +		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
++	security_path_clear();
 +exit4:
  	mnt_drop_write(nd.path.mnt);
  exit3:
  	dput(dentry);
-@@ -2274,7 +2294,11 @@ static long do_unlinkat(int dfd, const c
+@@ -2274,7 +2299,12 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -185,11 +196,12 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +		if (error)
 +			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
++		security_path_clear();
 +exit3:
  		mnt_drop_write(nd.path.mnt);
  	exit2:
  		dput(dentry);
-@@ -2355,7 +2379,11 @@ asmlinkage long sys_symlinkat(const char
+@@ -2355,7 +2385,12 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -197,11 +209,12 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +	if (error)
 +		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
++	security_path_clear();
 +out_drop_write:
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2452,7 +2480,11 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2452,7 +2487,12 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -209,11 +222,12 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +	if (error)
 +		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
++	security_path_clear();
 +out_drop_write:
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(new_dentry);
-@@ -2682,8 +2714,13 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2684,8 +2724,14 @@ asmlinkage long sys_renameat(int olddfd,
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -223,12 +237,13 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
++	security_path_clear();
 +exit6:
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
  	dput(new_dentry);
---- linux-2.6.27-rc7-mm1.orig/fs/open.c
-+++ linux-2.6.27-rc7-mm1/fs/open.c
+--- linux-next.orig/fs/open.c
++++ linux-next/fs/open.c
 @@ -272,6 +272,8 @@ static long do_sys_truncate(const char _
  		goto put_write_and_out;
  
@@ -248,8 +263,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
---- linux-2.6.27-rc7-mm1.orig/include/linux/security.h
-+++ linux-2.6.27-rc7-mm1/include/linux/security.h
+--- linux-next.orig/include/linux/security.h
++++ linux-next/include/linux/security.h
 @@ -331,17 +331,37 @@ static inline void security_free_mnt_opt
   *	@dir contains the inode structure of the parent directory of the new link.
   *	@new_dentry contains the dentry structure for the new link.
@@ -358,7 +373,20 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
   * @inode_getattr:
   *	Check permission before obtaining file attributes.
   *	@mnt is the vfsmount where the dentry was looked up
-@@ -1327,6 +1384,22 @@ struct security_operations {
+@@ -466,6 +523,12 @@ static inline void security_free_mnt_opt
+  *	@inode contains a pointer to the inode.
+  *	@secid contains a pointer to the location where result will be saved.
+  *	In case of failure, @secid will be set to zero.
++ * @path_clear:
++ *	Clear error code stored by security_path_*() in case
++ *      security_inode_*() was not called when DAC returned an error.
++ *      This hook allows LSM modules which use security_path_*() defer
++ *      returning LSM's error code till security_inode_*() is called so that
++ *      DAC's error (if any) is returned to the caller instead of LSM's error.
+  *
+  * Security hooks for file operations
+  *
+@@ -1327,6 +1390,23 @@ struct security_operations {
  				   struct super_block *newsb);
  	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
  
@@ -376,12 +404,13 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +			  struct dentry *new_dentry);
 +	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
 +			    struct path *new_dir, struct dentry *new_dentry);
++	void (*path_clear) (void);
 +#endif
 +
  	int (*inode_alloc_security) (struct inode *inode);
  	void (*inode_free_security) (struct inode *inode);
  	int (*inode_init_security) (struct inode *inode, struct inode *dir,
-@@ -2685,6 +2758,72 @@ static inline void security_skb_classify
+@@ -2685,6 +2765,77 @@ static inline void security_skb_classify
  
  #endif	/* CONFIG_SECURITY_NETWORK_XFRM */
  
@@ -399,6 +428,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +		       struct dentry *new_dentry);
 +int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
 +			 struct path *new_dir, struct dentry *new_dentry);
++void security_path_clear(void);
 +#else	/* CONFIG_SECURITY_PATH */
 +static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
 +{
@@ -449,14 +479,18 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +{
 +	return 0;
 +}
++
++static inline void security_path_clear(void)
++{
++}
 +#endif	/* CONFIG_SECURITY_PATH */
 +
  #ifdef CONFIG_KEYS
  #ifdef CONFIG_SECURITY
  
---- linux-2.6.27-rc7-mm1.orig/net/unix/af_unix.c
-+++ linux-2.6.27-rc7-mm1/net/unix/af_unix.c
-@@ -828,7 +828,11 @@ static int unix_bind(struct socket *sock
+--- linux-next.orig/net/unix/af_unix.c
++++ linux-next/net/unix/af_unix.c
+@@ -828,7 +828,12 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
@@ -464,13 +498,32 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +		if (err)
 +			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
++		security_path_clear();
 +out_mknod_drop_write:
  		mnt_drop_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.27-rc7-mm1.orig/security/capability.c
-+++ linux-2.6.27-rc7-mm1/security/capability.c
-@@ -263,6 +263,53 @@ static void cap_inode_getsecid(const str
+--- linux-next.orig/security/Kconfig
++++ linux-next/security/Kconfig
+@@ -81,6 +81,15 @@ config SECURITY_NETWORK_XFRM
+ 	  IPSec.
+ 	  If you are unsure how to answer this question, answer N.
+ 
++config SECURITY_PATH
++	bool "Security hooks for pathname based access control"
++	depends on SECURITY
++	help
++	  This enables the security hooks for pathname based access control.
++	  If enabled, a security module can use these hooks to
++	  implement pathname based access controls.
++	  If you are unsure how to answer this question, answer N.
++
+ config SECURITY_FILE_CAPABILITIES
+ 	bool "File POSIX Capabilities"
+ 	default n
+--- linux-next.orig/security/capability.c
++++ linux-next/security/capability.c
+@@ -263,6 +263,58 @@ static void cap_inode_getsecid(const str
  	*secid = 0;
  }
  
@@ -519,12 +572,17 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +{
 +	return 0;
 +}
++
++static void cap_path_clear(void)
++{
++}
++
 +#endif
 +
  static int cap_file_permission(struct file *file, int mask)
  {
  	return 0;
-@@ -883,6 +930,16 @@ void security_fixup_ops(struct security_
+@@ -883,6 +935,17 @@ void security_fixup_ops(struct security_
  	set_to_cap_if_null(ops, inode_setsecurity);
  	set_to_cap_if_null(ops, inode_listsecurity);
  	set_to_cap_if_null(ops, inode_getsecid);
@@ -537,13 +595,14 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +	set_to_cap_if_null(ops, path_link);
 +	set_to_cap_if_null(ops, path_rename);
 +	set_to_cap_if_null(ops, path_truncate);
++	set_to_cap_if_null(ops, path_clear);
 +#endif
  	set_to_cap_if_null(ops, file_permission);
  	set_to_cap_if_null(ops, file_alloc_security);
  	set_to_cap_if_null(ops, file_free_security);
---- linux-2.6.27-rc7-mm1.orig/security/security.c
-+++ linux-2.6.27-rc7-mm1/security/security.c
-@@ -341,6 +341,72 @@ int security_inode_init_security(struct 
+--- linux-next.orig/security/security.c
++++ linux-next/security/security.c
+@@ -341,6 +341,79 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
  
@@ -611,26 +670,15 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 +		return 0;
 +	return security_ops->path_truncate(path, length, time_attrs, filp);
 +}
++
++void security_path_clear(void)
++{
++	return security_ops->path_clear();
++}
++EXPORT_SYMBOL(security_path_clear);
++
 +#endif
 +
  int security_inode_create(struct inode *dir, struct dentry *dentry, int mode)
  {
  	if (unlikely(IS_PRIVATE(dir)))
---- linux-2.6.27-rc7-mm1.orig/security/Kconfig
-+++ linux-2.6.27-rc7-mm1/security/Kconfig
-@@ -81,6 +81,15 @@ config SECURITY_NETWORK_XFRM
- 	  IPSec.
- 	  If you are unsure how to answer this question, answer N.
- 
-+config SECURITY_PATH
-+	bool "Security hooks for pathname based access control"
-+	depends on SECURITY
-+	help
-+	  This enables the security hooks for pathname based access control.
-+	  If enabled, a security module can use these hooks to
-+	  implement pathname based access controls.
-+	  If you are unsure how to answer this question, answer N.
-+
- config SECURITY_FILE_CAPABILITIES
- 	bool "File POSIX Capabilities"
- 	default n
