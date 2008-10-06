@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(revision 1653)
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h	(working copy)
 @@ -457,13 +457,4 @@
  
@@ -18,7 +18,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo_socket.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 1653)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -144,7 +144,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Run policy loader when /sbin/init starts. */
  void ccs_load_policy(const char *filename);
  /* Print an IPv6 address. */
-@@ -772,6 +784,16 @@
+@@ -772,6 +784,15 @@
  /* Update the policy change counter. */
  void ccs_update_counter(const unsigned char index);
  
@@ -155,15 +155,14 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 +int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
 +/* Check whether the given pathname is allowed to be executed. */
 +int ccs_check_exec_perm(struct ccs_request_info *r,
-+			const struct path_info *filename,
-+			struct ccs_page_buffer *buf);
++			const struct path_info *filename);
 +
  /* strcmp() for "struct path_info" structure. */
  static inline bool ccs_pathcmp(const struct path_info *a,
  			       const struct path_info *b)
 Index: trunk/1.6.x/ccs-patch/include/linux/sakura.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/sakura.h	(revision 1653)
+--- trunk/1.6.x/ccs-patch/include/linux/sakura.h	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/include/linux/sakura.h	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -189,7 +188,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/sakura.h
  #endif
 Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 1653)
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -321,7 +320,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
  #endif
 Index: trunk/1.6.x/ccs-patch/README.ccs
 ===================================================================
---- trunk/1.6.x/ccs-patch/README.ccs	(revision 1653)
+--- trunk/1.6.x/ccs-patch/README.ccs	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/README.ccs	(working copy)
 @@ -1624,3 +1624,29 @@
        To be able to handle some of queries from /proc/ccs/query without user's
@@ -355,7 +354,7 @@ Index: trunk/1.6.x/ccs-patch/README.ccs
 +      for passing parameters.
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -483,7 +482,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -610,7 +609,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -693,7 +692,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  	return error;
 Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -760,7 +759,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  	return error;
 Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -955,7 +954,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  /**
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -1163,7 +1162,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
   * @head: Pointer to "struct ccs_io_buffer".
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -1244,41 +1243,66 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
  /* The list for "struct domain_initializer_entry". */
-@@ -1001,21 +969,25 @@
+@@ -985,37 +953,33 @@
+ /**
+  * find_next_domain - Find a domain.
+  *
+- * @bprm:           Pointer to "struct linux_binprm".
+- * @next_domain:    Pointer to pointer to "struct domain_info".
+- * @path_to_verify: Pathname to verify. May be NULL.
+- * @tmp:            Buffer for temporal use.
++ * @r:       Pointer to "struct ccs_request_info".
++ * @handler: Pathname to verify. May be NULL.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int find_next_domain(struct linux_binprm *bprm,
+-			    struct domain_info **next_domain,
+-			    const struct path_info *path_to_verify,
+-			    struct ccs_page_buffer *tmp)
++static int find_next_domain(struct ccs_request_info *r,
++			    const struct path_info *handler)
+ {
+ 	/*
  	 * This function assumes that the size of buffer returned by
  	 * ccs_realpath() = CCS_MAX_PATHNAME_LEN.
  	 */
 -	unsigned short int retries = 0;
 -	struct domain_info *old_domain = current->domain_info;
-+	struct ccs_request_info r;
-+	struct ccs_request_info r0;
  	struct domain_info *domain = NULL;
 -	const char *old_domain_name = old_domain->domainname->name;
-+	const char *old_domain_name;
++	const char *old_domain_name = r->domain->domainname->name;
++	struct linux_binprm *bprm = r->bprm;
++	struct ccs_page_buffer *tmp = r->obj->tmp;
  	const char *original_name = bprm->filename;
++	const u8 mode = r->mode;
++	const bool is_enforce = (mode == 3);
++	const u32 tomoyo_flags = r->tomoyo_flags;
  	char *new_domain_name = NULL;
  	char *real_program_name = NULL;
  	char *symlink_program_name = NULL;
 -	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 -	const bool is_enforce = (mode == 3);
-+	bool is_enforce;
++	struct path_info rn; /* real name */
++	struct path_info sn; /* symlink name */
++	struct path_info ln; /* last name */
  	int retval;
 -	struct path_info r; /* real name */
 -	struct path_info s; /* symlink name */
 -	struct path_info l; /* last name */
-+	struct path_info rn; /* real name */
-+	struct path_info sn; /* symlink name */
-+	struct path_info ln; /* last name */
- 	const u32 tomoyo_flags = current->tomoyo_flags;
-+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
-+	r.bprm = bprm;
-+	is_enforce = (r.mode == 3);
-+	old_domain_name = r.domain->domainname->name;
-+	ccs_init_request_info(&r0, NULL, CCS_TOMOYO_MAC_FOR_ARGV0);
+-	const u32 tomoyo_flags = current->tomoyo_flags;
  
  	{
  		/*
-@@ -1046,15 +1018,15 @@
+@@ -1034,6 +998,7 @@
+ 
+  retry:
+ 	current->tomoyo_flags = tomoyo_flags;
++	r->tomoyo_flags = tomoyo_flags;
+ 	/* Get ccs_realpath of program. */
+ 	retval = -ENOENT; /* I hope ccs_realpath() won't fail with -ENOMEM. */
+ 	ccs_free(real_program_name);
+@@ -1046,21 +1011,21 @@
  	if (!symlink_program_name)
  		goto out;
  
@@ -1292,16 +1316,24 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +	ccs_fill_path_info(&rn);
 +	sn.name = symlink_program_name;
 +	ccs_fill_path_info(&sn);
-+	ln.name = ccs_get_last_name(r.domain);
++	ln.name = ccs_get_last_name(r->domain);
 +	ccs_fill_path_info(&ln);
  
- 	if (path_to_verify) {
+-	if (path_to_verify) {
 -		if (ccs_pathcmp(&r, path_to_verify)) {
-+		if (ccs_pathcmp(&rn, path_to_verify)) {
++	if (handler) {
++		if (ccs_pathcmp(&rn, handler)) {
  			/* Failed to verify execute handler. */
  			static u8 counter = 20;
  			if (counter) {
-@@ -1068,24 +1040,24 @@
+ 				counter--;
+ 				printk(KERN_WARNING "Failed to verify: %s\n",
+-				       path_to_verify->name);
++				       handler->name);
+ 			}
+ 			goto out;
+ 		}
+@@ -1068,24 +1033,25 @@
  	}
  
  	/* Check 'alias' directive. */
@@ -1327,28 +1359,29 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  	/* Compare basename of real_program_name and argv[0] */
 -	if (bprm->argc > 0 && ccs_check_flags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
-+	if (bprm->argc > 0 && r0.mode) {
++	r->mode = ccs_check_flags(r->domain, CCS_TOMOYO_MAC_FOR_ARGV0);
++	if (bprm->argc > 0 && r->mode) {
  		char *base_argv0 = tmp->buffer;
  		const char *base_filename;
  		retval = -ENOMEM;
-@@ -1097,12 +1069,13 @@
+@@ -1097,12 +1063,13 @@
  		else
  			base_filename++;
  		if (strcmp(base_argv0, base_filename)) {
 -			retval = ccs_check_argv0_perm(&r, base_argv0, retries);
-+			retval = ccs_check_argv0_perm(&r0, &rn, base_argv0);
++			retval = ccs_check_argv0_perm(r, &rn, base_argv0);
  			if (retval == 1) {
 -				retries++;
-+				r0.retry++;
++				r->retry++;
  				goto retry;
  			}
 -			retries = 0;
-+			r0.retry = 0;
-+			r.tomoyo_flags = current->tomoyo_flags;
++			r->retry = 0;
++			r->tomoyo_flags = current->tomoyo_flags;
  			if (retval < 0)
  				goto out;
  		}
-@@ -1114,42 +1087,43 @@
+@@ -1114,42 +1081,44 @@
  		/* Is this program allowed to be aggregated? */
  		list1_for_each_entry(ptr, &aggregator_list, list) {
  			if (ptr->is_deleted ||
@@ -1366,27 +1399,28 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  	/* Check execute permission. */
 -	retval = ccs_check_exec_perm(&r, bprm, tmp, retries);
-+	retval = ccs_check_exec_perm(&r, &rn, tmp);
++	r->mode = mode;
++	retval = ccs_check_exec_perm(r, &rn);
  	if (retval == 1) {
 -		retries++;
-+		r.retry++;
++		r->retry++;
  		goto retry;
  	}
 -	retries = 0;
-+	r.retry = 0;
-+	r.tomoyo_flags = current->tomoyo_flags;
++	r->retry = 0;
++	r->tomoyo_flags = current->tomoyo_flags;
  	if (retval < 0)
  		goto out;
  
   calculate_domain:
  	new_domain_name = tmp->buffer;
 -	if (is_domain_initializer(old_domain->domainname, &r, &l)) {
-+	if (is_domain_initializer(r.domain->domainname, &rn, &ln)) {
++	if (is_domain_initializer(r->domain->domainname, &rn, &ln)) {
  		/* Transit to the child of KERNEL_DOMAIN domain. */
  		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
  			 ROOT_NAME " " "%s", real_program_name);
 -	} else if (old_domain == &KERNEL_DOMAIN && !sbin_init_started) {
-+	} else if (r.domain == &KERNEL_DOMAIN && !sbin_init_started) {
++	} else if (r->domain == &KERNEL_DOMAIN && !sbin_init_started) {
  		/*
  		 * Needn't to transit from kernel domain before starting
  		 * /sbin/init. But transit from kernel domain if executing
@@ -1394,35 +1428,35 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		 */
 -		domain = old_domain;
 -	} else if (is_domain_keeper(old_domain->domainname, &r, &l)) {
-+		domain = r.domain;
-+	} else if (is_domain_keeper(r.domain->domainname, &rn, &ln)) {
++		domain = r->domain;
++	} else if (is_domain_keeper(r->domain->domainname, &rn, &ln)) {
  		/* Keep current domain. */
 -		domain = old_domain;
-+		domain = r.domain;
++		domain = r->domain;
  	} else {
  		/* Normal domain transition. */
  		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
-@@ -1161,22 +1135,20 @@
+@@ -1161,22 +1130,20 @@
  	if (domain)
  		goto done;
  	if (is_enforce) {
 -		int error = ccs_check_supervisor(retries, NULL,
-+		int error = ccs_check_supervisor(&r,
++		int error = ccs_check_supervisor(r,
  						 "# wants to create domain\n"
  						 "%s\n", new_domain_name);
  		if (error == 1) {
 -			retries++;
-+			r.retry++;
++			r->retry++;
  			goto retry;
  		}
 -		retries = 0;
-+		r.retry = 0;
++		r->retry = 0;
  		if (error < 0)
  			goto done;
  	}
 -	domain = ccs_find_or_assign_new_domain(new_domain_name,
 -					       old_domain->profile);
-+	domain = ccs_find_or_assign_new_domain(new_domain_name, r.profile);
++	domain = ccs_find_or_assign_new_domain(new_domain_name, r->profile);
  	if (domain)
 -		audit_domain_creation_log(new_domain_name, mode,
 -					  domain->profile);
@@ -1430,21 +1464,22 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
   done:
  	if (!domain) {
  		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
-@@ -1185,7 +1157,7 @@
+@@ -1185,7 +1152,7 @@
  			retval = -EPERM;
  		else {
  			retval = 0;
 -			ccs_set_domain_flag(old_domain, false,
-+			ccs_set_domain_flag(r.domain, false,
++			ccs_set_domain_flag(r->domain, false,
  					    DOMAIN_FLAGS_TRANSITION_FAILED);
  		}
  	} else {
-@@ -1194,22 +1166,23 @@
+@@ -1194,22 +1161,22 @@
   out:
  	ccs_free(real_program_name);
  	ccs_free(symlink_program_name);
 -	*next_domain = domain ? domain : old_domain;
-+	*next_domain = domain ? domain : r.domain;
++	if (domain)
++		r->domain = domain;
  	return retval;
  }
  
@@ -1453,51 +1488,94 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
   *
 - * @bprm: Pointer to "struct linux_binprm".
 - * @tmp:  Buffer for temporal use.
-+ * @domain: Pointer to "struct domain_info".
-+ * @bprm:   Pointer to "struct linux_binprm".
-+ * @tmp:    Buffer for temporal use.
++ * @r: Pointer to "struct ccs_request_info".
   *
   * Returns 0 on success, negative value otherwise.
   */
 -static int check_environ(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
-+static int check_environ(struct domain_info * const domain,
-+			 struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
++static int check_environ(struct ccs_request_info *r)
  {
 -	const u8 profile = current->domain_info->profile;
 -	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_ENV);
-+	struct ccs_request_info r;
++	struct linux_binprm *bprm = r->bprm;
++	struct ccs_page_buffer *tmp = r->obj->tmp;
  	char *arg_ptr = tmp->buffer;
  	int arg_len = 0;
  	unsigned long pos = bprm->p;
-@@ -1219,7 +1192,8 @@
+@@ -1219,7 +1186,7 @@
  	int envp_count = bprm->envc;
  	/* printk(KERN_DEBUG "start %d %d\n", argv_count, envp_count); */
  	int error = -ENOMEM;
 -	if (!mode || !envp_count)
-+	ccs_init_request_info(&r, domain, CCS_TOMOYO_MAC_FOR_ENV);
-+	if (!r.mode || !envp_count)
++	if (!r->mode || !envp_count)
  		return 0;
  	while (error == -ENOMEM) {
  		struct page *page;
-@@ -1269,7 +1243,7 @@
+@@ -1269,7 +1236,7 @@
  			}
  			if (c)
  				continue;
 -			if (ccs_check_env_perm(arg_ptr, profile, mode)) {
-+			if (ccs_check_env_perm(&r, arg_ptr)) {
++			if (ccs_check_env_perm(r, arg_ptr)) {
  				error = -EPERM;
  				break;
  			}
-@@ -1289,7 +1263,7 @@
+@@ -1289,7 +1256,7 @@
  		offset = 0;
  	}
   out:
 -	if (error && mode != 3)
-+	if (error && r.mode != 3)
++	if (r->mode != 3)
  		error = 0;
  	return error;
  }
-@@ -1619,7 +1593,85 @@
+@@ -1399,18 +1366,14 @@
+ /**
+  * try_alt_exec - Try to start execute handler.
+  *
+- * @bprm:        Pointer to "struct linux_binprm".
++ * @r:           Pointer to "struct ccs_request_info".
+  * @handler:     Pointer to the name of execute handler.
+  * @eh_path:     Pointer to pointer to the name of execute handler.
+- * @next_domain: Pointer to pointer to "struct domain_info".
+- * @tmp:         Buffer for temporal use.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int try_alt_exec(struct linux_binprm *bprm,
+-			const struct path_info *handler, char **eh_path,
+-			struct domain_info **next_domain,
+-			struct ccs_page_buffer *tmp)
++static int try_alt_exec(struct ccs_request_info *r,
++			const struct path_info *handler, char **eh_path)
+ {
+ 	/*
+ 	 * Contents of modified bprm.
+@@ -1448,12 +1411,13 @@
+ 	 * modified bprm->argv[bprm->envc + bprm->argc + 6]
+ 	 *     = original bprm->envp[bprm->envc - 1]
+ 	 */
++	struct linux_binprm *bprm = r->bprm;
+ 	struct file *filp;
+ 	int retval;
+ 	const int original_argc = bprm->argc;
+ 	const int original_envc = bprm->envc;
+ 	struct task_struct *task = current;
+-	char *buffer = tmp->buffer;
++	char *buffer = r->obj->tmp->buffer;
+ 	/* Allocate memory for execute handler's pathname. */
+ 	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer));
+ 	*eh_path = execute_handler;
+@@ -1585,7 +1549,7 @@
+ 	if (retval < 0)
+ 		goto out;
+ 	task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+-	retval = find_next_domain(bprm, next_domain, handler, tmp);
++	retval = find_next_domain(r, handler);
+ 	task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+  out:
+ 	return retval;
+@@ -1619,7 +1583,85 @@
  	return NULL;
  }
  
@@ -1583,57 +1661,100 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
   * search_binary_handler_with_transition - Perform domain transition.
   *
   * @bprm: Pointer to "struct linux_binprm".
-@@ -1633,7 +1685,6 @@
+@@ -1631,61 +1673,74 @@
+ int search_binary_handler_with_transition(struct linux_binprm *bprm,
+ 					  struct pt_regs *regs)
  {
++	int retval;
  	struct task_struct *task = current;
- 	struct domain_info *next_domain = NULL;
+-	struct domain_info *next_domain = NULL;
 -	struct domain_info *prev_domain = task->domain_info;
  	const struct path_info *handler;
- 	int retval;
+-	int retval;
++	struct ccs_request_info r;
++	struct obj_info obj;
  	/*
-@@ -1669,23 +1720,28 @@
+ 	 * "eh_path" holds path to execute handler program.
+ 	 * Thus, keep valid until search_binary_handler() finishes.
+ 	 */
+ 	char *eh_path = NULL;
+ 	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(struct ccs_page_buffer));
+-	ccs_load_policy(bprm->filename);
++	memset(&obj, 0, sizeof(obj));
++	if (!sbin_init_started)
++		ccs_load_policy(bprm->filename);
+ 	if (!tmp)
+ 		return -ENOMEM;
++
++	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
++	r.bprm = bprm;
++	r.obj = &obj;
++	obj.path1_dentry = bprm->file->f_dentry;
++	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
++	obj.tmp = tmp;
++
+ 	/* Clear manager flag. */
+ 	task->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
+-	/* printk(KERN_DEBUG "rootdepth=%d\n", get_root_depth()); */
+ 	handler = find_execute_handler(TYPE_EXECUTE_HANDLER);
+ 	if (handler) {
+-		retval = try_alt_exec(bprm, handler, &eh_path, &next_domain,
+-				      tmp);
++		retval = try_alt_exec(&r, handler, &eh_path);
+ 		if (!retval)
+ 			audit_execute_handler_log(true, handler->name, bprm);
+ 		goto ok;
+ 	}
+-	retval = find_next_domain(bprm, &next_domain, NULL, tmp);
++	retval = find_next_domain(&r, NULL);
+ 	if (retval != -EPERM)
+ 		goto ok;
+ 	handler = find_execute_handler(TYPE_DENIED_EXECUTE_HANDLER);
+ 	if (handler) {
+-		retval = try_alt_exec(bprm, handler, &eh_path, &next_domain,
+-				      tmp);
++		retval = try_alt_exec(&r, handler, &eh_path);
+ 		if (!retval)
+ 			audit_execute_handler_log(false, handler->name, bprm);
+ 	}
   ok:
  	if (retval < 0)
  		goto out;
 -	task->domain_info = next_domain;
 -	retval = check_environ(bprm, tmp);
-+	retval = check_environ(next_domain, bprm, tmp);
++	r.mode = ccs_check_flags(r.domain, CCS_TOMOYO_MAC_FOR_ENV);
++	retval = check_environ(&r);
  	if (retval < 0)
  		goto out;
-+	retval = ccs_register_next_domain(next_domain);
++	retval = ccs_register_next_domain(r.domain);
 +	if (retval < 0)
 +		goto out;
  	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
  	retval = search_binary_handler(bprm, regs);
  	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
-  out:
+- out:
 -	/* Return to previous domain if execution failed. */
--	if (retval < 0)
+ 	if (retval < 0)
 -		task->domain_info = prev_domain;
--	/* Mark the current process as execute handler. */
++		goto out;
++	/* Proceed to next domain if execution suceeded. */
++	task->domain_info = r.domain;
++	mb(); /* Make domain transition visible to other CPUs. */
+ 	/* Mark the current process as execute handler. */
 -	else if (handler)
--		task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
--	/* Mark the current process as normal process. */
--	else
--		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
-+	if (retval >= 0) {
-+		/* Proceed to next domain if execution suceeded. */
-+		task->domain_info = next_domain;
-+		mb(); /* Make domain transition visible to other CPUs. */
-+		/* Mark the current process as execute handler. */
-+		if (handler)
-+			task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
-+		/* Mark the current process as normal process. */
-+		else
-+			task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
-+	}
++	if (handler)
+ 		task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
+ 	/* Mark the current process as normal process. */
+ 	else
+ 		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
++ out:
 +	ccs_unregister_next_domain();
  	ccs_free(eh_path);
  	ccs_free(tmp);
  	return retval;
 Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_maymount.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -1720,7 +1841,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_maymount.c
  		return error;
 Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -1996,7 +2117,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	va_start(args, fmt);
 Index: trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -2016,7 +2137,7 @@ Index: trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c
 -void __init CCSProc_Init(void) {}
 Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(working copy)
 @@ -78,7 +78,7 @@
  {
@@ -2029,7 +2150,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  		if (ptr->min_port <= port && port <= ptr->max_port &&
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -2174,7 +2295,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -2534,7 +2655,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		operation = TYPE_REWRITE_ACL;
  		goto next;
  	}
-@@ -1338,40 +1303,44 @@
+@@ -1338,40 +1303,33 @@
  			const char *operation)
  {
  	struct path_info name;
@@ -2559,7 +2680,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 + * @r:        Pointer to "struct ccs_request_info".
   * @filename: Check permission for "execute".
 - * @bprm:     Pointer to "struct linux_binprm".
-  * @tmp:      Buffer for temporal use.
+- * @tmp:      Buffer for temporal use.
   *
   * Returns 0 on success, 1 on retry, negative value otherwise.
   */
@@ -2567,35 +2688,28 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -			struct linux_binprm *bprm, struct ccs_page_buffer *tmp,
 -			unsigned short int retries)
 +int ccs_check_exec_perm(struct ccs_request_info *r,
-+			const struct path_info *filename,
-+			struct ccs_page_buffer *tmp)
++			const struct path_info *filename)
  {
-+	int error;
- 	struct obj_info obj;
+-	struct obj_info obj;
 -	const u8 profile = current->domain_info->profile;
 -	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
 -	if (!mode)
 +	if (!ccs_can_sleep())
  		return 0;
-+	if (!r->mode)
-+		return 0;
- 	memset(&obj, 0, sizeof(obj));
+-	memset(&obj, 0, sizeof(obj));
 -	obj.path1_dentry = bprm->file->f_dentry;
 -	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
 -	obj.bprm = bprm;
-+	obj.path1_dentry = r->bprm->file->f_dentry;
-+	obj.path1_vfsmnt = r->bprm->file->f_vfsmnt;
- 	obj.tmp = tmp;
+-	obj.tmp = tmp;
 -	return check_file_perm2(filename, 1, "do_execve", &obj, profile, mode,
 -				retries);
-+	r->obj = &obj;
-+	error = check_file_perm2(r, filename, 1, "do_execve");
-+	r->obj = NULL;
-+	return error;
++	if (!r->mode)
++		return 0;
++	return check_file_perm2(r, filename, 1, "do_execve");
  }
  
  /**
-@@ -1386,15 +1355,19 @@
+@@ -1386,15 +1344,19 @@
  int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  			      const int flag)
  {
@@ -2619,7 +2733,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	if (acc_mode == 0)
  		return 0;
  	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
-@@ -1409,6 +1382,7 @@
+@@ -1409,6 +1371,7 @@
  	memset(&obj, 0, sizeof(obj));
  	obj.path1_dentry = dentry;
  	obj.path1_vfsmnt = mnt;
@@ -2627,7 +2741,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	error = 0;
  	/*
  	 * If the filename is specified by "deny_rewrite" keyword,
-@@ -1418,19 +1392,18 @@
+@@ -1418,19 +1381,18 @@
  	if ((acc_mode & MAY_WRITE) &&
  	    ((flag & O_TRUNC) || !(flag & O_APPEND))) {
  		if (is_no_rewrite_file(buf))
@@ -2654,7 +2768,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		error = 0;
  	return error;
  }
-@@ -1447,14 +1420,17 @@
+@@ -1447,14 +1409,17 @@
  int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
  			 struct vfsmount *mnt)
  {
@@ -2676,7 +2790,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	buf = ccs_get_path(dentry, mnt);
  	if (!buf)
  		goto out;
-@@ -1470,8 +1446,8 @@
+@@ -1470,8 +1435,8 @@
  	memset(&obj, 0, sizeof(obj));
  	obj.path1_dentry = dentry;
  	obj.path1_vfsmnt = mnt;
@@ -2687,7 +2801,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   out:
  	ccs_free(buf);
  	if (!is_enforce)
-@@ -1489,14 +1465,17 @@
+@@ -1489,14 +1454,17 @@
   */
  int ccs_check_rewrite_permission(struct file *filp)
  {
@@ -2709,7 +2823,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
  	if (!buf)
  		goto out;
-@@ -1507,8 +1486,8 @@
+@@ -1507,8 +1475,8 @@
  	memset(&obj, 0, sizeof(obj));
  	obj.path1_dentry = filp->f_dentry;
  	obj.path1_vfsmnt = filp->f_vfsmnt;
@@ -2720,7 +2834,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   out:
  	ccs_free(buf);
  	if (!is_enforce)
-@@ -1528,22 +1507,22 @@
+@@ -1528,22 +1496,22 @@
   * Returns 0 on success, negative value otherwise.
   */
  int ccs_check_2path_perm(const u8 operation,
@@ -2754,7 +2868,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	buf1 = ccs_get_path(dentry1, mnt1);
  	buf2 = ccs_get_path(dentry2, mnt2);
  	if (!buf1 || !buf2)
-@@ -1567,30 +1546,30 @@
+@@ -1567,30 +1535,30 @@
  	obj.path1_vfsmnt = mnt1;
  	obj.path2_dentry = dentry2;
  	obj.path2_vfsmnt = mnt2;
@@ -2799,7 +2913,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	ccs_free(buf2);
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -2911,7 +3025,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -2977,7 +3091,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  	ptr = (unsigned long *) (cond + 1);
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(working copy)
 @@ -5,7 +5,7 @@
   *
@@ -3107,7 +3221,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  
 Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 1653)
+--- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 1654)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
 @@ -5,7 +5,7 @@
   *
