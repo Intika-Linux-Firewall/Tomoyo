@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-8.16AX.src.rpm ]
+if [ ! -r kernel-2.6.18-8.17AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.16AX.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.17AXS3.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.18-8.16AX.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.18-8.17AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
@@ -25,18 +25,18 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-03-17 09:18:26.000000000 +0900
-+++ kernel-2.6.spec	2008-04-16 12:40:24.000000000 +0900
-@@ -33,7 +33,7 @@
+--- kernel-2.6.spec	2008-08-14 14:55:31.000000000 +0900
++++ kernel-2.6.spec	2008-10-07 16:17:56.000000000 +0900
+@@ -32,7 +32,7 @@
  %define sublevel 18
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
--%define release 8.16%{?dist}
-+%define release 8.16%{?dist}_tomoyo_1.5.5
+-%define release 8.17%{?dist}
++%define release 8.17%{?dist}_tomoyo_1.5.5
  %define signmodules 0
  %define xen_hv_cset 11772
  %define make_target bzImage
-@@ -191,6 +191,9 @@
+@@ -190,6 +190,9 @@
  # to versions below the minimum
  #
  
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -216,7 +219,7 @@
+@@ -215,7 +218,7 @@
  #
  %define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 4.2.21-1
  
@@ -55,19 +55,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -2766,6 +2769,11 @@
+@@ -2810,6 +2813,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.5-20080903.tar.gz
-+# sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -8.16AX/" -- Makefile
 +patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -2791,6 +2799,9 @@
+@@ -2835,6 +2842,9 @@
  for i in *.config
  do
    mv $i .config
