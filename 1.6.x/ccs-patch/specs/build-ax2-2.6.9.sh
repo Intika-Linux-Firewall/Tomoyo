@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-42.26AX.src.rpm ]
+if [ ! -r kernel-2.6.9-42.28AX.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.26AX.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.28AX.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-42.26AX.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-42.28AX.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.4-20080903.tar.gz ]
@@ -22,17 +22,22 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.4-20080903.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.9-asianux-2p1.diff ]
+then
+    wget -O ccs-patch-2.6.9-asianux-2p1.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.9-asianux-2.diff?root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-08-26 12:42:23.000000000 +0900
-+++ kernel-2.6.spec	2008-08-30 09:13:27.000000000 +0900
+--- kernel-2.6.spec	2008-09-17 12:44:56.000000000 +0900
++++ kernel-2.6.spec	2008-10-07 16:29:55.000000000 +0900
 @@ -29,7 +29,7 @@
  # adding some text to the end of the version number.
  #
  %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
--%define release 42.26AX%{axbsys}
-+%define release 42.26AX%{axbsys}_tomoyo_1.6.4
+-%define release 42.28AX%{axbsys}
++%define release 42.28AX%{axbsys}_tomoyo_1.6.4
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -55,18 +60,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -4117,6 +4120,10 @@
+@@ -4150,6 +4153,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.4-20080903.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.9-asianux-2.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.9-asianux-2p1.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -4128,6 +4135,9 @@
+@@ -4161,6 +4168,9 @@
  for i in *.config 
  do 
  	mv $i .config 
