@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-8.17AXS3.src.rpm ]
+if [ ! -r kernel-2.6.18-53.11AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.17AXS3.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-53.11AXS3.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.18-8.17AXS3.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.18-53.11AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.4-20080903.tar.gz ]
@@ -31,8 +31,8 @@ patch << "EOF" || die "Can't patch spec file."
  %define sublevel 18
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
--%define release 8.17%{?dist}
-+%define release 8.17%{?dist}_tomoyo_1.6.4
+-%define release 53.11%{?dist}
++%define release 53.11%{?dist}_tomoyo_1.6.4
  %define signmodules 0
  %define xen_hv_cset 11772
  %define make_target bzImage
