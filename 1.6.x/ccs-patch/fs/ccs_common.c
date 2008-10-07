@@ -2132,18 +2132,28 @@ static int write_pid(struct ccs_io_buffer *head)
 static int read_pid(struct ccs_io_buffer *head)
 {
 	if (head->read_avail == 0 && !head->read_eof) {
+		const char *is_manager = "";
+		const char *is_execute_handler = "";
 		const int pid = head->read_step;
 		struct task_struct *p;
 		struct domain_info *domain = NULL;
+		u32 tomoyo_flags = 0;
 		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		p = find_task_by_pid(pid);
-		if (p)
+		if (p) {
 			domain = p->domain_info;
+			tomoyo_flags = p->tomoyo_flags;
+		}
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
+		if (tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)
+			is_execute_handler = "(execute_handler)";
+		if (tomoyo_flags & CCS_TASK_IS_POLICY_MANAGER)
+			is_manager = "(manager)";
 		if (domain)
-			ccs_io_printf(head, "%d %u %s", pid, domain->profile,
+			ccs_io_printf(head, "%d%s%s %u %s", pid, is_manager,
+				      is_execute_handler, domain->profile,
 				      domain->domainname->name);
 		head->read_eof = true;
 	}

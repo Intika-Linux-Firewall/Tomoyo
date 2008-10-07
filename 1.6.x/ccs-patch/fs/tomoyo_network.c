@@ -217,18 +217,13 @@ static int parse_ip_address(char *address, u16 *min, u16 *max)
 		       &min[0], &min[1], &min[2], &min[3],
 		       &max[0], &max[1], &max[2], &max[3]);
 	if (count == 4 || count == 8) {
-		u8 *p = (void *) min;
-		*p++ = min[0];
-		*p++ = min[1];
-		*p++ = min[2];
-		*p = min[3];
-		if (count == 4)
-			memmove(max, min, sizeof(u16) * 4);
-		p = (void *) max;
-		*p++ = max[0];
-		*p++ = max[1];
-		*p++ = max[2];
-		*p = max[3];
+		u32 ip = htonl((((u8) min[0]) << 24) + (((u8) min[1]) << 16)
+			       + (((u8) min[2]) << 8) + (u8) min[3]);
+		memmove(min, &ip, sizeof(ip));
+		if (count == 8)
+			ip = htonl((((u8) max[0]) << 24) + (((u8) max[1]) << 16)
+				   + (((u8) max[2]) << 8) + (u8) max[3]);
+		memmove(max, &ip, sizeof(ip));
 		return 1;
 	}
 	return 0;
