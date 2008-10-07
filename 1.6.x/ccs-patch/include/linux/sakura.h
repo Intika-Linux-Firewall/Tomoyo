@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -122,13 +122,5 @@ static inline int ccs_may_autobind(const u16 port)
 }
 
 #endif
-
-/* For compatibility with 1.4.x/1.5.x patches */
-#define CheckChRootPermission    ccs_check_chroot_permission
-#define SAKURA_MayUmount         ccs_may_umount
-#define SAKURA_MayMount          ccs_may_mount
-#define CheckMountPermission     ccs_check_mount_permission
-#define CheckPivotRootPermission ccs_check_pivot_root_permission
-#define SAKURA_MayAutobind       ccs_may_autobind
 
 #endif

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -230,22 +230,22 @@ static void print_success(const char *dev_name, const char *dir_name,
 /**
  * print_error - Print error messages.
  *
- * @dev_name:   Name of device file.
- * @dir_name:   Name of mount point.
- * @type:       Name of filesystem type.
- * @flags:      Mount options.
- * @is_enforce: True if it is enforcing mode.
- * @error:      Error value.
- * @retries:    How many retries are made for this request.
+ * @r:        Pointer to "struct ccs_request_info".
+ * @dev_name: Name of device file.
+ * @dir_name: Name of mount point.
+ * @type:     Name of filesystem type.
+ * @flags:    Mount options.
+ * @error:    Error value.
  *
  * Returns 0 if permitted by the administrator's decision, negative value
  * otherwise.
  */
-static int print_error(const char *dev_name, const char *dir_name,
+static int print_error(struct ccs_request_info *r,
+		       const char *dev_name, const char *dir_name,
 		       const char *type, const unsigned long flags,
-		       const bool is_enforce, int error,
-		       const unsigned short int retries)
+		       int error)
 {
+	const bool is_enforce = (r->mode == 3);
 	const char *realname1 = ccs_realpath(dev_name);
 	const char *realname2 = ccs_realpath(dir_name);
 	const char *exename = ccs_get_exe();
@@ -256,8 +256,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(retries, NULL,
-						     "# %s is requesting\n"
+			error = ccs_check_supervisor(r, "# %s is requesting\n"
 						     "mount -o remount %s "
 						     "0x%lX\n", exename,
 						     realname2 ? realname2
@@ -271,8 +270,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(retries, NULL,
-						     "# %s is requesting\n"
+			error = ccs_check_supervisor(r, "# %s is requesting\n"
 						     "mount %s %s %s 0x%lX\n",
 						     exename, type,
 						     realname1 ? realname1 :
@@ -289,8 +287,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(retries, NULL,
-						     "# %s is requesting\n"
+			error = ccs_check_supervisor(r, "# %s is requesting\n"
 						     "mount %s %s 0x%lX",
 						     exename, type,
 						     realname2 ? realname2 :
@@ -303,8 +300,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 		       realname2 ? realname2 : dir_name,
 		       flags, current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(retries, NULL,
-						     "# %s is requesting\n"
+			error = ccs_check_supervisor(r, "# %s is requesting\n"
 						     "mount -t %s %s %s "
 						     "0x%lX\n", exename, type,
 						     realname1 ? realname1 :
@@ -321,6 +317,7 @@ static int print_error(const char *dev_name, const char *dir_name,
 /**
  * check_mount_permission2 - Check permission for mount() operation.
  *
+ * @r:        Pointer to "struct ccs_request_info".
  * @dev_name: Name of device file.
  * @dir_name: Name of mount point.
  * @type:     Name of filesystem type. May be NULL.
@@ -328,15 +325,12 @@ static int print_error(const char *dev_name, const char *dir_name,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
+static int check_mount_permission2(struct ccs_request_info *r,
+				   char *dev_name, char *dir_name, char *type,
 				   unsigned long flags)
 {
-	unsigned short int retries = 0;
-	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_MOUNT);
-	const bool is_enforce = (mode == 3);
+	const bool is_enforce = (r->mode == 3);
 	int error;
-	if (!mode)
-		return 0;
  retry:
 	error = -EPERM;
 	if (!type)
@@ -374,31 +368,31 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 		return -EINVAL;
 	}
 	if (flags & MS_REMOUNT) {
-		error = check_mount_permission2(dev_name, dir_name,
+		error = check_mount_permission2(r, dev_name, dir_name,
 						MOUNT_REMOUNT_KEYWORD,
 						flags & ~MS_REMOUNT);
 	} else if (flags & MS_MOVE) {
-		error = check_mount_permission2(dev_name, dir_name,
+		error = check_mount_permission2(r, dev_name, dir_name,
 						MOUNT_MOVE_KEYWORD,
 						flags & ~MS_MOVE);
 	} else if (flags & MS_BIND) {
-		error = check_mount_permission2(dev_name, dir_name,
+		error = check_mount_permission2(r, dev_name, dir_name,
 						MOUNT_BIND_KEYWORD,
 						flags & ~MS_BIND);
 	} else if (flags & MS_UNBINDABLE) {
-		error = check_mount_permission2(dev_name, dir_name,
+		error = check_mount_permission2(r, dev_name, dir_name,
 						MOUNT_MAKE_UNBINDABLE_KEYWORD,
 						flags & ~MS_UNBINDABLE);
 	} else if (flags & MS_PRIVATE) {
-		error = check_mount_permission2(dev_name, dir_name,
+		error = check_mount_permission2(r, dev_name, dir_name,
 						MOUNT_MAKE_PRIVATE_KEYWORD,
 						flags & ~MS_PRIVATE);
 	} else if (flags & MS_SLAVE) {
-		error = check_mount_permission2(dev_name, dir_name,
+		error = check_mount_permission2(r, dev_name, dir_name,
 						MOUNT_MAKE_SLAVE_KEYWORD,
 						flags & ~MS_SLAVE);
 	} else if (flags & MS_SHARED) {
-		error = check_mount_permission2(dev_name, dir_name,
+		error = check_mount_permission2(r, dev_name, dir_name,
 						MOUNT_MAKE_SHARED_KEYWORD,
 						flags & ~MS_SHARED);
 	} else {
@@ -485,9 +479,9 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 			break;
 		}
 		if (error)
-			error = print_error(dev_name, dir_name, type, flags,
-					    is_enforce, error, retries);
-		if (error && mode == 1)
+			error = print_error(r, dev_name, dir_name, type, flags,
+					    error);
+		if (error && r->mode == 1)
 			update_mount_acl(need_dev ?
 					 requested_dev_name : dev_name,
 					 requested_dir_name, type, flags, 0);
@@ -500,7 +494,7 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
 	if (!is_enforce)
 		error = 0;
 	if (error == 1) {
-		retries++;
+		r->retry++;
 		goto retry;
 	}
 	return error;
@@ -515,13 +509,17 @@ static int check_mount_permission2(char *dev_name, char *dir_name, char *type,
  * @flags:    Mount options.
  *
  * Returns 0 on success, negative value otherwise.
- *
- * This is a wrapper to allow use of 1.4.x patch for 1.5.x.
  */
 int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 			       const unsigned long *flags)
 {
-	return check_mount_permission2(dev_name, dir_name, type, *flags);
+	struct ccs_request_info r;
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_SAKURA_RESTRICT_MOUNT);
+	if (!r.mode)
+		return 0;
+	return check_mount_permission2(&r, dev_name, dir_name, type, *flags);
 }
 
 /**

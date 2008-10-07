@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -85,15 +85,18 @@ static int update_no_umount_acl(const char *dir, const bool is_delete)
  */
 int ccs_may_umount(struct vfsmount *mnt)
 {
-	unsigned short int retries = 0;
+	struct ccs_request_info r;
 	int error;
 	const char *dir0;
-	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_UNMOUNT);
-	const bool is_enforce = (mode == 3);
+	bool is_enforce;
 	struct no_umount_entry *ptr;
 	struct path_info dir;
 	bool found = false;
-	if (!mode)
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_SAKURA_RESTRICT_UNMOUNT);
+	is_enforce = (r.mode == 3);
+	if (!r.mode)
 		return 0;
  retry:
 	error = -EPERM;
@@ -117,8 +120,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 		       ccs_get_msg(is_enforce), dir0, current->pid,
 		       exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(retries, NULL,
-						     "# %s is requesting\n"
+			error = ccs_check_supervisor(&r, "# %s is requesting\n"
 						     "unmount %s\n",
 						     exename, dir0);
 		ccs_free(exename);
@@ -129,7 +131,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 	if (!is_enforce)
 		error = 0;
 	if (error == 1) {
-		retries++;
+		r.retry++;
 		goto retry;
 	}
 	return error;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -103,11 +103,14 @@ static int update_pivot_root_acl(const char *old_root, const char *new_root,
 int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 				    struct PATH_or_NAMEIDATA *new_path)
 {
-	unsigned short int retries = 0; 
+	struct ccs_request_info r;
 	int error;
-	char *old_root, *new_root;
-	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_PIVOT_ROOT);
-	if (!mode)
+	char *old_root;
+	char *new_root;
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_SAKURA_RESTRICT_PIVOT_ROOT);
+	if (!r.mode)
 		return 0;
  retry:
 	error = -EPERM;
@@ -142,15 +145,14 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 		}
 	}
 	if (error) {
-		const bool is_enforce = (mode == 3);
+		const bool is_enforce = (r.mode == 3);
 		const char *exename = ccs_get_exe();
 		printk(KERN_WARNING "SAKURA-%s: pivot_root %s %s "
 		       "(pid=%d:exe=%s): Permission denied.\n",
 		       ccs_get_msg(is_enforce), new_root, old_root,
 		       current->pid, exename);
 		if (is_enforce)
-			error = ccs_check_supervisor(retries, NULL,
-						     "# %s is requesting\n"
+			error = ccs_check_supervisor(&r, "# %s is requesting\n"
 						     "pivot_root %s %s\n",
 						     exename, new_root,
 						     old_root);
@@ -158,13 +160,13 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 			error = 0;
 		if (exename)
 			ccs_free(exename);
-		if (mode == 1 && old_root && new_root)
+		if (r.mode == 1 && old_root && new_root)
 			update_pivot_root_acl(old_root, new_root, 0);
 	}
 	ccs_free(old_root);
 	ccs_free(new_root);
 	if (error == 1) {
-		retries++;
+		r.retry++;
 		goto retry;
 	}
 	return error;

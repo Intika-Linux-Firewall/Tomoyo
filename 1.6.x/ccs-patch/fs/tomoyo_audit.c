@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -157,17 +157,14 @@ static int reject_log_count;
 /**
  * ccs_init_audit_log - Allocate buffer for audit logs.
  *
- * @len:     Required size.
- * @profile: Profile number.
- * @mode:    Access control mode.
- * @bprm:    Pointer to "struct linux_binprm". May be NULL.
+ * @len: Required size.
+ * @r:   Pointer to "struct ccs_request_info".
  *
  * Returns pointer to allocated memory.
  *
  * The @len is updated to add the header lines' size on success.
  */
-char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
-			 struct linux_binprm *bprm)
+char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 {
 	static const char *mode_4[4] = {
 		"disabled", "learning", "permissive", "enforcing"
@@ -176,12 +173,15 @@ char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
 	char *bprm_info = "";
 	struct timeval tv;
 	struct task_struct *task = current;
-	u32 tomoyo_flags = task->tomoyo_flags;
-	const char *domainname = current->domain_info->domainname->name;
+	u32 tomoyo_flags = r->tomoyo_flags;
+	const char *domainname;
+	if (!r->domain)
+		r->domain = current->domain_info;
+	domainname = r->domain->domainname->name;
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
-	if (bprm) {
-		bprm_info = ccs_print_bprm(bprm);
+	if (r->bprm) {
+		bprm_info = ccs_print_bprm(r->bprm);
 		if (!bprm_info)
 			return NULL;
 		*len += strlen(bprm_info);
@@ -192,69 +192,82 @@ char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
 			 "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
 			 "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
 			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n"
-			 "%s\n", tv.tv_sec, profile, mode_4[mode], task->pid,
+			 "%s\n",
+			 tv.tv_sec, r->profile, mode_4[r->mode], task->pid,
 			 task->uid, task->gid, task->euid, task->egid,
 			 task->suid, task->sgid, task->fsuid, task->fsgid,
 			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
 			 (u8) (tomoyo_flags >> 8), bprm_info, domainname);
-	if (bprm)
+	if (r->bprm)
 		ccs_free(bprm_info);
 	return buf;
 }
 
 /**
- * get_max_grant_log - Get max number of spoolable grant logs.
+ * ccs_can_save_audit_log - Check whether the kernel can save new audit log.
  *
- * Returns max number of spoolable grant logs.
- */
-static unsigned int get_max_grant_log(void)
-{
-	return ccs_check_flags(CCS_TOMOYO_MAX_GRANT_LOG);
-}
-
-/**
- * get_max_reject_log - Get max number of spoolable reject logs.
+ * @domain:     Pointer to "struct domain_info". NULL for current->domain_info.
+ * @is_granted: True if this is a granted log.
  *
- * Returns max number of spoolable reject logs.
+ * Returns true if the kernel can save, false otherwise.
  */
-static unsigned int get_max_reject_log(void)
+static bool ccs_can_save_audit_log(const struct domain_info *domain,
+				   const bool is_granted)
 {
-	return ccs_check_flags(CCS_TOMOYO_MAX_REJECT_LOG);
+	if (is_granted)
+		return grant_log_count
+			< ccs_check_flags(domain, CCS_TOMOYO_MAX_GRANT_LOG);
+	return reject_log_count
+		< ccs_check_flags(domain, CCS_TOMOYO_MAX_REJECT_LOG);
 }
 
 /**
  * ccs_write_audit_log - Write audit log.
  *
- * @buf:        Pointer to audit log.
  * @is_granted: True if this is a granted log.
+ * @r:          Pointer to "struct ccs_request_info".
+ * @fmt:        The printf()'s format string, followed by parameters.
  *
  * Returns 0 on success, -ENOMEM otherwise.
- *
- * Caller must allocate @buf with ccs_init_audit_log().
  */
-int ccs_write_audit_log(char *buf, const bool is_granted)
+int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
+			const char *fmt, ...)
 {
-	struct log_entry *new_entry = ccs_alloc(sizeof(*new_entry));
-	if (!new_entry)
-		goto out;
-	INIT_LIST_HEAD(&new_entry->list);
+	va_list args;
+	int pos;
+	int len;
+	char *buf;
+	struct log_entry *new_entry;
+	if (!r->domain)
+		r->domain = current->domain_info;
+	if (ccs_can_save_audit_log(r->domain, is_granted) < 0)
+		return -ENOMEM;
+	va_start(args, fmt);
+	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
+	va_end(args);
+	buf = ccs_init_audit_log(&len, r);
+	if (!buf)
+		return -ENOMEM;
+	pos = strlen(buf);
+	va_start(args, fmt);
+	vsnprintf(buf + pos, len - pos - 1, fmt, args);
+	va_end(args);
+	new_entry = ccs_alloc(sizeof(*new_entry));
+	if (!new_entry) {
+		ccs_free(buf);
+		return -ENOMEM;
+	}
 	new_entry->log = buf;
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&audit_log_lock);
 	if (is_granted) {
-		if (grant_log_count < get_max_grant_log()) {
-			list_add_tail(&new_entry->list, &grant_log);
-			grant_log_count++;
-			buf = NULL;
-			ccs_update_counter(CCS_UPDATES_COUNTER_GRANT_LOG);
-		}
+		list_add_tail(&new_entry->list, &grant_log);
+		grant_log_count++;
+		ccs_update_counter(CCS_UPDATES_COUNTER_GRANT_LOG);
 	} else {
-		if (reject_log_count < get_max_reject_log()) {
-			list_add_tail(&new_entry->list, &reject_log);
-			reject_log_count++;
-			buf = NULL;
-			ccs_update_counter(CCS_UPDATES_COUNTER_REJECT_LOG);
-		}
+		list_add_tail(&new_entry->list, &reject_log);
+		reject_log_count++;
+		ccs_update_counter(CCS_UPDATES_COUNTER_REJECT_LOG);
 	}
 	spin_unlock(&audit_log_lock);
 	/***** CRITICAL SECTION END *****/
@@ -262,31 +275,7 @@ int ccs_write_audit_log(char *buf, const bool is_granted)
 		wake_up(&grant_log_wait);
 	else
 		wake_up(&reject_log_wait);
-	if (!buf)
-		return 0;
-	ccs_free(new_entry);
- out:
-	ccs_free(buf);
-	return -ENOMEM;
-}
-
-/**
- * ccs_can_save_audit_log - Check whether the kernel can save new audit log.
- *
- * @is_granted: True if this is a granted log.
- *
- * Returns 0 if the kernel can save, -ENOMEM otherwise.
- */
-int ccs_can_save_audit_log(const bool is_granted)
-{
-	if (is_granted) {
-		if (grant_log_count < get_max_grant_log())
-			return 0;
-	} else {
-		if (reject_log_count < get_max_reject_log())
-			return 0;
-	}
-	return -ENOMEM;
+	return 0;
 }
 
 /**

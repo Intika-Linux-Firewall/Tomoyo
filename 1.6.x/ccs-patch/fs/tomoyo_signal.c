@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -25,32 +25,18 @@
 /**
  * audit_signal_log - Audit signal log.
  *
+ * @r:           Pointer to "struct ccs_request_info".
  * @signal:      Signal number.
  * @dest_domain: Destination domainname.
  * @is_granted:  True if this is a granted log.
- * @profile:     Profile number used.
- * @mode:        Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_signal_log(const int signal,
-			    const struct path_info *dest_domain,
-			    const bool is_granted, const u8 profile,
-			    const u8 mode)
+static int audit_signal_log(struct ccs_request_info *r, const int signal,
+			    const char *dest_domain, const bool is_granted)
 {
-	char *buf;
-	int len;
-	int len2;
-	if (ccs_can_save_audit_log(is_granted) < 0)
-		return -ENOMEM;
-	len = dest_domain->total_len + 64;
-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
-	if (!buf)
-		return -ENOMEM;
-	len2 = strlen(buf);
-	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_SIGNAL "%d %s\n",
-		 signal, dest_domain->name);
-	return ccs_write_audit_log(buf, is_granted);
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_SIGNAL
+				   "%d %s\n", signal, dest_domain);
 }
 
 /**
@@ -133,24 +119,19 @@ static int update_signal_acl(const int sig, const char *dest_pattern,
  */
 int ccs_check_signal_acl(const int sig, const int pid)
 {
-	unsigned short int retries = 0;
-	struct domain_info *domain = current->domain_info;
+	struct ccs_request_info r;
 	struct domain_info *dest = NULL;
 	const char *dest_pattern;
 	struct acl_info *ptr;
 	const u16 hash = sig;
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_SIGNAL);
-	const bool is_enforce = (mode == 3);
+	bool is_enforce;
 	bool found = false;
-	if (!mode)
+	if (!ccs_can_sleep())
 		return 0;
-	if (!sig)
-		return 0;                /* No check for NULL signal. */
-	if (current->pid == pid) {
-		audit_signal_log(sig, domain->domainname, true, profile, mode);
-		return 0;                /* No check for self process. */
-	}
+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_SIGNAL);
+	is_enforce = (r.mode == 3);
+	if (!r.mode)
+		return 0;
 	{ /* Simplified checking. */
 		struct task_struct *p = NULL;
 		/***** CRITICAL SECTION START *****/
@@ -167,21 +148,24 @@ int ccs_check_signal_acl(const int sig, const int pid)
 			dest = p->domain_info;
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
-		if (!dest)
-			return 0; /* I can't find destinatioin. */
 	}
-	if (domain == dest) {
-		audit_signal_log(sig, dest->domainname, true, profile, mode);
-		return 0;                /* No check for self domain. */
-	}
-retry:
+	if (!dest)
+		return 0; /* I can't find destinatioin. */
 	dest_pattern = dest->domainname->name;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/*
+	 * Always allow "NULL signals", "signals to self process",
+	 * "signals to self domain". But search ACL anyway so that
+	 * current process gets a chance to call ccs_update_condition().
+	 */
+	if (!sig || current->pid == pid || r.domain == dest)
+		found = true;
+ retry:
+	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
 		struct signal_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
 			continue;
 		acl = container_of(ptr, struct signal_acl_record, head);
-		if (acl->sig == hash && ccs_check_condition(ptr, NULL)) {
+		if (acl->sig == hash && ccs_check_condition(&r, ptr)) {
 			const int len = acl->domainname->total_len;
 			if (strncmp(acl->domainname->name, dest_pattern, len))
 				continue;
@@ -197,25 +181,24 @@ retry:
 			break;
 		}
 	}
-	audit_signal_log(sig, dest->domainname, found, profile, mode);
+	audit_signal_log(&r, sig, dest_pattern, found);
 	if (found)
 		return 0;
-	if (ccs_verbose_mode())
+	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Signal %d "
 		       "to %s denied for %s\n", ccs_get_msg(is_enforce), sig,
-		       ccs_get_last_name(dest), ccs_get_last_name(domain));
+		       ccs_get_last_name(dest), ccs_get_last_name(r.domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(retries, NULL,
-						 KEYWORD_ALLOW_SIGNAL
+		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
 						 "%d %s\n", sig, dest_pattern);
 		if (error == 1) {
-			retries++;
+			r.retry++;
 			goto retry;
 		}
 		return error;
 	}
-	if (mode == 1 && ccs_check_domain_quota(domain))
-		update_signal_acl(sig, dest_pattern, domain, NULL, false);
+	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+		update_signal_acl(sig, dest_pattern, r.domain, NULL, false);
 	return 0;
 }
 

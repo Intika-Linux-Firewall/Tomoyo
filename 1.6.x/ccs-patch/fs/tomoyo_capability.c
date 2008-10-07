@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -71,28 +71,17 @@ static const char *cap_operation2name(const u8 operation)
 /**
  * audit_capability_log - Audit capability log.
  *
+ * @r:          Pointer to "struct ccs_request_info".
  * @operation:  Type of operation.
  * @is_granted: True if this is a granted log.
- * @profile:    Profile number used.
- * @mode:       Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_capability_log(const u8 operation, const bool is_granted,
-				const u8 profile, const u8 mode)
+static int audit_capability_log(struct ccs_request_info *r, const u8 operation,
+				const bool is_granted)
 {
-	char *buf;
-	int len = 64;
-	int len2;
-	if (ccs_can_save_audit_log(is_granted) < 0)
-		return -ENOMEM;
-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
-	if (!buf)
-		return -ENOMEM;
-	len2 = strlen(buf);
-	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_CAPABILITY "%s\n",
-		 ccs_cap2keyword(operation));
-	return ccs_write_audit_log(buf, is_granted);
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_CAPABILITY
+				   "%s\n", ccs_cap2keyword(operation));
 }
 
 /**
@@ -162,48 +151,48 @@ static int update_capability_acl(const u8 operation, struct domain_info *domain,
  */
 bool ccs_capable(const u8 operation)
 {
-	unsigned short int retries = 0;
-	struct domain_info * const domain = current->domain_info;
+	struct ccs_request_info r;
 	struct acl_info *ptr;
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_capability_flags(operation);
-	const bool is_enforce = (mode == 3);
+	bool is_enforce;
 	bool found = false;
-	if (!mode)
+	if (!ccs_can_sleep())
+		return true;
+	ccs_init_request_info(&r, NULL, CCS_MAX_CONTROL_INDEX + operation);
+	is_enforce = (r.mode == 3);
+	if (!r.mode)
 		return true;
  retry:
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
 		struct capability_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
 		acl = container_of(ptr, struct capability_acl_record, head);
 		if (acl->operation != operation ||
-		    !ccs_check_condition(ptr, NULL))
+		    !ccs_check_condition(&r, ptr))
 			continue;
 		ccs_update_condition(ptr);
 		found = true;
 		break;
 	}
-	audit_capability_log(operation, found, profile, mode);
+	audit_capability_log(&r, operation, found);
 	if (found)
 		return true;
-	if (ccs_verbose_mode())
+	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
 		       ccs_get_msg(is_enforce), cap_operation2name(operation),
-		       ccs_get_last_name(domain));
+		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(retries, NULL,
-						 KEYWORD_ALLOW_CAPABILITY
+		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CAPABILITY
 						 "%s\n",
 						 ccs_cap2keyword(operation));
 		if (error == 1) {
-			retries++;
+			r.retry++;
 			goto retry;
 		}
 		return !error;
 	}
-	if (mode == 1 && ccs_check_domain_quota(domain))
-		update_capability_acl(operation, domain, NULL, false);
+	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+		update_capability_acl(operation, r.domain, NULL, false);
 	return true;
 }
 EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */

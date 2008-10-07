@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -23,33 +23,20 @@
 /**
  * audit_network_log - Audit network log.
  *
- * @is_ipv6:    True if @address is an IPv6 address.
+ * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
  * @address:    An IPv4 or IPv6 address.
  * @port:       Port number.
  * @is_granted: True if this is a granted log.
- * @profile:    Profile number used.
- * @mode:       Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_network_log(const bool is_ipv6, const char *operation,
+static int audit_network_log(struct ccs_request_info *r, const char *operation,
 			     const char *address, const u16 port,
-			     const bool is_granted,
-			     const u8 profile, const u8 mode)
+			     const bool is_granted)
 {
-	char *buf;
-	int len = 256;
-	int len2;
-	if (ccs_can_save_audit_log(is_granted) < 0)
-		return -ENOMEM;
-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
-	if (!buf)
-		return -ENOMEM;
-	len2 = strlen(buf);
-	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_NETWORK "%s %s %u\n",
-		 operation, address, port);
-	return ccs_write_audit_log(buf, is_granted);
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_NETWORK
+				   "%s %s %u\n", operation, address, port);
 }
 
 /**
@@ -200,6 +187,54 @@ static int update_address_group_entry(const char *group_name,
 }
 
 /**
+ * parse_ip_address - Parse an IP address.
+ *
+ * @address: String to parse.
+ * @min:     Pointer to store min address.
+ * @max:     Pointer to store max address.
+ *
+ * Returns 2 if @address is an IPv6, 1 if @address is an IPv4, 0 otherwise.
+ */
+static int parse_ip_address(char *address, u16 *min, u16 *max)
+{
+	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
+			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+			   &min[0], &min[1], &min[2], &min[3],
+			   &min[4], &min[5], &min[6], &min[7],
+			   &max[0], &max[1], &max[2], &max[3],
+			   &max[4], &max[5], &max[6], &max[7]);
+	if (count == 8 || count == 16) {
+		u8 i;
+		if (count == 8)
+			memmove(max, min, sizeof(u16) * 8);
+		for (i = 0; i < 8; i++) {
+			min[i] = htons(min[i]);
+			max[i] = htons(max[i]);
+		}
+		return 2;
+	}
+	count = sscanf(address, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
+		       &min[0], &min[1], &min[2], &min[3],
+		       &max[0], &max[1], &max[2], &max[3]);
+	if (count == 4 || count == 8) {
+		u8 *p = (void *) min;
+		*p++ = min[0];
+		*p++ = min[1];
+		*p++ = min[2];
+		*p = min[3];
+		if (count == 4)
+			memmove(max, min, sizeof(u16) * 4);
+		p = (void *) max;
+		*p++ = max[0];
+		*p++ = max[1];
+		*p++ = max[2];
+		*p = max[3];
+		return 1;
+	}
+	return 0;
+}
+
+/**
  * ccs_write_address_group_policy - Write "struct address_group_entry" list.
  *
  * @data:      String to parse.
@@ -209,7 +244,6 @@ static int update_address_group_entry(const char *group_name,
  */
 int ccs_write_address_group_policy(char *data, const bool is_delete)
 {
-	u8 count;
 	bool is_ipv6;
 	u16 min_address[8];
 	u16 max_address[8];
@@ -217,49 +251,16 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	count = sscanf(cp, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
-		       "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
-		       &min_address[0], &min_address[1],
-		       &min_address[2], &min_address[3],
-		       &min_address[4], &min_address[5],
-		       &min_address[6], &min_address[7],
-		       &max_address[0], &max_address[1],
-		       &max_address[2], &max_address[3],
-		       &max_address[4], &max_address[5],
-		       &max_address[6], &max_address[7]);
-	if (count == 8 || count == 16) {
-		u8 i;
-		for (i = 0; i < 8; i++) {
-			min_address[i] = htons(min_address[i]);
-			max_address[i] = htons(max_address[i]);
-		}
-		if (count == 8)
-			memmove(max_address, min_address, sizeof(min_address));
+	switch (parse_ip_address(cp, min_address, max_address)) {
+	case 2:
 		is_ipv6 = true;
-		goto ok;
-	}
-	count = sscanf(cp, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
-		       &min_address[0], &min_address[1],
-		       &min_address[2], &min_address[3],
-		       &max_address[0], &max_address[1],
-		       &max_address[2], &max_address[3]);
-	if (count == 4 || count == 8) {
-		u32 ip = ((((u8) min_address[0]) << 24)
-			  + (((u8) min_address[1]) << 16)
-			  + (((u8) min_address[2]) << 8)
-			  + (u8) min_address[3]);
-		*(u32 *) min_address = ip;
-		if (count == 8)
-			ip = ((((u8) max_address[0]) << 24)
-			      + (((u8) max_address[1]) << 16)
-			      + (((u8) max_address[2]) << 8)
-			      + (u8) max_address[3]);
-		*(u32 *) max_address = ip;
+		break;
+	case 1:
 		is_ipv6 = false;
-		goto ok;
+		break;
+	default:
+		return -EINVAL;
 	}
-	return -EINVAL;
- ok:
 	return update_address_group_entry(data, is_ipv6,
 					  min_address, max_address, is_delete);
 }
@@ -580,27 +581,28 @@ static int update_network_entry(const u8 operation, const u8 record_type,
 static int check_network_entry(const bool is_ipv6, const u8 operation,
 			       const u32 *address, const u16 port)
 {
-	unsigned short int retries = 0;
-	struct domain_info * const domain = current->domain_info;
+	struct ccs_request_info r;
 	struct acl_info *ptr;
 	const char *keyword = ccs_net2keyword(operation);
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_NETWORK);
-	const bool is_enforce = (mode == 3);
+	bool is_enforce;
 	/* using host byte order to allow u32 comparison than memcmp().*/
 	const u32 ip = ntohl(*address);
 	bool found = false;
 	char buf[64];
-	if (!mode)
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_NETWORK);
+	is_enforce = (r.mode == 3);
+	if (!r.mode)
 		return 0;
 retry:
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
 		struct ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
 		acl = container_of(ptr, struct ip_network_acl_record, head);
 		if (acl->operation_type != operation || port < acl->min_port ||
-		    acl->max_port < port || !ccs_check_condition(ptr, NULL))
+		    acl->max_port < port || !ccs_check_condition(&r, ptr))
 			continue;
 		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 			if (!address_matches_to_group(is_ipv6, address,
@@ -626,29 +628,28 @@ retry:
 			       (const struct in6_addr *) address);
 	else
 		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
-	audit_network_log(is_ipv6, keyword, buf, port, found, profile, mode);
+	audit_network_log(&r, keyword, buf, port, found);
 	if (found)
 		return 0;
-	if (ccs_verbose_mode())
+	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
 		       ccs_get_msg(is_enforce), keyword, buf, port,
-		       ccs_get_last_name(domain));
+		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(retries, NULL,
-						 KEYWORD_ALLOW_NETWORK
+		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_NETWORK
 						 "%s %s %u\n", keyword, buf,
 						 port);
 		if (error == 1) {
-			retries++;
+			r.retry++;
 			goto retry;
 		}
 		return error;
 	}
-	if (mode == 1 && ccs_check_domain_quota(domain))
+	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
 		update_network_entry(operation, is_ipv6 ?
 				     IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4,
-				     NULL, address, address, port, port, domain,
-				     NULL, 0);
+				     NULL, address, address, port, port,
+				     r.domain, NULL, 0);
 	return 0;
 }
 
@@ -724,57 +725,22 @@ int ccs_write_network_policy(char *data, struct domain_info *domain,
 	if (!cp1)
 		goto out;
 	*cp1++ = '\0';
-	count = sscanf(cp2, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
-		       "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
-		       &min_address[0], &min_address[1],
-		       &min_address[2], &min_address[3],
-		       &min_address[4], &min_address[5],
-		       &min_address[6], &min_address[7],
-		       &max_address[0], &max_address[1],
-		       &max_address[2], &max_address[3],
-		       &max_address[4], &max_address[5],
-		       &max_address[6], &max_address[7]);
-	if (count == 8 || count == 16) {
-		u8 i;
-		for (i = 0; i < 8; i++) {
-			min_address[i] = htons(min_address[i]);
-			max_address[i] = htons(max_address[i]);
-		}
-		if (count == 8)
-			memmove(max_address, min_address, sizeof(min_address));
+	switch (parse_ip_address(cp2, min_address, max_address)) {
+	case 2:
 		record_type = IP_RECORD_TYPE_IPv6;
-		goto ok;
-	}
-	count = sscanf(cp2, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
-		       &min_address[0], &min_address[1],
-		       &min_address[2], &min_address[3],
-		       &max_address[0], &max_address[1],
-		       &max_address[2], &max_address[3]);
-	if (count == 4 || count == 8) {
-		u32 ip = htonl((((u8) min_address[0]) << 24)
-			       + (((u8) min_address[1]) << 16)
-			       + (((u8) min_address[2]) << 8)
-			       + (u8) min_address[3]);
-		*(u32 *) min_address = ip;
-		if (count == 8)
-			ip = htonl((((u8) max_address[0]) << 24)
-				   + (((u8) max_address[1]) << 16)
-				   + (((u8) max_address[2]) << 8)
-				   + (u8) max_address[3]);
-		*(u32 *) max_address = ip;
+		break;
+	case 1:
 		record_type = IP_RECORD_TYPE_IPv4;
-		goto ok;
-	}
-	if (*cp2 == '@') {
+		break;
+	default:
+		if (*cp2 != '@')
+			goto out;
 		group = find_or_assign_new_address_group(cp2 + 1);
 		if (!group)
 			return -ENOMEM;
 		record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
-		goto ok;
+		break;
 	}
- out:
-	return -EINVAL;
- ok:
 	if (strchr(cp1, ' '))
 		goto out;
 	count = sscanf(cp1, "%hu-%hu", &min_port, &max_port);
@@ -786,6 +752,8 @@ int ccs_write_network_policy(char *data, struct domain_info *domain,
 				    (u32 *) min_address, (u32 *) max_address,
 				    min_port, max_port, domain, condition,
 				    is_delete);
+ out:
+	return -EINVAL;
 }
 
 /**
