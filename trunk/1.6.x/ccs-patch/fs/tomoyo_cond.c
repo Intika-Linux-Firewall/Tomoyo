@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -326,7 +326,6 @@ static u8 parse_ulong(unsigned long *result, char **str)
 	}
 }
 
-
 /**
  * print_ulong - Print an "unsigned long" value.
  *
@@ -636,7 +635,9 @@ ccs_find_or_assign_new_condition(char * const condition)
 	struct argv_entry *argv;
 	struct envp_entry *envp;
 	u32 size;
-	u8 left, right, i;
+	u8 left;
+	u8 right;
+	u8 i;
 	unsigned long left_min = 0;
 	unsigned long left_max = 0;
 	unsigned long right_min = 0;
@@ -993,12 +994,13 @@ static void get_attributes(struct obj_info *obj)
 /**
  * ccs_check_condition - Check condition part.
  *
+ * @r:   Pointer to "struct ccs_request_info".
  * @acl: Pointer to "struct acl_info".
- * @obj: Pointer to "struct obj_info". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
-bool ccs_check_condition(const struct acl_info *acl, struct obj_info *obj)
+bool ccs_check_condition(struct ccs_request_info *r,
+			 const struct acl_info *acl)
 {
 	const struct task_struct *task = current;
 	u32 i;
@@ -1009,6 +1011,7 @@ bool ccs_check_condition(const struct acl_info *acl, struct obj_info *obj)
 	const unsigned long *ptr;
 	const struct argv_entry *argv;
 	const struct envp_entry *envp;
+	struct obj_info *obj;
 	u16 condc;
 	u16 argc;
 	u16 envc;
@@ -1019,7 +1022,8 @@ bool ccs_check_condition(const struct acl_info *acl, struct obj_info *obj)
 	condc = cond->condc;
 	argc = cond->argc;
 	envc = cond->envc;
-	bprm = obj ? obj->bprm : NULL;
+	bprm = r->bprm;
+	obj = r->obj;
 	if (!bprm && (argc || envc))
 		return false;
 	ptr = (unsigned long *) (cond + 1);

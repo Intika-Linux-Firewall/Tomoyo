@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -56,7 +56,7 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
 
 /* Has /sbin/init started? */
-bool sbin_init_started = false;
+bool sbin_init_started;
 
 /* Log level for SAKURA's printk(). */
 const char *ccs_log_level = KERN_DEBUG;
@@ -145,7 +145,7 @@ static struct profile {
 } *profile_ptr[MAX_PROFILES];
 
 /* Permit policy management by non-root user? */
-static bool manage_by_non_root = false;
+static bool manage_by_non_root;
 
 /* Utility functions. */
 
@@ -845,25 +845,7 @@ const char *ccs_get_msg(const bool is_enforce)
 }
 
 /**
- * ccs_check_flags_no_sleep_check - Check mode for specified functionality.
- *
- * @index: The functionality to check mode.
- *
- * Returns the mode of specified functionality.
- */
-unsigned int ccs_check_flags_no_sleep_check(const u8 index)
-{
-	const u8 profile = current->domain_info->profile;
-	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
-#if MAX_PROFILES != 256
-		&& profile < MAX_PROFILES
-#endif
-		&& profile_ptr[profile] ?
-		profile_ptr[profile]->value[index] : 0;
-}
-
-/**
- * sleep_check - Check whether it is permitted to do operations that may sleep.
+ * ccs_can_sleep - Check whether it is permitted to do operations that may sleep.
  *
  * Returns true if it is permitted to do operations that may sleep,
  * false otherwise.
@@ -874,7 +856,7 @@ unsigned int ccs_check_flags_no_sleep_check(const u8 index)
  * it is permitted to do operations that may sleep.
  * Thus, this warning should not happen.
  */
-static bool sleep_check(void)
+bool ccs_can_sleep(void)
 {
 	static u8 count = 20;
 	if (likely(!in_interrupt()))
@@ -891,31 +873,43 @@ static bool sleep_check(void)
 /**
  * ccs_check_flags - Check mode for specified functionality.
  *
- * @index: The functionality to check mode.
+ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
+ * @index:  The functionality to check mode.
  *
  * Returns the mode of specified functionality.
  */
-unsigned int ccs_check_flags(const u8 index)
+unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index)
 {
-	return sleep_check() ? ccs_check_flags_no_sleep_check(index) : 0;
+	u8 profile;
+	if (!domain)
+		domain = current->domain_info;
+	profile = domain->profile;
+	return sbin_init_started && index < CCS_MAX_CONTROL_INDEX
+#if MAX_PROFILES != 256
+		&& profile < MAX_PROFILES
+#endif
+		&& profile_ptr[profile] ?
+		profile_ptr[profile]->value[index] : 0;
 }
 
 #ifdef CONFIG_TOMOYO
 /**
  * ccs_check_capability_flags - Check mode for specified capability.
  *
- * @index: The capability to check mode.
+ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
+ * @index:  The capability to check mode.
  *
  * Returns the mode of specified capability.
  */
-u8 ccs_check_capability_flags(const u8 index)
+static u8 ccs_check_capability_flags(const struct domain_info *domain,
+				     const u8 index)
 {
-	const u8 profile = current->domain_info->profile;
+	const u8 profile = domain ? domain->profile :
+		current->domain_info->profile;
 	return sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
 #if MAX_PROFILES != 256
 		&& profile < MAX_PROFILES
 #endif
-		&& sleep_check()
 		&& profile_ptr[profile] ?
 		profile_ptr[profile]->capability_value[index] : 0;
 }
@@ -936,14 +930,41 @@ const char *ccs_cap2keyword(const u8 operation)
 #endif
 
 /**
+ * ccs_init_request_info - Initialize "struct ccs_request_info" members.
+ *
+ * @r:      Pointer to "struct ccs_request_info" to initialize.
+ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
+ * @index:  Index number of functionality.
+ */
+void ccs_init_request_info(struct ccs_request_info *r,
+			   struct domain_info *domain, const u8 index)
+{
+	memset(r, 0, sizeof(*r));
+	if (!domain)
+		domain = current->domain_info;
+	r->domain = domain;
+	r->profile = domain->profile;
+	if (index < CCS_MAX_CONTROL_INDEX)
+		r->mode = ccs_check_flags(domain, index);
+#ifdef CONFIG_TOMOYO
+	else
+		r->mode = ccs_check_capability_flags(domain, index
+						     - CCS_MAX_CONTROL_INDEX);
+#endif
+	r->tomoyo_flags = current->tomoyo_flags;
+}
+
+/**
  * ccs_verbose_mode - Check whether TOMOYO is verbose mode.
+ *
+ * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
  *
  * Returns true if domain policy violation warning should be printed to
  * console.
  */
-bool ccs_verbose_mode(void)
+bool ccs_verbose_mode(const struct domain_info *domain)
 {
-	return ccs_check_flags(CCS_TOMOYO_VERBOSE) != 0;
+	return ccs_check_flags(domain, CCS_TOMOYO_VERBOSE) != 0;
 }
 
 /**
@@ -1014,7 +1035,7 @@ bool ccs_check_domain_quota(struct domain_info * const domain)
 			count++;
 		}
 	}
-	if (count < ccs_check_flags(CCS_TOMOYO_MAX_ACCEPT_ENTRY))
+	if (count < ccs_check_flags(domain, CCS_TOMOYO_MAX_ACCEPT_ENTRY))
 		return true;
 	if (!domain->quota_warned) {
 		domain->quota_warned = true;
@@ -1064,7 +1085,7 @@ static struct profile *ccs_find_or_assign_new_profile(const unsigned int
 /**
  * write_profile - Write profile table.
  *
- * @head: Pointer to "struct ccs_io_buffer"
+ * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -1157,7 +1178,7 @@ static int write_profile(struct ccs_io_buffer *head)
 /**
  * read_profile - Read profile table.
  *
- * @head: Pointer to "struct ccs_io_buffer"
+ * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0.
  */
@@ -1314,7 +1335,7 @@ static int update_manager_entry(const char *manager, const bool is_delete)
 /**
  * write_manager_policy - Write manager policy.
  *
- * @head: Pointer to "struct ccs_io_buffer"
+ * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -1332,7 +1353,7 @@ static int write_manager_policy(struct ccs_io_buffer *head)
 /**
  * read_manager_policy - Read manager policy.
  *
- * @head: Pointer to "struct ccs_io_buffer"
+ * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0.
  */
@@ -2473,10 +2494,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.5-pre   2008/10/01\n");
+	printk(KERN_INFO "SAKURA: 1.6.5-pre   2008/10/07\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.5-pre   2008/10/01\n");
+	printk(KERN_INFO "TOMOYO: 1.6.5-pre   2008/10/07\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2518,8 +2539,7 @@ static atomic_t queryd_watcher = ATOMIC_INIT(0);
 /**
  * ccs_check_supervisor - Ask for the supervisor's decision.
  *
- * @retries: How many retries are made for this request.
- * @bprm:    Pointer to "struct linux_binprm". May be NULL.
+ * @r:       Pointer to "struct ccs_request_info".
  * @fmt:     The printf()'s format string, followed by parameters.
  *
  * Returns 0 if the supervisor decided to permit the access request which
@@ -2527,8 +2547,7 @@ static atomic_t queryd_watcher = ATOMIC_INIT(0);
  * retry the access request which violated the policy in enforcing mode,
  * -EPERM otherwise.
  */
-int ccs_check_supervisor(const unsigned short int retries,
-			 struct linux_binprm *bprm, const char *fmt, ...)
+int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 {
 	va_list args;
 	int error = -EPERM;
@@ -2537,11 +2556,14 @@ int ccs_check_supervisor(const unsigned short int retries,
 	static unsigned int serial;
 	struct query_entry *query_entry = NULL;
 	char *header;
+	if (!r->domain)
+		r->domain = current->domain_info;
 	if (!atomic_read(&queryd_watcher)) {
 		int i;
 		if (current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			return -EPERM;
-		for (i = 0; i < ccs_check_flags(CCS_SLEEP_PERIOD); i++) {
+		for (i = 0; i < ccs_check_flags(r->domain, CCS_SLEEP_PERIOD);
+		     i++) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			schedule_timeout(HZ / 10);
 		}
@@ -2551,8 +2573,7 @@ int ccs_check_supervisor(const unsigned short int retries,
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);
 #ifdef CONFIG_TOMOYO
-	header = ccs_init_audit_log(&len, current->domain_info->profile,
-				    3, bprm);
+	header = ccs_init_audit_log(&len, r);
 #else
 	header = ccs_alloc(1);
 #endif
@@ -2571,7 +2592,7 @@ int ccs_check_supervisor(const unsigned short int retries,
 	spin_unlock(&query_lock);
 	/***** CRITICAL SECTION END *****/
 	pos = snprintf(query_entry->query, len - 1, "Q%u-%hu\n%s",
-		       query_entry->serial, retries, header);
+		       query_entry->serial, r->retry, header);
 	ccs_free(header);
 	header = NULL;
 	va_start(args, fmt);

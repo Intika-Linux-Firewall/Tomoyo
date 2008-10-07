@@ -1624,3 +1624,38 @@ Fix 2008/10/01
       To be able to handle some of queries from /proc/ccs/query without user's
       interaction, I added retry counter for avoiding infinite loop caused by
       "try again" response.
+
+Fix 2008/10/07
+
+    @ Don't transit to new domain until do_execve() succeeds.
+
+      Until now, a process's domain was updated to new domain which the process
+      will belongs to before do_execve() succeeds so that the kernel can do
+      permission checks for interpreters and environment variables based on
+      new domain. But this caused a subtle problem when other process sends
+      signals to the process, for the process returns to old domain if
+      do_execve() failed.
+
+      So, I modified to pass new domain to functions so that I can avoid
+      modifying a process's domain before do_execve() succeeds.
+
+    @ Use old task state for audit logs.
+
+      Until now, audit logs were generated using the task state after
+      processing "; set task.state" part. But to generate accurate logs,
+      I modified to save the task state before processing "; set task.state"
+      part and use the saved state for audit logs.
+
+    @ Use a structure for passing parameters.
+
+      As the number of parameters is increasing, I modified to use a structure
+      for passing parameters.
+
+    @ Always allow updating task state for signal operations.
+
+      ccs_check_signal_acl() was skipping permission checks if signal is NULL
+      or sent to self or sent to same domain. To make it possible to update
+      task state when current process is sending NULL signal or to self or
+      to same domain, I modified to check ACL anyway. The result of access
+      control will not change, but this modification will generate granted logs
+      which were not generated until now.

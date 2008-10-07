@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -19,31 +19,18 @@
 /**
  * audit_argv0_log - Audit argv[0] log.
  *
+ * @r:          Pointer to "struct ccs_request_info".
  * @filename:   The fullpath of program.
  * @argv0:      The basename of argv[0].
  * @is_granted: True if this is a granted log.
- * @profile:    Profile number used.
- * @mode:       Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_argv0_log(const struct path_info *filename, const char *argv0,
-			   const bool is_granted, const u8 profile,
-			   const u8 mode)
+static int audit_argv0_log(struct ccs_request_info *r, const char *filename,
+			   const char *argv0, const bool is_granted)
 {
-	char *buf;
-	int len;
-	int len2;
-	if (ccs_can_save_audit_log(is_granted) < 0)
-		return -ENOMEM;
-	len = filename->total_len + strlen(argv0) + 64;
-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
-	if (!buf)
-		return -ENOMEM;
-	len2 = strlen(buf);
-	snprintf(buf + len2, len - len2 - 1,
-		 KEYWORD_ALLOW_ARGV0 "%s %s\n", filename->name, argv0);
-	return ccs_write_audit_log(buf, is_granted);
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_ARGV0
+				   "%s %s\n", filename, argv0);
 }
 
 /**
@@ -120,15 +107,17 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 /**
  * check_argv0_acl - Check permission for argv[0].
  *
+ * @r:        Pointer to "struct ccs_request_info".
  * @filename: The fullpath of the program.
  * @argv0:    The basename of argv[0].
  *
  * Returns 0 on success, -EPERM otherwise.
  */
-static int check_argv0_acl(const struct path_info *filename, const char *argv0)
+static int check_argv0_acl(struct ccs_request_info *r,
+			   const struct path_info *filename, const char *argv0)
 {
-	const struct domain_info *domain = current->domain_info;
 	int error = -EPERM;
+	struct domain_info *domain = r->domain;
 	struct acl_info *ptr;
 	struct path_info argv_0;
 	argv_0.name = argv0;
@@ -138,7 +127,7 @@ static int check_argv0_acl(const struct path_info *filename, const char *argv0)
 		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
 			continue;
 		acl = container_of(ptr, struct argv0_acl_record, head);
-		if (!ccs_check_condition(ptr, NULL) ||
+		if (!ccs_check_condition(r, ptr) ||
 		    !ccs_path_matches_pattern(filename, acl->filename) ||
 		    !ccs_path_matches_pattern(&argv_0, acl->argv0))
 			continue;
@@ -152,36 +141,35 @@ static int check_argv0_acl(const struct path_info *filename, const char *argv0)
 /**
  * ccs_check_argv0_perm - Check permission for argv[0].
  *
+ * @r:        Pointer to "struct ccs_request_info".
  * @filename: The fullpath of the program.
  * @argv0:    The basename of argv[0].
- * @retries:  How many retries are made for this request.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  */
-int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0,
-			 const unsigned short int retries)
+int ccs_check_argv0_perm(struct ccs_request_info *r,
+			 const struct path_info *filename, const char *argv0)
 {
 	int error = 0;
-	struct domain_info * const domain = current->domain_info;
-	const u8 profile = domain->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_ARGV0);
-	const bool is_enforce = (mode == 3);
+	const bool is_enforce = (r->mode == 3);
+	if (!ccs_can_sleep())
+		return 0;
 	if (!filename || !argv0 || !*argv0)
 		return 0;
-	error = check_argv0_acl(filename, argv0);
-	audit_argv0_log(filename, argv0, !error, profile, mode);
+	error = check_argv0_acl(r, filename, argv0);
+	audit_argv0_log(r, filename->name, argv0, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode())
+	if (ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Run %s as %s denied for %s\n",
 		       ccs_get_msg(is_enforce), filename->name, argv0,
-		       ccs_get_last_name(domain));
+		       ccs_get_last_name(r->domain));
 	if (is_enforce)
-		return ccs_check_supervisor(retries, NULL,
-					    KEYWORD_ALLOW_ARGV0 "%s %s\n",
+		return ccs_check_supervisor(r, KEYWORD_ALLOW_ARGV0 "%s %s\n",
 					    filename->name, argv0);
-	if (mode == 1 && ccs_check_domain_quota(domain))
-		update_argv0_entry(filename->name, argv0, domain, NULL, false);
+	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
+		update_argv0_entry(filename->name, argv0, r->domain, NULL,
+				   false);
 	return 0;
 }
 

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -19,28 +19,17 @@
 /**
  * audit_env_log - Audit environment variable name log.
  *
+ * @r:          Pointer to "struct ccs_request_info".
  * @env:        The name of environment variable.
  * @is_granted: True if this is a granted log.
- * @profile:    Profile number used.
- * @mode:       Access control mode used.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_env_log(const char *env, const bool is_granted,
-			 const u8 profile, const u8 mode)
+static int audit_env_log(struct ccs_request_info *r, const char *env,
+			 const bool is_granted)
 {
-	char *buf;
-	int len;
-	int len2;
-	if (ccs_can_save_audit_log(is_granted) < 0)
-		return -ENOMEM;
-	len = strlen(env) + 64;
-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
-	if (!buf)
-		return -ENOMEM;
-	len2 = strlen(buf);
-	snprintf(buf + len2, len - len2 - 1, KEYWORD_ALLOW_ENV "%s\n", env);
-	return ccs_write_audit_log(buf, is_granted);
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_ENV "%s\n",
+				   env);
 }
 
 /* Structure for "allow_env" keyword. */
@@ -220,13 +209,14 @@ static int update_env_entry(const char *env, struct domain_info *domain,
 /**
  * check_env_acl - Check permission for environment variable's name.
  *
+ * @r:       Pointer to "struct ccs_request_info".
  * @environ: The name of environment variable.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_env_acl(const char *environ)
+static int check_env_acl(struct ccs_request_info *r, const char *environ)
 {
-	const struct domain_info *domain = current->domain_info;
+	const struct domain_info *domain = r->domain;
 	int error = -EPERM;
 	struct acl_info *ptr;
 	struct path_info env;
@@ -237,7 +227,7 @@ static int check_env_acl(const char *environ)
 		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
 			continue;
 		acl = container_of(ptr, struct env_acl_record, head);
-		if (!ccs_check_condition(ptr, NULL) ||
+		if (!ccs_check_condition(r, ptr) ||
 		    !ccs_path_matches_pattern(&env, acl->env))
 			continue;
 		ccs_update_condition(ptr);
@@ -254,40 +244,38 @@ static int check_env_acl(const char *environ)
 /**
  * ccs_check_env_perm - Check permission for environment variable's name.
  *
+ * @r:       Pointer to "struct ccs_request_info".
  * @env:     The name of environment variable.
- * @profile: Profile number.
- * @mode:    Access control mode.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode)
+int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
 {
-	unsigned short int retries = 0;
 	int error = 0;
-	struct domain_info * const domain = current->domain_info;
-	const bool is_enforce = (mode == 3);
+	const bool is_enforce = (r->mode == 3);
+	if (!ccs_can_sleep())
+		return 0;
 	if (!env || !*env)
 		return 0;
  retry:
-	error = check_env_acl(env);
-	audit_env_log(env, !error, profile, mode);
+	error = check_env_acl(r, env);
+	audit_env_log(r, env, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode())
+	if (ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
-		       ccs_get_msg(is_enforce), env, ccs_get_last_name(domain));
+		       ccs_get_msg(is_enforce), env,
+		       ccs_get_last_name(r->domain));
 	if (is_enforce) {
-		error = ccs_check_supervisor(retries, NULL,
-					     KEYWORD_ALLOW_ENV "%s\n",
-					     env);
+		error = ccs_check_supervisor(r, KEYWORD_ALLOW_ENV "%s\n", env);
 		if (error == 1) {
-			retries++;
+			r->retry++;
 			goto retry;
 		}
 		return error;
 	}
-	if (mode == 1 && ccs_check_domain_quota(domain))
-		update_env_entry(env, domain, NULL, false);
+	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
+		update_env_entry(env, r->domain, NULL, false);
 	return 0;
 }
 

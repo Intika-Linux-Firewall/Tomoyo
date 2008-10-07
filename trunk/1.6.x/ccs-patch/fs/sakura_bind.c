@@ -78,7 +78,7 @@ int ccs_may_autobind(const u16 port)
 {
 	/***** CRITICAL SECTION START *****/
 	struct reserved_entry *ptr;
-	if (!ccs_check_flags_no_sleep_check(CCS_SAKURA_RESTRICT_AUTOBIND))
+	if (!ccs_check_flags(NULL, CCS_SAKURA_RESTRICT_AUTOBIND))
 		return 0;
 	list1_for_each_entry(ptr, &reservedport_list, list) {
 		if (ptr->min_port <= port && port <= ptr->max_port &&

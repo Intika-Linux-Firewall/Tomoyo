@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -35,40 +35,24 @@
 #define __user
 #endif
 
-struct path_info;
 struct dentry;
 struct vfsmount;
 struct inode;
 struct linux_binprm;
 struct pt_regs;
-struct ccs_page_buffer;
 
 #if defined(CONFIG_TOMOYO)
 
 int ccs_check_file_perm(const char *filename, const u8 perm,
 			const char *operation);
-int ccs_check_exec_perm(const struct path_info *filename,
-			struct linux_binprm *bprm,
-			struct ccs_page_buffer *buf,
-			const unsigned short int retries);
 int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			      const int flag);
-int ccs_check_1path_perm(const u8 operation,
-				     struct dentry *dentry,
-				     struct vfsmount *mnt);
-int ccs_check_2path_perm(const u8 operation,
-				     struct dentry *dentry1,
-				     struct vfsmount *mnt1,
-				     struct dentry *dentry2,
-				     struct vfsmount *mnt2);
+int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
+			 struct vfsmount *mnt);
+int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
+			 struct vfsmount *mnt1, struct dentry *dentry2,
+			 struct vfsmount *mnt2);
 int ccs_check_rewrite_permission(struct file *filp);
-
-/* Check whether the basename of program and argv0 is allowed to differ. */
-int ccs_check_argv0_perm(const struct path_info *filename, const char *argv0,
-			 const unsigned short int retries);
-
-/* Check whether the given environment is allowed to be received. */
-int ccs_check_env_perm(const char *env, const u8 profile, const u8 mode);
 
 /* Check whether the given IP address and port number are allowed to use. */
 int ccs_check_network_listen_acl(const _Bool is_ipv6, const u8 *address,
@@ -97,13 +81,6 @@ static inline int ccs_check_file_perm(const char *filename, const u8 perm,
 {
 	return 0;
 }
-static inline int ccs_check_exec_perm(const struct path_info *filename,
-				      struct linux_binprm *bprm,
-				      struct ccs_page_buffer *buf,
-				      const unsigned short int retries)
-{
-	return 0;
-}
 static inline int ccs_check_open_permission(struct dentry *dentry,
 					    struct vfsmount *mnt,
 					    const int flag)
@@ -111,31 +88,20 @@ static inline int ccs_check_open_permission(struct dentry *dentry,
 	return 0;
 }
 static inline int ccs_check_1path_perm(const u8 operation,
-						   struct dentry *dentry,
-						   struct vfsmount *mnt)
+				       struct dentry *dentry,
+				       struct vfsmount *mnt)
 {
 	return 0;
 }
 static inline int ccs_check_2path_perm(const u8 operation,
-						   struct dentry *dentry1,
-						   struct vfsmount *mnt1,
-						   struct dentry *dentry2,
-						   struct vfsmount *mnt2)
+				       struct dentry *dentry1,
+				       struct vfsmount *mnt1,
+				       struct dentry *dentry2,
+				       struct vfsmount *mnt2)
 {
 	return 0;
 }
 static inline int ccs_check_rewrite_permission(struct file *filp)
-{
-	return 0;
-}
-static inline int ccs_check_argv0_perm(const struct path_info *filename,
-				       const char *argv0,
-				       const unsigned short int retries)
-{
-	return 0;
-}
-static inline int ccs_check_env_perm(const char *env, const u8 profile,
-				     const u8 mode)
 {
 	return 0;
 }
@@ -322,17 +288,5 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 #define NETWORK_ACL_TCP_ACCEPT  5
 #define NETWORK_ACL_RAW_BIND    6
 #define NETWORK_ACL_RAW_CONNECT 7
-
-/* For compatibility with 1.4.x/1.5.x patches */
-#define CheckSingleWritePermission ccs_check_1path_perm
-#define CheckDoubleWritePermission ccs_check_2path_perm
-static inline int CheckCapabilityACL(const int capability)
-{
-	return ccs_capable(capability) ? 0 : -EPERM;
-}
-#define CheckFilePerm              ccs_check_file_perm
-#define CheckSignalACL             ccs_check_signal_acl
-#define CheckOpenPermission        ccs_check_open_permission
-#define CheckReWritePermission     ccs_check_rewrite_permission
 
 #endif

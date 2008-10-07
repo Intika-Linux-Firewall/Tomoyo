@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -456,14 +456,5 @@ static inline int ccs_socket_recv_datagram_permission(struct sock *sk,
 }
 
 #endif
-
-/* For compatibility with 1.4.x/1.5.x patches */
-#define CheckSocketSendMsgPermission      ccs_socket_sendmsg_permission
-#define CheckSocketCreatePermission       ccs_socket_create_permission
-#define CheckSocketBindPermission         ccs_socket_bind_permission
-#define CheckSocketListenPermission       ccs_socket_listen_permission
-#define CheckSocketAcceptPermission       ccs_socket_accept_permission
-#define CheckSocketConnectPermission      ccs_socket_connect_permission
-#define CheckSocketRecvDatagramPermission ccs_socket_recv_datagram_permission
 
 #endif

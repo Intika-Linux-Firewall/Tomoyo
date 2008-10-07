@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -147,37 +147,22 @@ static int update_single_path_acl(const u8 type, const char *filename,
 /**
  * audit_file_log - Audit file related request log.
  *
+ * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
  * @filename1:  First pathname.
  * @filename2:  Second pathname. May be NULL.
  * @is_granted: True if this is a granted log.
- * @profile:    Profile number used.
- * @mode:       Access control mode used.
- * @bprm:       Pointer to "struct linux_binprm". May be NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_file_log(const char *operation,
-			  const struct path_info *filename1,
-			  const struct path_info *filename2,
-			  const bool is_granted, const u8 profile,
-			  const u8 mode, struct linux_binprm *bprm)
+static int audit_file_log(struct ccs_request_info *r, const char *operation,
+			  const char *filename1, const char *filename2,
+			  const bool is_granted)
 {
-	char *buf;
-	int len;
-	int len2;
-	if (ccs_can_save_audit_log(is_granted) < 0)
-		return -ENOMEM;
-	len = strlen(operation) + filename1->total_len + 16;
-	if (filename2)
-		len += filename2->total_len;
-	buf = ccs_init_audit_log(&len, profile, mode, bprm);
-	if (!buf)
-		return -ENOMEM;
-	len2 = strlen(buf);
-	snprintf(buf + len2, len - len2 - 1, "allow_%s %s %s\n",
-		 operation, filename1->name, filename2 ? filename2->name : "");
-	return ccs_write_audit_log(buf, is_granted);
+	if (!filename2)
+		filename2 = "";
+	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",
+				   operation, filename1, filename2);
 }
 
 /* The list for "struct globally_readable_file_entry". */
@@ -517,10 +502,9 @@ static int update_file_pattern_entry(const char *pattern, const bool is_delete)
  *
  * @filename: The filename to find patterned pathname.
  *
- * Returns pointer to pathname pattern if matched, @filename otherwise.
+ * Returns pointer to pathname pattern if matched, @filename->name otherwise.
  */
-static const struct path_info *
-get_file_pattern(const struct path_info *filename)
+static const char *get_file_pattern(const struct path_info *filename)
 {
 	struct pattern_entry *ptr;
 	const struct path_info *pattern = NULL;
@@ -539,8 +523,9 @@ get_file_pattern(const struct path_info *filename)
 	}
 	if (pattern)
 		filename = pattern;
-	return filename;
+	return filename->name;
 }
+
 
 /**
  * ccs_write_pattern_policy - Write "struct pattern_entry" list.
@@ -730,25 +715,25 @@ static int update_file_acl(const char *filename, u8 perm,
 /**
  * check_single_path_acl2 - Check permission for single path operation.
  *
+ * @r:               Pointer to "struct ccs_request_info".
  * @filename:        Filename to check.
  * @perm:            Permission.
- * @obj:             Pointer to "struct obj_info".
  * @may_use_pattern: True if patterned ACL is permitted.
  *
  * Returns 0 on success, -EPERM otherwise.
  */
-static int check_single_path_acl2(const struct path_info *filename,
-				  const u16 perm, struct obj_info *obj,
-				  const bool may_use_pattern)
+static int check_single_path_acl2(struct ccs_request_info *r,
+				  const struct path_info *filename,
+				  const u16 perm, const bool may_use_pattern)
 {
-	const struct domain_info *domain = current->domain_info;
+	struct domain_info *domain = r->domain;
 	struct acl_info *ptr;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct single_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
 		acl = container_of(ptr, struct single_path_acl_record, head);
-		if (!(acl->perm & perm) || !ccs_check_condition(ptr, obj))
+		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr))
 			continue;
 		if (acl->u_is_group) {
 			if (!path_matches_group(filename, acl->u.group,
@@ -770,18 +755,17 @@ static int check_single_path_acl2(const struct path_info *filename,
 /**
  * check_file_acl - Check permission for opening files.
  *
+ * @r:         Pointer to "struct ccs_request_info".
  * @filename:  Filename to check.
  * @operation: Mode ("read" or "write" or "read/write" or "execute").
- * @obj:       Pointer to "struct obj_info".
  *
  * Returns 0 on success, -EPERM otherwise.
  */
-static int check_file_acl(const struct path_info *filename, const u8 operation,
-			  struct obj_info *obj)
+static inline int check_file_acl(struct ccs_request_info *r,
+				 const struct path_info *filename,
+				 const u8 operation)
 {
 	u16 perm = 0;
-	if (!ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE))
-		return 0;
 	if (operation == 6)
 		perm = 1 << TYPE_READ_WRITE_ACL;
 	else if (operation == 4)
@@ -792,39 +776,28 @@ static int check_file_acl(const struct path_info *filename, const u8 operation,
 		perm = 1 << TYPE_EXECUTE_ACL;
 	else
 		BUG();
-	return check_single_path_acl2(filename, perm, obj, operation != 1);
+	return check_single_path_acl2(r, filename, perm, operation != 1);
 }
 
 /**
  * check_file_perm2 - Check permission for opening files.
  *
+ * @r:         Pointer to "strct ccs_request_info".
  * @filename:  Filename to check.
  * @perm:      Mode ("read" or "write" or "read/write" or "execute").
  * @operation: Operation name passed used for verbose mode.
- * @obj:       Pointer to "struct obj_info". May be NULL.
- * @profile:   Profile number passed to audit logs.
- * @mode:      Access control mode.
- * @retries:   How many retries are made for this request.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  */
-static int check_file_perm2(const struct path_info *filename, const u8 perm,
-			    const char *operation, struct obj_info *obj,
-			    const u8 profile, const u8 mode,
-			    unsigned short int retries)
+static int check_file_perm2(struct ccs_request_info *r,
+			    const struct path_info *filename, const u8 perm,
+			    const char *operation)
 {
-	struct domain_info * const domain = current->domain_info;
-	const bool is_enforce = (mode == 3);
+	const bool is_enforce = (r->mode == 3);
 	const char *msg = "<unknown>";
 	int error = 0;
 	if (!filename)
 		return 0;
-retry:
-	error = check_file_acl(filename, perm, obj);
-	if (error && perm == 4 &&
-	    (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0 &&
-	    is_globally_readable_file(filename))
-		error = 0;
 	if (perm == 6)
 		msg = ccs_sp2keyword(TYPE_READ_WRITE_ACL);
 	else if (perm == 4)
@@ -835,31 +808,33 @@ retry:
 		msg = ccs_sp2keyword(TYPE_EXECUTE_ACL);
 	else
 		BUG();
-	audit_file_log(msg, filename, NULL, !error, profile, mode,
-		       obj ? obj->bprm : NULL);
+retry:
+	error = check_file_acl(r, filename, perm);
+	if (error && perm == 4 &&
+	    (r->domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0 &&
+	    is_globally_readable_file(filename))
+		error = 0;
+	audit_file_log(r, msg, filename->name, NULL, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode())
+	if (ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s(%s) %s' denied "
 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
-		       filename->name, ccs_get_last_name(domain));
+		       filename->name, ccs_get_last_name(r->domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(retries,
-						 obj ? obj->bprm : NULL,
-						 "allow_%s %s\n",
+		int error = ccs_check_supervisor(r, "allow_%s %s\n",
 						 msg, filename->name);
-		if (error == 1 && (!obj || !obj->bprm)) {
-			retries++;
+		if (error == 1 && !r->bprm) {
+			r->retry++;
 			goto retry;
 		}
 		return error;
 	}
-	if (mode == 1 && ccs_check_domain_quota(domain)) {
+	if (r->mode == 1 && ccs_check_domain_quota(r->domain)) {
 		/* Don't use patterns for execute permission. */
-		const struct path_info *patterned_file = (perm != 1) ?
-			get_file_pattern(filename) : filename;
-		update_file_acl(patterned_file->name, perm,
-				domain, NULL, false);
+		const char *patterned_file = (perm != 1) ?
+			get_file_pattern(filename) : filename->name;
+		update_file_acl(patterned_file, perm, r->domain, NULL, false);
 	}
 	return 0;
 }
@@ -1198,47 +1173,42 @@ static int update_double_path_acl(const u8 type, const char *filename1,
 /**
  * check_single_path_acl - Check permission for single path operation.
  *
+ * @r:        Pointer to "struct ccs_request_info".
  * @type:     Type of operation.
  * @filename: Filename to check.
- * @obj:      Pointer to "struct obj_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_single_path_acl(const u8 type,
-				 const struct path_info *filename,
-				 struct obj_info *obj)
+static inline int check_single_path_acl(struct ccs_request_info *r,
+					const u8 type,
+					const struct path_info *filename)
 {
-	if (!ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE))
-		return 0;
-	return check_single_path_acl2(filename, 1 << type, obj, 1);
+	return check_single_path_acl2(r, filename, 1 << type, 1);
 }
 
 /**
  * check_double_path_acl - Check permission for double path operation.
  *
+ * @r:         Pointer to "struct ccs_request_info".
  * @type:      Type of operation.
  * @filename1: First filename to check.
  * @filename2: Second filename to check.
- * @obj:       Pointer to "struct obj_info".
  *
  * Returns 0 on success, -EPERM otherwise.
  */
-static int check_double_path_acl(const u8 type,
+static int check_double_path_acl(struct ccs_request_info *r, const u8 type,
 				 const struct path_info *filename1,
-				 const struct path_info *filename2,
-				 struct obj_info *obj)
+				 const struct path_info *filename2)
 {
-	const struct domain_info *domain = current->domain_info;
+	const struct domain_info *domain = r->domain;
 	struct acl_info *ptr;
 	const u8 perm = 1 << type;
-	if (!ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE))
-		return 0;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct double_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
 		acl = container_of(ptr, struct double_path_acl_record, head);
-		if (!(acl->perm & perm) || !ccs_check_condition(ptr, obj))
+		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr))
 			continue;
 		if (acl->u1_is_group) {
 			if (!path_matches_group(filename1, acl->u1.group1,
@@ -1267,48 +1237,42 @@ static int check_double_path_acl(const u8 type,
 /**
  * check_single_path_permission2 - Check permission for single path operation.
  *
+ * @r:         Pointer to "struct ccs_request_info".
  * @operation: Type of operation.
  * @filename:  Filename to check.
- * @obj:       Pointer to "struct obj_info".
- * @profile:   Profile number passed to audit logs.
- * @mode:      Access control mode.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_single_path_permission2(u8 operation,
-					 const struct path_info *filename,
-					 struct obj_info *obj,
-					 const u8 profile, const u8 mode)
+static int check_single_path_permission2(struct ccs_request_info *r,
+					 u8 operation,
+					 const struct path_info *filename)
 {
-	unsigned short int retries = 0;
 	const char *msg;
 	int error;
-	struct domain_info * const domain = current->domain_info;
-	const bool is_enforce = (mode == 3);
-	if (!mode)
+	const bool is_enforce = (r->mode == 3);
+	if (!r->mode)
 		return 0;
  next:
-	error = check_single_path_acl(operation, filename, obj);
+	error = check_single_path_acl(r, operation, filename);
 	msg = ccs_sp2keyword(operation);
-	audit_file_log(msg, filename, NULL, !error, profile, mode, NULL);
+	audit_file_log(r, msg, filename->name, NULL, !error);
 	if (!error)
 		goto ok;
-	if (ccs_verbose_mode())
+	if (ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
 		       ccs_get_msg(is_enforce), msg, filename->name,
-		       ccs_get_last_name(domain));
+		       ccs_get_last_name(r->domain));
 	if (is_enforce) {
-		error = ccs_check_supervisor(retries, NULL, "allow_%s %s\n",
+		error = ccs_check_supervisor(r, "allow_%s %s\n",
 					     msg, filename->name);
 		if (error == 1) {
-			retries++;
+			r->retry++;
 			goto next;
 		}
 	}
-	if (mode == 1 && ccs_check_domain_quota(domain))
-		update_single_path_acl(operation,
-				       get_file_pattern(filename)->name,
-				       domain, NULL, false);
+	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
+		update_single_path_acl(operation, get_file_pattern(filename),
+				       r->domain, NULL, false);
 	if (!is_enforce)
 		error = 0;
  ok:
@@ -1319,6 +1283,7 @@ static int check_single_path_permission2(u8 operation,
 	 */
 	if (!error && operation == TYPE_TRUNCATE_ACL &&
 	    is_no_rewrite_file(filename)) {
+		r->retry = 0;
 		operation = TYPE_REWRITE_ACL;
 		goto next;
 	}
@@ -1338,40 +1303,33 @@ int ccs_check_file_perm(const char *filename, const u8 perm,
 			const char *operation)
 {
 	struct path_info name;
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!mode)
+	struct ccs_request_info r;
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	if (!r.mode)
 		return 0;
 	name.name = filename;
 	ccs_fill_path_info(&name);
-	return check_file_perm2(&name, perm, operation, NULL, profile, mode, 0);
+	return check_file_perm2(&r, &name, perm, operation);
 }
 
 /**
  * ccs_check_exec_perm - Check permission for "execute".
  *
+ * @r:        Pointer to "struct ccs_request_info".
  * @filename: Check permission for "execute".
- * @bprm:     Pointer to "struct linux_binprm".
- * @tmp:      Buffer for temporal use.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  */
-int ccs_check_exec_perm(const struct path_info *filename,
-			struct linux_binprm *bprm, struct ccs_page_buffer *tmp,
-			unsigned short int retries)
+int ccs_check_exec_perm(struct ccs_request_info *r,
+			const struct path_info *filename)
 {
-	struct obj_info obj;
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
-	if (!mode)
+	if (!ccs_can_sleep())
 		return 0;
-	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = bprm->file->f_dentry;
-	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
-	obj.bprm = bprm;
-	obj.tmp = tmp;
-	return check_file_perm2(filename, 1, "do_execve", &obj, profile, mode,
-				retries);
+	if (!r->mode)
+		return 0;
+	return check_file_perm2(r, filename, 1, "do_execve");
 }
 
 /**
@@ -1386,14 +1344,18 @@ int ccs_check_exec_perm(const struct path_info *filename,
 int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			      const int flag)
 {
+	struct ccs_request_info r;
 	struct obj_info obj;
 	const u8 acc_mode = ACC_MODE(flag);
 	int error = -ENOMEM;
 	struct path_info *buf;
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
-	const bool is_enforce = (mode == 3);
-	if (!mode || !mnt)
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, current->tomoyo_flags &
+			      TOMOYO_CHECK_READ_FOR_OPEN_EXEC ?
+			      ccs_fetch_next_domain() : current->domain_info,
+			      CCS_TOMOYO_MAC_FOR_FILE);
+	if (!r.mode || !mnt)
 		return 0;
 	if (acc_mode == 0)
 		return 0;
@@ -1409,28 +1371,25 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = dentry;
 	obj.path1_vfsmnt = mnt;
+	r.obj = &obj;
 	error = 0;
 	/*
 	 * If the filename is specified by "deny_rewrite" keyword,
 	 * we need to check "allow_rewrite" permission when the filename is not
 	 * opened for append mode or the filename is truncated at open time.
 	 */
-	if ((acc_mode & MAY_WRITE) &&
-	    ((flag & O_TRUNC) || !(flag & O_APPEND))) {
-		if (is_no_rewrite_file(buf))
-			error = check_single_path_permission2(TYPE_REWRITE_ACL,
-							      buf, &obj,
-							      profile, mode);
-	}
+	if ((acc_mode & MAY_WRITE) && ((flag & O_TRUNC) || !(flag & O_APPEND))
+	    && is_no_rewrite_file(buf))
+		error = check_single_path_permission2(&r, TYPE_REWRITE_ACL,
+						      buf);
 	if (!error)
-		error = check_file_perm2(buf, acc_mode, "open", &obj, profile,
-					 mode, 0);
+		error = check_file_perm2(&r, buf, acc_mode, "open");
 	if (!error && (flag & O_TRUNC))
-		error = check_single_path_permission2(TYPE_TRUNCATE_ACL, buf,
-						      &obj, profile, mode);
+		error = check_single_path_permission2(&r, TYPE_TRUNCATE_ACL,
+						      buf);
  out:
 	ccs_free(buf);
-	if (!is_enforce)
+	if (r.mode != 3)
 		error = 0;
 	return error;
 }
@@ -1447,13 +1406,16 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 			 struct vfsmount *mnt)
 {
+	struct ccs_request_info r;
 	struct obj_info obj;
 	int error = -ENOMEM;
 	struct path_info *buf;
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
-	const bool is_enforce = (mode == 3);
-	if (!mode || !mnt)
+	bool is_enforce;
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	is_enforce = (r.mode == 3);
+	if (!r.mode || !mnt)
 		return 0;
 	buf = ccs_get_path(dentry, mnt);
 	if (!buf)
@@ -1470,8 +1432,8 @@ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = dentry;
 	obj.path1_vfsmnt = mnt;
-	error = check_single_path_permission2(operation, buf, &obj, profile,
-					      mode);
+	r.obj = &obj;
+	error = check_single_path_permission2(&r, operation, buf);
  out:
 	ccs_free(buf);
 	if (!is_enforce)
@@ -1489,13 +1451,16 @@ EXPORT_SYMBOL(ccs_check_1path_perm); /* for net/unix/af_unix.c  */
  */
 int ccs_check_rewrite_permission(struct file *filp)
 {
+	struct ccs_request_info r;
 	struct obj_info obj;
 	int error = -ENOMEM;
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
-	const bool is_enforce = (mode == 3);
+	bool is_enforce;
 	struct path_info *buf;
-	if (!mode || !filp->f_vfsmnt)
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	is_enforce = (r.mode == 3);
+	if (!r.mode || !filp->f_vfsmnt)
 		return 0;
 	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
 	if (!buf)
@@ -1507,8 +1472,8 @@ int ccs_check_rewrite_permission(struct file *filp)
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = filp->f_dentry;
 	obj.path1_vfsmnt = filp->f_vfsmnt;
-	error = check_single_path_permission2(TYPE_REWRITE_ACL, buf, &obj,
-					      profile, mode);
+	r.obj = &obj;
+	error = check_single_path_permission2(&r, TYPE_REWRITE_ACL, buf);
  out:
 	ccs_free(buf);
 	if (!is_enforce)
@@ -1528,21 +1493,21 @@ int ccs_check_rewrite_permission(struct file *filp)
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_check_2path_perm(const u8 operation,
-				     struct dentry *dentry1,
-				     struct vfsmount *mnt1,
-				     struct dentry *dentry2,
-				     struct vfsmount *mnt2)
+			 struct dentry *dentry1, struct vfsmount *mnt1,
+			 struct dentry *dentry2, struct vfsmount *mnt2)
 {
-	unsigned short int retries = 0;
+	struct ccs_request_info r;
 	int error = -ENOMEM;
-	struct path_info *buf1, *buf2;
-	struct domain_info * const domain = current->domain_info;
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
-	const bool is_enforce = (mode == 3);
+	struct path_info *buf1;
+	struct path_info *buf2;
+	bool is_enforce;
 	const char *msg;
 	struct obj_info obj;
-	if (!mode || !mnt1 || !mnt2)
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	is_enforce = (r.mode == 3);
+	if (!r.mode || !mnt1 || !mnt2)
 		return 0;
 	buf1 = ccs_get_path(dentry1, mnt1);
 	buf2 = ccs_get_path(dentry2, mnt2);
@@ -1567,30 +1532,30 @@ int ccs_check_2path_perm(const u8 operation,
 	obj.path1_vfsmnt = mnt1;
 	obj.path2_dentry = dentry2;
 	obj.path2_vfsmnt = mnt2;
+	r.obj = &obj;
 retry:
-	error = check_double_path_acl(operation, buf1, buf2, &obj);
+	error = check_double_path_acl(&r, operation, buf1, buf2);
 	msg = ccs_dp2keyword(operation);
-	audit_file_log(msg, buf1, buf2, !error, profile, mode, NULL);
+	audit_file_log(&r, msg, buf1->name, buf2->name, !error);
 	if (!error)
 		goto out;
-	if (ccs_verbose_mode())
+	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
 		       "denied for %s\n", ccs_get_msg(is_enforce),
-		       msg, buf1->name, buf2->name, ccs_get_last_name(domain));
+		       msg, buf1->name, buf2->name,
+		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
-		error = ccs_check_supervisor(retries, NULL,
-					     "allow_%s %s %s\n",
+		error = ccs_check_supervisor(&r, "allow_%s %s %s\n",
 					     msg, buf1->name, buf2->name);
 		if (error == 1) {
-			retries++;
+			r.retry++;
 			goto retry;
 		}
 	}
-	if (mode == 1 && ccs_check_domain_quota(domain))
-		update_double_path_acl(operation,
-				       get_file_pattern(buf1)->name,
-				       get_file_pattern(buf2)->name,
-				       domain, NULL, false);
+	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+		update_double_path_acl(operation, get_file_pattern(buf1),
+				       get_file_pattern(buf2), r.domain, NULL,
+				       false);
  out:
 	ccs_free(buf1);
 	ccs_free(buf2);

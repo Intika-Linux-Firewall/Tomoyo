@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -79,31 +79,29 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
 /**
  * print_error - Print error message.
  *
+ * @r:         Pointer to "struct ccs_request_info".
  * @root_name: Requested directory name.
- * @mode:      Access control mode.
- * @retries:   How many retries are made for this request.
  *
- * Returns 0 if @mode is not enforcing mode or permitted by the administrator's
- * decision, negative value otherwise.
+ * Returns 0 if @r->mode is not enforcing mode or permitted by the
+ * administrator's decision, negative value otherwise.
  */
-static int print_error(const char *root_name, const u8 mode,
-		       const unsigned short int retries)
+static int print_error(struct ccs_request_info *r, const char *root_name)
 {
 	int error;
-	const bool is_enforce = (mode == 3);
+	const bool is_enforce = (r->mode == 3);
 	const char *exename = ccs_get_exe();
 	printk(KERN_WARNING "SAKURA-%s: chroot %s (pid=%d:exe=%s): "
 	       "Permission denied.\n", ccs_get_msg(is_enforce),
 	       root_name, current->pid, exename);
 	if (is_enforce)
-		error = ccs_check_supervisor(retries, NULL,
+		error = ccs_check_supervisor(r,
 					     "# %s is requesting\nchroot %s\n",
 					     exename, root_name);
 	else
 		error = 0;
 	if (exename)
 		ccs_free(exename);
-	if (mode == 1 && root_name)
+	if (r->mode == 1 && root_name)
 		update_chroot_acl(root_name, false);
 	return error;
 }
@@ -123,11 +121,13 @@ static int print_error(const char *root_name, const u8 mode,
  */
 int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 {
-	unsigned short int retries = 0;
+	struct ccs_request_info r;
 	int error;
 	char *root_name;
-	const u8 mode = ccs_check_flags(CCS_SAKURA_RESTRICT_CHROOT);
-	if (!mode)
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_SAKURA_RESTRICT_CHROOT);
+	if (!r.mode)
 		return 0;
  retry:
 	error = -EPERM;
@@ -153,10 +153,10 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 		}
 	}
 	if (error)
-		error = print_error(root_name, mode, retries);
+		error = print_error(&r, root_name);
 	ccs_free(root_name);
 	if (error == 1) {
-		retries++;
+		r.retry++;
 		goto retry;
 	}
 	return error;

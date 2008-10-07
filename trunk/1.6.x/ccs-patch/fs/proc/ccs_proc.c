@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.4   2008/09/03
+ * Version: 1.6.5-pre   2008/10/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -235,6 +235,3 @@ core_initcall(ccs_proc_init);
 #endif
 
 #endif
-
-/* For older patches. */
-void __init CCSProc_Init(void) {}

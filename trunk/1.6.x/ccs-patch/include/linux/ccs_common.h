@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -200,8 +200,18 @@ struct obj_info {
 	/* I don't handle path2_stat for rename operation. */
 	struct mini_stat path1_parent_stat;
 	struct mini_stat path2_parent_stat;
-	struct linux_binprm *bprm;
 	struct ccs_page_buffer *tmp;
+};
+
+/* Structure for request info. */
+struct ccs_request_info {
+	struct domain_info *domain;
+	struct linux_binprm *bprm;
+	u16 retry;
+	u8 profile;
+	u8 mode;
+	u32 tomoyo_flags;
+	struct obj_info *obj;
 };
 
 /* Structure for holding a token. */
@@ -309,7 +319,7 @@ struct domain_info {
 /* Ignore "allow_env" directive in exception policy.  */
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2
 /*
- * This domain was unable to create a new domain at ccs_find_next_domain()
+ * This domain was unable to create a new domain at find_next_domain()
  * because the name of the domain to be created was too long or
  * it could not allocate memory.
  * More than one process continued execve() without domain transition.
@@ -561,8 +571,8 @@ struct ccs_io_buffer {
 struct condition_list;
 
 /* Check conditional part of an ACL entry. */
-bool ccs_check_condition(const struct acl_info *acl,
-			 struct obj_info *obj_info);
+bool ccs_check_condition(struct ccs_request_info *r,
+			 const struct acl_info *acl);
 /* Check whether the domain has too many ACL entries to hold. */
 bool ccs_check_domain_quota(struct domain_info * const domain);
 /* Transactional sprintf() for policy dump. */
@@ -617,10 +627,9 @@ bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head);
 /* Read "deny_autobind" entry in system policy. */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
 /* Write domain policy violation warning message to console? */
-bool ccs_verbose_mode(void);
+bool ccs_verbose_mode(const struct domain_info *domain);
 /* Allocate buffer for domain policy auditing. */
-char *ccs_init_audit_log(int *len, const u8 profile, const u8 mode,
-			 struct linux_binprm *bprm);
+char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
 /* Convert capability index to capability name. */
 const char *ccs_cap2keyword(const u8 operation);
 /* Convert double path operation to operation name. */
@@ -635,6 +644,8 @@ const char *ccs_get_msg(const bool is_enforce);
 const char *ccs_net2keyword(const u8 operation);
 /* Convert single path operation to operation name. */
 const char *ccs_sp2keyword(const u8 operation);
+/* Fetch next_domain from the list. */
+struct domain_info *ccs_fetch_next_domain(void);
 /* Create conditional part of an ACL entry. */
 const struct condition_list *
 ccs_find_or_assign_new_condition(char * const condition);
@@ -643,12 +654,10 @@ const struct condition_list *
 ccs_get_condition_part(const struct acl_info *acl);
 /* Add an ACL entry to domain's ACL list. */
 int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
-/* Check whether there is space for audit logs. */
-int ccs_can_save_audit_log(const bool is_granted);
 /* Ask supervisor's opinion. */
-int ccs_check_supervisor(const unsigned short int retries,
-			 struct linux_binprm *bprm, const char *fmt, ...)
-	__attribute__ ((format(printf, 3, 4)));
+int ccs_check_supervisor(struct ccs_request_info *r,
+			 const char *fmt, ...)
+	__attribute__ ((format(printf, 2, 3)));
 /* Close /proc/ccs/ interface. */
 int ccs_close_control(struct file *file);
 /* Delete an ACL entry from domain's ACL list. */
@@ -681,7 +690,9 @@ int ccs_write_argv0_policy(char *data, struct domain_info *domain,
 			   const struct condition_list *condition,
 			   const bool is_delete);
 /* Write an audit log. */
-int ccs_write_audit_log(char *log, const bool is_granted);
+int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
+			const char *fmt, ...)
+     __attribute__ ((format(printf, 3, 4)));
 /* Create "allow_capability" entry in domain policy. */
 int ccs_write_capability_policy(char *data, struct domain_info *domain,
 				const struct condition_list *condition,
@@ -748,17 +759,18 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						  const u8 profile);
 /* Undelete a domain. */
 struct domain_info *ccs_undelete_domain(const char *domainname);
-/* Check mode for specified capability. */
-u8 ccs_check_capability_flags(const u8 index);
 /* Check mode for specified functionality. */
-unsigned int ccs_check_flags(const u8 index);
-/* Same with ccs_check_flags() except that it doesn't check might_sleep(). */
-unsigned int ccs_check_flags_no_sleep_check(const u8 index);
+unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index);
+/* Check whether it is safe to sleep. */
+bool ccs_can_sleep(void);
 /* Allocate memory for structures. */
 void *ccs_alloc_acl_element(const u8 acl_type,
 			    const struct condition_list *condition);
 /* Fill in "struct path_info" members. */
 void ccs_fill_path_info(struct path_info *ptr);
+/* Fill in "struct ccs_request_info" members. */
+void ccs_init_request_info(struct ccs_request_info *r,
+			   struct domain_info *domain, const u8 index);
 /* Run policy loader when /sbin/init starts. */
 void ccs_load_policy(const char *filename);
 /* Print an IPv6 address. */
@@ -771,6 +783,15 @@ void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
 void ccs_update_condition(const struct acl_info *acl);
 /* Update the policy change counter. */
 void ccs_update_counter(const unsigned char index);
+
+/* Check whether the basename of program and argv0 is allowed to differ. */
+int ccs_check_argv0_perm(struct ccs_request_info *r,
+			 const struct path_info *filename, const char *argv0);
+/* Check whether the given environment is allowed to be received. */
+int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
+/* Check whether the given pathname is allowed to be executed. */
+int ccs_check_exec_perm(struct ccs_request_info *r,
+			const struct path_info *filename);
 
 /* strcmp() for "struct path_info" structure. */
 static inline bool ccs_pathcmp(const struct path_info *a,

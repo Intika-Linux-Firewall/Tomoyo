@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -160,58 +160,26 @@ static int audit_execute_handler_log(const bool is_default,
 				     const char *handler,
 				     struct linux_binprm *bprm)
 {
-	char *buf;
-	int len;
-	int len2;
-	u8 profile;
-	u8 mode;
-	if (ccs_can_save_audit_log(true) < 0)
-		return -ENOMEM;
-	len = strlen(handler) + 32;
-	profile = current->domain_info->profile;
-	mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
-	buf = ccs_init_audit_log(&len, profile, mode, bprm);
-	if (!buf)
-		return -ENOMEM;
-	len2 = strlen(buf);
-	snprintf(buf + len2, len - len2 - 1, "%s %s\n",
-		 is_default ? KEYWORD_EXECUTE_HANDLER :
-		 KEYWORD_DENIED_EXECUTE_HANDLER, handler);
-	return ccs_write_audit_log(buf, true);
+	struct ccs_request_info r;
+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	r.bprm = bprm;
+	return ccs_write_audit_log(true, &r, "%s %s\n",
+				   is_default ? KEYWORD_EXECUTE_HANDLER :
+				   KEYWORD_DENIED_EXECUTE_HANDLER, handler);
 }
 
 /**
  * audit_domain_creation_log - Audit domain creation log.
  *
- * @domainname: The name of newly created domain.
- * @mode:       Access control mode used.
- * @profile:    Profile number used.
+ * @domain:  Pointer to "struct domain_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_domain_creation_log(const char *domainname, const u8 mode,
-				     const u8 profile)
+static int audit_domain_creation_log(struct domain_info *domain)
 {
-	char *buf;
-	char *cp;
-	int len;
-	int len2;
-	if (ccs_can_save_audit_log(false) < 0)
-		return -ENOMEM;
-	len = strlen(domainname) + 32;
-	buf = ccs_init_audit_log(&len, profile, mode, NULL);
-	if (!buf)
-		return -ENOMEM;
-	cp = strchr(buf, '\n');
-	if (!cp) {
-		ccs_free(buf);
-		return -ENOMEM;
-	}
-	*++cp = '\0';
-	len2 = strlen(buf);
-	snprintf(buf + len2, len - len2 - 1, "%s\nuse_profile %u\n",
-		 domainname, profile);
-	return ccs_write_audit_log(buf, false);
+	struct ccs_request_info r;
+	ccs_init_request_info(&r, domain, CCS_TOMOYO_MAC_FOR_FILE);
+	return ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
 }
 
 /* The list for "struct domain_initializer_entry". */
@@ -985,37 +953,33 @@ static bool get_argv0(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 /**
  * find_next_domain - Find a domain.
  *
- * @bprm:           Pointer to "struct linux_binprm".
- * @next_domain:    Pointer to pointer to "struct domain_info".
- * @path_to_verify: Pathname to verify. May be NULL.
- * @tmp:            Buffer for temporal use.
+ * @r:       Pointer to "struct ccs_request_info".
+ * @handler: Pathname to verify. May be NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int find_next_domain(struct linux_binprm *bprm,
-			    struct domain_info **next_domain,
-			    const struct path_info *path_to_verify,
-			    struct ccs_page_buffer *tmp)
+static int find_next_domain(struct ccs_request_info *r,
+			    const struct path_info *handler)
 {
 	/*
 	 * This function assumes that the size of buffer returned by
 	 * ccs_realpath() = CCS_MAX_PATHNAME_LEN.
 	 */
-	unsigned short int retries = 0;
-	struct domain_info *old_domain = current->domain_info;
 	struct domain_info *domain = NULL;
-	const char *old_domain_name = old_domain->domainname->name;
+	const char *old_domain_name = r->domain->domainname->name;
+	struct linux_binprm *bprm = r->bprm;
+	struct ccs_page_buffer *tmp = r->obj->tmp;
 	const char *original_name = bprm->filename;
+	const u8 mode = r->mode;
+	const bool is_enforce = (mode == 3);
+	const u32 tomoyo_flags = r->tomoyo_flags;
 	char *new_domain_name = NULL;
 	char *real_program_name = NULL;
 	char *symlink_program_name = NULL;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_FILE);
-	const bool is_enforce = (mode == 3);
+	struct path_info rn; /* real name */
+	struct path_info sn; /* symlink name */
+	struct path_info ln; /* last name */
 	int retval;
-	struct path_info r; /* real name */
-	struct path_info s; /* symlink name */
-	struct path_info l; /* last name */
-	const u32 tomoyo_flags = current->tomoyo_flags;
 
 	{
 		/*
@@ -1034,6 +998,7 @@ static int find_next_domain(struct linux_binprm *bprm,
 
  retry:
 	current->tomoyo_flags = tomoyo_flags;
+	r->tomoyo_flags = tomoyo_flags;
 	/* Get ccs_realpath of program. */
 	retval = -ENOENT; /* I hope ccs_realpath() won't fail with -ENOMEM. */
 	ccs_free(real_program_name);
@@ -1046,21 +1011,21 @@ static int find_next_domain(struct linux_binprm *bprm,
 	if (!symlink_program_name)
 		goto out;
 
-	r.name = real_program_name;
-	ccs_fill_path_info(&r);
-	s.name = symlink_program_name;
-	ccs_fill_path_info(&s);
-	l.name = ccs_get_last_name(old_domain);
-	ccs_fill_path_info(&l);
+	rn.name = real_program_name;
+	ccs_fill_path_info(&rn);
+	sn.name = symlink_program_name;
+	ccs_fill_path_info(&sn);
+	ln.name = ccs_get_last_name(r->domain);
+	ccs_fill_path_info(&ln);
 
-	if (path_to_verify) {
-		if (ccs_pathcmp(&r, path_to_verify)) {
+	if (handler) {
+		if (ccs_pathcmp(&rn, handler)) {
 			/* Failed to verify execute handler. */
 			static u8 counter = 20;
 			if (counter) {
 				counter--;
 				printk(KERN_WARNING "Failed to verify: %s\n",
-				       path_to_verify->name);
+				       handler->name);
 			}
 			goto out;
 		}
@@ -1068,24 +1033,25 @@ static int find_next_domain(struct linux_binprm *bprm,
 	}
 
 	/* Check 'alias' directive. */
-	if (ccs_pathcmp(&r, &s)) {
+	if (ccs_pathcmp(&rn, &sn)) {
 		struct alias_entry *ptr;
 		/* Is this program allowed to be called via symbolic links? */
 		list1_for_each_entry(ptr, &alias_list, list) {
 			if (ptr->is_deleted ||
-			    ccs_pathcmp(&r, ptr->original_name) ||
-			    ccs_pathcmp(&s, ptr->aliased_name))
+			    ccs_pathcmp(&rn, ptr->original_name) ||
+			    ccs_pathcmp(&sn, ptr->aliased_name))
 				continue;
 			memset(real_program_name, 0, CCS_MAX_PATHNAME_LEN);
 			strncpy(real_program_name, ptr->aliased_name->name,
 				CCS_MAX_PATHNAME_LEN - 1);
-			ccs_fill_path_info(&r);
+			ccs_fill_path_info(&rn);
 			break;
 		}
 	}
 
 	/* Compare basename of real_program_name and argv[0] */
-	if (bprm->argc > 0 && ccs_check_flags(CCS_TOMOYO_MAC_FOR_ARGV0)) {
+	r->mode = ccs_check_flags(r->domain, CCS_TOMOYO_MAC_FOR_ARGV0);
+	if (bprm->argc > 0 && r->mode) {
 		char *base_argv0 = tmp->buffer;
 		const char *base_filename;
 		retval = -ENOMEM;
@@ -1097,12 +1063,13 @@ static int find_next_domain(struct linux_binprm *bprm,
 		else
 			base_filename++;
 		if (strcmp(base_argv0, base_filename)) {
-			retval = ccs_check_argv0_perm(&r, base_argv0, retries);
+			retval = ccs_check_argv0_perm(r, &rn, base_argv0);
 			if (retval == 1) {
-				retries++;
+				r->retry++;
 				goto retry;
 			}
-			retries = 0;
+			r->retry = 0;
+			r->tomoyo_flags = current->tomoyo_flags;
 			if (retval < 0)
 				goto out;
 		}
@@ -1114,42 +1081,44 @@ static int find_next_domain(struct linux_binprm *bprm,
 		/* Is this program allowed to be aggregated? */
 		list1_for_each_entry(ptr, &aggregator_list, list) {
 			if (ptr->is_deleted ||
-			    !ccs_path_matches_pattern(&r, ptr->original_name))
+			    !ccs_path_matches_pattern(&rn, ptr->original_name))
 				continue;
 			memset(real_program_name, 0, CCS_MAX_PATHNAME_LEN);
 			strncpy(real_program_name, ptr->aggregated_name->name,
 				CCS_MAX_PATHNAME_LEN - 1);
-			ccs_fill_path_info(&r);
+			ccs_fill_path_info(&rn);
 			break;
 		}
 	}
 
 	/* Check execute permission. */
-	retval = ccs_check_exec_perm(&r, bprm, tmp, retries);
+	r->mode = mode;
+	retval = ccs_check_exec_perm(r, &rn);
 	if (retval == 1) {
-		retries++;
+		r->retry++;
 		goto retry;
 	}
-	retries = 0;
+	r->retry = 0;
+	r->tomoyo_flags = current->tomoyo_flags;
 	if (retval < 0)
 		goto out;
 
  calculate_domain:
 	new_domain_name = tmp->buffer;
-	if (is_domain_initializer(old_domain->domainname, &r, &l)) {
+	if (is_domain_initializer(r->domain->domainname, &rn, &ln)) {
 		/* Transit to the child of KERNEL_DOMAIN domain. */
 		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
 			 ROOT_NAME " " "%s", real_program_name);
-	} else if (old_domain == &KERNEL_DOMAIN && !sbin_init_started) {
+	} else if (r->domain == &KERNEL_DOMAIN && !sbin_init_started) {
 		/*
 		 * Needn't to transit from kernel domain before starting
 		 * /sbin/init. But transit from kernel domain if executing
 		 * initializers because they might start before /sbin/init.
 		 */
-		domain = old_domain;
-	} else if (is_domain_keeper(old_domain->domainname, &r, &l)) {
+		domain = r->domain;
+	} else if (is_domain_keeper(r->domain->domainname, &rn, &ln)) {
 		/* Keep current domain. */
-		domain = old_domain;
+		domain = r->domain;
 	} else {
 		/* Normal domain transition. */
 		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
@@ -1161,22 +1130,20 @@ static int find_next_domain(struct linux_binprm *bprm,
 	if (domain)
 		goto done;
 	if (is_enforce) {
-		int error = ccs_check_supervisor(retries, NULL,
+		int error = ccs_check_supervisor(r,
 						 "# wants to create domain\n"
 						 "%s\n", new_domain_name);
 		if (error == 1) {
-			retries++;
+			r->retry++;
 			goto retry;
 		}
-		retries = 0;
+		r->retry = 0;
 		if (error < 0)
 			goto done;
 	}
-	domain = ccs_find_or_assign_new_domain(new_domain_name,
-					       old_domain->profile);
+	domain = ccs_find_or_assign_new_domain(new_domain_name, r->profile);
 	if (domain)
-		audit_domain_creation_log(new_domain_name, mode,
-					  domain->profile);
+		audit_domain_creation_log(domain);
  done:
 	if (!domain) {
 		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
@@ -1185,7 +1152,7 @@ static int find_next_domain(struct linux_binprm *bprm,
 			retval = -EPERM;
 		else {
 			retval = 0;
-			ccs_set_domain_flag(old_domain, false,
+			ccs_set_domain_flag(r->domain, false,
 					    DOMAIN_FLAGS_TRANSITION_FAILED);
 		}
 	} else {
@@ -1194,22 +1161,22 @@ static int find_next_domain(struct linux_binprm *bprm,
  out:
 	ccs_free(real_program_name);
 	ccs_free(symlink_program_name);
-	*next_domain = domain ? domain : old_domain;
+	if (domain)
+		r->domain = domain;
 	return retval;
 }
 
 /**
  * check_environ - Check permission for environment variable names.
  *
- * @bprm: Pointer to "struct linux_binprm".
- * @tmp:  Buffer for temporal use.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_environ(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
+static int check_environ(struct ccs_request_info *r)
 {
-	const u8 profile = current->domain_info->profile;
-	const u8 mode = ccs_check_flags(CCS_TOMOYO_MAC_FOR_ENV);
+	struct linux_binprm *bprm = r->bprm;
+	struct ccs_page_buffer *tmp = r->obj->tmp;
 	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
@@ -1219,7 +1186,7 @@ static int check_environ(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 	int envp_count = bprm->envc;
 	/* printk(KERN_DEBUG "start %d %d\n", argv_count, envp_count); */
 	int error = -ENOMEM;
-	if (!mode || !envp_count)
+	if (!r->mode || !envp_count)
 		return 0;
 	while (error == -ENOMEM) {
 		struct page *page;
@@ -1269,7 +1236,7 @@ static int check_environ(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 			}
 			if (c)
 				continue;
-			if (ccs_check_env_perm(arg_ptr, profile, mode)) {
+			if (ccs_check_env_perm(r, arg_ptr)) {
 				error = -EPERM;
 				break;
 			}
@@ -1289,7 +1256,7 @@ static int check_environ(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 		offset = 0;
 	}
  out:
-	if (error && mode != 3)
+	if (r->mode != 3)
 		error = 0;
 	return error;
 }
@@ -1399,18 +1366,14 @@ static int get_root_depth(void)
 /**
  * try_alt_exec - Try to start execute handler.
  *
- * @bprm:        Pointer to "struct linux_binprm".
+ * @r:           Pointer to "struct ccs_request_info".
  * @handler:     Pointer to the name of execute handler.
  * @eh_path:     Pointer to pointer to the name of execute handler.
- * @next_domain: Pointer to pointer to "struct domain_info".
- * @tmp:         Buffer for temporal use.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int try_alt_exec(struct linux_binprm *bprm,
-			const struct path_info *handler, char **eh_path,
-			struct domain_info **next_domain,
-			struct ccs_page_buffer *tmp)
+static int try_alt_exec(struct ccs_request_info *r,
+			const struct path_info *handler, char **eh_path)
 {
 	/*
 	 * Contents of modified bprm.
@@ -1448,12 +1411,13 @@ static int try_alt_exec(struct linux_binprm *bprm,
 	 * modified bprm->argv[bprm->envc + bprm->argc + 6]
 	 *     = original bprm->envp[bprm->envc - 1]
 	 */
+	struct linux_binprm *bprm = r->bprm;
 	struct file *filp;
 	int retval;
 	const int original_argc = bprm->argc;
 	const int original_envc = bprm->envc;
 	struct task_struct *task = current;
-	char *buffer = tmp->buffer;
+	char *buffer = r->obj->tmp->buffer;
 	/* Allocate memory for execute handler's pathname. */
 	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer));
 	*eh_path = execute_handler;
@@ -1585,7 +1549,7 @@ static int try_alt_exec(struct linux_binprm *bprm,
 	if (retval < 0)
 		goto out;
 	task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = find_next_domain(bprm, next_domain, handler, tmp);
+	retval = find_next_domain(r, handler);
 	task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
  out:
 	return retval;
@@ -1619,6 +1583,84 @@ static const struct path_info *find_execute_handler(const u8 type)
 	return NULL;
 }
 
+/* List of next_domain which is used for checking interpreter's permissions. */
+struct execve_entry {
+	struct list_head list;
+	struct task_struct *task;
+	struct domain_info *next_domain;
+};
+
+static LIST_HEAD(execve_list);
+static DEFINE_SPINLOCK(execve_list_lock);
+
+/**
+ * ccs_register_next_domain - Remember next_domain.
+ *
+ * @next_domain: Pointer to "struct domain_info".
+ *
+ * Returns 0 on success, -ENOMEM otherwise.
+ */
+static int ccs_register_next_domain(struct domain_info *next_domain)
+{
+	struct execve_entry *ee = kmalloc(sizeof(*ee), GFP_KERNEL);
+	if (!ee)
+		return -ENOMEM;
+	ee->task = current;
+	ee->next_domain = next_domain;
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&execve_list_lock);
+	list_add(&ee->list, &execve_list);
+	spin_unlock(&execve_list_lock);
+	/***** CRITICAL SECTION END *****/
+	return 0;
+}
+
+/**
+ * ccs_fetch_next_domain - Fetch next_domain from the list.
+ *
+ * Returns pointer to "struct domain_info" which will be used if execve()
+ * succeeds. This function does not return NULL.
+ */
+struct domain_info *ccs_fetch_next_domain(void)
+{
+	struct task_struct *task = current;
+	struct domain_info *next_domain = task->domain_info;
+	struct execve_entry *p;
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&execve_list_lock);
+	list_for_each_entry(p, &execve_list, list) {
+		if (p->task != task)
+			continue;
+		next_domain = p->next_domain;
+		break;
+	}
+	spin_unlock(&execve_list_lock);
+	/***** CRITICAL SECTION END *****/
+	return next_domain;
+}
+
+/**
+ * ccs_unregister_next_domain - Forget next_domain.
+ */
+static void ccs_unregister_next_domain(void)
+{
+	struct task_struct *task = current;
+	struct execve_entry *p;
+	struct execve_entry *ee = NULL;
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&execve_list_lock);
+	list_for_each_entry(p, &execve_list, list) {
+		if (p->task != task)
+			continue;
+		list_del(&p->list);
+		ee = p;
+		break;
+	}
+	spin_unlock(&execve_list_lock);
+	/***** CRITICAL SECTION END *****/
+	kfree(ee);
+}
+
 /**
  * search_binary_handler_with_transition - Perform domain transition.
  *
@@ -1631,61 +1673,74 @@ static const struct path_info *find_execute_handler(const u8 type)
 int search_binary_handler_with_transition(struct linux_binprm *bprm,
 					  struct pt_regs *regs)
 {
-	struct task_struct *task = current;
-	struct domain_info *next_domain = NULL;
-	struct domain_info *prev_domain = task->domain_info;
-	const struct path_info *handler;
 	int retval;
+	struct task_struct *task = current;
+	const struct path_info *handler;
+	struct ccs_request_info r;
+	struct obj_info obj;
 	/*
 	 * "eh_path" holds path to execute handler program.
 	 * Thus, keep valid until search_binary_handler() finishes.
 	 */
 	char *eh_path = NULL;
 	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(struct ccs_page_buffer));
-	ccs_load_policy(bprm->filename);
+	memset(&obj, 0, sizeof(obj));
+	if (!sbin_init_started)
+		ccs_load_policy(bprm->filename);
 	if (!tmp)
 		return -ENOMEM;
+
+	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	r.bprm = bprm;
+	r.obj = &obj;
+	obj.path1_dentry = bprm->file->f_dentry;
+	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
+	obj.tmp = tmp;
+
 	/* Clear manager flag. */
 	task->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
-	/* printk(KERN_DEBUG "rootdepth=%d\n", get_root_depth()); */
 	handler = find_execute_handler(TYPE_EXECUTE_HANDLER);
 	if (handler) {
-		retval = try_alt_exec(bprm, handler, &eh_path, &next_domain,
-				      tmp);
+		retval = try_alt_exec(&r, handler, &eh_path);
 		if (!retval)
 			audit_execute_handler_log(true, handler->name, bprm);
 		goto ok;
 	}
-	retval = find_next_domain(bprm, &next_domain, NULL, tmp);
+	retval = find_next_domain(&r, NULL);
 	if (retval != -EPERM)
 		goto ok;
 	handler = find_execute_handler(TYPE_DENIED_EXECUTE_HANDLER);
 	if (handler) {
-		retval = try_alt_exec(bprm, handler, &eh_path, &next_domain,
-				      tmp);
+		retval = try_alt_exec(&r, handler, &eh_path);
 		if (!retval)
 			audit_execute_handler_log(false, handler->name, bprm);
 	}
  ok:
 	if (retval < 0)
 		goto out;
-	task->domain_info = next_domain;
-	retval = check_environ(bprm, tmp);
+	r.mode = ccs_check_flags(r.domain, CCS_TOMOYO_MAC_FOR_ENV);
+	retval = check_environ(&r);
+	if (retval < 0)
+		goto out;
+	retval = ccs_register_next_domain(r.domain);
 	if (retval < 0)
 		goto out;
 	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 	retval = search_binary_handler(bprm, regs);
 	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
- out:
-	/* Return to previous domain if execution failed. */
 	if (retval < 0)
-		task->domain_info = prev_domain;
+		goto out;
+	/* Proceed to next domain if execution suceeded. */
+	task->domain_info = r.domain;
+	mb(); /* Make domain transition visible to other CPUs. */
 	/* Mark the current process as execute handler. */
-	else if (handler)
+	if (handler)
 		task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
 	/* Mark the current process as normal process. */
 	else
 		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
+ out:
+	ccs_unregister_next_domain();
 	ccs_free(eh_path);
 	ccs_free(tmp);
 	return retval;

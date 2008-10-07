@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/01
+ * Version: 1.6.5-pre   2008/10/07
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -71,19 +71,18 @@ static bool check_conceal_mount(struct PATH_or_NAMEIDATA *path,
 /**
  * print_error - Print error message.
  *
- * @path:    Pointer to "struct path" (for 2.6.27 and later).
- *           Pointer to "struct nameidata" (for 2.6.26 and earlier).
- * @mode:    Access control mode.
- * @retries: How many retries are made for this request.
+ * @r:    Pointer to "struct ccs_request_info".
+ * @path: Pointer to "struct path" (for 2.6.27 and later).
+ *        Pointer to "struct nameidata" (for 2.6.26 and earlier).
  *
- * Returns 0 if @mode is not enforcing or permitted by the administrator's
+ * Returns 0 if @r->mode is not enforcing or permitted by the administrator's
  * decision, negative value otherwise.
  */
-static int print_error(struct PATH_or_NAMEIDATA *path, const u8 mode,
-		       const unsigned short int retries)
+static int print_error(struct ccs_request_info *r,
+		       struct PATH_or_NAMEIDATA *path)
 {
 	int error;
-	const bool is_enforce = (mode == 3);
+	const bool is_enforce = (r->mode == 3);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 	const char *dir = ccs_realpath_from_dentry(path->path.dentry,
 						   path->path.mnt);
@@ -95,8 +94,7 @@ static int print_error(struct PATH_or_NAMEIDATA *path, const u8 mode,
 	       "Permission denied.\n", ccs_get_msg(is_enforce), dir,
 	       current->pid, exename);
 	if (is_enforce)
-		error = ccs_check_supervisor(retries, NULL,
-					     "# %s is requesting\n"
+		error = ccs_check_supervisor(r, "# %s is requesting\n"
 					     "mount on %s\n", exename, dir);
 	else
 		error = 0;
@@ -114,10 +112,9 @@ static int print_error(struct PATH_or_NAMEIDATA *path, const u8 mode,
  */
 int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 {
-	unsigned short int retries = 0;
+	struct ccs_request_info r;
 	struct list_head *p;
 	bool flag = false;
-	const u8 mode = ccs_check_flags(CCS_SAKURA_DENY_CONCEAL_MOUNT);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 	struct namespace *namespace = current->namespace;
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
@@ -125,7 +122,10 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 #else
 	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
 #endif
-	if (!mode)
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_SAKURA_DENY_CONCEAL_MOUNT);
+	if (!r.mode)
 		return 0;
 	if (!namespace)
 		return 0;
@@ -144,9 +144,9 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 			break;
 	}
 	if (flag) {
-		int error = print_error(path, mode, retries);
+		int error = print_error(&r, path);
 		if (error == 1) {
-			retries++;
+			r.retry++;
 			goto retry;
 		}
 		return error;
