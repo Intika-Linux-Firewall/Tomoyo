@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for Asianux 2.0.
 
-Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.26AX.src.rpm
+Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.28AX.src.rpm
 ---
  arch/alpha/kernel/ptrace.c         |    9 ++
  arch/arm/kernel/ptrace.c           |    9 ++
@@ -51,15 +51,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  kernel/time.c                      |   15 ++++
  net/core/datagram.c                |   10 +++
  net/ipv4/tcp_ipv4.c                |   11 +++
- net/ipv4/udp.c                     |   11 +++
+ net/ipv4/udp.c                     |   10 +++
  net/ipv6/tcp_ipv6.c                |    7 ++
- net/ipv6/udp.c                     |   11 +++
+ net/ipv6/udp.c                     |   10 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 54 files changed, 832 insertions(+), 12 deletions(-)
+ 54 files changed, 830 insertions(+), 12 deletions(-)
 
---- linux-2.6.9-42.26AX.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/alpha/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/alpha/kernel/ptrace.c
 @@ -19,6 +19,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -83,8 +83,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.9-42.26AX.orig/arch/arm/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/arm/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/arm/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/arm/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -108,8 +108,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/arm26/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/arm26/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/arm26/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/arm26/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -133,8 +133,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/cris/arch-v10/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/cris/arch-v10/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/cris/arch-v10/kernel/ptrace.c
 @@ -16,6 +16,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -158,8 +158,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/h8300/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/h8300/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/h8300/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/h8300/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -183,8 +183,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/i386/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/i386/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/i386/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/i386/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  #include <asm/debugreg.h>
  #include <asm/ldt.h>
@@ -208,8 +208,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.9-42.26AX/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.9-42.28AX.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.9-42.28AX/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -233,8 +233,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-42.26AX.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/ia64/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/ia64/kernel/ptrace.c
 @@ -29,6 +29,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -258,8 +258,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/m32r/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -283,8 +283,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/m68k/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/m68k/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/m68k/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -308,8 +308,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/m68knommu/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/m68knommu/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/m68knommu/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/m68knommu/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -333,8 +333,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/mips/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/mips/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/mips/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/mips/kernel/ptrace.c
 @@ -34,6 +34,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -358,8 +358,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.9-42.26AX.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.9-42.26AX/arch/mips/kernel/ptrace32.c
+--- linux-2.6.9-42.28AX.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.9-42.28AX/arch/mips/kernel/ptrace32.c
 @@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -383,8 +383,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.9-42.26AX.orig/arch/parisc/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/parisc/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/parisc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -408,8 +408,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/ppc/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/ppc/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/ppc/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -433,8 +433,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-42.26AX.orig/arch/ppc64/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/ppc64/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/ppc64/kernel/ptrace.c
 @@ -33,6 +33,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -458,8 +458,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-42.26AX.orig/arch/ppc64/kernel/ptrace32.c
-+++ linux-2.6.9-42.26AX/arch/ppc64/kernel/ptrace32.c
+--- linux-2.6.9-42.28AX.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.6.9-42.28AX/arch/ppc64/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -483,8 +483,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-42.26AX.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/s390/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/s390/kernel/ptrace.c
 @@ -39,6 +39,9 @@
  #include <asm/pgalloc.h>
  #include <asm/system.h>
@@ -508,8 +508,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  
---- linux-2.6.9-42.26AX.orig/arch/sh/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/sh/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/sh/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/sh/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -533,8 +533,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/sh64/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/sh64/kernel/ptrace.c
 @@ -34,6 +34,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -558,8 +558,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/sparc/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/sparc/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -585,8 +585,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.9-42.26AX.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/sparc64/kernel/ptrace.c
 @@ -27,6 +27,9 @@
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
@@ -612,8 +612,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.9-42.26AX.orig/arch/um/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/um/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/um/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/um/kernel/ptrace.c
 @@ -16,6 +16,9 @@
  #include "asm/uaccess.h"
  #include "kern_util.h"
@@ -637,8 +637,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-42.26AX.orig/arch/v850/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/v850/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/v850/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/v850/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/ptrace.h>
  #include <asm/processor.h>
@@ -662,8 +662,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  
---- linux-2.6.9-42.26AX.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.9-42.26AX/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.9-42.28AX.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.9-42.28AX/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/debugreg.h>
  #include <asm/i387.h>
@@ -687,8 +687,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	switch (request) { 
  	default:
---- linux-2.6.9-42.26AX.orig/arch/x86_64/kernel/ptrace.c
-+++ linux-2.6.9-42.26AX/arch/x86_64/kernel/ptrace.c
+--- linux-2.6.9-42.28AX.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.6.9-42.28AX/arch/x86_64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/desc.h>
  #include <asm/proto.h>
@@ -712,8 +712,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.6.9-42.26AX.orig/fs/Kconfig
-+++ linux-2.6.9-42.26AX/fs/Kconfig
+--- linux-2.6.9-42.28AX.orig/fs/Kconfig
++++ linux-2.6.9-42.28AX/fs/Kconfig
 @@ -1912,5 +1912,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -722,16 +722,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
 +
  endmenu
  
---- linux-2.6.9-42.26AX.orig/fs/Makefile
-+++ linux-2.6.9-42.26AX/fs/Makefile
+--- linux-2.6.9-42.28AX.orig/fs/Makefile
++++ linux-2.6.9-42.28AX/fs/Makefile
 @@ -98,3 +98,5 @@ obj-$(CONFIG_RELAYFS_FS)	+= relayfs/
  obj-$(CONFIG_CONFIGFS_FS)	+= configfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.9-42.26AX.orig/fs/attr.c
-+++ linux-2.6.9-42.26AX/fs/attr.c
+--- linux-2.6.9-42.28AX.orig/fs/attr.c
++++ linux-2.6.9-42.28AX/fs/attr.c
 @@ -16,6 +16,9 @@
  #include <linux/security.h>
  #include <linux/time.h>
@@ -771,8 +771,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.9-42.26AX.orig/fs/compat.c
-+++ linux-2.6.9-42.26AX/fs/compat.c
+--- linux-2.6.9-42.28AX.orig/fs/compat.c
++++ linux-2.6.9-42.28AX/fs/compat.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -818,8 +818,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.9-42.26AX.orig/fs/exec.c
-+++ linux-2.6.9-42.26AX/fs/exec.c
+--- linux-2.6.9-42.28AX.orig/fs/exec.c
++++ linux-2.6.9-42.28AX/fs/exec.c
 @@ -59,6 +59,10 @@
  #include <linux/kmod.h>
  #endif
@@ -882,8 +882,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.9-42.26AX.orig/fs/fcntl.c
-+++ linux-2.6.9-42.26AX/fs/fcntl.c
+--- linux-2.6.9-42.28AX.orig/fs/fcntl.c
++++ linux-2.6.9-42.28AX/fs/fcntl.c
 @@ -18,6 +18,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -906,8 +906,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.9-42.26AX.orig/fs/ioctl.c
-+++ linux-2.6.9-42.26AX/fs/ioctl.c
+--- linux-2.6.9-42.28AX.orig/fs/ioctl.c
++++ linux-2.6.9-42.28AX/fs/ioctl.c
 @@ -14,6 +14,9 @@
  
  #include <asm/uaccess.h>
@@ -929,8 +929,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	error = security_file_ioctl(filp, cmd, arg);
  	if (error) {
---- linux-2.6.9-42.26AX.orig/fs/namei.c
-+++ linux-2.6.9-42.26AX/fs/namei.c
+--- linux-2.6.9-42.28AX.orig/fs/namei.c
++++ linux-2.6.9-42.28AX/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -1165,8 +1165,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.9-42.26AX.orig/fs/namespace.c
-+++ linux-2.6.9-42.26AX/fs/namespace.c
+--- linux-2.6.9-42.28AX.orig/fs/namespace.c
++++ linux-2.6.9-42.28AX/fs/namespace.c
 @@ -23,6 +23,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -1291,8 +1291,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.9-42.26AX.orig/fs/open.c
-+++ linux-2.6.9-42.26AX/fs/open.c
+--- linux-2.6.9-42.28AX.orig/fs/open.c
++++ linux-2.6.9-42.28AX/fs/open.c
 @@ -29,6 +29,13 @@
  
  #include <asm/unistd.h>
@@ -1356,8 +1356,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.9-42.26AX.orig/fs/proc/Makefile
-+++ linux-2.6.9-42.26AX/fs/proc/Makefile
+--- linux-2.6.9-42.28AX.orig/fs/proc/Makefile
++++ linux-2.6.9-42.28AX/fs/proc/Makefile
 @@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
  
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
@@ -1365,20 +1365,20 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.9-42.26AX.orig/fs/proc/proc_misc.c
-+++ linux-2.6.9-42.26AX/fs/proc/proc_misc.c
+--- linux-2.6.9-42.28AX.orig/fs/proc/proc_misc.c
++++ linux-2.6.9-42.28AX/fs/proc/proc_misc.c
 @@ -794,4 +794,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-42.26AX 2008/08/29\n");
++	printk(KERN_INFO "Hook version: 2.6.9-42.28AX 2008/10/07\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.9-42.26AX.orig/include/linux/init_task.h
-+++ linux-2.6.9-42.26AX/include/linux/init_task.h
+--- linux-2.6.9-42.28AX.orig/include/linux/init_task.h
++++ linux-2.6.9-42.28AX/include/linux/init_task.h
 @@ -112,6 +112,10 @@ extern struct group_info init_groups;
  	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
@@ -1390,8 +1390,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  }
  
  
---- linux-2.6.9-42.26AX.orig/include/linux/sched.h
-+++ linux-2.6.9-42.26AX/include/linux/sched.h
+--- linux-2.6.9-42.28AX.orig/include/linux/sched.h
++++ linux-2.6.9-42.28AX/include/linux/sched.h
 @@ -35,6 +35,11 @@ extern int exec_shield;
  extern int exec_shield_randomize;
  extern int print_fatal_signals;
@@ -1415,8 +1415,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.9-42.26AX.orig/kernel/kmod.c
-+++ linux-2.6.9-42.26AX/kernel/kmod.c
+--- linux-2.6.9-42.28AX.orig/kernel/kmod.c
++++ linux-2.6.9-42.28AX/kernel/kmod.c
 @@ -169,6 +169,11 @@ static int ____exec_usermodehelper(char 
  
  	key_put(old_session);
@@ -1429,8 +1429,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
---- linux-2.6.9-42.26AX.orig/kernel/module.c
-+++ linux-2.6.9-42.26AX/kernel/module.c
+--- linux-2.6.9-42.28AX.orig/kernel/module.c
++++ linux-2.6.9-42.28AX/kernel/module.c
 @@ -38,6 +38,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -1465,8 +1465,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.9-42.26AX.orig/kernel/sched.c
-+++ linux-2.6.9-42.26AX/kernel/sched.c
+--- linux-2.6.9-42.28AX.orig/kernel/sched.c
++++ linux-2.6.9-42.28AX/kernel/sched.c
 @@ -48,6 +48,9 @@
  #include <asm/tlb.h>
  
@@ -1488,8 +1488,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.9-42.26AX.orig/kernel/signal.c
-+++ linux-2.6.9-42.26AX/kernel/signal.c
+--- linux-2.6.9-42.28AX.orig/kernel/signal.c
++++ linux-2.6.9-42.28AX/kernel/signal.c
 @@ -26,6 +26,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1540,8 +1540,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	info.si_signo = sig;
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
---- linux-2.6.9-42.26AX.orig/kernel/sys.c
-+++ linux-2.6.9-42.26AX/kernel/sys.c
+--- linux-2.6.9-42.28AX.orig/kernel/sys.c
++++ linux-2.6.9-42.28AX/kernel/sys.c
 @@ -29,6 +29,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1598,8 +1598,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.9-42.26AX.orig/kernel/sysctl.c
-+++ linux-2.6.9-42.26AX/kernel/sysctl.c
+--- linux-2.6.9-42.28AX.orig/kernel/sysctl.c
++++ linux-2.6.9-42.28AX/kernel/sysctl.c
 @@ -48,6 +48,10 @@
  static int proc_do_kdb(ctl_table *table, int write, struct file *filp, void *buffer, size_t *lenp, loff_t *ppos);
  #endif	/* CONFIG_KDB */
@@ -1749,8 +1749,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  }
  
  /*
---- linux-2.6.9-42.26AX.orig/kernel/time.c
-+++ linux-2.6.9-42.26AX/kernel/time.c
+--- linux-2.6.9-42.28AX.orig/kernel/time.c
++++ linux-2.6.9-42.28AX/kernel/time.c
 @@ -34,6 +34,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1794,8 +1794,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.9-42.26AX.orig/net/core/datagram.c
-+++ linux-2.6.9-42.26AX/net/core/datagram.c
+--- linux-2.6.9-42.28AX.orig/net/core/datagram.c
++++ linux-2.6.9-42.28AX/net/core/datagram.c
 @@ -54,6 +54,10 @@
  #include <net/sock.h>
  #include <net/checksum.h>
@@ -1820,8 +1820,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		if (skb)
  			return skb;
  
---- linux-2.6.9-42.26AX.orig/net/ipv4/tcp_ipv4.c
-+++ linux-2.6.9-42.26AX/net/ipv4/tcp_ipv4.c
+--- linux-2.6.9-42.28AX.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.6.9-42.28AX/net/ipv4/tcp_ipv4.c
 @@ -75,6 +75,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -1854,8 +1854,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
   			/* Does not bother with rcv_saddr checks,
   			 * because the established check is already
---- linux-2.6.9-42.26AX.orig/net/ipv4/udp.c
-+++ linux-2.6.9-42.26AX/net/ipv4/udp.c
+--- linux-2.6.9-42.28AX.orig/net/ipv4/udp.c
++++ linux-2.6.9-42.28AX/net/ipv4/udp.c
 @@ -107,6 +107,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1866,30 +1866,29 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -145,6 +148,10 @@ static int udp_v4_get_port(struct sock *
- 					result = sysctl_local_port_range[0] +
- 						((result - sysctl_local_port_range[0]) &
- 						 (UDP_HTABLE_SIZE - 1));
-+				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result))
-+					continue;
-+				/***** SAKURA Linux end. *****/
- 				goto gotit;
- 			}
- 			size = 0;
-@@ -161,6 +168,10 @@ static int udp_v4_get_port(struct sock *
- 				result = sysctl_local_port_range[0]
- 					+ ((result - sysctl_local_port_range[0]) &
- 					   (UDP_HTABLE_SIZE - 1));
+@@ -141,6 +144,10 @@ static int udp_v4_get_port(struct sock *
+ 		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
+ 			struct hlist_head *list;
+ 			int size = 0;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result))
-+				continue;
++			if (ccs_may_autobind(rover))
++				goto next;
 +			/***** SAKURA Linux end. *****/
- 			if (!udp_lport_inuse(result))
- 				break;
- 		}
---- linux-2.6.9-42.26AX.orig/net/ipv6/tcp_ipv6.c
-+++ linux-2.6.9-42.26AX/net/ipv6/tcp_ipv6.c
+ 
+ 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
+ 			if (hlist_empty(list))
+@@ -160,6 +167,9 @@ static int udp_v4_get_port(struct sock *
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
++			/***** SAKURA Linux start. *****/
++			if (!ccs_may_autobind(rover))
++			/***** SAKURA Linux end. *****/
+ 			if (!udp_lport_inuse(rover))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+--- linux-2.6.9-42.28AX.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.6.9-42.28AX/net/ipv6/tcp_ipv6.c
 @@ -67,6 +67,9 @@ DEFINE_PER_CPU(struct dma_chan *, net_dm
  
  #include <linux/proc_fs.h>
@@ -1911,8 +1910,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.9-42.26AX.orig/net/ipv6/udp.c
-+++ linux-2.6.9-42.26AX/net/ipv6/udp.c
+--- linux-2.6.9-42.28AX.orig/net/ipv6/udp.c
++++ linux-2.6.9-42.28AX/net/ipv6/udp.c
 @@ -57,6 +57,9 @@
  
  #include <linux/proc_fs.h>
@@ -1923,30 +1922,29 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
  
-@@ -87,6 +90,10 @@ static int udp_v6_get_port(struct sock *
- 					result = sysctl_local_port_range[0] +
- 						((result - sysctl_local_port_range[0]) &
- 						 (UDP_HTABLE_SIZE - 1));
-+				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result))
-+					continue;
-+				/***** SAKURA Linux end. *****/
- 				goto gotit;
- 			}
- 			size = 0;
-@@ -103,6 +110,10 @@ static int udp_v6_get_port(struct sock *
- 				result = sysctl_local_port_range[0]
- 					+ ((result - sysctl_local_port_range[0]) &
- 					   (UDP_HTABLE_SIZE - 1));
+@@ -83,6 +86,10 @@ static int udp_v6_get_port(struct sock *
+ 		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
+ 			int size = 0;
+ 			struct hlist_head *list;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result))
-+				continue;
++			if (ccs_may_autobind(rover))
++				goto next;
 +			/***** SAKURA Linux end. *****/
- 			if (!udp_lport_inuse(result))
- 				break;
- 		}
---- linux-2.6.9-42.26AX.orig/net/socket.c
-+++ linux-2.6.9-42.26AX/net/socket.c
+ 
+ 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
+ 			if (hlist_empty(list))
+@@ -102,6 +109,9 @@ static int udp_v6_get_port(struct sock *
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
++			/***** SAKURA Linux start. *****/
++			if (!ccs_may_autobind(rover))
++			/***** SAKURA Linux end. *****/
+ 			if (!udp_lport_inuse(rover))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+--- linux-2.6.9-42.28AX.orig/net/socket.c
++++ linux-2.6.9-42.28AX/net/socket.c
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -2039,8 +2037,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.9-42.26AX.orig/net/unix/af_unix.c
-+++ linux-2.6.9-42.26AX/net/unix/af_unix.c
+--- linux-2.6.9-42.28AX.orig/net/unix/af_unix.c
++++ linux-2.6.9-42.28AX/net/unix/af_unix.c
 @@ -118,6 +118,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
