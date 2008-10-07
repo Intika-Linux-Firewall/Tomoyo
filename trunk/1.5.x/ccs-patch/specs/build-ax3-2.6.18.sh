@@ -25,18 +25,18 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-08-14 14:55:31.000000000 +0900
-+++ kernel-2.6.spec	2008-10-07 16:17:56.000000000 +0900
-@@ -32,7 +32,7 @@
+--- kernel-2.6.spec	2008-08-20 09:49:28.000000000 +0900
++++ kernel-2.6.spec	2008-10-07 18:45:20.000000000 +0900
+@@ -64,7 +64,7 @@
  %define sublevel 18
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 53.11%{?dist}
 +%define release 53.11%{?dist}_tomoyo_1.5.5
  %define signmodules 0
- %define xen_hv_cset 11772
- %define make_target bzImage
-@@ -190,6 +190,9 @@
+ %define xen_hv_cset 15042
+ %define xen_abi_ver 3.1
+@@ -257,6 +257,9 @@
  # to versions below the minimum
  #
  
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -215,7 +218,7 @@
+@@ -282,7 +285,7 @@
  #
  %define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 4.2.21-1
  
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -2810,6 +2813,10 @@
+@@ -3748,6 +3751,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -2835,6 +2842,9 @@
+@@ -3778,6 +3785,9 @@
  for i in *.config
  do
    mv $i .config
