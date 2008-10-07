@@ -379,10 +379,10 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
   *	In case of failure, @secid will be set to zero.
 + * @path_clear:
 + *	Clear error code stored by security_path_*() in case
-+ *      security_inode_*() was not called when DAC returned an error.
-+ *      This hook allows LSM modules which use security_path_*() defer
-+ *      returning LSM's error code till security_inode_*() is called so that
-+ *      DAC's error (if any) is returned to the caller instead of LSM's error.
++ *	security_inode_*() was not called when DAC returned an error.
++ *	This hook allows LSM modules which use security_path_*() defer
++ *	returning LSM's error code till security_inode_*() is called so that
++ *	DAC's error (if any) is returned to the caller instead of LSM's error.
   *
   * Security hooks for file operations
   *
