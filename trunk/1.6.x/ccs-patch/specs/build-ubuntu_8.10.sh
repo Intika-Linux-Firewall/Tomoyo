@@ -37,16 +37,15 @@ apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install
 cd linux-2.6.27/ || die "Can't chdir to linux-2.6.27/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.4-20080903.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.27-ubuntu-8.10.diff || die "Can't apply patch."
-cat debian/config/i386/config.generic config.ccs > debian/config/i386/config.generic-ccs || die "Can't create config."
-cat debian/control.d/vars.generic > debian/control.d/vars.generic-ccs || die "Can't create file."
-[ -d debian/abi/2.6.27-5.8 ] || ln -s 2.6.27-4.7/ debian/abi/2.6.27-5.8
-touch debian/control.stub.in || die "Can't create file."
-debian/rules debian/control || die "Can't run control."
+for i in `find debian/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
+for i in debian/config/*/config.ccs; do cat config.ccs >> $i; done
+touch debian/control.stub.in || die "Can't touch control."
+debian/rules debian/control || die "Can't update control."
 
 # Start compilation.
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 debian/rules binary-headers || die "Failed to build kernel package."
-debian/rules binary-debs flavours=generic-ccs || die "Failed to build kernel package."
+debian/rules binary-debs flavours=ccs || die "Failed to build kernel package."
 
 exit 0
 
@@ -55,15 +54,15 @@ exit 0
 # Install header package for compiling additional modules.
 dpkg -i /usr/src/linux-headers-${VERSION}*.deb || die "Can't install packages."
 cd /usr/src/linux-restricted-modules-2.6.27/ || die "Can't chdir to /usr/src/linux-restricted-modules-2.6.27/ ."
-cat debian/control.d/vars.generic > debian/control.d/vars.generic-ccs || die "Can't create file."
+cat debian/control.d/vars.generic > debian/control.d/vars.ccs || die "Can't create file."
 touch debian/control.stub.in || die "Can't create file."
 debian/rules debian/control || die "Can't run control."
 
-# awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-generic-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
+# awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
 # cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."
-# sed -i -e 's/,generic/,generic-ccs generic/' debian/rules || die "Can't edit file."
+# sed -i -e 's/,generic/,ccs generic/' debian/rules || die "Can't edit file."
 # debian/rules debian/control || die "Can't run control."
 # debian/rules binary || die "Failed to build kernel package."
-debian/rules binary-arch arch=i386 flavours="generic-ccs"
+debian/rules binary-arch arch=i386 flavours="ccs"
 
 exit 0
