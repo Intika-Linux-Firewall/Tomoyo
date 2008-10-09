@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  723 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.c |  728 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.h |   60 +++
- 2 files changed, 783 insertions(+)
+ 2 files changed, 788 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/realpath.c
-@@ -0,0 +1,723 @@
+@@ -0,0 +1,728 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -386,6 +386,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static unsigned int allocated_memory_for_savename;
 +static unsigned int quota_for_savename;
 +
++/*
++ * TOMOYO uses this hash only when appending a string into the string
++ * table. Frequency of appending strings is very low. So we don't need
++ * large (e.g. 64k) hash size. 256 will be sufficient.
++ */
 +#define MAX_HASH 256
 +
 +/* Structure for string data. */
