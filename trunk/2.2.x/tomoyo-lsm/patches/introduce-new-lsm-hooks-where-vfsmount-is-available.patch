@@ -89,6 +89,14 @@ Here are the list of approaches and the reasons of denial.
  VFS helper functions is the most straightforward approach. This approach has
  less impact to existing LSM module and no impact to VFS helper functions.
 
+(6.1) Introducing security_path_clear() hook.
+ (this patch)
+
+ To perform DAC performed in vfs_foo() before MAC, we let security_path_foo()
+ save a result into our own hash table and return 0, and let security_inode_foo()
+ return the saved result. Since security_inode_foo() is not always called after
+ security_path_foo(), we need security_path_clear() to clear the hash table.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
