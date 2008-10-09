@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  319 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  328 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  106 +++++++++++++++
- 2 files changed, 425 insertions(+)
+ 2 files changed, 434 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.c
-@@ -0,0 +1,319 @@
+@@ -0,0 +1,328 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -48,6 +48,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int tmy_bprm_check_security(struct linux_binprm *bprm)
 +{
 +	struct domain_info *domain = bprm->cred->security;
++
 +	/*
 +	 * Execute permission is checked against pathname passed to do_execve()
 +	 * using current domain.
@@ -70,12 +71,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int error;
 +	char *name;
-+	if ((op & 6) == 0)
++
++	if ((op & (MAY_READ | MAY_WRITE)) == 0)
 +		return 0;
 +	name = sysctlpath_from_table(table);
 +	if (!name)
 +		return -ENOMEM;
-+	error = tmy_check_file_perm(tmy_domain(), name, op & 6, "sysctl");
++	error = tmy_check_file_perm(tmy_domain(), name,
++				    op & (MAY_READ | MAY_WRITE),
++				    "sysctl");
 +	tmy_free(name);
 +	return error;
 +}
@@ -93,6 +97,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int tmy_save_result(const int error)
 +{
 +	struct check_result_entry *entry;
++
 +	if (!error)
 +		return 0;
 +	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
@@ -112,6 +117,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct task_struct *task = current;
 +	struct check_result_entry *p;
 +	struct check_result_entry *entry = NULL;
++
 +	if (list_empty(&check_result_list))
 +		return 0;
 +	spin_lock(&check_result_list_lock);
@@ -179,6 +185,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct vfsmount *mnt = parent->mnt;
 +	int type = TMY_TYPE_CREATE_ACL;
++
 +	switch (mode & S_IFMT) {
 +	case S_IFCHR:
 +		type = TMY_TYPE_MKCHAR_ACL;
@@ -278,6 +285,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int tmy_dentry_open(struct file *f, const struct cred *cred)
 +{
 +	int flags = f->f_flags;
++
 +	if ((flags + 1) & O_ACCMODE)
 +		flags++;
 +	flags |= f->f_flags & (O_APPEND | O_TRUNC);
@@ -319,6 +327,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int __init tmy_init(void)
 +{
 +	struct cred *cred = (struct cred *) current_cred();
++
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
 +	/* register ourselves with the security framework */
