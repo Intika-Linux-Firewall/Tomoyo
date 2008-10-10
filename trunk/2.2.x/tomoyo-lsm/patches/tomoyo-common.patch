@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2219 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  333 +++++++
- 2 files changed, 2552 insertions(+)
+ security/tomoyo/common.c | 2206 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |  336 +++++++
+ 2 files changed, 2542 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/common.c
-@@ -0,0 +1,2219 @@
+@@ -0,0 +1,2206 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1774,13 +1774,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +}
 +
-+/*
-+ * Policy updates counter.
-+ *
-+ * The updates_counter_lock spinlock protects this list.
-+ */
-+static unsigned int updates_counter[MAX_TMY_UPDATES_COUNTER];
-+static DEFINE_SPINLOCK(updates_counter_lock);
++/* Policy updates counter. */
++static atomic_t updates_counter[MAX_TMY_UPDATES_COUNTER];
 +
 +/**
 + * tmy_update_counter - Increment policy change counter.
@@ -1791,12 +1786,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +void tmy_update_counter(const unsigned char index)
 +{
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&updates_counter_lock);
 +	if (index < MAX_TMY_UPDATES_COUNTER)
-+		updates_counter[index]++;
-+	spin_unlock(&updates_counter_lock);
-+	/***** CRITICAL SECTION END *****/
++		atomic_inc(&updates_counter[index]);
 +}
 +
 +/**
@@ -1808,25 +1799,21 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int read_updates_counter(struct tmy_io_buffer *head)
 +{
-+	unsigned int counter[MAX_TMY_UPDATES_COUNTER];
-+
 +	if (head->read_eof)
 +		return 0;
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&updates_counter_lock);
-+	memmove(counter, updates_counter, sizeof(updates_counter));
-+	memset(updates_counter, 0, sizeof(updates_counter));
-+	spin_unlock(&updates_counter_lock);
-+	/***** CRITICAL SECTION END *****/
 +	tmy_io_printf(head,
 +		      "/sys/kernel/security/tomoyo/domain_policy:    %10u\n"
 +		      "/sys/kernel/security/tomoyo/exception_policy: %10u\n"
 +		      "/sys/kernel/security/tomoyo/profile:          %10u\n"
 +		      "/sys/kernel/security/tomoyo/manager:          %10u\n",
-+		      counter[TMY_UPDATES_COUNTER_DOMAIN_POLICY],
-+		      counter[TMY_UPDATES_COUNTER_EXCEPTION_POLICY],
-+		      counter[TMY_UPDATES_COUNTER_PROFILE],
-+		      counter[TMY_UPDATES_COUNTER_MANAGER]);
++		      atomic_xchg(&updates_counter
++				  [TMY_UPDATES_COUNTER_DOMAIN_POLICY], 0),
++		      atomic_xchg(&updates_counter
++				  [TMY_UPDATES_COUNTER_EXCEPTION_POLICY], 0),
++		      atomic_xchg(&updates_counter
++				  [TMY_UPDATES_COUNTER_PROFILE], 0),
++		      atomic_xchg(&updates_counter
++				  [TMY_UPDATES_COUNTER_MANAGER], 0));
 +	head->read_eof = true;
 +	return 0;
 +}
@@ -2234,7 +2221,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/common.h
-@@ -0,0 +1,333 @@
+@@ -0,0 +1,336 @@
 +/*
 + * security/tomoyo/common.h
 + *
@@ -2326,7 +2313,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/* Name of this domain. Never NULL.          */
 +	const struct path_info *domainname;
 +	u8 profile;        /* Profile number to use. */
-+	u8 is_deleted;     /* Delete flag.           */
++	u8 is_deleted;     /* Delete flag.
++			      0 = active.
++			      1 = deleted but undeletable.
++			      255 = deleted and no longer undeletable. */
 +	bool quota_warned; /* Quota warnning flag.   */
 +	/* DOMAIN_FLAGS_*. Use tmy_set_domain_flag() to modify. */
 +	u8 flags;
