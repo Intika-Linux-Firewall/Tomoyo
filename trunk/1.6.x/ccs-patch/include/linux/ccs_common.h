@@ -160,8 +160,8 @@ static inline void INIT_LIST1_HEAD(struct list1_head *list)
  * @head: list head to add it before.
  *
  * Same with list_add_tail_rcu() except that this primitive uses mb()
- * so that we can traverse forwards using list_for_each() and
- * list_for_each_cookie().
+ * so that we can traverse forwards using list1_for_each() and
+ * list1_for_each_cookie().
  */
 static inline void list1_add_tail_mb(struct list1_head *new,
 				     struct list1_head *head)
