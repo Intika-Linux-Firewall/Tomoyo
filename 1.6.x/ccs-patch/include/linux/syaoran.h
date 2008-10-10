@@ -54,6 +54,10 @@
 #endif
 #endif
 
+#if defined(AX_MAJOR) && AX_MAJOR == 3
+#define RHEL_MAJOR 5
+#endif
+
 #ifndef DEFINE_SPINLOCK
 #define DEFINE_SPINLOCK(x) spinlock_t x = SPIN_LOCK_UNLOCKED
 #endif
