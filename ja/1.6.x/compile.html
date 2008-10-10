@@ -393,18 +393,18 @@ rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.26 を使用するものとします。</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.27 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.26.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.27.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.6.26.tar.bz2<br>
+tar -jxf linux-2.6.27.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.6.26<br>
+cd linux-2.6.27<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
@@ -412,7 +412,7 @@ wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.4-20080903.tar.gz<
 # 展開する。<br>
 tar -zxf ccs-patch-1.6.4-20080903.tar.gz<br>
 # カーネルパッチを適用する。<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.26.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.27.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
 # 通常通りコンパイルする。<br>
