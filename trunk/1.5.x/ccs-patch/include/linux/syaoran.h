@@ -46,6 +46,10 @@
 #endif
 #endif
 
+#if defined(AX_MAJOR) && AX_MAJOR == 3
+#define RHEL_MAJOR 5
+#endif
+
 /* The following constants are used to restrict operations.*/
 
 #define MAY_CREATE          1 /* This file is allowed to mknod()              */
