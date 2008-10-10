@@ -1,0 +1,103 @@
+Subject: Singly linked list implementation.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/list1.h |   93 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 93 insertions(+)
+
+--- /dev/null
++++ linux-next/security/tomoyo/list1.h
+@@ -0,0 +1,93 @@
++/*
++ * Singly linked list implementation.
++ *
++ * This list supports only two operations.
++ * (1) Append an entry to the tail of the list.
++ * (2) Read all entries starting from the head of the list.
++ *
++ * This list is designed for holding "write once, read many" entries.
++ * This list requires no locks for read operation.
++ * This list doesn't support "remove an entry from the list" operation.
++ * This list penalize "mb()" for write operation but penalize nothing for read
++ * operation.
++ */
++
++/* To keep the reader read lock free, this list doesn't have "prev" field. */
++struct list1_head {
++	struct list1_head *next;
++};
++
++#define LIST1_HEAD_INIT(name) { &(name) }
++#define LIST1_HEAD(name) struct list1_head name = LIST1_HEAD_INIT(name)
++
++static inline void INIT_LIST1_HEAD(struct list1_head *list)
++{
++	list->next = list;
++}
++
++/**
++ * list1_entry - get the struct for this entry
++ * @ptr:        the &struct list1_head pointer.
++ * @type:       the type of the struct this is embedded in.
++ * @member:     the name of the list1_struct within the struct.
++ */
++#define list1_entry(ptr, type, member) container_of(ptr, type, member)
++
++/**
++ * list1_for_each - iterate over a list
++ * @pos:        the &struct list1_head to use as a loop cursor.
++ * @head:       the head for your list.
++ */
++#define list1_for_each(pos, head)					\
++	for (pos = (head)->next; prefetch(pos->next), pos != (head);	\
++	     pos = pos->next)
++
++/**
++ * list1_for_each_entry - iterate over list of given type
++ * @pos:        the type * to use as a loop cursor.
++ * @head:       the head for your list.
++ * @member:     the name of the list1_struct within the struct.
++ */
++#define list1_for_each_entry(pos, head, member)				\
++	for (pos = list1_entry((head)->next, typeof(*pos), member);	\
++	     prefetch(pos->member.next), &pos->member != (head);        \
++	     pos = list1_entry(pos->member.next, typeof(*pos), member))
++
++/**
++ * list1_for_each_cookie - iterate over a list with cookie.
++ * @pos:        the &struct list1_head to use as a loop cursor.
++ * @cookie:     the &struct list1_head to use as a cookie.
++ * @head:       the head for your list.
++ *
++ * Same with list_for_each except that this primitive uses cookie
++ * so that we can continue iteration.
++ * Since list elements are never removed, we don't need to get a lock
++ * or a reference count.
++ */
++#define list1_for_each_cookie(pos, cookie, head)			\
++	for (({ if (!cookie)						\
++				     cookie = head; }), pos = (cookie)->next; \
++	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
++	     (cookie) = pos, pos = pos->next)
++
++/**
++ * list_add_tail_mb - add a new entry with memory barrier.
++ * @new: new entry to be added.
++ * @head: list head to add it before.
++ *
++ * Same with list_add_tail_rcu() except that this primitive uses mb()
++ * so that we can traverse forwards using list1_for_each() and
++ * list1_for_each_cookie() without any locks.
++ *
++ * Caller must hold a lock for protecting @head.
++ */
++static inline void list1_add_tail_mb(struct list1_head *new,
++				     struct list1_head *head)
++{
++	struct list1_head *pos = head;
++	new->next = head;
++	mb(); /* Avoid out-of-order execution. */
++	while (pos->next != head)
++		pos = pos->next;
++	pos->next = new;
++}
