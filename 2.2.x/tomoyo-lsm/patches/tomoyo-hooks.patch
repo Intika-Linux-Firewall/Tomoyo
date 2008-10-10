@@ -5,8 +5,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/tomoyo.c |  372 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  107 +++++++++++++
- 2 files changed, 479 insertions(+)
+ security/tomoyo/tomoyo.h |  109 +++++++++++++
+ 2 files changed, 481 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.c
@@ -385,7 +385,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.h
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,109 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -482,14 +482,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return current_cred()->security;
 +}
 +
++/* Caller holds tasklist_lock spinlock. */
 +static inline struct domain_info *tmy_real_domain(struct task_struct *task)
 +{
-+	/* Caller must hold tasklist_lock. */
++	/***** CRITICAL SECTION START *****/
 +	const struct cred *cred = get_task_cred(task);
 +	struct domain_info *domain = cred->security;
 +
 +	put_cred(cred);
 +	return domain;
++	/***** CRITICAL SECTION END *****/
 +}
 +
 +#endif /* !defined(_SECURITY_TOMOYO_TOMOYO_H) */
