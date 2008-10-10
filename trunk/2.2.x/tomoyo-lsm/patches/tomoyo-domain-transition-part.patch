@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  895 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 895 insertions(+)
+ security/tomoyo/domain.c |  913 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 913 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/domain.c
-@@ -0,0 +1,895 @@
+@@ -0,0 +1,913 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -92,12 +92,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +void tmy_set_domain_flag(struct domain_info *domain, const bool is_delete,
 +			 const u8 flags)
 +{
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&new_domain_assign_lock);
 +	if (!is_delete)
 +		domain->flags |= flags;
 +	else
 +		domain->flags &= ~flags;
 +	mutex_unlock(&new_domain_assign_lock);
++	/***** EXCLUSIVE SECTION END *****/
 +}
 +
 +/**
@@ -129,12 +131,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
 +{
++	/***** EXCLUSIVE SECTION START *****/
 +	if (domain)
 +		list1_add_tail_mb(&acl->list, &domain->acl_info_list);
 +	else
 +		acl->type &= ~ACL_DELETED;
 +	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
 +	return 0;
++	/***** EXCLUSIVE SECTION END *****/
 +}
 +
 +/**
@@ -148,10 +152,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +int tmy_del_domain_acl(struct acl_info *acl)
 +{
++	/***** EXCLUSIVE SECTION START *****/
 +	if (acl)
 +		acl->type |= ACL_DELETED;
 +	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
 +	return 0;
++	/***** EXCLUSIVE SECTION END *****/
 +}
 +
 +/*
@@ -200,6 +206,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_program = tmy_save_name(program);
 +	if (!saved_program)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	list1_for_each_entry(ptr, &domain_initializer_list, list) {
 +		if (ptr->is_not != is_not ||
@@ -225,6 +232,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
@@ -368,6 +376,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_domainname = tmy_save_name(domainname);
 +	if (!saved_domainname)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	list1_for_each_entry(ptr, &domain_keeper_list, list) {
 +		if (ptr->is_not != is_not ||
@@ -393,6 +402,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
@@ -524,6 +534,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_aliased_name = tmy_save_name(aliased_name);
 +	if (!saved_original_name || !saved_aliased_name)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	list1_for_each_entry(ptr, &alias_list, list) {
 +		if (ptr->original_name != saved_original_name ||
@@ -546,6 +557,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
@@ -613,6 +625,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	name.name = domainname;
 +	tmy_fill_path_info(&name);
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&new_domain_assign_lock);
 +#ifdef DEBUG_DOMAIN_UNDELETE
 +	printk(KERN_DEBUG "tmy_delete_domain %s\n", domainname);
@@ -652,6 +665,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +	mutex_unlock(&new_domain_assign_lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return 0;
 +}
 +
@@ -670,6 +684,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	name.name = domainname;
 +	tmy_fill_path_info(&name);
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&new_domain_assign_lock);
 +#ifdef DEBUG_DOMAIN_UNDELETE
 +	printk(KERN_DEBUG "tmy_undelete_domain %s\n", domainname);
@@ -702,6 +717,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 +	}
 +	mutex_unlock(&new_domain_assign_lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return candidate_domain;
 +}
 +
@@ -719,6 +735,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct domain_info *domain = NULL;
 +	const struct path_info *saved_domainname;
 +
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&new_domain_assign_lock);
 +	domain = tmy_find_domain(domainname);
 +	if (domain)
@@ -777,6 +794,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +out:
 +	mutex_unlock(&new_domain_assign_lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return domain;
 +}
 +

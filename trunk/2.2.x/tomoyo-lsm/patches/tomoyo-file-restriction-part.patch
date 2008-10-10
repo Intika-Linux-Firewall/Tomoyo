@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1185 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1185 insertions(+)
+ security/tomoyo/file.c | 1195 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1195 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/file.c
-@@ -0,0 +1,1185 @@
+@@ -0,0 +1,1195 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -184,6 +184,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_filename = tmy_save_name(filename);
 +	if (!saved_filename)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	list1_for_each_entry(ptr, &globally_readable_list, list) {
 +		if (ptr->filename != saved_filename)
@@ -204,6 +205,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
@@ -295,6 +297,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_pattern = tmy_save_name(pattern);
 +	if (!saved_pattern)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	list1_for_each_entry(ptr, &pattern_list, list) {
 +		if (saved_pattern != ptr->pattern)
@@ -315,6 +318,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
@@ -416,6 +420,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_pattern = tmy_save_name(pattern);
 +	if (!saved_pattern)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	list1_for_each_entry(ptr, &no_rewrite_list, list) {
 +		if (ptr->pattern != saved_pattern)
@@ -436,6 +441,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	tmy_update_counter(TMY_UPDATES_COUNTER_EXCEPTION_POLICY);
 +	return error;
 +}
@@ -734,6 +740,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_filename = tmy_save_name(filename);
 +	if (!saved_filename)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&domain_acl_lock);
 +	if (is_delete)
 +		goto delete;
@@ -780,6 +787,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +out:
 +	mutex_unlock(&domain_acl_lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return error;
 +}
 +
@@ -815,6 +823,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_filename2 = tmy_save_name(filename2);
 +	if (!saved_filename1 || !saved_filename2)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&domain_acl_lock);
 +	if (is_delete)
 +		goto delete;
@@ -856,6 +865,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +out:
 +	mutex_unlock(&domain_acl_lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return error;
 +}
 +

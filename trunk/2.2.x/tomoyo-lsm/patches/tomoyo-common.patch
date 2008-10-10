@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2206 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2210 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  336 +++++++
- 2 files changed, 2542 insertions(+)
+ 2 files changed, 2546 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/common.c
-@@ -0,0 +1,2206 @@
+@@ -0,0 +1,2210 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -732,7 +732,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns the tmy_realpath() of current process on success, NULL otherwise.
 + *
-+ * This function uses tmy_alloc(), so the caller must tmy_free()
++ * This function uses tmy_alloc(), so the caller must call tmy_free()
 + * if this function didn't return NULL.
 + */
 +static const char *tmy_get_exe(void)
@@ -902,6 +902,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_MUTEX(profile_lock);
 +	struct profile *ptr = NULL;
 +
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&profile_lock);
 +	if (profile < MAX_PROFILES) {
 +		ptr = profile_ptr[profile];
@@ -919,6 +920,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +ok:
 +	mutex_unlock(&profile_lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return ptr;
 +}
 +
@@ -1090,6 +1092,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	saved_manager = tmy_save_name(manager);
 +	if (!saved_manager)
 +		return -ENOMEM;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	list1_for_each_entry(ptr, &policy_manager_list, list) {
 +		if (ptr->manager != saved_manager)
@@ -1111,6 +1114,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	if (!error)
 +		tmy_update_counter(TMY_UPDATES_COUNTER_MANAGER);
 +	return error;

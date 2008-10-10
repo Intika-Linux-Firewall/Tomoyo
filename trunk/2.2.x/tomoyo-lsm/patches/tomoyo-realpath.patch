@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  750 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.c |  754 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.h |   60 +++
- 2 files changed, 810 insertions(+)
+ 2 files changed, 814 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/realpath.c
-@@ -0,0 +1,750 @@
+@@ -0,0 +1,754 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -257,7 +257,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns the realpath of the given @dentry and @mnt on success,
 + * NULL otherwise.
 + *
-+ * These functions use tmy_alloc(), so caller must tmy_free()
++ * These functions use tmy_alloc(), so the caller must call tmy_free()
 + * if these functions didn't return NULL.
 + */
 +char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
@@ -355,6 +355,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	if (word_aligned_size > PAGE_SIZE)
 +		return NULL;
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
 +		if (!quota_for_elements || allocated_memory_for_elements
@@ -384,6 +385,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +	}
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return ptr;
 +}
 +
@@ -448,6 +450,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return NULL;
 +	}
 +	hash = full_name_hash((const unsigned char *) name, len - 1);
++	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	list1_for_each_entry(ptr, &name_list[hash % MAX_HASH], list) {
 +		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
@@ -493,6 +496,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +out:
 +	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return ptr ? &ptr->entry : NULL;
 +}
 +
@@ -705,7 +709,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns realpath(3) of the @table on success.
 + * Returns NULL on failure.
 + *
-+ * This function uses tmy_alloc(), so caller must call tmy_free()
++ * This function uses tmy_alloc(), so the caller must call tmy_free()
 + * if this function didn't return NULL.
 + */
 +char *sysctlpath_from_table(struct ctl_table *table)
@@ -801,7 +805,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +/*
 + * Returns realpath(3) of the given pathname but ignores chroot'ed root.
-+ * These functions use tmy_alloc(), so caller must tmy_free()
++ * These functions use tmy_alloc(), so the caller must call tmy_free()
 + * if these functions didn't return NULL.
 + */
 +char *tmy_realpath(const char *pathname);
