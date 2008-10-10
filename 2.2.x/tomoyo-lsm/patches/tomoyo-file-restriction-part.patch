@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1189 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1189 insertions(+)
+ security/tomoyo/file.c | 1185 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1185 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/file.c
-@@ -0,0 +1,1189 @@
+@@ -0,0 +1,1185 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -903,11 +903,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		acl = container_of(ptr, struct double_path_acl_record, head);
 +		if (!(acl->perm & perm))
 +			continue;
-+		if (!tmy_path_matches_pattern(filename1,
-+					      acl->filename1))
++		if (!tmy_path_matches_pattern(filename1, acl->filename1))
 +			continue;
-+		if (!tmy_path_matches_pattern(filename2,
-+					      acl->filename2))
++		if (!tmy_path_matches_pattern(filename2, acl->filename2))
 +			continue;
 +		return 0;
 +	}
@@ -970,12 +968,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @domain:    Pointer to "struct domain_info".
 + * @filename:  Filename to check.
 + * @perm:      Mode ("read" or "write" or "read/write").
-+ * @operation: Always "sysctl".
-+ *
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tmy_check_file_perm(struct domain_info *domain, const char *filename,
-+			const u8 perm, const char *operation)
++			const u8 perm)
 +{
 +	struct path_info name;
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
@@ -984,7 +980,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	name.name = filename;
 +	tmy_fill_path_info(&name);
-+	return check_file_perm2(domain, &name, perm, operation, mode);
++	return check_file_perm2(domain, &name, perm, "sysctl", mode);
 +}
 +
 +/**

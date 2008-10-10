@@ -108,7 +108,8 @@ void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
  */
 const char *ccs_get_last_name(const struct domain_info *domain)
 {
-	const char *cp0 = domain->domainname->name, *cp1 = strrchr(cp0, ' ');
+	const char *cp0 = domain->domainname->name;
+	const char *cp1 = strrchr(cp0, ' ');
 	if (cp1)
 		return cp1 + 1;
 	return cp0;

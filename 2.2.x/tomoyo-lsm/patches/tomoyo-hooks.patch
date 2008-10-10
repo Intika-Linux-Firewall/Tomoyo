@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  364 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  372 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  107 +++++++++++++
- 2 files changed, 471 insertions(+)
+ 2 files changed, 479 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.c
-@@ -0,0 +1,364 @@
+@@ -0,0 +1,372 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -26,8 +26,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include "common.h"
 +#include "tomoyo.h"
 +#include "realpath.h"
-+#include <linux/audit.h>
-+#include <linux/device_cgroup.h>
 +
 +static int tmy_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 +{
@@ -41,12 +39,22 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int tmy_bprm_set_creds(struct linux_binprm *bprm)
 +{
++	/*
++	 * Do only if this function is called for the first time of an execve
++	 * operation.
++	 */
 +	if (bprm->cred_prepared)
 +		return 0;
-+	/* Load policy if /sbin/init is requested for the first time. */
++	/*
++	 * Load policy if /sbin/init exists and is requested for the first
++	 * time.
++	 */
 +	if (!sbin_init_started)
 +		tmy_load_policy(bprm->filename);
-+	/* To tell tmy_bprm_check_security() is called for the first time. */
++	/*
++	 * Tell tmy_bprm_check_security() is called for the first time of an
++	 * execve operation.
++	 */
 +	bprm->cred->security = NULL;
 +	return 0;
 +}
@@ -62,6 +70,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!domain) {
 +		struct domain_info *next_domain = NULL;
 +		int retval = tmy_find_next_domain(bprm, &next_domain);
++
 +		if (!retval)
 +			bprm->cred->security = next_domain;
 +		return retval;
@@ -79,14 +88,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int error;
 +	char *name;
 +
-+	if ((op & (MAY_READ | MAY_WRITE)) == 0)
++	op &= MAY_READ | MAY_WRITE;
++	if (!op)
 +		return 0;
 +	name = sysctlpath_from_table(table);
 +	if (!name)
 +		return -ENOMEM;
-+	error = tmy_check_file_perm(tmy_domain(), name,
-+				    op & (MAY_READ | MAY_WRITE),
-+				    "sysctl");
++	error = tmy_check_file_perm(tmy_domain(), name, op);
 +	tmy_free(name);
 +	return error;
 +}
@@ -94,10 +102,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/*
 + * Structure for holding the result of security_path_*().
 + *
-+ * To be able to return DAC's error (if any) is returned to the caller
-+ * instead of MAC's error, we don't return MAC's error at security_path_*().
++ * To be able to return DAC's error (if any) to the caller instead of MAC's
++ * error, we don't return MAC's error at security_path_*().
 + *
-+ * Remember MAC's error only if security_path_*() returned an error.
++ * We remember MAC's error only if security_path_*() returned an error.
 + */
 +struct check_result_entry {
 +	struct list_head list;
@@ -142,9 +150,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * tmy_load_result - Fetch error code from security_inode_*().
++ * tmy_load_result - Fetch error code for security_inode_*().
 + *
-+ * Returns error code saved from security_path_*().
++ * Returns error code saved by security_path_*().
 + */
 +static int tmy_load_result(void)
 +{
@@ -173,7 +181,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+/* Clear error code if security_inode_*() was not called. */
++/* Clear error code in case security_inode_*() was not called. */
 +static void tmy_path_clear(void)
 +{
 +	tmy_load_result();
@@ -402,7 +410,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +char *sysctlpath_from_table(struct ctl_table *table);
 +int tmy_check_file_perm(struct domain_info *domain, const char *filename,
-+			const u8 perm, const char *operation);
++			const u8 perm);
 +int tmy_check_exec_perm(struct domain_info *domain,
 +			const struct path_info *filename,
 +			struct tmy_page_buffer *buf);

@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  891 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 891 insertions(+)
+ security/tomoyo/domain.c |  895 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 895 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/domain.c
-@@ -0,0 +1,891 @@
+@@ -0,0 +1,895 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -43,12 +43,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * The list for "struct domain_info".
 + *
 + * The new_domain_assign_lock mutex protects the domain_list list.
-+ *
-+ * The domain_acl_lock mutex protects appending to/deleting from an ACL entry
-+ * against a domain.
 + */
 +LIST1_HEAD(domain_list);
 +static DEFINE_MUTEX(new_domain_assign_lock);
++/*
++ * The domain_acl_lock mutex protects appending to/deleting from an ACL entry
++ * against a domain.
++ */
 +DEFINE_MUTEX(domain_acl_lock);
 +
 +/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
@@ -108,7 +109,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +const char *tmy_get_last_name(const struct domain_info *domain)
 +{
-+	const char *cp0 = domain->domainname->name, *cp1 = strrchr(cp0, ' ');
++	const char *cp0 = domain->domainname->name;
++	const char *cp1 = strrchr(cp0, ' ');
 +
 +	if (cp1)
 +		return cp1 + 1;
@@ -432,6 +434,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		const char *no;
 +		const char *from = "";
 +		const char *program = "";
++
 +		ptr = list1_entry(pos, struct domain_keeper_entry, list);
 +		if (ptr->is_deleted)
 +			continue;
@@ -560,6 +563,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	list1_for_each_cookie(pos, head->read_var2, &alias_list) {
 +		struct alias_entry *ptr;
++
 +		ptr = list1_entry(pos, struct alias_entry, list);
 +		if (ptr->is_deleted)
 +			continue;
