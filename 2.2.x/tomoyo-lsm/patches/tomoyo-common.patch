@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2175 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  322 ++++++
- 2 files changed, 2497 insertions(+)
+ security/tomoyo/common.c | 2219 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |  333 +++++++
+ 2 files changed, 2552 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/common.c
-@@ -0,0 +1,2175 @@
+@@ -0,0 +1,2219 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -20,7 +20,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/10/01
++ * Version: 2.2.0-pre   2008/10/10
 + *
 + */
 +
@@ -161,6 +161,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	const int len = strlen(find);
 +	char *tmp = *src;
++
 +	if (strncmp(tmp, find, len))
 +		return false;
 +	tmp += len;
@@ -183,6 +184,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	unsigned char *sp = buffer;
 +	unsigned char *dp = buffer;
 +	bool first = true;
++
 +	while (*sp && (*sp <= ' ' || *sp >= 127))
 +		sp++;
 +	while (*sp) {
@@ -220,6 +222,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	unsigned char d;
 +	unsigned char e;
 +	const char *original_filename = filename;
++
 +	if (!filename)
 +		goto out;
 +	c = *filename;
@@ -302,6 +305,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	unsigned char d;
 +	unsigned char e;
 +	const char *org_domainname = domainname;
++
 +	if (!domainname || strncmp(domainname, ROOT_NAME, ROOT_NAME_LEN))
 +		goto out;
 +	domainname += ROOT_NAME_LEN;
@@ -370,6 +374,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct domain_info *domain;
 +	struct path_info name;
++
 +	name.name = domainname;
 +	tmy_fill_path_info(&name);
 +	list1_for_each_entry(domain, &domain_list, list) {
@@ -393,6 +398,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int path_depth(const char *pathname)
 +{
 +	int i = 0;
++
 +	if (pathname) {
 +		char *ep = strchr(pathname, '\0');
 +		if (pathname < ep--) {
@@ -417,6 +423,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	char c;
 +	int len = 0;
++
 +	if (!filename)
 +		return 0;
 +	while ((c = *filename++) != '\0') {
@@ -458,6 +465,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	const char *name = ptr->name;
 +	const int len = strlen(name);
++
 +	ptr->total_len = len;
 +	ptr->const_len = const_part_length(name);
 +	ptr->is_dir = len && (name[len - 1] == '/');
@@ -605,6 +613,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const char *pattern_start = pattern;
 +	bool first = true;
 +	bool result;
++
 +	while (pattern < pattern_end - 1) {
 +		/* Split at "\-" pattern. */
 +		if (*pattern++ != '\\' || *pattern++ != '-')
@@ -654,6 +663,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const char *f = filename->name;
 +	const char *p = pattern->name;
 +	const int len = pattern->const_len;
++
 +	/* If @pattern doesn't contain pattern, I can use strcmp(). */
 +	if (!pattern->is_patterned)
 +		return !tmy_pathcmp(filename, pattern);
@@ -705,6 +715,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int len;
 +	int pos = head->read_avail;
 +	int size = head->readbuf_size - pos;
++
 +	if (size <= 0)
 +		return false;
 +	va_start(args, fmt);
@@ -729,6 +740,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct mm_struct *mm = current->mm;
 +	struct vm_area_struct *vma;
 +	const char *cp = NULL;
++
 +	if (!mm)
 +		return NULL;
 +	down_read(&mm->mmap_sem);
@@ -769,6 +781,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +unsigned int tmy_check_flags(const struct domain_info *domain, const u8 index)
 +{
 +	const u8 profile = domain->profile;
++
 +	if (unlikely(in_interrupt())) {
 +		static u8 count = 20;
 +		if (count) {
@@ -811,6 +824,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	unsigned int count = 0;
 +	struct acl_info *ptr;
++
 +	if (!domain)
 +		return true;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -887,6 +901,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	static DEFINE_MUTEX(profile_lock);
 +	struct profile *ptr = NULL;
++
 +	mutex_lock(&profile_lock);
 +	if (profile < MAX_PROFILES) {
 +		ptr = profile_ptr[profile];
@@ -922,6 +937,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	char *cp;
 +	struct profile *profile;
 +	unsigned long num;
++
 +	cp = strchr(data, '-');
 +	if (cp)
 +		*cp = '\0';
@@ -981,9 +997,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int read_profile(struct tmy_io_buffer *head)
 +{
-+	static const int total
-+		= TMY_MAX_CONTROL_INDEX + 1;
++	static const int total = TMY_MAX_CONTROL_INDEX + 1;
 +	int step;
++
 +	if (head->read_eof)
 +		return 0;
 +	for (step = head->read_step; step < MAX_PROFILES * total; step++) {
@@ -1038,7 +1054,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	bool is_deleted; /* True if this entry is deleted. */
 +};
 +
-+/* The list for "struct policy_manager_entry". */
++/*
++ * The list for "struct policy_manager_entry".
++ *
++ * This list is updated only inside update_manager_entry(), thus
++ * no global mutex exists.
++ */
 +static LIST1_HEAD(policy_manager_list);
 +
 +/**
@@ -1057,6 +1078,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *saved_manager;
 +	int error = -ENOMEM;
 +	bool is_domain = false;
++
 +	if (tmy_is_domain_def(manager)) {
 +		if (!tmy_is_correct_domain(manager, __func__))
 +			return -EINVAL;
@@ -1105,6 +1127,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	char *data = head->write_buf;
 +	bool is_delete = str_starts(&data, KEYWORD_DELETE);
++
 +	if (!strcmp(data, "manage_by_non_root")) {
 +		manage_by_non_root = !is_delete;
 +		return 0;
@@ -1122,6 +1145,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int read_manager_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
++
 +	if (head->read_eof)
 +		return 0;
 +	list1_for_each_cookie(pos, head->read_var2, &policy_manager_list) {
@@ -1149,6 +1173,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct task_struct *task = current;
 +	const struct path_info *domainname = tmy_domain()->domainname;
 +	bool found = false;
++
 +	if (!sbin_init_started)
 +		return true;
 +	if (!manage_by_non_root && (task->cred->uid || task->cred->euid))
@@ -1181,7 +1206,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return found;
 +}
 +
-+
 +/**
 + * is_select_one - Parse select command.
 + *
@@ -1194,6 +1218,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	unsigned int pid;
 +	struct domain_info *domain = NULL;
++
 +	if (sscanf(data, "pid=%u", &pid) == 1) {
 +		struct task_struct *p;
 +		/***** CRITICAL SECTION START *****/
@@ -1245,6 +1270,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	bool is_select = false;
 +	bool is_undelete = false;
 +	unsigned int profile;
++
 +	if (str_starts(&data, KEYWORD_DELETE))
 +		is_delete = true;
 +	else if (str_starts(&data, KEYWORD_SELECT))
@@ -1303,6 +1329,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const char *atmark = "";
 +	const char *filename;
 +	const u16 perm = ptr->perm;
++
 +	filename = ptr->filename->name;
 +	for (bit = head->read_bit; bit < MAX_SINGLE_PATH_OPERATION; bit++) {
 +		const char *msg;
@@ -1344,6 +1371,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const char *filename2;
 +	const u8 perm = ptr->perm;
 +	u8 bit;
++
 +	filename1 = ptr->filename1->name;
 +	filename2 = ptr->filename2->name;
 +	for (bit = head->read_bit; bit < MAX_DOUBLE_PATH_OPERATION; bit++) {
@@ -1375,6 +1403,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static bool print_entry(struct tmy_io_buffer *head, struct acl_info *ptr)
 +{
 +	const u8 acl_type = tmy_acl_type2(ptr);
++
 +	if (acl_type & ACL_DELETED)
 +		return true;
 +	if (acl_type == TYPE_SINGLE_PATH_ACL) {
@@ -1404,6 +1433,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct list1_head *dpos;
 +	struct list1_head *apos;
++
 +	if (head->read_eof)
 +		return 0;
 +	if (head->read_step == 0)
@@ -1473,6 +1503,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	char *cp = strchr(data, ' ');
 +	struct domain_info *domain;
 +	unsigned long profile;
++
 +	if (!cp)
 +		return -EINVAL;
 +	*cp = '\0';
@@ -1502,6 +1533,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int read_domain_profile(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
++
 +	if (head->read_eof)
 +		return 0;
 +	list1_for_each_cookie(pos, head->read_var1, &domain_list) {
@@ -1575,6 +1607,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	char *data = head->write_buf;
 +	bool is_delete = str_starts(&data, KEYWORD_DELETE);
++
 +	if (str_starts(&data, KEYWORD_KEEP_DOMAIN))
 +		return tmy_write_domain_keeper_policy(data, false, is_delete);
 +	if (str_starts(&data, KEYWORD_NO_KEEP_DOMAIN))
@@ -1674,6 +1707,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * Thus, let do_execve() call this function everytime.
 +	 */
 +	struct nameidata nd;
++
 +	if (path_lookup(tmy_loader, LOOKUP_FOLLOW, &nd)) {
 +		printk(KERN_INFO "Not activating Mandatory Access Control now "
 +		       "since %s doesn't exist.\n", tmy_loader);
@@ -1700,6 +1734,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	char *argv[2];
 +	char *envp[3];
++
 +	if (sbin_init_started)
 +		return;
 +	/*
@@ -1724,7 +1759,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	envp[2] = NULL;
 +	call_usermodehelper(argv[0], argv, envp, 1);
 +
-+	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/10/01\n");
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/10/10\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	sbin_init_started = true;
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -1739,10 +1774,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +}
 +
-+/* Policy updates counter. */
++/*
++ * Policy updates counter.
++ *
++ * The updates_counter_lock spinlock protects this list.
++ */
 +static unsigned int updates_counter[MAX_TMY_UPDATES_COUNTER];
-+
-+/* Policy updates counter lock. */
 +static DEFINE_SPINLOCK(updates_counter_lock);
 +
 +/**
@@ -1772,6 +1809,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int read_updates_counter(struct tmy_io_buffer *head)
 +{
 +	unsigned int counter[MAX_TMY_UPDATES_COUNTER];
++
 +	if (head->read_eof)
 +		return 0;
 +	/***** CRITICAL SECTION START *****/
@@ -1841,6 +1879,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int tmy_open_control(const u8 type, struct file *file)
 +{
 +	struct tmy_io_buffer *head = tmy_alloc(sizeof(*head));
++
 +	if (!head)
 +		return -ENOMEM;
 +	mutex_init(&head->io_sem);
@@ -1953,6 +1992,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int len = 0;
 +	struct tmy_io_buffer *head = file->private_data;
 +	char *cp;
++
 +	if (!head->read)
 +		return -ENOSYS;
 +	if (!access_ok(VERIFY_WRITE, buffer, buffer_len))
@@ -1998,6 +2038,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int error = buffer_len;
 +	int avail_len = buffer_len;
 +	char *cp0 = head->write_buf;
++
 +	if (!head->write)
 +		return -ENOSYS;
 +	if (!access_ok(VERIFY_READ, buffer, buffer_len))
@@ -2042,6 +2083,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int tmy_close_control(struct file *file)
 +{
 +	struct tmy_io_buffer *head = file->private_data;
++
 +	/* Release memory used for policy I/O. */
 +	tmy_free(head->read_buf);
 +	head->read_buf = NULL;
@@ -2064,6 +2106,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int len;
 +	struct acl_info *ptr;
++
 +	switch (acl_type) {
 +	case TYPE_SINGLE_PATH_ACL:
 +		len = sizeof(struct single_path_acl_record);
@@ -2140,7 +2183,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return tmy_write_control(file, buf, count);
 +}
 +
-+/* Operations for /sys/kernel/security/tomoyo/interface. */
++/* Operations for /sys/kernel/security/tomoyo/ interface. */
 +static struct file_operations tmy_operations = {
 +	.open    = tmy_open,
 +	.release = tmy_release,
@@ -2173,6 +2216,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int __init tmy_initerface_init(void)
 +{
 +	struct dentry *tmy_dir;
++
 +	tmy_dir = securityfs_create_dir("tomoyo", NULL);
 +	create_entry("domain_policy",    0600, tmy_dir, TMY_DOMAINPOLICY);
 +	create_entry("exception_policy", 0600, tmy_dir, TMY_EXCEPTIONPOLICY);
@@ -2190,7 +2234,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/common.h
-@@ -0,0 +1,322 @@
+@@ -0,0 +1,333 @@
 +/*
 + * security/tomoyo/common.h
 + *
@@ -2198,12 +2242,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/10/01
++ * Version: 2.2.0-pre   2008/10/10
 + *
 + */
 +
-+#ifndef _LINUX_TMY_COMMON_H
-+#define _LINUX_TMY_COMMON_H
++#ifndef _SECURITY_TOMOYO_COMMON_H
++#define _SECURITY_TOMOYO_COMMON_H
 +
 +#include <linux/string.h>
 +#include <linux/mm.h>
@@ -2503,13 +2547,24 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return ptr->type;
 +}
 +
-+/* A linked list of domains. */
++/*
++ * A linked list of domains.
++ *
++ * The new_domain_assign_lock lock protects appending to this list.
++ */
 +extern struct list1_head domain_list;
-+/* Has /sbin/init started? */
-+extern bool sbin_init_started;
-+/* The kernel's domain. */
-+extern struct domain_info KERNEL_DOMAIN;
-+/* Exclusive lock for updating domain policy. */
++
++/*
++ * Exclusive lock for updating domain policy.
++ *
++ * This lock protects appending to/deleting from an ACL entry against a domain.
++ */
 +extern struct mutex domain_acl_lock;
 +
-+#endif
++/* Has /sbin/init started? */
++extern bool sbin_init_started;
++
++/* The kernel's domain. */
++extern struct domain_info KERNEL_DOMAIN;
++
++#endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */

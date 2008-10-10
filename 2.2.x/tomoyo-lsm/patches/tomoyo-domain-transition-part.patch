@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  854 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 854 insertions(+)
+ security/tomoyo/domain.c |  891 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 891 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/domain.c
-@@ -0,0 +1,854 @@
+@@ -0,0 +1,891 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -25,7 +25,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/10/01
++ * Version: 2.2.0-pre   2008/10/10
 + *
 + */
 +
@@ -39,14 +39,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* The initial domain. */
 +struct domain_info KERNEL_DOMAIN;
 +
-+/* The list for "struct domain_info". */
++/*
++ * The list for "struct domain_info".
++ *
++ * The new_domain_assign_lock mutex protects the domain_list list.
++ *
++ * The domain_acl_lock mutex protects appending to/deleting from an ACL entry
++ * against a domain.
++ */
 +LIST1_HEAD(domain_list);
-+
-+/* Lock for appending domain's ACL. */
-+DEFINE_MUTEX(domain_acl_lock);
-+
-+/* Domain creation lock. */
 +static DEFINE_MUTEX(new_domain_assign_lock);
++DEFINE_MUTEX(domain_acl_lock);
 +
 +/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
 +struct domain_initializer_entry {
@@ -106,6 +109,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +const char *tmy_get_last_name(const struct domain_info *domain)
 +{
 +	const char *cp0 = domain->domainname->name, *cp1 = strrchr(cp0, ' ');
++
 +	if (cp1)
 +		return cp1 + 1;
 +	return cp0;
@@ -118,6 +122,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @acl:    Pointer to "struct acl_info".
 + *
 + * Returns 0.
++ *
++ * Caller holds domain_acl_lock mutex.
 + */
 +int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
 +{
@@ -135,6 +141,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @acl: Pointer to "struct acl_info". May be NULL.
 + *
 + * Returns 0.
++ *
++ * Caller holds domain_acl_lock mutex.
 + */
 +int tmy_del_domain_acl(struct acl_info *acl)
 +{
@@ -144,7 +152,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 +
-+/* The list for "struct domain_initializer_entry". */
++/*
++ * The list for "struct domain_initializer_entry".
++ *
++ * This list is updated only inside update_domain_initializer_entry(), thus
++ * no global mutex exists.
++ */
 +static LIST1_HEAD(domain_initializer_list);
 +
 +/**
@@ -169,6 +182,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *saved_domainname = NULL;
 +	int error = -ENOMEM;
 +	bool is_last_name = false;
++
 +	if (!tmy_is_correct_path(program, 1, -1, -1, __func__))
 +		return -EINVAL; /* No patterns allowed. */
 +	if (domainname) {
@@ -223,6 +237,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +bool tmy_read_domain_initializer_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
++
 +	list1_for_each_cookie(pos, head->read_var2, &domain_initializer_list) {
 +		const char *no;
 +		const char *from = "";
@@ -259,6 +274,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +					const bool is_delete)
 +{
 +	char *cp = strstr(data, " from ");
++
 +	if (cp) {
 +		*cp = '\0';
 +		return update_domain_initializer_entry(cp + 6, data, is_not,
@@ -283,6 +299,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct domain_initializer_entry *ptr;
 +	bool flag = false;
++
 +	list1_for_each_entry(ptr,  &domain_initializer_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
@@ -304,7 +321,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return flag;
 +}
 +
-+/* The list for "struct domain_keeper_entry". */
++/*
++ * The list for "struct domain_keeper_entry".
++ *
++ * This list is updated only inside update_domain_keeper_entry(), thus
++ * no global mutex exists.
++ */
 +static LIST1_HEAD(domain_keeper_list);
 +
 +/**
@@ -328,6 +350,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_MUTEX(lock);
 +	int error = -ENOMEM;
 +	bool is_last_name = false;
++
 +	if (!tmy_is_domain_def(domainname) &&
 +	    tmy_is_correct_path(domainname, 1, -1, -1, __func__))
 +		is_last_name = true;
@@ -384,6 +407,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				   const bool is_delete)
 +{
 +	char *cp = strstr(data, " from ");
++
 +	if (cp) {
 +		*cp = '\0';
 +		return update_domain_keeper_entry(cp + 6, data,
@@ -402,6 +426,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +bool tmy_read_domain_keeper_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
++
 +	list1_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
 +		struct domain_keeper_entry *ptr;
 +		const char *no;
@@ -441,6 +466,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct domain_keeper_entry *ptr;
 +	bool flag = false;
++
 +	list1_for_each_entry(ptr, &domain_keeper_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
@@ -460,7 +486,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return flag;
 +}
 +
-+/* The list for "struct alias_entry". */
++/*
++ * The list for "struct alias_entry".
++ *
++ * This list is updated only inside update_alias_entry(), thus
++ * no global mutex exists.
++ */
 +static LIST1_HEAD(alias_list);
 +
 +/**
@@ -482,6 +513,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *saved_original_name;
 +	const struct path_info *saved_aliased_name;
 +	int error = -ENOMEM;
++
 +	if (!tmy_is_correct_path(original_name, 1, -1, -1, __func__) ||
 +	    !tmy_is_correct_path(aliased_name, 1, -1, -1, __func__))
 +		return -EINVAL; /* No patterns allowed. */
@@ -525,6 +557,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +bool tmy_read_alias_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
++
 +	list1_for_each_cookie(pos, head->read_var2, &alias_list) {
 +		struct alias_entry *ptr;
 +		ptr = list1_entry(pos, struct alias_entry, list);
@@ -551,6 +584,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +int tmy_write_alias_policy(char *data, const bool is_delete)
 +{
 +	char *cp = strchr(data, ' ');
++
 +	if (!cp)
 +		return -EINVAL;
 +	*cp++ = '\0';
@@ -572,6 +606,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct domain_info *domain;
 +	struct path_info name;
++
 +	name.name = domainname;
 +	tmy_fill_path_info(&name);
 +	mutex_lock(&new_domain_assign_lock);
@@ -628,6 +663,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct domain_info *domain;
 +	struct domain_info *candidate_domain = NULL;
 +	struct path_info name;
++
 +	name.name = domainname;
 +	tmy_fill_path_info(&name);
 +	mutex_lock(&new_domain_assign_lock);
@@ -678,6 +714,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct domain_info *domain = NULL;
 +	const struct path_info *saved_domainname;
++
 +	mutex_lock(&new_domain_assign_lock);
 +	domain = tmy_find_domain(domainname);
 +	if (domain)

@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  328 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  106 +++++++++++++++
- 2 files changed, 434 insertions(+)
+ security/tomoyo/tomoyo.c |  364 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  107 +++++++++++++
+ 2 files changed, 471 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.c
-@@ -0,0 +1,328 @@
+@@ -0,0 +1,364 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -18,7 +18,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/10/01
++ * Version: 2.2.0-pre   2008/10/10
 + *
 + */
 +
@@ -31,6 +31,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +static int tmy_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
 +{
++	/*
++	 * Since "struct domain_info *" is a sharable pointer, we don't need
++	 * to duplicate.
++	 */
 +	new->security = old->security;
 +	return 0;
 +}
@@ -39,8 +43,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	if (bprm->cred_prepared)
 +		return 0;
++	/* Load policy if /sbin/init is requested for the first time. */
 +	if (!sbin_init_started)
 +		tmy_load_policy(bprm->filename);
++	/* To tell tmy_bprm_check_security() is called for the first time. */
 +	bprm->cred->security = NULL;
 +	return 0;
 +}
@@ -62,6 +68,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	/*
 +	 * Read permission is checked against interpreters using next domain.
++	 * '1' is the result of open_to_namei_flags(O_RDONLY).
 +	 */
 +	return tmy_check_open_permission(domain, bprm->file->f_path.dentry,
 +					 bprm->file->f_path.mnt, 1);
@@ -84,16 +91,37 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return error;
 +}
 +
++/*
++ * Structure for holding the result of security_path_*().
++ *
++ * To be able to return DAC's error (if any) is returned to the caller
++ * instead of MAC's error, we don't return MAC's error at security_path_*().
++ *
++ * Remember MAC's error only if security_path_*() returned an error.
++ */
 +struct check_result_entry {
 +	struct list_head list;
 +	struct task_struct *task;
 +	int error;
 +};
 +
++/*
++ * The list for "struct check_result_entry".
++ *
++ * The check_result_list_lock spinlock protects this list.
++ */
 +static LIST_HEAD(check_result_list);
 +static DEFINE_SPINLOCK(check_result_list_lock);
 +
-+/* Remember error code for security_inode_*(). */
++/**
++ * tmy_save_result - Remember error code for security_inode_*() if any.
++ *
++ * @error: Return code from security_path_*().
++ *
++ * Returns 0 on success, -ENOMEM otherwise.
++ *
++ * We don't save if @error == 0.
++ */
 +static int tmy_save_result(const int error)
 +{
 +	struct check_result_entry *entry;
@@ -105,13 +133,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return -ENOMEM;
 +	entry->task = current;
 +	entry->error = error;
++	/***** CRITICAL SECTION START *****/
 +	spin_lock(&check_result_list_lock);
 +	list_add(&entry->list, &check_result_list);
 +	spin_unlock(&check_result_list_lock);
++	/***** CRITICAL SECTION END *****/
 +	return 0;
 +}
 +
-+/* Fetch error code from security_inode_*(). */
++/**
++ * tmy_load_result - Fetch error code from security_inode_*().
++ *
++ * Returns error code saved from security_path_*().
++ */
 +static int tmy_load_result(void)
 +{
 +	struct task_struct *task = current;
@@ -120,6 +154,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	if (list_empty(&check_result_list))
 +		return 0;
++	/***** CRITICAL SECTION START *****/
 +	spin_lock(&check_result_list_lock);
 +	list_for_each_entry(p, &check_result_list, list) {
 +		if (p->task != task)
@@ -129,6 +164,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +	spin_unlock(&check_result_list_lock);
++	/***** CRITICAL SECTION END *****/
 +	if (entry) {
 +		int error = entry->error;
 +		kfree(entry);
@@ -341,7 +377,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.h
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,107 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -349,12 +385,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/10/01
++ * Version: 2.2.0-pre   2008/10/10
 + *
 + */
 +
-+#ifndef _LINUX_TOMOYO_H
-+#define _LINUX_TOMOYO_H
++#ifndef _SECURITY_TOMOYO_TOMOYO_H
++#define _SECURITY_TOMOYO_TOMOYO_H
 +
 +struct path_info;
 +struct dentry;
@@ -443,8 +479,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/* Caller must hold tasklist_lock. */
 +	const struct cred *cred = get_task_cred(task);
 +	struct domain_info *domain = cred->security;
++
 +	put_cred(cred);
 +	return domain;
 +}
 +
-+#endif
++#endif /* !defined(_SECURITY_TOMOYO_TOMOYO_H) */

@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1149 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1149 insertions(+)
+ security/tomoyo/file.c | 1189 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1189 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/file.c
-@@ -0,0 +1,1149 @@
+@@ -0,0 +1,1189 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -19,7 +19,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/10/01
++ * Version: 2.2.0-pre   2008/10/10
 + *
 + */
 +
@@ -111,6 +111,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static bool strendswith(const char *name, const char *tail)
 +{
 +	int len;
++
 +	if (!name || !tail)
 +		return false;
 +	len = strlen(name) - strlen(tail);
@@ -130,6 +131,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int error;
 +	struct path_info_with_data *buf = tmy_alloc(sizeof(*buf));
++
 +	if (!buf)
 +		return NULL;
 +	/* Preserve one byte for appending "/". */
@@ -152,7 +154,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				  struct domain_info * const domain,
 +				  const bool is_delete);
 +
-+/* The list for "struct globally_readable_file_entry". */
++/*
++ * The list for "struct globally_readable_file_entry".
++ *
++ * This list is updated only inside update_globally_readable_entry(), thus
++ * no global mutex exists.
++ */
 +static LIST1_HEAD(globally_readable_list);
 +
 +/**
@@ -171,6 +178,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_MUTEX(lock);
 +	const struct path_info *saved_filename;
 +	int error = -ENOMEM;
++
 +	if (!tmy_is_correct_path(filename, 1, 0, -1, __func__))
 +		return -EINVAL;
 +	saved_filename = tmy_save_name(filename);
@@ -210,6 +218,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static bool is_globally_readable_file(const struct path_info *filename)
 +{
 +	struct globally_readable_file_entry *ptr;
++
 +	list1_for_each_entry(ptr, &globally_readable_list, list) {
 +		if (!ptr->is_deleted &&
 +		    tmy_path_matches_pattern(filename, ptr->filename))
@@ -241,6 +250,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +bool tmy_read_globally_readable_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
++
 +	list1_for_each_cookie(pos, head->read_var2, &globally_readable_list) {
 +		struct globally_readable_file_entry *ptr;
 +		ptr = list1_entry(pos, struct globally_readable_file_entry,
@@ -256,7 +266,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return false;
 +}
 +
-+/* The list for "struct pattern_entry". */
++/*
++ * The list for "struct pattern_entry".
++ *
++ * This list is updated only inside update_file_pattern_entry(), thus
++ * no global mutex exists.
++ */
 +static LIST1_HEAD(pattern_list);
 +
 +/**
@@ -274,6 +289,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_MUTEX(lock);
 +	const struct path_info *saved_pattern;
 +	int error = -ENOMEM;
++
 +	if (!tmy_is_correct_path(pattern, 0, 1, 0, __func__))
 +		return -EINVAL;
 +	saved_pattern = tmy_save_name(pattern);
@@ -315,6 +331,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct pattern_entry *ptr;
 +	const struct path_info *pattern = NULL;
++
 +	list1_for_each_entry(ptr, &pattern_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
@@ -356,6 +373,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +bool tmy_read_file_pattern(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
++
 +	list1_for_each_cookie(pos, head->read_var2, &pattern_list) {
 +		struct pattern_entry *ptr;
 +		ptr = list1_entry(pos, struct pattern_entry, list);
@@ -370,7 +388,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return false;
 +}
 +
-+/* The list for "struct no_rewrite_entry". */
++/*
++ * The list for "struct no_rewrite_entry".
++ *
++ * This list is updated only inside update_no_rewrite_entry(), thus
++ * no global mutex exists.
++ */
 +static LIST1_HEAD(no_rewrite_list);
 +
 +/**
@@ -387,6 +410,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_MUTEX(lock);
 +	const struct path_info *saved_pattern;
 +	int error = -ENOMEM;
++
 +	if (!tmy_is_correct_path(pattern, 0, 0, 0, __func__))
 +		return -EINVAL;
 +	saved_pattern = tmy_save_name(pattern);
@@ -427,6 +451,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static bool is_no_rewrite_file(const struct path_info *filename)
 +{
 +	struct no_rewrite_entry *ptr;
++
 +	list1_for_each_entry(ptr, &no_rewrite_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
@@ -460,6 +485,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +bool tmy_read_no_rewrite_policy(struct tmy_io_buffer *head)
 +{
 +	struct list1_head *pos;
++
 +	list1_for_each_cookie(pos, head->read_var2, &no_rewrite_list) {
 +		struct no_rewrite_entry *ptr;
 +		ptr = list1_entry(pos, struct no_rewrite_entry, list);
@@ -531,6 +557,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				  const u16 perm, const bool may_use_pattern)
 +{
 +	struct acl_info *ptr;
++
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct single_path_acl_record *acl;
 +		if (tmy_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
@@ -563,6 +590,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			  const struct path_info *filename, const u8 operation)
 +{
 +	u16 perm = 0;
++
 +	if (!tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE))
 +		return 0;
 +	if (operation == 6)
@@ -596,6 +624,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const bool is_enforce = (mode == 3);
 +	const char *msg = "<unknown>";
 +	int error = 0;
++
 +	if (!filename)
 +		return 0;
 +	error = check_file_acl(domain, filename, perm);
@@ -647,6 +676,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	char *filename2;
 +	unsigned int perm;
 +	u8 type;
++
 +	if (!filename)
 +		return -EINVAL;
 +	*filename++ = '\0';
@@ -696,6 +726,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct single_path_acl_record *acl;
 +	int error = -ENOMEM;
 +	const u16 perm = 1 << type;
++
 +	if (!domain)
 +		return -EINVAL;
 +	if (!tmy_is_correct_path(filename, 0, 0, 0, __func__))
@@ -774,6 +805,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct double_path_acl_record *acl;
 +	int error = -ENOMEM;
 +	const u8 perm = 1 << type;
++
 +	if (!domain)
 +		return -EINVAL;
 +	if (!tmy_is_correct_path(filename1, 0, 0, 0, __func__) ||
@@ -861,6 +893,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct acl_info *ptr;
 +	const u8 perm = 1 << type;
++
 +	if (!tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE))
 +		return 0;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -899,6 +932,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const char *msg;
 +	int error;
 +	const bool is_enforce = (mode == 3);
++
 +	if (!mode)
 +		return 0;
 +next:
@@ -945,6 +979,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct path_info name;
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
++
 +	if (!mode)
 +		return 0;
 +	name.name = filename;
@@ -966,6 +1001,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			struct tmy_page_buffer *tmp)
 +{
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
++
 +	if (!mode)
 +		return 0;
 +	return check_file_perm2(domain, filename, 1, "do_execve", mode);
@@ -990,6 +1026,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct path_info *buf;
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
++
 +	if (!mode || !mnt)
 +		return 0;
 +	if (acc_mode == 0)
@@ -1046,6 +1083,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct path_info *buf;
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
++
 +	if (!mode || !mnt)
 +		return 0;
 +	buf = tmy_get_path(dentry, mnt);
@@ -1082,6 +1120,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	struct path_info *buf;
++
 +	if (!mode || !filp->f_path.mnt)
 +		return 0;
 +	buf = tmy_get_path(filp->f_path.dentry, filp->f_path.mnt);
@@ -1121,6 +1160,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	const char *msg;
++
 +	if (!mode || !mnt1 || !mnt2)
 +		return 0;
 +	buf1 = tmy_get_path(dentry1, mnt1);
