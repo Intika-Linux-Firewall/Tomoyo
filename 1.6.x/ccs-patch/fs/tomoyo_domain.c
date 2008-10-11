@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/07
+ * Version: 1.6.5-pre   2008/10/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -36,9 +36,6 @@ struct domain_info KERNEL_DOMAIN;
 LIST1_HEAD(domain_list);
 
 #ifdef CONFIG_TOMOYO
-
-/* Lock for appending domain's ACL. */
-DEFINE_MUTEX(domain_acl_lock);
 
 /* Domain creation lock. */
 static DEFINE_MUTEX(new_domain_assign_lock);
@@ -125,10 +122,20 @@ const char *ccs_get_last_name(const struct domain_info *domain)
  */
 int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
 {
-	if (domain)
+	if (domain) {
+		/*
+		 * We need to serialize because this function is called by
+		 * various update functions.
+		 */
+		static DEFINE_SPINLOCK(lock);
+		/***** CRITICAL SECTION START *****/
+		spin_lock(&lock);
 		list1_add_tail_mb(&acl->list, &domain->acl_info_list);
-	else
+		spin_unlock(&lock);
+		/***** CRITICAL SECTION END *****/
+	} else {
 		acl->type &= ~ACL_DELETED;
+	}
 	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }

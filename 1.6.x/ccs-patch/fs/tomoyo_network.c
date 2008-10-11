@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/07
+ * Version: 1.6.5-pre   2008/10/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -467,6 +467,7 @@ static int update_network_entry(const u8 operation, const u8 record_type,
 				const struct condition_list *condition,
 				const bool is_delete)
 {
+	static DEFINE_MUTEX(lock);
 	struct acl_info *ptr;
 	struct ip_network_acl_record *acl;
 	int error = -ENOMEM;
@@ -484,7 +485,7 @@ static int update_network_entry(const u8 operation, const u8 record_type,
 	if (!saved_min_address || !saved_max_address)
 		return -ENOMEM;
  not_ipv6:
-	mutex_lock(&domain_acl_lock);
+	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -559,7 +560,7 @@ static int update_network_entry(const u8 operation, const u8 record_type,
 		break;
 	}
  out:
-	mutex_unlock(&domain_acl_lock);
+	mutex_unlock(&lock);
 	return error;
 }
 

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/07
+ * Version: 1.6.5-pre   2008/10/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -820,8 +820,6 @@ extern bool sbin_init_started;
 extern const char *ccs_log_level;
 /* The kernel's domain. */
 extern struct domain_info KERNEL_DOMAIN;
-/* Exclusive lock for updating domain policy. */
-extern struct mutex domain_acl_lock;
 
 #include <linux/dcache.h>
 extern spinlock_t vfsmount_lock;

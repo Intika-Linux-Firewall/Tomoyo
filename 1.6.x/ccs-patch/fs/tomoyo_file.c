@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/07
+ * Version: 1.6.5-pre   2008/10/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -853,6 +853,7 @@ static int update_execute_handler(const u8 type, const char *filename,
 				  struct domain_info * const domain,
 				  const bool is_delete)
 {
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
 	struct execute_handler_record *acl;
@@ -864,7 +865,7 @@ static int update_execute_handler(const u8 type, const char *filename,
 	saved_filename = ccs_save_name(filename);
 	if (!saved_filename)
 		return -ENOMEM;
-	mutex_lock(&domain_acl_lock);
+	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -907,7 +908,7 @@ static int update_execute_handler(const u8 type, const char *filename,
 		break;
 	}
  out:
-	mutex_unlock(&domain_acl_lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -983,6 +984,7 @@ static int update_single_path_acl(const u8 type, const char *filename,
 				  const struct condition_list *condition,
 				  const bool is_delete)
 {
+	static DEFINE_MUTEX(lock);
 	static const u16 rw_mask = (1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL);
 	const struct path_info *saved_filename;
 	struct acl_info *ptr;
@@ -1011,7 +1013,7 @@ static int update_single_path_acl(const u8 type, const char *filename,
 	}
 	if (!saved_filename)
 		return -ENOMEM;
-	mutex_lock(&domain_acl_lock);
+	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -1061,7 +1063,7 @@ static int update_single_path_acl(const u8 type, const char *filename,
 		break;
 	}
  out:
-	mutex_unlock(&domain_acl_lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
@@ -1083,6 +1085,7 @@ static int update_double_path_acl(const u8 type, const char *filename1,
 				  const struct condition_list *condition,
 				  const bool is_delete)
 {
+	static DEFINE_MUTEX(lock);
 	const struct path_info *saved_filename1;
 	const struct path_info *saved_filename2;
 	struct acl_info *ptr;
@@ -1120,7 +1123,7 @@ static int update_double_path_acl(const u8 type, const char *filename1,
 	}
 	if (!saved_filename1 || !saved_filename2)
 		return -ENOMEM;
-	mutex_lock(&domain_acl_lock);
+	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -1166,7 +1169,7 @@ static int update_double_path_acl(const u8 type, const char *filename1,
 		break;
 	}
  out:
-	mutex_unlock(&domain_acl_lock);
+	mutex_unlock(&lock);
 	return error;
 }
 

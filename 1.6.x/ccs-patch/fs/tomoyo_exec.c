@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/07
+ * Version: 1.6.5-pre   2008/10/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -49,6 +49,7 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 			      const struct condition_list *condition,
 			      const bool is_delete)
 {
+	static DEFINE_MUTEX(lock);
 	struct acl_info *ptr;
 	struct argv0_acl_record *acl;
 	const struct path_info *saved_filename;
@@ -62,7 +63,7 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 	saved_argv0 = ccs_save_name(argv0);
 	if (!saved_filename || !saved_argv0)
 		return -ENOMEM;
-	mutex_lock(&domain_acl_lock);
+	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -100,7 +101,7 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 		break;
 	}
  out:
-	mutex_unlock(&domain_acl_lock);
+	mutex_unlock(&lock);
 	return error;
 }
 
