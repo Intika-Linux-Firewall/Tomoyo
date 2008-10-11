@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1242 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1242 insertions(+)
+ security/tomoyo/file.c | 1240 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1240 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/file.c
-@@ -0,0 +1,1242 @@
+@@ -0,0 +1,1240 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -154,12 +154,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				  struct domain_info * const domain,
 +				  const bool is_delete);
 +
-+/*
-+ * The domain_acl_lock mutex protects appending to/deleting from an ACL entry
-+ * against a domain.
-+ */
-+static DEFINE_MUTEX(domain_acl_lock);
-+
 +/**
 + * tmy_add_domain_acl - Add the given ACL to the given domain.
 + *
@@ -167,19 +161,25 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @acl:    Pointer to "struct acl_info".
 + *
 + * Returns 0.
-+ *
-+ * Caller holds domain_acl_lock mutex.
 + */
 +static int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
 +{
-+	/***** EXCLUSIVE SECTION START *****/
-+	if (domain)
++	if (domain) {
++		/*
++		 * We need to serialize because this function is called by
++		 * update_single_path_acl() and update_double_path_acl().
++		 */
++		static DEFINE_SPINLOCK(lock);
++		/***** CRITICAL SECTION START *****/
++		spin_lock(&lock);
 +		list1_add_tail_mb(&acl->list, &domain->acl_info_list);
-+	else
++		spin_unlock(&lock);
++		/***** CRITICAL SECTION END *****/
++	} else {
 +		acl->type &= ~ACL_DELETED;
++	}
 +	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
 +	return 0;
-+	/***** EXCLUSIVE SECTION END *****/
 +}
 +
 +/**
@@ -188,17 +188,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @acl: Pointer to "struct acl_info". May be NULL.
 + *
 + * Returns 0.
-+ *
-+ * Caller holds domain_acl_lock mutex.
 + */
 +static int tmy_del_domain_acl(struct acl_info *acl)
 +{
-+	/***** EXCLUSIVE SECTION START *****/
 +	if (acl)
 +		acl->type |= ACL_DELETED;
 +	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
 +	return 0;
-+	/***** EXCLUSIVE SECTION END *****/
 +}
 +
 +/*
@@ -772,6 +768,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				  struct domain_info * const domain,
 +				  const bool is_delete)
 +{
++	static DEFINE_MUTEX(lock);
 +	static const u16 rw_mask =
 +		(1 << TMY_TYPE_READ_ACL) | (1 << TMY_TYPE_WRITE_ACL);
 +	const struct path_info *saved_filename;
@@ -788,7 +785,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!saved_filename)
 +		return -ENOMEM;
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&domain_acl_lock);
++	mutex_lock(&lock);
 +	if (is_delete)
 +		goto delete;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -833,7 +830,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +out:
-+	mutex_unlock(&domain_acl_lock);
++	mutex_unlock(&lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return error;
 +}
@@ -854,6 +851,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				  struct domain_info * const domain,
 +				  const bool is_delete)
 +{
++	static DEFINE_MUTEX(lock);
 +	const struct path_info *saved_filename1;
 +	const struct path_info *saved_filename2;
 +	struct acl_info *ptr;
@@ -871,7 +869,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!saved_filename1 || !saved_filename2)
 +		return -ENOMEM;
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&domain_acl_lock);
++	mutex_lock(&lock);
 +	if (is_delete)
 +		goto delete;
 +	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -911,7 +909,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +out:
-+	mutex_unlock(&domain_acl_lock);
++	mutex_unlock(&lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return error;
 +}
