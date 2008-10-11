@@ -46,8 +46,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (bprm->cred_prepared)
 +		return 0;
 +	/*
-+	 * Load policy if /sbin/init exists and is requested for the first
-+	 * time.
++	 * Load policy if /sbin/tomoyo-init exists and /sbin/init is requested
++	 * for the first time.
 +	 */
 +	if (!sbin_init_started)
 +		tmy_load_policy(bprm->filename);
