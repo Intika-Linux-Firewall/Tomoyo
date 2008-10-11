@@ -7,8 +7,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/common.c | 2210 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  336 +++++++
- 2 files changed, 2546 insertions(+)
+ security/tomoyo/common.h |  334 +++++++
+ 2 files changed, 2544 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/common.c
@@ -2225,7 +2225,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/common.h
-@@ -0,0 +1,336 @@
+@@ -0,0 +1,334 @@
 +/*
 + * security/tomoyo/common.h
 + *
@@ -2254,8 +2254,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +#define false 0
 +#define true 1
-+
-+#include "list1.h"
 +
 +/* Temporary buffer for holding pathnames. */
 +struct tmy_page_buffer {

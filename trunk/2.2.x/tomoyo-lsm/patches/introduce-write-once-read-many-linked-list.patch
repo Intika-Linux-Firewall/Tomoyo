@@ -2,12 +2,15 @@ Subject: Singly linked list implementation.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/list1.h |   99 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 99 insertions(+)
+ include/linux/list.h |   95 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 95 insertions(+)
 
---- /dev/null
-+++ linux-next/security/tomoyo/list1.h
-@@ -0,0 +1,99 @@
+--- linux-next.orig/include/linux/list.h
++++ linux-next/include/linux/list.h
+@@ -692,4 +692,99 @@ static inline void hlist_move_list(struc
+ 		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
+ 	     pos = n)
+ 
 +/*
 + * Singly linked list implementation.
 + *
@@ -21,9 +24,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * This list penalize "mb()" for write operation but penalize nothing for read
 + * operation.
 + */
-+
-+#ifndef _SECURITY_TOMOYO_LIST1_H
-+#define _SECURITY_TOMOYO_LIST1_H
 +
 +/* To keep the reader read lock free, this list doesn't have "prev" field. */
 +struct list1_head {
@@ -106,4 +106,4 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	pos->next = new;
 +}
 +
-+#endif /* !defined(_SECURITY_TOMOYO_LIST1_H) */
+ #endif
