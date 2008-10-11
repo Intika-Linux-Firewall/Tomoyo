@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  913 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 913 insertions(+)
+ security/tomoyo/domain.c |  867 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 867 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/domain.c
-@@ -0,0 +1,913 @@
+@@ -0,0 +1,867 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -46,11 +46,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +LIST1_HEAD(domain_list);
 +static DEFINE_MUTEX(new_domain_assign_lock);
-+/*
-+ * The domain_acl_lock mutex protects appending to/deleting from an ACL entry
-+ * against a domain.
-+ */
-+DEFINE_MUTEX(domain_acl_lock);
 +
 +/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
 +struct domain_initializer_entry {
@@ -117,47 +112,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (cp1)
 +		return cp1 + 1;
 +	return cp0;
-+}
-+
-+/**
-+ * tmy_add_domain_acl - Add the given ACL to the given domain.
-+ *
-+ * @domain: Pointer to "struct domain_info". May be NULL.
-+ * @acl:    Pointer to "struct acl_info".
-+ *
-+ * Returns 0.
-+ *
-+ * Caller holds domain_acl_lock mutex.
-+ */
-+int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
-+{
-+	/***** EXCLUSIVE SECTION START *****/
-+	if (domain)
-+		list1_add_tail_mb(&acl->list, &domain->acl_info_list);
-+	else
-+		acl->type &= ~ACL_DELETED;
-+	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
-+	return 0;
-+	/***** EXCLUSIVE SECTION END *****/
-+}
-+
-+/**
-+ * tmy_del_domain_acl - Delete the given ACL from the domain.
-+ *
-+ * @acl: Pointer to "struct acl_info". May be NULL.
-+ *
-+ * Returns 0.
-+ *
-+ * Caller holds domain_acl_lock mutex.
-+ */
-+int tmy_del_domain_acl(struct acl_info *acl)
-+{
-+	/***** EXCLUSIVE SECTION START *****/
-+	if (acl)
-+		acl->type |= ACL_DELETED;
-+	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
-+	return 0;
-+	/***** EXCLUSIVE SECTION END *****/
 +}
 +
 +/*
