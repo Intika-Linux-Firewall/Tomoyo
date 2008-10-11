@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1195 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1195 insertions(+)
+ security/tomoyo/file.c | 1242 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1242 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/file.c
-@@ -0,0 +1,1195 @@
+@@ -0,0 +1,1242 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -153,6 +153,53 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static int update_single_path_acl(const u8 type, const char *filename,
 +				  struct domain_info * const domain,
 +				  const bool is_delete);
++
++/*
++ * The domain_acl_lock mutex protects appending to/deleting from an ACL entry
++ * against a domain.
++ */
++static DEFINE_MUTEX(domain_acl_lock);
++
++/**
++ * tmy_add_domain_acl - Add the given ACL to the given domain.
++ *
++ * @domain: Pointer to "struct domain_info". May be NULL.
++ * @acl:    Pointer to "struct acl_info".
++ *
++ * Returns 0.
++ *
++ * Caller holds domain_acl_lock mutex.
++ */
++static int tmy_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
++{
++	/***** EXCLUSIVE SECTION START *****/
++	if (domain)
++		list1_add_tail_mb(&acl->list, &domain->acl_info_list);
++	else
++		acl->type &= ~ACL_DELETED;
++	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
++	return 0;
++	/***** EXCLUSIVE SECTION END *****/
++}
++
++/**
++ * tmy_del_domain_acl - Delete the given ACL from the domain.
++ *
++ * @acl: Pointer to "struct acl_info". May be NULL.
++ *
++ * Returns 0.
++ *
++ * Caller holds domain_acl_lock mutex.
++ */
++static int tmy_del_domain_acl(struct acl_info *acl)
++{
++	/***** EXCLUSIVE SECTION START *****/
++	if (acl)
++		acl->type |= ACL_DELETED;
++	tmy_update_counter(TMY_UPDATES_COUNTER_DOMAIN_POLICY);
++	return 0;
++	/***** EXCLUSIVE SECTION END *****/
++}
 +
 +/*
 + * The list for "struct globally_readable_file_entry".
