@@ -1665,3 +1665,12 @@ Fix 2008/10/07
       To be able to determine a process's type, I added "(manager)" if the
       process is a policy manager and "(execute_handler)" if the process is an
       execute handler.
+
+Fix 2008/10/11
+
+    @ Remove domain_acl_lock mutex.
+
+      I noticed that I don't need to keep all functions that modify an ACL of
+      a domain mutually exclusive. Since each functions handles different type
+      of ACL, locking is needed only when they append an ACL to a domain.
+      So, I modified to use local locks.
