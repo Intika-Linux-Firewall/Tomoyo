@@ -5,8 +5,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/tomoyo.c |  372 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  109 +++++++++++++
- 2 files changed, 481 insertions(+)
+ security/tomoyo/tomoyo.h |  108 +++++++++++++
+ 2 files changed, 480 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.c
@@ -385,7 +385,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.h
-@@ -0,0 +1,109 @@
+@@ -0,0 +1,108 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -408,7 +408,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +struct pt_regs;
 +struct tmy_page_buffer;
 +
-+char *sysctlpath_from_table(struct ctl_table *table);
 +int tmy_check_file_perm(struct domain_info *domain, const char *filename,
 +			const u8 perm);
 +int tmy_check_exec_perm(struct domain_info *domain,

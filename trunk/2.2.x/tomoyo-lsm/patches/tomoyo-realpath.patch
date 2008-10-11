@@ -16,8 +16,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/realpath.c |  754 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.h |   60 +++
- 2 files changed, 814 insertions(+)
+ security/tomoyo/realpath.h |   62 +++
+ 2 files changed, 816 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/realpath.c
@@ -778,7 +778,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 --- /dev/null
 +++ linux-next/security/tomoyo/realpath.h
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,62 @@
 +/*
 + * security/tomoyo/realpath.h
 + *
@@ -813,6 +813,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +char *tmy_realpath_nofollow(const char *pathname);
 +/* Same with tmy_realpath() except that the pathname is already solved. */
 +char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
++/* Same with tmy_realpath() except that it uses struct ctl_table. */
++char *sysctlpath_from_table(struct ctl_table *table);
 +
 +/*
 + * Allocate memory for ACL entry.
