@@ -42,10 +42,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/*
 + * The list for "struct domain_info".
 + *
-+ * The new_domain_assign_lock mutex protects the domain_list list.
++ * The domain_list_lock mutex protects the domain_list list.
 + */
 +LIST1_HEAD(domain_list);
-+static DEFINE_MUTEX(new_domain_assign_lock);
++static DEFINE_MUTEX(domain_list_lock);
 +
 +/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
 +struct domain_initializer_entry {
@@ -88,12 +88,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			 const u8 flags)
 +{
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&new_domain_assign_lock);
++	mutex_lock(&domain_list_lock);
 +	if (!is_delete)
 +		domain->flags |= flags;
 +	else
 +		domain->flags &= ~flags;
-+	mutex_unlock(&new_domain_assign_lock);
++	mutex_unlock(&domain_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +}
 +
@@ -580,7 +580,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	name.name = domainname;
 +	tmy_fill_path_info(&name);
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&new_domain_assign_lock);
++	mutex_lock(&domain_list_lock);
 +#ifdef DEBUG_DOMAIN_UNDELETE
 +	printk(KERN_DEBUG "tmy_delete_domain %s\n", domainname);
 +	list1_for_each_entry(domain, &domain_list, list) {
@@ -618,7 +618,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 +		break;
 +	}
-+	mutex_unlock(&new_domain_assign_lock);
++	mutex_unlock(&domain_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return 0;
 +}
@@ -639,7 +639,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	name.name = domainname;
 +	tmy_fill_path_info(&name);
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&new_domain_assign_lock);
++	mutex_lock(&domain_list_lock);
 +#ifdef DEBUG_DOMAIN_UNDELETE
 +	printk(KERN_DEBUG "tmy_undelete_domain %s\n", domainname);
 +	list1_for_each_entry(domain, &domain_list, list) {
@@ -670,7 +670,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		printk(KERN_DEBUG "%p was undeleted.\n", candidate_domain);
 +#endif
 +	}
-+	mutex_unlock(&new_domain_assign_lock);
++	mutex_unlock(&domain_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return candidate_domain;
 +}
@@ -690,7 +690,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct path_info *saved_domainname;
 +
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&new_domain_assign_lock);
++	mutex_lock(&domain_list_lock);
 +	domain = tmy_find_domain(domainname);
 +	if (domain)
 +		goto out;
@@ -729,7 +729,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +		/*
 +		 * Don't use tmy_set_domain_flag() because
-+		 * new_domain_assign_lock is held.
++		 * domain_list_lock is held.
 +		 */
 +		domain->flags = 0;
 +		domain->profile = profile;
@@ -747,7 +747,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		list1_add_tail_mb(&domain->list, &domain_list);
 +	}
 +out:
-+	mutex_unlock(&new_domain_assign_lock);
++	mutex_unlock(&domain_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return domain;
 +}
