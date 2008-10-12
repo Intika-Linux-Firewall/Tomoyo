@@ -899,11 +899,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static struct profile *tmy_find_or_assign_new_profile(const unsigned int
 +						      profile)
 +{
-+	static DEFINE_MUTEX(profile_lock);
++	static DEFINE_MUTEX(lock);
 +	struct profile *ptr = NULL;
 +
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&profile_lock);
++	mutex_lock(&lock);
 +	if (profile < MAX_PROFILES) {
 +		ptr = profile_ptr[profile];
 +		if (ptr)
@@ -919,7 +919,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +	}
 +ok:
-+	mutex_unlock(&profile_lock);
++	mutex_unlock(&lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return ptr;
 +}
