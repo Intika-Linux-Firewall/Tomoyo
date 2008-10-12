@@ -38,7 +38,7 @@ LIST1_HEAD(domain_list);
 #ifdef CONFIG_TOMOYO
 
 /* Domain creation lock. */
-static DEFINE_MUTEX(new_domain_assign_lock);
+static DEFINE_MUTEX(domain_list_lock);
 
 /* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
 struct domain_initializer_entry {
@@ -88,12 +88,12 @@ struct alias_entry {
 void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
 			 const u8 flags)
 {
-	mutex_lock(&new_domain_assign_lock);
+	mutex_lock(&domain_list_lock);
 	if (!is_delete)
 		domain->flags |= flags;
 	else
 		domain->flags &= ~flags;
-	mutex_unlock(&new_domain_assign_lock);
+	mutex_unlock(&domain_list_lock);
 }
 
 /**
@@ -717,7 +717,7 @@ int ccs_delete_domain(char *domainname)
 	struct path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
-	mutex_lock(&new_domain_assign_lock);
+	mutex_lock(&domain_list_lock);
 #ifdef DEBUG_DOMAIN_UNDELETE
 	printk(KERN_DEBUG "ccs_delete_domain %s\n", domainname);
 	list1_for_each_entry(domain, &domain_list, list) {
@@ -755,7 +755,7 @@ int ccs_delete_domain(char *domainname)
 #endif
 		break;
 	}
-	mutex_unlock(&new_domain_assign_lock);
+	mutex_unlock(&domain_list_lock);
 	return 0;
 }
 
@@ -773,7 +773,7 @@ struct domain_info *ccs_undelete_domain(const char *domainname)
 	struct path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
-	mutex_lock(&new_domain_assign_lock);
+	mutex_lock(&domain_list_lock);
 #ifdef DEBUG_DOMAIN_UNDELETE
 	printk(KERN_DEBUG "ccs_undelete_domain %s\n", domainname);
 	list1_for_each_entry(domain, &domain_list, list) {
@@ -804,7 +804,7 @@ struct domain_info *ccs_undelete_domain(const char *domainname)
 		printk(KERN_DEBUG "%p was undeleted.\n", candidate_domain);
 #endif
 	}
-	mutex_unlock(&new_domain_assign_lock);
+	mutex_unlock(&domain_list_lock);
 	return candidate_domain;
 }
 
@@ -821,7 +821,7 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 {
 	struct domain_info *domain = NULL;
 	const struct path_info *saved_domainname;
-	mutex_lock(&new_domain_assign_lock);
+	mutex_lock(&domain_list_lock);
 	domain = ccs_find_domain(domainname);
 	if (domain)
 		goto out;
@@ -860,7 +860,7 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		}
 		/*
 		 * Don't use ccs_set_domain_flag() because
-		 * new_domain_assign_lock is held.
+		 * domain_list_lock is held.
 		 */
 		domain->flags = 0;
 		domain->profile = profile;
@@ -878,7 +878,7 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		list1_add_tail_mb(&domain->list, &domain_list);
 	}
  out:
-	mutex_unlock(&new_domain_assign_lock);
+	mutex_unlock(&domain_list_lock);
 	return domain;
 }
 

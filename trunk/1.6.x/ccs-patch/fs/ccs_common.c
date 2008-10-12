@@ -1056,9 +1056,9 @@ bool ccs_check_domain_quota(struct domain_info * const domain)
 static struct profile *ccs_find_or_assign_new_profile(const unsigned int
 						      profile)
 {
-	static DEFINE_MUTEX(profile_lock);
+	static DEFINE_MUTEX(lock);
 	struct profile *ptr = NULL;
-	mutex_lock(&profile_lock);
+	mutex_lock(&lock);
 	if (profile < MAX_PROFILES) {
 		ptr = profile_ptr[profile];
 		if (ptr)
@@ -1078,7 +1078,7 @@ static struct profile *ccs_find_or_assign_new_profile(const unsigned int
 		}
 	}
  ok:
-	mutex_unlock(&profile_lock);
+	mutex_unlock(&lock);
 	return ptr;
 }
 
@@ -2527,8 +2527,8 @@ void ccs_load_policy(const char *filename)
 /* Wait queue for query_list. */
 static DECLARE_WAIT_QUEUE_HEAD(query_wait);
 
-/* Lock for manipurating query_list. */
-static DEFINE_SPINLOCK(query_lock);
+/* Lock for manipulating query_list. */
+static DEFINE_SPINLOCK(query_list_lock);
 
 /* Structure for query. */
 struct query_entry {
@@ -2597,9 +2597,9 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		goto out;
 	INIT_LIST_HEAD(&query_entry->list);
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
+	spin_lock(&query_list_lock);
 	query_entry->serial = serial++;
-	spin_unlock(&query_lock);
+	spin_unlock(&query_list_lock);
 	/***** CRITICAL SECTION END *****/
 	pos = snprintf(query_entry->query, len - 1, "Q%u-%hu\n%s",
 		       query_entry->serial, r->retry, header);
@@ -2610,9 +2610,9 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	query_entry->query_len = strlen(query_entry->query) + 1;
 	va_end(args);
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
+	spin_lock(&query_list_lock);
 	list_add_tail(&query_entry->list, &query_list);
-	spin_unlock(&query_lock);
+	spin_unlock(&query_list_lock);
 	/***** CRITICAL SECTION END *****/
 	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
 	/* Give 10 seconds for supervisor's opinion. */
@@ -2626,9 +2626,9 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	}
 	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
+	spin_lock(&query_list_lock);
 	list_del(&query_entry->list);
-	spin_unlock(&query_lock);
+	spin_unlock(&query_list_lock);
 	/***** CRITICAL SECTION END *****/
 	switch (query_entry->answer) {
 	case 3: /* Asked to retry by administrator. */
@@ -2670,7 +2670,7 @@ static int poll_query(struct file *file, poll_table *wait)
 	u8 i;
 	for (i = 0; i < 2; i++) {
 		/***** CRITICAL SECTION START *****/
-		spin_lock(&query_lock);
+		spin_lock(&query_list_lock);
 		list_for_each(tmp, &query_list) {
 			struct query_entry *ptr
 				= list_entry(tmp, struct query_entry, list);
@@ -2679,7 +2679,7 @@ static int poll_query(struct file *file, poll_table *wait)
 			found = true;
 			break;
 		}
-		spin_unlock(&query_lock);
+		spin_unlock(&query_list_lock);
 		/***** CRITICAL SECTION END *****/
 		if (found)
 			return POLLIN | POLLRDNORM;
@@ -2711,7 +2711,7 @@ static int read_query(struct ccs_io_buffer *head)
 		head->readbuf_size = 0;
 	}
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
+	spin_lock(&query_list_lock);
 	list_for_each(tmp, &query_list) {
 		struct query_entry *ptr
 			= list_entry(tmp, struct query_entry, list);
@@ -2722,7 +2722,7 @@ static int read_query(struct ccs_io_buffer *head)
 		len = ptr->query_len;
 		break;
 	}
-	spin_unlock(&query_lock);
+	spin_unlock(&query_list_lock);
 	/***** CRITICAL SECTION END *****/
 	if (!len) {
 		head->read_step = 0;
@@ -2733,7 +2733,7 @@ static int read_query(struct ccs_io_buffer *head)
 		return 0;
 	pos = 0;
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
+	spin_lock(&query_list_lock);
 	list_for_each(tmp, &query_list) {
 		struct query_entry *ptr
 			= list_entry(tmp, struct query_entry, list);
@@ -2749,7 +2749,7 @@ static int read_query(struct ccs_io_buffer *head)
 			memmove(buf, ptr->query, len);
 		break;
 	}
-	spin_unlock(&query_lock);
+	spin_unlock(&query_list_lock);
 	/***** CRITICAL SECTION END *****/
 	if (buf[0]) {
 		head->read_avail = len;
@@ -2776,18 +2776,18 @@ static int write_answer(struct ccs_io_buffer *head)
 	unsigned int serial;
 	unsigned int answer;
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
+	spin_lock(&query_list_lock);
 	list_for_each(tmp, &query_list) {
 		struct query_entry *ptr
 			= list_entry(tmp, struct query_entry, list);
 		ptr->timer = 0;
 	}
-	spin_unlock(&query_lock);
+	spin_unlock(&query_list_lock);
 	/***** CRITICAL SECTION END *****/
 	if (sscanf(data, "A%u=%u", &serial, &answer) != 2)
 		return -EINVAL;
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&query_lock);
+	spin_lock(&query_list_lock);
 	list_for_each(tmp, &query_list) {
 		struct query_entry *ptr
 			= list_entry(tmp, struct query_entry, list);
@@ -2797,7 +2797,7 @@ static int write_answer(struct ccs_io_buffer *head)
 			ptr->answer = answer;
 		break;
 	}
-	spin_unlock(&query_lock);
+	spin_unlock(&query_list_lock);
 	/***** CRITICAL SECTION END *****/
 	return 0;
 }
