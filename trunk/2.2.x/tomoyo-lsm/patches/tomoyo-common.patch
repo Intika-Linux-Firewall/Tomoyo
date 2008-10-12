@@ -7,8 +7,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/common.c | 2210 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  323 ++++++
- 2 files changed, 2533 insertions(+)
+ security/tomoyo/common.h |  319 ++++++
+ 2 files changed, 2529 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/common.c
@@ -2225,7 +2225,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/common.h
-@@ -0,0 +1,323 @@
+@@ -0,0 +1,319 @@
 +/*
 + * security/tomoyo/common.h
 + *
@@ -2535,11 +2535,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return ptr->type;
 +}
 +
-+/*
-+ * A linked list of domains.
-+ *
-+ * The new_domain_assign_lock lock protects appending to this list.
-+ */
++/* The list for "struct domain_info". */
 +extern struct list1_head domain_list;
 +
 +/* Has /sbin/init started? */
