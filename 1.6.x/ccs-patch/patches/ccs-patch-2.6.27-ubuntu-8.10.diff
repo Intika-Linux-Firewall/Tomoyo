@@ -331,7 +331,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1512,6 +1516,14 @@ int vfs_create(struct inode *dir, struct
+@@ -1527,6 +1531,14 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, nd ? nd->path.mnt : NULL, mode);
  	if (error)
  		return error;
@@ -346,7 +346,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1566,6 +1578,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1581,6 +1593,13 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -360,7 +360,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1622,6 +1641,9 @@ static int __open_namei_create(struct na
+@@ -1637,6 +1656,9 @@ static int __open_namei_create(struct na
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -370,7 +370,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1973,6 +1995,16 @@ int vfs_mknod(struct inode *dir, struct 
+@@ -1988,6 +2010,16 @@ int vfs_mknod(struct inode *dir, struct 
  
  static int may_mknod(mode_t mode)
  {
@@ -387,7 +387,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	switch (mode & S_IFMT) {
  	case S_IFREG:
  	case S_IFCHR:
-@@ -2021,10 +2053,34 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2036,10 +2068,34 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -422,7 +422,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  			error = vfs_mknod(nd.path.dentry->d_inode, dentry,
  					  nd.path.mnt, mode, 0);
  			break;
-@@ -2089,6 +2145,13 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2104,6 +2160,13 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -436,7 +436,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, nd.path.mnt, mode);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2197,6 +2260,13 @@ static long do_rmdir(int dfd, const char
+@@ -2212,6 +2275,13 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -450,7 +450,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry, nd.path.mnt);
  	mnt_drop_write(nd.path.mnt);
  exit3:
-@@ -2258,6 +2328,10 @@ static long do_unlinkat(int dfd, const c
+@@ -2273,6 +2343,10 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -461,7 +461,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	error = user_path_parent(dfd, pathname, &nd, &name);
  	if (error)
-@@ -2279,6 +2353,13 @@ static long do_unlinkat(int dfd, const c
+@@ -2294,6 +2368,13 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -475,7 +475,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry, nd.path.mnt);
  		mnt_drop_write(nd.path.mnt);
  	exit2:
-@@ -2344,6 +2425,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2359,6 +2440,10 @@ asmlinkage long sys_symlinkat(const char
  	char *to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -486,7 +486,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	from = getname(oldname);
  	if (IS_ERR(from))
-@@ -2361,6 +2446,13 @@ asmlinkage long sys_symlinkat(const char
+@@ -2376,6 +2461,13 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -500,7 +500,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, nd.path.mnt, from);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2439,6 +2531,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2454,6 +2546,10 @@ asmlinkage long sys_linkat(int olddfd, c
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
@@ -511,7 +511,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	error = user_path_at(olddfd, oldname,
  			     flags & AT_SYMLINK_FOLLOW ? LOOKUP_FOLLOW : 0,
-@@ -2459,6 +2555,15 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2474,6 +2570,15 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -527,7 +527,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = vfs_link(old_path.dentry, old_path.mnt,
  			 nd.path.dentry->d_inode,
  			 new_dentry, nd.path.mnt);
-@@ -2644,6 +2749,10 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2659,6 +2764,10 @@ asmlinkage long sys_renameat(int olddfd,
  	char *from;
  	char *to;
  	int error;
@@ -538,7 +538,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	error = user_path_parent(olddfd, oldname, &oldnd, &from);
  	if (error)
-@@ -2696,6 +2805,17 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2711,6 +2820,17 @@ asmlinkage long sys_renameat(int olddfd,
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -709,7 +709,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, file->f_path.mnt, length,
-@@ -568,6 +584,14 @@ asmlinkage long sys_chroot(const char __
+@@ -571,6 +587,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -724,7 +724,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1141,6 +1165,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1144,6 +1168,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -752,7 +752,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27-5.8 2008/10/05\n");
++	printk(KERN_INFO "Hook version: 2.6.27-7.10 2008/10/13\n");
 +#endif
 +	/***** CCS end. *****/
  }
