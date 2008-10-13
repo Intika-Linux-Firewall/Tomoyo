@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  754 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.h |   62 +++
- 2 files changed, 816 insertions(+)
+ security/tomoyo/realpath.c |  692 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.h |   62 ++++
+ 2 files changed, 754 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/realpath.c
-@@ -0,0 +1,754 @@
+@@ -0,0 +1,692 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -500,16 +500,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return ptr ? &ptr->entry : NULL;
 +}
 +
-+/* Structure for temporarily allocated memory. */
-+struct cache_entry {
-+	struct list_head list;
-+	void *ptr;
-+	int size;
-+};
-+
-+/* For allocating "struct cache_entry" list. */
-+static struct kmem_cache *tmy_cachep;
-+
 +/**
 + * tmy_realpath_init - Initialize realpath related code.
 + *
@@ -521,10 +511,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	if (TMY_MAX_PATHNAME_LEN > PAGE_SIZE)
 +		panic("Bad size.");
-+	tmy_cachep = kmem_cache_create("tmy_cache", sizeof(struct cache_entry),
-+				       0, 0, NULL);
-+	if (!tmy_cachep)
-+		panic("Can't create cache.\n");
 +	for (i = 0; i < MAX_HASH; i++)
 +		INIT_LIST1_HEAD(&name_list[i]);
 +	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
@@ -537,16 +523,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +security_initcall(tmy_realpath_init);
 +
-+/*
-+ * The list for "struct cache_entry".
-+ *
-+ * The cache_list_lock spinlock protects the cache_list list.
-+ */
-+static LIST_HEAD(cache_list);
-+static DEFINE_SPINLOCK(cache_list_lock);
-+
 +/* Memory allocated for temporal purpose. */
-+static unsigned int dynamic_memory_size;
++static atomic_t dynamic_memory_size;
 +
 +/**
 + * tmy_alloc - Allocate memory for temporal purpose.
@@ -557,28 +535,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +void *tmy_alloc(const size_t size)
 +{
-+	struct cache_entry *new_entry;
-+	void *ret = kzalloc(size, GFP_KERNEL);
-+
-+	if (!ret)
-+		goto out;
-+	new_entry = kmem_cache_alloc(tmy_cachep, GFP_KERNEL);
-+	if (!new_entry) {
-+		kfree(ret);
-+		ret = NULL;
-+		goto out;
-+	}
-+	INIT_LIST_HEAD(&new_entry->list);
-+	new_entry->ptr = ret;
-+	new_entry->size = ksize(ret);
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&cache_list_lock);
-+	list_add_tail(&new_entry->list, &cache_list);
-+	dynamic_memory_size += new_entry->size;
-+	spin_unlock(&cache_list_lock);
-+	/***** CRITICAL SECTION END *****/
-+out:
-+	return ret;
++	void *p = kzalloc(size, GFP_KERNEL);
++	if (p)
++		atomic_add(ksize(p), &dynamic_memory_size);
++	return p;
 +}
 +
 +/**
@@ -590,31 +550,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +void tmy_free(const void *p)
 +{
-+	struct list_head *v;
-+	struct cache_entry *entry = NULL;
-+
-+	if (!p)
-+		return;
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&cache_list_lock);
-+	list_for_each(v, &cache_list) {
-+		entry = list_entry(v, struct cache_entry, list);
-+		if (entry->ptr != p) {
-+			entry = NULL;
-+			continue;
-+		}
-+		list_del(&entry->list);
-+		dynamic_memory_size -= entry->size;
-+		break;
-+	}
-+	spin_unlock(&cache_list_lock);
-+	/***** CRITICAL SECTION END *****/
-+	if (entry) {
-+		kfree(p);
-+		kmem_cache_free(tmy_cachep, entry);
-+	} else {
-+		printk(KERN_WARNING "BUG: tmy_free() with invalid pointer.\n");
-+	}
++	if (p)
++		atomic_sub(ksize(p), &dynamic_memory_size);
++	kfree(p);
 +}
 +
 +static int tmy_print_ascii(const char *sp, const char *cp,
@@ -734,7 +672,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!head->read_eof) {
 +		const unsigned int shared = allocated_memory_for_savename;
 +		const unsigned int private = allocated_memory_for_elements;
-+		const unsigned int dynamic = dynamic_memory_size;
++		const unsigned int dynamic = atomic_read(&dynamic_memory_size);
 +		char buffer[64];
 +
 +		memset(buffer, 0, sizeof(buffer));

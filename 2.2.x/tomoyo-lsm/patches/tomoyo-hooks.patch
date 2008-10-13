@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  372 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |  374 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.h |  108 +++++++++++++
- 2 files changed, 480 insertions(+)
+ 2 files changed, 482 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.c
-@@ -0,0 +1,372 @@
+@@ -0,0 +1,374 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -99,27 +99,65 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return error;
 +}
 +
-+/*
-+ * Structure for holding the result of security_path_*().
++/**
++ * tmy_update_result - Update error code.
 + *
-+ * To be able to return DAC's error (if any) to the caller instead of MAC's
-+ * error, we don't return MAC's error at security_path_*().
++ * @error: Return code from security_path_*().
++ *
++ * To be able to return DAC's error (if any) to the caller instead of
++ * MAC's error, we don't return MAC's error at security_path_*().
 + *
 + * We remember MAC's error only if security_path_*() returned an error.
-+ */
-+struct check_result_entry {
-+	struct list_head list;
-+	struct task_struct *task;
-+	int error;
-+};
-+
-+/*
-+ * The list for "struct check_result_entry".
 + *
-+ * The check_result_list_lock spinlock protects this list.
++ * Returns 0 on success, -ENOMEM otherwise if @error != 0.
++ * Returns previously saved error code and clears it if @error == 0.
 + */
-+static LIST_HEAD(check_result_list);
-+static DEFINE_SPINLOCK(check_result_list_lock);
++static int tmy_update_result(int error)
++{
++	/* Structure for holding the result of security_path_*(). */
++	struct check_result_entry {
++		struct list_head list;
++		struct task_struct *task; /* = current */
++		int error; /* != 0 */
++	};
++	static LIST_HEAD(list);
++	static DEFINE_SPINLOCK(lock);
++	struct task_struct *task = current;
++	struct check_result_entry *entry;
++	if (!error) {
++		if (!list_empty(&list)) {
++			struct check_result_entry *p;
++			entry = NULL;
++			/***** CRITICAL SECTION START *****/
++			spin_lock(&lock);
++			list_for_each_entry(p, &list, list) {
++				if (p->task != task)
++					continue;
++				list_del(&p->list);
++				entry = p;
++				break;
++			}
++			spin_unlock(&lock);
++			/***** CRITICAL SECTION END *****/
++			if (entry) {
++				error = entry->error;
++				kfree(entry);
++			}
++		}
++		return error;
++	}
++	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++	if (!entry)
++		return -ENOMEM;
++	entry->task = task;
++	entry->error = error;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&lock);
++	list_add(&entry->list, &list);
++	spin_unlock(&lock);
++	/***** CRITICAL SECTION END *****/
++	return 0;
++}
 +
 +/**
 + * tmy_save_result - Remember error code for security_inode_*() if any.
@@ -132,21 +170,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int tmy_save_result(const int error)
 +{
-+	struct check_result_entry *entry;
-+
-+	if (!error)
-+		return 0;
-+	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
-+	if (!entry)
-+		return -ENOMEM;
-+	entry->task = current;
-+	entry->error = error;
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&check_result_list_lock);
-+	list_add(&entry->list, &check_result_list);
-+	spin_unlock(&check_result_list_lock);
-+	/***** CRITICAL SECTION END *****/
-+	return 0;
++	return error ? tmy_update_result(error) : 0;
 +}
 +
 +/**
@@ -156,29 +180,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +static int tmy_load_result(void)
 +{
-+	struct task_struct *task = current;
-+	struct check_result_entry *p;
-+	struct check_result_entry *entry = NULL;
-+
-+	if (list_empty(&check_result_list))
-+		return 0;
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&check_result_list_lock);
-+	list_for_each_entry(p, &check_result_list, list) {
-+		if (p->task != task)
-+			continue;
-+		list_del(&p->list);
-+		entry = p;
-+		break;
-+	}
-+	spin_unlock(&check_result_list_lock);
-+	/***** CRITICAL SECTION END *****/
-+	if (entry) {
-+		int error = entry->error;
-+		kfree(entry);
-+		return error;
-+	}
-+	return 0;
++	return tmy_update_result(0);
 +}
 +
 +/* Clear error code in case security_inode_*() was not called. */
