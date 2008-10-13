@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  867 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 867 insertions(+)
+ security/tomoyo/domain.c |  865 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 865 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/domain.c
-@@ -0,0 +1,867 @@
+@@ -0,0 +1,865 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -87,14 +87,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +void tmy_set_domain_flag(struct domain_info *domain, const bool is_delete,
 +			 const u8 flags)
 +{
-+	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&domain_list_lock);
++	/* We need to serialize because this is bitfield operation. */
++	static DEFINE_SPINLOCK(lock);
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&lock);
 +	if (!is_delete)
 +		domain->flags |= flags;
 +	else
 +		domain->flags &= ~flags;
-+	mutex_unlock(&domain_list_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	spin_unlock(&lock);
++	/***** CRITICAL SECTION END *****/
 +}
 +
 +/**
@@ -727,11 +729,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +			ptr->type |= ACL_DELETED;
 +		}
-+		/*
-+		 * Don't use tmy_set_domain_flag() because
-+		 * domain_list_lock is held.
-+		 */
-+		domain->flags = 0;
++		tmy_set_domain_flag(domain, true, domain->flags);
 +		domain->profile = profile;
 +		domain->quota_warned = false;
 +		mb(); /* Avoid out-of-order execution. */

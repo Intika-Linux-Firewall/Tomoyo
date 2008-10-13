@@ -88,12 +88,16 @@ struct alias_entry {
 void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
 			 const u8 flags)
 {
-	mutex_lock(&domain_list_lock);
+	/* We need to serialize because this is bitfield operation. */
+	static DEFINE_SPINLOCK(lock);
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&lock);
 	if (!is_delete)
 		domain->flags |= flags;
 	else
 		domain->flags &= ~flags;
-	mutex_unlock(&domain_list_lock);
+	spin_unlock(&lock);
+	/***** CRITICAL SECTION END *****/
 }
 
 /**
@@ -858,11 +862,7 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			ptr->type |= ACL_DELETED;
 		}
-		/*
-		 * Don't use ccs_set_domain_flag() because
-		 * domain_list_lock is held.
-		 */
-		domain->flags = 0;
+		ccs_set_domain_flag(domain, true, domain->flags);
 		domain->profile = profile;
 		domain->quota_warned = false;
 		mb(); /* Avoid out-of-order execution. */
