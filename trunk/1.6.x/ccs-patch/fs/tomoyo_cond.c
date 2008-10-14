@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/07
+ * Version: 1.6.5-pre   2008/10/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1035,8 +1035,8 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		const u8 left = header >> 8;
 		const u8 right = header;
 		ptr++;
-		if ((left >= PATH1_UID && left < MAX_KEYWORD) ||
-		    (right >= PATH1_UID && right < MAX_KEYWORD)) {
+		if ((left >= PATH1_UID && left < EXEC_ARGC) ||
+		    (right >= PATH1_UID && right < EXEC_ARGC)) {
 			if (!obj)
 				goto out;
 			if (!obj->validate_done) {

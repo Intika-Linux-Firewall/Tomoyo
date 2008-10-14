@@ -1674,3 +1674,15 @@ Fix 2008/10/11
       a domain mutually exclusive. Since each functions handles different type
       of ACL, locking is needed only when they append an ACL to a domain.
       So, I modified to use local locks.
+
+Fix 2008/10/14
+
+    @ Fix ccs_check_condition() bug.
+
+      Due to a bug in ccs_check_condition(), it was impossible to use
+      task.state[0] task.state[1] task.state[2] inside condition part
+      if the ACL does not treat a pathname. For example, an ACL like
+
+        allow_network TCP connect @HTTP_SERVERS 80 if task.state[0]=100
+
+      didn't work.
