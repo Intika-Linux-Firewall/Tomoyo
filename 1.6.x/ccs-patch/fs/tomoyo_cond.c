@@ -1299,7 +1299,7 @@ void ccs_update_condition(const struct acl_info *acl)
 	 */
 	const struct condition_list *ptr = ccs_get_condition_part(acl);
 	struct task_struct *task;
-	u32 tomoyo_flags = current->tomoyo_flags;
+	u32 tomoyo_flags;
 	const u8 flags = ptr ? ptr->post_state[3] : 0;
 	if (!flags)
 		return;

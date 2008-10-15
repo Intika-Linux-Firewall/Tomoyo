@@ -2114,49 +2114,59 @@ static int read_domain_profile(struct ccs_io_buffer *head)
  */
 static int write_pid(struct ccs_io_buffer *head)
 {
-	head->read_step = (int) simple_strtoul(head->write_buf, NULL, 10);
 	head->read_eof = false;
 	return 0;
 }
 
 /**
- * read_pid - Get domainname of the specified PID.
+ * read_pid - Read information of a process.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
- * Returns the domainname which the specified PID is in on success,
+ * Returns the domainname which the specified PID is in or
+ * process information of the specified PID on success,
  * empty string otherwise.
- * The PID is specified by write_pid() so that the user can obtain
- * using read()/write() interface rather than sysctl() interface.
  */
 static int read_pid(struct ccs_io_buffer *head)
 {
-	if (head->read_avail == 0 && !head->read_eof) {
-		const char *is_manager = "";
-		const char *is_execute_handler = "";
-		const int pid = head->read_step;
-		struct task_struct *p;
-		struct domain_info *domain = NULL;
-		u32 tomoyo_flags = 0;
-		/***** CRITICAL SECTION START *****/
-		read_lock(&tasklist_lock);
-		p = find_task_by_pid(pid);
-		if (p) {
-			domain = p->domain_info;
-			tomoyo_flags = p->tomoyo_flags;
-		}
-		read_unlock(&tasklist_lock);
-		/***** CRITICAL SECTION END *****/
-		if (tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)
-			is_execute_handler = "(execute_handler)";
-		if (tomoyo_flags & CCS_TASK_IS_POLICY_MANAGER)
-			is_manager = "(manager)";
-		if (domain)
-			ccs_io_printf(head, "%d%s%s %u %s", pid, is_manager,
-				      is_execute_handler, domain->profile,
-				      domain->domainname->name);
-		head->read_eof = true;
+	/* Accessing write_buf is safe because head->io_sem is held. */
+	char *buf = head->write_buf;
+	bool task_info = false;
+	unsigned int pid;
+	struct task_struct *p;
+	struct domain_info *domain = NULL;
+	u32 tomoyo_flags = 0;
+	if (head->read_avail || head->read_eof)
+		goto done;
+	head->read_eof = true;
+	if (str_starts(&buf, "info "))
+		task_info = true;
+	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
+	/***** CRITICAL SECTION START *****/
+	read_lock(&tasklist_lock);
+	p = find_task_by_pid(pid);
+	if (p) {
+		domain = p->domain_info;
+		tomoyo_flags = p->tomoyo_flags;
 	}
+	read_unlock(&tasklist_lock);
+	/***** CRITICAL SECTION END *****/
+	if (!domain)
+		goto done;
+	if (!task_info)
+		ccs_io_printf(head, "%u %u %s", pid, domain->profile,
+			      domain->domainname->name);
+	else
+		ccs_io_printf(head, "%u manager=%s execute_handler=%s "
+			      "state[0]=%u state[1]=%u state[2]=%u", pid,
+			      tomoyo_flags & CCS_TASK_IS_POLICY_MANAGER ?
+			      "yes" : "no",
+			      tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER ?
+			      "yes" : "no",
+			      (u8) (tomoyo_flags >> 24),
+			      (u8) (tomoyo_flags >> 16),
+			      (u8) (tomoyo_flags >> 8));
+ done:
 	return 0;
 }
 

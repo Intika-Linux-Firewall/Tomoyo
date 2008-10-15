@@ -1653,18 +1653,12 @@ Fix 2008/10/07
 
     @ Always allow updating task state for signal operations.
 
-      ccs_check_signal_acl() was skipping permission checks if signal is NULL
+      ccs_check_signal_acl() was skipping permission checks if signal is 0
       or sent to self or sent to same domain. To make it possible to update
-      task state when current process is sending NULL signal or to self or
+      task state when current process is sending 0 signal or to self or
       to same domain, I modified to check ACL anyway. The result of access
       control will not change, but this modification will generate granted logs
       which were not generated until now.
-
-    @ Show process type in /proc/ccs/.process_status .
-
-      To be able to determine a process's type, I added "(manager)" if the
-      process is a policy manager and "(execute_handler)" if the process is an
-      execute handler.
 
 Fix 2008/10/11
 
@@ -1686,3 +1680,12 @@ Fix 2008/10/14
         allow_network TCP connect @HTTP_SERVERS 80 if task.state[0]=100
 
       didn't work.
+
+Fix 2008/10/15
+
+    @ Show process information in /proc/ccs/.process_status .
+
+      To be able to determine a process's type, I added a command "info PID"
+      which returns process information of the specified PID in
+      "PID manager=\* execute_handler=\* state[0]=\$ state[1]=\$ state[2]=\$"
+      format.
