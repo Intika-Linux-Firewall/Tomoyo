@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2210 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2209 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  319 ++++++
- 2 files changed, 2529 insertions(+)
+ 2 files changed, 2528 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/common.c
-@@ -0,0 +1,2210 @@
+@@ -0,0 +1,2209 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -746,8 +746,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	down_read(&mm->mmap_sem);
 +	for (vma = mm->mmap; vma; vma = vma->vm_next) {
 +		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-+			struct path *path = &vma->vm_file->f_path;
-+			cp = tmy_realpath_from_dentry(path->dentry, path->mnt);
++			cp = tmy_realpath_from_path(&vma->vm_file->f_path);
 +			break;
 +		}
 +	}
