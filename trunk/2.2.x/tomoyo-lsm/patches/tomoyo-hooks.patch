@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  374 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  108 +++++++++++++
- 2 files changed, 482 insertions(+)
+ security/tomoyo/tomoyo.c |  376 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  105 +++++++++++++
+ 2 files changed, 481 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.c
-@@ -0,0 +1,374 @@
+@@ -0,0 +1,376 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -79,8 +79,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * Read permission is checked against interpreters using next domain.
 +	 * '1' is the result of open_to_namei_flags(O_RDONLY).
 +	 */
-+	return tmy_check_open_permission(domain, bprm->file->f_path.dentry,
-+					 bprm->file->f_path.mnt, 1);
++	return tmy_check_open_permission(domain, &bprm->file->f_path, 1);
 +}
 +
 +static int tmy_sysctl(struct ctl_table *table, int op)
@@ -194,42 +193,46 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
 +						    TMY_TYPE_TRUNCATE_ACL,
-+						    path->dentry, path->mnt));
++						    path));
 +}
 +
 +static int tmy_path_unlink(struct path *parent, struct dentry *dentry)
 +{
++	struct path path = { parent->mnt, dentry };
 +	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
 +						    TMY_TYPE_UNLINK_ACL,
-+						    dentry, parent->mnt));
++						    &path));
 +}
 +
 +static int tmy_path_mkdir(struct path *parent, struct dentry *dentry, int mode)
 +{
++	struct path path = { parent->mnt, dentry };
 +	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
 +						    TMY_TYPE_MKDIR_ACL,
-+						    dentry, parent->mnt));
++						    &path));
 +}
 +
 +static int tmy_path_rmdir(struct path *parent, struct dentry *dentry)
 +{
++	struct path path = { parent->mnt, dentry };
 +	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
 +						    TMY_TYPE_RMDIR_ACL,
-+						    dentry, parent->mnt));
++						    &path));
 +}
 +
 +static int tmy_path_symlink(struct path *parent, struct dentry *dentry,
 +			    const char *old_name)
 +{
++	struct path path = { parent->mnt, dentry };
 +	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
 +						    TMY_TYPE_SYMLINK_ACL,
-+						    dentry, parent->mnt));
++						    &path));
 +}
 +
 +static int tmy_path_mknod(struct path *parent, struct dentry *dentry, int mode,
 +			  unsigned int dev)
 +{
-+	struct vfsmount *mnt = parent->mnt;
++	struct path path = { parent->mnt, dentry };
 +	int type = TMY_TYPE_CREATE_ACL;
 +
 +	switch (mode & S_IFMT) {
@@ -247,27 +250,27 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
-+						    type, dentry, mnt));
++						    type, &path));
 +}
 +
 +static int tmy_path_link(struct dentry *old_dentry, struct path *new_dir,
 +			 struct dentry *new_dentry)
 +{
++	struct path path1 = { new_dir->mnt, old_dentry };
++	struct path path2 = { new_dir->mnt, new_dentry };
 +	return tmy_save_result(tmy_check_2path_perm(tmy_domain(),
 +						    TMY_TYPE_LINK_ACL,
-+						    old_dentry, new_dir->mnt,
-+						    new_dentry, new_dir->mnt));
++						    &path1, &path2));
 +}
 +
 +static int tmy_path_rename(struct path *old_parent, struct dentry *old_dentry,
 +			   struct path *new_parent, struct dentry *new_dentry)
 +{
++	struct path path1 = { old_parent->mnt, old_dentry };
++	struct path path2 = { new_parent->mnt, new_dentry };
 +	return tmy_save_result(tmy_check_2path_perm(tmy_domain(),
 +						    TMY_TYPE_RENAME_ACL,
-+						    old_dentry,
-+						    old_parent->mnt,
-+						    new_dentry,
-+						    new_parent->mnt));
++						    &path1, &path2));
 +}
 +
 +static int tmy_inode_link(struct dentry *old_dentry, struct inode *inode,
@@ -338,8 +341,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/* Don't check read permission here if called from do_execve(). */
 +	if (current->in_execve)
 +		return 0;
-+	return tmy_check_open_permission(tmy_domain(), f->f_path.dentry,
-+					 f->f_path.mnt, flags);
++	return tmy_check_open_permission(tmy_domain(), &f->f_path, flags);
 +}
 +
 +static struct security_operations tomoyo_security_ops = {
@@ -387,7 +389,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +security_initcall(tmy_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/tomoyo.h
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,105 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -403,8 +405,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define _SECURITY_TOMOYO_TOMOYO_H
 +
 +struct path_info;
-+struct dentry;
-+struct vfsmount;
++struct path;
 +struct inode;
 +struct linux_binprm;
 +struct pt_regs;
@@ -415,14 +416,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +int tmy_check_exec_perm(struct domain_info *domain,
 +			const struct path_info *filename,
 +			struct tmy_page_buffer *buf);
-+int tmy_check_open_permission(struct domain_info *domain,
-+			      struct dentry *dentry, struct vfsmount *mnt,
++int tmy_check_open_permission(struct domain_info *domain, struct path *path,
 +			      const int flag);
 +int tmy_check_1path_perm(struct domain_info *domain, const u8 operation,
-+			 struct dentry *dentry, struct vfsmount *mnt);
++			 struct path *path);
 +int tmy_check_2path_perm(struct domain_info *domain, const u8 operation,
-+			 struct dentry *dentry1, struct vfsmount *mnt1,
-+			 struct dentry *dentry2, struct vfsmount *mnt2);
++			 struct path *path1, struct path *path2);
 +int tmy_check_rewrite_permission(struct domain_info *domain,
 +				 struct file *filp);
 +int tmy_find_next_domain(struct linux_binprm *bprm,

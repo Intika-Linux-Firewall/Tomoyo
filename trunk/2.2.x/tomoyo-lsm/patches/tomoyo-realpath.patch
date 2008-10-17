@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  692 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.h |   62 ++++
- 2 files changed, 754 insertions(+)
+ security/tomoyo/realpath.c |  540 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.h |   60 +++++
+ 2 files changed, 600 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/realpath.c
-@@ -0,0 +1,692 @@
+@@ -0,0 +1,540 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -41,230 +41,80 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include "realpath.h"
 +
 +/**
-+ * get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
++ * tmy_realpath_from_path2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
 + *
-+ * @dentry: Pointer to "struct dentry".
-+ * @vfsmnt: Pointer to "struct vfsmount".
-+ * @buffer: Pointer to buffer to return value in.
-+ * @buflen: Sizeof @buffer.
++ * @path:        Pointer to "struct path".
++ * @newname:     Pointer to buffer to return value in.
++ * @newname_len: Size of @newname.
 + *
-+ * Returns 0 on success, -ENOMEM otherwise.
++ * Returns 0 on success, negative value otherwise.
 + *
 + * If dentry is a directory, trailing '/' is appended.
 + * Characters out of 0x20 < c < 0x7F range are converted to
 + * \ooo style octal string.
 + * Character \ is converted to \\ string.
 + */
-+static int get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
-+			     char *buffer, int buflen)
++int tmy_realpath_from_path2(struct path *path, char *newname, int newname_len)
 +{
 +	int error = -ENOMEM;
-+	char *start = buffer;
-+	char *end = buffer + buflen;
-+	bool is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
++	struct dentry *dentry = path->dentry;
++	char *sp;
 +
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&dcache_lock);
-+	spin_lock(&vfsmount_lock);
-+
-+	if (buflen < 256)
-+		goto out;
-+
-+	*--end = '\0';
-+	buflen--;
-+
-+	for (;;) {
-+		struct dentry *parent;
-+
-+		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
-+			/* Global root? */
-+			if (vfsmnt->mnt_parent == vfsmnt)
-+				break;
-+			dentry = vfsmnt->mnt_mountpoint;
-+			vfsmnt = vfsmnt->mnt_parent;
-+			continue;
-+		}
-+		if (is_dir) {
-+			is_dir = false;
-+			*--end = '/';
-+			buflen--;
-+		}
-+		parent = dentry->d_parent;
-+		{
-+			const char *sp = dentry->d_name.name;
-+			const char *cp = sp + dentry->d_name.len - 1;
-+			unsigned char c;
-+
-+			/*
-+			 * Exception: Use /proc/self/ rather than
-+			 * /proc/\$/ for current process.
-+			 */
-+			if (IS_ROOT(parent) && *sp > '0' && *sp <= '9' &&
-+			    parent->d_sb &&
-+			    parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
-+				unsigned long pid;
-+				if (!strict_strtoul(sp, 10, &pid) &&
-+				    (pid_t) pid == current->tgid) {
-+					sp = "self";
-+					cp = sp + 3;
-+				}
-+			}
-+
-+			while (sp <= cp) {
-+				c = *(unsigned char *) cp;
-+				if (c == '\\') {
-+					buflen -= 2;
-+					if (buflen < 0)
-+						goto out;
-+					*--end = '\\';
-+					*--end = '\\';
-+				} else if (c > ' ' && c < 127) {
-+					if (--buflen < 0)
-+						goto out;
-+					*--end = (char) c;
-+				} else {
-+					buflen -= 4;
-+					if (buflen < 0)
-+						goto out;
-+					*--end = (c & 7) + '0';
-+					*--end = ((c >> 3) & 7) + '0';
-+					*--end = (c >> 6) + '0';
-+					*--end = '\\';
-+				}
-+				cp--;
-+			}
-+			if (--buflen < 0)
-+				goto out;
-+			*--end = '/';
-+		}
-+		dentry = parent;
-+	}
-+	if (*end == '/') {
-+		buflen++;
-+		end++;
-+	}
-+	{
-+		const char *sp = dentry->d_name.name;
-+		const char *cp = sp + dentry->d_name.len - 1;
-+		unsigned char c;
-+		while (sp <= cp) {
-+			c = *(unsigned char *) cp;
-+			if (c == '\\') {
-+				buflen -= 2;
-+				if (buflen < 0)
-+					goto out;
-+				*--end = '\\';
-+				*--end = '\\';
-+			} else if (c > ' ' && c < 127) {
-+				if (--buflen < 0)
-+					goto out;
-+				*--end = (char) c;
-+			} else {
-+				buflen -= 4;
-+				if (buflen < 0)
-+					goto out;
-+				*--end = (c & 7) + '0';
-+				*--end = ((c >> 3) & 7) + '0';
-+				*--end = (c >> 6) + '0';
-+				*--end = '\\';
-+			}
-+			cp--;
-+		}
-+	}
-+	/* Move the pathname to the top of the buffer. */
-+	memmove(start, end, strlen(end) + 1);
-+	error = 0;
-+out:
-+	spin_unlock(&vfsmount_lock);
-+	spin_unlock(&dcache_lock);
-+	/***** CRITICAL SECTION END *****/
-+	return error;
-+}
-+
-+/**
-+ * tmy_realpath_from_dentry2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
-+ *
-+ * @dentry:      Pointer to "struct dentry".
-+ * @mnt:         Pointer to "struct vfsmount".
-+ * @newname:     Pointer to buffer to return value in.
-+ * @newname_len: Size of @newname.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
-+			      char *newname, int newname_len)
-+{
-+	int error;
-+	struct dentry *d_dentry;
-+	struct vfsmount *d_mnt;
-+
-+	if (!dentry || !mnt || !newname || newname_len <= 2048)
++	if (!dentry || !path->mnt || !newname || newname_len <= 2048)
 +		return -EINVAL;
 +	if (dentry->d_op && dentry->d_op->d_dname) {
 +		/* For "socket:[\$]" and "pipe:[\$]". */
 +		static const int offset = 1536;
++		sp = dentry->d_op->d_dname(dentry, newname + offset,
++					   newname_len - offset);
++	} else {
++		path_get(path);
++		sp = d_realpath(path, newname, newname_len);
++		path_put(path);
++	}
++	if (IS_ERR(sp)) {
++		error = PTR_ERR(sp);
++	} else {
 +		char *dp = newname;
-+		char *sp = dentry->d_op->d_dname(dentry, newname + offset,
-+						 newname_len - offset);
-+		if (IS_ERR(sp)) {
-+			error = PTR_ERR(sp);
-+			goto out;
-+		}
-+		error = -ENOMEM;
-+		newname += offset;
-+		while (1) {
++		newname += newname_len - 5;
++		while (dp <= newname) {
 +			const unsigned char c = *(unsigned char *) sp++;
++			*dp++ = c;
 +			if (c == '\\') {
-+				if (dp + 2 >= newname)
-+					break;
-+				*dp++ = '\\';
 +				*dp++ = '\\';
 +			} else if (c > ' ' && c < 127) {
-+				if (dp + 1 >= newname)
-+					break;
-+				*dp++ = (char) c;
-+			} else if (c) {
-+				if (dp + 4 >= newname)
-+					break;
++				continue;
++			} else if (!c) {
++				error = 0;
++				break;
++			} else {
 +				*dp++ = '\\';
 +				*dp++ = (c >> 6) + '0';
 +				*dp++ = ((c >> 3) & 7) + '0';
 +				*dp++ = (c & 7) + '0';
-+			} else {
-+				*dp = '\0';
-+				return 0;
 +			}
 +		}
-+		goto out;
 +	}
-+	d_dentry = dget(dentry);
-+	d_mnt = mntget(mnt);
-+	error = get_absolute_path(d_dentry, d_mnt, newname, newname_len);
-+	dput(d_dentry);
-+	mntput(d_mnt);
-+ out:
 +	if (error)
 +		printk(KERN_WARNING "tmy_realpath: Pathname too long.\n");
 +	return error;
 +}
 +
 +/**
-+ * tmy_realpath_from_dentry - Returns realpath(3) of the given pathname but ignores chroot'ed root.
++ * tmy_realpath_from_path - Returns realpath(3) of the given pathname but ignores chroot'ed root.
 + *
-+ * @dentry: Pointer to "struct dentry".
-+ * @mnt:    Pointer to "struct vfsmount".
++ * @path: Pointer to "struct path".
 + *
-+ * Returns the realpath of the given @dentry and @mnt on success,
-+ * NULL otherwise.
++ * Returns the realpath of the given @path on success, NULL otherwise.
 + *
 + * These functions use tmy_alloc(), so the caller must call tmy_free()
 + * if these functions didn't return NULL.
 + */
-+char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
++char *tmy_realpath_from_path(struct path *path)
 +{
 +	char *buf = tmy_alloc(sizeof(struct tmy_page_buffer));
 +
-+	if (buf && tmy_realpath_from_dentry2(dentry, mnt, buf,
++	if (buf && tmy_realpath_from_path2(path, buf,
 +					     TMY_MAX_PATHNAME_LEN - 1) == 0)
 +		return buf;
 +	tmy_free(buf);
@@ -283,8 +133,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct nameidata nd;
 +
 +	if (pathname && path_lookup(pathname, LOOKUP_FOLLOW, &nd) == 0) {
-+		char *buf = tmy_realpath_from_dentry(nd.path.dentry,
-+						     nd.path.mnt);
++		char *buf = tmy_realpath_from_path(&nd.path);
 +		path_put(&nd.path);
 +		return buf;
 +	}
@@ -303,8 +152,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct nameidata nd;
 +
 +	if (pathname && path_lookup(pathname, 0, &nd) == 0) {
-+		char *buf = tmy_realpath_from_dentry(nd.path.dentry,
-+						     nd.path.mnt);
++		char *buf = tmy_realpath_from_path(&nd.path);
 +		path_put(&nd.path);
 +		return buf;
 +	}
@@ -596,7 +444,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +
-+/* tmy_get_absolute_path() for "struct ctl_table". */
++/* tmy_realpath_from_path2() for "struct ctl_table". */
 +static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
 +{
 +	int error = -ENOMEM;
@@ -716,7 +564,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 --- /dev/null
 +++ linux-next/security/tomoyo/realpath.h
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,60 @@
 +/*
 + * security/tomoyo/realpath.h
 + *
@@ -731,15 +579,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#ifndef _SECURITY_TOMOYO_REALPATH_H
 +#define _SECURITY_TOMOYO_REALPATH_H
 +
-+struct dentry;
-+struct vfsmount;
++struct path;
 +struct condition_list;
 +struct path_info;
 +struct tmy_io_buffer;
 +
 +/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
-+int tmy_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
-+			      char *newname, int newname_len);
++int tmy_realpath_from_path2(struct path *path, char *newname, int newname_len);
 +
 +/*
 + * Returns realpath(3) of the given pathname but ignores chroot'ed root.
@@ -750,7 +596,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Same with tmy_realpath() except that it doesn't follow the final symlink. */
 +char *tmy_realpath_nofollow(const char *pathname);
 +/* Same with tmy_realpath() except that the pathname is already solved. */
-+char *tmy_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
++char *tmy_realpath_from_path(struct path *path);
 +/* Same with tmy_realpath() except that it uses struct ctl_table. */
 +char *sysctlpath_from_table(struct ctl_table *table);
 +

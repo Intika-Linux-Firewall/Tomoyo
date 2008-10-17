@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1240 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1240 insertions(+)
+ security/tomoyo/file.c | 1232 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1232 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/file.c
-@@ -0,0 +1,1240 @@
+@@ -0,0 +1,1232 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -121,13 +121,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * tmy_get_path - Get realpath.
 + *
-+ * @dentry: Pointer to "struct dentry".
-+ * @mnt:    Pointer to "struct vfsmount".
++ * @path: Pointer to "struct path".
 + *
 + * Returns pointer to "struct path_info" on success, NULL otherwise.
 + */
-+static struct path_info *tmy_get_path(struct dentry *dentry,
-+				      struct vfsmount *mnt)
++static struct path_info *tmy_get_path(struct path *path)
 +{
 +	int error;
 +	struct path_info_with_data *buf = tmy_alloc(sizeof(*buf));
@@ -135,8 +133,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!buf)
 +		return NULL;
 +	/* Preserve one byte for appending "/". */
-+	error = tmy_realpath_from_dentry2(dentry, mnt, buf->body,
-+					  sizeof(buf->body) - 2);
++	error = tmy_realpath_from_path2(path, buf->body,
++					sizeof(buf->body) - 2);
 +	if (!error) {
 +		buf->head.name = buf->body;
 +		tmy_fill_path_info(&buf->head);
@@ -1062,15 +1060,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * tmy_check_open_permission - Check permission for "read" and "write".
 + *
 + * @domain: Pointer to "struct domain_info".
-+ * @dentry: Pointer to "struct dentry".
-+ * @mnt:    Pointer to "struct vfsmount".
++ * @path:   Pointer to "struct path".
 + * @flag:   Flags for open().
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tmy_check_open_permission(struct domain_info *domain,
-+			      struct dentry *dentry, struct vfsmount *mnt,
-+			      const int flag)
++			      struct path *path, const int flag)
 +{
 +	const u8 acc_mode = ACC_MODE(flag);
 +	int error = -ENOMEM;
@@ -1078,17 +1074,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +
-+	if (!mode || !mnt)
++	if (!mode || !path->mnt)
 +		return 0;
 +	if (acc_mode == 0)
 +		return 0;
-+	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
++	if (path->dentry->d_inode && S_ISDIR(path->dentry->d_inode->i_mode))
 +		/*
 +		 * I don't check directories here because mkdir() and rmdir()
 +		 * don't call me.
 +		 */
 +		return 0;
-+	buf = tmy_get_path(dentry, mnt);
++	buf = tmy_get_path(path);
 +	if (!buf)
 +		goto out;
 +	error = 0;
@@ -1122,22 +1118,21 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @domain:    Pointer to "struct domain_info".
 + * @operation: Type of operation.
-+ * @dentry:    Pointer to "struct dentry".
-+ * @mnt:       Pointer to "struct vfsmount".
++ * @path:      Pointer to "struct path".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tmy_check_1path_perm(struct domain_info *domain, const u8 operation,
-+			 struct dentry *dentry, struct vfsmount *mnt)
++			 struct path *path)
 +{
 +	int error = -ENOMEM;
 +	struct path_info *buf;
 +	const u8 mode = tmy_check_flags(domain, TMY_TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +
-+	if (!mode || !mnt)
++	if (!mode || !path->mnt)
 +		return 0;
-+	buf = tmy_get_path(dentry, mnt);
++	buf = tmy_get_path(path);
 +	if (!buf)
 +		goto out;
 +	switch (operation) {
@@ -1174,7 +1169,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	if (!mode || !filp->f_path.mnt)
 +		return 0;
-+	buf = tmy_get_path(filp->f_path.dentry, filp->f_path.mnt);
++	buf = tmy_get_path(&filp->f_path);
 +	if (!buf)
 +		goto out;
 +	if (!is_no_rewrite_file(buf)) {
@@ -1195,16 +1190,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @domain:    Pointer to "struct domain_info".
 + * @operation: Type of operation.
-+ * @dentry1:   Pointer to "struct dentry".
-+ * @mnt1:      Pointer to "struct vfsmount".
-+ * @dentry2:   Pointer to "struct dentry".
-+ * @mnt2:      Pointer to "struct vfsmount".
++ * @path1:      Pointer to "struct path".
++ * @path2:      Pointer to "struct path".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tmy_check_2path_perm(struct domain_info * const domain, const u8 operation,
-+			 struct dentry *dentry1, struct vfsmount *mnt1,
-+			 struct dentry *dentry2, struct vfsmount *mnt2)
++			 struct path *path1, struct path *path2)
 +{
 +	int error = -ENOMEM;
 +	struct path_info *buf1, *buf2;
@@ -1212,15 +1204,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const bool is_enforce = (mode == 3);
 +	const char *msg;
 +
-+	if (!mode || !mnt1 || !mnt2)
++	if (!mode || !path1->mnt || !path2->mnt)
 +		return 0;
-+	buf1 = tmy_get_path(dentry1, mnt1);
-+	buf2 = tmy_get_path(dentry2, mnt2);
++	buf1 = tmy_get_path(path1);
++	buf2 = tmy_get_path(path2);
 +	if (!buf1 || !buf2)
 +		goto out;
-+	if (operation == TMY_TYPE_RENAME_ACL) {
-+		/* TYPE_LINK_ACL can't reach here for directory. */
-+		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
++	{
++		struct dentry *dentry = path1->dentry;
++		if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
 +			/* tmy_get_path() preserves space for appending "/." */
 +			if (!buf1->is_dir) {
 +				strcat((char *) buf1->name, "/");
