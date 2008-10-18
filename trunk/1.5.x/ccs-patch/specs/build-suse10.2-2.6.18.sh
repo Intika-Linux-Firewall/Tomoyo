@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.18.8-0.10.src.rpm ]
+if [ ! -r kernel-source-2.6.18.8-0.11.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/src/kernel-source-2.6.18.8-0.10.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/src/kernel-source-2.6.18.8-0.11.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.18.8-0.10.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.18.8-0.11.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
@@ -75,9 +75,9 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-06-09 08:29:42.000000000 +0900
-+++ kernel-default.spec	2008-06-20 09:23:49.000000000 +0900
-@@ -23,13 +23,13 @@
+--- kernel-default.spec	2008-10-17 00:22:46.000000000 +0900
++++ kernel-default.spec	2008-10-18 14:36:07.000000000 +0900
+@@ -30,13 +30,13 @@
  %define build_um  %([ default != um ] ; echo $?)
  %define build_vanilla  %([ default != vanilla ] ; echo $?)
  
@@ -88,12 +88,12 @@ patch << "EOF" || die "Can't patch spec file."
  BuildRequires:  python
  %endif
  Version:        2.6.18.8
--Release: 0.10
-+Release: 0.10_tomoyo_1.5.5
+-Release: 0.11
++Release: 0.11_tomoyo_1.5.5
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  License:        GPL v2 or later
  Group:          System/Kernel
-@@ -235,6 +235,10 @@
+@@ -242,6 +242,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.18
