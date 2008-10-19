@@ -61,11 +61,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Since list elements are never removed, we don't need to get a lock
 + * or a reference count.
 + */
-+#define list1_for_each_cookie(pos, cookie, head)\
-+	for (({ if (!cookie)						\
-+				     cookie = head; }),                 \
-+		     pos = rcu_dereference((cookie)->next);		\
-+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
++#define list1_for_each_cookie(pos, cookie, head)                      \
++	for (({ if (!cookie)                                          \
++				     cookie = head; }),               \
++	     pos = rcu_dereference((cookie)->next);                   \
++	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
 +	     (cookie) = pos, pos = rcu_dereference(pos->next))
 +
 +/**
