@@ -184,7 +184,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->program = saved_program;
 +	new_entry->is_not = is_not;
 +	new_entry->is_last_name = is_last_name;
-+	list1_add_tail_mb(&new_entry->list, &domain_initializer_list);
++	list1_add_tail(&new_entry->list, &domain_initializer_list);
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
@@ -354,7 +354,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->program = saved_program;
 +	new_entry->is_not = is_not;
 +	new_entry->is_last_name = is_last_name;
-+	list1_add_tail_mb(&new_entry->list, &domain_keeper_list);
++	list1_add_tail(&new_entry->list, &domain_keeper_list);
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
@@ -509,7 +509,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	new_entry->original_name = saved_original_name;
 +	new_entry->aliased_name = saved_aliased_name;
-+	list1_add_tail_mb(&new_entry->list, &alias_list);
++	list1_add_tail(&new_entry->list, &alias_list);
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
@@ -742,7 +742,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		INIT_LIST1_HEAD(&domain->acl_info_list);
 +		domain->domainname = saved_domainname;
 +		domain->profile = profile;
-+		list1_add_tail_mb(&domain->list, &domain_list);
++		list1_add_tail(&domain->list, &domain_list);
 +	}
 +out:
 +	mutex_unlock(&domain_list_lock);

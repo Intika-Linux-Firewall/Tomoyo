@@ -7,8 +7,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/common.c | 2209 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  319 ++++++
- 2 files changed, 2528 insertions(+)
+ security/tomoyo/common.h |  320 ++++++
+ 2 files changed, 2529 insertions(+)
 
 --- /dev/null
 +++ linux-next/security/tomoyo/common.c
@@ -1109,7 +1109,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	new_entry->manager = saved_manager;
 +	new_entry->is_domain = is_domain;
-+	list1_add_tail_mb(&new_entry->list, &policy_manager_list);
++	list1_add_tail(&new_entry->list, &policy_manager_list);
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
@@ -2224,7 +2224,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
 +++ linux-next/security/tomoyo/common.h
-@@ -0,0 +1,319 @@
+@@ -0,0 +1,320 @@
 +/*
 + * security/tomoyo/common.h
 + *
@@ -2247,6 +2247,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include <linux/sched.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
++#include <linux/list1.h>
 +
 +struct dentry;
 +struct vfsmount;
