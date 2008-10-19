@@ -337,7 +337,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	tmy_fill_path_info(&ptr->entry);
 +	fmb->ptr += len;
 +	fmb->len -= len;
-+	list1_add_tail_mb(&ptr->list, &name_list[hash % MAX_HASH]);
++	list1_add_tail(&ptr->list, &name_list[hash % MAX_HASH]);
 +	if (fmb->len == 0) {
 +		list_del(&fmb->list);
 +		kfree(fmb);
@@ -363,7 +363,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		INIT_LIST1_HEAD(&name_list[i]);
 +	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
 +	KERNEL_DOMAIN.domainname = tmy_save_name(ROOT_NAME);
-+	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
++	list1_add_tail(&KERNEL_DOMAIN.list, &domain_list);
 +	if (tmy_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
 +		panic("Can't register KERNEL_DOMAIN");
 +	return 0;

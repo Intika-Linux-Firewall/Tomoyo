@@ -170,7 +170,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		static DEFINE_SPINLOCK(lock);
 +		/***** CRITICAL SECTION START *****/
 +		spin_lock(&lock);
-+		list1_add_tail_mb(&acl->list, &domain->acl_info_list);
++		list1_add_tail(&acl->list, &domain->acl_info_list);
 +		spin_unlock(&lock);
 +		/***** CRITICAL SECTION END *****/
 +	} else {
@@ -242,7 +242,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!new_entry)
 +		goto out;
 +	new_entry->filename = saved_filename;
-+	list1_add_tail_mb(&new_entry->list, &globally_readable_list);
++	list1_add_tail(&new_entry->list, &globally_readable_list);
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
@@ -355,7 +355,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!new_entry)
 +		goto out;
 +	new_entry->pattern = saved_pattern;
-+	list1_add_tail_mb(&new_entry->list, &pattern_list);
++	list1_add_tail(&new_entry->list, &pattern_list);
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
@@ -478,7 +478,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!new_entry)
 +		goto out;
 +	new_entry->pattern = saved_pattern;
-+	list1_add_tail_mb(&new_entry->list, &no_rewrite_list);
++	list1_add_tail(&new_entry->list, &no_rewrite_list);
 +	error = 0;
 +out:
 +	mutex_unlock(&lock);
