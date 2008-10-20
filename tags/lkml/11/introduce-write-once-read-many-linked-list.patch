@@ -1,0 +1,92 @@
+Subject: Singly linked list implementation.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+---
+ include/linux/list1.h |   81 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 81 insertions(+)
+
+--- /dev/null
++++ linux-next/include/linux/list1.h
+@@ -0,0 +1,81 @@
++#ifndef _LINUX_LIST1_H
++#define _LINUX_LIST1_H
++
++#include <linux/list.h>
++#include <linux/rcupdate.h>
++
++/*
++ * Singly linked list implementation.
++ *
++ * This list supports only two operations.
++ * (1) Append an entry to the tail of the list.
++ * (2) Read all entries starting from the head of the list.
++ *
++ * This list is designed for holding "write once, read many" entries.
++ * This list requires no locks for read operation.
++ * This list doesn't support "remove an entry from the list" operation.
++ */
++
++/* To reduce memory usage, this list doesn't use "->prev" pointer. */
++struct list1_head {
++	struct list1_head *next;
++};
++
++#define LIST1_HEAD_INIT(name) { &(name) }
++#define LIST1_HEAD(name) struct list1_head name = LIST1_HEAD_INIT(name)
++
++static inline void INIT_LIST1_HEAD(struct list1_head *list)
++{
++	list->next = list;
++}
++
++/* Reuse list_entry because it doesn't use "->prev" pointer. */
++#define list1_entry list_entry
++
++/* Reuse list_for_each_rcu because it doesn't use "->prev" pointer. */
++#define list1_for_each list_for_each_rcu
++/* Reuse list_for_each_entry_rcu because it doesn't use "->prev" pointer. */
++#define list1_for_each_entry list_for_each_entry_rcu
++
++/**
++ * list1_for_each_cookie - iterate over a list with cookie.
++ * @pos:        the &struct list1_head to use as a loop cursor.
++ * @cookie:     the &struct list1_head to use as a cookie.
++ * @head:       the head for your list.
++ *
++ * Same with list_for_each_rcu() except that this primitive uses @cookie
++ * so that we can continue iteration.
++ * @cookie must be NULL when iteration starts, and @cookie will become
++ * NULL when iteration finishes.
++ *
++ * Since list elements are never removed, we don't need to get a lock
++ * or a reference count.
++ */
++#define list1_for_each_cookie(pos, cookie, head)                      \
++	for (({ if (!cookie)                                          \
++				     cookie = head; }),               \
++	     pos = rcu_dereference((cookie)->next);                   \
++	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
++	     (cookie) = pos, pos = rcu_dereference(pos->next))
++
++/**
++ * list1_add_tail - add a new entry to list1 list.
++ * @new: new entry to be added.
++ * @head: list head to add it before.
++ *
++ * Same with list_add_tail_rcu() without "->prev" pointer.
++ *
++ * Caller must hold a lock for protecting @head.
++ */
++static inline void list1_add_tail(struct list1_head *new,
++				  struct list1_head *head)
++{
++	struct list1_head *prev = head;
++
++	new->next = head;
++	while (prev->next != head)
++		prev = prev->next;
++	rcu_assign_pointer(prev->next, new);
++}
++
++#endif
