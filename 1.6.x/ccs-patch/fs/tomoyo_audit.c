@@ -234,6 +234,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 			const char *fmt, ...)
 {
 	va_list args;
+	int error = -ENOMEM;
 	int pos;
 	int len;
 	char *buf;
@@ -241,13 +242,13 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	if (!r->domain)
 		r->domain = current->domain_info;
 	if (ccs_can_save_audit_log(r->domain, is_granted) < 0)
-		return -ENOMEM;
+		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);
 	buf = ccs_init_audit_log(&len, r);
 	if (!buf)
-		return -ENOMEM;
+		goto out;
 	pos = strlen(buf);
 	va_start(args, fmt);
 	vsnprintf(buf + pos, len - pos - 1, fmt, args);
@@ -255,7 +256,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	new_entry = ccs_alloc(sizeof(*new_entry));
 	if (!new_entry) {
 		ccs_free(buf);
-		return -ENOMEM;
+		goto out;
 	}
 	new_entry->log = buf;
 	/***** CRITICAL SECTION START *****/
@@ -275,7 +276,10 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		wake_up(&grant_log_wait);
 	else
 		wake_up(&reject_log_wait);
-	return 0;
+	error = 0;
+ out:
+	r->tomoyo_flags = current->tomoyo_flags;
+	return error;
 }
 
 /**

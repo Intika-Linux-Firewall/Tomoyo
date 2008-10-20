@@ -1255,7 +1255,7 @@ static int check_single_path_permission2(struct ccs_request_info *r,
 	const bool is_enforce = (r->mode == 3);
 	if (!r->mode)
 		return 0;
- next:
+ retry:
 	error = check_single_path_acl(r, operation, filename);
 	msg = ccs_sp2keyword(operation);
 	audit_file_log(r, msg, filename->name, NULL, !error);
@@ -1270,7 +1270,7 @@ static int check_single_path_permission2(struct ccs_request_info *r,
 					     msg, filename->name);
 		if (error == 1) {
 			r->retry++;
-			goto next;
+			goto retry;
 		}
 	}
 	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
@@ -1286,9 +1286,9 @@ static int check_single_path_permission2(struct ccs_request_info *r,
 	 */
 	if (!error && operation == TYPE_TRUNCATE_ACL &&
 	    is_no_rewrite_file(filename)) {
-		r->retry = 0;
 		operation = TYPE_REWRITE_ACL;
-		goto next;
+		r->retry = 0;
+		goto retry;
 	}
 	return error;
 }
