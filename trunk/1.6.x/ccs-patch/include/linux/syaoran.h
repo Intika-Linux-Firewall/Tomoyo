@@ -54,8 +54,10 @@
 #endif
 #endif
 
-#if defined(AX_MAJOR) && AX_MAJOR == 3
-#define RHEL_MAJOR 5
+#if defined(RHEL_MAJOR) && RHEL_MAJOR == 5
+#define HAVE_NO_I_BLKSIZE_IN_INODE
+#elif defined(AX_MAJOR) && AX_MAJOR == 3
+#define HAVE_NO_I_BLKSIZE_IN_INODE
 #endif
 
 #ifndef DEFINE_SPINLOCK
@@ -1091,7 +1093,7 @@ static int syaoran_create_tracelog(struct super_block *sb, const char *filename)
 			inode->i_uid = 0;
 			inode->i_gid = 0;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-#if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
+#ifndef HAVE_NO_I_BLKSIZE_IN_INODE
 			inode->i_blksize = PAGE_CACHE_SIZE;
 #endif
 #endif

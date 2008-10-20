@@ -82,7 +82,7 @@ static struct inode *syaoran_get_inode(struct super_block *sb, int mode, dev_t d
 		inode->i_uid = current->fsuid;
 		inode->i_gid = current->fsgid;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-#if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
+#ifndef HAVE_NO_I_BLKSIZE_IN_INODE
 		inode->i_blksize = PAGE_CACHE_SIZE;
 #endif
 #endif
