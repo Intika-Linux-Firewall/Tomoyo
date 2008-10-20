@@ -1077,7 +1077,6 @@ static int find_next_domain(struct ccs_request_info *r,
 				goto retry;
 			}
 			r->retry = 0;
-			r->tomoyo_flags = current->tomoyo_flags;
 			if (retval < 0)
 				goto out;
 		}
@@ -1107,7 +1106,6 @@ static int find_next_domain(struct ccs_request_info *r,
 		goto retry;
 	}
 	r->retry = 0;
-	r->tomoyo_flags = current->tomoyo_flags;
 	if (retval < 0)
 		goto out;
 
