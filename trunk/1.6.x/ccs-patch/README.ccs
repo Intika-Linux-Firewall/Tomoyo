@@ -1689,3 +1689,19 @@ Fix 2008/10/15
       which returns process information of the specified PID in
       "PID manager=\* execute_handler=\* state[0]=\$ state[1]=\$ state[2]=\$"
       format.
+
+Fix 2008/10/20
+
+    @ Use rcu_dereference() when walking the list.
+
+      I was using "dependency ordering" for appending an element to a list
+      without asking the reader to take a lock. But "dependency ordering"
+      is not respected by DEC Alpha or by some aggressive value-speculation
+      compiler optimizations.
+
+      On such environment, use of "dependency ordering" can lead to system
+      crash because the reader might read uninitialized value of newly
+      appended element.
+
+      To prevent the reader from reading uninitialized value of newly appended
+      element, I inserted rcu_dereference() when walking the list.

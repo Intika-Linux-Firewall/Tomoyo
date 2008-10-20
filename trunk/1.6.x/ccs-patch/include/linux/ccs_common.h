@@ -88,6 +88,46 @@ extern asmlinkage long sys_getppid(void);
 			ret; })
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
+#define smp_read_barrier_depends smp_rmb
+#endif
+
+#ifndef ACCESS_ONCE
+#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+#endif
+
+#ifndef rcu_dereference
+#define rcu_dereference(p)     ({ \
+				typeof(p) _________p1 = ACCESS_ONCE(p); \
+				smp_read_barrier_depends(); \
+				(_________p1); \
+				})
+#endif
+
+#ifndef rcu_assign_pointer
+#define rcu_assign_pointer(p, v) \
+	({ \
+		if (!__builtin_constant_p(v) || \
+		    ((v) != NULL)) \
+			smp_wmb(); \
+		(p) = (v); \
+	})
+#endif
+
+#ifndef list_for_each_rcu
+#define list_for_each_rcu(pos, head) \
+	for (pos = rcu_dereference((head)->next); \
+		prefetch(pos->next), pos != (head); \
+		pos = rcu_dereference(pos->next))
+#endif
+
+#ifndef list_for_each_entry_rcu
+#define list_for_each_entry_rcu(pos, head, member) \
+	for (pos = list_entry(rcu_dereference((head)->next), typeof(*pos), member); \
+		prefetch(pos->member.next), &pos->member != (head); \
+		pos = list_entry(rcu_dereference(pos->member.next), typeof(*pos), member))
+#endif
+
 /*
  * Singly linked list.
  *
@@ -111,33 +151,14 @@ static inline void INIT_LIST1_HEAD(struct list1_head *list)
 	list->next = list;
 }
 
-/**
- * list1_entry - get the struct for this entry
- * @ptr:        the &struct list1_head pointer.
- * @type:       the type of the struct this is embedded in.
- * @member:     the name of the list1_struct within the struct.
- */
-#define list1_entry(ptr, type, member) container_of(ptr, type, member)
+/* Reuse list_entry because it doesn't use "->prev" pointer. */
+#define list1_entry list_entry
 
-/**
- * list1_for_each        -       iterate over a list
- * @pos:        the &struct list1_head to use as a loop cursor.
- * @head:       the head for your list.
- */
-#define list1_for_each(pos, head)					\
-	for (pos = (head)->next; prefetch(pos->next), pos != (head);	\
-	     pos = pos->next)
+/* Reuse list_for_each_rcu because it doesn't use "->prev" pointer. */
+#define list1_for_each list_for_each_rcu
 
-/**
- * list1_for_each_entry  -       iterate over list of given type
- * @pos:        the type * to use as a loop cursor.
- * @head:       the head for your list.
- * @member:     the name of the list1_struct within the struct.
- */
-#define list1_for_each_entry(pos, head, member)				\
-	for (pos = list1_entry((head)->next, typeof(*pos), member);	\
-	     prefetch(pos->member.next), &pos->member != (head);        \
-	     pos = list1_entry(pos->member.next, typeof(*pos), member))
+/* Reuse list_for_each_entry_rcu because it doesn't use "->prev" pointer. */
+#define list1_for_each_entry list_for_each_entry_rcu
 
 /**
  * list1_for_each_cookie - iterate over a list with cookie.
@@ -145,14 +166,20 @@ static inline void INIT_LIST1_HEAD(struct list1_head *list)
  * @cookie:     the &struct list1_head to use as a cookie.
  * @head:       the head for your list.
  *
- * Same with list_for_each except that this primitive uses cookie
+ * Same with list_for_each_rcu() except that this primitive uses @cookie
  * so that we can continue iteration.
+ * @cookie must be NULL when iteration starts, and @cookie will become
+ * NULL when iteration finishes.
+ *
+ * Since list elements are never removed, we don't need to get a lock
+ * or a reference count.
  */
-#define list1_for_each_cookie(pos, cookie, head)			\
-	for (({ if (!cookie)						\
-				     cookie = head; }), pos = (cookie)->next; \
-	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
-	     (cookie) = pos, pos = pos->next)
+#define list1_for_each_cookie(pos, cookie, head)                      \
+	for (({ if (!cookie)                                          \
+				     cookie = head; }),               \
+	     pos = rcu_dereference((cookie)->next);                   \
+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
+	     (cookie) = pos, pos = rcu_dereference(pos->next))
 
 /**
  * list_add_tail_mb - add a new entry with memory barrier.
@@ -166,12 +193,11 @@ static inline void INIT_LIST1_HEAD(struct list1_head *list)
 static inline void list1_add_tail_mb(struct list1_head *new,
 				     struct list1_head *head)
 {
-	struct list1_head *pos = head;
+	struct list1_head *prev = head;
 	new->next = head;
-	mb(); /* Avoid out-of-order execution. */
-	while (pos->next != head)
-		pos = pos->next;
-	pos->next = new;
+	while (prev->next != head)
+		prev = prev->next;
+	rcu_assign_pointer(prev->next, new);
 }
 
 /* Temporary buffer for holding pathnames. */
