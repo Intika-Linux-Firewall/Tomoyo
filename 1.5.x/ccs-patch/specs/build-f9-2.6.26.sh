@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.26.3-29.fc9.src.rpm ]
+if [ ! -r kernel-2.6.26.6-79.fc9.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.newkey/kernel-2.6.26.3-29.fc9.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.newkey/kernel-2.6.26.6-79.fc9.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.26.3-29.fc9.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.26.6-79.fc9.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
@@ -30,8 +30,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-09-03 15:48:18.000000000 +0900
-+++ kernel.spec	2008-09-16 09:31:16.000000000 +0900
+--- kernel.spec	2008-10-18 03:00:07.000000000 +0900
++++ kernel.spec	2008-10-21 15:21:52.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -41,7 +41,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  # fedora_build defines which build revision of this kernel version we're
  # building. Rather than incrementing forever, as with the prior versioning
-@@ -384,6 +384,11 @@
+@@ -400,6 +400,11 @@
  # to versions below the minimum
  #
  
@@ -53,7 +53,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -440,7 +445,7 @@
+@@ -456,7 +461,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -62,7 +62,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -760,7 +765,7 @@
+@@ -831,7 +836,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -71,7 +71,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1242,6 +1247,10 @@
+@@ -1367,6 +1372,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -82,7 +82,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1270,6 +1279,9 @@
+@@ -1395,6 +1404,9 @@
  for i in *.config
  do
    mv $i .config
