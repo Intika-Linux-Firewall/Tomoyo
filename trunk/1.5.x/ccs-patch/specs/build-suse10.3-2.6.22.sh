@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.22.18-0.2.src.rpm ]
+if [ ! -r kernel-source-2.6.22.19-0.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/10.3/rpm/src/kernel-source-2.6.22.18-0.2.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/10.3/rpm/src/kernel-source-2.6.22.19-0.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.22.18-0.2.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.22.19-0.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
@@ -75,22 +75,22 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-06-10 00:07:47.000000000 +0900
-+++ kernel-default.spec	2008-06-20 09:39:20.000000000 +0900
-@@ -37,10 +37,10 @@
+--- kernel-default.spec	2008-10-17 00:52:30.000000000 +0900
++++ kernel-default.spec	2008-10-23 12:02:07.000000000 +0900
+@@ -44,10 +44,10 @@
  %define build_vanilla 1
  %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
- Version:        2.6.22.18
--Release: 0.2
-+Release: 0.2_tomoyo_1.5.5
+ Version:        2.6.22.19
+-Release: 0.1
++Release: 0.1_tomoyo_1.5.5
  License:        GPL v2 or later
  Group:          System/Kernel
  AutoReqProv:    on
-@@ -191,7 +191,7 @@
+@@ -198,7 +198,7 @@
  %define tolerate_unknown_new_config_options 0
  # kABI change tolerance (default in maintenance should be 4, 6, 8 or 15,
  # 31 is the maximum; see scripts/kabi-checks)
@@ -99,14 +99,13 @@ patch << "EOF" || die "Can't patch spec file."
  
  %description
  The standard kernel for both uniprocessor and multiprocessor systems.
-@@ -281,6 +281,11 @@
+@@ -288,6 +288,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.22
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.5.5-20080903.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.22-suse-10.3.diff
-+# sed -i -e 's:-ccs::' -- Makefile
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}

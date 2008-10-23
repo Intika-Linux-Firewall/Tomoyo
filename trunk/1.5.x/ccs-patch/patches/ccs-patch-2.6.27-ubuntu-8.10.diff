@@ -39,8 +39,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  net/unix/af_unix.c              |   15 +++++
  35 files changed, 615 insertions(+), 2 deletions(-)
 
---- linux-2.6.27-2.3.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.27-2.3/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.27.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.27/arch/ia64/ia32/sys_ia32.c
 @@ -51,6 +51,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -64,8 +64,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.27-2.3.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.27-2.3/arch/mips/kernel/ptrace32.c
+--- linux-2.6.27.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.27/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -89,8 +89,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.27-2.3.orig/arch/sh/kernel/ptrace_64.c
-+++ linux-2.6.27-2.3/arch/sh/kernel/ptrace_64.c
+--- linux-2.6.27.orig/arch/sh/kernel/ptrace_64.c
++++ linux-2.6.27/arch/sh/kernel/ptrace_64.c
 @@ -36,6 +36,9 @@
  #include <asm/processor.h>
  #include <asm/mmu_context.h>
@@ -101,7 +101,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -203,6 +206,12 @@ asmlinkage int sh64_ptrace(long request,
+@@ -205,6 +208,12 @@ asmlinkage int sh64_ptrace(long request,
  {
  #define WPC_DBRMODE 0x0d104008
  	static int first_call = 1;
@@ -114,8 +114,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	lock_kernel();
  	if (first_call) {
---- linux-2.6.27-2.3.orig/fs/Kconfig
-+++ linux-2.6.27-2.3/fs/Kconfig
+--- linux-2.6.27.orig/fs/Kconfig
++++ linux-2.6.27/fs/Kconfig
 @@ -2093,4 +2093,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -123,16 +123,16 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.27-2.3.orig/fs/Makefile
-+++ linux-2.6.27-2.3/fs/Makefile
+--- linux-2.6.27.orig/fs/Makefile
++++ linux-2.6.27/fs/Makefile
 @@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.27-2.3.orig/fs/attr.c
-+++ linux-2.6.27-2.3/fs/attr.c
+--- linux-2.6.27.orig/fs/attr.c
++++ linux-2.6.27/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -173,8 +173,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.27-2.3.orig/fs/compat.c
-+++ linux-2.6.27-2.3/fs/compat.c
+--- linux-2.6.27.orig/fs/compat.c
++++ linux-2.6.27/fs/compat.c
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -194,8 +194,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.27-2.3.orig/fs/compat_ioctl.c
-+++ linux-2.6.27-2.3/fs/compat_ioctl.c
+--- linux-2.6.27.orig/fs/compat_ioctl.c
++++ linux-2.6.27/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -219,8 +219,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.27-2.3.orig/fs/exec.c
-+++ linux-2.6.27-2.3/fs/exec.c
+--- linux-2.6.27.orig/fs/exec.c
++++ linux-2.6.27/fs/exec.c
 @@ -64,6 +64,10 @@
  #include <linux/a.out.h>
  #endif
@@ -270,8 +270,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.27-2.3.orig/fs/fcntl.c
-+++ linux-2.6.27-2.3/fs/fcntl.c
+--- linux-2.6.27.orig/fs/fcntl.c
++++ linux-2.6.27/fs/fcntl.c
 @@ -23,6 +23,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -295,8 +295,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.27-2.3.orig/fs/ioctl.c
-+++ linux-2.6.27-2.3/fs/ioctl.c
+--- linux-2.6.27.orig/fs/ioctl.c
++++ linux-2.6.27/fs/ioctl.c
 @@ -15,6 +15,9 @@
  #include <linux/uaccess.h>
  
@@ -318,8 +318,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.27-2.3.orig/fs/namei.c
-+++ linux-2.6.27-2.3/fs/namei.c
+--- linux-2.6.27.orig/fs/namei.c
++++ linux-2.6.27/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -331,7 +331,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1512,6 +1516,14 @@ int vfs_create(struct inode *dir, struct
+@@ -1527,6 +1531,14 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, nd ? nd->path.mnt : NULL, mode);
  	if (error)
  		return error;
@@ -346,7 +346,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1566,6 +1578,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1581,6 +1593,13 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -360,7 +360,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1622,6 +1641,9 @@ static int __open_namei_create(struct na
+@@ -1637,6 +1656,9 @@ static int __open_namei_create(struct na
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -370,7 +370,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1973,6 +1995,16 @@ int vfs_mknod(struct inode *dir, struct 
+@@ -1988,6 +2010,16 @@ int vfs_mknod(struct inode *dir, struct 
  
  static int may_mknod(mode_t mode)
  {
@@ -387,7 +387,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	switch (mode & S_IFMT) {
  	case S_IFREG:
  	case S_IFCHR:
-@@ -2021,10 +2053,34 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2036,10 +2068,34 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -422,7 +422,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  			error = vfs_mknod(nd.path.dentry->d_inode, dentry,
  					  nd.path.mnt, mode, 0);
  			break;
-@@ -2089,6 +2145,13 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2104,6 +2160,13 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -436,7 +436,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, nd.path.mnt, mode);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2197,6 +2260,13 @@ static long do_rmdir(int dfd, const char
+@@ -2212,6 +2275,13 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -450,7 +450,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry, nd.path.mnt);
  	mnt_drop_write(nd.path.mnt);
  exit3:
-@@ -2258,6 +2328,10 @@ static long do_unlinkat(int dfd, const c
+@@ -2273,6 +2343,10 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -461,7 +461,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	error = user_path_parent(dfd, pathname, &nd, &name);
  	if (error)
-@@ -2279,6 +2353,13 @@ static long do_unlinkat(int dfd, const c
+@@ -2294,6 +2368,13 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -475,7 +475,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry, nd.path.mnt);
  		mnt_drop_write(nd.path.mnt);
  	exit2:
-@@ -2344,6 +2425,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2359,6 +2440,10 @@ asmlinkage long sys_symlinkat(const char
  	char *to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -486,7 +486,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	from = getname(oldname);
  	if (IS_ERR(from))
-@@ -2361,6 +2446,13 @@ asmlinkage long sys_symlinkat(const char
+@@ -2376,6 +2461,13 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -500,7 +500,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, nd.path.mnt, from);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2439,6 +2531,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2454,6 +2546,10 @@ asmlinkage long sys_linkat(int olddfd, c
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
@@ -511,7 +511,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	error = user_path_at(olddfd, oldname,
  			     flags & AT_SYMLINK_FOLLOW ? LOOKUP_FOLLOW : 0,
-@@ -2459,6 +2555,15 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2474,6 +2570,15 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -527,7 +527,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = vfs_link(old_path.dentry, old_path.mnt,
  			 nd.path.dentry->d_inode,
  			 new_dentry, nd.path.mnt);
-@@ -2644,6 +2749,10 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2659,6 +2764,10 @@ asmlinkage long sys_renameat(int olddfd,
  	char *from;
  	char *to;
  	int error;
@@ -538,7 +538,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	error = user_path_parent(olddfd, oldname, &oldnd, &from);
  	if (error)
-@@ -2696,6 +2805,17 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2711,6 +2820,17 @@ asmlinkage long sys_renameat(int olddfd,
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -556,8 +556,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
---- linux-2.6.27-2.3.orig/fs/namespace.c
-+++ linux-2.6.27-2.3/fs/namespace.c
+--- linux-2.6.27.orig/fs/namespace.c
++++ linux-2.6.27/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -670,8 +670,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.27-2.3.orig/fs/open.c
-+++ linux-2.6.27-2.3/fs/open.c
+--- linux-2.6.27.orig/fs/open.c
++++ linux-2.6.27/fs/open.c
 @@ -29,6 +29,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -709,7 +709,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, file->f_path.mnt, length,
-@@ -568,6 +584,14 @@ asmlinkage long sys_chroot(const char __
+@@ -571,6 +587,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -724,7 +724,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1141,6 +1165,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1144,6 +1168,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -735,8 +735,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.27-2.3.orig/fs/proc/Makefile
-+++ linux-2.6.27-2.3/fs/proc/Makefile
+--- linux-2.6.27.orig/fs/proc/Makefile
++++ linux-2.6.27/fs/proc/Makefile
 @@ -16,3 +16,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -744,20 +744,20 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.27-2.3.orig/fs/proc/proc_misc.c
-+++ linux-2.6.27-2.3/fs/proc/proc_misc.c
-@@ -943,4 +943,9 @@ void __init proc_misc_init(void)
+--- linux-2.6.27.orig/fs/proc/proc_misc.c
++++ linux-2.6.27/fs/proc/proc_misc.c
+@@ -950,4 +950,9 @@ void __init proc_misc_init(void)
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27-2.3 2008/08/29\n");
++	printk(KERN_INFO "Hook version: 2.6.27-7.10 2008/10/13\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.27-2.3.orig/include/linux/init_task.h
-+++ linux-2.6.27-2.3/include/linux/init_task.h
+--- linux-2.6.27.orig/include/linux/init_task.h
++++ linux-2.6.27/include/linux/init_task.h
 @@ -179,6 +179,10 @@ extern struct group_info init_groups;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
@@ -769,8 +769,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  }
  
  
---- linux-2.6.27-2.3.orig/include/linux/sched.h
-+++ linux-2.6.27-2.3/include/linux/sched.h
+--- linux-2.6.27.orig/include/linux/sched.h
++++ linux-2.6.27/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -794,8 +794,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  };
  
  /*
---- linux-2.6.27-2.3.orig/kernel/compat.c
-+++ linux-2.6.27-2.3/kernel/compat.c
+--- linux-2.6.27.orig/kernel/compat.c
++++ linux-2.6.27/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -817,8 +817,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.27-2.3.orig/kernel/kexec.c
-+++ linux-2.6.27-2.3/kernel/kexec.c
+--- linux-2.6.27.orig/kernel/kexec.c
++++ linux-2.6.27/kernel/kexec.c
 @@ -36,6 +36,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -829,7 +829,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t* crash_notes;
-@@ -937,6 +940,10 @@ asmlinkage long sys_kexec_load(unsigned 
+@@ -943,6 +946,10 @@ asmlinkage long sys_kexec_load(unsigned 
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -840,8 +840,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.27-2.3.orig/kernel/kmod.c
-+++ linux-2.6.27-2.3/kernel/kmod.c
+--- linux-2.6.27.orig/kernel/kmod.c
++++ linux-2.6.27/kernel/kmod.c
 @@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -854,8 +854,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.27-2.3.orig/kernel/module.c
-+++ linux-2.6.27-2.3/kernel/module.c
+--- linux-2.6.27.orig/kernel/module.c
++++ linux-2.6.27/kernel/module.c
 @@ -46,6 +46,9 @@
  #include <asm/cacheflush.h>
  #include <linux/license.h>
@@ -888,8 +888,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.27-2.3.orig/kernel/ptrace.c
-+++ linux-2.6.27-2.3/kernel/ptrace.c
+--- linux-2.6.27.orig/kernel/ptrace.c
++++ linux-2.6.27/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -926,8 +926,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.27-2.3.orig/kernel/sched.c
-+++ linux-2.6.27-2.3/kernel/sched.c
+--- linux-2.6.27.orig/kernel/sched.c
++++ linux-2.6.27/kernel/sched.c
 @@ -74,6 +74,9 @@
  
  #include <asm/tlb.h>
@@ -938,7 +938,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  #include "sched_cpupri.h"
  
-@@ -4886,6 +4889,10 @@ int can_nice(const struct task_struct *p
+@@ -4945,6 +4948,10 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -949,8 +949,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.27-2.3.orig/kernel/signal.c
-+++ linux-2.6.27-2.3/kernel/signal.c
+--- linux-2.6.27.orig/kernel/signal.c
++++ linux-2.6.27/kernel/signal.c
 @@ -33,6 +33,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -1000,8 +1000,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.27-2.3.orig/kernel/sys.c
-+++ linux-2.6.27-2.3/kernel/sys.c
+--- linux-2.6.27.orig/kernel/sys.c
++++ linux-2.6.27/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1058,8 +1058,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.27-2.3.orig/kernel/sysctl.c
-+++ linux-2.6.27-2.3/kernel/sysctl.c
+--- linux-2.6.27.orig/kernel/sysctl.c
++++ linux-2.6.27/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -1070,7 +1070,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1603,6 +1606,93 @@ repeat:
+@@ -1604,6 +1607,93 @@ repeat:
  	return -ENOTDIR;
  }
  
@@ -1164,7 +1164,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1619,6 +1709,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1620,6 +1710,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1176,8 +1176,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.27-2.3.orig/kernel/time.c
-+++ linux-2.6.27-2.3/kernel/time.c
+--- linux-2.6.27.orig/kernel/time.c
++++ linux-2.6.27/kernel/time.c
 @@ -40,6 +40,9 @@
  
  #include <asm/uaccess.h>
@@ -1210,8 +1210,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.27-2.3.orig/kernel/time/ntp.c
-+++ linux-2.6.27-2.3/kernel/time/ntp.c
+--- linux-2.6.27.orig/kernel/time/ntp.c
++++ linux-2.6.27/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/math64.h>
  #include <linux/clocksource.h>
@@ -1233,8 +1233,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.27-2.3.orig/net/core/datagram.c
-+++ linux-2.6.27-2.3/net/core/datagram.c
+--- linux-2.6.27.orig/net/core/datagram.c
++++ linux-2.6.27/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1260,8 +1260,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  		if (skb)
  			return skb;
  
---- linux-2.6.27-2.3.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.27-2.3/net/ipv4/inet_connection_sock.c
+--- linux-2.6.27.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.27/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1283,8 +1283,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->ib_net == net && tb->port == rover)
  					goto next;
---- linux-2.6.27-2.3.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.27-2.3/net/ipv4/inet_hashtables.c
+--- linux-2.6.27.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.27/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1306,8 +1306,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.27-2.3.orig/net/ipv4/udp.c
-+++ linux-2.6.27-2.3/net/ipv4/udp.c
+--- linux-2.6.27.orig/net/ipv4/udp.c
++++ linux-2.6.27/net/ipv4/udp.c
 @@ -103,6 +103,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1339,8 +1339,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  			if (! __udp_lib_lport_inuse(net, rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
---- linux-2.6.27-2.3.orig/net/socket.c
-+++ linux-2.6.27-2.3/net/socket.c
+--- linux-2.6.27.orig/net/socket.c
++++ linux-2.6.27/net/socket.c
 @@ -97,6 +97,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1418,7 +1418,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1596,6 +1631,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1598,6 +1633,12 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, (struct sockaddr *)&address);
  	if (err < 0)
  		goto out_put;
@@ -1431,8 +1431,8 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
---- linux-2.6.27-2.3.orig/net/unix/af_unix.c
-+++ linux-2.6.27-2.3/net/unix/af_unix.c
+--- linux-2.6.27.orig/net/unix/af_unix.c
++++ linux-2.6.27/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
