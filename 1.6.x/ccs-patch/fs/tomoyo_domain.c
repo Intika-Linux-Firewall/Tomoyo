@@ -1280,7 +1280,10 @@ static void unescape(unsigned char *dest)
 	unsigned char c;
 	unsigned char d;
 	unsigned char e;
-	while ((c = *src++) != '\0') {
+	while (1) {
+		c = *src++;
+		if (!c)
+			break;
 		if (c != '\\') {
 			*dest++ = c;
 			continue;

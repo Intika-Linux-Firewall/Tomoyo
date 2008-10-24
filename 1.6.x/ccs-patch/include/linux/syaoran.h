@@ -305,7 +305,10 @@ static void unescape(char *filename)
 	char e;
 	if (!cp)
 		return;
-	while ((c = *filename++) != '\0') {
+	while (1) {
+		c = *filename++;
+		if (!c)
+			break;
 		if (c != '\\') {
 			*cp++ = c;
 			continue;
@@ -561,8 +564,13 @@ static int syaoran_read_config_file(struct file *file, struct super_block *sb)
 	buffer = kzalloc(PAGE_SIZE, GFP_KERNEL);
 	if (!buffer)
 		goto out;
-	while ((len = kernel_read(file, offset, buffer, PAGE_SIZE)) > 0 &&
-	       (cp = memchr(buffer, '\n', len)) != NULL) {
+	while (1) {
+		len = kernel_read(file, offset, buffer, PAGE_SIZE);
+		if (len <= 0)
+			break;
+		cp = memchr(buffer, '\n', len);
+		if (!cp)
+			break;
 		*cp = '\0';
 		offset += cp - buffer + 1;
 		normalize_line(buffer);
@@ -585,7 +593,10 @@ static void syaoran_make_node(struct dev_entry *entry, struct dentry *root)
 	const uid_t uid = entry->uid;
 	const gid_t gid = entry->gid;
 	goto start;
-	while ((c = *(unsigned char *) filename) != '\0') {
+	while (1) {
+		c = *(unsigned char *) filename;
+		if (!c)
+			break;
 		if (c == '/') {
 			struct dentry *new_base;
 			const int len = filename - name;
