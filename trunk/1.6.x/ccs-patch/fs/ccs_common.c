@@ -325,9 +325,13 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 		if (c == '/')
 			goto out;
 	}
-	while ((c = *filename++) != '\0') {
+	while (1) {
+		c = *filename++;
+		if (!c)
+			break;
 		if (c == '\\') {
-			switch ((c = *filename++)) {
+			c = *filename++;
+			switch (c) {
 			case '\\':  /* "\\" */
 				continue;
 			case '$':   /* "\$" */
@@ -398,7 +402,10 @@ bool ccs_is_correct_domain(const unsigned char *domainname,
 			goto out;
 		if (*domainname++ != '/')
 			goto out;
-		while ((c = *domainname) != '\0' && c != ' ') {
+		while (1) {
+			c = *domainname;
+			if (!c || c == ' ')
+				break;
 			domainname++;
 			if (c == '\\') {
 				c = *domainname++;
@@ -505,7 +512,10 @@ static int const_part_length(const char *filename)
 	int len = 0;
 	if (!filename)
 		return 0;
-	while ((c = *filename++) != '\0') {
+	while (1) {
+		c = *filename++;
+		if (!c)
+			break;
 		if (c != '\\') {
 			len++;
 			continue;
@@ -1440,9 +1450,12 @@ static char *ccs_find_condition_part(char *data)
 {
 	char *cp = strstr(data, " if ");
 	if (cp) {
-		char *cp2;
-		while ((cp2 = strstr(cp + 3, " if ")) != NULL)
+		while (1) {
+			char *cp2 = strstr(cp + 3, " if ");
+			if (!cp2)
+				break;
 			cp = cp2;
+		}
 		*cp++ = '\0';
 	} else {
 		cp = strstr(data, " ; set ");
