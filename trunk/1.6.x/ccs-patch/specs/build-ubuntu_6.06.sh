@@ -9,6 +9,7 @@ die () {
 }
 
 VERSION=`uname -r | cut -d - -f 1,2`
+export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
 apt-get -y install wget
 for key in 0A0AC927 17063E6D 174BF01A 191FCD8A 60E80B5B 63549F8E 76682A37 8BF9EFE6
@@ -36,6 +37,22 @@ apt-get source linux-restricted-modules-${VERSION}-686 || die "Can't install ker
 cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.4-20080903.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.15-ubuntu-6.06.diff || die "Can't apply patch."
+patch -p1 <<EOF || die "Can't apply patch."
+diff -urp 1.6.4/fs/tomoyo_cond.c 1.6.4-hotfix/fs/tomoyo_cond.c
+--- 1.6.4/fs/tomoyo_cond.c	2008-09-03 00:00:00.000000000 +0900
++++ 1.6.4-hotfix/fs/tomoyo_cond.c	2008-10-14 16:38:51.000000000 +0900
+@@ -1031,8 +1031,8 @@ bool ccs_check_condition(const struct ac
+ 		const u8 left = header >> 8;
+ 		const u8 right = header;
+ 		ptr++;
+-		if ((left >= PATH1_UID && left < MAX_KEYWORD) ||
+-		    (right >= PATH1_UID && right < MAX_KEYWORD)) {
++		if ((left >= PATH1_UID && left < EXEC_ARGC) ||
++		    (right >= PATH1_UID && right < EXEC_ARGC)) {
+ 			if (!obj)
+ 				goto out;
+ 			if (!obj->validate_done) {
+EOF
 cat debian/config/i386/config.686 config.ccs > debian/config/i386/config.686-ccs || die "Can't create config."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686") > 0) { flag = 1; $2 = $2 "-ccs"; } else flag = 0; }; if (flag) print $0; } ' debian/control.stub > debian/control.stub.tmp || die "Can't create file."
 cat debian/control.stub.tmp >> debian/control.stub || die "Can't edit file."
@@ -44,7 +61,6 @@ chmod +x debian/post-install || die "Can't chmod post-install ."
 chmod -R +x debian/bin/ || die "Can't chmod debian/bin/ ."
 
 # Start compilation.
-export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 debian/rules binary-debs flavours=686-ccs || die "Failed to build kernel package."
 
 # Install header package for compiling additional modules.
