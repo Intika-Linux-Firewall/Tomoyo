@@ -9,6 +9,7 @@ die () {
 }
 
 VERSION=`uname -r | cut -d - -f 1,2`
+export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
 apt-get -y install wget
 for key in 0A0AC927 17063E6D 174BF01A 191FCD8A 60E80B5B 63549F8E 76682A37 8BF9EFE6
@@ -42,7 +43,6 @@ chmod +x debian/post-install || die "Can't chmod post-install ."
 chmod -R +x debian/bin/ || die "Can't chmod debian/bin/ ."
 
 # Start compilation.
-export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 debian/rules binary-debs flavours=generic-ccs || die "Failed to build kernel package."
 
 # Install header package for compiling additional modules.

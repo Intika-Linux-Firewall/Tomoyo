@@ -8,6 +8,8 @@ die () {
     exit 1
 }
 
+export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
+
 apt-get -y install wget
 for key in 19A42D19 9B441EA8
 do
@@ -41,7 +43,6 @@ cat /boot/config-2.6.26-1-686 config.ccs > .config || die "Can't create config."
 yes | make -s oldconfig > /dev/null
 
 # Start compilation.
-export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 make-kpkg --append-to-version -1-686-ccs --arch i386 --subarch i686 --arch-in-name --initrd linux-image || die "Failed to build kernel package."
 
 exit 0

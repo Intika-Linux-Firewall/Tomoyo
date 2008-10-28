@@ -8,6 +8,8 @@ die () {
     exit 1
 }
 
+export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
+
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
@@ -37,7 +39,6 @@ cat debian/control.tmp >> debian/control || die "Can't edit file."
 cd .. || die "Can't chdir to ../ ."
 
 # Start compilation.
-export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 debian/rules binary-arch flavours=686-smp-ccs || die "Failed to build kernel package."
 
 exit 0

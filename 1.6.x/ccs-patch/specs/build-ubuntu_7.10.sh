@@ -9,6 +9,7 @@ die () {
 }
 
 VERSION=`uname -r | cut -d - -f 1,2`
+export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
 apt-get -y install wget
 for key in 0A0AC927 17063E6D 174BF01A 191FCD8A 60E80B5B 63549F8E 76682A37 8BF9EFE6
@@ -50,7 +51,6 @@ cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."
 debian/rules debian/control || die "Can't run control."
 
 # Start compilation.
-export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 debian/rules custom-binary-ccs || die "Failed to build kernel package."
 cd .. || die "Can't chdir to ../ ."
 
