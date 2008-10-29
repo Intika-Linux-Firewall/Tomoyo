@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/10/29
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -133,6 +133,12 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	is_enforce = (r.mode == 3);
 	if (!r.mode)
 		return 0;
+	if (!sig)
+		return 0;                /* No check for NULL signal. */
+	if (current->pid == pid) {
+		audit_signal_log(&r, sig, r.domain->domainname->name, true);
+		return 0;                /* No check for self process. */
+	}
 	{ /* Simplified checking. */
 		struct task_struct *p = NULL;
 		/***** CRITICAL SECTION START *****/
@@ -152,14 +158,11 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	}
 	if (!dest)
 		return 0; /* I can't find destinatioin. */
+	if (r.domain == dest) {
+		audit_signal_log(&r, sig, r.domain->domainname->name, true);
+		return 0;                /* No check for self domain. */
+	}
 	dest_pattern = dest->domainname->name;
-	/*
-	 * Always allow "NULL signals", "signals to self process",
-	 * "signals to self domain". But search ACL anyway so that
-	 * current process gets a chance to call ccs_update_condition().
-	 */
-	if (!sig || current->pid == pid || r.domain == dest)
-		found = true;
  retry:
 	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
 		struct signal_acl_record *acl;
