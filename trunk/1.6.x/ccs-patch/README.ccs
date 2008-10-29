@@ -1651,15 +1651,6 @@ Fix 2008/10/07
       As the number of parameters is increasing, I modified to use a structure
       for passing parameters.
 
-    @ Always allow updating task state for signal operations.
-
-      ccs_check_signal_acl() was skipping permission checks if signal is 0
-      or sent to self or sent to same domain. To make it possible to update
-      task state when current process is sending 0 signal or to self or
-      to same domain, I modified to check ACL anyway. The result of access
-      control will not change, but this modification will generate granted logs
-      which were not generated until now.
-
 Fix 2008/10/11
 
     @ Remove domain_acl_lock mutex.
