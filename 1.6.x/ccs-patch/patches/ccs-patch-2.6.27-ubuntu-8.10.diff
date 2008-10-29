@@ -4,7 +4,6 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
 ---
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
- arch/sh/kernel/ptrace_64.c      |    9 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
@@ -37,7 +36,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 35 files changed, 615 insertions(+), 2 deletions(-)
+ 34 files changed, 606 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27/arch/ia64/ia32/sys_ia32.c
@@ -89,31 +88,6 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.27.orig/arch/sh/kernel/ptrace_64.c
-+++ linux-2.6.27/arch/sh/kernel/ptrace_64.c
-@@ -36,6 +36,9 @@
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
- #include <asm/fpu.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -205,6 +208,12 @@ asmlinkage int sh64_ptrace(long request,
- {
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
 --- linux-2.6.27.orig/fs/Kconfig
 +++ linux-2.6.27/fs/Kconfig
 @@ -2093,4 +2093,6 @@ endif
@@ -752,7 +726,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27-7.10 2008/10/13\n");
++	printk(KERN_INFO "Hook version: 2.6.27-7.14 2008/10/29\n");
 +#endif
 +	/***** CCS end. *****/
  }
