@@ -2,7 +2,7 @@ This is TOMOYO Linux patch for kernel 2.4.30.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.30.tar.bz2
 ---
- Documentation/Configure.help |   89 ++++++++++++++++++++++++++++++
+ Documentation/Configure.help |   86 +++++++++++++++++++++++++++++
  arch/alpha/kernel/ptrace.c   |    9 +++
  arch/arm/kernel/ptrace.c     |    9 +++
  arch/cris/kernel/ptrace.c    |    9 +++
@@ -50,11 +50,11 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |   16 +++++
  net/socket.c                 |   40 ++++++++++++-
  net/unix/af_unix.c           |   15 +++++
- 48 files changed, 871 insertions(+), 8 deletions(-)
+ 48 files changed, 868 insertions(+), 8 deletions(-)
 
 --- linux-2.4.30.orig/Documentation/Configure.help
 +++ linux-2.4.30/Documentation/Configure.help
-@@ -29056,6 +29056,95 @@ CONFIG_SOUND_WM97XX
+@@ -29056,6 +29056,92 @@ CONFIG_SOUND_WM97XX
    
    If unsure, say N.
  
@@ -84,13 +84,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
 +  This allows you to classify at the finest level.
 +  The access permission is granted to domains, not to processes.
 +  Policy is defined as "Which domain can access to which resource.".
-+  There is no concept of "user id" nor "role" like RBAC.
 +
 +  The biggest feature of TOMOYO is that TOMOYO has "learning mode".
 +  The learning mode can automatically generate policy definition,
 +  and dramatically reduces the policy definition labors.
-+
-+  TOMOYO is much simpler and easier than SELinux.
 +
 +  TOMOYO is applicable to figuring out the system's behavior, for
 +  TOMOYO uses the canonicalized absolute pathnames and
@@ -1296,7 +1293,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.30 2008/06/25\n");
++	printk(KERN_INFO "Hook version: 2.4.30 2008/10/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
