@@ -6,7 +6,6 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/m32r/kernel/ptrace.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
- arch/sh64/kernel/ptrace.c       |    9 +++
  arch/sparc/kernel/ptrace.c      |   11 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
@@ -22,7 +21,6 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  fs/proc/proc_misc.c             |    5 +
  include/linux/init_task.h       |    4 +
  include/linux/sched.h           |    9 +++
- include/linux/syaoran.h         |    1 
  kernel/compat.c                 |    7 ++
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
@@ -41,7 +39,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 39 files changed, 672 insertions(+), 8 deletions(-)
+ 37 files changed, 662 insertions(+), 8 deletions(-)
 
 --- linux-2.6.18-53.11AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-53.11AXS3/arch/alpha/kernel/ptrace.c
@@ -143,31 +141,6 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18-53.11AXS3.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.18-53.11AXS3/arch/sh64/kernel/ptrace.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -271,6 +274,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
 --- linux-2.6.18-53.11AXS3.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.18-53.11AXS3/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
@@ -819,7 +792,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-53.11AXS3 2008/10/10\n");
++	printk(KERN_INFO "Hook version: 2.6.18-53.11AXS3 2008/10/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -861,16 +834,6 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18-53.11AXS3.orig/include/linux/syaoran.h
-+++ linux-2.6.18-53.11AXS3/include/linux/syaoran.h
-@@ -34,6 +34,7 @@
- 
- #ifndef _LINUX_SYAORAN_H
- #define _LINUX_SYAORAN_H
-+#define RHEL_MAJOR 5
- 
- #include <linux/version.h>
- 
 --- linux-2.6.18-53.11AXS3.orig/kernel/compat.c
 +++ linux-2.6.18-53.11AXS3/kernel/compat.c
 @@ -24,6 +24,9 @@

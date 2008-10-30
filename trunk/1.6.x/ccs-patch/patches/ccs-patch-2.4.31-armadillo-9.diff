@@ -2,7 +2,7 @@ This is TOMOYO Linux patch for Armadillo-9.
 
 Source code for this patch is http://download.atmark-techno.com/armadillo-9/source/linux-2.4.31-a9-3.tar.gz
 ---
- Documentation/Configure.help    |   89 ++++++++++++++++++++++++++++
+ Documentation/Configure.help    |   86 +++++++++++++++++++++++++++
  arch/alpha/kernel/ptrace.c      |    9 ++
  arch/arm/kernel/ptrace.c        |    9 ++
  arch/armnommu/kernel/ptrace.c   |    9 ++
@@ -58,11 +58,11 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   16 ++++-
  net/socket.c                    |   40 +++++++++++-
  net/unix/af_unix.c              |   15 ++++
- 56 files changed, 945 insertions(+), 8 deletions(-)
+ 56 files changed, 942 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/Documentation/Configure.help
 +++ linux-2.4.31-a9-3/Documentation/Configure.help
-@@ -29798,6 +29798,95 @@ CONFIG_SOUND_WM97XX
+@@ -29798,6 +29798,92 @@ CONFIG_SOUND_WM97XX
    
    If unsure, say N.
  
@@ -92,13 +92,10 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
 +  This allows you to classify at the finest level.
 +  The access permission is granted to domains, not to processes.
 +  Policy is defined as "Which domain can access to which resource.".
-+  There is no concept of "user id" nor "role" like RBAC.
 +
 +  The biggest feature of TOMOYO is that TOMOYO has "learning mode".
 +  The learning mode can automatically generate policy definition,
 +  and dramatically reduces the policy definition labors.
-+
-+  TOMOYO is much simpler and easier than SELinux.
 +
 +  TOMOYO is applicable to figuring out the system's behavior, for
 +  TOMOYO uses the canonicalized absolute pathnames and
@@ -1506,7 +1503,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2008/08/20\n");
++	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2008/10/30\n");
 +#endif
 +	/***** CCS end. *****/
  }

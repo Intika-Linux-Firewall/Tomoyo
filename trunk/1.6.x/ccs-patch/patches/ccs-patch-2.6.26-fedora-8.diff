@@ -4,7 +4,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS.n
 ---
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
- arch/sh/kernel/ptrace_64.c      |    9 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
@@ -37,7 +36,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS.n
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 35 files changed, 615 insertions(+), 2 deletions(-)
+ 34 files changed, 606 insertions(+), 2 deletions(-)
 
 --- linux-2.6.26.6-49.fc8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.26.6-49.fc8/arch/ia64/ia32/sys_ia32.c
@@ -89,31 +88,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS.n
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.26.6-49.fc8.orig/arch/sh/kernel/ptrace_64.c
-+++ linux-2.6.26.6-49.fc8/arch/sh/kernel/ptrace_64.c
-@@ -34,6 +34,9 @@
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
- #include <asm/fpu.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -254,6 +257,12 @@ asmlinkage int sh64_ptrace(long request,
- {
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
 --- linux-2.6.26.6-49.fc8.orig/fs/Kconfig
 +++ linux-2.6.26.6-49.fc8/fs/Kconfig
 @@ -2237,4 +2237,6 @@ endif
@@ -751,7 +725,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS.n
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.26.6-49.fc8 2008/10/21\n");
++	printk(KERN_INFO "Hook version: 2.6.26.6-49.fc8 2008/10/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
