@@ -6,7 +6,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/m32r/kernel/ptrace.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
- arch/sh64/kernel/ptrace.c       |    9 +++
  arch/sparc/kernel/ptrace.c      |   11 +++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
@@ -41,7 +40,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 39 files changed, 642 insertions(+), 2 deletions(-)
+ 38 files changed, 633 insertions(+), 2 deletions(-)
 
 --- linux-2.6.22.14-72.fc6.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.22.14-72.fc6/arch/alpha/kernel/ptrace.c
@@ -143,31 +142,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.22.14-72.fc6.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.22.14-72.fc6/arch/sh64/kernel/ptrace.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -271,6 +274,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
 --- linux-2.6.22.14-72.fc6.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.22.14-72.fc6/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
@@ -823,7 +797,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.22.14-72.fc6 2008/08/20\n");
++	printk(KERN_INFO "Hook version: 2.6.22.14-72.fc6 2008/10/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
