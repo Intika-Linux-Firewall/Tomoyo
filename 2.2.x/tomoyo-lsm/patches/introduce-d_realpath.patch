@@ -19,15 +19,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 
 --- linux-next.orig/fs/dcache.c
 +++ linux-next/fs/dcache.c
-@@ -33,6 +33,7 @@
+@@ -32,6 +32,7 @@
+ #include <linux/seqlock.h>
  #include <linux/swap.h>
  #include <linux/bootmem.h>
- #include <linux/backing-dev.h>
 +#include <linux/magic.h>
  #include "internal.h"
  
  
-@@ -1972,6 +1973,84 @@ Elong:
+@@ -1979,6 +1980,84 @@ Elong:
  }
  
  /**
@@ -114,7 +114,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @buf: buffer to return value in
 --- linux-next.orig/include/linux/dcache.h
 +++ linux-next/include/linux/dcache.h
-@@ -304,6 +304,7 @@ extern char *dynamic_dname(struct dentry
+@@ -305,6 +305,7 @@ extern char *dynamic_dname(struct dentry
  extern char *__d_path(const struct path *path, struct path *root, char *, int);
  extern char *d_path(const struct path *, char *, int);
  extern char *dentry_path(struct dentry *, char *, int);

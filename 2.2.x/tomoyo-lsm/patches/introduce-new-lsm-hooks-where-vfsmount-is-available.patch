@@ -120,7 +120,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
 --- linux-next.orig/fs/namei.c
 +++ linux-next/fs/namei.c
-@@ -1571,12 +1571,17 @@ int may_open(struct nameidata *nd, int a
+@@ -1556,12 +1556,17 @@ int may_open(struct nameidata *nd, int a
  		 * Refuse to truncate files with mandatory locks held on them.
  		 */
  		error = locks_verify_locked(inode);
@@ -138,7 +138,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  		}
  		put_write_access(inode);
  		if (error)
-@@ -1601,7 +1606,12 @@ static int __open_namei_create(struct na
+@@ -1586,7 +1591,12 @@ static int __open_namei_create(struct na
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -151,7 +151,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->path.dentry);
  	nd->path.dentry = path->dentry;
-@@ -2014,6 +2024,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1999,6 +2009,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -161,7 +161,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2026,6 +2039,8 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2011,6 +2024,8 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
@@ -170,7 +170,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2085,7 +2100,12 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2070,7 +2085,12 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -183,7 +183,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2192,7 +2212,12 @@ static long do_rmdir(int dfd, const char
+@@ -2180,7 +2200,12 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -196,7 +196,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	mnt_drop_write(nd.path.mnt);
  exit3:
  	dput(dentry);
-@@ -2274,7 +2299,12 @@ static long do_unlinkat(int dfd, const c
+@@ -2265,7 +2290,12 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -209,7 +209,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  		mnt_drop_write(nd.path.mnt);
  	exit2:
  		dput(dentry);
-@@ -2355,7 +2385,12 @@ asmlinkage long sys_symlinkat(const char
+@@ -2346,7 +2376,12 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -222,7 +222,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(dentry);
-@@ -2452,7 +2487,12 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2443,7 +2478,12 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -235,7 +235,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	mnt_drop_write(nd.path.mnt);
  out_dput:
  	dput(new_dentry);
-@@ -2684,8 +2724,14 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2679,8 +2719,14 @@ asmlinkage long sys_renameat(int olddfd,
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -418,7 +418,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	int (*inode_alloc_security) (struct inode *inode);
  	void (*inode_free_security) (struct inode *inode);
  	int (*inode_init_security) (struct inode *inode, struct inode *dir,
-@@ -2685,6 +2765,77 @@ static inline void security_skb_classify
+@@ -2691,6 +2771,77 @@ static inline void security_skb_classify
  
  #endif	/* CONFIG_SECURITY_NETWORK_XFRM */
  
@@ -610,7 +610,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	set_to_cap_if_null(ops, file_free_security);
 --- linux-next.orig/security/security.c
 +++ linux-next/security/security.c
-@@ -341,6 +341,79 @@ int security_inode_init_security(struct 
+@@ -350,6 +350,79 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
  
