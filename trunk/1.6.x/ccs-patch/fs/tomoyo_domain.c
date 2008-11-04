@@ -1072,11 +1072,8 @@ static int find_next_domain(struct ccs_request_info *r,
 			base_filename++;
 		if (strcmp(base_argv0, base_filename)) {
 			retval = ccs_check_argv0_perm(r, &rn, base_argv0);
-			if (retval == 1) {
-				r->retry++;
+			if (retval == 1)
 				goto retry;
-			}
-			r->retry = 0;
 			if (retval < 0)
 				goto out;
 		}
@@ -1101,11 +1098,8 @@ static int find_next_domain(struct ccs_request_info *r,
 	/* Check execute permission. */
 	r->mode = mode;
 	retval = ccs_check_exec_perm(r, &rn);
-	if (retval == 1) {
-		r->retry++;
+	if (retval == 1)
 		goto retry;
-	}
-	r->retry = 0;
 	if (retval < 0)
 		goto out;
 
@@ -1139,11 +1133,8 @@ static int find_next_domain(struct ccs_request_info *r,
 		int error = ccs_check_supervisor(r,
 						 "# wants to create domain\n"
 						 "%s\n", new_domain_name);
-		if (error == 1) {
-			r->retry++;
+		if (error == 1)
 			goto retry;
-		}
-		r->retry = 0;
 		if (error < 0)
 			goto done;
 	}

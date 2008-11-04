@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -824,10 +824,8 @@ retry:
 	if (is_enforce) {
 		int error = ccs_check_supervisor(r, "allow_%s %s\n",
 						 msg, filename->name);
-		if (error == 1 && !r->bprm) {
-			r->retry++;
+		if (error == 1 && !r->bprm)
 			goto retry;
-		}
 		return error;
 	}
 	if (r->mode == 1 && ccs_check_domain_quota(r->domain)) {
@@ -1268,10 +1266,8 @@ static int check_single_path_permission2(struct ccs_request_info *r,
 	if (is_enforce) {
 		error = ccs_check_supervisor(r, "allow_%s %s\n",
 					     msg, filename->name);
-		if (error == 1) {
-			r->retry++;
+		if (error == 1)
 			goto retry;
-		}
 	}
 	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
 		update_single_path_acl(operation, get_file_pattern(filename),
@@ -1287,7 +1283,6 @@ static int check_single_path_permission2(struct ccs_request_info *r,
 	if (!error && operation == TYPE_TRUNCATE_ACL &&
 	    is_no_rewrite_file(filename)) {
 		operation = TYPE_REWRITE_ACL;
-		r->retry = 0;
 		goto retry;
 	}
 	return error;
@@ -1550,10 +1545,8 @@ retry:
 	if (is_enforce) {
 		error = ccs_check_supervisor(&r, "allow_%s %s %s\n",
 					     msg, buf1->name, buf2->name);
-		if (error == 1) {
-			r.retry++;
+		if (error == 1)
 			goto retry;
-		}
 	}
 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
 		update_double_path_acl(operation, get_file_pattern(buf1),

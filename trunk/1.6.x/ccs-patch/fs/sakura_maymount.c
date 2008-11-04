@@ -145,10 +145,8 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 	}
 	if (flag) {
 		int error = print_error(&r, path);
-		if (error == 1) {
-			r.retry++;
+		if (error == 1)
 			goto retry;
-		}
 		return error;
 	}
 	return 0;

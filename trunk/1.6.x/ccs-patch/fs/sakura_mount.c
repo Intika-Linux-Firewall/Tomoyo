@@ -494,10 +494,8 @@ static int check_mount_permission2(struct ccs_request_info *r,
 	}
 	if (!is_enforce)
 		error = 0;
-	if (error == 1) {
-		r->retry++;
+	if (error == 1)
 		goto retry;
-	}
 	return error;
 }
 

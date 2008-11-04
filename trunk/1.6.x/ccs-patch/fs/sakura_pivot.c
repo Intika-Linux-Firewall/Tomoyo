@@ -165,10 +165,8 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	}
 	ccs_free(old_root);
 	ccs_free(new_root);
-	if (error == 1) {
-		r.retry++;
+	if (error == 1)
 		goto retry;
-	}
 	return error;
 }
 
