@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -117,7 +117,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 		const char *exename = ccs_get_exe();
 		printk(KERN_WARNING "SAKURA-%s: umount %s "
 		       "(pid=%d:exe=%s): Permission denied.\n",
-		       ccs_get_msg(is_enforce), dir0, current->pid,
+		       ccs_get_msg(is_enforce), dir0, (pid_t) sys_getpid(),
 		       exename);
 		if (is_enforce)
 			error = ccs_check_supervisor(&r, "# %s is requesting\n"

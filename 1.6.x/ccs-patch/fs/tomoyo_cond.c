@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1070,7 +1070,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			left_max = task->fsgid;
 			break;
 		case TASK_PID:
-			left_max = task->pid;
+			left_max = sys_getpid();
 			break;
 		case TASK_PPID:
 			left_max = sys_getppid();
@@ -1182,7 +1182,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			right_max = task->fsgid;
 			break;
 		case TASK_PID:
-			right_max = task->pid;
+			right_max = sys_getpid();
 			break;
 		case TASK_PPID:
 			right_max = sys_getppid();

@@ -1696,3 +1696,15 @@ Fix 2008/10/20
 
       To prevent the reader from reading uninitialized value of newly appended
       element, I inserted rcu_dereference() when walking the list.
+
+Fix 2008/11/04
+
+    @ Use sys_getpid() instead for current->pid.
+
+      Kernel 2.6.24 introduced PID namespace.
+
+      To compare PID given from userland, I can't use current->pid.
+      So, I modified to use sys_getpid() instead for current->pid.
+
+      I modified to use task_tgid_nr_ns() for 2.6.25 and later instead for
+      current->tgid when checking /proc/self/ in get_absolute_path().

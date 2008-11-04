@@ -13,9 +13,9 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- fs/dcache.c            |   79 +++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/dcache.c            |   84 +++++++++++++++++++++++++++++++++++++++++++++++++
  include/linux/dcache.h |    1 
- 2 files changed, 80 insertions(+)
+ 2 files changed, 85 insertions(+)
 
 --- linux-2.6.28-rc2-mm1.orig/fs/dcache.c
 +++ linux-2.6.28-rc2-mm1/fs/dcache.c
@@ -27,7 +27,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #include "internal.h"
  
  
-@@ -1980,6 +1981,84 @@ Elong:
+@@ -1980,6 +1981,89 @@ Elong:
  }
  
  /**
@@ -40,16 +40,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns pointer to the realpath on success, an error code othersize.
 + *
 + * If @dentry is a directory, trailing '/' is appended.
-+ * If /proc/PID/ is replaced by /proc/self/ if PID == current->tgid.
++ * /proc/PID/ is replaced by /proc/self/ if PID == task_tgid_nr_ns(current).
 + */
 +char *d_realpath(struct path *path, char *buffer, int buflen)
 +{
 +	struct dentry *dentry = path->dentry;
 +	struct vfsmount *vfsmnt = path->mnt;
 +	char *end = buffer + buflen;
-+	char self_pid[16];
 +
-+	snprintf(self_pid, sizeof(self_pid), "%u", current->tgid);
 +	spin_lock(&dcache_lock);
 +	spin_lock(&vfsmount_lock);
 +	if (buflen < 1 || prepend(&end, &buflen, "", 1))
@@ -63,6 +61,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	for (;;) {
 +		struct dentry *parent;
 +		const char *name;
++		int name_len;
++		unsigned long pid;
 +
 +		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
 +			/* Global root? */
@@ -79,15 +79,20 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		 * for current process.
 +		 */
 +		name = dentry->d_name.name;
++		name_len = dentry->d_name.len;
 +		if (IS_ROOT(parent) &&
 +		    parent->d_sb->s_magic == PROC_SUPER_MAGIC &&
-+		    !strcmp(name, self_pid)) {
-+			if (prepend(&end, &buflen, "self", 4))
-+				goto Elong;
-+		} else {
-+			if (prepend_name(&end, &buflen, &dentry->d_name))
-+				goto Elong;
++		    !strict_strtoul(name, 10, &pid)) {
++			const pid_t tgid
++				= task_tgid_nr_ns(current,
++						  dentry->d_sb->s_fs_info);
++			if (tgid && (pid_t) pid == tgid) {
++				name = "self";
++				name_len = 4;
++			}
 +		}
++		if (prepend(&end, &buflen, name, name_len))
++			goto Elong;
 +		if (prepend(&end, &buflen, "/", 1))
 +			goto Elong;
 +		dentry = parent;
