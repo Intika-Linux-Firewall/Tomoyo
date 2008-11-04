@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/29
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -135,7 +135,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		return 0;
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
-	if (current->pid == pid) {
+	if (sys_getpid() == pid) {
 		audit_signal_log(&r, sig, r.domain->domainname->name, true);
 		return 0;                /* No check for self process. */
 	}

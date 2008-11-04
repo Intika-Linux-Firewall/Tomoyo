@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -249,12 +249,13 @@ static int print_error(struct ccs_request_info *r,
 	const char *realname1 = ccs_realpath(dev_name);
 	const char *realname2 = ccs_realpath(dir_name);
 	const char *exename = ccs_get_exe();
+	const pid_t pid = (pid_t) sys_getpid();
 	if (!strcmp(type, MOUNT_REMOUNT_KEYWORD)) {
 		printk(KERN_WARNING "SAKURA-%s: mount -o remount %s 0x%lX "
 		       "(pid=%d:exe=%s): Permission denied.\n",
 		       ccs_get_msg(is_enforce),
 		       realname2 ? realname2 : dir_name,
-		       flags, current->pid, exename);
+		       flags, pid, exename);
 		if (is_enforce)
 			error = ccs_check_supervisor(r, "# %s is requesting\n"
 						     "mount -o remount %s "
@@ -268,7 +269,7 @@ static int print_error(struct ccs_request_info *r,
 		       ccs_get_msg(is_enforce), type,
 		       realname1 ? realname1 : dev_name,
 		       realname2 ? realname2 : dir_name,
-		       flags, current->pid, exename);
+		       flags, pid, exename);
 		if (is_enforce)
 			error = ccs_check_supervisor(r, "# %s is requesting\n"
 						     "mount %s %s %s 0x%lX\n",
@@ -285,7 +286,7 @@ static int print_error(struct ccs_request_info *r,
 		       "(pid=%d:exe=%s): Permission denied.\n",
 		       ccs_get_msg(is_enforce), type,
 		       realname2 ? realname2 : dir_name,
-		       flags, current->pid, exename);
+		       flags, pid, exename);
 		if (is_enforce)
 			error = ccs_check_supervisor(r, "# %s is requesting\n"
 						     "mount %s %s 0x%lX",
@@ -298,7 +299,7 @@ static int print_error(struct ccs_request_info *r,
 		       ccs_get_msg(is_enforce), type,
 		       realname1 ? realname1 : dev_name,
 		       realname2 ? realname2 : dir_name,
-		       flags, current->pid, exename);
+		       flags, pid, exename);
 		if (is_enforce)
 			error = ccs_check_supervisor(r, "# %s is requesting\n"
 						     "mount -t %s %s %s "

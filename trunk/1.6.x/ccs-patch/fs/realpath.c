@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -96,13 +96,17 @@ static int get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
 				char *ep;
 				const pid_t pid
 					= (pid_t) simple_strtoul(sp, &ep, 10);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-				if (!*ep && pid == current->tgid) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+				const pid_t tgid
+					= task_tgid_nr_ns(current,
+							  dentry->d_sb->
+							  s_fs_info);
+				if (!*ep && pid == tgid && tgid) {
 					sp = "self";
 					cp = sp + 3;
 				}
 #else
-				if (!*ep && pid == current->pid) {
+				if (!*ep && pid == sys_getpid()) {
 					sp = "self";
 					cp = sp + 3;
 				}

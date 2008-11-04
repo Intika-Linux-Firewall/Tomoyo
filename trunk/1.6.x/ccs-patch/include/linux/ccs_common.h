@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -40,6 +40,7 @@
 struct dentry;
 struct vfsmount;
 struct in6_addr;
+extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
 
 #define false 0

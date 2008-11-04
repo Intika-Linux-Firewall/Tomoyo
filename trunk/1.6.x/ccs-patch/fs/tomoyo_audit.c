@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -193,7 +193,8 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 			 "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
 			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n"
 			 "%s\n",
-			 tv.tv_sec, r->profile, mode_4[r->mode], task->pid,
+			 tv.tv_sec, r->profile, mode_4[r->mode],
+			 (pid_t) sys_getpid(),
 			 task->uid, task->gid, task->euid, task->egid,
 			 task->suid, task->sgid, task->fsuid, task->fsgid,
 			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
