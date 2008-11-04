@@ -1,0 +1,497 @@
+Subject: LSM adapter functions.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
+---
+ security/tomoyo/tomoyo.c |  376 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  105 +++++++++++++
+ 2 files changed, 481 insertions(+)
+
+--- /dev/null
++++ linux-2.6.28-rc2-mm1/security/tomoyo/tomoyo.c
+@@ -0,0 +1,376 @@
++/*
++ * security/tomoyo/tomoyo.c
++ *
++ * LSM hooks for TOMOYO Linux.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 2.2.0-pre   2008/10/10
++ *
++ */
++
++#include <linux/security.h>
++#include "common.h"
++#include "tomoyo.h"
++#include "realpath.h"
++
++static int tmy_cred_prepare(struct cred *new, const struct cred *old, gfp_t gfp)
++{
++	/*
++	 * Since "struct domain_info *" is a sharable pointer, we don't need
++	 * to duplicate.
++	 */
++	new->security = old->security;
++	return 0;
++}
++
++static int tmy_bprm_set_creds(struct linux_binprm *bprm)
++{
++	/*
++	 * Do only if this function is called for the first time of an execve
++	 * operation.
++	 */
++	if (bprm->cred_prepared)
++		return 0;
++	/*
++	 * Load policy if /sbin/tomoyo-init exists and /sbin/init is requested
++	 * for the first time.
++	 */
++	if (!sbin_init_started)
++		tmy_load_policy(bprm->filename);
++	/*
++	 * Tell tmy_bprm_check_security() is called for the first time of an
++	 * execve operation.
++	 */
++	bprm->cred->security = NULL;
++	return 0;
++}
++
++static int tmy_bprm_check_security(struct linux_binprm *bprm)
++{
++	struct domain_info *domain = bprm->cred->security;
++
++	/*
++	 * Execute permission is checked against pathname passed to do_execve()
++	 * using current domain.
++	 */
++	if (!domain) {
++		struct domain_info *next_domain = NULL;
++		int retval = tmy_find_next_domain(bprm, &next_domain);
++
++		if (!retval)
++			bprm->cred->security = next_domain;
++		return retval;
++	}
++	/*
++	 * Read permission is checked against interpreters using next domain.
++	 * '1' is the result of open_to_namei_flags(O_RDONLY).
++	 */
++	return tmy_check_open_permission(domain, &bprm->file->f_path, 1);
++}
++
++static int tmy_sysctl(struct ctl_table *table, int op)
++{
++	int error;
++	char *name;
++
++	op &= MAY_READ | MAY_WRITE;
++	if (!op)
++		return 0;
++	name = sysctlpath_from_table(table);
++	if (!name)
++		return -ENOMEM;
++	error = tmy_check_file_perm(tmy_domain(), name, op);
++	tmy_free(name);
++	return error;
++}
++
++/**
++ * tmy_update_result - Update error code.
++ *
++ * @error: Return code from security_path_*().
++ *
++ * To be able to return DAC's error (if any) to the caller instead of
++ * MAC's error, we don't return MAC's error at security_path_*().
++ *
++ * We remember MAC's error only if security_path_*() returned an error.
++ *
++ * Returns 0 on success, -ENOMEM otherwise if @error != 0.
++ * Returns previously saved error code and clears it if @error == 0.
++ */
++static int tmy_update_result(int error)
++{
++	/* Structure for holding the result of security_path_*(). */
++	struct check_result_entry {
++		struct list_head list;
++		struct task_struct *task; /* = current */
++		int error; /* != 0 */
++	};
++	static LIST_HEAD(list);
++	static DEFINE_SPINLOCK(lock);
++	struct task_struct *task = current;
++	struct check_result_entry *entry;
++	if (!error) {
++		if (!list_empty(&list)) {
++			struct check_result_entry *p;
++			entry = NULL;
++			/***** CRITICAL SECTION START *****/
++			spin_lock(&lock);
++			list_for_each_entry(p, &list, list) {
++				if (p->task != task)
++					continue;
++				list_del(&p->list);
++				entry = p;
++				break;
++			}
++			spin_unlock(&lock);
++			/***** CRITICAL SECTION END *****/
++			if (entry) {
++				error = entry->error;
++				kfree(entry);
++			}
++		}
++		return error;
++	}
++	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++	if (!entry)
++		return -ENOMEM;
++	entry->task = task;
++	entry->error = error;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&lock);
++	list_add(&entry->list, &list);
++	spin_unlock(&lock);
++	/***** CRITICAL SECTION END *****/
++	return 0;
++}
++
++/**
++ * tmy_save_result - Remember error code for security_inode_*() if any.
++ *
++ * @error: Return code from security_path_*().
++ *
++ * Returns 0 on success, -ENOMEM otherwise.
++ *
++ * We don't save if @error == 0.
++ */
++static int tmy_save_result(const int error)
++{
++	return error ? tmy_update_result(error) : 0;
++}
++
++/**
++ * tmy_load_result - Fetch error code for security_inode_*().
++ *
++ * Returns error code saved by security_path_*().
++ */
++static int tmy_load_result(void)
++{
++	return tmy_update_result(0);
++}
++
++/* Clear error code in case security_inode_*() was not called. */
++static void tmy_path_clear(void)
++{
++	tmy_load_result();
++}
++
++static int tmy_path_truncate(struct path *path, loff_t length,
++			     unsigned int time_attrs, struct file *filp)
++{
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_TRUNCATE_ACL,
++						    path));
++}
++
++static int tmy_path_unlink(struct path *parent, struct dentry *dentry)
++{
++	struct path path = { parent->mnt, dentry };
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_UNLINK_ACL,
++						    &path));
++}
++
++static int tmy_path_mkdir(struct path *parent, struct dentry *dentry, int mode)
++{
++	struct path path = { parent->mnt, dentry };
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_MKDIR_ACL,
++						    &path));
++}
++
++static int tmy_path_rmdir(struct path *parent, struct dentry *dentry)
++{
++	struct path path = { parent->mnt, dentry };
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_RMDIR_ACL,
++						    &path));
++}
++
++static int tmy_path_symlink(struct path *parent, struct dentry *dentry,
++			    const char *old_name)
++{
++	struct path path = { parent->mnt, dentry };
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    TMY_TYPE_SYMLINK_ACL,
++						    &path));
++}
++
++static int tmy_path_mknod(struct path *parent, struct dentry *dentry, int mode,
++			  unsigned int dev)
++{
++	struct path path = { parent->mnt, dentry };
++	int type = TMY_TYPE_CREATE_ACL;
++
++	switch (mode & S_IFMT) {
++	case S_IFCHR:
++		type = TMY_TYPE_MKCHAR_ACL;
++		break;
++	case S_IFBLK:
++		type = TMY_TYPE_MKBLOCK_ACL;
++		break;
++	case S_IFIFO:
++		type = TMY_TYPE_MKFIFO_ACL;
++		break;
++	case S_IFSOCK:
++		type = TMY_TYPE_MKSOCK_ACL;
++		break;
++	}
++	return tmy_save_result(tmy_check_1path_perm(tmy_domain(),
++						    type, &path));
++}
++
++static int tmy_path_link(struct dentry *old_dentry, struct path *new_dir,
++			 struct dentry *new_dentry)
++{
++	struct path path1 = { new_dir->mnt, old_dentry };
++	struct path path2 = { new_dir->mnt, new_dentry };
++	return tmy_save_result(tmy_check_2path_perm(tmy_domain(),
++						    TMY_TYPE_LINK_ACL,
++						    &path1, &path2));
++}
++
++static int tmy_path_rename(struct path *old_parent, struct dentry *old_dentry,
++			   struct path *new_parent, struct dentry *new_dentry)
++{
++	struct path path1 = { old_parent->mnt, old_dentry };
++	struct path path2 = { new_parent->mnt, new_dentry };
++	return tmy_save_result(tmy_check_2path_perm(tmy_domain(),
++						    TMY_TYPE_RENAME_ACL,
++						    &path1, &path2));
++}
++
++static int tmy_inode_link(struct dentry *old_dentry, struct inode *inode,
++			  struct dentry *new_dentry)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_unlink(struct inode *inode, struct dentry *dentry)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_symlink(struct inode *inode, struct dentry *dentry,
++			     const char *name)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_mkdir(struct inode *inode, struct dentry *dentry,
++			   int mask)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_rmdir(struct inode *inode, struct dentry *dentry)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_create(struct inode *dir, struct dentry *dentry, int mode)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_mknod(struct inode *inode, struct dentry *dentry,
++			   int mode, dev_t dev)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
++			    struct inode *new_inode, struct dentry *new_dentry)
++{
++	return tmy_load_result();
++}
++
++static int tmy_inode_setattr(struct dentry *dentry, struct iattr *iattr)
++{
++	return tmy_load_result();
++}
++
++static int tmy_file_fcntl(struct file *file, unsigned int cmd,
++			  unsigned long arg)
++{
++	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
++		return tmy_check_rewrite_permission(tmy_domain(), file);
++	return 0;
++}
++
++static int tmy_dentry_open(struct file *f, const struct cred *cred)
++{
++	int flags = f->f_flags;
++
++	if ((flags + 1) & O_ACCMODE)
++		flags++;
++	flags |= f->f_flags & (O_APPEND | O_TRUNC);
++	/* Don't check read permission here if called from do_execve(). */
++	if (current->in_execve)
++		return 0;
++	return tmy_check_open_permission(tmy_domain(), &f->f_path, flags);
++}
++
++static struct security_operations tomoyo_security_ops = {
++	.name                      = "tomoyo",
++	.cred_prepare              = tmy_cred_prepare,
++	.bprm_set_creds            = tmy_bprm_set_creds,
++	.bprm_check_security       = tmy_bprm_check_security,
++	.sysctl                    = tmy_sysctl,
++	.file_fcntl                = tmy_file_fcntl,
++	.dentry_open               = tmy_dentry_open,
++	.path_truncate             = tmy_path_truncate,
++	.path_unlink               = tmy_path_unlink,
++	.path_mkdir                = tmy_path_mkdir,
++	.path_rmdir                = tmy_path_rmdir,
++	.path_symlink              = tmy_path_symlink,
++	.path_mknod                = tmy_path_mknod,
++	.path_link                 = tmy_path_link,
++	.path_rename               = tmy_path_rename,
++	.inode_create              = tmy_inode_create,
++	.inode_setattr             = tmy_inode_setattr,
++	.inode_unlink              = tmy_inode_unlink,
++	.inode_mkdir               = tmy_inode_mkdir,
++	.inode_rmdir               = tmy_inode_rmdir,
++	.inode_symlink             = tmy_inode_symlink,
++	.inode_mknod               = tmy_inode_mknod,
++	.inode_link                = tmy_inode_link,
++	.inode_rename              = tmy_inode_rename,
++	.path_clear                = tmy_path_clear,
++};
++
++static int __init tmy_init(void)
++{
++	struct cred *cred = (struct cred *) current_cred();
++
++	if (!security_module_enable(&tomoyo_security_ops))
++		return 0;
++	/* register ourselves with the security framework */
++	if (register_security(&tomoyo_security_ops))
++		panic("Failure registering TOMOYO Linux");
++	printk(KERN_INFO "TOMOYO Linux initialized\n");
++	cred->security = &KERNEL_DOMAIN;
++	return 0;
++}
++
++security_initcall(tmy_init);
+--- /dev/null
++++ linux-2.6.28-rc2-mm1/security/tomoyo/tomoyo.h
+@@ -0,0 +1,105 @@
++/*
++ * security/tomoyo/tomoyo.h
++ *
++ * Implementation of the Domain-Based Mandatory Access Control.
++ *
++ * Copyright (C) 2005-2008  NTT DATA CORPORATION
++ *
++ * Version: 2.2.0-pre   2008/10/10
++ *
++ */
++
++#ifndef _SECURITY_TOMOYO_TOMOYO_H
++#define _SECURITY_TOMOYO_TOMOYO_H
++
++struct path_info;
++struct path;
++struct inode;
++struct linux_binprm;
++struct pt_regs;
++struct tmy_page_buffer;
++
++int tmy_check_file_perm(struct domain_info *domain, const char *filename,
++			const u8 perm);
++int tmy_check_exec_perm(struct domain_info *domain,
++			const struct path_info *filename,
++			struct tmy_page_buffer *buf);
++int tmy_check_open_permission(struct domain_info *domain, struct path *path,
++			      const int flag);
++int tmy_check_1path_perm(struct domain_info *domain, const u8 operation,
++			 struct path *path);
++int tmy_check_2path_perm(struct domain_info *domain, const u8 operation,
++			 struct path *path1, struct path *path2);
++int tmy_check_rewrite_permission(struct domain_info *domain,
++				 struct file *filp);
++int tmy_find_next_domain(struct linux_binprm *bprm,
++			 struct domain_info **next_domain);
++
++/* Index numbers for Access Controls. */
++
++#define TYPE_SINGLE_PATH_ACL                 0
++#define TYPE_DOUBLE_PATH_ACL                 1
++
++/* Index numbers for File Controls. */
++
++/*
++ * TYPE_READ_WRITE_ACL is special. TYPE_READ_WRITE_ACL is automatically set
++ * if both TYPE_READ_ACL and TYPE_WRITE_ACL are set. Both TYPE_READ_ACL and
++ * TYPE_WRITE_ACL are automatically set if TYPE_READ_WRITE_ACL is set.
++ * TYPE_READ_WRITE_ACL is automatically cleared if either TYPE_READ_ACL or
++ * TYPE_WRITE_ACL is cleared. Both TYPE_READ_ACL and TYPE_WRITE_ACL are
++ * automatically cleared if TYPE_READ_WRITE_ACL is cleared.
++ */
++
++#define TMY_TYPE_READ_WRITE_ACL    0
++#define TMY_TYPE_EXECUTE_ACL       1
++#define TMY_TYPE_READ_ACL          2
++#define TMY_TYPE_WRITE_ACL         3
++#define TMY_TYPE_CREATE_ACL        4
++#define TMY_TYPE_UNLINK_ACL        5
++#define TMY_TYPE_MKDIR_ACL         6
++#define TMY_TYPE_RMDIR_ACL         7
++#define TMY_TYPE_MKFIFO_ACL        8
++#define TMY_TYPE_MKSOCK_ACL        9
++#define TMY_TYPE_MKBLOCK_ACL      10
++#define TMY_TYPE_MKCHAR_ACL       11
++#define TMY_TYPE_TRUNCATE_ACL     12
++#define TMY_TYPE_SYMLINK_ACL      13
++#define TMY_TYPE_REWRITE_ACL      14
++#define MAX_SINGLE_PATH_OPERATION 15
++
++#define TMY_TYPE_LINK_ACL         0
++#define TMY_TYPE_RENAME_ACL       1
++#define MAX_DOUBLE_PATH_OPERATION 2
++
++#define TMY_DOMAINPOLICY          0
++#define TMY_EXCEPTIONPOLICY       1
++#define TMY_DOMAIN_STATUS         2
++#define TMY_PROCESS_STATUS        3
++#define TMY_MEMINFO               4
++#define TMY_SELFDOMAIN            5
++#define TMY_VERSION               6
++#define TMY_PROFILE               7
++#define TMY_MANAGER               8
++#define TMY_UPDATESCOUNTER        9
++
++extern struct domain_info KERNEL_DOMAIN;
++
++static inline struct domain_info *tmy_domain(void)
++{
++	return current_cred()->security;
++}
++
++/* Caller holds tasklist_lock spinlock. */
++static inline struct domain_info *tmy_real_domain(struct task_struct *task)
++{
++	/***** CRITICAL SECTION START *****/
++	const struct cred *cred = get_task_cred(task);
++	struct domain_info *domain = cred->security;
++
++	put_cred(cred);
++	return domain;
++	/***** CRITICAL SECTION END *****/
++}
++
++#endif /* !defined(_SECURITY_TOMOYO_TOMOYO_H) */
