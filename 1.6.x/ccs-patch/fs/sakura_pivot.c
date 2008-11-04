@@ -150,7 +150,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 		printk(KERN_WARNING "SAKURA-%s: pivot_root %s %s "
 		       "(pid=%d:exe=%s): Permission denied.\n",
 		       ccs_get_msg(is_enforce), new_root, old_root,
-		        (pid_t) sys_getpid(), exename);
+		       (pid_t) sys_getpid(), exename);
 		if (is_enforce)
 			error = ccs_check_supervisor(&r, "# %s is requesting\n"
 						     "pivot_root %s %s\n",
