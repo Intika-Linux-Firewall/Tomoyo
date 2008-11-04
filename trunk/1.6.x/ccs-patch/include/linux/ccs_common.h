@@ -690,9 +690,6 @@ struct domain_info *ccs_fetch_next_domain(void);
 /* Create conditional part of an ACL entry. */
 const struct condition_list *
 ccs_find_or_assign_new_condition(char * const condition);
-/* Read conditional part of an ACL entry. */
-const struct condition_list *
-ccs_get_condition_part(const struct acl_info *acl);
 /* Add an ACL entry to domain's ACL list. */
 int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
 /* Ask supervisor's opinion. */
@@ -849,6 +846,20 @@ static inline u8 ccs_acl_type1(struct acl_info *ptr)
 static inline u8 ccs_acl_type2(struct acl_info *ptr)
 {
 	return ptr->type & ~ACL_WITH_CONDITION;
+}
+
+/**
+ * ccs_get_condition_part - Get condition part of the given ACL entry.
+ *
+ * @acl: Pointer to "struct acl_info". Pointer to an ACL entry.
+ *
+ * Returns pointer to the condition part if the ACL has it, NULL otherwise.
+ */
+static inline const struct condition_list *
+ccs_get_condition_part(const struct acl_info *acl)
+{
+	return (acl->type & ACL_WITH_CONDITION) ?
+		acl->access_me_via_ccs_get_condition_part : NULL;
 }
 
 /* A linked list of domains. */

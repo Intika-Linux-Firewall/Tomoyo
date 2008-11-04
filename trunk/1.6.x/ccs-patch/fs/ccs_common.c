@@ -3263,16 +3263,3 @@ void *ccs_alloc_acl_element(const u8 acl_type,
 	ptr->type = acl_type;
 	return ptr;
 }
-
-/**
- * ccs_get_condition_part - Get condition part of the given ACL entry.
- *
- * @acl: Pointer to "struct acl_info". Pointer to an ACL entry.
- *
- * Returns pointer to the condition part if the ACL has it, NULL otherwise.
- */
-const struct condition_list *ccs_get_condition_part(const struct acl_info *acl)
-{
-	return (acl->type & ACL_WITH_CONDITION) ?
-		acl->access_me_via_ccs_get_condition_part : NULL;
-}
