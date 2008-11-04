@@ -130,10 +130,8 @@ int ccs_may_umount(struct vfsmount *mnt)
  out:
 	if (!is_enforce)
 		error = 0;
-	if (error == 1) {
-		r.retry++;
+	if (error == 1)
 		goto retry;
-	}
 	return error;
 }
 

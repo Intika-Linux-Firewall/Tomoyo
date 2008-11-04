@@ -155,10 +155,8 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 	if (error)
 		error = print_error(&r, root_name);
 	ccs_free(root_name);
-	if (error == 1) {
-		r.retry++;
+	if (error == 1)
 		goto retry;
-	}
 	return error;
 }
 

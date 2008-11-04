@@ -2656,6 +2656,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	switch (query_entry->answer) {
 	case 3: /* Asked to retry by administrator. */
 		error = 1;
+		r->retry++;
 		break;
 	case 1:
 		/* Granted by administrator. */

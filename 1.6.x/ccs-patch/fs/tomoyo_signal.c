@@ -195,10 +195,8 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	if (is_enforce) {
 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
 						 "%d %s\n", sig, dest_pattern);
-		if (error == 1) {
-			r.retry++;
+		if (error == 1)
 			goto retry;
-		}
 		return error;
 	}
 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
