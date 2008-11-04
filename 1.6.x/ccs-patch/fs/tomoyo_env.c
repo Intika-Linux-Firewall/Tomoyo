@@ -231,7 +231,7 @@ static int check_env_acl(struct ccs_request_info *r, const char *environ)
 		if (!ccs_check_condition(r, ptr) ||
 		    !ccs_path_matches_pattern(&env, acl->env))
 			continue;
-		ccs_update_condition(ptr);
+		r->cond = ccs_get_condition_part(ptr);
 		error = 0;
 		break;
 	}

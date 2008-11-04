@@ -961,7 +961,6 @@ void ccs_init_request_info(struct ccs_request_info *r,
 		r->mode = ccs_check_capability_flags(domain, index
 						     - CCS_MAX_CONTROL_INDEX);
 #endif
-	r->tomoyo_flags = current->tomoyo_flags;
 }
 
 /**

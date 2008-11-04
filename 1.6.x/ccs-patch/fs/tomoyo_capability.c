@@ -171,7 +171,7 @@ bool ccs_capable(const u8 operation)
 		if (acl->operation != operation ||
 		    !ccs_check_condition(&r, ptr))
 			continue;
-		ccs_update_condition(ptr);
+		r.cond = ccs_get_condition_part(ptr);
 		found = true;
 		break;
 	}

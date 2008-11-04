@@ -180,7 +180,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 			default:
 				continue;
 			}
-			ccs_update_condition(ptr);
+			r.cond = ccs_get_condition_part(ptr);
 			found = true;
 			break;
 		}

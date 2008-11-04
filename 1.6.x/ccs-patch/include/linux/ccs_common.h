@@ -232,15 +232,27 @@ struct obj_info {
 	struct ccs_page_buffer *tmp;
 };
 
+/* Structure for " if " and "; set" part. */
+struct condition_list {
+	struct list1_head list;
+	u16 condc;
+	u16 argc;
+	u16 envc;
+	u8 post_state[4];
+	/* "unsigned long condition[condc]" follows here. */
+	/* "struct argv_entry argv[argc]" follows here. */
+	/* "struct envp_entry envp[envc]" follows here. */
+};
+
 /* Structure for request info. */
 struct ccs_request_info {
 	struct domain_info *domain;
 	struct linux_binprm *bprm;
+	struct obj_info *obj;
+	const struct condition_list *cond;
 	u16 retry;
 	u8 profile;
 	u8 mode;
-	u32 tomoyo_flags;
-	struct obj_info *obj;
 };
 
 /* Structure for holding a token. */
@@ -808,8 +820,6 @@ void ccs_print_ipv6(char *buffer, const int buffer_len,
 /* Change "struct domain_info"->flags. */
 void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
 			 const u8 flags);
-/* Update the process's state. */
-void ccs_update_condition(const struct acl_info *acl);
 /* Update the policy change counter. */
 void ccs_update_counter(const unsigned char index);
 

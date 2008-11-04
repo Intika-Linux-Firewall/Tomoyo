@@ -614,7 +614,7 @@ retry:
 			    memcmp(address, acl->u.ipv6.max, 16) > 0)
 				continue;
 		}
-		ccs_update_condition(ptr);
+		r.cond = ccs_get_condition_part(ptr);
 		found = true;
 		break;
 	}

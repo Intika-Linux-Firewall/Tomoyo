@@ -173,7 +173,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	char *bprm_info = "";
 	struct timeval tv;
 	struct task_struct *task = current;
-	u32 tomoyo_flags = r->tomoyo_flags;
+	u32 tomoyo_flags = task->tomoyo_flags;
 	const char *domainname;
 	if (!r->domain)
 		r->domain = current->domain_info;
@@ -240,8 +240,10 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	int len;
 	char *buf;
 	struct log_entry *new_entry;
+	const struct condition_list *ptr;
+	struct task_struct *task = current;
 	if (!r->domain)
-		r->domain = current->domain_info;
+		r->domain = task->domain_info;
 	if (ccs_can_save_audit_log(r->domain, is_granted) < 0)
 		goto out;
 	va_start(args, fmt);
@@ -279,7 +281,32 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		wake_up(&reject_log_wait);
 	error = 0;
  out:
-	r->tomoyo_flags = current->tomoyo_flags;
+	/*
+	 * Update task's state.
+	 *
+	 * Don't change the lowest byte because it is reserved for
+	 * TOMOYO_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
+	 * TOMOYO_TASK_IS_EXECUTE_HANDLER.
+	 */
+	ptr = r->cond;
+	if (ptr) {
+		const u8 flags = ptr->post_state[3];
+		u32 tomoyo_flags = task->tomoyo_flags;
+		if (flags & 1) {
+			tomoyo_flags &= ~0xFF000000;
+			tomoyo_flags |= ptr->post_state[0] << 24;
+		}
+		if (flags & 2) {
+			tomoyo_flags &= ~0x00FF0000;
+			tomoyo_flags |= ptr->post_state[1] << 16;
+		}
+		if (flags & 4) {
+			tomoyo_flags &= ~0x0000FF00;
+			tomoyo_flags |= ptr->post_state[2] << 8;
+		}
+		task->tomoyo_flags = tomoyo_flags;
+		r->cond = NULL;
+	}
 	return error;
 }
 
