@@ -980,7 +980,7 @@ static int find_next_domain(struct ccs_request_info *r,
 	const char *original_name = bprm->filename;
 	const u8 mode = r->mode;
 	const bool is_enforce = (mode == 3);
-	const u32 tomoyo_flags = r->tomoyo_flags;
+	const u32 tomoyo_flags = current->tomoyo_flags;
 	char *new_domain_name = NULL;
 	char *real_program_name = NULL;
 	char *symlink_program_name = NULL;
@@ -1006,7 +1006,7 @@ static int find_next_domain(struct ccs_request_info *r,
 
  retry:
 	current->tomoyo_flags = tomoyo_flags;
-	r->tomoyo_flags = tomoyo_flags;
+	r->cond = NULL;
 	/* Get ccs_realpath of program. */
 	retval = -ENOENT; /* I hope ccs_realpath() won't fail with -ENOMEM. */
 	ccs_free(real_program_name);

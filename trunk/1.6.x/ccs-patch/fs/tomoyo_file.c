@@ -746,7 +746,7 @@ static int check_single_path_acl2(struct ccs_request_info *r,
 		} else {
 			continue;
 		}
-		ccs_update_condition(ptr);
+		r->cond = ccs_get_condition_part(ptr);
 		return 0;
 	}
 	return -EPERM;
@@ -1229,7 +1229,7 @@ static int check_double_path_acl(struct ccs_request_info *r, const u8 type,
 						      acl->u2.filename2))
 				continue;
 		}
-		ccs_update_condition(ptr);
+		r->cond = ccs_get_condition_part(ptr);
 		return 0;
 	}
 	return -EPERM;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5-pre   2008/10/20
+ * Version: 1.6.5-pre   2008/11/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -132,7 +132,7 @@ static int check_argv0_acl(struct ccs_request_info *r,
 		    !ccs_path_matches_pattern(filename, acl->filename) ||
 		    !ccs_path_matches_pattern(&argv_0, acl->argv0))
 			continue;
-		ccs_update_condition(ptr);
+		r->cond = ccs_get_condition_part(ptr);
 		error = 0;
 		break;
 	}

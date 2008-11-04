@@ -347,18 +347,6 @@ static void print_ulong(char *buffer, const int buffer_len,
 		snprintf(buffer, buffer_len, "0x%lX", value);
 }
 
-/* Structure for " if " and "; set" part. */
-struct condition_list {
-	struct list1_head list;
-	u16 condc;
-	u16 argc;
-	u16 envc;
-	u8 post_state[4];
-	/* "unsigned long condition[condc]" follows here. */
-	/* "struct argv_entry argv[argc]" follows here. */
-	/* "struct envp_entry envp[envc]" follows here. */
-};
-
 /**
  * parse_argv - Parse an argv[] condition part.
  *
@@ -1281,43 +1269,6 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	if (bprm && (argc || envc))
 		return scan_bprm(bprm, argc, argv, envc, envp, obj->tmp);
 	return true;
-}
-
-/**
- * ccs_update_condition - Update the current process's condition.
- *
- * @acl: Pointer to "struct acl_info".
- *
- * Returns nothing.
- */
-void ccs_update_condition(const struct acl_info *acl)
-{
-	/*
-	 * Don't change the lowest byte because it is reserved for
-	 * TOMOYO_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
-	 * TOMOYO_TASK_IS_EXECUTE_HANDLER.
-	 */
-	const struct condition_list *ptr = ccs_get_condition_part(acl);
-	struct task_struct *task;
-	u32 tomoyo_flags;
-	const u8 flags = ptr ? ptr->post_state[3] : 0;
-	if (!flags)
-		return;
-	task = current;
-	tomoyo_flags = task->tomoyo_flags;
-	if (flags & 1) {
-		tomoyo_flags &= ~0xFF000000;
-		tomoyo_flags |= ptr->post_state[0] << 24;
-	}
-	if (flags & 2) {
-		tomoyo_flags &= ~0x00FF0000;
-		tomoyo_flags |= ptr->post_state[1] << 16;
-	}
-	if (flags & 4) {
-		tomoyo_flags &= ~0x0000FF00;
-		tomoyo_flags |= ptr->post_state[2] << 8;
-	}
-	task->tomoyo_flags = tomoyo_flags;
 }
 
 /**
