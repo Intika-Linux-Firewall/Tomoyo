@@ -100,7 +100,7 @@ extern asmlinkage long sys_getppid(void);
 #ifndef rcu_dereference
 #define rcu_dereference(p)     ({ \
 				typeof(p) _________p1 = ACCESS_ONCE(p); \
-				smp_read_barrier_depends(); \
+				smp_read_barrier_depends(); /* see RCU */ \
 				(_________p1); \
 				})
 #endif
@@ -110,7 +110,7 @@ extern asmlinkage long sys_getppid(void);
 	({ \
 		if (!__builtin_constant_p(v) || \
 		    ((v) != NULL)) \
-			smp_wmb(); \
+			smp_wmb(); /* see RCU */ \
 		(p) = (v); \
 	})
 #endif
@@ -124,9 +124,11 @@ extern asmlinkage long sys_getppid(void);
 
 #ifndef list_for_each_entry_rcu
 #define list_for_each_entry_rcu(pos, head, member) \
-	for (pos = list_entry(rcu_dereference((head)->next), typeof(*pos), member); \
+	for (pos = list_entry(rcu_dereference((head)->next), typeof(*pos), \
+		member); \
 		prefetch(pos->member.next), &pos->member != (head); \
-		pos = list_entry(rcu_dereference(pos->member.next), typeof(*pos), member))
+		pos = list_entry(rcu_dereference(pos->member.next), \
+		typeof(*pos), member))
 #endif
 
 /*

@@ -333,7 +333,7 @@ static bool is_domain_initializer(const struct path_info *domainname,
 {
 	struct domain_initializer_entry *ptr;
 	bool flag = false;
-	list1_for_each_entry(ptr,  &domain_initializer_list, list) {
+	list1_for_each_entry(ptr, &domain_initializer_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (ptr->domainname) {

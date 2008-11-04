@@ -92,7 +92,7 @@ static int print_error(struct ccs_request_info *r,
 	const char *exename = ccs_get_exe();
 	printk(KERN_WARNING "SAKURA-%s: mount %s (pid=%d:exe=%s): "
 	       "Permission denied.\n", ccs_get_msg(is_enforce), dir,
-	        (pid_t) sys_getpid(), exename);
+	       (pid_t) sys_getpid(), exename);
 	if (is_enforce)
 		error = ccs_check_supervisor(r, "# %s is requesting\n"
 					     "mount on %s\n", exename, dir);
