@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for openSUSE 10.2.
 
-Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.10.i586.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.11.i586.rpm
 ---
  arch/alpha/kernel/ptrace.c      |    9 +++
  arch/ia64/ia32/sys_ia32.c       |    9 +++
@@ -9,7 +9,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  arch/mips/kernel/ptrace32.c     |    9 +++
  arch/powerpc/kernel/ptrace32.c  |    9 +++
  arch/s390/kernel/ptrace.c       |    9 +++
- arch/sh64/kernel/ptrace.c       |    9 +++
  arch/sparc/kernel/ptrace.c      |   11 +++
  arch/sparc64/kernel/ptrace.c    |   11 +++
  arch/x86_64/ia32/ptrace32.c     |    9 +++
@@ -45,10 +44,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 43 files changed, 712 insertions(+), 8 deletions(-)
+ 42 files changed, 703 insertions(+), 8 deletions(-)
 
---- linux-2.6.18.8-0.10.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.18.8-0.10/arch/alpha/kernel/ptrace.c
+--- linux-2.6.18.8-0.11.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.18.8-0.11/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -72,8 +71,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.18.8-0.10.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.18.8-0.10/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.18.8-0.11.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.18.8-0.11/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -97,8 +96,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18.8-0.10.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.18.8-0.10/arch/ia64/kernel/ptrace.c
+--- linux-2.6.18.8-0.11.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.18.8-0.11/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -122,8 +121,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.18.8-0.10.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.18.8-0.10/arch/m32r/kernel/ptrace.c
+--- linux-2.6.18.8-0.11.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.18.8-0.11/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -147,8 +146,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18.8-0.10.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.18.8-0.10/arch/mips/kernel/ptrace32.c
+--- linux-2.6.18.8-0.11.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.18.8-0.11/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -172,8 +171,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18.8-0.10.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-2.6.18.8-0.10/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.18.8-0.11.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.18.8-0.11/arch/powerpc/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -197,8 +196,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18.8-0.10.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.18.8-0.10/arch/s390/kernel/ptrace.c
+--- linux-2.6.18.8-0.11.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.18.8-0.11/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -222,33 +221,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-2.6.18.8-0.10.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.18.8-0.10/arch/sh64/kernel/ptrace.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -271,6 +274,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
---- linux-2.6.18.8-0.10.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.18.8-0.10/arch/sparc/kernel/ptrace.c
+--- linux-2.6.18.8-0.11.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.18.8-0.11/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -274,8 +248,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18.8-0.10.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.18.8-0.10/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.18.8-0.11.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.18.8-0.11/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -301,8 +275,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.18.8-0.10.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.18.8-0.10/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.18.8-0.11.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.18.8-0.11/arch/x86_64/ia32/ptrace32.c
 @@ -26,6 +26,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -326,8 +300,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-2.6.18.8-0.10.orig/fs/Kconfig
-+++ linux-2.6.18.8-0.10/fs/Kconfig
+--- linux-2.6.18.8-0.11.orig/fs/Kconfig
++++ linux-2.6.18.8-0.11/fs/Kconfig
 @@ -1961,5 +1961,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -336,16 +310,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +
  endmenu
  
---- linux-2.6.18.8-0.10.orig/fs/Makefile
-+++ linux-2.6.18.8-0.10/fs/Makefile
+--- linux-2.6.18.8-0.11.orig/fs/Makefile
++++ linux-2.6.18.8-0.11/fs/Makefile
 @@ -107,3 +107,5 @@ obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.18.8-0.10.orig/fs/attr.c
-+++ linux-2.6.18.8-0.10/fs/attr.c
+--- linux-2.6.18.8-0.11.orig/fs/attr.c
++++ linux-2.6.18.8-0.11/fs/attr.c
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -385,8 +359,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.18.8-0.10.orig/fs/compat.c
-+++ linux-2.6.18.8-0.10/fs/compat.c
+--- linux-2.6.18.8-0.11.orig/fs/compat.c
++++ linux-2.6.18.8-0.11/fs/compat.c
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -419,8 +393,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.18.8-0.10.orig/fs/exec.c
-+++ linux-2.6.18.8-0.10/fs/exec.c
+--- linux-2.6.18.8-0.11.orig/fs/exec.c
++++ linux-2.6.18.8-0.11/fs/exec.c
 @@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
@@ -470,8 +444,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.18.8-0.10.orig/fs/fcntl.c
-+++ linux-2.6.18.8-0.10/fs/fcntl.c
+--- linux-2.6.18.8-0.11.orig/fs/fcntl.c
++++ linux-2.6.18.8-0.11/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -495,8 +469,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.18.8-0.10.orig/fs/ioctl.c
-+++ linux-2.6.18.8-0.10/fs/ioctl.c
+--- linux-2.6.18.8-0.11.orig/fs/ioctl.c
++++ linux-2.6.18.8-0.11/fs/ioctl.c
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -518,8 +492,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.18.8-0.10.orig/fs/namei.c
-+++ linux-2.6.18.8-0.10/fs/namei.c
+--- linux-2.6.18.8-0.11.orig/fs/namei.c
++++ linux-2.6.18.8-0.11/fs/namei.c
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -754,8 +728,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.18.8-0.10.orig/fs/namespace.c
-+++ linux-2.6.18.8-0.10/fs/namespace.c
+--- linux-2.6.18.8-0.11.orig/fs/namespace.c
++++ linux-2.6.18.8-0.11/fs/namespace.c
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -792,7 +766,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -926,6 +941,11 @@ static int do_loopback(struct nameidata 
+@@ -929,6 +944,11 @@ static int do_loopback(struct nameidata 
  
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -804,7 +778,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1010,7 +1030,11 @@ static int do_move_mount(struct nameidat
+@@ -1013,7 +1033,11 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -817,7 +791,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1112,6 +1136,11 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1115,6 +1139,11 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -829,7 +803,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1403,6 +1432,17 @@ long do_mount(char *dev_name, char *dir_
+@@ -1406,6 +1435,17 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -847,7 +821,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1692,6 +1732,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1695,6 +1735,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -858,7 +832,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	lock_kernel();
  
-@@ -1708,6 +1752,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1711,6 +1755,10 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -869,8 +843,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.18.8-0.10.orig/fs/open.c
-+++ linux-2.6.18.8-0.10/fs/open.c
+--- linux-2.6.18.8-0.11.orig/fs/open.c
++++ linux-2.6.18.8-0.11/fs/open.c
 @@ -30,6 +30,12 @@
  #include <linux/audit.h>
  
@@ -884,7 +858,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -267,6 +273,10 @@ static long do_sys_truncate(const char _
+@@ -270,6 +276,10 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto dput_and_out;
  
@@ -895,7 +869,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -320,6 +330,11 @@ static long do_sys_ftruncate(unsigned in
+@@ -323,6 +333,11 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -907,7 +881,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -608,6 +623,14 @@ asmlinkage long sys_chroot(const char __
+@@ -611,6 +626,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -922,7 +896,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1199,6 +1222,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1202,6 +1225,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -933,8 +907,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18.8-0.10.orig/fs/proc/Makefile
-+++ linux-2.6.18.8-0.10/fs/proc/Makefile
+--- linux-2.6.18.8-0.11.orig/fs/proc/Makefile
++++ linux-2.6.18.8-0.11/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -942,20 +916,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.18.8-0.10.orig/fs/proc/proc_misc.c
-+++ linux-2.6.18.8-0.10/fs/proc/proc_misc.c
+--- linux-2.6.18.8-0.11.orig/fs/proc/proc_misc.c
++++ linux-2.6.18.8-0.11/fs/proc/proc_misc.c
 @@ -835,4 +835,9 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18.8-0.10_SUSE 2008/08/20\n");
++	printk(KERN_INFO "Hook version: 2.6.18.8-0.11 2008/10/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.18.8-0.10.orig/include/linux/init_task.h
-+++ linux-2.6.18.8-0.10/include/linux/init_task.h
+--- linux-2.6.18.8-0.11.orig/include/linux/init_task.h
++++ linux-2.6.18.8-0.11/include/linux/init_task.h
 @@ -128,6 +128,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -967,8 +941,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  }
  
  
---- linux-2.6.18.8-0.10.orig/include/linux/sched.h
-+++ linux-2.6.18.8-0.10/include/linux/sched.h
+--- linux-2.6.18.8-0.11.orig/include/linux/sched.h
++++ linux-2.6.18.8-0.11/include/linux/sched.h
 @@ -25,6 +25,11 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -992,8 +966,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18.8-0.10.orig/kernel/compat.c
-+++ linux-2.6.18.8-0.10/kernel/compat.c
+--- linux-2.6.18.8-0.11.orig/kernel/compat.c
++++ linux-2.6.18.8-0.11/kernel/compat.c
 @@ -24,6 +24,9 @@
  #include <linux/migrate.h>
  
@@ -1015,8 +989,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.18.8-0.10.orig/kernel/kexec.c
-+++ linux-2.6.18.8-0.10/kernel/kexec.c
+--- linux-2.6.18.8-0.11.orig/kernel/kexec.c
++++ linux-2.6.18.8-0.11/kernel/kexec.c
 @@ -26,6 +26,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -1038,8 +1012,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.18.8-0.10.orig/kernel/kmod.c
-+++ linux-2.6.18.8-0.10/kernel/kmod.c
+--- linux-2.6.18.8-0.11.orig/kernel/kmod.c
++++ linux-2.6.18.8-0.11/kernel/kmod.c
 @@ -148,6 +148,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -1052,8 +1026,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- linux-2.6.18.8-0.10.orig/kernel/module.c
-+++ linux-2.6.18.8-0.10/kernel/module.c
+--- linux-2.6.18.8-0.11.orig/kernel/module.c
++++ linux-2.6.18.8-0.11/kernel/module.c
 @@ -44,6 +44,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -1088,8 +1062,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.18.8-0.10.orig/kernel/ptrace.c
-+++ linux-2.6.18.8-0.10/kernel/ptrace.c
+--- linux-2.6.18.8-0.11.orig/kernel/ptrace.c
++++ linux-2.6.18.8-0.11/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  
  #include <asm/pgtable.h>
@@ -1113,8 +1087,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.18.8-0.10.orig/kernel/sched.c
-+++ linux-2.6.18.8-0.10/kernel/sched.c
+--- linux-2.6.18.8-0.11.orig/kernel/sched.c
++++ linux-2.6.18.8-0.11/kernel/sched.c
 @@ -55,6 +55,9 @@
  #include <asm/tlb.h>
  
@@ -1136,8 +1110,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.18.8-0.10.orig/kernel/signal.c
-+++ linux-2.6.18.8-0.10/kernel/signal.c
+--- linux-2.6.18.8-0.11.orig/kernel/signal.c
++++ linux-2.6.18.8-0.11/kernel/signal.c
 @@ -28,6 +28,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -1187,8 +1161,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.18.8-0.10.orig/kernel/sys.c
-+++ linux-2.6.18.8-0.10/kernel/sys.c
+--- linux-2.6.18.8-0.11.orig/kernel/sys.c
++++ linux-2.6.18.8-0.11/kernel/sys.c
 @@ -36,6 +36,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1245,8 +1219,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.18.8-0.10.orig/kernel/sysctl.c
-+++ linux-2.6.18.8-0.10/kernel/sysctl.c
+--- linux-2.6.18.8-0.11.orig/kernel/sysctl.c
++++ linux-2.6.18.8-0.11/kernel/sysctl.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -1386,8 +1360,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.18.8-0.10.orig/kernel/time.c
-+++ linux-2.6.18.8-0.10/kernel/time.c
+--- linux-2.6.18.8-0.11.orig/kernel/time.c
++++ linux-2.6.18.8-0.11/kernel/time.c
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -1431,8 +1405,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18.8-0.10.orig/net/core/datagram.c
-+++ linux-2.6.18.8-0.10/net/core/datagram.c
+--- linux-2.6.18.8-0.11.orig/net/core/datagram.c
++++ linux-2.6.18.8-0.11/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1458,8 +1432,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  		if (skb)
  			return skb;
  
---- linux-2.6.18.8-0.10.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.18.8-0.10/net/ipv4/inet_connection_sock.c
+--- linux-2.6.18.8-0.11.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.18.8-0.11/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1481,8 +1455,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.18.8-0.10.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.18.8-0.10/net/ipv4/inet_hashtables.c
+--- linux-2.6.18.8-0.11.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.18.8-0.11/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1504,8 +1478,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18.8-0.10.orig/net/ipv4/udp.c
-+++ linux-2.6.18.8-0.10/net/ipv4/udp.c
+--- linux-2.6.18.8-0.11.orig/net/ipv4/udp.c
++++ linux-2.6.18.8-0.11/net/ipv4/udp.c
 @@ -108,6 +108,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1538,8 +1512,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.18.8-0.10.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.18.8-0.10/net/ipv6/inet6_hashtables.c
+--- linux-2.6.18.8-0.11.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.18.8-0.11/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1570,8 +1544,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18.8-0.10.orig/net/ipv6/udp.c
-+++ linux-2.6.18.8-0.10/net/ipv6/udp.c
+--- linux-2.6.18.8-0.11.orig/net/ipv6/udp.c
++++ linux-2.6.18.8-0.11/net/ipv6/udp.c
 @@ -58,6 +58,9 @@
  
  #include <linux/proc_fs.h>
@@ -1604,8 +1578,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.18.8-0.10.orig/net/socket.c
-+++ linux-2.6.18.8-0.10/net/socket.c
+--- linux-2.6.18.8-0.11.orig/net/socket.c
++++ linux-2.6.18.8-0.11/net/socket.c
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1698,8 +1672,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/suse/suse/update/10.2/rp
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.18.8-0.10.orig/net/unix/af_unix.c
-+++ linux-2.6.18.8-0.10/net/unix/af_unix.c
+--- linux-2.6.18.8-0.11.orig/net/unix/af_unix.c
++++ linux-2.6.18.8-0.11/net/unix/af_unix.c
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>

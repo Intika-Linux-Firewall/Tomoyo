@@ -9,7 +9,6 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  arch/mips/kernel/ptrace32.c     |    9 +++
  arch/powerpc/kernel/ptrace32.c  |    9 +++
  arch/s390/kernel/ptrace.c       |    9 +++
- arch/sh64/kernel/ptrace.c       |    9 +++
  arch/sparc/kernel/ptrace.c      |   11 +++
  arch/sparc64/kernel/ptrace.c    |   11 +++
  arch/x86_64/ia32/ptrace32.c     |    9 +++
@@ -45,10 +44,10 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 43 files changed, 712 insertions(+), 8 deletions(-)
+ 42 files changed, 703 insertions(+), 8 deletions(-)
 
---- linux-source-2.6.18-22.orig/arch/alpha/kernel/ptrace.c
-+++ linux-source-2.6.18-22/arch/alpha/kernel/ptrace.c
+--- linux-2.6.18-23.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.18-23/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -72,8 +71,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-source-2.6.18-22.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-source-2.6.18-22/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.18-23.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.18-23/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -97,8 +96,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.18-22.orig/arch/ia64/kernel/ptrace.c
-+++ linux-source-2.6.18-22/arch/ia64/kernel/ptrace.c
+--- linux-2.6.18-23.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.18-23/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -122,8 +121,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-source-2.6.18-22.orig/arch/m32r/kernel/ptrace.c
-+++ linux-source-2.6.18-22/arch/m32r/kernel/ptrace.c
+--- linux-2.6.18-23.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.18-23/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -147,8 +146,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.18-22.orig/arch/mips/kernel/ptrace32.c
-+++ linux-source-2.6.18-22/arch/mips/kernel/ptrace32.c
+--- linux-2.6.18-23.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.18-23/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -172,8 +171,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-source-2.6.18-22.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-source-2.6.18-22/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.18-23.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.18-23/arch/powerpc/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -197,8 +196,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-source-2.6.18-22.orig/arch/s390/kernel/ptrace.c
-+++ linux-source-2.6.18-22/arch/s390/kernel/ptrace.c
+--- linux-2.6.18-23.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.18-23/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -222,33 +221,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-source-2.6.18-22.orig/arch/sh64/kernel/ptrace.c
-+++ linux-source-2.6.18-22/arch/sh64/kernel/ptrace.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -271,6 +274,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
---- linux-source-2.6.18-22.orig/arch/sparc/kernel/ptrace.c
-+++ linux-source-2.6.18-22/arch/sparc/kernel/ptrace.c
+--- linux-2.6.18-23.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.18-23/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -274,8 +248,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-source-2.6.18-22.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-source-2.6.18-22/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.18-23.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.18-23/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -301,8 +275,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-source-2.6.18-22.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-source-2.6.18-22/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.18-23.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.18-23/arch/x86_64/ia32/ptrace32.c
 @@ -26,6 +26,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -326,8 +300,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-source-2.6.18-22.orig/fs/Kconfig
-+++ linux-source-2.6.18-22/fs/Kconfig
+--- linux-2.6.18-23.orig/fs/Kconfig
++++ linux-2.6.18-23/fs/Kconfig
 @@ -1931,5 +1931,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -336,16 +310,16 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
 +
  endmenu
  
---- linux-source-2.6.18-22.orig/fs/Makefile
-+++ linux-source-2.6.18-22/fs/Makefile
+--- linux-2.6.18-23.orig/fs/Makefile
++++ linux-2.6.18-23/fs/Makefile
 @@ -102,3 +102,5 @@ obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-source-2.6.18-22.orig/fs/attr.c
-+++ linux-source-2.6.18-22/fs/attr.c
+--- linux-2.6.18-23.orig/fs/attr.c
++++ linux-2.6.18-23/fs/attr.c
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -385,8 +359,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-source-2.6.18-22.orig/fs/compat.c
-+++ linux-source-2.6.18-22/fs/compat.c
+--- linux-2.6.18-23.orig/fs/compat.c
++++ linux-2.6.18-23/fs/compat.c
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -419,8 +393,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-source-2.6.18-22.orig/fs/exec.c
-+++ linux-source-2.6.18-22/fs/exec.c
+--- linux-2.6.18-23.orig/fs/exec.c
++++ linux-2.6.18-23/fs/exec.c
 @@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
@@ -470,8 +444,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-source-2.6.18-22.orig/fs/fcntl.c
-+++ linux-source-2.6.18-22/fs/fcntl.c
+--- linux-2.6.18-23.orig/fs/fcntl.c
++++ linux-2.6.18-23/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -495,8 +469,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-source-2.6.18-22.orig/fs/ioctl.c
-+++ linux-source-2.6.18-22/fs/ioctl.c
+--- linux-2.6.18-23.orig/fs/ioctl.c
++++ linux-2.6.18-23/fs/ioctl.c
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -518,8 +492,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-source-2.6.18-22.orig/fs/namei.c
-+++ linux-source-2.6.18-22/fs/namei.c
+--- linux-2.6.18-23.orig/fs/namei.c
++++ linux-2.6.18-23/fs/namei.c
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -754,8 +728,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-source-2.6.18-22.orig/fs/namespace.c
-+++ linux-source-2.6.18-22/fs/namespace.c
+--- linux-2.6.18-23.orig/fs/namespace.c
++++ linux-2.6.18-23/fs/namespace.c
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -869,8 +843,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-source-2.6.18-22.orig/fs/open.c
-+++ linux-source-2.6.18-22/fs/open.c
+--- linux-2.6.18-23.orig/fs/open.c
++++ linux-2.6.18-23/fs/open.c
 @@ -30,6 +30,12 @@
  #include <linux/audit.h>
  
@@ -933,8 +907,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-source-2.6.18-22.orig/fs/proc/Makefile
-+++ linux-source-2.6.18-22/fs/proc/Makefile
+--- linux-2.6.18-23.orig/fs/proc/Makefile
++++ linux-2.6.18-23/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -942,20 +916,20 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-source-2.6.18-22.orig/fs/proc/proc_misc.c
-+++ linux-source-2.6.18-22/fs/proc/proc_misc.c
+--- linux-2.6.18-23.orig/fs/proc/proc_misc.c
++++ linux-2.6.18-23/fs/proc/proc_misc.c
 @@ -723,4 +723,9 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-22 2008/08/20\n");
++	printk(KERN_INFO "Hook version: 2.6.18-23 2008/10/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-source-2.6.18-22.orig/include/linux/init_task.h
-+++ linux-source-2.6.18-22/include/linux/init_task.h
+--- linux-2.6.18-23.orig/include/linux/init_task.h
++++ linux-2.6.18-23/include/linux/init_task.h
 @@ -128,6 +128,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -967,8 +941,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  }
  
  
---- linux-source-2.6.18-22.orig/include/linux/sched.h
-+++ linux-source-2.6.18-22/include/linux/sched.h
+--- linux-2.6.18-23.orig/include/linux/sched.h
++++ linux-2.6.18-23/include/linux/sched.h
 @@ -25,6 +25,11 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -992,8 +966,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-source-2.6.18-22.orig/kernel/compat.c
-+++ linux-source-2.6.18-22/kernel/compat.c
+--- linux-2.6.18-23.orig/kernel/compat.c
++++ linux-2.6.18-23/kernel/compat.c
 @@ -24,6 +24,9 @@
  #include <linux/migrate.h>
  
@@ -1015,8 +989,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-source-2.6.18-22.orig/kernel/kexec.c
-+++ linux-source-2.6.18-22/kernel/kexec.c
+--- linux-2.6.18-23.orig/kernel/kexec.c
++++ linux-2.6.18-23/kernel/kexec.c
 @@ -26,6 +26,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -1038,8 +1012,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-source-2.6.18-22.orig/kernel/kmod.c
-+++ linux-source-2.6.18-22/kernel/kmod.c
+--- linux-2.6.18-23.orig/kernel/kmod.c
++++ linux-2.6.18-23/kernel/kmod.c
 @@ -148,6 +148,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -1052,8 +1026,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- linux-source-2.6.18-22.orig/kernel/module.c
-+++ linux-source-2.6.18-22/kernel/module.c
+--- linux-2.6.18-23.orig/kernel/module.c
++++ linux-2.6.18-23/kernel/module.c
 @@ -44,6 +44,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -1088,8 +1062,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-source-2.6.18-22.orig/kernel/ptrace.c
-+++ linux-source-2.6.18-22/kernel/ptrace.c
+--- linux-2.6.18-23.orig/kernel/ptrace.c
++++ linux-2.6.18-23/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  
  #include <asm/pgtable.h>
@@ -1113,8 +1087,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-source-2.6.18-22.orig/kernel/sched.c
-+++ linux-source-2.6.18-22/kernel/sched.c
+--- linux-2.6.18-23.orig/kernel/sched.c
++++ linux-2.6.18-23/kernel/sched.c
 @@ -55,6 +55,9 @@
  #include <asm/tlb.h>
  
@@ -1136,8 +1110,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-source-2.6.18-22.orig/kernel/signal.c
-+++ linux-source-2.6.18-22/kernel/signal.c
+--- linux-2.6.18-23.orig/kernel/signal.c
++++ linux-2.6.18-23/kernel/signal.c
 @@ -28,6 +28,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -1187,8 +1161,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	return do_tkill(0, pid, sig);
  }
---- linux-source-2.6.18-22.orig/kernel/sys.c
-+++ linux-source-2.6.18-22/kernel/sys.c
+--- linux-2.6.18-23.orig/kernel/sys.c
++++ linux-2.6.18-23/kernel/sys.c
 @@ -36,6 +36,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1245,8 +1219,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-source-2.6.18-22.orig/kernel/sysctl.c
-+++ linux-source-2.6.18-22/kernel/sysctl.c
+--- linux-2.6.18-23.orig/kernel/sysctl.c
++++ linux-2.6.18-23/kernel/sysctl.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -1386,8 +1360,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-source-2.6.18-22.orig/kernel/time.c
-+++ linux-source-2.6.18-22/kernel/time.c
+--- linux-2.6.18-23.orig/kernel/time.c
++++ linux-2.6.18-23/kernel/time.c
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -1431,8 +1405,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-source-2.6.18-22.orig/net/core/datagram.c
-+++ linux-source-2.6.18-22/net/core/datagram.c
+--- linux-2.6.18-23.orig/net/core/datagram.c
++++ linux-2.6.18-23/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1458,8 +1432,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		if (skb)
  			return skb;
  
---- linux-source-2.6.18-22.orig/net/ipv4/inet_connection_sock.c
-+++ linux-source-2.6.18-22/net/ipv4/inet_connection_sock.c
+--- linux-2.6.18-23.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.18-23/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1481,8 +1455,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-source-2.6.18-22.orig/net/ipv4/inet_hashtables.c
-+++ linux-source-2.6.18-22/net/ipv4/inet_hashtables.c
+--- linux-2.6.18-23.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.18-23/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1504,8 +1478,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-source-2.6.18-22.orig/net/ipv4/udp.c
-+++ linux-source-2.6.18-22/net/ipv4/udp.c
+--- linux-2.6.18-23.orig/net/ipv4/udp.c
++++ linux-2.6.18-23/net/ipv4/udp.c
 @@ -108,6 +108,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1538,8 +1512,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-source-2.6.18-22.orig/net/ipv6/inet6_hashtables.c
-+++ linux-source-2.6.18-22/net/ipv6/inet6_hashtables.c
+--- linux-2.6.18-23.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.18-23/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1570,8 +1544,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-source-2.6.18-22.orig/net/ipv6/udp.c
-+++ linux-source-2.6.18-22/net/ipv6/udp.c
+--- linux-2.6.18-23.orig/net/ipv6/udp.c
++++ linux-2.6.18-23/net/ipv6/udp.c
 @@ -58,6 +58,9 @@
  
  #include <linux/proc_fs.h>
@@ -1604,8 +1578,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-source-2.6.18-22.orig/net/socket.c
-+++ linux-source-2.6.18-22/net/socket.c
+--- linux-2.6.18-23.orig/net/socket.c
++++ linux-2.6.18-23/net/socket.c
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1698,8 +1672,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-source-2.6.18-22.orig/net/unix/af_unix.c
-+++ linux-source-2.6.18-22/net/unix/af_unix.c
+--- linux-2.6.18-23.orig/net/unix/af_unix.c
++++ linux-2.6.18-23/net/unix/af_unix.c
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>

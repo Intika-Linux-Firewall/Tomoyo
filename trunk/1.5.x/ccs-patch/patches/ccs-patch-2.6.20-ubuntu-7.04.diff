@@ -9,7 +9,6 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  arch/mips/kernel/ptrace32.c     |    9 +++
  arch/powerpc/kernel/ptrace32.c  |    9 +++
  arch/s390/kernel/ptrace.c       |    9 +++
- arch/sh64/kernel/ptrace.c       |    9 +++
  arch/sparc/kernel/ptrace.c      |   11 +++
  arch/sparc64/kernel/ptrace.c    |   11 +++
  arch/x86_64/ia32/ptrace32.c     |    9 +++
@@ -45,7 +44,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   42 ++++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 43 files changed, 698 insertions(+), 6 deletions(-)
+ 42 files changed, 689 insertions(+), 6 deletions(-)
 
 --- linux-2.6.20-17.39.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.20-17.39/arch/alpha/kernel/ptrace.c
@@ -222,31 +221,6 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-2.6.20-17.39.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.20-17.39/arch/sh64/kernel/ptrace.c
-@@ -35,6 +35,9 @@
- #include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+/***** TOMOYO Linux end. *****/
- 
- /* This mask defines the bits of the SR which the user is not allowed to
-    change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -271,6 +274,12 @@ asmlinkage int sh64_ptrace(long request,
- 	extern void poke_real_address_q(unsigned long long addr, unsigned long long data);
- #define WPC_DBRMODE 0x0d104008
- 	static int first_call = 1;
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 
- 	lock_kernel();
- 	if (first_call) {
 --- linux-2.6.20-17.39.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.20-17.39/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
@@ -944,7 +918,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.20.3-ubuntu1 2008/08/20\n");
++	printk(KERN_INFO "Hook version: 2.6.20-17.39 2008/10/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
