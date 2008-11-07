@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-42.28AX.src.rpm ]
+if [ ! -r kernel-2.6.9-42.29AX.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.28AX.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.29AX.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-42.28AX.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-42.29AX.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.4-20080903.tar.gz ]
@@ -30,14 +30,14 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-09-17 12:44:56.000000000 +0900
-+++ kernel-2.6.spec	2008-10-07 16:29:55.000000000 +0900
+--- kernel-2.6.spec	2008-11-05 16:44:14.000000000 +0900
++++ kernel-2.6.spec	2008-11-07 16:25:21.000000000 +0900
 @@ -29,7 +29,7 @@
  # adding some text to the end of the version number.
  #
  %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
--%define release 42.28AX%{axbsys}
-+%define release 42.28AX%{axbsys}_tomoyo_1.6.4
+-%define release 42.29AX%{axbsys}
++%define release 42.29AX%{axbsys}_tomoyo_1.6.4
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -4150,6 +4153,10 @@
+@@ -4164,6 +4167,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -71,7 +71,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -4161,6 +4168,9 @@
+@@ -4175,6 +4182,9 @@
  for i in *.config 
  do 
  	mv $i .config 
