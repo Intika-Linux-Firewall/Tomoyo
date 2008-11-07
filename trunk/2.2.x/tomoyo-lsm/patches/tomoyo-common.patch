@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2209 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h |  320 ++++++
- 2 files changed, 2529 insertions(+)
+ security/tomoyo/common.c | 2175 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |  344 +++++++
+ 2 files changed, 2519 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2209 @@
+@@ -0,0 +1,2175 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -87,37 +87,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns true if @str is a \ooo style octal value, false otherwise.
 + */
-+static bool is_byte_range(const char *str)
++static inline bool is_byte_range(const char *str)
 +{
 +	return *str >= '0' && *str++ <= '3' &&
 +		*str >= '0' && *str++ <= '7' &&
 +		*str >= '0' && *str <= '7';
-+}
-+
-+/**
-+ * is_decimal - Check whether the character is a decimal character.
-+ *
-+ * @c: The character to check.
-+ *
-+ * Returns true if @c is a decimal character, false otherwise.
-+ */
-+static bool is_decimal(const char c)
-+{
-+	return c >= '0' && c <= '9';
-+}
-+
-+/**
-+ * is_hexadecimal - Check whether the character is a hexadecimal character.
-+ *
-+ * @c: The character to check.
-+ *
-+ * Returns true if @c is a hexadecimal character, false otherwise.
-+ */
-+static bool is_hexadecimal(const char c)
-+{
-+	return (c >= '0' && c <= '9') ||
-+		(c >= 'A' && c <= 'F') ||
-+		(c >= 'a' && c <= 'f');
 +}
 +
 +/**
@@ -127,9 +101,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns true if @c is an alphabet character, false otherwise.
 + */
-+static bool is_alphabet_char(const char c)
++static inline bool is_alphabet_char(const char c)
 +{
-+	return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
++	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 +}
 +
 +/**
@@ -141,7 +115,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns byte value.
 + */
-+static u8 make_byte(const u8 c1, const u8 c2, const u8 c3)
++static inline u8 make_byte(const u8 c1, const u8 c2, const u8 c3)
 +{
 +	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
 +}
@@ -185,15 +159,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	unsigned char *dp = buffer;
 +	bool first = true;
 +
-+	while (*sp && (*sp <= ' ' || *sp >= 127))
++	while (is_invalid(*sp))
 +		sp++;
 +	while (*sp) {
 +		if (!first)
 +			*dp++ = ' ';
 +		first = false;
-+		while (*sp > ' ' && *sp < 127)
++		while (is_valid(*sp))
 +			*dp++ = *sp++;
-+		while (*sp && (*sp <= ' ' || *sp >= 127))
++		while (is_invalid(*sp))
 +			sp++;
 +	}
 +	*dp = '\0';
@@ -234,7 +208,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			goto out;
 +	}
 +	if (c)
-+		c = *(strchr(filename, '\0') - 1);
++		c = *(filename + strlen(filename) - 1);
 +	if (end_type == 1) { /* Must end with '/' */
 +		if (c != '/')
 +			goto out;
@@ -272,11 +246,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				if (e < '0' || e > '7')
 +					break;
 +				c = make_byte(c, d, e);
-+				if (c && (c <= ' ' || c >= 127))
++				if (is_invalid(c))
 +					continue; /* pattern is not \000 */
 +			}
 +			goto out;
-+		} else if (c <= ' ' || c >= 127) {
++		} else if (is_invalid(c)) {
 +			goto out;
 +		}
 +	}
@@ -334,12 +308,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +					if (e < '0' || e > '7')
 +						break;
 +					c = make_byte(c, d, e);
-+					if (c && (c <= ' ' || c >= 127))
++					if (is_invalid(c))
 +						/* pattern is not \000 */
 +						continue;
 +				}
 +				goto out;
-+			} else if (c < ' ' || c >= 127) {
++			} else if (is_invalid(c)) {
 +				goto out;
 +			}
 +		}
@@ -400,7 +374,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	int i = 0;
 +
 +	if (pathname) {
-+		char *ep = strchr(pathname, '\0');
++		const char *ep = pathname + strlen(pathname);
 +		if (pathname < ep--) {
 +			if (*ep != '/')
 +				i++;
@@ -521,11 +495,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				return false;
 +			break;
 +		case '+':
-+			if (!is_decimal(c))
++			if (!isdigit(c))
 +				return false;
 +			break;
 +		case 'x':
-+			if (!is_hexadecimal(c))
++			if (!isxdigit(c))
 +				return false;
 +			break;
 +		case 'a':
@@ -568,10 +542,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			j = 0;
 +			c = *pattern;
 +			if (c == '$') {
-+				while (is_decimal(filename[j]))
++				while (isdigit(filename[j]))
 +					j++;
 +			} else if (c == 'X') {
-+				while (is_hexadecimal(filename[j]))
++				while (isxdigit(filename[j]))
 +					j++;
 +			} else if (c == 'A') {
 +				while (is_alphabet_char(filename[j]))
@@ -680,9 +654,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		const char *f_delimiter = strchr(f, '/');
 +		const char *p_delimiter = strchr(p, '/');
 +		if (!f_delimiter)
-+			f_delimiter = strchr(f, '\0');
++			f_delimiter = f + strlen(f);
 +		if (!p_delimiter)
-+			p_delimiter = strchr(p, '\0');
++			p_delimiter = p + strlen(p);
 +		if (!file_matches_to_pattern(f, f_delimiter, p, p_delimiter))
 +			return false;
 +		f = f_delimiter;
@@ -781,16 +755,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	const u8 profile = domain->profile;
 +
-+	if (unlikely(in_interrupt())) {
-+		static u8 count = 20;
-+		if (count) {
-+			count--;
-+			printk(KERN_ERR "BUG: sleeping function called "
-+			       "from invalid context.\n");
-+			dump_stack();
-+		}
++	if (WARN_ON(in_interrupt()))
 +		return 0;
-+	}
 +	return sbin_init_started && index < TMY_MAX_CONTROL_INDEX
 +#if MAX_PROFILES != 256
 +		&& profile < MAX_PROFILES
@@ -813,13 +779,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * tmy_check_domain_quota - Check for domain's quota.
++ * tmy_domain_quota_is_ok - Check for domain's quota.
 + *
 + * @domain: Pointer to "struct domain_info".
 + *
 + * Returns true if the domain is not exceeded quota, false otherwise.
 + */
-+bool tmy_check_domain_quota(struct domain_info * const domain)
++bool tmy_domain_quota_is_ok(struct domain_info * const domain)
 +{
 +	unsigned int count = 0;
 +	struct acl_info *ptr;
@@ -2224,7 +2190,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +fs_initcall(tmy_initerface_init);
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/common.h
-@@ -0,0 +1,320 @@
+@@ -0,0 +1,344 @@
 +/*
 + * security/tomoyo/common.h
 + *
@@ -2239,6 +2205,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#ifndef _SECURITY_TOMOYO_COMMON_H
 +#define _SECURITY_TOMOYO_COMMON_H
 +
++#include <linux/ctype.h>
 +#include <linux/string.h>
 +#include <linux/mm.h>
 +#include <linux/file.h>
@@ -2251,9 +2218,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +struct dentry;
 +struct vfsmount;
-+
-+#define false 0
-+#define true 1
 +
 +/* Temporary buffer for holding pathnames. */
 +struct tmy_page_buffer {
@@ -2303,7 +2267,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	 * MSB is is_deleted flag.
 +	 */
 +	u8 type;
-+} __attribute__((__packed__));
++} __packed;
 +
 +/* This ACL entry is deleted.           */
 +#define ACL_DELETED        0x80
@@ -2426,7 +2390,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +};
 +
 +/* Check whether the domain has too many ACL entries to hold. */
-+bool tmy_check_domain_quota(struct domain_info * const domain);
++bool tmy_domain_quota_is_ok(struct domain_info * const domain);
 +/* Transactional sprintf() for policy dump. */
 +bool tmy_io_printf(struct tmy_io_buffer *head, const char *fmt, ...)
 +	__attribute__ ((format(printf, 2, 3)));
@@ -2535,6 +2499,32 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return ptr->type;
 +}
 +
++
++/**
++ * is_valid - Check whether the character is a valid char.
++ *
++ * @c: The character to check.
++ *
++ * Returns true if @c is a valid character, false otherwise.
++ */
++static inline bool is_valid(const unsigned char c)
++{
++	return c > ' ' && c < 127;
++}
++
++
++/**
++ * is_invalid - Check whether the character is an invalid char.
++ *
++ * @c: The character to check.
++ *
++ * Returns true if @c is an invalid character, false otherwise.
++ */
++static inline bool is_invalid(const unsigned char c)
++{
++	return c && (c <= ' ' || c >= 127);
++}
++
 +/* The list for "struct domain_info". */
 +extern struct list1_head domain_list;
 +
@@ -2542,6 +2532,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +extern bool sbin_init_started;
 +
 +/* The kernel's domain. */
-+extern struct domain_info KERNEL_DOMAIN;
++extern struct domain_info kernel_domain;
 +
 +#endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */

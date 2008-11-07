@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  540 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.h |   60 +++++
- 2 files changed, 600 insertions(+)
+ security/tomoyo/realpath.c |  543 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.h |   60 ++++
+ 2 files changed, 603 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/realpath.c
-@@ -0,0 +1,540 @@
+@@ -0,0 +1,543 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -82,7 +82,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			*dp++ = c;
 +			if (c == '\\') {
 +				*dp++ = '\\';
-+			} else if (c > ' ' && c < 127) {
++			} else if (is_valid(c)) {
 +				continue;
 +			} else if (!c) {
 +				error = 0;
@@ -361,21 +361,21 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		panic("Bad size.");
 +	for (i = 0; i < MAX_HASH; i++)
 +		INIT_LIST1_HEAD(&name_list[i]);
-+	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
-+	KERNEL_DOMAIN.domainname = tmy_save_name(ROOT_NAME);
-+	list1_add_tail(&KERNEL_DOMAIN.list, &domain_list);
-+	if (tmy_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
-+		panic("Can't register KERNEL_DOMAIN");
++	INIT_LIST1_HEAD(&kernel_domain.acl_info_list);
++	kernel_domain.domainname = tmy_save_name(ROOT_NAME);
++	list1_add_tail(&kernel_domain.list, &domain_list);
++	if (tmy_find_domain(ROOT_NAME) != &kernel_domain)
++		panic("Can't register kernel_domain");
 +	return 0;
 +}
 +
 +security_initcall(tmy_realpath_init);
 +
-+/* Memory allocated for temporal purpose. */
++/* Memory allocated for temporary purpose. */
 +static atomic_t dynamic_memory_size;
 +
 +/**
-+ * tmy_alloc - Allocate memory for temporal purpose.
++ * tmy_alloc - Allocate memory for temporary purpose.
 + *
 + * @size: Size in bytes.
 + *
@@ -420,7 +420,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				goto out;
 +			*--end = '\\';
 +			*--end = '\\';
-+		} else if (c > ' ' && c < 127) {
++		} else if (is_valid(c)) {
 +			if (--buflen < 0)
 +				goto out;
 +			*--end = (char) c;
@@ -443,6 +443,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return error;
 +}
 +
++#ifdef CONFIG_SYSCTL
 +
 +/* tmy_realpath_from_path2() for "struct ctl_table". */
 +static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
@@ -468,7 +469,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
 +			sp = buf;
 +		}
-+		cp = strchr(sp, '\0') - 1;
++		cp = sp + strlen(sp) - 1;
 +
 +		if (tmy_print_ascii(sp, cp, &buflen, &end))
 +			goto out;
@@ -507,6 +508,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	tmy_free(buf);
 +	return NULL;
 +}
++
++#endif /* CONFIG_SYSCTL */
 +
 +/**
 + * tmy_read_memory_counter - Check for memory usage.
