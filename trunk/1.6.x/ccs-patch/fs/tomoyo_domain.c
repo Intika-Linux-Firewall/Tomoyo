@@ -886,7 +886,7 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
  * get_argv0 - Get argv[0].
  *
  * @bprm: Pointer to "struct linux_binprm".
- * @tmp:  Buffer for temporal use.
+ * @tmp:  Buffer for temporary use.
  *
  * Returns true on success, false otherwise.
  */
