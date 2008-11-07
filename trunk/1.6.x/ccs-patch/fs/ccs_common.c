@@ -317,7 +317,7 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			goto out;
 	}
 	if (c)
-		c = *(strchr(filename, '\0') - 1);
+		c = *(filename + strlen(filename) - 1);
 	if (end_type == 1) { /* Must end with '/' */
 		if (c != '/')
 			goto out;
@@ -487,7 +487,7 @@ static int path_depth(const char *pathname)
 {
 	int i = 0;
 	if (pathname) {
-		char *ep = strchr(pathname, '\0');
+		const char *ep = pathname + strlen(pathname);
 		if (pathname < ep--) {
 			if (*ep != '/')
 				i++;
@@ -766,9 +766,9 @@ bool ccs_path_matches_pattern(const struct path_info *filename,
 		const char *f_delimiter = strchr(f, '/');
 		const char *p_delimiter = strchr(p, '/');
 		if (!f_delimiter)
-			f_delimiter = strchr(f, '\0');
+			f_delimiter = f + strlen(f);
 		if (!p_delimiter)
-			p_delimiter = strchr(p, '\0');
+			p_delimiter = p + strlen(p);
 		if (!file_matches_to_pattern(f, f_delimiter, p, p_delimiter))
 			return false;
 		f = f_delimiter;

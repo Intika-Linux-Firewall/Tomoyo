@@ -855,7 +855,7 @@ static int syaoran_check_flags(struct syaoran_sb_info *info,
 		flags &= ~DEVICE_USED;
 		{
 			char *end = filename + sizeof(filename) - 1;
-			const char *cp = strchr(filename, '\0') - 1;
+			const char *cp = filename + strlen(filename) - 1;
 			while (cp > filename && end > cp &&
 			       end > filename + 16) {
 				const unsigned char c = *cp--;
