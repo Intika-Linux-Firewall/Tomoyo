@@ -574,7 +574,7 @@ static int round2(size_t size)
 #endif
 
 /**
- * ccs_alloc - Allocate memory for temporal purpose.
+ * ccs_alloc - Allocate memory for temporary purpose.
  *
  * @size: Size in bytes.
  *

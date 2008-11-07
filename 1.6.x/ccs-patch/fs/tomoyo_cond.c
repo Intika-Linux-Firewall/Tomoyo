@@ -117,7 +117,7 @@ static bool check_envp(const char *env_name, const char *env_value,
  * @argv: Pointer to "struct argv_entry".
  * @envc: Length of @envp.
  * @envp: Poiner to "struct envp_entry".
- * @tmp:  Buffer for temporal use.
+ * @tmp:  Buffer for temporary use.
  *
  * Returns true on success, false otherwise.
  */
