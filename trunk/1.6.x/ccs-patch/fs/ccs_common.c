@@ -173,7 +173,7 @@ __setup("TOMOYO_QUIET", tomoyo_quiet_setup);
  *
  * Returns true if @str is a \ooo style octal value, false otherwise.
  */
-static bool is_byte_range(const char *str)
+static inline bool is_byte_range(const char *str)
 {
 	return *str >= '0' && *str++ <= '3' &&
 		*str >= '0' && *str++ <= '7' &&
@@ -187,7 +187,7 @@ static bool is_byte_range(const char *str)
  *
  * Returns true if @c is a decimal character, false otherwise.
  */
-static bool is_decimal(const char c)
+static inline bool is_decimal(const char c)
 {
 	return c >= '0' && c <= '9';
 }
@@ -199,7 +199,7 @@ static bool is_decimal(const char c)
  *
  * Returns true if @c is a hexadecimal character, false otherwise.
  */
-static bool is_hexadecimal(const char c)
+static inline bool is_hexadecimal(const char c)
 {
 	return (c >= '0' && c <= '9') ||
 		(c >= 'A' && c <= 'F') ||
@@ -213,9 +213,9 @@ static bool is_hexadecimal(const char c)
  *
  * Returns true if @c is an alphabet character, false otherwise.
  */
-static bool is_alphabet_char(const char c)
+static inline bool is_alphabet_char(const char c)
 {
-	return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
 /**
@@ -227,7 +227,7 @@ static bool is_alphabet_char(const char c)
  *
  * Returns byte value.
  */
-static u8 make_byte(const u8 c1, const u8 c2, const u8 c3)
+static inline u8 make_byte(const u8 c1, const u8 c2, const u8 c3)
 {
 	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
 }
