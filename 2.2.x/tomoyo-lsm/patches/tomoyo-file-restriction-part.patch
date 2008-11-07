@@ -697,7 +697,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		       filename->name, tmy_get_last_name(domain));
 +	if (is_enforce)
 +		return error;
-+	if (mode == 1 && tmy_check_domain_quota(domain)) {
++	if (mode == 1 && tmy_domain_quota_is_ok(domain)) {
 +		/* Don't use patterns for execute permission. */
 +		const struct path_info *patterned_file = (perm != 1) ?
 +			get_file_pattern(filename) : filename;
@@ -995,7 +995,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
 +		       tmy_get_msg(is_enforce), msg, filename->name,
 +		       tmy_get_last_name(domain));
-+	if (mode == 1 && tmy_check_domain_quota(domain))
++	if (mode == 1 && tmy_domain_quota_is_ok(domain))
 +		update_single_path_acl(operation,
 +				       get_file_pattern(filename)->name,
 +				       domain, false);
@@ -1041,7 +1041,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @domain:   Pointer to "struct domain_info".
 + * @filename: Check permission for "execute".
-+ * @tmp:      Buffer for temporal use.
++ * @tmp:      Buffer for temporary use.
 + *
 + * Returns 0 on success, negativevalue otherwise.
 + */
@@ -1232,7 +1232,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
 +		       "denied for %s\n", tmy_get_msg(is_enforce),
 +		       msg, buf1->name, buf2->name, tmy_get_last_name(domain));
-+	if (mode == 1 && tmy_check_domain_quota(domain))
++	if (mode == 1 && tmy_domain_quota_is_ok(domain))
 +		update_double_path_acl(operation,
 +				       get_file_pattern(buf1)->name,
 +				       get_file_pattern(buf2)->name,

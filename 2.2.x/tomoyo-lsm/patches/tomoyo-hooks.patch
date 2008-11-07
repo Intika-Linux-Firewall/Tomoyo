@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  376 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  105 +++++++++++++
- 2 files changed, 481 insertions(+)
+ security/tomoyo/tomoyo.c |  380 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  105 ++++++++++++
+ 2 files changed, 485 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,376 @@
+@@ -0,0 +1,380 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -82,6 +82,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return tmy_check_open_permission(domain, &bprm->file->f_path, 1);
 +}
 +
++#ifdef CONFIG_SYSCTL
 +static int tmy_sysctl(struct ctl_table *table, int op)
 +{
 +	int error;
@@ -97,6 +98,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	tmy_free(name);
 +	return error;
 +}
++#endif
 +
 +/**
 + * tmy_update_result - Update error code.
@@ -349,7 +351,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.cred_prepare              = tmy_cred_prepare,
 +	.bprm_set_creds            = tmy_bprm_set_creds,
 +	.bprm_check_security       = tmy_bprm_check_security,
++#ifdef CONFIG_SYSCTL
 +	.sysctl                    = tmy_sysctl,
++#endif
 +	.file_fcntl                = tmy_file_fcntl,
 +	.dentry_open               = tmy_dentry_open,
 +	.path_truncate             = tmy_path_truncate,
@@ -382,7 +386,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
-+	cred->security = &KERNEL_DOMAIN;
++	cred->security = &kernel_domain;
 +	return 0;
 +}
 +
@@ -475,7 +479,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TMY_MANAGER               8
 +#define TMY_UPDATESCOUNTER        9
 +
-+extern struct domain_info KERNEL_DOMAIN;
++extern struct domain_info kernel_domain;
 +
 +static inline struct domain_info *tmy_domain(void)
 +{

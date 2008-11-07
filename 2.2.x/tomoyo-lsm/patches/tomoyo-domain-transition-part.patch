@@ -37,7 +37,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Variables definitions.*/
 +
 +/* The initial domain. */
-+struct domain_info KERNEL_DOMAIN;
++struct domain_info kernel_domain;
 +
 +/*
 + * The list for "struct domain_info".
@@ -594,8 +594,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/* Is there an active domain? */
 +	list1_for_each_entry(domain, &domain_list, list) {
 +		struct domain_info *domain2;
-+		/* Never delete KERNEL_DOMAIN */
-+		if (domain == &KERNEL_DOMAIN)
++		/* Never delete kernel_domain */
++		if (domain == &kernel_domain)
 +			continue;
 +		if (domain->is_deleted ||
 +		    tmy_pathcmp(domain->domainname, &name))
@@ -839,10 +839,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	new_domain_name = tmp->buffer;
 +	if (is_domain_initializer(old_domain->domainname, &r, &l)) {
-+		/* Transit to the child of KERNEL_DOMAIN domain. */
++		/* Transit to the child of kernel_domain domain. */
 +		snprintf(new_domain_name, TMY_MAX_PATHNAME_LEN + 1,
 +			 ROOT_NAME " " "%s", real_program_name);
-+	} else if (old_domain == &KERNEL_DOMAIN && !sbin_init_started) {
++	} else if (old_domain == &kernel_domain && !sbin_init_started) {
 +		/*
 +		 * Needn't to transit from kernel domain before starting
 +		 * /sbin/init. But transit from kernel domain if executing
