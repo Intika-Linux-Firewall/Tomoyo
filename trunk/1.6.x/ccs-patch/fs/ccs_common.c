@@ -2971,6 +2971,13 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->write = write_domain_profile;
 		head->read = read_domain_profile;
 		break;
+	case CCS_EXECUTE_HANDLER: /* /proc/ccs/.execute_handler */
+		/* Allow execute_handler to read process's status. */
+		if (!(current->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)) {
+			ccs_free(head);
+			return -EPERM;
+		}
+		/* fall through */
 	case CCS_PROCESS_STATUS: /* /proc/ccs/.process_status */
 		head->write = write_pid;
 		head->read = read_pid;

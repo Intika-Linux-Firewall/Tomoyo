@@ -223,6 +223,7 @@ static int __init ccs_proc_init(void)
 	create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
 	create_entry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
 	create_entry("version",          0400, ccs_dir, CCS_VERSION);
+	create_entry(".execute_handler", 0666, ccs_dir, CCS_EXECUTE_HANDLER);
 	if (sizeof(struct ccs_page_buffer) < CCS_MAX_PATHNAME_LEN + 1)
 		panic("Bad size!");
 	return 0;

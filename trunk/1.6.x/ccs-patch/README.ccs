@@ -1716,4 +1716,15 @@ Fix 2008/11/07
       is_alphabet_char() should match 'A' - 'Z' and 'a' - 'z',
       but was matching from 'A' - 'F' and 'a' - 'f'.
 
+    @ Add /proc/ccs/.execute_handler .
+
+      Process information became visible to userspace by
+      "Show process information in /proc/ccs/.process_status" feature.
+      However, programs specified by execute_handler keyword may run as
+      non root user, making it impossible to see process information.
+
+      So, I added a new interface that allows execute handler processes
+      to see process information. The content of /proc/ccs/.execute_handler is
+      identical to /proc/ccs/.process_status .
+
 Version 1.6.5   2008/11/??   Third anniversary release.
