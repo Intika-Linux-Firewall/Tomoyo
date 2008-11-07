@@ -349,7 +349,7 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 				ccs_print_ipv6(buf, sizeof(buf), min_address);
 				if (min_address != max_address) {
 					int len;
-					char *cp = strchr(buf, '\0');
+					char *cp = buf + strlen(buf);
 					*cp++ = '-';
 					len = strlen(buf);
 					ccs_print_ipv6(cp, sizeof(buf) - len,

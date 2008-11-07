@@ -376,7 +376,7 @@ static bool parse_argv(char *start, struct argv_entry *argv)
 		goto out;
 	if (*start++ != '"')
 		goto out;
-	cp = strchr(start, '\0') - 1;
+	cp = start + strlen(start) - 1;
 	if (cp < start || *cp != '"')
 		goto out;
 	*cp = '\0';
@@ -439,7 +439,7 @@ static bool parse_envp(char *start, struct envp_entry *envp)
 	} else {
 		if (*start++ != '"')
 			goto out;
-		cp = strchr(start, '\0') - 1;
+		cp = start + strlen(start) - 1;
 		if (cp < start || *cp != '"')
 			goto out;
 		*cp = '\0';
