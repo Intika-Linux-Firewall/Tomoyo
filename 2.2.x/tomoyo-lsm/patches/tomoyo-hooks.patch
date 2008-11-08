@@ -4,13 +4,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  380 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  105 ++++++++++++
- 2 files changed, 485 insertions(+)
+ security/tomoyo/tomoyo.c |  438 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  105 +++++++++++
+ 2 files changed, 543 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,380 @@
+@@ -0,0 +1,438 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -83,6 +83,64 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +#ifdef CONFIG_SYSCTL
++
++static int prepend(char **buffer, int *buflen, const char *str)
++{
++	int namelen = strlen(str);
++
++	if (*buflen < namelen)
++		return -ENOMEM;
++	*buflen -= namelen;
++	*buffer -= namelen;
++	memcpy(*buffer, str, namelen);
++	return 0;
++}
++
++/**
++ * sysctlpath_from_table - return the realpath of a ctl_table.
++ * @table: pointer to "struct ctl_table".
++ *
++ * Returns realpath(3) of the @table on success.
++ * Returns NULL on failure.
++ *
++ * This function uses tmy_alloc(), so the caller must call tmy_free()
++ * if this function didn't return NULL.
++ */
++static char *sysctl_path(struct ctl_table *table)
++{
++	int buflen = TMY_MAX_PATHNAME_LEN;
++	char *buf = tmy_alloc(buflen);
++	char *end = buf + buflen;
++	int error = -ENOMEM;
++
++	if (!buf)
++		return NULL;
++
++	*--end = '\0';
++	buflen--;
++	while (table) {
++		char buf[32];
++		const char *sp = table->procname;
++
++		if (!sp) {
++			memset(buf, 0, sizeof(buf));
++			snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
++			sp = buf;
++		}
++		if (prepend(&end, &buflen, sp) || prepend(&end, &buflen, "/"))
++			goto out;
++		table = table->parent;
++	}
++	if (prepend(&end, &buflen, "/proc/sys"))
++		goto out;
++	error = tmy_encode(buf, end - buf, end);
++ out:
++	if (!error)
++		return buf;
++	tmy_free(buf);
++	return NULL;
++}
++
 +static int tmy_sysctl(struct ctl_table *table, int op)
 +{
 +	int error;
@@ -91,7 +149,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	op &= MAY_READ | MAY_WRITE;
 +	if (!op)
 +		return 0;
-+	name = sysctlpath_from_table(table);
++	name = sysctl_path(table);
 +	if (!name)
 +		return -ENOMEM;
 +	error = tmy_check_file_perm(tmy_domain(), name, op);

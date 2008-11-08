@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  543 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.h |   60 ++++
- 2 files changed, 603 insertions(+)
+ security/tomoyo/realpath.c |  443 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.h |   61 ++++++
+ 2 files changed, 504 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/realpath.c
-@@ -0,0 +1,543 @@
+@@ -0,0 +1,443 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -35,10 +35,50 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +#include <linux/types.h>
 +#include <linux/mount.h>
-+#include <linux/magic.h>
-+#include <linux/sysctl.h>
 +#include "common.h"
 +#include "realpath.h"
++
++/**
++ * tmy_encode: Convert binary string to ascii string.
++ *
++ * @buffer:  Buffer for ASCII string.
++ * @buflen:  Size of @buffer.
++ * @str:     Binary string.
++ *
++ * Returns 0 on success, -ENOMEM otherwise.
++ */
++int tmy_encode(char *buffer, int buflen, const char *str)
++{
++	while (1) {
++		const unsigned char c = *(unsigned char *) str++;
++
++		if (is_valid(c)) {
++			if (--buflen <= 0)
++				break;
++			*buffer++ = (char) c;
++			if (c != '\\')
++				continue;
++			if (--buflen <= 0)
++				break;
++			*buffer++ = (char) c;
++			continue;
++		}
++		if (!c) {
++			if (--buflen <= 0)
++				break;
++			*buffer = '\0';
++			return 0;
++		}
++		buflen -= 4;
++		if (buflen <= 0)
++			break;
++		*buffer++ = '\\';
++		*buffer++ = (c >> 6) + '0';
++		*buffer++ = ((c >> 3) & 7) + '0';
++		*buffer++ = (c & 7) + '0';
++	}
++	return -ENOMEM;
++}
 +
 +/**
 + * tmy_realpath_from_path2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
@@ -75,25 +115,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (IS_ERR(sp)) {
 +		error = PTR_ERR(sp);
 +	} else {
-+		char *dp = newname;
-+		newname += newname_len - 5;
-+		while (dp <= newname) {
-+			const unsigned char c = *(unsigned char *) sp++;
-+			*dp++ = c;
-+			if (c == '\\') {
-+				*dp++ = '\\';
-+			} else if (is_valid(c)) {
-+				continue;
-+			} else if (!c) {
-+				error = 0;
-+				break;
-+			} else {
-+				*dp++ = '\\';
-+				*dp++ = (c >> 6) + '0';
-+				*dp++ = ((c >> 3) & 7) + '0';
-+				*dp++ = (c & 7) + '0';
-+			}
-+		}
++		error = tmy_encode(newname, sp - newname, sp);
 +	}
 +	if (error)
 +		printk(KERN_WARNING "tmy_realpath: Pathname too long.\n");
@@ -114,8 +136,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	char *buf = tmy_alloc(sizeof(struct tmy_page_buffer));
 +
++	BUILD_BUG_ON(sizeof(struct tmy_page_buffer)
++		     <= TMY_MAX_PATHNAME_LEN - 1);
 +	if (buf && tmy_realpath_from_path2(path, buf,
-+					     TMY_MAX_PATHNAME_LEN - 1) == 0)
++					   TMY_MAX_PATHNAME_LEN - 1) == 0)
 +		return buf;
 +	tmy_free(buf);
 +	return NULL;
@@ -159,26 +183,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return NULL;
 +}
 +
-+/**
-+ * round_up - Round up an integer so that the returned pointers are appropriately aligned.
-+ *
-+ * @size: Size in bytes.
-+ *
-+ * Returns rounded value of @size.
-+ *
-+ * FIXME: Are there more requirements that is needed for assigning value
-+ * atomically?
-+ */
-+static inline unsigned int round_up(const unsigned int size)
-+{
-+	if (sizeof(void *) >= sizeof(long))
-+		return ((size + sizeof(void *) - 1)
-+			/ sizeof(void *)) * sizeof(void *);
-+	else
-+		return ((size + sizeof(long) - 1)
-+			/ sizeof(long)) * sizeof(long);
-+}
-+
 +/* Memory allocated for non-string data. */
 +static unsigned int allocated_memory_for_elements;
 +/* Quota for holding non-string data. */
@@ -191,24 +195,26 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns pointer to allocated memory on success, NULL otherwise.
 + *
++ * Memory has to be zeroed.
 + * The RAM is chunked, so NEVER try to kfree() the returned pointer.
 + */
 +void *tmy_alloc_element(const unsigned int size)
 +{
 +	static char *buf;
 +	static DEFINE_MUTEX(lock);
-+	static unsigned int buf_used_len = PAGE_SIZE;
++	static unsigned int buf_used_len = PATH_MAX;
 +	char *ptr = NULL;
-+	const unsigned int word_aligned_size = round_up(size);
-+
-+	if (word_aligned_size > PAGE_SIZE)
++	/*Assumes sizeof(void *) >= sizeof(long) is true. */
++	const unsigned int word_aligned_size
++		= roundup(size, max(sizeof(void *), sizeof(long)));
++	if (word_aligned_size > PATH_MAX)
 +		return NULL;
 +	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
-+	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
++	if (buf_used_len + word_aligned_size > PATH_MAX) {
 +		if (!quota_for_elements || allocated_memory_for_elements
-+		    + PAGE_SIZE <= quota_for_elements)
-+			ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
++		    + PATH_MAX <= quota_for_elements)
++			ptr = kzalloc(PATH_MAX, GFP_KERNEL);
 +		if (!ptr) {
 +			printk(KERN_WARNING "ERROR: Out of memory "
 +			       "for tmy_alloc_element().\n");
@@ -216,7 +222,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				panic("MAC Initialization failed.\n");
 +		} else {
 +			buf = ptr;
-+			allocated_memory_for_elements += PAGE_SIZE;
++			allocated_memory_for_elements += PATH_MAX;
 +			buf_used_len = word_aligned_size;
 +			ptr = buf;
 +		}
@@ -237,9 +243,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return ptr;
 +}
 +
-+/* Memory allocated for string data. */
++/* Memory allocated for string data in bytes. */
 +static unsigned int allocated_memory_for_savename;
-+/* Quota for holding string data. */
++/* Quota for holding string data in bytes. */
 +static unsigned int quota_for_savename;
 +
 +/*
@@ -285,6 +291,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_MUTEX(lock);
 +	struct name_entry *ptr;
 +	unsigned int hash;
++	/* fmb contails available size in bytes.
++	   fmb is removed from the fmb_list when fmb->len becomes 0. */
 +	struct free_memory_block_list *fmb;
 +	int len;
 +	char *cp;
@@ -308,9 +316,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (len <= fmb->len)
 +			goto ready;
 +	}
-+	if (!quota_for_savename || allocated_memory_for_savename + PAGE_SIZE
++	if (!quota_for_savename || allocated_memory_for_savename + PATH_MAX
 +	    <= quota_for_savename)
-+		cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
++		cp = kzalloc(PATH_MAX, GFP_KERNEL);
 +	else
 +		cp = NULL;
 +	fmb = kzalloc(sizeof(*fmb), GFP_KERNEL);
@@ -324,10 +332,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		ptr = NULL;
 +		goto out;
 +	}
-+	allocated_memory_for_savename += PAGE_SIZE;
++	allocated_memory_for_savename += PATH_MAX;
 +	list_add(&fmb->list, &fmb_list);
 +	fmb->ptr = cp;
-+	fmb->len = PAGE_SIZE;
++	fmb->len = PATH_MAX;
 +ready:
 +	ptr = tmy_alloc_element(sizeof(*ptr));
 +	if (!ptr)
@@ -357,8 +365,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int i;
 +
-+	if (TMY_MAX_PATHNAME_LEN > PAGE_SIZE)
-+		panic("Bad size.");
++	BUILD_BUG_ON(TMY_MAX_PATHNAME_LEN > PATH_MAX);
 +	for (i = 0; i < MAX_HASH; i++)
 +		INIT_LIST1_HEAD(&name_list[i]);
 +	INIT_LIST1_HEAD(&kernel_domain.acl_info_list);
@@ -398,125 +405,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +void tmy_free(const void *p)
 +{
-+	if (p)
++	if (p) {
 +		atomic_sub(ksize(p), &dynamic_memory_size);
-+	kfree(p);
-+}
-+
-+static int tmy_print_ascii(const char *sp, const char *cp,
-+			   int *buflen0, char **end0)
-+{
-+	int error = -ENOMEM;
-+	int buflen = *buflen0;
-+	char *end = *end0;
-+
-+	while (sp <= cp) {
-+		unsigned char c;
-+
-+		c = *(unsigned char *) cp;
-+		if (c == '\\') {
-+			buflen -= 2;
-+			if (buflen < 0)
-+				goto out;
-+			*--end = '\\';
-+			*--end = '\\';
-+		} else if (is_valid(c)) {
-+			if (--buflen < 0)
-+				goto out;
-+			*--end = (char) c;
-+		} else {
-+			buflen -= 4;
-+			if (buflen < 0)
-+				goto out;
-+			*--end = (c & 7) + '0';
-+			*--end = ((c >> 3) & 7) + '0';
-+			*--end = (c >> 6) + '0';
-+			*--end = '\\';
-+		}
-+		cp--;
++		kfree(p);
 +	}
-+
-+	*buflen0 = buflen;
-+	*end0 = end;
-+	error = 0;
-+out:
-+	return error;
 +}
-+
-+#ifdef CONFIG_SYSCTL
-+
-+/* tmy_realpath_from_path2() for "struct ctl_table". */
-+static int tmy_sysctl_path(struct ctl_table *table, char *buffer, int buflen)
-+{
-+	int error = -ENOMEM;
-+	char *end = buffer + buflen;
-+
-+	if (buflen < 256)
-+		goto out;
-+
-+	*--end = '\0';
-+	buflen--;
-+
-+	buflen -= 9; /* for "/proc/sys" prefix */
-+
-+	while (table) {
-+		char buf[32];
-+		const char *sp = table->procname;
-+		const char *cp;
-+
-+		if (!sp) {
-+			memset(buf, 0, sizeof(buf));
-+			snprintf(buf, sizeof(buf) - 1, "=%d=", table->ctl_name);
-+			sp = buf;
-+		}
-+		cp = sp + strlen(sp) - 1;
-+
-+		if (tmy_print_ascii(sp, cp, &buflen, &end))
-+			goto out;
-+
-+		if (--buflen < 0)
-+			goto out;
-+
-+		*--end = '/';
-+		table = table->parent;
-+	}
-+
-+	/* Move the pathname to the top of the buffer. */
-+	memmove(buffer, "/proc/sys", 9);
-+	memmove(buffer + 9, end, strlen(end) + 1);
-+	error = 0;
-+out:
-+	return error;
-+}
-+
-+/**
-+ * sysctlpath_from_table - return the realpath of a ctl_table.
-+ * @table: pointer to "struct ctl_table".
-+ *
-+ * Returns realpath(3) of the @table on success.
-+ * Returns NULL on failure.
-+ *
-+ * This function uses tmy_alloc(), so the caller must call tmy_free()
-+ * if this function didn't return NULL.
-+ */
-+char *sysctlpath_from_table(struct ctl_table *table)
-+{
-+	char *buf = tmy_alloc(TMY_MAX_PATHNAME_LEN);
-+
-+	if (buf && tmy_sysctl_path(table, buf, TMY_MAX_PATHNAME_LEN - 1) == 0)
-+		return buf;
-+	tmy_free(buf);
-+	return NULL;
-+}
-+
-+#endif /* CONFIG_SYSCTL */
 +
 +/**
 + * tmy_read_memory_counter - Check for memory usage.
 + *
 + * @head: Pointer to "struct tmy_io_buffer".
 + *
-+ * Returns memory usage.
++ * Returns memory usage in bytes.
 + */
 +int tmy_read_memory_counter(struct tmy_io_buffer *head)
 +{
@@ -567,7 +467,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/realpath.h
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,61 @@
 +/*
 + * security/tomoyo/realpath.h
 + *
@@ -587,6 +487,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +struct path_info;
 +struct tmy_io_buffer;
 +
++/* Convert binary string to ascii string. */
++int tmy_encode(char *buffer, int buflen, const char *str);
++
 +/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
 +int tmy_realpath_from_path2(struct path *path, char *newname, int newname_len);
 +
@@ -600,8 +503,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +char *tmy_realpath_nofollow(const char *pathname);
 +/* Same with tmy_realpath() except that the pathname is already solved. */
 +char *tmy_realpath_from_path(struct path *path);
-+/* Same with tmy_realpath() except that it uses struct ctl_table. */
-+char *sysctlpath_from_table(struct ctl_table *table);
 +
 +/*
 + * Allocate memory for ACL entry.

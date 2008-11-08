@@ -132,7 +132,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	if (!buf)
 +		return NULL;
-+	/* Preserve one byte for appending "/". */
++	/* Reserve one byte for appending "/". */
 +	error = tmy_realpath_from_path2(path, buf->body,
 +					sizeof(buf->body) - 2);
 +	if (!error) {
@@ -1139,7 +1139,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	case TMY_TYPE_MKDIR_ACL:
 +	case TMY_TYPE_RMDIR_ACL:
 +		if (!buf->is_dir) {
-+			/* tmy_get_path() preserves space for appending "/." */
++			/* tmy_get_path() reserves space for appending "/." */
 +			strcat((char *) buf->name, "/");
 +			tmy_fill_path_info(buf);
 +		}
@@ -1213,7 +1213,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	{
 +		struct dentry *dentry = path1->dentry;
 +		if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
-+			/* tmy_get_path() preserves space for appending "/." */
++			/* tmy_get_path() reserves space for appending "/." */
 +			if (!buf1->is_dir) {
 +				strcat((char *) buf1->name, "/");
 +				tmy_fill_path_info(buf1);
