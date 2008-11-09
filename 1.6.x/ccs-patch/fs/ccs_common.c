@@ -1491,6 +1491,7 @@ static bool is_select_one(struct ccs_io_buffer *head, const char *data)
 	} else
 		return false;
 	head->write_var1 = domain;
+	/* Accessing read_buf is safe because head->io_sem is held. */
 	if (!head->read_buf)
 		return true; /* Do nothing if open(O_WRONLY). */
 	head->read_avail = 0;
@@ -2143,13 +2144,13 @@ static int write_pid(struct ccs_io_buffer *head)
  */
 static int read_pid(struct ccs_io_buffer *head)
 {
-	/* Accessing write_buf is safe because head->io_sem is held. */
 	char *buf = head->write_buf;
 	bool task_info = false;
 	unsigned int pid;
 	struct task_struct *p;
 	struct domain_info *domain = NULL;
 	u32 tomoyo_flags = 0;
+	/* Accessing write_buf is safe because head->io_sem is held. */
 	if (!buf)
 		goto done; /* Do nothing if open(O_RDONLY). */
 	if (head->read_avail || head->read_eof)

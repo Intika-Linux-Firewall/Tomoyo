@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2161 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2162 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  337 +++++++
- 2 files changed, 2498 insertions(+)
+ 2 files changed, 2499 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2161 @@
+@@ -0,0 +1,2162 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1212,6 +1212,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	} else
 +		return false;
 +	head->write_var1 = domain;
++	/* Accessing read_buf is safe because head->io_sem is held. */
 +	if (!head->read_buf)
 +		return true; /* Do nothing if open(O_WRONLY). */
 +	head->read_avail = 0;
