@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2158 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2159 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  337 +++++++
- 2 files changed, 2495 insertions(+)
+ 2 files changed, 2496 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2158 @@
+@@ -0,0 +1,2159 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -30,9 +30,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include "realpath.h"
 +#include "common.h"
 +#include "tomoyo.h"
-+
-+/* Set default specified by the kernel config. */
-+#define TOMOYO_MAX_ACCEPT_ENTRY 2048
 +
 +/* Has loading policy done? */
 +bool tomoyo_policy_loaded;
@@ -52,10 +49,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	unsigned int current_value;
 +	const unsigned int max_value;
 +} tomoyo_control_array[TOMOYO_MAX_CONTROL_INDEX] = {
-+	[TOMOYO_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
-+	[TOMOYO_TOMOYO_TOMOYO_MAX_ACCEPT_ENTRY]
-+	= { "TOMOYO_MAX_ACCEPT_ENTRY",    TOMOYO_MAX_ACCEPT_ENTRY, INT_MAX },
-+	[TOMOYO_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
++	[TOMOYO_MAC_FOR_FILE]     = { "MAC_FOR_FILE",        0,       3 },
++	[TOMOYO_MAX_ACCEPT_ENTRY] = { "MAX_ACCEPT_ENTRY", 2048, INT_MAX },
++	[TOMOYO_VERBOSE]          = { "TOMOYO_VERBOSE",      1,       1 },
 +};
 +
 +/* Profile table. Memory is allocated as needed. */
@@ -86,6 +82,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @str: Pointer to the string.
 + *
 + * Returns true if @str is a \ooo style octal value, false otherwise.
++ *
++ * TOMOYO uses \ooo style representation for 0x01 - 0x20 and 0x7F - 0xFF.
++ * This function verifies that \ooo is in valid range.
 + */
 +static inline bool tomoyo_is_byte_range(const char *str)
 +{
@@ -281,9 +280,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const char *org_domainname = domainname;
 +
 +	if (!domainname || strncmp(domainname, TOMOYO_ROOT_NAME,
-+				   TOMOYO_TOMOYO_ROOT_NAME_LEN))
++				   TOMOYO_ROOT_NAME_LEN))
 +		goto out;
-+	domainname += TOMOYO_TOMOYO_ROOT_NAME_LEN;
++	domainname += TOMOYO_ROOT_NAME_LEN;
 +	if (!*domainname)
 +		return true;
 +	do {
@@ -335,7 +334,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +bool tomoyo_is_domain_def(const unsigned char *buffer)
 +{
-+	return !strncmp(buffer, TOMOYO_ROOT_NAME, TOMOYO_TOMOYO_ROOT_NAME_LEN);
++	return !strncmp(buffer, TOMOYO_ROOT_NAME, TOMOYO_ROOT_NAME_LEN);
 +}
 +
 +/**
@@ -351,7 +350,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tomoyo_path_info name;
 +
 +	name.name = domainname;
-+	tomoyo_fill_tomoyo_path_info(&name);
++	tomoyo_fill_path_info(&name);
 +	list1_for_each_entry(domain, &tomoyo_domain_list, list) {
 +		if (!domain->is_deleted &&
 +		    !tomoyo_pathcmp(&name, domain->domainname))
@@ -430,13 +429,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * tomoyo_fill_tomoyo_path_info - Fill in "struct tomoyo_path_info" members.
++ * tomoyo_fill_path_info - Fill in "struct tomoyo_path_info" members.
 + *
 + * @ptr: Pointer to "struct tomoyo_path_info" to fill in.
 + *
 + * The caller sets "struct tomoyo_path_info"->name.
 + */
-+void tomoyo_fill_tomoyo_path_info(struct tomoyo_path_info *ptr)
++void tomoyo_fill_path_info(struct tomoyo_path_info *ptr)
 +{
 +	const char *name = ptr->name;
 +	const int len = strlen(name);
@@ -681,7 +680,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @head: Pointer to "struct tomoyo_io_buffer".
 + * @fmt:  The printf()'s format string, followed by parameters.
 + *
-+ * Returns true if output was not truncated, false otherwise.
++ * Returns true if output was written, false otherwise.
 + *
 + * The snprintf() will truncate, but tomoyo_io_printf() won't.
 + */
@@ -751,6 +750,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @domain: Pointer to "struct tomoyo_domain_info".
 + * @index:  The functionality to check mode.
 + *
++ * TOMOYO checks only process context.
++ * This code disables TOMOYO's enforcement in case the function is called from
++ * interrupt context.
 + */
 +unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
 +				const u8 index)
@@ -777,7 +779,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +bool tomoyo_verbose_mode(const struct tomoyo_domain_info *domain)
 +{
-+	return tomoyo_check_flags(domain, TOMOYO_TOMOYO_VERBOSE) != 0;
++	return tomoyo_check_flags(domain, TOMOYO_VERBOSE) != 0;
 +}
 +
 +/**
@@ -794,7 +796,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	if (!domain)
 +		return true;
-+	list1_for_each_entry(ptr, &domain->tomoyo_acl_info_list, list) {
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (ptr->type & TOMOYO_ACL_DELETED)
 +			continue;
 +		switch (tomoyo_acl_type2(ptr)) {
@@ -847,8 +849,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			break;
 +		}
 +	}
-+	if (count < tomoyo_check_flags(domain,
-+				       TOMOYO_TOMOYO_TOMOYO_MAX_ACCEPT_ENTRY))
++	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
 +		return true;
 +	if (!domain->quota_warned) {
 +		domain->quota_warned = true;
@@ -871,32 +872,32 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	static DEFINE_MUTEX(lock);
 +	struct tomoyo_profile *ptr = NULL;
++	int i;
 +
-+	if (profile < TOMOYO_MAX_PROFILES) {
-+		int i;
-+		/***** EXCLUSIVE SECTION START *****/
-+		mutex_lock(&lock);
-+		ptr = tomoyo_profile_ptr[profile];
-+		if (ptr)
-+			goto ok;
-+		ptr = tomoyo_alloc_element(sizeof(*ptr));
-+		if (!ptr)
-+			goto ok;
-+		for (i = 0; i < TOMOYO_MAX_CONTROL_INDEX; i++)
-+			ptr->value[i] = tomoyo_control_array[i].current_value;
-+		mb(); /* Avoid out-of-order execution. */
-+		tomoyo_profile_ptr[profile] = ptr;
-+ok:
-+		mutex_unlock(&lock);
-+		/***** EXCLUSIVE SECTION END *****/
-+	}
++	if (profile >= TOMOYO_MAX_PROFILES)
++		return NULL;
++	/***** EXCLUSIVE SECTION START *****/
++	mutex_lock(&lock);
++	ptr = tomoyo_profile_ptr[profile];
++	if (ptr)
++		goto ok;
++	ptr = tomoyo_alloc_element(sizeof(*ptr));
++	if (!ptr)
++		goto ok;
++	for (i = 0; i < TOMOYO_MAX_CONTROL_INDEX; i++)
++		ptr->value[i] = tomoyo_control_array[i].current_value;
++	mb(); /* Avoid out-of-order execution. */
++	tomoyo_profile_ptr[profile] = ptr;
++ ok:
++	mutex_unlock(&lock);
++	/***** EXCLUSIVE SECTION END *****/
 +	return ptr;
 +}
 +
 +/**
 + * tomoyo_write_profile - Write to profile table.
 + *
-+ * @head: Pointer to "struct tomoyo_io_buffer"
++ * @head: Pointer to "struct tomoyo_io_buffer".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
@@ -934,7 +935,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			int j;
 +			const char **modes;
 +			switch (i) {
-+			case TOMOYO_TOMOYO_VERBOSE:
++			case TOMOYO_VERBOSE:
 +				modes = tomoyo_mode_2;
 +				break;
 +			default:
@@ -961,7 +962,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * tomoyo_read_profile - Read from profile table.
 + *
-+ * @head: Pointer to "struct tomoyo_io_buffer"
++ * @head: Pointer to "struct tomoyo_io_buffer".
 + *
 + * Returns 0.
 + */
@@ -1093,7 +1094,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * tomoyo_write_manager_policy - Write manager policy.
 + *
-+ * @head: Pointer to "struct tomoyo_io_buffer"
++ * @head: Pointer to "struct tomoyo_io_buffer".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
@@ -1112,7 +1113,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * tomoyo_read_manager_policy - Read manager policy.
 + *
-+ * @head: Pointer to "struct tomoyo_io_buffer"
++ * @head: Pointer to "struct tomoyo_io_buffer".
 + *
 + * Returns 0.
 + */
@@ -1454,7 +1455,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			goto tail_mark;
 +		/* Print ACL entries in the domain. */
 +		list1_for_each_cookie(apos, head->read_var2,
-+				      &domain->tomoyo_acl_info_list) {
++				      &domain->acl_info_list) {
 +			struct tomoyo_acl_info *ptr
 +				= list1_entry(apos, struct tomoyo_acl_info,
 +					      list);
@@ -2260,7 +2261,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Structure for domain information. */
 +struct tomoyo_domain_info {
 +	struct list1_head list;
-+	struct list1_head tomoyo_acl_info_list;
++	struct list1_head acl_info_list;
 +	/* Name of this domain. Never NULL.          */
 +	const struct tomoyo_path_info *domainname;
 +	u8 profile;        /* Profile number to use. */
@@ -2325,13 +2326,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
 +/* A domain definition starts with <kernel>. */
 +#define TOMOYO_ROOT_NAME                         "<kernel>"
-+#define TOMOYO_TOMOYO_ROOT_NAME_LEN              (sizeof(TOMOYO_ROOT_NAME) - 1)
++#define TOMOYO_ROOT_NAME_LEN                     (sizeof(TOMOYO_ROOT_NAME) - 1)
 +
 +/* Index numbers for Access Controls. */
-+#define TOMOYO_TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
-+#define TOMOYO_TOMOYO_TOMOYO_MAX_ACCEPT_ENTRY       1
-+#define TOMOYO_TOMOYO_VERBOSE                       2
-+#define TOMOYO_MAX_CONTROL_INDEX                    3
++#define TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
++#define TOMOYO_MAX_ACCEPT_ENTRY              1
++#define TOMOYO_VERBOSE                       2
++#define TOMOYO_MAX_CONTROL_INDEX             3
 +
 +/* Structure for reading/writing policy via securityfs interfaces. */
 +struct tomoyo_io_buffer {
@@ -2451,7 +2452,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* Allocate memory for structures. */
 +void *tomoyo_alloc_acl_element(const u8 acl_type);
 +/* Fill in "struct tomoyo_path_info" members. */
-+void tomoyo_fill_tomoyo_path_info(struct tomoyo_path_info *ptr);
++void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
 +/* Run policy loader when /sbin/init starts. */
 +void tomoyo_load_policy(const char *filename);
 +/* Change "struct tomoyo_domain_info"->flags. */

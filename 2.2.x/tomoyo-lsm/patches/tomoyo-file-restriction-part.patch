@@ -137,7 +137,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +					   sizeof(buf->body) - 2);
 +	if (!error) {
 +		buf->head.name = buf->body;
-+		tomoyo_fill_tomoyo_path_info(&buf->head);
++		tomoyo_fill_path_info(&buf->head);
 +		return &buf->head;
 +	}
 +	tomoyo_free(buf);
@@ -172,7 +172,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		static DEFINE_SPINLOCK(lock);
 +		/***** CRITICAL SECTION START *****/
 +		spin_lock(&lock);
-+		list1_add_tail(&acl->list, &domain->tomoyo_acl_info_list);
++		list1_add_tail(&acl->list, &domain->acl_info_list);
 +		spin_unlock(&lock);
 +		/***** CRITICAL SECTION END *****/
 +	} else {
@@ -313,20 +313,20 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/*
 + * The list for "struct tomoyo_pattern_entry".
 + *
-+ * This list is updated only inside update_file_tomoyo_pattern_entry(), thus
++ * This list is updated only inside tomoyo_update_file_pattern_entry(), thus
 + * no global mutex exists.
 + */
 +static LIST1_HEAD(tomoyo_pattern_list);
 +
 +/**
-+ * update_file_tomoyo_pattern_entry - Update "struct tomoyo_pattern_entry" list.
++ * tomoyo_update_file_pattern_entry - Update "struct tomoyo_pattern_entry" list.
 + *
 + * @pattern:   Pathname pattern.
 + * @is_delete: True if it is a delete request.
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int update_file_tomoyo_pattern_entry(const char *pattern,
++static int tomoyo_update_file_pattern_entry(const char *pattern,
 +					    const bool is_delete)
 +{
 +	struct tomoyo_pattern_entry *new_entry;
@@ -406,7 +406,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +int tomoyo_write_pattern_policy(char *data, const bool is_delete)
 +{
-+	return update_file_tomoyo_pattern_entry(data, is_delete);
++	return tomoyo_update_file_pattern_entry(data, is_delete);
 +}
 +
 +/**
@@ -437,20 +437,20 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/*
 + * The list for "struct tomoyo_no_rewrite_entry".
 + *
-+ * This list is updated only inside update_tomoyo_no_rewrite_entry(), thus
++ * This list is updated only inside tomoyo_update_no_rewrite_entry(), thus
 + * no global mutex exists.
 + */
 +static LIST1_HEAD(tomoyo_no_rewrite_list);
 +
 +/**
-+ * update_tomoyo_no_rewrite_entry - Update "struct tomoyo_no_rewrite_entry" list.
++ * tomoyo_update_no_rewrite_entry - Update "struct tomoyo_no_rewrite_entry" list.
 + *
 + * @pattern:   Pathname pattern that are not rewritable by default.
 + * @is_delete: True if it is a delete request.
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int update_tomoyo_no_rewrite_entry(const char *pattern,
++static int tomoyo_update_no_rewrite_entry(const char *pattern,
 +					  const bool is_delete)
 +{
 +	struct tomoyo_no_rewrite_entry *new_entry, *ptr;
@@ -520,7 +520,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +int tomoyo_write_no_rewrite_policy(char *data, const bool is_delete)
 +{
-+	return update_tomoyo_no_rewrite_entry(data, is_delete);
++	return tomoyo_update_no_rewrite_entry(data, is_delete);
 +}
 +
 +/**
@@ -609,7 +609,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct tomoyo_acl_info *ptr;
 +
-+	list1_for_each_entry(ptr, &domain->tomoyo_acl_info_list, list) {
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_single_path_acl_record *acl;
 +		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
 +			continue;
@@ -644,7 +644,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	u16 perm = 0;
 +
-+	if (!tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE))
++	if (!tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE))
 +		return 0;
 +	if (operation == 6)
 +		perm = 1 << TOMOYO_TYPE_READ_WRITE_ACL;
@@ -795,7 +795,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	mutex_lock(&lock);
 +	if (is_delete)
 +		goto delete;
-+	list1_for_each_entry(ptr, &domain->tomoyo_acl_info_list, list) {
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
@@ -823,7 +823,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	goto out;
 + delete:
 +	error = -ENOENT;
-+	list1_for_each_entry(ptr, &domain->tomoyo_acl_info_list, list) {
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
@@ -881,7 +881,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	mutex_lock(&lock);
 +	if (is_delete)
 +		goto delete;
-+	list1_for_each_entry(ptr, &domain->tomoyo_acl_info_list, list) {
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
@@ -907,7 +907,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	goto out;
 + delete:
 +	error = -ENOENT;
-+	list1_for_each_entry(ptr, &domain->tomoyo_acl_info_list, list) {
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
 +			continue;
 +		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
@@ -938,7 +938,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				 const u8 type,
 +				 const struct tomoyo_path_info *filename)
 +{
-+	if (!tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE))
++	if (!tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE))
 +		return 0;
 +	return tomoyo_check_single_path_acl2(domain, filename, 1 << type, 1);
 +}
@@ -961,9 +961,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tomoyo_acl_info *ptr;
 +	const u8 perm = 1 << type;
 +
-+	if (!tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE))
++	if (!tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE))
 +		return 0;
-+	list1_for_each_entry(ptr, &domain->tomoyo_acl_info_list, list) {
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_double_path_acl_record *acl;
 +		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
 +			continue;
@@ -1042,12 +1042,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			   const char *filename, const u8 perm)
 +{
 +	struct tomoyo_path_info name;
-+	const u8 mode = tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
 +
 +	if (!mode)
 +		return 0;
 +	name.name = filename;
-+	tomoyo_fill_tomoyo_path_info(&name);
++	tomoyo_fill_path_info(&name);
 +	return tomoyo_check_file_perm2(domain, &name, perm, "sysctl", mode);
 +}
 +
@@ -1064,7 +1064,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			   const struct tomoyo_path_info *filename,
 +			   struct tomoyo_page_buffer *tmp)
 +{
-+	const u8 mode = tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
 +
 +	if (!mode)
 +		return 0;
@@ -1086,7 +1086,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const u8 acc_mode = ACC_MODE(flag);
 +	int error = -ENOMEM;
 +	struct tomoyo_path_info *buf;
-+	const u8 mode = tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +
 +	if (!mode || !path->mnt)
@@ -1143,7 +1143,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int error = -ENOMEM;
 +	struct tomoyo_path_info *buf;
-+	const u8 mode = tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +
 +	if (!mode || !path->mnt)
@@ -1159,7 +1159,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			 * tomoyo_get_path() reserves space for appending "/."
 +			 */
 +			strcat((char *) buf->name, "/");
-+			tomoyo_fill_tomoyo_path_info(buf);
++			tomoyo_fill_path_info(buf);
 +		}
 +	}
 +	error = tomoyo_check_single_path_permission2(domain, operation, buf,
@@ -1183,7 +1183,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				    struct file *filp)
 +{
 +	int error = -ENOMEM;
-+	const u8 mode = tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	struct tomoyo_path_info *buf;
 +
@@ -1222,7 +1222,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int error = -ENOMEM;
 +	struct tomoyo_path_info *buf1, *buf2;
-+	const u8 mode = tomoyo_check_flags(domain, TOMOYO_TOMOYO_MAC_FOR_FILE);
++	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +	const char *msg;
 +
@@ -1240,11 +1240,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			 */
 +			if (!buf1->is_dir) {
 +				strcat((char *) buf1->name, "/");
-+				tomoyo_fill_tomoyo_path_info(buf1);
++				tomoyo_fill_path_info(buf1);
 +			}
 +			if (!buf2->is_dir) {
 +				strcat((char *) buf2->name, "/");
-+				tomoyo_fill_tomoyo_path_info(buf2);
++				tomoyo_fill_path_info(buf2);
 +			}
 +		}
 +	}
