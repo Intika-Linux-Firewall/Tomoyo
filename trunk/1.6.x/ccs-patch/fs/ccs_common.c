@@ -1490,6 +1490,9 @@ static bool is_select_one(struct ccs_io_buffer *head, const char *data)
 			domain = ccs_find_domain(data + 7);
 	} else
 		return false;
+	head->write_var1 = domain;
+	if (!head->read_buf)
+		return true; /* Do nothing if open(O_WRONLY). */
 	head->read_avail = 0;
 	ccs_io_printf(head, "# select %s\n", data);
 	head->read_single_domain = true;
@@ -1508,7 +1511,6 @@ static bool is_select_one(struct ccs_io_buffer *head, const char *data)
 		if (domain->is_deleted)
 			ccs_io_printf(head, "# This is a deleted domain.\n");
 	}
-	head->write_var1 = domain;
 	return true;
 }
 
@@ -2148,6 +2150,8 @@ static int read_pid(struct ccs_io_buffer *head)
 	struct task_struct *p;
 	struct domain_info *domain = NULL;
 	u32 tomoyo_flags = 0;
+	if (!buf)
+		goto done; /* Do nothing if open(O_RDONLY). */
 	if (head->read_avail || head->read_eof)
 		goto done;
 	head->read_eof = true;
@@ -2529,7 +2533,7 @@ void ccs_load_policy(const char *filename)
 	printk(KERN_INFO "SAKURA: 1.6.5-rc   2008/11/07\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.5-rc   2008/11/07\n");
+	printk(KERN_INFO "TOMOYO: 1.6.5-rc   2008/11/09\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
