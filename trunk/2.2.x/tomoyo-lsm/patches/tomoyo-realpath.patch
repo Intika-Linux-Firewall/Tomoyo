@@ -347,7 +347,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	ptr->entry.name = fmb->ptr;
 +	memmove(fmb->ptr, name, len);
-+	tomoyo_fill_tomoyo_path_info(&ptr->entry);
++	tomoyo_fill_path_info(&ptr->entry);
 +	fmb->ptr += len;
 +	fmb->len -= len;
 +	list1_add_tail(&ptr->list, &tomoyo_name_list[hash % TOMOYO_MAX_HASH]);
@@ -373,7 +373,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	BUILD_BUG_ON(TOMOYO_MAX_PATHNAME_LEN > PATH_MAX);
 +	for (i = 0; i < TOMOYO_MAX_HASH; i++)
 +		INIT_LIST1_HEAD(&tomoyo_name_list[i]);
-+	INIT_LIST1_HEAD(&tomoyo_kernel_domain.tomoyo_acl_info_list);
++	INIT_LIST1_HEAD(&tomoyo_kernel_domain.acl_info_list);
 +	tomoyo_kernel_domain.domainname = tomoyo_save_name(TOMOYO_ROOT_NAME);
 +	list1_add_tail(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
 +	if (tomoyo_find_domain(TOMOYO_ROOT_NAME) != &tomoyo_kernel_domain)
