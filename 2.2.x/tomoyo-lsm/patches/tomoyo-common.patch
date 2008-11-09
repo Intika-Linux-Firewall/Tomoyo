@@ -6,13 +6,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c | 2159 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c | 2161 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/common.h |  337 +++++++
- 2 files changed, 2496 insertions(+)
+ 2 files changed, 2498 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/common.c
-@@ -0,0 +1,2159 @@
+@@ -0,0 +1,2161 @@
 +/*
 + * security/tomoyo/common.c
 + *
@@ -1211,6 +1211,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			domain = tomoyo_find_domain(data + 7);
 +	} else
 +		return false;
++	head->write_var1 = domain;
++	if (!head->read_buf)
++		return true; /* Do nothing if open(O_WRONLY). */
 +	head->read_avail = 0;
 +	tomoyo_io_printf(head, "# select %s\n", data);
 +	head->read_single_domain = true;
@@ -1229,7 +1232,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (domain->is_deleted)
 +			tomoyo_io_printf(head, "# This is a deleted domain.\n");
 +	}
-+	head->write_var1 = domain;
 +	return true;
 +}
 +
