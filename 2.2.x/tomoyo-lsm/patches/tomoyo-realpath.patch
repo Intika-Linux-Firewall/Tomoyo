@@ -15,13 +15,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  443 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.h |   61 ++++++
- 2 files changed, 504 insertions(+)
+ security/tomoyo/realpath.c |  453 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.h |   63 ++++++
+ 2 files changed, 516 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/realpath.c
-@@ -0,0 +1,443 @@
+@@ -0,0 +1,453 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -29,7 +29,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/10/10
++ * Version: 2.2.0-pre   2008/11/09
 + *
 + */
 +
@@ -39,7 +39,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#include "realpath.h"
 +
 +/**
-+ * tmy_encode: Convert binary string to ascii string.
++ * tomoyo_encode: Convert binary string to ascii string.
 + *
 + * @buffer:  Buffer for ASCII string.
 + * @buflen:  Size of @buffer.
@@ -47,12 +47,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Returns 0 on success, -ENOMEM otherwise.
 + */
-+int tmy_encode(char *buffer, int buflen, const char *str)
++int tomoyo_encode(char *buffer, int buflen, const char *str)
 +{
 +	while (1) {
 +		const unsigned char c = *(unsigned char *) str++;
 +
-+		if (is_valid(c)) {
++		if (tomoyo_is_valid(c)) {
 +			if (--buflen <= 0)
 +				break;
 +			*buffer++ = (char) c;
@@ -81,7 +81,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * tmy_realpath_from_path2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
++ * tomoyo_realpath_from_path2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
 + *
 + * @path:        Pointer to "struct path".
 + * @newname:     Pointer to buffer to return value in.
@@ -94,7 +94,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * \ooo style octal string.
 + * Character \ is converted to \\ string.
 + */
-+int tmy_realpath_from_path2(struct path *path, char *newname, int newname_len)
++int tomoyo_realpath_from_path2(struct path *path, char *newname,
++			       int newname_len)
 +{
 +	int error = -ENOMEM;
 +	struct dentry *dentry = path->dentry;
@@ -112,52 +113,53 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		sp = d_realpath(path, newname, newname_len);
 +		path_put(path);
 +	}
-+	if (IS_ERR(sp)) {
++	if (IS_ERR(sp))
 +		error = PTR_ERR(sp);
-+	} else {
-+		error = tmy_encode(newname, sp - newname, sp);
-+	}
++	else
++		error = tomoyo_encode(newname, sp - newname, sp);
 +	if (error)
-+		printk(KERN_WARNING "tmy_realpath: Pathname too long.\n");
++		printk(KERN_WARNING "tomoyo_realpath: Pathname too long.\n");
 +	return error;
 +}
 +
 +/**
-+ * tmy_realpath_from_path - Returns realpath(3) of the given pathname but ignores chroot'ed root.
++ * tomoyo_realpath_from_path - Returns realpath(3) of the given pathname but ignores chroot'ed root.
 + *
 + * @path: Pointer to "struct path".
 + *
 + * Returns the realpath of the given @path on success, NULL otherwise.
 + *
-+ * These functions use tmy_alloc(), so the caller must call tmy_free()
++ * These functions use tomoyo_alloc(), so the caller must call tomoyo_free()
 + * if these functions didn't return NULL.
 + */
-+char *tmy_realpath_from_path(struct path *path)
++char *tomoyo_realpath_from_path(struct path *path)
 +{
-+	char *buf = tmy_alloc(sizeof(struct tmy_page_buffer));
++	char *buf = tomoyo_alloc(sizeof(struct tomoyo_page_buffer));
 +
-+	BUILD_BUG_ON(sizeof(struct tmy_page_buffer)
-+		     <= TMY_MAX_PATHNAME_LEN - 1);
-+	if (buf && tmy_realpath_from_path2(path, buf,
-+					   TMY_MAX_PATHNAME_LEN - 1) == 0)
++	BUILD_BUG_ON(sizeof(struct tomoyo_page_buffer)
++		     <= TOMOYO_MAX_PATHNAME_LEN - 1);
++	if (!buf)
++		return NULL;
++	if (tomoyo_realpath_from_path2(path, buf,
++				       TOMOYO_MAX_PATHNAME_LEN - 1) == 0)
 +		return buf;
-+	tmy_free(buf);
++	tomoyo_free(buf);
 +	return NULL;
 +}
 +
 +/**
-+ * tmy_realpath - Get realpath of a pathname.
++ * tomoyo_realpath - Get realpath of a pathname.
 + *
 + * @pathname: The pathname to solve.
 + *
 + * Returns the realpath of @pathname on success, NULL otherwise.
 + */
-+char *tmy_realpath(const char *pathname)
++char *tomoyo_realpath(const char *pathname)
 +{
 +	struct nameidata nd;
 +
 +	if (pathname && path_lookup(pathname, LOOKUP_FOLLOW, &nd) == 0) {
-+		char *buf = tmy_realpath_from_path(&nd.path);
++		char *buf = tomoyo_realpath_from_path(&nd.path);
 +		path_put(&nd.path);
 +		return buf;
 +	}
@@ -165,18 +167,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * tmy_realpath_nofollow - Get realpath of a pathname.
++ * tomoyo_realpath_nofollow - Get realpath of a pathname.
 + *
 + * @pathname: The pathname to solve.
 + *
 + * Returns the realpath of @pathname on success, NULL otherwise.
 + */
-+char *tmy_realpath_nofollow(const char *pathname)
++char *tomoyo_realpath_nofollow(const char *pathname)
 +{
 +	struct nameidata nd;
 +
 +	if (pathname && path_lookup(pathname, 0, &nd) == 0) {
-+		char *buf = tmy_realpath_from_path(&nd.path);
++		char *buf = tomoyo_realpath_from_path(&nd.path);
 +		path_put(&nd.path);
 +		return buf;
 +	}
@@ -184,12 +186,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/* Memory allocated for non-string data. */
-+static unsigned int allocated_memory_for_elements;
++static unsigned int tomoyo_allocated_memory_for_elements;
 +/* Quota for holding non-string data. */
-+static unsigned int quota_for_elements;
++static unsigned int tomoyo_quota_for_elements;
 +
 +/**
-+ * tmy_alloc_element - Allocate permanent memory for structures.
++ * tomoyo_alloc_element - Allocate permanent memory for structures.
 + *
 + * @size: Size in bytes.
 + *
@@ -198,7 +200,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Memory has to be zeroed.
 + * The RAM is chunked, so NEVER try to kfree() the returned pointer.
 + */
-+void *tmy_alloc_element(const unsigned int size)
++void *tomoyo_alloc_element(const unsigned int size)
 +{
 +	static char *buf;
 +	static DEFINE_MUTEX(lock);
@@ -212,17 +214,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
 +	if (buf_used_len + word_aligned_size > PATH_MAX) {
-+		if (!quota_for_elements || allocated_memory_for_elements
-+		    + PATH_MAX <= quota_for_elements)
++		if (!tomoyo_quota_for_elements ||
++		    tomoyo_allocated_memory_for_elements
++		    + PATH_MAX <= tomoyo_quota_for_elements)
 +			ptr = kzalloc(PATH_MAX, GFP_KERNEL);
 +		if (!ptr) {
 +			printk(KERN_WARNING "ERROR: Out of memory "
-+			       "for tmy_alloc_element().\n");
-+			if (!sbin_init_started)
++			       "for tomoyo_alloc_element().\n");
++			if (!tomoyo_policy_loaded)
 +				panic("MAC Initialization failed.\n");
 +		} else {
 +			buf = ptr;
-+			allocated_memory_for_elements += PATH_MAX;
++			tomoyo_allocated_memory_for_elements += PATH_MAX;
 +			buf_used_len = word_aligned_size;
 +			ptr = buf;
 +		}
@@ -244,71 +247,72 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/* Memory allocated for string data in bytes. */
-+static unsigned int allocated_memory_for_savename;
++static unsigned int tomoyo_allocated_memory_for_savename;
 +/* Quota for holding string data in bytes. */
-+static unsigned int quota_for_savename;
++static unsigned int tomoyo_quota_for_savename;
 +
 +/*
 + * TOMOYO uses this hash only when appending a string into the string
 + * table. Frequency of appending strings is very low. So we don't need
 + * large (e.g. 64k) hash size. 256 will be sufficient.
 + */
-+#define MAX_HASH 256
++#define TOMOYO_MAX_HASH 256
 +
 +/* Structure for string data. */
-+struct name_entry {
++struct tomoyo_name_entry {
 +	struct list1_head list;
-+	struct path_info entry;
++	struct tomoyo_path_info entry;
 +};
 +
 +/* Structure for available memory region. */
-+struct free_memory_block_list {
++struct tomoyo_free_memory_block_list {
 +	struct list_head list;
 +	char *ptr;             /* Pointer to a free area. */
 +	int len;               /* Length of the area.     */
 +};
 +
 +/*
-+ * The list for "struct name_entry".
++ * The list for "struct tomoyo_name_entry".
 + *
-+ * This list is updated only inside tmy_save_name(), thus
++ * This list is updated only inside tomoyo_save_name(), thus
 + * no global mutex exists.
 + */
-+static struct list1_head name_list[MAX_HASH];
++static struct list1_head tomoyo_name_list[TOMOYO_MAX_HASH];
 +
 +/**
-+ * tmy_save_name - Allocate permanent memory for string data.
++ * tomoyo_save_name - Allocate permanent memory for string data.
 + *
 + * @name: The string to store into the permernent memory.
 + *
-+ * Returns pointer to "struct path_info" on success, NULL otherwise.
++ * Returns pointer to "struct tomoyo_path_info" on success, NULL otherwise.
 + *
 + * The RAM is shared, so NEVER try to modify or kfree() the returned name.
 + */
-+const struct path_info *tmy_save_name(const char *name)
++const struct tomoyo_path_info *tomoyo_save_name(const char *name)
 +{
 +	static LIST_HEAD(fmb_list);
 +	static DEFINE_MUTEX(lock);
-+	struct name_entry *ptr;
++	struct tomoyo_name_entry *ptr;
 +	unsigned int hash;
 +	/* fmb contails available size in bytes.
 +	   fmb is removed from the fmb_list when fmb->len becomes 0. */
-+	struct free_memory_block_list *fmb;
++	struct tomoyo_free_memory_block_list *fmb;
 +	int len;
 +	char *cp;
 +
 +	if (!name)
 +		return NULL;
 +	len = strlen(name) + 1;
-+	if (len > TMY_MAX_PATHNAME_LEN) {
++	if (len > TOMOYO_MAX_PATHNAME_LEN) {
 +		printk(KERN_WARNING "ERROR: Name too long "
-+		       "for tmy_save_name().\n");
++		       "for tomoyo_save_name().\n");
 +		return NULL;
 +	}
 +	hash = full_name_hash((const unsigned char *) name, len - 1);
 +	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
-+	list1_for_each_entry(ptr, &name_list[hash % MAX_HASH], list) {
++	list1_for_each_entry(ptr, &tomoyo_name_list[hash % TOMOYO_MAX_HASH],
++			     list) {
 +		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
 +			goto out;
 +	}
@@ -316,8 +320,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (len <= fmb->len)
 +			goto ready;
 +	}
-+	if (!quota_for_savename || allocated_memory_for_savename + PATH_MAX
-+	    <= quota_for_savename)
++	if (!tomoyo_quota_for_savename ||
++	    tomoyo_allocated_memory_for_savename + PATH_MAX
++	    <= tomoyo_quota_for_savename)
 +		cp = kzalloc(PATH_MAX, GFP_KERNEL);
 +	else
 +		cp = NULL;
@@ -326,148 +331,153 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		kfree(cp);
 +		kfree(fmb);
 +		printk(KERN_WARNING "ERROR: Out of memory "
-+		       "for tmy_save_name().\n");
-+		if (!sbin_init_started)
++		       "for tomoyo_save_name().\n");
++		if (!tomoyo_policy_loaded)
 +			panic("MAC Initialization failed.\n");
 +		ptr = NULL;
 +		goto out;
 +	}
-+	allocated_memory_for_savename += PATH_MAX;
++	tomoyo_allocated_memory_for_savename += PATH_MAX;
 +	list_add(&fmb->list, &fmb_list);
 +	fmb->ptr = cp;
 +	fmb->len = PATH_MAX;
-+ready:
-+	ptr = tmy_alloc_element(sizeof(*ptr));
++ ready:
++	ptr = tomoyo_alloc_element(sizeof(*ptr));
 +	if (!ptr)
 +		goto out;
 +	ptr->entry.name = fmb->ptr;
 +	memmove(fmb->ptr, name, len);
-+	tmy_fill_path_info(&ptr->entry);
++	tomoyo_fill_tomoyo_path_info(&ptr->entry);
 +	fmb->ptr += len;
 +	fmb->len -= len;
-+	list1_add_tail(&ptr->list, &name_list[hash % MAX_HASH]);
++	list1_add_tail(&ptr->list, &tomoyo_name_list[hash % TOMOYO_MAX_HASH]);
 +	if (fmb->len == 0) {
 +		list_del(&fmb->list);
 +		kfree(fmb);
 +	}
-+out:
++ out:
 +	mutex_unlock(&lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return ptr ? &ptr->entry : NULL;
 +}
 +
 +/**
-+ * tmy_realpath_init - Initialize realpath related code.
++ * tomoyo_realpath_init - Initialize realpath related code.
 + *
 + * Returns 0.
 + */
-+static int __init tmy_realpath_init(void)
++static int __init tomoyo_realpath_init(void)
 +{
 +	int i;
 +
-+	BUILD_BUG_ON(TMY_MAX_PATHNAME_LEN > PATH_MAX);
-+	for (i = 0; i < MAX_HASH; i++)
-+		INIT_LIST1_HEAD(&name_list[i]);
-+	INIT_LIST1_HEAD(&kernel_domain.acl_info_list);
-+	kernel_domain.domainname = tmy_save_name(ROOT_NAME);
-+	list1_add_tail(&kernel_domain.list, &domain_list);
-+	if (tmy_find_domain(ROOT_NAME) != &kernel_domain)
-+		panic("Can't register kernel_domain");
++	BUILD_BUG_ON(TOMOYO_MAX_PATHNAME_LEN > PATH_MAX);
++	for (i = 0; i < TOMOYO_MAX_HASH; i++)
++		INIT_LIST1_HEAD(&tomoyo_name_list[i]);
++	INIT_LIST1_HEAD(&tomoyo_kernel_domain.tomoyo_acl_info_list);
++	tomoyo_kernel_domain.domainname = tomoyo_save_name(TOMOYO_ROOT_NAME);
++	list1_add_tail(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
++	if (tomoyo_find_domain(TOMOYO_ROOT_NAME) != &tomoyo_kernel_domain)
++		panic("Can't register tomoyo_kernel_domain");
 +	return 0;
 +}
 +
-+security_initcall(tmy_realpath_init);
++security_initcall(tomoyo_realpath_init);
 +
 +/* Memory allocated for temporary purpose. */
-+static atomic_t dynamic_memory_size;
++static atomic_t tomoyo_dynamic_memory_size;
 +
 +/**
-+ * tmy_alloc - Allocate memory for temporary purpose.
++ * tomoyo_alloc - Allocate memory for temporary purpose.
 + *
 + * @size: Size in bytes.
 + *
 + * Returns pointer to allocated memory on success, NULL otherwise.
 + */
-+void *tmy_alloc(const size_t size)
++void *tomoyo_alloc(const size_t size)
 +{
 +	void *p = kzalloc(size, GFP_KERNEL);
 +	if (p)
-+		atomic_add(ksize(p), &dynamic_memory_size);
++		atomic_add(ksize(p), &tomoyo_dynamic_memory_size);
 +	return p;
 +}
 +
 +/**
-+ * tmy_free - Release memory allocated by tmy_alloc().
++ * tomoyo_free - Release memory allocated by tomoyo_alloc().
 + *
-+ * @p: Pointer returned by tmy_alloc(). May be NULL.
++ * @p: Pointer returned by tomoyo_alloc(). May be NULL.
 + *
 + * Returns nothing.
 + */
-+void tmy_free(const void *p)
++void tomoyo_free(const void *p)
 +{
 +	if (p) {
-+		atomic_sub(ksize(p), &dynamic_memory_size);
++		atomic_sub(ksize(p), &tomoyo_dynamic_memory_size);
 +		kfree(p);
 +	}
 +}
 +
 +/**
-+ * tmy_read_memory_counter - Check for memory usage.
++ * tomoyo_read_memory_counter - Check for memory usage.
 + *
-+ * @head: Pointer to "struct tmy_io_buffer".
++ * @head: Pointer to "struct tomoyo_io_buffer".
 + *
 + * Returns memory usage in bytes.
 + */
-+int tmy_read_memory_counter(struct tmy_io_buffer *head)
++int tomoyo_read_memory_counter(struct tomoyo_io_buffer *head)
 +{
 +	if (!head->read_eof) {
-+		const unsigned int shared = allocated_memory_for_savename;
-+		const unsigned int private = allocated_memory_for_elements;
-+		const unsigned int dynamic = atomic_read(&dynamic_memory_size);
++		const unsigned int shared
++			= tomoyo_allocated_memory_for_savename;
++		const unsigned int private
++			= tomoyo_allocated_memory_for_elements;
++		const unsigned int dynamic
++			= atomic_read(&tomoyo_dynamic_memory_size);
 +		char buffer[64];
 +
 +		memset(buffer, 0, sizeof(buffer));
-+		if (quota_for_savename)
++		if (tomoyo_quota_for_savename)
 +			snprintf(buffer, sizeof(buffer) - 1,
-+				 "   (Quota: %10u)", quota_for_savename);
++				 "   (Quota: %10u)",
++				 tomoyo_quota_for_savename);
 +		else
 +			buffer[0] = '\0';
-+		tmy_io_printf(head, "Shared:  %10u%s\n", shared, buffer);
-+		if (quota_for_elements)
++		tomoyo_io_printf(head, "Shared:  %10u%s\n", shared, buffer);
++		if (tomoyo_quota_for_elements)
 +			snprintf(buffer, sizeof(buffer) - 1,
-+				 "   (Quota: %10u)", quota_for_elements);
++				 "   (Quota: %10u)",
++				 tomoyo_quota_for_elements);
 +		else
 +			buffer[0] = '\0';
-+		tmy_io_printf(head, "Private: %10u%s\n", private, buffer);
-+		tmy_io_printf(head, "Dynamic: %10u\n", dynamic);
-+		tmy_io_printf(head, "Total:   %10u\n",
-+			      shared + private + dynamic);
++		tomoyo_io_printf(head, "Private: %10u%s\n", private, buffer);
++		tomoyo_io_printf(head, "Dynamic: %10u\n", dynamic);
++		tomoyo_io_printf(head, "Total:   %10u\n",
++				 shared + private + dynamic);
 +		head->read_eof = true;
 +	}
 +	return 0;
 +}
 +
 +/**
-+ * tmy_write_memory_quota - Set memory quota.
++ * tomoyo_write_memory_quota - Set memory quota.
 + *
-+ * @head: Pointer to "struct tmy_io_buffer".
++ * @head: Pointer to "struct tomoyo_io_buffer".
 + *
 + * Returns 0.
 + */
-+int tmy_write_memory_quota(struct tmy_io_buffer *head)
++int tomoyo_write_memory_quota(struct tomoyo_io_buffer *head)
 +{
 +	char *data = head->write_buf;
 +	unsigned int size;
 +
 +	if (sscanf(data, "Shared: %u", &size) == 1)
-+		quota_for_savename = size;
++		tomoyo_quota_for_savename = size;
 +	else if (sscanf(data, "Private: %u", &size) == 1)
-+		quota_for_elements = size;
++		tomoyo_quota_for_elements = size;
 +	return 0;
 +}
 --- /dev/null
 +++ linux-2.6.28-rc2-mm1/security/tomoyo/realpath.h
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,63 @@
 +/*
 + * security/tomoyo/realpath.h
 + *
@@ -475,7 +485,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/10/10
++ * Version: 2.2.0-pre   2008/11/09
 + *
 + */
 +
@@ -483,49 +493,51 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define _SECURITY_TOMOYO_REALPATH_H
 +
 +struct path;
-+struct condition_list;
-+struct path_info;
-+struct tmy_io_buffer;
++struct tomoyo_path_info;
++struct tomoyo_io_buffer;
 +
 +/* Convert binary string to ascii string. */
-+int tmy_encode(char *buffer, int buflen, const char *str);
++int tomoyo_encode(char *buffer, int buflen, const char *str);
 +
 +/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
-+int tmy_realpath_from_path2(struct path *path, char *newname, int newname_len);
++int tomoyo_realpath_from_path2(struct path *path, char *newname,
++			       int newname_len);
 +
 +/*
 + * Returns realpath(3) of the given pathname but ignores chroot'ed root.
-+ * These functions use tmy_alloc(), so the caller must call tmy_free()
++ * These functions use tomoyo_alloc(), so the caller must call tomoyo_free()
 + * if these functions didn't return NULL.
 + */
-+char *tmy_realpath(const char *pathname);
-+/* Same with tmy_realpath() except that it doesn't follow the final symlink. */
-+char *tmy_realpath_nofollow(const char *pathname);
-+/* Same with tmy_realpath() except that the pathname is already solved. */
-+char *tmy_realpath_from_path(struct path *path);
++char *tomoyo_realpath(const char *pathname);
++/*
++ * Same with tomoyo_realpath() except that it doesn't follow the final symlink.
++ */
++char *tomoyo_realpath_nofollow(const char *pathname);
++/* Same with tomoyo_realpath() except that the pathname is already solved. */
++char *tomoyo_realpath_from_path(struct path *path);
 +
 +/*
 + * Allocate memory for ACL entry.
 + * The RAM is chunked, so NEVER try to kfree() the returned pointer.
 + */
-+void *tmy_alloc_element(const unsigned int size);
++void *tomoyo_alloc_element(const unsigned int size);
 +
 +/*
 + * Keep the given name on the RAM.
 + * The RAM is shared, so NEVER try to modify or kfree() the returned name.
 + */
-+const struct path_info *tmy_save_name(const char *name);
++const struct tomoyo_path_info *tomoyo_save_name(const char *name);
 +
 +/* Allocate memory for temporary use (e.g. permission checks). */
-+void *tmy_alloc(const size_t size);
++void *tomoyo_alloc(const size_t size);
 +
-+/* Free memory allocated by tmy_alloc(). */
-+void tmy_free(const void *p);
++/* Free memory allocated by tomoyo_alloc(). */
++void tomoyo_free(const void *p);
 +
 +/* Check for memory usage. */
-+int tmy_read_memory_counter(struct tmy_io_buffer *head);
++int tomoyo_read_memory_counter(struct tomoyo_io_buffer *head);
 +
 +/* Set memory quota. */
-+int tmy_write_memory_quota(struct tmy_io_buffer *head);
++int tomoyo_write_memory_quota(struct tomoyo_io_buffer *head);
 +
 +#endif /* !defined(_SECURITY_TOMOYO_REALPATH_H) */
