@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.6.28-rc3.
+This is TOMOYO Linux patch for kernel 2.6.28-rc4.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.28-rc3.tar.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.28-rc4.tar.bz2
 ---
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
@@ -36,8 +36,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/unix/af_unix.c              |   15 +++++
  32 files changed, 587 insertions(+), 3 deletions(-)
 
---- linux-2.6.28-rc3.orig/fs/Kconfig
-+++ linux-2.6.28-rc3/fs/Kconfig
+--- linux-2.6.28-rc4.orig/fs/Kconfig
++++ linux-2.6.28-rc4/fs/Kconfig
 @@ -1557,4 +1557,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -45,16 +45,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.28-rc3.orig/fs/Makefile
-+++ linux-2.6.28-rc3/fs/Makefile
-@@ -124,3 +124,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
+--- linux-2.6.28-rc4.orig/fs/Makefile
++++ linux-2.6.28-rc4/fs/Makefile
+@@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.28-rc3.orig/fs/attr.c
-+++ linux-2.6.28-rc3/fs/attr.c
+--- linux-2.6.28-rc4.orig/fs/attr.c
++++ linux-2.6.28-rc4/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -79,8 +79,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (ia_valid & ATTR_SIZE)
  		down_write(&dentry->d_inode->i_alloc_sem);
---- linux-2.6.28-rc3.orig/fs/compat.c
-+++ linux-2.6.28-rc3/fs/compat.c
+--- linux-2.6.28-rc4.orig/fs/compat.c
++++ linux-2.6.28-rc4/fs/compat.c
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -100,8 +100,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.28-rc3.orig/fs/compat_ioctl.c
-+++ linux-2.6.28-rc3/fs/compat_ioctl.c
+--- linux-2.6.28-rc4.orig/fs/compat_ioctl.c
++++ linux-2.6.28-rc4/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -125,8 +125,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.28-rc3.orig/fs/exec.c
-+++ linux-2.6.28-rc3/fs/exec.c
+--- linux-2.6.28-rc4.orig/fs/exec.c
++++ linux-2.6.28-rc4/fs/exec.c
 @@ -61,6 +61,10 @@
  #include <linux/a.out.h>
  #endif
@@ -176,8 +176,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.28-rc3.orig/fs/fcntl.c
-+++ linux-2.6.28-rc3/fs/fcntl.c
+--- linux-2.6.28-rc4.orig/fs/fcntl.c
++++ linux-2.6.28-rc4/fs/fcntl.c
 @@ -23,6 +23,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -201,8 +201,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.28-rc3.orig/fs/ioctl.c
-+++ linux-2.6.28-rc3/fs/ioctl.c
+--- linux-2.6.28-rc4.orig/fs/ioctl.c
++++ linux-2.6.28-rc4/fs/ioctl.c
 @@ -17,6 +17,9 @@
  #include <linux/buffer_head.h>
  
@@ -224,8 +224,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.28-rc3.orig/fs/namei.c
-+++ linux-2.6.28-rc3/fs/namei.c
+--- linux-2.6.28-rc4.orig/fs/namei.c
++++ linux-2.6.28-rc4/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -462,8 +462,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
---- linux-2.6.28-rc3.orig/fs/namespace.c
-+++ linux-2.6.28-rc3/fs/namespace.c
+--- linux-2.6.28-rc4.orig/fs/namespace.c
++++ linux-2.6.28-rc4/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -576,8 +576,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.28-rc3.orig/fs/open.c
-+++ linux-2.6.28-rc3/fs/open.c
+--- linux-2.6.28-rc4.orig/fs/open.c
++++ linux-2.6.28-rc4/fs/open.c
 @@ -29,6 +29,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -641,8 +641,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.28-rc3.orig/fs/proc/Makefile
-+++ linux-2.6.28-rc3/fs/proc/Makefile
+--- linux-2.6.28-rc4.orig/fs/proc/Makefile
++++ linux-2.6.28-rc4/fs/proc/Makefile
 @@ -25,3 +25,6 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
  proc-$(CONFIG_PRINTK)	+= kmsg.o
@@ -650,8 +650,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.28-rc3.orig/fs/proc/version.c
-+++ linux-2.6.28-rc3/fs/proc/version.c
+--- linux-2.6.28-rc4.orig/fs/proc/version.c
++++ linux-2.6.28-rc4/fs/proc/version.c
 @@ -32,3 +32,14 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -661,14 +661,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-rc3 2008/11/03\n");
++	printk(KERN_INFO "Hook version: 2.6.28-rc4 2008/11/10\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 +#endif
 +/***** CCS end. *****/
---- linux-2.6.28-rc3.orig/include/linux/init_task.h
-+++ linux-2.6.28-rc3/include/linux/init_task.h
+--- linux-2.6.28-rc4.orig/include/linux/init_task.h
++++ linux-2.6.28-rc4/include/linux/init_task.h
 @@ -180,6 +180,10 @@ extern struct group_info init_groups;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
@@ -680,8 +680,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  
---- linux-2.6.28-rc3.orig/include/linux/sched.h
-+++ linux-2.6.28-rc3/include/linux/sched.h
+--- linux-2.6.28-rc4.orig/include/linux/sched.h
++++ linux-2.6.28-rc4/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -694,10 +694,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  /*
   * Scheduling policies
   */
-@@ -1349,6 +1354,10 @@ struct task_struct {
- 	 */
- 	unsigned long timer_slack_ns;
+@@ -1351,6 +1356,10 @@ struct task_struct {
  	unsigned long default_timer_slack_ns;
+ 
+ 	struct list_head	*scm_work_list;
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
 +	u32 tomoyo_flags;
@@ -705,8 +705,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  };
  
  /*
---- linux-2.6.28-rc3.orig/kernel/compat.c
-+++ linux-2.6.28-rc3/kernel/compat.c
+--- linux-2.6.28-rc4.orig/kernel/compat.c
++++ linux-2.6.28-rc4/kernel/compat.c
 @@ -26,6 +26,9 @@
  #include <linux/times.h>
  
@@ -728,8 +728,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.28-rc3.orig/kernel/kexec.c
-+++ linux-2.6.28-rc3/kernel/kexec.c
+--- linux-2.6.28-rc4.orig/kernel/kexec.c
++++ linux-2.6.28-rc4/kernel/kexec.c
 @@ -37,6 +37,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -751,8 +751,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.28-rc3.orig/kernel/kmod.c
-+++ linux-2.6.28-rc3/kernel/kmod.c
+--- linux-2.6.28-rc4.orig/kernel/kmod.c
++++ linux-2.6.28-rc4/kernel/kmod.c
 @@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -765,8 +765,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.28-rc3.orig/kernel/module.c
-+++ linux-2.6.28-rc3/kernel/module.c
+--- linux-2.6.28-rc4.orig/kernel/module.c
++++ linux-2.6.28-rc4/kernel/module.c
 @@ -51,6 +51,9 @@
  #include <asm/sections.h>
  #include <linux/tracepoint.h>
@@ -799,8 +799,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.28-rc3.orig/kernel/ptrace.c
-+++ linux-2.6.28-rc3/kernel/ptrace.c
+--- linux-2.6.28-rc4.orig/kernel/ptrace.c
++++ linux-2.6.28-rc4/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -837,8 +837,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.28-rc3.orig/kernel/sched.c
-+++ linux-2.6.28-rc3/kernel/sched.c
+--- linux-2.6.28-rc4.orig/kernel/sched.c
++++ linux-2.6.28-rc4/kernel/sched.c
 @@ -76,6 +76,9 @@
  
  #include <asm/tlb.h>
@@ -849,7 +849,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  #include "sched_cpupri.h"
  
-@@ -5015,6 +5018,10 @@ int can_nice(const struct task_struct *p
+@@ -5017,6 +5020,10 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -860,8 +860,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.28-rc3.orig/kernel/signal.c
-+++ linux-2.6.28-rc3/kernel/signal.c
+--- linux-2.6.28-rc4.orig/kernel/signal.c
++++ linux-2.6.28-rc4/kernel/signal.c
 @@ -34,6 +34,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -911,8 +911,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.28-rc3.orig/kernel/sys.c
-+++ linux-2.6.28-rc3/kernel/sys.c
+--- linux-2.6.28-rc4.orig/kernel/sys.c
++++ linux-2.6.28-rc4/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -969,8 +969,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.28-rc3.orig/kernel/sysctl.c
-+++ linux-2.6.28-rc3/kernel/sysctl.c
+--- linux-2.6.28-rc4.orig/kernel/sysctl.c
++++ linux-2.6.28-rc4/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -1087,8 +1087,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.28-rc3.orig/kernel/time.c
-+++ linux-2.6.28-rc3/kernel/time.c
+--- linux-2.6.28-rc4.orig/kernel/time.c
++++ linux-2.6.28-rc4/kernel/time.c
 @@ -40,6 +40,9 @@
  
  #include <asm/uaccess.h>
@@ -1121,8 +1121,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.28-rc3.orig/kernel/time/ntp.c
-+++ linux-2.6.28-rc3/kernel/time/ntp.c
+--- linux-2.6.28-rc4.orig/kernel/time/ntp.c
++++ linux-2.6.28-rc4/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/clocksource.h>
  #include <linux/workqueue.h>
@@ -1152,8 +1152,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  		/* if the quartz is off by more than 10% something is VERY wrong! */
  		if (txc->modes & ADJ_TICK &&
---- linux-2.6.28-rc3.orig/net/core/datagram.c
-+++ linux-2.6.28-rc3/net/core/datagram.c
+--- linux-2.6.28-rc4.orig/net/core/datagram.c
++++ linux-2.6.28-rc4/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1179,8 +1179,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		if (skb)
  			return skb;
  
---- linux-2.6.28-rc3.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.28-rc3/net/ipv4/inet_connection_sock.c
+--- linux-2.6.28-rc4.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.28-rc4/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1202,8 +1202,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->ib_net == net && tb->port == rover)
  					goto next;
---- linux-2.6.28-rc3.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.28-rc3/net/ipv4/inet_hashtables.c
+--- linux-2.6.28-rc4.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.28-rc4/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1225,8 +1225,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.28-rc3.orig/net/ipv4/udp.c
-+++ linux-2.6.28-rc3/net/ipv4/udp.c
+--- linux-2.6.28-rc4.orig/net/ipv4/udp.c
++++ linux-2.6.28-rc4/net/ipv4/udp.c
 @@ -103,6 +103,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1250,8 +1250,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			do {
  				snum = snum + rand;
  			} while (snum < low || snum > high);
---- linux-2.6.28-rc3.orig/net/socket.c
-+++ linux-2.6.28-rc3/net/socket.c
+--- linux-2.6.28-rc4.orig/net/socket.c
++++ linux-2.6.28-rc4/net/socket.c
 @@ -97,6 +97,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1342,8 +1342,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
---- linux-2.6.28-rc3.orig/net/unix/af_unix.c
-+++ linux-2.6.28-rc3/net/unix/af_unix.c
+--- linux-2.6.28-rc4.orig/net/unix/af_unix.c
++++ linux-2.6.28-rc4/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
