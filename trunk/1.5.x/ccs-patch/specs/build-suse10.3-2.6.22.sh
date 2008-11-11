@@ -67,9 +67,9 @@ fi
 rpm -ivh kernel-source-2.6.22.19-0.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
+if [ ! -r ccs-patch-1.5.5-20081111.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20080903.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20081111.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -104,7 +104,7 @@ patch << "EOF" || die "Can't patch spec file."
  source .rpm-defs
  cd linux-2.6.22
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.5.5-20080903.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.5.5-20081111.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.22-suse-10.3.diff
 +cat config.ccs >> .config
  cp .config .config.orig

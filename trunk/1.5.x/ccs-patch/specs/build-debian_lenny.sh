@@ -19,14 +19,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.5.5-20080903.tar.gz ]
+if [ ! -r ccs-patch-1.5.5-20081111.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20080903.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.26-debian-lenny.diff ]
-then
-    wget -O ccs-patch-2.6.26-debian-lenny.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.26-debian-lenny.diff?root=tomoyo' || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20081111.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -37,8 +32,8 @@ apt-get source linux-image-2.6.26-1-686 || die "Can't install kernel source."
 
 # Apply patches and create kernel config.
 cd linux-2.6-2.6.26 || die "Can't chdir to linux-2.6-2.6.26/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.5.5-20080903.tar.gz || die "Can't extract patch."
-patch -p1 < /usr/src/rpm/SOURCES/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.5.5-20081111.tar.gz || die "Can't extract patch."
+patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
 cat /boot/config-2.6.26-1-686 config.ccs > .config || die "Can't create config."
 yes | make -s oldconfig > /dev/null
 
