@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.18.8-0.11.src.rpm ]
+if [ ! -r kernel-source-2.6.18.8-0.13.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/src/kernel-source-2.6.18.8-0.11.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/src/kernel-source-2.6.18.8-0.13.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.18.8-0.11.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.18.8-0.13.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20081111.tar.gz ]
@@ -88,8 +88,8 @@ patch << "EOF" || die "Can't patch spec file."
  BuildRequires:  python
  %endif
  Version:        2.6.18.8
--Release: 0.11
-+Release: 0.11_tomoyo_1.5.5
+-Release: 0.13
++Release: 0.13_tomoyo_1.5.5
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  License:        GPL v2 or later
  Group:          System/Kernel
