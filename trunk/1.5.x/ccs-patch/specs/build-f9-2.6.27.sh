@@ -31,7 +31,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel.spec	2008-11-13 08:00:07.000000000 +0900
-+++ kernel.spec	2008-11-15 16:24:36.000000000 +0900
++++ kernel.spec	2008-11-15 20:16:18.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -53,6 +53,15 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
+@@ -439,7 +444,7 @@
+ # Packages that need to be installed before the kernel is, because the %post
+ # scripts use them.
+ #
+-%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 6.0.39-1, kernel-firmware >= %{rpmversion}-%{pkg_release}
++%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 6.0.39-1
+ 
+ #
+ # This macro does requires, provides, conflicts, obsoletes for a kernel package.
 @@ -467,7 +472,7 @@
  AutoProv: yes\
  %{nil}
