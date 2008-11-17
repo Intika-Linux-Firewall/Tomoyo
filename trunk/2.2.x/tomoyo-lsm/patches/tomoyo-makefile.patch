@@ -1,5 +1,7 @@
 Subject: Kconfig and Makefile
 
+TOMOYO uses LSM hooks for pathname based access control and securityfs support.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
@@ -46,7 +48,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	help
 +	  This selects TOMOYO Linux, pathname-based access control.
 +	  Required userspace tools and further information may be
-+          found at <http://tomoyo.sourceforge.jp/>.
++	  found at <http://tomoyo.sourceforge.jp/>.
 +	  If you are unsure how to answer this question, answer N.
 --- /dev/null
 +++ linux-2.6.28-rc4-mm1/security/tomoyo/Makefile

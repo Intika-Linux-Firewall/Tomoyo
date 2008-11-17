@@ -1,5 +1,25 @@
 Subject: LSM adapter functions.
 
+This is LSM adapter for TOMOYO.
+This version of TOMOYO assigns only one variable "struct tomoyo_domain_info *"
+to "current->cred->security".
+
+Future version will require two variables "struct tomoyo_domain_info *" and
+"u32".
+http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/include/linux/sched.h#L1311
+Well, how to implement this while "current->cred->security" cannot be modified
+freely?
+
+To be honest, the only object which TOMOYO needs to assign variables is
+"struct task_struct". TOMOYO's "T" means "task".
+TOMOYO utilizes characteristics of "struct task_struct".
+For TOMOYO, use of per task variables is vital.
+
+Removal of security_task_alloc() and security_task_free() by introduction of
+COW credentials will become a nightmare when TOMOYO tries to add "u32".
+Of cource, if TOMOYO is allowed to add "u32" to "struct task_struct",
+COW credentials won't become a nightmare.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>

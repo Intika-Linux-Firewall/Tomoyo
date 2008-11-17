@@ -4,6 +4,10 @@ To remove factors that make pathname based access control difficult
 (e.g. symbolic links, "..", "//", chroot() etc.), a variant of d_path()
 which traverses up to the root of the namespace is needed.
 
+This patch introduces d_realpath(), a variant of d_path().
+While d_path() stops traversing at current->root,
+d_realpath() doesn't stop traversiong at current->root.
+
 Three differences compared to d_path().
 (1) Ignores current process's root directory.
 (2) Trailing '/' is added if the pathname refers to a directory.
