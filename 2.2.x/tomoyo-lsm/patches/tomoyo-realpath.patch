@@ -11,6 +11,33 @@ characters, may be TOMOYO Linux should be able to support 16336 (which means
 (NAME_MAX * (PATH_MAX / (NAME_MAX + 1)) * 4 + (PATH_MAX / (NAME_MAX + 1)))
 including trailing '\0'), but I think 4000 is enough for practical use.
 
+TOMOYO uses only 0x21 - 0x7E (as printable characters) and 0x20 (as word
+delimiter) and 0x0A (as line delimiter).
+0x01 - 0x20 and 0x80 - 0xFF is handled in \ooo style representation.
+The reason to use \ooo is to guarantee that "%s" won't damage logs.
+Userland program can request
+
+ open("/tmp/file granted.\nAccess /tmp/file ", O_WRONLY | O_CREAT, 0600)
+
+and logging such crazy pathname using "Access %s denied.\n" format will cause
+"fabrication of logs" like
+
+ Access /tmp/file granted.
+ Access /tmp/file denied.
+
+TOMOYO converts such characters to \ooo so that the logs will become
+
+ Access /tmp/file\040granted.\012Access\040/tmp/file denied.
+
+and the administrator can read the logs safely using /bin/cat .
+Likewise, a crazy request like
+
+ open("/tmp/\x01\x02\x03\x04\x05\x06\x07\x08\x09", O_WRONLY | O_CREAT, 0600)
+
+will be processed safely by converting to
+
+ Access /tmp/\001\002\003\004\005\006\007\010\011 denied.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
