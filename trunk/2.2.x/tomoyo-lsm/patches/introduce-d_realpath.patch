@@ -17,17 +17,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  include/linux/dcache.h |    1 
  2 files changed, 85 insertions(+)
 
---- linux-2.6.28-rc2-mm1.orig/fs/dcache.c
-+++ linux-2.6.28-rc2-mm1/fs/dcache.c
-@@ -32,6 +32,7 @@
- #include <linux/seqlock.h>
+--- linux-2.6.28-rc4-mm1.orig/fs/dcache.c
++++ linux-2.6.28-rc4-mm1/fs/dcache.c
+@@ -33,6 +33,7 @@
  #include <linux/swap.h>
  #include <linux/bootmem.h>
+ #include <linux/backing-dev.h>
 +#include <linux/magic.h>
  #include "internal.h"
  
  
-@@ -1980,6 +1981,89 @@ Elong:
+@@ -1982,6 +1983,89 @@ Elong:
  }
  
  /**
@@ -117,8 +117,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * d_path - return the path of a dentry
   * @path: path to report
   * @buf: buffer to return value in
---- linux-2.6.28-rc2-mm1.orig/include/linux/dcache.h
-+++ linux-2.6.28-rc2-mm1/include/linux/dcache.h
+--- linux-2.6.28-rc4-mm1.orig/include/linux/dcache.h
++++ linux-2.6.28-rc4-mm1/include/linux/dcache.h
 @@ -305,6 +305,7 @@ extern char *dynamic_dname(struct dentry
  extern char *__d_path(const struct path *path, struct path *root, char *, int);
  extern char *d_path(const struct path *, char *, int);
