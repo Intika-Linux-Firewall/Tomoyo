@@ -25,8 +25,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  security/security.c      |    6 ++++++
  6 files changed, 35 insertions(+)
 
---- linux-2.6.28-rc2-mm1.orig/fs/namei.c
-+++ linux-2.6.28-rc2-mm1/fs/namei.c
+--- linux-2.6.28-rc4-mm1.orig/fs/namei.c
++++ linux-2.6.28-rc4-mm1/fs/namei.c
 @@ -1566,6 +1566,7 @@ int may_open(struct nameidata *nd, int a
  			error = do_truncate(dentry, 0,
  					    ATTR_MTIME|ATTR_CTIME|ATTR_OPEN,
@@ -99,8 +99,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  exit6:
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
---- linux-2.6.28-rc2-mm1.orig/fs/open.c
-+++ linux-2.6.28-rc2-mm1/fs/open.c
+--- linux-2.6.28-rc4-mm1.orig/fs/open.c
++++ linux-2.6.28-rc4-mm1/fs/open.c
 @@ -277,6 +277,7 @@ static long do_sys_truncate(const char _
  	if (!error) {
  		DQUOT_INIT(inode);
@@ -117,9 +117,9 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  out_putf:
  	fput(file);
  out:
---- linux-2.6.28-rc2-mm1.orig/include/linux/security.h
-+++ linux-2.6.28-rc2-mm1/include/linux/security.h
-@@ -523,6 +523,12 @@ static inline void security_free_mnt_opt
+--- linux-2.6.28-rc4-mm1.orig/include/linux/security.h
++++ linux-2.6.28-rc4-mm1/include/linux/security.h
+@@ -527,6 +527,12 @@ static inline void security_free_mnt_opt
   *	@inode contains a pointer to the inode.
   *	@secid contains a pointer to the location where result will be saved.
   *	In case of failure, @secid will be set to zero.
@@ -132,7 +132,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
   *
   * Security hooks for file operations
   *
-@@ -1398,6 +1404,7 @@ struct security_operations {
+@@ -1402,6 +1408,7 @@ struct security_operations {
  			  struct dentry *new_dentry);
  	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
  			    struct path *new_dir, struct dentry *new_dentry);
@@ -140,7 +140,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #endif
  
  	int (*inode_alloc_security) (struct inode *inode);
-@@ -2778,6 +2785,7 @@ int security_path_link(struct dentry *ol
+@@ -2792,6 +2799,7 @@ int security_path_link(struct dentry *ol
  		       struct dentry *new_dentry);
  int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
  			 struct path *new_dir, struct dentry *new_dentry);
@@ -148,7 +148,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
-@@ -2828,6 +2836,10 @@ static inline int security_path_rename(s
+@@ -2842,6 +2850,10 @@ static inline int security_path_rename(s
  {
  	return 0;
  }
@@ -159,8 +159,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #endif	/* CONFIG_SECURITY_PATH */
  
  #ifdef CONFIG_KEYS
---- linux-2.6.28-rc2-mm1.orig/net/unix/af_unix.c
-+++ linux-2.6.28-rc2-mm1/net/unix/af_unix.c
+--- linux-2.6.28-rc4-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.28-rc4-mm1/net/unix/af_unix.c
 @@ -832,6 +832,7 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_drop_write;
@@ -169,8 +169,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  out_mknod_drop_write:
  		mnt_drop_write(nd.path.mnt);
  		if (err)
---- linux-2.6.28-rc2-mm1.orig/security/capability.c
-+++ linux-2.6.28-rc2-mm1/security/capability.c
+--- linux-2.6.28-rc4-mm1.orig/security/capability.c
++++ linux-2.6.28-rc4-mm1/security/capability.c
 @@ -308,6 +308,10 @@ static int cap_path_truncate(struct path
  {
  	return 0;
@@ -190,9 +190,9 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #endif
  	set_to_cap_if_null(ops, file_permission);
  	set_to_cap_if_null(ops, file_alloc_security);
---- linux-2.6.28-rc2-mm1.orig/security/security.c
-+++ linux-2.6.28-rc2-mm1/security/security.c
-@@ -414,6 +414,12 @@ int security_path_truncate(struct path *
+--- linux-2.6.28-rc4-mm1.orig/security/security.c
++++ linux-2.6.28-rc4-mm1/security/security.c
+@@ -419,6 +419,12 @@ int security_path_truncate(struct path *
  		return 0;
  	return security_ops->path_truncate(path, length, time_attrs, filp);
  }
