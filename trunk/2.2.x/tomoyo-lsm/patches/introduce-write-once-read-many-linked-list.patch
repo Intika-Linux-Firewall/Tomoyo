@@ -1,5 +1,31 @@
 Subject: Singly linked list implementation.
 
+This patch introduces new list structure named "list1".
+
+TOMOYO wants to use "write once read many" list.
+Since only two operations
+
+ (1) Append an entry to the tail of the list.
+ (2) Read all entries starting from the head of the list.
+
+are needed for that purpose, this list doesn't have pointer to previous
+element.
+
+While "hlist" is defined as
+
+ struct hlist_head {
+ 	struct hlist_node *first;
+ };
+
+ struct hlist_node {
+ 	struct hlist_node *next, **pprev;
+ };
+
+I don't use "hlist" because I don't need pointer to previous element.
+
+By ommiting pointer to previous element, the reader becomes read lock free,
+which is good thing for implementing "write once read many" list.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
