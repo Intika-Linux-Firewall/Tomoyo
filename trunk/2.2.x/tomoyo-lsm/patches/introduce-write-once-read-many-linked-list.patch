@@ -21,7 +21,7 @@ While "hlist" is defined as
  	struct hlist_node *next, **pprev;
  };
 
-I don't use "hlist" because I don't need pointer to previous element.
+I don't use "hlist_node" because I don't need pointer to previous element.
 
 By ommiting pointer to previous element, the reader becomes read lock free,
 which is good thing for implementing "write once read many" list.
