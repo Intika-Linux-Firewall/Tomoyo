@@ -4,10 +4,6 @@ This file contains common functions (e.g. policy I/O, pattern matching).
 
 ----- About pattern matching -----
 
-You would go crazy with functions that handle string data.
-But these functions are needed to stay inside the kernel for validating,
-hashing and comparing string data.
-
 In TOMOYO, all wildcard characters are in the form of '\' + one character.
 Many programs interpret a character with a backslash as literal character, but
 TOMOYO interprets all characters without a backslash as literal characters.
@@ -32,6 +28,11 @@ characters as needed, for users won't add a backslash to represent literal
 characters. If the interpreter forces users to add a backslash to represent
 wildcard character, users needn't to know all wildcard characters beforehand.
 Users can learn the meaning of new wildcard characters on first encounter.
+
+
+You would go crazy with functions that handle string data.
+But these functions are needed to stay inside the kernel for validating,
+hashing and comparing string data.
 
 To speeds up string comparison, TOMOYO hashes strings using "depth" (number of
 '/' characters). This is calculated by tomoyo_path_depth() and used by
