@@ -47,6 +47,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#Fedora7">Fedora 7</a>
 <li><a href="#Fedora8">Fedora 8</a>
 <li><a href="#Fedora9">Fedora 9</a>
+<li><a href="#Fedora10">Fedora 10</a>
 <li><a href="#CentOS4.7">CentOS 4.7</a>
 <li><a href="#CentOS5.2">CentOS 5.2</a>
 <li><a href="#Sarge-2.4">Debian Sarge (2.4.27)</a>
@@ -168,9 +169,22 @@ rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 <table border="1">
 <tr><td>
 # ビルドスクリプトをダウンロードする。<br>
-wget -O build-f9-2.6.26.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f9-2.6.26.sh?root=tomoyo'<br>
+wget -O build-f9-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f9-2.6.27.sh?root=tomoyo'<br>
 # ビルドスクリプトを実行する。<br>
-sh build-f9-2.6.26.sh<br>
+sh build-f9-2.6.27.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr>
+</table>
+
+<h2><a name="Fedora10">Fedora 10</a></h2>
+
+<table border="1">
+<tr><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-f10-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f10-2.6.27.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-f10-2.6.27.sh<br>
 # パッケージを作成する。<br>
 rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr>
