@@ -2,6 +2,279 @@ Subject: Common functions for TOMOYO Linux.
 
 This file contains common functions (e.g. policy I/O, pattern matching).
 
+----- About pattern matching -----
+
+You would go crazy with functions that handle string data.
+But these functions are needed to stay inside the kernel for validating,
+hashing and comparing string data.
+
+In TOMOYO, all wildcard characters are in the form of '\' + one character.
+Many programs interpret a character with a backslash as literal character, but
+TOMOYO interprets all characters without a backslash as literal characters.
+
+Since the characters which are interpreted as wildcard are program dependent
+(e.g. For shells, '*' and '?' are wildcards but '.' isn't. For sed, '.' is
+a wildcard). Those who worry about some characters being interpreted as
+wildcard characters will add a backslash to every characters
+(e.g. \/\t\m\p\/\* ) without knowing whether '/' 't' 'm' 'p' '*' are wildcard
+characters or not.
+Not only this approach requires the interpreter to remove unneeded backslashes
+but also this approach keeps introduction of new wildcard characters away.
+For example, until yesterday, 'p' was a literal character and users had been
+allowed to add a backslash before 'p'. But, from today, '\p' is now a wildcard
+character and users are no longer allowed to add a backslash before 'p' if the
+users want to represent literal 'p'.
+If the interpreter forces users not to add a backslash to represent literal
+character, users must know all wildcard characters beforehand.
+
+On the contrary, TOMOYO's approach allows introduction of new wildcard
+characters as needed, for users won't add a backslash to represent literal
+characters. If the interpreter forces users to add a backslash to represent
+wildcard character, users needn't to know all wildcard characters beforehand.
+Users can learn the meaning of new wildcard characters on first encounter.
+
+To speeds up string comparison, TOMOYO hashes strings using "depth" (number of
+'/' characters). This is calculated by tomoyo_path_depth() and used by
+tomoyo_path_matches_pattern().
+
+To be able to use strncmp() where possible, TOMOYO remembers initial length of
+strings without wildcard characters. This is calculated by
+tomoyo_const_part_length().
+
+To be able to use strcmp() where possible, TOMOYO remembers whether strings
+contains wildcard character or not.
+
+----- About policy interface -----
+
+TOMOYO Linux creates the following files on securityfs (normally 
+mounted on /sys/kernel/security) as interfaces between kernel and 
+userspace. These files are for TOMOYO Linux management tools *only*, 
+not for general programs.
+
+  * profile
+  * exception_policy
+  * domain_policy
+  * manager
+  * meminfo
+  * self_domain
+  * version
+  * .domain_status
+  * .process_status
+
+*** /sys/kernel/security/tomoyo/profile ***
+
+This file is used to read or write profiles.
+
+"profile" means a running mode of process. A profile lists up 
+functions and their modes in "$number-$variable=$value" format. The 
+$number is profile number between 0 and 255. Each domain is assigned 
+one profile. To assign profile to domains, use "ccs-setprofile" or 
+"ccs-editpolicy" or "ccs-loadpolicy" commands.
+
+(Example)
+[root@tomoyo]# cat /sys/kernel/security/tomoyo/profile
+0-COMMENT=-----Disabled Mode-----
+0-MAC_FOR_FILE=disabled
+0-MAX_ACCEPT_ENTRY=2048
+0-TOMOYO_VERBOSE=disabled
+1-COMMENT=-----Learning Mode-----
+1-MAC_FOR_FILE=learning
+1-MAX_ACCEPT_ENTRY=2048
+1-TOMOYO_VERBOSE=disabled
+2-COMMENT=-----Permissive Mode-----
+2-MAC_FOR_FILE=permissive
+2-MAX_ACCEPT_ENTRY=2048
+2-TOMOYO_VERBOSE=enabled
+3-COMMENT=-----Enforcing Mode-----
+3-MAC_FOR_FILE=enforcing
+3-MAX_ACCEPT_ENTRY=2048
+3-TOMOYO_VERBOSE=enabled
+
+- MAC_FOR_FILE:
+Specifies access control level regarding file access requests.
+- MAX_ACCEPT_ENTRY:
+Limits the max number of ACL entries that are automatically appended 
+during learning mode. Default is 2048.
+- TOMOYO_VERBOSE:
+Specifies whether to print domain policy violation messages or not.
+
+*** /sys/kernel/security/tomoyo/manager ***
+
+This file is used to read or append the list of programs or domains 
+that can write to /sys/kernel/security/tomoyo interface. By default, 
+only processes with both UID = 0 and EUID = 0 can modify policy via 
+/sys/kernel/security/tomoyo interface. You can use keyword 
+"manage_by_non_root" to allow policy modification by non root user.
+
+(Example)
+[root@tomoyo]# cat /sys/kernel/security/tomoyo/manager
+/usr/lib/ccs/loadpolicy
+/usr/lib/ccs/editpolicy
+/usr/lib/ccs/setlevel
+/usr/lib/ccs/setprofile
+/usr/lib/ccs/ld-watch
+/usr/lib/ccs/ccs-queryd
+
+*** /sys/kernel/security/tomoyo/exception_policy ***
+
+This file is used to read and write system global settings. Each line 
+has a directive and operand pair. Directives are listed below.
+
+- initialize_domain:
+To initialize domain transition when specific program is executed, 
+use initialize_domain directive.
+  * initialize_domain "program" from "domain"
+  * initialize_domain "program" from "the last program part of domain"
+  * initialize_domain "program"
+If the part "from" and after is not given, the entry is applied to 
+all domain. If the "domain" doesn't start with "<kernel>", the entry 
+is applied to all domain whose domainname ends with "the last program 
+part of domain".
+This directive is intended to aggregate domain transitions for daemon 
+program and program that are invoked by the kernel on demand, by 
+transiting to different domain.
+
+- keep_domain
+To prevent domain transition when program is executed from specific 
+domain, use keep_domain directive.
+  * keep_domain "program" from "domain"
+  * keep_domain "program" from "the last program part of domain"
+  * keep_domain "domain"
+  * keep_domain "the last program part of domain" 
+If the part "from" and before is not given, this entry is applied to 
+all program. If the "domain" doesn't start with "<kernel>", the entry 
+is applied to all domain whose domainname ends with "the last program 
+part of domain".
+This directive is intended to reduce total number of domains and 
+memory usage by suppressing unneeded domain transitions.
+To declare domain keepers, use keep_domain directive followed by 
+domain definition.
+Any process that belongs to any domain declared with this directive, 
+the process stays at the same domain unless any program registered 
+with initialize_domain directive is executed.
+
+In order to control domain transition in detail, you can use 
+no_keep_domain/no_initialize_domain keywrods.
+
+- alias: 
+To allow executing programs using the name of symbolic links, use 
+alias keyword followed by dereferenced pathname and reference 
+pathname. For example, /sbin/pidof is a symbolic link to 
+/sbin/killall5 . In normal case, if /sbin/pidof is executed, the 
+domain is defined as if /sbin/killall5 is executed. By specifying 
+"alias /sbin/killall5 /sbin/pidof", you can run /sbin/pidof in the 
+domain for /sbin/pidof .
+(Example)
+alias /sbin/killall5 /sbin/pidof
+
+- allow_read:
+To grant unconditionally readable permissions, use allow_read keyword 
+followed by canonicalized file. This keyword is intended to reduce 
+size of domain policy by granting read access to library files such 
+as GLIBC and locale files. Exception is, if ignore_global_allow_read 
+keyword is given to a domain, entries specified by this keyword are 
+ignored.
+(Example)
+allow_read /lib/libc-2.5.so
+
+- file_pattern:
+To declare pathname pattern, use file_pattern keyword followed by 
+pathname pattern. The pathname pattern must be a canonicalized 
+Pathname. This keyword is not applicable to neither granting execute 
+permissions nor domain definitions.
+For example, canonicalized pathname that contains a process ID 
+(i.e. /proc/PID/ files) needs to be grouped in order to make access 
+control work well.
+(Example)
+file_pattern /proc/\$/cmdline
+
+- path_group
+To declare pathname group, use path_group keyword followed by name of 
+the group and pathname pattern. For example, if you want to group all 
+files under home directory, you can define
+   path_group HOME-DIR-FILE /home/\*/\*
+   path_group HOME-DIR-FILE /home/\*/\*/\*
+   path_group HOME-DIR-FILE /home/\*/\*/\*/\*
+in the exception policy and use like
+   allow_read @HOME-DIR-FILE
+to grant file access permission.
+
+- deny_rewrite:
+To deny overwriting already written contents of file (such as log 
+files) by default, use deny_rewrite keyword followed by pathname 
+pattern. Files whose pathname match the patterns are not permitted to 
+open for writing without append mode or truncate unless the pathnames 
+are explicitly granted using allow_rewrite keyword in domain policy.
+(Example)
+deny_rewrite /var/log/\*
+
+- aggregator
+To deal multiple programs as a single program, use aggregator keyword 
+followed by name of original program and aggregated program. This 
+keyword is intended to aggregate similar programs.
+For example, /usr/bin/tac and /bin/cat are similar. By specifying 
+"aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the 
+domain for /bin/cat .
+For example, /usr/sbin/logrotate for Fedora Core 3 generates programs 
+like /tmp/logrotate.\?\?\?\?\?\? and run them, but TOMOYO Linux 
+doesn't allow using patterns for granting execute permission and 
+defining domains. By specifying 
+"aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp", you can 
+run /tmp/logrotate.\?\?\?\?\?\? as if /tmp/logrotate.tmp is running.
+
+*** /sys/kernel/security/tomoyo/domain_policy ***
+
+This file contains definition of all domains and permissions that are 
+granted to each domain.
+
+Lines from the next line to a domain definition ( any lines starting 
+with "<kernel>") to the previous line to the next domain definitions 
+are interpreted as access permissions for that domain.
+
+*** /sys/kernel/security/tomoyo/meminfo ***
+
+This file is to show the total RAM used to keep policy in the kernel 
+by TOMOYO Linux in bytes.
+(Example)
+[root@tomoyo]# cat /sys/kernel/security/tomoyo/meminfo
+Shared:       61440
+Private:      69632
+Dynamic:        768
+Total:       131840
+
+You can set memory quota by writing to this file.
+(Example)
+[root@tomoyo]# echo Shared: 2097152 > /sys/kernel/security/tomoyo/meminfo
+[root@tomoyo]# echo Private: 2097152 > /sys/kernel/security/tomoyo/meminfo
+
+*** /sys/kernel/security/tomoyo/self_domain ***
+
+This file is to show the name of domain the caller process belongs to.
+(Example)
+[root@etch]# cat /sys/kernel/security/tomoyo/self_domain
+<kernel> /usr/sbin/sshd /bin/zsh /bin/cat
+
+*** /sys/kernel/security/tomoyo/version ***
+
+This file is used for getting TOMOYO Linux's version.
+(Example)
+[root@etch]# cat /sys/kernel/security/tomoyo/version
+2.2.0-pre
+
+*** /sys/kernel/security/tomoyo/.domain_status ***
+
+This is a view (of a DBMS) that contains only profile number and 
+domainnames of domain so that "ccs-setprofile" command can do 
+line-oriented processing easily.
+
+*** /sys/kernel/security/tomoyo/.process_status ***
+
+This file is used by "ccs-ccstree" command to show "list of processes 
+currently running" and "domains which each process belongs to" and 
+"profile number which the domain is currently assigned" like "pstree" 
+command. This file is writable by programs that aren't registered as 
+policy manager.
+
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
