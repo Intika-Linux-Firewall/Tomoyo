@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.17-1.2142_FC4.src.rpm ]
 then
-    wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/4/SRPMS/kernel-2.6.17-1.2142_FC4.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.go.jp/Linux/fedoralegacy/fedora/4/updates/SRPMS/kernel-2.6.17-1.2142_FC4.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-2.6.17-1.2142_FC4.src.rpm || die "Can't install source package."
 
