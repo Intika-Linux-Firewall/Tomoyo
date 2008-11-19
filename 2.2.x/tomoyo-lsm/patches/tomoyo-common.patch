@@ -62,7 +62,7 @@ not for general programs.
   * .domain_status
   * .process_status
 
-*** /sys/kernel/security/tomoyo/profile ***
+** /sys/kernel/security/tomoyo/profile **
 
 This file is used to read or write profiles.
 
@@ -99,7 +99,7 @@ during learning mode. Default is 2048.
 - TOMOYO_VERBOSE:
 Specifies whether to print domain policy violation messages or not.
 
-*** /sys/kernel/security/tomoyo/manager ***
+** /sys/kernel/security/tomoyo/manager **
 
 This file is used to read or append the list of programs or domains 
 that can write to /sys/kernel/security/tomoyo interface. By default, 
@@ -116,7 +116,7 @@ only processes with both UID = 0 and EUID = 0 can modify policy via
 /usr/lib/ccs/ld-watch
 /usr/lib/ccs/ccs-queryd
 
-*** /sys/kernel/security/tomoyo/exception_policy ***
+** /sys/kernel/security/tomoyo/exception_policy **
 
 This file is used to read and write system global settings. Each line 
 has a directive and operand pair. Directives are listed below.
@@ -223,7 +223,7 @@ defining domains. By specifying
 "aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp", you can 
 run /tmp/logrotate.\?\?\?\?\?\? as if /tmp/logrotate.tmp is running.
 
-*** /sys/kernel/security/tomoyo/domain_policy ***
+** /sys/kernel/security/tomoyo/domain_policy **
 
 This file contains definition of all domains and permissions that are 
 granted to each domain.
@@ -232,7 +232,7 @@ Lines from the next line to a domain definition ( any lines starting
 with "<kernel>") to the previous line to the next domain definitions 
 are interpreted as access permissions for that domain.
 
-*** /sys/kernel/security/tomoyo/meminfo ***
+** /sys/kernel/security/tomoyo/meminfo **
 
 This file is to show the total RAM used to keep policy in the kernel 
 by TOMOYO Linux in bytes.
@@ -248,27 +248,27 @@ You can set memory quota by writing to this file.
 [root@tomoyo]# echo Shared: 2097152 > /sys/kernel/security/tomoyo/meminfo
 [root@tomoyo]# echo Private: 2097152 > /sys/kernel/security/tomoyo/meminfo
 
-*** /sys/kernel/security/tomoyo/self_domain ***
+** /sys/kernel/security/tomoyo/self_domain **
 
 This file is to show the name of domain the caller process belongs to.
 (Example)
 [root@etch]# cat /sys/kernel/security/tomoyo/self_domain
 <kernel> /usr/sbin/sshd /bin/zsh /bin/cat
 
-*** /sys/kernel/security/tomoyo/version ***
+** /sys/kernel/security/tomoyo/version **
 
 This file is used for getting TOMOYO Linux's version.
 (Example)
 [root@etch]# cat /sys/kernel/security/tomoyo/version
 2.2.0-pre
 
-*** /sys/kernel/security/tomoyo/.domain_status ***
+** /sys/kernel/security/tomoyo/.domain_status **
 
 This is a view (of a DBMS) that contains only profile number and 
 domainnames of domain so that "ccs-setprofile" command can do 
 line-oriented processing easily.
 
-*** /sys/kernel/security/tomoyo/.process_status ***
+** /sys/kernel/security/tomoyo/.process_status **
 
 This file is used by "ccs-ccstree" command to show "list of processes 
 currently running" and "domains which each process belongs to" and 
