@@ -1,26 +1,26 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux�ɂ��A�N�Z�X��͎菇</title>
+<title>TOMOYO Linuxによるアクセス解析手順</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.4/">1.4</a> is available.</p>
-<h1>TOMOYO Linux�ɂ��A�N�Z�X��͎菇</h1>
+<h1>TOMOYO Linuxによるアクセス解析手順</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<p>TOMOYO Linux �̃|���V�[�̓p�X���ŕ\������邽�߁A�t�@�C���̃A�N�Z�X��ǐՂ��邽�߂ɂ����p�ł��܂��B<br>
-����̃v���O�������ǂ̂悤�ȃt�@�C���ɃA�N�Z�X���Ă��邩��m�肽���ꍇ��A����̃f�B���N�g���Ƀt�@�C�����쐬���Ă���v���O������m�肽���ꍇ�ɗ��p�ł��܂��B</p>
+<p>TOMOYO Linux のポリシーはパス名で表現されるため、ファイルのアクセスを追跡するためにも利用できます。<br>
+特定のプログラムがどのようなファイルにアクセスしているかを知りたい場合や、特定のディレクトリにファイルを作成しているプログラムを知りたい場合に利用できます。</p>
 
-<h1>����</h1>
+<h1>準備</h1>
 
-<h2>TOMOYO Linux �J�[�l���̃C���X�g�[��</h2>
+<h2>TOMOYO Linux カーネルのインストール</h2>
 
-<p>�J�[�l�����R���p�C��������@�ɂ��ẮA<a href="compile.html">TOMOYO Linux�J�[�l���̍쐬�菇</a>���Q�Ƃ��Ă��������B</p>
+<p>カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
 
-<p>SELinux ���T�|�[�g����f�B�X�g���r���[�V�����ł́A SELinux �������ɂȂ��Ă��Ȃ��ƃC���X�g�[�����ɃG���[����������ꍇ������܂��B�C���X�g�[�����Ɉȉ��̂悤�ȃG���[���b�Z�[�W���\�������ꍇ�́A SELinux �𖳌��ɂ��Ă���C���X�g�[�����Ă��������B /etc/selinux/config �� SELINUX= �̍s�� SELINUX=disabled �ɏ��������Ă���V�X�e�����ċN�����邩�A���邢�́A�J�[�l���N�����̃R�}���h���C���� selinux=0 �Ƃ����I�v�V������n�����Ƃ� SELinux �𖳌��ɂł��܂��B</p>
+<p>SELinux をサポートするディストリビューションでは、 SELinux が無効になっていないとインストール時にエラーが発生する場合があります。インストール時に以下のようなエラーメッセージが表示される場合は、 SELinux を無効にしてからインストールしてください。 /etc/selinux/config の SELINUX= の行を SELINUX=disabled に書き換えてからシステムを再起動するか、あるいは、カーネル起動時のコマンドラインに selinux=0 というオプションを渡すことで SELinux を無効にできます。</p>
 
 <table border="1">
 <tr><td>
@@ -31,9 +31,9 @@ Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.
 </td></tr>
 </table>
 
-<p>�Ȃ��A TOMOYO Linux ���g�� SELinux �Ɠ����Ɏg�p���邱�Ƃ��ł��܂��B�ȉ��̑���ł� SELinux ��L���ɂ�����Ԃł��\���܂���B</p>
+<p>なお、 TOMOYO Linux 自身は SELinux と同時に使用することができます。以下の操作では SELinux を有効にした状態でも構いません。</p>
 
-<p> rpm �̏ꍇ�A�C���X�g�[���ɐ�������� /boot/grub/grub.conf �Ɉȉ��̂悤�ȋL�q���ǉ�����Ă���͂��ł��B</p>
+<p> rpm の場合、インストールに成功すると /boot/grub/grub.conf に以下のような記述が追加されているはずです。</p>
 
 <table border="1">
 <tr><td>
@@ -44,7 +44,7 @@ title CentOS (2.6.9-42.0.10.EL_tomoyo_1.3.2)<br>
 </td></tr>
 </table>
 
-<p>�����ŁA kernel �̍s�̖����� init=/.init ��ǉ����܂��B</p>
+<p>ここで、 kernel の行の末尾に init=/.init を追加します。</p>
 
 <table border="1">
 <tr><td>
@@ -55,7 +55,7 @@ title CentOS (2.6.9-42.0.10.EL_tomoyo_1.3.2)<br>
 </td></tr>
 </table>
 
-<p> deb �̏ꍇ�A�C���X�g�[���ɐ�������� /boot/grub/menu.lst �Ɉȉ��̂悤�ȋL�q���ǉ�����Ă���͂��ł��B</p>
+<p> deb の場合、インストールに成功すると /boot/grub/menu.lst に以下のような記述が追加されているはずです。</p>
 
 <table border="1">
 <tr><td>
@@ -68,7 +68,7 @@ boot
 </td></tr>
 </table>
 
-<p>�����ŁA kernel �̍s�̖����� init=/.init ��ǉ����܂��B</p>
+<p>ここで、 kernel の行の末尾に init=/.init を追加します。</p>
 
 <table border="1">
 <tr><td>
@@ -81,30 +81,30 @@ boot
 </td></tr>
 </table>
 
-<p>/.init �� TOMOYO Linux �̃|���V�[���J�[�l���ɓǂݍ��ނ��߂̃X�N���v�g�ŁA /sbin/init �̊J�n�O�Ɏ��s����܂��B<br>
-/.init �͎��̎菇�ŃC���X�g�[������c�[���̒��Ɋ܂܂�Ă��܂��B</p>
+<p>/.init は TOMOYO Linux のポリシーをカーネルに読み込むためのスクリプトで、 /sbin/init の開始前に実行されます。<br>
+/.init は次の手順でインストールするツールの中に含まれています。</p>
 
-<h2>TOMOYO Linux �c�[���̃C���X�g�[��</h2>
+<h2>TOMOYO Linux ツールのインストール</h2>
 
-<p>�c�[�����R���p�C������ɂ́A�ȉ��̃R�}���h�����s���Ă��������B</p>
+<p>ツールをコンパイルするには、以下のコマンドを実行してください。</p>
 
 <table border="1">
 <tr><td>
 cd /root/<br>
-# TOMOYO Linux �c�[���̃\�[�X���_�E�����[�h����B<br>
+# TOMOYO Linux ツールのソースをダウンロードする。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/23850/ccs-tools-1.3.2-20070214.tar.gz<br>
-# �W�J����B<br>
+# 展開する。<br>
 tar -zxf ccs-tools-1.3.2-20070214.tar.gz<br>
-# �R���p�C������B<br>
+# コンパイルする。<br>
 make -sC ccstools/<br>
-# �|���V�[���[�_�[�� / �ֈړ�����B<br>
+# ポリシーローダーを / へ移動する。<br>
 mv ccstools/.init /
 </td></tr>
 </table>
 
-<h2>�|���V�[�̍쐬</h2>
+<h2>ポリシーの作成</h2>
 
-<p>/etc/ccs/manager.txt ���쐬���A�ȉ��̓��e���w�肵�܂��B</p>
+<p>/etc/ccs/manager.txt を作成し、以下の内容を指定します。</p>
 
 <table border="1">
 <tr><td>
@@ -112,7 +112,7 @@ mv ccstools/.init /
 </td></tr>
 </table>
 
-<p>/etc/ccs/status.txt ���쐬���A�ȉ��̓��e���w�肵�܂��B</p>
+<p>/etc/ccs/status.txt を作成し、以下の内容を指定します。</p>
 
 <table border="1">
 <tr><td>
@@ -124,7 +124,7 @@ TOMOYO_VERBOSE=0<BR>
 </td></tr>
 </table>
 
-<p>�ȉ��̃R�}���h�����s�������ʂ� /etc/ccs/exception_policy.txt �Ƃ��ĕۑ����Ă��������B</p>
+<p>以下のコマンドを実行した結果を /etc/ccs/exception_policy.txt として保存してください。</p>
 
 <table border="1">
 <tr><td>
@@ -132,11 +132,11 @@ TOMOYO_VERBOSE=0<BR>
 </td></tr>
 </table>
 
-<h1>���</h1>
+<h1>解析</h1>
 
-<p>TOMOYO Linux�J�[�l���ŋN�����܂��B
+<p>TOMOYO Linuxカーネルで起動します。
 
-<p>/.init �̎��s�ɐ�������ƁA�ȉ��̂悤�ȃ��b�Z�[�W���\������܂��̂ŁA���̂܂� Enter �������Ă��������B</p>
+<p>/.init の実行に成功すると、以下のようなメッセージが表示されますので、そのまま Enter を押してください。</p>
 
 <table border="1">
 <tr><td>
@@ -146,8 +146,8 @@ You may input 'disabled' and press 'Enter' to disable MAC in case of emergency.<
 </td></tr>
 </table>
 
-<p>�v���t�@�C���̓ǂݍ��݂���������ƁA /sbin/init ���J�n����ăV�X�e�����N�����܂��B<br>
-���s�����ꍇ�́A�ȉ��̂悤�Ƀ��b�Z�[�W���\������Ē�~���܂��B</p>
+<p>プロファイルの読み込みが成功すると、 /sbin/init が開始されてシステムが起動します。<br>
+失敗した場合は、以下のようにメッセージが表示されて停止します。</p>
 
 <table border="1">
 <tr><td>
@@ -155,18 +155,18 @@ No profiles loaded. Run policy loader using 'init=' option.
 </td></tr>
 </table>
 
-<p>���s�����ꍇ�͈ȉ��̓_���m�F���Ă��������B</p>
+<p>失敗した場合は以下の点を確認してください。</p>
 
 <ul>
-<li> /boot/grub/grub.conf �i�܂��� /boot/grub/menu.lst �j�� TOMOYO �J�[�l���� init=/.init ���w�肳��Ă��邩�H
-<li> /.init �Ɏ��s�����^�����Ă��邩�H
+<li> /boot/grub/grub.conf （または /boot/grub/menu.lst ）の TOMOYO カーネルに init=/.init が指定されているか？
+<li> /.init に実行許可が与えられているか？
 </ul>
 
-<p>��͂������A�v���P�[�V�����𓮍삳���܂��B</p>
+<p>解析したいアプリケーションを動作させます。</p>
 
-<p>/root/ccstools/editpolicy �����s����ƁA���݂Ɏ���܂łɎ��s���ꂽ�v���O�����̈ꗗ��\���ł��܂��B�v���O������I������ Enter �������ƁA���̃v���O�������A�N�Z�X�����t�@�C���̈ꗗ���\������܂��B�|���V�[�G�f�B�^�̎g�����ɂ��ẮA<a href="tool-editpolicy.html">�|���V�[�G�f�B�^�̎g����</a>���Q�Ƃ��Ă��������B</p>
+<p>/root/ccstools/editpolicy を実行すると、現在に至るまでに実行されたプログラムの一覧を表示できます。プログラムを選択して Enter を押すと、そのプログラムがアクセスしたファイルの一覧が表示されます。ポリシーエディタの使い方については、<a href="tool-editpolicy.html">ポリシーエディタの使い方</a>を参照してください。</p>
 
-<p>/root/ccstools/savepolicy �����s����ƁA���݂Ɏ���܂łɃA�N�Z�X���ꂽ�t�@�C���̈ꗗ�� /etc/ccs/domain_policy.txt �ɕۑ����邱�Ƃ��ł��܂��B</p>
+<p>/root/ccstools/savepolicy を実行すると、現在に至るまでにアクセスされたファイルの一覧を /etc/ccs/domain_policy.txt に保存することができます。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>

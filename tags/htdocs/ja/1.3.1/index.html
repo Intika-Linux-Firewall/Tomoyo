@@ -1,126 +1,126 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>TOMOYO Linux Project</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.3.2/">1.3.2</a> is available.</p>
-<h1>TOMOYO Linux �v���W�F�N�g</h1>
+<h1>TOMOYO Linux プロジェクト</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 <div><a href="http://sourceforge.jp/projects/tomoyo/"><img src='/tomoyo.png' width="115" height="150" alt='logo'></a></div>
-<h2>�ڎ�</h2>
+<h2>目次</h2>
 <ul>
-<li><a href="#overview">1. TOMOYO Linux�̊T�v</a></li>
-<li><a href="#policy_overview">2. TOMOYO Linux�ɂ�����|���V�[�̍l����</a></li>
-<li><a href="#platform">3. �����</a></li>
-<li><a href="#manual">4. �}�j���A��</a></li>
+<li><a href="#overview">1. TOMOYO Linuxの概要</a></li>
+<li><a href="#policy_overview">2. TOMOYO Linuxにおけるポリシーの考え方</a></li>
+<li><a href="#platform">3. 動作環境</a></li>
+<li><a href="#manual">4. マニュアル</a></li>
 <li><a href="#faq">5. FAQ</a></li>
-<li><a href="#reference">6. �Q�l����</a></li>
+<li><a href="#reference">6. 参考文献</a></li>
 </ul>
-<h2><a name="overview">1. TOMOYO Linux�̊T�v</a></h2>
-<p>TOMOYO Linux�Ƃ�Linux�ŋ����A�N�Z�X����(MAC)���s�����߂̊g���ł���ALinux�W���J�[�l���ɑ΂���p�b�`����у|���V�[�Ǘ��̂��߂̃��[�e�B���e�B�Ƃ��Ē񋟂���܂��BTOMOYO Linux�𓱓����邱�Ƃɂ��A���L�̋@�\����K�v�Ȃ��̂�����g�ݍ��킹�ė��p���邱�Ƃ��ł��܂��B</p>
+<h2><a name="overview">1. TOMOYO Linuxの概要</a></h2>
+<p>TOMOYO LinuxとはLinuxで強制アクセス制御(MAC)を行うための拡張であり、Linux標準カーネルに対するパッチおよびポリシー管理のためのユーティリティとして提供されます。TOMOYO Linuxを導入することにより、下記の機能から必要なものだけを組み合わせて利用することができます。</p>
 <table border="1">
 <tbody>
 <tr>
-<th rowspan="1" colspan="1">�@�\</th>
-<th rowspan="1" colspan="1">�T�v</th>
+<th rowspan="1" colspan="1">機能</th>
+<th rowspan="1" colspan="1">概要</th>
 </tr>
 <tr>
-<td>�t�@�C���ɑ΂��鋭���A�N�Z�X����</td>
-<td>�h���C�����Ƀt�@�C���ɑ΂���ǂݏ������s�𐧌䂵�܂��B</td>
+<td>ファイルに対する強制アクセス制御</td>
+<td>ドメイン毎にファイルに対する読み書き実行を制御します。</td>
 </tr>
 <tr>
-<td>�P�C�p�r���e�B�ɑ΂��鋭���A�N�Z�X����</td>
-<td>�h���C�����ɓ���̑���̉ۂ𐧌䂵�܂��B</td>
+<td>ケイパビリティに対する強制アクセス制御</td>
+<td>ドメイン毎に特定の操作の可否を制御します。</td>
 </tr>
 <tr>
-<td>�h�o�A�h���X�ƃ|�[�g�ԍ��ɑ΂��鋭���A�N�Z�X����</td>
-<td>�h���C�����Ɏg�p�\�Ȃh�o�A�h���X�ƃ|�[�g�ԍ��𐧌䂵�܂��B</td>
+<td>ＩＰアドレスとポート番号に対する強制アクセス制御</td>
+<td>ドメイン毎に使用可能なＩＰアドレスとポート番号を制御します。</td>
 </tr>
 <tr>
-<td>���[�J���̃|�[�g�ԍ��ɑ΂��鋭���A�N�Z�X����</td>
-<td>�h���C�����Ɏg�p�\�ȃ��[�J���|�[�g�𐧌䂵�܂��B</td>
+<td>ローカルのポート番号に対する強制アクセス制御</td>
+<td>ドメイン毎に使用可能なローカルポートを制御します。</td>
 </tr>
 <tr>
-<td>�����[�g�̃|�[�g�ԍ��ɑ΂��鋭���A�N�Z�X����</td>
-<td>�h���C�����Ɏg�p�\�ȃ����[�g�|�[�g�𐧌䂵�܂��B</td>
+<td>リモートのポート番号に対する強制アクセス制御</td>
+<td>ドメイン毎に使用可能なリモートポートを制御します。</td>
 </tr>
 <tr>
-<td>�V�O�i���̑��M�ɑ΂��鋭���A�N�Z�X����</td>
-<td>�h���C�����ɑ��M�\�ȃV�O�i���̔ԍ��Ƒ��M��𐧌䂵�܂��B</td>
+<td>シグナルの送信に対する強制アクセス制御</td>
+<td>ドメイン毎に送信可能なシグナルの番号と送信先を制御します。</td>
 </tr>
 <tr>
-<td>mount �Ŏw��\�ȃp�����[�^�̐���</td>
-<td>�}�E���g�\�ȃf�o�C�X�ƃ}�E���g�|�C���g�̑g�ݍ��킹�𐧌䂵�܂��B</td>
+<td>mount で指定可能なパラメータの制限</td>
+<td>マウント可能なデバイスとマウントポイントの組み合わせを制御します。</td>
 </tr>
 <tr>
-<td>chroot �ňړ��\�ȃf�B���N�g���̐���</td>
-<td>chroot �ňړ��\�ȃf�B���N�g���𐧌����܂��B</td>
+<td>chroot で移動可能なディレクトリの制限</td>
+<td>chroot で移動可能なディレクトリを制限します。</td>
 </tr>
 <tr>
-<td>�w�肳�ꂽ�f�B���N�g���̃A���}�E���g�̋֎~</td>
-<td>�A���}�E���g���ꂽ���Ȃ��p�[�e�B�V�����̃A���}�E���g���֎~���܂��B</td>
+<td>指定されたディレクトリのアンマウントの禁止</td>
+<td>アンマウントされたくないパーティションのアンマウントを禁止します。</td>
 </tr>
 <tr>
-<td>�����̃}�E���g���B������悤�ȃ}�E���g�̋֎~</td>
-<td>�����̃}�E���g���B�����Ă��܂��}�E���g�v�������ۂ��܂��B</td>
+<td>既存のマウントを隠蔽するようなマウントの禁止</td>
+<td>既存のマウントを隠蔽してしまうマウント要求を拒否します。</td>
 </tr>
 <tr>
-<td>pivot_root �̌Ăяo���̋֎~</td>
-<td>pivot_root �̌Ăяo�����֎~���܂��B</td>
+<td>pivot_root の呼び出しの禁止</td>
+<td>pivot_root の呼び出しを禁止します。</td>
 </tr>
 <tr>
-<td>���[�J���|�[�g�ԍ��̎��������ɑ΂��鐧��</td>
-<td>����̃v���O�����ɗ��p�����������[�J���|�[�g�ԍ������̃v���O�����Ɋ��蓖�Ă���̂�h�~���܂��B</td>
+<td>ローカルポート番号の自動割当に対する制限</td>
+<td>特定のプログラムに利用させたいローカルポート番号が他のプログラムに割り当てられるのを防止します。</td>
 </tr>
 <tr>
-<td>�ǂݍ��ݐ�p�G���[�̒ʒm</td>
-<td>�ǂݍ��ݐ�p�t�@�C���V�X�e���ł��邱�Ƃ������̃G���[��ʒm���܂��B<br>
-root fs ��ǂݍ��ݐ�p�ŉ^�p���邽�߂̎x���@�\�ł��B</td>
+<td>読み込み専用エラーの通知</td>
+<td>読み込み専用ファイルシステムであることが原因のエラーを通知します。<br>
+root fs を読み込み専用で運用するための支援機能です。</td>
 </tr>
 <tr>
-<td>�f�o�C�X�t�@�C���̉�����h�~</td>
-<td>/dev �f�B���N�g����p�̉�����s�\�t�@�C���V�X�e���ł��B<br>
-root fs ��ǂݍ��ݐ�p�ŉ^�p����ꍇ�ɂ��g�p�ł��܂��B</td>
+<td>デバイスファイルの改ざん防止</td>
+<td>/dev ディレクトリ専用の改ざん不能ファイルシステムです。<br>
+root fs を読み込み専用で運用する場合にも使用できます。</td>
 </tr>
 </tbody>
 </table>
-<h2><a name="policy_overview">2. TOMOYO Linux�ɂ�����|���V�[�̍l����</a></h2>
-<h3>�h���C���ɂ���</h3>
-<p>TOMOYO Linux �ł́A�g�����ꂽ Linux �J�[�l���������I�Ƀh���C�����Ǘ����邽�� SELinux �̂悤�ɊǗ��҂��h���C�����`����K�v�͂���܂���B�h���C���́A &lt;kernel&gt; ����_�Ƃ����v���Z�X�̋N������(execve�̌Ăяo������)�𕶎���Ƃ��Č����������̂ɂȂ�܂��B�Ⴆ�΁A�J�[�l���v���Z�X�̃h���C���� &lt;kernel&gt; �A�J�[�l���v���Z�X����N������� /sbin/init �̃h���C���� &lt;kernel&gt; /sbin/init �A /sbin/init ����N�����ꂽ /etc/rc.d/rc �̃h���C���� &lt;kernel&gt; /sbin/init /etc/rc.d/rc �̂悤�ɂȂ�܂��B</p>
-<h3>���x���ɂ���</h3>
-<p>TOMOYO Linux �ł́A�t�@�C�����Ɋ�Â��A�N�Z�X������s���܂��B���̂��߁A SELinux �̂悤�Ƀ��x���t����Ƃ͕s�v�ł��B�܂��A i �m�[�h�ԍ����ω����Ă� LIDS �̂悤�Ƀf�[�^�x�[�X�̍X�V��Ƃ͕s�v�ł��B</p>
-<h3>���[�U����у��[���ɂ���</h3>
-<p>TOMOYO Linux �ł́A���[�U����у��[��(RBAC)�̊T�O�͈����܂���B�������A�h���C����p���邱�ƂŊǗ��ҋƖ��̈ꕔ�ϔC�͉\�ł��B</p>
-<h3>�f�t�H���g�|���V�[�ɂ���</h3>
-<p>TOMOYO Linux �ɂ́A�\�t�g�E�F�A�ƈꏏ�ɔz�z�����f�t�H���g�|���V�[�͂���܂���B�w�K���[�h���g�p���č��肷��K�v������܂��B<br>
-�Q�l�܂łɁA<a href="http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/?v=policy-sample">�T���v���̃|���V�[</a>��u���Ă���܂��B�Q�Ƃ͎��R�ł����A�f�t�H���g�|���V�[�Ƃ��Ă̗��p�͂��Ȃ��ł��������B</p>
-<h2><a name="platform">3. �����</a></h2>
-<p>TOMOYO Linux �͕W�� Linux Kernel (2.4.30�ȍ~/2.6.11�ȍ~) �ւ̃p�b�`�Ƃ��Ď�������Ă���A�W�� Linux Kernel ���K�p�ł�����ł���Ί�{�I�ɓ��삷��͂��ł��B�ȉ��̃f�B�X�g���r���[�V�����ɂ��ē�����m�F���Ă��܂��B</p>
+<h2><a name="policy_overview">2. TOMOYO Linuxにおけるポリシーの考え方</a></h2>
+<h3>ドメインについて</h3>
+<p>TOMOYO Linux では、拡張された Linux カーネルが自動的にドメインを管理するため SELinux のように管理者がドメインを定義する必要はありません。ドメインは、 &lt;kernel&gt; を基点としたプロセスの起動履歴(execveの呼び出し履歴)を文字列として結合したものになります。例えば、カーネルプロセスのドメインが &lt;kernel&gt; 、カーネルプロセスから起動される /sbin/init のドメインは &lt;kernel&gt; /sbin/init 、 /sbin/init から起動された /etc/rc.d/rc のドメインは &lt;kernel&gt; /sbin/init /etc/rc.d/rc のようになります。</p>
+<h3>ラベルについて</h3>
+<p>TOMOYO Linux では、ファイル名に基づくアクセス制御を行います。そのため、 SELinux のようにラベル付け作業は不要です。また、 i ノード番号が変化しても LIDS のようにデータベースの更新作業は不要です。</p>
+<h3>ユーザおよびロールについて</h3>
+<p>TOMOYO Linux では、ユーザおよびロール(RBAC)の概念は扱いません。ただし、ドメインを用いることで管理者業務の一部委任は可能です。</p>
+<h3>デフォルトポリシーについて</h3>
+<p>TOMOYO Linux には、ソフトウェアと一緒に配布されるデフォルトポリシーはありません。学習モードを使用して策定する必要があります。<br>
+参考までに、<a href="http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/?v=policy-sample">サンプルのポリシー</a>を置いてあります。参照は自由ですが、デフォルトポリシーとしての利用はしないでください。</p>
+<h2><a name="platform">3. 動作環境</a></h2>
+<p>TOMOYO Linux は標準 Linux Kernel (2.4.30以降/2.6.11以降) へのパッチとして実装されており、標準 Linux Kernel が適用できる環境であれば基本的に動作するはずです。以下のディストリビューションについて動作を確認しています。</p>
 <ul>
 <li>Red Hat Linux 9</li>
 <li>Fedora Core 3</li>
 <li>Debian Sarge</li>
 </ul>
-<h2><a name="manual">4. �}�j���A��</a></h2>
-<h3><a href="install.html">TOMOYO Linux�����菇</a></h3>
-<h3><a href="update.html">TOMOYO Linux�����e�i���X�菇</a></h3>
-<h3><a href="tools-doc.html">�e��c�[���̃h�L�������g</a></h3>
-<h3><a href="tool-editpolicy.html">�|���V�[�G�f�B�^</a></h3>
-<h3><a href="analysis.html">TOMOYO Linux�ɂ��A�N�Z�X��͎菇</a></h3>
-<h3><a href="policy-reference.html">TOMOYO Linux �|���V�[�����</a></h3>
-<h3><a href="policy-syaoran.html">SYAORAN �|���V�[�����</a></h3>
+<h2><a name="manual">4. マニュアル</a></h2>
+<h3><a href="install.html">TOMOYO Linux導入手順</a></h3>
+<h3><a href="update.html">TOMOYO Linuxメンテナンス手順</a></h3>
+<h3><a href="tools-doc.html">各種ツールのドキュメント</a></h3>
+<h3><a href="tool-editpolicy.html">ポリシーエディタ</a></h3>
+<h3><a href="analysis.html">TOMOYO Linuxによるアクセス解析手順</a></h3>
+<h3><a href="policy-reference.html">TOMOYO Linux ポリシー解説書</a></h3>
+<h3><a href="policy-syaoran.html">SYAORAN ポリシー解説書</a></h3>
 <h2><a name="faq">5. FAQ</a></h2>
-<h3><a href="faq.html#general">�S��</a></h3>
-<h3><a href="faq.html#management">�|���V�[�Ǘ�</a></h3>
-<h3><a href="faq.html#implementation">����</a></h3>
-<h2><a name="reference">6. �Q�l����</a></h2>
+<h3><a href="faq.html#general">全般</a></h3>
+<h3><a href="faq.html#management">ポリシー管理</a></h3>
+<h3><a href="faq.html#implementation">実装</a></h3>
+<h2><a name="reference">6. 参考文献</a></h2>
 <ul>
 <li><a href="http://sourceforge.jp/projects/tomoyo/">SourceForge.jp: Project Info - TOMOYO -</a></li>
-<li><a href="http://d.hatena.ne.jp/keyworddiary/TOMOYO%20Linux#keyword">TOMOYO Linux�Ƃ�</a></li>
+<li><a href="http://d.hatena.ne.jp/keyworddiary/TOMOYO%20Linux#keyword">TOMOYO Linuxとは</a></li>
 </ul>
 <hr>
 <address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>

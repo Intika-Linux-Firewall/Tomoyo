@@ -1,50 +1,50 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="ja">
+<html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux �����菇�� �iFedora 8�Łj</title>
+<title>TOMOYO Linux 導入手順書 （Fedora 8版）</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
 <p style="text-align:right;"><a href="http://tomoyo.sourceforge.jp/en/1.6.x/1st-step/f8/index.html">English Page</a></p>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> �����菇�� �iFedora 8�Łj</h1>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （Fedora 8版）</h1>
 
 <ul>
-<li><a href="#l1">�T�v</a></li>
-<li><a href="#l2">�J�[�l���̃C���X�g�[��</a></li>
-<li><a href="#l3">�c�[���̃C���X�g�[��</a></li>
-<li><a href="#l4">�����ݒ�X�N���v�g�̎��s</a>
-<li><a href="#l5">�č����O�̎擾����</a></li>
-<li><a href="#l6">�^�p</a>
+<li><a href="#l1">概要</a></li>
+<li><a href="#l2">カーネルのインストール</a></li>
+<li><a href="#l3">ツールのインストール</a></li>
+<li><a href="#l4">自動設定スクリプトの実行</a>
+<li><a href="#l5">監査ログの取得準備</a></li>
+<li><a href="#l6">運用</a>
 <ul>
-<li><a href="#l7">�V�X�e���̋N��</a></li>
-<li><a href="#l8">���O�C����̑���̊w�K</a></li>
-<li><a href="#l9">�|���V�[�̎Q��</a></li>
-<li><a href="#l10">�����A�N�Z�X����</a></li>
+<li><a href="#l7">システムの起動</a></li>
+<li><a href="#l8">ログイン後の操作の学習</a></li>
+<li><a href="#l9">ポリシーの参照</a></li>
+<li><a href="#l10">強制アクセス制御</a></li>
 </ul></li>
 </ul>
 
-<h2><a name="l1">�T�v</a></h2>
+<h2><a name="l1">概要</a></h2>
 
-<p>�ȉ��ł́AFedora 8��TOMOYO Linux 1.6.5�𓱓�����菇��������܂��B
-���̎菇���ɏ]���đ��삷��΁ATOMOYO Linux�̊�{�I�ȋ@�\��̌����A�ȒP�Ȑݒ�Ɖ^�p���s����悤�ɂȂ�܂��B</p>
+<p>以下では、Fedora 8にTOMOYO Linux 1.6.5を導入する手順を解説します。
+この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
-<p>�����̗���͈ȉ��̒ʂ�ł��B</p>
+<p>導入の流れは以下の通りです。</p>
 
 <ol>
-<li>�J�[�l���ƃc�[���̃C���X�g�[��</li>
-<li>��{�I�Ȑݒ�</li>
-<li>�|���V�[�̎����w�K�Ǝ����^�p</li>
+<li>カーネルとツールのインストール</li>
+<li>基本的な設定</li>
+<li>ポリシーの自動学習と試験運用</li>
 </ol>
 
-<h2><a name="l2">�J�[�l���̃C���X�g�[��</a></h2>
+<h2><a name="l2">カーネルのインストール</a></h2>
 
-<p>TOMOYO Linux��Linux�J�[�l���ւ̃p�b�`�Ƃ��Ē񋟂���Ă���A�{����Linux�J�[�l���̃\�[�X�R�[�h�Ƀp�b�`��K�p�����Ƃ��K�v�ɂȂ�܂��B
-������Fedora 8�̏ꍇ�́ATOMOYO Linux�̃p�b�`�𓖂Ă��R���p�C���ς݃J�[�l���p�b�P�[�W���񋟂���Ă���̂ŁA����͂���𗘗p���܂��B</p>
+<p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
+しかしFedora 8の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
 
-<p>�܂��̓��|�W�g�����w�肵�܂��B</p>
+<p>まずはレポジトリを指定します。</p>
 
 <pre>
 # <span class="user">wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'</span>
@@ -52,13 +52,13 @@
 # <span class="user">wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/Fedora8/ccs.repo</span>
 </pre>
 
-<p>���ɁA�p�b�P�[�W���_�E�����[�h���ăC���X�g�[�����܂��B</p>
+<p>次に、パッケージをダウンロードしてインストールします。</p>
 
 <pre>
 # <span class="user">yum install ccs-kernel</span>
 </pre>
 
-<p>�C���X�g�[���ɐ��������/boot/grub/grub.conf�Ɉȉ��̋L�q���ǉ�����Ă���͂��ł��B</p>
+<p>インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
 title Fedora (2.6.26.6-49_tomoyo_1.6.5.fc8)
@@ -67,7 +67,7 @@ title Fedora (2.6.26.6-49_tomoyo_1.6.5.fc8)
         initrd /boot/initrd-2.6.26.6-49_tomoyo_1.6.5.fc8.img
 </pre>
 
-<p>����J�[�l���̑I�����s���₷�����邽�߂ɁA/boot/grub/grub.conf��"timeout="��"hiddenmenu"�̍s���R�����g�A�E�g���Ă����܂��B</p>
+<p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
 
 <pre>
 <span class="user">#</span>timeout=5
@@ -77,46 +77,46 @@ title Fedora (2.6.26.6-49_tomoyo_1.6.5.fc8)
 <span class="user">#</span>hiddenmenu
 </pre>
 
-<h2><a name="l3">�c�[���̃C���X�g�[��</a></h2>
+<h2><a name="l3">ツールのインストール</a></h2>
 
-<p>�J�[�l���̎��́ATOMOYO Linux�̃c�[�����C���X�g�[�����܂��B
-�c�[���ɂ́A�|���V�[�̊Ǘ����s���v���O���������^����Ă��܂��B</p>
+<p>カーネルの次は、TOMOYO Linuxのツールをインストールします。
+ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
 
-<p>�o�C�i���p�b�P�[�W���p�ӂ���Ă��܂��̂ŁA����𗘗p���܂��B</p>
+<p>バイナリパッケージが用意されていますので、それを利用します。</p>
 
 <pre>
 # <span class="user">yum install ccs-tools</span>
 </pre>
 
-<p>�c�[�����C���X�g�[������� /usr/lib/ccs �f�B���N�g���Ƀp�X��ʂ��Ă����܂��B
-bash���g���Ă���ꍇ�ɂ͈ȉ��̂悤�ɂ��܂��B</p>
+<p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
+bashを使っている場合には以下のようにします。</p>
 
 <pre>
 # <span class="user">echo 'export PATH=$PATH:/usr/lib/ccs' &gt;&gt; ~/.bashrc</span>
 # <span class="user">source ~/.bashrc</span>
 </pre>
 
-<p>�ȏ��TOMOYO Linux�̃C���X�g�[���͏I���ł��B�����Đݒ�Ɉڂ�܂��B</p>
+<p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
 
-<h2><a name="l4">�����ݒ�X�N���v�g�̎��s</a></h2>
+<h2><a name="l4">自動設定スクリプトの実行</a></h2>
 
-<p>���̐߂̑���������ōs���X�N���v�g���t�����Ă���̂ł�������s���܂��B</p>
+<p>この節の操作を自動で行うスクリプトが付属しているのでそれを実行します。</p>
 
 <pre># <span class="user">init_policy.sh --file-only-profile</span></pre>
 
-<p>init_policy.sh��10���ȏ㎞�Ԃ�v����ꍇ������܂��̂ŋC���ɂ��҂����������B</p>
+<p>init_policy.shは10分以上時間を要する場合がありますので気長にお待ちください。</p>
 
-<h3>�ݒ�̕ۑ��f�B���N�g���ɂ���</h3>
+<h3>設定の保存ディレクトリについて</h3>
 
-<p>TOMOYO Linux�̐ݒ��ۑ�����f�B���N�g����/etc/ccs�ł��B</p>
+<p>TOMOYO Linuxの設定を保存するディレクトリは/etc/ccsです。</p>
 
-<h3>�v���t�@�C���ɂ���</h3>
+<h3>プロファイルについて</h3>
 
-<p>TOMOYO Linux�ɂ͑����̋@�\������A�ǂ̋@�\��ON/OFF�ɂ���̂��̐ݒ���v���t�@�C���Ƃ�т܂��B
-�v���t�@�C���͕����쐬���Đ؂�ւ��Ďg�����Ƃ��ł��܂��B
-���ׂẴv���t�@�C����/etc/ccs/profile.conf�Ƃ����P��̃t�@�C���ɕۑ����܂��B</p>
-<p>����̓t�@�C���ɑ΂���A�N�Z�X����̋@�\�݂̂𗘗p���邽�߁A
-/etc/ccs/profile.conf�̓��e�͈ȉ��̂悤�Ȃ��Ă���͂��ł��B</p>
+<p>TOMOYO Linuxには多くの機能があり、どの機能をON/OFFにするのかの設定をプロファイルとよびます。
+プロファイルは複数作成して切り替えて使うことができます。
+すべてのプロファイルは/etc/ccs/profile.confという単一のファイルに保存します。</p>
+<p>今回はファイルに対するアクセス制御の機能のみを利用するため、
+/etc/ccs/profile.confの内容は以下のようなっているはずです。</p>
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
@@ -133,41 +133,41 @@ bash���g���Ă���ꍇ�ɂ͈ȉ��̂悤�ɂ��܂��B</p>
 3-TOMOYO_VERBOSE=enabled
 </pre>
 
-<p>profile.conf��1�s�͈ȉ��̂悤�ȍ\���ɂȂ��Ă��܂��B</p>
+<p>profile.confの1行は以下のような構文になっています。</p>
 
 <pre>
-�i�v���t�@�C���ԍ��j-�i�ݒ荀�ځj=�i���䃂�[�h�j
+（プロファイル番号）-（設定項目）=（制御モード）
 </pre>
 
-<p>���Ȃ킿�A�s���̔ԍ����v���t�@�C����؂�ւ��邽�߂̃v���t�@�C���ԍ��ŁA
-'=' �̍����ݒ荀�ځA'=' �̉E�����䃂�[�h�ł��B</p>
+<p>すなわち、行頭の番号がプロファイルを切り替えるためのプロファイル番号で、
+'=' の左が設定項目、'=' の右が制御モードです。</p>
 
-<p>�ݒ荀��COMMENT�́A�v���t�@�C������ʂ��₷�����邽�߂̃R�����g�ŁATOMOYO Linux�̋@�\�ɂ͉e����^���܂���B</p>
+<p>設定項目COMMENTは、プロファイルを区別しやすくするためのコメントで、TOMOYO Linuxの機能には影響を与えません。</p>
 
-<p>�ݒ荀��MAC_FOR_FILE�́u�t�@�C���ɑ΂���A�N�Z�X����v��\���Ă���A
-���䃂�[�h��disabled�Ȃ疳���Alearning�Ȃ�w�K�Apermissive�Ȃ�m�F�i�A�N�Z�X���ۃ��O���o�͂��邪���ۂɂ͋��ۂ��Ȃ��j�Aenforcing�Ȃ狭���A�Ƃ����ݒ肪�s���܂��B</p>
+<p>設定項目MAC_FOR_FILEは「ファイルに対するアクセス制御」を表しており、
+制御モードがdisabledなら無効、learningなら学習、permissiveなら確認（アクセス拒否ログを出力するが実際には拒否しない）、enforcingなら強制、という設定が行えます。</p>
 
-<p>�ݒ荀��TOMOYO_VERBOSE�́u�A�N�Z�X���ۂ̏����R���\�[���ɏo�͂��邩�ǂ����v��\���Ă���A
-���䃂�[�h��disabled�Ȃ�o�͂Ȃ��Aenabled�Ȃ�o�͂���ɂȂ�܂��B</p>
+<p>設定項目TOMOYO_VERBOSEは「アクセス拒否の情報をコンソールに出力するかどうか」を表しており、
+制御モードがdisabledなら出力なし、enabledなら出力ありになります。</p>
 
-<p>��L�ݒ�ł́A�v���t�@�C���ԍ���0�`3��4�̃v���t�@�C�����쐬���Ă���A���ꂼ��̈Ӗ��͈ȉ��̂悤�ɂȂ�܂��B</p>
+<p>上記設定では、プロファイル番号が0～3の4つのプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
 
 <table><tbody>
-<tr><th>�v���t�@�C��0</th><td>�t�@�C���ɑ΂���A�N�Z�X����𖳌��ɂ���A�R���\�[���ɃA�N�Z�X���ۂ��o�͂��Ȃ�</td></tr>
-<tr><th>�v���t�@�C��1</th><td>�t�@�C���ɑ΂���A�N�Z�X������w�K���[�h�ɂ���A�R���\�[���ɃA�N�Z�X���ۂ��o�͂��Ȃ�</td></tr>
-<tr><th>�v���t�@�C��2</th><td>�t�@�C���ɑ΂���A�N�Z�X������m�F���[�h�ɂ���A�R���\�[���ɃA�N�Z�X���ۂ��o�͂���</td></tr>
-<tr><th>�v���t�@�C��3</th><td>�t�@�C���ɑ΂���A�N�Z�X������������[�h�ɂ���A�R���\�[���ɃA�N�Z�X���ۂ��o�͂���</td></tr>
+<tr><th>プロファイル0</th><td>ファイルに対するアクセス制御を無効にする、コンソールにアクセス拒否を出力しない</td></tr>
+<tr><th>プロファイル1</th><td>ファイルに対するアクセス制御を学習モードにする、コンソールにアクセス拒否を出力しない</td></tr>
+<tr><th>プロファイル2</th><td>ファイルに対するアクセス制御を確認モードにする、コンソールにアクセス拒否を出力する</td></tr>
+<tr><th>プロファイル3</th><td>ファイルに対するアクセス制御を強制モードにする、コンソールにアクセス拒否を出力する</td></tr>
 </tbody></table>
 
-<p>�v���t�@�C��1�̊w�K���[�h�ōs�����A�N�Z�X�����Ƀ|���V�[���쐬���A
-�v���t�@�C��2�̊m�F���[�h�ŉ��^�p���ĕK�v�ȃ|���V�[���쐬�ł��Ă��邩���m���߁A
-�v���t�@�C��3�̋������[�h�Ŗ{�^�p�Ƃ��ăA�N�Z�X������s���A
-�Ƃ����̂���{�I�ȉ^�p�̗���ł��B</p>
+<p>プロファイル1の学習モードで行ったアクセスを元にポリシーを作成し、
+プロファイル2の確認モードで仮運用して必要なポリシーが作成できているかを確かめ、
+プロファイル3の強制モードで本運用としてアクセス制御を行う、
+というのが基本的な運用の流れです。</p>
 
-<h3>�|���V�[�̕ύX��������v���O�����ɂ���</h3>
+<h3>ポリシーの変更を許可するプログラムについて</h3>
 
-<p>�|���V�[��ύX���邱�Ƃ��ł���v���O�����́A/etc/ccs/manager.conf�Ƃ����t�@�C���Ŏw�肵�܂��B
-�ȉ��̃v���O�������w�肳��Ă���͂��ł��B</p>
+<p>ポリシーを変更することができるプログラムは、/etc/ccs/manager.confというファイルで指定します。
+以下のプログラムが指定されているはずです。</p>
 
 <pre>
 /usr/lib/ccs/loadpolicy
@@ -178,192 +178,192 @@ bash���g���Ă���ꍇ�ɂ͈ȉ��̂悤�ɂ��܂��B</p>
 /usr/lib/ccs/ccs-queryd
 </pre>
 
-<h3>��O�|���V�[�ɂ���</h3>
+<h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf �ɂ͈ȉ���12��ނ̗�O���w�肳��Ă��܂��B</p>
+<p>/etc/ccs/exception_policy.conf には以下の12種類の例外が指定されています。</p>
 
 <ol>
-<li>�p�X���̃p�^�[��</li>
-<li>�p�X���̃O���[�v</li>
-<li>IP�A�h���X�̃O���[�v</li>
-<li>���ׂẴv���O�����ɑ΂��ĎQ�Ƃ��邱�Ƃ�������p�X��</li>
-<li>���ׂẴv���O�����ɑ΂��ēn�����Ƃ���������ϐ���</li>
-<li>�f�t�H���g�ŏ㏑�����֎~����p�X��</li>
-<li>�V���{���b�N�����N�̖��O�Ŏ��s����v���O�����̃p�X��</li>
-<li>1�ɏW�񂵂Ĉ����v���O�����̃p�X��</li>
-<li>�h���C���J�ڂ�������������v���O����</li>
-<li>�h���C���J�ڂ������������Ȃ��v���O����</li>
-<li>�h���C���J�ڂ��s��Ȃ��v���O����</li>
-<li>�h���C���J�ڂ��s�킹��v���O����</li>
+<li>パス名のパターン</li>
+<li>パス名のグループ</li>
+<li>IPアドレスのグループ</li>
+<li>すべてのプログラムに対して参照することを許可するパス名</li>
+<li>すべてのプログラムに対して渡すことを許可する環境変数名</li>
+<li>デフォルトで上書きを禁止するパス名</li>
+<li>シンボリックリンクの名前で実行するプログラムのパス名</li>
+<li>1つに集約して扱うプログラムのパス名</li>
+<li>ドメイン遷移を初期化させるプログラム</li>
+<li>ドメイン遷移を初期化させないプログラム</li>
+<li>ドメイン遷移を行わないプログラム</li>
+<li>ドメイン遷移を行わせるプログラム</li>
 </ol>
 
-<h2><a name="l5">�č����O�̎擾����</a></h2>
+<h2><a name="l5">監査ログの取得準備</a></h2>
 
-<p>TOMOYO Linux�̃��O�́A�A�N�Z�X�������ꂽ�v���̃��O�ƁA�A�N�Z�X�����ۂ��ꂽ�v���̃��O��2��ނɕ����邱�Ƃ��ł��܂��B
-����́A�A�N�Z�X���ۃ��O�݂̂�ۑ�����ݒ���s���܂��B</p>
+<p>TOMOYO Linuxのログは、アクセスが許可された要求のログと、アクセスが拒否された要求のログの2種類に分けることができます。
+今回は、アクセス拒否ログのみを保存する設定を行います。</p>
 
-<p>���O��ۑ�����ɂ́Accs-tools��ccs-auditd�Ƃ����f�[�����v���O�������g�p���܂��B
-�A�N�Z�X���ۃ��O�݂̂�ۑ�����ݒ��ccs-auditd��Linux�̋N�����Ɏ��s����ɂ́A
-�ȉ��̃R�}���h��/etc/rc.d/rc.local�̖�����ccs-auditd�̋N���R�}���h��ǉ����܂��B</p>
+<p>ログを保存するには、ccs-toolsのccs-auditdというデーモンプログラムを使用します。
+アクセス拒否ログのみを保存する設定でccs-auditdをLinuxの起動時に実行するには、
+以下のコマンドで/etc/rc.d/rc.localの末尾にccs-auditdの起動コマンドを追加します。</p>
 
 <pre>
 # <span class="user">echo "/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
 </pre>
 
-<p>���̐ݒ�ł́A/var/log/tomoyo/reject_log.txt�ɃA�N�Z�X���ۃ��O���ۑ�����܂��B
-���O��ۑ�����f�B���N�g�������炩���ߍ���Ă����܂��B</p>
+<p>この設定では、/var/log/tomoyo/reject_log.txtにアクセス拒否ログが保存されます。
+ログを保存するディレクトリをあらかじめ作っておきます。</p>
 
 <pre>
 # <span class="user">mkdir -p /var/log/tomoyo</span>
 </pre>
 
-<p>�ȏ��TOMOYO Linux���g�����߂̊�{�I�Ȑݒ�͏I���ł��B</p>
+<p>以上でTOMOYO Linuxを使うための基本的な設定は終わりです。</p>
 
-<h2><a name="l6">�^�p</a></h2>
+<h2><a name="l6">運用</a></h2>
 
-<p>����ł́A���悢��TOMOYO Linux�J�[�l���ŋN�����Ă݂܂��傤�B</p>
+<p>それでは、いよいよTOMOYO Linuxカーネルで起動してみましょう。</p>
 
-<h3><a name="l7">�V�X�e���̋N��</a></h3>
+<h3><a name="l7">システムの起動</a></h3>
 
-<p>�܂���Linux���ċN�����܂��B</p>
+<p>まずはLinuxを再起動します。</p>
 
 <pre>
 # <span class="user">reboot</span>
 </pre>
 
-<p>�J�[�l���̑I����ʂ�TOMOYO Linux�̃J�[�l����I������Enter�������܂��B</p>
+<p>カーネルの選択画面でTOMOYO Linuxのカーネルを選択してEnterを押します。</p>
 
-<p><img alt="TOMOYO Linux�̃J�[�l����I��" title="TOMOYO Linux�̃J�[�l����I��" width="640" height="480" src="grub.png"></p>
+<p><img alt="TOMOYO Linuxのカーネルを選択" title="TOMOYO Linuxのカーネルを選択" width="640" height="480" src="grub.png"></p>
 
-<p>�N���v���Z�X���I������ƃ��O�C���v�����v�g���\�������̂ŁAroot�Ń��O�C�����Ă��������B</p>
+<p>起動プロセスが終了するとログインプロンプトが表示されるので、rootでログインしてください。</p>
 
-<p><img alt="root�Ń��O�C��" title="root�Ń��O�C��" width="720" height="400" src="login.png"></p>
+<p><img alt="rootでログイン" title="rootでログイン" width="720" height="400" src="login.png"></p>
 
-<h3><a name="l8">���O�C����̑���̊w�K</a></h3>
+<h3><a name="l8">ログイン後の操作の学習</a></h3>
 
-<p>����́A�ȉ��̑����TOMOYO Linux�Ɋw�K�����A�������[�h�ł͊w�K����������ȊO�����ۂ���邱�Ƃ��m���߂܂��B</p>
+<p>今回は、以下の操作をTOMOYO Linuxに学習させ、強制モードでは学習させた操作以外が拒否されることを確かめます。</p>
 
 <ol>
-<li>date�R�}���h�����s����</li>
-<li>head�R�}���h��/etc/passwd�̐擪3�s��\������</li>
-<li>tcsh���N������</li>
-<li>tail�R�}���h��/etc/passwd�̖���3�s��\������</li>
-<li>tcsh���I������</li>
+<li>dateコマンドを実行する</li>
+<li>headコマンドで/etc/passwdの先頭3行を表示する</li>
+<li>tcshを起動する</li>
+<li>tailコマンドで/etc/passwdの末尾3行を表示する</li>
+<li>tcshを終了する</li>
 </ol>
 
-<p>�܂��͊w�K���[�h�̐ݒ���s���܂��B</p>
+<p>まずは学習モードの設定を行います。</p>
 
-<p>�v���t�@�C��1���w�K���[�h�ł��B
-���̃v���t�@�C�����ȉ��̃R�}���h��/sbin/mingetty����N�������v���O�����Ɋ��蓖�Ă܂��B
+<p>プロファイル1が学習モードです。
+このプロファイルを以下のコマンドで/sbin/mingettyから起動されるプログラムに割り当てます。
 </p>
 
 <pre>
 # <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/mingetty'</span>
 </pre>
 
-<p>���̃R�}���h�́A</p>
+<p>このコマンドは、</p>
 
-<blockquote><p>/sbin/mingetty����N�������v���O�������ׂĂɃv���t�@�C��1�����蓖�Ă�</p></blockquote>
+<blockquote><p>/sbin/mingettyから起動されるプログラムすべてにプロファイル1を割り当てる</p></blockquote>
 
-<p>�Ƃ����Ӗ��ł��B/sbin/mingetty�̓��O�C���V�F�����N������v���O�����ŁA
-/sbin/mingetty�ȉ��Ƀv���t�@�C��1�����蓖�Ă邱�ƂŁA���O�C����̑�����w�K����ݒ�ɂȂ�܂��B
-�ݒ�͑����ɗL���ɂȂ�̂ŁA��Lsetprofile�R�}���h�����s�������Ƃ͊��Ɋw�K���[�h�ɂȂ��Ă��܂��B</p>
+<p>という意味です。/sbin/mingettyはログインシェルを起動するプログラムで、
+/sbin/mingetty以下にプロファイル1を割り当てることで、ログイン後の操作を学習する設定になります。
+設定は即時に有効になるので、上記setprofileコマンドを実行したあとは既に学習モードになっています。</p>
 
-<p>&lt;kernel&gt; /sbin/mingetty�����p���ň͂܂Ȃ��ƁA�V�F���̃��_�C���N�g�@�\��������
-/sbin/mingetty�̓��e�������������Ă��܂��܂��̂ł��ꂮ��������ӂ��������B</p>
+<p>&lt;kernel&gt; /sbin/mingettyを引用符で囲まないと、シェルのリダイレクト機能が働いて
+/sbin/mingettyの内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
 
-<p>����ł́A�O�q��4�̑�����w�K�����܂��傤�B�w�K�͒ʏ��Linux�̂悤�ɑ��삷�邱�Ƃōs���܂��B</p>
+<p>それでは、前述の4つの操作を学習させましょう。学習は通常のLinuxのように操作することで行えます。</p>
 
-<p><img alt="����̊w�K" title="����̊w�K" width="720" height="400" src="ope_learning.png"></p>
+<p><img alt="操作の学習" title="操作の学習" width="720" height="400" src="ope_learning.png"></p>
 
-<p>�ꌩ���ʂ�Linux�ƕς��Ȃ�����ł��܂����A
-���ł�TOMOYO Linux���A�N�Z�X�����Ď����A
-���삲�ƂɃ|���V�[�Ƃ��ă�������ɋL�����Ă��܂��B</p>
+<p>一見普通のLinuxと変わりなく操作できますが、
+裏ではTOMOYO Linuxがアクセス許可を監視し、
+操作ごとにポリシーとしてメモリ上に記憶しています。</p>
 
-<h3><a name="l9">�|���V�[�̎Q��</a></h3>
+<h3><a name="l9">ポリシーの参照</a></h3>
 
-<p>�������ꂽ�|���V�[�̎Q�ƁE�ҏW�ɂ́Accs-tools��editpolicy��p���܂��B</p>
+<p>生成されたポリシーの参照・編集には、ccs-toolsのeditpolicyを用います。</p>
 
 <pre>
 # <span class="user">editpolicy</span>
 </pre>
 
-<p>editpolicy���N������ƁATOMOYO Linux�N����ɁA�v���Z�X���ǂ̂悤�ɌĂяo���ꂽ�����\������܂��B
-���́u�v���Z�X�̌Ăяo���v���ATOMOYO Linux�ł́u�h���C���J�ځv�Ƃ�т܂��B</p>
+<p>editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
+この「プロセスの呼び出し」を、TOMOYO Linuxでは「ドメイン遷移」とよびます。</p>
 
-<p><img alt="�h���C���J��" title="�h���C���J��" width="720" height="400" src="editpolicy1.png"></p>
+<p><img alt="ドメイン遷移" title="ドメイン遷移" width="720" height="400" src="editpolicy1.png"></p>
 
-<p>�h���C���J�ڂ̒�����Amingetty��T���Ă݂Ă��������B�h���C���J�ڂ���mingetty����������ɂ́A
-'f'�L�[�������āA���ɏo���v�����v�g��"mingetty"�Ɠ��͂���Enter�L�[�������܂��B</p>
+<p>ドメイン遷移の中から、mingettyを探してみてください。ドメイン遷移からmingettyを検索するには、
+'f'キーを押して、下に出たプロンプトで"mingetty"と入力してEnterキーを押します。</p>
 
-<p><img alt="mingetty�ȉ��̃h���C��" title="mingetty�ȉ��̃h���C��" width="720" height="400" src="editpolicy2.png"></p>
+<p><img alt="mingetty以下のドメイン" title="mingetty以下のドメイン" width="720" height="400" src="editpolicy2.png"></p>
 
-<p>�s�ԍ��̉E���ɕ\������Ă��鐔���́A���̃h���C���Ɋ��蓖�Ă��Ă���v���t�@�C���ԍ��ł��B /sbin/mingetty �ȉ��̃h���C���� 1 �ɂȂ��Ă���̂́A��ق� setprofile �R�}���h��p���� 1 �����蓖�Ă����߂ł��B</p>
+<p>行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/mingetty 以下のドメインが 1 になっているのは、先ほど setprofile コマンドを用いて 1 を割り当てたためです。</p>
 
-<p>/sbin/mingetty����/bin/login�ȉ��ł́A���O�C�����Ă���̃v���Z�X���s������������܂��B
-���̒����炳��ɁA/usr/bin/head�R�}���h��T���Ă݂Ă��������B
-head�R�}���h�̍s��Enter�L�[�������ƁA�ȉ��̉�ʂ��\������܂��B</p>
+<p>/sbin/mingetty下の/bin/login以下では、ログインしてからのプロセス実行履歴が分かります。
+その中からさらに、/usr/bin/headコマンドを探してみてください。
+headコマンドの行でEnterキーを押すと、以下の画面が表示されます。</p>
 
-<p><img alt="head�̃|���V�[" title="head�̃|���V�[" width="720" height="400" src="editpolicy3.png"></p>
+<p><img alt="headのポリシー" title="headのポリシー" width="720" height="400" src="editpolicy3.png"></p>
 
-<p>����͐�قǂ̑���Ŋw�K�����|���V�[�ŁA</p>
+<p>これは先ほどの操作で学習したポリシーで、</p>
 
 <blockquote>
-<p>&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head�Ƃ����h���C���i�ԉ����j�́A</p>
+<p>&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
 <ul>
-<li>/etc/passwd��ǂݍ��݃��[�h�ŃI�[�v���ł���i�����j</li>
+<li>/etc/passwdを読み込みモードでオープンできる（青下線）</li>
 </ul>
 </blockquote>
 
-<p>�Ƃ������Ƃ��Ӗ����Ă��܂��B</p>
+<p>ということを意味しています。</p>
 
-<p>TOMOYO Linux�ł́A
-�u�v���O�����̐�΃p�X�ŕ\�������v���Z�X�̎��s�����v���h���C���Ƃ�т܂��B
-���ׂẴv���Z�X�͂����ꂩ1�̃h���C���ɏ������Ă���A
-�A�N�Z�X����̓h���C�����ƂɃ|���V�[�Ƃ��Đݒ肵�܂��B</p>
+<p>TOMOYO Linuxでは、
+「プログラムの絶対パスで表現したプロセスの実行履歴」をドメインとよびます。
+すべてのプロセスはいずれか1つのドメインに所属しており、
+アクセス制御はドメインごとにポリシーとして設定します。</p>
 
-<p>�h���C���ɂ�����t�@�C���ɑ΂���A�N�Z�X���́A
-�ʏ��Linux�ɂ�����t�@�C���ɑ΂���p�[�~�b�V������
-���l��3��ށi�ǂݍ��݁E�������݁E���s�j�̑��ɂ��A
-�t�@�C���̐V�K�쐬�E�폜�E���O�ύX�Ȃǂ��ݒ�ł��܂��B</p>
+<p>ドメインにおけるファイルに対するアクセス許可は、
+通常のLinuxにおけるファイルに対するパーミッションと
+同様の3種類（読み込み・書き込み・実行）の他にも、
+ファイルの新規作成・削除・名前変更なども設定できます。</p>
 
-<p>�|���V�[�̓�������ɒu����Ă���A���̂܂�Linux���V���b�g�_�E�����Ă��܂��ƁA
-�w�K�����|���V�[�������Ă��܂��܂��B�|���V�[���n�[�h�f�B�X�N��/etc/ccs�ȉ���
-�ۑ�����ɂ͈ȉ��̂悤�ɂ��܂��B</p>
+<p>ポリシーはメモリ上に置かれており、このままLinuxをシャットダウンしてしまうと、
+学習したポリシーも失われてしまいます。ポリシーをハードディスクの/etc/ccs以下に
+保存するには以下のようにします。</p>
 
 <pre>
 # <span class="user">savepolicy</span>
 </pre>
 
-<h3><a name="l10">�����A�N�Z�X����</a></h3>
+<h3><a name="l10">強制アクセス制御</a></h3>
 
-<p>����ł́A��قǎ����w�K�����|���V�[���g���āA�����A�N�Z�X�����̌����Ă݂܂��傤�B</p>
+<p>それでは、先ほど自動学習したポリシーを使って、強制アクセス制御を体験してみましょう。</p>
 
-<p>'q'�L�[��editpolicy���I�����Ă���A�ȉ��̃R�}���h�����s���܂��B</p>
+<p>'q'キーでeditpolicyを終了してから、以下のコマンドを実行します。</p>
 
 <pre>
 # <span class="user">setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty'</span>
 </pre>
 
-<p>���̑���ɂ��A/sbin/mingetty�ȉ��̃h���C���ɋ����A�N�Z�X���䂪�K�p�����悤�ɂȂ�܂��B</p>
+<p>この操作により、/sbin/mingetty以下のドメインに強制アクセス制御が適用されるようになります。</p>
 
-<p>���̏�Ԃňȉ��̑�����s���Ă݂܂��B</p>
+<p>この状態で以下の操作を行ってみます。</p>
 
 <ol>
-<li>date�R�}���h�����s</li>
-<li>head�R�}���h��/etc/passwd�̐擪3�s��\��</li>
-<li>tail�R�}���h��/etc/passwd�̖���3�s��\���i�G���[�j</li>
-<li>head�R�}���h��/etc/shadow�̐擪3�s��\���i�G���[�j</li>
-<li>tcsh���N��</li>
-<li>date�R�}���h�����s�i�G���[�j</li>
+<li>dateコマンドを実行</li>
+<li>headコマンドで/etc/passwdの先頭3行を表示</li>
+<li>tailコマンドで/etc/passwdの末尾3行を表示（エラー）</li>
+<li>headコマンドで/etc/shadowの先頭3行を表示（エラー）</li>
+<li>tcshを起動</li>
+<li>dateコマンドを実行（エラー）</li>
 </ol>
 
-<p><img alt="�����A�N�Z�X����̗l�q" title="�����A�N�Z�X����̗l�q" width="720" height="400" src="ope_enforcing.png"></p>
+<p><img alt="強制アクセス制御の様子" title="強制アクセス制御の様子" width="720" height="400" src="ope_enforcing.png"></p>
 
-<p>�}���̐ԉ����̃R�}���h�͐�قǊw�K���[�h�ōs��������ł��̂ŁA���Ȃ����s�ł��܂��B
-�t�ɐ����̃R�}���h�̓G���[�ɂȂ�܂��B</p>
+<p>図中の赤下線のコマンドは先ほど学習モードで行った操作ですので、問題なく実行できます。
+逆に青下線のコマンドはエラーになります。</p>
 
-<p>�G���[�ɂȂ�������̃��O�́Accs-auditd�ɂ����/var/log/tomoyo/reject_log.txt�ɕۑ�����Ă��܂��B</p>
+<p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 
 <blockquote><p>
 #2008-05-06 17:40:33# profile=3 mode=enforcing pid=1732 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=18 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.svgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.tbz2=01;31:*.bz=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.svg=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/lib/ccs:/root/bin" "INPUTRC=/etc/inputrc" "PWD=/root" "LANG=en_US.UTF-8" "SHLVL=1" "HOME=/root" "LOGNAME=root" "CVS_RSH=ssh" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/usr/bin/tail" }<br>
@@ -383,16 +383,16 @@ allow_read /etc/shadow<br>
 allow_execute /bin/date
 </p></blockquote>
 
-<p>���̂悤��TOMOYO Linux�̃t�@�C���ɑ΂���A�N�Z�X�����p����΁A</p>
+<p>このようにTOMOYO Linuxのファイルに対するアクセス制御を用いれば、</p>
 
 <ul>
-<li>�ǂ̂悤�Ȏ��s���������v���Z�X��</li>
-<li>����</li>
-<li>�ǂ�ȃt�@�C����</li>
-<li>�ǂ�ȃA�N�Z�X��</li>
+<li>どのような実行履歴を持つプロセスが</li>
+<li>いつ</li>
+<li>どんなファイルに</li>
+<li>どんなアクセスを</li>
 </ul>
 
-<p>�s���������Ď����邱�Ƃ��ł��܂��B</p>
+<p>行ったかを監視することもできます。</p>
 
 <hr>
 <address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>

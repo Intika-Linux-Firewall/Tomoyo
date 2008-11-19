@@ -1,44 +1,44 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux �|���V�����</title>
+<title>TOMOYO Linux ポリシ解説書</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p style="text-align:right;"><a href="../../en/1.6.x/policy-reference.html">English Page</a></p>
-<h1 style="text-align:center;">TOMOYO Linux �|���V�����</h1>
+<h1 style="text-align:center;">TOMOYO Linux ポリシ解説書</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1><a name="index">�ڎ�</a></h1>
-<h2>1. <a href="#Keyword_Index">�L�[���[�h�ꗗ</a></h2>
-<h2>2. <a href="#Common_Rules">�͂��߂�</a></h2>
-<p>2.1 <a href="#word_expression_rules">�P��̕\�L�K��</a></p>
-<p>2.2 <a href="#wildcard_expression_rules">�p�^�[���̕\�L�K��</a></p>
-<p>2.3 <a href="#word_length_rules">�P��̒����Ɋւ��鐧��</a></p>
-<p>2.4 <a href="#line_length_rules">1 �s�̒����Ɋւ��鐧��</a></p>
-<p>2.5 <a href="#memory_allocation_rules">�������g�p�ʂɊւ��鐧��</a></p>
-<h2>3. <a href="#Policy_Files">�|���V�t�@�C���Ɋւ���</a></h2>
-<p>3.1 <a href="#policy_file_locations">���݂ɂ���</a></p>
-<p>3.2 <a href="#policy_file_modifiers">�ύX�ɂ���</a></p>
-<h2>4. <a href="#Domain_Rules">�h���C���Ɋւ���</a></h2>
-<p>4.1 <a href="#domain_definition">�h���C���Ƃ�</a></p>
-<p>4.2 <a href="#domain_transition">�h���C���J�ڂƂ�</a></p>
-<p>4.3 <a href="#access_logs">�A�N�Z�X���O�ɂ���</a></p>
-<h2>5. <a href="#Syntax_Details">�L�[���[�h�ڍ�</a></h2>
-<h2>6. <a href="#Advanced_Features">�֗��ȋ@�\</a></h2>
-<p>6.1 <a href="#non_root_policy_update">root �ȊO�̃��[�U�ɂ��|���V�̕ύX������</a></p>
-<p>6.2 <a href="#memory_quota">�|���V�Ɋ��蓖�Ă��郁�����ʂ𐧌�</a></p>
-<p>6.3 <a href="#conditional_acl">�����t���A�N�Z�X���̎w��</a></p>
-<p>6.4 <a href="#stateful_acl">�X�e�[�g�t���ȃA�N�Z�X���̎w��</a></p>
-<p>6.5 <a href="#sleep_penalty">�|���V�ᔽ���̃y�i���e�B�w��</a></p>
-<p>6.6 <a href="#execute_handler">�v���O�����̎��s�ۂ��J�[�l���̊O���Ŕ��f</a></p>
-<p>6.7 <a href="#denied_execute_handler">������Ă��Ȃ��v���O�����̎��s���v�����ꂽ�ꍇ�̑�֏����w��</a></p>
+<h1><a name="index">目次</a></h1>
+<h2>1. <a href="#Keyword_Index">キーワード一覧</a></h2>
+<h2>2. <a href="#Common_Rules">はじめに</a></h2>
+<p>2.1 <a href="#word_expression_rules">単語の表記規則</a></p>
+<p>2.2 <a href="#wildcard_expression_rules">パターンの表記規則</a></p>
+<p>2.3 <a href="#word_length_rules">単語の長さに関する制約</a></p>
+<p>2.4 <a href="#line_length_rules">1 行の長さに関する制約</a></p>
+<p>2.5 <a href="#memory_allocation_rules">メモリ使用量に関する制約</a></p>
+<h2>3. <a href="#Policy_Files">ポリシファイルに関して</a></h2>
+<p>3.1 <a href="#policy_file_locations">所在について</a></p>
+<p>3.2 <a href="#policy_file_modifiers">変更について</a></p>
+<h2>4. <a href="#Domain_Rules">ドメインに関して</a></h2>
+<p>4.1 <a href="#domain_definition">ドメインとは</a></p>
+<p>4.2 <a href="#domain_transition">ドメイン遷移とは</a></p>
+<p>4.3 <a href="#access_logs">アクセスログについて</a></p>
+<h2>5. <a href="#Syntax_Details">キーワード詳細</a></h2>
+<h2>6. <a href="#Advanced_Features">便利な機能</a></h2>
+<p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></p>
+<p>6.2 <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
+<p>6.3 <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
+<p>6.4 <a href="#stateful_acl">ステートフルなアクセス許可の指定</a></p>
+<p>6.5 <a href="#sleep_penalty">ポリシ違反時のペナルティ指定</a></p>
+<p>6.6 <a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
+<p>6.7 <a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
 <hr>
 
-<h1>1. <a name="Keyword_Index">�L�[���[�h�ꗗ</a></h1>
+<h1>1. <a name="Keyword_Index">キーワード一覧</a></h1>
 
-<p>/proc/ccs/profile ����� /etc/ccs/profile.conf �Ŏg�������</p>
+<p>/proc/ccs/profile および /etc/ccs/profile.conf で使われるもの</p>
 
 <ul>
 <li><a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a></li>
@@ -91,7 +91,7 @@
 <li><a href="#profile_SLEEP_PERIOD">SLEEP_PERIOD</a></li>
 </ul>
 
-<p>/proc/ccs/system_policy ����� /etc/ccs/system_policy.conf �Ŏg�������</p>
+<p>/proc/ccs/system_policy および /etc/ccs/system_policy.conf で使われるもの</p>
 
 <ul>
 <li><a href="#system_policy_allow_mount">allow_mount</a></li>
@@ -101,7 +101,7 @@
 <li><a href="#system_policy_deny_autobind">deny_autobind</a></li>
 </ul>
 
-<p>/proc/ccs/exception_policy ����� /etc/ccs/exception_policy.conf �Ŏg�������</p>
+<p>/proc/ccs/exception_policy および /etc/ccs/exception_policy.conf で使われるもの</p>
 
 <ul>
 <li><a href="#exception_policy_aggregator">aggregator</a></li>
@@ -118,7 +118,7 @@
 <li><a href="#exception_policy_alias">alias</a></li>
 </ul>
 
-<p>/proc/ccs/domain_policy ����� /etc/ccs/domain_policy.conf �Ŏg�������</p>
+<p>/proc/ccs/domain_policy および /etc/ccs/domain_policy.conf で使われるもの</p>
 
 <ul>
 <li><a href="#domain_policy_allow_execute">allow_execute</a></li>
@@ -152,27 +152,27 @@
 <li><a href="#domain_policy_transition_failed">transition_failed</a></li>
 </ul>
 
-<p>/proc/ccs/manager ����� /etc/ccs/manager.conf �Ŏg�������</p>
+<p>/proc/ccs/manager および /etc/ccs/manager.conf で使われるもの</p>
 
 <ul>
 <li><a href="#manager_manage_by_non_root">manage_by_non_root</a></li>
 </ul>
 
-<h1>2. <a name="Common_Rules">�͂��߂�</a></h1>
+<h1>2. <a name="Common_Rules">はじめに</a></h1>
 
-<h2>2.1 <a name="word_expression_rules">�P��̕\�L�K��</a></h2>
+<h2>2.1 <a name="word_expression_rules">単語の表記規則</a></h2>
 
-<p>TOMOYO Linux �̓p�X����p�����A�N�Z�X������s���܂��B�p�X���ɂ͉p���������łȂ��󔒂���s�Ȃǂ̕����A�����̂悤�ȕ����o�C�g�ō\������镶���Ȃǂ��܂܂��\��������܂��B���̂��߁A�����Ȃ镶���ł������������ł���悤�ɂ��邽�߂ɁA TOMOYO Linux �ɉ����Ă͈ȉ��̋K���ɏ]���ĒP���\�L���܂��B�P��Ƃ́A�p�X�������łȂ��R�����g����ϐ��̖��O��v���O�������s���̃p�����[�^�ȂǁA������Ƃ��Ĉ����S�Ă̏����w���܂��B</p>
+<p>TOMOYO Linux はパス名を用いたアクセス制御を行います。パス名には英数字だけでなく空白や改行などの文字、漢字のような複数バイトで構成される文字などが含まれる可能性があります。そのため、いかなる文字でも正しく処理できるようにするために、 TOMOYO Linux に於いては以下の規則に従って単語を表記します。単語とは、パス名だけでなくコメントや環境変数の名前やプログラム実行時のパラメータなど、文字列として扱う全ての情報を指します。</p>
 
 <ul>
-<li>NUL �����i 0x00 �j�͕�����̏I�[���������߂̕����ł���A \000 �Ƃ����\�L�͂ł��܂���B</li>
-<li>\ �����i 0x5C �j�� 8 �i���\�L�ł��邱�Ƃ��������߂Ɏg�p����邽�߁A \\ �̂悤�� 2 �����܂��B</li>
-<li>0x01 �` 0x20 ����� 0x7F �` 0xFF �� \ooo �Ƃ����`���� 8 �i���ŕ\�L���܂��B</li>
-<li>�c��� 0x21 �` 0x5B ����� 0x5D �` 0x7E �͂��̂܂܂̕����ŕ\�L���܂��B</li>
+<li>NUL 文字（ 0x00 ）は文字列の終端を示すための文字であり、 \000 という表記はできません。</li>
+<li>\ 文字（ 0x5C ）は 8 進数表記であることを示すために使用されるため、 \\ のように 2 個続けます。</li>
+<li>0x01 ～ 0x20 および 0x7F ～ 0xFF は \ooo という形式の 8 進数で表記します。</li>
+<li>残りの 0x21 ～ 0x5B および 0x5D ～ 0x7E はそのままの文字で表記します。</li>
 </ul>
 
 <table border="1">
-<tr><td><table><tr><td></td><td>���� 4 �r�b�g</td></tr><tr><td>��� 4 �r�b�g</td><td></td></tr></table></td><td>0x0</td><td>0x1</td><td>0x2</td><td>0x3</td><td>0x4</td><td>0x5</td><td>0x6</td><td>0x7</td><td>0x8</td><td>0x9</td><td>0xA</td><td>0xB</td><td>0xC</td><td>0xD</td><td>0xE</td><td>0xF</td></tr>
+<tr><td><table><tr><td></td><td>下位 4 ビット</td></tr><tr><td>上位 4 ビット</td><td></td></tr></table></td><td>0x0</td><td>0x1</td><td>0x2</td><td>0x3</td><td>0x4</td><td>0x5</td><td>0x6</td><td>0x7</td><td>0x8</td><td>0x9</td><td>0xA</td><td>0xB</td><td>0xC</td><td>0xD</td><td>0xE</td><td>0xF</td></tr>
 <tr><td>0x0</td><td></td><td>\001</td><td>\002</td><td>\003</td><td>\004</td><td>\005</td><td>\006</td><td>\007</td><td>\010</td><td>\011</td><td>\012</td><td>\013</td><td>\014</td><td>\015</td><td>\016</td><td>\017</td></tr>
 <tr><td>0x1</td><td>\020</td><td>\021</td><td>\022</td><td>\023</td><td>\024</td><td>\025</td><td>\026</td><td>\027</td><td>\030</td><td>\031</td><td>\032</td><td>\033</td><td>\034</td><td>\035</td><td>\036</td><td>\037</td></tr>
 <tr><td>0x2</td><td>\040</td><td>!</td><td>"</td><td>#</td><td>$</td><td>%</td><td>&amp;</td><td>'</td><td>(</td><td>)</td><td>*</td><td>+</td><td>,</td><td>-</td><td>.</td><td>/</td></tr>
@@ -192,71 +192,71 @@
 </table>
 
 <ul>
-<li>�P��ƒP�����؂�f���~�^�Ƃ��ċ󔒕����i 0x20 �j���A�s�ƍs����؂�f���~�^�Ƃ��ĉ��s�����i 0x0A �j���g�p���܂��B</li>
-<li>��L�̋K���ɏ]���ĕ\�L���ꂽ�P��ƁA�f���~�^�Ƃ��Ďg����󔒕�������щ��s�����݂̂��L���ł��B����ȊO�̕����͋󔒕����Ƃ݂Ȃ���܂��B�A������󔒕����͎����I�� 1 �̋󔒕����Ɉ��k����܂��B�s���y�эs���̋󔒕����͎����I�ɍ폜����܂��B</li>
+<li>単語と単語を区切るデリミタとして空白文字（ 0x20 ）を、行と行を区切るデリミタとして改行文字（ 0x0A ）を使用します。</li>
+<li>上記の規則に従って表記された単語と、デリミタとして使われる空白文字および改行文字のみが有効です。それ以外の文字は空白文字とみなされます。連続する空白文字は自動的に 1 個の空白文字に圧縮されます。行頭及び行末の空白文字は自動的に削除されます。</li>
 </ul>
 
-<p>�ȉ��ɕ\�L��������܂��B</p>
+<p>以下に表記例を示します。</p>
 
 <table border="1">
-<tr><td>�P��</td><td>�������\�L</td><td>������\�L</td></tr>
+<tr><td>単語</td><td>正しい表記</td><td>誤った表記</td></tr>
 <tr><td>Hello world!</td><td>Hello\040world!</td><td>"Hello world!"</td></tr>
 <tr><td>/home/user/Documents and Settings/</td><td>/home/user/Documents\040and\040Settings/</td><td>/home/user/Documents and Settings/</td></tr>
-<tr><td>�R�����g (UTF-8 �̏ꍇ)</td><td>\343\202\263\343\203\241\343\203\263\343\203\210\040(UTF-8\040\343\201\256\345\240\264\345\220\210)</td><td>�R�����g\040(UTF-8\040�̏ꍇ)</td></tr>
+<tr><td>コメント (UTF-8 の場合)</td><td>\343\202\263\343\203\241\343\203\263\343\203\210\040(UTF-8\040\343\201\256\345\240\264\345\220\210)</td><td>コメント\040(UTF-8\040の場合)</td></tr>
 </table>
 
-<p>�p�X���͕K�� / ����n�܂�܂��B�p�X���� / �ŏI���ꍇ�̓f�B���N�g���A / �ȊO�ŏI���ꍇ�ɂ̓f�B���N�g���ȊO�ł���Ɖ��߂���܂��B</p>
+<p>パス名は必ず / から始まります。パス名が / で終わる場合はディレクトリ、 / 以外で終わる場合にはディレクトリ以外であると解釈されます。</p>
 
 <table border="1">
-<tr><td>�p�X��</td><td>����</td></tr>
-<tr><td>/</td><td>�f�B���N�g��</td></tr>
-<tr><td>/tmp/</td><td>�f�B���N�g��</td></tr>
-<tr><td>/tmp</td><td>�f�B���N�g���ȊO</td></tr>
-<tr><td>tmp/</td><td>�����ȃp�X��</td></tr>
+<tr><td>パス名</td><td>解釈</td></tr>
+<tr><td>/</td><td>ディレクトリ</td></tr>
+<tr><td>/tmp/</td><td>ディレクトリ</td></tr>
+<tr><td>/tmp</td><td>ディレクトリ以外</td></tr>
+<tr><td>tmp/</td><td>無効なパス名</td></tr>
 </table>
 
-<p>�������A��O�Ƃ��āA /proc/�v���Z�X�h�c/fd/ �f�B���N�g���ɕ\�������p�C�v�̃p�X���� pipe: �ŁA�\�P�b�g�̃p�X���� socket: �Ŏn�܂�܂��B</p>
+<p>ただし、例外として、 /proc/プロセスＩＤ/fd/ ディレクトリに表示されるパイプのパス名は pipe: で、ソケットのパス名は socket: で始まります。</p>
 
-<h2>2.2 <a name="wildcard_expression_rules">�p�^�[���̕\�L�K��</a></h2>
+<h2>2.2 <a name="wildcard_expression_rules">パターンの表記規則</a></h2>
 
-<p>�p�X���ɂ̓e���|�����t�@�C���̂悤�ɁA����قȂ镶�����g����ꍇ������܂��B���̂��߁A���C���h�J�[�h��p�����p�^�[�������s�����Ƃ��K�v�ɂȂ�܂��B TOMOYO Linux �ɉ����Ă͈ȉ��̃��C���h�J�[�h���T�|�[�g���Ă��܂��B</p>
+<p>パス名にはテンポラリファイルのように、毎回異なる文字が使われる場合があります。そのため、ワイルドカードを用いたパターン化を行うことが必要になります。 TOMOYO Linux に於いては以下のワイルドカードをサポートしています。</p>
 
 <table border="1">
-<tr><td>���C���h�J�[�h</td><td>�Ӗ�</td><td>�g�p��</td></tr>
-<tr><td>\*</td><td>/ �ȊO�� 0 �����ȏ�</td><td>/var/log/samba/\*</td></tr>
-<tr><td>\@</td><td>/ �� . �ȊO�� 0 �����ȏ�</td><td>/var/www/html/\@.html</td></tr>
-<tr><td>\?</td><td>/ �ȊO�� 1 ����</td><td>/tmp/mail.\?\?\?\?\?\?</td></tr>
-<tr><td>\$</td><td>1 ���ȏ�� 10 �i��</td><td>/proc/\$/cmdline</td></tr>
-<tr><td>\+</td><td>10 �i�� 1 ��</td><td>/var/tmp/my_work.\+</td></tr>
-<tr><td>\X</td><td>1 ���ȏ�� 16 �i��</td><td>/var/tmp/my-work.\X</td></tr>
-<tr><td>\x</td><td>16 �i�� 1 ��</td><td>/tmp/my-work.\x</td></tr>
-<tr><td>\A</td><td>1 �����ȏ�̃A���t�@�x�b�g</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
-<tr><td>\a</td><td>�A���t�@�x�b�g 1 ����</td><td>/home/users/\a/\*/public_html/\*.html</td></tr>
-<tr><td>\-</td><td>�p�X�������O���鉉�Z�q</td><td>
+<tr><td>ワイルドカード</td><td>意味</td><td>使用例</td></tr>
+<tr><td>\*</td><td>/ 以外の 0 文字以上</td><td>/var/log/samba/\*</td></tr>
+<tr><td>\@</td><td>/ と . 以外の 0 文字以上</td><td>/var/www/html/\@.html</td></tr>
+<tr><td>\?</td><td>/ 以外の 1 文字</td><td>/tmp/mail.\?\?\?\?\?\?</td></tr>
+<tr><td>\$</td><td>1 桁以上の 10 進数</td><td>/proc/\$/cmdline</td></tr>
+<tr><td>\+</td><td>10 進数 1 桁</td><td>/var/tmp/my_work.\+</td></tr>
+<tr><td>\X</td><td>1 桁以上の 16 進数</td><td>/var/tmp/my-work.\X</td></tr>
+<tr><td>\x</td><td>16 進数 1 桁</td><td>/tmp/my-work.\x</td></tr>
+<tr><td>\A</td><td>1 文字以上のアルファベット</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
+<tr><td>\a</td><td>アルファベット 1 文字</td><td>/home/users/\a/\*/public_html/\*.html</td></tr>
+<tr><td>\-</td><td>パス名を除外する演算子</td><td>
  <table border="1">
- <tr><td>�g�p��</td><td>�Ӗ�</td></tr>
- <tr><td>/etc/\*</td><td>/etc/ �����̑S�t�@�C��</td></tr>
- <tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\*shadow\* �ȊO�� /etc/\*</td></tr>
- <tr><td>/\*\-proc\-sys/</td><td>/proc/ �� /sys/ �ȊO�� /\*/</td></tr>
+ <tr><td>使用例</td><td>意味</td></tr>
+ <tr><td>/etc/\*</td><td>/etc/ 直下の全ファイル</td></tr>
+ <tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\*shadow\* 以外の /etc/\*</td></tr>
+ <tr><td>/\*\-proc\-sys/</td><td>/proc/ と /sys/ 以外の /\*/</td></tr>
  </table>
 </td></tr>
 </table>
 
-<h2>2.3 <a name="word_length_rules">�P��̒����Ɋւ��鐧��</a></h2>
+<h2>2.3 <a name="word_length_rules">単語の長さに関する制約</a></h2>
 
-<p>Linux �ɉ����Ă̓p�X���̒����Ɋւ������͑��݂��܂��񂪁A�p�X����p�����A�N�Z�X������s�����߂ɖ����̒������T�|�[�g���邱�Ƃ͂ł��܂���B���̂��߁A TOMOYO Linux �ɉ����ẮA�P��̒����͏I�[�� NUL �������܂߂� 4000 �o�C�g�܂łɐ�������Ă��܂��B</p>
+<p>Linux に於いてはパス名の長さに関する上限は存在しませんが、パス名を用いたアクセス制御を行うために無限の長さをサポートすることはできません。そのため、 TOMOYO Linux に於いては、単語の長さは終端の NUL 文字を含めて 4000 バイトまでに制限されています。</p>
 
-<h2>2.4 <a name="line_length_rules">1 �s�̒����Ɋւ��鐧��</a></h2>
+<h2>2.4 <a name="line_length_rules">1 行の長さに関する制約</a></h2>
 
-<p>TOMOYO Linux �ɉ����ẮA 1 �s�̒����͏I�[�� NUL �������܂߂� 8192 �o�C�g�܂łɐ�������Ă��܂��B</p>
+<p>TOMOYO Linux に於いては、 1 行の長さは終端の NUL 文字を含めて 8192 バイトまでに制限されています。</p>
 
-<h2>2.5 <a name="memory_allocation_rules">�������g�p�ʂɊւ��鐧��</a></h2>
+<h2>2.5 <a name="memory_allocation_rules">メモリ使用量に関する制約</a></h2>
 
-<p>TOMOYO Linux �ɉ����ẮA�A�N�Z�X����P����L�����邽�߂Ɉ�x���蓖�Ă�ꂽ�������͉������܂���B�V�X�e�����ċN������ȊO�ɁA�s�v�ɂȂ�������������������i�͑��݂��܂���B</p>
+<p>TOMOYO Linux に於いては、アクセス許可や単語を記憶するために一度割り当てられたメモリは解放されません。システムを再起動する以外に、不要になったメモリを解放する手段は存在しません。</p>
 
-<p>�������A�^�p�J�n��ɂ̓A�N�Z�X���̕ύX�͐����ɂ����Ƃ����X�������邱�ƁA����сA�^�p�J�n�O�ɓK�؂Ƀ`���[�j���O���邱�Ƃɂ�胁��������ʂ�ʏ�� 1 ���K�o�C�g�ȓ��ɗ}�����邱�Ƃ���A�S�z����K�v�͂���܂���B</p>
+<p>ただし、運用開始後にはアクセス許可の変更は生じにくいという傾向があること、および、運用開始前に適切にチューニングすることによりメモリ消費量を通常は 1 メガバイト以内に抑えられることから、心配する必要はありません。</p>
 
-<p>TOMOYO Linux �����ݎg�p���̃���������ʂ́A /proc/ccs/meminfo ����m�F�ł��܂��B�P�ʂ̓o�C�g�ł��B Shared: ���P����L�����邽�߂Ɏg�p����Ă���ʁA Private: ���A�N�Z�X�����L�����邽�߂Ɏg�p����Ă���ʂŁA�������邱�Ƃ͂���܂���B Dynamic: ���A�N�Z�X���̃`�F�b�N��A�N�Z�X���O�̕ێ��Ȃǂ̂��߂Ɉꎞ�I�Ɏg�p����Ă���ʂŁA�s�v�ɂȂ�ƌ������܂��B</p>
+<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /proc/ccs/meminfo から確認できます。単位はバイトです。 Shared: が単語を記憶するために使用されている量、 Private: がアクセス許可を記憶するために使用されている量で、減少することはありません。 Dynamic: がアクセス許可のチェックやアクセスログの保持などのために一時的に使用されている量で、不要になると減少します。</p>
 
 <table border="1">
 <tr><td><pre>
@@ -269,50 +269,50 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </pre></td></tr>
 </table>
 
-<h1>3. <a name="Policy_Files">�|���V�t�@�C���Ɋւ���</a></h1>
+<h1>3. <a name="Policy_Files">ポリシファイルに関して</a></h1>
 
-<h2>3.1 <a name="policy_file_locations">���݂ɂ���</a></h2>
+<h2>3.1 <a name="policy_file_locations">所在について</a></h2>
 
-<p>�|���V�t�@�C���Ƃ́A�A�N�Z�X�̉ۂ��`�����t�@�C���ł��B�V�X�e���̋N�����Ɏ����I�ɃJ�[�l���ւƓǂݍ��܂�܂��B</p>
+<p>ポリシファイルとは、アクセスの可否を定義したファイルです。システムの起動時に自動的にカーネルへと読み込まれます。</p>
 
-<p>�V�X�e���̋N�����ɂ́A /sbin/init �Ƃ����v���O���������s����܂��B /sbin/init �̎��s���v�����ꂽ�Ƃ��ɁA /sbin/ccs-init �Ƃ����v���O���������݂��Ă����ꍇ�A /sbin/ccs-init �����s����A /sbin/ccs-init �̏������I�����Ă��� /sbin/init �̎��s���J�n����܂��B</p>
+<p>システムの起動時には、 /sbin/init というプログラムが実行されます。 /sbin/init の実行が要求されたときに、 /sbin/ccs-init というプログラムが存在していた場合、 /sbin/ccs-init が実行され、 /sbin/ccs-init の処理が終了してから /sbin/init の実行が開始されます。</p>
 
-<p> /sbin/ccs-init �� /etc/ccs/ �f�B���N�g���ɂ���|���V�t�@�C���� /proc/ccs/ �f�B���N�g����ʂ��ăJ�[�l���ւƓǂݍ��݂܂��B</p>
-
-<table border="1">
-<tr><td>�J�[�l���Ƃ̃C���^�t�F�[�X</td><td>�|���V�t�@�C��</td><td>��`����Ă�����e</td></tr>
-<tr><td><a href="#profile">/proc/ccs/profile</a></td><td>/etc/ccs/profile.conf</td><td>�v���t�@�C���i���䃌�x�����`�������́j</td></tr>
-<tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>�}�l�[�W���i�|���V�̕ύX���ł���v���O�������`�������́j</td></tr>
-<tr><td><a href="#system_policy">/proc/ccs/system_policy</a></td><td>/etc/ccs/system_policy.conf</td><td>�V�X�e���|���V�i�V�X�e���S�̂œK�p�����ݒ�j</td></tr>
-<tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>��O�|���V�i�h���C���|���V�̗�O���`�������́j</td></tr>
-<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>�h���C���|���V�i�h���C���P�ʂœK�p�����ݒ�j</td></tr>
-</table>
-
-<p>���̂ق��̏����擾���邽�߂̃C���^�t�F�[�X������܂��B�Ή�����|���V�t�@�C���͂���܂���B</p>
+<p> /sbin/ccs-init は /etc/ccs/ ディレクトリにあるポリシファイルを /proc/ccs/ ディレクトリを通じてカーネルへと読み込みます。</p>
 
 <table border="1">
-<tr><td>�J�[�l���Ƃ̃C���^�t�F�[�X</td><td>���e</td></tr>
-<tr><td><a href="#query">/proc/ccs/query</a></td><td>�Ǘ��҂̎w���҂��ƂȂ��Ă���A�N�Z�X�v��</td></tr>
-<tr><td><a href="#.domain_status">/proc/ccs/.domain_status</a></td><td>��`����Ă���h���C�����ƃv���t�@�C���ԍ�</td></tr>
-<tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>�������g�p��</td></tr>
-<tr><td><a href="#grant_log">/proc/ccs/grant_log</a></td><td>�|���V�Ɉᔽ���Ȃ������A�N�Z�X�v���̃��O</td></tr>
-<tr><td><a href="#reject_log">/proc/ccs/reject_log</a></td><td>�|���V�Ɉᔽ�����A�N�Z�X�v���̃��O</td></tr>
-<tr><td><a href="#self_domain">/proc/ccs/self_domain</a></td><td>�����������Ă���h���C���̃h���C����</td></tr>
-<tr><td><a href="#.process_status">/proc/ccs/.process_status</a></td><td>�v���Z�X�������Ă���h���C�����ƃv���t�@�C���ԍ�</td></tr>
-<tr><td><a href="#.updates_counter">/proc/ccs/.updates_counter</a></td><td>�|���V�̕ύX�J�E���^</td></tr>
-<tr><td><a href="#version">/proc/ccs/version</a></td><td>TOMOYO Linux �̃o�[�W����</td></tr>
+<tr><td>カーネルとのインタフェース</td><td>ポリシファイル</td><td>定義されている内容</td></tr>
+<tr><td><a href="#profile">/proc/ccs/profile</a></td><td>/etc/ccs/profile.conf</td><td>プロファイル（制御レベルを定義したもの）</td></tr>
+<tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>マネージャ（ポリシの変更ができるプログラムを定義したもの）</td></tr>
+<tr><td><a href="#system_policy">/proc/ccs/system_policy</a></td><td>/etc/ccs/system_policy.conf</td><td>システムポリシ（システム全体で適用される設定）</td></tr>
+<tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>例外ポリシ（ドメインポリシの例外を定義したもの）</td></tr>
+<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>ドメインポリシ（ドメイン単位で適用される設定）</td></tr>
 </table>
 
-<h2>3.2 <a name="policy_file_modifiers">�ύX�ɂ���</a></h2>
+<p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシファイルはありません。</p>
 
-<p>�J�[�l���Ƃ̃C���^�t�F�[�X�ł��� /proc/ccs/ �f�B���N�g�����o�R���ă|���V��ύX���邱�Ƃ��ł���v���O�������� /proc/ccs/manager �ɓo�^���܂��B�v���O�������ł͂Ȃ��h���C�����œo�^���邱�Ƃ��ł��܂��B</p>
+<table border="1">
+<tr><td>カーネルとのインタフェース</td><td>内容</td></tr>
+<tr><td><a href="#query">/proc/ccs/query</a></td><td>管理者の指示待ちとなっているアクセス要求</td></tr>
+<tr><td><a href="#.domain_status">/proc/ccs/.domain_status</a></td><td>定義されているドメイン名とプロファイル番号</td></tr>
+<tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>メモリ使用状況</td></tr>
+<tr><td><a href="#grant_log">/proc/ccs/grant_log</a></td><td>ポリシに違反しなかったアクセス要求のログ</td></tr>
+<tr><td><a href="#reject_log">/proc/ccs/reject_log</a></td><td>ポリシに違反したアクセス要求のログ</td></tr>
+<tr><td><a href="#self_domain">/proc/ccs/self_domain</a></td><td>自分が属しているドメインのドメイン名</td></tr>
+<tr><td><a href="#.process_status">/proc/ccs/.process_status</a></td><td>プロセスが属しているドメイン名とプロファイル番号</td></tr>
+<tr><td><a href="#.updates_counter">/proc/ccs/.updates_counter</a></td><td>ポリシの変更カウンタ</td></tr>
+<tr><td><a href="#version">/proc/ccs/version</a></td><td>TOMOYO Linux のバージョン</td></tr>
+</table>
+
+<h2>3.2 <a name="policy_file_modifiers">変更について</a></h2>
+
+<p>カーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシを変更することができるプログラム名を /proc/ccs/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
 
 <ul>
-<li>/proc/ccs/manager �ɓo�^����Ă���v���O�����������v���Z�X</li>
-<li>/proc/ccs/manager �ɓo�^����Ă���h���C���������v���Z�X</li>
+<li>/proc/ccs/manager に登録されているプログラム名を持つプロセス</li>
+<li>/proc/ccs/manager に登録されているドメイン名を持つプロセス</li>
 </ul>
 
-<p>�������J�[�l���Ƃ̃C���^�t�F�[�X�ł��� /proc/ccs/ �f�B���N�g�����o�R���ă|���V��ύX�ł��܂��B�ȉ��ɗ�������܂��B</p>
+<p>だけがカーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシを変更できます。以下に例を示します。</p>
 
 <table border="1">
 <tr><td>
@@ -327,211 +327,211 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </td></tr>
 </table>
 
-<p>�f�t�H���g�ł̓��[�U�h�c�Ǝ������[�U�h�c�̗����� 0 �ł���v���Z�X�������|���V��ύX�ł��܂����A <a href="#non_root_policy_update">root �ȊO�̃��[�U�ɂ��|���V�̕ύX������</a>�̐ݒ���s���΁A�� root ���[�U�ɂ��|���V�̕ύX���\�ł��B</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a>の設定を行えば、非 root ユーザによるポリシの変更も可能です。</p>
 
-<p>�Ȃ��A�w�K���[�h�p�̃v���t�@�C�������蓖�Ă��Ă���v���Z�X�́A�A�N�Z�X��v�����邾���� <a href="#system_policy">/proc/ccs/system_policy</a> �܂��� <a href="#domain_policy">/proc/ccs/domain_policy</a> �ւƎ����I�ɃA�N�Z�X�����ǉ�����Ă����܂��B</p>
+<p>なお、学習モード用のプロファイルが割り当てられているプロセスは、アクセスを要求するだけで <a href="#system_policy">/proc/ccs/system_policy</a> または <a href="#domain_policy">/proc/ccs/domain_policy</a> へと自動的にアクセス許可が追加されていきます。</p>
 
-<h1>4. <a name="Domain_Rules">�h���C���Ɋւ���</a></h1>
+<h1>4. <a name="Domain_Rules">ドメインに関して</a></h1>
 
-<h2>4.1 <a name="domain_definition">�h���C���Ƃ�</a></h2>
+<h2>4.1 <a name="domain_definition">ドメインとは</a></h2>
 
-<p>TOMOYO Linux �ɂ́A�V�X�e���S�̂ŃA�N�Z�X�����`������̂ƁA�h���C���P�ʂŃA�N�Z�X�����`������̂� 2 ��ނ�����܂��B�O�҂̓V�X�e���|���V�ƌĂ΂�A <a href="#system_policy">/proc/ccs/system_policy</a> ��ʂ��ăA�N�Z�X�����w�肵�܂��B��҂̓h���C���|���V�ƌĂ΂�A <a href="#domain_policy">/proc/ccs/domain_policy</a> ��ʂ��ăA�N�Z�X�����`���܂��B</p>
+<p>TOMOYO Linux には、システム全体でアクセス許可を定義するものと、ドメイン単位でアクセス許可を定義するものの 2 種類があります。前者はシステムポリシと呼ばれ、 <a href="#system_policy">/proc/ccs/system_policy</a> を通じてアクセス許可を指定します。後者はドメインポリシと呼ばれ、 <a href="#domain_policy">/proc/ccs/domain_policy</a> を通じてアクセス許可を定義します。</p>
 
-<p>TOMOYO Linux �ɂ����ẮA�S�Ẵv���Z�X�����ꂼ�� 1 �̃h���C���ɑ����A�S�Ẵv���O���������ꂼ��قȂ�h���C���ɑ����܂��B���ݎ��s����Ă��� 2 �̃v���Z�X������̃v���O�����ł����Ă��A���ꂼ��̃v���Z�X�̒��O�̃h���C�����قȂ��Ă���ΈقȂ�h���C���ɑ����܂��B</p>
+<p>TOMOYO Linux においては、全てのプロセスがそれぞれ 1 つのドメインに属し、全てのプログラムがそれぞれ異なるドメインに属します。現在実行されている 2 つのプロセスが同一のプログラムであっても、それぞれのプロセスの直前のドメインが異なっていれば異なるドメインに属します。</p>
 
-<p>�S�Ẵh���C���̓J�[�l����������h���C���u &lt;kernel&gt; �v����_�Ƃ��Ē�`����܂��B /sbin/init �̓J�[�l���̑�����h���C������N������܂��̂ŁA /sbin/init �̃h���C���́u &lt;kernel&gt; /sbin/init �v�ƒ�`����܂��B /etc/rc.d/rc �̓J�[�l������N�����ꂽ /sbin/init �̑�����h���C������N������܂��̂ŁA /etc/rc.d/rc �̃h���C���́u &lt;kernel&gt; /sbin/init /etc/rc.d/rc �v�ƒ�`����܂��B</p>
+<p>全てのドメインはカーネルが属するドメイン「 &lt;kernel&gt; 」を基点として定義されます。 /sbin/init はカーネルの属するドメインから起動されますので、 /sbin/init のドメインは「 &lt;kernel&gt; /sbin/init 」と定義されます。 /etc/rc.d/rc はカーネルから起動された /sbin/init の属するドメインから起動されますので、 /etc/rc.d/rc のドメインは「 &lt;kernel&gt; /sbin/init /etc/rc.d/rc 」と定義されます。</p>
 
-<h2>4.2 <a name="domain_transition">�h���C���J�ڂƂ�</a></h2>
+<h2>4.2 <a name="domain_transition">ドメイン遷移とは</a></h2>
 
-<p>���s���̃v���O�����̖��O�ɂ��قȂ铮�������v���O���������݂��܂��B�Ⴆ�� /sbin/pidof �� /sbin/killall5 �ւ̃V���{���b�N�����N�ł��B TOMOYO Linux �͐��K�������p�X�����g�p����̂ŁA /sbin/pidof �����s����� /sbin/killall5 �����s���ꂽ���̂Ƃ��ăh���C������`����܂��B</p>
+<p>実行時のプログラムの名前により異なる動作をするプログラムが存在します。例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクです。 TOMOYO Linux は正規化したパス名を使用するので、 /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。</p>
 
-<p>�v���Z�X���v���O���������s���悤�Ƃ���ƁA�ȉ��̏������s���܂��B</p>
+<p>プロセスがプログラムを実行しようとすると、以下の処理が行われます。</p>
 
 <table border="1">
-<tr><td>Step</td><td>���e</td></tr>
-<tr><td>�v���O�������̎擾</td><td>
-<p>���s���悤�Ƃ���v���O�����̐�΃p�X�����擾���āu�p�X����� 1 �v�Ƃ��܂��B�������A���s���悤�Ƃ���v���O�������V���{���b�N�����N�̏ꍇ�́A�V���{���b�N�����N�����������p�X�����擾���܂��B</p>
-<p>���s���悤�Ƃ���v���O�����̐�΃p�X�����擾���āu�p�X����� 2 �v�Ƃ��܂��B�������A���s���悤�Ƃ���v���O�������V���{���b�N�����N�̏ꍇ�́A�V���{���b�N�����N����������O�̃p�X�����擾���܂��B</p>
+<tr><td>Step</td><td>内容</td></tr>
+<tr><td>プログラム名の取得</td><td>
+<p>実行しようとするプログラムの絶対パス名を取得して「パス名候補 1 」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決したパス名を取得します。</p>
+<p>実行しようとするプログラムの絶対パス名を取得して「パス名候補 2 」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決する前のパス名を取得します。</p>
 </td></tr>
-<tr><td>�V���{���b�N�����N�̎���</td><td>
-<p>�u�p�X����� 1 �v�Ɓu�p�X����� 2 �v����v���Ȃ��ꍇ�A��O�|���V����</p>
+<tr><td>シンボリックリンクの識別</td><td>
+<p>「パス名候補 1 」と「パス名候補 2 」が一致しない場合、例外ポリシから</p>
 
 <ul>
-<li>alias �u�p�X����� 1 �v �u�p�X����� 2 �v
+<li>alias 「パス名候補 1 」 「パス名候補 2 」
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�́u�p�X����� 2 �v���u�p�X����� 1 �v�Ƃ��܂��B</p>
+<p>というエントリを探します。見つかった場合は「パス名候補 2 」を「パス名候補 1 」とします。</p>
 </td></tr>
-<tr><td><a name="exec_stage_check_argv0">argv[0] �̃`�F�b�N</a></td><td>
-<p>�u�p�X����� 1 �v�̍Ō�� / �ȍ~�̕����� argv[0] �̍Ō�� / �ȍ~�̕������قȂ��Ă���ꍇ�A�h���C���|���V����</p>
+<tr><td><a name="exec_stage_check_argv0">argv[0] のチェック</a></td><td>
+<p>「パス名候補 1 」の最後の / 以降の部分と argv[0] の最後の / 以降の部分が異なっている場合、ドメインポリシから</p>
 
 <ul>
-<li>allow_argv0 �u�p�X����� 1 �v �u argv[0] �̍Ō�� / �ȍ~�̕����v
+<li>allow_argv0 「パス名候補 1 」 「 argv[0] の最後の / 以降の部分」
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B������Ȃ���΃v���O�����̎��s�v���͋��ۂ���܂��B</p>
+<p>というエントリを探します。見つからなければプログラムの実行要求は拒否されます。</p>
 </td></tr>
-<tr><td>�ގ�����v���O�����̏W��</td><td>
-<p>��O�|���V����</p>
+<tr><td>類似するプログラムの集約</td><td>
+<p>例外ポリシから</p>
 
 <ul>
-<li>aggregator �u�p�X����� 1 �v �u�W�񂳂ꂽ�p�X���v
+<li>aggregator 「パス名候補 1 」 「集約されたパス名」
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�́A�u�W�񂳂ꂽ�p�X���v���u�p�X����� 1 �v�Ƃ��܂��B</p>
+<p>というエントリを探します。見つかった場合は、「集約されたパス名」を「パス名候補 1 」とします。</p>
 </td></tr>
-<tr><td><a name="exec_stage_check_execute">�����̃`�F�b�N</a></td><td>
-<p>�h���C���|���V����</p>
+<tr><td><a name="exec_stage_check_execute">権限のチェック</a></td><td>
+<p>ドメインポリシから</p>
 
 <ul>
-<li>allow_execute �u�p�X����� 1 �v
-<li>allow_execute @�u�p�X����� 1 �v���܂ރO���[�v��
+<li>allow_execute 「パス名候補 1 」
+<li>allow_execute @「パス名候補 1 」を含むグループ名
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B������Ȃ���΃v���O�����̎��s�v���͋��ۂ���܂��B</p>
+<p>というエントリを探します。見つからなければプログラムの実行要求は拒否されます。</p>
 </td></tr>
-<tr><td><a name="exec_stage_check_destination">�J�ڐ�̌���</a></td><td>
+<tr><td><a name="exec_stage_check_destination">遷移先の決定</a></td><td>
 
-<p>(1) ��O�|���V����</p>
-
-<ul>
-<li>no_initialize_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>no_initialize_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
-<li>no_initialize_domain �u�p�X����� 1 �v
-</ul>
-
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�� (3) �֐i�݂܂��B</p>
-
-<p>(2) ��O�|���V����</p>
+<p>(1) 例外ポリシから</p>
 
 <ul>
-<li>initialize_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>initialize_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
-<li>initialize_domain �u�p�X����� 1 �v
+<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_initialize_domain 「パス名候補 1 」
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�́u�J�[�l���������Ă���h���C���̃h���C�����i &lt;kernel&gt; �j�v�Ɓu�p�X����� 1 �v�Ƃ�A�����āu�J�ڐ�h���C���v�Ƃ��� (6) �֐i�݂܂��B</p>
+<p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
 
-<p>(3) ��O�|���V����</p>
+<p>(2) 例外ポリシから</p>
 
 <ul>
-<li>no_keep_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>no_keep_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
-<li>no_keep_domain �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>no_keep_domain �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
+<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>initialize_domain 「パス名候補 1 」
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�� (5) �֐i�݂܂��B</p>
+<p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補 1 」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
 
-<p>(4) ��O�|���V����</p>
+<p>(3) 例外ポリシから</p>
 
 <ul>
-<li>keep_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>keep_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
-<li>keep_domain �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>keep_domain �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
+<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�́u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v���u�J�ڐ�h���C���v�Ƃ��A (6) �֐i�݂܂��B</p>
+<p>というエントリを探します。見つかった場合は (5) へ進みます。</p>
 
-<p>(5) �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�Ɓu�p�X����� 1 �v�Ƃ�A�����āu�J�ڐ�h���C���v�Ƃ��A (6) �֐i�݂܂��B</p>
+<p>(4) 例外ポリシから</p>
 
-<p>(6) �h���C���|���V����u�J�ڐ�h���C���v��T���܂��B������Ȃ���΃v���O�����̎��s�v���͋��ۂ���܂��B</p>
+<ul>
+<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+</ul>
+
+<p>というエントリを探します。見つかった場合は「現在のプロセスが属しているドメインのドメイン名」を「遷移先ドメイン」とし、 (6) へ進みます。</p>
+
+<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補 1 」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
+
+<p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
 
 </td></tr>
-<tr><td>���ϐ��̃`�F�b�N</td><td>
+<tr><td>環境変数のチェック</td><td>
 
-<p>(1) �S�Ă̊��ϐ������u�J�ڐ�h���C���v�ŋ�����Ă��邩�ǂ������������܂��B 1 �ł�������Ă��Ȃ����̂����������ꍇ�́A�v���O�����̎��s�v���͋��ۂ���܂��B</p>
+<p>(1) 全ての環境変数名が「遷移先ドメイン」で許可されているかどうかを検査します。 1 つでも許可されていないものが見つかった場合は、プログラムの実行要求は拒否されます。</p>
 
-<p>(2) �ʏ�̃v���O�������s�������s���A����ɏI�������ꍇ�́u�J�ڐ�h���C���v�ɑJ�ڂ��܂��B</p>
+<p>(2) 通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
 </td></tr>
 </table>
 
-<p>�������A��O�Ƃ���</p>
+<p>ただし、例外として</p>
 
 <ul>
-<li>��L�菇�́u <a href="#exec_stage_check_argv0">argv[0] �̃`�F�b�N</a>�v�u<a href="#exec_stage_check_execute">�����̃`�F�b�N</a>�v�u<a href="#exec_stage_check_destination">�J�ڐ�̌���</a>�v�̉��ꂩ�ɉ����ċ��ۂ��ꂽ���A�v���O�����̎��s��v�������v���Z�X�̑����Ă���h���C���� <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> �L�[���[�h���w�肳��Ă���</li>
-<li>�v���O�����̎��s��v�������v���Z�X�̑����Ă���h���C���� <a href="#domain_policy_execute_handler">execute_handler</a> �L�[���[�h���w�肳��Ă���</li>
+<li>上記手順の「 <a href="#exec_stage_check_argv0">argv[0] のチェック</a>」「<a href="#exec_stage_check_execute">権限のチェック</a>」「<a href="#exec_stage_check_destination">遷移先の決定</a>」の何れかに於いて拒否されたが、プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> キーワードが指定されている</li>
+<li>プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている</li>
 </ul>
 
-<p>�̂ǂ��炩�ɊY�����A���A</p>
+<p>のどちらかに該当し、かつ、</p>
 
 <ul>
-<li>�v���O�����̎��s��v�������v���Z�X�� <a href="#domain_policy_execute_handler">execute_handler</a> �L�[���[�h�܂��� <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> �L�[���[�h�ɂ��N�����ꂽ�v���Z�X�ł͂Ȃ�</li>
+<li>プログラムの実行を要求したプロセスが <a href="#domain_policy_execute_handler">execute_handler</a> キーワードまたは <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> キーワードにより起動されたプロセスではない</li>
 </ul>
 
-<p>�ꍇ�ɂ́A�ȉ��̎菇�����s���܂��B���̗�O�̎g�����ɂ��Ắu<a href="#execute_handler">�v���O�����̎��s�ۂ��J�[�l���̊O���Ŕ��f</a>�v�Ɓu<a href="#denied_execute_handler">������Ă��Ȃ��v���O�����̎��s���v�����ꂽ�ꍇ�̑�֏����w��</a>�v�Ő������܂��B</p>
+<p>場合には、以下の手順を実行します。この例外の使い方については「<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>」と「<a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a>」で説明します。</p>
 
 <table border="1">
-<tr><td>Step</td><td>���e</td></tr>
-<tr><td>�v���O�������̎擾</td><td>
-<p><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> �܂��� <a href="#domain_policy_execute_handler">execute_handler</a> �Ŏw�肳��Ă���v���O�����̃p�X�����擾���A�u�p�X����� 1 �v�Ƃ��܂��B</p>
+<tr><td>Step</td><td>内容</td></tr>
+<tr><td>プログラム名の取得</td><td>
+<p><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> または <a href="#domain_policy_execute_handler">execute_handler</a> で指定されているプログラムのパス名を取得し、「パス名候補 1 」とします。</p>
 </td></tr>
-<tr><td>���̒ǉ�</td><td>
-<p>�S�Ă̊��ϐ��������̖����ɒǉ����A�S�Ă̊��ϐ����폜���܂��B</p>
-<p>�u�p�X����� 1 �v�u�v���O�����̎��s��v�������v���Z�X�̑����Ă���h���C���̃h���C�����v�u�v���O�����̎��s��v�������v���Z�X�̃p�X���v�u�v���O�����̎��s��v�������v���Z�X�̏�ԁv�u���s���v�����ꂽ�v���O�����̃p�X���v�u�����̐��v�u���ϐ��̐��v�������̐擪�ɑ}�����܂��B</p>
+<tr><td>情報の追加</td><td>
+<p>全ての環境変数を引数の末尾に追加し、全ての環境変数を削除します。</p>
+<p>「パス名候補 1 」「プログラムの実行を要求したプロセスの属しているドメインのドメイン名」「プログラムの実行を要求したプロセスのパス名」「プログラムの実行を要求したプロセスの状態」「実行が要求されたプログラムのパス名」「引数の数」「環境変数の数」を引数の先頭に挿入します。</p>
 </td></tr>
-<tr><td>�J�ڐ�̌���</td><td>
+<tr><td>遷移先の決定</td><td>
 
-<p>(1) ��O�|���V����</p>
-
-<ul>
-<li>no_initialize_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>no_initialize_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
-<li>no_initialize_domain �u�p�X����� 1 �v
-</ul>
-
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�� (3) �֐i�݂܂��B</p>
-
-<p>(2) ��O�|���V����</p>
+<p>(1) 例外ポリシから</p>
 
 <ul>
-<li>initialize_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>initialize_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
-<li>initialize_domain �u�p�X����� 1 �v
+<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_initialize_domain 「パス名候補 1 」
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�́u�J�[�l���������Ă���h���C���̃h���C�����i &lt;kernel&gt; �j�v�Ɓu�p�X����� 1 �v�Ƃ�A�����āu�J�ڐ�h���C���v�Ƃ��� (6) �֐i�݂܂��B</p>
+<p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
 
-<p>(3) ��O�|���V����</p>
+<p>(2) 例外ポリシから</p>
 
 <ul>
-<li>no_keep_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>no_keep_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
-<li>no_keep_domain �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>no_keep_domain �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
+<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>initialize_domain 「パス名候補 1 」
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�� (5) �֐i�݂܂��B</p>
+<p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補 1 」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
 
-<p>(4) ��O�|���V����</p>
+<p>(3) 例外ポリシから</p>
 
 <ul>
-<li>keep_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>keep_domain �u�p�X����� 1 �v from �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
-<li>keep_domain �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v
-<li>keep_domain �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�̍Ō�̗v�f
+<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
 </ul>
 
-<p>�Ƃ����G���g����T���܂��B���������ꍇ�́u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v���u�J�ڐ�h���C���v�Ƃ��A (6) �֐i�݂܂��B</p>
+<p>というエントリを探します。見つかった場合は (5) へ進みます。</p>
 
-<p>(5) �u���݂̃v���Z�X�������Ă���h���C���̃h���C�����v�Ɓu�p�X����� 1 �v�Ƃ�A�����āu�J�ڐ�h���C���v�Ƃ��A (6) �֐i�݂܂��B</p>
+<p>(4) 例外ポリシから</p>
 
-<p>(6) �h���C���|���V����u�J�ڐ�h���C���v��T���܂��B������Ȃ���΃v���O�����̎��s�v���͋��ۂ���܂��B</p>
+<ul>
+<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+</ul>
+
+<p>というエントリを探します。見つかった場合は「現在のプロセスが属しているドメインのドメイン名」を「遷移先ドメイン」とし、 (6) へ進みます。</p>
+
+<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補 1 」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
+
+<p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
 
 </td></tr>
-<tr><td>�v���O�����̎��s</td><td>
+<tr><td>プログラムの実行</td><td>
 
-<p>�ʏ�̃v���O�������s�������s���A����ɏI�������ꍇ�́u�J�ڐ�h���C���v�ɑJ�ڂ��܂��B</p>
+<p>通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
 
 </td></tr>
 </table>
 
-<h2>4.3 <a name="access_logs">�A�N�Z�X���O�ɂ���</a></h2>
+<h2>4.3 <a name="access_logs">アクセスログについて</a></h2>
 
-<p>�h���C���|���V�ɂ���ċ����ꂽ�A�N�Z�X�v���̃��O�Ƌ��ۂ��ꂽ�A�N�Z�X�v���̃��O�𐶐����܂��B�O�҂͋����O�ƌĂ΂�A /proc/ccs/grant_log ����擾���邱�Ƃ��ł��܂��B��҂͋��ۃ��O�ƌĂ΂�A /proc/ccs/reject_log ����擾���邱�Ƃ��ł��܂��B�����̃��O���擾���ăt�@�C���Ƃ��ĕۑ����邽�߂̃c�[���Ƃ��� /usr/lib/ccs/ccs-auditd �Ƃ����v���O�������t�����Ă��܂��B</p>
+<p>ドメインポリシによって許可されたアクセス要求のログと拒否されたアクセス要求のログを生成します。前者は許可ログと呼ばれ、 /proc/ccs/grant_log から取得することができます。後者は拒否ログと呼ばれ、 /proc/ccs/reject_log から取得することができます。これらのログを取得してファイルとして保存するためのツールとして /usr/lib/ccs/ccs-auditd というプログラムが付属しています。</p>
 
-<p>�ȉ��ɗ�������܂��B�ŏ��̗�̓v���O���������s���悤�Ƃ����Ƃ��̃��O�ł��B</p>
+<p>以下に例を示します。最初の例はプログラムを実行しようとしたときのログです。</p>
 
 <table border="1">
 <tr><td>
@@ -541,9 +541,9 @@ allow_execute /bin/cat
 </td></tr>
 </table>
 
-<p>���̃��O�́A &lt;kernel&gt; /usr/sbin/sshd /bin/bash �Ƃ����h���C���ɑ����Ă���v���Z�X�� /bin/cat �Ƃ����v���O���������s���悤�Ƃ��A���̂Ƃ��̈����̓��e�� "cat" "/etc/fstab" �A���ϐ��̓��e�� "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" �ł������Ƃ������Ƃ������Ă��܂��B�܂��A�v���Z�X�h�c�⃆�[�U�h�c�ȂǁA�v���Z�X�Ɋւ�������ꏏ�ɏo�͂���܂��B</p>
+<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash というドメインに属しているプロセスが /bin/cat というプログラムを実行しようとし、そのときの引数の内容は "cat" "/etc/fstab" 、環境変数の内容は "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" であったということを示しています。また、プロセスＩＤやユーザＩＤなど、プロセスに関する情報も一緒に出力されます。</p>
 
-<p>���̗�́A�t�@�C����ǂݍ��݃��[�h�ŃI�[�v�����悤�Ƃ����Ƃ��̃��O�ł��B</p>
+<p>次の例は、ファイルを読み込みモードでオープンしようとしたときのログです。</p>
 
 <table border="1">
 <tr><td>
@@ -553,9 +553,9 @@ allow_read /etc/fstab
 </td></tr>
 </table>
 
-<p>���̃��O�́A &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat �Ƃ����h���C���ɑ����Ă���v���Z�X�� /etc/fstab �Ƃ����t�@�C�����I�[�v�����悤�Ƃ������Ƃ������Ă��܂��B</p>
+<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat というドメインに属しているプロセスが /etc/fstab というファイルをオープンしようとしたことを示しています。</p>
 
-<p>���̗�́A�h���C�����V�K�쐬���ꂽ�Ƃ��̃��O�ł��B</p>
+<p>次の例は、ドメインが新規作成されたときのログです。</p>
 
 <table border="1">
 <tr><td>
@@ -565,9 +565,9 @@ use_profile 1
 </td></tr>
 </table>
 
-<p>���̃��O�́A &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash /bin/audit-exec-param /bin/cat �Ƃ����h���C�����V�K�쐬����A�v���t�@�C���Ƃ��� 1 �����蓖�Ă�ꂽ���Ƃ������Ă��܂��B TOMOYO Linux �ł́A�h���C���������I�ɐV�K�쐬����Ă����܂��B�����I�ɐV�K�쐬���ꂽ�ꍇ�ɂ́A�h���C����V�K�쐬���邱�ƂɂȂ����v���Z�X�̑����Ă���h���C���Ɋ��蓖�Ă��Ă����v���t�@�C���ԍ��������p����܂��B</p>
+<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash /bin/audit-exec-param /bin/cat というドメインが新規作成され、プロファイルとして 1 が割り当てられたことを示しています。 TOMOYO Linux では、ドメインが自動的に新規作成されていきます。自動的に新規作成された場合には、ドメインを新規作成することになったプロセスの属しているドメインに割り当てられていたプロファイル番号が引き継がれます。</p>
 
-<p>���̗�́A<a href="#execute_handler">�v���O�����̎��s�ۂ��J�[�l���̊O���Ŕ��f</a>���邽�߂ɗv�����ꂽ�̂Ƃ͈قȂ�v���O���������s���ꂽ�Ƃ��̃��O�ł��B</p>
+<p>次の例は、<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>するために要求されたのとは異なるプログラムが実行されたときのログです。</p>
 <table border="1">
 <tr><td>
 #2008-04-09 12:52:01# profile=1 mode=learning pid=5110 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=24 envc=0 argv[]={ "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" } envp[]={ }<br>
@@ -576,9 +576,9 @@ execute_handler /bin/audit-exec-param
 </td></tr>
 </table>
 
-<p>���̃��O�́A &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash �Ƃ����h���C���ɑ����Ă���v���Z�X���v���O���������s���悤�Ƃ������A execute_handler ���w�肳��Ă����̂ő���� /bin/audit-exec-param �Ƃ����v���O���������s���ꂽ���ƁA /bin/audit-exec-param �ɓn���ꂽ�����̓��e�� "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" �ł������Ƃ������Ƃ������Ă��܂��B LD_PRELOAD �Ȃǂ̊��ϐ��ɂ����  /bin/audit-exec-param �̓��삪���E�����̂�h�����߁A���ϐ��������Ɉړ����Ă��܂��B</p>
+<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash というドメインに属しているプロセスがプログラムを実行しようとしたが、 execute_handler が指定されていたので代わりに /bin/audit-exec-param というプログラムが実行されたこと、 /bin/audit-exec-param に渡された引数の内容は "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" であったということを示しています。 LD_PRELOAD などの環境変数によって  /bin/audit-exec-param の動作が左右されるのを防ぐため、環境変数を引数に移動しています。</p>
 
-<p>���̂悤�ɁA�A�N�Z�X���O�� 3 �s�� 1 ���i /usr/lib/ccs/ccs-auditd �ɂ���ăt�@�C���ɕۑ������Ƃ��ɋ�s������̂� 4 �s�� 1 ���j�ƂȂ��Ă���A�����̃��O�͂��̂܂܃h���C���|���V�Ƃ��Ēǉ��\�Ȍ`���ɂȂ��Ă��܂��B�A�N�Z�X���ۃ��O���狖�����������𒊏o���āA�Ⴆ�� /var/log/tomoyo/diff.txt �Ƃ������O�ŕۑ�������A</p>
+<p>このように、アクセスログは 3 行で 1 件（ /usr/lib/ccs/ccs-auditd によってファイルに保存されるときに空行が入るので 4 行で 1 件）となっており、これらのログはそのままドメインポリシとして追加可能な形式になっています。アクセス拒否ログから許可したい部分を抽出して、例えば /var/log/tomoyo/diff.txt という名前で保存した後、</p>
 
 <table border="1">
 <tr><td>
@@ -586,7 +586,7 @@ execute_handler /bin/audit-exec-param
 </td></tr>
 </table>
 
-<p>�Ƃ���������s�����ƂŁA�h���C���|���V�ɒǉ����邱�Ƃ��ł��܂��B���̂��߁A�u�w�K���[�h�v���g��Ȃ��Ă��A�ŏ�����u���e���[�h�v���g���ċ��ۃ��O���o�͂����A���ۃ��O�̓��e��ҏW����Ƃ����A�v���[�`�ł��h���C���|���V���`���Ă������Ƃ��ł��܂��B�u�w�K���[�h�v�Ńh���C���|���V���쐬����ꍇ�ɂ̓v���Z�X�̏�ԁi�A�N�Z�X���O�̐擪�s�̓��e�j�͉�������܂��񂪁A�A�N�Z�X���ۃ��O����h���C���|���V�𐶐�����ƁA�ŏ�����<a href="#conditional_acl">�����t���A�N�Z�X���̎w��</a>���s�����Ƃ��ł��܂��B�Ⴆ�΁A�u�w�K���[�h�v���g�킸�Ƀ��O�𐶐����A</p>
+<p>という操作を行うことで、ドメインポリシに追加することができます。そのため、「学習モード」を使わなくても、最初から「許容モード」を使って拒否ログを出力させ、拒否ログの内容を編集するというアプローチでもドメインポリシを定義していくことができます。「学習モード」でドメインポリシを作成する場合にはプロセスの状態（アクセスログの先頭行の内容）は加味されませんが、アクセス拒否ログからドメインポリシを生成すると、最初から<a href="#conditional_acl">条件付きアクセス許可の指定</a>を行うことができます。例えば、「学習モード」を使わずにログを生成し、</p>
 
 <table border="1">
 <tr><td>
@@ -595,7 +595,7 @@ allow_execute /bin/cat if exec.argc=2 exec.argv[0]="cat" exec.argv[1]="/etc/fsta
 </td></tr>
 </table>
 
-<p>�Ƃ��ăh���C���|���V��ǉ������ꍇ�A�u�w�K���[�h�v�Œǉ������</p>
+<p>としてドメインポリシを追加した場合、「学習モード」で追加される</p>
 
 <table border="1">
 <tr><td>
@@ -604,604 +604,604 @@ allow_execute /bin/cat
 </td></tr>
 </table>
 
-<p>�����ׂ����w����s�����Ƃ��ł���悤�ɂȂ�܂��B</p>
+<p>よりも細かい指定を行うことができるようになります。</p>
 
-<h1>5. <a name="Syntax_Details">�L�[���[�h�ڍ�</a></h1>
+<h1>5. <a name="Syntax_Details">キーワード詳細</a></h1>
 
 <h2><a name="profile">/proc/ccs/profile</a></h2>
 
-<p>TOMOYO Linux �ł́A�t�@�C���ȊO�ɂ��������̍��ڂɂ��ċ����A�N�Z�X������s�����Ƃ��ł��܂����A�|���V�Ǘ��̕��S�����炷���߂ɁA�K�v�̖����@�\�𖳌����ł���悤�ɂȂ��Ă��܂��B</p>
+<p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシ管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
 
-<p>�L���ɂ������@�\�Ƃ��̃��[�h���u �v���t�@�C���ԍ�-����=�l �v�Ƃ����`���Œ�`���܂��B�v���t�@�C���ԍ��� 0 �` 255 ���w��\�ł��B�v���t�@�C���̓��e��ύX����ɂ� setlevel �R�}���h�܂��� loadpolicy �R�}���h���g�p���܂��B</p>
+<p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには setlevel コマンドまたは loadpolicy コマンドを使用します。</p>
 
-<p>�e�h���C���ɂ� 1 �̃v���t�@�C�������蓖�Ă��܂��B�h���C���Ƀv���t�@�C�������蓖�Ă�ɂ� setprofile �R�}���h�܂��� editpolicy �R�}���h�܂��� loadpolicy �R�}���h���g�p���܂��B</p>
+<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには setprofile コマンドまたは editpolicy コマンドまたは loadpolicy コマンドを使用します。</p>
 
-<p>���݃h���C���Ɋ��蓖�Ă��Ă���v���t�@�C���ԍ��� editpolicy �R�}���h�Ŋm�F�ł��܂��B<br>
-���ݓ��쒆�̃v���Z�X�Ɋ��蓖�Ă��Ă���v���t�@�C���ԍ��� ccstree �R�}���h�Ŋm�F�ł��܂��B<br>
-���݂̃|���V�� savepolicy �R�}���h�ŕۑ������ꍇ�A <a href="#domain_policy_use_profile">use_profile</a> �Ƃ����L�[���[�h�ɕێ�����܂��B</p>
+<p>現在ドメインに割り当てられているプロファイル番号は editpolicy コマンドで確認できます。<br>
+現在動作中のプロセスに割り当てられているプロファイル番号は ccstree コマンドで確認できます。<br>
+現在のポリシを savepolicy コマンドで保存した場合、 <a href="#domain_policy_use_profile">use_profile</a> というキーワードに保持されます。</p>
 
-<p>���݂̃v���t�@�C����ǂݏo���܂��͒ǉ�����ɂ͈ȉ��̂悤�ɑ��삵�܂��B</p>
+<p>現在のプロファイルを読み出しまたは追加するには以下のように操作します。</p>
 
-<p>�i��j<br>
+<p>（例）<br>
 cat /proc/ccs/profile<br>
 savepolicy -p<br>
 setlevel 1-MAC_FOR_FILE=learning<br>
 echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 
-<p>�֘A���ځF<a href="#policy_file_modifiers">�ύX�ɂ���</a></p>
+<p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
 <h3><a name="profile_MAC_FOR_FILE">MAC_FOR_FILE</a></h3>
 
-<p>�t�@�C���ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>ファイルに対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_ARGV0">MAC_FOR_ARGV0</a></h3>
 
-<p>�v���O�������s���� argv[0] �ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>プログラム実行時の argv[0] に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_ENV">MAC_FOR_ENV</a></h3>
 
-<p>�v���O�������s���̊��ϐ����ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>プログラム実行時の環境変数名に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_create">MAC_FOR_CAPABILITY::inet_tcp_create</a></h3>
 
-<p>TCP �\�P�b�g�̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>TCP ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_listen">MAC_FOR_CAPABILITY::inet_tcp_listen</a></h3>
 
-<p>TCP �\�P�b�g�� listen �ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>TCP ソケットの listen に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_connect">MAC_FOR_CAPABILITY::inet_tcp_connect</a></h3>
 
-<p>TCP �\�P�b�g�� connect �ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>TCP ソケットの connect に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_inet_udp">MAC_FOR_CAPABILITY::use_inet_udp</a></h3>
 
-<p>UDP �\�P�b�g�̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>UDP ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_inet_ip">MAC_FOR_CAPABILITY::use_inet_ip</a></h3>
 
-<p>RAW �\�P�b�g�̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>RAW ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_route">MAC_FOR_CAPABILITY::use_route</a></h3>
 
-<p>ROUTE �\�P�b�g�̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>ROUTE ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_packet">MAC_FOR_CAPABILITY::use_packet</a></h3>
 
-<p>PACKET �\�P�b�g�̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>PACKET ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::use_kernel_module">MAC_FOR_CAPABILITY::use_kernel_module</a></h3>
 
-<p>create_module(2) init_module(2) delete_module(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>create_module(2) init_module(2) delete_module(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_fifo">MAC_FOR_CAPABILITY::create_fifo</a></h3>
 
-<p>mknod(2) �� FIFO �̍쐬�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>mknod(2) で FIFO の作成に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_block_dev">MAC_FOR_CAPABILITY::create_block_dev</a></h3>
 
-<p>mknod(2) �Ńu���b�N�^�f�o�C�X�̍쐬�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>mknod(2) でブロック型デバイスの作成に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_char_dev">MAC_FOR_CAPABILITY::create_char_dev</a></h3>
 
-<p>mknod(2) �ŃL�����N�^�^�f�o�C�X�̍쐬�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>mknod(2) でキャラクタ型デバイスの作成に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::create_unix_socket">MAC_FOR_CAPABILITY::create_unix_socket</a></h3>
 
-<p>mknod(2) �� UNIX �h���C���\�P�b�g�̍쐬�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>mknod(2) で UNIX ドメインソケットの作成に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_MOUNT">MAC_FOR_CAPABILITY::SYS_MOUNT</a></h3>
 
-<p>mount(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>mount(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UMOUNT">MAC_FOR_CAPABILITY::SYS_UMOUNT</a></h3>
 
-<p>umount(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>umount(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_REBOOT">MAC_FOR_CAPABILITY::SYS_REBOOT</a></h3>
 
-<p>reboot(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>reboot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHROOT">MAC_FOR_CAPABILITY::SYS_CHROOT</a></h3>
 
-<p>chroot(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>chroot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_KILL">MAC_FOR_CAPABILITY::SYS_KILL</a></h3>
 
-<p>0 �ȊO�̃V�O�i���� kill(2) tkill(2) tgkill(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>0 以外のシグナルで kill(2) tkill(2) tgkill(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_VHANGUP">MAC_FOR_CAPABILITY::SYS_VHANGUP</a></h3>
 
-<p>vhangup(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>vhangup(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_TIME">MAC_FOR_CAPABILITY::SYS_TIME</a></h3>
 
-<p>stime(2) settimeofday(2) adjtimex(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>stime(2) settimeofday(2) adjtimex(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_NICE">MAC_FOR_CAPABILITY::SYS_NICE</a></h3>
 
-<p>nice(2) setpriority(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>nice(2) setpriority(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_SETHOSTNAME">MAC_FOR_CAPABILITY::SYS_SETHOSTNAME</a></h3>
 
-<p>sethostname(2) setdomainname(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>sethostname(2) setdomainname(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_LINK">MAC_FOR_CAPABILITY::SYS_LINK</a></h3>
 
-<p>link(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>link(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_SYMLINK">MAC_FOR_CAPABILITY::SYS_SYMLINK</a></h3>
 
-<p>symlink(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_RENAME">MAC_FOR_CAPABILITY::SYS_RENAME</a></h3>
 
-<p>rename(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>rename(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UNLINK">MAC_FOR_CAPABILITY::SYS_UNLINK</a></h3>
 
-<p>unlink(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>unlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHMOD">MAC_FOR_CAPABILITY::SYS_CHMOD</a></h3>
 
-<p>chmod(2) fchmod(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>chmod(2) fchmod(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHOWN">MAC_FOR_CAPABILITY::SYS_CHOWN</a></h3>
 
-<p>chown(2) fchown(2) lchown(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>chown(2) fchown(2) lchown(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_IOCTL">MAC_FOR_CAPABILITY::SYS_IOCTL</a></h3>
 
-<p>ioctl(2) compat_sys_ioctl(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>ioctl(2) compat_sys_ioctl(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD">MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD</a></h3>
 
-<p>kexec_load(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>kexec_load(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT">MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT</a></h3>
 
-<p>pivot_root(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>pivot_root(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_CAPABILITY::SYS_PTRACE">MAC_FOR_CAPABILITY::SYS_PTRACE</a></h3>
 
-<p>ptrace(2) �̎g�p�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B<br>
+<p>ptrace(2) の使用に対する強制アクセス制御のレベルを指定します。<br>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></h3>
 
-<p>�l�b�g���[�N�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>ネットワークに対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></h3>
 
-<p>�V�O�i���̑��M�ɑ΂��鋭���A�N�Z�X����̃��x�����w�肵�܂��B</p>
+<p>シグナルの送信に対する強制アクセス制御のレベルを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_DENY_CONCEAL_MOUNT">DENY_CONCEAL_MOUNT</a></h3>
-<p>�����̃}�E���g���B������悤�ȃ}�E���g���֎~���܂��B</p>
+<p>既存のマウントを隠蔽するようなマウントを禁止します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�����̃}�E���g���B������悤�ȃ}�E���g�v���ɑ΂��Čx�����b�Z�[�W��\�����܂����A���ۂ͂��܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�����̃}�E���g���B������悤�ȃ}�E���g�v���ɑ΂��ăG���[���b�Z�[�W��\�����A���ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>permissive</td><td>許容モード。既存のマウントを隠蔽するようなマウント要求に対して警告メッセージを表示しますが、拒否はしません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。既存のマウントを隠蔽するようなマウント要求に対してエラーメッセージを表示し、拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_CHROOT">RESTRICT_CHROOT</a></h3>
 
-<p>chroot �ňړ��\�ȃf�B���N�g���̐�����L���ɂ��܂��B</p>
+<p>chroot で移動可能なディレクトリの制限を有効にします。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_MOUNT">RESTRICT_MOUNT</a></h3>
 
-<p>mount �Ŏw��\�ȃp�����[�^�̐�����L���ɂ��܂��B</p>
+<p>mount で指定可能なパラメータの制限を有効にします。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_UNMOUNT">RESTRICT_UNMOUNT</a></h3>
 
-<p>�w�肳�ꂽ�f�B���N�g���̃A���}�E���g���֎~���܂��B</p>
+<p>指定されたディレクトリのアンマウントを禁止します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�w�肳�ꂽ�f�B���N�g���̃A���}�E���g�v���ɑ΂��Čx�����b�Z�[�W��\�����܂����A���ۂ͂��܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�w�肳�ꂽ�f�B���N�g���̃A���}�E���g�v���ɑ΂��ăG���[���b�Z�[�W��\�����A���ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>permissive</td><td>許容モード。指定されたディレクトリのアンマウント要求に対して警告メッセージを表示しますが、拒否はしません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。指定されたディレクトリのアンマウント要求に対してエラーメッセージを表示し、拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_PIVOT_ROOT">RESTRICT_PIVOT_ROOT</a></h3>
 
-<p>pivot_root �Ō����\�ȃf�B���N�g���̐�����L���ɂ��܂��B</p>
+<p>pivot_root で交換可能なディレクトリの制限を有効にします。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>learning</td><td>�w�K���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂����A�ēx�����A�N�Z�X�v�������������ꍇ�Ƀ|���V�ᔽ�ƂȂ�Ȃ��悤�ɂ��邽�߂ɁA�|���V�ւ̎����ǉ����s���܂��B</td></tr>
-<tr><td>permissive</td><td>���e���[�h�B�|���V�Ɉᔽ���Ă��A�N�Z�X�v�������ۂ��邱�Ƃ͂��܂��񂪁A�|���V�ւ̎����ǉ����s���܂���B</td></tr>
-<tr><td>enforcing</td><td>�������[�h�B�|���V�Ɉᔽ����A�N�Z�X�v�������ۂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></h3>
 
-<p>���[�J���̃|�[�g�ԍ��������I��������ۂɓ���̃|�[�g�ԍ���I�������Ȃ��悤�ɂ��邩�ǂ������w�肵�܂��B</p>
+<p>ローカルのポート番号を自動選択させる際に特定のポート番号を選択させないようにするかどうかを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삵�܂��B</td></tr>
-<tr><td>enabled</td><td>�L���B���[�J���̃|�[�g�ԍ��������I��������ۂɁA����̃|�[�g�ԍ���I�������Ȃ��悤�ɂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>enabled</td><td>有効。ローカルのポート番号を自動選択させる際に、特定のポート番号を選択させないようにします。</td></tr>
 </table>
 
 <h3><a name="profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></h3>
 
-<p>�w�K���[�h�ɉ����Ď����I�ɒǉ������A�N�Z�X���̏�����w�肵�܂��B�f�t�H���g�� 2048 ���ł��B</p>
+<p>学習モードに於いて自動的に追加されるアクセス許可の上限を指定します。デフォルトは 2048 件です。</p>
 
 <h3><a name="profile_MAX_GRANT_LOG">MAX_GRANT_LOG</a></h3>
 
-<p>�J�[�l�����ɕێ�����A�|���V�ɂ���ċ����ꂽ�A�N�Z�X�v���̃��O�̌������w�肵�܂��B�f�t�H���g�� 1024 ���ł��B</p>
+<p>カーネル内に保持する、ポリシによって許可されたアクセス要求のログの件数を指定します。デフォルトは 1024 件です。</p>
 
 <h3><a name="profile_MAX_REJECT_LOG">MAX_REJECT_LOG</a></h3>
 
-<p>�J�[�l�����ɕێ�����A�|���V�ɂ���ċ�����Ȃ������A�N�Z�X�v���̃��O�̌������w�肵�܂��B�f�t�H���g�� 1024 ���ł��B</p>
+<p>カーネル内に保持する、ポリシによって許可されなかったアクセス要求のログの件数を指定します。デフォルトは 1024 件です。</p>
 
 <h3><a name="profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></h3>
 
-<p>�h���C���|���V�ɑ΂���ᔽ��\�����邩�ǂ������w�肵�܂��B</p>
+<p>ドメインポリシに対する違反を表示するかどうかを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�h���C���|���V�ɑ΂���ᔽ��\�����܂���B</td></tr>
-<tr><td>enabled</td><td>�h���C���|���V�ɑ΂���ᔽ��\�����܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>ドメインポリシに対する違反を表示しません。</td></tr>
+<tr><td>enabled</td><td>ドメインポリシに対する違反を表示します。</td></tr>
 </table>
 
 <h3><a name="profile_ALLOW_ENFORCE_GRACE">ALLOW_ENFORCE_GRACE</a></h3>
 
-<p>�������[�h�ɉ����ă|���V�Ɉᔽ�����A�N�Z�X�v����Θb�I�ɋ��ł���悤�ɂ��邩�ǂ������w�肵�܂��B���̍��ڂ� TOMOYO Linux 1.6.2 �Ŕp�~����܂����B</p>
+<p>強制モードに於いてポリシに違反したアクセス要求を対話的に許可できるようにするかどうかを指定します。この項目は TOMOYO Linux 1.6.2 で廃止されました。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>disabled</td><td>�������[�h�Ń|���V�Ɉᔽ�����璼���ɋ��ۂ��܂��B</td></tr>
-<tr><td>enabled</td><td>�������[�h�Ń|���V�Ɉᔽ���Ă��A�Θb�I�ȑ���ɂ�苖���邱�Ƃ��\�ɂ��܂��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>強制モードでポリシに違反したら直ちに拒否します。</td></tr>
+<tr><td>enabled</td><td>強制モードでポリシに違反しても、対話的な操作により許可することを可能にします。</td></tr>
 </table>
 
 <h3><a name="profile_SLEEP_PERIOD">SLEEP_PERIOD</a></h3>
 
-<p>�������[�h�ɉ����ă|���V�ᔽ�����������ꍇ�ɃX���[�v�����邩�ǂ������w�肵�܂��B</p>
+<p>強制モードに於いてポリシ違反が発生した場合にスリープさせるかどうかを指定します。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>0 �` 3000</td><td>�X���[�v�����鎞�Ԃ� 0.1 �b�P�ʂŎw�肵�܂��B�f�t�H���g�� 0 �b�ł��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>0 ～ 3000</td><td>スリープさせる時間を 0.1 秒単位で指定します。デフォルトは 0 秒です。</td></tr>
 </table>
 
 <h2>
 
 <a name="system_policy">/proc/ccs/system_policy</a></h2>
 
-<p>���̃t�@�C���ł́A�V�X�e���S�̂Ƃ��ė^����A�N�Z�X�����`���܂��B</p>
+<p>このファイルでは、システム全体として与えるアクセス許可を定義します。</p>
 
-<p>���݂̃V�X�e���|���V��ǂݏo���܂��͒ǉ��܂��͍폜����ɂ͈ȉ��̂悤�ɑ��삵�܂��B</p>
-<p>�i��j<br>
+<p>現在のシステムポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
+<p>（例）<br>
 cat /proc/ccs/system_policy<br>
 savepolicy -s<br>
 echo 'allow_mount /proc /proc/ proc' | loadpolicy -s<br>
 echo 'delete allow_mount /proc /proc/ proc' | loadpolicy -s</p>
 
-<p>�֘A���ځF<a href="#policy_file_modifiers">�ύX�ɂ���</a></p>
+<p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
 <h3><a name="system_policy_allow_mount">allow_mount</a></h3>
-<p>�}�E���g�����w�肷��ɂ́A allow_mount �Ƃ����L�[���[�h�ɑ����āA�u�f�o�C�X�t�@�C�� �}�E���g�|�C���g �t�@�C���V�X�e�� �I�v�V�����v���w�肵�܂��B �f�o�C�X�t�@�C����K�v�Ƃ���t�@�C���V�X�e�����w�肷��ꍇ�́A�f�o�C�X�t�@�C���͐��K�����ꂽ�t�@�C�����łȂ���΂����܂���B�}�E���g�|�C���g�͐��K�����ꂽ�t�@�C�����łȂ���΂����܂���B�I�v�V������ 16 �i���̐��l�Ŏw�肵�܂��B</p>
+<p>マウント許可を指定するには、 allow_mount というキーワードに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定します。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけません。マウントポイントは正規化されたファイル名でなければいけません。オプションは 16 進数の数値で指定します。</p>
 
-<p>�u any �}�E���g�|�C���g --remount �I�v�V�����v�Ǝw�肷��ƁA�u mount -o remount �}�E���g�|�C���g�v��������܂��B</p>
+<p>「 any マウントポイント --remount オプション」と指定すると、「 mount -o remount マウントポイント」が許可されます。</p>
 
-<p>�u������ ������ --bind �I�v�V�����v�Ǝw�肷��ƁA�u mount --bind ������ ������v��������܂��B<br>
-�u�ړ��� �ړ��� --move �I�v�V�����v�Ǝw�肷��ƁA�u mount --move �ړ��� �ړ���v��������܂��B<br>
-�������^������^�ړ����^�ړ���͐��K�����ꂽ�f�B���N�g�����łȂ���΂Ȃ�܂���B</p>
+<p>「複製元 複製先 --bind オプション」と指定すると、「 mount --bind 複製元 複製先」が許可されます。<br>
+「移動元 移動先 --move オプション」と指定すると、「 mount --move 移動元 移動先」が許可されます。<br>
+複製元／複製先／移動元／移動先は正規化されたディレクトリ名でなければなりません。</p>
 
-<p>�J�[�l�� 2.6.15 �ȍ~�ł́A Shared Subtree �Ƃ����@�\�����p�ł��܂��B<br>
-�u any �}�E���g�|�C���g --make-unbindable �I�v�V�����v�Ǝw�肷��ƁA�u mount --make-unbindable �}�E���g�|�C���g�v��������܂��B<br>
-�u any �}�E���g�|�C���g --make-private �I�v�V�����v�Ǝw�肷��ƁA�u mount --make-private �}�E���g�|�C���g�v��������܂��B<br>
-�u any �}�E���g�|�C���g --make-slave �I�v�V�����v�Ǝw�肷��ƁA�u mount --make-slave �}�E���g�|�C���g�v��������܂��B<br>
-�u any �}�E���g�|�C���g --make-shared �I�v�V�����v�Ǝw�肷��ƁA�u mount --make-shared �}�E���g�|�C���g�v��������܂��B
+<p>カーネル 2.6.15 以降では、 Shared Subtree という機能が利用できます。<br>
+「 any マウントポイント --make-unbindable オプション」と指定すると、「 mount --make-unbindable マウントポイント」が許可されます。<br>
+「 any マウントポイント --make-private オプション」と指定すると、「 mount --make-private マウントポイント」が許可されます。<br>
+「 any マウントポイント --make-slave オプション」と指定すると、「 mount --make-slave マウントポイント」が許可されます。<br>
+「 any マウントポイント --make-shared オプション」と指定すると、「 mount --make-shared マウントポイント」が許可されます。
 </p>
 
-<p>�i��j<br>
+<p>（例）<br>
 allow_mount none /dev/pts/ devpts 0x0<br>
 allow_mount /proc /proc/ proc 0x0<br>
 allow_mount usbdevfs /proc/bus/usb/ usbdevfs 0x0<br>
@@ -1211,307 +1211,307 @@ allow_mount /dev/hdc /var/www/ ext2 0xF<br>
 allow_mount any / --remount 0x0</p>
 
 <h3><a name="system_policy_deny_unmount">deny_unmount</a></h3>
-<p>�A���}�E���g�֎~���w�肷��ɂ́A deny_unmount �Ƃ����L�[���[�h�ɑ����āA�A���}�E���g�������Ȃ����K�����ꂽ�f�B���N�g�������w�肵�܂��B<br>
-�ʏ�A /sbin/mingetty ���g�p���� /dev/tty? ���܂� /dev/ �f�B���N�g���ƁA�����[�g���O�C������ꍇ�� pty �f�o�C�X�t�@�C�����쐬����� /dev/pts/ �f�B���N�g�����w�肵�܂��B</p>
-<p>/dev ���ǂݍ��ݐ�p�ɂȂ��Ă��܂�����A /dev/pts ���A���}�E���g����Ă��܂��ƁA���O�C�����ł��Ȃ��Ȃ��Ă��܂��܂��B���̂��߁A / ���ǂݍ��ݐ�p�̃V�X�e���ł́A /dev/ �� /dev/pts/ ���A���}�E���g����Ȃ��悤�ɂ��Ȃ���΂Ȃ�܂���B</p>
+<p>アンマウント禁止を指定するには、 deny_unmount というキーワードに続けて、アンマウントを許可しない正規化されたディレクトリ名を指定します。<br>
+通常、 /sbin/mingetty が使用する /dev/tty? を含む /dev/ ディレクトリと、リモートログインする場合に pty デバイスファイルが作成される /dev/pts/ ディレクトリを指定します。</p>
+<p>/dev が読み込み専用になってしまったり、 /dev/pts がアンマウントされてしまうと、ログインができなくなってしまいます。そのため、 / が読み込み専用のシステムでは、 /dev/ や /dev/pts/ がアンマウントされないようにしなければなりません。</p>
 
-<p>�i��j<br>
+<p>（例）<br>
 deny_unmount /dev/<br>
 deny_unmount /dev/pts/<br>
 deny_unmount /proc/</p>
 
 <h3><a name="system_policy_allow_chroot">allow_chroot</a></h3>
-<p>chroot �����w�肷��ɂ́A allow_chroot �Ƃ����L�[���[�h�ɑ����āA chroot �ňړ����邱�Ƃ������������K�����ꂽ�f�B���N�g�������w�肵�܂��B<br>
-�ʏ�A sshd ���g�p���� /var/empty/sshd/ ���w�肵�܂��B ���̑��� chroot ���œ����������A�v���P�[�V������A chroot ���s���A�v���P�[�V�����i vsftpd �̏ꍇ /usr/share/empty/ �j�����݂���ꍇ�́A�������w�肵�܂��B</p>
+<p>chroot 許可を指定するには、 allow_chroot というキーワードに続けて、 chroot で移動することを許可したい正規化されたディレクトリ名を指定します。<br>
+通常、 sshd が使用する /var/empty/sshd/ を指定します。 その他に chroot 環境で動かしたいアプリケーションや、 chroot を行うアプリケーション（ vsftpd の場合 /usr/share/empty/ ）が存在する場合は、それらも指定します。</p>
 
-<p>�i��j<br>
+<p>（例）<br>
 allow_chroot /var/empty/sshd/<br>
 allow_chroot /usr/share/empty/<br>
 allow_chroot /var/www/html/<br>
 allow_chroot /</p>
 
 <h3><a name="system_policy_allow_pivot_root">allow_pivot_root</a></h3>
-<p>pivot_root �����w�肷��ɂ́A allow_pivot_root �Ƃ����L�[���[�h�ɑ����āA�V�������[�g�ƂȂ鐳�K�����ꂽ�f�B���N�g�����ƌÂ����[�g�f�B���N�g���ƂȂ鐳�K�����ꂽ�f�B���N�g�������w�肵�܂��B<br>
-�ʏ�A���̃L�[���[�h���g���K�v�͂���܂���B</p>
+<p>pivot_root 許可を指定するには、 allow_pivot_root というキーワードに続けて、新しいルートとなる正規化されたディレクトリ名と古いルートディレクトリとなる正規化されたディレクトリ名を指定します。<br>
+通常、このキーワードを使う必要はありません。</p>
 
 <h3><a name="system_policy_deny_autobind">deny_autobind</a></h3>
-<p>���[�J���|�[�g�̎����I���œ���̃|�[�g�ԍ����I��������̂��֎~����ɂ́A deny_autobind �Ƃ����L�[���[�h�ɑ����āA���[�J���|�[�g�ԍ����w�肵�܂��B ���̃L�[���[�h�́A����̃|�[�g�ԍ����ꎞ�I�ȗp�r�Ŋ��蓖�Ă���̂�h���̂��_���ł��B�Ⴆ�΁A�ꕔ�̃v���L�V�T�[�o�̓|�[�g 8080 ���g�p����̂ŁA�|�[�g 8080 ���ꎞ�I�ȗp�r�̂��߂Ɋ��蓖�Ă���ׂ��ł͂���܂���B</p>
+<p>ローカルポートの自動選択で特定のポート番号が選択させるのを禁止するには、 deny_autobind というキーワードに続けて、ローカルポート番号を指定します。 このキーワードは、特定のポート番号が一時的な用途で割り当てられるのを防ぐのが狙いです。例えば、一部のプロキシサーバはポート 8080 を使用するので、ポート 8080 が一時的な用途のために割り当てられるべきではありません。</p>
 
-<p>�i��j<br>
+<p>（例）<br>
 deny_autobind 1-1023<br>
 deny_autobind 8080</p>
 
 <h2><a name="domain_policy">/proc/ccs/domain_policy</a></h2>
 
-<p>���̃t�@�C���ł́A�S�Ẵh���C�����`���A�e�h���C���ɑ΂��ė^����A�N�Z�X�����`���܂��B</p>
+<p>このファイルでは、全てのドメインを定義し、各ドメインに対して与えるアクセス許可を定義します。</p>
 
-<p>�h���C�����`���Ă���s�i &lt;kernel&gt; �Ŏn�܂�s�j�̎��s���玟�̃h���C�����`���Ă���s�̑O�s�܂ł��A���̃h���C���ɑ΂���A�N�Z�X���ł��B</p>
+<p>ドメインを定義している行（ &lt;kernel&gt; で始まる行）の次行から次のドメインを定義している行の前行までが、そのドメインに対するアクセス許可です。</p>
 
-<p>���ꂼ��̃A�N�Z�X���ɂ��āA�K�v�ɉ����Ēǉ��̏������w�肷�邱�Ƃ��ł��܂��B���̂��߂̍\����<a href="#conditional_acl">�����t���A�N�Z�X���̎w��</a>�Ő������܂��B����ɁA�K�v�ɉ����ăv���Z�X�̏�Ԃ�؂�ւ��A�v���Z�X�̏�Ԃ������Ƃ��Ďg�����߂̕��@��<a href="#stateful_acl">�X�e�[�g�t���ȃA�N�Z�X���̎w��</a>�Ő������܂��B</p>
+<p>それぞれのアクセス許可について、必要に応じて追加の条件を指定することができます。そのための構文は<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明します。さらに、必要に応じてプロセスの状態を切り替え、プロセスの状態も条件として使うための方法を<a href="#stateful_acl">ステートフルなアクセス許可の指定</a>で説明します。</p>
 
-<p>���݂̃h���C���|���V��ǂݏo���܂��͒ǉ��܂��͍폜����ɂ́A�ȉ��̂悤�ɑ��삵�܂��B</p>
-<p>�i��j�h���C����I�����ăA�N�Z�X����ǉ��i�h���C�������݂��Ȃ��ꍇ�͍쐬����܂��j<br>
+<p>現在のドメインポリシを読み出しまたは追加または削除するには、以下のように操作します。</p>
+<p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されます）<br>
 printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
-<p>�i��j�h���C����I�����ăA�N�Z�X����ǉ��i�h���C�������݂��Ȃ��ꍇ�͍쐬����܂���j<br>
+<p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されません）<br>
 printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
-<p>�i��j�h���C����I�����ăA�N�Z�X�����폜<br>
+<p>（例）ドメインを選択してアクセス許可を削除<br>
 printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | loadpolicy -d</p>
-<p>�i��j����̃h���C�����폜<br>
+<p>（例）特定のドメインを削除<br>
 printf "delete &lt;kernel&gt; /sbin/init\n" | loadpolicy -d</p>
-<p>�i��j�h���C���|���V�̓ǂݏo��<br>
+<p>（例）ドメインポリシの読み出し<br>
 cat /proc/ccs/domain_policy</p>
 
-<p>�֘A���ځF<a href="#policy_file_modifiers">�ύX�ɂ���</a></p>
+<p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
 <h3><a name="domain_policy_allow_execute">allow_execute</a></h3>
-<p>�w�肳�ꂽ�p�X�������s���邱�Ƃ������܂��B�p�X���Ƀ��C���h�J�[�h���g�p���邱�Ƃ͔F�߂��Ă��܂���B���C���h�J�[�h�Ŏw�肵�Ȃ���ΑΉ��ł��Ȃ��ꍇ�ɂ́A�v���O���������O���[�v�����Ă���A�N�Z�X����^���Ă��������B</p>
-<p>�i��j allow_execute /bin/ls</p>
-<p>�֘A���ځF<a href="#domain_transition">�h���C���J��</a> <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_aggregator">aggregator</a></p>
+<p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。ワイルドカードで指定しなければ対応できない場合には、プログラム名をグループ化してからアクセス許可を与えてください。</p>
+<p>（例） allow_execute /bin/ls</p>
+<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_aggregator">aggregator</a></p>
 
 <h3><a name="domain_policy_allow_write">allow_write</a></h3>
-<p>�w�肳�ꂽ�p�X�����������݃��[�h�ŃI�[�v�����邱�Ƃ������܂��B</p>
-<p>�i��j allow_write /dev/null</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>指定されたパス名を書き込みモードでオープンすることを許可します。</p>
+<p>（例） allow_write /dev/null</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read">allow_read</a></h3>
-<p>�w�肳�ꂽ�p�X����ǂݍ��݃��[�h�ŃI�[�v�����邱�Ƃ������܂��B</p>
-<p>�i��j allow_read /proc/meminfo</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>指定されたパス名を読み込みモードでオープンすることを許可します。</p>
+<p>（例） allow_read /proc/meminfo</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read/write">allow_read/write</a></h3>
-<p>�w�肳�ꂽ�p�X����ǂݏ������[�h�ŃI�[�v�����邱�Ƃ������܂��B</p>
-<p>�i��j allow_read/write /dev/null</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>指定されたパス名を読み書きモードでオープンすることを許可します。</p>
+<p>（例） allow_read/write /dev/null</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_create">allow_create</a></h3>
-<p>�w�肳�ꂽ�p�X���̃t�@�C����V�K�쐬���邱�Ƃ������܂��B</p>
-<p>�i��j allow_create /var/lock/subsys/crond</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>指定されたパス名のファイルを新規作成することを許可します。</p>
+<p>（例） allow_create /var/lock/subsys/crond</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_unlink">allow_unlink</a></h3>
-<p>�w�肳�ꂽ�p�X�����폜���邱�Ƃ������܂��B</p>
-<p>�i��j allow_unlink /var/lock/subsys/crond</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>指定されたパス名を削除することを許可します。</p>
+<p>（例） allow_unlink /var/lock/subsys/crond</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkdir">allow_mkdir</a></h3>
-<p>�p�X���Ŏw�肳�ꂽ�f�B���N�g�����쐬���邱�Ƃ������܂��B</p>
-<p>�i��j allow_mkdir /tmp/logwatch.\*/</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>パス名で指定されたディレクトリを作成することを許可します。</p>
+<p>（例） allow_mkdir /tmp/logwatch.\*/</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rmdir">allow_rmdir</a></h3>
-<p>�f�B���N�g���̍폜�������܂��B</p>
-<p>�i��j allow_rmdir /tmp/logwatch.\*/</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>ディレクトリの削除を許可します。</p>
+<p>（例） allow_rmdir /tmp/logwatch.\*/</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkfifo">allow_mkfifo</a></h3>
-<p>FIFO �̍쐬�������܂��B</p>
-<p>�i��j allow_mkfifo /dev/initctl</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>FIFO の作成を許可します。</p>
+<p>（例） allow_mkfifo /dev/initctl</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mksock">allow_mksock</a></h3>
-<p>UNIX �h���C���\�P�b�g�̍쐬�������܂��B</p>
-<p>�i��j allow_mksock /dev/log</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>UNIX ドメインソケットの作成を許可します。</p>
+<p>（例） allow_mksock /dev/log</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkblock">allow_mkblock</a></h3>
-<p>�u���b�N�^�f�o�C�X�t�@�C���̍쐬�������܂��B</p>
-<p>�i��j allow_mkblock /dev/\*</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>ブロック型デバイスファイルの作成を許可します。</p>
+<p>（例） allow_mkblock /dev/\*</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkchar">allow_mkchar</a></h3>
-<p>�L�����N�^�^�f�o�C�X�t�@�C���̍쐬�������܂��B</p>
-<p>�i��j allow_mkchar /dev/\*</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>キャラクタ型デバイスファイルの作成を許可します。</p>
+<p>（例） allow_mkchar /dev/\*</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_truncate">allow_truncate</a></h3>
-<p>�t�@�C���̐؂�l�߂ƐL���������܂��B</p>
-<p>�i��j allow_truncate /etc/mtab</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>ファイルの切り詰めと伸長を許可します。</p>
+<p>（例） allow_truncate /etc/mtab</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_symlink">allow_symlink</a></h3>
-<p>�V���{���b�N�����N�̍쐬�������܂��B</p>
-<p>�i��j allow_symlink /dev/cdrom</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>シンボリックリンクの作成を許可します。</p>
+<p>（例） allow_symlink /dev/cdrom</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_link">allow_link</a></h3>
-<p>�n�[�h�����N�̍쐬�������܂��B</p>
-<p>�i��j allow_link /etc/mtab~\$ /etc/mtab~</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>ハードリンクの作成を許可します。</p>
+<p>（例） allow_link /etc/mtab~\$ /etc/mtab~</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rename">allow_rename</a></h3>
-<p>�t�@�C�����̕ύX�������܂��B</p>
-<p>�i��j allow_rename /etc/mtab.tmp /etc/mtab</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a></p>
+<p>ファイル名の変更を許可します。</p>
+<p>（例） allow_rename /etc/mtab.tmp /etc/mtab</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rewrite">allow_rewrite</a></h3>
-<p><a href="#exception_policy_deny_rewrite">deny_rewrite</a> �ɂ��t�@�C���̓��e�̏㏑�����֎~����Ă���p�X�����w���t�@�C�����e�̏㏑���������܂��B</p>
-<p>�i��j allow_rewrite /var/log/messages</p>
-<p>�֘A���ځF <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
+<p><a href="#exception_policy_deny_rewrite">deny_rewrite</a> によりファイルの内容の上書きが禁止されているパス名が指すファイル内容の上書きを許可します。</p>
+<p>（例） allow_rewrite /var/log/messages</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
 
 <h3><a name="domain_policy_allow_argv0">allow_argv0</a></h3>
 
-<p>argv[0] �̑g�ݍ��킹�𐧌�����ɂ́A allow_argv0 �Ƃ����L�[���[�h�ɑ����āA��΃p�X���Ɓu argv[0] �̍Ō�� / �����̕����v���w�肵�܂��B</p>
+<p>argv[0] の組み合わせを制限するには、 allow_argv0 というキーワードに続けて、絶対パス名と「 argv[0] の最後の / より後ろの部分」を指定します。</p>
 
-<p>�v���O���������s����֐��ł��� execve() �ɂ� filename �� argv[] �� envp[] ��n�����Ƃ��ł��܂��B�������̃v���O�����i�Ⴆ�� busybox �j�� argv[0] �̓��e�ɂ���ĐU�镑����ω������܂��B
-�v���O�����ւ̃V���{���b�N�����N���o�R���ăv���O���������s����ꍇ�A TOMOYO Linux �̃h���C���J�ڂ� filename ���w���p�X���𐳋K���������e�Ɋ�Â��čs����̂ɑ΂��A�U�镑���� argv[0] �i�ʏ�� filename ���w���p�X���Ɠ������e�j�Ɋ�Â��čs���Ă��܂��܂��B�Ⴆ�΁A /bin/ls �� /bin/cat �� busybox �ւ̃n�[�h�����N�Ƃ��Ē񋟂���Ă�����ɂ����āA /tmp/cat �Ƃ��� /bin/ls �ւ̃V���{���b�N�����N���쐬���� /tmp/cat �����s���邱�Ƃɂ��A /bin/ls �̂��߂̃h���C���� cat �Ƃ��ĐU�������Ƃ��ł��Ă��܂��Ƃ����������ɂȂ�܂��B</p>
-<p>���̃L�[���[�h�̖ړI�́A filename �� argv[0] �̓��e�̑g�ݍ��킹�𐧌����邱�Ƃł��̂悤�Ȕ��������ǂ����Ƃł��B</p>
+<p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができます。いくつかのプログラム（例えば busybox ）は argv[0] の内容によって振る舞いを変化させます。
+プログラムへのシンボリックリンクを経由してプログラムを実行する場合、 TOMOYO Linux のドメイン遷移は filename が指すパス名を正規化した内容に基づいて行われるのに対し、振る舞いは argv[0] （通常は filename が指すパス名と同じ内容）に基づいて行われてしまいます。例えば、 /bin/ls と /bin/cat が busybox へのハードリンクとして提供されている環境において、 /tmp/cat という /bin/ls へのシンボリックリンクを作成して /tmp/cat を実行することにより、 /bin/ls のためのドメインで cat として振舞うことができてしまうという抜け穴になります。</p>
+<p>このキーワードの目的は、 filename と argv[0] の内容の組み合わせを制限することでそのような抜け穴を塞ぐことです。</p>
 
 <h3><a name="domain_policy_allow_env">allow_env</a></h3>
 
-<p>���ϐ����𐧌�����ɂ́A allow_env �Ƃ����L�[���[�h�ɑ����āA�u���ϐ����v���w�肵�܂��B</p>
+<p>環境変数名を制限するには、 allow_env というキーワードに続けて、「環境変数名」を指定します。</p>
 
-<p>�v���O���������s����֐��ł��� execve() �ɂ� filename �� argv[] �� envp[] ��n�����Ƃ��ł��܂��B�����̃v���O������ envp[] �̓��e�ɂ���ĐU�镑����ω������܂��B</p>
-<p>���̃L�[���[�h�̖ړI�́A���s�����v���O�����ɓn�������ϐ��𐧌����邱�Ƃł��B</p>
+<p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができます。多くのプログラムは envp[] の内容によって振る舞いを変化させます。</p>
+<p>このキーワードの目的は、実行されるプログラムに渡される環境変数を制限することです。</p>
 
-<p>�֘A���ځF <a href="#exception_policy_allow_env">allow_env</a></p>
+<p>関連項目： <a href="#exception_policy_allow_env">allow_env</a></p>
 
 <h3><a name="domain_policy_allow_capability">allow_capability</a></h3>
 
-<p>�P�C�p�r���e�B�̃A�N�Z�X�����w�肷��ɂ́A allow_capability �Ƃ����L�[���[�h�ɑ����āA�P�C�p�r���e�B���w�肵�܂��B�ȉ��̃P�C�p�r���e�B���w��ł��܂��B</p>
+<p>ケイパビリティのアクセス許可を指定するには、 allow_capability というキーワードに続けて、ケイパビリティを指定します。以下のケイパビリティが指定できます。</p>
 
 <table border="1">
-<tr><td>allow_capability inet_tcp_create</td><td>TCP �\�P�b�g�̎g�p������</td></tr>
-<tr><td>allow_capability inet_tcp_listen</td><td>TCP �\�P�b�g�� listen ������</td></tr>
-<tr><td>allow_capability inet_tcp_connect</td><td>TCP �\�P�b�g�� connect ������</td></tr>
-<tr><td>allow_capability use_inet_udp</td><td>UDP �\�P�b�g�̎g�p������</td></tr>
-<tr><td>allow_capability use_inet_ip</td><td>RAW �\�P�b�g�̎g�p������</td></tr>
-<tr><td>allow_capability use_route</td><td>ROUTE �\�P�b�g�̎g�p������</td></tr>
-<tr><td>allow_capability use_packet</td><td>PACKET �\�P�b�g�̎g�p������</td></tr>
-<tr><td>allow_capability use_kernel_module</td><td>create_module(2) init_module(2) delete_module(2) �̎g�p������</td></tr>
-<tr><td>allow_capability create_fifo</td><td>mknod(2) �� FIFO �̍쐬������</td></tr>
-<tr><td>allow_capability create_block_dev</td><td>mknod(2) �Ńu���b�N�^�f�o�C�X�̍쐬������</td></tr>
-<tr><td>allow_capability create_char_dev</td><td>mknod(2) �ŃL�����N�^�^�f�o�C�X�̍쐬������</td></tr>
-<tr><td>allow_capability create_unix_socket</td><td>mknod(2) �� UNIX �h���C���\�P�b�g�̍쐬������</td></tr>
-<tr><td>allow_capability SYS_MOUNT</td><td>mount(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_UMOUNT</td><td>umount(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_REBOOT</td><td>reboot(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_CHROOT</td><td>chroot(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_KILL</td><td>0 �ȊO�̃V�O�i���� kill(2) tkill(2) tgkill(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_VHANGUP</td><td>vhangup(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_TIME</td><td>stime(2) settimeofday(2) adjtimex(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_NICE</td><td>nice(2) setpriority(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_SETHOSTNAME</td><td>sethostname(2) setdomainname(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_LINK</td><td>link(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_SYMLINK</td><td>symlink(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_RENAME</td><td>rename(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_UNLINK</td><td>unlink(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_CHMOD</td><td>chmod(2) fchmod(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_CHOWN</td><td>chown(2) fchown(2) lchown(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_IOCTL</td><td>ioctl(2) compat_sys_ioctl(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_KEXEC_LOAD</td><td>kexec_load(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_PIVOT_ROOT</td><td>pivot_root(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_PTRACE</td><td>ptrace(2) �̎g�p������</td></tr>
+<tr><td>allow_capability inet_tcp_create</td><td>TCP ソケットの使用を許可</td></tr>
+<tr><td>allow_capability inet_tcp_listen</td><td>TCP ソケットの listen を許可</td></tr>
+<tr><td>allow_capability inet_tcp_connect</td><td>TCP ソケットの connect を許可</td></tr>
+<tr><td>allow_capability use_inet_udp</td><td>UDP ソケットの使用を許可</td></tr>
+<tr><td>allow_capability use_inet_ip</td><td>RAW ソケットの使用を許可</td></tr>
+<tr><td>allow_capability use_route</td><td>ROUTE ソケットの使用を許可</td></tr>
+<tr><td>allow_capability use_packet</td><td>PACKET ソケットの使用を許可</td></tr>
+<tr><td>allow_capability use_kernel_module</td><td>create_module(2) init_module(2) delete_module(2) の使用を許可</td></tr>
+<tr><td>allow_capability create_fifo</td><td>mknod(2) で FIFO の作成を許可</td></tr>
+<tr><td>allow_capability create_block_dev</td><td>mknod(2) でブロック型デバイスの作成を許可</td></tr>
+<tr><td>allow_capability create_char_dev</td><td>mknod(2) でキャラクタ型デバイスの作成を許可</td></tr>
+<tr><td>allow_capability create_unix_socket</td><td>mknod(2) で UNIX ドメインソケットの作成を許可</td></tr>
+<tr><td>allow_capability SYS_MOUNT</td><td>mount(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_UMOUNT</td><td>umount(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_REBOOT</td><td>reboot(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_CHROOT</td><td>chroot(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_KILL</td><td>0 以外のシグナルで kill(2) tkill(2) tgkill(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_VHANGUP</td><td>vhangup(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_TIME</td><td>stime(2) settimeofday(2) adjtimex(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_NICE</td><td>nice(2) setpriority(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_SETHOSTNAME</td><td>sethostname(2) setdomainname(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_LINK</td><td>link(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_SYMLINK</td><td>symlink(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_RENAME</td><td>rename(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_UNLINK</td><td>unlink(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_CHMOD</td><td>chmod(2) fchmod(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_CHOWN</td><td>chown(2) fchown(2) lchown(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_IOCTL</td><td>ioctl(2) compat_sys_ioctl(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_KEXEC_LOAD</td><td>kexec_load(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_PIVOT_ROOT</td><td>pivot_root(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_PTRACE</td><td>ptrace(2) の使用を許可</td></tr>
 </table>
 
-<p>allow_capability �L�[���[�h�̖ړI�́A�v���O�������Ăяo�����Ƃ��ł���V�X�e���R�[���𐧌����邱�Ƃł��B����̃V�X�e���R�[���ɑ΂��Ă͑��̃L�[���[�h��|���V�t�@�C�����g�p���Ă��ڍׂȐ������\�ɂȂ��Ă��܂��B</p>
+<p>allow_capability キーワードの目的は、プログラムが呼び出すことができるシステムコールを制限することです。幾つかのシステムコールに対しては他のキーワードやポリシファイルを使用してより詳細な制限が可能になっています。</p>
 <ul>
-<li>�쐬��������L�����N�^�^�f�o�C�X�t�@�C���̃p�X���� <a href="#domain_policy_allow_mkblock">allow_mkblock</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�쐬��������u���b�N�^�f�o�C�X�t�@�C���̃p�X���� <a href="#domain_policy_allow_mkchar">allow_mkchar</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�쐬�������� FIFO �̃p�X���� <a href="#domain_policy_allow_mkfifo">allow_mkfifo</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�쐬�������� UNIX �h���C���\�P�b�g�̃p�X���� <a href="#domain_policy_allow_mksock">allow_mksock</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�쐬��������V���{���b�N�����N�̃p�X���� <a href="#domain_policy_allow_symlink">allow_symlink</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�폜��������p�X���� <a href="#domain_policy_allow_unlink">allow_unlink</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�n�[�h�����N��������g�ݍ��킹�� <a href="#domain_policy_allow_link">allow_link</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�p�X���̕ύX��������g�ݍ��킹�� <a href="#domain_policy_allow_rename">allow_rename</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�g�p�������� IP �A�h���X�͈̔͂Ƃƃ|�[�g�ԍ��͈̔͂� <a href="#domain_policy_allow_network">allow_network</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>���M�\�ȃV�O�i���̔ԍ��Ƒ��M��̃h���C���� <a href="#domain_policy_allow_signal">allow_signal</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�}�E���g��������f�o�C�X����у}�E���g�|�C���g�� <a href="#system_policy_allow_mount">allow_mount</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>�A���}�E���g�������Ȃ��}�E���g�|�C���g�� <a href="#system_policy_deny_unmount">deny_unmount</a> �L�[���[�h���g�p���Ďw�肷�邱�Ƃ��ł��܂��B
-<li>chroot �ňړ��ł���f�B���N�g���� <a href="#system_policy_allow_chroot">allow_chroot</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
-<li>pivot_root �Ō����ł���f�B���N�g���� <a href="#system_policy_allow_pivot_root">allow_pivot_root</a> �L�[���[�h���g�p���Đ������邱�Ƃ��ł��܂��B
+<li>作成を許可するキャラクタ型デバイスファイルのパス名を <a href="#domain_policy_allow_mkblock">allow_mkblock</a> キーワードを使用して制限することができます。
+<li>作成を許可するブロック型デバイスファイルのパス名を <a href="#domain_policy_allow_mkchar">allow_mkchar</a> キーワードを使用して制限することができます。
+<li>作成を許可する FIFO のパス名を <a href="#domain_policy_allow_mkfifo">allow_mkfifo</a> キーワードを使用して制限することができます。
+<li>作成を許可する UNIX ドメインソケットのパス名を <a href="#domain_policy_allow_mksock">allow_mksock</a> キーワードを使用して制限することができます。
+<li>作成を許可するシンボリックリンクのパス名を <a href="#domain_policy_allow_symlink">allow_symlink</a> キーワードを使用して制限することができます。
+<li>削除を許可するパス名を <a href="#domain_policy_allow_unlink">allow_unlink</a> キーワードを使用して制限することができます。
+<li>ハードリンクを許可する組み合わせを <a href="#domain_policy_allow_link">allow_link</a> キーワードを使用して制限することができます。
+<li>パス名の変更を許可する組み合わせを <a href="#domain_policy_allow_rename">allow_rename</a> キーワードを使用して制限することができます。
+<li>使用を許可する IP アドレスの範囲ととポート番号の範囲を <a href="#domain_policy_allow_network">allow_network</a> キーワードを使用して制限することができます。
+<li>送信可能なシグナルの番号と送信先のドメインを <a href="#domain_policy_allow_signal">allow_signal</a> キーワードを使用して制限することができます。
+<li>マウントを許可するデバイスおよびマウントポイントを <a href="#system_policy_allow_mount">allow_mount</a> キーワードを使用して制限することができます。
+<li>アンマウントを許可しないマウントポイントを <a href="#system_policy_deny_unmount">deny_unmount</a> キーワードを使用して指定することができます。
+<li>chroot で移動できるディレクトリを <a href="#system_policy_allow_chroot">allow_chroot</a> キーワードを使用して制限することができます。
+<li>pivot_root で交換できるディレクトリを <a href="#system_policy_allow_pivot_root">allow_pivot_root</a> キーワードを使用して制限することができます。
 </ul>
 
 <h3><a name="domain_policy_allow_network">allow_network</a></h3>
 
-<p>�l�b�g���[�N�̃A�N�Z�X�����w�肷��ɂ́A allow_network �Ƃ����L�[���[�h�ɑ����āA�v���g�R���i TCP UDP RAW �̉��ꂩ�j�A IP �A�h���X�A�|�[�g�ԍ��i TCP UDP �̏ꍇ�j�܂��̓v���g�R���ԍ��i RAW �̏ꍇ�j���w�肵�܂��B IPv4 �v���g�R������� IPv6 �v���g�R���Ŏg�p���郍�[�J���|�[�g�ԍ����Ώۂł��B</p>
+<p>ネットワークのアクセス許可を指定するには、 allow_network というキーワードに続けて、プロトコル（ TCP UDP RAW の何れか）、 IP アドレス、ポート番号（ TCP UDP の場合）またはプロトコル番号（ RAW の場合）を指定します。 IPv4 プロトコルおよび IPv6 プロトコルで使用するローカルポート番号が対象です。</p>
 <table border="1">
-<tr><td>�L�[���[�h</td><td>�������A�N�Z�X</td><td>�w���</td></tr>
-<tr><td>allow_network TCP bind</td><td>���[�J���� TCP �A�h���X�^�|�[�g�̊��蓖��</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP listen</td><td>���[�J���� TCP �A�h���X�^�|�[�g�ł̑ҋ@</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP accept</td><td>�����[�g�� TCP �A�h���X�^�|�[�g����̐ڑ���t����ђʐM</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
-<tr><td>allow_network TCP connect</td><td>�����[�g�� TCP �A�h���X�^�|�[�g�ւ̐ڑ�����ђʐM</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
-<tr><td>allow_network UDP bind</td><td>���[�J���� UDP �A�h���X�^�|�[�g�̊��蓖��</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
+<tr><td>キーワード</td><td>許可されるアクセス</td><td>指定例</td></tr>
+<tr><td>allow_network TCP bind</td><td>ローカルの TCP アドレス／ポートの割り当て</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
+<tr><td>allow_network TCP listen</td><td>ローカルの TCP アドレス／ポートでの待機</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
+<tr><td>allow_network TCP accept</td><td>リモートの TCP アドレス／ポートからの接続受付および通信</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
+<tr><td>allow_network TCP connect</td><td>リモートの TCP アドレス／ポートへの接続および通信</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
+<tr><td>allow_network UDP bind</td><td>ローカルの UDP アドレス／ポートの割り当て</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
 
-<tr><td>allow_network UDP connect</td><td>�����[�g�� UDP �A�h���X�^�|�[�g�Ƃ̒ʐM</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
-<tr><td>allow_network RAW bind</td><td>���[�J���� IP �A�h���X�^�v���g�R���̊��蓖��</td><td>allow_network RAW bind 127.0.0.1 255</td></tr>
-<tr><td>allow_network RAW connect</td><td>�����[�g�� IP �A�h���X�^�v���g�R���Ƃ̒ʐM</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
+<tr><td>allow_network UDP connect</td><td>リモートの UDP アドレス／ポートとの通信</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
+<tr><td>allow_network RAW bind</td><td>ローカルの IP アドレス／プロトコルの割り当て</td><td>allow_network RAW bind 127.0.0.1 255</td></tr>
+<tr><td>allow_network RAW connect</td><td>リモートの IP アドレス／プロトコルとの通信</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
 </table>
-<p>IPv6 �Ŏg���� "::" �Ƃ����\�L�̓T�|�[�g����Ă��܂���B "::1" �ł͂Ȃ� "0:0:0:0:0:0:0:1" �̂悤�ɕ\�L����K�v������܂��B</p>
+<p>IPv6 で使われる "::" という表記はサポートされていません。 "::1" ではなく "0:0:0:0:0:0:0:1" のように表記する必要があります。</p>
 
-<p>�����h�o�A�h���X���J��Ԃ��w�肷���Ԃ�����邽�߂ɁA�p�X���Ɠ��l�ɃO���[�v�����s�����Ƃ��ł��܂��B</p>
+<p>同じＩＰアドレスを繰り返し指定する手間を避けるために、パス名と同様にグループ化を行うことができます。</p>
 
-<p>�֘A���ځF <a href="#exception_policy_address_group">address_group</a></p>
+<p>関連項目： <a href="#exception_policy_address_group">address_group</a></p>
 
 <h3><a name="domain_policy_allow_signal">allow_signal</a></h3>
 
-<p>�V�O�i���̃A�N�Z�X�����w�肷��ɂ́A allow_signal �Ƃ����L�[���[�h�ɑ����āA�V�O�i���̔ԍ�����ё���Ώۃh���C�����w�肵�܂��B<br>
-�@��O�� 2 ���݂��܂��B�V�O�i���ԍ��� 0 �̏ꍇ�͏�ɋ�����܂��B�܂��A�����̑�����h���C���ւ̃V�O�i���̏ꍇ�ɂ͏�ɋ�����܂��B<br>
-�@���̑��̏ꍇ�A���̃t�@�C���Ɏw�肳�ꂽ�V�O�i���ԍ��ƃh���C�����Ŏn�܂�ꍇ�݂̂��̃V�O�i���𑗐M�ł��܂��B<br>
-�@����Ώۃh���C���Ƃ��� &lt;kernel&gt; ���w�肷��ƁA�S�Ẵh���C���Ɏw�肳�ꂽ�ԍ��̃V�O�i���𑗐M�ł��܂��B</p>
+<p>シグナルのアクセス許可を指定するには、 allow_signal というキーワードに続けて、シグナルの番号および操作対象ドメインを指定します。<br>
+　例外が 2 つ存在します。シグナル番号が 0 の場合は常に許可されます。また、自分の属するドメインへのシグナルの場合には常に許可されます。<br>
+　その他の場合、このファイルに指定されたシグナル番号とドメイン名で始まる場合のみそのシグナルを送信できます。<br>
+　操作対象ドメインとして &lt;kernel&gt; を指定すると、全てのドメインに指定された番号のシグナルを送信できます。</p>
 
 <h3><a name="domain_policy_use_profile">use_profile</a></h3>
 
-<p>����́A���̃h���C���ɑ΂��Ċ��蓖�Ă��Ă���v���t�@�C���ԍ��������Ă��܂��B�v���t�@�C���ԍ��� 0 �` 255 �̒l���Ƃ�܂��B</p>
+<p>これは、このドメインに対して割り当てられているプロファイル番号を示しています。プロファイル番号は 0 ～ 255 の値をとります。</p>
 
 <h3><a name="domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></h3>
 
-<p>����́A���̃h���C���ɑ΂��Ă͗�O�|���V�Ŏw�肳��Ă��� <a href="#exception_policy_allow_read">allow_read</a> �𖳎����邱�Ƃ������Ă��܂��B����̃h���C���ɑ΂��ē��ɓǂݍ��݃��[�h�ŃI�[�v���ł���t�@�C���𐧌��������ꍇ�Ɏg���܂��B</p>
+<p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
 
-<p>�֘A���ځF <a href="#exception_policy_allow_read">allow_read</a></p>
+<p>関連項目： <a href="#exception_policy_allow_read">allow_read</a></p>
 
 <h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
 
-<p>����́A���̃h���C���ɑ΂��Ă͗�O�|���V�Ŏw�肳��Ă��� <a href="#exception_policy_allow_env">allow_env</a> �𖳎����邱�Ƃ������Ă��܂��B����̃h���C���ɑ΂��ē��Ɋ��ϐ��̎󂯓n���𐧌��������ꍇ�Ɏg���܂��B</p>
+<p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_env">allow_env</a> を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
 
-<p>�֘A���ځF <a href="#exception_policy_allow_env">allow_env</a></p>
+<p>関連項目： <a href="#exception_policy_allow_env">allow_env</a></p>
 
 <h3><a name="domain_policy_execute_handler">execute_handler</a></h3>
 
-<p>����́A���̃h���C���ɑ΂��Ă͏�ɂ��̃L�[���[�h�Ŏw�肳�ꂽ�v���O�������������s���邱�Ƃ������Ă��܂��B����̃h���C���Ŏ��s�����v���O�����̎��s�v����S�ē���̃v���O�������o�R���ċN�����������ꍇ�Ɏg���܂��B</p>
+<p>これは、このドメインに対しては常にこのキーワードで指定されたプログラムだけを実行することを示しています。特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
 
-<p>���̃L�[���[�h���w�肳��Ă���ꍇ�A <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> �̒l�Ɋւ�炸��ɂ��̃L�[���[�h�Ŏw�肳�ꂽ�v���O���������s����܂��B���̂��߁A���̃L�[���[�h�ɓK�؂ȃv���O�����ւ̃p�X�����w�肳��Ă��Ȃ������ꍇ�A���̃L�[���[�h���w�肳��Ă���h���C������͈�؂̃v���O���������s�ł��Ȃ��Ȃ�܂��B</p>
+<p>このキーワードが指定されている場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
 
-<p>�֘A���ځF <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
+<p>関連項目： <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
 
 <h3><a name="domain_policy_denied_execute_handler">denied_execute_handler</a></h3>
 
-<p>����́A <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> �� enforcing �̏�Ԃɉ����ċ�����Ă��Ȃ��v���O�����̎��s���v�����ꂽ�ꍇ�ɂ́A��ɂ��̃L�[���[�h�Ŏw�肳�ꂽ�v���O���������s���邱�Ƃ������Ă��܂��B���̃L�[���[�h���w�肳��Ă��Ȃ��ꍇ�A <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> �� enforcing �̏�Ԃɉ����ċ�����Ă��Ȃ��v���O�����̎��s���v�����ꂽ�ꍇ�ɂ̓v���O�����̎��s�����ۂ��܂��B</p>
+<p>これは、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
 
-<p>�������A�h���C���ɑ΂��� <a href="#domain_policy_execute_handler">execute_handler</a> �L�[���[�h���w�肳��Ă���ꍇ�A���̃L�[���[�h�͖�������܂��B</p>
+<p>ただし、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
 
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
-<p>����́A�w�K���[�h�œ��쒆�ɃA�N�Z�X���̐��� <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a> �Ŏw�肳�ꂽ�l�ɓ��B�������߁A���̃h���C���ɑ΂��Ă̓A�N�Z�X�����w�K������Ȃ��������Ƃ������Ă��܂��B�`���[�j���O���s���Ȃǂ��ăA�N�Z�X���̐������炷�悤�ɂ��Ă��������B</p>
+<p>これは、学習モードで動作中にアクセス許可の数が <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a> で指定された値に到達したため、このドメインに対してはアクセス許可を学習しきれなかったことを示しています。チューニングを行うなどしてアクセス許可の数を減らすようにしてください。</p>
 
-<p>�֘A���ځF <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></p>
+<p>関連項目： <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></p>
 
 <h3><a name="domain_policy_transition_failed">transition_failed</a></h3>
 
-<p>����́A�v���O�����̎��s���Ƀh���C����V�K�쐬���悤�Ǝ��݂����A�u�V�K�쐬�����h���C���̃h���C��������������v�܂��́u�J�[�l���������������蓖�Ă邱�Ƃ��ł��Ȃ������v�Ƃ������R�ɂ��A�h���C���J�ڂ��s��Ȃ��܂܃v���O�����̎��s�����������Ƃ������Ă��܂��B���̃h���C���ɑ΂��� <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>=enforcing �̃v���t�@�C�������蓖�Ă�\�肪����ꍇ�ɂ́A�u�h���C���J�ڂ�}������v�܂��́u���������蓖�ėʂ𑝂₷�v�悤�ɂ��Ă��������B</p>
+<p>これは、プログラムの実行時にドメインを新規作成しようと試みたが、「新規作成されるドメインのドメイン名が長すぎる」または「カーネルがメモリを割り当てることができなかった」という理由により、ドメイン遷移を行わないままプログラムの実行を許可したことを示しています。このドメインに対して <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
 
-<p>�֘A���ځF <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">�|���V�Ɋ��蓖�Ă��郁�����ʂ𐧌�</a></p>
+<p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
 
 <h2><a name="exception_policy">/proc/ccs/exception_policy</a></h2>
 
-<p>���݂̗�O�|���V��ǂݏo���܂��͒ǉ��܂��͍폜����ɂ͈ȉ��̂悤�ɑ��삵�܂��B</p>
-<p>�i��j<br>
+<p>現在の例外ポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
+<p>（例）<br>
 echo 'file_pattern /proc/\$/status' | loadpolicy -e<br>
 echo 'delete file_pattern /proc/\$/status' | loadpolicy -e<br>
 cat /proc/ccs/exception_policy</p>
 
-<p>�֘A���ځF <a href="#policy_file_modifiers">�ύX�ɂ���</a></p>
+<p>関連項目： <a href="#policy_file_modifiers">変更について</a></p>
 
 <h3><a name="exception_policy_file_pattern">file_pattern</a></h3>
 
-<p>�p�X���̃p�^�[�������w������ɂ́A file_pattern �Ƃ����L�[���[�h�ɑ����āA�p�X���̃p�^�[�����w�肵�܂��B�p�X���͐��K�����ꂽ�p�X���łȂ���΂Ȃ�܂���B���̃L�[���[�h�͎��s����^����ꍇ�ƃh���C����`�ɂ͓K�p����܂���B<br>
-�Ⴆ�΁A�v���Z�X�h�c���܂ސ��K�����ꂽ�p�X���i /proc/PID/ �j�́A�A�N�Z�X���䂪�������s����悤�ɃO���[�v������Ȃ���΂Ȃ�܂���B</p>
+<p>パス名のパターン化を指示するには、 file_pattern というキーワードに続けて、パス名のパターンを指定します。パス名は正規化されたパス名でなければなりません。このキーワードは実行許可を与える場合とドメイン定義には適用されません。<br>
+例えば、プロセスＩＤを含む正規化されたパス名（ /proc/PID/ ）は、アクセス制御が正しく行われるようにグループ化されなければなりません。</p>
 
-<p>�w�K���[�h�i <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> �� learning �ɐݒ肳��Ă����ԁj�Ńp�X���ɑ΂���A�N�Z�X���s���ƁA�����I�Ƀp�^�[�������ꂽ��ԂŊw�K����܂��B�w�K���[�h�ȊO�ɂ͉e�����܂���B���̍\���́A���m�̃p�^�[�����e���v���[�g�����邱�Ƃɂ���āA��Ń`���[�j���O���s���Ƃ��̎�Ԃ��y�����邽�߂����Ɏg���܂��B</p>
+<p>学習モード（ <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が learning に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習されます。学習モード以外には影響しません。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われます。</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
-<p>�p�X���̃O���[�v���`����ɂ́A path_group �Ƃ����L�[���[�h�ɑ����āA�O���[�v���ƃp�X���̃p�^�[�����w�肵�܂��B<br>
-�@�Ⴆ�΁A�z�[���f�B���N�g���ȉ��̑S�t�@�C�����܂Ƃ߂����ꍇ�A</p>
+<p>パス名のグループを定義するには、 path_group というキーワードに続けて、グループ名とパス名のパターンを指定します。<br>
+　例えば、ホームディレクトリ以下の全ファイルをまとめたい場合、</p>
 
 <table border="1">
 <tr><td>
@@ -1524,7 +1524,7 @@ path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
 </td></tr>
 </table>
 
-<p>�̂悤�ɒ�`���Ă������ƂŁA�h���C���|���V�̃t�@�C���ɑ΂���A�N�Z�X�����w�肷��ۂ�</p>
+<p>のように定義しておくことで、ドメインポリシのファイルに対するアクセス許可を指定する際に</p>
 
 <table border="1">
 <tr><td>
@@ -1532,12 +1532,12 @@ allow_read @HOME-DIR-FILE
 </td></tr>
 </table>
 
-<p>�̂悤�Ɏw��ł��܂��B</p>
+<p>のように指定できます。</p>
 
 <h3><a name="exception_policy_address_group">address_group</a></h3>
 
-<p>�A�h���X�̃O���[�v���`����ɂ́A address_group �Ƃ����L�[���[�h�ɑ����āA�O���[�v���� IP �A�h���X�̃p�^�[�����w�肵�܂��B<br>
-�@�Ⴆ�΁A���[�J���A�h���X���܂Ƃ߂����ꍇ�A</p>
+<p>アドレスのグループを定義するには、 address_group というキーワードに続けて、グループ名と IP アドレスのパターンを指定します。<br>
+　例えば、ローカルアドレスをまとめたい場合、</p>
 
 <table border="1">
 <tr><td>
@@ -1547,7 +1547,7 @@ address_group local-address 192.168.0.0-192.168.255.255
 </td></tr>
 </table>
 
-<p>�̂悤�ɒ�`���Ă������ƂŁA�h���C���|���V�̃l�b�g���[�N�ɑ΂���A�N�Z�X�����w�肷��ۂ�</p>
+<p>のように定義しておくことで、ドメインポリシのネットワークに対するアクセス許可を指定する際に</p>
 
 <table border="1">
 <tr><td>
@@ -1555,163 +1555,163 @@ allow_network TCP accept @local-address 1024-65535
 </td></tr>
 </table>
 
-<p>�̂悤�Ɏw��ł��܂��B</p>
+<p>のように指定できます。</p>
 
 <h3><a name="exception_policy_allow_read">allow_read</a></h3>
 
-<p>�������ɓǂݍ��݂�������t�@�C�����w�肷��ɂ́A allow_read �Ƃ����L�[���[�h�ɑ����āA���K�����ꂽ�t�@�C�������w�肵�܂��B���̃L�[���[�h�̖ړI�́A GLIBC ���v���O�������s���ɎQ�Ƃ���t�@�C����G���[���b�Z�[�W��\������ۂɎQ�Ƃ���t�@�C���̂悤�ɁA�ǂ̂悤�ȃv���O��������Q�Ƃ���Ă��\��Ȃ��Ƃ����t�@�C�����w�肷�邱�ƂŁA�e�h���C���ŋL�q���Ȃ��ōςނ悤�ɂ��邱�Ƃł��B�Ȃ��A�e�h���C���� ignore_global_allow_read �Ƃ����w�������ƁA�����Ŏw�肳�ꂽ allow_read �͖�������܂��B</p>
+<p>無条件に読み込みを許可するファイルを指定するには、 allow_read というキーワードに続けて、正規化されたファイル名を指定します。このキーワードの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルのように、どのようなプログラムから参照されても構わないというファイルを指定することで、各ドメインで記述しないで済むようにすることです。なお、各ドメインで ignore_global_allow_read という指定をすると、ここで指定された allow_read は無視されます。</p>
 
-<p>�֘A���ځF <a href="#domain_policy_allow_read">allow_read</a> <a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></p>
+<p>関連項目： <a href="#domain_policy_allow_read">allow_read</a> <a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></p>
 
 <h3><a name="exception_policy_allow_env">allow_env</a></h3>
 
-<p>�������Ɏ󂯎���Ă悢���ϐ������w�肷��ɂ́A allow_env �Ƃ����L�[���[�h�ɑ����āA���ϐ������w�肵�܂��B���̃L�[���[�h�̖ړI�́A PATH �� HOME �̂悤�ɁA�ǂ̂悤�ȃv���O�����ɓn����Ă��\��Ȃ��悤�Ȋ��ϐ������w�肷�邱�ƂŁA�e�h���C���ŋL�q���Ȃ��ōςނ悤�ɂ��邱�Ƃł��B���ꂮ��� LD_PRELOAD �̂悤�Ȋ댯�Ȋ��ϐ����w�肵�Ȃ��ł��������B�Ȃ��A�e�h���C���� ignore_global_allow_env �Ƃ����w�������ƁA�����Ŏw�肳�ꂽ allow_env �͖�������܂��B</p>
+<p>無条件に受け取ってよい環境変数名を指定するには、 allow_env というキーワードに続けて、環境変数名を指定します。このキーワードの目的は、 PATH や HOME のように、どのようなプログラムに渡されても構わないような環境変数名を指定することで、各ドメインで記述しないで済むようにすることです。くれぐれも LD_PRELOAD のような危険な環境変数を指定しないでください。なお、各ドメインで ignore_global_allow_env という指定をすると、ここで指定された allow_env は無視されます。</p>
 
-<p>�֘A���ځF <a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a> <a href="#domain_policy_allow_env">allow_env</a></p>
+<p>関連項目： <a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a> <a href="#domain_policy_allow_env">allow_env</a></p>
 
 <h3><a name="exception_policy_deny_rewrite">deny_rewrite</a></h3>
 
-<p>deny_rewrite �Ƃ����L�[���[�h���g�p���āA���ɋL�^����Ă��镔���̏����������֎~�������t�@�C���i���O�t�@�C�����j�̃p�X����o�^���܂��B�p�^�[�����g�p�ł��܂��B deny_rewrite �Ƃ����L�[���[�h���g�p���ēo�^���ꂽ�t�@�C���́A�h���C���p�|���V�̒��Ŗ����I�� <a href="#domain_policy_allow_rewrite">allow_rewrite</a> �Ƃ����L�[���[�h��p���ċ����^�����Ȃ�����A�ǋL�ł͂Ȃ��������݃��[�h�ł̃I�[�v���ƃt�@�C���̐؂�l�߂��֎~����܂��B</p>
+<p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、ドメイン用ポリシの中で明示的に <a href="#domain_policy_allow_rewrite">allow_rewrite</a> というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。</p>
 
-<p>�֘A���ځF <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
+<p>関連項目： <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
 
 <h3><a name="exception_policy_alias">alias</a></h3>
 
-<p>�V���{���b�N�����N�������������O�ł͂Ȃ��V���{���b�N�����N�̖��O�̂܂܎��s������v���O�������w�肷��ɂ́A alias �Ƃ����L�[���[�h�ɑ����ăV���{���b�N�����N�����������p�X���ƃV���{���b�N�����N����������O�̃p�X�����w�肵�܂��B���̃L�[���[�h�̖ړI�́A���s���̖��O�ɂ���ĈقȂ�U�镑��������v���O�������A�n�[�h�����N�ł͂Ȃ��V���{���b�N�����N�ŎQ�Ƃ����ꍇ�ɁA�V���{���b�N�����N�̖��O�Ńh���C����J�ڂł���悤�ɂ��邱�Ƃł��B</p>
-<p>�Ⴆ�� /sbin/pidof �� /sbin/killall5 �ւ̃V���{���b�N�����N�ł��邽�߁A�ʏ�� /sbin/pidof �����s����� /sbin/killall5 �����s���ꂽ���̂Ƃ��ăh���C������`����܂��B�������A alias /sbin/killall5 /sbin/pidof �Ƃ����w������邱�ƂŁA /sbin/pidof �����s����� /sbin/pidof �����s���ꂽ���̂Ƃ��ăh���C������`�����悤�ɂł��܂��B</p>
+<p>シンボリックリンクを解決した名前ではなくシンボリックリンクの名前のまま実行させるプログラムを指定するには、 alias というキーワードに続けてシンボリックリンクを解決したパス名とシンボリックリンクを解決する前のパス名を指定します。このキーワードの目的は、実行時の名前によって異なる振る舞いをするプログラムが、ハードリンクではなくシンボリックリンクで参照される場合に、シンボリックリンクの名前でドメインを遷移できるようにすることです。</p>
+<p>例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクであるため、通常は /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。しかし、 alias /sbin/killall5 /sbin/pidof という指定をすることで、 /sbin/pidof を実行すると /sbin/pidof が実行されたものとしてドメインが定義されるようにできます。</p>
 
-<p>�֘A���ځF <a href="#domain_policy_allow_execute">allow_execute</a></p>
+<p>関連項目： <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
 <h3><a name="exception_policy_aggregator">aggregator</a></h3>
 
-<p>�����̃v���O������P��̃v���O�������ň����ɂ́A aggregator �Ƃ����L�[���[�h�ɑ����ďW��O�̃v���O�������ƏW���̃v���O���������w�肵�܂��B���̃L�[���[�h�̖ړI�́A���l�̃v���O�������W�񂷂邱�Ƃł��B</p>
-<p>�Ⴆ�΁A /usr/bin/tac �� /bin/cat �͎��Ă���̂ŁA aggregator /usr/bin/tac /bin/cat �Ƃ����w������邱�Ƃ� /usr/bin/tac �� /bin/cat �̃h���C���Ŏ��s���邱�Ƃ��ł���悤�ɂȂ�܂��B</p>
-<p>�Ⴆ�΁A Fedora Core 3 �� /usr/sbin/logrotate �� /tmp/logrotate.\?\?\?\?\?\? �Ƃ����p�^�[���̃v���O�������쐬���Ď��s���邪�A TOMOYO Linux �ł͈��S��̗��R����v���O�����̎��s����^����ꍇ�ƃh���C�����`����ꍇ�Ƀp�^�[�����g�p���邱�Ƃ�F�߂Ă��܂���B�������A aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp �Ƃ����w������邱�Ƃ� /tmp/logrotate.\?\?\?\?\?\? �� /tmp/logrotate.tmp �̃h���C���Ŏ��s���邱�Ƃ��ł���悤�ɂȂ�܂��B</p>
+<p>複数のプログラムを単一のプログラム名で扱うには、 aggregator というキーワードに続けて集約前のプログラム名と集約後のプログラム名を指定します。このキーワードの目的は、同様のプログラムを集約することです。</p>
+<p>例えば、 /usr/bin/tac と /bin/cat は似ているので、 aggregator /usr/bin/tac /bin/cat という指定をすることで /usr/bin/tac を /bin/cat のドメインで実行することができるようになります。</p>
+<p>例えば、 Fedora Core 3 の /usr/sbin/logrotate は /tmp/logrotate.\?\?\?\?\?\? というパターンのプログラムを作成して実行するが、 TOMOYO Linux では安全上の理由からプログラムの実行許可を与える場合とドメインを定義する場合にパターンを使用することを認めていません。しかし、 aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp という指定をすることで /tmp/logrotate.\?\?\?\?\?\? を /tmp/logrotate.tmp のドメインで実行することができるようになります。</p>
 
-<p>�֘A���ځF <a href="#domain_policy_allow_execute">allow_execute</a></p>
+<p>関連項目： <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
 <h3><a name="exception_policy_initialize_domain">initialize_domain</a></h3>
 
-<p>����̃v���O���������s���ꂽ�ꍇ�Ƀh���C���J�ڂ�������������ɂ́A initialize_domain �Ƃ����L�[���[�h���g�p���܂��B</p>
+<p>特定のプログラムが実行された場合にドメイン遷移を初期化させるには、 initialize_domain というキーワードを使用します。</p>
 
 <ul>
-<li>initialize_domain �v���O������ from �h���C����
-<li>initialize_domain �v���O������ from �h���C�����̍Ō�̃v���O������
-<li>initialize_domain �v���O������
+<li>initialize_domain プログラム名 from ドメイン名
+<li>initialize_domain プログラム名 from ドメイン名の最後のプログラム名
+<li>initialize_domain プログラム名
 </ul>
 
-<p> from �ȍ~���w�肳��Ă��Ȃ��ꍇ�͔C�ӂ̃h���C��������s���ꂽ�ꍇ�ɓK�p����܂��B�h���C������ &lt;kernel&gt; �Ŏn�܂�Ȃ��ꍇ�́A�h���C�����̍Ō�̃v���O����������v����S�Ẵh���C���ɓK�p����܂��B</p>
+<p> from 以降が指定されていない場合は任意のドメインから実行された場合に適用されます。ドメイン名が &lt;kernel&gt; で始まらない場合は、ドメイン名の最後のプログラム名が一致する全てのドメインに適用されます。</p>
 
-<p>���̃L�[���[�h�̖ړI�́A�풓�^�v���O������K�v�ɉ����ăJ�[�l������N�������v���O�������A�ʏ�Ƃ͈قȂ�h���C���ɑJ�ڂ����邱�ƂŁA�h���C���J�ڂ��W�񂷂邱�Ƃł��B</p>
+<p>このキーワードの目的は、常駐型プログラムや必要に応じてカーネルから起動されるプログラムを、通常とは異なるドメインに遷移させることで、ドメイン遷移を集約することです。</p>
 
-<p>�֘A���ځF<a href="#domain_transition">�h���C���J��</a> <a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></p>
+<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></p>
 
 <h3><a name="exception_policy_no_initialize_domain">no_initialize_domain</a></h3>
 
-<p>initialize_domain �̌��͂�ł������ɂ́A no_initialize_domain �Ƃ����L�[���[�h���w�肵�܂��B</p>
+<p>initialize_domain の効力を打ち消すには、 no_initialize_domain というキーワードを指定します。</p>
 <ul>
-<li>no_initialize_domain �v���O������ from �h���C����
-<li>no_initialize_domain �v���O������ from �h���C�����̍Ō�̃v���O������
-<li>no_initialize_domain �v���O������
+<li>no_initialize_domain プログラム名 from ドメイン名
+<li>no_initialize_domain プログラム名 from ドメイン名の最後のプログラム名
+<li>no_initialize_domain プログラム名
 </ul>
 
-<p>���̃L�[���[�h�̓h���C���J�ڂ����������������Ȃ��ꍇ�Ɏg�p���܂��B</p>
+<p>このキーワードはドメイン遷移を初期化させたくない場合に使用します。</p>
 
-<p>�֘A���ځF<a href="#domain_transition">�h���C���J��</a> <a href="#exception_policy_initialize_domain">initialize_domain</a></p>
+<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_initialize_domain">initialize_domain</a></p>
 
 <h3><a name="exception_policy_keep_domain">keep_domain</a></h3>
 
-<p>����̃h���C������v���O���������s����Ă��h���C���J�ڂ��s��Ȃ��悤�ɂ���ɂ́A keep_domain �Ƃ����L�[���[�h���g�p���܂��B</p>
+<p>特定のドメインからプログラムが実行されてもドメイン遷移を行わないようにするには、 keep_domain というキーワードを使用します。</p>
 
 <ul>
-<li>keep_domain �v���O������ from �h���C����
-<li>keep_domain �v���O������ from �h���C�����̍Ō�̃v���O������
-<li>keep_domain �h���C����
-<li>keep_domain �h���C�����̍Ō�̃v���O������
+<li>keep_domain プログラム名 from ドメイン名
+<li>keep_domain プログラム名 from ドメイン名の最後のプログラム名
+<li>keep_domain ドメイン名
+<li>keep_domain ドメイン名の最後のプログラム名
 </ul>
 
-<p> from �ȑO���w�肳��Ă��Ȃ��ꍇ�͔C�ӂ̃v���O���������s���ꂽ�ꍇ�ɓK�p����܂��B�h���C������ &lt;kernel&gt; �Ŏn�܂�Ȃ��ꍇ�́A�h���C�����̍Ō�̃v���O����������v����S�Ẵh���C���ɓK�p����܂��B</p>
+<p> from 以前が指定されていない場合は任意のプログラムが実行された場合に適用されます。ドメイン名が &lt;kernel&gt; で始まらない場合は、ドメイン名の最後のプログラム名が一致する全てのドメインに適用されます。</p>
 
-<p>���̃L�[���[�h�̖ړI�́A�s�v�ȃh���C���J�ڂ̔�����}�����邱�ƂŃh���C�����ƃ����������}���邱�Ƃł��B</p>
+<p>このキーワードの目的は、不要なドメイン遷移の発生を抑制することでドメイン数とメモリ消費を抑えることです。</p>
 
-<p>�֘A���ځF<a href="#domain_transition">�h���C���J��</a> <a href="#exception_policy_no_keep_domain">no_keep_domain</a></p>
+<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_keep_domain">no_keep_domain</a></p>
 
 <h3><a name="exception_policy_no_keep_domain">no_keep_domain</a></h3>
 
-<p>keep_domain �̌��͂�ł������ɂ́A no_keep_domain �Ƃ����L�[���[�h���w�肵�܂��B</p>
+<p>keep_domain の効力を打ち消すには、 no_keep_domain というキーワードを指定します。</p>
 
 <ul>
-<li>no_keep_domain �v���O������ from �h���C����
-<li>no_keep_domain �v���O������ from �h���C�����̍Ō�̃v���O������
-<li>no_keep_domain �h���C����
-<li>no_keep_domain �h���C�����̍Ō�̃v���O������
+<li>no_keep_domain プログラム名 from ドメイン名
+<li>no_keep_domain プログラム名 from ドメイン名の最後のプログラム名
+<li>no_keep_domain ドメイン名
+<li>no_keep_domain ドメイン名の最後のプログラム名
 </ul>
 
-<p>���̃L�[���[�h�̓h���C���J�ڂ��s�킹�����ꍇ�Ɏg�p���܂��B</p>
+<p>このキーワードはドメイン遷移を行わせたい場合に使用します。</p>
 
-<p>�֘A���ځF<a href="#domain_transition">�h���C���J��</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
+<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
 
 <h2><a name="query">/proc/ccs/query</a></h2>
 
-<p>�������[�h�œ��쒆�Ƀ|���V�ᔽ�����������ꍇ�ɁA���̃A�N�Z�X�v�����ʂɋ����邩�ǂ����̎w����s�����߂Ɏg�p���܂��B ALLOW_ENFORCE_GRACE=enabled �ɐݒ肳��Ă���v���t�@�C�������蓖�Ă��Ă���h���C���ɑ΂��ċ������[�h�Ń|���V�ᔽ�����������ꍇ�A ccs-queryd ��p���đΘb�I�ɑ��ۂ��w��ł��܂��B</p>
+<p>強制モードで動作中にポリシ違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用します。 ALLOW_ENFORCE_GRACE=enabled に設定されているプロファイルが割り当てられているドメインに対して強制モードでポリシ違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できます。</p>
 
-<p>TOMOYO Linux 1.6.2 �ł� ALLOW_ENFORCE_GRACE ���p�~����܂����B����āA TOMOYO Linux 1.6.2 �ȍ~�����g���̏ꍇ�A ccs-queryd �����s���邾���őΘb�I�ɑ��ۂ��w��ł��܂��B</p>
+<p>TOMOYO Linux 1.6.2 では ALLOW_ENFORCE_GRACE が廃止されました。よって、 TOMOYO Linux 1.6.2 以降をお使いの場合、 ccs-queryd を実行するだけで対話的に諾否を指定できます。</p>
 
 <h2><a name="manager">/proc/ccs/manager</a></h2>
 
-<p>�|���V�̓ǂݏ������s����v���O�����܂��̓h���C���̈ꗗ���擾�܂��͒ǉ����܂��B</p>
+<p>ポリシの読み書きを行えるプログラムまたはドメインの一覧を取得または追加します。</p>
 
 <h3><a name="manager_manage_by_non_root">manage_by_non_root</a></h3>
 
-<p>�f�t�H���g�ł̓��[�U�h�c�Ǝ������[�U�h�c�̗����� 0 �ł���v���Z�X�������|���V��ύX�ł��܂����A�� root ���[�U�ɂ��ύX��F�߂����ꍇ�Ɏg�p���܂��B</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合に使用します。</p>
 
 <h2><a name=".domain_status">/proc/ccs/.domain_status</a></h2>
 
-<p>setprofile �R�}���h���s�P�ʂł̏������s���₷�����邽�߂� domain_policy �̓��e����v���t�@�C���ԍ��ƃh���C�����̕��������𒊏o�������́B�c�a�l�r�̃r���[�ɑ�������@�\��񋟂��܂��B</p>
+<p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
 
 <h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
 
-<p>TOMOYO Linux ���|���V��ێ����邽�߂Ɏg�p���Ă���J�[�l���̃����������擾���܂��B</p>
-<p>�i��j<br>
+<p>TOMOYO Linux がポリシを保持するために使用しているカーネルのメモリ情報を取得します。</p>
+<p>（例）<br>
 cat /proc/ccs/meminfo<br></p>
 
 <h2><a name="grant_log">/proc/ccs/grant_log</a></h2>
 
-<p>�h���C���|���V�ɑ΂���A�N�Z�X�����O���擾���܂��B�擾���ׂ����O�������ꍇ�͂����ɖ߂��Ă���̂ŁA���O����������܂őҋ@������ɂ� select(2) ���g���Ă��������B�L���ł��錏���� MAX_GRANT_LOG ���܂łł��B����ȏ�͋L�^����Ȃ��̂ŁA�����ǂݏo���悤�ɂ���K�v������܂��B</p>
-<p>�i��j<br>
+<p>ドメインポリシに対するアクセス許可ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は MAX_GRANT_LOG 件までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
+<p>（例）<br>
 cat /proc/ccs/grant_log</p>
 
 <h2><a name="reject_log">/proc/ccs/reject_log</a></h2>
 
-<p>�h���C���|���V�ɑ΂���A�N�Z�X���ۃ��O���擾���܂��B�擾���ׂ����O�������ꍇ�͂����ɖ߂��Ă���̂ŁA���O����������܂őҋ@������ɂ� select(2) ���g���Ă��������B�L���ł��錏���� MAX_REJECT_LOG ���܂łł��B����ȏ�͋L�^����Ȃ��̂ŁA�����ǂݏo���悤�ɂ���K�v������܂��B</p>
-<p>�i��j<br>
+<p>ドメインポリシに対するアクセス拒否ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は MAX_REJECT_LOG 件までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
+<p>（例）<br>
 cat /proc/ccs/reject_log</p>
 
 <h2><a name="self_domain">/proc/ccs/self_domain</a></h2>
 
-<p>�Ăяo�����v���Z�X�������Ă���h���C���̖��O���擾���܂��B</p>
-<p>�i��j<br>
+<p>呼び出し元プロセスが属しているドメインの名前を取得します。</p>
+<p>（例）<br>
 cat /proc/ccs/self_domain</p>
 
 <h2><a name=".process_status">/proc/ccs/.process_status</a></h2>
 
-<p>ccstree �R�}���h�i�u���ݓ��쒆�̃v���Z�X�v�Ɓu���̃v���Z�X�������Ă���h���C���v�Ɓu���̃h���C���Ɋ��蓖�Ă��Ă���v���t�@�C���ԍ��v�� pstree �̂悤�Ɉꗗ�\������j�̂��߂̃C���^�t�F�[�X�B��O�I�Ƀ|���V�}�l�[�W���Ƃ��ēo�^����Ă��Ȃ��v���O�����ł��������݂��s����B</p>
+<p>ccstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシマネージャとして登録されていないプログラムでも書き込みを行える。</p>
 
 <h2><a name=".updates_counter">/proc/ccs/.updates_counter</a></h2>
 
-<p>�|���V�̕ύX�����o���邽�߂̃J�E���^�ł��B�Q�Ƃ���邽�т� 0 �Ƀ��Z�b�g����܂��B�|���V�̍X�V���Ď�����v���O�����̂��߂̃C���^�t�F�[�X�ł��B</p>
+<p>ポリシの変更を検出するためのカウンタです。参照されるたびに 0 にリセットされます。ポリシの更新を監視するプログラムのためのインタフェースです。</p>
 
 <h2><a name="version">/proc/ccs/version</a></h2>
 
-<p>TOMOYO Linux �̃o�[�W�����ԍ����擾���邽�߂̃C���^�t�F�[�X�ł��B</p>
-<p>�i��j<br>
+<p>TOMOYO Linux のバージョン番号を取得するためのインタフェースです。</p>
+<p>（例）<br>
 cat /proc/ccs/version</p>
 
-<h1>6. <a name="Advanced_Features">�֗��ȋ@�\</a></h1>
+<h1>6. <a name="Advanced_Features">便利な機能</a></h1>
 
-<h2>6.1 <a name="non_root_policy_update">root �ȊO�̃��[�U�ɂ��|���V�̕ύX������</a></h2>
+<h2>6.1 <a name="non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></h2>
 
-<p>�f�t�H���g�ł̓��[�U�h�c�Ǝ������[�U�h�c�̗����� 0 �ł���v���Z�X�������|���V��ύX�ł��܂����A�� root ���[�U�ɂ��ύX��F�߂����ꍇ�ɂ�</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合には</p>
 
 <table border="1">
 <tr><td>
@@ -1719,7 +1719,7 @@ cat /proc/ccs/version</p>
 </td></tr>
 </table>
 
-<p>�̂悤�� manage_by_non_root �Ƃ����L�[���[�h���������ނ��ƂŁA���[�U�h�c�Ǝ������[�U�h�c�̃`�F�b�N�𖳌��ɂ��邱�Ƃ��ł��܂��B�܂��A�Ăу��[�U�h�c�Ǝ������[�U�h�c�̃`�F�b�N��L���ɂ���ɂ́A</p>
+<p>のように manage_by_non_root というキーワードを書き込むことで、ユーザＩＤと実効ユーザＩＤのチェックを無効にすることができます。また、再びユーザＩＤと実効ユーザＩＤのチェックを有効にするには、</p>
 
 <table border="1">
 <tr><td>
@@ -1727,8 +1727,8 @@ cat /proc/ccs/version</p>
 </td></tr>
 </table>
 
-<p>�̂悤�� delete manage_by_non_root �Ƃ����L�[���[�h����������ł��������B /proc/ccs/ �ȉ��̃G���g���̏��L�҂� root �Ȃ̂ŁA�� root ���[�U�ɂ��A�N�Z�X��F�߂邽�߂ɂ͕K�v�ɉ����� chown/chmod �����s���Ă��������B<br>
-�N�����Ɏ����I�ɂ��̏������s����悤�ɂ��邽�߂ɁA /sbin/ccs-init �� /etc/ccs/ccs-post-init �Ƃ����v���O���������݂���ꍇ�ɂ� /etc/ccs/ccs-post-init �����s����悤�ɂȂ��Ă��܂��B����āA�Ⴆ�� demo ���[�U�� /proc/ccs/ �C���^�t�F�[�X�ւ̓ǂݏ������ł���悤�ɐݒ肵�����ꍇ�́A</p>
+<p>のように delete manage_by_non_root というキーワードを書き込んでください。 /proc/ccs/ 以下のエントリの所有者は root なので、非 root ユーザによるアクセスを認めるためには必要に応じて chown/chmod を実行してください。<br>
+起動時に自動的にこの処理が行われるようにするために、 /sbin/ccs-init は /etc/ccs/ccs-post-init というプログラムが存在する場合には /etc/ccs/ccs-post-init も実行するようになっています。よって、例えば demo ユーザが /proc/ccs/ インタフェースへの読み書きができるように設定したい場合は、</p>
 
 <table border="1">
 <tr><td>
@@ -1738,7 +1738,7 @@ chown -R demo /proc/ccs/
 </td></tr>
 </table>
 
-<p>�Ƃ������e�� /etc/ccs/ccs-post-init ���쐬���A</p>
+<p>という内容で /etc/ccs/ccs-post-init を作成し、</p>
 
 <table border="1">
 <tr><td>
@@ -1748,13 +1748,13 @@ chown -R demo /proc/ccs/
 </td></tr>
 </table>
 
-<p>�����s���邱�Ƃ� demo ���[�U���|���V�̂���f�B���N�g���ւ̃A�N�Z�X�ƃ|���V��ҏW���邽�߂̃v���O���������s�ł���悤�ɂȂ�܂��B</p>
+<p>を実行することで demo ユーザがポリシのあるディレクトリへのアクセスとポリシを編集するためのプログラムを実行できるようになります。</p>
 
-<h2>6.2 <a name="memory_quota">�|���V�Ɋ��蓖�Ă��郁�����ʂ𐧌�</a></h2>
+<h2>6.2 <a name="memory_quota">ポリシに割り当てられるメモリ量を制限</a></h2>
 
-<p>TOMOYO Linux 1.6.1 �ł̓|���V��ێ����Ă������߂Ɋ��蓖�Ă��郁�����̗ʂ𐧌��ł���悤�ɂ��邽�߂Ƀ������N�H�[�^����������܂����B</p>
+<p>TOMOYO Linux 1.6.1 ではポリシを保持しておくために割り当てられるメモリの量を制限できるようにするためにメモリクォータが導入されました。</p>
 
-<p>/etc/ccs/ccs-post-init ����ȉ��̂悤�� /proc/ccs/meminfo �ɏ������݂��s�����ƂŐݒ�ł��܂��B</p>
+<p>/etc/ccs/ccs-post-init から以下のように /proc/ccs/meminfo に書き込みを行うことで設定できます。</p>
 
 <table border="1">
 <tr><td>
@@ -1763,208 +1763,208 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 </td></tr>
 </table>
 
-<h2>6.3 <a name="conditional_acl">�����t���A�N�Z�X���̎w��</a></h2>
+<h2>6.3 <a name="conditional_acl">条件付きアクセス許可の指定</a></h2>
 
-<p>�A�N�Z�X���Ƀ��[�U�h�c���Ɋ�Â���������t�����邱�Ƃ��ł��܂��B�����͌X�̃A�N�Z�X���̖����� " if " ���ǉ�����`�Ŏw�肵�܂��B</p>
-
-<table border="1">
-<tr><td>�w���</td><td>�Ӗ�</td></tr>
-<tr><td>allow_read /etc/passwd</td><td>/etc/passwd �̎Q�Ƃ�����</td></tr>
-<tr><td>allow_read /etc/passwd if task.uid=0</td><td>�v���Z�X�̃��[�U�h�c�� 0 �̏ꍇ�Ɍ���A /etc/passwd �̎Q�Ƃ�����</td></tr>
-<tr><td>allow_read /etc/passwd if task.uid!=0</td><td>�v���Z�X�̃��[�U�h�c�� 0 �ł͂Ȃ��ꍇ�Ɍ���A /etc/passwd �̎Q�Ƃ�����</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 80</td><td>TCP �v���g�R���� 10.0.0.1 �|�[�g 80 �ւ̐ڑ�������</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 80 if task.uid=100</td><td>�v���Z�X�̃��[�U�h�c�� 100 �̏ꍇ�Ɍ���A TCP �v���g�R���� 10.0.0.1 �|�[�g 80 �ւ̐ڑ�������</td></tr>
-<tr><td>allow_capability SYS_KILL</td><td>kill(2) �̎g�p������</td></tr>
-<tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>�e�v���Z�X�� /sbin/init �ł���A���A�v���Z�X�̃��[�U�h�c�Ǝ������[�U�h�c�� 0 �̏ꍇ�Ɍ���A kill(2) �̎g�p������</td></tr>
-</table>
-
-<p>�ȉ��̕ϐ����w��ł��܂��B</p>
+<p>アクセス許可にユーザＩＤ等に基づいた条件を付加することができます。条件は個々のアクセス許可の末尾に " if " 句を追加する形で指定します。</p>
 
 <table border="1">
-<tr><td>�ϐ�</td><td>�Ӗ�</td></tr>
-<tr><td>task.uid</td><td>�Ăяo�����v���Z�X�̃��[�U�h�c</td></tr>
-<tr><td>task.euid</td><td>�Ăяo�����v���Z�X�̎������[�U�h�c</td></tr>
-<tr><td>task.suid</td><td>�Ăяo�����v���Z�X�̕ۑ����[�U�h�c</td></tr>
-<tr><td>task.fsuid</td><td>�Ăяo�����v���Z�X�̃t�@�C���V�X�e�����[�U�h�c</td></tr>
-<tr><td>task.gid</td><td>�Ăяo�����v���Z�X�̃O���[�v�h�c</td></tr>
-<tr><td>task.egid</td><td>�Ăяo�����v���Z�X�̎����O���[�v�h�c</td></tr>
-<tr><td>task.sgid</td><td>�Ăяo�����v���Z�X�̕ۑ��O���[�v�h�c</td></tr>
-<tr><td>task.fsgid</td><td>�Ăяo�����v���Z�X�̃t�@�C���V�X�e���O���[�v�h�c</td></tr>
-<tr><td>task.pid</td><td>�Ăяo�����v���Z�X�̃v���Z�X�h�c</td></tr>
-<tr><td>task.ppid</td><td>�Ăяo�����v���Z�X�̐e�v���Z�X�̃v���Z�X�h�c</td></tr>
-<tr><td>path1.uid</td><td>�������p�X���̏��L�҂h�c</td></tr>
-<tr><td>path1.gid</td><td>�������p�X���̃O���[�v�h�c</td></tr>
-<tr><td>path1.ino</td><td>�������p�X���̂��m�[�h�ԍ�</td></tr>
-<tr><td>path1.parent.uid</td><td>�������p�X���̐e�f�B���N�g���̏��L�҂h�c</td></tr>
-<tr><td>path1.parent.gid</td><td>�������p�X���̐e�f�B���N�g���̃O���[�v�h�c</td></tr>
-<tr><td>path1.parent.ino</td><td>�������p�X���̐e�f�B���N�g���̂��m�[�h�ԍ�</td></tr>
-<tr><td>path2.parent.uid</td><td>�쐬�����p�X���̐e�f�B���N�g���̏��L�҂h�c</td></tr>
-<tr><td>path2.parent.gid</td><td>�쐬�����p�X���̐e�f�B���N�g���̃O���[�v�h�c</td></tr>
-<tr><td>path2.parent.ino</td><td>�쐬�����p�X���̐e�f�B���N�g���̂��m�[�h�ԍ�</td></tr>
-<tr><td>exec.argc</td><td>�v���O�������s���̈����̐�</td></tr>
-<tr><td>exec.envc</td><td>�v���O�������s���̊��ϐ��̐�</td></tr>
-<tr><td>exec.argv[index]="value"</td><td>index �i 0 &lt;= index &lt; exec.argc �j�Ԗڂ̈����̒l�� value �ł���</td></tr>
-<tr><td>exec.argv[index]!="value"</td><td>index �i 0 &lt;= index &lt; exec.argc �j�Ԗڂ̈����̒l�� value �ł͂Ȃ�</td></tr>
-<tr><td>exec.envp["name"]="value"</td><td>���ϐ� name ����`����Ă���A�l�� value �ł���</td></tr>
-<tr><td>exec.envp["name"]!="value"</td><td>���ϐ� name ����`����Ă��Ȃ����A���邢�͒l�� value �ł͂Ȃ�</td></tr>
-<tr><td>exec.envp["name"]!=NULL</td><td>���ϐ� name ����`����Ă���</td></tr>
-<tr><td>exec.envp["name"]=NULL</td><td>���ϐ� name ����`����Ă��Ȃ�</td></tr>
+<tr><td>指定例</td><td>意味</td></tr>
+<tr><td>allow_read /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
+<tr><td>allow_read /etc/passwd if task.uid=0</td><td>プロセスのユーザＩＤが 0 の場合に限り、 /etc/passwd の参照を許可</td></tr>
+<tr><td>allow_read /etc/passwd if task.uid!=0</td><td>プロセスのユーザＩＤが 0 ではない場合に限り、 /etc/passwd の参照を許可</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 80</td><td>TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
+<tr><td>allow_network TCP connect 10.0.0.1 80 if task.uid=100</td><td>プロセスのユーザＩＤが 100 の場合に限り、 TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
+<tr><td>allow_capability SYS_KILL</td><td>kill(2) の使用を許可</td></tr>
+<tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>親プロセスが /sbin/init であり、かつ、プロセスのユーザＩＤと実効ユーザＩＤが 0 の場合に限り、 kill(2) の使用を許可</td></tr>
 </table>
 
-<p>path1 �̓p�X����K�v�Ƃ��鑀��� 1 �ڂ̃p�X���ɑΉ����A path2 �̓p�X����K�v�Ƃ��鑀��� 2 �ڂ̃p�X���ɑΉ����܂��B
-�Ⴆ�΁A�u allow_rename file1 file2 �v�Ƃ����A�N�Z�X���̏ꍇ�A path1 �� file1 �ɁA path2 �� file2 �ɑΉ����܂��B</p>
-
-<p>path1.uid ����� path1.gid �͑��݂��Ȃ��p�X���ɑ΂��Ă͎w��ł��܂���B�܂�A�t�@�C�����̍쐬���i allow_create ���j�ɂ͎g�p�ł��܂���B</p>
-
-<p>path1.parent.uid ����� path1.parent.gid �͏�Ɏw��\�ł��B</p>
-
-<p>path2.parent.uid ����� path2.parent.gid �̓p�X���� 2 �K�v�Ƃ��鑀��i�܂� allow_link ����� allow_rename �j�Ɍ���w��ł��܂��B</p>
-
-<p>path2.uid ����� path2.gid �̓T�|�[�g���Ă��܂���B�i rename ����ɉ����āA path2 �����݂���ꍇ�ɂ͈Öق̂����� unlink �܂��� rmdir �����s����܂��B�j</p>
-
-<p>sysctl �ɂ��ǂݏ����i /proc/sys/ �f�B���N�g���ȉ��̃t�@�C���� open �ł͂Ȃ� sysctl ��p���ăA�N�Z�X�j���s���ꍇ�ɂ��ẮA path1 path2 �Ƃ��ɃT�|�[�g���Ă��܂���B</p>
-
-<p>exec �̓v���O�������s���i�܂� <a href="#domain_policy_allow_execute">allow_execute</a> �j�Ɍ���w��ł��܂��B</p>
-
-<h2>6.4 <a name="stateful_acl">�X�e�[�g�t���ȃA�N�Z�X���̎w��</a></h2>
-
-<p>TOMOYO Linux �̓��[�U�����h�A�v���P�[�V�����̏C�����s��Ȃ����߁A�v���O�����̎��s�𔺂킸�ɃA�N�Z�X�\�Ȏ����͈̔͂�ύX���邱�Ƃ͂ł��܂���B�������A�Ⴆ�ΐڑ����N���C�A���g�̂h�o�A�h���X�ɂ���ăA�N�Z�X�̉ۂ�؂�ւ������Ƃ����ꍇ������܂��B���̂悤�ȏꍇ�ɑΉ����邽�߁A�v���Z�X���ɏ�ԕϐ������蓖�Ă邱�Ƃ��ł��A�����t���A�N�Z�X���̎w��Ŏg����悤�ɂȂ��Ă��܂��B</p>
+<p>以下の変数を指定できます。</p>
 
 <table border="1">
-<tr><td>�ϐ�</td><td>�Ӗ�</td></tr>
-<tr><td>task.state[0]</td><td>�Ăяo�����v���Z�X�̏�ԕϐ� 0</td></tr>
-<tr><td>task.state[1]</td><td>�Ăяo�����v���Z�X�̏�ԕϐ� 1</td></tr>
-<tr><td>task.state[2]</td><td>�Ăяo�����v���Z�X�̏�ԕϐ� 2</td></tr>
+<tr><td>変数</td><td>意味</td></tr>
+<tr><td>task.uid</td><td>呼び出したプロセスのユーザＩＤ</td></tr>
+<tr><td>task.euid</td><td>呼び出したプロセスの実効ユーザＩＤ</td></tr>
+<tr><td>task.suid</td><td>呼び出したプロセスの保存ユーザＩＤ</td></tr>
+<tr><td>task.fsuid</td><td>呼び出したプロセスのファイルシステムユーザＩＤ</td></tr>
+<tr><td>task.gid</td><td>呼び出したプロセスのグループＩＤ</td></tr>
+<tr><td>task.egid</td><td>呼び出したプロセスの実効グループＩＤ</td></tr>
+<tr><td>task.sgid</td><td>呼び出したプロセスの保存グループＩＤ</td></tr>
+<tr><td>task.fsgid</td><td>呼び出したプロセスのファイルシステムグループＩＤ</td></tr>
+<tr><td>task.pid</td><td>呼び出したプロセスのプロセスＩＤ</td></tr>
+<tr><td>task.ppid</td><td>呼び出したプロセスの親プロセスのプロセスＩＤ</td></tr>
+<tr><td>path1.uid</td><td>許可されるパス名の所有者ＩＤ</td></tr>
+<tr><td>path1.gid</td><td>許可されるパス名のグループＩＤ</td></tr>
+<tr><td>path1.ino</td><td>許可されるパス名のｉノード番号</td></tr>
+<tr><td>path1.parent.uid</td><td>許可されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
+<tr><td>path1.parent.gid</td><td>許可されるパス名の親ディレクトリのグループＩＤ</td></tr>
+<tr><td>path1.parent.ino</td><td>許可されるパス名の親ディレクトリのｉノード番号</td></tr>
+<tr><td>path2.parent.uid</td><td>作成されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
+<tr><td>path2.parent.gid</td><td>作成されるパス名の親ディレクトリのグループＩＤ</td></tr>
+<tr><td>path2.parent.ino</td><td>作成されるパス名の親ディレクトリのｉノード番号</td></tr>
+<tr><td>exec.argc</td><td>プログラム実行時の引数の数</td></tr>
+<tr><td>exec.envc</td><td>プログラム実行時の環境変数の数</td></tr>
+<tr><td>exec.argv[index]="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value である</td></tr>
+<tr><td>exec.argv[index]!="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value ではない</td></tr>
+<tr><td>exec.envp["name"]="value"</td><td>環境変数 name が定義されており、値が value である</td></tr>
+<tr><td>exec.envp["name"]!="value"</td><td>環境変数 name が定義されていないか、あるいは値が value ではない</td></tr>
+<tr><td>exec.envp["name"]!=NULL</td><td>環境変数 name が定義されている</td></tr>
+<tr><td>exec.envp["name"]=NULL</td><td>環境変数 name が定義されていない</td></tr>
 </table>
 
-<p>task.state[0] �` task.state[2] �� 0 �` 255 �܂ł̒l���w��ł��܂��B���̒l��ݒ肷��ɂ́A�ȉ��̂悤�ɃA�N�Z�X���̎w��ɑ����� " ; set " �Ƃ�������w�肵�܂��B</p>
+<p>path1 はパス名を必要とする操作の 1 個目のパス名に対応し、 path2 はパス名を必要とする操作の 2 個目のパス名に対応します。
+例えば、「 allow_rename file1 file2 」というアクセス許可の場合、 path1 が file1 に、 path2 が file2 に対応します。</p>
+
+<p>path1.uid および path1.gid は存在しないパス名に対しては指定できません。つまり、ファイル等の作成時（ allow_create 等）には使用できません。</p>
+
+<p>path1.parent.uid および path1.parent.gid は常に指定可能です。</p>
+
+<p>path2.parent.uid および path2.parent.gid はパス名を 2 つ必要とする操作（つまり allow_link および allow_rename ）に限り指定できます。</p>
+
+<p>path2.uid および path2.gid はサポートしていません。（ rename 操作に於いて、 path2 が存在する場合には暗黙のうちに unlink または rmdir が実行されます。）</p>
+
+<p>sysctl による読み書き（ /proc/sys/ ディレクトリ以下のファイルを open ではなく sysctl を用いてアクセス）を行う場合については、 path1 path2 ともにサポートしていません。</p>
+
+<p>exec はプログラム実行時（つまり <a href="#domain_policy_allow_execute">allow_execute</a> ）に限り指定できます。</p>
+
+<h2>6.4 <a name="stateful_acl">ステートフルなアクセス許可の指定</a></h2>
+
+<p>TOMOYO Linux はユーザランドアプリケーションの修正を行わないため、プログラムの実行を伴わずにアクセス可能な資源の範囲を変更することはできません。しかし、例えば接続元クライアントのＩＰアドレスによってアクセスの可否を切り替えたいという場合があります。そのような場合に対応するため、プロセス毎に状態変数を割り当てることができ、条件付きアクセス許可の指定で使えるようになっています。</p>
 
 <table border="1">
-<tr><td>�g�p��</td><td>�Ӗ�</td></tr>
-<tr><td>allow_network TCP accept @TRUSTED_HOSTS 1024-65535 ; set task.state[0]=1</td><td>�N���C�A���g�� @TRUSTED_HOSTS �ł���ꍇ�ɂ́A state[0] �� 1 ��ݒ肵�܂��B</td></tr>
-<tr><td>allow_network TCP accept @UNTRUSTED_HOSTS 1024-65535 ; set task.state[0]=0</td><td>�N���C�A���g�� @UNTRUSTED_HOSTS �ł���ꍇ�ɂ́A state[0] �� 0 ��ݒ肵�܂��B</td></tr>
-<tr><td>allow_execute /bin/bash if task.state[0]=1</td><td>state[0] �� 1 �̏ꍇ�́A /bin/bash �̎��s�������܂��B</td></tr>
-<tr><td>allow_execute /sbin/nologin if task.state[0]=0</td><td>state[0] �� 0 �̏ꍇ�́A /sbin/nologin �̎��s�������܂��B</td></tr>
-<tr><td>allow_execute /etc/passwd if task.state[2]=0 ; set task.state[2]=1</td><td>state[2] �� 0 �̏ꍇ�� /etc/passwd �̓ǂݍ��݃��[�h�ł̃I�[�v���������A���̌� state[2] �� 1 ��ݒ肵�܂��B</td></tr>
+<tr><td>変数</td><td>意味</td></tr>
+<tr><td>task.state[0]</td><td>呼び出したプロセスの状態変数 0</td></tr>
+<tr><td>task.state[1]</td><td>呼び出したプロセスの状態変数 1</td></tr>
+<tr><td>task.state[2]</td><td>呼び出したプロセスの状態変数 2</td></tr>
 </table>
 
-<p>��ԕϐ����g�p����ۂɂ́A�ȉ��̓_�ɒ��ӂ��Ă��������B</p>
+<p>task.state[0] ～ task.state[2] は 0 ～ 255 までの値を指定できます。この値を設定するには、以下のようにアクセス許可の指定に続けて " ; set " という句を指定します。</p>
+
+<table border="1">
+<tr><td>使用例</td><td>意味</td></tr>
+<tr><td>allow_network TCP accept @TRUSTED_HOSTS 1024-65535 ; set task.state[0]=1</td><td>クライアントが @TRUSTED_HOSTS である場合には、 state[0] に 1 を設定します。</td></tr>
+<tr><td>allow_network TCP accept @UNTRUSTED_HOSTS 1024-65535 ; set task.state[0]=0</td><td>クライアントが @UNTRUSTED_HOSTS である場合には、 state[0] に 0 を設定します。</td></tr>
+<tr><td>allow_execute /bin/bash if task.state[0]=1</td><td>state[0] が 1 の場合は、 /bin/bash の実行を許可します。</td></tr>
+<tr><td>allow_execute /sbin/nologin if task.state[0]=0</td><td>state[0] が 0 の場合は、 /sbin/nologin の実行を許可します。</td></tr>
+<tr><td>allow_execute /etc/passwd if task.state[2]=0 ; set task.state[2]=1</td><td>state[2] が 0 の場合は /etc/passwd の読み込みモードでのオープンを許可し、その後 state[2] に 1 を設定します。</td></tr>
+</table>
+
+<p>状態変数を使用する際には、以下の点に注意してください。</p>
 
 <ul>
-<li>�v���Z�X�̃h���C���̓v���O�����̎��s�ɂ���Ď����I�ɕύX�����̂ɑ΂��āA�v���Z�X�̏�ԕϐ��͖����I�� " ; set " �Ƃ�����Ŏw�肳��Ȃ�����ύX����܂���B���̂��߁A��ԕϐ��̖߂��Y��ɒ��ӂ��Ă��������B</li>
-<li>��ԕϐ��̐ݒ�̓|���V�̃`�F�b�N�ɂ�苖���ꂽ���_�ōs���܂��B���̂��߁A�������s���Ȃǃ|���V�̃`�F�b�N�ȍ~�̃G���[�ɂ���āA��ԕϐ����ύX���ꂽ����ǂ��A�N�Z�X�v���͏�������Ȃ������Ƃ����󋵂����������܂��B</li>
-<li>��L�� @TRUSTED_HOSTS �� @UNTRUSTED_HOSTS �̗����Ɋ܂܂�Ă����ꍇ�A��Ɉ�v�����ق��̏�ԕϐ����g���Ă��܂��܂��B���̂��߁A���ԂɈˑ�����A�N�Z�X�����`���Ȃ��悤�ɒ��ӂ��Ă��������B</li>
+<li>プロセスのドメインはプログラムの実行によって自動的に変更されるのに対して、プロセスの状態変数は明示的に " ; set " という句で指定されない限り変更されません。そのため、状態変数の戻し忘れに注意してください。</li>
+<li>状態変数の設定はポリシのチェックにより許可された時点で行われます。そのため、メモリ不足などポリシのチェック以降のエラーによって、状態変数が変更されたけれどもアクセス要求は処理されなかったという状況が発生しえます。</li>
+<li>上記の @TRUSTED_HOSTS と @UNTRUSTED_HOSTS の両方に含まれていた場合、先に一致したほうの状態変数が使われてしまいます。そのため、順番に依存するアクセス許可を定義しないように注意してください。</li>
 </ul>
 
-<h2>6.5 <a name="sleep_penalty">�|���V�ᔽ���̃y�i���e�B�w��</a></h2>
+<h2>6.5 <a name="sleep_penalty">ポリシ違反時のペナルティ指定</a></h2>
 
-<p>�������[�h�Ń|���V�ᔽ�����������ꍇ�ɁA�|���V�ᔽ�̌����ƂȂ����v���Z�X����莞�ԃX���[�v��Ԃɂ����邱�Ƃ��ł��܂��B</p>
-
-<table border="1">
-<tr><td>/proc/ccs/profile �ł̎w���</td><td>�Ӗ�</td></tr>
-<tr><td>3-SLEEP_PERIOD=1</td><td>�v���t�@�C�� 3 �����蓖�Ă��Ă���v���Z�X���������[�h�ɉ����ă|���V�ᔽ�𔭐��������ꍇ�A 0.1 �b�ԃX���[�v�����܂��B</td></tr>
-<tr><td>4-SLEEP_PERIOD=10</td><td>�v���t�@�C�� 4 �����蓖�Ă��Ă���v���Z�X���������[�h�ɉ����ă|���V�ᔽ�𔭐��������ꍇ�A 1 �b�ԃX���[�v�����܂��B</td></tr>
-</table>
-
-<p>���̋@�\�́A�������[�v�̒��Ń|���V�ᔽ�����������ꍇ�ɁA�b�o�t�g�p���� 100% �ɂȂ��Ă��܂��̂�������邽�߂̈��S���u�ł��B�ʏ�� 0.1 �b�ԃX���[�v�����邾���ŏ[���ł��B</p>
-
-<p>���̋@�\�́A������Ă��Ȃ��z�X�g����� TCP �ڑ��v���� UDP �p�P�b�g���U���҂��̈ӂɑ�����邱�ƂŃ|���V�ᔽ�𔭐������邱�ƂŃT�[�r�X�𒷎��ԃX���[�v��Ԃɂ����邱�Ƃɂ��A������Ă���z�X�g����� TCP �ڑ��v���� UDP �p�P�b�g�̏�����啝�ɒx��������Ƃ����U�����������Ă��܂��̂�������邽�߂ɁA�l�b�g���[�N�̎�M�n�̑���ɑ΂��Ă͋@�\���Ȃ��悤�ɂȂ��Ă��܂��B</p>
-
-<h2>6.6 <a name="execute_handler">�v���O�����̎��s�ۂ��J�[�l���̊O���Ŕ��f</a></h2>
-
-<p>TOMOYO Linux �ł́A�����Ƃ��ă|���V�ɏ]���ăv���O�����̎��s�ۂ𐧌䂵�܂��B�v���O�������s���̃p�����[�^���`�F�b�N�������ꍇ�ɂ́A<a href="#conditional_acl">�����t���A�N�Z�X���̎w��</a>�Ő��������悤�� exec.argv �� exec.envp ���g���ă`�F�b�N���s�����Ƃ��ł��܂��B�������A<a href="#conditional_acl">�����t���A�N�Z�X���̎w��</a>�ł́A�P���ȃp�^�[���}�b�`�����T�|�[�g����Ă��炸�A�܂��A�ǂ̂悤�ȃv���O�����̎��s�������邩��\�ߎw�肵�Ă����K�v������܂��B</p>
-
-<p>�����ŁA TOMOYO Linux 1.6.0 �ł� <a href="#domain_policy_execute_handler">execute_handler</a> �Ƃ����d�g�݂���������܂����B���̎d�g�݂́A�v���O�����̎��s�ۂ��J�[�l�������f����̂ł͂Ȃ��A <a href="#domain_policy_execute_handler">execute_handler</a> �ɂ��w�肳�ꂽ�v���O���������f���A�v���O�����̎��s�������ׂ��Ɣ��f�����ꍇ�ɂ͎��ۂɃv���O���������s����Ƃ�����������܂��B</p>
-
-<p>Linux �ɉ����ẮA�v���O���������s����Ƃ�������́A�v���O�����̎��s��v�������v���Z�X���㏑������Ƃ�������ł���A�v���O�����̎��s�ɐ��������ꍇ�ɂ̓v���O�����̎��s��v�������v���Z�X�ɐ��䂪�߂邱�Ƃ͂���܂���B�܂�A�v�����ꂽ�v���O�����̎��s�Ɏ��s�����ꍇ�ɂ����A�v���O�����̎��s��v�������v���Z�X�ɑ΂��āA�v�����ꂽ�v���O���������s����Ȃ��������Ƃ��ʒm����܂���B<br>
-�Ⴆ�΁A�v���O�����`�Ƃ��ē��삵�Ă���v���Z�X���v���O�����a�̎��s��v������ꍇ���l���Ă݂܂��B<br>
-�v���O�����`�Ƃ��ē��삵�Ă���v���Z�X���v���O�����a�̎��s��v������ƁA�J�[�l�����u�v���O�����`�Ƃ��ē��삵�Ă���v���Z�X����v���O�����a�����s���邱�Ƃ͓K�؂ł��邩�ǂ����v���|���V���ƍ����邱�ƂŔ��f���A�K�؂ł���Ɣ��f���ꂽ�ꍇ�ɂ́u�v���O�����`�Ƃ��ē��삵�Ă���v���Z�X���v���O�����a�ŏ㏑���v���A�K�؂ł͖����Ɣ��f���ꂽ�ꍇ�ɂ́u�v���O�����`�Ƃ��ē��삵�Ă���v���Z�X�Ƀv���O�����a�̎��s���F�߂��Ă��Ȃ����Ƃ�ʒm�v���܂��B</p>
-
-<p><a href="#domain_policy_execute_handler">execute_handler</a> ���w�肵���ꍇ�A execute_handler �Ƃ��Ďw�肳�ꂽ�v���O�����b�����̓���ɉ�݂��܂��B<br>
-�v���O�����`�Ƃ��ē��삵�Ă���v���Z�X���v���O�����a�̎��s��v������ƁA�v���O�����b�Ɂu�v���O�����`�Ƃ��ē��삵�Ă���v���Z�X����v���O�����a�����s���邱�Ƃ͓K�؂ł��邩�ǂ����v�𔻒f���Ă��炤���߂Ɂu�v���O�����`�Ƃ��ē��삵�Ă���v���Z�X���v���O�����b�ŏ㏑���v���܂��B�v���O�����b�Ƃ��ē��삷��悤�ɂȂ����v���Z�X���u�v���O�����`�Ƃ��ē��삵�Ă����v���Z�X����v���O�����a�����s���邱�Ƃ͓K�؂ł��邩�ǂ����v�𔻒f���A�K�؂ł���Ɣ��f�����ꍇ�ɂ́u�v���O�����b�Ƃ��ē��삵�Ă���v���Z�X���v���O�����a�ŏ㏑���v���A�K�؂ł͖����Ɣ��f���ꂽ�ꍇ�ɂ́u�v���O�����b�Ƃ��ē��삵�Ă���v���Z�X���v���O�����a�ŏ㏑�������ɏI���v���܂��B</p>
-
-<p>���̂悤�ɁA�v���O�����a�̎��s��v�������v���O�����`�Ƃ��ē��삵�Ă����v���Z�X���ɑ΂��āA�v���O�����a�̎��s�Ɏ��s�������Ƃ�ʒm�����i��������邱�ƂɂȂ邽�߁A�v���O�����a�̎��s��v�������v���O�����`�Ƃ��ē��삵�Ă����v���Z�X���A�v���O�����a�����s����Ȃ������Ƃ����ʒm���󂯂邱�Ƃ��ł��Ȃ��Ȃ�Ƃ�������p���������܂��B<br>
-�������A���Ƃ� <a href="#domain_policy_execute_handler">execute_handler</a> ���w�肵�Ă��Ȃ��ꍇ�ł����Ă��A�u���L���C�u�����̓ǂݍ��݂��ł��Ȃ������v�u KILL �V�O�i������M�����v�u�������s���ɂȂ� OOM killer �ɂ���ċ����I��������ꂽ�v�ȂǁA�l�X�ȗv���ɂ���āu���s�ɂ͐������������҂��ꂽ������n�߂�O�ɏI�����Ă��܂����v�Ƃ����󋵂��N���肦�܂��B�܂�A�u�v���O�����̎��s�����s���Ȃ������v�Ƃ������ƂƁu�v�����ꂽ�v���O���������҂���������n�߂��v�Ƃ������Ƃ̊Ԃɂ́A�s�m��v�f�����݂��܂��B<br>
-�����l����ƁA�u�v���O�����̎��s�Ɏ��s�����Ƃ����ʒm����������v���O�����͊��҂��ꂽ������n�߂�v�Ƃ����ۏ؂͍ŏ����瑶�݂��Ȃ��킯�Ȃ̂ŁA <a href="#domain_policy_execute_handler">execute_handler</a> �ɂ��w�肳�ꂽ�v���O�����b���A�v���O�����a�̎��s�Ɏ��s�������Ƃ��v���O�����a�̎��s��v�������v���O�����`�Ƃ��ē��삵�Ă����v���Z�X�ɒʒm�ł��Ȃ������Ƃ������ʂɂȂ����Ƃ��Ă��A�e�F�ł���͈͂ł���ƌ�����Ǝv���܂��B</p>
-
-<p>TOMOYO Linux �́A�ǂ̃v���O��������ǂ̃v���O���������s����K�v�����邩�����O�ɔc�����āA�K�v�ŏ����̃v���O�����̎��s�݂̂�F�߂�Ƃ����A�v���[�`���̗p���Ă��܂��B���̂��߁A����ȓ�������Ă������A�|���V�ŋ�����Ă��Ȃ��v���O�����̎��s�v���͋N����Ȃ��͂����Ɖ��肷��ƁA�S�Ẵv���O�����̎��s�v�����Ƃ肠�����󗝂��č\��Ȃ��ƍl���邱�Ƃ��ł��܂��B�������󗝂��ׂ��ł͂Ȃ��v���O�����̎��s�v�������������ꍇ�A <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> �̋@�\���g�����Ƃŗv�������ۂ������ɂ��̃v���Z�X�������I��������Ȃǂ̍s�����N�������Ƃ��ł��܂��B�܂�A�J�[�l���̓����Ńv���O�����̎��s�ۂ̔��f���s��Ȃ��Ă��\��Ȃ��Ƃ������Ƃł��B</p>
-
-<p>�����ŁA�h���C���ɑ΂��� <a href="#domain_policy_execute_handler">execute_handler</a> �L�[���[�h���w�肵�Ă������ƂŁA���̃h���C�����甭������S�Ẵv���O�����̎��s�ۂ̔��f���J�[�l���O���̃v���O�����Ɉς˂邱�Ƃ��ł���悤�ɂȂ�܂��B</p>
-<p>�J�[�l���̓����ł͗��p�\�ȃ��C�u���������Ȃ���ɘA�������������̈�̊��蓖�Ă����s����\���������Ȃ�܂����A
-�J�[�l���̊O���ł���ΖL�x�ȃ��C�u�������g���ă��������蓖�Ă̌��E��S�z�����ɏڍׂȃ`�F�b�N���\�ɂȂ�܂��B�����ŁA <a href="#domain_policy_execute_handler">execute_handler</a> �Ŏw�肵���v���O�����Ƀv���O�������s���̃p�����[�^���`�F�b�N���Ă��炢�A�K�؂ł���΃v���O���������s���Ă��炤�悤�ɂ��邱�Ƃ��ł��܂��B</p>
-
-<p>���̕����̕���p�́A�v���O�����̎��s�����ۂ��ׂ��Ɣ��f�����ꍇ�ɁA�v���O�����̎��s��v�������v���Z�X�ɒʒm������@�������_�ł��B�������A���R�ɃJ�X�^�}�C�Y�ł���̂ŁA ssh ����p���ĉ��u�n�̃}�V���ɖ₢���킹�����Ȃ��炵�Ȃ��画�f���邱�Ƃ��\�ł��B</p>
-
-<p>���̋@�\���g���ɂ́A�ȉ��̂悤�Ɏw�肵�܂��B</p>
+<p>強制モードでポリシ違反が発生した場合に、ポリシ違反の原因となったプロセスを一定時間スリープ状態にさせることができます。</p>
 
 <table border="1">
-<tr><td>/proc/ccs/domain_policy �̗�</td><td>�Ӗ�</td></tr>
-<tr><td>execute_handler /usr/sbin/check-and-exec</td><td>���̃h���C���ɑ����Ă���v���Z�X���v���O�����̎��s��v�������ꍇ�A�v�����ꂽ�v���O���������s�������� /usr/sbin/check-and-exec �����s���܂��B /usr/sbin/check-and-exec �̓p�����[�^���`�F�b�N���A�Ó��Ɣ��f�����ꍇ�ɂ͗v�����ꂽ�v���O���������s���܂��B</td></tr>
+<tr><td>/proc/ccs/profile での指定例</td><td>意味</td></tr>
+<tr><td>3-SLEEP_PERIOD=1</td><td>プロファイル 3 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 0.1 秒間スリープさせます。</td></tr>
+<tr><td>4-SLEEP_PERIOD=10</td><td>プロファイル 4 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 1 秒間スリープさせます。</td></tr>
 </table>
 
-<p>execute_handler �Ŏw�肳�ꂽ�v���O�����́A�ȉ��̃p�����[�^���󂯎��܂��B<a href="#access_logs">�A�N�Z�X���O�ɂ���</a>�Ő��������A allow_execute �̃��O�Ɣ�r���Ă݂Ă��������B</p>
+<p>この機能は、無限ループの中でポリシ違反が発生した場合に、ＣＰＵ使用率が 100% になってしまうのを回避するための安全装置です。通常は 0.1 秒間スリープさせるだけで充分です。</p>
+
+<p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシ違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
+
+<h2>6.6 <a name="execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h2>
+
+<p>TOMOYO Linux では、原則としてポリシに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">条件付きアクセス許可の指定</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
+
+<p>そこで、 TOMOYO Linux 1.6.0 では <a href="#domain_policy_execute_handler">execute_handler</a> という仕組みが導入されました。この仕組みは、プログラムの実行可否をカーネルが判断するのではなく、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムが判断し、プログラムの実行を許可すべきと判断した場合には実際にプログラムを実行するという動作をします。</p>
+
+<p>Linux に於いては、プログラムを実行するという動作は、プログラムの実行を要求したプロセスを上書きするという動作であり、プログラムの実行に成功した場合にはプログラムの実行を要求したプロセスに制御が戻ることはありません。つまり、要求されたプログラムの実行に失敗した場合にしか、プログラムの実行を要求したプロセスに対して、要求されたプログラムが実行されなかったことが通知されません。<br>
+例えば、プログラムＡとして動作しているプロセスがプログラムＢの実行を要求する場合を考えてみます。<br>
+プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、カーネルが「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」をポリシを照合することで判断し、適切であると判断された場合には「プログラムＡとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＡとして動作しているプロセスにプログラムＢの実行が認められていないことを通知」します。</p>
+
+<p><a href="#domain_policy_execute_handler">execute_handler</a> を指定した場合、 execute_handler として指定されたプログラムＣがこの動作に介在します。<br>
+プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、プログラムＣに「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」を判断してもらうために「プログラムＡとして動作しているプロセスをプログラムＣで上書き」します。プログラムＣとして動作するようになったプロセスが「プログラムＡとして動作していたプロセスからプログラムＢを実行することは適切であるかどうか」を判断し、適切であると判断した場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書きせずに終了」します。</p>
+
+<p>このように、プログラムＢの実行を要求したプログラムＡとして動作していたプロセスがに対して、プログラムＢの実行に失敗したことを通知する手段を放棄することになるため、プログラムＢの実行を要求したプログラムＡとして動作していたプロセスが、プログラムＢが実行されなかったという通知を受けることができなくなるという副作用が発生します。<br>
+しかし、たとえ <a href="#domain_policy_execute_handler">execute_handler</a> を指定していない場合であっても、「共有ライブラリの読み込みができなかった」「 KILL シグナルを受信した」「メモリ不足になり OOM killer によって強制終了させられた」など、様々な要因によって「実行には成功したが期待された動作を始める前に終了してしまった」という状況が起こりえます。つまり、「プログラムの実行が失敗しなかった」ということと「要求されたプログラムが期待した動作を始めた」ということの間には、不確定要素が存在します。<br>
+そう考えると、「プログラムの実行に失敗したという通知が無い限りプログラムは期待された動作を始める」という保証は最初から存在しないわけなので、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムＣが、プログラムＢの実行に失敗したことをプログラムＢの実行を要求したプログラムＡとして動作していたプロセスに通知できなかったという結果になったとしても、容認できる範囲であると言えると思います。</p>
+
+<p>TOMOYO Linux は、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、正常な動作をしている限り、ポリシで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求をとりあえず受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、 <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
+
+<p>そこで、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
+<p>カーネルの内部では利用可能なライブラリが少ない上に連続したメモリ領域の割り当てが失敗する可能性が高くなりますが、
+カーネルの外部であれば豊富なライブラリを使ってメモリ割り当ての限界を心配せずに詳細なチェックが可能になります。そこで、 <a href="#domain_policy_execute_handler">execute_handler</a> で指定したプログラムにプログラム実行時のパラメータをチェックしてもらい、適切であればプログラムを実行してもらうようにすることができます。</p>
+
+<p>この方式の副作用は、プログラムの実行を拒否すべきと判断した場合に、プログラムの実行を要求したプロセスに通知する方法が無い点です。しかし、自由にカスタマイズできるので、 ssh 等を用いて遠隔地のマシンに問い合わせをしながらしながら判断することも可能です。</p>
+
+<p>この機能を使うには、以下のように指定します。</p>
+
+<table border="1">
+<tr><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
+<tr><td>execute_handler /usr/sbin/check-and-exec</td><td>このドメインに属しているプロセスがプログラムの実行を要求した場合、要求されたプログラムを実行する代わりに /usr/sbin/check-and-exec を実行します。 /usr/sbin/check-and-exec はパラメータをチェックし、妥当と判断した場合には要求されたプログラムを実行します。</td></tr>
+</table>
+
+<p>execute_handler で指定されたプログラムは、以下のパラメータを受け取ります。<a href="#access_logs">アクセスログについて</a>で説明した、 allow_execute のログと比較してみてください。</p>
 
 <ul>
-<li>argv[0] �ɂ́A execute_handler �Ŏw�肳�ꂽ�v���O�����̃p�X���������Ă��܂��B</li>
-<li>argv[1] �ɂ́A�v���O�����̎��s��v�������v���Z�X�̃h���C�����������Ă��܂��B</li>
-<li>argv[2] �ɂ́A�v���O�����̎��s��v�������v���Z�X�̃p�X���������Ă��܂��B</li>
-<li>argv[3] �ɂ́A�v���O�����̎��s��v�������v���Z�X�̏�񂪓����Ă��܂��B</li>
-<li>argv[4] �ɂ́A���s���v�����ꂽ�v���O�����̃p�X���������Ă��܂��B</li>
-<li>argv[5] �ɂ́A�v���O�������s�v�����̈����̐��������Ă��܂��B</li>
-<li>argv[6] �ɂ́A�v���O�������s�v�����̊��ϐ��̐��������Ă��܂��B</li>
-<li>argv[7] ���� argv[6 + argc] �ɂ́A�Ăяo�����v���Z�X���n���� argv[] �̓��e�������Ă��܂��B</li>
-<li>argv[7 + argc] ���� argv [6 + argc + envc] �ɂ́A�Ăяo�����v���Z�X���n���� envp[] �̓��e�������Ă��܂��B</li>
-<li>���ϐ� envp[] �͑S�ăN���A����܂��B</li>
-<li>�W�����o�͂Ȃǂ͌Ăяo�����v���Z�X�̂��̂������p���܂��B</li>
+<li>argv[0] には、 execute_handler で指定されたプログラムのパス名が入っています。</li>
+<li>argv[1] には、プログラムの実行を要求したプロセスのドメイン名が入っています。</li>
+<li>argv[2] には、プログラムの実行を要求したプロセスのパス名が入っています。</li>
+<li>argv[3] には、プログラムの実行を要求したプロセスの情報が入っています。</li>
+<li>argv[4] には、実行が要求されたプログラムのパス名が入っています。</li>
+<li>argv[5] には、プログラム実行要求時の引数の数が入っています。</li>
+<li>argv[6] には、プログラム実行要求時の環境変数の数が入っています。</li>
+<li>argv[7] から argv[6 + argc] には、呼び出し元プロセスが渡した argv[] の内容が入っています。</li>
+<li>argv[7 + argc] から argv [6 + argc + envc] には、呼び出し元プロセスが渡した envp[] の内容が入っています。</li>
+<li>環境変数 envp[] は全てクリアされます。</li>
+<li>標準入出力などは呼び出し元プロセスのものを引き継ぎます。</li>
 </ul>
 
-<p>���̋@�\���g�p����ۂɂ́A�ȉ��̓_�ɒ��ӂ��Ă��������B</p>
+<p>この機能を使用する際には、以下の点に注意してください。</p>
 
 <ul>
-<li>execute_handler �Ŏw�肳�ꂽ�v���O�����ɑ΂��Ď��s���i <a href="#domain_policy_allow_execute">allow_execute</a> �j��^����K�v�͂���܂��񂵁A�^����ׂ��ł͂���܂���B</li>
-<li>�v���Z�X�� chroot �����̊��œ��삵�Ă���ꍇ�A execute_handler �Ŏw�肳�ꂽ�v���O������������Ȃ����߂Ɏ��s����Ȃ��ꍇ������܂��B����́A�v���Z�X�� chroot �����̊��œ��삵�Ă���ꍇ�ɁA chroot �O���̊��ɂ���v���O���������s�ł��Ă��܂��Ɗ댯�Ȃ̂ŁA execute_handler �Ŏw�肳�ꂽ�v���O�����́A�v���Z�X�̖��O��Ԃ̃��[�g�f�B���N�g���ł͂Ȃ��A�v���Z�X�̃��[�g�f�B���N�g�����猟������悤�ɂȂ��Ă��邽�߂ł��B</li>
-<li>execute_handler �Ŏw�肳�ꂽ�v���O���������삷�邽�߂̃h���C�������݂��Ȃ��ꍇ�A���s����܂���B���̂��߁A�Ⴆ�� &lt;kernel&gt; ������ execute_handler �Ŏw�肳�ꂽ�v���O�����p�̃h���C�����쐬���āA���̃v���O������ <a href="#exception_policy_initialize_domain">initialize_domain</a> �L�[���[�h�Ŏw�肷��Ȃǂ̏��������Ă��������B</li>
-<li>execute_handler �Ŏw�肳�ꂽ�v���O�����͊��ϐ��̉e�����󂯂�̂�����邽�߁A�S�Ă̊��ϐ��̓��e���N���A������ԂŋN������܂��B���̂��߁A���ϐ� PATH �����ݒ肳��Ă��Ȃ��̂ŁA�O���R�}���h���Ăяo���ꍇ�ɂ͒��ӂ��Ă��������B�܂��A execute_handler �Ŏw�肳�ꂽ�v���O���������삷��h���C���ɂ��������[�h�p�̃v���t�@�C�������蓖�ĂĂ������Ƃ𐄏����܂��B</li>
+<li>execute_handler で指定されたプログラムに対して実行許可（ <a href="#domain_policy_allow_execute">allow_execute</a> ）を与える必要はありませんし、与えるべきではありません。</li>
+<li>プロセスが chroot 内部の環境で動作している場合、 execute_handler で指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスが chroot 内部の環境で動作している場合に、 chroot 外部の環境にあるプログラムを実行できてしまうと危険なので、 execute_handler で指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
+<li>execute_handler で指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば &lt;kernel&gt; 直下に execute_handler で指定されたプログラム用のドメインを作成して、そのプログラムを <a href="#exception_policy_initialize_domain">initialize_domain</a> キーワードで指定するなどの準備をしてください。</li>
+<li>execute_handler で指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、 execute_handler で指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
 </ul>
 
-<p>ccs-tools �̃\�[�X�p�b�P�[�W�ɂ́A audit-exec-param.c �Ƃ����T���v���v���O�����������Ă��܂��B�����R�ɉ������Ă��g�����������B</p>
-<p>���̋@�\�́A�@�\��񋟂��Ă��邾���ł��B���̋@�\�����p�ł��邩�ǂ����͂��Ȃ�����ł��B</p>
+<p>ccs-tools のソースパッケージには、 audit-exec-param.c というサンプルプログラムが入っています。ご自由に改造してお使いください。</p>
+<p>この機能は、機構を提供しているだけです。この機構を活用できるかどうかはあなた次第です。</p>
 
-<h2>6.7 <a name="denied_execute_handler">������Ă��Ȃ��v���O�����̎��s���v�����ꂽ�ꍇ�̑�֏����w��</a></h2>
+<h2>6.7 <a name="denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></h2>
 
-<p>TOMOYO Linux �ł́A�ǂ̃v���O��������ǂ̃v���O���������s����K�v�����邩�����O�ɔc�����āA�K�v�ŏ����̃v���O�����̎��s�݂̂�F�߂�Ƃ����A�v���[�`���̗p���Ă��܂��B���̂��߁A�s�v�ȃv���O�����̎��s�����ۂ���Ƃ����U�镑�������łȂ��A����ȊO�̐U�镑�����s�����Ƃ��ł��܂��B</p>
+<p>TOMOYO Linux では、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、不要なプログラムの実行を拒否するという振る舞いだけでなく、それ以外の振る舞いを行うこともできます。</p>
 
-<p>�������[�h�ɉ����� allow_execute �\���ɂ�苖����Ă��Ȃ��v���O�����̎��s���v�����ꂽ�ꍇ�A�f�t�H���g�ł̓v���O�����̎��s�����ۂ��܂��B�������A����v���O��������ǂ̃v���O�����̎��s��������K�v�����邩��c���ς݂ł���Ƃ����O�񂪂���΁A�v���Z�X������ȓ�������Ă������ɉ����ċ�����Ă��Ȃ��v���O�����̎��s���v������邱�Ƃ͖����̂ŁA������Ă��Ȃ��v���O�����̎��s���v�����ꂽ�Ƃ������Ƃ̓v���Z�X������ȓ�������Ă��Ȃ��i�܂�A�v���Z�X�ɂƂ��Ă͐������������Ԃł���j�Ƃ݂Ȃ����Ƃ��ł��܂��B</p>
+<p>強制モードに於いて allow_execute 構文により許可されていないプログラムの実行が要求された場合、デフォルトではプログラムの実行を拒否します。しかし、あるプログラムからどのプログラムの実行を許可する必要があるかを把握済みであるという前提があれば、プロセスが正常な動作をしている限りに於いて許可されていないプログラムの実行が要求されることは無いので、許可されていないプログラムの実行が要求されたということはプロセスが正常な動作をしていない（つまり、プロセスにとっては制御を失った状態である）とみなすことができます。</p>
 
-<p>�U���҂̓o�b�t�@�I�[�o�[�t���[�Ȃǂ̃Z�L�����e�B�z�[�����U�����邱�ƂŃv���Z�X�̐����D���A�V�F���Ȃǂ̃R�}���h�̎��s��v�����Ă��܂��B�����A���̃v���Z�X����V�F���̎��s��������K�v�������i���Ȃ킿 allow_execute /bin/bash �̂悤�ȃA�N�Z�X����^����K�v�������j�̂ł���΁A�V�F���̎��s���v�����ꂽ���_�Ŋ��Ƀv���Z�X�ɂƂ��Ă͐���������Ă���ƍl���邱�Ƃ��ł��܂��B</p>
+<p>攻撃者はバッファオーバーフローなどのセキュリティホールを攻撃することでプロセスの制御を奪い、シェルなどのコマンドの実行を要求してきます。もし、そのプロセスからシェルの実行を許可する必要が無い（すなわち allow_execute /bin/bash のようなアクセス許可を与える必要が無い）のであれば、シェルの実行が要求された時点で既にプロセスにとっては制御を失っていると考えることができます。</p>
 
-<p>�ʏ�A������Ă��Ȃ��v���O�����̎��s���v�����ꂽ�ꍇ�́A���̗v�������ۂ��邾���ł��B�������A����������Ă���v���Z�X����v�����ꂽ�v���O�����̎��s�v�������ۂ����Ƃ���ŁA���̃v���Z�X�̐��䂪���߂����i�܂�A����ȓ��������悤�ɂȂ�j�Ƃ͍l�����܂���B�������A�v���O���������s����Ƃ������Ƃ́A���ݓ��쒆�̃v���Z�X��V�����v���O�����ɒu�������邱�ƂŁA�����V�����v���O�����ɏ��n���邱�Ƃ��Ӗ����܂��B�܂�A����v���Z�X���o�b�t�@�I�[�o�[�t���[�Ȃǂɂ�萧��������Ă����Ƃ��Ă��A�v���O���������s���邱�Ƃɂ��A���̃v���Z�X�̐��䂪���߂����킯�ł��B</p>
+<p>通常、許可されていないプログラムの実行が要求された場合は、その要求を拒否するだけです。しかし、制御を失っているプロセスから要求されたプログラムの実行要求を拒否したところで、そのプロセスの制御が取り戻される（つまり、正常な動作をするようになる）とは考えられません。しかし、プログラムを実行するということは、現在動作中のプロセスを新しいプログラムに置き換えることで、制御を新しいプログラムに譲渡することを意味します。つまり、あるプロセスがバッファオーバーフローなどにより制御を失っていたとしても、プログラムを実行することにより、そのプロセスの制御が取り戻されるわけです。</p>
 
-<p>�U���҂̎�ɂ���Đ�����������v���Z�X����v���O���������s���ꂽ��̐���́A�ǂ̃v���O���������s���ꂽ���ɂ���Č��܂�܂��B�V�F�������s���ꂽ�ꍇ�ɂ́A�V�F���̓��[�U���v�������Ƃ���ɏ��������s���Ă��܂����߁A�v���O�����̎��s��v�������v���Z�X�̏��L�҂ł���U���҂̎�Ɉς˂��Ă��܂��킯�ł��B�������A���������ɏI������悤�ȃv���O�����i�Ⴆ�� /bin/true �j�����s���ꂽ�ꍇ�ɂ́A�v���Z�X�̐��䂪�U���҂̎�Ɉς˂��Ă��܂����Ƃ͂���܂���B</p>
+<p>攻撃者の手によって制御を失ったプロセスからプログラムが実行された後の制御は、どのプログラムが実行されたかによって決まります。シェルが実行された場合には、シェルはユーザが要求したとおりに処理を実行してしまうため、プログラムの実行を要求したプロセスの所有者である攻撃者の手に委ねられてしまうわけです。しかし、何もせずに終了するようなプログラム（例えば /bin/true ）が実行された場合には、プロセスの制御が攻撃者の手に委ねられてしまうことはありません。</p>
 
-<p>���̂悤�ɁA�U���҂̎�ɂ���Ė{��������K�v�̖����v���O�����̎��s���v�������Ƃ����o�����́A������ς���ƁA�U���Ҏ��g����������߂����߂̃`�����X��^���Ă���Ă���ƍl���邱�Ƃ��ł��܂��B�����ŁA TOMOYO Linux �ł́A������Ă��Ȃ��v���O�����̎��s���v�����ꂽ�ꍇ�A���̗v�������ۂ������ɑ��̃v���O���������s���邽�߂̋@�\��񋟂��Ă��܂��B���̋@�\��p���ĉ������邩�̓V�X�e���Ǘ��҂̎��R�ł��B</p>
+<p>このように、攻撃者の手によって本来許可する必要の無いプログラムの実行が要求されるという出来事は、見方を変えると、攻撃者自身が制御を取り戻すためのチャンスを与えてくれていると考えることができます。そこで、 TOMOYO Linux では、許可されていないプログラムの実行が要求された場合、その要求を拒否する代わりに他のプログラムを実行するための機構を提供しています。この機構を用いて何をするかはシステム管理者の自由です。</p>
 
-<p>�Ⴆ�΁A�V�F���̎��s�v���� /bin/true �̎��s�v���ɍ����ւ��Ă��܂����ƂŁA���̃v���Z�X�𒼂��ɋ����I�������邱�Ƃ��ł��܂��B</p>
+<p>例えば、シェルの実行要求を /bin/true の実行要求に差し替えてしまうことで、そのプロセスを直ちに強制終了させることができます。</p>
 
-<p>�Ⴆ�΁A�V�F���̎��s�v�����n�j�[�|�b�g�N���C�A���g�v���O�����̎��s�v���ɍ����ւ��Ă��܂����ƂŁA�U���҂��ǂ̂悤�ȃ��N�G�X�g���s�������ώ@���邱�Ƃ��ł��܂��B</p>
+<p>例えば、シェルの実行要求をハニーポットクライアントプログラムの実行要求に差し替えてしまうことで、攻撃者がどのようなリクエストを行うかを観察することができます。</p>
 
-<p>�Ⴆ�΁A���̃��O�C���Z�b�V�����������I�������邱�Ƃ��ł��܂��B</p>
+<p>例えば、そのログインセッションを強制終了させることができます。</p>
 
-<p>�Ⴆ�΁A�v�����ꂽ�R�}���h���ǂ̃p�b�P�[�W�Ɋ܂܂�Ă��邩�������Ă���� Ubuntu �� command-not-found �p�b�P�[�W�̂悤�ɁA�u You are not permitted to execute this program. �v�̂悤�Ȍx����\�����邱�Ƃ��ł��܂��B</p>
+<p>例えば、要求されたコマンドがどのパッケージに含まれているかを教えてくれる Ubuntu の command-not-found パッケージのように、「 You are not permitted to execute this program. 」のような警告を表示することができます。</p>
 
-<p>�Ⴆ�΁A�U���҂̐ڑ����h�o�A�h���X������o���āA�t�@�C�A�E�H�[���̐ݒ��ύX���邱�Ƃ��ł��܂��B</p>
+<p>例えば、攻撃者の接続元ＩＰアドレスを割り出して、ファイアウォールの設定を変更することができます。</p>
 
-<p>���̋@�\���g���ɂ́A�ȉ��̂悤�Ɏw�肵�܂��B</p>
+<p>この機能を使うには、以下のように指定します。</p>
 
 <table border="1">
-<tr><td>/proc/ccs/profile �̗�</td><td>/proc/ccs/domain_policy �̗�</td><td>�Ӗ�</td></tr>
-<tr><td>3-MAC_FOR_FILE=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>�v���t�@�C�� 3 �����蓖�Ă��Ă���h���C���ɑ����Ă���v���Z�X���A������Ă��Ȃ��v���O�����̎��s��v�������ꍇ�A����� /bin/true �����s���܂��B</td></tr>
+<tr><td>/proc/ccs/profile の例</td><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
+<tr><td>3-MAC_FOR_FILE=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
 </table>
 
-<p>���̋@�\���g�p����ۂ̒��ӎ�����<a href="#execute_handler">�v���O�����̎��s�ۂ��J�[�l���̊O���Ŕ��f</a>�Ɠ����ł��B</p>
+<p>この機能を使用する際の注意事項は<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>と同じです。</p>
 
 <hr>
-<p><a href="index.html#manual">�ڎ��֖߂�</a></p>
+<p><a href="index.html#manual">目次へ戻る</a></p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>

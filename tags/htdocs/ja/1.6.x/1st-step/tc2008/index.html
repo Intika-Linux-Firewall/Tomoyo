@@ -1,68 +1,68 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="ja">
+<html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux �����菇�� �iTurbolinux Client 2008�Łj</title>
+<title>TOMOYO Linux 導入手順書 （Turbolinux Client 2008版）</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 </head>
 <body>
 
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> �����菇�� �iTurbolinux Client 2008�Łj</h1>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （Turbolinux Client 2008版）</h1>
 
 <ul>
-<li><a href="#l1">���̃y�[�W�ɂ���</a></li>
-<li><a href="#l2">TOMOYO Linux �p�c�[���̃C���X�g�[��</a></li>
-<li><a href="#l3">�|���V�[�̏����ݒ�</a>
-<li><a href="#l4">�w�K���[�h�ւ̐؂�ւ�</a></li>
-<li><a href="#l5">�w�K���ʂ̊m�F</a></li>
-<li><a href="#l6">�������[�h�ւ̐؂�ւ�</a></li>
-<li><a href="#l7">���</a></li>
+<li><a href="#l1">このページについて</a></li>
+<li><a href="#l2">TOMOYO Linux 用ツールのインストール</a></li>
+<li><a href="#l3">ポリシーの初期設定</a>
+<li><a href="#l4">学習モードへの切り替え</a></li>
+<li><a href="#l5">学習結果の確認</a></li>
+<li><a href="#l6">強制モードへの切り替え</a></li>
+<li><a href="#l7">情報源</a></li>
 </ul>
 
 
-<h2><a name="l1">���̃y�[�W�ɂ���</a></h2>
+<h2><a name="l1">このページについて</a></h2>
 
-<p>�ȉ��ł́A Turbolinux Client 2008 �� TOMOYO Linux 1.6.3 �𗘗p����菇��������܂��B
-���̎菇���ɏ]���đ��삷��΁A TOMOYO Linux �̊�{�I�ȋ@�\��̌����A�ȒP�Ȑݒ�Ɖ^�p���s����悤�ɂȂ�܂��B</p>
+<p>以下では、 Turbolinux Client 2008 で TOMOYO Linux 1.6.3 を利用する手順を解説します。
+この手順書に従って操作すれば、 TOMOYO Linux の基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
-<h2><a name="l2">TOMOYO Linux �p�c�[���̃C���X�g�[��</a></h2>
+<h2><a name="l2">TOMOYO Linux 用ツールのインストール</a></h2>
 
-<p>�ŏ��ɁA TOMOYO Linux �p�̃c�[�����C���X�g�[������K�v������܂��B TOMOYO Linux �p�̃c�[���ɂ́A TOMOYO Linux �̃|���V�[���Ǘ����邽�߂̃v���O�������܂܂�Ă��܂��B</p>
+<p>最初に、 TOMOYO Linux 用のツールをインストールする必要があります。 TOMOYO Linux 用のツールには、 TOMOYO Linux のポリシーを管理するためのプログラムが含まれています。</p>
 
-<p>�Ǘ��җp�̃R���\�[������A ccs-tools �p�b�P�[�W���_�E�����[�h���ăC���X�g�[�����Ă��������B<br>
-�Ǘ��җp�̃R���\�[�����J���ɂ́A�uSTART�v���u�V�X�e���v���u���̑��̃A�v���P�[�V�����v���u�R���\�[���i�Ǘ��҃��[�h�j�v�̏��ԂɃ��j���[��I�����Ă��������B</p>
+<p>管理者用のコンソールから、 ccs-tools パッケージをダウンロードしてインストールしてください。<br>
+管理者用のコンソールを開くには、「START」→「システム」→「その他のアプリケーション」→「コンソール（管理者モード）」の順番にメニューを選択してください。</p>
 
 <p><img alt="Opening console as root user" title="Opening console as root user" width="800" height="600" src="rootconsole.png"></p>
 
-<p>�ȉ��̃t�@�C�����_�E�����[�h���ăC���X�g�[�����Ă��������B</p>
+<p>以下のファイルをダウンロードしてインストールしてください。</p>
 
 <pre>
 # <span class="user">wget http://www.turbolinux.co.jp/download/ccs-tools-1.6.3-4mnb1.i586.rpm</span>
 # <span class="user">rpm -ivh ccs-tools-1.6.3-4mnb1.i586.rpm</span>
 </pre>
 
-<h2><a name="l3">�|���V�[�̏����ݒ�</a></h2>
+<h2><a name="l3">ポリシーの初期設定</a></h2>
 
-<p>���̏͂Ő������Ă�����e��ݒ肷�邽�߂̃X�N���v�g���t�����Ă���̂ŁA�Ǘ��җp�̃R���\�[������ȉ��̂悤�Ɏ��s���Ă��������B</p>
+<p>この章で説明している内容を設定するためのスクリプトが付属しているので、管理者用のコンソールから以下のように実行してください。</p>
 
 <pre># <span class="user">/usr/lib/ccs/init_policy.sh --file-only-profile</span></pre>
 
-<p>init_policy.sh �̎��s�ɂ͂��΂炭���Ԃ��|����܂��B���ɂ���Ă͂P�O���ȏ��v����ꍇ������܂��B</p>
+<p>init_policy.sh の実行にはしばらく時間が掛かります。環境によっては１０分以上を要する場合もあります。</p>
 
-<p>�ȏ�ŏ��������ł��B�V�X�e�����ċN�����Ă��������B</p>
+<p>以上で準備完了です。システムを再起動してください。</p>
 
 <pre># <span class="user">reboot</span></pre>
 
-<h3>�ݒ�̕ۑ��f�B���N�g���ɂ���</h3>
+<h3>設定の保存ディレクトリについて</h3>
 
-<p>TOMOYO Linux�̐ݒ��ۑ�����f�B���N�g���� /etc/ccs/ �ł��B</p>
+<p>TOMOYO Linuxの設定を保存するディレクトリは /etc/ccs/ です。</p>
 
-<h3>�v���t�@�C���ɂ���</h3>
+<h3>プロファイルについて</h3>
 
-<p>TOMOYO Linux �ɂ͑����̋@�\������A�ǂ̋@�\��L���^�����ɂ���̂��̐ݒ���v���t�@�C���ƌĂт܂��B�v���t�@�C���͕����쐬���Đ؂�ւ��Ďg�����Ƃ��ł��܂��B���ׂẴv���t�@�C���� /etc/ccs/profile.conf �Ƃ����P��̃t�@�C���ɕۑ����܂��B</p>
+<p>TOMOYO Linux には多くの機能があり、どの機能を有効／無効にするのかの設定をプロファイルと呼びます。プロファイルは複数作成して切り替えて使うことができます。すべてのプロファイルは /etc/ccs/profile.conf という単一のファイルに保存します。</p>
 
-<p>����̓t�@�C���ɑ΂���A�N�Z�X����̋@�\�݂̂𗘗p���邽�߁A /etc/ccs/profile.conf �̓��e�͈ȉ��̂悤�Ȃ��Ă���͂��ł��B</p>
+<p>今回はファイルに対するアクセス制御の機能のみを利用するため、 /etc/ccs/profile.conf の内容は以下のようなっているはずです。</p>
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
@@ -79,37 +79,37 @@
 3-TOMOYO_VERBOSE=enabled
 </pre>
 
-<p>/etc/ccs/profile.conf �̍\�����ȉ��Ɏ����܂��B</p>
+<p>/etc/ccs/profile.conf の構文を以下に示します。</p>
 
 <pre>
-�i�v���t�@�C���ԍ��j-�i�ݒ荀�ځj=�i���䃂�[�h�j
+（プロファイル番号）-（設定項目）=（制御モード）
 </pre>
 
-<p>�擪�̔ԍ����v���t�@�C���ԍ��ŁA�����Đݒ荀�ځA�Ōオ���䃂�[�h�ł��B</p>
+<p>先頭の番号がプロファイル番号で、続いて設定項目、最後が制御モードです。</p>
 
-<p>�ݒ荀�� COMMENT �́A�v���t�@�C������ʂ��₷�����邽�߂̃R�����g�ŁA TOMOYO Linux �̋@�\�ɂ͉e����^���܂���B</p>
+<p>設定項目 COMMENT は、プロファイルを区別しやすくするためのコメントで、 TOMOYO Linux の機能には影響を与えません。</p>
 
-<p>�ݒ荀�� MAC_FOR_FILE �́u�t�@�C���ɑ΂���A�N�Z�X����v��\���Ă���A���䃂�[�h�� disabled �Ȃ疳���A learning �Ȃ�w�K�A permissive �Ȃ�m�F�A enforcing �Ȃ狭���A�ƂȂ�܂��B</p>
+<p>設定項目 MAC_FOR_FILE は「ファイルに対するアクセス制御」を表しており、制御モードが disabled なら無効、 learning なら学習、 permissive なら確認、 enforcing なら強制、となります。</p>
 
-<p>�ݒ荀�� TOMOYO_VERBOSE �́u�|���V�[�ᔽ�̏����R���\�[���ɏo�͂��邩�ǂ����v��\���Ă���A���䃂�[�h�� disabled �Ȃ�o�͂��Ȃ��A enabled �Ȃ�o�͂���悤�ɂȂ�܂��B</p>
+<p>設定項目 TOMOYO_VERBOSE は「ポリシー違反の情報をコンソールに出力するかどうか」を表しており、制御モードが disabled なら出力しない、 enabled なら出力するようになります。</p>
 
-<p>��L�ݒ�ł́A�v���t�@�C���ԍ��� 0 �` 3 �� 4 �̃v���t�@�C�����쐬���Ă���A���ꂼ��̈Ӗ��͈ȉ��̂悤�ɂȂ�܂��B</p>
+<p>上記設定では、プロファイル番号が 0 ～ 3 の 4 つのプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
 
 <table><tbody>
-<tr><th>�v���t�@�C�� 0</th><td>�t�@�C���ɑ΂���A�N�Z�X����𖳌��ɂ���^�R���\�[���Ƀ|���V�[�ᔽ���o�͂��Ȃ�</td></tr>
-<tr><th>�v���t�@�C�� 1</th><td>�t�@�C���ɑ΂���A�N�Z�X������w�K���[�h�ɂ���^�R���\�[���Ƀ|���V�[�ᔽ���o�͂��Ȃ�</td></tr>
-<tr><th>�v���t�@�C�� 2</th><td>�t�@�C���ɑ΂���A�N�Z�X������m�F���[�h�ɂ���^�R���\�[���Ƀ|���V�[�ᔽ���o�͂���</td></tr>
-<tr><th>�v���t�@�C�� 3</th><td>�t�@�C���ɑ΂���A�N�Z�X������������[�h�ɂ���^�R���\�[���Ƀ|���V�[�ᔽ���o�͂���</td></tr>
+<tr><th>プロファイル 0</th><td>ファイルに対するアクセス制御を無効にする／コンソールにポリシー違反を出力しない</td></tr>
+<tr><th>プロファイル 1</th><td>ファイルに対するアクセス制御を学習モードにする／コンソールにポリシー違反を出力しない</td></tr>
+<tr><th>プロファイル 2</th><td>ファイルに対するアクセス制御を確認モードにする／コンソールにポリシー違反を出力する</td></tr>
+<tr><th>プロファイル 3</th><td>ファイルに対するアクセス制御を強制モードにする／コンソールにポリシー違反を出力する</td></tr>
 </tbody></table>
 
-<p>�w�K���[�h�i�v���t�@�C�� 1 �j�ōs�����A�N�Z�X�����Ƀ|���V�[���쐬���A
-�m�F���[�h�i�v���t�@�C�� 2 �j�ŉ��^�p���ĕK�v�ȃ|���V�[���쐬�ł��Ă��邩���m���߁A
-�������[�h�i�v���t�@�C�� 3 �j�Ŗ{�^�p�Ƃ��ăA�N�Z�X������s���A
-�Ƃ����̂���{�I�ȉ^�p�̗���ł��B</p>
+<p>学習モード（プロファイル 1 ）で行ったアクセスを元にポリシーを作成し、
+確認モード（プロファイル 2 ）で仮運用して必要なポリシーが作成できているかを確かめ、
+強制モード（プロファイル 3 ）で本運用としてアクセス制御を行う、
+というのが基本的な運用の流れです。</p>
 
-<h3>�|���V�[�̕ύX��������v���O�����ɂ���</h3>
+<h3>ポリシーの変更を許可するプログラムについて</h3>
 
-<p>�|���V�[��ύX���邱�Ƃ��ł���v���O�������A /etc/ccs/manager.conf �Ƃ����t�@�C���Ŏw�肵�܂��B�ȉ��̃v���O�������w�肳��Ă���͂��ł��B</p>
+<p>ポリシーを変更することができるプログラムを、 /etc/ccs/manager.conf というファイルで指定します。以下のプログラムが指定されているはずです。</p>
 
 <pre>
 /usr/lib/ccs/loadpolicy
@@ -120,135 +120,135 @@
 /usr/lib/ccs/ccs-queryd
 </pre>
 
-<h3>��O�|���V�[�ɂ���</h3>
+<h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf �ɂ͈ȉ��� 12 ��ނ̗�O���w�肳��Ă��܂��B</p>
+<p>/etc/ccs/exception_policy.conf には以下の 12 種類の例外が指定されています。</p>
 
 <ol>
-<li>�p�X���̃p�^�[��</li>
-<li>�p�X���̃O���[�v</li>
-<li>�A�h���X�̃O���[�v</li>
-<li>�������ɎQ�Ƃ�������t�@�C��</li>
-<li>�������ɗ��p����������ϐ�</li>
-<li>���e���㏑�����邱�Ƃ��֎~����t�@�C��</li>
-<li>�V���{���b�N�����N�o�R�Ŏ��s�ł���v���O����</li>
-<li>�ގ�����v���O�����̏W��</li>
-<li>�h���C���J�ڂ�������������v���O����</li>
-<li>�h���C���J�ڂ̏�������}��������v���O����</li>
-<li>�h���C���J�ڂ�}��������v���O����</li>
-<li>�h���C���J�ڂ��ĊJ������v���O����</li>
+<li>パス名のパターン</li>
+<li>パス名のグループ</li>
+<li>アドレスのグループ</li>
+<li>無条件に参照を許可するファイル</li>
+<li>無条件に利用を許可する環境変数</li>
+<li>内容を上書きすることを禁止するファイル</li>
+<li>シンボリックリンク経由で実行できるプログラム</li>
+<li>類似するプログラムの集約</li>
+<li>ドメイン遷移を初期化させるプログラム</li>
+<li>ドメイン遷移の初期化を抑制させるプログラム</li>
+<li>ドメイン遷移を抑制させるプログラム</li>
+<li>ドメイン遷移を再開させるプログラム</li>
 </ol>
 
-<h3>�č����O�ɂ���</h3>
+<h3>監査ログについて</h3>
 
-<p>TOMOYO Linux �ɂ́A�u�A�N�Z�X�����O�v�i�h���C���p�|���V�[�Ɉᔽ���Ȃ������A�N�Z�X�v���̃��O�j�Ɓu�A�N�Z�X���ۃ��O�v�i�h���C���p�|���V�[�Ɉᔽ�����A�N�Z�X�v���̃��O�j�̂Q��ނ̃��O�����݂��܂��B ccs-tools �p�b�P�[�W���C���X�g�[�����邱�Ƃɂ��A�����I�Ɂu�A�N�Z�X���ۃ��O�v������ۑ�����悤�ɍ\������܂��B</p>
+<p>TOMOYO Linux には、「アクセス許可ログ」（ドメイン用ポリシーに違反しなかったアクセス要求のログ）と「アクセス拒否ログ」（ドメイン用ポリシーに違反したアクセス要求のログ）の２種類のログが存在します。 ccs-tools パッケージをインストールすることにより、自動的に「アクセス拒否ログ」だけを保存するように構成されます。</p>
 
-<h2><a name="l4">�w�K���[�h�ւ̐؂�ւ�</a></h2>
+<h2><a name="l4">学習モードへの切り替え</a></h2>
 
-<p>�Ǘ��җp�̃R���\�[������ TOMOYO Linux �̃|���V�[�G�f�B�^�����s���Ă��������B</p>
+<p>管理者用のコンソールから TOMOYO Linux のポリシーエディタを実行してください。</p>
 
 <pre># <span class="user">/usr/sbin/ccs-editpolicy</span></pre>
 
-<p>�ȉ��̂悤�ȉ�ʂ��\�������͂��ł��B�Ȃ��A�\������� domains �̐��͊��ɂ��قȂ�܂��B</p>
+<p>以下のような画面が表示されるはずです。なお、表示される domains の数は環境により異なります。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-1.png"></p>
 
-<p>�Ⴆ�΁A���̉�ʂ̒����猻�ݎ��s���̃G�f�B�^��T���Ă݂܂��傤�B�uf�v�L�[�������Ă���uccs-editpolicy�v�Ɠ��͂��A�Ō�ɁuEnter�v�L�[�������Ă��������B</p>
+<p>例えば、この画面の中から現在実行中のエディタを探してみましょう。「f」キーを押してから「ccs-editpolicy」と入力し、最後に「Enter」キーを押してください。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-2.png"></p>
 
-<p>/usr/sbin/ccs-editpolicy �Ƃ����p�X�����܂񂾍s�������邱�Ƃ��ł���͂��ł��B</p>
+<p>/usr/sbin/ccs-editpolicy というパス名を含んだ行を見つけることができるはずです。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-3.png"></p>
 
-<p>���L�[���g���ăX�N���[�����邱�Ƃ��ł��܂��B�J�[�\���� /usr/bin/kdeinit �� /bin/su �̊Ԃɂ��� /bin/bash �̍s�i���̉摜�ł͂V�W�s�ځj�Ɉړ������Ă��������B</p>
+<p>矢印キーを使ってスクロールすることができます。カーソルを /usr/bin/kdeinit と /bin/su の間にある /bin/bash の行（この画像では７８行目）に移動させてください。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-4.png"></p>
 
-<p>�uSpace�v�L�[�������Ă��������B����ƁA�J�[�\���̂���s�̐擪�Ɂu&amp;�v�Ƃ����}�[�N���\�������͂��ł��B</p>
+<p>「Space」キーを押してください。すると、カーソルのある行の先頭に「&amp;」というマークが表示されるはずです。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-5.png"></p>
 
-<p>�us�v�L�[�������Ă���u1�v�Ɠ��͂��A�uEnter�v�L�[�������Ă��������B�u1�v�Ƃ����̂̓v���t�@�C�� 1 �̂��Ƃ�\���Ă���A�v���t�@�C�� 1 ��<a href="#l3">�|���V�[�̏����ݒ�</a>�ɂ����Ċw�K���[�h�p�Ƃ��Ē�`����Ă��܂��B</p>
+<p>「s」キーを押してから「1」と入力し、「Enter」キーを押してください。「1」というのはプロファイル 1 のことを表しており、プロファイル 1 は<a href="#l3">ポリシーの初期設定</a>において学習モード用として定義されています。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-6.png"></p>
 
-<p>�s���̐������u1�v�ɂȂ�܂����B����́A�w�K���[�h�p�̃v���t�@�C�� 1 �����蓖�Ă��Ă��邱�Ƃ������Ă��܂��B</p>
+<p>行頭の数字が「1」になりました。これは、学習モード用のプロファイル 1 が割り当てられていることを示しています。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-7.png"></p>
 
-<p>�������̑�������Ă݂邽�߂ɁA��ʃ��[�U�p�̃R���\�[�����J���Ă��������B<br>
-��ʃ��[�U�p�̃R���\�[�����J���ɂ́A�uSTART�v���u�V�X�e���v���u�[���R���\�[���v�̏��ԂɃ��j���[��I�����Ă��������B</p>
+<p>いくつかの操作をしてみるために、一般ユーザ用のコンソールを開いてください。<br>
+一般ユーザ用のコンソールを開くには、「START」→「システム」→「端末コンソール」の順番にメニューを選択してください。</p>
 
 <p><img alt="Opening Konsole" title="Opening Konsole" width="800" height="600" src="konsole-1.png"></p>
 
-<p>��ʃ��[�U�p�̃R���\�[���ƊǗ��җp�R���\�[���Ƃ̈Ⴂ�́A��ʃ��[�U�p�̃R���\�[���̒����� /bin/su �R�}���h�����s���� root ���[�U�̃p�X���[�h����͂������ǂ����ł��B<br>
-<a href="#l2">TOMOYO Linux �p�c�[���̃C���X�g�[��</a>�ɂ����āu�p�X���[�h:�v�Ƃ����v�����v�g���\������Ă��܂����A����͈�ʃ��[�U�p�̃R���\�[�����J��������Ɏ����I�Ɏ��s���ꂽ /bin/su �R�}���h���\�����Ă�����̂ł��B</p>
+<p>一般ユーザ用のコンソールと管理者用コンソールとの違いは、一般ユーザ用のコンソールの中から /bin/su コマンドを実行して root ユーザのパスワードを入力したかどうかです。<br>
+<a href="#l2">TOMOYO Linux 用ツールのインストール</a>において「パスワード:」というプロンプトが表示されていますが、これは一般ユーザ用のコンソールを開いた直後に自動的に実行された /bin/su コマンドが表示しているものです。</p>
 
-<p>�|���V�[�G�f�B�^�̉�ʂɐ؂�ւ��āA�ur�v�L�[�������čŐV�̏��ɍX�V���Ă��������B����ƁA�s���Ɂu1�v���t�����s���������ǉ�����Ă���͂��ł��B���̉�ʂł́A�u/bin/grep�v�u/bin/id�v�u/bin/stty�v�u/usr/bin/pidof�v�u/usr/bin/tty�v�u/usr/bin/wc�v�Ƃ����U�s���ǉ�����Ă��܂��B</p>
+<p>ポリシーエディタの画面に切り替えて、「r」キーを押して最新の情報に更新してください。すると、行頭に「1」が付いた行がいくつか追加されているはずです。この画面では、「/bin/grep」「/bin/id」「/bin/stty」「/usr/bin/pidof」「/usr/bin/tty」「/usr/bin/wc」という６行が追加されています。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-8.png"></p>
 
-<p>��ʃ��[�U�p�̃R���\�[����ʂɐ؂�ւ��āA��������������Ă݂Ă��������B</p>
+<p>一般ユーザ用のコンソール画面に切り替えて、いくつか操作をしてみてください。</p>
 
 <p><img alt="Using Konsole" title="Using Konsole" width="800" height="600" src="konsole-2.png"></p>
 
-<p>�|���V�[�G�f�B�^�̉�ʂɐ؂�ւ��āA�ur�v�L�[�������čŐV�̏��ɍX�V���Ă��������B����ƁA��ʃ��[�U�p�̃R���\�[����ʂŎ��s�����v���O�������ǉ�����Ă���͂��ł��B���̉�ʂł́A�u/bin/date�v�i�V�X�s�ځj�u/bin/sh�v�u/bin/grep�v�u/bin/id�v�u/bin/stty�v�u/usr/bin/pidof�v�u/usr/bin/tail�v�u/usr/bin/tty�v�u/usr/bin/wc�v�i�W�Q�`�W�X�s�ځj�u/usr/bin/head�v�i�P�O�T�s�ځj�Ƃ����̂��ǉ�����Ă��܂��B</p>
+<p>ポリシーエディタの画面に切り替えて、「r」キーを押して最新の情報に更新してください。すると、一般ユーザ用のコンソール画面で実行したプログラムが追加されているはずです。この画面では、「/bin/date」（７９行目）「/bin/sh」「/bin/grep」「/bin/id」「/bin/stty」「/usr/bin/pidof」「/usr/bin/tail」「/usr/bin/tty」「/usr/bin/wc」（８２～８９行目）「/usr/bin/head」（１０５行目）というのが追加されています。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-9.png"></p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-10.png"></p>
 
-<h2><a name="l5">�w�K���ʂ̊m�F</a></h2>
+<h2><a name="l5">学習結果の確認</a></h2>
 
-<p>�J�[�\�����u /usr/bin/head �v�̍s�i�P�O�T�s�ځj�Ɉړ������Ă���uEnter�v�L�[�������Ă��������B�uallow_read /etc/passwd�v�Ƃ����G���g�����m�F���邱�Ƃ��ł���͂��ł��B���̃G���g���́A TOMOYO Linux �̊w�K���[�h�ɂ�莩���I�ɒǉ����ꂽ���̂ł��B</p>
+<p>カーソルを「 /usr/bin/head 」の行（１０５行目）に移動させてから「Enter」キーを押してください。「allow_read /etc/passwd」というエントリを確認することができるはずです。このエントリは、 TOMOYO Linux の学習モードにより自動的に追加されたものです。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-11.png"></p>
 
-<p>�uEnter�v�L�[�������Č��ɖ߂��Ă��������B���l�Ɂu/bin/sh�v�i�W�Q�s�ځj��u/usr/bin/tail�v�i�W�V�s�ځj�ɑ΂��Ăǂ̂悤�ȃG���g�����ǉ����ꂽ�������Ă݂܂��傤�B</p>
+<p>「Enter」キーを押して元に戻ってください。同様に「/bin/sh」（８２行目）や「/usr/bin/tail」（８７行目）に対してどのようなエントリが追加されたかを見てみましょう。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-12.png"></p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-13.png"></p>
 
-<p>���ɂ��C�Â���������܂��񂪁A allow_read �Ƃ͎w�肳�ꂽ�p�X����ǂݍ��݃��[�h�ŃI�[�v���������ƁA allow_read/write �Ƃ͎w�肳�ꂽ�p�X����ǂݏ������[�h�ŃI�[�v���������ƁA allow_execute �Ƃ͎w�肳�ꂽ�p�X�����v���O�����Ƃ��Ď��s�������Ƃ�\���Ă��܂��B</p>
+<p>既にお気づきかもしれませんが、 allow_read とは指定されたパス名を読み込みモードでオープンしたこと、 allow_read/write とは指定されたパス名を読み書きモードでオープンしたこと、 allow_execute とは指定されたパス名をプログラムとして実行したことを表しています。</p>
 
-<p>��ʃ��[�U�p�̃R���\�[����ʂł̑���ł́A�Ǘ��җp�̃R���\�[�����J�����߂ɕK�v�ȑ���i /bin/su �R�}���h�̎��s�j���w�K�����Ă��܂���ł����B���̂��߁A���̂܂܋������[�h�ɂ��Ă��܂��ƁA�Ǘ��җp�̃R���\�[�����J�����Ƃ��ł��Ȃ��Ȃ��Ă��܂��܂��B����́A�|���V�[�G�f�B�^�����s���ċ������[�h���������邱�Ƃ��ł��Ȃ��Ȃ邱�Ƃ��Ӗ����܂��B<br>
-�ł�����A�Ǘ��җp�̃R���\�[�����J�n�ł���悤�ɂ��邽�߂ɁA��ʃ��[�U�p�̃R���\�[���ɑ΂��� /bin/su �̎��s����^���Ă����܂��B�J�[�\������ʃ��[�U�p�̃R���\�[���ł��� /bin/bash �̍s�i�V�W�s�ځj�Ɉړ������Ă���uEnter�v�L�[�������Ă��������B</p>
+<p>一般ユーザ用のコンソール画面での操作では、管理者用のコンソールを開くために必要な操作（ /bin/su コマンドの実行）を学習させていませんでした。そのため、このまま強制モードにしてしまうと、管理者用のコンソールを開くことができなくなってしまいます。これは、ポリシーエディタを実行して強制モードを解除することができなくなることを意味します。<br>
+ですから、管理者用のコンソールを開始できるようにするために、一般ユーザ用のコンソールに対して /bin/su の実行許可を与えておきます。カーソルを一般ユーザ用のコンソールである /bin/bash の行（７８行目）に移動させてから「Enter」キーを押してください。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="add-su-1.png"></p>
 
-<p>���̏�ԂŁA�ua�v�L�[�������Ă���uallow_execute /bin/su�v�Ɠ��͂��A�uEnter�v�L�[�������Ă��������B</p>
+<p>この状態で、「a」キーを押してから「allow_execute /bin/su」と入力し、「Enter」キーを押してください。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="add-su-2.png"></p>
 
-<p>/bin/su �̎��s�����^����ꂽ���Ƃ��m�F������A�uEnter�v�L�[�������Č��̉�ʂɖ߂��Ă��������B</p>
+<p>/bin/su の実行許可が与えられたことを確認したら、「Enter」キーを押して元の画面に戻ってください。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="add-su-3.png"></p>
 
-<h2><a name="l6">�������[�h�ւ̐؂�ւ�</a></h2>
+<h2><a name="l6">強制モードへの切り替え</a></h2>
 
-<p>����ł́A�������[�h�֐؂�ւ��Ă݂܂��傤�B�v���t�@�C�� 3 ��<a href="#l3">�|���V�[�̏����ݒ�</a>�ɂ����ċ������[�h�p�Ƃ��Ē�`����Ă��܂��B�v���t�@�C�� 3 �����݃v���t�@�C�� 1 �����蓖�Ă��Ă���s�ɓK�p���Ă݂܂��傤�B</p>
+<p>それでは、強制モードへ切り替えてみましょう。プロファイル 3 は<a href="#l3">ポリシーの初期設定</a>において強制モード用として定義されています。プロファイル 3 を現在プロファイル 1 が割り当てられている行に適用してみましょう。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-14.png"></p>
 
-<p>�I�����ꂽ�s�ɂ́A�v���t�@�C�� 3 �����蓖�Ă��܂����B</p>
+<p>選択された行には、プロファイル 3 が割り当てられました。</p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-15.png"></p>
 
 <p><img alt="Policy Editor" title="Policy Editor" width="800" height="600" src="editpolicy-16.png"></p>
 
-<p>��ʃ��[�U�p�̃R���\�[���ɐ؂�ւ��āA��������������Ă݂܂��傤�B</p>
+<p>一般ユーザ用のコンソールに切り替えて、いくつか操作をしてみましょう。</p>
 
 <p><img alt="Using Konsole" title="Using Konsole" width="800" height="600" src="konsole-3.png"></p>
 
-<p>�w�K���[�h�̊Ԃɍs�������삾����������邱�Ƃ𗝉�����������͂��ł��B</p>
+<p>学習モードの間に行った操作だけが許可されることを理解いただけるはずです。</p>
 
-<p>�|���V�[�G�f�B�^�̉�ʂɐ؂�ւ��A�uq�v�L�[�������ăG�f�B�^���I�������Ă��������B���ɁA�u�A�N�Z�X���ۃ��O�v���{�����Ă݂܂��傤�B</p>
+<p>ポリシーエディタの画面に切り替え、「q」キーを押してエディタを終了させてください。次に、「アクセス拒否ログ」を閲覧してみましょう。</p>
 
 <pre># <span class="user">less /var/log/tomoyo/reject_log.conf</span></pre>
 
-<p>�ȉ��̂悤�� mode=enforcing �Ƃ����s���܂񂾃��O�������邱�Ƃ��ł���͂��ł��B</p>
+<p>以下のように mode=enforcing という行を含んだログを見つけることができるはずです。</p>
 
 <blockquote><p>
 #2008-09-02 09:59:37# profile=3 mode=enforcing pid=4274 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 <br>
@@ -296,30 +296,30 @@ allow_read /bin/date <br>
 allow_read /usr/lib/gconv/EUC-JP.so 
 </p></blockquote>
 
-<p>ccs-editpolicy ��p���ĉ{�����Ă����|���V�[�́A��������ɂ̂ݑ��݂��Ă��܂��B���̂��߁A�V���b�g�_�E�����邱�Ƃɂ�莸���Ă��܂��܂��B��������ɑ��݂��Ă���|���V�[���f�B�X�N��ɕۑ����邽�߂ɂ́A�ȉ��̃R�}���h�����s���Ă��������B</p>
+<p>ccs-editpolicy を用いて閲覧していたポリシーは、メモリ上にのみ存在しています。そのため、シャットダウンすることにより失われてしまいます。メモリ上に存在しているポリシーをディスク上に保存するためには、以下のコマンドを実行してください。</p>
 
 <pre>
 # <span class="user">/usr/sbin/ccs-savepolicy</span>
 </pre>
 
-<p>���̂悤��TOMOYO Linux��p����΁A</p>
+<p>このようにTOMOYO Linuxを用いれば、</p>
 
 <ul>
-<li>�ǂ̂悤�Ȏ��s���������v���Z�X��</li>
-<li>����</li>
-<li>�ǂ�ȃt�@�C����</li>
-<li>�ǂ�ȃA�N�Z�X��</li>
+<li>どのような実行履歴を持つプロセスが</li>
+<li>いつ</li>
+<li>どんなファイルに</li>
+<li>どんなアクセスを</li>
 </ul>
 
-<p>�s���������Ď����邱�Ƃ��ł��܂��B</p>
+<p>行ったかを監視することもできます。</p>
 
-<h2><a name="l7">���</a></h2>
+<h2><a name="l7">情報源</a></h2>
 
-<h3>root ���[�U�ɂȂ炸�� TOMOYO Linux �𑀍삷��</h3>
+<h3>root ユーザにならずに TOMOYO Linux を操作する</h3>
 
-<p>�����A TOMOYO Linux �̑�����s�����߂� root ���[�U�ɂȂ邱�Ƃ�v���������Ȃ��̂ł���΁A root �ȊO�̃��[�U�ɂ�鑀���F�߂�悤�� TOMOYO Linux ��ݒ肷�邱�Ƃ��ł��܂��B</p>
+<p>もし、 TOMOYO Linux の操作を行うために root ユーザになることを要求したくないのであれば、 root 以外のユーザによる操作を認めるように TOMOYO Linux を設定することができます。</p>
 
-<p>�Ⴆ�΁A demo �Ƃ������[�U�� TOMOYO Linux �̑����F�߂����ꍇ�A�ȉ��̓��e�� /etc/ccs/ccs-post-init �Ƃ����t�@�C���ɋL�q���Ă��������B</p>
+<p>例えば、 demo というユーザに TOMOYO Linux の操作を認めたい場合、以下の内容を /etc/ccs/ccs-post-init というファイルに記述してください。</p>
 
 <pre>
 #! /bin/sh
@@ -327,19 +327,19 @@ echo manage_by_non_root &gt; /proc/ccs/manager
 chown -R demo:demo /proc/ccs/
 </pre>
 
-<p>���̂悤�ɂ���ƁA /etc/ccs/ccs-post-init �� /sbin/ccs-init ����Ăяo�����悤�ɂȂ�܂��B�Ȃ��A�v���O���������s���邽�߂�</p>
+<p>このようにすると、 /etc/ccs/ccs-post-init は /sbin/ccs-init から呼び出されるようになります。なお、プログラムを実行するために</p>
 
 <pre># <span class="user">chmod 700 /etc/ccs/ccs-post-init</span></pre>
 
-<p>�����s���邱�ƂŎ��s�\�ȏ�Ԃɂ��邱�Ƃ�Y��Ȃ��ł��������B�܂��A demo �Ƃ������[�U�� /etc/ccs/ �ȉ��ɂ���|���V�[�t�@�C����ǂݏ����ł���悤�ɂ��邽�߂�</p>
+<p>を実行することで実行可能な状態にすることを忘れないでください。また、 demo というユーザが /etc/ccs/ 以下にあるポリシーファイルを読み書きできるようにするために</p>
 
 <pre># <span class="user">chown -R demo:demo /etc/ccs/</span></pre>
 
-<p>�����s����K�v������܂��B</p>
+<p>を実行する必要があります。</p>
 
-<h3>�|���V�[�G�f�B�^�̃}�j���A��</h3>
+<h3>ポリシーエディタのマニュアル</h3>
 
-<p>�|���V�[�G�f�B�^ /usr/sbin/ccs-editpolicy �̃}�j���A���� <a href="../../tool-editpolicy.html">�|���V�[�G�f�B�^�̎g����</a> ���Q�Ƃ��������B</p>
+<p>ポリシーエディタ /usr/sbin/ccs-editpolicy のマニュアルは <a href="../../tool-editpolicy.html">ポリシーエディタの使い方</a> を参照ください。</p>
 
 <hr>
 <address><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>

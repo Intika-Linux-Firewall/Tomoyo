@@ -1,222 +1,222 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <HTML lang="ja-JP">
 <HEAD>
-<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>�|���V�[�G�f�B�^�̎g����</title>
+<title>ポリシーエディタの使い方</title>
 <link rel=stylesheet href="tomoyo.css" media=all>
 </HEAD>
 <body>
 <p>Info: Version <a href="../1.5.x/">1.5.x</a> is available.</p>
-<h1>�|���V�[�G�f�B�^�̎g����</h1>
+<h1>ポリシーエディタの使い方</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>��{����</h1>
+<h1>基本操作</h1>
 
-<h2>�i�O�j�|���V�[�G�f�B�^���g���O��</h2>
+<h2>（０）ポリシーエディタを使う前に</h2>
 
-<p>TOMOYO Linux �ɂ́A CUI �œ��삷��|���V�[�G�f�B�^���t�����Ă��܂��B</p>
+<p>TOMOYO Linux には、 CUI で動作するポリシーエディタが付属しています。</p>
 
-<p>�\�� /proc/ccs/policy/manager �Ɂueditpolicy �����삷��h���C���̃h���C�����v�܂��́ueditpolicy �ւ̃p�X���i�ʏ�� /root/ccstools/editpolicy �j�v���o�^����Ă���K�v������܂��B</p>
+<p>予め /proc/ccs/policy/manager に「editpolicy が動作するドメインのドメイン名」または「editpolicy へのパス名（通常は /root/ccstools/editpolicy ）」が登録されている必要があります。</p>
 
-<p>�V�F���v�����v�g���� editpolicy �Ɠ��͂���ƁA�|���V�[�G�f�B�^�����s���邱�Ƃ��ł��܂��B</p>
+<p>シェルプロンプトから editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
 
-<h2>�i�P�j�|���V�[�G�f�B�^���I������ɂ�</h2>
+<h2>（１）ポリシーエディタを終了するには</h2>
 
-<p>�|���V�[�G�f�B�^���I������ɂ́A�uQ�v�L�[�������܂��B</p>
+<p>ポリシーエディタを終了するには、「Q」キーを押します。</p>
 
-<h2>�i�Q�j�ŐV�̏��ɍX�V����ɂ�</h2>
+<h2>（２）最新の情報に更新するには</h2>
 
-<p>�ŐV�̏��ɍX�V����ɂ́A�uR�v�L�[�������܂��B</p>
+<p>最新の情報に更新するには、「R」キーを押します。</p>
 
-<h2>�i�R�j�J�[�\�����ړ�������ɂ�</h2>
+<h2>（３）カーソルを移動させるには</h2>
 
-<p>�J�[�\�����ړ�������ɂ́u���v�u���v�L�[�܂��́uPageUp�v�uPageDown�v�L�[�������܂��B</p>
+<p>カーソルを移動させるには「↑」「↓」キーまたは「PageUp」「PageDown」キーを押します。</p>
 
-<h2>�i�S�j�������ɃX�N���[��������ɂ�</h2>
+<h2>（４）横方向にスクロールさせるには</h2>
 
-<p>�������ɃX�N���[��������ɂ́A�u���v�u���v�L�[�܂��́uHome�v�uEnd�v�L�[�������܂��B</p>
+<p>横方向にスクロールさせるには、「←」「→」キーまたは「Home」「End」キーを押します。</p>
 
-<h2>�i�T�j��������ɂ�</h2>
+<h2>（５）検索するには</h2>
 
-<p>�������J�n����ɂ́A�uF�v�L�[�������āA�������������������͂��A�Ō�ɁuEnter�v�L�[�������܂��B<br>
+<p>検索を開始するには、「F」キーを押して、検索したい文字列を入力し、最後に「Enter」キーを押します。<br>
 <img src="editpolicy/find-first.png" alt="Find First" WIDTH="720" HEIGHT="400"></p>
 
-<p>�O����͂���������ŏ������i�������j�Ɍ����𑱍s����ɂ́A�uN�v�L�[�������܂��B</p>
+<p>前回入力した文字列で順方向（下方向）に検索を続行するには、「N」キーを押します。</p>
 
-<p>�O����͂���������ŋt�����i������j�Ɍ����𑱍s����ɂ́A�uP�v�L�[�������܂��B</p>
+<p>前回入力した文字列で逆方向（上方向）に検索を続行するには、「P」キーを押します。</p>
 
-<h2>�i�U�j��ʂ�؂�ւ���ɂ�</h2>
+<h2>（６）画面を切り替えるには</h2>
 
-<p>�|���V�[�G�f�B�^�ɂ͂S�̉�ʂ�����܂��B</p>
+<p>ポリシーエディタには４つの画面があります。</p>
 
 <table border="0">
-<tr><td>(1) �h���C���J�ڈꗗ���</td></tr>
-<tr><td>(2) �V�X�e���|���V�[�̕ҏW���</td></tr>
-<tr><td>(3) ��O�|���V�[�̕ҏW���</td></tr>
-<tr><td>(4) �h���C���ɑ΂���A�N�Z�X���̕ҏW���</td></tr>
+<tr><td>(1) ドメイン遷移一覧画面</td></tr>
+<tr><td>(2) システムポリシーの編集画面</td></tr>
+<tr><td>(3) 例外ポリシーの編集画面</td></tr>
+<tr><td>(4) ドメインに対するアクセス許可の編集画面</td></tr>
 </table>
 
-<p>�uTab�v�L�[��������(1)��(2)��(3)��(1)�̏��Ԃŉ�ʂ��؂�ւ��܂��B</p>
+<p>「Tab」キーを押すと(1)→(2)→(3)→(1)の順番で画面が切り替わります。</p>
 
-<p>(1)�̉�ʂɂ����āuEnter�v�L�[�������ƁA(4)�ɐ؂�ւ��܂��B</p>
-<p>(4)�̉�ʂɂ����āuEnter�v�L�[�܂��́uTab�v�L�[��������(1)�ɐ؂�ւ��܂��B</p>
+<p>(1)の画面において「Enter」キーを押すと、(4)に切り替わります。</p>
+<p>(4)の画面において「Enter」キーまたは「Tab」キーを押すと(1)に切り替わります。</p>
 
-<p>�h���C���J�ڈꗗ��ʂ̗�<br>
+<p>ドメイン遷移一覧画面の例<br>
 <img src="editpolicy/domain-list.png" alt="Screen for Domain List" WIDTH="720" HEIGHT="400"></p>
-<p>�V�X�e���|���V�[�̕ҏW��ʂ̗�<br>
+<p>システムポリシーの編集画面の例<br>
 <img src="editpolicy/system-policy.png" alt="Screen for System Policy" WIDTH="720" HEIGHT="400"></p>
-<p>��O�|���V�[�̕ҏW��ʂ̗�<br>
+<p>例外ポリシーの編集画面の例<br>
 <img src="editpolicy/exception-policy.png" alt="Screen for Exception Policy" WIDTH="720" HEIGHT="400"></p>
-<p>�h���C���ɑ΂���A�N�Z�X���̕ҏW��ʂ̗�<br>
+<p>ドメインに対するアクセス許可の編集画面の例<br>
 <img src="editpolicy/domain-policy.png" alt="Screen for Domain Policy" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�V�j�G���g����ǉ�����ɂ�</h2>
+<h2>（７）エントリを追加するには</h2>
 
-<p>�G���g����ǉ�����ɂ́A�uA�v�L�[�������āA�ǉ����������e����͂��A�Ō�ɁuEnter�v�L�[�������܂��B���͂������e�̓q�X�g���Ɏc���Ă���uInsert�v�L�[�Ńq�X�g���̓��e���m�F�ł��܂��B�q�X�g���̓��e���Ăяo���ɂ́u���v�u���v�L�[���g���܂��B</p>
+<p>エントリを追加するには、「A」キーを押して、追加したい内容を入力し、最後に「Enter」キーを押します。入力した内容はヒストリに残っており「Insert」キーでヒストリの内容を確認できます。ヒストリの内容を呼び出すには「↑」「↓」キーを使います。</p>
 
-<p>�h���C���J�ڈꗗ��ʂ̗�<br>
+<p>ドメイン遷移一覧画面の例<br>
 <img src="editpolicy/add-domain-list.png" alt="Adding an entry into  List" WIDTH="720" HEIGHT="400"></p>
 
-<p>�V�X�e���|���V�[�̕ҏW��ʂ̗�<br>
+<p>システムポリシーの編集画面の例<br>
 <img src="editpolicy/add-system-policy.png" alt="Adding System Policy" WIDTH="720" HEIGHT="400"></p>
 
-<p>��O�|���V�[�̕ҏW��ʂ̗�<br>
+<p>例外ポリシーの編集画面の例<br>
 <img src="editpolicy/add-exception-policy.png" alt="Adding Exception Policy" WIDTH="720" HEIGHT="400"></p>
 
-<p>�h���C���ɑ΂���A�N�Z�X���̕ҏW��ʂ̗�<br>
+<p>ドメインに対するアクセス許可の編集画面の例<br>
 <img src="editpolicy/add-domain-policy.png" alt="Adding Domain Policy" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�W�j�G���g����I������ɂ�</h2>
+<h2>（８）エントリを選択するには</h2>
 
-<p>�G���g����I������ɂ́A�I���������G���g���ɃJ�[�\�������킹�āu�X�y�[�X�v�L�[�������܂��B�I�������ƍs���Ɂu&amp;�v�}�[�N���\������܂��B<br>
+<p>エントリを選択するには、選択したいエントリにカーソルを合わせて「スペース」キーを押します。選択されると行頭に「&amp;」マークが表示されます。<br>
 <img src="editpolicy/select.png" alt="Selecting an entry" WIDTH="720" HEIGHT="400"></p>
 
-<p>������x�u�X�y�[�X�v�L�[�������ƑI����������܂��B�I�����������ƍs���́u&amp;�v�}�[�N�������܂��B</p>
+<p>もう一度「スペース」キーを押すと選択解除されます。選択解除されると行頭の「&amp;」マークが消えます。</p>
 
-<h2>�i�X�j�G���g�����ꊇ�I������ɂ�</h2>
+<h2>（９）エントリを一括選択するには</h2>
 
-<p>�uC�v�L�[�������ƁA�J�[�\���̂���s�̑I����ԁi�s���́u&amp;�v�}�[�N�̗L���j���J�[�\���s�ȉ��̑S�G���g���ɕ��ʂ���܂��B<br>
+<p>「C」キーを押すと、カーソルのある行の選択状態（行頭の「&amp;」マークの有無）がカーソル行以下の全エントリに複写されます。<br>
 <img src="editpolicy/copy.png" alt="Copying selection state" WIDTH="720" HEIGHT="400"></p>
 
-<p>����͈݂̔͂̂�I������ɂ́A�I��ΏۂƂȂ�ŏ��̃G���g���ɃJ�[�\�������킹�āu&amp;�v�}�[�N��\�������Ă���uC�v�L�[�������A�I��ΏۂƂȂ�Ō�̃G���g���̎��̃G���g���ɃJ�[�\�������킹�āu&amp;�v�}�[�N�������Ă���uC�v�L�[�������܂��B</p>
+<p>特定の範囲のみを選択するには、選択対象となる最初のエントリにカーソルを合わせて「&amp;」マークを表示させてから「C」キーを押し、選択対象となる最後のエントリの次のエントリにカーソルを合わせて「&amp;」マークを消してから「C」キーを押します。</p>
 
-<h2>�i�P�O�j�G���g�����폜����ɂ�</h2>
+<h2>（１０）エントリを削除するには</h2>
 
-<p>�폜�������G���g�����P�ȏ�I�����Ă���uD�v�L�[�������܂��B�폜���m�F���邽�߂̃v�����v�g���\�������̂ŁA�uY�v�L�[�������ƍ폜����܂��B<br>
+<p>削除したいエントリを１個以上選択してから「D」キーを押します。削除を確認するためのプロンプトが表示されるので、「Y」キーを押すと削除されます。<br>
 <img src="editpolicy/delete.png" alt="Deleting selected entries" WIDTH="720" HEIGHT="400"></p>
 
-<h1>�h���C���J�ڈꗗ��ʂɌŗL�̋@�\</h1>
+<h1>ドメイン遷移一覧画面に固有の機能</h1>
 
-<h2>�i�O�j���̉�ʂɂ���</h2>
+<h2>（０）この画面について</h2>
 
-<p>�h���C���J�ڈꗗ��ʂł́A�C���f���g�t���̃c���[�\���Ńh���C���J�ڂ̈ꗗ���\������܂��B�N���肤��h���C���J�ڂ̑g�ݍ��킹�����̉�ʂŊm�F���邱�Ƃ��ł��܂��B</p>
+<p>ドメイン遷移一覧画面では、インデント付きのツリー構造でドメイン遷移の一覧が表示されます。起こりうるドメイン遷移の組み合わせをこの画面で確認することができます。</p>
 
-<p>�u�s�ԍ��v�̉E���ɂ́A���̃h���C���Ɋ��蓖�Ă��Ă���u�v���t�@�C���ԍ��v���\������܂��B
-�v���t�@�C���ԍ��̉E���ɂ́A���̃h���C���̃h���C�����Ɋ܂܂��Ō�́u�v���O�����̃p�X���v���\������܂��B�u�v���t�@�C���ԍ��v�Ɓu�v���O�����̃p�X���v�̊Ԃɂ́A�h���C���̑����ɉ����āu#�v�u*�v�u!�v���\�������ꍇ������܂��B</p>
+<p>「行番号」の右側には、そのドメインに割り当てられている「プロファイル番号」が表示されます。
+プロファイル番号の右側には、そのドメインのドメイン名に含まれる最後の「プログラムのパス名」が表示されます。「プロファイル番号」と「プログラムのパス名」の間には、ドメインの属性に応じて「#」「*」「!」が表示される場合があります。</p>
 
-<h2>�i�P�j�h���C���̃v���t�@�C���ԍ���ύX������@�ɂ���</h2>
+<h2>（１）ドメインのプロファイル番号を変更する方法について</h2>
 
-<p>�v���t�@�C���̊��蓖�Ă�ύX�������h���C�����P�ȏ�I�����Ă���uS�v�L�[�������܂��B����ƁA�v���t�@�C���ԍ��̓��͂����߂�v�����v�g���\�������̂ŁA�v���t�@�C���ԍ�����͂��A�Ō�ɁuEnter�v�L�[�������܂��B<br>
+<p>プロファイルの割り当てを変更したいドメインを１個以上選択してから「S」キーを押します。すると、プロファイル番号の入力を求めるプロンプトが表示されるので、プロファイル番号を入力し、最後に「Enter」キーを押します。<br>
 <img src="editpolicy/profile.png" alt="Setting profile number" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�Q�j�u!�v�}�[�N���\������Ă���h���C���ɂ���</h2>
+<h2>（２）「!」マークが表示されているドメインについて</h2>
 
-<p>�u!�v�}�[�N���\������Ă���h���C���́A initialize_domain �\���܂��� keep_domain �\���ɂ�蓞�B�ł��Ȃ��h���C���ł��邱�Ƃ������Ă��܂��B���B�ł��Ȃ����R���u�v���O�����̃p�X���v�̉E���ɕ\������܂��B<br>
+<p>「!」マークが表示されているドメインは、 initialize_domain 構文または keep_domain 構文により到達できないドメインであることを示しています。到達できない理由が「プログラムのパス名」の右側に表示されます。<br>
 <img src="editpolicy/unreachable.png" alt="Unreachable Domain" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�R�j�u*�v�}�[�N���\������Ă���h���C���ɂ���</h2>
+<h2>（３）「*」マークが表示されているドメインについて</h2>
 
-<p>�u*�v�}�[�N���\������Ă���h���C���́A initialize_domain �\���ɂ�蕡���̃h���C�����炱�̃h���C���ɑJ�ڂ���\�������邱�Ƃ������Ă��܂��B�u*�v�}�[�N���\������Ă��Ȃ��h���C���͂��̃h���C���̐e�h���C������̂ݑJ�ڂ��܂��B<br>
+<p>「*」マークが表示されているドメインは、 initialize_domain 構文により複数のドメインからこのドメインに遷移する可能性があることを示しています。「*」マークが表示されていないドメインはそのドメインの親ドメインからのみ遷移します。<br>
 <img src="editpolicy/initialize_domain-dest.png" alt="Initialization Target" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�S�j�u#�v�}�[�N���\������Ă���h���C���ɂ���</h2>
+<h2>（４）「#」マークが表示されているドメインについて</h2>
 
-<p>�u#�v�}�[�N���\������Ă���h���C���́A keep_domain �\���ɂ�蕡���̃v���O���������̃h���C���œ��삷��i�v���O���������s���Ă��h���C���J�ڂ��������Ȃ��j�\�������邱�Ƃ������Ă��܂��B<br>
+<p>「#」マークが表示されているドメインは、 keep_domain 構文により複数のプログラムがこのドメインで動作する（プログラムを実行してもドメイン遷移が発生しない）可能性があることを示しています。<br>
 <img src="editpolicy/keep_domain.png" alt="Keeping Domain" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�T�j�v���O�����̃p�X���̌��Ɂu( -&gt; ���� )�v�Ƃ����\��������h���C���ɂ���</h2>
+<h2>（５）プログラムのパス名の後ろに「( -&gt; 数字 )」という表示があるドメインについて</h2>
 
-<p>����͎��ۂ̃h���C���ł͂���܂���B�u�v���O�����̃p�X���v�� initialize_domain �\���ɂ��w�肳��Ă��邽�߂ɁA�e�h���C��������s�����Ɓu�����v�������s�ԍ��̃h���C���֑J�ڂ��邱�Ƃ������Ă��܂��B<br>
+<p>これは実際のドメインではありません。「プログラムのパス名」が initialize_domain 構文により指定されているために、親ドメインから実行されると「数字」が示す行番号のドメインへ遷移することを示しています。<br>
 <img src="editpolicy/initialize_domain-src.png" alt="Initialization Source" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�U�j�v���O�����̃p�X���̌��Ɂu( -&gt; Not Found )�v�Ƃ����\��������h���C���ɂ���</h2>
+<h2>（６）プログラムのパス名の後ろに「( -&gt; Not Found )」という表示があるドメインについて</h2>
 
-<p>����͎��ۂ̃h���C���ł͂���܂���B�u�v���O�����̃p�X���v�� initialize_domain �\���ɂ��w�肳��Ă��܂����A�J�ڐ�̃h���C�����܂��쐬����Ă��Ȃ����Ƃ������Ă��܂��B<br>
+<p>これは実際のドメインではありません。「プログラムのパス名」が initialize_domain 構文により指定されていますが、遷移先のドメインがまだ作成されていないことを示しています。<br>
 <img src="editpolicy/initialize_domain-nodest.png" alt="No Initialization Target" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�V�j�u( �v���O�����̃p�X�� )�v�Ƃ����\��������h���C���ɂ���</h2>
+<h2>（７）「( プログラムのパス名 )」という表示があるドメインについて</h2>
 
-<p>�h���C�����폜���ꂽ�Ȃǂ̗��R�ɂ��A���̃h���C�������݂��Ă��Ȃ����Ƃ������Ă��܂��B�C���f���g������Ȃ��悤�ɂ��邽�߂ɁA�e�h���C�������݂��Ȃ��̂Ɏq���h���C�������݂��Ă���ꍇ�ɂ̂ݕ\������܂��B���̃h���C�����쐬����ɂ́A���̃h���C���ɃJ�[�\�������킹�āuInsert�v���uA�v���u���v���uEnter�v�L�[�̏��ɓ��͂��Ă��������B<br>
+<p>ドメインが削除されたなどの理由により、このドメインが存在していないことを示しています。インデントを崩さないようにするために、親ドメインが存在しないのに子孫ドメインが存在している場合にのみ表示されます。このドメインを作成するには、このドメインにカーソルを合わせて「Insert」→「A」→「↑」→「Enter」キーの順に入力してください。<br>
 <img src="editpolicy/deleted-domain.png" alt="Deleted Domain" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�W�j�h���C���J�ڂ�������������@�ɂ���</h2>
+<h2>（８）ドメイン遷移を初期化する方法について</h2>
 
-<p>TOMOYO Linux �ł͌����Ƃ��ăv���O���������s����x�Ƀh���C���J�ڂ��s���̂ŁA�����v���O�����ł��e�h���C�����قȂ�ΈقȂ�h���C���ɑ����邱�ƂɂȂ�܂����A�f�[�����Ƃ��ē��삷��v���O�����̏ꍇ�͐e�h���C���Ɋւ�炸����̃h���C���œ��삵�Ă��������s�����ǂ����Ƃ�����܂��B���̂悤�ȏꍇ�� initialize_domain �\���� no_initialize_domain �\�����g�����ƂŐe�h���C���Ɋւ�炸 &lt;kernel&gt; �����̃h���C���œ��삳���邱�Ƃ��ł��܂��B</p>
+<p>TOMOYO Linux では原則としてプログラムを実行する度にドメイン遷移を行うので、同じプログラムでも親ドメインが異なれば異なるドメインに属することになりますが、デーモンとして動作するプログラムの場合は親ドメインに関わらず同一のドメインで動作してくれる方が都合が良いことがあります。そのような場合は initialize_domain 構文と no_initialize_domain 構文を使うことで親ドメインに関わらず &lt;kernel&gt; 直下のドメインで動作させることができます。</p>
 
-<p>��Ƃ��āA /usr/sbin/sendmail.sendmail ����� &lt;kernel&gt; /usr/sbin/sendmail.sendmail �h���C���œ��삳������@�������܂��B</p>
-<p>initialize_domain ���w�肷��O�͈ȉ��̂悤�ɕ����̃h���C���œ���̃v���O���������s����Ă��܂��B<br>
+<p>例として、 /usr/sbin/sendmail.sendmail を常に &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインで動作させる方法を示します。</p>
+<p>initialize_domain を指定する前は以下のように複数のドメインで同一のプログラムが実行されています。<br>
 <img src="editpolicy/before-initialize_domain-1.png" alt="Before initialize_domain" WIDTH="720" HEIGHT="400"><br>
 <img src="editpolicy/before-initialize_domain-2.png" alt="Before initialize_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>��O�|���V�[�ҏW��ʂɐ؂�ւ��āA�uA�v�L�[�������Ă��� initialize_domain /usr/sbin/sendmail.sendmail �Ɠ��͂��A�uEnter�v�L�[�������܂��B����́A /usr/sbin/sendmail.sendmail �����s���ꂽ�ꍇ�ɂ� &lt;kernel&gt; /usr/sbin/sendmail.sendmail �h���C���֑J�ڂ���Ƃ������Ƃ��Ӗ����܂��B<br>
+<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから initialize_domain /usr/sbin/sendmail.sendmail と入力し、「Enter」キーを押します。これは、 /usr/sbin/sendmail.sendmail が実行された場合には &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインへ遷移するということを意味します。<br>
 <img src="editpolicy/adding-initialize_domain.png" alt="Adding initialize_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>���̌�A�h���C���ꗗ��ʂɖ߂�ƁA���ɍ쐬���ꂽ�h���C���Ɂu!�v�}�[�N������Ă��܂��B����ɁA�J�ڐ�ł��� &lt;kernel&gt; /usr/sbin/sendmail.sendmail �h���C�����܂��쐬����Ă��Ȃ��̂Łu�i-&gt; Not Found�j�v�Ƃ����\��������Ă��܂��B<br>
+<p>その後、ドメイン一覧画面に戻ると、既に作成されたドメインに「!」マークが現れています。さらに、遷移先である &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインがまだ作成されていないので「（-&gt; Not Found）」という表示も現れています。<br>
 <img src="editpolicy/after-initialize_domain.png" alt="After initialize_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>�u�i-&gt; Not Found�j�v�Ƃ����\�����������߂ɁA�uA�v�L�[�������� &lt;kernel&gt; /usr/sbin/sendmail.sendmail �Ɠ��͂��A�uEnter�v�L�[�������܂��B<br>
+<p>「（-&gt; Not Found）」という表示を消すために、「A」キーを押して &lt;kernel&gt; /usr/sbin/sendmail.sendmail と入力し、「Enter」キーを押します。<br>
 <img src="editpolicy/adding-initialize_domain-target.png" alt="Adding initialization target" WIDTH="720" HEIGHT="400"></p>
 
-<p>����ƁA�u�i-&gt; Not Found�j�v�Ƃ����\���͑J�ڐ�̍s�ԍ��ɕω����܂����B<br>
+<p>すると、「（-&gt; Not Found）」という表示は遷移先の行番号に変化しました。<br>
 <img src="editpolicy/after-initialize_domain-target.png" alt="After initialize_domain target" WIDTH="720" HEIGHT="400"><br>
 <img src="editpolicy/added-initialize_domain-target.png" alt="Added initialization target" WIDTH="720" HEIGHT="400"></p>
 
-<p>�������A /bin.mail ���� /usr/sbin/sendmail.sendmail �����s�����ꍇ�̓f�[�����Ƃ��ē��삳����킯�ł͂Ȃ����߁A &lt;kernel&gt; /usr/sbin/sendmail.sendmail �h���C���֑J�ڂ��������Ȃ��ƍl���邩������܂���B<br>
+<p>しかし、 /bin.mail から /usr/sbin/sendmail.sendmail が実行される場合はデーモンとして動作させるわけではないため、 &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインへ遷移させたくないと考えるかもしれません。<br>
 <img src="editpolicy/before-no_initialize_domain.png" alt="Before no_initialize_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>���̂悤�ȏꍇ�A��O�|���V�[�ҏW��ʂɐ؂�ւ��āA�uA�v�L�[�������Ă��� no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail �Ɠ��͂��A�uEnter�v�L�[�������܂��B����́A�h���C������ /bin/mail �ŏI���h���C������ /usr/sbin/sendmail.sendmail �����s�����ꍇ�ɂ� &lt;kernel&gt; /usr/sbin/sendmail.sendmail �h���C���֑J�ڂ����Ȃ��Ƃ������Ƃ��Ӗ����܂��B<br>
+<p>そのような場合、例外ポリシー編集画面に切り替えて、「A」キーを押してから no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail と入力し、「Enter」キーを押します。これは、ドメイン名が /bin/mail で終わるドメインから /usr/sbin/sendmail.sendmail が実行される場合には &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインへ遷移させないということを意味します。<br>
 <img src="editpolicy/adding-no_initialize_domain.png" alt="Adding no_initialize_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>�h���C���ꗗ��ʂɖ߂�ƁA /bin/mail ������s����� /usr/sbin/sendmail.sendmail �ɂ́u!�v�}�[�N�������Ă��邱�Ƃ��m�F�ł��܂��B<br>
+<p>ドメイン一覧画面に戻ると、 /bin/mail から実行される /usr/sbin/sendmail.sendmail には「!」マークが消えていることを確認できます。<br>
 <img src="editpolicy/after-no_initialize_domain.png" alt="After no_initialize_domain" WIDTH="720" HEIGHT="400"></p>
 
-<h2>�i�X�j�h���C���J�ڂ�}��������@�ɂ���</h2>
+<h2>（９）ドメイン遷移を抑制する方法について</h2>
 
-<p>TOMOYO Linux �ł͌����Ƃ��ăv���O���������s����x�Ƀh���C���J�ڂ��s���܂����A keep_domain �\���� no_keep_domain �\�����g�����Ƃŕs�v�ȃh���C���J�ڂ�}���ł��܂��B</p>
+<p>TOMOYO Linux では原則としてプログラムを実行する度にドメイン遷移を行いますが、 keep_domain 構文と no_keep_domain 構文を使うことで不要なドメイン遷移を抑制できます。</p>
 
-<p>��Ƃ��āA�R���\�[�����烍�O�C�������h���C���i&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash�j�ł̓h���C���J�ڂ������Ȃ��悤�ɂ�����@�������܂��B</p>
-<p>keep_domain ���w�肷��O�͈ȉ��̂悤�ȃh���C���J�ڂ��������Ă��܂��B<br>
+<p>例として、コンソールからログインしたドメイン（&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash）ではドメイン遷移をさせないようにする方法を示します。</p>
+<p>keep_domain を指定する前は以下のようなドメイン遷移が発生しています。<br>
 <img src="editpolicy/before-keep_domain.png" alt="Before keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>��O�|���V�[�ҏW��ʂɐ؂�ւ��āA�uA�v�L�[�������Ă��� keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash �Ɠ��͂��A�uEnter�v�L�[�������܂��B<br>
+<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash と入力し、「Enter」キーを押します。<br>
 <img src="editpolicy/adding-keep_domain-1.png" alt="Adding keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>���̌�A�h���C���ꗗ��ʂɖ߂�ƁA &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash �h���C���̍s�Ɂu#�v�Ƃ����\��������A���̎q���h���C���ɂ́u!�v�Ƃ����\��������܂��B<br>
+<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash ドメインの行に「#」という表示が現れ、その子孫ドメインには「!」という表示が現れます。<br>
 <img src="editpolicy/after-keep_domain-1.png" alt="After keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>���O�C�����Ă��� man �R�}���h�����s���Ă��܂����A man �R�}���h�͕��G�ȏ���������̂ŕʃh���C���œ��삳���邱�Ƃɂ��܂��B<br>
+<p>ログインしてから man コマンドを実行していますが、 man コマンドは複雑な処理をするので別ドメインで動作させることにします。<br>
 <img src="editpolicy/before-no_keep_domain.png" alt="Before no_keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>��O�|���V�[�ҏW��ʂɐ؂�ւ��āA�uA�v�L�[�������Ă��� no_keep_domain /usr/bin/man from /bin/bash �i�܂��� no_keep_domain /usr/bin/man from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash�j�Ɠ��͂��A�uEnter�v�L�[�������܂��B<br>
+<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから no_keep_domain /usr/bin/man from /bin/bash （または no_keep_domain /usr/bin/man from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash）と入力し、「Enter」キーを押します。<br>
 <img src="editpolicy/adding-no_keep_domain.png" alt="Adding no_keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>���̌�A�h���C���ꗗ��ʂɖ߂�ƁA &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man �h���C���Ƃ��̎q���h���C������u!�v�Ƃ����\���������܂����B<br>
+<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ドメインとその子孫ドメインから「!」という表示が消えました。<br>
 <p><img src="editpolicy/after-no_keep_domain.png" alt="After no_keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>/usr/bin/man �R�}���h���炢�����̃R�}���h�����s����Ă��܂����A�����̓h���C���J�ڂ�����K�v�������̂ŁA�h���C���J�ڂ������Ȃ����Ƃɂ��܂��B��O�|���V�[�ҏW��ʂɐ؂�ւ��āA�uA�v�L�[�������Ă��� keep_domain /usr/bin/man�i�܂��� keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man �j�Ɠ��͂��A�uEnter�v�L�[�������܂��B<br>
+<p>/usr/bin/man コマンドからいくつかのコマンドが実行されていますが、これらはドメイン遷移させる必要が無いので、ドメイン遷移をさせないことにします。例外ポリシー編集画面に切り替えて、「A」キーを押してから keep_domain /usr/bin/man（または keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ）と入力し、「Enter」キーを押します。<br>
 <img src="editpolicy/adding-keep_domain-2.png" alt="Addint keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>���̌�A�h���C���ꗗ��ʂɖ߂�ƁA &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man �h���C���̍s�Ɂu#�v�Ƃ����\��������A���̎q���h���C���ɂ́u!�v�Ƃ����\��������܂��B<br>
+<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ドメインの行に「#」という表示が現れ、その子孫ドメインには「!」という表示が現れます。<br>
 <img src="editpolicy/after-keep_domain-2.png" alt="After keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>���B�s�\�ɂȂ����h���C���͎c���Ă����Ă����ʂȂ̂ŁA�폜���邱�Ƃɂ��܂��B�u!�v�Ƃ����}�[�N���\������Ă���s���u�X�y�[�X�v�L�[���g���đI�����A�uD�v�L�[�������Ă���uY�v�L�[���������Ƃō폜�ł��܂��B<br>
+<p>到達不能になったドメインは残しておいても無駄なので、削除することにします。「!」というマークが表示されている行を「スペース」キーを使って選択し、「D」キーを押してから「Y」キーを押すことで削除できます。<br>
 <img src="editpolicy/before-delete.png" alt="Before deleting unreachable domains" WIDTH="720" HEIGHT="400"></p>
 
-<p>���B�s�\�ɂȂ����h���C���̍폜��͈ȉ��̂悤�ɂȂ�܂��B<br>
+<p>到達不能になったドメインの削除後は以下のようになります。<br>
 <img src="editpolicy/after-delete.png" alt="After deleting unreachable domains" WIDTH="720" HEIGHT="400"></p>
 
-<p>�A�N�Z�X�������s�����Ƃ��ړI�ł���ꍇ�́A�ēx�w�K���s���A�Ō�ɋ������[�h�p�̃v���t�@�C�������蓖�Ă邱�Ƃ�Y��Ȃ��ł��������B</p>
+<p>アクセス制限を行うことが目的である場合は、再度学習を行い、最後に強制モード用のプロファイルを割り当てることを忘れないでください。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>

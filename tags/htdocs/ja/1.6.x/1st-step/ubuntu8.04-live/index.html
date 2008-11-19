@@ -1,183 +1,183 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="ja">
+<html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux LiveCD �`���[�g���A�� for Ubuntu 8.04</title>
+<title>TOMOYO Linux LiveCD チュートリアル for Ubuntu 8.04</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
 <p style="text-align:right;"><a href="http://tomoyo.sourceforge.jp/en/1.6.x/1st-step/ubuntu8.04-live/index.html">English Page</a></p>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> LiveCD �`���[�g���A��</h1>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> LiveCD チュートリアル</h1>
 
 <ul>
-<li><a href="#l1">�T�v</a></li>
-<li><a href="#l2">LiveCD����肷��</a></li>
-<li><a href="#l3">LiveCD�ŋN������</a></li>
-<li><a href="#l4">LiveCD���g���Ă݂�</a></li>
-<li><a href="#l5">�A�N�Z�X�𐧌����Ă݂�</a></li>
-<li><a href="#l6">�i�Q�l�j�n�[�h�f�B�X�N�ɃC���X�g�[������</a></li>
-<li><a href="#l7">�i�Q�l�j�����TOMOYO Linux���g�����Ȃ�</a></li>
+<li><a href="#l1">概要</a></li>
+<li><a href="#l2">LiveCDを入手する</a></li>
+<li><a href="#l3">LiveCDで起動する</a></li>
+<li><a href="#l4">LiveCDを使ってみる</a></li>
+<li><a href="#l5">アクセスを制限してみる</a></li>
+<li><a href="#l6">（参考）ハードディスクにインストールする</a></li>
+<li><a href="#l7">（参考）さらにTOMOYO Linuxを使いこなす</a></li>
 </ul>
 
-<h2><a name="l1">�T�v</a></h2>
+<h2><a name="l1">概要</a></h2>
 
 <p>
-�ȉ��ł�TOMOYO Linux��LiveCD�̎g�����ɂ��ĉ�����܂��B
-TOMOYO Linux LiveCD�́ACD�ŋN���ł���Linux�f�B�X�g���r���[�V�����ł���Ubuntu�ɁA
-TOMOYO Linux�J�[�l���ƃc�[�����C���X�g�[�����Ċ�{�I�Ȑݒ���s������ԂŔz�z���Ă���CD�C���[�W�ł��B
-TOMOYO Linux LiveCD���g�����ƂŁA�����̊��ɉe����^���邱�ƂȂ���y��TOMOYO Linux��̌��ł��܂��B
+以下ではTOMOYO LinuxのLiveCDの使い方について解説します。
+TOMOYO Linux LiveCDは、CDで起動できるLinuxディストリビューションであるUbuntuに、
+TOMOYO Linuxカーネルとツールをインストールして基本的な設定を行った状態で配布しているCDイメージです。
+TOMOYO Linux LiveCDを使うことで、既存の環境に影響を与えることなく手軽にTOMOYO Linuxを体験できます。
 </p>
 
-<h2><a name="l2">LiveCD����肷��</a></h2>
+<h2><a name="l2">LiveCDを入手する</a></h2>
 
 <p>
-TOMOYO Linux LiveCD��ISO�C���[�W�́ATOMOYO Linux�v���W�F�N�g��
-<a href="http://tomoyo.sourceforge.jp/wiki/?TomoyoLive#n90f43ff">LiveCD�̃y�[�W</a>
-����_�E�����[�h�ł��܂��B������ׂ��ă_�E�����[�h�ł��Ȃ��Ƃ��A
-CD-R�ɏĂ��̂��ʓ|���Ƃ������̂��߂ɁA�e��C�x���g�ł��z�z���Ă����܂��B
-�C�x���g�Q���\��͊�{�I�Ƀ��[�����O���X�g�ŃA�i�E���X����܂��̂ŁA
-<a href="http://lists.sourceforge.jp/mailman/listinfo/tomoyo-users">tomoyo-users</a>�ɂ��Q�����������B
+TOMOYO Linux LiveCDのISOイメージは、TOMOYO Linuxプロジェクトの
+<a href="http://tomoyo.sourceforge.jp/wiki/?TomoyoLive#n90f43ff">LiveCDのページ</a>
+からダウンロードできます。回線が細くてダウンロードできないとか、
+CD-Rに焼くのが面倒だという方のために、各種イベントでも配布していきます。
+イベント参加予定は基本的にメーリングリストでアナウンスされますので、
+<a href="http://lists.sourceforge.jp/mailman/listinfo/tomoyo-users">tomoyo-users</a>にご参加ください。
 </p>
 
 <p>
-�_�E�����[�h����ISO�C���[�W�͏������݃\�t�g��CD-R�ɏĂ��Ă��������B
-�܂��A�����ŗ��p�ł���<a href="http://www.vmware.com/jp/products/player/">VMware Player</a>��
-ISO�C���[�W�̂܂�TOMOYO Linux LiveCD���N�����邱�Ƃ��ł��܂��B
+ダウンロードしたISOイメージは書き込みソフトでCD-Rに焼いてください。
+また、無料で利用できる<a href="http://www.vmware.com/jp/products/player/">VMware Player</a>で
+ISOイメージのままTOMOYO Linux LiveCDを起動することもできます。
 <!--
-VMware Player���C���X�g�[�����A<a href="tomoyolive-ja-7.10-1.5.1.vmx">���̃t�@�C��</a>��
-ISO�C���[�W�Ɠ����ꏊ�ɒu����VMware Player�ɓǂݍ��܂��邱�ƂŁA
-���z�}�V���̏��TOMOYO Linux LiveCD���N�����܂��B
+VMware Playerをインストールし、<a href="tomoyolive-ja-7.10-1.5.1.vmx">このファイル</a>を
+ISOイメージと同じ場所に置いてVMware Playerに読み込ませることで、
+仮想マシンの上でTOMOYO Linux LiveCDが起動します。
 -->
 </p>
 
-<h2><a name="l3">LiveCD�ŋN������</a></h2>
+<h2><a name="l3">LiveCDで起動する</a></h2>
 
 <p>
-CD-R�ɏĂ���LiveCD��CD-ROM�h���C�u�ɓ���ă}�V�����N�����邩�A
-�O�߂ŏЉ�����@��VMware Player���ISO�C���[�W����N������ƁA
-�ȉ��̉�ʂ��\������܂��B
+CD-Rに焼いたLiveCDをCD-ROMドライブに入れてマシンを起動するか、
+前節で紹介した方法でVMware Player上でISOイメージから起動すると、
+以下の画面が表示されます。
 </p>
 
-<p><img src="grub.png" width="640" height="480" alt="�N�����" title="�N�����"></p>
+<p><img src="grub.png" width="640" height="480" alt="起動画面" title="起動画面"></p>
 
 <p>
-���̏�Ԃł��΂炭�҂�Enter�L�[�������ƁA�ʏ��Ubuntu�Ɠ��l�ɋN�����܂��B
-�ȉ��̂悤�ȃf�X�N�g�b�v���\��������LiveCD�ł̋N���͊����ł��B
+この状態でしばらく待つかEnterキーを押すと、通常のUbuntuと同様に起動します。
+以下のようなデスクトップが表示されればLiveCDでの起動は完了です。
 </p>
 
-<p><img src="desktop.png" width="800" height="600" alt="�f�X�N�g�b�v" title="�f�X�N�g�b�v"></p>
+<p><img src="desktop.png" width="800" height="600" alt="デスクトップ" title="デスクトップ"></p>
 
-<h2><a name="l4">LiveCD���g���Ă݂�</a></h2>
-
-<p>
-��{�I�ɒʏ��Ubuntu�ƂقƂ�Ǔ����ł����A
-�f�X�N�g�b�v��TOMOYO Linux�Ǝ���2�̃A�C�R�������݂��܂��B
-</p>
+<h2><a name="l4">LiveCDを使ってみる</a></h2>
 
 <p>
-<img src="icon_editpolicy.png" width="138" height="88" alt="TOMOYO Linux�|���V�[�G�f�B�^" title="TOMOYO Linux�|���V�[�G�f�B�^">
-<img src="icon_rejectlog.png" width="138" height="88" alt="TOMOYO Linux�|���V�[�ᔽ���O" title="TOMOYO Linux�|���V�[�ᔽ���O">
+基本的に通常のUbuntuとほとんど同じですが、
+デスクトップにTOMOYO Linux独自の2つのアイコンが存在します。
 </p>
 
 <p>
-�܂��́uTOMOYO Linux�|���V�[�ᔽ���O�v�A�C�R�����_�u���N���b�N���Ă݂Ă��������B
-�ȉ��̂悤�ȃE�B���h�E���\������܂��B
-</p>
-
-<p><img src="reject_log.png" width="586" height="384" alt="�|���V�[�ᔽ���O�E�B���h�E" title="�|���V�[�ᔽ���O�E�B���h�E"></p>
-
-<p>
-���̉�ʂ�TOMOYO Linux�̃|���V�[�Ɉᔽ�����A�N�Z�X���O��\�����Ă���A
-�V���ȃA�N�Z�X�ᔽ����������΂����ɕ\�������悤�ɂȂ��Ă��܂��B
-LiveCD�͉�������^���Ȃ��|���V�[�ŋN�������̂ŁA
-�S�ẴA�N�Z�X���|���V�[�ᔽ���O�Ƃ��ďo�͂���܂��B
-�E�B���h�E���J�����܂܂ŁA���܂��܂ȑ�������Ă݂Ă��������B
-�ǂ�ȃv���Z�X���ǂ�ȃt�@�C���ɃA�N�Z�X�������������\������܂��B
+<img src="icon_editpolicy.png" width="138" height="88" alt="TOMOYO Linuxポリシーエディタ" title="TOMOYO Linuxポリシーエディタ">
+<img src="icon_rejectlog.png" width="138" height="88" alt="TOMOYO Linuxポリシー違反ログ" title="TOMOYO Linuxポリシー違反ログ">
 </p>
 
 <p>
-�����āA�uTOMOYO Linux�|���V�[�G�f�B�^�v�A�C�R�����_�u���N���b�N���Ă݂Ă��������B
-�ȉ��̂悤�ȃE�B���h�E���\������܂��B
+まずは「TOMOYO Linuxポリシー違反ログ」アイコンをダブルクリックしてみてください。
+以下のようなウィンドウが表示されます。
 </p>
 
-<p><img src="editpolicy.png" width="585" height="384" alt="�|���V�[�G�f�B�^�E�B���h�E" title="�|���V�[�G�f�B�^�E�B���h�E"></p>
+<p><img src="reject_log.png" width="586" height="384" alt="ポリシー違反ログウィンドウ" title="ポリシー違反ログウィンドウ"></p>
 
 <p>
-���̉�ʂɂ͍��܂łɂǂ̂悤�ȃv���Z�X���N�����ꂽ����؍\���ŕ\�����Ă���A
-���ꂼ��̍s�̓h���C���Ƃ�΂�܂��B
-�V�X�e���N��������A���s���ꂽ���ׂẴv���Z�X��TOMOYO Linux�J�[�l���ŊĎ�����Ă���A
-�ǂ�ȃv���Z�X���ǂ�ȃt�@�C���ɃA�N�Z�X�������Ȃǂ̏�񂪁A���ׂă|���V�[�Ƃ��ċL�^����Ă��܂��B
-�|���V�[�G�f�B�^���g���ă|���V�[���u���E�Y���邾���ŁA
-�V�X�e���̋�������Ɏ��悤�ɔc�����邱�Ƃ��ł���̂�TOMOYO Linux LiveCD�̍ő�̓����ł��B
-</p>
-
-<p>
-�|���V�[�G�f�B�^�̍ŏ��̉�ʂł́A&lt;kernel&gt;����_�Ƃ��āA
-�ǂ�ȃv���Z�X���ǂ�ȃv���Z�X���N�������̂����؍\���ŕ\������܂��B
-�J�[�\���L�[��PageUp, PageDown�L�[�œK���ɃX�N���[�����āA
-�V�X�e�����łǂ�ȃv���Z�X���N�����ꂽ���𒲂ׂĂ݂Ă��������B
+この画面はTOMOYO Linuxのポリシーに違反したアクセスログを表示しており、
+新たなアクセス違反が発生すればすぐに表示されるようになっています。
+LiveCDは何も許可を与えないポリシーで起動されるので、
+全てのアクセスがポリシー違反ログとして出力されます。
+ウィンドウを開いたままで、さまざまな操作をしてみてください。
+どんなプロセスがどんなファイルにアクセスしたかが逐次表示されます。
 </p>
 
 <p>
-������gnome-terminal�Ƃ����v���Z�X��T���Ă݂܂��傤�B
-'F'�L�[�������ƍŉ��s�Ɍ����̂��߂�1�s���͂��\������܂��̂ŁA
-������'gnome-terminal'�Ɠ��͂���Enter�L�[���������ƂŁA
-������gnome-terminal���������܂��B
+続けて、「TOMOYO Linuxポリシーエディタ」アイコンをダブルクリックしてみてください。
+以下のようなウィンドウが表示されます。
 </p>
 
-<p><img src="find.png" width="265" height="46" alt="gnome-terminal������" title="gnome-terminal������"></p>
+<p><img src="editpolicy.png" width="585" height="384" alt="ポリシーエディタウィンドウ" title="ポリシーエディタウィンドウ"></p>
 
 <p>
-gnome-terminal�̉��ɂ�/usr/bin/sudo�Ƃ����s�����݂��A
-����ɂ��̉��ɁA/usr/bin/tail��/usr/lib/ccs/editpolicy�Ƃ����s��
-���݂���̂����ĂƂ�܂��B
-</p>
-
-<p><img src="domain_gnome-terminal.png" width="585" height="74" alt="gnome-terminal�̃h���C������" title="gnome-terminal�̃h���C������"></p>
-
-<p>
-�\������Ă���/usr/bin/tail�̍s�ɃJ�[�\�������킹��Enter�L�[�������Ă݂܂��傤�B
-</p>
-
-<p><img src="acl_tail.png" width="586" height="384" alt="tail�R�}���h�̃A�N�Z�X����" title="tail�R�}���h�̃A�N�Z�X����"></p>
-
-<p>
-���ꂼ��̍s�̈�ԍ����s�ԍ��ŁA���̎��ɕ\������Ă���P��̓A�N�Z�X�̎�ނ�\���Ă��܂��B
-allow_execute�����s�����Aallow_write���������݃��[�h�ł̃I�[�v�������Aallow_read���ǂݍ��݃��[�h�ł̃I�[�v�������Aallow_read/write���ǂݏ������[�h�ł̃I�[�v�������Aallow_env�����ϐ����̎󂯎�苖��\���Ă��܂��B
-��ʂ���Atail�R�}���h���e�탍�P�[���t�@�C���ƁA/var/log/tomoyo/reject_log.txt�Ƃ����t�@�C����ǂݍ��񂾂��Ƃ��ǂݎ��܂��B
-����̓f�X�N�g�b�v�́uTOMOYO Linux�|���V�[�ᔽ���O�v�Ƃ���
-�A�C�R�����_�u���N���b�N���Ď��s�������ʊw�K���ꂽ�|���V�[�ł��B
+この画面には今までにどのようなプロセスが起動されたかを木構造で表示しており、
+それぞれの行はドメインとよばれます。
+システム起動時から、実行されたすべてのプロセスがTOMOYO Linuxカーネルで監視されており、
+どんなプロセスがどんなファイルにアクセスしたかなどの情報が、すべてポリシーとして記録されています。
+ポリシーエディタを使ってポリシーをブラウズするだけで、
+システムの挙動を手に取るように把握することができるのがTOMOYO Linux LiveCDの最大の特徴です。
 </p>
 
 <p>
-���Ƃ̃h���C���̖؍\���̉�ʂɖ߂邽�߂ɂ�Enter�L�[�������܂��B
-�v���Z�X���ǂ����������ŋN������A�ǂ�Ȏ����ɃA�N�Z�X���Ă��邩���u���E�Y���Ă݂Ă��������B
+ポリシーエディタの最初の画面では、&lt;kernel&gt;を基点として、
+どんなプロセスがどんなプロセスを起動したのかが木構造で表示されます。
+カーソルキーやPageUp, PageDownキーで適当にスクロールして、
+システム内でどんなプロセスが起動されたかを調べてみてください。
 </p>
 
-<h2><a name="l5">�A�N�Z�X�𐧌����Ă݂�</a></h2>
-
 <p>
-�w�K���ꂽ�|���V�[�����邾���łȂ��ATOMOYO Linux�ɂ��A�N�Z�X�����̌����Ă݂܂��傤�B
-��قǂ̃|���V�[�G�f�B�^�̉�ʂ͕����ɂ��̂܂܂ɂ��Ă����āA
-��ʏ�[�ɕ\������Ă���u�A�v���P�[�V�����v���j���[����A�u�A�N�Z�T���v�u�[���v���N�����Ă��������B
+試しにgnome-terminalというプロセスを探してみましょう。
+'F'キーを押すと最下行に検索のための1行入力が表示されますので、
+そこに'gnome-terminal'と入力してEnterキーを押すことで、
+すぐにgnome-terminalを見つけられます。
 </p>
 
-<p><img src="menu_terminal.png" width="335" height="360" alt="�[���̋N��" title="�[���̋N��"></p>
+<p><img src="find.png" width="265" height="46" alt="gnome-terminalを検索" title="gnome-terminalを検索"></p>
 
 <p>
-�[�����N���ł�����A��قǂ̃|���V�[�G�f�B�^�̉�ʂɖ߂�A�h���C���̖؍\�����\������Ă����ԂŁA
-'R'�L�[�������ă|���V�[���ēǂݍ��݂��Ă��������B
-�����āAgnome-terminal�ȉ���/bin/bash��T���Č��Ă��������B
-�����͐�قǂƓ�����'F'�L�[�ōs���܂��B
+gnome-terminalの下には/usr/bin/sudoという行が存在し、
+さらにその下に、/usr/bin/tailや/usr/lib/ccs/editpolicyという行が
+存在するのが見てとれます。
 </p>
 
-<p><img src="domain_bash.png" width="585" height="156" alt="gnome-terminal����N�����ꂽbash" title="gnome-terminal����N�����ꂽbash"></p>
+<p><img src="domain_gnome-terminal.png" width="585" height="74" alt="gnome-terminalのドメイン周辺" title="gnome-terminalのドメイン周辺"></p>
 
 <p>
-����͐�قǋN�������[�����Ŏ��s����Ă���bash�ŁA���ł�sed��uname�Ȃǂ̃v���O�����������I�Ɏ��s���Ă��邱�Ƃ�������܂��B
-�[���̉�ʂŁA�ȉ��̃R�}���h�����s���Ă��������B
+表示されている/usr/bin/tailの行にカーソルを合わせてEnterキーを押してみましょう。
+</p>
+
+<p><img src="acl_tail.png" width="586" height="384" alt="tailコマンドのアクセス許可" title="tailコマンドのアクセス許可"></p>
+
+<p>
+それぞれの行の一番左が行番号で、その次に表示されている単語はアクセスの種類を表しています。
+allow_executeが実行を許可、allow_writeが書き込みモードでのオープンを許可、allow_readが読み込みモードでのオープンを許可、allow_read/writeが読み書きモードでのオープンを許可、allow_envが環境変数名の受け取り許可を表しています。
+画面から、tailコマンドが各種ロケールファイルと、/var/log/tomoyo/reject_log.txtというファイルを読み込んだことが読み取れます。
+これはデスクトップの「TOMOYO Linuxポリシー違反ログ」という
+アイコンをダブルクリックして実行した結果学習されたポリシーです。
+</p>
+
+<p>
+もとのドメインの木構造の画面に戻るためにはEnterキーを押します。
+プロセスがどういう履歴で起動され、どんな資源にアクセスしているかをブラウズしてみてください。
+</p>
+
+<h2><a name="l5">アクセスを制限してみる</a></h2>
+
+<p>
+学習されたポリシーを見るだけでなく、TOMOYO Linuxによるアクセス制御を体験してみましょう。
+先ほどのポリシーエディタの画面は閉じずにそのままにしておいて、
+画面上端に表示されている「アプリケーション」メニューから、「アクセサリ」「端末」を起動してください。
+</p>
+
+<p><img src="menu_terminal.png" width="335" height="360" alt="端末の起動" title="端末の起動"></p>
+
+<p>
+端末が起動できたら、先ほどのポリシーエディタの画面に戻り、ドメインの木構造が表示されている状態で、
+'R'キーを押してポリシーを再読み込みしてください。
+そして、gnome-terminal以下の/bin/bashを探して見てください。
+検索は先ほどと同じく'F'キーで行えます。
+</p>
+
+<p><img src="domain_bash.png" width="585" height="156" alt="gnome-terminalから起動されたbash" title="gnome-terminalから起動されたbash"></p>
+
+<p>
+これは先ほど起動した端末内で実行されているbashで、すでにsedやunameなどのプログラムを自動的に実行していることが分かります。
+端末の画面で、以下のコマンドを実行してください。
 </p>
 
 <pre>
@@ -187,122 +187,122 @@ $ tail /etc/passwd
 $ exit
 </pre>
 
-<p><img src="bash_learning.png" width="585" height="412" alt="bash�ɓK���ȃR�}���h���w�K������" title="bash�ɓK���ȃR�}���h���w�K������"></p>
+<p><img src="bash_learning.png" width="585" height="412" alt="bashに適当なコマンドを学習させる" title="bashに適当なコマンドを学習させる"></p>
 
 <p>
-�ēx�|���V�[�G�f�B�^�̉�ʂɖ߂���'R'�L�[�������ƁA���s�����v���O�������ǉ�����Ă��邱�Ƃ�������܂��B
+再度ポリシーエディタの画面に戻って'R'キーを押すと、実行したプログラムが追加されていることが分かります。
 </p>
 
-<p><img src="bash_learned.png" width="584" height="239" alt="bash�̊w�K����" title="bash�̊w�K����"></p>
+<p><img src="bash_learned.png" width="584" height="239" alt="bashの学習結果" title="bashの学習結果"></p>
 
 <p>
-���̉�ʂŁA�s�ԍ��̎��ɕ\������Ă��鐔���ɒ��ڂ��Ă��������B
-���͑S�Ă̍s��'1'�ƕ\������Ă��܂��B
+この画面で、行番号の次に表示されている数字に注目してください。
+今は全ての行で'1'と表示されています。
 </p>
 
-<p><img src="profilenumber.png" width="584" height="239" alt="�v���t�@�C���ԍ��͑S��1" title="�v���t�@�C���ԍ��͑S��1"></p>
+<p><img src="profilenumber.png" width="584" height="239" alt="プロファイル番号は全部1" title="プロファイル番号は全部1"></p>
 
 <p>
-����͂��̃v���Z�X�������Ă���TOMOYO Linux�̃��[�h��\���Ă���A�v���t�@�C���ԍ��Ƃ�΂��l�ł��B
-LiveCD�̃v���t�@�C���ԍ��͈ȉ���4��ނ����݂��A���炩���ߑS��1�i�w�K���[�h�j�ɐݒ肳��Ă��܂��B
+これはそのプロセスが動いているTOMOYO Linuxのモードを表しており、プロファイル番号とよばれる値です。
+LiveCDのプロファイル番号は以下の4種類が存在し、あらかじめ全て1（学習モード）に設定されています。
 </p>
 
 <table border="1" summary="profile number">
-<tr><th>�v���t�@�C���ԍ�</th><th>�Ӗ�</th></tr>
-<tr><td>0</td><td>�������[�h�iTOMOYO Linux�͉������Ȃ��j</td></tr>
-<tr><td>1</td><td>�w�K���[�h�i�|���V�[�ᔽ�̃A�N�Z�X�͋����ă|���V�[�ɒǉ�����j</td></tr>
-<tr><td>2</td><td>�m�F���[�h�i�|���V�[�ᔽ�̃A�N�Z�X�͋����ă��O���o�͂���j</td></tr>
-<tr><td>3</td><td>�������[�h�i�|���V�[�ᔽ�̃A�N�Z�X�͋��ۂ���j</td></tr>
+<tr><th>プロファイル番号</th><th>意味</th></tr>
+<tr><td>0</td><td>無効モード（TOMOYO Linuxは何もしない）</td></tr>
+<tr><td>1</td><td>学習モード（ポリシー違反のアクセスは許可してポリシーに追加する）</td></tr>
+<tr><td>2</td><td>確認モード（ポリシー違反のアクセスは許可してログを出力する）</td></tr>
+<tr><td>3</td><td>強制モード（ポリシー違反のアクセスは拒否する）</td></tr>
 </table>
 
 <p>
-TOMOYO Linux�̃A�N�Z�X�����L���ɂ���ɂ́A�v���t�@�C���ԍ�3�̋������[�h�����蓖�Ă�K�v������܂��B
-����̓v���Z�X�c���[�ɑ��݂���2��bash���A�N�Z�X����̑ΏۂƂ��Ă݂܂��傤�B
-�܂��Agnome-terminal������bash�ɃJ�[�\�������킹�ăX�y�[�X�L�[�������܂��B
-����ƁA�s�ԍ��̍�����'&amp;'�}�[�N���\������܂��B����ł��̍s���I�����ꂽ��ԂɂȂ�܂��B
+TOMOYO Linuxのアクセス制御を有効にするには、プロファイル番号3の強制モードを割り当てる必要があります。
+今回はプロセスツリーに存在する2つのbashをアクセス制御の対象としてみましょう。
+まず、gnome-terminal直下のbashにカーソルを合わせてスペースキーを押します。
+すると、行番号の左側に'&amp;'マークが表示されます。これでこの行が選択された状態になります。
 </p>
 
-<p><img src="bash_selected1.png" width="586" height="41" alt="1�ڂ�bash��I���������" title="1�ڂ�bash��I���������"></p>
+<p><img src="bash_selected1.png" width="586" height="41" alt="1つ目のbashを選択した状態" title="1つ目のbashを選択した状態"></p>
 
 <p>
-�����1���̍s��bash���I�����܂��傤�B�J�[�\����2�ڂ�bash�ɍ��킹�ăX�y�[�X�L�[���������ƂŁA
-2�ڂ�bash��'&amp;'�}�[�N�����邱�Ƃ��ł��܂��B
+さらに1つ下の行のbashも選択しましょう。カーソルを2つ目のbashに合わせてスペースキーを押すことで、
+2つ目のbashに'&amp;'マークをつけることができます。
 </p>
 
-<p><img src="bash_selected2.png" width="585" height="41" alt="2��bash��I���������" title="2��bash��I���������"></p>
+<p><img src="bash_selected2.png" width="585" height="41" alt="2つのbashを選択した状態" title="2つのbashを選択した状態"></p>
 
 <p>
-���̏�Ԃ�'S'�L�[�������ƁA�|���V�[�G�f�B�^�̍ŉ��s�Ƀv���t�@�C���ԍ�����͂���1�s���͂��\������܂��B
-�A�N�Z�X�����̌����邽�߂ɁA�I������2��bash�Ƀv���t�@�C��3�i�������[�h�j�����蓖�Ă܂��傤�B
+この状態で'S'キーを押すと、ポリシーエディタの最下行にプロファイル番号を入力する1行入力が表示されます。
+アクセス制御を体験するために、選択した2つのbashにプロファイル3（強制モード）を割り当てましょう。
 </p>
 
-<p><img src="setprofile.png" width="594" height="31" alt="�v���t�@�C���ԍ�3�����蓖�Ă�" title="�v���t�@�C���ԍ�3�����蓖�Ă�"></p>
+<p><img src="setprofile.png" width="594" height="31" alt="プロファイル番号3を割り当てる" title="プロファイル番号3を割り当てる"></p>
 
-<p>2��bash�Ƀv���t�@�C���ԍ�3�����蓖�Ă��܂����B</p>
+<p>2つのbashにプロファイル番号3が割り当てられました。</p>
 
-<p><img src="bash_enforced.png" width="585" height="45" alt="2��bash�̃v���t�@�C����3�ɂȂ���" title="2��bash�̃v���t�@�C����3�ɂȂ���"></p>
+<p><img src="bash_enforced.png" width="585" height="45" alt="2つのbashのプロファイルが3になった" title="2つのbashのプロファイルが3になった"></p>
 
 <p>
-����ł���bash�͋������[�h�œ����Ă��܂��B�[���̉�ʂœK���ȃR�}���h����͂��Ă݂Ă��������B
-��قǊw�K���[�h�Ŏ��s�����R�}���h�ȊO�͋��ۂ����͂��ł��B�ȉ��̉�ʂł́A
-head /etc/passwd�̎��s�ɂ͐������Ă��܂����Als��ps�R�}���h�̎��s�͋��ۂ���Ă��܂��B
+これでもうbashは強制モードで動いています。端末の画面で適当なコマンドを入力してみてください。
+先ほど学習モードで実行したコマンド以外は拒否されるはずです。以下の画面では、
+head /etc/passwdの実行には成功していますが、lsやpsコマンドの実行は拒否されています。
 </p>
 
-<p><img src="1st_bash.png" width="585" height="280" alt="�w�K���ꂽ�R�}���h�ȊO�͋��ۂ����" title="�w�K���ꂽ�R�}���h�ȊO�͋��ۂ����"></p>
+<p><img src="1st_bash.png" width="585" height="280" alt="学習されたコマンド以外は拒否される" title="学習されたコマンド以外は拒否される"></p>
 
 <p>
-�܂��A1�i�K�ڂ�bash�ł�tail /etc/passwd�͋��ۂ���܂����Abash������1�i�N�������ꍇ�ɂ͋�����܂��B
+また、1段階目のbashではtail /etc/passwdは拒否されますが、bashをもう1段起動した場合には許可されます。
 </p>
 
-<p><img src="2nd_bash.png" width="585" height="260" alt="�V�F�����x���ɂ��A�N�Z�X���̈Ⴂ" title="�V�F�����x���ɂ��A�N�Z�X���̈Ⴂ"></p>
+<p><img src="2nd_bash.png" width="585" height="260" alt="シェルレベルによるアクセス許可の違い" title="シェルレベルによるアクセス許可の違い"></p>
 
 <p>
-����́ATOMOYO Linux���v���Z�X�����̎��s�����ɂ���ċ�ʂ��Ă��邱�ƂɋN�����Ă��܂��B
-�ēx�|���V�[�G�f�B�^������ƁA
+これは、TOMOYO Linuxがプロセスをその実行履歴によって区別していることに起因しています。
+再度ポリシーエディタを見ると、
 </p>
 
 <ul>
-<li>gnome-terminal������s���ꂽbash</li>
-<li>gnome-terminal������s���ꂽbash����N�����ꂽbash</li>
+<li>gnome-terminalから実行されたbash</li>
+<li>gnome-terminalから実行されたbashから起動されたbash</li>
 </ul>
 
 <p>
-��2��ނ�bash�����݂��Ahead�R�}���h��1�ڂ́Atail�R�}���h��2�ڂ�bash�݂̂ɂ���������Ă��Ȃ����Ƃ�������܂��B
-TOMOYO Linux�̓V�X�e���N��������N�����ꂽ���ׂẴv���Z�X���Ď����Ă���A�v���Z�X�͎��s�����ɂ���čׂ�����ʂ���܂��B
+の2種類のbashが存在し、headコマンドは1つ目の、tailコマンドは2つ目のbashのみにしか許可されていないことが分かります。
+TOMOYO Linuxはシステム起動時から起動されたすべてのプロセスを監視しており、プロセスは実行履歴によって細かく区別されます。
 </p>
 
-<h2><a name="l6">�i�Q�l�j�n�[�h�f�B�X�N�ɃC���X�g�[������</a></h2>
+<h2><a name="l6">（参考）ハードディスクにインストールする</a></h2>
 
 <p>
-�ݒ��w�K�������|���V�[��LiveCD�ŋN�����Ă���Ԃ݂̂ŗL���ŁA�V�X�e�����I��������Ǝ��Ȃ��Ă��܂��܂��B
-�p���I�Ɏg�p�������ꍇ�̓n�[�h�f�B�X�N�ɃC���X�g�[�����Ă��������B
-�f�X�N�g�b�v�́u�C���X�g�[���v�A�C�R�����_�u���N���b�N���Ă��Ƃ̎w���ɏ]���΁A
-TOMOYO Linux���������ꂽ��Ԃ�Ubuntu���n�[�h�f�B�X�N�ɃC���X�g�[���ł��܂��B
-LiveCD�Ƃ��ċN�����镪�ɂ͊����̊��ɉe����^���܂��񂪁A
-�n�[�h�f�B�X�N�ɃC���X�g�[������Ɗ�����OS�̈���㏑�����Ă��܂��\��������܂��B
-���ꂮ������ӂ��������B
+設定や学習させたポリシーはLiveCDで起動している間のみで有効で、システムを終了させると失なわれてしまいます。
+継続的に使用したい場合はハードディスクにインストールしてください。
+デスクトップの「インストール」アイコンをダブルクリックしてあとの指示に従えば、
+TOMOYO Linuxが導入された状態のUbuntuをハードディスクにインストールできます。
+LiveCDとして起動する分には既存の環境に影響を与えませんが、
+ハードディスクにインストールすると既存のOS領域を上書きしてしまう可能性があります。
+くれぐれも注意ください。
 </p>
 
-<p><img src="icon_install.png" width="75" height="72" alt="�C���X�g�[���A�C�R��" title="�C���X�g�[���A�C�R��"></p>
+<p><img src="icon_install.png" width="75" height="72" alt="インストールアイコン" title="インストールアイコン"></p>
 
 <p>
-�n�[�h�f�B�X�N����N�����Aroot���[�U������/usr/lib/ccs/savepolicy�R�}���h�����s����΁A
-/etc/ccs�f�B���N�g���Ƀ|���V�[��ۑ��ł��A����N��������͕ۑ������|���V�[���Q�Ƃ���悤�ɂȂ�܂��B
+ハードディスクから起動し、rootユーザ権限で/usr/lib/ccs/savepolicyコマンドを実行すれば、
+/etc/ccsディレクトリにポリシーを保存でき、次回起動時からは保存したポリシーを参照するようになります。
 </p>
 
-<h2><a name="l7">�i�Q�l�j�����TOMOYO Linux���g�����Ȃ�</a></h2>
+<h2><a name="l7">（参考）さらにTOMOYO Linuxを使いこなす</a></h2>
 
 <p>
-��L�菇�ŉ���������e�ŁATOMOYO Linux�̊�{�I�ȋ@�\�ł���t�@�C���ɑ΂���A�N�Z�X�����̌��ł��܂����B
-TOMOYO Linux�ɂ͂����ŏЉ���@�\�ȊO�ɂ����܂��܂ȋ@�\������܂��B
-�����TOMOYO Linux���g�����Ȃ������Ƃ������́A�ȉ��̃h�L�������g�����Q�Ƃ��������B
+上記手順で解説した内容で、TOMOYO Linuxの基本的な機能であるファイルに対するアクセス制御を体験できました。
+TOMOYO Linuxにはここで紹介した機能以外にもさまざまな機能があります。
+さらにTOMOYO Linuxを使いこなしたいという方は、以下のドキュメントをご参照ください。
 </p>
 
 <ul>
-<li><a href="../../policy-reference.html">TOMOYO Linux�|���V�[�����</a>: TOMOYO Linux�̋@�\�̃��t�@�����X�B</li>
-<li><a href="/wiki/?WorldOfTomoyoLinux">TOMOYO Linux�̐��E</a>: 2007�N1���`12����Software Design�̘A�ځB��ʂ�@�\��ԗ������`���[�g���A���ɂȂ��Ă��܂��B</li>
-<li><a href="../../tool-editpolicy.html">�|���V�[�G�f�B�^�̎g����</a>: ��L�菇�Ŏg�p�����|���V�[�G�f�B�^�̏ڍׂȎg�����B</li>
-<li><a href="http://www.thinkit.co.jp/free/article/0706/17/1/">���̌� TOMOYO Linux�I</a>: ThinkIT�ł�TOMOYO Linux�A�ځB</li>
+<li><a href="../../policy-reference.html">TOMOYO Linuxポリシー解説書</a>: TOMOYO Linuxの機能のリファレンス。</li>
+<li><a href="/wiki/?WorldOfTomoyoLinux">TOMOYO Linuxの世界</a>: 2007年1月～12月のSoftware Designの連載。一通り機能を網羅したチュートリアルになっています。</li>
+<li><a href="../../tool-editpolicy.html">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
+<li><a href="http://www.thinkit.co.jp/free/article/0706/17/1/">初体験 TOMOYO Linux！</a>: ThinkITでのTOMOYO Linux連載。</li>
 </ul>
 
 <hr>

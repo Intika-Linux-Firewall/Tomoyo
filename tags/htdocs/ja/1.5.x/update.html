@@ -1,38 +1,38 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux�����e�i���X�菇</title>
+<title>TOMOYO Linuxメンテナンス手順</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.6.x/">1.6.x</a> is available.</p>
 <p style="text-align:right;"><a href="../../en/1.5.x/update.html">English Page</a></p>
-<h1>TOMOYO Linux�����e�i���X�菇</h1>
+<h1>TOMOYO Linuxメンテナンス手順</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>�p�b�P�[�W�̃A�b�v�f�[�g�ɂ���</h1>
+<h1>パッケージのアップデートについて</h1>
 
-<p>�V�X�e���̐U�镑�����|���V�[�ɂ�萧�����Ă��邽�߁A�p�b�P�[�W�̃A�b�v�f�[�g�ɔ����|���V�[�̍X�V���K�v�ɂȂ�ꍇ������܂��B</p>
+<p>システムの振る舞いをポリシーにより制限しているため、パッケージのアップデートに伴いポリシーの更新が必要になる場合があります。</p>
 
-<p>�ȉ��̂����ꂩ�̏ꍇ�ɁA�|���V�[�̍X�V���K�v�ɂȂ�܂��B</p>
+<p>以下のいずれかの場合に、ポリシーの更新が必要になります。</p>
 
 <ul>
-<li>�t�@�C���̃p�X�����ω������ꍇ
-<li>�t�@�C���̈ˑ��֌W���ω������ꍇ
-<li>�K�v�ȃA�N�Z�X�����������ꍇ
+<li>ファイルのパス名が変化した場合
+<li>ファイルの依存関係が変化した場合
+<li>必要なアクセス許可が増えた場合
 </ul>
 
-<p>�w�K���[�h���g���ă|���V�[���ŏ�����Ď擾����̂����z�ł��B�������A�����ɂ́A��x�������[�h�ł̉^�p���J�n�����V�X�e�����������[�h�ȊO�ɕύX���邱�Ƃ͍���ł��B�h���C���P�ʂŋ������[�h�ɂ��邩�ǂ������w��ł��܂����A�������[�h�ł͂Ȃ��h���C���ɑ����Ă���A�v���P�[�V�����̐����D��ꂽ��Ӗ�������܂���B�Ⴆ�΁A http �T�[�o�̃A�N�Z�X�����Ď擾���邽�߂� http �T�[�o�������w�K���[�h�ɂ��邾���ł��A�V�X�e���S�̂����h���ɂȂ��Ă��܂��킯�ł��B���̂��߁A TOMOYO Linux �ł́A�������[�h�̂܂܁A�p�b�P�[�W�̃A�b�v�f�[�g�ƃ|���V�[�̏C�����s���܂��B</p>
+<p>学習モードを使ってポリシーを最初から再取得するのが理想です。しかし、現実には、一度強制モードでの運用を開始したシステムを強制モード以外に変更することは困難です。ドメイン単位で強制モードにするかどうかを指定できますが、強制モードではないドメインに属しているアプリケーションの制御を奪われたら意味がありません。例えば、 http サーバのアクセス許可を再取得するために http サーバだけを学習モードにするだけでも、システム全体が無防備になってしまうわけです。そのため、 TOMOYO Linux では、強制モードのまま、パッケージのアップデートとポリシーの修正を行います。</p>
 
-<p>TOMOYO Linux �ɂ́A�������[�h�̂܂܃|���V�[�̏C�����s�����߂̃c�[�����t�����Ă��܂��B�����̃c�[�����g�����ƂŁA�y���ȕύX�Ȃ�΁A�|���V�[���ŏ�����Ď擾���邱�ƂȂ��V�X�e���̉^�p���p���ł��܂��B�������A�����̃c�[���́A�S�ẴP�[�X�ɑΉ��ł���Ƃ͌��炸�A�œK�ȃ|���V�[�ł��邱�Ƃ�ۏ؂�����̂ł͂���܂���B</p>
+<p>TOMOYO Linux には、強制モードのままポリシーの修正を行うためのツールが付属しています。これらのツールを使うことで、軽微な変更ならば、ポリシーを最初から再取得することなくシステムの運用を継続できます。ただし、これらのツールは、全てのケースに対応できるとは限らず、最適なポリシーであることを保証するものではありません。</p>
 
-<h1>�菇</h1>
+<h1>手順</h1>
 
-<p>�E�B���h�E���R�J���܂��B�Ȍ�A�����̃E�B���h�E�����ꂼ�� Window-1 Window-2 Window-3 �ƕ\�L���܂��B</p>
+<p>ウィンドウを３つ開きます。以後、これらのウィンドウをそれぞれ Window-1 Window-2 Window-3 と表記します。</p>
 
-<p>�܂��A Window-1 �ɐ؂�ւ��܂��B�����āA�Θb�I�ɋ��������v���t�@�C���� ALLOW_ENFORCE_GRACE �� 1 �ɕύX���܂��B�Ⴆ�΁A�v���t�@�C���ԍ� 3 �ɂ��Đݒ肵�����ꍇ�͈ȉ��̂悤�ɂȂ�܂��B</p>
+<p>まず、 Window-1 に切り替えます。そして、対話的に許可したいプロファイルの ALLOW_ENFORCE_GRACE を 1 に変更します。例えば、プロファイル番号 3 について設定したい場合は以下のようになります。</p>
 
 <table border="1">
 <tr><td>
@@ -40,9 +40,9 @@ setlevel 3-ALLOW_ENFORCE_GRACE=1
 </td></tr>
 </table>
 
-<p>�v���t�@�C���̓��e�� setlevel �R�}���h�ŕύX����̂ł͂Ȃ��A ALLOW_ENFORCE_GRACE �̐ݒ肾�����قȂ鋭�����[�h�p�̃v���t�@�C���� setprofile �R�}���h�Ńh���C���Ɋ��蓖�ĂĂ��\���܂���B</p>
+<p>プロファイルの内容を setlevel コマンドで変更するのではなく、 ALLOW_ENFORCE_GRACE の設定だけが異なる強制モード用のプロファイルを setprofile コマンドでドメインに割り当てても構いません。</p>
 
-<p>���ɁA�ȉ��̃R�}���h���N�����Ă��������B</p>
+<p>次に、以下のコマンドを起動してください。</p>
 
 <table border="1">
 <tr><td>
@@ -50,13 +50,13 @@ ccs-queryd
 </td></tr>
 </table>
 
-<p>ccs-queryd �́A�|���V�[�ᔽ�̔��������m���āA�A�N�Z�X�v���̓��e��\�����܂��B�Ǘ��҂́A���̃A�N�Z�X�v���̑Ó����𔻒f���āA�A�N�Z�X�������邩�ۂ��A�h���C���p�|���V�[�ɒǉ����邩�ۂ����w�肷�邱�Ƃ��ł��܂��B</p>
+<p>ccs-queryd は、ポリシー違反の発生を検知して、アクセス要求の内容を表示します。管理者は、そのアクセス要求の妥当性を判断して、アクセスを許可するか否か、ドメイン用ポリシーに追加するか否かを指定することができます。</p>
 
-<p>�������ɃA�N�Z�X�v���������Ȃ��悤�ɂ��Ă��������B�|���V�[�ᔽ�̌������p�b�P�[�W�̃A�b�v�f�[�g�ɂ����̂Ƃ͌��炸�A�N���҂̍U���ɂ����̂ł���\�������邩��ł��B�����A�N���҂̍U���ɂ���Ĕ��������A�N�Z�X�v���ɑ΂��ăA�N�Z�X�������Ă��܂����ꍇ�A�N������Ă��܂��܂��B</p>
+<p>無条件にアクセス要求を許可しないようにしてください。ポリシー違反の原因がパッケージのアップデートによるものとは限らず、侵入者の攻撃によるものである可能性があるからです。もし、侵入者の攻撃によって発生したアクセス要求に対してアクセスを許可してしまった場合、侵入されてしまいます。</p>
 
-<p>ALLOW_ENFORCE_GRACE �� 0 �ɐݒ肳��Ă���܂��� ccs-queryd �����삵�Ă��Ȃ��ꍇ�A�|���V�[�ᔽ����������Ƃ��̃A�N�Z�X�v���͒����ɋ��ۂ���܂��B ALLOW_ENFORCE_GRACE �� 1 �ɐݒ肳��Ă��Ă���� ccs-queryd �����삵�Ă���ꍇ�A�|���V�[�ᔽ���������Ă��Ǘ��҂���������܂ł��̃A�N�Z�X�v���͕ۗ���ԂƂȂ�܂��B���̂��߁A ccs-queryd �𓮍삳�����܂܃��O�A�E�g���Ȃ��ł��������B</p>
+<p>ALLOW_ENFORCE_GRACE が 0 に設定されているまたは ccs-queryd が動作していない場合、ポリシー違反が発生するとそのアクセス要求は直ちに拒否されます。 ALLOW_ENFORCE_GRACE が 1 に設定されていてさらに ccs-queryd が動作している場合、ポリシー違反が発生しても管理者が応答するまでそのアクセス要求は保留状態となります。そのため、 ccs-queryd を動作させたままログアウトしないでください。</p>
 
-<p>���ɁA Window-2 �ňȉ��̃R�}���h���N�����Ă��������B</p>
+<p>次に、 Window-2 で以下のコマンドを起動してください。</p>
 
 <table border="1">
 <tr><td>
@@ -64,17 +64,17 @@ ld-watch
 </td></tr>
 </table>
 
-<p>ld-watch �́A /etc/ld.so.cache �ɓo�^����Ă��鋤�L���C�u�����t�@�C���̏�񂪕ύX���ꂽ�ꍇ�ɁA���L���C�u�����������I�� allow_read �f�B���N�e�B�u���g�p���ė�O�|���V�[�ɒǉ����܂��B����ɂ��A�s���葽���̃v���O��������A�N�Z�X����郉�C�u�����t�@�C���̃p�X�����ω������ꍇ�ɁA���C�u�����t�@�C����ǂݍ��߂Ȃ����Ƃ������Ńv���O���������삵�Ȃ��Ȃ�󋵂�������邱�Ƃ��ł��܂��B</p>
+<p>ld-watch は、 /etc/ld.so.cache に登録されている共有ライブラリファイルの情報が変更された場合に、共有ライブラリを自動的に allow_read ディレクティブを使用して例外ポリシーに追加します。これにより、不特定多数のプログラムからアクセスされるライブラリファイルのパス名が変化した場合に、ライブラリファイルを読み込めないことが原因でプログラムが動作しなくなる状況を回避することができます。</p>
 
-<p>���ɁA Window-3 �ɐ؂�ւ��āA�p�b�P�[�W�̃A�b�v�f�[�g���s�����߂̃R�}���h�����s���܂��B</p>
+<p>次に、 Window-3 に切り替えて、パッケージのアップデートを行うためのコマンドを実行します。</p>
 
-<p>yum ���g�p���Ă�����Ȃ�� yum update ���A apt ���g�p���Ă�����Ȃ�� apt-get update ����� apt-get upgrade �����s���܂��B</p>
+<p>yum を使用している環境ならば yum update を、 apt を使用している環境ならば apt-get update および apt-get upgrade を実行します。</p>
 
-<p>�p�b�P�[�W���A�b�v�f�[�g���ɁA�f�[�����̍ċN���ȂǂŃ|���V�[�ᔽ���������܂��̂ŁA Window-1 �ɒ��ڂ��Ă��������B</p>
+<p>パッケージをアップデート中に、デーモンの再起動などでポリシー違反が発生しますので、 Window-1 に注目してください。</p>
 
-<p>�p�b�P�[�W�̃A�b�v�f�[�g������������A�P�O�b�قǑ҂��Ă���A Window-2 �œ��쒆�� ld-watch �� Ctrl-C �ŏI�������Ă��������B</p>
+<p>パッケージのアップデートが完了したら、１０秒ほど待ってから、 Window-2 で動作中の ld-watch を Ctrl-C で終了させてください。</p>
 
-<p>���ɁA���ƂŃ|���V�[��ۑ����Ă��������B</p>
+<p>次に、手作業でポリシーを保存してください。</p>
 
 <table border="1">
 <tr><td>
@@ -82,7 +82,7 @@ savepolicy
 </td></tr>
 </table>
 
-<p>�ȉ��̃R�}���h�����s���āA���݂��Ȃ��p�X���̈ꗗ���擾���܂��B</p>
+<p>以下のコマンドを実行して、存在しないパス名の一覧を取得します。</p>
 
 <table border="1">
 <tr><td>
@@ -90,7 +90,7 @@ findtemp &lt; /etc/ccs/exception_policy.conf
 </td></tr>
 </table>
 
-<p>�e�L�X�g�G�f�B�^�� /etc/ccs/exception_policy.conf ���J���A���݂��Ȃ����L���C�u�����t�@�C���ɑ΂��� allow_read ���̖��Ӗ��ȃA�N�Z�X�����폜���Ă��������B�����āA�ȉ��̃R�}���h�����s���ė�O�|���V�[���ēǂݍ��݂��Ă��������B</p>
+<p>テキストエディタで /etc/ccs/exception_policy.conf を開き、存在しない共有ライブラリファイルに対する allow_read 等の無意味なアクセス許可を削除してください。そして、以下のコマンドを実行して例外ポリシーを再読み込みしてください。</p>
 
 <table border="1">
 <tr><td>
@@ -98,7 +98,7 @@ loadpolicy ef
 </td></tr>
 </table>
 
-<p>�ȉ��̃R�}���h�����s���āA���݂��Ȃ��p�X���̈ꗗ���擾���܂��B</p>
+<p>以下のコマンドを実行して、存在しないパス名の一覧を取得します。</p>
 
 <table border="1">
 <tr><td>
@@ -106,12 +106,12 @@ findtemp &lt; /etc/ccs/domain_policy.conf
 </td></tr>
 </table>
 
-<p>�����A��ʂ̃p�X�����\�����ꂽ�ꍇ�͒��ӂ��K�v�ł��B�p�b�P�[�W�̃A�b�v�f�[�g�ɂ��A�f�B���N�g�������ƃp�X�����ω����Ă��܂����\��������܂��B</p>
+<p>もし、大量のパス名が表示された場合は注意が必要です。パッケージのアップデートにより、ディレクトリ名ごとパス名が変化してしまった可能性があります。</p>
 
-<p>�Ⴆ�΁A Fedora Core 4 �ɕt���� logwatch �́A�A�b�v�f�[�g�ɂ��p�X�����ω����܂��B
-Fedora Core 4 ���C���X�g�[����������� logwatch �� /etc/log.d/ �f�B���N�g���ɐݒ�t�@�C���Ȃǂ�ێ����Ă��܂��B�������A�A�b�v�f�[�g�ɂ�� /etc/logwatch/ �f�B���N�g���ɐݒ�t�@�C���Ȃǂ�ێ�����悤�ɂȂ�A /etc/log.d/ �f�B���N�g���͍폜����Ă��܂��܂��B</p>
+<p>例えば、 Fedora Core 4 に付属の logwatch は、アップデートによりパス名が変化します。
+Fedora Core 4 をインストールした直後の logwatch は /etc/log.d/ ディレクトリに設定ファイルなどを保持しています。しかし、アップデートにより /etc/logwatch/ ディレクトリに設定ファイルなどを保持するようになり、 /etc/log.d/ ディレクトリは削除されてしまいます。</p>
 
-<p>�K���������m�ȏꍇ�́A�e�L�X�g�G�f�B�^�� /etc/ccs/domain_policy.conf ��ҏW���Ă��������B�����āA�ȉ��̃R�}���h�����s���ăh���C���p�|���V�[���ēǂݍ��݂��Ă��������B</p>
+<p>規則性が明確な場合は、テキストエディタで /etc/ccs/domain_policy.conf を編集してください。そして、以下のコマンドを実行してドメイン用ポリシーを再読み込みしてください。</p>
 
 <table border="1">
 <tr><td>
@@ -119,9 +119,9 @@ loadpolicy df
 </td></tr>
 </table>
 
-<p>���ɁA�����A�N�Z�X����̑ΏۂƂȂ��Ă���v���O�����̓�����m�F���邽�߂ɁA��ʂ�̑���������Ă��������B�����A�A�N�Z�X���̕s�������o���ꂽ�ꍇ�� Window-1 �ɕ\������܂��̂ŁA Window-1 �̊Ď���Y��Ȃ��悤�ɂ��Ă��������B</p>
+<p>次に、強制アクセス制御の対象となっているプログラムの動作を確認するために、一通りの操作を試してください。もし、アクセス許可の不足が検出された場合は Window-1 に表示されますので、 Window-1 の監視を忘れないようにしてください。</p>
 
-<p>����m�F������������A�ēx�|���V�[��ۑ����Ă��������B</p>
+<p>動作確認が完了したら、再度ポリシーを保存してください。</p>
 
 <table border="1">
 <tr><td>
@@ -129,9 +129,9 @@ savepolicy
 </td></tr>
 </table>
 
-<p>�����āA Window-1 �œ��쒆�� ccs-queryd �� Ctrl-C �ŏI�������Ă��������B</p>
+<p>そして、 Window-1 で動作中の ccs-queryd を Ctrl-C で終了させてください。</p>
 
-<p>�Ō�ɁA�v���t�@�C���� ALLOW_ENFORCE_GRACE �� 0 �ɖ߂��܂��B�Ⴆ�΁A�v���t�@�C���ԍ� 3 �ɂ��Đݒ肵���ꍇ�͈ȉ��̂悤�ɂȂ�܂��B</p>
+<p>最後に、プロファイルの ALLOW_ENFORCE_GRACE を 0 に戻します。例えば、プロファイル番号 3 について設定した場合は以下のようになります。</p>
 
 <table border="1">
 <tr><td>
@@ -139,7 +139,7 @@ setlevel 3-ALLOW_ENFORCE_GRACE=0
 </td></tr>
 </table>
 
-<p>�ȏ�Ńp�b�P�[�W�̍X�V��Ƃ͊����ł��B�E�B���h�E���R�Ƃ����Ă��������B</p>
+<p>以上でパッケージの更新作業は完了です。ウィンドウを３つとも閉じてください。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>

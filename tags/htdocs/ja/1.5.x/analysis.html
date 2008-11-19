@@ -1,25 +1,25 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux�ɂ��A�N�Z�X��͎菇</title>
+<title>TOMOYO Linuxによるアクセス解析手順</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.6.x/">1.6.x</a> is available.</p>
 <p style="text-align:right;"><a href="../../en/1.5.x/analysis.html">English Page</a></p>
-<h1>TOMOYO Linux�ɂ��A�N�Z�X��͎菇</h1>
+<h1>TOMOYO Linuxによるアクセス解析手順</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<p>TOMOYO Linux �̃|���V�[�̓p�X���ŕ\������邽�߁A�t�@�C���̃A�N�Z�X��ǐՂ��邽�߂ɂ����p�ł��܂��B<br>
-����̃v���O�������ǂ̂悤�ȃt�@�C���ɃA�N�Z�X���Ă��邩��m�肽���ꍇ��A����̃f�B���N�g���Ƀt�@�C�����쐬���Ă���v���O������m�肽���ꍇ�ɗ��p�ł��܂��B</p>
+<p>TOMOYO Linux のポリシーはパス名で表現されるため、ファイルのアクセスを追跡するためにも利用できます。<br>
+特定のプログラムがどのようなファイルにアクセスしているかを知りたい場合や、特定のディレクトリにファイルを作成しているプログラムを知りたい場合に利用できます。</p>
 
-<h1>����</h1>
+<h1>準備</h1>
 
-<h2>TOMOYO Linux �J�[�l���̃C���X�g�[��</h2>
+<h2>TOMOYO Linux カーネルのインストール</h2>
 
-<p>TOMOYO Linux �ł́A�������̃R���p�C���ς݂̃J�[�l�����p�b�P�[�W�ɂ��Ē񋟂��Ă��܂��B�R���p�C���ς݂̃J�[�l���𗘗p����ꍇ�́A�ȉ��̃t�@�C�����_�E�����[�h���ăC���X�g�[�����Ă��������B</p>
+<p>TOMOYO Linux では、いくつかのコンパイル済みのカーネルをパッケージにして提供しています。コンパイル済みのカーネルを利用する場合は、以下のファイルをダウンロードしてインストールしてください。</p>
 
 <table border="1">
 <tr><td>
@@ -121,9 +121,9 @@ http://osdn.dl.sourceforge.jp/tomoyo/32427/ccs-kernel-2.6.16-76.39vl4_tomoyo_1.5
 </td></tr>
 </table>
 
-<p>�A�[�L�e�N�`�����قȂ�ꍇ��J�X�^�}�C�Y�������ꍇ�ɂ́A�J�[�l�����R���p�C������K�v������܂��B�J�[�l�����R���p�C��������@�ɂ��ẮA<a href="compile.html">TOMOYO Linux�J�[�l���̍쐬�菇</a>���Q�Ƃ��Ă��������B</p>
+<p>アーキテクチャが異なる場合やカスタマイズしたい場合には、カーネルをコンパイルする必要があります。カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
 
-<p>SELinux ���T�|�[�g����f�B�X�g���r���[�V�����ł́A SELinux �������ɂȂ��Ă��Ȃ��ƃC���X�g�[�����ɃG���[����������ꍇ������܂��B�C���X�g�[�����Ɉȉ��̂悤�ȃG���[���b�Z�[�W���\�������ꍇ�́A SELinux �𖳌��ɂ��Ă���C���X�g�[�����Ă��������B /etc/selinux/config �� SELINUX= �̍s�� SELINUX=disabled �ɏ��������Ă���V�X�e�����ċN�����邩�A���邢�́A�J�[�l���N�����̃R�}���h���C���� selinux=0 �Ƃ����I�v�V������n�����Ƃ� SELinux �𖳌��ɂł��܂��B</p>
+<p>SELinux をサポートするディストリビューションでは、 SELinux が無効になっていないとインストール時にエラーが発生する場合があります。インストール時に以下のようなエラーメッセージが表示される場合は、 SELinux を無効にしてからインストールしてください。 /etc/selinux/config の SELINUX= の行を SELINUX=disabled に書き換えてからシステムを再起動するか、あるいは、カーネル起動時のコマンドラインに selinux=0 というオプションを渡すことで SELinux を無効にできます。</p>
 
 <table border="1">
 <tr><td>
@@ -134,11 +134,11 @@ Error:&nbsp;&nbsp;&nbsp;install: %pre scriptlet failed (2), skipping kernel-2.6.
 </td></tr>
 </table>
 
-<p>�Ȃ��A TOMOYO Linux ���g�� SELinux �Ɠ����Ɏg�p���邱�Ƃ��ł��܂��B�ȉ��̑���ł� SELinux ��L���ɂ�����Ԃł��\���܂���B</p>
+<p>なお、 TOMOYO Linux 自身は SELinux と同時に使用することができます。以下の操作では SELinux を有効にした状態でも構いません。</p>
 
-<h2>TOMOYO Linux �c�[���̃C���X�g�[��</h2>
+<h2>TOMOYO Linux ツールのインストール</h2>
 
-<p>TOMOYO Linux �ł́A�������̃R���p�C���ς݂̃c�[����񋟂��Ă��܂��B�R���p�C���ς݂̃c�[���𗘗p����ꍇ�́A�ȉ��̃t�@�C�����_�E�����[�h���ăC���X�g�[�����Ă��������B</p>
+<p>TOMOYO Linux では、いくつかのコンパイル済みのツールを提供しています。コンパイル済みのツールを利用する場合は、以下のファイルをダウンロードしてインストールしてください。</p>
 
 <table border="1">
 <tr><td>
@@ -214,12 +214,12 @@ http://osdn.dl.sourceforge.jp/tomoyo/32749/ccs-tools_1.5.5-1_i386.deb
 Vine Linux 4.2</td><td>
 http://osdn.dl.sourceforge.jp/tomoyo/32427/ccs-tools-1.5.5-1.i386.rpm
 </td></tr><tr><td>
-���̑�(�\�[�X�p�b�P�[�W)</td><td>
+その他(ソースパッケージ)</td><td>
 http://osdn.dl.sourceforge.jp/tomoyo/27220/ccs-tools-1.5.5-20080903.tar.gz
 </td></tr>
 </table>
 
-<p>�\�[�X�p�b�P�[�W���_�E�����[�h�����ꍇ�͈ȉ��̃R�}���h�����s���Ă��������B</p>
+<p>ソースパッケージをダウンロードした場合は以下のコマンドを実行してください。</p>
 
 <table border="1">
 <tr><td>
@@ -228,9 +228,9 @@ make -C ccstools/ all install
 </td></tr>
 </table>
 
-<h2>�|���V�[�̍쐬</h2>
+<h2>ポリシーの作成</h2>
 
-<p>/etc/ccs/profile.conf ���쐬���A�ȉ��̓��e���w�肵�܂��B</p>
+<p>/etc/ccs/profile.conf を作成し、以下の内容を指定します。</p>
 
 <table border="1">
 <tr><td>
@@ -242,7 +242,7 @@ TOMOYO_VERBOSE=0<BR>
 </td></tr>
 </table>
 
-<p>�ȉ��̃R�}���h�����s���Ă��������B</p>
+<p>以下のコマンドを実行してください。</p>
 
 <table border="1">
 <tr><td>
@@ -250,15 +250,15 @@ TOMOYO_VERBOSE=0<BR>
 </td></tr>
 </table>
 
-<h1>���</h1>
+<h1>解析</h1>
 
-<p>TOMOYO Linux�J�[�l���ŋN�����܂��B
+<p>TOMOYO Linuxカーネルで起動します。
 
-<p>��͂������A�v���P�[�V�����𓮍삳���܂��B</p>
+<p>解析したいアプリケーションを動作させます。</p>
 
-<p>/usr/lib/ccs/editpolicy �����s����ƁA���݂Ɏ���܂łɎ��s���ꂽ�v���O�����̈ꗗ��\���ł��܂��B�v���O������I������ Enter �������ƁA���̃v���O�������A�N�Z�X�����t�@�C���̈ꗗ���\������܂��B�|���V�[�G�f�B�^�̎g�����ɂ��ẮA<a href="tool-editpolicy.html">�|���V�[�G�f�B�^�̎g����</a>���Q�Ƃ��Ă��������B</p>
+<p>/usr/lib/ccs/editpolicy を実行すると、現在に至るまでに実行されたプログラムの一覧を表示できます。プログラムを選択して Enter を押すと、そのプログラムがアクセスしたファイルの一覧が表示されます。ポリシーエディタの使い方については、<a href="tool-editpolicy.html">ポリシーエディタの使い方</a>を参照してください。</p>
 
-<p>/usr/lib/ccs/savepolicy �����s����ƁA���݂Ɏ���܂łɃA�N�Z�X���ꂽ�t�@�C���̈ꗗ�� /etc/ccs/domain_policy.conf �ɕۑ����邱�Ƃ��ł��܂��B</p>
+<p>/usr/lib/ccs/savepolicy を実行すると、現在に至るまでにアクセスされたファイルの一覧を /etc/ccs/domain_policy.conf に保存することができます。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>

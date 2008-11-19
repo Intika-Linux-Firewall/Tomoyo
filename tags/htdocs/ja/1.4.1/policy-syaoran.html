@@ -1,113 +1,113 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>SYAORAN �|���V�[�����</title>
+<title>SYAORAN ポリシー解説書</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.4.x/">1.4.x</a> is available.</p>
 <hr>
-<h1 style="text-align:center;">SYAORAN �|���V�[�����</h1>
+<h1 style="text-align:center;">SYAORAN ポリシー解説書</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h2><a name="policy_syntax">1. �|���V�[�t�@�C���̕��ނƍ\��</a></h2>
-<h3><a name="pathname_style">�t�@�C�����̎w����@�ɂ���</a></h3>
-<p>SYAORAN �ł́A�V���{���b�N�����N�� .. ����S�ĉ���������ŃJ�[�l�����猩����΃p�X���i�ȉ��A���K�����ꂽ�p�X���j���g�p���Ă���B ���Y�v���Z�X�� chroot ���ꂽ�����œ��삷��ꍇ�ł����Ă��A chroot ����O�̃p�X���Ŏw�肳��邱�Ƃɒ��ӁB</p>
-<p>���K�����ꂽ�f�B���N�g�����͏�� / �ŏI���B ���K�����ꂽ�t�@�C�����͌����� / �ŏI���Ȃ��B</p>
-<p>���K�����ꂽ�p�X���́A�S�ăA�X�L�[�R�[�h�̕\���\�Ȕ͈́i0x21�`0x7E�j�ō\������Ă���B �]���āA�󔒕����i0x20�j�� \040 �A \ �����i0x5C�j�� \\ �A���̑��̕\���s�\�ȕ����� \ooo �`���̂W�i���ŕ\�L����B �󔒂���s�̓f���~�^�Ƃ��Ĉ�����̂ŁA�K���W�i���ɕϊ����邱�ƁB</p>
-<h3><a name="syntax">SYAORAN�t�@�C���V�X�e���p�|���V�[�t�@�C��</a></h3>
-<p>���̃t�@�C���ł́A /dev �f�B���N�g���̓��e���w�肷��B /dev �f�B���N�g���ɂ͑����̃f�o�C�X�t�@�C�������݂��Ă��邪�A���ۂɃV�X�e���̓���ɕK�v�Ȃ̂͐��\���x�ł���B �܂��A�f�o�C�X�t�@�C������ɐ������f�o�C�X�ƌq�����Ă��邱�Ƃ́A�Z�L�����e�B��A�s���ł���B �Ⴆ�΁A /dev/null �����W���[�ԍ� 1 �}�C�i�[�ԍ� 3 �̃L�����N�^�^�f�o�C�X�Ƃ��Ăł͂Ȃ��A���W���[�ԍ� 8 �}�C�i�[�ԍ� 0 �̃u���b�N�^�f�o�C�X�i /dev/sda �j�Ƃ��đ��݂��Ă����ꍇ�A�����܂� SCSI �n�[�h�f�B�X�N�̓��e���j�󂳂�Ă��܂��ł��낤�B</p>
-<p>�ݒ�t�@�C���̏����͈ȉ��̒ʂ�ł���B</p>
-<p>�P�s�ɂP�G���g�����L�q����B �e�G���g���ɂ͂X�̗v�f������B</p>
+<h2><a name="policy_syntax">1. ポリシーファイルの分類と構文</a></h2>
+<h3><a name="pathname_style">ファイル名の指定方法について</a></h3>
+<p>SYAORAN では、シンボリックリンクや .. 等を全て解決した上でカーネルから見た絶対パス名（以下、正規化されたパス名）を使用している。 当該プロセスが chroot された環境下で動作する場合であっても、 chroot する前のパス名で指定されることに注意。</p>
+<p>正規化されたディレクトリ名は常に / で終わる。 正規化されたファイル名は決して / で終わらない。</p>
+<p>正規化されたパス名は、全てアスキーコードの表示可能な範囲（0x21～0x7E）で構成されている。 従って、空白文字（0x20）は \040 、 \ 文字（0x5C）は \\ 、その他の表示不可能な文字は \ooo 形式の８進数で表記する。 空白や改行はデリミタとして扱われるので、必ず８進数に変換すること。</p>
+<h3><a name="syntax">SYAORANファイルシステム用ポリシーファイル</a></h3>
+<p>このファイルでは、 /dev ディレクトリの内容を指定する。 /dev ディレクトリには多数のデバイスファイルが存在しているが、実際にシステムの動作に必要なのは数十個程度である。 また、デバイスファイルが常に正しいデバイスと繋がっていることは、セキュリティ上、不可欠である。 例えば、 /dev/null がメジャー番号 1 マイナー番号 3 のキャラクタ型デバイスとしてではなく、メジャー番号 8 マイナー番号 0 のブロック型デバイス（ /dev/sda ）として存在していた場合、たちまち SCSI ハードディスクの内容が破壊されてしまうであろう。</p>
+<p>設定ファイルの書式は以下の通りである。</p>
+<p>１行に１エントリを記述する。 各エントリには９個の要素がある。</p>
 <table border="1">
 <tr>
 <td>filename</td>
-<td>�}�E���g�|�C���g�ȍ~�̐��K�����ꂽ�p�X���B�A���A�ŏ��� / �͏����B</td>
+<td>マウントポイント以降の正規化されたパス名。但し、最初の / は除く。</td>
 </tr>
 <tr>
 <td>permission</td>
-<td>�W�i���ŕ\�L���ꂽ�p�[�~�b�V�����B 000 �` 777 �Ŏw�肷��B</td>
+<td>８進数で表記されたパーミッション。 000 ～ 777 で指定する。</td>
 </tr>
 <tr>
 <td>owner</td>
-<td>�P�O�i���ŕ\�L���ꂽ���L�ҁB</td>
+<td>１０進数で表記された所有者。</td>
 </tr>
 <tr>
 <td>group</td>
-<td>�P�O�i���ŕ\�L���ꂽ�O���[�v�B</td>
+<td>１０進数で表記されたグループ。</td>
 </tr>
 <tr>
 <td>flags</td>
-<td>�ȉ��̒l�̘_���a�B<br>
+<td>以下の値の論理和。<br>
 <ul>
-<li>1: �}�E���g��ɍ쐬��������B</li>
-<li>2: �}�E���g��ɍ폜��������B</li>
-<li>4: �}�E���g��Ƀp�[�~�b�V�����̕ύX��������B</li>
-<li>8: �}�E���g��ɏ��L�҂܂��̓O���[�v�̕ύX��������B</li>
-<li>16: �����Ŏg�p�B�f�o�C�X�t�@�C���ɃA�N�Z�X���ꂽ���ۂ��B</li>
-<li>32: �}�E���g���_�ł͍쐬���Ȃ��B</li>
+<li>1: マウント後に作成を許可する。</li>
+<li>2: マウント後に削除を許可する。</li>
+<li>4: マウント後にパーミッションの変更を許可する。</li>
+<li>8: マウント後に所有者またはグループの変更を許可する。</li>
+<li>16: 内部で使用。デバイスファイルにアクセスされたか否か。</li>
+<li>32: マウント時点では作成しない。</li>
 </ul>
 </td>
 </tr>
 <tr>
 <td>type</td>
-<td>�f�o�C�X�t�@�C���̌^�B 'd' (�f�B���N�g��), 'p' (�e�h�e�n), 's' (�\�P�b�g), 'c' (�L�����N�^�^�f�o�C�X), 'b' (�u���b�N�^�f�o�C�X), 'l' (�V���{���b�N�����N) , 'f' (�ʏ�t�@�C��) �̂����ꂩ���w��B</td>
+<td>デバイスファイルの型。 'd' (ディレクトリ), 'p' (ＦＩＦＯ), 's' (ソケット), 'c' (キャラクタ型デバイス), 'b' (ブロック型デバイス), 'l' (シンボリックリンク) , 'f' (通常ファイル) のいずれかを指定。</td>
 </tr>
 <tr>
 <td>symlink_data</td>
-<td>�}�E���g���ɍ쐬�����V���{���b�N�����N�̓��e�B type �� l �ȊO�̏ꍇ�͕s�v�B</td>
+<td>マウント時に作成されるシンボリックリンクの内容。 type が l 以外の場合は不要。</td>
 </tr>
 <tr>
 <td>major</td>
-<td>�P�O�i���ŕ\�L���ꂽ���W���[�ԍ��B type �� c �܂��� b �ȊO�̏ꍇ�͕s�v�B</td>
+<td>１０進数で表記されたメジャー番号。 type が c または b 以外の場合は不要。</td>
 </tr>
 <tr>
 <td>minor</td>
-<td>�P�O�i���ŕ\�L���ꂽ�}�C�i�[�ԍ��B type �� c �܂��� b �ȊO�̏ꍇ�͕s�v�B</td>
+<td>１０進数で表記されたマイナー番号。 type が c または b 以外の場合は不要。</td>
 </tr>
 </table>
-<p>�e�s�� '\n' �ŋ�؂���B �t�@�C�����E�f�B���N�g�����̓��e�͑S�Đ��K�������`�Ŏw�肷��B �������A�f�B���N�g�����̖����� / �͏ȗ��\�ł���B</p>
-<p>�V���{���b�N�����N�̓��e�͐��K������K�v�͖����B</p>
-<p>�󔒕����Ȃǂ��V���{���b�N�����N���Ɋ܂߂�ړI�� \\ ����� \ooo �`���ɂ��G�X�P�[�v���s�����Ƃ��\�ł���B</p>
-<p>�g�p���@�F</p>
+<p>各行は '\n' で区切られる。 ファイル名・ディレクトリ名の内容は全て正規化した形で指定する。 ただし、ディレクトリ名の末尾の / は省略可能である。</p>
+<p>シンボリックリンクの内容は正規化する必要は無い。</p>
+<p>空白文字などをシンボリックリンク中に含める目的で \\ および \ooo 形式によるエスケープを行うことが可能である。</p>
+<p>使用方法：</p>
 <table border="1">
 <tr>
 <td>Step 1</td>
-<td>flags �� 0 �̏�Ԃ̐ݒ�t�@�C�����쐬����B</td>
+<td>flags が 0 の状態の設定ファイルを作成する。</td>
 </tr>
 <tr>
 <td>Step 2</td>
-<td>accept ���[�h�Ń}�E���g����B�ݒ�t�@�C���� /etc/ccs/syaoran.conf �ɍ쐬���� /dev �Ƀ}�E���g����ꍇ�A<br>
+<td>accept モードでマウントする。設定ファイルを /etc/ccs/syaoran.conf に作成して /dev にマウントする場合、<br>
 mount -t syaoran -o accept=/etc/ccs/syaoran.conf none /dev<br>
-�����s����B</td>
+を実行する。</td>
 </tr>
 <tr>
 <td>Step 3</td>
-<td>�ʏ�ʂ�V�X�e�����ғ�������B���ۂ̃A�N�Z�X���ꂽ���e�Ɋ�Â� flags �̒l���X�V�����B</td>
+<td>通常通りシステムを稼動させる。実際のアクセスされた内容に基づき flags の値が更新される。</td>
 </tr>
 <tr>
 <td>Step 4</td>
-<td>�w�K���ʂ̓}�E���g�|�C���g�����ɂ��� .syaoran �Ƃ����t�@�C����ʂ��ēǂݏo�����Ƃ��ł���̂ł����K���ɕҏW�i�s�v�ȃV���{���b�N�����N�̍폜�Ȃǁj���� /etc/ccs/syaoran.conf �ɕۑ�����B accept ���[�h�ł́A���ۂɃI�[�v�����ꂽ�L�����N�^�^�f�o�C�X�ƃu���b�N�^�f�o�C�X�݂̂� .syaoran �ɔ��f�����̂ŁA�s�v�ȃG���g�����폜���邽�߂ɗ��p�ł���B�f�B���N�g���A�e�h�e�n�A�\�P�b�g�A�V���{���b�N�����N�A�ʏ�t�@�C���̓I�[�v�����ꂽ���ǂ����Ɋ֌W�Ȃ���� .syaoran �ɔ��f�����B</td>
+<td>学習結果はマウントポイント直下にある .syaoran というファイルを通じて読み出すことができるのでこれを適当に編集（不要なシンボリックリンクの削除など）して /etc/ccs/syaoran.conf に保存する。 accept モードでは、実際にオープンされたキャラクタ型デバイスとブロック型デバイスのみが .syaoran に反映されるので、不要なエントリを削除するために利用できる。ディレクトリ、ＦＩＦＯ、ソケット、シンボリックリンク、通常ファイルはオープンされたかどうかに関係なく常に .syaoran に反映される。</td>
 </tr>
 <tr>
 <td>Step 5</td>
-<td>�A���}�E���g����B</td>
+<td>アンマウントする。</td>
 </tr>
 <tr>
 <td>Step 6</td>
-<td>enforce ���[�h�Ń}�E���g����ꍇ�́A<br>
+<td>enforce モードでマウントする場合は、<br>
 mount -t syaoran -o enforce=/etc/ccs/syaoran.conf none /dev<br>
-�����s����B enforce ���[�h�ł́A flags �̒l���X�V����邱�Ƃ͖����B<br>
-�G���g���s���Ȃǂɂ��|���V�[�ᔽ����������� SYAORAN-ERROR: �Ƃ������b�Z�[�W���\�������B�ȉ��̃R�}���h��p���Ēm�邱�Ƃ��ł���B<br>
+を実行する。 enforce モードでは、 flags の値が更新されることは無い。<br>
+エントリ不足などによりポリシー違反が発生すると SYAORAN-ERROR: というメッセージが表示される。以下のコマンドを用いて知ることができる。<br>
 dmesg | grep ^SYAORAN-ERROR:
 </td>
 </tr>
 </table>
-<p>�J�[�l���̃R�}���h���C���� SYAORAN=accept �܂��� SYAORAN=enforce �Ǝw�肷�邱�ƂŁA�f�t�H���g�̃��[�h���w��ł���B�f�t�H���g�̃��[�h���w�肵���ꍇ�́A�}�E���g���� accept= �܂��� enforce= ���ȗ����邱�Ƃ��ł���B</p>
+<p>カーネルのコマンドラインに SYAORAN=accept または SYAORAN=enforce と指定することで、デフォルトのモードを指定できる。デフォルトのモードを指定した場合は、マウント時に accept= または enforce= を省略することができる。</p>
 <hr>
-<h2><a name="policy_example">2. �|���V�[�t�@�C���̗�</a></h2>
-<p>�K�v�ȃG���g���̓V�X�e�����ɈقȂ�܂��B</p>
+<h2><a name="policy_example">2. ポリシーファイルの例</a></h2>
+<p>必要なエントリはシステム毎に異なります。</p>
 <table border="0">
 <tr>
 <td>#filename</td>
@@ -698,7 +698,7 @@ dmesg | grep ^SYAORAN-ERROR:
 </tr>
 </table>
 <hr>
-<p><a href="index.html#manual">�ڎ��֖߂�</a></p>
+<p><a href="index.html#manual">目次へ戻る</a></p>
 <hr>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
