@@ -1,17 +1,17 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux�J�[�l���̍쐬�菇</title>
+<title>TOMOYO Linuxカーネルの作成手順</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.5.x/">1.5.x</a> is available.</p>
-<h1>TOMOYO Linux�J�[�l���̍쐬�菇</h1>
+<h1>TOMOYO Linuxカーネルの作成手順</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<p>TOMOYO Linux �ł́A�������̃R���p�C���ς݂̃J�[�l�����p�b�P�[�W�ɂ��Ē񋟂��Ă��܂����A�A�[�L�e�N�`�����قȂ�ꍇ��J�X�^�}�C�Y�������ꍇ�ɂ́A�J�[�l�����R���p�C������K�v������܂��B�J�[�l�����R���p�C�����邽�߂ɂ́A�ȉ��̃p�b�P�[�W���K�v�ł��B</p>
+<p>TOMOYO Linux では、いくつかのコンパイル済みのカーネルをパッケージにして提供していますが、アーキテクチャが異なる場合やカスタマイズしたい場合には、カーネルをコンパイルする必要があります。カーネルをコンパイルするためには、以下のパッケージが必要です。</p>
 
 <ul>
 <li>gcc</li>
@@ -19,7 +19,7 @@
 <li>ncurses</li>
 </ul>
 
-<p>TOMOYO Linux �́A�K�v�ȋ@�\������g�ݍ��߂�悤�ɂȂ��Ă��܂��B menuconfig �̒�����A�uFile systems�v��I�����āA��ԉ��܂ŃX�N���[������ƈȉ��̍��ڂ��\������܂��B</p>
+<p>TOMOYO Linux は、必要な機能だけを組み込めるようになっています。 menuconfig の中から、「File systems」を選択して、一番下までスクロールすると以下の項目が表示されます。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
@@ -27,94 +27,94 @@
 <li>&lt;m&gt; SYAORAN (Tamper-Proof Device Filesystem) support
 </ul>
 
-<p>�ȉ��̋@�\�������Q�Ƃ��Ȃ���A���p�������@�\��I�����Ă��������B</p>
+<p>以下の機能説明を参照しながら、利用したい機能を選択してください。</p>
 
 <table border="1">
 <tr><td>
-<h3>�t�@�C���ɑ΂���ǂݏ������s�𐧌�����@�\</h3>
+<h3>ファイルに対する読み書き実行を制限する機能</h3>
 
-<p>�v���O�������A�N�Z�X�ł���t�@�C����f�B���N�g�����̃p�X�����u����Ώہv�P�ʂŐ��䂷�邱�Ƃ��ł��܂��B</p>
+<p>プログラムがアクセスできるファイルやディレクトリ等のパス名を「操作対象」単位で制御することができます。</p>
 
-<p>�����̗��x�͈ȉ��̂悤�ɂȂ��Ă��܂��B</p>
+<p>権限の粒度は以下のようになっています。</p>
 
 <table border="1">
-<tr><td>����</td><td>�������A�N�Z�X</td></tr>
-<tr><td>1</td><td>�v���O���������s����</td></tr>
-<tr><td>2</td><td>�t�@�C�����������݃��[�h�ŊJ��</td></tr>
-<tr><td>3</td><td>�t�@�C�����������݃��[�h�ŊJ���^�v���O���������s����</td></tr>
-<tr><td>4</td><td>�t�@�C����ǂݍ��݃��[�h�ŊJ��</td></tr>
-<tr><td>5</td><td>�t�@�C����ǂݍ��݃��[�h�ŊJ���^�v���O���������s����</td></tr>
-<tr><td>6</td><td>�t�@�C����ǂݏ������[�h�ŊJ��</td></tr>
-<tr><td>7</td><td>�t�@�C����ǂݏ������[�h�ŊJ���^�v���O���������s����</td></tr>
-<tr><td>allow_create</td><td>�t�@�C���̐V�K�쐬</td></tr>
-<tr><td>allow_unlink</td><td>�t�@�C���̍폜</td></tr>
-<tr><td>allow_mkdir</td><td>�f�B���N�g���̍쐬</td></tr>
-<tr><td>allow_rmdir</td><td>�f�B���N�g���̍폜</td></tr>
-<tr><td>allow_mkfifo</td><td>FIFO �̍쐬</td></tr>
-<tr><td>allow_mksock</td><td>UNIX �h���C���\�P�b�g�̍쐬</td></tr>
-<tr><td>allow_mkblock</td><td>�u���b�N�^�f�o�C�X�t�@�C���̍쐬</td></tr>
-<tr><td>allow_mkchar</td><td>�L�����N�^�^�f�o�C�X�t�@�C���̍쐬</td></tr>
-<tr><td>allow_truncate</td><td>�t�@�C���̐؂�l�߂ƐL��</td></tr>
-<tr><td>allow_symlink</td><td>�V���{���b�N�����N�̍쐬</td></tr>
-<tr><td>allow_link</td><td>�n�[�h�����N�̍쐬</td></tr>
-<tr><td>allow_rename</td><td>�t�@�C�����̕ύX</td></tr>
-<tr><td>allow_rewrite</td><td>���ɋL�^����Ă�����e�̕ύX</td></tr>
+<tr><td>権限</td><td>許可されるアクセス</td></tr>
+<tr><td>1</td><td>プログラムを実行する</td></tr>
+<tr><td>2</td><td>ファイルを書き込みモードで開く</td></tr>
+<tr><td>3</td><td>ファイルを書き込みモードで開く／プログラムを実行する</td></tr>
+<tr><td>4</td><td>ファイルを読み込みモードで開く</td></tr>
+<tr><td>5</td><td>ファイルを読み込みモードで開く／プログラムを実行する</td></tr>
+<tr><td>6</td><td>ファイルを読み書きモードで開く</td></tr>
+<tr><td>7</td><td>ファイルを読み書きモードで開く／プログラムを実行する</td></tr>
+<tr><td>allow_create</td><td>ファイルの新規作成</td></tr>
+<tr><td>allow_unlink</td><td>ファイルの削除</td></tr>
+<tr><td>allow_mkdir</td><td>ディレクトリの作成</td></tr>
+<tr><td>allow_rmdir</td><td>ディレクトリの削除</td></tr>
+<tr><td>allow_mkfifo</td><td>FIFO の作成</td></tr>
+<tr><td>allow_mksock</td><td>UNIX ドメインソケットの作成</td></tr>
+<tr><td>allow_mkblock</td><td>ブロック型デバイスファイルの作成</td></tr>
+<tr><td>allow_mkchar</td><td>キャラクタ型デバイスファイルの作成</td></tr>
+<tr><td>allow_truncate</td><td>ファイルの切り詰めと伸長</td></tr>
+<tr><td>allow_symlink</td><td>シンボリックリンクの作成</td></tr>
+<tr><td>allow_link</td><td>ハードリンクの作成</td></tr>
+<tr><td>allow_rename</td><td>ファイル名の変更</td></tr>
+<tr><td>allow_rewrite</td><td>既に記録されている内容の変更</td></tr>
 </table>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
 <li>[*] &nbsp;&nbsp;File Access Control support
 </ul>
 
-<p>�Ȃ��A���̋@�\�� TOMOYO Linux �̃h���C���J�ڂ𐧌����邽�߂ɕK�{�̋@�\�ł��B���̋@�\�𗘗p���Ȃ��ꍇ�ɂ̓h���C���J�ڂ𐧌��ł��Ȃ��̂ŁuTOMOYO (Domain-Based Mandatory Access Control) support�v���������@�\���܂���B</p>
+<p>なお、この機能は TOMOYO Linux のドメイン遷移を制限するために必須の機能です。この機能を利用しない場合にはドメイン遷移を制限できないので「TOMOYO (Domain-Based Mandatory Access Control) support」が正しく機能しません。</p>
 
 </td></tr><tr><td>
 
-<h3>�P�C�p�r���e�B�̗��p�𐧌�����@�\</h3>
+<h3>ケイパビリティの利用を制限する機能</h3>
 
-<p>�v���O�������s�����Ƃ��ł��鑀����e���u�����ʁv�P�ʂŐ��䂷�邱�Ƃ��ł��܂��B</p>
+<p>プログラムが行うことができる操作内容を「操作種別」単位で制御することができます。</p>
 
-<p>�W���� Linux �Ŏg�p����Ă���P�C�p�r���e�B�� POSIX �P�C�p�r���e�B�ƌĂ΂����̂ł��B�ő�łR�Q��ނ̌����܂ł�����`�ł��Ȃ��Ƃ������񂪂��邽�߁A����̌����i���� CAP_SYS_ADMIN �����j���l�X�ȗp�r�ɗ��p����Ă��܂��A�ڍׂȌ����������s���Ȃ��Ƃ������_������Ă��܂��B���̂��߁A TOMOYO Linux �ł́A POSIX �P�C�p�r���e�B�ɂ͎���������ɁA TOMOYO Linux �Ǝ��̊�Œ�`�����P�C�p�r���e�B���g�p���Ă��܂��B</p>
+<p>標準の Linux で使用されているケイパビリティは POSIX ケイパビリティと呼ばれるものです。最大で３２種類の権限までしか定義できないという制約があるため、特定の権限（特に CAP_SYS_ADMIN 権限）が様々な用途に利用されてしまい、詳細な権限分割を行えないという問題点を抱えています。そのため、 TOMOYO Linux では、 POSIX ケイパビリティには手を加えずに、 TOMOYO Linux 独自の基準で定義したケイパビリティを使用しています。</p>
 
-<p>�P�C�p�r���e�B�̗��x�͈ȉ��̂悤�ɂȂ��Ă��܂��B</p>
+<p>ケイパビリティの粒度は以下のようになっています。</p>
 
 <table border="1">
-<tr><td>�P�C�p�r���e�B</td><td>������鑀����e</td></tr>
-<tr><td>inet_tcp_create</td><td>TCP �\�P�b�g�̎g�p</td></tr>
-<tr><td>inet_tcp_listen</td><td>TCP �\�P�b�g�� listen</td></tr>
-<tr><td>inet_tcp_connect</td><td>TCP �\�P�b�g�� connect</td></tr>
-<tr><td>use_inet_udp</td><td>UDP �\�P�b�g�̎g�p</td></tr>
-<tr><td>use_inet_ip</td><td>RAW �\�P�b�g�̎g�p</td></tr>
-<tr><td>use_route</td><td>ROUTE �\�P�b�g�̎g�p</td></tr>
-<tr><td>use_packet</td><td>PACKET �\�P�b�g�̎g�p</td></tr>
-<tr><td>use_kernel_module</td><td>�J�[�l�����W���[���̎g�p</td></tr>
-<tr><td>create_fifo</td><td>FIFO �̍쐬</td></tr>
-<tr><td>create_block_dev</td><td>�u���b�N�^�f�o�C�X�̍쐬</td></tr>
-<tr><td>create_char_dev</td><td>�L�����N�^�^�f�o�C�X�̍쐬</td></tr>
-<tr><td>create_unix_socket</td><td>UNIX �h���C���\�P�b�g�̍쐬</td></tr>
-<tr><td>SYS_MOUNT</td><td>�t�@�C���V�X�e���̃}�E���g</td></tr>
-<tr><td>SYS_UMOUNT</td><td>�t�@�C���V�X�e���̃A���}�E���g</td></tr>
-<tr><td>SYS_REBOOT</td><td>�V�X�e���̍ċN��</td></tr>
-<tr><td>SYS_CHROOT</td><td>���[�g�f�B���N�g���̕ύX</td></tr>
-<tr><td>SYS_KILL</td><td>�V�O�i���̑��M</td></tr>
-<tr><td>SYS_VHANGUP</td><td>vhangup �̎g�p</td></tr>
-<tr><td>SYS_TIME</td><td>�V�X�e�������̕ύX</td></tr>
-<tr><td>SYS_NICE</td><td>�v���Z�X�̗D��x�̕ύX</td></tr>
-<tr><td>SYS_SETHOSTNAME</td><td>�z�X�g���E�h���C�����̕ύX</td></tr>
-<tr><td>SYS_LINK</td><td>�n�[�h�����N�̍쐬</td></tr>
-<tr><td>SYS_SYMLINK</td><td>�V���{���b�N�����N�̍쐬</td></tr>
-<tr><td>SYS_RENAME</td><td>�t�@�C�����̕ύX</td></tr>
-<tr><td>SYS_UNLINK</td><td>�t�@�C���̍폜</td></tr>
-<tr><td>SYS_CHMOD</td><td>�t�@�C���̃p�[�~�b�V�����̕ύX</td></tr>
-<tr><td>SYS_CHOWN</td><td>�t�@�C���̏��L�ҁE�O���[�v�̕ύX</td></tr>
-<tr><td>SYS_IOCTL</td><td>ioctl �̎g�p</td></tr>
-<tr><td>SYS_KEXEC_LOAD</td><td>�V�����J�[�l���̃��[�h</td></tr>
-<tr><td>SYS_PIVOT_ROOT</td><td>���[�g�f�B���N�g���̌���</td></tr>
+<tr><td>ケイパビリティ</td><td>許可される操作内容</td></tr>
+<tr><td>inet_tcp_create</td><td>TCP ソケットの使用</td></tr>
+<tr><td>inet_tcp_listen</td><td>TCP ソケットの listen</td></tr>
+<tr><td>inet_tcp_connect</td><td>TCP ソケットの connect</td></tr>
+<tr><td>use_inet_udp</td><td>UDP ソケットの使用</td></tr>
+<tr><td>use_inet_ip</td><td>RAW ソケットの使用</td></tr>
+<tr><td>use_route</td><td>ROUTE ソケットの使用</td></tr>
+<tr><td>use_packet</td><td>PACKET ソケットの使用</td></tr>
+<tr><td>use_kernel_module</td><td>カーネルモジュールの使用</td></tr>
+<tr><td>create_fifo</td><td>FIFO の作成</td></tr>
+<tr><td>create_block_dev</td><td>ブロック型デバイスの作成</td></tr>
+<tr><td>create_char_dev</td><td>キャラクタ型デバイスの作成</td></tr>
+<tr><td>create_unix_socket</td><td>UNIX ドメインソケットの作成</td></tr>
+<tr><td>SYS_MOUNT</td><td>ファイルシステムのマウント</td></tr>
+<tr><td>SYS_UMOUNT</td><td>ファイルシステムのアンマウント</td></tr>
+<tr><td>SYS_REBOOT</td><td>システムの再起動</td></tr>
+<tr><td>SYS_CHROOT</td><td>ルートディレクトリの変更</td></tr>
+<tr><td>SYS_KILL</td><td>シグナルの送信</td></tr>
+<tr><td>SYS_VHANGUP</td><td>vhangup の使用</td></tr>
+<tr><td>SYS_TIME</td><td>システム時刻の変更</td></tr>
+<tr><td>SYS_NICE</td><td>プロセスの優先度の変更</td></tr>
+<tr><td>SYS_SETHOSTNAME</td><td>ホスト名・ドメイン名の変更</td></tr>
+<tr><td>SYS_LINK</td><td>ハードリンクの作成</td></tr>
+<tr><td>SYS_SYMLINK</td><td>シンボリックリンクの作成</td></tr>
+<tr><td>SYS_RENAME</td><td>ファイル名の変更</td></tr>
+<tr><td>SYS_UNLINK</td><td>ファイルの削除</td></tr>
+<tr><td>SYS_CHMOD</td><td>ファイルのパーミッションの変更</td></tr>
+<tr><td>SYS_CHOWN</td><td>ファイルの所有者・グループの変更</td></tr>
+<tr><td>SYS_IOCTL</td><td>ioctl の使用</td></tr>
+<tr><td>SYS_KEXEC_LOAD</td><td>新しいカーネルのロード</td></tr>
+<tr><td>SYS_PIVOT_ROOT</td><td>ルートディレクトリの交換</td></tr>
 </table>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
@@ -123,13 +123,13 @@
 
 </td></tr><tr><td>
 
-<h3>TCP/IP �l�b�g���[�N�̗��p�𐧌�����@�\</h3>
+<h3>TCP/IP ネットワークの利用を制限する機能</h3>
 
-<p>�v���O�������g�p�ł���A�h���X�ƃ|�[�g�𐧌����邱�Ƃ��ł��܂��B</p>
+<p>プログラムが使用できるアドレスとポートを制限することができます。</p>
 
-<p>�Ⴆ�΁A DNS �T�[�o�� IP �A�h���X�ƃ|�[�g 53 �ւ� UDP �ʐM���������������ꍇ��A SSH �T�[�o���ڑ����󂯕t����N���C�A���g�� IP �A�h���X�͈̔͂𐧌��������Ƃ��Ɏg�p���܂��B</p>
+<p>例えば、 DNS サーバの IP アドレスとポート 53 への UDP 通信だけを許可したい場合や、 SSH サーバが接続を受け付けるクライアントの IP アドレスの範囲を制限したいときに使用します。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
@@ -138,28 +138,13 @@
 
 </td></tr><tr><td>
 
-<h3>�V�O�i���̎�ނƑ��M��̑g�ݍ��킹�𐧌�����@�\</h3>
+<h3>シグナルの種類と送信先の組み合わせを制限する機能</h3>
 
-<p>�v���O�������g�p�ł���V�O�i���̎�ނƑ��M��𐧌����邱�Ƃ��ł��܂��B</p>
+<p>プログラムが使用できるシグナルの種類と送信先を制限することができます。</p>
 
-<p>���̋@�\�́A�U���҂��C�ӂ̃v���Z�X�ɑ΂��ăV�O�i���𑗂邱�ƂŔC�ӂ̃T�[�r�X�������I�������Ă��܂��̂�h�������Ƃ��Ɏg�p���܂��B</p>
+<p>この機能は、攻撃者が任意のプロセスに対してシグナルを送ることで任意のサービスを強制終了させてしまうのを防ぎたいときに使用します。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
-
-<ul>
-<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
-<li>[*] &nbsp;&nbsp;Signal Control support
-</ul>
-
-</td></tr><tr><td>
-
-<h3>�V�O�i���̎�ނƑ��M��̑g�ݍ��킹�𐧌�����@�\</h3>
-
-<p>�v���O�������g�p�ł���V�O�i���̎�ނƑ��M��𐧌����邱�Ƃ��ł��܂��B</p>
-
-<p>���̋@�\�́A�U���҂��C�ӂ̃v���Z�X�ɑ΂��ăV�O�i���𑗂邱�ƂŔC�ӂ̃T�[�r�X�������I�������Ă��܂��̂�h�������Ƃ��Ɏg�p���܂��B</p>
-
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
@@ -168,15 +153,30 @@
 
 </td></tr><tr><td>
 
-<h3>�v���O�������s���ɓn����閼�O�𐧌�����@�\</h3>
+<h3>シグナルの種類と送信先の組み合わせを制限する機能</h3>
 
-<p>�v���O�������s���ɓn����閼�O�𐧌����邱�Ƃ��ł��܂��B</p>
+<p>プログラムが使用できるシグナルの種類と送信先を制限することができます。</p>
 
-<p>�v���O���������s����Ƃ��ɂ́A�v���O�������Ƃ��̃v���O�����ւ̈����� argv[] �Ƃ���������^�z��œn����܂��B�ŏ��̗v�f�ł��� argv[0] �ɂ̓v���O�������������Ă��܂��B<br>
-�ꕔ�̃v���O�����́A argv[0] �̓��e�Ɋ�Â��ĐU�镑����ω������܂��B���̂悤�ȃv���O�����ł́A�h���C���J�ڂ��v���O�����t�@�C���̃p�X���Ɋ�Â��čs����̂ɑ΂��A���ۂ̐U�镑���� argv[0] �̓��e�Ɋ�Â��Č��肳��܂��B<br>
-���̂��߁A�U���҂̓t�@�C���̃p�X���� argv[0] �̓��e���̈ӂɈقȂ���̂ɂ��邱�ƂŁA�z��O�̓�����s�킹�邱�Ƃ��ł��Ă��܂��܂��B���̋@�\�𗘗p����ƁA�t�@�C���̃p�X���� argv[0] �̓��e���قȂ�ꍇ�ɁA�|���V�[�ŋ����ꂽ�g�ݍ��킹�̏ꍇ�̂ݎ��s�������邱�Ƃ��ł��܂��B</p>
+<p>この機能は、攻撃者が任意のプロセスに対してシグナルを送ることで任意のサービスを強制終了させてしまうのを防ぎたいときに使用します。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
+
+<ul>
+<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
+<li>[*] &nbsp;&nbsp;Signal Control support
+</ul>
+
+</td></tr><tr><td>
+
+<h3>プログラム実行時に渡される名前を制限する機能</h3>
+
+<p>プログラム実行時に渡される名前を制限することができます。</p>
+
+<p>プログラムを実行するときには、プログラム名とそのプログラムへの引数が argv[] という文字列型配列で渡されます。最初の要素である argv[0] にはプログラム名が入っています。<br>
+一部のプログラムは、 argv[0] の内容に基づいて振る舞いを変化させます。そのようなプログラムでは、ドメイン遷移がプログラムファイルのパス名に基づいて行われるのに対し、実際の振る舞いは argv[0] の内容に基づいて決定されます。<br>
+そのため、攻撃者はファイルのパス名と argv[0] の内容を故意に異なるものにすることで、想定外の動作を行わせることができてしまいます。この機能を利用すると、ファイルのパス名と argv[0] の内容が異なる場合に、ポリシーで許可された組み合わせの場合のみ実行を許可することができます。</p>
+
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] TOMOYO (Domain-Based Mandatory Access Control) support
@@ -185,18 +185,18 @@
 
 </td></tr><tr><td>
 
-<h3>�}�E���g�\�ȁu�f�o�C�X�t�@�C���ƃ}�E���g�|�C���g�ƃt�@�C���V�X�e���v�̑g�ݍ��킹�̐�������сu����̃}�E���g�I�v�V�����v�������I�ɓK�p����@�\</h3>
+<h3>マウント可能な「デバイスファイルとマウントポイントとファイルシステム」の組み合わせの制限および「特定のマウントオプション」を強制的に適用する機能</h3>
 
-<p>Linux �ł́A�V�X�e���Ǘ��Ҍ���������ΔC�ӂ̃f�B���N�g���ɔC�ӂ̃t�@�C���V�X�e�����}�E���g���邱�Ƃ��\�ł��B�܂�A�V�X�e���Ǘ��Ҍ����œ��삵�Ă���v���Z�X�̐����D��ꂽ�ꍇ�A /bin/ �f�B���N�g���̏�� tmpfs ��킹�Ĉ��ӂ���v���O�����ɒu��������ꂽ��A /var/www/ �f�B���N�g���̏�� tmpfs ��킹�� WWW �R���e���c���B�����ꂽ�肷�邱�Ƃ�����킯�ł��B</p>
+<p>Linux では、システム管理者権限があれば任意のディレクトリに任意のファイルシステムをマウントすることが可能です。つまり、システム管理者権限で動作しているプロセスの制御を奪われた場合、 /bin/ ディレクトリの上に tmpfs を被せて悪意あるプログラムに置き換えられたり、 /var/www/ ディレクトリの上に tmpfs を被せて WWW コンテンツを隠蔽されたりすることがあるわけです。</p>
 
-<p>�P�C�p�r���e�B���g���΃}�E���g������s����h���C���𐧌����邱�Ƃ��ł��܂����A�������^����ꂳ������ΔC�ӂ̃}�E���g���삪�ł��Ă��܂��A�]�܂�������܂���B</p>
+<p>ケイパビリティを使えばマウント操作を行えるドメインを制限することができますが、権限が与えられさえすれば任意のマウント操作ができてしまい、望ましくありません。</p>
 
-<p>���̋@�\�𗘗p����ƁA�}�E���g��������g�����𐧌����邱�Ƃ��ł��܂��B</p>
+<p>この機能を利用すると、マウントを許可する組合せを制限することができます。</p>
 
-<p>�܂��A���̋@�\�ɂ́A����̃}�E���g�I�v�V�����̓K�p����������@�\���܂܂�Ă��܂��B
-�Ⴆ�΁A�u /tmp/ �p�[�e�B�V�����ł̓f�o�C�X�t�@�C���ɃA�N�Z�X�����Ȃ����߂� nodev �I�v�V�����������������v�Ƃ����ꍇ�ɗ��p����ƁA���p�҂� dev �I�v�V�������w�肵�Ă� nodev �I�v�V�������K�p���ꂽ��ԂŃ}�E���g����܂��B</p>
+<p>また、この機能には、特定のマウントオプションの適用を強制する機能も含まれています。
+例えば、「 /tmp/ パーティションではデバイスファイルにアクセスさせないために nodev オプションを強制したい」という場合に利用すると、利用者が dev オプションを指定しても nodev オプションが適用された状態でマウントされます。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
@@ -205,15 +205,15 @@
 
 </td></tr><tr><td>
 
-<h3>����̃}�E���g�|�C���g�̃A���}�E���g���֎~����@�\</h3>
+<h3>特定のマウントポイントのアンマウントを禁止する機能</h3>
 
-<p>Linux �ł́A�V�X�e���Ǘ��Ҍ���������ΔC�ӂ̃}�E���g�|�C���g���A���}�E���g���邱�Ƃ��\�ł��B�܂�A�V�X�e���Ǘ��Ҍ����œ��삵�Ă���v���Z�X�̐����D��ꂽ�ꍇ�A /proc/ �f�B���N�g���Ƀ}�E���g����Ă��� proc �t�@�C���V�X�e�����A���}�E���g���邱�ƂŃA�v���P�[�V�����̓�������킹���肷�邱�Ƃ�����킯�ł��B</p>
+<p>Linux では、システム管理者権限があれば任意のマウントポイントをアンマウントすることが可能です。つまり、システム管理者権限で動作しているプロセスの制御を奪われた場合、 /proc/ ディレクトリにマウントされている proc ファイルシステムをアンマウントすることでアプリケーションの動作を狂わせたりすることがあるわけです。</p>
 
-<p>�P�C�p�r���e�B���g���΃A���}�E���g������s����h���C���𐧌����邱�Ƃ��ł��܂����A�������^����ꂳ������ΔC�ӂ̃A���}�E���g���삪�ł��Ă��܂��A�]�܂�������܂���B</p>
+<p>ケイパビリティを使えばアンマウント操作を行えるドメインを制限することができますが、権限が与えられさえすれば任意のアンマウント操作ができてしまい、望ましくありません。</p>
 
-<p>���̋@�\�𗘗p����ƁA����̃}�E���g�|�C���g���A���}�E���g����邱�Ƃ��֎~���邱�Ƃ��ł��܂��B</p>
+<p>この機能を利用すると、特定のマウントポイントがアンマウントされることを禁止することができます。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
@@ -222,15 +222,15 @@
 
 </td></tr><tr><td>
 
-<h3>�}�E���g�ς݂̃}�E���g�|�C���g���B������悤�ȃ}�E���g�v�������ۂ���@�\</h3>
+<h3>マウント済みのマウントポイントを隠蔽するようなマウント要求を拒否する機能</h3>
 
-<p>Linux �ł́A�V�X�e���Ǘ��Ҍ���������Ί��Ƀ}�E���g����Ă���}�E���g�|�C���g�̏�ɑ��̃p�[�e�B�V�������d�˂ă}�E���g���邱�Ƃ��\�ł��B�܂�A�V�X�e���Ǘ��Ҍ����œ��삵�Ă���v���Z�X�̐����D��ꂽ�ꍇ�A���Ƀ}�E���g����Ă��� /var/ �p�[�e�B�V�����̏�� tmpfs ���}�E���g���邱�ƂŃA�v���P�[�V�����̓�������킹���肷�邱�Ƃ�����킯�ł��B</p>
+<p>Linux では、システム管理者権限があれば既にマウントされているマウントポイントの上に他のパーティションを重ねてマウントすることが可能です。つまり、システム管理者権限で動作しているプロセスの制御を奪われた場合、既にマウントされている /var/ パーティションの上に tmpfs をマウントすることでアプリケーションの動作を狂わせたりすることがあるわけです。</p>
 
-<p>�P�C�p�r���e�B���g���΃}�E���g������s����h���C���𐧌����邱�Ƃ��ł��܂����A�������^����ꂳ������ΔC�ӂ̃}�E���g���삪�ł��Ă��܂��A�]�܂�������܂���B</p>
+<p>ケイパビリティを使えばマウント操作を行えるドメインを制限することができますが、権限が与えられさえすれば任意のマウント操作ができてしまい、望ましくありません。</p>
 
-<p>���̋@�\�𗘗p����ƁA�}�E���g�ς݂̃}�E���g�|�C���g���B������悤�ȃ}�E���g�v�������ۂ��邱�Ƃ��ł��܂��B</p>
+<p>この機能を利用すると、マウント済みのマウントポイントを隠蔽するようなマウント要求を拒否することができます。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
@@ -239,15 +239,15 @@
 
 </td></tr><tr><td>
 
-<h3>chroot �ňړ��\�ȃf�B���N�g���𐧌�����@�\</h3>
+<h3>chroot で移動可能なディレクトリを制限する機能</h3>
 
-<p>Linux �ł́A�V�X�e���Ǘ��Ҍ���������ΔC�ӂ̃f�B���N�g���� chroot �ňړ����邱�Ƃ��\�ł��B�܂�A�V�X�e���Ǘ��Ҍ����œ��삵�Ă���v���Z�X�̐����D��ꂽ�ꍇ�A�Ӗ��̂Ȃ��f�B���N�g���� chroot �ňړ����邱�ƂŃA�v���P�[�V�����̓����W�Q����Ă��܂����Ƃ�����킯�ł��B</p>
+<p>Linux では、システム管理者権限があれば任意のディレクトリに chroot で移動することが可能です。つまり、システム管理者権限で動作しているプロセスの制御を奪われた場合、意味のないディレクトリへ chroot で移動することでアプリケーションの動作を妨害されてしまうことがあるわけです。</p>
 
-<p>�P�C�p�r���e�B���g���� chroot ���s����h���C���𐧌����邱�Ƃ��ł��܂����A�������^����ꂳ������ΔC�ӂ̃f�B���N�g���� chroot ���ł��Ă��܂��A�]�܂�������܂���B</p>
+<p>ケイパビリティを使えば chroot を行えるドメインを制限することができますが、権限が与えられさえすれば任意のディレクトリへ chroot ができてしまい、望ましくありません。</p>
 
-<p>���̋@�\�𗘗p����ƁA chroot �ňړ����邱�Ƃ�������f�B���N�g���𐧌����邱�Ƃ��ł��܂��B</p>
+<p>この機能を利用すると、 chroot で移動することを許可するディレクトリを制限することができます。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
@@ -256,13 +256,13 @@
 
 </td></tr><tr><td>
 
-<h3>pivot_root �Ō����\�ȃf�B���N�g���𐧌�����@�\</h3>
+<h3>pivot_root で交換可能なディレクトリを制限する機能</h3>
 
-<p>chroot �� / �f�B���N�g�����ړ�����̂ɑ΂��A pivot_root �� / �f�B���N�g�����������܂��B�V�X�e���̋N�����ɂP�x�����g����ꍇ�������ł����A�V�X�e���̋N����͒ʏ�͎g���Ȃ��@�\�ł��B</p>
+<p>chroot は / ディレクトリを移動するのに対し、 pivot_root は / ディレクトリを交換します。システムの起動時に１度だけ使われる場合が多いですが、システムの起動後は通常は使われない機能です。</p>
 
-<p>���̋@�\�𗘗p����ƁA pivot_root �Ō������邱�Ƃ�������f�B���N�g���𐧌����邱�Ƃ��ł��܂��B</p>
+<p>この機能を利用すると、 pivot_root で交換することを許可するディレクトリを制限することができます。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
@@ -271,15 +271,15 @@
 
 </td></tr><tr><td>
 
-<h3>TCP/IP �l�b�g���[�N�Ŏ����I�Ɋ��蓖�Ă��郍�[�J���|�[�g�𐧌�����@�\</h3>
+<h3>TCP/IP ネットワークで自動的に割り当てられるローカルポートを制限する機能</h3>
 
-<p>Linux �ł́A�|�[�g�ԍ��Ƃ��� 0 ���w�肵�� bind() ���Ăяo�����ꍇ��A bind() ���Ăяo������ connect() ���Ăяo�����ꍇ�ȂǂɁA /proc/sys/net/ipv4/ip_local_port_range �Ƃ����t�@�C���Ŏw�肳��Ă���͈͂̒����疢�g�p�̃��[�J���|�[�g�ԍ��������I�Ɋ��蓖�Ă��܂��B�������A���̃t�@�C���Ŏw��\�Ȓl�͍ŏ��l�ƍő�l�݂̂ł���A����̃|�[�g�ԍ������O����@�\�͂���܂���B</p>
+<p>Linux では、ポート番号として 0 を指定して bind() を呼び出した場合や、 bind() を呼び出さずに connect() を呼び出した場合などに、 /proc/sys/net/ipv4/ip_local_port_range というファイルで指定されている範囲の中から未使用のローカルポート番号が自動的に割り当てられます。しかし、このファイルで指定可能な値は最小値と最大値のみであり、特定のポート番号を除外する機能はありません。</p>
 
-<p>�Ⴆ�΁A�|�[�g 8080 ���v���L�V�T�[�o�p�ɗ\�񂵂Ă��������ꍇ�ł��A���̃t�@�C���� 1024 65535 �Ƃ����l���������܂�Ă���ƃ|�[�g 8080 ���������蓖�Ăɂ���đ��̃A�v���P�[�V�����Ɋ��蓖�Ă��Ă��܂��A�v���L�V�T�[�o���N�����悤�Ƃ�����|�[�g�����Ɏg�p���ł��邽�߂ɋN���ł��Ȃ��Ƃ����ꍇ�������Ă��܂��܂��B�܂��A�N���C�A���g���T�[�o�̃|�[�g 8080 �ɐڑ����Ă݂���A�v���L�V�T�[�o�ȊO�̃A�v���P�[�V�����Ɍq�����Ă��܂����Ƃ����ꍇ�������Ă��܂��܂��B</p>
+<p>例えば、ポート 8080 をプロキシサーバ用に予約しておきたい場合でも、このファイルに 1024 65535 という値が書き込まれているとポート 8080 が自動割り当てによって他のアプリケーションに割り当てられてしまい、プロキシサーバを起動しようとしたらポートが既に使用中であるために起動できないという場合が生じてしまいます。また、クライアントがサーバのポート 8080 に接続してみたら、プロキシサーバ以外のアプリケーションに繋がってしまったという場合も生じてしまいます。</p>
 
-<p>���̋@�\�𗘗p����ƁA����̃|�[�g�ԍ����������蓖�Ă̑Ώۂ��珜�O�i�܂� /proc/sys/net/ipv4/ip_local_port_range �ɕ����͈̔͂��w��ł���悤�ɂ���̂Ɠ����@�\��񋟁j���邱�Ƃ��ł��܂��B</p>
+<p>この機能を利用すると、特定のポート番号を自動割り当ての対象から除外（つまり /proc/sys/net/ipv4/ip_local_port_range に複数の範囲を指定できるようにするのと同じ機能を提供）することができます。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
@@ -288,19 +288,19 @@
 
 </td></tr><tr><td>
 
-<h3>�f�o�C�X�t�@�C���̉������h�~�ł��� /dev �f�B���N�g���p�̃t�@�C���V�X�e��</h3>
+<h3>デバイスファイルの改ざんを防止できる /dev ディレクトリ用のファイルシステム</h3>
 
-<p> /dev �f�B���N�g���ɂ͑����̃f�o�C�X�t�@�C�������݂��Ă��܂��B�����āA�f�o�C�X�t�@�C������ɐ������f�o�C�X�ƌq�����Ă��邱�Ƃ́A�Z�L�����e�B��A�s���ł��B �Ⴆ�΁A /dev/null �����W���[�ԍ� 1 �}�C�i�[�ԍ� 3 �̃L�����N�^�^�f�o�C�X�Ƃ��Ăł͂Ȃ��A���W���[�ԍ� 8 �}�C�i�[�ԍ� 0 �̃u���b�N�^�f�o�C�X�i /dev/sda �j�Ƃ��đ��݂��Ă����ꍇ�A�����܂� SCSI �n�[�h�f�B�X�N�̓��e���j�󂳂�Ă��܂��܂��B�܂��A /dev/null ���ʏ�t�@�C���Ƃ��đ��݂��Ă����ꍇ�A���R�����Ɍq����\��������܂��B</p>
+<p> /dev ディレクトリには多数のデバイスファイルが存在しています。そして、デバイスファイルが常に正しいデバイスと繋がっていることは、セキュリティ上、不可欠です。 例えば、 /dev/null がメジャー番号 1 マイナー番号 3 のキャラクタ型デバイスとしてではなく、メジャー番号 8 マイナー番号 0 のブロック型デバイス（ /dev/sda ）として存在していた場合、たちまち SCSI ハードディスクの内容が破壊されてしまいます。また、 /dev/null が通常ファイルとして存在していた場合、情報漏えいに繋がる可能性があります。</p>
 
-<p>�����ŁA�f�o�C�X�t�@�C���̖��O�Ƃ��̑����Ƃ̑Ή����������邱�Ƃ��ł��� SYAORAN �t�@�C���V�X�e���� /dev �f�B���N�g���Ƀ}�E���g���邱�Ƃɂ��A�Ⴆ�΁A /dev/null �͏�Ƀ��W���[�ԍ� 1 �}�C�i�[�ԍ� 3 �̃L�����N�^�^�f�o�C�X�ł��邱�Ƃ�ۏ؂��邱�Ƃ��ł��܂��B</p>
+<p>そこで、デバイスファイルの名前とその属性との対応を強制することができる SYAORAN ファイルシステムを /dev ディレクトリにマウントすることにより、例えば、 /dev/null は常にメジャー番号 1 マイナー番号 3 のキャラクタ型デバイスであることを保証することができます。</p>
 
-<p>���̋@�\�𗘗p����ɂ́A�ȉ��̍��ڂ�I�����Ă��������B</p>
+<p>この機能を利用するには、以下の項目を選択してください。</p>
 
 <ul>
 <li>&lt;m&gt; SYAORAN (Tamper-Proof Device Filesystem) support
 </ul>
 
-<p>udev ���g�p����f�B�X�g���r���[�V�����̏ꍇ�A udev �������I�� /dev �f�B���N�g���� tmpfs ���}�E���g���Ă��܂����߁A SYAORAN �t�@�C���V�X�e�����B������Ă��܂��܂��B�����h�����߂ɁA udev ���g�p����f�B�X�g���r���[�V�����Ŏg�p����ꍇ�́A�ȉ��̍��ڂ��I�����Ă��������B</p>
+<p>udev を使用するディストリビューションの場合、 udev が自動的に /dev ディレクトリに tmpfs をマウントしてしまうため、 SYAORAN ファイルシステムが隠蔽されてしまいます。これを防ぐために、 udev を使用するディストリビューションで使用する場合は、以下の項目も選択してください。</p>
 
 <ul>
 <li>[*] SAKURA (Domain-Free Mandatory Access Control) support
@@ -310,8 +310,8 @@
 </td></tr>
 </table>
 
-<p>�J�[�l�� 2.6 �ɂ́A CONFIG_DEBUG_INFO �Ƃ������O�̃R���p�C���I�v�V���������݂��܂��B���̃I�v�V�������L���ł���ꍇ�A�R���p�C�����ꂽ�R�[�h�̃T�C�Y����P�O�{�̑傫���ɂȂ�܂��B���̃I�v�V������L���ɂ���ƁA /usr/src/ �f�B���N�g���Ŗ�P�f�a�A /lib/modules/ �f�B���N�g���Ŗ�R�O�O�l�a�̗]���ȃf�B�X�N�̈������܂��B<br>
-�f�B�X�N�̈��ߖ񂵂����ꍇ�A�ȉ��̃I�v�V�����𖳌��ɂ��Ă��������B</p>
+<p>カーネル 2.6 には、 CONFIG_DEBUG_INFO という名前のコンパイルオプションが存在します。このオプションが有効である場合、コンパイルされたコードのサイズが約１０倍の大きさになります。このオプションを有効にすると、 /usr/src/ ディレクトリで約１ＧＢ、 /lib/modules/ ディレクトリで約３００ＭＢの余分なディスク領域を消費します。<br>
+ディスク領域を節約したい場合、以下のオプションを無効にしてください。</p>
 
 <table border="1">
 <tr><td>
@@ -319,612 +319,612 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 </td></tr>
 </table>
 
-<p>�ȉ��̈ꗗ����A�Y������o�[�W������I�����Ă��������B</p>
+<p>以下の一覧から、該当するバージョンを選択してください。</p>
 
 <ul>
-<li><a href="#2.4.20-46.9.legacy">RedHat Linux 9 �p�̃J�[�l�� 2.4.20-46.9.legacy</a>
-<li><a href="#2.6.12-2.3.legacy_FC3">Fedora Core 3 �p�̃J�[�l�� 2.6.12-2.3.legacy_FC3</a>
-<li><a href="#2.6.17-1.2142_FC4">Fedora Core 4 �p�̃J�[�l�� 2.6.17-1.2142_FC4</a>
-<li><a href="#2.6.20-1.2320.fc5">Fedora Core 5 �p�̃J�[�l�� 2.6.20-1.2320.fc5</a>
-<li><a href="#2.6.22.9-61.fc6">Fedora Core 6 �p�̃J�[�l�� 2.6.22.9-61.fc6</a>
-<li><a href="#2.6.23.1-21.fc7">Fedora 7 �p�̃J�[�l�� 2.6.23.1-21.fc7</a>
-<li><a href="#2.6.23.1-49.fc8">Fedora 8 �p�̃J�[�l�� 2.6.23.1-49.fc8</a>
-<li><a href="#2.6.9-55.0.12.EL">CentOS 4.5 �p�̃J�[�l�� 2.6.9-55.0.12.EL</a>
-<li><a href="#2.6.18-8.1.15.el5">CentOS 5 �p�̃J�[�l�� 2.6.18-8.1.15.el5</a>
-<li><a href="#2.4.27-10sarge5">Debian Sarge �p�̃J�[�l�� 2.4.27-10sarge5</a>
-<li><a href="#2.6.8-16sarge7">Debian Sarge �p�̃J�[�l�� 2.6.8-16sarge7</a>
-<li><a href="#2.6.18-13etch4">Debian Etch �p�̃J�[�l�� 2.6.18-13etch4</a>
-<li><a href="#2.6.22-4lenny">Debian Lenny �p�̃J�[�l�� 2.6.22-4lenny</a>
-<li><a href="#2.6.16.53-0.16">OpenSUSE 10.1 �p�̃J�[�l�� 2.6.16.53-0.16</a>
-<li><a href="#2.6.18.8-0.7">OpenSUSE 10.2 �p�̃J�[�l�� 2.6.18.8-0.7</a>
-<li><a href="#2.6.22.12-0.1">OpenSUSE 10.3 �p�̃J�[�l�� 2.6.22.12-0.1</a>
-<li><a href="#2.6.9-42.17AX">Asianux 2.0 �p�̃J�[�l�� 2.6.9-42.17AX</a>
-<li><a href="#2.6.18-8.11AX">Asianux 3.0 �p�̃J�[�l�� 2.6.18-8.11AX</a>
-<li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 �p�̃J�[�l�� 2.6.17.14-ubuntu1</a>
-<li><a href="#2.6.20.3-ubuntu1">Ubuntu 7.04 �p�̃J�[�l�� 2.6.20.3-ubuntu1</a>
-<li><a href="#2.6.16-0vl76.3">VineLinux 4.1 �p�̃J�[�l�� 2.6.16-0vl76.3</a>
-<li><a href="#2.6-vanilla">�o�j�� 2.6 �J�[�l��</a>
-<li><a href="#2.4-vanilla">�o�j�� 2.4 �J�[�l��</a>
+<li><a href="#2.4.20-46.9.legacy">RedHat Linux 9 用のカーネル 2.4.20-46.9.legacy</a>
+<li><a href="#2.6.12-2.3.legacy_FC3">Fedora Core 3 用のカーネル 2.6.12-2.3.legacy_FC3</a>
+<li><a href="#2.6.17-1.2142_FC4">Fedora Core 4 用のカーネル 2.6.17-1.2142_FC4</a>
+<li><a href="#2.6.20-1.2320.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2320.fc5</a>
+<li><a href="#2.6.22.9-61.fc6">Fedora Core 6 用のカーネル 2.6.22.9-61.fc6</a>
+<li><a href="#2.6.23.1-21.fc7">Fedora 7 用のカーネル 2.6.23.1-21.fc7</a>
+<li><a href="#2.6.23.1-49.fc8">Fedora 8 用のカーネル 2.6.23.1-49.fc8</a>
+<li><a href="#2.6.9-55.0.12.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.12.EL</a>
+<li><a href="#2.6.18-8.1.15.el5">CentOS 5 用のカーネル 2.6.18-8.1.15.el5</a>
+<li><a href="#2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a>
+<li><a href="#2.6.8-16sarge7">Debian Sarge 用のカーネル 2.6.8-16sarge7</a>
+<li><a href="#2.6.18-13etch4">Debian Etch 用のカーネル 2.6.18-13etch4</a>
+<li><a href="#2.6.22-4lenny">Debian Lenny 用のカーネル 2.6.22-4lenny</a>
+<li><a href="#2.6.16.53-0.16">OpenSUSE 10.1 用のカーネル 2.6.16.53-0.16</a>
+<li><a href="#2.6.18.8-0.7">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.7</a>
+<li><a href="#2.6.22.12-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.12-0.1</a>
+<li><a href="#2.6.9-42.17AX">Asianux 2.0 用のカーネル 2.6.9-42.17AX</a>
+<li><a href="#2.6.18-8.11AX">Asianux 3.0 用のカーネル 2.6.18-8.11AX</a>
+<li><a href="#2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a>
+<li><a href="#2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a>
+<li><a href="#2.6.16-0vl76.3">VineLinux 4.1 用のカーネル 2.6.16-0vl76.3</a>
+<li><a href="#2.6-vanilla">バニラ 2.6 カーネル</a>
+<li><a href="#2.4-vanilla">バニラ 2.4 カーネル</a>
 </ul>
 
 <hr>
 
-<h2><a name="2.4.20-46.9.legacy">RedHat Linux 9 �p�̃J�[�l�� 2.4.20-46.9.legacy</a></h2>
+<h2><a name="2.4.20-46.9.legacy">RedHat Linux 9 用のカーネル 2.4.20-46.9.legacy</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/updates/i386/kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
 rpm -ivh kernel-source-2.4.20-46.9.legacy.i386.rpm<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.4.20-46.9.legacy/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.4.20-46.9.legacy.txt<br>
-# �J�[�l���R���t�B�O�ȊO�̈ꎞ�t�@�C�����폜����B<br>
+# カーネルコンフィグ以外の一時ファイルを削除する。<br>
 mv .config config<br>
 make -s distclean<br>
 mv config .config<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s dep modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.12-2.3.legacy_FC3">Fedora Core 3 �p�̃J�[�l�� 2.6.12-2.3.legacy_FC3</a></h2>
+<h2><a name="2.6.12-2.3.legacy_FC3">Fedora Core 3 用のカーネル 2.6.12-2.3.legacy_FC3</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/updates/SRPMS/kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
 rpm -ivh kernel-2.6.12-2.3.legacy_FC3.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
 mv /usr/src/redhat/BUILD/kernel-2.6.12/linux-2.6.12/ /usr/src/linux-2.6.12-2.3.legacy_FC3<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.12-2.3.legacy_FC3/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -2.3.legacy_FC3/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.12-2.3.legacy_FC3.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.17-1.2142_FC4">Fedora Core 4 �p�̃J�[�l�� 2.6.17-1.2142_FC4</a></h2>
+<h2><a name="2.6.17-1.2142_FC4">Fedora Core 4 用のカーネル 2.6.17-1.2142_FC4</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/4/SRPMS/kernel-2.6.17-1.2142_FC4.src.rpm<br>
 rpm -ivh kernel-2.6.17-1.2142_FC4.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
 mv /usr/src/redhat/BUILD/kernel-2.6.17/linux-2.6.17/ /usr/src/linux-2.6.17-1.2142_FC4<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.17-1.2142_FC4/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2142_FC4/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.17-1.2142_FC4.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.20-1.2320.fc5">Fedora Core 5 �p�̃J�[�l�� 2.6.20-1.2320.fc5</a></h2>
+<h2><a name="2.6.20-1.2320.fc5">Fedora Core 5 用のカーネル 2.6.20-1.2320.fc5</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/5/SRPMS/kernel-2.6.20-1.2320.fc5.src.rpm<br>
 rpm -ivh kernel-2.6.20-1.2320.fc5.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
 mv /usr/src/redhat/BUILD/kernel-2.6.20/linux-2.6.20.i586/ /usr/src/linux-2.6.20-1.2320.fc5<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.20-1.2320.fc5/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -1.2320.fc5/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.20-1.2320.fc5.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.9-61.fc6">Fedora Core 6 �p�̃J�[�l�� 2.6.22.9-61.fc6</a></h2>
+<h2><a name="2.6.22.9-61.fc6">Fedora Core 6 用のカーネル 2.6.22.9-61.fc6</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://download.fedora.redhat.com/pub/fedora/linux/core/updates/6/SRPMS/kernel-2.6.22.9-61.fc6.src.rpm<br>
 rpm -ivh kernel-2.6.22.9-61.fc6.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
 mv /usr/src/redhat/BUILD/kernel-2.6.22/linux-2.6.22.i586/ /usr/src/linux-2.6.22.9-61.fc6<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.22.9-61.fc6/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .9-61.fc6/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.22.9-61.fc6.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.23.1-21.fc7">Fedora 7 �p�̃J�[�l�� 2.6.23.1-21.fc7</a></h2>
+<h2><a name="2.6.23.1-21.fc7">Fedora 7 用のカーネル 2.6.23.1-21.fc7</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://download.fedora.redhat.com/pub/fedora/linux/updates/7/SRPMS/kernel-2.6.23.1-21.fc7.src.rpm<br>
 rpm -ivh kernel-2.6.23.1-21.fc7.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
 mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.1-21.fc7<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.23.1-21.fc7/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-21.fc7/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.23.1-21.fc7.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.23.1-49.fc8">Fedora 8 �p�̃J�[�l�� 2.6.23.1-49.fc8</a></h2>
+<h2><a name="2.6.23.1-49.fc8">Fedora 8 用のカーネル 2.6.23.1-49.fc8</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://download.fedora.redhat.com/pub/fedora/linux/updates/8/SRPMS/kernel-2.6.23.1-49.fc8.src.rpm<br>
 rpm -ivh kernel-2.6.23.1-49.fc8.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel.spec<br>
 mv /usr/src/redhat/BUILD/kernel-2.6.23/linux-2.6.23.i586/ /usr/src/linux-2.6.23.1-49.fc8<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.23.1-49.fc8/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = .1-49.fc8/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.23.1-49.fc8.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-55.0.12.EL">CentOS 4.5 �p�̃J�[�l�� 2.6.9-55.0.12.EL</a></h2>
+<h2><a name="2.6.9-55.0.12.EL">CentOS 4.5 用のカーネル 2.6.9-55.0.12.EL</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://mirrors.kernel.org/centos/4.5/updates/SRPMS/kernel-2.6.9-55.0.12.EL.src.rpm<br>
 rpm -ivh kernel-2.6.9-55.0.12.EL.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i586 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
 mv /usr/src/redhat/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-55.0.12.EL<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.9-55.0.12.EL/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -55.0.12.EL/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.9-55.0.12.EL.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-8.1.15.el5">CentOS 5 �p�̃J�[�l�� 2.6.18-8.1.15.el5</a></h2>
+<h2><a name="2.6.18-8.1.15.el5">CentOS 5 用のカーネル 2.6.18-8.1.15.el5</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://mirrors.kernel.org/centos/5.0/updates/SRPMS/kernel-2.6.18-8.1.15.el5.src.rpm<br>
 rpm -ivh kernel-2.6.18-8.1.15.el5.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/redhat/SPECS/kernel-2.6.spec<br>
 mv /usr/src/redhat/BUILD/kernel-2.6.18/linux-2.6.18.i686/ /usr/src/linux-2.6.18-8.1.15.el5<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/2.6.18-8.1.15.el5/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.1.15.el5/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.18-8.1.15.el5.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.4.27-10sarge5">Debian Sarge �p�̃J�[�l�� 2.4.27-10sarge5</a></h2>
+<h2><a name="2.4.27-10sarge5">Debian Sarge 用のカーネル 2.4.27-10sarge5</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 apt-get install kernel-source-2.4.27<br>
 tar -jxf /usr/src/kernel-source-2.4.27.tar.bz2<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd kernel-source-2.4.27/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.4.27-10sarge5.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s dep install modules modules_install<br>
-# initrd ���쐬����B<br>
+# initrd を作成する。<br>
 mkinitrd -o /boot/initrd.img-2.4.27-10sarge5-ccs 2.4.27-10sarge5-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.8-16sarge7">Debian Sarge �p�̃J�[�l�� 2.6.8-16sarge7</a></h2>
+<h2><a name="2.6.8-16sarge7">Debian Sarge 用のカーネル 2.6.8-16sarge7</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 apt-get install kernel-source-2.6.8<br>
 tar -jxf /usr/src/kernel-source-2.6.8.tar.bz2<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd kernel-source-2.6.8/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.8-16sarge7.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
-# initrd ���쐬����B<br>
+# initrd を作成する。<br>
 mkinitrd -o /boot/initrd.img-2.6.8-16sarge7-ccs 2.6.8-16sarge7-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-13etch4">Debian Etch �p�̃J�[�l�� 2.6.18-13etch4</a></h2>
+<h2><a name="2.6.18-13etch4">Debian Etch 用のカーネル 2.6.18-13etch4</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 apt-get install linux-source-2.6.18<br>
 tar -jxf /usr/src/linux-source-2.6.18.tar.bz2<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.18/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.18-13etch4.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
-# initrd ���쐬����B<br>
+# initrd を作成する。<br>
 mkinitrd -o /boot/initrd.img-2.6.18-13etch4-ccs 2.6.18-13etch4-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.22-4lenny">Debian Lenny �p�̃J�[�l�� 2.6.22-4lenny</a></h2>
+<h2><a name="2.6.22-4lenny">Debian Lenny 用のカーネル 2.6.22-4lenny</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 apt-get install linux-source-2.6.22<br>
 tar -jxf /usr/src/linux-source-2.6.22.tar.bz2<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.22/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.22-4lenny.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
-# initrd ���쐬����B<br>
+# initrd を作成する。<br>
 mkinitrd -o /boot/initrd.img-2.6.22-4lenny-ccs 2.6.22-4lenny-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.16.53-0.16">OpenSUSE 10.1 �p�̃J�[�l�� 2.6.16.53-0.16</a></h2>
+<h2><a name="2.6.16.53-0.16">OpenSUSE 10.1 用のカーネル 2.6.16.53-0.16</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://ftp.novell.co.jp/pub/suse/suse/update/10.1/rpm/i586/kernel-source-2.6.16.53-0.16.i586.rpm<br>
 rpm -ivh kernel-source-2.6.16.53-0.16.i586.rpm<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.16.53-0.16/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.16.53-0.16_SUSE.txt<br>
-# �o�͐�̃f�B���N�g���ֈړ�����B<br>
+# 出力先のディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.16.53-0.16-obj/i386/default/<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18.8-0.7">OpenSUSE 10.2 �p�̃J�[�l�� 2.6.18.8-0.7</a></h2>
+<h2><a name="2.6.18.8-0.7">OpenSUSE 10.2 用のカーネル 2.6.18.8-0.7</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://ftp.novell.co.jp/pub/suse/suse/update/10.2/rpm/i586/kernel-source-2.6.18.8-0.7.i586.rpm<br>
 rpm -ivh kernel-source-2.6.18.8-0.7.i586.rpm<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.18.8-0.7/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.18.8-0.7_SUSE.txt<br>
-# �o�͐�̃f�B���N�g���ֈړ�����B<br>
+# 出力先のディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.18.8-0.7-obj/i386/default/<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.22.12-0.1">OpenSUSE 10.3 �p�̃J�[�l�� 2.6.22.12-0.1</a></h2>
+<h2><a name="2.6.22.12-0.1">OpenSUSE 10.3 用のカーネル 2.6.22.12-0.1</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://ftp.novell.co.jp/pub/suse/opensuse/update/10.3/rpm/i586/kernel-source-2.6.22.12-0.1.i586.rpm<br>
 rpm -ivh kernel-source-2.6.22.12-0.1.i586.rpm<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.22.12-0.1/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.22.12-0.1_SUSE.txt<br>
-# �o�͐�̃f�B���N�g���ֈړ�����B<br>
+# 出力先のディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.22.12-0.1-obj/i386/default/<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.9-42.17AX">Asianux 2.0 �p�̃J�[�l�� 2.6.9-42.17AX</a></h2>
+<h2><a name="2.6.9-42.17AX">Asianux 2.0 用のカーネル 2.6.9-42.17AX</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.17AX.src.rpm<br>
 rpm -ivh kernel-2.6.9-42.17AX.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
 mv /usr/src/asianux/BUILD/kernel-2.6.9/linux-2.6.9/ /usr/src/linux-2.6.9-42.17AX<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.9-42.17AX/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -42.17AX/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.9-42.17AX.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.18-8.11AX">Asianux 3.0 �p�̃J�[�l�� 2.6.18-8.11AX</a></h2>
+<h2><a name="2.6.18-8.11AX">Asianux 3.0 用のカーネル 2.6.18-8.11AX</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-8.11AX.src.rpm<br>
 rpm -ivh kernel-2.6.18-8.11AX.src.rpm<br>
-# �R���p�C���̏���������B<br>
+# コンパイルの準備をする。<br>
 rpmbuild -bp --target i686 /usr/src/asianux/SPECS/kernel-2.6.spec<br>
 mv /usr/src/asianux/BUILD/kernel-2.6.18/linux-2.6.18/ /usr/src/linux-2.6.18-8.11AX<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.18-8.11AX/<br>
-# �o�[�W�����ԍ����C������B<br>
+# バージョン番号を修正する。<br>
 sed -i 's/EXTRAVERSION = -prep/EXTRAVERSION = -8.11AX/' Makefile<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.18-8.11AX.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install
 </td></tr>
 </table>
 
-<h2><a name="2.6.17.14-ubuntu1">Ubuntu 6.10 �p�̃J�[�l�� 2.6.17.14-ubuntu1</a></h2>
+<h2><a name="2.6.17.14-ubuntu1">Ubuntu 6.10 用のカーネル 2.6.17.14-ubuntu1</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 apt-get install linux-source-2.6.17<br>
 tar -jxf /usr/src/linux-source-2.6.17.tar.bz2<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.17/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.17.14-ubuntu1.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
-# initramfs ���쐬����B<br>
+# initramfs を作成する。<br>
 mkinitramfs -o /boot/initrd.img-2.6.17.14-ubuntu1-ccs 2.6.17.14-ubuntu1-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.20.3-ubuntu1">Ubuntu 7.04 �p�̃J�[�l�� 2.6.20.3-ubuntu1</a></h2>
+<h2><a name="2.6.20.3-ubuntu1">Ubuntu 7.04 用のカーネル 2.6.20.3-ubuntu1</a></h2>
 
 <table border="1">
 <tr><td>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 apt-get install linux-source-2.6.20<br>
 tar -jxf /usr/src/linux-source-2.6.20.tar.bz2<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd linux-source-2.6.20/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.20.3-ubuntu1.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install<br>
-# initramfs ���쐬����B<br>
+# initramfs を作成する。<br>
 mkinitramfs -o /boot/initrd.img-2.6.20.3-ubuntu1-ccs 2.6.20.3-ubuntu1-ccs
 </td></tr>
 </table>
 
-<h2><a name="2.6.16-0vl76.3">VineLinux 4.1 �p�̃J�[�l�� 2.6.16-0vl76.3</a></h2>
+<h2><a name="2.6.16-0vl76.3">VineLinux 4.1 用のカーネル 2.6.16-0vl76.3</a></h2>
 
 <table border="1">
 <tr><td>
-# make install ���ɃG���[���o�Ȃ��悤�ɂ��邽�߂̍׍H������B<br>
+# make install 時にエラーが出ないようにするための細工をする。<br>
 ln -s /bin/true /sbin/lilo<br>
-# �J�[�l���̃\�[�X���_�E�����[�h���ăC���X�g�[������B<br>
+# カーネルのソースをダウンロードしてインストールする。<br>
 apt-get install kernel-source<br>
-# �\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# ソースのディレクトリへ移動する。<br>
 cd /usr/src/linux-2.6.16/<br>
-# TOMOYO Linux �p�b�`���_�E�����[�h���ēK�p����B<br>
+# TOMOYO Linux パッチをダウンロードして適用する。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
 patch -sp1 &lt; ccs-patch-2.6.16-0vl76.3.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s modules modules_install install<br>
-# initrd ���쐬����B<br>
+# initrd を作成する。<br>
 mkinitrd /boot/initrd.img-2.6.16-0vl76.3-ccs 2.6.16-0vl76.3-ccs<br>
-# �V���{���b�N�����N���X�V����B<br>
+# シンボリックリンクを更新する。<br>
 ln -sf /boot/vmlinuz-2.6.16-0vl76.3-ccs /boot/vmlinuz<br>
 ln -sf /boot/initrd.img-2.6.16-0vl76.3-ccs /boot/initrd.img<br>
 ln -sf /boot/System.map-2.6.16-0vl76.3-ccs /boot/System.map
 </td></tr>
 </table>
 
-<h2><a name="2.6-vanilla">�o�j�� 2.6 �J�[�l��</a></h2>
+<h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 �ȍ~�ɑΉ����Ă��܂��B�ȉ��̎菇�ł� 2.6.23 ���g�p������̂Ƃ��܂��B</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.23 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
-# �J�[�l�����W���[�����C���X�g�[������f�B���N�g�����쐬����B<br>
+# カーネルモジュールをインストールするディレクトリを作成する。<br>
 mkdir -p /lib/modules/2.6.23-ccs<br>
-# �\�[�X�f�B���N�g���ֈړ�����B<br>
+# ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
-# �J�[�l���̃\�[�X���_�E�����[�h����B<br>
+# カーネルのソースをダウンロードする。<br>
 wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.tar.bz2<br>
-# �W�J����B<br>
+# 展開する。<br>
 tar -jxf linux-2.6.23.tar.bz2<br>
-# �W�J���ꂽ�\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# 展開されたソースのディレクトリへ移動する。<br>
 cd linux-2.6.23<br>
-# �\�[�X���� world writable ��������菜���B<br>
+# ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
-# TOMOYO Linux �J�[�l���p�b�`���_�E�����[�h����B<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
-# �W�J����B<br>
+# 展開する。<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
-# �J�[�l���p�b�`��K�p����B<br>
+# カーネルパッチを適用する。<br>
 patch -sp1 &lt; ccs-patch-2.6.23.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s<br>
 make -s install modules modules_install
 </td></tr>
 </table>
 
-<h2><a name="2.4-vanilla">�o�j�� 2.4 �J�[�l��</a></h2>
+<h2><a name="2.4-vanilla">バニラ 2.4 カーネル</a></h2>
 
-<p>2.4.30 �ȍ~�ɑΉ����Ă��܂��B�ȉ��̎菇�ł� 2.4.35 ���g�p������̂Ƃ��܂��B</p>
+<p>2.4.30 以降に対応しています。以下の手順では 2.4.35 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
-# �J�[�l�����W���[�����C���X�g�[������f�B���N�g�����쐬����B<br>
+# カーネルモジュールをインストールするディレクトリを作成する。<br>
 mkdir -p /lib/modules/2.4.35-ccs<br>
-# �\�[�X�f�B���N�g���ֈړ�����B<br>
+# ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
-# �J�[�l���̃\�[�X���_�E�����[�h����B<br>
+# カーネルのソースをダウンロードする。<br>
 wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.35.tar.bz2<br>
-# �W�J����B<br>
+# 展開する。<br>
 tar -jxf linux-2.4.35.tar.bz2<br>
-# �W�J���ꂽ�\�[�X�̃f�B���N�g���ֈړ�����B<br>
+# 展開されたソースのディレクトリへ移動する。<br>
 cd linux-2.4.35<br>
-# �\�[�X���� world writable ��������菜���B<br>
+# ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
-# TOMOYO Linux �J�[�l���p�b�`���_�E�����[�h����B<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/25542/ccs-patch-1.4.3-20071111.tar.gz<br>
-# �W�J����B<br>
+# 展開する。<br>
 tar -zxf ccs-patch-1.4.3-20071111.tar.gz<br>
-# �J�[�l���p�b�`��K�p����B<br>
+# カーネルパッチを適用する。<br>
 patch -sp1 &lt; ccs-patch-2.4.35.txt<br>
-# TOMOYO Linux �p�̃I�v�V������I������B<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
 make -s menuconfig<br>
-# �ʏ�ʂ�R���p�C������B<br>
+# 通常通りコンパイルする。<br>
 make -s dep<br>
 make -s<br>
 make -s modules modules_install install

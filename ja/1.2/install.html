@@ -1,85 +1,85 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux�����菇</title>
+<title>TOMOYO Linux導入手順</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.3/">1.3</a> is available.</p>
-<h1>TOMOYO Linux�����菇</h1>
+<h1>TOMOYO Linux導入手順</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>�ڎ�</h1>
+<h1>目次</h1>
 
 <ul>
-<li><a href="#preparation">����</a>
-<li>�@<a href="#install-kernel">�J�[�l���̃C���X�g�[��</a>
-<li>�@<a href="#install-tool">�c�[���̃C���X�g�[��</a>
-<li>�@<a href="#boot-test">�N���e�X�g</a>
-<li>�@<a href="#decide-control-range">����͈͂̌���</a>
-<li>�@<a href="#design-login-operation">���O�C�����čs������̐݌v</a>
-<li>�@<a href="#protect-device">�f�o�C�X�t�@�C���̕ی�i�C�Ӂj</a>
-<li><a href="#policy-preparation">�|���V�[�̍쐬����</a>
-<li>�@<a href="#example_policy">�f�t�H���g�|���V�[�ɂ���</a>
-<li>�@<a href="#manager-programs">�|���V�[�̕ύX��������v���O�����̎w��</a>
-<li>�@<a href="#patch-shutdown">�V���b�g�_�E�������̏C��</a>
-<li>�@<a href="#audit-logs">�č����O�̎擾����</a>
-<li>�@<a href="#create-profiles">�v���t�@�C���̍쐬</a>
-<li>�@<a href="#create-exceptions">��O�|���V�[�̍쐬</a>
-<li>�@�@<a href="#exception-logrotate">logrotate �ւ̑Ή�</a>
-<li>�@�@<a href="#exception-prelink">prelink �ւ̑Ή�</a>
-<li>�@�@<a href="#exception-anacron">anacron �ւ̑Ή�</a>
-<li>�@�@<a href="#exception-cron">cron �ւ̑Ή�</a>
-<li>�@<a href="#exception-targeted-policy">Targeted Policy �ւ̑Ή�</a>
-<li><a href="#generate-policy">�|���V�[�̍쐬</a>
-<li>�@<a href="#accept-mode-1">�w�K���[�h</a>
-<li>�@�@<a href="#accept-logrotate">logrotate �ւ̑Ή�</a>
-<li>�@�@<a href="#accept-anacron">anacron �ւ̑Ή�</a>
-<li>�@<a href="#update-exception">��O�|���V�[�̍X�V</a>
-<li>�@<a href="#accept-mode-2">�w�K���[�h</a>
-<li><a href="#tune-policy">�|���V�[�̃`���[�j���O</a>
-<li>�@<a href="#add-from-audit-logs">�č����O����̐���</a>
-<li>�@<a href="#make-pathname-patterns">�A�N�Z�X���̃p�^�[����</a>
-<li>�@<a href="#make-network-patterns">�l�b�g���[�N�̃p�^�[����</a>
-<li>�@<a href="#add-conditional-policy">�A�N�Z�X�������̕t�^</a>
-<li>�@<a href="#permissive-mode">�m�F���[�h</a>
-<li><a href="#production-state">�|���V�[�̗��p</a>
-<li>�@<a href="#enforce-mode">�������[�h</a>
+<li><a href="#preparation">準備</a>
+<li>　<a href="#install-kernel">カーネルのインストール</a>
+<li>　<a href="#install-tool">ツールのインストール</a>
+<li>　<a href="#boot-test">起動テスト</a>
+<li>　<a href="#decide-control-range">制御範囲の決定</a>
+<li>　<a href="#design-login-operation">ログインして行う操作の設計</a>
+<li>　<a href="#protect-device">デバイスファイルの保護（任意）</a>
+<li><a href="#policy-preparation">ポリシーの作成準備</a>
+<li>　<a href="#example_policy">デフォルトポリシーについて</a>
+<li>　<a href="#manager-programs">ポリシーの変更を許可するプログラムの指定</a>
+<li>　<a href="#patch-shutdown">シャットダウン処理の修正</a>
+<li>　<a href="#audit-logs">監査ログの取得準備</a>
+<li>　<a href="#create-profiles">プロファイルの作成</a>
+<li>　<a href="#create-exceptions">例外ポリシーの作成</a>
+<li>　　<a href="#exception-logrotate">logrotate への対応</a>
+<li>　　<a href="#exception-prelink">prelink への対応</a>
+<li>　　<a href="#exception-anacron">anacron への対応</a>
+<li>　　<a href="#exception-cron">cron への対応</a>
+<li>　<a href="#exception-targeted-policy">Targeted Policy への対応</a>
+<li><a href="#generate-policy">ポリシーの作成</a>
+<li>　<a href="#accept-mode-1">学習モード</a>
+<li>　　<a href="#accept-logrotate">logrotate への対応</a>
+<li>　　<a href="#accept-anacron">anacron への対応</a>
+<li>　<a href="#update-exception">例外ポリシーの更新</a>
+<li>　<a href="#accept-mode-2">学習モード</a>
+<li><a href="#tune-policy">ポリシーのチューニング</a>
+<li>　<a href="#add-from-audit-logs">監査ログからの生成</a>
+<li>　<a href="#make-pathname-patterns">アクセス許可のパターン化</a>
+<li>　<a href="#make-network-patterns">ネットワークのパターン化</a>
+<li>　<a href="#add-conditional-policy">アクセス許可条件の付与</a>
+<li>　<a href="#permissive-mode">確認モード</a>
+<li><a href="#production-state">ポリシーの利用</a>
+<li>　<a href="#enforce-mode">強制モード</a>
 </ul>
 <hr>
 
-<h1><a name="preparation">����</a></h1>
+<h1><a name="preparation">準備</a></h1>
 
-<p>�g�p����f�B�X�g���r���[�V�����̐����͂���܂���B�������A�S�Ẵf�B�X�g���r���[�V�����ŋ��ʂɎg����菇�����쐬���邱�Ƃ͂ł��Ȃ����߁A���̎菇���ł́uRedHat Linux 9�v�uFedora Core 3�v�uDebian Sarge�v�̂R��ނɂ��ċL�q���܂��B</p>
+<p>使用するディストリビューションの制限はありません。しかし、全てのディストリビューションで共通に使える手順書を作成することはできないため、この手順書では「RedHat Linux 9」「Fedora Core 3」「Debian Sarge」の３種類について記述します。</p>
 
-<p>�s�v�ȃA�v���P�[�V�����͎��O�ɃA���C���X�g�[�����Ă������ƂŁA�|���V�[�̃T�C�Y�����������邱�Ƃ��ł��܂��B
-�ǂ̃A�v���P�[�V�������K�v�������O�ɔc�����Ă������Ƃ𐄏����܂��B</p>
+<p>不要なアプリケーションは事前にアンインストールしておくことで、ポリシーのサイズを小さくすることができます。
+どのアプリケーションが必要かを事前に把握しておくことを推奨します。</p>
 
-<h2><a name="install-kernel">�J�[�l���̃C���X�g�[��</a></h2>
+<h2><a name="install-kernel">カーネルのインストール</a></h2>
 
-<p>�J�[�l�����R���p�C��������@�ɂ��ẮA<a href="compile.html">TOMOYO Linux�J�[�l���̍쐬�菇</a>���Q�Ƃ��Ă��������B</p>
+<p>カーネルをコンパイルする方法については、<a href="compile.html">TOMOYO Linuxカーネルの作成手順</a>を参照してください。</p>
 
-<h2><a name="install-tool">�c�[���̃C���X�g�[��</a></h2>
+<h2><a name="install-tool">ツールのインストール</a></h2>
 
-<p>�c�[�����R���p�C������ɂ́A�ȉ��̃R�}���h�����s���Ă��������B</p>
+<p>ツールをコンパイルするには、以下のコマンドを実行してください。</p>
 
 <table border="1">
 <tr><td>
 cd /root/<br>
-# TOMOYO Linux �c�[���̃\�[�X���_�E�����[�h����B<br>
+# TOMOYO Linux ツールのソースをダウンロードする。<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/21579/ccs-tools-1.2-20060903.tar.gz<br>
-# �W�J����B<br>
+# 展開する。<br>
 tar -zxf ccs-tools-1.2-20060903.tar.gz<br>
-# �R���p�C������B<br>
+# コンパイルする。<br>
 make -sC ccstools/
 </td></tr>
 </table>
 
-<h2><a name="boot-test">�N���e�X�g</a></h2>
+<h2><a name="boot-test">起動テスト</a></h2>
 
-<p>TOMOYO Linux �J�[�l���ŋN�����āA����ɓ���ł��邱�Ƃ��m�F�ł�����A /proc/ccs/status �̓��e�� /root/security/status.txt �Ƃ����t�@�C���ɕۑ����Ă����Ă��������B���̃t�@�C���Ɋ܂܂�鍀�ڂ��A���̃J�[�l���Ő���ł��鍀�ڂɂȂ�܂��B���̃t�@�C���́A��q����菇�Ńv���t�@�C�����쐬����ۂ̃q���g�Ƃ��Ďg�p���܂��B</p>
+<p>TOMOYO Linux カーネルで起動して、正常に動作できることを確認できたら、 /proc/ccs/status の内容を /root/security/status.txt というファイルに保存しておいてください。このファイルに含まれる項目が、このカーネルで制御できる項目になります。このファイルは、後述する手順でプロファイルを作成する際のヒントとして使用します。</p>
 
 <table border="1">
 <tr><td>
@@ -88,64 +88,64 @@ cat /proc/ccs/status &gt; /root/security/status.txt
 </td></tr>
 </table>
 
-<h2><a name="decide-control-range">����͈͂̌���</a></h2>
+<h2><a name="decide-control-range">制御範囲の決定</a></h2>
 
-<p>TOMOYO Linux �̃h���C���P�ʂ̃A�N�Z�X����@�\�iTOMOYO (Domain-Based Mandatory Access Control) support�j�́A /sbin/init �̊J�n������d�����؂��܂ł̊ԂɎ��s�����S�Ẵ\�t�g�E�F�A��ΏۂɓK�p���邱�Ƃ��\�ł��B�������A http �T�[�o�� ssh �T�[�o�ȂǁA����̃\�t�g�E�F�A������ΏۂɓK�p���邱�Ƃ��\�ł��B</p>
-<p>�Ȍ�A�S�Ẵ\�t�g�E�F�A��ΏۂƂ���|���V�[�� Strict Policy �A����̃\�t�g�E�F�A������ΏۂƂ���|���V�[�� Targeted Policy �ƌĂт܂��B</p>
+<p>TOMOYO Linux のドメイン単位のアクセス制御機能（TOMOYO (Domain-Based Mandatory Access Control) support）は、 /sbin/init の開始時から電源が切れるまでの間に実行される全てのソフトウェアを対象に適用することが可能です。しかし、 http サーバや ssh サーバなど、特定のソフトウェアだけを対象に適用することも可能です。</p>
+<p>以後、全てのソフトウェアを対象とするポリシーを Strict Policy 、特定のソフトウェアだけを対象とするポリシーを Targeted Policy と呼びます。</p>
 
-<p>�S�Ẵ\�t�g�E�F�A��ΏۂɓK�p������������S�ł����A����̃\�t�g�E�F�A������ΏۂɓK�p��������ȒP�ł��B
-���̎��_�ŁA�A�N�Z�X����@�\��K�p����͈͂����肵�Ă��������B</p>
+<p>全てのソフトウェアを対象に適用する方がより安全ですが、特定のソフトウェアだけを対象に適用する方が簡単です。
+この時点で、アクセス制御機能を適用する範囲を決定してください。</p>
 
-<p>�Ȃ��A TOMOYO Linux �̃V�X�e���S�̂̃A�N�Z�X����@�\�iSAKURA (Domain-Free Mandatory Access Control) support�j�����
-�f�o�C�X�t�@�C���̉�����h�~�@�\�iSYAORAN (Tamper-Proof Device Filesystem) support�j�́A�S�Ẵ\�t�g�E�F�A��ΏۂɓK�p����܂��B</p>
+<p>なお、 TOMOYO Linux のシステム全体のアクセス制御機能（SAKURA (Domain-Free Mandatory Access Control) support）および
+デバイスファイルの改ざん防止機能（SYAORAN (Tamper-Proof Device Filesystem) support）は、全てのソフトウェアを対象に適用されます。</p>
 
-<h2><a name="design-login-operation">���O�C�����čs������̐݌v</a></h2>
+<h2><a name="design-login-operation">ログインして行う操作の設計</a></h2>
 
-<p>�����e�i���X�Ȃǂ̂��߂ɁA�T�[�o�� ssh �Ń��O�C�����č�Ƃ��s�����Ƃ�����Ǝv���܂��B�����ŁA���̃X�e�b�v�ł́A���O�C�����Ăǂ̂悤�ȑ�����s���������肵�܂��B</p>
+<p>メンテナンスなどのために、サーバへ ssh でログインして作業を行うことがあると思います。そこで、このステップでは、ログインしてどのような操作を行うかを決定します。</p>
 
 <table border="1">
 <tr><td>
-<h3>���O�C���F�؂̋����i�C�Ӂj</h3>
+<h3>ログイン認証の強化（任意）</h3>
 
-<p>ssh ���g�p���ă��O�C������ۂ̃Z�L�����e�B�����コ����̂��ړI�ł��B���̎菇�͔C�ӂł����A�ȒP�Ɏ����ł���̂Ŋ��p���邱�Ƃ𐄏����܂��B</p>
+<p>ssh を使用してログインする際のセキュリティを向上させるのが目的です。この手順は任意ですが、簡単に実現できるので活用することを推奨します。</p>
 
-<p>TOMOYO Linux �ł́A SELinux �̂悤�� sshd ���������ăo�b�t�@�I�[�o�[�t���[�΍�Ȃǂ��s�����Ƃ͂ł��܂���B ���̂��߁A sshd �܂��͔F�؃��W���[���ɐƎ㐫�����݂����ꍇ�A SELinux �����ȒP�ɐN���������Ă��܂��܂��B
-�������A���Ђ̓o�b�t�@�I�[�o�[�t���[�Ȃǂ����ł͂���܂���B���K�̃��[�U���ƃp�X���[�h���g�p���ă��O�C�������Ƃ����\�������݂��܂��B ssh �Ń��O�C������ꍇ�A�p�X���[�h�܂��͌��J���F�؂��g�p���Ă���ꍇ�����|�I�ɑ����Ǝv���܂��B�������A<a href="http://itpro.nikkeibp.co.jp/article/NEWS/20051107/224128/">�u���[�g�t�H�[�X�U���ɂ��N������ăt�B�b�V���O�ȂǂɈ��p�����</a>�Ȃǂ̔�Q�������Ă��Ă��܂��B���̂��߁A���O�C���F�؂͓˔j����邱�Ƃ�O��Ƃ��āA�ǉ��̃��O�C���F�؂��s����悤�ɂ��邱�Ƃ���؂ł��B �ڍׂɂ��ẮA�_���u<a href="http://sourceforge.jp/projects/tomoyo/document/winf2005.pdf">�Z�L�����e�B����OS�ɂ�郍�O�C���F�؂̋�����@</a>�v���Q�Ƃ��Ă��������B</p>
+<p>TOMOYO Linux では、 SELinux のように sshd を改造してバッファオーバーフロー対策などを行うことはできません。 そのため、 sshd または認証モジュールに脆弱性が存在した場合、 SELinux よりも簡単に侵入を許してしまいます。
+しかし、脅威はバッファオーバーフローなどだけではありません。正規のユーザ名とパスワードを使用してログインされるという可能性も存在します。 ssh でログインする場合、パスワードまたは公開鍵認証を使用している場合が圧倒的に多いと思います。しかし、<a href="http://itpro.nikkeibp.co.jp/article/NEWS/20051107/224128/">ブルートフォース攻撃により侵入されてフィッシングなどに悪用される</a>などの被害が増えてきています。そのため、ログイン認証は突破されることを前提として、追加のログイン認証が行われるようにすることが大切です。 詳細については、論文「<a href="http://sourceforge.jp/projects/tomoyo/document/winf2005.pdf">セキュリティ強化OSによるログイン認証の強化手法</a>」を参照してください。</p>
 
-<p>�ǉ��I�Ȗh���i�Ŏg�p����v���O�����́A�Ǘ��҂����R�Ȏd�l�ō쐬���邱�Ƃ��ł��܂��B ���̒i�K�ł��̂��߂̃v���O�������쐬���āA�Ӑ}�����Ƃ���̎g�������ł��邱�Ƃ��m�F���Ă����Ă��������B</p>
+<p>追加的な防御手段で使用するプログラムは、管理者が自由な仕様で作成することができます。 この段階でそのためのプログラムを作成して、意図したとおりの使い方ができることを確認しておいてください。</p>
 
-<p>���O�C���F�؂𕡐���s����悤�ɂ��邱�ƂŁA�����̕ی샌�x���ɉ������A�N�Z�X�������񋟂ł���悤�ɂȂ�܂��B�ʏ�͉��̐}�̂悤�Ƀ��O�C���F�؂�ʉ߂��������ŁA�d�v�ɕی삷��K�v�̂��鎑���ɂ����̕K�v�����������ɂ��A�N�Z�X�ł��Ă��܂��܂��B</p>
+<p>ログイン認証を複数回行えるようにすることで、資源の保護レベルに応じたアクセス制限も提供できるようになります。通常は下の図のようにログイン認証を通過しただけで、重要に保護する必要のある資源にもその必要が無い資源にもアクセスできてしまいます。</p>
 
 <img src="Normal-Auth.png" width="611" height="456" alt="Normal Authentication">
 
-<p>�������A���̐}�̂悤�� /opt/bin/auth1 ����� /opt/bin/auth2 �Ƃ����F�؂�ǉ����邱�Ƃɂ��A���O�C���F�؂�ʉ߂��������Ȃ猵�d�ɕی삷��K�v�̖��������ւ̃A�N�Z�X�݂̂������A�S�Ă̔F�؂�ʉ߂����ꍇ�̂݌��d�ɕی삵�Ȃ���΂����Ȃ������ւ̃A�N�Z�X�������邱�Ƃ��\�ɂȂ�܂��B</p>
+<p>しかし、下の図のように /opt/bin/auth1 および /opt/bin/auth2 という認証を追加することにより、ログイン認証を通過しただけなら厳重に保護する必要の無い資源へのアクセスのみを許可し、全ての認証を通過した場合のみ厳重に保護しなければいけない資源へのアクセスも許可することが可能になります。</p>
 
 <img src="Chained-Auth.png" width="611" height="456" alt="Chained Authentication">
 
 </td></tr><tr><td>
 
-<h3>�Ǘ��Ҍ�����K�v�Ƃ���Ɩ��̈ꕔ�ϑ��i�C�Ӂj</h3>
+<h3>管理者権限を必要とする業務の一部委託（任意）</h3>
 
-<p>�T�[�o�Ǘ��Ɩ��̈ꕔ�����𑼐l�Ɉϑ��������ꍇ�Ɏg�p���܂��B �Ⴆ�΁A HTTP �T�[�o�̃R���e���c�̊Ǘ��� httpd �v���Z�X�̍ċN���݂̂��ϑ��������ꍇ�ɗ��p���܂��B</p>
+<p>サーバ管理業務の一部だけを他人に委託したい場合に使用します。 例えば、 HTTP サーバのコンテンツの管理と httpd プロセスの再起動のみを委託したい場合に利用します。</p>
 
-<p>�Ǘ��҂Ƃ��ă��O�C�����Ă��炢�A�O�q�����u���O�C���F�؂̋����v�Ŏg�p�����v���O�����Ƒg�ݍ��킹�邱�ƂŁA�ϑ����ꂽ�l���������̋Ɩ����ł���悤�ɂ��邱�Ƃ��ł��܂��B���̒i�K�ŁA�N�ɂǂ̋Ɩ����ϑ����邩�����肵�A�ǂ̂悤�Ƀh���C���𕪊����邩��݌v���A�h���C���̕����_�Ƃ��Ďg�p���邽�߂̃v���O���������肵�܂��B /bin/bash �� /bin/tcsh ���h���C���̕����_�Ƃ��Ďg�p���邽�߂̃v���O�����Ƃ��ė��p���邱�Ƃ��\�ł����A���f�ő��l�̒S���Ɩ��p�̃h���C���ɑJ�ڂł��Ă��܂��̂Ŗ]�܂�������܂���B ���̂��߁A�u���O�C���F�؂̋����v�Ő��������̂Ɠ����v�̂ŔF�؋@�\��������v���O�������쐬���āA�Ӑ}�����Ƃ���̎g�������ł��邱�Ƃ��m�F���Ă����Ă��������B</p>
+<p>管理者としてログインしてもらい、前述した「ログイン認証の強化」で使用したプログラムと組み合わせることで、委託された人だけがその業務をできるようにすることができます。この段階で、誰にどの業務を委託するかを決定し、どのようにドメインを分割するかを設計し、ドメインの分割点として使用するためのプログラムを決定します。 /bin/bash や /bin/tcsh をドメインの分割点として使用するためのプログラムとして利用することも可能ですが、無断で他人の担当業務用のドメインに遷移できてしまうので望ましくありません。 そのため、「ログイン認証の強化」で説明したのと同じ要領で認証機構を備えたプログラムを作成して、意図したとおりの使い方ができることを確認しておいてください。</p>
 
-<p>�Ⴆ�΁A�V�X�e����� SAKURA TOMOYO SYAORAN CERBERUS YUE �Ƃ������[�U���o�^����Ă���A���ꂼ�ꂪ ssh �Ń��O�C�����č�Ƃ��s���ꍇ�ɁA���̐}�̂悤�Ƀh���C���𕪊����邱�Ƃɂ�胆�[�U�P�ʂ̃A�N�Z�X����o�^�ł��܂��B</p>
+<p>例えば、システム上に SAKURA TOMOYO SYAORAN CERBERUS YUE というユーザが登録されており、それぞれが ssh でログインして作業を行う場合に、下の図のようにドメインを分割することによりユーザ単位のアクセス許可を登録できます。</p>
 
 <img src="Embed-User.png" width="611" height="456" alt="Embedding User">
 
-<p>���l�ɁA�Ⴆ�΃V�X�e����� manager webmaster auditor user anonymous �Ƃ������[�����K�v�ł���A���ꂼ�ꂪ ssh �Ń��O�C�����č�Ƃ��s���ꍇ�ɁA���̐}�̂悤�Ƀh���C���𕪊����邱�Ƃɂ�胍�[���P�ʂ̃A�N�Z�X����o�^�ł��܂��B</p>
+<p>同様に、例えばシステム上で manager webmaster auditor user anonymous というロールが必要であり、それぞれが ssh でログインして作業を行う場合に、下の図のようにドメインを分割することによりロール単位のアクセス許可を登録できます。</p>
 
 <img src="Embed-Role.png" width="611" height="456" alt="Embedding Role">
 
 </td></tr>
 </table>
 
-<h2><a name="protect-device">�f�o�C�X�t�@�C���̕ی�i�C�Ӂj</a></h2>
+<h2><a name="protect-device">デバイスファイルの保護（任意）</a></h2>
 
-<p>�f�o�C�X�t�@�C���̉�����h�~�@�\�iSYAORAN (Tamper-Proof Device Filesystem) support�j�𗘗p����ꍇ�A���̎��_�Őݒ���s���܂��B</p>
+<p>デバイスファイルの改ざん防止機能（SYAORAN (Tamper-Proof Device Filesystem) support）を利用する場合、この時点で設定を行います。</p>
 
-<p>�ȉ��̑�����s���A/.syaoran�Ƃ����X�N���v�g���쐬���܂��B</p>
+<p>以下の操作を行い、/.syaoranというスクリプトを作成します。</p>
 
 <table border="1">
 <tr><td>
@@ -156,9 +156,9 @@ chmod 700 /.syaoran
 </td></tr>
 </table>
 
-<p>/sbin/init ���N�����钼�O�Ƀ}�E���g�����悤�ɂ��邽�߂ɁA TOMOYO Linux �J�[�l���̋N������ init=/.syaoran �Ƃ����p�����[�^��ǉ����Ă��������B����w�肷��͖̂ʓ|�Ȃ̂ŁA�u�[�g���[�_�̐ݒ�t�@�C���Ŏw�肵�Ă������Ƃ𐄏����܂��B</p>
+<p>/sbin/init を起動する直前にマウントされるようにするために、 TOMOYO Linux カーネルの起動時に init=/.syaoran というパラメータを追加してください。毎回指定するのは面倒なので、ブートローダの設定ファイルで指定しておくことを推奨します。</p>
 
-<p>�ȉ��̑�����s���A�S�ẴG���g�����܂񂾏�����Ԃ� /root/security/syaoran.conf ���쐬���܂��B</p>
+<p>以下の操作を行い、全てのエントリを含んだ初期状態の /root/security/syaoran.conf を作成します。</p>
 
 <table border="1">
 <tr><td>
@@ -166,7 +166,7 @@ chmod 700 /.syaoran
 </td></tr>
 </table>
 
-<p>udev ���g�p����f�B�X�g���r���[�V�����̏ꍇ�́A�ȉ��̑�����s���Ă��������B</p>
+<p>udev を使用するディストリビューションの場合は、以下の操作も行ってください。</p>
 
 <table border="1">
 <tr><td>
@@ -174,11 +174,11 @@ echo DENY_CONCEAL_MOUNT=3 &gt; /root/security/profile0.txt
 </td></tr>
 </table>
 
-<p>TOMOYO Linux �J�[�l���ōċN�����ăV�X�e�����ғ�������ƁA���ۂɃI�[�v�����ꂽ�f�o�C�X�t�@�C���������w�K����Ă����܂��B�w�K���ʂ̓}�E���g�|�C���g������ .syaoran �Ƃ����t�@�C��������o�����Ƃ��ł��܂��B</p>
+<p>TOMOYO Linux カーネルで再起動してシステムを稼動させると、実際にオープンされたデバイスファイルだけが学習されていきます。学習結果はマウントポイント直下の .syaoran というファイルから取り出すことができます。</p>
 
-<p>�ȉ��̂Q�_�ɒ��ӂ���K�v������܂��B</p>
+<p>以下の２点に注意する必要があります。</p>
 
-<p>�X���b�v�p�[�e�B�V�����p�̃f�o�C�X�t�@�C���̓}�E���g�����ۂɃI�[�v������Ȃ����߁A���炩�̕��@�Ŗ����I�ɃI�[�v�����Ȃ��� .syaoran ���珜�O����Ă��܂��A�X���b�v�p�[�e�B�V�������}�E���g�ł��Ȃ��Ȃ�܂��B�ȉ��̃R�}���h�����s���ăX���b�v�p�[�e�B�V�����𖾎��I�ɃI�[�v������悤�ɂ��Ă��������B�i�X���b�v�p�[�e�B�V�����p�̃f�o�C�X�t�@�C���� /dev/sda3 �̏ꍇ�ł��B���ۂ̃X���b�v�p�[�e�B�V�������ɂ��킹�ēǂݑւ��Ă��������B�j</p>
+<p>スワップパーティション用のデバイスファイルはマウントされる際にオープンされないため、何らかの方法で明示的にオープンしないと .syaoran から除外されてしまい、スワップパーティションをマウントできなくなります。以下のコマンドを実行してスワップパーティションを明示的にオープンするようにしてください。（スワップパーティション用のデバイスファイルが /dev/sda3 の場合です。実際のスワップパーティション名にあわせて読み替えてください。）</p>
 
 <table border="1">
 <tr><td>
@@ -186,7 +186,7 @@ touch /dev/sda3
 </td></tr>
 </table>
 
-<p>ssh ���O�C���� pty �̎g�p�����������ꍇ�͕K����x���O�C�����Ă��������B ssh ���O�C�������Ȃ��� /dev/ptmx ���I�[�v������Ȃ����߁A .syaoran ���珜�O����Ă��܂��Assh ���O�C�������ۂ� pty ���g�����Ƃ��ł��Ȃ��Ȃ�܂��B</p>
+<p>ssh ログインで pty の使用を許可したい場合は必ず一度ログインしてください。 ssh ログインをしないと /dev/ptmx がオープンされないため、 .syaoran から除外されてしまい、ssh ログインした際に pty を使うことができなくなります。</p>
 
 <table border="1">
 <tr><td>
@@ -194,7 +194,7 @@ ssh localhost
 </td></tr>
 </table>
 
-<p>�ȉ��̃R�}���h�����s���āA�w�K���ʂ� /root/security/syaoran.conf �ɔ��f���܂��B</p>
+<p>以下のコマンドを実行して、学習結果を /root/security/syaoran.conf に反映します。</p>
 
 <table border="1">
 <tr><td>
@@ -202,24 +202,24 @@ cat /dev/.syaoran &gt; /root/security/syaoran.conf
 </td></tr>
 </table>
 
-<p>TOMOYO Linux �J�[�l���ōċN�����A�K�v�ȃG���g�����S�Ċ܂܂�Ă��邱�Ƃ��m�F���Ă��������B
-�����A�V�X�e��������ɓ��삵�Ȃ��ꍇ�́A�K�v�ȃG���g�����폜����Ă��܂����\��������܂��̂ŁA������Ԃ� /root/security/syaoran.conf ���쐬����Ƃ��납���蒼���Ă��������B</p>
+<p>TOMOYO Linux カーネルで再起動し、必要なエントリが全て含まれていることを確認してください。
+もし、システムが正常に動作しない場合は、必要なエントリが削除されてしまった可能性がありますので、初期状態の /root/security/syaoran.conf を作成するところからやり直してください。</p>
 
-<p>/root/security/syaoran.conf �Ɋ܂܂�Ă���f�b�h�����N��s�v�ȃf�B���N�g���͍폜���Ă��\���܂���B�������A�}�E���g�|�C���g�i�ʏ�� shm �� pts �f�B���N�g���j���폜���Ȃ��悤�ɒ��ӂ��Ă��������B</p>
+<p>/root/security/syaoran.conf に含まれているデッドリンクや不要なディレクトリは削除しても構いません。ただし、マウントポイント（通常は shm と pts ディレクトリ）を削除しないように注意してください。</p>
 
-<h1><a name="policy-preparation">�|���V�[�̍쐬����</a></h1>
+<h1><a name="policy-preparation">ポリシーの作成準備</a></h1>
 
-<p>���̏͂̍�Ƃ͒ʏ�̃J�[�l���ōs���悤�ɂ��Ă��������B<br>
-TOMOYO Linux �J�[�l���ōs���ƁA�V���b�g�_�E������ /root/ccstools/savepolicy �����s����邽�߂� /root/security/exception_policy.txt �ɉ������ύX���e�������Ă��܂��܂��B</p>
+<p>この章の作業は通常のカーネルで行うようにしてください。<br>
+TOMOYO Linux カーネルで行うと、シャットダウン時に /root/ccstools/savepolicy が実行されるために /root/security/exception_policy.txt に加えた変更内容が失われてしまいます。</p>
 
-<h2><a name="example_policy">�f�t�H���g�|���V�[�ɂ���</a></h2>
-<p>TOMOYO Linux �ɂ́A�\�t�g�E�F�A�ƈꏏ�ɔz�z�����f�t�H���g�|���V�[�͂���܂���B�w�K���[�h���g�p���č��肷��K�v������܂��B<br>
-�Q�l�܂łɁA<a href="http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/?v=policy-sample">�T���v���̃|���V�[</a>��u���Ă���܂��B�Q�Ƃ͎��R�ł����A�f�t�H���g�|���V�[�Ƃ��Ă̗��p�͂��Ȃ��ł��������B</p>
+<h2><a name="example_policy">デフォルトポリシーについて</a></h2>
+<p>TOMOYO Linux には、ソフトウェアと一緒に配布されるデフォルトポリシーはありません。学習モードを使用して策定する必要があります。<br>
+参考までに、<a href="http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/?v=policy-sample">サンプルのポリシー</a>を置いてあります。参照は自由ですが、デフォルトポリシーとしての利用はしないでください。</p>
 
-<h2><a name="manager-programs">�|���V�[�̕ύX��������v���O�����̎w��</a></h2>
+<h2><a name="manager-programs">ポリシーの変更を許可するプログラムの指定</a></h2>
 
-<p>/root/security/manager.txt ���쐬���A���̒��Ƀ|���V�[�̕ύX�����������v���O�������w�肵�܂��B<br>
-��̓I�ɂ́A�|���V�[���ēǂݍ��݂��� loadpolicy �A�|���V�[��ҏW���� editpolicy �A���䃌�x����ύX���� setlevel �A�������ǂݍ��݋����X�V���� ld-watch �A�Θb�I�ɃA�N�Z�X�v���������� ccs-queryd �̂T���w�肵�Ă��������B</p>
+<p>/root/security/manager.txt を作成し、その中にポリシーの変更を許可したいプログラムを指定します。<br>
+具体的には、ポリシーを再読み込みする loadpolicy 、ポリシーを編集する editpolicy 、制御レベルを変更する setlevel 、無条件読み込み許可を更新する ld-watch 、対話的にアクセス要求を許可する ccs-queryd の５つを指定してください。</p>
 <table border="1">
 <tr><td>
 cat &gt; /root/security/manager.txt &lt;&lt; EOF<br>
@@ -232,15 +232,15 @@ EOF<br></td>
 </tr>
 </table>
 
-<h2><a name="patch-shutdown">�V���b�g�_�E�������̏C��</a></h2>
+<h2><a name="patch-shutdown">シャットダウン処理の修正</a></h2>
 
-<p>�d�����؂�钼�O�Ƀ�������̃|���V�[���f�B�X�N��ɕۑ����邽�߂ɁA�V���b�g�_�E���X�N���v�g�̒��� /root/ccstools/savepolicy �����s�����悤�ɏC�����܂��B��̓I�ȏC���ӏ��̓f�B�X�g���r���[�V�������ɈقȂ�܂��B�����̏ꍇ�A /etc/init.d/ �f�B���N�g�������ɂ���V���b�g�_�E�����s���X�N���v�g�̍Ō�Ɏ��s�����v���O�������d����؂邽�߂̃v���O�����Ȃ̂ŁA���̒��O�ŕۑ�����悤�ɏC�����܂��B</p>
+<p>電源が切れる直前にメモリ上のポリシーをディスク上に保存するために、シャットダウンスクリプトの中で /root/ccstools/savepolicy が実行されるように修正します。具体的な修正箇所はディストリビューション毎に異なります。多くの場合、 /etc/init.d/ ディレクトリ直下にあるシャットダウンを行うスクリプトの最後に実行されるプログラムが電源を切るためのプログラムなので、その直前で保存するように修正します。</p>
 
-<p>RedHat Linux 9 ����� Fedora Core 3 �̏ꍇ�͈ȉ��̂悤�ɏC�����Ă��������B</p>
+<p>RedHat Linux 9 および Fedora Core 3 の場合は以下のように修正してください。</p>
 
 <table border="1">
 <tr><td colspan="2">/etc/rc.d/init.d/halt</td></tr>
-<tr><td>�C���O</td><td>�C����</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 <br>
 exec $command $HALTARGS
@@ -250,11 +250,11 @@ exec $command $HALTARGS
 </td></tr>
 </table>
 
-<p>Debian Sarge �̏ꍇ�͈ȉ��̂悤�ɏC�����Ă��������B savepolicy �̑O�� halt/reboot ����x���s���Ă���̂� halt/reboot �����s����h���C�����쐬���邽�߂ł��B</p>
+<p>Debian Sarge の場合は以下のように修正してください。 savepolicy の前に halt/reboot を一度実行しているのは halt/reboot を実行するドメインを作成するためです。</p>
 
 <table border="1">
 <tr><td colspan="2">/etc/init.d/halt</td><td colspan="2">/etc/init.d/reboot</td></tr>
-<tr><td>�C���O</td><td>�C����</td><td>�C���O</td><td>�C����</td></tr>
+<tr><td>修正前</td><td>修正後</td><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 <br>
 <br>
@@ -274,26 +274,26 @@ reboot -d -f -i
 </td></tr>
 </table>
 
-<h2><a name="audit-logs">�č����O�̎擾����</a></h2>
+<h2><a name="audit-logs">監査ログの取得準備</a></h2>
 
-<p>�h���C���P�ʂ̃A�N�Z�X����@�\�Ɋւ��āA�A�N�Z�X�������ꂽ�v���̃��O�i�A�N�Z�X�����O�j�ƃA�N�Z�X�����ۂ��ꂽ�v���̃��O�i�A�N�Z�X���ۃ��O�j���擾���邱�Ƃ��ł��܂��B
-�擾�������O�́A���̂܂܃h���C���p�|���V�[�Ƃ��Ēǉ��\�Ȍ`���ɂȂ��Ă��܂��B
-�A�N�Z�X���ۃ��O�̓��e���ᖡ���āA�����ׂ��ł���΃h���C���p�|���V�[�ɒǉ����܂��B</p>
+<p>ドメイン単位のアクセス制御機能に関して、アクセスが許可された要求のログ（アクセス許可ログ）とアクセスが拒否された要求のログ（アクセス拒否ログ）を取得することができます。
+取得したログは、そのままドメイン用ポリシーとして追加可能な形式になっています。
+アクセス拒否ログの内容を吟味して、許可すべきであればドメイン用ポリシーに追加します。</p>
 
-<p>�A�N�Z�X�����O�ƃA�N�Z�X���ۃ��O���J�[�l������ǂݏo���ăt�@�C���ɕۑ�����ׂɁA ccs-auditd �Ƃ����f�[�����v���O�����𗘗p�ł��܂��B�ȉ��̃R�}���h�� /etc/rc.local ��������s����悤�ɂ��Ă��������B</p>
+<p>アクセス許可ログとアクセス拒否ログをカーネルから読み出してファイルに保存する為に、 ccs-auditd というデーモンプログラムを利用できます。以下のコマンドを /etc/rc.local 等から実行するようにしてください。</p>
 
 <table border="1">
 <tr><td>
-/root/ccstools/ccs-auditd �A�N�Z�X�����O�̕ۑ��ꏊ �A�N�Z�X���ۃ��O�̕ۑ��ꏊ
+/root/ccstools/ccs-auditd アクセス許可ログの保存場所 アクセス拒否ログの保存場所
 </td></tr>
 </table>
 
-<p>�A�N�Z�X�����O��ۑ�����K�v�������ꍇ�́A�ۑ��ꏊ�Ƃ��� /dev/null ���w�肷�邱�Ƃ��ł��܂��B ccs-auditd �ɂ̓t�B���^�����O�@�\������܂���̂ŁA�A�N�Z�X�����O��ۑ�����ꍇ�̓f�B�X�N�e�ʂɒ��ӂ��Ă��������B</p>
+<p>アクセス許可ログを保存する必要が無い場合は、保存場所として /dev/null を指定することができます。 ccs-auditd にはフィルタリング機能がありませんので、アクセス許可ログを保存する場合はディスク容量に注意してください。</p>
 
-<p>�A�N�Z�X���ۃ��O��ۑ�����K�v�������ꍇ�́A�ۑ��ꏊ�Ƃ��� /dev/null ���w�肷�邱�Ƃ��ł��܂��B</p>
+<p>アクセス拒否ログを保存する必要が無い場合は、保存場所として /dev/null を指定することができます。</p>
 
-<p>�ǂ�����ۑ����Ȃ��ꍇ�� ccs-auditd �����s����K�v�͂���܂��񂪁A�A�N�Z�X���ۃ��O�͕ۑ����Ă������Ƃ𐄏����܂��B
-���̎菇���ł́A�A�N�Z�X���ۃ��O�� /var/log/tomoyo/reject_log.txt �ɕۑ�������̂Ƃ��܂��B</p>
+<p>どちらも保存しない場合は ccs-auditd を実行する必要はありませんが、アクセス拒否ログは保存しておくことを推奨します。
+この手順書では、アクセス拒否ログを /var/log/tomoyo/reject_log.txt に保存するものとします。</p>
 
 <table border="1">
 <tr><td>
@@ -301,7 +301,7 @@ reboot -d -f -i
 </td></tr>
 </table>
 
-<p>�A�N�Z�X���O��ۑ�����f�B���N�g���͗\�ߍ쐬���Ă����Ă��������B</p>
+<p>アクセスログを保存するディレクトリは予め作成しておいてください。</p>
 
 <table border="1">
 <tr><td>
@@ -309,7 +309,7 @@ mkdir -p /var/log/tomoyo
 </td></tr>
 </table>
 
-<p>logrotate �ɂ�郍�[�e�[�V�������s�킹�����ꍇ�́A�ȉ��̂悤�ȓ��e�̃t�@�C���� /etc/logrotate.d/tomoyo �ɍ쐬���Ă��������B</p>
+<p>logrotate によるローテーションを行わせたい場合は、以下のような内容のファイルを /etc/logrotate.d/tomoyo に作成してください。</p>
 
 <table border="1">
 <tr><td>
@@ -323,114 +323,114 @@ mkdir -p /var/log/tomoyo
 </td></tr>
 </table>
 
-<h2><a name="create-profiles">�v���t�@�C���̍쐬</a></h2>
+<h2><a name="create-profiles">プロファイルの作成</a></h2>
 
-<p>TOMOYO Linux�ł́A�t�@�C���ȊO�ɂ��������̍��ڂɂ��ċ����A�N�Z�X������s�����Ƃ��ł��܂����A�|���V�[�Ǘ��̕��S�����炷���߂ɁA�K�v�̖����@�\�𖳌����ł���悤�ɂȂ��Ă��܂��B</p>
+<p>TOMOYO Linuxでは、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシー管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
 
-<p>�L���ɂ������@�\�Ƃ��̃��[�h���L�q�����������䃌�x����`�t�@�C�����P�ȏ�쐬���A�J�[�l���N�����̃R�}���h���C������ԍ����w�肷�邱�ƂŐ؂�ւ����ł���悤�ɂȂ��Ă��܂��B��̓I�ɂ́A�J�[�l���N�����̃R�}���h���C���� CCS=$INDEX �i$INDEX �͐����j�Ƃ����p�����[�^���w�肷��ƁA�Ή����� /root/security/profile$INDEX.txt ���ǂݍ��܂�܂��B</p>
+<p>有効にしたい機能とそのモードを記述した初期制御レベル定義ファイルを１つ以上作成し、カーネル起動時のコマンドラインから番号を指定することで切り替えができるようになっています。具体的には、カーネル起動時のコマンドラインで CCS=$INDEX （$INDEX は整数）というパラメータを指定すると、対応する /root/security/profile$INDEX.txt が読み込まれます。</p>
 
-<p>�ȉ��̐������Q�Ƃ��Ȃ���A�p�r���̃v���t�@�C�����쐬���Ă��������B /root/security/status.txt �Ɋ܂܂�鍀�ڂ������w��\�ł��B /root/security/status.txt �Ɋ܂܂�鍀�ڂ̐��́A�J�[�l���R���p�C�����̐ݒ�ɂ��ω����܂��B</p>
+<p>以下の説明を参照しながら、用途毎のプロファイルを作成してください。 /root/security/status.txt に含まれる項目だけが指定可能です。 /root/security/status.txt に含まれる項目の数は、カーネルコンパイル時の設定により変化します。</p>
 
 <table border="1">
-<tr><td>����</td><td>���䂷����e</td><td>�����w�K�Ή�</td></tr>
-<tr><td>MAC_FOR_FILE</td><td>�t�@�C���̓ǂݏ������s</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::inet_tcp_create</td><td>TCP �\�P�b�g�̎g�p</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::inet_tcp_listen</td><td>TCP �\�P�b�g�� listen</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::inet_tcp_connect</td><td>TCP �\�P�b�g�� connect</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::use_inet_udp</td><td>UDP �\�P�b�g�̎g�p</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::use_inet_ip</td><td>RAW �\�P�b�g�̎g�p</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::use_route</td><td>ROUTE �\�P�b�g�̎g�p</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::use_packet</td><td>PACKET �\�P�b�g�̎g�p</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::use_kernel_module</td><td>�J�[�l�����W���[���̎g�p</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::create_fifo</td><td>FIFO �̍쐬</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::create_block_dev</td><td>�u���b�N�^�f�o�C�X�̍쐬</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::create_char_dev</td><td>�L�����N�^�^�f�o�C�X�̍쐬</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::create_unix_socket</td><td>UNIX �h���C���\�P�b�g�̍쐬</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_MOUNT</td><td>�t�@�C���V�X�e���̃}�E���g</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_UMOUNT</td><td>�t�@�C���V�X�e���̃A���}�E���g</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_REBOOT</td><td>�V�X�e���̍ċN��</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_CHROOT</td><td>���[�g�f�B���N�g���̕ύX</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_KILL</td><td>�V�O�i���̑��M</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_VHANGUP</td><td>vhangup �̎g�p</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_TIME</td><td>�V�X�e�������̕ύX</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_NICE</td><td>�v���Z�X�̗D��x�̕ύX</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_SETHOSTNAME</td><td>�z�X�g���E�h���C�����̕ύX</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_LINK</td><td>�n�[�h�����N�̍쐬</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_SYMLINK</td><td>�V���{���b�N�����N�̍쐬</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_RENAME</td><td>�t�@�C�����̕ύX</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_UNLINK</td><td>�t�@�C���̍폜</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_CHMOD</td><td>�t�@�C���̃p�[�~�b�V�����̕ύX</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_CHOWN</td><td>�t�@�C���̏��L�ҁE�O���[�v�̕ύX</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_IOCTL</td><td>ioctl �̎g�p</td><td>��</td></tr>
-<tr><td>MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD</td><td>�V�����J�[�l���̃��[�h</td><td>��</td></tr>
-<tr><td>MAC_FOR_NETWORK</td><td>�v���O�������g�p�ł���h�o�A�h���X�ƃ|�[�g�ԍ�</td><td>��</td></tr>
-<tr><td>MAC_FOR_BINDPORT</td><td>�v���O�������g�p�ł��郍�[�J���|�[�g�ԍ�</td><td>��</td></tr>
-<tr><td>MAC_FOR_CONNECTPORT</td><td>�v���O�������g�p�ł��郊���[�g�|�[�g�ԍ�</td><td>��</td></tr>
-<tr><td>MAC_FOR_SIGNAL</td><td>�������g�ȊO�ւ̃V�O�i���̑��M</td><td>��</td></tr>
-<tr><td>DENY_CONCEAL_MOUNT</td><td>�����̃}�E���g���B������悤�ȃ}�E���g�̋֎~</td><td>�~</td></tr>
-<tr><td>RESTRICT_CHROOT</td><td>chroot �ňړ��\�ȃf�B���N�g��</td><td>��</td></tr>
-<tr><td>RESTRICT_MOUNT</td><td>�}�E���g�\�ȁu�f�o�C�X�t�@�C���ƃ}�E���g�|�C���g�ƃt�@�C���V�X�e���v�̑g�ݍ��킹</td><td>��</td></tr>
-<tr><td>RESTRICT_UNMOUNT</td><td>�w�肳�ꂽ�f�B���N�g���̃A���}�E���g�̋֎~</td><td>�~</td></tr>
-<tr><td>DENY_PIVOT_ROOT</td><td>pivot_root �Ăяo���̋֎~</td><td>�~</td></tr>
-<tr><td>RESTRICT_AUTOBIND</td><td>TCP/IP �l�b�g���[�N�Ŏ����I�Ɋ��蓖�Ă��郍�[�J���|�[�g</td><td>�~</td></tr>
-<tr><td>TRACE_READONLY</td><td>�t�@�C���V�X�e�����ǂݍ��ݐ�p�ł��邱�ƂŎ��s�����t�@�C������\������B</td><td>�|</td>
+<tr><td>項目</td><td>制御する内容</td><td>自動学習対応</td></tr>
+<tr><td>MAC_FOR_FILE</td><td>ファイルの読み書き実行</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::inet_tcp_create</td><td>TCP ソケットの使用</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::inet_tcp_listen</td><td>TCP ソケットの listen</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::inet_tcp_connect</td><td>TCP ソケットの connect</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_inet_udp</td><td>UDP ソケットの使用</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_inet_ip</td><td>RAW ソケットの使用</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_route</td><td>ROUTE ソケットの使用</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_packet</td><td>PACKET ソケットの使用</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::use_kernel_module</td><td>カーネルモジュールの使用</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::create_fifo</td><td>FIFO の作成</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::create_block_dev</td><td>ブロック型デバイスの作成</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::create_char_dev</td><td>キャラクタ型デバイスの作成</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::create_unix_socket</td><td>UNIX ドメインソケットの作成</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_MOUNT</td><td>ファイルシステムのマウント</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_UMOUNT</td><td>ファイルシステムのアンマウント</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_REBOOT</td><td>システムの再起動</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_CHROOT</td><td>ルートディレクトリの変更</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_KILL</td><td>シグナルの送信</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_VHANGUP</td><td>vhangup の使用</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_TIME</td><td>システム時刻の変更</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_NICE</td><td>プロセスの優先度の変更</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_SETHOSTNAME</td><td>ホスト名・ドメイン名の変更</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_LINK</td><td>ハードリンクの作成</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_SYMLINK</td><td>シンボリックリンクの作成</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_RENAME</td><td>ファイル名の変更</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_UNLINK</td><td>ファイルの削除</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_CHMOD</td><td>ファイルのパーミッションの変更</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_CHOWN</td><td>ファイルの所有者・グループの変更</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_IOCTL</td><td>ioctl の使用</td><td>○</td></tr>
+<tr><td>MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD</td><td>新しいカーネルのロード</td><td>○</td></tr>
+<tr><td>MAC_FOR_NETWORK</td><td>プログラムが使用できるＩＰアドレスとポート番号</td><td>○</td></tr>
+<tr><td>MAC_FOR_BINDPORT</td><td>プログラムが使用できるローカルポート番号</td><td>○</td></tr>
+<tr><td>MAC_FOR_CONNECTPORT</td><td>プログラムが使用できるリモートポート番号</td><td>○</td></tr>
+<tr><td>MAC_FOR_SIGNAL</td><td>自分自身以外へのシグナルの送信</td><td>○</td></tr>
+<tr><td>DENY_CONCEAL_MOUNT</td><td>既存のマウントを隠蔽するようなマウントの禁止</td><td>×</td></tr>
+<tr><td>RESTRICT_CHROOT</td><td>chroot で移動可能なディレクトリ</td><td>○</td></tr>
+<tr><td>RESTRICT_MOUNT</td><td>マウント可能な「デバイスファイルとマウントポイントとファイルシステム」の組み合わせ</td><td>○</td></tr>
+<tr><td>RESTRICT_UNMOUNT</td><td>指定されたディレクトリのアンマウントの禁止</td><td>×</td></tr>
+<tr><td>DENY_PIVOT_ROOT</td><td>pivot_root 呼び出しの禁止</td><td>×</td></tr>
+<tr><td>RESTRICT_AUTOBIND</td><td>TCP/IP ネットワークで自動的に割り当てられるローカルポート</td><td>×</td></tr>
+<tr><td>TRACE_READONLY</td><td>ファイルシステムが読み込み専用であることで失敗したファイル名を表示する。</td><td>－</td>
 </tr>
-<tr><td>MAX_ACCEPT_FILES</td><td>�w�K���[�h�Ŏ����I�ɒǉ������A�N�Z�X���̏�����w�肷��B</td><td>�|</td></tr>
-<tr><td>MAX_GRANT_LOG</td><td>��������ɕێ�����A�N�Z�X�����O�̏�����w�肷��B</td><td>�|</td></tr>
-<tr><td>MAX_REJECT_LOG</td><td>��������ɕێ�����A�N�Z�X���ۃ��O�̏�����w�肷��B</td><td>�|</td></tr>
-<tr><td>TOMOYO_VERBOSE</td><td>�h���C���ʃ|���V�[�ɑ΂���ᔽ�� syslog �ɕ\������B</td><td>�|</td></tr>
-<tr><td>MAX_ENFORCE_GRACE</td><td>�������[�h�Ń|���V�[�ᔽ�����������ꍇ�ɁA�A�N�Z�X�v�������ۂ���܂ł̗P�\���Ԃ��w�肷��B</td><td>�|</td></tr>
+<tr><td>MAX_ACCEPT_FILES</td><td>学習モードで自動的に追加されるアクセス許可の上限を指定する。</td><td>－</td></tr>
+<tr><td>MAX_GRANT_LOG</td><td>メモリ上に保持するアクセス許可ログの上限を指定する。</td><td>－</td></tr>
+<tr><td>MAX_REJECT_LOG</td><td>メモリ上に保持するアクセス拒否ログの上限を指定する。</td><td>－</td></tr>
+<tr><td>TOMOYO_VERBOSE</td><td>ドメイン別ポリシーに対する違反を syslog に表示する。</td><td>－</td></tr>
+<tr><td>MAX_ENFORCE_GRACE</td><td>強制モードでポリシー違反が発生した場合に、アクセス要求を拒否するまでの猶予時間を指定する。</td><td>－</td></tr>
 </table>
 
-<p>TRACE_READONLY ����� RESTRICT_AUTOBIND �ɂ��Ă͈ȉ��̒l���w��ł��܂��B</p>
+<p>TRACE_READONLY および RESTRICT_AUTOBIND については以下の値を指定できます。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>0</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삷��B</td></tr>
-<tr><td>1</td><td>�L���B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>0</td><td>無効。通常のカーネルと同様に動作する。</td></tr>
+<tr><td>1</td><td>有効。</td></tr>
 </table>
 
-<p>MAX_ACCEPT_FILES �ɂ��Ă͈ȉ��̒l���w��ł��܂��B</p>
+<p>MAX_ACCEPT_FILES については以下の値を指定できます。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>�C�ӂ̐���</td><td>�w�K���[�h�Ŏ����I�ɒǉ������A�N�Z�X���̏���B�f�t�H���g�̓J�[�l���̃R���p�C�����Ɏw��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>任意の整数</td><td>学習モードで自動的に追加されるアクセス許可の上限。デフォルトはカーネルのコンパイル時に指定。</td></tr>
 </table>
 
-<p>MAX_GRANT_LOG ����� MAX_REJECT_LOG �ɂ��Ă͈ȉ��̒l���w��ł��܂��B</p>
+<p>MAX_GRANT_LOG および MAX_REJECT_LOG については以下の値を指定できます。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>�C�ӂ̐���</td><td>�J�[�l�����ɕێ�����A�N�Z�X���O�̌����B�f�t�H���g�̓J�[�l���̃R���p�C�����Ɏw��B���O���s�v�Ȃ�� 0 ���w�肷��B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>任意の整数</td><td>カーネル内に保持するアクセスログの件数。デフォルトはカーネルのコンパイル時に指定。ログが不要ならば 0 を指定する。</td></tr>
 </table>
 
-<p>TOMOYO_VERBOSE �ɂ��Ă͈ȉ��̒l���w��ł��܂��B</p>
+<p>TOMOYO_VERBOSE については以下の値を指定できます。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>0</td><td>�h���C���ʃ|���V�[�ɑ΂���ᔽ��\�����Ȃ��B</td></tr>
-<tr><td>1</td><td>�h���C���ʃ|���V�[�ɑ΂���ᔽ��\������B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>0</td><td>ドメイン別ポリシーに対する違反を表示しない。</td></tr>
+<tr><td>1</td><td>ドメイン別ポリシーに対する違反を表示する。</td></tr>
 </table>
 
-<p>MAX_ENFORCE_GRACE �ɂ��Ă͈ȉ��̒l���w��ł��܂��B</p>
+<p>MAX_ENFORCE_GRACE については以下の値を指定できます。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>�C�ӂ̐���</td><td>�������[�h�œ��쒆�Ƀ|���V�[�ᔽ���������Ă���A���̃A�N�Z�X�v�������ۂ���܂ł̗P�\���Ԃ�b�P�ʂŎw�肷��B���̎��ԓ��ɊǗ��҂����̃A�N�Z�X�v����������悤�Ɏw�������ꍇ�A���̃A�N�Z�X�v���͋������B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>任意の整数</td><td>強制モードで動作中にポリシー違反が発生してから、そのアクセス要求を拒否するまでの猶予期間を秒単位で指定する。この時間内に管理者がそのアクセス要求を許可するように指示した場合、そのアクセス要求は許可される。</td></tr>
 </table>
 
-<p>��L�ȊO�ɂ��Ă͈ȉ��̒l���w��ł��܂��B</p>
+<p>上記以外については以下の値を指定できます。</p>
 
 <table border="1">
-<tr><td>�l</td><td>���e</td></tr>
-<tr><td>0</td><td>�����B�ʏ�̃J�[�l���Ɠ��l�ɓ��삷��B</td></tr>
-<tr><td>1</td><td>�w�K���[�h�B�|���V�[�Ɉᔽ���Ă��x�����G���[�ɂ����A�|���V�[�ւ̎����ǉ����s���B</td></tr>
-<tr><td>2</td><td>���e���[�h�B�|���V�[�Ɉᔽ���Ă��G���[�ɂ����A�|���V�[�ւ̎����ǉ����s��Ȃ��B</td></tr>
-<tr><td>3</td><td>�������[�h�B�|���V�[�Ɉᔽ������G���[�Ƃ���B</td></tr>
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>0</td><td>無効。通常のカーネルと同様に動作する。</td></tr>
+<tr><td>1</td><td>学習モード。ポリシーに違反しても警告をエラーにせず、ポリシーへの自動追加を行う。</td></tr>
+<tr><td>2</td><td>許容モード。ポリシーに違反してもエラーにせず、ポリシーへの自動追加も行わない。</td></tr>
+<tr><td>3</td><td>強制モード。ポリシーに違反したらエラーとする。</td></tr>
 </table>
 
-<p>udev ���g�p����f�B�X�g���r���[�V������ SYAORAN �t�@�C���V�X�e���𗘗p���Ă���ꍇ�́A DENY_CONCEAL_MOUNT=3 ���w�肵�Ă��������B</p>
-<p>�ȉ��ɗ�������܂��B</p>
+<p>udev を使用するディストリビューションで SYAORAN ファイルシステムを利用している場合は、 DENY_CONCEAL_MOUNT=3 を指定してください。</p>
+<p>以下に例を示します。</p>
 <table border="1">
 <tr><td>/root/security/profile1.txt</td><td>/root/security/profile2.txt</td><td>/root/security/profile3.txt</td></tr>
 <tr><td>
@@ -446,57 +446,57 @@ TOMOYO_VERBOSE=1
 </td></tr>
 </table>
 
-<h2><a name="create-exceptions">��O�|���V�[�̍쐬</a></h2>
+<h2><a name="create-exceptions">例外ポリシーの作成</a></h2>
 
-<p>�S�ẴV�X�e���ɋ��ʂ��đ��݂��Ă���\���������p�X���̃p�^�[�������O�ɓo�^���Ă����܂��B<br>
-/root/security/exception_policy.txt �� file_pattern �Ƃ����L�[���[�h���g�p���ăp�X���̃p�^�[����o�^���܂��B<br>
-�A�N�Z�X�����w�K����ۂɁA�v�����ꂽ�p�X���� file_pattern �Ƃ����L�[���[�h���g�p���ēo�^���ꂽ�p�X���̃p�^�[���ƈ�v�����ꍇ�A�p�^�[�������ꂽ�p�X���ŃA�N�Z�X�����w�K����܂��B<br>
-�ڈ��Ƃ��Ă͈ȉ��̂��̂��������܂��B</p>
-
-<ul>
-<li>/proc/PID/ �f�B���N�g���ȉ��ɑ��݂���t�@�C���̃p�X��
-<li>/sys/ �f�B���N�g���ȉ��ɑ��݂���t�@�C���̃p�X���i�J�[�l�� 2.6 �n�̏ꍇ�̂݁j
-<li>/dev/ �f�B���N�g���ȉ��̈ꕔ�̃p�X��
-<li>�|���V�[�t�@�C���̃p�X��
-<li>�}�j���A���y�[�W�̃p�X��
-<li>�X�v�[���f�B���N�g���̃p�X��
-<li>���[���̑���M���ɍ쐬�����e���|�����t�@�C���̃p�X��
-<li>man �R�}���h���쐬����e���|�����t�@�C���̃p�X��
-<li>mount �R�}���h���쐬����e���|�����t�@�C���̃p�X��
-</ul>
-
-<p>�V�X�e���ɃC���X�g�[������Ă���A�v���P�[�V�����₻�̐ݒ�ɂ��A��L�ȊO�ɂ��p�^�[�������ꂽ�p�X�����K�v�ɂȂ�܂��B�s�����Ă���p�^�[���͎��ۂɃA�N�Z�X�����w�K�����Ă���A�K�؂Ƀp�^�[�������Ēǉ����܂��B</p>
-
-<p>�S�Ẵv���O�����ւ̓ǂݍ��݃A�N�Z�X��������t�@�C����o�^���Ă����܂��B<br>
-/root/security/exception_policy.txt �� allow_read �Ƃ����L�[���[�h���g�p���ăp�X����o�^���܂��B�p�^�[���͎g�p�ł��܂���B<br>
-�ǂݍ��݃��[�h�ŗv�����ꂽ�p�X���� allow_read �Ƃ����L�[���[�h���g�p���ēo�^���ꂽ�p�X���ƈ�v�����ꍇ�A���̏�œǂݍ��݃A�N�Z�X��������܂��B<br>
-�ڈ��Ƃ��Ă͈ȉ��̂��̂��������܂��B</p>
+<p>全てのシステムに共通して存在している可能性が高いパス名のパターンを事前に登録しておきます。<br>
+/root/security/exception_policy.txt に file_pattern というキーワードを使用してパス名のパターンを登録します。<br>
+アクセス許可を学習する際に、要求されたパス名が file_pattern というキーワードを使用して登録されたパス名のパターンと一致した場合、パターン化されたパス名でアクセス許可が学習されます。<br>
+目安としては以下のものが挙げられます。</p>
 
 <ul>
-<li>ldconfig �ɓo�^����Ă��鋤�L���C�u����
-<li>/proc/ �f�B���N�g���ȉ��ɑ��݂���t�@�C���̈ꕔ
-<li>/usr/share/locale/ �f�B���N�g���ȉ��ɑ��݂��郍�P�[���f�[�^�̈ꕔ
+<li>/proc/PID/ ディレクトリ以下に存在するファイルのパス名
+<li>/sys/ ディレクトリ以下に存在するファイルのパス名（カーネル 2.6 系の場合のみ）
+<li>/dev/ ディレクトリ以下の一部のパス名
+<li>ポリシーファイルのパス名
+<li>マニュアルページのパス名
+<li>スプールディレクトリのパス名
+<li>メールの送受信時に作成されるテンポラリファイルのパス名
+<li>man コマンドが作成するテンポラリファイルのパス名
+<li>mount コマンドが作成するテンポラリファイルのパス名
 </ul>
 
-<p>�h���C���J�ڗ��������Z�b�g����v���O������o�^���Ă����܂��B<br>
-/root/security/exception_policy.txt �� initializer �Ƃ����L�[���[�h���g�p���ăp�X����o�^���܂��B�p�^�[���͎g�p�ł��܂���B<br>
-initializer �Ƃ����L�[���[�h���g�p���ēo�^���ꂽ�p�X���̃v���O���������s���ꂽ�ꍇ�A���̃v���O������ &lt;kernel&gt; �����̃h���C���œ��삵�܂��B<br>
-�ڈ��Ƃ��Ă͈ȉ��̂��̂��������܂��B</p>
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にもパターン化されたパス名が必要になります。不足しているパターンは実際にアクセス許可を学習させてから、適切にパターン化して追加します。</p>
+
+<p>全てのプログラムへの読み込みアクセスを許可するファイルを登録しておきます。<br>
+/root/security/exception_policy.txt に allow_read というキーワードを使用してパス名を登録します。パターンは使用できません。<br>
+読み込みモードで要求されたパス名が allow_read というキーワードを使用して登録されたパス名と一致した場合、その場で読み込みアクセスが許可されます。<br>
+目安としては以下のものが挙げられます。</p>
 
 <ul>
-<li> /etc/init.d/ �f�B���N�g���ȉ��ɂ���f�[�����v���O���������N���E�I�������邽�߂̃X�N���v�g
-<li>��L�X�N���v�g����N�������f�[�����v���O�����̓��A�h���C������Z�����������́ihttpd �� sshd �Ȃǁj
+<li>ldconfig に登録されている共有ライブラリ
+<li>/proc/ ディレクトリ以下に存在するファイルの一部
+<li>/usr/share/locale/ ディレクトリ以下に存在するロケールデータの一部
 </ul>
 
-<p>�d���I�t�̏����ɕK�v�ȃA�N�Z�X���������w�K���邱�Ƃ͂ł��Ȃ����߁A�d���I�t���s�����߂̃h���C����M���ς݂Ƃ��Ďw�肵�܂��B<br>
-��̓I�ȏC���ӏ��̓f�B�X�g���r���[�V�������ɈقȂ�܂��B�����̏ꍇ�A /etc/init.d/ �f�B���N�g���ȉ��ɂ���V���b�g�_�E�����s���X�N���v�g�̍Ō�Ɏ��s�����v���O�������d���I�t���s�����߂̃v���O�����ł��B</p>
+<p>ドメイン遷移履歴をリセットするプログラムを登録しておきます。<br>
+/root/security/exception_policy.txt に initializer というキーワードを使用してパス名を登録します。パターンは使用できません。<br>
+initializer というキーワードを使用して登録されたパス名のプログラムが実行された場合、そのプログラムは &lt;kernel&gt; 直下のドメインで動作します。<br>
+目安としては以下のものが挙げられます。</p>
 
-<p>�ȏ�̑���������I�ɍs�����߂̃X�N���v�g���p�ӂ���Ă��܂��B /root/ccstools/make_exception.sh �����s����ƌ�₪�\������܂��̂ŁA��������� /root/security/exception_policy.txt ���쐬���Ă��������B�Ȃ��A�����������ꂽ���ʂɂ͕s�v�ȃG���g����댯�ȃG���g�����܂܂��ꍇ������̂ŁA�K�����e���ᖡ���Ă��������B</p>
+<ul>
+<li> /etc/init.d/ ディレクトリ以下にあるデーモンプログラム等を起動・終了させるためのスクリプト
+<li>上記スクリプトから起動されるデーモンプログラムの内、ドメイン名を短くしたいもの（httpd や sshd など）
+</ul>
 
-<h3><a name="exception-logrotate">logrotate �ւ̑Ή�</a></h3>
+<p>電源オフの処理に必要なアクセス許可を自動学習することはできないため、電源オフを行うためのドメインを信頼済みとして指定します。<br>
+具体的な修正箇所はディストリビューション毎に異なります。多くの場合、 /etc/init.d/ ディレクトリ以下にあるシャットダウンを行うスクリプトの最後に実行されるプログラムが電源オフを行うためのプログラムです。</p>
 
-<P>�R�}���h���C������ logrotate ���N�����ĕK�v�ȃA�N�Z�X�����w�K������̂ŁA
-/usr/sbin/logrotate �� initializer �Ƃ��ė�O�|���V�[�ɓo�^���Ă����܂��B</P>
+<p>以上の操作を自動的に行うためのスクリプトが用意されています。 /root/ccstools/make_exception.sh を実行すると候補が表示されますので、それを元に /root/security/exception_policy.txt を作成してください。なお、自動生成された結果には不要なエントリや危険なエントリが含まれる場合があるので、必ず内容を吟味してください。</p>
+
+<h3><a name="exception-logrotate">logrotate への対応</a></h3>
+
+<P>コマンドラインから logrotate を起動して必要なアクセス許可を学習させるので、
+/usr/sbin/logrotate を initializer として例外ポリシーに登録しておきます。</P>
 
 <table border="1">
 <tr><td>
@@ -504,13 +504,13 @@ initializer /usr/sbin/logrotate
 </td></tr>
 </table>
 
-<h3><a name="exception-prelink">prelink �ւ̑Ή�</a></h3>
+<h3><a name="exception-prelink">prelink への対応</a></h3>
 
-<p>�s���葽���̃v���O�����t�@�C����ǂݏ������� cron �W���u�́A cron ���珜�O���邱�Ƃ��������Ă��������B</p>
+<p>不特定多数のプログラムファイルを読み書きする cron ジョブは、 cron から除外することを検討してください。</p>
 
-<p>�Ⴆ�΁A Fedora Core 3 �ȍ~�ɕt���� cron �Ŗ������s����悤�ɐݒ肳��Ă��� /usr/sbin/prelink �͔��ɑ����̎��s�\�t�@�C����ǂݏ������邽�߁A�|���V�[�t�@�C���̔�剻�i��������̑����j�̌����ɂȂ�܂��B�܂��A���s�\�t�@�C���ɑ΂��ď������݋���^���邱�Ƃ́A�]�܂�������܂���B</p>
+<p>例えば、 Fedora Core 3 以降に付属の cron で毎日実行するように設定されている /usr/sbin/prelink は非常に多数の実行可能ファイルを読み書きするため、ポリシーファイルの肥大化（消費メモリの増加）の原因になります。また、実行可能ファイルに対して書き込み許可を与えることは、望ましくありません。</p>
 
-<p>cron ���g���Ė��� /usr/sbin/prelink �����s�����Ȃ��Ă��A�u�M���ς݃h���C���v����p�b�P�[�W�̃A�b�v�f�[�g���s������� /usr/sbin/prelink �����s����Ύ������Ǝv���܂��̂ŁA�ȉ��̂悤�� cron �W���u���珜�O���邱�Ƃ������߂��܂��B</p>
+<p>cron を使って毎日 /usr/sbin/prelink を実行させなくても、「信頼済みドメイン」からパッケージのアップデートを行った後に /usr/sbin/prelink を実行すれば事足りると思いますので、以下のように cron ジョブから除外することをお勧めします。</p>
 
 <table border="1">
 <tr><td>
@@ -518,10 +518,10 @@ mv /etc/cron.daily/prelink /usr/sbin/prelink.cron
 </td></tr>
 </table>
 
-<h3><a name="exception-anacron">anacron �ւ̑Ή�</a></h3>
+<h3><a name="exception-anacron">anacron への対応</a></h3>
 
-<P>�R�}���h���C������ anacron ���N�����ĕK�v�ȃA�N�Z�X�����w�K������̂ŁA
-/usr/sbin/anacron �� initializer �Ƃ��ė�O�|���V�[�ɓo�^���Ă����܂��B</P>
+<P>コマンドラインから anacron を起動して必要なアクセス許可を学習させるので、
+/usr/sbin/anacron を initializer として例外ポリシーに登録しておきます。</P>
 
 <table border="1">
 <tr><td>
@@ -529,8 +529,8 @@ initializer /usr/sbin/anacron
 </td></tr>
 </table>
 
-<p>anacron �� /usr/bin/run-parts �����s����̂ŁA
-/usr/bin/run-parts �� initializer �Ƃ��ė�O�|���V�[�ɓo�^���Ă����܂��B</p>
+<p>anacron は /usr/bin/run-parts を実行するので、
+/usr/bin/run-parts を initializer として例外ポリシーに登録しておきます。</p>
 
 <table border="1">
 <tr><td>
@@ -538,10 +538,10 @@ initializer /usr/bin/run-parts
 </td></tr>
 </table>
 
-<h3><a name="exception-cron">cron �ւ̑Ή�</a></h3>
+<h3><a name="exception-cron">cron への対応</a></h3>
 
-<p>cron �� /usr/bin/run-parts �����s����̂ŁA
-/usr/bin/run-parts �� initializer �Ƃ��ė�O�|���V�[�ɓo�^���Ă����܂��B</p>
+<p>cron は /usr/bin/run-parts を実行するので、
+/usr/bin/run-parts を initializer として例外ポリシーに登録しておきます。</p>
 
 <table border="1">
 <tr><td>
@@ -549,12 +549,12 @@ initializer /usr/bin/run-parts
 </td></tr>
 </table>
 
-<p>/etc/crontab ���J���A�ȉ��̂悤�ɃW���u�̎��s�Ԋu���T���ɕύX���܂��B
-�P���Ԋu���ƑO��̃W���u���I������O�Ɏ���̃W���u���J�n����Ă��܂��\���������̂ŁA
-�K���Ȏ��Ԃ��󂯂�K�v������܂��B</p>
+<p>/etc/crontab を開き、以下のようにジョブの実行間隔を５分に変更します。
+１分間隔だと前回のジョブが終了する前に次回のジョブが開始されてしまう可能性が高いので、
+適当な時間を空ける必要があります。</p>
 
 <table border="1">
-<tr><td>�ύX�O</td><td>�ύX��</td></tr>
+<tr><td>変更前</td><td>変更後</td></tr>
 <tr><td>
 SHELL=/bin/bash<br>
 PATH=/sbin:/bin:/usr/sbin:/usr/bin<br>
@@ -580,13 +580,13 @@ HOME=/<br>
 </td></tr>
 </table>
 
-<p>�w�K���I������猳�ɖ߂��̂�Y��Ȃ��ł��������B</p>
+<p>学習が終わったら元に戻すのを忘れないでください。</p>
 
-<h2><a name="exception-targeted-policy">Targeted Policy �ւ̑Ή�</a></h2>
+<h2><a name="exception-targeted-policy">Targeted Policy への対応</a></h2>
 
-<p>��L�̎菇�ɂ��쐬���ꂽ /root/security/exception_policy.txt �� Strict Policy �Ƃ��Ďg�p���邽�߂̂��̂ł��B�����A Targeted Policy �ɑ���������@�ŗ��p�������ꍇ�A /root/security/exception_policy.txt ���ȉ��̂悤�ɏC�����Ă��������B</p>
+<p>上記の手順により作成された /root/security/exception_policy.txt は Strict Policy として使用するためのものです。もし、 Targeted Policy に相当する方法で利用したい場合、 /root/security/exception_policy.txt を以下のように修正してください。</p>
 
-<p>�ȉ��̂R�s��ǉ����܂��B /sbin/modprobe �� /sbin/hotplug ���V���{���b�N�����N�̏ꍇ�́A���̃����N����w�肵�Ă��������B</p>
+<p>以下の３行を追加します。 /sbin/modprobe や /sbin/hotplug がシンボリックリンクの場合は、そのリンク先を指定してください。</p>
 
 <table border="1">
 <tr><td>
@@ -596,8 +596,8 @@ trust_domain &lt;kernel&gt; /sbin/hotplug
 </td></tr>
 </table>
 
-<p>initializer �Ƃ����L�[���[�h�Ŏw�肳��Ă���v���O�����̓��A�����A�N�Z�X����Ώۂ��珜�O���������̂����O���܂��B
-�Ⴆ�΁A /usr/sbin/httpd �� /usr/sbin/httpd ����N�������v���O���������������A�N�Z�X����̑ΏۂƂ������ꍇ�A�ȉ��̂R�s���c���Ă��̑��� initializer �Ƃ����L�[���[�h�Ŏn�܂�s�����O���܂��B</p>
+<p>initializer というキーワードで指定されているプログラムの内、強制アクセス制御対象から除外したいものを除外します。
+例えば、 /usr/sbin/httpd と /usr/sbin/httpd から起動されるプログラムだけを強制アクセス制御の対象としたい場合、以下の３行を残してその他の initializer というキーワードで始まる行を除外します。</p>
 
 <table border="1">
 <tr><td>
@@ -607,21 +607,21 @@ initializer /sbin/hotplug
 </td></tr>
 </table>
 
-<p>���̂悤�ɂ���ƁA /usr/sbin/httpd ����� /usr/sbin/httpd ����N�������v���O�����́u&lt;kernel&gt; /usr/sbin/httpd�v�h���C������т��̎q���h���C���ɑ����邱�Ƃŋ����A�N�Z�X���䂪�K�p����A���̑��̃v���O�����́u&lt;kernel&gt; /sbin/init�v�u&lt;kernel&gt; /sbin/modprobe�v�u&lt;kernel&gt; /sbin/hotplug�v�h���C���̉��ꂩ�ɑ����邱�Ƃŋ����A�N�Z�X���䂪�K�p����Ȃ���ԂɂȂ�܂��B</p>
+<p>このようにすると、 /usr/sbin/httpd および /usr/sbin/httpd から起動されるプログラムは「&lt;kernel&gt; /usr/sbin/httpd」ドメインおよびその子孫ドメインに属することで強制アクセス制御が適用され、その他のプログラムは「&lt;kernel&gt; /sbin/init」「&lt;kernel&gt; /sbin/modprobe」「&lt;kernel&gt; /sbin/hotplug」ドメインの何れかに属することで強制アクセス制御が適用されない状態になります。</p>
 
-<h1><a name="generate-policy">�|���V�[�̍쐬</a></h1>
+<h1><a name="generate-policy">ポリシーの作成</a></h1>
 
-<h2><a name="accept-mode-1">�w�K���[�h</a></h2>
+<h2><a name="accept-mode-1">学習モード</a></h2>
 
-<p>�N�����̃u�[�g�v�����v�g�� TOMOYO Linux�J�[�l����I�����A�w�K���[�h�p�̃v���t�@�C���ԍ��� CCS= �Ɏw�肵�ċN�����܂��B�P��ڂ� TOMOYO_NOLOAD �p�����[�^���w�肵�Ă��������B
-TOMOYO_NOLOAD �Ƃ����p�����[�^���w�肷��ƁA�h���C���P�ʂ̃|���V�[�idomain_policy.txt�j�����[�h���Ȃ��ōċN�����邱�Ƃ��ł��܂��B�i�܂�A�N�����̃u�[�g�v�����v�g�� TOMOYO Linux�J�[�l����I�����A�w�K���[�h�p�̃v���t�@�C���ԍ��� CCS= �Ɏw�肷��̂ɉ����āA TOMOYO_NOLOAD ���w�肵�ċN�����܂��B�j</p>
+<p>起動時のブートプロンプトで TOMOYO Linuxカーネルを選択し、学習モード用のプロファイル番号を CCS= に指定して起動します。１回目は TOMOYO_NOLOAD パラメータも指定してください。
+TOMOYO_NOLOAD というパラメータを指定すると、ドメイン単位のポリシー（domain_policy.txt）をロードしないで再起動することができます。（つまり、起動時のブートプロンプトで TOMOYO Linuxカーネルを選択し、学習モード用のプロファイル番号を CCS= に指定するのに加えて、 TOMOYO_NOLOAD も指定して起動します。）</p>
 
-<p>������������ɕK�v�ȃA�N�Z�X�����w�K�����܂��B</p>
+<p>許可したい操作に必要なアクセス許可を学習させます。</p>
 
-<p>�P��őS�ẴA�N�Z�X�p�^�[�����w�K�ł���Ƃ͌���Ȃ��̂ŁA���x���J��Ԃ��܂��B<br>
-�܂��A�N������I�����ɂ̂ݍs���鑀������݂��邽�߁A�ċN�������x���J��Ԃ��܂��B</p>
+<p>１回で全てのアクセスパターンを学習できるとは限らないので、何度か繰り返します。<br>
+また、起動時や終了時にのみ行われる操作も存在するため、再起動も何度か繰り返します。</p>
 
-<p>�w�K���[�h�œ��쒆�ɂ́A�ȉ��̂悤�ȃ��b�Z�[�W���\�������ꍇ������܂��B</p>
+<p>学習モードで動作中には、以下のようなメッセージが表示される場合があります。</p>
 
 <table border="1">
 <tr><td>
@@ -629,10 +629,10 @@ TOMOYO-WARNING: Domain '&lt;kernel&gt; ...' has so many ACLs to hold. Stopped au
 </td></tr>
 </table>
 
-<p>����́A����̃v���O���������܂�ɂ������̃t�@�C���ɃA�N�Z�X�������̂�����A�������̘Q��Ɖ������x�̈�����h�����߂Ɉ��S���u���쓮�������Ƃ�m�点�郁�b�Z�[�W�ł��B���S���u���쓮����ƁA���̃h���C���ɑ΂��Ă̓t�@�C���ɑ΂���A�N�Z�X��������ȏ㎩���I�ɒǉ�����Ȃ��悤�ɂȂ�܂��B</p>
+<p>これは、特定のプログラムがあまりにも多くのファイルにアクセスしたものだから、メモリの浪費と応答速度の悪化を防ぐために安全装置が作動したことを知らせるメッセージです。安全装置が作動すると、このドメインに対してはファイルに対するアクセス許可がこれ以上自動的に追加されないようになります。</p>
 
-<p>���̃��b�Z�[�W�ɑΏ�����ɂ́A���ƂŃA�N�Z�X�����C������K�v������܂��B<br>
-�Ⴆ�΁A�ȉ��̃��b�Z�[�W���\�����ꂽ�ꍇ�A�K�؂ȃp�^�[���𗘗p���ăO���[�v�����邱�Ƃ� &lt;kernel&gt; /usr/sbin/hald �Ƃ����h���C���ɑ΂���A�N�Z�X���̐������炷�K�v������܂��B</p>
+<p>このメッセージに対処するには、手作業でアクセス許可を修正する必要があります。<br>
+例えば、以下のメッセージが表示された場合、適切なパターンを利用してグループ化することで &lt;kernel&gt; /usr/sbin/hald というドメインに対するアクセス許可の数を減らす必要があります。</p>
 
 <table border="1">
 <tr><td>
@@ -640,12 +640,12 @@ TOMOYO-WARNING: Domain '&lt;kernel&gt; /usr/sbin/hald' has so many ACLs to hold.
 </td></tr>
 </table>
 
-<p>/root/ccstools/editpolicy ���g�p���ă|���V�[�̕ҏW���s�����Ƃ��ł��܂��B</p>
+<p>/root/ccstools/editpolicy を使用してポリシーの編集を行うことができます。</p>
 
-<h3><a name="accept-logrotate">logrotate �ւ̑Ή�</a></h3>
+<h3><a name="accept-logrotate">logrotate への対応</a></h3>
 
-<P>�R�}���h���C������ logrotate ���N�����A�K�v�ȃA�N�Z�X�����w�K�����܂��B
-���݂̃V�X�e�������Ɋ֌W�Ȃ� logrotate �̃W���u�����s�����邽�߂ɁA -f �I�v�V�������w�肵�Ă��������B</P>
+<P>コマンドラインから logrotate を起動し、必要なアクセス許可を学習させます。
+現在のシステム時刻に関係なく logrotate のジョブを実行させるために、 -f オプションを指定してください。</P>
 
 <table border="1">
 <tr><td>
@@ -653,12 +653,12 @@ TOMOYO-WARNING: Domain '&lt;kernel&gt; /usr/sbin/hald' has so many ACLs to hold.
 </td></tr>
 </table>
 
-<P>��x�őS�ẴA�N�Z�X�����w�K�ł���Ƃ͌���Ȃ��̂ŁA���x���J��Ԃ��܂��B</P>
+<P>一度で全てのアクセス許可を学習できるとは限らないので、何度か繰り返します。</P>
 
-<h3><a name="accept-anacron">anacron �ւ̑Ή�</a></h3>
+<h3><a name="accept-anacron">anacron への対応</a></h3>
 
-<P>�R�}���h���C������ anacron ���N�����A�K�v�ȃA�N�Z�X�����w�K�����܂��B
-���݂̃V�X�e�������Ɋ֌W�Ȃ� anacron �̃W���u�����s�����邽�߂ɁA -d -f -n �I�v�V�������w�肵�Ă��������B</P>
+<P>コマンドラインから anacron を起動し、必要なアクセス許可を学習させます。
+現在のシステム時刻に関係なく anacron のジョブを実行させるために、 -d -f -n オプションを指定してください。</P>
 
 <table border="1">
 <tr><td>
@@ -666,13 +666,13 @@ anacron -dfn
 </td></tr>
 </table>
 
-<P>��x�őS�ẴA�N�Z�X�����w�K�ł���Ƃ͌���Ȃ��̂ŁA���x���J��Ԃ��܂��B</P>
+<P>一度で全てのアクセス許可を学習できるとは限らないので、何度か繰り返します。</P>
 
-<h2><a name="update-exception">��O�|���V�[�̍X�V</a></h2>
+<h2><a name="update-exception">例外ポリシーの更新</a></h2>
 
-<p>�ʏ�̃J�[�l���ōċN�����܂��B</p>
+<p>通常のカーネルで再起動します。</p>
 
-<p>�ȉ��̃R�}���h�����s����ƁA�e���|�����ł���Ǝv����p�X�����\������܂��B�K�؂Ƀp�^�[����������� /root/security/exception_policy.txt �� file_pattern �Ƃ��Ēǉ����܂��B</p>
+<p>以下のコマンドを実行すると、テンポラリであると思われるパス名が表示されます。適切にパターン化した上で /root/security/exception_policy.txt に file_pattern として追加します。</p>
 
 <table border="1">
 <tr><td>
@@ -680,8 +680,8 @@ anacron -dfn
 </td></tr>
 </table>
 
-<p>�e���|�����̊�Ƃ��ẮA�u�Ō�̂U�����������قȂ�p�X�����������݂��Ă���v�u�p�X���̒��̐��l�����������قȂ�p�X�����������݂��Ă���v��������܂��B<br>
-�p�^�[��������ۂ̗���ȉ��Ɏ����܂��B�����̓C���X�g�[������Ă���A�v���P�[�V������ݒ�ɂ�葶�݂��Ȃ�������Ⴄ�f�B���N�g���ɑ��݂��Ă����肷�邱�Ƃ�����܂��B</p>
+<p>テンポラリの基準としては、「最後の６文字だけが異なるパス名が複数存在している」「パス名の中の数値部分だけが異なるパス名が複数存在している」等があります。<br>
+パターン化する際の例を以下に示します。これらはインストールされているアプリケーションや設定により存在しなかったり違うディレクトリに存在していたりすることがあります。</p>
 <ul>
 <li>file_pattern /etc/.fstab.hal.\?</li>
 <li>file_pattern /etc/blkid.tab-\?\?\?\?\?\?</li>
@@ -709,22 +709,22 @@ anacron -dfn
 <li>file_pattern /var/run/gpm\?\?\?\?\?\?</li>
 </ul>
 
-<p>initializer �� allow_read �Œǉ����������̂�����Βǉ����܂��B</p>
+<p>initializer や allow_read で追加したいものがあれば追加します。</p>
 
-<p>�����e�i���X���̂��߂ɓ���̃h���C���ȉ���M���ς݂ɐݒ肵�����ꍇ�� trust_domain ��ǉ����܂��B</p>
+<p>メンテナンス等のために特定のドメイン以下を信頼済みに設定したい場合は trust_domain を追加します。</p>
 
-<h2><a name="accept-mode-2">�w�K���[�h</a></h2>
+<h2><a name="accept-mode-2">学習モード</a></h2>
 
-<p>�p�^�[���̐􂢏o�������������Ɣ��f������A�h���C���ʃ|���V�[���ŏ�����w�K���Ȃ����܂��B�P��ڂ� TOMOYO_NOLOAD �p�����[�^���w�肵�Ă��������B</p>
+<p>パターンの洗い出しが完了したと判断したら、ドメイン別ポリシーを最初から学習しなおします。１回目は TOMOYO_NOLOAD パラメータも指定してください。</p>
 
-<h1><a name="tune-policy">�|���V�[�̃`���[�j���O</a></h1>
+<h1><a name="tune-policy">ポリシーのチューニング</a></h1>
 
-<p>�ʏ�̃J�[�l���ōċN�����܂��B</p>
+<p>通常のカーネルで再起動します。</p>
 
-<h2><a name="add-from-audit-logs">�č����O����̐���</a></h2>
+<h2><a name="add-from-audit-logs">監査ログからの生成</a></h2>
 
-<p>/var/log/tomoyo/reject_log.txt �ɂ̓A�N�Z�X�����ۂ��ꂽ���O�����n��ŋL�^����Ă��܂��B
-���̒�����A�K���Ȕ͈͂�؂蔲���A�ȉ��̂悤�Ƀt�B���^�ɒʂ��Ă��������B���̃t�B���^�́A�h���C���P�ʂɃ��O����בւ��A�d�����Ă��郍�O�������܂��B�i�h���C���P�ʂŃ��O�� sort �� uniq ���s���܂��B�j</p>
+<p>/var/log/tomoyo/reject_log.txt にはアクセスが拒否されたログが時系列で記録されています。
+その中から、適当な範囲を切り抜き、以下のようにフィルタに通してください。このフィルタは、ドメイン単位にログを並べ替え、重複しているログを消します。（ドメイン単位でログの sort と uniq を行います。）</p>
 
 <table border="1">
 <tr><td>
@@ -732,12 +732,12 @@ anacron -dfn
 </td></tr>
 </table>
 
-<p>���̌��ʂ���A�ǉ����ׂ����ۂ��𔻒f���A�ǉ����ׂ��ł���Ɣ��f�����ꍇ�� /root/security/domain_policy.txt �ɒǉ����܂��B</p>
+<p>この結果から、追加すべきか否かを判断し、追加すべきであると判断した場合は /root/security/domain_policy.txt に追加します。</p>
 
-<h2><a name="make-pathname-patterns">�A�N�Z�X���̃p�^�[����</a></h2>
+<h2><a name="make-pathname-patterns">アクセス許可のパターン化</a></h2>
 
-<p>WWW �T�[�o���A�N�Z�X����R���e���c�̂悤�ɁA�����w�K�ł͕K�������A�N�Z�X����Ȃ��t�@�C���ɑ΂���A�N�Z�X���� /root/security/domain_policy.txt �ɒǉ����܂��B<br>
-�ȉ��̗�ł́A /usr/sbin/httpd �ɑ΂��� /var/www/html/ �ȉ��̓ǂݍ��݂������Ă��܂��B</p>
+<p>WWW サーバがアクセスするコンテンツのように、自動学習では必ずしもアクセスされないファイルに対するアクセス許可を /root/security/domain_policy.txt に追加します。<br>
+以下の例では、 /usr/sbin/httpd に対して /var/www/html/ 以下の読み込みを許可しています。</p>
 
 <table border="1">
 <tr><td>
@@ -750,11 +750,11 @@ anacron -dfn
 </tr>
 </table>
 
-<p>���l�ɁA�p�^�[�����g�p���Ď��Ƃł̃O���[�v�����s���܂��B<br>
-�ȉ��̗�ł́A /usr/sbin/smbd �ɑ΂��đS�Ẵ��O�t�@�C���𓯗l�Ɉ����悤�Ɏw�����Ă��܂��B</p>
+<p>同様に、パターンを使用して手作業でのグループ化を行います。<br>
+以下の例では、 /usr/sbin/smbd に対して全てのログファイルを同様に扱うように指示しています。</p>
 
 <table border="1">
-<tr><td>�C���O</td><td>�C����</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 2 /var/log/samba/host1.log<br>
@@ -768,10 +768,10 @@ anacron -dfn
 </td></tr>
 </table>
 
-<h2><a name="make-network-patterns">�l�b�g���[�N�̃p�^�[����</a></h2>
+<h2><a name="make-network-patterns">ネットワークのパターン化</a></h2>
 
-<p>portmap �̂悤�ɓ����|�[�g�i1024�����̔ԍ������|�[�g�j�������_���Ɏg�p����A�v���P�[�V���������݂��܂��B�����_���Ƀl�b�g���[�N�|�[�g�ԍ���I������A�v���P�[�V�����ɑ΂��ẮA�K�v�ȃ|�[�g�ԍ����w�K���[�h�Ŋw�K�����邱�Ƃ͂ł��܂���B���x���w�K���[�h�Ŏ��s���邱�ƂłP���w�K��������A�w�K���ʂ���ǂ̂悤�Ȕ͈͂̃|�[�g�ԍ����g�p���Ă��邩�𐄑����A�͈͂��w�肵�ă|�[�g�ԍ��̎g�p�������Ă��K�v������܂��B<br>
-�Ⴆ�΁A�ȉ��̂悤�Ȕ͈͂��l�����܂��B���ۂɋ�����K�v�̂���͈͂̓f�B�X�g���r���[�V������ݒ�ɂ��قȂ�\��������܂��̂ŁA�ȉ��̐ݒ�����̂܂܃R�s�[���Ȃ��悤�ɂ��Ă��������B</p>
+<p>portmap のように特権ポート（1024未満の番号を持つポート）をランダムに使用するアプリケーションが存在します。ランダムにネットワークポート番号を選択するアプリケーションに対しては、必要なポート番号を学習モードで学習させることはできません。何度か学習モードで実行することで１個ずつ学習させた後、学習結果からどのような範囲のポート番号を使用しているかを推測し、範囲を指定してポート番号の使用を許可してやる必要があります。<br>
+例えば、以下のような範囲が考えられます。実際に許可する必要のある範囲はディストリビューションや設定により異なる可能性がありますので、以下の設定をそのままコピーしないようにしてください。</p>
 
 <table border="1">
 <tr><td>
@@ -823,12 +823,12 @@ allow_connect UDP/111
 </td></tr>
 </table>
 
-<p>�Ȃ��A NFS �� NIS �̂悤�� RPC ��K�v�Ƃ���T�[�r�X�𓮍삳���Ȃ��̂ł���΁A�����ɂ��Ă������Ƃ𐄏����܂��B</p>
+<p>なお、 NFS や NIS のように RPC を必要とするサービスを動作させないのであれば、無効にしておくことを推奨します。</p>
 
-<p>���l�ɁA allow_network ���K�؂Ƀp�^�[�������܂��B�ȉ��̐ݒ�����̂܂܃R�s�[���Ȃ��悤�ɂ��Ă��������B</a>
+<p>同様に、 allow_network も適切にパターン化します。以下の設定をそのままコピーしないようにしてください。</a>
 
 <table border="1">
-<tr><td>�C���O</td><td>�C����</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 allow_network TCP accept 0:0:0:0:0:0:0:1 43768<br>
@@ -844,14 +844,14 @@ allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
 </td></tr>
 </table>
 
-<h2><a name="add-conditional-policy">�A�N�Z�X�������̕t�^</a></h2>
+<h2><a name="add-conditional-policy">アクセス許可条件の付与</a></h2>
 
-<p>TOMOYO Linux 1.2 �ł́A�X�̃A�N�Z�X���ɑ΂��ĕK�v�ɉ����ď�����t���邱�Ƃ��ł��܂��B����ɂ��A�V�X�e���A�J�E���g�̃��[�U�h�c�Ɋ�Â��A�N�Z�X���䂪�\�ł��B</p>
+<p>TOMOYO Linux 1.2 では、個々のアクセス許可に対して必要に応じて条件を付けることができます。これにより、システムアカウントのユーザＩＤに基づくアクセス制御が可能です。</p>
 
-<p>�����ł͂Ȃ� FTP �T�[�o��ی삷��ꍇ�A�ȉ��̂悤�ɏ�����t���邱�ƂŁA���Y���[�U�̃z�[���f�B���N�g���ȊO�ւ̃A�N�Z�X���֎~���邱�Ƃ��ł���悤�ɂȂ�܂��B�z�[���f�B���N�g���ȉ��S���� FTP �ŃA�N�Z�X�\�ɂ��邱�Ƃ́A�N�����ꂽ�ꍇ�ɔ�Q���傫���Ȃ邽�߁A�����̃z�[���f�B���N�g���ɂ��� ftp �f�B���N�g���ȉ������̃A�N�Z�X��F�߂܂��B vsftpd ��p����ꍇ�A�Ⴆ�Έȉ��̂悤�ɋ���^���܂��B</p>
+<p>匿名ではない FTP サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を FTP でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある ftp ディレクトリ以下だけのアクセスを認めます。 vsftpd を用いる場合、例えば以下のように許可を与えます。</p>
 
 <table border="1">
-<tr><td>�C���O</td></tr>
+<tr><td>修正前</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 <br>
@@ -896,7 +896,7 @@ allow_rename /home/\*/ftp/\*/\*/\*/ /home/\*/ftp/\*/\*/\*/<br>
 
 
 <table border="1">
-<tr><td>�C����</td></tr>
+<tr><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 <br>
@@ -939,10 +939,10 @@ allow_rename /home/\*/ftp/\*/\*/\*/ /home/\*/ftp/\*/\*/\*/ if task.uid=path1.par
 </td></tr>
 </table>
 
-<p>Samba �T�[�o��ی삷��ꍇ�A�ȉ��̂悤�ɏ�����t���邱�ƂŁA���Y���[�U�̃z�[���f�B���N�g���ȊO�ւ̃A�N�Z�X���֎~���邱�Ƃ��ł���悤�ɂȂ�܂��B�z�[���f�B���N�g���ȉ��S���� Samba �ŃA�N�Z�X�\�ɂ��邱�Ƃ́A�N�����ꂽ�ꍇ�ɔ�Q���傫���Ȃ邽�߁A�����̃z�[���f�B���N�g���ɂ��� samba �f�B���N�g���ȉ������̃A�N�Z�X��F�߂܂��B</p>
+<p>Samba サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を Samba でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある samba ディレクトリ以下だけのアクセスを認めます。</p>
 
 <table border="1">
-<tr><td>�C���O</td></tr>
+<tr><td>修正前</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 <br>
@@ -986,7 +986,7 @@ allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/
 </table>
 
 <table border="1">
-<tr><td>�C����</td></tr>
+<tr><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 <br>
@@ -1029,10 +1029,10 @@ allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/ if task.euid=path
 </td></tr>
 </table>
 
-<p>SSH �T�[�o��ی삷��ꍇ�A�ȉ��̂悤�ɏ�����t���邱�ƂŁA root ���[�U�Ƃ��ă��O�C�����邱�Ƃ��֎~�ł��܂��B</p>
+<p>SSH サーバを保護する場合、以下のように条件を付けることで、 root ユーザとしてログインすることを禁止できます。</p>
 
 <table border="1">
-<tr><td>�C���O</td><td>�C����</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 <br>
@@ -1044,19 +1044,19 @@ allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/ if task.euid=path
 </td></tr>
 </table>
 
-<p>�w��\�ȏ����ɂ��Ă�<a href="policy-reference.html#conditional_acl">�����t���A�N�Z�X����</a>���Q�Ƃ��Ă��������B</p>
+<p>指定可能な条件については<a href="policy-reference.html#conditional_acl">条件付きアクセス許可</a>を参照してください。</p>
 
-<h2><a name="permissive-mode">�m�F���[�h</a></h2>
+<h2><a name="permissive-mode">確認モード</a></h2>
 
-<p>�N�����̃u�[�g�v�����v�g�� TOMOYO Linux �J�[�l����I�����A���e���[�h�p�̃v���t�@�C���ԍ��� CCS= �Ɏw�肵�ċN�����܂��B</p>
-<p>��������������s���Ă��G���[���b�Z�[�W���\������Ȃ����Ƃ��m�F���Ă��������B</p>
-<p>����ɓ��삷��΃|���V�[�̊����ł��B</p>
+<p>起動時のブートプロンプトで TOMOYO Linux カーネルを選択し、許容モード用のプロファイル番号を CCS= に指定して起動します。</p>
+<p>許可したい操作を行ってもエラーメッセージが表示されないことを確認してください。</p>
+<p>正常に動作すればポリシーの完成です。</p>
 
-<h1><a name="production-state">�|���V�[�̗��p</a></h1>
+<h1><a name="production-state">ポリシーの利用</a></h1>
 
-<h2><a name="enforce-mode">�������[�h</a></h2>
+<h2><a name="enforce-mode">強制モード</a></h2>
 
-<p>�N�����̃u�[�g�v�����v�g�� TOMOYO Linux �J�[�l����I�����A�������[�h�p�̃v���t�@�C���ԍ��� CCS= �Ɏw�肵�ċN�����܂��B</p>
+<p>起動時のブートプロンプトで TOMOYO Linux カーネルを選択し、強制モード用のプロファイル番号を CCS= に指定して起動します。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>

@@ -1,83 +1,83 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <HTML lang="ja-JP">
 <HEAD>
-<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>�|���V�[�G�f�B�^�̎g����</title>
+<title>ポリシーエディタの使い方</title>
 <link rel=stylesheet href="tomoyo.css" media=all>
 </HEAD>
 <body>
 <p>Info: Version <a href="../1.3.2/">1.3.2</a> is available.</p>
-<h1>�|���V�[�G�f�B�^�̎g����</h1>
+<h1>ポリシーエディタの使い方</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
-<p>TOMOYO Linux �ɂ́A CUI �œ��삷��|���V�[�G�f�B�^���t�����Ă��܂��B<br>
-TOMOYO Linux �̃|���V�[�̓e�L�X�g�t�@�C���Ȃ̂ŁA vi �� emacs ���̔C�ӂ̃G�f�B�^���g�p���邱�Ƃ��\�ł����A<br>
-/proc/ccs �C���^�t�F�[�X�ɏ����������Ƃ���Ɓu�o�b�N�A�b�v�t�@�C�����쐬�ł��Ȃ��v���̃G���[���b�Z�[�W��
-�����\������Ďg���ɂ����̂ŁA<br>
-�|���V�[�G�f�B�^���g�p���邱�Ƃ𐄏����܂��B</p>
+<p>TOMOYO Linux には、 CUI で動作するポリシーエディタが付属しています。<br>
+TOMOYO Linux のポリシーはテキストファイルなので、 vi や emacs 等の任意のエディタを使用することも可能ですが、<br>
+/proc/ccs インタフェースに書き込もうとすると「バックアップファイルを作成できない」等のエラーメッセージが
+多数表示されて使いにくいので、<br>
+ポリシーエディタを使用することを推奨します。</p>
 
-<p>�v�����v�g���� editpolicy �Ɠ��͂���ƁA�|���V�[�G�f�B�^�����s���邱�Ƃ��ł��܂��B</p>
+<p>プロンプトから editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
 
 <p><img src="editpolicy-1.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 
 <ul>
-<li>root�Ń��O�C��</li>
-<li>id�R�}���h�����s</li>
-<li>/etc/passwd�́u�ŏ���3�s�v��\��</li>
-<li>/bin/sh���N��</li>
-<li>date�R�}���h�����s</li>
-<li>/etc/passwd�́u�Ō��3�s�v��\��</li>
-<li>/bin/sh���I�����Ă���TOMOYO Linux�̃|���V�[�G�f�B�^���N��</li>
+<li>rootでログイン</li>
+<li>idコマンドを実行</li>
+<li>/etc/passwdの「最初の3行」を表示</li>
+<li>/bin/shを起動</li>
+<li>dateコマンドを実行</li>
+<li>/etc/passwdの「最後の3行」を表示</li>
+<li>/bin/shを終了してからTOMOYO Linuxのポリシーエディタを起動</li>
 </ul>
 
-<p>�ȉ��̉�ʂ́ACentOS 4.4 ���w�K���[�h�ŋN��������A��L�̑�����s�����ꍇ�̃|���V�[�ł��B<br>
-���̉�ʂɂ́A�h���C���J�ڂ̈ꗗ���\������Ă���ALinux���N�����ɂǂ̂悤�ȓ�����s���Ă��邩����͂��邱�Ƃ��ł��܂��B</p>
+<p>以下の画面は、CentOS 4.4 を学習モードで起動した後、上記の操作を行った場合のポリシーです。<br>
+この画面には、ドメイン遷移の一覧が表示されており、Linuxが起動時にどのような動作を行っているかを解析することができます。</p>
 
-<p>���h���C���|���V�[�̕ҏW��ʁi�P�j��</p>
+<p>＜ドメインポリシーの編集画面（１）＞</p>
 <p><img src="editpolicy-2.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 
-<p>��̐}����anacron���N������X�N���v�g�̂ɑ΂��Ċw�K���ꂽ�|���V�[���m�F���Ă݂܂��傤�B<br>
-�|���V�[�G�f�B�^�́u�h���C���J�ڂ̕\���v���[�h�Ɓu�ʂ̃h���C���ɂ�����A�N�Z�X���̕\���v���[�h��2�̃��[�h�������܂��B<br>
-�N������́u�h���C���J�ڂ̕\���v���[�h�ƂȂ��Ă��܂��B<br>
-�A�N�Z�X���̓��e��m�肽���h���C����I������ Enter �������ƁA�u�ʂ̃h���C���ɂ�����A�N�Z�X���̕\���v���[�h�ɂȂ�܂��B<br>
-���L�[�ŃJ�[�\���𓮂�����anacron�̍s��I�����Ă��� Enter�L�[�������ƁA<br>
-���̂悤�ȉ�ʁianacron���N������X�N���v�g�ɑ΂���A�N�Z�X�����e�j���\������܂��B</p>
+<p>上の図からanacronを起動するスクリプトのに対して学習されたポリシーを確認してみましょう。<br>
+ポリシーエディタは「ドメイン遷移の表示」モードと「個別のドメインにおけるアクセス許可の表示」モードの2つのモードを持ちます。<br>
+起動直後は「ドメイン遷移の表示」モードとなっています。<br>
+アクセス許可の内容を知りたいドメインを選択して Enter を押すと、「個別のドメインにおけるアクセス許可の表示」モードになります。<br>
+矢印キーでカーソルを動かしてanacronの行を選択してから Enterキーを押すと、<br>
+次のような画面（anacronを起動するスクリプトに対するアクセス許可内容）が表示されます。</p>
 
-<p>���h���C���|���V�[�̕ҏW��ʁi�Q�j��</p>
+<p>＜ドメインポリシーの編集画面（２）＞</p>
 <p><img src="editpolicy-3.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 
-<p>�s�ԍ��̉E�ׂ̐����́ALinux�̃p�[�~�b�V����(rwx)��8�i���ɂ������̂ł��B<br>
-�܂�4��r--(�ǂݍ���)�A6��rw-(�ǂݏ���)�A1��--x(���s)���Ӗ����܂��B<br>
-anacron���N������X�N���v�g�̎��s�ɕK�v�ȃA�N�Z�X�����|���V�[�Ƃ��Ċw�K����Ă���̂����킩�肢��������Ǝv���܂��B</p>
-<p>��ԉ���use_profile�Ƃ����s�́A���̃h���C���Ɋ��蓖�Ă��Ă���v���t�@�C���ԍ��ł��B setprofile �R�}���h�ŕύX���邱�Ƃ��ł��鑼�A���̉�ʂ���� a �L�[�������Ă���uuse_profile �v���t�@�C���ԍ��v�Ɠ��͂��邱�ƂŕύX���邱�Ƃ��\�ł��B</p>
+<p>行番号の右隣の数字は、Linuxのパーミッション(rwx)を8進数にしたものです。<br>
+つまり4はr--(読み込み)、6はrw-(読み書き)、1は--x(実行)を意味します。<br>
+anacronを起動するスクリプトの実行に必要なアクセス許可がポリシーとして学習されているのがおわかりいただけると思います。</p>
+<p>一番下のuse_profileという行は、そのドメインに割り当てられているプロファイル番号です。 setprofile コマンドで変更することができる他、この画面からも a キーを押してから「use_profile プロファイル番号」と入力することで変更することが可能です。</p>
 
-<p>Enter�L�[�������āA�Ăуh���C���J�ڂ̕\�����[�h�ɖ߂�A/sbin/mingetty�̃h���C����T���Ă݂Ă��������B</p>
-<p>��ʂ�����ƁA���O�C�������mingetty����/bin/login�Ƃ����v���O�����o�R��/bin/bash�Ƃ����V�F�����N�����Ă��邱�ƁA<br>
-�i��q�����O�|���V�[�� alias /bin/bash /bin/sh �Ƃ����w�肪����Ă��邱�Ƃ���j/bin/bash�ւ̃V���{���b�N�����N�ł���/bin/sh�����s���ꂽ�ꍇ��/bin/sh�Ƃ��Ĉ����Ă��邱�Ƃ��킩��܂��B<br>
-�܂��A��قǎ��s����head�R�}���h��date�R�}���h���L�^����Ă��邱�Ƃ��킩��܂��B<br>
-�ł́A�J�[�\���𓮂�����head�R�}���h�̃h���C����I������ Enter �L�[�������Ă݂܂��傤�B</p>
+<p>Enterキーを押して、再びドメイン遷移の表示モードに戻り、/sbin/mingettyのドメインを探してみてください。</p>
+<p>画面を見ると、ログインするとmingettyから/bin/loginというプログラム経由で/bin/bashというシェルを起動していること、<br>
+（後述する例外ポリシーで alias /bin/bash /bin/sh という指定がされていることから）/bin/bashへのシンボリックリンクである/bin/shが実行された場合は/bin/shとして扱われていることがわかります。<br>
+また、先ほど実行したheadコマンドやdateコマンドが記録されていることもわかります。<br>
+では、カーソルを動かしてheadコマンドのドメインを選択して Enter キーを押してみましょう。</p>
 
 <p><img src="editpolicy-4.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 
 <p><img src="editpolicy-5.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 
-<p>/sbin/mingetty����N�����ꂽ/bin/login����N�����ꂽ/bin/bash����N�����ꂽ/usr/bin/head��<br>
-/etc/passwd�ɑ΂��ēǂݍ��݃A�N�Z�X����^�����Ă��邱�Ƃ��킩��܂��B<br>
-�����R�}���h�ł����Ă��N�����ꂽ�A�N�Z�X�����ɂ��Ɨ��ȃh���C���Ƃ��Ĉ����܂����A<br>
-�����h���C���ł����Ă��Ώۖ��ɍׂ����A�N�Z�X����`�ł��邱�Ƃ����킩�肢��������Ǝv���܂��B<br>
-����������炪�����I�ɍs����̂ŁATOMOYO Linux�͕W���I�ȃX�L�������V�X�e���Ǘ��҂ł���ΒN�ł��g�����Ƃ��ł��܂��B</p>
+<p>/sbin/mingettyから起動された/bin/loginから起動された/bin/bashから起動された/usr/bin/headが<br>
+/etc/passwdに対して読み込みアクセス許可を与えられていることがわかります。<br>
+同じコマンドであっても起動されたアクセス履歴により独立なドメインとして扱われますし、<br>
+同じドメインであっても対象毎に細かくアクセスが定義できることがおわかりいただけると思います。<br>
+しかもそれらが自動的に行われるので、TOMOYO Linuxは標準的なスキルを持つシステム管理者であれば誰でも使うことができます。</p>
 
-<p>�܂��A Tab �L�[���������ƂŁu�h���C���|���V�[�v���u�V�X�e���|���V�[�v���u��O�|���V�[�v���u�h���C���|���V�[�v�̏��Ԃŉ�ʂ��؂�ւ��܂��B</p>
+<p>また、 Tab キーを押すことで「ドメインポリシー」→「システムポリシー」→「例外ポリシー」→「ドメインポリシー」の順番で画面が切り替わります。</p>
 
-<p>���V�X�e���|���V�[�̕ҏW��ʁ�</p>
+<p>＜システムポリシーの編集画面＞</p>
 <p><img src="editpolicy-6.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 
-<p>����O�|���V�[�̕ҏW��ʁ�</p>
+<p>＜例外ポリシーの編集画面＞</p>
 
 <p><img src="editpolicy-7.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 <p><img src="editpolicy-8.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 <p><img src="editpolicy-9.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
 
-<p>��L�Ő��������|���V�[�G�f�B�^�� editpolicy �� TOMOYO Linux �J�[�l���œ��쒆�ɁA�J�[�l�����̃|���V�[�𒼐ڕҏW���邽�߂̃G�f�B�^�ł��B /etc/ccs/ �f�B���N�g���ɕۑ�����Ă���|���V�[��ҏW����ꍇ�� editpolicy_offline �𗘗p���܂��B</p><p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+<p>上記で説明したポリシーエディタの editpolicy は TOMOYO Linux カーネルで動作中に、カーネル内のポリシーを直接編集するためのエディタです。 /etc/ccs/ ディレクトリに保存されているポリシーを編集する場合は editpolicy_offline を利用します。</p><p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>
