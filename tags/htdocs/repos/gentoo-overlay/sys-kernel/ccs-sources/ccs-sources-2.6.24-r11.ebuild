@@ -30,9 +30,7 @@ src_unpack() {
 	cd "${WORKDIR}"
 	unpack ${CCS_TGP}.tar.gz
 	cp -ax fs include "${S}" || die
-	sed -i -e '50,60d' patches/ccs-patch-${CCS_PATCH_VER}.diff || die
 
 	cd "${S}"
 	epatch "${WORKDIR}"/patches/ccs-patch-${CCS_PATCH_VER}.diff || die
-	epatch "${FILESDIR}/tomoyo_network.c.patch" || die
 }
