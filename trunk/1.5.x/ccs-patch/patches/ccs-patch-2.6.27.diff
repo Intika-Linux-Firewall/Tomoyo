@@ -579,7 +579,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
-@@ -1593,6 +1613,11 @@ static noinline int do_move_mount(struct
+@@ -1598,6 +1618,11 @@ static noinline int do_move_mount(struct
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
  
@@ -591,7 +591,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->path.dentry->d_inode))
-@@ -1697,6 +1722,11 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1702,6 +1727,11 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -603,7 +603,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1920,6 +1950,17 @@ long do_mount(char *dev_name, char *dir_
+@@ -1925,6 +1955,17 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -621,7 +621,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2184,6 +2225,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2189,6 +2230,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -632,7 +632,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2197,6 +2242,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2202,6 +2247,10 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -756,7 +756,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   * Scheduling policies
   */
-@@ -1301,6 +1306,10 @@ struct task_struct {
+@@ -1303,6 +1308,10 @@ struct task_struct {
  	int latency_record_count;
  	struct latency_record latency_record[LT_SAVECOUNT];
  #endif
