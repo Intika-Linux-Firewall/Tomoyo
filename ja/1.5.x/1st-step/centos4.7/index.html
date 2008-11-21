@@ -47,22 +47,22 @@
 <p>まずはパッケージをダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32413/ccs-kernel-smp-2.6.9-78.0.5.EL_tomoyo_1.5.5.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32413/ccs-kernel-smp-2.6.9-78.0.8.EL_tomoyo_1.5.5.i586.rpm</span>
 </pre>
 
 <p>次に、ダウンロードしてきたパッケージをインストールします。</p>
 
 <pre>
-# <span class="user">rpm --install ccs-kernel-smp-2.6.9-78.0.5.EL_tomoyo_1.5.5.i586.rpm</span>
+# <span class="user">rpm --install ccs-kernel-smp-2.6.9-78.0.8.EL_tomoyo_1.5.5.i586.rpm</span>
 </pre>
 
 <p>この際特にメッセージは表示されませんが、インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
-title CentOS (2.6.9-78.0.5.EL_tomoyo_1.5.5smp)
+title CentOS (2.6.9-78.0.8.EL_tomoyo_1.5.5smp)
     root (hd0,0)
-    kernel /vmlinuz-2.6.9-78.0.5.EL_tomoyo_1.5.5smp ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.9-78.0.5.EL_tomoyo_1.5.5smp.img
+    kernel /vmlinuz-2.6.9-78.0.8.EL_tomoyo_1.5.5smp ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.9-78.0.8.EL_tomoyo_1.5.5smp.img
 </pre>
 
 <p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
