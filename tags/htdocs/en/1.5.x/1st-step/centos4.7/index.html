@@ -45,22 +45,22 @@ But regarding CentOS 4.7, a binary kernel package is available and this page use
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32413/ccs-kernel-smp-2.6.9-78.0.5.EL_tomoyo_1.5.5.i586.rpm</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32413/ccs-kernel-smp-2.6.9-78.0.8.EL_tomoyo_1.5.5.i586.rpm</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">rpm --install ccs-kernel-smp-2.6.9-78.0.5.EL_tomoyo_1.5.5.i586.rpm</span>
+# <span class="user">rpm --install ccs-kernel-smp-2.6.9-78.0.8.EL_tomoyo_1.5.5.i586.rpm</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/grub.conf if installation finishes successfully.</p>
 
 <pre>
-title CentOS (2.6.9-78.0.5.EL_tomoyo_1.5.5smp)
+title CentOS (2.6.9-78.0.8.EL_tomoyo_1.5.5smp)
     root (hd0,0)
-    kernel /vmlinuz-2.6.9-78.0.5.EL_tomoyo_1.5.5smp ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.9-78.0.5.EL_tomoyo_1.5.5smp.img
+    kernel /vmlinuz-2.6.9-78.0.8.EL_tomoyo_1.5.5smp ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.9-78.0.8.EL_tomoyo_1.5.5smp.img
 </pre>
 
 <p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
