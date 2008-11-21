@@ -1,6 +1,6 @@
 Index: include/linux/ccs_common.h
 ===================================================================
---- include/linux/ccs_common.h	(revision 1866)
+--- include/linux/ccs_common.h	(revision 1873)
 +++ include/linux/ccs_common.h	(working copy)
 @@ -213,6 +213,8 @@
  	uid_t uid;
@@ -11,11 +11,108 @@ Index: include/linux/ccs_common.h
  };
  
  /* Structure for attribute checks in addition to pathname checks. */
+@@ -690,6 +692,8 @@
+ /* Create conditional part of an ACL entry. */
+ const struct condition_list *
+ ccs_find_or_assign_new_condition(char * const condition);
++/* Create conditional part for execute_handler process. */
++const struct condition_list *ccs_handler_cond(void);
+ /* Add an ACL entry to domain's ACL list. */
+ int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
+ /* Ask supervisor's opinion. */
+Index: fs/tomoyo_env.c
+===================================================================
+--- fs/tomoyo_env.c	(revision 1873)
++++ fs/tomoyo_env.c	(working copy)
+@@ -274,7 +274,7 @@
+ 		return error;
+ 	}
+ 	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
+-		update_env_entry(env, r->domain, NULL, false);
++		update_env_entry(env, r->domain, ccs_handler_cond(), false);
+ 	return 0;
+ }
+ 
+Index: fs/tomoyo_network.c
+===================================================================
+--- fs/tomoyo_network.c	(revision 1873)
++++ fs/tomoyo_network.c	(working copy)
+@@ -643,7 +643,7 @@
+ 		update_network_entry(operation, is_ipv6 ?
+ 				     IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4,
+ 				     NULL, address, address, port, port,
+-				     r.domain, NULL, 0);
++				     r.domain, ccs_handler_cond(), 0);
+ 	return 0;
+ }
+ 
+Index: fs/tomoyo_signal.c
+===================================================================
+--- fs/tomoyo_signal.c	(revision 1873)
++++ fs/tomoyo_signal.c	(working copy)
+@@ -200,7 +200,8 @@
+ 		return error;
+ 	}
+ 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+-		update_signal_acl(sig, dest_pattern, r.domain, NULL, false);
++		update_signal_acl(sig, dest_pattern, r.domain,
++				  ccs_handler_cond(), false);
+ 	return 0;
+ }
+ 
+Index: fs/tomoyo_file.c
+===================================================================
+--- fs/tomoyo_file.c	(revision 1873)
++++ fs/tomoyo_file.c	(working copy)
+@@ -832,7 +832,8 @@
+ 		/* Don't use patterns for execute permission. */
+ 		const char *patterned_file = (perm != 1) ?
+ 			get_file_pattern(filename) : filename->name;
+-		update_file_acl(patterned_file, perm, r->domain, NULL, false);
++		update_file_acl(patterned_file, perm, r->domain,
++				ccs_handler_cond(), false);
+ 	}
+ 	return 0;
+ }
+@@ -1271,7 +1272,7 @@
+ 	}
+ 	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
+ 		update_single_path_acl(operation, get_file_pattern(filename),
+-				       r->domain, NULL, false);
++				       r->domain, ccs_handler_cond(), false);
+ 	if (!is_enforce)
+ 		error = 0;
+  ok:
+@@ -1550,8 +1551,8 @@
+ 	}
+ 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+ 		update_double_path_acl(operation, get_file_pattern(buf1),
+-				       get_file_pattern(buf2), r.domain, NULL,
+-				       false);
++				       get_file_pattern(buf2), r.domain,
++				       ccs_handler_cond(), false);
+  out:
+ 	ccs_free(buf1);
+ 	ccs_free(buf2);
+Index: fs/tomoyo_capability.c
+===================================================================
+--- fs/tomoyo_capability.c	(revision 1873)
++++ fs/tomoyo_capability.c	(working copy)
+@@ -191,7 +191,8 @@
+ 		return !error;
+ 	}
+ 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+-		update_capability_acl(operation, r.domain, NULL, false);
++		update_capability_acl(operation, r.domain, ccs_handler_cond(),
++				      false);
+ 	return true;
+ }
+ EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
 Index: fs/tomoyo_cond.c
 ===================================================================
---- fs/tomoyo_cond.c	(revision 1866)
+--- fs/tomoyo_cond.c	(revision 1873)
 +++ fs/tomoyo_cond.c	(working copy)
-@@ -460,60 +460,110 @@
+@@ -460,60 +460,114 @@
  /* The list for "struct condition_list". */
  static LIST1_HEAD(condition_list);
  
@@ -44,61 +141,66 @@ Index: fs/tomoyo_cond.c
 -#define TASK_STATE_1     22
 -#define TASK_STATE_2     23
 -#define MAX_KEYWORD      24
-+#define TASK_UID             0
-+#define TASK_EUID            1
-+#define TASK_SUID            2
-+#define TASK_FSUID           3
-+#define TASK_GID             4
-+#define TASK_EGID            5
-+#define TASK_SGID            6
-+#define TASK_FSGID           7
-+#define TASK_PID             8
-+#define TASK_PPID            9
-+#define PATH1_UID           10
-+#define PATH1_GID           11
-+#define PATH1_INO           12
-+#define PATH1_PARENT_UID    13
-+#define PATH1_PARENT_GID    14
-+#define PATH1_PARENT_INO    15
-+#define PATH2_PARENT_UID    16
-+#define PATH2_PARENT_GID    17
-+#define PATH2_PARENT_INO    18
-+#define PATH1_TYPE          19
-+#define PATH1_DEV_MAJOR     20
-+#define PATH1_DEV_MINOR     21
-+#define PATH1_MODE          22
-+#define PATH1_PARENT_MODE   23
-+#define PATH2_PARENT_MODE   24
-+#define EXEC_ARGC           25
-+#define EXEC_ENVC           26
-+#define TASK_STATE_0        27
-+#define TASK_STATE_1        28
-+#define TASK_STATE_2        29
-+#define TYPE_SOCKET         30
-+#define TYPE_SYMLINK        31
-+#define TYPE_FILE           32
-+#define TYPE_BLOCK_DEV      33
-+#define TYPE_DIRECTORY      34
-+#define TYPE_CHAR_DEV       35
-+#define TYPE_FIFO           36
-+#define MODE_SETUID         37
-+#define MODE_SETGID         38
-+#define MODE_STICKY         39
-+#define MODE_OWNER_READ     40
-+#define MODE_OWNER_WRITE    41
-+#define MODE_OWNER_EXECUTE  42
-+#define MODE_GROUP_READ     43
-+#define MODE_GROUP_WRITE    44
-+#define MODE_GROUP_EXECUTE  45
-+#define MODE_OTHERS_READ    46
-+#define MODE_OTHERS_WRITE   47
-+#define MODE_OTHERS_EXECUTE 48
-+#define MAX_KEYWORD         49
++enum conditions_index {
++	TASK_UID,             /* current->uid   */
++	TASK_EUID,            /* current->euid  */
++	TASK_SUID,            /* current->suid  */
++	TASK_FSUID,           /* current->fsuid */
++	TASK_GID,             /* current->gid   */
++	TASK_EGID,            /* current->egid  */
++	TASK_SGID,            /* current->sgid  */
++	TASK_FSGID,           /* current->fsgid */
++	TASK_PID,             /* sys_getpid()   */
++	TASK_PPID,            /* sys_getppid()  */
++	EXEC_ARGC,            /* "struct linux_binprm *"->argc */
++	EXEC_ENVC,            /* "struct linux_binprm *"->envc */
++	TASK_STATE_0,         /* (u8) (current->tomoyo_flags >> 24) */ 
++	TASK_STATE_1,         /* (u8) (current->tomoyo_flags >> 16) */
++	TASK_STATE_2,         /* (u8) (task->tomoyo_flags >> 8)     */
++	TYPE_SOCKET,          /* S_IFSOCK */
++	TYPE_SYMLINK,         /* S_IFLNK */
++	TYPE_FILE,            /* S_IFREG */
++	TYPE_BLOCK_DEV,       /* S_IFBLK */
++	TYPE_DIRECTORY,       /* S_IFDIR */
++	TYPE_CHAR_DEV,        /* S_IFCHR */
++	TYPE_FIFO,            /* S_IFIFO */
++	MODE_SETUID,          /* S_ISUID */
++	MODE_SETGID,          /* S_ISGID */
++	MODE_STICKY,          /* S_ISVTX */
++	MODE_OWNER_READ,      /* S_IRUSR */
++	MODE_OWNER_WRITE,     /* S_IWUSR */
++	MODE_OWNER_EXECUTE,   /* S_IXUSR */
++	MODE_GROUP_READ,      /* S_IRGRP */
++	MODE_GROUP_WRITE,     /* S_IWGRP */
++	MODE_GROUP_EXECUTE,   /* S_IXGRP */
++	MODE_OTHERS_READ,     /* S_IROTH */
++	MODE_OTHERS_WRITE,    /* S_IWOTH */
++	MODE_OTHERS_EXECUTE,  /* S_IXOTH */
++	TASK_TYPE,            /* ((u8) task->tomoyo_flags) &
++				 TOMOYO_TASK_IS_EXECUTE_HANDLER */
++	TASK_EXECUTE_HANDLER, /* TOMOYO_TASK_IS_EXECUTE_HANDLER */
++	PATH1_UID,
++	PATH1_GID,
++	PATH1_INO,
++	PATH1_PARENT_UID,
++	PATH1_PARENT_GID,
++	PATH1_PARENT_INO,
++	PATH2_PARENT_UID,
++	PATH2_PARENT_GID,
++	PATH2_PARENT_INO,
++	PATH1_TYPE,
++	PATH1_DEV_MAJOR,
++	PATH1_DEV_MINOR,
++	PATH1_MODE,
++	PATH1_PARENT_MODE,
++	PATH2_PARENT_MODE,
++	MAX_KEYWORD
++}; 
  
- static struct {
- 	const char *keyword;
- 	const int keyword_len; /* strlen(keyword) */
- } condition_control_keyword[MAX_KEYWORD] = {
+-static struct {
+-	const char *keyword;
+-	const int keyword_len; /* strlen(keyword) */
+-} condition_control_keyword[MAX_KEYWORD] = {
 -	[TASK_UID]         = { "task.uid",           8 },
 -	[TASK_EUID]        = { "task.euid",          9 },
 -	[TASK_SUID]        = { "task.suid",          9 },
@@ -123,59 +225,124 @@ Index: fs/tomoyo_cond.c
 -	[TASK_STATE_0]     = { "task.state[0]",     13 },
 -	[TASK_STATE_1]     = { "task.state[1]",     13 },
 -	[TASK_STATE_2]     = { "task.state[2]",     13 },
-+	[TASK_UID]            = { "task.uid",           8 },
-+	[TASK_EUID]           = { "task.euid",          9 },
-+	[TASK_SUID]           = { "task.suid",          9 },
-+	[TASK_FSUID]          = { "task.fsuid",        10 },
-+	[TASK_GID]            = { "task.gid",           8 },
-+	[TASK_EGID]           = { "task.egid",          9 },
-+	[TASK_SGID]           = { "task.sgid",          9 },
-+	[TASK_FSGID]          = { "task.fsgid",        10 },
-+	[TASK_PID]            = { "task.pid",           8 },
-+	[TASK_PPID]           = { "task.ppid",          9 },
-+	[PATH1_UID]           = { "path1.uid",          9 },
-+	[PATH1_GID]           = { "path1.gid",          9 },
-+	[PATH1_INO]           = { "path1.ino",          9 },
-+	[PATH1_PARENT_UID]    = { "path1.parent.uid",  16 },
-+	[PATH1_PARENT_GID]    = { "path1.parent.gid",  16 },
-+	[PATH1_PARENT_INO]    = { "path1.parent.ino",  16 },
-+	[PATH2_PARENT_UID]    = { "path2.parent.uid",  16 },
-+	[PATH2_PARENT_GID]    = { "path2.parent.gid",  16 },
-+	[PATH2_PARENT_INO]    = { "path2.parent.ino",  16 },
-+	[PATH1_TYPE]          = { "path1.type",        10 }, /* S_IFMT   */
-+	[PATH1_DEV_MAJOR]     = { "path1.major",       11 },
-+	[PATH1_DEV_MINOR]     = { "path1.minor",       11 },
-+	[PATH1_MODE]          = { "path1.mode",        10 },
-+	[PATH1_PARENT_MODE]   = { "path1.parent.mode", 17 },
-+	[PATH2_PARENT_MODE]   = { "path2.parent.mode", 17 },
-+	[EXEC_ARGC]           = { "exec.argc",          9 },
-+	[EXEC_ENVC]           = { "exec.envc",          9 },
-+	[TASK_STATE_0]        = { "task.state[0]",     13 },
-+	[TASK_STATE_1]        = { "task.state[1]",     13 },
-+	[TASK_STATE_2]        = { "task.state[2]",     13 },
-+	[TYPE_SOCKET]         = { "socket",             6 }, /* S_IFSOCK */
-+	[TYPE_SYMLINK]        = { "symlink",            7 }, /* S_IFLNK  */
-+	[TYPE_FILE]           = { "file",               4 }, /* S_IFREG  */
-+	[TYPE_BLOCK_DEV]      = { "block",              5 }, /* S_IFBLK  */
-+	[TYPE_DIRECTORY]      = { "directory",          9 }, /* S_IFDIR  */
-+	[TYPE_CHAR_DEV]       = { "char",               4 }, /* S_IFCHR  */
-+	[TYPE_FIFO]           = { "fifo",               4 }, /* S_IFIFO  */
-+	[MODE_SETUID]         = { "setuid",             6 }, /* S_ISUID  */
-+	[MODE_SETGID]         = { "setgid",             6 }, /* S_ISGID  */
-+	[MODE_STICKY]         = { "sticky",             6 }, /* S_ISVTX  */
-+	[MODE_OWNER_READ]     = { "user_read",          9 }, /* S_IRUSR  */
-+	[MODE_OWNER_WRITE]    = { "user_write",        10 }, /* S_IWUSR  */
-+	[MODE_OWNER_EXECUTE]  = { "user_execute",      12 }, /* S_IXUSR  */
-+	[MODE_GROUP_READ]     = { "group_read",        10 }, /* S_IRGRP  */
-+	[MODE_GROUP_WRITE]    = { "group_write",       11 }, /* S_IWGRP  */
-+	[MODE_GROUP_EXECUTE]  = { "group_execute",     13 }, /* S_IXGRP  */
-+	[MODE_OTHERS_READ]    = { "others_read",       11 }, /* S_IROTH  */
-+	[MODE_OTHERS_WRITE]   = { "others_write",      12 }, /* S_IWOTH  */
-+	[MODE_OTHERS_EXECUTE] = { "others_execute",    14 }, /* S_IXOTH  */
++static const char *condition_control_keyword[MAX_KEYWORD] = {
++	[TASK_UID]             = "task.uid",
++	[TASK_EUID]            = "task.euid",
++	[TASK_SUID]            = "task.suid",
++	[TASK_FSUID]           = "task.fsuid",
++	[TASK_GID]             = "task.gid",
++	[TASK_EGID]            = "task.egid",
++	[TASK_SGID]            = "task.sgid",
++	[TASK_FSGID]           = "task.fsgid",
++	[TASK_PID]             = "task.pid",
++	[TASK_PPID]            = "task.ppid",
++	[EXEC_ARGC]            = "exec.argc",
++	[EXEC_ENVC]            = "exec.envc",
++	[TASK_STATE_0]         = "task.state[0]",
++	[TASK_STATE_1]         = "task.state[1]",
++	[TASK_STATE_2]         = "task.state[2]",
++	[TYPE_SOCKET]          = "socket",
++	[TYPE_SYMLINK]         = "symlink",
++	[TYPE_FILE]            = "file",
++	[TYPE_BLOCK_DEV]       = "block",
++	[TYPE_DIRECTORY]       = "directory",
++	[TYPE_CHAR_DEV]        = "char",
++	[TYPE_FIFO]            = "fifo",
++	[MODE_SETUID]          = "setuid",
++	[MODE_SETGID]          = "setgid",
++	[MODE_STICKY]          = "sticky",
++	[MODE_OWNER_READ]      = "user_read",
++	[MODE_OWNER_WRITE]     = "user_write",
++	[MODE_OWNER_EXECUTE]   = "user_execute",
++	[MODE_GROUP_READ]      = "group_read",
++	[MODE_GROUP_WRITE]     = "group_write",
++	[MODE_GROUP_EXECUTE]   = "group_execute",
++	[MODE_OTHERS_READ]     = "others_read",
++	[MODE_OTHERS_WRITE]    = "others_write",
++	[MODE_OTHERS_EXECUTE]  = "others_execute",
++	[TASK_TYPE]            = "task.type",
++	[TASK_EXECUTE_HANDLER] = "execute_handler",
++	[PATH1_UID]            = "path1.uid",
++	[PATH1_GID]            = "path1.gid",
++	[PATH1_INO]            = "path1.ino",
++	[PATH1_PARENT_UID]     = "path1.parent.uid",
++	[PATH1_PARENT_GID]     = "path1.parent.gid",
++	[PATH1_PARENT_INO]     = "path1.parent.ino",
++	[PATH2_PARENT_UID]     = "path2.parent.uid",
++	[PATH2_PARENT_GID]     = "path2.parent.gid",
++	[PATH2_PARENT_INO]     = "path2.parent.ino",
++	[PATH1_TYPE]           = "path1.type",
++	[PATH1_DEV_MAJOR]      = "path1.major",
++	[PATH1_DEV_MINOR]      = "path1.minor",
++	[PATH1_MODE]           = "path1.mode",
++	[PATH1_PARENT_MODE]    = "path1.parent.mode",
++	[PATH2_PARENT_MODE]    = "path2.parent.mode",
  };
  
  /**
-@@ -942,6 +992,7 @@
+@@ -634,6 +688,13 @@
+ 	u16 argc = 0;
+ 	u16 envc = 0;
+ 	u8 post_state[4] = { 0, 0, 0, 0 };
++	/* Calculate at runtime. */
++	static u8 condition_control_keyword_len[MAX_KEYWORD];
++	if (!condition_control_keyword_len[MAX_KEYWORD - 1]) {
++		for (i = 0; i < MAX_KEYWORD; i++)
++			condition_control_keyword_len[i]
++				= strlen(condition_control_keyword[i]);
++	}
+ 	if (!parse_post_condition(start, post_state))
+ 		goto out;
+ 	start = condition;
+@@ -661,9 +722,8 @@
+ 		}
+ 		for (left = 0; left < MAX_KEYWORD; left++) {
+ 			const int len =
+-				condition_control_keyword[left].keyword_len;
+-			if (strncmp(start,
+-				    condition_control_keyword[left].keyword,
++				condition_control_keyword_len[left];
++			if (strncmp(start, condition_control_keyword[left],
+ 				    len))
+ 				continue;
+ 			start += len;
+@@ -690,9 +750,8 @@
+ 		condc++; /* header */
+ 		for (right = 0; right < MAX_KEYWORD; right++) {
+ 			const int len =
+-				condition_control_keyword[right].keyword_len;
+-			if (strncmp(start,
+-				    condition_control_keyword[right].keyword,
++				condition_control_keyword_len[right];
++			if (strncmp(start, condition_control_keyword[right],
+ 				    len))
+ 				continue;
+ 			start += len;
+@@ -771,9 +830,8 @@
+ 		}
+ 		for (left = 0; left < MAX_KEYWORD; left++) {
+ 			const int len =
+-				condition_control_keyword[left].keyword_len;
+-			if (strncmp(start,
+-				    condition_control_keyword[left].keyword,
++				condition_control_keyword_len[left];
++			if (strncmp(start, condition_control_keyword[left],
+ 				    len))
+ 				continue;
+ 			start += len;
+@@ -801,9 +859,8 @@
+ 		condc--; /* header */
+ 		for (right = 0; right < MAX_KEYWORD; right++) {
+ 			const int len =
+-				condition_control_keyword[right].keyword_len;
+-			if (strncmp(start,
+-				    condition_control_keyword[right].keyword,
++				condition_control_keyword_len[right];
++			if (strncmp(start, condition_control_keyword[right],
+ 				    len))
+ 				continue;
+ 			start += len;
+@@ -942,6 +999,7 @@
  			obj->path1_stat.uid = stat.uid;
  			obj->path1_stat.gid = stat.gid;
  			obj->path1_stat.ino = stat.ino;
@@ -183,7 +350,7 @@ Index: fs/tomoyo_cond.c
  			obj->path1_valid = true;
  		}
  	}
-@@ -955,6 +1006,7 @@
+@@ -955,6 +1013,7 @@
  			obj->path1_parent_stat.uid = stat.uid;
  			obj->path1_parent_stat.gid = stat.gid;
  			obj->path1_parent_stat.ino = stat.ino;
@@ -191,7 +358,7 @@ Index: fs/tomoyo_cond.c
  			obj->path1_parent_valid = true;
  		}
  	}
-@@ -971,6 +1023,7 @@
+@@ -971,6 +1030,7 @@
  				obj->path2_parent_stat.uid = stat.uid;
  				obj->path2_parent_stat.gid = stat.gid;
  				obj->path2_parent_stat.ino = stat.ino;
@@ -199,7 +366,7 @@ Index: fs/tomoyo_cond.c
  				obj->path2_parent_valid = true;
  			}
  		}
-@@ -1022,6 +1075,9 @@
+@@ -1022,240 +1082,289 @@
  		const bool match = (header >> 16) & 1;
  		const u8 left = header >> 8;
  		const u8 right = header;
@@ -207,11 +374,258 @@ Index: fs/tomoyo_cond.c
 +		bool right_is_bitop = false;
 +		u8 j;
  		ptr++;
- 		if ((left >= PATH1_UID && left < EXEC_ARGC) ||
- 		    (right >= PATH1_UID && right < EXEC_ARGC)) {
-@@ -1032,230 +1088,265 @@
- 				obj->validate_done = true;
+-		if ((left >= PATH1_UID && left < EXEC_ARGC) ||
+-		    (right >= PATH1_UID && right < EXEC_ARGC)) {
+-			if (!obj)
+-				goto out;
+-			if (!obj->validate_done) {
+-				get_attributes(obj);
+-				obj->validate_done = true;
++		for (j = 0; j < 2; j++) {
++			const u8 index = j ? right : left;
++			unsigned long min_v = 0;
++			unsigned long max_v = 0;
++			bool is_bitop = false;
++			switch (index) {
++			case TASK_UID:
++				max_v = task->uid;
++				break;
++			case TASK_EUID:
++				max_v = task->euid;
++				break;
++			case TASK_SUID:
++				max_v = task->suid;
++				break;
++			case TASK_FSUID:
++				max_v = task->fsuid;
++				break;
++			case TASK_GID:
++				max_v = task->gid;
++				break;
++			case TASK_EGID:
++				max_v = task->egid;
++				break;
++			case TASK_SGID:
++				max_v = task->sgid;
++				break;
++			case TASK_FSGID:
++				max_v = task->fsgid;
++				break;
++			case TASK_PID:
++				max_v = sys_getpid();
++				break;
++			case TASK_PPID:
++				max_v = sys_getppid();
++				break;
++			case TYPE_SOCKET:
++				max_v = S_IFSOCK;
++				break;
++			case TYPE_SYMLINK:
++				max_v = S_IFLNK;
++				break;
++			case TYPE_FILE:
++				max_v = S_IFREG;
++				break;
++			case TYPE_BLOCK_DEV:
++				max_v = S_IFBLK;
++				break;
++			case TYPE_DIRECTORY:
++				max_v = S_IFDIR;
++				break;
++			case TYPE_CHAR_DEV:
++				max_v = S_IFCHR;
++				break;
++			case TYPE_FIFO:
++				max_v = S_IFIFO;
++				break;
++			case MODE_SETUID:
++				max_v = S_ISUID;
++				is_bitop = true;
++				break;
++			case MODE_SETGID:
++				max_v = S_ISGID;
++				is_bitop = true;
++				break;
++			case MODE_STICKY:
++				max_v = S_ISVTX;
++				is_bitop = true;
++				break;
++			case MODE_OWNER_READ:
++				max_v = S_IRUSR;
++				is_bitop = true;
++				break;
++			case MODE_OWNER_WRITE:
++				max_v = S_IWUSR;
++				is_bitop = true;
++				break;
++			case MODE_OWNER_EXECUTE:
++				max_v = S_IXUSR;
++				is_bitop = true;
++				break;
++			case MODE_GROUP_READ:
++				max_v = S_IRGRP;
++				is_bitop = true;
++				break;
++			case MODE_GROUP_WRITE:
++				max_v = S_IWGRP;
++				is_bitop = true;
++				break;
++			case MODE_GROUP_EXECUTE:
++				max_v = S_IXGRP;
++				is_bitop = true;
++				break;
++			case MODE_OTHERS_READ:
++				max_v = S_IROTH;
++				is_bitop = true;
++				break;
++			case MODE_OTHERS_WRITE:
++				max_v = S_IWOTH;
++				is_bitop = true;
++				break;
++			case MODE_OTHERS_EXECUTE:
++				max_v = S_IXOTH;
++				is_bitop = true;
++				break;
++			case EXEC_ARGC:
++				if (!bprm)
++					goto out;
++				max_v = bprm->argc;
++				i++;
++				break;
++			case EXEC_ENVC:
++				if (!bprm)
++					goto out;
++				max_v = bprm->envc;
++				i++;
++				break;
++			case TASK_STATE_0:
++				max_v = (u8) (task->tomoyo_flags >> 24);
++				break;
++			case TASK_STATE_1:
++				max_v = (u8) (task->tomoyo_flags >> 16);
++				break;
++			case TASK_STATE_2:
++				max_v = (u8) (task->tomoyo_flags >> 8);
++				break;
++			case TASK_TYPE:
++				max_v = ((u8) task->tomoyo_flags)
++					& TOMOYO_TASK_IS_EXECUTE_HANDLER;
++				break;
++			case TASK_EXECUTE_HANDLER:
++				max_v = TOMOYO_TASK_IS_EXECUTE_HANDLER;
++				break;
++			case MAX_KEYWORD:
++				max_v = *ptr;
++				ptr++;
++				i++;
++				break;
++			case MAX_KEYWORD + 1:
++				min_v = *ptr;
++				ptr++;
++				max_v = *ptr;
++				ptr++;
++				i += 2;
++				break;
++			default:
++				if (!obj)
++					goto out;
++				if (!obj->validate_done) {
++					get_attributes(obj);
++					obj->validate_done = true;
++				}
++				switch (index) {
++				case PATH1_UID:
++					if (!obj->path1_valid)
++						goto out;
++					max_v = obj->path1_stat.uid;
++					break;
++				case PATH1_GID:
++					if (!obj->path1_valid)
++						goto out;
++					max_v = obj->path1_stat.gid;
++					break;
++				case PATH1_INO:
++					if (!obj->path1_valid)
++						goto out;
++					max_v = obj->path1_stat.ino;
++					break;
++				case PATH1_PARENT_UID:
++					if (!obj->path1_parent_valid)
++						goto out;
++					max_v = obj->path1_parent_stat.uid;
++					break;
++				case PATH1_PARENT_GID:
++					if (!obj->path1_parent_valid)
++						goto out;
++					max_v = obj->path1_parent_stat.gid;
++					break;
++				case PATH1_PARENT_INO:
++					if (!obj->path1_parent_valid)
++						goto out;
++					max_v = obj->path1_parent_stat.ino;
++					break;
++				case PATH2_PARENT_UID:
++					if (!obj->path2_parent_valid)
++						goto out;
++					max_v = obj->path2_parent_stat.uid;
++					break;
++				case PATH2_PARENT_GID:
++					if (!obj->path2_parent_valid)
++						goto out;
++					max_v = obj->path2_parent_stat.gid;
++					break;
++				case PATH2_PARENT_INO:
++					if (!obj->path2_parent_valid)
++						goto out;
++					max_v = obj->path2_parent_stat.ino;
++					break;
++				case PATH1_TYPE:
++					if (!obj->path1_valid)
++						goto out;
++					max_v = obj->path1_stat.mode & S_IFMT;
++					break;
++				case PATH1_DEV_MAJOR:
++					if (!obj->path1_valid)
++						goto out;
++					max_v = MAJOR(obj->path1_stat.rdev);
++					break;
++				case PATH1_DEV_MINOR:
++					if (!obj->path1_valid)
++						goto out;
++					max_v = MINOR(obj->path1_stat.rdev);
++					break;
++				case PATH1_MODE:
++					if (!obj->path1_valid)
++						goto out;
++					max_v = obj->path1_stat.mode
++						& S_IALLUGO;
++					break;
++				case PATH1_PARENT_MODE:
++					if (!obj->path1_parent_valid)
++						goto out;
++					max_v = obj->path1_parent_stat.mode
++						& S_IALLUGO;
++					break;
++				case PATH2_PARENT_MODE:
++					if (!obj->path2_parent_valid)
++						goto out;
++					max_v = obj->path2_parent_stat.mode
++						& S_IALLUGO;
++					break;
++				}
++				break;
  			}
++			if (index != MAX_KEYWORD + 1)
++				min_v = max_v;
++			if (j) {
++				right_max = max_v;
++				right_min = min_v;
++				right_is_bitop = is_bitop;
++			} else {
++				left_max = max_v;
++				left_min = min_v;
++				left_is_bitop = is_bitop;
++			}
  		}
 -		switch (left) {
 -		case TASK_UID:
@@ -322,231 +736,24 @@ Index: fs/tomoyo_cond.c
 -			ptr++;
 -			i += 2;
 -			break;
-+		for (j = 0; j < 2; j++) {
-+			const u8 index = j ? right : left;
-+			unsigned long min_v = 0;
-+			unsigned long max_v = 0;
-+			bool is_bitop = false;
-+			switch (index) {
-+			case TASK_UID:
-+				max_v = task->uid;
-+				break;
-+			case TASK_EUID:
-+				max_v = task->euid;
-+				break;
-+			case TASK_SUID:
-+				max_v = task->suid;
-+				break;
-+			case TASK_FSUID:
-+				max_v = task->fsuid;
-+				break;
-+			case TASK_GID:
-+				max_v = task->gid;
-+				break;
-+			case TASK_EGID:
-+				max_v = task->egid;
-+				break;
-+			case TASK_SGID:
-+				max_v = task->sgid;
-+				break;
-+			case TASK_FSGID:
-+				max_v = task->fsgid;
-+				break;
-+			case TASK_PID:
-+				max_v = sys_getpid();
-+				break;
-+			case TASK_PPID:
-+				max_v = sys_getppid();
-+				break;
-+			case PATH1_UID:
-+				if (!obj->path1_valid)
-+					goto out;
-+				max_v = obj->path1_stat.uid;
-+				break;
-+			case PATH1_GID:
-+				if (!obj->path1_valid)
-+					goto out;
-+				max_v = obj->path1_stat.gid;
-+				break;
-+			case PATH1_INO:
-+				if (!obj->path1_valid)
-+					goto out;
-+				max_v = obj->path1_stat.ino;
-+				break;
-+			case PATH1_PARENT_UID:
-+				if (!obj->path1_parent_valid)
-+					goto out;
-+				max_v = obj->path1_parent_stat.uid;
-+				break;
-+			case PATH1_PARENT_GID:
-+				if (!obj->path1_parent_valid)
-+					goto out;
-+				max_v = obj->path1_parent_stat.gid;
-+				break;
-+			case PATH1_PARENT_INO:
-+				if (!obj->path1_parent_valid)
-+					goto out;
-+				max_v = obj->path1_parent_stat.ino;
-+				break;
-+			case PATH2_PARENT_UID:
-+				if (!obj->path2_parent_valid)
-+					goto out;
-+				max_v = obj->path2_parent_stat.uid;
-+				break;
-+			case PATH2_PARENT_GID:
-+				if (!obj->path2_parent_valid)
-+					goto out;
-+				max_v = obj->path2_parent_stat.gid;
-+				break;
-+			case PATH2_PARENT_INO:
-+				if (!obj->path2_parent_valid)
-+					goto out;
-+				max_v = obj->path2_parent_stat.ino;
-+				break;
-+			case PATH1_TYPE:
-+				if (!obj->path1_valid)
-+					goto out;
-+				max_v = obj->path1_stat.mode & S_IFMT;
-+				break;
-+			case PATH1_DEV_MAJOR:
-+				if (!obj->path1_valid)
-+					goto out;
-+				max_v = MAJOR(obj->path1_stat.rdev);
-+				break;
-+			case PATH1_DEV_MINOR:
-+				if (!obj->path1_valid)
-+					goto out;
-+				max_v = MINOR(obj->path1_stat.rdev);
-+				break;
-+			case PATH1_MODE:
-+				if (!obj->path1_valid)
-+					goto out;
-+				max_v = obj->path1_stat.mode & S_IALLUGO;
-+				break;
-+			case PATH1_PARENT_MODE:
-+				if (!obj->path1_parent_valid)
-+					goto out;
-+				max_v = obj->path1_parent_stat.mode & S_IALLUGO;
-+				break;
-+			case PATH2_PARENT_MODE:
-+				if (!obj->path2_parent_valid)
-+					goto out;
-+				max_v = obj->path2_parent_stat.mode & S_IALLUGO;
-+				break;
-+			case TYPE_SOCKET:
-+				max_v = S_IFSOCK;
-+				break;
-+			case TYPE_SYMLINK:
-+				max_v = S_IFLNK;
-+				break;
-+			case TYPE_FILE:
-+				max_v = S_IFREG;
-+				break;
-+			case TYPE_BLOCK_DEV:
-+				max_v = S_IFBLK;
-+				break;
-+			case TYPE_DIRECTORY:
-+				max_v = S_IFDIR;
-+				break;
-+			case TYPE_CHAR_DEV:
-+				max_v = S_IFCHR;
-+				break;
-+			case TYPE_FIFO:
-+				max_v = S_IFIFO;
-+				break;
-+			case MODE_SETUID:
-+				max_v = S_ISUID;
-+				is_bitop = true;
-+				break;
-+			case MODE_SETGID:
-+				max_v = S_ISGID;
-+				is_bitop = true;
-+				break;
-+			case MODE_STICKY:
-+				max_v = S_ISVTX;
-+				is_bitop = true;
-+				break;
-+			case MODE_OWNER_READ:
-+				max_v = S_IRUSR;
-+				is_bitop = true;
-+				break;
-+			case MODE_OWNER_WRITE:
-+				max_v = S_IWUSR;
-+				is_bitop = true;
-+				break;
-+			case MODE_OWNER_EXECUTE:
-+				max_v = S_IXUSR;
-+				is_bitop = true;
-+				break;
-+			case MODE_GROUP_READ:
-+				max_v = S_IRGRP;
-+				is_bitop = true;
-+				break;
-+			case MODE_GROUP_WRITE:
-+				max_v = S_IWGRP;
-+				is_bitop = true;
-+				break;
-+			case MODE_GROUP_EXECUTE:
-+				max_v = S_IXGRP;
-+				is_bitop = true;
-+				break;
-+			case MODE_OTHERS_READ:
-+				max_v = S_IROTH;
-+				is_bitop = true;
-+				break;
-+			case MODE_OTHERS_WRITE:
-+				max_v = S_IWOTH;
-+				is_bitop = true;
-+				break;
-+			case MODE_OTHERS_EXECUTE:
-+				max_v = S_IXOTH;
-+				is_bitop = true;
-+				break;
-+			case EXEC_ARGC:
-+				if (!bprm)
-+					goto out;
-+				max_v = bprm->argc;
-+				i++;
-+				break;
-+			case EXEC_ENVC:
-+				if (!bprm)
-+					goto out;
-+				max_v = bprm->envc;
-+				i++;
-+				break;
-+			case TASK_STATE_0:
-+				max_v = (u8) (task->tomoyo_flags >> 24);
-+				break;
-+			case TASK_STATE_1:
-+				max_v = (u8) (task->tomoyo_flags >> 16);
-+				break;
-+			case TASK_STATE_2:
-+				max_v = (u8) (task->tomoyo_flags >> 8);
-+				break;
-+			case MAX_KEYWORD:
-+				max_v = *ptr;
-+				ptr++;
-+				i++;
-+				break;
-+			case MAX_KEYWORD + 1:
-+				min_v = *ptr;
-+				ptr++;
-+				max_v = *ptr;
-+				ptr++;
-+				i += 2;
-+				break;
++		/*
++		 * Bit operation is valid only when counterpart value
++		 * represents permission.
++		 */
++		if (left_is_bitop && right_is_bitop)
++			goto out;
++		if (left_is_bitop) {
++			if (right == PATH1_MODE || right == PATH1_PARENT_MODE
++			    || right == PATH2_PARENT_MODE) {
++				if (match) {
++					if ((right_max & left_max))
++						continue;
++				} else {
++					if (!(right_max & left_max))
++						continue;
++				}
 +			}
-+			if (index != MAX_KEYWORD + 1)
-+				min_v = max_v;
-+			if (j) {
-+				right_max = max_v;
-+				right_min = min_v;
-+				right_is_bitop = is_bitop;
-+			} else {
-+				left_max = max_v;
-+				left_min = min_v;
-+				left_is_bitop = is_bitop;
-+			}
++			goto out;
  		}
 -		if (left != MAX_KEYWORD + 1)
 -			left_min = left_max;
@@ -659,27 +866,6 @@ Index: fs/tomoyo_cond.c
 -			ptr++;
 -			i += 2;
 -			break;
-+		/*
-+		 * Bit operation is valid only when counterpart value
-+		 * represents permission.
-+		 */
-+		if (left_is_bitop && right_is_bitop)
-+			goto out;
-+		if (left_is_bitop) {
-+			if (right == PATH1_MODE || right == PATH1_PARENT_MODE
-+			    || right == PATH2_PARENT_MODE) {
-+				if (match) {
-+					if ((right_max & left_max))
-+						continue;
-+				} else {
-+					if (!(right_max & left_max))
-+						continue;
-+				}
-+			}
-+			goto out;
- 		}
--		if (right != MAX_KEYWORD + 1)
--			right_min = right_max;
 +		if (right_is_bitop) {
 +			if (left == PATH1_MODE || left == PATH1_PARENT_MODE
 +			    || left == PATH2_PARENT_MODE) {
@@ -692,8 +878,79 @@ Index: fs/tomoyo_cond.c
 +				}
 +			}
 +			goto out;
-+		}
+ 		}
+-		if (right != MAX_KEYWORD + 1)
+-			right_min = right_max;
 +		/* Normal value range comparison. */
  		if (match) {
  			if (left_min <= right_max && left_max >= right_min)
  				continue;
+@@ -1313,8 +1422,7 @@
+ 		if (!ccs_io_printf(head, "%s", i ? " " : " if "))
+ 			goto out;
+ 		if (left < MAX_KEYWORD) {
+-			const char *keyword
+-				= condition_control_keyword[left].keyword;
++			const char *keyword = condition_control_keyword[left];
+ 			if (!ccs_io_printf(head, "%s", keyword))
+ 				goto out;
+ 			goto print_operator;
+@@ -1335,8 +1443,7 @@
+ 		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
+ 			goto out;
+ 		if (right < MAX_KEYWORD) {
+-			const char *keyword
+-				= condition_control_keyword[right].keyword;
++			const char *keyword = condition_control_keyword[right];
+ 			if (!ccs_io_printf(head, "%s", keyword))
+ 				goto out;
+ 			continue;
+@@ -1399,3 +1506,33 @@
+  out:
+ 	return false;
+ }
++
++/**
++ * ccs_handler_cond - Create conditional part for execute_handler process.
++ *
++ * Returns pointer to "struct condition_list" if current process is an
++ * execute handler, NULL otherwise.
++ */
++const struct condition_list *ccs_handler_cond(void)
++{
++	static const struct condition_list *cond;
++	if (!(current->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER))
++		return NULL;
++	if (!cond) {
++		static u8 counter = 20;
++		const char *str = "if task.type=execute_handler";
++		const int len = strlen(str) + 1;
++		char *tmp = kzalloc(len, GFP_KERNEL);
++		if (tmp) {
++			memmove(tmp, str, len);
++			cond = ccs_find_or_assign_new_condition(tmp);
++			kfree(tmp);
++		}
++		if (!cond && counter) {
++			counter--;
++			printk(KERN_WARNING "TOMOYO-WARNING: Failed to create "
++			       "condition for execute_handler.\n");
++		}
++	}
++	return cond;
++}
+Index: fs/tomoyo_exec.c
+===================================================================
+--- fs/tomoyo_exec.c	(revision 1873)
++++ fs/tomoyo_exec.c	(working copy)
+@@ -169,8 +169,8 @@
+ 		return ccs_check_supervisor(r, KEYWORD_ALLOW_ARGV0 "%s %s\n",
+ 					    filename->name, argv0);
+ 	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
+-		update_argv0_entry(filename->name, argv0, r->domain, NULL,
+-				   false);
++		update_argv0_entry(filename->name, argv0, r->domain,
++				   ccs_handler_cond(), false);
+ 	return 0;
+ }
+ 
