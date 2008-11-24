@@ -52,7 +52,33 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Keywords for ACLs. */
  #define KEYWORD_ADDRESS_GROUP             "address_group "
  #define KEYWORD_AGGREGATOR                "aggregator "
-@@ -690,6 +726,8 @@
+@@ -640,8 +676,6 @@
+ bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
+ /* Read "alias" entry in exception policy. */
+ bool ccs_read_alias_policy(struct ccs_io_buffer *head);
+-/* Read "allow_chroot" entry in system policy. */
+-bool ccs_read_chroot_policy(struct ccs_io_buffer *head);
+ /*
+  * Read "initialize_domain" and "no_initialize_domain" entry
+  * in exception policy.
+@@ -655,16 +689,10 @@
+ bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
+ /* Read "allow_env" entry in exception policy. */
+ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
+-/* Read "allow_mount" entry in system policy. */
+-bool ccs_read_mount_policy(struct ccs_io_buffer *head);
+ /* Read "deny_rewrite" entry in exception policy. */
+ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
+-/* Read "deny_unmount" entry in system policy. */
+-bool ccs_read_no_umount_policy(struct ccs_io_buffer *head);
+ /* Read "path_group" entry in exception policy. */
+ bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
+-/* Read "allow_pivot_root" entry in system policy. */
+-bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head);
+ /* Read "deny_autobind" entry in system policy. */
+ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
+ /* Write domain policy violation warning message to console? */
+@@ -690,6 +718,8 @@
  /* Create conditional part of an ACL entry. */
  const struct condition_list *
  ccs_find_or_assign_new_condition(char * const condition);
@@ -61,6 +87,55 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Add an ACL entry to domain's ACL list. */
  int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
  /* Ask supervisor's opinion. */
+@@ -736,7 +766,8 @@
+ 				const struct condition_list *condition,
+ 				const bool is_delete);
+ /* Create "allow_chroot" entry in system policy. */
+-int ccs_write_chroot_policy(char *data, const bool is_delete);
++int ccs_write_chroot_policy(char *data, const struct condition_list *condition,
++			    const bool is_delete);
+ /*
+  * Create "initialize_domain" and "no_initialize_domain" entry
+  * in exception policy.
+@@ -766,7 +797,8 @@
+ /* Create "allow_env" entry in exception policy. */
+ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
+ /* Create "allow_mount" entry in system policy. */
+-int ccs_write_mount_policy(char *data, const bool is_delete);
++int ccs_write_mount_policy(char *data, const struct condition_list *condition,
++			   const bool is_delete);
+ /* Create "allow_network" entry in domain policy. */
+ int ccs_write_network_policy(char *data, struct domain_info *domain,
+ 			     const struct condition_list *condition,
+@@ -774,13 +806,17 @@
+ /* Create "deny_rewrite" entry in exception policy. */
+ int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
+ /* Create "deny_unmount" entry in system policy. */
+-int ccs_write_no_umount_policy(char *data, const bool is_delete);
++int ccs_write_no_umount_policy(char *data,
++			       const struct condition_list *condition,
++			       const bool is_delete);
+ /* Create "path_group" entry in exception policy. */
+ int ccs_write_path_group_policy(char *data, const bool is_delete);
+ /* Create "file_pattern" entry in exception policy. */
+ int ccs_write_pattern_policy(char *data, const bool is_delete);
+ /* Create "allow_pivot_root" entry in system policy. */
+-int ccs_write_pivot_root_policy(char *data, const bool is_delete);
++int ccs_write_pivot_root_policy(char *data,
++				const struct condition_list *condition,
++				const bool is_delete);
+ /* Create "deny_autobind" entry in system policy. */
+ int ccs_write_reserved_port_policy(char *data, const bool is_delete);
+ /* Create "allow_signal" entry in domain policy. */
+@@ -871,6 +907,8 @@
+ /* The kernel's domain. */
+ extern struct domain_info KERNEL_DOMAIN;
+ 
++extern struct domain_info ccs_system_policy;
++
+ #include <linux/dcache.h>
+ extern spinlock_t vfsmount_lock;
+ 
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 1878)
@@ -87,11 +162,24 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  	return 0;
  }
  
+Index: trunk/1.6.x/ccs-patch/fs/realpath.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 1878)
++++ trunk/1.6.x/ccs-patch/fs/realpath.c	(working copy)
+@@ -536,6 +536,8 @@
+ 	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
+ 	if (ccs_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
+ 		panic("Can't register KERNEL_DOMAIN");
++	INIT_LIST1_HEAD(&ccs_system_policy.acl_info_list);
++	ccs_system_policy.domainname = ccs_save_name("<SYSTEM>");
+ 	return 0;
+ }
+ 
 Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 1878)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
-@@ -21,13 +21,6 @@
+@@ -21,28 +21,21 @@
  #include <linux/fs.h>
  #endif
  
@@ -102,10 +190,10 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 -	bool is_deleted;
 -};
 -
- /* The list for "struct chroot_entry". */
- static LIST1_HEAD(chroot_list);
- 
-@@ -35,14 +28,18 @@
+-/* The list for "struct chroot_entry". */
+-static LIST1_HEAD(chroot_list);
+-
+ /**
   * update_chroot_acl - Update "struct chroot_entry" list.
   *
   * @dir:       The name of directory.
@@ -119,18 +207,20 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 +			     const struct condition_list *condition,
 +			     const bool is_delete)
  {
- 	struct chroot_entry *new_entry;
+-	struct chroot_entry *new_entry;
 -	struct chroot_entry *ptr;
 +	struct acl_info *ptr;
 +	struct chroot_entry *acl;
  	const struct path_info *saved_dir;
  	static DEFINE_MUTEX(lock);
  	int error = -ENOMEM;
-@@ -53,9 +50,17 @@
+@@ -52,10 +45,18 @@
+ 	if (!saved_dir)
  		return -ENOMEM;
  	mutex_lock(&lock);
- 	list1_for_each_entry(ptr, &chroot_list, list) {
+-	list1_for_each_entry(ptr, &chroot_list, list) {
 -		if (ptr->dir != saved_dir)
++	list1_for_each_entry(ptr, &ccs_system_policy.acl_info_list, list) {
 +		if (ccs_acl_type1(ptr) != TYPE_CHROOT_ACL)
 +                        continue;
 +                if (ccs_get_condition_part(ptr) != condition)
@@ -146,21 +236,24 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  		error = 0;
  		goto out;
  	}
-@@ -63,11 +68,11 @@
+@@ -63,12 +64,11 @@
  		error = -ENOENT;
  		goto out;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
-+	new_entry = ccs_alloc_acl_element(TYPE_CHROOT_ACL, condition);
- 	if (!new_entry)
+-	if (!new_entry)
++	acl = ccs_alloc_acl_element(TYPE_CHROOT_ACL, condition);
++	if (!acl)
  		goto out;
- 	new_entry->dir = saved_dir;
+-	new_entry->dir = saved_dir;
 -	list1_add_tail_mb(&new_entry->list, &chroot_list);
-+	list1_add_tail_mb(&new_entry->head.list, &chroot_list);
- 	error = 0;
+-	error = 0;
++	acl->dir = saved_dir;
++	error = ccs_add_domain_acl(&ccs_system_policy, &acl->head);
  	printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level, dir);
   out:
-@@ -102,7 +107,7 @@
+ 	mutex_unlock(&lock);
+@@ -102,7 +102,7 @@
  	if (exename)
  		ccs_free(exename);
  	if (r->mode == 1 && root_name)
@@ -169,14 +262,17 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  	return error;
  }
  
-@@ -141,12 +146,17 @@
+@@ -141,12 +141,19 @@
  		dir.name = root_name;
  		ccs_fill_path_info(&dir);
  		if (dir.is_dir) {
 -			struct chroot_entry *ptr;
-+			struct acl_info *ptr;
- 			list1_for_each_entry(ptr, &chroot_list, list) {
+-			list1_for_each_entry(ptr, &chroot_list, list) {
 -				if (ptr->is_deleted)
++			struct acl_info *ptr;
++			list1_for_each_entry(ptr,
++					     &ccs_system_policy.acl_info_list,
++					     list) {
 +				struct chroot_entry *acl;
 +				if (ccs_acl_type2(ptr) != TYPE_NO_UMOUNT_ACL)
  					continue;
@@ -190,49 +286,51 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  				error = 0;
  				break;
  			}
-@@ -170,7 +180,7 @@
+@@ -164,35 +171,13 @@
+  * ccs_write_chroot_policy - Write "struct chroot_entry" list.
+  *
+  * @data:      String to parse.
++ * @condition: Pointer to "struct condition_list". May be NULL. 
+  * @is_delete: True if it is a delete request.
+  *
+  * Returns 0 on success, negative value otherwise.
   */
- int ccs_write_chroot_policy(char *data, const bool is_delete)
+-int ccs_write_chroot_policy(char *data, const bool is_delete)
++int ccs_write_chroot_policy(char *data, const struct condition_list *condition,
++			    const bool is_delete)
  {
 -	return update_chroot_acl(data, is_delete);
-+	return update_chroot_acl(data, NULL, is_delete);
++	return update_chroot_acl(data, condition, is_delete);
  }
- 
- /**
-@@ -184,13 +194,22 @@
- {
- 	struct list1_head *pos;
- 	list1_for_each_cookie(pos, head->read_var2, &chroot_list) {
+-
+-/**
+- * ccs_read_chroot_policy - Read "struct chroot_entry" list.
+- *
+- * @head: Pointer to "struct ccs_io_buffer".
+- *
+- * Returns true on success, false otherwise.
+- */
+-bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
+-{
+-	struct list1_head *pos;
+-	list1_for_each_cookie(pos, head->read_var2, &chroot_list) {
 -		struct chroot_entry *ptr;
 -		ptr = list1_entry(pos, struct chroot_entry, list);
 -		if (ptr->is_deleted)
 -			continue;
 -		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
 -				   ptr->dir->name))
-+                struct acl_info *ptr = list1_entry(pos, struct acl_info, list);
-+                const struct condition_list *cond = ccs_get_condition_part(ptr);
-+                const u8 acl_type = ccs_acl_type2(ptr);
-+                int pos0;
-+		struct chroot_entry *acl;
-+		if (acl_type & ACL_DELETED)
-+                        continue;
-+                pos0 = head->read_avail;
-+                acl = list1_entry(ptr, struct chroot_entry, head);
-+		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s",
-+				   acl->dir->name))
- 			goto out;
-+                if (!ccs_print_condition(head, cond)) {
-+                        head->read_avail = pos0;
-+                        goto out;
-+                }
- 	}
- 	return true;
-  out:
+-			goto out;
+-	}
+-	return true;
+- out:
+-	return false;
+-}
 Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 1878)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
-@@ -21,14 +21,6 @@
+@@ -21,31 +21,22 @@
  #include <linux/fs.h>
  #endif
  
@@ -244,10 +342,11 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 -	bool is_deleted;
 -};
 -
- /* The list for "struct pivot_root_entry". */
- static LIST1_HEAD(pivot_root_list);
- 
-@@ -37,15 +29,18 @@
+-/* The list for "struct pivot_root_entry". */
+-static LIST1_HEAD(pivot_root_list);
+-
+ /**
+  * update_pivot_root_acl - Update "struct pivot_root_entry" list.
   *
   * @old_root:  The name of old root directory.
   * @new_root:  The name of new root directory.
@@ -260,19 +359,21 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 +				 const struct condition_list *condition,
  				 const bool is_delete)
  {
- 	struct pivot_root_entry *new_entry;
+-	struct pivot_root_entry *new_entry;
 -	struct pivot_root_entry *ptr;
 +	struct acl_info *ptr;
 +	struct pivot_root_entry *acl;
  	const struct path_info *saved_old_root;
  	const struct path_info *saved_new_root;
  	static DEFINE_MUTEX(lock);
-@@ -59,10 +54,18 @@
+@@ -58,11 +49,19 @@
+ 	if (!saved_old_root || !saved_new_root)
  		return -ENOMEM;
  	mutex_lock(&lock);
- 	list1_for_each_entry(ptr, &pivot_root_list, list) {
+-	list1_for_each_entry(ptr, &pivot_root_list, list) {
 -		if (ptr->old_root != saved_old_root ||
 -		    ptr->new_root != saved_new_root)
++	list1_for_each_entry(ptr, &ccs_system_policy.acl_info_list, list) {
 +		if (ccs_acl_type1(ptr) != TYPE_PIVOT_ROOT_ACL)
 +                        continue;
 +                if (ccs_get_condition_part(ptr) != condition)
@@ -289,22 +390,26 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  		error = 0;
  		goto out;
  	}
-@@ -70,12 +73,12 @@
+@@ -70,13 +69,12 @@
  		error = -ENOENT;
  		goto out;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
-+	new_entry = ccs_alloc_acl_element(TYPE_PIVOT_ROOT_ACL, condition);
- 	if (!new_entry)
+-	if (!new_entry)
++	acl = ccs_alloc_acl_element(TYPE_PIVOT_ROOT_ACL, condition);
++	if (!acl)
  		goto out;
- 	new_entry->old_root = saved_old_root;
- 	new_entry->new_root = saved_new_root;
+-	new_entry->old_root = saved_old_root;
+-	new_entry->new_root = saved_new_root;
 -	list1_add_tail_mb(&new_entry->list, &pivot_root_list);
-+	list1_add_tail_mb(&new_entry->head.list, &pivot_root_list);
- 	error = 0;
+-	error = 0;
++	acl->old_root = saved_old_root;
++	acl->new_root = saved_new_root;
++	error = ccs_add_domain_acl(&ccs_system_policy, &acl->head);
  	printk(KERN_CONT "%sAllow pivot_root(%s, %s)\n", ccs_log_level,
  	       new_root, old_root);
-@@ -124,20 +127,25 @@
+  out:
+@@ -124,20 +122,27 @@
  	new_root = ccs_realpath_from_dentry(new_path->dentry, new_path->mnt);
  #endif
  	if (old_root && new_root) {
@@ -317,9 +422,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  		ccs_fill_path_info(&new_root_dir);
  		if (old_root_dir.is_dir && new_root_dir.is_dir) {
 -			struct pivot_root_entry *ptr;
-+			struct acl_info *ptr;
- 			list1_for_each_entry(ptr, &pivot_root_list, list) {
+-			list1_for_each_entry(ptr, &pivot_root_list, list) {
 -				if (ptr->is_deleted)
++			struct acl_info *ptr;
++			list1_for_each_entry(ptr,
++					     &ccs_system_policy.acl_info_list,
++					     list) {
 +				struct pivot_root_entry *acl;
 +				if (ccs_acl_type2(ptr) != TYPE_PIVOT_ROOT_ACL)
  					continue;
@@ -335,7 +443,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  					continue;
  				error = 0;
  				break;
-@@ -161,7 +169,8 @@
+@@ -161,7 +166,8 @@
  		if (exename)
  			ccs_free(exename);
  		if (r.mode == 1 && old_root && new_root)
@@ -345,44 +453,51 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  	}
  	ccs_free(old_root);
  	ccs_free(new_root);
-@@ -184,7 +193,7 @@
+@@ -174,39 +180,18 @@
+  * ccs_write_pivot_root_policy - Write "struct pivot_root_entry" list.
+  *
+  * @data:      String to parse.
++ * @condition: Pointer to "struct condition_list". May be NULL. 
+  * @is_delete: True if it is a delete request.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int ccs_write_pivot_root_policy(char *data, const bool is_delete)
++int ccs_write_pivot_root_policy(char *data,
++				const struct condition_list *condition,
++				const bool is_delete)
+ {
+ 	char *cp = strchr(data, ' ');
  	if (!cp)
  		return -EINVAL;
  	*cp++ = '\0';
 -	return update_pivot_root_acl(cp, data, is_delete);
-+	return update_pivot_root_acl(cp, data, NULL, is_delete);
++	return update_pivot_root_acl(cp, data, condition, is_delete);
  }
- 
- /**
-@@ -198,13 +207,22 @@
- {
- 	struct list1_head *pos;
- 	list1_for_each_cookie(pos, head->read_var2, &pivot_root_list) {
+-
+-/**
+- * ccs_read_pivot_root_policy - Read "struct pivot_root_entry" list.
+- *
+- * @head: Pointer to "struct ccs_io_buffer".
+- *
+- * Returns true on success, false otherwise.
+- */
+-bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
+-{
+-	struct list1_head *pos;
+-	list1_for_each_cookie(pos, head->read_var2, &pivot_root_list) {
 -		struct pivot_root_entry *ptr;
 -		ptr = list1_entry(pos, struct pivot_root_entry, list);
 -		if (ptr->is_deleted)
 -			continue;
 -		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
 -				   ptr->new_root->name, ptr->old_root->name))
-+		struct acl_info *ptr = list1_entry(pos, struct acl_info, list);
-+                const struct condition_list *cond = ccs_get_condition_part(ptr);
-+                const u8 acl_type = ccs_acl_type2(ptr);
-+                int pos0;
-+                struct pivot_root_entry *acl;
-+		if (acl_type & ACL_DELETED)
-+                        continue;
-+                pos0 = head->read_avail;
-+		acl = list1_entry(ptr, struct pivot_root_entry, head);
-+		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s",
-+				   acl->new_root->name, acl->old_root->name))
- 			goto out;
-+		if (!ccs_print_condition(head, cond)) {
-+                        head->read_avail = pos0;
-+                        goto out;
-+                }
- 	}
- 	return true;
-  out:
+-			goto out;
+-	}
+-	return true;
+- out:
+-	return false;
+-}
 Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 1878)
@@ -404,7 +519,17 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
  /* For compatibility with older kernels. */
  static void put_filesystem(struct file_system_type *fs)
-@@ -82,17 +72,20 @@
+@@ -72,9 +62,6 @@
+ }
+ #endif
+ 
+-/* The list for "struct mount_entry". */
+-static LIST1_HEAD(mount_list);
+-
+ /**
+  * update_mount_acl - Update "struct mount_entry" list.
+  *
+@@ -82,17 +69,19 @@
   * @dir_name:  Name of mount point.
   * @fs_type:   Name of filesystem.
   * @flags:     Mount options.
@@ -419,21 +544,23 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  			    const bool is_delete)
  {
  	struct file_system_type *type = NULL;
- 	struct mount_entry *new_entry;
+-	struct mount_entry *new_entry;
 -	struct mount_entry *ptr;
 +	struct acl_info *ptr;
 +	struct mount_entry *acl;
  	const struct path_info *fs;
  	const struct path_info *dev;
  	const struct path_info *dir;
-@@ -121,18 +114,23 @@
+@@ -120,19 +109,24 @@
+ 	if (!dev || !dir)
  		return -ENOMEM;
  	mutex_lock(&lock);
- 	list1_for_each_entry(ptr, &mount_list, list) {
+-	list1_for_each_entry(ptr, &mount_list, list) {
 -		if (ptr->flags != flags ||
 -		    ccs_pathcmp(ptr->dev_name, dev) ||
 -		    ccs_pathcmp(ptr->dir_name, dir) ||
 -		    ccs_pathcmp(ptr->fs_type, fs))
++	list1_for_each_entry(ptr, &ccs_system_policy.acl_info_list, list) {
 +		if (ccs_acl_type1(ptr) != TYPE_MOUNT_ACL)
 +                        continue;
 +                if (ccs_get_condition_part(ptr) != condition)
@@ -457,23 +584,27 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  				goto update;
  			}
  			goto out; /* No changes. */
-@@ -142,41 +140,41 @@
+@@ -142,41 +136,39 @@
  		error = -ENOENT;
  		goto out;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
-+	new_entry = ccs_alloc_acl_element(TYPE_MOUNT_ACL, condition);
- 	if (!new_entry)
+-	if (!new_entry)
++	acl = ccs_alloc_acl_element(TYPE_MOUNT_ACL, condition);
++	if (!acl)
  		goto out;
- 	new_entry->dev_name = dev;
- 	new_entry->dir_name = dir;
- 	new_entry->fs_type = fs;
- 	new_entry->flags = flags;
+-	new_entry->dev_name = dev;
+-	new_entry->dir_name = dir;
+-	new_entry->fs_type = fs;
+-	new_entry->flags = flags;
 -	list1_add_tail_mb(&new_entry->list, &mount_list);
-+	list1_add_tail_mb(&new_entry->head.list, &mount_list);
- 	error = 0;
+-	error = 0;
 -	ptr = new_entry;
-+	acl = new_entry;
++	acl->dev_name = dev;
++	acl->dir_name = dir;
++	acl->fs_type = fs;
++	acl->flags = flags;
++	error = ccs_add_domain_acl(&ccs_system_policy, &acl->head);
   update:
  	if (!strcmp(fs->name, MOUNT_REMOUNT_KEYWORD)) {
  		printk(KERN_CONT "%sAllow remount %s with options 0x%lX.\n",
@@ -507,7 +638,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	}
  	if (type)
  		put_filesystem(type);
-@@ -397,7 +395,7 @@
+@@ -397,7 +389,7 @@
  						MOUNT_MAKE_SHARED_KEYWORD,
  						flags & ~MS_SHARED);
  	} else {
@@ -516,11 +647,14 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  		struct file_system_type *fstype = NULL;
  		const char *requested_dir_name = NULL;
  		const char *requested_dev_name = NULL;
-@@ -453,26 +451,31 @@
+@@ -452,27 +444,33 @@
+ 				goto cleanup;
  			}
  		}
- 		list1_for_each_entry(ptr, &mount_list, list) {
+-		list1_for_each_entry(ptr, &mount_list, list) {
 -			if (ptr->is_deleted)
++		list1_for_each_entry(ptr, &ccs_system_policy.acl_info_list,
++				     list) {
 +			struct mount_entry *acl;
 +			if (ccs_acl_type2(ptr) != TYPE_MOUNT_ACL)
  				continue;
@@ -554,7 +688,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  			/* OK. */
  			error = 0;
  			print_success(requested_dev_name, requested_dir_name,
-@@ -485,7 +488,8 @@
+@@ -485,7 +483,8 @@
  		if (error && r->mode == 1)
  			update_mount_acl(need_dev ?
  					 requested_dev_name : dev_name,
@@ -564,19 +698,40 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
   cleanup:
  		ccs_free(requested_dev_name);
  		ccs_free(requested_dir_name);
-@@ -556,7 +560,7 @@
+@@ -525,11 +524,13 @@
+  * ccs_write_mount_policy - Write "struct mount_entry" list.
+  *
+  * @data:      String to parse.
++ * @condition: Pointer to "struct condition_list". May be NULL. 
+  * @is_delete: True if it is a delete request.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int ccs_write_mount_policy(char *data, const bool is_delete)
++int ccs_write_mount_policy(char *data, const struct condition_list *condition,
++			   const bool is_delete)
+ {
+ 	char *cp;
+ 	char *cp2;
+@@ -556,30 +557,5 @@
  	*cp = '\0';
  	fs = cp2;
  	flags = simple_strtoul(cp + 1, NULL, 0);
 -	return update_mount_acl(dev, dir, fs, flags, is_delete);
-+	return update_mount_acl(dev, dir, fs, flags, NULL, is_delete);
++	return update_mount_acl(dev, dir, fs, flags, condition, is_delete);
  }
- 
- /**
-@@ -570,14 +574,23 @@
- {
- 	struct list1_head *pos;
- 	list1_for_each_cookie(pos, head->read_var2, &mount_list) {
+-
+-/**
+- * ccs_read_mount_policy - Read "struct mount_entry" list.
+- *
+- * @head: Pointer to "struct ccs_io_buffer".
+- *
+- * Returns true on success, false otherwise.
+- */
+-bool ccs_read_mount_policy(struct ccs_io_buffer *head)
+-{
+-	struct list1_head *pos;
+-	list1_for_each_cookie(pos, head->read_var2, &mount_list) {
 -		struct mount_entry *ptr;
 -		ptr = list1_entry(pos, struct mount_entry, list);
 -		if (ptr->is_deleted)
@@ -584,31 +739,163 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -		if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
 -				   ptr->dev_name->name, ptr->dir_name->name,
 -				   ptr->fs_type->name, ptr->flags))
-+                struct acl_info *ptr = list1_entry(pos, struct acl_info, list);
-+                const struct condition_list *cond = ccs_get_condition_part(ptr);
-+                const u8 acl_type = ccs_acl_type2(ptr);
-+                int pos0;
-+                struct mount_entry *acl;
-+                if (acl_type & ACL_DELETED)
-+                        continue;
-+		pos0 = head->read_avail;
-+		acl = list1_entry(ptr, struct mount_entry, head);
-+		if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX",
-+				   acl->dev_name->name, acl->dir_name->name,
-+				   acl->fs_type->name, acl->flags))
- 			goto out;
-+		if (!ccs_print_condition(head, cond)) {
-+                        head->read_avail = pos0;
-+                        goto out;
-+                }
- 	}
- 	return true;
-  out:
+-			goto out;
+-	}
+-	return true;
+- out:
+-	return false;
+-}
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 1878)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
+@@ -35,6 +35,9 @@
+ /* The list for "struct domain_info". */
+ LIST1_HEAD(domain_list);
+ 
++/* Domain for keeping system policy. */
++struct domain_info ccs_system_policy;
++
+ #ifdef CONFIG_TOMOYO
+ 
+ /* Domain creation lock. */
 Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 1878)
 +++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
-@@ -3248,6 +3248,18 @@
+@@ -2314,24 +2314,98 @@
+  */
+ static int write_system_policy(struct ccs_io_buffer *head)
+ {
++        const struct condition_list *cond = NULL;
+ 	char *data = head->write_buf;
+ 	bool is_delete = false;
++        char *cp = ccs_find_condition_part(data);
++        if (cp) {
++                cond = ccs_find_or_assign_new_condition(cp);
++                if (!cond)
++                        return -EINVAL;
++        }
+ 	if (str_starts(&data, KEYWORD_DELETE))
+ 		is_delete = true;
+ 	if (str_starts(&data, KEYWORD_ALLOW_MOUNT))
+-		return ccs_write_mount_policy(data, is_delete);
++		return ccs_write_mount_policy(data, cond, is_delete);
+ 	if (str_starts(&data, KEYWORD_DENY_UNMOUNT))
+-		return ccs_write_no_umount_policy(data, is_delete);
++		return ccs_write_no_umount_policy(data, cond, is_delete);
+ 	if (str_starts(&data, KEYWORD_ALLOW_CHROOT))
+-		return ccs_write_chroot_policy(data, is_delete);
++		return ccs_write_chroot_policy(data, cond, is_delete);
+ 	if (str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
+-		return ccs_write_pivot_root_policy(data, is_delete);
+-	if (str_starts(&data, KEYWORD_DENY_AUTOBIND))
++		return ccs_write_pivot_root_policy(data, cond, is_delete);
++	if (!cond && str_starts(&data, KEYWORD_DENY_AUTOBIND))
+ 		return ccs_write_reserved_port_policy(data, is_delete);
+ 	return -EINVAL;
+ }
+ 
+ /**
++ * ccs_read_system_policy - Read system policy list.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns true on success, false otherwise.
++ */
++static bool ccs_read_system_policy(struct ccs_io_buffer *head)
++{
++	struct list1_head *pos;
++	list1_for_each_cookie(pos, head->read_var2,
++			      &ccs_system_policy.acl_info_list) {
++		struct acl_info *ptr = list1_entry(pos, struct acl_info, list);
++		const struct condition_list *cond = ccs_get_condition_part(ptr);
++		const u8 acl_type = ccs_acl_type2(ptr);
++		int pos0;
++		if (acl_type & ACL_DELETED)
++			continue;
++		pos0 = head->read_avail;
++		if (acl_type == TYPE_NO_UMOUNT_ACL) {
++			struct no_umount_entry *acl
++				= list1_entry(ptr, struct no_umount_entry,
++					      head);
++			if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s",
++					   acl->dir->name))
++				goto out;
++		} else if (acl_type == TYPE_MOUNT_ACL) {
++			struct mount_entry *acl
++				= list1_entry(ptr, struct mount_entry, head);
++			if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT
++					   "%s %s %s 0x%lX",
++					   acl->dev_name->name,
++					   acl->dir_name->name,
++					   acl->fs_type->name, acl->flags))
++				goto out;
++		} else if (acl_type == TYPE_CHROOT_ACL) {
++			struct chroot_entry *acl
++				= list1_entry(ptr, struct chroot_entry, head);
++			if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s",
++					   acl->dir->name))
++				goto out;
++		} else if (acl_type == TYPE_PIVOT_ROOT_ACL) {
++			struct pivot_root_entry *acl
++				= list1_entry(ptr, struct pivot_root_entry,
++					      head);
++			if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT
++					   "%s %s", acl->new_root->name,
++					   acl->old_root->name))
++				goto out;
++		} else if (0) {
++
++		} else if (acl_type & ACL_DELETED) {
++			/* Workaround for gcc 3.2.2's inline bug. */
++			continue;
++		} else {
++			BUG(); /* This must not happen. */
++		}
++		if (!ccs_print_condition(head, cond)) {
++			head->read_avail = pos0;
++			goto out;
++		}
++	}
++	return true;
++ out:
++	return false;
++}
++
++/**
+  * read_system_policy - Read system policy.
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+@@ -2346,26 +2420,11 @@
+ 			head->read_var2 = NULL;
+ 			head->read_step = 1;
+ 		case 1:
+-			if (!ccs_read_mount_policy(head))
++			if (!ccs_read_system_policy(head))
+ 				break;
+ 			head->read_var2 = NULL;
+ 			head->read_step = 2;
+ 		case 2:
+-			if (!ccs_read_no_umount_policy(head))
+-				break;
+-			head->read_var2 = NULL;
+-			head->read_step = 3;
+-		case 3:
+-			if (!ccs_read_chroot_policy(head))
+-				break;
+-			head->read_var2 = NULL;
+-			head->read_step = 4;
+-		case 4:
+-			if (!ccs_read_pivot_root_policy(head))
+-				break;
+-			head->read_var2 = NULL;
+-			head->read_step = 5;
+-		case 5:
+ 			if (!ccs_read_reserved_port_policy(head))
+ 				break;
+ 			head->read_eof = true;
+@@ -3248,6 +3307,18 @@
  	case TYPE_DENIED_EXECUTE_HANDLER:
  		len = sizeof(struct execute_handler_record);
  		break;
@@ -1539,7 +1826,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 1878)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
-@@ -21,13 +21,6 @@
+@@ -21,28 +21,21 @@
  #include <linux/namespace.h>
  #endif
  
@@ -1550,10 +1837,10 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 -	bool is_deleted;
 -};
 -
- /* The list for "struct no_umount_entry". */
- static LIST1_HEAD(no_umount_list);
- 
-@@ -35,14 +28,18 @@
+-/* The list for "struct no_umount_entry". */
+-static LIST1_HEAD(no_umount_list);
+-
+ /**
   * update_no_umount_acl - Update "struct no_umount_entry" list.
   *
   * @dir:       The name of directrory.
@@ -1567,18 +1854,20 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 +				const struct condition_list *condition,
 +				const bool is_delete)
  {
- 	struct no_umount_entry *new_entry;
+-	struct no_umount_entry *new_entry;
 -	struct no_umount_entry *ptr;
 +	struct acl_info *ptr;
 +	struct no_umount_entry *acl;
  	const struct path_info *saved_dir;
  	static DEFINE_MUTEX(lock);
  	int error = -ENOMEM;
-@@ -53,9 +50,17 @@
+@@ -52,10 +45,18 @@
+ 	if (!saved_dir)
  		return -ENOMEM;
  	mutex_lock(&lock);
- 	list1_for_each_entry(ptr, &no_umount_list, list) {
+-	list1_for_each_entry(ptr, &no_umount_list, list) {
 -		if (ptr->dir != saved_dir)
++	list1_for_each_entry(ptr, &ccs_system_policy.acl_info_list, list) {
 +                if (ccs_acl_type1(ptr) != TYPE_NO_UMOUNT_ACL)
 +                        continue;
 +                if (ccs_get_condition_part(ptr) != condition)
@@ -1594,21 +1883,24 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  		error = 0;
  		goto out;
  	}
-@@ -63,11 +68,11 @@
+@@ -63,12 +64,11 @@
  		error = -ENOENT;
  		goto out;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
-+	new_entry = ccs_alloc_acl_element(TYPE_NO_UMOUNT_ACL, condition);
- 	if (!new_entry)
+-	if (!new_entry)
++	acl = ccs_alloc_acl_element(TYPE_NO_UMOUNT_ACL, condition);
++	if (!acl)
  		goto out;
- 	new_entry->dir = saved_dir;
+-	new_entry->dir = saved_dir;
 -	list1_add_tail_mb(&new_entry->list, &no_umount_list);
-+	list1_add_tail_mb(&new_entry->head.list, &no_umount_list);
- 	error = 0;
+-	error = 0;
++	acl->dir = saved_dir;
++	error = ccs_add_domain_acl(&ccs_system_policy, &acl->head);
  	printk(KERN_CONT "%sDon't allow umount %s\n", ccs_log_level, dir);
   out:
-@@ -89,7 +94,7 @@
+ 	mutex_unlock(&lock);
+@@ -89,7 +89,7 @@
  	int error;
  	const char *dir0;
  	bool is_enforce;
@@ -1617,11 +1909,13 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  	struct path_info dir;
  	bool found = false;
  	if (!ccs_can_sleep())
-@@ -106,10 +111,13 @@
+@@ -105,11 +105,14 @@
+ 		goto out;
  	dir.name = dir0;
  	ccs_fill_path_info(&dir);
- 	list1_for_each_entry(ptr, &no_umount_list, list) {
+-	list1_for_each_entry(ptr, &no_umount_list, list) {
 -		if (ptr->is_deleted)
++	list1_for_each_entry(ptr, &ccs_system_policy.acl_info_list, list) {
 +		struct no_umount_entry *acl;
 +		if (ccs_acl_type2(ptr) != TYPE_NO_UMOUNT_ACL)
 +                        continue;
@@ -1634,40 +1928,44 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  		found = true;
  		break;
  	}
-@@ -145,7 +153,7 @@
+@@ -139,35 +142,14 @@
+  * ccs_write_no_umount_policy - Write "struct no_umount_entry" list.
+  *
+  * @data:      String to parse.
++ * @condition: Pointer to "struct condition_list". May be NULL. 
+  * @is_delete: True if it is a delete request.
+  *
+  * Returns 0 on sucess, negative value otherwise.
   */
- int ccs_write_no_umount_policy(char *data, const bool is_delete)
+-int ccs_write_no_umount_policy(char *data, const bool is_delete)
++int ccs_write_no_umount_policy(char *data,
++			       const struct condition_list *condition,
++			       const bool is_delete)
  {
 -	return update_no_umount_acl(data, is_delete);
-+	return update_no_umount_acl(data, NULL, is_delete);
++	return update_no_umount_acl(data, condition, is_delete);
  }
- 
- /**
-@@ -159,13 +167,22 @@
- {
- 	struct list1_head *pos;
- 	list1_for_each_cookie(pos, head->read_var2, &no_umount_list) {
+-
+-/**
+- * ccs_read_no_umount_policy - Read "struct no_umount_entry" list.
+- *
+- * @head: Pointer to "struct ccs_io_buffer".
+- *
+- * Returns true on success, false otherwise.
+- */
+-bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
+-{
+-	struct list1_head *pos;
+-	list1_for_each_cookie(pos, head->read_var2, &no_umount_list) {
 -		struct no_umount_entry *ptr;
 -		ptr = list1_entry(pos, struct no_umount_entry, list);
 -		if (ptr->is_deleted)
-+		struct acl_info *ptr = list1_entry(pos, struct acl_info, list);
-+		const struct condition_list *cond = ccs_get_condition_part(ptr);
-+		const u8 acl_type = ccs_acl_type2(ptr);
-+		int pos0;
-+		struct no_umount_entry *acl;
-+		if (acl_type & ACL_DELETED)
- 			continue;
+-			continue;
 -		if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
 -				   ptr->dir->name))
-+		pos0 = head->read_avail;
-+		acl = list1_entry(ptr, struct no_umount_entry, head);
-+		if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s",
-+				   acl->dir->name))
- 			goto out;
-+		if (!ccs_print_condition(head, cond)) {
-+			head->read_avail = pos0;
-+			goto out;
-+		}
- 	}
- 	return true;
-  out:
+-			goto out;
+-	}
+-	return true;
+- out:
+-	return false;
+-}
