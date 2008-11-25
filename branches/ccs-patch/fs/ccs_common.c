@@ -58,6 +58,9 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 /* Has /sbin/init started? */
 bool sbin_init_started;
 
+/* Domain for keeping system policy. */
+static struct domain_info ccs_system_policy;
+
 /* Log level for SAKURA's printk(). */
 const char *ccs_log_level = KERN_DEBUG;
 
@@ -1118,7 +1121,6 @@ static int write_profile(struct ccs_io_buffer *head)
 	if (!cp)
 		return -EINVAL;
 	*cp = '\0';
-	ccs_update_counter(CCS_UPDATES_COUNTER_PROFILE);
 	if (!strcmp(data, "COMMENT")) {
 		profile->comment = ccs_save_name(cp + 1);
 		return 0;
@@ -1336,8 +1338,6 @@ static int update_manager_entry(const char *manager, const bool is_delete)
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	if (!error)
-		ccs_update_counter(CCS_UPDATES_COUNTER_MANAGER);
 	return error;
 }
 
@@ -1554,7 +1554,6 @@ static int write_domain_policy(struct ccs_io_buffer *head)
 		else
 			domain = ccs_find_or_assign_new_domain(data, 0);
 		head->write_var1 = domain;
-		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 		return 0;
 	}
 	if (!domain)
@@ -1593,6 +1592,16 @@ static int write_domain_policy(struct ccs_io_buffer *head)
 		return ccs_write_argv0_policy(data, domain, cond, is_delete);
 	else if (str_starts(&data, KEYWORD_ALLOW_ENV))
 		return ccs_write_env_policy(data, domain, cond, is_delete);
+	else if (str_starts(&data, KEYWORD_ALLOW_MOUNT))
+		return ccs_write_mount_policy(data, domain, cond, is_delete);
+	else if (str_starts(&data, KEYWORD_DENY_UNMOUNT))
+		return ccs_write_no_umount_policy(data, domain, cond, is_delete);
+	else if (str_starts(&data, KEYWORD_ALLOW_CHROOT))
+		return ccs_write_chroot_policy(data, domain, cond, is_delete);
+	else if (str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
+		return ccs_write_pivot_root_policy(data, domain, cond, is_delete);
+	else if (str_starts(&data, KEYWORD_DENY_AUTOBIND))
+		return ccs_write_reserved_port_policy(data, is_delete);
 	else
 		return ccs_write_file_policy(data, domain, cond, is_delete);
 }
@@ -1879,7 +1888,7 @@ static bool print_network_acl(struct ccs_io_buffer *head,
  * print_signal_acl - Print a signal ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct signale_acl_record".
+ * @ptr:  Pointer to "struct signal_acl_record".
  * @cond: Pointer to "struct condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
@@ -1914,6 +1923,106 @@ static bool print_execute_handler_record(struct ccs_io_buffer *head,
 					 struct execute_handler_record *ptr)
 {
 	return ccs_io_printf(head, "%s %s\n", keyword, ptr->handler->name);
+}
+
+/**
+ * print_no_umount_acl - Print a deny_umount ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct no_umount_entry".
+ * @cond: Pointer to "struct condition_list". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool print_no_umount_acl(struct ccs_io_buffer *head,
+				struct no_umount_entry *ptr,
+				const struct condition_list *cond)
+{
+	int pos = head->read_avail;
+	if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s", ptr->dir->name))
+			goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
+/**
+ * print_mount_acl - Print a umount ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct mount_entry".
+ * @cond: Pointer to "struct condition_list". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool print_mount_acl(struct ccs_io_buffer *head,
+			    struct mount_entry *ptr,
+			    const struct condition_list *cond)
+{
+	int pos = head->read_avail;
+	if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX",
+			   ptr->dev_name->name, ptr->dir_name->name,
+			   ptr->fs_type->name, ptr->flags))
+		goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
+/**
+ * print_chroot_acl - Print a chroot ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct chroot_entry".
+ * @cond: Pointer to "struct condition_list". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool print_chroot_acl(struct ccs_io_buffer *head,
+			     struct chroot_entry *ptr,
+			     const struct condition_list *cond)
+{
+	int pos = head->read_avail;
+	if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s", ptr->dir->name))
+		goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
+/**
+ * print_pivot_root_acl - Print a pivot_root ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct chroot_entry".
+ * @cond: Pointer to "struct condition_list". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool print_pivot_root_acl(struct ccs_io_buffer *head,
+			     struct pivot_root_entry *ptr,
+			     const struct condition_list *cond)
+{
+	int pos = head->read_avail;
+	if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT
+			   "%s %s", ptr->new_root->name,
+			   ptr->old_root->name))
+		goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
 }
 
 /**
@@ -1980,6 +2089,26 @@ static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
 				       head);
 		const char *keyword = KEYWORD_DENIED_EXECUTE_HANDLER;
 		return print_execute_handler_record(head, keyword, acl);
+	}
+	if (acl_type == TYPE_NO_UMOUNT_ACL) {
+		struct no_umount_entry *acl
+			= list1_entry(ptr, struct no_umount_entry, head);
+		return print_no_umount_acl(head, acl, cond);
+	}
+	if (acl_type == TYPE_MOUNT_ACL) {
+		struct mount_entry *acl
+			= list1_entry(ptr, struct mount_entry, head);
+		return print_mount_acl(head, acl, cond);
+	}
+	if (acl_type == TYPE_CHROOT_ACL) {
+		struct chroot_entry *acl
+			= list1_entry(ptr, struct chroot_entry, head);
+		return print_chroot_acl(head, acl, cond);
+	}
+	if (acl_type == TYPE_PIVOT_ROOT_ACL) {
+		struct pivot_root_entry *acl
+			= list1_entry(ptr, struct pivot_root_entry, head);
+		return print_pivot_root_acl(head, acl, cond);
 	}
 	/* Workaround for gcc 3.2.2's inline bug. */
 	if (acl_type & ACL_DELETED)
@@ -2084,7 +2213,6 @@ static int write_domain_profile(struct ccs_io_buffer *head)
 	if (domain && profile < MAX_PROFILES
 	    && (profile_ptr[profile] || !sbin_init_started))
 		domain->profile = (u8) profile;
-	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
 
@@ -2314,21 +2442,52 @@ static int read_exception_policy(struct ccs_io_buffer *head)
  */
 static int write_system_policy(struct ccs_io_buffer *head)
 {
+        const struct condition_list *cond = NULL;
 	char *data = head->write_buf;
 	bool is_delete = false;
+        char *cp = ccs_find_condition_part(data);
+        if (cp) {
+                cond = ccs_find_or_assign_new_condition(cp);
+                if (!cond)
+                        return -EINVAL;
+        }
 	if (str_starts(&data, KEYWORD_DELETE))
 		is_delete = true;
 	if (str_starts(&data, KEYWORD_ALLOW_MOUNT))
-		return ccs_write_mount_policy(data, is_delete);
-	if (str_starts(&data, KEYWORD_DENY_UNMOUNT))
-		return ccs_write_no_umount_policy(data, is_delete);
-	if (str_starts(&data, KEYWORD_ALLOW_CHROOT))
-		return ccs_write_chroot_policy(data, is_delete);
-	if (str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
-		return ccs_write_pivot_root_policy(data, is_delete);
-	if (str_starts(&data, KEYWORD_DENY_AUTOBIND))
+		return ccs_write_mount_policy(data, &ccs_system_policy, cond,
+					      is_delete);
+	else if (str_starts(&data, KEYWORD_DENY_UNMOUNT))
+		return ccs_write_no_umount_policy(data, &ccs_system_policy,
+						  cond, is_delete);
+	else if (str_starts(&data, KEYWORD_ALLOW_CHROOT))
+		return ccs_write_chroot_policy(data, &ccs_system_policy, cond,
+					       is_delete);
+	else if (str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
+		return ccs_write_pivot_root_policy(data, &ccs_system_policy,
+						   cond, is_delete);
+	else if (str_starts(&data, KEYWORD_DENY_AUTOBIND))
 		return ccs_write_reserved_port_policy(data, is_delete);
 	return -EINVAL;
+}
+
+/**
+ * ccs_read_system_policy - Read system policy list.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_read_system_policy(struct ccs_io_buffer *head)
+{
+	struct list1_head *pos;
+	/* Print ACL entries in the domain. */
+	list1_for_each_cookie(pos, head->read_var2,
+			      &ccs_system_policy.acl_info_list) {
+		struct acl_info *ptr = list1_entry(pos, struct acl_info, list);
+		if (!print_entry(head, ptr))
+			return false;
+	}
+	return true;
 }
 
 /**
@@ -2346,26 +2505,11 @@ static int read_system_policy(struct ccs_io_buffer *head)
 			head->read_var2 = NULL;
 			head->read_step = 1;
 		case 1:
-			if (!ccs_read_mount_policy(head))
+			if (!ccs_read_system_policy(head))
 				break;
 			head->read_var2 = NULL;
 			head->read_step = 2;
 		case 2:
-			if (!ccs_read_no_umount_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 3;
-		case 3:
-			if (!ccs_read_chroot_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 4;
-		case 4:
-			if (!ccs_read_pivot_root_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 5;
-		case 5:
 			if (!ccs_read_reserved_port_policy(head))
 				break;
 			head->read_eof = true;
@@ -2641,7 +2785,6 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	list_add_tail(&query_entry->list, &query_list);
 	spin_unlock(&query_list_lock);
 	/***** CRITICAL SECTION END *****/
-	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
 	/* Give 10 seconds for supervisor's opinion. */
 	for (query_entry->timer = 0; atomic_read(&queryd_watcher)
 		     && query_entry->timer < 100; query_entry->timer++) {
@@ -2651,7 +2794,6 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		if (query_entry->answer)
 			break;
 	}
-	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&query_list_lock);
 	list_del(&query_entry->list);
@@ -2830,68 +2972,6 @@ static int write_answer(struct ccs_io_buffer *head)
 	return 0;
 }
 
-/* Policy updates counter. */
-static unsigned int updates_counter[MAX_CCS_UPDATES_COUNTER];
-
-/* Policy updates counter lock. */
-static DEFINE_SPINLOCK(updates_counter_lock);
-
-/**
- * ccs_update_counter - Increment policy change counter.
- *
- * @index: Type of policy.
- *
- * Returns nothing.
- */
-void ccs_update_counter(const unsigned char index)
-{
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&updates_counter_lock);
-	if (index < MAX_CCS_UPDATES_COUNTER)
-		updates_counter[index]++;
-	spin_unlock(&updates_counter_lock);
-	/***** CRITICAL SECTION END *****/
-}
-
-/**
- * read_updates_counter - Check for policy change counter.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns how many times policy has changed since the previous check.
- */
-static int read_updates_counter(struct ccs_io_buffer *head)
-{
-	if (!head->read_eof) {
-		unsigned int counter[MAX_CCS_UPDATES_COUNTER];
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&updates_counter_lock);
-		memmove(counter, updates_counter, sizeof(updates_counter));
-		memset(updates_counter, 0, sizeof(updates_counter));
-		spin_unlock(&updates_counter_lock);
-		/***** CRITICAL SECTION END *****/
-		ccs_io_printf(head,
-			      "/proc/ccs/system_policy:    %10u\n"
-			      "/proc/ccs/domain_policy:    %10u\n"
-			      "/proc/ccs/exception_policy: %10u\n"
-			      "/proc/ccs/profile:          %10u\n"
-			      "/proc/ccs/query:            %10u\n"
-			      "/proc/ccs/manager:          %10u\n"
-			      "/proc/ccs/grant_log:        %10u\n"
-			      "/proc/ccs/reject_log:       %10u\n",
-			      counter[CCS_UPDATES_COUNTER_SYSTEM_POLICY],
-			      counter[CCS_UPDATES_COUNTER_DOMAIN_POLICY],
-			      counter[CCS_UPDATES_COUNTER_EXCEPTION_POLICY],
-			      counter[CCS_UPDATES_COUNTER_PROFILE],
-			      counter[CCS_UPDATES_COUNTER_QUERY],
-			      counter[CCS_UPDATES_COUNTER_MANAGER],
-			      counter[CCS_UPDATES_COUNTER_GRANT_LOG],
-			      counter[CCS_UPDATES_COUNTER_REJECT_LOG]);
-		head->read_eof = true;
-	}
-	return 0;
-}
-
 /**
  * read_version: Get version.
  *
@@ -3008,9 +3088,6 @@ int ccs_open_control(const u8 type, struct file *file)
 	case CCS_MANAGER: /* /proc/ccs/manager */
 		head->write = write_manager_policy;
 		head->read = read_manager_policy;
-		break;
-	case CCS_UPDATESCOUNTER: /* /proc/ccs/.updates_counter */
-		head->read = read_updates_counter;
 		break;
 	}
 	if (!(file->f_mode & FMODE_READ)) {
@@ -3248,6 +3325,18 @@ void *ccs_alloc_acl_element(const u8 acl_type,
 	case TYPE_DENIED_EXECUTE_HANDLER:
 		len = sizeof(struct execute_handler_record);
 		break;
+	case TYPE_NO_UMOUNT_ACL:
+		len = sizeof(struct no_umount_entry);
+		break;
+	case TYPE_MOUNT_ACL:
+		len = sizeof(struct mount_entry);
+		break;
+	case TYPE_CHROOT_ACL:
+		len = sizeof(struct chroot_entry);
+		break;
+	case TYPE_PIVOT_ROOT_ACL:
+		len = sizeof(struct pivot_root_entry);
+		break;
 	default:
 		return NULL;
 	}
@@ -3275,3 +3364,22 @@ void *ccs_alloc_acl_element(const u8 acl_type,
 	ptr->type = acl_type;
 	return ptr;
 }
+
+/**
+ * ccs_common_init - Initialize realpath related code.
+ *
+ * Returns 0.
+ */
+static int __init ccs_common_init(void)
+{
+	INIT_LIST1_HEAD(&ccs_system_policy.list);
+	INIT_LIST1_HEAD(&ccs_system_policy.acl_info_list);
+	ccs_system_policy.domainname = ccs_save_name("<SYSTEM>");
+	return 0;
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+__initcall(ccs_common_init);
+#else
+core_initcall(ccs_common_init);
+#endif

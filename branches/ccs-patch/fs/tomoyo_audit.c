@@ -267,11 +267,9 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	if (is_granted) {
 		list_add_tail(&new_entry->list, &grant_log);
 		grant_log_count++;
-		ccs_update_counter(CCS_UPDATES_COUNTER_GRANT_LOG);
 	} else {
 		list_add_tail(&new_entry->list, &reject_log);
 		reject_log_count++;
-		ccs_update_counter(CCS_UPDATES_COUNTER_REJECT_LOG);
 	}
 	spin_unlock(&audit_log_lock);
 	/***** CRITICAL SECTION END *****/

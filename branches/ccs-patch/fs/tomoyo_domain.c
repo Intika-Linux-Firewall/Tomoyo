@@ -140,7 +140,6 @@ int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
 	} else {
 		acl->type &= ~ACL_DELETED;
 	}
-	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
 
@@ -155,7 +154,6 @@ int ccs_del_domain_acl(struct acl_info *acl)
 {
 	if (acl)
 		acl->type |= ACL_DELETED;
-	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
 
@@ -259,7 +257,6 @@ static int update_domain_initializer_entry(const char *domainname,
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -418,7 +415,6 @@ static int update_domain_keeper_entry(const char *domainname,
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -561,7 +557,6 @@ static int update_alias_entry(const char *original_name,
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -658,7 +653,6 @@ static int update_aggregator_entry(const char *original_name,
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 

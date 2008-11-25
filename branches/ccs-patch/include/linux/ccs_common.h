@@ -213,6 +213,8 @@ struct mini_stat {
 	uid_t uid;
 	gid_t gid;
 	ino_t ino;
+	mode_t mode;
+	dev_t rdev;
 };
 
 /* Structure for attribute checks in addition to pathname checks. */
@@ -508,6 +510,40 @@ struct ip_network_acl_record {
 #define IP_RECORD_TYPE_IPv4          1
 #define IP_RECORD_TYPE_IPv6          2
 
+/* Structure for "deny_unmount" directive. */
+struct no_umount_entry {
+	struct acl_info head; /* type = TYPE_NO_UMOUNT_ACL */
+	const struct path_info *dir;
+};
+
+/* Structure for "allow_mount" directive. */
+struct mount_entry {
+	struct acl_info head; /* type = TYPE_MOUNT_ACL */
+	const struct path_info *dev_name;
+	const struct path_info *dir_name;
+	const struct path_info *fs_type;
+	unsigned long flags;
+};
+
+/* Structure for "allow_chroot" directive. */
+struct chroot_entry {
+	struct acl_info head; /* type = TYPE_CHROOT_ACL */
+	const struct path_info *dir;
+};
+
+/* Structure for "allow_pivot_root" directive. */
+struct pivot_root_entry {
+	struct acl_info head; /* type = TYPE_PIVOT_ROOT_ACL */
+	const struct path_info *old_root;
+	const struct path_info *new_root;
+};
+
+/* Index numbers for Access Controls. See include/linux/tomoyo.h */
+#define TYPE_NO_UMOUNT_ACL          10
+#define TYPE_MOUNT_ACL              11
+#define TYPE_CHROOT_ACL             12
+#define TYPE_PIVOT_ROOT_ACL         13
+
 /* Keywords for ACLs. */
 #define KEYWORD_ADDRESS_GROUP             "address_group "
 #define KEYWORD_AGGREGATOR                "aggregator "
@@ -640,8 +676,6 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
 bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
 /* Read "alias" entry in exception policy. */
 bool ccs_read_alias_policy(struct ccs_io_buffer *head);
-/* Read "allow_chroot" entry in system policy. */
-bool ccs_read_chroot_policy(struct ccs_io_buffer *head);
 /*
  * Read "initialize_domain" and "no_initialize_domain" entry
  * in exception policy.
@@ -655,16 +689,10 @@ bool ccs_read_file_pattern(struct ccs_io_buffer *head);
 bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
 /* Read "allow_env" entry in exception policy. */
 bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
-/* Read "allow_mount" entry in system policy. */
-bool ccs_read_mount_policy(struct ccs_io_buffer *head);
 /* Read "deny_rewrite" entry in exception policy. */
 bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
-/* Read "deny_unmount" entry in system policy. */
-bool ccs_read_no_umount_policy(struct ccs_io_buffer *head);
 /* Read "path_group" entry in exception policy. */
 bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
-/* Read "allow_pivot_root" entry in system policy. */
-bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head);
 /* Read "deny_autobind" entry in system policy. */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
 /* Write domain policy violation warning message to console? */
@@ -690,6 +718,8 @@ struct domain_info *ccs_fetch_next_domain(void);
 /* Create conditional part of an ACL entry. */
 const struct condition_list *
 ccs_find_or_assign_new_condition(char * const condition);
+/* Create conditional part for execute_handler process. */
+const struct condition_list *ccs_handler_cond(void);
 /* Add an ACL entry to domain's ACL list. */
 int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
 /* Ask supervisor's opinion. */
@@ -736,7 +766,9 @@ int ccs_write_capability_policy(char *data, struct domain_info *domain,
 				const struct condition_list *condition,
 				const bool is_delete);
 /* Create "allow_chroot" entry in system policy. */
-int ccs_write_chroot_policy(char *data, const bool is_delete);
+int ccs_write_chroot_policy(char *data, struct domain_info *domain,
+			    const struct condition_list *condition,
+			    const bool is_delete);
 /*
  * Create "initialize_domain" and "no_initialize_domain" entry
  * in exception policy.
@@ -766,7 +798,9 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete);
 /* Create "allow_env" entry in exception policy. */
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
 /* Create "allow_mount" entry in system policy. */
-int ccs_write_mount_policy(char *data, const bool is_delete);
+int ccs_write_mount_policy(char *data, struct domain_info *domain,
+			   const struct condition_list *condition,
+			   const bool is_delete);
 /* Create "allow_network" entry in domain policy. */
 int ccs_write_network_policy(char *data, struct domain_info *domain,
 			     const struct condition_list *condition,
@@ -774,13 +808,17 @@ int ccs_write_network_policy(char *data, struct domain_info *domain,
 /* Create "deny_rewrite" entry in exception policy. */
 int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
 /* Create "deny_unmount" entry in system policy. */
-int ccs_write_no_umount_policy(char *data, const bool is_delete);
+int ccs_write_no_umount_policy(char *data, struct domain_info *domain,
+			       const struct condition_list *condition,
+			       const bool is_delete);
 /* Create "path_group" entry in exception policy. */
 int ccs_write_path_group_policy(char *data, const bool is_delete);
 /* Create "file_pattern" entry in exception policy. */
 int ccs_write_pattern_policy(char *data, const bool is_delete);
 /* Create "allow_pivot_root" entry in system policy. */
-int ccs_write_pivot_root_policy(char *data, const bool is_delete);
+int ccs_write_pivot_root_policy(char *data, struct domain_info *domain,
+				const struct condition_list *condition,
+				const bool is_delete);
 /* Create "deny_autobind" entry in system policy. */
 int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 /* Create "allow_signal" entry in domain policy. */
@@ -817,9 +855,6 @@ void ccs_print_ipv6(char *buffer, const int buffer_len,
 /* Change "struct domain_info"->flags. */
 void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
 			 const u8 flags);
-/* Update the policy change counter. */
-void ccs_update_counter(const unsigned char index);
-
 /* Check whether the basename of program and argv0 is allowed to differ. */
 int ccs_check_argv0_perm(struct ccs_request_info *r,
 			 const struct path_info *filename, const char *argv0);

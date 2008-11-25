@@ -209,7 +209,6 @@ static int update_globally_readable_entry(const char *filename,
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -343,7 +342,6 @@ static int update_path_group_entry(const char *group_name,
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -493,7 +491,6 @@ static int update_file_pattern_entry(const char *pattern, const bool is_delete)
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -606,7 +603,6 @@ static int update_no_rewrite_entry(const char *pattern, const bool is_delete)
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -832,7 +828,8 @@ retry:
 		/* Don't use patterns for execute permission. */
 		const char *patterned_file = (perm != 1) ?
 			get_file_pattern(filename) : filename->name;
-		update_file_acl(patterned_file, perm, r->domain, NULL, false);
+		update_file_acl(patterned_file, perm, r->domain,
+				ccs_handler_cond(), false);
 	}
 	return 0;
 }
@@ -1271,7 +1268,7 @@ static int check_single_path_permission2(struct ccs_request_info *r,
 	}
 	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
 		update_single_path_acl(operation, get_file_pattern(filename),
-				       r->domain, NULL, false);
+				       r->domain, ccs_handler_cond(), false);
 	if (!is_enforce)
 		error = 0;
  ok:
@@ -1550,8 +1547,8 @@ retry:
 	}
 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
 		update_double_path_acl(operation, get_file_pattern(buf1),
-				       get_file_pattern(buf2), r.domain, NULL,
-				       false);
+				       get_file_pattern(buf2), r.domain,
+				       ccs_handler_cond(), false);
  out:
 	ccs_free(buf1);
 	ccs_free(buf2);

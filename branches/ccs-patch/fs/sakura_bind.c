@@ -63,7 +63,6 @@ static int update_reserved_entry(const u16 min_port, const u16 max_port,
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
 

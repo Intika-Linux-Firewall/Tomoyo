@@ -182,7 +182,6 @@ static int update_address_group_entry(const char *group_name,
 	error = 0;
  out:
 	mutex_unlock(&lock);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -643,7 +642,7 @@ retry:
 		update_network_entry(operation, is_ipv6 ?
 				     IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4,
 				     NULL, address, address, port, port,
-				     r.domain, NULL, 0);
+				     r.domain, ccs_handler_cond(), 0);
 	return 0;
 }
 

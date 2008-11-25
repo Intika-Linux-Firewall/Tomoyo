@@ -33,7 +33,6 @@
 #define CCS_PROFILE              10
 #define CCS_QUERY                11
 #define CCS_MANAGER              12
-#define CCS_UPDATESCOUNTER       13
-#define CCS_EXECUTE_HANDLER      14
+#define CCS_EXECUTE_HANDLER      13
 
 #endif
