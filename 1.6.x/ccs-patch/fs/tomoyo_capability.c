@@ -191,7 +191,8 @@ bool ccs_capable(const u8 operation)
 		return !error;
 	}
 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
-		update_capability_acl(operation, r.domain, NULL, false);
+		update_capability_acl(operation, r.domain, ccs_handler_cond(),
+				      false);
 	return true;
 }
 EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */

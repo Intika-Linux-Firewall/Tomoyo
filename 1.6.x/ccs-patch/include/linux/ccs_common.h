@@ -213,6 +213,8 @@ struct mini_stat {
 	uid_t uid;
 	gid_t gid;
 	ino_t ino;
+	mode_t mode;
+	dev_t rdev;
 };
 
 /* Structure for attribute checks in addition to pathname checks. */
@@ -690,6 +692,8 @@ struct domain_info *ccs_fetch_next_domain(void);
 /* Create conditional part of an ACL entry. */
 const struct condition_list *
 ccs_find_or_assign_new_condition(char * const condition);
+/* Create conditional part for execute_handler process. */
+const struct condition_list *ccs_handler_cond(void);
 /* Add an ACL entry to domain's ACL list. */
 int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
 /* Ask supervisor's opinion. */

@@ -200,7 +200,8 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		return error;
 	}
 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
-		update_signal_acl(sig, dest_pattern, r.domain, NULL, false);
+		update_signal_acl(sig, dest_pattern, r.domain,
+				  ccs_handler_cond(), false);
 	return 0;
 }
 

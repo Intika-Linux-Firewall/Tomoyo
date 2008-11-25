@@ -274,7 +274,7 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
 		return error;
 	}
 	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
-		update_env_entry(env, r->domain, NULL, false);
+		update_env_entry(env, r->domain, ccs_handler_cond(), false);
 	return 0;
 }
 

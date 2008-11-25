@@ -643,7 +643,7 @@ retry:
 		update_network_entry(operation, is_ipv6 ?
 				     IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4,
 				     NULL, address, address, port, port,
-				     r.domain, NULL, 0);
+				     r.domain, ccs_handler_cond(), 0);
 	return 0;
 }
 
