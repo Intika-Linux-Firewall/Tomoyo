@@ -25,8 +25,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  security/security.c      |    6 ++++++
  6 files changed, 35 insertions(+)
 
---- linux-2.6.28-rc5-mm1.orig/fs/namei.c
-+++ linux-2.6.28-rc5-mm1/fs/namei.c
+--- linux-2.6.28-rc6-mm1.orig/fs/namei.c
++++ linux-2.6.28-rc6-mm1/fs/namei.c
 @@ -1566,6 +1566,7 @@ int may_open(struct nameidata *nd, int a
  			error = do_truncate(dentry, 0,
  					    ATTR_MTIME|ATTR_CTIME|ATTR_OPEN,
@@ -99,8 +99,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  exit6:
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
---- linux-2.6.28-rc5-mm1.orig/fs/open.c
-+++ linux-2.6.28-rc5-mm1/fs/open.c
+--- linux-2.6.28-rc6-mm1.orig/fs/open.c
++++ linux-2.6.28-rc6-mm1/fs/open.c
 @@ -277,6 +277,7 @@ static long do_sys_truncate(const char _
  	if (!error) {
  		DQUOT_INIT(inode);
@@ -117,8 +117,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  out_putf:
  	fput(file);
  out:
---- linux-2.6.28-rc5-mm1.orig/include/linux/security.h
-+++ linux-2.6.28-rc5-mm1/include/linux/security.h
+--- linux-2.6.28-rc6-mm1.orig/include/linux/security.h
++++ linux-2.6.28-rc6-mm1/include/linux/security.h
 @@ -527,6 +527,12 @@ static inline void security_free_mnt_opt
   *	@inode contains a pointer to the inode.
   *	@secid contains a pointer to the location where result will be saved.
@@ -159,9 +159,9 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #endif	/* CONFIG_SECURITY_PATH */
  
  #ifdef CONFIG_KEYS
---- linux-2.6.28-rc5-mm1.orig/net/unix/af_unix.c
-+++ linux-2.6.28-rc5-mm1/net/unix/af_unix.c
-@@ -832,6 +832,7 @@ static int unix_bind(struct socket *sock
+--- linux-2.6.28-rc6-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.28-rc6-mm1/net/unix/af_unix.c
+@@ -837,6 +837,7 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
@@ -169,8 +169,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  out_mknod_drop_write:
  		mnt_drop_write(nd.path.mnt);
  		if (err)
---- linux-2.6.28-rc5-mm1.orig/security/capability.c
-+++ linux-2.6.28-rc5-mm1/security/capability.c
+--- linux-2.6.28-rc6-mm1.orig/security/capability.c
++++ linux-2.6.28-rc6-mm1/security/capability.c
 @@ -308,6 +308,10 @@ static int cap_path_truncate(struct path
  {
  	return 0;
@@ -190,8 +190,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #endif
  	set_to_cap_if_null(ops, file_permission);
  	set_to_cap_if_null(ops, file_alloc_security);
---- linux-2.6.28-rc5-mm1.orig/security/security.c
-+++ linux-2.6.28-rc5-mm1/security/security.c
+--- linux-2.6.28-rc6-mm1.orig/security/security.c
++++ linux-2.6.28-rc6-mm1/security/security.c
 @@ -419,6 +419,12 @@ int security_path_truncate(struct path *
  		return 0;
  	return security_ops->path_truncate(path, length, time_attrs, filp);
