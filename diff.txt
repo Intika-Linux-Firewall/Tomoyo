@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 1889)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 1891)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(working copy)
 @@ -47,12 +47,20 @@
  #define SYSTEM_POLICY_FILE    "system_policy"
@@ -19,29 +19,16 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
 +#define SCREEN_PROFILE_LIST   4
 +#define SCREEN_MANAGER_LIST   5
 +#define SCREEN_QUERY_LIST     6
-+#define SCREEN_MEMORY_LIST    7
++#define SCREEN_MEMINFO_LIST   7
 +#define MAXSCREEN             8
  
  #define POLICY_TYPE_UNKNOWN          0
  #define POLICY_TYPE_DOMAIN_POLICY    1
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 1889)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 1891)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(working copy)
-@@ -1435,6 +1435,12 @@
- 	}
- }
- 
-+static inline bool has_directive(const int screen)
-+{
-+	return screen == SCREEN_SYSTEM_LIST || screen == SCREEN_EXCEPTION_LIST
-+		|| screen == SCREEN_ACL_LIST;
-+}
-+
- static u8 find_directive(const bool forward, char *line);
- static int generic_acl_compare(const void *a, const void *b);
- 
-@@ -1452,6 +1458,15 @@
+@@ -1452,6 +1452,15 @@
  	return strcmp(a2, b2);
  }
  
@@ -57,90 +44,185 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static void read_generic_policy(void)
  {
  	FILE *fp = NULL;
-@@ -1487,9 +1502,13 @@
+@@ -1487,9 +1496,16 @@
  			if (!shared_buffer[0])
  				continue;
  		}
 -		directive = find_directive(true, shared_buffer);
 -		if (directive == DIRECTIVE_NONE)
 -			continue;
-+		if (has_directive(current_screen)) {
++		switch (current_screen) {
++		case SCREEN_SYSTEM_LIST:
++		case SCREEN_EXCEPTION_LIST:
++		case SCREEN_ACL_LIST:
 +			directive = find_directive(true, shared_buffer);
 +			if (directive == DIRECTIVE_NONE)
 +				continue;
-+		} else {
++		default:
 +			directive = DIRECTIVE_NONE;
 +		}
  		generic_acl_list = realloc(generic_acl_list,
  					   (generic_acl_list_count + 1) *
  					   sizeof(struct generic_acl));
-@@ -1506,10 +1525,12 @@
- 	if (current_screen == SCREEN_ACL_LIST)
+@@ -1503,14 +1519,21 @@
+ 		generic_acl_list[generic_acl_list_count++].operand = cp;
+ 	}
+ 	put();
+-	if (current_screen == SCREEN_ACL_LIST)
++	fclose(fp);
++	switch (current_screen) {
++	case SCREEN_ACL_LIST:
  		qsort(generic_acl_list, generic_acl_list_count,
  		      sizeof(struct generic_acl), generic_acl_compare);
-+	else if (has_directive(current_screen))
-+		qsort(generic_acl_list, generic_acl_list_count,
-+		      sizeof(struct generic_acl), generic_acl_compare0);
- 	else
+-	else
++		break;
++	case SCREEN_SYSTEM_LIST:
++	case SCREEN_EXCEPTION_LIST:
  		qsort(generic_acl_list, generic_acl_list_count,
--		      sizeof(struct generic_acl), generic_acl_compare0);
+ 		      sizeof(struct generic_acl), generic_acl_compare0);
 -
+-	fclose(fp);
++		break;
++	default:
++		qsort(generic_acl_list, generic_acl_list_count,
 +		      sizeof(struct generic_acl), string_acl_compare);
- 	fclose(fp);
++	}
  }
  
-@@ -2194,6 +2215,20 @@
+ static int add_domain_initializer_entry(const char *domainname,
+@@ -2091,16 +2114,16 @@
+ 	const char *sp;
+ 	const int number = proc_domain_list[index].number;
+ 	int redirect_index;
++	move(header_lines + i, 0);
+ 	if (number >= 0)
+-		mvprintw(header_lines + i, 0,
+-			 "%c%4d:%3u %c%c%c ",
++		printw("%c%4d:%3u %c%c%c ",
+ 			 proc_domain_list_selected[index] ? '&' : ' ',
+ 			 number, proc_domain_list[index].profile,
+ 			 is_keeper_domain(index) ? '#' : ' ',
+ 			 is_initializer_target(index) ? '*' : ' ',
+ 			 is_domain_unreachable(index) ? '!' : ' ');
+ 	else
+-		mvprintw(header_lines + i, 0, "              ");
++		printw("              ");
+ 	tmp_col += 14;
+ 	sp = domain_name(index);
+ 	while (true) {
+@@ -2185,15 +2208,26 @@
+ 	const char *cp1 = directives[directive].alias;
+ 	const char *cp2 = generic_acl_list[index].operand;
+ 	int len = list_indent - directives[directive].alias_len;
+-	mvprintw(header_lines + i, 0, "%c%4d: %s ",
+-		 generic_acl_list[index].selected ? '&' : ' ',
+-		 index, eat(cp1));
++	move(header_lines + i, 0);
++	printw("%c%4d: %s ",
++	       generic_acl_list[index].selected ? '&' : ' ',
++	       index, eat(cp1));
+ 	while (len-- > 0)
+ 		printw("%s", eat(" "));
+ 	printw("%s", eat(cp2));
  	return strlen(cp1) + strlen(cp2) + 8 + list_indent;
  }
  
 +static int show_literal_line(int i, int index)
 +{
-+	const char *cp1 = "";
-+	const char *cp2 = generic_acl_list[index].operand;
-+	int len = 0;
-+	mvprintw(header_lines + i, 0, "%c%4d: %s ",
-+		 generic_acl_list[index].selected ? '&' : ' ',
-+		 index, eat(cp1));
-+	while (len-- > 0)
-+		printw("%s", eat(" "));
-+	printw("%s", eat(cp2));
-+	return strlen(cp1) + strlen(cp2) + 8;
++	const char *cp = generic_acl_list[index].operand;
++	move(header_lines + i, 0);
++	printw("%c%4d: %s ",
++	       generic_acl_list[index].selected ? '&' : ' ',
++	       index, eat(cp));
++	return strlen(cp) + 8;
 +}
 +
  static void show_list(void)
  {
  	const int offset = current_item_index[current_screen];
-@@ -2221,7 +2256,7 @@
- 			 i, i > 1 ? 's' : ' ');
+@@ -2204,10 +2238,10 @@
+ 	else
+ 		list_item_count[current_screen] = generic_acl_list_count;
+ 	clear();
++	move(0, 0);
+ 	if (window_height < header_lines + 1) {
+-		mvprintw(0, 0, "Please resize window. "
+-			 "This program needs at least %d lines.\n",
+-			 header_lines + 1);
++		printw("Please enlarge window.");
++		clrtobot();
+ 		refresh();
+ 		return;
+ 	}
+@@ -2216,14 +2250,14 @@
+ 	if (current_screen == SCREEN_DOMAIN_LIST) {
+ 		i = list_item_count[SCREEN_DOMAIN_LIST]
+ 			- unnumbered_domain_count;
+-		mvprintw(0, 0, "<<< Domain Transition Editor >>>"
+-			 "      %d domain%c    '?' for help",
+-			 i, i > 1 ? 's' : ' ');
++		printw("<<< Domain Transition Editor >>>"
++		       "      %d domain%c    '?' for help",
++		       i, i > 1 ? 's' : ' ');
  	} else {
  		i = list_item_count[current_screen];
 -		mvprintw(0, 0, "<<< %s Editor >>>"
-+		mvprintw(0, 0, "<<< %s >>>"
- 			 "      %d entr%s    '?' for help", list_caption,
- 			 i, i > 1 ? "ies" : "y");
+-			 "      %d entr%s    '?' for help", list_caption,
+-			 i, i > 1 ? "ies" : "y");
++		printw("<<< %s >>>"
++		       "      %d entr%s    '?' for help", list_caption,
++		       i, i > 1 ? "ies" : "y");
  	}
-@@ -2239,7 +2274,7 @@
+ 	/* add color */
+ 	editpolicy_color_change(editpolicy_color_head(current_screen), false);
+@@ -2235,28 +2269,41 @@
+ 		snprintf(shared_buffer, shared_buffer_len - 1, "%s",
+ 			 eat(current_domain));
+ 		editpolicy_attr_change(A_REVERSE, true);  /* add color */
+-		mvprintw(2, 0, "%s", shared_buffer);
++		move(2, 0);
++		printw("%s", shared_buffer);
  		editpolicy_attr_change(A_REVERSE, false); /* add color */
  		put();
  	}
 -	if (current_screen != SCREEN_DOMAIN_LIST) {
-+	if (has_directive(current_screen)) {
- 		list_indent = 0;
+-		list_indent = 0;
++	list_indent = 0;
++	switch (current_screen) {
++	case SCREEN_SYSTEM_LIST:
++	case SCREEN_EXCEPTION_LIST:
++	case SCREEN_ACL_LIST:
  		for (i = 0; i < list_item_count[current_screen]; i++) {
  			const u8 directive = generic_acl_list[i].directive;
-@@ -2255,8 +2290,10 @@
+ 			const int len = directives[directive].alias_len;
+ 			if (len > list_indent)
+ 				list_indent = len;
+ 		}
++		break;
+ 	}
+ 	for (i = 0; i < body_lines; i++) {
+ 		const int index = offset + i;
+ 		eat_col = max_eat_col[current_screen];
+ 		if (index >= list_item_count[current_screen])
  			break;
- 		if (current_screen == SCREEN_DOMAIN_LIST)
+-		if (current_screen == SCREEN_DOMAIN_LIST)
++		switch (current_screen) {
++		case SCREEN_DOMAIN_LIST:
  			tmp_col = show_domain_line(i, index);
-+		else if (has_directive(current_screen))
-+			tmp_col = show_acl_line(i, index, list_indent);
- 		else
--			tmp_col = show_acl_line(i, index, list_indent);
+-		else
++			break;
++		case SCREEN_SYSTEM_LIST:
++		case SCREEN_EXCEPTION_LIST:
++		case SCREEN_ACL_LIST:
+ 			tmp_col = show_acl_line(i, index, list_indent);
++			break;
++		default:
 +			tmp_col = show_literal_line(i, index);
++		}
  		clrtoeol();
  		tmp_col -= window_width;
  		if (tmp_col > max_col)
-@@ -2358,8 +2395,8 @@
+@@ -2358,8 +2405,8 @@
  
  /* add color start */
  #ifdef COLOR_ON
@@ -151,29 +233,163 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  
  static void editpolicy_line_draw(void)
  {
-@@ -2949,9 +2986,12 @@
- 			goto out;
- 		if (current_screen == SCREEN_ACL_LIST)
- 			fprintf(fp, "select %s\n", current_domain);
--		directive = find_directive(false, line);
--		if (directive != DIRECTIVE_NONE)
--			fprintf(fp, "%s ", directives[directive].original);
-+		if (has_directive(current_screen)) {
-+			directive = find_directive(false, line);
-+			if (directive != DIRECTIVE_NONE)
-+				fprintf(fp, "%s ",
-+					directives[directive].original);
+@@ -2934,27 +2981,40 @@
+ 	if (!line || !*line)
+ 		goto out;
+ 	rl->count = simple_add_history(line, rl->history, rl->count, rl->max);
+-	if (current_screen == SCREEN_DOMAIN_LIST && !is_correct_domain(line)) {
+-		const int len = strlen(line) + 128;
+-		rl->last_error = realloc(rl->last_error, len);
+-		if (!rl->last_error)
+-			out_of_memory();
+-		memset(rl->last_error, 0, len);
+-		snprintf(rl->last_error, len - 1,
+-			 "%s is an invalid domainname.", line);
+-	} else {
++	FILE *fp = open_write(policy_file);
++	if (!fp)
++		goto out;
++	switch (current_screen) {
+ 		u8 directive;
+-		FILE *fp = open_write(policy_file);
+-		if (!fp)
+-			goto out;
+-		if (current_screen == SCREEN_ACL_LIST)
+-			fprintf(fp, "select %s\n", current_domain);
++	case SCREEN_DOMAIN_LIST:
++		if (!is_correct_domain(line)) {
++			const int len = strlen(line) + 128;
++			rl->last_error = realloc(rl->last_error, len);
++			if (!rl->last_error)
++				out_of_memory();
++			memset(rl->last_error, 0, len);
++			snprintf(rl->last_error, len - 1,
++				 "%s is an invalid domainname.", line);
++			line[0] = '\0';
 +		}
- 		fprintf(fp, "%s\n", line);
- 		fclose(fp);
++		break;
++	case SCREEN_ACL_LIST:
++		fprintf(fp, "select %s\n", current_domain);
++		/* Fall through. */
++	case SCREEN_SYSTEM_LIST:
++	case SCREEN_EXCEPTION_LIST:
+ 		directive = find_directive(false, line);
+ 		if (directive != DIRECTIVE_NONE)
+-			fprintf(fp, "%s ", directives[directive].original);
+-		fprintf(fp, "%s\n", line);
+-		fclose(fp);
++			fprintf(fp, "%s ",
++				directives[directive].original);
++		break;
++	case SCREEN_PROFILE_LIST:
++		if (!strchr(line, '='))
++			fprintf(fp, "%s-COMMENT=\n", line);
++		break;
  	}
-@@ -3044,6 +3084,58 @@
++	fprintf(fp, "%s\n", line);
++	fclose(fp);
+ out:
+ 	free(line);
+ }
+@@ -2970,7 +3030,7 @@
+ 		goto start_search;
+ 	editpolicy_attr_change(A_BOLD, true);  /* add color */
+ 	line = simple_readline(window_height - 1, 0, "Search> ",
+-			       rl->history, rl->count, 4000, 8);
++			       rl->history, rl->count, 8192, 8);
+ 	editpolicy_attr_change(A_BOLD, false); /* add color */
+ 	if (!line || !*line)
+ 		goto out;
+@@ -3015,11 +3075,10 @@
+ 	int index;
+ 	FILE *fp;
+ 	char *line;
+-	if (current_screen != SCREEN_DOMAIN_LIST)
+-		return;
+ 	if (!count(proc_domain_list_selected, proc_domain_list_count) &&
+ 	    !select_item(current)) {
+-		mvprintw(1, 0, "Select domain using Space key first.");
++		move(1, 0);
++		printw("Select domain using Space key first.");
+ 		clrtoeol();
+ 		refresh();
+ 		return;
+@@ -3044,42 +3103,192 @@
  	free(line);
  }
  
++static void set_level(int current)
++{
++	int index;
++	FILE *fp;
++	char *line;
++	if (!count2(generic_acl_list, generic_acl_list_count))
++		select_item(current);
++	editpolicy_attr_change(A_BOLD, true);  /* add color */
++	line = simple_readline(window_height - 1, 0, "Enter new value> ",
++			       NULL, 0, 8192, 1);
++	editpolicy_attr_change(A_BOLD, false); /* add color */
++	if (!line || !*line)
++		goto out;
++	fp = open_write(PROFILE_POLICY_FILE);
++	if (!fp)
++		goto out;
++	for (index = 0; index < generic_acl_list_count; index++) {
++		char *cp;
++		if (!generic_acl_list[index].selected)
++			continue;
++		get();
++		strncpy(shared_buffer, generic_acl_list[index].operand,
++			shared_buffer_len - 1);
++		cp = strchr(shared_buffer, '=');
++		if (cp)
++			*cp = '\0';
++		fprintf(fp, "%s=%s\n", shared_buffer, line);
++		put();
++	}
++	fclose(fp);
++out:
++	free(line);
++}
++
++static void set_quota(int current)
++{
++	int index;
++	FILE *fp;
++	char *line;
++	if (!count2(generic_acl_list, generic_acl_list_count))
++		select_item(current);
++	editpolicy_attr_change(A_BOLD, true);  /* add color */
++	line = simple_readline(window_height - 1, 0, "Enter new value> ",
++			       NULL, 0, 20, 1);
++	editpolicy_attr_change(A_BOLD, false); /* add color */
++	if (!line || !*line)
++		goto out;
++	fp = open_write(MEMINFO_POLICY_FILE);
++	if (!fp)
++		goto out;
++	for (index = 0; index < generic_acl_list_count; index++) {
++		char *cp;
++		if (!generic_acl_list[index].selected)
++			continue;
++		get();
++		strncpy(shared_buffer, generic_acl_list[index].operand,
++			shared_buffer_len - 1);
++		cp = strchr(shared_buffer, ':');
++		if (cp)
++			*cp = '\0';
++		fprintf(fp, "%s: %s\n", shared_buffer, line);
++		put();
++	}
++	fclose(fp);
++out:
++	free(line);
++}
++
 +static int select_window(const int current)
 +{
-+	mvprintw(0, 0, "Press one of below keys to switch window.\n\n");
++	move(0, 0);
++	printw("Press one of below keys to switch window.\n\n");
 +	printw("s     <<< System Policy Editor >>>\n");
 +	printw("e     <<< Exception Policy Editor >>>\n");
 +	printw("d     <<< Domain Transition Editor >>>\n");
@@ -184,7 +400,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +	printw("p     <<< Profile Editor >>>\n");
 +	printw("m     <<< Manager Policy Editor >>>\n");
 +	if (!offline_mode) {
-+		printw("i     <<< Interactive Enforcing Mode >>>\n");
++		/* printw("i     <<< Interactive Enforcing Mode >>>\n"); */
 +		printw("q     <<< Memory Quota Editor >>>\n");
 +	}
 +	clrtobot();
@@ -213,10 +429,12 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +		if (c == 'M' || c == 'm')
 +			return SCREEN_MANAGER_LIST;
 +		if (!offline_mode) {
++			/*
 +			if (c == 'I' || c == 'i')
 +				return SCREEN_QUERY_LIST;
++			*/
 +			if (c == 'Q' || c == 'q')
-+				return SCREEN_MEMORY_LIST;
++				return SCREEN_MEMINFO_LIST;
 +		}
 +		if (c == EOF)
 +			return MAXSCREEN;
@@ -226,15 +444,100 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static void show_command_key(void)
  {
  	int c;
-@@ -3054,6 +3146,7 @@
- 	       "F/f        Find first.\n"
- 	       "N/n        Find next.\n"
- 	       "P/p        Find previous.\n"
-+	       "W/w        Switch to selected screen.\n"
- 	       "Tab        Switch to next screen.\n"
- 	       "Insert     Copy an entry at the cursor position to history "
- 	       "buffer.\n"
-@@ -3105,16 +3198,28 @@
+ 	clear();
+-	printw("Commands available for this screen are:\n\n"
+-	       "Q/q        Quit this editor.\n"
+-	       "R/r        Refresh to the latest information.\n"
+-	       "F/f        Find first.\n"
+-	       "N/n        Find next.\n"
+-	       "P/p        Find previous.\n"
+-	       "Tab        Switch to next screen.\n"
+-	       "Insert     Copy an entry at the cursor position to history "
+-	       "buffer.\n"
+-	       "Space      Invert selection state of an entry at the cursor "
+-	       "position.\n"
+-	       "C/c        Copy selection state of an entry at the cursor "
++	printw("Commands available for this screen are:\n\n");
++	printw("Q/q        Quit this editor.\n");
++	printw("R/r        Refresh to the latest information.\n");
++	switch (current_screen) {
++	case SCREEN_MEMINFO_LIST:
++		break;
++	default:
++		printw("F/f        Find first.\n");
++		printw("N/n        Find next.\n");
++		printw("P/p        Find previous.\n");
++	}
++	printw("W/w        Switch to selected screen.\n");
++	/* printw("Tab        Switch to next screen.\n"); */
++	switch (current_screen) {
++	case SCREEN_MEMINFO_LIST:
++		break;
++	default:
++		printw("Insert     Copy an entry at the cursor position to history "
++		       "buffer.\n");
++	}
++	printw("Space      Invert selection state of an entry at the cursor "
++	       "position.\n");
++	printw("C/c        Copy selection state of an entry at the cursor "
+ 	       "position to all entries below the cursor position.\n");
+-	if (current_screen != SCREEN_DOMAIN_LIST)
+-		goto not_domain_list;
+-	printw("A/a        Add a new domain.\n"
+-	       "Enter      Edit ACLs of a domain at the cursor position.\n"
+-	       "D/d        Delete selected domains.\n"
+-	       "S/s        Set profile number of selected domains.\n");
+-	goto wait_key;
+-not_domain_list:
+-	printw("A/a        Add a new entry.\n"
+-	       "D/d        Delete selected entries.\n");
+-	if (current_screen != SCREEN_ACL_LIST)
+-		goto wait_key;
+-	printw("O/o        Set selection state to other entries included in "
+-	       "an entry at the cursor position.\n");
+-	printw("@          Switch sort type.\n");
+-wait_key:
++	switch (current_screen) {
++	case SCREEN_DOMAIN_LIST:
++		printw("A/a        Add a new domain.\n");
++		printw("Enter      Edit ACLs of a domain at the cursor position.\n");
++		printw("D/d        Delete selected domains.\n");
++		printw("S/s        Set profile number of selected domains.\n");
++		break;
++	case SCREEN_MEMINFO_LIST:
++		printw("S/s        Set memory quota of selected items.\n");
++		break;
++	case SCREEN_PROFILE_LIST:
++		printw("S/s        Set mode of selected items.\n");
++		break;
++	}
++	switch (current_screen) {
++	case SCREEN_SYSTEM_LIST:
++	case SCREEN_EXCEPTION_LIST:
++	case SCREEN_ACL_LIST:
++	case SCREEN_MANAGER_LIST:
++		printw("A/a        Add a new entry.\n");
++		printw("D/d        Delete selected entries.\n");
++	}
++	switch (current_screen) {
++	case SCREEN_PROFILE_LIST:
++		printw("A/a        Define a new profile.\n");
++	}
++	switch (current_screen) {
++	case SCREEN_ACL_LIST:
++		printw("O/o        Set selection state to other entries included in "
++		       "an entry at the cursor position.\n");
++		printw("@          Switch sort type.\n");
++	}
+ 	printw("Arrow-keys and PageUp/PageDown/Home/End keys "
+-	       "for scroll.\n\n"
+-	       "Press '?' to escape from this help.\n");
++	       "for scroll.\n\n");
++	printw("Press '?' to escape from this help.\n");
+ 	refresh();
+ 	while (true) {
+ 		c = getch2();
+@@ -3105,16 +3314,28 @@
  	}
  	if (current_screen == SCREEN_SYSTEM_LIST) {
  		policy_file = SYSTEM_POLICY_FILE;
@@ -257,7 +560,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +	} else if (current_screen == SCREEN_MANAGER_LIST) {
 +		policy_file = MANAGER_POLICY_FILE;
 +		list_caption = "Manager Policy Editor";
-+	} else if (current_screen == SCREEN_MEMORY_LIST) {
++	} else if (current_screen == SCREEN_MEMINFO_LIST) {
 +		policy_file = MEMINFO_POLICY_FILE;
 +		list_caption = "Memory Quota Editor";
  	} else {
@@ -267,7 +570,127 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	}
  	current_item_index[current_screen]
  		= saved_current_item_index[current_screen];
-@@ -3315,6 +3420,9 @@
+@@ -3130,7 +3351,8 @@
+ start2:
+ 	show_list();
+ 	if (rl.last_error && current_screen == SCREEN_DOMAIN_LIST) {
+-		mvprintw(1, 0, "ERROR: %s", rl.last_error);
++		move(1, 0);
++		printw("ERROR: %s", rl.last_error);
+ 		clrtoeol();
+ 		refresh();
+ 		free(rl.last_error);
+@@ -3210,10 +3432,13 @@
+ 			break;
+ 		case 'f':
+ 		case 'F':
+-			find_entry(true, true, current, &rl);
++			if (current_screen != SCREEN_MEMINFO_LIST)
++				find_entry(true, true, current, &rl);
+ 			break;
+ 		case 'p':
+ 		case 'P':
++			if (current_screen == SCREEN_MEMINFO_LIST)
++				break;
+ 			if (!rl.search_buffer[current_screen])
+ 				find_entry(true, false, current, &rl);
+ 			else
+@@ -3221,6 +3446,8 @@
+ 			break;
+ 		case 'n':
+ 		case 'N':
++			if (current_screen == SCREEN_MEMINFO_LIST)
++				break;
+ 			if (!rl.search_buffer[current_screen])
+ 				find_entry(true, true, current, &rl);
+ 			else
+@@ -3228,12 +3455,28 @@
+ 			break;
+ 		case 'd':
+ 		case 'D':
+-			delete_entry(current);
+-			goto start;
++			switch (current_screen) {
++			case SCREEN_SYSTEM_LIST:
++			case SCREEN_EXCEPTION_LIST:
++			case SCREEN_ACL_LIST:
++			case SCREEN_DOMAIN_LIST:
++			case SCREEN_PROFILE_LIST:
++				delete_entry(current);
++				goto start;
++			}
++			break;
+ 		case 'a':
+ 		case 'A':
+-			add_entry(&rl);
+-			goto start;
++			switch (current_screen) {
++			case SCREEN_SYSTEM_LIST:
++			case SCREEN_EXCEPTION_LIST:
++			case SCREEN_ACL_LIST:
++			case SCREEN_DOMAIN_LIST:
++			case SCREEN_PROFILE_LIST:
++				add_entry(&rl);
++				goto start;
++			}
++			break;
+ 		case '\r':
+ 		case '\n':
+ 			if (current_screen != SCREEN_DOMAIN_LIST)
+@@ -3268,8 +3511,18 @@
+ 			break;
+ 		case 's':
+ 		case 'S':
+-			set_profile(current);
+-			goto start;
++			switch (current_screen) {
++			case SCREEN_DOMAIN_LIST:
++				set_profile(current);
++				goto start;
++			case SCREEN_PROFILE_LIST:
++				set_level(current);
++				goto start;
++			case SCREEN_MEMINFO_LIST:
++				set_quota(current);
++				goto start;
++			}
++			break;
+ 		case 'r':
+ 		case 'R':
+ 			goto start;
+@@ -3291,15 +3544,27 @@
+ 			if (current == EOF)
+ 				break;
+ 			get();
+-			if (current_screen == SCREEN_DOMAIN_LIST)
++			switch (current_screen) {
++				u8 directive;
++			case SCREEN_DOMAIN_LIST:
+ 				line = domain_name(current);
+-			else {
+-				const u8 directive
+-					= generic_acl_list[current].directive;
++				break;
++			case SCREEN_SYSTEM_LIST:
++			case SCREEN_EXCEPTION_LIST:
++			case SCREEN_ACL_LIST:
++				directive = generic_acl_list[current].directive;
+ 				snprintf(shared_buffer, shared_buffer_len - 1,
+ 					 "%s %s", directives[directive].alias,
+ 					 generic_acl_list[current].operand);
+ 				line = shared_buffer;
++				break;
++			case SCREEN_MEMINFO_LIST:
++				line = NULL;
++				break;
++			default:
++				snprintf(shared_buffer, shared_buffer_len - 1,
++					 "%s", generic_acl_list[current].operand);
++				line = shared_buffer;
+ 			}
+ 			rl.count = simple_add_history(line, rl.history,
+ 						      rl.count, rl.max);
+@@ -3315,6 +3580,9 @@
  				break;
  			sort_type = (sort_type + 1) % 2;
  			goto start;
@@ -277,7 +700,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		case '?':
  			show_command_key();
  			goto start;
-@@ -3379,10 +3487,10 @@
+@@ -3379,10 +3647,10 @@
  	}
  }
  
@@ -291,7 +714,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	int i;
  	if (!is_write)
  		goto read_policy;
-@@ -3395,74 +3503,30 @@
+@@ -3395,74 +3663,30 @@
  			goto append_policy;
  		path.name = shared_buffer;
  		fill_path_info(&path);
@@ -376,7 +799,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static void policy_daemon(void)
  {
  	get();
-@@ -3501,16 +3565,24 @@
+@@ -3501,16 +3725,24 @@
  			if (!strcmp(shared_buffer, "domain_policy"))
  				handle_domain_policy(fp, true);
  			else if (!strcmp(shared_buffer, "exception_policy"))
@@ -405,7 +828,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  		fclose(fp);
  	}
-@@ -3544,8 +3616,12 @@
+@@ -3544,8 +3776,12 @@
  			current_screen = SCREEN_EXCEPTION_LIST;
  		else if (!strcmp(argv[1], "d"))
  			current_screen = SCREEN_DOMAIN_LIST;
@@ -419,7 +842,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			return 1;
  		}
  	}
-@@ -3625,6 +3701,34 @@
+@@ -3625,6 +3861,34 @@
  				fclose(fp);
  				close(fd);
  			}
@@ -454,7 +877,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  	} else {
  		if (chdir(proc_policy_dir)) {
-@@ -3716,6 +3820,26 @@
+@@ -3716,6 +3980,26 @@
  				symlink(filename, "domain_policy.conf");
  			}
  		}
