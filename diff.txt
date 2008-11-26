@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 1891)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 1892)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(working copy)
 @@ -47,12 +47,20 @@
  #define SYSTEM_POLICY_FILE    "system_policy"
@@ -26,7 +26,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
  #define POLICY_TYPE_DOMAIN_POLICY    1
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 1891)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 1892)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(working copy)
 @@ -1452,6 +1452,15 @@
  	return strcmp(a2, b2);
@@ -44,7 +44,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static void read_generic_policy(void)
  {
  	FILE *fp = NULL;
-@@ -1487,9 +1496,16 @@
+@@ -1487,9 +1496,18 @@
  			if (!shared_buffer[0])
  				continue;
  		}
@@ -58,13 +58,15 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +			directive = find_directive(true, shared_buffer);
 +			if (directive == DIRECTIVE_NONE)
 +				continue;
++			break;
 +		default:
 +			directive = DIRECTIVE_NONE;
++			break;
 +		}
  		generic_acl_list = realloc(generic_acl_list,
  					   (generic_acl_list_count + 1) *
  					   sizeof(struct generic_acl));
-@@ -1503,14 +1519,21 @@
+@@ -1503,14 +1521,21 @@
  		generic_acl_list[generic_acl_list_count++].operand = cp;
  	}
  	put();
@@ -90,11 +92,18 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  }
  
  static int add_domain_initializer_entry(const char *domainname,
-@@ -2091,16 +2114,16 @@
- 	const char *sp;
+@@ -2083,7 +2108,7 @@
+ 	return str;
+ }
+ 
+-static int show_domain_line(int i, int index)
++static int show_domain_line(int index)
+ {
+ 	int tmp_col = 0;
+ 	const struct domain_initializer_entry *domain_initializer;
+@@ -2092,15 +2117,14 @@
  	const int number = proc_domain_list[index].number;
  	int redirect_index;
-+	move(header_lines + i, 0);
  	if (number >= 0)
 -		mvprintw(header_lines + i, 0,
 -			 "%c%4d:%3u %c%c%c ",
@@ -110,14 +119,20 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	tmp_col += 14;
  	sp = domain_name(index);
  	while (true) {
-@@ -2185,15 +2208,26 @@
+@@ -2179,21 +2203,30 @@
+ 	return tmp_col;
+ }
+ 
+-static int show_acl_line(int i, int index, int list_indent)
++static int show_acl_line(int index, int list_indent)
+ {
+ 	u8 directive = generic_acl_list[index].directive;
  	const char *cp1 = directives[directive].alias;
  	const char *cp2 = generic_acl_list[index].operand;
  	int len = list_indent - directives[directive].alias_len;
 -	mvprintw(header_lines + i, 0, "%c%4d: %s ",
 -		 generic_acl_list[index].selected ? '&' : ' ',
 -		 index, eat(cp1));
-+	move(header_lines + i, 0);
 +	printw("%c%4d: %s ",
 +	       generic_acl_list[index].selected ? '&' : ' ',
 +	       index, eat(cp1));
@@ -127,10 +142,9 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	return strlen(cp1) + strlen(cp2) + 8 + list_indent;
  }
  
-+static int show_literal_line(int i, int index)
++static int show_literal_line(int index)
 +{
 +	const char *cp = generic_acl_list[index].operand;
-+	move(header_lines + i, 0);
 +	printw("%c%4d: %s ",
 +	       generic_acl_list[index].selected ? '&' : ' ',
 +	       index, eat(cp));
@@ -140,7 +154,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static void show_list(void)
  {
  	const int offset = current_item_index[current_screen];
-@@ -2204,10 +2238,10 @@
+@@ -2204,26 +2237,26 @@
  	else
  		list_item_count[current_screen] = generic_acl_list_count;
  	clear();
@@ -154,9 +168,11 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		refresh();
  		return;
  	}
-@@ -2216,14 +2250,14 @@
+ 	/* add color */
+ 	editpolicy_color_change(editpolicy_color_head(current_screen), true);
  	if (current_screen == SCREEN_DOMAIN_LIST) {
- 		i = list_item_count[SCREEN_DOMAIN_LIST]
+-		i = list_item_count[SCREEN_DOMAIN_LIST]
++		int i = list_item_count[SCREEN_DOMAIN_LIST]
  			- unnumbered_domain_count;
 -		mvprintw(0, 0, "<<< Domain Transition Editor >>>"
 -			 "      %d domain%c    '?' for help",
@@ -165,17 +181,18 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +		       "      %d domain%c    '?' for help",
 +		       i, i > 1 ? 's' : ' ');
  	} else {
- 		i = list_item_count[current_screen];
+-		i = list_item_count[current_screen];
 -		mvprintw(0, 0, "<<< %s Editor >>>"
 -			 "      %d entr%s    '?' for help", list_caption,
 -			 i, i > 1 ? "ies" : "y");
++		int i = list_item_count[current_screen];
 +		printw("<<< %s >>>"
 +		       "      %d entr%s    '?' for help", list_caption,
 +		       i, i > 1 ? "ies" : "y");
  	}
  	/* add color */
  	editpolicy_color_change(editpolicy_color_head(current_screen), false);
-@@ -2235,28 +2269,41 @@
+@@ -2235,28 +2268,43 @@
  		snprintf(shared_buffer, shared_buffer_len - 1, "%s",
  			 eat(current_domain));
  		editpolicy_attr_change(A_REVERSE, true);  /* add color */
@@ -206,23 +223,27 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (index >= list_item_count[current_screen])
  			break;
 -		if (current_screen == SCREEN_DOMAIN_LIST)
+-			tmp_col = show_domain_line(i, index);
+-		else
+-			tmp_col = show_acl_line(i, index, list_indent);
++		move(header_lines + i, 0);
 +		switch (current_screen) {
 +		case SCREEN_DOMAIN_LIST:
- 			tmp_col = show_domain_line(i, index);
--		else
++			tmp_col = show_domain_line(index);
 +			break;
 +		case SCREEN_SYSTEM_LIST:
 +		case SCREEN_EXCEPTION_LIST:
 +		case SCREEN_ACL_LIST:
- 			tmp_col = show_acl_line(i, index, list_indent);
++			tmp_col = show_acl_line(index, list_indent);
 +			break;
 +		default:
-+			tmp_col = show_literal_line(i, index);
++			tmp_col = show_literal_line(index);
++			break;
 +		}
  		clrtoeol();
  		tmp_col -= window_width;
  		if (tmp_col > max_col)
-@@ -2358,8 +2405,8 @@
+@@ -2358,8 +2406,8 @@
  
  /* add color start */
  #ifdef COLOR_ON
@@ -233,7 +254,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  
  static void editpolicy_line_draw(void)
  {
-@@ -2934,27 +2981,40 @@
+@@ -2934,27 +2982,40 @@
  	if (!line || !*line)
  		goto out;
  	rl->count = simple_add_history(line, rl->history, rl->count, rl->max);
@@ -291,7 +312,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  out:
  	free(line);
  }
-@@ -2970,7 +3030,7 @@
+@@ -2970,7 +3031,7 @@
  		goto start_search;
  	editpolicy_attr_change(A_BOLD, true);  /* add color */
  	line = simple_readline(window_height - 1, 0, "Search> ",
@@ -300,7 +321,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	editpolicy_attr_change(A_BOLD, false); /* add color */
  	if (!line || !*line)
  		goto out;
-@@ -3015,11 +3075,10 @@
+@@ -3015,11 +3076,10 @@
  	int index;
  	FILE *fp;
  	char *line;
@@ -314,7 +335,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		clrtoeol();
  		refresh();
  		return;
-@@ -3044,42 +3103,192 @@
+@@ -3044,42 +3104,192 @@
  	free(line);
  }
  
@@ -537,7 +558,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	refresh();
  	while (true) {
  		c = getch2();
-@@ -3105,16 +3314,28 @@
+@@ -3105,16 +3315,28 @@
  	}
  	if (current_screen == SCREEN_SYSTEM_LIST) {
  		policy_file = SYSTEM_POLICY_FILE;
@@ -570,7 +591,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	}
  	current_item_index[current_screen]
  		= saved_current_item_index[current_screen];
-@@ -3130,7 +3351,8 @@
+@@ -3130,7 +3352,8 @@
  start2:
  	show_list();
  	if (rl.last_error && current_screen == SCREEN_DOMAIN_LIST) {
@@ -580,7 +601,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		clrtoeol();
  		refresh();
  		free(rl.last_error);
-@@ -3210,10 +3432,13 @@
+@@ -3210,10 +3433,13 @@
  			break;
  		case 'f':
  		case 'F':
@@ -595,7 +616,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			if (!rl.search_buffer[current_screen])
  				find_entry(true, false, current, &rl);
  			else
-@@ -3221,6 +3446,8 @@
+@@ -3221,6 +3447,8 @@
  			break;
  		case 'n':
  		case 'N':
@@ -604,7 +625,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			if (!rl.search_buffer[current_screen])
  				find_entry(true, true, current, &rl);
  			else
-@@ -3228,12 +3455,28 @@
+@@ -3228,12 +3456,28 @@
  			break;
  		case 'd':
  		case 'D':
@@ -637,7 +658,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		case '\r':
  		case '\n':
  			if (current_screen != SCREEN_DOMAIN_LIST)
-@@ -3268,8 +3511,18 @@
+@@ -3268,8 +3512,18 @@
  			break;
  		case 's':
  		case 'S':
@@ -658,7 +679,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		case 'r':
  		case 'R':
  			goto start;
-@@ -3291,15 +3544,27 @@
+@@ -3291,15 +3545,27 @@
  			if (current == EOF)
  				break;
  			get();
@@ -690,7 +711,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			}
  			rl.count = simple_add_history(line, rl.history,
  						      rl.count, rl.max);
-@@ -3315,6 +3580,9 @@
+@@ -3315,6 +3581,9 @@
  				break;
  			sort_type = (sort_type + 1) % 2;
  			goto start;
@@ -700,7 +721,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		case '?':
  			show_command_key();
  			goto start;
-@@ -3379,10 +3647,10 @@
+@@ -3379,10 +3648,10 @@
  	}
  }
  
@@ -714,7 +735,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	int i;
  	if (!is_write)
  		goto read_policy;
-@@ -3395,74 +3663,30 @@
+@@ -3395,74 +3664,30 @@
  			goto append_policy;
  		path.name = shared_buffer;
  		fill_path_info(&path);
@@ -799,7 +820,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static void policy_daemon(void)
  {
  	get();
-@@ -3501,16 +3725,24 @@
+@@ -3501,16 +3726,24 @@
  			if (!strcmp(shared_buffer, "domain_policy"))
  				handle_domain_policy(fp, true);
  			else if (!strcmp(shared_buffer, "exception_policy"))
@@ -828,7 +849,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  		fclose(fp);
  	}
-@@ -3544,8 +3776,12 @@
+@@ -3544,8 +3777,12 @@
  			current_screen = SCREEN_EXCEPTION_LIST;
  		else if (!strcmp(argv[1], "d"))
  			current_screen = SCREEN_DOMAIN_LIST;
@@ -842,7 +863,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			return 1;
  		}
  	}
-@@ -3625,6 +3861,34 @@
+@@ -3625,6 +3862,34 @@
  				fclose(fp);
  				close(fd);
  			}
@@ -877,7 +898,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  	} else {
  		if (chdir(proc_policy_dir)) {
-@@ -3716,6 +3980,26 @@
+@@ -3716,6 +3981,26 @@
  				symlink(filename, "domain_policy.conf");
  			}
  		}
