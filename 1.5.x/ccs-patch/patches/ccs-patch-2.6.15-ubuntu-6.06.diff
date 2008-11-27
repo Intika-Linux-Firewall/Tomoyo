@@ -46,8 +46,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  net/unix/af_unix.c              |   15 +++++
  42 files changed, 705 insertions(+), 9 deletions(-)
 
---- linux-2.6.15-52.73.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.15-52.73/arch/alpha/kernel/ptrace.c
+--- linux-2.6.15-53.74.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.15-53.74/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -71,8 +71,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.15-52.73.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.15-52.73/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.15-53.74.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.15-53.74/arch/ia64/ia32/sys_ia32.c
 @@ -57,6 +57,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -96,8 +96,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.15-52.73.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.15-52.73/arch/ia64/kernel/ptrace.c
+--- linux-2.6.15-53.74.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.15-53.74/arch/ia64/kernel/ptrace.c
 @@ -29,6 +29,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -121,8 +121,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.15-52.73.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.15-52.73/arch/m32r/kernel/ptrace.c
+--- linux-2.6.15-53.74.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.15-53.74/arch/m32r/kernel/ptrace.c
 @@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -146,8 +146,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.15-52.73.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.15-52.73/arch/mips/kernel/ptrace32.c
+--- linux-2.6.15-53.74.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.15-53.74/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -171,8 +171,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.15-52.73.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-2.6.15-52.73/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.15-53.74.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.15-53.74/arch/powerpc/kernel/ptrace32.c
 @@ -33,6 +33,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -196,8 +196,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.15-52.73.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.15-52.73/arch/s390/kernel/ptrace.c
+--- linux-2.6.15-53.74.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.15-53.74/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -221,8 +221,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	lock_kernel();
  
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.15-52.73.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.15-52.73/arch/sparc/kernel/ptrace.c
+--- linux-2.6.15-53.74.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.15-53.74/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -248,8 +248,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.15-52.73.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.15-52.73/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.15-53.74.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.15-53.74/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -275,8 +275,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.15-52.73.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.15-52.73/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.15-53.74.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.15-53.74/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/debugreg.h>
  #include <asm/i387.h>
@@ -300,8 +300,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	switch (request) { 
  	default:
---- linux-2.6.15-52.73.orig/fs/Kconfig
-+++ linux-2.6.15-52.73/fs/Kconfig
+--- linux-2.6.15-53.74.orig/fs/Kconfig
++++ linux-2.6.15-53.74/fs/Kconfig
 @@ -1910,5 +1910,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -310,16 +310,16 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
 +
  endmenu
  
---- linux-2.6.15-52.73.orig/fs/Makefile
-+++ linux-2.6.15-52.73/fs/Makefile
+--- linux-2.6.15-53.74.orig/fs/Makefile
++++ linux-2.6.15-53.74/fs/Makefile
 @@ -108,3 +108,5 @@ obj-$(CONFIG_CONFIGFS_FS)	+= configfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_UNION_FS)          += unionfs/
  obj-$(CONFIG_DAZUKO)		+= dazuko/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.15-52.73.orig/fs/attr.c
-+++ linux-2.6.15-52.73/fs/attr.c
+--- linux-2.6.15-53.74.orig/fs/attr.c
++++ linux-2.6.15-53.74/fs/attr.c
 @@ -15,6 +15,9 @@
  #include <linux/quotaops.h>
  #include <linux/security.h>
@@ -359,8 +359,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.15-52.73.orig/fs/compat.c
-+++ linux-2.6.15-52.73/fs/compat.c
+--- linux-2.6.15-53.74.orig/fs/compat.c
++++ linux-2.6.15-53.74/fs/compat.c
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -393,8 +393,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.15-52.73.orig/fs/exec.c
-+++ linux-2.6.15-52.73/fs/exec.c
+--- linux-2.6.15-53.74.orig/fs/exec.c
++++ linux-2.6.15-53.74/fs/exec.c
 @@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
@@ -444,8 +444,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.15-52.73.orig/fs/fcntl.c
-+++ linux-2.6.15-52.73/fs/fcntl.c
+--- linux-2.6.15-53.74.orig/fs/fcntl.c
++++ linux-2.6.15-53.74/fs/fcntl.c
 @@ -21,6 +21,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -468,8 +468,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.15-52.73.orig/fs/ioctl.c
-+++ linux-2.6.15-52.73/fs/ioctl.c
+--- linux-2.6.15-53.74.orig/fs/ioctl.c
++++ linux-2.6.15-53.74/fs/ioctl.c
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -491,8 +491,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.15-52.73.orig/fs/namei.c
-+++ linux-2.6.15-52.73/fs/namei.c
+--- linux-2.6.15-53.74.orig/fs/namei.c
++++ linux-2.6.15-53.74/fs/namei.c
 @@ -34,6 +34,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -727,8 +727,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.15-52.73.orig/fs/namespace.c
-+++ linux-2.6.15-52.73/fs/namespace.c
+--- linux-2.6.15-53.74.orig/fs/namespace.c
++++ linux-2.6.15-53.74/fs/namespace.c
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -842,8 +842,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.15-52.73.orig/fs/open.c
-+++ linux-2.6.15-52.73/fs/open.c
+--- linux-2.6.15-53.74.orig/fs/open.c
++++ linux-2.6.15-53.74/fs/open.c
 @@ -28,6 +28,13 @@
  
  #include <asm/unistd.h>
@@ -858,7 +858,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
  {
  	int retval = -ENODEV;
-@@ -263,6 +270,10 @@ static inline long do_sys_truncate(const
+@@ -285,6 +292,10 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -869,7 +869,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -315,7 +326,11 @@ static inline long do_sys_ftruncate(unsi
+@@ -337,7 +348,11 @@ static inline long do_sys_ftruncate(unsi
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
@@ -882,7 +882,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, file);
-@@ -588,6 +603,14 @@ asmlinkage long sys_chroot(const char __
+@@ -610,6 +625,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -897,7 +897,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1119,6 +1142,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1141,6 +1164,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -908,8 +908,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.15-52.73.orig/fs/proc/Makefile
-+++ linux-2.6.15-52.73/fs/proc/Makefile
+--- linux-2.6.15-53.74.orig/fs/proc/Makefile
++++ linux-2.6.15-53.74/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -917,20 +917,20 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.15-52.73.orig/fs/proc/proc_misc.c
-+++ linux-2.6.15-52.73/fs/proc/proc_misc.c
+--- linux-2.6.15-53.74.orig/fs/proc/proc_misc.c
++++ linux-2.6.15-53.74/fs/proc/proc_misc.c
 @@ -629,4 +629,9 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.15-52.73 2008/10/30\n");
++	printk(KERN_INFO "Hook version: 2.6.15-53.74 2008/11/27\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.15-52.73.orig/include/linux/init_task.h
-+++ linux-2.6.15-52.73/include/linux/init_task.h
+--- linux-2.6.15-53.74.orig/include/linux/init_task.h
++++ linux-2.6.15-53.74/include/linux/init_task.h
 @@ -121,6 +121,10 @@ extern struct group_info init_groups;
  	.journal_info	= NULL,						\
  	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
@@ -942,8 +942,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  }
  
  
---- linux-2.6.15-52.73.orig/include/linux/sched.h
-+++ linux-2.6.15-52.73/include/linux/sched.h
+--- linux-2.6.15-53.74.orig/include/linux/sched.h
++++ linux-2.6.15-53.74/include/linux/sched.h
 @@ -39,6 +39,11 @@
  
  struct exec_domain;
@@ -956,10 +956,10 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  /*
   * cloning flags:
   */
-@@ -857,6 +862,10 @@ struct task_struct {
- 	int cpuset_mems_generation;
+@@ -858,6 +863,10 @@ struct task_struct {
  #endif
  	atomic_t fs_excl;	/* holding fs exclusive resources */
+ 	struct list_head	*scm_work_list;
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
 +	u32 tomoyo_flags;
@@ -967,8 +967,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.15-52.73.orig/kernel/compat.c
-+++ linux-2.6.15-52.73/kernel/compat.c
+--- linux-2.6.15-53.74.orig/kernel/compat.c
++++ linux-2.6.15-53.74/kernel/compat.c
 @@ -24,6 +24,9 @@
  
  #include <asm/uaccess.h>
@@ -990,8 +990,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.15-52.73.orig/kernel/kexec.c
-+++ linux-2.6.15-52.73/kernel/kexec.c
+--- linux-2.6.15-53.74.orig/kernel/kexec.c
++++ linux-2.6.15-53.74/kernel/kexec.c
 @@ -25,6 +25,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -1013,8 +1013,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.15-52.73.orig/kernel/kmod.c
-+++ linux-2.6.15-52.73/kernel/kmod.c
+--- linux-2.6.15-53.74.orig/kernel/kmod.c
++++ linux-2.6.15-53.74/kernel/kmod.c
 @@ -149,6 +149,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -1027,8 +1027,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- linux-2.6.15-52.73.orig/kernel/module.c
-+++ linux-2.6.15-52.73/kernel/module.c
+--- linux-2.6.15-53.74.orig/kernel/module.c
++++ linux-2.6.15-53.74/kernel/module.c
 @@ -41,6 +41,9 @@
  #include <asm/uaccess.h>
  #include <asm/semaphore.h>
@@ -1063,8 +1063,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.15-52.73.orig/kernel/ptrace.c
-+++ linux-2.6.15-52.73/kernel/ptrace.c
+--- linux-2.6.15-53.74.orig/kernel/ptrace.c
++++ linux-2.6.15-53.74/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  
  #include <asm/pgtable.h>
@@ -1088,8 +1088,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	lock_kernel();
  	ret = ptrace_get_task_struct(request, pid, &child);
  	if (!child)
---- linux-2.6.15-52.73.orig/kernel/sched.c
-+++ linux-2.6.15-52.73/kernel/sched.c
+--- linux-2.6.15-53.74.orig/kernel/sched.c
++++ linux-2.6.15-53.74/kernel/sched.c
 @@ -50,6 +50,9 @@
  #include <asm/tlb.h>
  
@@ -1111,8 +1111,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.15-52.73.orig/kernel/signal.c
-+++ linux-2.6.15-52.73/kernel/signal.c
+--- linux-2.6.15-53.74.orig/kernel/signal.c
++++ linux-2.6.15-53.74/kernel/signal.c
 @@ -29,6 +29,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1162,8 +1162,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.15-52.73.orig/kernel/sys.c
-+++ linux-2.6.15-52.73/kernel/sys.c
+--- linux-2.6.15-53.74.orig/kernel/sys.c
++++ linux-2.6.15-53.74/kernel/sys.c
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1220,8 +1220,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.15-52.73.orig/kernel/sysctl.c
-+++ linux-2.6.15-52.73/kernel/sysctl.c
+--- linux-2.6.15-53.74.orig/kernel/sysctl.c
++++ linux-2.6.15-53.74/kernel/sysctl.c
 @@ -45,6 +45,9 @@
  
  #include <asm/uaccess.h>
@@ -1361,8 +1361,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.15-52.73.orig/kernel/time.c
-+++ linux-2.6.15-52.73/kernel/time.c
+--- linux-2.6.15-53.74.orig/kernel/time.c
++++ linux-2.6.15-53.74/kernel/time.c
 @@ -38,6 +38,9 @@
  
  #include <asm/uaccess.h>
@@ -1406,8 +1406,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.15-52.73.orig/net/core/datagram.c
-+++ linux-2.6.15-52.73/net/core/datagram.c
+--- linux-2.6.15-53.74.orig/net/core/datagram.c
++++ linux-2.6.15-53.74/net/core/datagram.c
 @@ -55,6 +55,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1433,8 +1433,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		if (skb)
  			return skb;
  
---- linux-2.6.15-52.73.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.15-52.73/net/ipv4/inet_connection_sock.c
+--- linux-2.6.15-53.74.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.15-53.74/net/ipv4/inet_connection_sock.c
 @@ -24,6 +24,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1456,8 +1456,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.15-52.73.orig/net/ipv4/tcp_ipv4.c
-+++ linux-2.6.15-52.73/net/ipv4/tcp_ipv4.c
+--- linux-2.6.15-53.74.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.6.15-53.74/net/ipv4/tcp_ipv4.c
 @@ -76,6 +76,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -1479,8 +1479,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
   			head = &tcp_hashinfo.bhash[inet_bhashfn(port, tcp_hashinfo.bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.15-52.73.orig/net/ipv4/udp.c
-+++ linux-2.6.15-52.73/net/ipv4/udp.c
+--- linux-2.6.15-53.74.orig/net/ipv4/udp.c
++++ linux-2.6.15-53.74/net/ipv4/udp.c
 @@ -108,6 +108,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1513,8 +1513,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.15-52.73.orig/net/ipv6/tcp_ipv6.c
-+++ linux-2.6.15-52.73/net/ipv6/tcp_ipv6.c
+--- linux-2.6.15-53.74.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.6.15-53.74/net/ipv6/tcp_ipv6.c
 @@ -64,6 +64,9 @@
  
  #include <linux/proc_fs.h>
@@ -1547,8 +1547,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
   			head = &tcp_hashinfo.bhash[inet_bhashfn(port, tcp_hashinfo.bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.15-52.73.orig/net/ipv6/udp.c
-+++ linux-2.6.15-52.73/net/ipv6/udp.c
+--- linux-2.6.15-53.74.orig/net/ipv6/udp.c
++++ linux-2.6.15-53.74/net/ipv6/udp.c
 @@ -58,6 +58,9 @@
  
  #include <linux/proc_fs.h>
@@ -1581,8 +1581,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.15-52.73.orig/net/socket.c
-+++ linux-2.6.15-52.73/net/socket.c
+--- linux-2.6.15-53.74.orig/net/socket.c
++++ linux-2.6.15-53.74/net/socket.c
 @@ -97,6 +97,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1675,8 +1675,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.15-52.73.orig/net/unix/af_unix.c
-+++ linux-2.6.15-52.73/net/unix/af_unix.c
+--- linux-2.6.15-53.74.orig/net/unix/af_unix.c
++++ linux-2.6.15-53.74/net/unix/af_unix.c
 @@ -117,6 +117,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
