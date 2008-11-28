@@ -161,7 +161,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #ifdef CONFIG_KEYS
 --- linux-2.6.28-rc6-mm1.orig/net/unix/af_unix.c
 +++ linux-2.6.28-rc6-mm1/net/unix/af_unix.c
-@@ -837,6 +837,7 @@ static int unix_bind(struct socket *sock
+@@ -841,6 +841,7 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
