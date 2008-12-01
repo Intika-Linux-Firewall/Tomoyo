@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6-pre   2008/12/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1419,7 +1419,8 @@ static int try_alt_exec(struct ccs_request_info *r,
 	struct task_struct *task = current;
 	char *buffer = r->obj->tmp->buffer;
 	/* Allocate memory for execute handler's pathname. */
-	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer));
+	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer),
+					  false);
 	*eh_path = execute_handler;
 	if (!execute_handler)
 		return -ENOMEM;
@@ -1683,7 +1684,8 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 	 * Thus, keep valid until search_binary_handler() finishes.
 	 */
 	char *eh_path = NULL;
-	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(struct ccs_page_buffer));
+	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(struct ccs_page_buffer),
+						false);
 	memset(&obj, 0, sizeof(obj));
 	if (!sbin_init_started)
 		ccs_load_policy(bprm->filename);

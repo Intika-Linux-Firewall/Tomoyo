@@ -475,7 +475,7 @@ Fix 2006/08/04
       succeeds to invoke do_execve() with filename = "/bin/ls" and
       argv[0] = "/bin/cat".
 
-      I introduced a keyword that permits the mismatch of
+      I introduced a directive that permits the mismatch of
       basename of filename and argv[0].
 
 Fix 2006/08/10
@@ -1259,14 +1259,14 @@ Fix 2008/02/29
 
 Fix 2008/03/03
 
-    @ Add "force_alt_exec" keyword.
+    @ Add "force_alt_exec" directive.
 
       To be able to fully utilize "alt_exec" feature,
-      I added "force_alt_exec" keyword so that
+      I added "force_alt_exec" directive so that
       all execute requests are replaced by the execute request of a program
       specified by alt_exec feature.
 
-      If this keyword is specified for a domain, the domain no longer
+      If this directive is specified for a domain, the domain no longer
       executes any programs regardless of the mode of file access control
       (i.e. the domain won't execute even if MAC_FOR_FILE=0 ).
       Instead, the domain executes the program specified by alt_exec feature
@@ -1301,30 +1301,30 @@ Fix 2008/03/04
 
 Fix 2008/03/10
 
-    @ Rename "force_alt_exec" keyword to "execute_handler".
+    @ Rename "force_alt_exec" directive to "execute_handler".
 
       To be able to use different programs for validating execve() parameters,
       I moved the location to specify the program's pathname from profile
       to domain policy.
 
-      The "execute_handler" keyword takes one pathname which is
+      The "execute_handler" directive takes one pathname which is
       invoked whenever execve() request is issued. Thus, any "allow_execute"
-      keywords in a domain with "execute_handler" are ignored.
-      This keyword is designed for validating expected/desirable execve()
+      directives in a domain with "execute_handler" are ignored.
+      This directive is designed for validating expected/desirable execve()
       requests in userspace, although there is no way to tell the caller
       that the execve() request was rejected.
 
-    @ Rename "alt_exec" keyword to "denied_execute_handler".
+    @ Rename "alt_exec" directive to "denied_execute_handler".
 
-      The "denied_execute_handler" keyword takes one pathname which is
+      The "denied_execute_handler" directive takes one pathname which is
       invoked only when execve() request was rejected. In other words,
       this program is invoked only when the following conditions are met.
 
-        (1) None of "allow_execute" keywords in the domain matched.
+        (1) None of "allow_execute" directives in the domain matched.
         (2) The execve() request was rejected in enforcing mode.
-        (3) "execute_handler" keyword is not used by the domain.
+        (3) "execute_handler" directive is not used by the domain.
 
-      This keyword is designed for handling unexpected/undesirable execve()
+      This directive is designed for handling unexpected/undesirable execve()
       requests, to redirect the process issuing such requests to somewhere.
 
 Fix 2008/03/18
@@ -1342,9 +1342,9 @@ Fix 2008/03/28
     @ Disable execute handler loop.
 
       To be able to use "execute_handler" in a "keep_domain" domain,
-      ignore "execute_handler" and "denied_execute_handler" keywords
+      ignore "execute_handler" and "denied_execute_handler" directives
       if the current process is executing programs specified by
-      "execute_handler" or "denied_execute_handler" keyword.
+      "execute_handler" or "denied_execute_handler" directive.
 
       This exception is needed to avoid infinite execute handler loop.
       If a domain has both "keep_domain" and "execute_handler",
@@ -1501,7 +1501,7 @@ Fix 2008/06/25
     @ Return 0 when ccs_may_umount() succeeds.
 
       I forgot to clear error value in ccs_may_umount() when the requested
-      directory didn't match "deny_unmount" keyword. As a result, any umount()
+      directory didn't match "deny_unmount" directive. As a result, any umount()
       request with RESTRICT_UNMOUNT=enforcing returned -EPERM error.
 
 Version 1.6.2 2008/06/25   Usability enhancement release.
@@ -1630,7 +1630,7 @@ Fix 2008/10/07
     @ Don't transit to new domain until do_execve() succeeds.
 
       Until now, a process's domain was updated to new domain which the process
-      will belongs to before do_execve() succeeds so that the kernel can do
+      will belong to before do_execve() succeeds so that the kernel can do
       permission checks for interpreters and environment variables based on
       new domain. But this caused a subtle problem when other process sends
       signals to the process, for the process returns to old domain if
@@ -1720,7 +1720,7 @@ Fix 2008/11/07
 
       Process information became visible to userspace by
       "Show process information in /proc/ccs/.process_status" feature.
-      However, programs specified by execute_handler keyword may run as
+      However, programs specified by execute_handler directive may run as
       non root user, making it impossible to see process information.
 
       So, I added a new interface that allows execute handler processes
@@ -1728,3 +1728,49 @@ Fix 2008/11/07
       identical to /proc/ccs/.process_status .
 
 Version 1.6.5   2008/11/11   Third anniversary release.
+
+Fix 2008/12/01
+
+    @ Introduce "task.type=execute_handler" condition.
+
+      The execute_handler directive is very very powerful. You can use this
+      directive to do anything you want to do (e.g. logging and validating and
+      modifying command line parameters and environment variables, opening and
+      closing and redirecting files, creating pipes to implement antivirus and
+      spam filtering, deploying a DMZ between the ssh daemon and the login
+      shells).
+
+      To be able to use this directive in a domain with keep_domain directive
+      while limiting access to resources needed for such purposes to only
+      programs invoked as an execute handler process, I added a new condition.
+
+      In learning mode, "if task.type=execute_handler" condition part will be
+      automatically added for requests issued by an execute_handler process.
+
+    @ Introduce file's type and permissions as conditions.
+
+      To be able to limit file types a process can access, I added
+      new conditions for checking file's type and permissions.
+      For example,
+
+        allow_read /etc/fstab if path1.type=regular path1.mode=0644
+
+      will allow opening /etc/fstab for reading only if /etc/fstab is a regular
+      file and it's permission is 0644, and
+
+        allow_write /dev/null if path1/type=char path1.major=1 path1.minor=3
+
+      will allow opening /dev/null for writing only if /dev/null is a character
+      device file with major=1 and minor=3 attributes.
+
+    @ Add memory quota for temporary memory used for auditing.
+
+      Although there are MAX_GRANT_LOG and MAX_REJECT_LOG parameters
+      which limit the number of entries for audit logs so that we can avoid
+      memory consumption by audit logs, it would be more convenient if we can
+      also limit the size in bytes.
+      Thus, I added a new quota line.
+
+        echo Dynamic: 1048576 > /proc/ccs/meminfo
+
+      This quota is not applied to temporary memory used for permission checks.

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6-pre   2008/12/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -49,7 +49,7 @@ void *ccs_alloc_element(const unsigned int size);
 const struct path_info *ccs_save_name(const char *name);
 
 /* Allocate memory for temporary use (e.g. permission checks). */
-void *ccs_alloc(const size_t size);
+void *ccs_alloc(const size_t size, const bool check_quota);
 
 /* Free memory allocated by ccs_alloc(). */
 void ccs_free(const void *p);
