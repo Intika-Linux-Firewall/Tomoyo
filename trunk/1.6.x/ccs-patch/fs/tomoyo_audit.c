@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6-pre   2008/12/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -28,7 +28,7 @@
 static char *ccs_print_bprm(struct linux_binprm *bprm)
 {
 	static const int buffer_len = 4096 * 2;
-	char *buffer = ccs_alloc(buffer_len);
+	char *buffer = ccs_alloc(buffer_len, false);
 	char *cp;
 	char *last_start;
 	int len;
@@ -186,7 +186,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 			return NULL;
 		*len += strlen(bprm_info);
 	}
-	buf = ccs_alloc(*len);
+	buf = ccs_alloc(*len, true);
 	if (buf)
 		snprintf(buf, (*len) - 1,
 			 "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
@@ -256,7 +256,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	va_start(args, fmt);
 	vsnprintf(buf + pos, len - pos - 1, fmt, args);
 	va_end(args);
-	new_entry = ccs_alloc(sizeof(*new_entry));
+	new_entry = ccs_alloc(sizeof(*new_entry), true);
 	if (!new_entry) {
 		ccs_free(buf);
 		goto out;

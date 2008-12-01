@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6-pre   2008/12/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -271,7 +271,7 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
  */
 char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
 {
-	char *buf = ccs_alloc(sizeof(struct ccs_page_buffer));
+	char *buf = ccs_alloc(sizeof(struct ccs_page_buffer), false);
 	if (buf && ccs_realpath_from_dentry2(dentry, mnt, buf,
 					     CCS_MAX_PATHNAME_LEN - 1) == 0)
 		return buf;
@@ -546,11 +546,12 @@ core_initcall(ccs_realpath_init);
 #endif
 
 /* The list for "struct cache_entry". */
-static LIST_HEAD(cache_list);
-
+static LIST_HEAD(audit_cache_list);
+static LIST_HEAD(acl_cache_list);
 static DEFINE_SPINLOCK(cache_list_lock);
 
 static unsigned int dynamic_memory_size;
+static unsigned int quota_for_dynamic;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 /**
@@ -580,7 +581,7 @@ static int round2(size_t size)
  *
  * Returns pointer to allocated memory on success, NULL otherwise.
  */
-void *ccs_alloc(const size_t size)
+void *ccs_alloc(const size_t size, const bool check_quota)
 {
 	struct cache_entry *new_entry;
 	void *ret = kzalloc(size, GFP_KERNEL);
@@ -599,12 +600,32 @@ void *ccs_alloc(const size_t size)
 #else
 	new_entry->size = round2(size);
 #endif
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&cache_list_lock);
-	list_add_tail(&new_entry->list, &cache_list);
-	dynamic_memory_size += new_entry->size;
-	spin_unlock(&cache_list_lock);
-	/***** CRITICAL SECTION END *****/
+	if (check_quota) {
+		bool quota_exceeded = false;
+		/***** CRITICAL SECTION START *****/
+		spin_lock(&cache_list_lock);
+		if (!quota_for_dynamic || dynamic_memory_size + new_entry->size
+		    <= quota_for_dynamic) {
+			list_add_tail(&new_entry->list, &audit_cache_list);
+			dynamic_memory_size += new_entry->size;
+		} else {
+			quota_exceeded = true;
+		}
+		spin_unlock(&cache_list_lock);
+		/***** CRITICAL SECTION END *****/
+		if (quota_exceeded) {
+			kfree(ret);
+			kmem_cache_free(ccs_cachep, new_entry);
+			ret = NULL;
+		}
+	} else {
+		/***** CRITICAL SECTION START *****/
+		spin_lock(&cache_list_lock);
+		list_add(&new_entry->list, &acl_cache_list);
+		dynamic_memory_size += new_entry->size;
+		spin_unlock(&cache_list_lock);
+		/***** CRITICAL SECTION END *****/
+	}
  out:
 	return ret;
 }
@@ -624,15 +645,23 @@ void ccs_free(const void *p)
 		return;
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&cache_list_lock);
-	list_for_each(v, &cache_list) {
+	list_for_each(v, &acl_cache_list) {
 		entry = list_entry(v, struct cache_entry, list);
-		if (entry->ptr != p) {
+		if (entry->ptr == p)
+			break;
+		entry = NULL;
+	}
+	if (!entry) {
+		list_for_each(v, &audit_cache_list) {
+			entry = list_entry(v, struct cache_entry, list);
+			if (entry->ptr == p)
+				break;
 			entry = NULL;
-			continue;
 		}
+	}
+	if (entry) {
 		list_del(&entry->list);
 		dynamic_memory_size -= entry->size;
-		break;
 	}
 	spin_unlock(&cache_list_lock);
 	/***** CRITICAL SECTION END *****/
@@ -671,7 +700,12 @@ int ccs_read_memory_counter(struct ccs_io_buffer *head)
 		else
 			buffer[0] = '\0';
 		ccs_io_printf(head, "Private: %10u%s\n", private, buffer);
-		ccs_io_printf(head, "Dynamic: %10u\n", dynamic);
+		if (quota_for_dynamic)
+			snprintf(buffer, sizeof(buffer) - 1,
+				 "   (Quota: %10u)", quota_for_dynamic);
+		else
+			buffer[0] = '\0';
+		ccs_io_printf(head, "Dynamic: %10u%s\n", dynamic, buffer);
 		ccs_io_printf(head, "Total:   %10u\n",
 			      shared + private + dynamic);
 		head->read_eof = true;
@@ -694,5 +728,7 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 		quota_for_savename = size;
 	else if (sscanf(data, "Private: %u", &size) == 1)
 		quota_for_elements = size;
+	else if (sscanf(data, "Dynamic: %u", &size) == 1)
+		quota_for_dynamic = size;
 	return 0;
 }

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6-pre   2008/12/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -2531,10 +2531,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.5   2008/11/11\n");
+	printk(KERN_INFO "SAKURA: 1.6.6-pre   2008/12/01\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.5   2008/11/11\n");
+	printk(KERN_INFO "TOMOYO: 1.6.6-pre   2008/12/01\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2612,14 +2612,14 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 #ifdef CONFIG_TOMOYO
 	header = ccs_init_audit_log(&len, r);
 #else
-	header = ccs_alloc(1);
+	header = ccs_alloc(1, true);
 #endif
 	if (!header)
 		goto out;
-	query_entry = ccs_alloc(sizeof(*query_entry));
+	query_entry = ccs_alloc(sizeof(*query_entry), true);
 	if (!query_entry)
 		goto out;
-	query_entry->query = ccs_alloc(len);
+	query_entry->query = ccs_alloc(len, true);
 	if (!query_entry->query)
 		goto out;
 	INIT_LIST_HEAD(&query_entry->list);
@@ -2756,7 +2756,7 @@ static int read_query(struct ccs_io_buffer *head)
 		head->read_step = 0;
 		return 0;
 	}
-	buf = ccs_alloc(len);
+	buf = ccs_alloc(len, false);
 	if (!buf)
 		return 0;
 	pos = 0;
@@ -2902,7 +2902,7 @@ static int read_updates_counter(struct ccs_io_buffer *head)
 static int read_version(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
-		ccs_io_printf(head, "1.6.5");
+		ccs_io_printf(head, "1.6.6-pre");
 		head->read_eof = true;
 	}
 	return 0;
@@ -2940,7 +2940,7 @@ static int read_self_domain(struct ccs_io_buffer *head)
  */
 int ccs_open_control(const u8 type, struct file *file)
 {
-	struct ccs_io_buffer *head = ccs_alloc(sizeof(*head));
+	struct ccs_io_buffer *head = ccs_alloc(sizeof(*head), false);
 	if (!head)
 		return -ENOMEM;
 	mutex_init(&head->io_sem);
@@ -3028,7 +3028,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		 */
 		if (!head->readbuf_size)
 			head->readbuf_size = 4096 * 2;
-		head->read_buf = ccs_alloc(head->readbuf_size);
+		head->read_buf = ccs_alloc(head->readbuf_size, false);
 		if (!head->read_buf) {
 			ccs_free(head);
 			return -ENOMEM;
@@ -3042,7 +3042,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->write = NULL;
 	} else if (head->write) {
 		head->writebuf_size = 4096 * 2;
-		head->write_buf = ccs_alloc(head->writebuf_size);
+		head->write_buf = ccs_alloc(head->writebuf_size, false);
 		if (!head->write_buf) {
 			ccs_free(head->read_buf);
 			ccs_free(head);
