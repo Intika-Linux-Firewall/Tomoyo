@@ -275,7 +275,11 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
 	int error = may_create(dir, dentry, NULL);
 #endif
 #else
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	int error = may_create(dir, dentry, 0);
+#else
 	int error = may_create(dir, dentry);
+#endif
 #endif
 	if (error)
 		return error;
@@ -297,7 +301,11 @@ static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 	int error = may_create(dir, dentry, NULL);
 #endif
 #else
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	int error = may_create(dir, dentry, 1);
+#else
 	int error = may_create(dir, dentry);
+#endif
 #endif
 	if (error)
 		return error;
@@ -343,7 +351,11 @@ static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 	error = may_create(dir, new_dentry, NULL);
 #endif
 #else
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	error = may_create(dir, new_dentry, 0);
+#else
 	error = may_create(dir, new_dentry);
+#endif
 #endif
 	if (error)
 		return error;
@@ -368,7 +380,11 @@ static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 	int error = may_create(dir, dentry, NULL);
 #endif
 #else
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	int error = may_create(dir, dentry, 0);
+#else
 	int error = may_create(dir, dentry);
+#endif
 #endif
 	if (error)
 		return error;
@@ -403,10 +419,17 @@ static inline int pre_vfs_rename(struct inode *old_dir,
 		error = may_delete(new_dir, new_dentry, is_dir);
 #endif
 #else
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	if (!new_dentry->d_inode)
+		error = may_create(new_dir, new_dentry, is_dir);
+	else
+		error = may_delete(new_dir, new_dentry, is_dir);
+#else
 	if (!new_dentry->d_inode)
 		error = may_create(new_dir, new_dentry);
 	else
 		error = may_delete(new_dir, new_dentry, is_dir);
+#endif
 #endif
 	if (error)
 		return error;
