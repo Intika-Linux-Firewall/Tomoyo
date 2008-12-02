@@ -1,0 +1,207 @@
+Subject: Introduce security_path_clear() hook.
+
+To perform DAC performed in vfs_foo() before MAC, we let security_path_foo()
+save a result into our own hash table and return 0, and let security_inode_foo()
+return the saved result. Since security_inode_foo() is not always called after
+security_path_foo(), we need security_path_clear() to clear the hash table.
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Crispin Cowan <crispin@crispincowan.com>
+Cc: Stephen Smalley <sds@tycho.nsa.gov>
+Cc: Casey Schaufler <casey@schaufler-ca.com>
+Cc: James Morris <jmorris@namei.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/namei.c               |    9 +++++++++
+ fs/open.c                |    2 ++
+ include/linux/security.h |   12 ++++++++++++
+ net/unix/af_unix.c       |    1 +
+ security/capability.c    |    5 +++++
+ security/security.c      |    6 ++++++
+ 6 files changed, 35 insertions(+)
+
+--- linux-2.6.28-rc6-mm1.orig/fs/namei.c
++++ linux-2.6.28-rc6-mm1/fs/namei.c
+@@ -1566,6 +1566,7 @@ int may_open(struct nameidata *nd, int a
+ 			error = do_truncate(dentry, 0,
+ 					    ATTR_MTIME|ATTR_CTIME|ATTR_OPEN,
+ 					    NULL);
++			security_path_clear();
+ 		}
+ 		put_write_access(inode);
+ 		if (error)
+@@ -1594,6 +1595,7 @@ static int __open_namei_create(struct na
+ 	if (error)
+ 		goto out_unlock;
+ 	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
++	security_path_clear();
+ out_unlock:
+ 	mutex_unlock(&dir->d_inode->i_mutex);
+ 	dput(nd->path.dentry);
+@@ -2022,6 +2024,7 @@ asmlinkage long sys_mknodat(int dfd, con
+ 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
+ 			break;
+ 	}
++	security_path_clear();
+ out_drop_write:
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2086,6 +2089,7 @@ asmlinkage long sys_mkdirat(int dfd, con
+ 	if (error)
+ 		goto out_drop_write;
+ 	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
++	security_path_clear();
+ out_drop_write:
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2200,6 +2204,7 @@ static long do_rmdir(int dfd, const char
+ 	if (error)
+ 		goto exit4;
+ 	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
++	security_path_clear();
+ exit4:
+ 	mnt_drop_write(nd.path.mnt);
+ exit3:
+@@ -2289,6 +2294,7 @@ static long do_unlinkat(int dfd, const c
+ 		if (error)
+ 			goto exit3;
+ 		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
++		security_path_clear();
+ exit3:
+ 		mnt_drop_write(nd.path.mnt);
+ 	exit2:
+@@ -2374,6 +2380,7 @@ asmlinkage long sys_symlinkat(const char
+ 	if (error)
+ 		goto out_drop_write;
+ 	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
++	security_path_clear();
+ out_drop_write:
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2475,6 +2482,7 @@ asmlinkage long sys_linkat(int olddfd, c
+ 	if (error)
+ 		goto out_drop_write;
+ 	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
++	security_path_clear();
+ out_drop_write:
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2715,6 +2723,7 @@ asmlinkage long sys_renameat(int olddfd,
+ 		goto exit6;
+ 	error = vfs_rename(old_dir->d_inode, old_dentry,
+ 				   new_dir->d_inode, new_dentry);
++	security_path_clear();
+ exit6:
+ 	mnt_drop_write(oldnd.path.mnt);
+ exit5:
+--- linux-2.6.28-rc6-mm1.orig/fs/open.c
++++ linux-2.6.28-rc6-mm1/fs/open.c
+@@ -277,6 +277,7 @@ static long do_sys_truncate(const char _
+ 	if (!error) {
+ 		DQUOT_INIT(inode);
+ 		error = do_truncate(path.dentry, length, 0, NULL);
++		security_path_clear();
+ 	}
+ 
+ put_write_and_out:
+@@ -335,6 +336,7 @@ static long do_sys_ftruncate(unsigned in
+ 					       ATTR_MTIME|ATTR_CTIME, file);
+ 	if (!error)
+ 		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
++	security_path_clear();
+ out_putf:
+ 	fput(file);
+ out:
+--- linux-2.6.28-rc6-mm1.orig/include/linux/security.h
++++ linux-2.6.28-rc6-mm1/include/linux/security.h
+@@ -527,6 +527,12 @@ static inline void security_free_mnt_opt
+  *	@inode contains a pointer to the inode.
+  *	@secid contains a pointer to the location where result will be saved.
+  *	In case of failure, @secid will be set to zero.
++ * @path_clear:
++ *	Clear error code stored by security_path_*() in case
++ *	security_inode_*() was not called when DAC returned an error.
++ *	This hook allows LSM modules which use security_path_*() defer
++ *	returning LSM's error code till security_inode_*() is called so that
++ *	DAC's error (if any) is returned to the caller instead of LSM's error.
+  *
+  * Security hooks for file operations
+  *
+@@ -1402,6 +1408,7 @@ struct security_operations {
+ 			  struct dentry *new_dentry);
+ 	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
+ 			    struct path *new_dir, struct dentry *new_dentry);
++	void (*path_clear) (void);
+ #endif
+ 
+ 	int (*inode_alloc_security) (struct inode *inode);
+@@ -2792,6 +2799,7 @@ int security_path_link(struct dentry *ol
+ 		       struct dentry *new_dentry);
+ int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
+ 			 struct path *new_dir, struct dentry *new_dentry);
++void security_path_clear(void);
+ #else	/* CONFIG_SECURITY_PATH */
+ static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
+ {
+@@ -2842,6 +2850,10 @@ static inline int security_path_rename(s
+ {
+ 	return 0;
+ }
++
++static inline void security_path_clear(void)
++{
++}
+ #endif	/* CONFIG_SECURITY_PATH */
+ 
+ #ifdef CONFIG_KEYS
+--- linux-2.6.28-rc6-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.28-rc6-mm1/net/unix/af_unix.c
+@@ -841,6 +841,7 @@ static int unix_bind(struct socket *sock
+ 		if (err)
+ 			goto out_mknod_drop_write;
+ 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
++		security_path_clear();
+ out_mknod_drop_write:
+ 		mnt_drop_write(nd.path.mnt);
+ 		if (err)
+--- linux-2.6.28-rc6-mm1.orig/security/capability.c
++++ linux-2.6.28-rc6-mm1/security/capability.c
+@@ -308,6 +308,10 @@ static int cap_path_truncate(struct path
+ {
+ 	return 0;
+ }
++
++static void cap_path_clear(void)
++{
++}
+ #endif
+ 
+ static int cap_file_permission(struct file *file, int mask)
+@@ -939,6 +943,7 @@ void security_fixup_ops(struct security_
+ 	set_to_cap_if_null(ops, path_link);
+ 	set_to_cap_if_null(ops, path_rename);
+ 	set_to_cap_if_null(ops, path_truncate);
++	set_to_cap_if_null(ops, path_clear);
+ #endif
+ 	set_to_cap_if_null(ops, file_permission);
+ 	set_to_cap_if_null(ops, file_alloc_security);
+--- linux-2.6.28-rc6-mm1.orig/security/security.c
++++ linux-2.6.28-rc6-mm1/security/security.c
+@@ -419,6 +419,12 @@ int security_path_truncate(struct path *
+ 		return 0;
+ 	return security_ops->path_truncate(path, length, time_attrs, filp);
+ }
++
++void security_path_clear(void)
++{
++	return security_ops->path_clear();
++}
++EXPORT_SYMBOL(security_path_clear);
+ #endif
+ 
+ int security_inode_create(struct inode *dir, struct dentry *dentry, int mode)
