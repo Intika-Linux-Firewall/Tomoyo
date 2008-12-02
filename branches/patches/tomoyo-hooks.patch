@@ -24,13 +24,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  415 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  107 ++++++++++++
- 2 files changed, 522 insertions(+)
+ security/tomoyo/tomoyo.c |  421 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  107 +++++++++++
+ 2 files changed, 528 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc6-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,415 @@
+@@ -0,0 +1,421 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -216,12 +216,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			/***** CRITICAL SECTION END *****/
 +			if (entry) {
 +				mnt_path = entry->mnt_path;
-+				kfree(entry);
++				tomoyo_free(entry);
 +			}
 +		}
 +		return mnt_path;
 +	}
-+	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++	entry = tomoyo_alloc(sizeof(*entry), GFP_KERNEL);
 +	if (!entry)
 +		return NULL;
 +	entry->task = task;
@@ -238,21 +238,27 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int ret;
 +	struct path path = { vfsmnt, vfsmnt->mnt_root };
-+	char *mnt_path = kzalloc(TOMOYO_MAX_PATHNAME_LEN, GFP_KERNEL);
++	char *mnt_path = tomoyo_alloc(TOMOYO_MAX_PATHNAME_LEN);
 +	if (!mnt_path)
 +		return -ENOMEM;
-+	ret = tomoyo_realpath_from_path2(&path, mnt_path,
-+					 TOMOYO_MAX_PATHNAME_LEN - 1);
-+	if (ret) {
-+		kfree(mnt_path);
++	if (tomoyo_realpath_from_path2(&path, mnt_path,
++				       TOMOYO_MAX_PATHNAME_LEN - 1)) {
++		tomoyo_free(mnt_path);
 +		return -ENOMEM;
 +	}
++	ret = strlen(mnt_path);
++	if (!ret || mnt_path[ret - 1] != '/') {
++		/* This must not happen because mount point is a directory. */
++		tomoyo_free(mnt_path);
++		return -ENOMEM;
++	}
++	mnt_path[ret - 1] = '\0';
 +	return tomoyo_update_mnt_path(mnt_path) ? 0 : -ENOMEM;
 +}
 +
 +static void tomoyo_path_clear(void)
 +{
-+	kfree(tomoyo_update_mnt_path(NULL));
++	tomoyo_free(tomoyo_update_mnt_path(NULL));
 +}
 +
 +static int tomoyo_inode_link(struct dentry *old_dentry, struct inode *inode,
@@ -264,7 +270,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	ret = tomoyo_check_2path_perm(tomoyo_domain(), TOMOYO_TYPE_LINK_ACL,
 +				      mnt_path, old_dentry, new_dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -276,7 +282,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_UNLINK_ACL,
 +				      mnt_path, dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -289,7 +295,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_SYMLINK_ACL,
 +				      mnt_path, dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -302,7 +308,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_MKDIR_ACL,
 +				      mnt_path, dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -314,7 +320,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_RMDIR_ACL,
 +				      mnt_path, dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -327,7 +333,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	ret =  tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_CREATE_ACL,
 +				       mnt_path, dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -354,7 +360,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), type, mnt_path, dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -369,7 +375,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return 0;
 +	ret = tomoyo_check_2path_perm(tomoyo_domain(), TOMOYO_TYPE_RENAME_ACL,
 +				      mnt_path, old_dentry, new_dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -383,7 +389,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		ret = tomoyo_check_1path_perm(tomoyo_domain(),
 +					      TOMOYO_TYPE_TRUNCATE_ACL,
 +					      mnt_path, dentry);
-+	kfree(mnt_path);
++	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
