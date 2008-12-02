@@ -49,7 +49,7 @@ void *ccs_alloc_element(const unsigned int size);
 const struct path_info *ccs_save_name(const char *name);
 
 /* Allocate memory for temporary use (e.g. permission checks). */
-void *ccs_alloc(const size_t size, const bool check_quota);
+void *ccs_alloc(const size_t size, const _Bool check_quota);
 
 /* Free memory allocated by ccs_alloc(). */
 void ccs_free(const void *p);

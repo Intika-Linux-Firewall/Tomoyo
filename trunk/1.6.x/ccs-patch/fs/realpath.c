@@ -581,7 +581,7 @@ static int round2(size_t size)
  *
  * Returns pointer to allocated memory on success, NULL otherwise.
  */
-void *ccs_alloc(const size_t size, const bool check_quota)
+void *ccs_alloc(const size_t size, const _Bool check_quota)
 {
 	struct cache_entry *new_entry;
 	void *ret = kzalloc(size, GFP_KERNEL);
