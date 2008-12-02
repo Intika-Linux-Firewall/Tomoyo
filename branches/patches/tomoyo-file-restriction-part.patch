@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1258 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1258 insertions(+)
+ security/tomoyo/file.c | 1291 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1291 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc6-mm1/security/tomoyo/file.c
-@@ -0,0 +1,1258 @@
+@@ -0,0 +1,1291 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -142,6 +142,36 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	tomoyo_free(buf);
 +	return NULL;
++}
++
++/**
++ * tomoyo_get_path2 - Get realpath.
++ *
++ * @mnt_path: Pointer to "const char *".
++ * @dentry: Pointer to "struct path".
++ *
++ * Returns pointer to "struct tomoyo_path_info" on success, NULL otherwise.
++ */
++static struct tomoyo_path_info *tomoyo_get_path2(const char *mnt_path,
++						 struct dentry *dentry)
++{
++	char *sp;
++	const int len = strlen(mnt_path);
++	struct path path = { NULL, dentry };
++	struct tomoyo_path_info_with_data *buf =
++		len < sizeof(buf->body) ? tomoyo_alloc(sizeof(*buf)) : NULL;
++	if (!buf)
++		return NULL;
++	memmove(buf->body, mnt_path, len);
++	sp = d_realpath(&path, buf->body + len, sizeof(buf->body) - len - 1);
++	if (IS_ERR(sp) || tomoyo_encode(buf->body + len, sp - buf->body - len,
++					sp)) {
++		tomoyo_free(buf);
++		return NULL;
++	}
++	buf->head.name = buf->body;
++	tomoyo_fill_path_info(&buf->head);
++	return &buf->head;
 +}
 +
 +static int tomoyo_update_double_path_acl(const u8 type, const char *filename1,
@@ -1134,21 +1164,23 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @domain:    Pointer to "struct tomoyo_domain_info".
 + * @operation: Type of operation.
-+ * @path:      Pointer to "struct path".
++ * @mnt_path:  Pointer to "const char *".
++ * @dentry:    Pointer to "struct dentry".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_check_1path_perm(struct tomoyo_domain_info *domain,
-+			    const u8 operation, struct path *path)
++			    const u8 operation, const char *mnt_path,
++			    struct dentry *dentry)
 +{
 +	int error = -ENOMEM;
 +	struct tomoyo_path_info *buf;
 +	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
 +	const bool is_enforce = (mode == 3);
 +
-+	if (!mode || !path->mnt)
++	if (!mode || !mnt_path)
 +		return 0;
-+	buf = tomoyo_get_path(path);
++	buf = tomoyo_get_path2(mnt_path, dentry);
 +	if (!buf)
 +		goto out;
 +	switch (operation) {
@@ -1156,7 +1188,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	case TOMOYO_TYPE_RMDIR_ACL:
 +		if (!buf->is_dir) {
 +			/*
-+			 * tomoyo_get_path() reserves space for appending "/."
++			 * tomoyo_get_path2() reserves space for appending "/."
 +			 */
 +			strcat((char *) buf->name, "/");
 +			tomoyo_fill_path_info(buf);
@@ -1211,14 +1243,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * @domain:    Pointer to "struct tomoyo_domain_info".
 + * @operation: Type of operation.
-+ * @path1:      Pointer to "struct path".
-+ * @path2:      Pointer to "struct path".
++ * @mnt_path:  Pointer to "const char *".
++ * @dentry1:   Pointer to "struct dentry".
++ * @dentry2:   Pointer to "struct dentry".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_check_2path_perm(struct tomoyo_domain_info * const domain,
-+			    const u8 operation, struct path *path1,
-+			    struct path *path2)
++			    const u8 operation, const char *mnt_path,
++			    struct dentry *dentry1, struct dentry *dentry2)
 +{
 +	int error = -ENOMEM;
 +	struct tomoyo_path_info *buf1, *buf2;
@@ -1226,17 +1259,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const bool is_enforce = (mode == 3);
 +	const char *msg;
 +
-+	if (!mode || !path1->mnt || !path2->mnt)
++	if (!mode || !mnt_path)
 +		return 0;
-+	buf1 = tomoyo_get_path(path1);
-+	buf2 = tomoyo_get_path(path2);
++	buf1 = tomoyo_get_path2(mnt_path, dentry1);
++	buf2 = tomoyo_get_path2(mnt_path, dentry2);
 +	if (!buf1 || !buf2)
 +		goto out;
 +	{
-+		struct dentry *dentry = path1->dentry;
++		struct dentry *dentry = dentry1;
 +		if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
 +			/*
-+			 * tomoyo_get_path() reserves space for appending "/."
++			 * tomoyo_get_path2() reserves space for appending "/."
 +			 */
 +			if (!buf1->is_dir) {
 +				strcat((char *) buf1->name, "/");
