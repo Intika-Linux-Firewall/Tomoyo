@@ -286,9 +286,9 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 + * @path_set:
 + *	Calculate pathname of vfsmount for subsequent vfs operation.
 + *	@vfsmnt contains the vfsmount structure.
-+ *	Return 0 if permission is granted.
++ *	Return 0 on success, negative value otherwise.
 + * @path_clear:
-+ *	Clear pathname of vfsmount calculated by security_path_set.
++ *	Clear pathname of vfsmount calculated by security_path_set().
 + *	This hook is needed in case security_inode_*() was not called.
   *
   * Security hooks for file operations
