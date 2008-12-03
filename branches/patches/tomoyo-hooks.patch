@@ -221,7 +221,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +		return mnt_path;
 +	}
-+	entry = tomoyo_alloc(sizeof(*entry), GFP_KERNEL);
++	entry = tomoyo_alloc(sizeof(*entry));
 +	if (!entry)
 +		return NULL;
 +	entry->task = task;
