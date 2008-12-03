@@ -121,14 +121,14 @@ Here are the list of approaches and the reasons of denial.
  security_path_set(struct vfsmount *) and security_path_clear().
  We want to use these hooks as follows.
  
- (1) Let security_path_set() which are inserted before calling VFS helper
+ (a) Let security_path_set() which are inserted before calling VFS helper
      functions remember the absolute pathname of "struct vfsmount" and
      store the result which are in the form of "char *" into private hash.
  
- (2) Let security_inode_*() do MAC using the pathname stored by
+ (b) Let security_inode_*() do MAC using the pathname stored by
      security_path_set().
  
- (3) Let security_path_clear() which are inserted after calling VFS helper
+ (c) Let security_path_clear() which are inserted after calling VFS helper
      functions clear the pathname from private hash.
  
  This approach is similar to (5), but to avoid performance problem,
@@ -148,12 +148,12 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
  fs/namei.c               |   43 +++++++++++++++++++++++++++++++++++++++++++
  fs/open.c                |    6 ++++++
- include/linux/security.h |   25 +++++++++++++++++++++++++
+ include/linux/security.h |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c       |    5 +++++
  security/Kconfig         |   10 ++++++++++
  security/capability.c    |   17 +++++++++++++++++
  security/security.c      |   16 ++++++++++++++++
- 7 files changed, 122 insertions(+)
+ 7 files changed, 121 insertions(+)
 
 --- linux-2.6.28-rc7-mm1.orig/fs/namei.c
 +++ linux-2.6.28-rc7-mm1/fs/namei.c
@@ -312,7 +312,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  out:
 --- linux-2.6.28-rc7-mm1.orig/include/linux/security.h
 +++ linux-2.6.28-rc7-mm1/include/linux/security.h
-@@ -470,6 +470,13 @@ static inline void security_free_mnt_opt
+@@ -470,6 +470,12 @@ static inline void security_free_mnt_opt
   *	@inode contains a pointer to the inode.
   *	@secid contains a pointer to the location where result will be saved.
   *	In case of failure, @secid will be set to zero.
@@ -321,12 +321,11 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 + *	@vfsmnt contains the vfsmount structure.
 + *	Return 0 on success, negative value otherwise.
 + * @path_clear:
-+ *	Clear pathname of vfsmount calculated by security_path_set().
-+ *	This hook is needed in case security_inode_*() was not called.
++ *	Clear pathname of vfsmount calculated by @path_set.
   *
   * Security hooks for file operations
   *
-@@ -1331,6 +1338,11 @@ struct security_operations {
+@@ -1331,6 +1337,11 @@ struct security_operations {
  				   struct super_block *newsb);
  	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
  
@@ -338,7 +337,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	int (*inode_alloc_security) (struct inode *inode);
  	void (*inode_free_security) (struct inode *inode);
  	int (*inode_init_security) (struct inode *inode, struct inode *dir,
-@@ -2705,6 +2717,19 @@ static inline void security_skb_classify
+@@ -2705,6 +2716,19 @@ static inline void security_skb_classify
  
  #endif	/* CONFIG_SECURITY_NETWORK_XFRM */
  
