@@ -24,13 +24,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  421 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  107 +++++++++++
- 2 files changed, 528 insertions(+)
+ security/tomoyo/tomoyo.c |  418 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  107 ++++++++++++
+ 2 files changed, 525 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.28-rc7-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,421 @@
+@@ -0,0 +1,418 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -183,12 +183,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/**
 + * tomoyo_update_mnt_path - Update list of pathname of vfsmount.
 + *
-+ * @mnt_path: Pointer to "const char *" or NULL.
++ * @mnt_path:  Pointer to "const char *". May be NULL.
++ * @operation: Operation.
++ *                > 0 :   set
++ *                == 0:   read
++ *                < 0 :   clear
 + *
-+ * Returns @mnt_path on success, NULL otherwise if @mnt_path != NULL.
-+ * Returns previously saved "const char *" and clears it if @mnt_path == NULL.
++ * Returns @mnt_path on success, NULL otherwise.
 + */
-+static const char *tomoyo_update_mnt_path(const char *mnt_path)
++static const char *tomoyo_update_mnt_path(const char *mnt_path,
++					  const int operation)
 +{
 +	struct tomoyo_mnt_path_entry {
 +		struct list_head list;
@@ -199,7 +203,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	static DEFINE_SPINLOCK(lock);
 +	struct task_struct *task = current;
 +	struct tomoyo_mnt_path_entry *entry;
-+	if (!mnt_path) {
++	if (operation <= 0) {
 +		if (!list_empty(&list)) {
 +			struct tomoyo_mnt_path_entry *p;
 +			entry = NULL;
@@ -208,7 +212,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			list_for_each_entry(p, &list, list) {
 +				if (p->task != task)
 +					continue;
-+				list_del(&p->list);
++				if (operation)
++					list_del(&p->list);
 +				entry = p;
 +				break;
 +			}
@@ -216,7 +221,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			/***** CRITICAL SECTION END *****/
 +			if (entry) {
 +				mnt_path = entry->mnt_path;
-+				tomoyo_free(entry);
++				if (operation)
++					tomoyo_free(entry);
 +			}
 +		}
 +		return mnt_path;
@@ -253,36 +259,34 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return -ENOMEM;
 +	}
 +	mnt_path[ret - 1] = '\0';
-+	return tomoyo_update_mnt_path(mnt_path) ? 0 : -ENOMEM;
++	return tomoyo_update_mnt_path(mnt_path, 1) ? 0 : -ENOMEM;
 +}
 +
 +static void tomoyo_path_clear(void)
 +{
-+	tomoyo_free(tomoyo_update_mnt_path(NULL));
++	tomoyo_free(tomoyo_update_mnt_path(NULL, -1));
 +}
 +
 +static int tomoyo_inode_link(struct dentry *old_dentry, struct inode *inode,
 +			     struct dentry *new_dentry)
 +{
 +	int ret;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	ret = tomoyo_check_2path_perm(tomoyo_domain(), TOMOYO_TYPE_LINK_ACL,
 +				      mnt_path, old_dentry, new_dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
 +static int tomoyo_inode_unlink(struct inode *inode, struct dentry *dentry)
 +{
 +	int ret;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_UNLINK_ACL,
 +				      mnt_path, dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -290,12 +294,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				const char *name)
 +{
 +	int ret;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_SYMLINK_ACL,
 +				      mnt_path, dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -303,24 +306,22 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			      int mask)
 +{
 +	int ret;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_MKDIR_ACL,
 +				      mnt_path, dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
 +static int tomoyo_inode_rmdir(struct inode *inode, struct dentry *dentry)
 +{
 +	int ret;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_RMDIR_ACL,
 +				      mnt_path, dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -328,12 +329,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			       int mode)
 +{
 +	int ret;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	ret =  tomoyo_check_1path_perm(tomoyo_domain(), TOMOYO_TYPE_CREATE_ACL,
 +				       mnt_path, dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -342,7 +342,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int ret;
 +	int type = TOMOYO_TYPE_CREATE_ACL;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	switch (mode & S_IFMT) {
@@ -360,7 +360,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +	ret = tomoyo_check_1path_perm(tomoyo_domain(), type, mnt_path, dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
@@ -370,26 +369,24 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			       struct dentry *new_dentry)
 +{
 +	int ret;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	ret = tomoyo_check_2path_perm(tomoyo_domain(), TOMOYO_TYPE_RENAME_ACL,
 +				      mnt_path, old_dentry, new_dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
 +static int tomoyo_inode_setattr(struct dentry *dentry, struct iattr *iattr)
 +{
 +	int ret = 0;
-+	const char *mnt_path = tomoyo_update_mnt_path(NULL);
++	const char *mnt_path = tomoyo_update_mnt_path(NULL, 0);
 +	if (!mnt_path)
 +		return 0;
 +	if (iattr->ia_valid & ATTR_SIZE)
 +		ret = tomoyo_check_1path_perm(tomoyo_domain(),
 +					      TOMOYO_TYPE_TRUNCATE_ACL,
 +					      mnt_path, dentry);
-+	tomoyo_free(mnt_path);
 +	return ret;
 +}
 +
