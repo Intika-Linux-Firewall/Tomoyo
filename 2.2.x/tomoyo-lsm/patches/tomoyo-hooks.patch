@@ -24,13 +24,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/tomoyo.c |  453 +++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.h |  107 +++++++++++
- 2 files changed, 560 insertions(+)
+ security/tomoyo/tomoyo.c |  293 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.h |  106 +++++++++++++++++
+ 2 files changed, 399 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.28-rc6-mm1/security/tomoyo/tomoyo.c
-@@ -0,0 +1,453 @@
++++ linux-2.6.28-rc7-mm1/security/tomoyo/tomoyo.c
+@@ -0,0 +1,293 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -180,141 +180,46 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +#endif
 +
-+/**
-+ * tomoyo_update_result - Update error code.
-+ *
-+ * @error: Return code from security_path_*().
-+ *
-+ * To be able to return DAC's error (if any) to the caller instead of
-+ * MAC's error, we don't return MAC's error at security_path_*().
-+ *
-+ * We remember MAC's error only if security_path_*() returned an error.
-+ *
-+ * Returns 0 on success, -ENOMEM otherwise if @error != 0.
-+ * Returns previously saved error code and clears it if @error == 0.
-+ */
-+static int tomoyo_update_result(int error)
-+{
-+	/* Structure for holding the result of security_path_*(). */
-+	struct tomoyo_check_result_entry {
-+		struct list_head list;
-+		struct task_struct *task; /* = current */
-+		int error; /* != 0 */
-+	};
-+	static LIST_HEAD(list);
-+	static DEFINE_SPINLOCK(lock);
-+	struct task_struct *task = current;
-+	struct tomoyo_check_result_entry *entry;
-+	if (!error) {
-+		if (!list_empty(&list)) {
-+			struct tomoyo_check_result_entry *p;
-+			entry = NULL;
-+			/***** CRITICAL SECTION START *****/
-+			spin_lock(&lock);
-+			list_for_each_entry(p, &list, list) {
-+				if (p->task != task)
-+					continue;
-+				list_del(&p->list);
-+				entry = p;
-+				break;
-+			}
-+			spin_unlock(&lock);
-+			/***** CRITICAL SECTION END *****/
-+			if (entry) {
-+				error = entry->error;
-+				kfree(entry);
-+			}
-+		}
-+		return error;
-+	}
-+	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
-+	if (!entry)
-+		return -ENOMEM;
-+	entry->task = task;
-+	entry->error = error;
-+	/***** CRITICAL SECTION START *****/
-+	spin_lock(&lock);
-+	list_add(&entry->list, &list);
-+	spin_unlock(&lock);
-+	/***** CRITICAL SECTION END *****/
-+	return 0;
-+}
-+
-+/**
-+ * tomoyo_save_result - Remember error code for security_inode_*() if any.
-+ *
-+ * @error: Return code from security_path_*().
-+ *
-+ * Returns 0 on success, -ENOMEM otherwise.
-+ *
-+ * We don't save if @error == 0.
-+ */
-+static int tomoyo_save_result(const int error)
-+{
-+	return error ? tomoyo_update_result(error) : 0;
-+}
-+
-+/**
-+ * tomoyo_load_result - Fetch error code for security_inode_*().
-+ *
-+ * Returns error code saved by security_path_*().
-+ */
-+static int tomoyo_load_result(void)
-+{
-+	return tomoyo_update_result(0);
-+}
-+
-+/* Clear error code in case security_inode_*() was not called. */
-+static void tomoyo_path_clear(void)
-+{
-+	tomoyo_load_result();
-+}
-+
 +static int tomoyo_path_truncate(struct path *path, loff_t length,
-+				unsigned int time_attrs, struct file *filp)
++				unsigned int time_attrs)
 +{
-+	const int ret = tomoyo_check_1path_perm(tomoyo_domain(),
-+						TOMOYO_TYPE_TRUNCATE_ACL,
-+						path);
-+	return tomoyo_save_result(ret);
++	return tomoyo_check_1path_perm(tomoyo_domain(),
++				       TOMOYO_TYPE_TRUNCATE_ACL,
++				       path);
 +}
 +
 +static int tomoyo_path_unlink(struct path *parent, struct dentry *dentry)
 +{
 +	struct path path = { parent->mnt, dentry };
-+	const int ret = tomoyo_check_1path_perm(tomoyo_domain(),
-+						TOMOYO_TYPE_UNLINK_ACL,
-+						&path);
-+	return tomoyo_save_result(ret);
++	return tomoyo_check_1path_perm(tomoyo_domain(),
++				       TOMOYO_TYPE_UNLINK_ACL,
++				       &path);
 +}
 +
 +static int tomoyo_path_mkdir(struct path *parent, struct dentry *dentry,
 +			     int mode)
 +{
 +	struct path path = { parent->mnt, dentry };
-+	const int ret = tomoyo_check_1path_perm(tomoyo_domain(),
-+						TOMOYO_TYPE_MKDIR_ACL,
-+						&path);
-+	return tomoyo_save_result(ret);
++	return tomoyo_check_1path_perm(tomoyo_domain(),
++				       TOMOYO_TYPE_MKDIR_ACL,
++				       &path);
 +}
 +
 +static int tomoyo_path_rmdir(struct path *parent, struct dentry *dentry)
 +{
 +	struct path path = { parent->mnt, dentry };
-+	const int ret = tomoyo_check_1path_perm(tomoyo_domain(),
-+						TOMOYO_TYPE_RMDIR_ACL,
-+						&path);
-+	return tomoyo_save_result(ret);
++	return tomoyo_check_1path_perm(tomoyo_domain(),
++				       TOMOYO_TYPE_RMDIR_ACL,
++				       &path);
 +}
 +
 +static int tomoyo_path_symlink(struct path *parent, struct dentry *dentry,
 +			       const char *old_name)
 +{
 +	struct path path = { parent->mnt, dentry };
-+	const int ret = tomoyo_check_1path_perm(tomoyo_domain(),
-+						TOMOYO_TYPE_SYMLINK_ACL,
-+						&path);
-+	return tomoyo_save_result(ret);
++	return tomoyo_check_1path_perm(tomoyo_domain(),
++				       TOMOYO_TYPE_SYMLINK_ACL,
++				       &path);
 +}
 +
 +static int tomoyo_path_mknod(struct path *parent, struct dentry *dentry,
@@ -337,8 +242,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		type = TOMOYO_TYPE_MKSOCK_ACL;
 +		break;
 +	}
-+	return tomoyo_save_result(tomoyo_check_1path_perm(tomoyo_domain(),
-+							  type, &path));
++	return tomoyo_check_1path_perm(tomoyo_domain(),
++				       type, &path);
 +}
 +
 +static int tomoyo_path_link(struct dentry *old_dentry, struct path *new_dir,
@@ -346,10 +251,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct path path1 = { new_dir->mnt, old_dentry };
 +	struct path path2 = { new_dir->mnt, new_dentry };
-+	const int ret = tomoyo_check_2path_perm(tomoyo_domain(),
-+						TOMOYO_TYPE_LINK_ACL,
-+						&path1, &path2);
-+	return tomoyo_save_result(ret);
++	return tomoyo_check_2path_perm(tomoyo_domain(),
++				       TOMOYO_TYPE_LINK_ACL,
++				       &path1, &path2);
 +}
 +
 +static int tomoyo_path_rename(struct path *old_parent,
@@ -359,63 +263,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct path path1 = { old_parent->mnt, old_dentry };
 +	struct path path2 = { new_parent->mnt, new_dentry };
-+	const int ret = tomoyo_check_2path_perm(tomoyo_domain(),
-+						TOMOYO_TYPE_RENAME_ACL,
-+						&path1, &path2);
-+	return tomoyo_save_result(ret);
-+}
-+
-+static int tomoyo_inode_link(struct dentry *old_dentry, struct inode *inode,
-+			     struct dentry *new_dentry)
-+{
-+	return tomoyo_load_result();
-+}
-+
-+static int tomoyo_inode_unlink(struct inode *inode, struct dentry *dentry)
-+{
-+	return tomoyo_load_result();
-+}
-+
-+static int tomoyo_inode_symlink(struct inode *inode, struct dentry *dentry,
-+				const char *name)
-+{
-+	return tomoyo_load_result();
-+}
-+
-+static int tomoyo_inode_mkdir(struct inode *inode, struct dentry *dentry,
-+			      int mask)
-+{
-+	return tomoyo_load_result();
-+}
-+
-+static int tomoyo_inode_rmdir(struct inode *inode, struct dentry *dentry)
-+{
-+	return tomoyo_load_result();
-+}
-+
-+static int tomoyo_inode_create(struct inode *dir, struct dentry *dentry,
-+			       int mode)
-+{
-+	return tomoyo_load_result();
-+}
-+
-+static int tomoyo_inode_mknod(struct inode *inode, struct dentry *dentry,
-+			      int mode, dev_t dev)
-+{
-+	return tomoyo_load_result();
-+}
-+
-+static int tomoyo_inode_rename(struct inode *old_inode,
-+			       struct dentry *old_dentry,
-+			       struct inode *new_inode,
-+			       struct dentry *new_dentry)
-+{
-+	return tomoyo_load_result();
-+}
-+
-+static int tomoyo_inode_setattr(struct dentry *dentry, struct iattr *iattr)
-+{
-+	return tomoyo_load_result();
++	return tomoyo_check_2path_perm(tomoyo_domain(),
++				       TOMOYO_TYPE_RENAME_ACL,
++				       &path1, &path2);
 +}
 +
 +static int tomoyo_file_fcntl(struct file *file, unsigned int cmd,
@@ -457,16 +307,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	.path_mknod          = tomoyo_path_mknod,
 +	.path_link           = tomoyo_path_link,
 +	.path_rename         = tomoyo_path_rename,
-+	.inode_create        = tomoyo_inode_create,
-+	.inode_setattr       = tomoyo_inode_setattr,
-+	.inode_unlink        = tomoyo_inode_unlink,
-+	.inode_mkdir         = tomoyo_inode_mkdir,
-+	.inode_rmdir         = tomoyo_inode_rmdir,
-+	.inode_symlink       = tomoyo_inode_symlink,
-+	.inode_mknod         = tomoyo_inode_mknod,
-+	.inode_link          = tomoyo_inode_link,
-+	.inode_rename        = tomoyo_inode_rename,
-+	.path_clear          = tomoyo_path_clear,
 +};
 +
 +static int __init tomoyo_init(void)
@@ -485,8 +325,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +security_initcall(tomoyo_init);
 --- /dev/null
-+++ linux-2.6.28-rc6-mm1/security/tomoyo/tomoyo.h
-@@ -0,0 +1,107 @@
++++ linux-2.6.28-rc7-mm1/security/tomoyo/tomoyo.h
+@@ -0,0 +1,106 @@
 +/*
 + * security/tomoyo/tomoyo.h
 + *
@@ -571,7 +411,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#define TOMOYO_VERSION               6
 +#define TOMOYO_PROFILE               7
 +#define TOMOYO_MANAGER               8
-+#define TOMOYO_UPDATESCOUNTER        9
 +
 +extern struct tomoyo_domain_info tomoyo_kernel_domain;
 +
