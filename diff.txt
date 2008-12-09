@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 1893)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 1925)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(working copy)
 @@ -44,15 +44,15 @@
  #define true     1
@@ -33,7 +33,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
  	*proc_policy_reject_log,
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccs-auditd.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccs-auditd.c	(revision 1893)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccs-auditd.c	(revision 1925)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccs-auditd.c	(working copy)
 @@ -87,15 +87,9 @@
  	}
@@ -65,7 +65,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccs-auditd.c
  			if (sscanf(buffer, "#timestamp=%lu", &stamp) != 1)
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 1893)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 1925)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(working copy)
 @@ -159,48 +159,44 @@
  #endif
@@ -870,16 +870,26 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	if (!fp)
  		goto no_exception;
  	get();
-@@ -1862,7 +1877,7 @@
+@@ -1862,8 +1877,17 @@
  no_exception:
  
  	/* Load all domain list. */
 -	fp = open_read(DOMAIN_POLICY_FILE);
-+	fp = open_read(proc_policy_domain_policy);
++	fp = NULL;
++	if (!offline_mode) {
++		fp = fopen(policy_file, "r+");
++		if (fp) {
++			fprintf(fp, "select allow_execute\n");
++			fflush(fp);
++		}
++	}
  	if (!fp)
++		fp = open_read(proc_policy_domain_policy);
++	if (!fp)
  		goto no_domain;
  	index = EOF;
-@@ -1872,17 +1887,17 @@
+ 	get();
+@@ -1872,45 +1896,45 @@
  		char *cp2;
  		unsigned int profile;
  		if (is_domain_def(shared_buffer)) {
@@ -897,11 +907,17 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		} else if (str_starts(shared_buffer,
  				      KEYWORD_DENIED_EXECUTE_HANDLER)) {
 -			add_string_entry(shared_buffer, index);
+-		} else if (str_starts(shared_buffer, "1 ") ||
 +			add_string_entry(dp, shared_buffer, index);
- 		} else if (str_starts(shared_buffer, "1 ") ||
++		} else if (str_starts(shared_buffer, KEYWORD_ALLOW_EXECUTE) ||
++			   str_starts(shared_buffer, "1 ") ||
  			   str_starts(shared_buffer, "3 ") ||
  			   str_starts(shared_buffer, "5 ") ||
-@@ -1893,24 +1908,24 @@
+-			   str_starts(shared_buffer, "7 ") ||
+-			   str_starts(shared_buffer, KEYWORD_ALLOW_EXECUTE)) {
++			   str_starts(shared_buffer, "7 ")) {
+ 			cp = shared_buffer;
+ 			cp2 = strchr(cp, ' ');
  			if (cp2)
  				*cp2 = '\0';
  			if (*cp == '@' || is_correct_path(cp, 1, 0, -1))
@@ -930,7 +946,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		while (true) {
  			const struct domain_initializer_entry *d_i;
  			const struct domain_keeper_entry *d_k;
-@@ -1926,24 +1941,24 @@
+@@ -1926,24 +1950,24 @@
  				/* Initializer under <kernel> is reachable. */
  				if (parent.total_len == ROOT_NAME_LEN)
  					break;
@@ -962,7 +978,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (!cp || strchr(cp + 1, ' '))
  			continue;
  		for (i = 0; i < domain_initializer_list_len; i++) {
-@@ -1953,7 +1968,7 @@
+@@ -1953,7 +1977,7 @@
  				continue;
  			if (strcmp(ptr->program->name, cp + 1))
  				continue;
@@ -971,7 +987,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  	}
  
-@@ -1967,26 +1982,26 @@
+@@ -1967,26 +1991,26 @@
  				continue;
  			if (!ptr->is_last_name) {
  				if (pathcmp(ptr->domainname,
@@ -1005,7 +1021,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		/* Don't create source domain under <kernel> because
  		   they will become target domains. */
  		if (domainname->total_len == ROOT_NAME_LEN)
-@@ -1995,7 +2010,7 @@
+@@ -1995,7 +2019,7 @@
  			const struct path_info *cp = string_ptr[i];
  			struct path_group_entry *group;
  			if (cp->name[0] != '@') {
@@ -1014,7 +1030,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  								 cp->name);
  				continue;
  			}
-@@ -2004,7 +2019,7 @@
+@@ -2004,7 +2028,7 @@
  				continue;
  			for (j = 0; j < group->member_name_len; j++) {
  				cp = group->member_name[j];
@@ -1023,7 +1039,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  								 cp->name);
  			}
  		}
-@@ -2015,15 +2030,15 @@
+@@ -2015,15 +2039,15 @@
  		get();
  		memset(shared_buffer, 0, shared_buffer_len);
  		snprintf(shared_buffer, shared_buffer_len - 1, "%s",
@@ -1042,7 +1058,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  						      true)
  			    == EOF)
  				out_of_memory();
-@@ -2032,33 +2047,32 @@
+@@ -2032,33 +2056,32 @@
  	}
  
  	/* Sort by domain name. */
@@ -1087,7 +1103,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  
  static int window_width = 0;
  static int window_height = 0;
-@@ -2083,26 +2097,25 @@
+@@ -2083,26 +2106,25 @@
  	return str;
  }
  
@@ -1124,7 +1140,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	while (true) {
  		const char *cp = strchr(sp, ' ');
  		if (!cp)
-@@ -2111,17 +2124,17 @@
+@@ -2111,17 +2133,17 @@
  		tmp_col += 4;
  		sp = cp + 1;
  	}
@@ -1145,7 +1161,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	if (!domain_initializer)
  		goto not_domain_initializer;
  	get();
-@@ -2140,7 +2153,7 @@
+@@ -2140,7 +2162,7 @@
  	put();
  	goto done;
  not_domain_initializer:
@@ -1154,7 +1170,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	if (!domain_keeper)
  		goto not_domain_keeper;
  	get();
-@@ -2159,16 +2172,16 @@
+@@ -2159,16 +2181,16 @@
  	put();
  	goto done;
  not_domain_keeper:
@@ -1175,7 +1191,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	else
  		snprintf(shared_buffer, shared_buffer_len - 1,
  			 " ( -> Not Found )");
-@@ -2179,51 +2192,60 @@
+@@ -2179,51 +2201,60 @@
  	return tmp_col;
  }
  
@@ -1253,7 +1269,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	}
  	/* add color */
  	editpolicy_color_change(editpolicy_color_head(current_screen), false);
-@@ -2235,34 +2257,49 @@
+@@ -2235,34 +2266,49 @@
  		snprintf(shared_buffer, shared_buffer_len - 1, "%s",
  			 eat(current_domain));
  		editpolicy_attr_change(A_REVERSE, true);  /* add color */
@@ -1311,7 +1327,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  }
  
  static void resize_window(void)
-@@ -2275,51 +2312,51 @@
+@@ -2275,51 +2321,51 @@
  		current_y[current_screen] = 0;
  }
  
@@ -1373,7 +1389,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	if (list_item_count[current_screen] - current_item_index[current_screen]
  	    > body_lines) {
-@@ -2330,14 +2367,14 @@
+@@ -2330,14 +2376,14 @@
  			current_y[current_screen]
  				= list_item_count[current_screen] - 1
  				- current_item_index[current_screen];
@@ -1390,7 +1406,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	}
  }
  
-@@ -2358,8 +2395,8 @@
+@@ -2358,8 +2404,8 @@
  
  /* add color start */
  #ifdef COLOR_ON
@@ -1401,7 +1417,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  
  static void editpolicy_line_draw(void)
  {
-@@ -2388,14 +2425,14 @@
+@@ -2388,14 +2434,14 @@
  #endif
  /* add color end */
  
@@ -1418,7 +1434,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (window_width < shared_buffer_len)
  			shared_buffer[window_width] = '\0';
  		move(2, 0);
-@@ -2464,22 +2501,22 @@
+@@ -2464,22 +2510,22 @@
  	return c;
  }
  
@@ -1446,7 +1462,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		editpolicy_sttr_restore(); /* add color */
  		move(y, x);
  		return 1;
-@@ -2639,7 +2676,7 @@
+@@ -2639,7 +2685,7 @@
  	return false;
  }
  
@@ -1455,7 +1471,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	char *cp;
  	u8 s_index;
-@@ -2845,18 +2882,18 @@
+@@ -2845,18 +2891,18 @@
  	}
  	put();
  	free(cp);
@@ -1478,7 +1494,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (!c)
  			printw("Select domain using Space key first.");
  		else
-@@ -2865,7 +2902,7 @@
+@@ -2865,7 +2911,7 @@
  	} else {
  		c = count2(generic_acl_list, generic_acl_list_count);
  		if (!c)
@@ -1487,7 +1503,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (!c)
  			printw("Select entry using Space key first.");
  		else
-@@ -2882,18 +2919,18 @@
+@@ -2882,18 +2928,18 @@
  	} while (!(c == 'Y' || c == 'y' || c == 'N' || c == 'n' || c == EOF));
  	resize_window();
  	if (c != 'Y' && c != 'y') {
@@ -1511,7 +1527,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  		fclose(fp);
  	} else {
-@@ -2934,33 +2971,46 @@
+@@ -2934,33 +2980,46 @@
  	if (!line || !*line)
  		goto out;
  	rl->count = simple_add_history(line, rl->history, rl->count, rl->max);
@@ -1577,7 +1593,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	int index = current;
  	char *line = NULL;
-@@ -2970,7 +3020,7 @@
+@@ -2970,7 +3029,7 @@
  		goto start_search;
  	editpolicy_attr_change(A_BOLD, true);  /* add color */
  	line = simple_readline(window_height - 1, 0, "Search> ",
@@ -1586,7 +1602,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	editpolicy_attr_change(A_BOLD, false); /* add color */
  	if (!line || !*line)
  		goto out;
-@@ -2991,7 +3041,7 @@
+@@ -2991,7 +3050,7 @@
  				break;
  		}
  		if (current_screen == SCREEN_DOMAIN_LIST)
@@ -1595,7 +1611,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		else {
  			const u8 directive = generic_acl_list[index].directive;
  			snprintf(shared_buffer, shared_buffer_len - 1,
-@@ -3007,19 +3057,18 @@
+@@ -3007,19 +3066,18 @@
  	put();
  out:
  	free(line);
@@ -1621,7 +1637,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		clrtoeol();
  		refresh();
  		return;
-@@ -3030,56 +3079,207 @@
+@@ -3030,56 +3088,207 @@
  	editpolicy_attr_change(A_BOLD, false); /* add color */
  	if (!line || !*line)
  		goto out;
@@ -1863,7 +1879,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	refresh();
  	while (true) {
  		c = getch2();
-@@ -3088,7 +3288,7 @@
+@@ -3088,7 +3297,7 @@
  	}
  }
  
@@ -1872,7 +1888,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	static struct readline_data rl;
  	static int saved_current_y[MAXSCREEN];
-@@ -3104,33 +3304,46 @@
+@@ -3104,33 +3313,46 @@
  		first = false;
  	}
  	if (current_screen == SCREEN_SYSTEM_LIST) {
@@ -1931,7 +1947,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		clrtoeol();
  		refresh();
  		free(rl.last_error);
-@@ -3162,22 +3375,22 @@
+@@ -3162,22 +3384,22 @@
  			const char *line;
  		case KEY_RESIZE:
  			resize_window();
@@ -1960,7 +1976,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			break;
  		case 'c':
  		case 'C':
-@@ -3185,16 +3398,16 @@
+@@ -3185,16 +3407,16 @@
  				break;
  			if (current_screen == SCREEN_DOMAIN_LIST) {
  				const u8 selected
@@ -1984,7 +2000,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  						= selected;
  				}
  			} else {
-@@ -3206,46 +3419,69 @@
+@@ -3206,46 +3428,69 @@
  						= selected;
  				}
  			}
@@ -2067,7 +2083,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  							     false, false);
  				put();
  				if (redirect_index == EOF)
-@@ -3257,10 +3493,11 @@
+@@ -3257,10 +3502,11 @@
  					current_item_index[current_screen]++;
  					current_y[current_screen]--;
  				}
@@ -2082,7 +2098,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  				if (!current_domain)
  					out_of_memory();
  				return SCREEN_ACL_LIST;
-@@ -3268,8 +3505,18 @@
+@@ -3268,8 +3514,18 @@
  			break;
  		case 's':
  		case 'S':
@@ -2103,7 +2119,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		case 'r':
  		case 'R':
  			goto start;
-@@ -3291,15 +3538,27 @@
+@@ -3291,15 +3547,27 @@
  			if (current == EOF)
  				break;
  			get();
@@ -2136,7 +2152,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			}
  			rl.count = simple_add_history(line, rl.history,
  						      rl.count, rl.max);
-@@ -3308,13 +3567,16 @@
+@@ -3308,13 +3576,16 @@
  		case 'o':
  		case 'O':
  			if (current_screen == SCREEN_ACL_LIST)
@@ -2154,7 +2170,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		case '?':
  			show_command_key();
  			goto start;
-@@ -3322,7 +3584,8 @@
+@@ -3322,7 +3593,8 @@
  	}
  }
  
@@ -2164,7 +2180,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	int i;
  	int index = EOF;
-@@ -3338,135 +3601,103 @@
+@@ -3338,135 +3610,103 @@
  			is_select = true;
  		if (is_domain_def(shared_buffer)) {
  			if (is_delete) {
@@ -2345,7 +2361,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	while (true) {
  		FILE *fp;
  		struct msghdr msg;
-@@ -3498,23 +3729,44 @@
+@@ -3498,23 +3738,44 @@
  			break;
  		}
  		if (str_starts(shared_buffer, "POST ")) {
@@ -2402,7 +2418,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	_exit(0);
  }
  
-@@ -3533,6 +3785,8 @@
+@@ -3533,6 +3794,8 @@
  
  int editpolicy_main(int argc, char *argv[])
  {
@@ -2411,7 +2427,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	memset(current_y, 0, sizeof(current_y));
  	memset(current_item_index, 0, sizeof(current_item_index));
  	memset(list_item_count, 0, sizeof(list_item_count));
-@@ -3544,8 +3798,12 @@
+@@ -3544,8 +3807,12 @@
  			current_screen = SCREEN_EXCEPTION_LIST;
  		else if (!strcmp(argv[1], "d"))
  			current_screen = SCREEN_DOMAIN_LIST;
@@ -2425,7 +2441,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			return 1;
  		}
  	}
-@@ -3560,7 +3818,7 @@
+@@ -3560,7 +3827,7 @@
  			offline_mode = true;
  	}
  	if (offline_mode) {
@@ -2434,7 +2450,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (chdir(disk_policy_dir)) {
  			printf("Directory %s doesn't exist.\n",
  			       disk_policy_dir);
-@@ -3585,46 +3843,80 @@
+@@ -3585,46 +3852,80 @@
  		{
  			int fd = open(base_policy_system_policy, O_RDONLY);
  			if (fd != EOF) {
@@ -2521,7 +2537,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  	} else {
  		if (chdir(proc_policy_dir)) {
-@@ -3633,9 +3925,9 @@
+@@ -3633,9 +3934,9 @@
  			return 1;
  		}
  		{
@@ -2534,7 +2550,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			if ((fd1 != EOF && write(fd1, "", 0) != 0) ||
  			    (fd2 != EOF && write(fd2, "", 0) != 0) ||
  			    (fd3 != EOF && write(fd3, "", 0) != 0)) {
-@@ -3661,20 +3953,20 @@
+@@ -3661,20 +3962,20 @@
  	while (current_screen < MAXSCREEN) {
  		if (!offline_mode) {
  			if (current_screen == SCREEN_DOMAIN_LIST &&
@@ -2560,7 +2576,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	}
  	clear();
  	move(0, 0);
-@@ -3683,7 +3975,7 @@
+@@ -3683,7 +3984,7 @@
  	if (offline_mode) {
  		time_t now = time(NULL);
  		char *filename = make_filename("system_policy", now);
@@ -2569,7 +2585,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  				      base_policy_system_policy, filename)) {
  			if (is_identical_file("system_policy.conf", filename)) {
  				unlink(filename);
-@@ -3693,7 +3985,7 @@
+@@ -3693,7 +3994,7 @@
  			}
  		}
  		filename = make_filename("exception_policy", now);
@@ -2578,7 +2594,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  				      base_policy_exception_policy, filename)) {
  			if (is_identical_file("exception_policy.conf",
  					      filename)) {
-@@ -3703,10 +3995,10 @@
+@@ -3703,10 +4004,10 @@
  				symlink(filename, "exception_policy.conf");
  			}
  		}
@@ -2592,7 +2608,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  						 base_policy_domain_policy,
  						 filename)) {
  			if (is_identical_file("domain_policy.conf", filename)) {
-@@ -3716,7 +4008,29 @@
+@@ -3716,7 +4017,29 @@
  				symlink(filename, "domain_policy.conf");
  			}
  		}
@@ -2624,7 +2640,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/findtemp.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/findtemp.c	(revision 1893)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/findtemp.c	(revision 1925)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/findtemp.c	(working copy)
 @@ -54,5 +54,8 @@
  	      string_compare);
@@ -2637,7 +2653,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/findtemp.c
  }
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.c	(revision 1893)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.c	(revision 1925)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.c	(working copy)
 @@ -707,6 +707,7 @@
  	*proc_policy_manager          = "/proc/ccs/manager",
@@ -2793,7 +2809,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.c
  	 * program because it is dangerous to allow updating policies via
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/pathmatch.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/pathmatch.c	(revision 1893)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/pathmatch.c	(revision 1925)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/pathmatch.c	(working copy)
 @@ -152,5 +152,8 @@
  			do_pathmatch_main(shared_buffer);
@@ -2806,7 +2822,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/pathmatch.c
  }
 Index: trunk/1.6.x/ccs-tools/ccstools/Makefile
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/Makefile	(revision 1893)
+--- trunk/1.6.x/ccs-tools/ccstools/Makefile	(revision 1925)
 +++ trunk/1.6.x/ccs-tools/ccstools/Makefile	(working copy)
 @@ -31,7 +31,7 @@
  

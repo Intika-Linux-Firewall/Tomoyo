@@ -1476,6 +1476,10 @@ static bool is_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
 	struct domain_info *domain = NULL;
+	if (!strcmp(data, "allow_execute")) {
+		head->read_execute_only = true;
+		return true;
+	}
 	if (sscanf(data, "pid=%u", &pid) == 1) {
 		struct task_struct *p;
 		/***** CRITICAL SECTION START *****/
@@ -1624,6 +1628,8 @@ static bool print_single_path_acl(struct ccs_io_buffer *head,
 	for (bit = head->read_bit; bit < MAX_SINGLE_PATH_OPERATION; bit++) {
 		const char *msg;
 		if (!(perm & (1 << bit)))
+			continue;
+		if (head->read_execute_only && bit != TYPE_EXECUTE_ACL)
 			continue;
 		/* Print "read/write" instead of "read" and "write". */
 		if ((bit == TYPE_READ_ACL || bit == TYPE_WRITE_ACL)
@@ -1936,6 +1942,22 @@ static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
 				       head);
 		return print_single_path_acl(head, acl, cond);
 	}
+	if (acl_type == TYPE_EXECUTE_HANDLER) {
+		struct execute_handler_record *acl
+			= container_of(ptr, struct execute_handler_record,
+				       head);
+		const char *keyword = KEYWORD_EXECUTE_HANDLER;
+		return print_execute_handler_record(head, keyword, acl);
+	}
+	if (acl_type == TYPE_DENIED_EXECUTE_HANDLER) {
+		struct execute_handler_record *acl
+			= container_of(ptr, struct execute_handler_record,
+				       head);
+		const char *keyword = KEYWORD_DENIED_EXECUTE_HANDLER;
+		return print_execute_handler_record(head, keyword, acl);
+	}
+	if (head->read_execute_only)
+		return true;
 	if (acl_type == TYPE_DOUBLE_PATH_ACL) {
 		struct double_path_acl_record *acl
 			= container_of(ptr, struct double_path_acl_record,
@@ -1966,20 +1988,6 @@ static bool print_entry(struct ccs_io_buffer *head, struct acl_info *ptr)
 		struct signal_acl_record *acl
 			= container_of(ptr, struct signal_acl_record, head);
 		return print_signal_acl(head, acl, cond);
-	}
-	if (acl_type == TYPE_EXECUTE_HANDLER) {
-		struct execute_handler_record *acl
-			= container_of(ptr, struct execute_handler_record,
-				       head);
-		const char *keyword = KEYWORD_EXECUTE_HANDLER;
-		return print_execute_handler_record(head, keyword, acl);
-	}
-	if (acl_type == TYPE_DENIED_EXECUTE_HANDLER) {
-		struct execute_handler_record *acl
-			= container_of(ptr, struct execute_handler_record,
-				       head);
-		const char *keyword = KEYWORD_DENIED_EXECUTE_HANDLER;
-		return print_execute_handler_record(head, keyword, acl);
 	}
 	/* Workaround for gcc 3.2.2's inline bug. */
 	if (acl_type & ACL_DELETED)
