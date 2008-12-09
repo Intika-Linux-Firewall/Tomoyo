@@ -596,6 +596,8 @@ struct ccs_io_buffer {
 	bool read_eof;
 	/* Read domain ACL of specified PID?    */
 	bool read_single_domain;
+	/* Read allow_execute entry only?       */
+	bool read_execute_only;
 	/* Extra variable for reading.          */
 	u8 read_bit;
 	/* Bytes available for reading.         */
