@@ -1774,3 +1774,13 @@ Fix 2008/12/01
         echo Dynamic: 1048576 > /proc/ccs/meminfo
 
       This quota is not applied to temporary memory used for permission checks.
+
+Fix 2008/12/09
+
+    @ Fix ccs_can_save_audit_log() checks.
+
+      Due to incorrect statement "if (ccs_can_save_audit_log() < 0)"
+      while ccs_can_save_audit_log() is boolean, MAX_GRANT_LOG and
+      MAX_REJECT_LOG were not working.
+
+      This bug will trigger OOM killer if /usr/sbin/ccs-auditd is not working.

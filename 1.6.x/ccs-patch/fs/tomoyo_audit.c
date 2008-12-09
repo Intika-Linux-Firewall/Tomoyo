@@ -244,7 +244,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	struct task_struct *task = current;
 	if (!r->domain)
 		r->domain = task->domain_info;
-	if (ccs_can_save_audit_log(r->domain, is_granted) < 0)
+	if (!ccs_can_save_audit_log(r->domain, is_granted))
 		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
