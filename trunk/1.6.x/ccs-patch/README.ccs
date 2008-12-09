@@ -1753,12 +1753,12 @@ Fix 2008/12/01
       new conditions for checking file's type and permissions.
       For example,
 
-        allow_read /etc/fstab if path1.type=regular path1.mode=0644
+        allow_read /etc/fstab if path1.type=regular path1.perm=0644
 
       will allow opening /etc/fstab for reading only if /etc/fstab is a regular
       file and it's permission is 0644, and
 
-        allow_write /dev/null if path1/type=char path1.major=1 path1.minor=3
+        allow_write /dev/null if path1.type=char path1.major=1 path1.minor=3
 
       will allow opening /dev/null for writing only if /dev/null is a character
       device file with major=1 and minor=3 attributes.

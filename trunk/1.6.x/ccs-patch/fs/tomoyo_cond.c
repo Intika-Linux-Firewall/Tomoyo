@@ -542,9 +542,9 @@ static const char *condition_control_keyword[MAX_KEYWORD] = {
 	[MODE_SETUID]          = "setuid",
 	[MODE_SETGID]          = "setgid",
 	[MODE_STICKY]          = "sticky",
-	[MODE_OWNER_READ]      = "user_read",
-	[MODE_OWNER_WRITE]     = "user_write",
-	[MODE_OWNER_EXECUTE]   = "user_execute",
+	[MODE_OWNER_READ]      = "owner_read",
+	[MODE_OWNER_WRITE]     = "owner_write",
+	[MODE_OWNER_EXECUTE]   = "owner_execute",
 	[MODE_GROUP_READ]      = "group_read",
 	[MODE_GROUP_WRITE]     = "group_write",
 	[MODE_GROUP_EXECUTE]   = "group_execute",
@@ -565,9 +565,9 @@ static const char *condition_control_keyword[MAX_KEYWORD] = {
 	[PATH1_TYPE]           = "path1.type",
 	[PATH1_DEV_MAJOR]      = "path1.major",
 	[PATH1_DEV_MINOR]      = "path1.minor",
-	[PATH1_MODE]           = "path1.mode",
-	[PATH1_PARENT_MODE]    = "path1.parent.mode",
-	[PATH2_PARENT_MODE]    = "path2.parent.mode",
+	[PATH1_MODE]           = "path1.perm",
+	[PATH1_PARENT_MODE]    = "path1.parent.perm",
+	[PATH2_PARENT_MODE]    = "path2.parent.perm",
 };
 
 /**
