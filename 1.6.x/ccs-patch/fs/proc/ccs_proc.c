@@ -24,6 +24,7 @@
 #if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
+#if !defined(RHEL_VERSION) || RHEL_VERSION != 3 || !defined(RHEL_UPDATE) || RHEL_UPDATE != 9
 /**
  * PDE - Get "struct proc_dir_entry".
  *
@@ -37,6 +38,7 @@ static inline struct proc_dir_entry *PDE(const struct inode *inode)
 {
 	return (struct proc_dir_entry *) inode->u.generic_ip;
 }
+#endif
 #endif
 
 /**
