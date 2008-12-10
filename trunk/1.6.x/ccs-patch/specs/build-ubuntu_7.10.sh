@@ -20,14 +20,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.5-20081111.tar.gz ]
+if [ ! -r ccs-patch-1.6.5-20081210.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081111.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.22-ubuntu-7.10p1.diff ]
-then
-    wget -O ccs-patch-2.6.22-ubuntu-7.10p1.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.22-ubuntu-7.10.diff?root=tomoyo'
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081210.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -46,8 +41,8 @@ cd linux-source-2.6.22-2.6.22/ || die "Can't chdir to linux-2.6.22-2.6.22/ ."
 mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-custom.d/ccs/patchset ."
 mkdir -p ccs-patch/ || die "Can't create directory."
 cd ccs-patch/ || die "Can't chdir to ccs-patch/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.5-20081111.tar.gz || die "Can't extract patch."
-cp -p /usr/src/rpm/SOURCES/ccs-patch-2.6.22-ubuntu-7.10p1.diff ../debian/binary-custom.d/ccs/patchset/ubuntu-7.10.patch || die "Can't copy patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.5-20081210.tar.gz || die "Can't extract patch."
+cp -p patches/ccs-patch-2.6.22-ubuntu-7.10.diff ../debian/binary-custom.d/ccs/patchset/ubuntu-7.10.patch || die "Can't copy patch."
 rm -fR specs/ patches/ || die "Can't delete directory."
 for i in `find . -type f`; do diff -u /dev/null $i; done > ../debian/binary-custom.d/ccs/patchset/ccs.patch
 cd ../ || die "Can't chdir to ../ ."

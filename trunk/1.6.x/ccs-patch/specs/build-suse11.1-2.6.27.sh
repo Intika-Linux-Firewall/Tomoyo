@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for openSUSE 11.0's 2.6.25 kernel.
+# This is a kernel build script for openSUSE 11.1's 2.6.27 kernel.
 #
 
 die () {
@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.25.18-0.2.src.rpm ]
+if [ ! -r kernel-source-2.6.27.7-4.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.0/rpm/src/kernel-source-2.6.25.18-0.2.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/source/distribution/11.1-RC1/repo/oss/suse/src/kernel-source-2.6.27.7-4.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.25.18-0.2.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.27.7-4.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.5-20081210.tar.gz ]
@@ -75,35 +75,38 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-10-22 23:21:23.000000000 +0900
-+++ kernel-default.spec	2008-10-28 17:22:15.000000000 +0900
-@@ -47,10 +47,10 @@
- %define build_nomodules 1
+--- kernel-default.spec	2008-11-26 00:11:30.000000000 +0900
++++ kernel-default.spec	2008-12-10 17:56:41.000000000 +0900
+@@ -53,13 +53,13 @@
+ %if %build_vanilla || %build_kdump || %CONFIG_MODULES != "y"
+ %define split_packages 0
+ %else
+-%define split_packages 1
++%define split_packages 0
  %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
- Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
- Version:        2.6.25.18
--Release: 0.2
-+Release: 0.2_tomoyo_1.6.5
- License:        GPL v2 or later
+ Summary:        The Standard Kernel
+ Version:        2.6.27.7
+-Release:        4
++Release:        4_tomoyo_1.6.5
+ License:        GPL v2 only
  Group:          System/Kernel
  Url:            http://www.kernel.org/
-@@ -314,6 +314,11 @@
+@@ -303,6 +303,10 @@
  %build
  source .rpm-defs
- cd linux-2.6.25
+ cd linux-2.6.27
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.5-20081210.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.25-suse-11.0.diff
-+# sed -i -e 's:-ccs::' -- Makefile
++patch -sp1 < patches/ccs-patch-2.6.27-suse-11.1.diff
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
+sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' -e 's:-n kernel:-n ccs-kernel:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
 echo ""
 echo ""
 echo ""
