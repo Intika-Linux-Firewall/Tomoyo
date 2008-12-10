@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.6.27.8.
+This is TOMOYO Linux patch for openSUSE 11.1.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.27.8.tar.bz2
+Source code for this patch is http://download.opensuse.org/distribution/11.1-RC1/repo/oss/suse/i586/kernel-source-2.6.27.7-4.1.i586.rpm
 ---
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
@@ -27,19 +27,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
  kernel/sys.c                    |   21 +++++++
- kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++++++
+ kernel/sysctl.c                 |   94 +++++++++++++++++++++++++++++++
  kernel/time.c                   |   11 +++
  kernel/time/ntp.c               |    7 ++
  net/core/datagram.c             |   11 +++
  net/ipv4/inet_connection_sock.c |    7 ++
  net/ipv4/inet_hashtables.c      |    7 ++
  net/ipv4/udp.c                  |   10 +++
- net/socket.c                    |   41 +++++++++++++
+ net/socket.c                    |   40 +++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 34 files changed, 606 insertions(+), 2 deletions(-)
+ 34 files changed, 604 insertions(+), 2 deletions(-)
 
---- linux-2.6.27.8.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.27.8/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.27.7-4.1.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.27.7-4.1/arch/ia64/ia32/sys_ia32.c
 @@ -51,6 +51,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -63,8 +63,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.27.8.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.27.8/arch/mips/kernel/ptrace32.c
+--- linux-2.6.27.7-4.1.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.27.7-4.1/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -88,25 +88,25 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.27.8.orig/fs/Kconfig
-+++ linux-2.6.27.8/fs/Kconfig
-@@ -2093,4 +2093,6 @@ endif
+--- linux-2.6.27.7-4.1.orig/fs/Kconfig
++++ linux-2.6.27.7-4.1/fs/Kconfig
+@@ -2224,4 +2224,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
  
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.27.8.orig/fs/Makefile
-+++ linux-2.6.27.8/fs/Makefile
-@@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
- obj-$(CONFIG_DEBUG_FS)		+= debugfs/
+--- linux-2.6.27.7-4.1.orig/fs/Makefile
++++ linux-2.6.27.7-4.1/fs/Makefile
+@@ -131,3 +131,5 @@ obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
+ obj-$(CONFIG_NOVFS)		+= novfs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.27.8.orig/fs/attr.c
-+++ linux-2.6.27.8/fs/attr.c
+--- linux-2.6.27.7-4.1.orig/fs/attr.c
++++ linux-2.6.27.7-4.1/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -117,10 +117,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /* Taken over from the old code... */
  
-@@ -164,12 +167,28 @@ int notify_change(struct dentry * dentry
+@@ -165,6 +168,14 @@ int fnotify_change(struct dentry *dentry
  
  	if (inode->i_op && inode->i_op->setattr) {
- 		error = security_inode_setattr(dentry, attr);
+ 		error = security_inode_setattr(dentry, mnt, attr);
 +		/***** TOMOYO Linux start. *****/
 +		if (!error && (ia_valid & ATTR_MODE) &&
 +		    !ccs_capable(TOMOYO_SYS_CHMOD))
@@ -129,12 +129,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +		    !ccs_capable(TOMOYO_SYS_CHOWN))
 +			error = -EPERM;
 +		/***** TOMOYO Linux end. *****/
- 		if (!error)
- 			error = inode->i_op->setattr(dentry, attr);
- 	} else {
+ 		if (!error) {
+ 			if (file && file->f_op && file->f_op->fsetattr)
+ 				error = file->f_op->fsetattr(file, attr);
+@@ -186,6 +197,14 @@ int fnotify_change(struct dentry *dentry
  		error = inode_change_ok(inode, attr);
  		if (!error)
- 			error = security_inode_setattr(dentry, attr);
+ 			error = security_inode_setattr(dentry, mnt, attr);
 +		/***** TOMOYO Linux start. *****/
 +		if (!error && (ia_valid & ATTR_MODE) &&
 +		    !ccs_capable(TOMOYO_SYS_CHMOD))
@@ -146,9 +147,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.27.8.orig/fs/compat.c
-+++ linux-2.6.27.8/fs/compat.c
-@@ -56,6 +56,9 @@
+--- linux-2.6.27.7-4.1.orig/fs/compat.c
++++ linux-2.6.27.7-4.1/fs/compat.c
+@@ -57,6 +57,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
  #include "internal.h"
@@ -158,20 +159,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int compat_log = 1;
  
-@@ -1404,7 +1407,7 @@ int compat_do_execve(char * filename,
+@@ -1405,7 +1408,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
 -	retval = search_binary_handler(bprm, regs);
 +	retval = search_binary_handler_with_transition(bprm, regs);
  	if (retval >= 0) {
+ 		trace_fs_exec(filename);
  		/* execve success */
- 		security_bprm_free(bprm);
---- linux-2.6.27.8.orig/fs/compat_ioctl.c
-+++ linux-2.6.27.8/fs/compat_ioctl.c
-@@ -113,6 +113,9 @@
- #ifdef CONFIG_SPARC
- #include <asm/fbio.h>
+--- linux-2.6.27.7-4.1.orig/fs/compat_ioctl.c
++++ linux-2.6.27.7-4.1/fs/compat_ioctl.c
+@@ -120,6 +120,9 @@
+ #include <xen/public/privcmd.h>
+ #include <xen/compat_ioctl.h>
  #endif
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
@@ -179,7 +180,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2803,6 +2806,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2823,6 +2826,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -192,9 +193,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.27.8.orig/fs/exec.c
-+++ linux-2.6.27.8/fs/exec.c
-@@ -64,6 +64,10 @@
+--- linux-2.6.27.7-4.1.orig/fs/exec.c
++++ linux-2.6.27.7-4.1/fs/exec.c
+@@ -65,6 +65,10 @@
  #include <linux/a.out.h>
  #endif
  
@@ -205,7 +206,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
  int suid_dumpable = 0;
-@@ -132,6 +136,12 @@ asmlinkage long sys_uselib(const char __
+@@ -133,6 +137,12 @@ asmlinkage long sys_uselib(const char __
  	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
  	if (error)
  		goto exit;
@@ -218,7 +219,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	error = PTR_ERR(file);
-@@ -685,6 +695,15 @@ struct file *open_exec(const char *name)
+@@ -686,6 +696,15 @@ struct file *open_exec(const char *name)
  	err = vfs_permission(&nd, MAY_EXEC | MAY_OPEN);
  	if (err)
  		goto out_path_put;
@@ -234,17 +235,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	if (IS_ERR(file))
-@@ -1337,7 +1356,7 @@ int do_execve(char * filename,
+@@ -1346,7 +1365,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
 -	retval = search_binary_handler(bprm,regs);
 +	retval = search_binary_handler_with_transition(bprm, regs);
  	if (retval >= 0) {
+ 		trace_fs_exec(filename);
  		/* execve success */
- 		security_bprm_free(bprm);
---- linux-2.6.27.8.orig/fs/fcntl.c
-+++ linux-2.6.27.8/fs/fcntl.c
+--- linux-2.6.27.7-4.1.orig/fs/fcntl.c
++++ linux-2.6.27.7-4.1/fs/fcntl.c
 @@ -23,6 +23,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -268,10 +269,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.27.8.orig/fs/ioctl.c
-+++ linux-2.6.27.8/fs/ioctl.c
-@@ -15,6 +15,9 @@
- #include <linux/uaccess.h>
+--- linux-2.6.27.7-4.1.orig/fs/ioctl.c
++++ linux-2.6.27.7-4.1/fs/ioctl.c
+@@ -16,6 +16,9 @@
+ #include <trace/fs.h>
  
  #include <asm/ioctls.h>
 +/***** TOMOYO Linux start. *****/
@@ -280,7 +281,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /**
   * vfs_ioctl - call filesystem specific ioctl methods
-@@ -35,6 +38,10 @@ static long vfs_ioctl(struct file *filp,
+@@ -36,6 +39,10 @@ static long vfs_ioctl(struct file *filp,
  
  	if (!filp->f_op)
  		goto out;
@@ -291,8 +292,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.27.8.orig/fs/namei.c
-+++ linux-2.6.27.8/fs/namei.c
+--- linux-2.6.27.7-4.1.orig/fs/namei.c
++++ linux-2.6.27.7-4.1/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -304,8 +305,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1515,6 +1519,14 @@ int vfs_create(struct inode *dir, struct
- 	error = security_inode_create(dir, dentry, mode);
+@@ -1558,6 +1562,14 @@ int vfs_create(struct inode *dir, struct
+ 	error = security_inode_create(dir, dentry, nd ? nd->path.mnt : NULL, mode);
  	if (error)
  		return error;
 +	/***** TOMOYO Linux start. *****/
@@ -319,7 +320,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1569,6 +1581,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1612,6 +1624,13 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -333,7 +334,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1625,6 +1644,9 @@ static int __open_namei_create(struct na
+@@ -1668,6 +1687,9 @@ static int __open_namei_create(struct na
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -343,7 +344,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1975,6 +1997,16 @@ int vfs_mknod(struct inode *dir, struct 
+@@ -2019,6 +2041,16 @@ int vfs_mknod(struct inode *dir, struct 
  
  static int may_mknod(mode_t mode)
  {
@@ -360,7 +361,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	switch (mode & S_IFMT) {
  	case S_IFREG:
  	case S_IFCHR:
-@@ -2023,10 +2055,34 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2067,10 +2099,34 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -376,8 +377,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +			if (error)
 +				break;
 +			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,
- 					new_decode_dev(dev));
+ 			error = vfs_mknod(nd.path.dentry->d_inode, dentry,
+ 					  nd.path.mnt, mode, new_decode_dev(dev));
  			break;
  		case S_IFIFO: case S_IFSOCK:
 +			/***** TOMOYO Linux start. *****/
@@ -392,10 +393,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +			if (error)
 +				break;
 +			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
+ 			error = vfs_mknod(nd.path.dentry->d_inode, dentry,
+ 					  nd.path.mnt, mode, 0);
  			break;
- 	}
-@@ -2089,6 +2145,13 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2135,6 +2191,13 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -406,10 +407,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +					     nd.path.mnt);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
- 	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
+ 	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, nd.path.mnt, mode);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2196,6 +2259,13 @@ static long do_rmdir(int dfd, const char
+@@ -2243,6 +2306,13 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -420,10 +421,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +					     nd.path.mnt);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
- 	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
+ 	error = vfs_rmdir(nd.path.dentry->d_inode, dentry, nd.path.mnt);
  	mnt_drop_write(nd.path.mnt);
  exit3:
-@@ -2257,6 +2327,10 @@ static long do_unlinkat(int dfd, const c
+@@ -2304,6 +2374,10 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -434,7 +435,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = user_path_parent(dfd, pathname, &nd, &name);
  	if (error)
-@@ -2278,6 +2352,13 @@ static long do_unlinkat(int dfd, const c
+@@ -2325,6 +2399,13 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -445,10 +446,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +						     nd.path.mnt);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
- 		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
+ 		error = vfs_unlink(nd.path.dentry->d_inode, dentry, nd.path.mnt);
  		mnt_drop_write(nd.path.mnt);
  	exit2:
-@@ -2342,6 +2423,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2390,6 +2471,10 @@ asmlinkage long sys_symlinkat(const char
  	char *to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -459,7 +460,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	from = getname(oldname);
  	if (IS_ERR(from))
-@@ -2359,6 +2444,13 @@ asmlinkage long sys_symlinkat(const char
+@@ -2407,6 +2492,13 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -470,10 +471,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +					     nd.path.mnt);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
- 	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
+ 	error = vfs_symlink(nd.path.dentry->d_inode, dentry, nd.path.mnt, from);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2436,6 +2528,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2485,6 +2577,10 @@ asmlinkage long sys_linkat(int olddfd, c
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
@@ -484,7 +485,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = user_path_at(olddfd, oldname,
  			     flags & AT_SYMLINK_FOLLOW ? LOOKUP_FOLLOW : 0,
-@@ -2456,6 +2552,15 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2505,6 +2601,15 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -497,10 +498,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +					     nd.path.mnt);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
- 	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
- 	mnt_drop_write(nd.path.mnt);
- out_dput:
-@@ -2632,6 +2737,10 @@ asmlinkage long sys_renameat(int olddfd,
+ 	error = vfs_link(old_path.dentry, old_path.mnt,
+ 			 nd.path.dentry->d_inode,
+ 			 new_dentry, nd.path.mnt);
+@@ -2690,6 +2795,10 @@ asmlinkage long sys_renameat(int olddfd,
  	char *from;
  	char *to;
  	int error;
@@ -511,7 +512,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = user_path_parent(olddfd, oldname, &oldnd, &from);
  	if (error)
-@@ -2684,6 +2793,17 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2742,6 +2851,17 @@ asmlinkage long sys_renameat(int olddfd,
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -529,8 +530,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
---- linux-2.6.27.8.orig/fs/namespace.c
-+++ linux-2.6.27.8/fs/namespace.c
+--- linux-2.6.27.7-4.1.orig/fs/namespace.c
++++ linux-2.6.27.7-4.1/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -643,12 +644,12 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.27.8.orig/fs/open.c
-+++ linux-2.6.27.8/fs/open.c
-@@ -29,6 +29,12 @@
- #include <linux/rcupdate.h>
+--- linux-2.6.27.7-4.1.orig/fs/open.c
++++ linux-2.6.27.7-4.1/fs/open.c
+@@ -30,6 +30,12 @@
  #include <linux/audit.h>
  #include <linux/falloc.h>
+ #include <trace/fs.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
@@ -681,8 +682,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
- 		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -571,6 +587,14 @@ asmlinkage long sys_chroot(const char __
+ 		error = do_truncate(dentry, file->f_path.mnt, length,
+@@ -572,6 +588,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -697,7 +698,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1140,6 +1164,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1147,6 +1171,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -708,8 +709,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.27.8.orig/fs/proc/Makefile
-+++ linux-2.6.27.8/fs/proc/Makefile
+--- linux-2.6.27.7-4.1.orig/fs/proc/Makefile
++++ linux-2.6.27.7-4.1/fs/proc/Makefile
 @@ -16,3 +16,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -717,20 +718,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.27.8.orig/fs/proc/proc_misc.c
-+++ linux-2.6.27.8/fs/proc/proc_misc.c
-@@ -934,4 +934,9 @@ void __init proc_misc_init(void)
+--- linux-2.6.27.7-4.1.orig/fs/proc/proc_misc.c
++++ linux-2.6.27.7-4.1/fs/proc/proc_misc.c
+@@ -1048,4 +1048,9 @@ void __init proc_misc_init(void)
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27.8 2008/12/06\n");
++	printk(KERN_INFO "Hook version: 2.6.27.7-4.1 2008/12/01\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.27.8.orig/include/linux/init_task.h
-+++ linux-2.6.27.8/include/linux/init_task.h
+--- linux-2.6.27.7-4.1.orig/include/linux/init_task.h
++++ linux-2.6.27.7-4.1/include/linux/init_task.h
 @@ -179,6 +179,10 @@ extern struct group_info init_groups;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
@@ -742,8 +743,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  
---- linux-2.6.27.8.orig/include/linux/sched.h
-+++ linux-2.6.27.8/include/linux/sched.h
+--- linux-2.6.27.7-4.1.orig/include/linux/sched.h
++++ linux-2.6.27.7-4.1/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -756,9 +757,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   * Scheduling policies
   */
-@@ -1307,6 +1312,10 @@ struct task_struct {
- 	int latency_record_count;
- 	struct latency_record latency_record[LT_SAVECOUNT];
+@@ -1314,6 +1319,10 @@ struct task_struct {
+ #ifdef CONFIG_PERFMON
+ 	struct pfm_context *pfm_context;
  #endif
 +	/***** TOMOYO Linux start. *****/
 +	struct domain_info *domain_info;
@@ -767,8 +768,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  };
  
  /*
---- linux-2.6.27.8.orig/kernel/compat.c
-+++ linux-2.6.27.8/kernel/compat.c
+--- linux-2.6.27.7-4.1.orig/kernel/compat.c
++++ linux-2.6.27.7-4.1/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -790,19 +791,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.27.8.orig/kernel/kexec.c
-+++ linux-2.6.27.8/kernel/kexec.c
-@@ -36,6 +36,9 @@
- #include <asm/io.h>
- #include <asm/system.h>
- #include <asm/sections.h>
+--- linux-2.6.27.7-4.1.orig/kernel/kexec.c
++++ linux-2.6.27.7-4.1/kernel/kexec.c
+@@ -43,6 +43,9 @@
+ #include <linux/device.h>
+ #include <linux/kdb.h>
+ #endif
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t* crash_notes;
-@@ -943,6 +946,10 @@ asmlinkage long sys_kexec_load(unsigned 
+@@ -987,6 +990,10 @@ asmlinkage long sys_kexec_load(unsigned 
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -813,8 +814,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.27.8.orig/kernel/kmod.c
-+++ linux-2.6.27.8/kernel/kmod.c
+--- linux-2.6.27.7-4.1.orig/kernel/kmod.c
++++ linux-2.6.27.7-4.1/kernel/kmod.c
 @@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -827,19 +828,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.27.8.orig/kernel/module.c
-+++ linux-2.6.27.8/kernel/module.c
-@@ -46,6 +46,9 @@
- #include <asm/cacheflush.h>
- #include <linux/license.h>
+--- linux-2.6.27.7-4.1.orig/kernel/module.c
++++ linux-2.6.27.7-4.1/kernel/module.c
+@@ -48,6 +48,9 @@
  #include <asm/sections.h>
+ #include <linux/tracepoint.h>
+ #include <trace/kernel.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
  #if 0
  #define DEBUGP printk
-@@ -724,6 +727,10 @@ sys_delete_module(const char __user *nam
+@@ -755,6 +758,10 @@ sys_delete_module(const char __user *nam
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -850,7 +851,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2268,6 +2275,10 @@ sys_init_module(void __user *umod,
+@@ -2409,6 +2416,10 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -861,8 +862,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.27.8.orig/kernel/ptrace.c
-+++ linux-2.6.27.8/kernel/ptrace.c
+--- linux-2.6.27.7-4.1.orig/kernel/ptrace.c
++++ linux-2.6.27.7-4.1/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -873,7 +874,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -553,6 +556,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -708,6 +711,18 @@ asmlinkage long compat_sys_ptrace(compat
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -883,13 +884,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
-@@ -676,6 +685,12 @@ asmlinkage long compat_sys_ptrace(compat
- 	/*
- 	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
@@ -899,9 +893,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.27.8.orig/kernel/sched.c
-+++ linux-2.6.27.8/kernel/sched.c
-@@ -74,6 +74,9 @@
+--- linux-2.6.27.7-4.1.orig/kernel/sched.c
++++ linux-2.6.27.7-4.1/kernel/sched.c
+@@ -76,6 +76,9 @@
  
  #include <asm/tlb.h>
  #include <asm/irq_regs.h>
@@ -911,7 +905,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #include "sched_cpupri.h"
  
-@@ -4945,6 +4948,10 @@ int can_nice(const struct task_struct *p
+@@ -4966,6 +4969,10 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -922,9 +916,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.27.8.orig/kernel/signal.c
-+++ linux-2.6.27.8/kernel/signal.c
-@@ -33,6 +33,9 @@
+--- linux-2.6.27.7-4.1.orig/kernel/signal.c
++++ linux-2.6.27.7-4.1/kernel/signal.c
+@@ -34,6 +34,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
  #include "audit.h"	/* audit_signal_info() */
@@ -934,7 +928,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * SLAB caches for signal bits.
-@@ -2202,6 +2205,12 @@ asmlinkage long
+@@ -2205,6 +2208,12 @@ asmlinkage long
  sys_kill(pid_t pid, int sig)
  {
  	struct siginfo info;
@@ -947,7 +941,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2263,6 +2272,12 @@ asmlinkage long sys_tgkill(pid_t tgid, p
+@@ -2266,6 +2275,12 @@ asmlinkage long sys_tgkill(pid_t tgid, p
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -960,7 +954,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2276,6 +2291,12 @@ sys_tkill(pid_t pid, int sig)
+@@ -2279,6 +2294,12 @@ sys_tkill(pid_t pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -973,8 +967,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.27.8.orig/kernel/sys.c
-+++ linux-2.6.27.8/kernel/sys.c
+--- linux-2.6.27.7-4.1.orig/kernel/sys.c
++++ linux-2.6.27.7-4.1/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1031,8 +1025,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.27.8.orig/kernel/sysctl.c
-+++ linux-2.6.27.8/kernel/sysctl.c
+--- linux-2.6.27.7-4.1.orig/kernel/sysctl.c
++++ linux-2.6.27.7-4.1/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -1043,11 +1037,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1587,6 +1590,93 @@ repeat:
+@@ -1652,6 +1655,92 @@ repeat:
  	return -ENOTDIR;
  }
  
-+
 +/***** TOMOYO Linux start. *****/
 +static int try_parse_table(int __user *name, int nlen, void __user *oldval,
 +			   void __user *newval, ctl_table *table)
@@ -1137,7 +1130,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1603,6 +1693,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1668,6 +1757,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1149,8 +1142,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.27.8.orig/kernel/time.c
-+++ linux-2.6.27.8/kernel/time.c
+--- linux-2.6.27.7-4.1.orig/kernel/time.c
++++ linux-2.6.27.7-4.1/kernel/time.c
 @@ -40,6 +40,9 @@
  
  #include <asm/uaccess.h>
@@ -1183,8 +1176,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.27.8.orig/kernel/time/ntp.c
-+++ linux-2.6.27.8/kernel/time/ntp.c
+--- linux-2.6.27.7-4.1.orig/kernel/time/ntp.c
++++ linux-2.6.27.7-4.1/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/math64.h>
  #include <linux/clocksource.h>
@@ -1206,8 +1199,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.27.8.orig/net/core/datagram.c
-+++ linux-2.6.27.8/net/core/datagram.c
+--- linux-2.6.27.7-4.1.orig/net/core/datagram.c
++++ linux-2.6.27.7-4.1/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1233,8 +1226,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (skb)
  			return skb;
  
---- linux-2.6.27.8.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.27.8/net/ipv4/inet_connection_sock.c
+--- linux-2.6.27.7-4.1.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.27.7-4.1/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1256,8 +1249,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->ib_net == net && tb->port == rover)
  					goto next;
---- linux-2.6.27.8.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.27.8/net/ipv4/inet_hashtables.c
+--- linux-2.6.27.7-4.1.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.27.7-4.1/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1279,8 +1272,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.27.8.orig/net/ipv4/udp.c
-+++ linux-2.6.27.8/net/ipv4/udp.c
+--- linux-2.6.27.7-4.1.orig/net/ipv4/udp.c
++++ linux-2.6.27.7-4.1/net/ipv4/udp.c
 @@ -103,6 +103,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1312,21 +1305,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (! __udp_lib_lport_inuse(net, rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
---- linux-2.6.27.8.orig/net/socket.c
-+++ linux-2.6.27.8/net/socket.c
-@@ -97,6 +97,11 @@
+--- linux-2.6.27.7-4.1.orig/net/socket.c
++++ linux-2.6.27.7-4.1/net/socket.c
+@@ -97,6 +97,10 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
- 
+ #include <trace/socket.h>
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +#include <linux/tomoyo_socket.h>
 +/***** TOMOYO Linux end. *****/
-+
+ 
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
- 			 unsigned long nr_segs, loff_t pos);
-@@ -560,6 +565,12 @@ static inline int __sock_sendmsg(struct 
+@@ -561,6 +565,12 @@ static inline int __sock_sendmsg(struct 
  	err = security_socket_sendmsg(sock, msg, size);
  	if (err)
  		return err;
@@ -1339,7 +1331,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
-@@ -1123,6 +1134,12 @@ static int __sock_create(struct net *net
+@@ -1127,6 +1137,12 @@ static int __sock_create(struct net *net
  		family = PF_PACKET;
  	}
  
@@ -1352,7 +1344,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1378,6 +1395,13 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1383,6 +1399,13 @@ asmlinkage long sys_bind(int fd, struct 
  			err = security_socket_bind(sock,
  						   (struct sockaddr *)&address,
  						   addrlen);
@@ -1366,7 +1358,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (!err)
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
-@@ -1407,6 +1431,10 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1412,6 +1435,10 @@ asmlinkage long sys_listen(int fd, int b
  			backlog = somaxconn;
  
  		err = security_socket_listen(sock, backlog);
@@ -1377,7 +1369,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1477,6 +1505,13 @@ long do_accept(int fd, struct sockaddr _
+@@ -1482,6 +1509,13 @@ long do_accept(int fd, struct sockaddr _
  	if (err < 0)
  		goto out_fd;
  
@@ -1391,7 +1383,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1598,6 +1633,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1603,6 +1637,12 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, (struct sockaddr *)&address);
  	if (err < 0)
  		goto out_put;
@@ -1404,8 +1396,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
---- linux-2.6.27.8.orig/net/unix/af_unix.c
-+++ linux-2.6.27.8/net/unix/af_unix.c
+--- linux-2.6.27.7-4.1.orig/net/unix/af_unix.c
++++ linux-2.6.27.7-4.1/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1439,6 +1431,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +						   nd.path.mnt);
 +		if (!err)
 +		/***** TOMOYO Linux end. *****/
- 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
+ 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, nd.path.mnt,
+ 				mode, 0);
  		mnt_drop_write(nd.path.mnt);
- 		if (err)

@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.6.27.8.
+This is TOMOYO Linux patch for Fedora 10.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.27.8.tar.bz2
+Source code for this patch is http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.27.5-117.fc10.src.rpm
 ---
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
@@ -38,8 +38,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |   15 +++++
  34 files changed, 606 insertions(+), 2 deletions(-)
 
---- linux-2.6.27.8.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.27.8/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.27.5-117.fc10.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.27.5-117.fc10/arch/ia64/ia32/sys_ia32.c
 @@ -51,6 +51,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -63,8 +63,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.27.8.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.27.8/arch/mips/kernel/ptrace32.c
+--- linux-2.6.27.5-117.fc10.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.27.5-117.fc10/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -88,25 +88,25 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.27.8.orig/fs/Kconfig
-+++ linux-2.6.27.8/fs/Kconfig
-@@ -2093,4 +2093,6 @@ endif
+--- linux-2.6.27.5-117.fc10.orig/fs/Kconfig
++++ linux-2.6.27.5-117.fc10/fs/Kconfig
+@@ -2049,4 +2049,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
  
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.27.8.orig/fs/Makefile
-+++ linux-2.6.27.8/fs/Makefile
-@@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
+--- linux-2.6.27.5-117.fc10.orig/fs/Makefile
++++ linux-2.6.27.5-117.fc10/fs/Makefile
+@@ -123,3 +123,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.27.8.orig/fs/attr.c
-+++ linux-2.6.27.8/fs/attr.c
+--- linux-2.6.27.5-117.fc10.orig/fs/attr.c
++++ linux-2.6.27.5-117.fc10/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -146,8 +146,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.27.8.orig/fs/compat.c
-+++ linux-2.6.27.8/fs/compat.c
+--- linux-2.6.27.5-117.fc10.orig/fs/compat.c
++++ linux-2.6.27.5-117.fc10/fs/compat.c
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -167,8 +167,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.27.8.orig/fs/compat_ioctl.c
-+++ linux-2.6.27.8/fs/compat_ioctl.c
+--- linux-2.6.27.5-117.fc10.orig/fs/compat_ioctl.c
++++ linux-2.6.27.5-117.fc10/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -192,8 +192,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.27.8.orig/fs/exec.c
-+++ linux-2.6.27.8/fs/exec.c
+--- linux-2.6.27.5-117.fc10.orig/fs/exec.c
++++ linux-2.6.27.5-117.fc10/fs/exec.c
 @@ -64,6 +64,10 @@
  #include <linux/a.out.h>
  #endif
@@ -243,8 +243,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.27.8.orig/fs/fcntl.c
-+++ linux-2.6.27.8/fs/fcntl.c
+--- linux-2.6.27.5-117.fc10.orig/fs/fcntl.c
++++ linux-2.6.27.5-117.fc10/fs/fcntl.c
 @@ -23,6 +23,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -268,8 +268,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.27.8.orig/fs/ioctl.c
-+++ linux-2.6.27.8/fs/ioctl.c
+--- linux-2.6.27.5-117.fc10.orig/fs/ioctl.c
++++ linux-2.6.27.5-117.fc10/fs/ioctl.c
 @@ -15,6 +15,9 @@
  #include <linux/uaccess.h>
  
@@ -291,8 +291,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.27.8.orig/fs/namei.c
-+++ linux-2.6.27.8/fs/namei.c
+--- linux-2.6.27.5-117.fc10.orig/fs/namei.c
++++ linux-2.6.27.5-117.fc10/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -529,8 +529,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
---- linux-2.6.27.8.orig/fs/namespace.c
-+++ linux-2.6.27.8/fs/namespace.c
+--- linux-2.6.27.5-117.fc10.orig/fs/namespace.c
++++ linux-2.6.27.5-117.fc10/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -579,7 +579,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
-@@ -1598,6 +1618,11 @@ static noinline int do_move_mount(struct
+@@ -1593,6 +1613,11 @@ static noinline int do_move_mount(struct
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
  
@@ -591,7 +591,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->path.dentry->d_inode))
-@@ -1702,6 +1727,11 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1697,6 +1722,11 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -603,7 +603,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1925,6 +1955,17 @@ long do_mount(char *dev_name, char *dir_
+@@ -1920,6 +1950,17 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -621,7 +621,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2189,6 +2230,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2184,6 +2225,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -632,7 +632,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2202,6 +2247,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2197,6 +2242,10 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -643,8 +643,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.27.8.orig/fs/open.c
-+++ linux-2.6.27.8/fs/open.c
+--- linux-2.6.27.5-117.fc10.orig/fs/open.c
++++ linux-2.6.27.5-117.fc10/fs/open.c
 @@ -29,6 +29,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -708,8 +708,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.27.8.orig/fs/proc/Makefile
-+++ linux-2.6.27.8/fs/proc/Makefile
+--- linux-2.6.27.5-117.fc10.orig/fs/proc/Makefile
++++ linux-2.6.27.5-117.fc10/fs/proc/Makefile
 @@ -16,3 +16,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -717,20 +717,20 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.27.8.orig/fs/proc/proc_misc.c
-+++ linux-2.6.27.8/fs/proc/proc_misc.c
+--- linux-2.6.27.5-117.fc10.orig/fs/proc/proc_misc.c
++++ linux-2.6.27.5-117.fc10/fs/proc/proc_misc.c
 @@ -934,4 +934,9 @@ void __init proc_misc_init(void)
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27.8 2008/12/06\n");
++	printk(KERN_INFO "Hook version: 2.6.27.5-117.fc10 2008/11/21\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.27.8.orig/include/linux/init_task.h
-+++ linux-2.6.27.8/include/linux/init_task.h
+--- linux-2.6.27.5-117.fc10.orig/include/linux/init_task.h
++++ linux-2.6.27.5-117.fc10/include/linux/init_task.h
 @@ -179,6 +179,10 @@ extern struct group_info init_groups;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
@@ -742,8 +742,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  
---- linux-2.6.27.8.orig/include/linux/sched.h
-+++ linux-2.6.27.8/include/linux/sched.h
+--- linux-2.6.27.5-117.fc10.orig/include/linux/sched.h
++++ linux-2.6.27.5-117.fc10/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -756,7 +756,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   * Scheduling policies
   */
-@@ -1307,6 +1312,10 @@ struct task_struct {
+@@ -1316,6 +1321,10 @@ struct task_struct {
  	int latency_record_count;
  	struct latency_record latency_record[LT_SAVECOUNT];
  #endif
@@ -767,8 +767,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  };
  
  /*
---- linux-2.6.27.8.orig/kernel/compat.c
-+++ linux-2.6.27.8/kernel/compat.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/compat.c
++++ linux-2.6.27.5-117.fc10/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -790,8 +790,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.27.8.orig/kernel/kexec.c
-+++ linux-2.6.27.8/kernel/kexec.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/kexec.c
++++ linux-2.6.27.5-117.fc10/kernel/kexec.c
 @@ -36,6 +36,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -813,8 +813,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.27.8.orig/kernel/kmod.c
-+++ linux-2.6.27.8/kernel/kmod.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/kmod.c
++++ linux-2.6.27.5-117.fc10/kernel/kmod.c
 @@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -827,8 +827,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.27.8.orig/kernel/module.c
-+++ linux-2.6.27.8/kernel/module.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/module.c
++++ linux-2.6.27.5-117.fc10/kernel/module.c
 @@ -46,6 +46,9 @@
  #include <asm/cacheflush.h>
  #include <linux/license.h>
@@ -861,9 +861,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.27.8.orig/kernel/ptrace.c
-+++ linux-2.6.27.8/kernel/ptrace.c
-@@ -24,6 +24,9 @@
+--- linux-2.6.27.5-117.fc10.orig/kernel/ptrace.c
++++ linux-2.6.27.5-117.fc10/kernel/ptrace.c
+@@ -25,6 +25,9 @@
  
  #include <asm/pgtable.h>
  #include <asm/uaccess.h>
@@ -873,7 +873,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -553,6 +556,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -1155,6 +1158,12 @@ asmlinkage long sys_ptrace(long request,
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -886,7 +886,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -676,6 +685,12 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1278,6 +1287,12 @@ asmlinkage long compat_sys_ptrace(compat
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -899,8 +899,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.27.8.orig/kernel/sched.c
-+++ linux-2.6.27.8/kernel/sched.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/sched.c
++++ linux-2.6.27.5-117.fc10/kernel/sched.c
 @@ -74,6 +74,9 @@
  
  #include <asm/tlb.h>
@@ -922,8 +922,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.27.8.orig/kernel/signal.c
-+++ linux-2.6.27.8/kernel/signal.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/signal.c
++++ linux-2.6.27.5-117.fc10/kernel/signal.c
 @@ -33,6 +33,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -934,7 +934,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * SLAB caches for signal bits.
-@@ -2202,6 +2205,12 @@ asmlinkage long
+@@ -2214,6 +2217,12 @@ asmlinkage long
  sys_kill(pid_t pid, int sig)
  {
  	struct siginfo info;
@@ -947,7 +947,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2263,6 +2272,12 @@ asmlinkage long sys_tgkill(pid_t tgid, p
+@@ -2275,6 +2284,12 @@ asmlinkage long sys_tgkill(pid_t tgid, p
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -960,7 +960,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2276,6 +2291,12 @@ sys_tkill(pid_t pid, int sig)
+@@ -2288,6 +2303,12 @@ sys_tkill(pid_t pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -973,8 +973,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.27.8.orig/kernel/sys.c
-+++ linux-2.6.27.8/kernel/sys.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/sys.c
++++ linux-2.6.27.5-117.fc10/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1031,8 +1031,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.27.8.orig/kernel/sysctl.c
-+++ linux-2.6.27.8/kernel/sysctl.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/sysctl.c
++++ linux-2.6.27.5-117.fc10/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -1043,7 +1043,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1587,6 +1590,93 @@ repeat:
+@@ -1614,6 +1617,93 @@ repeat:
  	return -ENOTDIR;
  }
  
@@ -1137,7 +1137,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1603,6 +1693,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1630,6 +1720,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1149,8 +1149,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.27.8.orig/kernel/time.c
-+++ linux-2.6.27.8/kernel/time.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/time.c
++++ linux-2.6.27.5-117.fc10/kernel/time.c
 @@ -40,6 +40,9 @@
  
  #include <asm/uaccess.h>
@@ -1183,8 +1183,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.27.8.orig/kernel/time/ntp.c
-+++ linux-2.6.27.8/kernel/time/ntp.c
+--- linux-2.6.27.5-117.fc10.orig/kernel/time/ntp.c
++++ linux-2.6.27.5-117.fc10/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/math64.h>
  #include <linux/clocksource.h>
@@ -1206,8 +1206,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.27.8.orig/net/core/datagram.c
-+++ linux-2.6.27.8/net/core/datagram.c
+--- linux-2.6.27.5-117.fc10.orig/net/core/datagram.c
++++ linux-2.6.27.5-117.fc10/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1233,8 +1233,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (skb)
  			return skb;
  
---- linux-2.6.27.8.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.27.8/net/ipv4/inet_connection_sock.c
+--- linux-2.6.27.5-117.fc10.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.27.5-117.fc10/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1256,8 +1256,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->ib_net == net && tb->port == rover)
  					goto next;
---- linux-2.6.27.8.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.27.8/net/ipv4/inet_hashtables.c
+--- linux-2.6.27.5-117.fc10.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.27.5-117.fc10/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1279,8 +1279,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.27.8.orig/net/ipv4/udp.c
-+++ linux-2.6.27.8/net/ipv4/udp.c
+--- linux-2.6.27.5-117.fc10.orig/net/ipv4/udp.c
++++ linux-2.6.27.5-117.fc10/net/ipv4/udp.c
 @@ -103,6 +103,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1312,8 +1312,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (! __udp_lib_lport_inuse(net, rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
---- linux-2.6.27.8.orig/net/socket.c
-+++ linux-2.6.27.8/net/socket.c
+--- linux-2.6.27.5-117.fc10.orig/net/socket.c
++++ linux-2.6.27.5-117.fc10/net/socket.c
 @@ -97,6 +97,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1404,8 +1404,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
---- linux-2.6.27.8.orig/net/unix/af_unix.c
-+++ linux-2.6.27.8/net/unix/af_unix.c
+--- linux-2.6.27.5-117.fc10.orig/net/unix/af_unix.c
++++ linux-2.6.27.5-117.fc10/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
