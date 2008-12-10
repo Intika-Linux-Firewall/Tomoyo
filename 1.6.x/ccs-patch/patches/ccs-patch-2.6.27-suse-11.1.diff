@@ -726,7 +726,7 @@ Source code for this patch is http://download.opensuse.org/distribution/11.1-RC1
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27.7-4.1 2008/12/01\n");
++	printk(KERN_INFO "Hook version: 2.6.27.7-4.1 2008/12/10\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -874,25 +874,32 @@ Source code for this patch is http://download.opensuse.org/distribution/11.1-RC1
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -708,6 +711,18 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -549,6 +552,12 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	/***** TOMOYO Linux start. *****/
++#ifdef TOMOYO_SYS_PTRACE
++	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++		return -EPERM;
++#endif
++	/***** TOMOYO Linux end. *****/
+ 
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
+@@ -704,6 +713,12 @@ asmlinkage long compat_sys_ptrace(compat
+ {
+ 	struct task_struct *child;
+ 	long ret;
 +	/***** TOMOYO Linux start. *****/
 +#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
 +#endif
 +	/***** TOMOYO Linux end. *****/
-+	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
-+		return -EPERM;
-+#endif
-+	/***** TOMOYO Linux end. *****/
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
+ 
+ 	/*
+ 	 * This lock_kernel fixes a subtle race with suid exec
 --- linux-2.6.27.7-4.1.orig/kernel/sched.c
 +++ linux-2.6.27.7-4.1/kernel/sched.c
 @@ -76,6 +76,9 @@
