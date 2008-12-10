@@ -1728,3 +1728,13 @@ Fix 2008/11/07
       identical to /proc/ccs/.process_status .
 
 Version 1.6.5   2008/11/11   Third anniversary release.
+
+Fix 2008/12/10
+
+    @ Fix ccs_can_save_audit_log() checks.
+
+      Due to incorrect statement "if (ccs_can_save_audit_log() < 0)"
+      while ccs_can_save_audit_log() is boolean, MAX_GRANT_LOG and
+      MAX_REJECT_LOG were not working.
+
+      This bug will trigger OOM killer if /usr/sbin/ccs-auditd is not working.
