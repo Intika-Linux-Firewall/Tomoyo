@@ -76,9 +76,13 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec	2008-11-26 00:11:30.000000000 +0900
-+++ kernel-default.spec	2008-12-10 14:16:57.000000000 +0900
-@@ -56,10 +56,10 @@
- %define split_packages 1
++++ kernel-default.spec	2008-12-10 17:56:41.000000000 +0900
+@@ -53,13 +53,13 @@
+ %if %build_vanilla || %build_kdump || %CONFIG_MODULES != "y"
+ %define split_packages 0
+ %else
+-%define split_packages 1
++%define split_packages 0
  %endif
  
 -Name:           kernel-default
