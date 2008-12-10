@@ -24,13 +24,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  arch/x86_64/ia32/ptrace32.c  |    9 +++
  arch/x86_64/kernel/ptrace.c  |    9 +++
  fs/Config.in                 |    3 +
- fs/Makefile                  |    2 
+ fs/Makefile                  |    1 
  fs/attr.c                    |   10 +++
- fs/exec.c                    |   20 ++++++
- fs/fcntl.c                   |    8 ++
+ fs/exec.c                    |   19 ++++++
+ fs/fcntl.c                   |    7 ++
  fs/ioctl.c                   |    9 +++
  fs/namei.c                   |  127 +++++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   58 +++++++++++++++++++
+ fs/namespace.c               |   57 +++++++++++++++++++
  fs/open.c                    |   29 +++++++++
  fs/proc/Makefile             |    4 +
  fs/proc/proc_misc.c          |    5 +
@@ -39,7 +39,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  kernel/module.c              |   15 +++++
  kernel/sched.c               |    7 ++
  kernel/signal.c              |   15 +++++
- kernel/sys.c                 |   25 ++++++++
+ kernel/sys.c                 |   21 +++++++
  kernel/sysctl.c              |  113 +++++++++++++++++++++++++++++++++++++-
  kernel/time.c                |   15 +++++
  net/core/datagram.c          |   10 +++
@@ -47,9 +47,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv4/udp.c               |   11 +++
  net/ipv6/tcp_ipv6.c          |    7 ++
  net/ipv6/udp.c               |   11 +++
- net/socket.c                 |   40 ++++++++++++-
+ net/socket.c                 |   38 ++++++++++++
  net/unix/af_unix.c           |   15 +++++
- 47 files changed, 857 insertions(+), 7 deletions(-)
+ 47 files changed, 852 insertions(+), 2 deletions(-)
 
 --- linux-2.4.21-57.EL.orig/Documentation/Configure.help
 +++ linux-2.4.21-57.EL/Documentation/Configure.help
@@ -675,11 +675,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  endmenu
 --- linux-2.4.21-57.EL.orig/fs/Makefile
 +++ linux-2.4.21-57.EL/fs/Makefile
-@@ -96,5 +96,5 @@ obj-$(CONFIG_NFSD_ACL)		+= solaris_acl.o
- # persistent filesystems
+@@ -97,4 +97,5 @@ obj-$(CONFIG_NFSD_ACL)		+= solaris_acl.o
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
--
+ 
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
 --- linux-2.4.21-57.EL.orig/fs/attr.c
@@ -748,13 +747,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1148,7 +1165,8 @@ int do_execve(char * filename, char ** a
+@@ -1148,7 +1165,7 @@ int do_execve(char * filename, char ** a
  	if (retval < 0) 
  		goto out; 
  
 -	retval = search_binary_handler(&bprm,regs);
 +	retval = search_binary_handler_with_transition(&bprm, regs);
-+
  	if (retval >= 0)
  		/* execve success */
  		return retval;
@@ -770,7 +768,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  extern int sock_fcntl (struct file *, unsigned int cmd, unsigned long arg);
  extern int fcntl_setlease(unsigned int fd, struct file *filp, long arg);
-@@ -212,13 +215,16 @@ static int setfl(int fd, struct file * f
+@@ -212,6 +215,10 @@ static int setfl(int fd, struct file * f
  	 */
  	if (!(arg & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
@@ -781,13 +779,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	if ((arg & O_DIRECT) && !(inode->i_mapping && 
  				  inode->i_mapping->a_ops &&
  				  (inode->i_mapping->a_ops->direct_IO ||
- 				   inode->i_mapping->a_ops->direct_sector_IO)))
- 		return -EINVAL;
- 
--
- 	/* Did FASYNC state change? */
- 	if ((arg ^ filp->f_flags) & FASYNC) {
- 		if (filp->f_op && filp->f_op->fasync) {
 --- linux-2.4.21-57.EL.orig/fs/ioctl.c
 +++ linux-2.4.21-57.EL/fs/ioctl.c
 @@ -10,6 +10,9 @@
@@ -1107,18 +1098,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -516,7 +536,9 @@ static int do_loopback(struct nameidata 
- 		} else
+@@ -517,6 +537,9 @@ static int do_loopback(struct nameidata 
  			mntput(mnt);
  	}
--
+ 
 +	/***** SAKURA Linux start. *****/
 + out:
 +	/***** SAKURA Linux end. *****/
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -570,6 +592,12 @@ static int do_move_mount(struct nameidat
+@@ -570,6 +593,12 @@ static int do_move_mount(struct nameidat
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
  
@@ -1131,7 +1121,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_zombie);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -641,6 +669,12 @@ static int do_add_mount(struct nameidata
+@@ -641,6 +670,12 @@ static int do_add_mount(struct nameidata
  	if (nd->mnt->mnt_sb == mnt->mnt_sb && nd->mnt->mnt_root == nd->dentry)
  		goto unlock;
  
@@ -1144,7 +1134,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -715,6 +749,17 @@ long do_mount(char * dev_name, char * di
+@@ -715,6 +750,17 @@ long do_mount(char * dev_name, char * di
  	if (dev_name && !memchr(dev_name, 0, PAGE_SIZE))
  		return -EINVAL;
  
@@ -1162,7 +1152,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -908,6 +953,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -908,6 +954,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -1173,7 +1163,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  
-@@ -922,6 +971,13 @@ asmlinkage long sys_pivot_root(const cha
+@@ -922,6 +972,13 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
@@ -1272,7 +1262,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.21-57.EL 2008/12/09\n");
++	printk(KERN_INFO "Hook version: 2.4.21-57.EL 2008/12/10\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1457,18 +1447,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -295,6 +304,10 @@ asmlinkage long sys_getpriority(int whic
- 
- 	if (which > 2 || which < 0)
- 		return -EINVAL;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	read_lock(&tasklist_lock);
- 	switch (which) {
-@@ -364,6 +377,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -364,6 +373,10 @@ asmlinkage long sys_reboot(int magic1, i
  	    (magic2 != LINUX_REBOOT_MAGIC2 && magic2 != LINUX_REBOOT_MAGIC2A &&
  			magic2 != LINUX_REBOOT_MAGIC2B))
  		return -EINVAL;
@@ -1479,7 +1458,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	switch (cmd) {
-@@ -1154,6 +1171,10 @@ asmlinkage long sys_sethostname(char *na
+@@ -1154,6 +1167,10 @@ asmlinkage long sys_sethostname(char *na
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1490,7 +1469,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1195,6 +1216,10 @@ asmlinkage long sys_setdomainname(char *
+@@ -1195,6 +1212,10 @@ asmlinkage long sys_setdomainname(char *
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1860,11 +1839,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_read(struct file *file, char *buf,
-@@ -520,7 +524,12 @@ int sock_sendmsg(struct socket *sock, st
- {
+@@ -521,6 +525,12 @@ int sock_sendmsg(struct socket *sock, st
  	int err;
  	struct scm_cookie scm;
--
+ 
 +	/***** TOMOYO Linux start. *****/
 +	err = ccs_socket_sendmsg_permission(sock,
 +					    (struct sockaddr *) msg->msg_name,
@@ -1874,11 +1852,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
-@@ -897,7 +906,11 @@ int sock_create(int family, int type, in
- 		}
+@@ -898,6 +908,11 @@ int sock_create(int family, int type, in
  		family = PF_PACKET;
  	}
--		
+ 		
 +	/***** TOMOYO Linux start. *****/
 +	i = ccs_socket_create_permission(family, type, protocol);
 +	if (i)
@@ -1887,7 +1864,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  #if defined(CONFIG_KMOD) && defined(CONFIG_NET)
  	/* Attempt to load a protocol module if the find failed. 
  	 * 
-@@ -1053,6 +1066,12 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1053,6 +1068,12 @@ asmlinkage long sys_bind(int fd, struct 
  	if((sock = sockfd_lookup(fd,&err))!=NULL)
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0)
@@ -1900,7 +1877,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		sockfd_put(sock);
  	}			
-@@ -1074,6 +1093,10 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1074,6 +1095,10 @@ asmlinkage long sys_listen(int fd, int b
  	if ((sock = sockfd_lookup(fd, &err)) != NULL) {
  		if ((unsigned) backlog > SOMAXCONN)
  			backlog = SOMAXCONN;
@@ -1911,7 +1888,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1114,6 +1137,13 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1114,6 +1139,13 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1925,7 +1902,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1164,6 +1194,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1164,6 +1196,12 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, address);
  	if (err < 0)
  		goto out_put;
