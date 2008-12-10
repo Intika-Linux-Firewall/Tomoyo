@@ -42,7 +42,7 @@ mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-
 mkdir -p ccs-patch/ || die "Can't create directory."
 cd ccs-patch/ || die "Can't chdir to ccs-patch/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.5-20081210.tar.gz || die "Can't extract patch."
-cp -p patches/ccs-patch-2.6.22-ubuntu-7.10p1.diff ../debian/binary-custom.d/ccs/patchset/ubuntu-7.10.patch || die "Can't copy patch."
+cp -p patches/ccs-patch-2.6.22-ubuntu-7.10.diff ../debian/binary-custom.d/ccs/patchset/ubuntu-7.10.patch || die "Can't copy patch."
 rm -fR specs/ patches/ || die "Can't delete directory."
 for i in `find . -type f`; do diff -u /dev/null $i; done > ../debian/binary-custom.d/ccs/patchset/ccs.patch
 cd ../ || die "Can't chdir to ../ ."

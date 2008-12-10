@@ -36,7 +36,7 @@ apt-get source linux-restricted-modules-${VERSION}-686 || die "Can't install ker
 # Apply patches and create kernel config.
 cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.5-20081210.tar.gz || die "Can't extract patch."
-patch -p1 < patches/ccs-patch-2.6.15-ubuntu-6.06p1.diff || die "Can't apply patch."
+patch -p1 < patches/ccs-patch-2.6.15-ubuntu-6.06.diff || die "Can't apply patch."
 cat debian/config/i386/config.686 config.ccs > debian/config/i386/config.686-ccs || die "Can't create config."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686") > 0) { flag = 1; $2 = $2 "-ccs"; } else flag = 0; }; if (flag) print $0; } ' debian/control.stub > debian/control.stub.tmp || die "Can't create file."
 cat debian/control.stub.tmp >> debian/control.stub || die "Can't edit file."
