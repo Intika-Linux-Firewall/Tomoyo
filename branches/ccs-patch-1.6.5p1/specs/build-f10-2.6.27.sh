@@ -10,13 +10,13 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27.5-117.fc10.src.rpm ]
+if [ ! -r kernel-2.6.27.7-134.fc10.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.27.5-117.fc10.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.27.7-134.fc10.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.27.5-117.fc10.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.27.7-134.fc10.src.rpm || die "Can't install source package."
 
-cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
+cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.5-20081210.tar.gz ]
 then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081210.tar.gz || die "Can't download patch."
@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /root/rpmbuild/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-11-19 00:48:54.000000000 +0900
-+++ kernel.spec	2008-11-21 10:55:37.000000000 +0900
+--- kernel.spec	2008-12-02 11:56:50.000000000 +0900
++++ kernel.spec	2008-12-10 13:23:03.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -841,7 +846,7 @@
+@@ -845,7 +850,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1354,6 +1359,10 @@
+@@ -1359,6 +1364,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1380,6 +1389,9 @@
+@@ -1385,6 +1394,9 @@
  for i in *.config
  do
    mv $i .config
