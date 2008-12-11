@@ -38,6 +38,7 @@ cat /boot/config-2.6.26-1-686 config.ccs > .config || die "Can't create config."
 yes | make -s oldconfig > /dev/null
 
 # Start compilation.
-make-kpkg --append-to-version -1-686-ccs --arch i386 --subarch i686 --arch-in-name --initrd linux-image || die "Failed to build kernel package."
+REVISION=`head -n 1 debian/changelog | awk ' { print $2 } ' | awk -F'(' ' { print $2 } ' |  awk -F')' ' { print $1 } '`
+make-kpkg --append-to-version -1-686-ccs --arch i386 --subarch i686 --arch-in-name --initrd --revision $REVISION linux-image || die "Failed to build kernel package."
 
 exit 0
