@@ -103,7 +103,7 @@ Cc: Crispin Cowan <crispin@crispincowan.com>
 Cc: Stephen Smalley <sds@tycho.nsa.gov>
 Cc: Casey Schaufler <casey@schaufler-ca.com>
 Cc: James Morris <jmorris@namei.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
 
  fs/namei.c               |   36 ++++++++++++
@@ -115,8 +115,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  security/security.c      |   66 ++++++++++++++++++++++
  7 files changed, 314 insertions(+)
 
---- linux-2.6.28-rc7-mm1.orig/fs/namei.c
-+++ linux-2.6.28-rc7-mm1/fs/namei.c
+--- linux-2.6.28-rc8-mm1.orig/fs/namei.c
++++ linux-2.6.28-rc8-mm1/fs/namei.c
 @@ -1556,6 +1556,9 @@ int may_open(struct nameidata *nd, int a
  		 * Refuse to truncate files with mandatory locks held on them.
  		 */
@@ -231,8 +231,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	mnt_drop_write(oldnd.path.mnt);
  exit5:
  	dput(new_dentry);
---- linux-2.6.28-rc7-mm1.orig/fs/open.c
-+++ linux-2.6.28-rc7-mm1/fs/open.c
+--- linux-2.6.28-rc8-mm1.orig/fs/open.c
++++ linux-2.6.28-rc8-mm1/fs/open.c
 @@ -272,6 +272,8 @@ static long do_sys_truncate(const char _
  		goto put_write_and_out;
  
@@ -252,8 +252,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
---- linux-2.6.28-rc7-mm1.orig/include/linux/security.h
-+++ linux-2.6.28-rc7-mm1/include/linux/security.h
+--- linux-2.6.28-rc8-mm1.orig/include/linux/security.h
++++ linux-2.6.28-rc8-mm1/include/linux/security.h
 @@ -335,17 +335,37 @@ static inline void security_free_mnt_opt
   *	@dir contains the inode structure of the parent directory of the new link.
   *	@new_dentry contains the dentry structure for the new link.
@@ -456,8 +456,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #ifdef CONFIG_KEYS
  #ifdef CONFIG_SECURITY
  
---- linux-2.6.28-rc7-mm1.orig/net/unix/af_unix.c
-+++ linux-2.6.28-rc7-mm1/net/unix/af_unix.c
+--- linux-2.6.28-rc8-mm1.orig/net/unix/af_unix.c
++++ linux-2.6.28-rc8-mm1/net/unix/af_unix.c
 @@ -836,7 +836,11 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
@@ -470,8 +470,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  		mnt_drop_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.28-rc7-mm1.orig/security/Kconfig
-+++ linux-2.6.28-rc7-mm1/security/Kconfig
+--- linux-2.6.28-rc8-mm1.orig/security/Kconfig
++++ linux-2.6.28-rc8-mm1/security/Kconfig
 @@ -81,6 +81,15 @@ config SECURITY_NETWORK_XFRM
  	  IPSec.
  	  If you are unsure how to answer this question, answer N.
@@ -488,8 +488,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  config SECURITY_FILE_CAPABILITIES
  	bool "File POSIX Capabilities"
  	default n
---- linux-2.6.28-rc7-mm1.orig/security/capability.c
-+++ linux-2.6.28-rc7-mm1/security/capability.c
+--- linux-2.6.28-rc8-mm1.orig/security/capability.c
++++ linux-2.6.28-rc8-mm1/security/capability.c
 @@ -263,6 +263,53 @@ static void cap_inode_getsecid(const str
  	*secid = 0;
  }
@@ -561,8 +561,8 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	set_to_cap_if_null(ops, file_permission);
  	set_to_cap_if_null(ops, file_alloc_security);
  	set_to_cap_if_null(ops, file_free_security);
---- linux-2.6.28-rc7-mm1.orig/security/security.c
-+++ linux-2.6.28-rc7-mm1/security/security.c
+--- linux-2.6.28-rc8-mm1.orig/security/security.c
++++ linux-2.6.28-rc8-mm1/security/security.c
 @@ -355,6 +355,72 @@ int security_inode_init_security(struct 
  }
  EXPORT_SYMBOL(security_inode_init_security);
