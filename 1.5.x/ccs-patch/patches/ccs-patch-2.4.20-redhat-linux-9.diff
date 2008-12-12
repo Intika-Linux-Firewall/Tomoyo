@@ -24,13 +24,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  arch/x86_64/ia32/ptrace32.c  |    9 +++
  arch/x86_64/kernel/ptrace.c  |    9 +++
  fs/Config.in                 |    3 +
- fs/Makefile                  |    2 
+ fs/Makefile                  |    1 
  fs/attr.c                    |   10 +++
- fs/exec.c                    |   21 ++++++-
+ fs/exec.c                    |   20 ++++++
  fs/fcntl.c                   |    8 ++
  fs/ioctl.c                   |    9 +++
  fs/namei.c                   |  127 +++++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   58 +++++++++++++++++++
+ fs/namespace.c               |   57 +++++++++++++++++++
  fs/open.c                    |   29 +++++++++
  fs/proc/Makefile             |    4 +
  fs/proc/proc_misc.c          |    5 +
@@ -39,7 +39,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  kernel/module.c              |   15 +++++
  kernel/sched.c               |    7 ++
  kernel/signal.c              |   15 +++++
- kernel/sys.c                 |   25 ++++++++
+ kernel/sys.c                 |   21 +++++++
  kernel/sysctl.c              |  113 +++++++++++++++++++++++++++++++++++++-
  kernel/time.c                |   15 +++++
  net/core/datagram.c          |   10 +++
@@ -47,9 +47,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv4/udp.c               |   11 +++
  net/ipv6/tcp_ipv6.c          |    7 ++
  net/ipv6/udp.c               |   11 +++
- net/socket.c                 |   40 ++++++++++++-
+ net/socket.c                 |   38 ++++++++++++
  net/unix/af_unix.c           |   15 +++++
- 47 files changed, 859 insertions(+), 6 deletions(-)
+ 47 files changed, 854 insertions(+), 2 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -675,11 +675,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  endmenu
 --- linux-2.4.20-46.9.legacy.orig/fs/Makefile
 +++ linux-2.4.20-46.9.legacy/fs/Makefile
-@@ -85,5 +85,5 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
- # persistent filesystems
+@@ -86,4 +86,5 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
--
+ 
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
 --- linux-2.4.20-46.9.legacy.orig/fs/attr.c
@@ -749,13 +748,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1076,7 +1094,8 @@ int do_execve(char * filename, char ** a
+@@ -1076,7 +1094,7 @@ int do_execve(char * filename, char ** a
  	if (retval < 0) 
  		goto out; 
  
 -	retval = search_binary_handler(&bprm,regs);
 +	retval = search_binary_handler_with_transition(&bprm, regs);
-+
  	if (retval >= 0)
  		/* execve success */
  		return retval;
@@ -1102,18 +1100,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -513,7 +533,9 @@ static int do_loopback(struct nameidata 
- 		} else
+@@ -514,6 +534,9 @@ static int do_loopback(struct nameidata 
  			mntput(mnt);
  	}
--
+ 
 +	/***** SAKURA Linux start. *****/
 + out:
 +	/***** SAKURA Linux end. *****/
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -567,6 +589,12 @@ static int do_move_mount(struct nameidat
+@@ -567,6 +590,12 @@ static int do_move_mount(struct nameidat
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
  
@@ -1126,7 +1123,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_zombie);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -638,6 +666,12 @@ static int do_add_mount(struct nameidata
+@@ -638,6 +667,12 @@ static int do_add_mount(struct nameidata
  	if (nd->mnt->mnt_sb == mnt->mnt_sb && nd->mnt->mnt_root == nd->dentry)
  		goto unlock;
  
@@ -1139,7 +1136,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -712,6 +746,17 @@ long do_mount(char * dev_name, char * di
+@@ -712,6 +747,17 @@ long do_mount(char * dev_name, char * di
  	if (dev_name && !memchr(dev_name, 0, PAGE_SIZE))
  		return -EINVAL;
  
@@ -1157,7 +1154,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -905,6 +950,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -905,6 +951,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -1168,7 +1165,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  	lock_kernel();
  
-@@ -919,6 +968,13 @@ asmlinkage long sys_pivot_root(const cha
+@@ -919,6 +969,13 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
@@ -1267,7 +1264,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2008/10/30\n");
++	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2008/12/10\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1452,18 +1449,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -292,6 +301,10 @@ asmlinkage long sys_getpriority(int whic
- 
- 	if (which > 2 || which < 0)
- 		return -EINVAL;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	read_lock(&tasklist_lock);
- 	switch (which) {
-@@ -360,6 +373,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -360,6 +369,10 @@ asmlinkage long sys_reboot(int magic1, i
  	    (magic2 != LINUX_REBOOT_MAGIC2 && magic2 != LINUX_REBOOT_MAGIC2A &&
  			magic2 != LINUX_REBOOT_MAGIC2B))
  		return -EINVAL;
@@ -1474,7 +1460,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  	lock_kernel();
  	switch (cmd) {
-@@ -1130,6 +1147,10 @@ asmlinkage long sys_sethostname(char *na
+@@ -1130,6 +1143,10 @@ asmlinkage long sys_sethostname(char *na
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1485,7 +1471,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(system_utsname.nodename, name, len)) {
-@@ -1169,6 +1190,10 @@ asmlinkage long sys_setdomainname(char *
+@@ -1169,6 +1186,10 @@ asmlinkage long sys_setdomainname(char *
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1855,11 +1841,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_read(struct file *file, char *buf,
-@@ -513,7 +517,12 @@ int sock_sendmsg(struct socket *sock, st
- {
+@@ -514,6 +518,12 @@ int sock_sendmsg(struct socket *sock, st
  	int err;
  	struct scm_cookie scm;
--
+ 
 +	/***** TOMOYO Linux start. *****/
 +	err = ccs_socket_sendmsg_permission(sock,
 +					    (struct sockaddr *) msg->msg_name,
@@ -1869,11 +1854,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
-@@ -861,7 +870,11 @@ int sock_create(int family, int type, in
- 		}
+@@ -862,6 +872,11 @@ int sock_create(int family, int type, in
  		family = PF_PACKET;
  	}
--		
+ 		
 +	/***** TOMOYO Linux start. *****/
 +	i = ccs_socket_create_permission(family, type, protocol);
 +	if (i)
@@ -1882,7 +1866,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  #if defined(CONFIG_KMOD) && defined(CONFIG_NET)
  	/* Attempt to load a protocol module if the find failed. 
  	 * 
-@@ -1017,6 +1030,12 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1017,6 +1032,12 @@ asmlinkage long sys_bind(int fd, struct 
  	if((sock = sockfd_lookup(fd,&err))!=NULL)
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0)
@@ -1895,7 +1879,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		sockfd_put(sock);
  	}			
-@@ -1038,6 +1057,10 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1038,6 +1059,10 @@ asmlinkage long sys_listen(int fd, int b
  	if ((sock = sockfd_lookup(fd, &err)) != NULL) {
  		if ((unsigned) backlog > SOMAXCONN)
  			backlog = SOMAXCONN;
@@ -1906,7 +1890,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1078,6 +1101,13 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1078,6 +1103,13 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1920,7 +1904,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1128,6 +1158,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1128,6 +1160,12 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, address);
  	if (err < 0)
  		goto out_put;
