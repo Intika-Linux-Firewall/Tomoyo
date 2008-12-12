@@ -285,7 +285,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  2 files changed, 2497 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.28-rc7-mm1/security/tomoyo/common.c
++++ linux-2.6.28-rc8-mm1/security/tomoyo/common.c
 @@ -0,0 +1,2160 @@
 +/*
 + * security/tomoyo/common.c
@@ -294,7 +294,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/11/11
++ * Version: 2.2.0-pre   2008/12/12
 + *
 + */
 +
@@ -2027,7 +2027,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	envp[2] = NULL;
 +	call_usermodehelper(argv[0], argv, envp, 1);
 +
-+	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/11/11\n");
++	printk(KERN_INFO "TOMOYO: 2.2.0-pre   2008/12/12\n");
 +	printk(KERN_INFO "Mandatory Access Control activated.\n");
 +	tomoyo_policy_loaded = true;
 +	{ /* Check all profiles currently assigned to domains are defined. */
@@ -2448,7 +2448,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +fs_initcall(tomoyo_initerface_init);
 --- /dev/null
-+++ linux-2.6.28-rc7-mm1/security/tomoyo/common.h
++++ linux-2.6.28-rc8-mm1/security/tomoyo/common.h
 @@ -0,0 +1,337 @@
 +/*
 + * security/tomoyo/common.h
@@ -2457,7 +2457,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2008  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2008/11/11
++ * Version: 2.2.0-pre   2008/12/12
 + *
 + */
 +
