@@ -82,6 +82,6 @@ echo ""
 echo ""
 echo ""
 echo "Edit /tmp/ccs-kernel.spec if needed, and run"
-echo "rpmbuild -bb /tmp/ccs-kernel.spec"
+echo "rpmbuild -bb --without kabichk /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 exit 0
