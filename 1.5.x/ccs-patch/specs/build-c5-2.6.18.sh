@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-92.1.18.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-92.1.22.el5.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS/kernel-2.6.18-92.1.18.el5.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS/kernel-2.6.18-92.1.22.el5.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.18-92.1.18.el5.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.18-92.1.22.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20081111.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-11-12 22:53:50.000000000 +0900
-+++ kernel-2.6.spec	2008-11-13 20:50:01.000000000 +0900
+--- kernel-2.6.spec	2008-12-17 01:17:06.000000000 +0900
++++ kernel-2.6.spec	2008-12-17 14:58:33.000000000 +0900
 @@ -66,7 +66,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -4817,6 +4820,10 @@
+@@ -4854,6 +4857,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -4876,6 +4883,9 @@
+@@ -4913,6 +4920,9 @@
  for i in *.config
  do
    mv $i .config
