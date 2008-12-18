@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for CentOS 3.9.
 
-Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS/kernel-2.4.21-57.EL.src.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS/kernel-2.4.21-58.EL.src.rpm
 ---
  Documentation/Configure.help |   86 +++++++++++++++++++++++++++++
  arch/alpha/kernel/ptrace.c   |    9 +++
@@ -51,8 +51,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/unix/af_unix.c           |   15 +++++
  47 files changed, 852 insertions(+), 2 deletions(-)
 
---- linux-2.4.21-57.EL.orig/Documentation/Configure.help
-+++ linux-2.4.21-57.EL/Documentation/Configure.help
+--- linux-2.4.21-58.EL.orig/Documentation/Configure.help
++++ linux-2.4.21-58.EL/Documentation/Configure.help
 @@ -27989,6 +27989,92 @@ CONFIG_CRC32
    kernel tree does. Such modules that use library CRC32 functions
    require M here.
@@ -146,8 +146,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  #
  # A couple of things I keep forgetting:
  #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
---- linux-2.4.21-57.EL.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/alpha/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/alpha/kernel/ptrace.c
 @@ -18,6 +18,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -171,8 +171,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.4.21-57.EL.orig/arch/arm/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/arm/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/arm/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/arm/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/uaccess.h>
  #include <asm/pgtable.h>
@@ -196,8 +196,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.21-57.EL.orig/arch/cris/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/cris/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/cris/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/cris/kernel/ptrace.c
 @@ -44,6 +44,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -221,8 +221,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.21-57.EL.orig/arch/i386/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/i386/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/i386/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/i386/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/debugreg.h>
  #include <asm/ldt.h>
@@ -246,8 +246,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.21-57.EL.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.4.21-57.EL/arch/ia64/ia32/sys_ia32.c
+--- linux-2.4.21-58.EL.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.4.21-58.EL/arch/ia64/ia32/sys_ia32.c
 @@ -58,6 +58,9 @@
  #include <net/scm.h>
  #include <net/sock.h>
@@ -271,8 +271,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.4.21-57.EL.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/ia64/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/ia64/kernel/ptrace.c
 @@ -27,6 +27,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -296,8 +296,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.21-57.EL.orig/arch/m68k/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/m68k/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/m68k/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -321,8 +321,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.21-57.EL.orig/arch/mips/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/mips/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/mips/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/mips/kernel/ptrace.c
 @@ -27,6 +27,9 @@
  #include <asm/uaccess.h>
  #include <asm/bootinfo.h>
@@ -346,8 +346,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  #if 0
---- linux-2.4.21-57.EL.orig/arch/mips64/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/mips64/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/mips64/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/mips64/kernel/ptrace.c
 @@ -29,6 +29,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -384,8 +384,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  #if 0
---- linux-2.4.21-57.EL.orig/arch/parisc/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/parisc/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/parisc/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -409,8 +409,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.21-57.EL.orig/arch/ppc/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/ppc/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/ppc/kernel/ptrace.c
 @@ -30,6 +30,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -434,8 +434,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.4.21-57.EL.orig/arch/ppc64/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/ppc64/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/ppc64/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -459,8 +459,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.4.21-57.EL.orig/arch/ppc64/kernel/ptrace32.c
-+++ linux-2.4.21-57.EL/arch/ppc64/kernel/ptrace32.c
+--- linux-2.4.21-58.EL.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.4.21-58.EL/arch/ppc64/kernel/ptrace32.c
 @@ -30,6 +30,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -484,8 +484,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.4.21-57.EL.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/s390/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/s390/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/s390/kernel/ptrace.c
 @@ -38,6 +38,9 @@
  #include <asm/pgalloc.h>
  #include <asm/system.h>
@@ -509,8 +509,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
---- linux-2.4.21-57.EL.orig/arch/s390x/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/s390x/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/s390x/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/s390x/kernel/ptrace.c
 @@ -44,6 +44,9 @@
  #else
  #define parent_31bit 0
@@ -534,8 +534,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
  	{
---- linux-2.4.21-57.EL.orig/arch/sh/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/sh/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/sh/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/sh/kernel/ptrace.c
 @@ -26,6 +26,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -559,8 +559,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.21-57.EL.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/sparc/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/sparc/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -586,8 +586,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.4.21-57.EL.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/sparc64/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/sparc64/kernel/ptrace.c
 @@ -26,6 +26,9 @@
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
@@ -613,8 +613,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	if (current->thread.flags & SPARC_FLAG_32BIT) {
  		addr &= 0xffffffffUL;
---- linux-2.4.21-57.EL.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.4.21-57.EL/arch/x86_64/ia32/ptrace32.c
+--- linux-2.4.21-58.EL.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.4.21-58.EL/arch/x86_64/ia32/ptrace32.c
 @@ -24,6 +24,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -638,8 +638,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-2.4.21-57.EL.orig/arch/x86_64/kernel/ptrace.c
-+++ linux-2.4.21-57.EL/arch/x86_64/kernel/ptrace.c
+--- linux-2.4.21-58.EL.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.4.21-58.EL/arch/x86_64/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/debugreg.h>
  #include <asm/ldt.h>
@@ -663,8 +663,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.4.21-57.EL.orig/fs/Config.in
-+++ linux-2.4.21-57.EL/fs/Config.in
+--- linux-2.4.21-58.EL.orig/fs/Config.in
++++ linux-2.4.21-58.EL/fs/Config.in
 @@ -201,4 +201,7 @@ comment 'Partition Types'
  source fs/partitions/Config.in
  endmenu
@@ -673,16 +673,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
 +source fs/Config.ccs.in
 +
  endmenu
---- linux-2.4.21-57.EL.orig/fs/Makefile
-+++ linux-2.4.21-57.EL/fs/Makefile
+--- linux-2.4.21-58.EL.orig/fs/Makefile
++++ linux-2.4.21-58.EL/fs/Makefile
 @@ -97,4 +97,5 @@ obj-$(CONFIG_NFSD_ACL)		+= solaris_acl.o
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
  
 +include Makefile-2.4.ccs
  include $(TOPDIR)/Rules.make
---- linux-2.4.21-57.EL.orig/fs/attr.c
-+++ linux-2.4.21-57.EL/fs/attr.c
+--- linux-2.4.21-58.EL.orig/fs/attr.c
++++ linux-2.4.21-58.EL/fs/attr.c
 @@ -12,6 +12,9 @@
  #include <linux/dnotify.h>
  #include <linux/fcntl.h>
@@ -707,8 +707,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	if (inode->i_op && inode->i_op->setattr) 
---- linux-2.4.21-57.EL.orig/fs/exec.c
-+++ linux-2.4.21-57.EL/fs/exec.c
+--- linux-2.4.21-58.EL.orig/fs/exec.c
++++ linux-2.4.21-58.EL/fs/exec.c
 @@ -51,6 +51,9 @@
  #ifdef CONFIG_KMOD
  #include <linux/kmod.h>
@@ -756,8 +756,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	if (retval >= 0)
  		/* execve success */
  		return retval;
---- linux-2.4.21-57.EL.orig/fs/fcntl.c
-+++ linux-2.4.21-57.EL/fs/fcntl.c
+--- linux-2.4.21-58.EL.orig/fs/fcntl.c
++++ linux-2.4.21-58.EL/fs/fcntl.c
 @@ -15,6 +15,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -779,8 +779,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	if ((arg & O_DIRECT) && !(inode->i_mapping && 
  				  inode->i_mapping->a_ops &&
  				  (inode->i_mapping->a_ops->direct_IO ||
---- linux-2.4.21-57.EL.orig/fs/ioctl.c
-+++ linux-2.4.21-57.EL/fs/ioctl.c
+--- linux-2.4.21-58.EL.orig/fs/ioctl.c
++++ linux-2.4.21-58.EL/fs/ioctl.c
 @@ -10,6 +10,9 @@
  
  #include <asm/uaccess.h>
@@ -804,8 +804,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			error = -ENOTTY;
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
---- linux-2.4.21-57.EL.orig/fs/namei.c
-+++ linux-2.4.21-57.EL/fs/namei.c
+--- linux-2.4.21-58.EL.orig/fs/namei.c
++++ linux-2.4.21-58.EL/fs/namei.c
 @@ -28,6 +28,11 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -818,7 +818,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -998,6 +1003,9 @@ exit_lock:
+@@ -1013,6 +1018,9 @@ exit_lock:
  	return error;
  }
  
@@ -828,7 +828,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  /*
   *	open_namei()
   *
-@@ -1065,6 +1073,13 @@ do_last:
+@@ -1080,6 +1088,13 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -842,7 +842,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		error = vfs_create(dir->d_inode, dentry, mode);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1150,6 +1165,13 @@ ok:
+@@ -1165,6 +1180,13 @@ ok:
  			goto exit;
  	}
  
@@ -856,7 +856,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1288,6 +1310,17 @@ asmlinkage long sys_mknod(const char * f
+@@ -1303,6 +1325,17 @@ asmlinkage long sys_mknod(const char * f
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -874,7 +874,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1303,9 +1336,33 @@ asmlinkage long sys_mknod(const char * f
+@@ -1318,9 +1351,33 @@ asmlinkage long sys_mknod(const char * f
  	if (!IS_ERR(dentry)) {
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
@@ -908,7 +908,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,dev);
  			break;
  		case S_IFDIR:
-@@ -1369,6 +1426,13 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1384,6 +1441,13 @@ asmlinkage long sys_mkdir(const char * p
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -922,7 +922,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1477,6 +1541,13 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1492,6 +1556,13 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -936,7 +936,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1521,6 +1592,10 @@ asmlinkage long sys_unlink(const char * 
+@@ -1536,6 +1607,10 @@ asmlinkage long sys_unlink(const char * 
  	char * name;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -947,7 +947,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -1539,6 +1614,14 @@ asmlinkage long sys_unlink(const char * 
+@@ -1554,6 +1629,14 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
@@ -962,7 +962,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1587,6 +1670,10 @@ asmlinkage long sys_symlink(const char *
+@@ -1602,6 +1685,10 @@ asmlinkage long sys_symlink(const char *
  	int error = 0;
  	char * from;
  	char * to;
@@ -973,7 +973,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -1603,6 +1690,13 @@ asmlinkage long sys_symlink(const char *
+@@ -1618,6 +1705,13 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -987,7 +987,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1668,6 +1762,10 @@ asmlinkage long sys_link(const char * ol
+@@ -1683,6 +1777,10 @@ asmlinkage long sys_link(const char * ol
  {
  	int error;
  	char * to;
@@ -998,7 +998,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	to = getname(newname);
  	error = PTR_ERR(to);
-@@ -1687,6 +1785,17 @@ asmlinkage long sys_link(const char * ol
+@@ -1702,6 +1800,17 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
@@ -1016,7 +1016,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1917,6 +2026,20 @@ static inline int do_rename(const char *
+@@ -1932,6 +2041,20 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;
@@ -1037,7 +1037,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	error = vfs_rename(old_dir->d_inode, old_dentry,
-@@ -1941,6 +2064,10 @@ asmlinkage long sys_rename(const char * 
+@@ -1956,6 +2079,10 @@ asmlinkage long sys_rename(const char * 
  	int error;
  	char * from;
  	char * to;
@@ -1048,8 +1048,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.4.21-57.EL.orig/fs/namespace.c
-+++ linux-2.4.21-57.EL/fs/namespace.c
+--- linux-2.4.21-58.EL.orig/fs/namespace.c
++++ linux-2.4.21-58.EL/fs/namespace.c
 @@ -21,6 +21,13 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
@@ -1177,8 +1177,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	read_lock(&current->fs->lock);
  	user_nd.mnt = mntget(current->fs->rootmnt);
  	user_nd.dentry = dget(current->fs->root);
---- linux-2.4.21-57.EL.orig/fs/open.c
-+++ linux-2.4.21-57.EL/fs/open.c
+--- linux-2.4.21-58.EL.orig/fs/open.c
++++ linux-2.4.21-58.EL/fs/open.c
 @@ -21,6 +21,13 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
@@ -1193,7 +1193,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  int vfs_statfs(struct super_block *sb, struct statfs *buf)
  {
  	int retval = -ENODEV;
-@@ -237,6 +244,11 @@ static inline long do_sys_truncate(const
+@@ -241,6 +248,11 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -1205,7 +1205,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -290,6 +302,11 @@ static inline long do_sys_ftruncate(unsi
+@@ -294,6 +306,11 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -1217,7 +1217,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -526,6 +543,14 @@ asmlinkage long sys_chroot(const char * 
+@@ -530,6 +547,14 @@ asmlinkage long sys_chroot(const char * 
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -1232,7 +1232,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1015,6 +1040,10 @@ out_unlock:
+@@ -1019,6 +1044,10 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1243,8 +1243,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->tty);
  		return 0;
---- linux-2.4.21-57.EL.orig/fs/proc/Makefile
-+++ linux-2.4.21-57.EL/fs/proc/Makefile
+--- linux-2.4.21-58.EL.orig/fs/proc/Makefile
++++ linux-2.4.21-58.EL/fs/proc/Makefile
 @@ -18,4 +18,8 @@ ifeq ($(CONFIG_PROC_DEVICETREE),y)
  obj-y += proc_devtree.o
  endif
@@ -1254,20 +1254,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
 +obj-$(CONFIG_TOMOYO) += ccs_proc.o
 +
  include $(TOPDIR)/Rules.make
---- linux-2.4.21-57.EL.orig/fs/proc/proc_misc.c
-+++ linux-2.4.21-57.EL/fs/proc/proc_misc.c
+--- linux-2.4.21-58.EL.orig/fs/proc/proc_misc.c
++++ linux-2.4.21-58.EL/fs/proc/proc_misc.c
 @@ -713,4 +713,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.21-57.EL 2008/12/10\n");
++	printk(KERN_INFO "Hook version: 2.4.21-58.EL 2008/12/18\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.4.21-57.EL.orig/include/linux/sched.h
-+++ linux-2.4.21-57.EL/include/linux/sched.h
+--- linux-2.4.21-58.EL.orig/include/linux/sched.h
++++ linux-2.4.21-58.EL/include/linux/sched.h
 @@ -36,6 +36,11 @@ extern int exec_shield_randomize;
  extern int panic_timeout;
  extern int print_fatal_signals;
@@ -1302,8 +1302,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  }
  
  
---- linux-2.4.21-57.EL.orig/kernel/kmod.c
-+++ linux-2.4.21-57.EL/kernel/kmod.c
+--- linux-2.4.21-58.EL.orig/kernel/kmod.c
++++ linux-2.4.21-58.EL/kernel/kmod.c
 @@ -144,6 +144,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
@@ -1316,8 +1316,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	/* Go, go, go... */
  	if (execve(program_path, argv, envp) < 0)
  		return -errno;
---- linux-2.4.21-57.EL.orig/kernel/module.c
-+++ linux-2.4.21-57.EL/kernel/module.c
+--- linux-2.4.21-58.EL.orig/kernel/module.c
++++ linux-2.4.21-58.EL/kernel/module.c
 @@ -11,6 +11,9 @@
  #include <linux/slab.h>
  #include <linux/kmod.h>
@@ -1361,8 +1361,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  	if (name_user) {
---- linux-2.4.21-57.EL.orig/kernel/sched.c
-+++ linux-2.4.21-57.EL/kernel/sched.c
+--- linux-2.4.21-58.EL.orig/kernel/sched.c
++++ linux-2.4.21-58.EL/kernel/sched.c
 @@ -31,6 +31,9 @@
  #include <linux/blkdev.h>
  #include <linux/delay.h>
@@ -1384,8 +1384,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	/*
  	 *	Setpriority might change our priority at the same moment.
---- linux-2.4.21-57.EL.orig/kernel/signal.c
-+++ linux-2.4.21-57.EL/kernel/signal.c
+--- linux-2.4.21-58.EL.orig/kernel/signal.c
++++ linux-2.4.21-58.EL/kernel/signal.c
 @@ -21,6 +21,9 @@
  
  #include <asm/uaccess.h>
@@ -1422,8 +1422,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	info.si_signo = sig;
  	info.si_errno = 0;
---- linux-2.4.21-57.EL.orig/kernel/sys.c
-+++ linux-2.4.21-57.EL/kernel/sys.c
+--- linux-2.4.21-58.EL.orig/kernel/sys.c
++++ linux-2.4.21-58.EL/kernel/sys.c
 @@ -23,6 +23,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1480,8 +1480,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.4.21-57.EL.orig/kernel/sysctl.c
-+++ linux-2.4.21-57.EL/kernel/sysctl.c
+--- linux-2.4.21-58.EL.orig/kernel/sysctl.c
++++ linux-2.4.21-58.EL/kernel/sysctl.c
 @@ -34,6 +34,9 @@
  #include <linux/hugetlb.h>
  
@@ -1630,8 +1630,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  }
  
  /*
---- linux-2.4.21-57.EL.orig/kernel/time.c
-+++ linux-2.4.21-57.EL/kernel/time.c
+--- linux-2.4.21-58.EL.orig/kernel/time.c
++++ linux-2.4.21-58.EL/kernel/time.c
 @@ -29,6 +29,9 @@
  #include <linux/smp_lock.h>
  
@@ -1675,8 +1675,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.4.21-57.EL.orig/net/core/datagram.c
-+++ linux-2.4.21-57.EL/net/core/datagram.c
+--- linux-2.4.21-58.EL.orig/net/core/datagram.c
++++ linux-2.4.21-58.EL/net/core/datagram.c
 @@ -47,6 +47,10 @@
  #include <net/sock.h>
  #include <net/checksum.h>
@@ -1701,8 +1701,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		if (skb)
  			return skb;
  
---- linux-2.4.21-57.EL.orig/net/ipv4/tcp_ipv4.c
-+++ linux-2.4.21-57.EL/net/ipv4/tcp_ipv4.c
+--- linux-2.4.21-58.EL.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.4.21-58.EL/net/ipv4/tcp_ipv4.c
 @@ -67,6 +67,9 @@
  
  #include <linux/inet.h>
@@ -1735,8 +1735,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  			/* Does not bother with rcv_saddr checks,
  			 * because the established check is already
---- linux-2.4.21-57.EL.orig/net/ipv4/udp.c
-+++ linux-2.4.21-57.EL/net/ipv4/udp.c
+--- linux-2.4.21-58.EL.orig/net/ipv4/udp.c
++++ linux-2.4.21-58.EL/net/ipv4/udp.c
 @@ -104,6 +104,9 @@
  #include <net/checksum.h>
  #include <linux/compiler.h>
@@ -1769,8 +1769,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.4.21-57.EL.orig/net/ipv6/tcp_ipv6.c
-+++ linux-2.4.21-57.EL/net/ipv6/tcp_ipv6.c
+--- linux-2.4.21-58.EL.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.4.21-58.EL/net/ipv6/tcp_ipv6.c
 @@ -53,6 +53,9 @@
  #include <net/inet_ecn.h>
  
@@ -1792,8 +1792,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			for (tb = head->chain; tb; tb = tb->next)
  				if (tb->port == rover)
  					goto next;
---- linux-2.4.21-57.EL.orig/net/ipv6/udp.c
-+++ linux-2.4.21-57.EL/net/ipv6/udp.c
+--- linux-2.4.21-58.EL.orig/net/ipv6/udp.c
++++ linux-2.4.21-58.EL/net/ipv6/udp.c
 @@ -52,6 +52,9 @@
  
  #include <net/checksum.h>
@@ -1826,8 +1826,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.4.21-57.EL.orig/net/socket.c
-+++ linux-2.4.21-57.EL/net/socket.c
+--- linux-2.4.21-58.EL.orig/net/socket.c
++++ linux-2.4.21-58.EL/net/socket.c
 @@ -86,6 +86,10 @@
  #include <net/scm.h>
  #include <net/tux.h>
@@ -1915,8 +1915,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.4.21-57.EL.orig/net/unix/af_unix.c
-+++ linux-2.4.21-57.EL/net/unix/af_unix.c
+--- linux-2.4.21-58.EL.orig/net/unix/af_unix.c
++++ linux-2.4.21-58.EL/net/unix/af_unix.c
 @@ -111,6 +111,9 @@
  #include <linux/rtnetlink.h>
  

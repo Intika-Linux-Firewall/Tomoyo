@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.4.21-57.EL.src.rpm ]
+if [ ! -r kernel-2.4.21-58.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS/kernel-2.4.21-57.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS/kernel-2.4.21-58.EL.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.4.21-57.EL.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.4.21-58.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.5-20081210.tar.gz ]
@@ -31,8 +31,8 @@ patch << "EOF" || die "Can't patch spec file."
  # that the kernel isn't the stock RHL kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 57.EL
-+%define release 57.EL_tomoyo_1.6.5
+-%define release 58.EL
++%define release 58.EL_tomoyo_1.6.5
  %define sublevel 21
  %define kversion 2.4.%{sublevel}
  # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
