@@ -48,6 +48,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#Fedora8">Fedora 8</a>
 <li><a href="#Fedora9">Fedora 9</a>
 <li><a href="#Fedora10">Fedora 10</a>
+<li><a href="#CentOS3.9">CentOS 3.9</a>
 <li><a href="#CentOS4.7">CentOS 4.7</a>
 <li><a href="#CentOS5.2">CentOS 5.2</a>
 <li><a href="#Sarge-2.4">Debian Sarge (2.4.27)</a>
@@ -58,6 +59,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#OpenSUSE10.2">OpenSUSE 10.2</a>
 <li><a href="#OpenSUSE10.3">OpenSUSE 10.3</a>
 <li><a href="#OpenSUSE11.0">OpenSUSE 11.0</a>
+<li><a href="#OpenSUSE11.1">OpenSUSE 11.1</a>
 <li><a href="#Asianux2">Asianux 2.0</a>
 <li><a href="#Asianux3">Asianux 3.0</a>
 <li><a href="#Ubuntu6.06">Ubuntu 6.06</a>
@@ -190,6 +192,19 @@ rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr>
 </table>
 
+<h2><a name="CentOS3.9">CentOS 3.9</a></h2>
+
+<table border="1">
+<tr><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-c3-2.4.21.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-c3-2.4.21.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-c3-2.4.21.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr>
+</table>
+
 <h2><a name="CentOS4.7">CentOS 4.7</a></h2>
 
 <table border="1">
@@ -312,6 +327,19 @@ rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr>
 </table>
 
+<h2><a name="OpenSUSE11.0">OpenSUSE 11.1</a></h2>
+
+<table border="1">
+<tr><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse11.1-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse11.1-2.6.27.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-suse11.1-2.6.27.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr>
+</table>
+
 <h2><a name="Asianux2">Asianux 2.0</a></h2>
 
 <table border="1">
@@ -419,18 +447,18 @@ rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.27 を使用するものとします。</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.27.10 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.27.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.27.10.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.6.27.tar.bz2<br>
+tar -jxf linux-2.6.27.10.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.6.27<br>
+cd linux-2.6.27.10<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>

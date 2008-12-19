@@ -78,6 +78,12 @@ Fedora 10</td><td>
 &nbsp;wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/Fedora10/ccs.repo<br>
 &nbsp;yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
+CentOS 3.9</td><td>
+&nbsp;wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+&nbsp;rpm --import /tmp/key<br>
+&nbsp;curl http://tomoyo.sourceforge.jp/repos/CentOS3/ccs.repo >> /etc/yum.conf<br>
+&nbsp;yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
 CentOS 4.7</td><td>
 &nbsp;wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
 &nbsp;rpm --import /tmp/key<br>
@@ -117,6 +123,10 @@ OpenSUSE 10.3</td><td>
 </td></tr><tr><td>
 OpenSUSE 11.0</td><td>
 &nbsp;zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos/SUSE11.0/ ccs<br>
+&nbsp;zypper install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 11.1</td><td>
+&nbsp;zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos/SUSE11.1/ ccs<br>
 &nbsp;zypper install ccs-kernel-default ccs-tools
 </td></tr>
 </table>
