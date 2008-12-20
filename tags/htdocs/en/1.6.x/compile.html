@@ -69,6 +69,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#Ubuntu8.04">Ubuntu 8.04</a>
 <li><a href="#Ubuntu8.10">Ubuntu 8.10</a>
 <li><a href="#VineLinux4.2">VineLinux 4.2</a>
+<li><a href="#Gentoo">Gentoo</a>
 <li><a href="#2.6-vanilla">Vanilla 2.6 kernels</a>
 <li><a href="#2.4-vanilla">Vanilla 2.4 kernels</a>
 </ul>
@@ -442,6 +443,26 @@ wget -O build-vl4.2-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*ch
 sh build-vl4.2-2.6.16.sh<br>
 # Start compilation.<br>
 rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr>
+</table>
+
+<h2><a name="Gentoo">Gentoo</a></h2>
+
+<table border="1">
+<tr><td>
+# Install layman package.<br>
+emerge layman<br>
+# Install subversion package.<br>
+emerge subversion<br>
+# Register the TOMOYO's repogitory.<br>
+layman --fetch -o http://tomoyo.sourceforge.jp/repos/gentoo-overlay/tomoyo-overlay.xml -a tomoyo<br>
+# Configure /etc/make.conf to include layman's make.conf .<br>
+echo "source /usr/portage/local/layman/make.conf" &gt;&gt; /etc/make.conf<br>
+# Download kernel source.<br>
+emerge ccs-sources<br>
+# Run genkernel to build.<br>
+genkernel --menuconfig all<br>
+# Configure grub . See http://www.gentoo.org/doc/en/kernel-upgrade.xml for detail.<br>
 </td></tr>
 </table>
 
