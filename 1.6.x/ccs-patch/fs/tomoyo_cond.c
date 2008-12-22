@@ -949,6 +949,7 @@ static void get_attributes(struct obj_info *obj)
 			obj->path1_stat.uid = inode->i_uid;
 			obj->path1_stat.gid = inode->i_gid;
 			obj->path1_stat.ino = inode->i_ino;
+			obj->path1_stat.mode = inode->i_mode;
 			obj->path1_stat.dev = inode->i_dev;
 			obj->path1_stat.rdev = inode->i_rdev;
 			obj->path1_valid = true;
@@ -969,6 +970,7 @@ static void get_attributes(struct obj_info *obj)
 			obj->path1_parent_stat.uid = inode->i_uid;
 			obj->path1_parent_stat.gid = inode->i_gid;
 			obj->path1_parent_stat.ino = inode->i_ino;
+			obj->path1_parent_stat.mode = inode->i_mode;
 			obj->path1_parent_stat.dev = inode->i_dev;
 			obj->path1_parent_stat.rdev = inode->i_rdev;
 			obj->path1_parent_valid = true;
@@ -991,6 +993,7 @@ static void get_attributes(struct obj_info *obj)
 				obj->path2_parent_stat.uid = inode->i_uid;
 				obj->path2_parent_stat.gid = inode->i_gid;
 				obj->path2_parent_stat.ino = inode->i_ino;
+				obj->path2_parent_stat.mode = inode->i_mode;
 				obj->path2_parent_stat.dev = inode->i_dev;
 				obj->path2_parent_stat.rdev = inode->i_rdev;
 				obj->path2_parent_valid = true;
@@ -1017,6 +1020,7 @@ static void get_attributes(struct obj_info *obj)
 			obj->path1_stat.uid = stat.uid;
 			obj->path1_stat.gid = stat.gid;
 			obj->path1_stat.ino = stat.ino;
+			obj->path1_stat.mode = stat.mode;
 			obj->path1_stat.dev = stat.dev;
 			obj->path1_stat.rdev = stat.rdev;
 			obj->path1_valid = true;
@@ -1032,6 +1036,7 @@ static void get_attributes(struct obj_info *obj)
 			obj->path1_parent_stat.uid = stat.uid;
 			obj->path1_parent_stat.gid = stat.gid;
 			obj->path1_parent_stat.ino = stat.ino;
+			obj->path1_parent_stat.mode = stat.mode;
 			obj->path1_parent_stat.dev = stat.dev;
 			obj->path1_parent_stat.rdev = stat.rdev;
 			obj->path1_parent_valid = true;
@@ -1050,6 +1055,7 @@ static void get_attributes(struct obj_info *obj)
 				obj->path2_parent_stat.uid = stat.uid;
 				obj->path2_parent_stat.gid = stat.gid;
 				obj->path2_parent_stat.ino = stat.ino;
+				obj->path2_parent_stat.mode = stat.mode;
 				obj->path2_parent_stat.dev = stat.dev;
 				obj->path2_parent_stat.rdev = stat.rdev;
 				obj->path2_parent_valid = true;
