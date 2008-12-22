@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -501,18 +501,24 @@ enum conditions_index {
 	PATH1_UID,
 	PATH1_GID,
 	PATH1_INO,
-	PATH1_PARENT_UID,
-	PATH1_PARENT_GID,
-	PATH1_PARENT_INO,
-	PATH2_PARENT_UID,
-	PATH2_PARENT_GID,
-	PATH2_PARENT_INO,
+	PATH1_MAJOR,
+	PATH1_MINOR,
+	PATH1_PERM,
 	PATH1_TYPE,
 	PATH1_DEV_MAJOR,
 	PATH1_DEV_MINOR,
-	PATH1_MODE,
-	PATH1_PARENT_MODE,
-	PATH2_PARENT_MODE,
+	PATH1_PARENT_UID,
+	PATH1_PARENT_GID,
+	PATH1_PARENT_INO,
+	PATH1_PARENT_MAJOR,
+	PATH1_PARENT_MINOR,
+	PATH1_PARENT_PERM,
+	PATH2_PARENT_UID,
+	PATH2_PARENT_GID,
+	PATH2_PARENT_INO,
+	PATH2_PARENT_MAJOR,
+	PATH2_PARENT_MINOR,
+	PATH2_PARENT_PERM,
 	MAX_KEYWORD
 }; 
 
@@ -556,18 +562,24 @@ static const char *condition_control_keyword[MAX_KEYWORD] = {
 	[PATH1_UID]            = "path1.uid",
 	[PATH1_GID]            = "path1.gid",
 	[PATH1_INO]            = "path1.ino",
+	[PATH1_MAJOR]          = "path1.major",
+	[PATH1_MINOR]          = "path1.minor",
+	[PATH1_PERM]           = "path1.perm",
+	[PATH1_TYPE]           = "path1.type",
+	[PATH1_DEV_MAJOR]      = "path1.dev_major",
+	[PATH1_DEV_MINOR]      = "path1.dev_minor",
 	[PATH1_PARENT_UID]     = "path1.parent.uid",
 	[PATH1_PARENT_GID]     = "path1.parent.gid",
 	[PATH1_PARENT_INO]     = "path1.parent.ino",
+	[PATH1_PARENT_MAJOR]   = "path1.parent.major",
+	[PATH1_PARENT_MINOR]   = "path1.parent.minor",
+	[PATH1_PARENT_PERM]    = "path1.parent.perm",
 	[PATH2_PARENT_UID]     = "path2.parent.uid",
 	[PATH2_PARENT_GID]     = "path2.parent.gid",
 	[PATH2_PARENT_INO]     = "path2.parent.ino",
-	[PATH1_TYPE]           = "path1.type",
-	[PATH1_DEV_MAJOR]      = "path1.major",
-	[PATH1_DEV_MINOR]      = "path1.minor",
-	[PATH1_MODE]           = "path1.perm",
-	[PATH1_PARENT_MODE]    = "path1.parent.perm",
-	[PATH2_PARENT_MODE]    = "path2.parent.perm",
+	[PATH2_PARENT_MAJOR]   = "path2.parent.major",
+	[PATH2_PARENT_MINOR]   = "path2.parent.minor",
+	[PATH2_PARENT_PERM]    = "path2.parent.perm",
 };
 
 /**
@@ -937,6 +949,8 @@ static void get_attributes(struct obj_info *obj)
 			obj->path1_stat.uid = inode->i_uid;
 			obj->path1_stat.gid = inode->i_gid;
 			obj->path1_stat.ino = inode->i_ino;
+			obj->path1_stat.dev = inode->i_dev;
+			obj->path1_stat.rdev = inode->i_rdev;
 			obj->path1_valid = true;
 		}
 	}
@@ -955,6 +969,8 @@ static void get_attributes(struct obj_info *obj)
 			obj->path1_parent_stat.uid = inode->i_uid;
 			obj->path1_parent_stat.gid = inode->i_gid;
 			obj->path1_parent_stat.ino = inode->i_ino;
+			obj->path1_parent_stat.dev = inode->i_dev;
+			obj->path1_parent_stat.rdev = inode->i_rdev;
 			obj->path1_parent_valid = true;
 		}
 	}
@@ -975,6 +991,8 @@ static void get_attributes(struct obj_info *obj)
 				obj->path2_parent_stat.uid = inode->i_uid;
 				obj->path2_parent_stat.gid = inode->i_gid;
 				obj->path2_parent_stat.ino = inode->i_ino;
+				obj->path2_parent_stat.dev = inode->i_dev;
+				obj->path2_parent_stat.rdev = inode->i_rdev;
 				obj->path2_parent_valid = true;
 			}
 		}
@@ -999,6 +1017,7 @@ static void get_attributes(struct obj_info *obj)
 			obj->path1_stat.uid = stat.uid;
 			obj->path1_stat.gid = stat.gid;
 			obj->path1_stat.ino = stat.ino;
+			obj->path1_stat.dev = stat.dev;
 			obj->path1_stat.rdev = stat.rdev;
 			obj->path1_valid = true;
 		}
@@ -1013,6 +1032,7 @@ static void get_attributes(struct obj_info *obj)
 			obj->path1_parent_stat.uid = stat.uid;
 			obj->path1_parent_stat.gid = stat.gid;
 			obj->path1_parent_stat.ino = stat.ino;
+			obj->path1_parent_stat.dev = stat.dev;
 			obj->path1_parent_stat.rdev = stat.rdev;
 			obj->path1_parent_valid = true;
 		}
@@ -1030,6 +1050,7 @@ static void get_attributes(struct obj_info *obj)
 				obj->path2_parent_stat.uid = stat.uid;
 				obj->path2_parent_stat.gid = stat.gid;
 				obj->path2_parent_stat.ino = stat.ino;
+				obj->path2_parent_stat.dev = stat.dev;
 				obj->path2_parent_stat.rdev = stat.rdev;
 				obj->path2_parent_valid = true;
 			}
@@ -1254,6 +1275,16 @@ bool ccs_check_condition(struct ccs_request_info *r,
 						goto out;
 					max_v = obj->path1_stat.ino;
 					break;
+				case PATH1_MAJOR:
+					if (!obj->path1_valid)
+						goto out;
+					max_v = MAJOR(obj->path1_stat.dev);
+					break;
+				case PATH1_MINOR:
+					if (!obj->path1_valid)
+						goto out;
+					max_v = MINOR(obj->path1_stat.dev);
+					break;
 				case PATH1_PARENT_UID:
 					if (!obj->path1_parent_valid)
 						goto out;
@@ -1268,6 +1299,16 @@ bool ccs_check_condition(struct ccs_request_info *r,
 					if (!obj->path1_parent_valid)
 						goto out;
 					max_v = obj->path1_parent_stat.ino;
+					break;
+				case PATH1_PARENT_MAJOR:
+					if (!obj->path1_parent_valid)
+						goto out;
+					max_v = MAJOR(obj->path1_parent_stat.dev);
+					break;
+				case PATH1_PARENT_MINOR:
+					if (!obj->path1_parent_valid)
+						goto out;
+					max_v = MINOR(obj->path1_parent_stat.dev);
 					break;
 				case PATH2_PARENT_UID:
 					if (!obj->path2_parent_valid)
@@ -1284,6 +1325,16 @@ bool ccs_check_condition(struct ccs_request_info *r,
 						goto out;
 					max_v = obj->path2_parent_stat.ino;
 					break;
+				case PATH2_PARENT_MAJOR:
+					if (!obj->path2_parent_valid)
+						goto out;
+					max_v = MAJOR(obj->path2_parent_stat.dev);
+					break;
+				case PATH2_PARENT_MINOR:
+					if (!obj->path2_parent_valid)
+						goto out;
+					max_v = MINOR(obj->path2_parent_stat.dev);
+					break;
 				case PATH1_TYPE:
 					if (!obj->path1_valid)
 						goto out;
@@ -1299,19 +1350,19 @@ bool ccs_check_condition(struct ccs_request_info *r,
 						goto out;
 					max_v = MINOR(obj->path1_stat.rdev);
 					break;
-				case PATH1_MODE:
+				case PATH1_PERM:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = obj->path1_stat.mode
 						& S_IALLUGO;
 					break;
-				case PATH1_PARENT_MODE:
+				case PATH1_PARENT_PERM:
 					if (!obj->path1_parent_valid)
 						goto out;
 					max_v = obj->path1_parent_stat.mode
 						& S_IALLUGO;
 					break;
-				case PATH2_PARENT_MODE:
+				case PATH2_PARENT_PERM:
 					if (!obj->path2_parent_valid)
 						goto out;
 					max_v = obj->path2_parent_stat.mode
@@ -1339,8 +1390,8 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		if (left_is_bitop && right_is_bitop)
 			goto out;
 		if (left_is_bitop) {
-			if (right == PATH1_MODE || right == PATH1_PARENT_MODE
-			    || right == PATH2_PARENT_MODE) {
+			if (right == PATH1_PERM || right == PATH1_PARENT_PERM
+			    || right == PATH2_PARENT_PERM) {
 				if (match) {
 					if ((right_max & left_max))
 						continue;
@@ -1352,8 +1403,8 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			goto out;
 		}
 		if (right_is_bitop) {
-			if (left == PATH1_MODE || left == PATH1_PARENT_MODE
-			    || left == PATH2_PARENT_MODE) {
+			if (left == PATH1_PERM || left == PATH1_PARENT_PERM
+			    || left == PATH2_PARENT_PERM) {
 				if (match) {
 					if ((left_max & right_max))
 						continue;

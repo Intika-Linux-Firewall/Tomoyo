@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/22
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -214,6 +214,7 @@ struct mini_stat {
 	gid_t gid;
 	ino_t ino;
 	mode_t mode;
+	dev_t dev;
 	dev_t rdev;
 };
 
