@@ -11,7 +11,7 @@ SRC_URI="mirror://sourceforge.jp/tomoyo/30298/${MY_P}.tar.gz"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="~x86 ~arm ~sh ~ppc ~ia64 ~hppa ~amd64"
+KEYWORDS="x86 arm sh ppc ia64 hppa amd64"
 IUSE=""
 
 DEPEND="virtual/libc
