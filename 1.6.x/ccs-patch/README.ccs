@@ -1791,3 +1791,8 @@ Fix 2008/12/24
 
       To be able to tell whether a symbol is TOMOYO Linux related or not,
       I added "ccs_" prefix as much as possible.
+
+    @ Fix ccs_check_flags() error message.
+
+      I meant to print SYAORAN-ERROR: message when error == -EPERM,
+      but I was printing it when error == 0 since 1.6.0 .
