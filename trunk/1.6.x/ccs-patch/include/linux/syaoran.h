@@ -847,7 +847,7 @@ static int ccs_check_flags(struct ccs_sb_info *info,
 			break;
 		}
 	}
-	if (!error) {
+	if (error == -EPERM) {
 		const char *name;
 		struct task_struct *task = current;
 		const uid_t uid = task->fsuid;
