@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -27,8 +27,8 @@
  */
 static char *ccs_print_bprm(struct linux_binprm *bprm)
 {
-	static const int buffer_len = 4096 * 2;
-	char *buffer = ccs_alloc(buffer_len, false);
+	static const int ccs_buffer_len = 4096 * 2;
+	char *buffer = ccs_alloc(ccs_buffer_len, false);
 	char *cp;
 	char *last_start;
 	int len;
@@ -40,7 +40,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 	bool truncated = false;
 	if (!buffer)
 		return NULL;
-	len = snprintf(buffer, buffer_len - 1,
+	len = snprintf(buffer, ccs_buffer_len - 1,
 		       "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
 	cp = buffer + len;
 	if (!argv_count) {
@@ -72,7 +72,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 			const unsigned char c = kaddr[offset++];
 			if (cp == last_start)
 				*cp++ = '"';
-			if (cp >= buffer + buffer_len - 32) {
+			if (cp >= buffer + ccs_buffer_len - 32) {
 				/* Reserve some room for "..." string. */
 				truncated = true;
 			} else if (c == '\\') {
@@ -128,31 +128,31 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 	*cp = '\0';
 	return buffer;
  out:
-	snprintf(buffer, buffer_len - 1,
+	snprintf(buffer, ccs_buffer_len - 1,
 		 "argc=%d envc=%d argv[]={ ... } envp[]= { ... }",
 		 argv_count, envp_count);
 	return buffer;
 }
 
-static DECLARE_WAIT_QUEUE_HEAD(grant_log_wait);
-static DECLARE_WAIT_QUEUE_HEAD(reject_log_wait);
+static DECLARE_WAIT_QUEUE_HEAD(ccs_grant_log_wait);
+static DECLARE_WAIT_QUEUE_HEAD(ccs_reject_log_wait);
 
-static DEFINE_SPINLOCK(audit_log_lock);
+static DEFINE_SPINLOCK(ccs_audit_log_lock);
 
 /* Structure for audit log. */
-struct log_entry {
+struct ccs_log_entry {
 	struct list_head list;
 	char *log;
 };
 
-/* The list for "struct log_entry". */
-static LIST_HEAD(grant_log);
+/* The list for "struct ccs_log_entry". */
+static LIST_HEAD(ccs_grant_log);
 
-/* The list for "struct log_entry". */
-static LIST_HEAD(reject_log);
+/* The list for "struct ccs_log_entry". */
+static LIST_HEAD(ccs_reject_log);
 
-static int grant_log_count;
-static int reject_log_count;
+static int ccs_grant_log_count;
+static int ccs_reject_log_count;
 
 /**
  * ccs_init_audit_log - Allocate buffer for audit logs.
@@ -166,7 +166,7 @@ static int reject_log_count;
  */
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 {
-	static const char *mode_4[4] = {
+	static const char *ccs_mode_4[4] = {
 		"disabled", "learning", "permissive", "enforcing"
 	};
 	char *buf;
@@ -193,7 +193,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 			 "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
 			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n"
 			 "%s\n",
-			 tv.tv_sec, r->profile, mode_4[r->mode],
+			 tv.tv_sec, r->profile, ccs_mode_4[r->mode],
 			 (pid_t) sys_getpid(),
 			 task->uid, task->gid, task->euid, task->egid,
 			 task->suid, task->sgid, task->fsuid, task->fsgid,
@@ -216,9 +216,9 @@ static bool ccs_can_save_audit_log(const struct domain_info *domain,
 				   const bool is_granted)
 {
 	if (is_granted)
-		return grant_log_count
+		return ccs_grant_log_count
 			< ccs_check_flags(domain, CCS_TOMOYO_MAX_GRANT_LOG);
-	return reject_log_count
+	return ccs_reject_log_count
 		< ccs_check_flags(domain, CCS_TOMOYO_MAX_REJECT_LOG);
 }
 
@@ -239,8 +239,8 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	int pos;
 	int len;
 	char *buf;
-	struct log_entry *new_entry;
-	const struct condition_list *ptr;
+	struct ccs_log_entry *new_entry;
+	const struct ccs_condition_list *ptr;
 	struct task_struct *task = current;
 	if (!r->domain)
 		r->domain = task->domain_info;
@@ -263,22 +263,22 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	}
 	new_entry->log = buf;
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&audit_log_lock);
+	spin_lock(&ccs_audit_log_lock);
 	if (is_granted) {
-		list_add_tail(&new_entry->list, &grant_log);
-		grant_log_count++;
+		list_add_tail(&new_entry->list, &ccs_grant_log);
+		ccs_grant_log_count++;
 		ccs_update_counter(CCS_UPDATES_COUNTER_GRANT_LOG);
 	} else {
-		list_add_tail(&new_entry->list, &reject_log);
-		reject_log_count++;
+		list_add_tail(&new_entry->list, &ccs_reject_log);
+		ccs_reject_log_count++;
 		ccs_update_counter(CCS_UPDATES_COUNTER_REJECT_LOG);
 	}
-	spin_unlock(&audit_log_lock);
+	spin_unlock(&ccs_audit_log_lock);
 	/***** CRITICAL SECTION END *****/
 	if (is_granted)
-		wake_up(&grant_log_wait);
+		wake_up(&ccs_grant_log_wait);
 	else
-		wake_up(&reject_log_wait);
+		wake_up(&ccs_reject_log_wait);
 	error = 0;
  out:
 	/*
@@ -319,7 +319,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
  */
 int ccs_read_grant_log(struct ccs_io_buffer *head)
 {
-	struct log_entry *ptr = NULL;
+	struct ccs_log_entry *ptr = NULL;
 	if (head->read_avail)
 		return 0;
 	if (head->read_buf) {
@@ -328,13 +328,14 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
 		head->readbuf_size = 0;
 	}
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&audit_log_lock);
-	if (!list_empty(&grant_log)) {
-		ptr = list_entry(grant_log.next, struct log_entry, list);
+	spin_lock(&ccs_audit_log_lock);
+	if (!list_empty(&ccs_grant_log)) {
+		ptr = list_entry(ccs_grant_log.next, struct ccs_log_entry,
+				 list);
 		list_del(&ptr->list);
-		grant_log_count--;
+		ccs_grant_log_count--;
 	}
-	spin_unlock(&audit_log_lock);
+	spin_unlock(&ccs_audit_log_lock);
 	/***** CRITICAL SECTION END *****/
 	if (ptr) {
 		head->read_buf = ptr->log;
@@ -355,10 +356,10 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
  */
 int ccs_poll_grant_log(struct file *file, poll_table *wait)
 {
-	if (grant_log_count)
+	if (ccs_grant_log_count)
 		return POLLIN | POLLRDNORM;
-	poll_wait(file, &grant_log_wait, wait);
-	if (grant_log_count)
+	poll_wait(file, &ccs_grant_log_wait, wait);
+	if (ccs_grant_log_count)
 		return POLLIN | POLLRDNORM;
 	return 0;
 }
@@ -372,7 +373,7 @@ int ccs_poll_grant_log(struct file *file, poll_table *wait)
  */
 int ccs_read_reject_log(struct ccs_io_buffer *head)
 {
-	struct log_entry *ptr = NULL;
+	struct ccs_log_entry *ptr = NULL;
 	if (head->read_avail)
 		return 0;
 	if (head->read_buf) {
@@ -381,13 +382,14 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
 		head->readbuf_size = 0;
 	}
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&audit_log_lock);
-	if (!list_empty(&reject_log)) {
-		ptr = list_entry(reject_log.next, struct log_entry, list);
+	spin_lock(&ccs_audit_log_lock);
+	if (!list_empty(&ccs_reject_log)) {
+		ptr = list_entry(ccs_reject_log.next, struct ccs_log_entry,
+				 list);
 		list_del(&ptr->list);
-		reject_log_count--;
+		ccs_reject_log_count--;
 	}
-	spin_unlock(&audit_log_lock);
+	spin_unlock(&ccs_audit_log_lock);
 	/***** CRITICAL SECTION END *****/
 	if (ptr) {
 		head->read_buf = ptr->log;
@@ -408,10 +410,10 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
  */
 int ccs_poll_reject_log(struct file *file, poll_table *wait)
 {
-	if (reject_log_count)
+	if (ccs_reject_log_count)
 		return POLLIN | POLLRDNORM;
-	poll_wait(file, &reject_log_wait, wait);
-	if (reject_log_count)
+	poll_wait(file, &ccs_reject_log_wait, wait);
+	if (ccs_reject_log_count)
 		return POLLIN | POLLRDNORM;
 	return 0;
 }

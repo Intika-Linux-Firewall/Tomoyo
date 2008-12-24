@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,7 +21,7 @@
 #include <linux/in6.h>
 
 /**
- * audit_network_log - Audit network log.
+ * ccs_audit_network_log - Audit network log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
@@ -31,16 +31,16 @@
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_network_log(struct ccs_request_info *r, const char *operation,
-			     const char *address, const u16 port,
-			     const bool is_granted)
+static int ccs_audit_network_log(struct ccs_request_info *r,
+				 const char *operation, const char *address,
+				 const u16 port, const bool is_granted)
 {
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_NETWORK
 				   "%s %s %u\n", operation, address, port);
 }
 
 /**
- * save_ipv6_address - Keep the given IPv6 address on the RAM.
+ * ccs_save_ipv6_address - Keep the given IPv6 address on the RAM.
  *
  * @addr: Pointer to "struct in6_addr".
  *
@@ -48,35 +48,35 @@ static int audit_network_log(struct ccs_request_info *r, const char *operation,
  *
  * The RAM is shared, so NEVER try to modify or kfree() the returned address.
  */
-static const struct in6_addr *save_ipv6_address(const struct in6_addr *addr)
+static const struct in6_addr *ccs_save_ipv6_address(const struct in6_addr *addr)
 {
-	static const u8 block_size = 16;
-	struct addr_list {
+	static const u8 ccs_block_size = 16;
+	struct ccs_addr_list {
 		/* Workaround for gcc 4.3's bug. */
-		struct in6_addr addr[16]; /* = block_size */
+		struct in6_addr addr[16]; /* = ccs_block_size */
 		struct list1_head list;
 		u32 in_use_count;
 	};
-	static LIST1_HEAD(address_list);
-	struct addr_list *ptr;
+	static LIST1_HEAD(ccs_address_list);
+	struct ccs_addr_list *ptr;
 	static DEFINE_MUTEX(lock);
-	u8 i = block_size;
+	u8 i = ccs_block_size;
 	if (!addr)
 		return NULL;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &address_list, list) {
+	list1_for_each_entry(ptr, &ccs_address_list, list) {
 		for (i = 0; i < ptr->in_use_count; i++) {
 			if (!memcmp(&ptr->addr[i], addr, sizeof(*addr)))
 				goto ok;
 		}
-		if (i < block_size)
+		if (i < ccs_block_size)
 			break;
 	}
-	if (i == block_size) {
+	if (i == ccs_block_size) {
 		ptr = ccs_alloc_element(sizeof(*ptr));
 		if (!ptr)
 			goto ok;
-		list1_add_tail_mb(&ptr->list, &address_list);
+		list1_add_tail_mb(&ptr->list, &ccs_address_list);
 		i = 0;
 	}
 	ptr->addr[ptr->in_use_count++] = *addr;
@@ -85,11 +85,11 @@ static const struct in6_addr *save_ipv6_address(const struct in6_addr *addr)
 	return ptr ? &ptr->addr[i] : NULL;
 }
 
-/* The list for "struct address_group_entry". */
-static LIST1_HEAD(address_group_list);
+/* The list for "struct ccs_address_group_entry". */
+static LIST1_HEAD(ccs_address_group_list);
 
 /**
- * update_address_group_entry - Update "struct address_group_entry" list.
+ * ccs_update_address_group_entry - Update "struct ccs_address_group_entry" list.
  *
  * @group_name:  The name of address group.
  * @is_ipv6:     True if @min_address and @max_address are IPv6 addresses.
@@ -99,18 +99,18 @@ static LIST1_HEAD(address_group_list);
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_address_group_entry(const char *group_name,
-				      const bool is_ipv6,
-				      const u16 *min_address,
-				      const u16 *max_address,
-				      const bool is_delete)
+static int ccs_update_address_group_entry(const char *group_name,
+					  const bool is_ipv6,
+					  const u16 *min_address,
+					  const u16 *max_address,
+					  const bool is_delete)
 {
 	static DEFINE_MUTEX(lock);
-	struct address_group_entry *new_group;
-	struct address_group_entry *group;
-	struct address_group_member *new_member;
-	struct address_group_member *member;
-	const struct path_info *saved_group_name;
+	struct ccs_address_group_entry *new_group;
+	struct ccs_address_group_entry *group;
+	struct ccs_address_group_member *new_member;
+	struct ccs_address_group_member *member;
+	const struct ccs_path_info *saved_group_name;
 	const struct in6_addr *saved_min_address = NULL;
 	const struct in6_addr *saved_max_address = NULL;
 	int error = -ENOMEM;
@@ -124,17 +124,18 @@ static int update_address_group_entry(const char *group_name,
 	if (!is_ipv6)
 		goto not_ipv6;
 	saved_min_address
-		= save_ipv6_address((struct in6_addr *) min_address);
+		= ccs_save_ipv6_address((struct in6_addr *) min_address);
 	saved_max_address
-		= save_ipv6_address((struct in6_addr *) max_address);
+		= ccs_save_ipv6_address((struct in6_addr *) max_address);
 	if (!saved_min_address || !saved_max_address)
 		return -ENOMEM;
  not_ipv6:
 	mutex_lock(&lock);
-	list1_for_each_entry(group, &address_group_list, list) {
+	list1_for_each_entry(group, &ccs_address_group_list, list) {
 		if (saved_group_name != group->group_name)
 			continue;
-		list1_for_each_entry(member, &group->address_group_member_list,
+		list1_for_each_entry(member,
+				     &group->address_group_member_list,
 				     list) {
 			if (member->is_ipv6 != is_ipv6)
 				continue;
@@ -164,7 +165,7 @@ static int update_address_group_entry(const char *group_name,
 			goto out;
 		INIT_LIST1_HEAD(&new_group->address_group_member_list);
 		new_group->group_name = saved_group_name;
-		list1_add_tail_mb(&new_group->list, &address_group_list);
+		list1_add_tail_mb(&new_group->list, &ccs_address_group_list);
 		group = new_group;
 	}
 	new_member = ccs_alloc_element(sizeof(*new_member));
@@ -178,7 +179,8 @@ static int update_address_group_entry(const char *group_name,
 		new_member->min.ipv4 = *(u32 *) min_address;
 		new_member->max.ipv4 = *(u32 *) max_address;
 	}
-	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
+	list1_add_tail_mb(&new_member->list,
+			  &group->address_group_member_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -187,7 +189,7 @@ static int update_address_group_entry(const char *group_name,
 }
 
 /**
- * parse_ip_address - Parse an IP address.
+ * ccs_parse_ip_address - Parse an IP address.
  *
  * @address: String to parse.
  * @min:     Pointer to store min address.
@@ -195,7 +197,7 @@ static int update_address_group_entry(const char *group_name,
  *
  * Returns 2 if @address is an IPv6, 1 if @address is an IPv4, 0 otherwise.
  */
-static int parse_ip_address(char *address, u16 *min, u16 *max)
+static int ccs_parse_ip_address(char *address, u16 *min, u16 *max)
 {
 	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
 			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
@@ -230,7 +232,7 @@ static int parse_ip_address(char *address, u16 *min, u16 *max)
 }
 
 /**
- * ccs_write_address_group_policy - Write "struct address_group_entry" list.
+ * ccs_write_address_group_policy - Write "struct ccs_address_group_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -246,7 +248,7 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	switch (parse_ip_address(cp, min_address, max_address)) {
+	switch (ccs_parse_ip_address(cp, min_address, max_address)) {
 	case 2:
 		is_ipv6 = true;
 		break;
@@ -256,53 +258,56 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 	default:
 		return -EINVAL;
 	}
-	return update_address_group_entry(data, is_ipv6,
-					  min_address, max_address, is_delete);
+	return ccs_update_address_group_entry(data, is_ipv6, min_address,
+					      max_address, is_delete);
 }
 
 /**
- * find_or_assign_new_address_group - Create address group.
+ * ccs_find_or_assign_new_address_group - Create address group.
  *
  * @group_name: The name of address group.
  *
- * Returns pointer to "struct address_group_entry" on success, NULL otherwise.
+ * Returns pointer to "struct ccs_address_group_entry" on success,
+ * NULL otherwise.
  */
-static struct address_group_entry *
-find_or_assign_new_address_group(const char *group_name)
+static struct ccs_address_group_entry *
+ccs_find_or_assign_new_address_group(const char *group_name)
 {
 	u8 i;
-	struct address_group_entry *group;
+	struct ccs_address_group_entry *group;
 	for (i = 0; i <= 1; i++) {
-		list1_for_each_entry(group, &address_group_list, list) {
+		list1_for_each_entry(group, &ccs_address_group_list, list) {
 			if (!strcmp(group_name, group->group_name->name))
 				return group;
 		}
 		if (!i) {
 			const u16 dummy[2] = { 0, 0 };
-			update_address_group_entry(group_name, false,
-						   dummy, dummy, false);
-			update_address_group_entry(group_name, false,
-						   dummy, dummy, true);
+			ccs_update_address_group_entry(group_name, false,
+						       dummy, dummy, false);
+			ccs_update_address_group_entry(group_name, false,
+						       dummy, dummy, true);
 		}
 	}
 	return NULL;
 }
 
 /**
- * address_matches_to_group - Check whether the given address matches members of the given address group.
+ * ccs_address_matches_to_group - Check whether the given address matches members of the given address group.
  *
  * @is_ipv6: True if @address is an IPv6 address.
  * @address: An IPv4 or IPv6 address.
- * @group:   Pointer to "struct address_group_entry".
+ * @group:   Pointer to "struct ccs_address_group_entry".
  *
  * Returns true if @address matches addresses in @group group, false otherwise.
  */
-static bool address_matches_to_group(const bool is_ipv6, const u32 *address,
-				     const struct address_group_entry *group)
+static bool ccs_address_matches_to_group(const bool is_ipv6, const u32 *address,
+					 const struct ccs_address_group_entry *
+					 group)
 {
-	struct address_group_member *member;
+	struct ccs_address_group_member *member;
 	const u32 ip = ntohl(*address);
-	list1_for_each_entry(member, &group->address_group_member_list, list) {
+	list1_for_each_entry(member, &group->address_group_member_list,
+			     list) {
 		if (member->is_deleted)
 			continue;
 		if (member->is_ipv6) {
@@ -320,7 +325,7 @@ static bool address_matches_to_group(const bool is_ipv6, const u32 *address,
 }
 
 /**
- * ccs_read_address_group_policy - Read "struct address_group_entry" list.
+ * ccs_read_address_group_policy - Read "struct ccs_address_group_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -330,14 +335,15 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *gpos;
 	struct list1_head *mpos;
-	list1_for_each_cookie(gpos, head->read_var1, &address_group_list) {
-		struct address_group_entry *group;
-		group = list1_entry(gpos, struct address_group_entry, list);
+	list1_for_each_cookie(gpos, head->read_var1, &ccs_address_group_list) {
+		struct ccs_address_group_entry *group;
+		group = list1_entry(gpos, struct ccs_address_group_entry, list);
 		list1_for_each_cookie(mpos, head->read_var2,
 				      &group->address_group_member_list) {
 			char buf[128];
-			struct address_group_member *member;
-			member = list1_entry(mpos, struct address_group_member,
+			struct ccs_address_group_member *member;
+			member = list1_entry(mpos,
+					     struct ccs_address_group_member,
 					     list);
 			if (member->is_deleted)
 				continue;
@@ -444,32 +450,33 @@ const char *ccs_net2keyword(const u8 operation)
 }
 
 /**
- * update_network_entry - Update "struct ip_network_acl_record" list.
+ * ccs_update_network_entry - Update "struct ccs_ip_network_acl_record" list.
  *
  * @operation:   Type of operation.
  * @record_type: Type of address.
- * @group:       Pointer to "struct address_group_entry". May be NULL.
+ * @group:       Pointer to "struct ccs_address_group_entry". May be NULL.
  * @min_address: Start of IPv4 or IPv6 address range.
  * @max_address: End of IPv4 or IPv6 address range.
  * @min_port:    Start of port number range.
  * @max_port:    End of port number range.
  * @domain:      Pointer to "struct domain_info".
- * @condition:   Pointer to "struct condition_list". May be NULL.
+ * @condition:   Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete:   True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_network_entry(const u8 operation, const u8 record_type,
-				const struct address_group_entry *group,
-				const u32 *min_address, const u32 *max_address,
-				const u16 min_port, const u16 max_port,
-				struct domain_info *domain,
-				const struct condition_list *condition,
-				const bool is_delete)
+static int ccs_update_network_entry(const u8 operation, const u8 record_type,
+				    const struct ccs_address_group_entry *group,
+				    const u32 *min_address,
+				    const u32 *max_address,
+				    const u16 min_port, const u16 max_port,
+				    struct domain_info *domain,
+				    const struct ccs_condition_list *condition,
+				    const bool is_delete)
 {
 	static DEFINE_MUTEX(lock);
-	struct acl_info *ptr;
-	struct ip_network_acl_record *acl;
+	struct ccs_acl_info *ptr;
+	struct ccs_ip_network_acl_record *acl;
 	int error = -ENOMEM;
 	/* using host byte order to allow u32 comparison than memcmp().*/
 	const u32 min_ip = ntohl(*min_address);
@@ -480,8 +487,10 @@ static int update_network_entry(const u8 operation, const u8 record_type,
 		return -EINVAL;
 	if (record_type != IP_RECORD_TYPE_IPv6)
 		goto not_ipv6;
-	saved_min_address = save_ipv6_address((struct in6_addr *) min_address);
-	saved_max_address = save_ipv6_address((struct in6_addr *) max_address);
+	saved_min_address = ccs_save_ipv6_address((struct in6_addr *)
+						  min_address);
+	saved_max_address = ccs_save_ipv6_address((struct in6_addr *)
+						  max_address);
 	if (!saved_min_address || !saved_max_address)
 		return -ENOMEM;
  not_ipv6:
@@ -493,7 +502,7 @@ static int update_network_entry(const u8 operation, const u8 record_type,
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
-		acl = container_of(ptr, struct ip_network_acl_record, head);
+		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
 		if (acl->operation_type != operation ||
 		    acl->record_type != record_type ||
 		    acl->min_port != min_port || max_port != acl->max_port)
@@ -539,7 +548,7 @@ static int update_network_entry(const u8 operation, const u8 record_type,
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
-		acl = container_of(ptr, struct ip_network_acl_record, head);
+		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
 		if (acl->operation_type != operation ||
 		    acl->record_type != record_type ||
 		    acl->min_port != min_port || max_port != acl->max_port)
@@ -565,7 +574,7 @@ static int update_network_entry(const u8 operation, const u8 record_type,
 }
 
 /**
- * check_network_entry - Check permission for network operation.
+ * ccs_check_network_entry - Check permission for network operation.
  *
  * @is_ipv6:   True if @address is an IPv6 address.
  * @operation: Type of operation.
@@ -574,11 +583,11 @@ static int update_network_entry(const u8 operation, const u8 record_type,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_network_entry(const bool is_ipv6, const u8 operation,
-			       const u32 *address, const u16 port)
+static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
+				   const u32 *address, const u16 port)
 {
 	struct ccs_request_info r;
-	struct acl_info *ptr;
+	struct ccs_acl_info *ptr;
 	const char *keyword = ccs_net2keyword(operation);
 	bool is_enforce;
 	/* using host byte order to allow u32 comparison than memcmp().*/
@@ -591,18 +600,18 @@ static int check_network_entry(const bool is_ipv6, const u8 operation,
 	is_enforce = (r.mode == 3);
 	if (!r.mode)
 		return 0;
-retry:
+ retry:
 	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
-		struct ip_network_acl_record *acl;
+		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
-		acl = container_of(ptr, struct ip_network_acl_record, head);
+		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
 		if (acl->operation_type != operation || port < acl->min_port ||
 		    acl->max_port < port || !ccs_check_condition(&r, ptr))
 			continue;
 		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-			if (!address_matches_to_group(is_ipv6, address,
-						      acl->u.group))
+			if (!ccs_address_matches_to_group(is_ipv6, address,
+							  acl->u.group))
 				continue;
 		} else if (acl->record_type == IP_RECORD_TYPE_IPv4) {
 			if (is_ipv6 ||
@@ -624,7 +633,7 @@ retry:
 			       (const struct in6_addr *) address);
 	else
 		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
-	audit_network_log(&r, keyword, buf, port, found);
+	ccs_audit_network_log(&r, keyword, buf, port, found);
 	if (found)
 		return 0;
 	if (ccs_verbose_mode(r.domain))
@@ -640,25 +649,26 @@ retry:
 		return error;
 	}
 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
-		update_network_entry(operation, is_ipv6 ?
-				     IP_RECORD_TYPE_IPv6 : IP_RECORD_TYPE_IPv4,
-				     NULL, address, address, port, port,
-				     r.domain, ccs_handler_cond(), 0);
+		ccs_update_network_entry(operation, is_ipv6 ?
+					 IP_RECORD_TYPE_IPv6 :
+					 IP_RECORD_TYPE_IPv4,
+					 NULL, address, address, port, port,
+					 r.domain, ccs_handler_cond(), 0);
 	return 0;
 }
 
 /**
- * ccs_write_network_policy - Write "struct ip_network_acl_record" list.
+ * ccs_write_network_policy - Write "struct ccs_ip_network_acl_record" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct domain_info".
- * @condition: Pointer to "struct condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_network_policy(char *data, struct domain_info *domain,
-			     const struct condition_list *condition,
+			     const struct ccs_condition_list *condition,
 			     const bool is_delete)
 {
 	u8 sock_type;
@@ -666,7 +676,7 @@ int ccs_write_network_policy(char *data, struct domain_info *domain,
 	u8 record_type;
 	u16 min_address[8];
 	u16 max_address[8];
-	struct address_group_entry *group = NULL;
+	struct ccs_address_group_entry *group = NULL;
 	u16 min_port;
 	u16 max_port;
 	u8 count;
@@ -719,7 +729,7 @@ int ccs_write_network_policy(char *data, struct domain_info *domain,
 	if (!cp1)
 		goto out;
 	*cp1++ = '\0';
-	switch (parse_ip_address(cp2, min_address, max_address)) {
+	switch (ccs_parse_ip_address(cp2, min_address, max_address)) {
 	case 2:
 		record_type = IP_RECORD_TYPE_IPv6;
 		break;
@@ -729,7 +739,7 @@ int ccs_write_network_policy(char *data, struct domain_info *domain,
 	default:
 		if (*cp2 != '@')
 			goto out;
-		group = find_or_assign_new_address_group(cp2 + 1);
+		group = ccs_find_or_assign_new_address_group(cp2 + 1);
 		if (!group)
 			return -ENOMEM;
 		record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
@@ -742,10 +752,11 @@ int ccs_write_network_policy(char *data, struct domain_info *domain,
 		goto out;
 	if (count == 1)
 		max_port = min_port;
-	return update_network_entry(operation, record_type, group,
-				    (u32 *) min_address, (u32 *) max_address,
-				    min_port, max_port, domain, condition,
-				    is_delete);
+	return ccs_update_network_entry(operation, record_type, group,
+					(u32 *) min_address,
+					(u32 *) max_address,
+					min_port, max_port, domain, condition,
+					is_delete);
  out:
 	return -EINVAL;
 }
@@ -762,8 +773,8 @@ int ccs_write_network_policy(char *data, struct domain_info *domain,
 int ccs_check_network_listen_acl(const _Bool is_ipv6, const u8 *address,
 				 const u16 port)
 {
-	return check_network_entry(is_ipv6, NETWORK_ACL_TCP_LISTEN,
-				   (const u32 *) address, ntohs(port));
+	return ccs_check_network_entry(is_ipv6, NETWORK_ACL_TCP_LISTEN,
+				       (const u32 *) address, ntohs(port));
 }
 
 /**
@@ -790,8 +801,8 @@ int ccs_check_network_connect_acl(const _Bool is_ipv6, const int sock_type,
 	default:
 		operation = NETWORK_ACL_RAW_CONNECT;
 	}
-	return check_network_entry(is_ipv6, operation, (const u32 *) address,
-				   ntohs(port));
+	return ccs_check_network_entry(is_ipv6, operation,
+				       (const u32 *) address, ntohs(port));
 }
 
 /**
@@ -818,8 +829,8 @@ int ccs_check_network_bind_acl(const _Bool is_ipv6, const int sock_type,
 	default:
 		operation = NETWORK_ACL_RAW_BIND;
 	}
-	return check_network_entry(is_ipv6, operation, (const u32 *) address,
-				   ntohs(port));
+	return ccs_check_network_entry(is_ipv6, operation,
+				       (const u32 *) address, ntohs(port));
 }
 
 /**
@@ -836,8 +847,8 @@ int ccs_check_network_accept_acl(const _Bool is_ipv6, const u8 *address,
 {
 	int retval;
 	current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = check_network_entry(is_ipv6, NETWORK_ACL_TCP_ACCEPT,
-				     (const u32 *) address, ntohs(port));
+	retval = ccs_check_network_entry(is_ipv6, NETWORK_ACL_TCP_ACCEPT,
+					 (const u32 *) address, ntohs(port));
 	current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
 }
@@ -860,8 +871,8 @@ int ccs_check_network_sendmsg_acl(const _Bool is_ipv6, const int sock_type,
 		operation = NETWORK_ACL_UDP_CONNECT;
 	else
 		operation = NETWORK_ACL_RAW_CONNECT;
-	return check_network_entry(is_ipv6, operation, (const u32 *) address,
-				   ntohs(port));
+	return ccs_check_network_entry(is_ipv6, operation,
+				       (const u32 *) address, ntohs(port));
 }
 
 /**
@@ -882,8 +893,8 @@ int ccs_check_network_recvmsg_acl(const _Bool is_ipv6, const int sock_type,
 		= (sock_type == SOCK_DGRAM) ?
 		NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT;
 	current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = check_network_entry(is_ipv6, operation, (const u32 *) address,
-				     ntohs(port));
+	retval = ccs_check_network_entry(is_ipv6, operation,
+					 (const u32 *) address, ntohs(port));
 	current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
 }

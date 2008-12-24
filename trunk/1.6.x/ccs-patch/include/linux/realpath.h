@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -17,8 +17,8 @@
 
 struct dentry;
 struct vfsmount;
-struct condition_list;
-struct path_info;
+struct ccs_condition_list;
+struct ccs_path_info;
 struct ccs_io_buffer;
 
 /* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
@@ -46,7 +46,7 @@ void *ccs_alloc_element(const unsigned int size);
  * Keep the given name on the RAM.
  * The RAM is shared, so NEVER try to modify or kfree() the returned name.
  */
-const struct path_info *ccs_save_name(const char *name);
+const struct ccs_path_info *ccs_save_name(const char *name);
 
 /* Allocate memory for temporary use (e.g. permission checks). */
 void *ccs_alloc(const size_t size, const _Bool check_quota);

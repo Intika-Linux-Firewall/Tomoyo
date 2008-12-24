@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -32,7 +32,7 @@
 #endif
 
 /**
- * check_conceal_mount - Check whether this mount request shadows existing mounts.
+ * ccs_check_conceal_mount - Check whether this mount request shadows existing mounts.
  *
  * @path:   Pointer to "struct path" (for 2.6.27 and later).
  *          Pointer to "struct nameidata" (for 2.6.26 and earlier).
@@ -41,8 +41,9 @@
  *
  * Returns true if @vfsmnt is parent directory compared to @nd, false otherwise.
  */
-static bool check_conceal_mount(struct PATH_or_NAMEIDATA *path,
-				struct vfsmount *vfsmnt, struct dentry *dentry)
+static bool ccs_check_conceal_mount(struct PATH_or_NAMEIDATA *path,
+				    struct vfsmount *vfsmnt,
+				    struct dentry *dentry)
 {
 	/***** CRITICAL SECTION START *****/
 	while (1) {
@@ -69,7 +70,7 @@ static bool check_conceal_mount(struct PATH_or_NAMEIDATA *path,
 }
 
 /**
- * print_error - Print error message.
+ * ccs_print_error - Print error message.
  *
  * @r:    Pointer to "struct ccs_request_info".
  * @path: Pointer to "struct path" (for 2.6.27 and later).
@@ -78,8 +79,8 @@ static bool check_conceal_mount(struct PATH_or_NAMEIDATA *path,
  * Returns 0 if @r->mode is not enforcing or permitted by the administrator's
  * decision, negative value otherwise.
  */
-static int print_error(struct ccs_request_info *r,
-		       struct PATH_or_NAMEIDATA *path)
+static int ccs_print_error(struct ccs_request_info *r,
+			   struct PATH_or_NAMEIDATA *path)
 {
 	int error;
 	const bool is_enforce = (r->mode == 3);
@@ -137,14 +138,14 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 		/***** CRITICAL SECTION START *****/
 		ccs_realpath_lock();
 		if (IS_ROOT(dentry) || !d_unhashed(dentry))
-			flag = check_conceal_mount(path, vfsmnt, dentry);
+			flag = ccs_check_conceal_mount(path, vfsmnt, dentry);
 		ccs_realpath_unlock();
 		/***** CRITICAL SECTION END *****/
 		if (flag)
 			break;
 	}
 	if (flag) {
-		int error = print_error(&r, path);
+		int error = ccs_print_error(&r, path);
 		if (error == 1)
 			goto retry;
 		return error;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/22
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,36 +21,36 @@
 #include <linux/binfmts.h>
 
 /* Structure for argv[]. */
-struct argv_entry {
+struct ccs_argv_entry {
 	unsigned int index;
-	const struct path_info *value;
+	const struct ccs_path_info *value;
 	bool is_not;
 };
 
 /* Structure for envp[]. */
-struct envp_entry {
-	const struct path_info *name;
-	const struct path_info *value;
+struct ccs_envp_entry {
+	const struct ccs_path_info *name;
+	const struct ccs_path_info *value;
 	bool is_not;
 };
 
 /**
- * check_argv - Check argv[] in "struct linux_binbrm".
+ * ccs_check_argv - Check argv[] in "struct linux_binbrm".
  *
  * @index:   Index number of @arg_ptr.
  * @arg_ptr: Contents of argv[@index].
  * @argc:    Length of @argv.
- * @argv:    Pointer to "struct argv_entry".
+ * @argv:    Pointer to "struct ccs_argv_entry".
  * @checked: Set to true if @argv[@index] was found.
  *
  * Returns true on success, false otherwise.
  */
-static bool check_argv(const unsigned int index, const char *arg_ptr,
-		       const int argc, const struct argv_entry *argv,
-		       u8 *checked)
+static bool ccs_check_argv(const unsigned int index, const char *arg_ptr,
+			   const int argc, const struct ccs_argv_entry *argv,
+			   u8 *checked)
 {
 	int i;
-	struct path_info arg;
+	struct ccs_path_info arg;
 	arg.name = arg_ptr;
 	for (i = 0; i < argc; argv++, checked++, i++) {
 		bool result;
@@ -68,23 +68,23 @@ static bool check_argv(const unsigned int index, const char *arg_ptr,
 }
 
 /**
- * check_envp - Check envp[] in "struct linux_binbrm".
+ * ccs_check_envp - Check envp[] in "struct linux_binbrm".
  *
  * @env_name:  The name of environment variable.
  * @env_value: The value of environment variable.
  * @envc:      Length of @envp.
- * @envp:      Pointer to "struct envp_entry".
+ * @envp:      Pointer to "struct ccs_envp_entry".
  * @checked:   Set to true if @envp[@env_name] was found.
  *
  * Returns true on success, false otherwise.
  */
-static bool check_envp(const char *env_name, const char *env_value,
-		       const int envc, const struct envp_entry *envp,
-		       u8 *checked)
+static bool ccs_check_envp(const char *env_name, const char *env_value,
+			   const int envc, const struct ccs_envp_entry *envp,
+			   u8 *checked)
 {
 	int i;
-	struct path_info name;
-	struct path_info value;
+	struct ccs_path_info name;
+	struct ccs_path_info value;
 	name.name = env_name;
 	ccs_fill_path_info(&name);
 	value.name = env_value;
@@ -110,21 +110,21 @@ static bool check_envp(const char *env_name, const char *env_value,
 }
 
 /**
- * scan_bprm - Scan "struct linux_binprm".
+ * ccs_scan_bprm - Scan "struct linux_binprm".
  *
  * @bprm: Pointer to "struct linux_binprm".
  * @argc: Length of @argc.
- * @argv: Pointer to "struct argv_entry".
+ * @argv: Pointer to "struct ccs_argv_entry".
  * @envc: Length of @envp.
- * @envp: Poiner to "struct envp_entry".
+ * @envp: Poiner to "struct ccs_envp_entry".
  * @tmp:  Buffer for temporary use.
  *
  * Returns true on success, false otherwise.
  */
-static bool scan_bprm(const struct linux_binprm *bprm,
-		      const u16 argc, const struct argv_entry *argv,
-		      const u16 envc, const struct envp_entry *envp,
-		      struct ccs_page_buffer *tmp)
+static bool ccs_scan_bprm(const struct linux_binprm *bprm,
+			  const u16 argc, const struct ccs_argv_entry *argv,
+			  const u16 envc, const struct ccs_envp_entry *envp,
+			  struct ccs_page_buffer *tmp)
 {
 	/*
 	  if exec.argc=3
@@ -190,7 +190,7 @@ static bool scan_bprm(const struct linux_binprm *bprm,
 		}
 		while (offset < PAGE_SIZE) {
 			/* Read. */
-			struct path_info arg;
+			struct ccs_path_info arg;
 			const unsigned char c = kaddr[offset++];
 			arg.name = arg_ptr;
 			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
@@ -213,9 +213,9 @@ static bool scan_bprm(const struct linux_binprm *bprm,
 				continue;
 			/* Check. */
 			if (argv_count) {
-				if (!check_argv(bprm->argc - argv_count,
-						arg_ptr, argc, argv,
-						checked)) {
+				if (!ccs_check_argv(bprm->argc - argv_count,
+						    arg_ptr, argc, argv,
+						    checked)) {
 					result = false;
 					break;
 				}
@@ -224,9 +224,9 @@ static bool scan_bprm(const struct linux_binprm *bprm,
 				char *cp = strchr(arg_ptr, '=');
 				if (cp) {
 					*cp = '\0';
-					if (!check_envp(arg_ptr, cp + 1,
-							envc, envp,
-							checked + argc)) {
+					if (!ccs_check_envp(arg_ptr, cp + 1,
+							    envc, envp,
+							    checked + argc)) {
 						result = false;
 						break;
 					}
@@ -287,7 +287,7 @@ static bool scan_bprm(const struct linux_binprm *bprm,
 #define VALUE_TYPE_HEXADECIMAL 3
 
 /**
- * parse_ulong - Parse an "unsigned long" value.
+ * ccs_parse_ulong - Parse an "unsigned long" value.
  *
  * @result: Pointer to "unsigned long".
  * @str:    Pointer to string to parse.
@@ -297,7 +297,7 @@ static bool scan_bprm(const struct linux_binprm *bprm,
  * The @src is updated to point the first character after the value
  * on success.
  */
-static u8 parse_ulong(unsigned long *result, char **str)
+static u8 ccs_parse_ulong(unsigned long *result, char **str)
 {
 	const char *cp = *str;
 	char *ep;
@@ -327,7 +327,7 @@ static u8 parse_ulong(unsigned long *result, char **str)
 }
 
 /**
- * print_ulong - Print an "unsigned long" value.
+ * ccs_print_ulong - Print an "unsigned long" value.
  *
  * @buffer:     Pointer to buffer.
  * @buffer_len: Size of @buffer.
@@ -336,8 +336,8 @@ static u8 parse_ulong(unsigned long *result, char **str)
  *
  * Returns nothing.
  */
-static void print_ulong(char *buffer, const int buffer_len,
-			const unsigned long value, const int type)
+static void ccs_print_ulong(char *buffer, const int buffer_len,
+			    const unsigned long value, const int type)
 {
 	if (type == VALUE_TYPE_DECIMAL)
 		snprintf(buffer, buffer_len, "%lu", value);
@@ -348,22 +348,22 @@ static void print_ulong(char *buffer, const int buffer_len,
 }
 
 /**
- * parse_argv - Parse an argv[] condition part.
+ * ccs_parse_argv - Parse an argv[] condition part.
  *
  * @start: String to parse.
- * @argv:  Pointer to "struct argv_entry".
+ * @argv:  Pointer to "struct ccs_argv_entry".
  *
  * Returns true on success, false otherwise.
  */
-static bool parse_argv(char *start, struct argv_entry *argv)
+static bool ccs_parse_argv(char *start, struct ccs_argv_entry *argv)
 {
 	unsigned long index;
-	const struct path_info *value;
+	const struct ccs_path_info *value;
 	bool is_not;
 	char c;
 	char *cp;
 	start += 10;
-	if (parse_ulong(&index, &start) != VALUE_TYPE_DECIMAL)
+	if (ccs_parse_ulong(&index, &start) != VALUE_TYPE_DECIMAL)
 		goto out;
 	if (*start++ != ']')
 		goto out;
@@ -394,17 +394,17 @@ static bool parse_argv(char *start, struct argv_entry *argv)
 }
 
 /**
- * parse_envp - Parse an envp[] condition part.
+ * ccs_parse_envp - Parse an envp[] condition part.
  *
  * @start: String to parse.
- * @envp:  Pointer to "struct envp_entry".
+ * @envp:  Pointer to "struct ccs_envp_entry".
  *
  * Returns true on success, false otherwise.
  */
-static bool parse_envp(char *start, struct envp_entry *envp)
+static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 {
-	const struct path_info *name;
-	const struct path_info *value;
+	const struct ccs_path_info *name;
+	const struct ccs_path_info *value;
 	bool is_not;
 	char *cp;
 	start += 11;
@@ -457,10 +457,10 @@ static bool parse_envp(char *start, struct envp_entry *envp)
 	return false;
 }
 
-/* The list for "struct condition_list". */
-static LIST1_HEAD(condition_list);
+/* The list for "struct ccs_condition_list". */
+static LIST1_HEAD(ccs_condition_list);
 
-enum conditions_index {
+enum ccs_conditions_index {
 	TASK_UID,             /* current->uid   */
 	TASK_EUID,            /* current->euid  */
 	TASK_SUID,            /* current->suid  */
@@ -473,7 +473,7 @@ enum conditions_index {
 	TASK_PPID,            /* sys_getppid()  */
 	EXEC_ARGC,            /* "struct linux_binprm *"->argc */
 	EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-	TASK_STATE_0,         /* (u8) (current->tomoyo_flags >> 24) */ 
+	TASK_STATE_0,         /* (u8) (current->tomoyo_flags >> 24) */
 	TASK_STATE_1,         /* (u8) (current->tomoyo_flags >> 16) */
 	TASK_STATE_2,         /* (u8) (task->tomoyo_flags >> 8)     */
 	TYPE_SOCKET,          /* S_IFSOCK */
@@ -520,9 +520,9 @@ enum conditions_index {
 	PATH2_PARENT_MINOR,
 	PATH2_PARENT_PERM,
 	MAX_KEYWORD
-}; 
+};
 
-static const char *condition_control_keyword[MAX_KEYWORD] = {
+static const char *ccs_condition_control_keyword[MAX_KEYWORD] = {
 	[TASK_UID]             = "task.uid",
 	[TASK_EUID]            = "task.euid",
 	[TASK_SUID]            = "task.suid",
@@ -583,14 +583,14 @@ static const char *condition_control_keyword[MAX_KEYWORD] = {
 };
 
 /**
- * parse_post_condition - Parse post-condition part.
+ * ccs_parse_post_condition - Parse post-condition part.
  *
  * @condition:  String to parse.
  * @post_state: Buffer to store post-condition part.
  *
  * Returns true on success, false otherwise.
  */
-static bool parse_post_condition(char * const condition, u8 post_state[4])
+static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
 {
 	char *start = strstr(condition, "; set ");
 	if (!start)
@@ -616,7 +616,7 @@ static bool parse_post_condition(char * const condition, u8 post_state[4])
 		if (post_state[3] & (1 << i))
 			goto out;
 		post_state[3] |= 1 << i;
-		if (!parse_ulong(&value, &start) || value > 255)
+		if (!ccs_parse_ulong(&value, &start) || value > 255)
 			goto out;
 		post_state[i] = (u8) value;
 	}
@@ -626,21 +626,21 @@ static bool parse_post_condition(char * const condition, u8 post_state[4])
 }
 
 /**
- * find_same_condition - Search for same condition list.
+ * ccs_find_same_condition - Search for same condition list.
  *
- * @new_ptr: Pointer to "struct condition_list".
+ * @new_ptr: Pointer to "struct ccs_condition_list".
  * @size:    Size of @new_ptr.
  *
- * Returns existing pointer to "struct condition_list" if the same entry was
+ * Returns existing pointer to "struct ccs_condition_list" if the same entry was
  * found, NULL if memory allocation failed, @new_ptr otherwise.
  */
-static struct condition_list *
-find_same_condition(struct condition_list *new_ptr, const u32 size)
+static struct ccs_condition_list *
+ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
 {
 	static DEFINE_MUTEX(lock);
-	struct condition_list *ptr;
+	struct ccs_condition_list *ptr;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &condition_list, list) {
+	list1_for_each_entry(ptr, &ccs_condition_list, list) {
 		/* Don't compare if size differs. */
 		if (ptr->condc != new_ptr->condc ||
 		    ptr->argc != new_ptr->argc ||
@@ -664,7 +664,7 @@ find_same_condition(struct condition_list *new_ptr, const u32 size)
 	if (ptr) {
 		memmove(ptr, new_ptr, size);
 		/* Append to chain. */
-		list1_add_tail_mb(&ptr->list, &condition_list);
+		list1_add_tail_mb(&ptr->list, &ccs_condition_list);
 	}
 	ccs_free(new_ptr);
 	new_ptr = ptr;
@@ -678,16 +678,16 @@ find_same_condition(struct condition_list *new_ptr, const u32 size)
  *
  * @condition: Pointer to string to parse.
  *
- * Returns pointer to "struct condition_list" on success, NULL otherwise.
+ * Returns pointer to "struct ccs_condition_list" on success, NULL otherwise.
  */
-const struct condition_list *
+const struct ccs_condition_list *
 ccs_find_or_assign_new_condition(char * const condition)
 {
 	char *start = condition;
-	struct condition_list *new_ptr = NULL;
+	struct ccs_condition_list *new_ptr = NULL;
 	unsigned long *ptr;
-	struct argv_entry *argv;
-	struct envp_entry *envp;
+	struct ccs_argv_entry *argv;
+	struct ccs_envp_entry *envp;
 	u32 size;
 	u8 left;
 	u8 right;
@@ -701,13 +701,13 @@ ccs_find_or_assign_new_condition(char * const condition)
 	u16 envc = 0;
 	u8 post_state[4] = { 0, 0, 0, 0 };
 	/* Calculate at runtime. */
-	static u8 condition_control_keyword_len[MAX_KEYWORD];
-	if (!condition_control_keyword_len[MAX_KEYWORD - 1]) {
+	static u8 ccs_condition_control_keyword_len[MAX_KEYWORD];
+	if (!ccs_condition_control_keyword_len[MAX_KEYWORD - 1]) {
 		for (i = 0; i < MAX_KEYWORD; i++)
-			condition_control_keyword_len[i]
-				= strlen(condition_control_keyword[i]);
+			ccs_condition_control_keyword_len[i]
+				= strlen(ccs_condition_control_keyword[i]);
 	}
-	if (!parse_post_condition(start, post_state))
+	if (!ccs_parse_post_condition(start, post_state))
 		goto out;
 	start = condition;
 	if (!strncmp(start, "if ", 3))
@@ -734,8 +734,8 @@ ccs_find_or_assign_new_condition(char * const condition)
 		}
 		for (left = 0; left < MAX_KEYWORD; left++) {
 			const int len =
-				condition_control_keyword_len[left];
-			if (strncmp(start, condition_control_keyword[left],
+				ccs_condition_control_keyword_len[left];
+			if (strncmp(start, ccs_condition_control_keyword[left],
 				    len))
 				continue;
 			start += len;
@@ -743,16 +743,16 @@ ccs_find_or_assign_new_condition(char * const condition)
 		}
 		if (left < MAX_KEYWORD)
 			goto check_operator_1;
-		if (!parse_ulong(&left_min, &start))
+		if (!ccs_parse_ulong(&left_min, &start))
 			goto out;
 		condc++; /* body */
 		if (*start != '-')
 			goto check_operator_1;
 		start++;
-		if (!parse_ulong(&left_max, &start) || left_min > left_max)
+		if (!ccs_parse_ulong(&left_max, &start) || left_min > left_max)
 			goto out;
 		condc++; /* body */
- check_operator_1:
+check_operator_1:
 		if (strncmp(start, "!=", 2) == 0)
 			start += 2;
 		else if (*start == '=')
@@ -762,8 +762,8 @@ ccs_find_or_assign_new_condition(char * const condition)
 		condc++; /* header */
 		for (right = 0; right < MAX_KEYWORD; right++) {
 			const int len =
-				condition_control_keyword_len[right];
-			if (strncmp(start, condition_control_keyword[right],
+				ccs_condition_control_keyword_len[right];
+			if (strncmp(start, ccs_condition_control_keyword[right],
 				    len))
 				continue;
 			start += len;
@@ -771,20 +771,21 @@ ccs_find_or_assign_new_condition(char * const condition)
 		}
 		if (right < MAX_KEYWORD)
 			continue;
-		if (!parse_ulong(&right_min, &start))
+		if (!ccs_parse_ulong(&right_min, &start))
 			goto out;
 		condc++; /* body */
 		if (*start != '-')
 			continue;
 		start++;
-		if (!parse_ulong(&right_max, &start) || right_min > right_max)
+		if (!ccs_parse_ulong(&right_max, &start) ||
+		    right_min > right_max)
 			goto out;
 		condc++; /* body */
 	}
 	size = sizeof(*new_ptr)
 		+ condc * sizeof(unsigned long)
-		+ argc * sizeof(struct argv_entry)
-		+ envc * sizeof(struct envp_entry);
+		+ argc * sizeof(struct ccs_argv_entry)
+		+ envc * sizeof(struct ccs_envp_entry);
 	new_ptr = ccs_alloc(size, false);
 	if (!new_ptr)
 		return NULL;
@@ -794,8 +795,8 @@ ccs_find_or_assign_new_condition(char * const condition)
 	new_ptr->argc = argc;
 	new_ptr->envc = envc;
 	ptr = (unsigned long *) (new_ptr + 1);
-	argv = (struct argv_entry *) (ptr + condc);
-	envp = (struct envp_entry *) (argv + argc);
+	argv = (struct ccs_argv_entry *) (ptr + condc);
+	envp = (struct ccs_envp_entry *) (argv + argc);
 	start = condition;
 	if (!strncmp(start, "if ", 3))
 		start += 3;
@@ -815,7 +816,7 @@ ccs_find_or_assign_new_condition(char * const condition)
 			char *cp = strchr(start + 10, ' ');
 			if (cp)
 				*cp = '\0';
-			if (!parse_argv(start, argv))
+			if (!ccs_parse_argv(start, argv))
 				goto out;
 			argv++;
 			argc--;
@@ -829,7 +830,7 @@ ccs_find_or_assign_new_condition(char * const condition)
 			char *cp = strchr(start + 11, ' ');
 			if (cp)
 				*cp = '\0';
-			if (!parse_envp(start, envp))
+			if (!ccs_parse_envp(start, envp))
 				goto out;
 			envp++;
 			envc--;
@@ -842,8 +843,8 @@ ccs_find_or_assign_new_condition(char * const condition)
 		}
 		for (left = 0; left < MAX_KEYWORD; left++) {
 			const int len =
-				condition_control_keyword_len[left];
-			if (strncmp(start, condition_control_keyword[left],
+				ccs_condition_control_keyword_len[left];
+			if (strncmp(start, ccs_condition_control_keyword[left],
 				    len))
 				continue;
 			start += len;
@@ -851,15 +852,15 @@ ccs_find_or_assign_new_condition(char * const condition)
 		}
 		if (left < MAX_KEYWORD)
 			goto check_operator_2;
-		left_1_type = parse_ulong(&left_min, &start);
+		left_1_type = ccs_parse_ulong(&left_min, &start);
 		condc--; /* body */
 		if (*start != '-')
 			goto check_operator_2;
 		start++;
-		left_2_type = parse_ulong(&left_max, &start);
+		left_2_type = ccs_parse_ulong(&left_max, &start);
 		condc--; /* body */
 		left++;
- check_operator_2:
+check_operator_2:
 		if (!strncmp(start, "!=", 2)) {
 			start += 2;
 		} else if (*start == '=') {
@@ -871,8 +872,8 @@ ccs_find_or_assign_new_condition(char * const condition)
 		condc--; /* header */
 		for (right = 0; right < MAX_KEYWORD; right++) {
 			const int len =
-				condition_control_keyword_len[right];
-			if (strncmp(start, condition_control_keyword[right],
+				ccs_condition_control_keyword_len[right];
+			if (strncmp(start, ccs_condition_control_keyword[right],
 				    len))
 				continue;
 			start += len;
@@ -880,15 +881,15 @@ ccs_find_or_assign_new_condition(char * const condition)
 		}
 		if (right < MAX_KEYWORD)
 			goto store_value;
-		right_1_type = parse_ulong(&right_min, &start);
+		right_1_type = ccs_parse_ulong(&right_min, &start);
 		condc--; /* body */
 		if (*start != '-')
 			goto store_value;
 		start++;
-		right_2_type = parse_ulong(&right_max, &start);
+		right_2_type = ccs_parse_ulong(&right_max, &start);
 		condc--; /* body */
 		right++;
- store_value:
+store_value:
 		*ptr = (((u32) match) << 16) |
 			(((u32) left_1_type) << 18) |
 			(((u32) left_2_type) << 20) |
@@ -920,21 +921,21 @@ ccs_find_or_assign_new_condition(char * const condition)
 	BUG_ON(argc);
 	BUG_ON(envc);
 	BUG_ON(condc);
-	return find_same_condition(new_ptr, size);
+	return ccs_find_same_condition(new_ptr, size);
  out:
 	ccs_free(new_ptr);
 	return NULL;
 }
 
 /**
- * get_attributes - Revalidate "struct inode".
+ * ccs_get_attributes - Revalidate "struct inode".
  *
- * @obj: Pointer to "struct obj_info".
+ * @obj: Pointer to "struct ccs_obj_info".
  *
  * Returns nothing.
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-static void get_attributes(struct obj_info *obj)
+static void ccs_get_attributes(struct ccs_obj_info *obj)
 {
 	struct dentry *dentry;
 	struct inode *inode;
@@ -1003,7 +1004,7 @@ static void get_attributes(struct obj_info *obj)
 	}
 }
 #else
-static void get_attributes(struct obj_info *obj)
+static void ccs_get_attributes(struct ccs_obj_info *obj)
 {
 	struct vfsmount *mnt;
 	struct dentry *dentry;
@@ -1070,12 +1071,12 @@ static void get_attributes(struct obj_info *obj)
  * ccs_check_condition - Check condition part.
  *
  * @r:   Pointer to "struct ccs_request_info".
- * @acl: Pointer to "struct acl_info".
+ * @acl: Pointer to "struct ccs_acl_info".
  *
  * Returns true on success, false otherwise.
  */
 bool ccs_check_condition(struct ccs_request_info *r,
-			 const struct acl_info *acl)
+			 const struct ccs_acl_info *acl)
 {
 	const struct task_struct *task = current;
 	u32 i;
@@ -1084,13 +1085,13 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	unsigned long right_min = 0;
 	unsigned long right_max = 0;
 	const unsigned long *ptr;
-	const struct argv_entry *argv;
-	const struct envp_entry *envp;
-	struct obj_info *obj;
+	const struct ccs_argv_entry *argv;
+	const struct ccs_envp_entry *envp;
+	struct ccs_obj_info *obj;
 	u16 condc;
 	u16 argc;
 	u16 envc;
-	const struct condition_list *cond = ccs_get_condition_part(acl);
+	const struct ccs_condition_list *cond = ccs_get_condition_part(acl);
 	const struct linux_binprm *bprm;
 	if (!cond)
 		return true;
@@ -1102,8 +1103,8 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	if (!bprm && (argc || envc))
 		return false;
 	ptr = (unsigned long *) (cond + 1);
-	argv = (const struct argv_entry *) (ptr + condc);
-	envp = (const struct envp_entry *) (argv + argc);
+	argv = (const struct ccs_argv_entry *) (ptr + condc);
+	envp = (const struct ccs_envp_entry *) (argv + argc);
 	for (i = 0; i < condc; i++) {
 		const u32 header = *ptr;
 		const bool match = (header >> 16) & 1;
@@ -1262,7 +1263,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				if (!obj)
 					goto out;
 				if (!obj->validate_done) {
-					get_attributes(obj);
+					ccs_get_attributes(obj);
 					obj->validate_done = true;
 				}
 				switch (index) {
@@ -1309,12 +1310,14 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				case PATH1_PARENT_MAJOR:
 					if (!obj->path1_parent_valid)
 						goto out;
-					max_v = MAJOR(obj->path1_parent_stat.dev);
+					max_v = MAJOR(obj->
+						      path1_parent_stat.dev);
 					break;
 				case PATH1_PARENT_MINOR:
 					if (!obj->path1_parent_valid)
 						goto out;
-					max_v = MINOR(obj->path1_parent_stat.dev);
+					max_v = MINOR(obj->
+						      path1_parent_stat.dev);
 					break;
 				case PATH2_PARENT_UID:
 					if (!obj->path2_parent_valid)
@@ -1334,12 +1337,14 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				case PATH2_PARENT_MAJOR:
 					if (!obj->path2_parent_valid)
 						goto out;
-					max_v = MAJOR(obj->path2_parent_stat.dev);
+					max_v = MAJOR(obj->
+						      path2_parent_stat.dev);
 					break;
 				case PATH2_PARENT_MINOR:
 					if (!obj->path2_parent_valid)
 						goto out;
-					max_v = MINOR(obj->path2_parent_stat.dev);
+					max_v = MINOR(obj->
+						      path2_parent_stat.dev);
 					break;
 				case PATH1_TYPE:
 					if (!obj->path1_valid)
@@ -1429,11 +1434,11 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			if (left_min > right_max || left_max < right_min)
 				continue;
 		}
- out:
+out:
 		return false;
 	}
 	if (bprm && (argc || envc))
-		return scan_bprm(bprm, argc, argv, envc, envp, obj->tmp);
+		return ccs_scan_bprm(bprm, argc, argv, envc, envp, obj->tmp);
 	return true;
 }
 
@@ -1441,16 +1446,16 @@ bool ccs_check_condition(struct ccs_request_info *r,
  * ccs_print_condition - Print condition part.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @cond: Pointer to "struct condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition_list". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 bool ccs_print_condition(struct ccs_io_buffer *head,
-			 const struct condition_list *cond)
+			 const struct ccs_condition_list *cond)
 {
 	const unsigned long *ptr;
-	const struct argv_entry *argv;
-	const struct envp_entry *envp;
+	const struct ccs_argv_entry *argv;
+	const struct ccs_envp_entry *envp;
 	u16 condc;
 	u16 argc;
 	u16 envc;
@@ -1463,8 +1468,8 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 	argc = cond->argc;
 	envc = cond->envc;
 	ptr = (const unsigned long *) (cond + 1);
-	argv = (const struct argv_entry *) (ptr + condc);
-	envp = (const struct envp_entry *) (argv + argc);
+	argv = (const struct ccs_argv_entry *) (ptr + condc);
+	envp = (const struct ccs_envp_entry *) (argv + argc);
 	memset(buffer, 0, sizeof(buffer));
 	for (i = 0; i < condc; i++) {
 		const u32 header = *ptr;
@@ -1479,40 +1484,42 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 		if (!ccs_io_printf(head, "%s", i ? " " : " if "))
 			goto out;
 		if (left < MAX_KEYWORD) {
-			const char *keyword = condition_control_keyword[left];
+			const char *keyword =
+				ccs_condition_control_keyword[left];
 			if (!ccs_io_printf(head, "%s", keyword))
 				goto out;
 			goto print_operator;
 		}
-		print_ulong(buffer, sizeof(buffer) - 1, *ptr, left_1_type);
+		ccs_print_ulong(buffer, sizeof(buffer) - 1, *ptr, left_1_type);
 		ptr++;
 		if (!ccs_io_printf(head, "%s", buffer))
 			goto out;
 		i++;
 		if (left == MAX_KEYWORD)
 			goto print_operator;
-		print_ulong(buffer, sizeof(buffer) - 1, *ptr, left_2_type);
+		ccs_print_ulong(buffer, sizeof(buffer) - 1, *ptr, left_2_type);
 		ptr++;
 		if (!ccs_io_printf(head, "-%s", buffer))
 			goto out;
 		i++;
- print_operator:
+print_operator:
 		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
 			goto out;
 		if (right < MAX_KEYWORD) {
-			const char *keyword = condition_control_keyword[right];
+			const char *keyword =
+				ccs_condition_control_keyword[right];
 			if (!ccs_io_printf(head, "%s", keyword))
 				goto out;
 			continue;
 		}
-		print_ulong(buffer, sizeof(buffer) - 1, *ptr, right_1_type);
+		ccs_print_ulong(buffer, sizeof(buffer) - 1, *ptr, right_1_type);
 		ptr++;
 		if (!ccs_io_printf(head, "%s", buffer))
 			goto out;
 		i++;
 		if (right == MAX_KEYWORD)
 			continue;
-		print_ulong(buffer, sizeof(buffer) - 1, *ptr, right_2_type);
+		ccs_print_ulong(buffer, sizeof(buffer) - 1, *ptr, right_2_type);
 		ptr++;
 		if (!ccs_io_printf(head, "-%s", buffer))
 			goto out;
@@ -1567,29 +1574,29 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 /**
  * ccs_handler_cond - Create conditional part for execute_handler process.
  *
- * Returns pointer to "struct condition_list" if current process is an
+ * Returns pointer to "struct ccs_condition_list" if current process is an
  * execute handler, NULL otherwise.
  */
-const struct condition_list *ccs_handler_cond(void)
+const struct ccs_condition_list *ccs_handler_cond(void)
 {
-	static const struct condition_list *cond;
+	static const struct ccs_condition_list *ccs_cond;
 	if (!(current->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER))
 		return NULL;
-	if (!cond) {
+	if (!ccs_cond) {
 		static u8 counter = 20;
 		const char *str = "if task.type=execute_handler";
 		const int len = strlen(str) + 1;
 		char *tmp = kzalloc(len, GFP_KERNEL);
 		if (tmp) {
 			memmove(tmp, str, len);
-			cond = ccs_find_or_assign_new_condition(tmp);
+			ccs_cond = ccs_find_or_assign_new_condition(tmp);
 			kfree(tmp);
 		}
-		if (!cond && counter) {
+		if (!ccs_cond && counter) {
 			counter--;
 			printk(KERN_WARNING "TOMOYO-WARNING: Failed to create "
 			       "condition for execute_handler.\n");
 		}
 	}
-	return cond;
+	return ccs_cond;
 }

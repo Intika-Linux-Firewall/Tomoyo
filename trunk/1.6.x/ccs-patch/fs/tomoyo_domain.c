@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -33,46 +33,46 @@
 struct domain_info KERNEL_DOMAIN;
 
 /* The list for "struct domain_info". */
-LIST1_HEAD(domain_list);
+LIST1_HEAD(ccs_domain_list);
 
 #ifdef CONFIG_TOMOYO
 
 /* Domain creation lock. */
-static DEFINE_MUTEX(domain_list_lock);
+static DEFINE_MUTEX(ccs_domain_list_lock);
 
 /* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
-struct domain_initializer_entry {
+struct ccs_domain_initializer_entry {
 	struct list1_head list;
-	const struct path_info *domainname;    /* This may be NULL */
-	const struct path_info *program;
+	const struct ccs_path_info *domainname;    /* This may be NULL */
+	const struct ccs_path_info *program;
 	bool is_deleted;
 	bool is_not;       /* True if this entry is "no_initialize_domain".  */
 	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
 };
 
 /* Structure for "keep_domain" and "no_keep_domain" keyword. */
-struct domain_keeper_entry {
+struct ccs_domain_keeper_entry {
 	struct list1_head list;
-	const struct path_info *domainname;
-	const struct path_info *program;       /* This may be NULL */
+	const struct ccs_path_info *domainname;
+	const struct ccs_path_info *program;       /* This may be NULL */
 	bool is_deleted;
 	bool is_not;       /* True if this entry is "no_keep_domain".        */
 	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
 };
 
 /* Structure for "aggregator" keyword. */
-struct aggregator_entry {
+struct ccs_aggregator_entry {
 	struct list1_head list;
-	const struct path_info *original_name;
-	const struct path_info *aggregated_name;
+	const struct ccs_path_info *original_name;
+	const struct ccs_path_info *aggregated_name;
 	bool is_deleted;
 };
 
 /* Structure for "alias" keyword. */
-struct alias_entry {
+struct ccs_alias_entry {
 	struct list1_head list;
-	const struct path_info *original_name;
-	const struct path_info *aliased_name;
+	const struct ccs_path_info *original_name;
+	const struct ccs_path_info *aliased_name;
 	bool is_deleted;
 };
 
@@ -120,11 +120,11 @@ const char *ccs_get_last_name(const struct domain_info *domain)
  * ccs_add_domain_acl - Add the given ACL to the given domain.
  *
  * @domain: Pointer to "struct domain_info". May be NULL.
- * @acl:    Pointer to "struct acl_info".
+ * @acl:    Pointer to "struct ccs_acl_info".
  *
  * Returns 0.
  */
-int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
+int ccs_add_domain_acl(struct domain_info *domain, struct ccs_acl_info *acl)
 {
 	if (domain) {
 		/*
@@ -147,11 +147,11 @@ int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl)
 /**
  * ccs_del_domain_acl - Delete the given ACL from the domain.
  *
- * @acl: Pointer to "struct acl_info". May be NULL.
+ * @acl: Pointer to "struct ccs_acl_info". May be NULL.
  *
  * Returns 0.
  */
-int ccs_del_domain_acl(struct acl_info *acl)
+int ccs_del_domain_acl(struct ccs_acl_info *acl)
 {
 	if (acl)
 		acl->type |= ACL_DELETED;
@@ -160,7 +160,7 @@ int ccs_del_domain_acl(struct acl_info *acl)
 }
 
 /**
- * audit_execute_handler_log - Audit execute_handler log.
+ * ccs_audit_execute_handler_log - Audit execute_handler log.
  *
  * @is_default: True if it is "execute_handler" log.
  * @handler:    The realpath of the handler.
@@ -168,9 +168,9 @@ int ccs_del_domain_acl(struct acl_info *acl)
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_execute_handler_log(const bool is_default,
-				     const char *handler,
-				     struct linux_binprm *bprm)
+static int ccs_audit_execute_handler_log(const bool is_default,
+					 const char *handler,
+					 struct linux_binprm *bprm)
 {
 	struct ccs_request_info r;
 	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
@@ -181,24 +181,24 @@ static int audit_execute_handler_log(const bool is_default,
 }
 
 /**
- * audit_domain_creation_log - Audit domain creation log.
+ * ccs_audit_domain_creation_log - Audit domain creation log.
  *
  * @domain:  Pointer to "struct domain_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_domain_creation_log(struct domain_info *domain)
+static int ccs_audit_domain_creation_log(struct domain_info *domain)
 {
 	struct ccs_request_info r;
 	ccs_init_request_info(&r, domain, CCS_TOMOYO_MAC_FOR_FILE);
 	return ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
 }
 
-/* The list for "struct domain_initializer_entry". */
-static LIST1_HEAD(domain_initializer_list);
+/* The list for "struct ccs_domain_initializer_entry". */
+static LIST1_HEAD(ccs_domain_initializer_list);
 
 /**
- * update_domain_initializer_entry - Update "struct domain_initializer_entry" list.
+ * ccs_update_domain_initializer_entry - Update "struct ccs_domain_initializer_entry" list.
  *
  * @domainname: The name of domain. May be NULL.
  * @program:    The name of program.
@@ -207,16 +207,16 @@ static LIST1_HEAD(domain_initializer_list);
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_domain_initializer_entry(const char *domainname,
-					   const char *program,
-					   const bool is_not,
-					   const bool is_delete)
+static int ccs_update_domain_initializer_entry(const char *domainname,
+					       const char *program,
+					       const bool is_not,
+					       const bool is_delete)
 {
-	struct domain_initializer_entry *new_entry;
-	struct domain_initializer_entry *ptr;
+	struct ccs_domain_initializer_entry *new_entry;
+	struct ccs_domain_initializer_entry *ptr;
 	static DEFINE_MUTEX(lock);
-	const struct path_info *saved_program;
-	const struct path_info *saved_domainname = NULL;
+	const struct ccs_path_info *saved_program;
+	const struct ccs_path_info *saved_domainname = NULL;
 	int error = -ENOMEM;
 	bool is_last_name = false;
 	if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
@@ -235,7 +235,7 @@ static int update_domain_initializer_entry(const char *domainname,
 	if (!saved_program)
 		return -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &domain_initializer_list, list) {
+	list1_for_each_entry(ptr, &ccs_domain_initializer_list, list) {
 		if (ptr->is_not != is_not ||
 		    ptr->domainname != saved_domainname ||
 		    ptr->program != saved_program)
@@ -255,7 +255,7 @@ static int update_domain_initializer_entry(const char *domainname,
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
-	list1_add_tail_mb(&new_entry->list, &domain_initializer_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_domain_initializer_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -264,7 +264,7 @@ static int update_domain_initializer_entry(const char *domainname,
 }
 
 /**
- * ccs_read_domain_initializer_policy - Read "struct domain_initializer_entry" list.
+ * ccs_read_domain_initializer_policy - Read "struct ccs_domain_initializer_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -273,12 +273,14 @@ static int update_domain_initializer_entry(const char *domainname,
 bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &domain_initializer_list) {
+	list1_for_each_cookie(pos, head->read_var2,
+			      &ccs_domain_initializer_list) {
 		const char *no;
 		const char *from = "";
 		const char *domain = "";
-		struct domain_initializer_entry *ptr;
-		ptr = list1_entry(pos, struct domain_initializer_entry, list);
+		struct ccs_domain_initializer_entry *ptr;
+		ptr = list1_entry(pos, struct ccs_domain_initializer_entry,
+				  list);
 		if (ptr->is_deleted)
 			continue;
 		no = ptr->is_not ? "no_" : "";
@@ -289,7 +291,7 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 		if (!ccs_io_printf(head,
 				   "%s" KEYWORD_INITIALIZE_DOMAIN "%s%s%s\n",
 				   no, ptr->program->name, from, domain))
-				goto out;
+			goto out;
 	}
 	return true;
  out:
@@ -297,7 +299,7 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_write_domain_initializer_policy - Write "struct domain_initializer_entry" list.
+ * ccs_write_domain_initializer_policy - Write "struct ccs_domain_initializer_entry" list.
  *
  * @data:      String to parse.
  * @is_not:    True if it is "no_initialize_domain" entry.
@@ -311,14 +313,15 @@ int ccs_write_domain_initializer_policy(char *data, const bool is_not,
 	char *cp = strstr(data, " from ");
 	if (cp) {
 		*cp = '\0';
-		return update_domain_initializer_entry(cp + 6, data, is_not,
-						       is_delete);
+		return ccs_update_domain_initializer_entry(cp + 6, data,
+							   is_not, is_delete);
 	}
-	return update_domain_initializer_entry(NULL, data, is_not, is_delete);
+	return ccs_update_domain_initializer_entry(NULL, data, is_not,
+						   is_delete);
 }
 
 /**
- * is_domain_initializer - Check whether the given program causes domainname reinitialization.
+ * ccs_is_domain_initializer - Check whether the given program causes domainname reinitialization.
  *
  * @domainname: The name of domain.
  * @program:    The name of program.
@@ -327,13 +330,13 @@ int ccs_write_domain_initializer_policy(char *data, const bool is_not,
  * Returns true if executing @program reinitializes domain transition,
  * false otherwise.
  */
-static bool is_domain_initializer(const struct path_info *domainname,
-				  const struct path_info *program,
-				  const struct path_info *last_name)
+static bool ccs_is_domain_initializer(const struct ccs_path_info *domainname,
+				      const struct ccs_path_info *program,
+				      const struct ccs_path_info *last_name)
 {
-	struct domain_initializer_entry *ptr;
+	struct ccs_domain_initializer_entry *ptr;
 	bool flag = false;
-	list1_for_each_entry(ptr, &domain_initializer_list, list) {
+	list1_for_each_entry(ptr, &ccs_domain_initializer_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (ptr->domainname) {
@@ -354,11 +357,11 @@ static bool is_domain_initializer(const struct path_info *domainname,
 	return flag;
 }
 
-/* The list for "struct domain_keeper_entry". */
-static LIST1_HEAD(domain_keeper_list);
+/* The list for "struct ccs_domain_keeper_entry". */
+static LIST1_HEAD(ccs_domain_keeper_list);
 
 /**
- * update_domain_keeper_entry - Update "struct domain_keeper_entry" list.
+ * ccs_update_domain_keeper_entry - Update "struct ccs_domain_keeper_entry" list.
  *
  * @domainname: The name of domain.
  * @program:    The name of program. May be NULL.
@@ -367,14 +370,15 @@ static LIST1_HEAD(domain_keeper_list);
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_domain_keeper_entry(const char *domainname,
-				      const char *program,
-				      const bool is_not, const bool is_delete)
+static int ccs_update_domain_keeper_entry(const char *domainname,
+					  const char *program,
+					  const bool is_not,
+					  const bool is_delete)
 {
-	struct domain_keeper_entry *new_entry;
-	struct domain_keeper_entry *ptr;
-	const struct path_info *saved_domainname;
-	const struct path_info *saved_program = NULL;
+	struct ccs_domain_keeper_entry *new_entry;
+	struct ccs_domain_keeper_entry *ptr;
+	const struct ccs_path_info *saved_domainname;
+	const struct ccs_path_info *saved_program = NULL;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	bool is_last_name = false;
@@ -394,7 +398,7 @@ static int update_domain_keeper_entry(const char *domainname,
 	if (!saved_domainname)
 		return -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &domain_keeper_list, list) {
+	list1_for_each_entry(ptr, &ccs_domain_keeper_list, list) {
 		if (ptr->is_not != is_not ||
 		    ptr->domainname != saved_domainname ||
 		    ptr->program != saved_program)
@@ -414,7 +418,7 @@ static int update_domain_keeper_entry(const char *domainname,
 	new_entry->program = saved_program;
 	new_entry->is_not = is_not;
 	new_entry->is_last_name = is_last_name;
-	list1_add_tail_mb(&new_entry->list, &domain_keeper_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_domain_keeper_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -423,7 +427,7 @@ static int update_domain_keeper_entry(const char *domainname,
 }
 
 /**
- * ccs_write_domain_keeper_policy - Write "struct domain_keeper_entry" list.
+ * ccs_write_domain_keeper_policy - Write "struct ccs_domain_keeper_entry" list.
  *
  * @data:      String to parse.
  * @is_not:    True if it is "no_keep_domain" entry.
@@ -436,14 +440,14 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_not,
 	char *cp = strstr(data, " from ");
 	if (cp) {
 		*cp = '\0';
-		return update_domain_keeper_entry(cp + 6, data,
-						  is_not, is_delete);
+		return ccs_update_domain_keeper_entry(cp + 6, data,
+						      is_not, is_delete);
 	}
-	return update_domain_keeper_entry(data, NULL, is_not, is_delete);
+	return ccs_update_domain_keeper_entry(data, NULL, is_not, is_delete);
 }
 
 /**
- * ccs_read_domain_keeper_policy - Read "struct domain_keeper_entry" list.
+ * ccs_read_domain_keeper_policy - Read "struct ccs_domain_keeper_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -452,12 +456,12 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_not,
 bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &domain_keeper_list) {
-		struct domain_keeper_entry *ptr;
+	list1_for_each_cookie(pos, head->read_var2, &ccs_domain_keeper_list) {
+		struct ccs_domain_keeper_entry *ptr;
 		const char *no;
 		const char *from = "";
 		const char *program = "";
-		ptr = list1_entry(pos, struct domain_keeper_entry, list);
+		ptr = list1_entry(pos, struct ccs_domain_keeper_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		no = ptr->is_not ? "no_" : "";
@@ -468,7 +472,7 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 		if (!ccs_io_printf(head,
 				   "%s" KEYWORD_KEEP_DOMAIN "%s%s%s\n", no,
 				   program, from, ptr->domainname->name))
-				goto out;
+			goto out;
 	}
 	return true;
  out:
@@ -476,7 +480,7 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * is_domain_keeper - Check whether the given program causes domain transition suppression.
+ * ccs_is_domain_keeper - Check whether the given program causes domain transition suppression.
  *
  * @domainname: The name of domain.
  * @program:    The name of program.
@@ -485,13 +489,13 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
  * Returns true if executing @program supresses domain transition,
  * false otherwise.
  */
-static bool is_domain_keeper(const struct path_info *domainname,
-			     const struct path_info *program,
-			     const struct path_info *last_name)
+static bool ccs_is_domain_keeper(const struct ccs_path_info *domainname,
+				 const struct ccs_path_info *program,
+				 const struct ccs_path_info *last_name)
 {
-	struct domain_keeper_entry *ptr;
+	struct ccs_domain_keeper_entry *ptr;
 	bool flag = false;
-	list1_for_each_entry(ptr, &domain_keeper_list, list) {
+	list1_for_each_entry(ptr, &ccs_domain_keeper_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (!ptr->is_last_name) {
@@ -510,11 +514,11 @@ static bool is_domain_keeper(const struct path_info *domainname,
 	return flag;
 }
 
-/* The list for "struct alias_entry". */
-static LIST1_HEAD(alias_list);
+/* The list for "struct ccs_alias_entry". */
+static LIST1_HEAD(ccs_alias_list);
 
 /**
- * update_alias_entry - Update "struct alias_entry" list.
+ * ccs_update_alias_entry - Update "struct ccs_alias_entry" list.
  *
  * @original_name: The original program's real name.
  * @aliased_name:  The symbolic program's symbolic link's name.
@@ -522,15 +526,15 @@ static LIST1_HEAD(alias_list);
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_alias_entry(const char *original_name,
-			      const char *aliased_name,
-			      const bool is_delete)
+static int ccs_update_alias_entry(const char *original_name,
+				  const char *aliased_name,
+				  const bool is_delete)
 {
-	struct alias_entry *new_entry;
-	struct alias_entry *ptr;
+	struct ccs_alias_entry *new_entry;
+	struct ccs_alias_entry *ptr;
 	static DEFINE_MUTEX(lock);
-	const struct path_info *saved_original_name;
-	const struct path_info *saved_aliased_name;
+	const struct ccs_path_info *saved_original_name;
+	const struct ccs_path_info *saved_aliased_name;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(original_name, 1, -1, -1, __func__) ||
 	    !ccs_is_correct_path(aliased_name, 1, -1, -1, __func__))
@@ -540,7 +544,7 @@ static int update_alias_entry(const char *original_name,
 	if (!saved_original_name || !saved_aliased_name)
 		return -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &alias_list, list) {
+	list1_for_each_entry(ptr, &ccs_alias_list, list) {
 		if (ptr->original_name != saved_original_name ||
 		    ptr->aliased_name != saved_aliased_name)
 			continue;
@@ -557,7 +561,7 @@ static int update_alias_entry(const char *original_name,
 		goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aliased_name = saved_aliased_name;
-	list1_add_tail_mb(&new_entry->list, &alias_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_alias_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -566,7 +570,7 @@ static int update_alias_entry(const char *original_name,
 }
 
 /**
- * ccs_read_alias_policy - Read "struct alias_entry" list.
+ * ccs_read_alias_policy - Read "struct ccs_alias_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -575,9 +579,9 @@ static int update_alias_entry(const char *original_name,
 bool ccs_read_alias_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &alias_list) {
-		struct alias_entry *ptr;
-		ptr = list1_entry(pos, struct alias_entry, list);
+	list1_for_each_cookie(pos, head->read_var2, &ccs_alias_list) {
+		struct ccs_alias_entry *ptr;
+		ptr = list1_entry(pos, struct ccs_alias_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, KEYWORD_ALIAS "%s %s\n",
@@ -591,7 +595,7 @@ bool ccs_read_alias_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_write_alias_policy - Write "struct alias_entry" list.
+ * ccs_write_alias_policy - Write "struct ccs_alias_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -604,14 +608,14 @@ int ccs_write_alias_policy(char *data, const bool is_delete)
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	return update_alias_entry(data, cp, is_delete);
+	return ccs_update_alias_entry(data, cp, is_delete);
 }
 
-/* The list for "struct aggregator_entry". */
-static LIST1_HEAD(aggregator_list);
+/* The list for "struct ccs_aggregator_entry". */
+static LIST1_HEAD(ccs_aggregator_list);
 
 /**
- * update_aggregator_entry - Update "struct aggregator_entry" list.
+ * ccs_update_aggregator_entry - Update "struct ccs_aggregator_entry" list.
  *
  * @original_name:   The original program's name.
  * @aggregated_name: The aggregated program's name.
@@ -619,15 +623,15 @@ static LIST1_HEAD(aggregator_list);
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_aggregator_entry(const char *original_name,
-				   const char *aggregated_name,
-				   const bool is_delete)
+static int ccs_update_aggregator_entry(const char *original_name,
+				       const char *aggregated_name,
+				       const bool is_delete)
 {
-	struct aggregator_entry *new_entry;
-	struct aggregator_entry *ptr;
+	struct ccs_aggregator_entry *new_entry;
+	struct ccs_aggregator_entry *ptr;
 	static DEFINE_MUTEX(lock);
-	const struct path_info *saved_original_name;
-	const struct path_info *saved_aggregated_name;
+	const struct ccs_path_info *saved_original_name;
+	const struct ccs_path_info *saved_aggregated_name;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(original_name, 1, 0, -1, __func__) ||
 	    !ccs_is_correct_path(aggregated_name, 1, -1, -1, __func__))
@@ -637,7 +641,7 @@ static int update_aggregator_entry(const char *original_name,
 	if (!saved_original_name || !saved_aggregated_name)
 		return -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &aggregator_list, list) {
+	list1_for_each_entry(ptr, &ccs_aggregator_list, list) {
 		if (ptr->original_name != saved_original_name ||
 		    ptr->aggregated_name != saved_aggregated_name)
 			continue;
@@ -654,7 +658,7 @@ static int update_aggregator_entry(const char *original_name,
 		goto out;
 	new_entry->original_name = saved_original_name;
 	new_entry->aggregated_name = saved_aggregated_name;
-	list1_add_tail_mb(&new_entry->list, &aggregator_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_aggregator_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -663,7 +667,7 @@ static int update_aggregator_entry(const char *original_name,
 }
 
 /**
- * ccs_read_aggregator_policy - Read "struct aggregator_entry" list.
+ * ccs_read_aggregator_policy - Read "struct ccs_aggregator_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -672,9 +676,9 @@ static int update_aggregator_entry(const char *original_name,
 bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &aggregator_list) {
-		struct aggregator_entry *ptr;
-		ptr = list1_entry(pos, struct aggregator_entry, list);
+	list1_for_each_cookie(pos, head->read_var2, &ccs_aggregator_list) {
+		struct ccs_aggregator_entry *ptr;
+		ptr = list1_entry(pos, struct ccs_aggregator_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, KEYWORD_AGGREGATOR "%s %s\n",
@@ -688,7 +692,7 @@ bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_write_aggregator_policy - Write "struct aggregator_entry" list.
+ * ccs_write_aggregator_policy - Write "struct ccs_aggregator_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -701,7 +705,7 @@ int ccs_write_aggregator_policy(char *data, const bool is_delete)
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	return update_aggregator_entry(data, cp, is_delete);
+	return ccs_update_aggregator_entry(data, cp, is_delete);
 }
 
 /* Domain create/delete/undelete handler. */
@@ -718,20 +722,20 @@ int ccs_write_aggregator_policy(char *data, const bool is_delete)
 int ccs_delete_domain(char *domainname)
 {
 	struct domain_info *domain;
-	struct path_info name;
+	struct ccs_path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
-	mutex_lock(&domain_list_lock);
+	mutex_lock(&ccs_domain_list_lock);
 #ifdef DEBUG_DOMAIN_UNDELETE
 	printk(KERN_DEBUG "ccs_delete_domain %s\n", domainname);
-	list1_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &ccs_domain_list, list) {
 		if (ccs_pathcmp(domain->domainname, &name))
 			continue;
 		printk(KERN_DEBUG "List: %p %u\n", domain, domain->is_deleted);
 	}
 #endif
 	/* Is there an active domain? */
-	list1_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &ccs_domain_list, list) {
 		struct domain_info *domain2;
 		/* Never delete KERNEL_DOMAIN */
 		if (domain == &KERNEL_DOMAIN)
@@ -740,7 +744,7 @@ int ccs_delete_domain(char *domainname)
 		    ccs_pathcmp(domain->domainname, &name))
 			continue;
 		/* Mark already deleted domains as non undeletable. */
-		list1_for_each_entry(domain2, &domain_list, list) {
+		list1_for_each_entry(domain2, &ccs_domain_list, list) {
 			if (!domain2->is_deleted ||
 			    ccs_pathcmp(domain2->domainname, &name))
 				continue;
@@ -759,7 +763,7 @@ int ccs_delete_domain(char *domainname)
 #endif
 		break;
 	}
-	mutex_unlock(&domain_list_lock);
+	mutex_unlock(&ccs_domain_list_lock);
 	return 0;
 }
 
@@ -774,19 +778,19 @@ struct domain_info *ccs_undelete_domain(const char *domainname)
 {
 	struct domain_info *domain;
 	struct domain_info *candidate_domain = NULL;
-	struct path_info name;
+	struct ccs_path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
-	mutex_lock(&domain_list_lock);
+	mutex_lock(&ccs_domain_list_lock);
 #ifdef DEBUG_DOMAIN_UNDELETE
 	printk(KERN_DEBUG "ccs_undelete_domain %s\n", domainname);
-	list1_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &ccs_domain_list, list) {
 		if (ccs_pathcmp(domain->domainname, &name))
 			continue;
 		printk(KERN_DEBUG "List: %p %u\n", domain, domain->is_deleted);
 	}
 #endif
-	list1_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &ccs_domain_list, list) {
 		if (ccs_pathcmp(&name, domain->domainname))
 			continue;
 		if (!domain->is_deleted) {
@@ -808,7 +812,7 @@ struct domain_info *ccs_undelete_domain(const char *domainname)
 		printk(KERN_DEBUG "%p was undeleted.\n", candidate_domain);
 #endif
 	}
-	mutex_unlock(&domain_list_lock);
+	mutex_unlock(&ccs_domain_list_lock);
 	return candidate_domain;
 }
 
@@ -824,8 +828,8 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						  const u8 profile)
 {
 	struct domain_info *domain = NULL;
-	const struct path_info *saved_domainname;
-	mutex_lock(&domain_list_lock);
+	const struct ccs_path_info *saved_domainname;
+	mutex_lock(&ccs_domain_list_lock);
 	domain = ccs_find_domain(domainname);
 	if (domain)
 		goto out;
@@ -835,9 +839,9 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 	if (!saved_domainname)
 		goto out;
 	/* Can I reuse memory of deleted domain? */
-	list1_for_each_entry(domain, &domain_list, list) {
+	list1_for_each_entry(domain, &ccs_domain_list, list) {
 		struct task_struct *p;
-		struct acl_info *ptr;
+		struct ccs_acl_info *ptr;
 		bool flag;
 		if (!domain->is_deleted ||
 		    domain->domainname != saved_domainname)
@@ -875,22 +879,23 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		INIT_LIST1_HEAD(&domain->acl_info_list);
 		domain->domainname = saved_domainname;
 		domain->profile = profile;
-		list1_add_tail_mb(&domain->list, &domain_list);
+		list1_add_tail_mb(&domain->list, &ccs_domain_list);
 	}
  out:
-	mutex_unlock(&domain_list_lock);
+	mutex_unlock(&ccs_domain_list_lock);
 	return domain;
 }
 
 /**
- * get_argv0 - Get argv[0].
+ * ccs_get_argv0 - Get argv[0].
  *
  * @bprm: Pointer to "struct linux_binprm".
  * @tmp:  Buffer for temporary use.
  *
  * Returns true on success, false otherwise.
  */
-static bool get_argv0(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
+static bool ccs_get_argv0(struct linux_binprm *bprm,
+			  struct ccs_page_buffer *tmp)
 {
 	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
@@ -959,15 +964,15 @@ static bool get_argv0(struct linux_binprm *bprm, struct ccs_page_buffer *tmp)
 }
 
 /**
- * find_next_domain - Find a domain.
+ * ccs_find_next_domain - Find a domain.
  *
  * @r:       Pointer to "struct ccs_request_info".
  * @handler: Pathname to verify. May be NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int find_next_domain(struct ccs_request_info *r,
-			    const struct path_info *handler)
+static int ccs_find_next_domain(struct ccs_request_info *r,
+				const struct ccs_path_info *handler)
 {
 	/*
 	 * This function assumes that the size of buffer returned by
@@ -984,9 +989,9 @@ static int find_next_domain(struct ccs_request_info *r,
 	char *new_domain_name = NULL;
 	char *real_program_name = NULL;
 	char *symlink_program_name = NULL;
-	struct path_info rn; /* real name */
-	struct path_info sn; /* symlink name */
-	struct path_info ln; /* last name */
+	struct ccs_path_info rn; /* real name */
+	struct ccs_path_info sn; /* symlink name */
+	struct ccs_path_info ln; /* last name */
 	int retval;
 
 	{
@@ -996,10 +1001,12 @@ static int find_next_domain(struct ccs_request_info *r,
 		 */
 		static bool first = true;
 		if (first) {
-			update_domain_initializer_entry(NULL, "/sbin/hotplug",
-							false, false);
-			update_domain_initializer_entry(NULL, "/sbin/modprobe",
-							false, false);
+			ccs_update_domain_initializer_entry(NULL,
+							    "/sbin/hotplug",
+							    false, false);
+			ccs_update_domain_initializer_entry(NULL,
+							    "/sbin/modprobe",
+							    false, false);
 			first = false;
 		}
 	}
@@ -1042,9 +1049,9 @@ static int find_next_domain(struct ccs_request_info *r,
 
 	/* Check 'alias' directive. */
 	if (ccs_pathcmp(&rn, &sn)) {
-		struct alias_entry *ptr;
+		struct ccs_alias_entry *ptr;
 		/* Is this program allowed to be called via symbolic links? */
-		list1_for_each_entry(ptr, &alias_list, list) {
+		list1_for_each_entry(ptr, &ccs_alias_list, list) {
 			if (ptr->is_deleted ||
 			    ccs_pathcmp(&rn, ptr->original_name) ||
 			    ccs_pathcmp(&sn, ptr->aliased_name))
@@ -1063,7 +1070,7 @@ static int find_next_domain(struct ccs_request_info *r,
 		char *base_argv0 = tmp->buffer;
 		const char *base_filename;
 		retval = -ENOMEM;
-		if (!get_argv0(bprm, tmp))
+		if (!ccs_get_argv0(bprm, tmp))
 			goto out;
 		base_filename = strrchr(real_program_name, '/');
 		if (!base_filename)
@@ -1081,9 +1088,9 @@ static int find_next_domain(struct ccs_request_info *r,
 
 	/* Check 'aggregator' directive. */
 	{
-		struct aggregator_entry *ptr;
+		struct ccs_aggregator_entry *ptr;
 		/* Is this program allowed to be aggregated? */
-		list1_for_each_entry(ptr, &aggregator_list, list) {
+		list1_for_each_entry(ptr, &ccs_aggregator_list, list) {
 			if (ptr->is_deleted ||
 			    !ccs_path_matches_pattern(&rn, ptr->original_name))
 				continue;
@@ -1105,18 +1112,18 @@ static int find_next_domain(struct ccs_request_info *r,
 
  calculate_domain:
 	new_domain_name = tmp->buffer;
-	if (is_domain_initializer(r->domain->domainname, &rn, &ln)) {
+	if (ccs_is_domain_initializer(r->domain->domainname, &rn, &ln)) {
 		/* Transit to the child of KERNEL_DOMAIN domain. */
 		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
 			 ROOT_NAME " " "%s", real_program_name);
-	} else if (r->domain == &KERNEL_DOMAIN && !sbin_init_started) {
+	} else if (r->domain == &KERNEL_DOMAIN && !ccs_sbin_init_started) {
 		/*
 		 * Needn't to transit from kernel domain before starting
 		 * /sbin/init. But transit from kernel domain if executing
 		 * initializers because they might start before /sbin/init.
 		 */
 		domain = r->domain;
-	} else if (is_domain_keeper(r->domain->domainname, &rn, &ln)) {
+	} else if (ccs_is_domain_keeper(r->domain->domainname, &rn, &ln)) {
 		/* Keep current domain. */
 		domain = r->domain;
 	} else {
@@ -1140,7 +1147,7 @@ static int find_next_domain(struct ccs_request_info *r,
 	}
 	domain = ccs_find_or_assign_new_domain(new_domain_name, r->profile);
 	if (domain)
-		audit_domain_creation_log(domain);
+		ccs_audit_domain_creation_log(domain);
  done:
 	if (!domain) {
 		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
@@ -1164,13 +1171,13 @@ static int find_next_domain(struct ccs_request_info *r,
 }
 
 /**
- * check_environ - Check permission for environment variable names.
+ * ccs_check_environ - Check permission for environment variable names.
  *
  * @r: Pointer to "struct ccs_request_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_environ(struct ccs_request_info *r)
+static int ccs_check_environ(struct ccs_request_info *r)
 {
 	struct linux_binprm *bprm = r->bprm;
 	struct ccs_page_buffer *tmp = r->obj->tmp;
@@ -1243,7 +1250,7 @@ static int check_environ(struct ccs_request_info *r)
 			}
 			arg_len = 0;
 		}
- unmap_page:
+unmap_page:
 		/* Unmap. */
 		kunmap(page);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
@@ -1259,13 +1266,13 @@ static int check_environ(struct ccs_request_info *r)
 }
 
 /**
- * unescape - Unescape escaped string.
+ * ccs_unescape - Unescape escaped string.
  *
- * @dest: String to unescape.
+ * @dest: String to ccs_unescape.
  *
  * Returns nothing.
  */
-static void unescape(unsigned char *dest)
+static void ccs_unescape(unsigned char *dest)
 {
 	unsigned char *src = dest;
 	unsigned char c;
@@ -1298,14 +1305,14 @@ static void unescape(unsigned char *dest)
 }
 
 /**
- * root_depth - Get number of directories to strip.
+ * ccs_root_depth - Get number of directories to strip.
  *
  * @dentry: Pointer to "struct dentry".
  * @vfsmnt: Pointer to "struct vfsmount".
  *
  * Returns number of directories to strip.
  */
-static inline int root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
+static inline int ccs_root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
 {
 	int depth = 0;
 	/***** CRITICAL SECTION START *****/
@@ -1328,11 +1335,11 @@ static inline int root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
 }
 
 /**
- * get_root_depth - return the depth of root directory.
+ * ccs_get_root_depth - return the depth of root directory.
  *
  * Returns number of directories to strip.
  */
-static int get_root_depth(void)
+static int ccs_get_root_depth(void)
 {
 	int depth;
 	struct dentry *dentry;
@@ -1353,7 +1360,7 @@ static int get_root_depth(void)
 #endif
 	read_unlock(&current->fs->lock);
 	/***** CRITICAL SECTION END *****/
-	depth = root_depth(dentry, vfsmnt);
+	depth = ccs_root_depth(dentry, vfsmnt);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	path_put(&root);
 #else
@@ -1364,7 +1371,7 @@ static int get_root_depth(void)
 }
 
 /**
- * try_alt_exec - Try to start execute handler.
+ * ccs_try_alt_exec - Try to start execute handler.
  *
  * @r:           Pointer to "struct ccs_request_info".
  * @handler:     Pointer to the name of execute handler.
@@ -1372,8 +1379,8 @@ static int get_root_depth(void)
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int try_alt_exec(struct ccs_request_info *r,
-			const struct path_info *handler, char **eh_path)
+static int ccs_try_alt_exec(struct ccs_request_info *r,
+			    const struct ccs_path_info *handler, char **eh_path)
 {
 	/*
 	 * Contents of modified bprm.
@@ -1426,7 +1433,7 @@ static int try_alt_exec(struct ccs_request_info *r,
 		return -ENOMEM;
 	strncpy(execute_handler, handler->name,
 		sizeof(struct ccs_page_buffer) - 1);
-	unescape(execute_handler);
+	ccs_unescape(execute_handler);
 
 	/* Close the requested program's dentry. */
 	allow_write_access(bprm->file);
@@ -1434,7 +1441,7 @@ static int try_alt_exec(struct ccs_request_info *r,
 	bprm->file = NULL;
 
 	{ /* Adjust root directory for open_exec(). */
-		int depth = get_root_depth();
+		int depth = ccs_get_root_depth();
 		char *cp = execute_handler;
 		if (!*cp || *cp != '/')
 			return -ENOENT;
@@ -1550,24 +1557,24 @@ static int try_alt_exec(struct ccs_request_info *r,
 	if (retval < 0)
 		goto out;
 	task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = find_next_domain(r, handler);
+	retval = ccs_find_next_domain(r, handler);
 	task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
  out:
 	return retval;
 }
 
 /**
- * find_execute_handler - Find an execute handler.
+ * ccs_find_execute_handler - Find an execute handler.
  *
  * @type: Type of execute handler.
  *
- * Returns pointer to "struct path_info" if found, NULL otherwise.
+ * Returns pointer to "struct ccs_path_info" if found, NULL otherwise.
  */
-static const struct path_info *find_execute_handler(const u8 type)
+static const struct ccs_path_info *ccs_find_execute_handler(const u8 type)
 {
 	struct task_struct *task = current;
 	const struct domain_info *domain = task->domain_info;
-	struct acl_info *ptr;
+	struct ccs_acl_info *ptr;
 	/*
 	 * Don't use execute handler if the current process is
 	 * marked as execute handler to avoid infinite execute handler loop.
@@ -1575,24 +1582,25 @@ static const struct path_info *find_execute_handler(const u8 type)
 	if (task->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)
 		return NULL;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		struct execute_handler_record *acl;
+		struct ccs_execute_handler_record *acl;
 		if (ptr->type != type)
 			continue;
-		acl = container_of(ptr, struct execute_handler_record, head);
+		acl = container_of(ptr, struct ccs_execute_handler_record,
+				   head);
 		return acl->handler;
 	}
 	return NULL;
 }
 
 /* List of next_domain which is used for checking interpreter's permissions. */
-struct execve_entry {
+struct ccs_execve_entry {
 	struct list_head list;
 	struct task_struct *task;
 	struct domain_info *next_domain;
 };
 
-static LIST_HEAD(execve_list);
-static DEFINE_SPINLOCK(execve_list_lock);
+static LIST_HEAD(ccs_execve_list);
+static DEFINE_SPINLOCK(ccs_execve_list_lock);
 
 /**
  * ccs_register_next_domain - Remember next_domain.
@@ -1603,15 +1611,15 @@ static DEFINE_SPINLOCK(execve_list_lock);
  */
 static int ccs_register_next_domain(struct domain_info *next_domain)
 {
-	struct execve_entry *ee = kmalloc(sizeof(*ee), GFP_KERNEL);
+	struct ccs_execve_entry *ee = kmalloc(sizeof(*ee), GFP_KERNEL);
 	if (!ee)
 		return -ENOMEM;
 	ee->task = current;
 	ee->next_domain = next_domain;
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&execve_list_lock);
-	list_add(&ee->list, &execve_list);
-	spin_unlock(&execve_list_lock);
+	spin_lock(&ccs_execve_list_lock);
+	list_add(&ee->list, &ccs_execve_list);
+	spin_unlock(&ccs_execve_list_lock);
 	/***** CRITICAL SECTION END *****/
 	return 0;
 }
@@ -1626,16 +1634,16 @@ struct domain_info *ccs_fetch_next_domain(void)
 {
 	struct task_struct *task = current;
 	struct domain_info *next_domain = task->domain_info;
-	struct execve_entry *p;
+	struct ccs_execve_entry *p;
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&execve_list_lock);
-	list_for_each_entry(p, &execve_list, list) {
+	spin_lock(&ccs_execve_list_lock);
+	list_for_each_entry(p, &ccs_execve_list, list) {
 		if (p->task != task)
 			continue;
 		next_domain = p->next_domain;
 		break;
 	}
-	spin_unlock(&execve_list_lock);
+	spin_unlock(&ccs_execve_list_lock);
 	/***** CRITICAL SECTION END *****/
 	return next_domain;
 }
@@ -1646,18 +1654,18 @@ struct domain_info *ccs_fetch_next_domain(void)
 static void ccs_unregister_next_domain(void)
 {
 	struct task_struct *task = current;
-	struct execve_entry *p;
-	struct execve_entry *ee = NULL;
+	struct ccs_execve_entry *p;
+	struct ccs_execve_entry *ee = NULL;
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&execve_list_lock);
-	list_for_each_entry(p, &execve_list, list) {
+	spin_lock(&ccs_execve_list_lock);
+	list_for_each_entry(p, &ccs_execve_list, list) {
 		if (p->task != task)
 			continue;
 		list_del(&p->list);
 		ee = p;
 		break;
 	}
-	spin_unlock(&execve_list_lock);
+	spin_unlock(&ccs_execve_list_lock);
 	/***** CRITICAL SECTION END *****/
 	kfree(ee);
 }
@@ -1676,9 +1684,9 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 {
 	int retval;
 	struct task_struct *task = current;
-	const struct path_info *handler;
+	const struct ccs_path_info *handler;
 	struct ccs_request_info r;
-	struct obj_info obj;
+	struct ccs_obj_info obj;
 	/*
 	 * "eh_path" holds path to execute handler program.
 	 * Thus, keep valid until search_binary_handler() finishes.
@@ -1687,7 +1695,7 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(struct ccs_page_buffer),
 						false);
 	memset(&obj, 0, sizeof(obj));
-	if (!sbin_init_started)
+	if (!ccs_sbin_init_started)
 		ccs_load_policy(bprm->filename);
 	if (!tmp)
 		return -ENOMEM;
@@ -1701,27 +1709,29 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
 
 	/* Clear manager flag. */
 	task->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
-	handler = find_execute_handler(TYPE_EXECUTE_HANDLER);
+	handler = ccs_find_execute_handler(TYPE_EXECUTE_HANDLER);
 	if (handler) {
-		retval = try_alt_exec(&r, handler, &eh_path);
+		retval = ccs_try_alt_exec(&r, handler, &eh_path);
 		if (!retval)
-			audit_execute_handler_log(true, handler->name, bprm);
+			ccs_audit_execute_handler_log(true, handler->name,
+						      bprm);
 		goto ok;
 	}
-	retval = find_next_domain(&r, NULL);
+	retval = ccs_find_next_domain(&r, NULL);
 	if (retval != -EPERM)
 		goto ok;
-	handler = find_execute_handler(TYPE_DENIED_EXECUTE_HANDLER);
+	handler = ccs_find_execute_handler(TYPE_DENIED_EXECUTE_HANDLER);
 	if (handler) {
-		retval = try_alt_exec(&r, handler, &eh_path);
+		retval = ccs_try_alt_exec(&r, handler, &eh_path);
 		if (!retval)
-			audit_execute_handler_log(false, handler->name, bprm);
+			ccs_audit_execute_handler_log(false, handler->name,
+						      bprm);
 	}
  ok:
 	if (retval < 0)
 		goto out;
 	r.mode = ccs_check_flags(r.domain, CCS_TOMOYO_MAC_FOR_ENV);
-	retval = check_environ(&r);
+	retval = ccs_check_environ(&r);
 	if (retval < 0)
 		goto out;
 	retval = ccs_register_next_domain(r.domain);

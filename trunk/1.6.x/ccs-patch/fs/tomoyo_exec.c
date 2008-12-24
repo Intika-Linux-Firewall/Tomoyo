@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -17,7 +17,7 @@
 #include <linux/realpath.h>
 
 /**
- * audit_argv0_log - Audit argv[0] log.
+ * ccs_audit_argv0_log - Audit argv[0] log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @filename:   The fullpath of program.
@@ -26,34 +26,34 @@
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_argv0_log(struct ccs_request_info *r, const char *filename,
-			   const char *argv0, const bool is_granted)
+static int ccs_audit_argv0_log(struct ccs_request_info *r, const char *filename,
+			       const char *argv0, const bool is_granted)
 {
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_ARGV0
 				   "%s %s\n", filename, argv0);
 }
 
 /**
- * update_argv0_entry - Update "struct argv0_acl_record" list.
+ * ccs_update_argv0_entry - Update "struct ccs_argv0_acl_record" list.
  *
  * @filename:  The fullpath of the program.
  * @argv0:     The basename of argv[0].
  * @domain:    Pointer to "struct domain_info".
- * @condition: Pointer to "struct condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_argv0_entry(const char *filename, const char *argv0,
-			      struct domain_info *domain,
-			      const struct condition_list *condition,
-			      const bool is_delete)
+static int ccs_update_argv0_entry(const char *filename, const char *argv0,
+				  struct domain_info *domain,
+				  const struct ccs_condition_list *condition,
+				  const bool is_delete)
 {
 	static DEFINE_MUTEX(lock);
-	struct acl_info *ptr;
-	struct argv0_acl_record *acl;
-	const struct path_info *saved_filename;
-	const struct path_info *saved_argv0;
+	struct ccs_acl_info *ptr;
+	struct ccs_argv0_acl_record *acl;
+	const struct ccs_path_info *saved_filename;
+	const struct ccs_path_info *saved_argv0;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__) ||
 	    !ccs_is_correct_path(argv0, -1, 0, -1, __func__) ||
@@ -71,7 +71,7 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
-		acl = container_of(ptr, struct argv0_acl_record, head);
+		acl = container_of(ptr, struct ccs_argv0_acl_record, head);
 		if (acl->filename != saved_filename ||
 		    acl->argv0 != saved_argv0)
 			continue;
@@ -93,7 +93,7 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
-		acl = container_of(ptr, struct argv0_acl_record, head);
+		acl = container_of(ptr, struct ccs_argv0_acl_record, head);
 		if (acl->filename != saved_filename ||
 		    acl->argv0 != saved_argv0)
 			continue;
@@ -106,7 +106,7 @@ static int update_argv0_entry(const char *filename, const char *argv0,
 }
 
 /**
- * check_argv0_acl - Check permission for argv[0].
+ * ccs_check_argv0_acl - Check permission for argv[0].
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @filename: The fullpath of the program.
@@ -114,20 +114,21 @@ static int update_argv0_entry(const char *filename, const char *argv0,
  *
  * Returns 0 on success, -EPERM otherwise.
  */
-static int check_argv0_acl(struct ccs_request_info *r,
-			   const struct path_info *filename, const char *argv0)
+static int ccs_check_argv0_acl(struct ccs_request_info *r,
+			       const struct ccs_path_info *filename,
+			       const char *argv0)
 {
 	int error = -EPERM;
 	struct domain_info *domain = r->domain;
-	struct acl_info *ptr;
-	struct path_info argv_0;
+	struct ccs_acl_info *ptr;
+	struct ccs_path_info argv_0;
 	argv_0.name = argv0;
 	ccs_fill_path_info(&argv_0);
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		struct argv0_acl_record *acl;
+		struct ccs_argv0_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
 			continue;
-		acl = container_of(ptr, struct argv0_acl_record, head);
+		acl = container_of(ptr, struct ccs_argv0_acl_record, head);
 		if (!ccs_check_condition(r, ptr) ||
 		    !ccs_path_matches_pattern(filename, acl->filename) ||
 		    !ccs_path_matches_pattern(&argv_0, acl->argv0))
@@ -149,7 +150,8 @@ static int check_argv0_acl(struct ccs_request_info *r,
  * Returns 0 on success, 1 on retry, negative value otherwise.
  */
 int ccs_check_argv0_perm(struct ccs_request_info *r,
-			 const struct path_info *filename, const char *argv0)
+			 const struct ccs_path_info *filename,
+			 const char *argv0)
 {
 	int error = 0;
 	const bool is_enforce = (r->mode == 3);
@@ -157,8 +159,8 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
 		return 0;
 	if (!filename || !argv0 || !*argv0)
 		return 0;
-	error = check_argv0_acl(r, filename, argv0);
-	audit_argv0_log(r, filename->name, argv0, !error);
+	error = ccs_check_argv0_acl(r, filename, argv0);
+	ccs_audit_argv0_log(r, filename->name, argv0, !error);
 	if (!error)
 		return 0;
 	if (ccs_verbose_mode(r->domain))
@@ -169,28 +171,29 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
 		return ccs_check_supervisor(r, KEYWORD_ALLOW_ARGV0 "%s %s\n",
 					    filename->name, argv0);
 	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
-		update_argv0_entry(filename->name, argv0, r->domain,
-				   ccs_handler_cond(), false);
+		ccs_update_argv0_entry(filename->name, argv0, r->domain,
+				       ccs_handler_cond(), false);
 	return 0;
 }
 
 /**
- * ccs_write_argv0_policy - Write "struct argv0_acl_record" list.
+ * ccs_write_argv0_policy - Write "struct ccs_argv0_acl_record" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct domain_info".
- * @condition: Pointer to "struct condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_argv0_policy(char *data, struct domain_info *domain,
-			   const struct condition_list *condition,
+			   const struct ccs_condition_list *condition,
 			   const bool is_delete)
 {
 	char *argv0 = strchr(data, ' ');
 	if (!argv0)
 		return -EINVAL;
 	*argv0++ = '\0';
-	return update_argv0_entry(data, argv0, domain, condition, is_delete);
+	return ccs_update_argv0_entry(data, argv0, domain, condition,
+				      is_delete);
 }

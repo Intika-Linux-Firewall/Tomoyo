@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -24,16 +24,16 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
-static const int lookup_flags = LOOKUP_FOLLOW;
+static const int ccs_lookup_flags = LOOKUP_FOLLOW;
 #else
-static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
+static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
 #include <linux/realpath.h>
 #include <linux/proc_fs.h>
 #include <linux/ccs_common.h>
 
 /**
- * get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
+ * ccs_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
  *
  * @dentry: Pointer to "struct dentry".
  * @vfsmnt: Pointer to "struct vfsmount".
@@ -50,8 +50,8 @@ static const int lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
  * \ooo style octal string.
  * Character \ is converted to \\ string.
  */
-static int get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
-			     char *buffer, int buflen)
+static int ccs_get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
+				 char *buffer, int buflen)
 {
 	/***** CRITICAL SECTION START *****/
 	char *start = buffer;
@@ -245,7 +245,7 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 	d_mnt = mntget(mnt);
 	/***** CRITICAL SECTION START *****/
 	ccs_realpath_lock();
-	error = get_absolute_path(d_dentry, d_mnt, newname, newname_len);
+	error = ccs_get_absolute_path(d_dentry, d_mnt, newname, newname_len);
 	ccs_realpath_unlock();
 	/***** CRITICAL SECTION END *****/
 	dput(d_dentry);
@@ -289,7 +289,7 @@ char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
 char *ccs_realpath(const char *pathname)
 {
 	struct nameidata nd;
-	if (pathname && path_lookup(pathname, lookup_flags, &nd) == 0) {
+	if (pathname && path_lookup(pathname, ccs_lookup_flags, &nd) == 0) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		char *buf = ccs_realpath_from_dentry(nd.path.dentry,
 						     nd.path.mnt);
@@ -313,7 +313,7 @@ char *ccs_realpath(const char *pathname)
 char *ccs_realpath_nofollow(const char *pathname)
 {
 	struct nameidata nd;
-	if (pathname && path_lookup(pathname, lookup_flags ^ LOOKUP_FOLLOW,
+	if (pathname && path_lookup(pathname, ccs_lookup_flags ^ LOOKUP_FOLLOW,
 				    &nd) == 0) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		char *buf = ccs_realpath_from_dentry(nd.path.dentry,
@@ -329,7 +329,7 @@ char *ccs_realpath_nofollow(const char *pathname)
 }
 
 /**
- * round_up - Round up an integer so that the returned pointers are appropriately aligned.
+ * ccs_round_up - Round up an integer so that the returned pointers are appropriately aligned.
  *
  * @size: Size in bytes.
  *
@@ -338,7 +338,7 @@ char *ccs_realpath_nofollow(const char *pathname)
  * FIXME: Are there more requirements that is needed for assigning value
  * atomically?
  */
-static inline unsigned int round_up(const unsigned int size)
+static inline unsigned int ccs_round_up(const unsigned int size)
 {
 	if (sizeof(void *) >= sizeof(long))
 		return ((size + sizeof(void *) - 1)
@@ -348,8 +348,8 @@ static inline unsigned int round_up(const unsigned int size)
 			/ sizeof(long)) * sizeof(long);
 }
 
-static unsigned int allocated_memory_for_elements;
-static unsigned int quota_for_elements;
+static unsigned int ccs_allocated_memory_for_elements;
+static unsigned int ccs_quota_for_elements;
 
 /**
  * ccs_alloc_element - Allocate permanent memory for structures.
@@ -363,32 +363,31 @@ static unsigned int quota_for_elements;
 void *ccs_alloc_element(const unsigned int size)
 {
 	static DEFINE_MUTEX(lock);
-	static char *buf;
-	static unsigned int buf_used_len = PAGE_SIZE;
+	static char *ccs_buf;
+	static unsigned int ccs_buf_used_len = PAGE_SIZE;
 	char *ptr = NULL;
-	const unsigned int word_aligned_size = round_up(size);
+	const unsigned int word_aligned_size = ccs_round_up(size);
 	if (word_aligned_size > PAGE_SIZE)
 		return NULL;
 	mutex_lock(&lock);
-	if (buf_used_len + word_aligned_size > PAGE_SIZE) {
-		if (!quota_for_elements || allocated_memory_for_elements
-		    + PAGE_SIZE <= quota_for_elements)
+	if (ccs_buf_used_len + word_aligned_size > PAGE_SIZE) {
+		if (!ccs_quota_for_elements || ccs_allocated_memory_for_elements
+		    + PAGE_SIZE <= ccs_quota_for_elements)
 			ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
 		if (!ptr) {
 			printk(KERN_WARNING "ERROR: Out of memory "
 			       "for ccs_alloc_element().\n");
-			if (!sbin_init_started)
+			if (!ccs_sbin_init_started)
 				panic("MAC Initialization failed.\n");
 		} else {
-			buf = ptr;
-			allocated_memory_for_elements += PAGE_SIZE;
-			buf_used_len = word_aligned_size;
-			ptr = buf;
+			ccs_buf = ptr;
+			ccs_allocated_memory_for_elements += PAGE_SIZE;
+			ccs_buf_used_len = word_aligned_size;
 		}
 	} else if (word_aligned_size) {
 		int i;
-		ptr = buf + buf_used_len;
-		buf_used_len += word_aligned_size;
+		ptr = ccs_buf + ccs_buf_used_len;
+		ccs_buf_used_len += word_aligned_size;
 		for (i = 0; i < word_aligned_size; i++) {
 			if (!ptr[i])
 				continue;
@@ -401,43 +400,43 @@ void *ccs_alloc_element(const unsigned int size)
 	return ptr;
 }
 
-static unsigned int allocated_memory_for_savename;
-static unsigned int quota_for_savename;
+static unsigned int ccs_allocated_memory_for_savename;
+static unsigned int ccs_quota_for_savename;
 
 #define MAX_HASH 256
 
 /* Structure for string data. */
-struct name_entry {
+struct ccs_name_entry {
 	struct list1_head list;
-	struct path_info entry;
+	struct ccs_path_info entry;
 };
 
 /* Structure for available memory region. */
-struct free_memory_block_list {
+struct ccs_free_memory_block_list {
 	struct list_head list;
 	char *ptr;             /* Pointer to a free area. */
 	int len;               /* Length of the area.     */
 };
 
-/* The list for "struct name_entry". */
-static struct list1_head name_list[MAX_HASH];
+/* The list for "struct ccs_name_entry". */
+static struct list1_head ccs_name_list[MAX_HASH];
 
 /**
  * ccs_save_name - Allocate permanent memory for string data.
  *
  * @name: The string to store into the permernent memory.
  *
- * Returns pointer to "struct path_info" on success, NULL otherwise.
+ * Returns pointer to "struct ccs_path_info" on success, NULL otherwise.
  *
  * The RAM is shared, so NEVER try to modify or kfree() the returned name.
  */
-const struct path_info *ccs_save_name(const char *name)
+const struct ccs_path_info *ccs_save_name(const char *name)
 {
-	static LIST_HEAD(fmb_list);
+	static LIST_HEAD(ccs_fmb_list);
 	static DEFINE_MUTEX(lock);
-	struct name_entry *ptr;
+	struct ccs_name_entry *ptr;
 	unsigned int hash;
-	struct free_memory_block_list *fmb;
+	struct ccs_free_memory_block_list *fmb;
 	int len;
 	char *cp;
 	if (!name)
@@ -450,16 +449,17 @@ const struct path_info *ccs_save_name(const char *name)
 	}
 	hash = full_name_hash((const unsigned char *) name, len - 1);
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &name_list[hash % MAX_HASH], list) {
+	list1_for_each_entry(ptr, &ccs_name_list[hash % MAX_HASH], list) {
 		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
 			goto out;
 	}
-	list_for_each_entry(fmb, &fmb_list, list) {
+	list_for_each_entry(fmb, &ccs_fmb_list, list) {
 		if (len <= fmb->len)
 			goto ready;
 	}
-	if (!quota_for_savename || allocated_memory_for_savename + PAGE_SIZE
-	    <= quota_for_savename)
+	if (!ccs_quota_for_savename ||
+	    ccs_allocated_memory_for_savename + PAGE_SIZE
+	    <= ccs_quota_for_savename)
 		cp = kzalloc(PAGE_SIZE, GFP_KERNEL);
 	else
 		cp = NULL;
@@ -469,13 +469,13 @@ const struct path_info *ccs_save_name(const char *name)
 		kfree(fmb);
 		printk(KERN_WARNING "ERROR: Out of memory "
 		       "for ccs_save_name().\n");
-		if (!sbin_init_started)
+		if (!ccs_sbin_init_started)
 			panic("MAC Initialization failed.\n");
 		ptr = NULL;
 		goto out;
 	}
-	allocated_memory_for_savename += PAGE_SIZE;
-	list_add(&fmb->list, &fmb_list);
+	ccs_allocated_memory_for_savename += PAGE_SIZE;
+	list_add(&fmb->list, &ccs_fmb_list);
 	fmb->ptr = cp;
 	fmb->len = PAGE_SIZE;
  ready:
@@ -487,7 +487,7 @@ const struct path_info *ccs_save_name(const char *name)
 	ccs_fill_path_info(&ptr->entry);
 	fmb->ptr += len;
 	fmb->len -= len;
-	list1_add_tail_mb(&ptr->list, &name_list[hash % MAX_HASH]);
+	list1_add_tail_mb(&ptr->list, &ccs_name_list[hash % MAX_HASH]);
 	if (fmb->len == 0) {
 		list_del(&fmb->list);
 		kfree(fmb);
@@ -498,7 +498,7 @@ const struct path_info *ccs_save_name(const char *name)
 }
 
 /* Structure for temporarily allocated memory. */
-struct cache_entry {
+struct ccs_cache_entry {
 	struct list_head list;
 	void *ptr;
 	int size;
@@ -521,19 +521,21 @@ static int __init ccs_realpath_init(void)
 	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
 		panic("Bad size.");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
-	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry),
+	ccs_cachep = kmem_cache_create("ccs_cache",
+				       sizeof(struct ccs_cache_entry),
 				       0, 0, NULL);
 #else
-	ccs_cachep = kmem_cache_create("ccs_cache", sizeof(struct cache_entry),
+	ccs_cachep = kmem_cache_create("ccs_cache",
+				       sizeof(struct ccs_cache_entry),
 				       0, 0, NULL, NULL);
 #endif
 	if (!ccs_cachep)
 		panic("Can't create cache.\n");
 	for (i = 0; i < MAX_HASH; i++)
-		INIT_LIST1_HEAD(&name_list[i]);
+		INIT_LIST1_HEAD(&ccs_name_list[i]);
 	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
 	KERNEL_DOMAIN.domainname = ccs_save_name(ROOT_NAME);
-	list1_add_tail_mb(&KERNEL_DOMAIN.list, &domain_list);
+	list1_add_tail_mb(&KERNEL_DOMAIN.list, &ccs_domain_list);
 	if (ccs_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
 		panic("Can't register KERNEL_DOMAIN");
 	return 0;
@@ -545,23 +547,23 @@ __initcall(ccs_realpath_init);
 core_initcall(ccs_realpath_init);
 #endif
 
-/* The list for "struct cache_entry". */
-static LIST_HEAD(audit_cache_list);
-static LIST_HEAD(acl_cache_list);
-static DEFINE_SPINLOCK(cache_list_lock);
+/* The list for "struct ccs_cache_entry". */
+static LIST_HEAD(ccs_audit_cache_list);
+static LIST_HEAD(ccs_acl_cache_list);
+static DEFINE_SPINLOCK(ccs_cache_list_lock);
 
-static unsigned int dynamic_memory_size;
-static unsigned int quota_for_dynamic;
+static unsigned int ccs_dynamic_memory_size;
+static unsigned int ccs_quota_for_dynamic;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 /**
- * round2 - Rounded up to power-of-two value.
+ * ccs_round2 - Rounded up to power-of-two value.
  *
  * @size: Size in bytes.
  *
  * Returns power-of-two of @size.
  */
-static int round2(size_t size)
+static int ccs_round2(size_t size)
 {
 #if PAGE_SIZE == 4096
 	size_t bsize = 32;
@@ -583,7 +585,7 @@ static int round2(size_t size)
  */
 void *ccs_alloc(const size_t size, const _Bool check_quota)
 {
-	struct cache_entry *new_entry;
+	struct ccs_cache_entry *new_entry;
 	void *ret = kzalloc(size, GFP_KERNEL);
 	if (!ret)
 		goto out;
@@ -598,20 +600,21 @@ void *ccs_alloc(const size_t size, const _Bool check_quota)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	new_entry->size = ksize(ret);
 #else
-	new_entry->size = round2(size);
+	new_entry->size = ccs_round2(size);
 #endif
 	if (check_quota) {
 		bool quota_exceeded = false;
 		/***** CRITICAL SECTION START *****/
-		spin_lock(&cache_list_lock);
-		if (!quota_for_dynamic || dynamic_memory_size + new_entry->size
-		    <= quota_for_dynamic) {
-			list_add_tail(&new_entry->list, &audit_cache_list);
-			dynamic_memory_size += new_entry->size;
+		spin_lock(&ccs_cache_list_lock);
+		if (!ccs_quota_for_dynamic ||
+		    ccs_dynamic_memory_size + new_entry->size
+		    <= ccs_quota_for_dynamic) {
+			list_add_tail(&new_entry->list, &ccs_audit_cache_list);
+			ccs_dynamic_memory_size += new_entry->size;
 		} else {
 			quota_exceeded = true;
 		}
-		spin_unlock(&cache_list_lock);
+		spin_unlock(&ccs_cache_list_lock);
 		/***** CRITICAL SECTION END *****/
 		if (quota_exceeded) {
 			kfree(ret);
@@ -620,10 +623,10 @@ void *ccs_alloc(const size_t size, const _Bool check_quota)
 		}
 	} else {
 		/***** CRITICAL SECTION START *****/
-		spin_lock(&cache_list_lock);
-		list_add(&new_entry->list, &acl_cache_list);
-		dynamic_memory_size += new_entry->size;
-		spin_unlock(&cache_list_lock);
+		spin_lock(&ccs_cache_list_lock);
+		list_add(&new_entry->list, &ccs_acl_cache_list);
+		ccs_dynamic_memory_size += new_entry->size;
+		spin_unlock(&ccs_cache_list_lock);
 		/***** CRITICAL SECTION END *****/
 	}
  out:
@@ -640,20 +643,20 @@ void *ccs_alloc(const size_t size, const _Bool check_quota)
 void ccs_free(const void *p)
 {
 	struct list_head *v;
-	struct cache_entry *entry = NULL;
+	struct ccs_cache_entry *entry = NULL;
 	if (!p)
 		return;
 	/***** CRITICAL SECTION START *****/
-	spin_lock(&cache_list_lock);
-	list_for_each(v, &acl_cache_list) {
-		entry = list_entry(v, struct cache_entry, list);
+	spin_lock(&ccs_cache_list_lock);
+	list_for_each(v, &ccs_acl_cache_list) {
+		entry = list_entry(v, struct ccs_cache_entry, list);
 		if (entry->ptr == p)
 			break;
 		entry = NULL;
 	}
 	if (!entry) {
-		list_for_each(v, &audit_cache_list) {
-			entry = list_entry(v, struct cache_entry, list);
+		list_for_each(v, &ccs_audit_cache_list) {
+			entry = list_entry(v, struct ccs_cache_entry, list);
 			if (entry->ptr == p)
 				break;
 			entry = NULL;
@@ -661,9 +664,9 @@ void ccs_free(const void *p)
 	}
 	if (entry) {
 		list_del(&entry->list);
-		dynamic_memory_size -= entry->size;
+		ccs_dynamic_memory_size -= entry->size;
 	}
-	spin_unlock(&cache_list_lock);
+	spin_unlock(&ccs_cache_list_lock);
 	/***** CRITICAL SECTION END *****/
 	if (entry) {
 		kfree(p);
@@ -683,26 +686,26 @@ void ccs_free(const void *p)
 int ccs_read_memory_counter(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
-		const unsigned int shared = allocated_memory_for_savename;
-		const unsigned int private = allocated_memory_for_elements;
-		const unsigned int dynamic = dynamic_memory_size;
+		const unsigned int shared = ccs_allocated_memory_for_savename;
+		const unsigned int private = ccs_allocated_memory_for_elements;
+		const unsigned int dynamic = ccs_dynamic_memory_size;
 		char buffer[64];
 		memset(buffer, 0, sizeof(buffer));
-		if (quota_for_savename)
+		if (ccs_quota_for_savename)
 			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", quota_for_savename);
+				 "   (Quota: %10u)", ccs_quota_for_savename);
 		else
 			buffer[0] = '\0';
 		ccs_io_printf(head, "Shared:  %10u%s\n", shared, buffer);
-		if (quota_for_elements)
+		if (ccs_quota_for_elements)
 			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", quota_for_elements);
+				 "   (Quota: %10u)", ccs_quota_for_elements);
 		else
 			buffer[0] = '\0';
 		ccs_io_printf(head, "Private: %10u%s\n", private, buffer);
-		if (quota_for_dynamic)
+		if (ccs_quota_for_dynamic)
 			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", quota_for_dynamic);
+				 "   (Quota: %10u)", ccs_quota_for_dynamic);
 		else
 			buffer[0] = '\0';
 		ccs_io_printf(head, "Dynamic: %10u%s\n", dynamic, buffer);
@@ -725,10 +728,10 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 	char *data = head->write_buf;
 	unsigned int size;
 	if (sscanf(data, "Shared: %u", &size) == 1)
-		quota_for_savename = size;
+		ccs_quota_for_savename = size;
 	else if (sscanf(data, "Private: %u", &size) == 1)
-		quota_for_elements = size;
+		ccs_quota_for_elements = size;
 	else if (sscanf(data, "Dynamic: %u", &size) == 1)
-		quota_for_dynamic = size;
+		ccs_quota_for_dynamic = size;
 	return 0;
 }

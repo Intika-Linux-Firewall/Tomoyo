@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -55,11 +55,11 @@ static inline void module_put(struct module *module)
 #define MOUNT_MAKE_SHARED_KEYWORD                        "--make-shared"
 
 /* Structure for "allow_mount" keyword. */
-struct mount_entry {
+struct ccs_mount_entry {
 	struct list1_head list;
-	const struct path_info *dev_name;
-	const struct path_info *dir_name;
-	const struct path_info *fs_type;
+	const struct ccs_path_info *dev_name;
+	const struct ccs_path_info *dir_name;
+	const struct ccs_path_info *fs_type;
 	unsigned long flags;
 	bool is_deleted;
 };
@@ -72,11 +72,11 @@ static void put_filesystem(struct file_system_type *fs)
 }
 #endif
 
-/* The list for "struct mount_entry". */
-static LIST1_HEAD(mount_list);
+/* The list for "struct ccs_mount_entry". */
+static LIST1_HEAD(ccs_mount_list);
 
 /**
- * update_mount_acl - Update "struct mount_entry" list.
+ * ccs_update_mount_acl - Update "struct ccs_mount_entry" list.
  *
  * @dev_name:  Name of device file.
  * @dir_name:  Name of mount point.
@@ -86,16 +86,16 @@ static LIST1_HEAD(mount_list);
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_mount_acl(const char *dev_name, const char *dir_name,
-			    const char *fs_type, const unsigned long flags,
-			    const bool is_delete)
+static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
+				const char *fs_type, const unsigned long flags,
+				const bool is_delete)
 {
 	struct file_system_type *type = NULL;
-	struct mount_entry *new_entry;
-	struct mount_entry *ptr;
-	const struct path_info *fs;
-	const struct path_info *dev;
-	const struct path_info *dir;
+	struct ccs_mount_entry *new_entry;
+	struct ccs_mount_entry *ptr;
+	const struct ccs_path_info *fs;
+	const struct ccs_path_info *dev;
+	const struct ccs_path_info *dir;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	fs = ccs_save_name(fs_type);
@@ -120,7 +120,7 @@ static int update_mount_acl(const char *dev_name, const char *dir_name,
 	if (!dev || !dir)
 		return -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &mount_list, list) {
+	list1_for_each_entry(ptr, &ccs_mount_list, list) {
 		if (ptr->flags != flags ||
 		    ccs_pathcmp(ptr->dev_name, dev) ||
 		    ccs_pathcmp(ptr->dir_name, dir) ||
@@ -149,7 +149,7 @@ static int update_mount_acl(const char *dev_name, const char *dir_name,
 	new_entry->dir_name = dir;
 	new_entry->fs_type = fs;
 	new_entry->flags = flags;
-	list1_add_tail_mb(&new_entry->list, &mount_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_mount_list);
 	error = 0;
 	ptr = new_entry;
  update:
@@ -187,7 +187,7 @@ static int update_mount_acl(const char *dev_name, const char *dir_name,
 }
 
 /**
- * print_success - Print success messages.
+ * ccs_print_success - Print success messages.
  *
  * @dev_name: Name of device file.
  * @dir_name: Name of mount point.
@@ -197,9 +197,9 @@ static int update_mount_acl(const char *dev_name, const char *dir_name,
  *
  * Returns nothing.
  */
-static void print_success(const char *dev_name, const char *dir_name,
-			  const char *type, const unsigned long flags,
-			  const int need_dev)
+static void ccs_print_success(const char *dev_name, const char *dir_name,
+			      const char *type, const unsigned long flags,
+			      const int need_dev)
 {
 	if (need_dev > 0) {
 		printk(KERN_DEBUG "SAKURA-NOTICE: "
@@ -228,7 +228,7 @@ static void print_success(const char *dev_name, const char *dir_name,
 }
 
 /**
- * print_error - Print error messages.
+ * ccs_print_error - Print error messages.
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @dev_name: Name of device file.
@@ -240,10 +240,10 @@ static void print_success(const char *dev_name, const char *dir_name,
  * Returns 0 if permitted by the administrator's decision, negative value
  * otherwise.
  */
-static int print_error(struct ccs_request_info *r,
-		       const char *dev_name, const char *dir_name,
-		       const char *type, const unsigned long flags,
-		       int error)
+static int ccs_print_error(struct ccs_request_info *r,
+			   const char *dev_name, const char *dir_name,
+			   const char *type, const unsigned long flags,
+			   int error)
 {
 	const bool is_enforce = (r->mode == 3);
 	const char *realname1 = ccs_realpath(dev_name);
@@ -316,7 +316,7 @@ static int print_error(struct ccs_request_info *r,
 }
 
 /**
- * check_mount_permission2 - Check permission for mount() operation.
+ * ccs_check_mount_permission2 - Check permission for mount() operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @dev_name: Name of device file.
@@ -326,9 +326,9 @@ static int print_error(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int check_mount_permission2(struct ccs_request_info *r,
-				   char *dev_name, char *dir_name, char *type,
-				   unsigned long flags)
+static int ccs_check_mount_permission2(struct ccs_request_info *r,
+				       char *dev_name, char *dir_name,
+				       char *type, unsigned long flags)
 {
 	const bool is_enforce = (r->mode == 3);
 	int error;
@@ -369,40 +369,40 @@ static int check_mount_permission2(struct ccs_request_info *r,
 		return -EINVAL;
 	}
 	if (flags & MS_REMOUNT) {
-		error = check_mount_permission2(r, dev_name, dir_name,
-						MOUNT_REMOUNT_KEYWORD,
-						flags & ~MS_REMOUNT);
+		error = ccs_check_mount_permission2(r, dev_name, dir_name,
+						    MOUNT_REMOUNT_KEYWORD,
+						    flags & ~MS_REMOUNT);
 	} else if (flags & MS_MOVE) {
-		error = check_mount_permission2(r, dev_name, dir_name,
-						MOUNT_MOVE_KEYWORD,
-						flags & ~MS_MOVE);
+		error = ccs_check_mount_permission2(r, dev_name, dir_name,
+						    MOUNT_MOVE_KEYWORD,
+						    flags & ~MS_MOVE);
 	} else if (flags & MS_BIND) {
-		error = check_mount_permission2(r, dev_name, dir_name,
-						MOUNT_BIND_KEYWORD,
-						flags & ~MS_BIND);
+		error = ccs_check_mount_permission2(r, dev_name, dir_name,
+						    MOUNT_BIND_KEYWORD,
+						    flags & ~MS_BIND);
 	} else if (flags & MS_UNBINDABLE) {
-		error = check_mount_permission2(r, dev_name, dir_name,
-						MOUNT_MAKE_UNBINDABLE_KEYWORD,
-						flags & ~MS_UNBINDABLE);
+		error = ccs_check_mount_permission2(r, dev_name, dir_name,
+					    MOUNT_MAKE_UNBINDABLE_KEYWORD,
+						    flags & ~MS_UNBINDABLE);
 	} else if (flags & MS_PRIVATE) {
-		error = check_mount_permission2(r, dev_name, dir_name,
-						MOUNT_MAKE_PRIVATE_KEYWORD,
-						flags & ~MS_PRIVATE);
+		error = ccs_check_mount_permission2(r, dev_name, dir_name,
+						    MOUNT_MAKE_PRIVATE_KEYWORD,
+						    flags & ~MS_PRIVATE);
 	} else if (flags & MS_SLAVE) {
-		error = check_mount_permission2(r, dev_name, dir_name,
-						MOUNT_MAKE_SLAVE_KEYWORD,
-						flags & ~MS_SLAVE);
+		error = ccs_check_mount_permission2(r, dev_name, dir_name,
+						    MOUNT_MAKE_SLAVE_KEYWORD,
+						    flags & ~MS_SLAVE);
 	} else if (flags & MS_SHARED) {
-		error = check_mount_permission2(r, dev_name, dir_name,
-						MOUNT_MAKE_SHARED_KEYWORD,
-						flags & ~MS_SHARED);
+		error = ccs_check_mount_permission2(r, dev_name, dir_name,
+						    MOUNT_MAKE_SHARED_KEYWORD,
+						    flags & ~MS_SHARED);
 	} else {
-		struct mount_entry *ptr;
+		struct ccs_mount_entry *ptr;
 		struct file_system_type *fstype = NULL;
 		const char *requested_dir_name = NULL;
 		const char *requested_dev_name = NULL;
-		struct path_info rdev;
-		struct path_info rdir;
+		struct ccs_path_info rdev;
+		struct ccs_path_info rdir;
 		int need_dev = 0;
 
 		requested_dir_name = ccs_realpath(dir_name);
@@ -452,7 +452,7 @@ static int check_mount_permission2(struct ccs_request_info *r,
 				goto cleanup;
 			}
 		}
-		list1_for_each_entry(ptr, &mount_list, list) {
+		list1_for_each_entry(ptr, &ccs_mount_list, list) {
 			if (ptr->is_deleted)
 				continue;
 
@@ -475,18 +475,20 @@ static int check_mount_permission2(struct ccs_request_info *r,
 
 			/* OK. */
 			error = 0;
-			print_success(requested_dev_name, requested_dir_name,
-				      type, flags, need_dev);
+			ccs_print_success(requested_dev_name,
+					  requested_dir_name,
+					  type, flags, need_dev);
 			break;
 		}
 		if (error)
-			error = print_error(r, dev_name, dir_name, type, flags,
-					    error);
+			error = ccs_print_error(r, dev_name, dir_name, type,
+						flags, error);
 		if (error && r->mode == 1)
-			update_mount_acl(need_dev ?
-					 requested_dev_name : dev_name,
-					 requested_dir_name, type, flags, 0);
- cleanup:
+			ccs_update_mount_acl(need_dev ?
+					     requested_dev_name : dev_name,
+					     requested_dir_name, type, flags,
+					     0);
+cleanup:
 		ccs_free(requested_dev_name);
 		ccs_free(requested_dir_name);
 		if (fstype)
@@ -518,11 +520,12 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 	ccs_init_request_info(&r, NULL, CCS_SAKURA_RESTRICT_MOUNT);
 	if (!r.mode)
 		return 0;
-	return check_mount_permission2(&r, dev_name, dir_name, type, *flags);
+	return ccs_check_mount_permission2(&r, dev_name, dir_name, type,
+					   *flags);
 }
 
 /**
- * ccs_write_mount_policy - Write "struct mount_entry" list.
+ * ccs_write_mount_policy - Write "struct ccs_mount_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -556,11 +559,11 @@ int ccs_write_mount_policy(char *data, const bool is_delete)
 	*cp = '\0';
 	fs = cp2;
 	flags = simple_strtoul(cp + 1, NULL, 0);
-	return update_mount_acl(dev, dir, fs, flags, is_delete);
+	return ccs_update_mount_acl(dev, dir, fs, flags, is_delete);
 }
 
 /**
- * ccs_read_mount_policy - Read "struct mount_entry" list.
+ * ccs_read_mount_policy - Read "struct ccs_mount_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -569,9 +572,9 @@ int ccs_write_mount_policy(char *data, const bool is_delete)
 bool ccs_read_mount_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &mount_list) {
-		struct mount_entry *ptr;
-		ptr = list1_entry(pos, struct mount_entry, list);
+	list1_for_each_cookie(pos, head->read_var2, &ccs_mount_list) {
+		struct ccs_mount_entry *ptr;
+		ptr = list1_entry(pos, struct ccs_mount_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -22,28 +22,28 @@
 #endif
 
 /* Structure for "allow_chroot" keyword. */
-struct chroot_entry {
+struct ccs_chroot_entry {
 	struct list1_head list;
-	const struct path_info *dir;
+	const struct ccs_path_info *dir;
 	bool is_deleted;
 };
 
-/* The list for "struct chroot_entry". */
-static LIST1_HEAD(chroot_list);
+/* The list for "struct ccs_chroot_entry". */
+static LIST1_HEAD(ccs_chroot_list);
 
 /**
- * update_chroot_acl - Update "struct chroot_entry" list.
+ * ccs_update_chroot_acl - Update "struct ccs_chroot_entry" list.
  *
  * @dir:       The name of directory.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_chroot_acl(const char *dir, const bool is_delete)
+static int ccs_update_chroot_acl(const char *dir, const bool is_delete)
 {
-	struct chroot_entry *new_entry;
-	struct chroot_entry *ptr;
-	const struct path_info *saved_dir;
+	struct ccs_chroot_entry *new_entry;
+	struct ccs_chroot_entry *ptr;
+	const struct ccs_path_info *saved_dir;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(dir, 1, 0, 1, __func__))
@@ -52,7 +52,7 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
 	if (!saved_dir)
 		return -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &chroot_list, list) {
+	list1_for_each_entry(ptr, &ccs_chroot_list, list) {
 		if (ptr->dir != saved_dir)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -67,7 +67,7 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
 	if (!new_entry)
 		goto out;
 	new_entry->dir = saved_dir;
-	list1_add_tail_mb(&new_entry->list, &chroot_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_chroot_list);
 	error = 0;
 	printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level, dir);
  out:
@@ -77,7 +77,7 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
 }
 
 /**
- * print_error - Print error message.
+ * ccs_print_error - Print error message.
  *
  * @r:         Pointer to "struct ccs_request_info".
  * @root_name: Requested directory name.
@@ -85,7 +85,7 @@ static int update_chroot_acl(const char *dir, const bool is_delete)
  * Returns 0 if @r->mode is not enforcing mode or permitted by the
  * administrator's decision, negative value otherwise.
  */
-static int print_error(struct ccs_request_info *r, const char *root_name)
+static int ccs_print_error(struct ccs_request_info *r, const char *root_name)
 {
 	int error;
 	const bool is_enforce = (r->mode == 3);
@@ -102,7 +102,7 @@ static int print_error(struct ccs_request_info *r, const char *root_name)
 	if (exename)
 		ccs_free(exename);
 	if (r->mode == 1 && root_name)
-		update_chroot_acl(root_name, false);
+		ccs_update_chroot_acl(root_name, false);
 	return error;
 }
 
@@ -137,12 +137,12 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 	root_name = ccs_realpath_from_dentry(path->dentry, path->mnt);
 #endif
 	if (root_name) {
-		struct path_info dir;
+		struct ccs_path_info dir;
 		dir.name = root_name;
 		ccs_fill_path_info(&dir);
 		if (dir.is_dir) {
-			struct chroot_entry *ptr;
-			list1_for_each_entry(ptr, &chroot_list, list) {
+			struct ccs_chroot_entry *ptr;
+			list1_for_each_entry(ptr, &ccs_chroot_list, list) {
 				if (ptr->is_deleted)
 					continue;
 				if (!ccs_path_matches_pattern(&dir, ptr->dir))
@@ -153,7 +153,7 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 		}
 	}
 	if (error)
-		error = print_error(&r, root_name);
+		error = ccs_print_error(&r, root_name);
 	ccs_free(root_name);
 	if (error == 1)
 		goto retry;
@@ -161,7 +161,7 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 }
 
 /**
- * ccs_write_chroot_policy - Write "struct chroot_entry" list.
+ * ccs_write_chroot_policy - Write "struct ccs_chroot_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -170,11 +170,11 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
  */
 int ccs_write_chroot_policy(char *data, const bool is_delete)
 {
-	return update_chroot_acl(data, is_delete);
+	return ccs_update_chroot_acl(data, is_delete);
 }
 
 /**
- * ccs_read_chroot_policy - Read "struct chroot_entry" list.
+ * ccs_read_chroot_policy - Read "struct ccs_chroot_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -183,9 +183,9 @@ int ccs_write_chroot_policy(char *data, const bool is_delete)
 bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &chroot_list) {
-		struct chroot_entry *ptr;
-		ptr = list1_entry(pos, struct chroot_entry, list);
+	list1_for_each_cookie(pos, head->read_var2, &ccs_chroot_list) {
+		struct ccs_chroot_entry *ptr;
+		ptr = list1_entry(pos, struct ccs_chroot_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
