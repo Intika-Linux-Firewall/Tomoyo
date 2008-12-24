@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/22
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -209,7 +209,7 @@ struct ccs_page_buffer {
 };
 
 /* Subset of "struct stat". */
-struct mini_stat {
+struct ccs_mini_stat {
 	uid_t uid;
 	gid_t gid;
 	ino_t ino;
@@ -219,7 +219,7 @@ struct mini_stat {
 };
 
 /* Structure for attribute checks in addition to pathname checks. */
-struct obj_info {
+struct ccs_obj_info {
 	bool validate_done;
 	bool path1_valid;
 	bool path1_parent_valid;
@@ -228,45 +228,45 @@ struct obj_info {
 	struct vfsmount *path1_vfsmnt;
 	struct dentry *path2_dentry;
 	struct vfsmount *path2_vfsmnt;
-	struct mini_stat path1_stat;
+	struct ccs_mini_stat path1_stat;
 	/* I don't handle path2_stat for rename operation. */
-	struct mini_stat path1_parent_stat;
-	struct mini_stat path2_parent_stat;
+	struct ccs_mini_stat path1_parent_stat;
+	struct ccs_mini_stat path2_parent_stat;
 	struct ccs_page_buffer *tmp;
 };
 
 /* Structure for " if " and "; set" part. */
-struct condition_list {
+struct ccs_condition_list {
 	struct list1_head list;
 	u16 condc;
 	u16 argc;
 	u16 envc;
 	u8 post_state[4];
 	/* "unsigned long condition[condc]" follows here. */
-	/* "struct argv_entry argv[argc]" follows here. */
-	/* "struct envp_entry envp[envc]" follows here. */
+	/* "struct ccs_argv_entry argv[argc]" follows here. */
+	/* "struct ccs_envp_entry envp[envc]" follows here. */
 };
 
 /* Structure for request info. */
 struct ccs_request_info {
 	struct domain_info *domain;
 	struct linux_binprm *bprm;
-	struct obj_info *obj;
-	const struct condition_list *cond;
+	struct ccs_obj_info *obj;
+	const struct ccs_condition_list *cond;
 	u16 retry;
 	u8 profile;
 	u8 mode;
 };
 
 /* Structure for holding a token. */
-struct path_info {
+struct ccs_path_info {
 	const char *name;
 	u32 hash;          /* = full_name_hash(name, strlen(name)) */
 	u16 total_len;     /* = strlen(name)                       */
-	u16 const_len;     /* = const_part_length(name)            */
-	bool is_dir;       /* = strendswith(name, "/")             */
+	u16 const_len;     /* = ccs_const_part_length(name)        */
+	bool is_dir;       /* = ccs_strendswith(name, "/")         */
 	bool is_patterned; /* = path_contains_pattern(name)        */
-	u16 depth;         /* = path_depth(name)                   */
+	u16 depth;         /* = ccs_path_depth(name)               */
 };
 
 /*
@@ -279,21 +279,21 @@ struct path_info {
 #define CCS_MAX_PATHNAME_LEN 4000
 
 /* Structure for "path_group" directive. */
-struct path_group_member {
+struct ccs_path_group_member {
 	struct list1_head list;
-	const struct path_info *member_name;
+	const struct ccs_path_info *member_name;
 	bool is_deleted;
 };
 
 /* Structure for "path_group" directive. */
-struct path_group_entry {
+struct ccs_path_group_entry {
 	struct list1_head list;
-	const struct path_info *group_name;
+	const struct ccs_path_info *group_name;
 	struct list1_head path_group_member_list;
 };
 
 /* Structure for "address_group" directive. */
-struct address_group_member {
+struct ccs_address_group_member {
 	struct list1_head list;
 	union {
 		u32 ipv4;                    /* Host byte order    */
@@ -304,29 +304,29 @@ struct address_group_member {
 };
 
 /* Structure for "address_group" directive. */
-struct address_group_entry {
+struct ccs_address_group_entry {
 	struct list1_head list;
-	const struct path_info *group_name;
+	const struct ccs_path_info *group_name;
 	struct list1_head address_group_member_list;
 };
 
 /* Structure for holding requested pathname. */
-struct path_info_with_data {
+struct ccs_path_info_with_data {
 	/* Keep "head" first, for this pointer is passed to ccs_free(). */
-	struct path_info head;
+	struct ccs_path_info head;
 	char barrier1[16]; /* Safeguard for overrun. */
 	char body[CCS_MAX_PATHNAME_LEN];
 	char barrier2[16]; /* Safeguard for overrun. */
 };
 
 /* Common header for holding ACL entries. */
-struct acl_info {
+struct ccs_acl_info {
 	/*
 	 * Keep "access_me_via_ccs_get_condition_part" first, for
 	 * memory for this filed is not allocated if
 	 * (type & ACL_WITH_CONDITION) == 0.
 	 */
-	const struct condition_list *access_me_via_ccs_get_condition_part;
+	const struct ccs_condition_list *access_me_via_ccs_get_condition_part;
 	struct list1_head list;
 	/*
 	 * Type of this ACL entry.
@@ -347,7 +347,7 @@ struct domain_info {
 	struct list1_head list;
 	struct list1_head acl_info_list;
 	/* Name of this domain. Never NULL.          */
-	const struct path_info *domainname;
+	const struct ccs_path_info *domainname;
 	u8 profile;        /* Profile number to use. */
 	u8 is_deleted;     /* Delete flag.           */
 	bool quota_warned; /* Quota warnning flag.   */
@@ -363,7 +363,7 @@ struct domain_info {
 /* Ignore "allow_env" directive in exception policy.  */
 #define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2
 /*
- * This domain was unable to create a new domain at find_next_domain()
+ * This domain was unable to create a new domain at ccs_find_next_domain()
  * because the name of the domain to be created was too long or
  * it could not allocate memory.
  * More than one process continued execve() without domain transition.
@@ -388,9 +388,9 @@ struct domain_info {
  * to do (e.g. silently terminate, change firewall settings,
  * redirect the user to honey pot etc.).
  */
-struct execute_handler_record {
-	struct acl_info head;            /* type = TYPE_*EXECUTE_HANDLER */
-	const struct path_info *handler; /* Pointer to single pathname.  */
+struct ccs_execute_handler_record {
+	struct ccs_acl_info head;            /* type = TYPE_*EXECUTE_HANDLER */
+	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
 };
 
 /*
@@ -399,68 +399,68 @@ struct execute_handler_record {
  * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
  * "allow_truncate", "allow_symlink" and "allow_rewrite" directive.
  */
-struct single_path_acl_record {
-	struct acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
+struct ccs_single_path_acl_record {
+	struct ccs_acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
 	bool u_is_group; /* True if u points to "path_group" directive. */
 	u16 perm;
 	union {
 		/* Pointer to single pathname. */
-		const struct path_info *filename;
+		const struct ccs_path_info *filename;
 		/* Pointer to pathname group. */
-		const struct path_group_entry *group;
+		const struct ccs_path_group_entry *group;
 	} u;
 };
 
 /* Structure for "allow_rename" and "allow_link" directive. */
-struct double_path_acl_record {
-	struct acl_info head; /* type = TYPE_DOUBLE_PATH_ACL */
+struct ccs_double_path_acl_record {
+	struct ccs_acl_info head; /* type = TYPE_DOUBLE_PATH_ACL */
 	u8 perm;
 	bool u1_is_group; /* True if u1 points to "path_group" directive. */
 	bool u2_is_group; /* True if u2 points to "path_group" directive. */
 	union {
 		/* Pointer to single pathname. */
-		const struct path_info *filename1;
+		const struct ccs_path_info *filename1;
 		/* Pointer to pathname group. */
-		const struct path_group_entry *group1;
+		const struct ccs_path_group_entry *group1;
 	} u1;
 	union {
 		/* Pointer to single pathname. */
-		const struct path_info *filename2;
+		const struct ccs_path_info *filename2;
 		/* Pointer to pathname group. */
-		const struct path_group_entry *group2;
+		const struct ccs_path_group_entry *group2;
 	} u2;
 };
 
 /* Structure for "allow_argv0" directive. */
-struct argv0_acl_record {
-	struct acl_info head;             /* type = TYPE_ARGV0_ACL       */
-	const struct path_info *filename; /* Pointer to single pathname. */
-	const struct path_info *argv0;    /* = strrchr(argv[0], '/') + 1 */
+struct ccs_argv0_acl_record {
+	struct ccs_acl_info head;             /* type = TYPE_ARGV0_ACL       */
+	const struct ccs_path_info *filename; /* Pointer to single pathname. */
+	const struct ccs_path_info *argv0;    /* = strrchr(argv[0], '/') + 1 */
 };
 
 /* Structure for "allow_env" directive in domain policy. */
-struct env_acl_record {
-	struct acl_info head;        /* type = TYPE_ENV_ACL  */
-	const struct path_info *env; /* environment variable */
+struct ccs_env_acl_record {
+	struct ccs_acl_info head;        /* type = TYPE_ENV_ACL  */
+	const struct ccs_path_info *env; /* environment variable */
 };
 
 /* Structure for "allow_capability" directive. */
-struct capability_acl_record {
-	struct acl_info head; /* type = TYPE_CAPABILITY_ACL */
+struct ccs_capability_acl_record {
+	struct ccs_acl_info head; /* type = TYPE_CAPABILITY_ACL */
 	u8 operation;
 };
 
 /* Structure for "allow_signal" directive. */
-struct signal_acl_record {
-	struct acl_info head; /* type = TYPE_SIGNAL_ACL */
+struct ccs_signal_acl_record {
+	struct ccs_acl_info head; /* type = TYPE_SIGNAL_ACL */
 	u16 sig;
 	/* Pointer to destination pattern. */
-	const struct path_info *domainname;
+	const struct ccs_path_info *domainname;
 };
 
 /* Structure for "allow_network" directive. */
-struct ip_network_acl_record {
-	struct acl_info head; /* type = TYPE_IP_NETWORK_ACL */
+struct ccs_ip_network_acl_record {
+	struct ccs_acl_info head; /* type = TYPE_IP_NETWORK_ACL */
 	/*
 	 * operation_type takes one of the following constants.
 	 *   NETWORK_ACL_UDP_BIND for UDP's bind() operation.
@@ -503,7 +503,7 @@ struct ip_network_acl_record {
 			const struct in6_addr *max;
 		} ipv6;
 		/* Pointer to address group. */
-		const struct address_group_entry *group;
+		const struct ccs_address_group_entry *group;
 	} u;
 };
 
@@ -614,16 +614,16 @@ struct ccs_io_buffer {
 };
 
 /* Prototype definition. */
-struct condition_list;
+struct ccs_condition_list;
 
 /* Check conditional part of an ACL entry. */
 bool ccs_check_condition(struct ccs_request_info *r,
-			 const struct acl_info *acl);
+			 const struct ccs_acl_info *acl);
 /* Check whether the domain has too many ACL entries to hold. */
 bool ccs_check_domain_quota(struct domain_info * const domain);
 /* Transactional sprintf() for policy dump. */
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
-	__attribute__ ((format(printf, 2, 3)));
+     __attribute__ ((format(printf, 2, 3)));
 /* Check whether the domainname is correct. */
 bool ccs_is_correct_domain(const unsigned char *domainname,
 			   const char *function);
@@ -634,11 +634,11 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 /* Check whether the token can be a domainname. */
 bool ccs_is_domain_def(const unsigned char *buffer);
 /* Check whether the given filename matches the given pattern. */
-bool ccs_path_matches_pattern(const struct path_info *filename,
-			      const struct path_info *pattern);
+bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
+			      const struct ccs_path_info *pattern);
 /* Print conditional part of an ACL entry. */
 bool ccs_print_condition(struct ccs_io_buffer *head,
-			const struct condition_list *cond);
+			 const struct ccs_condition_list *cond);
 /* Read "address_group" entry in exception policy. */
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
 /* Read "aggregator" entry in exception policy. */
@@ -652,7 +652,7 @@ bool ccs_read_chroot_policy(struct ccs_io_buffer *head);
  * in exception policy.
  */
 bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
-/* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
+     /* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
 bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head);
 /* Read "file_pattern" entry in exception policy. */
 bool ccs_read_file_pattern(struct ccs_io_buffer *head);
@@ -693,20 +693,20 @@ const char *ccs_sp2keyword(const u8 operation);
 /* Fetch next_domain from the list. */
 struct domain_info *ccs_fetch_next_domain(void);
 /* Create conditional part of an ACL entry. */
-const struct condition_list *
+const struct ccs_condition_list *
 ccs_find_or_assign_new_condition(char * const condition);
 /* Create conditional part for execute_handler process. */
-const struct condition_list *ccs_handler_cond(void);
+const struct ccs_condition_list *ccs_handler_cond(void);
 /* Add an ACL entry to domain's ACL list. */
-int ccs_add_domain_acl(struct domain_info *domain, struct acl_info *acl);
+int ccs_add_domain_acl(struct domain_info *domain, struct ccs_acl_info *acl);
 /* Ask supervisor's opinion. */
 int ccs_check_supervisor(struct ccs_request_info *r,
 			 const char *fmt, ...)
-	__attribute__ ((format(printf, 2, 3)));
+     __attribute__ ((format(printf, 2, 3)));
 /* Close /proc/ccs/ interface. */
 int ccs_close_control(struct file *file);
 /* Delete an ACL entry from domain's ACL list. */
-int ccs_del_domain_acl(struct acl_info *acl);
+int ccs_del_domain_acl(struct ccs_acl_info *acl);
 /* Delete a domain. */
 int ccs_delete_domain(char *data);
 /* Open operation for /proc/ccs/ interface. */
@@ -732,7 +732,7 @@ int ccs_write_aggregator_policy(char *data, const bool is_delete);
 int ccs_write_alias_policy(char *data, const bool is_delete);
 /* Create "allow_argv0" entry in domain policy. */
 int ccs_write_argv0_policy(char *data, struct domain_info *domain,
-			   const struct condition_list *condition,
+			   const struct ccs_condition_list *condition,
 			   const bool is_delete);
 /* Write an audit log. */
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
@@ -740,7 +740,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
      __attribute__ ((format(printf, 3, 4)));
 /* Create "allow_capability" entry in domain policy. */
 int ccs_write_capability_policy(char *data, struct domain_info *domain,
-				const struct condition_list *condition,
+				const struct ccs_condition_list *condition,
 				const bool is_delete);
 /* Create "allow_chroot" entry in system policy. */
 int ccs_write_chroot_policy(char *data, const bool is_delete);
@@ -755,7 +755,7 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_not,
 				   const bool is_delete);
 /* Create "allow_env" entry in domain policy. */
 int ccs_write_env_policy(char *data, struct domain_info *domain,
-			 const struct condition_list *condition,
+			 const struct ccs_condition_list *condition,
 			 const bool is_delete);
 /*
  * Create "allow_read/write", "allow_execute", "allow_read", "allow_write",
@@ -766,7 +766,7 @@ int ccs_write_env_policy(char *data, struct domain_info *domain,
  * entry in domain policy.
  */
 int ccs_write_file_policy(char *data, struct domain_info *domain,
-			  const struct condition_list *condition,
+			  const struct ccs_condition_list *condition,
 			  const bool is_delete);
 /* Create "allow_read" entry in exception policy. */
 int ccs_write_globally_readable_policy(char *data, const bool is_delete);
@@ -776,7 +776,7 @@ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
 int ccs_write_mount_policy(char *data, const bool is_delete);
 /* Create "allow_network" entry in domain policy. */
 int ccs_write_network_policy(char *data, struct domain_info *domain,
-			     const struct condition_list *condition,
+			     const struct ccs_condition_list *condition,
 			     const bool is_delete);
 /* Create "deny_rewrite" entry in exception policy. */
 int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
@@ -792,7 +792,7 @@ int ccs_write_pivot_root_policy(char *data, const bool is_delete);
 int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 /* Create "allow_signal" entry in domain policy. */
 int ccs_write_signal_policy(char *data, struct domain_info *domain,
-			    const struct condition_list *condition,
+			    const struct ccs_condition_list *condition,
 			    const bool is_delete);
 /* Write operation for /proc/ccs/ interface. */
 int ccs_write_control(struct file *file, const char __user *buffer,
@@ -810,9 +810,9 @@ unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index);
 bool ccs_can_sleep(void);
 /* Allocate memory for structures. */
 void *ccs_alloc_acl_element(const u8 acl_type,
-			    const struct condition_list *condition);
-/* Fill in "struct path_info" members. */
-void ccs_fill_path_info(struct path_info *ptr);
+			    const struct ccs_condition_list *condition);
+/* Fill in "struct ccs_path_info" members. */
+void ccs_fill_path_info(struct ccs_path_info *ptr);
 /* Fill in "struct ccs_request_info" members. */
 void ccs_init_request_info(struct ccs_request_info *r,
 			   struct domain_info *domain, const u8 index);
@@ -829,28 +829,29 @@ void ccs_update_counter(const unsigned char index);
 
 /* Check whether the basename of program and argv0 is allowed to differ. */
 int ccs_check_argv0_perm(struct ccs_request_info *r,
-			 const struct path_info *filename, const char *argv0);
+			 const struct ccs_path_info *filename,
+			 const char *argv0);
 /* Check whether the given environment is allowed to be received. */
 int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
 /* Check whether the given pathname is allowed to be executed. */
 int ccs_check_exec_perm(struct ccs_request_info *r,
-			const struct path_info *filename);
+			const struct ccs_path_info *filename);
 
-/* strcmp() for "struct path_info" structure. */
-static inline bool ccs_pathcmp(const struct path_info *a,
-			       const struct path_info *b)
+/* strcmp() for "struct ccs_path_info" structure. */
+static inline bool ccs_pathcmp(const struct ccs_path_info *a,
+			       const struct ccs_path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
 /* Get type of an ACL entry. */
-static inline u8 ccs_acl_type1(struct acl_info *ptr)
+static inline u8 ccs_acl_type1(struct ccs_acl_info *ptr)
 {
 	return ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION);
 }
 
 /* Get type of an ACL entry. */
-static inline u8 ccs_acl_type2(struct acl_info *ptr)
+static inline u8 ccs_acl_type2(struct ccs_acl_info *ptr)
 {
 	return ptr->type & ~ACL_WITH_CONDITION;
 }
@@ -858,21 +859,21 @@ static inline u8 ccs_acl_type2(struct acl_info *ptr)
 /**
  * ccs_get_condition_part - Get condition part of the given ACL entry.
  *
- * @acl: Pointer to "struct acl_info". Pointer to an ACL entry.
+ * @acl: Pointer to "struct ccs_acl_info".
  *
  * Returns pointer to the condition part if the ACL has it, NULL otherwise.
  */
-static inline const struct condition_list *
-ccs_get_condition_part(const struct acl_info *acl)
+static inline const struct ccs_condition_list *
+ccs_get_condition_part(const struct ccs_acl_info *acl)
 {
 	return (acl->type & ACL_WITH_CONDITION) ?
 		acl->access_me_via_ccs_get_condition_part : NULL;
 }
 
 /* A linked list of domains. */
-extern struct list1_head domain_list;
+extern struct list1_head ccs_domain_list;
 /* Has /sbin/init started? */
-extern bool sbin_init_started;
+extern bool ccs_sbin_init_started;
 /* Log level for printk(). */
 extern const char *ccs_log_level;
 /* The kernel's domain. */

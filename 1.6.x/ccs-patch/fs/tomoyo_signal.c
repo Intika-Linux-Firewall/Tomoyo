@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -23,7 +23,7 @@
 #endif
 
 /**
- * audit_signal_log - Audit signal log.
+ * ccs_audit_signal_log - Audit signal log.
  *
  * @r:           Pointer to "struct ccs_request_info".
  * @signal:      Signal number.
@@ -32,33 +32,33 @@
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int audit_signal_log(struct ccs_request_info *r, const int signal,
-			    const char *dest_domain, const bool is_granted)
+static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
+				const char *dest_domain, const bool is_granted)
 {
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_SIGNAL
 				   "%d %s\n", signal, dest_domain);
 }
 
 /**
- * update_signal_acl - Update "struct signal_acl_record" list.
+ * ccs_update_signal_acl - Update "struct ccs_signal_acl_record" list.
  *
  * @sig:          Signal number.
  * @dest_pattern: Destination domainname.
  * @domain:       Pointer to "struct domain_info".
- * @condition:    Pointer to "struct condition_list". May be NULL.
+ * @condition:    Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete:    True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_signal_acl(const int sig, const char *dest_pattern,
-			     struct domain_info *domain,
-			     const struct condition_list *condition,
-			     const bool is_delete)
+static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
+				 struct domain_info *domain,
+				 const struct ccs_condition_list *condition,
+				 const bool is_delete)
 {
 	static DEFINE_MUTEX(lock);
-	struct acl_info *ptr;
-	struct signal_acl_record *acl;
-	const struct path_info *saved_dest_pattern;
+	struct ccs_acl_info *ptr;
+	struct ccs_signal_acl_record *acl;
+	const struct ccs_path_info *saved_dest_pattern;
 	const u16 hash = sig;
 	int error = -ENOMEM;
 	if (!domain)
@@ -76,7 +76,7 @@ static int update_signal_acl(const int sig, const char *dest_pattern,
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
-		acl = container_of(ptr, struct signal_acl_record, head);
+		acl = container_of(ptr, struct ccs_signal_acl_record, head);
 		if (acl->sig != hash ||
 		    ccs_pathcmp(acl->domainname, saved_dest_pattern))
 			continue;
@@ -98,7 +98,7 @@ static int update_signal_acl(const int sig, const char *dest_pattern,
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
-		acl = container_of(ptr, struct signal_acl_record, head);
+		acl = container_of(ptr, struct ccs_signal_acl_record, head);
 		if (acl->sig != hash ||
 		    ccs_pathcmp(acl->domainname, saved_dest_pattern))
 			continue;
@@ -123,7 +123,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	struct ccs_request_info r;
 	struct domain_info *dest = NULL;
 	const char *dest_pattern;
-	struct acl_info *ptr;
+	struct ccs_acl_info *ptr;
 	const u16 hash = sig;
 	bool is_enforce;
 	bool found = false;
@@ -136,7 +136,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
 	if (sys_getpid() == pid) {
-		audit_signal_log(&r, sig, r.domain->domainname->name, true);
+		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
 		return 0;                /* No check for self process. */
 	}
 	{ /* Simplified checking. */
@@ -159,16 +159,16 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	if (!dest)
 		return 0; /* I can't find destinatioin. */
 	if (r.domain == dest) {
-		audit_signal_log(&r, sig, r.domain->domainname->name, true);
+		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
 		return 0;                /* No check for self domain. */
 	}
 	dest_pattern = dest->domainname->name;
  retry:
 	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
-		struct signal_acl_record *acl;
+		struct ccs_signal_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
 			continue;
-		acl = container_of(ptr, struct signal_acl_record, head);
+		acl = container_of(ptr, struct ccs_signal_acl_record, head);
 		if (acl->sig == hash && ccs_check_condition(&r, ptr)) {
 			const int len = acl->domainname->total_len;
 			if (strncmp(acl->domainname->name, dest_pattern, len))
@@ -185,7 +185,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 			break;
 		}
 	}
-	audit_signal_log(&r, sig, dest_pattern, found);
+	ccs_audit_signal_log(&r, sig, dest_pattern, found);
 	if (found)
 		return 0;
 	if (ccs_verbose_mode(r.domain))
@@ -200,30 +200,30 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		return error;
 	}
 	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
-		update_signal_acl(sig, dest_pattern, r.domain,
-				  ccs_handler_cond(), false);
+		ccs_update_signal_acl(sig, dest_pattern, r.domain,
+				      ccs_handler_cond(), false);
 	return 0;
 }
 
 /**
- * ccs_write_signal_policy - Write "struct signal_acl_record" list.
+ * ccs_write_signal_policy - Write "struct ccs_signal_acl_record" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct domain_info".
- * @condition: Pointer to "struct condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_signal_policy(char *data, struct domain_info *domain,
-			    const struct condition_list *condition,
+			    const struct ccs_condition_list *condition,
 			    const bool is_delete)
 {
 	int sig;
 	char *domainname = strchr(data, ' ');
 	if (sscanf(data, "%d", &sig) == 1 && domainname &&
 	    ccs_is_domain_def(domainname + 1))
-		return update_signal_acl(sig, domainname + 1, domain,
-					 condition, is_delete);
+		return ccs_update_signal_acl(sig, domainname + 1, domain,
+					     condition, is_delete);
 	return -EINVAL;
 }

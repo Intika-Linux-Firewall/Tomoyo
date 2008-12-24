@@ -5,7 +5,7 @@
  *
  * Portions Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -53,14 +53,14 @@
 #include <linux/sched.h>
 #include <linux/mm.h>
 
-static struct super_operations syaoran_ops;
-static struct address_space_operations syaoran_aops;
-static struct inode_operations syaoran_file_inode_operations;
-static struct inode_operations syaoran_dir_inode_operations;
-static struct inode_operations syaoran_symlink_inode_operations;
-static struct file_operations syaoran_file_operations;
+static struct super_operations ccs_ops;
+static struct address_space_operations ccs_aops;
+static struct inode_operations ccs_file_inode_operations;
+static struct inode_operations ccs_dir_inode_operations;
+static struct inode_operations ccs_symlink_inode_operations;
+static struct file_operations ccs_file_operations;
 
-static struct backing_dev_info syaoran_backing_dev_info = {
+static struct backing_dev_info ccs_backing_dev_info = {
 	.ra_pages      = 0,    /* No readahead */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
 	.memory_backed = 1,    /* Does not contribute to dirty memory */
@@ -74,8 +74,8 @@ static struct backing_dev_info syaoran_backing_dev_info = {
 
 #include <linux/syaoran.h>
 
-static struct inode *syaoran_get_inode(struct super_block *sb, int mode,
-				       dev_t dev)
+static struct inode *ccs_get_inode(struct super_block *sb, int mode,
+				   dev_t dev)
 {
 	struct inode *inode = new_inode(sb);
 
@@ -89,8 +89,8 @@ static struct inode *syaoran_get_inode(struct super_block *sb, int mode,
 #endif
 #endif
 		inode->i_blocks = 0;
-		inode->i_mapping->a_ops = &syaoran_aops;
-		inode->i_mapping->backing_dev_info = &syaoran_backing_dev_info;
+		inode->i_mapping->a_ops = &ccs_aops;
+		inode->i_mapping->backing_dev_info = &ccs_backing_dev_info;
 		inode->i_ctime = CURRENT_TIME;
 		inode->i_mtime = inode->i_ctime;
 		inode->i_atime = inode->i_mtime;
@@ -98,17 +98,17 @@ static struct inode *syaoran_get_inode(struct super_block *sb, int mode,
 		default:
 			init_special_inode(inode, mode, dev);
 			if (S_ISBLK(mode))
-				inode->i_fop = &wrapped_def_blk_fops;
+				inode->i_fop = &ccs_wrapped_def_blk_fops;
 			else if (S_ISCHR(mode))
-				inode->i_fop = &wrapped_def_chr_fops;
-			inode->i_op = &syaoran_file_inode_operations;
+				inode->i_fop = &ccs_wrapped_def_chr_fops;
+			inode->i_op = &ccs_file_inode_operations;
 			break;
 		case S_IFREG:
-			inode->i_op = &syaoran_file_inode_operations;
-			inode->i_fop = &syaoran_file_operations;
+			inode->i_op = &ccs_file_inode_operations;
+			inode->i_fop = &ccs_file_operations;
 			break;
 		case S_IFDIR:
-			inode->i_op = &syaoran_dir_inode_operations;
+			inode->i_op = &ccs_dir_inode_operations;
 			inode->i_fop = &simple_dir_operations;
 			/*
 			 * directory inodes start off with i_nlink == 2
@@ -117,7 +117,7 @@ static struct inode *syaoran_get_inode(struct super_block *sb, int mode,
 			inode->i_nlink++;
 			break;
 		case S_IFLNK:
-			inode->i_op = &syaoran_symlink_inode_operations;
+			inode->i_op = &ccs_symlink_inode_operations;
 			break;
 		}
 	}
@@ -128,14 +128,14 @@ static struct inode *syaoran_get_inode(struct super_block *sb, int mode,
  * File creation. Allocate an inode, and we're done..
  */
 /* SMP-safe */
-static int syaoran_mknod(struct inode *dir, struct dentry *dentry, int mode,
-			 dev_t dev)
+static int ccs_mknod(struct inode *dir, struct dentry *dentry, int mode,
+		     dev_t dev)
 {
 	struct inode *inode;
 	int error = -ENOSPC;
-	if (syaoran_may_create_node(dentry, mode, dev) < 0)
+	if (ccs_may_create_node(dentry, mode, dev) < 0)
 		return -EPERM;
-	inode = syaoran_get_inode(dir->i_sb, mode, dev);
+	inode = ccs_get_inode(dir->i_sb, mode, dev);
 	if (inode) {
 		if (dir->i_mode & S_ISGID) {
 			inode->i_gid = dir->i_gid;
@@ -149,28 +149,28 @@ static int syaoran_mknod(struct inode *dir, struct dentry *dentry, int mode,
 	return error;
 }
 
-static int syaoran_mkdir(struct inode *dir, struct dentry *dentry, int mode)
+static int ccs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 {
-	int retval = syaoran_mknod(dir, dentry, mode | S_IFDIR, 0);
+	int retval = ccs_mknod(dir, dentry, mode | S_IFDIR, 0);
 	if (!retval)
 		dir->i_nlink++;
 	return retval;
 }
 
-static int syaoran_create(struct inode *dir, struct dentry *dentry, int mode,
-			  struct nameidata *nd)
+static int ccs_create(struct inode *dir, struct dentry *dentry, int mode,
+		      struct nameidata *nd)
 {
-	return syaoran_mknod(dir, dentry, mode | S_IFREG, 0);
+	return ccs_mknod(dir, dentry, mode | S_IFREG, 0);
 }
 
-static int syaoran_symlink(struct inode *dir, struct dentry *dentry,
-			   const char *symname)
+static int ccs_symlink(struct inode *dir, struct dentry *dentry,
+		       const char *symname)
 {
 	struct inode *inode;
 	int error = -ENOSPC;
-	if (syaoran_may_create_node(dentry, S_IFLNK, 0) < 0)
+	if (ccs_may_create_node(dentry, S_IFLNK, 0) < 0)
 		return -EPERM;
-	inode = syaoran_get_inode(dir->i_sb, S_IFLNK|S_IRWXUGO, 0);
+	inode = ccs_get_inode(dir->i_sb, S_IFLNK|S_IRWXUGO, 0);
 	if (inode) {
 		int l = strlen(symname)+1;
 		error = page_symlink(inode, symname, l);
@@ -185,42 +185,42 @@ static int syaoran_symlink(struct inode *dir, struct dentry *dentry,
 	return error;
 }
 
-static int syaoran_link(struct dentry *old_dentry, struct inode *dir,
-			struct dentry *dentry)
+static int ccs_link(struct dentry *old_dentry, struct inode *dir,
+		    struct dentry *dentry)
 {
 	struct inode *inode = old_dentry->d_inode;
-	if (!inode || syaoran_may_create_node(dentry, inode->i_mode,
-					      inode->i_rdev) < 0)
+	if (!inode || ccs_may_create_node(dentry, inode->i_mode,
+					  inode->i_rdev) < 0)
 		return -EPERM;
 	return simple_link(old_dentry, dir, dentry);
 }
 
-static int syaoran_unlink(struct inode *dir, struct dentry *dentry)
+static int ccs_unlink(struct inode *dir, struct dentry *dentry)
 {
-	if (syaoran_may_modify_node(dentry, MAY_DELETE) < 0)
+	if (ccs_may_modify_node(dentry, MAY_DELETE) < 0)
 		return -EPERM;
 	return simple_unlink(dir, dentry);
 }
 
-static int syaoran_rename(struct inode *old_dir, struct dentry *old_dentry,
-			  struct inode *new_dir, struct dentry *new_dentry)
+static int ccs_rename(struct inode *old_dir, struct dentry *old_dentry,
+		      struct inode *new_dir, struct dentry *new_dentry)
 {
 	struct inode *inode = old_dentry->d_inode;
-	if (!inode || syaoran_may_modify_node(old_dentry, MAY_DELETE) < 0 ||
-	    syaoran_may_create_node(new_dentry, inode->i_mode,
-				    inode->i_rdev) < 0)
+	if (!inode || ccs_may_modify_node(old_dentry, MAY_DELETE) < 0 ||
+	    ccs_may_create_node(new_dentry, inode->i_mode,
+				inode->i_rdev) < 0)
 		return -EPERM;
 	return simple_rename(old_dir, old_dentry, new_dir, new_dentry);
 }
 
-static int syaoran_rmdir(struct inode *dir, struct dentry *dentry)
+static int ccs_rmdir(struct inode *dir, struct dentry *dentry)
 {
-	if (syaoran_may_modify_node(dentry, MAY_DELETE) < 0)
+	if (ccs_may_modify_node(dentry, MAY_DELETE) < 0)
 		return -EPERM;
 	return simple_rmdir(dir, dentry);
 }
 
-static int syaoran_setattr(struct dentry *dentry, struct iattr *attr)
+static int ccs_setattr(struct dentry *dentry, struct iattr *attr)
 {
 	struct inode *inode = dentry->d_inode;
 	int error = inode_change_ok(inode, attr);
@@ -231,7 +231,7 @@ static int syaoran_setattr(struct dentry *dentry, struct iattr *attr)
 			flags |= MAY_CHOWN;
 		if (ia_valid & ATTR_MODE)
 			flags |= MAY_CHMOD;
-		if (syaoran_may_modify_node(dentry, flags) < 0)
+		if (ccs_may_modify_node(dentry, flags) < 0)
 			return -EPERM;
 		if (!error)
 			error = inode_setattr(inode, attr);
@@ -240,27 +240,27 @@ static int syaoran_setattr(struct dentry *dentry, struct iattr *attr)
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-static struct address_space_operations syaoran_aops = {
+static struct address_space_operations ccs_aops = {
 	.readpage       = simple_readpage,
 	.prepare_write  = simple_prepare_write,
 	.commit_write   = simple_commit_write
 };
 #else
-static int syaoran_set_page_dirty_no_writeback(struct page *page)
+static int ccs_set_page_dirty_no_writeback(struct page *page)
 {
 	if (!PageDirty(page))
 		SetPageDirty(page);
 	return 0;
 }
-static struct address_space_operations syaoran_aops = {
+static struct address_space_operations ccs_aops = {
 	.readpage       = simple_readpage,
 	.write_begin    = simple_write_begin,
 	.write_end      = simple_write_end,
-	.set_page_dirty = syaoran_set_page_dirty_no_writeback,
+	.set_page_dirty = ccs_set_page_dirty_no_writeback,
 };
 #endif
 
-static struct file_operations syaoran_file_operations = {
+static struct file_operations ccs_file_operations = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 	.read        = generic_file_read,
 	.write       = generic_file_write,
@@ -280,38 +280,38 @@ static struct file_operations syaoran_file_operations = {
 	.llseek      = generic_file_llseek,
 };
 
-static struct inode_operations syaoran_file_inode_operations = {
+static struct inode_operations ccs_file_inode_operations = {
 	.getattr    = simple_getattr,
-	.setattr    = syaoran_setattr,
+	.setattr    = ccs_setattr,
 };
 
-static struct inode_operations syaoran_dir_inode_operations = {
-	.create     = syaoran_create,
+static struct inode_operations ccs_dir_inode_operations = {
+	.create     = ccs_create,
 	.lookup     = simple_lookup,
-	.link       = syaoran_link,
-	.unlink     = syaoran_unlink,
-	.symlink    = syaoran_symlink,
-	.mkdir      = syaoran_mkdir,
-	.rmdir      = syaoran_rmdir,
-	.mknod      = syaoran_mknod,
-	.rename     = syaoran_rename,
-	.setattr    = syaoran_setattr,
+	.link       = ccs_link,
+	.unlink     = ccs_unlink,
+	.symlink    = ccs_symlink,
+	.mkdir      = ccs_mkdir,
+	.rmdir      = ccs_rmdir,
+	.mknod      = ccs_mknod,
+	.rename     = ccs_rename,
+	.setattr    = ccs_setattr,
 };
 
-static struct inode_operations syaoran_symlink_inode_operations = {
+static struct inode_operations ccs_symlink_inode_operations = {
 	.readlink       = generic_readlink,
 	.follow_link    = page_follow_link_light,
 	.put_link       = page_put_link,
-	.setattr        = syaoran_setattr,
+	.setattr        = ccs_setattr,
 };
 
-static struct super_operations syaoran_ops = {
+static struct super_operations ccs_ops = {
 	.statfs     = simple_statfs,
 	.drop_inode = generic_delete_inode,
-	.put_super  = syaoran_put_super,
+	.put_super  = ccs_put_super,
 };
 
-static int syaoran_fill_super(struct super_block *sb, void *data, int silent)
+static int ccs_fill_super(struct super_block *sb, void *data, int silent)
 {
 	struct inode *inode;
 	struct dentry *root;
@@ -319,17 +319,17 @@ static int syaoran_fill_super(struct super_block *sb, void *data, int silent)
 	sb->s_maxbytes = MAX_LFS_FILESIZE;
 	sb->s_blocksize = PAGE_CACHE_SIZE;
 	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
-	sb->s_magic = SYAORAN_MAGIC;
-	sb->s_op = &syaoran_ops;
+	sb->s_magic = CCS_MAGIC;
+	sb->s_op = &ccs_ops;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 9)
 	sb->s_time_gran = 1;
 #endif
 	{
-		int error = syaoran_initialize(sb, data);
+		int error = ccs_initialize(sb, data);
 		if (error < 0)
 			return error;
 	}
-	inode = syaoran_get_inode(sb, S_IFDIR | 0755, 0);
+	inode = ccs_get_inode(sb, S_IFDIR | 0755, 0);
 	if (!inode)
 		return -ENOMEM;
 
@@ -339,44 +339,44 @@ static int syaoran_fill_super(struct super_block *sb, void *data, int silent)
 		return -ENOMEM;
 	}
 	sb->s_root = root;
-	syaoran_make_initial_nodes(sb);
+	ccs_make_initial_nodes(sb);
 	return 0;
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 18)
-static struct super_block *syaoran_get_sb(struct file_system_type *fs_type,
-					  int flags, const char *dev_name,
-					  void *data)
+static struct super_block *ccs_get_sb(struct file_system_type *fs_type,
+				      int flags, const char *dev_name,
+				      void *data)
 {
-	return get_sb_nodev(fs_type, flags, data, syaoran_fill_super);
+	return get_sb_nodev(fs_type, flags, data, ccs_fill_super);
 }
 #else
-static int syaoran_get_sb(struct file_system_type *fs_type,
-			  int flags, const char *dev_name, void *data,
-			  struct vfsmount *mnt)
+static int ccs_get_sb(struct file_system_type *fs_type,
+		      int flags, const char *dev_name, void *data,
+		      struct vfsmount *mnt)
 {
-	return get_sb_nodev(fs_type, flags, data, syaoran_fill_super, mnt);
+	return get_sb_nodev(fs_type, flags, data, ccs_fill_super, mnt);
 }
 #endif
 
-static struct file_system_type syaoran_fs_type = {
+static struct file_system_type ccs_fs_type = {
 	.owner      = THIS_MODULE,
 	.name       = "syaoran",
-	.get_sb     = syaoran_get_sb,
+	.get_sb     = ccs_get_sb,
 	.kill_sb    = kill_litter_super,
 };
 
-static int __init init_syaoran_fs(void)
+static int __init ccs_init_fs(void)
 {
-	return register_filesystem(&syaoran_fs_type);
+	return register_filesystem(&ccs_fs_type);
 }
 
-static void __exit exit_syaoran_fs(void)
+static void __exit ccs_exit_fs(void)
 {
-	unregister_filesystem(&syaoran_fs_type);
+	unregister_filesystem(&ccs_fs_type);
 }
 
-module_init(init_syaoran_fs);
-module_exit(exit_syaoran_fs);
+module_init(ccs_init_fs);
+module_exit(ccs_exit_fs);
 
 MODULE_LICENSE("GPL");

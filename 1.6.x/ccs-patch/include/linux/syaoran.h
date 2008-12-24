@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -108,43 +108,43 @@
 #define NO_CREATE_AT_MOUNT 32 /* Don't create this file at mount().          */
 
 /* some random number */
-#define SYAORAN_MAGIC    0x2F646576 /* = '/dev' */
+#define CCS_MAGIC    0x2F646576 /* = '/dev' */
 
-static void syaoran_put_super(struct super_block *sb);
-static int syaoran_initialize(struct super_block *sb, void *data);
-static void syaoran_make_initial_nodes(struct super_block *sb);
-static int syaoran_may_create_node(struct dentry *dentry, int mode, int dev);
-static int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags);
-static int syaoran_create_tracelog(struct super_block *sb,
-				   const char *filename);
+static void ccs_put_super(struct super_block *sb);
+static int ccs_initialize(struct super_block *sb, void *data);
+static void ccs_make_initial_nodes(struct super_block *sb);
+static int ccs_may_create_node(struct dentry *dentry, int mode, int dev);
+static int ccs_may_modify_node(struct dentry *dentry, unsigned int flags);
+static int ccs_create_tracelog(struct super_block *sb,
+			       const char *filename);
 
 /* Wraps blkdev_open() to trace open operation for block devices. */
-static int (*org_blkdev_open) (struct inode *inode, struct file *filp);
-static struct file_operations wrapped_def_blk_fops;
+static int (*ccs_org_blkdev_open) (struct inode *inode, struct file *filp);
+static struct file_operations ccs_wrapped_def_blk_fops;
 
-static int wrapped_blkdev_open(struct inode *inode, struct file *filp)
+static int ccs_wrapped_blkdev_open(struct inode *inode, struct file *filp)
 {
-	int error = org_blkdev_open(inode, filp);
+	int error = ccs_org_blkdev_open(inode, filp);
 	if (error != -ENXIO)
-		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
+		ccs_may_modify_node(filp->f_dentry, DEVICE_USED);
 	return error;
 }
 
 /* Wraps chrdev_open() to trace open operation for character devices. */
-static int (*org_chrdev_open) (struct inode *inode, struct file *filp);
-static struct file_operations wrapped_def_chr_fops;
+static int (*ccs_org_chrdev_open) (struct inode *inode, struct file *filp);
+static struct file_operations ccs_wrapped_def_chr_fops;
 
-static int wrapped_chrdev_open(struct inode *inode, struct file *filp)
+static int ccs_wrapped_chrdev_open(struct inode *inode, struct file *filp)
 {
-	int error = org_chrdev_open(inode, filp);
+	int error = ccs_org_chrdev_open(inode, filp);
 	if (error != -ENXIO)
-		syaoran_may_modify_node(filp->f_dentry, DEVICE_USED);
+		ccs_may_modify_node(filp->f_dentry, DEVICE_USED);
 	return error;
 }
 
 /* lookup_create() without nameidata. Called only while initialization. */
-static struct dentry *lookup_create2(const char *name, struct dentry *base,
-				     const bool is_dir)
+static struct dentry *ccs_lookup_create2(const char *name, struct dentry *base,
+					 const bool is_dir)
 {
 	struct dentry *dentry;
 	const int len = name ? strlen(name) : 0;
@@ -167,10 +167,10 @@ static struct dentry *lookup_create2(const char *name, struct dentry *base,
 }
 
 /* mkdir(). Called only while initialization. */
-static int fs_mkdir(const char *pathname, struct dentry *base, int mode,
-		    uid_t user, gid_t group)
+static int ccs_fs_mkdir(const char *pathname, struct dentry *base, int mode,
+			uid_t user, gid_t group)
 {
-	struct dentry *dentry = lookup_create2(pathname, base, 1);
+	struct dentry *dentry = ccs_lookup_create2(pathname, base, 1);
 	int error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
 #ifdef HAVE_VFSMOUNT_IN_VFS_HELPER
@@ -195,8 +195,8 @@ static int fs_mkdir(const char *pathname, struct dentry *base, int mode,
 }
 
 /* mknod(). Called only while initialization. */
-static int fs_mknod(const char *filename, struct dentry *base, int mode,
-		    dev_t dev, uid_t user, gid_t group)
+static int ccs_fs_mknod(const char *filename, struct dentry *base, int mode,
+			dev_t dev, uid_t user, gid_t group)
 {
 	struct dentry *dentry;
 	int error;
@@ -210,7 +210,7 @@ static int fs_mknod(const char *filename, struct dentry *base, int mode,
 	default:
 		return -EPERM;
 	}
-	dentry = lookup_create2(filename, base, 0);
+	dentry = ccs_lookup_create2(filename, base, 0);
 	error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
 #ifdef HAVE_VFSMOUNT_IN_VFS_HELPER
@@ -235,10 +235,10 @@ static int fs_mknod(const char *filename, struct dentry *base, int mode,
 }
 
 /* symlink(). Called only while initialization. */
-static int fs_symlink(const char *pathname, struct dentry *base, char *oldname,
-		      int mode, uid_t user, gid_t group)
+static int ccs_fs_symlink(const char *pathname, struct dentry *base,
+			  char *oldname, int mode, uid_t user, gid_t group)
 {
-	struct dentry *dentry = lookup_create2(pathname, base, 0);
+	struct dentry *dentry = ccs_lookup_create2(pathname, base, 0);
 	int error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
@@ -277,7 +277,7 @@ static int fs_symlink(const char *pathname, struct dentry *base, char *oldname,
  * Leading and trailing whitespaces are removed.
  * Multiple whitespaces are packed into single space.
  */
-static void normalize_line(unsigned char *buffer)
+static void ccs_normalize_line(unsigned char *buffer)
 {
 	unsigned char *sp = buffer;
 	unsigned char *dp = buffer;
@@ -297,7 +297,7 @@ static void normalize_line(unsigned char *buffer)
 }
 
 /* Convert text form of filename into binary form. */
-static void unescape(char *filename)
+static void ccs_unescape(char *filename)
 {
 	char *cp = filename;
 	char c;
@@ -344,19 +344,19 @@ static char *strdup(const char *str)
 }
 
 /* -1: Not specified, 0: Enforce by default, 1: Accept by default. */
-static int syaoran_default_mode = -1;
+static int ccs_default_mode = -1;
 
 #if !defined(MODULE)
-static int __init syaoran_setup(char *str)
+static int __init ccs_setup(char *str)
 {
 	if (!strcmp(str, "accept"))
-		syaoran_default_mode = 1;
+		ccs_default_mode = 1;
 	else if (!strcmp(str, "enforce"))
-		syaoran_default_mode = 0;
+		ccs_default_mode = 0;
 	return 0;
 }
 
-__setup("SYAORAN=", syaoran_setup);
+__setup("SYAORAN=", ccs_setup);
 #endif
 
 /* The structure for possible device list. */
@@ -386,13 +386,13 @@ struct dev_entry {
 	const char *printable_symlink_data;
 };
 
-struct syaoran_sb_info {
+struct ccs_sb_info {
 	struct list_head list;
 	bool initialize_done;     /* False if initialization is in progress. */
 	bool is_permissive_mode;  /* True if permissive mode.                */
 };
 
-static int syaoran_register_node_info(char *buffer, struct super_block *sb)
+static int ccs_register_node_info(char *buffer, struct super_block *sb)
 {
 	enum {
 		ARG_FILENAME     = 0,
@@ -415,8 +415,8 @@ static int syaoran_register_node_info(char *buffer, struct super_block *sb)
 	unsigned int flags;
 	unsigned int major = 0;
 	unsigned int minor = 0;
-	struct syaoran_sb_info *info =
-		(struct syaoran_sb_info *) sb->s_fs_info;
+	struct ccs_sb_info *info =
+		(struct ccs_sb_info *) sb->s_fs_info;
 	struct dev_entry *entry;
 	if (!info)
 		return -EINVAL;
@@ -495,12 +495,12 @@ static int syaoran_register_node_info(char *buffer, struct super_block *sb)
 		entry->symlink_data = strdup(entry->printable_symlink_data);
 		if (!entry->symlink_data)
 			goto out_freemem;
-		unescape(entry->symlink_data);
+		ccs_unescape(entry->symlink_data);
 	}
 	entry->name = strdup(entry->printable_name);
 	if (!entry->name)
 		goto out_freemem;
-	unescape(entry->name);
+	ccs_unescape(entry->name);
 	{
 		/*
 		 * Drop trailing '/', for get_local_absolute_path() doesn't
@@ -528,14 +528,14 @@ static int syaoran_register_node_info(char *buffer, struct super_block *sb)
 	goto out;
 }
 
-static void syaoran_put_super(struct super_block *sb)
+static void ccs_put_super(struct super_block *sb)
 {
-	struct syaoran_sb_info *info;
+	struct ccs_sb_info *info;
 	struct dev_entry *entry;
 	struct dev_entry *tmp;
 	if (!sb)
 		return;
-	info = (struct syaoran_sb_info *) sb->s_fs_info;
+	info = (struct ccs_sb_info *) sb->s_fs_info;
 	if (!info)
 		return;
 	sb->s_fs_info = NULL;
@@ -552,7 +552,7 @@ static void syaoran_put_super(struct super_block *sb)
 	printk(KERN_INFO "%s: Unused memory freed.\n", __func__);
 }
 
-static int syaoran_read_config_file(struct file *file, struct super_block *sb)
+static int ccs_read_config_file(struct file *file, struct super_block *sb)
 {
 	char *buffer;
 	int len;
@@ -573,8 +573,8 @@ static int syaoran_read_config_file(struct file *file, struct super_block *sb)
 			break;
 		*cp = '\0';
 		offset += cp - buffer + 1;
-		normalize_line(buffer);
-		if (syaoran_register_node_info(buffer, sb) == -ENOMEM)
+		ccs_normalize_line(buffer);
+		if (ccs_register_node_info(buffer, sb) == -ENOMEM)
 			goto out;
 	}
 	error = 0;
@@ -583,7 +583,7 @@ static int syaoran_read_config_file(struct file *file, struct super_block *sb)
 	return error;
 }
 
-static void syaoran_make_node(struct dev_entry *entry, struct dentry *root)
+static void ccs_make_node(struct dev_entry *entry, struct dentry *root)
 {
 	struct dentry *base = dget(root);
 	char *filename = entry->name;
@@ -633,7 +633,7 @@ static void syaoran_make_node(struct dev_entry *entry, struct dentry *root)
 			  entry->name);
 			*/
 			base = new_base;
- start:
+start:
 			name = filename;
 		} else {
 			filename++;
@@ -641,48 +641,49 @@ static void syaoran_make_node(struct dev_entry *entry, struct dentry *root)
 	}
 	filename = (char *) name;
 	if (S_ISLNK(perm))
-		fs_symlink(filename, base, entry->symlink_data, perm, uid, gid);
+		ccs_fs_symlink(filename, base, entry->symlink_data, perm, uid,
+			       gid);
 	else if (S_ISDIR(perm))
-		fs_mkdir(filename, base, perm ^ S_IFDIR, uid, gid);
+		ccs_fs_mkdir(filename, base, perm ^ S_IFDIR, uid, gid);
 	else if (S_ISSOCK(perm) || S_ISFIFO(perm) || S_ISREG(perm))
-		fs_mknod(filename, base, perm, 0, uid, gid);
+		ccs_fs_mknod(filename, base, perm, 0, uid, gid);
 	else if (S_ISCHR(perm) || S_ISBLK(perm))
-		fs_mknod(filename, base, perm, entry->kdev, uid, gid);
+		ccs_fs_mknod(filename, base, perm, entry->kdev, uid, gid);
 	dput(base);
 }
 
 /* Create files according to the policy file. */
-static void syaoran_make_initial_nodes(struct super_block *sb)
+static void ccs_make_initial_nodes(struct super_block *sb)
 {
-	struct syaoran_sb_info *info;
+	struct ccs_sb_info *info;
 	struct dev_entry *entry;
 	if (!sb)
 		return;
-	info = (struct syaoran_sb_info *) sb->s_fs_info;
+	info = (struct ccs_sb_info *) sb->s_fs_info;
 	if (!info)
 		return;
 	if (info->is_permissive_mode) {
-		syaoran_create_tracelog(sb, ".syaoran");
-		syaoran_create_tracelog(sb, ".syaoran_all");
+		ccs_create_tracelog(sb, ".syaoran");
+		ccs_create_tracelog(sb, ".syaoran_all");
 	}
 	list_for_each_entry(entry, &info->list, list) {
 		if ((entry->flags & NO_CREATE_AT_MOUNT) == 0)
-			syaoran_make_node(entry, sb->s_root);
+			ccs_make_node(entry, sb->s_root);
 	}
 	info->initialize_done = true;
 }
 
 /* Read policy file. */
-static int syaoran_initialize(struct super_block *sb, void *data)
+static int ccs_initialize(struct super_block *sb, void *data)
 {
 	int error = -EINVAL;
 	struct file *f;
 	char *filename = (char *) data;
-	bool is_permissive_mode = syaoran_default_mode;
+	bool is_permissive_mode = ccs_default_mode;
 	static bool first = true;
 	if (first) {
 		first = false;
-		printk(KERN_INFO "SYAORAN: 1.6.6-pre   2008/12/01\n");
+		printk(KERN_INFO "SYAORAN: 1.6.6-pre   2008/12/24\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
@@ -690,10 +691,10 @@ static int syaoran_initialize(struct super_block *sb, void *data)
 			return -EINVAL;
 		/* Create /dev/ram0 to get the value of blkdev_open(). */
 		init_special_inode(inode, S_IFBLK | 0666, MKDEV(1, 0));
-		wrapped_def_blk_fops = *inode->i_fop;
+		ccs_wrapped_def_blk_fops = *inode->i_fop;
 		iput(inode);
-		org_blkdev_open = wrapped_def_blk_fops.open;
-		wrapped_def_blk_fops.open = wrapped_blkdev_open;
+		ccs_org_blkdev_open = ccs_wrapped_def_blk_fops.open;
+		ccs_wrapped_def_blk_fops.open = ccs_wrapped_blkdev_open;
 	}
 	{
 		struct inode *inode = new_inode(sb);
@@ -701,10 +702,10 @@ static int syaoran_initialize(struct super_block *sb, void *data)
 			return -EINVAL;
 		/* Create /dev/null to get the value of chrdev_open(). */
 		init_special_inode(inode, S_IFCHR | 0666, MKDEV(1, 3));
-		wrapped_def_chr_fops = *inode->i_fop;
+		ccs_wrapped_def_chr_fops = *inode->i_fop;
 		iput(inode);
-		org_chrdev_open = wrapped_def_chr_fops.open;
-		wrapped_def_chr_fops.open = wrapped_chrdev_open;
+		ccs_org_chrdev_open = ccs_wrapped_def_chr_fops.open;
+		ccs_wrapped_def_chr_fops.open = ccs_wrapped_chrdev_open;
 	}
 	if (!filename) {
 		printk(KERN_WARNING "SYAORAN: Missing config-file path.\n");
@@ -717,7 +718,7 @@ static int syaoran_initialize(struct super_block *sb, void *data)
 	} else if (!strncmp(filename, "enforce=", 8)) {
 		filename += 8;
 		is_permissive_mode = false;
-	} else if (syaoran_default_mode == -1) {
+	} else if (ccs_default_mode == -1) {
 		/*
 		 * If mode is not given with command line,
 		 * abort mount.
@@ -733,14 +734,14 @@ static int syaoran_initialize(struct super_block *sb, void *data)
 	}
 	if (!S_ISREG(f->f_dentry->d_inode->i_mode))
 		goto out;
-	sb->s_fs_info = kzalloc(sizeof(struct syaoran_sb_info), GFP_KERNEL);
+	sb->s_fs_info = kzalloc(sizeof(struct ccs_sb_info), GFP_KERNEL);
 	if (!sb->s_fs_info)
 		goto out;
-	((struct syaoran_sb_info *) sb->s_fs_info)->is_permissive_mode
+	((struct ccs_sb_info *) sb->s_fs_info)->is_permissive_mode
 		= is_permissive_mode;
-	INIT_LIST_HEAD(&((struct syaoran_sb_info *) sb->s_fs_info)->list);
+	INIT_LIST_HEAD(&((struct ccs_sb_info *) sb->s_fs_info)->list);
 	printk(KERN_INFO "SYAORAN: Reading '%s'\n", filename);
-	error = syaoran_read_config_file(f, sb);
+	error = ccs_read_config_file(f, sb);
  out:
 	if (error)
 		printk(KERN_WARNING "SYAORAN: Can't read '%s'\n", filename);
@@ -794,7 +795,7 @@ static int get_local_absolute_path(struct dentry *dentry, char *buffer,
 }
 
 /* Get absolute pathname of the given dentry from mount point. */
-static int local_ccs_realpath_from_dentry(struct dentry *dentry, char *newname,
+static int ccs_local_realpath_from_dentry(struct dentry *dentry, char *newname,
 					  int newname_len)
 {
 	/***** CRITICAL SECTION START *****/
@@ -811,13 +812,13 @@ static int local_ccs_realpath_from_dentry(struct dentry *dentry, char *newname,
 	/***** CRITICAL SECTION END *****/
 }
 
-static int syaoran_check_flags(struct syaoran_sb_info *info,
-			       struct dentry *dentry,
-			       int mode, int dev, unsigned int flags)
+static int ccs_check_flags(struct ccs_sb_info *info,
+			   struct dentry *dentry,
+			   int mode, int dev, unsigned int flags)
 {
 	int error;
 	/*
-	 * I use static buffer, for local_ccs_realpath_from_dentry() needs
+	 * I use static buffer, for ccs_local_realpath_from_dentry() needs
 	 * dcache_lock.
 	 */
 	static char filename[PAGE_SIZE];
@@ -825,7 +826,7 @@ static int syaoran_check_flags(struct syaoran_sb_info *info,
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&lock);
 	memset(filename, 0, sizeof(filename));
-	error = local_ccs_realpath_from_dentry(dentry, filename,
+	error = ccs_local_realpath_from_dentry(dentry, filename,
 					       sizeof(filename) - 1);
 	if (!error) {
 		struct dev_entry *entry;
@@ -919,10 +920,10 @@ static int syaoran_check_flags(struct syaoran_sb_info *info,
 }
 
 /* Check whether the given dentry is allowed to mknod. */
-static int syaoran_may_create_node(struct dentry *dentry, int mode, int dev)
+static int ccs_may_create_node(struct dentry *dentry, int mode, int dev)
 {
-	struct syaoran_sb_info *info
-		= (struct syaoran_sb_info *) dentry->d_sb->s_fs_info;
+	struct ccs_sb_info *info
+		= (struct ccs_sb_info *) dentry->d_sb->s_fs_info;
 	if (!info) {
 		printk(KERN_WARNING "%s: dentry->d_sb->s_fs_info == NULL\n",
 		       __func__);
@@ -930,14 +931,14 @@ static int syaoran_may_create_node(struct dentry *dentry, int mode, int dev)
 	}
 	if (!info->initialize_done)
 		return 0;
-	return syaoran_check_flags(info, dentry, mode, dev, MAY_CREATE);
+	return ccs_check_flags(info, dentry, mode, dev, MAY_CREATE);
 }
 
 /* Check whether the given dentry is allowed to chmod/chown/unlink. */
-static int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags)
+static int ccs_may_modify_node(struct dentry *dentry, unsigned int flags)
 {
-	struct syaoran_sb_info *info
-		= (struct syaoran_sb_info *) dentry->d_sb->s_fs_info;
+	struct ccs_sb_info *info
+		= (struct ccs_sb_info *) dentry->d_sb->s_fs_info;
 	if (!info) {
 		printk(KERN_WARNING "%s: dentry->d_sb->s_fs_info == NULL\n",
 		       __func__);
@@ -947,8 +948,8 @@ static int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags)
 		return 0;
 	if (!dentry->d_inode)
 		return -ENOENT;
-	return syaoran_check_flags(info, dentry, dentry->d_inode->i_mode,
-				   dentry->d_inode->i_rdev, flags);
+	return ccs_check_flags(info, dentry, dentry->d_inode->i_mode,
+			       dentry->d_inode->i_rdev, flags);
 }
 
 /*
@@ -956,7 +957,7 @@ static int syaoran_may_modify_node(struct dentry *dentry, unsigned int flags)
  * to interfaces files.
  */
 
-struct syaoran_read_struct {
+struct ccs_read_struct {
 	char *buf;               /* Buffer for reading.                */
 	int avail;               /* Bytes available for reading.       */
 	struct super_block *sb;  /* The super_block of this partition. */
@@ -965,11 +966,11 @@ struct syaoran_read_struct {
 	struct list_head *pos;   /* Current position.                  */
 };
 
-static void syaoran_read_table(struct syaoran_read_struct *head, char *buf,
-			       int count)
+static void ccs_read_table(struct ccs_read_struct *head, char *buf,
+			   int count)
 {
 	struct super_block *sb = head->sb;
-	struct syaoran_sb_info *info = (struct syaoran_sb_info *) sb->s_fs_info;
+	struct ccs_sb_info *info = (struct ccs_sb_info *) sb->s_fs_info;
 	struct list_head *pos;
 	const bool read_all = head->read_all;
 	if (!info)
@@ -1034,15 +1035,15 @@ static void syaoran_read_table(struct syaoran_read_struct *head, char *buf,
 	}
 }
 
-static int syaoran_trace_open(struct inode *inode, struct file *file)
+static int ccs_trace_open(struct inode *inode, struct file *file)
 {
-	struct syaoran_read_struct *head = kzalloc(sizeof(*head), GFP_KERNEL);
+	struct ccs_read_struct *head = kzalloc(sizeof(*head), GFP_KERNEL);
 	if (!head)
 		return -ENOMEM;
 	head->sb = inode->i_sb;
 	head->read_all
 		= (strcmp(file->f_dentry->d_name.name, ".syaoran_all") == 0);
-	head->pos = &((struct syaoran_sb_info *) head->sb->s_fs_info)->list;
+	head->pos = &((struct ccs_sb_info *) head->sb->s_fs_info)->list;
 	/* Don't allow open() after unmount() */
 	if (head->sb->s_fs_info)
 		head->buf = kzalloc(PAGE_SIZE * 2, GFP_KERNEL);
@@ -1054,25 +1055,25 @@ static int syaoran_trace_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int syaoran_trace_release(struct inode *inode, struct file *file)
+static int ccs_trace_release(struct inode *inode, struct file *file)
 {
-	struct syaoran_read_struct *head = file->private_data;
+	struct ccs_read_struct *head = file->private_data;
 	kfree(head->buf);
 	kfree(head);
 	file->private_data = NULL;
 	return 0;
 }
 
-static ssize_t syaoran_trace_read(struct file *file, char __user *buf,
-				  size_t count, loff_t *ppos)
+static ssize_t ccs_trace_read(struct file *file, char __user *buf,
+			      size_t count, loff_t *ppos)
 {
-	struct syaoran_read_struct *head
-		= (struct syaoran_read_struct *) file->private_data;
+	struct ccs_read_struct *head
+		= (struct ccs_read_struct *) file->private_data;
 	int len = head->avail;
 	char *cp = head->buf;
 	if (!access_ok(VERIFY_WRITE, buf, count))
 		return -EFAULT;
-	syaoran_read_table(head, cp + len, PAGE_SIZE * 2 - len);
+	ccs_read_table(head, cp + len, PAGE_SIZE * 2 - len);
 	len = head->avail;
 	if (len > count)
 		len = count;
@@ -1085,17 +1086,17 @@ static ssize_t syaoran_trace_read(struct file *file, char __user *buf,
 	return len;
 }
 
-static struct file_operations syaoran_trace_operations = {
-	.open    = syaoran_trace_open,
-	.release = syaoran_trace_release,
-	.read    = syaoran_trace_read,
+static struct file_operations ccs_trace_operations = {
+	.open    = ccs_trace_open,
+	.release = ccs_trace_release,
+	.read    = ccs_trace_read,
 };
 
 /* Create interface files for reading status. */
-static int syaoran_create_tracelog(struct super_block *sb, const char *filename)
+static int ccs_create_tracelog(struct super_block *sb, const char *filename)
 {
 	struct dentry *base = dget(sb->s_root);
-	struct dentry *dentry = lookup_create2(filename, base, 0);
+	struct dentry *dentry = ccs_lookup_create2(filename, base, 0);
 	int error = PTR_ERR(dentry);
 	if (!IS_ERR(dentry)) {
 		struct inode *inode = new_inode(sb);
@@ -1109,18 +1110,18 @@ static int syaoran_create_tracelog(struct super_block *sb, const char *filename)
 #endif
 #endif
 			inode->i_blocks = 0;
-			inode->i_mapping->a_ops = &syaoran_aops;
+			inode->i_mapping->a_ops = &ccs_aops;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 			inode->i_mapping->backing_dev_info
-				= &syaoran_backing_dev_info;
-			inode->i_op = &syaoran_file_inode_operations;
+				= &ccs_backing_dev_info;
+			inode->i_op = &ccs_file_inode_operations;
 #else
 			inode->i_rdev = NODEV;
 #endif
 			inode->i_ctime = CURRENT_TIME;
 			inode->i_mtime = inode->i_ctime;
 			inode->i_atime = inode->i_mtime;
-			inode->i_fop = &syaoran_trace_operations;
+			inode->i_fop = &ccs_trace_operations;
 			d_instantiate(dentry, inode);
 			dget(dentry); /* Extra count - pin the dentry in core */
 			error = 0;

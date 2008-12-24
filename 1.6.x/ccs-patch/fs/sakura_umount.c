@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -22,28 +22,28 @@
 #endif
 
 /* Structure for "deny_unmount" keyword. */
-struct no_umount_entry {
+struct ccs_no_umount_entry {
 	struct list1_head list;
-	const struct path_info *dir;
+	const struct ccs_path_info *dir;
 	bool is_deleted;
 };
 
-/* The list for "struct no_umount_entry". */
-static LIST1_HEAD(no_umount_list);
+/* The list for "struct ccs_no_umount_entry". */
+static LIST1_HEAD(ccs_no_umount_list);
 
 /**
- * update_no_umount_acl - Update "struct no_umount_entry" list.
+ * ccs_update_no_umount_acl - Update "struct ccs_no_umount_entry" list.
  *
  * @dir:       The name of directrory.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_no_umount_acl(const char *dir, const bool is_delete)
+static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
 {
-	struct no_umount_entry *new_entry;
-	struct no_umount_entry *ptr;
-	const struct path_info *saved_dir;
+	struct ccs_no_umount_entry *new_entry;
+	struct ccs_no_umount_entry *ptr;
+	const struct ccs_path_info *saved_dir;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(dir, 1, 0, 1, __func__))
@@ -52,7 +52,7 @@ static int update_no_umount_acl(const char *dir, const bool is_delete)
 	if (!saved_dir)
 		return -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &no_umount_list, list) {
+	list1_for_each_entry(ptr, &ccs_no_umount_list, list) {
 		if (ptr->dir != saved_dir)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -67,7 +67,7 @@ static int update_no_umount_acl(const char *dir, const bool is_delete)
 	if (!new_entry)
 		goto out;
 	new_entry->dir = saved_dir;
-	list1_add_tail_mb(&new_entry->list, &no_umount_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_no_umount_list);
 	error = 0;
 	printk(KERN_CONT "%sDon't allow umount %s\n", ccs_log_level, dir);
  out:
@@ -89,8 +89,8 @@ int ccs_may_umount(struct vfsmount *mnt)
 	int error;
 	const char *dir0;
 	bool is_enforce;
-	struct no_umount_entry *ptr;
-	struct path_info dir;
+	struct ccs_no_umount_entry *ptr;
+	struct ccs_path_info dir;
 	bool found = false;
 	if (!ccs_can_sleep())
 		return 0;
@@ -105,7 +105,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 		goto out;
 	dir.name = dir0;
 	ccs_fill_path_info(&dir);
-	list1_for_each_entry(ptr, &no_umount_list, list) {
+	list1_for_each_entry(ptr, &ccs_no_umount_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_path_matches_pattern(&dir, ptr->dir))
@@ -136,7 +136,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 }
 
 /**
- * ccs_write_no_umount_policy - Write "struct no_umount_entry" list.
+ * ccs_write_no_umount_policy - Write "struct ccs_no_umount_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -145,11 +145,11 @@ int ccs_may_umount(struct vfsmount *mnt)
  */
 int ccs_write_no_umount_policy(char *data, const bool is_delete)
 {
-	return update_no_umount_acl(data, is_delete);
+	return ccs_update_no_umount_acl(data, is_delete);
 }
 
 /**
- * ccs_read_no_umount_policy - Read "struct no_umount_entry" list.
+ * ccs_read_no_umount_policy - Read "struct ccs_no_umount_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -158,9 +158,9 @@ int ccs_write_no_umount_policy(char *data, const bool is_delete)
 bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &no_umount_list) {
-		struct no_umount_entry *ptr;
-		ptr = list1_entry(pos, struct no_umount_entry, list);
+	list1_for_each_cookie(pos, head->read_var2, &ccs_no_umount_list) {
+		struct ccs_no_umount_entry *ptr;
+		ptr = list1_entry(pos, struct ccs_no_umount_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",

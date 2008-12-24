@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -166,7 +166,7 @@ static struct inode_operations ccs_file_inode_operations;
 #endif
 
 /**
- * create_entry - Create interface files under /proc/ccs/ directory.
+ * ccs_create_entry - Create interface files under /proc/ccs/ directory.
  *
  * @name:   The name of the interface file.
  * @mode:   The permission of the interface file.
@@ -175,8 +175,8 @@ static struct inode_operations ccs_file_inode_operations;
  *
  * Returns nothing.
  */
-static void __init create_entry(const char *name, const mode_t mode,
-				struct proc_dir_entry *parent, const u8 key)
+static void __init ccs_create_entry(const char *name, const mode_t mode,
+				    struct proc_dir_entry *parent, const u8 key)
 {
 	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
 	if (entry) {
@@ -207,25 +207,27 @@ static int __init ccs_proc_init(void)
 		ccs_dir_inode_operations.setattr = proc_notify_change;
 	ccs_dir->proc_iops = &ccs_dir_inode_operations;
 #endif
-	create_entry("query",            0600, ccs_dir, CCS_QUERY);
+	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
 #ifdef CONFIG_SAKURA
-	create_entry("system_policy",    0600, ccs_dir, CCS_SYSTEMPOLICY);
+	ccs_create_entry("system_policy",    0600, ccs_dir, CCS_SYSTEMPOLICY);
 #endif
 #ifdef CONFIG_TOMOYO
-	create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
-	create_entry("exception_policy", 0600, ccs_dir, CCS_EXCEPTIONPOLICY);
-	create_entry("grant_log",        0400, ccs_dir, CCS_GRANTLOG);
-	create_entry("reject_log",       0400, ccs_dir, CCS_REJECTLOG);
+	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
+	ccs_create_entry("exception_policy", 0600, ccs_dir,
+			 CCS_EXCEPTIONPOLICY);
+	ccs_create_entry("grant_log",        0400, ccs_dir, CCS_GRANTLOG);
+	ccs_create_entry("reject_log",       0400, ccs_dir, CCS_REJECTLOG);
 #endif
-	create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
-	create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
-	create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
-	create_entry("meminfo",          0600, ccs_dir, CCS_MEMINFO);
-	create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
-	create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
-	create_entry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
-	create_entry("version",          0400, ccs_dir, CCS_VERSION);
-	create_entry(".execute_handler", 0666, ccs_dir, CCS_EXECUTE_HANDLER);
+	ccs_create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
+	ccs_create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
+	ccs_create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
+	ccs_create_entry("meminfo",          0600, ccs_dir, CCS_MEMINFO);
+	ccs_create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
+	ccs_create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
+	ccs_create_entry(".updates_counter", 0400, ccs_dir, CCS_UPDATESCOUNTER);
+	ccs_create_entry("version",          0400, ccs_dir, CCS_VERSION);
+	ccs_create_entry(".execute_handler", 0666, ccs_dir,
+			 CCS_EXECUTE_HANDLER);
 	if (sizeof(struct ccs_page_buffer) < CCS_MAX_PATHNAME_LEN + 1)
 		panic("Bad size!");
 	return 0;

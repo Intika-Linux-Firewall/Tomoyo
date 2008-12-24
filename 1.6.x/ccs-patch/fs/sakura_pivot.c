@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -22,18 +22,18 @@
 #endif
 
 /* Structure for "allow_pivot_root" keyword. */
-struct pivot_root_entry {
+struct ccs_pivot_root_entry {
 	struct list1_head list;
-	const struct path_info *old_root;
-	const struct path_info *new_root;
+	const struct ccs_path_info *old_root;
+	const struct ccs_path_info *new_root;
 	bool is_deleted;
 };
 
-/* The list for "struct pivot_root_entry". */
-static LIST1_HEAD(pivot_root_list);
+/* The list for "struct ccs_pivot_root_entry". */
+static LIST1_HEAD(ccs_pivot_root_list);
 
 /**
- * update_pivot_root_acl - Update "struct pivot_root_entry" list.
+ * ccs_update_pivot_root_acl - Update "struct ccs_pivot_root_entry" list.
  *
  * @old_root:  The name of old root directory.
  * @new_root:  The name of new root directory.
@@ -41,13 +41,13 @@ static LIST1_HEAD(pivot_root_list);
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_pivot_root_acl(const char *old_root, const char *new_root,
-				 const bool is_delete)
+static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
+				     const bool is_delete)
 {
-	struct pivot_root_entry *new_entry;
-	struct pivot_root_entry *ptr;
-	const struct path_info *saved_old_root;
-	const struct path_info *saved_new_root;
+	struct ccs_pivot_root_entry *new_entry;
+	struct ccs_pivot_root_entry *ptr;
+	const struct ccs_path_info *saved_old_root;
+	const struct ccs_path_info *saved_new_root;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(old_root, 1, 0, 1, __func__) ||
@@ -58,7 +58,7 @@ static int update_pivot_root_acl(const char *old_root, const char *new_root,
 	if (!saved_old_root || !saved_new_root)
 		return -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &pivot_root_list, list) {
+	list1_for_each_entry(ptr, &ccs_pivot_root_list, list) {
 		if (ptr->old_root != saved_old_root ||
 		    ptr->new_root != saved_new_root)
 			continue;
@@ -75,7 +75,7 @@ static int update_pivot_root_acl(const char *old_root, const char *new_root,
 		goto out;
 	new_entry->old_root = saved_old_root;
 	new_entry->new_root = saved_new_root;
-	list1_add_tail_mb(&new_entry->list, &pivot_root_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_pivot_root_list);
 	error = 0;
 	printk(KERN_CONT "%sAllow pivot_root(%s, %s)\n", ccs_log_level,
 	       new_root, old_root);
@@ -124,14 +124,14 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	new_root = ccs_realpath_from_dentry(new_path->dentry, new_path->mnt);
 #endif
 	if (old_root && new_root) {
-		struct path_info old_root_dir, new_root_dir;
+		struct ccs_path_info old_root_dir, new_root_dir;
 		old_root_dir.name = old_root;
 		ccs_fill_path_info(&old_root_dir);
 		new_root_dir.name = new_root;
 		ccs_fill_path_info(&new_root_dir);
 		if (old_root_dir.is_dir && new_root_dir.is_dir) {
-			struct pivot_root_entry *ptr;
-			list1_for_each_entry(ptr, &pivot_root_list, list) {
+			struct ccs_pivot_root_entry *ptr;
+			list1_for_each_entry(ptr, &ccs_pivot_root_list, list) {
 				if (ptr->is_deleted)
 					continue;
 				if (!ccs_path_matches_pattern(&old_root_dir,
@@ -161,7 +161,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 		if (exename)
 			ccs_free(exename);
 		if (r.mode == 1 && old_root && new_root)
-			update_pivot_root_acl(old_root, new_root, 0);
+			ccs_update_pivot_root_acl(old_root, new_root, 0);
 	}
 	ccs_free(old_root);
 	ccs_free(new_root);
@@ -171,7 +171,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 }
 
 /**
- * ccs_write_pivot_root_policy - Write "struct pivot_root_entry" list.
+ * ccs_write_pivot_root_policy - Write "struct ccs_pivot_root_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -184,11 +184,11 @@ int ccs_write_pivot_root_policy(char *data, const bool is_delete)
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	return update_pivot_root_acl(cp, data, is_delete);
+	return ccs_update_pivot_root_acl(cp, data, is_delete);
 }
 
 /**
- * ccs_read_pivot_root_policy - Read "struct pivot_root_entry" list.
+ * ccs_read_pivot_root_policy - Read "struct ccs_pivot_root_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -197,9 +197,9 @@ int ccs_write_pivot_root_policy(char *data, const bool is_delete)
 bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
 {
 	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &pivot_root_list) {
-		struct pivot_root_entry *ptr;
-		ptr = list1_entry(pos, struct pivot_root_entry, list);
+	list1_for_each_cookie(pos, head->read_var2, &ccs_pivot_root_list) {
+		struct ccs_pivot_root_entry *ptr;
+		ptr = list1_entry(pos, struct ccs_pivot_root_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",

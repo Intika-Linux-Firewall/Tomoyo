@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2008  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/01
+ * Version: 1.6.6-pre   2008/12/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -17,18 +17,18 @@
 #include <linux/realpath.h>
 
 /* Structure for "deny_autobind" keyword. */
-struct reserved_entry {
+struct ccs_reserved_entry {
 	struct list1_head list;
 	bool is_deleted;             /* Delete flag.                         */
 	u16 min_port;                /* Start of port number range.          */
 	u16 max_port;                /* End of port number range.            */
 };
 
-/* The list for "struct reserved_entry". */
-static LIST1_HEAD(reservedport_list);
+/* The list for "struct ccs_reserved_entry". */
+static LIST1_HEAD(ccs_reservedport_list);
 
 /**
- * update_reserved_entry - Update "struct reserved_entry" list.
+ * ccs_update_reserved_entry - Update "struct ccs_reserved_entry" list.
  *
  * @min_port: Start of port number range.
  * @max_port: End of port number range.
@@ -36,14 +36,14 @@ static LIST1_HEAD(reservedport_list);
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int update_reserved_entry(const u16 min_port, const u16 max_port,
-				 const bool is_delete)
+static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
+				     const bool is_delete)
 {
-	struct reserved_entry *new_entry, *ptr;
+	struct ccs_reserved_entry *new_entry, *ptr;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &reservedport_list, list) {
+	list1_for_each_entry(ptr, &ccs_reservedport_list, list) {
 		if (ptr->min_port != min_port || max_port != ptr->max_port)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -59,7 +59,7 @@ static int update_reserved_entry(const u16 min_port, const u16 max_port,
 		goto out;
 	new_entry->min_port = min_port;
 	new_entry->max_port = max_port;
-	list1_add_tail_mb(&new_entry->list, &reservedport_list);
+	list1_add_tail_mb(&new_entry->list, &ccs_reservedport_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -77,10 +77,10 @@ static int update_reserved_entry(const u16 min_port, const u16 max_port,
 int ccs_may_autobind(const u16 port)
 {
 	/***** CRITICAL SECTION START *****/
-	struct reserved_entry *ptr;
+	struct ccs_reserved_entry *ptr;
 	if (!ccs_check_flags(NULL, CCS_SAKURA_RESTRICT_AUTOBIND))
 		return 0;
-	list1_for_each_entry(ptr, &reservedport_list, list) {
+	list1_for_each_entry(ptr, &ccs_reservedport_list, list) {
 		if (ptr->min_port <= port && port <= ptr->max_port &&
 		    !ptr->is_deleted)
 			return -EPERM;
@@ -91,7 +91,7 @@ int ccs_may_autobind(const u16 port)
 EXPORT_SYMBOL(ccs_may_autobind); /* for net/ipv4/ and net/ipv6/ */
 
 /**
- * ccs_write_reserved_port_policy - Write "struct reserved_entry" list.
+ * ccs_write_reserved_port_policy - Write "struct ccs_reserved_entry" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -106,10 +106,10 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
 		goto out;
 	if (sscanf(data, "%u-%u", &from, &to) == 2) {
 		if (from <= to && to < 65536)
-			return update_reserved_entry(from, to, is_delete);
+			return ccs_update_reserved_entry(from, to, is_delete);
 	} else if (sscanf(data, "%u", &from) == 1) {
 		if (from < 65536)
-			return update_reserved_entry(from, from, is_delete);
+			return ccs_update_reserved_entry(from, from, is_delete);
 	}
  out:
 	printk(KERN_WARNING "%s: ERROR: Invalid port range '%s'\n",
@@ -118,7 +118,7 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_read_reserved_port_policy - Read "struct reserved_entry" list.
+ * ccs_read_reserved_port_policy - Read "struct ccs_reserved_entry" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -129,10 +129,10 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 	struct list1_head *pos;
 	char buffer[16];
 	memset(buffer, 0, sizeof(buffer));
-	list1_for_each_cookie(pos, head->read_var2, &reservedport_list) {
+	list1_for_each_cookie(pos, head->read_var2, &ccs_reservedport_list) {
 		u16 min_port, max_port;
-		struct reserved_entry *ptr;
-		ptr = list1_entry(pos, struct reserved_entry, list);
+		struct ccs_reserved_entry *ptr;
+		ptr = list1_entry(pos, struct ccs_reserved_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		min_port = ptr->min_port;
