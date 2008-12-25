@@ -461,14 +461,14 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 static LIST1_HEAD(ccs_condition_list);
 
 enum ccs_conditions_index {
-	TASK_UID,             /* current->uid   */
-	TASK_EUID,            /* current->euid  */
-	TASK_SUID,            /* current->suid  */
-	TASK_FSUID,           /* current->fsuid */
-	TASK_GID,             /* current->gid   */
-	TASK_EGID,            /* current->egid  */
-	TASK_SGID,            /* current->sgid  */
-	TASK_FSGID,           /* current->fsgid */
+	TASK_UID,             /* current_uid()   */
+	TASK_EUID,            /* current_euid()  */
+	TASK_SUID,            /* current_suid()  */
+	TASK_FSUID,           /* current_fsuid() */
+	TASK_GID,             /* current_gid()   */
+	TASK_EGID,            /* current_egid()  */
+	TASK_SGID,            /* current_sgid()  */
+	TASK_FSGID,           /* current_fsgid() */
 	TASK_PID,             /* sys_getpid()   */
 	TASK_PPID,            /* sys_getppid()  */
 	EXEC_ARGC,            /* "struct linux_binprm *"->argc */
@@ -1121,28 +1121,28 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			bool is_bitop = false;
 			switch (index) {
 			case TASK_UID:
-				max_v = task->uid;
+				max_v = current_uid();
 				break;
 			case TASK_EUID:
-				max_v = task->euid;
+				max_v = current_euid();
 				break;
 			case TASK_SUID:
-				max_v = task->suid;
+				max_v = current_suid();
 				break;
 			case TASK_FSUID:
-				max_v = task->fsuid;
+				max_v = current_fsuid();
 				break;
 			case TASK_GID:
-				max_v = task->gid;
+				max_v = current_gid();
 				break;
 			case TASK_EGID:
-				max_v = task->egid;
+				max_v = current_egid();
 				break;
 			case TASK_SGID:
-				max_v = task->sgid;
+				max_v = current_sgid();
 				break;
 			case TASK_FSGID:
-				max_v = task->fsgid;
+				max_v = current_fsgid();
 				break;
 			case TASK_PID:
 				max_v = sys_getpid();

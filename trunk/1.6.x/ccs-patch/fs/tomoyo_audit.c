@@ -172,8 +172,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	char *buf;
 	char *bprm_info = "";
 	struct timeval tv;
-	struct task_struct *task = current;
-	u32 tomoyo_flags = task->tomoyo_flags;
+	u32 tomoyo_flags = current->tomoyo_flags;
 	const char *domainname;
 	if (!r->domain)
 		r->domain = current->domain_info;
@@ -194,9 +193,9 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n"
 			 "%s\n",
 			 tv.tv_sec, r->profile, ccs_mode_4[r->mode],
-			 (pid_t) sys_getpid(),
-			 task->uid, task->gid, task->euid, task->egid,
-			 task->suid, task->sgid, task->fsuid, task->fsgid,
+			 (pid_t) sys_getpid(), current_uid(), current_gid(),
+			 current_euid(), current_egid(), current_suid(),
+			 current_sgid(), current_fsuid(), current_fsgid(),
 			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
 			 (u8) (tomoyo_flags >> 8), bprm_info, domainname);
 	if (r->bprm)

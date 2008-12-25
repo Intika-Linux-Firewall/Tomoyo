@@ -50,6 +50,31 @@ extern asmlinkage long sys_getppid(void);
 #define __user
 #endif
 
+#ifndef current_uid
+#define current_uid()           (current->uid)
+#endif
+#ifndef current_gid
+#define current_gid()           (current->gid)
+#endif
+#ifndef current_euid
+#define current_euid()          (current->euid)
+#endif
+#ifndef current_egid
+#define current_egid()          (current->egid)
+#endif
+#ifndef current_suid
+#define current_suid()          (current->suid)
+#endif
+#ifndef current_sgid
+#define current_sgid()          (current->sgid)
+#endif
+#ifndef current_fsuid
+#define current_fsuid()         (current->fsuid)
+#endif
+#ifndef current_fsgid
+#define current_fsgid()         (current->fsgid)
+#endif
+
 #ifndef WARN_ON
 #define WARN_ON(x) do { } while (0)
 #endif
