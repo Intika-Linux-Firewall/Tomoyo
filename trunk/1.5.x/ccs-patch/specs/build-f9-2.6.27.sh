@@ -10,28 +10,23 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27.5-41.fc9.src.rpm ]
+if [ ! -r kernel-2.6.27.7-53.fc9.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.newkey/kernel-2.6.27.5-41.fc9.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.newkey/kernel-2.6.27.7-53.fc9.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.27.5-41.fc9.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.27.7-53.fc9.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.5.5-20081111.tar.gz ]
+if [ ! -r ccs-patch-1.5.5-20081225.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20081111.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.27-fedora-9.diff ]
-then
-    wget -O ccs-patch-2.6.27-fedora-9.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.27-fedora-9.diff?root=tomoyo'
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20081225.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-11-13 08:00:07.000000000 +0900
-+++ kernel.spec	2008-11-15 20:16:18.000000000 +0900
+--- kernel.spec	2008-11-27 15:33:14.000000000 +0900
++++ kernel.spec	2008-12-12 17:59:45.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -71,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -818,7 +823,7 @@
+@@ -823,7 +828,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -80,18 +75,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1297,6 +1302,10 @@
+@@ -1305,6 +1310,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.5.5-20081111.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.27-fedora-9.diff
++tar -zxf %_sourcedir/ccs-patch-1.5.5-20081225.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.27-fedora-9.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1325,6 +1334,9 @@
+@@ -1333,6 +1342,9 @@
  for i in *.config
  do
    mv $i .config
