@@ -468,18 +468,18 @@ genkernel --menuconfig all<br>
 
 <h2><a name="2.6-vanilla">Vanilla 2.6 kernels</a></h2>
 
-<p>2.6.11 and later are supported. The following is the case of version 2.6.27.10 .</p>
+<p>2.6.11 and later are supported. The following is the case of version 2.6.28 .</p>
 
 <table border="1">
 <tr><td>
 # Move to the source directory.<br>
 cd /usr/src/<br>
 # Download kernel source.<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.27.10.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.28.tar.bz2<br>
 # Extract.<br>
-tar -jxf linux-2.6.27.10.tar.bz2<br>
+tar -jxf linux-2.6.28.tar.bz2<br>
 # Move to the extracted directory.<br>
-cd linux-2.6.27.10<br>
+cd linux-2.6.28<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
@@ -487,12 +487,12 @@ wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081210.tar.gz<
 # Extract.<br>
 tar -zxf ccs-patch-1.6.5-20081210.tar.gz<br>
 # Apply the kernel patch.<br>
-patch -sp1 &lt; patches/ccs-patch-2.6.27.diff<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.28.diff<br>
 # Enable options for TOMOYO Linux.<br>
 make -s menuconfig<br>
 # Compile as usual.<br>
 make -s<br>
-make -s install modules modules_install
+make -s modules modules_install install
 </td></tr>
 </table>
 
