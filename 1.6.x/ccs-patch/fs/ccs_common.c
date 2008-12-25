@@ -1405,7 +1405,7 @@ static bool ccs_is_policy_manager(void)
 		return true;
 	if (task->tomoyo_flags & CCS_TASK_IS_POLICY_MANAGER)
 		return true;
-	if (!ccs_manage_by_non_root && (task->uid || task->euid))
+	if (!ccs_manage_by_non_root && (current_uid() || current_euid()))
 		return false;
 	list1_for_each_entry(ptr, &ccs_policy_manager_list, list) {
 		if (!ptr->is_deleted && ptr->is_domain

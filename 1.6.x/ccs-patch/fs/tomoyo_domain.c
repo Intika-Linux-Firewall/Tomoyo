@@ -1493,10 +1493,11 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 			 "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d "
 			 "sgid=%d fsuid=%d fsgid=%d state[0]=%u "
 			 "state[1]=%u state[2]=%u",
-			 (pid_t) sys_getpid(), task->uid, task->gid, task->euid,
-			 task->egid, task->suid, task->sgid, task->fsuid,
-			 task->fsgid, (u8) (tomoyo_flags >> 24),
-			 (u8) (tomoyo_flags >> 16), (u8) (tomoyo_flags >> 8));
+			 (pid_t) sys_getpid(), current_uid(), current_gid(),
+			 current_euid(), current_egid(), current_suid(),
+			 current_sgid(), current_fsuid(), current_fsgid(),
+			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
+			 (u8) (tomoyo_flags >> 8));
 		retval = copy_strings_kernel(1, &buffer, bprm);
 		if (retval < 0)
 			goto out;
