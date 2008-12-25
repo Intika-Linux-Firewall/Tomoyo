@@ -19,9 +19,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.5-20081210.tar.gz ]
+if [ ! -r ccs-patch-1.6.5-20081225.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081210.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081225.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -32,12 +32,13 @@ apt-get source linux-image-2.6.26-1-686 || die "Can't install kernel source."
 
 # Apply patches and create kernel config.
 cd linux-2.6-2.6.26 || die "Can't chdir to linux-2.6-2.6.26/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.5-20081210.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.5-20081225.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
 cat /boot/config-2.6.26-1-686 config.ccs > .config || die "Can't create config."
 yes | make -s oldconfig > /dev/null
 
 # Start compilation.
-make-kpkg --append-to-version -1-686-ccs --arch i386 --subarch i686 --arch-in-name --initrd linux-image || die "Failed to build kernel package."
+REVISION=`head -n 1 debian/changelog | awk ' { print $2 } ' | awk -F'(' ' { print $2 } ' |  awk -F')' ' { print $1 } '`
+make-kpkg --append-to-version -1-686-ccs --arch i386 --subarch i686 --arch-in-name --initrd --revision $REVISION linux-image || die "Failed to build kernel package."
 
 exit 0

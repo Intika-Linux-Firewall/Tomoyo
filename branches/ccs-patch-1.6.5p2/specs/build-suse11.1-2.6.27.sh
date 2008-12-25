@@ -60,24 +60,24 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.27.7-4.1.src.rpm ]
+if [ ! -r kernel-source-2.6.27.7-9.1.src.rpm ]
 then
-    wget http://download.opensuse.org/source/distribution/11.1-RC1/repo/oss/suse/src/kernel-source-2.6.27.7-4.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/source/distribution/11.1/repo/oss/suse/src/kernel-source-2.6.27.7-9.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.27.7-4.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.27.7-9.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.5-20081210.tar.gz ]
+if [ ! -r ccs-patch-1.6.5-20081225.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081210.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081225.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-11-26 00:11:30.000000000 +0900
-+++ kernel-default.spec	2008-12-10 17:56:41.000000000 +0900
-@@ -53,13 +53,13 @@
+--- kernel-default.spec	2008-12-05 10:41:43.000000000 +0900
++++ kernel-default.spec	2008-12-19 09:30:25.000000000 +0900
+@@ -57,13 +57,13 @@
  %if %build_vanilla || %build_kdump || %CONFIG_MODULES != "y"
  %define split_packages 0
  %else
@@ -89,17 +89,17 @@ patch << "EOF" || die "Can't patch spec file."
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
  Version:        2.6.27.7
--Release:        4
-+Release:        4_tomoyo_1.6.5
+-Release:        9
++Release:        9_tomoyo_1.6.5
  License:        GPL v2 only
  Group:          System/Kernel
  Url:            http://www.kernel.org/
-@@ -303,6 +303,10 @@
+@@ -308,6 +308,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.27
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.5-20081210.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.5-20081225.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.27-suse-11.1.diff
 +cat config.ccs >> .config
  cp .config .config.orig
