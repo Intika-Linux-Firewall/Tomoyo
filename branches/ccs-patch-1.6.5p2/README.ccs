@@ -1738,3 +1738,10 @@ Fix 2008/12/10
       MAX_REJECT_LOG were not working.
 
       This bug will trigger OOM killer if /usr/sbin/ccs-auditd is not working.
+
+Fix 2008/12/25
+
+    @ Fix ccs_check_flags() error message.
+
+      I meant to print SYAORAN-ERROR: message when error == -EPERM,
+      but I was printing it when error == 0 since 1.6.0 .
