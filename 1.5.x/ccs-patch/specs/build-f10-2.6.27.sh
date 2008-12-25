@@ -16,15 +16,10 @@ then
 fi
 rpm -ivh kernel-2.6.27.9-159.fc10.src.rpm || die "Can't install source package."
 
-cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.5.5-20081111.tar.gz ]
+cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+if [ ! -r ccs-patch-1.5.5-20081225.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20081111.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.27-fedora-10.diff ]
-then
-    wget -O ccs-patch-2.6.27-fedora-10.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.5.x/ccs-patch/patches/ccs-patch-2.6.27-fedora-10.diff?root=tomoyo'
+    wget http://osdn.dl.sourceforge.jp/tomoyo/27219/ccs-patch-1.5.5-20081225.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -85,8 +80,8 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.5.5-20081111.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.27-fedora-10.diff
++tar -zxf %_sourcedir/ccs-patch-1.5.5-20081225.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.27-fedora-10.diff
 +
  %endif
  
