@@ -16,7 +16,6 @@
 #include <linux/tomoyo.h>
 #include <linux/realpath.h>
 #include <linux/highmem.h>
-#include <linux/binfmts.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
@@ -900,22 +899,16 @@ static bool ccs_get_argv0(struct linux_binprm *bprm,
 	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
-	int i = pos / PAGE_SIZE;
 	int offset = pos % PAGE_SIZE;
 	bool done = false;
 	if (!bprm->argc)
 		goto out;
 	while (1) {
-		struct page *page;
+		struct page *page = ccs_get_arg_page(bprm, pos);
 		const char *kaddr;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page,
-				   NULL) <= 0)
+		if (!page)
 			goto out;
 		pos += PAGE_SIZE - offset;
-#else
-		page = bprm->page[i];
-#endif
 		/* Map. */
 		kaddr = kmap(page);
 		/* Read. */
@@ -944,10 +937,7 @@ static bool ccs_get_argv0(struct linux_binprm *bprm,
 		}
 		/* Unmap. */
 		kunmap(page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-		put_page(page);
-#endif
-		i++;
+		ccs_put_arg_page(page);
 		offset = 0;
 		if (done)
 			break;
@@ -1178,7 +1168,6 @@ static int ccs_check_environ(struct ccs_request_info *r)
 	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
-	int i = pos / PAGE_SIZE;
 	int offset = pos % PAGE_SIZE;
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
@@ -1187,16 +1176,11 @@ static int ccs_check_environ(struct ccs_request_info *r)
 	if (!r->mode || !envp_count)
 		return 0;
 	while (error == -ENOMEM) {
-		struct page *page;
+		struct page *page = ccs_get_arg_page(bprm, pos);
 		const char *kaddr;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page,
-				   NULL) <= 0)
+		if (!page)
 			goto out;
 		pos += PAGE_SIZE - offset;
-#else
-		page = bprm->page[i];
-#endif
 		/* Map. */
 		kaddr = kmap(page);
 		/* Read. */
@@ -1241,10 +1225,7 @@ static int ccs_check_environ(struct ccs_request_info *r)
 unmap_page:
 		/* Unmap. */
 		kunmap(page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-		put_page(page);
-#endif
-		i++;
+		ccs_put_arg_page(page);
 		offset = 0;
 	}
  out:

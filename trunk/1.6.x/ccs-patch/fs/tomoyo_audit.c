@@ -16,7 +16,6 @@
 #include <linux/tomoyo.h>
 #include <linux/realpath.h>
 #include <linux/highmem.h>
-#include <linux/binfmts.h>
 
 /**
  * ccs_print_bprm - Print "struct linux_binprm" for auditing.
@@ -33,7 +32,6 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 	char *last_start;
 	int len;
 	unsigned long pos = bprm->p;
-	int i = pos / PAGE_SIZE;
 	int offset = pos % PAGE_SIZE;
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
@@ -49,16 +47,11 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 	}
 	last_start = cp;
 	while (argv_count || envp_count) {
-		struct page *page;
+		struct page *page = ccs_get_arg_page(bprm, pos);
 		const char *kaddr;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page,
-				   NULL) <= 0)
+		if (!page)
 			goto out;
 		pos += PAGE_SIZE - offset;
-#else
-		page = bprm->page[i];
-#endif
 		/* Map */
 		kaddr = kmap(page);
 		/* Read. */
@@ -112,10 +105,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 		}
 		/* Unmap. */
 		kunmap(page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-		put_page(page);
-#endif
-		i++;
+		ccs_put_arg_page(page);
 		offset = 0;
 	}
 	*cp++ = '}';
