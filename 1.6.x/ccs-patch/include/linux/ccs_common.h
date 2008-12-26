@@ -24,6 +24,7 @@
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/poll.h>
+#include <linux/binfmts.h>
 #include <asm/uaccess.h>
 #include <stdarg.h>
 #include <linux/delay.h>
@@ -894,6 +895,39 @@ ccs_get_condition_part(const struct ccs_acl_info *acl)
 	return (acl->type & ACL_WITH_CONDITION) ?
 		acl->access_me_via_ccs_get_condition_part : NULL;
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
+
+/* Same with get_arg_page(bprm, pos, 0) in fs/exec.c */
+static inline struct page *ccs_get_arg_page(struct linux_binprm *bprm,
+					    unsigned long pos)
+{
+	struct page *page;
+	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
+		return NULL;
+	return page;
+}
+
+/* Same with put_arg_page(page) in fs/exec.c */
+static inline void ccs_put_arg_page(struct page *page)
+{
+	put_page(page);
+}
+
+#else
+
+static inline struct page *ccs_get_arg_page(struct linux_binprm *bprm,
+					    unsigned long pos)
+{
+	return bprm->page[pos / PAGE_SIZE];
+}
+
+static inline void ccs_put_arg_page(struct page *page)
+{
+}
+
+#endif
+
 
 /* A linked list of domains. */
 extern struct list1_head ccs_domain_list;

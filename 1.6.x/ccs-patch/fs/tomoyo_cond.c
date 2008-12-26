@@ -18,7 +18,6 @@
 
 #include <linux/tomoyo.h>
 #include <linux/highmem.h>
-#include <linux/binfmts.h>
 
 /* Structure for argv[]. */
 struct ccs_argv_entry {
@@ -121,7 +120,7 @@ static bool ccs_check_envp(const char *env_name, const char *env_value,
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_scan_bprm(const struct linux_binprm *bprm,
+static bool ccs_scan_bprm(struct linux_binprm *bprm,
 			  const u16 argc, const struct ccs_argv_entry *argv,
 			  const u16 envc, const struct ccs_envp_entry *envp,
 			  struct ccs_page_buffer *tmp)
@@ -149,7 +148,6 @@ static bool ccs_scan_bprm(const struct linux_binprm *bprm,
 	char *arg_ptr = tmp->buffer;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
-	int i = pos / PAGE_SIZE;
 	int offset = pos % PAGE_SIZE;
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
@@ -165,19 +163,13 @@ static bool ccs_scan_bprm(const struct linux_binprm *bprm,
 			return false;
 	}
 	while (argv_count || envp_count) {
-		struct page *page;
+		struct page *page = ccs_get_arg_page(bprm, pos);
 		const char *kaddr;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-		if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page,
-				   NULL) <= 0) {
-			printk(KERN_DEBUG "get_user_pages() failed\n");
+		if (!page) {
 			result = false;
 			goto out;
 		}
 		pos += PAGE_SIZE - offset;
-#else
-		page = bprm->page[i];
-#endif
 		/* Map. */
 		kaddr = kmap(page);
 		while (offset < PAGE_SIZE) {
@@ -231,16 +223,14 @@ static bool ccs_scan_bprm(const struct linux_binprm *bprm,
 		}
 		/* Unmap. */
 		kunmap(page);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-		put_page(page);
-#endif
-		i++;
+		ccs_put_arg_page(page);
 		offset = 0;
 		if (!result)
 			break;
 	}
  out:
 	if (result) {
+		int i;
 		/* Check not-yet-checked entries. */
 		for (i = 0; i < argc; i++) {
 			if (checked[i])
@@ -1084,7 +1074,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	u16 argc;
 	u16 envc;
 	const struct ccs_condition_list *cond = ccs_get_condition_part(acl);
-	const struct linux_binprm *bprm;
+	struct linux_binprm *bprm;
 	if (!cond)
 		return true;
 	condc = cond->condc;
