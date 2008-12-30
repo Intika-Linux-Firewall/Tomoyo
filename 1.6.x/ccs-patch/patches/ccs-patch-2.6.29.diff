@@ -1,4 +1,6 @@
-This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
+This is TOMOYO Linux patch for kernel 2.6.28-git2.
+
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapshots/patch-2.6.28-git2.bz2
 ---
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
@@ -34,25 +36,25 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  net/unix/af_unix.c              |   15 +++++
  32 files changed, 589 insertions(+), 2 deletions(-)
 
---- linux-2.6.28-rc9-mm1.orig/fs/Kconfig
-+++ linux-2.6.28-rc9-mm1/fs/Kconfig
-@@ -1604,4 +1604,6 @@ endif
+--- linux-2.6.28-git2.orig/fs/Kconfig
++++ linux-2.6.28-git2/fs/Kconfig
+@@ -1557,4 +1557,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
  
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.28-rc9-mm1.orig/fs/Makefile
-+++ linux-2.6.28-rc9-mm1/fs/Makefile
-@@ -125,3 +125,5 @@ obj-$(CONFIG_DEBUG_FS)		+= debugfs/
+--- linux-2.6.28-git2.orig/fs/Makefile
++++ linux-2.6.28-git2/fs/Makefile
+@@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
+ obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
- obj-$(CONFIG_NILFS2_FS)		+= nilfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.28-rc9-mm1.orig/fs/attr.c
-+++ linux-2.6.28-rc9-mm1/fs/attr.c
+--- linux-2.6.28-git2.orig/fs/attr.c
++++ linux-2.6.28-git2/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -63,7 +65,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  /* Taken over from the old code... */
  
-@@ -164,6 +167,13 @@ int notify_change(struct dentry * dentry
+@@ -162,6 +165,13 @@ int notify_change(struct dentry * dentry
  	error = security_inode_setattr(dentry, attr);
  	if (error)
  		return error;
@@ -77,8 +79,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	if (ia_valid & ATTR_SIZE)
  		down_write(&dentry->d_inode->i_alloc_sem);
---- linux-2.6.28-rc9-mm1.orig/fs/compat.c
-+++ linux-2.6.28-rc9-mm1/fs/compat.c
+--- linux-2.6.28-git2.orig/fs/compat.c
++++ linux-2.6.28-git2/fs/compat.c
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -89,7 +91,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  int compat_log = 1;
  
-@@ -1449,7 +1452,7 @@ int compat_do_execve(char * filename,
+@@ -1443,7 +1446,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -98,8 +100,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.28-rc9-mm1.orig/fs/compat_ioctl.c
-+++ linux-2.6.28-rc9-mm1/fs/compat_ioctl.c
+--- linux-2.6.28-git2.orig/fs/compat_ioctl.c
++++ linux-2.6.28-git2/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -110,7 +112,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2728,6 +2731,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2803,6 +2806,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -123,9 +125,9 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.28-rc9-mm1.orig/fs/exec.c
-+++ linux-2.6.28-rc9-mm1/fs/exec.c
-@@ -63,6 +63,10 @@
+--- linux-2.6.28-git2.orig/fs/exec.c
++++ linux-2.6.28-git2/fs/exec.c
+@@ -62,6 +62,10 @@
  #include <linux/a.out.h>
  #endif
  
@@ -136,7 +138,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
  int suid_dumpable = 0;
-@@ -131,6 +135,12 @@ asmlinkage long sys_uselib(const char __
+@@ -130,6 +134,12 @@ asmlinkage long sys_uselib(const char __
  	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
  	if (error)
  		goto exit;
@@ -149,7 +151,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	error = PTR_ERR(file);
-@@ -678,6 +688,15 @@ struct file *open_exec(const char *name)
+@@ -683,6 +693,15 @@ struct file *open_exec(const char *name)
  	err = vfs_permission(&nd, MAY_EXEC | MAY_OPEN);
  	if (err)
  		goto out_path_put;
@@ -165,7 +167,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	if (IS_ERR(file))
-@@ -1354,7 +1373,7 @@ int do_execve(char * filename,
+@@ -1359,7 +1378,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -174,8 +176,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.28-rc9-mm1.orig/fs/fcntl.c
-+++ linux-2.6.28-rc9-mm1/fs/fcntl.c
+--- linux-2.6.28-git2.orig/fs/fcntl.c
++++ linux-2.6.28-git2/fs/fcntl.c
 @@ -24,6 +24,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -199,8 +201,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.28-rc9-mm1.orig/fs/ioctl.c
-+++ linux-2.6.28-rc9-mm1/fs/ioctl.c
+--- linux-2.6.28-git2.orig/fs/ioctl.c
++++ linux-2.6.28-git2/fs/ioctl.c
 @@ -17,6 +17,9 @@
  #include <linux/buffer_head.h>
  
@@ -222,8 +224,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.28-rc9-mm1.orig/fs/namei.c
-+++ linux-2.6.28-rc9-mm1/fs/namei.c
+--- linux-2.6.28-git2.orig/fs/namei.c
++++ linux-2.6.28-git2/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -431,7 +433,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2617,6 +2722,10 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2619,6 +2724,10 @@ asmlinkage long sys_renameat(int olddfd,
  	char *from;
  	char *to;
  	int error;
@@ -442,7 +444,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	error = user_path_parent(olddfd, oldname, &oldnd, &from);
  	if (error)
-@@ -2673,6 +2782,17 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2675,6 +2784,17 @@ asmlinkage long sys_renameat(int olddfd,
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -460,8 +462,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
---- linux-2.6.28-rc9-mm1.orig/fs/namespace.c
-+++ linux-2.6.28-rc9-mm1/fs/namespace.c
+--- linux-2.6.28-git2.orig/fs/namespace.c
++++ linux-2.6.28-git2/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -574,8 +576,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.28-rc9-mm1.orig/fs/open.c
-+++ linux-2.6.28-rc9-mm1/fs/open.c
+--- linux-2.6.28-git2.orig/fs/open.c
++++ linux-2.6.28-git2/fs/open.c
 @@ -29,6 +29,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -639,17 +641,17 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.28-rc9-mm1.orig/fs/proc/Makefile
-+++ linux-2.6.28-rc9-mm1/fs/proc/Makefile
-@@ -26,3 +26,6 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
+--- linux-2.6.28-git2.orig/fs/proc/Makefile
++++ linux-2.6.28-git2/fs/proc/Makefile
+@@ -25,3 +25,6 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
  proc-$(CONFIG_PRINTK)	+= kmsg.o
  proc-$(CONFIG_PROC_PAGE_MONITOR)	+= page.o
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.28-rc9-mm1.orig/fs/proc/version.c
-+++ linux-2.6.28-rc9-mm1/fs/proc/version.c
+--- linux-2.6.28-git2.orig/fs/proc/version.c
++++ linux-2.6.28-git2/fs/proc/version.c
 @@ -32,3 +32,14 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -659,14 +661,14 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-rc9-mm1 2008/12/25\n");
++	printk(KERN_INFO "Hook version: 2.6.28-git2 2008/12/30\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 +#endif
 +/***** CCS end. *****/
---- linux-2.6.28-rc9-mm1.orig/include/linux/init_task.h
-+++ linux-2.6.28-rc9-mm1/include/linux/init_task.h
+--- linux-2.6.28-git2.orig/include/linux/init_task.h
++++ linux-2.6.28-git2/include/linux/init_task.h
 @@ -178,6 +178,10 @@ extern struct cred init_cred;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
@@ -678,8 +680,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  }
  
  
---- linux-2.6.28-rc9-mm1.orig/include/linux/sched.h
-+++ linux-2.6.28-rc9-mm1/include/linux/sched.h
+--- linux-2.6.28-git2.orig/include/linux/sched.h
++++ linux-2.6.28-git2/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -692,7 +694,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  /*
   * Scheduling policies
   */
-@@ -1397,6 +1402,10 @@ struct task_struct {
+@@ -1341,6 +1346,10 @@ struct task_struct {
  	/* state flags for use by tracers */
  	unsigned long trace;
  #endif
@@ -703,10 +705,10 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  };
  
  /*
---- linux-2.6.28-rc9-mm1.orig/kernel/compat.c
-+++ linux-2.6.28-rc9-mm1/kernel/compat.c
-@@ -27,6 +27,9 @@
- #include <linux/ptrace.h>
+--- linux-2.6.28-git2.orig/kernel/compat.c
++++ linux-2.6.28-git2/kernel/compat.c
+@@ -26,6 +26,9 @@
+ #include <linux/times.h>
  
  #include <asm/uaccess.h>
 +/***** TOMOYO Linux start. *****/
@@ -715,7 +717,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  /*
   * Note that the native side is already converted to a timespec, because
-@@ -904,6 +907,10 @@ asmlinkage long compat_sys_stime(compat_
+@@ -901,6 +904,10 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -726,8 +728,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.28-rc9-mm1.orig/kernel/kexec.c
-+++ linux-2.6.28-rc9-mm1/kernel/kexec.c
+--- linux-2.6.28-git2.orig/kernel/kexec.c
++++ linux-2.6.28-git2/kernel/kexec.c
 @@ -37,6 +37,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -749,8 +751,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.28-rc9-mm1.orig/kernel/kmod.c
-+++ linux-2.6.28-rc9-mm1/kernel/kmod.c
+--- linux-2.6.28-git2.orig/kernel/kmod.c
++++ linux-2.6.28-git2/kernel/kmod.c
 @@ -175,6 +175,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -763,8 +765,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.28-rc9-mm1.orig/kernel/module.c
-+++ linux-2.6.28-rc9-mm1/kernel/module.c
+--- linux-2.6.28-git2.orig/kernel/module.c
++++ linux-2.6.28-git2/kernel/module.c
 @@ -51,6 +51,9 @@
  #include <asm/sections.h>
  #include <linux/tracepoint.h>
@@ -786,7 +788,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2277,6 +2284,10 @@ sys_init_module(void __user *umod,
+@@ -2290,6 +2297,10 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -797,8 +799,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.28-rc9-mm1.orig/kernel/ptrace.c
-+++ linux-2.6.28-rc9-mm1/kernel/ptrace.c
+--- linux-2.6.28-git2.orig/kernel/ptrace.c
++++ linux-2.6.28-git2/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -807,9 +809,9 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
  
+ 
  /*
-  * ptrace a task: make the debugger its new parent and
-@@ -566,6 +569,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -578,6 +581,12 @@ asmlinkage long sys_ptrace(long request,
  {
  	struct task_struct *child;
  	long ret;
@@ -822,7 +824,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -689,6 +698,12 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -701,6 +710,12 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -835,8 +837,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.28-rc9-mm1.orig/kernel/sched.c
-+++ linux-2.6.28-rc9-mm1/kernel/sched.c
+--- linux-2.6.28-git2.orig/kernel/sched.c
++++ linux-2.6.28-git2/kernel/sched.c
 @@ -76,6 +76,9 @@
  
  #include <asm/tlb.h>
@@ -847,7 +849,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  #include "sched_cpupri.h"
  
-@@ -5119,6 +5122,10 @@ int can_nice(const struct task_struct *p
+@@ -5017,6 +5020,10 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -858,8 +860,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.28-rc9-mm1.orig/kernel/signal.c
-+++ linux-2.6.28-rc9-mm1/kernel/signal.c
+--- linux-2.6.28-git2.orig/kernel/signal.c
++++ linux-2.6.28-git2/kernel/signal.c
 @@ -34,6 +34,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -870,7 +872,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  /*
   * SLAB caches for signal bits.
-@@ -2227,6 +2230,12 @@ asmlinkage long
+@@ -2226,6 +2229,12 @@ asmlinkage long
  sys_kill(pid_t pid, int sig)
  {
  	struct siginfo info;
@@ -883,7 +885,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2288,6 +2297,12 @@ asmlinkage long sys_tgkill(pid_t tgid, p
+@@ -2287,6 +2296,12 @@ asmlinkage long sys_tgkill(pid_t tgid, p
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -896,7 +898,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2301,6 +2316,12 @@ sys_tkill(pid_t pid, int sig)
+@@ -2300,6 +2315,12 @@ sys_tkill(pid_t pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -909,9 +911,9 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.28-rc9-mm1.orig/kernel/sys.c
-+++ linux-2.6.28-rc9-mm1/kernel/sys.c
-@@ -43,6 +43,9 @@
+--- linux-2.6.28-git2.orig/kernel/sys.c
++++ linux-2.6.28-git2/kernel/sys.c
+@@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
  #include <asm/unistd.h>
@@ -921,7 +923,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -153,6 +156,12 @@ asmlinkage long sys_setpriority(int whic
+@@ -152,6 +155,12 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -934,7 +936,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -370,6 +379,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -369,6 +378,10 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -945,7 +947,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1414,6 +1427,10 @@ asmlinkage long sys_sethostname(char __u
+@@ -1412,6 +1425,10 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -956,7 +958,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1463,6 +1480,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1461,6 +1478,10 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -967,9 +969,9 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.28-rc9-mm1.orig/kernel/sysctl.c
-+++ linux-2.6.28-rc9-mm1/kernel/sysctl.c
-@@ -52,6 +52,9 @@
+--- linux-2.6.28-git2.orig/kernel/sysctl.c
++++ linux-2.6.28-git2/kernel/sysctl.c
+@@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
  #include <asm/processor.h>
@@ -979,7 +981,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1682,6 +1685,93 @@ repeat:
+@@ -1616,6 +1619,93 @@ repeat:
  	return -ENOTDIR;
  }
  
@@ -1073,7 +1075,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1698,6 +1788,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1632,6 +1722,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1085,9 +1087,9 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.28-rc9-mm1.orig/kernel/time.c
-+++ linux-2.6.28-rc9-mm1/kernel/time.c
-@@ -41,6 +41,9 @@
+--- linux-2.6.28-git2.orig/kernel/time.c
++++ linux-2.6.28-git2/kernel/time.c
+@@ -40,6 +40,9 @@
  
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1097,7 +1099,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  #include "timeconst.h"
  
-@@ -92,6 +95,10 @@ asmlinkage long sys_stime(time_t __user 
+@@ -90,6 +93,10 @@ asmlinkage long sys_stime(time_t __user 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -1108,7 +1110,7 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -163,6 +170,10 @@ int do_sys_settimeofday(struct timespec 
+@@ -161,6 +168,10 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -1119,8 +1121,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.28-rc9-mm1.orig/kernel/time/ntp.c
-+++ linux-2.6.28-rc9-mm1/kernel/time/ntp.c
+--- linux-2.6.28-git2.orig/kernel/time/ntp.c
++++ linux-2.6.28-git2/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/clocksource.h>
  #include <linux/workqueue.h>
@@ -1150,8 +1152,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  		/* if the quartz is off by more than 10% something is VERY wrong! */
  		if (txc->modes & ADJ_TICK &&
---- linux-2.6.28-rc9-mm1.orig/net/core/datagram.c
-+++ linux-2.6.28-rc9-mm1/net/core/datagram.c
+--- linux-2.6.28-git2.orig/net/core/datagram.c
++++ linux-2.6.28-git2/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1177,8 +1179,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  		if (skb)
  			return skb;
  
---- linux-2.6.28-rc9-mm1.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.28-rc9-mm1/net/ipv4/inet_connection_sock.c
+--- linux-2.6.28-git2.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.28-git2/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1200,8 +1202,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (ib_net(tb) == net && tb->port == rover)
  					goto next;
---- linux-2.6.28-rc9-mm1.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.28-rc9-mm1/net/ipv4/inet_hashtables.c
+--- linux-2.6.28-git2.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.28-git2/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1223,8 +1225,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.28-rc9-mm1.orig/net/ipv4/udp.c
-+++ linux-2.6.28-rc9-mm1/net/ipv4/udp.c
+--- linux-2.6.28-git2.orig/net/ipv4/udp.c
++++ linux-2.6.28-git2/net/ipv4/udp.c
 @@ -105,6 +105,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1253,8 +1255,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  			do {
  				snum = snum + rand;
  			} while (snum < low || snum > high);
---- linux-2.6.28-rc9-mm1.orig/net/socket.c
-+++ linux-2.6.28-rc9-mm1/net/socket.c
+--- linux-2.6.28-git2.orig/net/socket.c
++++ linux-2.6.28-git2/net/socket.c
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1345,8 +1347,8 @@ This is TOMOYO Linux patch for mmotm 2008-12-22-16-14.
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
---- linux-2.6.28-rc9-mm1.orig/net/unix/af_unix.c
-+++ linux-2.6.28-rc9-mm1/net/unix/af_unix.c
+--- linux-2.6.28-git2.orig/net/unix/af_unix.c
++++ linux-2.6.28-git2/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
