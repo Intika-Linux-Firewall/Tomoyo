@@ -3,7 +3,7 @@
  *
  * Implementation of the Tamper-Proof Device Filesystem.
  *
- * Portions Copyright (C) 2005-2008  NTT DATA CORPORATION
+ * Portions Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
  * Version: 1.6.6-pre   2008/12/24
  *

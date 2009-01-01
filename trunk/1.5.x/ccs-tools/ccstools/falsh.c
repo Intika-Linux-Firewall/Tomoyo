@@ -4,7 +4,7 @@
  * A tiny shell without built-in commands.
  * ( http://sourceforge.jp/projects/tomoyo/document/winf2005-en.pdf )
  *
- * Copyright (C) 2005-2006  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
  * Version: 1.0 2005/11/11
  *

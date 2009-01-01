@@ -3,7 +3,7 @@
  *
  * Testing program for fs/tomoyo_signal.c
  *
- * Copyright (C) 2005-2007  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
  * Version: 1.5.0   2007/09/20
  *

@@ -3,7 +3,7 @@
  *
  * Generate policy template file for SYAORAN.
  *
- * Copyright (C) 2005-2006  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
  * Version: 1.3.1   2006/12/08
  *
