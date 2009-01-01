@@ -1,60 +1,60 @@
-This is TOMOYO Linux patch for kernel 2.6.28-git3.
+This is TOMOYO Linux patch for kernel 2.6.28-git4.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapshots/patch-2.6.28-git3.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapshots/patch-2.6.28-git4.bz2
 ---
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
- fs/attr.c                       |   10 +++
+ fs/attr.c                       |   10 ++
  fs/compat.c                     |    5 +
- fs/compat_ioctl.c               |    9 +++
- fs/exec.c                       |   21 ++++++-
- fs/fcntl.c                      |    9 +++
+ fs/compat_ioctl.c               |    9 ++
+ fs/exec.c                       |   21 +++++-
+ fs/fcntl.c                      |    9 ++
  fs/ioctl.c                      |    7 ++
- fs/namei.c                      |  120 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   49 ++++++++++++++++
- fs/open.c                       |   28 +++++++++
- fs/proc/Makefile                |    3 +
+ fs/namei.c                      |  139 ++++++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   49 ++++++++++++++
+ fs/open.c                       |   28 ++++++++
+ fs/proc/Makefile                |    3 
  fs/proc/version.c               |   11 +++
  include/linux/init_task.h       |    4 +
- include/linux/sched.h           |    9 +++
+ include/linux/sched.h           |    9 ++
  kernel/compat.c                 |    7 ++
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
  kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |   15 +++++
+ kernel/ptrace.c                 |   15 ++++
  kernel/sched.c                  |    7 ++
- kernel/signal.c                 |   21 +++++++
- kernel/sys.c                    |   21 +++++++
- kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++++++
+ kernel/signal.c                 |   21 ++++++
+ kernel/sys.c                    |   21 ++++++
+ kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++
  kernel/time.c                   |   11 +++
  kernel/time/ntp.c               |   11 +++
  net/core/datagram.c             |   11 +++
  net/ipv4/inet_connection_sock.c |    7 ++
  net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |   10 +++
- net/socket.c                    |   41 +++++++++++++
- net/unix/af_unix.c              |   15 +++++
- 32 files changed, 589 insertions(+), 2 deletions(-)
+ net/ipv4/udp.c                  |   10 ++
+ net/socket.c                    |   41 +++++++++++
+ net/unix/af_unix.c              |   16 ++++
+ 32 files changed, 609 insertions(+), 2 deletions(-)
 
---- linux-2.6.28-git3.orig/fs/Kconfig
-+++ linux-2.6.28-git3/fs/Kconfig
-@@ -1557,4 +1557,6 @@ endif
+--- linux-2.6.28-git4.orig/fs/Kconfig
++++ linux-2.6.28-git4/fs/Kconfig
+@@ -1520,4 +1520,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
  
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.28-git3.orig/fs/Makefile
-+++ linux-2.6.28-git3/fs/Makefile
-@@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
+--- linux-2.6.28-git4.orig/fs/Makefile
++++ linux-2.6.28-git4/fs/Makefile
+@@ -119,3 +119,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.28-git3.orig/fs/attr.c
-+++ linux-2.6.28-git3/fs/attr.c
+--- linux-2.6.28-git4.orig/fs/attr.c
++++ linux-2.6.28-git4/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -79,8 +79,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	if (ia_valid & ATTR_SIZE)
  		down_write(&dentry->d_inode->i_alloc_sem);
---- linux-2.6.28-git3.orig/fs/compat.c
-+++ linux-2.6.28-git3/fs/compat.c
+--- linux-2.6.28-git4.orig/fs/compat.c
++++ linux-2.6.28-git4/fs/compat.c
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -100,8 +100,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.28-git3.orig/fs/compat_ioctl.c
-+++ linux-2.6.28-git3/fs/compat_ioctl.c
+--- linux-2.6.28-git4.orig/fs/compat_ioctl.c
++++ linux-2.6.28-git4/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -125,8 +125,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.28-git3.orig/fs/exec.c
-+++ linux-2.6.28-git3/fs/exec.c
+--- linux-2.6.28-git4.orig/fs/exec.c
++++ linux-2.6.28-git4/fs/exec.c
 @@ -62,6 +62,10 @@
  #include <linux/a.out.h>
  #endif
@@ -138,8 +138,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
  int suid_dumpable = 0;
-@@ -130,6 +134,12 @@ asmlinkage long sys_uselib(const char __
- 	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
+@@ -131,6 +135,12 @@ asmlinkage long sys_uselib(const char __
+ 				 MAY_READ | MAY_EXEC | MAY_OPEN);
  	if (error)
  		goto exit;
 +	/***** TOMOYO Linux start. *****/
@@ -151,8 +151,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	error = PTR_ERR(file);
-@@ -683,6 +693,15 @@ struct file *open_exec(const char *name)
- 	err = vfs_permission(&nd, MAY_EXEC | MAY_OPEN);
+@@ -684,6 +694,15 @@ struct file *open_exec(const char *name)
+ 	err = inode_permission(nd.path.dentry->d_inode, MAY_EXEC | MAY_OPEN);
  	if (err)
  		goto out_path_put;
 +	/***** TOMOYO Linux start. *****/
@@ -167,7 +167,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	if (IS_ERR(file))
-@@ -1357,7 +1376,7 @@ int do_execve(char * filename,
+@@ -1358,7 +1377,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -176,8 +176,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.28-git3.orig/fs/fcntl.c
-+++ linux-2.6.28-git3/fs/fcntl.c
+--- linux-2.6.28-git4.orig/fs/fcntl.c
++++ linux-2.6.28-git4/fs/fcntl.c
 @@ -24,6 +24,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -201,8 +201,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.28-git3.orig/fs/ioctl.c
-+++ linux-2.6.28-git3/fs/ioctl.c
+--- linux-2.6.28-git4.orig/fs/ioctl.c
++++ linux-2.6.28-git4/fs/ioctl.c
 @@ -17,6 +17,9 @@
  #include <linux/buffer_head.h>
  
@@ -224,8 +224,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.28-git3.orig/fs/namei.c
-+++ linux-2.6.28-git3/fs/namei.c
+--- linux-2.6.28-git4.orig/fs/namei.c
++++ linux-2.6.28-git4/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -237,28 +237,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1486,6 +1490,14 @@ int vfs_create(struct inode *dir, struct
- 	error = security_inode_create(dir, dentry, mode);
- 	if (error)
- 		return error;
-+	/***** TOMOYO Linux start. *****/
-+	if (nd) {
-+		error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry,
-+					     nd->path.mnt);
-+		if (error)
-+			return error;
-+	}
-+	/***** TOMOYO Linux end. *****/
- 	DQUOT_INIT(dir);
- 	error = dir->i_op->create(dir, dentry, mode, nd);
- 	if (!error)
-@@ -1540,6 +1552,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1530,6 +1534,13 @@ int may_open(struct path *path, int acc_
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
 +	/***** TOMOYO Linux start. *****/
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_check_open_permission(dentry, nd->path.mnt, flag);
++	error = ccs_check_open_permission(dentry, path->mnt, flag);
 +	if (error)
 +		return error;
 +	/***** TOMOYO Linux end. *****/
@@ -266,8 +251,42 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1596,6 +1615,9 @@ static int __open_namei_create(struct na
- 	return may_open(nd, 0, flag & ~O_TRUNC);
+@@ -1566,6 +1577,18 @@ int may_open(struct path *path, int acc_
+ 	return 0;
+ }
+ 
++/***** TOMOYO Linux start. *****/
++static int pre_vfs_create(struct inode *dir, struct dentry *dentry)
++{
++	int error = may_create(dir, dentry);
++	if (error)
++		return error;
++	if (!dir->i_op || !dir->i_op->create)
++		return -EACCES;	/* shouldn't it be ENOSYS? */
++	return 0;
++}
++/***** TOMOYO Linux end. *****/
++
+ /*
+  * Be careful about ever adding any more callers of this
+  * function.  Its flags must be in the namei format, not
+@@ -1580,6 +1603,14 @@ static int __open_namei_create(struct na
+ 	if (!IS_POSIXACL(dir->d_inode))
+ 		mode &= ~current->fs->umask;
+ 	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = pre_vfs_create(dir->d_inode, path->dentry);
++	if (!error)
++		error = ccs_check_1path_perm(TYPE_CREATE_ACL,
++					     path->dentry,
++					     nd->path.mnt);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_unlock;
+ 	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
+@@ -1593,6 +1624,9 @@ out_unlock:
+ 	return may_open(&nd->path, 0, flag & ~O_TRUNC);
  }
  
 +/***** TOMOYO Linux start. *****/
@@ -276,7 +295,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1956,6 +1978,16 @@ int vfs_mknod(struct inode *dir, struct 
+@@ -1953,6 +1987,16 @@ int vfs_mknod(struct inode *dir, struct 
  
  static int may_mknod(mode_t mode)
  {
@@ -293,7 +312,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	switch (mode & S_IFMT) {
  	case S_IFREG:
  	case S_IFCHR:
-@@ -2004,10 +2036,34 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2001,13 +2045,46 @@ asmlinkage long sys_mknodat(int dfd, con
+ 		goto out_drop_write;
+ 	switch (mode & S_IFMT) {
+ 		case 0: case S_IFREG:
++			/***** TOMOYO Linux start. *****/
++			error = pre_vfs_create(nd.path.dentry->d_inode, dentry);
++			if (error)
++				break;
++			error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry,
++						     nd.path.mnt);
++			if (error)
++				break;
++			/***** TOMOYO Linux end. *****/
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -328,35 +359,35 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
-@@ -2070,6 +2126,13 @@ asmlinkage long sys_mkdirat(int dfd, con
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2072,6 +2149,13 @@ asmlinkage long sys_mkdirat(int dfd, con
  	if (error)
  		goto out_dput;
+ 	error = security_path_mkdir(&nd.path, dentry, mode);
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_mkdir(nd.path.dentry->d_inode, dentry);
++	if (!error)
++		error = pre_vfs_mkdir(nd.path.dentry->d_inode, dentry);
 +	if (!error)
 +		error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry,
 +					     nd.path.mnt);
-+	if (!error)
 +	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
- 	mnt_drop_write(nd.path.mnt);
- out_dput:
-@@ -2180,6 +2243,13 @@ static long do_rmdir(int dfd, const char
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2186,6 +2270,13 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
+ 	error = security_path_rmdir(&nd.path, dentry);
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rmdir(nd.path.dentry->d_inode, dentry);
++	if (!error)
++		error = pre_vfs_rmdir(nd.path.dentry->d_inode, dentry);
 +	if (!error)
 +		error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry,
 +					     nd.path.mnt);
-+	if (!error)
 +	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
- 	mnt_drop_write(nd.path.mnt);
- exit3:
-@@ -2241,6 +2311,10 @@ static long do_unlinkat(int dfd, const c
+@@ -2250,6 +2341,10 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -367,21 +398,21 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	error = user_path_parent(dfd, pathname, &nd, &name);
  	if (error)
-@@ -2265,6 +2339,13 @@ static long do_unlinkat(int dfd, const c
- 		error = mnt_want_write(nd.path.mnt);
+@@ -2275,6 +2370,13 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
+ 		error = security_path_unlink(&nd.path, dentry);
 +		/***** TOMOYO Linux start. *****/
-+		error = pre_vfs_unlink(nd.path.dentry->d_inode, dentry);
++		if (!error)
++			error = pre_vfs_unlink(nd.path.dentry->d_inode, dentry);
 +		if (!error)
 +			error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry,
 +						     nd.path.mnt);
-+		if (!error)
 +		/***** TOMOYO Linux end. *****/
+ 		if (error)
+ 			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
- 		mnt_drop_write(nd.path.mnt);
- 	exit2:
-@@ -2329,6 +2410,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2342,6 +2444,10 @@ asmlinkage long sys_symlinkat(const char
  	char *to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -392,21 +423,21 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	from = getname(oldname);
  	if (IS_ERR(from))
-@@ -2346,6 +2431,13 @@ asmlinkage long sys_symlinkat(const char
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2360,6 +2466,13 @@ asmlinkage long sys_symlinkat(const char
  	if (error)
  		goto out_dput;
+ 	error = security_path_symlink(&nd.path, dentry, from);
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_symlink(nd.path.dentry->d_inode, dentry);
++	if (!error)
++		error = pre_vfs_symlink(nd.path.dentry->d_inode, dentry);
 +	if (!error)
 +		error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry,
 +					     nd.path.mnt);
-+	if (!error)
 +	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
- 	mnt_drop_write(nd.path.mnt);
- out_dput:
-@@ -2423,6 +2515,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2440,6 +2553,10 @@ asmlinkage long sys_linkat(int olddfd, c
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
@@ -417,23 +448,23 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	error = user_path_at(olddfd, oldname,
  			     flags & AT_SYMLINK_FOLLOW ? LOOKUP_FOLLOW : 0,
-@@ -2443,6 +2539,15 @@ asmlinkage long sys_linkat(int olddfd, c
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2461,6 +2578,15 @@ asmlinkage long sys_linkat(int olddfd, c
  	if (error)
  		goto out_dput;
+ 	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_link(old_path.dentry, nd.path.dentry->d_inode,
-+			     new_dentry);
++	if (!error)
++		error = pre_vfs_link(old_path.dentry, nd.path.dentry->d_inode,
++				     new_dentry);
 +	if (!error)
 +		error = ccs_check_2path_perm(TYPE_LINK_ACL, old_path.dentry,
 +					     old_path.mnt, new_dentry,
 +					     nd.path.mnt);
-+	if (!error)
 +	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
- 	mnt_drop_write(nd.path.mnt);
- out_dput:
-@@ -2619,6 +2724,10 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2640,6 +2766,10 @@ asmlinkage long sys_renameat(int olddfd,
  	char *from;
  	char *to;
  	int error;
@@ -444,26 +475,24 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	error = user_path_parent(olddfd, oldname, &oldnd, &from);
  	if (error)
-@@ -2675,6 +2784,17 @@ asmlinkage long sys_renameat(int olddfd,
- 	error = -ENOTEMPTY;
- 	if (new_dentry == trap)
+@@ -2702,6 +2832,15 @@ asmlinkage long sys_renameat(int olddfd,
  		goto exit5;
+ 	error = security_path_rename(&oldnd.path, old_dentry,
+ 				     &newnd.path, new_dentry);
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rename(old_dir->d_inode, old_dentry,
-+			       new_dir->d_inode, new_dentry);
-+	if (error)
-+		goto exit5;
-+	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
-+				     oldnd.path.mnt, new_dentry,
-+				     newnd.path.mnt);
-+	if (error)
-+		goto exit5;
++	if (!error)
++		error = pre_vfs_rename(old_dir->d_inode, old_dentry,
++				       new_dir->d_inode, new_dentry);
++	if (!error)
++		error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
++					     oldnd.path.mnt, new_dentry,
++					     newnd.path.mnt);
 +	/***** TOMOYO Linux end. *****/
- 
- 	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
---- linux-2.6.28-git3.orig/fs/namespace.c
-+++ linux-2.6.28-git3/fs/namespace.c
+ 		goto exit6;
+ 	error = vfs_rename(old_dir->d_inode, old_dentry,
+--- linux-2.6.28-git4.orig/fs/namespace.c
++++ linux-2.6.28-git4/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -576,8 +605,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.28-git3.orig/fs/open.c
-+++ linux-2.6.28-git3/fs/open.c
+--- linux-2.6.28-git4.orig/fs/open.c
++++ linux-2.6.28-git4/fs/open.c
 @@ -29,6 +29,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -591,31 +620,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -271,6 +277,11 @@ static long do_sys_truncate(const char _
- 	if (error)
- 		goto put_write_and_out;
- 
-+	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, path.dentry, path.mnt);
-+	if (error)
-+		goto put_write_and_out;
-+	/***** TOMOYO Linux end. *****/
+@@ -274,6 +280,11 @@ static long do_sys_truncate(const char _
  	error = locks_verify_truncate(inode, NULL, length);
+ 	if (!error)
+ 		error = security_path_truncate(&path, length, 0);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, path.dentry,
++					     path.mnt);
++	/***** TOMOYO Linux end. *****/
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -327,6 +338,11 @@ static long do_sys_ftruncate(unsigned in
- 	if (IS_APPEND(inode))
- 		goto out_putf;
- 
+ 		error = do_truncate(path.dentry, length, 0, NULL);
+@@ -333,6 +344,11 @@ static long do_sys_ftruncate(unsigned in
+ 	if (!error)
+ 		error = security_path_truncate(&file->f_path, length,
+ 					       ATTR_MTIME|ATTR_CTIME);
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
-+	if (error)
-+		goto out_putf;
++	if (!error)
++		error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry,
++					     file->f_vfsmnt);
 +	/***** TOMOYO Linux end. *****/
- 	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -561,6 +577,14 @@ asmlinkage long sys_chroot(const char __
+ out_putf:
+@@ -566,6 +582,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -630,7 +659,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1135,6 +1159,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1140,6 +1164,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -641,8 +670,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.28-git3.orig/fs/proc/Makefile
-+++ linux-2.6.28-git3/fs/proc/Makefile
+--- linux-2.6.28-git4.orig/fs/proc/Makefile
++++ linux-2.6.28-git4/fs/proc/Makefile
 @@ -25,3 +25,6 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
  proc-$(CONFIG_PRINTK)	+= kmsg.o
@@ -650,8 +679,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.28-git3.orig/fs/proc/version.c
-+++ linux-2.6.28-git3/fs/proc/version.c
+--- linux-2.6.28-git4.orig/fs/proc/version.c
++++ linux-2.6.28-git4/fs/proc/version.c
 @@ -32,3 +32,14 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -661,15 +690,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-git3 2008/12/31\n");
++	printk(KERN_INFO "Hook version: 2.6.28-git4 2009/01/01\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 +#endif
 +/***** CCS end. *****/
---- linux-2.6.28-git3.orig/include/linux/init_task.h
-+++ linux-2.6.28-git3/include/linux/init_task.h
-@@ -178,6 +178,10 @@ extern struct cred init_cred;
+--- linux-2.6.28-git4.orig/include/linux/init_task.h
++++ linux-2.6.28-git4/include/linux/init_task.h
+@@ -179,6 +179,10 @@ extern struct cred init_cred;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
@@ -680,8 +709,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  }
  
  
---- linux-2.6.28-git3.orig/include/linux/sched.h
-+++ linux-2.6.28-git3/include/linux/sched.h
+--- linux-2.6.28-git4.orig/include/linux/sched.h
++++ linux-2.6.28-git4/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -705,8 +734,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  };
  
  /*
---- linux-2.6.28-git3.orig/kernel/compat.c
-+++ linux-2.6.28-git3/kernel/compat.c
+--- linux-2.6.28-git4.orig/kernel/compat.c
++++ linux-2.6.28-git4/kernel/compat.c
 @@ -26,6 +26,9 @@
  #include <linux/times.h>
  
@@ -728,8 +757,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.28-git3.orig/kernel/kexec.c
-+++ linux-2.6.28-git3/kernel/kexec.c
+--- linux-2.6.28-git4.orig/kernel/kexec.c
++++ linux-2.6.28-git4/kernel/kexec.c
 @@ -37,6 +37,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -751,8 +780,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.28-git3.orig/kernel/kmod.c
-+++ linux-2.6.28-git3/kernel/kmod.c
+--- linux-2.6.28-git4.orig/kernel/kmod.c
++++ linux-2.6.28-git4/kernel/kmod.c
 @@ -175,6 +175,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -765,8 +794,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.28-git3.orig/kernel/module.c
-+++ linux-2.6.28-git3/kernel/module.c
+--- linux-2.6.28-git4.orig/kernel/module.c
++++ linux-2.6.28-git4/kernel/module.c
 @@ -51,6 +51,9 @@
  #include <asm/sections.h>
  #include <linux/tracepoint.h>
@@ -799,8 +828,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.28-git3.orig/kernel/ptrace.c
-+++ linux-2.6.28-git3/kernel/ptrace.c
+--- linux-2.6.28-git4.orig/kernel/ptrace.c
++++ linux-2.6.28-git4/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -837,8 +866,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.28-git3.orig/kernel/sched.c
-+++ linux-2.6.28-git3/kernel/sched.c
+--- linux-2.6.28-git4.orig/kernel/sched.c
++++ linux-2.6.28-git4/kernel/sched.c
 @@ -76,6 +76,9 @@
  
  #include <asm/tlb.h>
@@ -860,8 +889,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.28-git3.orig/kernel/signal.c
-+++ linux-2.6.28-git3/kernel/signal.c
+--- linux-2.6.28-git4.orig/kernel/signal.c
++++ linux-2.6.28-git4/kernel/signal.c
 @@ -34,6 +34,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -911,8 +940,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.28-git3.orig/kernel/sys.c
-+++ linux-2.6.28-git3/kernel/sys.c
+--- linux-2.6.28-git4.orig/kernel/sys.c
++++ linux-2.6.28-git4/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -969,8 +998,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.28-git3.orig/kernel/sysctl.c
-+++ linux-2.6.28-git3/kernel/sysctl.c
+--- linux-2.6.28-git4.orig/kernel/sysctl.c
++++ linux-2.6.28-git4/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -1087,8 +1116,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.28-git3.orig/kernel/time.c
-+++ linux-2.6.28-git3/kernel/time.c
+--- linux-2.6.28-git4.orig/kernel/time.c
++++ linux-2.6.28-git4/kernel/time.c
 @@ -40,6 +40,9 @@
  
  #include <asm/uaccess.h>
@@ -1121,8 +1150,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.28-git3.orig/kernel/time/ntp.c
-+++ linux-2.6.28-git3/kernel/time/ntp.c
+--- linux-2.6.28-git4.orig/kernel/time/ntp.c
++++ linux-2.6.28-git4/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/clocksource.h>
  #include <linux/workqueue.h>
@@ -1152,8 +1181,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  		/* if the quartz is off by more than 10% something is VERY wrong! */
  		if (txc->modes & ADJ_TICK &&
---- linux-2.6.28-git3.orig/net/core/datagram.c
-+++ linux-2.6.28-git3/net/core/datagram.c
+--- linux-2.6.28-git4.orig/net/core/datagram.c
++++ linux-2.6.28-git4/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1179,8 +1208,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  		if (skb)
  			return skb;
  
---- linux-2.6.28-git3.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.28-git3/net/ipv4/inet_connection_sock.c
+--- linux-2.6.28-git4.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.28-git4/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1202,8 +1231,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (ib_net(tb) == net && tb->port == rover)
  					goto next;
---- linux-2.6.28-git3.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.28-git3/net/ipv4/inet_hashtables.c
+--- linux-2.6.28-git4.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.28-git4/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1225,8 +1254,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.28-git3.orig/net/ipv4/udp.c
-+++ linux-2.6.28-git3/net/ipv4/udp.c
+--- linux-2.6.28-git4.orig/net/ipv4/udp.c
++++ linux-2.6.28-git4/net/ipv4/udp.c
 @@ -105,6 +105,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1255,8 +1284,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  			do {
  				snum = snum + rand;
  			} while (snum < low || snum > high);
---- linux-2.6.28-git3.orig/net/socket.c
-+++ linux-2.6.28-git3/net/socket.c
+--- linux-2.6.28-git4.orig/net/socket.c
++++ linux-2.6.28-git4/net/socket.c
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1347,8 +1376,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
---- linux-2.6.28-git3.orig/net/unix/af_unix.c
-+++ linux-2.6.28-git3/net/unix/af_unix.c
+--- linux-2.6.28-git4.orig/net/unix/af_unix.c
++++ linux-2.6.28-git4/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1371,17 +1400,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -836,6 +844,13 @@ static int unix_bind(struct socket *sock
- 		err = mnt_want_write(nd.path.mnt);
+@@ -837,6 +845,14 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_dput;
+ 		err = security_path_mknod(&nd.path, dentry, mode, 0);
 +		/***** TOMOYO Linux start. *****/
-+		err = pre_vfs_mknod(nd.path.dentry->d_inode, dentry, mode);
++		if (!err)
++			err = pre_vfs_mknod(nd.path.dentry->d_inode, dentry,
++					    mode);
 +		if (!err)
 +			err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry,
 +						   nd.path.mnt);
-+		if (!err)
 +		/***** TOMOYO Linux end. *****/
- 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
- 		mnt_drop_write(nd.path.mnt);
  		if (err)
+ 			goto out_mknod_drop_write;
+ 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
