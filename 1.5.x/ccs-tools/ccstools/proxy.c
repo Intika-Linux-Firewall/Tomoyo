@@ -3,7 +3,7 @@
  *
  * Binds to local port explicitly before forwarding TCP connections.
  *
- * Copyright (C) 2005-2006  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
  * Version: 1.3     2006/11/11
  *

@@ -3,7 +3,7 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2008  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
  * Version: 1.5.5+   2008/09/04
  *

@@ -2,7 +2,7 @@
 #
 # Initial policy generator.
 #
-# Copyright (C) 2005-2007  NTT DATA CORPORATION
+# Copyright (C) 2005-2009  NTT DATA CORPORATION
 #
 # Version: 1.5.2   2007/12/05
 #
