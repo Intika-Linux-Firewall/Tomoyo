@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.6.28-git4.
+This is TOMOYO Linux patch for kernel 2.6.28-git5.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapshots/patch-2.6.28-git4.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapshots/patch-2.6.28-git5.bz2
 ---
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
@@ -36,8 +36,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  net/unix/af_unix.c              |   16 ++++
  32 files changed, 609 insertions(+), 2 deletions(-)
 
---- linux-2.6.28-git4.orig/fs/Kconfig
-+++ linux-2.6.28-git4/fs/Kconfig
+--- linux-2.6.28-git5.orig/fs/Kconfig
++++ linux-2.6.28-git5/fs/Kconfig
 @@ -1520,4 +1520,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -45,16 +45,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.28-git4.orig/fs/Makefile
-+++ linux-2.6.28-git4/fs/Makefile
+--- linux-2.6.28-git5.orig/fs/Makefile
++++ linux-2.6.28-git5/fs/Makefile
 @@ -119,3 +119,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.28-git4.orig/fs/attr.c
-+++ linux-2.6.28-git4/fs/attr.c
+--- linux-2.6.28-git5.orig/fs/attr.c
++++ linux-2.6.28-git5/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -79,8 +79,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	if (ia_valid & ATTR_SIZE)
  		down_write(&dentry->d_inode->i_alloc_sem);
---- linux-2.6.28-git4.orig/fs/compat.c
-+++ linux-2.6.28-git4/fs/compat.c
+--- linux-2.6.28-git5.orig/fs/compat.c
++++ linux-2.6.28-git5/fs/compat.c
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -100,8 +100,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.28-git4.orig/fs/compat_ioctl.c
-+++ linux-2.6.28-git4/fs/compat_ioctl.c
+--- linux-2.6.28-git5.orig/fs/compat_ioctl.c
++++ linux-2.6.28-git5/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -125,8 +125,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.28-git4.orig/fs/exec.c
-+++ linux-2.6.28-git4/fs/exec.c
+--- linux-2.6.28-git5.orig/fs/exec.c
++++ linux-2.6.28-git5/fs/exec.c
 @@ -62,6 +62,10 @@
  #include <linux/a.out.h>
  #endif
@@ -176,8 +176,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.28-git4.orig/fs/fcntl.c
-+++ linux-2.6.28-git4/fs/fcntl.c
+--- linux-2.6.28-git5.orig/fs/fcntl.c
++++ linux-2.6.28-git5/fs/fcntl.c
 @@ -24,6 +24,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -201,8 +201,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.28-git4.orig/fs/ioctl.c
-+++ linux-2.6.28-git4/fs/ioctl.c
+--- linux-2.6.28-git5.orig/fs/ioctl.c
++++ linux-2.6.28-git5/fs/ioctl.c
 @@ -17,6 +17,9 @@
  #include <linux/buffer_head.h>
  
@@ -224,8 +224,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.28-git4.orig/fs/namei.c
-+++ linux-2.6.28-git4/fs/namei.c
+--- linux-2.6.28-git5.orig/fs/namei.c
++++ linux-2.6.28-git5/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -491,8 +491,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (error)
  		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.28-git4.orig/fs/namespace.c
-+++ linux-2.6.28-git4/fs/namespace.c
+--- linux-2.6.28-git5.orig/fs/namespace.c
++++ linux-2.6.28-git5/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -605,8 +605,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.28-git4.orig/fs/open.c
-+++ linux-2.6.28-git4/fs/open.c
+--- linux-2.6.28-git5.orig/fs/open.c
++++ linux-2.6.28-git5/fs/open.c
 @@ -29,6 +29,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -670,8 +670,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.28-git4.orig/fs/proc/Makefile
-+++ linux-2.6.28-git4/fs/proc/Makefile
+--- linux-2.6.28-git5.orig/fs/proc/Makefile
++++ linux-2.6.28-git5/fs/proc/Makefile
 @@ -25,3 +25,6 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
  proc-$(CONFIG_PRINTK)	+= kmsg.o
@@ -679,8 +679,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.28-git4.orig/fs/proc/version.c
-+++ linux-2.6.28-git4/fs/proc/version.c
+--- linux-2.6.28-git5.orig/fs/proc/version.c
++++ linux-2.6.28-git5/fs/proc/version.c
 @@ -32,3 +32,14 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -690,14 +690,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-git4 2009/01/01\n");
++	printk(KERN_INFO "Hook version: 2.6.28-git5 2009/01/03\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 +#endif
 +/***** CCS end. *****/
---- linux-2.6.28-git4.orig/include/linux/init_task.h
-+++ linux-2.6.28-git4/include/linux/init_task.h
+--- linux-2.6.28-git5.orig/include/linux/init_task.h
++++ linux-2.6.28-git5/include/linux/init_task.h
 @@ -179,6 +179,10 @@ extern struct cred init_cred;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
@@ -709,8 +709,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  }
  
  
---- linux-2.6.28-git4.orig/include/linux/sched.h
-+++ linux-2.6.28-git4/include/linux/sched.h
+--- linux-2.6.28-git5.orig/include/linux/sched.h
++++ linux-2.6.28-git5/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -723,7 +723,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  /*
   * Scheduling policies
   */
-@@ -1341,6 +1346,10 @@ struct task_struct {
+@@ -1395,6 +1400,10 @@ struct task_struct {
  	/* state flags for use by tracers */
  	unsigned long trace;
  #endif
@@ -734,8 +734,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  };
  
  /*
---- linux-2.6.28-git4.orig/kernel/compat.c
-+++ linux-2.6.28-git4/kernel/compat.c
+--- linux-2.6.28-git5.orig/kernel/compat.c
++++ linux-2.6.28-git5/kernel/compat.c
 @@ -26,6 +26,9 @@
  #include <linux/times.h>
  
@@ -757,8 +757,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.28-git4.orig/kernel/kexec.c
-+++ linux-2.6.28-git4/kernel/kexec.c
+--- linux-2.6.28-git5.orig/kernel/kexec.c
++++ linux-2.6.28-git5/kernel/kexec.c
 @@ -37,6 +37,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -780,8 +780,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.28-git4.orig/kernel/kmod.c
-+++ linux-2.6.28-git4/kernel/kmod.c
+--- linux-2.6.28-git5.orig/kernel/kmod.c
++++ linux-2.6.28-git5/kernel/kmod.c
 @@ -175,6 +175,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -794,8 +794,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.28-git4.orig/kernel/module.c
-+++ linux-2.6.28-git4/kernel/module.c
+--- linux-2.6.28-git5.orig/kernel/module.c
++++ linux-2.6.28-git5/kernel/module.c
 @@ -51,6 +51,9 @@
  #include <asm/sections.h>
  #include <linux/tracepoint.h>
@@ -828,8 +828,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.28-git4.orig/kernel/ptrace.c
-+++ linux-2.6.28-git4/kernel/ptrace.c
+--- linux-2.6.28-git5.orig/kernel/ptrace.c
++++ linux-2.6.28-git5/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -866,8 +866,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.28-git4.orig/kernel/sched.c
-+++ linux-2.6.28-git4/kernel/sched.c
+--- linux-2.6.28-git5.orig/kernel/sched.c
++++ linux-2.6.28-git5/kernel/sched.c
 @@ -76,6 +76,9 @@
  
  #include <asm/tlb.h>
@@ -878,7 +878,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  #include "sched_cpupri.h"
  
-@@ -5014,6 +5017,10 @@ int can_nice(const struct task_struct *p
+@@ -5084,6 +5087,10 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -889,8 +889,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.28-git4.orig/kernel/signal.c
-+++ linux-2.6.28-git4/kernel/signal.c
+--- linux-2.6.28-git5.orig/kernel/signal.c
++++ linux-2.6.28-git5/kernel/signal.c
 @@ -34,6 +34,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -940,8 +940,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.28-git4.orig/kernel/sys.c
-+++ linux-2.6.28-git4/kernel/sys.c
+--- linux-2.6.28-git5.orig/kernel/sys.c
++++ linux-2.6.28-git5/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -998,8 +998,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.28-git4.orig/kernel/sysctl.c
-+++ linux-2.6.28-git4/kernel/sysctl.c
+--- linux-2.6.28-git5.orig/kernel/sysctl.c
++++ linux-2.6.28-git5/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -1116,8 +1116,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.28-git4.orig/kernel/time.c
-+++ linux-2.6.28-git4/kernel/time.c
+--- linux-2.6.28-git5.orig/kernel/time.c
++++ linux-2.6.28-git5/kernel/time.c
 @@ -40,6 +40,9 @@
  
  #include <asm/uaccess.h>
@@ -1150,8 +1150,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.28-git4.orig/kernel/time/ntp.c
-+++ linux-2.6.28-git4/kernel/time/ntp.c
+--- linux-2.6.28-git5.orig/kernel/time/ntp.c
++++ linux-2.6.28-git5/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/clocksource.h>
  #include <linux/workqueue.h>
@@ -1181,8 +1181,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  		/* if the quartz is off by more than 10% something is VERY wrong! */
  		if (txc->modes & ADJ_TICK &&
---- linux-2.6.28-git4.orig/net/core/datagram.c
-+++ linux-2.6.28-git4/net/core/datagram.c
+--- linux-2.6.28-git5.orig/net/core/datagram.c
++++ linux-2.6.28-git5/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1208,8 +1208,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  		if (skb)
  			return skb;
  
---- linux-2.6.28-git4.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.28-git4/net/ipv4/inet_connection_sock.c
+--- linux-2.6.28-git5.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.28-git5/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1231,8 +1231,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (ib_net(tb) == net && tb->port == rover)
  					goto next;
---- linux-2.6.28-git4.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.28-git4/net/ipv4/inet_hashtables.c
+--- linux-2.6.28-git5.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.28-git5/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1254,8 +1254,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.28-git4.orig/net/ipv4/udp.c
-+++ linux-2.6.28-git4/net/ipv4/udp.c
+--- linux-2.6.28-git5.orig/net/ipv4/udp.c
++++ linux-2.6.28-git5/net/ipv4/udp.c
 @@ -105,6 +105,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1284,8 +1284,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  			do {
  				snum = snum + rand;
  			} while (snum < low || snum > high);
---- linux-2.6.28-git4.orig/net/socket.c
-+++ linux-2.6.28-git4/net/socket.c
+--- linux-2.6.28-git5.orig/net/socket.c
++++ linux-2.6.28-git5/net/socket.c
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1376,8 +1376,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/snapsh
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
---- linux-2.6.28-git4.orig/net/unix/af_unix.c
-+++ linux-2.6.28-git4/net/unix/af_unix.c
+--- linux-2.6.28-git5.orig/net/unix/af_unix.c
++++ linux-2.6.28-git5/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
