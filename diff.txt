@@ -150,6 +150,109 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
  /* Same with ccs_realpath() except that the pathname is already solved. */
  char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
  
+Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 2032)
++++ trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(working copy)
+@@ -161,8 +161,25 @@
+ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
+ #endif
+ 
+-int search_binary_handler_with_transition(struct linux_binprm *bprm,
+-					  struct pt_regs *regs);
++int ccs_start_execve(struct linux_binprm *bprm);
++void ccs_finish_execve(int retval);
++
++struct linux_binprm;
++struct pt_regs;
++int search_binary_handler(struct linux_binprm *, struct pt_regs *);
++
++static inline int
++search_binary_handler_with_transition(struct linux_binprm *bprm,
++				      struct pt_regs *regs)
++{
++	int retval;
++	retval = ccs_start_execve(bprm);
++	if (!retval)
++		retval = search_binary_handler(bprm, regs);
++	ccs_finish_execve(retval);
++	return retval;
++}
++
+ #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
+ #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
+ #define TOMOYO_TASK_IS_EXECUTE_HANDLER  4
+Index: trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.28.diff
+===================================================================
+--- trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.28.diff	(revision 2032)
++++ trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.28.diff	(working copy)
+@@ -5,9 +5,9 @@
+  fs/Kconfig                      |    2 
+  fs/Makefile                     |    2 
+  fs/attr.c                       |   10 +++
+- fs/compat.c                     |    5 +
++ fs/compat.c                     |   11 +++
+  fs/compat_ioctl.c               |    9 +++
+- fs/exec.c                       |   21 ++++++-
++ fs/exec.c                       |   27 +++++++++
+  fs/fcntl.c                      |    9 +++
+  fs/ioctl.c                      |    7 ++
+  fs/namei.c                      |  120 ++++++++++++++++++++++++++++++++++++++++
+@@ -34,7 +34,7 @@
+  net/ipv4/udp.c                  |    9 ++-
+  net/socket.c                    |   41 +++++++++++++
+  net/unix/af_unix.c              |   15 +++++
+- 32 files changed, 587 insertions(+), 3 deletions(-)
++ 32 files changed, 601 insertions(+), 1 deletion(-)
+ 
+ --- linux-2.6.28.orig/fs/Kconfig
+ +++ linux-2.6.28/fs/Kconfig
+@@ -91,12 +91,19 @@
+  
+  int compat_log = 1;
+  
+-@@ -1437,7 +1440,7 @@ int compat_do_execve(char * filename,
++@@ -1437,7 +1440,15 @@ int compat_do_execve(char * filename,
+  	if (retval < 0)
+  		goto out;
+  
+--	retval = search_binary_handler(bprm, regs);
+-+	retval = search_binary_handler_with_transition(bprm, regs);
+++	/***** TOMOYO Linux start. *****/
+++	retval = ccs_start_execve(bprm);
+++	if (retval < 0)
+++		goto out;
+++	/***** TOMOYO Linux end. *****/
++ 	retval = search_binary_handler(bprm, regs);
+++	/***** TOMOYO Linux start. *****/
+++	ccs_finish_execve(retval);
+++	/***** TOMOYO Linux end. *****/
+  	if (retval >= 0) {
+  		/* execve success */
+  		security_bprm_free(bprm);
+@@ -167,12 +174,19 @@
+  
+  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
+  	if (IS_ERR(file))
+-@@ -1340,7 +1359,7 @@ int do_execve(char * filename,
++@@ -1340,7 +1359,15 @@ int do_execve(char * filename,
+  		goto out;
+  
+  	current->flags &= ~PF_KTHREAD;
+--	retval = search_binary_handler(bprm,regs);
+-+	retval = search_binary_handler_with_transition(bprm, regs);
+++	/***** TOMOYO Linux start. *****/
+++	retval = ccs_start_execve(bprm);
+++	if (retval < 0)
+++		goto out;
+++	/***** TOMOYO Linux end. *****/
++ 	retval = search_binary_handler(bprm,regs);
+++	/***** TOMOYO Linux start. *****/
+++	ccs_finish_execve(retval);
+++	/***** TOMOYO Linux end. *****/
+  	if (retval >= 0) {
+  		/* execve success */
+  		security_bprm_free(bprm);
 Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 2032)
@@ -199,7 +302,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  #else
 -		char *buf = ccs_realpath_from_dentry(nd.dentry, nd.mnt);
 -		path_release(&nd);
-+	is_symlink = nd.dentry->d_inode && S_ISLNK(nd.dentry->d_inode->i_mode); 
++	is_symlink = nd.dentry->d_inode && S_ISLNK(nd.dentry->d_inode->i_mode);
 +	ret = ccs_realpath_from_dentry2(nd.dentry, nd.mnt, ee->tmp,
 +					CCS_EXEC_TMPSIZE - 1);
 +	path_release(&nd);
@@ -341,19 +444,6 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  				   is_default ? KEYWORD_EXECUTE_HANDLER :
  				   KEYWORD_DENIED_EXECUTE_HANDLER, handler);
  }
-@@ -188,9 +186,9 @@
-  */
- static int ccs_audit_domain_creation_log(struct domain_info *domain)
- {
--	struct ccs_request_info r;
--	ccs_init_request_info(&r, domain, CCS_TOMOYO_MAC_FOR_FILE);
--	return ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
-+        struct ccs_request_info r;
-+        ccs_init_request_info(&r, domain, CCS_TOMOYO_MAC_FOR_FILE);
-+        return ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
- }
- 
- /* The list for "struct ccs_domain_initializer_entry". */
 @@ -888,15 +886,14 @@
  /**
   * ccs_get_argv0 - Get argv[0].
@@ -602,7 +692,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		offset = 0;
  	}
   out:
-@@ -1339,17 +1309,73 @@
+@@ -1339,17 +1309,89 @@
  	return depth;
  }
  
@@ -639,30 +729,46 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +}
 +
 +/**
-+ * ccs_free_execve_entry - Free memory for execve().
++ * ccs_find_execve_entry - Find ccs_execve_entry of current process.
++ *
++ * Returns pointer to "struct ccs_execve_entry" on success, NULL otherwise.
 + */
-+static void ccs_free_execve_entry(void)
++static struct ccs_execve_entry *ccs_find_execve_entry(void)
 +{
 +	struct task_struct *task = current;
-+	struct ccs_execve_entry *p;
 +	struct ccs_execve_entry *ee = NULL;
++	struct ccs_execve_entry *p;
 +	/***** CRITICAL SECTION START *****/
 +	spin_lock(&ccs_execve_list_lock);
 +	list_for_each_entry(p, &ccs_execve_list, list) {
 +		if (p->task != task)
 +			continue;
-+		list_del(&p->list);
 +		ee = p;
 +		break;
 +	}
 +	spin_unlock(&ccs_execve_list_lock);
 +	/***** CRITICAL SECTION END *****/
-+	if (ee) {
-+		ccs_free(ee->program_path);
-+		ccs_free(ee->tmp);
-+		kfree(ee->dump.data);
-+		ccs_free(ee);
-+	}
++	return ee;
++}
++
++/**
++ * ccs_free_execve_entry - Free memory for execve().
++ *
++ * @ee: Pointer to "struct ccs_execve_entry".
++ */
++static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
++{
++	if (!ee)
++		return;
++	/***** CRITICAL SECTION START *****/
++	spin_lock(&ccs_execve_list_lock);
++	list_del(&ee->list);
++	spin_unlock(&ccs_execve_list_lock);
++	/***** CRITICAL SECTION END *****/
++	ccs_free(ee->program_path);
++	ccs_free(ee->tmp);
++	kfree(ee->dump.data);
++	ccs_free(ee);
 +}
 +
 +/**
@@ -681,7 +787,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  {
  	/*
  	 * Contents of modified bprm.
-@@ -1387,41 +1413,20 @@
+@@ -1387,41 +1429,20 @@
  	 * modified bprm->argv[bprm->envc + bprm->argc + 6]
  	 *     = original bprm->envp[bprm->envc - 1]
  	 */
@@ -726,7 +832,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  	/* Move envp[] to argv[] */
  	bprm->argc += bprm->envc;
-@@ -1429,9 +1434,9 @@
+@@ -1429,9 +1450,9 @@
  
  	/* Set argv[6] */
  	{
@@ -739,7 +845,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (retval < 0)
  			goto out;
  		bprm->argc++;
-@@ -1439,9 +1444,9 @@
+@@ -1439,9 +1460,9 @@
  
  	/* Set argv[5] */
  	{
@@ -752,7 +858,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (retval < 0)
  			goto out;
  		bprm->argc++;
-@@ -1449,7 +1454,8 @@
+@@ -1449,7 +1470,8 @@
  
  	/* Set argv[4] */
  	{
@@ -762,7 +868,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (retval < 0)
  			goto out;
  		bprm->argc++;
-@@ -1457,8 +1463,9 @@
+@@ -1457,8 +1479,9 @@
  
  	/* Set argv[3] */
  	{
@@ -773,7 +879,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			 "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d "
  			 "sgid=%d fsuid=%d fsgid=%d state[0]=%u "
  			 "state[1]=%u state[2]=%u",
-@@ -1467,7 +1474,7 @@
+@@ -1467,7 +1490,7 @@
  			 current_sgid(), current_fsuid(), current_fsgid(),
  			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
  			 (u8) (tomoyo_flags >> 8));
@@ -782,7 +888,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (retval < 0)
  			goto out;
  		bprm->argc++;
-@@ -1480,9 +1487,9 @@
+@@ -1480,9 +1503,9 @@
  			retval = copy_strings_kernel(1, &exe, bprm);
  			ccs_free(exe);
  		} else {
@@ -795,7 +901,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		}
  		if (retval < 0)
  			goto out;
-@@ -1491,9 +1498,10 @@
+@@ -1491,9 +1514,10 @@
  
  	/* Set argv[1] */
  	{
@@ -809,7 +915,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (retval < 0)
  			goto out;
  		bprm->argc++;
-@@ -1501,7 +1509,23 @@
+@@ -1501,7 +1525,23 @@
  
  	/* Set argv[0] */
  	{
@@ -834,7 +940,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (retval < 0)
  			goto out;
  		bprm->argc++;
-@@ -1513,22 +1537,33 @@
+@@ -1513,22 +1553,33 @@
  #endif
  
  	/* OK, now restart the process with execute handler program's dentry. */
@@ -872,7 +978,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
   out:
  	return retval;
  }
-@@ -1536,11 +1571,13 @@
+@@ -1536,11 +1587,13 @@
  /**
   * ccs_find_execute_handler - Find an execute handler.
   *
@@ -888,7 +994,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  {
  	struct task_struct *task = current;
  	const struct domain_info *domain = task->domain_info;
-@@ -1550,48 +1587,62 @@
+@@ -1550,48 +1603,62 @@
  	 * marked as execute handler to avoid infinite execute handler loop.
  	 */
  	if (task->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)
@@ -979,21 +1085,29 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
  /**
-@@ -1603,7 +1654,7 @@
+@@ -1602,151 +1669,117 @@
+  */
  struct domain_info *ccs_fetch_next_domain(void)
  {
- 	struct task_struct *task = current;
+-	struct task_struct *task = current;
 -	struct domain_info *next_domain = task->domain_info;
+-	struct ccs_execve_entry *p;
+-	/***** CRITICAL SECTION START *****/
+-	spin_lock(&ccs_execve_list_lock);
+-	list_for_each_entry(p, &ccs_execve_list, list) {
+-		if (p->task != task)
+-			continue;
+-		next_domain = p->next_domain;
+-		break;
+-	}
+-	spin_unlock(&ccs_execve_list_lock);
+-	/***** CRITICAL SECTION END *****/
++	struct ccs_execve_entry *ee = ccs_find_execve_entry();
 +	struct domain_info *next_domain = NULL;
- 	struct ccs_execve_entry *p;
- 	/***** CRITICAL SECTION START *****/
- 	spin_lock(&ccs_execve_list_lock);
-@@ -1615,32 +1666,12 @@
- 	}
- 	spin_unlock(&ccs_execve_list_lock);
- 	/***** CRITICAL SECTION END *****/
++	if (ee)
++		next_domain = ee->next_domain;
 +	if (!next_domain)
-+		next_domain = task->domain_info;
++		next_domain = current->domain_info;
  	return next_domain;
  }
  
@@ -1020,10 +1134,19 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -}
 -
 -/**
-  * search_binary_handler_with_transition - Perform domain transition.
+- * search_binary_handler_with_transition - Perform domain transition.
++ * ccs_start_execve - Prepare for execve() operation.
   *
   * @bprm: Pointer to "struct linux_binprm".
-@@ -1654,77 +1685,58 @@
+- * @regs: Pointer to "struct pt_regs".
+  *
+- * Returns result of search_binary_handler() on success,
+- * negative value otherwise.
++ * Returns 0 on success, negative value otherwise.
+  */
+-int search_binary_handler_with_transition(struct linux_binprm *bprm,
+-					  struct pt_regs *regs)
++int ccs_start_execve(struct linux_binprm *bprm)
  {
  	int retval;
  	struct task_struct *task = current;
@@ -1044,13 +1167,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	if (!tmp)
 +	if (!ee)
  		return -ENOMEM;
-+	ccs_init_request_info(&ee->r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
-+	ee->r.ee = ee;
-+	ee->bprm = bprm;
-+	ee->r.obj = &ee->obj;
-+	ee->obj.path1_dentry = bprm->file->f_dentry;
-+	ee->obj.path1_vfsmnt = bprm->file->f_vfsmnt;
- 
+-
 -	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
 -	r.bprm = bprm;
 -	r.obj = &obj;
@@ -1058,6 +1175,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
 -	obj.tmp = tmp;
 -
++	ccs_init_request_info(&ee->r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
++	ee->r.ee = ee;
++	ee->bprm = bprm;
++	ee->r.obj = &ee->obj;
++	ee->obj.path1_dentry = bprm->file->f_dentry;
++	ee->obj.path1_vfsmnt = bprm->file->f_vfsmnt;
  	/* Clear manager flag. */
  	task->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
 -	handler = ccs_find_execute_handler(TYPE_EXECUTE_HANDLER);
@@ -1099,8 +1222,22 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -		goto out;
 +	ee->next_domain = ee->r.domain;
  	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
- 	retval = search_binary_handler(bprm, regs);
+-	retval = search_binary_handler(bprm, regs);
++	retval = 0;
++ out:
++	return retval;
++}
++
++/**
++ * ccs_finish_execve - Clean up execve() operation.
++ */
++void ccs_finish_execve(int retval)
++{
++	struct task_struct *task = current;
++	struct ccs_execve_entry *ee = ccs_find_execve_entry();
  	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
++	if (!ee)
++		return;
  	if (retval < 0)
  		goto out;
  	/* Proceed to next domain if execution suceeded. */
@@ -1118,10 +1255,45 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	ccs_unregister_next_domain();
 -	ccs_free(eh_path);
 -	ccs_free(tmp);
-+	ccs_free_execve_entry();
- 	return retval;
+-	return retval;
++	ccs_free_execve_entry(ee);
  }
  
+ #else
+ 
+ /**
+- * search_binary_handler_with_transition - Wrapper for search_binary_handler().
++ * ccs_start_execve - Prepare for execve() operation.
+  *
+  * @bprm: Pointer to "struct linux_binprm".
+- * @regs: Pointer to "struct pt_regs".
+  *
+- * Returns the result of search_binary_handler().
++ * Returns 0.
+  */
+-int search_binary_handler_with_transition(struct linux_binprm *bprm,
+-					  struct pt_regs *regs)
++int ccs_start_execve(struct linux_binprm *bprm)
+ {
+ #ifdef CONFIG_SAKURA
+ 	/* Clear manager flag. */
+ 	current->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
+-	ccs_load_policy(bprm->filename);
++	if (!ccs_sbin_init_started)
++		ccs_load_policy(bprm->filename);
+ #endif
+-	return search_binary_handler(bprm, regs);
++	return 0;
+ }
+ 
++/**
++ * ccs_finish_execve - Clean up execve() operation.
++ */
++void ccs_finish_execve(int retval)
++{
++}
++
+ #endif
 Index: trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c
 ===================================================================
 --- trunk/1.6.x/ccs-patch/fs/proc/ccs_proc.c	(revision 2032)
