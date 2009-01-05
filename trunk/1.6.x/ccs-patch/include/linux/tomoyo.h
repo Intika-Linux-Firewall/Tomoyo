@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -54,20 +54,6 @@ int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 			 struct vfsmount *mnt2);
 int ccs_check_rewrite_permission(struct file *filp);
 
-/* Check whether the given IP address and port number are allowed to use. */
-int ccs_check_network_listen_acl(const _Bool is_ipv6, const u8 *address,
-				 const u16 port);
-int ccs_check_network_connect_acl(const _Bool is_ipv6, const int sock_type,
-				  const u8 *address, const u16 port);
-int ccs_check_network_bind_acl(const _Bool is_ipv6, const int sock_type,
-			       const u8 *address, const u16 port);
-int ccs_check_network_accept_acl(const _Bool is_ipv6, const u8 *address,
-				 const u16 port);
-int ccs_check_network_sendmsg_acl(const _Bool is_ipv6, const int sock_type,
-				  const u8 *address, const u16 port);
-int ccs_check_network_recvmsg_acl(const _Bool is_ipv6, const int sock_type,
-				  const u8 *address, const u16 port);
-
 /* Check whether the given signal is allowed to use. */
 int ccs_check_signal_acl(const int sig, const int pid);
 
@@ -105,45 +91,6 @@ static inline int ccs_check_rewrite_permission(struct file *filp)
 {
 	return 0;
 }
-static inline int ccs_check_network_listen_acl(const _Bool is_ipv6,
-					       const u8 *address,
-					       const u16 port)
-{
-	return 0;
-}
-static inline int ccs_check_network_connect_acl(const _Bool is_ipv6,
-						const int sock_type,
-						const u8 *address,
-						const u16 port)
-{
-	return 0;
-}
-static inline int ccs_check_network_bind_acl(const _Bool is_ipv6,
-					     const int sock_type,
-					     const u8 *address, const u16 port)
-{
-	return 0;
-}
-static inline int ccs_check_network_accept_acl(const _Bool is_ipv6,
-					       const u8 *address,
-					       const u16 port)
-{
-	return 0;
-}
-static inline int ccs_check_network_sendmsg_acl(const _Bool is_ipv6,
-						const int sock_type,
-						const u8 *address,
-						const u16 port)
-{
-	return 0;
-}
-static inline int ccs_check_network_recvmsg_acl(const _Bool is_ipv6,
-						const int sock_type,
-						const u8 *address,
-						const u16 port)
-{
-	return 0;
-}
 static inline int ccs_check_signal_acl(const int sig, const int pid)
 {
 	return 0;
@@ -155,30 +102,34 @@ static inline _Bool ccs_capable(const u8 operation)
 
 #endif
 
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
 #else
 int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
 #endif
 
-int search_binary_handler_with_transition(struct linux_binprm *bprm,
-					  struct pt_regs *regs);
+int ccs_start_execve(struct linux_binprm *bprm);
+void ccs_finish_execve(int retval);
+
+int search_binary_handler(struct linux_binprm *, struct pt_regs *);
+
+static inline int
+search_binary_handler_with_transition(struct linux_binprm *bprm,
+				      struct pt_regs *regs)
+{
+	int retval;
+	retval = ccs_start_execve(bprm);
+	if (!retval)
+		retval = search_binary_handler(bprm, regs);
+	ccs_finish_execve(retval);
+	return retval;
+}
+
 #define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
 #define TOMOYO_TASK_IS_EXECUTE_HANDLER  4
 #define CCS_TASK_IS_POLICY_MANAGER      8
-
-/* Index numbers for Access Controls. */
-
-#define TYPE_SINGLE_PATH_ACL                 0
-#define TYPE_DOUBLE_PATH_ACL                 1
-#define TYPE_ARGV0_ACL                       2
-#define TYPE_ENV_ACL                         3
-#define TYPE_CAPABILITY_ACL                  4
-#define TYPE_IP_NETWORK_ACL                  5
-#define TYPE_SIGNAL_ACL                      6
-#define TYPE_EXECUTE_HANDLER                 7
-#define TYPE_DENIED_EXECUTE_HANDLER          8
 
 /* Index numbers for File Controls. */
 
@@ -191,102 +142,99 @@ int search_binary_handler_with_transition(struct linux_binprm *bprm,
  * automatically cleared if TYPE_READ_WRITE_ACL is cleared.
  */
 
-#define TYPE_READ_WRITE_ACL        0
-#define TYPE_EXECUTE_ACL           1
-#define TYPE_READ_ACL              2
-#define TYPE_WRITE_ACL             3
-#define TYPE_CREATE_ACL            4
-#define TYPE_UNLINK_ACL            5
-#define TYPE_MKDIR_ACL             6
-#define TYPE_RMDIR_ACL             7
-#define TYPE_MKFIFO_ACL            8
-#define TYPE_MKSOCK_ACL            9
-#define TYPE_MKBLOCK_ACL          10
-#define TYPE_MKCHAR_ACL           11
-#define TYPE_TRUNCATE_ACL         12
-#define TYPE_SYMLINK_ACL          13
-#define TYPE_REWRITE_ACL          14
-#define MAX_SINGLE_PATH_OPERATION 15
+enum ccs_single_path_acl_index {
+	TYPE_READ_WRITE_ACL,
+        TYPE_EXECUTE_ACL,
+	TYPE_READ_ACL,
+	TYPE_WRITE_ACL,
+	TYPE_CREATE_ACL,
+	TYPE_UNLINK_ACL,
+	TYPE_MKDIR_ACL,
+	TYPE_RMDIR_ACL,
+	TYPE_MKFIFO_ACL,
+	TYPE_MKSOCK_ACL,
+	TYPE_MKBLOCK_ACL,
+	TYPE_MKCHAR_ACL,
+	TYPE_TRUNCATE_ACL,
+	TYPE_SYMLINK_ACL,
+	TYPE_REWRITE_ACL,
+	MAX_SINGLE_PATH_OPERATION
+};
 
-#define TYPE_LINK_ACL             0
-#define TYPE_RENAME_ACL           1
-#define MAX_DOUBLE_PATH_OPERATION 2
+enum ccs_double_path_acl_index {
+	TYPE_LINK_ACL,
+	TYPE_RENAME_ACL,
+	MAX_DOUBLE_PATH_OPERATION
+};
 
 /* Index numbers for Capability Controls. */
+enum ccs_capability_acl_index {
+	/* socket(PF_INET or PF_INET6, SOCK_STREAM, *)                 */
+	TOMOYO_INET_STREAM_SOCKET_CREATE,
+	/* listen() for PF_INET or PF_INET6, SOCK_STREAM               */
+	TOMOYO_INET_STREAM_SOCKET_LISTEN,
+	/* connect() for PF_INET or PF_INET6, SOCK_STREAM              */
+	TOMOYO_INET_STREAM_SOCKET_CONNECT,
+	/* socket(PF_INET or PF_INET6, SOCK_DGRAM, *)                  */
+	TOMOYO_USE_INET_DGRAM_SOCKET,
+	/* socket(PF_INET or PF_INET6, SOCK_RAW, *)                    */
+	TOMOYO_USE_INET_RAW_SOCKET,
+	/* socket(PF_ROUTE, *, *)                                      */
+	TOMOYO_USE_ROUTE_SOCKET,
+	/* socket(PF_PACKET, *, *)                                     */
+	TOMOYO_USE_PACKET_SOCKET,
+	/* sys_mount()                                                 */
+	TOMOYO_SYS_MOUNT,
+	/* sys_umount()                                                */
+	TOMOYO_SYS_UMOUNT,
+	/* sys_reboot()                                                */
+	TOMOYO_SYS_REBOOT,
+	/* sys_chroot()                                                */
+	TOMOYO_SYS_CHROOT,
+	/* sys_kill(), sys_tkill(), sys_tgkill()                       */
+	TOMOYO_SYS_KILL,
+	/* sys_vhangup()                                               */
+	TOMOYO_SYS_VHANGUP,
+	/* do_settimeofday(), sys_adjtimex()                           */
+	TOMOYO_SYS_SETTIME,
+	/* sys_nice(), sys_setpriority()                               */
+	TOMOYO_SYS_NICE,
+	/* sys_sethostname(), sys_setdomainname()                      */
+	TOMOYO_SYS_SETHOSTNAME,
+	/* sys_create_module(), sys_init_module(), sys_delete_module() */
+	TOMOYO_USE_KERNEL_MODULE,
+	/* sys_mknod(S_IFIFO)                                          */
+	TOMOYO_CREATE_FIFO,
+	/* sys_mknod(S_IFBLK)                                          */
+	TOMOYO_CREATE_BLOCK_DEV,
+	/* sys_mknod(S_IFCHR)                                          */
+	TOMOYO_CREATE_CHAR_DEV,
+	/* sys_mknod(S_IFSOCK)                                         */
+	TOMOYO_CREATE_UNIX_SOCKET,
+	/* sys_link()                                                  */
+	TOMOYO_SYS_LINK,
+	/* sys_symlink()                                               */
+	TOMOYO_SYS_SYMLINK,
+	/* sys_rename()                                                */
+	TOMOYO_SYS_RENAME,
+	/* sys_unlink()                                                */
+	TOMOYO_SYS_UNLINK,
+	/* sys_chmod(), sys_fchmod()                                   */
+	TOMOYO_SYS_CHMOD,
+	/* sys_chown(), sys_fchown(), sys_lchown()                     */
+	TOMOYO_SYS_CHOWN,
+	/* sys_ioctl(), compat_sys_ioctl()                             */
+	TOMOYO_SYS_IOCTL,
+	/* sys_kexec_load()                                            */
+	TOMOYO_SYS_KEXEC_LOAD,
+	/* sys_pivot_root()                                            */
+	TOMOYO_SYS_PIVOT_ROOT,
+	/* sys_ptrace()                                                */
+	TOMOYO_SYS_PTRACE,
+	TOMOYO_MAX_CAPABILITY_INDEX
+};
 
-/* socket(PF_INET or PF_INET6, SOCK_STREAM, *)                 */
-#define TOMOYO_INET_STREAM_SOCKET_CREATE         0
-/* listen() for PF_INET or PF_INET6, SOCK_STREAM               */
-#define TOMOYO_INET_STREAM_SOCKET_LISTEN         1
-/* connect() for PF_INET or PF_INET6, SOCK_STREAM              */
-#define TOMOYO_INET_STREAM_SOCKET_CONNECT        2
-/* socket(PF_INET or PF_INET6, SOCK_DGRAM, *)                  */
-#define TOMOYO_USE_INET_DGRAM_SOCKET             3
-/* socket(PF_INET or PF_INET6, SOCK_RAW, *)                    */
-#define TOMOYO_USE_INET_RAW_SOCKET               4
-/* socket(PF_ROUTE, *, *)                                      */
-#define TOMOYO_USE_ROUTE_SOCKET                  5
-/* socket(PF_PACKET, *, *)                                     */
-#define TOMOYO_USE_PACKET_SOCKET                 6
-/* sys_mount()                                                 */
-#define TOMOYO_SYS_MOUNT                         7
-/* sys_umount()                                                */
-#define TOMOYO_SYS_UMOUNT                        8
-/* sys_reboot()                                                */
-#define TOMOYO_SYS_REBOOT                        9
-/* sys_chroot()                                                */
-#define TOMOYO_SYS_CHROOT                       10
-/* sys_kill(), sys_tkill(), sys_tgkill()                       */
-#define TOMOYO_SYS_KILL                         11
-/* sys_vhangup()                                               */
-#define TOMOYO_SYS_VHANGUP                      12
-/* do_settimeofday(), sys_adjtimex()                           */
-#define TOMOYO_SYS_SETTIME                      13
-/* sys_nice(), sys_setpriority()                               */
-#define TOMOYO_SYS_NICE                         14
-/* sys_sethostname(), sys_setdomainname()                      */
-#define TOMOYO_SYS_SETHOSTNAME                  15
-/* sys_create_module(), sys_init_module(), sys_delete_module() */
-#define TOMOYO_USE_KERNEL_MODULE                16
-/* sys_mknod(S_IFIFO)                                          */
-#define TOMOYO_CREATE_FIFO                      17
-/* sys_mknod(S_IFBLK)                                          */
-#define TOMOYO_CREATE_BLOCK_DEV                 18
-/* sys_mknod(S_IFCHR)                                          */
-#define TOMOYO_CREATE_CHAR_DEV                  19
-/* sys_mknod(S_IFSOCK)                                         */
-#define TOMOYO_CREATE_UNIX_SOCKET               20
-/* sys_link()                                                  */
-#define TOMOYO_SYS_LINK                         21
-/* sys_symlink()                                               */
-#define TOMOYO_SYS_SYMLINK                      22
-/* sys_rename()                                                */
-#define TOMOYO_SYS_RENAME                       23
-/* sys_unlink()                                                */
-#define TOMOYO_SYS_UNLINK                       24
-/* sys_chmod(), sys_fchmod()                                   */
-#define TOMOYO_SYS_CHMOD                        25
-/* sys_chown(), sys_fchown(), sys_lchown()                     */
-#define TOMOYO_SYS_CHOWN                        26
-/* sys_ioctl(), compat_sys_ioctl()                             */
-#define TOMOYO_SYS_IOCTL                        27
-/* sys_kexec_load()                                            */
-#define TOMOYO_SYS_KEXEC_LOAD                   28
-/* sys_pivot_root()                                            */
-#define TOMOYO_SYS_PIVOT_ROOT                   29
-/* sys_ptrace()                                                */
-#define TOMOYO_SYS_PTRACE                       30
-#define TOMOYO_MAX_CAPABILITY_INDEX             31
-
-/* Index numbers for Network Controls. */
-
-#define NETWORK_ACL_UDP_BIND    0
-#define NETWORK_ACL_UDP_CONNECT 1
-#define NETWORK_ACL_TCP_BIND    2
-#define NETWORK_ACL_TCP_LISTEN  3
-#define NETWORK_ACL_TCP_CONNECT 4
-#define NETWORK_ACL_TCP_ACCEPT  5
-#define NETWORK_ACL_RAW_BIND    6
-#define NETWORK_ACL_RAW_CONNECT 7
+/* ccs-patch-\*.diff uses '#ifdef TOMOYO_SYS_PTRACE' .*/
+#define TOMOYO_SYS_PTRACE TOMOYO_SYS_PTRACE
 
 #endif

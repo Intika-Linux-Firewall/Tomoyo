@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -831,7 +831,7 @@ static int ccs_check_file_perm2(struct ccs_request_info *r,
 	if (is_enforce) {
 		int error = ccs_check_supervisor(r, "allow_%s %s\n",
 						 msg, filename->name);
-		if (error == 1 && !r->bprm)
+		if (error == 1 && !r->ee)
 			goto retry;
 		return error;
 	}

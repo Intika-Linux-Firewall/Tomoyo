@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -111,19 +111,17 @@ static bool ccs_check_envp(const char *env_name, const char *env_value,
 /**
  * ccs_scan_bprm - Scan "struct linux_binprm".
  *
- * @bprm: Pointer to "struct linux_binprm".
+ * @ee:   Pointer to "struct ccs_execve_entry".
  * @argc: Length of @argc.
  * @argv: Pointer to "struct ccs_argv_entry".
  * @envc: Length of @envp.
  * @envp: Poiner to "struct ccs_envp_entry".
- * @tmp:  Buffer for temporary use.
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_scan_bprm(struct linux_binprm *bprm,
+static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 			  const u16 argc, const struct ccs_argv_entry *argv,
-			  const u16 envc, const struct ccs_envp_entry *envp,
-			  struct ccs_page_buffer *tmp)
+			  const u16 envc, const struct ccs_envp_entry *envp)
 {
 	/*
 	  if exec.argc=3
@@ -145,7 +143,9 @@ static bool ccs_scan_bprm(struct linux_binprm *bprm,
 	  if exec.envp["HOME"]!="/"
 	  if (!getenv("HOME") || strcmp(getenv("HOME", "/"))
 	*/
-	char *arg_ptr = tmp->buffer;
+	struct linux_binprm *bprm = ee->bprm;
+	struct ccs_page_dump *dump = &ee->dump;
+	char *arg_ptr = ee->tmp;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
 	int offset = pos % PAGE_SIZE;
@@ -163,18 +163,15 @@ static bool ccs_scan_bprm(struct linux_binprm *bprm,
 			return false;
 	}
 	while (argv_count || envp_count) {
-		struct page *page = ccs_get_arg_page(bprm, pos);
-		const char *kaddr;
-		if (!page) {
+		if (!ccs_dump_page(bprm, pos, dump)) {
 			result = false;
 			goto out;
 		}
 		pos += PAGE_SIZE - offset;
-		/* Map. */
-		kaddr = kmap(page);
 		while (offset < PAGE_SIZE) {
 			/* Read. */
 			struct ccs_path_info arg;
+			const char *kaddr = dump->data;
 			const unsigned char c = kaddr[offset++];
 			arg.name = arg_ptr;
 			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
@@ -221,9 +218,6 @@ static bool ccs_scan_bprm(struct linux_binprm *bprm,
 			}
 			arg_len = 0;
 		}
-		/* Unmap. */
-		kunmap(page);
-		ccs_put_arg_page(page);
 		offset = 0;
 		if (!result)
 			break;
@@ -1074,14 +1068,15 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	u16 argc;
 	u16 envc;
 	const struct ccs_condition_list *cond = ccs_get_condition_part(acl);
-	struct linux_binprm *bprm;
+	struct linux_binprm *bprm = NULL;
 	if (!cond)
 		return true;
 	condc = cond->condc;
 	argc = cond->argc;
 	envc = cond->envc;
-	bprm = r->bprm;
 	obj = r->obj;
+	if (r->ee)
+		bprm = r->ee->bprm;
 	if (!bprm && (argc || envc))
 		return false;
 	ptr = (unsigned long *) (cond + 1);
@@ -1419,8 +1414,8 @@ bool ccs_check_condition(struct ccs_request_info *r,
 out:
 		return false;
 	}
-	if (bprm && (argc || envc))
-		return ccs_scan_bprm(bprm, argc, argv, envc, envp, obj->tmp);
+	if (r->ee && (argc || envc))
+		return ccs_scan_bprm(r->ee, argc, argv, envc, envp);
 	return true;
 }
 

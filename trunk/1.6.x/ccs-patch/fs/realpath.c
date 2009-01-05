@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -271,7 +271,7 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
  */
 char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
 {
-	char *buf = ccs_alloc(sizeof(struct ccs_page_buffer), false);
+	char *buf = ccs_alloc(CCS_MAX_PATHNAME_LEN, false);
 	if (buf && ccs_realpath_from_dentry2(dentry, mnt, buf,
 					     CCS_MAX_PATHNAME_LEN - 1) == 0)
 		return buf;
@@ -304,28 +304,54 @@ char *ccs_realpath(const char *pathname)
 }
 
 /**
- * ccs_realpath_nofollow - Get realpath of a pathname.
+ * ccs_realpath_both - Get realpath of a pathname and symlink.
  *
  * @pathname: The pathname to solve.
+ * @ee:       Pointer to "struct ccs_execve_entry".
  *
- * Returns the realpath of @pathname on success, NULL otherwise.
+ * Returns true on success, false otherwise.
  */
-char *ccs_realpath_nofollow(const char *pathname)
+_Bool ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
 {
 	struct nameidata nd;
-	if (pathname && path_lookup(pathname, ccs_lookup_flags ^ LOOKUP_FOLLOW,
-				    &nd) == 0) {
+	int ret;
+	bool is_symlink;
+	if (!pathname ||
+	    path_lookup(pathname, ccs_lookup_flags ^ LOOKUP_FOLLOW, &nd))
+		return false;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-		char *buf = ccs_realpath_from_dentry(nd.path.dentry,
-						     nd.path.mnt);
-		path_put(&nd.path);
+	is_symlink = nd.path.dentry->d_inode &&
+		S_ISLNK(nd.path.dentry->d_inode->i_mode);
+	ret = ccs_realpath_from_dentry2(nd.path.dentry, nd.path.mnt,
+					ee->tmp, CCS_EXEC_TMPSIZE - 1);
+	path_put(&nd.path);
 #else
-		char *buf = ccs_realpath_from_dentry(nd.dentry, nd.mnt);
-		path_release(&nd);
+	is_symlink = nd.dentry->d_inode && S_ISLNK(nd.dentry->d_inode->i_mode);
+	ret = ccs_realpath_from_dentry2(nd.dentry, nd.mnt, ee->tmp,
+					CCS_EXEC_TMPSIZE - 1);
+	path_release(&nd);
 #endif
-		return buf;
+	if (ret)
+		return false;
+	ee->program_path[CCS_MAX_PATHNAME_LEN - 1] = '\0';
+	if (!is_symlink) {
+		strncpy(ee->program_path, ee->tmp,
+			CCS_MAX_PATHNAME_LEN - 1);
+		return true;
 	}
-	return NULL;
+	if (path_lookup(pathname, ccs_lookup_flags, &nd))
+		return false;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	ret = ccs_realpath_from_dentry2(nd.path.dentry, nd.path.mnt,
+					ee->program_path,
+					CCS_MAX_PATHNAME_LEN - 1);
+	path_put(&nd.path);
+#else
+	ret = ccs_realpath_from_dentry2(nd.dentry, nd.mnt, ee->program_path,
+					CCS_MAX_PATHNAME_LEN - 1);
+	path_release(&nd);
+#endif
+	return ret ? false : true;
 }
 
 /**
@@ -518,7 +544,11 @@ static kmem_cache_t *ccs_cachep;
 static int __init ccs_realpath_init(void)
 {
 	int i;
+	/* Constraint for ccs_save_name(). */
 	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
+		panic("Bad size.");
+	/* Constraint for "struct ccs_execve_entry"->tmp users. */
+	if (CCS_MAX_PATHNAME_LEN > CCS_EXEC_TMPSIZE)
 		panic("Bad size.");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 	ccs_cachep = kmem_cache_create("ccs_cache",
