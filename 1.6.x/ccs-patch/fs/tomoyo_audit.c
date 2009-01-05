@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -21,10 +21,12 @@
  * ccs_print_bprm - Print "struct linux_binprm" for auditing.
  *
  * @bprm: Pointer to "struct linux_binprm".
+ * @dump: Pointer to "struct ccs_page_dump".
  *
  * Returns the contents of @bprm on success, NULL otherwise.
  */
-static char *ccs_print_bprm(struct linux_binprm *bprm)
+static char *ccs_print_bprm(struct linux_binprm *bprm,
+			    struct ccs_page_dump *dump)
 {
 	static const int ccs_buffer_len = 4096 * 2;
 	char *buffer = ccs_alloc(ccs_buffer_len, false);
@@ -47,15 +49,12 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 	}
 	last_start = cp;
 	while (argv_count || envp_count) {
-		struct page *page = ccs_get_arg_page(bprm, pos);
-		const char *kaddr;
-		if (!page)
+		if (!ccs_dump_page(bprm, pos, dump))
 			goto out;
 		pos += PAGE_SIZE - offset;
-		/* Map */
-		kaddr = kmap(page);
 		/* Read. */
 		while (offset < PAGE_SIZE) {
+			const char *kaddr = dump->data;
 			const unsigned char c = kaddr[offset++];
 			if (cp == last_start)
 				*cp++ = '"';
@@ -103,9 +102,6 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 			if (!argv_count && !envp_count)
 				break;
 		}
-		/* Unmap. */
-		kunmap(page);
-		ccs_put_arg_page(page);
 		offset = 0;
 	}
 	*cp++ = '}';
@@ -163,8 +159,8 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	domainname = r->domain->domainname->name;
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
-	if (r->bprm) {
-		bprm_info = ccs_print_bprm(r->bprm);
+	if (r->ee) {
+		bprm_info = ccs_print_bprm(r->ee->bprm, &r->ee->dump);
 		if (!bprm_info)
 			return NULL;
 		*len += strlen(bprm_info);
@@ -182,7 +178,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 			 current_sgid(), current_fsuid(), current_fsgid(),
 			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
 			 (u8) (tomoyo_flags >> 8), bprm_info, domainname);
-	if (r->bprm)
+	if (r->ee)
 		ccs_free(bprm_info);
 	return buf;
 }

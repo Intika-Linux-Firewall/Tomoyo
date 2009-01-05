@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -161,20 +161,18 @@ int ccs_del_domain_acl(struct ccs_acl_info *acl)
 /**
  * ccs_audit_execute_handler_log - Audit execute_handler log.
  *
+ * @ee:         Pointer to "struct ccs_execve_entry".
  * @is_default: True if it is "execute_handler" log.
- * @handler:    The realpath of the handler.
- * @bprm:       Pointer to "struct linux_binprm".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_execute_handler_log(const bool is_default,
-					 const char *handler,
-					 struct linux_binprm *bprm)
+static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
+					 const bool is_default)
 {
-	struct ccs_request_info r;
-	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
-	r.bprm = bprm;
-	return ccs_write_audit_log(true, &r, "%s %s\n",
+	struct ccs_request_info *r = &ee->r;
+	const char *handler = ee->handler->name;
+	r->mode = ccs_check_flags(r->domain, CCS_TOMOYO_MAC_FOR_FILE);
+	return ccs_write_audit_log(true, r, "%s %s\n",
 				   is_default ? KEYWORD_EXECUTE_HANDLER :
 				   KEYWORD_DENIED_EXECUTE_HANDLER, handler);
 }
@@ -888,15 +886,14 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 /**
  * ccs_get_argv0 - Get argv[0].
  *
- * @bprm: Pointer to "struct linux_binprm".
- * @tmp:  Buffer for temporary use.
+ * @ee: Pointer to "struct ccs_execve_entry".
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_get_argv0(struct linux_binprm *bprm,
-			  struct ccs_page_buffer *tmp)
+static bool ccs_get_argv0(struct ccs_execve_entry *ee)
 {
-	char *arg_ptr = tmp->buffer;
+	struct linux_binprm *bprm = ee->bprm;
+	char *arg_ptr = ee->tmp;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
 	int offset = pos % PAGE_SIZE;
@@ -904,15 +901,12 @@ static bool ccs_get_argv0(struct linux_binprm *bprm,
 	if (!bprm->argc)
 		goto out;
 	while (1) {
-		struct page *page = ccs_get_arg_page(bprm, pos);
-		const char *kaddr;
-		if (!page)
+		if (!ccs_dump_page(bprm, pos, &ee->dump))
 			goto out;
 		pos += PAGE_SIZE - offset;
-		/* Map. */
-		kaddr = kmap(page);
 		/* Read. */
 		while (offset < PAGE_SIZE) {
+			const char *kaddr = ee->dump.data;
 			const unsigned char c = kaddr[offset++];
 			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
 				if (c == '\\') {
@@ -935,9 +929,6 @@ static bool ccs_get_argv0(struct linux_binprm *bprm,
 				break;
 			}
 		}
-		/* Unmap. */
-		kunmap(page);
-		ccs_put_arg_page(page);
 		offset = 0;
 		if (done)
 			break;
@@ -950,29 +941,22 @@ static bool ccs_get_argv0(struct linux_binprm *bprm,
 /**
  * ccs_find_next_domain - Find a domain.
  *
- * @r:       Pointer to "struct ccs_request_info".
- * @handler: Pathname to verify. May be NULL.
+ * @ee:      Pointer to "struct ccs_request_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_find_next_domain(struct ccs_request_info *r,
-				const struct ccs_path_info *handler)
+static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 {
-	/*
-	 * This function assumes that the size of buffer returned by
-	 * ccs_realpath() = CCS_MAX_PATHNAME_LEN.
-	 */
+	struct ccs_request_info *r = &ee->r;
+	const struct ccs_path_info *handler = ee->handler;
 	struct domain_info *domain = NULL;
 	const char *old_domain_name = r->domain->domainname->name;
-	struct linux_binprm *bprm = r->bprm;
-	struct ccs_page_buffer *tmp = r->obj->tmp;
+	struct linux_binprm *bprm = ee->bprm;
 	const char *original_name = bprm->filename;
 	const u8 mode = r->mode;
 	const bool is_enforce = (mode == 3);
 	const u32 tomoyo_flags = current->tomoyo_flags;
 	char *new_domain_name = NULL;
-	char *real_program_name = NULL;
-	char *symlink_program_name = NULL;
 	struct ccs_path_info rn; /* real name */
 	struct ccs_path_info sn; /* symlink name */
 	struct ccs_path_info ln; /* last name */
@@ -998,21 +982,14 @@ static int ccs_find_next_domain(struct ccs_request_info *r,
  retry:
 	current->tomoyo_flags = tomoyo_flags;
 	r->cond = NULL;
-	/* Get ccs_realpath of program. */
+	/* Get ccs_realpath of program and symbolic link. */
 	retval = -ENOENT; /* I hope ccs_realpath() won't fail with -ENOMEM. */
-	ccs_free(real_program_name);
-	real_program_name = ccs_realpath(original_name);
-	if (!real_program_name)
-		goto out;
-	/* Get ccs_realpath of symbolic link. */
-	ccs_free(symlink_program_name);
-	symlink_program_name = ccs_realpath_nofollow(original_name);
-	if (!symlink_program_name)
+	if (!ccs_realpath_both(original_name, ee))
 		goto out;
 
-	rn.name = real_program_name;
+	rn.name = ee->program_path;
 	ccs_fill_path_info(&rn);
-	sn.name = symlink_program_name;
+	sn.name = ee->tmp;
 	ccs_fill_path_info(&sn);
 	ln.name = ccs_get_last_name(r->domain);
 	ccs_fill_path_info(&ln);
@@ -1040,25 +1017,25 @@ static int ccs_find_next_domain(struct ccs_request_info *r,
 			    ccs_pathcmp(&rn, ptr->original_name) ||
 			    ccs_pathcmp(&sn, ptr->aliased_name))
 				continue;
-			memset(real_program_name, 0, CCS_MAX_PATHNAME_LEN);
-			strncpy(real_program_name, ptr->aliased_name->name,
+			strncpy(ee->program_path, ptr->aliased_name->name,
 				CCS_MAX_PATHNAME_LEN - 1);
 			ccs_fill_path_info(&rn);
 			break;
 		}
 	}
+	/* sn will be overwritten after here. */
 
-	/* Compare basename of real_program_name and argv[0] */
+	/* Compare basename of program_path and argv[0] */
 	r->mode = ccs_check_flags(r->domain, CCS_TOMOYO_MAC_FOR_ARGV0);
 	if (bprm->argc > 0 && r->mode) {
-		char *base_argv0 = tmp->buffer;
+		char *base_argv0 = ee->tmp;
 		const char *base_filename;
 		retval = -ENOMEM;
-		if (!ccs_get_argv0(bprm, tmp))
+		if (!ccs_get_argv0(ee))
 			goto out;
-		base_filename = strrchr(real_program_name, '/');
+		base_filename = strrchr(ee->program_path, '/');
 		if (!base_filename)
-			base_filename = real_program_name;
+			base_filename = ee->program_path;
 		else
 			base_filename++;
 		if (strcmp(base_argv0, base_filename)) {
@@ -1078,8 +1055,7 @@ static int ccs_find_next_domain(struct ccs_request_info *r,
 			if (ptr->is_deleted ||
 			    !ccs_path_matches_pattern(&rn, ptr->original_name))
 				continue;
-			memset(real_program_name, 0, CCS_MAX_PATHNAME_LEN);
-			strncpy(real_program_name, ptr->aggregated_name->name,
+			strncpy(ee->program_path, ptr->aggregated_name->name,
 				CCS_MAX_PATHNAME_LEN - 1);
 			ccs_fill_path_info(&rn);
 			break;
@@ -1095,11 +1071,11 @@ static int ccs_find_next_domain(struct ccs_request_info *r,
 		goto out;
 
  calculate_domain:
-	new_domain_name = tmp->buffer;
+	new_domain_name = ee->tmp;
 	if (ccs_is_domain_initializer(r->domain->domainname, &rn, &ln)) {
 		/* Transit to the child of KERNEL_DOMAIN domain. */
-		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
-			 ROOT_NAME " " "%s", real_program_name);
+		snprintf(new_domain_name, CCS_EXEC_TMPSIZE - 1,
+			 ROOT_NAME " " "%s", ee->program_path);
 	} else if (r->domain == &KERNEL_DOMAIN && !ccs_sbin_init_started) {
 		/*
 		 * Needn't to transit from kernel domain before starting
@@ -1112,8 +1088,8 @@ static int ccs_find_next_domain(struct ccs_request_info *r,
 		domain = r->domain;
 	} else {
 		/* Normal domain transition. */
-		snprintf(new_domain_name, CCS_MAX_PATHNAME_LEN + 1,
-			 "%s %s", old_domain_name, real_program_name);
+		snprintf(new_domain_name, CCS_EXEC_TMPSIZE - 1,
+			 "%s %s", old_domain_name, ee->program_path);
 	}
 	if (domain || strlen(new_domain_name) >= CCS_MAX_PATHNAME_LEN)
 		goto done;
@@ -1147,8 +1123,6 @@ static int ccs_find_next_domain(struct ccs_request_info *r,
 		retval = 0;
 	}
  out:
-	ccs_free(real_program_name);
-	ccs_free(symlink_program_name);
 	if (domain)
 		r->domain = domain;
 	return retval;
@@ -1157,15 +1131,15 @@ static int ccs_find_next_domain(struct ccs_request_info *r,
 /**
  * ccs_check_environ - Check permission for environment variable names.
  *
- * @r: Pointer to "struct ccs_request_info".
+ * @ee: Pointer to "struct ccs_execve_entry".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_environ(struct ccs_request_info *r)
+static int ccs_check_environ(struct ccs_execve_entry *ee)
 {
-	struct linux_binprm *bprm = r->bprm;
-	struct ccs_page_buffer *tmp = r->obj->tmp;
-	char *arg_ptr = tmp->buffer;
+	struct ccs_request_info *r = &ee->r;
+	struct linux_binprm *bprm = ee->bprm;
+	char *arg_ptr = ee->tmp;
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
 	int offset = pos % PAGE_SIZE;
@@ -1176,21 +1150,21 @@ static int ccs_check_environ(struct ccs_request_info *r)
 	if (!r->mode || !envp_count)
 		return 0;
 	while (error == -ENOMEM) {
-		struct page *page = ccs_get_arg_page(bprm, pos);
-		const char *kaddr;
-		if (!page)
+		if (!ccs_dump_page(bprm, pos, &ee->dump))
 			goto out;
 		pos += PAGE_SIZE - offset;
-		/* Map. */
-		kaddr = kmap(page);
 		/* Read. */
 		while (argv_count && offset < PAGE_SIZE) {
+			const char *kaddr = ee->dump.data;
 			if (!kaddr[offset++])
 				argv_count--;
 		}
-		if (argv_count)
-			goto unmap_page;
+		if (argv_count) {
+			offset = 0;
+			continue;
+		}
 		while (offset < PAGE_SIZE) {
+			const char *kaddr = ee->dump.data;
 			const unsigned char c = kaddr[offset++];
 			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
 				if (c == '=') {
@@ -1222,10 +1196,6 @@ static int ccs_check_environ(struct ccs_request_info *r)
 			}
 			arg_len = 0;
 		}
-unmap_page:
-		/* Unmap. */
-		kunmap(page);
-		ccs_put_arg_page(page);
 		offset = 0;
 	}
  out:
@@ -1339,17 +1309,89 @@ static int ccs_get_root_depth(void)
 	return depth;
 }
 
+static LIST_HEAD(ccs_execve_list);
+static DEFINE_SPINLOCK(ccs_execve_list_lock);
+
+/**
+ * ccs_allocate_execve_entry - Allocate memory for execve().
+ *
+ * Returns pointer to "struct ccs_execve_entry" on success, NULL otherwise.
+ */
+static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
+{
+	struct ccs_execve_entry *ee = ccs_alloc(sizeof(*ee), false);
+	if (!ee)
+		return NULL;
+	memset(ee, 0, sizeof(*ee));
+	ee->program_path = ccs_alloc(CCS_MAX_PATHNAME_LEN, false);
+	ee->tmp = ccs_alloc(CCS_MAX_PATHNAME_LEN, false);
+	if (!ee->program_path || !ee->tmp) {
+		ccs_free(ee->program_path);
+		ccs_free(ee->tmp);
+		ccs_free(ee);
+		return NULL;
+	}
+	/* ee->dump->data is allocated by ccs_dump_page(). */
+	ee->task = current;
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&ccs_execve_list_lock);
+	list_add(&ee->list, &ccs_execve_list);
+	spin_unlock(&ccs_execve_list_lock);
+	/***** CRITICAL SECTION END *****/
+	return ee;
+}
+
+/**
+ * ccs_find_execve_entry - Find ccs_execve_entry of current process.
+ *
+ * Returns pointer to "struct ccs_execve_entry" on success, NULL otherwise.
+ */
+static struct ccs_execve_entry *ccs_find_execve_entry(void)
+{
+	struct task_struct *task = current;
+	struct ccs_execve_entry *ee = NULL;
+	struct ccs_execve_entry *p;
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&ccs_execve_list_lock);
+	list_for_each_entry(p, &ccs_execve_list, list) {
+		if (p->task != task)
+			continue;
+		ee = p;
+		break;
+	}
+	spin_unlock(&ccs_execve_list_lock);
+	/***** CRITICAL SECTION END *****/
+	return ee;
+}
+
+/**
+ * ccs_free_execve_entry - Free memory for execve().
+ *
+ * @ee: Pointer to "struct ccs_execve_entry".
+ */
+static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
+{
+	if (!ee)
+		return;
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&ccs_execve_list_lock);
+	list_del(&ee->list);
+	spin_unlock(&ccs_execve_list_lock);
+	/***** CRITICAL SECTION END *****/
+	ccs_free(ee->program_path);
+	ccs_free(ee->tmp);
+	kfree(ee->dump.data);
+	ccs_free(ee);
+}
+
 /**
  * ccs_try_alt_exec - Try to start execute handler.
  *
- * @r:           Pointer to "struct ccs_request_info".
- * @handler:     Pointer to the name of execute handler.
- * @eh_path:     Pointer to pointer to the name of execute handler.
+ * @ee:          Pointer to "struct ccs_execve_entry".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_try_alt_exec(struct ccs_request_info *r,
-			    const struct ccs_path_info *handler, char **eh_path)
+static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 {
 	/*
 	 * Contents of modified bprm.
@@ -1387,41 +1429,20 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 	 * modified bprm->argv[bprm->envc + bprm->argc + 6]
 	 *     = original bprm->envp[bprm->envc - 1]
 	 */
-	struct linux_binprm *bprm = r->bprm;
+	struct linux_binprm *bprm = ee->bprm;
 	struct file *filp;
 	int retval;
 	const int original_argc = bprm->argc;
 	const int original_envc = bprm->envc;
 	struct task_struct *task = current;
-	char *buffer = r->obj->tmp->buffer;
-	/* Allocate memory for execute handler's pathname. */
-	char *execute_handler = ccs_alloc(sizeof(struct ccs_page_buffer),
-					  false);
-	*eh_path = execute_handler;
-	if (!execute_handler)
-		return -ENOMEM;
-	strncpy(execute_handler, handler->name,
-		sizeof(struct ccs_page_buffer) - 1);
-	ccs_unescape(execute_handler);
 
 	/* Close the requested program's dentry. */
 	allow_write_access(bprm->file);
 	fput(bprm->file);
 	bprm->file = NULL;
 
-	{ /* Adjust root directory for open_exec(). */
-		int depth = ccs_get_root_depth();
-		char *cp = execute_handler;
-		if (!*cp || *cp != '/')
-			return -ENOENT;
-		while (depth) {
-			cp = strchr(cp + 1, '/');
-			if (!cp)
-				return -ENOENT;
-			depth--;
-		}
-		memmove(execute_handler, cp, strlen(cp) + 1);
-	}
+	/* Invalidate page dump cache. */
+	ee->dump.page = NULL;
 
 	/* Move envp[] to argv[] */
 	bprm->argc += bprm->envc;
@@ -1429,9 +1450,9 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 
 	/* Set argv[6] */
 	{
-		snprintf(buffer, sizeof(struct ccs_page_buffer) - 1, "%d",
-			 original_envc);
-		retval = copy_strings_kernel(1, &buffer, bprm);
+		char *cp = ee->tmp;
+		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%d", original_envc);
+		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
 			goto out;
 		bprm->argc++;
@@ -1439,9 +1460,9 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 
 	/* Set argv[5] */
 	{
-		snprintf(buffer, sizeof(struct ccs_page_buffer) - 1, "%d",
-			 original_argc);
-		retval = copy_strings_kernel(1, &buffer, bprm);
+		char *cp = ee->tmp;
+		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%d", original_argc);
+		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
 			goto out;
 		bprm->argc++;
@@ -1449,7 +1470,8 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 
 	/* Set argv[4] */
 	{
-		retval = copy_strings_kernel(1, &bprm->filename, bprm);
+		retval = copy_strings_kernel(1, (char **) &bprm->filename,
+					     bprm);
 		if (retval < 0)
 			goto out;
 		bprm->argc++;
@@ -1457,8 +1479,9 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 
 	/* Set argv[3] */
 	{
+		char *cp = ee->tmp;
 		const u32 tomoyo_flags = task->tomoyo_flags;
-		snprintf(buffer, sizeof(struct ccs_page_buffer) - 1,
+		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1,
 			 "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d "
 			 "sgid=%d fsuid=%d fsgid=%d state[0]=%u "
 			 "state[1]=%u state[2]=%u",
@@ -1467,7 +1490,7 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 			 current_sgid(), current_fsuid(), current_fsgid(),
 			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
 			 (u8) (tomoyo_flags >> 8));
-		retval = copy_strings_kernel(1, &buffer, bprm);
+		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
 			goto out;
 		bprm->argc++;
@@ -1480,9 +1503,9 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 			retval = copy_strings_kernel(1, &exe, bprm);
 			ccs_free(exe);
 		} else {
-			snprintf(buffer, sizeof(struct ccs_page_buffer) - 1,
-				 "<unknown>");
-			retval = copy_strings_kernel(1, &buffer, bprm);
+			exe = ee->tmp;
+			strncpy(ee->tmp, "<unknown>", CCS_EXEC_TMPSIZE - 1);
+			retval = copy_strings_kernel(1, &exe, bprm);
 		}
 		if (retval < 0)
 			goto out;
@@ -1491,9 +1514,10 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 
 	/* Set argv[1] */
 	{
-		strncpy(buffer, task->domain_info->domainname->name,
-			sizeof(struct ccs_page_buffer) - 1);
-		retval = copy_strings_kernel(1, &buffer, bprm);
+		char *cp = ee->tmp;
+		strncpy(ee->tmp, task->domain_info->domainname->name,
+			CCS_EXEC_TMPSIZE - 1);
+		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
 			goto out;
 		bprm->argc++;
@@ -1501,7 +1525,23 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 
 	/* Set argv[0] */
 	{
-		retval = copy_strings_kernel(1, &execute_handler, bprm);
+		int depth = ccs_get_root_depth();
+		char *cp = ee->program_path;
+		strncpy(cp, ee->handler->name, CCS_MAX_PATHNAME_LEN - 1);
+		ccs_unescape(cp);
+		retval = -ENOENT;
+		if (!*cp || *cp != '/')
+			goto out;
+		/* Adjust root directory for open_exec(). */
+		while (depth) {
+			cp = strchr(cp + 1, '/');
+			if (!cp)
+				goto out;
+			depth--;
+		}
+		memmove(ee->program_path, cp, strlen(cp) + 1);
+		cp = ee->program_path;
+		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
 			goto out;
 		bprm->argc++;
@@ -1513,22 +1553,33 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 #endif
 
 	/* OK, now restart the process with execute handler program's dentry. */
-	filp = open_exec(execute_handler);
+	filp = open_exec(ee->program_path);
 	if (IS_ERR(filp)) {
 		retval = PTR_ERR(filp);
 		goto out;
 	}
 	bprm->file = filp;
-	bprm->filename = execute_handler;
+	bprm->filename = ee->program_path;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-	bprm->interp = execute_handler;
+	bprm->interp = ee->program_path;
 #endif
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		goto out;
+	/*
+	 * Backup ee->propgram_path for ccs_find_next_domain().
+	 * ee->program_path will be overwritten by ccs_find_next_domain().
+	 * But ee->tmp won't be overwritten by ccs_find_next_domain()
+	 * because ee->handler != NULL.
+	 */
+	strncpy(ee->tmp, ee->program_path, CCS_EXEC_TMPSIZE - 1);
 	task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = ccs_find_next_domain(r, handler);
+	retval = ccs_find_next_domain(ee);
 	task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	/*
+	 * Restore ee->program_path for search_binary_handler().
+	 */
+	strncpy(ee->program_path, ee->tmp, CCS_MAX_PATHNAME_LEN - 1);
  out:
 	return retval;
 }
@@ -1536,11 +1587,13 @@ static int ccs_try_alt_exec(struct ccs_request_info *r,
 /**
  * ccs_find_execute_handler - Find an execute handler.
  *
+ * @ee:   Pointer to "struct ccs_execve_entry".
  * @type: Type of execute handler.
  *
- * Returns pointer to "struct ccs_path_info" if found, NULL otherwise.
+ * Returns bool if found, false otherwise.
  */
-static const struct ccs_path_info *ccs_find_execute_handler(const u8 type)
+static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
+				     const u8 type)
 {
 	struct task_struct *task = current;
 	const struct domain_info *domain = task->domain_info;
@@ -1550,48 +1603,62 @@ static const struct ccs_path_info *ccs_find_execute_handler(const u8 type)
 	 * marked as execute handler to avoid infinite execute handler loop.
 	 */
 	if (task->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)
-		return NULL;
+		return false;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_execute_handler_record *acl;
 		if (ptr->type != type)
 			continue;
 		acl = container_of(ptr, struct ccs_execute_handler_record,
 				   head);
-		return acl->handler;
+		ee->handler = acl->handler;
+		return true;
 	}
-	return NULL;
+	return false;
 }
 
-/* List of next_domain which is used for checking interpreter's permissions. */
-struct ccs_execve_entry {
-	struct list_head list;
-	struct task_struct *task;
-	struct domain_info *next_domain;
-};
-
-static LIST_HEAD(ccs_execve_list);
-static DEFINE_SPINLOCK(ccs_execve_list_lock);
-
 /**
- * ccs_register_next_domain - Remember next_domain.
+ * ccs_dump_page - Dump a page to buffer.
  *
- * @next_domain: Pointer to "struct domain_info".
+ * @bprm: Pointer to "struct linux_binprm".
+ * @pos:  Location to dump.
+ * @dump: Poiner to "struct ccs_page_dump".
  *
- * Returns 0 on success, -ENOMEM otherwise.
+ * Returns true on success, false otherwise.
  */
-static int ccs_register_next_domain(struct domain_info *next_domain)
+bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
+		   struct ccs_page_dump *dump)
 {
-	struct ccs_execve_entry *ee = kmalloc(sizeof(*ee), GFP_KERNEL);
-	if (!ee)
-		return -ENOMEM;
-	ee->task = current;
-	ee->next_domain = next_domain;
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&ccs_execve_list_lock);
-	list_add(&ee->list, &ccs_execve_list);
-	spin_unlock(&ccs_execve_list_lock);
-	/***** CRITICAL SECTION END *****/
-	return 0;
+	struct page *page;
+	/* dump->data is released by ccs_free_execve_entry(). */
+	if (!dump->data) {
+		dump->data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+		if (!dump->data)
+			return false;
+	}
+	/* Same with get_arg_page(bprm, pos, 0) in fs/exec.c */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
+	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
+		return false;
+#else
+	page = bprm->page[pos / PAGE_SIZE];
+#endif
+	if (page != dump->page) {
+		const unsigned int offset = pos % PAGE_SIZE;
+		/*
+		 * Maybe kmap()/kunmap() should be used here.
+		 * But remove_arg_zero() uses kmap_atomic()/kunmap_atomic().
+		 * So do I.
+		 */
+		char *kaddr = kmap_atomic(page, KM_USER0);
+		dump->page = page;
+		memcpy(dump->data + offset, kaddr + offset, PAGE_SIZE - offset);
+		kunmap_atomic(kaddr, KM_USER0);
+	}
+	/* Same with put_arg_page(page) in fs/exec.c */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
+	put_page(page);
+#endif
+	return true;
 }
 
 /**
@@ -1602,151 +1669,117 @@ static int ccs_register_next_domain(struct domain_info *next_domain)
  */
 struct domain_info *ccs_fetch_next_domain(void)
 {
-	struct task_struct *task = current;
-	struct domain_info *next_domain = task->domain_info;
-	struct ccs_execve_entry *p;
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&ccs_execve_list_lock);
-	list_for_each_entry(p, &ccs_execve_list, list) {
-		if (p->task != task)
-			continue;
-		next_domain = p->next_domain;
-		break;
-	}
-	spin_unlock(&ccs_execve_list_lock);
-	/***** CRITICAL SECTION END *****/
+	struct ccs_execve_entry *ee = ccs_find_execve_entry();
+	struct domain_info *next_domain = NULL;
+	if (ee)
+		next_domain = ee->next_domain;
+	if (!next_domain)
+		next_domain = current->domain_info;
 	return next_domain;
 }
 
 /**
- * ccs_unregister_next_domain - Forget next_domain.
- */
-static void ccs_unregister_next_domain(void)
-{
-	struct task_struct *task = current;
-	struct ccs_execve_entry *p;
-	struct ccs_execve_entry *ee = NULL;
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&ccs_execve_list_lock);
-	list_for_each_entry(p, &ccs_execve_list, list) {
-		if (p->task != task)
-			continue;
-		list_del(&p->list);
-		ee = p;
-		break;
-	}
-	spin_unlock(&ccs_execve_list_lock);
-	/***** CRITICAL SECTION END *****/
-	kfree(ee);
-}
-
-/**
- * search_binary_handler_with_transition - Perform domain transition.
+ * ccs_start_execve - Prepare for execve() operation.
  *
  * @bprm: Pointer to "struct linux_binprm".
- * @regs: Pointer to "struct pt_regs".
  *
- * Returns result of search_binary_handler() on success,
- * negative value otherwise.
+ * Returns 0 on success, negative value otherwise.
  */
-int search_binary_handler_with_transition(struct linux_binprm *bprm,
-					  struct pt_regs *regs)
+int ccs_start_execve(struct linux_binprm *bprm)
 {
 	int retval;
 	struct task_struct *task = current;
-	const struct ccs_path_info *handler;
-	struct ccs_request_info r;
-	struct ccs_obj_info obj;
-	/*
-	 * "eh_path" holds path to execute handler program.
-	 * Thus, keep valid until search_binary_handler() finishes.
-	 */
-	char *eh_path = NULL;
-	struct ccs_page_buffer *tmp = ccs_alloc(sizeof(struct ccs_page_buffer),
-						false);
-	memset(&obj, 0, sizeof(obj));
+	struct ccs_execve_entry *ee = ccs_allocate_execve_entry();
 	if (!ccs_sbin_init_started)
 		ccs_load_policy(bprm->filename);
-	if (!tmp)
+	if (!ee)
 		return -ENOMEM;
-
-	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
-	r.bprm = bprm;
-	r.obj = &obj;
-	obj.path1_dentry = bprm->file->f_dentry;
-	obj.path1_vfsmnt = bprm->file->f_vfsmnt;
-	obj.tmp = tmp;
-
+	ccs_init_request_info(&ee->r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	ee->r.ee = ee;
+	ee->bprm = bprm;
+	ee->r.obj = &ee->obj;
+	ee->obj.path1_dentry = bprm->file->f_dentry;
+	ee->obj.path1_vfsmnt = bprm->file->f_vfsmnt;
 	/* Clear manager flag. */
 	task->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
-	handler = ccs_find_execute_handler(TYPE_EXECUTE_HANDLER);
-	if (handler) {
-		retval = ccs_try_alt_exec(&r, handler, &eh_path);
+	if (ccs_find_execute_handler(ee, TYPE_EXECUTE_HANDLER)) {
+		retval = ccs_try_alt_exec(ee);
 		if (!retval)
-			ccs_audit_execute_handler_log(true, handler->name,
-						      bprm);
+			ccs_audit_execute_handler_log(ee, true);
 		goto ok;
 	}
-	retval = ccs_find_next_domain(&r, NULL);
+	retval = ccs_find_next_domain(ee);
 	if (retval != -EPERM)
 		goto ok;
-	handler = ccs_find_execute_handler(TYPE_DENIED_EXECUTE_HANDLER);
-	if (handler) {
-		retval = ccs_try_alt_exec(&r, handler, &eh_path);
+	if (ccs_find_execute_handler(ee, TYPE_DENIED_EXECUTE_HANDLER)) {
+		retval = ccs_try_alt_exec(ee);
 		if (!retval)
-			ccs_audit_execute_handler_log(false, handler->name,
-						      bprm);
+			ccs_audit_execute_handler_log(ee, false);
 	}
  ok:
 	if (retval < 0)
 		goto out;
-	r.mode = ccs_check_flags(r.domain, CCS_TOMOYO_MAC_FOR_ENV);
-	retval = ccs_check_environ(&r);
+	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_TOMOYO_MAC_FOR_ENV);
+	retval = ccs_check_environ(ee);
 	if (retval < 0)
 		goto out;
-	retval = ccs_register_next_domain(r.domain);
-	if (retval < 0)
-		goto out;
+	ee->next_domain = ee->r.domain;
 	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
-	retval = search_binary_handler(bprm, regs);
+	retval = 0;
+ out:
+	return retval;
+}
+
+/**
+ * ccs_finish_execve - Clean up execve() operation.
+ */
+void ccs_finish_execve(int retval)
+{
+	struct task_struct *task = current;
+	struct ccs_execve_entry *ee = ccs_find_execve_entry();
 	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+	if (!ee)
+		return;
 	if (retval < 0)
 		goto out;
 	/* Proceed to next domain if execution suceeded. */
-	task->domain_info = r.domain;
+	task->domain_info = ee->r.domain;
 	mb(); /* Make domain transition visible to other CPUs. */
 	/* Mark the current process as execute handler. */
-	if (handler)
+	if (ee->handler)
 		task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
 	/* Mark the current process as normal process. */
 	else
 		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
  out:
-	ccs_unregister_next_domain();
-	ccs_free(eh_path);
-	ccs_free(tmp);
-	return retval;
+	ccs_free_execve_entry(ee);
 }
 
 #else
 
 /**
- * search_binary_handler_with_transition - Wrapper for search_binary_handler().
+ * ccs_start_execve - Prepare for execve() operation.
  *
  * @bprm: Pointer to "struct linux_binprm".
- * @regs: Pointer to "struct pt_regs".
  *
- * Returns the result of search_binary_handler().
+ * Returns 0.
  */
-int search_binary_handler_with_transition(struct linux_binprm *bprm,
-					  struct pt_regs *regs)
+static inline int ccs_start_execve(struct linux_binprm *bprm)
 {
 #ifdef CONFIG_SAKURA
 	/* Clear manager flag. */
 	current->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
-	ccs_load_policy(bprm->filename);
+	if (!ccs_sbin_init_started)
+		ccs_load_policy(bprm->filename);
 #endif
-	return search_binary_handler(bprm, regs);
+	return 0;
+}
+
+/**
+ * ccs_finish_execve - Clean up execve() operation.
+ */
+static inline void ccs_finish_execve(int retval)
+{
 }
 
 #endif

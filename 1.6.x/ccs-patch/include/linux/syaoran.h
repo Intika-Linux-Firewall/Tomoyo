@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -36,60 +36,7 @@
 #define _LINUX_SYAORAN_H
 
 #include <linux/version.h>
-
-#define false 0
-#define true 1
-
-#ifndef __user
-#define __user
-#endif
-
-#ifndef current_fsuid
-#define current_fsuid()         (current->fsuid)
-#endif
-#ifndef current_fsgid
-#define current_fsgid()         (current->fsgid)
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#define s_fs_info u.generic_sbp
-#else
-#include <linux/audit.h>
-#ifdef AUDIT_APPARMOR_AUDIT
-/* AppArmor patch adds "struct vfsmount" to VFS helper functions. */
-#define HAVE_VFSMOUNT_IN_VFS_HELPER
-#endif
-#endif
-
-#if defined(RHEL_MAJOR) && RHEL_MAJOR == 5
-#define HAVE_NO_I_BLKSIZE_IN_INODE
-#elif defined(AX_MAJOR) && AX_MAJOR == 3
-#define HAVE_NO_I_BLKSIZE_IN_INODE
-#endif
-
-#ifndef DEFINE_SPINLOCK
-#define DEFINE_SPINLOCK(x) spinlock_t x = SPIN_LOCK_UNLOCKED
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-#define bool _Bool
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-#define kzalloc(size, flags) ({						\
-			void *ret = kmalloc((size), (flags));		\
-			if (ret)					\
-				memset(ret, 0, (size));			\
-			ret; })
-#endif
-
-#ifndef list_for_each_entry_safe
-#define list_for_each_entry_safe(pos, n, head, member)                  \
-	for (pos = list_entry((head)->next, typeof(*pos), member),      \
-		     n = list_entry(pos->member.next, typeof(*pos), member); \
-	     &pos->member != (head);					\
-	     pos = n, n = list_entry(n->member.next, typeof(*n), member))
-#endif
+#include <linux/ccs_compat.h>
 
 /**
  * list_for_each_cookie - iterate over a list with cookie.
@@ -690,7 +637,7 @@ static int ccs_initialize(struct super_block *sb, void *data)
 	static bool first = true;
 	if (first) {
 		first = false;
-		printk(KERN_INFO "SYAORAN: 1.6.6-pre   2008/12/24\n");
+		printk(KERN_INFO "SYAORAN: 1.6.6-pre   2009/01/05\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);

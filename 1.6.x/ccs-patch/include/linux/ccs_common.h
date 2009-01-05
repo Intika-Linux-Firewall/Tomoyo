@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -44,118 +44,7 @@ struct in6_addr;
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
 
-#define false 0
-#define true 1
-
-#ifndef __user
-#define __user
-#endif
-
-#ifndef current_uid
-#define current_uid()           (current->uid)
-#endif
-#ifndef current_gid
-#define current_gid()           (current->gid)
-#endif
-#ifndef current_euid
-#define current_euid()          (current->euid)
-#endif
-#ifndef current_egid
-#define current_egid()          (current->egid)
-#endif
-#ifndef current_suid
-#define current_suid()          (current->suid)
-#endif
-#ifndef current_sgid
-#define current_sgid()          (current->sgid)
-#endif
-#ifndef current_fsuid
-#define current_fsuid()         (current->fsuid)
-#endif
-#ifndef current_fsgid
-#define current_fsgid()         (current->fsgid)
-#endif
-
-#ifndef WARN_ON
-#define WARN_ON(x) do { } while (0)
-#endif
-
-#ifndef DEFINE_SPINLOCK
-#define DEFINE_SPINLOCK(x) spinlock_t x = SPIN_LOCK_UNLOCKED
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-#define bool _Bool
-#endif
-
-#ifndef KERN_CONT
-#define KERN_CONT ""
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
-#define mutex semaphore
-#define mutex_init(mutex) init_MUTEX(mutex)
-#define mutex_lock(mutex) down(mutex)
-#define mutex_unlock(mutex) up(mutex)
-#define mutex_lock_interruptible(mutex) down_interruptible(mutex)
-#define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
-#endif
-
-#ifndef container_of
-#define container_of(ptr, type, member) ({				\
-			const typeof(((type *)0)->member) *__mptr = (ptr); \
-			(type *)((char *)__mptr - offsetof(type, member)); })
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-#define kzalloc(size, flags) ({						\
-			void *ret = kmalloc((size), (flags));		\
-			if (ret)					\
-				memset(ret, 0, (size));			\
-			ret; })
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-#define smp_read_barrier_depends smp_rmb
-#endif
-
-#ifndef ACCESS_ONCE
-#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
-#endif
-
-#ifndef rcu_dereference
-#define rcu_dereference(p)     ({ \
-				typeof(p) _________p1 = ACCESS_ONCE(p); \
-				smp_read_barrier_depends(); /* see RCU */ \
-				(_________p1); \
-				})
-#endif
-
-#ifndef rcu_assign_pointer
-#define rcu_assign_pointer(p, v) \
-	({ \
-		if (!__builtin_constant_p(v) || \
-		    ((v) != NULL)) \
-			smp_wmb(); /* see RCU */ \
-		(p) = (v); \
-	})
-#endif
-
-#ifndef list_for_each_rcu
-#define list_for_each_rcu(pos, head) \
-	for (pos = rcu_dereference((head)->next); \
-		prefetch(pos->next), pos != (head); \
-		pos = rcu_dereference(pos->next))
-#endif
-
-#ifndef list_for_each_entry_rcu
-#define list_for_each_entry_rcu(pos, head, member) \
-	for (pos = list_entry(rcu_dereference((head)->next), typeof(*pos), \
-		member); \
-		prefetch(pos->member.next), &pos->member != (head); \
-		pos = list_entry(rcu_dereference(pos->member.next), \
-		typeof(*pos), member))
-#endif
+#include <linux/ccs_compat.h>
 
 /*
  * Singly linked list.
@@ -229,11 +118,6 @@ static inline void list1_add_tail_mb(struct list1_head *new,
 	rcu_assign_pointer(prev->next, new);
 }
 
-/* Temporary buffer for holding pathnames. */
-struct ccs_page_buffer {
-	char buffer[4096];
-};
-
 /* Subset of "struct stat". */
 struct ccs_mini_stat {
 	uid_t uid;
@@ -242,6 +126,12 @@ struct ccs_mini_stat {
 	mode_t mode;
 	dev_t dev;
 	dev_t rdev;
+};
+
+/* Structure for dumping argv[] and envp[] of "struct linux_binprm". */
+struct ccs_page_dump {
+	struct page *page;    /* Previously dumped page. */
+	char *data;           /* Contents of "page". Size is PAGE_SIZE. */
 };
 
 /* Structure for attribute checks in addition to pathname checks. */
@@ -258,7 +148,6 @@ struct ccs_obj_info {
 	/* I don't handle path2_stat for rename operation. */
 	struct ccs_mini_stat path1_parent_stat;
 	struct ccs_mini_stat path2_parent_stat;
-	struct ccs_page_buffer *tmp;
 };
 
 /* Structure for " if " and "; set" part. */
@@ -273,11 +162,13 @@ struct ccs_condition_list {
 	/* "struct ccs_envp_entry envp[envc]" follows here. */
 };
 
+struct ccs_execve_entry;
+
 /* Structure for request info. */
 struct ccs_request_info {
 	struct domain_info *domain;
-	struct linux_binprm *bprm;
 	struct ccs_obj_info *obj;
+	struct ccs_execve_entry *ee;
 	const struct ccs_condition_list *cond;
 	u16 retry;
 	u8 profile;
@@ -303,6 +194,26 @@ struct ccs_path_info {
  * octal string. Thus, \ itself is represented as \\.
  */
 #define CCS_MAX_PATHNAME_LEN 4000
+
+#define CCS_EXEC_TMPSIZE     4096
+
+/* Structure for execve() operation. */
+struct ccs_execve_entry {
+	struct list_head list;
+	struct task_struct *task; /* = current */
+	struct ccs_request_info r;
+	struct ccs_obj_info obj;
+	struct linux_binprm *bprm;
+	/* For execute_handler */
+	const struct ccs_path_info *handler;
+	/* For calculating domain to transit to. */
+	struct domain_info *next_domain; /* Initialized to NULL. */
+	char *program_path; /* Size is CCS_MAX_PATHNAME_LEN bytes */
+	/* For dumping argv[] and envp[]. */
+	struct ccs_page_dump dump;
+	/* For temporary use. */
+	char *tmp; /* Size is CCS_EXEC_TMPSIZE bytes */
+};
 
 /* Structure for "path_group" directive. */
 struct ccs_path_group_member {
@@ -362,6 +273,19 @@ struct ccs_acl_info {
 	 */
 	u8 type;
 } __attribute__((__packed__));
+
+/* Index numbers for Access Controls. */
+enum ccs_acl_entry_type_index {
+	TYPE_SINGLE_PATH_ACL,
+	TYPE_DOUBLE_PATH_ACL,
+	TYPE_ARGV0_ACL,
+	TYPE_ENV_ACL,
+	TYPE_CAPABILITY_ACL,
+	TYPE_IP_NETWORK_ACL,
+	TYPE_SIGNAL_ACL,
+	TYPE_EXECUTE_HANDLER,
+	TYPE_DENIED_EXECUTE_HANDLER
+};
 
 /* This ACL entry is deleted.           */
 #define ACL_DELETED        0x80
@@ -533,9 +457,11 @@ struct ccs_ip_network_acl_record {
 	} u;
 };
 
-#define IP_RECORD_TYPE_ADDRESS_GROUP 0
-#define IP_RECORD_TYPE_IPv4          1
-#define IP_RECORD_TYPE_IPv6          2
+enum ccs_ip_record_type {
+	IP_RECORD_TYPE_ADDRESS_GROUP,
+	IP_RECORD_TYPE_IPv4,
+	IP_RECORD_TYPE_IPv6
+};
 
 /* Keywords for ACLs. */
 #define KEYWORD_ADDRESS_GROUP             "address_group "
@@ -573,34 +499,38 @@ struct ccs_ip_network_acl_record {
 #define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
 
 /* Index numbers for Access Controls. */
-#define CCS_TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
-#define CCS_TOMOYO_MAC_FOR_ARGV0                 1  /* domain_policy.conf */
-#define CCS_TOMOYO_MAC_FOR_ENV                   2  /* domain_policy.conf */
-#define CCS_TOMOYO_MAC_FOR_NETWORK               3  /* domain_policy.conf */
-#define CCS_TOMOYO_MAC_FOR_SIGNAL                4  /* domain_policy.conf */
-#define CCS_SAKURA_DENY_CONCEAL_MOUNT            5
-#define CCS_SAKURA_RESTRICT_CHROOT               6  /* system_policy.conf */
-#define CCS_SAKURA_RESTRICT_MOUNT                7  /* system_policy.conf */
-#define CCS_SAKURA_RESTRICT_UNMOUNT              8  /* system_policy.conf */
-#define CCS_SAKURA_RESTRICT_PIVOT_ROOT           9  /* system_policy.conf */
-#define CCS_SAKURA_RESTRICT_AUTOBIND            10  /* system_policy.conf */
-#define CCS_TOMOYO_MAX_ACCEPT_ENTRY             11
-#define CCS_TOMOYO_MAX_GRANT_LOG                12
-#define CCS_TOMOYO_MAX_REJECT_LOG               13
-#define CCS_TOMOYO_VERBOSE                      14
-#define CCS_SLEEP_PERIOD                        15  /* profile.conf       */
-#define CCS_MAX_CONTROL_INDEX                   16
+enum ccs_profile_index {
+	CCS_TOMOYO_MAC_FOR_FILE,          /* domain_policy.conf */
+	CCS_TOMOYO_MAC_FOR_ARGV0,         /* domain_policy.conf */
+	CCS_TOMOYO_MAC_FOR_ENV,           /* domain_policy.conf */
+	CCS_TOMOYO_MAC_FOR_NETWORK,       /* domain_policy.conf */
+	CCS_TOMOYO_MAC_FOR_SIGNAL,        /* domain_policy.conf */
+	CCS_SAKURA_DENY_CONCEAL_MOUNT,
+	CCS_SAKURA_RESTRICT_CHROOT,       /* system_policy.conf */
+	CCS_SAKURA_RESTRICT_MOUNT,        /* system_policy.conf */
+	CCS_SAKURA_RESTRICT_UNMOUNT,      /* system_policy.conf */
+	CCS_SAKURA_RESTRICT_PIVOT_ROOT,   /* system_policy.conf */
+	CCS_SAKURA_RESTRICT_AUTOBIND,     /* system_policy.conf */
+	CCS_TOMOYO_MAX_ACCEPT_ENTRY,
+	CCS_TOMOYO_MAX_GRANT_LOG,
+	CCS_TOMOYO_MAX_REJECT_LOG,
+	CCS_TOMOYO_VERBOSE,
+	CCS_SLEEP_PERIOD,
+	CCS_MAX_CONTROL_INDEX
+};
 
 /* Index numbers for updates counter. */
-#define CCS_UPDATES_COUNTER_SYSTEM_POLICY    0
-#define CCS_UPDATES_COUNTER_DOMAIN_POLICY    1
-#define CCS_UPDATES_COUNTER_EXCEPTION_POLICY 2
-#define CCS_UPDATES_COUNTER_PROFILE          3
-#define CCS_UPDATES_COUNTER_QUERY            4
-#define CCS_UPDATES_COUNTER_MANAGER          5
-#define CCS_UPDATES_COUNTER_GRANT_LOG        6
-#define CCS_UPDATES_COUNTER_REJECT_LOG       7
-#define MAX_CCS_UPDATES_COUNTER              8
+enum ccs_update_counter_index {
+	CCS_UPDATES_COUNTER_SYSTEM_POLICY,
+	CCS_UPDATES_COUNTER_DOMAIN_POLICY,
+	CCS_UPDATES_COUNTER_EXCEPTION_POLICY,
+	CCS_UPDATES_COUNTER_PROFILE,
+	CCS_UPDATES_COUNTER_QUERY,
+	CCS_UPDATES_COUNTER_MANAGER,
+	CCS_UPDATES_COUNTER_GRANT_LOG,
+	CCS_UPDATES_COUNTER_REJECT_LOG,
+	MAX_CCS_UPDATES_COUNTER
+};
 
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {
@@ -647,6 +577,9 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			 const struct ccs_acl_info *acl);
 /* Check whether the domain has too many ACL entries to hold. */
 bool ccs_check_domain_quota(struct domain_info * const domain);
+/* Dump a page to buffer. */
+bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
+		   struct ccs_page_dump *dump);
 /* Transactional sprintf() for policy dump. */
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
@@ -895,39 +828,6 @@ ccs_get_condition_part(const struct ccs_acl_info *acl)
 	return (acl->type & ACL_WITH_CONDITION) ?
 		acl->access_me_via_ccs_get_condition_part : NULL;
 }
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-
-/* Same with get_arg_page(bprm, pos, 0) in fs/exec.c */
-static inline struct page *ccs_get_arg_page(struct linux_binprm *bprm,
-					    unsigned long pos)
-{
-	struct page *page;
-	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
-		return NULL;
-	return page;
-}
-
-/* Same with put_arg_page(page) in fs/exec.c */
-static inline void ccs_put_arg_page(struct page *page)
-{
-	put_page(page);
-}
-
-#else
-
-static inline struct page *ccs_get_arg_page(struct linux_binprm *bprm,
-					    unsigned long pos)
-{
-	return bprm->page[pos / PAGE_SIZE];
-}
-
-static inline void ccs_put_arg_page(struct page *page)
-{
-}
-
-#endif
-
 
 /* A linked list of domains. */
 extern struct list1_head ccs_domain_list;

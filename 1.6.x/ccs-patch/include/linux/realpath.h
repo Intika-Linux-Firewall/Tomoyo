@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2008/12/24
+ * Version: 1.6.6-pre   2009/01/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -20,6 +20,7 @@ struct vfsmount;
 struct ccs_condition_list;
 struct ccs_path_info;
 struct ccs_io_buffer;
+struct ccs_execve_entry;
 
 /* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
 int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
@@ -31,8 +32,8 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
  * if these functions didn't return NULL.
  */
 char *ccs_realpath(const char *pathname);
-/* Same with ccs_realpath() except that it doesn't follow the final symlink. */
-char *ccs_realpath_nofollow(const char *pathname);
+/* Get ccs_realpath() of both symlink and dereferenced pathname. */
+_Bool ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
 /* Same with ccs_realpath() except that the pathname is already solved. */
 char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
 

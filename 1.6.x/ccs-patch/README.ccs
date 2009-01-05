@@ -1796,3 +1796,14 @@ Fix 2008/12/24
 
       I meant to print SYAORAN-ERROR: message when error == -EPERM,
       but I was printing it when error == 0 since 1.6.0 .
+
+Fix 2009/01/05
+
+    @ Use kmap_atomic()/kunmap_atomic() for reading "struct linux_binprm".
+
+      As remove_arg_zero() uses kmap_atomic(KM_USER0), I modified to use
+      kmap_atomic(KM_USER0) rather than kmap().
+
+    @ Relocate definitions and functions.
+
+      To reduce exposed symbols, I relocated some definitions and functions.
