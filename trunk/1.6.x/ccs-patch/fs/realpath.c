@@ -333,6 +333,8 @@ _Bool ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
 #endif
 	if (ret)
 		return false;
+	if (strlen(ee->tmp) >= CCS_MAX_PATHNAME_LEN - 1)
+		return false;
 	ee->program_path[CCS_MAX_PATHNAME_LEN - 1] = '\0';
 	if (!is_symlink) {
 		strncpy(ee->program_path, ee->tmp,
