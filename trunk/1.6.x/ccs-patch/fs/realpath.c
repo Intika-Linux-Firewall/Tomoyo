@@ -403,7 +403,7 @@ void *ccs_alloc_element(const unsigned int size)
 		if (!ptr) {
 			printk(KERN_WARNING "ERROR: Out of memory "
 			       "for ccs_alloc_element().\n");
-			if (!ccs_sbin_init_started)
+			if (!ccs_policy_loaded)
 				panic("MAC Initialization failed.\n");
 		} else {
 			ccs_buf = ptr;
@@ -495,7 +495,7 @@ const struct ccs_path_info *ccs_save_name(const char *name)
 		kfree(fmb);
 		printk(KERN_WARNING "ERROR: Out of memory "
 		       "for ccs_save_name().\n");
-		if (!ccs_sbin_init_started)
+		if (!ccs_policy_loaded)
 			panic("MAC Initialization failed.\n");
 		ptr = NULL;
 		goto out;
