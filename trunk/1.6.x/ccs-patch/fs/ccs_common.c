@@ -564,7 +564,7 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
 }
 
 /**
- * ccs_file_matches_to_pattern2 - Pattern matching without '/' character
+ * ccs_file_matches_pattern2 - Pattern matching without '/' character
  * and "\-" pattern.
  *
  * @filename:     The start of string to check.
@@ -574,10 +574,10 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
  *
  * Returns true if @filename matches @pattern, false otherwise.
  */
-static bool ccs_file_matches_to_pattern2(const char *filename,
-					 const char *filename_end,
-					 const char *pattern,
-					 const char *pattern_end)
+static bool ccs_file_matches_pattern2(const char *filename,
+				      const char *filename_end,
+				      const char *pattern,
+				      const char *pattern_end)
 {
 	while (filename < filename_end && pattern < pattern_end) {
 		char c;
@@ -635,10 +635,10 @@ static bool ccs_file_matches_to_pattern2(const char *filename,
 		case '*':
 		case '@':
 			for (i = 0; i <= filename_end - filename; i++) {
-				if (ccs_file_matches_to_pattern2(filename + i,
-								 filename_end,
-								 pattern + 1,
-								 pattern_end))
+				if (ccs_file_matches_pattern2(filename + i,
+							      filename_end,
+							      pattern + 1,
+							      pattern_end))
 					return true;
 				c = filename[i];
 				if (c == '.' && *pattern == '@')
@@ -667,10 +667,10 @@ static bool ccs_file_matches_to_pattern2(const char *filename,
 					j++;
 			}
 			for (i = 1; i <= j; i++) {
-				if (ccs_file_matches_to_pattern2(filename + i,
-								 filename_end,
-								 pattern + 1,
-								 pattern_end))
+				if (ccs_file_matches_pattern2(filename + i,
+							      filename_end,
+							      pattern + 1,
+							      pattern_end))
 					return true;
 			}
 			return false; /* Not matched or bad pattern. */
@@ -685,7 +685,7 @@ static bool ccs_file_matches_to_pattern2(const char *filename,
 }
 
 /**
- * ccs_file_matches_to_pattern - Pattern matching without without '/' character.
+ * ccs_file_matches_pattern - Pattern matching without without '/' character.
  *
  * @filename:     The start of string to check.
  * @filename_end: The end of string to check.
@@ -694,10 +694,10 @@ static bool ccs_file_matches_to_pattern2(const char *filename,
  *
  * Returns true if @filename matches @pattern, false otherwise.
  */
-static bool ccs_file_matches_to_pattern(const char *filename,
-					const char *filename_end,
-					const char *pattern,
-					const char *pattern_end)
+static bool ccs_file_matches_pattern(const char *filename,
+				     const char *filename_end,
+				     const char *pattern,
+				     const char *pattern_end)
 {
 	const char *pattern_start = pattern;
 	bool first = true;
@@ -706,9 +706,9 @@ static bool ccs_file_matches_to_pattern(const char *filename,
 		/* Split at "\-" pattern. */
 		if (*pattern++ != '\\' || *pattern++ != '-')
 			continue;
-		result = ccs_file_matches_to_pattern2(filename, filename_end,
-						      pattern_start,
-						      pattern - 2);
+		result = ccs_file_matches_pattern2(filename, filename_end,
+						   pattern_start,
+						   pattern - 2);
 		if (first)
 			result = !result;
 		if (result)
@@ -716,8 +716,8 @@ static bool ccs_file_matches_to_pattern(const char *filename,
 		first = false;
 		pattern_start = pattern;
 	}
-	result = ccs_file_matches_to_pattern2(filename, filename_end,
-					      pattern_start, pattern_end);
+	result = ccs_file_matches_pattern2(filename, filename_end,
+					   pattern_start, pattern_end);
 	return first ? result : !result;
 }
 
@@ -771,8 +771,8 @@ bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			f_delimiter = f + strlen(f);
 		if (!p_delimiter)
 			p_delimiter = p + strlen(p);
-		if (!ccs_file_matches_to_pattern(f, f_delimiter,
-						 p, p_delimiter))
+		if (!ccs_file_matches_pattern(f, f_delimiter,
+					      p, p_delimiter))
 			return false;
 		f = f_delimiter;
 		if (*f)
