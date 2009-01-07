@@ -2048,7 +2048,7 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 				   ignore_global_allow_env))
 			return 0;
 		head->read_step = 2;
-acl_loop:
+ acl_loop:
 		if (head->read_step == 3)
 			goto tail_mark;
 		/* Print ACL entries in the domain. */
@@ -2060,7 +2060,7 @@ acl_loop:
 				return 0;
 		}
 		head->read_step = 3;
-tail_mark:
+ tail_mark:
 		if (!ccs_io_printf(head, "\n"))
 			return 0;
 		head->read_step = 1;
