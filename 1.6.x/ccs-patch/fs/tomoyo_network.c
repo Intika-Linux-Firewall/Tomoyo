@@ -149,8 +149,7 @@ static int ccs_update_address_group_entry(const char *group_name,
 	list1_for_each_entry(group, &ccs_address_group_list, list) {
 		if (saved_group_name != group->group_name)
 			continue;
-		list1_for_each_entry(member,
-				     &group->address_group_member_list,
+		list1_for_each_entry(member, &group->address_group_member_list,
 				     list) {
 			if (member->is_ipv6 != is_ipv6)
 				continue;
@@ -194,8 +193,7 @@ static int ccs_update_address_group_entry(const char *group_name,
 		new_member->min.ipv4 = *(u32 *) min_address;
 		new_member->max.ipv4 = *(u32 *) max_address;
 	}
-	list1_add_tail_mb(&new_member->list,
-			  &group->address_group_member_list);
+	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
 	error = 0;
  out:
 	mutex_unlock(&lock);
@@ -321,8 +319,7 @@ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 {
 	struct ccs_address_group_member *member;
 	const u32 ip = ntohl(*address);
-	list1_for_each_entry(member, &group->address_group_member_list,
-			     list) {
+	list1_for_each_entry(member, &group->address_group_member_list, list) {
 		if (member->is_deleted)
 			continue;
 		if (member->is_ipv6) {

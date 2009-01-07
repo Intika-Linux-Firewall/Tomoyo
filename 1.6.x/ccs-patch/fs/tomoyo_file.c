@@ -582,7 +582,8 @@ static LIST1_HEAD(ccs_no_rewrite_list);
 static int ccs_update_no_rewrite_entry(const char *pattern,
 				       const bool is_delete)
 {
-	struct ccs_no_rewrite_entry *new_entry, *ptr;
+	struct ccs_no_rewrite_entry *new_entry;
+	struct ccs_no_rewrite_entry *ptr;
 	static DEFINE_MUTEX(lock);
 	const struct ccs_path_info *saved_pattern;
 	int error = -ENOMEM;
