@@ -307,7 +307,7 @@ ccs_find_or_assign_new_address_group(const char *group_name)
 }
 
 /**
- * ccs_address_matches_to_group - Check whether the given address matches members of the given address group.
+ * ccs_address_matches_group - Check whether the given address matches members of the given address group.
  *
  * @is_ipv6: True if @address is an IPv6 address.
  * @address: An IPv4 or IPv6 address.
@@ -315,9 +315,9 @@ ccs_find_or_assign_new_address_group(const char *group_name)
  *
  * Returns true if @address matches addresses in @group group, false otherwise.
  */
-static bool ccs_address_matches_to_group(const bool is_ipv6, const u32 *address,
-					 const struct ccs_address_group_entry *
-					 group)
+static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
+				      const struct ccs_address_group_entry *
+				      group)
 {
 	struct ccs_address_group_member *member;
 	const u32 ip = ntohl(*address);
@@ -625,8 +625,8 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 		    acl->max_port < port || !ccs_check_condition(&r, ptr))
 			continue;
 		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-			if (!ccs_address_matches_to_group(is_ipv6, address,
-							  acl->u.group))
+			if (!ccs_address_matches_group(is_ipv6, address,
+						       acl->u.group))
 				continue;
 		} else if (acl->record_type == IP_RECORD_TYPE_IPv4) {
 			if (is_ipv6 ||
