@@ -2586,7 +2586,7 @@ struct ccs_query_entry {
 static LIST_HEAD(ccs_query_list);
 
 /* Number of "struct file" referring /proc/ccs/query interface. */
-static atomic_t ccs_queryd_watcher = ATOMIC_INIT(0);
+static atomic_t ccs_query_observers = ATOMIC_INIT(0);
 
 /**
  * ccs_check_supervisor - Ask for the supervisor's decision.
@@ -2610,7 +2610,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	char *header;
 	if (!r->domain)
 		r->domain = current->domain_info;
-	if (!atomic_read(&ccs_queryd_watcher)) {
+	if (!atomic_read(&ccs_query_observers)) {
 		int i;
 		if (current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			return -EPERM;
@@ -2659,7 +2659,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
 	/* Give 10 seconds for supervisor's opinion. */
 	for (ccs_query_entry->timer = 0;
-	     atomic_read(&ccs_queryd_watcher) && ccs_query_entry->timer < 100;
+	     atomic_read(&ccs_query_observers) && ccs_query_entry->timer < 100;
 	     ccs_query_entry->timer++) {
 		wake_up(&ccs_query_wait);
 		set_current_state(TASK_INTERRUPTIBLE);
@@ -3075,13 +3075,13 @@ int ccs_open_control(const u8 type, struct file *file)
 	if (type == CCS_SELFDOMAIN)
 		ccs_read_control(file, NULL, 0);
 	/*
-	 * If the file is /proc/ccs/query , increment the monitor count.
-	 * The monitor count is used by ccs_check_supervisor() to see if
+	 * If the file is /proc/ccs/query , increment the observer counter.
+	 * The obserber counter is used by ccs_check_supervisor() to see if
 	 * there is some process monitoring /proc/ccs/query.
 	 */
 	else if (head->write == ccs_write_answer ||
 		 head->read == ccs_read_query)
-		atomic_inc(&ccs_queryd_watcher);
+		atomic_inc(&ccs_query_observers);
 	return 0;
 }
 
@@ -3212,10 +3212,10 @@ int ccs_close_control(struct file *file)
 {
 	struct ccs_io_buffer *head = file->private_data;
 	/*
-	 * If the file is /proc/ccs/query , decrement the monitor count.
+	 * If the file is /proc/ccs/query , decrement the observer counter.
 	 */
 	if (head->write == ccs_write_answer || head->read == ccs_read_query)
-		atomic_dec(&ccs_queryd_watcher);
+		atomic_dec(&ccs_query_observers);
 	/* Release memory used for policy I/O. */
 	ccs_free(head->read_buf);
 	head->read_buf = NULL;
