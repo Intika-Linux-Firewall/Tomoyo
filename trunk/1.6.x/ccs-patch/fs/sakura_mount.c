@@ -488,7 +488,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 					     requested_dev_name : dev_name,
 					     requested_dir_name, type, flags,
 					     0);
-cleanup:
+ cleanup:
 		ccs_free(requested_dev_name);
 		ccs_free(requested_dir_name);
 		if (fstype)

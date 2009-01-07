@@ -587,7 +587,7 @@ static void ccs_make_node(struct dev_entry *entry, struct dentry *root)
 			  entry->name);
 			*/
 			base = new_base;
-start:
+ start:
 			name = filename;
 		} else {
 			filename++;

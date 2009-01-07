@@ -728,7 +728,7 @@ ccs_find_or_assign_new_condition(char * const condition)
 		if (!ccs_parse_ulong(&left_max, &start) || left_min > left_max)
 			goto out;
 		condc++; /* body */
-check_operator_1:
+ check_operator_1:
 		if (strncmp(start, "!=", 2) == 0)
 			start += 2;
 		else if (*start == '=')
@@ -836,7 +836,7 @@ check_operator_1:
 		left_2_type = ccs_parse_ulong(&left_max, &start);
 		condc--; /* body */
 		left++;
-check_operator_2:
+ check_operator_2:
 		if (!strncmp(start, "!=", 2)) {
 			start += 2;
 		} else if (*start == '=') {
@@ -865,7 +865,7 @@ check_operator_2:
 		right_2_type = ccs_parse_ulong(&right_max, &start);
 		condc--; /* body */
 		right++;
-store_value:
+ store_value:
 		*ptr = (((u32) match) << 16) |
 			(((u32) left_1_type) << 18) |
 			(((u32) left_2_type) << 20) |
@@ -1411,7 +1411,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			if (left_min > right_max || left_max < right_min)
 				continue;
 		}
-out:
+ out:
 		return false;
 	}
 	if (r->ee && (argc || envc))
@@ -1479,7 +1479,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 		if (!ccs_io_printf(head, "-%s", buffer))
 			goto out;
 		i++;
-print_operator:
+ print_operator:
 		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
 			goto out;
 		if (right < MAX_KEYWORD) {
