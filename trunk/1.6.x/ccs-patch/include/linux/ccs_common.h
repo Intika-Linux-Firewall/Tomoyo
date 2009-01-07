@@ -182,7 +182,7 @@ struct ccs_path_info {
 	u16 total_len;     /* = strlen(name)                       */
 	u16 const_len;     /* = ccs_const_part_length(name)        */
 	bool is_dir;       /* = ccs_strendswith(name, "/")         */
-	bool is_patterned; /* = path_contains_pattern(name)        */
+	bool is_patterned; /* = const_len < total_len              */
 	u16 depth;         /* = ccs_path_depth(name)               */
 };
 
@@ -611,7 +611,7 @@ bool ccs_read_chroot_policy(struct ccs_io_buffer *head);
  * in exception policy.
  */
 bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
-     /* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
+/* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
 bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head);
 /* Read "file_pattern" entry in exception policy. */
 bool ccs_read_file_pattern(struct ccs_io_buffer *head);
