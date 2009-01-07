@@ -56,7 +56,7 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
 
 /* Has /sbin/init started? */
-bool ccs_sbin_init_started;
+bool ccs_policy_loaded;
 
 /* Log level for SAKURA's printk(). */
 const char *ccs_log_level = KERN_DEBUG;
@@ -707,8 +707,7 @@ static bool ccs_file_matches_pattern(const char *filename,
 		if (*pattern++ != '\\' || *pattern++ != '-')
 			continue;
 		result = ccs_file_matches_pattern2(filename, filename_end,
-						   pattern_start,
-						   pattern - 2);
+						   pattern_start, pattern - 2);
 		if (first)
 			result = !result;
 		if (result)
@@ -771,8 +770,7 @@ bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			f_delimiter = f + strlen(f);
 		if (!p_delimiter)
 			p_delimiter = p + strlen(p);
-		if (!ccs_file_matches_pattern(f, f_delimiter,
-					      p, p_delimiter))
+		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
 			return false;
 		f = f_delimiter;
 		if (*f)
@@ -897,7 +895,7 @@ unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index)
 	if (!domain)
 		domain = current->domain_info;
 	profile = domain->profile;
-	return ccs_sbin_init_started && index < CCS_MAX_CONTROL_INDEX
+	return ccs_policy_loaded && index < CCS_MAX_CONTROL_INDEX
 #if MAX_PROFILES != 256
 		&& profile < MAX_PROFILES
 #endif
@@ -919,7 +917,7 @@ static u8 ccs_check_capability_flags(const struct domain_info *domain,
 {
 	const u8 profile = domain ? domain->profile :
 		current->domain_info->profile;
-	return ccs_sbin_init_started && index < TOMOYO_MAX_CAPABILITY_INDEX
+	return ccs_policy_loaded && index < TOMOYO_MAX_CAPABILITY_INDEX
 #if MAX_PROFILES != 256
 		&& profile < MAX_PROFILES
 #endif
@@ -1401,7 +1399,7 @@ static bool ccs_is_policy_manager(void)
 	struct task_struct *task = current;
 	const struct ccs_path_info *domainname = task->domain_info->domainname;
 	bool found = false;
-	if (!ccs_sbin_init_started)
+	if (!ccs_policy_loaded)
 		return true;
 	if (task->tomoyo_flags & CCS_TASK_IS_POLICY_MANAGER)
 		return true;
@@ -1571,7 +1569,7 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 
 	if (sscanf(data, KEYWORD_USE_PROFILE "%u", &profile) == 1
 	    && profile < MAX_PROFILES) {
-		if (ccs_profile_ptr[profile] || !ccs_sbin_init_started)
+		if (ccs_profile_ptr[profile] || !ccs_policy_loaded)
 			domain->profile = (u8) profile;
 		return 0;
 	}
@@ -2099,7 +2097,7 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 	domain = ccs_find_domain(cp + 1);
 	profile = simple_strtoul(data, NULL, 10);
 	if (domain && profile < MAX_PROFILES
-	    && (ccs_profile_ptr[profile] || !ccs_sbin_init_started))
+	    && (ccs_profile_ptr[profile] || !ccs_policy_loaded))
 		domain->profile = (u8) profile;
 	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
@@ -2482,7 +2480,7 @@ static int ccs_run_loader(void *unused)
  */
 void ccs_load_policy(const char *filename)
 {
-	if (ccs_sbin_init_started)
+	if (ccs_policy_loaded)
 		return;
 	/*
 	 * Check filename is /sbin/init or /sbin/ccs-start.
@@ -2554,7 +2552,7 @@ void ccs_load_policy(const char *filename)
 	printk(KERN_INFO "TOMOYO: 1.6.6-pre   2009/01/05\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
-	ccs_sbin_init_started = true;
+	ccs_policy_loaded = true;
 	ccs_log_level = KERN_WARNING;
 	{ /* Check all profiles currently assigned to domains are defined. */
 		struct domain_info *domain;

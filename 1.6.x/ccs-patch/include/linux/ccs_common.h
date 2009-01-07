@@ -832,7 +832,7 @@ ccs_get_condition_part(const struct ccs_acl_info *acl)
 /* A linked list of domains. */
 extern struct list1_head ccs_domain_list;
 /* Has /sbin/init started? */
-extern bool ccs_sbin_init_started;
+extern bool ccs_policy_loaded;
 /* Log level for printk(). */
 extern const char *ccs_log_level;
 /* The kernel's domain. */

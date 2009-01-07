@@ -1076,7 +1076,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 		/* Transit to the child of KERNEL_DOMAIN domain. */
 		snprintf(new_domain_name, CCS_EXEC_TMPSIZE - 1,
 			 ROOT_NAME " " "%s", ee->program_path);
-	} else if (r->domain == &KERNEL_DOMAIN && !ccs_sbin_init_started) {
+	} else if (r->domain == &KERNEL_DOMAIN && !ccs_policy_loaded) {
 		/*
 		 * Needn't to transit from kernel domain before starting
 		 * /sbin/init. But transit from kernel domain if executing
@@ -1690,7 +1690,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
 	int retval;
 	struct task_struct *task = current;
 	struct ccs_execve_entry *ee = ccs_allocate_execve_entry();
-	if (!ccs_sbin_init_started)
+	if (!ccs_policy_loaded)
 		ccs_load_policy(bprm->filename);
 	if (!ee)
 		return -ENOMEM;
@@ -1769,7 +1769,7 @@ static inline int ccs_start_execve(struct linux_binprm *bprm)
 #ifdef CONFIG_SAKURA
 	/* Clear manager flag. */
 	current->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
-	if (!ccs_sbin_init_started)
+	if (!ccs_policy_loaded)
 		ccs_load_policy(bprm->filename);
 #endif
 	return 0;
