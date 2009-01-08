@@ -124,7 +124,8 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	new_root = ccs_realpath_from_dentry(new_path->dentry, new_path->mnt);
 #endif
 	if (old_root && new_root) {
-		struct ccs_path_info old_root_dir, new_root_dir;
+		struct ccs_path_info old_root_dir;
+		struct ccs_path_info new_root_dir;
 		old_root_dir.name = old_root;
 		ccs_fill_path_info(&old_root_dir);
 		new_root_dir.name = new_root;

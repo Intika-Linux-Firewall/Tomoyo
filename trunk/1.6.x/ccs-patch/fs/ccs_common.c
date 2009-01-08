@@ -1835,7 +1835,8 @@ static bool ccs_print_ipv6_entry(struct ccs_io_buffer *head,
 static bool ccs_print_port_entry(struct ccs_io_buffer *head,
 				 struct ccs_ip_network_acl_record *ptr)
 {
-	const u16 min_port = ptr->min_port, max_port = ptr->max_port;
+	const u16 min_port = ptr->min_port;
+	const u16 max_port = ptr->max_port;
 	if (!ccs_io_printf(head, " %u", min_port))
 		return false;
 	if (min_port != max_port && !ccs_io_printf(head, "-%u", max_port))

@@ -39,7 +39,8 @@ static LIST1_HEAD(ccs_reservedport_list);
 static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 				     const bool is_delete)
 {
-	struct ccs_reserved_entry *new_entry, *ptr;
+	struct ccs_reserved_entry *new_entry;
+	struct ccs_reserved_entry *ptr;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
 	mutex_lock(&lock);
@@ -130,7 +131,8 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 	char buffer[16];
 	memset(buffer, 0, sizeof(buffer));
 	list1_for_each_cookie(pos, head->read_var2, &ccs_reservedport_list) {
-		u16 min_port, max_port;
+		u16 min_port;
+		u16 max_port;
 		struct ccs_reserved_entry *ptr;
 		ptr = list1_entry(pos, struct ccs_reserved_entry, list);
 		if (ptr->is_deleted)
