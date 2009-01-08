@@ -118,11 +118,11 @@ static inline int
 search_binary_handler_with_transition(struct linux_binprm *bprm,
 				      struct pt_regs *regs)
 {
-	int retval;
-	retval = ccs_start_execve(bprm);
-	if (!retval)
+	int retval = ccs_start_execve(bprm);
+	if (!retval) {
 		retval = search_binary_handler(bprm, regs);
-	ccs_finish_execve(retval);
+		ccs_finish_execve(retval);
+	}
 	return retval;
 }
 

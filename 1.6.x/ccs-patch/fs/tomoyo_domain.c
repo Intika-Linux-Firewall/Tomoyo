@@ -1727,6 +1727,8 @@ int ccs_start_execve(struct linux_binprm *bprm)
 	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 	retval = 0;
  out:
+	if (retval)
+		ccs_finish_execve(retval);
 	return retval;
 }
 
