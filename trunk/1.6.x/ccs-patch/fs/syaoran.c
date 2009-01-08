@@ -410,8 +410,7 @@ static struct super_block *ccs_read_super(struct super_block *sb,
 	return sb;
 }
 
-static DECLARE_FSTYPE(ccs_fs_type, "syaoran", ccs_read_super,
-		      FS_LITTER);
+static DECLARE_FSTYPE(ccs_fs_type, "syaoran", ccs_read_super, FS_LITTER);
 
 static int __init ccs_init_fs(void)
 {
