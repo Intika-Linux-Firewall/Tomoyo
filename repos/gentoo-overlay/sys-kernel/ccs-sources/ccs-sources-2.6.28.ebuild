@@ -29,7 +29,6 @@ src_unpack() {
 
 	cd "${WORKDIR}"
 	unpack ${CCS_TGP}.tar.gz
-	epatch "${FILESDIR}/tomoyo_cond.c.patch" || die
 	cp -ax fs include "${S}" || die
 
 	cd "${S}"
