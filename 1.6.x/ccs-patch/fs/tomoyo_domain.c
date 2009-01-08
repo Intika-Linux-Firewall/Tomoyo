@@ -1766,7 +1766,7 @@ void ccs_finish_execve(int retval)
  *
  * Returns 0.
  */
-static inline int ccs_start_execve(struct linux_binprm *bprm)
+int ccs_start_execve(struct linux_binprm *bprm)
 {
 #ifdef CONFIG_SAKURA
 	/* Clear manager flag. */
@@ -1780,7 +1780,7 @@ static inline int ccs_start_execve(struct linux_binprm *bprm)
 /**
  * ccs_finish_execve - Clean up execve() operation.
  */
-static inline void ccs_finish_execve(int retval)
+void ccs_finish_execve(int retval)
 {
 }
 
