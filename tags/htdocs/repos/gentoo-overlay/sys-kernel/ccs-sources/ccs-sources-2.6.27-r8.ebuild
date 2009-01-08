@@ -1,4 +1,4 @@
-# Copyright 2008, 2009 Naohiro Aota
+# Copyright 2009 Naohiro Aota
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
@@ -11,7 +11,7 @@ inherit eutils kernel-2
 detect_version
 detect_arch
 
-CCS_TGP="ccs-patch-1.6.5-20081111"
+CCS_TGP="ccs-patch-1.6.5-20081225"
 CCS_TGP_SRC="mirror://sourceforge.jp/tomoyo/30297/${CCS_TGP}.tar.gz"
 CCS_PATCH_VER="2.6.27"
 
@@ -33,5 +33,4 @@ src_unpack() {
 
 	cd "${S}"
 	epatch "${WORKDIR}"/patches/ccs-patch-${CCS_PATCH_VER}.diff || die
-	epatch "${FILESDIR}/1.6.5-hotfix-fs_tomoyo_audit_c.patch" || die
 }
