@@ -17,13 +17,13 @@
 #include <linux/realpath.h>
 
 /**
- * ccs_cap_operation2name - Convert capability operation to capability message.
+ * ccs_cap2name - Convert capability operation to capability message.
  *
  * @operation: Type of operation.
  *
  * Returns the name of capability.
  */
-static const char *ccs_cap_operation2name(const u8 operation)
+static const char *ccs_cap2name(const u8 operation)
 {
 	static const char *ccs_capability_name[TOMOYO_MAX_CAPABILITY_INDEX] = {
 		[TOMOYO_INET_STREAM_SOCKET_CREATE]  =
@@ -181,8 +181,7 @@ bool ccs_capable(const u8 operation)
 		return true;
 	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
-		       ccs_get_msg(is_enforce),
-		       ccs_cap_operation2name(operation),
+		       ccs_get_msg(is_enforce), ccs_cap2name(operation),
 		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CAPABILITY
