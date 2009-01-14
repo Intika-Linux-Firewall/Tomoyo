@@ -1,7 +1,7 @@
-Index: tomoyo-makefile.patch
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-makefile.patch
 ===================================================================
---- tomoyo-makefile.patch	(revision 2055)
-+++ tomoyo-makefile.patch	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-makefile.patch	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-makefile.patch	(working copy)
 @@ -11,8 +11,8 @@
   security/tomoyo/Makefile |    1 +
   4 files changed, 15 insertions(+)
@@ -41,10 +41,10 @@ Index: tomoyo-makefile.patch
 ++++ linux-2.6.29-rc1-mm1/security/tomoyo/Makefile
  @@ -0,0 +1 @@
  +obj-y = common.o realpath.o tomoyo.o domain.o file.o
-Index: tomoyo-realpath.patch
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-realpath.patch
 ===================================================================
---- tomoyo-realpath.patch	(revision 2055)
-+++ tomoyo-realpath.patch	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-realpath.patch	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-realpath.patch	(working copy)
 @@ -42,13 +42,13 @@
  Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
@@ -166,33 +166,39 @@ Index: tomoyo-realpath.patch
  @@ -0,0 +1,63 @@
  +/*
  + * security/tomoyo/realpath.h
-Index: tomoyo-domain-transition-part.patch
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-domain-transition-part.patch
 ===================================================================
---- tomoyo-domain-transition-part.patch	(revision 2055)
-+++ tomoyo-domain-transition-part.patch	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-domain-transition-part.patch	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-domain-transition-part.patch	(working copy)
 @@ -12,12 +12,12 @@
  Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  ---
 - security/tomoyo/domain.c |  874 +++++++++++++++++++++++++++++++++++++++++++++++
 - 1 file changed, 874 insertions(+)
-+ security/tomoyo/domain.c |  881 +++++++++++++++++++++++++++++++++++++++++++++++
-+ 1 file changed, 881 insertions(+)
++ security/tomoyo/domain.c |  876 +++++++++++++++++++++++++++++++++++++++++++++++
++ 1 file changed, 876 insertions(+)
  
  --- /dev/null
 -+++ linux-2.6.28-mm1/security/tomoyo/domain.c
 -@@ -0,0 +1,874 @@
 ++++ linux-2.6.29-rc1-mm1/security/tomoyo/domain.c
-+@@ -0,0 +1,881 @@
++@@ -0,0 +1,876 @@
  +/*
  + * security/tomoyo/domain.c
  + *
-@@ -44,12 +44,12 @@
- + *
- + * The tomoyo_domain_list_lock mutex protects the tomoyo_domain_list list.
- + */
+@@ -39,17 +39,13 @@
+ +/* The initial domain. */
+ +struct tomoyo_domain_info tomoyo_kernel_domain;
+ +
+-+/*
+-+ * The list for "struct tomoyo_domain_info".
+-+ *
+-+ * The tomoyo_domain_list_lock mutex protects the tomoyo_domain_list list.
+-+ */
 -+LIST1_HEAD(tomoyo_domain_list);
 -+static DEFINE_MUTEX(tomoyo_domain_list_lock);
+++/* The list for "struct tomoyo_domain_info". */
 ++LIST_HEAD(tomoyo_domain_list);
 ++DECLARE_RWSEM(tomoyo_domain_list_lock);
  +
@@ -203,7 +209,7 @@ Index: tomoyo-domain-transition-part.patch
  +	const struct tomoyo_path_info *domainname;    /* This may be NULL */
  +	const struct tomoyo_path_info *program;
  +	bool is_deleted;
-@@ -60,7 +60,7 @@
+@@ -60,7 +56,7 @@
  +
  +/* Structure for "keep_domain" and "no_keep_domain" keyword. */
  +struct tomoyo_domain_keeper_entry {
@@ -212,7 +218,7 @@ Index: tomoyo-domain-transition-part.patch
  +	const struct tomoyo_path_info *domainname;
  +	const struct tomoyo_path_info *program;       /* This may be NULL */
  +	bool is_deleted;
-@@ -71,7 +71,7 @@
+@@ -71,7 +67,7 @@
  +
  +/* Structure for "alias" keyword. */
  +struct tomoyo_alias_entry {
@@ -221,7 +227,7 @@ Index: tomoyo-domain-transition-part.patch
  +	const struct tomoyo_path_info *original_name;
  +	const struct tomoyo_path_info *aliased_name;
  +	bool is_deleted;
-@@ -118,14 +118,9 @@
+@@ -118,14 +114,9 @@
  +	return cp0;
  +}
  +
@@ -239,7 +245,7 @@ Index: tomoyo-domain-transition-part.patch
  +
  +/**
  + * tomoyo_update_domain_initializer_entry - Update "struct tomoyo_domain_initializer_entry" list.
-@@ -144,7 +139,6 @@
+@@ -144,7 +135,6 @@
  +{
  +	struct tomoyo_domain_initializer_entry *new_entry;
  +	struct tomoyo_domain_initializer_entry *ptr;
@@ -247,7 +253,7 @@ Index: tomoyo-domain-transition-part.patch
  +	const struct tomoyo_path_info *saved_program;
  +	const struct tomoyo_path_info *saved_domainname = NULL;
  +	int error = -ENOMEM;
-@@ -166,8 +160,8 @@
+@@ -166,8 +156,8 @@
  +	if (!saved_program)
  +		return -ENOMEM;
  +	/***** EXCLUSIVE SECTION START *****/
@@ -258,7 +264,7 @@ Index: tomoyo-domain-transition-part.patch
  +		if (ptr->is_not != is_not ||
  +		    ptr->domainname != saved_domainname ||
  +		    ptr->program != saved_program)
-@@ -187,10 +181,10 @@
+@@ -187,10 +177,10 @@
  +	new_entry->program = saved_program;
  +	new_entry->is_not = is_not;
  +	new_entry->is_last_name = is_last_name;
@@ -271,7 +277,7 @@ Index: tomoyo-domain-transition-part.patch
  +	/***** EXCLUSIVE SECTION END *****/
  +	return error;
  +}
-@@ -204,15 +198,17 @@
+@@ -204,15 +194,17 @@
  + */
  +bool tomoyo_read_domain_initializer_policy(struct tomoyo_io_buffer *head)
  +{
@@ -293,7 +299,7 @@ Index: tomoyo-domain-transition-part.patch
  +				  list);
  +		if (ptr->is_deleted)
  +			continue;
-@@ -224,12 +220,13 @@
+@@ -224,12 +216,13 @@
  +		if (!tomoyo_io_printf(head,
  +				      "%s" TOMOYO_KEYWORD_INITIALIZE_DOMAIN
  +				      "%s%s%s\n", no, ptr->program->name, from,
@@ -312,7 +318,7 @@ Index: tomoyo-domain-transition-part.patch
  +}
  +
  +/**
-@@ -273,7 +270,8 @@
+@@ -273,7 +266,8 @@
  +	struct tomoyo_domain_initializer_entry *ptr;
  +	bool flag = false;
  +
@@ -322,7 +328,7 @@ Index: tomoyo-domain-transition-part.patch
  +		if (ptr->is_deleted)
  +			continue;
  +		if (ptr->domainname) {
-@@ -287,20 +285,19 @@
+@@ -287,20 +281,19 @@
  +		}
  +		if (tomoyo_pathcmp(ptr->program, program))
  +			continue;
@@ -351,7 +357,7 @@ Index: tomoyo-domain-transition-part.patch
  +
  +/**
  + * tomoyo_update_domain_keeper_entry - Update "struct tomoyo_domain_keeper_entry" list.
-@@ -341,8 +338,8 @@
+@@ -341,8 +334,8 @@
  +	if (!saved_domainname)
  +		return -ENOMEM;
  +	/***** EXCLUSIVE SECTION START *****/
@@ -362,7 +368,7 @@ Index: tomoyo-domain-transition-part.patch
  +		if (ptr->is_not != is_not ||
  +		    ptr->domainname != saved_domainname ||
  +		    ptr->program != saved_program)
-@@ -362,10 +359,10 @@
+@@ -362,10 +355,10 @@
  +	new_entry->program = saved_program;
  +	new_entry->is_not = is_not;
  +	new_entry->is_last_name = is_last_name;
@@ -375,7 +381,7 @@ Index: tomoyo-domain-transition-part.patch
  +	/***** EXCLUSIVE SECTION END *****/
  +	return error;
  +}
-@@ -400,16 +397,18 @@
+@@ -400,16 +393,18 @@
  + */
  +bool tomoyo_read_domain_keeper_policy(struct tomoyo_io_buffer *head)
  +{
@@ -398,7 +404,7 @@ Index: tomoyo-domain-transition-part.patch
  +		if (ptr->is_deleted)
  +			continue;
  +		no = ptr->is_not ? "no_" : "";
-@@ -420,12 +419,13 @@
+@@ -420,12 +415,13 @@
  +		if (!tomoyo_io_printf(head,
  +				      "%s" TOMOYO_KEYWORD_KEEP_DOMAIN
  +				      "%s%s%s\n", no, program, from,
@@ -417,7 +423,7 @@ Index: tomoyo-domain-transition-part.patch
  +}
  +
  +/**
-@@ -445,7 +445,8 @@
+@@ -445,7 +441,8 @@
  +	struct tomoyo_domain_keeper_entry *ptr;
  +	bool flag = false;
  +
@@ -427,7 +433,7 @@ Index: tomoyo-domain-transition-part.patch
  +		if (ptr->is_deleted)
  +			continue;
  +		if (!ptr->is_last_name) {
-@@ -457,20 +458,20 @@
+@@ -457,20 +454,19 @@
  +		}
  +		if (ptr->program && tomoyo_pathcmp(ptr->program, program))
  +			continue;
@@ -443,20 +449,20 @@ Index: tomoyo-domain-transition-part.patch
  +	return flag;
  +}
  +
- +/*
+-+/*
 -+ * The list for "struct tomoyo_alias_entry".
 -+ *
 -+ * This list is updated only inside tomoyo_update_alias_entry(), thus
 -+ * no global mutex exists.
 -+ */
 -+static LIST1_HEAD(tomoyo_alias_list);
-++ * The list for "struct tomoyo_alias_entry". */
+++/* The list for "struct tomoyo_alias_entry". */
 ++static LIST_HEAD(tomoyo_alias_list);
 ++static DECLARE_RWSEM(tomoyo_alias_list_lock);
  +
  +/**
  + * tomoyo_update_alias_entry - Update "struct tomoyo_alias_entry" list.
-@@ -487,7 +488,6 @@
+@@ -487,7 +483,6 @@
  +{
  +	struct tomoyo_alias_entry *new_entry;
  +	struct tomoyo_alias_entry *ptr;
@@ -464,7 +470,7 @@ Index: tomoyo-domain-transition-part.patch
  +	const struct tomoyo_path_info *saved_original_name;
  +	const struct tomoyo_path_info *saved_aliased_name;
  +	int error = -ENOMEM;
-@@ -500,8 +500,8 @@
+@@ -500,8 +495,8 @@
  +	if (!saved_original_name || !saved_aliased_name)
  +		return -ENOMEM;
  +	/***** EXCLUSIVE SECTION START *****/
@@ -475,7 +481,7 @@ Index: tomoyo-domain-transition-part.patch
  +		if (ptr->original_name != saved_original_name ||
  +		    ptr->aliased_name != saved_aliased_name)
  +			continue;
-@@ -518,10 +518,10 @@
+@@ -518,10 +513,10 @@
  +		goto out;
  +	new_entry->original_name = saved_original_name;
  +	new_entry->aliased_name = saved_aliased_name;
@@ -488,7 +494,7 @@ Index: tomoyo-domain-transition-part.patch
  +	/***** EXCLUSIVE SECTION END *****/
  +	return error;
  +}
-@@ -535,22 +535,25 @@
+@@ -535,22 +530,25 @@
  + */
  +bool tomoyo_read_alias_policy(struct tomoyo_io_buffer *head)
  +{
@@ -522,7 +528,7 @@ Index: tomoyo-domain-transition-part.patch
  +}
  +
  +/**
-@@ -590,17 +593,17 @@
+@@ -590,17 +588,17 @@
  +	name.name = domainname;
  +	tomoyo_fill_path_info(&name);
  +	/***** EXCLUSIVE SECTION START *****/
@@ -543,7 +549,7 @@ Index: tomoyo-domain-transition-part.patch
  +		struct tomoyo_domain_info *domain2;
  +		/* Never delete tomoyo_kernel_domain */
  +		if (domain == &tomoyo_kernel_domain)
-@@ -609,7 +612,7 @@
+@@ -609,7 +607,7 @@
  +		    tomoyo_pathcmp(domain->domainname, &name))
  +			continue;
  +		/* Mark already deleted domains as non undeletable. */
@@ -552,7 +558,7 @@ Index: tomoyo-domain-transition-part.patch
  +			if (!domain2->is_deleted ||
  +			    tomoyo_pathcmp(domain2->domainname, &name))
  +				continue;
-@@ -628,7 +631,7 @@
+@@ -628,7 +626,7 @@
  +#endif
  +		break;
  +	}
@@ -561,7 +567,7 @@ Index: tomoyo-domain-transition-part.patch
  +	/***** EXCLUSIVE SECTION END *****/
  +	return 0;
  +}
-@@ -649,16 +652,16 @@
+@@ -649,16 +647,16 @@
  +	name.name = domainname;
  +	tomoyo_fill_path_info(&name);
  +	/***** EXCLUSIVE SECTION START *****/
@@ -581,7 +587,7 @@ Index: tomoyo-domain-transition-part.patch
  +		if (tomoyo_pathcmp(&name, domain->domainname))
  +			continue;
  +		if (!domain->is_deleted) {
-@@ -680,7 +683,7 @@
+@@ -680,7 +678,7 @@
  +		printk(KERN_DEBUG "%p was undeleted.\n", candidate_domain);
  +#endif
  +	}
@@ -590,7 +596,7 @@ Index: tomoyo-domain-transition-part.patch
  +	/***** EXCLUSIVE SECTION END *****/
  +	return candidate_domain;
  +}
-@@ -701,7 +704,7 @@
+@@ -701,7 +699,7 @@
  +	const struct tomoyo_path_info *saved_domainname;
  +
  +	/***** EXCLUSIVE SECTION START *****/
@@ -599,7 +605,7 @@ Index: tomoyo-domain-transition-part.patch
  +	domain = tomoyo_find_domain(domainname);
  +	if (domain)
  +		goto out;
-@@ -711,7 +714,7 @@
+@@ -711,7 +709,7 @@
  +	if (!saved_domainname)
  +		goto out;
  +	/* Can I reuse memory of deleted domain? */
@@ -608,7 +614,7 @@ Index: tomoyo-domain-transition-part.patch
  +		struct task_struct *p;
  +		struct tomoyo_acl_info *ptr;
  +		bool flag;
-@@ -735,7 +738,7 @@
+@@ -735,7 +733,7 @@
  +		printk(KERN_DEBUG "Reusing %p %s\n", domain,
  +		       domain->domainname->name);
  +#endif
@@ -617,7 +623,7 @@ Index: tomoyo-domain-transition-part.patch
  +			ptr->type |= TOMOYO_ACL_DELETED;
  +		}
  +		tomoyo_set_domain_flag(domain, true, domain->flags);
-@@ -748,13 +751,13 @@
+@@ -748,13 +746,13 @@
  +	/* No memory reusable. Create using new memory. */
  +	domain = tomoyo_alloc_element(sizeof(*domain));
  +	if (domain) {
@@ -634,7 +640,7 @@ Index: tomoyo-domain-transition-part.patch
  +	/***** EXCLUSIVE SECTION END *****/
  +	return domain;
  +}
-@@ -827,7 +830,8 @@
+@@ -827,7 +825,8 @@
  +	if (tomoyo_pathcmp(&r, &s)) {
  +		struct tomoyo_alias_entry *ptr;
  +		/* Is this program allowed to be called via symbolic links? */
@@ -644,7 +650,7 @@ Index: tomoyo-domain-transition-part.patch
  +			if (ptr->is_deleted ||
  +			    tomoyo_pathcmp(&r, ptr->original_name) ||
  +			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -838,6 +842,7 @@
+@@ -838,6 +837,7 @@
  +			tomoyo_fill_path_info(&r);
  +			break;
  +		}
@@ -652,7 +658,7 @@ Index: tomoyo-domain-transition-part.patch
  +	}
  +
  +	/* Check execute permission. */
-@@ -868,7 +873,9 @@
+@@ -868,7 +868,9 @@
  +	}
  +	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
  +		goto done;
@@ -662,10 +668,10 @@ Index: tomoyo-domain-transition-part.patch
  +	if (domain)
  +		goto done;
  +	if (is_enforce)
-Index: tomoyo-hooks.patch
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-hooks.patch
 ===================================================================
---- tomoyo-hooks.patch	(revision 2055)
-+++ tomoyo-hooks.patch	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-hooks.patch	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-hooks.patch	(working copy)
 @@ -29,7 +29,7 @@
   2 files changed, 399 insertions(+)
  
@@ -684,10 +690,10 @@ Index: tomoyo-hooks.patch
  @@ -0,0 +1,106 @@
  +/*
  + * security/tomoyo/tomoyo.h
-Index: tomoyo-file-restriction-part.patch
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-file-restriction-part.patch
 ===================================================================
---- tomoyo-file-restriction-part.patch	(revision 2055)
-+++ tomoyo-file-restriction-part.patch	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-file-restriction-part.patch	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-file-restriction-part.patch	(working copy)
 @@ -6,12 +6,12 @@
  Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
@@ -1213,7 +1219,7 @@ Index: tomoyo-file-restriction-part.patch
  +	acl->filename2 = saved_filename2;
 -+	error = tomoyo_add_domain_acl(domain, &acl->head);
 ++	list_add_tail(&acl->head.list, &domain->acl_info_list);
-++        error = 0;
+++	error = 0;
  +	goto out;
  + delete:
  +	error = -ENOENT;
@@ -1266,10 +1272,10 @@ Index: tomoyo-file-restriction-part.patch
  +}
  +
  +/**
-Index: series
+Index: trunk/2.2.x/tomoyo-lsm/patches/series
 ===================================================================
---- series	(revision 2055)
-+++ series	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/series	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/series	(working copy)
 @@ -1,6 +1,6 @@
  add-in_execve-flag-into-task_struct.patch
 -introduce-write-once-read-many-linked-list.patch
@@ -1279,10 +1285,10 @@ Index: series
  tomoyo-realpath.patch
  tomoyo-common.patch
  tomoyo-file-restriction-part.patch
-Index: tomoyo-common.patch
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-common.patch
 ===================================================================
---- tomoyo-common.patch	(revision 2055)
-+++ tomoyo-common.patch	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-common.patch	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-common.patch	(working copy)
 @@ -280,13 +280,13 @@
  Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
@@ -1290,15 +1296,15 @@ Index: tomoyo-common.patch
 - security/tomoyo/common.c | 2160 +++++++++++++++++++++++++++++++++++++++++++++++
 - security/tomoyo/common.h |  337 +++++++
 - 2 files changed, 2497 insertions(+)
-+ security/tomoyo/common.c | 2201 +++++++++++++++++++++++++++++++++++++++++++++++
++ security/tomoyo/common.c | 2202 +++++++++++++++++++++++++++++++++++++++++++++++
 + security/tomoyo/common.h |  359 +++++++
-+ 2 files changed, 2560 insertions(+)
++ 2 files changed, 2561 insertions(+)
  
  --- /dev/null
 -+++ linux-2.6.28-mm1/security/tomoyo/common.c
 -@@ -0,0 +1,2160 @@
 ++++ linux-2.6.29-rc1-mm1/security/tomoyo/common.c
-+@@ -0,0 +1,2201 @@
++@@ -0,0 +1,2202 @@
  +/*
  + * security/tomoyo/common.c
  + *
@@ -1339,7 +1345,7 @@ Index: tomoyo-common.patch
  +	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
  +		return true;
  +	if (!domain->quota_warned) {
-@@ -1295,7 +1300,7 @@
+@@ -1295,20 +1300,16 @@
  +
  +/* Structure for policy manager. */
  +struct tomoyo_policy_manager_entry {
@@ -1348,23 +1354,23 @@ Index: tomoyo-common.patch
  +	/* A path to program or a domainname. */
  +	const struct tomoyo_path_info *manager;
  +	bool is_domain;  /* True if manager is a domainname. */
-@@ -1303,12 +1308,9 @@
+ +	bool is_deleted; /* True if this entry is deleted. */
  +};
  +
- +/*
+-+/*
 -+ * The list for "struct tomoyo_policy_manager_entry".
 -+ *
 -+ * This list is updated only inside update_manager_entry(), thus
 -+ * no global mutex exists.
 -+ */
 -+static LIST1_HEAD(tomoyo_policy_manager_list);
-++ * The list for "struct tomoyo_policy_manager_entry". */
+++/* The list for "struct tomoyo_policy_manager_entry". */
 ++static LIST_HEAD(tomoyo_policy_manager_list);
 ++static DECLARE_RWSEM(tomoyo_policy_manager_list_lock);
  +
  +/**
  + * tomoyo_update_manager_entry - Add a manager entry.
-@@ -1323,7 +1325,6 @@
+@@ -1323,7 +1324,6 @@
  +{
  +	struct tomoyo_policy_manager_entry *new_entry;
  +	struct tomoyo_policy_manager_entry *ptr;
@@ -1372,7 +1378,7 @@ Index: tomoyo-common.patch
  +	const struct tomoyo_path_info *saved_manager;
  +	int error = -ENOMEM;
  +	bool is_domain = false;
-@@ -1340,8 +1341,8 @@
+@@ -1340,8 +1340,8 @@
  +	if (!saved_manager)
  +		return -ENOMEM;
  +	/***** EXCLUSIVE SECTION START *****/
@@ -1383,7 +1389,7 @@ Index: tomoyo-common.patch
  +		if (ptr->manager != saved_manager)
  +			continue;
  +		ptr->is_deleted = is_delete;
-@@ -1357,10 +1358,10 @@
+@@ -1357,10 +1357,10 @@
  +		goto out;
  +	new_entry->manager = saved_manager;
  +	new_entry->is_domain = is_domain;
@@ -1396,7 +1402,7 @@ Index: tomoyo-common.patch
  +	/***** EXCLUSIVE SECTION END *****/
  +	return error;
  +}
-@@ -1393,21 +1394,26 @@
+@@ -1393,21 +1393,26 @@
  + */
  +static int tomoyo_read_manager_policy(struct tomoyo_io_buffer *head)
  +{
@@ -1431,7 +1437,7 @@ Index: tomoyo-common.patch
  +	return 0;
  +}
  +
-@@ -1429,21 +1435,29 @@
+@@ -1429,21 +1434,29 @@
  +		return true;
  +	if (!tomoyo_manage_by_non_root && (task->cred->uid || task->cred->euid))
  +		return false;
@@ -1465,7 +1471,7 @@ Index: tomoyo-common.patch
  +	if (!found) { /* Reduce error messages. */
  +		static pid_t last_pid;
  +		const pid_t pid = current->pid;
-@@ -1481,8 +1495,11 @@
+@@ -1481,8 +1494,11 @@
  +		read_unlock(&tasklist_lock);
  +		/***** CRITICAL SECTION END *****/
  +	} else if (!strncmp(data, "domain=", 7)) {
@@ -1478,7 +1484,7 @@ Index: tomoyo-common.patch
  +	} else
  +		return false;
  +	head->write_var1 = domain;
-@@ -1496,11 +1513,13 @@
+@@ -1496,11 +1512,13 @@
  +	if (domain) {
  +		struct tomoyo_domain_info *d;
  +		head->read_var1 = NULL;
@@ -1493,7 +1499,7 @@ Index: tomoyo-common.patch
  +		head->read_var2 = NULL;
  +		head->read_bit = 0;
  +		head->read_step = 0;
-@@ -1541,9 +1560,11 @@
+@@ -1541,9 +1559,11 @@
  +		domain = NULL;
  +		if (is_delete)
  +			tomoyo_delete_domain(data);
@@ -1507,7 +1513,7 @@ Index: tomoyo-common.patch
  +			domain = tomoyo_undelete_domain(data);
  +		else
  +			domain = tomoyo_find_or_assign_new_domain(data, 0);
-@@ -1693,19 +1714,21 @@
+@@ -1693,19 +1713,21 @@
  + */
  +static int tomoyo_read_domain_policy(struct tomoyo_io_buffer *head)
  +{
@@ -1533,7 +1539,7 @@ Index: tomoyo-common.patch
  +		if (head->read_step != 1)
  +			goto acl_loop;
  +		if (domain->is_deleted && !head->read_single_domain)
-@@ -1724,30 +1747,39 @@
+@@ -1724,30 +1746,41 @@
  +				      "%s%s%s\n", domain->domainname->name,
  +				      domain->profile, quota_exceeded,
  +				      transition_failed,
@@ -1568,9 +1574,12 @@ Index: tomoyo-common.patch
 ++			break;
  +		head->read_step = 3;
  +tail_mark:
- +		if (!tomoyo_io_printf(head, "\n"))
+-+		if (!tomoyo_io_printf(head, "\n"))
 -+			return 0;
+++		if (!tomoyo_io_printf(head, "\n")) {
+++			done = false;
 ++			break;
+++		}
  +		head->read_step = 1;
  +		if (head->read_single_domain)
  +			break;
@@ -1581,7 +1590,7 @@ Index: tomoyo-common.patch
  +	return 0;
  +}
  +
-@@ -1773,7 +1805,9 @@
+@@ -1773,7 +1806,9 @@
  +	if (!cp)
  +		return -EINVAL;
  +	*cp = '\0';
@@ -1591,7 +1600,7 @@ Index: tomoyo-common.patch
  +	if (strict_strtoul(data, 10, &profile))
  +		return -EINVAL;
  +	if (domain && profile < TOMOYO_MAX_PROFILES
-@@ -1798,20 +1832,25 @@
+@@ -1798,20 +1833,25 @@
  + */
  +static int tomoyo_read_domain_profile(struct tomoyo_io_buffer *head)
  +{
@@ -1623,7 +1632,7 @@ Index: tomoyo-common.patch
  +	return 0;
  +}
  +
-@@ -2032,13 +2071,15 @@
+@@ -2032,13 +2072,15 @@
  +	tomoyo_policy_loaded = true;
  +	{ /* Check all profiles currently assigned to domains are defined. */
  +		struct tomoyo_domain_info *domain;
@@ -1640,7 +1649,16 @@ Index: tomoyo-common.patch
  +	}
  +}
  +
-@@ -2448,8 +2489,8 @@
+@@ -2391,7 +2433,7 @@
+ +}
+ +
+ +/* Operations for /sys/kernel/security/tomoyo/ interface. */
+-+static struct file_operations tomoyo_operations = {
+++static const struct file_operations tomoyo_operations = {
+ +	.open    = tomoyo_open,
+ +	.release = tomoyo_release,
+ +	.read    = tomoyo_read,
+@@ -2448,8 +2490,8 @@
  +
  +fs_initcall(tomoyo_initerface_init);
  --- /dev/null
@@ -1651,7 +1669,7 @@ Index: tomoyo-common.patch
  +/*
  + * security/tomoyo/common.h
  + *
-@@ -2473,7 +2514,7 @@
+@@ -2473,7 +2515,7 @@
  +#include <linux/sched.h>
  +#include <linux/namei.h>
  +#include <linux/mount.h>
@@ -1660,7 +1678,7 @@ Index: tomoyo-common.patch
  +
  +struct dentry;
  +struct vfsmount;
-@@ -2521,7 +2562,7 @@
+@@ -2521,7 +2563,7 @@
  + * without enlarging their structure size.
  + */
  +struct tomoyo_acl_info {
@@ -1669,7 +1687,7 @@ Index: tomoyo-common.patch
  +	/*
  +	 * Type of this ACL entry.
  +	 *
-@@ -2535,8 +2576,8 @@
+@@ -2535,8 +2577,8 @@
  +
  +/* Structure for domain information. */
  +struct tomoyo_domain_info {
@@ -1680,7 +1698,7 @@ Index: tomoyo-common.patch
  +	/* Name of this domain. Never NULL.          */
  +	const struct tomoyo_path_info *domainname;
  +	u8 profile;        /* Profile number to use. */
-@@ -2616,9 +2657,9 @@
+@@ -2616,9 +2658,9 @@
  +	/* Exclusive lock for this structure.   */
  +	struct mutex io_sem;
  +	/* The position currently reading from. */
@@ -1692,7 +1710,7 @@ Index: tomoyo-common.patch
  +	/* The position currently writing to.   */
  +	struct tomoyo_domain_info *write_var1;
  +	/* The step for reading.                */
-@@ -2778,12 +2819,34 @@
+@@ -2778,12 +2820,34 @@
  +}
  +
  +/* The list for "struct tomoyo_domain_info". */
@@ -1728,10 +1746,10 @@ Index: tomoyo-common.patch
 ++	     (cookie) = pos, pos = pos->next)
 ++
  +#endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
-Index: add-in_execve-flag-into-task_struct.patch
+Index: trunk/2.2.x/tomoyo-lsm/patches/add-in_execve-flag-into-task_struct.patch
 ===================================================================
---- add-in_execve-flag-into-task_struct.patch	(revision 2055)
-+++ add-in_execve-flag-into-task_struct.patch	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/add-in_execve-flag-into-task_struct.patch	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/add-in_execve-flag-into-task_struct.patch	(working copy)
 @@ -20,8 +20,8 @@
   include/linux/sched.h |    2 ++
   3 files changed, 8 insertions(+)
@@ -1752,7 +1770,7 @@ Index: add-in_execve-flag-into-task_struct.patch
 -@@ -1306,6 +1306,7 @@ int do_execve(char * filename,
 +--- linux-2.6.29-rc1-mm1.orig/fs/exec.c
 ++++ linux-2.6.29-rc1-mm1/fs/exec.c
-+@@ -1276,6 +1276,7 @@ int do_execve(char * filename,
++@@ -1275,6 +1275,7 @@ int do_execve(char * filename,
   	retval = mutex_lock_interruptible(&current->cred_exec_mutex);
   	if (retval < 0)
   		goto out_free;
@@ -1761,7 +1779,7 @@ Index: add-in_execve-flag-into-task_struct.patch
   	retval = -ENOMEM;
   	bprm->cred = prepare_exec_creds();
 -@@ -1359,6 +1360,7 @@ int do_execve(char * filename,
-+@@ -1329,6 +1330,7 @@ int do_execve(char * filename,
++@@ -1328,6 +1329,7 @@ int do_execve(char * filename,
   		goto out;
   
   	/* execve succeeded */
@@ -1770,25 +1788,27 @@ Index: add-in_execve-flag-into-task_struct.patch
   	acct_update_integrals(current);
   	free_bprm(bprm);
 -@@ -1377,6 +1379,7 @@ out_file:
-+@@ -1347,6 +1349,7 @@ out_file:
++@@ -1346,6 +1348,7 @@ out_file:
   	}
   
   out_unlock:
-@@ -72,8 +72,8 @@
+@@ -72,9 +72,9 @@
   	mutex_unlock(&current->cred_exec_mutex);
   
   out_free:
 ---- linux-2.6.28-mm1.orig/include/linux/sched.h
 -+++ linux-2.6.28-mm1/include/linux/sched.h
+-@@ -1155,6 +1155,8 @@ struct task_struct {
 +--- linux-2.6.29-rc1-mm1.orig/include/linux/sched.h
 ++++ linux-2.6.29-rc1-mm1/include/linux/sched.h
- @@ -1155,6 +1155,8 @@ struct task_struct {
++@@ -1157,6 +1157,8 @@ struct task_struct {
   	/* ??? */
   	unsigned int personality;
-Index: tomoyo-maintainers.patch
+  	unsigned did_exec:1;
+Index: trunk/2.2.x/tomoyo-lsm/patches/tomoyo-maintainers.patch
 ===================================================================
---- tomoyo-maintainers.patch	(revision 2055)
-+++ tomoyo-maintainers.patch	(working copy)
+--- trunk/2.2.x/tomoyo-lsm/patches/tomoyo-maintainers.patch	(revision 2056)
++++ trunk/2.2.x/tomoyo-lsm/patches/tomoyo-maintainers.patch	(working copy)
 @@ -14,9 +14,9 @@
   MAINTAINERS |   13 +++++++++++++
   1 file changed, 13 insertions(+)
@@ -1798,7 +1818,7 @@ Index: tomoyo-maintainers.patch
 -@@ -4251,6 +4251,19 @@ L:	tlan-devel@lists.sourceforge.net (sub
 +--- linux-2.6.29-rc1-mm1.orig/MAINTAINERS
 ++++ linux-2.6.29-rc1-mm1/MAINTAINERS
-+@@ -4287,6 +4287,19 @@ L:	tlan-devel@lists.sourceforge.net (sub
++@@ -4302,6 +4302,19 @@ L:	tlan-devel@lists.sourceforge.net (sub
   W:	http://sourceforge.net/projects/tlan/
   S:	Maintained
   
