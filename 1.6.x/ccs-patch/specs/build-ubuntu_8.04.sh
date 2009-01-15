@@ -70,7 +70,7 @@ sed -i -e 's:virtual:virtual ccs:' debian/rules.d/i386.mk || die "Can't edit fil
 debian/rules binary-indep binary-arch || die "Failed to build kernel package."
 cd .. || die "Can't chdir to ../ ."
 
-cd linux-restricted-modules-2.6.24-2.6.24.14/ || die "Can't chdir to linux-restricted-modules-2.6.24-2.6.24.14/ ."
+cd linux-restricted-modules-2.6.24-2.6.24.16/ || die "Can't chdir to linux-restricted-modules-2.6.24-2.6.24.16/ ."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
 cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."
 sed -i -e 's/,generic/,ccs generic/' debian/rules || die "Can't edit file."
