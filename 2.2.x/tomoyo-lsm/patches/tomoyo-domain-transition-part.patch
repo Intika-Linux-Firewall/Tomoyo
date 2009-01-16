@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  874 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 874 insertions(+)
+ security/tomoyo/domain.c |  876 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 876 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.28-mm1/security/tomoyo/domain.c
-@@ -0,0 +1,874 @@
++++ linux-2.6.29-rc1-mm1/security/tomoyo/domain.c
+@@ -0,0 +1,876 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -39,17 +39,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +/* The initial domain. */
 +struct tomoyo_domain_info tomoyo_kernel_domain;
 +
-+/*
-+ * The list for "struct tomoyo_domain_info".
-+ *
-+ * The tomoyo_domain_list_lock mutex protects the tomoyo_domain_list list.
-+ */
-+LIST1_HEAD(tomoyo_domain_list);
-+static DEFINE_MUTEX(tomoyo_domain_list_lock);
++/* The list for "struct tomoyo_domain_info". */
++LIST_HEAD(tomoyo_domain_list);
++DECLARE_RWSEM(tomoyo_domain_list_lock);
 +
 +/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
 +struct tomoyo_domain_initializer_entry {
-+	struct list1_head list;
++	struct list_head list;
 +	const struct tomoyo_path_info *domainname;    /* This may be NULL */
 +	const struct tomoyo_path_info *program;
 +	bool is_deleted;
@@ -60,7 +56,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +/* Structure for "keep_domain" and "no_keep_domain" keyword. */
 +struct tomoyo_domain_keeper_entry {
-+	struct list1_head list;
++	struct list_head list;
 +	const struct tomoyo_path_info *domainname;
 +	const struct tomoyo_path_info *program;       /* This may be NULL */
 +	bool is_deleted;
@@ -71,7 +67,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +/* Structure for "alias" keyword. */
 +struct tomoyo_alias_entry {
-+	struct list1_head list;
++	struct list_head list;
 +	const struct tomoyo_path_info *original_name;
 +	const struct tomoyo_path_info *aliased_name;
 +	bool is_deleted;
@@ -118,14 +114,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return cp0;
 +}
 +
-+/*
-+ * The list for "struct tomoyo_domain_initializer_entry".
-+ *
-+ * This list is updated only inside
-+ * tomoyo_update_domain_initializer_entry(),
-+ * thus no global mutex exists.
-+ */
-+static LIST1_HEAD(tomoyo_domain_initializer_list);
++/* The list for "struct tomoyo_domain_initializer_entry". */
++static LIST_HEAD(tomoyo_domain_initializer_list);
++static DECLARE_RWSEM(tomoyo_domain_initializer_list_lock);
 +
 +/**
 + * tomoyo_update_domain_initializer_entry - Update "struct tomoyo_domain_initializer_entry" list.
@@ -144,7 +135,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct tomoyo_domain_initializer_entry *new_entry;
 +	struct tomoyo_domain_initializer_entry *ptr;
-+	static DEFINE_MUTEX(lock);
 +	const struct tomoyo_path_info *saved_program;
 +	const struct tomoyo_path_info *saved_domainname = NULL;
 +	int error = -ENOMEM;
@@ -166,8 +156,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!saved_program)
 +		return -ENOMEM;
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&lock);
-+	list1_for_each_entry(ptr, &tomoyo_domain_initializer_list, list) {
++	down_write(&tomoyo_domain_initializer_list_lock);
++	list_for_each_entry(ptr, &tomoyo_domain_initializer_list, list) {
 +		if (ptr->is_not != is_not ||
 +		    ptr->domainname != saved_domainname ||
 +		    ptr->program != saved_program)
@@ -187,10 +177,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->program = saved_program;
 +	new_entry->is_not = is_not;
 +	new_entry->is_last_name = is_last_name;
-+	list1_add_tail(&new_entry->list, &tomoyo_domain_initializer_list);
++	list_add_tail(&new_entry->list, &tomoyo_domain_initializer_list);
 +	error = 0;
 + out:
-+	mutex_unlock(&lock);
++	up_write(&tomoyo_domain_initializer_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return error;
 +}
@@ -204,15 +194,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +bool tomoyo_read_domain_initializer_policy(struct tomoyo_io_buffer *head)
 +{
-+	struct list1_head *pos;
++	struct list_head *pos;
++	bool done = true;
 +
-+	list1_for_each_cookie(pos, head->read_var2,
-+			      &tomoyo_domain_initializer_list) {
++	down_read(&tomoyo_domain_initializer_list_lock);
++	list_for_each_cookie(pos, head->read_var2,
++			     &tomoyo_domain_initializer_list) {
 +		const char *no;
 +		const char *from = "";
 +		const char *domain = "";
 +		struct tomoyo_domain_initializer_entry *ptr;
-+		ptr = list1_entry(pos, struct tomoyo_domain_initializer_entry,
++		ptr = list_entry(pos, struct tomoyo_domain_initializer_entry,
 +				  list);
 +		if (ptr->is_deleted)
 +			continue;
@@ -224,12 +216,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!tomoyo_io_printf(head,
 +				      "%s" TOMOYO_KEYWORD_INITIALIZE_DOMAIN
 +				      "%s%s%s\n", no, ptr->program->name, from,
-+				      domain))
-+			goto out;
++				      domain)) {
++			done = false;
++			break;
++		}
 +	}
-+	return true;
-+ out:
-+	return false;
++	up_read(&tomoyo_domain_initializer_list_lock);
++	return done;
 +}
 +
 +/**
@@ -273,7 +266,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tomoyo_domain_initializer_entry *ptr;
 +	bool flag = false;
 +
-+	list1_for_each_entry(ptr,  &tomoyo_domain_initializer_list, list) {
++	down_read(&tomoyo_domain_initializer_list_lock);
++	list_for_each_entry(ptr,  &tomoyo_domain_initializer_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
 +		if (ptr->domainname) {
@@ -287,20 +281,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +		if (tomoyo_pathcmp(ptr->program, program))
 +			continue;
-+		if (ptr->is_not)
-+			return false;
++		if (ptr->is_not) {
++			flag = false;
++			break;
++		}
 +		flag = true;
 +	}
++	up_read(&tomoyo_domain_initializer_list_lock);
 +	return flag;
 +}
 +
-+/*
-+ * The list for "struct tomoyo_domain_keeper_entry".
-+ *
-+ * This list is updated only inside tomoyo_update_domain_keeper_entry(),
-+ * thus no global mutex exists.
-+ */
-+static LIST1_HEAD(tomoyo_domain_keeper_list);
++/* The list for "struct tomoyo_domain_keeper_entry". */
++static LIST_HEAD(tomoyo_domain_keeper_list);
++static DECLARE_RWSEM(tomoyo_domain_keeper_list_lock);
 +
 +/**
 + * tomoyo_update_domain_keeper_entry - Update "struct tomoyo_domain_keeper_entry" list.
@@ -341,8 +334,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!saved_domainname)
 +		return -ENOMEM;
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&lock);
-+	list1_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
++	down_write(&tomoyo_domain_keeper_list_lock);
++	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
 +		if (ptr->is_not != is_not ||
 +		    ptr->domainname != saved_domainname ||
 +		    ptr->program != saved_program)
@@ -362,10 +355,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	new_entry->program = saved_program;
 +	new_entry->is_not = is_not;
 +	new_entry->is_last_name = is_last_name;
-+	list1_add_tail(&new_entry->list, &tomoyo_domain_keeper_list);
++	list_add_tail(&new_entry->list, &tomoyo_domain_keeper_list);
 +	error = 0;
 + out:
-+	mutex_unlock(&lock);
++	up_write(&tomoyo_domain_keeper_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return error;
 +}
@@ -400,16 +393,18 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +bool tomoyo_read_domain_keeper_policy(struct tomoyo_io_buffer *head)
 +{
-+	struct list1_head *pos;
++	struct list_head *pos;
++	bool done = false;
 +
-+	list1_for_each_cookie(pos, head->read_var2,
-+			      &tomoyo_domain_keeper_list) {
++	down_read(&tomoyo_domain_keeper_list_lock);
++	list_for_each_cookie(pos, head->read_var2,
++			     &tomoyo_domain_keeper_list) {
 +		struct tomoyo_domain_keeper_entry *ptr;
 +		const char *no;
 +		const char *from = "";
 +		const char *program = "";
 +
-+		ptr = list1_entry(pos, struct tomoyo_domain_keeper_entry, list);
++		ptr = list_entry(pos, struct tomoyo_domain_keeper_entry, list);
 +		if (ptr->is_deleted)
 +			continue;
 +		no = ptr->is_not ? "no_" : "";
@@ -420,12 +415,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (!tomoyo_io_printf(head,
 +				      "%s" TOMOYO_KEYWORD_KEEP_DOMAIN
 +				      "%s%s%s\n", no, program, from,
-+				      ptr->domainname->name))
-+			goto out;
++				      ptr->domainname->name)) {
++			done = false;
++			break;
++		}
 +	}
-+	return true;
-+ out:
-+	return false;
++	up_read(&tomoyo_domain_keeper_list_lock);
++	return done;
 +}
 +
 +/**
@@ -445,7 +441,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	struct tomoyo_domain_keeper_entry *ptr;
 +	bool flag = false;
 +
-+	list1_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
++	down_read(&tomoyo_domain_keeper_list_lock);
++	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
 +		if (ptr->is_deleted)
 +			continue;
 +		if (!ptr->is_last_name) {
@@ -457,20 +454,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		}
 +		if (ptr->program && tomoyo_pathcmp(ptr->program, program))
 +			continue;
-+		if (ptr->is_not)
-+			return false;
++		if (ptr->is_not) {
++			flag = false;
++			break;
++		}
 +		flag = true;
 +	}
++	up_read(&tomoyo_domain_keeper_list_lock);
 +	return flag;
 +}
 +
-+/*
-+ * The list for "struct tomoyo_alias_entry".
-+ *
-+ * This list is updated only inside tomoyo_update_alias_entry(), thus
-+ * no global mutex exists.
-+ */
-+static LIST1_HEAD(tomoyo_alias_list);
++/* The list for "struct tomoyo_alias_entry". */
++static LIST_HEAD(tomoyo_alias_list);
++static DECLARE_RWSEM(tomoyo_alias_list_lock);
 +
 +/**
 + * tomoyo_update_alias_entry - Update "struct tomoyo_alias_entry" list.
@@ -487,7 +483,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	struct tomoyo_alias_entry *new_entry;
 +	struct tomoyo_alias_entry *ptr;
-+	static DEFINE_MUTEX(lock);
 +	const struct tomoyo_path_info *saved_original_name;
 +	const struct tomoyo_path_info *saved_aliased_name;
 +	int error = -ENOMEM;
@@ -500,8 +495,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!saved_original_name || !saved_aliased_name)
 +		return -ENOMEM;
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&lock);
-+	list1_for_each_entry(ptr, &tomoyo_alias_list, list) {
++	down_write(&tomoyo_alias_list_lock);
++	list_for_each_entry(ptr, &tomoyo_alias_list, list) {
 +		if (ptr->original_name != saved_original_name ||
 +		    ptr->aliased_name != saved_aliased_name)
 +			continue;
@@ -518,10 +513,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +	new_entry->original_name = saved_original_name;
 +	new_entry->aliased_name = saved_aliased_name;
-+	list1_add_tail(&new_entry->list, &tomoyo_alias_list);
++	list_add_tail(&new_entry->list, &tomoyo_alias_list);
 +	error = 0;
 + out:
-+	mutex_unlock(&lock);
++	up_write(&tomoyo_alias_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return error;
 +}
@@ -535,22 +530,25 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + */
 +bool tomoyo_read_alias_policy(struct tomoyo_io_buffer *head)
 +{
-+	struct list1_head *pos;
++	struct list_head *pos;
++	bool done = true;
 +
-+	list1_for_each_cookie(pos, head->read_var2, &tomoyo_alias_list) {
++	down_read(&tomoyo_alias_list_lock);
++	list_for_each_cookie(pos, head->read_var2, &tomoyo_alias_list) {
 +		struct tomoyo_alias_entry *ptr;
 +
-+		ptr = list1_entry(pos, struct tomoyo_alias_entry, list);
++		ptr = list_entry(pos, struct tomoyo_alias_entry, list);
 +		if (ptr->is_deleted)
 +			continue;
 +		if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALIAS "%s %s\n",
 +				      ptr->original_name->name,
-+				      ptr->aliased_name->name))
-+			goto out;
++				      ptr->aliased_name->name)) {
++			done = false;
++			break;
++		}
 +	}
-+	return true;
-+ out:
-+	return false;
++	up_read(&tomoyo_alias_list_lock);
++	return done;
 +}
 +
 +/**
@@ -590,17 +588,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	name.name = domainname;
 +	tomoyo_fill_path_info(&name);
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&tomoyo_domain_list_lock);
++	down_write(&tomoyo_domain_list_lock);
 +#ifdef TOMOYO_DEBUG_DOMAIN_UNDELETE
 +	printk(KERN_DEBUG "tomoyo_delete_domain %s\n", domainname);
-+	list1_for_each_entry(domain, &tomoyo_domain_list, list) {
++	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 +		if (tomoyo_pathcmp(domain->domainname, &name))
 +			continue;
 +		printk(KERN_DEBUG "List: %p %u\n", domain, domain->is_deleted);
 +	}
 +#endif
 +	/* Is there an active domain? */
-+	list1_for_each_entry(domain, &tomoyo_domain_list, list) {
++	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 +		struct tomoyo_domain_info *domain2;
 +		/* Never delete tomoyo_kernel_domain */
 +		if (domain == &tomoyo_kernel_domain)
@@ -609,7 +607,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		    tomoyo_pathcmp(domain->domainname, &name))
 +			continue;
 +		/* Mark already deleted domains as non undeletable. */
-+		list1_for_each_entry(domain2, &tomoyo_domain_list, list) {
++		list_for_each_entry(domain2, &tomoyo_domain_list, list) {
 +			if (!domain2->is_deleted ||
 +			    tomoyo_pathcmp(domain2->domainname, &name))
 +				continue;
@@ -628,7 +626,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +#endif
 +		break;
 +	}
-+	mutex_unlock(&tomoyo_domain_list_lock);
++	up_write(&tomoyo_domain_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return 0;
 +}
@@ -649,16 +647,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	name.name = domainname;
 +	tomoyo_fill_path_info(&name);
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&tomoyo_domain_list_lock);
++	down_write(&tomoyo_domain_list_lock);
 +#ifdef TOMOYO_DEBUG_DOMAIN_UNDELETE
 +	printk(KERN_DEBUG "tomoyo_undelete_domain %s\n", domainname);
-+	list1_for_each_entry(domain, &tomoyo_domain_list, list) {
++	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 +		if (tomoyo_pathcmp(domain->domainname, &name))
 +			continue;
 +		printk(KERN_DEBUG "List: %p %u\n", domain, domain->is_deleted);
 +	}
 +#endif
-+	list1_for_each_entry(domain, &tomoyo_domain_list, list) {
++	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 +		if (tomoyo_pathcmp(&name, domain->domainname))
 +			continue;
 +		if (!domain->is_deleted) {
@@ -680,7 +678,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		printk(KERN_DEBUG "%p was undeleted.\n", candidate_domain);
 +#endif
 +	}
-+	mutex_unlock(&tomoyo_domain_list_lock);
++	up_write(&tomoyo_domain_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return candidate_domain;
 +}
@@ -701,7 +699,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	const struct tomoyo_path_info *saved_domainname;
 +
 +	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&tomoyo_domain_list_lock);
++	down_write(&tomoyo_domain_list_lock);
 +	domain = tomoyo_find_domain(domainname);
 +	if (domain)
 +		goto out;
@@ -711,7 +709,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!saved_domainname)
 +		goto out;
 +	/* Can I reuse memory of deleted domain? */
-+	list1_for_each_entry(domain, &tomoyo_domain_list, list) {
++	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 +		struct task_struct *p;
 +		struct tomoyo_acl_info *ptr;
 +		bool flag;
@@ -735,7 +733,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		printk(KERN_DEBUG "Reusing %p %s\n", domain,
 +		       domain->domainname->name);
 +#endif
-+		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++		list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +			ptr->type |= TOMOYO_ACL_DELETED;
 +		}
 +		tomoyo_set_domain_flag(domain, true, domain->flags);
@@ -748,13 +746,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	/* No memory reusable. Create using new memory. */
 +	domain = tomoyo_alloc_element(sizeof(*domain));
 +	if (domain) {
-+		INIT_LIST1_HEAD(&domain->acl_info_list);
++		INIT_LIST_HEAD(&domain->acl_info_list);
 +		domain->domainname = saved_domainname;
 +		domain->profile = profile;
-+		list1_add_tail(&domain->list, &tomoyo_domain_list);
++		list_add_tail(&domain->list, &tomoyo_domain_list);
 +	}
 + out:
-+	mutex_unlock(&tomoyo_domain_list_lock);
++	up_write(&tomoyo_domain_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
 +	return domain;
 +}
@@ -827,7 +825,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (tomoyo_pathcmp(&r, &s)) {
 +		struct tomoyo_alias_entry *ptr;
 +		/* Is this program allowed to be called via symbolic links? */
-+		list1_for_each_entry(ptr, &tomoyo_alias_list, list) {
++		down_read(&tomoyo_alias_list_lock);
++		list_for_each_entry(ptr, &tomoyo_alias_list, list) {
 +			if (ptr->is_deleted ||
 +			    tomoyo_pathcmp(&r, ptr->original_name) ||
 +			    tomoyo_pathcmp(&s, ptr->aliased_name))
@@ -838,6 +837,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			tomoyo_fill_path_info(&r);
 +			break;
 +		}
++		up_read(&tomoyo_alias_list_lock);
 +	}
 +
 +	/* Check execute permission. */
@@ -868,7 +868,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	}
 +	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
 +		goto done;
++	down_read(&tomoyo_domain_list_lock);
 +	domain = tomoyo_find_domain(new_domain_name);
++	up_read(&tomoyo_domain_list_lock);
 +	if (domain)
 +		goto done;
 +	if (is_enforce)

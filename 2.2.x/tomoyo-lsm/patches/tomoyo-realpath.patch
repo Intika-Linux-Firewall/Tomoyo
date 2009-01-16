@@ -7,7 +7,7 @@ of requested pathname from "struct dentry" and "struct vfsmount".
 
 The maximum length of string data is limited to 4000 including trailing '\0'.
 Since TOMOYO Linux uses '\ooo' style representation for non ASCII printable
-characters, may be TOMOYO Linux should be able to support 16336 (which means
+characters, maybe TOMOYO Linux should be able to support 16336 (which means
 (NAME_MAX * (PATH_MAX / (NAME_MAX + 1)) * 4 + (PATH_MAX / (NAME_MAX + 1)))
 including trailing '\0'), but I think 4000 is enough for practical use.
 
@@ -42,13 +42,13 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/realpath.c |  453 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.h |   63 ++++++
- 2 files changed, 516 insertions(+)
+ security/tomoyo/realpath.c |  487 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.h |   63 +++++
+ 2 files changed, 550 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.28-mm1/security/tomoyo/realpath.c
-@@ -0,0 +1,453 @@
++++ linux-2.6.29-rc1-mm1/security/tomoyo/realpath.c
+@@ -0,0 +1,487 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -62,6 +62,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +#include <linux/types.h>
 +#include <linux/mount.h>
++#include <linux/mnt_namespace.h>
 +#include "common.h"
 +#include "realpath.h"
 +
@@ -136,14 +137,45 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		sp = dentry->d_op->d_dname(dentry, newname + offset,
 +					   newname_len - offset);
 +	} else {
-+		path_get(path);
-+		sp = d_realpath(path, newname, newname_len);
-+		path_put(path);
++		/* Taken from d_namespace_path(). */
++		struct path root;
++		struct path ns_root = { };
++		struct path tmp;
++
++		read_lock(&current->fs->lock);
++		root = current->fs->root;
++		path_get(&root);
++		read_unlock(&current->fs->lock);
++		spin_lock(&vfsmount_lock);
++		if (root.mnt && root.mnt->mnt_ns)
++			ns_root.mnt = mntget(root.mnt->mnt_ns->root);
++		if (ns_root.mnt)
++			ns_root.dentry = dget(ns_root.mnt->mnt_root);
++		spin_unlock(&vfsmount_lock);
++		spin_lock(&dcache_lock);
++		tmp = ns_root;
++		sp = __d_path(path, &tmp, newname, newname_len);
++		spin_unlock(&dcache_lock);
++		path_put(&root);
++		path_put(&ns_root);
 +	}
 +	if (IS_ERR(sp))
 +		error = PTR_ERR(sp);
 +	else
 +		error = tomoyo_encode(newname, sp - newname, sp);
++	/* Append trailing '/' if dentry is a directory. */
++	if (!error && dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)
++	    && *newname) {
++		sp = newname + strlen(newname);
++		if (*(sp - 1) != '/') {
++			if (sp < newname + newname_len - 4) {
++				*sp++ = '/';
++				*sp = '\0';
++			} else {
++				error = -ENOMEM;
++			}
++		}
++	}
 +	if (error)
 +		printk(KERN_WARNING "tomoyo_realpath: Pathname too long.\n");
 +	return error;
@@ -287,7 +319,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +/* Structure for string data. */
 +struct tomoyo_name_entry {
-+	struct list1_head list;
++	struct list_head list;
 +	struct tomoyo_path_info entry;
 +};
 +
@@ -304,7 +336,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * This list is updated only inside tomoyo_save_name(), thus
 + * no global mutex exists.
 + */
-+static struct list1_head tomoyo_name_list[TOMOYO_MAX_HASH];
++static struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
 +
 +/**
 + * tomoyo_save_name - Allocate permanent memory for string data.
@@ -338,7 +370,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	hash = full_name_hash((const unsigned char *) name, len - 1);
 +	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&lock);
-+	list1_for_each_entry(ptr, &tomoyo_name_list[hash % TOMOYO_MAX_HASH],
++	list_for_each_entry(ptr, &tomoyo_name_list[hash % TOMOYO_MAX_HASH],
 +			     list) {
 +		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
 +			goto out;
@@ -377,7 +409,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	tomoyo_fill_path_info(&ptr->entry);
 +	fmb->ptr += len;
 +	fmb->len -= len;
-+	list1_add_tail(&ptr->list, &tomoyo_name_list[hash % TOMOYO_MAX_HASH]);
++	list_add_tail(&ptr->list, &tomoyo_name_list[hash % TOMOYO_MAX_HASH]);
 +	if (fmb->len == 0) {
 +		list_del(&fmb->list);
 +		kfree(fmb);
@@ -399,12 +431,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +
 +	BUILD_BUG_ON(TOMOYO_MAX_PATHNAME_LEN > PATH_MAX);
 +	for (i = 0; i < TOMOYO_MAX_HASH; i++)
-+		INIT_LIST1_HEAD(&tomoyo_name_list[i]);
-+	INIT_LIST1_HEAD(&tomoyo_kernel_domain.acl_info_list);
++		INIT_LIST_HEAD(&tomoyo_name_list[i]);
++	INIT_LIST_HEAD(&tomoyo_kernel_domain.acl_info_list);
 +	tomoyo_kernel_domain.domainname = tomoyo_save_name(TOMOYO_ROOT_NAME);
-+	list1_add_tail(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
++	list_add_tail(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
++	down_read(&tomoyo_domain_list_lock);
 +	if (tomoyo_find_domain(TOMOYO_ROOT_NAME) != &tomoyo_kernel_domain)
 +		panic("Can't register tomoyo_kernel_domain");
++	up_read(&tomoyo_domain_list_lock);
 +	return 0;
 +}
 +
@@ -503,7 +537,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	return 0;
 +}
 --- /dev/null
-+++ linux-2.6.28-mm1/security/tomoyo/realpath.h
++++ linux-2.6.29-rc1-mm1/security/tomoyo/realpath.h
 @@ -0,0 +1,63 @@
 +/*
 + * security/tomoyo/realpath.h
