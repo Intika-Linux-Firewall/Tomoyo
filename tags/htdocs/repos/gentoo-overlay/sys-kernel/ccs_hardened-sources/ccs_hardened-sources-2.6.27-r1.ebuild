@@ -1,0 +1,42 @@
+# Copyright 2009 Naohiro Aota
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+ETYPE="sources"
+K_WANT_GENPATCHES="base extras"
+K_GENPATCHES_VER="9"
+K_SECURITY_UNSUPPORTED="1"
+
+inherit eutils kernel-2
+detect_version
+
+CCS_TGP="ccs-patch-1.6.5-20081225"
+CCS_TGP_SRC="mirror://sourceforge.jp/tomoyo/30297/${CCS_TGP}.tar.gz"
+CCS_HARDENED_URI="http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/branches/ccs-patch-2.6.27%2Bgrsecurity-2.1.12-2.6.27.10.diff?rev=2038&root=tomoyo"
+
+HGPV="${KV_MAJOR}.${KV_MINOR}.${KV_PATCH}-5"
+HGPV_URI="http://dev.gentoo.org/~gengor/distfiles/${CATEGORY}/${PN}/hardened-patches-${HGPV}.extras.tar.bz2
+	mirror://gentoo/hardened-patches-${HGPV}.extras.tar.bz2"
+
+DESCRIPTION="TOMOYO Linux sources for the hardened kernel ${KV_MAJOR}.${KV_MINOR}"
+SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI} ${HGPV_URI} ${CCS_TGP_SRC} ${CCS_HARDENED_URI}"
+KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86"
+RDEPEND="sys-apps/ccs-tools"
+
+UNIPATCH_LIST="${DISTDIR}/hardened-patches-${HGPV}.extras.tar.bz2"
+UNIPATCH_EXCLUDE="4200_fbcondecor-0.9.4.patch"
+
+K_EXTRAEINFO="Before booting with TOMOYO enabled kernel, you need to
+run this command to initialize TOMOYO policies:
+# /usr/lib/ccs/init_policy.sh"
+
+src_unpack() {
+	kernel-2_src_unpack
+
+	cd "${WORKDIR}"
+	unpack ${CCS_TGP}.tar.gz
+	cp -ax fs include "${S}" || die
+
+	cd "${S}"
+	epatch "${DISTDIR}/ccs-patch-2.6.27%2Bgrsecurity-2.1.12-2.6.27.10.diff?rev=2038&root=tomoyo" || die
+}
