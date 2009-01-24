@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for VineLinux 4.2.
 
-Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPMS/kernel-2.6.16-76.39vl4.src.rpm
+Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPMS/kernel-2.6.16-76.40vl4.src.rpm
 ---
  arch/alpha/kernel/ptrace.c      |    9 +++
  arch/ia64/ia32/sys_ia32.c       |    9 +++
@@ -46,8 +46,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/unix/af_unix.c              |   15 +++++
  42 files changed, 703 insertions(+), 10 deletions(-)
 
---- linux-2.6.16-76.39vl4.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.16-76.39vl4/arch/alpha/kernel/ptrace.c
+--- linux-2.6.16-76.40vl4.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.16-76.40vl4/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -71,8 +71,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.16-76.39vl4.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.16-76.39vl4/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.16-76.40vl4.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.16-76.40vl4/arch/ia64/ia32/sys_ia32.c
 @@ -58,6 +58,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -96,8 +96,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.16-76.39vl4.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.16-76.39vl4/arch/ia64/kernel/ptrace.c
+--- linux-2.6.16-76.40vl4.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.16-76.40vl4/arch/ia64/kernel/ptrace.c
 @@ -29,6 +29,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -121,8 +121,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.16-76.39vl4.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.16-76.39vl4/arch/m32r/kernel/ptrace.c
+--- linux-2.6.16-76.40vl4.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.16-76.40vl4/arch/m32r/kernel/ptrace.c
 @@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -146,8 +146,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.16-76.39vl4.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.16-76.39vl4/arch/mips/kernel/ptrace32.c
+--- linux-2.6.16-76.40vl4.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.16-76.40vl4/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -171,8 +171,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.16-76.39vl4.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-2.6.16-76.39vl4/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.16-76.40vl4.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.16-76.40vl4/arch/powerpc/kernel/ptrace32.c
 @@ -33,6 +33,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -196,8 +196,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.16-76.39vl4.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.16-76.39vl4/arch/s390/kernel/ptrace.c
+--- linux-2.6.16-76.40vl4.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.16-76.40vl4/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -221,8 +221,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-2.6.16-76.39vl4.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.16-76.39vl4/arch/sparc/kernel/ptrace.c
+--- linux-2.6.16-76.40vl4.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.16-76.40vl4/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -248,8 +248,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.16-76.39vl4.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.16-76.39vl4/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.16-76.40vl4.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.16-76.40vl4/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -275,8 +275,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.16-76.39vl4.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.16-76.39vl4/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.16-76.40vl4.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.16-76.40vl4/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/debugreg.h>
  #include <asm/i387.h>
@@ -300,8 +300,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	switch (request) { 
  	default:
---- linux-2.6.16-76.39vl4.orig/fs/Kconfig
-+++ linux-2.6.16-76.39vl4/fs/Kconfig
+--- linux-2.6.16-76.40vl4.orig/fs/Kconfig
++++ linux-2.6.16-76.40vl4/fs/Kconfig
 @@ -1906,5 +1906,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -310,16 +310,16 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
 +
  endmenu
  
---- linux-2.6.16-76.39vl4.orig/fs/Makefile
-+++ linux-2.6.16-76.39vl4/fs/Makefile
+--- linux-2.6.16-76.40vl4.orig/fs/Makefile
++++ linux-2.6.16-76.40vl4/fs/Makefile
 @@ -106,3 +106,5 @@ obj-$(CONFIG_CONFIGFS_FS)	+= configfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_SUPERMOUNT)	+= supermount/
  obj-$(CONFIG_UNION_FS)          += unionfs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.16-76.39vl4.orig/fs/attr.c
-+++ linux-2.6.16-76.39vl4/fs/attr.c
+--- linux-2.6.16-76.40vl4.orig/fs/attr.c
++++ linux-2.6.16-76.40vl4/fs/attr.c
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -359,8 +359,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.16-76.39vl4.orig/fs/compat.c
-+++ linux-2.6.16-76.39vl4/fs/compat.c
+--- linux-2.6.16-76.40vl4.orig/fs/compat.c
++++ linux-2.6.16-76.40vl4/fs/compat.c
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -393,8 +393,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.16-76.39vl4.orig/fs/exec.c
-+++ linux-2.6.16-76.39vl4/fs/exec.c
+--- linux-2.6.16-76.40vl4.orig/fs/exec.c
++++ linux-2.6.16-76.40vl4/fs/exec.c
 @@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
@@ -444,8 +444,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.16-76.39vl4.orig/fs/fcntl.c
-+++ linux-2.6.16-76.39vl4/fs/fcntl.c
+--- linux-2.6.16-76.40vl4.orig/fs/fcntl.c
++++ linux-2.6.16-76.40vl4/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -469,8 +469,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.16-76.39vl4.orig/fs/ioctl.c
-+++ linux-2.6.16-76.39vl4/fs/ioctl.c
+--- linux-2.6.16-76.40vl4.orig/fs/ioctl.c
++++ linux-2.6.16-76.40vl4/fs/ioctl.c
 @@ -16,6 +16,9 @@
  
  #include <asm/uaccess.h>
@@ -492,8 +492,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.16-76.39vl4.orig/fs/namei.c
-+++ linux-2.6.16-76.39vl4/fs/namei.c
+--- linux-2.6.16-76.40vl4.orig/fs/namei.c
++++ linux-2.6.16-76.40vl4/fs/namei.c
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -505,7 +505,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1470,6 +1474,13 @@ int vfs_create(struct inode *dir, struct
+@@ -1484,6 +1488,13 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -519,7 +519,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1525,6 +1536,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1539,6 +1550,13 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -533,7 +533,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1556,6 +1574,9 @@ int may_open(struct nameidata *nd, int a
+@@ -1570,6 +1588,9 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -543,7 +543,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  /*
   *	open_namei()
   *
-@@ -1820,6 +1841,16 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1834,6 +1855,16 @@ asmlinkage long sys_mknodat(int dfd, con
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -560,7 +560,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1838,10 +1869,32 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1852,10 +1883,32 @@ asmlinkage long sys_mknodat(int dfd, con
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -593,7 +593,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1906,6 +1959,13 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1920,6 +1973,13 @@ asmlinkage long sys_mkdirat(int dfd, con
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -607,7 +607,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2014,6 +2074,13 @@ static long do_rmdir(int dfd, const char
+@@ -2028,6 +2088,13 @@ static long do_rmdir(int dfd, const char
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -621,7 +621,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2073,6 +2140,10 @@ static long do_unlinkat(int dfd, const c
+@@ -2087,6 +2154,10 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -632,7 +632,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -2094,6 +2165,14 @@ static long do_unlinkat(int dfd, const c
+@@ -2108,6 +2179,14 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -647,7 +647,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2156,6 +2235,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2170,6 +2249,10 @@ asmlinkage long sys_symlinkat(const char
  	int error = 0;
  	char * from;
  	char * to;
@@ -658,7 +658,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -2172,6 +2255,13 @@ asmlinkage long sys_symlinkat(const char
+@@ -2186,6 +2269,13 @@ asmlinkage long sys_symlinkat(const char
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -672,7 +672,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2244,6 +2334,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2258,6 +2348,10 @@ asmlinkage long sys_linkat(int olddfd, c
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -683,7 +683,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	if (flags != 0)
  		return -EINVAL;
-@@ -2264,6 +2358,15 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2278,6 +2372,15 @@ asmlinkage long sys_linkat(int olddfd, c
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -699,7 +699,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2490,6 +2593,17 @@ static int do_rename(int olddfd, const c
+@@ -2504,6 +2607,17 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -717,7 +717,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2512,6 +2626,10 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2526,6 +2640,10 @@ asmlinkage long sys_renameat(int olddfd,
  	int error;
  	char * from;
  	char * to;
@@ -728,8 +728,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	from = getname(oldname);
  	if(IS_ERR(from))
---- linux-2.6.16-76.39vl4.orig/fs/namespace.c
-+++ linux-2.6.16-76.39vl4/fs/namespace.c
+--- linux-2.6.16-76.40vl4.orig/fs/namespace.c
++++ linux-2.6.16-76.40vl4/fs/namespace.c
 @@ -26,6 +26,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -766,7 +766,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -881,6 +896,11 @@ static int do_loopback(struct nameidata 
+@@ -884,6 +899,11 @@ static int do_loopback(struct nameidata 
  
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -778,7 +778,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -965,7 +985,11 @@ static int do_move_mount(struct nameidat
+@@ -968,7 +988,11 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -791,7 +791,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1067,6 +1091,11 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1070,6 +1094,11 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -803,7 +803,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1284,6 +1313,17 @@ long do_mount(char *dev_name, char *dir_
+@@ -1287,6 +1316,17 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -821,7 +821,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1582,6 +1622,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1585,6 +1625,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -832,7 +832,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	lock_kernel();
  
-@@ -1598,6 +1642,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1601,6 +1645,10 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -843,8 +843,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.16-76.39vl4.orig/fs/open.c
-+++ linux-2.6.16-76.39vl4/fs/open.c
+--- linux-2.6.16-76.40vl4.orig/fs/open.c
++++ linux-2.6.16-76.40vl4/fs/open.c
 @@ -30,6 +30,13 @@
  
  #include <asm/unistd.h>
@@ -859,7 +859,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
  {
  	int retval = -ENODEV;
-@@ -266,6 +273,10 @@ static long do_sys_truncate(const char _
+@@ -269,6 +276,10 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto dput_and_out;
  
@@ -870,7 +870,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -318,7 +329,11 @@ static long do_sys_ftruncate(unsigned in
+@@ -321,7 +332,11 @@ static long do_sys_ftruncate(unsigned in
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
@@ -883,7 +883,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, 0, file);
-@@ -607,6 +622,14 @@ asmlinkage long sys_chroot(const char __
+@@ -610,6 +625,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -898,7 +898,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1189,6 +1212,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1192,6 +1215,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -909,8 +909,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.16-76.39vl4.orig/fs/proc/Makefile
-+++ linux-2.6.16-76.39vl4/fs/proc/Makefile
+--- linux-2.6.16-76.40vl4.orig/fs/proc/Makefile
++++ linux-2.6.16-76.40vl4/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -918,20 +918,20 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.16-76.39vl4.orig/fs/proc/proc_misc.c
-+++ linux-2.6.16-76.39vl4/fs/proc/proc_misc.c
+--- linux-2.6.16-76.40vl4.orig/fs/proc/proc_misc.c
++++ linux-2.6.16-76.40vl4/fs/proc/proc_misc.c
 @@ -682,4 +682,9 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.16-76.39vl4 2008/10/30\n");
++	printk(KERN_INFO "Hook version: 2.6.16-76.40vl4 2009/1/24\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.16-76.39vl4.orig/include/linux/init_task.h
-+++ linux-2.6.16-76.39vl4/include/linux/init_task.h
+--- linux-2.6.16-76.40vl4.orig/include/linux/init_task.h
++++ linux-2.6.16-76.40vl4/include/linux/init_task.h
 @@ -121,6 +121,10 @@ extern struct group_info init_groups;
  	.journal_info	= NULL,						\
  	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
@@ -943,8 +943,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  }
  
  
---- linux-2.6.16-76.39vl4.orig/include/linux/sched.h
-+++ linux-2.6.16-76.39vl4/include/linux/sched.h
+--- linux-2.6.16-76.40vl4.orig/include/linux/sched.h
++++ linux-2.6.16-76.40vl4/include/linux/sched.h
 @@ -40,6 +40,11 @@
  
  struct exec_domain;
@@ -968,8 +968,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.16-76.39vl4.orig/kernel/compat.c
-+++ linux-2.6.16-76.39vl4/kernel/compat.c
+--- linux-2.6.16-76.40vl4.orig/kernel/compat.c
++++ linux-2.6.16-76.40vl4/kernel/compat.c
 @@ -23,6 +23,9 @@
  #include <linux/security.h>
  
@@ -991,8 +991,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.16-76.39vl4.orig/kernel/kexec.c
-+++ linux-2.6.16-76.39vl4/kernel/kexec.c
+--- linux-2.6.16-76.40vl4.orig/kernel/kexec.c
++++ linux-2.6.16-76.40vl4/kernel/kexec.c
 @@ -26,6 +26,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -1014,8 +1014,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.16-76.39vl4.orig/kernel/kmod.c
-+++ linux-2.6.16-76.39vl4/kernel/kmod.c
+--- linux-2.6.16-76.40vl4.orig/kernel/kmod.c
++++ linux-2.6.16-76.40vl4/kernel/kmod.c
 @@ -150,6 +150,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -1028,8 +1028,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- linux-2.6.16-76.39vl4.orig/kernel/module.c
-+++ linux-2.6.16-76.39vl4/kernel/module.c
+--- linux-2.6.16-76.40vl4.orig/kernel/module.c
++++ linux-2.6.16-76.40vl4/kernel/module.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/semaphore.h>
@@ -1064,8 +1064,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.16-76.39vl4.orig/kernel/ptrace.c
-+++ linux-2.6.16-76.39vl4/kernel/ptrace.c
+--- linux-2.6.16-76.40vl4.orig/kernel/ptrace.c
++++ linux-2.6.16-76.40vl4/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  
  #include <asm/pgtable.h>
@@ -1089,8 +1089,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.16-76.39vl4.orig/kernel/sched.c
-+++ linux-2.6.16-76.39vl4/kernel/sched.c
+--- linux-2.6.16-76.40vl4.orig/kernel/sched.c
++++ linux-2.6.16-76.40vl4/kernel/sched.c
 @@ -52,6 +52,9 @@
  #include <asm/tlb.h>
  
@@ -1112,8 +1112,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.16-76.39vl4.orig/kernel/signal.c
-+++ linux-2.6.16-76.39vl4/kernel/signal.c
+--- linux-2.6.16-76.40vl4.orig/kernel/signal.c
++++ linux-2.6.16-76.40vl4/kernel/signal.c
 @@ -30,6 +30,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1163,8 +1163,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.16-76.39vl4.orig/kernel/sys.c
-+++ linux-2.6.16-76.39vl4/kernel/sys.c
+--- linux-2.6.16-76.40vl4.orig/kernel/sys.c
++++ linux-2.6.16-76.40vl4/kernel/sys.c
 @@ -38,6 +38,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1221,8 +1221,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.16-76.39vl4.orig/kernel/sysctl.c
-+++ linux-2.6.16-76.39vl4/kernel/sysctl.c
+--- linux-2.6.16-76.40vl4.orig/kernel/sysctl.c
++++ linux-2.6.16-76.40vl4/kernel/sysctl.c
 @@ -49,6 +49,9 @@
  
  #include <asm/uaccess.h>
@@ -1362,8 +1362,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.16-76.39vl4.orig/kernel/time.c
-+++ linux-2.6.16-76.39vl4/kernel/time.c
+--- linux-2.6.16-76.40vl4.orig/kernel/time.c
++++ linux-2.6.16-76.40vl4/kernel/time.c
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -1407,8 +1407,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.16-76.39vl4.orig/net/core/datagram.c
-+++ linux-2.6.16-76.39vl4/net/core/datagram.c
+--- linux-2.6.16-76.40vl4.orig/net/core/datagram.c
++++ linux-2.6.16-76.40vl4/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1434,8 +1434,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		if (skb)
  			return skb;
  
---- linux-2.6.16-76.39vl4.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.16-76.39vl4/net/ipv4/inet_connection_sock.c
+--- linux-2.6.16-76.40vl4.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.16-76.40vl4/net/ipv4/inet_connection_sock.c
 @@ -24,6 +24,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1457,8 +1457,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.16-76.39vl4.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.16-76.39vl4/net/ipv4/inet_hashtables.c
+--- linux-2.6.16-76.40vl4.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.16-76.40vl4/net/ipv4/inet_hashtables.c
 @@ -23,6 +23,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1480,8 +1480,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.16-76.39vl4.orig/net/ipv4/udp.c
-+++ linux-2.6.16-76.39vl4/net/ipv4/udp.c
+--- linux-2.6.16-76.40vl4.orig/net/ipv4/udp.c
++++ linux-2.6.16-76.40vl4/net/ipv4/udp.c
 @@ -109,6 +109,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1514,8 +1514,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.16-76.39vl4.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.16-76.39vl4/net/ipv6/inet6_hashtables.c
+--- linux-2.6.16-76.40vl4.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.16-76.40vl4/net/ipv6/inet6_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1546,8 +1546,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.16-76.39vl4.orig/net/ipv6/udp.c
-+++ linux-2.6.16-76.39vl4/net/ipv6/udp.c
+--- linux-2.6.16-76.40vl4.orig/net/ipv6/udp.c
++++ linux-2.6.16-76.40vl4/net/ipv6/udp.c
 @@ -59,6 +59,9 @@
  
  #include <linux/proc_fs.h>
@@ -1580,8 +1580,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.16-76.39vl4.orig/net/socket.c
-+++ linux-2.6.16-76.39vl4/net/socket.c
+--- linux-2.6.16-76.40vl4.orig/net/socket.c
++++ linux-2.6.16-76.40vl4/net/socket.c
 @@ -97,6 +97,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1674,8 +1674,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.16-76.39vl4.orig/net/unix/af_unix.c
-+++ linux-2.6.16-76.39vl4/net/unix/af_unix.c
+--- linux-2.6.16-76.40vl4.orig/net/unix/af_unix.c
++++ linux-2.6.16-76.40vl4/net/unix/af_unix.c
 @@ -117,6 +117,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
