@@ -1559,13 +1559,16 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	bprm->file = filp;
 	bprm->filename = ee->program_path;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-	bprm->interp = ee->program_path;
+	bprm->interp = bprm->filename;
 #endif
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		goto out;
 	{
-		/* Backup ee->program_path for ccs_find_next_domain(). */
+		/*
+		 * Backup ee->program_path because ccs_find_next_domain() will
+		 * overwrite ee->program_path and ee->tmp.
+		 */
 		const int len = strlen(ee->program_path) + 1;
 		char *cp = kmalloc(len, GFP_KERNEL);
 		if (!cp) {
@@ -1573,11 +1576,19 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 			goto out;
 		}
 		memmove(cp, ee->program_path, len);
+		bprm->filename = cp;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+		bprm->interp = bprm->filename;
+#endif
 		task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 		retval = ccs_find_next_domain(ee);
 		task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 		/* Restore ee->program_path for search_binary_handler(). */
 		memmove(ee->program_path, cp, len);
+		bprm->filename = ee->program_path;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+		bprm->interp = bprm->filename;
+#endif
 		kfree(cp);
 	}
  out:
@@ -1734,6 +1745,8 @@ int ccs_start_execve(struct linux_binprm *bprm)
 
 /**
  * ccs_finish_execve - Clean up execve() operation.
+ *
+ * @retval: Return code of an execve() operation.
  */
 void ccs_finish_execve(int retval)
 {
