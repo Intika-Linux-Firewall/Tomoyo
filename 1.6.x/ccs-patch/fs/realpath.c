@@ -309,16 +309,16 @@ char *ccs_realpath(const char *pathname)
  * @pathname: The pathname to solve.
  * @ee:       Pointer to "struct ccs_execve_entry".
  *
- * Returns true on success, false otherwise.
+ * Returns 0 on success, negative value otherwise.
  */
-_Bool ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
+int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
 {
 	struct nameidata nd;
 	int ret;
 	bool is_symlink;
 	if (!pathname ||
 	    path_lookup(pathname, ccs_lookup_flags ^ LOOKUP_FOLLOW, &nd))
-		return false;
+		return -ENOENT;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	is_symlink = nd.path.dentry->d_inode &&
 		S_ISLNK(nd.path.dentry->d_inode->i_mode);
@@ -332,17 +332,17 @@ _Bool ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
 	path_release(&nd);
 #endif
 	if (ret)
-		return false;
+		return -ENOMEM;
 	if (strlen(ee->tmp) > CCS_MAX_PATHNAME_LEN - 1)
-		return false;
+		return -ENOMEM;
 	ee->program_path[CCS_MAX_PATHNAME_LEN - 1] = '\0';
 	if (!is_symlink) {
 		strncpy(ee->program_path, ee->tmp,
 			CCS_MAX_PATHNAME_LEN - 1);
-		return true;
+		return 0;
 	}
 	if (path_lookup(pathname, ccs_lookup_flags, &nd))
-		return false;
+		return -ENOENT;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ret = ccs_realpath_from_dentry2(nd.path.dentry, nd.path.mnt,
 					ee->program_path,
@@ -353,7 +353,7 @@ _Bool ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
 					CCS_MAX_PATHNAME_LEN - 1);
 	path_release(&nd);
 #endif
-	return ret ? false : true;
+	return ret ? -ENOMEM : 0;
 }
 
 /**

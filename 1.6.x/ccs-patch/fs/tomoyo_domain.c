@@ -941,7 +941,7 @@ static bool ccs_get_argv0(struct ccs_execve_entry *ee)
 /**
  * ccs_find_next_domain - Find a domain.
  *
- * @ee:      Pointer to "struct ccs_request_info".
+ * @ee: Pointer to "struct ccs_execve_entry".
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -952,7 +952,6 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	struct domain_info *domain = NULL;
 	const char *old_domain_name = r->domain->domainname->name;
 	struct linux_binprm *bprm = ee->bprm;
-	const char *original_name = bprm->filename;
 	const u8 mode = r->mode;
 	const bool is_enforce = (mode == 3);
 	const u32 tomoyo_flags = current->tomoyo_flags;
@@ -982,9 +981,9 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
  retry:
 	current->tomoyo_flags = tomoyo_flags;
 	r->cond = NULL;
-	/* Get ccs_realpath of program and symbolic link. */
-	retval = -ENOENT; /* I hope ccs_realpath() won't fail with -ENOMEM. */
-	if (!ccs_realpath_both(original_name, ee))
+	/* Get realpath of program and symbolic link. */
+	retval = ccs_realpath_both(bprm->filename, ee);
+	if (retval < 0)
 		goto out;
 
 	rn.name = ee->program_path;
@@ -1207,7 +1206,7 @@ static int ccs_check_environ(struct ccs_execve_entry *ee)
 /**
  * ccs_unescape - Unescape escaped string.
  *
- * @dest: String to ccs_unescape.
+ * @dest: String to unescape.
  *
  * Returns nothing.
  */
@@ -1387,7 +1386,7 @@ static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
 /**
  * ccs_try_alt_exec - Try to start execute handler.
  *
- * @ee:          Pointer to "struct ccs_execve_entry".
+ * @ee: Pointer to "struct ccs_execve_entry".
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -1470,8 +1469,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 
 	/* Set argv[4] */
 	{
-		retval = copy_strings_kernel(1, (char **) &bprm->filename,
-					     bprm);
+		retval = copy_strings_kernel(1, &bprm->filename, bprm);
 		if (retval < 0)
 			goto out;
 		bprm->argc++;
@@ -1566,20 +1564,22 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		goto out;
-	/*
-	 * Backup ee->propgram_path for ccs_find_next_domain().
-	 * ee->program_path will be overwritten by ccs_find_next_domain().
-	 * But ee->tmp won't be overwritten by ccs_find_next_domain()
-	 * because ee->handler != NULL.
-	 */
-	strncpy(ee->tmp, ee->program_path, CCS_EXEC_TMPSIZE - 1);
-	task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = ccs_find_next_domain(ee);
-	task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	/*
-	 * Restore ee->program_path for search_binary_handler().
-	 */
-	strncpy(ee->program_path, ee->tmp, CCS_MAX_PATHNAME_LEN - 1);
+	{
+		/* Backup ee->program_path for ccs_find_next_domain(). */
+		const int len = strlen(ee->program_path) + 1;
+		char *cp = kmalloc(len, GFP_KERNEL);
+		if (!cp) {
+			retval = -ENOMEM;
+			goto out;
+		}
+		memmove(cp, ee->program_path, len);
+		task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+		retval = ccs_find_next_domain(ee);
+		task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+		/* Restore ee->program_path for search_binary_handler(). */
+		memmove(ee->program_path, cp, len);
+		kfree(cp);
+	}
  out:
 	return retval;
 }
@@ -1590,7 +1590,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
  * @ee:   Pointer to "struct ccs_execve_entry".
  * @type: Type of execute handler.
  *
- * Returns bool if found, false otherwise.
+ * Returns true if found, false otherwise.
  */
 static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 				     const u8 type)
