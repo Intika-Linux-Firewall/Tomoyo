@@ -33,7 +33,7 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
  */
 char *ccs_realpath(const char *pathname);
 /* Get ccs_realpath() of both symlink and dereferenced pathname. */
-_Bool ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
+int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
 /* Same with ccs_realpath() except that the pathname is already solved. */
 char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
 

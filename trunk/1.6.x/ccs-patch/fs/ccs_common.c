@@ -2550,7 +2550,7 @@ void ccs_load_policy(const char *filename)
 	printk(KERN_INFO "SAKURA: 1.6.6-pre   2009/01/05\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.6-pre   2009/01/05\n");
+	printk(KERN_INFO "TOMOYO: 1.6.6-pre   2009/01/26\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;
