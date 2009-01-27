@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27.9-73.fc9.src.rpm ]
+if [ ! -r kernel-2.6.27.12-78.2.8.fc9.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.newkey/kernel-2.6.27.9-73.fc9.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.newkey/kernel-2.6.27.12-78.2.8.fc9.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.27.9-73.fc9.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.27.12-78.2.8.fc9.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.5.5-20081225.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-12-17 03:51:02.000000000 +0900
-+++ kernel.spec	2008-12-26 08:59:52.000000000 +0900
+--- kernel.spec	2009-01-20 07:37:12.000000000 +0900
++++ kernel.spec	2009-01-27 16:57:42.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -839,7 +844,7 @@
+@@ -828,7 +833,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1330,6 +1335,10 @@
+@@ -1309,6 +1314,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1358,6 +1367,9 @@
+@@ -1337,6 +1346,9 @@
  for i in *.config
  do
    mv $i .config

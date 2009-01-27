@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.26.6-49.fc8.src.rpm ]
+if [ ! -r kernel-2.6.26.8-57.fc8.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS.newkey/kernel-2.6.26.6-49.fc8.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS.newkey/kernel-2.6.26.8-57.fc8.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.26.6-49.fc8.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.26.8-57.fc8.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.5-20081225.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2008-10-18 04:11:15.000000000 +0900
-+++ kernel.spec	2008-10-21 15:44:09.000000000 +0900
+--- kernel.spec	2008-12-19 08:34:39.000000000 +0900
++++ kernel.spec	2009-01-27 17:09:58.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -57,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -791,7 +796,7 @@
+@@ -788,7 +793,7 @@
  Provides: kernel-devel = %{rpmversion}-%{release}%{?1}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1306,6 +1311,10 @@
+@@ -1293,6 +1298,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -77,7 +77,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1331,6 +1340,9 @@
+@@ -1318,6 +1327,9 @@
  for i in *.config
  do
    mv $i .config
