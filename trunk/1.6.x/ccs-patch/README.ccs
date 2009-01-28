@@ -1807,3 +1807,16 @@ Fix 2009/01/05
     @ Relocate definitions and functions.
 
       To reduce exposed symbols, I relocated some definitions and functions.
+
+Fix 2009/01/28
+
+    @ Fix "allow_read" + "allow_write" != "allow_read/write" problem.
+
+      Since 1.6.0 , due to a bug in ccs_update_single_path_acl(),
+      appending "allow_read/write" entry didn't update internal "allow_read"
+      and "allow_write" entries. As a result, attempt to open(O_RDWR) succeeds
+      but open(O_RDONLY) and open(O_WRONLY) fail.
+
+      Workaround is to write an entry twice when newly appending that entry.
+      If written twice, internal  "allow_read" and "allow_write" entries
+      are updated.
