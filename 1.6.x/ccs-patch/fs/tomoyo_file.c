@@ -1052,6 +1052,8 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	if (!acl)
 		goto out;
 	acl->perm = perm;
+	if (perm == (1 << TYPE_READ_WRITE_ACL))
+		acl->perm |= ccs_rw_mask;
 	acl->u_is_group = is_group;
 	acl->u.filename = saved_filename;
 	error = ccs_add_domain_acl(domain, &acl->head);
