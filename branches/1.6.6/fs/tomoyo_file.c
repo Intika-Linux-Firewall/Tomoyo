@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2008  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6   2009/02/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1038,6 +1038,8 @@ static int update_single_path_acl(const u8 type, const char *filename,
 	if (!acl)
 		goto out;
 	acl->perm = perm;
+	if (perm == (1 << TYPE_READ_WRITE_ACL))
+		acl->perm |= rw_mask;
 	acl->u_is_group = is_group;
 	acl->u.filename = saved_filename;
 	error = ccs_add_domain_acl(domain, &acl->head);

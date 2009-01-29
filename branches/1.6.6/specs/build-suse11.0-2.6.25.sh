@@ -67,9 +67,9 @@ fi
 rpm -ivh kernel-source-2.6.25.20-0.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.5-20081225.tar.gz ]
+if [ ! -r ccs-patch-1.6.6-20090202.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081225.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090202.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -95,7 +95,7 @@ patch << "EOF" || die "Can't patch spec file."
  source .rpm-defs
  cd linux-2.6.25
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.5-20081225.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.6-20090202.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.25-suse-11.0.diff
 +# sed -i -e 's:-ccs::' -- Makefile
 +cat config.ccs >> .config

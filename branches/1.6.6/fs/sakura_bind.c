@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Free Mandatory Access Control.
  *
- * Copyright (C) 2005-2008  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6   2009/02/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.

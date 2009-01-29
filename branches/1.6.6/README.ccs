@@ -1745,3 +1745,18 @@ Fix 2008/12/25
 
       I meant to print SYAORAN-ERROR: message when error == -EPERM,
       but I was printing it when error == 0 since 1.6.0 .
+
+Fix 2009/01/29
+
+    @ Fix "allow_read" + "allow_write" != "allow_read/write" problem.
+
+      Since 1.6.0 , due to a bug in update_single_path_acl(),
+      appending "allow_read/write" entry didn't update internal "allow_read"
+      and "allow_write" entries. As a result, attempt to open(O_RDWR) succeeds
+      but open(O_RDONLY) and open(O_WRONLY) fail.
+
+      Workaround is to write an entry twice when newly appending that entry.
+      If written twice, internal "allow_read" and "allow_write" entries
+      are updated.
+
+Version 1.6.6   2009/02/02   Bug fix release.

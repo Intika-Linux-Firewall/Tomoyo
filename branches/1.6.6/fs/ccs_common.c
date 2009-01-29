@@ -3,9 +3,9 @@
  *
  * Common functions for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2008  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6   2009/02/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -2531,10 +2531,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.5   2008/11/11\n");
+	printk(KERN_INFO "SAKURA: 1.6.6   2009/02/02\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.5+   2008/12/10\n");
+	printk(KERN_INFO "TOMOYO: 1.6.6   2009/02/02\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	sbin_init_started = true;
@@ -2902,7 +2902,7 @@ static int read_updates_counter(struct ccs_io_buffer *head)
 static int read_version(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
-		ccs_io_printf(head, "1.6.5");
+		ccs_io_printf(head, "1.6.6");
 		head->read_eof = true;
 	}
 	return 0;
