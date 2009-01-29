@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.6-pre   2009/01/05
+ * Version: 1.6.7-pre   2009/02/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -637,7 +637,7 @@ static int ccs_initialize(struct super_block *sb, void *data)
 	static bool first = true;
 	if (first) {
 		first = false;
-		printk(KERN_INFO "SYAORAN: 1.6.6-pre   2009/01/05\n");
+		printk(KERN_INFO "SYAORAN: 1.6.7-pre   2009/02/02\n");
 	}
 	{
 		struct inode *inode = new_inode(sb);
