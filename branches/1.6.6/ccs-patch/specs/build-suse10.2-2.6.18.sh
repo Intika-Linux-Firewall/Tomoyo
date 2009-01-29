@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  Version:        2.6.18.8
 -Release: 0.13
-+Release: 0.13_tomoyo_1.6.5
++Release: 0.13_tomoyo_1.6.6
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  License:        GPL v2 or later
  Group:          System/Kernel

@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  Version:        2.6.22.19
 -Release: 0.2
-+Release: 0.2_tomoyo_1.6.5
++Release: 0.2_tomoyo_1.6.6
  License:        GPL v2 or later
  Group:          System/Kernel
  AutoReqProv:    on

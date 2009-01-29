@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  #define rhbsys  %([ -r /etc/beehive-root -o -n "%{?__beehive_build}" ] && echo || echo .`whoami`)
  #define release %(R="$Revision: 1.1381 $"; RR="${R##: }"; echo ${RR%%?})_FC3%{rhbsys}
 -%define release 2.3.legacy_FC3
-+%define release 2.3.legacy_FC3_tomoyo_1.6.5
++%define release 2.3.legacy_FC3_tomoyo_1.6.6
  %define signmodules 0
  %define make_target bzImage
  

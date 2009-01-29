@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -#% define buildid
-+%define buildid _tomoyo_1.6.5
++%define buildid _tomoyo_1.6.6
  #
  %define sublevel 18
  %define kversion 2.6.%{sublevel}

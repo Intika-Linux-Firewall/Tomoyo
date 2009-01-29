@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 78.0.13.EL
-+%define release 78.0.13.EL_tomoyo_1.6.5
++%define release 78.0.13.EL_tomoyo_1.6.6
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
