@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2008  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.5   2008/11/11
+ * Version: 1.6.6   2009/02/02
  *
  */
 #include "ccstools.h"
@@ -48,7 +48,7 @@ static bool is_hexadecimal(const char c)
 
 static bool is_alphabet_char(const char c)
 {
-	return (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
 static u8 make_byte(const u8 c1, const u8 c2, const u8 c3)
@@ -856,7 +856,7 @@ retry:
 	 * You should use either "symbolic links with 'alias' directive" or
 	 * "hard links".
 	 */
-	printf("ccstools version 1.6.5 build 2008/11/11\n");
+	printf("ccstools version 1.6.6 build 2009/02/02\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }
