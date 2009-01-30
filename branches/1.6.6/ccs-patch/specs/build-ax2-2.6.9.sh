@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-42.29AX.src.rpm ]
+if [ ! -r kernel-2.6.9-78.8AXS2.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-42.29AX.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-78.8AXS2.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-42.29AX.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-78.8AXS2.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.6-20090202.tar.gz ]
@@ -25,18 +25,18 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-11-05 16:44:14.000000000 +0900
-+++ kernel-2.6.spec	2008-11-07 16:25:21.000000000 +0900
-@@ -29,7 +29,7 @@
- # adding some text to the end of the version number.
+--- kernel-2.6.spec	2008-12-16 16:01:46.000000000 +0900
++++ kernel-2.6.spec	2009-01-30 19:03:01.000000000 +0900
+@@ -34,7 +34,7 @@
  #
  %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
--%define release 42.29AX%{axbsys}
-+%define release 42.29AX%{axbsys}_tomoyo_1.6.6
+ %define dist AXS2
+-%define release 78.8%{?dist}%{axbsys}
++%define release 78.8%{?dist}%{axbsys}_tomoyo_1.6.6
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
-@@ -131,6 +131,9 @@
+@@ -147,6 +147,9 @@
  # to versions below the minimum
  #
  
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -167,7 +170,7 @@
+@@ -183,7 +186,7 @@
  %define __find_provides /usr/lib/rpm/asianux/find-kmod-provides.sh
  %define __find_requires %{nil}
  
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -4164,6 +4167,10 @@
+@@ -5175,6 +5178,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -4175,6 +4182,9 @@
+@@ -5186,6 +5193,9 @@
  for i in *.config 
  do 
  	mv $i .config 
