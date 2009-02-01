@@ -6,12 +6,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/file.c | 1236 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1236 insertions(+)
+ security/tomoyo/file.c | 1238 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1238 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.29-rc3-mm1/security/tomoyo/file.c
-@@ -0,0 +1,1236 @@
+@@ -0,0 +1,1238 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -19,7 +19,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2009/01/01
++ * Version: 2.2.0-pre   2009/02/01
 + *
 + */
 +
@@ -786,6 +786,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!acl)
 +		goto out;
 +	acl->perm = perm;
++	if (perm == (1 << TOMOYO_TYPE_READ_WRITE_ACL))
++		acl->perm |= rw_mask;
 +	acl->filename = saved_filename;
 +	list_add_tail(&acl->head.list, &domain->acl_info_list);
 +	error = 0;
