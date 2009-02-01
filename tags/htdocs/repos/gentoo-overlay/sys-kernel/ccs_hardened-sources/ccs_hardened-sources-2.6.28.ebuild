@@ -20,7 +20,8 @@ HGPV_URI="http://dev.gentoo.org/~gengor/distfiles/${CATEGORY}/${PN}/hardened-pat
 
 DESCRIPTION="TOMOYO Linux sources for the hardened kernel ${KV_MAJOR}.${KV_MINOR}"
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI} ${HGPV_URI} ${CCS_TGP_SRC} ${CCS_HARDENED_URI}"
-KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86"
+#KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86"
+KEYWORDS="-*"
 RDEPEND="sys-apps/ccs-tools"
 
 UNIPATCH_LIST="${DISTDIR}/hardened-patches-${HGPV}.extras.tar.bz2"
