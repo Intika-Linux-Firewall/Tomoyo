@@ -118,7 +118,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * sysctlpath_from_table - return the realpath of a ctl_table.
++ * tomoyo_sysctl_path - return the realpath of a ctl_table.
 + * @table: pointer to "struct ctl_table".
 + *
 + * Returns realpath(3) of the @table on success.
@@ -127,7 +127,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * This function uses tomoyo_alloc(), so the caller must call tomoyo_free()
 + * if this function didn't return NULL.
 + */
-+static char *sysctl_path(struct ctl_table *table)
++static char *tomoyo_sysctl_path(struct ctl_table *table)
 +{
 +	int buflen = TOMOYO_MAX_PATHNAME_LEN;
 +	char *buf = tomoyo_alloc(buflen);
@@ -171,7 +171,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	op &= MAY_READ | MAY_WRITE;
 +	if (!op)
 +		return 0;
-+	name = sysctl_path(table);
++	name = tomoyo_sysctl_path(table);
 +	if (!name)
 +		return -ENOMEM;
 +	error = tomoyo_check_file_perm(tomoyo_domain(), name, op);

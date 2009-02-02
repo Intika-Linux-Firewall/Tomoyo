@@ -12,12 +12,12 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/domain.c |  876 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 876 insertions(+)
+ security/tomoyo/domain.c |  878 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 878 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.29-rc3-mm1/security/tomoyo/domain.c
-@@ -0,0 +1,876 @@
+@@ -0,0 +1,878 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -250,7 +250,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * is_domain_initializer - Check whether the given program causes domainname reinitialization.
++ * tomoyo_is_domain_initializer - Check whether the given program causes domainname reinitialization.
 + *
 + * @domainname: The name of domain.
 + * @program:    The name of program.
@@ -259,9 +259,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns true if executing @program reinitializes domain transition,
 + * false otherwise.
 + */
-+static bool is_domain_initializer(const struct tomoyo_path_info *domainname,
-+				  const struct tomoyo_path_info *program,
-+				  const struct tomoyo_path_info *last_name)
++static bool tomoyo_is_domain_initializer(const struct tomoyo_path_info *
++					 domainname,
++					 const struct tomoyo_path_info *program,
++					 const struct tomoyo_path_info *
++					 last_name)
 +{
 +	struct tomoyo_domain_initializer_entry *ptr;
 +	bool flag = false;
@@ -425,7 +427,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * is_domain_keeper - Check whether the given program causes domain transition suppression.
++ * tomoyo_is_domain_keeper - Check whether the given program causes domain transition suppression.
 + *
 + * @domainname: The name of domain.
 + * @program:    The name of program.
@@ -434,9 +436,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * Returns true if executing @program supresses domain transition,
 + * false otherwise.
 + */
-+static bool is_domain_keeper(const struct tomoyo_path_info *domainname,
-+			     const struct tomoyo_path_info *program,
-+			     const struct tomoyo_path_info *last_name)
++static bool tomoyo_is_domain_keeper(const struct tomoyo_path_info *domainname,
++				    const struct tomoyo_path_info *program,
++				    const struct tomoyo_path_info *last_name)
 +{
 +	struct tomoyo_domain_keeper_entry *ptr;
 +	bool flag = false;
@@ -846,7 +848,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		goto out;
 +
 +	new_domain_name = tmp->buffer;
-+	if (is_domain_initializer(old_domain->domainname, &r, &l)) {
++	if (tomoyo_is_domain_initializer(old_domain->domainname, &r, &l)) {
 +		/* Transit to the child of tomoyo_kernel_domain domain. */
 +		snprintf(new_domain_name, TOMOYO_MAX_PATHNAME_LEN + 1,
 +			 TOMOYO_ROOT_NAME " " "%s", real_program_name);
@@ -858,7 +860,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		 * initializers because they might start before /sbin/init.
 +		 */
 +		domain = old_domain;
-+	} else if (is_domain_keeper(old_domain->domainname, &r, &l)) {
++	} else if (tomoyo_is_domain_keeper(old_domain->domainname, &r, &l)) {
 +		/* Keep current domain. */
 +		domain = old_domain;
 +	} else {
