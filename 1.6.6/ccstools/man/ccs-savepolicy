@@ -1,0 +1,61 @@
+#! /bin/sh
+
+if [ "$1" = "--version" ]
+then
+cat << EOF
+ccs-savepolicy 1.6.6
+
+Copyright (C) 2005-2009 NTT DATA CORPORATION.
+
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License. This program has absolutely no warranty.
+EOF
+elif [ "$1" = "--help" ]
+then
+cat << EOF
+Usage: ccs-savepolicy [-][s][e][d][a][f][p][m]
+
+This program saves TOMOYO Linux's policy from kernel into files.
+
+ -     Write policy to stdout. Specify only one of "sedpm" option when you use this option.
+
+ s     Save system policy. ( /proc/ccs/system_policy - /etc/ccs/system_policy.base => /etc/ccs/system_policy.conf )
+
+ e     Save exception policy. ( /proc/ccs/exception_policy - /etc/ccs/exception_policy.base => /etc/ccs/exception_policy.conf )
+
+ d     Save domain policy. ( /proc/ccs/domain_policy - /etc/ccs/domain_policy.base => /etc/ccs/domain_policy.conf )
+
+ a     Save system policy, exception policy and domain policy. This is default.
+
+ p     Save profile. ( /proc/ccs/profile - /etc/ccs/profile.base => /etc/ccs/profile.conf )
+
+ m     Save manager. ( /proc/ccs/manager - /etc/ccs/manager.base => /etc/ccs/manager.conf )
+
+ f     Forcefully save even if the on-memory policy and the on-disk policy are identical.
+
+Examples:
+
+# ccs-savepolicy
+ Save system policy, exception policy and domain policy.
+
+# ccs-savepolicy e
+ Save exception policy.
+
+EOF
+else
+cat << EOF | help2man -i - -N -s 8 -n "Save TOMOYO Linux's policy" $0 | gzip -9 > man8/ccs-savepolicy.8.gz
+[SEE ALSO]
+
+ ccs-loadpolicy (8)
+
+[NOTES]
+
+ This is a symbolic link to /usr/lib/ccs/savepolicy .
+
+[AUTHORS]
+
+ penguin-kernel _at_ I-love.SAKURA.ne.jp
+
+EOF
+fi
+exit 0
