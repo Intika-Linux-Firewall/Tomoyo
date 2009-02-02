@@ -468,24 +468,24 @@ genkernel --menuconfig all<br>
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.28.1 を使用するものとします。</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.28.2 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.28.1.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.28.2.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.6.28.1.tar.bz2<br>
+tar -jxf linux-2.6.28.2.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.6.28.1<br>
+cd linux-2.6.28.2<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081225.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090202.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.5-20081225.tar.gz<br>
+tar -zxf ccs-patch-1.6.6-20090202.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.28.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
@@ -513,9 +513,9 @@ cd linux-2.4.37<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081225.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090202.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.5-20081225.tar.gz<br>
+tar -zxf ccs-patch-1.6.6-20090202.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.37.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
