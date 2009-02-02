@@ -2,50 +2,240 @@ Subject: Common functions for TOMOYO Linux.
 
 This file contains common functions (e.g. policy I/O, pattern matching).
 
------ About pattern matching -----
+-------------------- About pattern matching --------------------
 
-In TOMOYO, all wildcard characters are in the form of '\' + one character.
-Many programs interpret a character with a backslash as literal character, but
-TOMOYO interprets all characters without a backslash as literal characters.
+Since TOMOYO Linux is a name based access control, TOMOYO Linux seriously
+considers "safe" string representation.
 
-Since the characters which are interpreted as wildcard are program dependent
-(e.g. For shells, '*' and '?' are wildcards but '.' isn't. For sed, '.' is
-a wildcard). Those who worry about some characters being interpreted as
-wildcard characters will add a backslash to every characters
-(e.g. \/\t\m\p\/\* ) without knowing whether '/' 't' 'm' 'p' '*' are wildcard
-characters or not.
-Not only this approach requires the interpreter to remove unneeded backslashes
-but also this approach keeps introduction of new wildcard characters away.
-For example, until yesterday, 'p' was a literal character and users had been
-allowed to add a backslash before 'p'. But, from today, '\p' is now a wildcard
-character and users are no longer allowed to add a backslash before 'p' if the
-users want to represent literal 'p'.
-If the interpreter forces users not to add a backslash to represent literal
-character, users must know all wildcard characters beforehand.
+TOMOYO Linux's string manipulation functions make reviewers feel crazy,
+but there are reasons why TOMOYO Linux needs its own string manipulation
+functions.
 
-On the contrary, TOMOYO's approach allows introduction of new wildcard
-characters as needed, for users won't add a backslash to represent literal
-characters. If the interpreter forces users to add a backslash to represent
-wildcard character, users needn't to know all wildcard characters beforehand.
-Users can learn the meaning of new wildcard characters on first encounter.
+----- Part 1 : preconditions -----
 
+People definitely want to use wild card.
 
-You would go crazy with functions that handle string data.
-But these functions are needed to stay inside the kernel for validating,
-hashing and comparing string data.
+  To support pattern matching, we have to support wild card characters.
 
-To speeds up string comparison, TOMOYO hashes strings using "depth" (number of
-'/' characters). This is calculated by tomoyo_path_depth() and used by
-tomoyo_path_matches_pattern().
+  In a typical Linux system, filenames are likely consists of only alphabets,
+  numbers, and some characters (e.g. + - ~ . / ).
+  But theoretically, the Linux kernel accepts all characters but NUL character
+  (which is used as a terminator of a string).
 
-To be able to use strncmp() where possible, TOMOYO remembers initial length of
-strings without wildcard characters. This is calculated by
-tomoyo_const_part_length().
+    Some Linux systems can have filenames which contain * ? ** etc.
 
-To be able to use strcmp() where possible, TOMOYO remembers whether strings
-contains wildcard character or not.
+Therefore, we have to somehow modify string so that we can distinguish
+wild card characters and normal characters.
 
------ About policy interface -----
+  It might be possible for some application's configuration files to restrict
+  acceptable characters.
+  It is impossible for kernel to restrict acceptable characters.
+
+    We can't accept approaches which will cause troubles for applications.
+
+----- Part 2 : commonly used approaches -----
+
+Text formatted strings separated by space character (0x20) and new line
+character (0x0A) is more preferable for users over array of NUL-terminated
+string.
+
+  Thus, people use text formatted configuration files separated by space
+  character and new line.
+
+We sometimes need to handle non-printable characters.
+
+  Thus, people use \ character (0x5C) as escape character and represent
+  non-printable characters using octal or hexadecimal format.
+
+At this point, we remind (at least) 3 approaches.
+
+  (1) Shell glob style expression
+  (2) POSIX regular expression (UNIX style regular expression)
+  (3) Maverick wild card expression
+
+On the surface, (1) and (2) sound good choices. But they have a big pitfall.
+All meta-characters in (1) and (2) are legal characters for representing
+a pathname, and users easily write incorrect expression. What is worse, users
+unlikely notice incorrect expressions because characters used for regular
+pathnames unlikely contain meta-characters. This incorrect use of
+meta-characters in pathname representation reveals vulnerability
+(e.g. unexpected results) only when irregular pathname is specified.
+
+The authors of TOMOYO Linux think that approaches which adds some character
+for interpreting meta-characters as normal characters (i.e. (1) and (2)) are
+not suitable for security use.
+
+Therefore, the authors of TOMOYO Linux propose (3).
+
+----- Part 3: consideration points -----
+
+We need to solve encoding problem.
+
+  A single character can be represented in several ways using encodings.
+
+    For Japanese language, there are "ShiftJIS", "ISO-2022-JP", "EUC-JP",
+    "UTF-8" and more.
+
+  Some languages (e.g. Japanese language) supports multi-byte characters
+  (where a single character is represented using several bytes).
+
+    Some multi-byte characters may match the escape character.
+
+    For Japanese language, some characters in "ShiftJIS" encoding match
+    \ character, and bothering Web's CGI developers.
+
+  It is important that the kernel string is not bothered by encoding problem.
+
+    Linus said, "I really would expect that kernel strings don't have
+    an encoding. They're just C strings: a NUL-terminated stream of bytes."
+    http://lkml.org/lkml/2007/11/6/142
+
+    Yes. The kernel strings are just C strings.
+    We are talking about how to store and carry "kernel strings" safely.
+
+  If we store "kernel string" into policy file as-is, the "kernel string" will
+  be interpreted differently depending on application's encoding settings.
+  One application may interpret "kernel string" as "UTF-8",
+  another application may interpret "kernel string" as "ShiftJIS".
+
+    Therefore, we propose to represent strings using ASCII encoding.
+    In this way, we are no longer bothered by encoding problems.
+
+We need to avoid information loss caused by display.
+
+  It is difficult to input and display non-printable characters, but we have to
+  be able to handle such characters because the kernel string is a C string.
+
+  If we use only ASCII printable characters (from 0x21 to 0x7E) and space
+  character (0x20) and new line character (0x0A), it is easy to input from
+  keyboard and display on all terminals which is running Linux.
+
+  Therefore, we propose to represent strings using only characters which value
+  is one of "from 0x21 to 0x7E", "0x20", "0x0A".
+
+We need to consider ease of splitting strings from a line.
+
+  If we use an approach which uses "\ " for representing a space character
+  within a string, we have to count the string from the beginning to check
+  whether this space character is accompanied with \ character or not.
+  As a result, we cannot monotonically split a line using space character.
+
+  If we use an approach which uses "\040" for representing a space character
+  within a string, we can monotonically split a line using space character.
+
+  If we use an approach which uses NUL character as a delimiter, we cannot
+  use string manipulation functions for splitting strings from a line.
+
+  Therefore, we propose that we represent space character as "\040".
+
+We need to avoid wrong designations (incorrect use of special characters).
+
+  Not all users can understand and utilize POSIX's regular expressions
+  correctly and perfectly.
+
+  If a character acts as a wild card by default, the user will get unexpected
+  result if that user didn't know the meaning of that character.
+
+    Therefore, we propose that all characters but \ character act as
+    a normal character and let the user add \ character to make a character
+    act as a wild card.
+
+    In this way, users needn't to know all wild card characters beforehand.
+    They can learn when they encountered an unseen wild card character
+    for their first time.
+
+----- Part 4: supported wild card expressions -----
+
+At this point, we have wild card expressions listed below.
+
+  +-----------+--------------------------------------------------------------+
+  | Wild card | Meaning and example                                          |
+  +-----------+--------------------------------------------------------------+
+  |   \*      | More than or equals to 0 character other than '/'.           |
+  |           |           /var/log/samba/\*                                  |
+  +-----------+--------------------------------------------------------------+
+  |   \@      | More than or equals to 0 character other than '/' or '.'.    |
+  |           |           /var/www/html/\@.html                              |
+  +-----------+--------------------------------------------------------------+
+  |   \?      | 1 byte character other than '/'.                             |
+  |           |           /tmp/mail.\?\?\?\?\?\?                             |
+  +-----------+--------------------------------------------------------------+
+  |   \$      | More than or equals to 1 decimal digit.                      |
+  |           |           /proc/\$/cmdline                                   |
+  +-----------+--------------------------------------------------------------+
+  |   \+      | 1 decimal digit.                                             |
+  |           |           /var/tmp/my_work.\+                                |
+  +-----------+--------------------------------------------------------------+
+  |   \X      | More than or equals to 1 hexadecimal digit.                  |
+  |           |           /var/tmp/my-work.\X                                |
+  +-----------+--------------------------------------------------------------+
+  |   \x      | 1 hexadecimal digit.                                         |
+  |           |           /tmp/my-work.\x                                    |
+  +-----------+--------------------------------------------------------------+
+  |   \A      | More than or equals to 1 alphabet character.                 |
+  |           |           /var/log/my-work/\$-\A-\$.log                      |
+  +-----------+--------------------------------------------------------------+
+  |   \a      | 1 alphabet character.                                        |
+  |           |           /home/users/\a/\*/public_html/\*.html              |
+  +-----------+--------------------------------------------------------------+
+  |   \-      | Pathname subtraction operator.                               |
+  |           | +---------------------+------------------------------------+ |
+  |           | | Example             | Meaning                            | |
+  |           | +---------------------+------------------------------------+ |
+  |           | | /etc/\*             | All files in /etc/ directory.      | |
+  |           | +---------------------+------------------------------------+ |
+  |           | | /etc/\*\-\*shadow\* | /etc/\* other than /etc/\*shadow\* | |
+  |           | +---------------------+------------------------------------+ |
+  |           | | /\*\-proc\-sys/     | /\*/ other than /proc/ /sys/       | |
+  |           | +---------------------+------------------------------------+ |
+  +-----------+--------------------------------------------------------------+
+
+  +----------------+---------------------------------------------------------+
+  | Representation | Meaning and example                                     |
+  +----------------+---------------------------------------------------------+
+  |   \\           | backslash character itself.                             |
+  +----------------+---------------------------------------------------------+
+  |   \ooo         | 1 byte character.                                       |
+  |                | ooo is 001 <= ooo <= 040 || 177 <= ooo <= 377.          |
+  |                |                                                         |
+  |                |           \040 for space character.                     |
+  |                |           \177 for del character.                       |
+  |                |                                                         |
+  +----------------+---------------------------------------------------------+
+
+----- Part 5: Advantages -----
+
+We can obtain extensibility.
+
+  Since our proposed approach adds \ to a character to interpret as a wild
+  card, we can introduce new wild card in future while maintaining backward
+  compatibility.
+
+We can process monotonically.
+
+  Since our proposed approach separates strings using a space character,
+  we can split strings using existing string manipulation functions.
+
+We can reliably analyze access logs.
+
+  It is guaranteed that a string doesn't contain space character (0x20) and
+  new line character (0x0A).
+
+  It is guaranteed that a string won't be converted by FTP and won't be damaged
+  by a terminal's settings.
+
+  It is guaranteed that a string won't be affected by encoding converters
+  (except encodings which insert NUL character (e.g. UTF-16)).
+
+----- Part 6: conclusion -----
+
+TOMOYO Linux is using its own encoding with reasons described above.
+There is a disadvantage that we need to introduce a series of new string
+manipulation functions. But TOMOYO Linux's encoding is useful for all users
+(including audit and AppArmor) who want to perform pattern matching and
+safely exchange string information between the kernel and the userspace.
+
+-------------------- About policy interface --------------------
 
 TOMOYO Linux creates the following files on securityfs (normally 
 mounted on /sys/kernel/security) as interfaces between kernel and 
