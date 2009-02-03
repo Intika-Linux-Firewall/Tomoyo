@@ -1,6 +1,54 @@
 Subject: File operation restriction part.
 
-This file controls file related operations.
+This file controls file related operations of TOMOYO Linux.
+
+tomoyo/tomoyo.c calls the following six functions in this file.
+Each function handles the following access types.
+
+ * tomoyo_check_file_perm
+sysctl()'s "read" and "write".
+
+ * tomoyo_check_exec_perm
+"execute".
+
+ * tomoyo_check_open_permission
+open(2) for "read" and "write".
+
+ * tomoyo_check_1path_perm
+"create", "unlink", "mkdir", "rmdir", "mkfifo",
+"mksock", "mkblock", "mkchar", "truncate" and "symlink".
+
+ * tomoyo_check_2path_perm
+"rename" and "unlink".
+
+ * tomoyo_check_rewrite_permission
+"rewrite".
+("rewrite" are operations which may lose already recorded data of a file,
+i.e. open(!O_APPEND) || open(O_TRUNC) || truncate() || ftruncate())
+
+The functions which actually checks ACLs are the following three functions.
+Each function handles the following access types.
+ACL directive is expressed by "allow_<access type>".
+
+ * tomoyo_check_file_acl
+Open() operation and execve() operation.
+("read", "write", "read/write" and "execute")
+
+ * tomoyo_check_single_write_acl
+Directory modification operations with 1 pathname.
+("create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock",
+ "mkblock", "mkchar", "truncate", "symlink" and "rewrite")
+
+ * tomoyo_check_double_write_acl
+Directory modification operations with 2 pathname.
+("link" and "rename")
+
+Also, this file contains handlers of some utility directives
+for file related operations.
+
+ * "allow_read":   specifies globally (for all domains) readable files.
+ * "path_group":   specifies pathname macro.
+ * "deny_rewrite": restricts rewrite operation.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
