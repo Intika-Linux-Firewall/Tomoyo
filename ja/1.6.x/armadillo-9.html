@@ -20,8 +20,8 @@ TOMOYO Linux は SELinux ほど多機能すぎず、 LIDS のようにハード�
 <p>コンパイル済みカーネルを以下のアドレスからダウンロードできます。コンパイル済みカーネルを使う場合は「２：Debian の Armadillo-9 へのインストール」まで飛んでください。</p>
 
 <ul>
-<li>http://osdn.dl.sourceforge.jp/tomoyo/32753/kernel-2.4.31-a9-3-tomoyo_1.6.5p2.tar.gz
-<li>http://osdn.dl.sourceforge.jp/tomoyo/32753/kernel-2.6.12.3-a9-16-tomoyo_1.6.5.tar.gz
+<li>http://osdn.dl.sourceforge.jp/tomoyo/32753/kernel-2.4.31-a9-3-tomoyo_1.6.6.tar.gz
+<li>http://osdn.dl.sourceforge.jp/tomoyo/32753/kernel-2.6.12.3-a9-16-tomoyo_1.6.6.tar.gz
 </ul>
 
 <p>コンパイル済みカーネルを使わずに、カスタマイズしたい場合は以下の手順を実行してください。</p>
@@ -59,12 +59,12 @@ cd linux-2.6.12.3-a9-16
 </td></tr></table>
 
 <p>http://sourceforge.jp/projects/tomoyo/ から TOMOYO Linux 用カーネルパッチをダウンロードします。
-この手順書では http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081210.tar.gz を使用します。</p>
+この手順書では http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090202.tar.gz を使用します。</p>
 
 <table border="1"><tr><td>
 <pre>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.5-20081210.tar.gz
-tar -zxf ccs-patch-1.6.5-20081210.tar.gz
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090202.tar.gz
+tar -zxf ccs-patch-1.6.6-20090202.tar.gz
 </pre>
 </td></tr></table>
 
@@ -126,7 +126,7 @@ cp -p images/linux.bin.gz romfs/boot/Image.gz
 cp -p linux-2.4.x/.config romfs/boot/config-2.4.31-a9-3-ccs
 cd romfs
 su -c 'chown -R root.root boot/ lib/; chmod -R g-s boot/ lib/'
-tar -zcf ~/kernel-2.4.31-a9-3-tomoyo_1.6.5p2.tar.gz boot/ lib/modules/
+tar -zcf ~/kernel-2.4.31-a9-3-tomoyo_1.6.6.tar.gz boot/ lib/modules/
 </pre>
 </td></tr></table>
 
@@ -140,7 +140,7 @@ cp -p images/linux.bin.gz romfs/boot/Image.gz
 cp -p linux-2.6.x/.config romfs/boot/config-2.6.12.3-a9-16-ccs
 cd romfs
 su -c 'chown -R root.root boot/ lib/; chmod -R g-s boot/ lib/'
-tar -zcf ~/kernel-2.6.12.3-a9-16-tomoyo_1.6.5p2.tar.gz boot/ lib/modules/
+tar -zcf ~/kernel-2.6.12.3-a9-16-tomoyo_1.6.6.tar.gz boot/ lib/modules/
 </pre>
 </td></tr></table>
 
@@ -275,13 +275,13 @@ apt-get -y upgrade
 </pre>
 </td></tr></table>
 
-<p>ダウンロードまたは作成した kernel-2.4.31-a9-3-tomoyo_1.6.5p2.tar.gz または kernel-2.6.12.3-a9-16-tomoyo_1.6.5.tar.gz を / 以下に展開します。</p>
+<p>ダウンロードまたは作成した kernel-2.4.31-a9-3-tomoyo_1.6.6.tar.gz または kernel-2.6.12.3-a9-16-tomoyo_1.6.6.tar.gz を / 以下に展開します。</p>
 
 <table border="1"><tr><td>
 <pre>
 cd /
-wget http://osdn.dl.sourceforge.jp/tomoyo/32753/kernel-2.4.31-a9-3-tomoyo_1.6.5p2.tar.gz
-tar -zxf kernel-2.4.31-a9-3-tomoyo_1.6.5p2.tar.gz
+wget http://osdn.dl.sourceforge.jp/tomoyo/32753/kernel-2.4.31-a9-3-tomoyo_1.6.6.tar.gz
+tar -zxf kernel-2.4.31-a9-3-tomoyo_1.6.6.tar.gz
 </pre>
 </td></tr></table>
 
@@ -290,8 +290,8 @@ tar -zxf kernel-2.4.31-a9-3-tomoyo_1.6.5p2.tar.gz
 <table border="1"><tr><td>
 <pre>
 cd /
-wget http://osdn.dl.sourceforge.jp/tomoyo/32753/kernel-2.6.12.3-a9-16-tomoyo_1.6.5.tar.gz
-tar -zxf kernel-2.6.12.3-a9-16-tomoyo_1.6.5.tar.gz
+wget http://osdn.dl.sourceforge.jp/tomoyo/32753/kernel-2.6.12.3-a9-16-tomoyo_1.6.6.tar.gz
+tar -zxf kernel-2.6.12.3-a9-16-tomoyo_1.6.6.tar.gz
 </pre>
 </td></tr></table>
 
@@ -330,13 +330,13 @@ hermit&gt; setenv console=ttyAM0,115200 root=/dev/hdc1 noinitrd
 <p>CF を挿してあることを確認してから、 Armadillo-9 の電源を入れます。</p>
 
 <p>これでインストールは完了です。ここから先は <a href="http://tomoyo.sourceforge.jp/ja/1.6.x/install.html">http://tomoyo.sourceforge.jp/ja/1.6.x/install.html</a> を参照してください。</p>
-   <hr>
-    <address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
-    <a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
-    Last modified: $Date$<br>
-    <!--#include virtual="/cgi-bin/counter.pl" -->
-    </address>
+<hr>
+<address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
+<a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
+Last modified: $Date$<br>
+<!--#include virtual="/cgi-bin/counter.pl" -->
+</address>
 
-    <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>
