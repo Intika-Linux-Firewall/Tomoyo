@@ -830,11 +830,11 @@ static int ccs_check_file_perm2(struct ccs_request_info *r,
 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
 		       filename->name, ccs_get_last_name(r->domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(r, "allow_%s %s\n",
-						 msg, filename->name);
-		if (error == 1 && !r->ee)
+		int err = ccs_check_supervisor(r, "allow_%s %s\n",
+					       msg, filename->name);
+		if (err == 1 && !r->ee)
 			goto retry;
-		return error;
+		return err;
 	}
 	if (r->mode == 1 && ccs_check_domain_quota(r->domain)) {
 		/* Don't use patterns for execute permission. */
@@ -946,7 +946,6 @@ int ccs_write_file_policy(char *data, struct domain_info *domain,
 		return ccs_update_file_acl(filename, (u8) perm, domain,
 					   condition, is_delete);
 	if (strncmp(data, "allow_", 6)) {
-		u8 type;
 		if (!strcmp(data, KEYWORD_EXECUTE_HANDLER))
 			type = TYPE_EXECUTE_HANDLER;
 		else if (!strcmp(data, KEYWORD_DENIED_EXECUTE_HANDLER))
