@@ -14,6 +14,7 @@
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
+#include <linux/tomoyo_socket.h>
 #include <linux/realpath.h>
 #include <linux/net.h>
 #include <linux/inet.h>
