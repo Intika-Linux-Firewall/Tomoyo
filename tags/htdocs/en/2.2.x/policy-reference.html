@@ -221,14 +221,10 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <table border="1">
 <tr><td>The kernel's interface</td><td>Meaning</td></tr>
-<tr><td><a href="#query">/sys/kernel/security/tomoyo/query</a></td><td>Access requests that are waiting for administrator's decision.</td></tr>
 <tr><td><a href="#.domain_status">/sys/kernel/security/tomoyo/.domain_status</a></td><td>The list of domainnames and profile numbers currently defined in domain policy.</td></tr>
 <tr><td><a href="#meminfo">/sys/kernel/security/tomoyo/meminfo</a></td><td>Memory usage.</td></tr>
-<tr><td><a href="#grant_log">/sys/kernel/security/tomoyo/grant_log</a></td><td>Access requests that didn't violate domain policy.</td></tr>
-<tr><td><a href="#reject_log">/sys/kernel/security/tomoyo/reject_log</a></td><td>Access requests that violated domain policy.</td></tr>
 <tr><td><a href="#self_domain">/sys/kernel/security/tomoyo/self_domain</a></td><td>The name of domain the current process belongs to.</td></tr>
 <tr><td><a href="#.process_status">/sys/kernel/security/tomoyo/.process_status</a></td><td>The list of domainnames and profile numbers currently running processes belongs to.</td></tr>
-<tr><td><a href="#.updates_counter">/sys/kernel/security/tomoyo/.updates_counter</a></td><td>Counter for policy updates.</td></tr>
 <tr><td><a href="#version">/sys/kernel/security/tomoyo/version</a></td><td>Version of TOMOYO Linux.</td></tr>
 </table>
 
@@ -413,8 +409,6 @@ echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 <tr><td>disabled</td><td>Disabled. Don't print domain policy violation messages.</td></tr>
 <tr><td>enabled</td><td>Enabled. Print domain policy violation messages.</td></tr>
 </table>
-
-<h2>
 
 <h2><a name="domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></h2>
 
