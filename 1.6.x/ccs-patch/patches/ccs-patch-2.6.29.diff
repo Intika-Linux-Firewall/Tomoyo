@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.6.29-rc3.
+This is TOMOYO Linux patch for kernel 2.6.29-rc5.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.29-rc3.tar.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.29-rc5.tar.bz2
 ---
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
@@ -31,13 +31,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/core/datagram.c             |   11 +++
  net/ipv4/inet_connection_sock.c |    7 ++
  net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |   10 ++
+ net/ipv4/udp.c                  |    6 +
  net/socket.c                    |   41 +++++++++++
  net/unix/af_unix.c              |   16 ++++
- 32 files changed, 622 insertions(+)
+ 32 files changed, 618 insertions(+)
 
---- linux-2.6.29-rc3.orig/fs/Kconfig
-+++ linux-2.6.29-rc3/fs/Kconfig
+--- linux-2.6.29-rc5.orig/fs/Kconfig
++++ linux-2.6.29-rc5/fs/Kconfig
 @@ -285,4 +285,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -45,16 +45,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.29-rc3.orig/fs/Makefile
-+++ linux-2.6.29-rc3/fs/Makefile
+--- linux-2.6.29-rc5.orig/fs/Makefile
++++ linux-2.6.29-rc5/fs/Makefile
 @@ -122,3 +122,5 @@ obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_BTRFS_FS)		+= btrfs/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.29-rc3.orig/fs/attr.c
-+++ linux-2.6.29-rc3/fs/attr.c
+--- linux-2.6.29-rc5.orig/fs/attr.c
++++ linux-2.6.29-rc5/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -79,8 +79,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (ia_valid & ATTR_SIZE)
  		down_write(&dentry->d_inode->i_alloc_sem);
---- linux-2.6.29-rc3.orig/fs/compat.c
-+++ linux-2.6.29-rc3/fs/compat.c
+--- linux-2.6.29-rc5.orig/fs/compat.c
++++ linux-2.6.29-rc5/fs/compat.c
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -107,8 +107,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.29-rc3.orig/fs/compat_ioctl.c
-+++ linux-2.6.29-rc3/fs/compat_ioctl.c
+--- linux-2.6.29-rc5.orig/fs/compat_ioctl.c
++++ linux-2.6.29-rc5/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -119,7 +119,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2803,6 +2806,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2810,6 +2813,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -132,8 +132,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.29-rc3.orig/fs/exec.c
-+++ linux-2.6.29-rc3/fs/exec.c
+--- linux-2.6.29-rc5.orig/fs/exec.c
++++ linux-2.6.29-rc5/fs/exec.c
 @@ -57,6 +57,9 @@
  #include <asm/mmu_context.h>
  #include <asm/tlb.h>
@@ -173,7 +173,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	if (IS_ERR(file))
-@@ -1316,7 +1334,15 @@ int do_execve(char * filename,
+@@ -1332,7 +1350,15 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -189,8 +189,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.29-rc3.orig/fs/fcntl.c
-+++ linux-2.6.29-rc3/fs/fcntl.c
+--- linux-2.6.29-rc5.orig/fs/fcntl.c
++++ linux-2.6.29-rc5/fs/fcntl.c
 @@ -24,6 +24,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -214,8 +214,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.29-rc3.orig/fs/ioctl.c
-+++ linux-2.6.29-rc3/fs/ioctl.c
+--- linux-2.6.29-rc5.orig/fs/ioctl.c
++++ linux-2.6.29-rc5/fs/ioctl.c
 @@ -17,6 +17,9 @@
  #include <linux/buffer_head.h>
  
@@ -237,8 +237,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.29-rc3.orig/fs/namei.c
-+++ linux-2.6.29-rc3/fs/namei.c
+--- linux-2.6.29-rc5.orig/fs/namei.c
++++ linux-2.6.29-rc5/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -504,8 +504,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (error)
  		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.29-rc3.orig/fs/namespace.c
-+++ linux-2.6.29-rc3/fs/namespace.c
+--- linux-2.6.29-rc5.orig/fs/namespace.c
++++ linux-2.6.29-rc5/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -618,8 +618,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.29-rc3.orig/fs/open.c
-+++ linux-2.6.29-rc3/fs/open.c
+--- linux-2.6.29-rc5.orig/fs/open.c
++++ linux-2.6.29-rc5/fs/open.c
 @@ -29,6 +29,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -683,8 +683,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.29-rc3.orig/fs/proc/Makefile
-+++ linux-2.6.29-rc3/fs/proc/Makefile
+--- linux-2.6.29-rc5.orig/fs/proc/Makefile
++++ linux-2.6.29-rc5/fs/proc/Makefile
 @@ -25,3 +25,6 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
  proc-$(CONFIG_PRINTK)	+= kmsg.o
@@ -692,8 +692,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.29-rc3.orig/fs/proc/version.c
-+++ linux-2.6.29-rc3/fs/proc/version.c
+--- linux-2.6.29-rc5.orig/fs/proc/version.c
++++ linux-2.6.29-rc5/fs/proc/version.c
 @@ -32,3 +32,14 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -703,15 +703,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.29-rc3 2009/01/29\n");
++	printk(KERN_INFO "Hook version: 2.6.29-rc5 2009/02/14\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 +#endif
 +/***** CCS end. *****/
---- linux-2.6.29-rc3.orig/include/linux/init_task.h
-+++ linux-2.6.29-rc3/include/linux/init_task.h
-@@ -185,6 +185,10 @@ extern struct cred init_cred;
+--- linux-2.6.29-rc5.orig/include/linux/init_task.h
++++ linux-2.6.29-rc5/include/linux/init_task.h
+@@ -184,6 +184,10 @@ extern struct cred init_cred;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
@@ -722,8 +722,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  
---- linux-2.6.29-rc3.orig/include/linux/sched.h
-+++ linux-2.6.29-rc3/include/linux/sched.h
+--- linux-2.6.29-rc5.orig/include/linux/sched.h
++++ linux-2.6.29-rc5/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -736,7 +736,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  /*
   * Scheduling policies
   */
-@@ -1400,6 +1405,10 @@ struct task_struct {
+@@ -1417,6 +1422,10 @@ struct task_struct {
  	/* state flags for use by tracers */
  	unsigned long trace;
  #endif
@@ -747,8 +747,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  };
  
  /*
---- linux-2.6.29-rc3.orig/kernel/compat.c
-+++ linux-2.6.29-rc3/kernel/compat.c
+--- linux-2.6.29-rc5.orig/kernel/compat.c
++++ linux-2.6.29-rc5/kernel/compat.c
 @@ -27,6 +27,9 @@
  #include <linux/ptrace.h>
  
@@ -770,8 +770,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.29-rc3.orig/kernel/kexec.c
-+++ linux-2.6.29-rc3/kernel/kexec.c
+--- linux-2.6.29-rc5.orig/kernel/kexec.c
++++ linux-2.6.29-rc5/kernel/kexec.c
 @@ -37,6 +37,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -793,8 +793,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.29-rc3.orig/kernel/kmod.c
-+++ linux-2.6.29-rc3/kernel/kmod.c
+--- linux-2.6.29-rc5.orig/kernel/kmod.c
++++ linux-2.6.29-rc5/kernel/kmod.c
 @@ -175,6 +175,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -807,8 +807,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.29-rc3.orig/kernel/module.c
-+++ linux-2.6.29-rc3/kernel/module.c
+--- linux-2.6.29-rc5.orig/kernel/module.c
++++ linux-2.6.29-rc5/kernel/module.c
 @@ -51,6 +51,9 @@
  #include <linux/tracepoint.h>
  #include <linux/ftrace.h>
@@ -819,7 +819,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  #if 0
  #define DEBUGP printk
-@@ -752,6 +755,10 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -753,6 +756,10 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -830,7 +830,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2305,6 +2312,10 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2320,6 +2327,10 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -841,8 +841,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.29-rc3.orig/kernel/ptrace.c
-+++ linux-2.6.29-rc3/kernel/ptrace.c
+--- linux-2.6.29-rc5.orig/kernel/ptrace.c
++++ linux-2.6.29-rc5/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -879,8 +879,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.29-rc3.orig/kernel/sched.c
-+++ linux-2.6.29-rc3/kernel/sched.c
+--- linux-2.6.29-rc5.orig/kernel/sched.c
++++ linux-2.6.29-rc5/kernel/sched.c
 @@ -76,6 +76,9 @@
  
  #include <asm/tlb.h>
@@ -891,7 +891,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  #include "sched_cpupri.h"
  
-@@ -5129,6 +5132,10 @@ int can_nice(const struct task_struct *p
+@@ -5134,6 +5137,10 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -902,8 +902,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.29-rc3.orig/kernel/signal.c
-+++ linux-2.6.29-rc3/kernel/signal.c
+--- linux-2.6.29-rc5.orig/kernel/signal.c
++++ linux-2.6.29-rc5/kernel/signal.c
 @@ -34,6 +34,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -914,7 +914,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  /*
   * SLAB caches for signal bits.
-@@ -2223,6 +2226,12 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2225,6 +2228,12 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -927,7 +927,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2284,6 +2293,12 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2286,6 +2295,12 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -940,7 +940,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2296,6 +2311,12 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2298,6 +2313,12 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -953,8 +953,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.29-rc3.orig/kernel/sys.c
-+++ linux-2.6.29-rc3/kernel/sys.c
+--- linux-2.6.29-rc5.orig/kernel/sys.c
++++ linux-2.6.29-rc5/kernel/sys.c
 @@ -43,6 +43,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1011,8 +1011,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.29-rc3.orig/kernel/sysctl.c
-+++ linux-2.6.29-rc3/kernel/sysctl.c
+--- linux-2.6.29-rc5.orig/kernel/sysctl.c
++++ linux-2.6.29-rc5/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -1023,7 +1023,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1670,6 +1673,93 @@ repeat:
+@@ -1671,6 +1674,93 @@ repeat:
  	return -ENOTDIR;
  }
  
@@ -1117,7 +1117,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1686,6 +1776,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1687,6 +1777,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1129,8 +1129,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.29-rc3.orig/kernel/time.c
-+++ linux-2.6.29-rc3/kernel/time.c
+--- linux-2.6.29-rc5.orig/kernel/time.c
++++ linux-2.6.29-rc5/kernel/time.c
 @@ -41,6 +41,9 @@
  
  #include <asm/uaccess.h>
@@ -1163,8 +1163,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.29-rc3.orig/kernel/time/ntp.c
-+++ linux-2.6.29-rc3/kernel/time/ntp.c
+--- linux-2.6.29-rc5.orig/kernel/time/ntp.c
++++ linux-2.6.29-rc5/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/clocksource.h>
  #include <linux/workqueue.h>
@@ -1194,8 +1194,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  		/* if the quartz is off by more than 10% something is VERY wrong! */
  		if (txc->modes & ADJ_TICK &&
---- linux-2.6.29-rc3.orig/net/core/datagram.c
-+++ linux-2.6.29-rc3/net/core/datagram.c
+--- linux-2.6.29-rc5.orig/net/core/datagram.c
++++ linux-2.6.29-rc5/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1221,8 +1221,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		if (skb)
  			return skb;
  
---- linux-2.6.29-rc3.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.29-rc3/net/ipv4/inet_connection_sock.c
+--- linux-2.6.29-rc5.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.29-rc5/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1244,8 +1244,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (ib_net(tb) == net && tb->port == rover)
  					goto next;
---- linux-2.6.29-rc3.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.29-rc3/net/ipv4/inet_hashtables.c
+--- linux-2.6.29-rc5.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.29-rc5/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1267,8 +1267,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.29-rc3.orig/net/ipv4/udp.c
-+++ linux-2.6.29-rc3/net/ipv4/udp.c
+--- linux-2.6.29-rc5.orig/net/ipv4/udp.c
++++ linux-2.6.29-rc5/net/ipv4/udp.c
 @@ -105,6 +105,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1279,26 +1279,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  struct udp_table udp_table;
  EXPORT_SYMBOL(udp_table);
-@@ -170,10 +173,17 @@ int udp_lib_get_port(struct sock *sk, un
- 		rand |= 1;
- 		for (;;) {
- 			hslot = &udptable->hash[udp_hashfn(net, snum)];
-+			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(snum))
-+				goto next_port;
-+			/***** SAKURA Linux end. *****/
- 			spin_lock_bh(&hslot->lock);
- 			if (!udp_lib_lport_inuse(net, snum, hslot, sk, saddr_comp))
- 				break;
- 			spin_unlock_bh(&hslot->lock);
-+			/***** SAKURA Linux start. *****/
-+next_port:
-+			/***** SAKURA Linux end. *****/
+@@ -195,6 +198,9 @@ int udp_lib_get_port(struct sock *sk, un
+ 			 */
  			do {
- 				snum = snum + rand;
- 			} while (snum < low || snum > high);
---- linux-2.6.29-rc3.orig/net/socket.c
-+++ linux-2.6.29-rc3/net/socket.c
+ 				if (low <= snum && snum <= high &&
++				    /***** SAKURA Linux start. *****/
++				    !ccs_may_autobind(snum)
++				    /***** SAKURA Linux end. *****/
+ 				    !test_bit(snum / UDP_HTABLE_SIZE, bitmap))
+ 					goto found;
+ 				snum += rand;
+--- linux-2.6.29-rc5.orig/net/socket.c
++++ linux-2.6.29-rc5/net/socket.c
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1389,8 +1381,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
---- linux-2.6.29-rc3.orig/net/unix/af_unix.c
-+++ linux-2.6.29-rc3/net/unix/af_unix.c
+--- linux-2.6.29-rc5.orig/net/unix/af_unix.c
++++ linux-2.6.29-rc5/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
