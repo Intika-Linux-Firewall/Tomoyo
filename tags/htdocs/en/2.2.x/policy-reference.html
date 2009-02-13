@@ -247,7 +247,6 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 /usr/lib/ccs/setlevel<br>
 /usr/lib/ccs/setprofile<br>
 /usr/lib/ccs/ld-watch<br>
-/usr/lib/ccs/ccs-queryd<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
 </td></tr>
 </table>
@@ -418,13 +417,13 @@ echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 
 <p>To read or modify current domain policy, operate like below.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
-printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
+printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
-printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>(Example) Selecting specific domain and removing ACLs.<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | ccs-loadpolicy -d</p>
 <p>(Example) Deleting specific domain.<br>
-printf "delete &lt;kernel&gt; /sbin/init\n" | loadpolicy -d</p>
+printf "delete &lt;kernel&gt; /sbin/init\n" | ccs-loadpolicy -d</p>
 <p>(Example) Reading current domain policy.<br>
 cat /sys/kernel/security/tomoyo/domain_policy</p>
 
@@ -541,8 +540,8 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 
 <p>To read or modify current exception policy, operate like below.</p>
 <p>(Example)<br>
-echo 'file_pattern /proc/\$/status' | loadpolicy -e<br>
-echo 'delete file_pattern /proc/\$/status' | loadpolicy -e<br>
+echo 'file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
+echo 'delete file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
 cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <p>See also:  <a href="#policy_file_modifiers">Policy File's Modification</a></p>

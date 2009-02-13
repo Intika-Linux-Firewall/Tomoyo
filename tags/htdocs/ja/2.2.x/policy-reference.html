@@ -24,84 +24,23 @@
 <h2>4. <a href="#Domain_Rules">ドメインに関して</a></h2>
 <p>4.1 <a href="#domain_definition">ドメインとは</a></p>
 <p>4.2 <a href="#domain_transition">ドメイン遷移とは</a></p>
-<p>4.3 <a href="#access_logs">アクセスログについて</a></p>
 <h2>5. <a href="#Syntax_Details">キーワード詳細</a></h2>
 <h2>6. <a href="#Advanced_Features">便利な機能</a></h2>
 <p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></p>
 <p>6.2 <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
-<p>6.3 <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
-<p>6.4 <a href="#stateful_acl">ステートフルなアクセス許可の指定</a></p>
-<p>6.5 <a href="#sleep_penalty">ポリシ違反時のペナルティ指定</a></p>
-<p>6.6 <a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
-<p>6.7 <a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
 <hr>
 
 <h1>1. <a name="Keyword_Index">キーワード一覧</a></h1>
 
-<p>/proc/ccs/profile および /etc/ccs/profile.conf で使われるもの</p>
+<p>/sys/kernel/security/tomoyo/profile および /etc/tomoyo/profile.conf で使われるもの</p>
 
 <ul>
 <li><a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a></li>
-<li><a href="#profile_MAC_FOR_ARGV0">MAC_FOR_ARGV0</a></li>
-<li><a href="#profile_MAC_FOR_ENV">MAC_FOR_ENV</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::inet_tcp_create">MAC_FOR_CAPABILITY::inet_tcp_create</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::inet_tcp_listen">MAC_FOR_CAPABILITY::inet_tcp_listen</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::inet_tcp_connect">MAC_FOR_CAPABILITY::inet_tcp_connect</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::use_inet_udp">MAC_FOR_CAPABILITY::use_inet_udp</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::use_inet_ip">MAC_FOR_CAPABILITY::use_inet_ip</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::use_route">MAC_FOR_CAPABILITY::use_route</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::use_packet">MAC_FOR_CAPABILITY::use_packet</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::use_kernel_module">MAC_FOR_CAPABILITY::use_kernel_module</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::create_fifo">MAC_FOR_CAPABILITY::create_fifo</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::create_block_dev">MAC_FOR_CAPABILITY::create_block_dev</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::create_char_dev">MAC_FOR_CAPABILITY::create_char_dev</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::create_unix_socket">MAC_FOR_CAPABILITY::create_unix_socket</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_MOUNT">MAC_FOR_CAPABILITY::SYS_MOUNT</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_UMOUNT">MAC_FOR_CAPABILITY::SYS_UMOUNT</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_REBOOT">MAC_FOR_CAPABILITY::SYS_REBOOT</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_CHROOT">MAC_FOR_CAPABILITY::SYS_CHROOT</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_KILL">MAC_FOR_CAPABILITY::SYS_KILL</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_VHANGUP">MAC_FOR_CAPABILITY::SYS_VHANGUP</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_TIME">MAC_FOR_CAPABILITY::SYS_TIME</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_NICE">MAC_FOR_CAPABILITY::SYS_NICE</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_SETHOSTNAME">MAC_FOR_CAPABILITY::SYS_SETHOSTNAME</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_LINK">MAC_FOR_CAPABILITY::SYS_LINK</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_SYMLINK">MAC_FOR_CAPABILITY::SYS_SYMLINK</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_RENAME">MAC_FOR_CAPABILITY::SYS_RENAME</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_UNLINK">MAC_FOR_CAPABILITY::SYS_UNLINK</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_CHMOD">MAC_FOR_CAPABILITY::SYS_CHMOD</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_CHOWN">MAC_FOR_CAPABILITY::SYS_CHOWN</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_IOCTL">MAC_FOR_CAPABILITY::SYS_IOCTL</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD">MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT">MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY::SYS_PTRACE">MAC_FOR_CAPABILITY::SYS_PTRACE</a></li>
-<li><a href="#profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></li>
-<li><a href="#profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></li>
-<li><a href="#profile_DENY_CONCEAL_MOUNT">DENY_CONCEAL_MOUNT</a></li>
-<li><a href="#profile_RESTRICT_CHROOT">RESTRICT_CHROOT</a></li>
-<li><a href="#profile_RESTRICT_MOUNT">RESTRICT_MOUNT</a></li>
-<li><a href="#profile_RESTRICT_UNMOUNT">RESTRICT_UNMOUNT</a></li>
-<li><a href="#profile_RESTRICT_PIVOT_ROOT">RESTRICT_PIVOT_ROOT</a></li>
-<li><a href="#profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></li>
 <li><a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></li>
-<li><a href="#profile_MAX_GRANT_LOG">MAX_GRANT_LOG</a></li>
-<li><a href="#profile_MAX_REJECT_LOG">MAX_REJECT_LOG</a></li>
 <li><a href="#profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></li>
-<li><a href="#profile_ALLOW_ENFORCE_GRACE">ALLOW_ENFORCE_GRACE</a></li>
-<li><a href="#profile_SLEEP_PERIOD">SLEEP_PERIOD</a></li>
 </ul>
 
-<p>/proc/ccs/system_policy および /etc/ccs/system_policy.conf で使われるもの</p>
-
-<ul>
-<li><a href="#system_policy_allow_mount">allow_mount</a></li>
-<li><a href="#system_policy_deny_unmount">deny_unmount</a></li>
-<li><a href="#system_policy_allow_chroot">allow_chroot</a></li>
-<li><a href="#system_policy_allow_pivot_root">allow_pivot_root</a></li>
-<li><a href="#system_policy_deny_autobind">deny_autobind</a></li>
-</ul>
-
-<p>/proc/ccs/exception_policy および /etc/ccs/exception_policy.conf で使われるもの</p>
+<p>/sys/kernel/security/tomoyo/exception_policy および /etc/tomoyo/exception_policy.conf で使われるもの</p>
 
 <ul>
 <li><a href="#exception_policy_aggregator">aggregator</a></li>
@@ -111,14 +50,12 @@
 <li><a href="#exception_policy_no_keep_domain">no_keep_domain</a></li>
 <li><a href="#exception_policy_file_pattern">file_pattern</a></li>
 <li><a href="#exception_policy_path_group">path_group</a></li>
-<li><a href="#exception_policy_address_group">address_group</a></li>
 <li><a href="#exception_policy_allow_read">allow_read</a></li>
-<li><a href="#exception_policy_allow_env">allow_env</a></li>
 <li><a href="#exception_policy_deny_rewrite">deny_rewrite</a></li>
 <li><a href="#exception_policy_alias">alias</a></li>
 </ul>
 
-<p>/proc/ccs/domain_policy および /etc/ccs/domain_policy.conf で使われるもの</p>
+<p>/sys/kernel/security/tomoyo/domain_policy および /etc/tomoyo/domain_policy.conf で使われるもの</p>
 
 <ul>
 <li><a href="#domain_policy_allow_execute">allow_execute</a></li>
@@ -138,21 +75,13 @@
 <li><a href="#domain_policy_allow_link">allow_link</a></li>
 <li><a href="#domain_policy_allow_rename">allow_rename</a></li>
 <li><a href="#domain_policy_allow_rewrite">allow_rewrite</a></li>
-<li><a href="#domain_policy_allow_argv0">allow_argv0</a></li>
-<li><a href="#domain_policy_allow_env">allow_env</a></li>
-<li><a href="#domain_policy_allow_network">allow_network</a></li>
-<li><a href="#domain_policy_allow_capability">allow_capability</a></li>
-<li><a href="#domain_policy_allow_signal">allow_signal</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></li>
-<li><a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></li>
-<li><a href="#domain_policy_execute_handler">execute_handler</a></li>
-<li><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
 <li><a href="#domain_policy_transition_failed">transition_failed</a></li>
 </ul>
 
-<p>/proc/ccs/manager および /etc/ccs/manager.conf で使われるもの</p>
+<p>/sys/kernel/security/tomoyo/manager および /etc/tomoyo/manager.conf で使われるもの</p>
 
 <ul>
 <li><a href="#manager_manage_by_non_root">manage_by_non_root</a></li>
@@ -256,11 +185,11 @@
 
 <p>ただし、運用開始後にはアクセス許可の変更は生じにくいという傾向があること、および、運用開始前に適切にチューニングすることによりメモリ消費量を通常は 1 メガバイト以内に抑えられることから、心配する必要はありません。</p>
 
-<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /proc/ccs/meminfo から確認できます。単位はバイトです。 Shared: が単語を記憶するために使用されている量、 Private: がアクセス許可を記憶するために使用されている量で、減少することはありません。 Dynamic: がアクセス許可のチェックやアクセスログの保持などのために一時的に使用されている量で、不要になると減少します。</p>
+<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /sys/kernel/security/tomoyo/meminfo から確認できます。単位はバイトです。 Shared: が単語を記憶するために使用されている量、 Private: がアクセス許可を記憶するために使用されている量で、減少することはありません。 Dynamic: がアクセス許可のチェックやアクセスログの保持などのために一時的に使用されている量で、不要になると減少します。</p>
 
 <table border="1">
 <tr><td><pre>
-# cat /proc/ccs/meminfo
+# cat /sys/kernel/security/tomoyo/meminfo
 
 Shared:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;65536
 Private:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;49152
@@ -275,67 +204,64 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>ポリシファイルとは、アクセスの可否を定義したファイルです。システムの起動時に自動的にカーネルへと読み込まれます。</p>
 
-<p>システムの起動時には、 /sbin/init というプログラムが実行されます。 /sbin/init の実行が要求されたときに、 /sbin/ccs-init というプログラムが存在していた場合、 /sbin/ccs-init が実行され、 /sbin/ccs-init の処理が終了してから /sbin/init の実行が開始されます。</p>
+<p>システムの起動時には、 /sbin/init というプログラムが実行されます。 /sbin/init の実行が要求されたときに、 /sbin/tomoyo-init というプログラムが存在していた場合、 /sbin/tomoyo-init が実行され、 /sbin/tomoyo-init の処理が終了してから /sbin/init の実行が開始されます。</p>
 
-<p> /sbin/ccs-init は /etc/ccs/ ディレクトリにあるポリシファイルを /proc/ccs/ ディレクトリを通じてカーネルへと読み込みます。</p>
+<p> /sbin/tomoyo-init は /etc/tomoyo/ ディレクトリにあるポリシファイルを /sys/kernel/security/tomoyo/ ディレクトリを通じてカーネルへと読み込みます。</p>
 
 <table border="1">
 <tr><td>カーネルとのインタフェース</td><td>ポリシファイル</td><td>定義されている内容</td></tr>
-<tr><td><a href="#profile">/proc/ccs/profile</a></td><td>/etc/ccs/profile.conf</td><td>プロファイル（制御レベルを定義したもの）</td></tr>
-<tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>マネージャ（ポリシの変更ができるプログラムを定義したもの）</td></tr>
-<tr><td><a href="#system_policy">/proc/ccs/system_policy</a></td><td>/etc/ccs/system_policy.conf</td><td>システムポリシ（システム全体で適用される設定）</td></tr>
-<tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>例外ポリシ（ドメインポリシの例外を定義したもの）</td></tr>
-<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>ドメインポリシ（ドメイン単位で適用される設定）</td></tr>
+<tr><td><a href="#profile">/sys/kernel/security/tomoyo/profile</a></td><td>/etc/tomoyo/profile.conf</td><td>プロファイル（制御レベルを定義したもの）</td></tr>
+<tr><td><a href="#manager">/sys/kernel/security/tomoyo/manager</a></td><td>/etc/tomoyo/manager.conf</td><td>マネージャ（ポリシの変更ができるプログラムを定義したもの）</td></tr>
+<tr><td><a href="#exception_policy">/sys/kernel/security/tomoyo/exception_policy</a></td><td>/etc/tomoyo/exception_policy.conf</td><td>例外ポリシ（ドメインポリシの例外を定義したもの）</td></tr>
+<tr><td><a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></td><td>/etc/tomoyo/domain_policy.conf</td><td>ドメインポリシ（ドメイン単位で適用される設定）</td></tr>
 </table>
 
 <p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシファイルはありません。</p>
 
 <table border="1">
 <tr><td>カーネルとのインタフェース</td><td>内容</td></tr>
-<tr><td><a href="#query">/proc/ccs/query</a></td><td>管理者の指示待ちとなっているアクセス要求</td></tr>
-<tr><td><a href="#.domain_status">/proc/ccs/.domain_status</a></td><td>定義されているドメイン名とプロファイル番号</td></tr>
-<tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>メモリ使用状況</td></tr>
-<tr><td><a href="#grant_log">/proc/ccs/grant_log</a></td><td>ポリシに違反しなかったアクセス要求のログ</td></tr>
-<tr><td><a href="#reject_log">/proc/ccs/reject_log</a></td><td>ポリシに違反したアクセス要求のログ</td></tr>
-<tr><td><a href="#self_domain">/proc/ccs/self_domain</a></td><td>自分が属しているドメインのドメイン名</td></tr>
-<tr><td><a href="#.process_status">/proc/ccs/.process_status</a></td><td>プロセスが属しているドメイン名とプロファイル番号</td></tr>
-<tr><td><a href="#.updates_counter">/proc/ccs/.updates_counter</a></td><td>ポリシの変更カウンタ</td></tr>
-<tr><td><a href="#version">/proc/ccs/version</a></td><td>TOMOYO Linux のバージョン</td></tr>
+<tr><td><a href="#query">/sys/kernel/security/tomoyo/query</a></td><td>管理者の指示待ちとなっているアクセス要求</td></tr>
+<tr><td><a href="#.domain_status">/sys/kernel/security/tomoyo/.domain_status</a></td><td>定義されているドメイン名とプロファイル番号</td></tr>
+<tr><td><a href="#meminfo">/sys/kernel/security/tomoyo/meminfo</a></td><td>メモリ使用状況</td></tr>
+<tr><td><a href="#grant_log">/sys/kernel/security/tomoyo/grant_log</a></td><td>ポリシに違反しなかったアクセス要求のログ</td></tr>
+<tr><td><a href="#reject_log">/sys/kernel/security/tomoyo/reject_log</a></td><td>ポリシに違反したアクセス要求のログ</td></tr>
+<tr><td><a href="#self_domain">/sys/kernel/security/tomoyo/self_domain</a></td><td>自分が属しているドメインのドメイン名</td></tr>
+<tr><td><a href="#.process_status">/sys/kernel/security/tomoyo/.process_status</a></td><td>プロセスが属しているドメイン名とプロファイル番号</td></tr>
+<tr><td><a href="#version">/sys/kernel/security/tomoyo/version</a></td><td>TOMOYO Linux のバージョン</td></tr>
 </table>
 
 <h2>3.2 <a name="policy_file_modifiers">変更について</a></h2>
 
-<p>カーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシを変更することができるプログラム名を /proc/ccs/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
+<p>カーネルとのインタフェースである /sys/kernel/security/tomoyo/ ディレクトリを経由してポリシを変更することができるプログラム名を /sys/kernel/security/tomoyo/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
 
 <ul>
-<li>/proc/ccs/manager に登録されているプログラム名を持つプロセス</li>
-<li>/proc/ccs/manager に登録されているドメイン名を持つプロセス</li>
+<li>/sys/kernel/security/tomoyo/manager に登録されているプログラム名を持つプロセス</li>
+<li>/sys/kernel/security/tomoyo/manager に登録されているドメイン名を持つプロセス</li>
 </ul>
 
-<p>だけがカーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシを変更できます。以下に例を示します。</p>
+<p>だけがカーネルとのインタフェースである /sys/kernel/security/tomoyo/ ディレクトリを経由してポリシを変更できます。以下に例を示します。</p>
 
 <table border="1">
 <tr><td>
-# cat /proc/ccs/manager<br>
+# cat /sys/kernel/security/tomoyo/manager<br>
 /usr/lib/ccs/loadpolicy<br>
 /usr/lib/ccs/editpolicy<br>
 /usr/lib/ccs/setlevel<br>
 /usr/lib/ccs/setprofile<br>
 /usr/lib/ccs/ld-watch<br>
-/usr/lib/ccs/ccs-queryd<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
 </td></tr>
 </table>
 
 <p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a>の設定を行えば、非 root ユーザによるポリシの変更も可能です。</p>
 
-<p>なお、学習モード用のプロファイルが割り当てられているプロセスは、アクセスを要求するだけで <a href="#system_policy">/proc/ccs/system_policy</a> または <a href="#domain_policy">/proc/ccs/domain_policy</a> へと自動的にアクセス許可が追加されていきます。</p>
+<p>なお、学習モード用のプロファイルが割り当てられているプロセスは、アクセスを要求するだけで <a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> へと自動的にアクセス許可が追加されていきます。</p>
 
 <h1>4. <a name="Domain_Rules">ドメインに関して</a></h1>
 
 <h2>4.1 <a name="domain_definition">ドメインとは</a></h2>
 
-<p>TOMOYO Linux には、システム全体でアクセス許可を定義するものと、ドメイン単位でアクセス許可を定義するものの 2 種類があります。前者はシステムポリシと呼ばれ、 <a href="#system_policy">/proc/ccs/system_policy</a> を通じてアクセス許可を指定します。後者はドメインポリシと呼ばれ、 <a href="#domain_policy">/proc/ccs/domain_policy</a> を通じてアクセス許可を定義します。</p>
+<p>TOMOYO Linux は、ドメイン単位でアクセス許可を定義します。アクセス許可はドメインポリシと呼ばれ、 <a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> を通じてアクセス許可を定義します。</p>
 
 <p>TOMOYO Linux においては、全てのプロセスがそれぞれ 1 つのドメインに属し、全てのプログラムがそれぞれ異なるドメインに属します。現在実行されている 2 つのプロセスが同一のプログラムであっても、それぞれのプロセスの直前のドメインが異なっていれば異なるドメインに属します。</p>
 
@@ -447,168 +373,9 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </td></tr>
 </table>
 
-<p>ただし、例外として</p>
-
-<ul>
-<li>上記手順の「 <a href="#exec_stage_check_argv0">argv[0] のチェック</a>」「<a href="#exec_stage_check_execute">権限のチェック</a>」「<a href="#exec_stage_check_destination">遷移先の決定</a>」の何れかに於いて拒否されたが、プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> キーワードが指定されている</li>
-<li>プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている</li>
-</ul>
-
-<p>のどちらかに該当し、かつ、</p>
-
-<ul>
-<li>プログラムの実行を要求したプロセスが <a href="#domain_policy_execute_handler">execute_handler</a> キーワードまたは <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> キーワードにより起動されたプロセスではない</li>
-</ul>
-
-<p>場合には、以下の手順を実行します。この例外の使い方については「<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>」と「<a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a>」で説明します。</p>
-
-<table border="1">
-<tr><td>Step</td><td>内容</td></tr>
-<tr><td>プログラム名の取得</td><td>
-<p><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> または <a href="#domain_policy_execute_handler">execute_handler</a> で指定されているプログラムのパス名を取得し、「パス名候補 1 」とします。</p>
-</td></tr>
-<tr><td>情報の追加</td><td>
-<p>全ての環境変数を引数の末尾に追加し、全ての環境変数を削除します。</p>
-<p>「パス名候補 1 」「プログラムの実行を要求したプロセスの属しているドメインのドメイン名」「プログラムの実行を要求したプロセスのパス名」「プログラムの実行を要求したプロセスの状態」「実行が要求されたプログラムのパス名」「引数の数」「環境変数の数」を引数の先頭に挿入します。</p>
-</td></tr>
-<tr><td>遷移先の決定</td><td>
-
-<p>(1) 例外ポリシから</p>
-
-<ul>
-<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>no_initialize_domain 「パス名候補 1 」
-</ul>
-
-<p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
-
-<p>(2) 例外ポリシから</p>
-
-<ul>
-<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>initialize_domain 「パス名候補 1 」
-</ul>
-
-<p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補 1 」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
-
-<p>(3) 例外ポリシから</p>
-
-<ul>
-<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-</ul>
-
-<p>というエントリを探します。見つかった場合は (5) へ進みます。</p>
-
-<p>(4) 例外ポリシから</p>
-
-<ul>
-<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」
-<li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-</ul>
-
-<p>というエントリを探します。見つかった場合は「現在のプロセスが属しているドメインのドメイン名」を「遷移先ドメイン」とし、 (6) へ進みます。</p>
-
-<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補 1 」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
-
-<p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
-
-</td></tr>
-<tr><td>プログラムの実行</td><td>
-
-<p>通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
-
-</td></tr>
-</table>
-
-<h2>4.3 <a name="access_logs">アクセスログについて</a></h2>
-
-<p>ドメインポリシによって許可されたアクセス要求のログと拒否されたアクセス要求のログを生成します。前者は許可ログと呼ばれ、 /proc/ccs/grant_log から取得することができます。後者は拒否ログと呼ばれ、 /proc/ccs/reject_log から取得することができます。これらのログを取得してファイルとして保存するためのツールとして /usr/lib/ccs/ccs-auditd というプログラムが付属しています。</p>
-
-<p>以下に例を示します。最初の例はプログラムを実行しようとしたときのログです。</p>
-
-<table border="1">
-<tr><td>
-#2008-04-09 12:50:15# profile=1 mode=learning pid=5054 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=2 envc=16 argv[]={ "cat" "/etc/fstab" } envp[]={ "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" }<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-allow_execute /bin/cat
-</td></tr>
-</table>
-
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash というドメインに属しているプロセスが /bin/cat というプログラムを実行しようとし、そのときの引数の内容は "cat" "/etc/fstab" 、環境変数の内容は "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" であったということを示しています。また、プロセスＩＤやユーザＩＤなど、プロセスに関する情報も一緒に出力されます。</p>
-
-<p>次の例は、ファイルを読み込みモードでオープンしようとしたときのログです。</p>
-
-<table border="1">
-<tr><td>
-#2008-04-09 12:50:15# profile=1 mode=learning pid=5054 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat<br>
-allow_read /etc/fstab
-</td></tr>
-</table>
-
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat というドメインに属しているプロセスが /etc/fstab というファイルをオープンしようとしたことを示しています。</p>
-
-<p>次の例は、ドメインが新規作成されたときのログです。</p>
-
-<table border="1">
-<tr><td>
-#2008-04-09 12:52:01# profile=1 mode=learning pid=5110 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash /bin/audit-exec-param /bin/cat<br>
-use_profile 1
-</td></tr>
-</table>
-
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash /bin/audit-exec-param /bin/cat というドメインが新規作成され、プロファイルとして 1 が割り当てられたことを示しています。 TOMOYO Linux では、ドメインが自動的に新規作成されていきます。自動的に新規作成された場合には、ドメインを新規作成することになったプロセスの属しているドメインに割り当てられていたプロファイル番号が引き継がれます。</p>
-
-<p>次の例は、<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>するために要求されたのとは異なるプログラムが実行されたときのログです。</p>
-<table border="1">
-<tr><td>
-#2008-04-09 12:52:01# profile=1 mode=learning pid=5110 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=24 envc=0 argv[]={ "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" } envp[]={ }<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash<br>
-execute_handler /bin/audit-exec-param
-</td></tr>
-</table>
-
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash というドメインに属しているプロセスがプログラムを実行しようとしたが、 execute_handler が指定されていたので代わりに /bin/audit-exec-param というプログラムが実行されたこと、 /bin/audit-exec-param に渡された引数の内容は "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" であったということを示しています。 LD_PRELOAD などの環境変数によって  /bin/audit-exec-param の動作が左右されるのを防ぐため、環境変数を引数に移動しています。</p>
-
-<p>このように、アクセスログは 3 行で 1 件（ /usr/lib/ccs/ccs-auditd によってファイルに保存されるときに空行が入るので 4 行で 1 件）となっており、これらのログはそのままドメインポリシとして追加可能な形式になっています。アクセス拒否ログから許可したい部分を抽出して、例えば /var/log/tomoyo/diff.txt という名前で保存した後、</p>
-
-<table border="1">
-<tr><td>
-# /usr/sbin/ccs-loadpolicy -d &lt; /var/log/tomoyo/diff.txt
-</td></tr>
-</table>
-
-<p>という操作を行うことで、ドメインポリシに追加することができます。そのため、「学習モード」を使わなくても、最初から「許容モード」を使って拒否ログを出力させ、拒否ログの内容を編集するというアプローチでもドメインポリシを定義していくことができます。「学習モード」でドメインポリシを作成する場合にはプロセスの状態（アクセスログの先頭行の内容）は加味されませんが、アクセス拒否ログからドメインポリシを生成すると、最初から<a href="#conditional_acl">条件付きアクセス許可の指定</a>を行うことができます。例えば、「学習モード」を使わずにログを生成し、</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-allow_execute /bin/cat if exec.argc=2 exec.argv[0]="cat" exec.argv[1]="/etc/fstab"
-</td></tr>
-</table>
-
-<p>としてドメインポリシを追加した場合、「学習モード」で追加される</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-allow_execute /bin/cat
-</td></tr>
-</table>
-
-<p>よりも細かい指定を行うことができるようになります。</p>
-
 <h1>5. <a name="Syntax_Details">キーワード詳細</a></h1>
 
-<h2><a name="profile">/proc/ccs/profile</a></h2>
+<h2><a name="profile">/sys/kernel/security/tomoyo/profile</a></h2>
 
 <p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシ管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
 
@@ -623,10 +390,10 @@ allow_execute /bin/cat
 <p>現在のプロファイルを読み出しまたは追加するには以下のように操作します。</p>
 
 <p>（例）<br>
-cat /proc/ccs/profile<br>
-savepolicy -p<br>
-setlevel 1-MAC_FOR_FILE=learning<br>
-echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
+cat /sys/kernel/security/tomoyo/profile<br>
+ccs-savepolicy -p<br>
+ccs-setlevel 1-MAC_FOR_FILE=learning<br>
+echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
@@ -642,504 +409,9 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
-<h3><a name="profile_MAC_FOR_ARGV0">MAC_FOR_ARGV0</a></h3>
-
-<p>プログラム実行時の argv[0] に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_ENV">MAC_FOR_ENV</a></h3>
-
-<p>プログラム実行時の環境変数名に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_create">MAC_FOR_CAPABILITY::inet_tcp_create</a></h3>
-
-<p>TCP ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_listen">MAC_FOR_CAPABILITY::inet_tcp_listen</a></h3>
-
-<p>TCP ソケットの listen に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::inet_tcp_connect">MAC_FOR_CAPABILITY::inet_tcp_connect</a></h3>
-
-<p>TCP ソケットの connect に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::use_inet_udp">MAC_FOR_CAPABILITY::use_inet_udp</a></h3>
-
-<p>UDP ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::use_inet_ip">MAC_FOR_CAPABILITY::use_inet_ip</a></h3>
-
-<p>RAW ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::use_route">MAC_FOR_CAPABILITY::use_route</a></h3>
-
-<p>ROUTE ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::use_packet">MAC_FOR_CAPABILITY::use_packet</a></h3>
-
-<p>PACKET ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::use_kernel_module">MAC_FOR_CAPABILITY::use_kernel_module</a></h3>
-
-<p>create_module(2) init_module(2) delete_module(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::create_fifo">MAC_FOR_CAPABILITY::create_fifo</a></h3>
-
-<p>mknod(2) で FIFO の作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::create_block_dev">MAC_FOR_CAPABILITY::create_block_dev</a></h3>
-
-<p>mknod(2) でブロック型デバイスの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::create_char_dev">MAC_FOR_CAPABILITY::create_char_dev</a></h3>
-
-<p>mknod(2) でキャラクタ型デバイスの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::create_unix_socket">MAC_FOR_CAPABILITY::create_unix_socket</a></h3>
-
-<p>mknod(2) で UNIX ドメインソケットの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_MOUNT">MAC_FOR_CAPABILITY::SYS_MOUNT</a></h3>
-
-<p>mount(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UMOUNT">MAC_FOR_CAPABILITY::SYS_UMOUNT</a></h3>
-
-<p>umount(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_REBOOT">MAC_FOR_CAPABILITY::SYS_REBOOT</a></h3>
-
-<p>reboot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHROOT">MAC_FOR_CAPABILITY::SYS_CHROOT</a></h3>
-
-<p>chroot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_KILL">MAC_FOR_CAPABILITY::SYS_KILL</a></h3>
-
-<p>0 以外のシグナルで kill(2) tkill(2) tgkill(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_VHANGUP">MAC_FOR_CAPABILITY::SYS_VHANGUP</a></h3>
-
-<p>vhangup(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_TIME">MAC_FOR_CAPABILITY::SYS_TIME</a></h3>
-
-<p>stime(2) settimeofday(2) adjtimex(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_NICE">MAC_FOR_CAPABILITY::SYS_NICE</a></h3>
-
-<p>nice(2) setpriority(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_SETHOSTNAME">MAC_FOR_CAPABILITY::SYS_SETHOSTNAME</a></h3>
-
-<p>sethostname(2) setdomainname(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_LINK">MAC_FOR_CAPABILITY::SYS_LINK</a></h3>
-
-<p>link(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_SYMLINK">MAC_FOR_CAPABILITY::SYS_SYMLINK</a></h3>
-
-<p>symlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_RENAME">MAC_FOR_CAPABILITY::SYS_RENAME</a></h3>
-
-<p>rename(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_UNLINK">MAC_FOR_CAPABILITY::SYS_UNLINK</a></h3>
-
-<p>unlink(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHMOD">MAC_FOR_CAPABILITY::SYS_CHMOD</a></h3>
-
-<p>chmod(2) fchmod(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_CHOWN">MAC_FOR_CAPABILITY::SYS_CHOWN</a></h3>
-
-<p>chown(2) fchown(2) lchown(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_IOCTL">MAC_FOR_CAPABILITY::SYS_IOCTL</a></h3>
-
-<p>ioctl(2) compat_sys_ioctl(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD">MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD</a></h3>
-
-<p>kexec_load(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT">MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT</a></h3>
-
-<p>pivot_root(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_CAPABILITY::SYS_PTRACE">MAC_FOR_CAPABILITY::SYS_PTRACE</a></h3>
-
-<p>ptrace(2) の使用に対する強制アクセス制御のレベルを指定します。<br>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></h3>
-
-<p>ネットワークに対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></h3>
-
-<p>シグナルの送信に対する強制アクセス制御のレベルを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_DENY_CONCEAL_MOUNT">DENY_CONCEAL_MOUNT</a></h3>
-<p>既存のマウントを隠蔽するようなマウントを禁止します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>permissive</td><td>許容モード。既存のマウントを隠蔽するようなマウント要求に対して警告メッセージを表示しますが、拒否はしません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。既存のマウントを隠蔽するようなマウント要求に対してエラーメッセージを表示し、拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_RESTRICT_CHROOT">RESTRICT_CHROOT</a></h3>
-
-<p>chroot で移動可能なディレクトリの制限を有効にします。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_RESTRICT_MOUNT">RESTRICT_MOUNT</a></h3>
-
-<p>mount で指定可能なパラメータの制限を有効にします。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_RESTRICT_UNMOUNT">RESTRICT_UNMOUNT</a></h3>
-
-<p>指定されたディレクトリのアンマウントを禁止します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>permissive</td><td>許容モード。指定されたディレクトリのアンマウント要求に対して警告メッセージを表示しますが、拒否はしません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。指定されたディレクトリのアンマウント要求に対してエラーメッセージを表示し、拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_RESTRICT_PIVOT_ROOT">RESTRICT_PIVOT_ROOT</a></h3>
-
-<p>pivot_root で交換可能なディレクトリの制限を有効にします。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
-</table>
-
-<h3><a name="profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></h3>
-
-<p>ローカルのポート番号を自動選択させる際に特定のポート番号を選択させないようにするかどうかを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>enabled</td><td>有効。ローカルのポート番号を自動選択させる際に、特定のポート番号を選択させないようにします。</td></tr>
-</table>
-
 <h3><a name="profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></h3>
 
 <p>学習モードに於いて自動的に追加されるアクセス許可の上限を指定します。デフォルトは 2048 件です。</p>
-
-<h3><a name="profile_MAX_GRANT_LOG">MAX_GRANT_LOG</a></h3>
-
-<p>カーネル内に保持する、ポリシによって許可されたアクセス要求のログの件数を指定します。デフォルトは 1024 件です。</p>
-
-<h3><a name="profile_MAX_REJECT_LOG">MAX_REJECT_LOG</a></h3>
-
-<p>カーネル内に保持する、ポリシによって許可されなかったアクセス要求のログの件数を指定します。デフォルトは 1024 件です。</p>
 
 <h3><a name="profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></h3>
 
@@ -1151,115 +423,23 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <tr><td>enabled</td><td>ドメインポリシに対する違反を表示します。</td></tr>
 </table>
 
-<h3><a name="profile_ALLOW_ENFORCE_GRACE">ALLOW_ENFORCE_GRACE</a></h3>
-
-<p>強制モードに於いてポリシに違反したアクセス要求を対話的に許可できるようにするかどうかを指定します。この項目は TOMOYO Linux 1.6.2 で廃止されました。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>強制モードでポリシに違反したら直ちに拒否します。</td></tr>
-<tr><td>enabled</td><td>強制モードでポリシに違反しても、対話的な操作により許可することを可能にします。</td></tr>
-</table>
-
-<h3><a name="profile_SLEEP_PERIOD">SLEEP_PERIOD</a></h3>
-
-<p>強制モードに於いてポリシ違反が発生した場合にスリープさせるかどうかを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>0 ～ 3000</td><td>スリープさせる時間を 0.1 秒単位で指定します。デフォルトは 0 秒です。</td></tr>
-</table>
-
-<h2>
-
-<a name="system_policy">/proc/ccs/system_policy</a></h2>
-
-<p>このファイルでは、システム全体として与えるアクセス許可を定義します。</p>
-
-<p>現在のシステムポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
-<p>（例）<br>
-cat /proc/ccs/system_policy<br>
-savepolicy -s<br>
-echo 'allow_mount /proc /proc/ proc' | loadpolicy -s<br>
-echo 'delete allow_mount /proc /proc/ proc' | loadpolicy -s</p>
-
-<p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
-
-<h3><a name="system_policy_allow_mount">allow_mount</a></h3>
-<p>マウント許可を指定するには、 allow_mount というキーワードに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定します。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけません。マウントポイントは正規化されたファイル名でなければいけません。オプションは 16 進数の数値で指定します。</p>
-
-<p>「 any マウントポイント --remount オプション」と指定すると、「 mount -o remount マウントポイント」が許可されます。</p>
-
-<p>「複製元 複製先 --bind オプション」と指定すると、「 mount --bind 複製元 複製先」が許可されます。<br>
-「移動元 移動先 --move オプション」と指定すると、「 mount --move 移動元 移動先」が許可されます。<br>
-複製元／複製先／移動元／移動先は正規化されたディレクトリ名でなければなりません。</p>
-
-<p>カーネル 2.6.15 以降では、 Shared Subtree という機能が利用できます。<br>
-「 any マウントポイント --make-unbindable オプション」と指定すると、「 mount --make-unbindable マウントポイント」が許可されます。<br>
-「 any マウントポイント --make-private オプション」と指定すると、「 mount --make-private マウントポイント」が許可されます。<br>
-「 any マウントポイント --make-slave オプション」と指定すると、「 mount --make-slave マウントポイント」が許可されます。<br>
-「 any マウントポイント --make-shared オプション」と指定すると、「 mount --make-shared マウントポイント」が許可されます。
-</p>
-
-<p>（例）<br>
-allow_mount none /dev/pts/ devpts 0x0<br>
-allow_mount /proc /proc/ proc 0x0<br>
-allow_mount usbdevfs /proc/bus/usb/ usbdevfs 0x0<br>
-allow_mount none /data/ tmpfs 0xE<br>
-allow_mount none /dev/shm/ tmpfs 0xE<br>
-allow_mount /dev/hdc /var/www/ ext2 0xF<br>
-allow_mount any / --remount 0x0</p>
-
-<h3><a name="system_policy_deny_unmount">deny_unmount</a></h3>
-<p>アンマウント禁止を指定するには、 deny_unmount というキーワードに続けて、アンマウントを許可しない正規化されたディレクトリ名を指定します。<br>
-通常、 /sbin/mingetty が使用する /dev/tty? を含む /dev/ ディレクトリと、リモートログインする場合に pty デバイスファイルが作成される /dev/pts/ ディレクトリを指定します。</p>
-<p>/dev が読み込み専用になってしまったり、 /dev/pts がアンマウントされてしまうと、ログインができなくなってしまいます。そのため、 / が読み込み専用のシステムでは、 /dev/ や /dev/pts/ がアンマウントされないようにしなければなりません。</p>
-
-<p>（例）<br>
-deny_unmount /dev/<br>
-deny_unmount /dev/pts/<br>
-deny_unmount /proc/</p>
-
-<h3><a name="system_policy_allow_chroot">allow_chroot</a></h3>
-<p>chroot 許可を指定するには、 allow_chroot というキーワードに続けて、 chroot で移動することを許可したい正規化されたディレクトリ名を指定します。<br>
-通常、 sshd が使用する /var/empty/sshd/ を指定します。 その他に chroot 環境で動かしたいアプリケーションや、 chroot を行うアプリケーション（ vsftpd の場合 /usr/share/empty/ ）が存在する場合は、それらも指定します。</p>
-
-<p>（例）<br>
-allow_chroot /var/empty/sshd/<br>
-allow_chroot /usr/share/empty/<br>
-allow_chroot /var/www/html/<br>
-allow_chroot /</p>
-
-<h3><a name="system_policy_allow_pivot_root">allow_pivot_root</a></h3>
-<p>pivot_root 許可を指定するには、 allow_pivot_root というキーワードに続けて、新しいルートとなる正規化されたディレクトリ名と古いルートディレクトリとなる正規化されたディレクトリ名を指定します。<br>
-通常、このキーワードを使う必要はありません。</p>
-
-<h3><a name="system_policy_deny_autobind">deny_autobind</a></h3>
-<p>ローカルポートの自動選択で特定のポート番号が選択させるのを禁止するには、 deny_autobind というキーワードに続けて、ローカルポート番号を指定します。 このキーワードは、特定のポート番号が一時的な用途で割り当てられるのを防ぐのが狙いです。例えば、一部のプロキシサーバはポート 8080 を使用するので、ポート 8080 が一時的な用途のために割り当てられるべきではありません。</p>
-
-<p>（例）<br>
-deny_autobind 1-1023<br>
-deny_autobind 8080</p>
-
-<h2><a name="domain_policy">/proc/ccs/domain_policy</a></h2>
+<h2><a name="domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></h2>
 
 <p>このファイルでは、全てのドメインを定義し、各ドメインに対して与えるアクセス許可を定義します。</p>
 
 <p>ドメインを定義している行（ &lt;kernel&gt; で始まる行）の次行から次のドメインを定義している行の前行までが、そのドメインに対するアクセス許可です。</p>
 
-<p>それぞれのアクセス許可について、必要に応じて追加の条件を指定することができます。そのための構文は<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明します。さらに、必要に応じてプロセスの状態を切り替え、プロセスの状態も条件として使うための方法を<a href="#stateful_acl">ステートフルなアクセス許可の指定</a>で説明します。</p>
-
 <p>現在のドメインポリシを読み出しまたは追加または削除するには、以下のように操作します。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されます）<br>
-printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
+printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されません）<br>
-printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>（例）ドメインを選択してアクセス許可を削除<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | ccs-loadpolicy -d</p>
 <p>（例）特定のドメインを削除<br>
-printf "delete &lt;kernel&gt; /sbin/init\n" | loadpolicy -d</p>
+printf "delete &lt;kernel&gt; /sbin/init\n" | ccs-loadpolicy -d</p>
 <p>（例）ドメインポリシの読み出し<br>
-cat /proc/ccs/domain_policy</p>
+cat /sys/kernel/security/tomoyo/domain_policy</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
@@ -1348,107 +528,6 @@ cat /proc/ccs/domain_policy</p>
 <p>（例） allow_rewrite /var/log/messages</p>
 <p>関連項目： <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
 
-<h3><a name="domain_policy_allow_argv0">allow_argv0</a></h3>
-
-<p>argv[0] の組み合わせを制限するには、 allow_argv0 というキーワードに続けて、絶対パス名と「 argv[0] の最後の / より後ろの部分」を指定します。</p>
-
-<p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができます。いくつかのプログラム（例えば busybox ）は argv[0] の内容によって振る舞いを変化させます。
-プログラムへのシンボリックリンクを経由してプログラムを実行する場合、 TOMOYO Linux のドメイン遷移は filename が指すパス名を正規化した内容に基づいて行われるのに対し、振る舞いは argv[0] （通常は filename が指すパス名と同じ内容）に基づいて行われてしまいます。例えば、 /bin/ls と /bin/cat が busybox へのハードリンクとして提供されている環境において、 /tmp/cat という /bin/ls へのシンボリックリンクを作成して /tmp/cat を実行することにより、 /bin/ls のためのドメインで cat として振舞うことができてしまうという抜け穴になります。</p>
-<p>このキーワードの目的は、 filename と argv[0] の内容の組み合わせを制限することでそのような抜け穴を塞ぐことです。</p>
-
-<h3><a name="domain_policy_allow_env">allow_env</a></h3>
-
-<p>環境変数名を制限するには、 allow_env というキーワードに続けて、「環境変数名」を指定します。</p>
-
-<p>プログラムを実行する関数である execve() には filename と argv[] と envp[] を渡すことができます。多くのプログラムは envp[] の内容によって振る舞いを変化させます。</p>
-<p>このキーワードの目的は、実行されるプログラムに渡される環境変数を制限することです。</p>
-
-<p>関連項目： <a href="#exception_policy_allow_env">allow_env</a></p>
-
-<h3><a name="domain_policy_allow_capability">allow_capability</a></h3>
-
-<p>ケイパビリティのアクセス許可を指定するには、 allow_capability というキーワードに続けて、ケイパビリティを指定します。以下のケイパビリティが指定できます。</p>
-
-<table border="1">
-<tr><td>allow_capability inet_tcp_create</td><td>TCP ソケットの使用を許可</td></tr>
-<tr><td>allow_capability inet_tcp_listen</td><td>TCP ソケットの listen を許可</td></tr>
-<tr><td>allow_capability inet_tcp_connect</td><td>TCP ソケットの connect を許可</td></tr>
-<tr><td>allow_capability use_inet_udp</td><td>UDP ソケットの使用を許可</td></tr>
-<tr><td>allow_capability use_inet_ip</td><td>RAW ソケットの使用を許可</td></tr>
-<tr><td>allow_capability use_route</td><td>ROUTE ソケットの使用を許可</td></tr>
-<tr><td>allow_capability use_packet</td><td>PACKET ソケットの使用を許可</td></tr>
-<tr><td>allow_capability use_kernel_module</td><td>create_module(2) init_module(2) delete_module(2) の使用を許可</td></tr>
-<tr><td>allow_capability create_fifo</td><td>mknod(2) で FIFO の作成を許可</td></tr>
-<tr><td>allow_capability create_block_dev</td><td>mknod(2) でブロック型デバイスの作成を許可</td></tr>
-<tr><td>allow_capability create_char_dev</td><td>mknod(2) でキャラクタ型デバイスの作成を許可</td></tr>
-<tr><td>allow_capability create_unix_socket</td><td>mknod(2) で UNIX ドメインソケットの作成を許可</td></tr>
-<tr><td>allow_capability SYS_MOUNT</td><td>mount(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_UMOUNT</td><td>umount(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_REBOOT</td><td>reboot(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_CHROOT</td><td>chroot(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_KILL</td><td>0 以外のシグナルで kill(2) tkill(2) tgkill(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_VHANGUP</td><td>vhangup(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_TIME</td><td>stime(2) settimeofday(2) adjtimex(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_NICE</td><td>nice(2) setpriority(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_SETHOSTNAME</td><td>sethostname(2) setdomainname(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_LINK</td><td>link(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_SYMLINK</td><td>symlink(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_RENAME</td><td>rename(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_UNLINK</td><td>unlink(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_CHMOD</td><td>chmod(2) fchmod(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_CHOWN</td><td>chown(2) fchown(2) lchown(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_IOCTL</td><td>ioctl(2) compat_sys_ioctl(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_KEXEC_LOAD</td><td>kexec_load(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_PIVOT_ROOT</td><td>pivot_root(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_PTRACE</td><td>ptrace(2) の使用を許可</td></tr>
-</table>
-
-<p>allow_capability キーワードの目的は、プログラムが呼び出すことができるシステムコールを制限することです。幾つかのシステムコールに対しては他のキーワードやポリシファイルを使用してより詳細な制限が可能になっています。</p>
-<ul>
-<li>作成を許可するキャラクタ型デバイスファイルのパス名を <a href="#domain_policy_allow_mkblock">allow_mkblock</a> キーワードを使用して制限することができます。
-<li>作成を許可するブロック型デバイスファイルのパス名を <a href="#domain_policy_allow_mkchar">allow_mkchar</a> キーワードを使用して制限することができます。
-<li>作成を許可する FIFO のパス名を <a href="#domain_policy_allow_mkfifo">allow_mkfifo</a> キーワードを使用して制限することができます。
-<li>作成を許可する UNIX ドメインソケットのパス名を <a href="#domain_policy_allow_mksock">allow_mksock</a> キーワードを使用して制限することができます。
-<li>作成を許可するシンボリックリンクのパス名を <a href="#domain_policy_allow_symlink">allow_symlink</a> キーワードを使用して制限することができます。
-<li>削除を許可するパス名を <a href="#domain_policy_allow_unlink">allow_unlink</a> キーワードを使用して制限することができます。
-<li>ハードリンクを許可する組み合わせを <a href="#domain_policy_allow_link">allow_link</a> キーワードを使用して制限することができます。
-<li>パス名の変更を許可する組み合わせを <a href="#domain_policy_allow_rename">allow_rename</a> キーワードを使用して制限することができます。
-<li>使用を許可する IP アドレスの範囲ととポート番号の範囲を <a href="#domain_policy_allow_network">allow_network</a> キーワードを使用して制限することができます。
-<li>送信可能なシグナルの番号と送信先のドメインを <a href="#domain_policy_allow_signal">allow_signal</a> キーワードを使用して制限することができます。
-<li>マウントを許可するデバイスおよびマウントポイントを <a href="#system_policy_allow_mount">allow_mount</a> キーワードを使用して制限することができます。
-<li>アンマウントを許可しないマウントポイントを <a href="#system_policy_deny_unmount">deny_unmount</a> キーワードを使用して指定することができます。
-<li>chroot で移動できるディレクトリを <a href="#system_policy_allow_chroot">allow_chroot</a> キーワードを使用して制限することができます。
-<li>pivot_root で交換できるディレクトリを <a href="#system_policy_allow_pivot_root">allow_pivot_root</a> キーワードを使用して制限することができます。
-</ul>
-
-<h3><a name="domain_policy_allow_network">allow_network</a></h3>
-
-<p>ネットワークのアクセス許可を指定するには、 allow_network というキーワードに続けて、プロトコル（ TCP UDP RAW の何れか）、 IP アドレス、ポート番号（ TCP UDP の場合）またはプロトコル番号（ RAW の場合）を指定します。 IPv4 プロトコルおよび IPv6 プロトコルで使用するローカルポート番号が対象です。</p>
-<table border="1">
-<tr><td>キーワード</td><td>許可されるアクセス</td><td>指定例</td></tr>
-<tr><td>allow_network TCP bind</td><td>ローカルの TCP アドレス／ポートの割り当て</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP listen</td><td>ローカルの TCP アドレス／ポートでの待機</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP accept</td><td>リモートの TCP アドレス／ポートからの接続受付および通信</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
-<tr><td>allow_network TCP connect</td><td>リモートの TCP アドレス／ポートへの接続および通信</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
-<tr><td>allow_network UDP bind</td><td>ローカルの UDP アドレス／ポートの割り当て</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
-
-<tr><td>allow_network UDP connect</td><td>リモートの UDP アドレス／ポートとの通信</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
-<tr><td>allow_network RAW bind</td><td>ローカルの IP アドレス／プロトコルの割り当て</td><td>allow_network RAW bind 127.0.0.1 255</td></tr>
-<tr><td>allow_network RAW connect</td><td>リモートの IP アドレス／プロトコルとの通信</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
-</table>
-<p>IPv6 で使われる "::" という表記はサポートされていません。 "::1" ではなく "0:0:0:0:0:0:0:1" のように表記する必要があります。</p>
-
-<p>同じＩＰアドレスを繰り返し指定する手間を避けるために、パス名と同様にグループ化を行うことができます。</p>
-
-<p>関連項目： <a href="#exception_policy_address_group">address_group</a></p>
-
-<h3><a name="domain_policy_allow_signal">allow_signal</a></h3>
-
-<p>シグナルのアクセス許可を指定するには、 allow_signal というキーワードに続けて、シグナルの番号および操作対象ドメインを指定します。<br>
-　例外が 2 つ存在します。シグナル番号が 0 の場合は常に許可されます。また、自分の属するドメインへのシグナルの場合には常に許可されます。<br>
-　その他の場合、このファイルに指定されたシグナル番号とドメイン名で始まる場合のみそのシグナルを送信できます。<br>
-　操作対象ドメインとして &lt;kernel&gt; を指定すると、全てのドメインに指定された番号のシグナルを送信できます。</p>
-
 <h3><a name="domain_policy_use_profile">use_profile</a></h3>
 
 <p>これは、このドメインに対して割り当てられているプロファイル番号を示しています。プロファイル番号は 0 ～ 255 の値をとります。</p>
@@ -1458,26 +537,6 @@ cat /proc/ccs/domain_policy</p>
 <p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
 
 <p>関連項目： <a href="#exception_policy_allow_read">allow_read</a></p>
-
-<h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
-
-<p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_env">allow_env</a> を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
-
-<p>関連項目： <a href="#exception_policy_allow_env">allow_env</a></p>
-
-<h3><a name="domain_policy_execute_handler">execute_handler</a></h3>
-
-<p>これは、このドメインに対しては常にこのキーワードで指定されたプログラムだけを実行することを示しています。特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
-
-<p>このキーワードが指定されている場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
-
-<p>関連項目： <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a> <a href="#domain_policy_allow_argv0">allow_argv0</a></p>
-
-<h3><a name="domain_policy_denied_execute_handler">denied_execute_handler</a></h3>
-
-<p>これは、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
-
-<p>ただし、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
 
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
@@ -1491,13 +550,13 @@ cat /proc/ccs/domain_policy</p>
 
 <p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
 
-<h2><a name="exception_policy">/proc/ccs/exception_policy</a></h2>
+<h2><a name="exception_policy">/sys/kernel/security/tomoyo/exception_policy</a></h2>
 
 <p>現在の例外ポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
 <p>（例）<br>
-echo 'file_pattern /proc/\$/status' | loadpolicy -e<br>
-echo 'delete file_pattern /proc/\$/status' | loadpolicy -e<br>
-cat /proc/ccs/exception_policy</p>
+echo 'file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
+echo 'delete file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
+cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <p>関連項目： <a href="#policy_file_modifiers">変更について</a></p>
 
@@ -1534,40 +593,11 @@ allow_read @HOME-DIR-FILE
 
 <p>のように指定できます。</p>
 
-<h3><a name="exception_policy_address_group">address_group</a></h3>
-
-<p>アドレスのグループを定義するには、 address_group というキーワードに続けて、グループ名と IP アドレスのパターンを指定します。<br>
-　例えば、ローカルアドレスをまとめたい場合、</p>
-
-<table border="1">
-<tr><td>
-address_group local-address 10.0.0.0-10.255.255.255<br>
-address_group local-address 172.16.0.0-172.31.255.255<br>
-address_group local-address 192.168.0.0-192.168.255.255
-</td></tr>
-</table>
-
-<p>のように定義しておくことで、ドメインポリシのネットワークに対するアクセス許可を指定する際に</p>
-
-<table border="1">
-<tr><td>
-allow_network TCP accept @local-address 1024-65535
-</td></tr>
-</table>
-
-<p>のように指定できます。</p>
-
 <h3><a name="exception_policy_allow_read">allow_read</a></h3>
 
 <p>無条件に読み込みを許可するファイルを指定するには、 allow_read というキーワードに続けて、正規化されたファイル名を指定します。このキーワードの目的は、 GLIBC がプログラム実行時に参照するファイルやエラーメッセージを表示する際に参照するファイルのように、どのようなプログラムから参照されても構わないというファイルを指定することで、各ドメインで記述しないで済むようにすることです。なお、各ドメインで ignore_global_allow_read という指定をすると、ここで指定された allow_read は無視されます。</p>
 
 <p>関連項目： <a href="#domain_policy_allow_read">allow_read</a> <a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></p>
-
-<h3><a name="exception_policy_allow_env">allow_env</a></h3>
-
-<p>無条件に受け取ってよい環境変数名を指定するには、 allow_env というキーワードに続けて、環境変数名を指定します。このキーワードの目的は、 PATH や HOME のように、どのようなプログラムに渡されても構わないような環境変数名を指定することで、各ドメインで記述しないで済むようにすることです。くれぐれも LD_PRELOAD のような危険な環境変数を指定しないでください。なお、各ドメインで ignore_global_allow_env という指定をすると、ここで指定された allow_env は無視されます。</p>
-
-<p>関連項目： <a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a> <a href="#domain_policy_allow_env">allow_env</a></p>
 
 <h3><a name="exception_policy_deny_rewrite">deny_rewrite</a></h3>
 
@@ -1651,13 +681,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
 
-<h2><a name="query">/proc/ccs/query</a></h2>
-
-<p>強制モードで動作中にポリシ違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用します。 ALLOW_ENFORCE_GRACE=enabled に設定されているプロファイルが割り当てられているドメインに対して強制モードでポリシ違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できます。</p>
-
-<p>TOMOYO Linux 1.6.2 では ALLOW_ENFORCE_GRACE が廃止されました。よって、 TOMOYO Linux 1.6.2 以降をお使いの場合、 ccs-queryd を実行するだけで対話的に諾否を指定できます。</p>
-
-<h2><a name="manager">/proc/ccs/manager</a></h2>
+<h2><a name="manager">/sys/kernel/security/tomoyo/manager</a></h2>
 
 <p>ポリシの読み書きを行えるプログラムまたはドメインの一覧を取得または追加します。</p>
 
@@ -1665,47 +689,31 @@ allow_network TCP accept @local-address 1024-65535
 
 <p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合に使用します。</p>
 
-<h2><a name=".domain_status">/proc/ccs/.domain_status</a></h2>
+<h2><a name=".domain_status">/sys/kernel/security/tomoyo/.domain_status</a></h2>
 
 <p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
 
-<h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
+<h2><a name="meminfo">/sys/kernel/security/tomoyo/meminfo</a></h2>
 
 <p>TOMOYO Linux がポリシを保持するために使用しているカーネルのメモリ情報を取得します。</p>
 <p>（例）<br>
-cat /proc/ccs/meminfo<br></p>
+cat /sys/kernel/security/tomoyo/meminfo<br></p>
 
-<h2><a name="grant_log">/proc/ccs/grant_log</a></h2>
-
-<p>ドメインポリシに対するアクセス許可ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は MAX_GRANT_LOG 件までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
-<p>（例）<br>
-cat /proc/ccs/grant_log</p>
-
-<h2><a name="reject_log">/proc/ccs/reject_log</a></h2>
-
-<p>ドメインポリシに対するアクセス拒否ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は MAX_REJECT_LOG 件までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
-<p>（例）<br>
-cat /proc/ccs/reject_log</p>
-
-<h2><a name="self_domain">/proc/ccs/self_domain</a></h2>
+<h2><a name="self_domain">/sys/kernel/security/tomoyo/self_domain</a></h2>
 
 <p>呼び出し元プロセスが属しているドメインの名前を取得します。</p>
 <p>（例）<br>
-cat /proc/ccs/self_domain</p>
+cat /sys/kernel/security/tomoyo/self_domain</p>
 
-<h2><a name=".process_status">/proc/ccs/.process_status</a></h2>
+<h2><a name=".process_status">/sys/kernel/security/tomoyo/.process_status</a></h2>
 
 <p>ccstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシマネージャとして登録されていないプログラムでも書き込みを行える。</p>
 
-<h2><a name=".updates_counter">/proc/ccs/.updates_counter</a></h2>
-
-<p>ポリシの変更を検出するためのカウンタです。参照されるたびに 0 にリセットされます。ポリシの更新を監視するプログラムのためのインタフェースです。</p>
-
-<h2><a name="version">/proc/ccs/version</a></h2>
+<h2><a name="version">/sys/kernel/security/tomoyo/version</a></h2>
 
 <p>TOMOYO Linux のバージョン番号を取得するためのインタフェースです。</p>
 <p>（例）<br>
-cat /proc/ccs/version</p>
+cat /sys/kernel/security/tomoyo/version</p>
 
 <h1>6. <a name="Advanced_Features">便利な機能</a></h1>
 
@@ -1727,23 +735,23 @@ cat /proc/ccs/version</p>
 </td></tr>
 </table>
 
-<p>のように delete manage_by_non_root というキーワードを書き込んでください。 /proc/ccs/ 以下のエントリの所有者は root なので、非 root ユーザによるアクセスを認めるためには必要に応じて chown/chmod を実行してください。<br>
-起動時に自動的にこの処理が行われるようにするために、 /sbin/ccs-init は /etc/ccs/ccs-post-init というプログラムが存在する場合には /etc/ccs/ccs-post-init も実行するようになっています。よって、例えば demo ユーザが /proc/ccs/ インタフェースへの読み書きができるように設定したい場合は、</p>
+<p>のように delete manage_by_non_root というキーワードを書き込んでください。 /sys/kernel/security/tomoyo/ 以下のエントリの所有者は root なので、非 root ユーザによるアクセスを認めるためには必要に応じて chown/chmod を実行してください。<br>
+起動時に自動的にこの処理が行われるようにするために、 /sbin/tomoyo-init は /etc/tomoyo/tomoyo-post-init というプログラムが存在する場合には /etc/tomoyo/tomoyo-post-init も実行するようになっています。よって、例えば demo ユーザが /sys/kernel/security/tomoyo/ インタフェースへの読み書きができるように設定したい場合は、</p>
 
 <table border="1">
 <tr><td>
 #! /bin/sh<br>
-echo manage_by_non_root &gt; /proc/ccs/manager<br>
-chown -R demo /proc/ccs/
+echo manage_by_non_root &gt; /sys/kernel/security/tomoyo/manager<br>
+chown -R demo /sys/kernel/security/tomoyo/
 </td></tr>
 </table>
 
-<p>という内容で /etc/ccs/ccs-post-init を作成し、</p>
+<p>という内容で /etc/tomoyo/tomoyo-post-init を作成し、</p>
 
 <table border="1">
 <tr><td>
-# chmod 755 /etc/ccs/ccs-post-init<br>
-# chown -R demo /etc/ccs/<br>
+# chmod 755 /etc/tomoyo/tomoyo-post-init<br>
+# chown -R demo /etc/tomoyo/<br>
 # chmod 755 /usr/lib/ccs/
 </td></tr>
 </table>
@@ -1752,216 +760,14 @@ chown -R demo /proc/ccs/
 
 <h2>6.2 <a name="memory_quota">ポリシに割り当てられるメモリ量を制限</a></h2>
 
-<p>TOMOYO Linux 1.6.1 ではポリシを保持しておくために割り当てられるメモリの量を制限できるようにするためにメモリクォータが導入されました。</p>
-
-<p>/etc/ccs/ccs-post-init から以下のように /proc/ccs/meminfo に書き込みを行うことで設定できます。</p>
+<p>/etc/tomoyo/tomoyo-post-init から以下のように /sys/kernel/security/tomoyo/meminfo に書き込みを行うことで設定できます。</p>
 
 <table border="1">
 <tr><td>
-echo Shared: 2097152 &gt; /proc/ccs/meminfo<br>
-echo Private: 2097152 &gt; /proc/ccs/meminfo
+echo Shared: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo<br>
+echo Private: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
 </td></tr>
 </table>
-
-<h2>6.3 <a name="conditional_acl">条件付きアクセス許可の指定</a></h2>
-
-<p>アクセス許可にユーザＩＤ等に基づいた条件を付加することができます。条件は個々のアクセス許可の末尾に " if " 句を追加する形で指定します。</p>
-
-<table border="1">
-<tr><td>指定例</td><td>意味</td></tr>
-<tr><td>allow_read /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
-<tr><td>allow_read /etc/passwd if task.uid=0</td><td>プロセスのユーザＩＤが 0 の場合に限り、 /etc/passwd の参照を許可</td></tr>
-<tr><td>allow_read /etc/passwd if task.uid!=0</td><td>プロセスのユーザＩＤが 0 ではない場合に限り、 /etc/passwd の参照を許可</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 80</td><td>TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 80 if task.uid=100</td><td>プロセスのユーザＩＤが 100 の場合に限り、 TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
-<tr><td>allow_capability SYS_KILL</td><td>kill(2) の使用を許可</td></tr>
-<tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>親プロセスが /sbin/init であり、かつ、プロセスのユーザＩＤと実効ユーザＩＤが 0 の場合に限り、 kill(2) の使用を許可</td></tr>
-</table>
-
-<p>以下の変数を指定できます。</p>
-
-<table border="1">
-<tr><td>変数</td><td>意味</td></tr>
-<tr><td>task.uid</td><td>呼び出したプロセスのユーザＩＤ</td></tr>
-<tr><td>task.euid</td><td>呼び出したプロセスの実効ユーザＩＤ</td></tr>
-<tr><td>task.suid</td><td>呼び出したプロセスの保存ユーザＩＤ</td></tr>
-<tr><td>task.fsuid</td><td>呼び出したプロセスのファイルシステムユーザＩＤ</td></tr>
-<tr><td>task.gid</td><td>呼び出したプロセスのグループＩＤ</td></tr>
-<tr><td>task.egid</td><td>呼び出したプロセスの実効グループＩＤ</td></tr>
-<tr><td>task.sgid</td><td>呼び出したプロセスの保存グループＩＤ</td></tr>
-<tr><td>task.fsgid</td><td>呼び出したプロセスのファイルシステムグループＩＤ</td></tr>
-<tr><td>task.pid</td><td>呼び出したプロセスのプロセスＩＤ</td></tr>
-<tr><td>task.ppid</td><td>呼び出したプロセスの親プロセスのプロセスＩＤ</td></tr>
-<tr><td>path1.uid</td><td>許可されるパス名の所有者ＩＤ</td></tr>
-<tr><td>path1.gid</td><td>許可されるパス名のグループＩＤ</td></tr>
-<tr><td>path1.ino</td><td>許可されるパス名のｉノード番号</td></tr>
-<tr><td>path1.parent.uid</td><td>許可されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
-<tr><td>path1.parent.gid</td><td>許可されるパス名の親ディレクトリのグループＩＤ</td></tr>
-<tr><td>path1.parent.ino</td><td>許可されるパス名の親ディレクトリのｉノード番号</td></tr>
-<tr><td>path2.parent.uid</td><td>作成されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
-<tr><td>path2.parent.gid</td><td>作成されるパス名の親ディレクトリのグループＩＤ</td></tr>
-<tr><td>path2.parent.ino</td><td>作成されるパス名の親ディレクトリのｉノード番号</td></tr>
-<tr><td>exec.argc</td><td>プログラム実行時の引数の数</td></tr>
-<tr><td>exec.envc</td><td>プログラム実行時の環境変数の数</td></tr>
-<tr><td>exec.argv[index]="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value である</td></tr>
-<tr><td>exec.argv[index]!="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value ではない</td></tr>
-<tr><td>exec.envp["name"]="value"</td><td>環境変数 name が定義されており、値が value である</td></tr>
-<tr><td>exec.envp["name"]!="value"</td><td>環境変数 name が定義されていないか、あるいは値が value ではない</td></tr>
-<tr><td>exec.envp["name"]!=NULL</td><td>環境変数 name が定義されている</td></tr>
-<tr><td>exec.envp["name"]=NULL</td><td>環境変数 name が定義されていない</td></tr>
-</table>
-
-<p>path1 はパス名を必要とする操作の 1 個目のパス名に対応し、 path2 はパス名を必要とする操作の 2 個目のパス名に対応します。
-例えば、「 allow_rename file1 file2 」というアクセス許可の場合、 path1 が file1 に、 path2 が file2 に対応します。</p>
-
-<p>path1.uid および path1.gid は存在しないパス名に対しては指定できません。つまり、ファイル等の作成時（ allow_create 等）には使用できません。</p>
-
-<p>path1.parent.uid および path1.parent.gid は常に指定可能です。</p>
-
-<p>path2.parent.uid および path2.parent.gid はパス名を 2 つ必要とする操作（つまり allow_link および allow_rename ）に限り指定できます。</p>
-
-<p>path2.uid および path2.gid はサポートしていません。（ rename 操作に於いて、 path2 が存在する場合には暗黙のうちに unlink または rmdir が実行されます。）</p>
-
-<p>sysctl による読み書き（ /proc/sys/ ディレクトリ以下のファイルを open ではなく sysctl を用いてアクセス）を行う場合については、 path1 path2 ともにサポートしていません。</p>
-
-<p>exec はプログラム実行時（つまり <a href="#domain_policy_allow_execute">allow_execute</a> ）に限り指定できます。</p>
-
-<h2>6.4 <a name="stateful_acl">ステートフルなアクセス許可の指定</a></h2>
-
-<p>TOMOYO Linux はユーザランドアプリケーションの修正を行わないため、プログラムの実行を伴わずにアクセス可能な資源の範囲を変更することはできません。しかし、例えば接続元クライアントのＩＰアドレスによってアクセスの可否を切り替えたいという場合があります。そのような場合に対応するため、プロセス毎に状態変数を割り当てることができ、条件付きアクセス許可の指定で使えるようになっています。</p>
-
-<table border="1">
-<tr><td>変数</td><td>意味</td></tr>
-<tr><td>task.state[0]</td><td>呼び出したプロセスの状態変数 0</td></tr>
-<tr><td>task.state[1]</td><td>呼び出したプロセスの状態変数 1</td></tr>
-<tr><td>task.state[2]</td><td>呼び出したプロセスの状態変数 2</td></tr>
-</table>
-
-<p>task.state[0] ～ task.state[2] は 0 ～ 255 までの値を指定できます。この値を設定するには、以下のようにアクセス許可の指定に続けて " ; set " という句を指定します。</p>
-
-<table border="1">
-<tr><td>使用例</td><td>意味</td></tr>
-<tr><td>allow_network TCP accept @TRUSTED_HOSTS 1024-65535 ; set task.state[0]=1</td><td>クライアントが @TRUSTED_HOSTS である場合には、 state[0] に 1 を設定します。</td></tr>
-<tr><td>allow_network TCP accept @UNTRUSTED_HOSTS 1024-65535 ; set task.state[0]=0</td><td>クライアントが @UNTRUSTED_HOSTS である場合には、 state[0] に 0 を設定します。</td></tr>
-<tr><td>allow_execute /bin/bash if task.state[0]=1</td><td>state[0] が 1 の場合は、 /bin/bash の実行を許可します。</td></tr>
-<tr><td>allow_execute /sbin/nologin if task.state[0]=0</td><td>state[0] が 0 の場合は、 /sbin/nologin の実行を許可します。</td></tr>
-<tr><td>allow_execute /etc/passwd if task.state[2]=0 ; set task.state[2]=1</td><td>state[2] が 0 の場合は /etc/passwd の読み込みモードでのオープンを許可し、その後 state[2] に 1 を設定します。</td></tr>
-</table>
-
-<p>状態変数を使用する際には、以下の点に注意してください。</p>
-
-<ul>
-<li>プロセスのドメインはプログラムの実行によって自動的に変更されるのに対して、プロセスの状態変数は明示的に " ; set " という句で指定されない限り変更されません。そのため、状態変数の戻し忘れに注意してください。</li>
-<li>状態変数の設定はポリシのチェックにより許可された時点で行われます。そのため、メモリ不足などポリシのチェック以降のエラーによって、状態変数が変更されたけれどもアクセス要求は処理されなかったという状況が発生しえます。</li>
-<li>上記の @TRUSTED_HOSTS と @UNTRUSTED_HOSTS の両方に含まれていた場合、先に一致したほうの状態変数が使われてしまいます。そのため、順番に依存するアクセス許可を定義しないように注意してください。</li>
-</ul>
-
-<h2>6.5 <a name="sleep_penalty">ポリシ違反時のペナルティ指定</a></h2>
-
-<p>強制モードでポリシ違反が発生した場合に、ポリシ違反の原因となったプロセスを一定時間スリープ状態にさせることができます。</p>
-
-<table border="1">
-<tr><td>/proc/ccs/profile での指定例</td><td>意味</td></tr>
-<tr><td>3-SLEEP_PERIOD=1</td><td>プロファイル 3 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 0.1 秒間スリープさせます。</td></tr>
-<tr><td>4-SLEEP_PERIOD=10</td><td>プロファイル 4 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 1 秒間スリープさせます。</td></tr>
-</table>
-
-<p>この機能は、無限ループの中でポリシ違反が発生した場合に、ＣＰＵ使用率が 100% になってしまうのを回避するための安全装置です。通常は 0.1 秒間スリープさせるだけで充分です。</p>
-
-<p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシ違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
-
-<h2>6.6 <a name="execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h2>
-
-<p>TOMOYO Linux では、原則としてポリシに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">条件付きアクセス許可の指定</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
-
-<p>そこで、 TOMOYO Linux 1.6.0 では <a href="#domain_policy_execute_handler">execute_handler</a> という仕組みが導入されました。この仕組みは、プログラムの実行可否をカーネルが判断するのではなく、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムが判断し、プログラムの実行を許可すべきと判断した場合には実際にプログラムを実行するという動作をします。</p>
-
-<p>Linux に於いては、プログラムを実行するという動作は、プログラムの実行を要求したプロセスを上書きするという動作であり、プログラムの実行に成功した場合にはプログラムの実行を要求したプロセスに制御が戻ることはありません。つまり、要求されたプログラムの実行に失敗した場合にしか、プログラムの実行を要求したプロセスに対して、要求されたプログラムが実行されなかったことが通知されません。<br>
-例えば、プログラムＡとして動作しているプロセスがプログラムＢの実行を要求する場合を考えてみます。<br>
-プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、カーネルが「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」をポリシを照合することで判断し、適切であると判断された場合には「プログラムＡとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＡとして動作しているプロセスにプログラムＢの実行が認められていないことを通知」します。</p>
-
-<p><a href="#domain_policy_execute_handler">execute_handler</a> を指定した場合、 execute_handler として指定されたプログラムＣがこの動作に介在します。<br>
-プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、プログラムＣに「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」を判断してもらうために「プログラムＡとして動作しているプロセスをプログラムＣで上書き」します。プログラムＣとして動作するようになったプロセスが「プログラムＡとして動作していたプロセスからプログラムＢを実行することは適切であるかどうか」を判断し、適切であると判断した場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書きせずに終了」します。</p>
-
-<p>このように、プログラムＢの実行を要求したプログラムＡとして動作していたプロセスがに対して、プログラムＢの実行に失敗したことを通知する手段を放棄することになるため、プログラムＢの実行を要求したプログラムＡとして動作していたプロセスが、プログラムＢが実行されなかったという通知を受けることができなくなるという副作用が発生します。<br>
-しかし、たとえ <a href="#domain_policy_execute_handler">execute_handler</a> を指定していない場合であっても、「共有ライブラリの読み込みができなかった」「 KILL シグナルを受信した」「メモリ不足になり OOM killer によって強制終了させられた」など、様々な要因によって「実行には成功したが期待された動作を始める前に終了してしまった」という状況が起こりえます。つまり、「プログラムの実行が失敗しなかった」ということと「要求されたプログラムが期待した動作を始めた」ということの間には、不確定要素が存在します。<br>
-そう考えると、「プログラムの実行に失敗したという通知が無い限りプログラムは期待された動作を始める」という保証は最初から存在しないわけなので、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムＣが、プログラムＢの実行に失敗したことをプログラムＢの実行を要求したプログラムＡとして動作していたプロセスに通知できなかったという結果になったとしても、容認できる範囲であると言えると思います。</p>
-
-<p>TOMOYO Linux は、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、正常な動作をしている限り、ポリシで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求をとりあえず受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、 <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
-
-<p>そこで、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
-<p>カーネルの内部では利用可能なライブラリが少ない上に連続したメモリ領域の割り当てが失敗する可能性が高くなりますが、
-カーネルの外部であれば豊富なライブラリを使ってメモリ割り当ての限界を心配せずに詳細なチェックが可能になります。そこで、 <a href="#domain_policy_execute_handler">execute_handler</a> で指定したプログラムにプログラム実行時のパラメータをチェックしてもらい、適切であればプログラムを実行してもらうようにすることができます。</p>
-
-<p>この方式の副作用は、プログラムの実行を拒否すべきと判断した場合に、プログラムの実行を要求したプロセスに通知する方法が無い点です。しかし、自由にカスタマイズできるので、 ssh 等を用いて遠隔地のマシンに問い合わせをしながらしながら判断することも可能です。</p>
-
-<p>この機能を使うには、以下のように指定します。</p>
-
-<table border="1">
-<tr><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
-<tr><td>execute_handler /usr/sbin/check-and-exec</td><td>このドメインに属しているプロセスがプログラムの実行を要求した場合、要求されたプログラムを実行する代わりに /usr/sbin/check-and-exec を実行します。 /usr/sbin/check-and-exec はパラメータをチェックし、妥当と判断した場合には要求されたプログラムを実行します。</td></tr>
-</table>
-
-<p>execute_handler で指定されたプログラムは、以下のパラメータを受け取ります。<a href="#access_logs">アクセスログについて</a>で説明した、 allow_execute のログと比較してみてください。</p>
-
-<ul>
-<li>argv[0] には、 execute_handler で指定されたプログラムのパス名が入っています。</li>
-<li>argv[1] には、プログラムの実行を要求したプロセスのドメイン名が入っています。</li>
-<li>argv[2] には、プログラムの実行を要求したプロセスのパス名が入っています。</li>
-<li>argv[3] には、プログラムの実行を要求したプロセスの情報が入っています。</li>
-<li>argv[4] には、実行が要求されたプログラムのパス名が入っています。</li>
-<li>argv[5] には、プログラム実行要求時の引数の数が入っています。</li>
-<li>argv[6] には、プログラム実行要求時の環境変数の数が入っています。</li>
-<li>argv[7] から argv[6 + argc] には、呼び出し元プロセスが渡した argv[] の内容が入っています。</li>
-<li>argv[7 + argc] から argv [6 + argc + envc] には、呼び出し元プロセスが渡した envp[] の内容が入っています。</li>
-<li>環境変数 envp[] は全てクリアされます。</li>
-<li>標準入出力などは呼び出し元プロセスのものを引き継ぎます。</li>
-</ul>
-
-<p>この機能を使用する際には、以下の点に注意してください。</p>
-
-<ul>
-<li>execute_handler で指定されたプログラムに対して実行許可（ <a href="#domain_policy_allow_execute">allow_execute</a> ）を与える必要はありませんし、与えるべきではありません。</li>
-<li>プロセスが chroot 内部の環境で動作している場合、 execute_handler で指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスが chroot 内部の環境で動作している場合に、 chroot 外部の環境にあるプログラムを実行できてしまうと危険なので、 execute_handler で指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
-<li>execute_handler で指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば &lt;kernel&gt; 直下に execute_handler で指定されたプログラム用のドメインを作成して、そのプログラムを <a href="#exception_policy_initialize_domain">initialize_domain</a> キーワードで指定するなどの準備をしてください。</li>
-<li>execute_handler で指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、 execute_handler で指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
-</ul>
-
-<p>ccs-tools のソースパッケージには、 audit-exec-param.c というサンプルプログラムが入っています。ご自由に改造してお使いください。</p>
-<p>この機能は、機構を提供しているだけです。この機構を活用できるかどうかはあなた次第です。</p>
-
-<h2>6.7 <a name="denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></h2>
-
-<p>TOMOYO Linux では、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、不要なプログラムの実行を拒否するという振る舞いだけでなく、それ以外の振る舞いを行うこともできます。</p>
-
-<p>強制モードに於いて allow_execute 構文により許可されていないプログラムの実行が要求された場合、デフォルトではプログラムの実行を拒否します。しかし、あるプログラムからどのプログラムの実行を許可する必要があるかを把握済みであるという前提があれば、プロセスが正常な動作をしている限りに於いて許可されていないプログラムの実行が要求されることは無いので、許可されていないプログラムの実行が要求されたということはプロセスが正常な動作をしていない（つまり、プロセスにとっては制御を失った状態である）とみなすことができます。</p>
-
-<p>攻撃者はバッファオーバーフローなどのセキュリティホールを攻撃することでプロセスの制御を奪い、シェルなどのコマンドの実行を要求してきます。もし、そのプロセスからシェルの実行を許可する必要が無い（すなわち allow_execute /bin/bash のようなアクセス許可を与える必要が無い）のであれば、シェルの実行が要求された時点で既にプロセスにとっては制御を失っていると考えることができます。</p>
-
-<p>通常、許可されていないプログラムの実行が要求された場合は、その要求を拒否するだけです。しかし、制御を失っているプロセスから要求されたプログラムの実行要求を拒否したところで、そのプロセスの制御が取り戻される（つまり、正常な動作をするようになる）とは考えられません。しかし、プログラムを実行するということは、現在動作中のプロセスを新しいプログラムに置き換えることで、制御を新しいプログラムに譲渡することを意味します。つまり、あるプロセスがバッファオーバーフローなどにより制御を失っていたとしても、プログラムを実行することにより、そのプロセスの制御が取り戻されるわけです。</p>
-
-<p>攻撃者の手によって制御を失ったプロセスからプログラムが実行された後の制御は、どのプログラムが実行されたかによって決まります。シェルが実行された場合には、シェルはユーザが要求したとおりに処理を実行してしまうため、プログラムの実行を要求したプロセスの所有者である攻撃者の手に委ねられてしまうわけです。しかし、何もせずに終了するようなプログラム（例えば /bin/true ）が実行された場合には、プロセスの制御が攻撃者の手に委ねられてしまうことはありません。</p>
-
-<p>このように、攻撃者の手によって本来許可する必要の無いプログラムの実行が要求されるという出来事は、見方を変えると、攻撃者自身が制御を取り戻すためのチャンスを与えてくれていると考えることができます。そこで、 TOMOYO Linux では、許可されていないプログラムの実行が要求された場合、その要求を拒否する代わりに他のプログラムを実行するための機構を提供しています。この機構を用いて何をするかはシステム管理者の自由です。</p>
-
-<p>例えば、シェルの実行要求を /bin/true の実行要求に差し替えてしまうことで、そのプロセスを直ちに強制終了させることができます。</p>
-
-<p>例えば、シェルの実行要求をハニーポットクライアントプログラムの実行要求に差し替えてしまうことで、攻撃者がどのようなリクエストを行うかを観察することができます。</p>
-
-<p>例えば、そのログインセッションを強制終了させることができます。</p>
-
-<p>例えば、要求されたコマンドがどのパッケージに含まれているかを教えてくれる Ubuntu の command-not-found パッケージのように、「 You are not permitted to execute this program. 」のような警告を表示することができます。</p>
-
-<p>例えば、攻撃者の接続元ＩＰアドレスを割り出して、ファイアウォールの設定を変更することができます。</p>
-
-<p>この機能を使うには、以下のように指定します。</p>
-
-<table border="1">
-<tr><td>/proc/ccs/profile の例</td><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
-<tr><td>3-MAC_FOR_FILE=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
-</table>
-
-<p>この機能を使用する際の注意事項は<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>と同じです。</p>
 
 <hr>
 <p><a href="index.html#manual">目次へ戻る</a></p>
