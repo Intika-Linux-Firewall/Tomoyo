@@ -7,7 +7,7 @@
 <link rel=stylesheet href="tomoyo.css" media=all>
 </HEAD>
 <body>
-<p style="text-align:right;"><a href="../../en/1.6.x/tool-editpolicy.html">English Page</a></p>
+<p style="text-align:right;"><a href="../../en/2.2.x/tool-editpolicy.html">English Page</a></p>
 <h1>ポリシーエディタの使い方</h1>
 <p style="text-align:right;">Last modified: $Date$</p>
 
@@ -17,7 +17,7 @@
 
 <p>TOMOYO Linux には、 CUI で動作するポリシーエディタが付属しています。</p>
 
-<p>予め /proc/ccs/manager に「editpolicy が動作するドメインのドメイン名」または「editpolicy へのパス名（通常は /usr/lib/ccs/editpolicy ）」が登録されている必要があります。</p>
+<p>予め /sys/kernel/security/tomoyo/manager に「editpolicy が動作するドメインのドメイン名」または「editpolicy へのパス名（通常は /usr/lib/ccs/editpolicy ）」が登録されている必要があります。</p>
 
 <p>シェルプロンプトから editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
 
@@ -48,24 +48,21 @@
 
 <h2>（６）画面を切り替えるには</h2>
 
-<p>ポリシーエディタには４つの画面があります。</p>
+<p>ポリシーエディタには３つの画面があります。</p>
 
 <table border="0">
 <tr><td>(1) ドメイン遷移一覧画面</td></tr>
-<tr><td>(2) システムポリシーの編集画面</td></tr>
-<tr><td>(3) 例外ポリシーの編集画面</td></tr>
-<tr><td>(4) ドメインに対するアクセス許可の編集画面</td></tr>
+<tr><td>(2) 例外ポリシーの編集画面</td></tr>
+<tr><td>(3) ドメインに対するアクセス許可の編集画面</td></tr>
 </table>
 
-<p>「Tab」キーを押すと(1)→(2)→(3)→(1)の順番で画面が切り替わります。</p>
+<p>「Tab」キーを押すと(1)と(2)の画面が切り替わります。</p>
 
-<p>(1)の画面において「Enter」キーを押すと、(4)に切り替わります。</p>
-<p>(4)の画面において「Enter」キーまたは「Tab」キーを押すと(1)に切り替わります。</p>
+<p>(1)の画面において「Enter」キーを押すと、(3)に切り替わります。</p>
+<p>(3)の画面において「Enter」キーまたは「Tab」キーを押すと(1)に切り替わります。</p>
 
 <p>ドメイン遷移一覧画面の例<br>
 <img src="editpolicy/domain-list.png" alt="Screen for Domain List" WIDTH="720" HEIGHT="400"></p>
-<p>システムポリシーの編集画面の例<br>
-<img src="editpolicy/system-policy.png" alt="Screen for System Policy" WIDTH="720" HEIGHT="400"></p>
 <p>例外ポリシーの編集画面の例<br>
 <img src="editpolicy/exception-policy.png" alt="Screen for Exception Policy" WIDTH="720" HEIGHT="400"></p>
 <p>ドメインに対するアクセス許可の編集画面の例<br>
@@ -77,9 +74,6 @@
 
 <p>ドメイン遷移一覧画面の例<br>
 <img src="editpolicy/add-domain-list.png" alt="Adding an entry into  List" WIDTH="720" HEIGHT="400"></p>
-
-<p>システムポリシーの編集画面の例<br>
-<img src="editpolicy/add-system-policy.png" alt="Adding System Policy" WIDTH="720" HEIGHT="400"></p>
 
 <p>例外ポリシーの編集画面の例<br>
 <img src="editpolicy/add-exception-policy.png" alt="Adding Exception Policy" WIDTH="720" HEIGHT="400"></p>
