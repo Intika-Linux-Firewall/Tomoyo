@@ -205,9 +205,9 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>Policy files are files that contain access permissions. These files are automatically loaded into the kernel upon boot.</p>
 
-<p>When a system boots, /sbin/init is executed. When the execution of /sbin/init is requested and if /sbin/ccs-init exists, /sbin/ccs-init is executed, and /sbin/init is executed after /sbin/ccs-init terminates.</p>
+<p>When a system boots, /sbin/init is executed. When the execution of /sbin/init is requested and if /sbin/tomoyo-init exists, /sbin/tomoyo-init is executed, and /sbin/init is executed after /sbin/tomoyo-init terminates.</p>
 
-<p> /sbin/ccs-init loads policy files in /etc/tomoyo/ directory via the kernel's /sys/kernel/security/tomoyo/ interface.</p>
+<p> /sbin/tomoyo-init loads policy files in /etc/tomoyo/ directory via the kernel's /sys/kernel/security/tomoyo/ interface.</p>
 
 <table border="1">
 <tr><td>The kernel's interface</td><td>Policy file</td><td>Contents</td></tr>
@@ -421,8 +421,6 @@ echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 <p>This file contains definition of all domains and permissions that are granted to each domain.</p>
 
 <p>Lines from the next line to a domain definition ( any lines starting with "&lt;kernel&gt;") to the previous line to the next domain definitions are interpreted as access permissions for that domain.</p>
-
-<p>You can specify additional conditions as needed. The syntax for specifying additional conditions are described in <a href="#conditional_acl">Using conditional ACL.</a> Also, how to switch process's state as needed and use the process's state for conditions is described in <a href="#stateful_acl">Using stateful ACL.</a></p>
 
 <p>To read or modify current domain policy, operate like below.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
@@ -679,12 +677,6 @@ allow_read @HOME-DIR-FILE
 
 <p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
 
-<h2><a name="query">/sys/kernel/security/tomoyo/query</a></h2>
-
-<p>This file is used to manually grant or reject individual access requests when the policy violation occurs in enforcing mode. If a policy violation occur in a process whose domain is assigned a profile for enforcing mode and "ALLOW_ENFORCE_GRACE=enabled", the administrator can judge interactively using "ccs-queryd" command.</p>
-
-<p>The ALLOW_ENFORCE_GRACE was removed in TOMOYO Linux 1.6.2 . If you are using TOMOYO Linux 1.6.2 and later, you just need to run "ccs-queryd" command to judge interactively.</p>
-
 <h2><a name="manager">/sys/kernel/security/tomoyo/manager</a></h2>
 
 <p>This file is used to read or append the list of programs or domains that can write to /sys/kernel/security/tomoyo/ interface.</p>
@@ -713,10 +705,6 @@ cat /sys/kernel/security/tomoyo/self_domain</p>
 
 <p>This file is used by "ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by programs that aren't registered as policy manager.</p>
 
-<h2><a name=".updates_counter">/sys/kernel/security/tomoyo/.updates_counter</a></h2>
-
-<p>This file is a counter used by policy update monitor programs so that they can easily find that the policies may have changed since last check. The counter values are reset to 0 whenever it is referred.</p>
-
 <h2><a name="version">/sys/kernel/security/tomoyo/version</a></h2>
 
 <p>This file is used for getting TOMOYO Linux's version.</p>
@@ -744,7 +732,7 @@ cat /sys/kernel/security/tomoyo/version</p>
 </table>
 
 <p>to enable UID and EUID checks again. Use chown/chmod as needed since the owner of /sys/kernel/security/tomoyo/ interface is root.<br>
-To be able to do this steps, /sbin/ccs-init also executes /etc/tomoyo/tomoyo-post-init if /etc/tomoyo/tomoyo-post-init is executable. Therefore, to allow access to /sys/kernel/security/tomoyo/ interface by user demo, create /etc/tomoyo/tomoyo-post-init with</p>
+To be able to do this steps, /sbin/tomoyo-init also executes /etc/tomoyo/tomoyo-post-init if /etc/tomoyo/tomoyo-post-init is executable. Therefore, to allow access to /sys/kernel/security/tomoyo/ interface by user demo, create /etc/tomoyo/tomoyo-post-init with</p>
 
 <table border="1">
 <tr><td>
