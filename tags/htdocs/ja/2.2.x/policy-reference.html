@@ -49,7 +49,6 @@
 <li><a href="#exception_policy_keep_domain">keep_domain</a></li>
 <li><a href="#exception_policy_no_keep_domain">no_keep_domain</a></li>
 <li><a href="#exception_policy_file_pattern">file_pattern</a></li>
-<li><a href="#exception_policy_path_group">path_group</a></li>
 <li><a href="#exception_policy_allow_read">allow_read</a></li>
 <li><a href="#exception_policy_deny_rewrite">deny_rewrite</a></li>
 <li><a href="#exception_policy_alias">alias</a></li>
@@ -446,87 +445,72 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 <h3><a name="domain_policy_allow_execute">allow_execute</a></h3>
 <p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。ワイルドカードで指定しなければ対応できない場合には、プログラム名をグループ化してからアクセス許可を与えてください。</p>
 <p>（例） allow_execute /bin/ls</p>
-<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_aggregator">aggregator</a></p>
+<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_aggregator">aggregator</a></p>
 
 <h3><a name="domain_policy_allow_write">allow_write</a></h3>
 <p>指定されたパス名を書き込みモードでオープンすることを許可します。</p>
 <p>（例） allow_write /dev/null</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read">allow_read</a></h3>
 <p>指定されたパス名を読み込みモードでオープンすることを許可します。</p>
 <p>（例） allow_read /proc/meminfo</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read/write">allow_read/write</a></h3>
 <p>指定されたパス名を読み書きモードでオープンすることを許可します。</p>
 <p>（例） allow_read/write /dev/null</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_create">allow_create</a></h3>
 <p>指定されたパス名のファイルを新規作成することを許可します。</p>
 <p>（例） allow_create /var/lock/subsys/crond</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_unlink">allow_unlink</a></h3>
 <p>指定されたパス名を削除することを許可します。</p>
 <p>（例） allow_unlink /var/lock/subsys/crond</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkdir">allow_mkdir</a></h3>
 <p>パス名で指定されたディレクトリを作成することを許可します。</p>
 <p>（例） allow_mkdir /tmp/logwatch.\*/</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rmdir">allow_rmdir</a></h3>
 <p>ディレクトリの削除を許可します。</p>
 <p>（例） allow_rmdir /tmp/logwatch.\*/</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkfifo">allow_mkfifo</a></h3>
 <p>FIFO の作成を許可します。</p>
 <p>（例） allow_mkfifo /dev/initctl</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mksock">allow_mksock</a></h3>
 <p>UNIX ドメインソケットの作成を許可します。</p>
 <p>（例） allow_mksock /dev/log</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkblock">allow_mkblock</a></h3>
 <p>ブロック型デバイスファイルの作成を許可します。</p>
 <p>（例） allow_mkblock /dev/\*</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkchar">allow_mkchar</a></h3>
 <p>キャラクタ型デバイスファイルの作成を許可します。</p>
 <p>（例） allow_mkchar /dev/\*</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_truncate">allow_truncate</a></h3>
 <p>ファイルの切り詰めと伸長を許可します。</p>
 <p>（例） allow_truncate /etc/mtab</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_symlink">allow_symlink</a></h3>
 <p>シンボリックリンクの作成を許可します。</p>
 <p>（例） allow_symlink /dev/cdrom</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_link">allow_link</a></h3>
 <p>ハードリンクの作成を許可します。</p>
 <p>（例） allow_link /etc/mtab~\$ /etc/mtab~</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rename">allow_rename</a></h3>
 <p>ファイル名の変更を許可します。</p>
 <p>（例） allow_rename /etc/mtab.tmp /etc/mtab</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rewrite">allow_rewrite</a></h3>
 <p><a href="#exception_policy_deny_rewrite">deny_rewrite</a> によりファイルの内容の上書きが禁止されているパス名が指すファイル内容の上書きを許可します。</p>
 <p>（例） allow_rewrite /var/log/messages</p>
-<p>関連項目： <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
+<p>関連項目： <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
 
 <h3><a name="domain_policy_use_profile">use_profile</a></h3>
 
@@ -566,32 +550,6 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 例えば、プロセスＩＤを含む正規化されたパス名（ /proc/PID/ ）は、アクセス制御が正しく行われるようにグループ化されなければなりません。</p>
 
 <p>学習モード（ <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が learning に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習されます。学習モード以外には影響しません。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われます。</p>
-
-<h3><a name="exception_policy_path_group">path_group</a></h3>
-
-<p>パス名のグループを定義するには、 path_group というキーワードに続けて、グループ名とパス名のパターンを指定します。<br>
-　例えば、ホームディレクトリ以下の全ファイルをまとめたい場合、</p>
-
-<table border="1">
-<tr><td>
-path_group HOME-DIR-FILE /home/\*/\*<br>
-path_group HOME-DIR-FILE /home/\*/\*/\*<br>
-path_group HOME-DIR-FILE /home/\*/\*/\*/\*<br>
-path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*<br>
-path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*<br>
-path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
-</td></tr>
-</table>
-
-<p>のように定義しておくことで、ドメインポリシのファイルに対するアクセス許可を指定する際に</p>
-
-<table border="1">
-<tr><td>
-allow_read @HOME-DIR-FILE
-</td></tr>
-</table>
-
-<p>のように指定できます。</p>
 
 <h3><a name="exception_policy_allow_read">allow_read</a></h3>
 

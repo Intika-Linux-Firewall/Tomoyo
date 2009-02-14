@@ -197,26 +197,6 @@ allow_read /var/www/\*/\*/\*/\*/\*
 
 <p>\*は、「/を含まない全ての文字列」をあらわします。ccs-editpolicyでエントリを追加するには、[A]を押して出る1行入力にアクセス許可の内容を入力して[Enter]キーを押します。</p>
 
-<p>上記のパターンや範囲指定をそのままドメインごとのアクセス許可に書くこともできますし、それをまとめたグループを定義してさらに簡潔に記述することもできます。</p>
-
-<p>ccs-editpolicyで[Tab]を2回押して、"Exception Policy Editor"を表示させてください。アクセス許可の追加と同様に、[A]を押して以下のエントリを追加してください。</p>
-
-<pre>
-path_group WEB_CONTENTS /var/www/\*
-path_group WEB_CONTENTS /var/www/\*/\*
-path_group WEB_CONTENTS /var/www/\*/\*/\*
-path_group WEB_CONTENTS /var/www/\*/\*/\*/\*
-path_group WEB_CONTENTS /var/www/\*/\*/\*/\*/\*
-</pre>
-
-<p>追加が終わったら[Tab]を1回押して"Domain Transition Editor"に戻り、Apacheのドメインの内容を再度表示させて、以下のエントリを追加してください。</p>
-
-<pre>
-allow_read @WEB_CONTENTS
-</pre>
-
-<p>このように、path_groupとaddress_groupを用いることで、先ほどと同じ内容をより簡潔に記述できます。</p>
-
 <h2>その他のドキュメント</h2>
 
 <ul>

@@ -198,26 +198,6 @@ allow_read /var/www/\*/\*/\*/\*/\*
 
 <p>'\*' means "more than or equals to 0 character other than '/'". To append an entry using ccs-editpolicy, press 'A' key and input content and press 'Enter' key.</p>
 
-<p>You can write above entries directly in the domain, or define path/address groups and write them.</p>
-
-<p>Press 'Tab' key twice, then you can see "Exception Policy Editor" view. Press 'A' key and append the following entries:</p>
-
-<pre>
-path_group WEB_CONTENTS /var/www/\*
-path_group WEB_CONTENTS /var/www/\*/\*
-path_group WEB_CONTENTS /var/www/\*/\*/\*
-path_group WEB_CONTENTS /var/www/\*/\*/\*/\*
-path_group WEB_CONTENTS /var/www/\*/\*/\*/\*/\*
-</pre>
-
-<p>After appending them, press 'Tab' and enter Apache domain again. And append the following entries:</p>
-
-<pre>
-allow_read @WEB_CONTENTS
-</pre>
-
-<p>As you see, by using path_group and address_group, you can write access permissions briefly.</p>
-
 <h2>Other documents</h2>
 
 <ul>
