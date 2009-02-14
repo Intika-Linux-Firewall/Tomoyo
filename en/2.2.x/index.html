@@ -51,7 +51,7 @@ $ make -s
 
 <p>Create initrd if you need.</p>
 
-<p>Edit /boot/grub/grub.conf or /boot/grub/menu.lst to add security=tomoyo parameter if you need.</p>
+<p>Edit /boot/grub/grub.conf or /boot/grub/menu.lst to add security=tomoyo to the kernel command line parameters.</p>
 
 <h2>Compiling TOMOYO Linux tools</h2>
 
@@ -107,7 +107,7 @@ $ make
 
 <p>Move the cursor to some domain you like and press 'Enter' key to see ACL given to the domain.</p>
 
-<p><img src="howtouse/editpolicy_init.png" alt="ACL of /sbin/init" title="ACL of /sbin/init" width="720" height="400"></p>
+<p><img src="howtouse/editpolicy2.png" alt="ACL of /sbin/init" title="ACL of /sbin/init" width="720" height="400"></p>
 
 <p>Browse the policy which is the results of learning boot sequence. You can easily know what process accesses what pathnames and/or resources.</p>
 
@@ -138,11 +138,11 @@ $ make
 <li>Press 'C' key to copy ' ' mark to all domains under the cursor line.</li>
 </ul>
 
-<p><img src="howtouse/editpolicy2.png" width="720" height="400" alt="Mark bash and its children's domains" title="Mark bash and its children's domains"></p>
+<p><img src="howtouse/editpolicy3.png" width="720" height="400" alt="Mark bash and its children's domains" title="Mark bash and its children's domains"></p>
 
 <p>After you marked '&amp;' to domains for login shell and its children/descendants, press 'S' '3' 'Enter' key to change profile for these domains from 1 to 3.</p>
 
-<p><img src="howtouse/editpolicy3.png" width="720" height="400" alt="Profiles of bash and its children's domains became 3" title="Profiles of bash and its children's domains became 3"></p>
+<p><img src="howtouse/editpolicy4.png" width="720" height="400" alt="Profiles of bash and its children's domains became 3" title="Profiles of bash and its children's domains became 3"></p>
 
 <p>After changing the profile for domain for login shell to 3, press 'Q' key to quit ccs-editpolicy and run some commands.</p>
 
