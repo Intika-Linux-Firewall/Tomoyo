@@ -222,8 +222,6 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <tr><td><a href="#query">/sys/kernel/security/tomoyo/query</a></td><td>管理者の指示待ちとなっているアクセス要求</td></tr>
 <tr><td><a href="#.domain_status">/sys/kernel/security/tomoyo/.domain_status</a></td><td>定義されているドメイン名とプロファイル番号</td></tr>
 <tr><td><a href="#meminfo">/sys/kernel/security/tomoyo/meminfo</a></td><td>メモリ使用状況</td></tr>
-<tr><td><a href="#grant_log">/sys/kernel/security/tomoyo/grant_log</a></td><td>ポリシに違反しなかったアクセス要求のログ</td></tr>
-<tr><td><a href="#reject_log">/sys/kernel/security/tomoyo/reject_log</a></td><td>ポリシに違反したアクセス要求のログ</td></tr>
 <tr><td><a href="#self_domain">/sys/kernel/security/tomoyo/self_domain</a></td><td>自分が属しているドメインのドメイン名</td></tr>
 <tr><td><a href="#.process_status">/sys/kernel/security/tomoyo/.process_status</a></td><td>プロセスが属しているドメイン名とプロファイル番号</td></tr>
 <tr><td><a href="#version">/sys/kernel/security/tomoyo/version</a></td><td>TOMOYO Linux のバージョン</td></tr>
@@ -287,15 +285,6 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>というエントリを探します。見つかった場合は「パス名候補 2 」を「パス名候補 1 」とします。</p>
 </td></tr>
-<tr><td><a name="exec_stage_check_argv0">argv[0] のチェック</a></td><td>
-<p>「パス名候補 1 」の最後の / 以降の部分と argv[0] の最後の / 以降の部分が異なっている場合、ドメインポリシから</p>
-
-<ul>
-<li>allow_argv0 「パス名候補 1 」 「 argv[0] の最後の / 以降の部分」
-</ul>
-
-<p>というエントリを探します。見つからなければプログラムの実行要求は拒否されます。</p>
-</td></tr>
 <tr><td>類似するプログラムの集約</td><td>
 <p>例外ポリシから</p>
 
@@ -310,7 +299,6 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <ul>
 <li>allow_execute 「パス名候補 1 」
-<li>allow_execute @「パス名候補 1 」を含むグループ名
 </ul>
 
 <p>というエントリを探します。見つからなければプログラムの実行要求は拒否されます。</p>
@@ -363,12 +351,8 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
 
-</td></tr>
-<tr><td>環境変数のチェック</td><td>
+<p>(7) 通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
 
-<p>(1) 全ての環境変数名が「遷移先ドメイン」で許可されているかどうかを検査します。 1 つでも許可されていないものが見つかった場合は、プログラムの実行要求は拒否されます。</p>
-
-<p>(2) 通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
 </td></tr>
 </table>
 
