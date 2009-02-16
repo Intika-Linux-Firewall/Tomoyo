@@ -703,7 +703,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.29-rc5 2009/02/14\n");
++	printk(KERN_INFO "Hook version: 2.6.29-rc5 2009/02/16\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -1284,7 +1284,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			do {
  				if (low <= snum && snum <= high &&
 +				    /***** SAKURA Linux start. *****/
-+				    !ccs_may_autobind(snum)
++				    !ccs_may_autobind(snum) &&
 +				    /***** SAKURA Linux end. *****/
  				    !test_bit(snum / UDP_HTABLE_SIZE, bitmap))
  					goto found;
