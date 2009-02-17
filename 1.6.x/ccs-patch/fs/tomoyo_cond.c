@@ -486,14 +486,10 @@ enum ccs_conditions_index {
 	PATH1_PARENT_UID,
 	PATH1_PARENT_GID,
 	PATH1_PARENT_INO,
-	PATH1_PARENT_MAJOR,
-	PATH1_PARENT_MINOR,
 	PATH1_PARENT_PERM,
 	PATH2_PARENT_UID,
 	PATH2_PARENT_GID,
 	PATH2_PARENT_INO,
-	PATH2_PARENT_MAJOR,
-	PATH2_PARENT_MINOR,
 	PATH2_PARENT_PERM,
 	MAX_KEYWORD
 };
@@ -547,14 +543,10 @@ static const char *ccs_condition_control_keyword[MAX_KEYWORD] = {
 	[PATH1_PARENT_UID]     = "path1.parent.uid",
 	[PATH1_PARENT_GID]     = "path1.parent.gid",
 	[PATH1_PARENT_INO]     = "path1.parent.ino",
-	[PATH1_PARENT_MAJOR]   = "path1.parent.major",
-	[PATH1_PARENT_MINOR]   = "path1.parent.minor",
 	[PATH1_PARENT_PERM]    = "path1.parent.perm",
 	[PATH2_PARENT_UID]     = "path2.parent.uid",
 	[PATH2_PARENT_GID]     = "path2.parent.gid",
 	[PATH2_PARENT_INO]     = "path2.parent.ino",
-	[PATH2_PARENT_MAJOR]   = "path2.parent.major",
-	[PATH2_PARENT_MINOR]   = "path2.parent.minor",
 	[PATH2_PARENT_PERM]    = "path2.parent.perm",
 };
 
@@ -1284,18 +1276,6 @@ bool ccs_check_condition(struct ccs_request_info *r,
 						goto out;
 					max_v = obj->path1_parent_stat.ino;
 					break;
-				case PATH1_PARENT_MAJOR:
-					if (!obj->path1_parent_valid)
-						goto out;
-					max_v = MAJOR(obj->
-						      path1_parent_stat.dev);
-					break;
-				case PATH1_PARENT_MINOR:
-					if (!obj->path1_parent_valid)
-						goto out;
-					max_v = MINOR(obj->
-						      path1_parent_stat.dev);
-					break;
 				case PATH2_PARENT_UID:
 					if (!obj->path2_parent_valid)
 						goto out;
@@ -1310,18 +1290,6 @@ bool ccs_check_condition(struct ccs_request_info *r,
 					if (!obj->path2_parent_valid)
 						goto out;
 					max_v = obj->path2_parent_stat.ino;
-					break;
-				case PATH2_PARENT_MAJOR:
-					if (!obj->path2_parent_valid)
-						goto out;
-					max_v = MAJOR(obj->
-						      path2_parent_stat.dev);
-					break;
-				case PATH2_PARENT_MINOR:
-					if (!obj->path2_parent_valid)
-						goto out;
-					max_v = MINOR(obj->
-						      path2_parent_stat.dev);
 					break;
 				case PATH1_TYPE:
 					if (!obj->path1_valid)
