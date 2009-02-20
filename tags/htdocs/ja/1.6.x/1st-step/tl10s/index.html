@@ -28,7 +28,7 @@
 <h2><a name="l1">概要</a></h2>
 
 <p>以下では、Turbolinux 10 Server（カーネルバージョン 2.6.8-?? 以降）で
-TOMOYO Linux 1.6.3を利用する手順を解説します。この手順書に従って操作すれば、
+TOMOYO Linux 1.6.6を利用する手順を解説します。この手順書に従って操作すれば、
 TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -319,27 +319,27 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示さ�
 
 <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 
-<pre>
-#2007-07-17 15:50:44# pid=1513 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
-1 /bin/tail
-
-#2007-07-17 15:50:44# pid=1513 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
-4 /bin/tail
-
-#2007-07-17 15:50:55# pid=1514 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/head
-4 /etc/shadow
-
-#2007-07-17 15:50:59# pid=1538 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh
-allow_create /tmp/langrc.csh.1515
-
-#2007-07-17 15:51:25# pid=1539 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh
-1 /bin/date
-</pre>
+<blockquote><p>
+#2007-07-17 15:50:44# profile=3 mode=enforcing pid=1513 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
+allow_execute /bin/tail<br>
+<br>
+#2007-07-17 15:50:44# profile=3 mode=enforcing pid=1513 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
+allow_read /bin/tail<br>
+<br>
+#2007-07-17 15:50:55# profile=3 mode=enforcing pid=1514 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/head<br>
+allow_read /etc/shadow<br>
+<br>
+#2007-07-17 15:50:59# profile=3 mode=enforcing pid=1538 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh<br>
+allow_create /tmp/langrc.csh.1515<br>
+<br>
+#2007-07-17 15:51:25# profile=3 mode=enforcing pid=1539 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh<br>
+allow_execute /bin/date
+</p></blockquote>
 
 <p>上記のログから、 Turbolinux 10 Serverの「/bin/tcsh」を起動すると「~/.tcshrc」から呼ばれた「~/.lang/langrc.csh」により「/tmp/langrc.csh.プロセスID」というテンポラリファイルが生成されていたことが判明しました。今回は確認モードによる確認を経ずに強制モードにしたので、エラーになってしまいました。実際のシステムで使う場合には、確認モードを利用してアクセス許可の不足が無いことを確認してから強制モードにするようにしてください。</p>
 
