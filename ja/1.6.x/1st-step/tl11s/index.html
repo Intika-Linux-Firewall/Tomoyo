@@ -136,16 +136,21 @@
 
 <h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf には以下の7種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf には以下の 12 種類の例外が指定されています。</p>
 
 <ol>
-<li>/proc/PID のように同様のパス名をパターン化する際のパターン名</li>
-<li>すべてのプログラムに対して参照することを許可するパス名</li>
-<li>デーモンとして動作させるプログラムのパス名</li>
-<li>ドメイン遷移を行わないドメイン</li>
-<li>追記を許可して書き換えを禁止するファイルのパス名</li>
-<li>1つに集約して扱うプログラムのパス名</li>
-<li>シンボリックリンクの名前で実行するプログラムのパス名</li>
+<li>パス名のパターン</li>
+<li>パス名のグループ</li>
+<li>アドレスのグループ</li>
+<li>無条件に参照を許可するファイル</li>
+<li>無条件に利用を許可する環境変数</li>
+<li>内容を上書きすることを禁止するファイル</li>
+<li>シンボリックリンク経由で実行できるプログラム</li>
+<li>類似するプログラムの集約</li>
+<li>ドメイン遷移を初期化させるプログラム</li>
+<li>ドメイン遷移の初期化を抑制させるプログラム</li>
+<li>ドメイン遷移を抑制させるプログラム</li>
+<li>ドメイン遷移を再開させるプログラム</li>
 </ol>
 
 <h2><a name="l4">監査ログの取得準備</a></h2>
@@ -319,25 +324,25 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示さ�
 <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 
 <blockquote><p>
-#2007-10-04 15:07:31# profile=3 mode=enforcing pid=3105 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-02-20 16:16:35# profile=3 mode=enforcing pid=3664 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=19 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HOSTNAME=localhost.localdomain" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "ENV=/root/.bashrc" "USERNAME=" "MAIL=/var/spool/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/lib/ccs" "PWD=/root" "PS1=[\\u@\\h\040\\W]\\$\040" "HISTCONTROL=ignoredups" "SHLVL=1" "HOME=/root" "LESS=-X" "LOGNAME=root" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/tail" }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
-allow_execute /bin/tail<br>
+allow_execute /bin/tail <br>
 <br>
-#2007-10-04 15:07:31# profile=3 mode=enforcing pid=3105 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-02-20 16:16:35# profile=3 mode=enforcing pid=3664 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
-allow_read /bin/tail<br>
+allow_read /bin/tail <br>
 <br>
-#2007-10-04 15:07:43# profile=3 mode=enforcing pid=3106 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-02-20 16:16:44# profile=3 mode=enforcing pid=3665 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/head<br>
-allow_read /etc/shadow<br>
+allow_read /etc/shadow <br>
 <br>
-#2007-10-04 15:07:45# profile=3 mode=enforcing pid=3129 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-02-20 16:16:47# profile=3 mode=enforcing pid=3688 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 <br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh<br>
-allow_create /tmp/sysconfig-i18n.3107<br>
+allow_create /tmp/sysconfig-i18n.3666 <br>
 <br>
-#2007-10-04 15:07:53# profile=3 mode=enforcing pid=3130 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-02-20 16:16:50# profile=3 mode=enforcing pid=3689 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=26 argv[]={ "date" } envp[]={ "HOSTNAME=localhost.localdomain" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "ENV=/root/.bashrc" "USERNAME=" "MAIL=/var/spool/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/lib/ccs:/usr/X11R6/bin" "PWD=/root" "PS1=[\\u@\\h\040\\W]\\$\040" "HISTCONTROL=ignoredups" "SHLVL=2" "HOME=/root" "LESS=-X" "LOGNAME=root" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=localhost.localdomain" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh<br>
-allow_execute /bin/date
+allow_execute /bin/date 
 </p></blockquote>
 
 <p>上記のログから、 Turbolinux 11 Serverの「/bin/tcsh」を起動すると「/tmp/sysconfig-i18n.プロセスID」というテンポラリファイルを生成しようとすることが判明しました。その理由をアクセス許可ログ（上記の設定では /dev/null に捨てるようになっていますが、ログに保存することもできます）から探してみたところ、「/bin/tcsh」が「/etc/profile.d/glib2.csh」を読み込んで処理しているためであることを確認できました。<br>
