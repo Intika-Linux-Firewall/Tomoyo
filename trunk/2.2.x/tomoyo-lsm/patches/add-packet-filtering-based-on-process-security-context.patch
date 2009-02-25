@@ -198,17 +198,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return NULL;
 --- linux-next.git.orig/net/socket.c
 +++ linux-next.git/net/socket.c
-@@ -1531,13 +1531,16 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
- 			goto out_fd;
- 	}
+@@ -1519,6 +1519,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+ 	if (err < 0)
+ 		goto out_fd;
  
 +	/* Filter connections from unwanted peers. */
 +	err = security_socket_post_accept(sock, newsock);
 +	if (err)
 +		goto out_fd;
 +
- 	/* File flags are not inherited via accept() unlike another OSes. */
- 
+ 	if (upeer_sockaddr) {
+ 		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
+ 					  &len, 2) < 0) {
+@@ -1536,8 +1541,6 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	fd_install(newfd, newfile);
  	err = newfd;
  
