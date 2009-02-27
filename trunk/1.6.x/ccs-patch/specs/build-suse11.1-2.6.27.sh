@@ -74,7 +74,7 @@ fi
 
 if [ ! -r ccs-patch-2.6.27-suse-11.1-20090227.diff ]
 then
-    wget -O ccs-patch-2.6.27-suse-11.1-20090227.diff 'http://svn.sourceforge.jp/view/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.27-suse-11.1.diff?root=tomoyo'
+    wget -O ccs-patch-2.6.27-suse-11.1-20090227.diff 'http://svn.sourceforge.jp/view/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.27-suse-11.1.diff?revision=2204&root=tomoyo'
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
