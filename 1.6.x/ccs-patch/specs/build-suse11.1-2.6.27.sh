@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.27.7-9.1.src.rpm ]
+if [ ! -r kernel-source-2.6.27.19-3.2.1.src.rpm ]
 then
-    wget http://download.opensuse.org/source/distribution/11.1/repo/oss/suse/src/kernel-source-2.6.27.7-9.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/source/distribution/11.1/repo/oss/suse/src/kernel-source-2.6.27.19-3.2.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.27.7-9.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.27.19-3.2.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.6-20090202.tar.gz ]
@@ -72,11 +72,16 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090202.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.27-suse-11.1-20090227.diff ]
+then
+    wget -O ccs-patch-2.6.27-suse-11.1-20090227.diff 'http://svn.sourceforge.jp/view/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.27-suse-11.1.diff?root=tomoyo'
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-12-05 10:41:43.000000000 +0900
-+++ kernel-default.spec	2008-12-19 09:30:25.000000000 +0900
+--- kernel-default.spec	2009-02-26 00:17:33.000000000 +0900
++++ kernel-default.spec	2009-02-27 12:47:44.000000000 +0900
 @@ -57,13 +57,13 @@
  %if %build_vanilla || %build_kdump || %CONFIG_MODULES != "y"
  %define split_packages 0
@@ -88,19 +93,19 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.27.7
--Release:        9
-+Release:        9_tomoyo_1.6.6
+ Version:        2.6.27.19
+-Release:        3.<RELEASE1>
++Release:        3.2.1_tomoyo_1.6.6
  License:        GPL v2 only
  Group:          System/Kernel
  Url:            http://www.kernel.org/
-@@ -308,6 +308,10 @@
+@@ -306,6 +306,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.27
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.6-20090202.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.27-suse-11.1.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.27-suse-11.1-20090227.diff
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
