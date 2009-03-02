@@ -89,10 +89,12 @@ static struct {
 	[CCS_SAKURA_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 	[CCS_TOMOYO_MAX_ACCEPT_ENTRY]
 	= { "MAX_ACCEPT_ENTRY",    MAX_ACCEPT_ENTRY, INT_MAX },
+#ifdef CONFIG_TOMOYO_AUDIT
 	[CCS_TOMOYO_MAX_GRANT_LOG]
 	= { "MAX_GRANT_LOG",       MAX_GRANT_LOG, INT_MAX },
 	[CCS_TOMOYO_MAX_REJECT_LOG]
 	= { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
+#endif
 	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
 	[CCS_SLEEP_PERIOD]
 	= { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
@@ -1225,8 +1227,6 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 		case CCS_TOMOYO_MAC_FOR_NETWORK:
 		case CCS_TOMOYO_MAC_FOR_SIGNAL:
 		case CCS_TOMOYO_MAX_ACCEPT_ENTRY:
-		case CCS_TOMOYO_MAX_GRANT_LOG:
-		case CCS_TOMOYO_MAX_REJECT_LOG:
 		case CCS_TOMOYO_VERBOSE:
 #endif
 			continue;
@@ -2847,6 +2847,8 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 	return 0;
 }
 
+#if !defined(atomic_xchg) || LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 3)
+
 /* Policy updates counter. */
 static unsigned int ccs_updates_counter[MAX_CCS_UPDATES_COUNTER];
 
@@ -2879,36 +2881,105 @@ void ccs_update_counter(const unsigned char index)
  */
 static int ccs_read_updates_counter(struct ccs_io_buffer *head)
 {
-	if (!head->read_eof) {
-		unsigned int counter[MAX_CCS_UPDATES_COUNTER];
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&ccs_updates_counter_lock);
-		memmove(counter, ccs_updates_counter,
-			sizeof(ccs_updates_counter));
-		memset(ccs_updates_counter, 0, sizeof(ccs_updates_counter));
-		spin_unlock(&ccs_updates_counter_lock);
-		/***** CRITICAL SECTION END *****/
-		ccs_io_printf(head,
-			      "/proc/ccs/system_policy:    %10u\n"
-			      "/proc/ccs/domain_policy:    %10u\n"
-			      "/proc/ccs/exception_policy: %10u\n"
-			      "/proc/ccs/profile:          %10u\n"
-			      "/proc/ccs/query:            %10u\n"
-			      "/proc/ccs/manager:          %10u\n"
-			      "/proc/ccs/grant_log:        %10u\n"
-			      "/proc/ccs/reject_log:       %10u\n",
-			      counter[CCS_UPDATES_COUNTER_SYSTEM_POLICY],
-			      counter[CCS_UPDATES_COUNTER_DOMAIN_POLICY],
-			      counter[CCS_UPDATES_COUNTER_EXCEPTION_POLICY],
-			      counter[CCS_UPDATES_COUNTER_PROFILE],
-			      counter[CCS_UPDATES_COUNTER_QUERY],
-			      counter[CCS_UPDATES_COUNTER_MANAGER],
-			      counter[CCS_UPDATES_COUNTER_GRANT_LOG],
-			      counter[CCS_UPDATES_COUNTER_REJECT_LOG]);
-		head->read_eof = true;
-	}
+	unsigned int counter[MAX_CCS_UPDATES_COUNTER];
+	if (head->read_eof)
+		return 0;
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&ccs_updates_counter_lock);
+	memmove(counter, ccs_updates_counter, sizeof(ccs_updates_counter));
+	memset(ccs_updates_counter, 0, sizeof(ccs_updates_counter));
+	spin_unlock(&ccs_updates_counter_lock);
+	/***** CRITICAL SECTION END *****/
+	ccs_io_printf(head,
+		      "/proc/ccs/system_policy:    %10u\n"
+		      "/proc/ccs/domain_policy:    %10u\n"
+		      "/proc/ccs/exception_policy: %10u\n"
+		      "/proc/ccs/profile:          %10u\n"
+		      "/proc/ccs/query:            %10u\n"
+		      "/proc/ccs/manager:          %10u\n"
+#ifdef CONFIG_TOMOYO_AUDIT
+		      "/proc/ccs/grant_log:        %10u\n"
+		      "/proc/ccs/reject_log:       %10u\n"
+#endif
+		      , counter[CCS_UPDATES_COUNTER_SYSTEM_POLICY]
+		      , counter[CCS_UPDATES_COUNTER_DOMAIN_POLICY]
+		      , counter[CCS_UPDATES_COUNTER_EXCEPTION_POLICY]
+		      , counter[CCS_UPDATES_COUNTER_PROFILE]
+		      , counter[CCS_UPDATES_COUNTER_QUERY]
+		      , counter[CCS_UPDATES_COUNTER_MANAGER]
+#ifdef CONFIG_TOMOYO_AUDIT
+		      , counter[CCS_UPDATES_COUNTER_GRANT_LOG]
+		      , counter[CCS_UPDATES_COUNTER_REJECT_LOG]
+#endif
+		      );
+	head->read_eof = true;
 	return 0;
 }
+
+#else
+
+/* Policy updates counter. */
+static atomic_t ccs_updates_counter[MAX_CCS_UPDATES_COUNTER];
+
+/**
+ * ccs_update_counter - Increment policy change counter.
+ *
+ * @index: Type of policy.
+ *
+ * Returns nothing.
+ */
+void ccs_update_counter(const unsigned char index)
+{
+	if (index < MAX_CCS_UPDATES_COUNTER)
+		atomic_inc(&ccs_updates_counter[index]);
+}
+
+/**
+ * ccs_read_updates_counter - Check for policy change counter.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns how many times policy has changed since the previous check.
+ */
+static int ccs_read_updates_counter(struct ccs_io_buffer *head)
+{
+	if (head->read_eof)
+		return 0;
+	ccs_io_printf(head,
+		      "/proc/ccs/system_policy:    %10u\n"
+		      "/proc/ccs/domain_policy:    %10u\n"
+		      "/proc/ccs/exception_policy: %10u\n"
+		      "/proc/ccs/profile:          %10u\n"
+		      "/proc/ccs/query:            %10u\n"
+		      "/proc/ccs/manager:          %10u\n"
+#ifdef CONFIG_TOMOYO_AUDIT
+		      "/proc/ccs/grant_log:        %10u\n"
+		      "/proc/ccs/reject_log:       %10u\n"
+#endif
+		      , atomic_xchg(&ccs_updates_counter
+				    [CCS_UPDATES_COUNTER_SYSTEM_POLICY], 0)
+		      , atomic_xchg(&ccs_updates_counter
+				    [CCS_UPDATES_COUNTER_DOMAIN_POLICY], 0)
+		      , atomic_xchg(&ccs_updates_counter
+				    [CCS_UPDATES_COUNTER_EXCEPTION_POLICY], 0)
+		      , atomic_xchg(&ccs_updates_counter
+				    [CCS_UPDATES_COUNTER_PROFILE], 0)
+		      , atomic_xchg(&ccs_updates_counter
+				    [CCS_UPDATES_COUNTER_QUERY], 0)
+		      , atomic_xchg(&ccs_updates_counter
+				    [CCS_UPDATES_COUNTER_MANAGER], 0)
+#ifdef CONFIG_TOMOYO_AUDIT
+		      , atomic_xchg(&ccs_updates_counter
+				    [CCS_UPDATES_COUNTER_GRANT_LOG], 0)
+		      , atomic_xchg(&ccs_updates_counter
+				    [CCS_UPDATES_COUNTER_REJECT_LOG], 0)
+#endif
+		      );
+	head->read_eof = true;
+	return 0;
+}
+
+#endif
 
 /**
  * ccs_read_version: Get version.
@@ -2978,6 +3049,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->write = ccs_write_exception_policy;
 		head->read = ccs_read_exception_policy;
 		break;
+#ifdef CONFIG_TOMOYO_AUDIT
 	case CCS_GRANTLOG: /* /proc/ccs/grant_log */
 		head->poll = ccs_poll_grant_log;
 		head->read = ccs_read_grant_log;
@@ -2986,6 +3058,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->poll = ccs_poll_reject_log;
 		head->read = ccs_read_reject_log;
 		break;
+#endif
 #endif
 	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
 		head->read = ccs_read_self_domain;
@@ -3038,8 +3111,11 @@ int ccs_open_control(const u8 type, struct file *file)
 		 */
 		head->read = NULL;
 		head->poll = NULL;
-	} else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG
-		   && type != CCS_QUERY) {
+	} else if (type != CCS_QUERY
+#ifdef CONFIG_TOMOYO_AUDIT
+		   && type != CCS_GRANTLOG && type != CCS_REJECTLOG
+#endif
+		   ) {
 		/*
 		 * Don't allocate buffer for reading if the file is one of
 		 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.

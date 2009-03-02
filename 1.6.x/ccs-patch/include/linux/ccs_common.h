@@ -512,8 +512,10 @@ enum ccs_profile_index {
 	CCS_SAKURA_RESTRICT_PIVOT_ROOT,   /* system_policy.conf */
 	CCS_SAKURA_RESTRICT_AUTOBIND,     /* system_policy.conf */
 	CCS_TOMOYO_MAX_ACCEPT_ENTRY,
+#ifdef CONFIG_TOMOYO_AUDIT
 	CCS_TOMOYO_MAX_GRANT_LOG,
 	CCS_TOMOYO_MAX_REJECT_LOG,
+#endif
 	CCS_TOMOYO_VERBOSE,
 	CCS_SLEEP_PERIOD,
 	CCS_MAX_CONTROL_INDEX
@@ -527,8 +529,10 @@ enum ccs_update_counter_index {
 	CCS_UPDATES_COUNTER_PROFILE,
 	CCS_UPDATES_COUNTER_QUERY,
 	CCS_UPDATES_COUNTER_MANAGER,
+#ifdef CONFIG_TOMOYO_AUDIT
 	CCS_UPDATES_COUNTER_GRANT_LOG,
 	CCS_UPDATES_COUNTER_REJECT_LOG,
+#endif
 	MAX_CCS_UPDATES_COUNTER
 };
 
@@ -694,9 +698,19 @@ int ccs_write_argv0_policy(char *data, struct domain_info *domain,
 			   const struct ccs_condition_list *condition,
 			   const bool is_delete);
 /* Write an audit log. */
+#ifdef CONFIG_TOMOYO_AUDIT
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 			const char *fmt, ...)
      __attribute__ ((format(printf, 3, 4)));
+#else
+static inline int ccs_write_audit_log(const bool is_granted,
+				      struct ccs_request_info *r,
+				      const char *fmt, ...)
+{
+	return 0;
+}
+#endif
+
 /* Create "allow_capability" entry in domain policy. */
 int ccs_write_capability_policy(char *data, struct domain_info *domain,
 				const struct ccs_condition_list *condition,

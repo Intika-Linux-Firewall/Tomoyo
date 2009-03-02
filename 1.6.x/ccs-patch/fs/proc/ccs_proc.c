@@ -215,8 +215,10 @@ static int __init ccs_proc_init(void)
 	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
 	ccs_create_entry("exception_policy", 0600, ccs_dir,
 			 CCS_EXCEPTIONPOLICY);
+#ifdef CONFIG_TOMOYO_AUDIT
 	ccs_create_entry("grant_log",        0400, ccs_dir, CCS_GRANTLOG);
 	ccs_create_entry("reject_log",       0400, ccs_dir, CCS_REJECTLOG);
+#endif
 #endif
 	ccs_create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
 	ccs_create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);

@@ -55,11 +55,20 @@ config TOMOYO_MAX_ACCEPT_ENTRY
 	  and consumes much memory.
 	  This is the safeguard for such programs.
 
+config TOMOYO_AUDIT
+	bool "Auditing interface support"
+	default n
+	depends on TOMOYO
+	help
+	  This option enables /proc/ccs/grant_log and /proc/ccs/reject_log
+	  interfaces. You may disable these interfaces if you want to apply for
+	  HDD-less systems (e.g. embedded systems).
+
 config TOMOYO_MAX_GRANT_LOG
 	int "Default maximal count for grant log"
 	default 1024
 	range 0 2147483647
-	depends on TOMOYO
+	depends on TOMOYO_AUDIT
 	help
 	  This is the default value for maximal entries for
 	  access grant logs that the kernel can hold on memory.
@@ -71,7 +80,7 @@ config TOMOYO_MAX_REJECT_LOG
 	int "Default maximal count for reject log"
 	default 1024
 	range 0 2147483647
-	depends on TOMOYO
+	depends on TOMOYO_AUDIT
 	help
 	  This is the default value for maximal entries for
 	  access reject logs that the kernel can hold on memory.
