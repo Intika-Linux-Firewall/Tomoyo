@@ -191,7 +191,7 @@ bool ccs_capable(const u8 operation)
 			goto retry;
 		return !error;
 	}
-	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
 		ccs_update_capability_acl(operation, r.domain,
 					  ccs_handler_cond(), false);
 	return true;

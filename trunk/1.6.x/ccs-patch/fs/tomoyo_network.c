@@ -661,7 +661,7 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 			goto retry;
 		return error;
 	}
-	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
 		ccs_update_network_entry(operation, is_ipv6 ?
 					 IP_RECORD_TYPE_IPv6 :
 					 IP_RECORD_TYPE_IPv4,

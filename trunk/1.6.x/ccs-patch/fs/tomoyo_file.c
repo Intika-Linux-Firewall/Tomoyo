@@ -836,7 +836,7 @@ static int ccs_check_file_perm2(struct ccs_request_info *r,
 			goto retry;
 		return err;
 	}
-	if (r->mode == 1 && ccs_check_domain_quota(r->domain)) {
+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
 		/* Don't use patterns for execute permission. */
 		const char *patterned_file = (perm != 1) ?
 			ccs_get_file_pattern(filename) : filename->name;
@@ -1291,7 +1291,7 @@ static int ccs_check_single_path_permission2(struct ccs_request_info *r,
 		if (error == 1)
 			goto retry;
 	}
-	if (r->mode == 1 && ccs_check_domain_quota(r->domain))
+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
 		ccs_update_single_path_acl(operation,
 					   ccs_get_file_pattern(filename),
 					   r->domain, ccs_handler_cond(),
@@ -1572,7 +1572,7 @@ int ccs_check_2path_perm(const u8 operation,
 		if (error == 1)
 			goto retry;
 	}
-	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
 		ccs_update_double_path_acl(operation,
 					   ccs_get_file_pattern(buf1),
 					   ccs_get_file_pattern(buf2),
