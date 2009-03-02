@@ -978,13 +978,13 @@ bool ccs_verbose_mode(const struct domain_info *domain)
 }
 
 /**
- * ccs_check_domain_quota - Check for domain's quota.
+ * ccs_domain_quota_ok - Check for domain's quota.
  *
  * @domain: Pointer to "struct domain_info".
  *
  * Returns true if the domain is not exceeded quota, false otherwise.
  */
-bool ccs_check_domain_quota(struct domain_info * const domain)
+bool ccs_domain_quota_ok(struct domain_info * const domain)
 {
 	unsigned int count = 0;
 	struct ccs_acl_info *ptr;

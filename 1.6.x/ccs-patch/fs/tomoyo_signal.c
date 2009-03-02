@@ -199,7 +199,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 			goto retry;
 		return error;
 	}
-	if (r.mode == 1 && ccs_check_domain_quota(r.domain))
+	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
 		ccs_update_signal_acl(sig, dest_pattern, r.domain,
 				      ccs_handler_cond(), false);
 	return 0;

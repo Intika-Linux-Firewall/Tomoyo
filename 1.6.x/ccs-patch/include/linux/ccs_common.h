@@ -576,7 +576,7 @@ struct ccs_condition_list;
 bool ccs_check_condition(struct ccs_request_info *r,
 			 const struct ccs_acl_info *acl);
 /* Check whether the domain has too many ACL entries to hold. */
-bool ccs_check_domain_quota(struct domain_info * const domain);
+bool ccs_domain_quota_ok(struct domain_info * const domain);
 /* Dump a page to buffer. */
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
