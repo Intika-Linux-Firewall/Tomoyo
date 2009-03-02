@@ -114,26 +114,6 @@ static char *ccs_print_bprm(struct linux_binprm *bprm,
 	return buffer;
 }
 
-static DECLARE_WAIT_QUEUE_HEAD(ccs_grant_log_wait);
-static DECLARE_WAIT_QUEUE_HEAD(ccs_reject_log_wait);
-
-static DEFINE_SPINLOCK(ccs_audit_log_lock);
-
-/* Structure for audit log. */
-struct ccs_log_entry {
-	struct list_head list;
-	char *log;
-};
-
-/* The list for "struct ccs_log_entry". */
-static LIST_HEAD(ccs_grant_log);
-
-/* The list for "struct ccs_log_entry". */
-static LIST_HEAD(ccs_reject_log);
-
-static int ccs_grant_log_count;
-static int ccs_reject_log_count;
-
 /**
  * ccs_init_audit_log - Allocate buffer for audit logs.
  *
@@ -182,6 +162,28 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 		ccs_free(bprm_info);
 	return buf;
 }
+
+#ifdef CONFIG_TOMOYO_AUDIT
+
+static DECLARE_WAIT_QUEUE_HEAD(ccs_grant_log_wait);
+static DECLARE_WAIT_QUEUE_HEAD(ccs_reject_log_wait);
+
+static DEFINE_SPINLOCK(ccs_audit_log_lock);
+
+/* Structure for audit log. */
+struct ccs_log_entry {
+	struct list_head list;
+	char *log;
+};
+
+/* The list for "struct ccs_log_entry". */
+static LIST_HEAD(ccs_grant_log);
+
+/* The list for "struct ccs_log_entry". */
+static LIST_HEAD(ccs_reject_log);
+
+static int ccs_grant_log_count;
+static int ccs_reject_log_count;
 
 /**
  * ccs_can_save_audit_log - Check whether the kernel can save new audit log.
@@ -396,3 +398,4 @@ int ccs_poll_reject_log(struct file *file, poll_table *wait)
 		return POLLIN | POLLRDNORM;
 	return 0;
 }
+#endif

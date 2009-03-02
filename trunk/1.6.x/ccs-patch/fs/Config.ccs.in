@@ -13,13 +13,20 @@ if [ "$CONFIG_TOMOYO" = "y" ]; then
   [ $CONFIG_TOMOYO_MAX_ACCEPT_ENTRY -lt 0 ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_ENTRY 0
   int  '  Default maximal count for learning mode' CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
 
-  [ -z "$CONFIG_TOMOYO_MAX_GRANT_LOG" ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 1024
-  [ $CONFIG_TOMOYO_MAX_GRANT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 0
-  int  '  Default maximal count for grant log' CONFIG_TOMOYO_MAX_GRANT_LOG
+  [ -z "$CONFIG_TOMOYO_AUDIT" ] && define_bool CONFIG_TOMOYO_AUDIT n
+  bool '  Auditing interface support' CONFIG_TOMOYO_AUDIT
 
-  [ -z "$CONFIG_TOMOYO_MAX_REJECT_LOG" ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 1024
-  [ $CONFIG_TOMOYO_MAX_REJECT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 0
-  int  '  Default maximal count for reject log' CONFIG_TOMOYO_MAX_REJECT_LOG
+  if [ "$CONFIG_TOMOYO_AUDIT" = "y" ]; then
+
+    [ -z "$CONFIG_TOMOYO_MAX_GRANT_LOG" ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 1024
+    [ $CONFIG_TOMOYO_MAX_GRANT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 0
+    int  '  Default maximal count for grant log' CONFIG_TOMOYO_MAX_GRANT_LOG
+
+    [ -z "$CONFIG_TOMOYO_MAX_REJECT_LOG" ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 1024
+    [ $CONFIG_TOMOYO_MAX_REJECT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 0
+    int  '  Default maximal count for reject log' CONFIG_TOMOYO_MAX_REJECT_LOG
+
+  fi
 
 fi
 
