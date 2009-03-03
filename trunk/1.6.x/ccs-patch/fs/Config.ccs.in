@@ -13,7 +13,7 @@ if [ "$CONFIG_TOMOYO" = "y" ]; then
   [ $CONFIG_TOMOYO_MAX_ACCEPT_ENTRY -lt 0 ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_ENTRY 0
   int  '  Default maximal count for learning mode' CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
 
-  [ -z "$CONFIG_TOMOYO_AUDIT" ] && define_bool CONFIG_TOMOYO_AUDIT n
+  [ -z "$CONFIG_TOMOYO_AUDIT" ] && define_bool CONFIG_TOMOYO_AUDIT y
   bool '  Auditing interface support' CONFIG_TOMOYO_AUDIT
 
   if [ "$CONFIG_TOMOYO_AUDIT" = "y" ]; then
