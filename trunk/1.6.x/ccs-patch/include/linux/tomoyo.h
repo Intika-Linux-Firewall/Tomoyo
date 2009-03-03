@@ -37,6 +37,7 @@
 
 struct dentry;
 struct vfsmount;
+struct nameidata;
 struct inode;
 struct linux_binprm;
 struct pt_regs;
@@ -59,6 +60,57 @@ int ccs_check_signal_acl(const int sig, const int pid);
 
 /* Check whether the given capability is allowed to use. */
 _Bool ccs_capable(const u8 operation);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+/* Some of permission checks from vfs_create(). */
+int pre_vfs_create(struct inode *dir, struct dentry *dentry);
+/* Some of permission checks from vfs_mknod(). */
+int pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
+#else
+/* Some of permission checks from vfs_mknod(). */
+int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
+#endif
+/* Some of permission checks from vfs_mkdir(). */
+int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry);
+/* Some of permission checks from vfs_rmdir(). */
+int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry);
+/* Some of permission checks from vfs_unlink(). */
+int pre_vfs_unlink(struct inode *dir, struct dentry *dentry);
+/* Permission checks from vfs_symlink(). */
+int pre_vfs_symlink(struct inode *dir, struct dentry *dentry);
+/* Some of permission checks from vfs_link(). */
+int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+		 struct dentry *new_dentry);
+/* Some of permission checks from vfs_rename(). */
+int pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+		   struct inode *new_dir, struct dentry *new_dentry);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+
+int ccs_may_create(struct inode *dir, struct dentry *dentry);
+int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
+
+#else
+
+/* SUSE 11.0 adds is_dir for may_create(). */
+#ifdef MS_WITHAPPEND
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+int ccs_may_create(struct inode *dir, struct dentry *dentry,
+		   struct nameidata *nd, int is_dir);
+#else
+int ccs_may_create(struct inode *dir, struct dentry *dentry,
+		   int is_dir);
+#endif
+#else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+int ccs_may_create(struct inode *dir, struct dentry *dentry,
+		   struct nameidata *nd);
+#else
+int ccs_may_create(struct inode *dir, struct dentry *dentry);
+#endif
+#endif
+int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
+#endif
 
 #else
 
@@ -100,13 +152,62 @@ static inline _Bool ccs_capable(const u8 operation)
 	return 1;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+
+static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry)
+{
+	return 0;
+}
+
+static inline int pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
+{
+	return 0;
+}
+
+#else
+
+static inline int pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
+				int mode)
+{
+	return 0;
+}
+
 #endif
 
+static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+{
+	return 0;
+}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-int pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
-#else
-int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
+static inline int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+{
+	return 0;
+}
+
+static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+{
+	return 0;
+}
+
+static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+			       struct dentry *new_dentry)
+{
+	return 0;
+}
+
+static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+{
+	return 0;
+}
+
+static inline int pre_vfs_rename(struct inode *old_dir,
+				 struct dentry *old_dentry,
+				 struct inode *new_dir,
+				 struct dentry *new_dentry)
+{
+	return 0;
+}
+
 #endif
 
 int ccs_start_execve(struct linux_binprm *bprm);
@@ -144,7 +245,7 @@ search_binary_handler_with_transition(struct linux_binprm *bprm,
 
 enum ccs_single_path_acl_index {
 	TYPE_READ_WRITE_ACL,
-        TYPE_EXECUTE_ACL,
+	TYPE_EXECUTE_ACL,
 	TYPE_READ_ACL,
 	TYPE_WRITE_ACL,
 	TYPE_CREATE_ACL,
