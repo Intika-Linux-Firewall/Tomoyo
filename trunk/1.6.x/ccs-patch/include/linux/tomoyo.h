@@ -63,27 +63,27 @@ _Bool ccs_capable(const u8 operation);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 /* Some of permission checks from vfs_create(). */
-int pre_vfs_create(struct inode *dir, struct dentry *dentry);
+int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry);
 /* Some of permission checks from vfs_mknod(). */
-int pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
+int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
 #else
 /* Some of permission checks from vfs_mknod(). */
-int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
+int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
 #endif
 /* Some of permission checks from vfs_mkdir(). */
-int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry);
+int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry);
 /* Some of permission checks from vfs_rmdir(). */
-int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry);
+int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry);
 /* Some of permission checks from vfs_unlink(). */
-int pre_vfs_unlink(struct inode *dir, struct dentry *dentry);
+int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry);
 /* Permission checks from vfs_symlink(). */
-int pre_vfs_symlink(struct inode *dir, struct dentry *dentry);
+int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry);
 /* Some of permission checks from vfs_link(). */
-int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-		 struct dentry *new_dentry);
+int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+		     struct dentry *new_dentry);
 /* Some of permission checks from vfs_rename(). */
-int pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-		   struct inode *new_dir, struct dentry *new_dentry);
+int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+		       struct inode *new_dir, struct dentry *new_dentry);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
@@ -154,56 +154,56 @@ static inline _Bool ccs_capable(const u8 operation)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
-static inline int pre_vfs_create(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	return 0;
 }
 
-static inline int pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 {
 	return 0;
 }
 
 #else
 
-static inline int pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
-				int mode)
+static inline int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
+				    int mode)
 {
 	return 0;
 }
 
 #endif
 
-static inline int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	return 0;
 }
 
-static inline int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	return 0;
 }
 
-static inline int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 	return 0;
 }
 
-static inline int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-			       struct dentry *new_dentry)
+static inline int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+				   struct dentry *new_dentry)
 {
 	return 0;
 }
 
-static inline int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	return 0;
 }
 
-static inline int pre_vfs_rename(struct inode *old_dir,
-				 struct dentry *old_dentry,
-				 struct inode *new_dir,
-				 struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename(struct inode *old_dir,
+				     struct dentry *old_dentry,
+				     struct inode *new_dir,
+				     struct dentry *new_dentry)
 {
 	return 0;
 }
@@ -337,5 +337,14 @@ enum ccs_capability_acl_index {
 
 /* ccs-patch-\*.diff uses '#ifdef TOMOYO_SYS_PTRACE' .*/
 #define TOMOYO_SYS_PTRACE TOMOYO_SYS_PTRACE
+
+#define pre_vfs_create  ccs_pre_vfs_create
+#define pre_vfs_mknod   ccs_pre_vfs_mknod
+#define pre_vfs_mkdir   ccs_pre_vfs_mkdir
+#define pre_vfs_rmdir   ccs_pre_vfs_rmdir
+#define pre_vfs_unlink  ccs_pre_vfs_unlink
+#define pre_vfs_symlink ccs_pre_vfs_symlink
+#define pre_vfs_link    ccs_pre_vfs_link
+#define pre_vfs_rename  ccs_pre_vfs_rename
 
 #endif

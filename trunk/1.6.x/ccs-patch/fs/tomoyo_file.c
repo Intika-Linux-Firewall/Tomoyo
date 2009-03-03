@@ -1604,7 +1604,7 @@ int ccs_check_2path_perm(const u8 operation,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
 /* Some of permission checks from vfs_create(). */
-int pre_vfs_create(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -1621,7 +1621,7 @@ int pre_vfs_create(struct inode *dir, struct dentry *dentry)
  * This function is exported because
  * vfs_mknod() is called from net/unix/af_unix.c .
  */
-int pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -1631,10 +1631,10 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 	up(&dir->i_zombie);
 	return error;
 }
-EXPORT_SYMBOL(pre_vfs_mknod);
+EXPORT_SYMBOL(ccs_pre_vfs_mknod);
 
 /* Some of permission checks from vfs_mkdir(). */
-int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -1646,7 +1646,7 @@ int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks from vfs_rmdir(). */
-int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 1);
 	if (!error && (!dir->i_op || !dir->i_op->rmdir))
@@ -1655,7 +1655,7 @@ int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks from vfs_unlink(). */
-int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	int error;
@@ -1684,7 +1684,7 @@ int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_symlink(). */
-int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -1699,8 +1699,8 @@ int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks from vfs_link(). */
-int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-		 struct dentry *new_dentry)
+int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+		     struct dentry *new_dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	struct inode *inode;
@@ -1753,10 +1753,10 @@ int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 }
 
 /* Some of permission checks from vfs_rename_dir(). */
-static inline int pre_vfs_rename_dir(struct inode *old_dir,
-				     struct dentry *old_dentry,
-				     struct inode *new_dir,
-				     struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename_dir(struct inode *old_dir,
+					 struct dentry *old_dentry,
+					 struct inode *new_dir,
+					 struct dentry *new_dentry)
 {
 	int error;
 	if (old_dentry->d_inode == new_dentry->d_inode)
@@ -1780,10 +1780,10 @@ static inline int pre_vfs_rename_dir(struct inode *old_dir,
 }
 
 /* Some of permission checks from vfs_rename_other(). */
-static inline int pre_vfs_rename_other(struct inode *old_dir,
-				       struct dentry *old_dentry,
-				       struct inode *new_dir,
-				       struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
+					   struct dentry *old_dentry,
+					   struct inode *new_dir,
+					   struct dentry *new_dentry)
 {
 	int error;
 	if (old_dentry->d_inode == new_dentry->d_inode)
@@ -1805,17 +1805,17 @@ static inline int pre_vfs_rename_other(struct inode *old_dir,
 }
 
 /* Some of permission checks from vfs_rename(). */
-int pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-		   struct inode *new_dir, struct dentry *new_dentry)
+int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+		       struct inode *new_dir, struct dentry *new_dentry)
 {
 	int error;
 	lock_kernel(); /* From do_rename(). */
 	if (S_ISDIR(old_dentry->d_inode->i_mode))
-		error = pre_vfs_rename_dir(old_dir, old_dentry,
-					   new_dir, new_dentry);
+		error = ccs_pre_vfs_rename_dir(old_dir, old_dentry,
+					       new_dir, new_dentry);
 	else
-		error = pre_vfs_rename_other(old_dir, old_dentry,
-					     new_dir, new_dentry);
+		error = ccs_pre_vfs_rename_other(old_dir, old_dentry,
+						 new_dir, new_dentry);
 	unlock_kernel(); /* From do_rename(). */
 	return error;
 }
@@ -1833,7 +1833,7 @@ int pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
  * This function is exported because
  * vfs_mknod() is called from net/unix/af_unix.c.
  */
-int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
+int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
@@ -1856,10 +1856,10 @@ int pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
 		return -EPERM;
 	return 0;
 }
-EXPORT_SYMBOL(pre_vfs_mknod);
+EXPORT_SYMBOL(ccs_pre_vfs_mknod);
 
 /* Permission checks before security_inode_mkdir() is called. */
-int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
@@ -1882,7 +1882,7 @@ int pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks before security_inode_rmdir() is called. */
-int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 1);
 	if (error)
@@ -1893,7 +1893,7 @@ int pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks before security_inode_unlink() is called. */
-int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 0);
 	if (error)
@@ -1904,8 +1904,8 @@ int pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks before security_inode_link() is called. */
-int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-		 struct dentry *new_dentry)
+int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+		     struct dentry *new_dentry)
 {
 	struct inode *inode = old_dentry->d_inode;
 	int error;
@@ -1938,7 +1938,7 @@ int pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 }
 
 /* Permission checks before security_inode_symlink() is called. */
-int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
@@ -1961,8 +1961,8 @@ int pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks before security_inode_rename() is called. */
-int pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-		   struct inode *new_dir, struct dentry *new_dentry)
+int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+		       struct inode *new_dir, struct dentry *new_dentry)
 {
 	int error;
 	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
