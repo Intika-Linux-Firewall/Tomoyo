@@ -163,7 +163,59 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	return buf;
 }
 
-#ifdef CONFIG_TOMOYO_AUDIT
+/**
+ * ccs_update_task_state - Update task's state.
+ *
+ * @r:          Pointer to "struct ccs_request_info".
+ */
+static void ccs_update_task_state(struct ccs_request_info *r)
+{
+	/*
+	 * Don't change the lowest byte because it is reserved for
+	 * TOMOYO_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
+	 * TOMOYO_TASK_IS_EXECUTE_HANDLER / CCS_TASK_IS_POLICY_MANAGER.
+	 */
+	const struct ccs_condition_list *ptr = r->cond;
+	if (ptr) {
+		struct task_struct *task = current;
+		const u8 flags = ptr->post_state[3];
+		u32 tomoyo_flags = task->tomoyo_flags;
+		if (flags & 1) {
+			tomoyo_flags &= ~0xFF000000;
+			tomoyo_flags |= ptr->post_state[0] << 24;
+		}
+		if (flags & 2) {
+			tomoyo_flags &= ~0x00FF0000;
+			tomoyo_flags |= ptr->post_state[1] << 16;
+		}
+		if (flags & 4) {
+			tomoyo_flags &= ~0x0000FF00;
+			tomoyo_flags |= ptr->post_state[2] << 8;
+		}
+		task->tomoyo_flags = tomoyo_flags;
+		r->cond = NULL;
+	}
+}
+
+#ifndef CONFIG_TOMOYO_AUDIT
+
+/**
+ * ccs_write_audit_log - Write audit log.
+ *
+ * @is_granted: True if this is a granted log.
+ * @r:          Pointer to "struct ccs_request_info".
+ * @fmt:        The printf()'s format string, followed by parameters.
+ *
+ * Returns 0 on success, -ENOMEM otherwise.
+ */
+int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
+			const char *fmt, ...)
+{
+	ccs_update_task_state(r);
+	return 0;
+}
+
+#else
 
 static DECLARE_WAIT_QUEUE_HEAD(ccs_grant_log_wait);
 static DECLARE_WAIT_QUEUE_HEAD(ccs_reject_log_wait);
@@ -221,10 +273,8 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	int len;
 	char *buf;
 	struct ccs_log_entry *new_entry;
-	const struct ccs_condition_list *ptr;
-	struct task_struct *task = current;
 	if (!r->domain)
-		r->domain = task->domain_info;
+		r->domain = current->domain_info;
 	if (!ccs_can_save_audit_log(r->domain, is_granted))
 		goto out;
 	va_start(args, fmt);
@@ -262,32 +312,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		wake_up(&ccs_reject_log_wait);
 	error = 0;
  out:
-	/*
-	 * Update task's state.
-	 *
-	 * Don't change the lowest byte because it is reserved for
-	 * TOMOYO_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
-	 * TOMOYO_TASK_IS_EXECUTE_HANDLER.
-	 */
-	ptr = r->cond;
-	if (ptr) {
-		const u8 flags = ptr->post_state[3];
-		u32 tomoyo_flags = task->tomoyo_flags;
-		if (flags & 1) {
-			tomoyo_flags &= ~0xFF000000;
-			tomoyo_flags |= ptr->post_state[0] << 24;
-		}
-		if (flags & 2) {
-			tomoyo_flags &= ~0x00FF0000;
-			tomoyo_flags |= ptr->post_state[1] << 16;
-		}
-		if (flags & 4) {
-			tomoyo_flags &= ~0x0000FF00;
-			tomoyo_flags |= ptr->post_state[2] << 8;
-		}
-		task->tomoyo_flags = tomoyo_flags;
-		r->cond = NULL;
-	}
+	ccs_update_task_state(r);
 	return error;
 }
 
