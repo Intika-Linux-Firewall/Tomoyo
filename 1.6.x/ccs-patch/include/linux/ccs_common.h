@@ -698,19 +698,9 @@ int ccs_write_argv0_policy(char *data, struct domain_info *domain,
 			   const struct ccs_condition_list *condition,
 			   const bool is_delete);
 /* Write an audit log. */
-#ifdef CONFIG_TOMOYO_AUDIT
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 			const char *fmt, ...)
      __attribute__ ((format(printf, 3, 4)));
-#else
-static inline int ccs_write_audit_log(const bool is_granted,
-				      struct ccs_request_info *r,
-				      const char *fmt, ...)
-{
-	return 0;
-}
-#endif
-
 /* Create "allow_capability" entry in domain policy. */
 int ccs_write_capability_policy(char *data, struct domain_info *domain,
 				const struct ccs_condition_list *condition,
