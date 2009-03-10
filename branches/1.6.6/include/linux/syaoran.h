@@ -44,6 +44,13 @@
 #define __user
 #endif
 
+#ifndef current_fsuid
+#define current_fsuid()         (current->fsuid)
+#endif
+#ifndef current_fsgid
+#define current_fsgid()         (current->fsgid)
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define s_fs_info u.generic_sbp
 #else
@@ -848,9 +855,8 @@ static int syaoran_check_flags(struct syaoran_sb_info *info,
 	}
 	if (error == -EPERM) {
 		const char *name;
-		struct task_struct *task = current;
-		const uid_t uid = task->fsuid;
-		const gid_t gid = task->fsgid;
+		const uid_t uid = current_fsuid();
+		const gid_t gid = current_fsgid();
 		const mode_t perm = mode & 0777;
 		flags &= ~DEVICE_USED;
 		{

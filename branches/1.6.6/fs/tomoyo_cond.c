@@ -1026,28 +1026,28 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		}
 		switch (left) {
 		case TASK_UID:
-			left_max = task->uid;
+			left_max = current_uid();
 			break;
 		case TASK_EUID:
-			left_max = task->euid;
+			left_max = current_euid();
 			break;
 		case TASK_SUID:
-			left_max = task->suid;
+			left_max = current_suid();
 			break;
 		case TASK_FSUID:
-			left_max = task->fsuid;
+			left_max = current_fsuid();
 			break;
 		case TASK_GID:
-			left_max = task->gid;
+			left_max = current_gid();
 			break;
 		case TASK_EGID:
-			left_max = task->egid;
+			left_max = current_egid();
 			break;
 		case TASK_SGID:
-			left_max = task->sgid;
+			left_max = current_sgid();
 			break;
 		case TASK_FSGID:
-			left_max = task->fsgid;
+			left_max = current_fsgid();
 			break;
 		case TASK_PID:
 			left_max = sys_getpid();
@@ -1138,28 +1138,28 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			left_min = left_max;
 		switch (right) {
 		case TASK_UID:
-			right_max = task->uid;
+			right_max = current_uid();
 			break;
 		case TASK_EUID:
-			right_max = task->euid;
+			right_max = current_euid();
 			break;
 		case TASK_SUID:
-			right_max = task->suid;
+			right_max = current_suid();
 			break;
 		case TASK_FSUID:
-			right_max = task->fsuid;
+			right_max = current_fsuid();
 			break;
 		case TASK_GID:
-			right_max = task->gid;
+			right_max = current_gid();
 			break;
 		case TASK_EGID:
-			right_max = task->egid;
+			right_max = current_egid();
 			break;
 		case TASK_SGID:
-			right_max = task->sgid;
+			right_max = current_sgid();
 			break;
 		case TASK_FSGID:
-			right_max = task->fsgid;
+			right_max = current_fsgid();
 			break;
 		case TASK_PID:
 			right_max = sys_getpid();
