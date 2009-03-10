@@ -1240,7 +1240,9 @@ static int check_environ(struct ccs_request_info *r)
 		i++;
 		offset = 0;
 	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
  out:
+#endif
 	if (r->mode != 3)
 		error = 0;
 	return error;

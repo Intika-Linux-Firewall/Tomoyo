@@ -121,11 +121,13 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 	*cp++ = '}';
 	*cp = '\0';
 	return buffer;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
  out:
 	snprintf(buffer, buffer_len - 1,
 		 "argc=%d envc=%d argv[]={ ... } envp[]= { ... }",
 		 argv_count, envp_count);
 	return buffer;
+#endif
 }
 
 static DECLARE_WAIT_QUEUE_HEAD(grant_log_wait);

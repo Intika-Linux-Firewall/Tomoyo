@@ -239,7 +239,9 @@ static bool scan_bprm(const struct linux_binprm *bprm,
 		if (!result)
 			break;
 	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
  out:
+#endif
 	if (result) {
 		/* Check not-yet-checked entries. */
 		for (i = 0; i < argc; i++) {
