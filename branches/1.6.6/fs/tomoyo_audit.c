@@ -61,12 +61,6 @@ static char *ccs_print_bprm(struct linux_binprm *bprm)
 #endif
 		/* Map */
 		kaddr = kmap(page);
-		if (!kaddr) { /* Mapping failed. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-			put_page(page);
-#endif
-			goto out;
-		}
 		/* Read. */
 		while (offset < PAGE_SIZE) {
 			const unsigned char c = kaddr[offset++];
