@@ -1,0 +1,105 @@
+Index: trunk/1.6.x/ccs-patch/fs/Config.ccs.in
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/Config.ccs.in	(revision 2251)
++++ trunk/1.6.x/ccs-patch/fs/Config.ccs.in	(working copy)
+@@ -1,9 +1,15 @@
+ #
+ # Mandatory Access Control configuration
+ #
+-[ -z "$CONFIG_SAKURA" ] && define_bool CONFIG_SAKURA y
+-bool 'SAKURA (Domain-Free Mandatory Access Control) support' CONFIG_SAKURA
++[ -z "$CONFIG_TOMOYO_2_2_0_ONLY" ] && define_bool CONFIG_TOMOYO_2_2_0_ONLY n
+ 
++if [ "$CONFIG_TOMOYO_2_2_0_ONLY" = "n" ]; then
++
++  [ -z "$CONFIG_SAKURA" ] && define_bool CONFIG_SAKURA y
++  bool 'SAKURA (Domain-Free Mandatory Access Control) support' CONFIG_SAKURA
++
++fi
++
+ [ -z "$CONFIG_TOMOYO" ] && define_bool CONFIG_TOMOYO y
+ bool 'TOMOYO (Domain-Based Mandatory Access Control) support' CONFIG_TOMOYO
+ 
+@@ -13,22 +19,31 @@
+   [ $CONFIG_TOMOYO_MAX_ACCEPT_ENTRY -lt 0 ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_ENTRY 0
+   int  '  Default maximal count for learning mode' CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
+ 
+-  [ -z "$CONFIG_TOMOYO_AUDIT" ] && define_bool CONFIG_TOMOYO_AUDIT y
+-  bool '  Auditing interface support' CONFIG_TOMOYO_AUDIT
++  bool '  Enable only TOMOYO Linux 2.2.0 compatible functionality' CONFIG_TOMOYO_2_2_0_ONLY
+ 
+-  if [ "$CONFIG_TOMOYO_AUDIT" = "y" ]; then
++  if [ "$CONFIG_TOMOYO_2_2_0_ONLY" = "n" ]; then
+ 
+-    [ -z "$CONFIG_TOMOYO_MAX_GRANT_LOG" ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 1024
+-    [ $CONFIG_TOMOYO_MAX_GRANT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 0
+-    int  '  Default maximal count for grant log' CONFIG_TOMOYO_MAX_GRANT_LOG
++    [ -z "$CONFIG_TOMOYO_AUDIT" ] && define_bool CONFIG_TOMOYO_AUDIT y
++    bool '  Auditing interface support' CONFIG_TOMOYO_AUDIT
+ 
+-    [ -z "$CONFIG_TOMOYO_MAX_REJECT_LOG" ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 1024
+-    [ $CONFIG_TOMOYO_MAX_REJECT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 0
+-    int  '  Default maximal count for reject log' CONFIG_TOMOYO_MAX_REJECT_LOG
++    if [ "$CONFIG_TOMOYO_AUDIT" = "y" ]; then
+ 
++      [ -z "$CONFIG_TOMOYO_MAX_GRANT_LOG" ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 1024
++      [ $CONFIG_TOMOYO_MAX_GRANT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 0
++      int  '  Default maximal count for grant log' CONFIG_TOMOYO_MAX_GRANT_LOG
++
++      [ -z "$CONFIG_TOMOYO_MAX_REJECT_LOG" ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 1024
++      [ $CONFIG_TOMOYO_MAX_REJECT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 0
++      int  '  Default maximal count for reject log' CONFIG_TOMOYO_MAX_REJECT_LOG
++    fi
++
+   fi
+ 
+ fi
+ 
+-[ -z "$CONFIG_SYAORAN" ] && define_tristate CONFIG_SYAORAN m
+-tristate 'SYAORAN (Tamper-Proof Device Filesystem) support' CONFIG_SYAORAN
++if [ "$CONFIG_TOMOYO_2_2_0_ONLY" = "n" ]; then
++
++  [ -z "$CONFIG_SYAORAN" ] && define_tristate CONFIG_SYAORAN m
++  tristate 'SYAORAN (Tamper-Proof Device Filesystem) support' CONFIG_SYAORAN
++
++fi
+Index: trunk/1.6.x/ccs-patch/fs/Kconfig.ccs
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/Kconfig.ccs	(revision 2251)
++++ trunk/1.6.x/ccs-patch/fs/Kconfig.ccs	(working copy)
+@@ -1,6 +1,7 @@
+ config SAKURA
+ 	bool "SAKURA (Domain-Free Mandatory Access Control) support"
+ 	default y
++	depends on !TOMOYO_2_2_0_ONLY
+ 	help
+ 	  Say Y here to support the Domain-Free Mandatory Access Control.
+ 
+@@ -55,10 +56,19 @@
+ 	  and consumes much memory.
+ 	  This is the safeguard for such programs.
+ 
++config TOMOYO_2_2_0_ONLY
++	bool "Enable only TOMOYO Linux 2.2.0 compatible functionality"
++	default n
++	depends on TOMOYO
++	help
++	  Say Y here to enable only TOMOYO Linux 2.2.0 compatible
++	  functionality.
++
+ config TOMOYO_AUDIT
+ 	bool "Auditing interface support"
+ 	default y
+ 	depends on TOMOYO
++	depends on !TOMOYO_2_2_0_ONLY
+ 	help
+ 	  This option enables /proc/ccs/grant_log and /proc/ccs/reject_log
+ 	  interfaces. You may disable these interfaces if you want to apply for
+@@ -90,6 +100,7 @@
+ 
+ config SYAORAN
+ 	tristate "SYAORAN (Tamper-Proof Device Filesystem) support"
++	depends on !TOMOYO_2_2_0_ONLY
+ 	default m
+ 	help
+ 	  Say Y or M here to support the Tamper-Proof Device Filesystem.
