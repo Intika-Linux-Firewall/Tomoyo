@@ -1836,4 +1836,16 @@ Fix 2009/03/02
       MAX_REJECT_LOG=0 , I undeleted CONFIG_TOMOYO_AUDIT option for saving
       memory used for /proc/ccs/grant_log and /proc/ccs/reject_log interfaces.
 
+Fix 2009/03/13
+
+    @ Show only profile entry names ever specified.
+
+      Even if an administrator specifies only COMMENT= and MAC_FOR_FILE=
+      entries for /proc/ccs/profile , all available profile entries are shown.
+      This was designed to help administrators to know what entries are
+      available, but sometimes makes administrators feel noisy because of
+      entries showing default values.
+
+      Thus, I modified to show only profile entry names ever specified.
+
 Version 1.6.7 2009/??/??   Feature enhancement release.

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7-rc   2009/03/03
+ * Version: 1.6.7-rc   2009/03/13
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -136,6 +136,13 @@ static const char *ccs_capability_control_keyword[TOMOYO_MAX_CAPABILITY_INDEX]
 	[TOMOYO_SYS_PIVOT_ROOT]             = "SYS_PIVOT_ROOT",
 	[TOMOYO_SYS_PTRACE]                 = "SYS_PTRACE",
 };
+#endif
+
+#ifdef CONFIG_TOMOYO
+static bool ccs_profile_entry_used[CCS_MAX_CONTROL_INDEX +
+				   TOMOYO_MAX_CAPABILITY_INDEX + 1];
+#else
+static bool ccs_profile_entry_used[CCS_MAX_CONTROL_INDEX + 1];
 #endif
 
 /* Profile table. Memory is allocated as needed. */
@@ -1126,6 +1133,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	ccs_update_counter(CCS_UPDATES_COUNTER_PROFILE);
 	if (!strcmp(data, "COMMENT")) {
 		ccs_profile->comment = ccs_save_name(cp + 1);
+		ccs_profile_entry_used[0] = true;
 		return 0;
 	}
 #ifdef CONFIG_TOMOYO
@@ -1146,6 +1154,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			if (strcmp(data, ccs_capability_control_keyword[i]))
 				continue;
 			ccs_profile->capability_value[i] = value;
+			ccs_profile_entry_used[i + 1 + CCS_MAX_CONTROL_INDEX]
+				= true;
 			return 0;
 		}
 		return -EINVAL;
@@ -1184,6 +1194,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 				value = 2; /* learning mode is not supported. */
 		}
 		ccs_profile->value[i] = value;
+		ccs_profile_entry_used[i + 1] = true;
 		return 0;
 	}
 	return -EINVAL;
@@ -1232,6 +1243,8 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 			continue;
 		}
 #endif
+		if (!ccs_profile_entry_used[type])
+			continue;
 		if (!type) { /* Print profile' comment tag. */
 			if (!ccs_io_printf(head, "%u-COMMENT=%s\n",
 					   index, ccs_profile->comment ?
@@ -2547,10 +2560,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.7-rc   2009/03/03\n");
+	printk(KERN_INFO "SAKURA: 1.6.7-rc   2009/03/13\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.7-rc   2009/03/04\n");
+	printk(KERN_INFO "TOMOYO: 1.6.7-rc   2009/03/13\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;
