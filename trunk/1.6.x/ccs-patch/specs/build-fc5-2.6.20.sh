@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.20-1.2320.fc5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.6-20090202.tar.gz ]
+if [ ! -r ccs-patch-1.6.6-20090314.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090202.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090314.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.6.6-20090202.tar.gz
++tar -zxf $RPM_SOURCE_DIR/ccs-patch-1.6.6-20090314.tar.gz
 +# sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2320.fc5/" -- Makefile
 +patch -sp1 < patches/ccs-patch-2.6.20-fedora-core-5.diff
 +
