@@ -1,0 +1,93 @@
+Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
+===================================================================
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 2262)
++++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(working copy)
+@@ -1599,6 +1599,88 @@
+ 	}
+ }
+ 
++static void tree_copy(struct domain_policy *dp, int current,
++		      struct readline_data *rl)
++{
++	int prefix_len;
++	const char *prefix = "";
++	int index;
++	FILE *fp;
++	int c;
++	char *line;
++	if (current_screen != SCREEN_DOMAIN_LIST)
++		return;
++	move(1, 0);
++	editpolicy_color_change(DISP_ERR, true);	/* add color */
++	c = count(dp->list_selected, dp->list_len);
++	if (!c)
++		c = select_item(dp, current);
++	if (!c)
++		printw("Select domain using Space key first.");
++	prefix_len = 8192;
++	for (index = 0; index < dp->list_len; index++) {
++		const char *cp;
++		int len;
++		if (!dp->list_selected[index])
++			continue;
++		cp = domain_name(dp, index);
++		len = strlen(cp);
++		if (len >= prefix_len)
++			continue;
++		prefix_len = len;
++		prefix = cp;
++	}
++	for (index = 0; index < dp->list_len; index++) {
++		if (!dp->list_selected[index])
++			continue;
++		if (!strncmp(domain_name(dp, index), prefix,
++			     prefix_len))
++			continue;
++		c = 0;
++		printw("Selected domains have different prefix.");
++		break;
++	}
++	editpolicy_color_change(DISP_ERR, false);	/* add color */
++	clrtoeol();
++	refresh();
++	if (!c)
++		return;
++	editpolicy_attr_change(A_BOLD, true);  /* add color */
++	line = simple_readline(window_height - 1, 0,
++			       "Enter destination domain's prefix> ",
++			       rl->history, rl->count, 8192, 8);
++	editpolicy_attr_change(A_BOLD, false); /* add color */
++	if (!line || !*line)
++		goto out;
++	if (!is_correct_domain(line)) {
++		const int len = strlen(line) + 128;
++		last_error = realloc(last_error, len);
++		if (!last_error)
++			out_of_memory();
++		memset(last_error, 0, len);
++		snprintf(last_error, len - 1,
++			 "%s is an invalid domainname.", line);
++		goto out;
++	}
++	rl->count = simple_add_history(line, rl->history, rl->count, rl->max);
++	fp = open_write(proc_policy_domain_policy);
++	if (!fp)
++		goto out;
++	for (index = 0; index < dp->list_len; index++) {
++		int i;
++		if (!dp->list_selected[index])
++			continue;
++		fprintf(fp, "%s %s\n", line,
++			domain_name(dp, index) + prefix_len);
++		fprintf(fp, "use_profile %u\n", dp->list[index].profile);
++		for (i = 0; i < dp->list[index].string_count; i++)
++			fprintf(fp, "%s\n", dp->list[index].string_ptr[i]->name);
++	}
++	fclose(fp);
++ out:
++	free(line);
++}
++
+ static void delete_entry(struct domain_policy *dp, int current)
+ {
+ 	int c;
