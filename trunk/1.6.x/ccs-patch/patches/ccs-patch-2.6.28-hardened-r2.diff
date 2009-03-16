@@ -615,9 +615,9 @@ Source code for this patch is "emerge hardened-sources"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -601,6 +617,14 @@ SYSCALL_DEFINE1(chroot, const char __use
- 	error = inode_permission(path.dentry->d_inode, MAY_EXEC | MAY_ACCESS);
- 	if (error)
+@@ -605,6 +621,14 @@ SYSCALL_DEFINE1(chroot, const char __use
+ 	error = -EPERM;
+ 	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	/***** TOMOYO Linux start. *****/
 +	if (!ccs_capable(TOMOYO_SYS_CHROOT))
@@ -628,8 +628,8 @@ Source code for this patch is "emerge hardened-sources"
 +		goto dput_and_out;
 +	/***** SAKURA Linux end. *****/
  
- 	error = -EPERM;
- 	if (!capable(CAP_SYS_CHROOT))
+ 	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
+ 		goto dput_and_out;
 @@ -1211,6 +1235,10 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -661,7 +661,7 @@ Source code for this patch is "emerge hardened-sources"
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r2 2009/03/13\n");
++	printk(KERN_INFO "Hook version: 2.6.28-hardened-r2 2009/03/16\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
