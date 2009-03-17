@@ -1,0 +1,584 @@
+Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 2268)
++++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
+@@ -278,6 +278,7 @@
+ enum ccs_acl_entry_type_index {
+ 	TYPE_SINGLE_PATH_ACL,
+ 	TYPE_DOUBLE_PATH_ACL,
++	TYPE_IOCTL_ACL,
+ 	TYPE_ARGV0_ACL,
+ 	TYPE_ENV_ACL,
+ 	TYPE_CAPABILITY_ACL,
+@@ -381,6 +382,20 @@
+ 	} u2;
+ };
+ 
++/* Structure for "allow_ioctl" directive. */
++struct ccs_ioctl_acl_record {
++	struct ccs_acl_info head; /* type = TYPE_IOCTL_ACL */
++	unsigned int cmd_min;
++	unsigned int cmd_max;
++	bool u_is_group; /* True if u points to "path_group" directive. */
++	union {
++		/* Pointer to single pathname. */
++		const struct ccs_path_info *filename;
++		/* Pointer to pathname group. */
++		const struct ccs_path_group_entry *group;
++	} u;
++};
++
+ /* Structure for "allow_argv0" directive. */
+ struct ccs_argv0_acl_record {
+ 	struct ccs_acl_info head;             /* type = TYPE_ARGV0_ACL       */
+@@ -471,6 +486,7 @@
+ #define KEYWORD_ALLOW_CAPABILITY          "allow_capability "
+ #define KEYWORD_ALLOW_CHROOT              "allow_chroot "
+ #define KEYWORD_ALLOW_ENV                 "allow_env "
++#define KEYWORD_ALLOW_IOCTL               "allow_ioctl "
+ #define KEYWORD_ALLOW_MOUNT               "allow_mount "
+ #define KEYWORD_ALLOW_NETWORK             "allow_network "
+ #define KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
+@@ -501,6 +517,7 @@
+ /* Index numbers for Access Controls. */
+ enum ccs_profile_index {
+ 	CCS_TOMOYO_MAC_FOR_FILE,          /* domain_policy.conf */
++	CCS_TOMOYO_MAC_FOR_IOCTL,         /* domain_policy.conf */
+ 	CCS_TOMOYO_MAC_FOR_ARGV0,         /* domain_policy.conf */
+ 	CCS_TOMOYO_MAC_FOR_ENV,           /* domain_policy.conf */
+ 	CCS_TOMOYO_MAC_FOR_NETWORK,       /* domain_policy.conf */
+@@ -735,6 +752,10 @@
+ int ccs_write_globally_readable_policy(char *data, const bool is_delete);
+ /* Create "allow_env" entry in exception policy. */
+ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
++/* Create "allow_ioctl" entry in domain policy. */
++int ccs_write_ioctl_policy(char *data, struct domain_info *domain,
++			   const struct ccs_condition_list *condition,
++			   const bool is_delete);
+ /* Create "allow_mount" entry in system policy. */
+ int ccs_write_mount_policy(char *data, const bool is_delete);
+ /* Create "allow_network" entry in domain policy. */
+Index: trunk/1.6.x/ccs-patch/include/linux/tomoyo.h
+===================================================================
+--- trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(revision 2268)
++++ trunk/1.6.x/ccs-patch/include/linux/tomoyo.h	(working copy)
+@@ -54,6 +54,8 @@
+ 			 struct vfsmount *mnt1, struct dentry *dentry2,
+ 			 struct vfsmount *mnt2);
+ int ccs_check_rewrite_permission(struct file *filp);
++int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
++			       unsigned long arg);
+ 
+ /* Check whether the given signal is allowed to use. */
+ int ccs_check_signal_acl(const int sig, const int pid);
+Index: trunk/1.6.x/ccs-patch/README.ccs
+===================================================================
+--- trunk/1.6.x/ccs-patch/README.ccs	(revision 2268)
++++ trunk/1.6.x/ccs-patch/README.ccs	(working copy)
+@@ -1848,4 +1848,15 @@
+ 
+       Thus, I modified to show only profile entry names ever specified.
+ 
++Fix 2009/03/??
++
++    @ Add MAC_FOR_IOCTL functionality.
++
++      To be able to restrict ioctl() requests, I added MAC_FOR_IOCTL
++      functionality.
++
++      This functionality requires modification of ccs-patch-\*.diff .
++      Therefore, this functionality will not work if you are using old
++      ccs-patch-\*.diff .
++
+ Version 1.6.7 2009/??/??   Feature enhancement release.
+Index: trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.29.diff
+===================================================================
+--- trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.29.diff	(revision 2268)
++++ trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.29.diff	(working copy)
+@@ -6,10 +6,10 @@
+  fs/Makefile                     |    2 
+  fs/attr.c                       |   10 ++
+  fs/compat.c                     |    5 +
+- fs/compat_ioctl.c               |    9 ++
++ fs/compat_ioctl.c               |   11 +++
+  fs/exec.c                       |   20 +++++
+  fs/fcntl.c                      |    9 ++
+- fs/ioctl.c                      |    7 ++
++ fs/ioctl.c                      |    9 ++
+  fs/namei.c                      |  139 ++++++++++++++++++++++++++++++++++++++++
+  fs/namespace.c                  |   49 ++++++++++++++
+  fs/open.c                       |   28 ++++++++
+@@ -34,7 +34,7 @@
+  net/ipv4/udp.c                  |    8 ++
+  net/socket.c                    |   41 +++++++++++
+  net/unix/af_unix.c              |   16 ++++
+- 32 files changed, 605 insertions(+), 3 deletions(-)
++ 32 files changed, 609 insertions(+), 3 deletions(-)
+ 
+ --- linux-2.6.29-rc8.orig/fs/Kconfig
+ +++ linux-2.6.29-rc8/fs/Kconfig
+@@ -112,7 +112,16 @@
+  
+  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
+  			      unsigned long arg, struct file *f)
+-@@ -2815,6 +2818,12 @@ asmlinkage long compat_sys_ioctl(unsigne
++@@ -2791,6 +2794,8 @@ asmlinkage long compat_sys_ioctl(unsigne
++ 
++ 	/* RED-PEN how should LSM module know it's handling 32bit? */
++ 	error = security_file_ioctl(filp, cmd, arg);
+++	if (!error)
+++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++ 	if (error)
++ 		goto out_fput;
++ 
++@@ -2815,6 +2820,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+  		/*FALL THROUGH*/
+  
+  	default:
+@@ -223,6 +232,15 @@
+  
+  	if (filp->f_op->unlocked_ioctl) {
+  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
++@@ -553,6 +560,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
++ 		goto out;
++ 
++ 	error = security_file_ioctl(filp, cmd, arg);
+++	if (!error)
+++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++ 	if (error)
++ 		goto out_fput;
++ 
+ --- linux-2.6.29-rc8.orig/fs/namei.c
+ +++ linux-2.6.29-rc8/fs/namei.c
+ @@ -35,6 +35,10 @@
+@@ -689,7 +707,7 @@
+ +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
+ +static int __init ccs_show_version(void)
+ +{
+-+	printk(KERN_INFO "Hook version: 2.6.29-rc8 2009/03/13\n");
+++	printk(KERN_INFO "Hook version: 2.6.29-rc8 2009/03/17\n");
+ +	return 0;
+ +}
+ +module_init(ccs_show_version);
+Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 2268)
++++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
+@@ -77,6 +77,7 @@
+ 	const unsigned int max_value;
+ } ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
+ 	[CCS_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
++	[CCS_TOMOYO_MAC_FOR_IOCTL]       = { "MAC_FOR_IOCTL",       0, 3 },
+ 	[CCS_TOMOYO_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
+ 	[CCS_TOMOYO_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
+ 	[CCS_TOMOYO_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
+@@ -1613,6 +1614,8 @@
+ 		return ccs_write_argv0_policy(data, domain, cond, is_delete);
+ 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ENV))
+ 		return ccs_write_env_policy(data, domain, cond, is_delete);
++	else if (ccs_str_starts(&data, KEYWORD_ALLOW_IOCTL))
++		return ccs_write_ioctl_policy(data, domain, cond, is_delete);
+ 	else
+ 		return ccs_write_file_policy(data, domain, cond, is_delete);
+ }
+@@ -1718,6 +1721,44 @@
+ }
+ 
+ /**
++ * ccs_print_ioctl_acl - Print an ioctl ACL entry.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ * @ptr:  Pointer to "struct ccs_ioctl_acl_record".
++ * @cond: Pointer to "struct ccs_condition_list". May be NULL.
++ *
++ * Returns true on success, false otherwise.
++ */
++static bool ccs_print_ioctl_acl(struct ccs_io_buffer *head,
++				struct ccs_ioctl_acl_record *ptr,
++				const struct ccs_condition_list *cond)
++{
++	int pos = head->read_avail;
++	const char *atmark = "";
++	const char *filename;
++	const unsigned int cmd_min = ptr->cmd_min;
++	const unsigned int cmd_max = ptr->cmd_max;
++	if (ptr->u_is_group) {
++		atmark = "@";
++		filename = ptr->u.group->group_name->name;
++	} else {
++		filename = ptr->u.filename->name;
++	}
++	if (!ccs_io_printf(head, KEYWORD_ALLOW_IOCTL "%s%s ", atmark, filename))
++		goto out;
++	if (!ccs_io_printf(head, "%u", cmd_min))
++		goto out;
++	if (cmd_min != cmd_max && !ccs_io_printf(head, "-%u", cmd_max))
++		goto out;
++	if (!ccs_print_condition(head, cond))
++		goto out;
++	return true;
++ out:
++	head->read_avail = pos;
++	return false;
++}
++
++/**
+  * ccs_print_argv0_acl - Print an argv[0] ACL entry.
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+@@ -1983,6 +2024,11 @@
+ 				       head);
+ 		return ccs_print_double_path_acl(head, acl, cond);
+ 	}
++	if (acl_type == TYPE_IOCTL_ACL) {
++		struct ccs_ioctl_acl_record *acl
++			= container_of(ptr, struct ccs_ioctl_acl_record, head);
++		return ccs_print_ioctl_acl(head, acl, cond);
++	}
+ 	if (acl_type == TYPE_ARGV0_ACL) {
+ 		struct ccs_argv0_acl_record *acl
+ 			= container_of(ptr, struct ccs_argv0_acl_record, head);
+@@ -3337,6 +3383,9 @@
+ 	case TYPE_DOUBLE_PATH_ACL:
+ 		len = sizeof(struct ccs_double_path_acl_record);
+ 		break;
++	case TYPE_IOCTL_ACL:
++		len = sizeof(struct ccs_ioctl_acl_record);
++		break;
+ 	case TYPE_ARGV0_ACL:
+ 		len = sizeof(struct ccs_argv0_acl_record);
+ 		break;
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 2268)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
+@@ -1586,6 +1586,264 @@
+ 	return error;
+ }
+ 
++/**
++ * ccs_audit_ioctl_log - Audit ioctl related request log.
++ *
++ * @r:          Pointer to "struct ccs_request_info".
++ * @cmd:        The ioctl number.
++ * @filename:   Pathname.
++ * @is_granted: True if this is a granted log.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int ccs_audit_ioctl_log(struct ccs_request_info *r,
++			       const unsigned int cmd, const char *filename,
++			       const bool is_granted)
++{
++	return ccs_write_audit_log(is_granted, r, "allow_ioctl %s %u\n",
++				   filename, cmd);
++}
++
++/**
++ * ccs_update_ioctl_acl - Update file's ioctl ACL.
++ *
++ * @filename:  Filename.
++ * @cmd_min:   Minimum ioctl command number.
++ * @cmd_max:   Maximum ioctl command number.
++ * @domain:    Pointer to "struct domain_info".
++ * @condition: Pointer to "struct ccs_condition_list". May be NULL.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ */
++static int ccs_update_ioctl_acl(const char *filename,
++				const unsigned int cmd_min,
++				const unsigned int cmd_max,
++				struct domain_info * const domain,
++				const struct ccs_condition_list *condition,
++				const bool is_delete)
++{
++	static DEFINE_MUTEX(lock);
++	const struct ccs_path_info *saved_filename;
++	struct ccs_acl_info *ptr;
++	struct ccs_ioctl_acl_record *acl;
++	int error = -ENOMEM;
++	bool is_group = false;
++	if (!domain)
++		return -EINVAL;
++	if (!ccs_is_correct_path(filename, 0, 0, 0, __func__))
++		return -EINVAL;
++	if (filename[0] == '@') {
++		/*
++		 * This cast is OK because I don't dereference
++		 * in this function.
++		 */
++		saved_filename = (struct ccs_path_info *)
++			ccs_find_or_assign_new_path_group(filename + 1);
++		is_group = true;
++	} else {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
++		if (!strcmp(filename, "pipe:"))
++			filename = "pipe:[\\$]";
++#endif
++		saved_filename = ccs_save_name(filename);
++	}
++	if (!saved_filename)
++		return -ENOMEM;
++	mutex_lock(&lock);
++	if (is_delete)
++		goto delete;
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++		if (ccs_acl_type1(ptr) != TYPE_IOCTL_ACL)
++			continue;
++		if (ccs_get_condition_part(ptr) != condition)
++			continue;
++		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
++		if (acl->u.filename != saved_filename ||
++		    acl->cmd_min != cmd_min || acl->cmd_max != cmd_max)
++			continue;
++		error = ccs_add_domain_acl(NULL, ptr);
++		goto out;
++	}
++	/* Not found. Append it to the tail. */
++	acl = ccs_alloc_acl_element(TYPE_IOCTL_ACL, condition);
++	if (!acl)
++		goto out;
++	acl->u_is_group = is_group;
++	acl->u.filename = saved_filename;
++	acl->cmd_min = cmd_min;
++	acl->cmd_max = cmd_max;
++	error = ccs_add_domain_acl(domain, &acl->head);
++	goto out;
++ delete:
++	error = -ENOENT;
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
++			continue;
++		if (ccs_get_condition_part(ptr) != condition)
++			continue;
++		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
++		if (acl->u.filename != saved_filename ||
++		    acl->cmd_min != cmd_min || acl->cmd_max != cmd_max)
++			continue;
++		error = ccs_del_domain_acl(ptr);
++		break;
++	}
++ out:
++	mutex_unlock(&lock);
++	return error;
++}
++
++/**
++ * ccs_check_ioctl_acl - Check permission for ioctl operation.
++ *
++ * @r:        Pointer to "struct ccs_request_info".
++ * @filename: Filename to check.
++ * @cmd:      Ioctl command number.
++ *
++ * Returns 0 on success, -EPERM otherwise.
++ */
++static int ccs_check_ioctl_acl(struct ccs_request_info *r,
++			       const struct ccs_path_info *filename,
++			       const unsigned int cmd)
++{
++	struct domain_info *domain = r->domain;
++	struct ccs_acl_info *ptr;
++	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_ioctl_acl_record *acl;
++		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
++			continue;
++		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
++		if (acl->cmd_min > cmd || acl->cmd_max < cmd ||
++		    !ccs_check_condition(r, ptr))
++			continue;
++		if (acl->u_is_group) {
++			if (!ccs_path_matches_group(filename, acl->u.group,
++						    true))
++				continue;
++		} else {
++			if (!ccs_path_matches_pattern(filename,
++						      acl->u.filename))
++				continue;
++		}
++		r->cond = ccs_get_condition_part(ptr);
++		return 0;
++	}
++	return -EPERM;
++}
++
++/**
++ * ccs_check_ioctl_perm - Check permission for ioctl.
++ *
++ * @r:         Pointer to "strct ccs_request_info".
++ * @filename:  Filename to check.
++ * @cmd:       Ioctl command number.
++ *
++ * Returns 0 on success, 1 on retry, negative value otherwise.
++ */
++static int ccs_check_ioctl_perm(struct ccs_request_info *r,
++				const struct ccs_path_info *filename,
++				const unsigned int cmd)
++{
++	const bool is_enforce = (r->mode == 3);
++	int error = 0;
++	if (!filename)
++		return 0;
++ retry:
++	error = ccs_check_ioctl_acl(r, filename, cmd);
++	ccs_audit_ioctl_log(r, cmd, filename->name, !error);
++	if (!error)
++		return 0;
++	if (ccs_verbose_mode(r->domain))
++		printk(KERN_WARNING "TOMOYO-%s: Access 'ioctl %s %u' denied "
++		       "for %s\n", ccs_get_msg(is_enforce), filename->name,
++		       cmd, ccs_get_last_name(r->domain));
++	if (is_enforce) {
++		int err = ccs_check_supervisor(r, "allow_ioctl %s %u\n",
++					       filename->name, cmd);
++		if (err == 1)
++			goto retry;
++		return err;
++	}
++	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
++		ccs_update_ioctl_acl(ccs_get_file_pattern(filename), cmd, cmd,
++				     r->domain, ccs_handler_cond(), false);
++	return 0;
++}
++
++/**
++ * ccs_write_ioctl_policy - Update ioctl related list.
++ *
++ * @data:      String to parse.
++ * @domain:    Pointer to "struct domain_info".
++ * @condition: Pointer to "struct ccs_condition_list". May be NULL.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int ccs_write_ioctl_policy(char *data, struct domain_info *domain,
++			   const struct ccs_condition_list *condition,
++			   const bool is_delete)
++{
++	char *cmd = strchr(data, ' ');
++	unsigned int cmd_min;
++	unsigned int cmd_max;
++	if (!cmd)
++		return -EINVAL;
++	*cmd++ = '\0';
++	switch (sscanf(cmd, "%u-%u", &cmd_min, &cmd_max)) {
++	case 1:
++		cmd_max = cmd_min;
++		break;
++	case 2:
++		if (cmd_min <= cmd_max)
++			break;
++		/* fall through */
++	default:
++		return -EINVAL;
++	}
++	return ccs_update_ioctl_acl(data, cmd_min, cmd_max, domain, condition,
++				    is_delete);
++}
++
++/**
++ * ccs_check_ioctl_permission - Check permission for "ioctl".
++ *
++ * @file: Pointer to "struct file".
++ * @cmd:  Ioctl command number.
++ * @arg:  Param for @cmd .
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
++			       unsigned long arg)
++{
++	struct ccs_request_info r;
++	struct ccs_obj_info obj;
++	int error = -ENOMEM;
++	struct ccs_path_info *buf;
++	if (!ccs_can_sleep())
++		return 0;
++	ccs_init_request_info(&r, current->domain_info,
++			      CCS_TOMOYO_MAC_FOR_IOCTL);
++	if (!r.mode || !filp->f_vfsmnt)
++		return 0;
++	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
++	if (!buf)
++		goto out;
++	memset(&obj, 0, sizeof(obj));
++	obj.path1_dentry = filp->f_dentry;
++	obj.path1_vfsmnt = filp->f_vfsmnt;
++	r.obj = &obj;
++	error = ccs_check_ioctl_perm(&r, buf, cmd);
++ out:
++	ccs_free(buf);
++	if (r.mode != 3)
++		error = 0;
++	return error;
++}
++
+ /*
+  * Below part contains copy of some of VFS helper functions.
+  *
+Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
+===================================================================
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 2268)
++++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(working copy)
+@@ -81,6 +81,7 @@
+ #define KEYWORD_ALIAS                    "alias "
+ #define KEYWORD_ALLOW_ARGV0              "allow_argv0 "
+ #define KEYWORD_ALLOW_ENV                "allow_env "
++#define KEYWORD_ALLOW_IOCTL              "allow_ioctl "
+ #define KEYWORD_ALLOW_CAPABILITY         "allow_capability "
+ #define KEYWORD_ALLOW_CHROOT             "allow_chroot "
+ #define KEYWORD_ALLOW_MOUNT              "allow_mount "
+@@ -159,6 +160,7 @@
+ 	DIRECTIVE_ALLOW_ARGV0,
+ 	DIRECTIVE_ALLOW_SIGNAL,
+ 	DIRECTIVE_ALLOW_NETWORK,
++	DIRECTIVE_ALLOW_IOCTL,
+ 	DIRECTIVE_ALLOW_ENV,
+ 	DIRECTIVE_ADDRESS_GROUP,
+ 	DIRECTIVE_AGGREGATOR,
+Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy_optimizer.c
+===================================================================
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy_optimizer.c	(revision 2268)
++++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy_optimizer.c	(working copy)
+@@ -327,6 +327,7 @@
+ 		case DIRECTIVE_ALLOW_LINK:
+ 		case DIRECTIVE_ALLOW_RENAME:
+ 		case DIRECTIVE_ALLOW_REWRITE:
++		case DIRECTIVE_ALLOW_IOCTL:
+ 			if (!compare_path(&sarg1, &darg1, d_index))
+ 				continue;
+ 			break;
+@@ -392,6 +393,8 @@
+ 			break;
+ 		case DIRECTIVE_ALLOW_NETWORK:
+ 			/* Port number component. */
++		case DIRECTIVE_ALLOW_IOCTL:
++			/* Ioctl command number component. */
+ 			switch (sscanf(sarg2.name, "%u-%u", &smin, &smax)) {
+ 			case 1:
+ 				smax = smin;
+Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy_keyword.c
+===================================================================
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy_keyword.c	(revision 2268)
++++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy_keyword.c	(working copy)
+@@ -38,6 +38,7 @@
+ 	[DIRECTIVE_ALLOW_LINK]       = { "allow_link", NULL, 0, 0 },
+ 	[DIRECTIVE_ALLOW_RENAME]     = { "allow_rename", NULL, 0, 0 },
+ 	[DIRECTIVE_ALLOW_REWRITE]    = { "allow_rewrite", NULL, 0, 0 },
++	[DIRECTIVE_ALLOW_IOCTL]      = { "allow_ioctl", NULL, 0, 0 },
+ 	[DIRECTIVE_ALLOW_ARGV0]      = { "allow_argv0", NULL, 0, 0 },
+ 	[DIRECTIVE_ALLOW_SIGNAL]     = { "allow_signal", NULL, 0, 0 },
+ 	[DIRECTIVE_ALLOW_NETWORK]    = { "allow_network", NULL, 0, 0 },
+Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.conf
+===================================================================
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.conf	(revision 2268)
++++ trunk/1.6.x/ccs-tools/ccstools/ccstools.conf	(working copy)
+@@ -15,6 +15,7 @@
+ editpolicy.keyword_alias allow_create              = allow_create
+ editpolicy.keyword_alias allow_env                 = allow_env
+ editpolicy.keyword_alias allow_execute             = allow_execute
++editpolicy.keyword_alias allow_ioctl               = allow_ioctl
+ editpolicy.keyword_alias allow_link                = allow_link
+ editpolicy.keyword_alias allow_mkblock             = allow_mkblock
+ editpolicy.keyword_alias allow_mkchar              = allow_mkchar
