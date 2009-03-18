@@ -31,6 +31,7 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/realpath.h>
 #include <linux/proc_fs.h>
 #include <linux/ccs_common.h>
+#include <net/sock.h>
 
 /**
  * ccs_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
@@ -182,6 +183,15 @@ static int ccs_get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
 	/***** CRITICAL SECTION END *****/
 }
 
+#define SOCKFS_MAGIC 0x534F434B
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
+static inline struct socket *SOCKET_I(struct inode *inode)
+{
+	return inode->i_sock ? &inode->u.socket_i : NULL;
+}
+#endif
+
 /**
  * ccs_realpath_from_dentry2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
  *
@@ -200,6 +210,20 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
 	struct vfsmount *d_mnt;
 	if (!dentry || !newname || newname_len <= 2048)
 		goto out;
+	/* Get better name for socket. */
+	if (dentry->d_sb && dentry->d_sb->s_magic == SOCKFS_MAGIC) {
+		struct inode *inode = dentry->d_inode;
+                struct socket *sock = inode ? SOCKET_I(inode) : NULL;
+                struct sock *sk = sock ? sock->sk : NULL;
+                if (sk) {
+			snprintf(newname, newname_len - 1,
+                                 "socket:[family=%u:type=%u:protocol=%u]",
+                                 sk->sk_family, sk->sk_type, sk->sk_protocol);
+		} else {
+			snprintf(newname, newname_len - 1, "socket:[unknown]");
+		}
+		return 0;
+	}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 	if (dentry->d_op && dentry->d_op->d_dname) {
 		/* For "socket:[\$]" and "pipe:[\$]". */

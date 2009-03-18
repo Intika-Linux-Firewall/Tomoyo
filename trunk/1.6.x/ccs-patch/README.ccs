@@ -1848,4 +1848,25 @@ Fix 2009/03/13
 
       Thus, I modified to show only profile entry names ever specified.
 
+Fix 2009/03/18
+
+    @ Add MAC_FOR_IOCTL functionality.
+
+      To be able to restrict ioctl() requests, I added MAC_FOR_IOCTL
+      functionality.
+
+      This functionality requires modification of ccs-patch-\*.diff .
+      Therefore, this functionality will not work if you are using old
+      ccs-patch-\*.diff .
+
+    @ Use better name for socket's pathname.
+
+      Until now, socket's pathname was represented as "socket:[\$]" format
+      where \$ is inode's number. But inode's number is useless for name based
+      access control. Therefore, I modified to represent socket's pathname as
+      "socket:[family=\$:type=\$:protocol=\$]" format.
+
+      This will help administrator control ioctl() against sockets more
+      precisely.
+
 Version 1.6.7 2009/??/??   Feature enhancement release.

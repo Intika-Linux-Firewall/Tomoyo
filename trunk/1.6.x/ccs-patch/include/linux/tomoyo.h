@@ -54,6 +54,8 @@ int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 			 struct vfsmount *mnt1, struct dentry *dentry2,
 			 struct vfsmount *mnt2);
 int ccs_check_rewrite_permission(struct file *filp);
+int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
+			       unsigned long arg);
 
 /* Check whether the given signal is allowed to use. */
 int ccs_check_signal_acl(const int sig, const int pid);
@@ -143,6 +145,13 @@ static inline int ccs_check_rewrite_permission(struct file *filp)
 {
 	return 0;
 }
+static inline int ccs_check_ioctl_permission(struct file *filp,
+					     unsigned int cmd,
+					     unsigned long arg)
+{
+	return 0;
+}
+
 static inline int ccs_check_signal_acl(const int sig, const int pid)
 {
 	return 0;
